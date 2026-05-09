@@ -41,6 +41,28 @@ export default function App() {
   const recordingStartTimeRef = useRef<number>(0);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const currentAudioBlobRef = useRef<Blob | null>(null);
+  const recordingStartRef = useRef<number>(0);
+
+  // Load persisted audio records from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("audioRecords");
+    if (stored) {
+      try {
+        const recordsData = JSON.parse(stored);
+        // Note: Blobs are not stored in localStorage, only metadata
+        // We'll need to rebuild the records from what's available
+        setAudioRecords(
+          recordsData.map((data: any) => ({
+            ...data,
+            audioBlob: new Blob([], { type: "audio/webm" }), // Empty blob as placeholder
+          })),
+        );
+      } catch (e) {
+        console.error("Failed to load audio records:", e);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -62,6 +84,7 @@ export default function App() {
   const startRecording = async () => {
     try {
       setError(null);
+      recordingStartRef.current = Date.now();
 
       if (selectedModel === "webspeech") {
         startWebSpeechRecording();
@@ -83,6 +106,7 @@ export default function App() {
           const audioBlob = new Blob(audioChunksRef.current, {
             type: "audio/wav",
           });
+          currentAudioBlobRef.current = audioBlob;
           await transcribeAudio(audioBlob);
         };
 
@@ -189,10 +213,7 @@ export default function App() {
         recognition.stop();
         setIsRecording(false);
       } else if (currentSilenceTime < SILENCE_THRESHOLD) {
-        silenceTimerRef.current = setTimeout(
-          checkSilence,
-          CHECK_INTERVAL,
-        );
+        silenceTimerRef.current = setTimeout(checkSilence, CHECK_INTERVAL);
       }
     };
 
@@ -219,7 +240,13 @@ export default function App() {
           type: "audio/webm",
         });
         const duration = recordingDuration;
-        saveAudioRecord(audioBlob, duration);
+        const lastTranscription = transcriptions[transcriptions.length - 1];
+        saveAudioRecord(
+          audioBlob,
+          duration,
+          lastTranscription?.text || "",
+          "webspeech",
+        );
       };
 
       mediaRecorder.start();
@@ -229,7 +256,10 @@ export default function App() {
   };
 
   const stopAudioRecording = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state === "recording"
+    ) {
       mediaRecorderRef.current.stop();
     }
     if (streamRef.current) {
@@ -237,15 +267,19 @@ export default function App() {
     }
   };
 
-  const saveAudioRecord = (audioBlob: Blob, duration: number) => {
-    const lastTranscription = transcriptions[transcriptions.length - 1];
+  const saveAudioRecord = (
+    audioBlob: Blob,
+    duration: number,
+    transcription: string = "",
+    model: Model = "webspeech",
+  ) => {
     const record: AudioRecord = {
       id: `audio-${Date.now()}`,
       audioBlob,
       timestamp: new Date().toLocaleString(),
       duration,
-      transcription: lastTranscription?.text || "",
-      model: "webspeech",
+      transcription,
+      model,
     };
 
     setAudioRecords((prev) => [record, ...prev]);
@@ -258,9 +292,7 @@ export default function App() {
       transcription: record.transcription,
       model: record.model,
     };
-    const stored = JSON.parse(
-      localStorage.getItem("audioRecords") || "[]",
-    );
+    const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
     localStorage.setItem(
       "audioRecords",
       JSON.stringify([audioData, ...stored]),
@@ -283,7 +315,7 @@ export default function App() {
         }
       }
     }
-    
+
     // Clear timers
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
@@ -329,7 +361,7 @@ export default function App() {
     const formData = new FormData();
     formData.append("file", audioBlob, "audio.wav");
     formData.append("model", "whisper-1");
-    formData.append("language", "en");
+    formData.append("language", "zh");
 
     const response = await fetch(
       "https://api.openai.com/v1/audio/transcriptions",
@@ -351,6 +383,12 @@ export default function App() {
 
     const data = await response.json();
     addTranscription(data.text, "openai");
+
+    // Save audio record with transcription
+    const duration = Math.floor(
+      (Date.now() - recordingStartRef.current) / 1000,
+    );
+    saveAudioRecord(audioBlob, duration, data.text, "openai");
   };
 
   const transcribeWithGemini = async (audioBlob: Blob, apiKey: string) => {
@@ -395,6 +433,12 @@ export default function App() {
     const text =
       data.candidates?.[0]?.content?.parts?.[0]?.text || "Unable to transcribe";
     addTranscription(text, "gemini");
+
+    // Save audio record with transcription
+    const duration = Math.floor(
+      (Date.now() - recordingStartRef.current) / 1000,
+    );
+    saveAudioRecord(audioBlob, duration, text, "gemini");
   };
 
   const blobToBase64 = (blob: Blob): Promise<string> => {
@@ -434,9 +478,7 @@ export default function App() {
 
   const deleteAudioRecord = (id: string) => {
     setAudioRecords((prev) => prev.filter((record) => record.id !== id));
-    const stored = JSON.parse(
-      localStorage.getItem("audioRecords") || "[]",
-    );
+    const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
     const updated = stored.filter((record: any) => record.id !== id);
     localStorage.setItem("audioRecords", JSON.stringify(updated));
   };
@@ -496,7 +538,7 @@ export default function App() {
 
       {showAudioHistory && (
         <div className="audio-history-panel">
-          <h2>📁 Audio History (Admin Panel)</h2>
+          <h2>📁 Audio History (View & Manage Recordings)</h2>
           {audioRecords.length === 0 ? (
             <p className="empty">No recordings yet.</p>
           ) : (
@@ -507,9 +549,16 @@ export default function App() {
                     <div className="audio-header">
                       <span className="timestamp">{record.timestamp}</span>
                       <span className="duration">⏱️ {record.duration}s</span>
+                      <span className="model-badge">
+                        {record.model === "openai"
+                          ? "🤖 Whisper"
+                          : record.model === "gemini"
+                            ? "✨ Gemini"
+                            : "🌐 Web Speech"}
+                      </span>
                     </div>
                     <p className="transcription">
-                      <strong>Transcription:</strong>{" "}
+                      <strong>📝 Transcription:</strong>{" "}
                       {record.transcription || "(no speech detected)"}
                     </p>
                   </div>
