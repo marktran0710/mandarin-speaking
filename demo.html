@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>語音筆記 — 繁體中文</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f5f4f0;
+      --bg-info: #e6f1fb;
+      --text-primary: #1a1a1a;
+      --text-secondary: #666;
+      --text-tertiary: #aaa;
+      --text-info: #185fa5;
+      --border-light: rgba(0, 0, 0, 0.12);
+      --border-mid: rgba(0, 0, 0, 0.22);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --coral: #D85A30;
+      --coral-light: rgba(216, 90, 48, 0.12);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1c1c1e;
+        --bg-secondary: #2c2c2e;
+        --bg-info: #0c2a45;
+        --text-primary: #f0f0f0;
+        --text-secondary: #aaa;
+        --text-tertiary: #666;
+        --text-info: #85b7eb;
+        --border-light: rgba(255, 255, 255, 0.1);
+        --border-mid: rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    body {
+      font-family: 'Noto Serif TC', serif;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .app {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 2rem;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 500;
+      color: var(--text-primary);
+      letter-spacing: 0.02em;
+    }
+
+    .badge {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 99px;
+      background: var(--bg-info);
+      color: var(--text-info);
+      font-family: system-ui, sans-serif;
+    }
+
+    /* Mic Section */
+    .mic-section {
+      background: var(--bg-primary);
+      border: 0.5px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 2rem 1.5rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .mic-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .mic-btn {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      border: 0.5px solid var(--border-mid);
+      background: var(--bg-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, border-color 0.2s;
+    }
+
+    .mic-btn:hover {
+      transform: scale(1.05);
+      border-color: var(--border-mid);
+    }
+
+    .mic-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .mic-btn.recording {
+      border-color: var(--coral);
+      animation: pulse-ring 1.4s ease-out infinite;
+    }
+
+    .mic-btn i {
+      font-size: 30px;
+      color: var(--text-secondary);
+      transition: color 0.2s;
+    }
+
+    .mic-btn.recording i {
+      color: var(--coral);
+    }
+
+    @keyframes pulse-ring {
+      0% {
+        box-shadow: 0 0 0 0 rgba(216, 90, 48, 0.3);
+      }
+
+      70% {
+        box-shadow: 0 0 0 16px rgba(216, 90, 48, 0);
+      }
+
+      100% {
+        box-shadow: 0 0 0 0 rgba(216, 90, 48, 0);
+      }
+    }
+
+    .mic-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mic-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-family: system-ui, sans-serif;
+    }
+
+    .mic-label.rec {
+      color: var(--coral);
+      font-weight: 500;
+    }
+
+    .audio-indicator {
+      display: none;
+      align-items: flex-end;
+      gap: 2px;
+      height: 18px;
+    }
+
+    .audio-bar {
+      width: 3px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--coral);
+    }
+
+    .audio-bar.active {
+      animation: bar-bounce 0.6s ease-in-out infinite;
+    }
+
+    .audio-bar:nth-child(2).active {
+      animation-delay: 0.1s;
+    }
+
+    .audio-bar:nth-child(3).active {
+      animation-delay: 0.2s;
+    }
+
+    .audio-bar:nth-child(4).active {
+      animation-delay: 0.3s;
+    }
+
+    @keyframes bar-bounce {
+
+      0%,
+      100% {
+        height: 4px;
+      }
+
+      50% {
+        height: 16px;
+      }
+    }
+
+    .error-msg {
+      font-size: 13px;
+      color: var(--coral);
+      font-family: system-ui, sans-serif;
+      text-align: center;
+      min-height: 18px;
+    }
+
+    .live-box {
+      width: 100%;
+      min-height: 64px;
+      border: 0.5px solid var(--border-light);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      background: var(--bg-secondary);
+      font-size: 16px;
+      line-height: 1.75;
+      font-family: 'Noto Serif TC', serif;
+    }
+
+    .live-box .placeholder {
+      color: var(--text-tertiary);
+      font-family: system-ui, sans-serif;
+      font-size: 14px;
+    }
+
+    .live-box .interim {
+      color: var(--text-tertiary);
+      font-style: italic;
+    }
+
+    .live-box .final {
+      color: var(--text-primary);
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .toolbar button {
+      font-size: 13px;
+      font-family: system-ui, sans-serif;
+      padding: 6px 13px;
+      border-radius: var(--radius-md);
+      border: 0.5px solid var(--border-mid);
+      background: var(--bg-primary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.15s;
+    }
+
+    .toolbar button:hover {
+      background: var(--bg-secondary);
+    }
+
+    .toolbar button.danger:hover {
+      color: var(--coral);
+      border-color: var(--coral);
+    }
+
+    .toolbar .spacer {
+      flex: 1;
+    }
+
+    .toolbar .count {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-family: system-ui, sans-serif;
+    }
+
+    /* Entries */
+    .entries {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .entry {
+      background: var(--bg-primary);
+      border: 0.5px solid var(--border-light);
+      border-radius: var(--radius-lg);
+      padding: 12px 14px;
+      position: relative;
+    }
+
+    .entry-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .entry-num {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-family: system-ui, sans-serif;
+      min-width: 24px;
+    }
+
+    .entry-time {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-family: system-ui, sans-serif;
+    }
+
+    .entry-dur {
+      font-size: 11px;
+      padding: 1px 7px;
+      border-radius: 99px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-family: system-ui, sans-serif;
+    }
+
+    .entry-text {
+      font-size: 15px;
+      color: var(--text-primary);
+      line-height: 1.8;
+      font-family: 'Noto Serif TC', serif;
+    }
+
+    .entry-actions {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .entry:hover .entry-actions {
+      opacity: 1;
+    }
+
+    .entry-actions button {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-md);
+      border: 0.5px solid var(--border-light);
+      background: var(--bg-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      transition: background 0.1s;
+    }
+
+    .entry-actions button:hover {
+      background: var(--bg-secondary);
+    }
+
+    .entry-actions button.del:hover {
+      color: var(--coral);
+      border-color: var(--coral);
+    }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-tertiary);
+      font-family: system-ui, sans-serif;
+      font-size: 14px;
+    }
+
+    .empty i {
+      font-size: 36px;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(16px);
+      background: var(--bg-primary);
+      border: 0.5px solid var(--border-mid);
+      padding: 8px 20px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-family: system-ui, sans-serif;
+      color: var(--text-primary);
+      opacity: 0;
+      transition: all 0.25s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 999;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+
+    <div class="header">
+      <h1>語音筆記</h1>
+      <span class="badge">繁體中文</span>
+    </div>
+
+    <!-- Mic Panel -->
+    <div class="mic-section">
+      <div class="mic-area">
+        <button class="mic-btn" id="micBtn" aria-label="開始錄音" onclick="toggleRecording()">
+          <i class="ti ti-microphone" aria-hidden="true"></i>
+        </button>
+
+        <div class="mic-status">
+          <span class="mic-label" id="micLabel">點擊開始錄音</span>
+          <div class="audio-indicator" id="audioIndicator">
+            <div class="audio-bar"></div>
+            <div class="audio-bar"></div>
+            <div class="audio-bar"></div>
+            <div class="audio-bar"></div>
+          </div>
+        </div>
+
+        <div class="error-msg" id="errorMsg" role="alert"></div>
+
+        <div class="live-box" id="liveBox" aria-live="polite">
+          <span class="placeholder">即時轉錄將顯示於此…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button onclick="exportAll()">
+        <i class="ti ti-download" aria-hidden="true"></i> 匯出
+      </button>
+      <button onclick="copyAll()">
+        <i class="ti ti-copy" aria-hidden="true"></i> 複製全部
+      </button>
+      <div class="spacer"></div>
+      <span class="count" id="entryCount">0 則筆記</span>
+      <button class="danger" onclick="clearAll()">
+        <i class="ti ti-trash" aria-hidden="true"></i> 清除
+      </button>
+    </div>
+
+    <!-- Entry List -->
+    <div class="entries" id="entriesList"></div>
+    <div class="empty" id="emptyState">
+      <i class="ti ti-microphone-off" aria-hidden="true"></i>
+      尚無錄音記錄<br>點擊麥克風按鈕開始
+    </div>
+
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // ── State ──────────────────────────────────────────────────────────────
+    let recognition = null;
+    let isRecording = false;
+    let currentFinal = '';
+    let recStartTime = null;
+    let recTimer = null;
+    let elapsedSecs = 0;
+    let entries = JSON.parse(localStorage.getItem('zh_tw_entries') || '[]');
+
+    // ── Recognition setup ──────────────────────────────────────────────────
+    function initRecognition() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        document.getElementById('errorMsg').textContent =
+          '此瀏覽器不支援語音辨識，請使用 Chrome 或 Edge。';
+        document.getElementById('micBtn').disabled = true;
+        return null;
+      }
+
+      const r = new SR();
+      r.lang = 'zh-TW';   // Traditional Chinese (Taiwan)
+      r.continuous = true;
+      r.interimResults = true;
+      r.maxAlternatives = 1;
+
+      r.onresult = (e) => {
+        let interim = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          const t = e.results[i][0].transcript;
+          if (e.results[i].isFinal) currentFinal += t;
+          else interim = t;
+        }
+        updateLiveBox(currentFinal, interim);
+      };
+
+      r.onerror = (e) => {
+        const msgs = {
+          'not-allowed': '請允許麥克風存取權限。',
+          'no-speech': '未偵測到語音，請再試一次。',
+          'network': '網路錯誤，請確認連線。',
+          'aborted': '',
+        };
+        const msg = msgs[e.error] ?? `錯誤：${e.error}`;
+        if (msg) document.getElementById('errorMsg').textContent = msg;
+        stopRecording(false);
+      };
+
+      // Auto-restart to keep continuous recording alive
+      r.onend = () => { if (isRecording) { try { r.start(); } catch (_) { } } };
+
+      return r;
+    }
+
+    function updateLiveBox(final, interim) {
+      const lb = document.getElementById('liveBox');
+      lb.innerHTML =
+        (final ? `<span class="final">${escHtml(final)}</span>` : '') +
+        (interim ? `<span class="interim">${escHtml(interim)}</span>` : '');
+      if (!final && !interim)
+        lb.innerHTML = '<span class="placeholder">正在聆聽…</span>';
+    }
+
+    // ── Toggle ─────────────────────────────────────────────────────────────
+    function toggleRecording() {
+      if (isRecording) stopRecording(true);
+      else startRecording();
+    }
+
+    function startRecording() {
+      document.getElementById('errorMsg').textContent = '';
+      if (!recognition) recognition = initRecognition();
+      if (!recognition) return;
+
+      currentFinal = '';
+      isRecording = true;
+      recStartTime = Date.now();
+      elapsedSecs = 0;
+
+      try { recognition.start(); } catch (_) { }
+
+      // UI
+      const btn = document.getElementById('micBtn');
+      btn.classList.add('recording');
+      btn.setAttribute('aria-label', '停止錄音');
+      btn.querySelector('i').className = 'ti ti-player-stop';
+
+      const lbl = document.getElementById('micLabel');
+      lbl.classList.add('rec');
+      lbl.textContent = '錄音中 0:00';
+
+      const ind = document.getElementById('audioIndicator');
+      ind.style.display = 'flex';
+      ind.querySelectorAll('.audio-bar').forEach(b => b.classList.add('active'));
+
+      document.getElementById('liveBox').innerHTML =
+        '<span class="placeholder">正在聆聽…</span>';
+
+      recTimer = setInterval(() => {
+        elapsedSecs = Math.floor((Date.now() - recStartTime) / 1000);
+        const m = Math.floor(elapsedSecs / 60);
+        const s = String(elapsedSecs % 60).padStart(2, '0');
+        document.getElementById('micLabel').textContent = `錄音中 ${m}:${s}`;
+      }, 1000);
+    }
+
+    function stopRecording(save) {
+      isRecording = false;
+      clearInterval(recTimer);
+      try { recognition.stop(); } catch (_) { }
+
+      // UI reset
+      const btn = document.getElementById('micBtn');
+      btn.classList.remove('recording');
+      btn.setAttribute('aria-label', '開始錄音');
+      btn.querySelector('i').className = 'ti ti-microphone';
+
+      const lbl = document.getElementById('micLabel');
+      lbl.classList.remove('rec');
+      lbl.textContent = '點擊開始錄音';
+
+      const ind = document.getElementById('audioIndicator');
+      ind.style.display = 'none';
+      ind.querySelectorAll('.audio-bar').forEach(b => b.classList.remove('active'));
+
+      document.getElementById('liveBox').innerHTML =
+        '<span class="placeholder">即時轉錄將顯示於此…</span>';
+
+      // Save entry
+      if (save && currentFinal.trim()) {
+        const dur = elapsedSecs;
+        const m = Math.floor(dur / 60);
+        const s = String(dur % 60).padStart(2, '0');
+        const entry = {
+          id: Date.now(),
+          text: currentFinal.trim(),
+          time: new Date().toLocaleString('zh-TW', {
+            month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit'
+          }),
+          duration: `${m}:${s}`,
+        };
+        entries.unshift(entry);
+        saveEntries();
+        renderEntries();
+        showToast('已儲存筆記 ✓');
+      }
+      currentFinal = '';
+    }
+
+    // ── Storage ────────────────────────────────────────────────────────────
+    function saveEntries() {
+      try { localStorage.setItem('zh_tw_entries', JSON.stringify(entries)); } catch (_) { }
+    }
+
+    // ── Render ─────────────────────────────────────────────────────────────
+    function renderEntries() {
+      const list = document.getElementById('entriesList');
+      const empty = document.getElementById('emptyState');
+      document.getElementById('entryCount').textContent = `${entries.length} 則筆記`;
+
+      if (!entries.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+
+      list.innerHTML = entries.map((e, i) => `
+      <div class="entry" id="entry-${e.id}">
+        <div class="entry-meta">
+          <span class="entry-num">#${entries.length - i}</span>
+          <span class="entry-time">${e.time}</span>
+          <span class="entry-dur">
+            <i class="ti ti-clock" aria-hidden="true" style="font-size:11px; vertical-align:-1px;"></i>
+            ${e.duration}
+          </span>
+        </div>
+        <div class="entry-text">${escHtml(e.text)}</div>
+        <div class="entry-actions">
+          <button onclick="copyEntry(${e.id})" aria-label="複製此筆記">
+            <i class="ti ti-copy" style="font-size:14px;" aria-hidden="true"></i>
+          </button>
+          <button class="del" onclick="deleteEntry(${e.id})" aria-label="刪除此筆記">
+            <i class="ti ti-trash" style="font-size:14px;" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    `).join('');
+    }
+
+    // ── Actions ────────────────────────────────────────────────────────────
+    function deleteEntry(id) {
+      entries = entries.filter(e => e.id !== id);
+      saveEntries(); renderEntries();
+      showToast('已刪除');
+    }
+
+    function copyEntry(id) {
+      const e = entries.find(x => x.id === id);
+      if (!e) return;
+      navigator.clipboard.writeText(e.text)
+        .then(() => showToast('已複製！'))
+        .catch(() => showToast('複製失敗'));
+    }
+
+    function copyAll() {
+      if (!entries.length) { showToast('尚無筆記可複製'); return; }
+      const txt = entries.map(e => `[${e.time}] ${e.text}`).join('\n\n');
+      navigator.clipboard.writeText(txt)
+        .then(() => showToast('已複製全部！'))
+        .catch(() => showToast('複製失敗'));
+    }
+
+    function clearAll() {
+      if (!entries.length) { showToast('尚無筆記'); return; }
+      if (confirm('確定要清除所有筆記嗎？')) {
+        entries = [];
+        saveEntries(); renderEntries();
+        showToast('已清除所有筆記');
+      }
+    }
+
+    function exportAll() {
+      if (!entries.length) { showToast('尚無筆記可匯出'); return; }
+      const lines = ['語音筆記匯出 — 繁體中文', '='.repeat(32), ''];
+      entries.forEach((e, i) => {
+        lines.push(`#${entries.length - i}  ${e.time}  （時長 ${e.duration}）`);
+        lines.push(e.text);
+        lines.push('');
+      });
+      const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `語音筆記_${new Date().toLocaleDateString('zh-TW').replace(/\//g, '-')}.txt`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('已匯出 .txt 檔案');
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────
+    function escHtml(t) {
+      return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+    }
+
+    // ── Init ───────────────────────────────────────────────────────────────
+    renderEntries();
+  </script>
+</body>
+
+</html>

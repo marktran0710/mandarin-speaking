@@ -1,0 +1,14 @@
+- generic [ref=e3]:
+  - heading "🎤 Speech to Text" [level=1] [ref=e4]
+  - generic [ref=e5]:
+    - generic [ref=e6]: "Select Model:"
+    - combobox "Select Model:" [ref=e7] [cursor=pointer]:
+      - option "🌐 Web Speech API (Free, Offline)" [selected]
+      - option "🤖 OpenAI Whisper"
+      - option "✨ Google Gemini"
+  - generic [ref=e8]:
+    - button "Start Recording" [ref=e9] [cursor=pointer]
+    - button "Stop Recording" [disabled] [ref=e10]
+  - generic [ref=e11]:
+    - heading "Transcriptions" [level=2] [ref=e12]
+    - paragraph [ref=e13]: No transcriptions yet. Start recording!
