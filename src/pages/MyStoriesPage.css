@@ -1,0 +1,275 @@
+.my-stories-page {
+  min-height: calc(100vh - 80px);
+  padding: 40px 20px;
+  background: linear-gradient(
+    180deg,
+    #f5e6ff 0%,
+    #e6f2ff 25%,
+    #e0f7ff 50%,
+    #e6fff2 75%,
+    #fff9e6 100%
+  );
+}
+
+.stories-header {
+  max-width: 1200px;
+  margin: 0 auto 40px;
+  text-align: center;
+}
+
+.stories-header h1 {
+  font-size: 48px;
+  font-weight: 700;
+  background: linear-gradient(
+    135deg,
+    #ff006e,
+    #ff9d00,
+    #0066ff,
+    #00d9ff,
+    #00ff6b
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+}
+
+.stories-subtitle {
+  font-size: 18px;
+  color: #555;
+}
+
+.empty-state {
+  max-width: 600px;
+  margin: 60px auto;
+  text-align: center;
+  padding: 60px 20px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.empty-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  animation: bounce 2s infinite;
+}
+
+.empty-state h2 {
+  font-size: 32px;
+  color: #333;
+  margin-bottom: 16px;
+  border: none;
+}
+
+.empty-state p {
+  font-size: 18px;
+  color: #666;
+  line-height: 1.6;
+}
+
+.stories-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+.story-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+  animation: slideIn 0.3s ease;
+}
+
+.story-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+.story-card:nth-child(3n + 1) {
+  border-color: #ff006e;
+}
+
+.story-card:nth-child(3n + 2) {
+  border-color: #ff9d00;
+}
+
+.story-card:nth-child(3n + 3) {
+  border-color: #0066ff;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.story-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.story-title-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.topic-emoji {
+  font-size: 32px;
+}
+
+.story-timestamp {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.story-duration {
+  font-size: 12px;
+  color: #666;
+  margin-top: 4px;
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  padding: 0;
+}
+
+.btn-delete:hover {
+  transform: scale(1.2);
+}
+
+.story-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.transcription-box {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 8px;
+  border-left: 4px solid #0066ff;
+}
+
+.transcription-box strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #0066ff;
+  font-size: 14px;
+}
+
+.transcription-box p {
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.metrics-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.metric-item {
+  padding: 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.metric-item.tone {
+  background: linear-gradient(135deg, #ffe0e0 0%, #ffcccc 100%);
+  color: #c92a2a;
+}
+
+.metric-item.accuracy {
+  background: linear-gradient(135deg, #e0ffe0 0%, #ccffcc 100%);
+  color: #2b8a3e;
+}
+
+.metric-item.fluency {
+  background: linear-gradient(135deg, #e0f2ff 0%, #ccebff 100%);
+  color: #0c5aa0;
+}
+
+.metric-item.rate {
+  background: linear-gradient(135deg, #fff4e0 0%, #ffeacc 100%);
+  color: #b45309;
+}
+
+.metric-icon {
+  font-size: 16px;
+}
+
+.metric-text {
+  line-height: 1.3;
+}
+
+.model-info {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.model-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@media (max-width: 768px) {
+  .my-stories-page {
+    padding: 20px 12px;
+  }
+
+  .stories-header h1 {
+    font-size: 32px;
+  }
+
+  .stories-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics-summary {
+    grid-template-columns: 1fr;
+  }
+}
