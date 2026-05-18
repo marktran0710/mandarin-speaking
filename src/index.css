@@ -140,7 +140,7 @@ body {
 /* ===== METRICS SECTION ===== */
 .metrics-section {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 16px;
   margin-bottom: 32px;
 }
@@ -217,6 +217,129 @@ body {
 
 .ranking-card {
   border-left: 4px solid #ff6b6b;
+}
+
+/* Praat metrics cards */
+.tone-card {
+  border-left: 4px solid #ff6b6b;
+  grid-column: span 1;
+}
+
+.accuracy-card {
+  border-left: 4px solid #51cf66;
+  grid-column: span 1;
+}
+
+.fluency-card {
+  border-left: 4px solid #4ecdc4;
+  grid-column: span 1;
+}
+
+.rate-card {
+  border-left: 4px solid #ffa500;
+  grid-column: span 1;
+}
+
+.formants-card {
+  border-left: 4px solid #667eea;
+  grid-column: span 1;
+}
+
+.metric-subtext {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.formants-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.formant {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.formant span {
+  font-size: 12px;
+  color: #666;
+  font-weight: 600;
+}
+
+.formant strong {
+  font-size: 14px;
+  color: #667eea;
+  margin-top: 4px;
+}
+
+/* Pitch chart section */
+.chart-section {
+  margin: 32px 0;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.pitch-chart-container {
+  position: relative;
+  width: 100%;
+  height: 300px;
+  margin-bottom: 16px;
+}
+
+.pitch-chart-container canvas {
+  max-width: 100%;
+}
+
+/* Feedback section */
+.feedback-section {
+  background-color: #e7f5ff;
+  border: 2px solid #74c0fc;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 32px;
+}
+
+.feedback-section h3 {
+  color: #1971c2;
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+.feedback-section p {
+  color: #0c5aa0;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+/* Metrics summary in audio history */
+.metrics-summary {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 8px 0;
+  border-top: 1px solid #e9ecef;
+  flex-wrap: wrap;
+}
+
+.metrics-summary span {
+  font-size: 12px;
+  color: #667eea;
+  font-weight: 600;
+  background-color: #f0f4ff;
+  padding: 4px 10px;
+  border-radius: 4px;
 }
 
 h1 {
@@ -559,6 +682,14 @@ h2 {
   .metrics-section {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+
+  .tone-card,
+  .accuracy-card,
+  .fluency-card,
+  .rate-card,
+  .formants-card {
+    grid-column: span 1 !important;
   }
 
   .metric-value {

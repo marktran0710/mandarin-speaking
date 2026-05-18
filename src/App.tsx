@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import TopicSelector from "./TopicSelector";
+import PitchChart from "./PitchChart";
 
 type Model = "openai" | "gemini" | "webspeech";
 
@@ -11,6 +12,17 @@ interface TranscriptionResult {
   duration?: number;
 }
 
+interface PraatMetrics {
+  pitch_contour: Array<[number, number]>;
+  detected_tone: number;
+  tone_accuracy: number;
+  formants: Record<string, number>;
+  speech_rate: number;
+  fluency_score: number;
+  pitch_statistics: Record<string, number>;
+  feedback: string;
+}
+
 interface AudioRecord {
   id: string;
   audioBlob: Blob;
@@ -18,6 +30,7 @@ interface AudioRecord {
   duration: number;
   transcription: string;
   model: Model;
+  praatMetrics?: PraatMetrics;
 }
 
 interface Topic {
@@ -28,12 +41,15 @@ interface Topic {
   vocabulary: Record<number, string[]>;
 }
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+
 export default function App() {
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
   const [selectedImage, setSelectedImage] = useState<string>("");
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [transcriptions, setTranscriptions] = useState<TranscriptionResult[]>(
     [],
   );
@@ -43,15 +59,12 @@ export default function App() {
   const [silenceDuration, setSilenceDuration] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [showAudioHistory, setShowAudioHistory] = useState(false);
-  const [score, setScore] = useState<number>(0);
-  const [feedback, setFeedback] = useState<string>("");
-  const [ranking, setRanking] = useState<string>("Beginner");
+  const [praatMetrics, setPraatMetrics] = useState<PraatMetrics | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
   const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const recordingStartTimeRef = useRef<number>(0);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -59,18 +72,15 @@ export default function App() {
   const currentAudioBlobRef = useRef<Blob | null>(null);
   const recordingStartRef = useRef<number>(0);
 
-  // Load persisted audio records from localStorage on mount
   useEffect(() => {
     const stored = localStorage.getItem("audioRecords");
     if (stored) {
       try {
         const recordsData = JSON.parse(stored);
-        // Note: Blobs are not stored in localStorage, only metadata
-        // We'll need to rebuild the records from what's available
         setAudioRecords(
           recordsData.map((data: any) => ({
             ...data,
-            audioBlob: new Blob([], { type: "audio/webm" }), // Empty blob as placeholder
+            audioBlob: new Blob([], { type: "audio/webm" }),
           })),
         );
       } catch (e) {
@@ -157,10 +167,8 @@ export default function App() {
       setSilenceDuration(0);
       setRecordingDuration(0);
 
-      // Start recording audio in parallel
       startAudioRecording();
 
-      // Start duration timer
       durationIntervalRef.current = setInterval(() => {
         const elapsed = Math.floor(
           (Date.now() - recordingStartTimeRef.current) / 1000,
@@ -183,7 +191,6 @@ export default function App() {
         }
       }
 
-      // Reset silence timer when speech is detected
       if (hasNewFinal || interimTranscript) {
         setSilenceDuration(0);
         if (silenceTimerRef.current) {
@@ -211,14 +218,13 @@ export default function App() {
     recognitionRef.current = recognition;
     recognition.start();
 
-    // Start silence detection timer
     startSilenceDetection(recognition);
   };
 
   const startSilenceDetection = (recognition: any) => {
     let currentSilenceTime = 0;
-    const SILENCE_THRESHOLD = 7000; // 7 seconds
-    const CHECK_INTERVAL = 100; // Check every 100ms
+    const SILENCE_THRESHOLD = 7000;
+    const CHECK_INTERVAL = 100;
 
     const checkSilence = () => {
       currentSilenceTime += CHECK_INTERVAL;
@@ -250,17 +256,16 @@ export default function App() {
         audioChunksRef.current.push(event.data);
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, {
           type: "audio/webm",
         });
         const duration = recordingDuration;
         const lastTranscription = transcriptions[transcriptions.length - 1];
-        saveAudioRecord(
+        await analyzeSpeechAudio(
           audioBlob,
           duration,
           lastTranscription?.text || "",
-          "webspeech",
         );
       };
 
@@ -282,38 +287,6 @@ export default function App() {
     }
   };
 
-  const saveAudioRecord = (
-    audioBlob: Blob,
-    duration: number,
-    transcription: string = "",
-    model: Model = "webspeech",
-  ) => {
-    const record: AudioRecord = {
-      id: `audio-${Date.now()}`,
-      audioBlob,
-      timestamp: new Date().toLocaleString(),
-      duration,
-      transcription,
-      model,
-    };
-
-    setAudioRecords((prev) => [record, ...prev]);
-
-    // Save to localStorage
-    const audioData = {
-      id: record.id,
-      timestamp: record.timestamp,
-      duration: record.duration,
-      transcription: record.transcription,
-      model: record.model,
-    };
-    const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
-    localStorage.setItem(
-      "audioRecords",
-      JSON.stringify([audioData, ...stored]),
-    );
-  };
-
   const stopRecording = () => {
     if (selectedModel === "webspeech") {
       if (recognitionRef.current) {
@@ -331,7 +304,6 @@ export default function App() {
       }
     }
 
-    // Clear timers
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
     }
@@ -345,24 +317,27 @@ export default function App() {
   const transcribeAudio = async (audioBlob: Blob) => {
     setIsTranscribing(true);
     try {
-      const openaiKey = import.meta.env.VITE_OPENAI_API_KEY;
-      const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      const formData = new FormData();
+      formData.append("file", audioBlob, "audio.wav");
+      formData.append("model", selectedModel);
 
-      if (selectedModel === "openai") {
-        if (!openaiKey) {
-          setError("OpenAI API key not configured. Check .env file.");
-          setIsTranscribing(false);
-          return;
-        }
-        await transcribeWithOpenAI(audioBlob, openaiKey);
-      } else if (selectedModel === "gemini") {
-        if (!geminiKey) {
-          setError("Gemini API key not configured. Check .env file.");
-          setIsTranscribing(false);
-          return;
-        }
-        await transcribeWithGemini(audioBlob, geminiKey);
+      const response = await fetch(`${BACKEND_URL}/api/transcribe`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Transcription failed");
       }
+
+      const data = await response.json();
+      addTranscription(data.text, selectedModel);
+
+      const duration = Math.floor(
+        (Date.now() - recordingStartRef.current) / 1000,
+      );
+      await analyzeSpeechAudio(audioBlob, duration, data.text);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Transcription error occurred",
@@ -372,100 +347,86 @@ export default function App() {
     }
   };
 
-  const transcribeWithOpenAI = async (audioBlob: Blob, apiKey: string) => {
-    const formData = new FormData();
-    formData.append("file", audioBlob, "audio.wav");
-    formData.append("model", "whisper-1");
-    formData.append("language", "zh");
+  const analyzeSpeechAudio = async (
+    audioBlob: Blob,
+    duration: number,
+    transcription: string,
+  ) => {
+    setIsAnalyzing(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", audioBlob, "audio.wav");
 
-    const response = await fetch(
-      "https://api.openai.com/v1/audio/transcriptions",
-      {
+      const response = await fetch(`${BACKEND_URL}/api/analyze`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-        },
         body: formData,
-      },
-    );
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error?.message || "OpenAI transcription failed",
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Analysis failed");
+      }
+
+      const metrics: PraatMetrics = await response.json();
+      setPraatMetrics(metrics);
+
+      saveAudioRecord(
+        audioBlob,
+        duration,
+        transcription,
+        selectedModel,
+        metrics,
       );
+    } catch (err) {
+      console.error("Error analyzing speech:", err);
+      setError(
+        err instanceof Error ? err.message : "Speech analysis error occurred",
+      );
+    } finally {
+      setIsAnalyzing(false);
     }
-
-    const data = await response.json();
-    addTranscription(data.text, "openai");
-
-    // Save audio record with transcription
-    const duration = Math.floor(
-      (Date.now() - recordingStartRef.current) / 1000,
-    );
-    saveAudioRecord(audioBlob, duration, data.text, "openai");
   };
 
-  const transcribeWithGemini = async (audioBlob: Blob, apiKey: string) => {
-    const base64Audio = await blobToBase64(audioBlob);
-    const mimeType = "audio/wav";
+  const saveAudioRecord = (
+    audioBlob: Blob,
+    duration: number,
+    transcription: string = "",
+    model: Model = "webspeech",
+    praatMetrics?: PraatMetrics,
+  ) => {
+    const record: AudioRecord = {
+      id: `audio-${Date.now()}`,
+      audioBlob,
+      timestamp: new Date().toLocaleString(),
+      duration,
+      transcription,
+      model,
+      praatMetrics,
+    };
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  inline_data: {
-                    mime_type: mimeType,
-                    data: base64Audio,
-                  },
-                },
-                {
-                  text: "Please transcribe this audio to text. Only provide the transcription without any additional explanation.",
-                },
-              ],
-            },
-          ],
-        }),
-      },
+    setAudioRecords((prev) => [record, ...prev]);
+
+    const audioData = {
+      id: record.id,
+      timestamp: record.timestamp,
+      duration: record.duration,
+      transcription: record.transcription,
+      model: record.model,
+      praatMetrics: praatMetrics
+        ? {
+            detected_tone: praatMetrics.detected_tone,
+            tone_accuracy: praatMetrics.tone_accuracy,
+            speech_rate: praatMetrics.speech_rate,
+            fluency_score: praatMetrics.fluency_score,
+          }
+        : undefined,
+    };
+
+    const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
+    localStorage.setItem(
+      "audioRecords",
+      JSON.stringify([audioData, ...stored]),
     );
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error?.message || "Gemini transcription failed",
-      );
-    }
-
-    const data = await response.json();
-    const text =
-      data.candidates?.[0]?.content?.parts?.[0]?.text || "Unable to transcribe";
-    addTranscription(text, "gemini");
-
-    // Save audio record with transcription
-    const duration = Math.floor(
-      (Date.now() - recordingStartRef.current) / 1000,
-    );
-    saveAudioRecord(audioBlob, duration, text, "gemini");
-  };
-
-  const blobToBase64 = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        resolve(result.split(",")[1]);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
   };
 
   const addTranscription = (text: string, model: Model) => {
@@ -478,41 +439,6 @@ export default function App() {
         model,
       },
     ]);
-
-    // Calculate score and feedback based on transcription
-    generateScoreAndFeedback(text);
-  };
-
-  const generateScoreAndFeedback = (text: string) => {
-    // Calculate score based on text length and quality
-    const wordCount = text.trim().split(/\s+/).length;
-    const charCount = text.length;
-
-    let calculatedScore = Math.min(100, Math.round((charCount / 5) * 10));
-    calculatedScore = Math.min(100, calculatedScore + (wordCount > 10 ? 20 : 0));
-
-    // Generate ranking based on score
-    let newRanking = "Beginner";
-    if (calculatedScore >= 80) newRanking = "Advanced";
-    else if (calculatedScore >= 60) newRanking = "Intermediate";
-    else if (calculatedScore >= 40) newRanking = "Developing";
-
-    // Generate feedback
-    let newFeedback = "Good start! ";
-    if (wordCount > 30) newFeedback += "Great vocabulary usage! ";
-    else if (wordCount > 20) newFeedback += "Nice work with your sentences! ";
-    else if (wordCount > 10) newFeedback += "Good effort, try to speak more! ";
-    else newFeedback += "Try to speak longer sentences! ";
-
-    if (calculatedScore >= 80)
-      newFeedback += "Your pronunciation is excellent! 🌟";
-    else if (calculatedScore >= 60)
-      newFeedback += "Keep practicing to improve fluency! 💪";
-    else newFeedback += "Practice more to build confidence! 📖";
-
-    setScore(calculatedScore);
-    setFeedback(newFeedback);
-    setRanking(newRanking);
   };
 
   const downloadAudio = (audioBlob: Blob, filename: string) => {
@@ -531,6 +457,16 @@ export default function App() {
     const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
     const updated = stored.filter((record: any) => record.id !== id);
     localStorage.setItem("audioRecords", JSON.stringify(updated));
+  };
+
+  const getToneName = (tone: number): string => {
+    const toneNames: Record<number, string> = {
+      1: "High Level (妈 mā)",
+      2: "Rising (麻 má)",
+      3: "Falling-Rising (马 mǎ)",
+      4: "Falling (骂 mà)",
+    };
+    return toneNames[tone] || "Unknown";
   };
 
   return (
@@ -564,17 +500,15 @@ export default function App() {
             )}
           </div>
 
-          {/* Topic Images Grid */}
           <div className="topic-images-section">
             <h3>Choose Your Story Image:</h3>
             <div className="topic-images-grid">
               {selectedTopic.images.map((image, index) => (
-                <div
-                  key={index}
-                  className="topic-image-wrapper"
-                >
+                <div key={index} className="topic-image-wrapper">
                   <div
-                    className={`topic-image-card ${selectedImageIndex === index ? "selected" : ""}`}
+                    className={`topic-image-card ${
+                      selectedImageIndex === index ? "selected" : ""
+                    }`}
                     onClick={() => {
                       setSelectedImage(image);
                       setSelectedImageIndex(index);
@@ -590,28 +524,90 @@ export default function App() {
             </div>
           </div>
 
-          {/* Score, Feedback, Ranking Cards */}
-          <div className="metrics-section">
-            <div className="metric-card score-card">
-              <div className="metric-label">📊 Score</div>
-              <div className="metric-value">{score}/100</div>
-              <div className="metric-bar">
-                <div className="metric-fill" style={{ width: `${score}%` }}></div>
+          {praatMetrics && (
+            <div className="metrics-section">
+              <div className="metric-card tone-card">
+                <div className="metric-label">🎯 Detected Tone</div>
+                <div className="metric-value">
+                  {getToneName(praatMetrics.detected_tone)}
+                </div>
+              </div>
+
+              <div className="metric-card accuracy-card">
+                <div className="metric-label">📊 Tone Accuracy</div>
+                <div className="metric-value">
+                  {Math.round(praatMetrics.tone_accuracy)}%
+                </div>
+                <div className="metric-bar">
+                  <div
+                    className="metric-fill"
+                    style={{ width: `${praatMetrics.tone_accuracy}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="metric-card fluency-card">
+                <div className="metric-label">💬 Fluency</div>
+                <div className="metric-value">
+                  {Math.round(praatMetrics.fluency_score)}/100
+                </div>
+                <div className="metric-bar">
+                  <div
+                    className="metric-fill"
+                    style={{ width: `${praatMetrics.fluency_score}%` }}
+                  ></div>
+                </div>
+              </div>
+
+              <div className="metric-card rate-card">
+                <div className="metric-label">⚡ Speech Rate</div>
+                <div className="metric-value">
+                  {praatMetrics.speech_rate.toFixed(1)}
+                </div>
+                <div className="metric-subtext">syllables/sec</div>
+              </div>
+
+              <div className="metric-card formants-card">
+                <div className="metric-label">🎵 Formants</div>
+                <div className="formants-grid">
+                  <div className="formant">
+                    <span>F1:</span>
+                    <strong>
+                      {Math.round(praatMetrics.formants.F1 || 0)} Hz
+                    </strong>
+                  </div>
+                  <div className="formant">
+                    <span>F2:</span>
+                    <strong>
+                      {Math.round(praatMetrics.formants.F2 || 0)} Hz
+                    </strong>
+                  </div>
+                  <div className="formant">
+                    <span>F3:</span>
+                    <strong>
+                      {Math.round(praatMetrics.formants.F3 || 0)} Hz
+                    </strong>
+                  </div>
+                </div>
               </div>
             </div>
+          )}
 
-            <div className="metric-card feedback-card">
-              <div className="metric-label">💬 Feedback</div>
-              <div className="metric-text">
-                {feedback || "Start recording to get feedback"}
-              </div>
+          {praatMetrics && praatMetrics.pitch_contour && (
+            <div className="chart-section">
+              <PitchChart
+                pitchContour={praatMetrics.pitch_contour}
+                detectedTone={praatMetrics.detected_tone}
+              />
             </div>
+          )}
 
-            <div className="metric-card ranking-card">
-              <div className="metric-label">🏆 Ranking</div>
-              <div className="metric-badge">{ranking}</div>
+          {praatMetrics && (
+            <div className="feedback-section">
+              <h3>💡 Feedback</h3>
+              <p>{praatMetrics.feedback}</p>
             </div>
-          </div>
+          )}
 
           <div className="model-selector">
             <label htmlFor="model">Select Model:</label>
@@ -619,9 +615,9 @@ export default function App() {
               id="model"
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value as Model)}
-              disabled={isRecording || isTranscribing}
+              disabled={isRecording || isTranscribing || isAnalyzing}
             >
-              <option value="webspeech">🌐 Web Speech API (Free, Offline)</option>
+              <option value="webspeech">🌐 Web Speech API (Free)</option>
               <option value="openai">🤖 OpenAI Whisper</option>
               <option value="gemini">✨ Google Gemini</option>
             </select>
@@ -630,7 +626,7 @@ export default function App() {
           <div className="controls">
             <button
               onClick={startRecording}
-              disabled={isRecording || isTranscribing}
+              disabled={isRecording || isTranscribing || isAnalyzing}
               className="btn btn-primary"
             >
               {isRecording ? "🔴 Recording..." : "Start Recording"}
@@ -659,12 +655,17 @@ export default function App() {
             </div>
           )}
 
-          {isTranscribing && <p className="loading">🔄 Transcribing audio...</p>}
+          {(isTranscribing || isAnalyzing) && (
+            <p className="loading">
+              🔄 {isTranscribing ? "Transcribing" : "Analyzing"} audio...
+            </p>
+          )}
+
           {error && <p className="error">❌ {error}</p>}
 
           {showAudioHistory && (
             <div className="audio-history-panel">
-              <h2>📁 Audio History (View & Manage Recordings)</h2>
+              <h2>📁 Audio History</h2>
               {audioRecords.length === 0 ? (
                 <p className="empty">No recordings yet.</p>
               ) : (
@@ -674,19 +675,31 @@ export default function App() {
                       <div className="audio-info">
                         <div className="audio-header">
                           <span className="timestamp">{record.timestamp}</span>
-                          <span className="duration">⏱️ {record.duration}s</span>
-                          <span className="model-badge">
-                            {record.model === "openai"
-                              ? "🤖 Whisper"
-                              : record.model === "gemini"
-                                ? "✨ Gemini"
-                                : "🌐 Web Speech"}
+                          <span className="duration">
+                            ⏱️ {record.duration}s
                           </span>
                         </div>
                         <p className="transcription">
                           <strong>📝 Transcription:</strong>{" "}
                           {record.transcription || "(no speech detected)"}
                         </p>
+                        {record.praatMetrics && (
+                          <div className="metrics-summary">
+                            <span>
+                              🎯 Tone:{" "}
+                              {getToneName(record.praatMetrics.detected_tone)}
+                            </span>
+                            <span>
+                              📊 Accuracy:{" "}
+                              {Math.round(record.praatMetrics.tone_accuracy)}%
+                            </span>
+                            <span>
+                              💬 Fluency:{" "}
+                              {Math.round(record.praatMetrics.fluency_score)}
+                              /100
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="audio-controls">
                         <audio
@@ -733,7 +746,9 @@ export default function App() {
                 <div key={idx} className="transcription-item">
                   <div className="item-header">
                     <span className="time">{item.timestamp}</span>
-                    <span className="model-badge">{item.model.toUpperCase()}</span>
+                    <span className="model-badge">
+                      {item.model.toUpperCase()}
+                    </span>
                   </div>
                   <p>{item.text}</p>
                 </div>
