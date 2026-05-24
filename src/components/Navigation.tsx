@@ -13,34 +13,41 @@ export default function Navigation({
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <div className="navbar-logo">
-          <span className="logo-icon">🎤</span>
+        <button
+          type="button"
+          className="navbar-logo"
+          onClick={() => onNavigate("home")}
+        >
+          <span className="logo-icon">M</span>
           <span>Mandarin Stories</span>
-        </div>
+        </button>
 
         <ul className="navbar-menu">
           <li>
             <button
+              type="button"
               className={`nav-link ${currentPage === "home" ? "active" : ""}`}
               onClick={() => onNavigate("home")}
             >
-              🏠 Home
+              Home
             </button>
           </li>
           <li>
             <button
+              type="button"
               className={`nav-link ${currentPage === "create" ? "active" : ""}`}
               onClick={() => onNavigate("create")}
             >
-              ✨ Create Story
+              Create Story
             </button>
           </li>
           <li>
             <button
+              type="button"
               className={`nav-link ${currentPage === "mystories" ? "active" : ""}`}
               onClick={() => onNavigate("mystories")}
             >
-              📚 My Stories
+              My Stories
             </button>
           </li>
         </ul>

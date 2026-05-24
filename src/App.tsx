@@ -53,6 +53,7 @@ export default function App() {
             tone_accuracy: record.praatMetrics.tone_accuracy,
             speech_rate: record.praatMetrics.speech_rate,
             fluency_score: record.praatMetrics.fluency_score,
+            ai_feedback: record.praatMetrics.ai_feedback,
           }
         : undefined,
     };

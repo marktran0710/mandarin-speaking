@@ -6,18 +6,18 @@ interface PitchChartProps {
   detectedTone: number;
 }
 
-const TONE_COLORS = {
-  1: "rgba(255, 107, 107, 0.8)", // Red - High level
-  2: "rgba(76, 175, 80, 0.8)", // Green - Rising
-  3: "rgba(255, 193, 7, 0.8)", // Orange - Falling-rising
-  4: "rgba(33, 150, 243, 0.8)", // Blue - Falling
+const TONE_COLORS: Record<number, string> = {
+  1: "rgba(255, 107, 107, 0.85)",
+  2: "rgba(34, 197, 94, 0.85)",
+  3: "rgba(245, 158, 11, 0.85)",
+  4: "rgba(59, 130, 246, 0.85)",
 };
 
-const TONE_NAMES = {
-  1: "Tone 1: High Level (妈 mā)",
-  2: "Tone 2: Rising (麻 má)",
-  3: "Tone 3: Falling-Rising (马 mǎ)",
-  4: "Tone 4: Falling (骂 mà)",
+const TONE_NAMES: Record<number, string> = {
+  1: "Tone 1: High Level (媽 ma1)",
+  2: "Tone 2: Rising (麻 ma2)",
+  3: "Tone 3: Falling-Rising (馬 ma3)",
+  4: "Tone 4: Falling (罵 ma4)",
 };
 
 export default function PitchChart({
@@ -28,20 +28,15 @@ export default function PitchChart({
   const chartInstanceRef = useRef<Chart | null>(null);
 
   useEffect(() => {
-    if (!chartRef.current || !pitchContour || pitchContour.length === 0) {
+    if (!chartRef.current || pitchContour.length === 0) {
       return;
     }
 
-    // Destroy previous chart instance
-    if (chartInstanceRef.current) {
-      chartInstanceRef.current.destroy();
-    }
+    chartInstanceRef.current?.destroy();
 
-    // Prepare data
-    const times = pitchContour.map((p) => p[0].toFixed(2));
-    const frequencies = pitchContour.map((p) => p[1]);
-
-    // Create chart
+    const times = pitchContour.map((point) => point[0].toFixed(2));
+    const frequencies = pitchContour.map((point) => point[1]);
+    const toneColor = TONE_COLORS[detectedTone] || "rgba(99, 102, 241, 0.85)";
     const ctx = chartRef.current.getContext("2d");
     if (!ctx) return;
 
@@ -51,25 +46,21 @@ export default function PitchChart({
         labels: times,
         datasets: [
           {
-            label: "Your Pitch",
+            label: "Your pitch from Praat",
             data: frequencies,
-            borderColor: TONE_COLORS[detectedTone as keyof typeof TONE_COLORS],
-            backgroundColor:
-              `${TONE_COLORS[detectedTone as keyof typeof TONE_COLORS]}`.replace(
-                "0.8",
-                "0.1",
-              ),
-            borderWidth: 2,
-            tension: 0.4,
+            borderColor: toneColor,
+            backgroundColor: toneColor.replace("0.85", "0.14"),
+            borderWidth: 3,
+            tension: 0.35,
             fill: true,
-            pointRadius: 1,
+            pointRadius: 0,
             pointHoverRadius: 4,
           },
         ],
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: {
             display: true,
@@ -77,7 +68,9 @@ export default function PitchChart({
           },
           title: {
             display: true,
-            text: `Pitch Contour - ${TONE_NAMES[detectedTone as keyof typeof TONE_NAMES]}`,
+            text: `Praat Pitch Contour - ${
+              TONE_NAMES[detectedTone] || "Tone not detected"
+            }`,
             font: { size: 14, weight: "bold" },
           },
         },
@@ -88,8 +81,6 @@ export default function PitchChart({
               display: true,
               text: "Frequency (Hz)",
             },
-            min: 50,
-            max: 400,
           },
           x: {
             title: {
@@ -102,9 +93,7 @@ export default function PitchChart({
     });
 
     return () => {
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.destroy();
-      }
+      chartInstanceRef.current?.destroy();
     };
   }, [pitchContour, detectedTone]);
 

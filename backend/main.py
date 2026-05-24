@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional, List, Tuple
@@ -21,6 +21,7 @@ from chinese_tones import (
     get_reference_tone_pattern,
     generate_comprehensive_feedback,
 )
+from ai_feedback import generate_language_feedback
 
 # Load environment variables
 load_dotenv()
@@ -51,6 +52,7 @@ class AnalysisResponse(BaseModel):
     fluency_score: float
     pitch_statistics: dict
     feedback: str
+    ai_feedback: dict
 
 
 class ReferenceToneResponse(BaseModel):
@@ -76,13 +78,17 @@ async def health_check():
 
 
 @app.post("/api/analyze", response_model=AnalysisResponse)
-async def analyze_speech(file: UploadFile = File(...)):
+async def analyze_speech(
+    file: UploadFile = File(...),
+    transcription: str = Form(""),
+):
     """
     Analyze Chinese speech for tone, pitch, formants, speech rate, and fluency.
     """
     if not file:
         raise HTTPException(status_code=400, detail="No audio file provided")
 
+    tmp_path = None
     try:
         # Save uploaded file to temporary location
         with tempfile.NamedTemporaryFile(
@@ -95,7 +101,7 @@ async def analyze_speech(file: UploadFile = File(...)):
         # Extract audio analysis
         pitch_contour = extract_pitch(tmp_path)
         formants = extract_formants(tmp_path)
-        speech_rate = calculate_speech_rate(tmp_path)
+        speech_rate = calculate_speech_rate(tmp_path, transcription)
         fluency_score = analyze_fluency(pitch_contour, speech_rate)
         pitch_stats = get_pitch_statistics(pitch_contour)
 
@@ -112,9 +118,7 @@ async def analyze_speech(file: UploadFile = File(...)):
             fluency_score,
             pitch_contour,
         )
-
-        # Clean up temporary file
-        os.unlink(tmp_path)
+        ai_feedback = await generate_language_feedback(transcription)
 
         return AnalysisResponse(
             pitch_contour=pitch_contour,
@@ -125,6 +129,7 @@ async def analyze_speech(file: UploadFile = File(...)):
             fluency_score=fluency_score,
             pitch_statistics=pitch_stats,
             feedback=feedback,
+            ai_feedback=ai_feedback,
         )
 
     except Exception as e:
@@ -133,6 +138,9 @@ async def analyze_speech(file: UploadFile = File(...)):
             status_code=500,
             detail=f"Error analyzing speech: {str(e)}"
         )
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
 
 @app.post("/api/transcribe", response_model=TranscriptionResponse)

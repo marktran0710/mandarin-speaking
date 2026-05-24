@@ -4,15 +4,44 @@
   box-sizing: border-box;
 }
 
+:root {
+  --clay-primary: #2563eb;
+  --clay-primary-active: #1d4ed8;
+  --clay-ink: #111827;
+  --clay-body: #4b5563;
+  --clay-muted: #6b7280;
+  --clay-hairline: #e5e7eb;
+  --clay-canvas: #fffaf8;
+  --clay-surface-soft: #fff7f5;
+  --clay-surface-card: #ffffff;
+  --clay-surface-strong: #f8fafc;
+  --clay-pink: #fff1f2;
+  --clay-teal: #16a34a;
+  --clay-lavender: #eef2ff;
+  --clay-peach: #fff7ed;
+  --clay-ochre: #fef9c3;
+  --clay-mint: #dcfce7;
+  --clay-coral: #ef4444;
+  --clay-success: #22c55e;
+  --clay-warning: #f59e0b;
+  --clay-error: #dc2626;
+  --clay-radius-md: 12px;
+  --clay-radius-lg: 16px;
+  --clay-radius-xl: 24px;
+}
+
 body {
   font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
-    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background:
+    radial-gradient(circle at 14% 8%, rgba(254, 226, 226, 0.8), transparent 28%),
+    radial-gradient(circle at 84% 18%, rgba(219, 234, 254, 0.8), transparent 30%),
+    linear-gradient(135deg, #fff7f7 0%, #ffffff 48%, #fffbe8 100%);
+  color: var(--clay-ink);
   min-height: 100vh;
-  padding: 20px;
+  padding: 0;
 }
 
 #root {
@@ -46,21 +75,21 @@ body {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background-color: #f0f1f3;
-  border: 1px solid #d0d1d3;
-  border-radius: 6px;
+  background-color: var(--clay-primary);
+  border: 1px solid var(--clay-primary);
+  border-radius: var(--clay-radius-md);
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: #ffffff;
   cursor: pointer;
   transition: all 0.3s ease;
   margin-bottom: 16px;
 }
 
 .btn-back:hover {
-  background-color: #e0e1e3;
-  border-color: #667eea;
-  color: #667eea;
+  background-color: var(--clay-primary-active);
+  border-color: var(--clay-primary-active);
+  color: #ffffff;
 }
 
 .story-image-preview {

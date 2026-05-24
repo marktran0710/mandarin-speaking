@@ -1,243 +1,267 @@
-# 🎤 Mandarin Speaking App with Praat Analysis
+# Mandarin Stories
 
-A modern web application for learning Mandarin Chinese through interactive speech recording, transcription, and AI-powered acoustic analysis using Praat.
+Mandarin Stories is a React + FastAPI learning app for practicing spoken Mandarin with story prompts. Learners choose a topic image, record speech, review transcription, and get two layers of feedback:
 
-## ✨ Features
+- Praat acoustic analysis for pitch, tone, formants, speech rate, and fluency
+- AI language-coach feedback for fluency, grammar, vocabulary, improved wording, and next practice prompts
 
-- 🎤 **Real-time audio recording** - Record Mandarin speech with Web Audio API
-- 🔄 **Multi-model transcription** - Choose from Web Speech API (free), OpenAI Whisper, or Google Gemini
-- 📊 **Praat acoustic analysis** - Extract pitch, formants, speech rate, and fluency metrics
-- 🎯 **Tone detection** - Identify which Mandarin tone (1-4) was spoken
-- 📈 **Tone accuracy scoring** - Compare your pitch contour to reference tones
-- 📉 **Pitch visualization** - Interactive charts showing your pitch vs reference patterns
-- 💾 **Audio history** - Save and review all recordings with detailed metrics
-- 🛡️ **Secure API keys** - Backend-based key management (no keys exposed to browser)
-- 🎨 **Beautiful UI** - Responsive design with modern gradient aesthetics
+The current UI uses a warm Clay-inspired design system with cream surfaces, black CTAs, rounded panels, and saturated learning cards.
 
-## 🚀 Quick Start
+## Features
 
-### Prerequisites
+- Multi-page app: Home, Create Story, and My Stories
+- Topic-based story prompts with vocabulary support
+- Browser audio recording with WAV conversion before backend analysis
+- Web Speech API transcription for a free browser-native flow
+- Optional OpenAI Whisper or Gemini transcription through the backend
+- Praat/Parselmouth pitch and formant analysis
+- Mandarin tone detection and tone-accuracy scoring
+- Interactive pitch contour chart with Chart.js
+- AI language feedback for fluency, grammar, and vocabulary
+- Saved story history in local storage
+- Docker backend option for machines without local Python
 
-- Python 3.10+
-- Node.js 16+
-- Praat 6.0+ ([download](https://www.fon.hum.uva.nl/praat/))
+## Architecture
 
-### Setup (5 minutes)
+```text
+React + Vite frontend
+  -> records speech and converts audio to WAV
+  -> calls FastAPI backend
 
-1. **Install dependencies:**
-
-   ```bash
-   npm install
-   cd backend && pip install -r requirements.txt
-   ```
-
-2. **Configure API keys:**
-
-   ```bash
-   cd backend
-   cp .env.example .env
-   # Edit .env with your OpenAI and/or Gemini API keys
-   ```
-
-3. **Start backend:**
-
-   ```bash
-   cd backend
-   uvicorn main:app --reload --port 8000
-   ```
-
-4. **Start frontend:**
-
-   ```bash
-   npm run dev
-   ```
-
-5. **Open browser:**
-   - Frontend: http://localhost:5173
-   - Backend API: http://localhost:8000/docs
-
-**👉 See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for detailed setup instructions.**
-
-## 📚 How It Works
-
-### User Flow
-
-1. Select a learning topic and story image
-2. Record yourself speaking Mandarin
-3. Choose transcription model (Web Speech, OpenAI, or Gemini)
-4. Backend analyzes with Praat
-5. View results:
-   - Detected tone + accuracy %
-   - Pitch contour chart
-   - Speech rate and fluency scores
-   - Formant frequencies
-   - AI-generated feedback
-
-### Architecture
-
-```
-Frontend (React)
-    ↓
-Backend (Python FastAPI)
-    ├→ Praat (acoustic analysis)
-    ├→ OpenAI Whisper API (transcription)
-    └→ Google Gemini API (transcription)
+FastAPI backend
+  -> /api/analyze: Praat acoustic analysis + AI language feedback
+  -> /api/transcribe: OpenAI or Gemini transcription
+  -> /api/reference-tone/{tone}: Mandarin tone reference data
 ```
 
-## 📊 Mandarin Tone Metrics
+## Quick Start
 
-### Detected Tone
+### Option A: Run Backend With Docker
 
-- **Tone 1 (妈 mā)**: High, flat pitch
-- **Tone 2 (麻 má)**: Rising pitch
-- **Tone 3 (马 mǎ)**: Falling-rising (valley)
-- **Tone 4 (骂 mà)**: Sharp falling pitch
+This is the easiest path on Windows if Python is not installed locally.
 
-### Key Metrics
-
-| Metric        | Range         | Meaning                               |
-| ------------- | ------------- | ------------------------------------- |
-| Tone Accuracy | 0-100%        | How well your pitch matches reference |
-| Speech Rate   | syllables/sec | Optimal: 4-5                          |
-| Fluency       | 0-100         | Pitch smoothness and consistency      |
-| Formants      | F1, F2, F3 Hz | Vowel characteristics                 |
-
-## 🔐 Security
-
-✅ **API keys are NOT exposed to browser**
-
-- Keys stored in `backend/.env`
-- Backend proxies all API requests
-- Frontend only needs backend URL
-
-## 📁 Project Structure
-
-```
-e:\MyFolder\Lab\Speaking App\
-├── src/
-│   ├── App.tsx              (Main app with recording/analysis)
-│   ├── TopicSelector.tsx    (Topic selection component)
-│   ├── PitchChart.tsx       (Chart.js visualization)
-│   ├── main.tsx            (React entry point)
-│   └── index.css           (Styling)
-├── backend/
-│   ├── main.py             (FastAPI app)
-│   ├── praat_analyzer.py   (Praat integration)
-│   ├── chinese_tones.py    (Mandarin tone logic)
-│   ├── requirements.txt    (Python dependencies)
-│   └── .env.example        (Environment template)
-├── package.json
-├── vite.config.ts
-├── tsconfig.json
-├── SETUP_GUIDE.md          (Detailed setup guide)
-└── README.md              (This file)
+```powershell
+docker build -t mandarin-speaking-backend ./backend
+docker rm -f mandarin-speaking-backend-api
+docker run -d --name mandarin-speaking-backend-api -p 8000:8000 mandarin-speaking-backend
 ```
 
-## 🛠️ Technology Stack
+Verify:
 
-### Frontend
-
-- React 18 - UI framework
-- TypeScript - Type safety
-- Vite - Fast build tool
-- Chart.js - Data visualization
-- Web Audio API - Audio recording
-
-### Backend
-
-- Python 3.10+ - Language
-- FastAPI - Web framework
-- Uvicorn - ASGI server
-- Parselmouth - Praat Python bindings
-- NumPy/SciPy - Signal processing
-- OpenAI/Gemini APIs - Speech transcription
-
-## 📖 API Documentation
-
-### Endpoints
-
-**POST /api/analyze** - Analyze Chinese speech with Praat
-
-```json
-Request: multipart/form-data with audio file
-Response: {
-  "detected_tone": 2,
-  "tone_accuracy": 85.5,
-  "pitch_contour": [[time, freq], ...],
-  "speech_rate": 5.2,
-  "fluency_score": 78.3,
-  "formants": {"F1": 720, "F2": 1220, "F3": 2600},
-  "feedback": "..."
-}
-```
-
-**POST /api/transcribe** - Transcribe audio
-
-```json
-Request: multipart/form-data with audio file + model
-Response: {"text": "你好", "model": "openai"}
-```
-
-**GET /api/reference-tone/{tone}** - Get reference tone pattern
-
-```json
-Response: {
-  "tone": 2,
-  "name": "Rising",
-  "pitch_pattern": [0.5, 0.6, 0.7, ...],
-  ...
-}
-```
-
-See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for full API documentation.
-
-## 🧪 Testing
-
-### Test the backend directly:
-
-```bash
-# Health check
+```powershell
 curl http://localhost:8000/health
-
-# Analyze audio
-curl -X POST http://localhost:8000/api/analyze \
-  -F "file=@sample.wav"
-
-# List reference tones
-curl http://localhost:8000/api/all-tones
 ```
 
-### Browser testing:
+### Option B: Run Backend With Local Python
 
-1. Open http://localhost:5173
-2. Record a Mandarin sentence
-3. Check console for network requests
-4. Verify metrics display
+Requires Python 3.10+.
 
-## 🐛 Troubleshooting
+```powershell
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
 
-**Backend won't start:**
+### Run Frontend
 
-- Ensure Praat is installed and in PATH: `praat --version`
-- Check Python version: `python --version` (need 3.10+)
-- Reinstall parselmouth: `pip install --upgrade parselmouth-praat`
+```powershell
+npm install
+npm.cmd run dev -- --host 0.0.0.0 --port 5173 --strictPort
+```
 
-**Frontend can't connect to backend:**
+Open:
 
-- Check backend is running on http://localhost:8000
-- Check `VITE_BACKEND_URL` in `.env.local`
-- Check browser console for CORS errors
+- Frontend: http://127.0.0.1:5173
+- Backend health: http://localhost:8000/health
+- Backend API docs: http://localhost:8000/docs
 
-**Pitch analysis not working:**
+## Environment Variables
 
-- Ensure audio file is > 0.5 seconds
-- Check that Praat installation is valid
-- See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for detailed troubleshooting
+Create `backend/.env` if you want cloud transcription or AI-generated coaching:
 
-## 📝 License
+```env
+OPENAI_API_KEY=your_openai_key
+GEMINI_API_KEY=your_gemini_key
+OPENAI_FEEDBACK_MODEL=gpt-4o-mini
+GEMINI_FEEDBACK_MODEL=gemini-2.0-flash
+```
+
+Notes:
+
+- API keys stay on the backend and are not exposed to the browser.
+- If no OpenAI or Gemini key is configured, AI coach feedback falls back to local heuristic feedback.
+- Web Speech API transcription does not require an API key, but browser support varies.
+
+## User Flow
+
+1. Open the app and go to Create Story.
+2. Pick a topic and image prompt.
+3. Choose a speech source.
+4. Record Mandarin speech.
+5. Stop recording and wait for analysis.
+6. Review Praat metrics, pitch chart, AI feedback, and transcription.
+7. Visit My Stories to review saved attempts.
+
+## Praat Metrics
+
+| Metric | Meaning |
+| --- | --- |
+| Detected tone | Best matching Mandarin tone from the pitch contour |
+| Tone accuracy | Similarity between the learner pitch contour and tone reference |
+| Pitch contour | Frequency over time extracted by Praat/Parselmouth |
+| Speech rate | Estimated syllables per second |
+| Fluency score | Smoothness and continuity estimate from pitch and timing |
+| Formants | F1, F2, and F3 vowel characteristics |
+
+Tone references:
+
+- Tone 1: high level, ma1
+- Tone 2: rising, ma2
+- Tone 3: falling-rising, ma3
+- Tone 4: falling, ma4
+
+## AI Language Feedback
+
+The backend adds an `ai_feedback` object to `/api/analyze` responses:
+
+```json
+{
+  "provider": "openai",
+  "fluency": {
+    "score": 82,
+    "feedback": "Your sentence is understandable and mostly smooth."
+  },
+  "grammar": {
+    "score": 76,
+    "feedback": "The sentence needs a clearer subject-action structure.",
+    "corrections": ["Add a subject before the verb."]
+  },
+  "vocabulary": {
+    "score": 80,
+    "feedback": "Use one more specific descriptive word.",
+    "suggestions": ["Add a place word", "Add an emotion word"]
+  },
+  "improved_version": "A more natural Mandarin version",
+  "practice_prompt": "Say the sentence again with one extra detail."
+}
+```
+
+If API keys are missing or the AI request fails, the backend returns `"provider": "local"` with fallback coaching.
+
+## API Endpoints
+
+### `GET /health`
+
+Returns backend status.
+
+### `POST /api/analyze`
+
+Analyzes a WAV audio upload with Praat and returns language feedback.
+
+Form fields:
+
+- `file`: audio file
+- `transcription`: optional transcription text
+
+### `POST /api/transcribe`
+
+Transcribes an audio upload with OpenAI or Gemini.
+
+Form fields:
+
+- `file`: audio file
+- `model`: `openai` or `gemini`
+
+### `GET /api/reference-tone/{tone_number}`
+
+Returns one tone reference pattern.
+
+### `GET /api/all-tones`
+
+Returns all tone reference patterns.
+
+## Project Structure
+
+```text
+.
+├── backend/
+│   ├── Dockerfile
+│   ├── ai_feedback.py
+│   ├── chinese_tones.py
+│   ├── main.py
+│   ├── praat_analyzer.py
+│   └── requirements.txt
+├── clay/
+│   └── DESIGN.md
+├── src/
+│   ├── components/
+│   │   ├── Navigation.tsx
+│   │   └── StoryRecorder.tsx
+│   ├── pages/
+│   │   ├── HomePage.tsx
+│   │   ├── CreateStoryPage.tsx
+│   │   └── MyStoriesPage.tsx
+│   ├── App.tsx
+│   ├── PitchChart.tsx
+│   ├── TopicSelector.tsx
+│   └── main.tsx
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
+```
+
+## Development Commands
+
+```powershell
+npm.cmd run dev
+npm.cmd run build
+npm.cmd run preview
+```
+
+Backend Docker:
+
+```powershell
+docker build -t mandarin-speaking-backend ./backend
+docker run -d --name mandarin-speaking-backend-api -p 8000:8000 mandarin-speaking-backend
+docker logs mandarin-speaking-backend-api
+docker rm -f mandarin-speaking-backend-api
+```
+
+## Troubleshooting
+
+### Browser shows `ERR_CONNECTION_REFUSED` for frontend
+
+Start Vite and verify the port:
+
+```powershell
+npm.cmd run dev -- --host 0.0.0.0 --port 5173 --strictPort
+```
+
+Open http://127.0.0.1:5173.
+
+### Browser shows `ERR_CONNECTION_REFUSED` for backend
+
+Start the backend and verify:
+
+```powershell
+curl http://localhost:8000/health
+```
+
+### Opening `/api/analyze` directly shows an error
+
+That endpoint is a `POST` file-upload endpoint. Use the frontend recording flow or Swagger UI at http://localhost:8000/docs.
+
+### AI feedback says `provider: local`
+
+No supported AI key is configured, or the provider request failed. Add `OPENAI_API_KEY` or `GEMINI_API_KEY` to `backend/.env` and restart the backend.
+
+### Praat analysis fails
+
+- Make sure the uploaded audio is not empty.
+- Prefer WAV audio.
+- If using local Python, install dependencies with `pip install -r backend/requirements.txt`.
+- If using Docker, rebuild the backend image after dependency changes.
+
+## License
 
 MIT
-
-## 🙋 Support
-
-See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for comprehensive setup, troubleshooting, and API documentation.
