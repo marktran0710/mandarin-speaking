@@ -40,7 +40,7 @@ describe("App role flows", () => {
     expect(screen.getByText("No submissions yet")).toBeInTheDocument();
   });
 
-  it("lets a student open the workbook and jump to a picture recording task", async () => {
+  it("lets a student open the workbook and jump to a story part recording task", async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -51,7 +51,7 @@ describe("App role flows", () => {
     expect(screen.getByRole("heading", { name: "My Story Workbook" })).toBeInTheDocument();
     expect(screen.getAllByText("Needs recording").length).toBeGreaterThan(0);
 
-    await user.click(screen.getAllByRole("button", { name: "Record this picture" })[0]);
+    await user.click(screen.getAllByRole("button", { name: "Record this part" })[0]);
 
     expect(
       screen.getByRole("heading", { name: "Adventure Story Challenge" }),

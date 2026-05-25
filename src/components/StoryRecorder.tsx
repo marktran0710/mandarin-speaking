@@ -18,6 +18,7 @@ interface Topic {
 
 interface PraatMetrics {
   pitch_contour: Array<[number, number]>;
+  word_prosody?: WordProsody[];
   detected_tone: number;
   tone_accuracy: number;
   formants: Record<string, number>;
@@ -26,6 +27,20 @@ interface PraatMetrics {
   pitch_statistics: Record<string, number>;
   feedback: string;
   ai_feedback?: LanguageFeedback;
+}
+
+interface WordProsody {
+  token: string;
+  index: number;
+  start_time: number;
+  end_time: number;
+  pitch_contour: Array<[number, number]>;
+  mean_pitch: number;
+  pitch_range: number;
+  start_pitch: number;
+  end_pitch: number;
+  contour_shape: string;
+  feedback: string;
 }
 
 interface LanguageFeedback {
@@ -418,7 +433,9 @@ export default function StoryRecorder({
           <div className="challenge-meta">
             <span>{topic.level || "Narrative practice"}</span>
             <span>{topic.skillFocus || "Story fluency"}</span>
-            <span>Picture {selectedImageIndex + 1} of {topic.images.length}</span>
+            <span>
+              Story part {selectedImageIndex + 1} of {topic.images.length}
+            </span>
           </div>
         </div>
 
@@ -454,7 +471,7 @@ export default function StoryRecorder({
                 disabled={isBusy}
               >
                 <img src={image} alt={`Story prompt ${index + 1}`} />
-                <span>Picture {index + 1}</span>
+                <span>Part {index + 1}</span>
               </button>
             ))}
           </div>
@@ -665,6 +682,24 @@ export default function StoryRecorder({
             />
           </div>
 
+          {praatMetrics.word_prosody &&
+            praatMetrics.word_prosody.length > 0 && (
+              <div className="word-prosody-section">
+                <div className="word-prosody-header">
+                  <h3>Word-by-word prosody</h3>
+                  <p>
+                    Each card estimates the pitch movement for one Mandarin
+                    character or spoken word.
+                  </p>
+                </div>
+                <div className="word-prosody-grid">
+                  {praatMetrics.word_prosody.map((item) => (
+                    <WordProsodyCard key={`${item.token}-${item.index}`} item={item} />
+                  ))}
+                </div>
+              </div>
+            )}
+
           <div className="feedback-section">
             <h3>Praat coaching feedback</h3>
             <p>{praatMetrics.feedback}</p>
@@ -735,6 +770,53 @@ export default function StoryRecorder({
       </div>
     </div>
   );
+}
+
+function WordProsodyCard({ item }: { item: WordProsody }) {
+  return (
+    <div className="word-prosody-card">
+      <div className="word-prosody-topline">
+        <strong>{item.token}</strong>
+        <span>{formatContourShape(item.contour_shape)}</span>
+      </div>
+      <div className="mini-contour" aria-label={`${item.token} pitch contour`}>
+        {item.pitch_contour.length > 1 ? (
+          item.pitch_contour.map((point, index) => {
+            const pitches = item.pitch_contour.map((entry) => entry[1]);
+            const min = Math.min(...pitches);
+            const max = Math.max(...pitches);
+            const range = Math.max(max - min, 1);
+            const height = 18 + ((point[1] - min) / range) * 42;
+
+            return (
+              <span
+                key={`${point[0]}-${index}`}
+                style={{ height: `${height}px` }}
+              />
+            );
+          })
+        ) : (
+          <span style={{ height: "28px" }} />
+        )}
+      </div>
+      <div className="word-prosody-stats">
+        <span>{Math.round(item.mean_pitch)} Hz avg</span>
+        <span>{Math.round(item.pitch_range)} Hz range</span>
+      </div>
+      <p>{item.feedback}</p>
+    </div>
+  );
+}
+
+function formatContourShape(shape: string): string {
+  const labels: Record<string, string> = {
+    dip: "Dipping",
+    falling: "Falling",
+    level: "Level",
+    rising: "Rising",
+    variable: "Variable",
+  };
+  return labels[shape] || "Variable";
 }
 
 function FeedbackCard({

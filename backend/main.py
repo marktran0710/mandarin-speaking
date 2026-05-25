@@ -14,6 +14,7 @@ from praat_analyzer import (
     calculate_speech_rate,
     analyze_fluency,
     get_pitch_statistics,
+    estimate_word_prosody,
 )
 from chinese_tones import (
     detect_tone,
@@ -28,10 +29,26 @@ load_dotenv()
 
 app = FastAPI(title="Speaking App Backend", version="1.0.0")
 
+
+def get_cors_origins() -> list[str]:
+    configured_origins = os.getenv("CORS_ORIGINS")
+    if configured_origins:
+        return [
+            origin.strip()
+            for origin in configured_origins.split(",")
+            if origin.strip()
+        ]
+
+    return [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+    ]
+
 # Enable CORS for frontend communication
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "*"],
+    allow_origins=get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -45,6 +62,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # Pydantic models
 class AnalysisResponse(BaseModel):
     pitch_contour: List[Tuple[float, float]]
+    word_prosody: List[dict]
     detected_tone: int
     tone_accuracy: float
     formants: dict
@@ -104,6 +122,7 @@ async def analyze_speech(
         speech_rate = calculate_speech_rate(tmp_path, transcription)
         fluency_score = analyze_fluency(pitch_contour, speech_rate)
         pitch_stats = get_pitch_statistics(pitch_contour)
+        word_prosody = estimate_word_prosody(pitch_contour, transcription)
 
         # Detect tone
         tone_detection = detect_tone(pitch_contour)
@@ -122,6 +141,7 @@ async def analyze_speech(
 
         return AnalysisResponse(
             pitch_contour=pitch_contour,
+            word_prosody=word_prosody,
             detected_tone=detected_tone,
             tone_accuracy=tone_accuracy,
             formants=formants,

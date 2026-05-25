@@ -4,6 +4,7 @@ Praat acoustic analysis helpers powered by Parselmouth.
 Parselmouth embeds Praat's analysis routines in Python, so the API can extract
 pitch and formant features without shelling out to the Praat desktop app.
 """
+import re
 from typing import Dict, List, Tuple
 
 import numpy as np
@@ -148,3 +149,111 @@ def get_pitch_statistics(
         "max_frequency": float(np.max(frequencies)),
         "frequency_range": float(np.max(frequencies) - np.min(frequencies)),
     }
+
+
+def estimate_word_prosody(
+    pitch_contour: List[Tuple[float, float]],
+    transcription: str = "",
+) -> List[Dict]:
+    """
+    Estimate per-character/word prosody from the global pitch contour.
+
+    This is a lightweight alignment approximation: Mandarin characters are used
+    as syllable-like units, and their time spans are distributed across the
+    voiced pitch duration. It is useful for student feedback, but it is not a
+    replacement for forced alignment.
+    """
+    tokens = _prosody_tokens(transcription)
+    if not tokens or len(pitch_contour) < 2:
+        return []
+
+    start_time = float(pitch_contour[0][0])
+    end_time = float(pitch_contour[-1][0])
+    duration = max(end_time - start_time, 0.01)
+    segment_duration = duration / len(tokens)
+    segments: List[Dict] = []
+
+    for index, token in enumerate(tokens):
+        segment_start = start_time + index * segment_duration
+        segment_end = (
+            end_time if index == len(tokens) - 1 else segment_start + segment_duration
+        )
+        points = [
+            (float(time), float(freq))
+            for time, freq in pitch_contour
+            if segment_start <= float(time) <= segment_end
+        ]
+
+        if not points:
+            nearest = min(
+                pitch_contour,
+                key=lambda point: abs(float(point[0]) - segment_start),
+            )
+            points = [(float(nearest[0]), float(nearest[1]))]
+
+        frequencies = np.array([point[1] for point in points], dtype=float)
+        start_pitch = float(frequencies[0])
+        end_pitch = float(frequencies[-1])
+        mean_pitch = float(np.mean(frequencies))
+        pitch_range = float(np.max(frequencies) - np.min(frequencies))
+        slope = end_pitch - start_pitch
+        contour_shape = _contour_shape(frequencies, slope, pitch_range)
+
+        segments.append(
+            {
+                "token": token,
+                "index": index,
+                "start_time": round(segment_start, 3),
+                "end_time": round(segment_end, 3),
+                "pitch_contour": points,
+                "mean_pitch": round(mean_pitch, 2),
+                "pitch_range": round(pitch_range, 2),
+                "start_pitch": round(start_pitch, 2),
+                "end_pitch": round(end_pitch, 2),
+                "contour_shape": contour_shape,
+                "feedback": _word_prosody_feedback(contour_shape, pitch_range),
+            }
+        )
+
+    return segments
+
+
+def _prosody_tokens(transcription: str) -> List[str]:
+    text = transcription.strip()
+    if not text:
+        return []
+
+    chinese_chars = re.findall(r"[\u4e00-\u9fff]", text)
+    if chinese_chars:
+        return chinese_chars[:80]
+
+    return re.findall(r"[A-Za-z0-9']+", text)[:40]
+
+
+def _contour_shape(frequencies: np.ndarray, slope: float, pitch_range: float) -> str:
+    if len(frequencies) >= 3:
+        middle = float(frequencies[len(frequencies) // 2])
+        if middle < float(frequencies[0]) and middle < float(frequencies[-1]):
+            return "dip"
+
+    if pitch_range < 18:
+        return "level"
+    if slope > 12:
+        return "rising"
+    if slope < -12:
+        return "falling"
+    return "variable"
+
+
+def _word_prosody_feedback(contour_shape: str, pitch_range: float) -> str:
+    if contour_shape == "level":
+        return "Stable pitch. Good for level or unstressed syllables."
+    if contour_shape == "rising":
+        return "Pitch rises clearly."
+    if contour_shape == "falling":
+        return "Pitch falls clearly."
+    if contour_shape == "dip":
+        return "Pitch dips in the middle."
+    if pitch_range > 80:
+        return "Large pitch movement; check whether it matches the intended tone."
+    return "Some pitch movement is present; try making the tone shape clearer."

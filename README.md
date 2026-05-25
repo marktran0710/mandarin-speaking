@@ -84,13 +84,66 @@ OPENAI_API_KEY=your_openai_key
 GEMINI_API_KEY=your_gemini_key
 OPENAI_FEEDBACK_MODEL=gpt-4o-mini
 GEMINI_FEEDBACK_MODEL=gemini-2.0-flash
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
 Notes:
 
 - API keys stay on the backend and are not exposed to the browser.
+- In production, set `CORS_ORIGINS` to the deployed frontend URL.
 - If no OpenAI or Gemini key is configured, AI coach feedback falls back to local heuristic feedback.
 - Web Speech API transcription does not require an API key, but browser support varies.
+
+## Deployment
+
+This project deploys as two services:
+
+- Frontend: Vite static site on Vercel, Netlify, or another static host
+- Backend: FastAPI Docker service on Render, Railway, Fly.io, or Cloud Run
+
+### Backend on Render
+
+The repository includes `render.yaml` and `backend/Dockerfile`.
+
+1. Push the repository to GitHub.
+2. In Render, create a new Blueprint from the repository.
+3. After the backend URL is created, update the backend environment variable:
+
+```env
+CORS_ORIGINS=https://your-frontend-domain.vercel.app
+```
+
+4. Add optional AI keys if needed:
+
+```env
+OPENAI_API_KEY=your_openai_key
+GEMINI_API_KEY=your_gemini_key
+```
+
+5. Verify:
+
+```powershell
+curl https://your-backend-domain.onrender.com/health
+```
+
+### Frontend on Vercel
+
+The repository includes `vercel.json`.
+
+Set this Vercel environment variable before production deploy:
+
+```env
+VITE_BACKEND_URL=https://your-backend-domain.onrender.com
+```
+
+Then deploy:
+
+```powershell
+npm.cmd run build
+npx vercel --prod
+```
+
+After Vercel gives you the frontend URL, add that exact URL to the backend `CORS_ORIGINS` value and redeploy/restart the backend.
 
 ## User Flow
 

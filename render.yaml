@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: mandarin-speaking-backend
+    env: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: CORS_ORIGINS
+        value: http://localhost:5173,http://127.0.0.1:5173
+      - key: OPENAI_FEEDBACK_MODEL
+        value: gpt-4o-mini
+      - key: GEMINI_FEEDBACK_MODEL
+        value: gemini-2.0-flash

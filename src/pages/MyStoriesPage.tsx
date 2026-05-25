@@ -14,6 +14,16 @@ interface AudioRecord {
   praatMetrics?: any;
 }
 
+interface WordProsody {
+  token: string;
+  index: number;
+  pitch_contour: Array<[number, number]>;
+  mean_pitch: number;
+  pitch_range: number;
+  contour_shape: string;
+  feedback: string;
+}
+
 interface MyStoriesPageProps {
   records: AudioRecord[];
   onDeleteRecord: (id: string) => void;
@@ -89,7 +99,7 @@ export default function MyStoriesPage({
 
         <section className="learning-summary" aria-label="Learning progress">
           <div className="summary-card">
-            <span>Pictures completed</span>
+            <span>Story parts completed</span>
             <strong>
               {completedPrompts}/{PROMPT_IMAGES.length}
             </strong>
@@ -140,7 +150,7 @@ export default function MyStoriesPage({
                   <div className="topic-progress-card">
                     <strong>{topicProgress}%</strong>
                     <span>
-                      {topicCompleted}/{prompts.length} pictures completed
+                      {topicCompleted}/{prompts.length} story parts completed
                     </span>
                   </div>
                 </div>
@@ -175,7 +185,7 @@ export default function MyStoriesPage({
                           <div className="prompt-title-row">
                             <div>
                               <p className="picture-topic">
-                                Picture {prompt.imageIndex + 1}
+                                Part {prompt.imageIndex + 1}
                               </p>
                               <h3>{prompt.topicName}</h3>
                             </div>
@@ -210,7 +220,9 @@ export default function MyStoriesPage({
                               )
                             }
                           >
-                            {latestRecord ? "Record another attempt" : "Record this picture"}
+                            {latestRecord
+                              ? "Record another attempt"
+                              : "Record this part"}
                           </button>
 
                           {latestRecord ? (
@@ -222,7 +234,7 @@ export default function MyStoriesPage({
                           ) : (
                             <div className="picture-empty-result">
                               Focus on describing who, where, what happened,
-                              and what changed.
+                              and how this part connects to the next one.
                             </div>
                           )}
                         </div>
@@ -347,7 +359,7 @@ export default function MyStoriesPage({
                   <div>
                     <strong>{getTopicLabel(record.topicId)}</strong>
                     <span>
-                      Picture {(record.imageIndex ?? 0) + 1} · {record.duration}s
+                      Part {(record.imageIndex ?? 0) + 1} · {record.duration}s
                     </span>
                   </div>
                   <div className="submission-score">
@@ -479,6 +491,28 @@ function RecordCard({
                 />
               </div>
             )}
+
+            {record.praatMetrics.word_prosody?.length > 0 && (
+              <div className="saved-word-prosody">
+                <strong>Word-by-word prosody</strong>
+                <div className="saved-word-prosody-grid">
+                  {record.praatMetrics.word_prosody.map((item: WordProsody) => (
+                    <div
+                      className="saved-word-prosody-card"
+                      key={`${item.token}-${item.index}`}
+                    >
+                      <span>{item.token}</span>
+                      <em>{formatContourShape(item.contour_shape)}</em>
+                      <small>
+                        {Math.round(item.mean_pitch)} Hz ·{" "}
+                        {Math.round(item.pitch_range)} Hz range
+                      </small>
+                      <p>{item.feedback}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
 
@@ -502,10 +536,10 @@ function RecordCard({
 }
 
 function isPromptRecord(record: AudioRecord, prompt: PromptImage): boolean {
-  return record.imageUrl
-    ? record.imageUrl === prompt.imageUrl
-    : record.topicId === prompt.topicId &&
-        record.imageIndex === prompt.imageIndex;
+  return (
+    record.imageUrl === prompt.imageUrl ||
+    (record.topicId === prompt.topicId && record.imageIndex === prompt.imageIndex)
+  );
 }
 
 function getToneName(tone: number): string {
@@ -521,4 +555,15 @@ function getToneName(tone: number): string {
 function getTopicLabel(topicId?: string): string {
   const topic = TOPICS.find((item) => item.id === topicId);
   return topic?.name || "Story";
+}
+
+function formatContourShape(shape: string): string {
+  const labels: Record<string, string> = {
+    dip: "Dipping",
+    falling: "Falling",
+    level: "Level",
+    rising: "Rising",
+    variable: "Variable",
+  };
+  return labels[shape] || "Variable";
 }
