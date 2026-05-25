@@ -145,6 +145,29 @@ npx vercel --prod
 
 After Vercel gives you the frontend URL, add that exact URL to the backend `CORS_ORIGINS` value and redeploy/restart the backend.
 
+### Frontend on GitHub Pages
+
+The repository also includes `.github/workflows/deploy-pages.yml` for a no-CLI deployment path.
+
+1. Push the repository to GitHub.
+2. In GitHub, open **Settings -> Pages**.
+3. Set **Source** to **GitHub Actions**.
+4. Push to `main` or manually run the **Deploy Frontend to GitHub Pages** workflow.
+
+Expected frontend URL:
+
+```text
+https://marktran0710.github.io/mandarin-speaking/
+```
+
+If you deploy the backend later, add a repository variable in GitHub:
+
+```env
+VITE_BACKEND_URL=https://your-backend-domain.example.com
+```
+
+Then rerun the Pages workflow. Without `VITE_BACKEND_URL`, the static UI deploys, but Praat/Gemini analysis still points to the local backend fallback.
+
 ## User Flow
 
 1. Open the app and go to Create Story.
