@@ -2,9 +2,16 @@ import { useState, useEffect } from "react";
 import HomePage from "./pages/HomePage";
 import CreateStoryPage from "./pages/CreateStoryPage";
 import MyStoriesPage from "./pages/MyStoriesPage";
+import LoginPage, { LoginRole } from "./pages/LoginPage";
 import Navigation from "./components/Navigation";
 
-export type Page = "home" | "create" | "mystories";
+export type Page =
+  | "home"
+  | "student-login"
+  | "teacher-login"
+  | "student-practice"
+  | "student-stories"
+  | "teacher-dashboard";
 
 interface AudioRecord {
   id: string;
@@ -15,13 +22,32 @@ interface AudioRecord {
   model: "openai" | "gemini" | "webspeech";
   praatMetrics?: any;
   topicId?: string;
+  imageUrl?: string;
+  imageIndex?: number;
+}
+
+interface PracticeTarget {
+  topicId: string;
+  imageIndex: number;
 }
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
+  const [activeRole, setActiveRole] = useState<LoginRole | null>(null);
   const [audioRecords, setAudioRecords] = useState<AudioRecord[]>([]);
+  const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(
+    null,
+  );
 
   useEffect(() => {
+    const storedRole = localStorage.getItem("activeRole");
+    if (storedRole === "student" || storedRole === "teacher") {
+      setActiveRole(storedRole);
+      setCurrentPage(
+        storedRole === "student" ? "student-practice" : "teacher-dashboard",
+      );
+    }
+
     const stored = localStorage.getItem("audioRecords");
     if (stored) {
       try {
@@ -47,15 +73,9 @@ export default function App() {
       transcription: record.transcription,
       model: record.model,
       topicId: record.topicId,
-      praatMetrics: record.praatMetrics
-        ? {
-            detected_tone: record.praatMetrics.detected_tone,
-            tone_accuracy: record.praatMetrics.tone_accuracy,
-            speech_rate: record.praatMetrics.speech_rate,
-            fluency_score: record.praatMetrics.fluency_score,
-            ai_feedback: record.praatMetrics.ai_feedback,
-          }
-        : undefined,
+      imageUrl: record.imageUrl,
+      imageIndex: record.imageIndex,
+      praatMetrics: record.praatMetrics,
     };
     const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
     localStorage.setItem(
@@ -71,17 +91,59 @@ export default function App() {
     localStorage.setItem("audioRecords", JSON.stringify(updated));
   };
 
+  const handleLogin = (role: LoginRole) => {
+    setActiveRole(role);
+    localStorage.setItem("activeRole", role);
+    setCurrentPage(role === "student" ? "student-practice" : "teacher-dashboard");
+  };
+
+  const handleLogout = () => {
+    setActiveRole(null);
+    setPracticeTarget(null);
+    localStorage.removeItem("activeRole");
+    setCurrentPage("home");
+  };
+
+  const handlePracticeImage = (topicId: string, imageIndex: number) => {
+    setPracticeTarget({ topicId, imageIndex });
+    setCurrentPage("student-practice");
+  };
+
   return (
     <div className="app-container">
-      <Navigation currentPage={currentPage} onNavigate={setCurrentPage} />
+      <Navigation
+        currentPage={currentPage}
+        activeRole={activeRole}
+        onNavigate={setCurrentPage}
+        onLogout={handleLogout}
+      />
       {currentPage === "home" && <HomePage onNavigate={setCurrentPage} />}
-      {currentPage === "create" && (
-        <CreateStoryPage onAddRecord={addAudioRecord} />
+      {currentPage === "student-login" && (
+        <LoginPage role="student" onLogin={handleLogin} onBack={() => setCurrentPage("home")} />
       )}
-      {currentPage === "mystories" && (
+      {currentPage === "teacher-login" && (
+        <LoginPage role="teacher" onLogin={handleLogin} onBack={() => setCurrentPage("home")} />
+      )}
+      {currentPage === "student-practice" && activeRole === "student" && (
+        <CreateStoryPage
+          onAddRecord={addAudioRecord}
+          initialTopicId={practiceTarget?.topicId}
+          initialImageIndex={practiceTarget?.imageIndex}
+        />
+      )}
+      {currentPage === "student-stories" && activeRole === "student" && (
         <MyStoriesPage
           records={audioRecords}
           onDeleteRecord={deleteAudioRecord}
+          onPracticeImage={handlePracticeImage}
+          mode="student"
+        />
+      )}
+      {currentPage === "teacher-dashboard" && activeRole === "teacher" && (
+        <MyStoriesPage
+          records={audioRecords}
+          onDeleteRecord={deleteAudioRecord}
+          mode="teacher"
         />
       )}
     </div>

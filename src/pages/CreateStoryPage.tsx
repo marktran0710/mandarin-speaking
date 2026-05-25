@@ -1,10 +1,12 @@
 import { useState } from "react";
-import TopicSelector from "../TopicSelector";
+import TopicSelector, { TOPICS } from "../TopicSelector";
 import StoryRecorder from "../components/StoryRecorder";
 import "./CreateStoryPage.css";
 
 interface CreateStoryPageProps {
   onAddRecord: (record: any) => void;
+  initialTopicId?: string;
+  initialImageIndex?: number;
 }
 
 interface Topic {
@@ -15,10 +17,24 @@ interface Topic {
   vocabulary: Record<number, string[]>;
 }
 
-export default function CreateStoryPage({ onAddRecord }: CreateStoryPageProps) {
-  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string>("");
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
+export default function CreateStoryPage({
+  onAddRecord,
+  initialTopicId,
+  initialImageIndex = 0,
+}: CreateStoryPageProps) {
+  const initialTopic =
+    TOPICS.find((topic) => topic.id === initialTopicId) || null;
+  const safeInitialIndex = initialTopic
+    ? Math.min(initialImageIndex, initialTopic.images.length - 1)
+    : 0;
+  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(
+    initialTopic,
+  );
+  const [selectedImage, setSelectedImage] = useState<string>(
+    initialTopic?.images[safeInitialIndex] || "",
+  );
+  const [selectedImageIndex, setSelectedImageIndex] =
+    useState<number>(safeInitialIndex);
 
   const handleTopicSelect = (topic: Topic) => {
     setSelectedTopic(topic);
@@ -39,14 +55,14 @@ export default function CreateStoryPage({ onAddRecord }: CreateStoryPageProps) {
       ) : (
         <div className="story-recorder-wrapper">
           <button className="btn-back" onClick={handleBack}>
-            ← Back to Topics
+            Back to Topics
           </button>
           <StoryRecorder
             topic={selectedTopic}
             selectedImage={selectedImage}
             selectedImageIndex={selectedImageIndex}
             onImageSelect={setSelectedImageIndex}
-            onImageChange={(img) => setSelectedImage(img)}
+            onImageChange={(image) => setSelectedImage(image)}
             onAddRecord={onAddRecord}
           />
         </div>

@@ -1,10 +1,12 @@
 import { useState } from "react";
 import "./TopicSelector.css";
 
-interface Topic {
+export interface Topic {
   id: string;
   name: string;
   description: string;
+  skillFocus: string;
+  level: string;
   images: string[];
   vocabulary: Record<number, string[]>;
 }
@@ -12,45 +14,6 @@ interface Topic {
 interface TopicSelectorProps {
   onTopicSelect?: (topic: Topic) => void;
 }
-
-const chineseVocabulary: Record<string, Record<number, string[]>> = {
-  adventure: {
-    0: ["冒險", "旅行", "挑戰", "發現"],
-    1: ["勇敢", "山峰", "遠方", "探索"],
-    2: ["森林", "尋找", "秘密", "地圖"],
-    3: ["成功", "朋友", "夢想", "故事"],
-  },
-  nature: {
-    0: ["自然", "山水", "風景", "清新"],
-    1: ["森林", "綠色", "生命", "安靜"],
-    2: ["湖泊", "天空", "白雲", "陽光"],
-    3: ["花朵", "河流", "美麗", "放鬆"],
-  },
-  fantasy: {
-    0: ["魔法", "夢想", "神秘", "王國"],
-    1: ["城堡", "精靈", "寶藏", "傳說"],
-    2: ["幻想", "奇蹟", "勇者", "旅程"],
-    3: ["魔法師", "咒語", "光明", "黑暗"],
-  },
-  school: {
-    0: ["學校", "朋友", "學習", "開心"],
-    1: ["教室", "老師", "同學", "功課"],
-    2: ["操場", "運動", "團隊", "快樂"],
-    3: ["書本", "知識", "友誼", "成長"],
-  },
-  mystery: {
-    0: ["秘密", "謎題", "線索", "真相"],
-    1: ["偵探", "調查", "證據", "推理"],
-    2: ["隱藏", "發現", "答案", "驚訝"],
-    3: ["故事", "問題", "解決", "結果"],
-  },
-  "daily-life": {
-    0: ["生活", "日常", "家庭", "朋友"],
-    1: ["早晨", "學校", "放學", "回家"],
-    2: ["家人", "飯菜", "笑聲", "溫暖"],
-    3: ["晚上", "故事", "睡覺", "夢想"],
-  },
-};
 
 const topicImages: Record<string, string[]> = {
   adventure: [
@@ -91,185 +54,228 @@ const topicImages: Record<string, string[]> = {
   ],
 };
 
-const TOPICS: Topic[] = [
+export const TOPICS: Topic[] = [
   {
     id: "adventure",
     name: "Adventure",
-    description: "Explore journeys, discoveries, and challenges",
+    description: "Describe a journey with a clear beginning, challenge, and result.",
+    skillFocus: "Sequence and cause-effect",
+    level: "Story Builder",
     images: topicImages.adventure,
-    vocabulary: chineseVocabulary.adventure,
+    vocabulary: {
+      0: ["冒險", "旅行", "挑戰", "發現"],
+      1: ["勇敢", "山峰", "遠方", "探索"],
+      2: ["森林", "尋找", "秘密", "地圖"],
+      3: ["成功", "朋友", "夢想", "故事"],
+    },
   },
   {
     id: "nature",
     name: "Nature",
-    description: "Describe landscapes, weather, and quiet scenes",
+    description: "Describe places, weather, and changes in the environment.",
+    skillFocus: "Description and detail",
+    level: "Scene Builder",
     images: topicImages.nature,
-    vocabulary: chineseVocabulary.nature,
+    vocabulary: {
+      0: ["自然", "山水", "風景", "清新"],
+      1: ["森林", "綠色", "生命", "安靜"],
+      2: ["湖泊", "天空", "白雲", "陽光"],
+      3: ["花朵", "河流", "美麗", "放鬆"],
+    },
   },
   {
     id: "fantasy",
     name: "Fantasy",
-    description: "Tell stories about magic, kingdoms, and imagination",
+    description: "Create an imaginative story with characters, conflict, and resolution.",
+    skillFocus: "Creative narration",
+    level: "Imagination Lab",
     images: topicImages.fantasy,
-    vocabulary: chineseVocabulary.fantasy,
+    vocabulary: {
+      0: ["魔法", "夢想", "神秘", "王國"],
+      1: ["城堡", "精靈", "寶藏", "傳說"],
+      2: ["幻想", "奇蹟", "勇者", "旅程"],
+      3: ["魔法師", "咒語", "光明", "黑暗"],
+    },
   },
   {
     id: "school",
     name: "School Life",
-    description: "Practice stories about classmates and learning",
+    description: "Tell a realistic story about classmates, learning, and routines.",
+    skillFocus: "Personal experience",
+    level: "Daily Narrator",
     images: topicImages.school,
-    vocabulary: chineseVocabulary.school,
+    vocabulary: {
+      0: ["學校", "朋友", "學習", "開心"],
+      1: ["教室", "老師", "同學", "功課"],
+      2: ["操場", "運動", "團隊", "快樂"],
+      3: ["書本", "知識", "友誼", "成長"],
+    },
   },
   {
     id: "mystery",
     name: "Mystery",
-    description: "Build suspense with clues, questions, and answers",
+    description: "Build suspense with clues, questions, discovery, and explanation.",
+    skillFocus: "Problem and solution",
+    level: "Logic Story",
     images: topicImages.mystery,
-    vocabulary: chineseVocabulary.mystery,
+    vocabulary: {
+      0: ["秘密", "謎題", "線索", "真相"],
+      1: ["偵探", "調查", "證據", "推理"],
+      2: ["隱藏", "發現", "答案", "驚訝"],
+      3: ["故事", "問題", "解決", "結果"],
+    },
   },
   {
     id: "daily-life",
     name: "Daily Life",
-    description: "Narrate routines, family moments, and simple events",
+    description: "Practice clear narration about ordinary moments and family life.",
+    skillFocus: "Fluency and coherence",
+    level: "Conversation Ready",
     images: topicImages["daily-life"],
-    vocabulary: chineseVocabulary["daily-life"],
+    vocabulary: {
+      0: ["生活", "日常", "家庭", "朋友"],
+      1: ["早晨", "學校", "放學", "回家"],
+      2: ["家人", "飯菜", "笑聲", "溫暖"],
+      3: ["晚上", "故事", "睡覺", "夢想"],
+    },
   },
 ];
 
 export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
-  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<Topic>(TOPICS[0]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
-  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
 
-  const activeTopic = selectedTopic || TOPICS[0];
+  const selectedImage = selectedTopic.images[selectedImageIndex];
+  const selectedWords = selectedTopic.vocabulary[selectedImageIndex] || [];
 
-  const handleConfirmSelection = () => {
-    if (selectedTopic) {
-      onTopicSelect?.(selectedTopic);
-    }
+  const chooseTopic = (topic: Topic) => {
+    setSelectedTopic(topic);
+    setSelectedImageIndex(0);
   };
-
-  const handleImageLoad = (imageUrl: string) => {
-    setLoadedImages((prev) => new Set([...prev, imageUrl]));
-  };
-
-  const handleImageError = (imageUrl: string) => {
-    setFailedImages((prev) => new Set([...prev, imageUrl]));
-  };
-
-  const isImageLoaded = (imageUrl: string) => loadedImages.has(imageUrl);
-  const hasImageFailed = (imageUrl: string) => failedImages.has(imageUrl);
 
   return (
     <div className="topic-selector">
-      <section className="hero-section">
-        <div className="hero-content">
-          <div className="hero-text">
-            <p className="platform-kicker">Student Portal</p>
-            <h1 className="hero-title">Narrative Training Activity</h1>
-            <p className="hero-subtitle">
-              Choose a prompt, prepare useful vocabulary, then record your
-              Mandarin story for Praat and AI feedback.
-            </p>
+      <section className="learning-hero">
+        <div className="learning-hero-copy">
+          <p className="platform-kicker">Student narrative lab</p>
+          <h1>Choose a Story Activity</h1>
+          <p>
+            Select a topic, study the picture prompt, prepare useful Mandarin
+            vocabulary, and record a complete spoken story for Praat prosody and
+            Gemini language feedback.
+          </p>
+        </div>
+
+        <div className="learning-objectives" aria-label="Learning objectives">
+          <div>
+            <strong>1</strong>
+            <span>Plan the story</span>
+          </div>
+          <div>
+            <strong>2</strong>
+            <span>Record Mandarin speech</span>
+          </div>
+          <div>
+            <strong>3</strong>
+            <span>Review pronunciation and language feedback</span>
           </div>
         </div>
       </section>
 
-      <section className="topics-section">
-        <div className="section-container">
-          <div className="topics-grid">
+      <section className="activity-layout">
+        <aside className="activity-sidebar" aria-label="Story topics">
+          <div className="sidebar-heading">
+            <p className="platform-kicker">Activity menu</p>
+            <h2>Story topics</h2>
+          </div>
+
+          <div className="topic-list">
             {TOPICS.map((topic) => (
               <button
                 type="button"
                 key={topic.id}
-                className={`topic-card ${selectedTopic?.id === topic.id ? "selected" : ""}`}
-                onClick={() => {
-                  setSelectedTopic(topic);
-                  setSelectedImageIndex(0);
-                }}
+                className={`topic-row ${
+                  selectedTopic.id === topic.id ? "selected" : ""
+                }`}
+                onClick={() => chooseTopic(topic)}
               >
-                <span className="topic-name">{topic.name}</span>
-                <span className="topic-description">{topic.description}</span>
+                <span>
+                  <strong>{topic.name}</strong>
+                  <small>{topic.skillFocus}</small>
+                </span>
+                <em>{topic.level}</em>
               </button>
             ))}
           </div>
-        </div>
-      </section>
+        </aside>
 
-      {selectedTopic && (
-        <section className="detail-section">
-          <div className="section-container">
-            <div className="detail-header">
-              <p className="platform-kicker">Selected activity</p>
-              <h2 className="detail-title">{activeTopic.name}</h2>
-              <p className="detail-description">{activeTopic.description}</p>
+        <section className="activity-preview" aria-label="Selected activity">
+          <div className="preview-header">
+            <div>
+              <p className="platform-kicker">Selected module</p>
+              <h2>{selectedTopic.name}</h2>
+              <p>{selectedTopic.description}</p>
+            </div>
+            <div className="module-badge">{selectedTopic.level}</div>
+          </div>
+
+          <div className="preview-grid">
+            <div className="main-prompt-card">
+              <img
+                src={selectedImage}
+                alt={`${selectedTopic.name} prompt ${selectedImageIndex + 1}`}
+              />
+              <div className="prompt-number">
+                Prompt {selectedImageIndex + 1} of {selectedTopic.images.length}
+              </div>
             </div>
 
-            <div className="image-selection">
-              <div className="main-image-container">
-                <img
-                  src={activeTopic.images[selectedImageIndex]}
-                  alt={`${activeTopic.name} prompt ${selectedImageIndex + 1}`}
-                  className="main-image"
-                  onLoad={() => handleImageLoad(activeTopic.images[selectedImageIndex])}
-                  onError={() => handleImageError(activeTopic.images[selectedImageIndex])}
-                />
-                {!isImageLoaded(activeTopic.images[selectedImageIndex]) &&
-                  !hasImageFailed(activeTopic.images[selectedImageIndex]) && (
-                    <div className="image-loading-skeleton main" />
-                  )}
-                <div className="image-counter">
-                  {selectedImageIndex + 1} / {activeTopic.images.length}
+            <div className="prompt-planning-panel">
+              <div className="planning-block">
+                <h3>Speaking goals</h3>
+                <ul>
+                  <li>Describe the setting and people clearly.</li>
+                  <li>Use time words to connect events.</li>
+                  <li>Finish with a result, feeling, or lesson.</li>
+                </ul>
+              </div>
+
+              <div className="planning-block">
+                <h3>Vocabulary support</h3>
+                <div className="vocabulary-chips">
+                  {selectedWords.map((word) => (
+                    <span key={word}>{word}</span>
+                  ))}
                 </div>
               </div>
 
-              <div className="image-grid">
-                {activeTopic.images.map((image, index) => (
-                  <button
-                    type="button"
-                    key={image}
-                    className={`image-thumbnail-wrapper ${selectedImageIndex === index ? "active" : ""}`}
-                    onClick={() => setSelectedImageIndex(index)}
-                  >
-                    <span className="image-thumbnail">
-                      <img
-                        src={image}
-                        alt={`Prompt option ${index + 1}`}
-                        onLoad={() => handleImageLoad(image)}
-                        onError={() => handleImageError(image)}
-                      />
-                      {!isImageLoaded(image) && !hasImageFailed(image) && (
-                        <span className="image-loading-skeleton small" />
-                      )}
-                    </span>
-                    <span className="image-words">
-                      {activeTopic.vocabulary[index]?.join(" / ")}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="action-buttons">
               <button
                 type="button"
-                className="btn btn-outlined"
-                onClick={() => setSelectedTopic(null)}
+                className="start-activity-btn"
+                onClick={() => onTopicSelect?.(selectedTopic)}
               >
-                Choose Different Topic
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleConfirmSelection}
-              >
-                Start Training Activity
+                Start recording this activity
               </button>
             </div>
           </div>
+
+          <div className="prompt-strip" aria-label="Picture prompts">
+            {selectedTopic.images.map((image, index) => (
+              <button
+                type="button"
+                key={image}
+                className={`prompt-thumb ${
+                  selectedImageIndex === index ? "active" : ""
+                }`}
+                onClick={() => setSelectedImageIndex(index)}
+              >
+                <img src={image} alt={`Prompt ${index + 1}`} />
+                <span>Picture {index + 1}</span>
+              </button>
+            ))}
+          </div>
         </section>
-      )}
+      </section>
     </div>
   );
 }

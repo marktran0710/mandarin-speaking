@@ -23,6 +23,10 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "types": [
+      "vitest/globals",
+      "@testing-library/jest-dom"
+    ],
     "moduleResolution": "node",
     "allowImportingTsExtensions": true
   },

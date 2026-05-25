@@ -9,6 +9,9 @@ type SpeechModel = "webspeech" | "openai" | "gemini";
 interface Topic {
   id: string;
   name: string;
+  description?: string;
+  skillFocus?: string;
+  level?: string;
   images: string[];
   vocabulary: Record<number, string[]>;
 }
@@ -65,6 +68,8 @@ interface StoryRecorderProps {
     transcription: string;
     model: SpeechModel;
     topicId: string;
+    imageUrl: string;
+    imageIndex: number;
     praatMetrics: PraatMetrics;
   }) => void;
 }
@@ -92,7 +97,9 @@ export default function StoryRecorder({
   const streamRef = useRef<MediaStream | null>(null);
   const recognitionRef = useRef<any>(null);
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const recordingStartRef = useRef(0);
   const lastSpeechAtRef = useRef(0);
   const currentTranscriptRef = useRef("");
@@ -233,7 +240,9 @@ export default function StoryRecorder({
     silenceTimerRef.current = setTimeout(checkSilence, checkInterval);
   };
 
-  const startAudioRecording = async (onStop: (audioBlob: Blob) => Promise<void>) => {
+  const startAudioRecording = async (
+    onStop: (audioBlob: Blob) => Promise<void>,
+  ) => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     streamRef.current = stream;
 
@@ -348,6 +357,8 @@ export default function StoryRecorder({
         transcription,
         model: selectedModel,
         topicId: topic.id,
+        imageUrl: selectedImage,
+        imageIndex: selectedImageIndex,
         praatMetrics: metrics,
       });
     } catch (err) {
@@ -374,86 +385,197 @@ export default function StoryRecorder({
 
   const getToneName = (tone: number): string => {
     const toneNames: Record<number, string> = {
-      1: "Tone 1 - High Level (媽 ma1)",
-      2: "Tone 2 - Rising (麻 ma2)",
-      3: "Tone 3 - Falling-Rising (馬 ma3)",
-      4: "Tone 4 - Falling (罵 ma4)",
+      1: "Tone 1 - High Level (ma1)",
+      2: "Tone 2 - Rising (ma2)",
+      3: "Tone 3 - Falling-Rising (ma3)",
+      4: "Tone 4 - Falling (ma4)",
     };
     return toneNames[tone] || "No clear tone";
   };
 
   const isBusy = isRecording || isTranscribing || isAnalyzing;
+  const selectedVocabulary = topic.vocabulary[selectedImageIndex] || [];
+  const recordingStatus = isRecording
+    ? "Recording in progress"
+    : isTranscribing
+      ? "Transcribing speech"
+      : isAnalyzing
+        ? "Analyzing pronunciation"
+        : praatMetrics
+          ? "Feedback ready"
+          : "Ready to record";
 
   return (
     <div className="story-recorder">
-      <div className="recorder-header">
-        <p className="eyebrow">Mandarin speech lab</p>
-        <h1>{topic.name} Story Practice</h1>
-        {selectedImage && (
+      <section className="recorder-hero">
+        <div className="recorder-hero-copy">
+          <p className="eyebrow">Student recording studio</p>
+          <h1>{topic.name} Story Challenge</h1>
+          <p>
+            {topic.description ||
+              "Tell a complete Mandarin story using the selected picture."}
+          </p>
+          <div className="challenge-meta">
+            <span>{topic.level || "Narrative practice"}</span>
+            <span>{topic.skillFocus || "Story fluency"}</span>
+            <span>Picture {selectedImageIndex + 1} of {topic.images.length}</span>
+          </div>
+        </div>
+
+        <div className="recording-status-card">
+          <span>Status</span>
+          <strong>{recordingStatus}</strong>
+          {isRecording ? (
+            <p>{recordingDuration}s recorded</p>
+          ) : (
+            <p>Plan first, then speak clearly.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="recording-workspace">
+        <div className="prompt-stage">
           <div className="story-image-preview">
             <img src={selectedImage} alt="Selected story prompt" />
           </div>
-        )}
-      </div>
 
-      <div className="topic-images-section">
-        <h3>Choose a visual prompt</h3>
-        <div className="topic-images-grid">
-          {topic.images.map((image, index) => (
-            <div key={image} className="topic-image-wrapper">
+          <div className="prompt-thumbnails">
+            {topic.images.map((image, index) => (
               <button
                 type="button"
-                className={`topic-image-card ${
+                key={image}
+                className={`prompt-mini-card ${
                   selectedImageIndex === index ? "selected" : ""
                 }`}
                 onClick={() => {
                   onImageChange(image);
                   onImageSelect(index);
                 }}
+                disabled={isBusy}
               >
                 <img src={image} alt={`Story prompt ${index + 1}`} />
+                <span>Picture {index + 1}</span>
               </button>
-              <div className="image-vocabulary">
-                {topic.vocabulary[index]?.join(" / ")}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
 
-      <div className="model-selector">
-        <label htmlFor="model">Speech source</label>
-        <select
-          id="model"
-          value={selectedModel}
-          onChange={(event) => setSelectedModel(event.target.value as SpeechModel)}
-          disabled={isBusy}
-        >
-          <option value="webspeech">Web Speech API and Praat analysis</option>
-          <option value="openai">OpenAI transcription and Praat analysis</option>
-          <option value="gemini">Gemini transcription and Praat analysis</option>
-        </select>
-      </div>
+        <aside className="recording-coach-panel">
+          <div className="coach-block">
+            <h2>Story mission</h2>
+            <ol>
+              <li>Name the place and main character.</li>
+              <li>Explain what happens first, next, and finally.</li>
+              <li>Add one feeling, reason, or result.</li>
+            </ol>
+          </div>
 
-      <div className="controls">
-        <button
-          type="button"
-          onClick={startRecording}
-          disabled={isBusy}
-          className="btn btn-primary"
-        >
-          {isRecording ? "Recording..." : "Start Recording"}
-        </button>
+          <div className="coach-block">
+            <h2>Vocabulary boost</h2>
+            <div className="recording-vocabulary">
+              {selectedVocabulary.map((word) => (
+                <span key={word}>{word}</span>
+              ))}
+            </div>
+          </div>
 
-        <button
-          type="button"
-          onClick={stopRecording}
-          disabled={!isRecording}
-          className="btn btn-danger"
-        >
-          Stop and Analyze
-        </button>
-      </div>
+          <div className="coach-block readiness-card">
+            <h2>Before recording</h2>
+            <div className="readiness-list">
+              <span>Quiet space</span>
+              <span>Complete sentence</span>
+              <span>Clear ending</span>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section className="concept-map-section" aria-label="Story concept map">
+        <div className="concept-map-header">
+          <p className="eyebrow">Story builder</p>
+          <h2>Concept Map</h2>
+          <p>
+            Use these story parts to organize your ideas before recording your
+            Mandarin narrative.
+          </p>
+        </div>
+
+        <div className="concept-map">
+          <div className="concept-node scene">
+            <span>Scene</span>
+            <strong>Where and when?</strong>
+            <p>Place, time, weather, background</p>
+          </div>
+          <div className="concept-node character">
+            <span>Characters</span>
+            <strong>Who is there?</strong>
+            <p>Main person, friends, family, helper</p>
+          </div>
+          <div className="concept-node event">
+            <span>Events</span>
+            <strong>What happens?</strong>
+            <p>First, next, then, finally</p>
+          </div>
+          <div className="concept-node problem">
+            <span>Problem</span>
+            <strong>What changes?</strong>
+            <p>Challenge, surprise, question, mistake</p>
+          </div>
+          <div className="concept-node feeling">
+            <span>Feeling</span>
+            <strong>How do they feel?</strong>
+            <p>Happy, nervous, excited, worried</p>
+          </div>
+          <div className="concept-node ending">
+            <span>Ending</span>
+            <strong>How does it finish?</strong>
+            <p>Result, lesson, decision, next step</p>
+          </div>
+        </div>
+
+        <div className="sentence-starters">
+          <span>Starter phrases</span>
+          <p>一開始... / 然後... / 因為... / 所以... / 最後...</p>
+        </div>
+      </section>
+
+      <section className="recording-console">
+        <div className="model-selector">
+          <label htmlFor="model">Speech source</label>
+          <select
+            id="model"
+            value={selectedModel}
+            onChange={(event) =>
+              setSelectedModel(event.target.value as SpeechModel)
+            }
+            disabled={isBusy}
+          >
+            <option value="webspeech">Web Speech API and Praat analysis</option>
+            <option value="openai">OpenAI transcription and Praat analysis</option>
+            <option value="gemini">Gemini transcription and Praat analysis</option>
+          </select>
+        </div>
+
+        <div className="controls">
+          <button
+            type="button"
+            onClick={startRecording}
+            disabled={isBusy}
+            className="btn btn-primary"
+          >
+            {isRecording ? "Recording..." : "Start Recording"}
+          </button>
+
+          <button
+            type="button"
+            onClick={stopRecording}
+            disabled={!isRecording}
+            className="btn btn-danger"
+          >
+            Stop and Analyze
+          </button>
+        </div>
+      </section>
 
       {isRecording && (
         <div className="recording-info">
@@ -475,8 +597,8 @@ export default function StoryRecorder({
       {praatMetrics && (
         <section className="analysis-panel">
           <div className="analysis-heading">
-            <p className="eyebrow">Praat result</p>
-            <h2>Pronunciation Analysis</h2>
+            <p className="eyebrow">Feedback unlocked</p>
+            <h2>Your Speaking Results</h2>
           </div>
 
           <div className="metrics-section">
@@ -544,7 +666,7 @@ export default function StoryRecorder({
           </div>
 
           <div className="feedback-section">
-            <h3>Coaching Feedback</h3>
+            <h3>Praat coaching feedback</h3>
             <p>{praatMetrics.feedback}</p>
           </div>
 
@@ -593,9 +715,9 @@ export default function StoryRecorder({
       )}
 
       <div className="transcriptions">
-        <h2>Transcriptions</h2>
+        <h2>Speech transcript</h2>
         {transcriptions.length === 0 ? (
-          <p className="empty">No transcriptions yet. Start recording.</p>
+          <p className="empty">Your transcript will appear after recording.</p>
         ) : (
           transcriptions.map((item) => (
             <div

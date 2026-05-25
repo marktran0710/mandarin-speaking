@@ -1,7 +1,7 @@
 .create-story-page {
   width: 100%;
   min-height: calc(100vh - 80px);
-  background: var(--clay-canvas);
+  background: #ffffff;
 }
 
 .story-recorder-wrapper {
@@ -16,7 +16,7 @@
   background: var(--clay-primary);
   color: white;
   border: 1px solid var(--clay-primary);
-  border-radius: var(--clay-radius-md);
+  border-radius: 999px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
