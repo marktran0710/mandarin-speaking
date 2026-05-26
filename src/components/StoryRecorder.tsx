@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import PitchChart from "../PitchChart";
+import PraatTimeline from "./PraatTimeline";
 import "./StoryRecorder.css";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
@@ -106,6 +107,7 @@ export default function StoryRecorder({
   const [silenceDuration, setSilenceDuration] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [praatMetrics, setPraatMetrics] = useState<PraatMetrics | null>(null);
+  const [analysisAudioBlob, setAnalysisAudioBlob] = useState<Blob | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -146,6 +148,7 @@ export default function StoryRecorder({
     try {
       setError(null);
       setPraatMetrics(null);
+      setAnalysisAudioBlob(null);
       currentTranscriptRef.current = "";
       recordingStartRef.current = Date.now();
       setRecordingDuration(0);
@@ -360,6 +363,7 @@ export default function StoryRecorder({
 
       const metrics = (await response.json()) as PraatMetrics;
       setPraatMetrics(metrics);
+      setAnalysisAudioBlob(wavBlob);
 
       onAddRecord({
         id: `audio-${Date.now()}`,
@@ -419,6 +423,21 @@ export default function StoryRecorder({
         : praatMetrics
           ? "Feedback ready"
           : "Ready to record";
+  const recordingButtonLabel = isRecording
+    ? "Stop and analyze"
+    : praatMetrics
+      ? "Record again"
+      : "Start recording";
+  const recordingButtonDisabled = isTranscribing || isAnalyzing;
+
+  const handlePrimaryRecordingAction = () => {
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+
+    startRecording();
+  };
 
   return (
     <div className="story-recorder">
@@ -479,11 +498,11 @@ export default function StoryRecorder({
 
         <aside className="recording-coach-panel">
           <div className="coach-block">
-            <h2>Story mission</h2>
+            <h2>Tell 3 simple sentences</h2>
             <ol>
-              <li>Name the place and main character.</li>
-              <li>Explain what happens first, next, and finally.</li>
-              <li>Add one feeling, reason, or result.</li>
+              <li>Say where the story happens.</li>
+              <li>Say what happens next.</li>
+              <li>Say how it finishes.</li>
             </ol>
           </div>
 
@@ -497,11 +516,11 @@ export default function StoryRecorder({
           </div>
 
           <div className="coach-block readiness-card">
-            <h2>Before recording</h2>
+            <h2>Ready?</h2>
             <div className="readiness-list">
               <span>Quiet space</span>
-              <span>Complete sentence</span>
-              <span>Clear ending</span>
+              <span>Clear voice</span>
+              <span>One ending</span>
             </div>
           </div>
         </aside>
@@ -510,10 +529,10 @@ export default function StoryRecorder({
       <section className="concept-map-section" aria-label="Story concept map">
         <div className="concept-map-header">
           <p className="eyebrow">Story builder</p>
-          <h2>Concept Map</h2>
+          <h2>Plan in 4 simple steps</h2>
           <p>
-            Use these story parts to organize your ideas before recording your
-            Mandarin narrative.
+            Use the four boxes to prepare one short Mandarin story before
+            recording.
           </p>
         </div>
 
@@ -523,25 +542,15 @@ export default function StoryRecorder({
             <strong>Where and when?</strong>
             <p>Place, time, weather, background</p>
           </div>
-          <div className="concept-node character">
-            <span>Characters</span>
-            <strong>Who is there?</strong>
-            <p>Main person, friends, family, helper</p>
-          </div>
           <div className="concept-node event">
-            <span>Events</span>
+            <span>Action</span>
             <strong>What happens?</strong>
-            <p>First, next, then, finally</p>
+            <p>First action, next action</p>
           </div>
           <div className="concept-node problem">
             <span>Problem</span>
             <strong>What changes?</strong>
             <p>Challenge, surprise, question, mistake</p>
-          </div>
-          <div className="concept-node feeling">
-            <span>Feeling</span>
-            <strong>How do they feel?</strong>
-            <p>Happy, nervous, excited, worried</p>
           </div>
           <div className="concept-node ending">
             <span>Ending</span>
@@ -556,41 +565,49 @@ export default function StoryRecorder({
         </div>
       </section>
 
-      <section className="recording-console">
-        <div className="model-selector">
-          <label htmlFor="model">Speech source</label>
-          <select
-            id="model"
-            value={selectedModel}
-            onChange={(event) =>
-              setSelectedModel(event.target.value as SpeechModel)
-            }
-            disabled={isBusy}
-          >
-            <option value="webspeech">Web Speech API and Praat analysis</option>
-            <option value="openai">OpenAI transcription and Praat analysis</option>
-            <option value="gemini">Gemini transcription and Praat analysis</option>
-          </select>
+      <section className="recording-console simple-recording-console">
+        <div className="recording-action-copy">
+          <span>Record</span>
+          <h2>Speak your story</h2>
+          <p>Use the picture, vocabulary, and four-step plan.</p>
         </div>
 
-        <div className="controls">
+        <div className="controls simple-controls">
           <button
             type="button"
-            onClick={startRecording}
-            disabled={isBusy}
-            className="btn btn-primary"
+            onClick={handlePrimaryRecordingAction}
+            disabled={recordingButtonDisabled}
+            className={`btn btn-record-main ${
+              isRecording ? "btn-danger" : "btn-primary"
+            }`}
           >
-            {isRecording ? "Recording..." : "Start Recording"}
+            {recordingButtonLabel}
           </button>
 
-          <button
-            type="button"
-            onClick={stopRecording}
-            disabled={!isRecording}
-            className="btn btn-danger"
-          >
-            Stop and Analyze
-          </button>
+          <details className="advanced-recording-options">
+            <summary>Recording options</summary>
+            <div className="model-selector">
+              <label htmlFor="model">Speech source</label>
+              <select
+                id="model"
+                value={selectedModel}
+                onChange={(event) =>
+                  setSelectedModel(event.target.value as SpeechModel)
+                }
+                disabled={isBusy}
+              >
+                <option value="webspeech">
+                  Web Speech API and Praat analysis
+                </option>
+                <option value="openai">
+                  OpenAI transcription and Praat analysis
+                </option>
+                <option value="gemini">
+                  Gemini transcription and Praat analysis
+                </option>
+              </select>
+            </div>
+          </details>
         </div>
       </section>
 
@@ -674,6 +691,13 @@ export default function StoryRecorder({
               </div>
             </div>
           </div>
+
+          <PraatTimeline
+            audioBlob={analysisAudioBlob}
+            pitchContour={praatMetrics.pitch_contour}
+            wordProsody={praatMetrics.word_prosody}
+            transcription={currentTranscriptRef.current}
+          />
 
           <div className="chart-section">
             <PitchChart
