@@ -18,7 +18,7 @@ describe("App role flows", () => {
     await user.click(screen.getByRole("button", { name: "Enter Student Mode" }));
 
     expect(
-      screen.getByRole("heading", { name: "Choose a Story Activity" }),
+      screen.getByRole("heading", { name: "Choose a Taiwan Story" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "My Stories" })).toBeInTheDocument();
   });
@@ -54,7 +54,7 @@ describe("App role flows", () => {
     await user.click(screen.getAllByRole("button", { name: "Record this part" })[0]);
 
     expect(
-      screen.getByRole("heading", { name: "Adventure Story Challenge" }),
+      screen.getByRole("heading", { name: "Taiwan Lantern Festival Story Challenge" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Story concept map" })).toBeInTheDocument();
   });

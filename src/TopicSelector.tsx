@@ -16,12 +16,12 @@ interface TopicSelectorProps {
 }
 
 type SceneIcon =
-  | "adventure"
-  | "nature"
-  | "fantasy"
-  | "school"
-  | "mystery"
-  | "daily";
+  | "lantern"
+  | "mountainTrain"
+  | "temple"
+  | "schoolFair"
+  | "nightMarket"
+  | "dragonBoat";
 
 interface StoryScene {
   title: string;
@@ -42,57 +42,74 @@ function escapeSvgText(text: string): string {
 function sceneIllustration(icon: SceneIcon, accent: string): string {
   const commonShadow = 'filter="url(#softShadow)"';
   const illustrations: Record<SceneIcon, string> = {
-    adventure: `
-      <path d="M38 208 C106 154 155 255 220 180 C273 118 326 185 378 126" fill="none" stroke="${accent}" stroke-width="14" stroke-linecap="round" opacity="0.65"/>
-      <path d="M70 194 L126 108 L178 194 Z" fill="#5b8c76" ${commonShadow}/>
-      <path d="M120 194 L206 74 L294 194 Z" fill="#497d6f" ${commonShadow}/>
-      <path d="M172 122 L206 74 L242 124 C221 112 201 111 172 122 Z" fill="#f7fafc"/>
-      <rect x="62" y="58" width="86" height="58" rx="10" fill="#fff7df" ${commonShadow}/>
-      <path d="M78 74 C98 88 111 54 134 82" fill="none" stroke="#d88b3d" stroke-width="5" stroke-linecap="round"/>
-      <circle cx="101" cy="92" r="6" fill="${accent}"/>
+    lantern: `
+      <path d="M74 92 C132 48 264 48 326 92" fill="none" stroke="${accent}" stroke-width="10" stroke-linecap="round" opacity="0.45"/>
+      <g ${commonShadow}>
+        <rect x="84" y="104" width="58" height="76" rx="22" fill="#ffcf56"/>
+        <rect x="171" y="82" width="70" height="94" rx="26" fill="#ef6f6c"/>
+        <rect x="270" y="112" width="52" height="68" rx="20" fill="#69c0b8"/>
+      </g>
+      <path d="M113 180 V202 M206 176 V202 M296 180 V202" stroke="#8a4f2f" stroke-width="5" stroke-linecap="round"/>
+      <path d="M83 224 C120 204 172 210 202 226 C242 205 302 203 342 222" fill="none" stroke="#5b8c76" stroke-width="11" stroke-linecap="round"/>
+      <circle cx="96" cy="230" r="17" fill="#f4b18b"/>
+      <circle cx="152" cy="222" r="17" fill="#f7c59f"/>
+      <circle cx="255" cy="226" r="17" fill="#d99c77"/>
+      <circle cx="310" cy="220" r="17" fill="#f4b18b"/>
     `,
-    nature: `
-      <circle cx="310" cy="74" r="32" fill="#ffd166" opacity="0.95"/>
-      <path d="M34 182 C88 118 138 216 194 146 C240 91 300 163 366 106" fill="none" stroke="#8fd6c2" stroke-width="18" stroke-linecap="round"/>
-      <rect x="94" y="135" width="20" height="72" rx="9" fill="#8b5e3c"/>
-      <circle cx="84" cy="129" r="36" fill="#4f9f72" ${commonShadow}/>
-      <circle cx="119" cy="116" r="42" fill="#63b97d" ${commonShadow}/>
-      <circle cx="147" cy="141" r="32" fill="#3f8f68" ${commonShadow}/>
-      <path d="M230 96 C251 66 289 68 306 101 C333 102 346 122 336 144 L218 144 C203 121 211 101 230 96 Z" fill="#ffffff" opacity="0.88" ${commonShadow}/>
+    mountainTrain: `
+      <circle cx="318" cy="66" r="30" fill="#ffd166" opacity="0.95"/>
+      <path d="M42 202 L126 104 L190 202 Z" fill="#6aa67f" ${commonShadow}/>
+      <path d="M112 202 L226 72 L348 202 Z" fill="#4f8d78" ${commonShadow}/>
+      <path d="M184 118 L226 72 L270 120 C238 108 215 109 184 118 Z" fill="#f7fafc"/>
+      <path d="M54 226 C132 175 228 255 346 174" fill="none" stroke="#6f4e37" stroke-width="12" stroke-linecap="round"/>
+      <rect x="124" y="178" width="122" height="42" rx="12" fill="${accent}" ${commonShadow}/>
+      <rect x="142" y="188" width="22" height="16" rx="4" fill="#eff6ff"/>
+      <rect x="174" y="188" width="22" height="16" rx="4" fill="#eff6ff"/>
+      <rect x="206" y="188" width="22" height="16" rx="4" fill="#eff6ff"/>
+      <circle cx="154" cy="224" r="8" fill="#1f2937"/>
+      <circle cx="216" cy="224" r="8" fill="#1f2937"/>
     `,
-    fantasy: `
-      <path d="M122 202 L122 108 L146 108 L146 84 L174 84 L174 108 L226 108 L226 84 L254 84 L254 108 L278 108 L278 202 Z" fill="#8b7bd8" ${commonShadow}/>
-      <path d="M154 202 L154 136 C154 116 176 103 200 103 C224 103 246 116 246 136 L246 202 Z" fill="#6757b8"/>
-      <path d="M132 84 L146 56 L160 84 Z M212 84 L226 56 L240 84 Z" fill="#f6c453"/>
-      <circle cx="206" cy="72" r="15" fill="${accent}" opacity="0.85"/>
-      <path d="M316 68 L324 88 L345 91 L329 105 L334 126 L316 115 L298 126 L303 105 L287 91 L308 88 Z" fill="#fff3b0" ${commonShadow}/>
-      <path d="M70 140 C82 118 112 118 124 140 C112 163 82 163 70 140 Z" fill="#c8bfff" opacity="0.8"/>
+    temple: `
+      <path d="M72 112 C122 78 274 78 328 112" fill="none" stroke="${accent}" stroke-width="15" stroke-linecap="round"/>
+      <path d="M96 128 H304 V216 H96 Z" fill="#fff4d6" ${commonShadow}/>
+      <path d="M76 132 L200 72 L324 132" fill="none" stroke="#d9483b" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="126" y="150" width="48" height="66" rx="8" fill="#d9483b"/>
+      <rect x="226" y="150" width="48" height="66" rx="8" fill="#d9483b"/>
+      <circle cx="200" cy="156" r="24" fill="#ffd166"/>
+      <path d="M185 184 C196 174 208 174 218 184 V216 H185 Z" fill="#7a3f2d"/>
+      <path d="M66 232 C116 214 154 224 200 236 C248 216 292 214 340 232" fill="none" stroke="#4f9f72" stroke-width="11" stroke-linecap="round"/>
     `,
-    school: `
-      <rect x="74" y="70" width="252" height="134" rx="18" fill="#ffffff" ${commonShadow}/>
-      <rect x="98" y="94" width="204" height="74" rx="8" fill="#29756f"/>
-      <path d="M120 126 L164 126 M120 146 L206 146 M224 126 L282 126" stroke="#e8fff8" stroke-width="6" stroke-linecap="round"/>
-      <rect x="126" y="188" width="148" height="16" rx="8" fill="#e5b36a"/>
-      <circle cx="116" cy="222" r="22" fill="#f4b18b"/>
-      <circle cx="198" cy="222" r="22" fill="#f7c59f"/>
-      <circle cx="280" cy="222" r="22" fill="#d99c77"/>
-      <path d="M89 251 C96 232 136 232 143 251 M171 251 C178 232 218 232 225 251 M253 251 C260 232 300 232 307 251" fill="${accent}" opacity="0.72"/>
+    schoolFair: `
+      <rect x="72" y="74" width="256" height="142" rx="18" fill="#ffffff" ${commonShadow}/>
+      <rect x="96" y="98" width="208" height="62" rx="10" fill="#29756f"/>
+      <path d="M122 126 H178 M202 126 H280 M122 144 H238" stroke="#e8fff8" stroke-width="6" stroke-linecap="round"/>
+      <path d="M88 216 H312 L286 252 H114 Z" fill="#f7c86b"/>
+      <rect x="126" y="194" width="148" height="32" rx="9" fill="${accent}" ${commonShadow}/>
+      <circle cx="126" cy="244" r="18" fill="#f4b18b"/>
+      <circle cx="198" cy="244" r="18" fill="#f7c59f"/>
+      <circle cx="272" cy="244" r="18" fill="#d99c77"/>
     `,
-    mystery: `
-      <rect x="86" y="88" width="186" height="118" rx="16" fill="#fff9e8" ${commonShadow}/>
-      <path d="M106 116 L252 116 M106 144 L226 144 M106 172 L206 172" stroke="#947a55" stroke-width="7" stroke-linecap="round"/>
-      <circle cx="264" cy="148" r="47" fill="none" stroke="${accent}" stroke-width="16" ${commonShadow}/>
-      <path d="M296 181 L346 231" stroke="${accent}" stroke-width="17" stroke-linecap="round"/>
-      <path d="M74 214 C98 203 118 203 141 214 M58 238 C91 224 121 224 154 238" fill="none" stroke="#6e7d9b" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+    nightMarket: `
+      <path d="M56 112 H344 L318 176 H82 Z" fill="${accent}" ${commonShadow}/>
+      <path d="M78 112 L98 74 H302 L322 112" fill="#fff0bf" stroke="#d9803f" stroke-width="6"/>
+      <rect x="92" y="176" width="216" height="58" rx="12" fill="#ffe3a3" ${commonShadow}/>
+      <path d="M112 198 H178 M206 198 H282 M122 218 H266" stroke="#9a5a25" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="92" cy="78" r="14" fill="#ffcf56"/>
+      <circle cx="148" cy="64" r="14" fill="#ef6f6c"/>
+      <circle cx="250" cy="64" r="14" fill="#69c0b8"/>
+      <circle cx="308" cy="78" r="14" fill="#ffcf56"/>
+      <path d="M62 250 C112 228 160 236 204 250 C252 230 302 230 344 250" fill="none" stroke="#6b8f71" stroke-width="10" stroke-linecap="round"/>
     `,
-    daily: `
-      <path d="M78 164 L198 72 L322 164 V232 H78 Z" fill="#9cc7bf" ${commonShadow}/>
-      <path d="M54 168 L198 58 L346 168" fill="none" stroke="${accent}" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
-      <rect x="154" y="168" width="54" height="64" rx="8" fill="#fff7df"/>
-      <rect x="232" y="176" width="52" height="42" rx="8" fill="#f7fbff"/>
-      <path d="M238 197 H278 M258 180 V216" stroke="#74a9a0" stroke-width="5"/>
-      <circle cx="92" cy="72" r="28" fill="#ffd166" opacity="0.95"/>
-      <path d="M102 246 C144 224 254 224 296 246" fill="none" stroke="#6b8f71" stroke-width="12" stroke-linecap="round"/>
+    dragonBoat: `
+      <path d="M44 198 C110 226 266 226 356 198 C338 242 90 246 44 198 Z" fill="${accent}" ${commonShadow}/>
+      <path d="M318 174 C344 166 358 178 356 198 C342 188 330 184 318 174 Z" fill="#ef6f6c"/>
+      <circle cx="337" cy="184" r="5" fill="#1f2937"/>
+      <path d="M88 174 L120 142 M146 174 L178 142 M204 174 L236 142 M262 174 L294 142" stroke="#7a3f2d" stroke-width="8" stroke-linecap="round"/>
+      <circle cx="104" cy="162" r="17" fill="#f4b18b"/>
+      <circle cx="164" cy="162" r="17" fill="#f7c59f"/>
+      <circle cx="224" cy="162" r="17" fill="#d99c77"/>
+      <circle cx="284" cy="162" r="17" fill="#f4b18b"/>
+      <path d="M48 238 C94 224 138 250 184 236 C232 222 280 250 350 232" fill="none" stroke="#4aa3c7" stroke-width="13" stroke-linecap="round"/>
     `,
   };
 
@@ -112,7 +129,7 @@ function storyImage(scene: StoryScene): string {
         </filter>
       </defs>
       <rect width="400" height="300" rx="26" fill="url(#sky)"/>
-      <path d="M0 206 C72 184 118 222 190 202 C262 181 320 188 400 164 V300 H0 Z" fill="${scene.ground}"/>
+      <path d="M0 208 C76 186 128 224 198 204 C270 184 326 190 400 166 V300 H0 Z" fill="${scene.ground}"/>
       <circle cx="331" cy="57" r="31" fill="#ffffff" opacity="0.62"/>
       <circle cx="354" cy="74" r="18" fill="#ffffff" opacity="0.35"/>
       ${sceneIllustration(scene.icon, scene.accent)}
@@ -132,206 +149,206 @@ function storySequence(scenes: StoryScene[]): string[] {
 const topicImages: Record<string, string[]> = {
   adventure: storySequence([
     {
-      title: "Packing for the Trip",
-      subtitle: "The friends find a map",
-      sky: "#c8f1ff",
-      ground: "#d7efce",
+      title: "Lanterns Arrive",
+      subtitle: "A family enters the festival",
+      sky: "#dff3ff",
+      ground: "#d8ead5",
+      accent: "#e85d5a",
+      icon: "lantern",
+    },
+    {
+      title: "Writing Wishes",
+      subtitle: "Students choose kind words",
+      sky: "#ffe7c8",
+      ground: "#e6d9b8",
+      accent: "#e88f3a",
+      icon: "lantern",
+    },
+    {
+      title: "A Lantern Falls",
+      subtitle: "People work together",
+      sky: "#dfd7ff",
+      ground: "#d5cbe8",
+      accent: "#7c6be8",
+      icon: "lantern",
+    },
+    {
+      title: "Lights in the Sky",
+      subtitle: "Everyone shares hope",
+      sky: "#fff1b8",
+      ground: "#d7e8c4",
       accent: "#0f766e",
-      icon: "adventure",
-    },
-    {
-      title: "Crossing the Forest",
-      subtitle: "They follow the trail",
-      sky: "#bfead4",
-      ground: "#b7dfbc",
-      accent: "#2f8f68",
-      icon: "adventure",
-    },
-    {
-      title: "The Bridge Breaks",
-      subtitle: "A challenge appears",
-      sky: "#d9e6ff",
-      ground: "#cbd7b8",
-      accent: "#6d8cc7",
-      icon: "adventure",
-    },
-    {
-      title: "Finding the Lookout",
-      subtitle: "They celebrate together",
-      sky: "#ffe6ba",
-      ground: "#d8e8bf",
-      accent: "#e5983f",
-      icon: "adventure",
+      icon: "lantern",
     },
   ]),
   nature: storySequence([
     {
-      title: "Morning at the Park",
-      subtitle: "The class observes the sky",
-      sky: "#ccf5e7",
-      ground: "#bee8c9",
-      accent: "#34a37a",
-      icon: "nature",
+      title: "Early Train",
+      subtitle: "Friends meet at the station",
+      sky: "#cceeff",
+      ground: "#c5dfcf",
+      accent: "#bd5b42",
+      icon: "mountainTrain",
     },
     {
-      title: "Clouds Gather",
-      subtitle: "Wind changes the plan",
-      sky: "#d7e2f3",
-      ground: "#c8ddbe",
-      accent: "#6d8ca8",
-      icon: "nature",
+      title: "Forest Track",
+      subtitle: "The train climbs Alishan",
+      sky: "#cdf2df",
+      ground: "#b9d9ba",
+      accent: "#0f766e",
+      icon: "mountainTrain",
     },
     {
-      title: "Rain Changes Everything",
-      subtitle: "They wait and notice details",
-      sky: "#c8d7ec",
-      ground: "#a9ccb8",
-      accent: "#457f9a",
-      icon: "nature",
+      title: "Fog on the Path",
+      subtitle: "The group waits calmly",
+      sky: "#d9e6f2",
+      ground: "#bdcdbd",
+      accent: "#6f8fa0",
+      icon: "mountainTrain",
     },
     {
-      title: "Rainbow After Rain",
-      subtitle: "The group shares discoveries",
-      sky: "#ffe0cb",
-      ground: "#c9e6bd",
-      accent: "#f28b82",
-      icon: "nature",
+      title: "Sunrise View",
+      subtitle: "They describe the morning",
+      sky: "#ffe2b8",
+      ground: "#d9e7bd",
+      accent: "#d98c3d",
+      icon: "mountainTrain",
     },
   ]),
   fantasy: storySequence([
     {
-      title: "A Glowing Door",
-      subtitle: "A secret world opens",
-      sky: "#e8d7ff",
-      ground: "#ded0f0",
-      accent: "#7c6be8",
-      icon: "fantasy",
+      title: "Temple Morning",
+      subtitle: "Neighbors prepare flowers",
+      sky: "#fff0bf",
+      ground: "#e6d7b8",
+      accent: "#d9483b",
+      icon: "temple",
     },
     {
-      title: "Inside the Castle",
-      subtitle: "A helper gives a clue",
-      sky: "#d8e0ff",
-      ground: "#d2c3ea",
-      accent: "#6d5bd2",
-      icon: "fantasy",
+      title: "Mazu Parade",
+      subtitle: "The street becomes busy",
+      sky: "#ffd9ca",
+      ground: "#e8c9b9",
+      accent: "#c2413f",
+      icon: "temple",
     },
     {
-      title: "The Lost Crown",
-      subtitle: "The hero must decide",
-      sky: "#f2d6e9",
-      ground: "#cdbfe3",
-      accent: "#c95b8f",
-      icon: "fantasy",
+      title: "Lost in the Crowd",
+      subtitle: "A child asks for help",
+      sky: "#d7e4ff",
+      ground: "#d1d8e8",
+      accent: "#5268a8",
+      icon: "temple",
     },
     {
-      title: "Magic Returns",
-      subtitle: "Peace comes back",
-      sky: "#fff0bb",
-      ground: "#d6e5c3",
-      accent: "#d6a23f",
-      icon: "fantasy",
+      title: "Safe Together",
+      subtitle: "The community celebrates",
+      sky: "#dff6e6",
+      ground: "#c9e4ca",
+      accent: "#2f8f68",
+      icon: "temple",
     },
   ]),
   school: storySequence([
     {
-      title: "Before Class",
-      subtitle: "Students receive a project",
+      title: "Class Idea",
+      subtitle: "Students plan a Taiwan fair",
       sky: "#d7efff",
       ground: "#d5e7d5",
       accent: "#0f766e",
-      icon: "school",
+      icon: "schoolFair",
     },
     {
-      title: "Group Planning",
-      subtitle: "Everyone shares ideas",
+      title: "Making Posters",
+      subtitle: "Teams explain local foods",
       sky: "#d6f4ef",
       ground: "#cae6dc",
       accent: "#2e9384",
-      icon: "school",
+      icon: "schoolFair",
     },
     {
-      title: "Practice Mistake",
-      subtitle: "The team fixes the poster",
-      sky: "#f0e3ca",
-      ground: "#dfd8bc",
+      title: "Rain at Noon",
+      subtitle: "The class moves tables",
+      sky: "#e5dfd1",
+      ground: "#d9d0b8",
       accent: "#bf8544",
-      icon: "school",
+      icon: "schoolFair",
     },
     {
-      title: "Presentation Success",
-      subtitle: "The class gives feedback",
+      title: "Sharing Culture",
+      subtitle: "Visitors ask questions",
       sky: "#dff3d2",
       ground: "#cfe4bc",
       accent: "#4e9d72",
-      icon: "school",
+      icon: "schoolFair",
     },
   ]),
   mystery: storySequence([
     {
-      title: "Missing Notebook",
-      subtitle: "A strange clue appears",
-      sky: "#dce7ff",
-      ground: "#ced5e4",
-      accent: "#536aa4",
-      icon: "mystery",
+      title: "Night Market Snack",
+      subtitle: "Friends buy bubble tea",
+      sky: "#ffe5c7",
+      ground: "#e3c9aa",
+      accent: "#e08a45",
+      icon: "nightMarket",
     },
     {
-      title: "Clues in the Hallway",
-      subtitle: "The students compare evidence",
-      sky: "#e6dfd3",
-      ground: "#d1c4ad",
-      accent: "#7e6f58",
-      icon: "mystery",
-    },
-    {
-      title: "A Hidden Message",
-      subtitle: "The answer is almost clear",
+      title: "A Wallet Is Missing",
+      subtitle: "They look near the stall",
       sky: "#d7d4f3",
-      ground: "#c3bed8",
+      ground: "#c9c2db",
       accent: "#6b5dad",
-      icon: "mystery",
+      icon: "nightMarket",
     },
     {
-      title: "The Truth",
-      subtitle: "The problem is solved",
+      title: "Clue from a Vendor",
+      subtitle: "The owner remembers a detail",
+      sky: "#dce7ff",
+      ground: "#ccd7e7",
+      accent: "#536aa4",
+      icon: "nightMarket",
+    },
+    {
+      title: "Returned Wallet",
+      subtitle: "Everyone says thank you",
       sky: "#d8f4e6",
       ground: "#c6e4cd",
       accent: "#2f8f68",
-      icon: "mystery",
+      icon: "nightMarket",
     },
   ]),
   "daily-life": storySequence([
     {
-      title: "Breakfast at Home",
-      subtitle: "The day begins with family",
-      sky: "#fff0bf",
-      ground: "#e7d7b6",
-      accent: "#d79a3a",
-      icon: "daily",
-    },
-    {
-      title: "On the Way to School",
-      subtitle: "A friend joins the walk",
+      title: "Dragon Boat Practice",
+      subtitle: "A team meets before school",
       sky: "#cfeeff",
       ground: "#c4dfcf",
       accent: "#238d7a",
-      icon: "daily",
+      icon: "dragonBoat",
     },
     {
-      title: "Helping After Class",
-      subtitle: "Someone needs support",
+      title: "Learning the Rhythm",
+      subtitle: "The drummer gives a beat",
       sky: "#d6f2e4",
       ground: "#c7e5d0",
       accent: "#55a06f",
-      icon: "daily",
+      icon: "dragonBoat",
     },
     {
-      title: "Dinner Story",
-      subtitle: "The family talks together",
+      title: "Strong Wind",
+      subtitle: "The boat slows down",
+      sky: "#d7e2f3",
+      ground: "#c8ddbe",
+      accent: "#457f9a",
+      icon: "dragonBoat",
+    },
+    {
+      title: "Finish Line",
+      subtitle: "The team cheers together",
       sky: "#ffd9ca",
       ground: "#e5cdbb",
       accent: "#d97854",
-      icon: "daily",
+      icon: "dragonBoat",
     },
   ]),
 };
@@ -339,86 +356,86 @@ const topicImages: Record<string, string[]> = {
 export const TOPICS: Topic[] = [
   {
     id: "adventure",
-    name: "Adventure",
-    description: "Describe a journey with a clear beginning, challenge, and result.",
-    skillFocus: "Sequence and cause-effect",
-    level: "Story Builder",
+    name: "Taiwan Lantern Festival",
+    description: "Tell a story about wishes, lights, and helping others at a Taiwan festival.",
+    skillFocus: "Sequence and feelings",
+    level: "Culture Story",
     images: topicImages.adventure,
     vocabulary: {
-      0: ["地圖", "旅行", "朋友", "出發"],
-      1: ["森林", "小路", "橋", "跟著"],
-      2: ["問題", "害怕", "想辦法", "幫忙"],
-      3: ["找到", "成功", "開心", "回家"],
+      0: ["元宵", "燈籠", "家人", "人群"],
+      1: ["願望", "寫字", "祝福", "開心"],
+      2: ["掉下來", "幫忙", "小心", "一起"],
+      3: ["天空", "發光", "希望", "分享"],
     },
   },
   {
     id: "nature",
-    name: "Nature",
-    description: "Describe places, weather, and changes in the environment.",
-    skillFocus: "Description and detail",
-    level: "Scene Builder",
+    name: "Alishan Sunrise Train",
+    description: "Describe a mountain trip in Taiwan from train station to sunrise.",
+    skillFocus: "Setting and description",
+    level: "Place Story",
     images: topicImages.nature,
     vocabulary: {
-      0: ["早上", "公園", "天空", "散步"],
-      1: ["雲", "風", "下雨", "躲雨"],
-      2: ["雨停", "彩虹", "花草", "新鮮"],
-      3: ["回家", "分享", "照片", "心情"],
+      0: ["火車", "車站", "朋友", "出發"],
+      1: ["阿里山", "森林", "山路", "上山"],
+      2: ["霧", "等待", "安靜", "冷"],
+      3: ["日出", "雲海", "漂亮", "拍照"],
     },
   },
   {
     id: "fantasy",
-    name: "Fantasy",
-    description: "Create an imaginative story with characters, conflict, and resolution.",
-    skillFocus: "Creative narration",
-    level: "Imagination Lab",
+    name: "Mazu Parade Helper",
+    description: "Tell a community story about a Mazu parade and helping someone get home safely.",
+    skillFocus: "Community and problem solving",
+    level: "Culture Helper",
     images: topicImages.fantasy,
     vocabulary: {
-      0: ["魔法", "門", "光", "好奇"],
-      1: ["城堡", "國王", "精靈", "秘密"],
-      2: ["皇冠", "黑影", "勇敢", "保護"],
-      3: ["祝福", "和平", "朋友", "回來"],
+      0: ["媽祖", "廟", "花", "早上"],
+      1: ["遶境", "街道", "熱鬧", "隊伍"],
+      2: ["迷路", "孩子", "緊張", "尋找"],
+      3: ["安全", "謝謝", "平安", "回家"],
     },
   },
   {
     id: "school",
-    name: "School Life",
-    description: "Tell a realistic story about classmates, learning, and routines.",
-    skillFocus: "Personal experience",
-    level: "Daily Narrator",
+    name: "Taiwan Culture Fair",
+    description: "Tell a school story where students introduce Taiwan food and places.",
+    skillFocus: "Explaining and teamwork",
+    level: "Class Project",
     images: topicImages.school,
     vocabulary: {
-      0: ["教室", "同學", "老師", "早上"],
-      1: ["小組", "討論", "海報", "練習"],
-      2: ["忘記", "緊張", "幫助", "修改"],
-      3: ["報告", "掌聲", "成功", "學到"],
+      0: ["學校", "主意", "台灣", "活動"],
+      1: ["海報", "小組", "美食", "介紹"],
+      2: ["下雨", "桌子", "移動", "合作"],
+      3: ["文化", "客人", "問題", "分享"],
     },
   },
   {
     id: "mystery",
-    name: "Mystery",
-    description: "Build suspense with clues, questions, discovery, and explanation.",
+    name: "Night Market Lost Wallet",
+    description: "Build a mystery story at a Taiwan night market using clues and kindness.",
     skillFocus: "Problem and solution",
-    level: "Logic Story",
+    level: "Kindness Mystery",
     images: topicImages.mystery,
     vocabulary: {
-      0: ["筆記本", "不見", "奇怪", "線索"],
-      1: ["走廊", "腳印", "問題", "尋找"],
-      2: ["紙條", "秘密", "發現", "推理"],
-      3: ["真相", "原來", "道歉", "解決"],
+      0: ["夜市", "珍珠奶茶", "小吃", "朋友"],
+      1: ["錢包", "不見", "著急", "找"],
+      2: ["老闆", "線索", "記得", "問"],
+      3: ["找到", "還給", "謝謝", "誠實"],
     },
   },
   {
     id: "daily-life",
-    name: "Daily Life",
-    description: "Practice clear narration about ordinary moments and family life.",
-    skillFocus: "Fluency and coherence",
-    level: "Conversation Ready",
+    name: "Dragon Boat Team",
+    description: "Practice a sports story about teamwork during a Taiwan Dragon Boat Festival race.",
+    skillFocus: "Action and encouragement",
+    level: "Team Story",
     images: topicImages["daily-life"],
     vocabulary: {
-      0: ["早餐", "家人", "早上", "準備"],
-      1: ["上學", "公車", "朋友", "聊天"],
-      2: ["幫忙", "作業", "放學", "一起"],
-      3: ["晚餐", "分享", "故事", "睡覺"],
+      0: ["端午節", "龍舟", "隊友", "練習"],
+      1: ["鼓聲", "節奏", "划船", "加油"],
+      2: ["風", "慢下來", "努力", "不放棄"],
+      3: ["終點", "成功", "歡呼", "團隊"],
     },
   },
 ];
@@ -440,11 +457,12 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
       <section className="learning-hero">
         <div className="learning-hero-copy">
           <p className="platform-kicker">Student narrative lab</p>
-          <h1>Choose a Story Activity</h1>
+          <h1>Choose a Taiwan Story</h1>
           <p>
-            Select a topic, study the connected story sequence, prepare useful
-            Mandarin vocabulary, and record a complete spoken story for Praat
-            prosody and Gemini language feedback.
+            Select a Taiwan event or community story, study the connected
+            picture sequence, prepare useful Mandarin vocabulary, and record a
+            complete spoken story for Praat prosody and Gemini language
+            feedback.
           </p>
         </div>
 
@@ -468,7 +486,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
         <aside className="activity-sidebar" aria-label="Story topics">
           <div className="sidebar-heading">
             <p className="platform-kicker">Activity menu</p>
-            <h2>Story topics</h2>
+            <h2>Taiwan story topics</h2>
           </div>
 
           <div className="topic-list">
@@ -519,7 +537,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
               <div className="planning-block">
                 <h3>Speaking goals</h3>
                 <ul>
-                  <li>Describe the setting and people clearly.</li>
+                  <li>Describe the Taiwan place, event, or people clearly.</li>
                   <li>Use time words to connect events.</li>
                   <li>Finish with a result, feeling, or lesson.</li>
                 </ul>
