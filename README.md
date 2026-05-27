@@ -91,6 +91,7 @@ Notes:
 
 - API keys stay on the backend and are not exposed to the browser.
 - In production, set `CORS_ORIGINS` to the deployed frontend URL.
+- In production, the frontend must set `VITE_BACKEND_URL` to the deployed backend URL. GitHub Pages cannot run Praat by itself.
 - If no OpenAI or Gemini key is configured, AI coach feedback falls back to local heuristic feedback.
 - Web Speech API transcription does not require an API key, but browser support varies.
 
@@ -110,7 +111,7 @@ The repository includes `render.yaml` and `backend/Dockerfile`.
 3. After the backend URL is created, update the backend environment variable:
 
 ```env
-CORS_ORIGINS=https://your-frontend-domain.vercel.app
+CORS_ORIGINS=https://marktran0710.github.io
 ```
 
 4. Add optional AI keys if needed:
@@ -166,7 +167,7 @@ If you deploy the backend later, add a repository variable in GitHub:
 VITE_BACKEND_URL=https://your-backend-domain.example.com
 ```
 
-Then rerun the Pages workflow. Without `VITE_BACKEND_URL`, the static UI deploys, but Praat/Gemini analysis still points to the local backend fallback.
+Then rerun the Pages workflow. Without `VITE_BACKEND_URL`, the static UI deploys, but Praat/Gemini analysis cannot run because the browser has no production backend to call.
 
 ## User Flow
 
@@ -335,6 +336,8 @@ No supported AI key is configured, or the provider request failed. Add `OPENAI_A
 
 - Make sure the uploaded audio is not empty.
 - Prefer WAV audio.
+- In production, verify `VITE_BACKEND_URL` points to a live HTTPS backend.
+- Verify the backend `CORS_ORIGINS` includes the frontend origin, for example `https://marktran0710.github.io`.
 - If using local Python, install dependencies with `pip install -r backend/requirements.txt`.
 - If using Docker, rebuild the backend image after dependency changes.
 

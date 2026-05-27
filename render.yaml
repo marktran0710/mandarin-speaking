@@ -8,7 +8,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: CORS_ORIGINS
-        value: http://localhost:5173,http://127.0.0.1:5173
+        value: http://localhost:5173,http://127.0.0.1:5173,https://marktran0710.github.io
       - key: OPENAI_FEEDBACK_MODEL
         value: gpt-4o-mini
       - key: GEMINI_FEEDBACK_MODEL

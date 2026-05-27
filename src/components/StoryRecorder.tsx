@@ -3,7 +3,9 @@ import PitchChart from "../PitchChart";
 import PraatTimeline from "./PraatTimeline";
 import "./StoryRecorder.css";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.DEV ? "http://localhost:8000" : "");
 
 type SpeechModel = "webspeech" | "openai" | "gemini";
 
@@ -315,12 +317,13 @@ export default function StoryRecorder({
   const transcribeAudio = async (audioBlob: Blob) => {
     setIsTranscribing(true);
     try {
+      const backendUrl = getBackendUrl();
       const wavBlob = await convertBlobToWav(audioBlob);
       const formData = new FormData();
       formData.append("file", wavBlob, "speech.wav");
       formData.append("model", selectedModel);
 
-      const response = await fetch(`${BACKEND_URL}/api/transcribe`, {
+      const response = await fetch(`${backendUrl}/api/transcribe`, {
         method: "POST",
         body: formData,
       });
@@ -346,12 +349,13 @@ export default function StoryRecorder({
   const analyzeSpeechAudio = async (audioBlob: Blob, transcription: string) => {
     setIsAnalyzing(true);
     try {
+      const backendUrl = getBackendUrl();
       const wavBlob = await convertBlobToWav(audioBlob);
       const formData = new FormData();
       formData.append("file", wavBlob, "speech.wav");
       formData.append("transcription", transcription);
 
-      const response = await fetch(`${BACKEND_URL}/api/analyze`, {
+      const response = await fetch(`${backendUrl}/api/analyze`, {
         method: "POST",
         body: formData,
       });
@@ -841,6 +845,16 @@ function formatContourShape(shape: string): string {
     variable: "Variable",
   };
   return labels[shape] || "Variable";
+}
+
+function getBackendUrl(): string {
+  if (BACKEND_URL) {
+    return BACKEND_URL;
+  }
+
+  throw new Error(
+    "Praat analysis needs a deployed backend in production. Deploy the FastAPI backend and set VITE_BACKEND_URL to its public URL.",
+  );
 }
 
 function FeedbackCard({
