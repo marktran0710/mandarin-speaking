@@ -26,6 +26,7 @@ type SceneIcon =
 interface StoryScene {
   title: string;
   subtitle: string;
+  moment: string;
   sky: string;
   ground: string;
   accent: string;
@@ -116,6 +117,240 @@ function sceneIllustration(icon: SceneIcon, accent: string): string {
   return illustrations[icon];
 }
 
+function sceneBackdrop(icon: SceneIcon, accent: string): string {
+  const backdrops: Record<SceneIcon, string> = {
+    lantern: `
+      <path d="M34 158 H366" stroke="#8a5a3d" stroke-width="5" stroke-linecap="round" opacity="0.2"/>
+      <path d="M54 156 V88 M346 156 V88" stroke="#6f4e37" stroke-width="8" stroke-linecap="round" opacity="0.55"/>
+      <path d="M54 88 C130 62 270 62 346 88" fill="none" stroke="${accent}" stroke-width="6" stroke-linecap="round" opacity="0.55"/>
+      <circle cx="88" cy="96" r="13" fill="#ffcf56" opacity="0.78"/>
+      <circle cx="142" cy="76" r="13" fill="#ef6f6c" opacity="0.72"/>
+      <circle cx="204" cy="70" r="13" fill="#69c0b8" opacity="0.72"/>
+      <circle cx="262" cy="76" r="13" fill="#ffcf56" opacity="0.72"/>
+      <circle cx="318" cy="96" r="13" fill="#ef6f6c" opacity="0.72"/>
+      <path d="M30 214 C92 190 146 197 198 216 C252 194 310 190 374 212" fill="none" stroke="#726653" stroke-width="10" stroke-linecap="round" opacity="0.18"/>
+    `,
+    mountainTrain: `
+      <circle cx="324" cy="62" r="34" fill="#ffd166" opacity="0.46"/>
+      <path d="M-8 202 L90 96 L168 202 Z" fill="#7fb18b" opacity="0.62"/>
+      <path d="M80 204 L214 58 L366 204 Z" fill="#5f957d" opacity="0.72"/>
+      <path d="M184 90 L214 58 L248 92 C226 84 206 84 184 90 Z" fill="#fffaf0" opacity="0.8"/>
+      <path d="M28 210 C106 158 226 250 372 166" fill="none" stroke="#7a553b" stroke-width="10" stroke-linecap="round" opacity="0.42"/>
+      <path d="M42 122 C92 110 134 126 186 112 C238 98 288 116 348 100" fill="none" stroke="#f8fafc" stroke-width="9" stroke-linecap="round" opacity="0.42"/>
+    `,
+    temple: `
+      <path d="M44 150 H356 V220 H44 Z" fill="#f8dfb3" opacity="0.46"/>
+      <path d="M58 150 L200 80 L342 150" fill="none" stroke="${accent}" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+      <rect x="76" y="154" width="248" height="66" rx="10" fill="#fff4d6" opacity="0.55"/>
+      <path d="M100 178 H150 M250 178 H300" stroke="#b84c3f" stroke-width="9" stroke-linecap="round" opacity="0.42"/>
+      <path d="M44 234 C96 214 152 220 202 238 C260 212 310 214 356 234" fill="none" stroke="#5c946e" stroke-width="10" stroke-linecap="round" opacity="0.25"/>
+      <circle cx="74" cy="112" r="8" fill="#ffcf56" opacity="0.7"/>
+      <circle cx="326" cy="112" r="8" fill="#ffcf56" opacity="0.7"/>
+    `,
+    schoolFair: `
+      <rect x="46" y="74" width="308" height="150" rx="16" fill="#fffaf0" opacity="0.72"/>
+      <rect x="70" y="96" width="260" height="60" rx="10" fill="#2f6f68" opacity="0.72"/>
+      <path d="M98 122 H170 M194 122 H294 M98 140 H244" stroke="#e8fff8" stroke-width="5" stroke-linecap="round" opacity="0.78"/>
+      <path d="M66 222 H334 L306 250 H94 Z" fill="#f0c96c" opacity="0.62"/>
+      <rect x="84" y="168" width="62" height="42" rx="8" fill="#ffefd2" stroke="${accent}" stroke-width="4" opacity="0.7"/>
+      <rect x="254" y="168" width="62" height="42" rx="8" fill="#ffefd2" stroke="${accent}" stroke-width="4" opacity="0.7"/>
+    `,
+    nightMarket: `
+      <rect x="48" y="94" width="304" height="122" rx="14" fill="#3f355d" opacity="0.48"/>
+      <path d="M64 116 H336 L314 170 H86 Z" fill="${accent}" opacity="0.64"/>
+      <path d="M86 116 L106 82 H294 L314 116" fill="#fff0bf" stroke="#d9803f" stroke-width="5" opacity="0.78"/>
+      <circle cx="82" cy="78" r="11" fill="#ffcf56" opacity="0.82"/>
+      <circle cx="136" cy="66" r="11" fill="#ef6f6c" opacity="0.8"/>
+      <circle cx="200" cy="60" r="11" fill="#69c0b8" opacity="0.8"/>
+      <circle cx="264" cy="66" r="11" fill="#ffcf56" opacity="0.8"/>
+      <circle cx="318" cy="78" r="11" fill="#ef6f6c" opacity="0.8"/>
+      <path d="M58 238 C112 216 162 230 210 242 C264 218 314 218 356 238" fill="none" stroke="#6b8f71" stroke-width="10" stroke-linecap="round" opacity="0.24"/>
+    `,
+    dragonBoat: `
+      <path d="M-20 188 C70 168 138 208 222 186 C300 166 350 178 420 154 V320 H-20 Z" fill="#80c7d8" opacity="0.62"/>
+      <path d="M36 226 C92 206 142 238 202 218 C260 198 304 226 366 206" fill="none" stroke="#f8fafc" stroke-width="9" stroke-linecap="round" opacity="0.72"/>
+      <path d="M44 118 C108 90 172 108 214 124 C256 96 314 98 362 118" fill="none" stroke="#6da277" stroke-width="10" stroke-linecap="round" opacity="0.32"/>
+      <path d="M330 90 V210" stroke="#344054" stroke-width="5" stroke-linecap="round" opacity="0.48"/>
+      <path d="M330 96 H362 V142 H330 Z" fill="#fff8dc" stroke="${accent}" stroke-width="4" opacity="0.72"/>
+    `,
+  };
+
+  return backdrops[icon];
+}
+
+function sceneEventLayer(moment: string, accent: string): string {
+  const person = (x: number, y: number, color = "#f4b18b") => `
+    <g>
+      <circle cx="${x}" cy="${y}" r="10" fill="${color}"/>
+      <path d="M${x} ${y + 10} V${y + 38}" stroke="#344054" stroke-width="8" stroke-linecap="round"/>
+      <path d="M${x - 18} ${y + 24} H${x + 18}" stroke="#344054" stroke-width="7" stroke-linecap="round"/>
+      <path d="M${x - 2} ${y + 38} L${x - 18} ${y + 60} M${x + 2} ${y + 38} L${x + 18} ${y + 60}" stroke="#344054" stroke-width="7" stroke-linecap="round"/>
+    </g>`;
+
+  const layers: Record<string, string> = {
+    lantern_arrive: `
+      ${person(90, 150)}
+      ${person(134, 156, "#f7c59f")}
+      <path d="M154 172 C182 154 216 148 246 158" fill="none" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
+      <path d="M248 150 h30 l10 22 h-50 z" fill="#fff4d6" stroke="#8a4f2f" stroke-width="4"/>
+    `,
+    lantern_write: `
+      ${person(116, 158)}
+      ${person(248, 158, "#f7c59f")}
+      <rect x="144" y="186" width="112" height="34" rx="8" fill="#fff8dc" stroke="#8a4f2f" stroke-width="4"/>
+      <path d="M162 203 H210 M222 203 H240" stroke="${accent}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M142 168 L168 196 M258 168 L232 196" stroke="#344054" stroke-width="7" stroke-linecap="round"/>
+    `,
+    lantern_fall: `
+      ${person(96, 162)}
+      ${person(300, 162, "#f7c59f")}
+      <g transform="rotate(-18 205 142)">
+        <rect x="178" y="114" width="54" height="70" rx="18" fill="#ffcf56" stroke="#8a4f2f" stroke-width="5"/>
+      </g>
+      <path d="M122 178 C154 142 176 132 198 138 M278 178 C250 150 230 140 208 142" fill="none" stroke="${accent}" stroke-width="7" stroke-linecap="round"/>
+      <path d="M194 193 C208 184 222 185 236 194" fill="none" stroke="#2f8f68" stroke-width="6" stroke-linecap="round"/>
+    `,
+    lantern_release: `
+      ${person(128, 170)}
+      ${person(276, 170, "#f7c59f")}
+      <rect x="180" y="126" width="42" height="56" rx="16" fill="#ffcf56" stroke="#8a4f2f" stroke-width="4"/>
+      <path d="M201 126 C200 100 212 82 238 70" fill="none" stroke="${accent}" stroke-width="5" stroke-linecap="round"/>
+      <path d="M178 184 C190 198 212 198 224 184" fill="none" stroke="#344054" stroke-width="7" stroke-linecap="round"/>
+    `,
+    train_meet: `
+      ${person(100, 160)}
+      ${person(284, 160, "#f7c59f")}
+      <rect x="150" y="184" width="96" height="24" rx="7" fill="#fff8dc" stroke="#6f4e37" stroke-width="4"/>
+      <path d="M172 196 H224" stroke="${accent}" stroke-width="5" stroke-linecap="round"/>
+    `,
+    train_climb: `
+      ${person(286, 156)}
+      <path d="M88 210 C148 166 212 210 310 144" fill="none" stroke="#6f4e37" stroke-width="8" stroke-linecap="round"/>
+      <path d="M224 152 L244 134 L254 150" fill="none" stroke="${accent}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    `,
+    fog_wait: `
+      ${person(152, 164)}
+      ${person(236, 164, "#f7c59f")}
+      <path d="M76 152 C118 138 158 156 200 144 C242 132 286 148 332 136" fill="none" stroke="#f8fafc" stroke-width="13" stroke-linecap="round" opacity="0.88"/>
+      <path d="M82 184 C132 172 172 190 216 178 C260 166 296 180 334 170" fill="none" stroke="#f8fafc" stroke-width="12" stroke-linecap="round" opacity="0.72"/>
+    `,
+    sunrise_describe: `
+      ${person(134, 168)}
+      ${person(258, 168, "#f7c59f")}
+      <circle cx="200" cy="98" r="34" fill="#ffd166" opacity="0.92"/>
+      <path d="M164 152 C180 136 220 136 236 152" fill="none" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
+      <rect x="170" y="190" width="64" height="30" rx="8" fill="#fff8dc" stroke="#6f4e37" stroke-width="4"/>
+    `,
+    temple_prepare: `
+      ${person(106, 162)}
+      ${person(286, 162, "#f7c59f")}
+      <path d="M154 206 C178 184 218 184 244 206" fill="none" stroke="#2f8f68" stroke-width="8" stroke-linecap="round"/>
+      <circle cx="164" cy="200" r="7" fill="#ef6f6c"/><circle cx="204" cy="190" r="7" fill="#ffcf56"/><circle cx="238" cy="202" r="7" fill="${accent}"/>
+    `,
+    temple_parade: `
+      ${person(90, 166)}
+      ${person(164, 166, "#f7c59f")}
+      ${person(300, 166, "#d99c77")}
+      <path d="M116 146 H286" stroke="${accent}" stroke-width="8" stroke-linecap="round"/>
+      <path d="M130 128 L150 146 L170 128 M230 128 L250 146 L270 128" fill="none" stroke="#ffcf56" stroke-width="6" stroke-linecap="round"/>
+    `,
+    temple_lost: `
+      ${person(110, 164)}
+      ${person(288, 164, "#f7c59f")}
+      <circle cx="204" cy="160" r="13" fill="#d99c77"/>
+      <path d="M204 173 V204" stroke="#344054" stroke-width="8" stroke-linecap="round"/>
+      <path d="M184 138 C198 120 222 120 236 138" fill="none" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
+      <text x="198" y="130" font-family="Inter, Arial" font-size="24" font-weight="800" fill="${accent}">?</text>
+    `,
+    temple_safe: `
+      ${person(128, 164)}
+      ${person(202, 156, "#d99c77")}
+      ${person(278, 164, "#f7c59f")}
+      <path d="M144 146 C166 124 238 124 260 146" fill="none" stroke="${accent}" stroke-width="7" stroke-linecap="round"/>
+    `,
+    fair_plan: `
+      ${person(100, 164)}
+      ${person(292, 164, "#f7c59f")}
+      <rect x="146" y="144" width="108" height="60" rx="8" fill="#ffffff" stroke="#29756f" stroke-width="5"/>
+      <path d="M166 164 H232 M166 184 H214" stroke="${accent}" stroke-width="5" stroke-linecap="round"/>
+    `,
+    fair_posters: `
+      ${person(118, 162)}
+      ${person(280, 162, "#f7c59f")}
+      <rect x="150" y="130" width="96" height="82" rx="8" fill="#fff8dc" stroke="${accent}" stroke-width="5"/>
+      <circle cx="180" cy="158" r="12" fill="#ef6f6c"/><path d="M166 188 H230" stroke="#29756f" stroke-width="6" stroke-linecap="round"/>
+    `,
+    fair_rain: `
+      ${person(112, 164)}
+      ${person(286, 164, "#f7c59f")}
+      <path d="M154 188 H250" stroke="#8a4f2f" stroke-width="10" stroke-linecap="round"/>
+      <path d="M92 98 L82 124 M146 92 L136 120 M256 94 L246 122 M314 98 L304 126" stroke="#4aa3c7" stroke-width="6" stroke-linecap="round"/>
+      <path d="M132 166 L162 188 M268 166 L238 188" stroke="#344054" stroke-width="7" stroke-linecap="round"/>
+    `,
+    fair_share: `
+      ${person(92, 166)}
+      ${person(200, 156, "#f7c59f")}
+      ${person(306, 166, "#d99c77")}
+      <rect x="150" y="132" width="98" height="58" rx="8" fill="#ffffff" stroke="${accent}" stroke-width="5"/>
+      <path d="M170 154 H226 M170 172 H212" stroke="#29756f" stroke-width="5" stroke-linecap="round"/>
+    `,
+    market_snack: `
+      ${person(116, 162)}
+      ${person(284, 162, "#f7c59f")}
+      <circle cx="200" cy="188" r="18" fill="#d9a7f5" stroke="#6b5dad" stroke-width="4"/>
+      <path d="M200 170 V142" stroke="#6b5dad" stroke-width="5" stroke-linecap="round"/>
+    `,
+    market_missing: `
+      ${person(112, 164)}
+      ${person(292, 164, "#f7c59f")}
+      <path d="M184 204 C202 190 222 190 240 204" fill="none" stroke="${accent}" stroke-width="7" stroke-linecap="round"/>
+      <text x="196" y="166" font-family="Inter, Arial" font-size="30" font-weight="800" fill="${accent}">?</text>
+      <rect x="178" y="180" width="42" height="28" rx="6" fill="#8a4f2f" opacity="0.35"/>
+    `,
+    market_clue: `
+      ${person(98, 164)}
+      ${person(296, 164, "#f7c59f")}
+      <rect x="164" y="152" width="76" height="46" rx="8" fill="#fff8dc" stroke="${accent}" stroke-width="5"/>
+      <path d="M182 170 H222 M184 186 H208" stroke="#6b5dad" stroke-width="5" stroke-linecap="round"/>
+      <path d="M124 154 C146 134 168 130 188 148" fill="none" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
+    `,
+    market_return: `
+      ${person(116, 162)}
+      ${person(284, 162, "#f7c59f")}
+      <rect x="178" y="168" width="44" height="30" rx="7" fill="#8a4f2f" stroke="#fff8dc" stroke-width="4"/>
+      <path d="M136 166 C164 146 184 148 198 168 M264 166 C236 146 216 148 202 168" fill="none" stroke="${accent}" stroke-width="7" stroke-linecap="round"/>
+    `,
+    boat_practice: `
+      ${person(108, 150)}
+      ${person(170, 150, "#f7c59f")}
+      ${person(232, 150, "#d99c77")}
+      <path d="M72 216 C140 236 256 236 328 216" fill="none" stroke="${accent}" stroke-width="11" stroke-linecap="round"/>
+    `,
+    boat_rhythm: `
+      ${person(108, 152)}
+      ${person(288, 152, "#f7c59f")}
+      <circle cx="200" cy="158" r="26" fill="#ffcf56" stroke="#8a4f2f" stroke-width="5"/>
+      <path d="M184 134 L170 108 M216 134 L230 108" stroke="#8a4f2f" stroke-width="6" stroke-linecap="round"/>
+    `,
+    boat_wind: `
+      ${person(112, 152)}
+      ${person(252, 152, "#f7c59f")}
+      <path d="M66 106 C118 84 156 112 206 94 C250 78 296 98 340 82" fill="none" stroke="#f8fafc" stroke-width="11" stroke-linecap="round"/>
+      <path d="M92 216 C160 236 242 234 320 214" fill="none" stroke="${accent}" stroke-width="10" stroke-linecap="round"/>
+    `,
+    boat_finish: `
+      ${person(112, 152)}
+      ${person(208, 152, "#f7c59f")}
+      ${person(296, 152, "#d99c77")}
+      <path d="M322 106 V210" stroke="#344054" stroke-width="6" stroke-linecap="round"/>
+      <path d="M322 112 H358 V160 H322 Z" fill="#fff8dc" stroke="${accent}" stroke-width="5"/>
+      <path d="M88 216 C168 238 252 236 326 214" fill="none" stroke="${accent}" stroke-width="11" stroke-linecap="round"/>
+    `,
+  };
+
+  return `<g filter="url(#softShadow)" opacity="0.98">${layers[moment] ?? ""}</g>`;
+}
+
 function storyImage(scene: StoryScene): string {
   const svg = `
     <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
@@ -127,15 +362,47 @@ function storyImage(scene: StoryScene): string {
         <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
           <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#17202a" flood-opacity="0.18"/>
         </filter>
+        <filter id="watercolorSoft" x="-10%" y="-10%" width="120%" height="120%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="3" seed="7" result="paperNoise"/>
+          <feDisplacementMap in="SourceGraphic" in2="paperNoise" scale="1.6" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+        <filter id="paperTexture" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="2" seed="11" result="grain"/>
+          <feColorMatrix in="grain" type="matrix" values="0 0 0 0 0.92 0 0 0 0 0.87 0 0 0 0 0.76 0 0 0 0.18 0"/>
+        </filter>
+        <linearGradient id="warmVignette" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.2"/>
+          <stop offset="62%" stop-color="#f4dfbd" stop-opacity="0.04"/>
+          <stop offset="100%" stop-color="#6f5b44" stop-opacity="0.16"/>
+        </linearGradient>
       </defs>
-      <rect width="400" height="300" rx="26" fill="url(#sky)"/>
-      <path d="M0 208 C76 186 128 224 198 204 C270 184 326 190 400 166 V300 H0 Z" fill="${scene.ground}"/>
-      <circle cx="331" cy="57" r="31" fill="#ffffff" opacity="0.62"/>
-      <circle cx="354" cy="74" r="18" fill="#ffffff" opacity="0.35"/>
-      ${sceneIllustration(scene.icon, scene.accent)}
-      <rect x="24" y="220" width="352" height="56" rx="18" fill="rgba(255,255,255,0.92)" filter="url(#softShadow)"/>
-      <text x="44" y="244" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" fill="#23302f">${escapeSvgText(scene.title)}</text>
-      <text x="44" y="263" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" fill="#566260">${escapeSvgText(scene.subtitle)}</text>
+      <rect x="8" y="8" width="384" height="284" rx="12" fill="#f7efe2" stroke="#223047" stroke-width="5"/>
+      <clipPath id="panelClip">
+        <rect x="12" y="12" width="376" height="276" rx="8"/>
+      </clipPath>
+      <g clip-path="url(#panelClip)">
+        <rect width="400" height="300" fill="url(#sky)"/>
+        <path d="M-20 214 C80 184 124 228 198 204 C274 180 328 192 420 162 V320 H-20 Z" fill="${scene.ground}" opacity="0.78"/>
+        <path d="M-20 228 C86 198 140 235 210 216 C282 196 328 206 420 188 V320 H-20 Z" fill="#b9cda9" opacity="0.26"/>
+        <circle cx="326" cy="60" r="31" fill="#f6d68b" opacity="0.5"/>
+        <path d="M22 82 C72 58 116 54 166 68 M250 48 C292 34 338 40 374 62" fill="none" stroke="#8ea4b2" stroke-width="3" stroke-linecap="round" opacity="0.28"/>
+        <g filter="url(#watercolorSoft)">
+          ${sceneBackdrop(scene.icon, scene.accent)}
+        </g>
+        <g filter="url(#watercolorSoft)" opacity="0.94">
+          ${sceneIllustration(scene.icon, scene.accent)}
+        </g>
+        <g filter="url(#watercolorSoft)">
+          ${sceneEventLayer(scene.moment, scene.accent)}
+        </g>
+        <path d="M30 232 C92 212 142 224 202 235 C262 214 314 216 370 232" fill="none" stroke="#726653" stroke-width="2" stroke-linecap="round" opacity="0.22"/>
+        <rect width="400" height="300" fill="url(#warmVignette)"/>
+        <rect width="400" height="300" filter="url(#paperTexture)" opacity="0.52"/>
+        <rect x="26" y="220" width="348" height="56" rx="8" fill="#fff7e6" opacity="0.88" stroke="#7b6650" stroke-width="1.6"/>
+        <path d="M38 231 H166" stroke="${scene.accent}" stroke-width="5" stroke-linecap="round" opacity="0.32"/>
+        <text x="44" y="244" font-family="Georgia, 'Times New Roman', serif" font-size="18" font-weight="700" fill="#3f3428">${escapeSvgText(scene.title)}</text>
+        <text x="44" y="263" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" fill="#6b5c49">${escapeSvgText(scene.subtitle)}</text>
+      </g>
     </svg>
   `;
 
@@ -149,32 +416,36 @@ function storySequence(scenes: StoryScene[]): string[] {
 const topicImages: Record<string, string[]> = {
   adventure: storySequence([
     {
-      title: "Lanterns Arrive",
-      subtitle: "A family enters the festival",
+      title: "Arrive in Pingxi",
+      subtitle: "Families enter the sky lantern street",
+      moment: "lantern_arrive",
       sky: "#dff3ff",
       ground: "#d8ead5",
       accent: "#e85d5a",
       icon: "lantern",
     },
     {
-      title: "Writing Wishes",
-      subtitle: "Students choose kind words",
+      title: "Write a Wish",
+      subtitle: "Students write blessings on paper",
+      moment: "lantern_write",
       sky: "#ffe7c8",
       ground: "#e6d9b8",
       accent: "#e88f3a",
       icon: "lantern",
     },
     {
-      title: "A Lantern Falls",
-      subtitle: "People work together",
+      title: "Help Before Launch",
+      subtitle: "A lantern tilts and friends steady it",
+      moment: "lantern_fall",
       sky: "#dfd7ff",
       ground: "#d5cbe8",
       accent: "#7c6be8",
       icon: "lantern",
     },
     {
-      title: "Lights in the Sky",
-      subtitle: "Everyone shares hope",
+      title: "Lanterns Rise",
+      subtitle: "The sky fills with warm lights",
+      moment: "lantern_release",
       sky: "#fff1b8",
       ground: "#d7e8c4",
       accent: "#0f766e",
@@ -183,32 +454,36 @@ const topicImages: Record<string, string[]> = {
   ]),
   nature: storySequence([
     {
-      title: "Early Train",
-      subtitle: "Friends meet at the station",
+      title: "Early Alishan Train",
+      subtitle: "Friends meet before the festival trip",
+      moment: "train_meet",
       sky: "#cceeff",
       ground: "#c5dfcf",
       accent: "#bd5b42",
       icon: "mountainTrain",
     },
     {
-      title: "Forest Track",
-      subtitle: "The train climbs Alishan",
+      title: "Cherry Blossom Track",
+      subtitle: "The train climbs past pink flowers",
+      moment: "train_climb",
       sky: "#cdf2df",
       ground: "#b9d9ba",
       accent: "#0f766e",
       icon: "mountainTrain",
     },
     {
-      title: "Fog on the Path",
-      subtitle: "The group waits calmly",
+      title: "Morning Fog",
+      subtitle: "The group waits near the viewing path",
+      moment: "fog_wait",
       sky: "#d9e6f2",
       ground: "#bdcdbd",
       accent: "#6f8fa0",
       icon: "mountainTrain",
     },
     {
-      title: "Sunrise View",
-      subtitle: "They describe the morning",
+      title: "Sunrise Festival View",
+      subtitle: "They describe clouds, trees, and light",
+      moment: "sunrise_describe",
       sky: "#ffe2b8",
       ground: "#d9e7bd",
       accent: "#d98c3d",
@@ -217,32 +492,36 @@ const topicImages: Record<string, string[]> = {
   ]),
   fantasy: storySequence([
     {
-      title: "Temple Morning",
-      subtitle: "Neighbors prepare flowers",
+      title: "Dajia Temple Morning",
+      subtitle: "Neighbors prepare flowers and water",
+      moment: "temple_prepare",
       sky: "#fff0bf",
       ground: "#e6d7b8",
       accent: "#d9483b",
       icon: "temple",
     },
     {
-      title: "Mazu Parade",
-      subtitle: "The street becomes busy",
+      title: "Pilgrimage Begins",
+      subtitle: "The Mazu procession fills the street",
+      moment: "temple_parade",
       sky: "#ffd9ca",
       ground: "#e8c9b9",
       accent: "#c2413f",
       icon: "temple",
     },
     {
-      title: "Lost in the Crowd",
-      subtitle: "A child asks for help",
+      title: "Lost Near the Parade",
+      subtitle: "A child asks volunteers for help",
+      moment: "temple_lost",
       sky: "#d7e4ff",
       ground: "#d1d8e8",
       accent: "#5268a8",
       icon: "temple",
     },
     {
-      title: "Safe Together",
-      subtitle: "The community celebrates",
+      title: "Safe at the Temple",
+      subtitle: "The community reunites the family",
+      moment: "temple_safe",
       sky: "#dff6e6",
       ground: "#c9e4ca",
       accent: "#2f8f68",
@@ -251,32 +530,36 @@ const topicImages: Record<string, string[]> = {
   ]),
   school: storySequence([
     {
-      title: "Class Idea",
-      subtitle: "Students plan a Taiwan fair",
+      title: "Countdown Plan",
+      subtitle: "Students plan a Taipei 101 story",
+      moment: "fair_plan",
       sky: "#d7efff",
       ground: "#d5e7d5",
       accent: "#0f766e",
       icon: "schoolFair",
     },
     {
-      title: "Making Posters",
-      subtitle: "Teams explain local foods",
+      title: "Make Event Posters",
+      subtitle: "Teams explain fireworks and safety",
+      moment: "fair_posters",
       sky: "#d6f4ef",
       ground: "#cae6dc",
       accent: "#2e9384",
       icon: "schoolFair",
     },
     {
-      title: "Rain at Noon",
-      subtitle: "The class moves tables",
+      title: "Rain Before Midnight",
+      subtitle: "The class moves signs under cover",
+      moment: "fair_rain",
       sky: "#e5dfd1",
       ground: "#d9d0b8",
       accent: "#bf8544",
       icon: "schoolFair",
     },
     {
-      title: "Sharing Culture",
-      subtitle: "Visitors ask questions",
+      title: "Happy New Year",
+      subtitle: "Visitors count down and cheer together",
+      moment: "fair_share",
       sky: "#dff3d2",
       ground: "#cfe4bc",
       accent: "#4e9d72",
@@ -285,16 +568,18 @@ const topicImages: Record<string, string[]> = {
   ]),
   mystery: storySequence([
     {
-      title: "Night Market Snack",
-      subtitle: "Friends buy bubble tea",
+      title: "Ningxia Food Festival",
+      subtitle: "Friends buy oyster omelets and tea",
+      moment: "market_snack",
       sky: "#ffe5c7",
       ground: "#e3c9aa",
       accent: "#e08a45",
       icon: "nightMarket",
     },
     {
-      title: "A Wallet Is Missing",
-      subtitle: "They look near the stall",
+      title: "A Ticket Is Missing",
+      subtitle: "They look near the busy stall",
+      moment: "market_missing",
       sky: "#d7d4f3",
       ground: "#c9c2db",
       accent: "#6b5dad",
@@ -302,15 +587,17 @@ const topicImages: Record<string, string[]> = {
     },
     {
       title: "Clue from a Vendor",
-      subtitle: "The owner remembers a detail",
+      subtitle: "The owner remembers a blue bag",
+      moment: "market_clue",
       sky: "#dce7ff",
       ground: "#ccd7e7",
       accent: "#536aa4",
       icon: "nightMarket",
     },
     {
-      title: "Returned Wallet",
-      subtitle: "Everyone says thank you",
+      title: "Ticket Returned",
+      subtitle: "Everyone thanks the honest helper",
+      moment: "market_return",
       sky: "#d8f4e6",
       ground: "#c6e4cd",
       accent: "#2f8f68",
@@ -319,32 +606,36 @@ const topicImages: Record<string, string[]> = {
   ]),
   "daily-life": storySequence([
     {
-      title: "Dragon Boat Practice",
-      subtitle: "A team meets before school",
+      title: "Lukang Race Morning",
+      subtitle: "A team meets by the river",
+      moment: "boat_practice",
       sky: "#cfeeff",
       ground: "#c4dfcf",
       accent: "#238d7a",
       icon: "dragonBoat",
     },
     {
-      title: "Learning the Rhythm",
-      subtitle: "The drummer gives a beat",
+      title: "Drum Rhythm",
+      subtitle: "The drummer sets the race beat",
+      moment: "boat_rhythm",
       sky: "#d6f2e4",
       ground: "#c7e5d0",
       accent: "#55a06f",
       icon: "dragonBoat",
     },
     {
-      title: "Strong Wind",
-      subtitle: "The boat slows down",
+      title: "Wind on the River",
+      subtitle: "The boat slows but the team keeps rowing",
+      moment: "boat_wind",
       sky: "#d7e2f3",
       ground: "#c8ddbe",
       accent: "#457f9a",
       icon: "dragonBoat",
     },
     {
-      title: "Finish Line",
-      subtitle: "The team cheers together",
+      title: "Festival Finish",
+      subtitle: "The team crosses the line together",
+      moment: "boat_finish",
       sky: "#ffd9ca",
       ground: "#e5cdbb",
       accent: "#d97854",
@@ -356,85 +647,85 @@ const topicImages: Record<string, string[]> = {
 export const TOPICS: Topic[] = [
   {
     id: "adventure",
-    name: "Taiwan Lantern Festival",
-    description: "Tell a story about wishes, lights, and helping others at a Taiwan festival.",
-    skillFocus: "Sequence and feelings",
-    level: "Culture Story",
+    name: "Pingxi Sky Lantern Festival",
+    description: "Tell an event story about writing wishes, helping friends, and launching lanterns in Pingxi.",
+    skillFocus: "Event sequence and feelings",
+    level: "Festival Story",
     images: topicImages.adventure,
     vocabulary: {
-      0: ["元宵", "燈籠", "家人", "人群"],
-      1: ["願望", "寫字", "祝福", "開心"],
-      2: ["掉下來", "幫忙", "小心", "一起"],
-      3: ["天空", "發光", "希望", "分享"],
+      0: ["平溪", "天燈", "街道", "人群"],
+      1: ["願望", "祝福", "寫字", "希望"],
+      2: ["幫忙", "小心", "朋友", "一起"],
+      3: ["升起", "天空", "發光", "感動"],
     },
   },
   {
     id: "nature",
-    name: "Alishan Sunrise Train",
-    description: "Describe a mountain trip in Taiwan from train station to sunrise.",
-    skillFocus: "Setting and description",
-    level: "Place Story",
+    name: "Alishan Cherry Blossom Train",
+    description: "Describe an Alishan festival trip from the forest train to cherry blossoms and sunrise.",
+    skillFocus: "Setting and sensory detail",
+    level: "Seasonal Event",
     images: topicImages.nature,
     vocabulary: {
-      0: ["火車", "車站", "朋友", "出發"],
-      1: ["阿里山", "森林", "山路", "上山"],
-      2: ["霧", "等待", "安靜", "冷"],
-      3: ["日出", "雲海", "漂亮", "拍照"],
+      0: ["阿里山", "火車", "車站", "出發"],
+      1: ["櫻花", "森林", "山路", "拍照"],
+      2: ["霧", "等待", "安靜", "清晨"],
+      3: ["日出", "雲海", "漂亮", "風景"],
     },
   },
   {
     id: "fantasy",
-    name: "Mazu Parade Helper",
-    description: "Tell a community story about a Mazu parade and helping someone get home safely.",
+    name: "Dajia Mazu Pilgrimage",
+    description: "Tell a community story about the Dajia Mazu pilgrimage, volunteers, and helping someone safely.",
     skillFocus: "Community and problem solving",
-    level: "Culture Helper",
+    level: "Temple Event",
     images: topicImages.fantasy,
     vocabulary: {
-      0: ["媽祖", "廟", "花", "早上"],
-      1: ["遶境", "街道", "熱鬧", "隊伍"],
-      2: ["迷路", "孩子", "緊張", "尋找"],
-      3: ["安全", "謝謝", "平安", "回家"],
+      0: ["大甲", "媽祖", "廟", "志工"],
+      1: ["遶境", "隊伍", "熱鬧", "香火"],
+      2: ["迷路", "孩子", "幫助", "尋找"],
+      3: ["平安", "家人", "謝謝", "團結"],
     },
   },
   {
     id: "school",
-    name: "Taiwan Culture Fair",
-    description: "Tell a school story where students introduce Taiwan food and places.",
+    name: "Taipei 101 New Year Countdown",
+    description: "Tell a countdown event story about preparing posters, solving a rain problem, and watching fireworks.",
     skillFocus: "Explaining and teamwork",
-    level: "Class Project",
+    level: "City Event",
     images: topicImages.school,
     vocabulary: {
-      0: ["學校", "主意", "台灣", "活動"],
-      1: ["海報", "小組", "美食", "介紹"],
-      2: ["下雨", "桌子", "移動", "合作"],
-      3: ["文化", "客人", "問題", "分享"],
+      0: ["台北", "一零一", "跨年", "計畫"],
+      1: ["海報", "煙火", "安全", "介紹"],
+      2: ["下雨", "移動", "合作", "等待"],
+      3: ["倒數", "新年", "歡呼", "煙火"],
     },
   },
   {
     id: "mystery",
-    name: "Night Market Lost Wallet",
-    description: "Build a mystery story at a Taiwan night market using clues and kindness.",
+    name: "Ningxia Night Market Food Festival",
+    description: "Build a food festival mystery at Ningxia Night Market using clues, kindness, and a returned ticket.",
     skillFocus: "Problem and solution",
-    level: "Kindness Mystery",
+    level: "Market Event",
     images: topicImages.mystery,
     vocabulary: {
-      0: ["夜市", "珍珠奶茶", "小吃", "朋友"],
-      1: ["錢包", "不見", "著急", "找"],
-      2: ["老闆", "線索", "記得", "問"],
-      3: ["找到", "還給", "謝謝", "誠實"],
+      0: ["寧夏夜市", "小吃", "蚵仔煎", "珍珠奶茶"],
+      1: ["票券", "不見", "著急", "尋找"],
+      2: ["老闆", "線索", "藍色袋子", "記得"],
+      3: ["找到", "還給", "誠實", "謝謝"],
     },
   },
   {
     id: "daily-life",
-    name: "Dragon Boat Team",
-    description: "Practice a sports story about teamwork during a Taiwan Dragon Boat Festival race.",
+    name: "Lukang Dragon Boat Festival",
+    description: "Practice a sports event story about teamwork during a Lukang Dragon Boat Festival race.",
     skillFocus: "Action and encouragement",
-    level: "Team Story",
+    level: "Race Event",
     images: topicImages["daily-life"],
     vocabulary: {
-      0: ["端午節", "龍舟", "隊友", "練習"],
+      0: ["鹿港", "端午節", "龍舟", "隊友"],
       1: ["鼓聲", "節奏", "划船", "加油"],
-      2: ["風", "慢下來", "努力", "不放棄"],
+      2: ["風", "努力", "不放棄", "合作"],
       3: ["終點", "成功", "歡呼", "團隊"],
     },
   },
@@ -582,3 +873,4 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
     </div>
   );
 }
+

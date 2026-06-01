@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import PitchChart from "../PitchChart";
 import { TOPICS } from "../TopicSelector";
 import "./MyStoriesPage.css";
@@ -40,6 +41,27 @@ interface PromptImage {
   vocabulary: string[];
 }
 
+interface CustomStoryFrame {
+  imageUrl: string;
+  prompt: string;
+  vocabulary: string;
+}
+
+interface CustomTeacherStory {
+  id: string;
+  title: string;
+  learningGoal: string;
+  level: string;
+  frames: CustomStoryFrame[];
+}
+
+interface CustomStoryValidationErrors {
+  title?: string;
+  learningGoal?: string;
+  form?: string;
+  frames?: Record<number, { imageUrl?: string; prompt?: string }>;
+}
+
 const PROMPT_IMAGES: PromptImage[] = TOPICS.flatMap((topic) =>
   topic.images.map((imageUrl, imageIndex) => ({
     topicId: topic.id,
@@ -51,6 +73,78 @@ const PROMPT_IMAGES: PromptImage[] = TOPICS.flatMap((topic) =>
   })),
 );
 
+const CUSTOM_STORY_STORAGE_KEY = "teacherCustomStories";
+
+const emptyCustomStoryDraft = {
+  title: "Taiwan Community Story",
+  learningGoal: "Students describe who, where, what happened, and how people solved the problem.",
+  level: "Beginner speaking",
+  imageUrls: ["", "", "", ""],
+  prompts: [
+    "Introduce the place and the people.",
+    "Describe the first event.",
+    "Explain the problem or surprise.",
+    "Tell the result and feeling.",
+  ],
+  vocabulary: ["", "", "", ""],
+};
+
+function loadCustomStories(): CustomTeacherStory[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const stored = window.localStorage.getItem(CUSTOM_STORY_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomStories(stories: CustomTeacherStory[]) {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(CUSTOM_STORY_STORAGE_KEY, JSON.stringify(stories));
+  }
+}
+
+function validateCustomStoryDraft(
+  draft: typeof emptyCustomStoryDraft,
+): CustomStoryValidationErrors {
+  const errors: CustomStoryValidationErrors = {};
+  const frameErrors: CustomStoryValidationErrors["frames"] = {};
+
+  if (!draft.title.trim()) {
+    errors.title = "Add a story title for students.";
+  }
+
+  if (!draft.learningGoal.trim()) {
+    errors.learningGoal = "Add a learning goal so students know what to practice.";
+  }
+
+  draft.imageUrls.forEach((imageUrl, index) => {
+    const imageMissing = !imageUrl.trim();
+    const promptMissing = !draft.prompts[index].trim();
+
+    if (imageMissing || promptMissing) {
+      frameErrors[index] = {
+        ...(imageMissing
+          ? { imageUrl: `Frame ${index + 1} needs an image URL or uploaded image.` }
+          : {}),
+        ...(promptMissing
+          ? { prompt: `Frame ${index + 1} needs a student prompt.` }
+          : {}),
+      };
+    }
+  });
+
+  if (Object.keys(frameErrors).length > 0) {
+    errors.frames = frameErrors;
+  }
+
+  return errors;
+}
+
 export default function MyStoriesPage({
   records,
   onDeleteRecord,
@@ -58,6 +152,13 @@ export default function MyStoriesPage({
   mode = "student",
 }: MyStoriesPageProps) {
   const isTeacher = mode === "teacher";
+  const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
+    () => loadCustomStories(),
+  );
+  const [customDraft, setCustomDraft] = useState(emptyCustomStoryDraft);
+  const [validationErrors, setValidationErrors] =
+    useState<CustomStoryValidationErrors>({});
+  const [customStoryNotice, setCustomStoryNotice] = useState("");
   const completedPrompts = PROMPT_IMAGES.filter((prompt) =>
     records.some((record) => isPromptRecord(record, prompt)),
   ).length;
@@ -83,6 +184,135 @@ export default function MyStoriesPage({
           ) / analyzedRecords.length,
         )
       : null;
+  const preparedFrameCount = useMemo(
+    () =>
+      customDraft.imageUrls.filter((imageUrl, index) => {
+        return imageUrl.trim() || customDraft.prompts[index].trim();
+      }).length,
+    [customDraft],
+  );
+
+  const updateDraftField = (
+    field: "title" | "learningGoal" | "level",
+    value: string,
+  ) => {
+    setCustomDraft((draft) => ({ ...draft, [field]: value }));
+    setValidationErrors((errors) => ({ ...errors, [field]: undefined, form: undefined }));
+    setCustomStoryNotice("");
+  };
+
+  const updateDraftFrame = (
+    field: "imageUrls" | "prompts" | "vocabulary",
+    index: number,
+    value: string,
+  ) => {
+    setCustomDraft((draft) => ({
+      ...draft,
+      [field]: draft[field].map((item, itemIndex) =>
+        itemIndex === index ? value : item,
+      ),
+    }));
+    setValidationErrors((errors) => {
+      if (!errors.frames?.[index]) {
+        return { ...errors, form: undefined };
+      }
+
+      const nextFrames = { ...errors.frames };
+      nextFrames[index] = {
+        ...nextFrames[index],
+        ...(field === "imageUrls" ? { imageUrl: undefined } : {}),
+        ...(field === "prompts" ? { prompt: undefined } : {}),
+      };
+
+      if (!nextFrames[index].imageUrl && !nextFrames[index].prompt) {
+        delete nextFrames[index];
+      }
+
+      return {
+        ...errors,
+        form: undefined,
+        frames: Object.keys(nextFrames).length > 0 ? nextFrames : undefined,
+      };
+    });
+    setCustomStoryNotice("");
+  };
+
+  const handleUploadFrameImage = (index: number, file?: File) => {
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setValidationErrors((errors) => ({
+        ...errors,
+        form: "Please upload an image file.",
+      }));
+      return;
+    }
+
+    if (file.size > 1_500_000) {
+      setValidationErrors((errors) => ({
+        ...errors,
+        form: "This image is too large for browser storage. Use an image under 1.5 MB or paste an image URL.",
+      }));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        updateDraftFrame("imageUrls", index, reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveCustomStory = () => {
+    const errors = validateCustomStoryDraft(customDraft);
+    if (
+      errors.title ||
+      errors.learningGoal ||
+      errors.form ||
+      Object.keys(errors.frames ?? {}).length > 0
+    ) {
+      setValidationErrors(errors);
+      setCustomStoryNotice("");
+      return;
+    }
+
+    const frames = customDraft.imageUrls.map((imageUrl, index) => ({
+      imageUrl: imageUrl.trim(),
+      prompt: customDraft.prompts[index].trim(),
+      vocabulary: customDraft.vocabulary[index].trim(),
+    }));
+    const story: CustomTeacherStory = {
+      id: `custom-story-${Date.now()}`,
+      title: customDraft.title.trim() || "Untitled teacher story",
+      learningGoal: customDraft.learningGoal.trim(),
+      level: customDraft.level.trim() || "Custom activity",
+      frames,
+    };
+    const nextStories = [story, ...customStories];
+
+    try {
+      saveCustomStories(nextStories);
+      setCustomStories(nextStories);
+      setCustomDraft(emptyCustomStoryDraft);
+      setValidationErrors({});
+      setCustomStoryNotice("Custom story saved.");
+    } catch {
+      setValidationErrors({
+        form: "The story could not be saved. Uploaded images may be too large for browser storage; try smaller images or image URLs.",
+      });
+      setCustomStoryNotice("");
+    }
+  };
+
+  const handleDeleteCustomStory = (id: string) => {
+    const nextStories = customStories.filter((story) => story.id !== id);
+    setCustomStories(nextStories);
+    saveCustomStories(nextStories);
+  };
 
   if (!isTeacher) {
     return (
@@ -299,6 +529,206 @@ export default function MyStoriesPage({
           }
           note="Class pronunciation trend"
         />
+      </section>
+
+      <section className="teacher-panel teacher-content-builder">
+        <div className="teacher-panel-header">
+          <div>
+            <p className="stories-kicker">Custom materials</p>
+            <h2>Create Story Activity</h2>
+          </div>
+          <span className="queue-count">{customStories.length}</span>
+        </div>
+
+        <div className="teacher-builder-layout">
+          <form
+            className="custom-story-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleSaveCustomStory();
+            }}
+          >
+            <div className="teacher-form-grid">
+              <label>
+                Story title
+                <input
+                  aria-invalid={Boolean(validationErrors.title)}
+                  value={customDraft.title}
+                  onChange={(event) => updateDraftField("title", event.target.value)}
+                  placeholder="e.g. A Rainy Day at Taipei Station"
+                />
+                {validationErrors.title && (
+                  <span className="teacher-form-error">{validationErrors.title}</span>
+                )}
+              </label>
+              <label>
+                Level
+                <input
+                  value={customDraft.level}
+                  onChange={(event) => updateDraftField("level", event.target.value)}
+                  placeholder="e.g. Intermediate speaking"
+                />
+              </label>
+            </div>
+
+            <label>
+              Learning goal
+              <textarea
+                aria-invalid={Boolean(validationErrors.learningGoal)}
+                value={customDraft.learningGoal}
+                onChange={(event) =>
+                  updateDraftField("learningGoal", event.target.value)
+                }
+                rows={3}
+                placeholder="What should students practice in this story?"
+              />
+              {validationErrors.learningGoal && (
+                <span className="teacher-form-error">
+                  {validationErrors.learningGoal}
+                </span>
+              )}
+            </label>
+
+            {validationErrors.form && (
+              <div className="teacher-form-alert" role="alert">
+                {validationErrors.form}
+              </div>
+            )}
+            {customStoryNotice && (
+              <div className="teacher-form-success" role="status">
+                {customStoryNotice}
+              </div>
+            )}
+
+            <div className="teacher-frame-editor">
+              {customDraft.imageUrls.map((imageUrl, index) => {
+                const frameError = validationErrors.frames?.[index];
+
+                return (
+                <div
+                  className={`teacher-frame-card ${frameError ? "has-error" : ""}`}
+                  key={index}
+                >
+                  <div className="teacher-frame-image-preview">
+                    {imageUrl ? (
+                      <img src={imageUrl} alt={`Custom story frame ${index + 1}`} />
+                    ) : (
+                      <span>Frame {index + 1}</span>
+                    )}
+                  </div>
+                  <div className="teacher-frame-fields">
+                    <label>
+                      Image URL or uploaded file
+                      <input
+                        aria-invalid={Boolean(frameError?.imageUrl)}
+                        value={imageUrl}
+                        onChange={(event) =>
+                          updateDraftFrame("imageUrls", index, event.target.value)
+                        }
+                        placeholder="Paste an image link for this scene"
+                      />
+                      {frameError?.imageUrl && (
+                        <span className="teacher-form-error">
+                          {frameError.imageUrl}
+                        </span>
+                      )}
+                    </label>
+                    <label className="teacher-file-upload">
+                      Upload from computer
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        onChange={(event) =>
+                          handleUploadFrameImage(index, event.target.files?.[0])
+                        }
+                      />
+                    </label>
+                    <label>
+                      Student prompt
+                      <textarea
+                        aria-invalid={Boolean(frameError?.prompt)}
+                        value={customDraft.prompts[index]}
+                        onChange={(event) =>
+                          updateDraftFrame("prompts", index, event.target.value)
+                        }
+                        rows={2}
+                        placeholder="What should students say for this picture?"
+                      />
+                      {frameError?.prompt && (
+                        <span className="teacher-form-error">
+                          {frameError.prompt}
+                        </span>
+                      )}
+                    </label>
+                    <label>
+                      Vocabulary
+                      <input
+                        value={customDraft.vocabulary[index]}
+                        onChange={(event) =>
+                          updateDraftFrame("vocabulary", index, event.target.value)
+                        }
+                        placeholder="台北, 下雨, 幫忙"
+                      />
+                    </label>
+                  </div>
+                </div>
+                );
+              })}
+            </div>
+
+            <div className="teacher-builder-actions">
+              <p>{preparedFrameCount}/4 frames prepared</p>
+              <button type="submit" className="btn-save-custom-story">
+                Save custom story
+              </button>
+            </div>
+          </form>
+
+          <div className="custom-story-library" aria-label="Saved custom stories">
+            <h3>Teacher Story Library</h3>
+            {customStories.length === 0 ? (
+              <div className="teacher-empty-panel">
+                <strong>No custom stories yet</strong>
+                <p>
+                  Add image links and prompts to prepare a reusable classroom
+                  speaking activity.
+                </p>
+              </div>
+            ) : (
+              <div className="custom-story-list">
+                {customStories.map((story) => (
+                  <article className="custom-story-item" key={story.id}>
+                    <div className="custom-story-item-header">
+                      <div>
+                        <strong>{story.title}</strong>
+                        <span>{story.level}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-delete-custom-story"
+                        onClick={() => handleDeleteCustomStory(story.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                    <p>{story.learningGoal}</p>
+                    <div className="custom-story-frame-strip">
+                      {story.frames.map((frame, index) => (
+                        <div className="custom-story-mini-frame" key={index}>
+                          {frame.imageUrl ? (
+                            <img src={frame.imageUrl} alt={`${story.title} frame ${index + 1}`} />
+                          ) : (
+                            <span>{index + 1}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="teacher-dashboard-grid">

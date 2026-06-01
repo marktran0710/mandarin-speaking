@@ -54,7 +54,7 @@ describe("App role flows", () => {
     await user.click(screen.getAllByRole("button", { name: "Record this part" })[0]);
 
     expect(
-      screen.getByRole("heading", { name: "Taiwan Lantern Festival Story Challenge" }),
+      screen.getByRole("heading", { name: "Pingxi Sky Lantern Festival Story Challenge" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Story concept map" })).toBeInTheDocument();
   });

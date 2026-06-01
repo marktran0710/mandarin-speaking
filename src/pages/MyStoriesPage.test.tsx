@@ -1,4 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import MyStoriesPage from "./MyStoriesPage";
 
 const analyzedRecord = {
@@ -54,6 +55,10 @@ vi.mock("../PitchChart", () => ({
 }));
 
 describe("MyStoriesPage", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
   it("summarizes analyzed student recordings for teachers", () => {
     render(
       <MyStoriesPage
@@ -72,6 +77,96 @@ describe("MyStoriesPage", () => {
     expect(within(overview).getByText("86%")).toBeInTheDocument();
     expect(screen.getByText("Good pacing with a clear story sequence.")).toBeInTheDocument();
     expect(screen.getByTestId("pitch-chart")).toBeInTheDocument();
+  });
+
+  it("lets teachers save a custom image-based story activity", async () => {
+    const user = userEvent.setup();
+    render(
+      <MyStoriesPage
+        mode="teacher"
+        records={[]}
+        onDeleteRecord={vi.fn()}
+      />,
+    );
+
+    await user.clear(screen.getByLabelText("Story title"));
+    await user.type(screen.getByLabelText("Story title"), "Taipei Rain Rescue");
+    const imageInputs = screen.getAllByLabelText("Image URL or uploaded file");
+    for (let index = 0; index < imageInputs.length; index += 1) {
+      await user.type(
+        imageInputs[index],
+        `https://example.com/rain-scene-${index + 1}.jpg`,
+      );
+    }
+    await user.clear(screen.getAllByLabelText("Student prompt")[0]);
+    await user.type(
+      screen.getAllByLabelText("Student prompt")[0],
+      "Describe how the student helps someone in the rain.",
+    );
+    await user.type(screen.getAllByLabelText("Vocabulary")[0], "下雨, 幫忙");
+
+    await user.click(screen.getByRole("button", { name: "Save custom story" }));
+
+    const library = screen.getByLabelText("Saved custom stories");
+    expect(within(library).getByText("Taipei Rain Rescue")).toBeInTheDocument();
+    expect(localStorage.getItem("teacherCustomStories")).toContain(
+      "Taipei Rain Rescue",
+    );
+  });
+
+  it("shows validation errors when a teacher saves an incomplete custom story", async () => {
+    const user = userEvent.setup();
+    render(
+      <MyStoriesPage
+        mode="teacher"
+        records={[]}
+        onDeleteRecord={vi.fn()}
+      />,
+    );
+
+    await user.clear(screen.getByLabelText("Story title"));
+    await user.click(screen.getByRole("button", { name: "Save custom story" }));
+
+    expect(screen.getByText("Add a story title for students.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Frame 1 needs an image URL or uploaded image."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("No custom stories yet")).toBeInTheDocument();
+  });
+
+  it("lets teachers upload a local image for a custom story frame", async () => {
+    const user = userEvent.setup();
+    render(
+      <MyStoriesPage
+        mode="teacher"
+        records={[]}
+        onDeleteRecord={vi.fn()}
+      />,
+    );
+
+    const imageFile = new File(["story-image"], "story-frame.png", {
+      type: "image/png",
+    });
+
+    await user.upload(screen.getAllByLabelText("Upload from computer")[0], imageFile);
+    const imageInputs = screen.getAllByLabelText("Image URL or uploaded file");
+    for (let index = 1; index < imageInputs.length; index += 1) {
+      await user.type(
+        imageInputs[index],
+        `https://example.com/upload-support-${index + 1}.jpg`,
+      );
+    }
+    await waitFor(() => {
+      const imageInput = screen.getAllByLabelText(
+        "Image URL or uploaded file",
+      )[0] as HTMLInputElement;
+      expect(imageInput.value).toContain("data:image/png");
+    });
+
+    await user.click(screen.getByRole("button", { name: "Save custom story" }));
+    expect(localStorage.getItem("teacherCustomStories")).toContain(
+      "data:image/png",
+    );
   });
 
   it("shows completed picture status in the student workbook", () => {
