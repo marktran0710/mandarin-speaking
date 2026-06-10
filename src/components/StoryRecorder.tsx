@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import PitchChart from "../PitchChart";
 import PraatTimeline from "./PraatTimeline";
 import "./StoryRecorder.css";
@@ -7,7 +7,7 @@ const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
   (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
-type SpeechModel = "webspeech" | "openai" | "gemini" | "funasr" | "vibevoice";
+type SpeechModel = "webspeech" | "ctwhisper" | "vibevoice";
 
 interface Topic {
   id: string;
@@ -121,6 +121,7 @@ export default function StoryRecorder({
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [praatMetrics, setPraatMetrics] = useState<PraatMetrics | null>(null);
   const [analysisAudioBlob, setAnalysisAudioBlob] = useState<Blob | null>(null);
+  const [submittedAudioName, setSubmittedAudioName] = useState("");
   const [conceptDraft, setConceptDraft] = useState<ConceptMapDraft>(
     createEmptyConceptMapDraft(),
   );
@@ -169,6 +170,7 @@ export default function StoryRecorder({
       setError(null);
       setPraatMetrics(null);
       setAnalysisAudioBlob(null);
+      setSubmittedAudioName("");
       currentTranscriptRef.current = "";
       recordingStartRef.current = Date.now();
       setRecordingDuration(0);
@@ -376,6 +378,7 @@ export default function StoryRecorder({
     audioBlob: Blob,
     transcription: string,
     asrModel = "",
+    recordModel: SpeechModel = selectedModel,
   ) => {
     setIsAnalyzing(true);
     try {
@@ -408,7 +411,7 @@ export default function StoryRecorder({
       if (finalTranscription && finalTranscription !== currentTranscriptRef.current) {
         currentTranscriptRef.current = finalTranscription;
         if (finalTranscription !== practiceAnalysisText) {
-          addTranscription(finalTranscription);
+          addTranscription(finalTranscription, recordModel);
         }
       }
       setPraatMetrics(metrics);
@@ -423,7 +426,7 @@ export default function StoryRecorder({
           Math.floor((Date.now() - recordingStartRef.current) / 1000),
         ),
         transcription: finalTranscription,
-        model: selectedModel,
+        model: recordModel,
         topicId: topic.id,
         imageUrl: selectedImage,
         imageIndex: selectedImageIndex,
@@ -436,7 +439,32 @@ export default function StoryRecorder({
     }
   };
 
-  const addTranscription = (text: string) => {
+  const handleSubmitVoiceFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("audio/") && !hasAudioFileExtension(file.name)) {
+      setError(`Submit an audio file. "${file.name}" is not supported.`);
+      return;
+    }
+
+    setError(null);
+    setPraatMetrics(null);
+    setAnalysisAudioBlob(null);
+    setSubmittedAudioName(file.name);
+    currentTranscriptRef.current = "";
+    recordingStartRef.current = Date.now();
+    setRecordingDuration(0);
+
+    const uploadModel = selectedModel === "webspeech" ? "ctwhisper" : selectedModel;
+    await analyzeSpeechAudio(file, "", uploadModel, uploadModel);
+  };
+
+  const addTranscription = (text: string, model: SpeechModel = selectedModel) => {
     if (!text.trim()) return;
 
     setTranscriptions((prev) => [
@@ -444,7 +472,7 @@ export default function StoryRecorder({
       {
         text,
         timestamp: new Date().toLocaleTimeString(),
-        model: selectedModel,
+        model,
       },
     ]);
   };
@@ -465,6 +493,8 @@ export default function StoryRecorder({
   const practiceAnalysisText =
     conceptMapText || buildPracticeAnalysisText(selectedVocabulary);
   const hasWordProsody = Boolean(praatMetrics?.word_prosody?.length);
+  const modelExampleText =
+    currentTranscriptRef.current || practiceAnalysisText || "今天下雨，所以我帶傘。";
   const storyConnectors = ["一開始", "然後", "因為", "所以", "突然", "最後"];
   const sentenceStarters = [
     "一開始，",
@@ -843,9 +873,9 @@ export default function StoryRecorder({
 
       <section className="recording-console simple-recording-console">
         <div className="recording-action-copy">
-          <span>Record</span>
+          <span>Record or submit</span>
           <h2>Speak your story</h2>
-          <p>Use the picture, vocabulary, and four-step plan.</p>
+          <p>Use the picture, vocabulary, and four-step plan, then record or upload voice audio.</p>
         </div>
 
         <div className="controls simple-controls">
@@ -860,6 +890,27 @@ export default function StoryRecorder({
             {recordingButtonLabel}
           </button>
 
+          <label
+            className={`btn btn-secondary submit-voice-label ${
+              isBusy ? "disabled" : ""
+            }`}
+            role="button"
+            tabIndex={isBusy ? -1 : 0}
+          >
+            Submit voice file
+            <input
+              className="submit-voice-input"
+              type="file"
+              accept="audio/*,.wav,.wave,.webm,.mp3,.m4a,.ogg"
+              onChange={handleSubmitVoiceFile}
+              disabled={isBusy}
+            />
+          </label>
+
+          {submittedAudioName && (
+            <p className="submitted-audio-name">Submitted: {submittedAudioName}</p>
+          )}
+
           <details className="advanced-recording-options">
             <summary>Recording options</summary>
             <div className="model-selector">
@@ -873,19 +924,13 @@ export default function StoryRecorder({
                 disabled={isBusy}
               >
                 <option value="webspeech">
-                  Web Speech API and Praat analysis
+                  Browser Traditional Chinese transcript and Praat analysis
                 </option>
-                <option value="openai">
-                  OpenAI transcription and Praat analysis
-                </option>
-                <option value="gemini">
-                  Gemini transcription and Praat analysis
-                </option>
-                <option value="funasr">
-                  FunASR local transcription and Praat analysis
+                <option value="ctwhisper">
+                  Chinese/Taiwanese Whisper transcript and Praat analysis
                 </option>
                 <option value="vibevoice">
-                  VibeVoice-ASR local transcription and Praat analysis
+                  VibeVoice-ASR local file transcript and Praat analysis
                 </option>
               </select>
             </div>
@@ -974,51 +1019,61 @@ export default function StoryRecorder({
             </div>
           </div>
 
-          <PraatTimeline
-            audioBlob={analysisAudioBlob}
-            pitchContour={praatMetrics.pitch_contour}
-            wordProsody={praatMetrics.word_prosody}
-            transcription={currentTranscriptRef.current}
+          <StudentFeedbackCards
+            toneAccuracy={praatMetrics.tone_accuracy}
+            fluencyScore={praatMetrics.fluency_score}
+            speechRate={praatMetrics.speech_rate}
+            wordProsody={praatMetrics.word_prosody || []}
           />
 
-          <div className="chart-section">
-            <PitchChart
-              pitchContour={praatMetrics.pitch_contour}
-              detectedTone={praatMetrics.detected_tone}
-            />
-          </div>
+          <ModelExampleCard
+            text={modelExampleText}
+            focusWord={getToneFocusItems(praatMetrics.word_prosody || [])[0]?.token}
+          />
 
-          <div className="word-prosody-section">
-            <div className="word-prosody-header">
-              <h3>Word-by-word prosody</h3>
-              <p>
-                Each card estimates pitch movement for one Mandarin character
-                or spoken word.
-              </p>
+          <details className="advanced-praat-details">
+            <summary>Advanced Praat details</summary>
+            <PraatTimeline
+              audioBlob={analysisAudioBlob}
+              pitchContour={praatMetrics.pitch_contour}
+              wordProsody={praatMetrics.word_prosody}
+              transcription={currentTranscriptRef.current}
+            />
+
+            <div className="chart-section">
+              <PitchChart
+                pitchContour={praatMetrics.pitch_contour}
+                detectedTone={praatMetrics.detected_tone}
+              />
             </div>
 
-            {hasWordProsody ? (
-                <div className="word-prosody-grid">
-                  {praatMetrics.word_prosody?.map((item) => (
-                    <WordProsodyCard key={`${item.token}-${item.index}`} item={item} />
-                  ))}
-                </div>
-            ) : (
-              <div className="word-prosody-empty">
-                <strong>No word feedback yet</strong>
+            <div className="word-prosody-section">
+              <div className="word-prosody-header">
+                <h3>Word-by-word prosody</h3>
                 <p>
-                  Praat needs a clear pitch contour and transcript. Try one
-                  complete sentence, or choose VibeVoice, FunASR, OpenAI, or
-                  Gemini in recording options for backend transcription.
+                  Each card estimates pitch movement for one Mandarin character
+                  or spoken word.
                 </p>
               </div>
-            )}
-          </div>
 
-          <div className="feedback-section">
-            <h3>Praat coaching feedback</h3>
-            <p>{praatMetrics.feedback}</p>
-          </div>
+              {hasWordProsody ? (
+                  <div className="word-prosody-grid">
+                    {praatMetrics.word_prosody?.map((item) => (
+                      <WordProsodyCard key={`${item.token}-${item.index}`} item={item} />
+                    ))}
+                  </div>
+              ) : (
+                <div className="word-prosody-empty">
+                  <strong>No word feedback yet</strong>
+                  <p>
+                    Praat needs a clear pitch contour and transcript. Try one
+                    complete sentence, or choose Chinese/Taiwanese Whisper in
+                    recording options for backend transcription.
+                  </p>
+                </div>
+              )}
+            </div>
+          </details>
 
           {praatMetrics.ai_feedback && (
             <div className="ai-feedback-section">
@@ -1189,6 +1244,10 @@ function appendToken(currentValue: string, token: string): string {
   return trimmed ? `${trimmed} ${cleanToken}` : cleanToken;
 }
 
+function hasAudioFileExtension(fileName: string): boolean {
+  return /\.(wav|wave|webm|mp3|m4a|ogg)$/i.test(fileName);
+}
+
 function formatContourShape(shape: string): string {
   const labels: Record<string, string> = {
     dip: "Dipping",
@@ -1208,6 +1267,138 @@ function getBackendUrl(): string {
   throw new Error(
     "Praat analysis needs a deployed backend in production. Deploy the FastAPI backend and set VITE_BACKEND_URL to its public URL.",
   );
+}
+
+function StudentFeedbackCards({
+  toneAccuracy,
+  fluencyScore,
+  speechRate,
+  wordProsody,
+}: {
+  toneAccuracy: number;
+  fluencyScore: number;
+  speechRate: number;
+  wordProsody: WordProsody[];
+}) {
+  const focus = getToneFocusItems(wordProsody)[0];
+
+  return (
+    <section className="student-feedback-cards" aria-label="Student feedback">
+      <div className="student-feedback-card good">
+        <span>Good</span>
+        <strong>{studentStrength(toneAccuracy, fluencyScore)}</strong>
+      </div>
+      <div className="student-feedback-card fix">
+        <span>Fix</span>
+        <strong>{studentFix(toneAccuracy, fluencyScore, speechRate, focus)}</strong>
+      </div>
+      <div className="student-feedback-card next">
+        <span>Next try</span>
+        <strong>{studentNextStep(speechRate, focus)}</strong>
+      </div>
+    </section>
+  );
+}
+
+function studentStrength(toneAccuracy: number, fluencyScore: number): string {
+  if (toneAccuracy >= 80 && fluencyScore >= 75) {
+    return "Your tones and rhythm are clear enough to build a longer sentence.";
+  }
+  if (toneAccuracy >= 75) {
+    return "Your tone shape is recognizable.";
+  }
+  if (fluencyScore >= 75) {
+    return "Your speaking rhythm is steady.";
+  }
+  return "You completed a recording. Now improve one small part.";
+}
+
+function studentFix(
+  toneAccuracy: number,
+  fluencyScore: number,
+  speechRate: number,
+  focus?: WordProsody,
+): string {
+  if (speechRate > 6.5) {
+    return "Slow down so each Mandarin tone has time to finish.";
+  }
+  if (toneAccuracy < 65 && focus) {
+    return `Make the tone movement clearer on "${focus.token}".`;
+  }
+  if (fluencyScore < 60) {
+    return "Connect the words more smoothly without stopping between every character.";
+  }
+  if (focus) {
+    return `Polish "${focus.token}" first.`;
+  }
+  return "Keep the sentence short and make every tone clear.";
+}
+
+function studentNextStep(speechRate: number, focus?: WordProsody): string {
+  if (focus) {
+    return `Say "${focus.token}" three times, then repeat the full sentence.`;
+  }
+  if (speechRate < 2.5) {
+    return "Try the same sentence again with a little more flow.";
+  }
+  return "Record again and try to match the same clear rhythm.";
+}
+
+function ModelExampleCard({
+  text,
+  focusWord,
+}: {
+  text: string;
+  focusWord?: string;
+}) {
+  const exampleText = text.trim() || "今天下雨，所以我帶傘。";
+
+  const playExample = () => {
+    if (!("speechSynthesis" in window)) {
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(exampleText);
+    utterance.lang = "zh-TW";
+    utterance.rate = 0.82;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  return (
+    <section className="model-example-card" aria-label="100 score example">
+      <div>
+        <span>100-score example</span>
+        <h3>Listen, then copy with your voice</h3>
+        <p>{exampleText}</p>
+      </div>
+      <div className="model-example-actions">
+        {focusWord && <em>Focus first: {focusWord}</em>}
+        <button type="button" onClick={playExample}>
+          Play example
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function getToneFocusItems(items: WordProsody[]): WordProsody[] {
+  const scored = items.map((item) => ({
+    item,
+    score:
+      (item.contour_shape === "variable" ? 3 : 0) +
+      (item.pitch_range < 15 ? 2 : 0) +
+      (item.pitch_range > 95 ? 1 : 0),
+  }));
+
+  const focus = scored
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((entry) => entry.item)
+    .slice(0, 4);
+
+  return focus.length > 0 ? focus : items.slice(0, 4);
 }
 
 function FeedbackCard({

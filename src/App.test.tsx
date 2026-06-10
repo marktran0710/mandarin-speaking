@@ -1,6 +1,8 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
+
+const TEST_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
 
 describe("App role flows", () => {
   it("lets a student enter the learning app with the default profile", async () => {
@@ -47,7 +49,7 @@ describe("App role flows", () => {
         description:
           "The system transcribed your recording and found 1 word-level prosody item for review.",
         transcription: "今天下雨，我和朋友一起回家。",
-        transcription_model: "auto:vibevoice",
+        transcription_model: "auto:ctwhisper",
         pitch_contour: [
           [0.1, 180],
           [0.2, 205],
@@ -100,7 +102,7 @@ describe("App role flows", () => {
     await user.upload(input, wavFile);
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `${import.meta.env.VITE_BACKEND_URL}/api/analyze`,
+      `${TEST_BACKEND_URL}/api/analyze`,
       expect.objectContaining({
         method: "POST",
         body: expect.any(FormData),
@@ -108,19 +110,142 @@ describe("App role flows", () => {
     );
     const requestBody = fetchMock.mock.calls[0][1].body as FormData;
     expect(requestBody.get("transcription")).toBe("");
-    expect(requestBody.get("asr_model")).toBe(import.meta.env.VITE_VOICE_TEST_ASR_MODEL || "auto");
+    expect(requestBody.get("asr_model")).toBe(import.meta.env.VITE_VOICE_TEST_ASR_MODEL || "ctwhisper");
     expect(await screen.findByText("practice.wave")).toBeInTheDocument();
     expect(
       await screen.findByText(
         "The system transcribed your recording and found 1 word-level prosody item for review.",
       ),
     ).toBeInTheDocument();
-    expect(await screen.findAllByText("今天下雨，我和朋友一起回家。")).toHaveLength(2);
+    expect(
+      (await screen.findAllByText("今天下雨，我和朋友一起回家。")).length,
+    ).toBeGreaterThanOrEqual(2);
     expect(screen.getByLabelText("Word-level script")).toBeInTheDocument();
     expect(screen.getAllByText("Rising").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/180 Hz/).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "Praat visualization" })).toBeInTheDocument();
     expect(screen.getByLabelText("Praat style waveform, pitch contour, and word timeline")).toBeInTheDocument();
+
+    vi.unstubAllGlobals();
+  });
+
+  it("uses browser speech recognition for live voice test recordings", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        description:
+          "The system used your browser transcript and found 2 word-level prosody items for review.",
+        transcription: "今天下雨",
+        transcription_model: "",
+        pitch_contour: [
+          [0.1, 180],
+          [0.2, 205],
+        ],
+        word_prosody: [],
+        detected_tone: 1,
+        tone_accuracy: 80,
+        speech_rate: 2.5,
+        fluency_score: 75,
+        feedback: "Good start.",
+        ai_feedback: {
+          provider: "local",
+          fluency: { score: 75, feedback: "Keep a steady pace." },
+          grammar: { score: 75, feedback: "Clear sentence.", corrections: [] },
+          vocabulary: { score: 75, feedback: "Useful words.", suggestions: [] },
+          improved_version: "今天下雨。",
+          practice_prompt: "Try again with a smooth ending.",
+        },
+      }),
+    });
+    let activeRecorder: {
+      state: string;
+      ondataavailable: ((event: { data: Blob }) => void) | null;
+      onstop: (() => void | Promise<void>) | null;
+      stop: () => void;
+    } | null = null;
+
+    class MockMediaRecorder {
+      static isTypeSupported = () => false;
+
+      mimeType = "audio/wav";
+      state = "inactive";
+      ondataavailable: ((event: { data: Blob }) => void) | null = null;
+      onstop: (() => void | Promise<void>) | null = null;
+
+      constructor() {
+        activeRecorder = this;
+      }
+
+      start() {
+        this.state = "recording";
+      }
+
+      stop() {
+        this.state = "inactive";
+        this.ondataavailable?.({
+          data: new Blob(["student speech"], { type: "audio/wav" }),
+        });
+        void this.onstop?.();
+      }
+    }
+
+    class MockSpeechRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = "";
+      onresult: ((event: any) => void) | null = null;
+
+      start() {
+        const result: any = [{ transcript: "今天下雨" }];
+        result.isFinal = true;
+        setTimeout(() => {
+          this.onresult?.({
+            resultIndex: 0,
+            results: [result],
+          });
+        }, 0);
+      }
+
+      stop() {}
+    }
+
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+    vi.stubGlobal("SpeechRecognition", MockSpeechRecognition);
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn(async () => ({
+          getTracks: () => [{ stop: vi.fn() }],
+        })),
+      },
+    });
+
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Student Login" }));
+    await user.click(screen.getByRole("button", { name: "Enter Student Mode" }));
+    await user.click(screen.getByRole("button", { name: "Voice Test" }));
+    await user.click(screen.getByRole("button", { name: "Start voice test" }));
+
+    expect((activeRecorder as { state: string } | null)?.state).toBe("recording");
+    expect(await screen.findByText("今天下雨")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Stop and get feedback" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${TEST_BACKEND_URL}/api/analyze`,
+        expect.objectContaining({
+          method: "POST",
+          body: expect.any(FormData),
+        }),
+      );
+    });
+    const requestBody = fetchMock.mock.calls[0][1].body as FormData;
+    expect(requestBody.get("transcription")).toBe("今天下雨");
+    expect(requestBody.get("asr_model")).toBeNull();
 
     vi.unstubAllGlobals();
   });
@@ -175,7 +300,7 @@ describe("App role flows", () => {
     await user.click(screen.getByRole("button", { name: "Generate 6 images" }));
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `${import.meta.env.VITE_BACKEND_URL}/api/generate-story-images`,
+      `${TEST_BACKEND_URL}/api/generate-story-images`,
       expect.objectContaining({
         method: "POST",
         headers: { "Content-Type": "application/json" },

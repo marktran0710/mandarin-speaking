@@ -23,6 +23,8 @@ const topic = {
   },
 };
 
+const TEST_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
+
 let activeRecorder: MockMediaRecorder | null = null;
 
 class MockMediaRecorder {
@@ -58,8 +60,8 @@ describe("StoryRecorder student prototype", () => {
       return {
         ok: true,
         json: async () => ({
-          transcription: "學生在市場幫朋友",
-          transcription_model: "vibevoice",
+          transcription: "Student tells the market story",
+          transcription_model: "ctwhisper",
           pitch_contour: [
             [0, 180],
             [0.2, 205],
@@ -68,7 +70,7 @@ describe("StoryRecorder student prototype", () => {
           ],
           word_prosody: [
             {
-              token: "學",
+              token: "A",
               index: 0,
               start_time: 0,
               end_time: 0.2,
@@ -84,7 +86,7 @@ describe("StoryRecorder student prototype", () => {
               feedback: "Pitch rises clearly.",
             },
             {
-              token: "生",
+              token: "B",
               index: 1,
               start_time: 0.2,
               end_time: 0.4,
@@ -172,12 +174,12 @@ describe("StoryRecorder student prototype", () => {
     });
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      `${import.meta.env.VITE_BACKEND_URL}/api/analyze`,
+      `${TEST_BACKEND_URL}/api/analyze`,
       expect.objectContaining({ method: "POST" }),
     );
     expect(onAddRecord).toHaveBeenCalledWith(
       expect.objectContaining({
-        transcription: "學生在市場幫朋友",
+        transcription: "Student tells the market story",
         model: "vibevoice",
         praatMetrics: expect.objectContaining({
           word_prosody: expect.any(Array),
@@ -185,4 +187,106 @@ describe("StoryRecorder student prototype", () => {
       }),
     );
   });
+
+  it("defaults live recording to browser Traditional Chinese transcription", () => {
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText("Speech source")).toHaveValue("webspeech");
+  });
+
+  it("uses Chinese/Taiwanese Whisper when a student submits a voice file", async () => {
+    const user = userEvent.setup();
+    const onAddRecord = vi.fn();
+
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={onAddRecord}
+      />,
+    );
+
+    const voiceFile = new File(["RIFF....WAVEfmt "], "story-attempt.wav", {
+      type: "audio/wav",
+    });
+    const input = document.querySelector(
+      ".submit-voice-input",
+    ) as HTMLInputElement;
+
+    await user.upload(input, voiceFile);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      `${TEST_BACKEND_URL}/api/analyze`,
+      expect.objectContaining({ method: "POST" }),
+    );
+    const requestBody = vi.mocked(globalThis.fetch).mock.calls[0][1]?.body as FormData;
+    expect(requestBody.get("transcription")).toBe("");
+    expect(requestBody.get("asr_model")).toBe("ctwhisper");
+    expect(await screen.findByText("Submitted: story-attempt.wav")).toBeInTheDocument();
+    expect(onAddRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        transcription: "Student tells the market story",
+        model: "ctwhisper",
+      }),
+    );
+  });
+
+  it("transcribes and analyzes a submitted student voice file with VibeVoice", async () => {
+    const user = userEvent.setup();
+    const onAddRecord = vi.fn();
+
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={onAddRecord}
+      />,
+    );
+
+    await user.click(screen.getByText("Recording options"));
+    await user.selectOptions(screen.getByLabelText("Speech source"), "vibevoice");
+
+    const voiceFile = new File(["RIFF....WAVEfmt "], "story-attempt.wav", {
+      type: "audio/wav",
+    });
+    const input = document.querySelector(
+      ".submit-voice-input",
+    ) as HTMLInputElement;
+
+    await user.upload(input, voiceFile);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      `${TEST_BACKEND_URL}/api/analyze`,
+      expect.objectContaining({ method: "POST" }),
+    );
+    const requestBody = vi.mocked(globalThis.fetch).mock.calls[0][1]?.body as FormData;
+    expect(requestBody.get("transcription")).toBe("");
+    expect(requestBody.get("asr_model")).toBe("vibevoice");
+    expect(await screen.findByText("Submitted: story-attempt.wav")).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText("Student tells the market story")).length,
+    ).toBeGreaterThan(0);
+    expect(onAddRecord).toHaveBeenCalledWith(
+      expect.objectContaining({
+        transcription: "Student tells the market story",
+        model: "vibevoice",
+      }),
+    );
+  });
 });
+

@@ -16,3 +16,5 @@ htmlcov/
 .npm-cache/
 .pnpm-store/
 vite-dev*.log
+backend/uvicorn*.log
+.models/

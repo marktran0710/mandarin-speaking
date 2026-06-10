@@ -6,7 +6,7 @@ import "./VoiceTestPage.css";
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
   (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
-const VOICE_TEST_ASR_MODEL = import.meta.env.VITE_VOICE_TEST_ASR_MODEL || "auto";
+const VOICE_TEST_ASR_MODEL = import.meta.env.VITE_VOICE_TEST_ASR_MODEL || "ctwhisper";
 
 interface WordProsody {
   token: string;
@@ -52,10 +52,13 @@ export default function VoiceTestPage() {
   const [audioUrl, setAudioUrl] = useState("");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [selectedAudioName, setSelectedAudioName] = useState("");
+  const [liveTranscript, setLiveTranscript] = useState("");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recognitionRef = useRef<any>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const transcriptRef = useRef("");
   const startTimeRef = useRef(0);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -65,6 +68,8 @@ export default function VoiceTestPage() {
     setAudioUrl("");
     setAudioBlob(null);
     setSelectedAudioName("");
+    setLiveTranscript("");
+    transcriptRef.current = "";
     setRecordingDuration(0);
 
     try {
@@ -92,7 +97,12 @@ export default function VoiceTestPage() {
           type: recorder.mimeType || "audio/webm",
         });
         stopTracks();
-        await analyzeAudio(rawBlob, "voice-test.wav", true);
+        await analyzeAudio(
+          rawBlob,
+          "voice-test.wav",
+          true,
+          transcriptRef.current.trim(),
+        );
       };
 
       startTimeRef.current = Date.now();
@@ -101,6 +111,7 @@ export default function VoiceTestPage() {
       }, 250);
 
       recorder.start();
+      startSpeechRecognition();
       setIsRecording(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not access microphone.");
@@ -110,6 +121,7 @@ export default function VoiceTestPage() {
   };
 
   const stopRecording = () => {
+    recognitionRef.current?.stop();
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
     }
@@ -144,10 +156,54 @@ export default function VoiceTestPage() {
     await analyzeAudio(file, normalizeWavFileName(file.name), false);
   };
 
+  const startSpeechRecognition = () => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setLiveTranscript("Browser speech transcription is not available.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "zh-TW";
+
+    recognition.onresult = (event: any) => {
+      let finalText = transcriptRef.current;
+      let interimText = "";
+
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const text = event.results[index][0].transcript;
+        if (event.results[index].isFinal) {
+          finalText = `${finalText} ${text}`.trim();
+        } else {
+          interimText = `${interimText} ${text}`.trim();
+        }
+      }
+
+      transcriptRef.current = finalText;
+      setLiveTranscript([finalText, interimText].filter(Boolean).join(" "));
+    };
+
+    recognition.onerror = () => {
+      setLiveTranscript(
+        transcriptRef.current ||
+          "Browser speech transcription stopped. Praat will still analyze the audio.",
+      );
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
   const analyzeAudio = async (
     rawBlob: Blob,
     fileName = "voice-test.wav",
     shouldConvertToWav = true,
+    transcription = "",
   ) => {
     setIsAnalyzing(true);
     try {
@@ -158,8 +214,10 @@ export default function VoiceTestPage() {
 
       const formData = new FormData();
       formData.append("file", normalizedWavBlob, fileName);
-      formData.append("transcription", "");
-      formData.append("asr_model", VOICE_TEST_ASR_MODEL);
+      formData.append("transcription", transcription);
+      if (!transcription.trim()) {
+        formData.append("asr_model", VOICE_TEST_ASR_MODEL);
+      }
 
       const response = await fetch(`${getBackendUrl()}/api/analyze`, {
         method: "POST",
@@ -187,6 +245,7 @@ export default function VoiceTestPage() {
   };
 
   const stopTracks = () => {
+    recognitionRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
   };
@@ -258,9 +317,16 @@ export default function VoiceTestPage() {
             <audio controls src={audioUrl} />
           </div>
         )}
+
+        {liveTranscript && (
+          <div className="voice-live-transcript">
+            <span>Live transcript</span>
+            <p>{liveTranscript}</p>
+          </div>
+        )}
       </section>
 
-      {isAnalyzing && <p className="voice-test-loading">Running Praat and AI feedback...</p>}
+      {isAnalyzing && <p className="voice-test-loading">Running Praat and local feedback...</p>}
       {error && <p className="voice-test-error">{error}</p>}
 
       {metrics && (
@@ -270,6 +336,18 @@ export default function VoiceTestPage() {
             <ScoreCard label="Tone accuracy" value={`${Math.round(metrics.tone_accuracy)}%`} />
             <ScoreCard label="Speech rate" value={`${metrics.speech_rate.toFixed(1)}/s`} />
           </div>
+
+          <StudentFeedbackCards
+            toneAccuracy={metrics.tone_accuracy}
+            fluencyScore={metrics.fluency_score}
+            speechRate={metrics.speech_rate}
+            wordProsody={metrics.word_prosody || []}
+          />
+
+          <ModelExampleCard
+            text={metrics.transcription || "今天下雨，所以我帶傘。"}
+            focusWord={getToneFocusItems(metrics.word_prosody || [])[0]?.token}
+          />
 
           <div className="voice-feedback-card">
             <h2>Transcription from audio</h2>
@@ -291,6 +369,8 @@ export default function VoiceTestPage() {
             )}
           </div>
 
+          <details className="voice-advanced-details">
+            <summary>Advanced Praat details</summary>
           <div className="voice-feedback-card">
             <h2>Praat feedback</h2>
             <p>{metrics.feedback}</p>
@@ -324,6 +404,8 @@ export default function VoiceTestPage() {
               </div>
             </div>
           )}
+
+          </details>
 
           {metrics.ai_feedback && (
             <div className="voice-feedback-card ai-card">
@@ -461,6 +543,138 @@ function ScoreCard({ label, value }: { label: string; value: string }) {
       <strong>{value}</strong>
     </div>
   );
+}
+
+function ModelExampleCard({
+  text,
+  focusWord,
+}: {
+  text: string;
+  focusWord?: string;
+}) {
+  const exampleText = text.trim() || "今天下雨，所以我帶傘。";
+
+  const playExample = () => {
+    if (!("speechSynthesis" in window)) {
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(exampleText);
+    utterance.lang = "zh-TW";
+    utterance.rate = 0.82;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  return (
+    <section className="voice-model-example" aria-label="100 score example">
+      <div>
+        <span>100-score example</span>
+        <h2>Listen, then copy with your voice</h2>
+        <p>{exampleText}</p>
+      </div>
+      <div className="voice-model-example-actions">
+        {focusWord && <em>Focus first: {focusWord}</em>}
+        <button type="button" onClick={playExample}>
+          Play example
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function StudentFeedbackCards({
+  toneAccuracy,
+  fluencyScore,
+  speechRate,
+  wordProsody,
+}: {
+  toneAccuracy: number;
+  fluencyScore: number;
+  speechRate: number;
+  wordProsody: WordProsody[];
+}) {
+  const focus = getToneFocusItems(wordProsody)[0];
+
+  return (
+    <section className="voice-student-feedback" aria-label="Student feedback">
+      <div className="voice-student-feedback-card good">
+        <span>Good</span>
+        <strong>{studentStrength(toneAccuracy, fluencyScore)}</strong>
+      </div>
+      <div className="voice-student-feedback-card fix">
+        <span>Fix</span>
+        <strong>{studentFix(toneAccuracy, fluencyScore, speechRate, focus)}</strong>
+      </div>
+      <div className="voice-student-feedback-card next">
+        <span>Next try</span>
+        <strong>{studentNextStep(speechRate, focus)}</strong>
+      </div>
+    </section>
+  );
+}
+
+function studentStrength(toneAccuracy: number, fluencyScore: number): string {
+  if (toneAccuracy >= 80 && fluencyScore >= 75) {
+    return "Your tones and rhythm are clear enough to build a longer sentence.";
+  }
+  if (toneAccuracy >= 75) {
+    return "Your tone shape is recognizable.";
+  }
+  if (fluencyScore >= 75) {
+    return "Your speaking rhythm is steady.";
+  }
+  return "You completed a recording. Now improve one small part.";
+}
+
+function studentFix(
+  toneAccuracy: number,
+  fluencyScore: number,
+  speechRate: number,
+  focus?: WordProsody,
+): string {
+  if (speechRate > 6.5) {
+    return "Slow down so each Mandarin tone has time to finish.";
+  }
+  if (toneAccuracy < 65 && focus) {
+    return `Make the tone movement clearer on "${focus.token}".`;
+  }
+  if (fluencyScore < 60) {
+    return "Connect the words more smoothly without stopping between every character.";
+  }
+  if (focus) {
+    return `Polish "${focus.token}" first.`;
+  }
+  return "Keep the sentence short and make every tone clear.";
+}
+
+function studentNextStep(speechRate: number, focus?: WordProsody): string {
+  if (focus) {
+    return `Say "${focus.token}" three times, then repeat the full sentence.`;
+  }
+  if (speechRate < 2.5) {
+    return "Try the same sentence again with a little more flow.";
+  }
+  return "Record again and try to match the same clear rhythm.";
+}
+
+function getToneFocusItems(items: WordProsody[]): WordProsody[] {
+  const scored = items.map((item) => ({
+    item,
+    score:
+      (item.contour_shape === "variable" ? 3 : 0) +
+      (item.pitch_range < 15 ? 2 : 0) +
+      (item.pitch_range > 95 ? 1 : 0),
+  }));
+
+  const focus = scored
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map((entry) => entry.item)
+    .slice(0, 4);
+
+  return focus.length > 0 ? focus : items.slice(0, 4);
 }
 
 function FeedbackBlock({

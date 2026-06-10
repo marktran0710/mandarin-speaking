@@ -21,7 +21,7 @@ OPENAI_API_KEY = clean_api_key(os.getenv("OPENAI_API_KEY") or os.getenv("VITE_OP
 GEMINI_API_KEY = clean_api_key(os.getenv("GEMINI_API_KEY") or os.getenv("VITE_GEMINI_API_KEY"))
 OPENAI_FEEDBACK_MODEL = os.getenv("OPENAI_FEEDBACK_MODEL", "gpt-4o-mini")
 GEMINI_FEEDBACK_MODEL = os.getenv("GEMINI_FEEDBACK_MODEL", "gemini-2.0-flash")
-AI_FEEDBACK_PROVIDER = os.getenv("AI_FEEDBACK_PROVIDER", "gemini").lower()
+AI_FEEDBACK_PROVIDER = os.getenv("AI_FEEDBACK_PROVIDER", "local").lower()
 
 
 def fallback_language_feedback(transcription: str) -> Dict:
@@ -83,6 +83,9 @@ def fallback_language_feedback(transcription: str) -> Dict:
 async def generate_language_feedback(transcription: str) -> Dict:
     text = transcription.strip()
     if not text:
+        return fallback_language_feedback(text)
+
+    if AI_FEEDBACK_PROVIDER == "local":
         return fallback_language_feedback(text)
 
     if AI_FEEDBACK_PROVIDER == "openai" and OPENAI_API_KEY:
