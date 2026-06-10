@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import HomePage from "./pages/HomePage";
 import CreateStoryPage from "./pages/CreateStoryPage";
 import MyStoriesPage from "./pages/MyStoriesPage";
+import VoiceTestPage from "./pages/VoiceTestPage";
+import TeacherImageBuilderPage from "./pages/TeacherImageBuilderPage";
 import LoginPage, { LoginRole } from "./pages/LoginPage";
 import Navigation from "./components/Navigation";
 
@@ -11,7 +13,9 @@ export type Page =
   | "teacher-login"
   | "student-practice"
   | "student-stories"
-  | "teacher-dashboard";
+  | "voice-test"
+  | "teacher-dashboard"
+  | "teacher-image-builder";
 
 interface AudioRecord {
   id: string;
@@ -19,7 +23,7 @@ interface AudioRecord {
   timestamp: string;
   duration: number;
   transcription: string;
-  model: "openai" | "gemini" | "webspeech";
+  model: "openai" | "gemini" | "webspeech" | "funasr" | "vibevoice";
   praatMetrics?: any;
   topicId?: string;
   imageUrl?: string;
@@ -40,11 +44,18 @@ export default function App() {
   );
 
   useEffect(() => {
+    const directVoiceTestPath =
+      window.location.pathname === "/analyze" ||
+      window.location.pathname === "/voice-test";
     const storedRole = localStorage.getItem("activeRole");
     if (storedRole === "student" || storedRole === "teacher") {
       setActiveRole(storedRole);
       setCurrentPage(
-        storedRole === "student" ? "student-practice" : "teacher-dashboard",
+        storedRole === "student" && directVoiceTestPath
+          ? "voice-test"
+          : storedRole === "student"
+            ? "student-practice"
+            : "teacher-dashboard",
       );
     }
 
@@ -139,12 +150,18 @@ export default function App() {
           mode="student"
         />
       )}
+      {currentPage === "voice-test" && activeRole === "student" && (
+        <VoiceTestPage />
+      )}
       {currentPage === "teacher-dashboard" && activeRole === "teacher" && (
         <MyStoriesPage
           records={audioRecords}
           onDeleteRecord={deleteAudioRecord}
           mode="teacher"
         />
+      )}
+      {currentPage === "teacher-image-builder" && activeRole === "teacher" && (
+        <TeacherImageBuilderPage />
       )}
     </div>
   );

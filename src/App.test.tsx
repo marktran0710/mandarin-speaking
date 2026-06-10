@@ -18,9 +18,111 @@ describe("App role flows", () => {
     await user.click(screen.getByRole("button", { name: "Enter Student Mode" }));
 
     expect(
-      screen.getByRole("heading", { name: "Choose a Taiwan Story" }),
+      screen.getByRole("heading", { name: "Choose a Daily Situation" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "My Stories" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Voice Test" })).toBeInTheDocument();
+  });
+
+  it("opens the student voice test page", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Student Login" }));
+    await user.click(screen.getByRole("button", { name: "Enter Student Mode" }));
+    await user.click(screen.getByRole("button", { name: "Voice Test" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Analyze Your Voice" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Target sentence")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import WAV file" })).toBeInTheDocument();
+  });
+
+  it("sends imported WAV files for voice analysis", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        description:
+          "The system transcribed your recording and found 1 word-level prosody item for review.",
+        transcription: "今天下雨，我和朋友一起回家。",
+        transcription_model: "auto:vibevoice",
+        pitch_contour: [
+          [0.1, 180],
+          [0.2, 205],
+          [0.3, 220],
+        ],
+        word_prosody: [
+          {
+            token: "今",
+            index: 0,
+            start_time: 0,
+            end_time: 0.15,
+            pitch_contour: [[0.1, 180]],
+            mean_pitch: 180,
+            pitch_range: 12,
+            start_pitch: 178,
+            end_pitch: 190,
+            contour_shape: "rising",
+            feedback: "Pitch rises clearly.",
+          },
+        ],
+        detected_tone: 1,
+        tone_accuracy: 80,
+        speech_rate: 2.5,
+        fluency_score: 75,
+        feedback: "Good start.",
+        ai_feedback: {
+          provider: "local",
+          fluency: { score: 75, feedback: "Keep a steady pace." },
+          grammar: { score: 75, feedback: "Clear sentence.", corrections: [] },
+          vocabulary: { score: 75, feedback: "Useful words.", suggestions: [] },
+          improved_version: "今天下雨，我和朋友一起回家。",
+          practice_prompt: "Try again with a smooth ending.",
+        },
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Student Login" }));
+    await user.click(screen.getByRole("button", { name: "Enter Student Mode" }));
+    await user.click(screen.getByRole("button", { name: "Voice Test" }));
+
+    const input = document.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const wavFile = new File(["RIFF....WAVEfmt "], "practice.wave", {
+      type: "audio/wave",
+    });
+
+    await user.upload(input, wavFile);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${import.meta.env.VITE_BACKEND_URL}/api/analyze`,
+      expect.objectContaining({
+        method: "POST",
+        body: expect.any(FormData),
+      }),
+    );
+    const requestBody = fetchMock.mock.calls[0][1].body as FormData;
+    expect(requestBody.get("transcription")).toBe("");
+    expect(requestBody.get("asr_model")).toBe(import.meta.env.VITE_VOICE_TEST_ASR_MODEL || "auto");
+    expect(await screen.findByText("practice.wave")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "The system transcribed your recording and found 1 word-level prosody item for review.",
+      ),
+    ).toBeInTheDocument();
+    expect(await screen.findAllByText("今天下雨，我和朋友一起回家。")).toHaveLength(2);
+    expect(screen.getByLabelText("Word-level script")).toBeInTheDocument();
+    expect(screen.getAllByText("Rising").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/180 Hz/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("heading", { name: "Praat visualization" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Praat style waveform, pitch contour, and word timeline")).toBeInTheDocument();
+
+    vi.unstubAllGlobals();
   });
 
   it("opens the teacher dashboard after teacher login", async () => {
@@ -40,6 +142,58 @@ describe("App role flows", () => {
     expect(screen.getByText("No submissions yet")).toBeInTheDocument();
   });
 
+  it("lets teachers generate six image cues from a situation context", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        provider: "gemini-2.0-flash",
+        title: "MRT Help Story",
+        learning_goal: "Students describe a problem and ask for help.",
+        frames: Array.from({ length: 6 }, (_, index) => ({
+          index: index + 1,
+          title: `Scene ${index + 1}`,
+          student_prompt: `Describe scene ${index + 1}.`,
+          vocabulary: ["MRT", "help", "thank you"],
+          image_prompt: `Comic scene ${index + 1}`,
+          image_url: `data:image/svg+xml,<svg></svg>#${index + 1}`,
+        })),
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Teacher Login" }));
+    await user.click(screen.getByRole("button", { name: "Enter Teacher Mode" }));
+    await user.click(screen.getByRole("button", { name: "Image Builder" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Generate Six Picture Cues" }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Generate 6 images" }));
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${import.meta.env.VITE_BACKEND_URL}/api/generate-story-images`,
+      expect.objectContaining({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    expect(await screen.findByRole("heading", { name: "MRT Help Story" })).toBeInTheDocument();
+    expect(screen.getAllByAltText(/Generated story frame/)).toHaveLength(6);
+
+    await user.click(screen.getByRole("button", { name: "Save to story library" }));
+
+    expect(localStorage.getItem("teacherCustomStories")).toContain("MRT Help Story");
+    expect(
+      screen.getByText("Generated story saved to the teacher story library."),
+    ).toBeInTheDocument();
+
+    vi.unstubAllGlobals();
+  });
+
   it("lets a student open the workbook and jump to a story part recording task", async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -54,7 +208,7 @@ describe("App role flows", () => {
     await user.click(screen.getAllByRole("button", { name: "Record this part" })[0]);
 
     expect(
-      screen.getByRole("heading", { name: "Pingxi Sky Lantern Festival Story Challenge" }),
+      screen.getByRole("heading", { name: "Taking the Bus to School Story Challenge" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Story concept map" })).toBeInTheDocument();
   });

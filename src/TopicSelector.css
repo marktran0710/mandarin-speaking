@@ -1,7 +1,7 @@
 .topic-selector {
   min-height: calc(100vh - 64px);
-  padding: 36px 20px 72px;
-  background: #ffffff;
+  padding: 28px 20px 64px;
+  background: var(--clay-canvas);
 }
 
 .learning-hero,
@@ -13,13 +13,13 @@
 .learning-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
-  gap: 28px;
+  gap: 18px;
   align-items: stretch;
-  margin-bottom: 28px;
+  margin-bottom: 20px;
 }
 
 .learning-hero-copy {
-  padding: 34px;
+  padding: 26px;
   background: #ffffff;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-xl);
@@ -28,31 +28,31 @@
 .platform-kicker {
   color: var(--clay-primary);
   font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-weight: 650;
+  letter-spacing: 0.02em;
   margin: 0 0 10px;
   text-transform: uppercase;
 }
 
 .learning-hero h1 {
   color: var(--clay-ink);
-  font-size: clamp(36px, 5vw, 58px);
-  line-height: 1.05;
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.12;
   margin: 0 0 14px;
 }
 
 .learning-hero p {
   max-width: 760px;
   color: var(--clay-body);
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.65;
   margin: 0;
 }
 
 .learning-objectives {
-  padding: 24px;
+  padding: 18px;
   display: grid;
-  gap: 12px;
+  gap: 10px;
   background: #ffffff;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-xl);
@@ -81,14 +81,14 @@
 .learning-objectives span {
   color: var(--clay-ink);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.35;
 }
 
 .activity-layout {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 22px;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 18px;
   align-items: start;
 }
 
@@ -102,7 +102,7 @@
 .activity-sidebar {
   position: sticky;
   top: 88px;
-  padding: 18px;
+  padding: 14px;
 }
 
 .sidebar-heading h2 {
@@ -145,6 +145,7 @@
 
 .topic-row strong {
   font-size: 15px;
+  font-weight: 650;
   margin-bottom: 4px;
 }
 
@@ -160,12 +161,12 @@
   color: var(--clay-ink);
   font-size: 11px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .activity-preview {
-  padding: 24px;
+  padding: 20px;
 }
 
 .preview-header {
@@ -178,7 +179,7 @@
 
 .preview-header h2 {
   color: var(--clay-ink);
-  font-size: 32px;
+  font-size: 28px;
   margin: 0 0 8px;
 }
 
@@ -196,7 +197,7 @@
   background: var(--clay-surface-strong);
   color: var(--clay-ink);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 650;
 }
 
 .preview-grid {
@@ -209,7 +210,7 @@
 .main-prompt-card {
   position: relative;
   overflow: hidden;
-  min-height: 380px;
+  min-height: 340px;
   border-radius: var(--clay-radius-lg);
   background: var(--clay-lavender);
 }
@@ -230,11 +231,11 @@
   background: rgba(255, 255, 255, 0.94);
   color: var(--clay-ink);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 650;
 }
 
 .prompt-planning-panel {
-  padding: 20px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -270,7 +271,7 @@
   background: var(--clay-mint);
   color: var(--clay-ink);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .start-activity-btn {
@@ -282,7 +283,7 @@
   color: #ffffff;
   cursor: pointer;
   font-size: 15px;
-  font-weight: 900;
+  font-weight: 650;
 }
 
 .start-activity-btn:hover {
@@ -292,7 +293,7 @@
 .prompt-strip {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 12px;
 }
 
@@ -321,7 +322,7 @@
 
 .prompt-thumb span {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 @media (max-width: 980px) {

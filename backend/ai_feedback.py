@@ -7,10 +7,21 @@ from dotenv import load_dotenv
 
 
 load_dotenv()
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env.local"))
+
+
+def clean_api_key(value: str | None) -> str | None:
+    key = (value or "").strip()
+    if not key or "your_" in key.lower() or key.lower().endswith("_here"):
+        return None
+    return key
+
+
+OPENAI_API_KEY = clean_api_key(os.getenv("OPENAI_API_KEY") or os.getenv("VITE_OPENAI_API_KEY"))
+GEMINI_API_KEY = clean_api_key(os.getenv("GEMINI_API_KEY") or os.getenv("VITE_GEMINI_API_KEY"))
 OPENAI_FEEDBACK_MODEL = os.getenv("OPENAI_FEEDBACK_MODEL", "gpt-4o-mini")
 GEMINI_FEEDBACK_MODEL = os.getenv("GEMINI_FEEDBACK_MODEL", "gemini-2.0-flash")
+AI_FEEDBACK_PROVIDER = os.getenv("AI_FEEDBACK_PROVIDER", "gemini").lower()
 
 
 def fallback_language_feedback(transcription: str) -> Dict:
@@ -74,7 +85,7 @@ async def generate_language_feedback(transcription: str) -> Dict:
     if not text:
         return fallback_language_feedback(text)
 
-    if OPENAI_API_KEY:
+    if AI_FEEDBACK_PROVIDER == "openai" and OPENAI_API_KEY:
         try:
             return await _feedback_with_openai(text)
         except Exception as exc:
@@ -85,6 +96,12 @@ async def generate_language_feedback(transcription: str) -> Dict:
             return await _feedback_with_gemini(text)
         except Exception as exc:
             print(f"Gemini feedback failed, using local fallback: {exc}")
+
+    if OPENAI_API_KEY:
+        try:
+            return await _feedback_with_openai(text)
+        except Exception as exc:
+            print(f"OpenAI feedback failed, using local fallback: {exc}")
 
     return fallback_language_feedback(text)
 
@@ -152,7 +169,7 @@ async def _feedback_with_gemini(transcription: str) -> Dict:
 
     content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
     data = json.loads(_strip_json_fence(content))
-    data["provider"] = "gemini"
+    data["provider"] = GEMINI_FEEDBACK_MODEL
     return _normalize_feedback(data)
 
 

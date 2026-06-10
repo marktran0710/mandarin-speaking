@@ -306,11 +306,21 @@ function WordSegment({
       />
       <text
         x={x + width / 2}
-        y={WORD_TOP + 40}
+        y={WORD_TOP + 28}
         className="praat-word-label"
         textAnchor="middle"
       >
         {word.token}
+      </text>
+      <text
+        x={x + width / 2}
+        y={WORD_TOP + 48}
+        className="praat-word-detail"
+        textAnchor="middle"
+      >
+        {word.mean_pitch > 0
+          ? `${Math.round(word.mean_pitch)}Hz ${word.contour_shape}`
+          : word.contour_shape}
       </text>
     </g>
   );

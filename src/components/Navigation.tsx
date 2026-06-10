@@ -83,19 +83,39 @@ export default function Navigation({
                   My Stories
                 </button>
               </li>
+              <li>
+                <button
+                  type="button"
+                  className={`nav-link ${currentPage === "voice-test" ? "active" : ""}`}
+                  onClick={() => onNavigate("voice-test")}
+                >
+                  Voice Test
+                </button>
+              </li>
             </>
           )}
 
           {isTeacher && (
-            <li>
-              <button
-                type="button"
-                className={`nav-link ${currentPage === "teacher-dashboard" ? "active" : ""}`}
-                onClick={() => onNavigate("teacher-dashboard")}
-              >
-                Dashboard
-              </button>
-            </li>
+            <>
+              <li>
+                <button
+                  type="button"
+                  className={`nav-link ${currentPage === "teacher-dashboard" ? "active" : ""}`}
+                  onClick={() => onNavigate("teacher-dashboard")}
+                >
+                  Dashboard
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className={`nav-link ${currentPage === "teacher-image-builder" ? "active" : ""}`}
+                  onClick={() => onNavigate("teacher-image-builder")}
+                >
+                  Image Builder
+                </button>
+              </li>
+            </>
           )}
 
           {activeRole && (

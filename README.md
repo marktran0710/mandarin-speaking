@@ -13,7 +13,7 @@ The current UI uses a warm Clay-inspired design system with cream surfaces, blac
 - Topic-based story prompts with vocabulary support
 - Browser audio recording with WAV conversion before backend analysis
 - Web Speech API transcription for a free browser-native flow
-- Optional OpenAI Whisper or Gemini transcription through the backend
+- Optional OpenAI Whisper, Gemini, local FunASR, or local VibeVoice-ASR transcription through the backend
 - Praat/Parselmouth pitch and formant analysis
 - Mandarin tone detection and tone-accuracy scoring
 - Interactive pitch contour chart with Chart.js
@@ -29,8 +29,8 @@ React + Vite frontend
   -> calls FastAPI backend
 
 FastAPI backend
-  -> /api/analyze: Praat acoustic analysis + AI language feedback
-  -> /api/transcribe: OpenAI or Gemini transcription
+  -> /api/analyze: Praat acoustic analysis + optional local ASR + AI language feedback
+  -> /api/transcribe: OpenAI, Gemini, FunASR, or VibeVoice-ASR transcription
   -> /api/reference-tone/{tone}: Mandarin tone reference data
 ```
 
@@ -82,8 +82,14 @@ Create `backend/.env` if you want cloud transcription or AI-generated coaching:
 ```env
 OPENAI_API_KEY=your_openai_key
 GEMINI_API_KEY=your_gemini_key
+AI_FEEDBACK_PROVIDER=gemini
 OPENAI_FEEDBACK_MODEL=gpt-4o-mini
 GEMINI_FEEDBACK_MODEL=gemini-2.0-flash
+FUNASR_MODEL=paraformer-zh
+FUNASR_VAD_MODEL=fsmn-vad
+FUNASR_PUNC_MODEL=ct-punc
+VIBEVOICE_ASR_MODEL=microsoft/VibeVoice-ASR-HF
+VIBEVOICE_DEVICE=-1
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
@@ -92,8 +98,11 @@ Notes:
 - API keys stay on the backend and are not exposed to the browser.
 - In production, set `CORS_ORIGINS` to the deployed frontend URL.
 - In production, the frontend must set `VITE_BACKEND_URL` to the deployed backend URL. GitHub Pages cannot run Praat by itself.
+- AI coach feedback prefers Gemini 2.0 Flash by default when `GEMINI_API_KEY` is configured. Set `AI_FEEDBACK_PROVIDER=openai` only if you want OpenAI to be tried first.
 - If no OpenAI or Gemini key is configured, AI coach feedback falls back to local heuristic feedback.
 - Web Speech API transcription does not require an API key, but browser support varies.
+- FunASR transcription runs on the backend and does not require an API key. The first run may download model files, so the backend needs network access and enough disk/memory for the ASR models.
+- VibeVoice-ASR transcription runs on the backend through Hugging Face Transformers and does not require an API key. Use `VIBEVOICE_DEVICE=-1` for CPU or a GPU device index such as `0` when the backend has CUDA available.
 
 ## Deployment
 
@@ -119,6 +128,7 @@ CORS_ORIGINS=https://marktran0710.github.io
 ```env
 OPENAI_API_KEY=your_openai_key
 GEMINI_API_KEY=your_gemini_key
+AI_FEEDBACK_PROVIDER=gemini
 ```
 
 5. Verify:
@@ -233,21 +243,22 @@ Returns backend status.
 
 ### `POST /api/analyze`
 
-Analyzes a WAV audio upload with Praat and returns language feedback.
+Analyzes a WAV audio upload with Praat and returns language feedback. If `transcription` is empty and `asr_model` is provided, the backend transcribes first and then runs Praat on the same uploaded audio.
 
 Form fields:
 
 - `file`: audio file
 - `transcription`: optional transcription text
+- `asr_model`: optional ASR provider for combined transcription + Praat analysis, for example `vibevoice`
 
 ### `POST /api/transcribe`
 
-Transcribes an audio upload with OpenAI or Gemini.
+Transcribes an audio upload with OpenAI, Gemini, local FunASR, or local VibeVoice-ASR.
 
 Form fields:
 
 - `file`: audio file
-- `model`: `openai` or `gemini`
+- `model`: `openai`, `gemini`, `funasr`, or `vibevoice`
 
 ### `GET /api/reference-tone/{tone_number}`
 

@@ -5,9 +5,9 @@ import "./StoryRecorder.css";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://localhost:8000" : "");
+  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
-type SpeechModel = "webspeech" | "openai" | "gemini";
+type SpeechModel = "webspeech" | "openai" | "gemini" | "funasr" | "vibevoice";
 
 interface Topic {
   id: string;
@@ -20,6 +20,8 @@ interface Topic {
 }
 
 interface PraatMetrics {
+  transcription?: string;
+  transcription_model?: string;
   pitch_contour: Array<[number, number]>;
   word_prosody?: WordProsody[];
   detected_tone: number;
@@ -72,6 +74,15 @@ interface TranscriptionItem {
   model: SpeechModel;
 }
 
+interface ConceptMapDraft {
+  characters: string;
+  place: string;
+  actions: string;
+  vocabulary: string;
+  connectors: string;
+  fullStory: string;
+}
+
 interface StoryRecorderProps {
   topic: Topic;
   selectedImage: string;
@@ -110,6 +121,9 @@ export default function StoryRecorder({
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [praatMetrics, setPraatMetrics] = useState<PraatMetrics | null>(null);
   const [analysisAudioBlob, setAnalysisAudioBlob] = useState<Blob | null>(null);
+  const [conceptDraft, setConceptDraft] = useState<ConceptMapDraft>(
+    createEmptyConceptMapDraft(),
+  );
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -129,6 +143,10 @@ export default function StoryRecorder({
       clearTimers();
     };
   }, []);
+
+  useEffect(() => {
+    setConceptDraft(createEmptyConceptMapDraft());
+  }, [selectedImageIndex, topic.id]);
 
   const clearTimers = () => {
     if (silenceTimerRef.current) {
@@ -161,7 +179,11 @@ export default function StoryRecorder({
         await startWebSpeechRecording();
       } else {
         await startAudioRecording(async (audioBlob) => {
-          await transcribeAudio(audioBlob);
+          if (selectedModel === "vibevoice") {
+            await analyzeSpeechAudio(audioBlob, "", "vibevoice");
+          } else {
+            await transcribeAudio(audioBlob);
+          }
         });
         setIsRecording(true);
       }
@@ -195,7 +217,10 @@ export default function StoryRecorder({
     }
 
     await startAudioRecording(async (audioBlob) => {
-      await analyzeSpeechAudio(audioBlob, currentTranscriptRef.current.trim());
+      await analyzeSpeechAudio(
+        audioBlob,
+        currentTranscriptRef.current.trim() || practiceAnalysisText,
+      );
     });
 
     const recognition = new SpeechRecognition();
@@ -329,31 +354,40 @@ export default function StoryRecorder({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await readErrorResponse(response);
         throw new Error(errorData.detail || "Transcription failed");
       }
 
       const data = await response.json();
-      addTranscription(data.text);
-      currentTranscriptRef.current = data.text;
-      await analyzeSpeechAudio(wavBlob, data.text);
+      const transcript = (data.text || "").trim();
+      if (transcript) {
+        addTranscription(transcript);
+        currentTranscriptRef.current = transcript;
+      }
+      await analyzeSpeechAudio(wavBlob, transcript || practiceAnalysisText);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Transcription error occurred",
-      );
+      setError(formatBackendError(err, BACKEND_URL || "the configured backend"));
     } finally {
       setIsTranscribing(false);
     }
   };
 
-  const analyzeSpeechAudio = async (audioBlob: Blob, transcription: string) => {
+  const analyzeSpeechAudio = async (
+    audioBlob: Blob,
+    transcription: string,
+    asrModel = "",
+  ) => {
     setIsAnalyzing(true);
     try {
       const backendUrl = getBackendUrl();
       const wavBlob = await convertBlobToWav(audioBlob);
       const formData = new FormData();
       formData.append("file", wavBlob, "speech.wav");
-      formData.append("transcription", transcription);
+      const analysisText = transcription.trim() || (asrModel ? "" : practiceAnalysisText);
+      formData.append("transcription", analysisText);
+      if (asrModel) {
+        formData.append("asr_model", asrModel);
+      }
 
       const response = await fetch(`${backendUrl}/api/analyze`, {
         method: "POST",
@@ -361,11 +395,22 @@ export default function StoryRecorder({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await readErrorResponse(response);
         throw new Error(errorData.detail || "Praat analysis failed");
       }
 
       const metrics = (await response.json()) as PraatMetrics;
+      const finalTranscription = (
+        metrics.transcription ||
+        analysisText ||
+        practiceAnalysisText
+      ).trim();
+      if (finalTranscription && finalTranscription !== currentTranscriptRef.current) {
+        currentTranscriptRef.current = finalTranscription;
+        if (finalTranscription !== practiceAnalysisText) {
+          addTranscription(finalTranscription);
+        }
+      }
       setPraatMetrics(metrics);
       setAnalysisAudioBlob(wavBlob);
 
@@ -377,7 +422,7 @@ export default function StoryRecorder({
           1,
           Math.floor((Date.now() - recordingStartRef.current) / 1000),
         ),
-        transcription,
+        transcription: finalTranscription,
         model: selectedModel,
         topicId: topic.id,
         imageUrl: selectedImage,
@@ -385,9 +430,7 @@ export default function StoryRecorder({
         praatMetrics: metrics,
       });
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Speech analysis error occurred",
-      );
+      setError(formatBackendError(err, BACKEND_URL || "the configured backend"));
     } finally {
       setIsAnalyzing(false);
     }
@@ -418,6 +461,18 @@ export default function StoryRecorder({
 
   const isBusy = isRecording || isTranscribing || isAnalyzing;
   const selectedVocabulary = topic.vocabulary[selectedImageIndex] || [];
+  const conceptMapText = buildConceptMapText(conceptDraft);
+  const practiceAnalysisText =
+    conceptMapText || buildPracticeAnalysisText(selectedVocabulary);
+  const hasWordProsody = Boolean(praatMetrics?.word_prosody?.length);
+  const storyConnectors = ["一開始", "然後", "因為", "所以", "突然", "最後"];
+  const sentenceStarters = [
+    "一開始，",
+    "他們在",
+    "然後，",
+    "突然，",
+    "最後，",
+  ];
   const recordingStatus = isRecording
     ? "Recording in progress"
     : isTranscribing
@@ -433,6 +488,13 @@ export default function StoryRecorder({
       ? "Record again"
       : "Start recording";
   const recordingButtonDisabled = isTranscribing || isAnalyzing;
+  const activeFlowStep = praatMetrics
+    ? "review"
+    : isRecording || isTranscribing || isAnalyzing
+      ? "record"
+      : conceptMapText
+        ? "record"
+        : "plan";
 
   const handlePrimaryRecordingAction = () => {
     if (isRecording) {
@@ -443,11 +505,54 @@ export default function StoryRecorder({
     startRecording();
   };
 
+  const updateConceptDraft = (
+    field: keyof ConceptMapDraft,
+    value: string,
+  ) => {
+    setConceptDraft((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const appendConceptToken = (
+    field: keyof ConceptMapDraft,
+    token: string,
+  ) => {
+    setConceptDraft((prev) => ({
+      ...prev,
+      [field]: appendToken(prev[field], token),
+    }));
+  };
+
   return (
     <div className="story-recorder">
+      <section className="student-flow-board" aria-label="Student practice flow">
+        <div className="flow-step completed">
+          <span>1</span>
+          <strong>Look</strong>
+          <p>Study the picture cue.</p>
+        </div>
+        <div className={`flow-step ${activeFlowStep === "plan" ? "active" : ""}`}>
+          <span>2</span>
+          <strong>Plan</strong>
+          <p>Choose who, where, and action.</p>
+        </div>
+        <div className={`flow-step ${activeFlowStep === "record" ? "active" : ""}`}>
+          <span>3</span>
+          <strong>Record</strong>
+          <p>Speak this cue clearly.</p>
+        </div>
+        <div className={`flow-step ${activeFlowStep === "review" ? "active" : ""}`}>
+          <span>4</span>
+          <strong>Review</strong>
+          <p>Use feedback to revise.</p>
+        </div>
+      </section>
+
       <section className="recorder-hero">
         <div className="recorder-hero-copy">
-          <p className="eyebrow">Student recording studio</p>
+          <p className="eyebrow">Picture cue {selectedImageIndex + 1} of {topic.images.length}</p>
           <h1>{topic.name} Story Challenge</h1>
           <p>
             {topic.description ||
@@ -468,7 +573,7 @@ export default function StoryRecorder({
           {isRecording ? (
             <p>{recordingDuration}s recorded</p>
           ) : (
-            <p>Plan first, then speak clearly.</p>
+            <p>Finish the quick plan, then record this cue.</p>
           )}
         </div>
       </section>
@@ -501,12 +606,20 @@ export default function StoryRecorder({
         </div>
 
         <aside className="recording-coach-panel">
+          <div className="coach-block task-card">
+            <h2>Your task</h2>
+            <p>
+              Tell only this picture cue first. One or two clear sentences is
+              enough.
+            </p>
+          </div>
+
           <div className="coach-block">
-            <h2>Tell 3 simple sentences</h2>
+            <h2>Simple speaking pattern</h2>
             <ol>
-              <li>Say where the story happens.</li>
-              <li>Say what happens next.</li>
-              <li>Say how it finishes.</li>
+              <li>Who is in the picture?</li>
+              <li>Where are they?</li>
+              <li>What happens?</li>
             </ol>
           </div>
 
@@ -532,42 +645,201 @@ export default function StoryRecorder({
 
       <section className="concept-map-section" aria-label="Story concept map">
         <div className="concept-map-header">
-          <p className="eyebrow">Story builder</p>
-          <h2>Plan in 4 simple steps</h2>
+          <p className="eyebrow">Quick plan</p>
+          <h2>Plan this picture cue</h2>
           <p>
-            Use the four boxes to prepare one short Mandarin story before
-            recording.
+            Fill the first three boxes, then record. Vocabulary and connectors
+            are optional helpers when the student is ready.
           </p>
         </div>
 
         <div className="concept-map">
-          <div className="concept-node scene">
-            <span>Scene</span>
-            <strong>Where and when?</strong>
-            <p>Place, time, weather, background</p>
+          <label className="concept-node character">
+            <span>Characters</span>
+            <strong>誰? Who?</strong>
+            <textarea
+              value={conceptDraft.characters}
+              onChange={(event) =>
+                updateConceptDraft("characters", event.target.value)
+              }
+              placeholder="例：學生、老師、朋友"
+              rows={3}
+            />
+          </label>
+          <label className="concept-node scene">
+            <span>Place</span>
+            <strong>在哪裡? Where?</strong>
+            <textarea
+              value={conceptDraft.place}
+              onChange={(event) => updateConceptDraft("place", event.target.value)}
+              placeholder="例：學校、市場、公園"
+              rows={3}
+            />
+          </label>
+          <label className="concept-node event">
+            <span>Actions</span>
+            <strong>做什麼? What happens?</strong>
+            <textarea
+              value={conceptDraft.actions}
+              onChange={(event) =>
+                updateConceptDraft("actions", event.target.value)
+              }
+              placeholder="例：看見、幫忙、一起走"
+              rows={3}
+            />
+          </label>
+          <label className="concept-node vocabulary-node">
+            <span>Vocabulary</span>
+            <strong>Useful words</strong>
+            <textarea
+              value={conceptDraft.vocabulary}
+              onChange={(event) =>
+                updateConceptDraft("vocabulary", event.target.value)
+              }
+              placeholder="Click words below or type your own"
+              rows={3}
+            />
+          </label>
+          <label className="concept-node connector-node">
+            <span>Connectors</span>
+            <strong>How ideas connect</strong>
+            <textarea
+              value={conceptDraft.connectors}
+              onChange={(event) =>
+                updateConceptDraft("connectors", event.target.value)
+              }
+              placeholder="例：然後、因為、所以、最後"
+              rows={3}
+            />
+          </label>
+          <label className="concept-node full-story-node">
+            <span>Full Story</span>
+            <strong>Combine your ideas</strong>
+            <textarea
+              value={conceptDraft.fullStory}
+              onChange={(event) =>
+                updateConceptDraft("fullStory", event.target.value)
+              }
+              placeholder="例：一開始，學生在市場看見一位老人。然後，他幫老人拿東西。最後，他們一起回家。"
+              rows={5}
+            />
+          </label>
+        </div>
+
+        <div className="concept-chip-panel">
+          <div className="concept-chip-group">
+            <span>Vocabulary</span>
+            <div>
+              {selectedVocabulary.map((word) => (
+                <button
+                  type="button"
+                  key={word}
+                  onClick={() => appendConceptToken("vocabulary", word)}
+                  disabled={isBusy}
+                >
+                  {word}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="concept-node event">
-            <span>Action</span>
-            <strong>What happens?</strong>
-            <p>First action, next action</p>
+
+          <div className="concept-chip-group">
+            <span>Connectors</span>
+            <div>
+              {storyConnectors.map((connector) => (
+                <button
+                  type="button"
+                  key={connector}
+                  onClick={() => appendConceptToken("connectors", connector)}
+                  disabled={isBusy}
+                >
+                  {connector}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="concept-node problem">
-            <span>Problem</span>
-            <strong>What changes?</strong>
-            <p>Challenge, surprise, question, mistake</p>
-          </div>
-          <div className="concept-node ending">
-            <span>Ending</span>
-            <strong>How does it finish?</strong>
-            <p>Result, lesson, decision, next step</p>
+
+          <div className="concept-chip-group">
+            <span>Sentence starters</span>
+            <div>
+              {sentenceStarters.map((starter) => (
+                <button
+                  type="button"
+                  key={starter}
+                  onClick={() => appendConceptToken("fullStory", starter)}
+                  disabled={isBusy}
+                >
+                  {starter}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="sentence-starters">
+        <div className="concept-practice-text">
+          <span>Pronunciation target</span>
+          <p>
+            {practiceAnalysisText ||
+              "Add vocabulary or write your full story before recording."}
+          </p>
+        </div>
+
+        <div className="concept-map-actions">
+          <button
+            type="button"
+            onClick={() =>
+              updateConceptDraft("fullStory", buildSuggestedStory(conceptDraft))
+            }
+            disabled={isBusy}
+          >
+            Draft story from map
+          </button>
+          <button
+            type="button"
+            onClick={() => setConceptDraft(createEmptyConceptMapDraft())}
+            disabled={isBusy}
+          >
+            Clear map
+          </button>
+        </div>
+
+        <div className="word-level-note">
+          <strong>Word-level pronunciation</strong>
+          <p>
+            After recording, Praat aligns the pitch contour to each Mandarin
+            character in your transcript or target story and shows contour,
+            average pitch, pitch range, and coaching feedback.
+          </p>
+        </div>
+
+        <div className="sentence-starters" hidden>
           <span>Starter phrases</span>
           <p>一開始... / 然後... / 因為... / 所以... / 最後...</p>
         </div>
       </section>
+
+      {praatMetrics && hasWordProsody && (
+        <section
+          className="word-level-preview"
+          aria-label="Word-level pronunciation overview"
+        >
+          <div>
+            <p className="eyebrow">Word-level pronunciation</p>
+            <h2>Character prosody preview</h2>
+          </div>
+          <div className="word-level-strip">
+            {praatMetrics.word_prosody?.slice(0, 18).map((item) => (
+              <div
+                key={`preview-${item.token}-${item.index}`}
+                className={`word-level-token ${item.contour_shape}`}
+              >
+                <strong>{item.token}</strong>
+                <span>{formatContourShape(item.contour_shape)}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="recording-console simple-recording-console">
         <div className="recording-action-copy">
@@ -608,6 +880,12 @@ export default function StoryRecorder({
                 </option>
                 <option value="gemini">
                   Gemini transcription and Praat analysis
+                </option>
+                <option value="funasr">
+                  FunASR local transcription and Praat analysis
+                </option>
+                <option value="vibevoice">
+                  VibeVoice-ASR local transcription and Praat analysis
                 </option>
               </select>
             </div>
@@ -710,23 +988,32 @@ export default function StoryRecorder({
             />
           </div>
 
-          {praatMetrics.word_prosody &&
-            praatMetrics.word_prosody.length > 0 && (
-              <div className="word-prosody-section">
-                <div className="word-prosody-header">
-                  <h3>Word-by-word prosody</h3>
-                  <p>
-                    Each card estimates the pitch movement for one Mandarin
-                    character or spoken word.
-                  </p>
-                </div>
+          <div className="word-prosody-section">
+            <div className="word-prosody-header">
+              <h3>Word-by-word prosody</h3>
+              <p>
+                Each card estimates pitch movement for one Mandarin character
+                or spoken word.
+              </p>
+            </div>
+
+            {hasWordProsody ? (
                 <div className="word-prosody-grid">
-                  {praatMetrics.word_prosody.map((item) => (
+                  {praatMetrics.word_prosody?.map((item) => (
                     <WordProsodyCard key={`${item.token}-${item.index}`} item={item} />
                   ))}
                 </div>
+            ) : (
+              <div className="word-prosody-empty">
+                <strong>No word feedback yet</strong>
+                <p>
+                  Praat needs a clear pitch contour and transcript. Try one
+                  complete sentence, or choose VibeVoice, FunASR, OpenAI, or
+                  Gemini in recording options for backend transcription.
+                </p>
               </div>
             )}
+          </div>
 
           <div className="feedback-section">
             <h3>Praat coaching feedback</h3>
@@ -836,6 +1123,72 @@ function WordProsodyCard({ item }: { item: WordProsody }) {
   );
 }
 
+function buildPracticeAnalysisText(vocabulary: string[]): string {
+  return vocabulary
+    .map((word) => word.trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function createEmptyConceptMapDraft(): ConceptMapDraft {
+  return {
+    characters: "",
+    place: "",
+    actions: "",
+    vocabulary: "",
+    connectors: "",
+    fullStory: "",
+  };
+}
+
+function buildConceptMapText(draft: ConceptMapDraft): string {
+  const fullStory = draft.fullStory.trim();
+  if (fullStory) {
+    return fullStory;
+  }
+
+  return [
+    draft.characters,
+    draft.place,
+    draft.actions,
+    draft.vocabulary,
+    draft.connectors,
+  ]
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .join(" ");
+}
+
+function buildSuggestedStory(draft: ConceptMapDraft): string {
+  const characters = draft.characters.trim() || "學生";
+  const place = draft.place.trim() || "學校";
+  const actions = draft.actions.trim() || "看見一件事情";
+  const vocabulary = draft.vocabulary.trim();
+  const connectors = draft.connectors.trim() || "然後 最後";
+  const connectorList = connectors.split(/\s+/).filter(Boolean);
+  const secondConnector = connectorList[0] || "然後";
+  const finalConnector = connectorList[connectorList.length - 1] || "最後";
+
+  return [
+    `一開始，${characters}在${place}。`,
+    `${secondConnector}，${characters}${actions}。`,
+    vocabulary ? `他們練習說：${vocabulary}。` : "",
+    `${finalConnector}，故事有一個清楚的結尾。`,
+  ]
+    .filter(Boolean)
+    .join("");
+}
+
+function appendToken(currentValue: string, token: string): string {
+  const cleanToken = token.trim();
+  if (!cleanToken) {
+    return currentValue;
+  }
+
+  const trimmed = currentValue.trim();
+  return trimmed ? `${trimmed} ${cleanToken}` : cleanToken;
+}
+
 function formatContourShape(shape: string): string {
   const labels: Record<string, string> = {
     dip: "Dipping",
@@ -884,6 +1237,30 @@ function FeedbackCard({
       )}
     </div>
   );
+}
+
+async function readErrorResponse(response: Response): Promise<{ detail?: string }> {
+  try {
+    return await response.json();
+  } catch {
+    return { detail: `${response.status} ${response.statusText}` };
+  }
+}
+
+function formatBackendError(error: unknown, backendUrl: string): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const networkFailures = [
+    "Failed to fetch",
+    "NetworkError",
+    "Load failed",
+    "The operation was aborted",
+  ];
+
+  if (networkFailures.some((failure) => message.includes(failure))) {
+    return `Cannot reach the speech analysis backend at ${backendUrl}. Start the FastAPI backend on port 8000, then record again.`;
+  }
+
+  return message || "Speech analysis error occurred";
 }
 
 async function convertBlobToWav(blob: Blob): Promise<Blob> {

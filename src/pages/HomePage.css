@@ -1,10 +1,10 @@
 .home-page {
   min-height: calc(100vh - 64px);
-  background: #ffffff;
+  background: var(--clay-canvas);
 }
 
 .hero {
-  padding: 72px 20px 32px;
+  padding: 48px 20px 22px;
   text-align: center;
 }
 
@@ -22,9 +22,9 @@
 
 .hero-title {
   color: var(--clay-ink);
-  font-size: clamp(34px, 5vw, 56px);
-  font-weight: 700;
-  line-height: 1.08;
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 650;
+  line-height: 1.12;
   letter-spacing: 0;
   margin: 0 0 14px;
 }
@@ -38,20 +38,21 @@
 }
 
 .portal-section {
-  padding: 24px 20px 56px;
+  padding: 18px 20px 38px;
 }
 
 .portal-grid {
   max-width: 1040px;
   margin: 0 auto;
   display: grid;
-  gap: 24px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .portal-card {
   width: 100%;
-  min-height: 300px;
-  padding: 32px 28px;
+  min-height: 240px;
+  padding: 26px 24px;
   display: grid;
   justify-items: center;
   align-content: center;
@@ -66,12 +67,12 @@
 
 .portal-card:hover {
   border-color: var(--clay-primary);
-  box-shadow: var(--airbnb-shadow);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
 }
 
 .portal-icon {
-  width: 96px;
-  height: 96px;
+  width: 72px;
+  height: 72px;
   display: grid;
   place-items: center;
   border-radius: 999px;
@@ -90,8 +91,8 @@
 }
 
 .portal-title {
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 650;
 }
 
 .portal-title-cn {
@@ -106,13 +107,13 @@
 }
 
 .portal-arrow {
-  color: #9ca3af;
-  font-size: 34px;
+  color: var(--clay-primary);
+  font-size: 24px;
   line-height: 1;
 }
 
 .features {
-  padding: 40px 20px 88px;
+  padding: 30px 20px 72px;
 }
 
 .features-container {
@@ -122,7 +123,7 @@
 
 .features-container h2 {
   color: var(--clay-ink);
-  font-size: 30px;
+  font-size: 26px;
   margin-bottom: 20px;
   text-align: center;
 }
@@ -134,8 +135,8 @@
 }
 
 .feature-card {
-  min-height: 190px;
-  padding: 24px;
+  min-height: 168px;
+  padding: 20px;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   background: #ffffff;
@@ -186,6 +187,7 @@
     min-height: 260px;
   }
 
+  .portal-grid,
   .features-grid {
     grid-template-columns: 1fr;
   }

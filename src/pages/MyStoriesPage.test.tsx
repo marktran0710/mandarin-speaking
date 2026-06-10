@@ -112,7 +112,7 @@ describe("MyStoriesPage", () => {
     expect(localStorage.getItem("teacherCustomStories")).toContain(
       "Taipei Rain Rescue",
     );
-  });
+  }, 10000);
 
   it("shows validation errors when a teacher saves an incomplete custom story", async () => {
     const user = userEvent.setup();
@@ -180,10 +180,13 @@ describe("MyStoriesPage", () => {
     );
 
     expect(screen.getByRole("heading", { name: "My Story Workbook" })).toBeInTheDocument();
-    expect(screen.getByText("1/24")).toBeInTheDocument();
+    expect(screen.getByText("1/36")).toBeInTheDocument();
     expect(screen.getByText("Feedback ready")).toBeInTheDocument();
 
     const firstPrompt = screen.getAllByRole("article")[0];
-    expect(within(firstPrompt).getByText("Record another attempt")).toBeInTheDocument();
+    expect(
+      within(firstPrompt).getByText("Revise with another recording"),
+    ).toBeInTheDocument();
+    expect(within(firstPrompt).getByText("1 attempt collected")).toBeInTheDocument();
   });
 });

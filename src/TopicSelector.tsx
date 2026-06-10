@@ -416,8 +416,8 @@ function storySequence(scenes: StoryScene[]): string[] {
 const topicImages: Record<string, string[]> = {
   adventure: storySequence([
     {
-      title: "Arrive in Pingxi",
-      subtitle: "Families enter the sky lantern street",
+      title: "Morning Bus Stop",
+      subtitle: "A student waits before school",
       moment: "lantern_arrive",
       sky: "#dff3ff",
       ground: "#d8ead5",
@@ -425,8 +425,8 @@ const topicImages: Record<string, string[]> = {
       icon: "lantern",
     },
     {
-      title: "Write a Wish",
-      subtitle: "Students write blessings on paper",
+      title: "Ask About the Bus",
+      subtitle: "A classmate checks the route",
       moment: "lantern_write",
       sky: "#ffe7c8",
       ground: "#e6d9b8",
@@ -434,8 +434,8 @@ const topicImages: Record<string, string[]> = {
       icon: "lantern",
     },
     {
-      title: "Help Before Launch",
-      subtitle: "A lantern tilts and friends steady it",
+      title: "Bus Is Crowded",
+      subtitle: "Students make room politely",
       moment: "lantern_fall",
       sky: "#dfd7ff",
       ground: "#d5cbe8",
@@ -443,19 +443,37 @@ const topicImages: Record<string, string[]> = {
       icon: "lantern",
     },
     {
-      title: "Lanterns Rise",
-      subtitle: "The sky fills with warm lights",
+      title: "Arrive at School",
+      subtitle: "The group walks to class",
       moment: "lantern_release",
       sky: "#fff1b8",
       ground: "#d7e8c4",
       accent: "#0f766e",
       icon: "lantern",
     },
+    {
+      title: "Forgot a Notebook",
+      subtitle: "One student asks for help",
+      moment: "lantern_write",
+      sky: "#ffe9d6",
+      ground: "#e7d8bd",
+      accent: "#c65d45",
+      icon: "lantern",
+    },
+    {
+      title: "Plan After School",
+      subtitle: "Friends decide where to meet",
+      moment: "lantern_arrive",
+      sky: "#dceeff",
+      ground: "#d4e8d5",
+      accent: "#2f8f68",
+      icon: "lantern",
+    },
   ]),
   nature: storySequence([
     {
-      title: "Early Alishan Train",
-      subtitle: "Friends meet before the festival trip",
+      title: "Enter a Breakfast Shop",
+      subtitle: "Friends look at the menu",
       moment: "train_meet",
       sky: "#cceeff",
       ground: "#c5dfcf",
@@ -463,8 +481,8 @@ const topicImages: Record<string, string[]> = {
       icon: "mountainTrain",
     },
     {
-      title: "Cherry Blossom Track",
-      subtitle: "The train climbs past pink flowers",
+      title: "Order Food",
+      subtitle: "A student asks for noodles and tea",
       moment: "train_climb",
       sky: "#cdf2df",
       ground: "#b9d9ba",
@@ -472,8 +490,8 @@ const topicImages: Record<string, string[]> = {
       icon: "mountainTrain",
     },
     {
-      title: "Morning Fog",
-      subtitle: "The group waits near the viewing path",
+      title: "Check the Price",
+      subtitle: "The cashier repeats the total",
       moment: "fog_wait",
       sky: "#d9e6f2",
       ground: "#bdcdbd",
@@ -481,19 +499,37 @@ const topicImages: Record<string, string[]> = {
       icon: "mountainTrain",
     },
     {
-      title: "Sunrise Festival View",
-      subtitle: "They describe clouds, trees, and light",
+      title: "Find a Seat",
+      subtitle: "The table is almost full",
       moment: "sunrise_describe",
       sky: "#ffe2b8",
       ground: "#d9e7bd",
       accent: "#d98c3d",
       icon: "mountainTrain",
     },
+    {
+      title: "Food Is Too Spicy",
+      subtitle: "A friend asks for water",
+      moment: "train_meet",
+      sky: "#dff6ff",
+      ground: "#cfe5cf",
+      accent: "#0f766e",
+      icon: "mountainTrain",
+    },
+    {
+      title: "Clean the Table",
+      subtitle: "Students leave politely",
+      moment: "train_climb",
+      sky: "#fff1cf",
+      ground: "#d6e2bd",
+      accent: "#bd6a42",
+      icon: "mountainTrain",
+    },
   ]),
   fantasy: storySequence([
     {
-      title: "Dajia Temple Morning",
-      subtitle: "Neighbors prepare flowers and water",
+      title: "Lost Near a Station",
+      subtitle: "A student cannot find the platform",
       moment: "temple_prepare",
       sky: "#fff0bf",
       ground: "#e6d7b8",
@@ -501,8 +537,8 @@ const topicImages: Record<string, string[]> = {
       icon: "temple",
     },
     {
-      title: "Pilgrimage Begins",
-      subtitle: "The Mazu procession fills the street",
+      title: "Ask for Directions",
+      subtitle: "A passerby points to the exit",
       moment: "temple_parade",
       sky: "#ffd9ca",
       ground: "#e8c9b9",
@@ -510,8 +546,8 @@ const topicImages: Record<string, string[]> = {
       icon: "temple",
     },
     {
-      title: "Lost Near the Parade",
-      subtitle: "A child asks volunteers for help",
+      title: "Read the Map",
+      subtitle: "The group checks the route",
       moment: "temple_lost",
       sky: "#d7e4ff",
       ground: "#d1d8e8",
@@ -519,19 +555,37 @@ const topicImages: Record<string, string[]> = {
       icon: "temple",
     },
     {
-      title: "Safe at the Temple",
-      subtitle: "The community reunites the family",
+      title: "Call a Friend",
+      subtitle: "Someone explains where they are",
       moment: "temple_safe",
       sky: "#dff6e6",
       ground: "#c9e4ca",
       accent: "#2f8f68",
       icon: "temple",
     },
+    {
+      title: "Find the Right Place",
+      subtitle: "The student reaches the meeting point",
+      moment: "temple_parade",
+      sky: "#fff1cf",
+      ground: "#e8d5bd",
+      accent: "#d9483b",
+      icon: "temple",
+    },
+    {
+      title: "Say Thank You",
+      subtitle: "Everyone repeats the directions",
+      moment: "temple_prepare",
+      sky: "#e6e0ff",
+      ground: "#d4d9c7",
+      accent: "#7c6be8",
+      icon: "temple",
+    },
   ]),
   school: storySequence([
     {
-      title: "Countdown Plan",
-      subtitle: "Students plan a Taipei 101 story",
+      title: "Group Project Starts",
+      subtitle: "Students choose a topic",
       moment: "fair_plan",
       sky: "#d7efff",
       ground: "#d5e7d5",
@@ -539,8 +593,8 @@ const topicImages: Record<string, string[]> = {
       icon: "schoolFair",
     },
     {
-      title: "Make Event Posters",
-      subtitle: "Teams explain fireworks and safety",
+      title: "Divide the Work",
+      subtitle: "Each person gets one job",
       moment: "fair_posters",
       sky: "#d6f4ef",
       ground: "#cae6dc",
@@ -548,8 +602,8 @@ const topicImages: Record<string, string[]> = {
       icon: "schoolFair",
     },
     {
-      title: "Rain Before Midnight",
-      subtitle: "The class moves signs under cover",
+      title: "One Member Is Late",
+      subtitle: "The group changes the plan",
       moment: "fair_rain",
       sky: "#e5dfd1",
       ground: "#d9d0b8",
@@ -557,19 +611,37 @@ const topicImages: Record<string, string[]> = {
       icon: "schoolFair",
     },
     {
-      title: "Happy New Year",
-      subtitle: "Visitors count down and cheer together",
+      title: "Practice the Presentation",
+      subtitle: "Students speak in order",
       moment: "fair_share",
       sky: "#dff3d2",
       ground: "#cfe4bc",
       accent: "#4e9d72",
       icon: "schoolFair",
     },
+    {
+      title: "Teacher Gives Feedback",
+      subtitle: "The group revises one part",
+      moment: "fair_posters",
+      sky: "#e8f7f4",
+      ground: "#d7e5d4",
+      accent: "#0f766e",
+      icon: "schoolFair",
+    },
+    {
+      title: "Submit the Project",
+      subtitle: "Students explain what improved",
+      moment: "fair_plan",
+      sky: "#fff0d6",
+      ground: "#e3d4bd",
+      accent: "#bf8544",
+      icon: "schoolFair",
+    },
   ]),
   mystery: storySequence([
     {
-      title: "Ningxia Food Festival",
-      subtitle: "Friends buy oyster omelets and tea",
+      title: "Buy a Raincoat",
+      subtitle: "A student chooses a color",
       moment: "market_snack",
       sky: "#ffe5c7",
       ground: "#e3c9aa",
@@ -577,8 +649,8 @@ const topicImages: Record<string, string[]> = {
       icon: "nightMarket",
     },
     {
-      title: "A Ticket Is Missing",
-      subtitle: "They look near the busy stall",
+      title: "Check the Size",
+      subtitle: "The jacket does not fit",
       moment: "market_missing",
       sky: "#d7d4f3",
       ground: "#c9c2db",
@@ -586,8 +658,8 @@ const topicImages: Record<string, string[]> = {
       icon: "nightMarket",
     },
     {
-      title: "Clue from a Vendor",
-      subtitle: "The owner remembers a blue bag",
+      title: "Ask to Exchange It",
+      subtitle: "The clerk explains the rule",
       moment: "market_clue",
       sky: "#dce7ff",
       ground: "#ccd7e7",
@@ -595,19 +667,37 @@ const topicImages: Record<string, string[]> = {
       icon: "nightMarket",
     },
     {
-      title: "Ticket Returned",
-      subtitle: "Everyone thanks the honest helper",
+      title: "Find the Receipt",
+      subtitle: "The student searches the bag",
       moment: "market_return",
       sky: "#d8f4e6",
       ground: "#c6e4cd",
       accent: "#2f8f68",
       icon: "nightMarket",
     },
+    {
+      title: "Choose a New One",
+      subtitle: "The student compares two options",
+      moment: "market_snack",
+      sky: "#ffe8c7",
+      ground: "#e5c9aa",
+      accent: "#d97854",
+      icon: "nightMarket",
+    },
+    {
+      title: "Leave the Store",
+      subtitle: "The clerk and student say goodbye",
+      moment: "market_clue",
+      sky: "#dcefff",
+      ground: "#cbd9e0",
+      accent: "#536aa4",
+      icon: "nightMarket",
+    },
   ]),
   "daily-life": storySequence([
     {
-      title: "Lukang Race Morning",
-      subtitle: "A team meets by the river",
+      title: "Rain After Class",
+      subtitle: "Students wait near the door",
       moment: "boat_practice",
       sky: "#cfeeff",
       ground: "#c4dfcf",
@@ -615,8 +705,8 @@ const topicImages: Record<string, string[]> = {
       icon: "dragonBoat",
     },
     {
-      title: "Drum Rhythm",
-      subtitle: "The drummer sets the race beat",
+      title: "Share an Umbrella",
+      subtitle: "A friend offers help",
       moment: "boat_rhythm",
       sky: "#d6f2e4",
       ground: "#c7e5d0",
@@ -624,8 +714,8 @@ const topicImages: Record<string, string[]> = {
       icon: "dragonBoat",
     },
     {
-      title: "Wind on the River",
-      subtitle: "The boat slows but the team keeps rowing",
+      title: "Puddle on the Street",
+      subtitle: "The group walks carefully",
       moment: "boat_wind",
       sky: "#d7e2f3",
       ground: "#c8ddbe",
@@ -633,18 +723,45 @@ const topicImages: Record<string, string[]> = {
       icon: "dragonBoat",
     },
     {
-      title: "Festival Finish",
-      subtitle: "The team crosses the line together",
+      title: "Miss the Bus",
+      subtitle: "Students decide what to do",
       moment: "boat_finish",
       sky: "#ffd9ca",
       ground: "#e5cdbb",
       accent: "#d97854",
       icon: "dragonBoat",
     },
+    {
+      title: "Text the Family",
+      subtitle: "Someone explains they will be late",
+      moment: "boat_rhythm",
+      sky: "#fff0bf",
+      ground: "#d9dfbd",
+      accent: "#d98c3d",
+      icon: "dragonBoat",
+    },
+    {
+      title: "Arrive Home Safely",
+      subtitle: "The student thanks the friend",
+      moment: "boat_practice",
+      sky: "#dff3ff",
+      ground: "#c5dfcf",
+      accent: "#238d7a",
+      icon: "dragonBoat",
+    },
   ]),
 };
 
-export const TOPICS: Topic[] = [
+const DEFAULT_CUE_VOCABULARY: string[][] = [
+  ["who", "where", "first event", "describe"],
+  ["then", "action", "detail", "explain"],
+  ["problem", "surprise", "help", "change"],
+  ["result", "feeling", "because", "finally"],
+  ["revise", "clearer", "connect", "practice"],
+  ["ending", "lesson", "next time", "improve"],
+];
+
+const BASE_TOPICS: Topic[] = [
   {
     id: "adventure",
     name: "Pingxi Sky Lantern Festival",
@@ -731,12 +848,121 @@ export const TOPICS: Topic[] = [
   },
 ];
 
+const REAL_LIFE_TOPIC_DETAILS: Record<
+  string,
+  Pick<Topic, "name" | "description" | "skillFocus" | "level">
+> = {
+  adventure: {
+    name: "Taking the Bus to School",
+    description:
+      "Practice a real morning routine: waiting for the bus, asking about the route, arriving at school, and planning after class.",
+    skillFocus: "Daily routine and polite requests",
+    level: "Real-life situation",
+  },
+  nature: {
+    name: "Ordering Breakfast",
+    description:
+      "Practice ordering food, checking the price, finding a seat, and responding when something is too spicy.",
+    skillFocus: "Food ordering and preferences",
+    level: "Real-life situation",
+  },
+  fantasy: {
+    name: "Asking for Directions",
+    description:
+      "Practice what to say when you are lost near a station and need to ask, understand, and repeat directions.",
+    skillFocus: "Directions and asking for help",
+    level: "Real-life situation",
+  },
+  school: {
+    name: "Working on a Group Project",
+    description:
+      "Practice a classroom situation: choosing a topic, dividing work, handling a late member, and revising after feedback.",
+    skillFocus: "Teamwork and explanation",
+    level: "School situation",
+  },
+  mystery: {
+    name: "Shopping and Returning an Item",
+    description:
+      "Practice shopping language: choosing an item, checking size, asking to exchange it, and speaking politely to the clerk.",
+    skillFocus: "Shopping and problem solving",
+    level: "Real-life situation",
+  },
+  "daily-life": {
+    name: "Rainy Day After School",
+    description:
+      "Practice a common weather situation: sharing an umbrella, missing the bus, texting family, and arriving home safely.",
+    skillFocus: "Weather, help, and updates",
+    level: "Real-life situation",
+  },
+};
+
+const REAL_LIFE_VOCABULARY: Record<string, Record<number, string[]>> = {
+  adventure: {
+    0: ["bus stop", "school", "wait", "morning"],
+    1: ["route", "which bus", "ask", "classmate"],
+    2: ["crowded", "please", "make room", "thank you"],
+    3: ["arrive", "classroom", "walk", "on time"],
+    4: ["forgot", "notebook", "borrow", "help"],
+    5: ["after school", "meet", "plan", "together"],
+  },
+  nature: {
+    0: ["breakfast shop", "menu", "hungry", "friend"],
+    1: ["order", "noodles", "tea", "please"],
+    2: ["price", "total", "cashier", "pay"],
+    3: ["seat", "table", "full", "share"],
+    4: ["spicy", "water", "too hot", "help"],
+    5: ["clean", "tray", "thank you", "leave"],
+  },
+  fantasy: {
+    0: ["station", "platform", "lost", "worried"],
+    1: ["direction", "exit", "ask", "turn left"],
+    2: ["map", "route", "check", "where"],
+    3: ["call", "friend", "explain", "location"],
+    4: ["meeting point", "arrive", "right place", "safe"],
+    5: ["thank you", "repeat", "direction", "polite"],
+  },
+  school: {
+    0: ["project", "topic", "group", "start"],
+    1: ["divide work", "job", "teammate", "plan"],
+    2: ["late", "change plan", "message", "problem"],
+    3: ["practice", "presentation", "speak", "order"],
+    4: ["teacher", "feedback", "revise", "improve"],
+    5: ["submit", "explain", "finish", "reflection"],
+  },
+  mystery: {
+    0: ["raincoat", "color", "choose", "store"],
+    1: ["size", "too small", "try on", "fit"],
+    2: ["exchange", "clerk", "rule", "ask"],
+    3: ["receipt", "bag", "find", "search"],
+    4: ["new one", "compare", "better", "decision"],
+    5: ["goodbye", "thank you", "leave", "polite"],
+  },
+  "daily-life": {
+    0: ["rain", "after class", "door", "wait"],
+    1: ["umbrella", "share", "friend", "help"],
+    2: ["puddle", "careful", "street", "walk"],
+    3: ["miss the bus", "decide", "late", "what now"],
+    4: ["text", "family", "explain", "arrive late"],
+    5: ["home", "safe", "thank", "friend"],
+  },
+};
+
+export const TOPICS: Topic[] = BASE_TOPICS.map((topic) => ({
+  ...topic,
+  ...REAL_LIFE_TOPIC_DETAILS[topic.id],
+  vocabulary: REAL_LIFE_VOCABULARY[topic.id] || topic.vocabulary,
+}));
+
+export function getTopicVocabulary(topic: Topic, imageIndex: number): string[] {
+  return topic.vocabulary[imageIndex] || DEFAULT_CUE_VOCABULARY[imageIndex] || [];
+}
+
 export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
   const [selectedTopic, setSelectedTopic] = useState<Topic>(TOPICS[0]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const selectedImage = selectedTopic.images[selectedImageIndex];
-  const selectedWords = selectedTopic.vocabulary[selectedImageIndex] || [];
+  const selectedWords = getTopicVocabulary(selectedTopic, selectedImageIndex);
 
   const chooseTopic = (topic: Topic) => {
     setSelectedTopic(topic);
@@ -747,13 +973,12 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
     <div className="topic-selector">
       <section className="learning-hero">
         <div className="learning-hero-copy">
-          <p className="platform-kicker">Student narrative lab</p>
-          <h1>Choose a Taiwan Story</h1>
+          <p className="platform-kicker">Real-life speaking practice</p>
+          <h1>Choose a Daily Situation</h1>
           <p>
-            Select a Taiwan event or community story, study the connected
-            picture sequence, prepare useful Mandarin vocabulary, and record a
-            complete spoken story for Praat prosody and Gemini language
-            feedback.
+            Select a real situation students may meet in daily life, study the
+            six connected picture cues, prepare useful Mandarin phrases, and
+            record each cue for Praat prosody and Gemini language feedback.
           </p>
         </div>
 
@@ -828,9 +1053,9 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
               <div className="planning-block">
                 <h3>Speaking goals</h3>
                 <ul>
-                  <li>Describe the Taiwan place, event, or people clearly.</li>
-                  <li>Use time words to connect events.</li>
-                  <li>Finish with a result, feeling, or lesson.</li>
+                  <li>Describe the real situation clearly.</li>
+                  <li>Use useful phrases for daily communication.</li>
+                  <li>Revise each cue after feedback.</li>
                 </ul>
               </div>
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import PitchChart from "../PitchChart";
-import { TOPICS } from "../TopicSelector";
+import { TOPICS, getTopicVocabulary } from "../TopicSelector";
 import "./MyStoriesPage.css";
 
 interface AudioRecord {
@@ -69,7 +69,7 @@ const PROMPT_IMAGES: PromptImage[] = TOPICS.flatMap((topic) =>
     description: topic.description,
     imageUrl,
     imageIndex,
-    vocabulary: topic.vocabulary[imageIndex] || [],
+    vocabulary: getTopicVocabulary(topic, imageIndex),
   })),
 );
 
@@ -79,14 +79,16 @@ const emptyCustomStoryDraft = {
   title: "Taiwan Community Story",
   learningGoal: "Students describe who, where, what happened, and how people solved the problem.",
   level: "Beginner speaking",
-  imageUrls: ["", "", "", ""],
+  imageUrls: ["", "", "", "", "", ""],
   prompts: [
     "Introduce the place and the people.",
     "Describe the first event.",
     "Explain the problem or surprise.",
     "Tell the result and feeling.",
+    "Revise the story with one clearer detail.",
+    "Finish with a lesson or next step.",
   ],
-  vocabulary: ["", "", "", ""],
+  vocabulary: ["", "", "", "", "", ""],
 };
 
 function loadCustomStories(): CustomTeacherStory[] {
@@ -318,18 +320,17 @@ export default function MyStoriesPage({
     return (
       <div className="my-stories-page">
         <div className="stories-header">
-          <p className="stories-kicker">Student learning portfolio</p>
+          <p className="stories-kicker">My practice</p>
           <h1>My Story Workbook</h1>
           <p className="stories-subtitle">
-            Practice one picture at a time, review your recording, and use
-            Praat prosody plus Gemini language feedback to improve the next
-            attempt.
+            Choose a picture, record your story part, then revise when feedback
+            is ready.
           </p>
         </div>
 
-        <section className="learning-summary" aria-label="Learning progress">
-          <div className="summary-card">
-            <span>Story parts completed</span>
+        <section className="student-progress-panel" aria-label="Learning progress">
+          <div className="student-progress-main">
+            <span>Progress</span>
             <strong>
               {completedPrompts}/{PROMPT_IMAGES.length}
             </strong>
@@ -343,15 +344,11 @@ export default function MyStoriesPage({
               />
             </div>
           </div>
-          <div className="summary-card">
-            <span>Total recordings</span>
-            <strong>{records.length}</strong>
-            <p>Every attempt is saved under its picture.</p>
-          </div>
-          <div className="summary-card">
-            <span>Average Praat fluency</span>
-            <strong>{averageFluency === null ? "--" : `${averageFluency}/100`}</strong>
-            <p>Appears after analyzed recordings.</p>
+          <div className="student-progress-stats">
+            <span>{records.length} recordings</span>
+            <span>
+              {averageFluency === null ? "No fluency score yet" : `${averageFluency}/100 fluency`}
+            </span>
           </div>
         </section>
 
@@ -378,9 +375,9 @@ export default function MyStoriesPage({
                     <h2>{topic.description}</h2>
                   </div>
                   <div className="topic-progress-card">
-                    <strong>{topicProgress}%</strong>
+                    <strong>{topicCompleted}/{prompts.length}</strong>
                     <span>
-                      {topicCompleted}/{prompts.length} story parts completed
+                      {topicProgress}% complete
                     </span>
                   </div>
                 </div>
@@ -391,6 +388,8 @@ export default function MyStoriesPage({
                       isPromptRecord(record, prompt),
                     );
                     const latestRecord = promptRecords[0];
+                    const attemptCount = promptRecords.length;
+                    const isRevised = attemptCount > 1;
                     const hasFeedback = Boolean(
                       latestRecord?.praatMetrics?.ai_feedback,
                     );
@@ -421,11 +420,13 @@ export default function MyStoriesPage({
                             </div>
                             <span
                               className={`learning-status ${
-                                latestRecord ? "ready" : "todo"
+                                isRevised ? "revised" : latestRecord ? "ready" : "todo"
                               }`}
                             >
                               {latestRecord
-                                ? hasFeedback
+                                ? isRevised
+                                  ? "Revised"
+                                  : hasFeedback
                                   ? "Feedback ready"
                                   : "Recorded"
                                 : "Needs recording"}
@@ -451,20 +452,31 @@ export default function MyStoriesPage({
                             }
                           >
                             {latestRecord
-                              ? "Record another attempt"
+                              ? "Revise with another recording"
                               : "Record this part"}
                           </button>
 
+                          {latestRecord && (
+                            <div className="revision-summary">
+                              <strong>
+                                {attemptCount}{" "}
+                                {attemptCount === 1 ? "attempt" : "attempts"} collected
+                              </strong>
+                            </div>
+                          )}
+
                           {latestRecord ? (
-                            <RecordCard
-                              record={latestRecord}
-                              onDeleteRecord={onDeleteRecord}
-                              compact
-                            />
+                            <details className="prompt-feedback-details">
+                              <summary>View feedback</summary>
+                              <RecordCard
+                                record={latestRecord}
+                                onDeleteRecord={onDeleteRecord}
+                                compact
+                              />
+                            </details>
                           ) : (
                             <div className="picture-empty-result">
-                              Focus on describing who, where, what happened,
-                              and how this part connects to the next one.
+                              Record this picture when you are ready.
                             </div>
                           )}
                         </div>
@@ -677,7 +689,7 @@ export default function MyStoriesPage({
             </div>
 
             <div className="teacher-builder-actions">
-              <p>{preparedFrameCount}/4 frames prepared</p>
+              <p>{preparedFrameCount}/6 frames prepared</p>
               <button type="submit" className="btn-save-custom-story">
                 Save custom story
               </button>

@@ -5,6 +5,7 @@ Parselmouth embeds Praat's analysis routines in Python, so the API can extract
 pitch and formant features without shelling out to the Praat desktop app.
 """
 import re
+import wave
 from typing import Dict, List, Tuple
 
 import numpy as np
@@ -40,6 +41,9 @@ def extract_pitch(
     pitch_ceiling: float = 500,
 ) -> List[Tuple[float, float]]:
     """Extract voiced pitch samples as (time_seconds, frequency_hz)."""
+    if parselmouth is None:
+        return _extract_pitch_fallback(audio_path, time_step, pitch_floor, pitch_ceiling)
+
     sound = _load_sound(audio_path)
     pitch = sound.to_pitch(
         time_step=time_step,
@@ -62,6 +66,9 @@ def extract_formants(
     num_formants: int = 5,
 ) -> Dict[str, float]:
     """Return median F1-F3 values across voiced frames."""
+    if parselmouth is None:
+        return {"F1": 0.0, "F2": 0.0, "F3": 0.0}
+
     sound = _load_sound(audio_path)
     formant = sound.to_formant_burg(
         time_step=0.01,
@@ -89,8 +96,7 @@ def calculate_speech_rate(audio_path: str, transcription: str = "") -> float:
     If a transcription is available, Chinese characters are a good proxy for
     syllables. Otherwise, estimate from voiced pitch frames.
     """
-    sound = _load_sound(audio_path)
-    duration = max(sound.get_total_duration(), 0.01)
+    duration = _audio_duration(audio_path)
 
     if transcription:
         syllable_count = sum(
@@ -102,6 +108,67 @@ def calculate_speech_rate(audio_path: str, transcription: str = "") -> float:
     voiced_points = extract_pitch(audio_path, time_step=0.02)
     estimated_syllables = max(1, round(len(voiced_points) / 9))
     return float(estimated_syllables / duration)
+
+
+def _audio_duration(audio_path: str) -> float:
+    if parselmouth is not None:
+        sound = _load_sound(audio_path)
+        return max(sound.get_total_duration(), 0.01)
+
+    try:
+        with wave.open(audio_path, "rb") as wav_file:
+            frames = wav_file.getnframes()
+            rate = wav_file.getframerate()
+            return max(frames / float(rate), 0.01)
+    except Exception:
+        return 1.0
+
+
+def _extract_pitch_fallback(
+    audio_path: str,
+    time_step: float,
+    pitch_floor: float,
+    pitch_ceiling: float,
+) -> List[Tuple[float, float]]:
+    """
+    Lightweight fallback for local development when Parselmouth is unavailable.
+
+    This estimates voiced pitch from zero crossings in short WAV windows. It is
+    not a replacement for Praat, but it keeps the speech-analysis API usable
+    until the Docker/Praat backend is available again.
+    """
+    try:
+        with wave.open(audio_path, "rb") as wav_file:
+            frame_rate = wav_file.getframerate()
+            sample_width = wav_file.getsampwidth()
+            channels = wav_file.getnchannels()
+            frames = wav_file.readframes(wav_file.getnframes())
+    except Exception as exc:
+        raise RuntimeError("Could not read WAV audio for fallback analysis.") from exc
+
+    if sample_width != 2:
+        return []
+
+    audio = np.frombuffer(frames, dtype=np.int16)
+    if channels > 1:
+        audio = audio.reshape(-1, channels).mean(axis=1).astype(np.int16)
+
+    window_size = max(int(frame_rate * 0.04), 1)
+    hop_size = max(int(frame_rate * time_step), 1)
+    contour: List[Tuple[float, float]] = []
+
+    for start in range(0, max(len(audio) - window_size, 0), hop_size):
+        window = audio[start : start + window_size].astype(float)
+        if window.size < 4 or float(np.sqrt(np.mean(window**2))) < 120:
+            continue
+
+        centered = window - float(np.mean(window))
+        crossings = np.where(np.diff(np.signbit(centered)))[0]
+        frequency = (len(crossings) * frame_rate) / (2.0 * window.size)
+        if pitch_floor <= frequency <= pitch_ceiling:
+            contour.append((float(start / frame_rate), float(frequency)))
+
+    return contour
 
 
 def analyze_fluency(

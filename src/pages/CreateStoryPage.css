@@ -1,11 +1,11 @@
 .create-story-page {
   width: 100%;
   min-height: calc(100vh - 80px);
-  background: #ffffff;
+  background: var(--clay-canvas);
 }
 
 .story-recorder-wrapper {
-  padding: 20px;
+  padding: 16px;
 }
 
 .btn-back {
