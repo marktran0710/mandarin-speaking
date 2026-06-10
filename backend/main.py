@@ -1,14 +1,22 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional, List, Tuple
+import base64
 import os
 import tempfile
 import httpx
 from dotenv import load_dotenv
 import json
-from urllib.parse import quote
+from urllib.parse import quote, unquote_to_bytes
 from starlette.concurrency import run_in_threadpool
+from database import (
+    connect_db,
+    init_db,
+    row_to_audio_record,
+    row_to_custom_story,
+)
 
 from praat_analyzer import (
     extract_pitch,
@@ -31,6 +39,17 @@ load_dotenv()
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env.local"))
 
 app = FastAPI(title="Speaking App Backend", version="1.0.0")
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", os.path.join(os.path.dirname(__file__), "uploads"))
+AUDIO_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "audio")
+IMAGE_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "images")
+os.makedirs(AUDIO_UPLOAD_DIR, exist_ok=True)
+os.makedirs(IMAGE_UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
+
+@app.on_event("startup")
+async def startup_event():
+    init_db()
 
 
 def get_cors_origins() -> list[str]:
@@ -142,10 +161,239 @@ class StoryImageGenerationResponse(BaseModel):
     frames: List[StoryImageFrame]
 
 
+class AudioRecordRequest(BaseModel):
+    id: str
+    timestamp: str
+    duration: int
+    transcription: str = ""
+    model: str
+    topicId: Optional[str] = None
+    imageUrl: Optional[str] = None
+    imageIndex: Optional[int] = None
+    audioUrl: Optional[str] = None
+    praatMetrics: Optional[dict] = None
+
+
+class CustomStoryFrameRequest(BaseModel):
+    imageUrl: str
+    prompt: str
+    vocabulary: str = ""
+
+
+class CustomStoryRequest(BaseModel):
+    id: str
+    title: str
+    learningGoal: str
+    level: str
+    frames: List[CustomStoryFrameRequest]
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
     return {"status": "ok", "service": "Speaking App Backend"}
+
+
+@app.get("/api/audio-records")
+async def list_audio_records():
+    with connect_db() as db:
+        rows = db.execute(
+            "SELECT * FROM audio_records ORDER BY created_at DESC"
+        ).fetchall()
+    return [row_to_audio_record(row) for row in rows]
+
+
+@app.post("/api/audio-records")
+async def create_audio_record(record: AudioRecordRequest):
+    save_audio_record(record)
+    return record
+
+
+@app.post("/api/audio-records/upload")
+async def upload_audio_record(
+    record: str = Form(...),
+    file: UploadFile = File(...),
+):
+    try:
+        audio_record = AudioRecordRequest.model_validate_json(record)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="Invalid audio record JSON") from exc
+
+    audio_record.audioUrl = await save_uploaded_audio(file, audio_record.id)
+    save_audio_record(audio_record)
+    return audio_record
+
+
+def save_audio_record(record: AudioRecordRequest):
+    with connect_db() as db:
+        db.execute(
+            """
+            INSERT OR REPLACE INTO audio_records (
+                id, timestamp, duration, transcription, model, topic_id,
+                image_url, image_index, audio_url, praat_metrics
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record.id,
+                record.timestamp,
+                record.duration,
+                record.transcription,
+                record.model,
+                record.topicId,
+                record.imageUrl,
+                record.imageIndex,
+                record.audioUrl,
+                json.dumps(record.praatMetrics),
+            ),
+        )
+
+
+@app.delete("/api/audio-records/{record_id}")
+async def delete_audio_record(record_id: str):
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT audio_url FROM audio_records WHERE id = ?",
+            (record_id,),
+        ).fetchone()
+        db.execute("DELETE FROM audio_records WHERE id = ?", (record_id,))
+    if row and row["audio_url"]:
+        remove_uploaded_file(row["audio_url"])
+    return {"ok": True}
+
+
+@app.get("/api/custom-stories")
+async def list_custom_stories():
+    with connect_db() as db:
+        rows = db.execute(
+            "SELECT * FROM custom_stories ORDER BY created_at DESC"
+        ).fetchall()
+    return [row_to_custom_story(row) for row in rows]
+
+
+@app.post("/api/custom-stories")
+async def create_custom_story(story: CustomStoryRequest):
+    frames = [frame.model_dump() for frame in story.frames]
+    stored_frames = persist_story_frame_images(story.id, frames)
+    with connect_db() as db:
+        db.execute(
+            """
+            INSERT OR REPLACE INTO custom_stories (
+                id, title, learning_goal, level, frames
+            )
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                story.id,
+                story.title,
+                story.learningGoal,
+                story.level,
+                json.dumps(stored_frames),
+            ),
+        )
+    return {
+        **story.model_dump(),
+        "frames": stored_frames,
+    }
+
+
+@app.delete("/api/custom-stories/{story_id}")
+async def delete_custom_story(story_id: str):
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT frames FROM custom_stories WHERE id = ?",
+            (story_id,),
+        ).fetchone()
+        db.execute("DELETE FROM custom_stories WHERE id = ?", (story_id,))
+    if row:
+        for frame in json.loads(row["frames"] or "[]"):
+            remove_uploaded_file(frame.get("imageUrl", ""))
+    return {"ok": True}
+
+
+async def save_uploaded_audio(file: UploadFile, record_id: str) -> str:
+    extension = extension_from_upload(file.filename, file.content_type, default=".wav")
+    filename = f"{safe_file_stem(record_id)}{extension}"
+    path = os.path.join(AUDIO_UPLOAD_DIR, filename)
+    content = await file.read()
+    with open(path, "wb") as output:
+        output.write(content)
+    return f"/uploads/audio/{filename}"
+
+
+def persist_story_frame_images(story_id: str, frames: list[dict]) -> list[dict]:
+    stored_frames = []
+    for index, frame in enumerate(frames, start=1):
+        image_url = frame.get("imageUrl", "")
+        if image_url.startswith("data:image/"):
+            frame = {
+                **frame,
+                "imageUrl": save_data_url_image(image_url, story_id, index),
+            }
+        stored_frames.append(frame)
+    return stored_frames
+
+
+def save_data_url_image(data_url: str, story_id: str, index: int) -> str:
+    header, _, data = data_url.partition(",")
+    if not data:
+        return data_url
+
+    mime = header.removeprefix("data:").split(";")[0]
+    extension = extension_from_mime(mime, default=".png")
+    filename = f"{safe_file_stem(story_id)}-frame-{index}{extension}"
+    path = os.path.join(IMAGE_UPLOAD_DIR, filename)
+    content = (
+        base64.b64decode(data)
+        if ";base64" in header
+        else unquote_to_bytes(data)
+    )
+    with open(path, "wb") as output:
+        output.write(content)
+    return f"/uploads/images/{filename}"
+
+
+def extension_from_upload(
+    filename: Optional[str],
+    content_type: Optional[str],
+    default: str,
+) -> str:
+    if filename:
+        extension = os.path.splitext(filename)[1].lower()
+        if extension:
+            return extension
+    return extension_from_mime(content_type or "", default)
+
+
+def extension_from_mime(mime: str, default: str) -> str:
+    return {
+        "audio/wav": ".wav",
+        "audio/wave": ".wav",
+        "audio/webm": ".webm",
+        "audio/mpeg": ".mp3",
+        "image/png": ".png",
+        "image/jpeg": ".jpg",
+        "image/webp": ".webp",
+        "image/gif": ".gif",
+        "image/svg+xml": ".svg",
+    }.get(mime.lower(), default)
+
+
+def safe_file_stem(value: str) -> str:
+    return "".join(
+        character if character.isalnum() or character in ("-", "_") else "-"
+        for character in value
+    ).strip("-") or "upload"
+
+
+def remove_uploaded_file(url: str) -> None:
+    if not url.startswith("/uploads/"):
+        return
+    relative_path = url.removeprefix("/uploads/").replace("/", os.sep)
+    path = os.path.abspath(os.path.join(UPLOAD_DIR, relative_path))
+    upload_root = os.path.abspath(UPLOAD_DIR)
+    if path.startswith(upload_root) and os.path.exists(path):
+        os.remove(path)
 
 
 @app.post("/api/generate-story-images", response_model=StoryImageGenerationResponse)

@@ -551,6 +551,24 @@
   gap: 10px;
 }
 
+.saved-audio-player {
+  background: var(--clay-canvas);
+  padding: 10px;
+  border-radius: var(--clay-radius-md);
+  border-left: 4px solid var(--clay-blue);
+}
+
+.saved-audio-player strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--clay-blue);
+  font-size: 14px;
+}
+
+.saved-audio-player audio {
+  width: 100%;
+}
+
 .transcription-box {
   background: var(--clay-canvas);
   padding: 10px;

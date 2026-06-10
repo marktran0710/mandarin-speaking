@@ -18,7 +18,7 @@ The current UI uses a warm Clay-inspired design system with cream surfaces, blac
 - Mandarin tone detection and tone-accuracy scoring
 - Interactive pitch contour chart with Chart.js
 - AI language feedback for fluency, grammar, and vocabulary
-- Saved story history in local storage
+- Saved story history and teacher story activities in a backend SQLite database, with local storage fallback
 - Docker backend option for machines without local Python
 
 ## Architecture
@@ -31,6 +31,8 @@ React + Vite frontend
 FastAPI backend
   -> /api/analyze: Praat acoustic analysis + optional local ASR + AI language feedback
   -> /api/transcribe: OpenAI, Gemini, FunASR, or VibeVoice-ASR transcription
+  -> /api/audio-records and /api/custom-stories: SQLite persistence
+  -> /uploads/audio and /uploads/images: saved voice and story image files
   -> /api/reference-tone/{tone}: Mandarin tone reference data
 ```
 
@@ -91,6 +93,8 @@ FUNASR_PUNC_MODEL=ct-punc
 VIBEVOICE_ASR_MODEL=microsoft/VibeVoice-ASR-HF
 VIBEVOICE_DEVICE=-1
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+DATABASE_PATH=./mandarin_stories.db
+UPLOAD_DIR=./uploads
 ```
 
 Notes:
@@ -98,6 +102,7 @@ Notes:
 - API keys stay on the backend and are not exposed to the browser.
 - In production, set `CORS_ORIGINS` to the deployed frontend URL.
 - In production, the frontend must set `VITE_BACKEND_URL` to the deployed backend URL. GitHub Pages cannot run Praat by itself.
+- The backend creates a SQLite database at `DATABASE_PATH` and stores voice/image files under `UPLOAD_DIR`. Point both at a persistent disk or volume in production.
 - AI coach feedback prefers Gemini 2.0 Flash by default when `GEMINI_API_KEY` is configured. Set `AI_FEEDBACK_PROVIDER=openai` only if you want OpenAI to be tried first.
 - If no OpenAI or Gemini key is configured, AI coach feedback falls back to local heuristic feedback.
 - Web Speech API transcription does not require an API key, but browser support varies.
@@ -276,6 +281,7 @@ Returns all tone reference patterns.
 │   ├── Dockerfile
 │   ├── ai_feedback.py
 │   ├── chinese_tones.py
+│   ├── database.py
 │   ├── main.py
 │   ├── praat_analyzer.py
 │   └── requirements.txt

@@ -1,6 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import PitchChart from "../PitchChart";
 import { TOPICS, getTopicVocabulary } from "../TopicSelector";
+import {
+  canUseDatabase,
+  createCustomStory,
+  deleteCustomStoryFromDatabase,
+  listCustomStories,
+} from "../database";
 import "./MyStoriesPage.css";
 
 interface AudioRecord {
@@ -12,6 +18,7 @@ interface AudioRecord {
   topicId?: string;
   imageUrl?: string;
   imageIndex?: number;
+  audioUrl?: string;
   praatMetrics?: any;
 }
 
@@ -194,6 +201,21 @@ export default function MyStoriesPage({
     [customDraft],
   );
 
+  useEffect(() => {
+    if (!isTeacher || !canUseDatabase()) {
+      return;
+    }
+
+    listCustomStories()
+      .then((stories) => {
+        setCustomStories(stories);
+        saveCustomStories(stories);
+      })
+      .catch((error) => {
+        console.error("Failed to load custom stories from database:", error);
+      });
+  }, [isTeacher]);
+
   const updateDraftField = (
     field: "title" | "learningGoal" | "level",
     value: string,
@@ -299,6 +321,11 @@ export default function MyStoriesPage({
     try {
       saveCustomStories(nextStories);
       setCustomStories(nextStories);
+      if (canUseDatabase()) {
+        createCustomStory(story).catch((error) => {
+          console.error("Failed to save custom story to database:", error);
+        });
+      }
       setCustomDraft(emptyCustomStoryDraft);
       setValidationErrors({});
       setCustomStoryNotice("Custom story saved.");
@@ -314,6 +341,11 @@ export default function MyStoriesPage({
     const nextStories = customStories.filter((story) => story.id !== id);
     setCustomStories(nextStories);
     saveCustomStories(nextStories);
+    if (canUseDatabase()) {
+      deleteCustomStoryFromDatabase(id).catch((error) => {
+        console.error("Failed to delete custom story from database:", error);
+      });
+    }
   };
 
   if (!isTeacher) {
@@ -893,6 +925,13 @@ function RecordCard({
       </div>
 
       <div className="story-content">
+        {record.audioUrl && (
+          <div className="saved-audio-player">
+            <strong>Saved voice recording</strong>
+            <audio controls src={record.audioUrl} />
+          </div>
+        )}
+
         <div className="transcription-box">
           <strong>Transcription</strong>
           <p>{record.transcription || "(no speech detected)"}</p>
