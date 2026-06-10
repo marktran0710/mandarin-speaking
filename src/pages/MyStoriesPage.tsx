@@ -1,6 +1,12 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import PitchChart from "../PitchChart";
 import { TOPICS, getTopicVocabulary } from "../TopicSelector";
+import {
+  CustomTeacherStory,
+  loadCustomStories,
+  loadPublishedTeacherTopics,
+  saveCustomStories,
+} from "../utils/teacherStories";
 import "./MyStoriesPage.css";
 
 interface AudioRecord {
@@ -41,20 +47,6 @@ interface PromptImage {
   vocabulary: string[];
 }
 
-interface CustomStoryFrame {
-  imageUrl: string;
-  prompt: string;
-  vocabulary: string;
-}
-
-interface CustomTeacherStory {
-  id: string;
-  title: string;
-  learningGoal: string;
-  level: string;
-  frames: CustomStoryFrame[];
-}
-
 interface CustomStoryValidationErrors {
   title?: string;
   learningGoal?: string;
@@ -62,18 +54,24 @@ interface CustomStoryValidationErrors {
   frames?: Record<number, { imageUrl?: string; prompt?: string }>;
 }
 
-const PROMPT_IMAGES: PromptImage[] = TOPICS.flatMap((topic) =>
-  topic.images.map((imageUrl, imageIndex) => ({
-    topicId: topic.id,
-    topicName: topic.name,
-    description: topic.description,
-    imageUrl,
-    imageIndex,
-    vocabulary: getTopicVocabulary(topic, imageIndex),
-  })),
-);
+type TeacherView = "overview" | "materials" | "progress" | "recordings";
 
-const CUSTOM_STORY_STORAGE_KEY = "teacherCustomStories";
+function getStudentTopics() {
+  return [...TOPICS, ...loadPublishedTeacherTopics()];
+}
+
+function getPromptImages(topics = getStudentTopics()): PromptImage[] {
+  return topics.flatMap((topic) =>
+    topic.images.map((imageUrl, imageIndex) => ({
+      topicId: topic.id,
+      topicName: topic.name,
+      description: topic.description,
+      imageUrl,
+      imageIndex,
+      vocabulary: getTopicVocabulary(topic, imageIndex),
+    })),
+  );
+}
 
 const emptyCustomStoryDraft = {
   title: "Taiwan Community Story",
@@ -90,25 +88,6 @@ const emptyCustomStoryDraft = {
   ],
   vocabulary: ["", "", "", "", "", ""],
 };
-
-function loadCustomStories(): CustomTeacherStory[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const stored = window.localStorage.getItem(CUSTOM_STORY_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveCustomStories(stories: CustomTeacherStory[]) {
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem(CUSTOM_STORY_STORAGE_KEY, JSON.stringify(stories));
-  }
-}
 
 function validateCustomStoryDraft(
   draft: typeof emptyCustomStoryDraft,
@@ -154,171 +133,25 @@ export default function MyStoriesPage({
   mode = "student",
 }: MyStoriesPageProps) {
   const isTeacher = mode === "teacher";
-  const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
-    () => loadCustomStories(),
-  );
-  const [customDraft, setCustomDraft] = useState(emptyCustomStoryDraft);
-  const [validationErrors, setValidationErrors] =
-    useState<CustomStoryValidationErrors>({});
-  const [customStoryNotice, setCustomStoryNotice] = useState("");
-  const completedPrompts = PROMPT_IMAGES.filter((prompt) =>
+
+  if (isTeacher) {
+    return (
+      <TeacherDashboard
+        records={records}
+        onDeleteRecord={onDeleteRecord}
+      />
+    );
+  }
+
+  const studentTopics = getStudentTopics();
+  const promptImages = getPromptImages(studentTopics);
+  const completedPrompts = promptImages.filter((prompt) =>
     records.some((record) => isPromptRecord(record, prompt)),
   ).length;
   const analyzedRecords = records.filter((record) => record.praatMetrics);
-  const averageFluency =
-    analyzedRecords.length > 0
-      ? Math.round(
-          analyzedRecords.reduce(
-            (sum, record) => sum + (record.praatMetrics?.fluency_score || 0),
-            0,
-          ) / analyzedRecords.length,
-        )
-      : null;
-  const feedbackReadyRecords = records.filter(
-    (record) => record.praatMetrics?.ai_feedback,
-  );
-  const averageToneAccuracy =
-    analyzedRecords.length > 0
-      ? Math.round(
-          analyzedRecords.reduce(
-            (sum, record) => sum + (record.praatMetrics?.tone_accuracy || 0),
-            0,
-          ) / analyzedRecords.length,
-        )
-      : null;
-  const preparedFrameCount = useMemo(
-    () =>
-      customDraft.imageUrls.filter((imageUrl, index) => {
-        return imageUrl.trim() || customDraft.prompts[index].trim();
-      }).length,
-    [customDraft],
-  );
-
-  const updateDraftField = (
-    field: "title" | "learningGoal" | "level",
-    value: string,
-  ) => {
-    setCustomDraft((draft) => ({ ...draft, [field]: value }));
-    setValidationErrors((errors) => ({ ...errors, [field]: undefined, form: undefined }));
-    setCustomStoryNotice("");
-  };
-
-  const updateDraftFrame = (
-    field: "imageUrls" | "prompts" | "vocabulary",
-    index: number,
-    value: string,
-  ) => {
-    setCustomDraft((draft) => ({
-      ...draft,
-      [field]: draft[field].map((item, itemIndex) =>
-        itemIndex === index ? value : item,
-      ),
-    }));
-    setValidationErrors((errors) => {
-      if (!errors.frames?.[index]) {
-        return { ...errors, form: undefined };
-      }
-
-      const nextFrames = { ...errors.frames };
-      nextFrames[index] = {
-        ...nextFrames[index],
-        ...(field === "imageUrls" ? { imageUrl: undefined } : {}),
-        ...(field === "prompts" ? { prompt: undefined } : {}),
-      };
-
-      if (!nextFrames[index].imageUrl && !nextFrames[index].prompt) {
-        delete nextFrames[index];
-      }
-
-      return {
-        ...errors,
-        form: undefined,
-        frames: Object.keys(nextFrames).length > 0 ? nextFrames : undefined,
-      };
-    });
-    setCustomStoryNotice("");
-  };
-
-  const handleUploadFrameImage = (index: number, file?: File) => {
-    if (!file) {
-      return;
-    }
-
-    if (!file.type.startsWith("image/")) {
-      setValidationErrors((errors) => ({
-        ...errors,
-        form: "Please upload an image file.",
-      }));
-      return;
-    }
-
-    if (file.size > 1_500_000) {
-      setValidationErrors((errors) => ({
-        ...errors,
-        form: "This image is too large for browser storage. Use an image under 1.5 MB or paste an image URL.",
-      }));
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        updateDraftFrame("imageUrls", index, reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleSaveCustomStory = () => {
-    const errors = validateCustomStoryDraft(customDraft);
-    if (
-      errors.title ||
-      errors.learningGoal ||
-      errors.form ||
-      Object.keys(errors.frames ?? {}).length > 0
-    ) {
-      setValidationErrors(errors);
-      setCustomStoryNotice("");
-      return;
-    }
-
-    const frames = customDraft.imageUrls.map((imageUrl, index) => ({
-      imageUrl: imageUrl.trim(),
-      prompt: customDraft.prompts[index].trim(),
-      vocabulary: customDraft.vocabulary[index].trim(),
-    }));
-    const story: CustomTeacherStory = {
-      id: `custom-story-${Date.now()}`,
-      title: customDraft.title.trim() || "Untitled teacher story",
-      learningGoal: customDraft.learningGoal.trim(),
-      level: customDraft.level.trim() || "Custom activity",
-      frames,
-    };
-    const nextStories = [story, ...customStories];
-
-    try {
-      saveCustomStories(nextStories);
-      setCustomStories(nextStories);
-      setCustomDraft(emptyCustomStoryDraft);
-      setValidationErrors({});
-      setCustomStoryNotice("Custom story saved.");
-    } catch {
-      setValidationErrors({
-        form: "The story could not be saved. Uploaded images may be too large for browser storage; try smaller images or image URLs.",
-      });
-      setCustomStoryNotice("");
-    }
-  };
-
-  const handleDeleteCustomStory = (id: string) => {
-    const nextStories = customStories.filter((story) => story.id !== id);
-    setCustomStories(nextStories);
-    saveCustomStories(nextStories);
-  };
-
-  if (!isTeacher) {
-    return (
-      <div className="my-stories-page">
+  const averageFluency = getAverageMetric(analyzedRecords, "fluency_score");
+  return (
+    <div className="my-stories-page">
         <div className="stories-header">
           <p className="stories-kicker">My practice</p>
           <h1>My Story Workbook</h1>
@@ -332,13 +165,13 @@ export default function MyStoriesPage({
           <div className="student-progress-main">
             <span>Progress</span>
             <strong>
-              {completedPrompts}/{PROMPT_IMAGES.length}
+              {completedPrompts}/{promptImages.length}
             </strong>
             <div className="summary-progress">
               <span
                 style={{
                   width: `${Math.round(
-                    (completedPrompts / PROMPT_IMAGES.length) * 100,
+                    (completedPrompts / promptImages.length) * 100,
                   )}%`,
                 }}
               />
@@ -353,8 +186,8 @@ export default function MyStoriesPage({
         </section>
 
         <div className="learning-workbook">
-          {TOPICS.map((topic) => {
-            const prompts = PROMPT_IMAGES.filter(
+          {studentTopics.map((topic) => {
+            const prompts = promptImages.filter(
               (prompt) => prompt.topicId === topic.id,
             );
             const topicRecords = records.filter(
@@ -497,8 +330,164 @@ export default function MyStoriesPage({
           })}
         </div>
       </div>
+  );
+}
+
+function TeacherDashboard({
+  records,
+  onDeleteRecord,
+}: {
+  records: AudioRecord[];
+  onDeleteRecord: (id: string) => void;
+}) {
+  const [activeView, setActiveView] = useState<TeacherView>("overview");
+  const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
+    () => loadCustomStories(),
+  );
+  const [customDraft, setCustomDraft] = useState(emptyCustomStoryDraft);
+  const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] =
+    useState<CustomStoryValidationErrors>({});
+  const [customStoryNotice, setCustomStoryNotice] = useState("");
+  const analyzedRecords = records.filter((record) => record.praatMetrics);
+  const feedbackReadyRecords = records.filter(
+    (record) => record.praatMetrics?.ai_feedback,
+  );
+  const averageFluency = getAverageMetric(analyzedRecords, "fluency_score");
+  const averageToneAccuracy = getAverageMetric(analyzedRecords, "tone_accuracy");
+  const preparedFrameCount = customDraft.imageUrls.filter((imageUrl, index) => {
+    return imageUrl.trim() || customDraft.prompts[index].trim();
+  }).length;
+
+  const clearNotice = () => setCustomStoryNotice("");
+
+  const updateDraftField = (
+    field: "title" | "learningGoal" | "level",
+    value: string,
+  ) => {
+    setCustomDraft((draft) => ({ ...draft, [field]: value }));
+    setValidationErrors((errors) => ({ ...errors, [field]: undefined, form: undefined }));
+    clearNotice();
+  };
+
+  const updateDraftFrame = (
+    field: "imageUrls" | "prompts" | "vocabulary",
+    index: number,
+    value: string,
+  ) => {
+    setCustomDraft((draft) => ({
+      ...draft,
+      [field]: draft[field].map((item, itemIndex) =>
+        itemIndex === index ? value : item,
+      ),
+    }));
+    setValidationErrors((errors) =>
+      clearFrameError(errors, index, field),
     );
-  }
+    clearNotice();
+  };
+
+  const handleUploadFrameImage = (index: number, file?: File) => {
+    if (!file) {
+      return;
+    }
+
+    const error = getImageUploadError(file);
+    if (error) {
+      setValidationErrors((errors) => ({ ...errors, form: error }));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        updateDraftFrame("imageUrls", index, reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveCustomStory = () => {
+    const errors = validateCustomStoryDraft(customDraft);
+    if (hasCustomStoryErrors(errors)) {
+      setValidationErrors(errors);
+      setCustomStoryNotice("");
+      return;
+    }
+
+    const existingStory = customStories.find((story) => story.id === editingStoryId);
+    const savedStory = {
+      ...createCustomStory(customDraft, editingStoryId),
+      published: existingStory?.published ?? false,
+    };
+    const nextStories = editingStoryId
+      ? customStories.map((story) =>
+          story.id === editingStoryId ? savedStory : story,
+        )
+      : [savedStory, ...customStories];
+
+    try {
+      saveCustomStories(nextStories);
+      setCustomStories(nextStories);
+      setEditingStoryId(null);
+      setCustomDraft(emptyCustomStoryDraft);
+      setValidationErrors({});
+      setCustomStoryNotice(
+        editingStoryId ? "Custom story updated." : "Custom story saved.",
+      );
+    } catch {
+      setValidationErrors({
+        form: "The story could not be saved. Uploaded images may be too large for browser storage; try smaller images or image URLs.",
+      });
+      setCustomStoryNotice("");
+    }
+  };
+
+  const handleDeleteCustomStory = (id: string) => {
+    const nextStories = customStories.filter((story) => story.id !== id);
+    setCustomStories(nextStories);
+    saveCustomStories(nextStories);
+    if (editingStoryId === id) {
+      handleCancelCustomStoryEdit();
+    }
+  };
+
+  const handleTogglePublishCustomStory = (id: string) => {
+    const nextStories = customStories.map((story) =>
+      story.id === id ? { ...story, published: !story.published } : story,
+    );
+    setCustomStories(nextStories);
+    saveCustomStories(nextStories);
+    setCustomStoryNotice(
+      nextStories.find((story) => story.id === id)?.published
+        ? "Story published for students."
+        : "Story unpublished from student topics.",
+    );
+  };
+
+  const handleEditCustomStory = (story: CustomTeacherStory) => {
+    setEditingStoryId(story.id);
+    setCustomDraft(storyToDraft(story));
+    setValidationErrors({});
+    setCustomStoryNotice("");
+  };
+
+  const handleCancelCustomStoryEdit = () => {
+    setEditingStoryId(null);
+    setCustomDraft(emptyCustomStoryDraft);
+    setValidationErrors({});
+    setCustomStoryNotice("");
+  };
+  const teacherViews: Array<{
+    id: TeacherView;
+    label: string;
+    count?: number;
+  }> = [
+    { id: "overview", label: "Overview" },
+    { id: "materials", label: "Materials", count: customStories.length },
+    { id: "progress", label: "Progress" },
+    { id: "recordings", label: "Recordings", count: records.length },
+  ];
 
   return (
     <div className="my-stories-page teacher-dashboard-page">
@@ -518,36 +507,61 @@ export default function MyStoriesPage({
         </div>
       </section>
 
-      <section className="teacher-stat-grid" aria-label="Class overview">
-        <DashboardStat
-          label="Submissions"
-          value={String(records.length)}
-          note="Total saved student attempts"
-        />
-        <DashboardStat
-          label="Feedback ready"
-          value={String(feedbackReadyRecords.length)}
-          note="Gemini/Praat results available"
-        />
-        <DashboardStat
-          label="Avg. fluency"
-          value={averageFluency === null ? "--" : `${averageFluency}/100`}
-          note="Based on analyzed recordings"
-        />
-        <DashboardStat
-          label="Tone accuracy"
-          value={
-            averageToneAccuracy === null ? "--" : `${averageToneAccuracy}%`
-          }
-          note="Class pronunciation trend"
-        />
-      </section>
+      <nav className="teacher-view-tabs" aria-label="Teacher tools">
+        {teacherViews.map((view) => (
+          <button
+            type="button"
+            className={activeView === view.id ? "active" : ""}
+            aria-current={activeView === view.id ? "page" : undefined}
+            onClick={() => setActiveView(view.id)}
+            key={view.id}
+          >
+            <span>{view.label}</span>
+            {view.count !== undefined && <strong>{view.count}</strong>}
+          </button>
+        ))}
+      </nav>
 
+      {activeView === "overview" && (
+        <>
+          <section className="teacher-stat-grid" aria-label="Class overview">
+            <DashboardStat
+              label="Submissions"
+              value={String(records.length)}
+              note="Total saved student attempts"
+            />
+            <DashboardStat
+              label="Feedback ready"
+              value={String(feedbackReadyRecords.length)}
+              note="Gemini/Praat results available"
+            />
+            <DashboardStat
+              label="Avg. fluency"
+              value={averageFluency === null ? "--" : `${averageFluency}/100`}
+              note="Based on analyzed recordings"
+            />
+            <DashboardStat
+              label="Tone accuracy"
+              value={
+                averageToneAccuracy === null ? "--" : `${averageToneAccuracy}%`
+              }
+              note="Class pronunciation trend"
+            />
+          </section>
+
+          <section className="teacher-dashboard-grid">
+            <TeacherProgressPanel records={records} />
+            <RecentSubmissionsPanel records={records} />
+          </section>
+        </>
+      )}
+
+      {activeView === "materials" && (
       <section className="teacher-panel teacher-content-builder">
         <div className="teacher-panel-header">
           <div>
             <p className="stories-kicker">Custom materials</p>
-            <h2>Create Story Activity</h2>
+            <h2>{editingStoryId ? "Edit Story Activity" : "Create Story Activity"}</h2>
           </div>
           <span className="queue-count">{customStories.length}</span>
         </div>
@@ -690,9 +704,20 @@ export default function MyStoriesPage({
 
             <div className="teacher-builder-actions">
               <p>{preparedFrameCount}/6 frames prepared</p>
-              <button type="submit" className="btn-save-custom-story">
-                Save custom story
-              </button>
+              <div className="teacher-builder-buttons">
+                {editingStoryId && (
+                  <button
+                    type="button"
+                    className="btn-cancel-custom-story"
+                    onClick={handleCancelCustomStoryEdit}
+                  >
+                    Cancel edit
+                  </button>
+                )}
+                <button type="submit" className="btn-save-custom-story">
+                  {editingStoryId ? "Update custom story" : "Save custom story"}
+                </button>
+              </div>
             </div>
           </form>
 
@@ -713,15 +738,33 @@ export default function MyStoriesPage({
                     <div className="custom-story-item-header">
                       <div>
                         <strong>{story.title}</strong>
-                        <span>{story.level}</span>
+                        <span>
+                          {story.level} - {story.published ? "Published" : "Draft"}
+                        </span>
                       </div>
-                      <button
-                        type="button"
-                        className="btn-delete-custom-story"
-                        onClick={() => handleDeleteCustomStory(story.id)}
-                      >
-                        Delete
-                      </button>
+                      <div className="custom-story-item-actions">
+                        <button
+                          type="button"
+                          className="btn-publish-custom-story"
+                          onClick={() => handleTogglePublishCustomStory(story.id)}
+                        >
+                          {story.published ? "Unpublish" : "Publish"}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-edit-custom-story"
+                          onClick={() => handleEditCustomStory(story)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-delete-custom-story"
+                          onClick={() => handleDeleteCustomStory(story.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                     <p>{story.learningGoal}</p>
                     <div className="custom-story-frame-strip">
@@ -743,6 +786,9 @@ export default function MyStoriesPage({
         </div>
       </section>
 
+      )}
+
+      {activeView === "progress" && (
       <section className="teacher-dashboard-grid">
         <div className="teacher-panel topic-coverage-panel">
           <div className="teacher-panel-header">
@@ -815,7 +861,9 @@ export default function MyStoriesPage({
           )}
         </div>
       </section>
+      )}
 
+      {activeView === "recordings" && (
       <section className="teacher-panel teacher-recordings-panel">
         <div className="teacher-panel-header">
           <div>
@@ -842,8 +890,182 @@ export default function MyStoriesPage({
           </div>
         )}
       </section>
+      )}
     </div>
   );
+}
+
+function TeacherProgressPanel({ records }: { records: AudioRecord[] }) {
+  return (
+    <div className="teacher-panel topic-coverage-panel">
+      <div className="teacher-panel-header">
+        <div>
+          <p className="stories-kicker">Curriculum coverage</p>
+          <h2>Topic Progress</h2>
+        </div>
+      </div>
+
+      <div className="topic-coverage-list">
+        {TOPICS.map((topic) => {
+          const topicRecords = records.filter(
+            (record) => record.topicId === topic.id,
+          );
+          const coverage = Math.min(
+            100,
+            Math.round((topicRecords.length / topic.images.length) * 100),
+          );
+
+          return (
+            <div className="topic-coverage-row" key={topic.id}>
+              <div>
+                <strong>{topic.name}</strong>
+                <span>
+                  {topicRecords.length}{" "}
+                  {topicRecords.length === 1 ? "attempt" : "attempts"}
+                </span>
+              </div>
+              <div className="coverage-meter" aria-label={`${topic.name} coverage`}>
+                <span style={{ width: `${coverage}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RecentSubmissionsPanel({ records }: { records: AudioRecord[] }) {
+  return (
+    <div className="teacher-panel review-queue-panel">
+      <div className="teacher-panel-header">
+        <div>
+          <p className="stories-kicker">Review queue</p>
+          <h2>Recent Submissions</h2>
+        </div>
+        <span className="queue-count">{records.length}</span>
+      </div>
+
+      {records.length === 0 ? (
+        <div className="teacher-empty-panel">
+          <strong>No submissions yet</strong>
+          <p>Student recordings will appear here after practice sessions.</p>
+        </div>
+      ) : (
+        <div className="teacher-submission-list">
+          {records.slice(0, 5).map((record) => (
+            <div className="teacher-submission-row" key={record.id}>
+              <div>
+                <strong>{getTopicLabel(record.topicId)}</strong>
+                <span>
+                  Part {(record.imageIndex ?? 0) + 1} - {record.duration}s
+                </span>
+              </div>
+              <div className="submission-score">
+                {record.praatMetrics
+                  ? `${Math.round(record.praatMetrics.fluency_score)}/100`
+                  : "Pending"}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function getAverageMetric(records: AudioRecord[], metric: string): number | null {
+  if (records.length === 0) {
+    return null;
+  }
+
+  const total = records.reduce(
+    (sum, record) => sum + (record.praatMetrics?.[metric] || 0),
+    0,
+  );
+  return Math.round(total / records.length);
+}
+
+function hasCustomStoryErrors(errors: CustomStoryValidationErrors): boolean {
+  return Boolean(
+    errors.title ||
+      errors.learningGoal ||
+      errors.form ||
+      Object.keys(errors.frames ?? {}).length > 0,
+  );
+}
+
+function createCustomStory(
+  draft: typeof emptyCustomStoryDraft,
+  existingId?: string | null,
+): CustomTeacherStory {
+  return {
+    id: existingId || `custom-story-${Date.now()}`,
+    title: draft.title.trim() || "Untitled teacher story",
+    learningGoal: draft.learningGoal.trim(),
+    level: draft.level.trim() || "Custom activity",
+    frames: draft.imageUrls.map((imageUrl, index) => ({
+      imageUrl: imageUrl.trim(),
+      prompt: draft.prompts[index].trim(),
+      vocabulary: draft.vocabulary[index].trim(),
+    })),
+  };
+}
+
+function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
+  const frames = Array.from({ length: 6 }, (_, index) => story.frames[index]);
+
+  return {
+    title: story.title,
+    learningGoal: story.learningGoal,
+    level: story.level,
+    imageUrls: frames.map((frame) => frame?.imageUrl || ""),
+    prompts: frames.map((frame, index) =>
+      frame?.prompt || emptyCustomStoryDraft.prompts[index],
+    ),
+    vocabulary: frames.map((frame) => frame?.vocabulary || ""),
+  };
+}
+
+function clearFrameError(
+  errors: CustomStoryValidationErrors,
+  index: number,
+  field: "imageUrls" | "prompts" | "vocabulary",
+): CustomStoryValidationErrors {
+  const frameError = errors.frames?.[index];
+
+  if (!frameError) {
+    return { ...errors, form: undefined };
+  }
+
+  const nextFrames = { ...errors.frames };
+  nextFrames[index] = {
+    ...frameError,
+    imageUrl: field === "imageUrls" ? undefined : frameError.imageUrl,
+    prompt: field === "prompts" ? undefined : frameError.prompt,
+  };
+
+  if (!nextFrames[index].imageUrl && !nextFrames[index].prompt) {
+    delete nextFrames[index];
+  }
+
+  return {
+    ...errors,
+    form: undefined,
+    frames: Object.keys(nextFrames).length > 0 ? nextFrames : undefined,
+  };
+}
+
+function getImageUploadError(file: File): string {
+  if (!file.type.startsWith("image/")) {
+    return "Please upload an image file.";
+  }
+
+  if (file.size > 1_500_000) {
+    return "This image is too large for browser storage. Use an image under 1.5 MB or paste an image URL.";
+  }
+
+  return "";
 }
 
 function DashboardStat({
@@ -995,7 +1217,7 @@ function getToneName(tone: number): string {
 }
 
 function getTopicLabel(topicId?: string): string {
-  const topic = TOPICS.find((item) => item.id === topicId);
+  const topic = getStudentTopics().find((item) => item.id === topicId);
   return topic?.name || "Story";
 }
 

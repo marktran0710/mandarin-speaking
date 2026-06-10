@@ -1,5 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import TopicSelector from "../TopicSelector";
 import MyStoriesPage from "./MyStoriesPage";
 
 const analyzedRecord = {
@@ -60,6 +61,7 @@ describe("MyStoriesPage", () => {
   });
 
   it("summarizes analyzed student recordings for teachers", () => {
+    const user = userEvent.setup();
     render(
       <MyStoriesPage
         mode="teacher"
@@ -75,8 +77,11 @@ describe("MyStoriesPage", () => {
     expect(within(overview).getAllByText("1")).toHaveLength(2);
     expect(within(overview).getByText("78/100")).toBeInTheDocument();
     expect(within(overview).getByText("86%")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Teacher tools" })).toBeInTheDocument();
+    return user.click(screen.getByRole("button", { name: /Recordings/ })).then(() => {
     expect(screen.getByText("Good pacing with a clear story sequence.")).toBeInTheDocument();
     expect(screen.getByTestId("pitch-chart")).toBeInTheDocument();
+    });
   });
 
   it("lets teachers save a custom image-based story activity", async () => {
@@ -89,6 +94,7 @@ describe("MyStoriesPage", () => {
       />,
     );
 
+    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Taipei Rain Rescue");
     const imageInputs = screen.getAllByLabelText("Image URL or uploaded file");
@@ -114,6 +120,64 @@ describe("MyStoriesPage", () => {
     );
   }, 10000);
 
+  it("lets teachers edit a saved custom story activity", async () => {
+    const user = userEvent.setup();
+    render(
+      <MyStoriesPage
+        mode="teacher"
+        records={[]}
+        onDeleteRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.clear(screen.getByLabelText("Story title"));
+    await user.type(screen.getByLabelText("Story title"), "Original Story");
+    for (const [index, input] of screen.getAllByLabelText("Image URL or uploaded file").entries()) {
+      await user.type(input, `https://example.com/edit-scene-${index + 1}.jpg`);
+    }
+    await user.click(screen.getByRole("button", { name: "Save custom story" }));
+
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await user.clear(screen.getByLabelText("Story title"));
+    await user.type(screen.getByLabelText("Story title"), "Edited Story");
+    await user.click(screen.getByRole("button", { name: "Update custom story" }));
+
+    const stored = localStorage.getItem("teacherCustomStories") || "";
+    expect(stored).toContain("Edited Story");
+    expect(stored).not.toContain("Original Story");
+    expect(JSON.parse(stored)).toHaveLength(1);
+  }, 10000);
+
+  it("publishes a teacher story into the student topic selector", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <MyStoriesPage
+        mode="teacher"
+        records={[]}
+        onDeleteRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.clear(screen.getByLabelText("Story title"));
+    await user.type(screen.getByLabelText("Story title"), "Published MRT Help");
+    for (const [index, input] of screen.getAllByLabelText("Image URL or uploaded file").entries()) {
+      await user.type(input, `https://example.com/published-scene-${index + 1}.jpg`);
+    }
+    await user.click(screen.getByRole("button", { name: "Save custom story" }));
+    await user.click(screen.getByRole("button", { name: "Publish" }));
+
+    expect(localStorage.getItem("teacherCustomStories")).toContain(
+      "\"published\":true",
+    );
+
+    unmount();
+    render(<TopicSelector />);
+
+    expect(screen.getByRole("button", { name: /Published MRT Help/ })).toBeInTheDocument();
+  }, 10000);
+
   it("shows validation errors when a teacher saves an incomplete custom story", async () => {
     const user = userEvent.setup();
     render(
@@ -124,6 +188,7 @@ describe("MyStoriesPage", () => {
       />,
     );
 
+    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
 
@@ -144,6 +209,7 @@ describe("MyStoriesPage", () => {
       />,
     );
 
+    await user.click(screen.getByRole("button", { name: /Materials/ }));
     const imageFile = new File(["story-image"], "story-frame.png", {
       type: "image/png",
     });

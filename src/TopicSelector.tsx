@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { loadPublishedTeacherTopics } from "./utils/teacherStories";
 import "./TopicSelector.css";
 
 export interface Topic {
@@ -958,7 +959,8 @@ export function getTopicVocabulary(topic: Topic, imageIndex: number): string[] {
 }
 
 export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
-  const [selectedTopic, setSelectedTopic] = useState<Topic>(TOPICS[0]);
+  const topics = [...TOPICS, ...loadPublishedTeacherTopics()];
+  const [selectedTopic, setSelectedTopic] = useState<Topic>(topics[0]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const selectedImage = selectedTopic.images[selectedImageIndex];
@@ -1006,7 +1008,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
           </div>
 
           <div className="topic-list">
-            {TOPICS.map((topic) => (
+            {topics.map((topic) => (
               <button
                 type="button"
                 key={topic.id}

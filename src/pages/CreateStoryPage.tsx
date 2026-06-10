@@ -1,6 +1,7 @@
 import { useState } from "react";
 import TopicSelector, { TOPICS } from "../TopicSelector";
 import StoryRecorder from "../components/StoryRecorder";
+import { loadPublishedTeacherTopics } from "../utils/teacherStories";
 import "./CreateStoryPage.css";
 
 interface CreateStoryPageProps {
@@ -22,8 +23,9 @@ export default function CreateStoryPage({
   initialTopicId,
   initialImageIndex = 0,
 }: CreateStoryPageProps) {
+  const topics = [...TOPICS, ...loadPublishedTeacherTopics()];
   const initialTopic =
-    TOPICS.find((topic) => topic.id === initialTopicId) || null;
+    topics.find((topic) => topic.id === initialTopicId) || null;
   const safeInitialIndex = initialTopic
     ? Math.min(initialImageIndex, initialTopic.images.length - 1)
     : 0;
