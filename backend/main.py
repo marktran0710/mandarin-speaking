@@ -1,5 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, List, Tuple
 import os
@@ -8,6 +9,7 @@ import httpx
 from dotenv import load_dotenv
 import json
 from urllib.parse import quote
+from pathlib import Path
 from starlette.concurrency import run_in_threadpool
 
 from praat_analyzer import (
@@ -31,6 +33,7 @@ load_dotenv()
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env.local"))
 
 app = FastAPI(title="Speaking App Backend", version="1.0.0")
+FRONTEND_DIST = Path(__file__).resolve().parent.parent / "dist"
 
 
 def get_cors_origins() -> list[str]:
@@ -816,6 +819,26 @@ async def get_all_tones():
         tones[tone_num] = ref
 
     return tones
+
+
+@app.get("/{frontend_path:path}")
+async def serve_frontend(frontend_path: str):
+    """
+    Serve the built React app from the backend port for local single-port use.
+    """
+    requested_file = (FRONTEND_DIST / frontend_path).resolve()
+
+    if FRONTEND_DIST.exists() and requested_file.is_file():
+        return FileResponse(requested_file)
+
+    index_file = FRONTEND_DIST / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+
+    raise HTTPException(
+        status_code=404,
+        detail="Frontend build not found. Run `npm run build` first.",
+    )
 
 
 if __name__ == "__main__":

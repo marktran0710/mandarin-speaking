@@ -756,6 +756,7 @@
 }
 
 .teacher-dashboard-hero,
+.teacher-view-tabs,
 .teacher-stat-grid,
 .teacher-dashboard-grid,
 .teacher-content-builder,
@@ -814,6 +815,54 @@
   color: var(--clay-ink);
   font-size: 18px;
   margin-top: 6px;
+}
+
+.teacher-view-tabs {
+  margin-bottom: 22px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.teacher-view-tabs button {
+  min-height: 48px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: #ffffff;
+  color: var(--clay-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.teacher-view-tabs button:hover,
+.teacher-view-tabs button.active {
+  border-color: var(--clay-primary);
+  background: var(--clay-primary);
+  color: #ffffff;
+}
+
+.teacher-view-tabs strong {
+  min-width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--clay-surface-soft);
+  color: var(--clay-ink);
+  font-size: 12px;
+}
+
+.teacher-view-tabs button.active strong,
+.teacher-view-tabs button:hover strong {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
 .teacher-stat-grid {
@@ -1019,6 +1068,13 @@
   margin: 0;
 }
 
+.teacher-builder-buttons,
+.custom-story-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .btn-save-custom-story {
   min-height: 42px;
   padding: 0 18px;
@@ -1091,6 +1147,9 @@
   margin: 0 0 12px;
 }
 
+.btn-cancel-custom-story,
+.btn-publish-custom-story,
+.btn-edit-custom-story,
 .btn-delete-custom-story {
   align-self: start;
   border: 1px solid var(--clay-hairline);
@@ -1101,6 +1160,19 @@
   font-size: 12px;
   font-weight: 900;
   padding: 7px 9px;
+}
+
+.btn-cancel-custom-story {
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.btn-edit-custom-story {
+  color: var(--clay-primary);
+}
+
+.btn-publish-custom-story {
+  color: #166534;
 }
 
 .custom-story-frame-strip {
@@ -1301,6 +1373,7 @@
   }
 
   .teacher-stat-grid,
+  .teacher-view-tabs,
   .teacher-dashboard-grid,
   .teacher-builder-layout,
   .teacher-form-grid {
