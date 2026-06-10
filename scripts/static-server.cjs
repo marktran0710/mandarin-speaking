@@ -3,8 +3,8 @@ const fs = require("fs");
 const path = require("path");
 
 const root = path.resolve(__dirname, "..", "dist");
-const port = Number(process.env.PORT || 5175);
-const host = process.env.HOST || "127.0.0.1";
+const port = Number(process.argv[2] || process.env.PORT || 5175);
+const host = process.argv[3] || process.env.HOST || "127.0.0.1";
 
 const types = {
   ".css": "text/css",

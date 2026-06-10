@@ -19,3 +19,5 @@ vite-dev*.log
 backend/*.db
 backend/*.db-*
 backend/uploads/
+backend/uvicorn*.log
+.models/

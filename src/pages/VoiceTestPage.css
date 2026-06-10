@@ -138,7 +138,8 @@
   background: var(--clay-surface-soft);
 }
 
-.voice-audio-preview span {
+.voice-audio-preview span,
+.voice-live-transcript span {
   color: var(--clay-muted);
   font-size: 12px;
   font-weight: 650;
@@ -153,6 +154,22 @@
 
 .voice-audio-preview audio {
   width: 100%;
+}
+
+.voice-live-transcript {
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  border-radius: var(--clay-radius-md);
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+}
+
+.voice-live-transcript p {
+  color: var(--clay-ink);
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 0;
 }
 
 .voice-test-loading,
@@ -208,6 +225,125 @@
   margin-top: 8px;
 }
 
+.voice-student-feedback {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.voice-student-feedback-card {
+  padding: 16px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+}
+
+.voice-student-feedback-card.good {
+  background: #dcfce7;
+}
+
+.voice-student-feedback-card.fix {
+  background: #fef3c7;
+}
+
+.voice-student-feedback-card.next {
+  background: #e0f2fe;
+}
+
+.voice-student-feedback-card span,
+.voice-student-feedback-card strong {
+  display: block;
+}
+
+.voice-student-feedback-card span {
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.voice-student-feedback-card strong {
+  color: var(--clay-ink);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.voice-model-example {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: center;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: #ffffff;
+}
+
+.voice-model-example span {
+  color: var(--clay-primary);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.voice-model-example h2 {
+  color: var(--clay-ink);
+  font-size: 22px;
+  margin: 4px 0 8px;
+}
+
+.voice-model-example p {
+  color: var(--clay-ink);
+  font-size: 20px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.voice-model-example-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+}
+
+.voice-model-example-actions em {
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.voice-model-example-actions button {
+  border: 0;
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-primary);
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 10px 14px;
+}
+
+.voice-advanced-details {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: #ffffff;
+}
+
+.voice-advanced-details summary {
+  cursor: pointer;
+  padding: 16px;
+  color: var(--clay-ink);
+  font-weight: 900;
+}
+
+.voice-advanced-details[open] summary {
+  border-bottom: 1px solid var(--clay-hairline);
+}
+
+.voice-advanced-details .voice-feedback-card {
+  margin: 12px;
+}
+
 .voice-feedback-card h2 {
   color: var(--clay-ink);
   font-size: 22px;
@@ -219,6 +355,59 @@
   font-size: 14px;
   line-height: 1.6;
   margin: 0;
+}
+
+.tone-repair-card {
+  background: #ffffff;
+}
+
+.tone-repair-card > span {
+  color: var(--clay-primary);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.voice-tone-focus-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.voice-tone-focus {
+  padding: 12px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.voice-tone-focus strong,
+.voice-tone-focus span,
+.voice-tone-focus small {
+  display: block;
+}
+
+.voice-tone-focus strong {
+  color: var(--clay-ink);
+  font-size: 28px;
+}
+
+.voice-tone-focus span {
+  color: var(--clay-primary);
+  font-size: 12px;
+  font-weight: 900;
+  margin-top: 3px;
+  text-transform: uppercase;
+}
+
+.voice-tone-focus small {
+  color: var(--clay-body);
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 8px;
 }
 
 .voice-result-description {
@@ -375,8 +564,14 @@
 
 @media (max-width: 760px) {
   .voice-test-hero,
-  .voice-score-grid {
+  .voice-score-grid,
+  .voice-student-feedback,
+  .voice-model-example {
     grid-template-columns: 1fr;
+  }
+
+  .voice-model-example-actions {
+    justify-items: start;
   }
 
   .voice-test-status {

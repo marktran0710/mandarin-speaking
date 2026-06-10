@@ -110,6 +110,179 @@ def calculate_speech_rate(audio_path: str, transcription: str = "") -> float:
     return float(estimated_syllables / duration)
 
 
+def analyze_pauses_and_utterances(
+    audio_path: str,
+    frame_duration: float = 0.03,
+    hop_duration: float = 0.01,
+    speech_threshold_db: float = -35.0,
+    min_utterance_duration: float = 0.12,
+    min_pause_duration: float = 0.2,
+    merge_gap_duration: float = 0.18,
+) -> Dict:
+    """
+    Segment the recording into speech utterances and silent pauses.
+
+    The detector uses short-time energy relative to the recording peak. It is
+    intentionally lightweight: good enough for learner feedback about where
+    they paused, without requiring forced alignment or a separate VAD model.
+    """
+    samples, sample_rate, duration = _load_mono_audio(audio_path)
+    if samples.size == 0 or duration <= 0:
+        return _empty_pause_analysis()
+
+    peak = float(np.max(np.abs(samples)))
+    if peak <= 0:
+        return _empty_pause_analysis(duration)
+
+    samples = samples / peak
+    frame_size = max(1, int(sample_rate * frame_duration))
+    hop_size = max(1, int(sample_rate * hop_duration))
+
+    frames: List[Tuple[float, float, bool]] = []
+    for start in range(0, max(samples.size - frame_size + 1, 1), hop_size):
+        frame = samples[start : start + frame_size]
+        if frame.size == 0:
+            continue
+        rms = float(np.sqrt(np.mean(frame**2)))
+        db = 20.0 * np.log10(max(rms, 1e-8))
+        frame_start = start / sample_rate
+        frame_end = min((start + frame_size) / sample_rate, duration)
+        frames.append((frame_start, frame_end, db >= speech_threshold_db))
+
+    speech_segments = _merge_boolean_segments(
+        frames,
+        target_state=True,
+        min_duration=min_utterance_duration,
+        merge_gap=merge_gap_duration,
+    )
+    pauses = _pauses_between_utterances(speech_segments, min_pause_duration)
+
+    speaking_time = sum(segment["duration"] for segment in speech_segments)
+    total_pause_duration = sum(pause["duration"] for pause in pauses)
+    speech_ratio = speaking_time / duration if duration else 0.0
+
+    return {
+        "duration": round(duration, 3),
+        "utterance_count": len(speech_segments),
+        "utterances": speech_segments,
+        "pause_count": len(pauses),
+        "pauses": pauses,
+        "total_speaking_duration": round(speaking_time, 3),
+        "total_pause_duration": round(total_pause_duration, 3),
+        "longest_pause": round(
+            max((pause["duration"] for pause in pauses), default=0.0),
+            3,
+        ),
+        "speech_ratio": round(speech_ratio, 3),
+    }
+
+
+def _load_mono_audio(audio_path: str) -> Tuple[np.ndarray, int, float]:
+    if parselmouth is not None:
+        sound = _load_sound(audio_path)
+        values = np.asarray(sound.values, dtype=float)
+        if values.ndim == 2:
+            samples = values.mean(axis=0)
+        else:
+            samples = values.reshape(-1)
+        return samples, int(round(1.0 / sound.dx)), float(sound.get_total_duration())
+
+    with wave.open(audio_path, "rb") as wav_file:
+        frame_rate = wav_file.getframerate()
+        sample_width = wav_file.getsampwidth()
+        channels = wav_file.getnchannels()
+        frames = wav_file.readframes(wav_file.getnframes())
+
+    if sample_width != 2:
+        return np.array([], dtype=float), frame_rate, 0.0
+
+    audio = np.frombuffer(frames, dtype=np.int16).astype(float)
+    if channels > 1:
+        audio = audio.reshape(-1, channels).mean(axis=1)
+    duration = audio.size / float(frame_rate) if frame_rate else 0.0
+    return audio, frame_rate, duration
+
+
+def _merge_boolean_segments(
+    frames: List[Tuple[float, float, bool]],
+    target_state: bool,
+    min_duration: float,
+    merge_gap: float,
+) -> List[Dict]:
+    raw_segments: List[Dict] = []
+    active_start = None
+    active_end = None
+
+    for frame_start, frame_end, state in frames:
+        if state == target_state:
+            if active_start is None:
+                active_start = frame_start
+            active_end = frame_end
+        elif active_start is not None and active_end is not None:
+            raw_segments.append({"start": active_start, "end": active_end})
+            active_start = None
+            active_end = None
+
+    if active_start is not None and active_end is not None:
+        raw_segments.append({"start": active_start, "end": active_end})
+
+    merged: List[Dict] = []
+    for segment in raw_segments:
+        if not merged or segment["start"] - merged[-1]["end"] > merge_gap:
+            merged.append(segment)
+        else:
+            merged[-1]["end"] = segment["end"]
+
+    cleaned = []
+    for index, segment in enumerate(merged):
+        duration = segment["end"] - segment["start"]
+        if duration >= min_duration:
+            cleaned.append(
+                {
+                    "index": len(cleaned),
+                    "start": round(segment["start"], 3),
+                    "end": round(segment["end"], 3),
+                    "duration": round(duration, 3),
+                }
+            )
+    return cleaned
+
+
+def _pauses_between_utterances(
+    utterances: List[Dict],
+    min_pause_duration: float,
+) -> List[Dict]:
+    pauses: List[Dict] = []
+    for previous, current in zip(utterances, utterances[1:]):
+        start = float(previous["end"])
+        end = float(current["start"])
+        duration = end - start
+        if duration >= min_pause_duration:
+            pauses.append(
+                {
+                    "index": len(pauses),
+                    "start": round(start, 3),
+                    "end": round(end, 3),
+                    "duration": round(duration, 3),
+                }
+            )
+    return pauses
+
+
+def _empty_pause_analysis(duration: float = 0.0) -> Dict:
+    return {
+        "duration": round(duration, 3),
+        "utterance_count": 0,
+        "utterances": [],
+        "pause_count": 0,
+        "pauses": [],
+        "total_speaking_duration": 0.0,
+        "total_pause_duration": 0.0,
+        "longest_pause": 0.0,
+        "speech_ratio": 0.0,
+    }
+
+
 def _audio_duration(audio_path: str) -> float:
     if parselmouth is not None:
         sound = _load_sound(audio_path)
