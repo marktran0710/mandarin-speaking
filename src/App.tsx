@@ -6,6 +6,13 @@ import VoiceTestPage from "./pages/VoiceTestPage";
 import TeacherImageBuilderPage from "./pages/TeacherImageBuilderPage";
 import LoginPage, { LoginRole } from "./pages/LoginPage";
 import Navigation from "./components/Navigation";
+import {
+  canUseDatabase,
+  createAudioRecord,
+  deleteAudioRecordFromDatabase,
+  listAudioRecords,
+  StoredAudioRecord,
+} from "./database";
 
 export type Page =
   | "home"
@@ -28,6 +35,7 @@ interface AudioRecord {
   topicId?: string;
   imageUrl?: string;
   imageIndex?: number;
+  audioUrl?: string;
 }
 
 interface PracticeTarget {
@@ -59,40 +67,64 @@ export default function App() {
       );
     }
 
-    const stored = localStorage.getItem("audioRecords");
-    if (stored) {
+    const loadSavedAudioRecords = async () => {
+      if (canUseDatabase()) {
+        try {
+          const recordsData = await listAudioRecords();
+          setAudioRecords(recordsFromStored(recordsData));
+          localStorage.setItem("audioRecords", JSON.stringify(recordsData));
+          return;
+        } catch (error) {
+          console.error("Failed to load audio records from database:", error);
+        }
+      }
+
+      const stored = localStorage.getItem("audioRecords");
+      if (!stored) {
+        return;
+      }
+
       try {
         const recordsData = JSON.parse(stored);
-        setAudioRecords(
-          recordsData.map((data: any) => ({
-            ...data,
-            audioBlob: new Blob([], { type: "audio/webm" }),
-          })),
-        );
-      } catch (e) {
-        console.error("Failed to load audio records:", e);
+        if (Array.isArray(recordsData)) {
+          setAudioRecords(recordsFromStored(recordsData));
+        }
+      } catch (error) {
+        console.error("Failed to load audio records:", error);
       }
-    }
+    };
+
+    loadSavedAudioRecords();
   }, []);
 
   const addAudioRecord = (record: AudioRecord) => {
     setAudioRecords((prev) => [record, ...prev]);
-    const audioData = {
-      id: record.id,
-      timestamp: record.timestamp,
-      duration: record.duration,
-      transcription: record.transcription,
-      model: record.model,
-      topicId: record.topicId,
-      imageUrl: record.imageUrl,
-      imageIndex: record.imageIndex,
-      praatMetrics: record.praatMetrics,
-    };
+    const audioData = serializeAudioRecord(record);
     const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
     localStorage.setItem(
       "audioRecords",
       JSON.stringify([audioData, ...stored]),
     );
+
+    if (canUseDatabase()) {
+      createAudioRecord(audioData, record.audioBlob)
+        .then((savedRecord) => {
+          if (!savedRecord?.audioUrl) {
+            return;
+          }
+          updateStoredAudioRecord(record.id, savedRecord.audioUrl);
+          setAudioRecords((currentRecords) =>
+            currentRecords.map((currentRecord) =>
+              currentRecord.id === record.id
+                ? { ...currentRecord, audioUrl: savedRecord.audioUrl }
+                : currentRecord,
+            ),
+          );
+        })
+        .catch((error) => {
+          console.error("Failed to save audio record to database:", error);
+        });
+    }
   };
 
   const deleteAudioRecord = (id: string) => {
@@ -100,6 +132,12 @@ export default function App() {
     const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
     const updated = stored.filter((record: any) => record.id !== id);
     localStorage.setItem("audioRecords", JSON.stringify(updated));
+
+    if (canUseDatabase()) {
+      deleteAudioRecordFromDatabase(id).catch((error) => {
+        console.error("Failed to delete audio record from database:", error);
+      });
+    }
   };
 
   const handleLogin = (role: LoginRole) => {
@@ -165,4 +203,35 @@ export default function App() {
       )}
     </div>
   );
+}
+
+function serializeAudioRecord(record: AudioRecord): StoredAudioRecord {
+  return {
+    id: record.id,
+    timestamp: record.timestamp,
+    duration: record.duration,
+    transcription: record.transcription,
+    model: record.model,
+    topicId: record.topicId,
+    imageUrl: record.imageUrl,
+    imageIndex: record.imageIndex,
+    audioUrl: record.audioUrl,
+    praatMetrics: record.praatMetrics,
+  };
+}
+
+function recordsFromStored(recordsData: StoredAudioRecord[]): AudioRecord[] {
+  return recordsData.map((data) => ({
+    ...data,
+    audioBlob: new Blob([], { type: "audio/webm" }),
+    model: data.model as AudioRecord["model"],
+  }));
+}
+
+function updateStoredAudioRecord(id: string, audioUrl: string) {
+  const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
+  const updated = stored.map((record: StoredAudioRecord) =>
+    record.id === id ? { ...record, audioUrl } : record,
+  );
+  localStorage.setItem("audioRecords", JSON.stringify(updated));
 }

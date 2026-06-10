@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { canUseDatabase, createCustomStory } from "../database";
 import "./TeacherImageBuilderPage.css";
 
 const BACKEND_URL =
@@ -117,7 +118,7 @@ export default function TeacherImageBuilderPage() {
     setNotice("");
   };
 
-  const saveGeneratedStory = () => {
+  const saveGeneratedStory = async () => {
     if (!story || story.frames.length !== 6) {
       setError("Generate six story frames before saving.");
       return;
@@ -141,10 +142,13 @@ export default function TeacherImageBuilderPage() {
         CUSTOM_STORY_STORAGE_KEY,
         JSON.stringify([savedStory, ...stored]),
       );
+      if (canUseDatabase()) {
+        await createCustomStory(savedStory);
+      }
       setNotice("Generated story saved to the teacher story library.");
       setError("");
     } catch {
-      setError("Could not save this story in browser storage.");
+      setError("Could not save this story.");
     }
   };
 

@@ -1,6 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PitchChart from "../PitchChart";
 import { TOPICS, getTopicVocabulary } from "../TopicSelector";
+import {
+  canUseDatabase,
+  createCustomStory as saveCustomStoryToDatabase,
+  deleteCustomStoryFromDatabase,
+  listCustomStories,
+} from "../database";
 import {
   CustomTeacherStory,
   loadCustomStories,
@@ -18,6 +24,7 @@ interface AudioRecord {
   topicId?: string;
   imageUrl?: string;
   imageIndex?: number;
+  audioUrl?: string;
   praatMetrics?: any;
 }
 
@@ -359,6 +366,21 @@ function TeacherDashboard({
     return imageUrl.trim() || customDraft.prompts[index].trim();
   }).length;
 
+  useEffect(() => {
+    if (!canUseDatabase()) {
+      return;
+    }
+
+    listCustomStories()
+      .then((stories) => {
+        setCustomStories(stories);
+        saveCustomStories(stories);
+      })
+      .catch((error) => {
+        console.error("Failed to load custom stories from database:", error);
+      });
+  }, []);
+
   const clearNotice = () => setCustomStoryNotice("");
 
   const updateDraftField = (
@@ -429,6 +451,11 @@ function TeacherDashboard({
     try {
       saveCustomStories(nextStories);
       setCustomStories(nextStories);
+      if (canUseDatabase()) {
+        saveCustomStoryToDatabase(savedStory).catch((error) => {
+          console.error("Failed to save custom story to database:", error);
+        });
+      }
       setEditingStoryId(null);
       setCustomDraft(emptyCustomStoryDraft);
       setValidationErrors({});
@@ -447,6 +474,11 @@ function TeacherDashboard({
     const nextStories = customStories.filter((story) => story.id !== id);
     setCustomStories(nextStories);
     saveCustomStories(nextStories);
+    if (canUseDatabase()) {
+      deleteCustomStoryFromDatabase(id).catch((error) => {
+        console.error("Failed to delete custom story from database:", error);
+      });
+    }
     if (editingStoryId === id) {
       handleCancelCustomStoryEdit();
     }
@@ -458,8 +490,14 @@ function TeacherDashboard({
     );
     setCustomStories(nextStories);
     saveCustomStories(nextStories);
+    const updatedStory = nextStories.find((story) => story.id === id);
+    if (updatedStory && canUseDatabase()) {
+      saveCustomStoryToDatabase(updatedStory).catch((error) => {
+        console.error("Failed to update story publish state in database:", error);
+      });
+    }
     setCustomStoryNotice(
-      nextStories.find((story) => story.id === id)?.published
+      updatedStory?.published
         ? "Story published for students."
         : "Story unpublished from student topics.",
     );
@@ -1115,6 +1153,13 @@ function RecordCard({
       </div>
 
       <div className="story-content">
+        {record.audioUrl && (
+          <div className="saved-audio-player">
+            <strong>Saved voice recording</strong>
+            <audio controls src={record.audioUrl} />
+          </div>
+        )}
+
         <div className="transcription-box">
           <strong>Transcription</strong>
           <p>{record.transcription || "(no speech detected)"}</p>
