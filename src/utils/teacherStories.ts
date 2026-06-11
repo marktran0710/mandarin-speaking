@@ -4,6 +4,16 @@ export interface CustomStoryFrame {
   imageUrl: string;
   prompt: string;
   vocabulary: string;
+  conceptMap?: ConceptMapScaffold;
+}
+
+export interface ConceptMapScaffold {
+  characters?: string;
+  place?: string;
+  actions?: string;
+  vocabulary?: string;
+  connectors?: string;
+  fullStory?: string;
 }
 
 export interface CustomTeacherStory {
@@ -37,9 +47,11 @@ export function saveCustomStories(stories: CustomTeacherStory[]) {
 }
 
 export function loadPublishedTeacherTopics(): Topic[] {
-  return loadCustomStories()
-    .filter((story) => story.published)
-    .map(storyToTopic);
+  return publishedStoriesToTopics(loadCustomStories());
+}
+
+export function publishedStoriesToTopics(stories: CustomTeacherStory[]): Topic[] {
+  return stories.filter((story) => story.published).map(storyToTopic);
 }
 
 export function storyToTopic(story: CustomTeacherStory): Topic {
@@ -62,5 +74,15 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
     level: story.level,
     images: story.frames.map((frame) => frame.imageUrl),
     vocabulary,
+    conceptMaps: story.frames.reduce<Record<number, ConceptMapScaffold>>(
+      (allScaffolds, frame, index) =>
+        frame.conceptMap
+          ? {
+              ...allScaffolds,
+              [index]: frame.conceptMap,
+            }
+          : allScaffolds,
+      {},
+    ),
   };
 }

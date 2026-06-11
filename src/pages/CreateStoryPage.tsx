@@ -1,7 +1,11 @@
-import { useState } from "react";
-import TopicSelector, { TOPICS } from "../TopicSelector";
+import { useEffect, useState } from "react";
+import TopicSelector from "../TopicSelector";
 import StoryRecorder from "../components/StoryRecorder";
-import { loadPublishedTeacherTopics } from "../utils/teacherStories";
+import { canUseDatabase, listCustomStories } from "../database";
+import {
+  loadPublishedTeacherTopics,
+  publishedStoriesToTopics,
+} from "../utils/teacherStories";
 import "./CreateStoryPage.css";
 
 interface CreateStoryPageProps {
@@ -23,7 +27,7 @@ export default function CreateStoryPage({
   initialTopicId,
   initialImageIndex = 0,
 }: CreateStoryPageProps) {
-  const topics = [...TOPICS, ...loadPublishedTeacherTopics()];
+  const topics = canUseDatabase() ? [] : loadPublishedTeacherTopics();
   const initialTopic =
     topics.find((topic) => topic.id === initialTopicId) || null;
   const safeInitialIndex = initialTopic
@@ -37,6 +41,31 @@ export default function CreateStoryPage({
   );
   const [selectedImageIndex, setSelectedImageIndex] =
     useState<number>(safeInitialIndex);
+
+  useEffect(() => {
+    if (!initialTopicId || !canUseDatabase()) {
+      return;
+    }
+
+    listCustomStories()
+      .then((stories) => {
+        const topic = publishedStoriesToTopics(stories).find(
+          (item) => item.id === initialTopicId,
+        );
+
+        if (!topic) {
+          return;
+        }
+
+        const imageIndex = Math.min(initialImageIndex, topic.images.length - 1);
+        setSelectedTopic(topic);
+        setSelectedImage(topic.images[imageIndex] || "");
+        setSelectedImageIndex(imageIndex);
+      })
+      .catch((error) => {
+        console.error("Failed to load selected teacher topic:", error);
+      });
+  }, [initialImageIndex, initialTopicId]);
 
   const handleTopicSelect = (topic: Topic) => {
     setSelectedTopic(topic);

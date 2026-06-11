@@ -74,9 +74,12 @@ describe("MyStoriesPage", () => {
       screen.getByRole("heading", { name: "Class Speaking Dashboard" }),
     ).toBeInTheDocument();
     const overview = screen.getByRole("region", { name: "Class overview" });
-    expect(within(overview).getAllByText("1")).toHaveLength(2);
-    expect(within(overview).getByText("78/100")).toBeInTheDocument();
-    expect(within(overview).getByText("86%")).toBeInTheDocument();
+    expect(within(overview).getByText("Submissions")).toBeInTheDocument();
+    expect(within(overview).getByText("Teacher stories")).toBeInTheDocument();
+    expect(within(overview).getByText("Published")).toBeInTheDocument();
+    expect(within(overview).queryByText("Feedback ready")).not.toBeInTheDocument();
+    expect(within(overview).queryByText("Avg. fluency")).not.toBeInTheDocument();
+    expect(within(overview).queryByText("Tone accuracy")).not.toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Teacher tools" })).toBeInTheDocument();
     return user.click(screen.getByRole("button", { name: /Recordings/ })).then(() => {
     expect(screen.getByText("Good pacing with a clear story sequence.")).toBeInTheDocument();
@@ -149,6 +152,41 @@ describe("MyStoriesPage", () => {
     expect(JSON.parse(stored)).toHaveLength(1);
   }, 10000);
 
+  it("lets teachers delete the selected custom story without removing others", async () => {
+    const user = userEvent.setup();
+    render(
+      <MyStoriesPage
+        mode="teacher"
+        records={[]}
+        onDeleteRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Materials/ }));
+
+    for (const title of ["Keep Story", "Delete Story"]) {
+      await user.clear(screen.getByLabelText("Story title"));
+      await user.type(screen.getByLabelText("Story title"), title);
+      for (const [index, input] of screen.getAllByLabelText("Image URL or uploaded file").entries()) {
+        await user.clear(input);
+        await user.type(input, `https://example.com/${title}-${index + 1}.jpg`);
+      }
+      await user.click(screen.getByRole("button", { name: "Save custom story" }));
+    }
+
+    const deleteStoryCard = screen.getByText("Delete Story").closest("article");
+    expect(deleteStoryCard).not.toBeNull();
+    await user.click(within(deleteStoryCard as HTMLElement).getByRole("button", { name: "Delete" }));
+
+    const library = screen.getByLabelText("Saved custom stories");
+    expect(within(library).queryByText("Delete Story")).not.toBeInTheDocument();
+    expect(within(library).getByText("Keep Story")).toBeInTheDocument();
+
+    const stored = localStorage.getItem("teacherCustomStories") || "";
+    expect(stored).toContain("Keep Story");
+    expect(stored).not.toContain("Delete Story");
+  }, 15000);
+
   it("publishes a teacher story into the student topic selector", async () => {
     const user = userEvent.setup();
     const { unmount } = render(
@@ -176,6 +214,9 @@ describe("MyStoriesPage", () => {
     render(<TopicSelector />);
 
     expect(screen.getByRole("button", { name: /Published MRT Help/ })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Taking the Bus to School/ }),
+    ).not.toBeInTheDocument();
   }, 10000);
 
   it("shows validation errors when a teacher saves an incomplete custom story", async () => {
@@ -236,6 +277,27 @@ describe("MyStoriesPage", () => {
   });
 
   it("shows completed picture status in the student workbook", () => {
+    localStorage.setItem(
+      "teacherCustomStories",
+      JSON.stringify([
+        {
+          id: "student-published-story",
+          title: "Published Practice Story",
+          learningGoal: "Practice a teacher-uploaded speaking activity.",
+          level: "Beginner speaking",
+          published: true,
+          frames: Array.from({ length: 6 }, (_, index) => ({
+            imageUrl:
+              index === 0
+                ? analyzedRecord.imageUrl
+                : `https://example.com/student-published-${index + 1}.jpg`,
+            prompt: `Teacher prompt ${index + 1}`,
+            vocabulary: "teacher, upload",
+          })),
+        },
+      ]),
+    );
+
     render(
       <MyStoriesPage
         mode="student"
@@ -246,7 +308,8 @@ describe("MyStoriesPage", () => {
     );
 
     expect(screen.getByRole("heading", { name: "My Story Workbook" })).toBeInTheDocument();
-    expect(screen.getByText("1/36")).toBeInTheDocument();
+    expect(screen.getAllByText("1/6")).toHaveLength(2);
+    expect(screen.getAllByText("Published Practice Story").length).toBeGreaterThan(1);
     expect(screen.getByText("Feedback ready")).toBeInTheDocument();
 
     const firstPrompt = screen.getAllByRole("article")[0];

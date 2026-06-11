@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import PitchChart from "../PitchChart";
-import { TOPICS, getTopicVocabulary } from "../TopicSelector";
+import { getTopicVocabulary, type Topic } from "../TopicSelector";
 import {
   canUseDatabase,
   createCustomStory as saveCustomStoryToDatabase,
@@ -8,9 +8,11 @@ import {
   listCustomStories,
 } from "../database";
 import {
+  ConceptMapScaffold,
   CustomTeacherStory,
   loadCustomStories,
   loadPublishedTeacherTopics,
+  publishedStoriesToTopics,
   saveCustomStories,
 } from "../utils/teacherStories";
 import "./MyStoriesPage.css";
@@ -64,7 +66,7 @@ interface CustomStoryValidationErrors {
 type TeacherView = "overview" | "materials" | "progress" | "recordings";
 
 function getStudentTopics() {
-  return [...TOPICS, ...loadPublishedTeacherTopics()];
+  return loadPublishedTeacherTopics();
 }
 
 function getPromptImages(topics = getStudentTopics()): PromptImage[] {
@@ -94,6 +96,7 @@ const emptyCustomStoryDraft = {
     "Finish with a lesson or next step.",
   ],
   vocabulary: ["", "", "", "", "", ""],
+  conceptMaps: ["", "", "", "", "", ""],
 };
 
 function validateCustomStoryDraft(
@@ -140,6 +143,23 @@ export default function MyStoriesPage({
   mode = "student",
 }: MyStoriesPageProps) {
   const isTeacher = mode === "teacher";
+  const [studentTopics, setStudentTopics] = useState(() =>
+    canUseDatabase() ? [] : loadPublishedTeacherTopics(),
+  );
+
+  useEffect(() => {
+    if (isTeacher || !canUseDatabase()) {
+      return;
+    }
+
+    listCustomStories()
+      .then((stories) => {
+        setStudentTopics(publishedStoriesToTopics(stories));
+      })
+      .catch((error) => {
+        console.error("Failed to load student topics from database:", error);
+      });
+  }, [isTeacher]);
 
   if (isTeacher) {
     return (
@@ -150,11 +170,14 @@ export default function MyStoriesPage({
     );
   }
 
-  const studentTopics = getStudentTopics();
   const promptImages = getPromptImages(studentTopics);
   const completedPrompts = promptImages.filter((prompt) =>
     records.some((record) => isPromptRecord(record, prompt)),
   ).length;
+  const progressPercent =
+    promptImages.length > 0
+      ? Math.round((completedPrompts / promptImages.length) * 100)
+      : 0;
   const analyzedRecords = records.filter((record) => record.praatMetrics);
   const averageFluency = getAverageMetric(analyzedRecords, "fluency_score");
   return (
@@ -177,9 +200,7 @@ export default function MyStoriesPage({
             <div className="summary-progress">
               <span
                 style={{
-                  width: `${Math.round(
-                    (completedPrompts / promptImages.length) * 100,
-                  )}%`,
+                  width: `${progressPercent}%`,
                 }}
               />
             </div>
@@ -193,7 +214,14 @@ export default function MyStoriesPage({
         </section>
 
         <div className="learning-workbook">
-          {studentTopics.map((topic) => {
+          {studentTopics.length === 0 ? (
+            <section className="topic-workbook-section">
+              <div className="teacher-empty-panel">
+                <strong>No teacher topics published</strong>
+                <p>Ask the teacher to publish a story activity before practicing.</p>
+              </div>
+            </section>
+          ) : studentTopics.map((topic) => {
             const prompts = promptImages.filter(
               (prompt) => prompt.topicId === topic.id,
             );
@@ -349,19 +377,13 @@ function TeacherDashboard({
 }) {
   const [activeView, setActiveView] = useState<TeacherView>("overview");
   const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
-    () => loadCustomStories(),
+    () => (canUseDatabase() ? [] : loadCustomStories()),
   );
   const [customDraft, setCustomDraft] = useState(emptyCustomStoryDraft);
   const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] =
     useState<CustomStoryValidationErrors>({});
   const [customStoryNotice, setCustomStoryNotice] = useState("");
-  const analyzedRecords = records.filter((record) => record.praatMetrics);
-  const feedbackReadyRecords = records.filter(
-    (record) => record.praatMetrics?.ai_feedback,
-  );
-  const averageFluency = getAverageMetric(analyzedRecords, "fluency_score");
-  const averageToneAccuracy = getAverageMetric(analyzedRecords, "tone_accuracy");
   const preparedFrameCount = customDraft.imageUrls.filter((imageUrl, index) => {
     return imageUrl.trim() || customDraft.prompts[index].trim();
   }).length;
@@ -383,6 +405,18 @@ function TeacherDashboard({
 
   const clearNotice = () => setCustomStoryNotice("");
 
+  useEffect(() => {
+    if (!customStoryNotice) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCustomStoryNotice("");
+    }, 3200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [customStoryNotice]);
+
   const updateDraftField = (
     field: "title" | "learningGoal" | "level",
     value: string,
@@ -393,7 +427,7 @@ function TeacherDashboard({
   };
 
   const updateDraftFrame = (
-    field: "imageUrls" | "prompts" | "vocabulary",
+    field: "imageUrls" | "prompts" | "vocabulary" | "conceptMaps",
     index: number,
     value: string,
   ) => {
@@ -471,6 +505,7 @@ function TeacherDashboard({
   };
 
   const handleDeleteCustomStory = (id: string) => {
+    const deletedStory = customStories.find((story) => story.id === id);
     const nextStories = customStories.filter((story) => story.id !== id);
     setCustomStories(nextStories);
     saveCustomStories(nextStories);
@@ -482,6 +517,11 @@ function TeacherDashboard({
     if (editingStoryId === id) {
       handleCancelCustomStoryEdit();
     }
+    setCustomStoryNotice(
+      deletedStory
+        ? `"${deletedStory.title}" deleted from teacher stories.`
+        : "Story deleted.",
+    );
   };
 
   const handleTogglePublishCustomStory = (id: string) => {
@@ -526,9 +566,16 @@ function TeacherDashboard({
     { id: "progress", label: "Progress" },
     { id: "recordings", label: "Recordings", count: records.length },
   ];
+  const publishedTopics = publishedStoriesToTopics(customStories);
 
   return (
     <div className="my-stories-page teacher-dashboard-page">
+      {customStoryNotice && (
+        <div className="teacher-toast" role="status" aria-live="polite">
+          {customStoryNotice}
+        </div>
+      )}
+
       <section className="teacher-dashboard-hero">
         <div>
           <p className="stories-kicker">Teacher workspace</p>
@@ -569,26 +616,19 @@ function TeacherDashboard({
               note="Total saved student attempts"
             />
             <DashboardStat
-              label="Feedback ready"
-              value={String(feedbackReadyRecords.length)}
-              note="Gemini/Praat results available"
+              label="Teacher stories"
+              value={String(customStories.length)}
+              note="Saved classroom activities"
             />
             <DashboardStat
-              label="Avg. fluency"
-              value={averageFluency === null ? "--" : `${averageFluency}/100`}
-              note="Based on analyzed recordings"
-            />
-            <DashboardStat
-              label="Tone accuracy"
-              value={
-                averageToneAccuracy === null ? "--" : `${averageToneAccuracy}%`
-              }
-              note="Class pronunciation trend"
+              label="Published"
+              value={String(customStories.filter((story) => story.published).length)}
+              note="Visible in student topics"
             />
           </section>
 
           <section className="teacher-dashboard-grid">
-            <TeacherProgressPanel records={records} />
+            <TeacherProgressPanel records={records} topics={publishedTopics} />
             <RecentSubmissionsPanel records={records} />
           </section>
         </>
@@ -658,12 +698,6 @@ function TeacherDashboard({
                 {validationErrors.form}
               </div>
             )}
-            {customStoryNotice && (
-              <div className="teacher-form-success" role="status">
-                {customStoryNotice}
-              </div>
-            )}
-
             <div className="teacher-frame-editor">
               {customDraft.imageUrls.map((imageUrl, index) => {
                 const frameError = validationErrors.frames?.[index];
@@ -731,7 +765,18 @@ function TeacherDashboard({
                         onChange={(event) =>
                           updateDraftFrame("vocabulary", index, event.target.value)
                         }
-                        placeholder="台北, 下雨, 幫忙"
+                        placeholder="?啣?, 銝, 撟怠?"
+                      />
+                    </label>
+                    <label>
+                      Concept map layout
+                      <textarea
+                        value={customDraft.conceptMaps[index]}
+                        onChange={(event) =>
+                          updateDraftFrame("conceptMaps", index, event.target.value)
+                        }
+                        rows={4}
+                        placeholder={"Characters: ___\nPlace: classroom\nActions: ___\nConnectors: then, because"}
                       />
                     </label>
                   </div>
@@ -760,7 +805,13 @@ function TeacherDashboard({
           </form>
 
           <div className="custom-story-library" aria-label="Saved custom stories">
-            <h3>Teacher Story Library</h3>
+            <div className="custom-story-library-header">
+              <div>
+                <h3>Story Manager</h3>
+                <p>Manage every teacher-created story in one place.</p>
+              </div>
+              <strong>{customStories.length}</strong>
+            </div>
             {customStories.length === 0 ? (
               <div className="teacher-empty-panel">
                 <strong>No custom stories yet</strong>
@@ -837,7 +888,12 @@ function TeacherDashboard({
           </div>
 
           <div className="topic-coverage-list">
-            {TOPICS.map((topic) => {
+            {publishedTopics.length === 0 ? (
+              <div className="teacher-empty-panel">
+                <strong>No published teacher topics</strong>
+                <p>Publish a story activity to show topic progress.</p>
+              </div>
+            ) : publishedTopics.map((topic) => {
               const topicRecords = records.filter(
                 (record) => record.topicId === topic.id,
               );
@@ -885,7 +941,7 @@ function TeacherDashboard({
                   <div>
                     <strong>{getTopicLabel(record.topicId)}</strong>
                     <span>
-                      Part {(record.imageIndex ?? 0) + 1} · {record.duration}s
+                      Part {(record.imageIndex ?? 0) + 1} 繚 {record.duration}s
                     </span>
                   </div>
                   <div className="submission-score">
@@ -933,7 +989,13 @@ function TeacherDashboard({
   );
 }
 
-function TeacherProgressPanel({ records }: { records: AudioRecord[] }) {
+function TeacherProgressPanel({
+  records,
+  topics,
+}: {
+  records: AudioRecord[];
+  topics: Topic[];
+}) {
   return (
     <div className="teacher-panel topic-coverage-panel">
       <div className="teacher-panel-header">
@@ -944,7 +1006,12 @@ function TeacherProgressPanel({ records }: { records: AudioRecord[] }) {
       </div>
 
       <div className="topic-coverage-list">
-        {TOPICS.map((topic) => {
+        {topics.length === 0 ? (
+          <div className="teacher-empty-panel">
+            <strong>No published teacher topics</strong>
+            <p>Publish a story activity to show topic progress.</p>
+          </div>
+        ) : topics.map((topic) => {
           const topicRecords = records.filter(
             (record) => record.topicId === topic.id,
           );
@@ -1046,6 +1113,7 @@ function createCustomStory(
       imageUrl: imageUrl.trim(),
       prompt: draft.prompts[index].trim(),
       vocabulary: draft.vocabulary[index].trim(),
+      conceptMap: parseConceptMapScaffold(draft.conceptMaps[index]),
     })),
   };
 }
@@ -1062,13 +1130,66 @@ function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
       frame?.prompt || emptyCustomStoryDraft.prompts[index],
     ),
     vocabulary: frames.map((frame) => frame?.vocabulary || ""),
+    conceptMaps: frames.map((frame) => formatConceptMapScaffold(frame?.conceptMap)),
   };
+}
+
+function parseConceptMapScaffold(value: string): ConceptMapScaffold {
+  const scaffold: ConceptMapScaffold = {};
+  const fieldAliases: Record<string, keyof ConceptMapScaffold> = {
+    characters: "characters",
+    character: "characters",
+    who: "characters",
+    place: "place",
+    where: "place",
+    actions: "actions",
+    action: "actions",
+    what: "actions",
+    vocabulary: "vocabulary",
+    words: "vocabulary",
+    connectors: "connectors",
+    connector: "connectors",
+    fullstory: "fullStory",
+    story: "fullStory",
+  };
+
+  value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .forEach((line) => {
+      const [rawLabel, ...rawValue] = line.split(":");
+      const field = fieldAliases[rawLabel.trim().toLowerCase().replace(/\s+/g, "")];
+      if (field) {
+        scaffold[field] = rawValue.join(":").trim();
+      }
+    });
+
+  return scaffold;
+}
+
+function formatConceptMapScaffold(scaffold?: ConceptMapScaffold): string {
+  if (!scaffold) {
+    return "";
+  }
+
+  return [
+    ["Characters", scaffold.characters],
+    ["Place", scaffold.place],
+    ["Actions", scaffold.actions],
+    ["Vocabulary", scaffold.vocabulary],
+    ["Connectors", scaffold.connectors],
+    ["Full story", scaffold.fullStory],
+  ]
+    .filter(([, value]) => value)
+    .map(([label, value]) => `${label}: ${value}`)
+    .join("\n");
 }
 
 function clearFrameError(
   errors: CustomStoryValidationErrors,
   index: number,
-  field: "imageUrls" | "prompts" | "vocabulary",
+  field: "imageUrls" | "prompts" | "vocabulary" | "conceptMaps",
 ): CustomStoryValidationErrors {
   const frameError = errors.frames?.[index];
 
@@ -1213,7 +1334,7 @@ function RecordCard({
                       <span>{item.token}</span>
                       <em>{formatContourShape(item.contour_shape)}</em>
                       <small>
-                        {Math.round(item.mean_pitch)} Hz ·{" "}
+                        {Math.round(item.mean_pitch)} Hz 繚{" "}
                         {Math.round(item.pitch_range)} Hz range
                       </small>
                       <p>{item.feedback}</p>

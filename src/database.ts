@@ -1,6 +1,6 @@
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+  (import.meta.env.DEV ? "http://127.0.0.1:8000" : window.location.origin);
 
 export interface StoredAudioRecord {
   id: string;
@@ -19,6 +19,14 @@ export interface CustomStoryFrame {
   imageUrl: string;
   prompt: string;
   vocabulary: string;
+  conceptMap?: {
+    characters?: string;
+    place?: string;
+    actions?: string;
+    vocabulary?: string;
+    connectors?: string;
+    fullStory?: string;
+  };
 }
 
 export interface StoredCustomStory {

@@ -217,6 +217,7 @@ class CustomStoryFrameRequest(BaseModel):
     imageUrl: str
     prompt: str
     vocabulary: str = ""
+    conceptMap: dict = {}
 
 
 class CustomStoryRequest(BaseModel):
