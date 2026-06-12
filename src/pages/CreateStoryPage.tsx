@@ -1,5 +1,5 @@
 import { useState } from "react";
-import TopicSelector, { TOPICS } from "../TopicSelector";
+import TopicSelector from "../TopicSelector";
 import StoryRecorder from "../components/StoryRecorder";
 import { HelpRequest } from "../database";
 import { loadPublishedTeacherTopics } from "../utils/teacherStories";
@@ -28,7 +28,7 @@ export default function CreateStoryPage({
   helpRequests = [],
   onRaiseHand,
 }: CreateStoryPageProps) {
-  const topics = [...TOPICS, ...loadPublishedTeacherTopics()];
+  const topics = loadPublishedTeacherTopics();
   const initialTopic =
     topics.find((topic) => topic.id === initialTopicId) || null;
   const safeInitialIndex = initialTopic
@@ -57,10 +57,7 @@ export default function CreateStoryPage({
 
   return (
     <div className="create-story-page">
-      <StudentHelpPanel
-        helpRequests={helpRequests}
-        onRaiseHand={onRaiseHand}
-      />
+      <StudentHelpPanel helpRequests={helpRequests} onRaiseHand={onRaiseHand} />
       {!selectedTopic ? (
         <TopicSelector onTopicSelect={handleTopicSelect} />
       ) : (
@@ -104,7 +101,9 @@ function StudentHelpPanel({
         </span>
         <div>
           <strong>
-            {activeRequest ? "Teacher has your help request" : "Need teacher help?"}
+            {activeRequest
+              ? "Teacher has your help request"
+              : "Need teacher help?"}
           </strong>
           <p>
             {activeRequest

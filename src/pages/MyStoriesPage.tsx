@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import PitchChart from "../PitchChart";
-import { TOPICS, getTopicVocabulary } from "../TopicSelector";
+import { getTopicVocabulary } from "../TopicSelector";
 import {
   canUseDatabase,
   createCustomStory as saveCustomStoryToDatabase,
@@ -68,7 +68,7 @@ interface CustomStoryValidationErrors {
 type TeacherView = "overview" | "help" | "materials" | "progress" | "recordings";
 
 function getStudentTopics() {
-  return [...TOPICS, ...loadPublishedTeacherTopics()];
+  return loadPublishedTeacherTopics();
 }
 
 function getPromptImages(topics = getStudentTopics()): PromptImage[] {
@@ -915,30 +915,10 @@ function TeacherDashboard({
           </div>
 
           <div className="topic-coverage-list">
-            {TOPICS.map((topic) => {
-              const topicRecords = records.filter(
-                (record) => record.topicId === topic.id,
-              );
-              const coverage = Math.min(
-                100,
-                Math.round((topicRecords.length / topic.images.length) * 100),
-              );
-
-              return (
-                <div className="topic-coverage-row" key={topic.id}>
-                  <div>
-                    <strong>{topic.name}</strong>
-                    <span>
-                      {topicRecords.length}{" "}
-                      {topicRecords.length === 1 ? "attempt" : "attempts"}
-                    </span>
-                  </div>
-                  <div className="coverage-meter" aria-label={`${topic.name} coverage`}>
-                    <span style={{ width: `${coverage}%` }} />
-                  </div>
-                </div>
-              );
-            })}
+            {<div className="teacher-empty-panel">
+              <strong>Activity Coverage</strong>
+              <p>Coverage displays for published teacher materials.</p>
+            </div>}
           </div>
         </div>
 

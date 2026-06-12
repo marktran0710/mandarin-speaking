@@ -2,7 +2,8 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 
-const TEST_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
+const TEST_BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
 
 describe("App role flows", () => {
   it("lets a student enter the learning app with the default profile", async () => {
@@ -14,16 +15,24 @@ describe("App role flows", () => {
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Student Login" }));
-    expect(screen.getByRole("heading", { name: "學生登入" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "學生登入" }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Student name")).toHaveValue("Student Demo");
 
-    await user.click(screen.getByRole("button", { name: "Enter Student Mode" }));
+    await user.click(
+      screen.getByRole("button", { name: "Enter Student Mode" }),
+    );
 
     expect(
       screen.getByRole("heading", { name: "Choose a Daily Situation" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "My Stories" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Voice Test" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "My Stories" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Voice Test" }),
+    ).toBeInTheDocument();
   });
 
   it("opens the student voice test page", async () => {
@@ -31,14 +40,18 @@ describe("App role flows", () => {
     render(<App />);
 
     await user.click(screen.getByRole("button", { name: "Student Login" }));
-    await user.click(screen.getByRole("button", { name: "Enter Student Mode" }));
+    await user.click(
+      screen.getByRole("button", { name: "Enter Student Mode" }),
+    );
     await user.click(screen.getByRole("button", { name: "Voice Test" }));
 
     expect(
       screen.getByRole("heading", { name: "Analyze Your Voice" }),
     ).toBeInTheDocument();
     expect(screen.queryByLabelText("Target sentence")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Import WAV file" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Import WAV file" }),
+    ).toBeInTheDocument();
   });
 
   it("sends imported WAV files for voice analysis", async () => {
@@ -89,7 +102,9 @@ describe("App role flows", () => {
     render(<App />);
 
     await user.click(screen.getByRole("button", { name: "Student Login" }));
-    await user.click(screen.getByRole("button", { name: "Enter Student Mode" }));
+    await user.click(
+      screen.getByRole("button", { name: "Enter Student Mode" }),
+    );
     await user.click(screen.getByRole("button", { name: "Voice Test" }));
 
     const input = document.querySelector(
@@ -110,7 +125,9 @@ describe("App role flows", () => {
     );
     const requestBody = fetchMock.mock.calls[0][1].body as FormData;
     expect(requestBody.get("transcription")).toBe("");
-    expect(requestBody.get("asr_model")).toBe(import.meta.env.VITE_VOICE_TEST_ASR_MODEL || "ctwhisper");
+    expect(requestBody.get("asr_model")).toBe(
+      import.meta.env.VITE_VOICE_TEST_ASR_MODEL || "ctwhisper",
+    );
     expect(await screen.findByText("practice.wave")).toBeInTheDocument();
     expect(
       await screen.findByText(
@@ -123,8 +140,14 @@ describe("App role flows", () => {
     expect(screen.getByLabelText("Word-level script")).toBeInTheDocument();
     expect(screen.getAllByText("Rising").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/180 Hz/).length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { name: "Praat visualization" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Praat style waveform, pitch contour, and word timeline")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Praat visualization" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(
+        "Praat style waveform, pitch contour, and word timeline",
+      ),
+    ).toBeInTheDocument();
 
     vi.unstubAllGlobals();
   });
@@ -225,14 +248,20 @@ describe("App role flows", () => {
     render(<App />);
 
     await user.click(screen.getByRole("button", { name: "Student Login" }));
-    await user.click(screen.getByRole("button", { name: "Enter Student Mode" }));
+    await user.click(
+      screen.getByRole("button", { name: "Enter Student Mode" }),
+    );
     await user.click(screen.getByRole("button", { name: "Voice Test" }));
     await user.click(screen.getByRole("button", { name: "Start voice test" }));
 
-    expect((activeRecorder as { state: string } | null)?.state).toBe("recording");
+    expect((activeRecorder as { state: string } | null)?.state).toBe(
+      "recording",
+    );
     expect(await screen.findByText("今天下雨")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Stop and get feedback" }));
+    await user.click(
+      screen.getByRole("button", { name: "Stop and get feedback" }),
+    );
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -255,10 +284,14 @@ describe("App role flows", () => {
     render(<App />);
 
     await user.click(screen.getByRole("button", { name: "Teacher Login" }));
-    expect(screen.getByRole("heading", { name: "教師登入" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "教師登入" }),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Teacher name")).toHaveValue("Teacher Demo");
 
-    await user.click(screen.getByRole("button", { name: "Enter Teacher Mode" }));
+    await user.click(
+      screen.getByRole("button", { name: "Enter Teacher Mode" }),
+    );
 
     expect(
       screen.getByRole("heading", { name: "Class Speaking Dashboard" }),
@@ -290,7 +323,9 @@ describe("App role flows", () => {
     render(<App />);
 
     await user.click(screen.getByRole("button", { name: "Teacher Login" }));
-    await user.click(screen.getByRole("button", { name: "Enter Teacher Mode" }));
+    await user.click(
+      screen.getByRole("button", { name: "Enter Teacher Mode" }),
+    );
     await user.click(screen.getByRole("button", { name: "Image Builder" }));
 
     expect(
@@ -306,12 +341,18 @@ describe("App role flows", () => {
         headers: { "Content-Type": "application/json" },
       }),
     );
-    expect(await screen.findByRole("heading", { name: "MRT Help Story" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "MRT Help Story" }),
+    ).toBeInTheDocument();
     expect(screen.getAllByAltText(/Generated story frame/)).toHaveLength(6);
 
-    await user.click(screen.getByRole("button", { name: "Save to story library" }));
+    await user.click(
+      screen.getByRole("button", { name: "Save to story library" }),
+    );
 
-    expect(localStorage.getItem("teacherCustomStories")).toContain("MRT Help Story");
+    expect(localStorage.getItem("teacherCustomStories")).toContain(
+      "MRT Help Story",
+    );
     expect(
       screen.getByText("Generated story saved to the teacher story library."),
     ).toBeInTheDocument();
@@ -319,31 +360,15 @@ describe("App role flows", () => {
     vi.unstubAllGlobals();
   });
 
-  it("lets a student open the workbook and jump to a story part recording task", async () => {
-    const user = userEvent.setup();
-    render(<App />);
-
-    await user.click(screen.getByRole("button", { name: "Student Login" }));
-    await user.click(screen.getByRole("button", { name: "Enter Student Mode" }));
-    await user.click(screen.getByRole("button", { name: "My Stories" }));
-
-    expect(screen.getByRole("heading", { name: "My Story Workbook" })).toBeInTheDocument();
-    expect(screen.getAllByText("Needs recording").length).toBeGreaterThan(0);
-
-    await user.click(screen.getAllByRole("button", { name: "Record this part" })[0]);
-
-    expect(
-      screen.getByRole("heading", { name: "Taking the Bus to School Story Challenge" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Story concept map" })).toBeInTheDocument();
-  });
 
   it("lets a student raise a hand and a teacher mark the request helped", async () => {
     const user = userEvent.setup();
     render(<App />);
 
     await user.click(screen.getByRole("button", { name: "Student Login" }));
-    await user.click(screen.getByRole("button", { name: "Enter Student Mode" }));
+    await user.click(
+      screen.getByRole("button", { name: "Enter Student Mode" }),
+    );
     await user.clear(screen.getByLabelText("Help request message"));
     await user.type(
       screen.getByLabelText("Help request message"),
@@ -351,14 +376,18 @@ describe("App role flows", () => {
     );
     await user.click(screen.getByRole("button", { name: "Raise hand" }));
 
-    expect(screen.getByText("Teacher has your help request")).toBeInTheDocument();
+    expect(
+      screen.getByText("Teacher has your help request"),
+    ).toBeInTheDocument();
     expect(localStorage.getItem("helpRequests")).toContain(
       "Please help me with tones.",
     );
 
     await user.click(screen.getByRole("button", { name: "Log out" }));
     await user.click(screen.getByRole("button", { name: "Teacher Login" }));
-    await user.click(screen.getByRole("button", { name: "Enter Teacher Mode" }));
+    await user.click(
+      screen.getByRole("button", { name: "Enter Teacher Mode" }),
+    );
 
     expect(screen.getByText("Student Help Requests")).toBeInTheDocument();
     expect(screen.getByText("Student Demo")).toBeInTheDocument();

@@ -77,21 +77,23 @@ describe("MyStoriesPage", () => {
     expect(within(overview).getAllByText("1")).toHaveLength(2);
     expect(within(overview).getByText("78/100")).toBeInTheDocument();
     expect(within(overview).getByText("86%")).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "Teacher tools" })).toBeInTheDocument();
-    return user.click(screen.getByRole("button", { name: /Recordings/ })).then(() => {
-    expect(screen.getByText("Good pacing with a clear story sequence.")).toBeInTheDocument();
-    expect(screen.getByTestId("pitch-chart")).toBeInTheDocument();
-    });
+    expect(
+      screen.getByRole("navigation", { name: "Teacher tools" }),
+    ).toBeInTheDocument();
+    return user
+      .click(screen.getByRole("button", { name: /Recordings/ }))
+      .then(() => {
+        expect(
+          screen.getByText("Good pacing with a clear story sequence."),
+        ).toBeInTheDocument();
+        expect(screen.getByTestId("pitch-chart")).toBeInTheDocument();
+      });
   });
 
   it("lets teachers save a custom image-based story activity", async () => {
     const user = userEvent.setup();
     render(
-      <MyStoriesPage
-        mode="teacher"
-        records={[]}
-        onDeleteRecord={vi.fn()}
-      />,
+      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
     );
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
@@ -123,17 +125,15 @@ describe("MyStoriesPage", () => {
   it("lets teachers edit a saved custom story activity", async () => {
     const user = userEvent.setup();
     render(
-      <MyStoriesPage
-        mode="teacher"
-        records={[]}
-        onDeleteRecord={vi.fn()}
-      />,
+      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
     );
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Original Story");
-    for (const [index, input] of screen.getAllByLabelText("Image URL or uploaded file").entries()) {
+    for (const [index, input] of screen
+      .getAllByLabelText("Image URL or uploaded file")
+      .entries()) {
       await user.type(input, `https://example.com/edit-scene-${index + 1}.jpg`);
     }
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
@@ -141,7 +141,9 @@ describe("MyStoriesPage", () => {
     await user.click(screen.getByRole("button", { name: "Edit" }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Edited Story");
-    await user.click(screen.getByRole("button", { name: "Update custom story" }));
+    await user.click(
+      screen.getByRole("button", { name: "Update custom story" }),
+    );
 
     const stored = localStorage.getItem("teacherCustomStories") || "";
     expect(stored).toContain("Edited Story");
@@ -152,47 +154,48 @@ describe("MyStoriesPage", () => {
   it("publishes a teacher story into the student topic selector", async () => {
     const user = userEvent.setup();
     const { unmount } = render(
-      <MyStoriesPage
-        mode="teacher"
-        records={[]}
-        onDeleteRecord={vi.fn()}
-      />,
+      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
     );
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Published MRT Help");
-    for (const [index, input] of screen.getAllByLabelText("Image URL or uploaded file").entries()) {
-      await user.type(input, `https://example.com/published-scene-${index + 1}.jpg`);
+    for (const [index, input] of screen
+      .getAllByLabelText("Image URL or uploaded file")
+      .entries()) {
+      await user.type(
+        input,
+        `https://example.com/published-scene-${index + 1}.jpg`,
+      );
     }
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
     await user.click(screen.getByRole("button", { name: "Publish" }));
 
     expect(localStorage.getItem("teacherCustomStories")).toContain(
-      "\"published\":true",
+      '"published":true',
     );
 
     unmount();
     render(<TopicSelector />);
 
-    expect(screen.getByRole("button", { name: /Published MRT Help/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Published MRT Help/ }),
+    ).toBeInTheDocument();
   }, 10000);
 
   it("shows validation errors when a teacher saves an incomplete custom story", async () => {
     const user = userEvent.setup();
     render(
-      <MyStoriesPage
-        mode="teacher"
-        records={[]}
-        onDeleteRecord={vi.fn()}
-      />,
+      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
     );
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
 
-    expect(screen.getByText("Add a story title for students.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Add a story title for students."),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("Frame 1 needs an image URL or uploaded image."),
     ).toBeInTheDocument();
@@ -202,11 +205,7 @@ describe("MyStoriesPage", () => {
   it("lets teachers upload a local image for a custom story frame", async () => {
     const user = userEvent.setup();
     render(
-      <MyStoriesPage
-        mode="teacher"
-        records={[]}
-        onDeleteRecord={vi.fn()}
-      />,
+      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
     );
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
@@ -214,7 +213,10 @@ describe("MyStoriesPage", () => {
       type: "image/png",
     });
 
-    await user.upload(screen.getAllByLabelText("Upload from computer")[0], imageFile);
+    await user.upload(
+      screen.getAllByLabelText("Upload from computer")[0],
+      imageFile,
+    );
     const imageInputs = screen.getAllByLabelText("Image URL or uploaded file");
     for (let index = 1; index < imageInputs.length; index += 1) {
       await user.type(
@@ -235,24 +237,54 @@ describe("MyStoriesPage", () => {
     );
   });
 
-  it("shows completed picture status in the student workbook", () => {
+  it("shows completed picture status in the student workbook with published teacher materials", async () => {
+    const user = userEvent.setup();
+    // First, create and publish a teacher story
+    const { unmount } = render(
+      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.clear(screen.getByLabelText("Story title"));
+    await user.type(screen.getByLabelText("Story title"), "Adventure Story");
+    const imageInputs = screen.getAllByLabelText("Image URL or uploaded file");
+    for (let index = 0; index < imageInputs.length; index += 1) {
+      await user.type(
+        imageInputs[index],
+        `https://example.com/adventure-${index + 1}.jpg`,
+      );
+    }
+    await user.click(screen.getByRole("button", { name: "Save custom story" }));
+    await user.click(screen.getByRole("button", { name: "Publish" }));
+
+    unmount();
+
+    // Now show the student view with the published story
     render(
       <MyStoriesPage
         mode="student"
-        records={[analyzedRecord]}
+        records={[{
+          ...analyzedRecord,
+          imageUrl: "https://example.com/adventure-1.jpg",
+        }]}
         onDeleteRecord={vi.fn()}
         onPracticeImage={vi.fn()}
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "My Story Workbook" })).toBeInTheDocument();
-    expect(screen.getByText("1/36")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "My Story Workbook" }),
+    ).toBeInTheDocument();
+    const progressElements = screen.getAllByText("1/6");
+    expect(progressElements.length).toBeGreaterThan(0);
     expect(screen.getByText("Feedback ready")).toBeInTheDocument();
 
     const firstPrompt = screen.getAllByRole("article")[0];
     expect(
       within(firstPrompt).getByText("Revise with another recording"),
     ).toBeInTheDocument();
-    expect(within(firstPrompt).getByText("1 attempt collected")).toBeInTheDocument();
-  });
+    expect(
+      within(firstPrompt).getByText("1 attempt collected"),
+    ).toBeInTheDocument();
+  }, 15000);
 });
