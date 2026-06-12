@@ -16,6 +16,7 @@ interface Topic {
   skillFocus?: string;
   level?: string;
   images: string[];
+  prompts?: string[];
   vocabulary: Record<number, string[]>;
 }
 
@@ -101,6 +102,7 @@ interface StoryRecorderProps {
     imageIndex: number;
     praatMetrics: PraatMetrics;
   }) => void;
+  enableSorting?: boolean;
 }
 
 export default function StoryRecorder({
@@ -110,6 +112,7 @@ export default function StoryRecorder({
   onImageSelect,
   onImageChange,
   onAddRecord,
+  enableSorting = false,
 }: StoryRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -122,6 +125,16 @@ export default function StoryRecorder({
   const [praatMetrics, setPraatMetrics] = useState<PraatMetrics | null>(null);
   const [analysisAudioBlob, setAnalysisAudioBlob] = useState<Blob | null>(null);
   const [submittedAudioName, setSubmittedAudioName] = useState("");
+
+  // Sorting Challenge State
+  const [isChallengeSolved, setIsChallengeSolved] = useState(!enableSorting);
+  const [shuffledPool, setShuffledPool] = useState<string[]>([]);
+  const [placedImages, setPlacedImages] = useState<Array<string | null>>([]);
+  const [selectedPoolImage, setSelectedPoolImage] = useState<string | null>(null);
+  const [validationStates, setValidationStates] = useState<Array<"correct" | "incorrect" | null>>([]);
+  const [sortingFeedback, setSortingFeedback] = useState<string>("");
+  const [sortingAttempts, setSortingAttempts] = useState(0);
+
   const [conceptDraft, setConceptDraft] = useState<ConceptMapDraft>(
     createEmptyConceptMapDraft(),
   );
@@ -138,6 +151,35 @@ export default function StoryRecorder({
   const lastSpeechAtRef = useRef(0);
   const currentTranscriptRef = useRef("");
 
+  const shuffleImages = (images: string[]) => {
+    if (!images || images.length === 0) return [];
+    let scrambled = [...images];
+    // Fisher-Yates shuffle
+    for (let i = scrambled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [scrambled[i], scrambled[j]] = [scrambled[j], scrambled[i]];
+    }
+    // Swap first two if order is unchanged
+    const isSameOrder = scrambled.every((img, idx) => img === images[idx]);
+    if (isSameOrder && scrambled.length > 1) {
+      const temp = scrambled[0];
+      scrambled[0] = scrambled[1];
+      scrambled[1] = temp;
+    }
+    return scrambled;
+  };
+
+  useEffect(() => {
+    setIsChallengeSolved(!enableSorting);
+    setSelectedPoolImage(null);
+    setSortingFeedback("");
+    setSortingAttempts(0);
+    setValidationStates(new Array(topic.images.length).fill(null));
+    const pool = shuffleImages(topic.images);
+    setShuffledPool(pool);
+    setPlacedImages(new Array(topic.images.length).fill(null));
+  }, [topic.id, topic.images, enableSorting]);
+
   useEffect(() => {
     return () => {
       stopTracks();
@@ -148,6 +190,128 @@ export default function StoryRecorder({
   useEffect(() => {
     setConceptDraft(createEmptyConceptMapDraft());
   }, [selectedImageIndex, topic.id]);
+
+  // Sorting Challenge Handlers
+  const handleDragStart = (e: React.DragEvent, image: string, source: "pool" | "slot", index?: number) => {
+    e.dataTransfer.setData("text/plain", JSON.stringify({ image, source, index }));
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const placePoolImageInSlot = (image: string, targetIndex: number) => {
+    setPlacedImages((prev) => {
+      const next = [...prev];
+      const existingImage = next[targetIndex];
+      next[targetIndex] = image;
+      
+      setShuffledPool((pool) => {
+        let nextPool = pool.filter((img) => img !== image);
+        if (existingImage) {
+          nextPool.push(existingImage);
+        }
+        return nextPool;
+      });
+
+      return next;
+    });
+    setSelectedPoolImage(null);
+    setValidationStates(new Array(topic.images.length).fill(null));
+    setSortingFeedback("");
+  };
+
+  const swapSlots = (sourceIndex: number, targetIndex: number) => {
+    setPlacedImages((prev) => {
+      const next = [...prev];
+      const temp = next[targetIndex];
+      next[targetIndex] = next[sourceIndex];
+      next[sourceIndex] = temp;
+      return next;
+    });
+    setValidationStates(new Array(topic.images.length).fill(null));
+    setSortingFeedback("");
+  };
+
+  const removeImageFromSlot = (slotIndex: number) => {
+    const image = placedImages[slotIndex];
+    if (!image) return;
+
+    setPlacedImages((prev) => {
+      const next = [...prev];
+      next[slotIndex] = null;
+      return next;
+    });
+
+    setShuffledPool((pool) => [...pool, image]);
+    setSelectedPoolImage(null);
+    setValidationStates(new Array(topic.images.length).fill(null));
+    setSortingFeedback("");
+  };
+
+  const handleDropToSlot = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    try {
+      const dataStr = e.dataTransfer.getData("text/plain");
+      if (!dataStr) return;
+      const data = JSON.parse(dataStr);
+      const { image, source, index: sourceIndex } = data;
+
+      if (source === "pool") {
+        placePoolImageInSlot(image, targetIndex);
+      } else if (source === "slot" && sourceIndex !== undefined) {
+        swapSlots(sourceIndex, targetIndex);
+      }
+    } catch (err) {
+      console.error("Drop to slot failed", err);
+    }
+  };
+
+  const handleDropToPool = (e: React.DragEvent) => {
+    e.preventDefault();
+    try {
+      const dataStr = e.dataTransfer.getData("text/plain");
+      if (!dataStr) return;
+      const data = JSON.parse(dataStr);
+      const { image, source, index: sourceIndex } = data;
+
+      if (source === "slot" && sourceIndex !== undefined) {
+        removeImageFromSlot(sourceIndex);
+      }
+    } catch (err) {
+      console.error("Drop to pool failed", err);
+    }
+  };
+
+  const checkSequence = () => {
+    const isAnySlotEmpty = placedImages.some((img) => img === null);
+    if (isAnySlotEmpty) {
+      setSortingFeedback("Please place all pictures into the scenes before checking!");
+      return;
+    }
+
+    const nextValidationStates = placedImages.map((image, index) => {
+      return image === topic.images[index] ? "correct" : "incorrect";
+    });
+    setValidationStates(nextValidationStates);
+
+    const isAllCorrect = nextValidationStates.every((state) => state === "correct");
+    setSortingAttempts((prev) => prev + 1);
+
+    if (isAllCorrect) {
+      setSortingFeedback("Spot on! Excellent job. You have arranged the scenes in the correct order!");
+    } else {
+      setSortingFeedback("Some pictures are not in the correct sequence. Check the red highlighted scenes and try again!");
+    }
+  };
+
+  const resetSorting = () => {
+    setPlacedImages(new Array(topic.images.length).fill(null));
+    setShuffledPool([...topic.images]);
+    setSelectedPoolImage(null);
+    setValidationStates(new Array(topic.images.length).fill(null));
+    setSortingFeedback("");
+  };
 
   const clearTimers = () => {
     if (silenceTimerRef.current) {
@@ -557,7 +721,168 @@ export default function StoryRecorder({
 
   return (
     <div className="story-recorder">
-      <section className="student-flow-board" aria-label="Student practice flow">
+      {!isChallengeSolved ? (
+        <section className="sorting-challenge-container">
+          <div className="sorting-instructions">
+            <p className="eyebrow">Interactive Challenge</p>
+            <h1>Arrange the Story Scenes</h1>
+            <p className="subtitle">
+              Drag and drop (or click to select and place) each picture to match the suitable scene description. Complete the sequence to unlock the speaking practice!
+            </p>
+            
+            {sortingFeedback && (
+              <div className={`sorting-feedback-banner ${sortingFeedback.includes("Spot on") ? "success" : "info"}`}>
+                <span className="feedback-icon">
+                  {sortingFeedback.includes("Spot on") ? "🎉" : "💡"}
+                </span>
+                <p>{sortingFeedback}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="sorting-slots-grid">
+            {placedImages.map((image, index) => {
+              const validation = validationStates[index];
+              const scenePrompt = topic.prompts?.[index] || `Describe the events for scene ${index + 1}.`;
+              
+              return (
+                <div 
+                  key={`slot-${index}`}
+                  className={`sorting-slot-card ${validation || ""} ${selectedPoolImage ? "droppable" : ""}`}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDropToSlot(e, index)}
+                  onClick={() => {
+                    if (selectedPoolImage) {
+                      placePoolImageInSlot(selectedPoolImage, index);
+                    } else if (image) {
+                      removeImageFromSlot(index);
+                    }
+                  }}
+                >
+                  <div className="slot-header">
+                    <span className="slot-number">Scene {index + 1}</span>
+                    {validation === "correct" && <span className="slot-badge correct">✓ Correct</span>}
+                    {validation === "incorrect" && <span className="slot-badge incorrect">✗ Check again</span>}
+                  </div>
+                  
+                  <div className="slot-body">
+                    {image ? (
+                      <div className="slot-image-wrapper">
+                        <img 
+                          src={image} 
+                          alt={`Placed scene ${index + 1}`} 
+                          draggable 
+                          onDragStart={(e) => handleDragStart(e, image, "slot", index)} 
+                        />
+                        <button 
+                          type="button" 
+                          className="remove-slot-image" 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeImageFromSlot(index);
+                          }}
+                          aria-label="Remove image"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="slot-placeholder">
+                        <span className="placeholder-icon">🖼️</span>
+                        <span className="placeholder-text">Drag picture here</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="slot-footer">
+                    <p className="slot-prompt">{scenePrompt}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="sorting-pool-section">
+            <h2>Available Pictures</h2>
+            <p className="pool-helper-text">
+              {selectedPoolImage 
+                ? "Now click on a Scene slot above to place this picture." 
+                : "Drag a picture to a slot above, or click a picture and then click a slot."}
+            </p>
+            
+            <div 
+              className="sorting-pool"
+              onDragOver={handleDragOver}
+              onDrop={handleDropToPool}
+            >
+              {shuffledPool.length === 0 ? (
+                <div className="pool-empty-state">
+                  <span className="star-icon">✨</span>
+                  <p>All pictures placed! Click <strong>Verify Sequence</strong> below to check your answer.</p>
+                </div>
+              ) : (
+                shuffledPool.map((image) => (
+                  <div 
+                    key={image}
+                    className={`sorting-pool-card ${selectedPoolImage === image ? "selected" : ""}`}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, image, "pool")}
+                    onClick={() => {
+                      if (selectedPoolImage === image) {
+                        setSelectedPoolImage(null);
+                      } else {
+                        setSelectedPoolImage(image);
+                      }
+                    }}
+                  >
+                    <img src={image} alt="Story piece to sort" />
+                    <span className="drag-handle">:: Drag or Click</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="sorting-actions">
+            <button 
+              type="button" 
+              className="btn-reset-sorting"
+              onClick={resetSorting}
+            >
+              Reset Board
+            </button>
+            
+            {validationStates.some((s) => s === "correct") && !validationStates.includes("incorrect") && placedImages.every(img => img !== null) ? (
+              <button 
+                type="button" 
+                className="btn-start-speaking active-success"
+                onClick={() => setIsChallengeSolved(true)}
+              >
+                Begin Speaking Practice 🎉
+              </button>
+            ) : (
+              <button 
+                type="button" 
+                className="btn-verify-sorting"
+                onClick={checkSequence}
+                disabled={placedImages.some(img => img === null)}
+              >
+                Verify Sequence
+              </button>
+            )}
+            
+            <button 
+              type="button" 
+              className="btn-skip-sorting"
+              onClick={() => setIsChallengeSolved(true)}
+            >
+              Skip Challenge
+            </button>
+          </div>
+        </section>
+      ) : (
+        <>
+          <section className="student-flow-board" aria-label="Student practice flow">
         <div className="flow-step completed">
           <span>1</span>
           <strong>Look</strong>
@@ -1138,6 +1463,8 @@ export default function StoryRecorder({
           ))
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

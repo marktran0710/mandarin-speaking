@@ -72,6 +72,7 @@ export default function CreateStoryPage({
             onImageSelect={setSelectedImageIndex}
             onImageChange={(image) => setSelectedImage(image)}
             onAddRecord={onAddRecord}
+            enableSorting={true}
           />
         </div>
       )}

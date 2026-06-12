@@ -61,6 +61,7 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
     skillFocus: "Teacher published activity",
     level: story.level,
     images: story.frames.map((frame) => frame.imageUrl),
+    prompts: story.frames.map((frame) => frame.prompt),
     vocabulary,
   };
 }

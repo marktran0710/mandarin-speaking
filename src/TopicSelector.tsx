@@ -9,6 +9,7 @@ export interface Topic {
   skillFocus: string;
   level: string;
   images: string[];
+  prompts?: string[];
   vocabulary: Record<number, string[]>;
 }
 

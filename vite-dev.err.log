@@ -1,0 +1,275 @@
+[2m10:32:54 AM[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\hautran\Lab\mandarin-speaking\src\pages\MyStoriesPage.tsx: Expected corresponding JSX closing tag for <div>. (1138:8)
+
+[0m [90m 1136 |[31m             )}
+ [90m 1137 |[31m           [33m<[31m[33m/[31m[33mdiv[31m[33m>[31m
+[31m[1m>[22m[31m[90m 1138 |[31m         [33m<[31m[33m/[31m[33msection[31m[33m>[31m
+ [90m      |[31m         [31m[1m^[22m[31m
+ [90m 1139 |[31m       )}
+ [90m 1140 |[31m
+ [90m 1141 |[31m       {activeView [33m===[31m [32m"recordings"[31m [33m&&[31m ([0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/hautran/Lab/mandarin-speaking/src/pages/MyStoriesPage.tsx[39m:1138:8
+[33m  1136|              )}
+  1137|            </div>
+  1138|          </section>
+     |          ^
+  1139|        )}
+  1140|  [39m
+      at constructor (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4739:16)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4710:32)
+      at TypeScriptParserMixin.jsxParseElement (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4771:19)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10848:21)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9792:39
+      at TypeScriptParserMixin.tryParse (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:6924:20)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9792:18)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10817:39
+      at TypeScriptParserMixin.allowInAnd (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseMaybeAssignAllowIn (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10817:17)
+      at TypeScriptParserMixin.parseMaybeAssignAllowInOrVoidPattern (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12510:17)
+      at TypeScriptParserMixin.parseParenAndDistinguishExpression (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11692:28)
+      at TypeScriptParserMixin.parseExprAtom (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11348:23)
+      at TypeScriptParserMixin.parseExprAtom (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4776:20)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOpBaseRightExpr (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11003:34)
+      at TypeScriptParserMixin.parseExprOpRightExpr (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10998:21)
+      at TypeScriptParserMixin.parseExprOp (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10964:27)
+      at TypeScriptParserMixin.parseExprOp (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOp (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10970:21)
+      at TypeScriptParserMixin.parseExprOp (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9323:18)
+      at TypeScriptParserMixin.parseExprOps (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10925:17)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10848:21)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9803:20)
+      at TypeScriptParserMixin.parseExpressionBase (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10801:23)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12443:12)
+      at TypeScriptParserMixin.parseExpression (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.jsxParseExpressionContainer (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4644:31)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4723:36)
+      at TypeScriptParserMixin.jsxParseElement (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4771:19)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11063:23)
+[2m11:17:07 AM[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\hautran\Lab\mandarin-speaking\src\TopicSelector.tsx: Unexpected token (21:1)
+
+[0m [90m 19 |[31m }
+ [90m 20 |[31m
+[31m[1m>[22m[31m[90m 21 |[31m [33m<<[31m[33m<<[31m[33m<<[31m[33m<[31m [33mHEAD[31m
+ [90m    |[31m  [31m[1m^[22m[31m
+ [90m 22 |[31m [36mexport[31m [36mconst[31m [33mTOPICS[31m[33m:[31m [33mTopic[31m[] [33m=[31m [][33m;[31m
+ [90m 23 |[31m
+ [90m 24 |[31m [36mexport[31m [36mfunction[31m getTopicVocabulary(topic[33m:[31m [33mTopic[31m[33m,[31m imageIndex[33m:[31m number)[33m:[31m string[] {[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/hautran/Lab/mandarin-speaking/src/TopicSelector.tsx[39m:21:1
+[33m  20 |  
+  21 |  <<<<<<< HEAD
+  22 |  export const TOPICS: Topic[] = [];
+     |          ^
+  23 |  
+  24 |  export function getTopicVocabulary(topic: Topic, imageIndex: number): string[] {[39m
+      at constructor (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.jsxParseIdentifier (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4581:12)
+      at TypeScriptParserMixin.jsxParseNamespacedName (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4588:23)
+      at TypeScriptParserMixin.jsxParseElementName (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4597:21)
+      at TypeScriptParserMixin.jsxParseOpeningElementAt (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4673:22)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4698:33)
+      at TypeScriptParserMixin.jsxParseElement (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4774:19)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10848:21)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9792:39
+      at TypeScriptParserMixin.tryParse (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:6924:20)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9792:18)
+      at TypeScriptParserMixin.parseExpressionBase (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10801:23)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseExpression (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseStatementContent (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12912:23)
+      at TypeScriptParserMixin.parseStatementContent (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:261:32)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:223:11)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:189:28
+      at D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+      at D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:113:33
+[2m11:17:07 AM[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\hautran\Lab\mandarin-speaking\src\pages\CreateStoryPage.tsx: Unexpected token (2:1)
+
+[0m [90m 1 |[31m [36mimport[31m { useState } [36mfrom[31m [32m"react"[31m[33m;[31m
+[31m[1m>[22m[31m[90m 2 |[31m [33m<<[31m[33m<<[31m[33m<<[31m[33m<[31m [33mHEAD[31m
+ [90m   |[31m  [31m[1m^[22m[31m
+ [90m 3 |[31m [36mimport[31m [33mTopicSelector[31m [36mfrom[31m [32m"../TopicSelector"[31m[33m;[31m
+ [90m 4 |[31m [33m===[31m[33m===[31m[33m=[31m
+ [90m 5 |[31m [36mimport[31m [33mTopicSelector[31m[33m,[31m { getPublishedTopics[33m,[31m type [33mTopic[31m } [36mfrom[31m [32m"../TopicSelector"[31m[33m;[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/hautran/Lab/mandarin-speaking/src/pages/CreateStoryPage.tsx[39m:2:1
+[33m  1  |  import { useState } from "react";
+  2  |  <<<<<<< HEAD
+     |    ^
+  3  |  import TopicSelector from "../TopicSelector";
+  4  |  =======[39m
+      at constructor (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.jsxParseIdentifier (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4581:12)
+      at TypeScriptParserMixin.jsxParseNamespacedName (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4588:23)
+      at TypeScriptParserMixin.jsxParseElementName (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4597:21)
+      at TypeScriptParserMixin.jsxParseOpeningElementAt (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4673:22)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4698:33)
+      at TypeScriptParserMixin.jsxParseElement (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4771:19)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10848:21)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9792:39
+      at TypeScriptParserMixin.tryParse (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:6924:20)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9792:18)
+      at TypeScriptParserMixin.parseExpressionBase (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10801:23)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseExpression (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseStatementContent (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12912:23)
+      at TypeScriptParserMixin.parseStatementContent (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:261:32)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:223:11)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:189:28
+      at D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+      at D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:113:33
+[2m11:17:07 AM[22m [31m[1m[vite][22m[39m Pre-transform error: D:\hautran\Lab\mandarin-speaking\src\TopicSelector.tsx: Unexpected token (21:1)
+
+[0m [90m 19 |[39m }
+ [90m 20 |[39m
+[31m[1m>[22m[39m[90m 21 |[39m [33m<<[39m[33m<<[39m[33m<<[39m[33m<[39m [33mHEAD[39m
+ [90m    |[39m  [31m[1m^[22m[39m
+ [90m 22 |[39m [36mexport[39m [36mconst[39m [33mTOPICS[39m[33m:[39m [33mTopic[39m[] [33m=[39m [][33m;[39m
+ [90m 23 |[39m
+ [90m 24 |[39m [36mexport[39m [36mfunction[39m getTopicVocabulary(topic[33m:[39m [33mTopic[39m[33m,[39m imageIndex[33m:[39m number)[33m:[39m string[] {[0m
+[2m11:17:07 AM[22m [31m[1m[vite][22m[39m [31mInternal server error: D:\hautran\Lab\mandarin-speaking\src\pages\MyStoriesPage.tsx: Unexpected token (3:1)
+
+[0m [90m 1 |[31m [36mimport[31m { useEffect[33m,[31m useState } [36mfrom[31m [32m"react"[31m[33m;[31m
+ [90m 2 |[31m [36mimport[31m [33mPitchChart[31m [36mfrom[31m [32m"../PitchChart"[31m[33m;[31m
+[31m[1m>[22m[31m[90m 3 |[31m [33m<<[31m[33m<<[31m[33m<<[31m[33m<[31m [33mHEAD[31m
+ [90m   |[31m  [31m[1m^[22m[31m
+ [90m 4 |[31m [36mimport[31m { getTopicVocabulary } [36mfrom[31m [32m"../TopicSelector"[31m[33m;[31m
+ [90m 5 |[31m [36mimport[31m {
+ [90m 6 |[31m   canUseDatabase[33m,[31m[0m[39m
+  Plugin: [35mvite:react-babel[39m
+  File: [36mD:/hautran/Lab/mandarin-speaking/src/pages/MyStoriesPage.tsx[39m:3:1
+[33m  1  |  import { useEffect, useState } from "react";
+  2  |  import PitchChart from "../PitchChart";
+  3  |  <<<<<<< HEAD
+     |     ^
+  4  |  import { getTopicVocabulary } from "../TopicSelector";
+  5  |  import {[39m
+      at constructor (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:365:19)
+      at TypeScriptParserMixin.raise (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:6616:19)
+      at TypeScriptParserMixin.unexpected (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:6636:16)
+      at TypeScriptParserMixin.jsxParseIdentifier (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4581:12)
+      at TypeScriptParserMixin.jsxParseNamespacedName (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4588:23)
+      at TypeScriptParserMixin.jsxParseElementName (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4597:21)
+      at TypeScriptParserMixin.jsxParseOpeningElementAt (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4673:22)
+      at TypeScriptParserMixin.jsxParseElementAt (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4698:33)
+      at TypeScriptParserMixin.jsxParseElement (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4761:17)
+      at TypeScriptParserMixin.parseExprAtom (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:4771:19)
+      at TypeScriptParserMixin.parseExprSubscripts (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11098:23)
+      at TypeScriptParserMixin.parseUpdate (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11083:21)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:11063:23)
+      at TypeScriptParserMixin.parseMaybeUnary (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9854:18)
+      at TypeScriptParserMixin.parseMaybeUnaryOrPrivate (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10916:61)
+      at TypeScriptParserMixin.parseExprOps (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10921:23)
+      at TypeScriptParserMixin.parseMaybeConditional (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10898:23)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10848:21)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9792:39
+      at TypeScriptParserMixin.tryParse (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:6924:20)
+      at TypeScriptParserMixin.parseMaybeAssign (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9792:18)
+      at TypeScriptParserMixin.parseExpressionBase (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10801:23)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10797:39
+      at TypeScriptParserMixin.allowInAnd (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12438:16)
+      at TypeScriptParserMixin.parseExpression (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10797:17)
+      at TypeScriptParserMixin.parseStatementContent (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12912:23)
+      at TypeScriptParserMixin.parseStatementContent (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:9525:18)
+      at TypeScriptParserMixin.parseStatementLike (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12784:17)
+      at TypeScriptParserMixin.parseModuleItem (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12761:17)
+      at TypeScriptParserMixin.parseBlockOrModuleBlockBody (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:13333:36)
+      at TypeScriptParserMixin.parseBlockBody (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:13326:10)
+      at TypeScriptParserMixin.parseProgram (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12639:10)
+      at TypeScriptParserMixin.parseTopLevel (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:12629:25)
+      at TypeScriptParserMixin.parse (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:14505:25)
+      at TypeScriptParserMixin.parse (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:10143:18)
+      at parse (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\parser\lib\index.js:14539:38)
+      at parser (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\parser\index.js:41:34)
+      at parser.next (<anonymous>)
+      at normalizeFile (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\transformation\normalize-file.js:64:37)
+      at normalizeFile.next (<anonymous>)
+      at run (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\transformation\index.js:22:50)
+      at run.next (<anonymous>)
+      at transform (D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\transform.js:22:33)
+      at transform.next (<anonymous>)
+      at step (D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:261:32)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:273:13
+      at async.call.result.err.err (D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:223:11)
+      at D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:189:28
+      at D:\hautran\Lab\mandarin-speaking\node_modules\@babel\core\lib\gensync-utils\async.js:67:7
+      at D:\hautran\Lab\mandarin-speaking\node_modules\gensync\index.js:113:33

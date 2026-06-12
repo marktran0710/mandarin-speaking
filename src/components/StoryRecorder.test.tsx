@@ -17,6 +17,7 @@ const topic = {
   skillFocus: "Story connectors",
   level: "Beginner",
   images: ["https://example.com/market-1.jpg", "https://example.com/market-2.jpg"],
+  prompts: ["First prompt", "Second prompt"],
   vocabulary: {
     0: ["market", "help", "friend"],
     1: ["rain", "umbrella"],
@@ -287,6 +288,38 @@ describe("StoryRecorder student prototype", () => {
         model: "vibevoice",
       }),
     );
+  });
+
+  it("shows the sorting challenge when enableSorting is true and allows skipping it", async () => {
+    const onAddRecord = vi.fn();
+    const user = userEvent.setup();
+
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={onAddRecord}
+        enableSorting={true}
+      />,
+    );
+
+    // Verify sorting challenge is shown
+    expect(screen.getByText("Arrange the Story Scenes")).toBeInTheDocument();
+    expect(screen.queryByText("Recording options")).not.toBeInTheDocument();
+
+    // Verify prompts are rendered as hints
+    expect(screen.getByText("First prompt")).toBeInTheDocument();
+    expect(screen.getByText("Second prompt")).toBeInTheDocument();
+
+    // Click Skip Challenge to unlock standard UI
+    await user.click(screen.getByRole("button", { name: "Skip Challenge" }));
+
+    // Verify it unlocks the standard recording UI
+    expect(screen.queryByText("Arrange the Story Scenes")).not.toBeInTheDocument();
+    expect(screen.getByText("Recording options")).toBeInTheDocument();
   });
 });
 
