@@ -1,17 +1,16 @@
-import { useEffect, useState } from "react";
-import TopicSelector from "../TopicSelector";
+import { useState } from "react";
+import TopicSelector, { TOPICS } from "../TopicSelector";
 import StoryRecorder from "../components/StoryRecorder";
-import { canUseDatabase, listCustomStories } from "../database";
-import {
-  loadPublishedTeacherTopics,
-  publishedStoriesToTopics,
-} from "../utils/teacherStories";
+import { HelpRequest } from "../database";
+import { loadPublishedTeacherTopics } from "../utils/teacherStories";
 import "./CreateStoryPage.css";
 
 interface CreateStoryPageProps {
   onAddRecord: (record: any) => void;
   initialTopicId?: string;
   initialImageIndex?: number;
+  helpRequests?: HelpRequest[];
+  onRaiseHand?: (message: string) => void;
 }
 
 interface Topic {
@@ -26,8 +25,10 @@ export default function CreateStoryPage({
   onAddRecord,
   initialTopicId,
   initialImageIndex = 0,
+  helpRequests = [],
+  onRaiseHand,
 }: CreateStoryPageProps) {
-  const topics = canUseDatabase() ? [] : loadPublishedTeacherTopics();
+  const topics = [...TOPICS, ...loadPublishedTeacherTopics()];
   const initialTopic =
     topics.find((topic) => topic.id === initialTopicId) || null;
   const safeInitialIndex = initialTopic
@@ -41,31 +42,6 @@ export default function CreateStoryPage({
   );
   const [selectedImageIndex, setSelectedImageIndex] =
     useState<number>(safeInitialIndex);
-
-  useEffect(() => {
-    if (!initialTopicId || !canUseDatabase()) {
-      return;
-    }
-
-    listCustomStories()
-      .then((stories) => {
-        const topic = publishedStoriesToTopics(stories).find(
-          (item) => item.id === initialTopicId,
-        );
-
-        if (!topic) {
-          return;
-        }
-
-        const imageIndex = Math.min(initialImageIndex, topic.images.length - 1);
-        setSelectedTopic(topic);
-        setSelectedImage(topic.images[imageIndex] || "");
-        setSelectedImageIndex(imageIndex);
-      })
-      .catch((error) => {
-        console.error("Failed to load selected teacher topic:", error);
-      });
-  }, [initialImageIndex, initialTopicId]);
 
   const handleTopicSelect = (topic: Topic) => {
     setSelectedTopic(topic);
@@ -81,6 +57,10 @@ export default function CreateStoryPage({
 
   return (
     <div className="create-story-page">
+      <StudentHelpPanel
+        helpRequests={helpRequests}
+        onRaiseHand={onRaiseHand}
+      />
       {!selectedTopic ? (
         <TopicSelector onTopicSelect={handleTopicSelect} />
       ) : (
@@ -100,4 +80,66 @@ export default function CreateStoryPage({
       )}
     </div>
   );
+}
+
+function StudentHelpPanel({
+  helpRequests,
+  onRaiseHand,
+}: {
+  helpRequests: HelpRequest[];
+  onRaiseHand?: (message: string) => void;
+}) {
+  const [message, setMessage] = useState("I need help with my story.");
+  const studentName = getStudentName();
+  const activeRequest = helpRequests.find(
+    (request) =>
+      request.studentName === studentName && request.status === "open",
+  );
+
+  return (
+    <section className="student-help-panel" aria-label="Ask teacher for help">
+      <div>
+        <span className="student-help-icon" aria-hidden="true">
+          ?
+        </span>
+        <div>
+          <strong>
+            {activeRequest ? "Teacher has your help request" : "Need teacher help?"}
+          </strong>
+          <p>
+            {activeRequest
+              ? "Stay on your task. Your teacher can see this request."
+              : "Raise your hand from here and your teacher will see it on the dashboard."}
+          </p>
+        </div>
+      </div>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          onRaiseHand?.(message);
+        }}
+      >
+        <input
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          aria-label="Help request message"
+          placeholder="What do you need help with?"
+        />
+        <button type="submit" disabled={!onRaiseHand}>
+          {activeRequest ? "Update request" : "Raise hand"}
+        </button>
+      </form>
+    </section>
+  );
+}
+
+function getStudentName() {
+  try {
+    const session = JSON.parse(localStorage.getItem("studentSession") || "{}");
+    return typeof session.name === "string" && session.name.trim()
+      ? session.name.trim()
+      : "Student";
+  } catch {
+    return "Student";
+  }
 }

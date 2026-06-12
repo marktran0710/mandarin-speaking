@@ -1,4 +1,4 @@
-﻿import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import PitchChart from "../PitchChart";
 import PraatTimeline from "./PraatTimeline";
 import "./StoryRecorder.css";
@@ -17,7 +17,6 @@ interface Topic {
   level?: string;
   images: string[];
   vocabulary: Record<number, string[]>;
-  conceptMaps?: Record<number, Partial<ConceptMapDraft>>;
 }
 
 interface PraatMetrics {
@@ -147,7 +146,7 @@ export default function StoryRecorder({
   }, []);
 
   useEffect(() => {
-    setConceptDraft(createConceptMapDraft(topic, selectedImageIndex));
+    setConceptDraft(createEmptyConceptMapDraft());
   }, [selectedImageIndex, topic.id]);
 
   const clearTimers = () => {
@@ -490,20 +489,19 @@ export default function StoryRecorder({
 
   const isBusy = isRecording || isTranscribing || isAnalyzing;
   const selectedVocabulary = topic.vocabulary[selectedImageIndex] || [];
-  const teacherConceptMap = topic.conceptMaps?.[selectedImageIndex] || {};
   const conceptMapText = buildConceptMapText(conceptDraft);
   const practiceAnalysisText =
     conceptMapText || buildPracticeAnalysisText(selectedVocabulary);
   const hasWordProsody = Boolean(praatMetrics?.word_prosody?.length);
   const modelExampleText =
-    currentTranscriptRef.current || practiceAnalysisText || "Today I am at school and I help a friend.";
-  const storyConnectors = ["first", "then", "because", "so", "finally"];
+    currentTranscriptRef.current || practiceAnalysisText || "今天下雨，所以我帶傘。";
+  const storyConnectors = ["一開始", "然後", "因為", "所以", "突然", "最後"];
   const sentenceStarters = [
-    "First,",
-    "Then,",
-    "Because",
-    "So",
-    "Finally,",
+    "一開始，",
+    "他們在",
+    "然後，",
+    "突然，",
+    "最後，",
   ];
   const recordingStatus = isRecording
     ? "Recording in progress"
@@ -680,43 +678,43 @@ export default function StoryRecorder({
           <p className="eyebrow">Quick plan</p>
           <h2>Plan this picture cue</h2>
           <p>
-            Fill the missing ideas first. If your teacher prepared a layout,
-            use it to build one clear story sentence before recording.
+            Fill the first three boxes, then record. Vocabulary and connectors
+            are optional helpers when the student is ready.
           </p>
         </div>
 
         <div className="concept-map">
           <label className="concept-node character">
             <span>Characters</span>
-            <strong>隤? Who?</strong>
+            <strong>誰? Who?</strong>
             <textarea
               value={conceptDraft.characters}
               onChange={(event) =>
                 updateConceptDraft("characters", event.target.value)
               }
-              placeholder={getConceptPlaceholder(teacherConceptMap, "characters", "Example: student, teacher, friend")}
+              placeholder="例：學生、老師、朋友"
               rows={3}
             />
           </label>
           <label className="concept-node scene">
             <span>Place</span>
-            <strong>?典鋆? Where?</strong>
+            <strong>在哪裡? Where?</strong>
             <textarea
               value={conceptDraft.place}
               onChange={(event) => updateConceptDraft("place", event.target.value)}
-              placeholder={getConceptPlaceholder(teacherConceptMap, "place", "Example: school, market, park")}
+              placeholder="例：學校、市場、公園"
               rows={3}
             />
           </label>
           <label className="concept-node event">
             <span>Actions</span>
-            <strong>??暻? What happens?</strong>
+            <strong>做什麼? What happens?</strong>
             <textarea
               value={conceptDraft.actions}
               onChange={(event) =>
                 updateConceptDraft("actions", event.target.value)
               }
-              placeholder={getConceptPlaceholder(teacherConceptMap, "actions", "Example: sees, helps, walks together")}
+              placeholder="例：看見、幫忙、一起走"
               rows={3}
             />
           </label>
@@ -728,7 +726,7 @@ export default function StoryRecorder({
               onChange={(event) =>
                 updateConceptDraft("vocabulary", event.target.value)
               }
-              placeholder={getConceptPlaceholder(teacherConceptMap, "vocabulary", "Click words below or type your own")}
+              placeholder="Click words below or type your own"
               rows={3}
             />
           </label>
@@ -740,7 +738,7 @@ export default function StoryRecorder({
               onChange={(event) =>
                 updateConceptDraft("connectors", event.target.value)
               }
-              placeholder={getConceptPlaceholder(teacherConceptMap, "connectors", "Example: then, because, so, finally")}
+              placeholder="例：然後、因為、所以、最後"
               rows={3}
             />
           </label>
@@ -752,7 +750,7 @@ export default function StoryRecorder({
               onChange={(event) =>
                 updateConceptDraft("fullStory", event.target.value)
               }
-              placeholder={getConceptPlaceholder(teacherConceptMap, "fullStory", "Example: First, the student is at the market. Then, the student helps a friend.")}
+              placeholder="例：一開始，學生在市場看見一位老人。然後，他幫老人拿東西。最後，他們一起回家。"
               rows={5}
             />
           </label>
@@ -846,7 +844,7 @@ export default function StoryRecorder({
 
         <div className="sentence-starters" hidden>
           <span>Starter phrases</span>
-          <p>銝??... / ?嗅?... / ?... / ?隞?.. / ?敺?..</p>
+          <p>一開始... / 然後... / 因為... / 所以... / 最後...</p>
         </div>
       </section>
 
@@ -1198,33 +1196,6 @@ function createEmptyConceptMapDraft(): ConceptMapDraft {
   };
 }
 
-function createConceptMapDraft(topic: Topic, imageIndex: number): ConceptMapDraft {
-  const scaffold = topic.conceptMaps?.[imageIndex] || {};
-
-  return {
-    characters: getScaffoldValue(scaffold.characters),
-    place: getScaffoldValue(scaffold.place),
-    actions: getScaffoldValue(scaffold.actions),
-    vocabulary: getScaffoldValue(scaffold.vocabulary),
-    connectors: getScaffoldValue(scaffold.connectors),
-    fullStory: getScaffoldValue(scaffold.fullStory),
-  };
-}
-
-function getScaffoldValue(value?: string): string {
-  const cleanValue = value?.trim() || "";
-  return cleanValue.includes("___") ? "" : cleanValue;
-}
-
-function getConceptPlaceholder(
-  scaffold: Partial<ConceptMapDraft>,
-  field: keyof ConceptMapDraft,
-  fallback: string,
-): string {
-  const value = scaffold[field]?.trim();
-  return value || fallback;
-}
-
 function buildConceptMapText(draft: ConceptMapDraft): string {
   const fullStory = draft.fullStory.trim();
   if (fullStory) {
@@ -1244,24 +1215,25 @@ function buildConceptMapText(draft: ConceptMapDraft): string {
 }
 
 function buildSuggestedStory(draft: ConceptMapDraft): string {
-  const characters = draft.characters.trim() || "someone";
-  const place = draft.place.trim() || "a familiar place";
-  const actions = draft.actions.trim() || "does something helpful";
+  const characters = draft.characters.trim() || "學生";
+  const place = draft.place.trim() || "學校";
+  const actions = draft.actions.trim() || "看見一件事情";
   const vocabulary = draft.vocabulary.trim();
-  const connectors = draft.connectors.trim() || "then finally";
+  const connectors = draft.connectors.trim() || "然後 最後";
   const connectorList = connectors.split(/\s+/).filter(Boolean);
-  const secondConnector = connectorList[0] || "Then";
-  const finalConnector = connectorList[connectorList.length - 1] || "Finally";
+  const secondConnector = connectorList[0] || "然後";
+  const finalConnector = connectorList[connectorList.length - 1] || "最後";
 
   return [
-    `First, ${characters} is at ${place}.`,
-    `${secondConnector}, ${characters} ${actions}.`,
-    vocabulary ? `Useful words: ${vocabulary}.` : "",
-    `${finalConnector}, the story has a clear ending.`,
+    `一開始，${characters}在${place}。`,
+    `${secondConnector}，${characters}${actions}。`,
+    vocabulary ? `他們練習說：${vocabulary}。` : "",
+    `${finalConnector}，故事有一個清楚的結尾。`,
   ]
     .filter(Boolean)
-    .join(" ");
+    .join("");
 }
+
 function appendToken(currentValue: string, token: string): string {
   const cleanToken = token.trim();
   if (!cleanToken) {
@@ -1379,7 +1351,7 @@ function ModelExampleCard({
   text: string;
   focusWord?: string;
 }) {
-  const exampleText = text.trim() || "Today I am at school and I help a friend.";
+  const exampleText = text.trim() || "今天下雨，所以我帶傘。";
 
   const playExample = () => {
     if (!("speechSynthesis" in window)) {
@@ -1542,4 +1514,3 @@ function writeString(view: DataView, offset: number, value: string) {
     view.setUint8(offset + index, value.charCodeAt(index));
   }
 }
-

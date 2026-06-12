@@ -8,6 +8,86 @@
   padding: 16px;
 }
 
+.student-help-panel {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+  gap: 16px;
+  align-items: center;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: #ffffff;
+}
+
+.student-help-panel > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.student-help-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--clay-ochre);
+  color: var(--clay-ink);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.student-help-panel strong {
+  display: block;
+  color: var(--clay-ink);
+  font-size: 16px;
+}
+
+.student-help-panel p {
+  color: var(--clay-body);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 4px 0 0;
+}
+
+.student-help-panel form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.student-help-panel input {
+  min-width: 0;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  color: var(--clay-ink);
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+}
+
+.student-help-panel button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--clay-primary);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-primary);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.student-help-panel button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .btn-back {
   display: inline-flex;
   align-items: center;
@@ -27,4 +107,11 @@
 
 .btn-back:hover {
   background: var(--clay-primary-active);
+}
+
+@media (max-width: 768px) {
+  .student-help-panel,
+  .student-help-panel form {
+    grid-template-columns: 1fr;
+  }
 }

@@ -9,8 +9,12 @@ import Navigation from "./components/Navigation";
 import {
   canUseDatabase,
   createAudioRecord,
+  createHelpRequest,
   deleteAudioRecordFromDatabase,
+  HelpRequest,
   listAudioRecords,
+  listHelpRequests,
+  resolveHelpRequest,
   StoredAudioRecord,
 } from "./database";
 
@@ -47,6 +51,7 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
   const [activeRole, setActiveRole] = useState<LoginRole | null>(null);
   const [audioRecords, setAudioRecords] = useState<AudioRecord[]>([]);
+  const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
   const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(
     null,
   );
@@ -95,6 +100,32 @@ export default function App() {
     };
 
     loadSavedAudioRecords();
+  }, []);
+
+  useEffect(() => {
+    const loadSavedHelpRequests = async () => {
+      if (canUseDatabase()) {
+        try {
+          const requests = await listHelpRequests();
+          setHelpRequests(requests);
+          localStorage.setItem("helpRequests", JSON.stringify(requests));
+          return;
+        } catch (error) {
+          console.error("Failed to load help requests from database:", error);
+        }
+      }
+
+      setHelpRequests(loadLocalHelpRequests());
+    };
+
+    loadSavedHelpRequests();
+
+    if (!canUseDatabase()) {
+      return;
+    }
+
+    const intervalId = window.setInterval(loadSavedHelpRequests, 5000);
+    return () => window.clearInterval(intervalId);
   }, []);
 
   const addAudioRecord = (record: AudioRecord) => {
@@ -158,6 +189,61 @@ export default function App() {
     setCurrentPage("student-practice");
   };
 
+  const handleRaiseHand = (message: string) => {
+    const studentName = getSessionName("studentSession", "Student");
+    const existingOpenRequest = helpRequests.find(
+      (request) =>
+        request.studentName === studentName && request.status === "open",
+    );
+    const request: HelpRequest = {
+      id: existingOpenRequest?.id || `help-${Date.now()}`,
+      studentName,
+      message: message.trim() || "I need teacher help.",
+      status: "open",
+      createdAt: existingOpenRequest?.createdAt || new Date().toISOString(),
+      resolvedAt: null,
+    };
+
+    setHelpRequests((requests) => saveHelpRequestsLocally(upsertHelpRequest(requests, request)));
+
+    if (canUseDatabase()) {
+      createHelpRequest(request)
+        .then((savedRequest) => {
+          setHelpRequests((requests) =>
+            saveHelpRequestsLocally(upsertHelpRequest(requests, savedRequest)),
+          );
+        })
+        .catch((error) => {
+          console.error("Failed to send help request to database:", error);
+        });
+    }
+  };
+
+  const handleResolveHelpRequest = (id: string) => {
+    const resolvedAt = new Date().toISOString();
+    setHelpRequests((requests) =>
+      saveHelpRequestsLocally(
+        requests.map((request) =>
+          request.id === id
+            ? { ...request, status: "resolved", resolvedAt }
+            : request,
+        ),
+      ),
+    );
+
+    if (canUseDatabase()) {
+      resolveHelpRequest(id)
+        .then((savedRequest) => {
+          setHelpRequests((requests) =>
+            saveHelpRequestsLocally(upsertHelpRequest(requests, savedRequest)),
+          );
+        })
+        .catch((error) => {
+          console.error("Failed to resolve help request in database:", error);
+        });
+    }
+  };
+
   return (
     <div className="app-container">
       <Navigation
@@ -178,6 +264,8 @@ export default function App() {
           onAddRecord={addAudioRecord}
           initialTopicId={practiceTarget?.topicId}
           initialImageIndex={practiceTarget?.imageIndex}
+          helpRequests={helpRequests}
+          onRaiseHand={handleRaiseHand}
         />
       )}
       {currentPage === "student-stories" && activeRole === "student" && (
@@ -186,6 +274,8 @@ export default function App() {
           onDeleteRecord={deleteAudioRecord}
           onPracticeImage={handlePracticeImage}
           mode="student"
+          helpRequests={helpRequests}
+          onRaiseHand={handleRaiseHand}
         />
       )}
       {currentPage === "voice-test" && activeRole === "student" && (
@@ -196,12 +286,55 @@ export default function App() {
           records={audioRecords}
           onDeleteRecord={deleteAudioRecord}
           mode="teacher"
+          helpRequests={helpRequests}
+          onResolveHelpRequest={handleResolveHelpRequest}
         />
       )}
       {currentPage === "teacher-image-builder" && activeRole === "teacher" && (
         <TeacherImageBuilderPage />
       )}
     </div>
+  );
+}
+
+function getSessionName(storageKey: string, fallback: string) {
+  try {
+    const session = JSON.parse(localStorage.getItem(storageKey) || "{}");
+    return typeof session.name === "string" && session.name.trim()
+      ? session.name.trim()
+      : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function loadLocalHelpRequests(): HelpRequest[] {
+  try {
+    const requests = JSON.parse(localStorage.getItem("helpRequests") || "[]");
+    return Array.isArray(requests) ? requests : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHelpRequestsLocally(requests: HelpRequest[]): HelpRequest[] {
+  localStorage.setItem("helpRequests", JSON.stringify(requests));
+  return requests;
+}
+
+function upsertHelpRequest(
+  requests: HelpRequest[],
+  nextRequest: HelpRequest,
+): HelpRequest[] {
+  const existingIndex = requests.findIndex(
+    (request) => request.id === nextRequest.id,
+  );
+  if (existingIndex === -1) {
+    return [nextRequest, ...requests];
+  }
+
+  return requests.map((request, index) =>
+    index === existingIndex ? nextRequest : request,
   );
 }
 

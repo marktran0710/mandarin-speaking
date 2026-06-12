@@ -338,6 +338,38 @@ describe("App role flows", () => {
     expect(screen.getByRole("region", { name: "Story concept map" })).toBeInTheDocument();
   });
 
+  it("lets a student raise a hand and a teacher mark the request helped", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Student Login" }));
+    await user.click(screen.getByRole("button", { name: "Enter Student Mode" }));
+    await user.clear(screen.getByLabelText("Help request message"));
+    await user.type(
+      screen.getByLabelText("Help request message"),
+      "Please help me with tones.",
+    );
+    await user.click(screen.getByRole("button", { name: "Raise hand" }));
+
+    expect(screen.getByText("Teacher has your help request")).toBeInTheDocument();
+    expect(localStorage.getItem("helpRequests")).toContain(
+      "Please help me with tones.",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Log out" }));
+    await user.click(screen.getByRole("button", { name: "Teacher Login" }));
+    await user.click(screen.getByRole("button", { name: "Enter Teacher Mode" }));
+
+    expect(screen.getByText("Student Help Requests")).toBeInTheDocument();
+    expect(screen.getByText("Student Demo")).toBeInTheDocument();
+    expect(screen.getByText("Please help me with tones.")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Mark helped" }));
+
+    expect(screen.getByText("No raised hands")).toBeInTheDocument();
+    expect(localStorage.getItem("helpRequests")).toContain("resolved");
+  });
+
   it("persists the active role across reloads", () => {
     localStorage.setItem("activeRole", "teacher");
 

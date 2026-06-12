@@ -1,6 +1,6 @@
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : window.location.origin);
+  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
 export interface StoredAudioRecord {
   id: string;
@@ -19,14 +19,6 @@ export interface CustomStoryFrame {
   imageUrl: string;
   prompt: string;
   vocabulary: string;
-  conceptMap?: {
-    characters?: string;
-    place?: string;
-    actions?: string;
-    vocabulary?: string;
-    connectors?: string;
-    fullStory?: string;
-  };
 }
 
 export interface StoredCustomStory {
@@ -36,6 +28,15 @@ export interface StoredCustomStory {
   level: string;
   frames: CustomStoryFrame[];
   published?: boolean;
+}
+
+export interface HelpRequest {
+  id: string;
+  studentName: string;
+  message: string;
+  status: "open" | "resolved";
+  createdAt: string;
+  resolvedAt?: string | null;
 }
 
 export function canUseDatabase(): boolean {
@@ -122,4 +123,41 @@ export async function deleteCustomStoryFromDatabase(id: string) {
   if (!response.ok) {
     throw new Error("Could not delete custom story from the database.");
   }
+}
+
+export async function listHelpRequests(): Promise<HelpRequest[]> {
+  const response = await fetch(`${BACKEND_URL}/api/help-requests`);
+  if (!response.ok) {
+    throw new Error("Could not load help requests from the database.");
+  }
+
+  const requests = await response.json();
+  return Array.isArray(requests) ? requests : [];
+}
+
+export async function createHelpRequest(request: HelpRequest) {
+  const response = await fetch(`${BACKEND_URL}/api/help-requests`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error("Could not send the help request.");
+  }
+
+  return response.json() as Promise<HelpRequest>;
+}
+
+export async function resolveHelpRequest(id: string) {
+  const response = await fetch(
+    `${BACKEND_URL}/api/help-requests/${encodeURIComponent(id)}/resolve`,
+    { method: "POST" },
+  );
+
+  if (!response.ok) {
+    throw new Error("Could not resolve the help request.");
+  }
+
+  return response.json() as Promise<HelpRequest>;
 }

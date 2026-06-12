@@ -59,6 +59,18 @@ def init_db() -> None:
             """
         )
         ensure_column(db, "custom_stories", "published", "INTEGER NOT NULL DEFAULT 0")
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS help_requests (
+                id TEXT PRIMARY KEY,
+                student_name TEXT NOT NULL,
+                message TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'open',
+                created_at TEXT NOT NULL,
+                resolved_at TEXT
+            )
+            """
+        )
 
 
 def row_to_audio_record(row: sqlite3.Row) -> dict:
@@ -84,6 +96,17 @@ def row_to_custom_story(row: sqlite3.Row) -> dict:
         "level": row["level"],
         "frames": json.loads(row["frames"] or "[]"),
         "published": bool(row["published"]),
+    }
+
+
+def row_to_help_request(row: sqlite3.Row) -> dict:
+    return {
+        "id": row["id"],
+        "studentName": row["student_name"],
+        "message": row["message"],
+        "status": row["status"],
+        "createdAt": row["created_at"],
+        "resolvedAt": row["resolved_at"],
     }
 
 

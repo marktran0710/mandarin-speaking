@@ -1,9 +1,5 @@
-import { useEffect, useState } from "react";
-import { canUseDatabase, listCustomStories } from "./database";
-import {
-  loadPublishedTeacherTopics,
-  publishedStoriesToTopics,
-} from "./utils/teacherStories";
+import { useState } from "react";
+import { loadPublishedTeacherTopics } from "./utils/teacherStories";
 import "./TopicSelector.css";
 
 export interface Topic {
@@ -14,7 +10,6 @@ export interface Topic {
   level: string;
   images: string[];
   vocabulary: Record<number, string[]>;
-  conceptMaps?: Record<number, import("./utils/teacherStories").ConceptMapScaffold>;
 }
 
 interface TopicSelectorProps {
@@ -767,52 +762,209 @@ const DEFAULT_CUE_VOCABULARY: string[][] = [
   ["ending", "lesson", "next time", "improve"],
 ];
 
+const BASE_TOPICS: Topic[] = [
+  {
+    id: "adventure",
+    name: "Pingxi Sky Lantern Festival",
+    description: "Tell an event story about writing wishes, helping friends, and launching lanterns in Pingxi.",
+    skillFocus: "Event sequence and feelings",
+    level: "Festival Story",
+    images: topicImages.adventure,
+    vocabulary: {
+      0: ["平溪", "天燈", "街道", "人群"],
+      1: ["願望", "祝福", "寫字", "希望"],
+      2: ["幫忙", "小心", "朋友", "一起"],
+      3: ["升起", "天空", "發光", "感動"],
+    },
+  },
+  {
+    id: "nature",
+    name: "Alishan Cherry Blossom Train",
+    description: "Describe an Alishan festival trip from the forest train to cherry blossoms and sunrise.",
+    skillFocus: "Setting and sensory detail",
+    level: "Seasonal Event",
+    images: topicImages.nature,
+    vocabulary: {
+      0: ["阿里山", "火車", "車站", "出發"],
+      1: ["櫻花", "森林", "山路", "拍照"],
+      2: ["霧", "等待", "安靜", "清晨"],
+      3: ["日出", "雲海", "漂亮", "風景"],
+    },
+  },
+  {
+    id: "fantasy",
+    name: "Dajia Mazu Pilgrimage",
+    description: "Tell a community story about the Dajia Mazu pilgrimage, volunteers, and helping someone safely.",
+    skillFocus: "Community and problem solving",
+    level: "Temple Event",
+    images: topicImages.fantasy,
+    vocabulary: {
+      0: ["大甲", "媽祖", "廟", "志工"],
+      1: ["遶境", "隊伍", "熱鬧", "香火"],
+      2: ["迷路", "孩子", "幫助", "尋找"],
+      3: ["平安", "家人", "謝謝", "團結"],
+    },
+  },
+  {
+    id: "school",
+    name: "Taipei 101 New Year Countdown",
+    description: "Tell a countdown event story about preparing posters, solving a rain problem, and watching fireworks.",
+    skillFocus: "Explaining and teamwork",
+    level: "City Event",
+    images: topicImages.school,
+    vocabulary: {
+      0: ["台北", "一零一", "跨年", "計畫"],
+      1: ["海報", "煙火", "安全", "介紹"],
+      2: ["下雨", "移動", "合作", "等待"],
+      3: ["倒數", "新年", "歡呼", "煙火"],
+    },
+  },
+  {
+    id: "mystery",
+    name: "Ningxia Night Market Food Festival",
+    description: "Build a food festival mystery at Ningxia Night Market using clues, kindness, and a returned ticket.",
+    skillFocus: "Problem and solution",
+    level: "Market Event",
+    images: topicImages.mystery,
+    vocabulary: {
+      0: ["寧夏夜市", "小吃", "蚵仔煎", "珍珠奶茶"],
+      1: ["票券", "不見", "著急", "尋找"],
+      2: ["老闆", "線索", "藍色袋子", "記得"],
+      3: ["找到", "還給", "誠實", "謝謝"],
+    },
+  },
+  {
+    id: "daily-life",
+    name: "Lukang Dragon Boat Festival",
+    description: "Practice a sports event story about teamwork during a Lukang Dragon Boat Festival race.",
+    skillFocus: "Action and encouragement",
+    level: "Race Event",
+    images: topicImages["daily-life"],
+    vocabulary: {
+      0: ["鹿港", "端午節", "龍舟", "隊友"],
+      1: ["鼓聲", "節奏", "划船", "加油"],
+      2: ["風", "努力", "不放棄", "合作"],
+      3: ["終點", "成功", "歡呼", "團隊"],
+    },
+  },
+];
 
-export const TOPICS: Topic[] = topicImages ? [] : [];
+const REAL_LIFE_TOPIC_DETAILS: Record<
+  string,
+  Pick<Topic, "name" | "description" | "skillFocus" | "level">
+> = {
+  adventure: {
+    name: "Taking the Bus to School",
+    description:
+      "Practice a real morning routine: waiting for the bus, asking about the route, arriving at school, and planning after class.",
+    skillFocus: "Daily routine and polite requests",
+    level: "Real-life situation",
+  },
+  nature: {
+    name: "Ordering Breakfast",
+    description:
+      "Practice ordering food, checking the price, finding a seat, and responding when something is too spicy.",
+    skillFocus: "Food ordering and preferences",
+    level: "Real-life situation",
+  },
+  fantasy: {
+    name: "Asking for Directions",
+    description:
+      "Practice what to say when you are lost near a station and need to ask, understand, and repeat directions.",
+    skillFocus: "Directions and asking for help",
+    level: "Real-life situation",
+  },
+  school: {
+    name: "Working on a Group Project",
+    description:
+      "Practice a classroom situation: choosing a topic, dividing work, handling a late member, and revising after feedback.",
+    skillFocus: "Teamwork and explanation",
+    level: "School situation",
+  },
+  mystery: {
+    name: "Shopping and Returning an Item",
+    description:
+      "Practice shopping language: choosing an item, checking size, asking to exchange it, and speaking politely to the clerk.",
+    skillFocus: "Shopping and problem solving",
+    level: "Real-life situation",
+  },
+  "daily-life": {
+    name: "Rainy Day After School",
+    description:
+      "Practice a common weather situation: sharing an umbrella, missing the bus, texting family, and arriving home safely.",
+    skillFocus: "Weather, help, and updates",
+    level: "Real-life situation",
+  },
+};
+
+const REAL_LIFE_VOCABULARY: Record<string, Record<number, string[]>> = {
+  adventure: {
+    0: ["bus stop", "school", "wait", "morning"],
+    1: ["route", "which bus", "ask", "classmate"],
+    2: ["crowded", "please", "make room", "thank you"],
+    3: ["arrive", "classroom", "walk", "on time"],
+    4: ["forgot", "notebook", "borrow", "help"],
+    5: ["after school", "meet", "plan", "together"],
+  },
+  nature: {
+    0: ["breakfast shop", "menu", "hungry", "friend"],
+    1: ["order", "noodles", "tea", "please"],
+    2: ["price", "total", "cashier", "pay"],
+    3: ["seat", "table", "full", "share"],
+    4: ["spicy", "water", "too hot", "help"],
+    5: ["clean", "tray", "thank you", "leave"],
+  },
+  fantasy: {
+    0: ["station", "platform", "lost", "worried"],
+    1: ["direction", "exit", "ask", "turn left"],
+    2: ["map", "route", "check", "where"],
+    3: ["call", "friend", "explain", "location"],
+    4: ["meeting point", "arrive", "right place", "safe"],
+    5: ["thank you", "repeat", "direction", "polite"],
+  },
+  school: {
+    0: ["project", "topic", "group", "start"],
+    1: ["divide work", "job", "teammate", "plan"],
+    2: ["late", "change plan", "message", "problem"],
+    3: ["practice", "presentation", "speak", "order"],
+    4: ["teacher", "feedback", "revise", "improve"],
+    5: ["submit", "explain", "finish", "reflection"],
+  },
+  mystery: {
+    0: ["raincoat", "color", "choose", "store"],
+    1: ["size", "too small", "try on", "fit"],
+    2: ["exchange", "clerk", "rule", "ask"],
+    3: ["receipt", "bag", "find", "search"],
+    4: ["new one", "compare", "better", "decision"],
+    5: ["goodbye", "thank you", "leave", "polite"],
+  },
+  "daily-life": {
+    0: ["rain", "after class", "door", "wait"],
+    1: ["umbrella", "share", "friend", "help"],
+    2: ["puddle", "careful", "street", "walk"],
+    3: ["miss the bus", "decide", "late", "what now"],
+    4: ["text", "family", "explain", "arrive late"],
+    5: ["home", "safe", "thank", "friend"],
+  },
+};
+
+export const TOPICS: Topic[] = BASE_TOPICS.map((topic) => ({
+  ...topic,
+  ...REAL_LIFE_TOPIC_DETAILS[topic.id],
+  vocabulary: REAL_LIFE_VOCABULARY[topic.id] || topic.vocabulary,
+}));
 
 export function getTopicVocabulary(topic: Topic, imageIndex: number): string[] {
   return topic.vocabulary[imageIndex] || DEFAULT_CUE_VOCABULARY[imageIndex] || [];
 }
 
 export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
-  const [topics, setTopics] = useState<Topic[]>(() =>
-    canUseDatabase() ? [] : loadPublishedTeacherTopics(),
-  );
-  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(
-    topics[0] || null,
-  );
+  const topics = [...TOPICS, ...loadPublishedTeacherTopics()];
+  const [selectedTopic, setSelectedTopic] = useState<Topic>(topics[0]);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  useEffect(() => {
-    if (!canUseDatabase()) {
-      return;
-    }
-
-    listCustomStories()
-      .then((stories) => {
-        const publishedTopics = publishedStoriesToTopics(stories);
-        setTopics(publishedTopics);
-        setSelectedTopic((currentTopic) => {
-          if (currentTopic) {
-            return (
-              publishedTopics.find((topic) => topic.id === currentTopic.id) ||
-              publishedTopics[0] ||
-              null
-            );
-          }
-          return publishedTopics[0] || null;
-        });
-        setSelectedImageIndex(0);
-      })
-      .catch((error) => {
-        console.error("Failed to load teacher topics from database:", error);
-      });
-  }, []);
-
-  const selectedImage = selectedTopic?.images[selectedImageIndex] || "";
-  const selectedWords = selectedTopic
-    ? getTopicVocabulary(selectedTopic, selectedImageIndex)
-    : [];
+  const selectedImage = selectedTopic.images[selectedImageIndex];
+  const selectedWords = getTopicVocabulary(selectedTopic, selectedImageIndex);
 
   const chooseTopic = (topic: Topic) => {
     setSelectedTopic(topic);
@@ -852,21 +1004,16 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
         <aside className="activity-sidebar" aria-label="Story topics">
           <div className="sidebar-heading">
             <p className="platform-kicker">Activity menu</p>
-            <h2>Teacher topics</h2>
+            <h2>Taiwan story topics</h2>
           </div>
 
           <div className="topic-list">
-            {topics.length === 0 ? (
-              <div className="topic-empty-state">
-                <strong>No teacher topics published</strong>
-                <p>Ask the teacher to publish a story activity first.</p>
-              </div>
-            ) : topics.map((topic) => (
+            {topics.map((topic) => (
               <button
                 type="button"
                 key={topic.id}
                 className={`topic-row ${
-                  selectedTopic?.id === topic.id ? "selected" : ""
+                  selectedTopic.id === topic.id ? "selected" : ""
                 }`}
                 onClick={() => chooseTopic(topic)}
               >
@@ -880,8 +1027,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
           </div>
         </aside>
 
-        {selectedTopic ? (
-          <section className="activity-preview" aria-label="Selected activity">
+        <section className="activity-preview" aria-label="Selected activity">
           <div className="preview-header">
             <div>
               <p className="platform-kicker">Selected module</p>
@@ -950,17 +1096,6 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
             ))}
           </div>
         </section>
-        ) : (
-          <section className="activity-preview empty-topic-preview" aria-label="Selected activity">
-            <div className="teacher-topic-empty">
-              <p className="platform-kicker">Waiting for teacher upload</p>
-              <h2>No published story yet</h2>
-              <p>
-                Student topics now come from teacher-published story activities.
-              </p>
-            </div>
-          </section>
-        )}
       </section>
     </div>
   );

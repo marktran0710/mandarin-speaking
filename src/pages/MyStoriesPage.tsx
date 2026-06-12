@@ -1,18 +1,17 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import PitchChart from "../PitchChart";
-import { getTopicVocabulary, type Topic } from "../TopicSelector";
+import { TOPICS, getTopicVocabulary } from "../TopicSelector";
 import {
   canUseDatabase,
   createCustomStory as saveCustomStoryToDatabase,
   deleteCustomStoryFromDatabase,
+  HelpRequest,
   listCustomStories,
 } from "../database";
 import {
-  ConceptMapScaffold,
   CustomTeacherStory,
   loadCustomStories,
   loadPublishedTeacherTopics,
-  publishedStoriesToTopics,
   saveCustomStories,
 } from "../utils/teacherStories";
 import "./MyStoriesPage.css";
@@ -45,6 +44,9 @@ interface MyStoriesPageProps {
   onDeleteRecord: (id: string) => void;
   onPracticeImage?: (topicId: string, imageIndex: number) => void;
   mode?: "student" | "teacher";
+  helpRequests?: HelpRequest[];
+  onRaiseHand?: (message: string) => void;
+  onResolveHelpRequest?: (id: string) => void;
 }
 
 interface PromptImage {
@@ -63,10 +65,10 @@ interface CustomStoryValidationErrors {
   frames?: Record<number, { imageUrl?: string; prompt?: string }>;
 }
 
-type TeacherView = "overview" | "materials" | "progress" | "recordings";
+type TeacherView = "overview" | "help" | "materials" | "progress" | "recordings";
 
 function getStudentTopics() {
-  return loadPublishedTeacherTopics();
+  return [...TOPICS, ...loadPublishedTeacherTopics()];
 }
 
 function getPromptImages(topics = getStudentTopics()): PromptImage[] {
@@ -96,7 +98,6 @@ const emptyCustomStoryDraft = {
     "Finish with a lesson or next step.",
   ],
   vocabulary: ["", "", "", "", "", ""],
-  conceptMaps: ["", "", "", "", "", ""],
 };
 
 function validateCustomStoryDraft(
@@ -141,43 +142,28 @@ export default function MyStoriesPage({
   onDeleteRecord,
   onPracticeImage,
   mode = "student",
+  helpRequests = [],
+  onRaiseHand,
+  onResolveHelpRequest,
 }: MyStoriesPageProps) {
   const isTeacher = mode === "teacher";
-  const [studentTopics, setStudentTopics] = useState(() =>
-    canUseDatabase() ? [] : loadPublishedTeacherTopics(),
-  );
-
-  useEffect(() => {
-    if (isTeacher || !canUseDatabase()) {
-      return;
-    }
-
-    listCustomStories()
-      .then((stories) => {
-        setStudentTopics(publishedStoriesToTopics(stories));
-      })
-      .catch((error) => {
-        console.error("Failed to load student topics from database:", error);
-      });
-  }, [isTeacher]);
 
   if (isTeacher) {
     return (
       <TeacherDashboard
         records={records}
         onDeleteRecord={onDeleteRecord}
+        helpRequests={helpRequests}
+        onResolveHelpRequest={onResolveHelpRequest}
       />
     );
   }
 
+  const studentTopics = getStudentTopics();
   const promptImages = getPromptImages(studentTopics);
   const completedPrompts = promptImages.filter((prompt) =>
     records.some((record) => isPromptRecord(record, prompt)),
   ).length;
-  const progressPercent =
-    promptImages.length > 0
-      ? Math.round((completedPrompts / promptImages.length) * 100)
-      : 0;
   const analyzedRecords = records.filter((record) => record.praatMetrics);
   const averageFluency = getAverageMetric(analyzedRecords, "fluency_score");
   return (
@@ -200,7 +186,9 @@ export default function MyStoriesPage({
             <div className="summary-progress">
               <span
                 style={{
-                  width: `${progressPercent}%`,
+                  width: `${Math.round(
+                    (completedPrompts / promptImages.length) * 100,
+                  )}%`,
                 }}
               />
             </div>
@@ -213,15 +201,13 @@ export default function MyStoriesPage({
           </div>
         </section>
 
+        <StudentHelpCard
+          helpRequests={helpRequests}
+          onRaiseHand={onRaiseHand}
+        />
+
         <div className="learning-workbook">
-          {studentTopics.length === 0 ? (
-            <section className="topic-workbook-section">
-              <div className="teacher-empty-panel">
-                <strong>No teacher topics published</strong>
-                <p>Ask the teacher to publish a story activity before practicing.</p>
-              </div>
-            </section>
-          ) : studentTopics.map((topic) => {
+          {studentTopics.map((topic) => {
             const prompts = promptImages.filter(
               (prompt) => prompt.topicId === topic.id,
             );
@@ -368,22 +354,80 @@ export default function MyStoriesPage({
   );
 }
 
+function StudentHelpCard({
+  helpRequests,
+  onRaiseHand,
+}: {
+  helpRequests: HelpRequest[];
+  onRaiseHand?: (message: string) => void;
+}) {
+  const [message, setMessage] = useState("I need help with my story.");
+  const studentName = getSessionName("studentSession", "Student");
+  const activeRequest = helpRequests.find(
+    (request) =>
+      request.studentName === studentName && request.status === "open",
+  );
+
+  return (
+    <section className="student-help-card" aria-label="Ask teacher for help">
+      <div>
+        <p className="stories-kicker">Teacher support</p>
+        <h2>{activeRequest ? "Your hand is raised" : "Raise your hand"}</h2>
+        <p>
+          {activeRequest
+            ? "Your teacher can see your request. You can update the note if your question changed."
+            : "Send a quiet help request while you keep working on your story."}
+        </p>
+      </div>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          onRaiseHand?.(message);
+        }}
+      >
+        <input
+          value={message}
+          onChange={(event) => setMessage(event.target.value)}
+          aria-label="Help request message"
+          placeholder="What should the teacher help with?"
+        />
+        <button type="submit" disabled={!onRaiseHand}>
+          {activeRequest ? "Update request" : "Raise hand"}
+        </button>
+      </form>
+    </section>
+  );
+}
+
 function TeacherDashboard({
   records,
   onDeleteRecord,
+  helpRequests,
+  onResolveHelpRequest,
 }: {
   records: AudioRecord[];
   onDeleteRecord: (id: string) => void;
+  helpRequests: HelpRequest[];
+  onResolveHelpRequest?: (id: string) => void;
 }) {
   const [activeView, setActiveView] = useState<TeacherView>("overview");
   const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
-    () => (canUseDatabase() ? [] : loadCustomStories()),
+    () => loadCustomStories(),
   );
   const [customDraft, setCustomDraft] = useState(emptyCustomStoryDraft);
   const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] =
     useState<CustomStoryValidationErrors>({});
   const [customStoryNotice, setCustomStoryNotice] = useState("");
+  const analyzedRecords = records.filter((record) => record.praatMetrics);
+  const feedbackReadyRecords = records.filter(
+    (record) => record.praatMetrics?.ai_feedback,
+  );
+  const averageFluency = getAverageMetric(analyzedRecords, "fluency_score");
+  const averageToneAccuracy = getAverageMetric(analyzedRecords, "tone_accuracy");
+  const openHelpRequests = helpRequests.filter(
+    (request) => request.status === "open",
+  );
   const preparedFrameCount = customDraft.imageUrls.filter((imageUrl, index) => {
     return imageUrl.trim() || customDraft.prompts[index].trim();
   }).length;
@@ -405,18 +449,6 @@ function TeacherDashboard({
 
   const clearNotice = () => setCustomStoryNotice("");
 
-  useEffect(() => {
-    if (!customStoryNotice) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setCustomStoryNotice("");
-    }, 3200);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [customStoryNotice]);
-
   const updateDraftField = (
     field: "title" | "learningGoal" | "level",
     value: string,
@@ -427,7 +459,7 @@ function TeacherDashboard({
   };
 
   const updateDraftFrame = (
-    field: "imageUrls" | "prompts" | "vocabulary" | "conceptMaps",
+    field: "imageUrls" | "prompts" | "vocabulary",
     index: number,
     value: string,
   ) => {
@@ -505,7 +537,6 @@ function TeacherDashboard({
   };
 
   const handleDeleteCustomStory = (id: string) => {
-    const deletedStory = customStories.find((story) => story.id === id);
     const nextStories = customStories.filter((story) => story.id !== id);
     setCustomStories(nextStories);
     saveCustomStories(nextStories);
@@ -517,11 +548,6 @@ function TeacherDashboard({
     if (editingStoryId === id) {
       handleCancelCustomStoryEdit();
     }
-    setCustomStoryNotice(
-      deletedStory
-        ? `"${deletedStory.title}" deleted from teacher stories.`
-        : "Story deleted.",
-    );
   };
 
   const handleTogglePublishCustomStory = (id: string) => {
@@ -562,20 +588,14 @@ function TeacherDashboard({
     count?: number;
   }> = [
     { id: "overview", label: "Overview" },
+    { id: "help", label: "Help", count: openHelpRequests.length },
     { id: "materials", label: "Materials", count: customStories.length },
     { id: "progress", label: "Progress" },
     { id: "recordings", label: "Recordings", count: records.length },
   ];
-  const publishedTopics = publishedStoriesToTopics(customStories);
 
   return (
     <div className="my-stories-page teacher-dashboard-page">
-      {customStoryNotice && (
-        <div className="teacher-toast" role="status" aria-live="polite">
-          {customStoryNotice}
-        </div>
-      )}
-
       <section className="teacher-dashboard-hero">
         <div>
           <p className="stories-kicker">Teacher workspace</p>
@@ -616,22 +636,40 @@ function TeacherDashboard({
               note="Total saved student attempts"
             />
             <DashboardStat
-              label="Teacher stories"
-              value={String(customStories.length)}
-              note="Saved classroom activities"
+              label="Feedback ready"
+              value={String(feedbackReadyRecords.length)}
+              note="Gemini/Praat results available"
             />
             <DashboardStat
-              label="Published"
-              value={String(customStories.filter((story) => story.published).length)}
-              note="Visible in student topics"
+              label="Avg. fluency"
+              value={averageFluency === null ? "--" : `${averageFluency}/100`}
+              note="Based on analyzed recordings"
+            />
+            <DashboardStat
+              label="Tone accuracy"
+              value={
+                averageToneAccuracy === null ? "--" : `${averageToneAccuracy}%`
+              }
+              note="Class pronunciation trend"
             />
           </section>
 
           <section className="teacher-dashboard-grid">
-            <TeacherProgressPanel records={records} topics={publishedTopics} />
+            <TeacherHelpQueue
+              helpRequests={helpRequests}
+              onResolveHelpRequest={onResolveHelpRequest}
+              compact
+            />
             <RecentSubmissionsPanel records={records} />
           </section>
         </>
+      )}
+
+      {activeView === "help" && (
+        <TeacherHelpQueue
+          helpRequests={helpRequests}
+          onResolveHelpRequest={onResolveHelpRequest}
+        />
       )}
 
       {activeView === "materials" && (
@@ -698,6 +736,12 @@ function TeacherDashboard({
                 {validationErrors.form}
               </div>
             )}
+            {customStoryNotice && (
+              <div className="teacher-form-success" role="status">
+                {customStoryNotice}
+              </div>
+            )}
+
             <div className="teacher-frame-editor">
               {customDraft.imageUrls.map((imageUrl, index) => {
                 const frameError = validationErrors.frames?.[index];
@@ -765,18 +809,7 @@ function TeacherDashboard({
                         onChange={(event) =>
                           updateDraftFrame("vocabulary", index, event.target.value)
                         }
-                        placeholder="?啣?, 銝, 撟怠?"
-                      />
-                    </label>
-                    <label>
-                      Concept map layout
-                      <textarea
-                        value={customDraft.conceptMaps[index]}
-                        onChange={(event) =>
-                          updateDraftFrame("conceptMaps", index, event.target.value)
-                        }
-                        rows={4}
-                        placeholder={"Characters: ___\nPlace: classroom\nActions: ___\nConnectors: then, because"}
+                        placeholder="台北, 下雨, 幫忙"
                       />
                     </label>
                   </div>
@@ -805,13 +838,7 @@ function TeacherDashboard({
           </form>
 
           <div className="custom-story-library" aria-label="Saved custom stories">
-            <div className="custom-story-library-header">
-              <div>
-                <h3>Story Manager</h3>
-                <p>Manage every teacher-created story in one place.</p>
-              </div>
-              <strong>{customStories.length}</strong>
-            </div>
+            <h3>Teacher Story Library</h3>
             {customStories.length === 0 ? (
               <div className="teacher-empty-panel">
                 <strong>No custom stories yet</strong>
@@ -888,12 +915,7 @@ function TeacherDashboard({
           </div>
 
           <div className="topic-coverage-list">
-            {publishedTopics.length === 0 ? (
-              <div className="teacher-empty-panel">
-                <strong>No published teacher topics</strong>
-                <p>Publish a story activity to show topic progress.</p>
-              </div>
-            ) : publishedTopics.map((topic) => {
+            {TOPICS.map((topic) => {
               const topicRecords = records.filter(
                 (record) => record.topicId === topic.id,
               );
@@ -941,7 +963,7 @@ function TeacherDashboard({
                   <div>
                     <strong>{getTopicLabel(record.topicId)}</strong>
                     <span>
-                      Part {(record.imageIndex ?? 0) + 1} 繚 {record.duration}s
+                      Part {(record.imageIndex ?? 0) + 1} · {record.duration}s
                     </span>
                   </div>
                   <div className="submission-score">
@@ -989,57 +1011,6 @@ function TeacherDashboard({
   );
 }
 
-function TeacherProgressPanel({
-  records,
-  topics,
-}: {
-  records: AudioRecord[];
-  topics: Topic[];
-}) {
-  return (
-    <div className="teacher-panel topic-coverage-panel">
-      <div className="teacher-panel-header">
-        <div>
-          <p className="stories-kicker">Curriculum coverage</p>
-          <h2>Topic Progress</h2>
-        </div>
-      </div>
-
-      <div className="topic-coverage-list">
-        {topics.length === 0 ? (
-          <div className="teacher-empty-panel">
-            <strong>No published teacher topics</strong>
-            <p>Publish a story activity to show topic progress.</p>
-          </div>
-        ) : topics.map((topic) => {
-          const topicRecords = records.filter(
-            (record) => record.topicId === topic.id,
-          );
-          const coverage = Math.min(
-            100,
-            Math.round((topicRecords.length / topic.images.length) * 100),
-          );
-
-          return (
-            <div className="topic-coverage-row" key={topic.id}>
-              <div>
-                <strong>{topic.name}</strong>
-                <span>
-                  {topicRecords.length}{" "}
-                  {topicRecords.length === 1 ? "attempt" : "attempts"}
-                </span>
-              </div>
-              <div className="coverage-meter" aria-label={`${topic.name} coverage`}>
-                <span style={{ width: `${coverage}%` }} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function RecentSubmissionsPanel({ records }: { records: AudioRecord[] }) {
   return (
     <div className="teacher-panel review-queue-panel">
@@ -1079,6 +1050,73 @@ function RecentSubmissionsPanel({ records }: { records: AudioRecord[] }) {
   );
 }
 
+function TeacherHelpQueue({
+  helpRequests,
+  onResolveHelpRequest,
+  compact = false,
+}: {
+  helpRequests: HelpRequest[];
+  onResolveHelpRequest?: (id: string) => void;
+  compact?: boolean;
+}) {
+  const openRequests = helpRequests.filter(
+    (request) => request.status === "open",
+  );
+  const resolvedRequests = helpRequests
+    .filter((request) => request.status === "resolved")
+    .slice(0, compact ? 2 : 5);
+
+  return (
+    <section className="teacher-panel teacher-help-panel">
+      <div className="teacher-panel-header">
+        <div>
+          <p className="stories-kicker">Live support</p>
+          <h2>Student Help Requests</h2>
+        </div>
+        <span className="queue-count">{openRequests.length}</span>
+      </div>
+
+      {openRequests.length === 0 ? (
+        <div className="teacher-empty-panel">
+          <strong>No raised hands</strong>
+          <p>Open help requests will appear here when students ask for support.</p>
+        </div>
+      ) : (
+        <div className="teacher-help-list">
+          {openRequests.map((request) => (
+            <article className="teacher-help-request" key={request.id}>
+              <div>
+                <strong>{request.studentName}</strong>
+                <span>{formatRequestTime(request.createdAt)}</span>
+                <p>{request.message}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onResolveHelpRequest?.(request.id)}
+                disabled={!onResolveHelpRequest}
+              >
+                Mark helped
+              </button>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {!compact && resolvedRequests.length > 0 && (
+        <div className="teacher-resolved-help">
+          <h3>Recently helped</h3>
+          {resolvedRequests.map((request) => (
+            <div className="teacher-resolved-row" key={request.id}>
+              <span>{request.studentName}</span>
+              <small>{formatRequestTime(request.resolvedAt || request.createdAt)}</small>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function getAverageMetric(records: AudioRecord[], metric: string): number | null {
   if (records.length === 0) {
     return null;
@@ -1113,7 +1151,6 @@ function createCustomStory(
       imageUrl: imageUrl.trim(),
       prompt: draft.prompts[index].trim(),
       vocabulary: draft.vocabulary[index].trim(),
-      conceptMap: parseConceptMapScaffold(draft.conceptMaps[index]),
     })),
   };
 }
@@ -1130,66 +1167,13 @@ function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
       frame?.prompt || emptyCustomStoryDraft.prompts[index],
     ),
     vocabulary: frames.map((frame) => frame?.vocabulary || ""),
-    conceptMaps: frames.map((frame) => formatConceptMapScaffold(frame?.conceptMap)),
   };
-}
-
-function parseConceptMapScaffold(value: string): ConceptMapScaffold {
-  const scaffold: ConceptMapScaffold = {};
-  const fieldAliases: Record<string, keyof ConceptMapScaffold> = {
-    characters: "characters",
-    character: "characters",
-    who: "characters",
-    place: "place",
-    where: "place",
-    actions: "actions",
-    action: "actions",
-    what: "actions",
-    vocabulary: "vocabulary",
-    words: "vocabulary",
-    connectors: "connectors",
-    connector: "connectors",
-    fullstory: "fullStory",
-    story: "fullStory",
-  };
-
-  value
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .forEach((line) => {
-      const [rawLabel, ...rawValue] = line.split(":");
-      const field = fieldAliases[rawLabel.trim().toLowerCase().replace(/\s+/g, "")];
-      if (field) {
-        scaffold[field] = rawValue.join(":").trim();
-      }
-    });
-
-  return scaffold;
-}
-
-function formatConceptMapScaffold(scaffold?: ConceptMapScaffold): string {
-  if (!scaffold) {
-    return "";
-  }
-
-  return [
-    ["Characters", scaffold.characters],
-    ["Place", scaffold.place],
-    ["Actions", scaffold.actions],
-    ["Vocabulary", scaffold.vocabulary],
-    ["Connectors", scaffold.connectors],
-    ["Full story", scaffold.fullStory],
-  ]
-    .filter(([, value]) => value)
-    .map(([label, value]) => `${label}: ${value}`)
-    .join("\n");
 }
 
 function clearFrameError(
   errors: CustomStoryValidationErrors,
   index: number,
-  field: "imageUrls" | "prompts" | "vocabulary" | "conceptMaps",
+  field: "imageUrls" | "prompts" | "vocabulary",
 ): CustomStoryValidationErrors {
   const frameError = errors.frames?.[index];
 
@@ -1213,6 +1197,29 @@ function clearFrameError(
     form: undefined,
     frames: Object.keys(nextFrames).length > 0 ? nextFrames : undefined,
   };
+}
+
+function getSessionName(storageKey: string, fallback: string) {
+  try {
+    const session = JSON.parse(localStorage.getItem(storageKey) || "{}");
+    return typeof session.name === "string" && session.name.trim()
+      ? session.name.trim()
+      : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function formatRequestTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "Just now";
+  }
+
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function getImageUploadError(file: File): string {
@@ -1334,7 +1341,7 @@ function RecordCard({
                       <span>{item.token}</span>
                       <em>{formatContourShape(item.contour_shape)}</em>
                       <small>
-                        {Math.round(item.mean_pitch)} Hz 繚{" "}
+                        {Math.round(item.mean_pitch)} Hz ·{" "}
                         {Math.round(item.pitch_range)} Hz range
                       </small>
                       <p>{item.feedback}</p>
