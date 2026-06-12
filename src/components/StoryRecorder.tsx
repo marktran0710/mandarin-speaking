@@ -84,6 +84,20 @@ interface ConceptMapDraft {
   fullStory: string;
 }
 
+interface CanvasNode {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  color: string;
+}
+
+interface CanvasEdge {
+  id: string;
+  fromId: string;
+  toId: string;
+}
+
 interface StoryRecorderProps {
   topic: Topic;
   selectedImage: string;
@@ -135,6 +149,16 @@ export default function StoryRecorder({
   const [sortingFeedback, setSortingFeedback] = useState<string>("");
   const [sortingAttempts, setSortingAttempts] = useState(0);
 
+  // Visual Concept Map Canvas (inside Arrange Scenes)
+  const [canvasNodes, setCanvasNodes] = useState<CanvasNode[]>([]);
+  const [canvasEdges, setCanvasEdges] = useState<CanvasEdge[]>([]);
+  const [connectingFromId, setConnectingFromId] = useState<string | null>(null);
+  const [isConceptMapOpen, setIsConceptMapOpen] = useState(true);
+  const [customNodeInput, setCustomNodeInput] = useState("");
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
+  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const canvasRef = useRef<HTMLDivElement>(null);
+
   const [conceptDraft, setConceptDraft] = useState<ConceptMapDraft>(
     createEmptyConceptMapDraft(),
   );
@@ -178,6 +202,11 @@ export default function StoryRecorder({
     const pool = shuffleImages(topic.images);
     setShuffledPool(pool);
     setPlacedImages(new Array(topic.images.length).fill(null));
+    // Reset concept map canvas when topic changes
+    setCanvasNodes([]);
+    setCanvasEdges([]);
+    setConnectingFromId(null);
+    setCustomNodeInput("");
   }, [topic.id, topic.images, enableSorting]);
 
   useEffect(() => {
@@ -190,6 +219,114 @@ export default function StoryRecorder({
   useEffect(() => {
     setConceptDraft(createEmptyConceptMapDraft());
   }, [selectedImageIndex, topic.id]);
+
+  // Visual Concept Map Canvas Handlers
+  const allTopicVocabulary = Object.values(topic.vocabulary).flat();
+  const uniqueVocab = Array.from(new Set(allTopicVocabulary));
+  const usedLabels = new Set(canvasNodes.map((n) => n.label));
+
+  const nodeColors = ["#06b6d4", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#3b82f6", "#ec4899"];
+  const getNodeColor = (index: number) => nodeColors[index % nodeColors.length];
+
+  const addCanvasNode = (label: string, x = 120, y = 80) => {
+    if (!label.trim()) return;
+    const id = `node-${Date.now()}-${Math.random()}`;
+    const color = getNodeColor(canvasNodes.length);
+    setCanvasNodes((prev) => [...prev, { id, label: label.trim(), x, y, color }]);
+  };
+
+  const handleWordBankDragStart = (e: React.DragEvent, word: string) => {
+    e.dataTransfer.setData("text/plain", JSON.stringify({ type: "word-bank", word }));
+    e.dataTransfer.effectAllowed = "copy";
+  };
+
+  const handleCanvasDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = e.clientX - rect.left - 48;
+    const y = e.clientY - rect.top - 20;
+    try {
+      const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+      if (data.type === "word-bank") {
+        addCanvasNode(data.word, Math.max(8, x), Math.max(8, y));
+      }
+    } catch {
+      // not our data format, ignore
+    }
+  };
+
+  const handleNodeMouseDown = (e: React.MouseEvent, nodeId: string) => {
+    // Don't start drag if we're in connect mode — clicks handle that
+    if (connectingFromId !== null) return;
+    e.preventDefault();
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const node = canvasNodes.find((n) => n.id === nodeId);
+    if (!node) return;
+    dragOffsetRef.current = { x: e.clientX - rect.left - node.x, y: e.clientY - rect.top - node.y };
+    setDraggingNodeId(nodeId);
+  };
+
+  const handleCanvasMouseMove = (e: React.MouseEvent) => {
+    if (!draggingNodeId) return;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = Math.max(4, e.clientX - rect.left - dragOffsetRef.current.x);
+    const y = Math.max(4, e.clientY - rect.top - dragOffsetRef.current.y);
+    setCanvasNodes((prev) =>
+      prev.map((n) => (n.id === draggingNodeId ? { ...n, x, y } : n)),
+    );
+  };
+
+  const handleCanvasMouseUp = () => {
+    setDraggingNodeId(null);
+  };
+
+  const handleNodeClick = (e: React.MouseEvent, nodeId: string) => {
+    if (draggingNodeId) return; // was a drag, not a click
+    e.stopPropagation();
+    if (connectingFromId === null) {
+      setConnectingFromId(nodeId);
+    } else if (connectingFromId === nodeId) {
+      setConnectingFromId(null);
+    } else {
+      // Draw an edge
+      const alreadyExists = canvasEdges.some(
+        (edge) => edge.fromId === connectingFromId && edge.toId === nodeId,
+      );
+      if (!alreadyExists) {
+        const edgeId = `edge-${Date.now()}`;
+        setCanvasEdges((prev) => [...prev, { id: edgeId, fromId: connectingFromId, toId: nodeId }]);
+      }
+      setConnectingFromId(null);
+    }
+  };
+
+  const handleDeleteEdge = (edgeId: string) => {
+    setCanvasEdges((prev) => prev.filter((e) => e.id !== edgeId));
+  };
+
+  const handleDeleteNode = (e: React.MouseEvent, nodeId: string) => {
+    e.stopPropagation();
+    setCanvasNodes((prev) => prev.filter((n) => n.id !== nodeId));
+    setCanvasEdges((prev) => prev.filter((edge) => edge.fromId !== nodeId && edge.toId !== nodeId));
+    if (connectingFromId === nodeId) setConnectingFromId(null);
+  };
+
+  const handleAddCustomNode = () => {
+    if (!customNodeInput.trim()) return;
+    const cx = 60 + (canvasNodes.length % 5) * 130;
+    const cy = 60 + Math.floor(canvasNodes.length / 5) * 80;
+    addCanvasNode(customNodeInput, cx, cy);
+    setCustomNodeInput("");
+  };
+
+  const resetConceptCanvas = () => {
+    setCanvasNodes([]);
+    setCanvasEdges([]);
+    setConnectingFromId(null);
+  };
 
   // Sorting Challenge Handlers
   const handleDragStart = (e: React.DragEvent, image: string, source: "pool" | "slot", index?: number) => {
@@ -841,6 +978,191 @@ export default function StoryRecorder({
                 ))
               )}
             </div>
+          </div>
+
+          {/* ── Visual Concept Map Canvas ── */}
+          <div className="sorting-concept-map-panel">
+            <div className="scm-header">
+              <div className="scm-header-left">
+                <span className="scm-eyebrow">Story Concept Map</span>
+                <p className="scm-subtitle">
+                  {connectingFromId
+                    ? "Click another node to draw an arrow → or click same node to cancel"
+                    : "Drag words onto the canvas · Click a node to start connecting · Click an arrow to delete it"}
+                </p>
+              </div>
+              <div className="scm-header-right">
+                <div className="scm-custom-input">
+                  <input
+                    type="text"
+                    value={customNodeInput}
+                    onChange={(e) => setCustomNodeInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCustomNode(); } }}
+                    placeholder="Add a word…"
+                    aria-label="Add custom concept node"
+                  />
+                  <button type="button" onClick={handleAddCustomNode} className="scm-btn-add" aria-label="Add node">
+                    + Add
+                  </button>
+                </div>
+                {canvasNodes.length > 0 && (
+                  <button type="button" onClick={resetConceptCanvas} className="scm-btn-reset" aria-label="Reset concept map">
+                    🔄 Reset
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="scm-btn-toggle"
+                  onClick={() => setIsConceptMapOpen((v) => !v)}
+                  aria-expanded={isConceptMapOpen}
+                  aria-label={isConceptMapOpen ? "Collapse concept map" : "Expand concept map"}
+                >
+                  {isConceptMapOpen ? "▲ Hide" : "▼ Show"}
+                </button>
+              </div>
+            </div>
+
+            {isConceptMapOpen && (
+              <div className="scm-body">
+                {/* Word Bank */}
+                {uniqueVocab.length > 0 && (
+                  <div className="scm-word-bank">
+                    <span className="scm-word-bank-label">Word bank</span>
+                    <div className="scm-word-bank-chips">
+                      {uniqueVocab.map((word) => (
+                        <span
+                          key={word}
+                          className={`scm-chip ${usedLabels.has(word) ? "used" : ""}`}
+                          draggable
+                          onDragStart={(e) => handleWordBankDragStart(e, word)}
+                          title={usedLabels.has(word) ? "Already on canvas" : "Drag to canvas"}
+                        >
+                          {word}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Canvas */}
+                <div
+                  ref={canvasRef}
+                  className={`scm-canvas ${connectingFromId ? "connecting-mode" : ""} ${draggingNodeId ? "dragging" : ""}`}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleCanvasDrop}
+                  onMouseMove={handleCanvasMouseMove}
+                  onMouseUp={handleCanvasMouseUp}
+                  onMouseLeave={handleCanvasMouseUp}
+                >
+                  {canvasNodes.length === 0 && (
+                    <div className="scm-canvas-empty">
+                      <span>🗺️</span>
+                      <p>Drag vocabulary words here to start building your story map</p>
+                    </div>
+                  )}
+
+                  {/* SVG layer for edges */}
+                  {canvasNodes.length > 0 && (
+                    <svg className="scm-svg-layer" aria-hidden="true">
+                      <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                          <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+                        </marker>
+                      </defs>
+                      {canvasEdges.map((edge) => {
+                        const from = canvasNodes.find((n) => n.id === edge.fromId);
+                        const to = canvasNodes.find((n) => n.id === edge.toId);
+                        if (!from || !to) return null;
+                        const fw = Math.max(from.label.length * 9 + 28, 80);
+                        const tw = Math.max(to.label.length * 9 + 28, 80);
+                        const x1 = from.x + fw / 2;
+                        const y1 = from.y + 18;
+                        const x2 = to.x + tw / 2;
+                        const y2 = to.y + 18;
+                        const mx = (x1 + x2) / 2;
+                        const my = (y1 + y2) / 2;
+                        return (
+                          <g key={edge.id}>
+                            <line
+                              x1={x1} y1={y1} x2={x2} y2={y2}
+                              stroke="#94a3b8"
+                              strokeWidth="2"
+                              markerEnd="url(#arrowhead)"
+                              strokeDasharray="6 3"
+                            />
+                            {/* Invisible wider hit area for deletion */}
+                            <line
+                              x1={x1} y1={y1} x2={x2} y2={y2}
+                              stroke="transparent"
+                              strokeWidth="14"
+                              style={{ cursor: "pointer" }}
+                              onClick={() => handleDeleteEdge(edge.id)}
+                              title="Click to delete connection"
+                            />
+                            <circle
+                              cx={mx} cy={my} r={8}
+                              fill="white"
+                              stroke="#94a3b8"
+                              strokeWidth="1.5"
+                              style={{ cursor: "pointer" }}
+                              onClick={() => handleDeleteEdge(edge.id)}
+                            />
+                            <text
+                              x={mx} y={my + 4.5}
+                              textAnchor="middle"
+                              fontSize="10"
+                              fill="#64748b"
+                              style={{ cursor: "pointer", userSelect: "none" }}
+                              onClick={() => handleDeleteEdge(edge.id)}
+                            >
+                              ×
+                            </text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  )}
+
+                  {/* Nodes */}
+                  {canvasNodes.map((node) => (
+                    <div
+                      key={node.id}
+                      className={`scm-node ${connectingFromId === node.id ? "selected-source" : ""} ${connectingFromId && connectingFromId !== node.id ? "connectable-target" : ""}`}
+                      style={{
+                        left: node.x,
+                        top: node.y,
+                        borderColor: node.color,
+                        boxShadow: connectingFromId === node.id ? `0 0 0 3px ${node.color}55` : undefined,
+                      }}
+                      onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                      onClick={(e) => handleNodeClick(e, node.id)}
+                      title={connectingFromId ? "Click to connect" : "Drag to move · Click to connect · × to delete"}
+                    >
+                      <span
+                        className="scm-node-dot"
+                        style={{ background: node.color }}
+                      />
+                      <span className="scm-node-label">{node.label}</span>
+                      <button
+                        type="button"
+                        className="scm-node-delete"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => handleDeleteNode(e, node.id)}
+                        aria-label={`Delete node ${node.label}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {connectingFromId && (
+                  <p className="scm-connect-hint">
+                    🔗 Connecting from <strong>{canvasNodes.find((n) => n.id === connectingFromId)?.label}</strong> — click another node, or click the same node to cancel
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="sorting-actions">
