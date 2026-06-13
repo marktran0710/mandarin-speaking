@@ -725,8 +725,32 @@ export default function StoryRecorder({
 
   const allVocabulary = topic.images.flatMap((_, si) => topic.vocabulary[si] || []);
 
+  const PHASES = [
+    { key: "overview",    label: "Overview",        icon: "📖" },
+    { key: "sorting",     label: "Arrange Scenes",  icon: "🧩" },
+    { key: "conceptmap",  label: "Vocabulary Map",  icon: "🗺️" },
+    { key: "practice",    label: "Speaking",        icon: "🎙️" },
+  ] as const;
+
+  const phaseOrder = PHASES.map(p => p.key);
+  const currentPhaseIdx = phaseOrder.indexOf(phase);
+
   return (
     <div className="story-recorder">
+      {/* ── Phase navigation bar ── */}
+      <nav className="phase-nav" aria-label="Progress">
+        {PHASES.map((p, i) => {
+          const status = i < currentPhaseIdx ? "done" : i === currentPhaseIdx ? "active" : "upcoming";
+          return (
+            <div key={p.key} className={`phase-nav-step phase-nav-${status}`}>
+              <span className="phase-nav-icon">{status === "done" ? "✓" : p.icon}</span>
+              <span className="phase-nav-label">{p.label}</span>
+              {i < PHASES.length - 1 && <span className="phase-nav-arrow">›</span>}
+            </div>
+          );
+        })}
+      </nav>
+
       {phase === "overview" && (
         <section className="story-overview">
           <div className="overview-hero">
@@ -967,22 +991,22 @@ export default function StoryRecorder({
         <div className="flow-step completed">
           <span>1</span>
           <strong>Look</strong>
-          <p>Study the picture cue.</p>
+          <p>Study the scene image.</p>
         </div>
         <div className={`flow-step ${activeFlowStep === "plan" ? "active" : ""}`}>
           <span>2</span>
-          <strong>Plan</strong>
-          <p>Choose who, where, and action.</p>
+          <strong>Use Your Map</strong>
+          <p>Recall words from your Vocabulary Map.</p>
         </div>
         <div className={`flow-step ${activeFlowStep === "record" ? "active" : ""}`}>
           <span>3</span>
-          <strong>Record</strong>
-          <p>Speak this cue clearly.</p>
+          <strong>Speak</strong>
+          <p>Say it in Mandarin clearly.</p>
         </div>
         <div className={`flow-step ${activeFlowStep === "review" ? "active" : ""}`}>
           <span>4</span>
-          <strong>Review</strong>
-          <p>Use feedback to revise.</p>
+          <strong>Improve</strong>
+          <p>Listen back and refine.</p>
         </div>
       </section>
 
