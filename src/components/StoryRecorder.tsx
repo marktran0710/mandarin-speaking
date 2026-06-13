@@ -671,20 +671,6 @@ export default function StoryRecorder({
     "突然，",
     "最後，",
   ];
-  const recordingStatus = isRecording
-    ? "Recording in progress"
-    : isTranscribing
-      ? "Transcribing speech"
-      : isAnalyzing
-        ? "Analyzing pronunciation"
-        : praatMetrics
-          ? "Feedback ready"
-          : "Ready to record";
-  const recordingButtonLabel = isRecording
-    ? "Stop and analyze"
-    : praatMetrics
-      ? "Record again"
-      : "Start recording";
   const recordingButtonDisabled = isTranscribing || isAnalyzing;
 
 
@@ -697,25 +683,7 @@ export default function StoryRecorder({
     startRecording();
   };
 
-  const updateConceptDraft = (
-    field: keyof ConceptMapDraft,
-    value: string,
-  ) => {
-    setConceptDraft((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
 
-  const appendConceptToken = (
-    field: keyof ConceptMapDraft,
-    token: string,
-  ) => {
-    setConceptDraft((prev) => ({
-      ...prev,
-      [field]: appendToken(prev[field], token),
-    }));
-  };
 
   const allVocabulary = topic.images.flatMap((_, si) => topic.vocabulary[si] || []);
 
@@ -981,381 +949,131 @@ export default function StoryRecorder({
 
       {phase === "practice" && (
         <>
-  
-      <section className="recorder-hero">
-        <div className="recorder-hero-copy">
-          <p className="eyebrow">Picture cue {selectedImageIndex + 1} of {topic.images.length}</p>
-          <h1>{topic.name} Story Challenge</h1>
-          <p>
-            {topic.description ||
-              "Tell a complete Mandarin story using the selected picture."}
-          </p>
-          <div className="challenge-meta">
-            <span>{topic.level || "Narrative practice"}</span>
-            <span>{topic.skillFocus || "Story fluency"}</span>
-            <span>
-              Story part {selectedImageIndex + 1} of {topic.images.length}
-            </span>
-          </div>
-        </div>
-
-        <div className="recording-status-card">
-          <span>Status</span>
-          <strong>{recordingStatus}</strong>
-          {isRecording ? (
-            <p>{recordingDuration}s recorded</p>
-          ) : (
-            <p>Finish the quick plan, then record this cue.</p>
-          )}
-        </div>
-      </section>
-
-      <section className="recording-workspace">
-        <div className="prompt-stage">
-          <div className="story-image-preview">
-            <img src={selectedImage} alt="Selected story prompt" />
-          </div>
-
-          <div className="prompt-thumbnails">
-            {topic.images.map((image, index) => (
+          {/* ── Scene selector strip ── */}
+          <div className="practice-scene-strip">
+            {topic.images.map((img, idx) => (
               <button
                 type="button"
-                key={image}
-                className={`prompt-mini-card ${
-                  selectedImageIndex === index ? "selected" : ""
-                }`}
-                onClick={() => {
-                  onImageChange(image);
-                  onImageSelect(index);
-                }}
+                key={img}
+                className={`practice-scene-thumb${idx === selectedImageIndex ? " active" : ""}`}
+                onClick={() => { onImageChange(img); onImageSelect(idx); }}
                 disabled={isBusy}
               >
-                <img src={image} alt={`Story prompt ${index + 1}`} />
-                <span>Part {index + 1}</span>
+                <img src={img} alt={`Scene ${idx + 1}`} />
+                <span>Scene {idx + 1}</span>
               </button>
             ))}
           </div>
-        </div>
 
-        <aside className="recording-coach-panel">
-          <div className="coach-block task-card">
-            <h2>Your task</h2>
-            <p>
-              Tell only this picture cue first. One or two clear sentences is
-              enough.
-            </p>
-          </div>
+          {/* ── Main two-column workspace ── */}
+          <div className="practice-workspace">
 
-          <div className="coach-block">
-            <h2>Simple speaking pattern</h2>
-            <ol>
-              <li>Who is in the picture?</li>
-              <li>Where are they?</li>
-              <li>What happens?</li>
-            </ol>
-          </div>
-
-          <div className="coach-block">
-            <h2>Vocabulary boost</h2>
-            <div className="recording-vocabulary">
-              {selectedVocabulary.map((word) => (
-                <span key={word}>{word}</span>
-              ))}
-            </div>
-          </div>
-
-          <div className="coach-block readiness-card">
-            <h2>Ready?</h2>
-            <div className="readiness-list">
-              <span>Quiet space</span>
-              <span>Clear voice</span>
-              <span>One ending</span>
-            </div>
-          </div>
-        </aside>
-      </section>
-
-      <section className="concept-map-section" aria-label="Story concept map">
-        <div className="concept-map-header">
-          <p className="eyebrow">Quick plan</p>
-          <h2>Plan this picture cue</h2>
-          <p>
-            Fill the first three boxes, then record. Vocabulary and connectors
-            are optional helpers when the student is ready.
-          </p>
-        </div>
-
-        <div className="concept-map">
-          <label className="concept-node character">
-            <span>Characters</span>
-            <strong>誰? Who?</strong>
-            <textarea
-              value={conceptDraft.characters}
-              onChange={(event) =>
-                updateConceptDraft("characters", event.target.value)
-              }
-              placeholder="例：學生、老師、朋友"
-              rows={3}
-            />
-          </label>
-          <label className="concept-node scene">
-            <span>Place</span>
-            <strong>在哪裡? Where?</strong>
-            <textarea
-              value={conceptDraft.place}
-              onChange={(event) => updateConceptDraft("place", event.target.value)}
-              placeholder="例：學校、市場、公園"
-              rows={3}
-            />
-          </label>
-          <label className="concept-node event">
-            <span>Actions</span>
-            <strong>做什麼? What happens?</strong>
-            <textarea
-              value={conceptDraft.actions}
-              onChange={(event) =>
-                updateConceptDraft("actions", event.target.value)
-              }
-              placeholder="例：看見、幫忙、一起走"
-              rows={3}
-            />
-          </label>
-          <label className="concept-node vocabulary-node">
-            <span>Vocabulary</span>
-            <strong>Useful words</strong>
-            <textarea
-              value={conceptDraft.vocabulary}
-              onChange={(event) =>
-                updateConceptDraft("vocabulary", event.target.value)
-              }
-              placeholder="Click words below or type your own"
-              rows={3}
-            />
-          </label>
-          <label className="concept-node connector-node">
-            <span>Connectors</span>
-            <strong>How ideas connect</strong>
-            <textarea
-              value={conceptDraft.connectors}
-              onChange={(event) =>
-                updateConceptDraft("connectors", event.target.value)
-              }
-              placeholder="例：然後、因為、所以、最後"
-              rows={3}
-            />
-          </label>
-          <label className="concept-node full-story-node">
-            <span>Full Story</span>
-            <strong>Combine your ideas</strong>
-            <textarea
-              value={conceptDraft.fullStory}
-              onChange={(event) =>
-                updateConceptDraft("fullStory", event.target.value)
-              }
-              placeholder="例：一開始，學生在市場看見一位老人。然後，他幫老人拿東西。最後，他們一起回家。"
-              rows={5}
-            />
-          </label>
-        </div>
-
-        <div className="concept-chip-panel">
-          <div className="concept-chip-group">
-            <span>Vocabulary</span>
-            <div>
-              {selectedVocabulary.map((word) => (
-                <button
-                  type="button"
-                  key={word}
-                  onClick={() => appendConceptToken("vocabulary", word)}
-                  disabled={isBusy}
-                >
-                  {word}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="concept-chip-group">
-            <span>Connectors</span>
-            <div>
-              {storyConnectors.map((connector) => (
-                <button
-                  type="button"
-                  key={connector}
-                  onClick={() => appendConceptToken("connectors", connector)}
-                  disabled={isBusy}
-                >
-                  {connector}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="concept-chip-group">
-            <span>Sentence starters</span>
-            <div>
-              {sentenceStarters.map((starter) => (
-                <button
-                  type="button"
-                  key={starter}
-                  onClick={() => appendConceptToken("fullStory", starter)}
-                  disabled={isBusy}
-                >
-                  {starter}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="concept-practice-text">
-          <span>Pronunciation target</span>
-          <p>
-            {practiceAnalysisText ||
-              "Add vocabulary or write your full story before recording."}
-          </p>
-        </div>
-
-        <div className="concept-map-actions">
-          <button
-            type="button"
-            onClick={() =>
-              updateConceptDraft("fullStory", buildSuggestedStory(conceptDraft))
-            }
-            disabled={isBusy}
-          >
-            Draft story from map
-          </button>
-          <button
-            type="button"
-            onClick={() => setConceptDraft(createEmptyConceptMapDraft())}
-            disabled={isBusy}
-          >
-            Clear map
-          </button>
-        </div>
-
-        <div className="word-level-note">
-          <strong>Word-level pronunciation</strong>
-          <p>
-            After recording, Praat aligns the pitch contour to each Mandarin
-            character in your transcript or target story and shows contour,
-            average pitch, pitch range, and coaching feedback.
-          </p>
-        </div>
-
-        <div className="sentence-starters" hidden>
-          <span>Starter phrases</span>
-          <p>一開始... / 然後... / 因為... / 所以... / 最後...</p>
-        </div>
-      </section>
-
-      {praatMetrics && hasWordProsody && (
-        <section
-          className="word-level-preview"
-          aria-label="Word-level pronunciation overview"
-        >
-          <div>
-            <p className="eyebrow">Word-level pronunciation</p>
-            <h2>Character prosody preview</h2>
-          </div>
-          <div className="word-level-strip">
-            {praatMetrics.word_prosody?.slice(0, 18).map((item) => (
-              <div
-                key={`preview-${item.token}-${item.index}`}
-                className={`word-level-token ${item.contour_shape}`}
-              >
-                <strong>{item.token}</strong>
-                <span>{formatContourShape(item.contour_shape)}</span>
+            {/* Left: scene image + vocab chips + record button */}
+            <div className="practice-scene-panel">
+              <div className="practice-scene-image-wrap">
+                <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} />
+                <div className="practice-scene-badge">
+                  Scene {selectedImageIndex + 1} / {topic.images.length}
+                  {topic.prompts?.[selectedImageIndex] && (
+                    <span> · {topic.prompts[selectedImageIndex]}</span>
+                  )}
+                </div>
               </div>
-            ))}
-          </div>
-        </section>
-      )}
 
-      <section className="recording-console simple-recording-console">
-        <div className="recording-action-copy">
-          <span>Record or submit</span>
-          <h2>Speak your story</h2>
-          <p>Use the picture, vocabulary, and four-step plan, then record or upload voice audio.</p>
-        </div>
+              {selectedVocabulary.length > 0 && (
+                <div className="practice-vocab-ref">
+                  <p className="practice-vocab-heading">📚 Scene vocabulary</p>
+                  <div className="practice-vocab-chips">
+                    {selectedVocabulary.map(w => <span key={w}>{w}</span>)}
+                  </div>
+                </div>
+              )}
 
-        <div className="controls simple-controls">
-          <button
-            type="button"
-            onClick={handlePrimaryRecordingAction}
-            disabled={recordingButtonDisabled}
-            className={`btn btn-record-main ${
-              isRecording ? "btn-danger" : "btn-primary"
-            }`}
-          >
-            {recordingButtonLabel}
-          </button>
-
-          <label
-            className={`btn btn-secondary submit-voice-label ${
-              isBusy ? "disabled" : ""
-            }`}
-            role="button"
-            tabIndex={isBusy ? -1 : 0}
-          >
-            Submit voice file
-            <input
-              className="submit-voice-input"
-              type="file"
-              accept="audio/*,.wav,.wave,.webm,.mp3,.m4a,.ogg"
-              onChange={handleSubmitVoiceFile}
-              disabled={isBusy}
-            />
-          </label>
-
-          {submittedAudioName && (
-            <p className="submitted-audio-name">Submitted: {submittedAudioName}</p>
-          )}
-
-          <details className="advanced-recording-options">
-            <summary>Recording options</summary>
-            <div className="model-selector">
-              <label htmlFor="model">Speech source</label>
-              <select
-                id="model"
-                value={selectedModel}
-                onChange={(event) =>
-                  setSelectedModel(event.target.value as SpeechModel)
-                }
-                disabled={isBusy}
-              >
-                <option value="webspeech">
-                  Browser Traditional Chinese transcript and Praat analysis
-                </option>
-                <option value="ctwhisper">
-                  Chinese/Taiwanese Whisper transcript and Praat analysis
-                </option>
-                <option value="vibevoice">
-                  VibeVoice-ASR local file transcript and Praat analysis
-                </option>
-              </select>
+              <div className="practice-record-area">
+                <button
+                  type="button"
+                  onClick={handlePrimaryRecordingAction}
+                  disabled={recordingButtonDisabled}
+                  className={`btn-practice-record${isRecording ? " is-recording" : ""}`}
+                >
+                  {isRecording ? "⏹ Stop Recording" : "🎙 Record"}
+                </button>
+                {isRecording && (
+                  <div className="practice-timer">
+                    <span>{recordingDuration}s</span>
+                    {selectedModel === "webspeech" && (
+                      <span className="practice-silence">silence {silenceDuration}s / 7s</span>
+                    )}
+                  </div>
+                )}
+                <label className={`btn-practice-upload${isBusy ? " disabled" : ""}`} role="button" tabIndex={isBusy ? -1 : 0}>
+                  Upload audio
+                  <input className="submit-voice-input" type="file" accept="audio/*,.wav,.wave,.webm,.mp3,.m4a,.ogg" onChange={handleSubmitVoiceFile} disabled={isBusy} />
+                </label>
+                {submittedAudioName && <p className="submitted-audio-name">✓ {submittedAudioName}</p>}
+              </div>
             </div>
-          </details>
-        </div>
-      </section>
 
-      {isRecording && (
-        <div className="recording-info">
-          <p>Recording: {recordingDuration}s</p>
-          {selectedModel === "webspeech" && (
-            <p>Silence: {silenceDuration}s / 7s auto-stop</p>
+            {/* Right: story guide */}
+            <div className="practice-guide-panel">
+              <div className="practice-guide-header">
+                <span>🗺️</span>
+                <div>
+                  <h3>Story Guide</h3>
+                  <p>Use your vocabulary map to build one or two sentences, then record.</p>
+                </div>
+              </div>
+
+              <div className="practice-guide-qs">
+                <div className="practice-guide-q">
+                  <span className="guide-q-zh">誰?</span>
+                  <span className="guide-q-en">Who is in this scene?</span>
+                </div>
+                <div className="practice-guide-q">
+                  <span className="guide-q-zh">在哪裡?</span>
+                  <span className="guide-q-en">Where are they?</span>
+                </div>
+                <div className="practice-guide-q">
+                  <span className="guide-q-zh">做什麼?</span>
+                  <span className="guide-q-en">What are they doing?</span>
+                </div>
+              </div>
+
+              <div className="practice-chips-group">
+                <p>Sentence starters</p>
+                <div>
+                  {sentenceStarters.map(s => <span key={s} className="practice-chip">{s}</span>)}
+                </div>
+              </div>
+
+              <div className="practice-chips-group">
+                <p>Connectors</p>
+                <div>
+                  {storyConnectors.map(c => <span key={c} className="practice-chip">{c}</span>)}
+                </div>
+              </div>
+
+              <details className="practice-model-picker">
+                <summary>Recording options</summary>
+                <select
+                  value={selectedModel}
+                  onChange={e => setSelectedModel(e.target.value as SpeechModel)}
+                  disabled={isBusy}
+                >
+                  <option value="webspeech">Browser (Traditional Chinese)</option>
+                  <option value="ctwhisper">Whisper (Chinese / Taiwanese)</option>
+                  <option value="vibevoice">VibeVoice-ASR (local file)</option>
+                </select>
+              </details>
+            </div>
+          </div>
+
+          {(isTranscribing || isAnalyzing) && (
+            <p className="loading">
+              {isTranscribing ? "Transcribing speech…" : "Running Praat analysis…"}
+            </p>
           )}
-        </div>
-      )}
-
-      {(isTranscribing || isAnalyzing) && (
-        <p className="loading">
-          {isTranscribing ? "Transcribing speech..." : "Running Praat analysis..."}
-        </p>
-      )}
-
-      {error && <p className="error">{error}</p>}
+          {error && <p className="error">{error}</p>}
 
       {praatMetrics && (
         <section className="analysis-panel">
@@ -1618,35 +1336,6 @@ function buildConceptMapText(draft: ConceptMapDraft): string {
     .join(" ");
 }
 
-function buildSuggestedStory(draft: ConceptMapDraft): string {
-  const characters = draft.characters.trim() || "學生";
-  const place = draft.place.trim() || "學校";
-  const actions = draft.actions.trim() || "看見一件事情";
-  const vocabulary = draft.vocabulary.trim();
-  const connectors = draft.connectors.trim() || "然後 最後";
-  const connectorList = connectors.split(/\s+/).filter(Boolean);
-  const secondConnector = connectorList[0] || "然後";
-  const finalConnector = connectorList[connectorList.length - 1] || "最後";
-
-  return [
-    `一開始，${characters}在${place}。`,
-    `${secondConnector}，${characters}${actions}。`,
-    vocabulary ? `他們練習說：${vocabulary}。` : "",
-    `${finalConnector}，故事有一個清楚的結尾。`,
-  ]
-    .filter(Boolean)
-    .join("");
-}
-
-function appendToken(currentValue: string, token: string): string {
-  const cleanToken = token.trim();
-  if (!cleanToken) {
-    return currentValue;
-  }
-
-  const trimmed = currentValue.trim();
-  return trimmed ? `${trimmed} ${cleanToken}` : cleanToken;
-}
 
 function hasAudioFileExtension(fileName: string): boolean {
   return /\.(wav|wave|webm|mp3|m4a|ogg)$/i.test(fileName);
