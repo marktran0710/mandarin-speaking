@@ -1754,8 +1754,8 @@ function FeedbackSummary({
     <div className="feedback-summary">
       <div className="feedback-summary-top">
         <div className="feedback-summary-score">
-          <span className="feedback-summary-number">{vocabListExists && missingVocab ? "???" : overallScore}</span>
-          {!(vocabListExists && missingVocab) && <span className="feedback-summary-denom">/100</span>}
+          <span className="feedback-summary-number">{vocabListExists && missingVocab ? "0" : overallScore}</span>
+          <span className="feedback-summary-denom">/100</span>
         </div>
         <div className="feedback-summary-meta">
           <p className="feedback-summary-label">{overallLabel}</p>
