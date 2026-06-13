@@ -1,362 +1,316 @@
 # Mandarin Stories
 
-Mandarin Stories is a React + FastAPI learning app for practicing spoken Mandarin with story prompts. Learners choose a topic image, record speech, review transcription, and get two layers of feedback:
+A classroom speaking-practice platform for Mandarin learners. Teachers build story activities with picture cues and vocabulary; students record Mandarin speech and receive acoustic + AI language feedback in real time.
 
-- Praat acoustic analysis for pitch, tone, formants, speech rate, and fluency
-- AI language-coach feedback for fluency, grammar, vocabulary, improved wording, and next practice prompts
+---
 
-The current UI uses a warm Clay-inspired design system with cream surfaces, black CTAs, rounded panels, and saturated learning cards.
+## Application Flow
 
-## Features
+```mermaid
+flowchart TD
+    A([Open App]) --> B{Who are you?}
 
-- Multi-page app: Home, Create Story, and My Stories
-- Topic-based story prompts with vocabulary support
-- Browser audio recording with WAV conversion before backend analysis
-- Web Speech API transcription for a free browser-native flow
-- Optional OpenAI Whisper, Gemini, local FunASR, or local VibeVoice-ASR transcription through the backend
-- Praat/Parselmouth pitch and formant analysis
-- Mandarin tone detection and tone-accuracy scoring
-- Interactive pitch contour chart with Chart.js
-- AI language feedback for fluency, grammar, and vocabulary
-- Saved story history and teacher story activities in a backend SQLite database, with local storage fallback
-- Docker backend option for machines without local Python
+    B -->|Teacher| T1[Teacher Login]
+    B -->|Student| S1[Student Login]
+
+    %% ── Teacher path ──────────────────────────────────────
+    T1 --> T2[Teacher Dashboard]
+
+    T2 --> T3[Materials tab\nCreate / edit story]
+    T3 --> T4[Fill 6 frames\nImage · Prompt · Vocabulary]
+    T4 --> T5[Add word categories\nCharacters · Setting · Actions · Outcome]
+    T5 --> T6[Publish story]
+
+    T2 --> T7[Overview tab\nClass stats & recent submissions]
+    T2 --> T8[Progress tab\nPer-student topic coverage]
+    T2 --> T9[Recordings tab\nAll student audio + Praat + AI scores]
+    T2 --> T10[Help tab\nResolve student hand-raise requests]
+
+    %% ── Student path ──────────────────────────────────────
+    S1 --> S2[Choose published story]
+    S2 --> S3[Story Concept Map\nDrag all vocab words into\n4 category boxes]
+    S3 --> S4{Check answers}
+    S4 -->|Wrong words| S3
+    S4 -->|All correct| S5[Continue to Speaking]
+
+    S5 --> S6[Select a scene / picture cue]
+    S6 --> S7[Read scene prompt + vocabulary chips]
+    S7 --> S8[Record Mandarin speech]
+
+    S8 --> S9[Backend analysis\nPraat + AI run in parallel]
+
+    S9 --> S10[Vocabulary coverage\nGreen ✓ used · Red ✗ missing]
+    S9 --> S11[Coherence check\nSentence structure feedback]
+    S9 --> S12[Pronunciation note\nTone accuracy from Praat]
+    S9 --> S13[Tone Drill panel\nFocus characters + pitch shape]
+
+    S10 -->|All vocab used| S14[Step unlocked: Coherence]
+    S14 --> S15[Step unlocked: Pronunciation]
+    S15 --> S16[Try again or next scene]
+    S16 --> S6
+
+    S10 -->|Missing words| S17[Try Again prompt\nShows missing word chips]
+    S17 --> S8
+
+    style A fill:#6366f1,color:#fff
+    style S4 fill:#f59e0b,color:#fff
+    style S9 fill:#059669,color:#fff
+```
+
+---
 
 ## Architecture
 
-```text
-React + Vite frontend
-  -> records speech and converts audio to WAV
-  -> calls FastAPI backend
+```mermaid
+flowchart LR
+    Browser["Browser\nReact + Vite\nport 5173"]
 
-FastAPI backend
-  -> /api/analyze: Praat acoustic analysis + optional local ASR + AI language feedback
-  -> /api/transcribe: OpenAI, Gemini, FunASR, or VibeVoice-ASR transcription
-  -> /api/audio-records and /api/custom-stories: SQLite persistence
-  -> /uploads/audio and /uploads/images: saved voice and story image files
-  -> /api/reference-tone/{tone}: Mandarin tone reference data
+    subgraph Backend["FastAPI  –  port 8001"]
+        direction TB
+        API["/api/analyze\nPraat + AI feedback"]
+        ASR["/api/transcribe\nASR models"]
+        DB["/api/audio-records\n/api/custom-stories\nSQLite"]
+        IMG["/api/generate-story-images\nDALL-E 3 / Pollinations.ai"]
+        UPL["/uploads/audio\n/uploads/images"]
+    end
+
+    Browser -->|"WAV upload\n+ transcription"| API
+    Browser -->|"audio upload"| ASR
+    Browser -->|"CRUD"| DB
+    Browser -->|"image prompt"| IMG
+
+    API -->|"Praat / Parselmouth"| Praat["Acoustic analysis\npitch · tone · formants\nfluency · speech rate"]
+    API -->|"parallel"| AIFeed["AI language feedback\nGemini / OpenAI / local"]
+    IMG --> UPL
+    ASR -->|"optional"| FunASR["FunASR / VibeVoice\n(local GPU)"]
+
+    DB --> SQLite[(mandarin_stories.db)]
 ```
+
+---
+
+## Features
+
+### Teacher tools
+| Feature | Description |
+|---|---|
+| Story builder | Create 6-frame stories with image, student prompt, vocabulary, and word-category answer key |
+| Word category editor | Assign each vocab word to Characters / Setting / Actions / Outcome for the drag-and-drop activity |
+| AI image generation | Generate photorealistic scene images with DALL-E 3 or Pollinations.ai |
+| Publish / unpublish | Control which stories appear in the student topic list |
+| Dashboard | Class stats, help requests, progress per topic, all recordings with Praat + AI scores |
+| Refresh recordings | Fetch latest student recordings from the backend without reloading the page |
+
+### Student tools
+| Feature | Description |
+|---|---|
+| Story Concept Map | Drag-and-drop vocab words into 4 categories; Check validates against teacher answer key |
+| Scene practice | Record speech per picture cue; vocabulary chips show used ✓ / missing ✗ after analysis |
+| Learning scaffold | Vocab → Coherence → Pronunciation; each step unlocks only when the previous is complete |
+| Tone Drill panel | Focus characters with pitch contour shapes for targeted pronunciation practice |
+| Recording playback | Listen back to your recording in the feedback panel |
+| My Stories | Review all saved attempts with full Praat metrics and AI feedback |
+| Raise hand | Send a help request to the teacher directly from the student view |
+
+### Analysis pipeline
+| Layer | What it measures |
+|---|---|
+| Praat / Parselmouth | Pitch contour, tone accuracy, formants, speech rate, fluency score, pause analysis |
+| AI language coach | Vocabulary coverage (used / missing), coherence, pronunciation note, improved version |
+| Tone drill | Per-word pitch shape classification (rising / falling / dipping / high-level) |
+
+---
 
 ## Quick Start
 
-### Option A: Run Backend With Docker
-
-This is the easiest path on Windows if Python is not installed locally.
-
-```powershell
-docker build -t mandarin-speaking-backend ./backend
-docker rm -f mandarin-speaking-backend-api
-docker run -d --name mandarin-speaking-backend-api -p 8000:8000 mandarin-speaking-backend
-```
-
-Verify:
-
-```powershell
-curl http://localhost:8000/health
-```
-
-### Option B: Run Backend With Local Python
-
-Requires Python 3.10+.
+### 1. Backend (Python 3.10+)
 
 ```powershell
 cd backend
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload --port 8001
 ```
 
-### Run Frontend
+Health check:
+```powershell
+curl http://localhost:8001/health
+```
+
+### 2. Frontend
 
 ```powershell
 npm install
-npm.cmd run dev -- --host 0.0.0.0 --port 5173 --strictPort
+npm run dev -- --host 0.0.0.0 --port 5173
 ```
 
-Open:
+Open **http://127.0.0.1:5173**
 
-- Frontend: http://127.0.0.1:5173
-- Backend health: http://localhost:8000/health
-- Backend API docs: http://localhost:8000/docs
+### 3. Docker (alternative for backend)
+
+```powershell
+docker build -t mandarin-speaking-backend ./backend
+docker run -d --name mandarin-api -p 8001:8001 mandarin-speaking-backend
+```
+
+---
 
 ## Environment Variables
 
-Create `backend/.env` if you want cloud transcription or AI-generated coaching:
+Create `backend/.env`:
 
 ```env
-OPENAI_API_KEY=your_openai_key
+# AI language feedback
 GEMINI_API_KEY=your_gemini_key
-AI_FEEDBACK_PROVIDER=gemini
-OPENAI_FEEDBACK_MODEL=gpt-4o-mini
+OPENAI_API_KEY=your_openai_key
+AI_FEEDBACK_PROVIDER=gemini          # gemini | openai | local
 GEMINI_FEEDBACK_MODEL=gemini-2.0-flash
+OPENAI_FEEDBACK_MODEL=gpt-4o-mini
+
+# Image generation (for "Generate Six Picture Cues")
+# Uses DALL-E 3 if OPENAI_API_KEY set, otherwise Pollinations.ai (free)
+
+# Local ASR (optional)
 FUNASR_MODEL=paraformer-zh
-FUNASR_VAD_MODEL=fsmn-vad
-FUNASR_PUNC_MODEL=ct-punc
 VIBEVOICE_ASR_MODEL=microsoft/VibeVoice-ASR-HF
-VIBEVOICE_DEVICE=-1
+VIBEVOICE_DEVICE=-1                  # -1 = CPU, 0 = first GPU
+
+# Server
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 DATABASE_PATH=./mandarin_stories.db
 UPLOAD_DIR=./uploads
 ```
 
-Notes:
+Create `.env.local` in the project root (frontend):
 
-- API keys stay on the backend and are not exposed to the browser.
-- In production, set `CORS_ORIGINS` to the deployed frontend URL.
-- In production, the frontend must set `VITE_BACKEND_URL` to the deployed backend URL. GitHub Pages cannot run Praat by itself.
-- The backend creates a SQLite database at `DATABASE_PATH` and stores voice/image files under `UPLOAD_DIR`. Point both at a persistent disk or volume in production.
-- AI coach feedback prefers Gemini 2.0 Flash by default when `GEMINI_API_KEY` is configured. Set `AI_FEEDBACK_PROVIDER=openai` only if you want OpenAI to be tried first.
-- If no OpenAI or Gemini key is configured, AI coach feedback falls back to local heuristic feedback.
-- Web Speech API transcription does not require an API key, but browser support varies.
-- FunASR transcription runs on the backend and does not require an API key. The first run may download model files, so the backend needs network access and enough disk/memory for the ASR models.
-- VibeVoice-ASR transcription runs on the backend through Hugging Face Transformers and does not require an API key. Use `VIBEVOICE_DEVICE=-1` for CPU or a GPU device index such as `0` when the backend has CUDA available.
+```env
+VITE_BACKEND_URL=http://localhost:8001
+```
+
+---
+
+## User Roles
+
+### Teacher login
+- Default password: `teacher123` (set in backend)
+- Access: Dashboard, Image Builder
+- Can create/publish stories, view all student recordings, resolve help requests
+
+### Student login
+- Default password: `student123`
+- Access: Training (speaking practice), My Stories
+- Can practice published stories, raise a hand for help
+
+---
 
 ## Deployment
 
-This project deploys as two services:
-
-- Frontend: Vite static site on Vercel, Netlify, or another static host
-- Backend: FastAPI Docker service on Render, Railway, Fly.io, or Cloud Run
-
 ### Backend on Render
 
-The repository includes `render.yaml` and `backend/Dockerfile`.
+1. Push to GitHub.
+2. In Render, create a new Web Service from the repository — point to `backend/Dockerfile`.
+3. Set environment variables including:
+   ```
+   CORS_ORIGINS=https://your-frontend-domain.com
+   GEMINI_API_KEY=...
+   ```
 
-1. Push the repository to GitHub.
-2. In Render, create a new Blueprint from the repository.
-3. After the backend URL is created, update the backend environment variable:
+### Frontend on Vercel / GitHub Pages
 
-```env
-CORS_ORIGINS=https://marktran0710.github.io
-```
-
-4. Add optional AI keys if needed:
-
-```env
-OPENAI_API_KEY=your_openai_key
-GEMINI_API_KEY=your_gemini_key
-AI_FEEDBACK_PROVIDER=gemini
-```
-
-5. Verify:
-
-```powershell
-curl https://your-backend-domain.onrender.com/health
-```
-
-### Frontend on Vercel
-
-The repository includes `vercel.json`.
-
-Set this Vercel environment variable before production deploy:
-
+Set before building:
 ```env
 VITE_BACKEND_URL=https://your-backend-domain.onrender.com
 ```
 
-Then deploy:
-
+Then:
 ```powershell
-npm.cmd run build
+npm run build
 npx vercel --prod
 ```
 
-After Vercel gives you the frontend URL, add that exact URL to the backend `CORS_ORIGINS` value and redeploy/restart the backend.
-
-### Frontend on GitHub Pages
-
-The repository also includes `.github/workflows/deploy-pages.yml` for a no-CLI deployment path.
-
-1. Push the repository to GitHub.
-2. In GitHub, open **Settings -> Pages**.
-3. Set **Source** to **GitHub Actions**.
-4. Push to `main` or manually run the **Deploy Frontend to GitHub Pages** workflow.
-
-Expected frontend URL:
-
-```text
-https://marktran0710.github.io/mandarin-speaking/
-```
-
-If you deploy the backend later, add a repository variable in GitHub:
-
-```env
-VITE_BACKEND_URL=https://your-backend-domain.example.com
-```
-
-Then rerun the Pages workflow. Without `VITE_BACKEND_URL`, the static UI deploys, but Praat/Gemini analysis cannot run because the browser has no production backend to call.
-
-## User Flow
-
-1. Open the app and go to Create Story.
-2. Pick a topic and image prompt.
-3. Choose a speech source.
-4. Record Mandarin speech.
-5. Stop recording and wait for analysis.
-6. Review Praat metrics, pitch chart, AI feedback, and transcription.
-7. Visit My Stories to review saved attempts.
-
-## Praat Metrics
-
-| Metric | Meaning |
-| --- | --- |
-| Detected tone | Best matching Mandarin tone from the pitch contour |
-| Tone accuracy | Similarity between the learner pitch contour and tone reference |
-| Pitch contour | Frequency over time extracted by Praat/Parselmouth |
-| Speech rate | Estimated syllables per second |
-| Fluency score | Smoothness and continuity estimate from pitch and timing |
-| Formants | F1, F2, and F3 vowel characteristics |
-
-Tone references:
-
-- Tone 1: high level, ma1
-- Tone 2: rising, ma2
-- Tone 3: falling-rising, ma3
-- Tone 4: falling, ma4
-
-## AI Language Feedback
-
-The backend adds an `ai_feedback` object to `/api/analyze` responses:
-
-```json
-{
-  "provider": "openai",
-  "fluency": {
-    "score": 82,
-    "feedback": "Your sentence is understandable and mostly smooth."
-  },
-  "grammar": {
-    "score": 76,
-    "feedback": "The sentence needs a clearer subject-action structure.",
-    "corrections": ["Add a subject before the verb."]
-  },
-  "vocabulary": {
-    "score": 80,
-    "feedback": "Use one more specific descriptive word.",
-    "suggestions": ["Add a place word", "Add an emotion word"]
-  },
-  "improved_version": "A more natural Mandarin version",
-  "practice_prompt": "Say the sentence again with one extra detail."
-}
-```
-
-If API keys are missing or the AI request fails, the backend returns `"provider": "local"` with fallback coaching.
-
-## API Endpoints
-
-### `GET /health`
-
-Returns backend status.
-
-### `POST /api/analyze`
-
-Analyzes a WAV audio upload with Praat and returns language feedback. If `transcription` is empty and `asr_model` is provided, the backend transcribes first and then runs Praat on the same uploaded audio.
-
-Form fields:
-
-- `file`: audio file
-- `transcription`: optional transcription text
-- `asr_model`: optional ASR provider for combined transcription + Praat analysis, for example `vibevoice`
-
-### `POST /api/transcribe`
-
-Transcribes an audio upload with OpenAI, Gemini, local FunASR, or local VibeVoice-ASR.
-
-Form fields:
-
-- `file`: audio file
-- `model`: `openai`, `gemini`, `funasr`, or `vibevoice`
-
-### `GET /api/reference-tone/{tone_number}`
-
-Returns one tone reference pattern.
-
-### `GET /api/all-tones`
-
-Returns all tone reference patterns.
+---
 
 ## Project Structure
 
-```text
+```
 .
 ├── backend/
+│   ├── ai_feedback.py        # Gemini / OpenAI / local language feedback
+│   ├── chinese_tones.py      # Mandarin tone reference patterns
+│   ├── database.py           # SQLite helpers
+│   ├── main.py               # FastAPI routes, image generation, parallel analysis
+│   ├── praat_analyzer.py     # Parselmouth acoustic analysis
 │   ├── Dockerfile
-│   ├── ai_feedback.py
-│   ├── chinese_tones.py
-│   ├── database.py
-│   ├── main.py
-│   ├── praat_analyzer.py
 │   └── requirements.txt
-├── clay/
-│   └── DESIGN.md
-├── src/
-│   ├── components/
-│   │   ├── Navigation.tsx
-│   │   └── StoryRecorder.tsx
-│   ├── pages/
-│   │   ├── HomePage.tsx
-│   │   ├── CreateStoryPage.tsx
-│   │   └── MyStoriesPage.tsx
-│   ├── App.tsx
-│   ├── PitchChart.tsx
-│   ├── TopicSelector.tsx
-│   └── main.tsx
-├── package.json
-├── tsconfig.json
-└── vite.config.ts
+└── src/
+    ├── components/
+    │   ├── StoryConceptMap.tsx   # Drag-and-drop word categorization activity
+    │   ├── StoryConceptMap.css
+    │   ├── StoryRecorder.tsx     # Main recording + analysis panel
+    │   ├── StoryRecorder.css
+    │   ├── PraatTimeline.tsx
+    │   └── Navigation.tsx
+    ├── pages/
+    │   ├── HomePage.tsx
+    │   ├── CreateStoryPage.tsx
+    │   ├── MyStoriesPage.tsx     # Student history + Teacher dashboard
+    │   ├── LoginPage.tsx
+    │   └── TeacherImageBuilderPage.tsx
+    ├── utils/
+    │   └── teacherStories.ts     # Custom story helpers, VocabGroup types
+    ├── database.ts               # Frontend API client
+    ├── TopicSelector.tsx
+    ├── App.tsx
+    └── main.tsx
 ```
 
-## Development Commands
+---
 
-```powershell
-npm.cmd run dev
-npm.cmd run build
-npm.cmd run preview
-```
+## API Reference
 
-Backend Docker:
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health` | Backend status |
+| `POST` | `/api/analyze` | WAV upload → Praat + AI feedback |
+| `POST` | `/api/transcribe` | WAV upload → transcription (openai / gemini / funasr / vibevoice) |
+| `GET` | `/api/audio-records` | List all student recordings |
+| `POST` | `/api/audio-records/upload` | Save a recording with audio file |
+| `DELETE` | `/api/audio-records/{id}` | Delete a recording |
+| `GET` | `/api/custom-stories` | List teacher stories |
+| `POST` | `/api/custom-stories` | Create / update a story |
+| `DELETE` | `/api/custom-stories/{id}` | Delete a story |
+| `POST` | `/api/generate-story-images` | Generate 6 picture cues with AI |
+| `GET` | `/api/reference-tone/{tone}` | Mandarin tone reference (1–4) |
+| `GET` | `/api/all-tones` | All tone reference patterns |
 
-```powershell
-docker build -t mandarin-speaking-backend ./backend
-docker run -d --name mandarin-speaking-backend-api -p 8000:8000 mandarin-speaking-backend
-docker logs mandarin-speaking-backend-api
-docker rm -f mandarin-speaking-backend-api
-```
+---
+
+## Praat Metrics
+
+| Metric | Description |
+|---|---|
+| Tone accuracy | Similarity of pitch contour to Mandarin tone references |
+| Fluency score | Smoothness and continuity from pitch and timing |
+| Speech rate | Estimated syllables per second |
+| Pitch contour | Frequency over time (Hz) |
+| Formants F1 / F2 / F3 | Vowel resonance characteristics |
+| Pause analysis | Utterance count, pause count, longest pause, speech ratio |
+| Word prosody | Per-word pitch shape: rising / falling / dipping / high-level |
+
+---
 
 ## Troubleshooting
 
-### Browser shows `ERR_CONNECTION_REFUSED` for frontend
+**`ERR_CONNECTION_REFUSED` on backend** — start the backend and verify `VITE_BACKEND_URL=http://localhost:8001` in `.env.local`.
 
-Start Vite and verify the port:
+**AI feedback shows `provider: local`** — no Gemini or OpenAI key configured; add one to `backend/.env` and restart.
 
-```powershell
-npm.cmd run dev -- --host 0.0.0.0 --port 5173 --strictPort
-```
+**Images not showing in teacher materials** — relative `/uploads/` paths must be resolved through the backend URL. The app handles this automatically via `resolveImageUrl()`.
 
-Open http://127.0.0.1:5173.
+**Concept map check shows no feedback** — the teacher must assign words to categories in the Materials form before publishing. Without an answer key, Check only counts placed words.
 
-### Browser shows `ERR_CONNECTION_REFUSED` for backend
+**Student recordings not visible in teacher dashboard** — click **↺ Refresh recordings** in the dashboard header to re-fetch the latest records from the database.
 
-Start the backend and verify:
-
-```powershell
-curl http://localhost:8000/health
-```
-
-### Opening `/api/analyze` directly shows an error
-
-That endpoint is a `POST` file-upload endpoint. Use the frontend recording flow or Swagger UI at http://localhost:8000/docs.
-
-### AI feedback says `provider: local`
-
-No supported AI key is configured, or the provider request failed. Add `OPENAI_API_KEY` or `GEMINI_API_KEY` to `backend/.env` and restart the backend.
-
-### Praat analysis fails
-
-- Make sure the uploaded audio is not empty.
-- Prefer WAV audio.
-- In production, verify `VITE_BACKEND_URL` points to a live HTTPS backend.
-- Verify the backend `CORS_ORIGINS` includes the frontend origin, for example `https://marktran0710.github.io`.
-- If using local Python, install dependencies with `pip install -r backend/requirements.txt`.
-- If using Docker, rebuild the backend image after dependency changes.
+---
 
 ## License
 
