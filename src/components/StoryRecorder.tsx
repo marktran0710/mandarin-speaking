@@ -1239,192 +1239,111 @@ export default function StoryRecorder({
 
       {praatMetrics && (
         <section className="analysis-panel">
-          <div className="analysis-heading">
-            <p className="eyebrow">Feedback unlocked</p>
-            <h2>Your Speaking Results</h2>
-          </div>
 
-          {/* Language Coach — shown first so student sees feedback immediately */}
+          {/* ── Zone 1: Summary ─────────────────────────────────────── */}
+          <FeedbackSummary
+            praatMetrics={praatMetrics}
+            attemptHistory={attemptHistory}
+            transcription={praatMetrics.transcription || ""}
+          />
+
+          {/* ── Zone 2: Steps to Improve ────────────────────────────── */}
           {praatMetrics.ai_feedback && (
-            <div className="ai-feedback-section ai-feedback-top">
-              <div className="ai-feedback-header">
-                <p className="eyebrow">Language coach</p>
-                <h3>Sentence feedback for this scene</h3>
-                <span className="provider-badge">{praatMetrics.ai_feedback.provider}</span>
-              </div>
-
-              <div className="ai-feedback-grid">
-                {praatMetrics.ai_feedback.vocabulary_coverage ? (
-                  <>
-                    <FeedbackCard
-                      title="Vocabulary"
-                      score={praatMetrics.ai_feedback.vocabulary_coverage.score}
-                      feedback={praatMetrics.ai_feedback.vocabulary_coverage.feedback}
-                      items={praatMetrics.ai_feedback.vocabulary_coverage.missing.map(w => `Missing: ${w}`)}
-                    />
-                    <FeedbackCard
-                      title="Coherence"
-                      score={praatMetrics.ai_feedback.coherence.score}
-                      feedback={praatMetrics.ai_feedback.coherence.feedback}
-                      items={praatMetrics.ai_feedback.coherence.corrections}
-                    />
-                    <FeedbackCard
-                      title="Pronunciation"
-                      score={praatMetrics.ai_feedback.pronunciation_note.score}
-                      feedback={praatMetrics.ai_feedback.pronunciation_note.feedback}
-                    />
-                  </>
-                ) : (
-                  <>
-                    {praatMetrics.ai_feedback.fluency && <FeedbackCard title="Fluency" score={praatMetrics.ai_feedback.fluency.score} feedback={praatMetrics.ai_feedback.fluency.feedback} />}
-                    {praatMetrics.ai_feedback.grammar && <FeedbackCard title="Grammar" score={praatMetrics.ai_feedback.grammar.score} feedback={praatMetrics.ai_feedback.grammar.feedback} items={praatMetrics.ai_feedback.grammar.corrections} />}
-                    {praatMetrics.ai_feedback.vocabulary && <FeedbackCard title="Vocabulary" score={praatMetrics.ai_feedback.vocabulary.score} feedback={praatMetrics.ai_feedback.vocabulary.feedback} items={praatMetrics.ai_feedback.vocabulary.suggestions} />}
-                  </>
-                )}
-              </div>
-
-              {praatMetrics.ai_feedback.improved_version && praatMetrics.ai_feedback.improved_version !== (praatMetrics.transcription || "") && (
-                <div className="ai-example">
-                  <strong>Natural version</strong>
-                  <p lang="zh-TW">{praatMetrics.ai_feedback.improved_version}</p>
-                </div>
-              )}
-              <div className="ai-example next-practice">
-                <strong>Practice next</strong>
-                <p>{praatMetrics.ai_feedback.practice_prompt}</p>
-              </div>
-            </div>
-          )}
-
-          {analysisAudioBlob && (
-            <RecordingPlayback blob={analysisAudioBlob} />
-          )}
-
-          {/* Attempt progress trend */}
-          {attemptHistory.length > 1 && (
-            <div className="attempt-trend">
-              <p className="attempt-trend-label">Your progress ({attemptHistory.length} attempts)</p>
-              <div className="attempt-trend-bars">
-                {attemptHistory.map((a, i) => (
-                  <div key={i} className={`attempt-bar ${i === attemptHistory.length - 1 ? "current" : ""}`}>
-                    <div className="attempt-bar-fill" style={{ height: `${a.tone}%` }} title={`Attempt ${a.attempt}: tone ${a.tone}%`} />
-                    <span>{a.attempt}</span>
-                  </div>
-                ))}
-              </div>
-              {(() => {
-                const prev = attemptHistory[attemptHistory.length - 2];
-                const curr = attemptHistory[attemptHistory.length - 1];
-                const diff = curr.tone - prev.tone;
-                return diff > 0
-                  ? <p className="attempt-trend-delta positive">+{diff}% tone improvement this attempt</p>
-                  : diff < 0
-                  ? <p className="attempt-trend-delta negative">{diff}% — keep going, consistency takes time</p>
-                  : <p className="attempt-trend-delta">Same score — try slowing down on one character</p>;
-              })()}
-            </div>
-          )}
-
-          {/* Pitch direction — plain language, prominent */}
-          {praatMetrics.tone_direction && (
-            <div className="tone-direction-card">
-              <p className="eyebrow">Pitch movement</p>
-              <p className="tone-direction-text">{praatMetrics.tone_direction}</p>
-            </div>
-          )}
-
-          {/* Pitch chart in main panel — student can see their contour vs target */}
-          <div className="pitch-overview">
-            <p className="pitch-overview-label">Your pitch contour vs. target tone shape</p>
-            <PitchChart
-              pitchContour={praatMetrics.pitch_contour}
-              detectedTone={praatMetrics.detected_tone}
+            <LearningScaffold
+              ai={praatMetrics.ai_feedback}
+              wordProsody={praatMetrics.word_prosody || []}
+              improvedVersion={praatMetrics.ai_feedback.improved_version}
             />
+          )}
+
+          {/* ── Zone 3: Listen back & try again ─────────────────────── */}
+          <div className="listen-try-zone">
+            {analysisAudioBlob && <RecordingPlayback blob={analysisAudioBlob} />}
+            <ModelExampleCard
+              text={modelExampleText}
+              isScenePrompt={Boolean(scenePromptText)}
+              focusWord={getToneFocusItems(praatMetrics.word_prosody || [])[0]?.token}
+            />
+            <p className="try-again-nudge">Read the steps above, then record again ↑</p>
           </div>
 
-          <div className="metrics-section">
-            {/* Tone accuracy — only meaningful for short phrases */}
-            {(() => {
-              const charCount = (praatMetrics.transcription || "").replace(/[^一-鿿]/g, "").length;
-              return charCount <= 6 ? (
-                <div className="metric-card accuracy-card">
-                  <div className="metric-label">Tone accuracy</div>
-                  <div className="metric-value">{Math.round(praatMetrics.tone_accuracy)}%</div>
-                  <div className="metric-bar">
-                    <div className="metric-fill" style={{ width: `${praatMetrics.tone_accuracy}%` }} />
-                  </div>
-                  <div className="metric-subtext">{getToneName(praatMetrics.detected_tone)} detected</div>
-                </div>
-              ) : (
-                <div className="metric-card tone-card">
-                  <div className="metric-label">Dominant pitch shape</div>
-                  <div className="metric-value compact">{getToneName(praatMetrics.detected_tone)}</div>
-                  <div className="metric-subtext">Score shown for short phrases only</div>
-                </div>
-              );
-            })()}
-
-            <div className="metric-card rate-card">
-              <div className="metric-label">Speech rate</div>
-              <div className="metric-value">{praatMetrics.speech_rate.toFixed(1)}</div>
-              <div className="metric-subtext">
-                {praatMetrics.speech_rate < 2.5 ? "Too slow — add more flow" :
-                 praatMetrics.speech_rate > 6.5 ? "Too fast — slow each tone" :
-                 "syllables/sec — good pace"}
-              </div>
-            </div>
-
-            {/* Pause feedback — replaces raw fluency number */}
-            {praatMetrics.pause_analysis && praatMetrics.pause_analysis.duration > 0 ? (
-              <div className="metric-card pause-card">
-                <div className="metric-label">Pauses</div>
-                <div className="metric-value">{praatMetrics.pause_analysis.pause_count}</div>
-                <div className="metric-subtext">
-                  {praatMetrics.pause_analysis.pause_count === 0
-                    ? "No long pauses — smooth delivery"
-                    : praatMetrics.pause_analysis.longest_pause >= 0.8
-                    ? `Longest gap: ${praatMetrics.pause_analysis.longest_pause.toFixed(1)}s — try connecting those words`
-                    : `${praatMetrics.pause_analysis.pause_count} short pause${praatMetrics.pause_analysis.pause_count > 1 ? "s" : ""} — nearly fluent`}
-                </div>
-              </div>
-            ) : (
-              <div className="metric-card fluency-card">
-                <div className="metric-label">Fluency</div>
-                <div className="metric-value">{Math.round(praatMetrics.fluency_score)}</div>
-                <div className="metric-bar">
-                  <div className="metric-fill" style={{ width: `${praatMetrics.fluency_score}%` }} />
-                </div>
-              </div>
-            )}
-
-            {/* Vowel quality — replaces raw F1/F2/F3 Hz */}
-            {praatMetrics.vowel_quality ? (
-              <div className="metric-card vowel-card">
-                <div className="metric-label">Vowel quality</div>
-                <div className="metric-value compact">{praatMetrics.vowel_quality.split(" — ")[0]}</div>
-                <div className="metric-subtext">{praatMetrics.vowel_quality.split(" — ")[1] || ""}</div>
-              </div>
-            ) : null}
-          </div>
-
-          <StudentFeedbackCards
-            toneAccuracy={praatMetrics.tone_accuracy}
-            fluencyScore={praatMetrics.fluency_score}
-            speechRate={praatMetrics.speech_rate}
-            wordProsody={praatMetrics.word_prosody || []}
-            pauseAnalysis={praatMetrics.pause_analysis}
-          />
-
-          <ToneDrillPanel wordProsody={praatMetrics.word_prosody || []} />
-
-          <ModelExampleCard
-            text={modelExampleText}
-            isScenePrompt={Boolean(scenePromptText)}
-            focusWord={getToneFocusItems(praatMetrics.word_prosody || [])[0]?.token}
-          />
-
+          {/* ── Zone 4: Advanced details (collapsed) ────────────────── */}
           <details className="advanced-praat-details">
             <summary>Advanced analysis details</summary>
+
+            <div className="pitch-overview">
+              <p className="pitch-overview-label">Your pitch contour vs. target tone shape</p>
+              <PitchChart
+                pitchContour={praatMetrics.pitch_contour}
+                detectedTone={praatMetrics.detected_tone}
+              />
+            </div>
+
+            <div className="metrics-section">
+              {(() => {
+                const charCount = (praatMetrics.transcription || "").replace(/[^一-鿿]/g, "").length;
+                return charCount <= 6 ? (
+                  <div className="metric-card accuracy-card">
+                    <div className="metric-label">Tone accuracy</div>
+                    <div className="metric-value">{Math.round(praatMetrics.tone_accuracy)}%</div>
+                    <div className="metric-bar"><div className="metric-fill" style={{ width: `${praatMetrics.tone_accuracy}%` }} /></div>
+                    <div className="metric-subtext">{getToneName(praatMetrics.detected_tone)} detected</div>
+                  </div>
+                ) : (
+                  <div className="metric-card tone-card">
+                    <div className="metric-label">Dominant pitch shape</div>
+                    <div className="metric-value compact">{getToneName(praatMetrics.detected_tone)}</div>
+                    <div className="metric-subtext">Score shown for short phrases only</div>
+                  </div>
+                );
+              })()}
+              <div className="metric-card rate-card">
+                <div className="metric-label">Speech rate</div>
+                <div className="metric-value">{praatMetrics.speech_rate.toFixed(1)}</div>
+                <div className="metric-subtext">
+                  {praatMetrics.speech_rate < 2.5 ? "Too slow — add more flow" :
+                   praatMetrics.speech_rate > 6.5 ? "Too fast — slow each tone" :
+                   "syllables/sec — good pace"}
+                </div>
+              </div>
+              {praatMetrics.pause_analysis && praatMetrics.pause_analysis.duration > 0 ? (
+                <div className="metric-card pause-card">
+                  <div className="metric-label">Pauses</div>
+                  <div className="metric-value">{praatMetrics.pause_analysis.pause_count}</div>
+                  <div className="metric-subtext">
+                    {praatMetrics.pause_analysis.pause_count === 0
+                      ? "No long pauses — smooth delivery"
+                      : praatMetrics.pause_analysis.longest_pause >= 0.8
+                      ? `Longest gap: ${praatMetrics.pause_analysis.longest_pause.toFixed(1)}s`
+                      : `${praatMetrics.pause_analysis.pause_count} short pause${praatMetrics.pause_analysis.pause_count > 1 ? "s" : ""} — nearly fluent`}
+                  </div>
+                </div>
+              ) : (
+                <div className="metric-card fluency-card">
+                  <div className="metric-label">Fluency</div>
+                  <div className="metric-value">{Math.round(praatMetrics.fluency_score)}</div>
+                  <div className="metric-bar"><div className="metric-fill" style={{ width: `${praatMetrics.fluency_score}%` }} /></div>
+                </div>
+              )}
+              {praatMetrics.vowel_quality && (
+                <div className="metric-card vowel-card">
+                  <div className="metric-label">Vowel quality</div>
+                  <div className="metric-value compact">{praatMetrics.vowel_quality.split(" — ")[0]}</div>
+                  <div className="metric-subtext">{praatMetrics.vowel_quality.split(" — ")[1] || ""}</div>
+                </div>
+              )}
+            </div>
+
+            <StudentFeedbackCards
+              toneAccuracy={praatMetrics.tone_accuracy}
+              fluencyScore={praatMetrics.fluency_score}
+              speechRate={praatMetrics.speech_rate}
+              wordProsody={praatMetrics.word_prosody || []}
+              pauseAnalysis={praatMetrics.pause_analysis}
+            />
+
+            <ToneDrillPanel wordProsody={praatMetrics.word_prosody || []} />
+
             <PraatTimeline
               audioBlob={analysisAudioBlob}
               pitchContour={praatMetrics.pitch_contour}
@@ -1446,10 +1365,7 @@ export default function StoryRecorder({
               ) : (
                 <div className="word-prosody-empty">
                   <strong>No character feedback yet</strong>
-                  <p>
-                    Needs a clear pitch contour and transcript. Try one complete
-                    sentence, or use Chinese/Taiwanese Whisper for transcription.
-                  </p>
+                  <p>Needs a clear pitch contour and transcript. Try one complete sentence, or use Chinese/Taiwanese Whisper.</p>
                 </div>
               )}
             </div>
@@ -1687,6 +1603,222 @@ function studentNextStep(
   return "Record again and push the tone shapes a bit further (exaggerate).";
 }
 
+// ─── Learning Scaffold ────────────────────────────────────────────────────────
+
+interface ScaffoldStep {
+  id: "vocab" | "coherence" | "pronunciation";
+  label: string;
+  status: "focus" | "next" | "done";
+  score: number;
+  headline: string;       // one line: what's wrong
+  drill: string;          // one concrete action to do right now
+  drillDetail?: string;   // extra context / example sentence
+}
+
+function buildScaffoldSteps(
+  ai: LanguageFeedback,
+  wordProsody: WordProsody[],
+): ScaffoldStep[] {
+  const vocabScore  = ai.vocabulary_coverage?.score ?? 0;
+  const cohScore    = ai.coherence?.score ?? 0;
+  const pronScore   = ai.pronunciation_note?.score ?? 0;
+
+  const missing = ai.vocabulary_coverage?.missing ?? [];
+  const badTones = wordProsody.filter(w => w.contour_shape === "variable" || w.contour_shape === "dip").slice(0, 2);
+
+  // Determine which step is the current focus (lowest score bucket)
+  const vocabOk  = vocabScore >= 75;
+  const cohOk    = cohScore  >= 70;
+  const pronOk   = pronScore >= 70;
+
+  const vocabStatus: ScaffoldStep["status"]  = !vocabOk ? "focus" : "done";
+  const cohStatus: ScaffoldStep["status"]    = vocabOk && !cohOk ? "focus" : cohOk ? "done" : "next";
+  const pronStatus: ScaffoldStep["status"]   = vocabOk && cohOk && !pronOk ? "focus" : pronOk ? "done" : "next";
+
+  const vocabDrill = missing.length > 0
+    ? `Say each missing word out loud 3 times, then build a sentence using "${missing[0]}".`
+    : "All scene words covered — try using them in a longer sentence.";
+
+  const cohCorrection = ai.coherence?.corrections?.[0];
+  const cohDrill = cohCorrection
+    ? `Fix this first: ${cohCorrection}. Then record again.`
+    : "Say the sentence aloud slowly, making sure it has a subject, verb, and object.";
+
+  const badChar = badTones[0]?.token;
+  const pronDrill = badChar
+    ? `Isolate "${badChar}" — say it 5 times exaggerating the tone shape, then record the full sentence.`
+    : ai.pronunciation_note?.feedback || "Record again, exaggerating each tone shape.";
+
+  return [
+    {
+      id: "vocab",
+      label: "Step 1 — Vocabulary",
+      status: vocabStatus,
+      score: vocabScore,
+      headline: missing.length > 0
+        ? `You missed ${missing.length} scene word${missing.length > 1 ? "s" : ""}: ${missing.slice(0, 3).join("、")}`
+        : "All scene vocabulary used",
+      drill: vocabDrill,
+      drillDetail: missing.length > 0 ? `Try: "我看到${missing[0]}。"` : undefined,
+    },
+    {
+      id: "coherence",
+      label: "Step 2 — Sentence Structure",
+      status: cohStatus,
+      score: cohScore,
+      headline: cohScore >= 70 ? "Sentence structure sounds natural" : ai.coherence?.feedback || "Work on sentence structure",
+      drill: cohDrill,
+    },
+    {
+      id: "pronunciation",
+      label: "Step 3 — Tones & Pronunciation",
+      status: pronStatus,
+      score: pronScore,
+      headline: pronOk ? "Tones and rhythm sound good" : ai.pronunciation_note?.feedback || "Work on tones",
+      drill: pronDrill,
+    },
+  ];
+}
+
+function FeedbackSummary({
+  praatMetrics,
+  attemptHistory,
+  transcription,
+}: {
+  praatMetrics: PraatMetrics;
+  attemptHistory: Array<{ tone: number; fluency: number; attempt: number }>;
+  transcription: string;
+}) {
+  const ai = praatMetrics.ai_feedback;
+  const vocabScore  = ai?.vocabulary_coverage?.score ?? null;
+  const cohScore    = ai?.coherence?.score ?? null;
+  const pronScore   = ai?.pronunciation_note?.score ?? null;
+
+  const overallScore = vocabScore !== null && cohScore !== null && pronScore !== null
+    ? Math.round((vocabScore + cohScore + pronScore) / 3)
+    : Math.round(praatMetrics.tone_accuracy);
+
+  const overallLabel =
+    overallScore >= 85 ? "Excellent!" :
+    overallScore >= 70 ? "Good progress" :
+    overallScore >= 50 ? "Keep going" :
+    "Just starting";
+
+  const prev = attemptHistory.length > 1 ? attemptHistory[attemptHistory.length - 2] : null;
+  const curr = attemptHistory.length > 0  ? attemptHistory[attemptHistory.length - 1]  : null;
+  const trendDiff = prev && curr ? curr.tone - prev.tone : null;
+
+  return (
+    <div className="feedback-summary">
+      <div className="feedback-summary-top">
+        <div className="feedback-summary-score">
+          <span className="feedback-summary-number">{overallScore}</span>
+          <span className="feedback-summary-denom">/100</span>
+        </div>
+        <div className="feedback-summary-meta">
+          <p className="feedback-summary-label">{overallLabel}</p>
+          <p className="feedback-summary-attempt">Attempt {attemptHistory.length || 1}</p>
+          {trendDiff !== null && (
+            <p className={`feedback-summary-trend ${trendDiff > 0 ? "up" : trendDiff < 0 ? "down" : ""}`}>
+              {trendDiff > 0 ? `↑ +${trendDiff}% from last try` :
+               trendDiff < 0 ? `↓ ${trendDiff}% — keep going` :
+               "→ Same as last try"}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {vocabScore !== null && (
+        <div className="feedback-summary-bars">
+          {[
+            { label: "Vocabulary", score: vocabScore,  color: "#7c3aed" },
+            { label: "Coherence",  score: cohScore!,   color: "#0284c7" },
+            { label: "Pronunciation", score: pronScore!, color: "#059669" },
+          ].map(({ label, score, color }) => (
+            <div key={label} className="feedback-summary-bar-row">
+              <span className="feedback-summary-bar-label">{label}</span>
+              <div className="feedback-summary-bar-track">
+                <div className="feedback-summary-bar-fill" style={{ width: `${score}%`, background: color }} />
+              </div>
+              <span className="feedback-summary-bar-pct">{score}%</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {transcription && (
+        <p className="feedback-summary-transcript">You said: <em lang="zh-TW">"{transcription}"</em></p>
+      )}
+    </div>
+  );
+}
+
+function LearningScaffold({
+  ai,
+  wordProsody,
+  improvedVersion,
+}: {
+  ai: LanguageFeedback;
+  wordProsody: WordProsody[];
+  improvedVersion?: string;
+}) {
+  if (!ai.vocabulary_coverage) return null;
+  const steps = buildScaffoldSteps(ai, wordProsody);
+
+  return (
+    <div className="scaffold-panel">
+      <div className="scaffold-header">
+        <p className="eyebrow">Language coach</p>
+        <h3>How to improve — step by step</h3>
+      </div>
+
+      <div className="scaffold-steps">
+        {steps.map((step, i) => (
+          <div key={step.id} className={`scaffold-step scaffold-step-${step.status}`}>
+            {/* Step number / status indicator */}
+            <div className="scaffold-step-indicator">
+              <div className="scaffold-step-dot">
+                {step.status === "done" ? "✓" : i + 1}
+              </div>
+              {i < steps.length - 1 && <div className="scaffold-step-line" />}
+            </div>
+
+            {/* Step content */}
+            <div className="scaffold-step-body">
+              <div className="scaffold-step-header">
+                <span className="scaffold-step-label">{step.label}</span>
+                <span className={`scaffold-step-badge scaffold-badge-${step.status}`}>
+                  {step.status === "done" ? "Done" : step.status === "focus" ? "Focus now" : "Up next"}
+                </span>
+                <span className="scaffold-step-score">{step.score}%</span>
+              </div>
+              <p className="scaffold-step-headline">{step.headline}</p>
+
+              {/* Drill — shown for focus and done steps, dimmed for next */}
+              <div className={`scaffold-step-drill ${step.status === "next" ? "dimmed" : ""}`}>
+                <span className="scaffold-drill-icon">{step.status === "done" ? "✓" : "▶"}</span>
+                <div>
+                  <p className="scaffold-drill-text">{step.drill}</p>
+                  {step.drillDetail && (
+                    <p className="scaffold-drill-example" lang="zh-TW">{step.drillDetail}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {improvedVersion && (
+        <div className="scaffold-improved">
+          <p className="scaffold-improved-label">Target sentence</p>
+          <p className="scaffold-improved-text" lang="zh-TW">{improvedVersion}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const TONE_SHAPES: Record<string, { label: string; arrow: string; tip: string; drill: string }> = {
   level:    { label: "Level →",       arrow: "→", tip: "Stays flat throughout.",       drill: "Say it again and try to add more movement — either rise or fall." },
   rising:   { label: "Rising ↗",      arrow: "↗", tip: "Pitch rises start to end.",    drill: "Good upward shape. Make the start lower and push the end higher." },
@@ -1831,35 +1963,6 @@ function getToneFocusItems(items: WordProsody[]): WordProsody[] {
     .slice(0, 4);
 
   return focus.length > 0 ? focus : items.slice(0, 4);
-}
-
-function FeedbackCard({
-  title,
-  score,
-  feedback,
-  items = [],
-}: {
-  title: string;
-  score: number;
-  feedback: string;
-  items?: string[];
-}) {
-  return (
-    <div className="ai-feedback-card">
-      <div className="ai-feedback-score">
-        <span>{title}</span>
-        <strong>{Math.round(score)}/100</strong>
-      </div>
-      <p>{feedback}</p>
-      {items.length > 0 && (
-        <ul>
-          {items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
 }
 
 async function readErrorResponse(response: Response): Promise<{ detail?: string }> {

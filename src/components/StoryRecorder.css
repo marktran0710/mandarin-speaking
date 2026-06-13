@@ -1436,6 +1436,316 @@
   border-radius: var(--clay-radius-lg);
 }
 
+/* ── Feedback Summary (Zone 1) ─────────────────────────────────────────────── */
+.feedback-summary {
+  background: #0f172a;
+  border-radius: 18px;
+  padding: 22px 20px 18px;
+  margin-bottom: 18px;
+  color: #f1f5f9;
+}
+.feedback-summary-top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+.feedback-summary-score {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.feedback-summary-number {
+  font-size: 3rem;
+  font-weight: 900;
+  color: #f8fafc;
+  line-height: 1;
+}
+.feedback-summary-denom {
+  font-size: 1rem;
+  color: #64748b;
+  font-weight: 600;
+}
+.feedback-summary-meta {
+  flex: 1;
+}
+.feedback-summary-label {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  margin: 0 0 2px;
+}
+.feedback-summary-attempt {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0 0 4px;
+}
+.feedback-summary-trend {
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin: 0;
+  color: #94a3b8;
+}
+.feedback-summary-trend.up   { color: #4ade80; }
+.feedback-summary-trend.down { color: #f87171; }
+.feedback-summary-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.feedback-summary-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.feedback-summary-bar-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #94a3b8;
+  width: 90px;
+  flex-shrink: 0;
+}
+.feedback-summary-bar-track {
+  flex: 1;
+  height: 7px;
+  background: #1e293b;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.feedback-summary-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+.feedback-summary-bar-pct {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #cbd5e1;
+  width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.feedback-summary-transcript {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin: 0;
+  border-top: 1px solid #1e293b;
+  padding-top: 12px;
+}
+.feedback-summary-transcript em {
+  color: #94a3b8;
+  font-style: normal;
+}
+
+/* ── Learning Scaffold (Zone 2) ────────────────────────────────────────────── */
+.scaffold-panel {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 22px 20px 18px;
+  margin-bottom: 18px;
+}
+.scaffold-header {
+  margin-bottom: 20px;
+}
+.scaffold-header .eyebrow {
+  color: #7c3aed;
+  margin-bottom: 4px;
+}
+.scaffold-header h3 {
+  color: #0f172a;
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+/* Vertical step list */
+.scaffold-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.scaffold-step {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.scaffold-step-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.scaffold-step-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border: 2px solid #e2e8f0;
+  flex-shrink: 0;
+}
+.scaffold-step-focus .scaffold-step-dot {
+  background: #7c3aed;
+  color: #fff;
+  border-color: #7c3aed;
+}
+.scaffold-step-done .scaffold-step-dot {
+  background: #22c55e;
+  color: #fff;
+  border-color: #22c55e;
+}
+.scaffold-step-line {
+  width: 2px;
+  flex: 1;
+  min-height: 20px;
+  background: #e2e8f0;
+  margin: 4px 0;
+}
+.scaffold-step-body {
+  flex: 1;
+  padding-bottom: 20px;
+}
+.scaffold-step:last-child .scaffold-step-body {
+  padding-bottom: 0;
+}
+.scaffold-step-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.scaffold-step-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #475569;
+}
+.scaffold-step-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.scaffold-badge-focus {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+.scaffold-badge-done {
+  background: #dcfce7;
+  color: #166534;
+}
+.scaffold-badge-next {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+.scaffold-step-score {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-left: auto;
+}
+.scaffold-step-focus .scaffold-step-score { color: #7c3aed; }
+.scaffold-step-done  .scaffold-step-score { color: #22c55e; }
+
+.scaffold-step-headline {
+  font-size: 0.88rem;
+  color: #334155;
+  margin: 0 0 10px;
+  line-height: 1.4;
+}
+.scaffold-step-next .scaffold-step-headline { color: #94a3b8; }
+
+.scaffold-step-drill {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+}
+.scaffold-step-focus .scaffold-step-drill {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+}
+.scaffold-step-done .scaffold-step-drill {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.scaffold-step-drill.dimmed {
+  opacity: 0.45;
+}
+.scaffold-drill-icon {
+  font-size: 0.85rem;
+  color: #7c3aed;
+  margin-top: 1px;
+  flex-shrink: 0;
+}
+.scaffold-step-done .scaffold-drill-icon { color: #22c55e; }
+.scaffold-drill-text {
+  font-size: 0.88rem;
+  color: #334155;
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
+.scaffold-drill-example {
+  font-size: 1rem;
+  color: #6d28d9;
+  margin: 0;
+  font-weight: 700;
+}
+
+/* Target sentence */
+.scaffold-improved {
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: #fefce8;
+  border: 1.5px solid #fde047;
+  border-radius: 12px;
+}
+.scaffold-improved-label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a16207;
+  margin: 0 0 6px;
+}
+.scaffold-improved-text {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Listen / Try Again (Zone 3) ───────────────────────────────────────────── */
+.listen-try-zone {
+  margin-bottom: 18px;
+}
+.try-again-nudge {
+  text-align: center;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #7c3aed;
+  background: #f5f3ff;
+  border: 1.5px dashed #c4b5fd;
+  border-radius: 12px;
+  padding: 14px;
+  margin-top: 10px;
+}
+
 .feedback-section {
   padding: 18px;
   margin-bottom: 22px;
