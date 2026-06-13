@@ -1257,8 +1257,9 @@ export default function StoryRecorder({
           )}
 
           {/* ── Zone 3: Listen back & try again ─────────────────────── */}
-          {/* Tone drill — surfaces after analysis, outside Advanced */}
-          {(praatMetrics.word_prosody?.length ?? 0) > 0 && (
+          {/* Tone drill — only shown once student is using scene vocabulary */}
+          {(praatMetrics.word_prosody?.length ?? 0) > 0 &&
+           (praatMetrics.ai_feedback?.vocabulary_coverage?.used?.length ?? 0) > 0 && (
             <ToneDrillPanel wordProsody={praatMetrics.word_prosody || []} />
           )}
 
@@ -1681,6 +1682,10 @@ function buildScaffoldSteps(
     ? `Isolate "${badChar}" — say it 5 times exaggerating the tone shape, then record the full sentence.`
     : ai.pronunciation_note?.feedback || "Record again, exaggerating each tone shape.";
 
+  const usedWords = ai.vocabulary_coverage?.used ?? [];
+  // Pronunciation step is only reachable once the student has used at least some vocab
+  const pronReachable = usedWords.length > 0;
+
   return [
     {
       id: "vocab",
@@ -1704,10 +1709,12 @@ function buildScaffoldSteps(
     {
       id: "pronunciation",
       label: "Step 3 — Tones & Pronunciation",
-      status: pronStatus,
-      score: pronScore,
-      headline: pronOk ? "Tones and rhythm sound good" : ai.pronunciation_note?.feedback || "Work on tones",
-      drill: pronDrill,
+      status: pronReachable ? pronStatus : "next",
+      score: pronReachable ? pronScore : 0,
+      headline: !pronReachable
+        ? "Use the scene vocabulary first, then work on tones"
+        : pronOk ? "Tones and rhythm sound good" : ai.pronunciation_note?.feedback || "Work on tones",
+      drill: pronReachable ? pronDrill : "Complete Step 1 first — use the scene words in your sentence.",
     },
   ];
 }

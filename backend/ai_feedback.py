@@ -64,14 +64,16 @@ def fallback_language_feedback(
     missing_words = [w for w in scene_words if w not in text]
 
     if not scene_words:
-        vocab_score = 60
-        vocab_feedback = "No scene vocabulary defined. Use specific nouns and verbs that fit the scene."
+        # No vocab list set — neutral, not scored
+        vocab_score = 0
+        vocab_feedback = "No scene vocabulary defined for this scene."
+    elif not used_words:
+        # Student said nothing from the list
+        vocab_score = 0
+        vocab_feedback = f"None of the scene words were used. Try saying: {', '.join(scene_words[:3])}."
     elif not missing_words:
         vocab_score = 100
         vocab_feedback = f"All scene words used: {', '.join(used_words)}. Excellent!"
-    elif not used_words:
-        vocab_score = 20
-        vocab_feedback = f"None of the scene words were detected. Try using: {', '.join(scene_words[:3])}."
     else:
         pct = round(len(used_words) / len(scene_words) * 100)
         vocab_score = pct
