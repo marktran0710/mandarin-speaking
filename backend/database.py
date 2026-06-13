@@ -10,14 +10,24 @@ DATABASE_PATH = os.getenv(
     os.path.join(os.path.dirname(__file__), "mandarin_stories.db"),
 )
 
+_DB_TIMEOUT = float(os.getenv("DB_TIMEOUT_SECONDS", "10"))
+
 
 @contextmanager
 def connect_db() -> Iterator[sqlite3.Connection]:
-    connection = sqlite3.connect(DATABASE_PATH)
+    connection = sqlite3.connect(DATABASE_PATH, timeout=_DB_TIMEOUT, check_same_thread=False)
     connection.row_factory = sqlite3.Row
+    # WAL mode: readers don't block writers and vice-versa.
+    connection.execute("PRAGMA journal_mode=WAL")
+    connection.execute("PRAGMA foreign_keys=ON")
+    connection.execute("PRAGMA cache_size=-8000")   # 8 MB page cache
+    connection.execute("PRAGMA synchronous=NORMAL")  # safe with WAL
     try:
         yield connection
         connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
     finally:
         connection.close()
 

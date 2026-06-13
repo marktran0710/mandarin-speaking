@@ -1,12 +1,15 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Tuple
 import base64
+import logging
 import os
 import tempfile
+import time
+import collections
 import httpx
 from dotenv import load_dotenv
 import json
@@ -17,6 +20,14 @@ import datetime
 from urllib.parse import quote, unquote_to_bytes
 from pathlib import Path
 from starlette.concurrency import run_in_threadpool
+
+# ── Structured logging ─────────────────────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+)
+logger = logging.getLogger("speaking_app")
 from database import (
     connect_db,
     init_db,
@@ -80,13 +91,32 @@ def get_cors_origins() -> list[str]:
         "http://localhost:3000",
     ]
 
+# ── In-memory rate limiter ─────────────────────────────────────────────────
+# Keyed by (route, client_ip). Tracks request timestamps in a deque.
+_rate_limits: dict[str, collections.deque] = {}
+_rate_limit_lock = threading.Lock()
+
+def _check_rate_limit(key: str, max_requests: int, window_seconds: int) -> None:
+    now = time.monotonic()
+    with _rate_limit_lock:
+        dq = _rate_limits.setdefault(key, collections.deque())
+        # Drop timestamps outside the window
+        while dq and now - dq[0] > window_seconds:
+            dq.popleft()
+        if len(dq) >= max_requests:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Rate limit exceeded. Max {max_requests} requests per {window_seconds}s.",
+            )
+        dq.append(now)
+
 # Enable CORS for frontend communication
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
@@ -237,9 +267,9 @@ class CustomStoryRequest(BaseModel):
 
 
 class HelpRequest(BaseModel):
-    id: str
-    studentName: str
-    message: str = "I need teacher help."
+    id: str = Field(..., max_length=128)
+    studentName: str = Field(default="Student", max_length=100)
+    message: str = Field(default="I need teacher help.", max_length=500)
     status: str = "open"
     createdAt: str
     resolvedAt: Optional[str] = None
@@ -247,15 +277,30 @@ class HelpRequest(BaseModel):
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
-    return {"status": "ok", "service": "Speaking App Backend"}
+    """Health check endpoint with database connectivity status."""
+    db_ok = False
+    try:
+        with connect_db() as db:
+            db.execute("SELECT 1").fetchone()
+        db_ok = True
+    except Exception as exc:
+        logger.error("Health check DB failure: %s", exc)
+    return {
+        "status": "ok" if db_ok else "degraded",
+        "service": "Speaking App Backend",
+        "database": "ok" if db_ok else "error",
+    }
 
 
 @app.get("/api/audio-records")
-async def list_audio_records():
+async def list_audio_records(
+    limit: int = Query(default=200, ge=1, le=1000),
+    skip: int = Query(default=0, ge=0),
+):
     with connect_db() as db:
         rows = db.execute(
-            "SELECT * FROM audio_records ORDER BY created_at DESC"
+            "SELECT * FROM audio_records ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            (limit, skip),
         ).fetchall()
     return [row_to_audio_record(row) for row in rows]
 
@@ -320,10 +365,14 @@ async def delete_audio_record(record_id: str):
 
 
 @app.get("/api/custom-stories")
-async def list_custom_stories():
+async def list_custom_stories(
+    limit: int = Query(default=100, ge=1, le=500),
+    skip: int = Query(default=0, ge=0),
+):
     with connect_db() as db:
         rows = db.execute(
-            "SELECT * FROM custom_stories ORDER BY created_at DESC"
+            "SELECT * FROM custom_stories ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            (limit, skip),
         ).fetchall()
     return [row_to_custom_story(row) for row in rows]
 
@@ -370,7 +419,10 @@ async def delete_custom_story(story_id: str):
 
 
 @app.get("/api/help-requests")
-async def list_help_requests():
+async def list_help_requests(
+    limit: int = Query(default=100, ge=1, le=500),
+    skip: int = Query(default=0, ge=0),
+):
     with connect_db() as db:
         rows = db.execute(
             """
@@ -378,7 +430,9 @@ async def list_help_requests():
             ORDER BY
                 CASE status WHEN 'open' THEN 0 ELSE 1 END,
                 created_at DESC
-            """
+            LIMIT ? OFFSET ?
+            """,
+            (limit, skip),
         ).fetchall()
     return [row_to_help_request(row) for row in rows]
 
@@ -524,12 +578,15 @@ def remove_uploaded_file(url: str) -> None:
 
 
 @app.post("/api/generate-story-images", response_model=StoryImageGenerationResponse)
-async def generate_story_images(request: StoryImageGenerationRequest):
+async def generate_story_images(request: StoryImageGenerationRequest, req: Request):
     """
     Generate a six-image story sequence plan from a classroom situation.
     Gemini creates the scene plan when configured; deterministic local fallback
     keeps the teacher workflow usable offline.
     """
+    client_ip = req.client.host if req.client else "unknown"
+    _check_rate_limit(f"gen-images:{client_ip}", max_requests=10, window_seconds=60)
+
     situation = request.situation.strip()
     if len(situation) < 8:
         raise HTTPException(
@@ -541,7 +598,7 @@ async def generate_story_images(request: StoryImageGenerationRequest):
         try:
             return await generate_story_images_with_gemini(request)
         except Exception as exc:
-            print(f"Gemini story image planning failed, using local fallback: {exc}")
+            logger.warning("Gemini story image planning failed, using local fallback: %s", exc)
 
     fallback = build_story_image_fallback(request, provider="local")
     return await normalize_story_image_response(
@@ -716,6 +773,9 @@ async def _do_analyze(
             os.unlink(tmp_path)
 
 
+_MAX_AUDIO_BYTES = int(os.getenv("MAX_AUDIO_BYTES", str(10 * 1024 * 1024)))  # 10 MB
+
+
 @app.post("/api/analyze", response_model=AnalysisResponse)
 async def analyze_speech(
     file: UploadFile = File(...),
@@ -723,6 +783,7 @@ async def analyze_speech(
     asr_model: str = Form(""),
     scene_prompt: str = Form(""),
     scene_vocabulary: str = Form(""),
+    req: Request = None,
 ):
     """
     Analyze Chinese speech for tone, pitch, formants, speech rate, and fluency.
@@ -733,7 +794,17 @@ async def analyze_speech(
     if not file:
         raise HTTPException(status_code=400, detail="No audio file provided")
 
+    if req is not None:
+        client_ip = req.client.host if req.client else "unknown"
+        _check_rate_limit(f"analyze:{client_ip}", max_requests=30, window_seconds=60)
+
     content = await file.read()
+    if len(content) > _MAX_AUDIO_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Audio file too large. Maximum size is {_MAX_AUDIO_BYTES // (1024 * 1024)} MB.",
+        )
+
     try:
         return await asyncio.wait_for(
             _do_analyze(content, transcription, asr_model, scene_prompt, scene_vocabulary),
@@ -746,9 +817,9 @@ async def analyze_speech(
         )
     except HTTPException:
         raise
-    except Exception as e:
-        print(f"Error in analyze_speech: {e}")
-        raise HTTPException(status_code=500, detail=f"Error analyzing speech: {str(e)}")
+    except Exception as exc:
+        logger.exception("Error in analyze_speech")
+        raise HTTPException(status_code=500, detail=f"Error analyzing speech: {exc}") from exc
 
 
 @app.post("/api/transcribe", response_model=TranscriptionResponse)
@@ -771,7 +842,7 @@ async def transcribe_speech(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error in transcribe_speech: {e}")
+        logger.exception("Error in transcribe_speech")
         raise HTTPException(
             status_code=500,
             detail=f"Error transcribing speech: {str(e)}"
@@ -842,7 +913,7 @@ async def transcribe_with_auto_fallback(audio_content: bytes) -> TranscriptionRe
         "Whisper model is installed on the backend. Tried: "
         + "; ".join(errors)
     )
-    print(f"Auto ASR failed. Errors: {errors}")
+    logger.error("Auto ASR failed. Errors: %s", errors)
     raise HTTPException(status_code=503, detail=detail)
 
 
@@ -1056,7 +1127,7 @@ async def generate_real_image(image_prompt: str, seed: int) -> str:
             f.write(img_resp.content)
         return f"/uploads/images/{filename}"
     except Exception as exc:
-        print(f"Image generation failed (seed={seed}): {exc}")
+        logger.warning("Image generation failed (seed=%s): %s", seed, exc)
         return ""
 
 

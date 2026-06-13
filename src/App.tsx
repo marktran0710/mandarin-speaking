@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import HomePage from "./pages/HomePage";
 import CreateStoryPage from "./pages/CreateStoryPage";
 import MyStoriesPage from "./pages/MyStoriesPage";
 import VoiceTestPage from "./pages/VoiceTestPage";
 import TeacherImageBuilderPage from "./pages/TeacherImageBuilderPage";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 import LoginPage, { LoginRole } from "./pages/LoginPage";
 import Navigation from "./components/Navigation";
@@ -57,6 +58,27 @@ export default function App() {
     null,
   );
 
+  const loadSavedAudioRecords = useCallback(async () => {
+    if (canUseDatabase()) {
+      try {
+        const recordsData = await listAudioRecords();
+        setAudioRecords(recordsFromStored(recordsData));
+        localStorage.setItem("audioRecords", JSON.stringify(recordsData));
+        return;
+      } catch (error) {
+        console.error("Failed to load audio records from database:", error);
+      }
+    }
+    const stored = localStorage.getItem("audioRecords");
+    if (!stored) return;
+    try {
+      const recordsData = JSON.parse(stored);
+      if (Array.isArray(recordsData)) setAudioRecords(recordsFromStored(recordsData));
+    } catch (error) {
+      console.error("Failed to load audio records:", error);
+    }
+  }, []);
+
   useEffect(() => {
     const directVoiceTestPath =
       window.location.pathname === "/analyze" ||
@@ -72,33 +94,6 @@ export default function App() {
             : "teacher-dashboard",
       );
     }
-
-    const loadSavedAudioRecords = async () => {
-      if (canUseDatabase()) {
-        try {
-          const recordsData = await listAudioRecords();
-          setAudioRecords(recordsFromStored(recordsData));
-          localStorage.setItem("audioRecords", JSON.stringify(recordsData));
-          return;
-        } catch (error) {
-          console.error("Failed to load audio records from database:", error);
-        }
-      }
-
-      const stored = localStorage.getItem("audioRecords");
-      if (!stored) {
-        return;
-      }
-
-      try {
-        const recordsData = JSON.parse(stored);
-        if (Array.isArray(recordsData)) {
-          setAudioRecords(recordsFromStored(recordsData));
-        }
-      } catch (error) {
-        console.error("Failed to load audio records:", error);
-      }
-    };
 
     loadSavedAudioRecords();
   }, []);
@@ -246,6 +241,7 @@ export default function App() {
   };
 
   return (
+    <ErrorBoundary>
     <div className="app-container">
       <Navigation
         currentPage={currentPage}
@@ -289,12 +285,14 @@ export default function App() {
           mode="teacher"
           helpRequests={helpRequests}
           onResolveHelpRequest={handleResolveHelpRequest}
+          onRefreshRecords={loadSavedAudioRecords}
         />
       )}
       {currentPage === "teacher-image-builder" && activeRole === "teacher" && (
         <TeacherImageBuilderPage />
       )}
     </div>
+    </ErrorBoundary>
   );
 }
 

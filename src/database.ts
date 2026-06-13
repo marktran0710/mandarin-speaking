@@ -2,6 +2,34 @@ const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
   (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
+async function fetchWithRetry(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  maxAttempts = 3,
+): Promise<Response> {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch(input, { ...init, signal: controller.signal });
+      clearTimeout(timer);
+      return response;
+    } catch (err) {
+      clearTimeout(timer);
+      lastError = err;
+      const isAbort = err instanceof DOMException && err.name === "AbortError";
+      // Don't retry mutations to avoid double-writes
+      const method = (init?.method ?? "GET").toUpperCase();
+      if (isAbort || method !== "GET" || attempt === maxAttempts) break;
+      await new Promise((r) => setTimeout(r, 300 * 2 ** (attempt - 1)));
+    }
+  }
+  throw lastError;
+}
+
 export interface StoredAudioRecord {
   id: string;
   timestamp: string;
@@ -45,7 +73,7 @@ export function canUseDatabase(): boolean {
 }
 
 export async function listAudioRecords(): Promise<StoredAudioRecord[]> {
-  const response = await fetch(`${BACKEND_URL}/api/audio-records`);
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records`);
   if (!response.ok) {
     throw new Error("Could not load audio records from the database.");
   }
@@ -60,7 +88,7 @@ export async function createAudioRecord(
 ) {
   const response = audioBlob
     ? await uploadAudioRecord(record, audioBlob)
-    : await fetch(`${BACKEND_URL}/api/audio-records`, {
+    : await fetchWithRetry(`${BACKEND_URL}/api/audio-records`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(record),
@@ -78,14 +106,14 @@ async function uploadAudioRecord(record: StoredAudioRecord, audioBlob: Blob) {
   formData.append("record", JSON.stringify(record));
   formData.append("file", audioBlob, `${record.id}.wav`);
 
-  return fetch(`${BACKEND_URL}/api/audio-records/upload`, {
+  return fetchWithRetry(`${BACKEND_URL}/api/audio-records/upload`, {
     method: "POST",
     body: formData,
   });
 }
 
 export async function deleteAudioRecordFromDatabase(id: string) {
-  const response = await fetch(`${BACKEND_URL}/api/audio-records/${encodeURIComponent(id)}`, {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
 
@@ -95,7 +123,7 @@ export async function deleteAudioRecordFromDatabase(id: string) {
 }
 
 export async function listCustomStories(): Promise<StoredCustomStory[]> {
-  const response = await fetch(`${BACKEND_URL}/api/custom-stories`);
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/custom-stories`);
   if (!response.ok) {
     throw new Error("Could not load custom stories from the database.");
   }
@@ -105,7 +133,7 @@ export async function listCustomStories(): Promise<StoredCustomStory[]> {
 }
 
 export async function createCustomStory(story: StoredCustomStory) {
-  const response = await fetch(`${BACKEND_URL}/api/custom-stories`, {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/custom-stories`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(story),
@@ -117,7 +145,7 @@ export async function createCustomStory(story: StoredCustomStory) {
 }
 
 export async function deleteCustomStoryFromDatabase(id: string) {
-  const response = await fetch(`${BACKEND_URL}/api/custom-stories/${encodeURIComponent(id)}`, {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/custom-stories/${encodeURIComponent(id)}`, {
     method: "DELETE",
   });
 
@@ -127,7 +155,7 @@ export async function deleteCustomStoryFromDatabase(id: string) {
 }
 
 export async function listHelpRequests(): Promise<HelpRequest[]> {
-  const response = await fetch(`${BACKEND_URL}/api/help-requests`);
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/help-requests`);
   if (!response.ok) {
     throw new Error("Could not load help requests from the database.");
   }
@@ -137,7 +165,7 @@ export async function listHelpRequests(): Promise<HelpRequest[]> {
 }
 
 export async function createHelpRequest(request: HelpRequest) {
-  const response = await fetch(`${BACKEND_URL}/api/help-requests`, {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/help-requests`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(request),
@@ -151,7 +179,7 @@ export async function createHelpRequest(request: HelpRequest) {
 }
 
 export async function resolveHelpRequest(id: string) {
-  const response = await fetch(
+  const response = await fetchWithRetry(
     `${BACKEND_URL}/api/help-requests/${encodeURIComponent(id)}/resolve`,
     { method: "POST" },
   );
