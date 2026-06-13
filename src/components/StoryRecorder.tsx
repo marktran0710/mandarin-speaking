@@ -1733,11 +1733,15 @@ function FeedbackSummary({
   const cohScore    = ai?.coherence?.score ?? null;
   const pronScore   = ai?.pronunciation_note?.score ?? null;
 
+  const missingVocab = (ai?.vocabulary_coverage?.missing?.length ?? 0) > 0;
+  const vocabListExists = (ai?.vocabulary_coverage) !== undefined;
+
   const overallScore = vocabScore !== null && cohScore !== null && pronScore !== null
     ? Math.round((vocabScore + cohScore + pronScore) / 3)
     : Math.round(praatMetrics.tone_accuracy);
 
   const overallLabel =
+    (vocabListExists && missingVocab) ? "Use all vocab first" :
     overallScore >= 85 ? "Excellent!" :
     overallScore >= 70 ? "Good progress" :
     "Keep going";
@@ -1750,8 +1754,8 @@ function FeedbackSummary({
     <div className="feedback-summary">
       <div className="feedback-summary-top">
         <div className="feedback-summary-score">
-          <span className="feedback-summary-number">{overallScore}</span>
-          <span className="feedback-summary-denom">/100</span>
+          <span className="feedback-summary-number">{vocabListExists && missingVocab ? "???" : overallScore}</span>
+          {!(vocabListExists && missingVocab) && <span className="feedback-summary-denom">/100</span>}
         </div>
         <div className="feedback-summary-meta">
           <p className="feedback-summary-label">{overallLabel}</p>
