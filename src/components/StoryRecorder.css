@@ -804,6 +804,80 @@
   text-align: center;
 }
 
+/* Analysis loading card */
+.analysis-loading-card {
+  margin: 18px 0 0;
+  padding: 20px 20px 16px;
+  background: linear-gradient(135deg, #ede9fe 0%, #f0f9ff 100%);
+  border: 1.5px solid #c4b5fd;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  animation: fadeIn 0.3s ease;
+}
+.analysis-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #ddd6fe;
+  border-top-color: #7c3aed;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.analysis-loading-text {
+  text-align: center;
+}
+.analysis-loading-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #4c1d95;
+  margin: 0 0 3px;
+}
+.analysis-loading-sub {
+  font-size: 0.82rem;
+  color: #6d28d9;
+  margin: 0;
+}
+.analysis-loading-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+.loading-step {
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #ede9fe;
+  color: #7c3aed;
+  font-weight: 600;
+  transition: all 0.3s;
+}
+.loading-step.active {
+  background: #7c3aed;
+  color: #fff;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.loading-step.done {
+  background: #22c55e;
+  color: #fff;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+.loading-step-arrow {
+  color: #a78bfa;
+  font-weight: 700;
+}
+
 .error {
   background: #fee2e2;
   color: #991b1b;
@@ -2896,7 +2970,8 @@
   flex-wrap: wrap;
   gap: 7px;
 }
-.practice-vocab-chips span {
+.practice-vocab-chips span,
+.vocab-chip {
   background: #fff;
   border: 1.5px solid #fbbf24;
   border-radius: 7px;
@@ -2904,6 +2979,59 @@
   font-size: 1rem;
   font-weight: 700;
   color: #1e293b;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.vocab-chip.vocab-used {
+  background: #dcfce7;
+  border-color: #22c55e;
+  color: #166534;
+}
+.vocab-chip.vocab-missed {
+  background: #fee2e2;
+  border-color: #f87171;
+  color: #991b1b;
+}
+.vocab-tick {
+  font-size: 0.85em;
+  font-weight: 900;
+}
+.vocab-check-hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10px;
+  color: #a16207;
+  margin-left: 4px;
+}
+.vocab-coverage-line {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: #44403c;
+  font-style: italic;
+}
+
+/* Recording playback */
+.recording-playback {
+  background: #f1f5f9;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+.recording-playback-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #475569;
+  margin-bottom: 8px;
+}
+.recording-playback-audio {
+  width: 100%;
+  height: 36px;
 }
 
 /* Record area */
@@ -3058,4 +3186,316 @@
 @media (max-width: 768px) {
   .practice-workspace { grid-template-columns: 1fr; }
   .practice-scene-image-wrap img { height: 220px; }
+}
+
+/* ── Attempt progress trend ── */
+.attempt-trend {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.attempt-trend-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 10px;
+}
+.attempt-trend-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 48px;
+  margin-bottom: 8px;
+}
+.attempt-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  max-width: 32px;
+}
+.attempt-bar-fill {
+  width: 100%;
+  min-height: 4px;
+  background: #cbd5e0;
+  border-radius: 3px;
+  transition: height 0.3s ease;
+}
+.attempt-bar.current .attempt-bar-fill { background: #0f766e; }
+.attempt-bar span {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+.attempt-trend-delta {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+.attempt-trend-delta.positive { color: #059669; }
+.attempt-trend-delta.negative { color: #dc2626; }
+
+/* ── Tone direction card ── */
+.tone-direction-card {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1.5px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.tone-direction-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #065f46;
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+/* ── Pitch overview (promoted to main panel) ── */
+.pitch-overview {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.pitch-overview-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 10px;
+}
+
+/* ── Vowel / pause metric cards ── */
+.metric-card.vowel-card { border-left: 3px solid #7c3aed; }
+.metric-card.pause-card { border-left: 3px solid #0284c7; }
+
+/* ── AI feedback improvements ── */
+.provider-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.ai-example.next-practice {
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+
+/* ── Formants detail (moved to advanced) ── */
+.formants-detail {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+.formants-detail h3 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #64748b;
+  margin: 0 0 10px;
+}
+
+/* ── Scene readiness badges on strip ── */
+.scene-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.badge-empty  { background: #e2e8f0; color: #94a3b8; }
+.badge-progress { background: #fef9c3; color: #a16207; }
+.badge-ready  { background: #dcfce7; color: #15803d; }
+
+.practice-scene-thumb { position: relative; }
+.practice-scene-thumb.scene-ready { border-color: #16a34a; }
+
+/* ── Scene readiness banner ── */
+.scene-ready-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.scene-ready-banner strong { display: block; font-size: 15px; color: #15803d; }
+.scene-ready-banner p { margin: 2px 0 0; font-size: 12px; color: #4ade80; color: #16a34a; }
+.scene-ready-banner.scene-story-done { background: #eff6ff; border-color: #93c5fd; }
+.scene-ready-banner.scene-story-done strong { color: #1d4ed8; }
+.scene-next-btn {
+  flex-shrink: 0;
+  padding: 10px 20px;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.scene-next-btn:hover { background: #15803d; }
+
+.scene-progress-hint {
+  font-size: 13px;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+/* ── Tone drill panel ── */
+.tone-drill-panel {
+  background: #fafafa;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+.tone-drill-panel.tone-drill-clean {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  padding: 12px 16px;
+}
+.tone-drill-ok { font-size: 14px; font-weight: 600; color: #15803d; }
+.tone-drill-heading {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  margin: 0 0 14px;
+}
+.tone-drill-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.tone-drill-card {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tone-drill-char {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1;
+  color: #0f172a;
+  letter-spacing: -1px;
+}
+.tone-drill-shape {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tone-arrow {
+  font-size: 20px;
+  font-weight: 800;
+  color: #dc2626;
+}
+.tone-shape-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+}
+.tone-drill-tip {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.4;
+}
+.tone-drill-steps {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tone-drill-steps li strong { color: #0f172a; }
+
+/* ── Model example card (updated) ── */
+.model-example-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+.model-example-body { flex: 1; }
+.model-example-text {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 6px 0 4px;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
+.model-example-hint {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.5;
+}
+.model-example-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.focus-word-hint { font-size: 12px; color: #64748b; font-style: normal; }
+.focus-word-hint strong { color: #0f172a; }
+.btn-play-example, .btn-stop-example {
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  white-space: nowrap;
+}
+.btn-play-example { background: #0f766e; color: #fff; }
+.btn-play-example:hover { background: #0d6560; }
+.btn-stop-example { background: #dc2626; color: #fff; }
+.btn-stop-example:hover { background: #b91c1c; }
+
+@media (max-width: 640px) {
+  .model-example-card { flex-direction: column; }
+  .model-example-actions { flex-direction: row; align-items: center; }
+  .tone-drill-cards { grid-template-columns: 1fr; }
+  .scene-ready-banner { flex-direction: column; align-items: flex-start; }
 }

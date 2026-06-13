@@ -24,92 +24,164 @@ GEMINI_FEEDBACK_MODEL = os.getenv("GEMINI_FEEDBACK_MODEL", "gemini-2.0-flash")
 AI_FEEDBACK_PROVIDER = os.getenv("AI_FEEDBACK_PROVIDER", "local").lower()
 
 
-def fallback_language_feedback(transcription: str) -> Dict:
+def fallback_language_feedback(
+    transcription: str,
+    scene_prompt: str = "",
+    scene_vocabulary: str = "",
+    praat_tone_accuracy: float = 0,
+    praat_fluency_score: float = 0,
+    praat_vowel_quality: str = "",
+) -> Dict:
     text = transcription.strip()
     character_count = sum(1 for char in text if "\u4e00" <= char <= "\u9fff")
 
     if not text:
+        prompt_hint = f" about: {scene_prompt}" if scene_prompt else ""
         return {
             "provider": "local",
-            "fluency": {
+            "vocabulary_coverage": {
                 "score": 0,
-                "feedback": "No transcription was available. Try one short sentence and speak clearly.",
+                "used": [],
+                "missing": [],
+                "feedback": f"No transcription yet. Try one short sentence{prompt_hint}.",
             },
-            "grammar": {
+            "coherence": {
                 "score": 0,
-                "feedback": "Grammar feedback needs a transcription.",
+                "feedback": "Record a sentence to get coherence feedback.",
                 "corrections": [],
             },
-            "vocabulary": {
+            "pronunciation_note": {
                 "score": 0,
-                "feedback": "Vocabulary feedback needs a transcription.",
-                "suggestions": [],
+                "feedback": f"Record a sentence to get pronunciation feedback.",
             },
             "improved_version": "",
-            "practice_prompt": "Record one simple Mandarin sentence about the picture.",
+            "practice_prompt": f"Record one simple Mandarin sentence{prompt_hint}.",
         }
 
-    if character_count < 6:
-        fluency_feedback = "Good start. Try making this into a complete sentence."
-        fluency_score = 55
-    elif character_count < 18:
-        fluency_feedback = "The sentence length is good for focused tone practice."
-        fluency_score = 72
+    # Vocabulary coverage
+    scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
+    used_words = [w for w in scene_words if w in text]
+    missing_words = [w for w in scene_words if w not in text]
+
+    if not scene_words:
+        vocab_score = 60
+        vocab_feedback = "No scene vocabulary defined. Use specific nouns and verbs that fit the scene."
+    elif not missing_words:
+        vocab_score = 100
+        vocab_feedback = f"All scene words used: {', '.join(used_words)}. Excellent!"
+    elif not used_words:
+        vocab_score = 20
+        vocab_feedback = f"None of the scene words were detected. Try using: {', '.join(scene_words[:3])}."
     else:
-        fluency_feedback = "Nice extended response. Keep the rhythm steady across phrases."
-        fluency_score = 82
+        pct = round(len(used_words) / len(scene_words) * 100)
+        vocab_score = pct
+        vocab_feedback = f"Used {len(used_words)}/{len(scene_words)}: {', '.join(used_words)}. Still missing: {', '.join(missing_words[:3])}."
+
+    # Coherence (structure-based heuristic)
+    if character_count < 4:
+        coherence_score = 40
+        coherence_feedback = "Too short to evaluate as a sentence. Aim for subject + verb + object."
+        coherence_corrections = ["Add a subject (\u8ab0)", "Add a verb (\u505a\u4ec0\u9ebc)"]
+    elif character_count < 8:
+        coherence_score = 65
+        coherence_feedback = "Short sentence. Make sure it has a subject and a verb."
+        coherence_corrections = []
+    else:
+        coherence_score = 78
+        coherence_feedback = "Sentence length is good. Check that each clause connects naturally."
+        coherence_corrections = []
+
+    # Pronunciation note from Praat data
+    tone_pct = round(praat_tone_accuracy)
+    fluency_pct = round(praat_fluency_score)
+    if tone_pct >= 80 and fluency_pct >= 75:
+        pron_score = 88
+        pron_feedback = f"Tones and rhythm both sound strong ({tone_pct}% tone accuracy)."
+    elif tone_pct >= 60:
+        pron_score = 65
+        pron_feedback = f"Tone accuracy {tone_pct}% \u2014 keep working on the weaker tones. Rhythm: {fluency_pct}%."
+    elif tone_pct > 0:
+        pron_score = 45
+        pron_feedback = f"Tone accuracy {tone_pct}% \u2014 focus on the tones marked in the pitch chart."
+    else:
+        pron_score = 50
+        pron_feedback = "Speak clearly and try to hold each syllable long enough for tone recognition."
+
+    if praat_vowel_quality:
+        pron_feedback += f" Vowel quality: {praat_vowel_quality}."
+
+    practice_next = (
+        f"Say the sentence again adding {missing_words[0]}."
+        if missing_words else
+        "Say the same sentence with a different time or place word."
+    )
 
     return {
         "provider": "local",
-        "fluency": {
-            "score": fluency_score,
-            "feedback": fluency_feedback,
+        "vocabulary_coverage": {
+            "score": vocab_score,
+            "used": used_words,
+            "missing": missing_words,
+            "feedback": vocab_feedback,
         },
-        "grammar": {
-            "score": 70 if character_count >= 6 else 55,
-            "feedback": "Check that the sentence has a clear subject, action, and ending particle when needed.",
-            "corrections": [],
+        "coherence": {
+            "score": coherence_score,
+            "feedback": coherence_feedback,
+            "corrections": coherence_corrections,
         },
-        "vocabulary": {
-            "score": 70 if character_count >= 6 else 50,
-            "feedback": "Use one specific noun and one descriptive word from the picture vocabulary.",
-            "suggestions": ["Add a place word", "Add an emotion word", "Add a time word"],
+        "pronunciation_note": {
+            "score": pron_score,
+            "feedback": pron_feedback,
         },
         "improved_version": text,
-        "practice_prompt": "Say the same idea again with one extra detail about who, where, or how.",
+        "practice_prompt": practice_next,
     }
 
 
-async def generate_language_feedback(transcription: str) -> Dict:
+async def generate_language_feedback(
+    transcription: str,
+    scene_prompt: str = "",
+    scene_vocabulary: str = "",
+    praat_tone_accuracy: float = 0,
+    praat_fluency_score: float = 0,
+    praat_vowel_quality: str = "",
+) -> Dict:
     text = transcription.strip()
     if not text:
-        return fallback_language_feedback(text)
+        return fallback_language_feedback(text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
 
     if AI_FEEDBACK_PROVIDER == "local":
-        return fallback_language_feedback(text)
+        return fallback_language_feedback(text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
 
     if AI_FEEDBACK_PROVIDER == "openai" and OPENAI_API_KEY:
         try:
-            return await _feedback_with_openai(text)
+            return await _feedback_with_openai(text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
         except Exception as exc:
             print(f"OpenAI feedback failed, using local fallback: {exc}")
 
     if GEMINI_API_KEY:
         try:
-            return await _feedback_with_gemini(text)
+            return await _feedback_with_gemini(text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
         except Exception as exc:
             print(f"Gemini feedback failed, using local fallback: {exc}")
 
     if OPENAI_API_KEY:
         try:
-            return await _feedback_with_openai(text)
+            return await _feedback_with_openai(text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
         except Exception as exc:
             print(f"OpenAI feedback failed, using local fallback: {exc}")
 
-    return fallback_language_feedback(text)
+    return fallback_language_feedback(text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
 
 
-async def _feedback_with_openai(transcription: str) -> Dict:
+async def _feedback_with_openai(
+    transcription: str,
+    scene_prompt: str = "",
+    scene_vocabulary: str = "",
+    praat_tone_accuracy: float = 0,
+    praat_fluency_score: float = 0,
+    praat_vowel_quality: str = "",
+) -> Dict:
     payload = {
         "model": OPENAI_FEEDBACK_MODEL,
         "response_format": {"type": "json_object"},
@@ -124,7 +196,7 @@ async def _feedback_with_openai(transcription: str) -> Dict:
             },
             {
                 "role": "user",
-                "content": _feedback_prompt(transcription),
+                "content": _feedback_prompt(transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality),
             },
         ],
     }
@@ -145,7 +217,14 @@ async def _feedback_with_openai(transcription: str) -> Dict:
     return _normalize_feedback(data)
 
 
-async def _feedback_with_gemini(transcription: str) -> Dict:
+async def _feedback_with_gemini(
+    transcription: str,
+    scene_prompt: str = "",
+    scene_vocabulary: str = "",
+    praat_tone_accuracy: float = 0,
+    praat_fluency_score: float = 0,
+    praat_vowel_quality: str = "",
+) -> Dict:
     payload = {
         "contents": [
             {
@@ -153,7 +232,7 @@ async def _feedback_with_gemini(transcription: str) -> Dict:
                     {
                         "text": (
                             "Return only valid JSON. "
-                            f"{_feedback_prompt(transcription)}"
+                            f"{_feedback_prompt(transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)}"
                         )
                     }
                 ]
@@ -176,20 +255,61 @@ async def _feedback_with_gemini(transcription: str) -> Dict:
     return _normalize_feedback(data)
 
 
-def _feedback_prompt(transcription: str) -> str:
+def _feedback_prompt(
+    transcription: str,
+    scene_prompt: str = "",
+    scene_vocabulary: str = "",
+    praat_tone_accuracy: float = 0,
+    praat_fluency_score: float = 0,
+    praat_vowel_quality: str = "",
+) -> str:
+    scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
+    used = [w for w in scene_words if w in transcription]
+    missing = [w for w in scene_words if w not in transcription]
+
+    vocab_context = ""
+    if scene_words:
+        vocab_context = f"""
+Scene vocabulary: {scene_vocabulary}
+Words student used: {', '.join(used) if used else 'none'}
+Words missing: {', '.join(missing) if missing else 'none'}
+"""
+
+    praat_context = ""
+    if praat_tone_accuracy > 0 or praat_fluency_score > 0:
+        praat_context = f"""
+Praat acoustic data (use to inform pronunciation feedback):
+- Tone accuracy: {round(praat_tone_accuracy)}%
+- Fluency score: {round(praat_fluency_score)}%
+{f'- Vowel quality: {praat_vowel_quality}' if praat_vowel_quality else ''}
+"""
+
     return f"""
-Analyze this Mandarin learner transcription:
+You are a Mandarin speaking coach. Analyze this student's transcription:
 
-{transcription}
-
-Return JSON shaped exactly like:
+Student said: {transcription}
+Scene prompt: {scene_prompt or "(none)"}
+{vocab_context}{praat_context}
+Return JSON shaped EXACTLY like this (no extra keys):
 {{
   "provider": "ai",
-  "fluency": {{"score": 0-100, "feedback": "one short sentence"}},
-  "grammar": {{"score": 0-100, "feedback": "one short sentence", "corrections": ["short correction"]}},
-  "vocabulary": {{"score": 0-100, "feedback": "one short sentence", "suggestions": ["better word or phrase"]}},
-  "improved_version": "a natural improved Mandarin version",
-  "practice_prompt": "one sentence practice task"
+  "vocabulary_coverage": {{
+    "score": 0-100,
+    "used": ["word1", "word2"],
+    "missing": ["word3"],
+    "feedback": "one sentence: which scene words were used and which were missed"
+  }},
+  "coherence": {{
+    "score": 0-100,
+    "feedback": "one sentence on whether the sentence is natural and grammatically complete",
+    "corrections": ["specific short correction if needed"]
+  }},
+  "pronunciation_note": {{
+    "score": 0-100,
+    "feedback": "one sentence using the Praat data — name specific tones or sounds to improve"
+  }},
+  "improved_version": "a natural Mandarin sentence that fits the scene and uses the target vocabulary",
+  "practice_prompt": "one actionable next step for the student"
 }}
 """
 
@@ -205,11 +325,28 @@ def _strip_json_fence(content: str) -> str:
 
 def _normalize_feedback(data: Dict) -> Dict:
     fallback = fallback_language_feedback("")
+
+    vc_raw = data.get("vocabulary_coverage", {})
+    coh_raw = data.get("coherence", {})
+    pron_raw = data.get("pronunciation_note", {})
+
     normalized = {
         "provider": data.get("provider", "ai"),
-        "fluency": _normalize_score_block(data.get("fluency", {}), fallback["fluency"]),
-        "grammar": _normalize_list_block(data.get("grammar", {}), fallback["grammar"], "corrections"),
-        "vocabulary": _normalize_list_block(data.get("vocabulary", {}), fallback["vocabulary"], "suggestions"),
+        "vocabulary_coverage": {
+            "score": _score(vc_raw.get("score", fallback["vocabulary_coverage"]["score"])),
+            "used": [str(w) for w in (vc_raw.get("used") or [])],
+            "missing": [str(w) for w in (vc_raw.get("missing") or [])],
+            "feedback": str(vc_raw.get("feedback", fallback["vocabulary_coverage"]["feedback"])),
+        },
+        "coherence": {
+            "score": _score(coh_raw.get("score", fallback["coherence"]["score"])),
+            "feedback": str(coh_raw.get("feedback", fallback["coherence"]["feedback"])),
+            "corrections": [str(c) for c in (coh_raw.get("corrections") or [])[:3]],
+        },
+        "pronunciation_note": {
+            "score": _score(pron_raw.get("score", fallback["pronunciation_note"]["score"])),
+            "feedback": str(pron_raw.get("feedback", fallback["pronunciation_note"]["feedback"])),
+        },
         "improved_version": str(data.get("improved_version", "")),
         "practice_prompt": str(data.get("practice_prompt", fallback["practice_prompt"])),
     }

@@ -34,9 +34,110 @@ def _load_sound(audio_path: str):
         ) from exc
 
 
+def _pitch_contour_from_sound(
+    sound,
+    time_step: float = 0.025,
+    pitch_floor: float = 75,
+    pitch_ceiling: float = 500,
+) -> List[Tuple[float, float]]:
+    pitch = sound.to_pitch(
+        time_step=time_step,
+        pitch_floor=pitch_floor,
+        pitch_ceiling=pitch_ceiling,
+    )
+    freqs = pitch.selected_array["frequency"]
+    times = pitch.xs()
+    return [
+        (float(times[i]), float(f))
+        for i, f in enumerate(freqs)
+        if f > 0
+    ]
+
+
+def _formants_from_sound(
+    sound,
+    max_formant: float = 5500,
+    num_formants: int = 5,
+) -> Dict[str, float]:
+    """Return median F1-F3 using Parselmouth's native time grid (avoids 360 Python calls)."""
+    formant = sound.to_formant_burg(
+        time_step=0.025,
+        max_number_of_formants=num_formants,
+        maximum_formant=max_formant,
+    )
+    times = formant.xs()
+    values: Dict[str, List[float]] = {"F1": [], "F2": [], "F3": []}
+    for t in times:
+        for fn, key in ((1, "F1"), (2, "F2"), (3, "F3")):
+            v = formant.get_value_at_time(fn, float(t))
+            if v and not np.isnan(v) and v > 0:
+                values[key].append(float(v))
+    return {k: float(np.median(vs)) if vs else 0.0 for k, vs in values.items()}
+
+
+def analyze_all(audio_path: str, transcription: str = "") -> tuple:
+    """
+    Single-pass analysis: load WAV once, run pitch + formant together,
+    then derive all downstream metrics. ~3× faster than calling each
+    function separately because Parselmouth only reads the file once.
+
+    Returns a tuple matching the order expected by _run_praat in main.py:
+    (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
+     word_prosody, detected_tone, tone_accuracy, feedback, pause_analysis)
+    """
+    if parselmouth is None:
+        pitch_contour = extract_pitch(audio_path)
+        formants = extract_formants(audio_path)
+        speech_rate = calculate_speech_rate(audio_path, transcription)
+        fluency_score = analyze_fluency(pitch_contour, speech_rate)
+        pitch_stats = get_pitch_statistics(pitch_contour)
+        word_prosody = estimate_word_prosody(pitch_contour, transcription)
+        pause_analysis = analyze_pauses_and_utterances(audio_path)
+        from chinese_tones import detect_tone, generate_comprehensive_feedback
+        tone_detection = detect_tone(pitch_contour)
+        detected_tone = tone_detection["detected_tone"]
+        tone_accuracy = tone_detection["scores"].get(detected_tone, 0)
+        feedback = generate_comprehensive_feedback(
+            detected_tone, tone_accuracy, speech_rate, fluency_score, pitch_contour,
+        )
+        return (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
+                word_prosody, detected_tone, tone_accuracy, feedback, pause_analysis)
+
+    from chinese_tones import detect_tone, generate_comprehensive_feedback
+
+    sound = _load_sound(audio_path)
+    duration = max(float(sound.get_total_duration()), 0.01)
+
+    pitch_contour = _pitch_contour_from_sound(sound)
+    formants = _formants_from_sound(sound)
+
+    # Speech rate from char count (fast) or pitch frames (fallback)
+    chinese_chars = sum(1 for c in transcription if "一" <= c <= "鿿")
+    if chinese_chars > 0:
+        speech_rate = float(chinese_chars / duration)
+    else:
+        speech_rate = float(max(1, round(len(pitch_contour) / 9)) / duration)
+
+    fluency_score = analyze_fluency(pitch_contour, speech_rate)
+    pitch_stats = get_pitch_statistics(pitch_contour)
+    word_prosody = estimate_word_prosody(pitch_contour, transcription)
+    # Reuse already-loaded sound — avoids a second disk read
+    pause_analysis = analyze_pauses_and_utterances(audio_path, _preloaded_sound=sound)
+
+    tone_detection = detect_tone(pitch_contour)
+    detected_tone = tone_detection["detected_tone"]
+    tone_accuracy = tone_detection["scores"].get(detected_tone, 0)
+    feedback = generate_comprehensive_feedback(
+        detected_tone, tone_accuracy, speech_rate, fluency_score, pitch_contour,
+    )
+
+    return (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
+            word_prosody, detected_tone, tone_accuracy, feedback, pause_analysis)
+
+
 def extract_pitch(
     audio_path: str,
-    time_step: float = 0.01,
+    time_step: float = 0.025,
     pitch_floor: float = 75,
     pitch_ceiling: float = 500,
 ) -> List[Tuple[float, float]]:
@@ -45,19 +146,7 @@ def extract_pitch(
         return _extract_pitch_fallback(audio_path, time_step, pitch_floor, pitch_ceiling)
 
     sound = _load_sound(audio_path)
-    pitch = sound.to_pitch(
-        time_step=time_step,
-        pitch_floor=pitch_floor,
-        pitch_ceiling=pitch_ceiling,
-    )
-
-    contour: List[Tuple[float, float]] = []
-    for index, frequency in enumerate(pitch.selected_array["frequency"]):
-        if frequency > 0:
-            time = pitch.xs()[index]
-            contour.append((float(time), float(frequency)))
-
-    return contour
+    return _pitch_contour_from_sound(sound, time_step, pitch_floor, pitch_ceiling)
 
 
 def extract_formants(
@@ -70,23 +159,7 @@ def extract_formants(
         return {"F1": 0.0, "F2": 0.0, "F3": 0.0}
 
     sound = _load_sound(audio_path)
-    formant = sound.to_formant_burg(
-        time_step=0.01,
-        max_number_of_formants=num_formants,
-        maximum_formant=max_formant,
-    )
-
-    values: Dict[str, List[float]] = {"F1": [], "F2": [], "F3": []}
-    for time in np.linspace(sound.xmin, sound.xmax, 120):
-        for formant_number, key in ((1, "F1"), (2, "F2"), (3, "F3")):
-            value = formant.get_value_at_time(formant_number, float(time))
-            if value and not np.isnan(value):
-                values[key].append(float(value))
-
-    return {
-        key: float(np.median(items)) if items else 0.0
-        for key, items in values.items()
-    }
+    return _formants_from_sound(sound, max_formant, num_formants)
 
 
 def calculate_speech_rate(audio_path: str, transcription: str = "") -> float:
@@ -118,15 +191,20 @@ def analyze_pauses_and_utterances(
     min_utterance_duration: float = 0.12,
     min_pause_duration: float = 0.2,
     merge_gap_duration: float = 0.18,
+    _preloaded_sound=None,
 ) -> Dict:
     """
     Segment the recording into speech utterances and silent pauses.
-
-    The detector uses short-time energy relative to the recording peak. It is
-    intentionally lightweight: good enough for learner feedback about where
-    they paused, without requiring forced alignment or a separate VAD model.
+    Pass _preloaded_sound (a parselmouth.Sound) to avoid a second file read.
     """
-    samples, sample_rate, duration = _load_mono_audio(audio_path)
+    if _preloaded_sound is not None and parselmouth is not None:
+        sound = _preloaded_sound
+        values = np.asarray(sound.values, dtype=float)
+        samples = values.mean(axis=0) if values.ndim == 2 else values.reshape(-1)
+        sample_rate = int(round(1.0 / sound.dx))
+        duration = float(sound.get_total_duration())
+    else:
+        samples, sample_rate, duration = _load_mono_audio(audio_path)
     if samples.size == 0 or duration <= 0:
         return _empty_pause_analysis()
 

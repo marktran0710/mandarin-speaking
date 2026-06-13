@@ -11,6 +11,7 @@ import httpx
 from dotenv import load_dotenv
 import json
 import asyncio
+import numpy as np
 import threading
 import datetime
 from urllib.parse import quote, unquote_to_bytes
@@ -31,6 +32,7 @@ from praat_analyzer import (
     analyze_fluency,
     get_pitch_statistics,
     estimate_word_prosody,
+    analyze_all,
 )
 from chinese_tones import (
     detect_tone,
@@ -150,9 +152,12 @@ class AnalysisResponse(BaseModel):
     detected_tone: int
     tone_accuracy: float
     formants: dict
+    vowel_quality: str = ""
     speech_rate: float
     fluency_score: float
     pitch_statistics: dict
+    tone_direction: str = ""
+    pause_analysis: dict = {}
     feedback: str
     ai_feedback: dict
 
@@ -569,66 +574,115 @@ async def get_asr_status():
     )
 
 
-@app.post("/api/analyze", response_model=AnalysisResponse)
-async def analyze_speech(
-    file: UploadFile = File(...),
-    transcription: str = Form(""),
-    asr_model: str = Form(""),
-):
-    """
-    Analyze Chinese speech for tone, pitch, formants, speech rate, and fluency.
-    If transcription is empty and asr_model is provided, transcribe first, then
-    run Praat against the same audio.
-    """
-    if not file:
-        raise HTTPException(status_code=400, detail="No audio file provided")
+ANALYZE_TIMEOUT_SECONDS = int(os.getenv("ANALYZE_TIMEOUT_SECONDS", "120"))
 
+
+def classify_vowel_quality(formants: dict) -> str:
+    """Translate F1/F2 Hz into a plain-language vowel quality label."""
+    f1 = formants.get("F1", 0)
+    f2 = formants.get("F2", 0)
+    if f1 <= 0 or f2 <= 0:
+        return ""
+    # High vowel: low F1 (closed mouth)
+    if f1 < 400:
+        if f2 > 2000:
+            return "High front vowel — mouth nearly closed, tongue forward (like 你 nǐ)"
+        return "High back vowel — mouth nearly closed, lips rounded (like 書 shū)"
+    # Mid vowel
+    if f1 < 650:
+        if f2 > 1800:
+            return "Mid front vowel — tongue mid-high, forward (like 姐 jiě)"
+        if f2 > 1200:
+            return "Mid central vowel — tongue in centre (like 的 de)"
+        return "Mid back vowel — tongue mid, lips rounded (like 我 wǒ)"
+    # Low vowel: high F1 (open mouth)
+    return "Open vowel — mouth wide open, jaw dropped (like 啊 ā / 媽 mā)"
+
+
+def build_tone_direction(
+    pitch_contour: list,
+    detected_tone: int,
+    tone_accuracy: float,
+) -> str:
+    """Return a plain-language description of the pitch movement the student produced."""
+    if not pitch_contour or len(pitch_contour) < 3:
+        return ""
+    freqs = [p[1] for p in pitch_contour]
+    start = float(np.mean(freqs[:max(1, len(freqs) // 5)]))
+    end   = float(np.mean(freqs[-max(1, len(freqs) // 5):]))
+    mid   = float(np.mean(freqs[len(freqs) // 3 : 2 * len(freqs) // 3]))
+    delta = end - start
+    dip   = (start + end) / 2 - mid  # positive = dip in middle
+
+    tone_hints = {
+        1: "Tone 1 should stay high and flat the whole time (→).",
+        2: "Tone 2 should rise steadily from mid to high (↗).",
+        3: "Tone 3 dips low in the middle then rises slightly (↘↗).",
+        4: "Tone 4 should fall sharply from high to low (↘).",
+    }
+
+    if dip > 30:
+        shape, arrow = "dips in the middle", "↘↗"
+    elif delta > 25:
+        shape, arrow = "rises", "↗"
+    elif delta < -25:
+        shape, arrow = "falls", "↘"
+    else:
+        shape, arrow = "stays roughly level", "→"
+
+    quality = "Good match." if tone_accuracy >= 72 else "Needs more contrast."
+    hint = tone_hints.get(detected_tone, "")
+    return f"Your voice {shape} {arrow}. {quality} {hint}".strip()
+
+
+async def _do_analyze(
+    content: bytes,
+    transcription: str,
+    asr_model: str,
+    scene_prompt: str = "",
+    scene_vocabulary: str = "",
+) -> AnalysisResponse:
     tmp_path = None
     try:
-        # Save uploaded file to temporary location
-        with tempfile.NamedTemporaryFile(
-            delete=False, suffix=".wav"
-        ) as tmp_file:
-            content = await file.read()
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
             tmp_file.write(content)
             tmp_path = tmp_file.name
 
         transcription_model = ""
         if not transcription.strip() and asr_model.strip():
-            transcription_result = await transcribe_audio_content(
-                content,
-                asr_model.strip(),
-            )
+            transcription_result = await transcribe_audio_content(content, asr_model.strip())
             transcription = transcription_result.text
             transcription_model = transcription_result.model
 
-        # Extract audio analysis
-        pitch_contour = extract_pitch(tmp_path)
-        formants = extract_formants(tmp_path)
-        speech_rate = calculate_speech_rate(tmp_path, transcription)
-        fluency_score = analyze_fluency(pitch_contour, speech_rate)
-        pitch_stats = get_pitch_statistics(pitch_contour)
-        word_prosody = estimate_word_prosody(pitch_contour, transcription)
+        def _run_praat(path: str, tx: str):
+            return analyze_all(path, tx)
 
-        # Detect tone
-        tone_detection = detect_tone(pitch_contour)
-        detected_tone = tone_detection["detected_tone"]
-        tone_accuracy = tone_detection["scores"].get(detected_tone, 0)
+        # Run Praat (CPU-bound, threadpool) and AI feedback (I/O-bound) in parallel.
+        # AI uses local fallback by default (instant); if an external provider is
+        # configured the network call hides behind Praat's CPU time.
+        # After both finish, patch pronunciation_note with real Praat numbers.
+        (praat_result, ai_feedback) = await asyncio.gather(
+            run_in_threadpool(_run_praat, tmp_path, transcription),
+            generate_language_feedback(transcription, scene_prompt, scene_vocabulary),
+        )
+        (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
+         word_prosody, detected_tone, tone_accuracy, feedback,
+         pause_analysis) = praat_result
 
-        # Generate comprehensive feedback
-        feedback = generate_comprehensive_feedback(
-            detected_tone,
-            tone_accuracy,
-            speech_rate,
-            fluency_score,
-            pitch_contour,
+        vowel_quality = classify_vowel_quality(formants)
+        tone_direction = build_tone_direction(pitch_contour, detected_tone, tone_accuracy)
+
+        # Patch pronunciation_note with real Praat numbers now that we have them
+        from ai_feedback import fallback_language_feedback as _local_fb
+        pron_patch = _local_fb(
+            transcription, scene_prompt, scene_vocabulary,
+            praat_tone_accuracy=float(tone_accuracy),
+            praat_fluency_score=float(fluency_score),
+            praat_vowel_quality=vowel_quality or "",
         )
-        ai_feedback = await generate_language_feedback(transcription)
-        description = build_analysis_description(
-            transcription,
-            transcription_model,
-            word_prosody,
-        )
+        if isinstance(ai_feedback, dict):
+            ai_feedback["pronunciation_note"] = pron_patch["pronunciation_note"]
+        description = build_analysis_description(transcription, transcription_model, word_prosody)
 
         return AnalysisResponse(
             description=description,
@@ -639,24 +693,53 @@ async def analyze_speech(
             detected_tone=detected_tone,
             tone_accuracy=tone_accuracy,
             formants=formants,
+            vowel_quality=vowel_quality,
             speech_rate=speech_rate,
             fluency_score=fluency_score,
             pitch_statistics=pitch_stats,
+            tone_direction=tone_direction,
+            pause_analysis=pause_analysis,
             feedback=feedback,
             ai_feedback=ai_feedback,
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        print(f"Error in analyze_speech: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error analyzing speech: {str(e)}"
         )
     finally:
         if tmp_path and os.path.exists(tmp_path):
             os.unlink(tmp_path)
+
+
+@app.post("/api/analyze", response_model=AnalysisResponse)
+async def analyze_speech(
+    file: UploadFile = File(...),
+    transcription: str = Form(""),
+    asr_model: str = Form(""),
+    scene_prompt: str = Form(""),
+    scene_vocabulary: str = Form(""),
+):
+    """
+    Analyze Chinese speech for tone, pitch, formants, speech rate, and fluency.
+    If transcription is empty and asr_model is provided, transcribe first, then
+    run Praat against the same audio. scene_prompt and scene_vocabulary are used
+    to make AI and local feedback context-aware.
+    """
+    if not file:
+        raise HTTPException(status_code=400, detail="No audio file provided")
+
+    content = await file.read()
+    try:
+        return await asyncio.wait_for(
+            _do_analyze(content, transcription, asr_model, scene_prompt, scene_vocabulary),
+            timeout=ANALYZE_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=504,
+            detail=f"Analysis timed out after {ANALYZE_TIMEOUT_SECONDS}s. Try a shorter recording.",
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in analyze_speech: {e}")
+        raise HTTPException(status_code=500, detail=f"Error analyzing speech: {str(e)}")
 
 
 @app.post("/api/transcribe", response_model=TranscriptionResponse)

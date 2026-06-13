@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { canUseDatabase, listCustomStories } from "./database";
-import { loadPublishedTeacherTopics, saveCustomStories, storyToTopic } from "./utils/teacherStories";
+import { canUseDatabase, createCustomStory, listCustomStories } from "./database";
+import { loadCustomStories, loadPublishedTeacherTopics, saveCustomStories, storyToTopic } from "./utils/teacherStories";
 import "./TopicSelector.css";
 
 export interface Topic {
@@ -35,17 +35,36 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
   useEffect(() => {
     if (!canUseDatabase()) return;
     listCustomStories()
-      .then((stories) => {
-        saveCustomStories(stories);
-        const published = stories
+      .then(async (dbStories) => {
+        // Merge: push any localStorage-only stories up to the DB so they're never lost
+        const localStories = loadCustomStories();
+        const dbIds = new Set(dbStories.map((s) => s.id));
+        const localOnly = localStories.filter((s) => !dbIds.has(s.id));
+        if (localOnly.length > 0) {
+          await Promise.allSettled(localOnly.map((s) => createCustomStory(s)));
+          // Re-fetch after uploading missing stories
+          const merged = await listCustomStories();
+          saveCustomStories(merged);
+          const published = merged
+            .filter((s) => s.published)
+            .map((s) => storyToTopic(s as any));
+          setTopics(published);
+          setSelectedTopic((prev) => {
+            if (prev) return published.find((t) => t.id === prev.id) ?? published[0] ?? null;
+            return published[0] ?? null;
+          });
+          return;
+        }
+        // DB is source of truth — only overwrite localStorage if DB has stories
+        if (dbStories.length > 0) {
+          saveCustomStories(dbStories);
+        }
+        const published = (dbStories.length > 0 ? dbStories : localStories)
           .filter((s) => s.published)
           .map((s) => storyToTopic(s as any));
         setTopics(published);
         setSelectedTopic((prev) => {
-          if (prev) {
-            const updated = published.find((t) => t.id === prev.id);
-            return updated ?? published[0] ?? null;
-          }
+          if (prev) return published.find((t) => t.id === prev.id) ?? published[0] ?? null;
           return published[0] ?? null;
         });
       })
