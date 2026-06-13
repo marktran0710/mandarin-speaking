@@ -172,7 +172,13 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
         {/* Word Bank */}
         <div className="scmap-word-bank">
           <h3>📚 Word Bank</h3>
-          {allWords.map((w, i) => {
+          {allWords.length === 0 ? (
+            <div className="scmap-bank-empty">
+              <span className="scmap-bank-empty-icon">📝</span>
+              <p>No vocabulary yet.</p>
+              <p>Ask your teacher to add words to this story.</p>
+            </div>
+          ) : allWords.map((w, i) => {
             const used = usedWords.has(w);
             return (
               <div
