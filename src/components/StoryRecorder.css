@@ -1734,16 +1734,70 @@
 .listen-try-zone {
   margin-bottom: 18px;
 }
-.try-again-nudge {
+/* Vocab gate — missing words, strong CTA */
+.try-again-vocab-gate {
+  margin-top: 12px;
+  background: #fff7ed;
+  border: 2px solid #fb923c;
+  border-radius: 14px;
+  padding: 18px 16px;
   text-align: center;
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: #7c3aed;
-  background: #f5f3ff;
-  border: 1.5px dashed #c4b5fd;
-  border-radius: 12px;
-  padding: 14px;
-  margin-top: 10px;
+}
+.try-again-gate-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #9a3412;
+  margin: 0 0 12px;
+}
+.try-again-missing-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.try-again-missing-chip {
+  background: #fed7aa;
+  border: 1.5px solid #fb923c;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #7c2d12;
+}
+.try-again-gate-hint {
+  font-size: 0.85rem;
+  color: #c2410c;
+  margin: 0;
+}
+
+/* All vocab done — positive state */
+.try-again-complete {
+  margin-top: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #f0fdf4;
+  border: 2px solid #4ade80;
+  border-radius: 14px;
+  padding: 16px;
+}
+.try-again-complete-icon {
+  font-size: 1.4rem;
+  color: #22c55e;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.try-again-complete-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #166534;
+  margin: 0 0 4px;
+}
+.try-again-complete-hint {
+  font-size: 0.82rem;
+  color: #15803d;
+  margin: 0;
 }
 
 .feedback-section {

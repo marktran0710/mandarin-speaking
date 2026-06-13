@@ -1264,7 +1264,33 @@ export default function StoryRecorder({
               isScenePrompt={Boolean(scenePromptText)}
               focusWord={getToneFocusItems(praatMetrics.word_prosody || [])[0]?.token}
             />
-            <p className="try-again-nudge">Read the steps above, then record again ↑</p>
+            {(() => {
+              const missing = praatMetrics.ai_feedback?.vocabulary_coverage?.missing ?? [];
+              if (missing.length > 0) {
+                return (
+                  <div className="try-again-vocab-gate">
+                    <p className="try-again-gate-title">Practice again — you haven't used all the scene words yet</p>
+                    <div className="try-again-missing-chips">
+                      {missing.map(w => (
+                        <span key={w} className="try-again-missing-chip">{w}</span>
+                      ))}
+                    </div>
+                    <p className="try-again-gate-hint">
+                      Try to use <strong>every word above</strong> in your next recording. ↑ Record again
+                    </p>
+                  </div>
+                );
+              }
+              return (
+                <div className="try-again-complete">
+                  <span className="try-again-complete-icon">✓</span>
+                  <div>
+                    <p className="try-again-complete-title">All vocabulary words used!</p>
+                    <p className="try-again-complete-hint">Now work on pronunciation — record again and focus on the tones. ↑</p>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* ── Zone 4: Advanced details (collapsed) ────────────────── */}
@@ -1626,8 +1652,8 @@ function buildScaffoldSteps(
   const missing = ai.vocabulary_coverage?.missing ?? [];
   const badTones = wordProsody.filter(w => w.contour_shape === "variable" || w.contour_shape === "dip").slice(0, 2);
 
-  // Determine which step is the current focus (lowest score bucket)
-  const vocabOk  = vocabScore >= 75;
+  // Vocab is only "done" when every scene word was actually used
+  const vocabOk  = missing.length === 0;
   const cohOk    = cohScore  >= 70;
   const pronOk   = pronScore >= 70;
 
