@@ -1,6 +1,7 @@
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import PitchChart from "../PitchChart";
 import PraatTimeline from "./PraatTimeline";
+import StoryConceptMap from "./StoryConceptMap";
 import "./StoryRecorder.css";
 
 const BACKEND_URL =
@@ -84,19 +85,6 @@ interface ConceptMapDraft {
   fullStory: string;
 }
 
-interface CanvasNode {
-  id: string;
-  label: string;
-  x: number;
-  y: number;
-  color: string;
-}
-
-interface CanvasEdge {
-  id: string;
-  fromId: string;
-  toId: string;
-}
 
 interface StoryRecorderProps {
   topic: Topic;
@@ -140,24 +128,16 @@ export default function StoryRecorder({
   const [analysisAudioBlob, setAnalysisAudioBlob] = useState<Blob | null>(null);
   const [submittedAudioName, setSubmittedAudioName] = useState("");
 
-  // Sorting Challenge State
-  const [isChallengeSolved, setIsChallengeSolved] = useState(!enableSorting);
+  // Learning phase: overview → sorting → conceptmap → practice
+  const [phase, setPhase] = useState<"overview" | "sorting" | "conceptmap" | "practice">(
+    enableSorting ? "overview" : "practice"
+  );
   const [shuffledPool, setShuffledPool] = useState<string[]>([]);
   const [placedImages, setPlacedImages] = useState<Array<string | null>>([]);
   const [selectedPoolImage, setSelectedPoolImage] = useState<string | null>(null);
   const [validationStates, setValidationStates] = useState<Array<"correct" | "incorrect" | null>>([]);
   const [sortingFeedback, setSortingFeedback] = useState<string>("");
-  const [sortingAttempts, setSortingAttempts] = useState(0);
-
-  // Visual Concept Map Canvas (inside Arrange Scenes)
-  const [canvasNodes, setCanvasNodes] = useState<CanvasNode[]>([]);
-  const [canvasEdges, setCanvasEdges] = useState<CanvasEdge[]>([]);
-  const [connectingFromId, setConnectingFromId] = useState<string | null>(null);
-  const [isConceptMapOpen, setIsConceptMapOpen] = useState(true);
-  const [customNodeInput, setCustomNodeInput] = useState("");
-  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
-  const dragOffsetRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const [, setSortingAttempts] = useState(0);
 
   const [conceptDraft, setConceptDraft] = useState<ConceptMapDraft>(
     createEmptyConceptMapDraft(),
@@ -194,7 +174,7 @@ export default function StoryRecorder({
   };
 
   useEffect(() => {
-    setIsChallengeSolved(!enableSorting);
+    setPhase(enableSorting ? "overview" : "practice");
     setSelectedPoolImage(null);
     setSortingFeedback("");
     setSortingAttempts(0);
@@ -202,11 +182,6 @@ export default function StoryRecorder({
     const pool = shuffleImages(topic.images);
     setShuffledPool(pool);
     setPlacedImages(new Array(topic.images.length).fill(null));
-    // Reset concept map canvas when topic changes
-    setCanvasNodes([]);
-    setCanvasEdges([]);
-    setConnectingFromId(null);
-    setCustomNodeInput("");
   }, [topic.id, topic.images, enableSorting]);
 
   useEffect(() => {
@@ -219,114 +194,6 @@ export default function StoryRecorder({
   useEffect(() => {
     setConceptDraft(createEmptyConceptMapDraft());
   }, [selectedImageIndex, topic.id]);
-
-  // Visual Concept Map Canvas Handlers
-  const allTopicVocabulary = Object.values(topic.vocabulary).flat();
-  const uniqueVocab = Array.from(new Set(allTopicVocabulary));
-  const usedLabels = new Set(canvasNodes.map((n) => n.label));
-
-  const nodeColors = ["#06b6d4", "#8b5cf6", "#f59e0b", "#10b981", "#ef4444", "#3b82f6", "#ec4899"];
-  const getNodeColor = (index: number) => nodeColors[index % nodeColors.length];
-
-  const addCanvasNode = (label: string, x = 120, y = 80) => {
-    if (!label.trim()) return;
-    const id = `node-${Date.now()}-${Math.random()}`;
-    const color = getNodeColor(canvasNodes.length);
-    setCanvasNodes((prev) => [...prev, { id, label: label.trim(), x, y, color }]);
-  };
-
-  const handleWordBankDragStart = (e: React.DragEvent, word: string) => {
-    e.dataTransfer.setData("text/plain", JSON.stringify({ type: "word-bank", word }));
-    e.dataTransfer.effectAllowed = "copy";
-  };
-
-  const handleCanvasDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = e.clientX - rect.left - 48;
-    const y = e.clientY - rect.top - 20;
-    try {
-      const data = JSON.parse(e.dataTransfer.getData("text/plain"));
-      if (data.type === "word-bank") {
-        addCanvasNode(data.word, Math.max(8, x), Math.max(8, y));
-      }
-    } catch {
-      // not our data format, ignore
-    }
-  };
-
-  const handleNodeMouseDown = (e: React.MouseEvent, nodeId: string) => {
-    // Don't start drag if we're in connect mode — clicks handle that
-    if (connectingFromId !== null) return;
-    e.preventDefault();
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const node = canvasNodes.find((n) => n.id === nodeId);
-    if (!node) return;
-    dragOffsetRef.current = { x: e.clientX - rect.left - node.x, y: e.clientY - rect.top - node.y };
-    setDraggingNodeId(nodeId);
-  };
-
-  const handleCanvasMouseMove = (e: React.MouseEvent) => {
-    if (!draggingNodeId) return;
-    const rect = canvasRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const x = Math.max(4, e.clientX - rect.left - dragOffsetRef.current.x);
-    const y = Math.max(4, e.clientY - rect.top - dragOffsetRef.current.y);
-    setCanvasNodes((prev) =>
-      prev.map((n) => (n.id === draggingNodeId ? { ...n, x, y } : n)),
-    );
-  };
-
-  const handleCanvasMouseUp = () => {
-    setDraggingNodeId(null);
-  };
-
-  const handleNodeClick = (e: React.MouseEvent, nodeId: string) => {
-    if (draggingNodeId) return; // was a drag, not a click
-    e.stopPropagation();
-    if (connectingFromId === null) {
-      setConnectingFromId(nodeId);
-    } else if (connectingFromId === nodeId) {
-      setConnectingFromId(null);
-    } else {
-      // Draw an edge
-      const alreadyExists = canvasEdges.some(
-        (edge) => edge.fromId === connectingFromId && edge.toId === nodeId,
-      );
-      if (!alreadyExists) {
-        const edgeId = `edge-${Date.now()}`;
-        setCanvasEdges((prev) => [...prev, { id: edgeId, fromId: connectingFromId, toId: nodeId }]);
-      }
-      setConnectingFromId(null);
-    }
-  };
-
-  const handleDeleteEdge = (edgeId: string) => {
-    setCanvasEdges((prev) => prev.filter((e) => e.id !== edgeId));
-  };
-
-  const handleDeleteNode = (e: React.MouseEvent, nodeId: string) => {
-    e.stopPropagation();
-    setCanvasNodes((prev) => prev.filter((n) => n.id !== nodeId));
-    setCanvasEdges((prev) => prev.filter((edge) => edge.fromId !== nodeId && edge.toId !== nodeId));
-    if (connectingFromId === nodeId) setConnectingFromId(null);
-  };
-
-  const handleAddCustomNode = () => {
-    if (!customNodeInput.trim()) return;
-    const cx = 60 + (canvasNodes.length % 5) * 130;
-    const cy = 60 + Math.floor(canvasNodes.length / 5) * 80;
-    addCanvasNode(customNodeInput, cx, cy);
-    setCustomNodeInput("");
-  };
-
-  const resetConceptCanvas = () => {
-    setCanvasNodes([]);
-    setCanvasEdges([]);
-    setConnectingFromId(null);
-  };
 
   // Sorting Challenge Handlers
   const handleDragStart = (e: React.DragEvent, image: string, source: "pool" | "slot", index?: number) => {
@@ -410,7 +277,7 @@ export default function StoryRecorder({
       const dataStr = e.dataTransfer.getData("text/plain");
       if (!dataStr) return;
       const data = JSON.parse(dataStr);
-      const { image, source, index: sourceIndex } = data;
+      const { source, index: sourceIndex } = data;
 
       if (source === "slot" && sourceIndex !== undefined) {
         removeImageFromSlot(sourceIndex);
@@ -856,353 +723,245 @@ export default function StoryRecorder({
     }));
   };
 
+  const allVocabulary = topic.images.flatMap((_, si) => topic.vocabulary[si] || []);
+
   return (
     <div className="story-recorder">
-      {!isChallengeSolved ? (
-        <section className="sorting-challenge-container">
-          <div className="sorting-instructions">
-            <p className="eyebrow">Interactive Challenge</p>
-            <h1>Arrange the Story Scenes</h1>
-            <p className="subtitle">
-              Drag and drop (or click to select and place) each picture to match the suitable scene description. Complete the sequence to unlock the speaking practice!
-            </p>
-            
-            {sortingFeedback && (
-              <div className={`sorting-feedback-banner ${sortingFeedback.includes("Spot on") ? "success" : "info"}`}>
-                <span className="feedback-icon">
-                  {sortingFeedback.includes("Spot on") ? "🎉" : "💡"}
-                </span>
-                <p>{sortingFeedback}</p>
+      {phase === "overview" && (
+        <section className="story-overview">
+          <div className="overview-hero">
+            <p className="eyebrow">Story Challenge</p>
+            <h1 className="overview-title">{topic.name}</h1>
+            {topic.description && <p className="overview-desc">{topic.description}</p>}
+            {(topic.level || topic.skillFocus) && (
+              <div className="overview-meta">
+                {topic.level && <span>{topic.level}</span>}
+                {topic.skillFocus && <span>{topic.skillFocus}</span>}
               </div>
             )}
           </div>
 
+
+          {allVocabulary.length > 0 && (
+            <div className="overview-vocab-block">
+              <h2>Key Vocabulary</h2>
+              <div className="overview-vocab-chips">
+                {allVocabulary.map((word, i) => (
+                  <span key={`${word}-${i}`} className="overview-vocab-chip">{word}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="overview-steps-block">
+            <h2>Your Challenge</h2>
+            <div className="overview-steps">
+              <div className="overview-step">
+                <span className="overview-step-num">1</span>
+                <div>
+                  <strong>Arrange Scenes</strong>
+                  <p>Put the story pictures in the right order</p>
+                </div>
+              </div>
+              <div className="overview-step">
+                <span className="overview-step-num">2</span>
+                <div>
+                  <strong>Vocabulary Map</strong>
+                  <p>Match key words to each story scene</p>
+                </div>
+              </div>
+              <div className="overview-step">
+                <span className="overview-step-num">3</span>
+                <div>
+                  <strong>Speaking Practice</strong>
+                  <p>Record your Mandarin story out loud</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="overview-cta">
+            <button className="btn-start-challenge" onClick={() => setPhase("sorting")}>
+              Let's Go! →
+            </button>
+          </div>
+        </section>
+      )}
+
+      {phase === "sorting" && (
+        <section className="sorting-challenge-container">
+
+          {/* ── Header ── */}
+          <div className="sorting-header">
+            <div className="sorting-header-copy">
+              <p className="eyebrow">Step 1 · Arrange Scenes</p>
+              <h1>Put the Story in Order</h1>
+              <p className="subtitle">
+                Drag each picture into the correct scene slot, then verify the sequence to unlock speaking practice.
+              </p>
+            </div>
+            <div className="sorting-progress">
+              <div className="sorting-progress-label">
+                {placedImages.filter(Boolean).length} / {placedImages.length} placed
+              </div>
+              <div className="sorting-progress-bar">
+                <div
+                  className="sorting-progress-fill"
+                  style={{ width: `${(placedImages.filter(Boolean).length / placedImages.length) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {sortingFeedback && (
+            <div className={`sorting-feedback-banner ${sortingFeedback.includes("Spot on") ? "success" : "info"}`}>
+              <span className="feedback-icon">{sortingFeedback.includes("Spot on") ? "🎉" : "💡"}</span>
+              <p>{sortingFeedback}</p>
+            </div>
+          )}
+
+          {/* ── Scene slots ── */}
           <div className="sorting-slots-grid">
             {placedImages.map((image, index) => {
               const validation = validationStates[index];
-              const scenePrompt = topic.prompts?.[index] || `Describe the events for scene ${index + 1}.`;
-              
+              const scenePrompt = topic.prompts?.[index];
               return (
-                <div 
+                <div
                   key={`slot-${index}`}
                   className={`sorting-slot-card ${validation || ""} ${selectedPoolImage ? "droppable" : ""}`}
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleDropToSlot(e, index)}
                   onClick={() => {
-                    if (selectedPoolImage) {
-                      placePoolImageInSlot(selectedPoolImage, index);
-                    } else if (image) {
-                      removeImageFromSlot(index);
-                    }
+                    if (selectedPoolImage) placePoolImageInSlot(selectedPoolImage, index);
+                    else if (image) removeImageFromSlot(index);
                   }}
                 >
                   <div className="slot-header">
-                    <span className="slot-number">Scene {index + 1}</span>
-                    {validation === "correct" && <span className="slot-badge correct">✓ Correct</span>}
-                    {validation === "incorrect" && <span className="slot-badge incorrect">✗ Check again</span>}
+                    <span className="slot-number">
+                      <span className="slot-num-badge">{index + 1}</span>
+                      Scene {index + 1}
+                    </span>
+                    {validation === "correct" && <span className="slot-badge correct">✓</span>}
+                    {validation === "incorrect" && <span className="slot-badge incorrect">✗</span>}
                   </div>
-                  
+
                   <div className="slot-body">
                     {image ? (
                       <div className="slot-image-wrapper">
-                        <img 
-                          src={image} 
-                          alt={`Placed scene ${index + 1}`} 
-                          draggable 
-                          onDragStart={(e) => handleDragStart(e, image, "slot", index)} 
+                        <img
+                          src={image}
+                          alt={`Scene ${index + 1}`}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, image, "slot", index)}
                         />
-                        <button 
-                          type="button" 
-                          className="remove-slot-image" 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeImageFromSlot(index);
-                          }}
-                          aria-label="Remove image"
-                        >
-                          &times;
-                        </button>
+                        <button
+                          type="button"
+                          className="remove-slot-image"
+                          onClick={(e) => { e.stopPropagation(); removeImageFromSlot(index); }}
+                          aria-label="Remove"
+                        >&times;</button>
                       </div>
                     ) : (
                       <div className="slot-placeholder">
                         <span className="placeholder-icon">🖼️</span>
-                        <span className="placeholder-text">Drag picture here</span>
+                        <span className="placeholder-text">{selectedPoolImage ? "Click to place" : "Drag here"}</span>
                       </div>
                     )}
                   </div>
-                  
-                  <div className="slot-footer">
-                    <p className="slot-prompt">{scenePrompt}</p>
-                  </div>
+
+                  {scenePrompt && (
+                    <div className="slot-footer">
+                      <p className="slot-prompt">{scenePrompt}</p>
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
 
+          {/* ── Picture pool ── */}
           <div className="sorting-pool-section">
-            <h2>Available Pictures</h2>
-            <p className="pool-helper-text">
-              {selectedPoolImage 
-                ? "Now click on a Scene slot above to place this picture." 
-                : "Drag a picture to a slot above, or click a picture and then click a slot."}
-            </p>
-            
-            <div 
-              className="sorting-pool"
-              onDragOver={handleDragOver}
-              onDrop={handleDropToPool}
-            >
+            <div className="sorting-pool-header">
+              <h2>📷 Picture Bank</h2>
+              <p className="pool-helper-text">
+                {selectedPoolImage
+                  ? "Click a scene slot above to place this picture."
+                  : shuffledPool.length === 0
+                    ? "All pictures placed — verify below!"
+                    : "Drag a picture to a slot, or click to select then click a slot."}
+              </p>
+            </div>
+            <div className="sorting-pool" onDragOver={handleDragOver} onDrop={handleDropToPool}>
               {shuffledPool.length === 0 ? (
                 <div className="pool-empty-state">
                   <span className="star-icon">✨</span>
-                  <p>All pictures placed! Click <strong>Verify Sequence</strong> below to check your answer.</p>
+                  <p>All pictures placed!</p>
                 </div>
               ) : (
                 shuffledPool.map((image) => (
-                  <div 
+                  <div
                     key={image}
                     className={`sorting-pool-card ${selectedPoolImage === image ? "selected" : ""}`}
                     draggable
                     onDragStart={(e) => handleDragStart(e, image, "pool")}
-                    onClick={() => {
-                      if (selectedPoolImage === image) {
-                        setSelectedPoolImage(null);
-                      } else {
-                        setSelectedPoolImage(image);
-                      }
-                    }}
+                    onClick={() => setSelectedPoolImage(selectedPoolImage === image ? null : image)}
                   >
-                    <img src={image} alt="Story piece to sort" />
-                    <span className="drag-handle">:: Drag or Click</span>
+                    <img src={image} alt="Story picture" />
+                    <span className="drag-handle">{selectedPoolImage === image ? "✓ Selected" : "Drag · Click"}</span>
                   </div>
                 ))
               )}
             </div>
           </div>
 
-          {/* ── Visual Concept Map Canvas ── */}
-          <div className="sorting-concept-map-panel">
-            <div className="scm-header">
-              <div className="scm-header-left">
-                <span className="scm-eyebrow">Story Concept Map</span>
-                <p className="scm-subtitle">
-                  {connectingFromId
-                    ? "Click another node to draw an arrow → or click same node to cancel"
-                    : "Drag words onto the canvas · Click a node to start connecting · Click an arrow to delete it"}
-                </p>
-              </div>
-              <div className="scm-header-right">
-                <div className="scm-custom-input">
-                  <input
-                    type="text"
-                    value={customNodeInput}
-                    onChange={(e) => setCustomNodeInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCustomNode(); } }}
-                    placeholder="Add a word…"
-                    aria-label="Add custom concept node"
-                  />
-                  <button type="button" onClick={handleAddCustomNode} className="scm-btn-add" aria-label="Add node">
-                    + Add
-                  </button>
-                </div>
-                {canvasNodes.length > 0 && (
-                  <button type="button" onClick={resetConceptCanvas} className="scm-btn-reset" aria-label="Reset concept map">
-                    🔄 Reset
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="scm-btn-toggle"
-                  onClick={() => setIsConceptMapOpen((v) => !v)}
-                  aria-expanded={isConceptMapOpen}
-                  aria-label={isConceptMapOpen ? "Collapse concept map" : "Expand concept map"}
-                >
-                  {isConceptMapOpen ? "▲ Hide" : "▼ Show"}
-                </button>
-              </div>
-            </div>
-
-            {isConceptMapOpen && (
-              <div className="scm-body">
-                {/* Word Bank */}
-                {uniqueVocab.length > 0 && (
-                  <div className="scm-word-bank">
-                    <span className="scm-word-bank-label">Word bank</span>
-                    <div className="scm-word-bank-chips">
-                      {uniqueVocab.map((word) => (
-                        <span
-                          key={word}
-                          className={`scm-chip ${usedLabels.has(word) ? "used" : ""}`}
-                          draggable
-                          onDragStart={(e) => handleWordBankDragStart(e, word)}
-                          title={usedLabels.has(word) ? "Already on canvas" : "Drag to canvas"}
-                        >
-                          {word}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Canvas */}
-                <div
-                  ref={canvasRef}
-                  className={`scm-canvas ${connectingFromId ? "connecting-mode" : ""} ${draggingNodeId ? "dragging" : ""}`}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={handleCanvasDrop}
-                  onMouseMove={handleCanvasMouseMove}
-                  onMouseUp={handleCanvasMouseUp}
-                  onMouseLeave={handleCanvasMouseUp}
-                >
-                  {canvasNodes.length === 0 && (
-                    <div className="scm-canvas-empty">
-                      <span>🗺️</span>
-                      <p>Drag vocabulary words here to start building your story map</p>
-                    </div>
-                  )}
-
-                  {/* SVG layer for edges */}
-                  {canvasNodes.length > 0 && (
-                    <svg className="scm-svg-layer" aria-hidden="true">
-                      <defs>
-                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                          <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
-                        </marker>
-                      </defs>
-                      {canvasEdges.map((edge) => {
-                        const from = canvasNodes.find((n) => n.id === edge.fromId);
-                        const to = canvasNodes.find((n) => n.id === edge.toId);
-                        if (!from || !to) return null;
-                        const fw = Math.max(from.label.length * 9 + 28, 80);
-                        const tw = Math.max(to.label.length * 9 + 28, 80);
-                        const x1 = from.x + fw / 2;
-                        const y1 = from.y + 18;
-                        const x2 = to.x + tw / 2;
-                        const y2 = to.y + 18;
-                        const mx = (x1 + x2) / 2;
-                        const my = (y1 + y2) / 2;
-                        return (
-                          <g key={edge.id}>
-                            <line
-                              x1={x1} y1={y1} x2={x2} y2={y2}
-                              stroke="#94a3b8"
-                              strokeWidth="2"
-                              markerEnd="url(#arrowhead)"
-                              strokeDasharray="6 3"
-                            />
-                            {/* Invisible wider hit area for deletion */}
-                            <line
-                              x1={x1} y1={y1} x2={x2} y2={y2}
-                              stroke="transparent"
-                              strokeWidth="14"
-                              style={{ cursor: "pointer" }}
-                              onClick={() => handleDeleteEdge(edge.id)}
-                              title="Click to delete connection"
-                            />
-                            <circle
-                              cx={mx} cy={my} r={8}
-                              fill="white"
-                              stroke="#94a3b8"
-                              strokeWidth="1.5"
-                              style={{ cursor: "pointer" }}
-                              onClick={() => handleDeleteEdge(edge.id)}
-                            />
-                            <text
-                              x={mx} y={my + 4.5}
-                              textAnchor="middle"
-                              fontSize="10"
-                              fill="#64748b"
-                              style={{ cursor: "pointer", userSelect: "none" }}
-                              onClick={() => handleDeleteEdge(edge.id)}
-                            >
-                              ×
-                            </text>
-                          </g>
-                        );
-                      })}
-                    </svg>
-                  )}
-
-                  {/* Nodes */}
-                  {canvasNodes.map((node) => (
-                    <div
-                      key={node.id}
-                      className={`scm-node ${connectingFromId === node.id ? "selected-source" : ""} ${connectingFromId && connectingFromId !== node.id ? "connectable-target" : ""}`}
-                      style={{
-                        left: node.x,
-                        top: node.y,
-                        borderColor: node.color,
-                        boxShadow: connectingFromId === node.id ? `0 0 0 3px ${node.color}55` : undefined,
-                      }}
-                      onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
-                      onClick={(e) => handleNodeClick(e, node.id)}
-                      title={connectingFromId ? "Click to connect" : "Drag to move · Click to connect · × to delete"}
-                    >
-                      <span
-                        className="scm-node-dot"
-                        style={{ background: node.color }}
-                      />
-                      <span className="scm-node-label">{node.label}</span>
-                      <button
-                        type="button"
-                        className="scm-node-delete"
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => handleDeleteNode(e, node.id)}
-                        aria-label={`Delete node ${node.label}`}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {connectingFromId && (
-                  <p className="scm-connect-hint">
-                    🔗 Connecting from <strong>{canvasNodes.find((n) => n.id === connectingFromId)?.label}</strong> — click another node, or click the same node to cancel
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
+          {/* ── Actions ── */}
           <div className="sorting-actions">
-            <button 
-              type="button" 
-              className="btn-reset-sorting"
-              onClick={resetSorting}
-            >
-              Reset Board
+            <button type="button" className="btn-reset-sorting" onClick={resetSorting}>
+              ↺ Reset
             </button>
-            
-            {validationStates.some((s) => s === "correct") && !validationStates.includes("incorrect") && placedImages.every(img => img !== null) ? (
-              <button 
-                type="button" 
-                className="btn-start-speaking active-success"
-                onClick={() => setIsChallengeSolved(true)}
-              >
-                Begin Speaking Practice 🎉
+
+            {validationStates.some((s) => s === "correct") && !validationStates.includes("incorrect") && placedImages.every(Boolean) ? (
+              <button type="button" className="btn-start-speaking" onClick={() => setPhase("conceptmap")}>
+                Continue to Vocabulary Map →
               </button>
             ) : (
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn-verify-sorting"
                 onClick={checkSequence}
-                disabled={placedImages.some(img => img === null)}
+                disabled={placedImages.some((img) => img === null)}
               >
                 Verify Sequence
               </button>
             )}
-            
-            <button 
-              type="button" 
-              className="btn-skip-sorting"
-              onClick={() => setIsChallengeSolved(true)}
-            >
-              Skip Challenge
+
+            <button type="button" className="btn-skip-sorting" onClick={() => setPhase("conceptmap")}>
+              Skip
             </button>
           </div>
         </section>
-      ) : (
+      )}
+
+      {phase === "conceptmap" && (
+        <section className="conceptmap-phase">
+          <div className="conceptmap-phase-header">
+            <p className="eyebrow">Step 2 · Vocabulary Map</p>
+            <h1>Match Words to Scenes</h1>
+            <p className="conceptmap-phase-sub">Drag each word from the bank into the correct scene box</p>
+          </div>
+          <StoryConceptMap topic={topic} defaultOpen />
+          <div className="conceptmap-phase-actions">
+            <button className="btn-back-phase" onClick={() => setPhase("sorting")}>
+              ← Back to Scenes
+            </button>
+            <button className="btn-next-phase" onClick={() => setPhase("practice")}>
+              Continue to Speaking →
+            </button>
+          </div>
+        </section>
+      )}
+
+      {phase === "practice" && (
         <>
           <section className="student-flow-board" aria-label="Student practice flow">
         <div className="flow-step completed">
