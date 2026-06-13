@@ -142,40 +142,39 @@ export default function App() {
   }, []);
 
   const addAudioRecord = (record: AudioRecord) => {
+    // Optimistic UI update so the student sees their recording immediately.
     setAudioRecords((prev) => [record, ...prev]);
     const audioData = serializeAudioRecord(record);
-    const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
-    localStorage.setItem(
-      "audioRecords",
-      JSON.stringify([audioData, ...stored]),
-    );
 
     if (canUseDatabase()) {
+      // Backend is authoritative: persist there first, then cache to localStorage.
       createAudioRecord(audioData, record.audioBlob)
         .then((savedRecord) => {
-          if (!savedRecord?.audioUrl) {
-            return;
-          }
-          updateStoredAudioRecord(record.id, savedRecord.audioUrl);
+          const merged = { ...audioData, ...savedRecord };
+          // Update state with the server-confirmed record (includes audioUrl).
           setAudioRecords((currentRecords) =>
-            currentRecords.map((currentRecord) =>
-              currentRecord.id === record.id
-                ? { ...currentRecord, audioUrl: savedRecord.audioUrl }
-                : currentRecord,
-            ),
+            currentRecords.map((r) => (r.id === record.id ? { ...r, audioUrl: merged.audioUrl } : r)),
           );
+          // Cache the confirmed record so offline fallback reflects it.
+          const cached = JSON.parse(localStorage.getItem("audioRecords") || "[]");
+          localStorage.setItem("audioRecords", JSON.stringify([merged, ...cached]));
         })
         .catch((error) => {
           console.error("Failed to save audio record to database:", error);
+          // Backend unavailable — keep in state only; don't write stale data to LS.
         });
+    } else {
+      // Offline mode: localStorage is the only store.
+      const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
+      localStorage.setItem("audioRecords", JSON.stringify([audioData, ...stored]));
     }
   };
 
   const deleteAudioRecord = (id: string) => {
-    setAudioRecords((prev) => prev.filter((record) => record.id !== id));
+    // Optimistic: remove from state and localStorage cache immediately.
+    setAudioRecords((prev) => prev.filter((r) => r.id !== id));
     const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
-    const updated = stored.filter((record: any) => record.id !== id);
-    localStorage.setItem("audioRecords", JSON.stringify(updated));
+    localStorage.setItem("audioRecords", JSON.stringify(stored.filter((r: any) => r.id !== id)));
 
     if (canUseDatabase()) {
       deleteAudioRecordFromDatabase(id).catch((error) => {
@@ -379,10 +378,3 @@ function recordsFromStored(recordsData: StoredAudioRecord[]): AudioRecord[] {
   }));
 }
 
-function updateStoredAudioRecord(id: string, audioUrl: string) {
-  const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
-  const updated = stored.map((record: StoredAudioRecord) =>
-    record.id === id ? { ...record, audioUrl } : record,
-  );
-  localStorage.setItem("audioRecords", JSON.stringify(updated));
-}

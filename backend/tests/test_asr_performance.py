@@ -76,10 +76,10 @@ class TestRoutingPerformance:
 
     @pytest.mark.asyncio
     async def test_routing_latency_under_1ms(self):
-        from main import transcribe_audio_content
+        from services.asr import transcribe_audio_content
 
         async def route():
-            with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as m:
+            with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as m:
                 m.return_value = MagicMock(text="你好", model="ctwhisper")
                 await transcribe_audio_content(SHORT_WAV, "ctwhisper")
 
@@ -89,13 +89,13 @@ class TestRoutingPerformance:
 
     @pytest.mark.asyncio
     async def test_auto_fallback_routing_latency(self, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper"])
+        import services.asr as asr
+        monkeypatch.setattr(asr, "ASR_FALLBACK_ORDER", ["ctwhisper"])
 
         async def route():
-            with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as m:
+            with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as m:
                 m.return_value = MagicMock(text="你好", model="ctwhisper")
-                await main.transcribe_with_auto_fallback(SHORT_WAV)
+                await asr.transcribe_with_auto_fallback(SHORT_WAV)
 
         mean, p95, p99 = await ameasure(route, iterations=30)
         print_result("auto-fallback (1 provider)", mean, p95, p99, budget_ms=5)
@@ -112,8 +112,8 @@ class TestMockedProviderLatency:
 
     @pytest.mark.asyncio
     async def test_openai_provider_overhead(self, monkeypatch):
-        monkeypatch.setattr("main.OPENAI_API_KEY", "sk-test")
-        from main import transcribe_with_openai
+        monkeypatch.setattr("services.asr.OPENAI_API_KEY", "sk-test")
+        from services.asr import transcribe_with_openai
 
         mock_resp = MagicMock(status_code=200)
         mock_resp.json.return_value = {"text": "你好"}
@@ -133,8 +133,8 @@ class TestMockedProviderLatency:
 
     @pytest.mark.asyncio
     async def test_gemini_provider_overhead(self, monkeypatch):
-        monkeypatch.setattr("main.GEMINI_API_KEY", "test-key")
-        from main import transcribe_with_gemini
+        monkeypatch.setattr("services.asr.GEMINI_API_KEY", "test-key")
+        from services.asr import transcribe_with_gemini
 
         mock_resp = MagicMock(status_code=200)
         mock_resp.json.return_value = {
@@ -218,15 +218,15 @@ class TestFallbackChainPerformance:
 
     @pytest.mark.asyncio
     async def test_single_failure_fast(self, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "funasr"])
+        import services.asr as asr
+        monkeypatch.setattr(asr, "ASR_FALLBACK_ORDER", ["ctwhisper", "funasr"])
 
         async def run():
-            with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
-                 patch("main.transcribe_with_funasr", new_callable=AsyncMock) as funasr:
+            with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
+                 patch("services.asr.transcribe_with_funasr", new_callable=AsyncMock) as funasr:
                 ctw.side_effect = RuntimeError("not loaded")
                 funasr.return_value = MagicMock(text="你好", model="funasr")
-                await main.transcribe_with_auto_fallback(SHORT_WAV)
+                await asr.transcribe_with_auto_fallback(SHORT_WAV)
 
         mean, p95, p99 = await ameasure(run, iterations=20)
         print_result("fallback: 1 fail + 1 success", mean, p95, p99, budget_ms=10)
@@ -234,9 +234,9 @@ class TestFallbackChainPerformance:
 
     @pytest.mark.asyncio
     async def test_two_failures_still_fast(self, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "funasr", "gemini"])
-        monkeypatch.setattr(main, "GEMINI_API_KEY", "test-key")
+        import services.asr as asr
+        monkeypatch.setattr(asr, "ASR_FALLBACK_ORDER", ["ctwhisper", "funasr", "gemini"])
+        monkeypatch.setattr(asr, "GEMINI_API_KEY", "test-key")
 
         mock_gemini_resp = MagicMock(status_code=200)
         mock_gemini_resp.json.return_value = {
@@ -244,8 +244,8 @@ class TestFallbackChainPerformance:
         }
 
         async def run():
-            with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
-                 patch("main.transcribe_with_funasr", new_callable=AsyncMock) as funasr, \
+            with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
+                 patch("services.asr.transcribe_with_funasr", new_callable=AsyncMock) as funasr, \
                  patch("httpx.AsyncClient") as cls:
                 ctw.side_effect = RuntimeError("not loaded")
                 funasr.side_effect = RuntimeError("not loaded")
@@ -254,7 +254,7 @@ class TestFallbackChainPerformance:
                 cli.__aexit__ = AsyncMock(return_value=False)
                 cli.post = AsyncMock(return_value=mock_gemini_resp)
                 cls.return_value = cli
-                await main.transcribe_with_auto_fallback(SHORT_WAV)
+                await asr.transcribe_with_auto_fallback(SHORT_WAV)
 
         mean, p95, p99 = await ameasure(run, iterations=20)
         print_result("fallback: 2 fails + 1 success (gemini)", mean, p95, p99, budget_ms=20)
@@ -276,7 +276,7 @@ class TestEndpointConcurrency:
 
         N = 10
 
-        with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as mock:
+        with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="你好", model="ctwhisper")
 
             with TestClient(main.app) as client:
@@ -324,13 +324,13 @@ class TestPayloadSizeImpact:
 
     @pytest.mark.asyncio
     async def test_short_vs_long_wav_routing_similar(self, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper"])
+        import services.asr as asr
+        monkeypatch.setattr(asr, "ASR_FALLBACK_ORDER", ["ctwhisper"])
 
         async def route(wav):
-            with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as m:
+            with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as m:
                 m.return_value = MagicMock(text="你好", model="ctwhisper")
-                await main.transcribe_with_auto_fallback(wav)
+                await asr.transcribe_with_auto_fallback(wav)
 
         mean_short, _, _ = await ameasure(lambda: route(SHORT_WAV), iterations=20)
         mean_long,  _, _ = await ameasure(lambda: route(LONG_WAV),  iterations=20)
@@ -354,7 +354,6 @@ class TestSummaryReport:
 
     def test_print_summary(self):
         from ai_feedback import fallback_language_feedback
-        import main
 
         scenarios = [
             ("empty feedback",
