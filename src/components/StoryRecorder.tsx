@@ -1740,8 +1740,7 @@ function FeedbackSummary({
   const overallLabel =
     overallScore >= 85 ? "Excellent!" :
     overallScore >= 70 ? "Good progress" :
-    overallScore >= 50 ? "Keep going" :
-    "Just starting";
+    "Keep going";
 
   const prev = attemptHistory.length > 1 ? attemptHistory[attemptHistory.length - 2] : null;
   const curr = attemptHistory.length > 0  ? attemptHistory[attemptHistory.length - 1]  : null;
