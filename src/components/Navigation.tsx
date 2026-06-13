@@ -83,15 +83,6 @@ export default function Navigation({
                   My Stories
                 </button>
               </li>
-              <li>
-                <button
-                  type="button"
-                  className={`nav-link ${currentPage === "voice-test" ? "active" : ""}`}
-                  onClick={() => onNavigate("voice-test")}
-                >
-                  Voice Test
-                </button>
-              </li>
             </>
           )}
 
