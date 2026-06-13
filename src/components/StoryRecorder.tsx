@@ -1252,7 +1252,6 @@ export default function StoryRecorder({
             <LearningScaffold
               ai={praatMetrics.ai_feedback}
               wordProsody={praatMetrics.word_prosody || []}
-              improvedVersion={praatMetrics.ai_feedback.improved_version}
             />
           )}
 
@@ -1794,11 +1793,9 @@ function FeedbackSummary({
 function LearningScaffold({
   ai,
   wordProsody,
-  improvedVersion,
 }: {
   ai: LanguageFeedback;
   wordProsody: WordProsody[];
-  improvedVersion?: string;
 }) {
   if (!ai.vocabulary_coverage) return null;
   const steps = buildScaffoldSteps(ai, wordProsody);
@@ -1847,12 +1844,6 @@ function LearningScaffold({
         ))}
       </div>
 
-      {improvedVersion && (
-        <div className="scaffold-improved">
-          <p className="scaffold-improved-label">Target sentence</p>
-          <p className="scaffold-improved-text" lang="zh-TW">{improvedVersion}</p>
-        </div>
-      )}
     </div>
   );
 }
