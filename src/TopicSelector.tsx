@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { loadPublishedTeacherTopics } from "./utils/teacherStories";
+import { useEffect, useState } from "react";
+import { canUseDatabase, listCustomStories } from "./database";
+import { loadPublishedTeacherTopics, saveCustomStories, storyToTopic } from "./utils/teacherStories";
 import "./TopicSelector.css";
 
 export interface Topic {
@@ -24,7 +25,50 @@ export function getTopicVocabulary(topic: Topic, imageIndex: number): string[] {
 }
 
 export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
-  const topics = loadPublishedTeacherTopics();
+  const [topics, setTopics] = useState<Topic[]>(() => loadPublishedTeacherTopics());
+  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(() => {
+    const initial = loadPublishedTeacherTopics();
+    return initial[0] ?? null;
+  });
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [loading, setLoading] = useState(canUseDatabase());
+
+  useEffect(() => {
+    if (!canUseDatabase()) return;
+    listCustomStories()
+      .then((stories) => {
+        saveCustomStories(stories);
+        const published = stories
+          .filter((s) => s.published)
+          .map((s) => storyToTopic(s as any));
+        setTopics(published);
+        setSelectedTopic((prev) => {
+          if (prev) {
+            const updated = published.find((t) => t.id === prev.id);
+            return updated ?? published[0] ?? null;
+          }
+          return published[0] ?? null;
+        });
+      })
+      .catch((err) => console.error("Failed to load topics from backend:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const chooseTopic = (topic: Topic) => {
+    setSelectedTopic(topic);
+    setSelectedImageIndex(0);
+  };
+
+  if (loading) {
+    return (
+      <div className="topic-selector">
+        <div className="empty-state">
+          <div className="empty-icon">⏳</div>
+          <h2>Loading activities…</h2>
+        </div>
+      </div>
+    );
+  }
 
   if (topics.length === 0) {
     return (
@@ -52,16 +96,9 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
     );
   }
 
-  const [selectedTopic, setSelectedTopic] = useState<Topic>(topics[0]);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-
-  const selectedImage = selectedTopic.images[selectedImageIndex];
-  const selectedWords = getTopicVocabulary(selectedTopic, selectedImageIndex);
-
-  const chooseTopic = (topic: Topic) => {
-    setSelectedTopic(topic);
-    setSelectedImageIndex(0);
-  };
+  const topic = selectedTopic ?? topics[0];
+  const selectedImage = topic.images[selectedImageIndex];
+  const selectedWords = getTopicVocabulary(topic, selectedImageIndex);
 
   return (
     <div className="topic-selector">
@@ -100,20 +137,18 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
           </div>
 
           <div className="topic-list">
-            {topics.map((topic) => (
+            {topics.map((t) => (
               <button
                 type="button"
-                key={topic.id}
-                className={`topic-row ${
-                  selectedTopic.id === topic.id ? "selected" : ""
-                }`}
-                onClick={() => chooseTopic(topic)}
+                key={t.id}
+                className={`topic-row ${topic.id === t.id ? "selected" : ""}`}
+                onClick={() => chooseTopic(t)}
               >
                 <span>
-                  <strong>{topic.name}</strong>
-                  <small>{topic.skillFocus}</small>
+                  <strong>{t.name}</strong>
+                  <small>{t.skillFocus}</small>
                 </span>
-                <em>{topic.level}</em>
+                <em>{t.level}</em>
               </button>
             ))}
           </div>
@@ -123,23 +158,20 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
           <div className="preview-header">
             <div>
               <p className="platform-kicker">Selected module</p>
-              <h2>{selectedTopic.name}</h2>
-              <p>{selectedTopic.description}</p>
+              <h2>{topic.name}</h2>
+              <p>{topic.description}</p>
             </div>
-            <div className="module-badge">{selectedTopic.level}</div>
+            <div className="module-badge">{topic.level}</div>
           </div>
 
           <div className="preview-grid">
             <div className="main-prompt-card">
               <img
                 src={selectedImage}
-                alt={`${selectedTopic.name} story part ${
-                  selectedImageIndex + 1
-                }`}
+                alt={`${topic.name} story part ${selectedImageIndex + 1}`}
               />
               <div className="prompt-number">
-                Story part {selectedImageIndex + 1} of{" "}
-                {selectedTopic.images.length}
+                Story part {selectedImageIndex + 1} of {topic.images.length}
               </div>
             </div>
 
@@ -165,7 +197,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
               <button
                 type="button"
                 className="start-activity-btn"
-                onClick={() => onTopicSelect?.(selectedTopic)}
+                onClick={() => onTopicSelect?.(topic)}
               >
                 Start recording this activity
               </button>
@@ -173,13 +205,11 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
           </div>
 
           <div className="prompt-strip" aria-label="Story sequence prompts">
-            {selectedTopic.images.map((image, index) => (
+            {topic.images.map((image, index) => (
               <button
                 type="button"
                 key={image}
-                className={`prompt-thumb ${
-                  selectedImageIndex === index ? "active" : ""
-                }`}
+                className={`prompt-thumb ${selectedImageIndex === index ? "active" : ""}`}
                 onClick={() => setSelectedImageIndex(index)}
               >
                 <img src={image} alt={`Story part ${index + 1}`} />
