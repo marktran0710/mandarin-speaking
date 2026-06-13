@@ -3,6 +3,11 @@ import { canUseDatabase, createCustomStory, listCustomStories } from "./database
 import { loadCustomStories, loadPublishedTeacherTopics, saveCustomStories, storyToTopic } from "./utils/teacherStories";
 import "./TopicSelector.css";
 
+export interface VocabGroup {
+  name: string;
+  words: string[];
+}
+
 export interface Topic {
   id: string;
   name: string;
@@ -12,6 +17,7 @@ export interface Topic {
   images: string[];
   prompts?: string[];
   vocabulary: Record<number, string[]>;
+  vocabularyGroups?: Record<number, VocabGroup[]>;
 }
 
 interface TopicSelectorProps {

@@ -19,6 +19,7 @@ export interface CustomStoryFrame {
   imageUrl: string;
   prompt: string;
   vocabulary: string;
+  vocabularyGroups?: Array<{ name: string; words: string[] }>;
 }
 
 export interface StoredCustomStory {

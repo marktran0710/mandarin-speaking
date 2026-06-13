@@ -10,6 +10,7 @@ import {
 } from "../database";
 import {
   CustomTeacherStory,
+  VocabGroup,
   loadCustomStories,
   loadPublishedTeacherTopics,
   resolveImageUrl,
@@ -99,6 +100,7 @@ const emptyCustomStoryDraft = {
     "Finish with a lesson or next step.",
   ],
   vocabulary: ["", "", "", "", "", ""],
+  vocabularyGroups: [null, null, null, null, null, null] as (VocabGroup[] | null)[],
 };
 
 function validateCustomStoryDraft(
@@ -459,6 +461,13 @@ function TeacherDashboard({
     clearNotice();
   };
 
+  const updateDraftGroups = (index: number, groups: VocabGroup[] | null) => {
+    setCustomDraft((draft) => ({
+      ...draft,
+      vocabularyGroups: draft.vocabularyGroups.map((g, i) => i === index ? groups : g),
+    }));
+  };
+
   const updateDraftFrame = (
     field: "imageUrls" | "prompts" | "vocabulary",
     index: number,
@@ -813,6 +822,11 @@ function TeacherDashboard({
                         placeholder="台北, 下雨, 幫忙"
                       />
                     </label>
+                    <VocabGroupEditor
+                      vocabulary={customDraft.vocabulary[index]}
+                      groups={customDraft.vocabularyGroups[index]}
+                      onChange={(groups) => updateDraftGroups(index, groups)}
+                    />
                   </div>
                 </div>
                 );
@@ -1010,7 +1024,7 @@ function RecentSubmissionsPanel({ records }: { records: AudioRecord[] }) {
         </div>
       ) : (
         <div className="teacher-submission-list">
-          {records.slice(0, 5).map((record) => (
+          {records.map((record) => (
             <div className="teacher-submission-row" key={record.id}>
               <div>
                 <strong>{getTopicLabel(record.topicId)}</strong>
@@ -1132,6 +1146,7 @@ function createCustomStory(
       imageUrl: imageUrl.trim(),
       prompt: draft.prompts[index].trim(),
       vocabulary: draft.vocabulary[index].trim(),
+      ...(draft.vocabularyGroups[index] ? { vocabularyGroups: draft.vocabularyGroups[index]! } : {}),
     })),
   };
 }
@@ -1148,6 +1163,7 @@ function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
       frame?.prompt || emptyCustomStoryDraft.prompts[index],
     ),
     vocabulary: frames.map((frame) => frame?.vocabulary || ""),
+    vocabularyGroups: frames.map((frame) => frame?.vocabularyGroups || null),
   };
 }
 
@@ -1178,6 +1194,119 @@ function clearFrameError(
     form: undefined,
     frames: Object.keys(nextFrames).length > 0 ? nextFrames : undefined,
   };
+}
+
+const DEFAULT_GROUP_NAMES = ["Characters", "Setting", "Actions", "Outcome"];
+
+function VocabGroupEditor({
+  vocabulary,
+  groups,
+  onChange,
+}: {
+  vocabulary: string;
+  groups: VocabGroup[] | null;
+  onChange: (groups: VocabGroup[] | null) => void;
+}) {
+  const words = vocabulary.split(",").map((w) => w.trim()).filter(Boolean);
+
+  if (words.length === 0) return null;
+
+  const active = groups !== null;
+
+  const initGroups = (): VocabGroup[] =>
+    DEFAULT_GROUP_NAMES.map((name) => ({ name, words: [] }));
+
+  const handleToggle = () => {
+    onChange(active ? null : initGroups());
+  };
+
+  if (!active) {
+    return (
+      <button type="button" className="vocab-group-toggle-btn" onClick={handleToggle}>
+        + Add word categories (drag-and-drop activity)
+      </button>
+    );
+  }
+
+  const currentGroups = groups!;
+  const assignedWords = currentGroups.flatMap((g) => g.words);
+  const unassigned = words.filter((w) => !assignedWords.includes(w));
+
+  const assignWord = (word: string, groupIndex: number) => {
+    const next = currentGroups.map((g, i) => ({
+      ...g,
+      words: i === groupIndex ? [...g.words, word] : g.words.filter((w) => w !== word),
+    }));
+    onChange(next);
+  };
+
+  const removeWord = (word: string, groupIndex: number) => {
+    const next = currentGroups.map((g, i) => ({
+      ...g,
+      words: i === groupIndex ? g.words.filter((w) => w !== word) : g.words,
+    }));
+    onChange(next);
+  };
+
+  const updateGroupName = (groupIndex: number, name: string) => {
+    const next = currentGroups.map((g, i) => (i === groupIndex ? { ...g, name } : g));
+    onChange(next);
+  };
+
+  return (
+    <div className="vocab-group-editor">
+      <div className="vocab-group-editor-header">
+        <span>Word categories</span>
+        <button type="button" className="vocab-group-remove-btn" onClick={handleToggle}>Remove categories</button>
+      </div>
+
+      {unassigned.length > 0 && (
+        <div className="vocab-group-unassigned">
+          <span className="vocab-group-label">Unassigned words — click a word then pick a group:</span>
+          <div className="vocab-group-chips">
+            {unassigned.map((word) => (
+              <span key={word} className="vocab-group-chip unassigned">{word}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="vocab-group-grid">
+        {currentGroups.map((group, gi) => (
+          <div key={gi} className="vocab-group-slot">
+            <input
+              className="vocab-group-name-input"
+              value={group.name}
+              onChange={(e) => updateGroupName(gi, e.target.value)}
+              placeholder={`Group ${gi + 1} name`}
+            />
+            <div className="vocab-group-slot-words">
+              {group.words.map((word) => (
+                <span
+                  key={word}
+                  className="vocab-group-chip assigned"
+                  onClick={() => removeWord(word, gi)}
+                  title="Click to remove"
+                >
+                  {word} ×
+                </span>
+              ))}
+              {unassigned.map((word) => (
+                <button
+                  key={word}
+                  type="button"
+                  className="vocab-group-add-word-btn"
+                  onClick={() => assignWord(word, gi)}
+                >
+                  + {word}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function getSessionName(storageKey: string, fallback: string) {

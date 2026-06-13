@@ -11,10 +11,16 @@ export function resolveImageUrl(url: string): string {
   return url;
 }
 
+export interface VocabGroup {
+  name: string;
+  words: string[];
+}
+
 export interface CustomStoryFrame {
   imageUrl: string;
   prompt: string;
   vocabulary: string;
+  vocabularyGroups?: VocabGroup[];
 }
 
 export interface CustomTeacherStory {
@@ -65,6 +71,13 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
     {},
   );
 
+  const vocabularyGroups: Record<number, import("../TopicSelector").VocabGroup[]> = {};
+  story.frames.forEach((frame, index) => {
+    if (frame.vocabularyGroups && frame.vocabularyGroups.length > 0) {
+      vocabularyGroups[index] = frame.vocabularyGroups;
+    }
+  });
+
   return {
     id: `teacher-${story.id}`,
     name: story.title,
@@ -74,5 +87,6 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
     images: story.frames.map((frame) => resolveImageUrl(frame.imageUrl)),
     prompts: story.frames.map((frame) => frame.prompt),
     vocabulary,
+    ...(Object.keys(vocabularyGroups).length > 0 ? { vocabularyGroups } : {}),
   };
 }

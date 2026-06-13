@@ -224,6 +224,7 @@ class CustomStoryFrameRequest(BaseModel):
     imageUrl: str
     prompt: str
     vocabulary: str = ""
+    vocabularyGroups: Optional[List[dict]] = None
 
 
 class CustomStoryRequest(BaseModel):

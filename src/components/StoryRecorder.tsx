@@ -10,6 +10,11 @@ const BACKEND_URL =
 
 type SpeechModel = "webspeech" | "ctwhisper" | "vibevoice";
 
+interface VocabGroup {
+  name: string;
+  words: string[];
+}
+
 interface Topic {
   id: string;
   name: string;
@@ -19,6 +24,7 @@ interface Topic {
   images: string[];
   prompts?: string[];
   vocabulary: Record<number, string[]>;
+  vocabularyGroups?: Record<number, VocabGroup[]>;
 }
 
 interface PauseAnalysis {
@@ -1096,6 +1102,14 @@ export default function StoryRecorder({
                 </div>
               </div>
 
+              {(() => {
+                const groups = topic.vocabularyGroups?.[selectedImageIndex];
+                if (groups && groups.length > 0 && selectedVocabulary.length > 0) {
+                  return <VocabCategorizer key={selectedImageIndex} words={selectedVocabulary} groups={groups} />;
+                }
+                return null;
+              })()}
+
               {selectedVocabulary.length > 0 && (
                 <div className="practice-vocab-ref">
                   <p className="practice-vocab-heading">
@@ -2077,4 +2091,153 @@ function writeString(view: DataView, offset: number, value: string) {
   for (let index = 0; index < value.length; index += 1) {
     view.setUint8(offset + index, value.charCodeAt(index));
   }
+}
+
+function VocabCategorizer({
+  words,
+  groups,
+}: {
+  words: string[];
+  groups: VocabGroup[];
+}) {
+  const [placement, setPlacement] = useState<Record<string, number | null>>(
+    () => Object.fromEntries(words.map((w) => [w, null]))
+  );
+  const [checked, setChecked] = useState(false);
+  const [dragWord, setDragWord] = useState<string | null>(null);
+
+  const unplaced = words.filter((w) => placement[w] === null);
+  const allPlaced = unplaced.length === 0;
+
+  const correctGroupIndex = (word: string): number =>
+    groups.findIndex((g) => g.words.includes(word));
+
+  const isCorrect = (word: string, groupIndex: number): boolean =>
+    correctGroupIndex(word) === groupIndex;
+
+  const placeWord = (word: string, groupIndex: number) => {
+    setPlacement((p) => ({ ...p, [word]: groupIndex }));
+    setChecked(false);
+  };
+
+  const unplaceWord = (word: string) => {
+    setPlacement((p) => ({ ...p, [word]: null }));
+    setChecked(false);
+  };
+
+  const handleCheck = () => setChecked(true);
+  const handleReset = () => {
+    setPlacement(Object.fromEntries(words.map((w) => [w, null])));
+    setChecked(false);
+  };
+
+  const correctCount = checked
+    ? words.filter((w) => {
+        const gi = placement[w];
+        return gi !== null && isCorrect(w, gi);
+      }).length
+    : 0;
+
+  return (
+    <div className="vocab-categorizer">
+      <div className="vocab-categorizer-header">
+        <span className="vocab-categorizer-title">Sort words into groups</span>
+        {checked && (
+          <span className={`vocab-categorizer-score ${correctCount === words.length ? "vc-score-perfect" : ""}`}>
+            {correctCount}/{words.length} correct
+          </span>
+        )}
+      </div>
+
+      {unplaced.length > 0 && (
+        <div className="vocab-categorizer-bank">
+          <span className="vc-bank-label">Drag or click a word, then drop it into a group below</span>
+          <div className="vc-bank-chips">
+            {unplaced.map((word) => (
+              <span
+                key={word}
+                className="vc-chip vc-chip-bank"
+                draggable
+                onDragStart={() => setDragWord(word)}
+                onDragEnd={() => setDragWord(null)}
+              >
+                {word}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="vocab-categorizer-groups">
+        {groups.map((group, gi) => {
+          const wordsHere = words.filter((w) => placement[w] === gi);
+          const isDragTarget = dragWord !== null;
+          return (
+            <div
+              key={gi}
+              className={`vc-group ${isDragTarget ? "vc-group-droppable" : ""}`}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (dragWord) { placeWord(dragWord, gi); setDragWord(null); }
+              }}
+            >
+              <div className="vc-group-name">{group.name}</div>
+              <div className="vc-group-words">
+                {wordsHere.map((word) => {
+                  const correct = isCorrect(word, gi);
+                  const status = checked ? (correct ? "correct" : "wrong") : "placed";
+                  const hintGroup = (!correct && checked) ? groups[correctGroupIndex(word)]?.name : null;
+                  return (
+                    <span key={word} className="vc-word-wrap">
+                      <span
+                        className={`vc-chip vc-chip-${status}`}
+                        onClick={() => !checked && unplaceWord(word)}
+                        title={!checked ? "Click to move back" : undefined}
+                      >
+                        {word}
+                        {checked && correct && <span className="vc-icon">✓</span>}
+                        {checked && !correct && <span className="vc-icon">✗</span>}
+                      </span>
+                      {hintGroup && (
+                        <span className="vc-hint">→ {hintGroup}</span>
+                      )}
+                    </span>
+                  );
+                })}
+                {wordsHere.length === 0 && (
+                  <span className="vc-group-empty">Drop here</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="vocab-categorizer-actions">
+        {!checked ? (
+          <button
+            type="button"
+            className="vc-btn-check"
+            disabled={!allPlaced}
+            onClick={handleCheck}
+          >
+            {allPlaced ? "Check answers" : `${unplaced.length} word${unplaced.length > 1 ? "s" : ""} left to place`}
+          </button>
+        ) : (
+          <div className="vc-result-row">
+            {correctCount === words.length ? (
+              <span className="vc-all-correct">All correct! Now record your sentence using these words.</span>
+            ) : (
+              <>
+                <span className="vc-wrong-hint">Words marked ✗ show the correct group — fix them and try again.</span>
+                <button type="button" className="vc-btn-retry" onClick={handleReset}>
+                  Try again
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }

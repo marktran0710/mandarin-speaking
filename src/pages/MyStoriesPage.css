@@ -1551,3 +1551,112 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── VocabGroupEditor (teacher form) ── */
+.vocab-group-toggle-btn {
+  background: none;
+  border: 1.5px dashed #a5b4fc;
+  color: #4f46e5;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+.vocab-group-toggle-btn:hover { background: #eef2ff; }
+.vocab-group-editor {
+  background: #f8f9ff;
+  border: 1.5px solid #c7d2fe;
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 8px;
+}
+.vocab-group-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3730a3;
+}
+.vocab-group-remove-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.vocab-group-remove-btn:hover { color: #dc2626; }
+.vocab-group-unassigned {
+  margin-bottom: 10px;
+}
+.vocab-group-label {
+  font-size: 11px;
+  color: #6366f1;
+  display: block;
+  margin-bottom: 5px;
+}
+.vocab-group-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.vocab-group-chip {
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.vocab-group-chip.unassigned {
+  background: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #a5b4fc;
+}
+.vocab-group-chip.assigned {
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1px solid #c4b5fd;
+  cursor: pointer;
+}
+.vocab-group-chip.assigned:hover { background: #fee2e2; color: #991b1b; }
+.vocab-group-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.vocab-group-slot {
+  background: #fff;
+  border: 1px solid #e0e7ff;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.vocab-group-name-input {
+  width: 100%;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4f46e5;
+  border: none;
+  border-bottom: 1px solid #e0e7ff;
+  background: transparent;
+  padding: 0 0 4px 0;
+  margin-bottom: 6px;
+  outline: none;
+}
+.vocab-group-slot-words {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 24px;
+}
+.vocab-group-add-word-btn {
+  background: #f0fdf4;
+  border: 1px dashed #86efac;
+  color: #166534;
+  border-radius: 99px;
+  padding: 2px 9px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.vocab-group-add-word-btn:hover { background: #dcfce7; }
