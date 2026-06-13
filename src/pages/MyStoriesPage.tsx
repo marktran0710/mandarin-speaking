@@ -12,6 +12,7 @@ import {
   CustomTeacherStory,
   loadCustomStories,
   loadPublishedTeacherTopics,
+  resolveImageUrl,
   saveCustomStories,
 } from "../utils/teacherStories";
 import "./MyStoriesPage.css";
@@ -753,7 +754,7 @@ function TeacherDashboard({
                 >
                   <div className="teacher-frame-image-preview">
                     {imageUrl ? (
-                      <img src={imageUrl} alt={`Custom story frame ${index + 1}`} />
+                      <img src={resolveImageUrl(imageUrl)} alt={`Custom story frame ${index + 1}`} />
                     ) : (
                       <span>Frame {index + 1}</span>
                     )}
@@ -887,7 +888,7 @@ function TeacherDashboard({
                       {story.frames.map((frame, index) => (
                         <div className="custom-story-mini-frame" key={index}>
                           {frame.imageUrl ? (
-                            <img src={frame.imageUrl} alt={`${story.title} frame ${index + 1}`} />
+                            <img src={resolveImageUrl(frame.imageUrl)} alt={`${story.title} frame ${index + 1}`} />
                           ) : (
                             <span>{index + 1}</span>
                           )}

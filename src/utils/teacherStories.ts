@@ -5,7 +5,7 @@ const BACKEND_URL =
   "http://127.0.0.1:8001";
 
 /** Resolve a relative /uploads/... URL to an absolute backend URL. */
-function resolveImageUrl(url: string): string {
+export function resolveImageUrl(url: string): string {
   if (!url) return url;
   if (url.startsWith("/uploads/")) return `${BACKEND_URL}${url}`;
   return url;
