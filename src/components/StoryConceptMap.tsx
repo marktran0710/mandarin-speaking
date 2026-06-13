@@ -58,6 +58,17 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
   const [submitted, setSubmitted] = useState(false);
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
+  // word → scene index (0-based); first scene wins if a word appears in multiple
+  const wordScene = useMemo<Record<string, number>>(() => {
+    const map: Record<string, number> = {};
+    for (const [sceneIdx, vocab] of Object.entries(topic.vocabulary)) {
+      for (const w of vocab as string[]) {
+        if (!(w in map)) map[w] = Number(sceneIdx);
+      }
+    }
+    return map;
+  }, [topic.id]);
+
   // All words from this story's vocabulary only (no generic extras)
   const allWords = useMemo<string[]>(() => {
     const seen = new Set<string>();
@@ -172,6 +183,14 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
         {/* Word Bank */}
         <div className="scmap-word-bank">
           <h3>📚 Word Bank</h3>
+          {allWords.length > 0 && (
+            <div className="scmap-scene-legend">
+              {Array.from(new Set(Object.keys(topic.vocabulary).map(Number))).sort((a,b)=>a-b).map(si => (
+                <span key={si} className={`chip-scene chip-scene-${si % 6}`}>S{si + 1}</span>
+              ))}
+              <span className="scmap-legend-hint">= scene</span>
+            </div>
+          )}
           {allWords.length === 0 ? (
             <div className="scmap-bank-empty">
               <span className="scmap-bank-empty-icon">📝</span>
@@ -193,6 +212,9 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                 }}
               >
                 <span className="chip-hanzi">{w}</span>
+                <span className={`chip-scene chip-scene-${(wordScene[w] ?? 0) % 6}`}>
+                  S{(wordScene[w] ?? 0) + 1}
+                </span>
                 {used && <span className="chip-check">✓</span>}
               </div>
             );
