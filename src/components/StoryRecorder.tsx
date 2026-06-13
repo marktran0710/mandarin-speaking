@@ -1257,13 +1257,21 @@ export default function StoryRecorder({
           )}
 
           {/* ── Zone 3: Listen back & try again ─────────────────────── */}
+          {/* Tone drill — surfaces after analysis, outside Advanced */}
+          {(praatMetrics.word_prosody?.length ?? 0) > 0 && (
+            <ToneDrillPanel wordProsody={praatMetrics.word_prosody || []} />
+          )}
+
           <div className="listen-try-zone">
             {analysisAudioBlob && <RecordingPlayback blob={analysisAudioBlob} />}
-            <ModelExampleCard
-              text={modelExampleText}
-              isScenePrompt={Boolean(scenePromptText)}
-              focusWord={getToneFocusItems(praatMetrics.word_prosody || [])[0]?.token}
-            />
+            <details className="scene-prompt-collapse">
+              <summary>Scene prompt — your target sentence</summary>
+              <ModelExampleCard
+                text={modelExampleText}
+                isScenePrompt={Boolean(scenePromptText)}
+                focusWord={getToneFocusItems(praatMetrics.word_prosody || [])[0]?.token}
+              />
+            </details>
             {(() => {
               const missing = praatMetrics.ai_feedback?.vocabulary_coverage?.missing ?? [];
               if (missing.length > 0) {
@@ -1367,8 +1375,6 @@ export default function StoryRecorder({
               wordProsody={praatMetrics.word_prosody || []}
               pauseAnalysis={praatMetrics.pause_analysis}
             />
-
-            <ToneDrillPanel wordProsody={praatMetrics.word_prosody || []} />
 
             <PraatTimeline
               audioBlob={analysisAudioBlob}

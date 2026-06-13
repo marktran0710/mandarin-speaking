@@ -1046,6 +1046,40 @@
   line-height: 1.45;
 }
 
+.scene-prompt-collapse {
+  margin: 10px 0 0;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+.scene-prompt-collapse > summary {
+  padding: 12px 16px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8fafc;
+  user-select: none;
+}
+.scene-prompt-collapse > summary::before {
+  content: "▶";
+  font-size: 0.65rem;
+  color: #94a3b8;
+  transition: transform 0.2s;
+}
+.scene-prompt-collapse[open] > summary::before {
+  transform: rotate(90deg);
+}
+.scene-prompt-collapse .model-example-card {
+  margin: 0;
+  border-radius: 0;
+  border-top: 1px solid #e2e8f0;
+}
+
 .model-example-card {
   margin: 0 0 24px;
   padding: 18px;
