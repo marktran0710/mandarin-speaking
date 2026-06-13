@@ -542,7 +542,15 @@ async def generate_story_images(request: StoryImageGenerationRequest):
         except Exception as exc:
             print(f"Gemini story image planning failed, using local fallback: {exc}")
 
-    return build_story_image_fallback(request, provider="local")
+    fallback = build_story_image_fallback(request, provider="local")
+    return await normalize_story_image_response(
+        {"title": fallback.title, "learning_goal": fallback.learning_goal,
+         "frames": [{"title": f.title, "student_prompt": f.student_prompt,
+                     "vocabulary": f.vocabulary, "image_prompt": f.image_prompt}
+                    for f in fallback.frames]},
+        request,
+        provider="local",
+    )
 
 
 @app.get("/api/asr-status", response_model=AsrStatusResponse)
@@ -897,9 +905,17 @@ Return only valid JSON shaped exactly like:
 
 Rules:
 - Return exactly 6 frames.
-- The 6 frames must tell one connected real-life story.
-- Each frame should show a visible event, not only a place.
-- Use safe classroom content.
+- The 6 frames must tell one connected real-life story with clear narrative progression.
+- Each frame shows ONE specific visible action — not just a place or object.
+- image_prompt must be highly specific: describe the exact people (age, clothing, expression),
+  their action (gesture, body language), the precise setting (specific location details,
+  background objects), and the mood/lighting. Write it as a detailed scene description
+  for a photorealistic image generator. Minimum 30 words per image_prompt.
+  Example: "Photorealistic photo of a teenage Taiwanese girl in school uniform looking
+  at her empty hands with a worried expression, standing on a Taipei MRT platform,
+  other commuters visible in background, bright fluorescent station lighting."
+- Do NOT use vague words like "scene", "illustration", "image of", "depicts".
+- Use safe, real-life content appropriate for middle school students.
 - Use Traditional Chinese vocabulary when useful, but keep JSON keys in English.
 """
 
@@ -916,7 +932,7 @@ Rules:
 
     content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
     data = json.loads(strip_json_fence(content))
-    return normalize_story_image_response(
+    return await normalize_story_image_response(
         data,
         request,
         provider="gemini-2.0-flash",
@@ -991,37 +1007,103 @@ def build_story_image_fallback(
     )
 
 
-def normalize_story_image_response(
+async def generate_real_image(image_prompt: str, seed: int) -> str:
+    """
+    Download a real generated image and save it to uploads.
+    Uses DALL-E 3 when OPENAI_API_KEY is set, otherwise Pollinations.ai (free).
+    Returns a /uploads/images/... path on success, or "" on failure.
+    """
+    try:
+        if OPENAI_API_KEY:
+            payload = {
+                "model": "dall-e-3",
+                "prompt": image_prompt,
+                "n": 1,
+                "size": "1024x1024",
+                "quality": "standard",
+                "response_format": "url",
+            }
+            async with httpx.AsyncClient(timeout=45) as client:
+                resp = await client.post(
+                    "https://api.openai.com/v1/images/generations",
+                    headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+                    json=payload,
+                )
+            if resp.status_code != 200:
+                raise RuntimeError(resp.text)
+            img_url = resp.json()["data"][0]["url"]
+        else:
+            # Pollinations.ai — free, no key needed
+            from urllib.parse import quote as url_quote
+            encoded = url_quote(image_prompt)
+            img_url = (
+                f"https://image.pollinations.ai/prompt/{encoded}"
+                f"?width=800&height=600&seed={seed}&model=flux&nologo=true"
+            )
+
+        # Download the image and save locally
+        async with httpx.AsyncClient(timeout=60) as client:
+            img_resp = await client.get(img_url, follow_redirects=True)
+        if img_resp.status_code != 200:
+            return ""
+
+        content_type = img_resp.headers.get("content-type", "image/jpeg")
+        ext = ".jpg" if "jpeg" in content_type else ".png"
+        filename = f"gen-{seed}{ext}"
+        path = os.path.join(IMAGE_UPLOAD_DIR, filename)
+        with open(path, "wb") as f:
+            f.write(img_resp.content)
+        return f"/uploads/images/{filename}"
+    except Exception as exc:
+        print(f"Image generation failed (seed={seed}): {exc}")
+        return ""
+
+
+async def normalize_story_image_response(
     data: dict,
     request: StoryImageGenerationRequest,
     provider: str,
 ) -> StoryImageGenerationResponse:
     fallback = build_story_image_fallback(request, provider=provider)
     raw_frames = data.get("frames", [])
-    frames = []
 
+    # Collect frame metadata first
+    frame_meta = []
     for index in range(6):
         fallback_frame = fallback.frames[index]
         raw_frame = raw_frames[index] if index < len(raw_frames) and isinstance(raw_frames[index], dict) else {}
         title = str(raw_frame.get("title") or fallback_frame.title).strip()
-        student_prompt = str(
-            raw_frame.get("student_prompt") or fallback_frame.student_prompt
-        ).strip()
+        student_prompt = str(raw_frame.get("student_prompt") or fallback_frame.student_prompt).strip()
         vocabulary = raw_frame.get("vocabulary") or fallback_frame.vocabulary
         if not isinstance(vocabulary, list):
             vocabulary = fallback_frame.vocabulary
-        image_prompt = str(raw_frame.get("image_prompt") or fallback_frame.image_prompt).strip()
-
-        frames.append(
-            StoryImageFrame(
-                index=index + 1,
-                title=title,
-                student_prompt=student_prompt,
-                vocabulary=[str(word) for word in vocabulary[:5]],
-                image_prompt=image_prompt,
-                image_url=build_scene_svg_data_url(index + 1, title, request.situation),
-            )
+        raw_image_prompt = str(raw_frame.get("image_prompt") or fallback_frame.image_prompt).strip()
+        # Enrich with realism instruction
+        image_prompt = (
+            f"Photorealistic scene, natural lighting, Taiwan setting. {raw_image_prompt} "
+            f"No text overlays. Real people, real environment. Frame {index + 1} of a connected story."
         )
+        frame_meta.append((index, title, student_prompt, vocabulary, image_prompt))
+
+    # Generate all 6 images in parallel
+    base_seed = abs(hash(request.situation)) % 100000
+    image_urls = await asyncio.gather(*[
+        generate_real_image(meta[4], base_seed + meta[0])
+        for meta in frame_meta
+    ])
+
+    frames = []
+    for (index, title, student_prompt, vocabulary, image_prompt), img_url in zip(frame_meta, image_urls):
+        # Fall back to SVG placeholder only if image generation failed
+        url = img_url or build_scene_svg_data_url(index + 1, title, request.situation)
+        frames.append(StoryImageFrame(
+            index=index + 1,
+            title=title,
+            student_prompt=student_prompt,
+            vocabulary=[str(word) for word in vocabulary[:5]],
+            image_prompt=image_prompt,
+            image_url=url,
+        ))
 
     return StoryImageGenerationResponse(
         provider=provider,
