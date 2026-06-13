@@ -3,6 +3,7 @@ import TopicSelector from "../TopicSelector";
 import StoryRecorder from "../components/StoryRecorder";
 import { HelpRequest } from "../database";
 import { loadPublishedTeacherTopics } from "../utils/teacherStories";
+import type { Topic } from "../TopicSelector";
 import "./CreateStoryPage.css";
 
 interface CreateStoryPageProps {
@@ -11,15 +12,9 @@ interface CreateStoryPageProps {
   initialImageIndex?: number;
   helpRequests?: HelpRequest[];
   onRaiseHand?: (message: string) => void;
+  publishedTopics?: Topic[];
 }
 
-interface Topic {
-  id: string;
-  name: string;
-  description: string;
-  images: string[];
-  vocabulary: Record<number, string[]>;
-}
 
 export default function CreateStoryPage({
   onAddRecord,
@@ -27,8 +22,9 @@ export default function CreateStoryPage({
   initialImageIndex = 0,
   helpRequests = [],
   onRaiseHand,
+  publishedTopics,
 }: CreateStoryPageProps) {
-  const topics = loadPublishedTeacherTopics();
+  const topics = publishedTopics ?? loadPublishedTeacherTopics();
   const initialTopic =
     topics.find((topic) => topic.id === initialTopicId) || null;
   const safeInitialIndex = initialTopic

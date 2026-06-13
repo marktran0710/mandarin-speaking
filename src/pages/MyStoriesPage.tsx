@@ -50,6 +50,7 @@ interface MyStoriesPageProps {
   onRaiseHand?: (message: string) => void;
   onResolveHelpRequest?: (id: string) => void;
   onRefreshRecords?: () => Promise<void>;
+  publishedTopics?: import("../TopicSelector").Topic[];
 }
 
 interface PromptImage {
@@ -150,6 +151,7 @@ export default function MyStoriesPage({
   onRaiseHand,
   onResolveHelpRequest,
   onRefreshRecords,
+  publishedTopics,
 }: MyStoriesPageProps) {
   const isTeacher = mode === "teacher";
 
@@ -165,7 +167,7 @@ export default function MyStoriesPage({
     );
   }
 
-  const studentTopics = getStudentTopics();
+  const studentTopics = publishedTopics ?? getStudentTopics();
   const promptImages = getPromptImages(studentTopics);
   const completedPrompts = promptImages.filter((prompt) =>
     records.some((record) => isPromptRecord(record, prompt)),

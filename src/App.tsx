@@ -15,10 +15,16 @@ import {
   deleteAudioRecordFromDatabase,
   HelpRequest,
   listAudioRecords,
+  listCustomStories,
   listHelpRequests,
   resolveHelpRequest,
   StoredAudioRecord,
 } from "./database";
+import {
+  loadPublishedTeacherTopics,
+  saveCustomStories,
+} from "./utils/teacherStories";
+import type { Topic } from "./TopicSelector";
 
 export type Page =
   | "home"
@@ -54,8 +60,9 @@ export default function App() {
   const [activeRole, setActiveRole] = useState<LoginRole | null>(null);
   const [audioRecords, setAudioRecords] = useState<AudioRecord[]>([]);
   const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
-  const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(
-    null,
+  const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(null);
+  const [publishedTopics, setPublishedTopics] = useState<Topic[]>(
+    () => loadPublishedTeacherTopics(),
   );
 
   const loadSavedAudioRecords = useCallback(async () => {
@@ -96,6 +103,16 @@ export default function App() {
     }
 
     loadSavedAudioRecords();
+  }, []);
+
+  useEffect(() => {
+    if (!canUseDatabase()) return;
+    listCustomStories()
+      .then((stories) => {
+        saveCustomStories(stories as any);
+        setPublishedTopics(loadPublishedTeacherTopics());
+      })
+      .catch(() => {/* keep localStorage version */});
   }, []);
 
   useEffect(() => {
@@ -263,6 +280,7 @@ export default function App() {
           initialImageIndex={practiceTarget?.imageIndex}
           helpRequests={helpRequests}
           onRaiseHand={handleRaiseHand}
+          publishedTopics={publishedTopics}
         />
       )}
       {currentPage === "student-stories" && activeRole === "student" && (
@@ -273,6 +291,7 @@ export default function App() {
           mode="student"
           helpRequests={helpRequests}
           onRaiseHand={handleRaiseHand}
+          publishedTopics={publishedTopics}
         />
       )}
       {currentPage === "voice-test" && activeRole === "student" && (
