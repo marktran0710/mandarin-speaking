@@ -30,7 +30,6 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
     const initial = loadPublishedTeacherTopics();
     return initial[0] ?? null;
   });
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [loading, setLoading] = useState(canUseDatabase());
 
   useEffect(() => {
@@ -56,7 +55,6 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
 
   const chooseTopic = (topic: Topic) => {
     setSelectedTopic(topic);
-    setSelectedImageIndex(0);
   };
 
   if (loading) {
@@ -97,8 +95,8 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
   }
 
   const topic = selectedTopic ?? topics[0];
-  const selectedImage = topic.images[selectedImageIndex];
-  const selectedWords = getTopicVocabulary(topic, selectedImageIndex);
+  const totalScenes = topic.images.length;
+  const totalWords = Object.values(topic.vocabulary).flat().length;
 
   return (
     <div className="topic-selector">
@@ -155,67 +153,40 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
         </aside>
 
         <section className="activity-preview" aria-label="Selected activity">
-          <div className="preview-header">
-            <div>
-              <p className="platform-kicker">Selected module</p>
-              <h2>{topic.name}</h2>
-              <p>{topic.description}</p>
-            </div>
-            <div className="module-badge">{topic.level}</div>
-          </div>
+          <p className="platform-kicker">Selected module</p>
 
-          <div className="preview-grid">
-            <div className="main-prompt-card">
-              <img
-                src={selectedImage}
-                alt={`${topic.name} story part ${selectedImageIndex + 1}`}
-              />
-              <div className="prompt-number">
-                Story part {selectedImageIndex + 1} of {topic.images.length}
+          <div className="topic-summary-card">
+            <div className="topic-summary-top">
+              <div>
+                <h2 className="topic-summary-title">{topic.name}</h2>
+                <span className="module-badge">{topic.level}</span>
               </div>
             </div>
 
-            <div className="prompt-planning-panel">
-              <div className="planning-block">
-                <h3>Speaking goals</h3>
-                <ul>
-                  <li>Describe the real situation clearly.</li>
-                  <li>Use useful phrases for daily communication.</li>
-                  <li>Revise each cue after feedback.</li>
-                </ul>
-              </div>
+            <p className="topic-summary-desc">{topic.description}</p>
 
-              <div className="planning-block">
-                <h3>Vocabulary support</h3>
-                <div className="vocabulary-chips">
-                  {selectedWords.map((word) => (
-                    <span key={word}>{word}</span>
-                  ))}
-                </div>
+            <div className="topic-summary-meta">
+              <div className="topic-meta-item">
+                <span className="topic-meta-icon">🎬</span>
+                <span>{totalScenes} scenes</span>
               </div>
-
-              <button
-                type="button"
-                className="start-activity-btn"
-                onClick={() => onTopicSelect?.(topic)}
-              >
-                Start recording this activity
-              </button>
+              <div className="topic-meta-item">
+                <span className="topic-meta-icon">📝</span>
+                <span>{totalWords} vocabulary words</span>
+              </div>
+              <div className="topic-meta-item">
+                <span className="topic-meta-icon">🎯</span>
+                <span>{topic.skillFocus}</span>
+              </div>
             </div>
-          </div>
 
-          <div className="prompt-strip" aria-label="Story sequence prompts">
-            {topic.images.map((image, index) => (
-              <button
-                type="button"
-                key={image}
-                className={`prompt-thumb ${selectedImageIndex === index ? "active" : ""}`}
-                onClick={() => setSelectedImageIndex(index)}
-              >
-                <img src={image} alt={`Story part ${index + 1}`} />
-                <span>Part {index + 1}</span>
-              </button>
-            ))}
+            <button
+              type="button"
+              className="start-activity-btn"
+              onClick={() => onTopicSelect?.(topic)}
+            >
+              Start this activity →
+            </button>
           </div>
         </section>
       </section>
