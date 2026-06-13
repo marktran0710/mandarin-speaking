@@ -686,13 +686,7 @@ export default function StoryRecorder({
       ? "Record again"
       : "Start recording";
   const recordingButtonDisabled = isTranscribing || isAnalyzing;
-  const activeFlowStep = praatMetrics
-    ? "review"
-    : isRecording || isTranscribing || isAnalyzing
-      ? "record"
-      : conceptMapText
-        ? "record"
-        : "plan";
+
 
   const handlePrimaryRecordingAction = () => {
     if (isRecording) {
@@ -987,29 +981,7 @@ export default function StoryRecorder({
 
       {phase === "practice" && (
         <>
-          <section className="student-flow-board" aria-label="Student practice flow">
-        <div className="flow-step completed">
-          <span>1</span>
-          <strong>Look</strong>
-          <p>Study the scene image.</p>
-        </div>
-        <div className={`flow-step ${activeFlowStep === "plan" ? "active" : ""}`}>
-          <span>2</span>
-          <strong>Use Your Map</strong>
-          <p>Recall words from your Vocabulary Map.</p>
-        </div>
-        <div className={`flow-step ${activeFlowStep === "record" ? "active" : ""}`}>
-          <span>3</span>
-          <strong>Speak</strong>
-          <p>Say it in Mandarin clearly.</p>
-        </div>
-        <div className={`flow-step ${activeFlowStep === "review" ? "active" : ""}`}>
-          <span>4</span>
-          <strong>Improve</strong>
-          <p>Listen back and refine.</p>
-        </div>
-      </section>
-
+  
       <section className="recorder-hero">
         <div className="recorder-hero-copy">
           <p className="eyebrow">Picture cue {selectedImageIndex + 1} of {topic.images.length}</p>
