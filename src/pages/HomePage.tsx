@@ -53,30 +53,6 @@ export default function HomePage({ onNavigate }: HomePageProps) {
         </div>
       </section>
 
-      <section className="features">
-        <div className="features-container">
-          <h2>Learning workflow</h2>
-          <div className="features-grid">
-            <div className="feature-card blue">
-              <div className="feature-icon">1</div>
-              <h3>Plan with visual prompts</h3>
-              <p>Students choose a topic, inspect picture prompts, and prepare target vocabulary.</p>
-            </div>
-
-            <div className="feature-card green">
-              <div className="feature-icon">2</div>
-              <h3>Record narrative speech</h3>
-              <p>Each attempt is linked to a picture so practice evidence stays organized.</p>
-            </div>
-
-            <div className="feature-card purple">
-              <div className="feature-icon">3</div>
-              <h3>Review measurable feedback</h3>
-              <p>Praat visualizes prosody while Gemini supports fluency, grammar, and vocabulary reflection.</p>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

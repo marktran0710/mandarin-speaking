@@ -49,6 +49,7 @@ interface MyStoriesPageProps {
   helpRequests?: HelpRequest[];
   onRaiseHand?: (message: string) => void;
   onResolveHelpRequest?: (id: string) => void;
+  onRefreshRecords?: () => Promise<void>;
 }
 
 interface PromptImage {
@@ -148,6 +149,7 @@ export default function MyStoriesPage({
   helpRequests = [],
   onRaiseHand,
   onResolveHelpRequest,
+  onRefreshRecords,
 }: MyStoriesPageProps) {
   const isTeacher = mode === "teacher";
 
@@ -158,6 +160,7 @@ export default function MyStoriesPage({
         onDeleteRecord={onDeleteRecord}
         helpRequests={helpRequests}
         onResolveHelpRequest={onResolveHelpRequest}
+        onRefreshRecords={onRefreshRecords}
       />
     );
   }
@@ -407,13 +410,16 @@ function TeacherDashboard({
   onDeleteRecord,
   helpRequests,
   onResolveHelpRequest,
+  onRefreshRecords,
 }: {
   records: AudioRecord[];
   onDeleteRecord: (id: string) => void;
   helpRequests: HelpRequest[];
   onResolveHelpRequest?: (id: string) => void;
+  onRefreshRecords?: () => Promise<void>;
 }) {
   const [activeView, setActiveView] = useState<TeacherView>("overview");
+  const [refreshing, setRefreshing] = useState(false);
   const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
     () => loadCustomStories(),
   );
@@ -619,6 +625,20 @@ function TeacherDashboard({
         <div className="teacher-dashboard-date">
           <span>Today</span>
           <strong>{new Date().toLocaleDateString()}</strong>
+          {onRefreshRecords && (
+            <button
+              type="button"
+              className="teacher-refresh-btn"
+              disabled={refreshing}
+              onClick={async () => {
+                setRefreshing(true);
+                await onRefreshRecords();
+                setRefreshing(false);
+              }}
+            >
+              {refreshing ? "Refreshing…" : "↺ Refresh recordings"}
+            </button>
+          )}
         </div>
       </section>
 

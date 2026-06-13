@@ -1660,3 +1660,18 @@
   cursor: pointer;
 }
 .vocab-group-add-word-btn:hover { background: #dcfce7; }
+
+.teacher-refresh-btn {
+  margin-top: 10px;
+  padding: 7px 16px;
+  background: #fff;
+  border: 1.5px solid #c7d2fe;
+  border-radius: 8px;
+  color: #4f46e5;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.teacher-refresh-btn:hover:not(:disabled) { background: #eef2ff; }
+.teacher-refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
