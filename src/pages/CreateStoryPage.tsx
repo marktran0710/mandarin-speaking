@@ -6,6 +6,12 @@ import { loadPublishedTeacherTopics } from "../utils/teacherStories";
 import type { Topic } from "../TopicSelector";
 import "./CreateStoryPage.css";
 
+interface AudioRecord {
+  topicId?: string;
+  imageIndex?: number;
+  praatMetrics?: { tone_accuracy: number; fluency_score: number };
+}
+
 interface CreateStoryPageProps {
   onAddRecord: (record: any) => void;
   initialTopicId?: string;
@@ -13,6 +19,7 @@ interface CreateStoryPageProps {
   helpRequests?: HelpRequest[];
   onRaiseHand?: (message: string) => void;
   publishedTopics?: Topic[];
+  records?: AudioRecord[];
 }
 
 
@@ -23,6 +30,7 @@ export default function CreateStoryPage({
   helpRequests = [],
   onRaiseHand,
   publishedTopics,
+  records = [],
 }: CreateStoryPageProps) {
   const topics = publishedTopics ?? loadPublishedTeacherTopics();
   const initialTopic =
@@ -51,6 +59,23 @@ export default function CreateStoryPage({
     setSelectedImageIndex(0);
   };
 
+  // Pre-populate attempt history from stored records for this specific slot
+  const pastAttempts = initialTopic
+    ? records
+        .filter(
+          (r) =>
+            r.topicId === initialTopic.id &&
+            r.imageIndex === safeInitialIndex &&
+            r.praatMetrics,
+        )
+        .reverse()
+        .map((r, i) => ({
+          attempt: i + 1,
+          tone: Math.round(r.praatMetrics!.tone_accuracy),
+          fluency: Math.round(r.praatMetrics!.fluency_score),
+        }))
+    : [];
+
   return (
     <div className="create-story-page">
       <StudentHelpPanel helpRequests={helpRequests} onRaiseHand={onRaiseHand} />
@@ -69,6 +94,7 @@ export default function CreateStoryPage({
             onImageChange={(image) => setSelectedImage(image)}
             onAddRecord={onAddRecord}
             enableSorting={true}
+            pastAttempts={pastAttempts}
           />
         </div>
       )}

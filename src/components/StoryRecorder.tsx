@@ -128,6 +128,7 @@ interface StoryRecorderProps {
     praatMetrics: PraatMetrics;
   }) => void;
   enableSorting?: boolean;
+  pastAttempts?: Array<{ attempt: number; tone: number; fluency: number }>;
 }
 
 export default function StoryRecorder({
@@ -138,6 +139,7 @@ export default function StoryRecorder({
   onImageChange,
   onAddRecord,
   enableSorting = false,
+  pastAttempts = [],
 }: StoryRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -149,7 +151,7 @@ export default function StoryRecorder({
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [praatMetrics, setPraatMetrics] = useState<PraatMetrics | null>(null);
   const [analysisAudioBlob, setAnalysisAudioBlob] = useState<Blob | null>(null);
-  const [attemptHistory, setAttemptHistory] = useState<Array<{ tone: number; fluency: number; attempt: number }>>([]);
+  const [attemptHistory, setAttemptHistory] = useState<Array<{ tone: number; fluency: number; attempt: number }>>(pastAttempts);
   // Per-scene progress: keyed by imageIndex
   const [sceneProgress, setSceneProgress] = useState<Record<number, { attempts: number; bestTone: number; bestFluency: number }>>({});
   const [submittedAudioName, setSubmittedAudioName] = useState("");
@@ -1732,6 +1734,52 @@ function buildScaffoldSteps(
   ];
 }
 
+function AttemptSparkline({
+  attempts,
+}: {
+  attempts: Array<{ attempt: number; tone: number; fluency: number }>;
+}) {
+  const W = 160;
+  const H = 56;
+  const PAD = 8;
+  const n = attempts.length;
+  const xOf = (i: number) => PAD + (i / (n - 1)) * (W - PAD * 2);
+  const yOf = (v: number) => H - PAD - (v / 100) * (H - PAD * 2);
+
+  const polyline = (vals: number[], color: string) => {
+    const pts = vals.map((v, i) => `${xOf(i)},${yOf(v)}`).join(" ");
+    return <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" />;
+  };
+
+  const last = attempts[n - 1];
+  const prev = attempts[n - 2];
+  const toneDiff = last.tone - prev.tone;
+
+  return (
+    <div className="attempt-sparkline">
+      <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} aria-hidden="true">
+        {/* guide lines at 50 and 75 */}
+        {[50, 75].map((v) => (
+          <line key={v} x1={PAD} y1={yOf(v)} x2={W - PAD} y2={yOf(v)}
+            stroke="currentColor" strokeOpacity="0.1" strokeWidth="1" />
+        ))}
+        {polyline(attempts.map((a) => a.fluency), "#0284c7")}
+        {polyline(attempts.map((a) => a.tone), "#7c3aed")}
+        {/* end-point dots */}
+        <circle cx={xOf(n - 1)} cy={yOf(last.fluency)} r="3" fill="#0284c7" />
+        <circle cx={xOf(n - 1)} cy={yOf(last.tone)} r="3" fill="#7c3aed" />
+      </svg>
+      <div className="sparkline-legend">
+        <span style={{ color: "#7c3aed" }}>Tone</span>
+        <span style={{ color: "#0284c7" }}>Fluency</span>
+        <span className={`sparkline-trend ${toneDiff > 0 ? "up" : toneDiff < 0 ? "down" : ""}`}>
+          {toneDiff > 0 ? `↑ +${toneDiff}%` : toneDiff < 0 ? `↓ ${toneDiff}%` : "→ same"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function FeedbackSummary({
   praatMetrics,
   attemptHistory,
@@ -1759,24 +1807,16 @@ function FeedbackSummary({
     overallScore >= 70 ? "Good progress" :
     "Keep going";
 
-  const prev = attemptHistory.length > 1 ? attemptHistory[attemptHistory.length - 2] : null;
-  const curr = attemptHistory.length > 0  ? attemptHistory[attemptHistory.length - 1]  : null;
-  const trendDiff = prev && curr ? curr.tone - prev.tone : null;
-
   return (
     <div className="feedback-summary">
       <div className="feedback-summary-top">
         <div className="feedback-summary-meta">
           <p className="feedback-summary-label">{overallLabel}</p>
           <p className="feedback-summary-attempt">Attempt {attemptHistory.length || 1}</p>
-          {trendDiff !== null && (
-            <p className={`feedback-summary-trend ${trendDiff > 0 ? "up" : trendDiff < 0 ? "down" : ""}`}>
-              {trendDiff > 0 ? `↑ +${trendDiff}% from last try` :
-               trendDiff < 0 ? `↓ ${trendDiff}% — keep going` :
-               "→ Same as last try"}
-            </p>
-          )}
         </div>
+        {attemptHistory.length >= 2 && (
+          <AttemptSparkline attempts={attemptHistory} />
+        )}
       </div>
 
       {vocabScore !== null && (

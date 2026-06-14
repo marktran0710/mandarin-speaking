@@ -1446,7 +1446,7 @@ function RecordCard({
               </div>
               <div className="metric-item rate">
                 <span className="metric-text">
-                  Rate: {record.praatMetrics.speech_rate.toFixed(1)}/s
+                  Rate: {record.praatMetrics.speech_rate != null ? record.praatMetrics.speech_rate.toFixed(1) : "—"}/s
                 </span>
               </div>
             </div>
@@ -1490,9 +1490,9 @@ function RecordCard({
             <strong>
               AI coach ({record.praatMetrics.ai_feedback.provider || "Gemini"})
             </strong>
-            <p>{record.praatMetrics.ai_feedback.fluency.feedback}</p>
-            <p>{record.praatMetrics.ai_feedback.grammar.feedback}</p>
-            <p>{record.praatMetrics.ai_feedback.vocabulary.feedback}</p>
+            <p>{record.praatMetrics.ai_feedback.fluency?.feedback}</p>
+            <p>{record.praatMetrics.ai_feedback.grammar?.feedback}</p>
+            <p>{record.praatMetrics.ai_feedback.vocabulary?.feedback}</p>
           </div>
         )}
 

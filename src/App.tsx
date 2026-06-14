@@ -280,6 +280,7 @@ export default function App() {
           helpRequests={helpRequests}
           onRaiseHand={handleRaiseHand}
           publishedTopics={publishedTopics}
+          records={audioRecords}
         />
       )}
       {currentPage === "student-stories" && activeRole === "student" && (

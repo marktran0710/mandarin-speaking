@@ -1523,6 +1523,32 @@
 }
 .feedback-summary-trend.up   { color: #4ade80; }
 .feedback-summary-trend.down { color: #f87171; }
+.attempt-sparkline {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  color: #475569;
+}
+.attempt-sparkline svg {
+  display: block;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.04);
+}
+.sparkline-legend {
+  display: flex;
+  gap: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  align-items: center;
+}
+.sparkline-trend {
+  color: #94a3b8;
+  font-weight: 700;
+}
+.sparkline-trend.up   { color: #4ade80; }
+.sparkline-trend.down { color: #f87171; }
 .feedback-summary-bars {
   display: flex;
   flex-direction: column;
