@@ -428,7 +428,7 @@ export default function StoryRecorder({
     await startAudioRecording(async (audioBlob) => {
       await analyzeSpeechAudio(
         audioBlob,
-        currentTranscriptRef.current.trim() || practiceAnalysisText,
+        currentTranscriptRef.current.trim(),
       );
     });
 
@@ -574,7 +574,7 @@ export default function StoryRecorder({
         addTranscription(transcript);
         currentTranscriptRef.current = transcript;
       }
-      await analyzeSpeechAudio(wavBlob, transcript || practiceAnalysisText);
+      await analyzeSpeechAudio(wavBlob, transcript);
     } catch (err) {
       setError(formatBackendError(err, BACKEND_URL || "the configured backend"));
     } finally {
@@ -594,7 +594,7 @@ export default function StoryRecorder({
       const wavBlob = await convertBlobToWav(audioBlob);
       const formData = new FormData();
       formData.append("file", wavBlob, "speech.wav");
-      const analysisText = transcription.trim() || (asrModel ? "" : practiceAnalysisText);
+      const analysisText = transcription.trim();
       formData.append("transcription", analysisText);
       if (asrModel) {
         formData.append("asr_model", asrModel);
