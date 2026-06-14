@@ -70,6 +70,12 @@
 }
 
 .nav-link.logout {
+  background: transparent;
+  color: var(--clay-primary);
+  border: 1.5px solid var(--clay-primary);
+}
+
+.nav-link.logout:hover {
   background: var(--clay-primary);
   color: #ffffff;
 }

@@ -5,7 +5,7 @@
 }
 
 .stories-header {
-  max-width: 980px;
+  max-width: 1040px;
   margin: 0 auto 18px;
   text-align: left;
 }
@@ -36,7 +36,7 @@
 }
 
 .student-progress-panel {
-  max-width: 980px;
+  max-width: 1040px;
   margin: 0 auto 18px;
   padding: 16px;
   display: grid;
@@ -83,7 +83,7 @@
 }
 
 .student-help-card {
-  max-width: 980px;
+  max-width: 1040px;
   margin: 0 auto 18px;
   padding: 16px;
   display: grid;
@@ -138,7 +138,7 @@
 }
 
 .learning-summary {
-  max-width: 1180px;
+  max-width: 1040px;
   margin: 0 auto 20px;
   display: grid;
   grid-template-columns: 1.2fr 1fr 1fr;
@@ -146,7 +146,7 @@
 }
 
 .student-loop-guide {
-  max-width: 1180px;
+  max-width: 1040px;
   margin: -8px auto 28px;
   padding: 14px;
   display: grid;
@@ -233,7 +233,7 @@
 }
 
 .learning-workbook {
-  max-width: 980px;
+  max-width: 1040px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -834,7 +834,7 @@
 .teacher-dashboard-grid,
 .teacher-content-builder,
 .teacher-recordings-panel {
-  max-width: 1180px;
+  max-width: 1040px;
   margin-left: auto;
   margin-right: auto;
 }

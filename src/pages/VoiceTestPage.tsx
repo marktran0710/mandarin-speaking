@@ -416,18 +416,18 @@ export default function VoiceTestPage() {
               <div className="ai-feedback-columns">
                 <FeedbackBlock
                   title="Fluency"
-                  score={metrics.ai_feedback.fluency.score}
-                  text={metrics.ai_feedback.fluency.feedback}
+                  score={metrics.ai_feedback.fluency?.score ?? 0}
+                  text={metrics.ai_feedback.fluency?.feedback ?? ""}
                 />
                 <FeedbackBlock
                   title="Grammar"
-                  score={metrics.ai_feedback.grammar.score}
-                  text={metrics.ai_feedback.grammar.feedback}
+                  score={metrics.ai_feedback.grammar?.score ?? 0}
+                  text={metrics.ai_feedback.grammar?.feedback ?? ""}
                 />
                 <FeedbackBlock
                   title="Vocabulary"
-                  score={metrics.ai_feedback.vocabulary.score}
-                  text={metrics.ai_feedback.vocabulary.feedback}
+                  score={metrics.ai_feedback.vocabulary?.score ?? 0}
+                  text={metrics.ai_feedback.vocabulary?.feedback ?? ""}
                 />
               </div>
               {metrics.ai_feedback.improved_version && (

@@ -1476,7 +1476,7 @@ function RecordCard({
                         {Math.round(item.mean_pitch)} Hz ·{" "}
                         {Math.round(item.pitch_range)} Hz range
                       </small>
-                      <p>{item.feedback}</p>
+                      <p>{item?.feedback}</p>
                     </div>
                   ))}
                 </div>

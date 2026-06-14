@@ -51,32 +51,50 @@
 
 .portal-card {
   width: 100%;
-  min-height: 240px;
-  padding: 26px 24px;
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  gap: 12px;
+  min-height: 200px;
+  padding: 28px 28px 28px 32px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 20px;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
+  border-left: 4px solid var(--clay-hairline);
   background: #ffffff;
-  box-shadow: none;
+  box-shadow: var(--clay-shadow-sm);
   color: var(--clay-ink);
   cursor: pointer;
+  text-align: left;
+  transition: box-shadow 0.15s ease, border-left-color 0.15s ease;
+}
+
+.student-card {
+  border-left-color: var(--clay-primary);
+  background: linear-gradient(135deg, var(--clay-mint) 0%, #ffffff 60%);
+}
+
+.teacher-card {
+  border-left-color: var(--clay-ink);
+  background: linear-gradient(135deg, var(--clay-surface-soft) 0%, #ffffff 60%);
 }
 
 .portal-card:hover {
-  border-color: var(--clay-primary);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--clay-shadow-md);
+  border-left-color: var(--clay-primary);
+}
+
+.teacher-card:hover {
+  border-left-color: var(--clay-ink);
 }
 
 .portal-icon {
-  width: 72px;
-  height: 72px;
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
-  font-size: 36px;
+  border-radius: var(--clay-radius-md);
+  font-size: 28px;
   font-weight: 700;
 }
 
@@ -86,30 +104,49 @@
 }
 
 .teacher-card .portal-icon {
-  background: var(--clay-surface-strong);
-  color: var(--clay-ink);
+  background: var(--clay-ink);
+  color: #ffffff;
+}
+
+.portal-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .portal-title {
-  font-size: 24px;
-  font-weight: 650;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .portal-title-cn {
-  font-size: 20px;
-  color: var(--clay-ink);
+  font-size: 16px;
+  color: var(--clay-muted);
+  font-weight: 500;
 }
 
 .portal-description {
   color: var(--clay-body);
   font-size: 14px;
   line-height: 1.6;
+  margin-top: 4px;
 }
 
 .portal-arrow {
-  color: var(--clay-primary);
-  font-size: 24px;
+  flex-shrink: 0;
+  color: var(--clay-muted-soft);
+  font-size: 20px;
   line-height: 1;
+  align-self: center;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.portal-card:hover .portal-arrow {
+  color: var(--clay-primary);
+  transform: translateX(3px);
 }
 
 .features {

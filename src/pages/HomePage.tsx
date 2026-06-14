@@ -27,11 +27,13 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             onClick={() => onNavigate("student-login")}
           >
             <span className="portal-icon">學</span>
-            <span className="portal-title">Student Portal</span>
-            <span className="portal-title-cn">學生入口</span>
-            <span className="portal-description">
-              Complete picture-based story tasks, record Mandarin speech, and
-              review Praat plus AI feedback.
+            <span className="portal-card-body">
+              <span className="portal-title">Student Portal</span>
+              <span className="portal-title-cn">學生入口</span>
+              <span className="portal-description">
+                Complete picture-based story tasks, record Mandarin speech, and
+                review Praat plus AI feedback.
+              </span>
             </span>
             <span className="portal-arrow">›</span>
           </button>
@@ -42,11 +44,13 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             onClick={() => onNavigate("teacher-login")}
           >
             <span className="portal-icon">師</span>
-            <span className="portal-title">Teacher Portal</span>
-            <span className="portal-title-cn">教師入口</span>
-            <span className="portal-description">
-              Monitor student recordings, inspect speech metrics, and support
-              narrative development.
+            <span className="portal-card-body">
+              <span className="portal-title">Teacher Portal</span>
+              <span className="portal-title-cn">教師入口</span>
+              <span className="portal-description">
+                Monitor student recordings, inspect speech metrics, and support
+                narrative development.
+              </span>
             </span>
             <span className="portal-arrow">›</span>
           </button>
