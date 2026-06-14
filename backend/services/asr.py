@@ -232,10 +232,31 @@ _WHISPER_HALLUCINATIONS = {
     ".", "。", "",
 }
 
-def _is_silent(audio, rms_threshold: float = 0.005) -> bool:
+def _is_silent(audio, rms_threshold: float = 0.02, min_speech_seconds: float = 0.4) -> bool:
+    """Return True when audio is silence/ambient noise with no real speech.
+
+    Two-stage gate:
+    1. RMS energy — rejects audio quieter than background noise.
+    2. Voiced-duration — uses librosa VAD to require at least min_speech_seconds
+       of actual voiced segments, rejecting short pops or fan hum that pass RMS.
+    """
     import numpy as np
+    import librosa
+
     rms = float(np.sqrt(np.mean(audio.astype(float) ** 2)))
-    return rms < rms_threshold
+    if rms < rms_threshold:
+        return True
+
+    # Count voiced frames: split into non-silent intervals (top_db=30 ≈ 30 dB below peak)
+    try:
+        intervals = librosa.effects.split(audio, top_db=30)
+        voiced_seconds = sum((int(end) - int(start)) / 16000 for start, end in intervals)
+        if voiced_seconds < min_speech_seconds:
+            return True
+    except Exception:
+        pass  # If VAD fails, fall through to the model
+
+    return False
 
 
 def _transcribe_with_ct_whisper_sync(audio_content: bytes) -> str:
