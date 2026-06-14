@@ -61,6 +61,8 @@ export default function VoiceTestPage() {
   const transcriptRef = useRef("");
   const startTimeRef = useRef(0);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const MAX_RECORDING_SECONDS = 30;
 
   const startRecording = async () => {
     setError("");
@@ -109,6 +111,10 @@ export default function VoiceTestPage() {
       durationTimerRef.current = setInterval(() => {
         setRecordingDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
       }, 250);
+
+      autoStopTimerRef.current = setTimeout(() => {
+        stopRecording();
+      }, MAX_RECORDING_SECONDS * 1000);
 
       recorder.start();
       startSpeechRecognition();
@@ -242,6 +248,10 @@ export default function VoiceTestPage() {
       clearInterval(durationTimerRef.current);
       durationTimerRef.current = null;
     }
+    if (autoStopTimerRef.current) {
+      clearTimeout(autoStopTimerRef.current);
+      autoStopTimerRef.current = null;
+    }
   };
 
   const stopTracks = () => {
@@ -272,7 +282,7 @@ export default function VoiceTestPage() {
           <strong>
             {isRecording ? "Recording" : isAnalyzing ? "Analyzing" : "Ready"}
           </strong>
-          <p>{isRecording ? `${recordingDuration}s recorded` : "One recording is enough."}</p>
+          <p>{isRecording ? `${recordingDuration}s / ${MAX_RECORDING_SECONDS}s` : "One recording is enough."}</p>
         </div>
       </section>
 

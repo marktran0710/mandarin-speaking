@@ -345,6 +345,9 @@ export default function StoryRecorder({
     setSortingFeedback("");
   };
 
+  const MAX_RECORDING_SECONDS = 30;
+  const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const clearTimers = () => {
     if (silenceTimerRef.current) {
       clearTimeout(silenceTimerRef.current);
@@ -353,6 +356,10 @@ export default function StoryRecorder({
     if (durationIntervalRef.current) {
       clearInterval(durationIntervalRef.current);
       durationIntervalRef.current = null;
+    }
+    if (autoStopTimerRef.current) {
+      clearTimeout(autoStopTimerRef.current);
+      autoStopTimerRef.current = null;
     }
   };
 
@@ -391,6 +398,10 @@ export default function StoryRecorder({
           Math.floor((Date.now() - recordingStartRef.current) / 1000),
         );
       }, 250);
+
+      autoStopTimerRef.current = setTimeout(() => {
+        stopRecording();
+      }, MAX_RECORDING_SECONDS * 1000);
     } catch (err) {
       setError(
         err instanceof Error
@@ -1161,7 +1172,7 @@ export default function StoryRecorder({
                 </button>
                 {isRecording && (
                   <div className="practice-timer">
-                    <span>{recordingDuration}s</span>
+                    <span>{recordingDuration}s / {MAX_RECORDING_SECONDS}s</span>
                     {selectedModel === "webspeech" && (
                       <span className="practice-silence">silence {silenceDuration}s / 7s</span>
                     )}
