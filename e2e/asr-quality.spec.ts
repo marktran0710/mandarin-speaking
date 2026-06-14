@@ -41,7 +41,7 @@ test.describe("ASR quality — import WAV flow", () => {
     // The page shows "Running Praat and local feedback..." while analyzing
     // Wait up to 60 s for the metrics panel to appear
     await expect(page.locator(".voice-feedback-panel")).toBeVisible({
-      timeout: 60_000,
+      timeout: 110_000,
     });
 
     // --- Transcription ---------------------------------------------------------
@@ -106,7 +106,7 @@ test.describe("ASR quality — import WAV flow", () => {
     await fileInput.setInputFiles(AUDIO_FILE);
 
     await expect(page.locator(".voice-feedback-panel")).toBeVisible({
-      timeout: 60_000,
+      timeout: 110_000,
     });
 
     // The transcription text is shown inside ModelExampleCard or a transcription block

@@ -84,6 +84,13 @@ async def transcribe_with_auto_fallback(audio_content: bytes) -> TranscriptionRe
         except Exception as exc:
             errors.append(f"{provider}: {exc}")
 
+    # If every provider returned empty (silence) rather than hard errors, return
+    # empty gracefully so Praat can still analyze the audio.
+    all_empty = all(e.endswith(": empty transcription") for e in errors)
+    if all_empty:
+        logger.info("Auto ASR: all providers returned empty — silent or too-short audio")
+        return TranscriptionResponse(text="", model="auto:silent")
+
     detail = (
         "No local ASR model produced a transcript. Make sure the Chinese/Taiwanese "
         "Whisper model is installed on the backend. Tried: " + "; ".join(errors)
@@ -219,6 +226,18 @@ def convert_to_traditional_chinese(text: str) -> str:
         return text
 
 
+_WHISPER_HALLUCINATIONS = {
+    "謝謝", "謝謝。", "謝謝觀看", "謝謝收聽", "感謝收聽", "感謝觀看",
+    "thank you", "thank you.", "thank you for watching", "thank you for listening",
+    ".", "。", "",
+}
+
+def _is_silent(audio, rms_threshold: float = 0.005) -> bool:
+    import numpy as np
+    rms = float(np.sqrt(np.mean(audio.astype(float) ** 2)))
+    return rms < rms_threshold
+
+
 def _transcribe_with_ct_whisper_sync(audio_content: bytes) -> str:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
         f.write(audio_content)
@@ -229,6 +248,12 @@ def _transcribe_with_ct_whisper_sync(audio_content: bytes) -> str:
 
         processor, model, device = _get_ct_whisper_model()
         audio, _ = librosa.load(tmp_path, sr=16000, mono=True)
+
+        # Reject silence before running the model to avoid Whisper hallucinations
+        if _is_silent(audio):
+            logger.info("ctwhisper: silent audio detected, skipping ASR")
+            return ""
+
         inputs = processor(audio, sampling_rate=16000, return_tensors="pt")
         input_features = inputs.input_features.to(device)
         forced_decoder_ids = processor.get_decoder_prompt_ids(
@@ -242,8 +267,12 @@ def _transcribe_with_ct_whisper_sync(audio_content: bytes) -> str:
             )
         text = processor.batch_decode(predicted_ids, skip_special_tokens=True)[0].strip()
         text = convert_to_traditional_chinese(text)
-        if not text:
-            raise RuntimeError("Chinese/Taiwanese Whisper returned an empty transcript.")
+
+        # Filter known Whisper hallucination phrases
+        if text.lower() in _WHISPER_HALLUCINATIONS:
+            logger.info("ctwhisper: hallucination filtered: %r", text)
+            return ""
+
         return text
     finally:
         if os.path.exists(tmp_path):
