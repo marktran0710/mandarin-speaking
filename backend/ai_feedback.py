@@ -37,13 +37,14 @@ def fallback_language_feedback(
 
     if not text:
         prompt_hint = f" about: {scene_prompt}" if scene_prompt else ""
+        all_vocab = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
         return {
             "provider": "local",
             "vocabulary_coverage": {
                 "score": 0,
                 "used": [],
-                "missing": [],
-                "feedback": f"No transcription yet. Try one short sentence{prompt_hint}.",
+                "missing": all_vocab,
+                "feedback": f"No speech detected. Try one short sentence{prompt_hint}.",
             },
             "coherence": {
                 "score": 0,
@@ -52,7 +53,7 @@ def fallback_language_feedback(
             },
             "pronunciation_note": {
                 "score": 0,
-                "feedback": f"Record a sentence to get pronunciation feedback.",
+                "feedback": "Record a sentence to get pronunciation feedback.",
             },
             "improved_version": "",
             "practice_prompt": f"Record one simple Mandarin sentence{prompt_hint}.",
