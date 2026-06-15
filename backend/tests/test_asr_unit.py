@@ -565,8 +565,10 @@ class TestFallbackLanguageFeedback:
             "這是老師和學生",
             scene_vocabulary="老師,學生",
         )
-        assert result["vocabulary_coverage"]["score"] == 100
+        # Score now blends full task coverage with lexical diversity, so it is
+        # high but no longer pinned to 100; all words used means none missing.
         assert result["vocabulary_coverage"]["missing"] == []
+        assert result["vocabulary_coverage"]["score"] >= 70
 
     def test_no_vocab_used(self):
         from ai_feedback import fallback_language_feedback
@@ -574,8 +576,10 @@ class TestFallbackLanguageFeedback:
             "你好",
             scene_vocabulary="老師,學生,教室",
         )
-        assert result["vocabulary_coverage"]["score"] == 0
+        # No scene words used -> all three missing; score stays low (only the
+        # small lexical-diversity component contributes).
         assert len(result["vocabulary_coverage"]["missing"]) == 3
+        assert result["vocabulary_coverage"]["score"] < 40
 
     def test_partial_vocab_used(self):
         from ai_feedback import fallback_language_feedback
@@ -590,8 +594,10 @@ class TestFallbackLanguageFeedback:
     def test_no_scene_vocab_defined(self):
         from ai_feedback import fallback_language_feedback
         result = fallback_language_feedback("你好", scene_vocabulary="")
-        assert result["vocabulary_coverage"]["score"] == 0
-        assert "No scene vocabulary" in result["vocabulary_coverage"]["feedback"]
+        # With no scene vocab the score now reflects lexical diversity (Guiraud),
+        # and the feedback reports that diversity instead of a fixed message.
+        assert result["vocabulary_coverage"]["score"] >= 0
+        assert "diversity" in result["vocabulary_coverage"]["feedback"].lower()
 
     def test_praat_scores_affect_pronunciation_score(self):
         from ai_feedback import fallback_language_feedback

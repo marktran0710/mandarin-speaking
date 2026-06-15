@@ -89,10 +89,11 @@ def analyze_all(audio_path: str, transcription: str = "") -> tuple:
         pitch_contour = extract_pitch(audio_path)
         formants = extract_formants(audio_path)
         speech_rate = calculate_speech_rate(audio_path, transcription)
-        fluency_score = analyze_fluency(pitch_contour, speech_rate)
         pitch_stats = get_pitch_statistics(pitch_contour)
         word_prosody = estimate_word_prosody(pitch_contour, transcription)
         pause_analysis = analyze_pauses_and_utterances(audio_path)
+        _syllables = sum(1 for c in transcription if "一" <= c <= "鿿")
+        fluency_score = analyze_fluency(pitch_contour, speech_rate, pause_analysis, _syllables)
         from chinese_tones import detect_tone, generate_comprehensive_feedback
         tone_detection = detect_tone(pitch_contour)
         detected_tone = tone_detection["detected_tone"]
@@ -118,11 +119,11 @@ def analyze_all(audio_path: str, transcription: str = "") -> tuple:
     else:
         speech_rate = float(max(1, round(len(pitch_contour) / 9)) / duration)
 
-    fluency_score = analyze_fluency(pitch_contour, speech_rate)
     pitch_stats = get_pitch_statistics(pitch_contour)
     word_prosody = estimate_word_prosody(pitch_contour, transcription)
     # Reuse already-loaded sound — avoids a second disk read
     pause_analysis = analyze_pauses_and_utterances(audio_path, _preloaded_sound=sound)
+    fluency_score = analyze_fluency(pitch_contour, speech_rate, pause_analysis, chinese_chars)
 
     tone_detection = detect_tone(pitch_contour)
     detected_tone = tone_detection["detected_tone"]
@@ -425,8 +426,17 @@ def _extract_pitch_fallback(
 def analyze_fluency(
     pitch_contour: List[Tuple[float, float]],
     speech_rate: float,
+    pause_analysis: Dict | None = None,
+    syllable_count: int = 0,
 ) -> float:
-    """Score pitch continuity and speaking-rate comfort on a 0-100 scale."""
+    """Score speaking fluency on a 0-100 scale.
+
+    When pause structure is available, the score is dominated by utterance-
+    fluency measures (phonation-time ratio, articulation rate, mean length of
+    run; Towell et al. 1996; De Jong et al. 2012) computed in ``caf_metrics``,
+    blended with a pitch-continuity term. Falls back to the pitch-continuity
+    heuristic alone when no pause data is supplied.
+    """
     if len(pitch_contour) < 3:
         return 0.0
 
@@ -445,7 +455,19 @@ def analyze_fluency(
     elif speech_rate > 6.5:
         rate_penalty = min(20.0, (speech_rate - 6.5) * 8)
 
-    return float(max(0.0, min(100.0, 100.0 - jump_penalty - pause_penalty - rate_penalty)))
+    continuity = max(0.0, min(100.0, 100.0 - jump_penalty - pause_penalty - rate_penalty))
+
+    if pause_analysis:
+        import caf_metrics
+
+        utterance = caf_metrics.fluency_metrics(
+            speech_rate, pause_analysis, syllable_count
+        )["score"]
+        # Weight the literature-grounded utterance fluency above the prosodic
+        # continuity term.
+        return float(max(0.0, min(100.0, 0.65 * utterance + 0.35 * continuity)))
+
+    return float(continuity)
 
 
 def get_pitch_statistics(

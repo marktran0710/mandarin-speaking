@@ -744,16 +744,24 @@ async def _do_analyze(
         vowel_quality = classify_vowel_quality(formants)
         tone_direction = build_tone_direction(pitch_contour, detected_tone, tone_accuracy)
 
-        # Patch pronunciation_note with real Praat numbers now that we have them
+        # The parallel feedback call ran before Praat finished. Recompute the
+        # local CAF feedback now that we have the acoustic numbers: when the
+        # provider is local, swap in the full grounded result; for an external
+        # provider, only patch its pronunciation_note with the real Praat data.
         from ai_feedback import fallback_language_feedback as _local_fb
-        pron_patch = _local_fb(
+        local_fb = _local_fb(
             transcription, scene_prompt, scene_vocabulary,
             praat_tone_accuracy=float(tone_accuracy),
             praat_fluency_score=float(fluency_score),
             praat_vowel_quality=vowel_quality or "",
+            praat_pause_analysis=pause_analysis,
+            praat_speech_rate=float(speech_rate),
         )
         if isinstance(ai_feedback, dict):
-            ai_feedback["pronunciation_note"] = pron_patch["pronunciation_note"]
+            if ai_feedback.get("provider") == "local":
+                ai_feedback = local_fb
+            else:
+                ai_feedback["pronunciation_note"] = local_fb["pronunciation_note"]
         description = build_analysis_description(transcription, transcription_model, word_prosody)
 
         return AnalysisResponse(

@@ -133,16 +133,37 @@ produces it.
 | **Pitch contour & word prosody** | F0 over time; per-syllable rising / falling / dipping / level shape | **Praat / Parselmouth** | Deterministic |
 | **Formants (F1 / F2 / F3)** | Vowel quality / resonance | **Praat / Parselmouth** formant tracking | Deterministic |
 | **Speech rate** | Syllables per second | Character count ÷ utterance duration (**Praat**) | Deterministic |
-| **Fluency** | Smoothness / continuity of delivery | **Praat** pitch continuity + speech-rate heuristic | Deterministic |
+| **Fluency** | Speaking fluency | **Praat** utterance fluency — phonation-time ratio, articulation rate, mean length of run (`caf_metrics.py`) + pitch-continuity term | Deterministic |
 | **Pauses & utterances** | Pause count, longest pause, speech ratio | **Praat** intensity-based silence detection | Deterministic |
-| **Vocabulary coverage** | Which scene words were used vs missing | **LLM** (Gemini `gemini-2.0-flash` / OpenAI `gpt-4o-mini`) with string-match fallback | AI (local fallback) |
-| **Coherence** | Grammatical completeness & naturalness | **LLM** (Gemini / OpenAI) | AI (local fallback) |
-| **Pronunciation note** | Holistic pronunciation quality, informed by the Praat metrics | **LLM** (Gemini / OpenAI), fed the acoustic data | AI (local fallback) |
-| **Improved version & practice prompt** | A model sentence + next actionable step | **LLM** (Gemini / OpenAI) | AI (local fallback) |
+| **Vocabulary coverage** | Scene-word coverage + lexical richness | **LLM** (Gemini `gemini-2.0-flash` / OpenAI `gpt-4o-mini`) → local: task coverage blended with **lexical diversity** (Guiraud index, MTLD) | AI or CAF-local |
+| **Coherence** | Grammatical completeness & clause linking | **LLM** (Gemini / OpenAI) → local: **syntactic complexity** (mean length of utterance + connective/subordination density) | AI or CAF-local |
+| **Pronunciation note** | Holistic pronunciation, informed by Praat | **LLM** (Gemini / OpenAI) → local: tone-contour proxy for **Goodness of Pronunciation** + utterance-fluency notes | AI or CAF-local |
+| **Improved version & practice prompt** | A model sentence + next actionable step | **LLM** (Gemini / OpenAI); local returns a targeted next-step drill | AI or CAF-local |
 
 > The AI provider is set with `AI_FEEDBACK_PROVIDER` (`gemini` · `openai` · `local`). With no API
-> key configured it falls back to `local` heuristics, so the app still runs offline — only the
-> language-coaching dimensions become rule-based instead of model-generated.
+> key configured it falls back to `local`, so the app still runs fully offline. The local engine is
+> **not** ad-hoc heuristics — the language-coaching dimensions are grounded in the
+> Complexity–Accuracy–Fluency (CAF) tradition of L2 speaking assessment, computed deterministically
+> in [`backend/caf_metrics.py`](backend/caf_metrics.py) (Chinese word segmentation via **jieba**).
+
+#### References (local CAF engine)
+
+- Skehan, P. (1998). *A Cognitive Approach to Language Learning.* OUP. — CAF framework.
+- Housen, A., & Kuiken, F. (2009). Complexity, Accuracy and Fluency in SLA. *Applied Linguistics, 30*(4), 461–473.
+- Towell, R., Hawkins, R., & Bazergui, N. (1996). The development of fluency in advanced learners of French. *Applied Linguistics, 17*(1), 84–119. — mean length of run.
+- De Jong, N. H., et al. (2012). Facets of speaking proficiency. *SSLA, 34*(1), 5–34. — phonation-time ratio, articulation rate.
+- Guiraud, P. (1960). *Problèmes et méthodes de la statistique linguistique.* — Guiraud index.
+- McCarthy, P. M., & Jarvis, S. (2010). MTLD, vocd-D and HD-D: A validation study. *Behavior Research Methods, 42*(2), 381–392.
+- Witt, S. M., & Young, S. J. (2000). Phone-level pronunciation scoring. *Speech Communication, 30*(2–3), 95–108. — Goodness of Pronunciation (tone-contour proxy used here).
+
+#### Local engine: ad-hoc → paper-grounded
+
+| Dimension | Before (ad-hoc) | Now (paper-grounded) | Technology behind the scenes | Source |
+|---|---|---|---|---|
+| **Vocabulary** | substring match only | task coverage blended with lexical diversity (Guiraud index, MTLD) | `jieba` word segmentation + Guiraud/MTLD in pure Python (`caf_metrics.py`) | Guiraud 1960; McCarthy & Jarvis 2010 |
+| **Coherence** | character-count thresholds | syntactic complexity — mean length of utterance + connective/subordination density | `jieba` segmentation + connective lexicon, Python (`caf_metrics.py`) | Skehan 1998; Housen & Kuiken 2009 |
+| **Fluency** | pitch-continuity heuristic | utterance fluency — phonation-time ratio, articulation rate, mean length of run | `praat-parselmouth` intensity/pause segmentation + NumPy (`praat_analyzer.py`, `caf_metrics.py`) | Towell et al. 1996; De Jong et al. 2012 |
+| **Pronunciation** | tone threshold | tone-contour proxy for Goodness of Pronunciation + fluency notes | `praat-parselmouth` pitch extraction + NumPy/SciPy contour correlation (`chinese_tones.py`) | Witt & Young 2000 |
 
 **Frontend rendering:** React + Vite, with **Chart.js** for the pitch-contour visualization.
 

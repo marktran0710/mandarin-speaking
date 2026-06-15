@@ -5,6 +5,8 @@ from typing import Dict, List
 import httpx
 from dotenv import load_dotenv
 
+import caf_metrics
+
 
 load_dotenv()
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env.local"))
@@ -31,7 +33,16 @@ def fallback_language_feedback(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    praat_pause_analysis: Dict | None = None,
+    praat_speech_rate: float = 0,
 ) -> Dict:
+    """Offline language feedback grounded in the CAF framework.
+
+    Vocabulary blends task coverage with lexical diversity (Guiraud/MTLD),
+    coherence uses syntactic complexity (length + subordination), and the
+    pronunciation note reports the tone-contour proxy for Goodness of
+    Pronunciation. See ``caf_metrics`` for the measures and citations.
+    """
     text = transcription.strip()
     character_count = sum(1 for char in text if "\u4e00" <= char <= "\u9fff")
 
@@ -58,64 +69,90 @@ def fallback_language_feedback(
             "practice_prompt": f"Record one simple Mandarin sentence{prompt_hint}.",
         }
 
-    # Vocabulary coverage
+    tokens = caf_metrics.segment_words(text)
+    lexical = caf_metrics.lexical_metrics(tokens)
+    complexity = caf_metrics.syntactic_complexity(tokens, text)
+
+    # ── Vocabulary: task coverage blended with lexical diversity ────────────
     scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
     used_words = [w for w in scene_words if w in text]
     missing_words = [w for w in scene_words if w not in text]
 
     if not scene_words:
-        # No vocab list set — neutral, not scored
-        vocab_score = 0
-        vocab_feedback = "No scene vocabulary defined for this scene."
-    elif not used_words:
-        # Student said nothing from the list
-        vocab_score = 0
-        vocab_feedback = f"None of the scene words were used. Try saying: {', '.join(scene_words[:3])}."
-    elif not missing_words:
-        vocab_score = 100
-        vocab_feedback = f"All scene words used: {', '.join(used_words)}. Excellent!"
+        vocab_score = lexical["score"]
+        vocab_feedback = (
+            f"Lexical diversity: Guiraud index {lexical['guiraud']} "
+            f"({lexical['types']} unique of {lexical['tokens']} words)."
+        )
     else:
-        pct = round(len(used_words) / len(scene_words) * 100)
-        vocab_score = pct
-        vocab_feedback = f"Used {len(used_words)}/{len(scene_words)}: {', '.join(used_words)}. Still missing: {', '.join(missing_words[:3])}."
+        coverage_pct = round(len(used_words) / len(scene_words) * 100)
+        # 60% task coverage + 40% lexical diversity (CAF lexical sub-construct).
+        vocab_score = int(round(0.6 * coverage_pct + 0.4 * lexical["score"]))
+        if not used_words:
+            vocab_feedback = f"None of the scene words were used. Try saying: {', '.join(scene_words[:3])}."
+        elif not missing_words:
+            vocab_feedback = (
+                f"All scene words used: {', '.join(used_words)}. "
+                f"Lexical diversity (Guiraud) {lexical['guiraud']}."
+            )
+        else:
+            vocab_feedback = (
+                f"Used {len(used_words)}/{len(scene_words)}: {', '.join(used_words)}. "
+                f"Still missing: {', '.join(missing_words[:3])}. Guiraud {lexical['guiraud']}."
+            )
 
-    # Coherence (structure-based heuristic)
-    if character_count < 4:
-        coherence_score = 40
-        coherence_feedback = "Too short to evaluate as a sentence. Aim for subject + verb + object."
+    # \u2500\u2500 Coherence: syntactic complexity (length + subordination) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+    coherence_score = complexity["score"]
+    coherence_corrections: list = []
+    if complexity["length"] < 4:
+        coherence_feedback = (
+            f"Very short \u2014 only {complexity['length']} words. "
+            "Aim for subject + verb + object."
+        )
         coherence_corrections = ["Add a subject (\u8ab0)", "Add a verb (\u505a\u4ec0\u9ebc)"]
-    elif character_count < 8:
-        coherence_score = 65
-        coherence_feedback = "Short sentence. Make sure it has a subject and a verb."
-        coherence_corrections = []
+    elif not complexity["connectives"]:
+        coherence_feedback = (
+            f"{complexity['length']} words but no connectives. "
+            "Link ideas with words like \u56e0\u70ba / \u6240\u4ee5 / \u7136\u5f8c."
+        )
+        coherence_corrections = ["Join two clauses with \u7136\u5f8c or \u56e0\u70ba"]
     else:
-        coherence_score = 78
-        coherence_feedback = "Sentence length is good. Check that each clause connects naturally."
-        coherence_corrections = []
+        coherence_feedback = (
+            f"{complexity['length']} words with connectives "
+            f"{', '.join(complexity['connectives'][:3])} \u2014 good clause linking."
+        )
 
-    # Pronunciation note from Praat data
+    # \u2500\u2500 Pronunciation: tone-contour proxy for Goodness of Pronunciation \u2500\u2500\u2500\u2500\u2500
     tone_pct = round(praat_tone_accuracy)
     fluency_pct = round(praat_fluency_score)
     if tone_pct >= 80 and fluency_pct >= 75:
         pron_score = 88
-        pron_feedback = f"Tones and rhythm both sound strong ({tone_pct}% tone accuracy)."
+        pron_feedback = f"Tones and rhythm both sound strong ({tone_pct}% tone-contour match)."
     elif tone_pct >= 60:
         pron_score = 65
-        pron_feedback = f"Tone accuracy {tone_pct}% \u2014 keep working on the weaker tones. Rhythm: {fluency_pct}%."
+        pron_feedback = f"Tone-contour match {tone_pct}% \u2014 keep working on the weaker tones. Rhythm: {fluency_pct}%."
     elif tone_pct > 0:
         pron_score = 45
-        pron_feedback = f"Tone accuracy {tone_pct}% \u2014 focus on the tones marked in the pitch chart."
+        pron_feedback = f"Tone-contour match {tone_pct}% \u2014 focus on the tones marked in the pitch chart."
     else:
         pron_score = 50
-        pron_feedback = "Speak clearly and try to hold each syllable long enough for tone recognition."
+        pron_feedback = "Speak clearly and hold each syllable long enough for tone recognition."
 
+    if praat_pause_analysis is not None:
+        fluency = caf_metrics.fluency_metrics(
+            praat_speech_rate, praat_pause_analysis, character_count
+        )
+        pron_feedback += (
+            f" Fluency: {fluency['articulation_rate']} syl/s articulation, "
+            f"mean run {fluency['mean_length_of_run']} syllables."
+        )
     if praat_vowel_quality:
         pron_feedback += f" Vowel quality: {praat_vowel_quality}."
 
     practice_next = (
         f"Say the sentence again adding {missing_words[0]}."
         if missing_words else
-        "Say the same sentence with a different time or place word."
+        "Add a connective (\u7136\u5f8c / \u56e0\u70ba) to extend the sentence."
     )
 
     return {
