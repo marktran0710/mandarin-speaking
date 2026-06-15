@@ -2,6 +2,7 @@ import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import PitchChart from "../PitchChart";
 import PraatTimeline from "./PraatTimeline";
 import StoryConceptMap from "./StoryConceptMap";
+import { toPinyin } from "../utils/pinyin";
 import "./StoryRecorder.css";
 
 const BACKEND_URL =
@@ -784,7 +785,10 @@ export default function StoryRecorder({
               <h2>Key Vocabulary</h2>
               <div className="overview-vocab-chips">
                 {allVocabulary.map((word, i) => (
-                  <span key={`${word}-${i}`} className="overview-vocab-chip">{word}</span>
+                  <span key={`${word}-${i}`} className="overview-vocab-chip">
+                    <span className="vocab-chip-hanzi">{word}</span>
+                    {toPinyin(word) && <span className="vocab-chip-pinyin">{toPinyin(word)}</span>}
+                  </span>
                 ))}
               </div>
             </div>
@@ -1126,9 +1130,12 @@ export default function StoryRecorder({
                           className={`vocab-chip ${used === true ? "vocab-used" : used === false ? "vocab-missed" : ""}`}
                           title={used === true ? "You used this word ✓" : used === false ? "Try to include this word" : ""}
                         >
-                          {w}
-                          {used === true && <span className="vocab-tick">✓</span>}
-                          {used === false && <span className="vocab-tick">✗</span>}
+                          <span className="vocab-chip-row">
+                            <span className="vocab-chip-hanzi">{w}</span>
+                            {used === true && <span className="vocab-tick">✓</span>}
+                            {used === false && <span className="vocab-tick">✗</span>}
+                          </span>
+                          {toPinyin(w) && <span className="vocab-chip-pinyin">{toPinyin(w)}</span>}
                         </span>
                       );
                     })}
@@ -1328,23 +1335,11 @@ export default function StoryRecorder({
             </div>
 
             <div className="metrics-section">
-              {(() => {
-                const charCount = (praatMetrics.transcription || "").replace(/[^一-鿿]/g, "").length;
-                return charCount <= 6 ? (
-                  <div className="metric-card accuracy-card">
-                    <div className="metric-label">Tone accuracy</div>
-                    <div className="metric-value">{Math.round(praatMetrics.tone_accuracy)}%</div>
-                    <div className="metric-bar"><div className="metric-fill" style={{ width: `${praatMetrics.tone_accuracy}%` }} /></div>
-                    <div className="metric-subtext">{getToneName(praatMetrics.detected_tone)} detected</div>
-                  </div>
-                ) : (
-                  <div className="metric-card tone-card">
-                    <div className="metric-label">Dominant pitch shape</div>
-                    <div className="metric-value compact">{getToneName(praatMetrics.detected_tone)}</div>
-                    <div className="metric-subtext">Score shown for short phrases only</div>
-                  </div>
-                );
-              })()}
+              <div className="metric-card tone-card">
+                <div className="metric-label">Dominant pitch shape</div>
+                <div className="metric-value compact">{getToneName(praatMetrics.detected_tone)}</div>
+                <div className="metric-subtext">Tone accuracy score shown in the summary above</div>
+              </div>
               <div className="metric-card rate-card">
                 <div className="metric-label">Speech rate</div>
                 <div className="metric-value">{praatMetrics.speech_rate.toFixed(1)}</div>
@@ -1779,13 +1774,20 @@ function FeedbackSummary({
         </div>
       </div>
 
-      {vocabScore !== null && (
+      {(() => {
+        const bars = [
+          ...(vocabScore !== null
+            ? [
+                { label: "Vocabulary", score: vocabScore, color: "#7c3aed" },
+                { label: "Coherence", score: cohScore!, color: "#0284c7" },
+                { label: "Pronunciation", score: pronScore!, color: "#059669" },
+              ]
+            : []),
+          { label: "Tone accuracy", score: Math.round(praatMetrics.tone_accuracy), color: "#d97706" },
+        ];
+        return bars.length > 0 ? (
         <div className="feedback-summary-bars">
-          {[
-            { label: "Vocabulary", score: vocabScore,  color: "#7c3aed" },
-            { label: "Coherence",  score: cohScore!,   color: "#0284c7" },
-            { label: "Pronunciation", score: pronScore!, color: "#059669" },
-          ].map(({ label, score, color }) => (
+          {bars.map(({ label, score, color }) => (
             <div key={label} className="feedback-summary-bar-row">
               <span className="feedback-summary-bar-label">{label}</span>
               <div className="feedback-summary-bar-track">
@@ -1795,7 +1797,8 @@ function FeedbackSummary({
             </div>
           ))}
         </div>
-      )}
+        ) : null;
+      })()}
 
       {transcription && (
         <p className="feedback-summary-transcript">You said: <em lang="zh-TW">"{transcription}"</em></p>

@@ -3098,6 +3098,15 @@
   font-weight: 700;
   padding: 6px 14px;
   border-radius: 8px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+.overview-vocab-chip .vocab-chip-pinyin {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: #b45309;
 }
 
 /* Challenge steps */
@@ -3368,7 +3377,6 @@
   flex-wrap: wrap;
   gap: 7px;
 }
-.practice-vocab-chips span,
 .vocab-chip {
   background: #fff;
   border: 1.5px solid #fbbf24;
@@ -3378,9 +3386,27 @@
   font-weight: 700;
   color: #1e293b;
   display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.vocab-chip-row {
+  display: inline-flex;
   align-items: center;
   gap: 4px;
-  transition: background 0.2s, border-color 0.2s;
+}
+.vocab-chip-pinyin {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: #a16207;
+  letter-spacing: 0.2px;
+}
+.vocab-chip.vocab-used .vocab-chip-pinyin {
+  color: #166534;
+}
+.vocab-chip.vocab-missed .vocab-chip-pinyin {
+  color: #991b1b;
 }
 .vocab-chip.vocab-used {
   background: #dcfce7;

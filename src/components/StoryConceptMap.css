@@ -173,7 +173,16 @@
   font-size: 1.1rem;
   font-weight: 700;
   color: #1e293b;
-  line-height: 1;
+  line-height: 1.15;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.chip-pinyin {
+  font-size: 0.62em;
+  font-weight: 600;
+  color: #b45309;
+  letter-spacing: 0.2px;
 }
 .chip-check {
   font-size: 11px;
@@ -326,7 +335,7 @@
 .cat-word-remove.cat-word-remove-wrong:hover { background: #dc2626; color: #fff; }
 
 /* ── Word text ── */
-.cat-word-text { flex: 1; min-width: 0; }
+.cat-word-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; line-height: 1.15; }
 .cat-word-icon { font-size: 13px; font-weight: 700; flex-shrink: 0; }
 .cat-word-hint {
   font-size: 10px;

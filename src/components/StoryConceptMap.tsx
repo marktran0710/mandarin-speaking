@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { toPinyin } from "../utils/pinyin";
 import "./StoryConceptMap.css";
 
 interface VocabGroup {
@@ -236,7 +237,10 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                   }
                 }}
               >
-                <span className="chip-hanzi">{w}</span>
+                <span className="chip-hanzi">
+                  {w}
+                  {toPinyin(w) && <span className="chip-pinyin">{toPinyin(w)}</span>}
+                </span>
                 <span className={`chip-scene chip-scene-${(wordScene[w] ?? 0) % 6}`}>
                   S{(wordScene[w] ?? 0) + 1}
                 </span>
@@ -308,7 +312,10 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                           key={w}
                           className={`scmap-cat-word${result === "correct" ? " word-correct" : result === "wrong" ? " word-wrong" : ""}`}
                         >
-                          <span className="cat-word-text">{w}</span>
+                          <span className="cat-word-text">
+                            {w}
+                            {toPinyin(w) && <span className="chip-pinyin">{toPinyin(w)}</span>}
+                          </span>
                           {result === "correct" && <span className="cat-word-icon">✓</span>}
                           {result === "wrong" && correctCat && (
                             <span className="cat-word-hint">→ {correctCat.english}</span>

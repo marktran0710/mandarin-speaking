@@ -513,7 +513,7 @@ function TeacherDashboard({
     reader.readAsDataURL(file);
   };
 
-  const handleSaveCustomStory = () => {
+  const handleSaveCustomStory = async () => {
     const errors = validateCustomStoryDraft(customDraft);
     if (hasCustomStoryErrors(errors)) {
       setValidationErrors(errors);
@@ -522,36 +522,53 @@ function TeacherDashboard({
     }
 
     const existingStory = customStories.find((story) => story.id === editingStoryId);
-    const savedStory = {
+    const savedStory: CustomTeacherStory = {
       ...createCustomStory(customDraft, editingStoryId),
       published: existingStory?.published ?? false,
     };
+
+    // Persist to the backend first. It writes any uploaded data-URL images to
+    // disk and returns the frames with lightweight /uploads/images/... URLs.
+    // Caching the raw base64 in localStorage overflows its ~5MB quota, which
+    // would otherwise abort the whole save and lose the uploaded image.
+    let storyToStore = savedStory;
+    if (canUseDatabase()) {
+      try {
+        const persisted = await saveCustomStoryToDatabase(savedStory);
+        if (persisted) {
+          storyToStore = { ...savedStory, ...persisted } as CustomTeacherStory;
+        }
+      } catch (error) {
+        console.error("Failed to save custom story to database:", error);
+        setValidationErrors({
+          form: "The story could not be saved to the server. Check that the backend is running and try again.",
+        });
+        setCustomStoryNotice("");
+        return;
+      }
+    }
+
     const nextStories = editingStoryId
       ? customStories.map((story) =>
-          story.id === editingStoryId ? savedStory : story,
+          story.id === editingStoryId ? storyToStore : story,
         )
-      : [savedStory, ...customStories];
+      : [storyToStore, ...customStories];
 
+    setCustomStories(nextStories);
     try {
       saveCustomStories(nextStories);
-      setCustomStories(nextStories);
-      if (canUseDatabase()) {
-        saveCustomStoryToDatabase(savedStory).catch((error) => {
-          console.error("Failed to save custom story to database:", error);
-        });
-      }
-      setEditingStoryId(null);
-      setCustomDraft(emptyCustomStoryDraft);
-      setValidationErrors({});
-      setCustomStoryNotice(
-        editingStoryId ? "Custom story updated." : "Custom story saved.",
-      );
     } catch {
-      setValidationErrors({
-        form: "The story could not be saved. Uploaded images may be too large for browser storage; try smaller images or image URLs.",
-      });
-      setCustomStoryNotice("");
+      // localStorage is only a cache. If it overflows (e.g. data-URL images
+      // while the backend is offline) the story is still saved server-side, so
+      // keep going rather than failing the whole save.
+      console.warn("Could not cache custom stories in localStorage (quota).");
     }
+    setEditingStoryId(null);
+    setCustomDraft(emptyCustomStoryDraft);
+    setValidationErrors({});
+    setCustomStoryNotice(
+      editingStoryId ? "Custom story updated." : "Custom story saved.",
+    );
   };
 
   const handleDeleteCustomStory = (id: string) => {

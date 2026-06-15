@@ -132,7 +132,9 @@ export async function listCustomStories(): Promise<StoredCustomStory[]> {
   return Array.isArray(stories) ? stories : [];
 }
 
-export async function createCustomStory(story: StoredCustomStory) {
+export async function createCustomStory(
+  story: StoredCustomStory,
+): Promise<StoredCustomStory> {
   const response = await fetchWithRetry(`${BACKEND_URL}/api/custom-stories`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -142,6 +144,10 @@ export async function createCustomStory(story: StoredCustomStory) {
   if (!response.ok) {
     throw new Error("Could not save custom story to the database.");
   }
+
+  // The backend writes any uploaded data-URL images to disk and returns the
+  // frames with lightweight /uploads/images/... URLs in their place.
+  return response.json() as Promise<StoredCustomStory>;
 }
 
 export async function deleteCustomStoryFromDatabase(id: string) {
