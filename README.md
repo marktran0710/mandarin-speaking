@@ -119,6 +119,33 @@ flowchart LR
 | AI language coach | Vocabulary coverage (used / missing), coherence, pronunciation note, improved version |
 | Tone drill | Per-word pitch shape classification (rising / falling / dipping / high-level) |
 
+### Feedback dimensions & the technology behind each
+
+Every recording is scored across several dimensions. Some are **deterministic** acoustic
+measurements (pure signal processing — same audio always yields the same number); others are
+**AI** judgments from a language model. The table below maps each dimension to the engine that
+produces it.
+
+| Dimension | What it measures | Engine | Deterministic / AI |
+|---|---|---|---|
+| **Transcription (ASR)** | Speech → Mandarin text | Browser **Web Speech API** (default, Traditional Chinese) · or server ASR: **CT-Whisper** (`openai/whisper-small`), **FunASR** (`paraformer-zh`), **VibeVoice-ASR** (`microsoft/VibeVoice-ASR`) · or cloud (OpenAI / Gemini) | Model-dependent |
+| **Tone accuracy** | How closely the pitch melody matches a Mandarin tone shape | **Praat / Parselmouth** pitch extraction → correlation (65%) + distance (35%) vs reference tone patterns (`chinese_tones.py`) | Deterministic |
+| **Pitch contour & word prosody** | F0 over time; per-syllable rising / falling / dipping / level shape | **Praat / Parselmouth** | Deterministic |
+| **Formants (F1 / F2 / F3)** | Vowel quality / resonance | **Praat / Parselmouth** formant tracking | Deterministic |
+| **Speech rate** | Syllables per second | Character count ÷ utterance duration (**Praat**) | Deterministic |
+| **Fluency** | Smoothness / continuity of delivery | **Praat** pitch continuity + speech-rate heuristic | Deterministic |
+| **Pauses & utterances** | Pause count, longest pause, speech ratio | **Praat** intensity-based silence detection | Deterministic |
+| **Vocabulary coverage** | Which scene words were used vs missing | **LLM** (Gemini `gemini-2.0-flash` / OpenAI `gpt-4o-mini`) with string-match fallback | AI (local fallback) |
+| **Coherence** | Grammatical completeness & naturalness | **LLM** (Gemini / OpenAI) | AI (local fallback) |
+| **Pronunciation note** | Holistic pronunciation quality, informed by the Praat metrics | **LLM** (Gemini / OpenAI), fed the acoustic data | AI (local fallback) |
+| **Improved version & practice prompt** | A model sentence + next actionable step | **LLM** (Gemini / OpenAI) | AI (local fallback) |
+
+> The AI provider is set with `AI_FEEDBACK_PROVIDER` (`gemini` · `openai` · `local`). With no API
+> key configured it falls back to `local` heuristics, so the app still runs offline — only the
+> language-coaching dimensions become rule-based instead of model-generated.
+
+**Frontend rendering:** React + Vite, with **Chart.js** for the pitch-contour visualization.
+
 ---
 
 ## Quick Start
