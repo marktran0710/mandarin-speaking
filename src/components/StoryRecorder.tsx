@@ -11,6 +11,12 @@ const BACKEND_URL =
 
 type SpeechModel = "webspeech" | "ctwhisper" | "vibevoice";
 
+interface AiProviderOption {
+  id: string;
+  label: string;
+  available: boolean;
+}
+
 interface VocabGroup {
   name: string;
   words: string[];
@@ -146,6 +152,8 @@ export default function StoryRecorder({
   const [transcriptions, setTranscriptions] = useState<TranscriptionItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<SpeechModel>("webspeech");
+  const [aiProvider, setAiProvider] = useState<string>("");
+  const [aiProviders, setAiProviders] = useState<AiProviderOption[]>([]);
   const [silenceDuration, setSilenceDuration] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [praatMetrics, setPraatMetrics] = useState<PraatMetrics | null>(null);
@@ -215,6 +223,26 @@ export default function StoryRecorder({
     return () => {
       stopTracks();
       clearTimers();
+    };
+  }, []);
+
+  // Load the available AI feedback engines so the student can pick one.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${getBackendUrl()}/api/ai-providers`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled || !Array.isArray(data.providers)) return;
+        setAiProviders(data.providers);
+        setAiProvider(prev => prev || data.default || "");
+      } catch {
+        // Backend unreachable — the picker just stays hidden.
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -592,6 +620,9 @@ export default function StoryRecorder({
       const scenePrompt = topic.prompts?.[selectedImageIndex] || topic.name;
       formData.append("scene_vocabulary", sceneVocab);
       formData.append("scene_prompt", scenePrompt);
+      if (aiProvider) {
+        formData.append("ai_provider", aiProvider);
+      }
 
       const response = await fetch(`${backendUrl}/api/analyze`, {
         method: "POST",
@@ -1156,6 +1187,25 @@ export default function StoryRecorder({
               )}
 
               <div className="practice-record-area">
+                {aiProviders.length > 0 && (
+                  <div className="record-engine-switch" role="group" aria-label="AI feedback engine">
+                    <span className="record-engine-switch-label">AI engine</span>
+                    <div className="record-engine-switch-options">
+                      {aiProviders.map(p => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className={`record-engine-chip${aiProvider === p.id ? " is-active" : ""}`}
+                          onClick={() => setAiProvider(p.id)}
+                          disabled={isBusy || !p.available}
+                          title={p.available ? `Use ${p.label} for feedback` : `${p.label} needs an API key`}
+                        >
+                          {p.label}{p.available ? "" : " 🔒"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={handlePrimaryRecordingAction}
@@ -1221,7 +1271,9 @@ export default function StoryRecorder({
 
               <details className="practice-model-picker">
                 <summary>Recording options</summary>
+                <label className="practice-model-label" htmlFor="speech-source">Speech source</label>
                 <select
+                  id="speech-source"
                   value={selectedModel}
                   onChange={e => setSelectedModel(e.target.value as SpeechModel)}
                   disabled={isBusy}

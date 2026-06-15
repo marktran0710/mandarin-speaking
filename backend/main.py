@@ -51,7 +51,7 @@ from chinese_tones import (
     get_reference_tone_pattern,
     generate_comprehensive_feedback,
 )
-from ai_feedback import generate_language_feedback
+from ai_feedback import generate_language_feedback, available_providers, default_provider
 
 # Load backend/.env first, then root .env.local for local full-stack runs.
 load_dotenv()
@@ -646,6 +646,17 @@ async def get_asr_status():
     )
 
 
+@app.get("/api/ai-providers")
+async def get_ai_providers():
+    """List language-feedback engines for the student-facing engine picker.
+
+    Each entry reports whether it is usable right now (cloud engines need an
+    API key). ``default`` is the env-configured engine used when the student
+    doesn't pick one.
+    """
+    return {"providers": available_providers(), "default": default_provider()}
+
+
 ANALYZE_TIMEOUT_SECONDS = int(os.getenv("ANALYZE_TIMEOUT_SECONDS", "120"))
 
 
@@ -713,6 +724,7 @@ async def _do_analyze(
     asr_model: str,
     scene_prompt: str = "",
     scene_vocabulary: str = "",
+    ai_provider: str = "",
 ) -> AnalysisResponse:
     tmp_path = None
     try:
@@ -735,7 +747,7 @@ async def _do_analyze(
         # After both finish, patch pronunciation_note with real Praat numbers.
         (praat_result, ai_feedback) = await asyncio.gather(
             run_in_threadpool(_run_praat, tmp_path, transcription),
-            generate_language_feedback(transcription, scene_prompt, scene_vocabulary),
+            generate_language_feedback(transcription, scene_prompt, scene_vocabulary, provider=ai_provider or None),
         )
         (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
          word_prosody, detected_tone, tone_accuracy, feedback,
@@ -797,6 +809,7 @@ async def analyze_speech(
     asr_model: str = Form(""),
     scene_prompt: str = Form(""),
     scene_vocabulary: str = Form(""),
+    ai_provider: str = Form(""),
     req: Request = None,
 ):
     """
@@ -821,7 +834,7 @@ async def analyze_speech(
 
     try:
         return await asyncio.wait_for(
-            _do_analyze(content, transcription, asr_model, scene_prompt, scene_vocabulary),
+            _do_analyze(content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider),
             timeout=ANALYZE_TIMEOUT_SECONDS,
         )
     except asyncio.TimeoutError:

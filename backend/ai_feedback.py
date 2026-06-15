@@ -26,6 +26,23 @@ GEMINI_FEEDBACK_MODEL = os.getenv("GEMINI_FEEDBACK_MODEL", "gemini-2.0-flash")
 AI_FEEDBACK_PROVIDER = os.getenv("AI_FEEDBACK_PROVIDER", "local").lower()
 
 
+def available_providers() -> List[Dict]:
+    """Provider options for the student-facing engine picker.
+
+    ``available`` is False when the provider needs an API key that isn't
+    configured; the UI shows it disabled so the choice stays honest.
+    """
+    return [
+        {"id": "local", "label": "Local (offline CAF)", "available": True},
+        {"id": "gemini", "label": "Gemini", "available": bool(GEMINI_API_KEY)},
+        {"id": "openai", "label": "ChatGPT (OpenAI)", "available": bool(OPENAI_API_KEY)},
+    ]
+
+
+def default_provider() -> str:
+    return AI_FEEDBACK_PROVIDER
+
+
 def fallback_language_feedback(
     transcription: str,
     scene_prompt: str = "",
@@ -184,33 +201,38 @@ async def generate_language_feedback(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    provider: str | None = None,
 ) -> Dict:
+    """Produce language feedback.
+
+    ``provider`` overrides the env default per request ("local" | "gemini" |
+    "openai"). The requested engine is tried first; if it lacks a key or the
+    network call fails, we degrade gracefully to any other configured cloud
+    provider and finally to the offline CAF engine, so the student always
+    gets feedback.
+    """
     text = transcription.strip()
+    args = (text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
     if not text:
-        return fallback_language_feedback(text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
+        return fallback_language_feedback(*args)
 
-    if AI_FEEDBACK_PROVIDER == "local":
-        return fallback_language_feedback(text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
+    chosen = (provider or AI_FEEDBACK_PROVIDER or "local").strip().lower()
+    if chosen == "local":
+        return fallback_language_feedback(*args)
 
-    if AI_FEEDBACK_PROVIDER == "openai" and OPENAI_API_KEY:
+    # Honor the explicit choice first, then degrade through the other clouds.
+    order = ["openai", "gemini"] if chosen == "openai" else ["gemini", "openai"]
+    callers = {"openai": _feedback_with_openai, "gemini": _feedback_with_gemini}
+    keys = {"openai": OPENAI_API_KEY, "gemini": GEMINI_API_KEY}
+    for name in order:
+        if not keys[name]:
+            continue
         try:
-            return await _feedback_with_openai(text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
+            return await callers[name](*args)
         except Exception as exc:
-            print(f"OpenAI feedback failed, using local fallback: {exc}")
+            print(f"{name} feedback failed, trying next engine: {exc}")
 
-    if GEMINI_API_KEY:
-        try:
-            return await _feedback_with_gemini(text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
-        except Exception as exc:
-            print(f"Gemini feedback failed, using local fallback: {exc}")
-
-    if OPENAI_API_KEY:
-        try:
-            return await _feedback_with_openai(text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
-        except Exception as exc:
-            print(f"OpenAI feedback failed, using local fallback: {exc}")
-
-    return fallback_language_feedback(text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
+    return fallback_language_feedback(*args)
 
 
 async def _feedback_with_openai(

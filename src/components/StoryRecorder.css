@@ -3469,6 +3469,52 @@
   border: 1.5px solid #e2e8f0;
   border-radius: 14px;
 }
+.record-engine-switch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+.record-engine-switch-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.record-engine-switch-options {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px;
+  background: #f1f5f9;
+  border-radius: 999px;
+}
+.record-engine-chip {
+  border: none;
+  background: transparent;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.record-engine-chip:hover:not(:disabled):not(.is-active) {
+  background: #e2e8f0;
+}
+.record-engine-chip.is-active {
+  background: #0f766e;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(15, 118, 110, 0.35);
+}
+.record-engine-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
 .btn-practice-record {
   width: 100%;
   padding: 16px;
@@ -3597,13 +3643,20 @@
 }
 .practice-model-picker select {
   width: 100%;
-  margin-top: 8px;
+  margin-top: 6px;
   padding: 7px 10px;
   border: 1.5px solid #e2e8f0;
   border-radius: 7px;
   font-size: 12px;
   color: #334155;
   background: #fff;
+}
+.practice-model-label {
+  display: block;
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
 }
 
 /* Responsive */
