@@ -81,11 +81,17 @@ def get_cors_origins() -> list[str]:
             if origin.strip()
         ]
 
+    # Vite picks the next free port when 5173 is taken (5174, 5175, 5176…),
+    # so allow the common dev fallbacks to avoid CORS-blocked /api calls.
     return [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
         "http://localhost:5175",
         "http://127.0.0.1:5175",
+        "http://localhost:5176",
+        "http://127.0.0.1:5176",
         "http://localhost:9000",
         "http://127.0.0.1:9000",
         "http://localhost:3000",
