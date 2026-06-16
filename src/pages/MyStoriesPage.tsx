@@ -1235,7 +1235,14 @@ function clearFrameError(
   };
 }
 
-const DEFAULT_GROUP_NAMES = ["Characters", "Setting", "Actions", "Outcome"];
+const DEFAULT_GROUP_NAMES = [
+  "Characters",
+  "Actions",
+  "Settings",
+  "Objects & Tools",
+  "Grammar Glue",
+  "Outcomes",
+];
 
 function VocabGroupEditor({
   vocabulary,
@@ -1262,7 +1269,7 @@ function VocabGroupEditor({
   if (!active) {
     return (
       <button type="button" className="vocab-group-toggle-btn" onClick={handleToggle}>
-        + Add word categories (drag-and-drop activity)
+        + Add Story Canvas categories (Characters · Actions · Settings · Objects & Tools · Grammar Glue · Outcomes)
       </button>
     );
   }
@@ -1295,7 +1302,7 @@ function VocabGroupEditor({
   return (
     <div className="vocab-group-editor">
       <div className="vocab-group-editor-header">
-        <span>Word categories</span>
+        <span>Taiwan Community Story Canvas — Word Categories</span>
         <button type="button" className="vocab-group-remove-btn" onClick={handleToggle}>Remove categories</button>
       </div>
 
