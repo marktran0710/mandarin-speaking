@@ -23,22 +23,22 @@ interface Props {
 
 // Taiwan Community Story Canvas — 6 categories, 2 rows of 3
 const CATEGORIES = [
-  { id: "characters", hanzi: "人物",   english: "Characters",     sub: "Who is in the story?",                    color: "#4f46e5", border: "#818cf8" },
-  { id: "actions",    hanzi: "動作",   english: "Actions",         sub: "What are they doing?",                   color: "#d97706", border: "#fcd34d" },
-  { id: "settings",   hanzi: "場景",   english: "Settings",        sub: "Where is it happening?",                 color: "#0891b2", border: "#67e8f9" },
-  { id: "objects",    hanzi: "物品",   english: "Objects & Tools", sub: "What are they using or holding?",        color: "#7c3aed", border: "#c4b5fd" },
-  { id: "grammar",    hanzi: "語法",   english: "Grammar Glue",    sub: "Numbers, Measure Words & Particles",     color: "#be185d", border: "#f9a8d4" },
-  { id: "outcomes",   hanzi: "結果",   english: "Outcomes",        sub: "Final result or social closing?",        color: "#059669", border: "#6ee7b7" },
+  { id: "characters",   hanzi: "角色", english: "Characters",   sub: "The Actors",                        color: "#4f46e5", border: "#818cf8" },
+  { id: "settings",     hanzi: "場景", english: "Settings",     sub: "The Places",                        color: "#0891b2", border: "#67e8f9" },
+  { id: "actions",      hanzi: "動作", english: "Actions",      sub: "The Verbs & Grammar Glue",          color: "#d97706", border: "#fcd34d" },
+  { id: "objects",      hanzi: "對象", english: "Objects",      sub: "The Targets of the Actions",        color: "#7c3aed", border: "#c4b5fd" },
+  { id: "instruments",  hanzi: "工具", english: "Instruments",  sub: "The Tools Used to Complete Tasks",  color: "#be185d", border: "#f9a8d4" },
+  { id: "outcomes",     hanzi: "結果", english: "Outcomes",     sub: "Social & Task Consequences",        color: "#059669", border: "#6ee7b7" },
 ];
 
 function groupNameToCategoryId(name: string): string | null {
   const n = name.toLowerCase();
-  if (n.includes("character") || n.includes("who") || n.includes("人物")) return "characters";
-  if (n.includes("action") || n.includes("doing") || n.includes("動作") || n.includes("活動")) return "actions";
-  if (n.includes("setting") || n.includes("place") || n.includes("where") || n.includes("場景") || n.includes("地點")) return "settings";
-  if (n.includes("object") || n.includes("tool") || n.includes("using") || n.includes("holding") || n.includes("物品") || n.includes("工具")) return "objects";
-  if (n.includes("grammar") || n.includes("measure") || n.includes("particle") || n.includes("number") || n.includes("語法") || n.includes("量詞")) return "grammar";
-  if (n.includes("outcome") || n.includes("result") || n.includes("closing") || n.includes("結果") || n.includes("事件")) return "outcomes";
+  if (n.includes("character") || n.includes("actor") || n.includes("角色") || n.includes("人物")) return "characters";
+  if (n.includes("setting") || n.includes("place") || n.includes("場景") || n.includes("地點")) return "settings";
+  if (n.includes("action") || n.includes("verb") || n.includes("grammar") || n.includes("動作") || n.includes("語法")) return "actions";
+  if (n.includes("object") || n.includes("target") || n.includes("對象") || n.includes("物品")) return "objects";
+  if (n.includes("instrument") || n.includes("tool") || n.includes("工具")) return "instruments";
+  if (n.includes("outcome") || n.includes("result") || n.includes("consequence") || n.includes("結果")) return "outcomes";
   return null;
 }
 

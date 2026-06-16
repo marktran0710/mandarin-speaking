@@ -1236,12 +1236,12 @@ function clearFrameError(
 }
 
 const STORY_CANVAS_CATEGORIES = [
-  { name: "Characters",     hanzi: "人物", sub: "Who is in the story?",               color: "#4f46e5" },
-  { name: "Actions",        hanzi: "動作", sub: "What are they doing?",               color: "#d97706" },
-  { name: "Settings",       hanzi: "場景", sub: "Where is it happening?",             color: "#0891b2" },
-  { name: "Objects & Tools",hanzi: "物品", sub: "What are they using or holding?",    color: "#7c3aed" },
-  { name: "Grammar Glue",   hanzi: "語法", sub: "Numbers, Measure Words & Particles", color: "#be185d" },
-  { name: "Outcomes",       hanzi: "結果", sub: "Final result or social closing?",    color: "#059669" },
+  { name: "Characters",  hanzi: "角色", sub: "The Actors",                       color: "#4f46e5" },
+  { name: "Settings",    hanzi: "場景", sub: "The Places",                       color: "#0891b2" },
+  { name: "Actions",     hanzi: "動作", sub: "The Verbs & Grammar Glue",         color: "#d97706" },
+  { name: "Objects",     hanzi: "對象", sub: "The Targets of the Actions",       color: "#7c3aed" },
+  { name: "Instruments", hanzi: "工具", sub: "The Tools Used to Complete Tasks", color: "#be185d" },
+  { name: "Outcomes",    hanzi: "結果", sub: "Social & Task Consequences",       color: "#059669" },
 ];
 
 const DEFAULT_GROUP_NAMES = STORY_CANVAS_CATEGORIES.map(c => c.name);
@@ -1271,7 +1271,7 @@ function VocabGroupEditor({
   if (!active) {
     return (
       <button type="button" className="vocab-group-toggle-btn" onClick={handleToggle}>
-        + Add Story Canvas categories (Characters · Actions · Settings · Objects & Tools · Grammar Glue · Outcomes)
+        + Add Story Canvas categories (Characters · Settings · Actions · Objects · Instruments · Outcomes)
       </button>
     );
   }
@@ -1299,7 +1299,7 @@ function VocabGroupEditor({
   return (
     <div className="vocab-group-editor">
       <div className="vocab-group-editor-header">
-        <span>Taiwan Community Story Canvas — Word Categories</span>
+        <span>Taiwan Community Story Canvas</span>
         <button type="button" className="vocab-group-remove-btn" onClick={handleToggle}>Remove categories</button>
       </div>
 
