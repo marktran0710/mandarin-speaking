@@ -21,35 +21,43 @@ interface Props {
   defaultOpen?: boolean;
 }
 
+// Taiwan Community Story Canvas — 6 categories, 2 rows of 3
 const CATEGORIES = [
-  { id: "characters", hanzi: "人物", english: "Characters", color: "#4f46e5", border: "#818cf8" },
-  { id: "setting",    hanzi: "場景", english: "Setting",    color: "#0891b2", border: "#67e8f9" },
-  { id: "actions",    hanzi: "動作", english: "Actions",    color: "#d97706", border: "#fcd34d" },
-  { id: "outcome",    hanzi: "結果", english: "Outcome",    color: "#059669", border: "#6ee7b7" },
+  { id: "characters", hanzi: "人物",   english: "Characters",     sub: "Who is in the story?",                    color: "#4f46e5", border: "#818cf8" },
+  { id: "actions",    hanzi: "動作",   english: "Actions",         sub: "What are they doing?",                   color: "#d97706", border: "#fcd34d" },
+  { id: "settings",   hanzi: "場景",   english: "Settings",        sub: "Where is it happening?",                 color: "#0891b2", border: "#67e8f9" },
+  { id: "objects",    hanzi: "物品",   english: "Objects & Tools", sub: "What are they using or holding?",        color: "#7c3aed", border: "#c4b5fd" },
+  { id: "grammar",    hanzi: "語法",   english: "Grammar Glue",    sub: "Numbers, Measure Words & Particles",     color: "#be185d", border: "#f9a8d4" },
+  { id: "outcomes",   hanzi: "結果",   english: "Outcomes",        sub: "Final result or social closing?",        color: "#059669", border: "#6ee7b7" },
 ];
 
 function groupNameToCategoryId(name: string): string | null {
   const n = name.toLowerCase();
-  if (n.includes("character") || n.includes("人物")) return "characters";
-  if (n.includes("setting") || n.includes("place") || n.includes("場景") || n.includes("地點")) return "setting";
-  if (n.includes("action") || n.includes("動作") || n.includes("活動")) return "actions";
-  if (n.includes("outcome") || n.includes("result") || n.includes("event") || n.includes("結果") || n.includes("事件")) return "outcome";
+  if (n.includes("character") || n.includes("who") || n.includes("人物")) return "characters";
+  if (n.includes("action") || n.includes("doing") || n.includes("動作") || n.includes("活動")) return "actions";
+  if (n.includes("setting") || n.includes("place") || n.includes("where") || n.includes("場景") || n.includes("地點")) return "settings";
+  if (n.includes("object") || n.includes("tool") || n.includes("using") || n.includes("holding") || n.includes("物品") || n.includes("工具")) return "objects";
+  if (n.includes("grammar") || n.includes("measure") || n.includes("particle") || n.includes("number") || n.includes("語法") || n.includes("量詞")) return "grammar";
+  if (n.includes("outcome") || n.includes("result") || n.includes("closing") || n.includes("結果") || n.includes("事件")) return "outcomes";
   return null;
 }
 
-const CANVAS_W     = 860;
-const CENTRAL_W    = 160;
-const CENTRAL_H    = 70;
-const CENTRAL_X    = CANVAS_W / 2 - CENTRAL_W / 2;
-const CENTRAL_Y    = 24;
-const CAT_W        = 172;
-const CAT_GAP      = 16;
-const CAT_Y        = CENTRAL_Y + CENTRAL_H + 72;
-const N            = CATEGORIES.length;
-const TOTAL_CATS_W = N * CAT_W + (N - 1) * CAT_GAP;
-const CAT_START_X  = (CANVAS_W - TOTAL_CATS_W) / 2;
+// Layout: 2 rows × 3 columns
+const CANVAS_W   = 860;
+const CENTRAL_W  = 180;
+const CENTRAL_H  = 56;
+const CENTRAL_X  = CANVAS_W / 2 - CENTRAL_W / 2;
+const CENTRAL_Y  = 16;
+const CAT_W      = 256;
+const CAT_GAP    = 16;
+const COLS       = 3;
+const ROW_1_Y    = CENTRAL_Y + CENTRAL_H + 56;
+const TOTAL_W    = COLS * CAT_W + (COLS - 1) * CAT_GAP;
+const ROW_START_X = (CANVAS_W - TOTAL_W) / 2;
 
-const catLeft    = (i: number) => CAT_START_X + i * (CAT_W + CAT_GAP);
+const catCol     = (i: number) => i % COLS;
+const catRow     = (i: number) => Math.floor(i / COLS);
+const catLeft    = (i: number) => ROW_START_X + catCol(i) * (CAT_W + CAT_GAP);
 const catCenterX = (i: number) => catLeft(i) + CAT_W / 2;
 
 function shuffleArr<T>(arr: T[]): T[] {
@@ -147,8 +155,11 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
   const checkedWrong   = Object.values(wordResult).filter(v => v === "wrong").length;
   const allCorrect     = checked && hasAnswerKey && checkedWrong === 0 && totalPlaced === totalWords;
 
-  const maxWordsInCat = Math.max(1, ...CATEGORIES.map(c => placed[c.id].length));
-  const CANVAS_H = CAT_Y + 54 + maxWordsInCat * 40 + 60;
+  const maxWordsInRow = (row: number) =>
+    Math.max(1, ...CATEGORIES.filter((_, i) => catRow(i) === row).map(c => placed[c.id].length));
+  const ROW_H = (row: number) => 54 + maxWordsInRow(row) * 40;
+  const catTop = (i: number) => (catRow(i) === 0 ? ROW_1_Y : ROW_1_Y + ROW_H(0) + 32);
+  const CANVAS_H = catTop(3) + ROW_H(1) + 40;
 
   if (!isOpen) {
     return (
@@ -262,7 +273,7 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                 <line
                   key={cat.id}
                   x1={CENTRAL_X + CENTRAL_W / 2} y1={CENTRAL_Y + CENTRAL_H}
-                  x2={catCenterX(i)}             y2={CAT_Y}
+                  x2={catCenterX(i)}             y2={catTop(i)}
                   stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4"
                 />
               ))}
@@ -283,7 +294,7 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                 <div
                   key={cat.id}
                   className={`scmap-cat-node${isOver ? " drag-over" : ""}${submitted ? " is-submitted" : ""}`}
-                  style={{ left: catLeft(i), top: CAT_Y, width: CAT_W, borderColor: cat.border }}
+                  style={{ left: catLeft(i), top: catTop(i), width: CAT_W, borderColor: cat.border }}
                   onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(cat.id); }}
                   onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(null); }}
                   onDrop={e => {
@@ -294,8 +305,11 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                   }}
                 >
                   <div className="scmap-cat-header" style={{ background: cat.color }}>
-                    <span className="cat-hanzi">{cat.hanzi}</span>
-                    <span className="cat-english">{cat.english}</span>
+                    <div className="cat-header-top">
+                      <span className="cat-hanzi">{cat.hanzi}</span>
+                      <span className="cat-english">{cat.english}</span>
+                    </div>
+                    <span className="cat-sub">{cat.sub}</span>
                   </div>
 
                   <div className="scmap-cat-words">

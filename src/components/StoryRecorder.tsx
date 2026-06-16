@@ -1028,8 +1028,8 @@ export default function StoryRecorder({
         <section className="conceptmap-phase">
           <div className="conceptmap-phase-header">
             <p className="eyebrow">Step 2 · Vocabulary Map</p>
-            <h1>Match Words to Scenes</h1>
-            <p className="conceptmap-phase-sub">Drag each word from the bank into the correct scene box</p>
+            <h1>Taiwan Community Story Canvas</h1>
+            <p className="conceptmap-phase-sub">Drag each word into its story role — Characters, Actions, Settings, Objects & Tools, Grammar Glue, or Outcomes</p>
           </div>
           <StoryConceptMap topic={topic} defaultOpen />
           <div className="conceptmap-phase-actions">
