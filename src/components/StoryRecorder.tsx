@@ -9,7 +9,7 @@ const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
   (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
-type SpeechModel = "webspeech" | "ctwhisper" | "vibevoice";
+type SpeechModel = "webspeech" | "ctwhisper" | "groq" | "vibevoice";
 
 interface AiProviderOption {
   id: string;
@@ -708,7 +708,7 @@ export default function StoryRecorder({
     recordingStartRef.current = Date.now();
     setRecordingDuration(0);
 
-    const uploadModel = selectedModel === "webspeech" ? "ctwhisper" : selectedModel;
+    const uploadModel = selectedModel === "webspeech" ? "groq" : selectedModel;
     await analyzeSpeechAudio(file, "", uploadModel, uploadModel);
   };
 
@@ -1153,8 +1153,15 @@ export default function StoryRecorder({
                   </p>
                   <div className="practice-vocab-chips">
                     {selectedVocabulary.map(w => {
-                      const transcript = praatMetrics?.transcription || "";
-                      const used = transcript ? transcript.includes(w) : null;
+                      // Prefer backend phonetic-match result; fall back to character search
+                      const aiVC = praatMetrics?.ai_feedback?.vocabulary_coverage;
+                      let used: boolean | null = null;
+                      if (aiVC) {
+                        if (aiVC.used?.includes(w)) used = true;
+                        else if (aiVC.missing?.includes(w)) used = false;
+                      } else if (praatMetrics?.transcription) {
+                        used = praatMetrics.transcription.includes(w);
+                      }
                       return (
                         <span
                           key={w}
@@ -1171,15 +1178,15 @@ export default function StoryRecorder({
                       );
                     })}
                   </div>
-                  {praatMetrics?.transcription && (
+                  {praatMetrics?.ai_feedback?.vocabulary_coverage && (
                     <p className="vocab-coverage-line">
                       {(() => {
-                        const t = praatMetrics.transcription;
-                        const used = selectedVocabulary.filter(w => t.includes(w));
-                        const missed = selectedVocabulary.filter(w => !t.includes(w));
-                        if (missed.length === 0) return "All vocabulary words used — excellent!";
-                        if (used.length === 0) return `Try to include: ${missed.slice(0, 3).join("、")}`;
-                        return `Used ${used.length}/${selectedVocabulary.length}. Try adding: ${missed.slice(0, 2).join("、")}`;
+                        const vc = praatMetrics.ai_feedback!.vocabulary_coverage!;
+                        const usedList = vc.used ?? [];
+                        const missedList = vc.missing ?? [];
+                        if (missedList.length === 0) return "All vocabulary words used — excellent!";
+                        if (usedList.length === 0) return `Try to include: ${missedList.slice(0, 3).join("、")}`;
+                        return `Used ${usedList.length}/${selectedVocabulary.length}. Try adding: ${missedList.slice(0, 2).join("、")}`;
                       })()}
                     </p>
                   )}
@@ -1279,7 +1286,8 @@ export default function StoryRecorder({
                   disabled={isBusy}
                 >
                   <option value="webspeech">Browser (Traditional Chinese)</option>
-                  <option value="ctwhisper">Whisper (Chinese / Taiwanese)</option>
+                  <option value="groq">Groq Whisper (free, cloud)</option>
+                  <option value="ctwhisper">Whisper (Chinese / Taiwanese, local)</option>
                   <option value="vibevoice">VibeVoice-ASR (local file)</option>
                 </select>
               </details>
@@ -1480,7 +1488,16 @@ export default function StoryRecorder({
 
       <div className="transcriptions">
         <h2>Speech transcript</h2>
-        {transcriptions.length === 0 ? (
+        {praatMetrics?.transcription && (
+          <div className="transcription-item transcription-asr-primary">
+            <div className="item-header">
+              <span className="time">ASR result</span>
+              <span className="model-badge">{(praatMetrics.transcription_model || "ASR").toUpperCase()}</span>
+            </div>
+            <p lang="zh-TW">{praatMetrics.transcription}</p>
+          </div>
+        )}
+        {transcriptions.length === 0 && !praatMetrics?.transcription ? (
           <p className="empty">Your transcript will appear after recording.</p>
         ) : (
           transcriptions.map((item) => (

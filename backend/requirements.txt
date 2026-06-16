@@ -9,6 +9,7 @@ python-dotenv==1.0.0
 praat-parselmouth==0.4.7
 opencc-python-reimplemented==0.1.7
 jieba==0.42.1
+pypinyin==0.52.0
 # Optional ML/ASR models — comment out if not using local ASR
 # funasr>=1.2.6
 # modelscope>=1.17.0

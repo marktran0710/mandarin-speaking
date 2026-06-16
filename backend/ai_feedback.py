@@ -4,6 +4,7 @@ from typing import Dict, List
 
 import httpx
 from dotenv import load_dotenv
+from pypinyin import lazy_pinyin, Style
 
 import caf_metrics
 
@@ -21,8 +22,10 @@ def clean_api_key(value: str | None) -> str | None:
 
 OPENAI_API_KEY = clean_api_key(os.getenv("OPENAI_API_KEY") or os.getenv("VITE_OPENAI_API_KEY"))
 GEMINI_API_KEY = clean_api_key(os.getenv("GEMINI_API_KEY") or os.getenv("VITE_GEMINI_API_KEY"))
+GROQ_API_KEY = clean_api_key(os.getenv("GROQ_API_KEY") or os.getenv("VITE_GROQ_API_KEY"))
 OPENAI_FEEDBACK_MODEL = os.getenv("OPENAI_FEEDBACK_MODEL", "gpt-4o-mini")
 GEMINI_FEEDBACK_MODEL = os.getenv("GEMINI_FEEDBACK_MODEL", "gemini-2.0-flash")
+GROQ_FEEDBACK_MODEL = os.getenv("GROQ_FEEDBACK_MODEL", "llama-3.3-70b-versatile")
 AI_FEEDBACK_PROVIDER = os.getenv("AI_FEEDBACK_PROVIDER", "local").lower()
 
 
@@ -34,6 +37,7 @@ def available_providers() -> List[Dict]:
     """
     return [
         {"id": "local", "label": "Local (offline CAF)", "available": True},
+        {"id": "groq", "label": "Groq (free)", "available": bool(GROQ_API_KEY)},
         {"id": "gemini", "label": "Gemini", "available": bool(GEMINI_API_KEY)},
         {"id": "openai", "label": "ChatGPT (OpenAI)", "available": bool(OPENAI_API_KEY)},
     ]
@@ -41,6 +45,30 @@ def available_providers() -> List[Dict]:
 
 def default_provider() -> str:
     return AI_FEEDBACK_PROVIDER
+
+
+def _to_pinyin(text: str) -> str:
+    """Convert Chinese text to tone-marked pinyin string for phonetic comparison."""
+    return " ".join(lazy_pinyin(text, style=Style.TONE3))
+
+
+def _word_matches_phonetically(vocab_word: str, transcription: str) -> bool:
+    """Return True if vocab_word appears in transcription — by character OR by pinyin.
+
+    This handles ASR homophones: the student said the right sound but the
+    speech-to-text wrote a different character with the same pronunciation.
+    """
+    if vocab_word in transcription:
+        return True
+    # Pinyin of the full vocab word vs a sliding window in the transcription
+    word_pinyin = _to_pinyin(vocab_word)
+    # Build pinyin of every same-length substring in the transcription
+    n = len(vocab_word)
+    for i in range(len(transcription) - n + 1):
+        segment = transcription[i : i + n]
+        if _to_pinyin(segment) == word_pinyin:
+            return True
+    return False
 
 
 def fallback_language_feedback(
@@ -92,8 +120,8 @@ def fallback_language_feedback(
 
     # ── Vocabulary: task coverage blended with lexical diversity ────────────
     scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
-    used_words = [w for w in scene_words if w in text]
-    missing_words = [w for w in scene_words if w not in text]
+    used_words = [w for w in scene_words if _word_matches_phonetically(w, text)]
+    missing_words = [w for w in scene_words if not _word_matches_phonetically(w, text)]
 
     if not scene_words:
         vocab_score = lexical["score"]
@@ -220,12 +248,17 @@ async def generate_language_feedback(
     if chosen == "local":
         return fallback_language_feedback(*args)
 
-    # Honor the explicit choice first, then degrade through the other clouds.
-    order = ["openai", "gemini"] if chosen == "openai" else ["gemini", "openai"]
-    callers = {"openai": _feedback_with_openai, "gemini": _feedback_with_gemini}
-    keys = {"openai": OPENAI_API_KEY, "gemini": GEMINI_API_KEY}
+    # Build priority order: chosen provider first, then others as fallback.
+    all_providers = ["groq", "gemini", "openai"]
+    order = [chosen] + [p for p in all_providers if p != chosen]
+    callers = {
+        "groq": _feedback_with_groq,
+        "openai": _feedback_with_openai,
+        "gemini": _feedback_with_gemini,
+    }
+    keys = {"groq": GROQ_API_KEY, "openai": OPENAI_API_KEY, "gemini": GEMINI_API_KEY}
     for name in order:
-        if not keys[name]:
+        if not keys.get(name):
             continue
         try:
             return await callers[name](*args)
@@ -233,6 +266,50 @@ async def generate_language_feedback(
             print(f"{name} feedback failed, trying next engine: {exc}")
 
     return fallback_language_feedback(*args)
+
+
+async def _feedback_with_groq(
+    transcription: str,
+    scene_prompt: str = "",
+    scene_vocabulary: str = "",
+    praat_tone_accuracy: float = 0,
+    praat_fluency_score: float = 0,
+    praat_vowel_quality: str = "",
+) -> Dict:
+    payload = {
+        "model": GROQ_FEEDBACK_MODEL,
+        "response_format": {"type": "json_object"},
+        "temperature": 0.2,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are an expert Mandarin (Traditional Chinese) speaking coach for Taiwanese learners. "
+                    "Evaluate student speech honestly but encouragingly. "
+                    "Always respond in valid JSON only — no markdown fences, no prose outside the JSON."
+                ),
+            },
+            {
+                "role": "user",
+                "content": _feedback_prompt(transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality),
+            },
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["choices"][0]["message"]["content"]
+    data = json.loads(content)
+    data["provider"] = "groq"
+    return _normalize_feedback(data)
 
 
 async def _feedback_with_openai(
@@ -287,18 +364,33 @@ async def _feedback_with_gemini(
     praat_vowel_quality: str = "",
 ) -> Dict:
     payload = {
+        "system_instruction": {
+            "parts": [
+                {
+                    "text": (
+                        "You are an expert Mandarin (Traditional Chinese) speaking coach for Taiwanese learners. "
+                        "Evaluate student speech honestly but encouragingly. "
+                        "Always respond in valid JSON only — no markdown fences, no prose outside the JSON."
+                    )
+                }
+            ]
+        },
         "contents": [
             {
                 "parts": [
                     {
-                        "text": (
-                            "Return only valid JSON. "
-                            f"{_feedback_prompt(transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)}"
+                        "text": _feedback_prompt(
+                            transcription, scene_prompt, scene_vocabulary,
+                            praat_tone_accuracy, praat_fluency_score, praat_vowel_quality
                         )
                     }
                 ]
             }
-        ]
+        ],
+        "generationConfig": {
+            "temperature": 0.2,
+            "responseMimeType": "application/json",
+        },
     }
 
     async with httpx.AsyncClient(timeout=20) as client:
@@ -325,15 +417,16 @@ def _feedback_prompt(
     praat_vowel_quality: str = "",
 ) -> str:
     scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
-    used = [w for w in scene_words if w in transcription]
-    missing = [w for w in scene_words if w not in transcription]
+    used = [w for w in scene_words if _word_matches_phonetically(w, transcription)]
+    missing = [w for w in scene_words if not _word_matches_phonetically(w, transcription)]
 
     vocab_context = ""
     if scene_words:
         vocab_context = f"""
 Scene vocabulary: {scene_vocabulary}
-Words student used: {', '.join(used) if used else 'none'}
+Words student used (matched by character OR pinyin homophone): {', '.join(used) if used else 'none'}
 Words missing: {', '.join(missing) if missing else 'none'}
+Note: a word counts as "used" if the student pronounced it correctly even if the ASR wrote a different character with the same sound.
 """
 
     praat_context = ""
@@ -345,34 +438,37 @@ Praat acoustic data (use to inform pronunciation feedback):
 {f'- Vowel quality: {praat_vowel_quality}' if praat_vowel_quality else ''}
 """
 
-    return f"""
-You are a Mandarin speaking coach. Analyze this student's transcription:
+    return f"""Analyze this Mandarin learner's spoken response and return JSON feedback.
 
+Scene / task: {scene_prompt or "(open topic)"}
 Student said: {transcription}
-Scene prompt: {scene_prompt or "(none)"}
 {vocab_context}{praat_context}
-Return JSON shaped EXACTLY like this (no extra keys):
+Scoring guide:
+- vocabulary_coverage.score: 0 = no target words used, 100 = all used correctly
+- coherence.score: 0 = incomprehensible, 60 = grammatically acceptable, 90+ = natural native-level
+- pronunciation_note.score: base it on Praat tone accuracy % above if provided; 0 = no speech, 50 = many tone errors, 80+ = clear tones
+
+Return ONLY this JSON (no markdown, no extra keys):
 {{
   "provider": "ai",
   "vocabulary_coverage": {{
-    "score": 0-100,
-    "used": ["word1", "word2"],
-    "missing": ["word3"],
-    "feedback": "one sentence: which scene words were used and which were missed"
+    "score": <int 0-100>,
+    "used": [<target words the student said>],
+    "missing": [<target words not said>],
+    "feedback": "<one sentence — name specific words used and missed>"
   }},
   "coherence": {{
-    "score": 0-100,
-    "feedback": "one sentence on whether the sentence is natural and grammatically complete",
-    "corrections": ["specific short correction if needed"]
+    "score": <int 0-100>,
+    "feedback": "<one sentence — is the sentence grammatically complete and natural Traditional Chinese?>",
+    "corrections": ["<short correction phrase if needed, max 2>"]
   }},
   "pronunciation_note": {{
-    "score": 0-100,
-    "feedback": "one sentence using the Praat data — name specific tones or sounds to improve"
+    "score": <int 0-100>,
+    "feedback": "<one sentence — cite specific tones or sounds to improve, based on Praat data>"
   }},
-  "improved_version": "a natural Mandarin sentence that fits the scene and uses the target vocabulary",
-  "practice_prompt": "one actionable next step for the student"
-}}
-"""
+  "improved_version": "<a fluent Traditional Chinese sentence that fits the scene and includes the target vocabulary>",
+  "practice_prompt": "<one concrete next step — e.g. 'Say X again and hold the falling tone on Y'>"
+}}"""
 
 
 def _strip_json_fence(content: str) -> str:

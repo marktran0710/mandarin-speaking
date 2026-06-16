@@ -1997,6 +1997,17 @@
   margin: 0;
 }
 
+.transcription-asr-primary {
+  border: 2px solid var(--clay-primary);
+  background: color-mix(in srgb, var(--clay-primary) 8%, var(--clay-canvas));
+}
+
+.transcription-asr-primary p {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
 @media (max-width: 920px) {
   .recorder-hero,
   .recording-workspace,

@@ -141,6 +141,8 @@ def clean_api_key(value: Optional[str]) -> Optional[str]:
 # API Keys from environment
 OPENAI_API_KEY = clean_api_key(os.getenv("OPENAI_API_KEY") or os.getenv("VITE_OPENAI_API_KEY"))
 GEMINI_API_KEY = clean_api_key(os.getenv("GEMINI_API_KEY") or os.getenv("VITE_GEMINI_API_KEY"))
+GROQ_API_KEY = clean_api_key(os.getenv("GROQ_API_KEY") or os.getenv("VITE_GROQ_API_KEY"))
+GROQ_WHISPER_MODEL = os.getenv("GROQ_WHISPER_MODEL", "whisper-large-v3")
 ASR_FALLBACK_ORDER = [
     model.strip()
     for model in os.getenv(
@@ -734,7 +736,9 @@ async def _do_analyze(
 
         transcription_model = ""
         if not transcription.strip() and asr_model.strip():
-            transcription_result = await transcribe_audio_content(content, asr_model.strip())
+            transcription_result = await transcribe_audio_content(
+                content, asr_model.strip(), vocab_hint=scene_vocabulary
+            )
             transcription = transcription_result.text
             transcription_model = transcription_result.model
 
@@ -879,9 +883,10 @@ async def transcribe_speech(
 async def transcribe_audio_content(
     audio_content: bytes,
     model: str,
+    vocab_hint: str = "",
 ) -> TranscriptionResponse:
     if model == "auto":
-        return await transcribe_with_auto_fallback(audio_content)
+        return await transcribe_with_auto_fallback(audio_content, vocab_hint=vocab_hint)
 
     if model == "openai":
         if not OPENAI_API_KEY:
@@ -889,7 +894,7 @@ async def transcribe_audio_content(
                 status_code=500,
                 detail="OpenAI API key not configured"
             )
-        return await transcribe_with_openai(audio_content)
+        return await transcribe_with_openai(audio_content, vocab_hint=vocab_hint)
 
     if model == "gemini":
         if not GEMINI_API_KEY:
@@ -897,24 +902,32 @@ async def transcribe_audio_content(
                 status_code=500,
                 detail="Gemini API key not configured"
             )
-        return await transcribe_with_gemini(audio_content)
+        return await transcribe_with_gemini(audio_content, vocab_hint=vocab_hint)
+
+    if model == "groq":
+        if not GROQ_API_KEY:
+            raise HTTPException(
+                status_code=500,
+                detail="Groq API key not configured"
+            )
+        return await transcribe_with_groq(audio_content, vocab_hint=vocab_hint)
 
     if model == "funasr":
         return await transcribe_with_funasr(audio_content)
 
     if model in {"ctwhisper", "chinese_taiwanese_whisper"}:
-        return await transcribe_with_ct_whisper(audio_content)
+        return await transcribe_with_ct_whisper(audio_content, vocab_hint=vocab_hint)
 
     if model == "vibevoice":
         return await transcribe_with_vibevoice(audio_content)
 
     raise HTTPException(
         status_code=400,
-        detail="Invalid model. Use 'auto', 'ctwhisper', 'openai', 'gemini', 'funasr', or 'vibevoice'"
+        detail="Invalid model. Use 'auto', 'ctwhisper', 'openai', 'gemini', 'groq', 'funasr', or 'vibevoice'"
     )
 
 
-async def transcribe_with_auto_fallback(audio_content: bytes) -> TranscriptionResponse:
+async def transcribe_with_auto_fallback(audio_content: bytes, vocab_hint: str = "") -> TranscriptionResponse:
     errors = []
     for provider in ASR_FALLBACK_ORDER:
         if provider == "gemini" and not GEMINI_API_KEY:
@@ -923,9 +936,12 @@ async def transcribe_with_auto_fallback(audio_content: bytes) -> TranscriptionRe
         if provider == "openai" and not OPENAI_API_KEY:
             errors.append("openai: missing API key")
             continue
+        if provider == "groq" and not GROQ_API_KEY:
+            errors.append("groq: missing API key")
+            continue
 
         try:
-            result = await transcribe_audio_content(audio_content, provider)
+            result = await transcribe_audio_content(audio_content, provider, vocab_hint=vocab_hint)
             if result.text.strip():
                 return TranscriptionResponse(
                     text=result.text,
@@ -1269,11 +1285,14 @@ def escape_svg_text(text: str) -> str:
     )
 
 
-async def transcribe_with_openai(audio_content: bytes) -> TranscriptionResponse:
+async def transcribe_with_openai(audio_content: bytes, vocab_hint: str = "") -> TranscriptionResponse:
     """Transcribe using OpenAI Whisper API."""
     async with httpx.AsyncClient() as client:
         files = {"file": ("audio.wav", audio_content, "audio/wav")}
         data = {"model": "whisper-1", "language": "zh"}
+        if vocab_hint.strip():
+            # Whisper uses the prompt to bias recognition toward these words/phrases.
+            data["prompt"] = vocab_hint.strip()
 
         response = await client.post(
             "https://api.openai.com/v1/audio/transcriptions",
@@ -1286,14 +1305,46 @@ async def transcribe_with_openai(audio_content: bytes) -> TranscriptionResponse:
             raise Exception(f"OpenAI API error: {response.text}")
 
         result = response.json()
-        return TranscriptionResponse(text=result["text"], model="openai")
+        text = convert_to_traditional_chinese(result["text"])
+        return TranscriptionResponse(text=text, model="openai")
 
 
-async def transcribe_with_gemini(audio_content: bytes) -> TranscriptionResponse:
+async def transcribe_with_groq(audio_content: bytes, vocab_hint: str = "") -> TranscriptionResponse:
+    """Transcribe using Groq's whisper-large-v3 (free, fast, accurate for Traditional Chinese)."""
+    async with httpx.AsyncClient(timeout=30) as client:
+        files = {"file": ("audio.wav", audio_content, "audio/wav")}
+        data = {
+            "model": GROQ_WHISPER_MODEL,
+            "language": "zh",
+            "response_format": "text",
+        }
+        if vocab_hint.strip():
+            data["prompt"] = vocab_hint.strip()
+
+        response = await client.post(
+            "https://api.groq.com/openai/v1/audio/transcriptions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            files=files,
+            data=data,
+        )
+
+        if response.status_code != 200:
+            raise Exception(f"Groq API error: {response.text}")
+
+        text = convert_to_traditional_chinese(response.text.strip())
+        return TranscriptionResponse(text=text, model="groq")
+
+
+async def transcribe_with_gemini(audio_content: bytes, vocab_hint: str = "") -> TranscriptionResponse:
     """Transcribe using Google Gemini API."""
     import base64
 
     audio_base64 = base64.b64encode(audio_content).decode()
+
+    vocab_line = (
+        f" The speaker may use these words: {vocab_hint.strip()}."
+        if vocab_hint.strip() else ""
+    )
 
     async with httpx.AsyncClient() as client:
         payload = {
@@ -1307,7 +1358,11 @@ async def transcribe_with_gemini(audio_content: bytes) -> TranscriptionResponse:
                             }
                         },
                         {
-                            "text": "Please transcribe this audio to text. Only provide the transcription without any additional explanation."
+                            "text": (
+                                "Transcribe this Mandarin audio to Traditional Chinese (繁體中文)."
+                                f"{vocab_line}"
+                                " Output only the transcription — no explanations, no pinyin, no added punctuation."
+                            )
                         },
                     ]
                 }
@@ -1323,7 +1378,8 @@ async def transcribe_with_gemini(audio_content: bytes) -> TranscriptionResponse:
             raise Exception(f"Gemini API error: {response.text}")
 
         result = response.json()
-        text = result["candidates"][0]["content"]["parts"][0]["text"]
+        text = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+        text = convert_to_traditional_chinese(text)
         return TranscriptionResponse(text=text, model="gemini")
 
 
@@ -1373,7 +1429,7 @@ def _transcribe_with_funasr_sync(audio_content: bytes) -> str:
         text = _extract_funasr_text(result)
         if not text:
             raise RuntimeError("FunASR did not return transcription text.")
-        return text
+        return convert_to_traditional_chinese(text)
     finally:
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
@@ -1416,7 +1472,7 @@ def _get_ct_whisper_model():
     return _ct_whisper_model
 
 
-def _transcribe_with_ct_whisper_sync(audio_content: bytes) -> str:
+def _transcribe_with_ct_whisper_sync(audio_content: bytes, vocab_hint: str = "") -> str:
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
         tmp_file.write(audio_content)
         tmp_path = tmp_file.name
@@ -1438,12 +1494,16 @@ def _transcribe_with_ct_whisper_sync(audio_content: bytes) -> str:
             task=CT_WHISPER_TASK,
         )
 
+        generate_kwargs: dict = {
+            "forced_decoder_ids": forced_decoder_ids,
+            "max_new_tokens": 128,
+        }
+        if vocab_hint.strip():
+            prompt_ids = processor.get_prompt_ids(vocab_hint.strip(), return_tensors="pt")
+            generate_kwargs["prompt_ids"] = prompt_ids.to(device)
+
         with torch.no_grad():
-            predicted_ids = model.generate(
-                input_features,
-                forced_decoder_ids=forced_decoder_ids,
-                max_new_tokens=128,
-            )
+            predicted_ids = model.generate(input_features, **generate_kwargs)
 
         text = processor.batch_decode(
             predicted_ids,
@@ -1467,9 +1527,9 @@ def convert_to_traditional_chinese(text: str) -> str:
         return text
 
 
-async def transcribe_with_ct_whisper(audio_content: bytes) -> TranscriptionResponse:
+async def transcribe_with_ct_whisper(audio_content: bytes, vocab_hint: str = "") -> TranscriptionResponse:
     """Transcribe using a Chinese/Taiwanese Whisper model."""
-    text = await run_in_threadpool(_transcribe_with_ct_whisper_sync, audio_content)
+    text = await run_in_threadpool(_transcribe_with_ct_whisper_sync, audio_content, vocab_hint)
     return TranscriptionResponse(text=text, model="ctwhisper")
 
 
