@@ -1630,25 +1630,44 @@
   background: #fff;
   border: 1px solid #e0e7ff;
   border-radius: 8px;
-  padding: 8px 10px;
+  overflow: hidden;
+  padding: 0;
 }
-.vocab-group-name-input {
-  width: 100%;
-  font-size: 12px;
-  font-weight: 600;
-  color: #4f46e5;
-  border: none;
-  border-bottom: 1px solid #e0e7ff;
-  background: transparent;
-  padding: 0 0 4px 0;
-  margin-bottom: 6px;
-  outline: none;
+.vocab-group-slot-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+}
+.vgs-hanzi {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.vgs-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.vgs-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.03em;
+}
+.vgs-sub {
+  font-size: 9px;
+  color: rgba(255,255,255,0.8);
+  line-height: 1.3;
 }
 .vocab-group-slot-words {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
   min-height: 24px;
+  padding: 6px 8px 8px;
 }
 .vocab-group-add-word-btn {
   background: #f0fdf4;

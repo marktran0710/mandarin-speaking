@@ -1235,14 +1235,16 @@ function clearFrameError(
   };
 }
 
-const DEFAULT_GROUP_NAMES = [
-  "Characters",
-  "Actions",
-  "Settings",
-  "Objects & Tools",
-  "Grammar Glue",
-  "Outcomes",
+const STORY_CANVAS_CATEGORIES = [
+  { name: "Characters",     hanzi: "人物", sub: "Who is in the story?",               color: "#4f46e5" },
+  { name: "Actions",        hanzi: "動作", sub: "What are they doing?",               color: "#d97706" },
+  { name: "Settings",       hanzi: "場景", sub: "Where is it happening?",             color: "#0891b2" },
+  { name: "Objects & Tools",hanzi: "物品", sub: "What are they using or holding?",    color: "#7c3aed" },
+  { name: "Grammar Glue",   hanzi: "語法", sub: "Numbers, Measure Words & Particles", color: "#be185d" },
+  { name: "Outcomes",       hanzi: "結果", sub: "Final result or social closing?",    color: "#059669" },
 ];
+
+const DEFAULT_GROUP_NAMES = STORY_CANVAS_CATEGORIES.map(c => c.name);
 
 function VocabGroupEditor({
   vocabulary,
@@ -1294,11 +1296,6 @@ function VocabGroupEditor({
     onChange(next);
   };
 
-  const updateGroupName = (groupIndex: number, name: string) => {
-    const next = currentGroups.map((g, i) => (i === groupIndex ? { ...g, name } : g));
-    onChange(next);
-  };
-
   return (
     <div className="vocab-group-editor">
       <div className="vocab-group-editor-header">
@@ -1318,14 +1315,17 @@ function VocabGroupEditor({
       )}
 
       <div className="vocab-group-grid">
-        {currentGroups.map((group, gi) => (
+        {currentGroups.map((group, gi) => {
+          const cat = STORY_CANVAS_CATEGORIES[gi];
+          return (
           <div key={gi} className="vocab-group-slot">
-            <input
-              className="vocab-group-name-input"
-              value={group.name}
-              onChange={(e) => updateGroupName(gi, e.target.value)}
-              placeholder={`Group ${gi + 1} name`}
-            />
+            <div className="vocab-group-slot-header" style={{ background: cat?.color ?? "#64748b" }}>
+              <span className="vgs-hanzi">{cat?.hanzi}</span>
+              <div className="vgs-title-block">
+                <span className="vgs-name">{group.name}</span>
+                <span className="vgs-sub">{cat?.sub}</span>
+              </div>
+            </div>
             <div className="vocab-group-slot-words">
               {group.words.map((word) => (
                 <span
@@ -1349,7 +1349,8 @@ function VocabGroupEditor({
               ))}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
