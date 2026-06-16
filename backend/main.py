@@ -735,6 +735,33 @@ async def _do_analyze(
             tmp_path = tmp_file.name
 
         transcription_model = ""
+        ai_feedback = None
+
+        # For cloud AI providers that support audio input, send the recording +
+        # vocabulary together so the model can directly hear which words were spoken.
+        # Groq chains Whisper → LLaMA in one call (no audio LLM yet).
+        # Falls back to the normal ASR → text → feedback path on any error.
+        _audio_assessors = {
+            "gemini": (GEMINI_API_KEY, "ai_feedback", "assess_audio_with_gemini", "gemini-audio"),
+            "openai": (OPENAI_API_KEY, "ai_feedback", "assess_audio_with_openai", "openai-audio"),
+            "groq":   (GROQ_API_KEY,   "ai_feedback", "assess_audio_with_groq",   "groq-audio"),
+        }
+        chosen_provider = (ai_provider or "").strip().lower()
+        audio_assessed = False
+        if not transcription.strip() and chosen_provider in _audio_assessors:
+            api_key, module, fn_name, tag = _audio_assessors[chosen_provider]
+            if api_key:
+                try:
+                    import importlib
+                    mod = importlib.import_module(module)
+                    audio_result = await getattr(mod, fn_name)(content, scene_prompt, scene_vocabulary)
+                    transcription = convert_to_traditional_chinese(audio_result["transcription"])
+                    transcription_model = tag
+                    ai_feedback = audio_result["feedback"]
+                    audio_assessed = True
+                except Exception as exc:
+                    logger.warning(f"{chosen_provider} audio assessment failed, falling back: {exc}")
+
         if not transcription.strip() and asr_model.strip():
             transcription_result = await transcribe_audio_content(
                 content, asr_model.strip(), vocab_hint=scene_vocabulary
@@ -746,13 +773,19 @@ async def _do_analyze(
             return analyze_all(path, tx)
 
         # Run Praat (CPU-bound, threadpool) and AI feedback (I/O-bound) in parallel.
-        # AI uses local fallback by default (instant); if an external provider is
-        # configured the network call hides behind Praat's CPU time.
+        # If audio assessment already produced feedback above, skip the feedback call.
         # After both finish, patch pronunciation_note with real Praat numbers.
-        (praat_result, ai_feedback) = await asyncio.gather(
-            run_in_threadpool(_run_praat, tmp_path, transcription),
-            generate_language_feedback(transcription, scene_prompt, scene_vocabulary, provider=ai_provider or None),
+        feedback_coro = (
+            asyncio.sleep(0)  # no-op placeholder when feedback already done
+            if audio_assessed
+            else generate_language_feedback(transcription, scene_prompt, scene_vocabulary, provider=ai_provider or None)
         )
+        (praat_result, maybe_feedback) = await asyncio.gather(
+            run_in_threadpool(_run_praat, tmp_path, transcription),
+            feedback_coro,
+        )
+        if not audio_assessed:
+            ai_feedback = maybe_feedback
         (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
          word_prosody, detected_tone, tone_accuracy, feedback,
          pause_analysis) = praat_result

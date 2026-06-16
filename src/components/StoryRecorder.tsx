@@ -479,7 +479,17 @@ export default function StoryRecorder({
     };
 
     recognition.onerror = (event: any) => {
-      setError(`Speech recognition error: ${event.error}`);
+      // "network" means the browser can't reach Google's speech servers.
+      // "no-speech" / "aborted" are benign. In all these cases the MediaRecorder
+      // is still running, so just let the recording finish and fall back to the
+      // backend Groq ASR for transcription.
+      const nonFatal = ["network", "no-speech", "aborted"];
+      if (nonFatal.includes(event.error)) {
+        console.warn(`WebSpeech ${event.error} — will use backend ASR instead`);
+        recognition.stop(); // triggers onend → stopAudioRecording → Groq ASR
+      } else {
+        setError(`Speech recognition error: ${event.error}`);
+      }
     };
 
     recognition.onend = () => {

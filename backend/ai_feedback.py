@@ -355,6 +355,250 @@ async def _feedback_with_openai(
     return _normalize_feedback(data)
 
 
+def _audio_assessment_prompt(
+    scene_prompt: str,
+    vocab_line: str,
+    praat_context: str,
+    provider_tag: str,
+) -> str:
+    return f"""Listen to this Mandarin audio recording and do two things:
+1. Transcribe it exactly in Traditional Chinese (繁體中文).
+2. Evaluate the student's speech using the context below.
+
+Scene / task: {scene_prompt or "(open topic)"}
+{vocab_line}{praat_context}
+
+Scoring guide:
+- vocabulary_coverage.score: 0 = no target words used, 100 = all used
+- coherence.score: 60 = acceptable grammar, 90+ = natural native-level
+- pronunciation_note.score: use Praat tone accuracy if provided; 80+ = clear tones
+
+Return ONLY this JSON (no markdown):
+{{
+  "transcription": "<exact Traditional Chinese transcript of the audio>",
+  "provider": "{provider_tag}",
+  "vocabulary_coverage": {{
+    "score": <int 0-100>,
+    "used": [<target words you heard the student say>],
+    "missing": [<target words not heard>],
+    "feedback": "<one sentence on which scene words were used and missed>"
+  }},
+  "coherence": {{
+    "score": <int 0-100>,
+    "feedback": "<one sentence — is the sentence grammatically complete and natural?>",
+    "corrections": ["<short correction if needed, max 2>"]
+  }},
+  "pronunciation_note": {{
+    "score": <int 0-100>,
+    "feedback": "<one sentence citing specific tones or sounds to improve>"
+  }},
+  "improved_version": "<a fluent Traditional Chinese sentence fitting the scene with the target vocabulary>",
+  "practice_prompt": "<one concrete next step for the student>"
+}}"""
+
+
+def _build_audio_context(
+    scene_prompt: str,
+    scene_vocabulary: str,
+    praat_tone_accuracy: float,
+    praat_fluency_score: float,
+    praat_vowel_quality: str,
+) -> tuple[str, str]:
+    """Return (vocab_line, praat_context) strings for audio assessment prompts."""
+    scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
+    vocab_line = (
+        f"Target vocabulary the student should use: {', '.join(scene_words)}."
+        if scene_words else ""
+    )
+    praat_context = ""
+    if praat_tone_accuracy > 0 or praat_fluency_score > 0:
+        praat_context = (
+            f"\nPraat acoustic data:\n"
+            f"- Tone accuracy: {round(praat_tone_accuracy)}%\n"
+            f"- Fluency score: {round(praat_fluency_score)}%"
+        )
+        if praat_vowel_quality:
+            praat_context += f"\n- Vowel quality: {praat_vowel_quality}"
+    return vocab_line, praat_context
+
+
+def _unpack_audio_result(data: dict, provider_tag: str) -> dict:
+    transcription = data.pop("transcription", "")
+    data["provider"] = provider_tag
+    return {"transcription": transcription, "feedback": _normalize_feedback(data)}
+
+
+async def assess_audio_with_gemini(
+    audio_bytes: bytes,
+    scene_prompt: str = "",
+    scene_vocabulary: str = "",
+    praat_tone_accuracy: float = 0,
+    praat_fluency_score: float = 0,
+    praat_vowel_quality: str = "",
+) -> Dict:
+    """Multimodal Gemini call: audio + vocabulary → transcription + feedback in one shot."""
+    import base64
+    audio_b64 = base64.b64encode(audio_bytes).decode()
+    vocab_line, praat_context = _build_audio_context(
+        scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality
+    )
+    prompt = _audio_assessment_prompt(scene_prompt, vocab_line, praat_context, "gemini-audio")
+
+    payload = {
+        "system_instruction": {
+            "parts": [{"text": (
+                "You are an expert Mandarin (Traditional Chinese) speaking coach. "
+                "Listen carefully to the audio. Respond only with valid JSON."
+            )}]
+        },
+        "contents": [{"parts": [
+            {"inline_data": {"mime_type": "audio/wav", "data": audio_b64}},
+            {"text": prompt},
+        ]}],
+        "generationConfig": {
+            "temperature": 0.2,
+            "responseMimeType": "application/json",
+        },
+    }
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_FEEDBACK_MODEL}:generateContent?key={GEMINI_API_KEY}",
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    raw = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+    return _unpack_audio_result(json.loads(_strip_json_fence(raw)), "gemini-audio")
+
+
+async def assess_audio_with_openai(
+    audio_bytes: bytes,
+    scene_prompt: str = "",
+    scene_vocabulary: str = "",
+    praat_tone_accuracy: float = 0,
+    praat_fluency_score: float = 0,
+    praat_vowel_quality: str = "",
+) -> Dict:
+    """Multimodal GPT-4o call: audio + vocabulary → transcription + feedback in one shot."""
+    import base64
+    audio_b64 = base64.b64encode(audio_bytes).decode()
+    vocab_line, praat_context = _build_audio_context(
+        scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality
+    )
+    prompt = _audio_assessment_prompt(scene_prompt, vocab_line, praat_context, "openai-audio")
+
+    payload = {
+        "model": "gpt-4o-audio-preview",
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are an expert Mandarin (Traditional Chinese) speaking coach. "
+                    "Listen carefully to the audio. Respond only with valid JSON."
+                ),
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "input_audio",
+                        "input_audio": {"data": audio_b64, "format": "wav"},
+                    },
+                    {"type": "text", "text": prompt},
+                ],
+            },
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["choices"][0]["message"]["content"]
+    return _unpack_audio_result(json.loads(content), "openai-audio")
+
+
+async def assess_audio_with_groq(
+    audio_bytes: bytes,
+    scene_prompt: str = "",
+    scene_vocabulary: str = "",
+    praat_tone_accuracy: float = 0,
+    praat_fluency_score: float = 0,
+    praat_vowel_quality: str = "",
+) -> Dict:
+    """Groq two-step pipeline: Whisper ASR + LLaMA feedback in one function.
+
+    Groq's LLM API doesn't accept audio input yet, so we chain:
+    audio → Groq whisper-large-v3 (transcription) → Groq LLaMA (feedback)
+    Both calls share the same vocabulary context.
+    """
+    scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
+    vocab_hint = ", ".join(scene_words)
+
+    # Step 1: transcribe with Groq Whisper, biased toward the scene vocabulary
+    async with httpx.AsyncClient(timeout=30) as client:
+        asr_data = {"model": GROQ_WHISPER_MODEL, "language": "zh", "response_format": "text"}
+        if vocab_hint:
+            asr_data["prompt"] = vocab_hint
+        asr_resp = await client.post(
+            "https://api.groq.com/openai/v1/audio/transcriptions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            files={"file": ("audio.wav", audio_bytes, "audio/wav")},
+            data=asr_data,
+        )
+        if asr_resp.status_code != 200:
+            raise RuntimeError(f"Groq ASR error: {asr_resp.text}")
+        from opencc import OpenCC
+        transcription = OpenCC("s2twp").convert(asr_resp.text.strip())
+
+    # Step 2: send transcription + vocabulary to Groq LLaMA for feedback
+    vocab_line, praat_context = _build_audio_context(
+        scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality
+    )
+    feedback_prompt = _feedback_prompt(
+        transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality
+    )
+    payload = {
+        "model": GROQ_FEEDBACK_MODEL,
+        "response_format": {"type": "json_object"},
+        "temperature": 0.2,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are an expert Mandarin (Traditional Chinese) speaking coach. "
+                    "Respond only with valid JSON."
+                ),
+            },
+            {"role": "user", "content": feedback_prompt},
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        llm_resp = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            json=payload,
+        )
+        if llm_resp.status_code != 200:
+            raise RuntimeError(f"Groq LLM error: {llm_resp.text}")
+
+    data = json.loads(llm_resp.json()["choices"][0]["message"]["content"])
+    data["provider"] = "groq-audio"
+    feedback = _normalize_feedback(data)
+    return {"transcription": transcription, "feedback": feedback}
+
+
 async def _feedback_with_gemini(
     transcription: str,
     scene_prompt: str = "",
