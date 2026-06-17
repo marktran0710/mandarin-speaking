@@ -58,9 +58,11 @@ export default function CreateStoryPage({
         <TopicSelector onTopicSelect={handleTopicSelect} />
       ) : (
         <div className="story-recorder-wrapper">
-          <button className="btn-back" onClick={handleBack}>
-            Back to Topics
-          </button>
+          <div className="btn-back-container">
+            <button className="btn-back" onClick={handleBack}>
+              Back to Topics
+            </button>
+          </div>
           <StoryRecorder
             topic={selectedTopic}
             selectedImage={selectedImage}
@@ -69,6 +71,7 @@ export default function CreateStoryPage({
             onImageChange={(image) => setSelectedImage(image)}
             onAddRecord={onAddRecord}
             enableSorting={true}
+            studentName={getStudentName()}
           />
         </div>
       )}

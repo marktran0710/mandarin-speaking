@@ -34,6 +34,7 @@ from database import (
     row_to_audio_record,
     row_to_custom_story,
     row_to_help_request,
+    row_to_story_submission,
 )
 
 from praat_analyzer import (
@@ -284,6 +285,27 @@ class HelpRequest(BaseModel):
     resolvedAt: Optional[str] = None
 
 
+class SceneSubmission(BaseModel):
+    sceneIndex: int
+    imageUrl: str = ""
+    transcription: str = ""
+    vocabUsed: List[str] = []
+    vocabMissing: List[str] = []
+    vocabScore: float = 0
+    toneAccuracy: float = 0
+    pronScore: float = 0
+    audioUrl: Optional[str] = None
+
+
+class StorySubmissionRequest(BaseModel):
+    id: str = Field(..., max_length=128)
+    storyId: str = Field(..., max_length=128)
+    storyTitle: str = Field(default="", max_length=200)
+    studentName: str = Field(default="Student", max_length=100)
+    submittedAt: str
+    scenes: List[SceneSubmission] = []
+
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint with database connectivity status."""
@@ -499,6 +521,42 @@ async def resolve_help_request(request_id: str):
             (request_id,),
         ).fetchone()
     return row_to_help_request(updated)
+
+
+@app.get("/api/story-submissions")
+async def list_story_submissions(story_id: Optional[str] = None):
+    with connect_db() as db:
+        if story_id:
+            rows = db.execute(
+                "SELECT * FROM story_submissions WHERE story_id = ? ORDER BY submitted_at DESC",
+                (story_id,),
+            ).fetchall()
+        else:
+            rows = db.execute(
+                "SELECT * FROM story_submissions ORDER BY submitted_at DESC"
+            ).fetchall()
+    return [row_to_story_submission(row) for row in rows]
+
+
+@app.post("/api/story-submissions")
+async def create_story_submission(submission: StorySubmissionRequest):
+    with connect_db() as db:
+        db.execute(
+            """
+            INSERT OR REPLACE INTO story_submissions
+                (id, story_id, story_title, student_name, submitted_at, scenes)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                submission.id,
+                submission.storyId,
+                submission.storyTitle,
+                submission.studentName,
+                submission.submittedAt,
+                json.dumps([s.model_dump() for s in submission.scenes]),
+            ),
+        )
+    return submission.model_dump()
 
 
 async def save_uploaded_audio(file: UploadFile, record_id: str) -> str:

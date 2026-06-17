@@ -141,7 +141,7 @@ export default function App() {
     return () => window.clearInterval(intervalId);
   }, []);
 
-  const addAudioRecord = (record: AudioRecord) => {
+  const addAudioRecord = async (record: AudioRecord): Promise<string | undefined> => {
     setAudioRecords((prev) => [record, ...prev]);
     const audioData = serializeAudioRecord(record);
     const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
@@ -151,11 +151,9 @@ export default function App() {
     );
 
     if (canUseDatabase()) {
-      createAudioRecord(audioData, record.audioBlob)
-        .then((savedRecord) => {
-          if (!savedRecord?.audioUrl) {
-            return;
-          }
+      try {
+        const savedRecord = await createAudioRecord(audioData, record.audioBlob);
+        if (savedRecord?.audioUrl) {
           updateStoredAudioRecord(record.id, savedRecord.audioUrl);
           setAudioRecords((currentRecords) =>
             currentRecords.map((currentRecord) =>
@@ -164,11 +162,13 @@ export default function App() {
                 : currentRecord,
             ),
           );
-        })
-        .catch((error) => {
-          console.error("Failed to save audio record to database:", error);
-        });
+          return savedRecord.audioUrl;
+        }
+      } catch (error) {
+        console.error("Failed to save audio record to database:", error);
+      }
     }
+    return undefined;
   };
 
   const deleteAudioRecord = (id: string) => {

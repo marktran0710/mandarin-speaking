@@ -81,6 +81,19 @@ def init_db() -> None:
             )
             """
         )
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS story_submissions (
+                id TEXT PRIMARY KEY,
+                story_id TEXT NOT NULL,
+                story_title TEXT NOT NULL,
+                student_name TEXT NOT NULL,
+                submitted_at TEXT NOT NULL,
+                scenes TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
 
 
 def row_to_audio_record(row: sqlite3.Row) -> dict:
@@ -95,6 +108,17 @@ def row_to_audio_record(row: sqlite3.Row) -> dict:
         "imageIndex": row["image_index"],
         "audioUrl": row["audio_url"],
         "praatMetrics": json.loads(row["praat_metrics"] or "null"),
+    }
+
+
+def row_to_story_submission(row: sqlite3.Row) -> dict:
+    return {
+        "id": row["id"],
+        "storyId": row["story_id"],
+        "storyTitle": row["story_title"],
+        "studentName": row["student_name"],
+        "submittedAt": row["submitted_at"],
+        "scenes": json.loads(row["scenes"] or "[]"),
     }
 
 

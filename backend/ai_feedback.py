@@ -93,12 +93,13 @@ def fallback_language_feedback(
 
     if not text:
         prompt_hint = f" about: {scene_prompt}" if scene_prompt else ""
+        all_scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
         return {
             "provider": "local",
             "vocabulary_coverage": {
                 "score": 0,
                 "used": [],
-                "missing": [],
+                "missing": all_scene_words,
                 "feedback": f"No transcription yet. Try one short sentence{prompt_hint}.",
             },
             "coherence": {
@@ -131,8 +132,7 @@ def fallback_language_feedback(
         )
     else:
         coverage_pct = round(len(used_words) / len(scene_words) * 100)
-        # 60% task coverage + 40% lexical diversity (CAF lexical sub-construct).
-        vocab_score = int(round(0.6 * coverage_pct + 0.4 * lexical["score"]))
+        vocab_score = coverage_pct
         if not used_words:
             vocab_feedback = f"None of the scene words were used. Try saying: {', '.join(scene_words[:3])}."
         elif not missing_words:
@@ -422,10 +422,19 @@ def _build_audio_context(
     return vocab_line, praat_context
 
 
-def _unpack_audio_result(data: dict, provider_tag: str) -> dict:
-    transcription = data.pop("transcription", "")
+def _unpack_audio_result(data: dict, provider_tag: str, scene_vocabulary: str = "") -> dict:
+    transcription = data.pop("transcription", "").strip()
     data["provider"] = provider_tag
-    return {"transcription": transcription, "feedback": _normalize_feedback(data)}
+    feedback = _normalize_feedback(data)
+    # Silent recording — AI cannot reliably score what it didn't hear
+    if not transcription:
+        all_scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
+        vc = feedback.get("vocabulary_coverage", {})
+        vc["score"] = 0
+        vc["used"] = []
+        vc["missing"] = all_scene_words
+        feedback["vocabulary_coverage"] = vc
+    return {"transcription": transcription, "feedback": feedback}
 
 
 async def assess_audio_with_gemini(
@@ -471,7 +480,7 @@ async def assess_audio_with_gemini(
         raise RuntimeError(response.text)
 
     raw = response.json()["candidates"][0]["content"]["parts"][0]["text"]
-    return _unpack_audio_result(json.loads(_strip_json_fence(raw)), "gemini-audio")
+    return _unpack_audio_result(json.loads(_strip_json_fence(raw)), "gemini-audio", scene_vocabulary)
 
 
 async def assess_audio_with_openai(
@@ -525,7 +534,7 @@ async def assess_audio_with_openai(
         raise RuntimeError(response.text)
 
     content = response.json()["choices"][0]["message"]["content"]
-    return _unpack_audio_result(json.loads(content), "openai-audio")
+    return _unpack_audio_result(json.loads(content), "openai-audio", scene_vocabulary)
 
 
 async def assess_audio_with_groq(

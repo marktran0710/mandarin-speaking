@@ -1,4 +1,5 @@
-import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useRef, useState, useCallback } from "react";
+import { canUseDatabase, createStorySubmission, type SceneSubmission } from "../database";
 import PitchChart from "../PitchChart";
 import PraatTimeline from "./PraatTimeline";
 import StoryConceptMap from "./StoryConceptMap";
@@ -133,8 +134,9 @@ interface StoryRecorderProps {
     imageUrl: string;
     imageIndex: number;
     praatMetrics: PraatMetrics;
-  }) => void;
+  }) => Promise<string | undefined> | void;
   enableSorting?: boolean;
+  studentName?: string;
 }
 
 export default function StoryRecorder({
@@ -145,6 +147,7 @@ export default function StoryRecorder({
   onImageChange,
   onAddRecord,
   enableSorting = false,
+  studentName = "Student",
 }: StoryRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -162,6 +165,10 @@ export default function StoryRecorder({
   // Per-scene progress: keyed by imageIndex
   const [sceneProgress, setSceneProgress] = useState<Record<number, { attempts: number; bestTone: number; bestFluency: number }>>({});
   const [submittedAudioName, setSubmittedAudioName] = useState("");
+  // Completed scene snapshots for story submission
+  const [sceneRecordings, setSceneRecordings] = useState<Record<number, SceneSubmission>>({});
+  const [storySubmitted, setStorySubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Learning phase: overview → sorting → conceptmap → practice
   const [phase, setPhase] = useState<"overview" | "sorting" | "conceptmap" | "practice">(
@@ -444,7 +451,7 @@ export default function StoryRecorder({
     await startAudioRecording(async (audioBlob) => {
       await analyzeSpeechAudio(
         audioBlob,
-        currentTranscriptRef.current.trim() || practiceAnalysisText,
+        currentTranscriptRef.current.trim(),
       );
     });
 
@@ -602,7 +609,7 @@ export default function StoryRecorder({
         addTranscription(transcript);
         currentTranscriptRef.current = transcript;
       }
-      await analyzeSpeechAudio(wavBlob, transcript || practiceAnalysisText);
+      await analyzeSpeechAudio(wavBlob, transcript);
     } catch (err) {
       setError(formatBackendError(err, BACKEND_URL || "the configured backend"));
     } finally {
@@ -622,7 +629,7 @@ export default function StoryRecorder({
       const wavBlob = await convertBlobToWav(audioBlob);
       const formData = new FormData();
       formData.append("file", wavBlob, "speech.wav");
-      const analysisText = transcription.trim() || (asrModel ? "" : practiceAnalysisText);
+      const analysisText = transcription.trim();
       formData.append("transcription", analysisText);
       if (asrModel) {
         formData.append("asr_model", asrModel);
@@ -677,7 +684,7 @@ export default function StoryRecorder({
         };
       });
 
-      onAddRecord({
+      const recordResult = onAddRecord({
         id: `audio-${Date.now()}`,
         audioBlob: wavBlob,
         timestamp: new Date().toLocaleString(),
@@ -692,6 +699,37 @@ export default function StoryRecorder({
         imageIndex: selectedImageIndex,
         praatMetrics: metrics,
       });
+
+      // Save best snapshot for this scene (overwrite if better vocab score)
+      const vc = metrics.ai_feedback?.vocabulary_coverage;
+      const newSnap: SceneSubmission = {
+        sceneIndex: selectedImageIndex,
+        imageUrl: selectedImage,
+        transcription: finalTranscription,
+        vocabUsed: vc?.used ?? [],
+        vocabMissing: vc?.missing ?? [],
+        vocabScore: vc?.score ?? 0,
+        toneAccuracy: Math.round(metrics.tone_accuracy),
+        pronScore: metrics.ai_feedback?.pronunciation_note?.score ?? 0,
+        audioUrl: "",
+      };
+      setSceneRecordings(prev => {
+        const existing = prev[selectedImageIndex];
+        if (!existing || newSnap.vocabScore >= existing.vocabScore) {
+          return { ...prev, [selectedImageIndex]: newSnap };
+        }
+        return prev;
+      });
+
+      // Patch in the backend audio URL once the upload resolves
+      const savedAudioUrl = await Promise.resolve(recordResult);
+      if (savedAudioUrl) {
+        setSceneRecordings(prev => {
+          const snap = prev[selectedImageIndex];
+          if (!snap) return prev;
+          return { ...prev, [selectedImageIndex]: { ...snap, audioUrl: savedAudioUrl } };
+        });
+      }
     } catch (err) {
       setError(formatBackendError(err, BACKEND_URL || "the configured backend"));
     } finally {
@@ -780,6 +818,31 @@ export default function StoryRecorder({
 
 
 
+  const totalScenes = topic.images.length;
+  const completedSceneCount = Object.keys(sceneRecordings).length;
+  const allScenesRecorded = completedSceneCount >= totalScenes;
+
+  const handleSubmitStory = useCallback(async () => {
+    const scenes = Object.values(sceneRecordings).sort((a, b) => a.sceneIndex - b.sceneIndex);
+    const submission = {
+      id: `submission-${Date.now()}`,
+      storyId: topic.id,
+      storyTitle: topic.name,
+      studentName,
+      submittedAt: new Date().toISOString(),
+      scenes,
+    };
+    try {
+      if (canUseDatabase()) {
+        await createStorySubmission(submission);
+      }
+      setStorySubmitted(true);
+      setSubmitError(null);
+    } catch {
+      setSubmitError("Could not submit story — check your connection and try again.");
+    }
+  }, [sceneRecordings, topic, studentName]);
+
   const allVocabulary = topic.images.flatMap((_, si) => topic.vocabulary[si] || []);
 
   const PHASES = [
@@ -826,14 +889,23 @@ export default function StoryRecorder({
           {allVocabulary.length > 0 && (
             <div className="overview-vocab-block">
               <h2>Key Vocabulary</h2>
-              <div className="overview-vocab-chips">
-                {allVocabulary.map((word, i) => (
-                  <span key={`${word}-${i}`} className="overview-vocab-chip">
-                    <span className="vocab-chip-hanzi">{word}</span>
-                    {toPinyin(word) && <span className="vocab-chip-pinyin">{toPinyin(word)}</span>}
-                  </span>
-                ))}
-              </div>
+              {topic.images.map((_, si) => {
+                const sceneWords = topic.vocabulary[si] || [];
+                if (sceneWords.length === 0) return null;
+                return (
+                  <div key={si} className="overview-vocab-scene">
+                    <span className="overview-vocab-scene-label">Scene {si + 1}</span>
+                    <div className="overview-vocab-chips">
+                      {sceneWords.map((word, i) => (
+                        <span key={`${word}-${i}`} className="overview-vocab-chip">
+                          <span className="vocab-chip-hanzi">{word}</span>
+                          {toPinyin(word) && <span className="vocab-chip-pinyin">{toPinyin(word)}</span>}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -1216,10 +1288,10 @@ export default function StoryRecorder({
                           type="button"
                           className={`record-engine-chip${aiProvider === p.id ? " is-active" : ""}`}
                           onClick={() => setAiProvider(p.id)}
-                          disabled={isBusy || !p.available}
-                          title={p.available ? `Use ${p.label} for feedback` : `${p.label} needs an API key`}
+                          disabled={isBusy || !p.available || p.id === "local"}
+                          title={p.id === "local" ? "Local engine disabled" : p.available ? `Use ${p.label} for feedback` : `${p.label} needs an API key`}
                         >
-                          {p.label}{p.available ? "" : " 🔒"}
+                          {p.label}{p.available && p.id !== "local" ? "" : " 🔒"}
                         </button>
                       ))}
                     </div>
@@ -1340,15 +1412,35 @@ export default function StoryRecorder({
             transcription={praatMetrics.transcription || ""}
           />
 
-          {/* ── Zone 2: Steps to Improve ────────────────────────────── */}
-          {praatMetrics.ai_feedback && (
-            <LearningScaffold
-              ai={praatMetrics.ai_feedback}
-              wordProsody={praatMetrics.word_prosody || []}
-            />
-          )}
+          {(() => {
+            const missing = praatMetrics.ai_feedback?.vocabulary_coverage?.missing ?? [];
+            if (missing.length > 0) {
+              return (
+                <div className="try-again-vocab-gate">
+                  <p className="try-again-gate-title">Practice again — you haven't used all the scene words yet</p>
+                  <div className="try-again-missing-chips">
+                    {missing.map(w => (
+                      <span key={w} className="try-again-missing-chip">{w}</span>
+                    ))}
+                  </div>
+                  <p className="try-again-gate-hint">
+                    Try to use <strong>every word above</strong> in your next recording. ↑ Record again
+                  </p>
+                </div>
+              );
+            }
+            return (
+              <div className="try-again-complete">
+                <span className="try-again-complete-icon">✓</span>
+                <div>
+                  <p className="try-again-complete-title">All vocabulary words used!</p>
+                  <p className="try-again-complete-hint">Now work on pronunciation — record again and focus on the tones. ↑</p>
+                </div>
+              </div>
+            );
+          })()}
 
-          {/* ── Zone 3: Listen back & try again ─────────────────────── */}
+          {/* ── Zone 3: Listen back ──────────────────────────────────── */}
           {/* Tone drill — only shown once student is using scene vocabulary */}
           {(praatMetrics.word_prosody?.length ?? 0) > 0 &&
            (praatMetrics.ai_feedback?.vocabulary_coverage?.used?.length ?? 0) > 0 && (
@@ -1357,41 +1449,6 @@ export default function StoryRecorder({
 
           <div className="listen-try-zone">
             {analysisAudioBlob && <RecordingPlayback blob={analysisAudioBlob} />}
-            <details className="scene-prompt-collapse">
-              <summary>Scene prompt — your target sentence</summary>
-              <ModelExampleCard
-                text={modelExampleText}
-                isScenePrompt={Boolean(scenePromptText)}
-                focusWord={getToneFocusItems(praatMetrics.word_prosody || [])[0]?.token}
-              />
-            </details>
-            {(() => {
-              const missing = praatMetrics.ai_feedback?.vocabulary_coverage?.missing ?? [];
-              if (missing.length > 0) {
-                return (
-                  <div className="try-again-vocab-gate">
-                    <p className="try-again-gate-title">Practice again — you haven't used all the scene words yet</p>
-                    <div className="try-again-missing-chips">
-                      {missing.map(w => (
-                        <span key={w} className="try-again-missing-chip">{w}</span>
-                      ))}
-                    </div>
-                    <p className="try-again-gate-hint">
-                      Try to use <strong>every word above</strong> in your next recording. ↑ Record again
-                    </p>
-                  </div>
-                );
-              }
-              return (
-                <div className="try-again-complete">
-                  <span className="try-again-complete-icon">✓</span>
-                  <div>
-                    <p className="try-again-complete-title">All vocabulary words used!</p>
-                    <p className="try-again-complete-hint">Now work on pronunciation — record again and focus on the tones. ↑</p>
-                  </div>
-                </div>
-              );
-            })()}
           </div>
 
           {/* ── Zone 4: Advanced details (collapsed) ────────────────── */}
@@ -1526,6 +1583,42 @@ export default function StoryRecorder({
           ))
         )}
       </div>
+
+      {/* ── Submit Story ────────────────────────────────────────── */}
+      {storySubmitted ? (
+        <div className="story-submit-panel story-submit-success">
+          <span className="story-submit-icon">✓</span>
+          <div>
+            <p className="story-submit-title">Story submitted!</p>
+            <p className="story-submit-hint">Your teacher can now review all {totalScenes} scenes.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="story-submit-panel">
+          <div className="story-submit-progress">
+            {topic.images.map((_, si) => (
+              <div
+                key={si}
+                className={`story-submit-dot ${sceneRecordings[si] ? "done" : "pending"}`}
+                title={`Scene ${si + 1}${sceneRecordings[si] ? " ✓" : " — not yet recorded"}`}
+              />
+            ))}
+          </div>
+          <p className="story-submit-label">
+            {allScenesRecorded
+              ? "All scenes recorded — ready to submit"
+              : `${completedSceneCount} of ${totalScenes} scenes recorded`}
+          </p>
+          {submitError && <p className="story-submit-error">{submitError}</p>}
+          <button
+            className="btn-submit-story"
+            disabled={!allScenesRecorded}
+            onClick={handleSubmitStory}
+          >
+            Submit Story to Teacher
+          </button>
+        </div>
+      )}
         </>
       )}
     </div>
@@ -1727,86 +1820,6 @@ function studentNextStep(
 
 // ─── Learning Scaffold ────────────────────────────────────────────────────────
 
-interface ScaffoldStep {
-  id: "vocab" | "coherence" | "pronunciation";
-  label: string;
-  status: "focus" | "next" | "done";
-  score: number;
-  headline: string;       // one line: what's wrong
-  drill: string;          // one concrete action to do right now
-  drillDetail?: string;   // extra context / example sentence
-}
-
-function buildScaffoldSteps(
-  ai: LanguageFeedback,
-  wordProsody: WordProsody[],
-): ScaffoldStep[] {
-  const vocabScore  = ai.vocabulary_coverage?.score ?? 0;
-  const cohScore    = ai.coherence?.score ?? 0;
-  const pronScore   = ai.pronunciation_note?.score ?? 0;
-
-  const missing = ai.vocabulary_coverage?.missing ?? [];
-  const badTones = wordProsody.filter(w => w.contour_shape === "variable" || w.contour_shape === "dip").slice(0, 2);
-
-  // Vocab is only "done" when every scene word was actually used
-  const vocabOk  = missing.length === 0;
-  const cohOk    = cohScore  >= 70;
-  const pronOk   = pronScore >= 70;
-
-  const vocabStatus: ScaffoldStep["status"]  = !vocabOk ? "focus" : "done";
-  const cohStatus: ScaffoldStep["status"]    = vocabOk && !cohOk ? "focus" : cohOk ? "done" : "next";
-  const pronStatus: ScaffoldStep["status"]   = vocabOk && cohOk && !pronOk ? "focus" : pronOk ? "done" : "next";
-
-  const vocabDrill = missing.length > 0
-    ? `Say each missing word out loud 3 times, then build a sentence using "${missing[0]}".`
-    : "All scene words covered — try using them in a longer sentence.";
-
-  const cohCorrection = ai.coherence?.corrections?.[0];
-  const cohDrill = cohCorrection
-    ? `Fix this first: ${cohCorrection}. Then record again.`
-    : "Say the sentence aloud slowly, making sure it has a subject, verb, and object.";
-
-  const badChar = badTones[0]?.token;
-  const pronDrill = badChar
-    ? `Isolate "${badChar}" — say it 5 times exaggerating the tone shape, then record the full sentence.`
-    : ai.pronunciation_note?.feedback || "Record again, exaggerating each tone shape.";
-
-  const usedWords = ai.vocabulary_coverage?.used ?? [];
-  // Pronunciation step is only reachable once the student has used at least some vocab
-  const pronReachable = usedWords.length > 0;
-
-  return [
-    {
-      id: "vocab",
-      label: "Step 1 — Vocabulary",
-      status: vocabStatus,
-      score: vocabScore,
-      headline: missing.length > 0
-        ? `You missed ${missing.length} scene word${missing.length > 1 ? "s" : ""}: ${missing.slice(0, 3).join("、")}`
-        : "All scene vocabulary used",
-      drill: vocabDrill,
-      drillDetail: missing.length > 0 ? `Try: "我看到${missing[0]}。"` : undefined,
-    },
-    {
-      id: "coherence",
-      label: "Step 2 — Sentence Structure",
-      status: cohStatus,
-      score: cohScore,
-      headline: cohScore >= 70 ? "Sentence structure sounds natural" : ai.coherence?.feedback || "Work on sentence structure",
-      drill: cohDrill,
-    },
-    {
-      id: "pronunciation",
-      label: "Step 3 — Tones & Pronunciation",
-      status: pronReachable ? pronStatus : "next",
-      score: pronReachable ? pronScore : 0,
-      headline: !pronReachable
-        ? "Use the scene vocabulary first, then work on tones"
-        : pronOk ? "Tones and rhythm sound good" : ai.pronunciation_note?.feedback || "Work on tones",
-      drill: pronReachable ? pronDrill : "Complete Step 1 first — use the scene words in your sentence.",
-    },
-  ];
-}
 
 function FeedbackSummary({
   praatMetrics,
@@ -1819,15 +1832,15 @@ function FeedbackSummary({
 }) {
   const ai = praatMetrics.ai_feedback;
   const vocabScore  = ai?.vocabulary_coverage?.score ?? null;
-  const cohScore    = ai?.coherence?.score ?? null;
   const pronScore   = ai?.pronunciation_note?.score ?? null;
+  const toneScore   = Math.round(praatMetrics.tone_accuracy);
 
   const missingVocab = (ai?.vocabulary_coverage?.missing?.length ?? 0) > 0;
   const vocabListExists = (ai?.vocabulary_coverage) !== undefined;
 
-  const overallScore = vocabScore !== null && cohScore !== null && pronScore !== null
-    ? Math.round((vocabScore + cohScore + pronScore) / 3)
-    : Math.round(praatMetrics.tone_accuracy);
+  const overallScore = vocabScore !== null && pronScore !== null
+    ? Math.round((vocabScore + pronScore + toneScore) / 3)
+    : toneScore;
 
   const overallLabel =
     (vocabListExists && missingVocab) ? "Use all vocab first" :
@@ -1860,11 +1873,10 @@ function FeedbackSummary({
           ...(vocabScore !== null
             ? [
                 { label: "Vocabulary", score: vocabScore, color: "#7c3aed" },
-                { label: "Coherence", score: cohScore!, color: "#0284c7" },
                 { label: "Pronunciation", score: pronScore!, color: "#059669" },
               ]
             : []),
-          { label: "Tone accuracy", score: Math.round(praatMetrics.tone_accuracy), color: "#d97706" },
+          { label: "Tone accuracy", score: toneScore, color: "#d97706" },
         ];
         return bars.length > 0 ? (
         <div className="feedback-summary-bars">
@@ -1881,6 +1893,37 @@ function FeedbackSummary({
         ) : null;
       })()}
 
+      {(pronScore !== null || toneScore > 0) && (
+        <div className="score-guide">
+          <p className="score-guide-heading">How to reach 100%</p>
+          <div className="score-guide-rows">
+            {pronScore !== null && pronScore < 100 && (
+              <div className="score-guide-row">
+                <span className="score-guide-label">Pronunciation</span>
+                <ul className="score-guide-tips">
+                  <li>Hold each syllable long enough — short clipped sounds confuse the detector.</li>
+                  <li>Speak at a steady pace (4–5 syllables/sec). Too fast collapses the pitch contour.</li>
+                  <li>Exaggerate each tone: make rising higher, falling sharper, dipping deeper.</li>
+                  <li>Record in a quiet place — background noise flattens the detected contour.</li>
+                </ul>
+              </div>
+            )}
+            {toneScore < 100 && (
+              <div className="score-guide-row">
+                <span className="score-guide-label">Tone accuracy</span>
+                <ul className="score-guide-tips">
+                  <li><strong>Tone 1 (ā) →</strong> Keep pitch high and completely flat throughout.</li>
+                  <li><strong>Tone 2 (á) ↗</strong> Start mid, push pitch up to the top — like asking a question.</li>
+                  <li><strong>Tone 3 (ǎ) ↘↗</strong> Dip down first, then rise back — the lowest point matters most.</li>
+                  <li><strong>Tone 4 (à) ↘</strong> Start as high as you can and drop sharply to the bottom.</li>
+                  <li>Isolate problem characters from the Tone Drill panel and repeat them 5× before recording the full sentence.</li>
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {transcription && (
         <p className="feedback-summary-transcript">You said: <em lang="zh-TW">"{transcription}"</em></p>
       )}
@@ -1888,63 +1931,6 @@ function FeedbackSummary({
   );
 }
 
-function LearningScaffold({
-  ai,
-  wordProsody,
-}: {
-  ai: LanguageFeedback;
-  wordProsody: WordProsody[];
-}) {
-  if (!ai.vocabulary_coverage) return null;
-  const steps = buildScaffoldSteps(ai, wordProsody);
-
-  return (
-    <div className="scaffold-panel">
-      <div className="scaffold-header">
-        <p className="eyebrow">Language coach</p>
-        <h3>How to improve — step by step</h3>
-      </div>
-
-      <div className="scaffold-steps">
-        {steps.map((step, i) => (
-          <div key={step.id} className={`scaffold-step scaffold-step-${step.status}`}>
-            {/* Step number / status indicator */}
-            <div className="scaffold-step-indicator">
-              <div className="scaffold-step-dot">
-                {step.status === "done" ? "✓" : i + 1}
-              </div>
-              {i < steps.length - 1 && <div className="scaffold-step-line" />}
-            </div>
-
-            {/* Step content */}
-            <div className="scaffold-step-body">
-              <div className="scaffold-step-header">
-                <span className="scaffold-step-label">{step.label}</span>
-                <span className={`scaffold-step-badge scaffold-badge-${step.status}`}>
-                  {step.status === "done" ? "Done" : step.status === "focus" ? "Focus now" : "Up next"}
-                </span>
-                <span className="scaffold-step-score">{step.score}%</span>
-              </div>
-              <p className="scaffold-step-headline">{step.headline}</p>
-
-              {/* Drill — shown for focus and done steps, dimmed for next */}
-              <div className={`scaffold-step-drill ${step.status === "next" ? "dimmed" : ""}`}>
-                <span className="scaffold-drill-icon">{step.status === "done" ? "✓" : "▶"}</span>
-                <div>
-                  <p className="scaffold-drill-text">{step.drill}</p>
-                  {step.drillDetail && (
-                    <p className="scaffold-drill-example" lang="zh-TW">{step.drillDetail}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-    </div>
-  );
-}
 
 const TONE_SHAPES: Record<string, { label: string; arrow: string; tip: string; drill: string }> = {
   level:    { label: "Level →",       arrow: "→", tip: "Stays flat throughout.",       drill: "Say it again and try to add more movement — either rise or fall." },
@@ -2004,75 +1990,72 @@ function ToneDrillPanel({ wordProsody }: { wordProsody: WordProsody[] }) {
           return (
             <div key={`${item.token}-${i}`} className="tone-drill-card">
               <div className="tone-drill-char" lang="zh-TW">{item.token}</div>
-              <div className="tone-drill-shape">
-                <span className="tone-arrow">{shape.arrow}</span>
-                <span className="tone-shape-label">{shape.label}</span>
+
+              {/* Detected */}
+              <div className="tone-drill-section">
+                <span className="tone-drill-label">Detected</span>
+                <div className="tone-drill-shape">
+                  <span className="tone-arrow">{shape.arrow}</span>
+                  <span className="tone-shape-label">{shape.label}</span>
+                </div>
               </div>
-              <p className="tone-drill-tip">{shape.tip}</p>
-              <ol className="tone-drill-steps">
-                <li>Say <strong lang="zh-TW">{item.token}</strong> alone — exaggerate the movement.</li>
-                <li>Repeat 3 times: <strong lang="zh-TW">{item.token} {item.token} {item.token}</strong></li>
-                <li>{shape.drill}</li>
-                <li>Put it back into the full sentence and record again.</li>
-              </ol>
+
+              {/* Recommendation */}
+              <div className="tone-drill-section">
+                <span className="tone-drill-label">Recommendation</span>
+                <p className="tone-drill-tip">{shape.drill}</p>
+              </div>
+
+              {/* Detail */}
+              <div className="tone-drill-section">
+                <span className="tone-drill-label">
+                  Detail
+                  <a
+                    className="tone-drill-detail-link"
+                    href="#tone-shapes-reference"
+                    title="See tone shapes reference"
+                  >?</a>
+                </span>
+                <p className="tone-drill-tip">{shape.tip}</p>
+                <ol className="tone-drill-steps">
+                  <li>Say <strong lang="zh-TW">{item.token}</strong> alone — exaggerate the movement.</li>
+                  <li>Repeat 3×: <strong lang="zh-TW">{item.token} {item.token} {item.token}</strong></li>
+                  <li>Put it back into the full sentence and record again.</li>
+                </ol>
+              </div>
             </div>
           );
         })}
+      </div>
+
+      {/* Tone shapes reference table */}
+      <div id="tone-shapes-reference" className="tone-shapes-reference">
+        <p className="tone-drill-heading" style={{ marginBottom: 10 }}>Tone shapes reference</p>
+        <table className="tone-ref-table">
+          <thead>
+            <tr>
+              <th>Shape</th>
+              <th>Arrow</th>
+              <th>What it means</th>
+              <th>How to fix</th>
+            </tr>
+          </thead>
+          <tbody>
+            {Object.entries(TONE_SHAPES).map(([key, s]) => (
+              <tr key={key}>
+                <td><strong>{s.label}</strong></td>
+                <td className="tone-ref-arrow">{s.arrow}</td>
+                <td>{s.tip}</td>
+                <td>{s.drill}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
 }
 
-function ModelExampleCard({
-  text,
-  isScenePrompt,
-  focusWord,
-}: {
-  text: string;
-  isScenePrompt?: boolean;
-  focusWord?: string;
-}) {
-  const exampleText = text.trim() || "今天天氣很好，我們去公園。";
-  const [playing, setPlaying] = useState(false);
-
-  const playExample = () => {
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(exampleText);
-    utterance.lang = "zh-TW";
-    utterance.rate = 0.78;
-    utterance.pitch = 1;
-    utterance.onstart = () => setPlaying(true);
-    utterance.onend = () => setPlaying(false);
-    utterance.onerror = () => setPlaying(false);
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const stopExample = () => {
-    window.speechSynthesis.cancel();
-    setPlaying(false);
-  };
-
-  return (
-    <section className="model-example-card" aria-label="Model sentence">
-      <div className="model-example-body">
-        <span className="eyebrow">{isScenePrompt ? "Scene prompt — your target sentence" : "Practice sentence"}</span>
-        <p className="model-example-text" lang="zh-TW">{exampleText}</p>
-        {isScenePrompt && (
-          <p className="model-example-hint">
-            This is what your teacher wants you to describe. Listen to the pronunciation, then try to say it yourself.
-          </p>
-        )}
-      </div>
-      <div className="model-example-actions">
-        {focusWord && <em className="focus-word-hint">Focus on: <strong>{focusWord}</strong></em>}
-        <button type="button" className={playing ? "btn-stop-example" : "btn-play-example"} onClick={playing ? stopExample : playExample}>
-          {playing ? "■ Stop" : "▶ Listen"}
-        </button>
-      </div>
-    </section>
-  );
-}
 
 function getToneFocusItems(items: WordProsody[]): WordProsody[] {
   const scored = items.map((item) => ({

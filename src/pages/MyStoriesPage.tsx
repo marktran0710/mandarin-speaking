@@ -7,6 +7,8 @@ import {
   deleteCustomStoryFromDatabase,
   HelpRequest,
   listCustomStories,
+  listStorySubmissions,
+  type StorySubmission,
 } from "../database";
 import {
   CustomTeacherStory,
@@ -69,7 +71,7 @@ interface CustomStoryValidationErrors {
   frames?: Record<number, { imageUrl?: string; prompt?: string }>;
 }
 
-type TeacherView = "overview" | "help" | "materials" | "progress" | "recordings";
+type TeacherView = "overview" | "help" | "materials" | "progress" | "recordings" | "submissions";
 
 function getStudentTopics() {
   return loadPublishedTeacherTopics();
@@ -422,6 +424,17 @@ function TeacherDashboard({
 }) {
   const [activeView, setActiveView] = useState<TeacherView>("overview");
   const [refreshing, setRefreshing] = useState(false);
+  const [submissions, setSubmissions] = useState<StorySubmission[]>([]);
+
+  useEffect(() => {
+    if (!canUseDatabase()) return;
+    listStorySubmissions().then(setSubmissions).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (activeView !== "submissions" || !canUseDatabase()) return;
+    listStorySubmissions().then(setSubmissions).catch(() => {});
+  }, [activeView]);
   const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
     () => loadCustomStories(),
   );
@@ -623,10 +636,10 @@ function TeacherDashboard({
     count?: number;
   }> = [
     { id: "overview", label: "Overview" },
+    { id: "submissions", label: "Submissions", count: submissions.length },
     { id: "help", label: "Help", count: openHelpRequests.length },
     { id: "materials", label: "Materials", count: customStories.length },
     { id: "progress", label: "Progress" },
-    { id: "recordings", label: "Recordings", count: records.length },
   ];
 
   return (
@@ -709,7 +722,6 @@ function TeacherDashboard({
               onResolveHelpRequest={onResolveHelpRequest}
               compact
             />
-            <RecentSubmissionsPanel records={records} />
           </section>
         </>
       )}
@@ -1041,48 +1053,70 @@ function TeacherDashboard({
         )}
       </section>
       )}
-    </div>
-  );
-}
 
-function RecentSubmissionsPanel({ records }: { records: AudioRecord[] }) {
-  return (
-    <div className="teacher-panel review-queue-panel">
-      <div className="teacher-panel-header">
-        <div>
-          <p className="stories-kicker">Review queue</p>
-          <h2>Recent Submissions</h2>
-        </div>
-        <span className="queue-count">{records.length}</span>
-      </div>
-
-      {records.length === 0 ? (
-        <div className="teacher-empty-panel">
-          <strong>No submissions yet</strong>
-          <p>Student recordings will appear here after practice sessions.</p>
-        </div>
-      ) : (
-        <div className="teacher-submission-list">
-          {records.map((record) => (
-            <div className="teacher-submission-row" key={record.id}>
-              <div>
-                <strong>{getTopicLabel(record.topicId)}</strong>
-                <span>
-                  Part {(record.imageIndex ?? 0) + 1} - {record.duration}s
-                </span>
-              </div>
-              <div className="submission-score">
-                {record.praatMetrics
-                  ? `${Math.round(record.praatMetrics.fluency_score)}/100`
-                  : "Pending"}
-              </div>
+      {activeView === "submissions" && (
+        <section className="teacher-panel teacher-submissions-panel">
+          <div className="teacher-panel-header">
+            <div>
+              <p className="stories-kicker">Student story submissions</p>
+              <h2>Submitted Stories</h2>
             </div>
-          ))}
-        </div>
+            <span className="queue-count">{submissions.length}</span>
+          </div>
+          {submissions.length === 0 ? (
+            <div className="teacher-empty-panel">
+              <strong>No submissions yet</strong>
+              <p>Students will appear here after they complete and submit all scenes of a story.</p>
+            </div>
+          ) : (
+            <div className="story-submission-list">
+              {submissions.map((sub) => (
+                <div key={sub.id} className="story-submission-card">
+                  <div className="story-submission-header">
+                    <div>
+                      <p className="story-submission-student">{sub.studentName}</p>
+                      <p className="story-submission-title">{sub.storyTitle}</p>
+                    </div>
+                    <span className="story-submission-date">
+                      {new Date(sub.submittedAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="story-submission-scenes">
+                    {sub.scenes.map((scene) => (
+                      <div key={scene.sceneIndex} className="story-submission-scene">
+                        <div className="sss-header">
+                          <span className="sss-scene-num">Scene {scene.sceneIndex + 1}</span>
+                          <span className="sss-score" title="Vocab / Tone / Pronunciation">
+                            Vocab {scene.vocabScore}% · Tone {scene.toneAccuracy}% · Pron {scene.pronScore}%
+                          </span>
+                        </div>
+                        {scene.transcription && (
+                          <p className="sss-transcription" lang="zh-TW">"{scene.transcription}"</p>
+                        )}
+                        <div className="sss-vocab-row">
+                          {scene.vocabUsed.map(w => (
+                            <span key={w} className="sss-chip sss-chip-used">✓ {w}</span>
+                          ))}
+                          {scene.vocabMissing.map(w => (
+                            <span key={w} className="sss-chip sss-chip-missing">✗ {w}</span>
+                          ))}
+                        </div>
+                        {scene.audioUrl && (
+                          <audio controls src={scene.audioUrl} className="sss-audio" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       )}
     </div>
   );
 }
+
 
 function TeacherHelpQueue({
   helpRequests,

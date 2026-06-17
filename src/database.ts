@@ -59,6 +59,27 @@ export interface StoredCustomStory {
   published?: boolean;
 }
 
+export interface SceneSubmission {
+  sceneIndex: number;
+  imageUrl: string;
+  transcription: string;
+  vocabUsed: string[];
+  vocabMissing: string[];
+  vocabScore: number;
+  toneAccuracy: number;
+  pronScore: number;
+  audioUrl?: string;
+}
+
+export interface StorySubmission {
+  id: string;
+  storyId: string;
+  storyTitle: string;
+  studentName: string;
+  submittedAt: string;
+  scenes: SceneSubmission[];
+}
+
 export interface HelpRequest {
   id: string;
   studentName: string;
@@ -182,6 +203,26 @@ export async function createHelpRequest(request: HelpRequest) {
   }
 
   return response.json() as Promise<HelpRequest>;
+}
+
+export async function listStorySubmissions(storyId?: string): Promise<StorySubmission[]> {
+  const url = storyId
+    ? `${BACKEND_URL}/api/story-submissions?story_id=${encodeURIComponent(storyId)}`
+    : `${BACKEND_URL}/api/story-submissions`;
+  const response = await fetchWithRetry(url);
+  if (!response.ok) throw new Error("Could not load story submissions.");
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createStorySubmission(submission: StorySubmission): Promise<StorySubmission> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/story-submissions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(submission),
+  });
+  if (!response.ok) throw new Error("Could not submit story.");
+  return response.json() as Promise<StorySubmission>;
 }
 
 export async function resolveHelpRequest(id: string) {

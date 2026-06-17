@@ -74,15 +74,6 @@ export default function Navigation({
                   Training
                 </button>
               </li>
-              <li>
-                <button
-                  type="button"
-                  className={`nav-link ${currentPage === "student-stories" ? "active" : ""}`}
-                  onClick={() => onNavigate("student-stories")}
-                >
-                  My Stories
-                </button>
-              </li>
             </>
           )}
 
