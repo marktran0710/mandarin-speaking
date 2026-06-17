@@ -52,6 +52,7 @@ interface MyStoriesPageProps {
   onRaiseHand?: (message: string) => void;
   onResolveHelpRequest?: (id: string) => void;
   onRefreshRecords?: () => Promise<void>;
+  onStorySaved?: () => void;
   publishedTopics?: import("../TopicSelector").Topic[];
 }
 
@@ -153,6 +154,7 @@ export default function MyStoriesPage({
   onRaiseHand,
   onResolveHelpRequest,
   onRefreshRecords,
+  onStorySaved,
   publishedTopics,
 }: MyStoriesPageProps) {
   const isTeacher = mode === "teacher";
@@ -165,6 +167,7 @@ export default function MyStoriesPage({
         helpRequests={helpRequests}
         onResolveHelpRequest={onResolveHelpRequest}
         onRefreshRecords={onRefreshRecords}
+        onStorySaved={onStorySaved}
       />
     );
   }
@@ -415,12 +418,14 @@ function TeacherDashboard({
   helpRequests,
   onResolveHelpRequest,
   onRefreshRecords,
+  onStorySaved,
 }: {
   records: AudioRecord[];
   onDeleteRecord: (id: string) => void;
   helpRequests: HelpRequest[];
   onResolveHelpRequest?: (id: string) => void;
   onRefreshRecords?: () => Promise<void>;
+  onStorySaved?: () => void;
 }) {
   const [activeView, setActiveView] = useState<TeacherView>("overview");
   const [refreshing, setRefreshing] = useState(false);
@@ -582,6 +587,7 @@ function TeacherDashboard({
     setCustomStoryNotice(
       editingStoryId ? "Custom story updated." : "Custom story saved.",
     );
+    onStorySaved?.();
   };
 
   const handleDeleteCustomStory = (id: string) => {

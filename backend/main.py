@@ -570,14 +570,23 @@ async def save_uploaded_audio(file: UploadFile, record_id: str) -> str:
 
 
 def persist_story_frame_images(story_id: str, frames: list[dict]) -> list[dict]:
+    # Load existing frames so we can delete replaced image files
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT frames FROM custom_stories WHERE id = ?", (story_id,)
+        ).fetchone()
+    old_frames = json.loads(row["frames"] or "[]") if row else []
+
     stored_frames = []
     for index, frame in enumerate(frames, start=1):
         image_url = frame.get("imageUrl", "")
         if image_url.startswith("data:image/"):
-            frame = {
-                **frame,
-                "imageUrl": save_data_url_image(image_url, story_id, index),
-            }
+            new_url = save_data_url_image(image_url, story_id, index)
+            # Remove the old uploaded file if it differs from the new one
+            old_url = old_frames[index - 1].get("imageUrl", "") if index - 1 < len(old_frames) else ""
+            if old_url and old_url != new_url and old_url.startswith("/uploads/"):
+                remove_uploaded_file(old_url)
+            frame = {**frame, "imageUrl": new_url}
         stored_frames.append(frame)
     return stored_frames
 
@@ -589,7 +598,8 @@ def save_data_url_image(data_url: str, story_id: str, index: int) -> str:
 
     mime = header.removeprefix("data:").split(";")[0]
     extension = extension_from_mime(mime, default=".png")
-    filename = f"{safe_file_stem(story_id)}-frame-{index}{extension}"
+    ts = int(time.time() * 1000) % 1_000_000  # 6-digit ms suffix busts cache on replace
+    filename = f"{safe_file_stem(story_id)}-frame-{index}-{ts}{extension}"
     path = os.path.join(IMAGE_UPLOAD_DIR, filename)
     content = (
         base64.b64decode(data)

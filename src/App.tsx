@@ -105,14 +105,20 @@ export default function App() {
     loadSavedAudioRecords();
   }, []);
 
+  const refreshPublishedTopics = useCallback(async () => {
+    if (!canUseDatabase()) {
+      setPublishedTopics(loadPublishedTeacherTopics());
+      return;
+    }
+    try {
+      const stories = await listCustomStories();
+      saveCustomStories(stories as any);
+      setPublishedTopics(loadPublishedTeacherTopics());
+    } catch {/* keep current */}
+  }, []);
+
   useEffect(() => {
-    if (!canUseDatabase()) return;
-    listCustomStories()
-      .then((stories) => {
-        saveCustomStories(stories as any);
-        setPublishedTopics(loadPublishedTeacherTopics());
-      })
-      .catch(() => {/* keep localStorage version */});
+    refreshPublishedTopics();
   }, []);
 
   useEffect(() => {
@@ -305,6 +311,7 @@ export default function App() {
           helpRequests={helpRequests}
           onResolveHelpRequest={handleResolveHelpRequest}
           onRefreshRecords={loadSavedAudioRecords}
+          onStorySaved={refreshPublishedTopics}
         />
       )}
       {currentPage === "teacher-image-builder" && activeRole === "teacher" && (
