@@ -1,8 +1,8 @@
 import type { Topic } from "../TopicSelector";
 
 const BACKEND_URL =
-  (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_BACKEND_URL) ||
-  "http://127.0.0.1:8001";
+  import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
 /** Resolve a relative /uploads/... URL to an absolute backend URL. */
 export function resolveImageUrl(url: string): string {
