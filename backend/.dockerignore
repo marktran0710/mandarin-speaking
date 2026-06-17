@@ -1,3 +1,25 @@
+# Python caches
 __pycache__/
 *.pyc
+*.pyo
+.pytest_cache/
+
+# Secrets / local env
 .env
+.env.*
+
+# Dev data must NOT be baked into the image — it lives on the /data volume.
+mandarin_stories.db
+*.db
+*.sqlite3
+uploads/
+
+# Tests and dev-only tooling are not needed in the runtime image.
+tests/
+requirements-dev.txt
+pytest.ini
+
+# Local virtualenvs / logs
+.venv/
+venv/
+*.log
