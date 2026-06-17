@@ -52,6 +52,7 @@ from chinese_tones import (
     generate_comprehensive_feedback,
 )
 from ai_feedback import generate_language_feedback, available_providers, default_provider
+from pypinyin import lazy_pinyin, Style
 
 # Load backend/.env first, then root .env.local for local full-stack runs.
 load_dotenv()
@@ -890,6 +891,7 @@ async def analyze_speech(
 async def transcribe_speech(
     file: UploadFile = File(...),
     model: str = Form("ctwhisper"),
+    vocab_hint: str = Form(""),
 ):
     """
     Transcribe audio to text using the requested backend ASR model.
@@ -900,8 +902,10 @@ async def transcribe_speech(
 
     try:
         content = await file.read()
-
-        return await transcribe_audio_content(content, model)
+        result = await transcribe_audio_content(content, model, vocab_hint=vocab_hint)
+        if vocab_hint.strip():
+            result.text = correct_homophones(result.text, vocab_hint)
+        return result
 
     except HTTPException:
         raise
@@ -1316,6 +1320,40 @@ def escape_svg_text(text: str) -> str:
         .replace(">", "&gt;")
         .replace('"', "&quot;")
     )
+
+
+def correct_homophones(text: str, vocab_hint: str) -> str:
+    """Replace homophones in transcript with vocab words that share the same tone-aware pinyin."""
+    vocab_words = [w.strip() for w in vocab_hint.split(",") if w.strip()]
+    # Build mapping: pinyin-with-tones -> vocab word (longest match wins)
+    vocab_words.sort(key=len, reverse=True)
+    pinyin_to_vocab: dict[str, str] = {}
+    for word in vocab_words:
+        py = " ".join(lazy_pinyin(word, style=Style.TONE3))
+        pinyin_to_vocab[py] = word
+
+    if not pinyin_to_vocab:
+        return text
+
+    # Slide a window over the transcript characters and replace matching runs
+    chars = list(text)
+    max_len = max(len(w) for w in vocab_words)
+    i = 0
+    result: list[str] = []
+    while i < len(chars):
+        replaced = False
+        for length in range(min(max_len, len(chars) - i), 0, -1):
+            segment = "".join(chars[i : i + length])
+            py = " ".join(lazy_pinyin(segment, style=Style.TONE3))
+            if py in pinyin_to_vocab and segment != pinyin_to_vocab[py]:
+                result.append(pinyin_to_vocab[py])
+                i += length
+                replaced = True
+                break
+        if not replaced:
+            result.append(chars[i])
+            i += 1
+    return "".join(result)
 
 
 async def transcribe_with_openai(audio_content: bytes, vocab_hint: str = "") -> TranscriptionResponse:

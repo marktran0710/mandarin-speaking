@@ -582,6 +582,8 @@ export default function StoryRecorder({
       const formData = new FormData();
       formData.append("file", wavBlob, "speech.wav");
       formData.append("model", selectedModel);
+      const sceneVocab = (topic.vocabulary[selectedImageIndex] || []).join(", ");
+      if (sceneVocab) formData.append("vocab_hint", sceneVocab);
 
       const response = await fetch(`${backendUrl}/api/transcribe`, {
         method: "POST",
