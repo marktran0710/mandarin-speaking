@@ -849,6 +849,12 @@ async def _do_analyze(
          word_prosody, detected_tone, tone_accuracy, feedback,
          pause_analysis) = praat_result
 
+        # No speech → noise from the mic can spuriously match a tone reference
+        if not transcription.strip():
+            tone_accuracy = 0
+            detected_tone = 0
+            fluency_score = 0.0
+
         vowel_quality = classify_vowel_quality(formants)
         tone_direction = build_tone_direction(pitch_contour, detected_tone, tone_accuracy)
 
