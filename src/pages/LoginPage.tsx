@@ -1,4 +1,6 @@
 import { FormEvent, useState } from "react";
+import { BiLabel, BiText } from "../components/BiLabel";
+import "../components/BiLabel.css";
 import "./LoginPage.css";
 
 export type LoginRole = "student" | "teacher";
@@ -19,7 +21,7 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
     event.preventDefault();
 
     if (!name.trim()) {
-      setError("Please enter a name.");
+      setError("請輸入名稱 · Please enter a name.");
       return;
     }
 
@@ -37,7 +39,7 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
     <main className="login-page">
       <section className="login-shell">
         <button type="button" className="login-back" onClick={onBack}>
-          Back to portals
+          <BiLabel zh="返回入口" en="Back to portals" />
         </button>
 
         <div className="login-card">
@@ -45,31 +47,37 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
             {isStudent ? "學" : "師"}
           </div>
           <p className="login-kicker">
-            {isStudent ? "Student Portal" : "Teacher Portal"}
+            <BiLabel zh={isStudent ? "學生入口" : "教師入口"} en={isStudent ? "Student Portal" : "Teacher Portal"} />
           </p>
           <h1>{isStudent ? "學生登入" : "教師登入"}</h1>
           <p className="login-description">
-            {isStudent
-              ? "Use the default profile or enter a student name to start training."
-              : "Use the default profile or enter a teacher name to review progress."}
+            <BiText
+              zh={isStudent
+                ? "使用預設帳號或輸入學生姓名開始練習。"
+                : "使用預設帳號或輸入教師姓名查看學習進度。"}
+              en={isStudent
+                ? "Use the default profile or enter a student name to start training."
+                : "Use the default profile or enter a teacher name to review progress."}
+            />
           </p>
 
           <form className="login-form" onSubmit={handleSubmit}>
             <label>
-              {isStudent ? "Student name" : "Teacher name"}
+              <BiLabel zh={isStudent ? "學生姓名" : "教師姓名"} en={isStudent ? "Student name" : "Teacher name"} />
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder={
-                  isStudent ? "Enter student name" : "Enter teacher name"
-                }
+                placeholder={isStudent ? "輸入學生姓名 · Enter student name" : "輸入教師姓名 · Enter teacher name"}
               />
             </label>
 
             {error && <p className="login-error">{error}</p>}
 
             <button type="submit" className="login-submit">
-              Enter {isStudent ? "Student" : "Teacher"} Mode
+              <BiLabel
+                zh={isStudent ? "進入學生模式" : "進入教師模式"}
+                en={isStudent ? "Enter Student Mode" : "Enter Teacher Mode"}
+              />
             </button>
           </form>
         </div>

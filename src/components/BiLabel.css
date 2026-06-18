@@ -1,0 +1,42 @@
+.bi-label {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+  gap: 1px;
+}
+
+.bi-label--block {
+  display: flex;
+  align-items: flex-start;
+}
+
+.bi-zh {
+  font-size: 1em;
+  font-weight: inherit;
+}
+
+.bi-en {
+  font-size: 0.65em;
+  font-weight: 400;
+  opacity: 0.65;
+  letter-spacing: 0.01em;
+}
+
+/* Paragraph variant */
+.bi-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bi-text-zh {
+  font-size: 1em;
+  line-height: 1.5;
+}
+
+.bi-text-en {
+  font-size: 0.8em;
+  opacity: 0.6;
+  line-height: 1.4;
+}
