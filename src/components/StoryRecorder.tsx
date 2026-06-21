@@ -913,10 +913,10 @@ export default function StoryRecorder({
   );
 
   const PHASES = [
-    { key: "overview", label: "Overview", icon: "📖" },
-    { key: "sorting", label: "Arrange Scenes", icon: "🧩" },
-    { key: "conceptmap", label: "Vocabulary Map", icon: "🗺️" },
-    { key: "practice", label: "Speaking", icon: "🎙️" },
+    { key: "overview", label: <BiLabel zh="總覽" en="Overview" />, icon: "📖" },
+    { key: "sorting", label: <BiLabel zh="排列場景" en="Arrange Scenes" />, icon: "🧩" },
+    { key: "conceptmap", label: <BiLabel zh="詞彙地圖" en="Vocabulary Map" />, icon: "🗺️" },
+    { key: "practice", label: <BiLabel zh="口說練習" en="Speaking" />, icon: "🎙️" },
   ] as const;
 
   const phaseOrder = PHASES.map((p) => p.key);
@@ -950,7 +950,7 @@ export default function StoryRecorder({
       {phase === "overview" && (
         <section className="story-overview">
           <div className="overview-hero">
-            <p className="eyebrow">Story Challenge</p>
+            <p className="eyebrow"><BiLabel zh="故事挑戰" en="Story Challenge" /></p>
             <h1 className="overview-title">{topic.name}</h1>
             {topic.description && (
               <p className="overview-desc">{topic.description}</p>
@@ -996,27 +996,27 @@ export default function StoryRecorder({
           )}
 
           <div className="overview-steps-block">
-            <h2>Your Challenge</h2>
+            <h2><BiLabel zh="你的挑戰" en="Your Challenge" /></h2>
             <div className="overview-steps">
               <div className="overview-step">
                 <span className="overview-step-num">1</span>
                 <div>
-                  <strong>Arrange Scenes</strong>
-                  <p>Put the story pictures in the right order</p>
+                  <strong><BiLabel zh="排列場景" en="Arrange Scenes" /></strong>
+                  <p><BiText zh="把故事圖片排成正確順序" en="Put the story pictures in the right order" /></p>
                 </div>
               </div>
               <div className="overview-step">
                 <span className="overview-step-num">2</span>
                 <div>
-                  <strong>Vocabulary Map</strong>
-                  <p>Match key words to each story scene</p>
+                  <strong><BiLabel zh="詞彙地圖" en="Vocabulary Map" /></strong>
+                  <p><BiText zh="把關鍵詞彙配對到每個故事場景" en="Match key words to each story scene" /></p>
                 </div>
               </div>
               <div className="overview-step">
                 <span className="overview-step-num">3</span>
                 <div>
-                  <strong>Speaking Practice</strong>
-                  <p>Record your Mandarin story out loud</p>
+                  <strong><BiLabel zh="口說練習" en="Speaking Practice" /></strong>
+                  <p><BiText zh="把你的普通話故事大聲說出來並錄音" en="Record your Mandarin story out loud" /></p>
                 </div>
               </div>
             </div>
@@ -1038,11 +1038,10 @@ export default function StoryRecorder({
           {/* ── Header ── */}
           <div className="sorting-header">
             <div className="sorting-header-copy">
-              <p className="eyebrow">Step 1 · Arrange Scenes</p>
-              <h1>Put the Story in Order</h1>
+              <p className="eyebrow"><BiLabel zh="步驟 1 · 排列場景" en="Step 1 · Arrange Scenes" /></p>
+              <h1><BiLabel zh="把故事排好順序" en="Put the Story in Order" /></h1>
               <p className="subtitle">
-                Drag each picture into the correct scene slot, then verify the
-                sequence to unlock speaking practice.
+                <BiText zh="把每張圖片拖到正確的場景位置，然後驗證順序以解鎖口說練習。" en="Drag each picture into the correct scene slot, then verify the sequence to unlock speaking practice." />
               </p>
             </div>
             <div className="sorting-progress">
@@ -1210,7 +1209,7 @@ export default function StoryRecorder({
                 className="btn-start-speaking"
                 onClick={() => setPhase("conceptmap")}
               >
-                Continue to Vocabulary Map →
+                <BiLabel zh="繼續到詞彙地圖 →" en="Continue to Vocabulary Map" />
               </button>
             ) : (
               <button
@@ -1219,7 +1218,7 @@ export default function StoryRecorder({
                 onClick={checkSequence}
                 disabled={placedImages.some((img) => img === null)}
               >
-                Verify Sequence
+                <BiLabel zh="驗證順序" en="Verify Sequence" />
               </button>
             )}
 
@@ -1228,7 +1227,7 @@ export default function StoryRecorder({
               className="btn-skip-sorting"
               onClick={() => setPhase("conceptmap")}
             >
-              Skip
+              <BiLabel zh="跳過" en="Skip" />
             </button>
           </div>
         </section>
@@ -1237,11 +1236,10 @@ export default function StoryRecorder({
       {phase === "conceptmap" && (
         <section className="conceptmap-phase">
           <div className="conceptmap-phase-header">
-            <p className="eyebrow">Step 2 · Vocabulary Map</p>
-            <h1>Taiwan Community Story Canvas</h1>
+            <p className="eyebrow"><BiLabel zh="步驟 2 · 詞彙地圖" en="Step 2 · Vocabulary Map" /></p>
+            <h1><BiLabel zh="台灣社區故事畫布" en="Taiwan Community Story Canvas" /></h1>
             <p className="conceptmap-phase-sub">
-              Drag each word into its story role — Characters, Actions,
-              Settings, Objects & Tools, Grammar Glue, or Outcomes
+              <BiText zh="把每個詞彙拖到對應的故事角色 — 人物、動作、場景、物品與工具、文法連接詞，或結果" en="Drag each word into its story role — Characters, Actions, Settings, Objects & Tools, Grammar Glue, or Outcomes" />
             </p>
           </div>
           <StoryConceptMap topic={topic} defaultOpen />
@@ -1250,13 +1248,13 @@ export default function StoryRecorder({
               className="btn-back-phase"
               onClick={() => setPhase("sorting")}
             >
-              ← Back to Scenes
+              <BiLabel zh="← 返回場景" en="Back to Scenes" />
             </button>
             <button
               className="btn-next-phase"
               onClick={() => setPhase("practice")}
             >
-              Continue to Speaking →
+              <BiLabel zh="繼續到口說練習 →" en="Continue to Speaking" />
             </button>
           </div>
         </section>
@@ -1308,10 +1306,12 @@ export default function StoryRecorder({
               return (
                 <div className="scene-ready-banner">
                   <div>
-                    <strong>Scene {selectedImageIndex + 1} complete</strong>
+                    <strong><BiLabel zh={`場景 ${selectedImageIndex + 1} 完成`} en={`Scene ${selectedImageIndex + 1} complete`} /></strong>
                     <p>
-                      Best tone: {prog.bestTone}% · {prog.attempts} attempt
-                      {prog.attempts > 1 ? "s" : ""}
+                      <BiLabel
+                        zh={`最佳聲調：${prog.bestTone}% · ${prog.attempts} 次嘗試`}
+                        en={`Best tone: ${prog.bestTone}% · ${prog.attempts} attempt${prog.attempts > 1 ? "s" : ""}`}
+                      />
                     </p>
                   </div>
                   <button
@@ -1327,7 +1327,7 @@ export default function StoryRecorder({
                       currentTranscriptRef.current = "";
                     }}
                   >
-                    Next scene →
+                    <BiLabel zh="下一個場景 →" en="Next scene" />
                   </button>
                 </div>
               );
@@ -1335,10 +1335,9 @@ export default function StoryRecorder({
             if (ready && !hasNext) {
               return (
                 <div className="scene-ready-banner scene-story-done">
-                  <strong>All scenes practiced!</strong>
+                  <strong><BiLabel zh="所有場景都已練習完成！" en="All scenes practiced!" /></strong>
                   <p>
-                    You've completed the full story. Review your recordings or
-                    record any scene again.
+                    <BiText zh="你已完成整個故事。可以檢視你的錄音，或重新錄製任何場景。" en="You've completed the full story. Review your recordings or record any scene again." />
                   </p>
                 </div>
               );
