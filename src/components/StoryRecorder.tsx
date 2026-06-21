@@ -17,6 +17,7 @@ import { toPinyin } from "../utils/pinyin";
 import "./StoryRecorder.css";
 import { BiLabel, BiText } from "./BiLabel";
 import "./BiLabel.css";
+import { SkillFocusLabel } from "../TopicSelector";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -958,7 +959,7 @@ export default function StoryRecorder({
             {(topic.level || topic.skillFocus) && (
               <div className="overview-meta">
                 {topic.level && <span>{topic.level}</span>}
-                {topic.skillFocus && <span>{topic.skillFocus}</span>}
+                {topic.skillFocus && <span><SkillFocusLabel skillFocus={topic.skillFocus} /></span>}
               </div>
             )}
           </div>

@@ -28,6 +28,13 @@ interface TopicSelectorProps {
 
 export const TOPICS: Topic[] = [];
 
+export function SkillFocusLabel({ skillFocus }: { skillFocus: string }) {
+  if (skillFocus === "Teacher published activity") {
+    return <BiLabel zh="老師發布的活動" en="Teacher published activity" />;
+  }
+  return <>{skillFocus}</>;
+}
+
 export function getTopicVocabulary(topic: Topic, imageIndex: number): string[] {
   return topic.vocabulary[imageIndex] || [];
 }
@@ -170,7 +177,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
               >
                 <span>
                   <strong>{t.name}</strong>
-                  <small>{t.skillFocus}</small>
+                  <small><SkillFocusLabel skillFocus={t.skillFocus} /></small>
                 </span>
                 <em>{t.level}</em>
               </button>
@@ -202,7 +209,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
               </div>
               <div className="topic-meta-item">
                 <span className="topic-meta-icon">🎯</span>
-                <span>{topic.skillFocus}</span>
+                <span><SkillFocusLabel skillFocus={topic.skillFocus} /></span>
               </div>
             </div>
 
