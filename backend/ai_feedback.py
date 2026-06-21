@@ -71,6 +71,19 @@ def _word_matches_phonetically(vocab_word: str, transcription: str) -> bool:
     return False
 
 
+def _content_accuracy_placeholder(image_b64: str | None) -> Dict:
+    """Offline content-accuracy block — vision comparison needs a cloud AI provider."""
+    if not image_b64:
+        return {"score": 0, "feedback": "", "matched_details": [], "missed_details": []}
+    return {
+        "score": 0,
+        "feedback": "Comparing your description against the image needs an AI provider "
+        "(Groq, Gemini, or ChatGPT) — switch engines to get this feedback.",
+        "matched_details": [],
+        "missed_details": [],
+    }
+
+
 def fallback_language_feedback(
     transcription: str,
     scene_prompt: str = "",
@@ -80,6 +93,8 @@ def fallback_language_feedback(
     praat_vowel_quality: str = "",
     praat_pause_analysis: Dict | None = None,
     praat_speech_rate: float = 0,
+    image_b64: str | None = None,
+    image_mime: str = "",
 ) -> Dict:
     """Offline language feedback grounded in the CAF framework.
 
@@ -111,6 +126,7 @@ def fallback_language_feedback(
                 "score": 0,
                 "feedback": f"Record a sentence to get pronunciation feedback.",
             },
+            "content_accuracy": _content_accuracy_placeholder(image_b64),
             "improved_version": "",
             "practice_prompt": f"Record one simple Mandarin sentence{prompt_hint}.",
         }
@@ -217,6 +233,7 @@ def fallback_language_feedback(
             "score": pron_score,
             "feedback": pron_feedback,
         },
+        "content_accuracy": _content_accuracy_placeholder(image_b64),
         "improved_version": text,
         "practice_prompt": practice_next,
     }
@@ -230,6 +247,8 @@ async def generate_language_feedback(
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
     provider: str | None = None,
+    image_b64: str | None = None,
+    image_mime: str = "",
 ) -> Dict:
     """Produce language feedback.
 
@@ -237,16 +256,18 @@ async def generate_language_feedback(
     "openai"). The requested engine is tried first; if it lacks a key or the
     network call fails, we degrade gracefully to any other configured cloud
     provider and finally to the offline CAF engine, so the student always
-    gets feedback.
+    gets feedback. ``image_b64`` (the scene image) lets Gemini/OpenAI also
+    judge whether what the student said actually matches what's pictured —
+    Groq's text model has no vision input, so it's ignored there.
     """
     text = transcription.strip()
     args = (text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
     if not text:
-        return fallback_language_feedback(*args)
+        return fallback_language_feedback(*args, image_b64=image_b64)
 
     chosen = (provider or AI_FEEDBACK_PROVIDER or "local").strip().lower()
     if chosen == "local":
-        return fallback_language_feedback(*args)
+        return fallback_language_feedback(*args, image_b64=image_b64)
 
     # Build priority order: chosen provider first, then others as fallback.
     all_providers = ["groq", "gemini", "openai"]
@@ -261,11 +282,11 @@ async def generate_language_feedback(
         if not keys.get(name):
             continue
         try:
-            return await callers[name](*args)
+            return await callers[name](*args, image_b64=image_b64, image_mime=image_mime)
         except Exception as exc:
             print(f"{name} feedback failed, trying next engine: {exc}")
 
-    return fallback_language_feedback(*args)
+    return fallback_language_feedback(*args, image_b64=image_b64)
 
 
 async def _feedback_with_groq(
@@ -275,7 +296,11 @@ async def _feedback_with_groq(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    image_b64: str | None = None,
+    image_mime: str = "",
 ) -> Dict:
+    # Groq's text LLM has no vision input — content_accuracy falls back to the
+    # offline placeholder regardless of whether an image was supplied.
     payload = {
         "model": GROQ_FEEDBACK_MODEL,
         "response_format": {"type": "json_object"},
@@ -309,7 +334,9 @@ async def _feedback_with_groq(
     content = response.json()["choices"][0]["message"]["content"]
     data = json.loads(content)
     data["provider"] = "groq"
-    return _normalize_feedback(data)
+    feedback = _normalize_feedback(data)
+    feedback["content_accuracy"] = _content_accuracy_placeholder(image_b64)
+    return feedback
 
 
 async def _feedback_with_openai(
@@ -319,7 +346,21 @@ async def _feedback_with_openai(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    image_b64: str | None = None,
+    image_mime: str = "",
 ) -> Dict:
+    prompt_text = _feedback_prompt(
+        transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality,
+        has_image=bool(image_b64),
+    )
+    user_content: list | str = prompt_text
+    if image_b64:
+        mime = image_mime or "image/png"
+        user_content = [
+            {"type": "text", "text": prompt_text},
+            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{image_b64}"}},
+        ]
+
     payload = {
         "model": OPENAI_FEEDBACK_MODEL,
         "response_format": {"type": "json_object"},
@@ -334,7 +375,7 @@ async def _feedback_with_openai(
             },
             {
                 "role": "user",
-                "content": _feedback_prompt(transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality),
+                "content": user_content,
             },
         ],
     }
@@ -360,13 +401,30 @@ def _audio_assessment_prompt(
     vocab_line: str,
     praat_context: str,
     provider_tag: str,
+    has_image: bool = False,
 ) -> str:
+    image_context = (
+        "\nAn image is also attached. Judge content_accuracy by checking whether what the "
+        "student said actually describes what's in the image — people, objects, setting, "
+        "actions — not just whether the target words were said.\n"
+        if has_image else ""
+    )
+    content_accuracy_block = (
+        """,
+  "content_accuracy": {
+    "score": <int 0-100, 0 if no image was given>,
+    "feedback": "<one sentence — does the spoken description actually match what's shown in the image?>",
+    "matched_details": [<things in the image the student correctly described>],
+    "missed_details": [<things visible in the image the student did not mention or got wrong>]
+  }"""
+        if has_image else ""
+    )
     return f"""Listen to this Mandarin audio recording and do two things:
 1. Transcribe it exactly in Traditional Chinese (繁體中文).
 2. Evaluate the student's speech using the context below.
 
 Scene / task: {scene_prompt or "(open topic)"}
-{vocab_line}{praat_context}
+{vocab_line}{praat_context}{image_context}
 
 Scoring guide:
 - vocabulary_coverage.score: 0 = no target words used, 100 = all used
@@ -391,7 +449,7 @@ Return ONLY this JSON (no markdown):
   "pronunciation_note": {{
     "score": <int 0-100>,
     "feedback": "<one sentence citing specific tones or sounds to improve>"
-  }},
+  }}{content_accuracy_block},
   "improved_version": "<a fluent Traditional Chinese sentence fitting the scene with the target vocabulary>",
   "practice_prompt": "<one concrete next step for the student>"
 }}"""
@@ -422,7 +480,9 @@ def _build_audio_context(
     return vocab_line, praat_context
 
 
-def _unpack_audio_result(data: dict, provider_tag: str, scene_vocabulary: str = "") -> dict:
+def _unpack_audio_result(
+    data: dict, provider_tag: str, scene_vocabulary: str = "", image_b64: str | None = None,
+) -> dict:
     transcription = data.pop("transcription", "").strip()
     data["provider"] = provider_tag
     feedback = _normalize_feedback(data)
@@ -434,6 +494,8 @@ def _unpack_audio_result(data: dict, provider_tag: str, scene_vocabulary: str = 
         vc["used"] = []
         vc["missing"] = all_scene_words
         feedback["vocabulary_coverage"] = vc
+    if "content_accuracy" not in feedback and image_b64:
+        feedback["content_accuracy"] = _content_accuracy_placeholder(image_b64)
     return {"transcription": transcription, "feedback": feedback}
 
 
@@ -444,14 +506,23 @@ async def assess_audio_with_gemini(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    image_b64: str | None = None,
+    image_mime: str = "",
 ) -> Dict:
-    """Multimodal Gemini call: audio + vocabulary → transcription + feedback in one shot."""
+    """Multimodal Gemini call: audio + image + vocabulary → transcription + feedback in one shot."""
     import base64
     audio_b64 = base64.b64encode(audio_bytes).decode()
     vocab_line, praat_context = _build_audio_context(
         scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality
     )
-    prompt = _audio_assessment_prompt(scene_prompt, vocab_line, praat_context, "gemini-audio")
+    prompt = _audio_assessment_prompt(scene_prompt, vocab_line, praat_context, "gemini-audio", has_image=bool(image_b64))
+
+    content_parts: list = [
+        {"inline_data": {"mime_type": "audio/wav", "data": audio_b64}},
+        {"text": prompt},
+    ]
+    if image_b64:
+        content_parts.append({"inline_data": {"mime_type": image_mime or "image/png", "data": image_b64}})
 
     payload = {
         "system_instruction": {
@@ -460,10 +531,7 @@ async def assess_audio_with_gemini(
                 "Listen carefully to the audio. Respond only with valid JSON."
             )}]
         },
-        "contents": [{"parts": [
-            {"inline_data": {"mime_type": "audio/wav", "data": audio_b64}},
-            {"text": prompt},
-        ]}],
+        "contents": [{"parts": content_parts}],
         "generationConfig": {
             "temperature": 0.2,
             "responseMimeType": "application/json",
@@ -480,7 +548,7 @@ async def assess_audio_with_gemini(
         raise RuntimeError(response.text)
 
     raw = response.json()["candidates"][0]["content"]["parts"][0]["text"]
-    return _unpack_audio_result(json.loads(_strip_json_fence(raw)), "gemini-audio", scene_vocabulary)
+    return _unpack_audio_result(json.loads(_strip_json_fence(raw)), "gemini-audio", scene_vocabulary, image_b64)
 
 
 async def assess_audio_with_openai(
@@ -490,14 +558,26 @@ async def assess_audio_with_openai(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    image_b64: str | None = None,
+    image_mime: str = "",
 ) -> Dict:
-    """Multimodal GPT-4o call: audio + vocabulary → transcription + feedback in one shot."""
+    """Multimodal GPT-4o call: audio + image + vocabulary → transcription + feedback in one shot."""
     import base64
     audio_b64 = base64.b64encode(audio_bytes).decode()
     vocab_line, praat_context = _build_audio_context(
         scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality
     )
-    prompt = _audio_assessment_prompt(scene_prompt, vocab_line, praat_context, "openai-audio")
+    # gpt-4o-audio-preview doesn't accept image inputs, so content_accuracy
+    # for this path falls back to the offline placeholder (handled below).
+    prompt = _audio_assessment_prompt(scene_prompt, vocab_line, praat_context, "openai-audio", has_image=False)
+
+    user_content: list = [
+        {
+            "type": "input_audio",
+            "input_audio": {"data": audio_b64, "format": "wav"},
+        },
+        {"type": "text", "text": prompt},
+    ]
 
     payload = {
         "model": "gpt-4o-audio-preview",
@@ -512,13 +592,7 @@ async def assess_audio_with_openai(
             },
             {
                 "role": "user",
-                "content": [
-                    {
-                        "type": "input_audio",
-                        "input_audio": {"data": audio_b64, "format": "wav"},
-                    },
-                    {"type": "text", "text": prompt},
-                ],
+                "content": user_content,
             },
         ],
     }
@@ -534,7 +608,7 @@ async def assess_audio_with_openai(
         raise RuntimeError(response.text)
 
     content = response.json()["choices"][0]["message"]["content"]
-    return _unpack_audio_result(json.loads(content), "openai-audio", scene_vocabulary)
+    return _unpack_audio_result(json.loads(content), "openai-audio", scene_vocabulary, image_b64)
 
 
 async def assess_audio_with_groq(
@@ -544,12 +618,15 @@ async def assess_audio_with_groq(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    image_b64: str | None = None,
+    image_mime: str = "",
 ) -> Dict:
     """Groq two-step pipeline: Whisper ASR + LLaMA feedback in one function.
 
     Groq's LLM API doesn't accept audio input yet, so we chain:
     audio → Groq whisper-large-v3 (transcription) → Groq LLaMA (feedback)
-    Both calls share the same vocabulary context.
+    Both calls share the same vocabulary context. Groq's LLaMA has no vision
+    input, so content_accuracy falls back to the offline placeholder.
     """
     scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
     vocab_hint = ", ".join(scene_words)
@@ -605,6 +682,8 @@ async def assess_audio_with_groq(
     data = json.loads(llm_resp.json()["choices"][0]["message"]["content"])
     data["provider"] = "groq-audio"
     feedback = _normalize_feedback(data)
+    if image_b64:
+        feedback["content_accuracy"] = _content_accuracy_placeholder(image_b64)
     return {"transcription": transcription, "feedback": feedback}
 
 
@@ -615,7 +694,21 @@ async def _feedback_with_gemini(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    image_b64: str | None = None,
+    image_mime: str = "",
 ) -> Dict:
+    parts: list = [
+        {
+            "text": _feedback_prompt(
+                transcription, scene_prompt, scene_vocabulary,
+                praat_tone_accuracy, praat_fluency_score, praat_vowel_quality,
+                has_image=bool(image_b64),
+            )
+        }
+    ]
+    if image_b64:
+        parts.append({"inline_data": {"mime_type": image_mime or "image/png", "data": image_b64}})
+
     payload = {
         "system_instruction": {
             "parts": [
@@ -628,18 +721,7 @@ async def _feedback_with_gemini(
                 }
             ]
         },
-        "contents": [
-            {
-                "parts": [
-                    {
-                        "text": _feedback_prompt(
-                            transcription, scene_prompt, scene_vocabulary,
-                            praat_tone_accuracy, praat_fluency_score, praat_vowel_quality
-                        )
-                    }
-                ]
-            }
-        ],
+        "contents": [{"parts": parts}],
         "generationConfig": {
             "temperature": 0.2,
             "responseMimeType": "application/json",
@@ -668,6 +750,7 @@ def _feedback_prompt(
     praat_tone_accuracy: float = 0,
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
+    has_image: bool = False,
 ) -> str:
     scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
     used = [w for w in scene_words if _word_matches_phonetically(w, transcription)]
@@ -691,11 +774,28 @@ Praat acoustic data (use to inform pronunciation feedback):
 {f'- Vowel quality: {praat_vowel_quality}' if praat_vowel_quality else ''}
 """
 
+    image_context = (
+        "\nAn image is attached above. Judge content_accuracy by checking whether what the "
+        "student said actually describes what's in the image — people, objects, setting, "
+        "actions, not just whether the target words were said.\n"
+        if has_image else ""
+    )
+    content_accuracy_block = (
+        """,
+  "content_accuracy": {
+    "score": <int 0-100, 0 if no image was given>,
+    "feedback": "<one sentence — does the spoken description actually match what's shown in the image?>",
+    "matched_details": [<things in the image the student correctly described>],
+    "missed_details": [<things visible in the image the student did not mention or got wrong>]
+  }"""
+        if has_image else ""
+    )
+
     return f"""Analyze this Mandarin learner's spoken response and return JSON feedback.
 
 Scene / task: {scene_prompt or "(open topic)"}
 Student said: {transcription}
-{vocab_context}{praat_context}
+{vocab_context}{praat_context}{image_context}
 Scoring guide:
 - vocabulary_coverage.score: 0 = no target words used, 100 = all used correctly
 - coherence.score: 0 = incomprehensible, 60 = grammatically acceptable, 90+ = natural native-level
@@ -718,7 +818,7 @@ Return ONLY this JSON (no markdown, no extra keys):
   "pronunciation_note": {{
     "score": <int 0-100>,
     "feedback": "<one sentence — cite specific tones or sounds to improve, based on Praat data>"
-  }},
+  }}{content_accuracy_block},
   "improved_version": "<a fluent Traditional Chinese sentence that fits the scene and includes the target vocabulary>",
   "practice_prompt": "<one concrete next step — e.g. 'Say X again and hold the falling tone on Y'>"
 }}"""
@@ -739,6 +839,7 @@ def _normalize_feedback(data: Dict) -> Dict:
     vc_raw = data.get("vocabulary_coverage", {})
     coh_raw = data.get("coherence", {})
     pron_raw = data.get("pronunciation_note", {})
+    ca_raw = data.get("content_accuracy")
 
     normalized = {
         "provider": data.get("provider", "ai"),
@@ -760,6 +861,13 @@ def _normalize_feedback(data: Dict) -> Dict:
         "improved_version": str(data.get("improved_version", "")),
         "practice_prompt": str(data.get("practice_prompt", fallback["practice_prompt"])),
     }
+    if isinstance(ca_raw, dict):
+        normalized["content_accuracy"] = {
+            "score": _score(ca_raw.get("score", 0)),
+            "feedback": str(ca_raw.get("feedback", "")),
+            "matched_details": [str(d) for d in (ca_raw.get("matched_details") or [])[:6]],
+            "missed_details": [str(d) for d in (ca_raw.get("missed_details") or [])[:6]],
+        }
     return normalized
 
 

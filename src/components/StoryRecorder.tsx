@@ -105,6 +105,12 @@ interface LanguageFeedback {
     score: number;
     feedback: string;
   };
+  content_accuracy?: {
+    score: number;
+    feedback: string;
+    matched_details: string[];
+    missed_details: string[];
+  };
   improved_version: string;
   practice_prompt: string;
   // legacy fields kept for backward compat
@@ -679,6 +685,9 @@ export default function StoryRecorder({
       const scenePrompt = topic.prompts?.[selectedImageIndex] || topic.name;
       formData.append("scene_vocabulary", sceneVocab);
       formData.append("scene_prompt", scenePrompt);
+      if (selectedImage) {
+        formData.append("scene_image_url", selectedImage);
+      }
       if (aiProvider) {
         formData.append("ai_provider", aiProvider);
       }
@@ -2146,6 +2155,9 @@ function FeedbackSummary({
   const vocabScore = ai?.vocabulary_coverage?.score ?? null;
   const pronScore = ai?.pronunciation_note?.score ?? null;
   const toneScore = Math.round(praatMetrics.tone_accuracy);
+  const contentAccuracy = ai?.content_accuracy;
+  const contentScore =
+    contentAccuracy && contentAccuracy.feedback ? contentAccuracy.score : null;
 
   const missingVocab = (ai?.vocabulary_coverage?.missing?.length ?? 0) > 0;
   const vocabListExists = ai?.vocabulary_coverage !== undefined;
@@ -2205,6 +2217,9 @@ function FeedbackSummary({
               ]
             : []),
           { label: "聲調 Tone accuracy", score: toneScore, color: "#d97706" },
+          ...(contentScore !== null
+            ? [{ label: "內容準確度 Content accuracy", score: contentScore, color: "#2563eb" }]
+            : []),
         ];
         return bars.length > 0 ? (
           <div className="feedback-summary-bars">
@@ -2286,6 +2301,25 @@ function FeedbackSummary({
         <p className="feedback-summary-transcript">
           You said: <em lang="zh-TW">"{transcription}"</em>
         </p>
+      )}
+
+      {contentAccuracy?.feedback && (
+        <div className="content-accuracy-panel">
+          <p className="score-guide-heading">
+            <BiLabel zh="圖片內容比對" en="Does it match the image?" />
+          </p>
+          <p className="content-accuracy-feedback">{contentAccuracy.feedback}</p>
+          {contentAccuracy.matched_details.length > 0 && (
+            <p className="content-accuracy-matched">
+              ✓ {contentAccuracy.matched_details.join(", ")}
+            </p>
+          )}
+          {contentAccuracy.missed_details.length > 0 && (
+            <p className="content-accuracy-missed">
+              ✗ {contentAccuracy.missed_details.join(", ")}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

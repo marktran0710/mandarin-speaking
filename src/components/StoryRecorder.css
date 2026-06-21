@@ -1528,6 +1528,29 @@
   font-style: normal;
 }
 
+.content-accuracy-panel {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+}
+.content-accuracy-feedback {
+  font-size: 0.85rem;
+  color: #1e3a8a;
+  margin: 0 0 8px;
+}
+.content-accuracy-matched {
+  font-size: 0.8rem;
+  color: #166534;
+  margin: 0 0 4px;
+}
+.content-accuracy-missed {
+  font-size: 0.8rem;
+  color: #b91c1c;
+  margin: 0;
+}
+
 /* ── Submit Story ───────────────────────────────────────────────────────────── */
 .story-submit-panel {
   max-width: 1180px;

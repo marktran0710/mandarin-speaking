@@ -3,6 +3,7 @@ import HomePage from "./pages/HomePage";
 import CreateStoryPage from "./pages/CreateStoryPage";
 import MyStoriesPage from "./pages/MyStoriesPage";
 import VoiceTestPage from "./pages/VoiceTestPage";
+import ImageNarrationPage from "./pages/ImageNarrationPage";
 import TeacherImageBuilderPage from "./pages/TeacherImageBuilderPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -33,6 +34,7 @@ export type Page =
   | "student-practice"
   | "student-stories"
   | "voice-test"
+  | "image-narration"
   | "teacher-dashboard"
   | "teacher-image-builder";
 
@@ -302,6 +304,9 @@ export default function App() {
       )}
       {currentPage === "voice-test" && activeRole === "student" && (
         <VoiceTestPage />
+      )}
+      {currentPage === "image-narration" && activeRole === "student" && (
+        <ImageNarrationPage publishedTopics={publishedTopics} />
       )}
       {currentPage === "teacher-dashboard" && activeRole === "teacher" && (
         <MyStoriesPage

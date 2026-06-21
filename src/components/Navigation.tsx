@@ -74,6 +74,15 @@ export default function Navigation({
                   Training
                 </button>
               </li>
+              <li>
+                <button
+                  type="button"
+                  className={`nav-link ${currentPage === "image-narration" ? "active" : ""}`}
+                  onClick={() => onNavigate("image-narration")}
+                >
+                  Describe the Picture
+                </button>
+              </li>
             </>
           )}
 

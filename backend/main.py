@@ -654,6 +654,55 @@ def remove_uploaded_file(url: str) -> None:
         os.remove(path)
 
 
+_IMAGE_MIME_BY_EXT = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+    ".svg": "image/svg+xml",
+}
+
+
+async def resolve_image_b64(image_ref: str) -> Optional[Tuple[str, str]]:
+    """Resolve a scene image reference to (base64_data, mime_type) for vision prompts.
+
+    Accepts a data: URL, a local /uploads/... path (read straight off disk —
+    it's served by this same backend), or a remote http(s) URL.
+    """
+    ref = (image_ref or "").strip()
+    if not ref:
+        return None
+
+    if ref.startswith("data:image/"):
+        header, _, data = ref.partition(",")
+        mime = header.removeprefix("data:").split(";")[0] or "image/png"
+        return data, mime
+
+    if ref.startswith("/uploads/"):
+        relative_path = ref.removeprefix("/uploads/").replace("/", os.sep)
+        path = os.path.abspath(os.path.join(UPLOAD_DIR, relative_path))
+        upload_root = os.path.abspath(UPLOAD_DIR)
+        if not path.startswith(upload_root) or not os.path.exists(path):
+            return None
+        mime = _IMAGE_MIME_BY_EXT.get(os.path.splitext(path)[1].lower(), "image/png")
+        with open(path, "rb") as fh:
+            return base64.b64encode(fh.read()).decode(), mime
+
+    if ref.startswith("http://") or ref.startswith("https://"):
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.get(ref)
+            if response.status_code != 200:
+                return None
+            mime = response.headers.get("content-type", "image/png").split(";")[0]
+            return base64.b64encode(response.content).decode(), mime
+        except Exception:
+            return None
+
+    return None
+
+
 @app.post("/api/generate-story-images", response_model=StoryImageGenerationResponse)
 async def generate_story_images(request: StoryImageGenerationRequest, req: Request):
     """
@@ -796,6 +845,7 @@ async def _do_analyze(
     scene_prompt: str = "",
     scene_vocabulary: str = "",
     ai_provider: str = "",
+    scene_image_url: str = "",
 ) -> AnalysisResponse:
     tmp_path = None
     try:
@@ -805,6 +855,7 @@ async def _do_analyze(
 
         transcription_model = ""
         ai_feedback = None
+        image_b64, image_mime = await resolve_image_b64(scene_image_url) or (None, "")
 
         # For cloud AI providers that support audio input, send the recording +
         # vocabulary together so the model can directly hear which words were spoken.
@@ -823,7 +874,10 @@ async def _do_analyze(
                 try:
                     import importlib
                     mod = importlib.import_module(module)
-                    audio_result = await getattr(mod, fn_name)(content, scene_prompt, scene_vocabulary)
+                    audio_result = await getattr(mod, fn_name)(
+                        content, scene_prompt, scene_vocabulary,
+                        image_b64=image_b64, image_mime=image_mime,
+                    )
                     transcription = convert_to_traditional_chinese(audio_result["transcription"])
                     transcription_model = tag
                     ai_feedback = audio_result["feedback"]
@@ -847,7 +901,10 @@ async def _do_analyze(
         feedback_coro = (
             asyncio.sleep(0)  # no-op placeholder when feedback already done
             if audio_assessed
-            else generate_language_feedback(transcription, scene_prompt, scene_vocabulary, provider=ai_provider or None)
+            else generate_language_feedback(
+                transcription, scene_prompt, scene_vocabulary, provider=ai_provider or None,
+                image_b64=image_b64, image_mime=image_mime,
+            )
         )
         (praat_result, maybe_feedback) = await asyncio.gather(
             run_in_threadpool(_run_praat, tmp_path, transcription),
@@ -880,6 +937,7 @@ async def _do_analyze(
             praat_vowel_quality=vowel_quality or "",
             praat_pause_analysis=pause_analysis,
             praat_speech_rate=float(speech_rate),
+            image_b64=image_b64,
         )
         if isinstance(ai_feedback, dict):
             if ai_feedback.get("provider") == "local":
@@ -922,6 +980,7 @@ async def analyze_speech(
     scene_prompt: str = Form(""),
     scene_vocabulary: str = Form(""),
     ai_provider: str = Form(""),
+    scene_image_url: str = Form(""),
     req: Request = None,
 ):
     """
@@ -946,7 +1005,7 @@ async def analyze_speech(
 
     try:
         return await asyncio.wait_for(
-            _do_analyze(content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider),
+            _do_analyze(content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url),
             timeout=ANALYZE_TIMEOUT_SECONDS,
         )
     except asyncio.TimeoutError:
