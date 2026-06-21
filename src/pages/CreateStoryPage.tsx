@@ -5,6 +5,8 @@ import { HelpRequest } from "../database";
 import { loadPublishedTeacherTopics } from "../utils/teacherStories";
 import type { Topic } from "../TopicSelector";
 import "./CreateStoryPage.css";
+import { BiLabel, BiText } from "../components/BiLabel";
+import "../components/BiLabel.css";
 
 interface CreateStoryPageProps {
   onAddRecord: (record: any) => void;
@@ -60,7 +62,7 @@ export default function CreateStoryPage({
         <div className="story-recorder-wrapper">
           <div className="btn-back-container">
             <button className="btn-back" onClick={handleBack}>
-              Back to Topics
+              <BiLabel zh="返回主題" en="Back to Topics" />
             </button>
           </div>
           <StoryRecorder
@@ -102,13 +104,13 @@ function StudentHelpPanel({
         <div>
           <strong>
             {activeRequest
-              ? "Teacher has your help request"
-              : "Need teacher help?"}
+              ? <BiLabel zh="老師已收到你的求助" en="Teacher has your help request" />
+              : <BiLabel zh="需要老師協助嗎？" en="Need teacher help?" />}
           </strong>
           <p>
             {activeRequest
-              ? "Stay on your task. Your teacher can see this request."
-              : "Raise your hand from here and your teacher will see it on the dashboard."}
+              ? <BiText zh="請繼續你的任務，老師已經看到這個請求。" en="Stay on your task. Your teacher can see this request." />
+              : <BiText zh="點此舉手，老師會在儀表板上看到。" en="Raise your hand from here and your teacher will see it on the dashboard." />}
           </p>
         </div>
       </div>
@@ -122,10 +124,10 @@ function StudentHelpPanel({
           value={message}
           onChange={(event) => setMessage(event.target.value)}
           aria-label="Help request message"
-          placeholder="What do you need help with?"
+          placeholder="需要什麼幫助？ What do you need help with?"
         />
         <button type="submit" disabled={!onRaiseHand}>
-          {activeRequest ? "Update request" : "Raise hand"}
+          {activeRequest ? <BiLabel zh="更新請求" en="Update request" /> : <BiLabel zh="舉手" en="Raise hand" />}
         </button>
       </form>
     </section>

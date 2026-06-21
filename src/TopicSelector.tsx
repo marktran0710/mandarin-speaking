@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { canUseDatabase, createCustomStory, listCustomStories } from "./database";
 import { loadCustomStories, loadPublishedTeacherTopics, saveCustomStories, storyToTopic } from "./utils/teacherStories";
 import "./TopicSelector.css";
+import { BiLabel, BiText } from "./components/BiLabel";
+import "./components/BiLabel.css";
 
 export interface VocabGroup {
   name: string;
@@ -87,7 +89,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
       <div className="topic-selector">
         <div className="empty-state">
           <div className="empty-icon">⏳</div>
-          <h2>Loading activities…</h2>
+          <h2><BiLabel zh="正在載入活動…" en="Loading activities…" /></h2>
         </div>
       </div>
     );
@@ -98,21 +100,19 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
       <div className="topic-selector">
         <section className="learning-hero">
           <div className="learning-hero-copy">
-            <p className="platform-kicker">Real-life speaking practice</p>
-            <h1>Choose a Daily Situation</h1>
+            <p className="platform-kicker"><BiLabel zh="真實生活口語練習" en="Real-life speaking practice" /></p>
+            <h1><BiLabel zh="選擇一個日常情境" en="Choose a Daily Situation" /></h1>
             <p>
-              Your teacher will publish speaking activities here. Check back once
-              materials are ready!
+              <BiText zh="你的老師會在這裡發布口語練習活動。請稍後再回來查看！" en="Your teacher will publish speaking activities here. Check back once materials are ready!" />
             </p>
           </div>
         </section>
 
         <div className="empty-state">
           <div className="empty-icon">📚</div>
-          <h2>No Activities Yet</h2>
+          <h2><BiLabel zh="目前還沒有活動" en="No Activities Yet" /></h2>
           <p>
-            Your teacher will create and publish speaking activities. They'll
-            appear here when ready.
+            <BiText zh="你的老師將會建立並發布口語練習活動，準備好後會顯示在這裡。" en="Your teacher will create and publish speaking activities. They'll appear here when ready." />
           </p>
         </div>
       </div>
@@ -127,27 +127,28 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
     <div className="topic-selector">
       <section className="learning-hero">
         <div className="learning-hero-copy">
-          <p className="platform-kicker">Real-life speaking practice</p>
-          <h1>Choose a Daily Situation</h1>
+          <p className="platform-kicker"><BiLabel zh="真實生活口語練習" en="Real-life speaking practice" /></p>
+          <h1><BiLabel zh="選擇一個日常情境" en="Choose a Daily Situation" /></h1>
           <p>
-            Select a real situation students may meet in daily life, study the
-            six connected picture cues, prepare useful Mandarin phrases, and
-            record each cue for Praat prosody and Gemini language feedback.
+            <BiText
+              zh="選擇學生日常生活中可能遇到的真實情境，研究六張相連的圖片提示，準備實用的普通話片語，並為每個提示錄音，獲得 Praat 韻律分析與 Gemini 語言回饋。"
+              en="Select a real situation students may meet in daily life, study the six connected picture cues, prepare useful Mandarin phrases, and record each cue for Praat prosody and Gemini language feedback."
+            />
           </p>
         </div>
 
         <div className="learning-objectives" aria-label="Learning objectives">
           <div>
             <strong>1</strong>
-            <span>Plan the story</span>
+            <span><BiLabel zh="規劃故事" en="Plan the story" /></span>
           </div>
           <div>
             <strong>2</strong>
-            <span>Record Mandarin speech</span>
+            <span><BiLabel zh="錄製普通話語音" en="Record Mandarin speech" /></span>
           </div>
           <div>
             <strong>3</strong>
-            <span>Review pronunciation and language feedback</span>
+            <span><BiLabel zh="檢視發音與語言回饋" en="Review pronunciation and language feedback" /></span>
           </div>
         </div>
       </section>
@@ -155,8 +156,8 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
       <section className="activity-layout">
         <aside className="activity-sidebar" aria-label="Story topics">
           <div className="sidebar-heading">
-            <p className="platform-kicker">Activity menu</p>
-            <h2>Teacher published topics</h2>
+            <p className="platform-kicker"><BiLabel zh="活動選單" en="Activity menu" /></p>
+            <h2><BiLabel zh="老師發布的主題" en="Teacher published topics" /></h2>
           </div>
 
           <div className="topic-list">
@@ -178,7 +179,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
         </aside>
 
         <section className="activity-preview" aria-label="Selected activity">
-          <p className="platform-kicker">Selected module</p>
+          <p className="platform-kicker"><BiLabel zh="已選模組" en="Selected module" /></p>
 
           <div className="topic-summary-card">
             <div className="topic-summary-top">
@@ -193,11 +194,11 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
             <div className="topic-summary-meta">
               <div className="topic-meta-item">
                 <span className="topic-meta-icon">🎬</span>
-                <span>{totalScenes} scenes</span>
+                <span><BiLabel zh={`${totalScenes} 個場景`} en={`${totalScenes} scenes`} /></span>
               </div>
               <div className="topic-meta-item">
                 <span className="topic-meta-icon">📝</span>
-                <span>{totalWords} vocabulary words</span>
+                <span><BiLabel zh={`${totalWords} 個詞彙`} en={`${totalWords} vocabulary words`} /></span>
               </div>
               <div className="topic-meta-item">
                 <span className="topic-meta-icon">🎯</span>
@@ -210,7 +211,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
               className="start-activity-btn"
               onClick={() => onTopicSelect?.(topic)}
             >
-              Start this activity →
+              <BiLabel zh="開始這個活動 →" en="Start this activity" />
             </button>
           </div>
         </section>

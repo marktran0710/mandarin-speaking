@@ -1,6 +1,8 @@
 import "./Navigation.css";
 import { Page } from "../App";
 import { LoginRole } from "../pages/LoginPage";
+import { BiLabel } from "./BiLabel";
+import "./BiLabel.css";
 
 interface NavigationProps {
   currentPage: Page;
@@ -39,7 +41,7 @@ export default function Navigation({
                   className={`nav-link ${currentPage === "home" ? "active" : ""}`}
                   onClick={() => onNavigate("home")}
                 >
-                  Portals
+                  <BiLabel zh="入口" en="Portals" />
                 </button>
               </li>
               <li>
@@ -48,7 +50,7 @@ export default function Navigation({
                   className={`nav-link ${currentPage === "student-login" ? "active" : ""}`}
                   onClick={() => onNavigate("student-login")}
                 >
-                  Student Login
+                  <BiLabel zh="學生登入" en="Student Login" />
                 </button>
               </li>
               <li>
@@ -57,7 +59,7 @@ export default function Navigation({
                   className={`nav-link ${currentPage === "teacher-login" ? "active" : ""}`}
                   onClick={() => onNavigate("teacher-login")}
                 >
-                  Teacher Login
+                  <BiLabel zh="教師登入" en="Teacher Login" />
                 </button>
               </li>
             </>
@@ -71,7 +73,7 @@ export default function Navigation({
                   className={`nav-link ${currentPage === "student-practice" ? "active" : ""}`}
                   onClick={() => onNavigate("student-practice")}
                 >
-                  Training
+                  <BiLabel zh="訓練" en="Training" />
                 </button>
               </li>
             </>
@@ -85,7 +87,7 @@ export default function Navigation({
                   className={`nav-link ${currentPage === "teacher-dashboard" ? "active" : ""}`}
                   onClick={() => onNavigate("teacher-dashboard")}
                 >
-                  Dashboard
+                  <BiLabel zh="儀表板" en="Dashboard" />
                 </button>
               </li>
               <li>
@@ -94,7 +96,7 @@ export default function Navigation({
                   className={`nav-link ${currentPage === "teacher-image-builder" ? "active" : ""}`}
                   onClick={() => onNavigate("teacher-image-builder")}
                 >
-                  Image Builder
+                  <BiLabel zh="圖片產生器" en="Image Builder" />
                 </button>
               </li>
             </>
@@ -103,7 +105,7 @@ export default function Navigation({
           {activeRole && (
             <li>
               <button type="button" className="nav-link logout" onClick={onLogout}>
-                Log out
+<BiLabel zh="登出" en="Log out" />
               </button>
             </li>
           )}
