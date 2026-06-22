@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <rect width="600" height="400" fill="#fdf3dc"/>
+  <rect y="300" width="600" height="100" fill="#d8c39a"/>
+  <!-- stall -->
+  <rect x="80" y="160" width="220" height="20" fill="#c0392b"/>
+  <rect x="90" y="180" width="200" height="120" fill="#fff" stroke="#c0392b" stroke-width="4"/>
+  <rect x="80" y="140" width="20" height="40" fill="#7a5230"/>
+  <rect x="280" y="140" width="20" height="40" fill="#7a5230"/>
+  <!-- fruit -->
+  <circle cx="130" cy="230" r="14" fill="#e74c3c"/>
+  <circle cx="160" cy="235" r="14" fill="#e67e22"/>
+  <circle cx="190" cy="230" r="14" fill="#f1c40f"/>
+  <circle cx="220" cy="235" r="14" fill="#27ae60"/>
+  <circle cx="250" cy="230" r="14" fill="#e74c3c"/>
+  <!-- vendor -->
+  <circle cx="380" cy="210" r="16" fill="#ffd9b3"/>
+  <rect x="365" y="226" width="30" height="50" fill="#3a7bd5"/>
+  <!-- customer -->
+  <circle cx="460" cy="220" r="16" fill="#ffe0c2"/>
+  <rect x="445" y="236" width="30" height="50" fill="#9b59b6"/>
+  <text x="20" y="380" font-size="20" fill="#1f2937">市場買水果 (Buying fruit at the market)</text>
+</svg>

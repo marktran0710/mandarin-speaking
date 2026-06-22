@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 400">
+  <rect width="600" height="400" fill="#bfe3f0"/>
+  <rect y="280" width="600" height="120" fill="#8fcf8a"/>
+  <circle cx="500" cy="70" r="40" fill="#fff7d6"/>
+  <g stroke="#6b7280" stroke-width="6" fill="none" opacity="0.6">
+    <line x1="120" y1="40" x2="100" y2="80"/>
+    <line x1="140" y1="40" x2="160" y2="80"/>
+    <line x1="160" y1="50" x2="150" y2="90"/>
+  </g>
+  <!-- tree -->
+  <rect x="80" y="220" width="20" height="70" fill="#7a5230"/>
+  <circle cx="90" cy="200" r="45" fill="#3f9142"/>
+  <!-- bench -->
+  <rect x="250" y="300" width="100" height="10" fill="#7a5230"/>
+  <rect x="250" y="280" width="10" height="30" fill="#7a5230"/>
+  <rect x="340" y="280" width="10" height="30" fill="#7a5230"/>
+  <!-- child running with umbrella -->
+  <circle cx="420" cy="250" r="14" fill="#ffd9b3"/>
+  <rect x="410" y="264" width="20" height="35" fill="#ef6c6c"/>
+  <line x1="415" y1="299" x2="405" y2="320" stroke="#222" stroke-width="4"/>
+  <line x1="425" y1="299" x2="438" y2="318" stroke="#222" stroke-width="4"/>
+  <path d="M420 235 a25 25 0 0 1 50 0 z" fill="#5b8def"/>
+  <line x1="445" y1="235" x2="445" y2="260" stroke="#333" stroke-width="3"/>
+  <text x="20" y="380" font-size="20" fill="#1f2937">下雨的公園 (Rainy park)</text>
+</svg>
