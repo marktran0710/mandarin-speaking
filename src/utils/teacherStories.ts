@@ -21,6 +21,9 @@ export interface CustomStoryFrame {
   prompt: string;
   vocabulary: string;
   vocabularyGroups?: VocabGroup[];
+  grammarPattern?: string;
+  listenAudioUrl?: string;
+  listenScript?: string;
 }
 
 export interface CustomTeacherStory {
@@ -30,6 +33,7 @@ export interface CustomTeacherStory {
   level: string;
   frames: CustomStoryFrame[];
   published?: boolean;
+  linear?: boolean;
 }
 
 export const CUSTOM_STORY_STORAGE_KEY = "teacherCustomStories";
@@ -72,9 +76,21 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
   );
 
   const vocabularyGroups: Record<number, import("../TopicSelector").VocabGroup[]> = {};
+  const grammarPatterns: Record<number, string> = {};
+  const listenAudioUrls: Record<number, string> = {};
+  const listenScripts: Record<number, string> = {};
   story.frames.forEach((frame, index) => {
     if (frame.vocabularyGroups && frame.vocabularyGroups.length > 0) {
       vocabularyGroups[index] = frame.vocabularyGroups;
+    }
+    if (frame.grammarPattern && frame.grammarPattern.trim()) {
+      grammarPatterns[index] = frame.grammarPattern.trim();
+    }
+    if (frame.listenAudioUrl && frame.listenAudioUrl.trim()) {
+      listenAudioUrls[index] = resolveImageUrl(frame.listenAudioUrl.trim());
+    }
+    if (frame.listenScript && frame.listenScript.trim()) {
+      listenScripts[index] = frame.listenScript.trim();
     }
   });
 
@@ -88,5 +104,9 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
     prompts: story.frames.map((frame) => frame.prompt),
     vocabulary,
     ...(Object.keys(vocabularyGroups).length > 0 ? { vocabularyGroups } : {}),
+    ...(Object.keys(grammarPatterns).length > 0 ? { grammarPatterns } : {}),
+    ...(Object.keys(listenAudioUrls).length > 0 ? { listenAudioUrls } : {}),
+    ...(Object.keys(listenScripts).length > 0 ? { listenScripts } : {}),
+    ...(story.linear ? { linear: true } : {}),
   };
 }

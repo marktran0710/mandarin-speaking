@@ -46,6 +46,10 @@ interface Topic {
   prompts?: string[];
   vocabulary: Record<number, string[]>;
   vocabularyGroups?: Record<number, VocabGroup[]>;
+  grammarPatterns?: Record<number, string>;
+  listenAudioUrls?: Record<number, string>;
+  listenScripts?: Record<number, string>;
+  linear?: boolean;
 }
 
 interface PauseAnalysis {
@@ -193,6 +197,8 @@ export default function StoryRecorder({
   >({});
   const [storySubmitted, setStorySubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [practiceMode, setPracticeMode] = useState<"describe" | "listen">("describe");
+  const listenAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Learning phase: overview → sorting → conceptmap → practice
   const [phase, setPhase] = useState<
@@ -876,6 +882,22 @@ export default function StoryRecorder({
     scenePromptText ||
     buildPracticeAnalysisText(selectedVocabulary) ||
     "今天下雨，所以我帶傘。";
+  const listenAudioUrl = topic.listenAudioUrls?.[selectedImageIndex] || "";
+  const listenScriptText = topic.listenScripts?.[selectedImageIndex] || "";
+  const playListenAudio = () => {
+    if (listenAudioUrl && listenAudioRef.current) {
+      listenAudioRef.current.currentTime = 0;
+      void listenAudioRef.current.play();
+      return;
+    }
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(listenScriptText || modelExampleText);
+    utterance.lang = "zh-TW";
+    utterance.rate = 0.82;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  };
   const storyConnectors = ["一開始", "然後", "因為", "所以", "突然", "最後"];
   const sentenceStarters = ["一開始，", "他們在", "然後，", "突然，", "最後，"];
   const recordingButtonDisabled = isTranscribing || isAnalyzing;
@@ -924,7 +946,9 @@ export default function StoryRecorder({
 
   const PHASES = [
     { key: "overview", label: <BiLabel zh="總覽" en="Overview" />, icon: "📖" },
-    { key: "sorting", label: <BiLabel zh="排列場景" en="Arrange Scenes" />, icon: "🧩" },
+    ...(enableSorting
+      ? [{ key: "sorting" as const, label: <BiLabel zh="排列場景" en="Arrange Scenes" />, icon: "🧩" }]
+      : []),
     { key: "conceptmap", label: <BiLabel zh="詞彙地圖" en="Vocabulary Map" />, icon: "🗺️" },
     { key: "practice", label: <BiLabel zh="口說練習" en="Speaking" />, icon: "🎙️" },
   ] as const;
@@ -1008,22 +1032,24 @@ export default function StoryRecorder({
           <div className="overview-steps-block">
             <h2><BiLabel zh="你的挑戰" en="Your Challenge" /></h2>
             <div className="overview-steps">
-              <div className="overview-step">
-                <span className="overview-step-num">1</span>
-                <div>
-                  <strong><BiLabel zh="排列場景" en="Arrange Scenes" /></strong>
-                  <p><BiText zh="把故事圖片排成正確順序" en="Put the story pictures in the right order" /></p>
+              {enableSorting && (
+                <div className="overview-step">
+                  <span className="overview-step-num">1</span>
+                  <div>
+                    <strong><BiLabel zh="排列場景" en="Arrange Scenes" /></strong>
+                    <p><BiText zh="把故事圖片排成正確順序" en="Put the story pictures in the right order" /></p>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="overview-step">
-                <span className="overview-step-num">2</span>
+                <span className="overview-step-num">{enableSorting ? 2 : 1}</span>
                 <div>
                   <strong><BiLabel zh="詞彙地圖" en="Vocabulary Map" /></strong>
                   <p><BiText zh="把關鍵詞彙配對到每個故事場景" en="Match key words to each story scene" /></p>
                 </div>
               </div>
               <div className="overview-step">
-                <span className="overview-step-num">3</span>
+                <span className="overview-step-num">{enableSorting ? 3 : 2}</span>
                 <div>
                   <strong><BiLabel zh="口說練習" en="Speaking Practice" /></strong>
                   <p><BiText zh="把你的普通話故事大聲說出來並錄音" en="Record your Mandarin story out loud" /></p>
@@ -1035,7 +1061,7 @@ export default function StoryRecorder({
           <div className="overview-cta">
             <button
               className="btn-start-challenge"
-              onClick={() => setPhase("sorting")}
+              onClick={() => setPhase(enableSorting ? "sorting" : "conceptmap")}
             >
 <BiLabel zh="開始！→" en="Let's Go!" />
             </button>
@@ -1264,12 +1290,14 @@ export default function StoryRecorder({
           </div>
           <StoryConceptMap topic={topic} defaultOpen />
           <div className="conceptmap-phase-actions">
-            <button
-              className="btn-back-phase"
-              onClick={() => setPhase("sorting")}
-            >
-              <BiLabel zh="← 返回場景" en="Back to Scenes" />
-            </button>
+            {enableSorting && (
+              <button
+                className="btn-back-phase"
+                onClick={() => setPhase("sorting")}
+              >
+                <BiLabel zh="← 返回場景" en="Back to Scenes" />
+              </button>
+            )}
             <button
               className="btn-next-phase"
               onClick={() => setPhase("practice")}
@@ -1386,6 +1414,28 @@ export default function StoryRecorder({
             return null;
           })()}
 
+          {/* ── Describe vs Listen & Retell sub-tabs ── */}
+          <div className="practice-mode-tabs" role="tablist" aria-label="Speaking mode">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={practiceMode === "describe"}
+              className={`practice-mode-tab${practiceMode === "describe" ? " active" : ""}`}
+              onClick={() => setPracticeMode("describe")}
+            >
+              <BiLabel zh="描述圖片" en="Describe" />
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={practiceMode === "listen"}
+              className={`practice-mode-tab${practiceMode === "listen" ? " active" : ""}`}
+              onClick={() => setPracticeMode("listen")}
+            >
+              <BiLabel zh="聆聽複述" en="Listen & Retell" />
+            </button>
+          </div>
+
           {/* ── Main two-column workspace ── */}
           <div className="practice-workspace">
             {/* Left: scene image + vocab chips + record button */}
@@ -1405,6 +1455,32 @@ export default function StoryRecorder({
                   )}
                 </div>
               </div>
+
+              {practiceMode === "listen" && (
+                <div className="practice-listen-panel">
+                  <BiLabel zh="先聆聽，再用自己的話複述故事" en="Listen first, then retell the story in your own words" />
+                  {listenAudioUrl && (
+                    <audio ref={listenAudioRef} src={listenAudioUrl} preload="none" />
+                  )}
+                  <button type="button" className="practice-listen-play-btn" onClick={playListenAudio}>
+                    🔊 <BiLabel zh="播放" en="Play" />
+                  </button>
+                  {!listenAudioUrl && (
+                    <span className="practice-listen-tts-note">
+                      <BiText zh="目前播放的是語音合成（老師尚未上傳音檔）" en="Playing AI text-to-speech (no teacher audio uploaded yet)" />
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {topic.grammarPatterns?.[selectedImageIndex] && (
+                <div className="practice-grammar-hint">
+                  <BiLabel zh="練習句型" en="Grammar pattern to use" />
+                  <span className="practice-grammar-pattern">
+                    {topic.grammarPatterns[selectedImageIndex]}
+                  </span>
+                </div>
+              )}
 
               {(() => {
                 const groups = topic.vocabularyGroups?.[selectedImageIndex];
