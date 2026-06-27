@@ -1,6 +1,7 @@
 from typing import Dict, List, Tuple
 
 import numpy as np
+from pypinyin import Style, pinyin
 from scipy.interpolate import interp1d
 from scipy.spatial.distance import euclidean
 
@@ -67,7 +68,19 @@ def get_reference_tone_pattern(tone_number: int, num_points: int = 100) -> Dict:
     }
 
 
-def normalize_pitch_contour(pitch_contour: List[Tuple[float, float]]) -> np.ndarray:
+def normalize_pitch_contour(
+    pitch_contour: List[Tuple[float, float]],
+    outlier_z: float = 2.5,
+    min_std_hz: float = 6.0,
+) -> np.ndarray:
+    """Normalize a pitch contour's shape to [0, 1] for tone-pattern comparison.
+
+    Uses speaker-relative z-score normalization rather than raw min-max: a
+    single stray frame (e.g. an uncorrected octave error, or a brief voicing
+    glitch) can otherwise stretch the whole 0-1 range and flatten every other
+    point's relative shape. Z-scores are clipped to ``outlier_z`` standard
+    deviations before rescaling so one extreme point can't dominate the range.
+    """
     if not pitch_contour or len(pitch_contour) < 2:
         return np.array([])
 
@@ -79,11 +92,23 @@ def normalize_pitch_contour(pitch_contour: List[Tuple[float, float]]) -> np.ndar
         return np.array([])
 
     times_norm = (times - times[0]) / duration
-    freq_range = np.max(frequencies) - np.min(frequencies)
-    if freq_range == 0:
+
+    # Median/MAD rather than mean/std: a single octave-error spike inflates
+    # the standard deviation (since it's part of the same calculation being
+    # used to clip it), which softens every other point's z-score right
+    # along with the outlier's. The median-based scale is robust to a
+    # minority of extreme points by construction.
+    median_freq = float(np.median(frequencies))
+    mad = float(np.median(np.abs(frequencies - median_freq)))
+    robust_std = mad * 1.4826  # MAD-to-std scaling factor for normal data
+    if robust_std < min_std_hz:
+        # Genuinely flat pitch (e.g. Tone 1): dividing by a near-zero scale
+        # would blow tiny measurement jitter up into a full-range shape, so
+        # fall back to a flat midpoint instead of z-scoring it.
         frequencies_norm = np.ones_like(frequencies) * 0.5
     else:
-        frequencies_norm = (frequencies - np.min(frequencies)) / freq_range
+        z_scores = np.clip((frequencies - median_freq) / robust_std, -outlier_z, outlier_z)
+        frequencies_norm = (z_scores + outlier_z) / (2 * outlier_z)
 
     x_new = np.linspace(0, 1, 100)
     interpolator = interp1d(times_norm, frequencies_norm, kind="linear", fill_value="extrapolate")
@@ -104,7 +129,11 @@ def calculate_tone_accuracy(
     if np.isnan(correlation):
         correlation = 0.0
 
-    distance = euclidean(user_pitch, ref_pitch)
+    # Mean-center both curves before measuring distance, so a flat user
+    # contour pitched a bit above or below where a reference pattern happens
+    # to sit doesn't get penalized for *level* rather than *shape* — that
+    # level difference is already irrelevant after normalize_pitch_contour.
+    distance = euclidean(user_pitch - np.mean(user_pitch), ref_pitch - np.mean(ref_pitch))
     distance_score = max(0.0, 1.0 - distance / len(user_pitch))
     correlation_score = (correlation + 1.0) / 2.0
     accuracy = (correlation_score * 0.65 + distance_score * 0.35) * 100.0
@@ -135,6 +164,92 @@ def detect_tone(pitch_contour: List[Tuple[float, float]]) -> Dict:
         "feedback": f"Detected: {ref['name']} tone ({ref['character']}, {ref['pinyin']})",
         "reference": ref,
     }
+
+
+def word_tones(word: str) -> List[int]:
+    """Look up the expected tone (1-4, 5 = neutral) for each character in a word.
+
+    Uses pypinyin's dictionary, so this is the *expected* tone from the
+    written word — independent of what the student actually said.
+    """
+    tones: List[int] = []
+    for syllable in pinyin(word, style=Style.TONE3, neutral_tone_with_five=True):
+        digits = "".join(c for c in syllable[0] if c.isdigit())
+        tones.append(int(digits) if digits else 5)
+    return tones
+
+
+def apply_tone_sandhi(tones: List[int]) -> List[int]:
+    """Apply the third-tone sandhi rule: tone3 followed by tone3 -> tone2 + tone3.
+
+    This is the one sandhi pattern common enough in short student phrases to be
+    worth correcting for; other sandhi (e.g. 一/不 tone changes) is out of scope.
+    """
+    adjusted = list(tones)
+    for i in range(len(adjusted) - 1):
+        if adjusted[i] == 3 and adjusted[i + 1] == 3:
+            adjusted[i] = 2
+    return adjusted
+
+
+def build_phrase_reference_pattern(tones: List[int], num_points: int = 100) -> np.ndarray:
+    """Concatenate single-syllable reference contours into one phrase-length curve.
+
+    Each syllable gets an equal time slice (same simplification used for the
+    audio side in ``estimate_word_prosody``), so the two contours line up
+    syllable-for-syllable when compared.
+    """
+    if not tones:
+        return np.full(num_points, 0.5)
+
+    per_syllable = max(1, num_points // len(tones))
+    pieces = []
+    for tone in tones:
+        ref = TONE_REFERENCES.get(tone, TONE_REFERENCES[1])
+        if tone == 5:
+            # Neutral tone: short, low, and flat — not one of the four canonical shapes.
+            pattern = [0.35, 0.35]
+        else:
+            pattern = ref["pitch_pattern"]
+        x = np.linspace(0, 1, len(pattern))
+        x_new = np.linspace(0, 1, per_syllable)
+        interpolator = interp1d(x, pattern, kind="linear", fill_value="extrapolate")
+        pieces.append(np.clip(interpolator(x_new), 0, 1))
+
+    combined = np.concatenate(pieces)
+    if len(combined) != num_points:
+        x = np.linspace(0, 1, len(combined))
+        x_new = np.linspace(0, 1, num_points)
+        interpolator = interp1d(x, combined, kind="linear", fill_value="extrapolate")
+        combined = np.clip(interpolator(x_new), 0, 1)
+    return combined
+
+
+def calculate_phrase_tone_accuracy(
+    pitch_contour: List[Tuple[float, float]], tones: List[int]
+) -> float:
+    """Score a pitch contour against the *expected* tone sequence for a word/phrase.
+
+    Unlike ``calculate_tone_accuracy`` (which guesses the best-fit single tone
+    out of 4 for a whole recording), this grounds the reference pattern in the
+    actual transcribed text, so multi-syllable words and sandhi are handled
+    correctly instead of being squashed into one canonical tone shape.
+    """
+    user_pitch = normalize_pitch_contour(pitch_contour)
+    if len(user_pitch) == 0 or not tones:
+        return 0.0
+
+    ref_pitch = build_phrase_reference_pattern(apply_tone_sandhi(tones), num_points=len(user_pitch))
+
+    correlation = np.corrcoef(user_pitch, ref_pitch)[0, 1]
+    if np.isnan(correlation):
+        correlation = 0.0
+
+    distance = euclidean(user_pitch - np.mean(user_pitch), ref_pitch - np.mean(ref_pitch))
+    distance_score = max(0.0, 1.0 - distance / len(user_pitch))
+    correlation_score = (correlation + 1.0) / 2.0
+    accuracy = (correlation_score * 0.65 + distance_score * 0.35) * 100.0
+    return float(max(0.0, min(100.0, accuracy)))
 
 
 def get_tone_feedback(
@@ -192,16 +307,58 @@ def get_tone_feedback(
     return " ".join(feedback_parts)
 
 
+def _tone_label(tone: int) -> str:
+    if tone == 5:
+        return "neutral tone"
+    ref = TONE_REFERENCES.get(tone)
+    return ref["name"] if ref else f"tone {tone}"
+
+
+def generate_phrase_tone_feedback(word_prosody: List[Dict], tone_accuracy: float) -> str:
+    """Build tone feedback grounded in the same per-word scores that produced
+    ``tone_accuracy``, so the text and the number never contradict each other —
+    unlike describing one canonical tone shape against the whole recording.
+    """
+    scored = [w for w in word_prosody if w.get("expected_tones")]
+    if not scored:
+        return "No clear tone detected yet. Try recording a slightly longer phrase."
+
+    if tone_accuracy > 85:
+        lead = "Excellent tone accuracy overall."
+    elif tone_accuracy > 70:
+        lead = "Good tone accuracy overall."
+    elif tone_accuracy > 55:
+        lead = "Tones are recognizable but inconsistent."
+    else:
+        lead = "Tones need more contrast overall."
+
+    parts = [lead]
+    weakest = min(scored, key=lambda w: w["tone_accuracy"])
+    strongest = max(scored, key=lambda w: w["tone_accuracy"])
+
+    if weakest["tone_accuracy"] < 70:
+        tone_label = "+".join(_tone_label(t) for t in weakest["expected_tones"])
+        parts.append(f'"{weakest["token"]}" ({tone_label}) needs the clearest work.')
+    if strongest is not weakest and strongest["tone_accuracy"] >= 80:
+        parts.append(f'"{strongest["token"]}" sounded solid.')
+
+    return " ".join(parts)
+
+
 def generate_comprehensive_feedback(
     detected_tone: int,
     tone_accuracy: float,
     speech_rate: float,
     fluency: float,
     pitch_contour: List[Tuple[float, float]],
+    word_prosody: List[Dict] | None = None,
 ) -> str:
-    feedback_parts = [
-        get_tone_feedback(detected_tone, tone_accuracy, pitch_contour)
-    ]
+    tone_feedback = (
+        generate_phrase_tone_feedback(word_prosody, tone_accuracy)
+        if word_prosody
+        else get_tone_feedback(detected_tone, tone_accuracy, pitch_contour)
+    )
+    feedback_parts = [tone_feedback]
 
     if speech_rate > 0:
         if 3.5 <= speech_rate <= 5.5:

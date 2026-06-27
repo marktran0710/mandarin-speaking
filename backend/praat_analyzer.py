@@ -47,11 +47,51 @@ def _pitch_contour_from_sound(
     )
     freqs = pitch.selected_array["frequency"]
     times = pitch.xs()
-    return [
+    contour = [
         (float(times[i]), float(f))
         for i, f in enumerate(freqs)
         if f > 0
     ]
+    return _correct_octave_jumps(contour)
+
+
+def _correct_octave_jumps(
+    contour: List[Tuple[float, float]],
+    jump_ratio: float = 1.7,
+) -> List[Tuple[float, float]]:
+    """Fix half/double-frequency errors that pitch trackers occasionally make.
+
+    Praat's autocorrelation pitch tracker sometimes locks onto an octave of the
+    true F0 for a frame or two (common on creaky or breathy voices). A lone
+    point that jumps by roughly 2x relative to both neighbors is corrected by
+    halving/doubling it back toward the local pitch level rather than left to
+    distort tone-shape and statistics downstream.
+    """
+    if len(contour) < 3:
+        return contour
+
+    freqs = [f for _, f in contour]
+    corrected = list(freqs)
+    for i in range(1, len(freqs) - 1):
+        prev_f, cur_f, next_f = corrected[i - 1], freqs[i], corrected[i + 1]
+        neighbor_avg = (prev_f + next_f) / 2.0
+        if neighbor_avg <= 0:
+            continue
+
+        ratio = cur_f / neighbor_avg
+        if ratio > jump_ratio:
+            candidate = cur_f / 2.0
+        elif ratio < 1.0 / jump_ratio:
+            candidate = cur_f * 2.0
+        else:
+            continue
+
+        # Only accept the halved/doubled value if it actually lands closer to
+        # the local pitch level than the raw reading did.
+        if abs(candidate - neighbor_avg) < abs(cur_f - neighbor_avg):
+            corrected[i] = candidate
+
+    return [(t, corrected[i]) for i, (t, _) in enumerate(contour)]
 
 
 def _formants_from_sound(
@@ -94,17 +134,16 @@ def analyze_all(audio_path: str, transcription: str = "") -> tuple:
         pause_analysis = analyze_pauses_and_utterances(audio_path)
         _syllables = sum(1 for c in transcription if "一" <= c <= "鿿")
         fluency_score = analyze_fluency(pitch_contour, speech_rate, pause_analysis, _syllables)
-        from chinese_tones import detect_tone, generate_comprehensive_feedback
-        tone_detection = detect_tone(pitch_contour)
-        detected_tone = tone_detection["detected_tone"]
-        tone_accuracy = tone_detection["scores"].get(detected_tone, 0)
+        from chinese_tones import generate_comprehensive_feedback
+        detected_tone, tone_accuracy = _aggregate_tone_from_words(word_prosody, pitch_contour)
         feedback = generate_comprehensive_feedback(
             detected_tone, tone_accuracy, speech_rate, fluency_score, pitch_contour,
+            word_prosody=word_prosody,
         )
         return (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
                 word_prosody, detected_tone, tone_accuracy, feedback, pause_analysis)
 
-    from chinese_tones import detect_tone, generate_comprehensive_feedback
+    from chinese_tones import generate_comprehensive_feedback
 
     sound = _load_sound(audio_path)
     duration = max(float(sound.get_total_duration()), 0.01)
@@ -125,11 +164,10 @@ def analyze_all(audio_path: str, transcription: str = "") -> tuple:
     pause_analysis = analyze_pauses_and_utterances(audio_path, _preloaded_sound=sound)
     fluency_score = analyze_fluency(pitch_contour, speech_rate, pause_analysis, chinese_chars)
 
-    tone_detection = detect_tone(pitch_contour)
-    detected_tone = tone_detection["detected_tone"]
-    tone_accuracy = tone_detection["scores"].get(detected_tone, 0)
+    detected_tone, tone_accuracy = _aggregate_tone_from_words(word_prosody, pitch_contour)
     feedback = generate_comprehensive_feedback(
         detected_tone, tone_accuracy, speech_rate, fluency_score, pitch_contour,
+        word_prosody=word_prosody,
     )
 
     return (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
@@ -420,7 +458,7 @@ def _extract_pitch_fallback(
         if pitch_floor <= frequency <= pitch_ceiling:
             contour.append((float(start / frame_rate), float(frequency)))
 
-    return contour
+    return _correct_octave_jumps(contour)
 
 
 def analyze_fluency(
@@ -491,33 +529,78 @@ def get_pitch_statistics(
     }
 
 
+def _aggregate_tone_from_words(
+    word_prosody: List[Dict], pitch_contour: List[Tuple[float, float]]
+) -> Tuple[int, float]:
+    """Roll per-word phrase-grounded tone scores up into one overall score.
+
+    Replaces the old approach of fitting the *entire* recording's pitch
+    contour against a single canonical tone shape — that only made sense for
+    isolated single syllables and produced poor scores on real phrases.
+    Falls back to the legacy whole-utterance guess when there's no usable
+    transcription (e.g. silence, or non-Chinese text).
+    """
+    scored = [w for w in word_prosody if w.get("expected_tones")]
+    if not scored:
+        from chinese_tones import detect_tone
+
+        tone_detection = detect_tone(pitch_contour)
+        detected_tone = tone_detection["detected_tone"]
+        return detected_tone, tone_detection["scores"].get(detected_tone, 0)
+
+    total_weight = sum(len(w["expected_tones"]) for w in scored)
+    weighted_accuracy = sum(
+        w["tone_accuracy"] * len(w["expected_tones"]) for w in scored
+    ) / max(total_weight, 1)
+
+    all_tones = [t for w in scored for t in w["expected_tones"]]
+    dominant_tone = max(set(all_tones), key=all_tones.count) if all_tones else 0
+
+    return dominant_tone, round(weighted_accuracy, 1)
+
+
 def estimate_word_prosody(
     pitch_contour: List[Tuple[float, float]],
     transcription: str = "",
 ) -> List[Dict]:
     """
-    Estimate per-character/word prosody from the global pitch contour.
+    Estimate per-word prosody from the global pitch contour.
 
-    This is a lightweight alignment approximation: Mandarin characters are used
-    as syllable-like units, and their time spans are distributed across the
-    voiced pitch duration. It is useful for student feedback, but it is not a
-    replacement for forced alignment.
+    Words (not isolated characters) are the unit: the transcription is
+    word-segmented with jieba, and each word's time span \u2014 proportional to
+    its character count \u2014 is sliced from the voiced pitch duration. The tone
+    score for each word is matched against its *actual* expected tones (via
+    pinyin, with third-tone sandhi applied), not a best-fit guess among the
+    four canonical single-syllable shapes. This is a lightweight alignment
+    approximation, not a replacement for forced alignment.
     """
     tokens = _prosody_tokens(transcription)
     if not tokens or len(pitch_contour) < 2:
         return []
 
+    from chinese_tones import apply_tone_sandhi, calculate_phrase_tone_accuracy, word_tones
+
     start_time = float(pitch_contour[0][0])
     end_time = float(pitch_contour[-1][0])
     duration = max(end_time - start_time, 0.01)
-    segment_duration = duration / len(tokens)
+    total_chars = sum(max(len(t), 1) for t in tokens)
+    avg_syllable_duration = duration / max(total_chars, 1)
+    onset_times = _voicing_onset_times(pitch_contour)
     segments: List[Dict] = []
 
+    cursor = start_time
     for index, token in enumerate(tokens):
-        segment_start = start_time + index * segment_duration
-        segment_end = (
-            end_time if index == len(tokens) - 1 else segment_start + segment_duration
-        )
+        weight = max(len(token), 1) / total_chars
+        segment_start = cursor
+        proportional_end = segment_start + duration * weight
+        if index == len(tokens) - 1:
+            segment_end = end_time
+        else:
+            segment_end = _snap_to_onset(
+                proportional_end, onset_times, avg_syllable_duration
+            )
+        cursor = segment_end
+
         points = [
             (float(time), float(freq))
             for time, freq in pitch_contour
@@ -539,6 +622,12 @@ def estimate_word_prosody(
         slope = end_pitch - start_pitch
         contour_shape = _contour_shape(frequencies, slope, pitch_range)
 
+        is_chinese = bool(re.search(r"[\u4e00-\u9fff]", token))
+        expected_tones = apply_tone_sandhi(word_tones(token)) if is_chinese else []
+        tone_score = (
+            calculate_phrase_tone_accuracy(points, expected_tones) if is_chinese else 0.0
+        )
+
         segments.append(
             {
                 "token": token,
@@ -551,11 +640,58 @@ def estimate_word_prosody(
                 "start_pitch": round(start_pitch, 2),
                 "end_pitch": round(end_pitch, 2),
                 "contour_shape": contour_shape,
-                "feedback": _word_prosody_feedback(contour_shape, pitch_range),
+                "expected_tones": expected_tones,
+                "tone_accuracy": round(tone_score, 1),
+                "feedback": _word_prosody_feedback(contour_shape, pitch_range, expected_tones, tone_score),
             }
         )
 
     return segments
+
+
+def _voicing_onset_times(
+    pitch_contour: List[Tuple[float, float]],
+    gap_threshold: float = 0.06,
+) -> List[float]:
+    """Find times where voicing resumes after a brief gap.
+
+    The voiced pitch contour already excludes unvoiced frames, so a gap
+    between consecutive points longer than ``gap_threshold`` marks a likely
+    syllable or word boundary (a stop consonant, glottal break, or brief
+    pause). These onsets are real acoustic landmarks, unlike the purely
+    proportional character-count split used as the initial boundary guess.
+    """
+    if len(pitch_contour) < 2:
+        return []
+
+    onsets: List[float] = []
+    for i in range(1, len(pitch_contour)):
+        prev_time = float(pitch_contour[i - 1][0])
+        cur_time = float(pitch_contour[i][0])
+        if cur_time - prev_time > gap_threshold:
+            onsets.append(cur_time)
+    return onsets
+
+
+def _snap_to_onset(
+    proportional_time: float,
+    onset_times: List[float],
+    avg_syllable_duration: float,
+) -> float:
+    """Move a proportionally-guessed boundary to the nearest real onset.
+
+    Only snaps within half a syllable's duration of the guess, so a stray
+    onset from a different part of the phrase can't pull a boundary far from
+    where the character-count estimate placed it.
+    """
+    if not onset_times:
+        return proportional_time
+
+    tolerance = max(avg_syllable_duration / 2.0, 0.03)
+    nearest = min(onset_times, key=lambda t: abs(t - proportional_time))
+    if abs(nearest - proportional_time) <= tolerance:
+        return nearest
+    return proportional_time
 
 
 def _prosody_tokens(transcription: str) -> List[str]:
@@ -563,9 +699,19 @@ def _prosody_tokens(transcription: str) -> List[str]:
     if not text:
         return []
 
-    chinese_chars = re.findall(r"[\u4e00-\u9fff]", text)
-    if chinese_chars:
-        return chinese_chars[:80]
+    if re.search(r"[\u4e00-\u9fff]", text):
+        from caf_metrics import segment_words
+
+        words = segment_words(text)
+        # Cap at 80 characters total (not 80 words) to match the old budget.
+        capped: List[str] = []
+        char_budget = 80
+        for word in words:
+            if char_budget <= 0:
+                break
+            capped.append(word)
+            char_budget -= len(word)
+        return capped
 
     return re.findall(r"[A-Za-z0-9']+", text)[:40]
 
@@ -585,7 +731,23 @@ def _contour_shape(frequencies: np.ndarray, slope: float, pitch_range: float) ->
     return "variable"
 
 
-def _word_prosody_feedback(contour_shape: str, pitch_range: float) -> str:
+_TONE_NAMES = {1: "Tone 1 (level)", 2: "Tone 2 (rising)", 3: "Tone 3 (dip)", 4: "Tone 4 (falling)", 5: "neutral tone"}
+
+
+def _word_prosody_feedback(
+    contour_shape: str,
+    pitch_range: float,
+    expected_tones: List[int] | None = None,
+    tone_score: float = 0.0,
+) -> str:
+    if expected_tones:
+        tone_label = "+".join(_TONE_NAMES.get(t, str(t)) for t in expected_tones)
+        if tone_score >= 80:
+            return f"Good match for {tone_label}."
+        if tone_score >= 60:
+            return f"Recognizable {tone_label}, but contrast could be sharper."
+        return f"Expected {tone_label} — pitch shape doesn't match yet."
+
     if contour_shape == "level":
         return "Stable pitch. Good for level or unstressed syllables."
     if contour_shape == "rising":
