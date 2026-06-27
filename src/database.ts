@@ -48,6 +48,9 @@ export interface CustomStoryFrame {
   prompt: string;
   vocabulary: string;
   vocabularyGroups?: Array<{ name: string; words: string[] }>;
+  grammarPattern?: string;
+  listenAudioUrl?: string;
+  listenScript?: string;
 }
 
 export interface StoredCustomStory {
@@ -57,6 +60,7 @@ export interface StoredCustomStory {
   level: string;
   frames: CustomStoryFrame[];
   published?: boolean;
+  linear?: boolean;
 }
 
 export interface SceneSubmission {

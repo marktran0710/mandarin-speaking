@@ -1137,6 +1137,16 @@
   font-weight: 900;
 }
 
+.teacher-checkbox-field {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.teacher-checkbox-field input[type="checkbox"] {
+  width: auto;
+}
+
 .custom-story-form input,
 .custom-story-form textarea {
   width: 100%;
@@ -1677,6 +1687,11 @@
 }
 
 /* ── VocabGroupEditor (teacher form) ── */
+.vocab-group-toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 .vocab-group-toggle-btn {
   background: none;
   border: 1.5px dashed #a5b4fc;

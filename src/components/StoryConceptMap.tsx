@@ -22,7 +22,7 @@ interface Props {
 }
 
 // Taiwan Community Story Canvas — 6 categories, 2 rows of 3
-const CATEGORIES = [
+const STORY_CATEGORIES = [
   { id: "characters",   hanzi: "角色", english: "Characters",   sub: "The Actors",                        color: "#4f46e5", border: "#818cf8" },
   { id: "settings",     hanzi: "場景", english: "Settings",     sub: "The Places",                        color: "#0891b2", border: "#67e8f9" },
   { id: "actions",      hanzi: "動作", english: "Actions",      sub: "The Verbs & Grammar Glue",          color: "#d97706", border: "#fcd34d" },
@@ -31,7 +31,14 @@ const CATEGORIES = [
   { id: "outcomes",     hanzi: "結果", english: "Outcomes",     sub: "Social & Task Consequences",        color: "#059669", border: "#6ee7b7" },
 ];
 
-function groupNameToCategoryId(name: string): string | null {
+// Grammar pattern canvas — Subject + (Aux) Verb + Object, e.g. S + Vaux + V(O)
+const GRAMMAR_CATEGORIES = [
+  { id: "subject", hanzi: "主語", english: "Subject", sub: "Who is doing it (S)",        color: "#4f46e5", border: "#818cf8" },
+  { id: "verb",     hanzi: "動詞", english: "Verb",    sub: "Aux + main verb (Vaux + V)", color: "#d97706", border: "#fcd34d" },
+  { id: "object",   hanzi: "受語", english: "Object",  sub: "What the verb acts on (O)",  color: "#7c3aed", border: "#c4b5fd" },
+];
+
+function groupNameToStoryCategoryId(name: string): string | null {
   const n = name.toLowerCase();
   if (n.includes("character") || n.includes("actor") || n.includes("角色") || n.includes("人物")) return "characters";
   if (n.includes("setting") || n.includes("place") || n.includes("場景") || n.includes("地點")) return "settings";
@@ -42,7 +49,24 @@ function groupNameToCategoryId(name: string): string | null {
   return null;
 }
 
-// Layout: 2 rows × 3 columns
+function groupNameToGrammarCategoryId(name: string): string | null {
+  const n = name.toLowerCase();
+  if (n.includes("subject") || n.includes("主語") || n.includes("主词") || n === "s") return "subject";
+  if (n.includes("verb") || n.includes("動詞") || n.includes("助動詞") || n === "v" || n === "vaux") return "verb";
+  if (n.includes("object") || n.includes("受語") || n.includes("受词") || n === "o") return "object";
+  return null;
+}
+
+/** Pick the grammar (S/V/O) category set when a topic's group names match it; otherwise the 6-part story canvas. */
+function pickCategorySet(vocabularyGroups: Record<number, VocabGroup[]> | undefined) {
+  const names = Object.values(vocabularyGroups ?? {}).flatMap((groups) => groups.map((g) => g.name));
+  const isGrammar = names.length > 0 && names.every((name) => groupNameToGrammarCategoryId(name) !== null);
+  return isGrammar
+    ? { categories: GRAMMAR_CATEGORIES, groupNameToCategoryId: groupNameToGrammarCategoryId }
+    : { categories: STORY_CATEGORIES, groupNameToCategoryId: groupNameToStoryCategoryId };
+}
+
+// Layout: up to 3 columns, as many rows as needed for the active category set
 const CANVAS_W   = 860;
 const CENTRAL_W  = 180;
 const CENTRAL_H  = 56;
@@ -50,15 +74,6 @@ const CENTRAL_X  = CANVAS_W / 2 - CENTRAL_W / 2;
 const CENTRAL_Y  = 16;
 const CAT_W      = 256;
 const CAT_GAP    = 16;
-const COLS       = 3;
-const ROW_1_Y    = CENTRAL_Y + CENTRAL_H + 56;
-const TOTAL_W    = COLS * CAT_W + (COLS - 1) * CAT_GAP;
-const ROW_START_X = (CANVAS_W - TOTAL_W) / 2;
-
-const catCol     = (i: number) => i % COLS;
-const catRow     = (i: number) => Math.floor(i / COLS);
-const catLeft    = (i: number) => ROW_START_X + catCol(i) * (CAT_W + CAT_GAP);
-const catCenterX = (i: number) => catLeft(i) + CAT_W / 2;
 
 function shuffleArr<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -70,6 +85,20 @@ function shuffleArr<T>(arr: T[]): T[] {
 }
 
 export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
+  const { categories: CATEGORIES, groupNameToCategoryId } = useMemo(
+    () => pickCategorySet(topic.vocabularyGroups),
+    [topic.id, topic.vocabularyGroups],
+  );
+  const COLS = Math.min(3, CATEGORIES.length);
+  const TOTAL_W = COLS * CAT_W + (COLS - 1) * CAT_GAP;
+  const ROW_START_X = (CANVAS_W - TOTAL_W) / 2;
+  const ROW_1_Y = CENTRAL_Y + CENTRAL_H + 56;
+  const catCol     = (i: number) => i % COLS;
+  const catRow     = (i: number) => Math.floor(i / COLS);
+  const catLeft    = (i: number) => ROW_START_X + catCol(i) * (CAT_W + CAT_GAP);
+  const catCenterX = (i: number) => catLeft(i) + CAT_W / 2;
+  const rowCount   = Math.ceil(CATEGORIES.length / COLS);
+
   const [placed, setPlaced] = useState<Record<string, string[]>>(() =>
     Object.fromEntries(CATEGORIES.map(c => [c.id, []]))
   );
@@ -90,7 +119,7 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
       }
     }
     return key;
-  }, [topic.id, topic.vocabularyGroups]);
+  }, [topic.id, topic.vocabularyGroups, groupNameToCategoryId]);
 
   const hasAnswerKey = Object.keys(answerKey).length > 0;
 
@@ -119,7 +148,7 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
     setPlaced(Object.fromEntries(CATEGORIES.map(c => [c.id, []])));
     setChecked(false);
     setSubmitted(false);
-  }, [topic.id]);
+  }, [topic.id, CATEGORIES]);
 
   const usedWords   = new Set(Object.values(placed).flat());
   const totalPlaced = usedWords.size;
@@ -158,8 +187,12 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
   const maxWordsInRow = (row: number) =>
     Math.max(1, ...CATEGORIES.filter((_, i) => catRow(i) === row).map(c => placed[c.id].length));
   const ROW_H = (row: number) => 54 + maxWordsInRow(row) * 40;
-  const catTop = (i: number) => (catRow(i) === 0 ? ROW_1_Y : ROW_1_Y + ROW_H(0) + 32);
-  const CANVAS_H = catTop(3) + ROW_H(1) + 40;
+  const catTop = (i: number) => {
+    let top = ROW_1_Y;
+    for (let r = 0; r < catRow(i); r++) top += ROW_H(r) + 32;
+    return top;
+  };
+  const CANVAS_H = catTop(COLS * (rowCount - 1)) + ROW_H(rowCount - 1) + 40;
 
   if (!isOpen) {
     return (

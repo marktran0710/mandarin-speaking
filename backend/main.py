@@ -265,6 +265,9 @@ class CustomStoryFrameRequest(BaseModel):
     prompt: str
     vocabulary: str = ""
     vocabularyGroups: Optional[List[dict]] = None
+    grammarPattern: Optional[str] = None
+    listenAudioUrl: Optional[str] = None
+    listenScript: Optional[str] = None
 
 
 class CustomStoryRequest(BaseModel):
@@ -274,6 +277,7 @@ class CustomStoryRequest(BaseModel):
     level: str
     frames: List[CustomStoryFrameRequest]
     published: bool = False
+    linear: bool = False
 
 
 class HelpRequest(BaseModel):
@@ -412,13 +416,14 @@ async def list_custom_stories(
 async def create_custom_story(story: CustomStoryRequest):
     frames = [frame.model_dump() for frame in story.frames]
     stored_frames = persist_story_frame_images(story.id, frames)
+    stored_frames = persist_story_frame_audio(story.id, stored_frames)
     with connect_db() as db:
         db.execute(
             """
             INSERT OR REPLACE INTO custom_stories (
-                id, title, learning_goal, level, frames, published
+                id, title, learning_goal, level, frames, published, linear
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 story.id,
@@ -427,6 +432,7 @@ async def create_custom_story(story: CustomStoryRequest):
                 story.level,
                 json.dumps(stored_frames),
                 1 if story.published else 0,
+                1 if story.linear else 0,
             ),
         )
     return {
@@ -446,6 +452,7 @@ async def delete_custom_story(story_id: str):
     if row:
         for frame in json.loads(row["frames"] or "[]"):
             remove_uploaded_file(frame.get("imageUrl", ""))
+            remove_uploaded_file(frame.get("listenAudioUrl", ""))
     return {"ok": True}
 
 
@@ -589,6 +596,47 @@ def persist_story_frame_images(story_id: str, frames: list[dict]) -> list[dict]:
             frame = {**frame, "imageUrl": new_url}
         stored_frames.append(frame)
     return stored_frames
+
+
+def persist_story_frame_audio(story_id: str, frames: list[dict]) -> list[dict]:
+    # Load existing frames so we can delete replaced audio files
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT frames FROM custom_stories WHERE id = ?", (story_id,)
+        ).fetchone()
+    old_frames = json.loads(row["frames"] or "[]") if row else []
+
+    stored_frames = []
+    for index, frame in enumerate(frames, start=1):
+        audio_url = frame.get("listenAudioUrl") or ""
+        if audio_url.startswith("data:audio/"):
+            new_url = save_data_url_audio(audio_url, story_id, index)
+            old_url = old_frames[index - 1].get("listenAudioUrl", "") if index - 1 < len(old_frames) else ""
+            if old_url and old_url != new_url and old_url.startswith("/uploads/"):
+                remove_uploaded_file(old_url)
+            frame = {**frame, "listenAudioUrl": new_url}
+        stored_frames.append(frame)
+    return stored_frames
+
+
+def save_data_url_audio(data_url: str, story_id: str, index: int) -> str:
+    header, _, data = data_url.partition(",")
+    if not data:
+        return data_url
+
+    mime = header.removeprefix("data:").split(";")[0]
+    extension = extension_from_mime(mime, default=".webm")
+    ts = int(time.time() * 1000) % 1_000_000
+    filename = f"{safe_file_stem(story_id)}-frame-{index}-audio-{ts}{extension}"
+    path = os.path.join(AUDIO_UPLOAD_DIR, filename)
+    content = (
+        base64.b64decode(data)
+        if ";base64" in header
+        else unquote_to_bytes(data)
+    )
+    with open(path, "wb") as output:
+        output.write(content)
+    return f"/uploads/audio/{filename}"
 
 
 def save_data_url_image(data_url: str, story_id: str, index: int) -> str:

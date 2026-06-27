@@ -106,6 +106,10 @@ const emptyCustomStoryDraft = {
   ],
   vocabulary: ["", "", "", "", "", ""],
   vocabularyGroups: [null, null, null, null, null, null] as (VocabGroup[] | null)[],
+  grammarPatterns: ["", "", "", "", "", ""],
+  listenAudioUrls: ["", "", "", "", "", ""],
+  listenScripts: ["", "", "", "", "", ""],
+  linear: false,
 };
 
 function validateCustomStoryDraft(
@@ -495,7 +499,7 @@ function TeacherDashboard({
   };
 
   const updateDraftFrame = (
-    field: "imageUrls" | "prompts" | "vocabulary",
+    field: "imageUrls" | "prompts" | "vocabulary" | "grammarPatterns" | "listenAudioUrls" | "listenScripts",
     index: number,
     value: string,
   ) => {
@@ -526,6 +530,26 @@ function TeacherDashboard({
     reader.onload = () => {
       if (typeof reader.result === "string") {
         updateDraftFrame("imageUrls", index, reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadFrameAudio = (index: number, file?: File) => {
+    if (!file) {
+      return;
+    }
+
+    const error = getAudioUploadError(file);
+    if (error) {
+      setValidationErrors((errors) => ({ ...errors, form: error }));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        updateDraftFrame("listenAudioUrls", index, reader.result);
       }
     };
     reader.readAsDataURL(file);
@@ -798,6 +822,17 @@ function TeacherDashboard({
               )}
             </label>
 
+            <label className="teacher-checkbox-field">
+              <input
+                type="checkbox"
+                checked={customDraft.linear}
+                onChange={(event) =>
+                  setCustomDraft((draft) => ({ ...draft, linear: event.target.checked }))
+                }
+              />
+              Linear mode — frames are independent items, not a connected story (skips the Arrange Scenes ordering game)
+            </label>
+
             {validationErrors.form && (
               <div className="teacher-form-alert" role="alert">
                 {validationErrors.form}
@@ -877,6 +912,47 @@ function TeacherDashboard({
                           updateDraftFrame("vocabulary", index, event.target.value)
                         }
                         placeholder="台北, 下雨, 幫忙"
+                      />
+                    </label>
+                    <label>
+                      Grammar pattern (optional)
+                      <input
+                        value={customDraft.grammarPatterns[index]}
+                        onChange={(event) =>
+                          updateDraftFrame("grammarPatterns", index, event.target.value)
+                        }
+                        placeholder="S + Vaux + V(O) — 我要喝茶"
+                      />
+                    </label>
+                    <label>
+                      Listening audio for "Listen & Retell" (optional)
+                      <input
+                        value={customDraft.listenAudioUrls[index]}
+                        onChange={(event) =>
+                          updateDraftFrame("listenAudioUrls", index, event.target.value)
+                        }
+                        placeholder="https://... or upload below"
+                      />
+                    </label>
+                    <label className="teacher-file-upload">
+                      Upload audio from computer
+                      <input
+                        type="file"
+                        accept="audio/mpeg,audio/wav,audio/webm,audio/ogg"
+                        onChange={(event) =>
+                          handleUploadFrameAudio(index, event.target.files?.[0])
+                        }
+                      />
+                    </label>
+                    <label>
+                      Listening script (read aloud by text-to-speech if no audio is uploaded — not shown to students)
+                      <textarea
+                        value={customDraft.listenScripts[index]}
+                        onChange={(event) =>
+                          updateDraftFrame("listenScripts", index, event.target.value)
+                        }
+                        rows={4}
+                        placeholder="The passage students should listen to before retelling the story"
                       />
                     </label>
                     <VocabGroupEditor
@@ -1226,7 +1302,11 @@ function createCustomStory(
       prompt: draft.prompts[index].trim(),
       vocabulary: draft.vocabulary[index].trim(),
       ...(draft.vocabularyGroups[index] ? { vocabularyGroups: draft.vocabularyGroups[index]! } : {}),
+      ...(draft.grammarPatterns[index]?.trim() ? { grammarPattern: draft.grammarPatterns[index].trim() } : {}),
+      ...(draft.listenAudioUrls[index]?.trim() ? { listenAudioUrl: draft.listenAudioUrls[index].trim() } : {}),
+      ...(draft.listenScripts[index]?.trim() ? { listenScript: draft.listenScripts[index].trim() } : {}),
     })),
+    ...(draft.linear ? { linear: true } : {}),
   };
 }
 
@@ -1243,13 +1323,17 @@ function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
     ),
     vocabulary: frames.map((frame) => frame?.vocabulary || ""),
     vocabularyGroups: frames.map((frame) => frame?.vocabularyGroups || null),
+    grammarPatterns: frames.map((frame) => frame?.grammarPattern || ""),
+    listenAudioUrls: frames.map((frame) => frame?.listenAudioUrl || ""),
+    listenScripts: frames.map((frame) => frame?.listenScript || ""),
+    linear: story.linear ?? false,
   };
 }
 
 function clearFrameError(
   errors: CustomStoryValidationErrors,
   index: number,
-  field: "imageUrls" | "prompts" | "vocabulary",
+  field: "imageUrls" | "prompts" | "vocabulary" | "grammarPatterns" | "listenAudioUrls" | "listenScripts",
 ): CustomStoryValidationErrors {
   const frameError = errors.frames?.[index];
 
@@ -1286,6 +1370,14 @@ const STORY_CANVAS_CATEGORIES = [
 
 const DEFAULT_GROUP_NAMES = STORY_CANVAS_CATEGORIES.map(c => c.name);
 
+const GRAMMAR_CANVAS_CATEGORIES = [
+  { name: "Subject", hanzi: "主語", sub: "Who is doing it (S)",        color: "#4f46e5" },
+  { name: "Verb",     hanzi: "動詞", sub: "Aux + main verb (Vaux + V)", color: "#d97706" },
+  { name: "Object",   hanzi: "受語", sub: "What the verb acts on (O)",  color: "#7c3aed" },
+];
+
+const GRAMMAR_GROUP_NAMES = GRAMMAR_CANVAS_CATEGORIES.map(c => c.name);
+
 function VocabGroupEditor({
   vocabulary,
   groups,
@@ -1300,19 +1392,25 @@ function VocabGroupEditor({
   if (words.length === 0) return null;
 
   const active = groups !== null;
+  const isGrammarSet = active && groups!.length === GRAMMAR_GROUP_NAMES.length
+    && groups!.every((g, i) => g.name === GRAMMAR_GROUP_NAMES[i]);
+  const categoryMeta = isGrammarSet ? GRAMMAR_CANVAS_CATEGORIES : STORY_CANVAS_CATEGORIES;
+  const editorTitle = isGrammarSet ? "Grammar Pattern Canvas (Subject · Verb · Object)" : "Taiwan Community Story Canvas";
 
-  const initGroups = (): VocabGroup[] =>
-    DEFAULT_GROUP_NAMES.map((name) => ({ name, words: [] }));
-
-  const handleToggle = () => {
-    onChange(active ? null : initGroups());
+  const handleToggle = (groupNames: string[] | null) => {
+    onChange(groupNames ? groupNames.map((name) => ({ name, words: [] })) : null);
   };
 
   if (!active) {
     return (
-      <button type="button" className="vocab-group-toggle-btn" onClick={handleToggle}>
-        + Add Story Canvas categories (Characters · Settings · Actions · Objects · Instruments · Outcomes)
-      </button>
+      <div className="vocab-group-toggle-row">
+        <button type="button" className="vocab-group-toggle-btn" onClick={() => handleToggle(DEFAULT_GROUP_NAMES)}>
+          + Add Story Canvas categories (Characters · Settings · Actions · Objects · Instruments · Outcomes)
+        </button>
+        <button type="button" className="vocab-group-toggle-btn" onClick={() => handleToggle(GRAMMAR_GROUP_NAMES)}>
+          + Add Grammar categories (Subject · Verb · Object)
+        </button>
+      </div>
     );
   }
 
@@ -1339,8 +1437,8 @@ function VocabGroupEditor({
   return (
     <div className="vocab-group-editor">
       <div className="vocab-group-editor-header">
-        <span>Taiwan Community Story Canvas</span>
-        <button type="button" className="vocab-group-remove-btn" onClick={handleToggle}>Remove categories</button>
+        <span>{editorTitle}</span>
+        <button type="button" className="vocab-group-remove-btn" onClick={() => handleToggle(null)}>Remove categories</button>
       </div>
 
       {unassigned.length > 0 && (
@@ -1356,7 +1454,7 @@ function VocabGroupEditor({
 
       <div className="vocab-group-grid">
         {currentGroups.map((group, gi) => {
-          const cat = STORY_CANVAS_CATEGORIES[gi];
+          const cat = categoryMeta[gi];
           return (
           <div key={gi} className="vocab-group-slot">
             <div className="vocab-group-slot-header" style={{ background: cat?.color ?? "#64748b" }}>
@@ -1426,6 +1524,18 @@ function getImageUploadError(file: File): string {
 
   if (file.size > 1_500_000) {
     return "This image is too large for browser storage. Use an image under 1.5 MB or paste an image URL.";
+  }
+
+  return "";
+}
+
+function getAudioUploadError(file: File): string {
+  if (!file.type.startsWith("audio/")) {
+    return "Please upload an audio file.";
+  }
+
+  if (file.size > 5_000_000) {
+    return "This audio file is too large. Use a clip under 5 MB.";
   }
 
   return "";

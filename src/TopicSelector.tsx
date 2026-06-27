@@ -20,6 +20,10 @@ export interface Topic {
   prompts?: string[];
   vocabulary: Record<number, string[]>;
   vocabularyGroups?: Record<number, VocabGroup[]>;
+  grammarPatterns?: Record<number, string>;
+  listenAudioUrls?: Record<number, string>;
+  listenScripts?: Record<number, string>;
+  linear?: boolean;
 }
 
 interface TopicSelectorProps {
