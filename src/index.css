@@ -5,9 +5,9 @@
 }
 
 :root {
-  --clay-primary: #0f766e;
-  --clay-primary-active: #0b5f59;
-  --clay-primary-disabled: #bfe7e2;
+  --clay-primary: #7c3aed;
+  --clay-primary-active: #6d28d9;
+  --clay-primary-disabled: #ddd6fe;
   --clay-ink: #222222;
   --clay-body: #3f3f3f;
   --clay-muted: #6a6a6a;
@@ -19,15 +19,25 @@
   --clay-surface-card: #ffffff;
   --clay-surface-strong: #f2f2f2;
   --clay-pink: #e8f7f4;
-  --clay-teal: #00a699;
+  --clay-teal: #7c3aed;
   --clay-lavender: #f7f7f7;
   --clay-peach: #fff8f6;
   --clay-ochre: #fff4d8;
-  --clay-mint: #eefaf7;
-  --clay-coral: #0f766e;
+  --clay-mint: #f5f3ff;
+  --clay-coral: #7c3aed;
   --clay-success: #22c55e;
   --clay-warning: #f59e0b;
   --clay-error: #c13515;
+  --accent-indigo: #4f46e5;
+  --accent-indigo-soft: #eef2ff;
+  --accent-amber: #d97706;
+  --accent-amber-soft: #fff7ed;
+  --accent-violet: #7c3aed;
+  --accent-violet-soft: #f5f3ff;
+  --accent-rose: #db2777;
+  --accent-rose-soft: #fdf2f8;
+  --accent-sky: #0891b2;
+  --accent-sky-soft: #ecfeff;
   --clay-radius-md: 10px;
   --clay-radius-lg: 14px;
   --clay-radius-xl: 20px;

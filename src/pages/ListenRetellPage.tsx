@@ -4,7 +4,7 @@ import type { Topic } from "../TopicSelector";
 import { convertBlobToWav } from "../utils/audio";
 import { BiLabel, BiText } from "../components/BiLabel";
 import "../components/BiLabel.css";
-import "./ImageNarrationPage.css";
+import "./ListenRetellPage.css";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -77,30 +77,34 @@ function prosodyFeedbackLines(wordProsody?: WordProsody[]): Array<{ token: strin
     .map((item) => ({ token: item.token, feedback: item.feedback! }));
 }
 
-interface ImageNarrationPageProps {
+interface ListenRetellPageProps {
   publishedTopics: Topic[];
 }
 
-// Built-in samples so this prototype works even before any teacher story is published.
-const SAMPLE_SCENES: Array<{ image: string; prompt: string; vocabulary: string[] }> = [
+interface ListenScene {
+  image: string;
+  script: string;
+  audioUrl: string;
+  vocabulary: string[];
+}
+
+// Built-in sample so this page works even before a teacher publishes a listening script.
+const SAMPLE_SCENES: ListenScene[] = [
   {
     image: "/sample-scenes/park.svg",
-    prompt: "描述這張圖片發生了什麼事 (Describe what is happening in this picture)",
+    script:
+      "公園裡下雨了，小朋友們撐著雨傘跑來跑去，找地方躲雨，玩得很開心。",
+    audioUrl: "",
     vocabulary: ["公園", "下雨", "雨傘", "跑步", "孩子"],
-  },
-  {
-    image: "/sample-scenes/market.svg",
-    prompt: "說說你看到的人和物品 (Talk about the people and things you see)",
-    vocabulary: ["市場", "水果", "老闆", "買", "便宜"],
   },
 ];
 
-export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPageProps) {
+export default function ListenRetellPage({ publishedTopics }: ListenRetellPageProps) {
   const scenes = useMemo(() => buildSceneOptions(publishedTopics), [publishedTopics]);
   const [sceneIndex, setSceneIndex] = useState(0);
   const scene = scenes[sceneIndex];
 
-  const [customVocab, setCustomVocab] = useState("");
+  const [hasListened, setHasListened] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -108,15 +112,37 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
   const [error, setError] = useState("");
   const [result, setResult] = useState<AnalysisResult | null>(null);
 
+  const listenAudioRef = useRef<HTMLAudioElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startTimeRef = useRef(0);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const effectiveVocabulary = customVocab.trim()
-    ? customVocab.split(/[,，]/).map((w) => w.trim()).filter(Boolean)
-    : scene.vocabulary;
+  const selectScene = (index: number) => {
+    setSceneIndex(index);
+    setHasListened(false);
+    setResult(null);
+    setError("");
+    setAudioUrl("");
+    window.speechSynthesis?.cancel();
+  };
+
+  const playScript = () => {
+    setHasListened(true);
+    if (scene.audioUrl && listenAudioRef.current) {
+      listenAudioRef.current.currentTime = 0;
+      void listenAudioRef.current.play();
+      return;
+    }
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(scene.script);
+    utterance.lang = "zh-TW";
+    utterance.rate = 0.82;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+  };
 
   const startRecording = async () => {
     setError("");
@@ -140,7 +166,7 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
       recorder.onstop = async () => {
         const rawBlob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
         stopTracks();
-        await submitNarration(rawBlob);
+        await submitRetell(rawBlob);
       };
 
       startTimeRef.current = Date.now();
@@ -165,19 +191,19 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
     clearDurationTimer();
   };
 
-  const submitNarration = async (rawBlob: Blob) => {
+  const submitRetell = async (rawBlob: Blob) => {
     setIsAnalyzing(true);
     try {
       const wavBlob = await convertBlobToWav(rawBlob);
       setAudioUrl(URL.createObjectURL(wavBlob));
 
       const formData = new FormData();
-      formData.append("file", wavBlob, "narration.wav");
+      formData.append("file", wavBlob, "retell.wav");
       formData.append("transcription", "");
       formData.append("asr_model", "ctwhisper");
-      formData.append("scene_prompt", scene.prompt);
-      formData.append("scene_vocabulary", effectiveVocabulary.join(", "));
-      formData.append("scene_image_url", scene.image);
+      // The script (not the picture) is the source of truth for grading a retell.
+      formData.append("scene_prompt", scene.script);
+      formData.append("scene_vocabulary", scene.vocabulary.join(", "));
 
       const response = await fetch(`${getBackendUrl()}/api/analyze`, {
         method: "POST",
@@ -216,34 +242,29 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
   const prosodyLines = prosodyFeedbackLines(result?.word_prosody);
 
   return (
-    <main className="narration-page">
-      <section className="narration-hero">
+    <main className="listen-retell-page">
+      <section className="lr-hero">
         <p className="eyebrow">
-          <BiLabel zh="原型 · 看圖敘述" en="Prototype · Image narration" />
+          <BiLabel zh="原型 · 聽力複述" en="Prototype · Listen & Retell" />
         </p>
         <h1>
-          <BiLabel zh="看圖說話" en="Describe the Picture" />
+          <BiLabel zh="聽力複述" en="Listen & Retell" />
         </h1>
         <p>
           <BiText
-            zh="觀察圖片，參考關鍵詞，大聲說出發生了什麼事。AI 會比對你說的內容與圖片中的實際情況。"
-            en="Look at the image, use the keywords as a guide, and describe out loud what is happening. The AI compares what you said against what is actually in the picture."
+            zh="聆聽這段文字（可以重複聽幾次），然後用自己的話複述出來。AI 會比對你說的內容與你聽到的內容。"
+            en="Listen to the passage (as many times as you like), then retell it in your own words. The AI compares what you said against what you heard."
           />
         </p>
       </section>
 
-      <section className="narration-scene-picker">
+      <section className="lr-scene-picker">
         {scenes.map((option, index) => (
           <button
             key={option.image + index}
             type="button"
-            className={`narration-scene-thumb ${index === sceneIndex ? "active" : ""}`}
-            onClick={() => {
-              setSceneIndex(index);
-              setResult(null);
-              setError("");
-              setAudioUrl("");
-            }}
+            className={`lr-scene-thumb ${index === sceneIndex ? "active" : ""}`}
+            onClick={() => selectScene(index)}
           >
             <img src={option.image} alt={`Scene ${index + 1}`} />
             <span>
@@ -253,60 +274,76 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
         ))}
       </section>
 
-      <section className="narration-workspace">
-        <div className="narration-image-panel">
-          <img src={scene.image} alt="Scene to describe" className="narration-image" />
-          <p className="narration-prompt">{scene.prompt}</p>
-          <div className="narration-vocab-chips">
-            {effectiveVocabulary.map((word) => (
-              <span key={word} className="narration-vocab-chip">
+      <section className="lr-workspace">
+        <div className="lr-image-panel">
+          <img src={scene.image} alt="Scene for support" className="lr-image" />
+          {scene.audioUrl && (
+            <audio ref={listenAudioRef} src={scene.audioUrl} preload="none" />
+          )}
+          <button type="button" className="lr-play-btn" onClick={playScript}>
+            🔊 {hasListened ? (
+              <BiLabel zh="再聽一次" en="Play again" />
+            ) : (
+              <BiLabel zh="聆聽" en="Listen" />
+            )}
+          </button>
+          {!scene.audioUrl && (
+            <p className="lr-tts-note">
+              <BiLabel
+                zh="正在播放 AI 文字轉語音 — 此場景尚未上傳老師的錄音。"
+                en="Playing AI text-to-speech — no teacher audio uploaded for this scene."
+              />
+            </p>
+          )}
+          <div className="lr-vocab-chips">
+            {scene.vocabulary.map((word) => (
+              <span key={word} className="lr-vocab-chip">
                 {word}
               </span>
             ))}
           </div>
-          <label className="narration-custom-vocab">
-            <BiLabel zh="覆寫關鍵詞（用逗號分隔）" en="Override keywords (comma separated)" />
-            <input
-              type="text"
-              placeholder="e.g. 公園, 下雨, 雨傘"
-              value={customVocab}
-              onChange={(event) => setCustomVocab(event.target.value)}
-            />
-          </label>
         </div>
 
-        <div className="narration-record-panel">
+        <div className="lr-record-panel">
           <button
             type="button"
             className={`btn ${isRecording ? "btn-danger" : "btn-primary"}`}
             onClick={isRecording ? stopRecording : startRecording}
-            disabled={isAnalyzing}
+            disabled={isAnalyzing || !hasListened}
           >
             {isRecording ? (
               <BiLabel zh="停止並評分" en="Stop and evaluate" />
             ) : result ? (
               <BiLabel zh="再錄一次" en="Record again" />
             ) : (
-              <BiLabel zh="開始描述" en="Start describing" />
+              <BiLabel zh="開始複述" en="Start retelling" />
             )}
           </button>
-          <p className="narration-status">
+          {!hasListened && (
+            <p className="lr-status">
+              <BiLabel
+                zh="複述前請至少聽一次這段文字。"
+                en="Listen to the passage at least once before you retell it."
+              />
+            </p>
+          )}
+          <p className="lr-status">
             {isRecording ? (
               <BiLabel zh={`錄音中… ${recordingDuration}s`} en={`Recording... ${recordingDuration}s`} />
             ) : isAnalyzing ? (
-              <BiLabel zh="正在比對你的描述與圖片…" en="Comparing your description with the image..." />
+              <BiLabel zh="正在比對你的複述與原文…" en="Comparing your retelling with the passage..." />
             ) : (
               <BiLabel zh="準備好了" en="Ready" />
             )}
           </p>
-          {audioUrl && <audio controls src={audioUrl} className="narration-audio-preview" />}
-          {error && <p className="narration-error">{error}</p>}
+          {audioUrl && <audio controls src={audioUrl} className="lr-audio-preview" />}
+          {error && <p className="lr-error">{error}</p>}
         </div>
       </section>
 
       {result && (
-        <section className="narration-result">
-          <div className="narration-transcript-card">
+        <section className="lr-result">
+          <div className="lr-transcript-card">
             <span><BiLabel k="you_said" /></span>
             <p lang="zh-TW">
               {result.transcription || (
@@ -315,7 +352,7 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
             </p>
           </div>
 
-          <div className="narration-score-grid">
+          <div className="lr-score-grid">
             {ai?.vocabulary_coverage && (
               <ScoreCard label={<BiLabel zh="詞彙" en="Vocabulary" />} score={ai.vocabulary_coverage.score} />
             )}
@@ -329,17 +366,17 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
           </div>
 
           {contentAccuracy && (
-            <div className="narration-content-accuracy">
-              <h2><BiLabel zh="你的描述符合圖片嗎？" en="Does your description match the image?" /></h2>
+            <div className="lr-content-accuracy">
+              <h2><BiLabel zh="你的複述符合你聽到的內容嗎？" en="Does your retelling match what you heard?" /></h2>
               <p>{contentAccuracy.feedback}</p>
               {contentAccuracy.matched_details.length > 0 && (
-                <p className="narration-matched">
+                <p className="lr-matched">
                   ✓ <BiLabel zh="符合：" en="Matched: " />
                   {contentAccuracy.matched_details.join(", ")}
                 </p>
               )}
               {contentAccuracy.missed_details.length > 0 && (
-                <p className="narration-missed">
+                <p className="lr-missed">
                   ✗ <BiLabel zh="遺漏：" en="Missed: " />
                   {contentAccuracy.missed_details.join(", ")}
                 </p>
@@ -348,19 +385,19 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
           )}
 
           {ai?.vocabulary_coverage && (
-            <div className="narration-detail-card">
+            <div className="lr-detail-card">
               <h3><BiLabel zh="詞彙" en="Vocabulary" /></h3>
               <p>{ai.vocabulary_coverage.feedback}</p>
             </div>
           )}
           {ai?.coherence && (
-            <div className="narration-detail-card">
+            <div className="lr-detail-card">
               <h3><BiLabel zh="連貫性" en="Coherence" /></h3>
               <p>{ai.coherence.feedback}</p>
             </div>
           )}
           {prosodyLines.length > 0 && (
-            <div className="narration-detail-card">
+            <div className="lr-detail-card">
               <h3><BiLabel k="character_by_character_prosody" /></h3>
               {prosodyLines.map(({ token, feedback }) => (
                 <p key={token}>
@@ -370,7 +407,7 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
             </div>
           )}
           {ai?.practice_prompt && (
-            <div className="narration-detail-card practice">
+            <div className="lr-detail-card practice">
               <h3><BiLabel zh="下一步練習" en="Practice next" /></h3>
               <p>{ai.practice_prompt}</p>
             </div>
@@ -381,13 +418,16 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
   );
 }
 
-function buildSceneOptions(publishedTopics: Topic[]) {
+function buildSceneOptions(publishedTopics: Topic[]): ListenScene[] {
   const fromTopics = publishedTopics.flatMap((topic) =>
-    topic.images.map((image, index) => ({
-      image,
-      prompt: topic.prompts?.[index] || topic.name,
-      vocabulary: topic.vocabulary[index] || [],
-    })),
+    topic.images
+      .map((image, index) => ({
+        image,
+        script: topic.listenScripts?.[index] || "",
+        audioUrl: topic.listenAudioUrls?.[index] || "",
+        vocabulary: topic.vocabulary[index] || [],
+      }))
+      .filter((scene) => scene.script || scene.audioUrl),
   );
   return fromTopics.length > 0 ? fromTopics : SAMPLE_SCENES;
 }
@@ -402,7 +442,7 @@ function ScoreCard({
   highlight?: boolean;
 }) {
   return (
-    <div className={`narration-score-card ${highlight ? "highlight" : ""}`}>
+    <div className={`lr-score-card ${highlight ? "highlight" : ""}`}>
       <span>{label}</span>
       <strong>{score}%</strong>
     </div>

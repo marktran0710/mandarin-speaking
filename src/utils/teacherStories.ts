@@ -1,4 +1,5 @@
 import type { Topic } from "../TopicSelector";
+import { numericToToneMarked } from "./pinyin";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -22,9 +23,14 @@ export interface CustomStoryFrame {
   vocabulary: string;
   vocabularyGroups?: VocabGroup[];
   grammarPattern?: string;
+  grammarExample?: string;
+  vocabularyPinyin?: string;
+  suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
 }
+
+export type NarrativeMode = "story" | "describe" | "listen_retell";
 
 export interface CustomTeacherStory {
   id: string;
@@ -34,6 +40,9 @@ export interface CustomTeacherStory {
   frames: CustomStoryFrame[];
   published?: boolean;
   linear?: boolean;
+  lessonNumber?: number | null;
+  narrativeMode?: NarrativeMode;
+  firstFrameIsExample?: boolean;
 }
 
 export const CUSTOM_STORY_STORAGE_KEY = "teacherCustomStories";
@@ -77,6 +86,9 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
 
   const vocabularyGroups: Record<number, import("../TopicSelector").VocabGroup[]> = {};
   const grammarPatterns: Record<number, string> = {};
+  const grammarExamples: Record<number, string> = {};
+  const vocabularyPinyin: Record<number, string[]> = {};
+  const suggestedAnswers: Record<number, string> = {};
   const listenAudioUrls: Record<number, string> = {};
   const listenScripts: Record<number, string> = {};
   story.frames.forEach((frame, index) => {
@@ -85,6 +97,17 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
     }
     if (frame.grammarPattern && frame.grammarPattern.trim()) {
       grammarPatterns[index] = frame.grammarPattern.trim();
+    }
+    if (frame.grammarExample && frame.grammarExample.trim()) {
+      grammarExamples[index] = frame.grammarExample.trim();
+    }
+    if (frame.vocabularyPinyin && frame.vocabularyPinyin.trim()) {
+      vocabularyPinyin[index] = frame.vocabularyPinyin
+        .split(",")
+        .map((p) => numericToToneMarked(p.trim()));
+    }
+    if (frame.suggestedAnswer && frame.suggestedAnswer.trim()) {
+      suggestedAnswers[index] = frame.suggestedAnswer.trim();
     }
     if (frame.listenAudioUrl && frame.listenAudioUrl.trim()) {
       listenAudioUrls[index] = resolveImageUrl(frame.listenAudioUrl.trim());
@@ -105,8 +128,14 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
     vocabulary,
     ...(Object.keys(vocabularyGroups).length > 0 ? { vocabularyGroups } : {}),
     ...(Object.keys(grammarPatterns).length > 0 ? { grammarPatterns } : {}),
+    ...(Object.keys(grammarExamples).length > 0 ? { grammarExamples } : {}),
+    ...(Object.keys(vocabularyPinyin).length > 0 ? { vocabularyPinyin } : {}),
+    ...(Object.keys(suggestedAnswers).length > 0 ? { suggestedAnswers } : {}),
     ...(Object.keys(listenAudioUrls).length > 0 ? { listenAudioUrls } : {}),
     ...(Object.keys(listenScripts).length > 0 ? { listenScripts } : {}),
     ...(story.linear ? { linear: true } : {}),
+    ...(story.lessonNumber != null ? { lessonNumber: story.lessonNumber } : {}),
+    narrativeMode: story.narrativeMode ?? "story",
+    ...(story.firstFrameIsExample ? { firstFrameIsExample: true } : {}),
   };
 }

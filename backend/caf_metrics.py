@@ -42,6 +42,36 @@ try:
 
     jieba.setLogLevel(60)  # suppress the dictionary-loading banner
     jieba.initialize()  # load the prefix dict at import, not on first request
+
+    # Jieba's default dictionary is Simplified Chinese. Many Traditional Chinese
+    # compound words are missing or have very low frequency, causing incorrect
+    # splits (e.g. 覺得 → 覺 + 得). Register the common ones explicitly so
+    # they are always treated as single tokens.
+    _TC_WORDS = [
+        # Verbs / verb-result compounds
+        "覺得", "知道", "喜歡", "告訴", "幫忙", "出來", "進來", "回來", "起來",
+        "下來", "出去", "進去", "回去", "看到", "聽到", "找到", "拿到", "說到",
+        "做到", "想到", "學到", "走過來", "跑過去",
+        # Common adjectives / stative verbs
+        "高興", "難過", "開心", "傷心", "生氣", "緊張", "害怕", "擔心", "漂亮",
+        "厲害", "麻煩", "奇怪", "清楚", "重要",
+        # Common nouns
+        "時候", "地方", "東西", "事情", "問題", "機會", "方法", "意思", "道理",
+        "老師", "同學", "同事", "朋友", "家人", "先生", "太太", "小姐",
+        "學生", "媽媽", "爸爸", "哥哥", "姐姐", "弟弟", "妹妹",
+        # Time words
+        "今天", "明天", "昨天", "以前", "以後", "現在", "剛才", "一下",
+        "這裡", "那裡", "哪裡", "這邊", "那邊",
+        # Modal / auxiliary
+        "可以", "應該", "需要", "必須", "能夠", "願意",
+        # Pronouns + particles
+        "我們", "你們", "他們", "她們", "它們", "大家",
+        # Common phrases
+        "沒有", "沒關係", "不客氣", "謝謝", "對不起", "沒問題",
+    ]
+    for _w in _TC_WORDS:
+        jieba.add_word(_w, freq=50000, tag="v" if _w.endswith(("得", "到", "來", "去")) else None)
+
     _HAS_JIEBA = True
 except Exception:  # pragma: no cover - jieba is a declared dependency
     jieba = None

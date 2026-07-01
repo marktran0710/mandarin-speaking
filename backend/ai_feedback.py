@@ -5,6 +5,7 @@ from typing import Dict, List
 import httpx
 from dotenv import load_dotenv
 from pypinyin import lazy_pinyin, Style
+import taiwan_pinyin; taiwan_pinyin.apply()
 
 import caf_metrics
 
@@ -71,17 +72,63 @@ def _word_matches_phonetically(vocab_word: str, transcription: str) -> bool:
     return False
 
 
+CONTENT_ACCURACY_ACCEPT_THRESHOLD = 60
+
+# Indirect corrective feedback: hint-only for this many attempts, then reveal
+# the correct version on the next one. Matches "after two attempts" — attempts
+# 1 and 2 get hints, attempt 3+ gets the answer.
+MAX_HINT_ATTEMPTS = 2
+
+
+def _corrective_feedback_placeholder() -> Dict:
+    return {"errors": [], "hint": "", "reveal_answer": False, "correct_version": ""}
+
+
 def _content_accuracy_placeholder(image_b64: str | None) -> Dict:
-    """Offline content-accuracy block — vision comparison needs a cloud AI provider."""
+    """Offline content-accuracy block — vision comparison needs a vision-capable AI provider.
+
+    No image, no AI provider, or an engine without vision input (Groq) means
+    we cannot judge meaning, so we don't block pronunciation feedback on a
+    check we're unable to perform. ``judged`` tells the frontend this score
+    is a placeholder, not a real (bad) result, so it shouldn't be rendered as
+    a score bar.
+    """
     if not image_b64:
-        return {"score": 0, "feedback": "", "matched_details": [], "missed_details": []}
+        return {"score": 0, "feedback": "", "matched_details": [], "missed_details": [], "accepted": True, "judged": False}
     return {
         "score": 0,
-        "feedback": "Comparing your description against the image needs an AI provider "
-        "(Groq, Gemini, or ChatGPT) — switch engines to get this feedback.",
+        "feedback": "Comparing your description against the image needs a vision-capable AI "
+        "provider — switch to Gemini or ChatGPT to get this feedback.",
         "matched_details": [],
         "missed_details": [],
+        "accepted": True,
+        "judged": False,
     }
+
+
+def _word_stress_note(word_prosody: List[Dict] | None) -> str:
+    """Build a one-line note about word-level stress from word_prosody segments."""
+    if not word_prosody:
+        return ""
+    try:
+        from praat_analyzer import word_stress_summary
+        summary = word_stress_summary(word_prosody)
+    except Exception:
+        return ""
+
+    parts: List[str] = []
+    de_acc = summary.get("de_accented_words", [])
+    if de_acc:
+        words = "、".join(de_acc[:3])
+        parts.append(f"Content words {words} were under-stressed (pitch below average)")
+
+    slope = summary.get("topline_slope_hz_per_sec", 0.0)
+    if slope < -20:
+        parts.append("natural pitch declination across the sentence")
+    elif slope > 15:
+        parts.append("pitch rose across the sentence — try letting it decline naturally")
+
+    return "; ".join(parts) if parts else ""
 
 
 def fallback_language_feedback(
@@ -93,8 +140,12 @@ def fallback_language_feedback(
     praat_vowel_quality: str = "",
     praat_pause_analysis: Dict | None = None,
     praat_speech_rate: float = 0,
+    word_prosody: List[Dict] | None = None,
     image_b64: str | None = None,
     image_mime: str = "",
+    scene_grammar_pattern: str = "",
+    scene_suggested_answer: str = "",
+    scene_attempt_number: int = 1,
 ) -> Dict:
     """Offline language feedback grounded in the CAF framework.
 
@@ -127,6 +178,7 @@ def fallback_language_feedback(
                 "feedback": f"Record a sentence to get pronunciation feedback.",
             },
             "content_accuracy": _content_accuracy_placeholder(image_b64),
+            "corrective_feedback": _corrective_feedback_placeholder(),
             "improved_version": "",
             "practice_prompt": f"Record one simple Mandarin sentence{prompt_hint}.",
         }
@@ -209,12 +261,38 @@ def fallback_language_feedback(
         )
     if praat_vowel_quality:
         pron_feedback += f" Vowel quality: {praat_vowel_quality}."
+    stress_note = _word_stress_note(word_prosody)
+    if stress_note:
+        pron_feedback += f" Word stress: {stress_note}."
 
     practice_next = (
         f"Say the sentence again adding {missing_words[0]}."
         if missing_words else
         "Add a connective (\u7136\u5f8c / \u56e0\u70ba) to extend the sentence."
     )
+
+    # \u2500\u2500 Indirect corrective feedback: hint for the first two attempts, then
+    # reveal the teacher's model answer (or our own corrected sentence) \u2500\u2500\u2500\u2500\u2500\u2500
+    reveal_answer = scene_attempt_number > MAX_HINT_ATTEMPTS
+    local_errors: list = []
+    if missing_words:
+        local_errors.append(f"Missing vocabulary: {', '.join(missing_words[:3])}")
+    if tone_pct and tone_pct < 70:
+        local_errors.append("Some tones don't match the expected pitch shape")
+    if not complexity["connectives"] and complexity["length"] >= 4:
+        local_errors.append("Sentence could use a connective to link ideas")
+
+    if reveal_answer:
+        correct_version = scene_suggested_answer.strip() or text
+        corrective_hint = "Compare your sentence with the correct version below."
+    else:
+        correct_version = ""
+        if missing_words:
+            corrective_hint = f"Try adding the word \u300c{missing_words[0]}\u300d somewhere in your sentence."
+        elif scene_grammar_pattern.strip():
+            corrective_hint = f"Check your sentence against this pattern: {scene_grammar_pattern.strip()}"
+        else:
+            corrective_hint = "Listen back to your sentence \u2014 does it fully describe the picture?"
 
     return {
         "provider": "local",
@@ -234,6 +312,12 @@ def fallback_language_feedback(
             "feedback": pron_feedback,
         },
         "content_accuracy": _content_accuracy_placeholder(image_b64),
+        "corrective_feedback": {
+            "errors": local_errors,
+            "hint": corrective_hint,
+            "reveal_answer": reveal_answer,
+            "correct_version": correct_version,
+        },
         "improved_version": text,
         "practice_prompt": practice_next,
     }
@@ -249,6 +333,9 @@ async def generate_language_feedback(
     provider: str | None = None,
     image_b64: str | None = None,
     image_mime: str = "",
+    scene_grammar_pattern: str = "",
+    scene_suggested_answer: str = "",
+    scene_attempt_number: int = 1,
 ) -> Dict:
     """Produce language feedback.
 
@@ -262,12 +349,17 @@ async def generate_language_feedback(
     """
     text = transcription.strip()
     args = (text, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality)
+    ref_kwargs = {
+        "scene_grammar_pattern": scene_grammar_pattern,
+        "scene_suggested_answer": scene_suggested_answer,
+        "scene_attempt_number": scene_attempt_number,
+    }
     if not text:
-        return fallback_language_feedback(*args, image_b64=image_b64)
+        return fallback_language_feedback(*args, image_b64=image_b64, **ref_kwargs)
 
     chosen = (provider or AI_FEEDBACK_PROVIDER or "local").strip().lower()
     if chosen == "local":
-        return fallback_language_feedback(*args, image_b64=image_b64)
+        return fallback_language_feedback(*args, image_b64=image_b64, **ref_kwargs)
 
     # Build priority order: chosen provider first, then others as fallback.
     all_providers = ["groq", "gemini", "openai"]
@@ -282,11 +374,11 @@ async def generate_language_feedback(
         if not keys.get(name):
             continue
         try:
-            return await callers[name](*args, image_b64=image_b64, image_mime=image_mime)
+            return await callers[name](*args, image_b64=image_b64, image_mime=image_mime, **ref_kwargs)
         except Exception as exc:
             print(f"{name} feedback failed, trying next engine: {exc}")
 
-    return fallback_language_feedback(*args, image_b64=image_b64)
+    return fallback_language_feedback(*args, image_b64=image_b64, **ref_kwargs)
 
 
 async def _feedback_with_groq(
@@ -298,6 +390,9 @@ async def _feedback_with_groq(
     praat_vowel_quality: str = "",
     image_b64: str | None = None,
     image_mime: str = "",
+    scene_grammar_pattern: str = "",
+    scene_suggested_answer: str = "",
+    scene_attempt_number: int = 1,
 ) -> Dict:
     # Groq's text LLM has no vision input — content_accuracy falls back to the
     # offline placeholder regardless of whether an image was supplied.
@@ -316,7 +411,11 @@ async def _feedback_with_groq(
             },
             {
                 "role": "user",
-                "content": _feedback_prompt(transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality),
+                "content": _feedback_prompt(
+                    transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality,
+                    scene_grammar_pattern=scene_grammar_pattern, scene_suggested_answer=scene_suggested_answer,
+                    scene_attempt_number=scene_attempt_number,
+                ),
             },
         ],
     }
@@ -334,7 +433,7 @@ async def _feedback_with_groq(
     content = response.json()["choices"][0]["message"]["content"]
     data = json.loads(content)
     data["provider"] = "groq"
-    feedback = _normalize_feedback(data)
+    feedback = _normalize_feedback(data, scene_attempt_number=scene_attempt_number, scene_suggested_answer=scene_suggested_answer)
     feedback["content_accuracy"] = _content_accuracy_placeholder(image_b64)
     return feedback
 
@@ -348,10 +447,15 @@ async def _feedback_with_openai(
     praat_vowel_quality: str = "",
     image_b64: str | None = None,
     image_mime: str = "",
+    scene_grammar_pattern: str = "",
+    scene_suggested_answer: str = "",
+    scene_attempt_number: int = 1,
 ) -> Dict:
     prompt_text = _feedback_prompt(
         transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality,
         has_image=bool(image_b64),
+        scene_grammar_pattern=scene_grammar_pattern, scene_suggested_answer=scene_suggested_answer,
+        scene_attempt_number=scene_attempt_number,
     )
     user_content: list | str = prompt_text
     if image_b64:
@@ -393,7 +497,7 @@ async def _feedback_with_openai(
     content = response.json()["choices"][0]["message"]["content"]
     data = json.loads(content)
     data["provider"] = "openai"
-    return _normalize_feedback(data)
+    return _normalize_feedback(data, scene_attempt_number=scene_attempt_number, scene_suggested_answer=scene_suggested_answer)
 
 
 def _audio_assessment_prompt(
@@ -402,6 +506,8 @@ def _audio_assessment_prompt(
     praat_context: str,
     provider_tag: str,
     has_image: bool = False,
+    reference_context: str = "",
+    scene_attempt_number: int = 1,
 ) -> str:
     image_context = (
         "\nAn image is also attached. Judge content_accuracy by checking whether what the "
@@ -413,19 +519,32 @@ def _audio_assessment_prompt(
         """,
   "content_accuracy": {
     "score": <int 0-100, 0 if no image was given>,
-    "feedback": "<one sentence — does the spoken description actually match what's shown in the image?>",
+    "feedback": "<one sentence — if accepted, confirm what they got right; if NOT accepted, give a scaffolded hint pointing at which vocabulary word(s) or grammar slot to try, e.g. 'Try describing what the person is holding' or 'Use the 把 pattern to say what happened to the object' — never state or paraphrase the model answer itself>",
     "matched_details": [<things in the image the student correctly described>],
-    "missed_details": [<things visible in the image the student did not mention or got wrong>]
+    "missed_details": [<things visible in the image the student did not mention or got wrong>],
+    "accepted": <true if the sentence's meaning is an acceptable match for the scene (score >= 60), false otherwise>
   }"""
         if has_image else ""
     )
+    reveal_now = scene_attempt_number > MAX_HINT_ATTEMPTS
+    corrective_instructions = f"""
+You are also acting as a tutor giving INDIRECT corrective feedback. This is attempt #{scene_attempt_number} on this picture.
+Do NOT provide the correct answer immediately. Instead: identify where the errors are, point at (don't fully solve)
+the incorrect or missing parts, give a hint only, and ask the learner to self-correct and try again.
+{"This is attempt 3 or later — the learner has had two tries with hints only, so now reveal the correct version (set reveal_answer to true and fill correct_version with a fluent sentence using the target vocabulary and grammar pattern)." if reveal_now else "The learner has not yet had two attempts — set reveal_answer to false and leave correct_version empty. Do not give away the full correct sentence in any field."}
+"""
+
     return f"""Listen to this Mandarin audio recording and do two things:
 1. Transcribe it exactly in Traditional Chinese (繁體中文).
 2. Evaluate the student's speech using the context below.
 
 Scene / task: {scene_prompt or "(open topic)"}
-{vocab_line}{praat_context}{image_context}
+{vocab_line}{reference_context}{praat_context}{image_context}
 
+IMPORTANT — evaluation order:
+1. First judge MEANING: does the student's sentence make sense for this picture/scene, using the target vocabulary, grammar pattern, and model answer above as your standard? This is what content_accuracy and coherence capture.
+2. Only treat pronunciation as worth detailed feedback if the meaning is acceptable (content_accuracy.accepted is true, or there's no image to judge against). Still score pronunciation_note from the Praat data either way — the app will decide whether to show it to the student.
+{corrective_instructions}
 Scoring guide:
 - vocabulary_coverage.score: 0 = no target words used, 100 = all used
 - coherence.score: 60 = acceptable grammar, 90+ = natural native-level
@@ -450,8 +569,14 @@ Return ONLY this JSON (no markdown):
     "score": <int 0-100>,
     "feedback": "<one sentence citing specific tones or sounds to improve>"
   }}{content_accuracy_block},
+  "corrective_feedback": {{
+    "errors": [<short phrases marking what's wrong or missing, never the fix itself>],
+    "hint": "<a hint only — point at vocabulary/grammar to try>",
+    "reveal_answer": {str(reveal_now).lower()},
+    "correct_version": "{'<a fluent Traditional Chinese sentence using the target vocabulary and grammar pattern>' if reveal_now else ''}"
+  }},
   "improved_version": "<a fluent Traditional Chinese sentence fitting the scene with the target vocabulary>",
-  "practice_prompt": "<one concrete next step for the student>"
+  "practice_prompt": "<one concrete next step the student should try — a hint about vocabulary/grammar to use, not the finished sentence>"
 }}"""
 
 
@@ -461,8 +586,10 @@ def _build_audio_context(
     praat_tone_accuracy: float,
     praat_fluency_score: float,
     praat_vowel_quality: str,
-) -> tuple[str, str]:
-    """Return (vocab_line, praat_context) strings for audio assessment prompts."""
+    scene_grammar_pattern: str = "",
+    scene_suggested_answer: str = "",
+) -> tuple[str, str, str]:
+    """Return (vocab_line, praat_context, reference_context) strings for audio assessment prompts."""
     scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
     vocab_line = (
         f"Target vocabulary the student should use: {', '.join(scene_words)}."
@@ -477,15 +604,30 @@ def _build_audio_context(
         )
         if praat_vowel_quality:
             praat_context += f"\n- Vowel quality: {praat_vowel_quality}"
-    return vocab_line, praat_context
+
+    reference_context = ""
+    if scene_grammar_pattern.strip() or scene_suggested_answer.strip():
+        reference_context = (
+            "\nReference material for judging meaning (do not require an exact match — use it as "
+            "the standard for what a correct answer looks like, and as scaffolding material for your "
+            "feedback — NEVER quote or paraphrase the model answer back to the student; that defeats "
+            "the practice. Instead point them at which vocabulary word(s) or grammar slot to try next):\n"
+        )
+        if scene_grammar_pattern.strip():
+            reference_context += f"- Target grammar pattern: {scene_grammar_pattern.strip()}\n"
+        if scene_suggested_answer.strip():
+            reference_context += f"- A teacher-written model answer for this scene (internal reference only, do not reveal it): {scene_suggested_answer.strip()}\n"
+
+    return vocab_line, praat_context, reference_context
 
 
 def _unpack_audio_result(
     data: dict, provider_tag: str, scene_vocabulary: str = "", image_b64: str | None = None,
+    scene_attempt_number: int = 1, scene_suggested_answer: str = "",
 ) -> dict:
     transcription = data.pop("transcription", "").strip()
     data["provider"] = provider_tag
-    feedback = _normalize_feedback(data)
+    feedback = _normalize_feedback(data, scene_attempt_number=scene_attempt_number, scene_suggested_answer=scene_suggested_answer)
     # Silent recording — AI cannot reliably score what it didn't hear
     if not transcription:
         all_scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
@@ -508,14 +650,21 @@ async def assess_audio_with_gemini(
     praat_vowel_quality: str = "",
     image_b64: str | None = None,
     image_mime: str = "",
+    scene_grammar_pattern: str = "",
+    scene_suggested_answer: str = "",
+    scene_attempt_number: int = 1,
 ) -> Dict:
     """Multimodal Gemini call: audio + image + vocabulary → transcription + feedback in one shot."""
     import base64
     audio_b64 = base64.b64encode(audio_bytes).decode()
-    vocab_line, praat_context = _build_audio_context(
-        scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality
+    vocab_line, praat_context, reference_context = _build_audio_context(
+        scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality,
+        scene_grammar_pattern, scene_suggested_answer,
     )
-    prompt = _audio_assessment_prompt(scene_prompt, vocab_line, praat_context, "gemini-audio", has_image=bool(image_b64))
+    prompt = _audio_assessment_prompt(
+        scene_prompt, vocab_line, praat_context, "gemini-audio", has_image=bool(image_b64),
+        reference_context=reference_context, scene_attempt_number=scene_attempt_number,
+    )
 
     content_parts: list = [
         {"inline_data": {"mime_type": "audio/wav", "data": audio_b64}},
@@ -548,7 +697,10 @@ async def assess_audio_with_gemini(
         raise RuntimeError(response.text)
 
     raw = response.json()["candidates"][0]["content"]["parts"][0]["text"]
-    return _unpack_audio_result(json.loads(_strip_json_fence(raw)), "gemini-audio", scene_vocabulary, image_b64)
+    return _unpack_audio_result(
+        json.loads(_strip_json_fence(raw)), "gemini-audio", scene_vocabulary, image_b64,
+        scene_attempt_number=scene_attempt_number, scene_suggested_answer=scene_suggested_answer,
+    )
 
 
 async def assess_audio_with_openai(
@@ -560,16 +712,23 @@ async def assess_audio_with_openai(
     praat_vowel_quality: str = "",
     image_b64: str | None = None,
     image_mime: str = "",
+    scene_grammar_pattern: str = "",
+    scene_suggested_answer: str = "",
+    scene_attempt_number: int = 1,
 ) -> Dict:
     """Multimodal GPT-4o call: audio + image + vocabulary → transcription + feedback in one shot."""
     import base64
     audio_b64 = base64.b64encode(audio_bytes).decode()
-    vocab_line, praat_context = _build_audio_context(
-        scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality
+    vocab_line, praat_context, reference_context = _build_audio_context(
+        scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality,
+        scene_grammar_pattern, scene_suggested_answer,
     )
     # gpt-4o-audio-preview doesn't accept image inputs, so content_accuracy
     # for this path falls back to the offline placeholder (handled below).
-    prompt = _audio_assessment_prompt(scene_prompt, vocab_line, praat_context, "openai-audio", has_image=False)
+    prompt = _audio_assessment_prompt(
+        scene_prompt, vocab_line, praat_context, "openai-audio", has_image=False,
+        reference_context=reference_context, scene_attempt_number=scene_attempt_number,
+    )
 
     user_content: list = [
         {
@@ -608,7 +767,10 @@ async def assess_audio_with_openai(
         raise RuntimeError(response.text)
 
     content = response.json()["choices"][0]["message"]["content"]
-    return _unpack_audio_result(json.loads(content), "openai-audio", scene_vocabulary, image_b64)
+    return _unpack_audio_result(
+        json.loads(content), "openai-audio", scene_vocabulary, image_b64,
+        scene_attempt_number=scene_attempt_number, scene_suggested_answer=scene_suggested_answer,
+    )
 
 
 async def assess_audio_with_groq(
@@ -620,6 +782,9 @@ async def assess_audio_with_groq(
     praat_vowel_quality: str = "",
     image_b64: str | None = None,
     image_mime: str = "",
+    scene_grammar_pattern: str = "",
+    scene_suggested_answer: str = "",
+    scene_attempt_number: int = 1,
 ) -> Dict:
     """Groq two-step pipeline: Whisper ASR + LLaMA feedback in one function.
 
@@ -648,11 +813,10 @@ async def assess_audio_with_groq(
         transcription = OpenCC("s2twp").convert(asr_resp.text.strip())
 
     # Step 2: send transcription + vocabulary to Groq LLaMA for feedback
-    vocab_line, praat_context = _build_audio_context(
-        scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality
-    )
     feedback_prompt = _feedback_prompt(
-        transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality
+        transcription, scene_prompt, scene_vocabulary, praat_tone_accuracy, praat_fluency_score, praat_vowel_quality,
+        scene_grammar_pattern=scene_grammar_pattern, scene_suggested_answer=scene_suggested_answer,
+        scene_attempt_number=scene_attempt_number,
     )
     payload = {
         "model": GROQ_FEEDBACK_MODEL,
@@ -681,7 +845,7 @@ async def assess_audio_with_groq(
 
     data = json.loads(llm_resp.json()["choices"][0]["message"]["content"])
     data["provider"] = "groq-audio"
-    feedback = _normalize_feedback(data)
+    feedback = _normalize_feedback(data, scene_attempt_number=scene_attempt_number, scene_suggested_answer=scene_suggested_answer)
     if image_b64:
         feedback["content_accuracy"] = _content_accuracy_placeholder(image_b64)
     return {"transcription": transcription, "feedback": feedback}
@@ -696,6 +860,9 @@ async def _feedback_with_gemini(
     praat_vowel_quality: str = "",
     image_b64: str | None = None,
     image_mime: str = "",
+    scene_grammar_pattern: str = "",
+    scene_suggested_answer: str = "",
+    scene_attempt_number: int = 1,
 ) -> Dict:
     parts: list = [
         {
@@ -703,6 +870,8 @@ async def _feedback_with_gemini(
                 transcription, scene_prompt, scene_vocabulary,
                 praat_tone_accuracy, praat_fluency_score, praat_vowel_quality,
                 has_image=bool(image_b64),
+                scene_grammar_pattern=scene_grammar_pattern, scene_suggested_answer=scene_suggested_answer,
+                scene_attempt_number=scene_attempt_number,
             )
         }
     ]
@@ -740,7 +909,7 @@ async def _feedback_with_gemini(
     content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
     data = json.loads(_strip_json_fence(content))
     data["provider"] = GEMINI_FEEDBACK_MODEL
-    return _normalize_feedback(data)
+    return _normalize_feedback(data, scene_attempt_number=scene_attempt_number, scene_suggested_answer=scene_suggested_answer)
 
 
 def _feedback_prompt(
@@ -751,6 +920,9 @@ def _feedback_prompt(
     praat_fluency_score: float = 0,
     praat_vowel_quality: str = "",
     has_image: bool = False,
+    scene_grammar_pattern: str = "",
+    scene_suggested_answer: str = "",
+    scene_attempt_number: int = 1,
 ) -> str:
     scene_words = [w.strip() for w in scene_vocabulary.split(",") if w.strip()]
     used = [w for w in scene_words if _word_matches_phonetically(w, transcription)]
@@ -764,6 +936,19 @@ Words student used (matched by character OR pinyin homophone): {', '.join(used) 
 Words missing: {', '.join(missing) if missing else 'none'}
 Note: a word counts as "used" if the student pronounced it correctly even if the ASR wrote a different character with the same sound.
 """
+
+    reference_context = ""
+    if scene_grammar_pattern.strip() or scene_suggested_answer.strip():
+        reference_context = (
+            "\nReference material for judging meaning (do not require an exact match — use it as "
+            "the standard for what a correct answer looks like, and as scaffolding material for your "
+            "feedback — NEVER quote or paraphrase the model answer back to the student; that defeats "
+            "the practice. Instead point them at which vocabulary word(s) or grammar slot to try next):\n"
+        )
+        if scene_grammar_pattern.strip():
+            reference_context += f"- Target grammar pattern: {scene_grammar_pattern.strip()}\n"
+        if scene_suggested_answer.strip():
+            reference_context += f"- A teacher-written model answer for this scene (internal reference only, do not reveal it): {scene_suggested_answer.strip()}\n"
 
     praat_context = ""
     if praat_tone_accuracy > 0 or praat_fluency_score > 0:
@@ -784,18 +969,36 @@ Praat acoustic data (use to inform pronunciation feedback):
         """,
   "content_accuracy": {
     "score": <int 0-100, 0 if no image was given>,
-    "feedback": "<one sentence — does the spoken description actually match what's shown in the image?>",
+    "feedback": "<one sentence — if accepted, confirm what they got right; if NOT accepted, give a scaffolded hint pointing at which vocabulary word(s) or grammar slot to try, e.g. 'Try describing what the person is holding' or 'Use the 把 pattern to say what happened to the object' — never state or paraphrase the model answer itself>",
     "matched_details": [<things in the image the student correctly described>],
-    "missed_details": [<things visible in the image the student did not mention or got wrong>]
+    "missed_details": [<things visible in the image the student did not mention or got wrong>],
+    "accepted": <true if the sentence's meaning is an acceptable match for the scene (score >= 60), false otherwise>
   }"""
         if has_image else ""
     )
+
+    reveal_now = scene_attempt_number > MAX_HINT_ATTEMPTS
+    corrective_instructions = f"""
+You are a Mandarin speaking tutor giving INDIRECT corrective feedback. The learner's speech above was
+transcribed by ASR. This is attempt #{scene_attempt_number} on this picture.
+
+Do NOT provide the correct answer immediately. Instead:
+1. Identify where the errors are (wrong/missing vocabulary, grammar order, or meaning that doesn't fit the scene).
+2. Point out — but don't fully solve — the incorrect or missing parts (name the word/slot, not the fix).
+3. Give a hint only (point at the target vocabulary, grammar pattern, or missing detail in the picture).
+4. Ask the learner to self-correct and try again.
+5. {"This is attempt 3 or later — the learner has had two tries with hints only, so now reveal the correct version (set reveal_answer to true and fill correct_version with a fluent sentence using the target vocabulary and grammar pattern, grounded in the model answer reference if one was given)." if reveal_now else "The learner has not yet had two attempts — set reveal_answer to false and leave correct_version empty. Do not give away the full correct sentence in any field."}
+"""
 
     return f"""Analyze this Mandarin learner's spoken response and return JSON feedback.
 
 Scene / task: {scene_prompt or "(open topic)"}
 Student said: {transcription}
-{vocab_context}{praat_context}{image_context}
+{vocab_context}{reference_context}{praat_context}{image_context}
+IMPORTANT — evaluation order:
+1. First judge MEANING: does the student's sentence make sense for this picture/scene, using the target vocabulary, grammar pattern, and model answer above as your standard? This is what content_accuracy and coherence capture.
+2. Only treat pronunciation as worth detailed feedback if the meaning is acceptable (content_accuracy.accepted is true, or there's no image to judge against). Still score pronunciation_note from the Praat data either way — the app will decide whether to show it to the student.
+{corrective_instructions}
 Scoring guide:
 - vocabulary_coverage.score: 0 = no target words used, 100 = all used correctly
 - coherence.score: 0 = incomprehensible, 60 = grammatically acceptable, 90+ = natural native-level
@@ -819,8 +1022,14 @@ Return ONLY this JSON (no markdown, no extra keys):
     "score": <int 0-100>,
     "feedback": "<one sentence — cite specific tones or sounds to improve, based on Praat data>"
   }}{content_accuracy_block},
+  "corrective_feedback": {{
+    "errors": [<short phrases marking what's wrong or missing — e.g. "missing word for the action", "wrong word order in the middle clause" — never the fix itself>],
+    "hint": "<a hint only — point at vocabulary/grammar to try, phrased as guidance, e.g. 'Which word describes what she is carrying?'>",
+    "reveal_answer": {str(reveal_now).lower()},
+    "correct_version": "{'<a fluent Traditional Chinese sentence using the target vocabulary and grammar pattern>' if reveal_now else ''}"
+  }},
   "improved_version": "<a fluent Traditional Chinese sentence that fits the scene and includes the target vocabulary>",
-  "practice_prompt": "<one concrete next step — e.g. 'Say X again and hold the falling tone on Y'>"
+  "practice_prompt": "<one concrete next step the student should try — a hint about which vocabulary/grammar to use or which tone to fix, not the finished sentence>"
 }}"""
 
 
@@ -833,13 +1042,18 @@ def _strip_json_fence(content: str) -> str:
     return stripped
 
 
-def _normalize_feedback(data: Dict) -> Dict:
+def _normalize_feedback(
+    data: Dict,
+    scene_attempt_number: int = 1,
+    scene_suggested_answer: str = "",
+) -> Dict:
     fallback = fallback_language_feedback("")
 
     vc_raw = data.get("vocabulary_coverage", {})
     coh_raw = data.get("coherence", {})
     pron_raw = data.get("pronunciation_note", {})
     ca_raw = data.get("content_accuracy")
+    cf_raw = data.get("corrective_feedback") or {}
 
     normalized = {
         "provider": data.get("provider", "ai"),
@@ -861,12 +1075,31 @@ def _normalize_feedback(data: Dict) -> Dict:
         "improved_version": str(data.get("improved_version", "")),
         "practice_prompt": str(data.get("practice_prompt", fallback["practice_prompt"])),
     }
+
+    # Server-side source of truth for the reveal gate — never trust the LLM's
+    # word for it, since indirect corrective feedback only works if this holds.
+    reveal_answer = scene_attempt_number > MAX_HINT_ATTEMPTS
+    correct_version = ""
+    if reveal_answer:
+        correct_version = str(cf_raw.get("correct_version") or "").strip() or scene_suggested_answer.strip()
+    normalized["corrective_feedback"] = {
+        "errors": [str(e) for e in (cf_raw.get("errors") or [])[:5]],
+        "hint": "" if reveal_answer else str(cf_raw.get("hint", "")),
+        "reveal_answer": reveal_answer,
+        "correct_version": correct_version,
+    }
+
     if isinstance(ca_raw, dict):
+        # Only present in ca_raw when the prompt actually asked a vision-capable
+        # model to judge it (has_image=True), so this is always a real score.
+        ca_score = _score(ca_raw.get("score", 0))
         normalized["content_accuracy"] = {
-            "score": _score(ca_raw.get("score", 0)),
+            "score": ca_score,
             "feedback": str(ca_raw.get("feedback", "")),
             "matched_details": [str(d) for d in (ca_raw.get("matched_details") or [])[:6]],
             "missed_details": [str(d) for d in (ca_raw.get("missed_details") or [])[:6]],
+            "accepted": bool(ca_raw.get("accepted", ca_score >= CONTENT_ACCURACY_ACCEPT_THRESHOLD)),
+            "judged": True,
         }
     return normalized
 

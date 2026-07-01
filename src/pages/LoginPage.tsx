@@ -39,7 +39,7 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
     <main className="login-page">
       <section className="login-shell">
         <button type="button" className="login-back" onClick={onBack}>
-          <BiLabel zh="返回入口" en="Back to portals" />
+          <BiLabel k="back_to_portals" />
         </button>
 
         <div className="login-card">

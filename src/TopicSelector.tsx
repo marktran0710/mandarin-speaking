@@ -21,9 +21,15 @@ export interface Topic {
   vocabulary: Record<number, string[]>;
   vocabularyGroups?: Record<number, VocabGroup[]>;
   grammarPatterns?: Record<number, string>;
+  grammarExamples?: Record<number, string>;
+  vocabularyPinyin?: Record<number, string[]>;
+  suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
   listenScripts?: Record<number, string>;
   linear?: boolean;
+  lessonNumber?: number | null;
+  narrativeMode?: "story" | "describe" | "listen_retell";
+  firstFrameIsExample?: boolean;
 }
 
 interface TopicSelectorProps {
@@ -32,9 +38,15 @@ interface TopicSelectorProps {
 
 export const TOPICS: Topic[] = [];
 
+/** Only "story" mode topics belong in the normal training flow — "describe" and
+ * "listen_retell" topics have their own dedicated pages. */
+function isStoryModeTopic(topic: Topic): boolean {
+  return (topic.narrativeMode ?? "story") === "story";
+}
+
 export function SkillFocusLabel({ skillFocus }: { skillFocus: string }) {
   if (skillFocus === "Teacher published activity") {
-    return <BiLabel zh="老師發布的活動" en="Teacher published activity" />;
+    return <BiLabel k="teacher_published_activity" />;
   }
   return <>{skillFocus}</>;
 }
@@ -44,63 +56,48 @@ export function getTopicVocabulary(topic: Topic, imageIndex: number): string[] {
 }
 
 export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
-  const [topics, setTopics] = useState<Topic[]>(() => loadPublishedTeacherTopics());
-  const [selectedTopic, setSelectedTopic] = useState<Topic | null>(() => {
-    const initial = loadPublishedTeacherTopics();
-    return initial[0] ?? null;
-  });
+  const [topics, setTopics] = useState<Topic[]>(() =>
+    loadPublishedTeacherTopics().filter(isStoryModeTopic),
+  );
   const [loading, setLoading] = useState(canUseDatabase());
 
   useEffect(() => {
     if (!canUseDatabase()) return;
     listCustomStories()
       .then(async (dbStories) => {
-        // Merge: push any localStorage-only stories up to the DB so they're never lost
         const localStories = loadCustomStories();
         const dbIds = new Set(dbStories.map((s) => s.id));
         const localOnly = localStories.filter((s) => !dbIds.has(s.id));
         if (localOnly.length > 0) {
           await Promise.allSettled(localOnly.map((s) => createCustomStory(s)));
-          // Re-fetch after uploading missing stories
           const merged = await listCustomStories();
           saveCustomStories(merged);
           const published = merged
             .filter((s) => s.published)
-            .map((s) => storyToTopic(s as any));
+            .map((s) => storyToTopic(s as any))
+            .filter(isStoryModeTopic);
           setTopics(published);
-          setSelectedTopic((prev) => {
-            if (prev) return published.find((t) => t.id === prev.id) ?? published[0] ?? null;
-            return published[0] ?? null;
-          });
           return;
         }
-        // DB is source of truth — only overwrite localStorage if DB has stories
         if (dbStories.length > 0) {
           saveCustomStories(dbStories);
         }
         const published = (dbStories.length > 0 ? dbStories : localStories)
           .filter((s) => s.published)
-          .map((s) => storyToTopic(s as any));
+          .map((s) => storyToTopic(s as any))
+          .filter(isStoryModeTopic);
         setTopics(published);
-        setSelectedTopic((prev) => {
-          if (prev) return published.find((t) => t.id === prev.id) ?? published[0] ?? null;
-          return published[0] ?? null;
-        });
       })
       .catch((err) => console.error("Failed to load topics from backend:", err))
       .finally(() => setLoading(false));
   }, []);
-
-  const chooseTopic = (topic: Topic) => {
-    setSelectedTopic(topic);
-  };
 
   if (loading) {
     return (
       <div className="topic-selector">
         <div className="empty-state">
           <div className="empty-icon">⏳</div>
-          <h2><BiLabel zh="正在載入活動…" en="Loading activities…" /></h2>
+          <h2><BiLabel k="loading_activities" /></h2>
         </div>
       </div>
     );
@@ -109,123 +106,123 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
   if (topics.length === 0) {
     return (
       <div className="topic-selector">
-        <section className="learning-hero">
-          <div className="learning-hero-copy">
-            <p className="platform-kicker"><BiLabel zh="真實生活口語練習" en="Real-life speaking practice" /></p>
-            <h1><BiLabel zh="選擇一個日常情境" en="Choose a Daily Situation" /></h1>
-            <p>
-              <BiText zh="你的老師會在這裡發布口語練習活動。請稍後再回來查看！" en="Your teacher will publish speaking activities here. Check back once materials are ready!" />
-            </p>
+        <section className="ts-hero">
+          <div className="ts-hero-copy">
+            <p className="platform-kicker"><BiLabel k="real_life_speaking_practice" /></p>
+            <h1><BiLabel k="choose_a_daily_situation" /></h1>
+            <p><BiText k="your_teacher_will_publish_speaking_activ" /></p>
           </div>
         </section>
-
         <div className="empty-state">
           <div className="empty-icon">📚</div>
-          <h2><BiLabel zh="目前還沒有活動" en="No Activities Yet" /></h2>
-          <p>
-            <BiText zh="你的老師將會建立並發布口語練習活動，準備好後會顯示在這裡。" en="Your teacher will create and publish speaking activities. They'll appear here when ready." />
-          </p>
+          <h2><BiLabel k="no_activities_yet" /></h2>
+          <p><BiText k="your_teacher_will_create_and_publish_spe" /></p>
         </div>
       </div>
     );
   }
 
-  const topic = selectedTopic ?? topics[0];
-  const totalScenes = topic.images.length;
-  const totalWords = Object.values(topic.vocabulary).flat().length;
-
   return (
     <div className="topic-selector">
-      <section className="learning-hero">
-        <div className="learning-hero-copy">
-          <p className="platform-kicker"><BiLabel zh="真實生活口語練習" en="Real-life speaking practice" /></p>
-          <h1><BiLabel zh="選擇一個日常情境" en="Choose a Daily Situation" /></h1>
-          <p>
-            <BiText
-              zh="選擇學生日常生活中可能遇到的真實情境，研究六張相連的圖片提示，準備實用的普通話片語，並為每個提示錄音，獲得 Praat 韻律分析與 Gemini 語言回饋。"
-              en="Select a real situation students may meet in daily life, study the six connected picture cues, prepare useful Mandarin phrases, and record each cue for Praat prosody and Gemini language feedback."
-            />
-          </p>
+      {/* ── Hero ── */}
+      <section className="ts-hero">
+        <div className="ts-hero-copy">
+          <p className="platform-kicker"><BiLabel k="real_life_speaking_practice" /></p>
+          <h1><BiLabel k="choose_a_daily_situation" /></h1>
+          <p><BiText k="select_a_real_situation_students_may_mee" /></p>
         </div>
-
-        <div className="learning-objectives" aria-label="Learning objectives">
-          <div>
-            <strong>1</strong>
-            <span><BiLabel zh="規劃故事" en="Plan the story" /></span>
+        <div className="ts-steps" aria-label="Learning steps">
+          <div className="ts-step">
+            <span className="ts-step-num ts-step-1">1</span>
+            <span><BiLabel k="plan_the_story" /></span>
           </div>
-          <div>
-            <strong>2</strong>
-            <span><BiLabel zh="錄製普通話語音" en="Record Mandarin speech" /></span>
+          <div className="ts-step">
+            <span className="ts-step-num ts-step-2">2</span>
+            <span><BiLabel k="record_mandarin_speech" /></span>
           </div>
-          <div>
-            <strong>3</strong>
-            <span><BiLabel zh="檢視發音與語言回饋" en="Review pronunciation and language feedback" /></span>
+          <div className="ts-step">
+            <span className="ts-step-num ts-step-3">3</span>
+            <span><BiLabel k="review_pronunciation_and_language_feedba" /></span>
           </div>
         </div>
       </section>
 
-      <section className="activity-layout">
-        <aside className="activity-sidebar" aria-label="Story topics">
-          <div className="sidebar-heading">
-            <p className="platform-kicker"><BiLabel zh="活動選單" en="Activity menu" /></p>
-            <h2><BiLabel zh="老師發布的主題" en="Teacher published topics" /></h2>
-          </div>
+      {/* ── Topic card grid ── */}
+      <section className="ts-grid-section">
+        <div className="ts-grid-header">
+          <p className="platform-kicker"><BiLabel k="activity_menu" /></p>
+          <h2><BiLabel k="teacher_published_topics" /></h2>
+          <span className="ts-topic-count">
+            <BiLabel
+              zh={`${topics.length} 個活動`}
+              en={`${topics.length} activit${topics.length === 1 ? "y" : "ies"}`}
+            />
+          </span>
+        </div>
 
-          <div className="topic-list">
-            {topics.map((t) => (
-              <button
-                type="button"
-                key={t.id}
-                className={`topic-row ${topic.id === t.id ? "selected" : ""}`}
-                onClick={() => chooseTopic(t)}
-              >
-                <span>
-                  <strong>{t.name}</strong>
-                  <small><SkillFocusLabel skillFocus={t.skillFocus} /></small>
-                </span>
-                <em>{t.level}</em>
-              </button>
-            ))}
-          </div>
-        </aside>
+        <div className="ts-grid">
+          {topics.map((t) => {
+            const totalScenes = t.images.length;
+            const totalWords = Object.values(t.vocabulary).flat().length;
+            const previewImage = t.images[0];
 
-        <section className="activity-preview" aria-label="Selected activity">
-          <p className="platform-kicker"><BiLabel zh="已選模組" en="Selected module" /></p>
+            return (
+              <article key={t.id} className="ts-card">
+                {/* Image strip */}
+                <div className="ts-card-image">
+                  {previewImage ? (
+                    <img src={previewImage} alt={t.name} />
+                  ) : (
+                    <div className="ts-card-image-placeholder">🎬</div>
+                  )}
+                  {totalScenes > 1 && (
+                    <span className="ts-card-scene-badge">
+                      <BiLabel zh={`${totalScenes} 場景`} en={`${totalScenes} scenes`} />
+                    </span>
+                  )}
+                  {t.lessonNumber != null && (
+                    <span className="ts-card-lesson-badge">L{t.lessonNumber}</span>
+                  )}
+                </div>
 
-          <div className="topic-summary-card">
-            <div className="topic-summary-top">
-              <div>
-                <h2 className="topic-summary-title">{topic.name}</h2>
-                <span className="module-badge">{topic.level}</span>
-              </div>
-            </div>
+                {/* Body */}
+                <div className="ts-card-body">
+                  <div className="ts-card-meta-row">
+                    <span className="ts-card-level">{t.level}</span>
+                    <span className="ts-card-skill">
+                      <SkillFocusLabel skillFocus={t.skillFocus} />
+                    </span>
+                  </div>
 
-            <p className="topic-summary-desc">{topic.description}</p>
+                  <h3 className="ts-card-title">{t.name}</h3>
 
-            <div className="topic-summary-meta">
-              <div className="topic-meta-item">
-                <span className="topic-meta-icon">🎬</span>
-                <span><BiLabel zh={`${totalScenes} 個場景`} en={`${totalScenes} scenes`} /></span>
-              </div>
-              <div className="topic-meta-item">
-                <span className="topic-meta-icon">📝</span>
-                <span><BiLabel zh={`${totalWords} 個詞彙`} en={`${totalWords} vocabulary words`} /></span>
-              </div>
-              <div className="topic-meta-item">
-                <span className="topic-meta-icon">🎯</span>
-                <span><SkillFocusLabel skillFocus={topic.skillFocus} /></span>
-              </div>
-            </div>
+                  {t.description && (
+                    <p className="ts-card-desc">{t.description}</p>
+                  )}
 
-            <button
-              type="button"
-              className="start-activity-btn"
-              onClick={() => onTopicSelect?.(topic)}
-            >
-              <BiLabel zh="開始這個活動 →" en="Start this activity" />
-            </button>
-          </div>
-        </section>
+                  <div className="ts-card-stats">
+                    <span>🎬 <BiLabel zh={`${totalScenes} 場景`} en={`${totalScenes} scenes`} /></span>
+                    {totalWords > 0 && (
+                      <span>📝 <BiLabel zh={`${totalWords} 詞`} en={`${totalWords} words`} /></span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="ts-card-footer">
+                  <button
+                    type="button"
+                    className="ts-card-btn"
+                    onClick={() => onTopicSelect?.(t)}
+                  >
+                    <BiLabel k="start_this_activity" />
+                    <span className="ts-card-btn-arrow">→</span>
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
       </section>
     </div>
   );

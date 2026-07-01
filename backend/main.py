@@ -44,6 +44,7 @@ from praat_analyzer import (
     analyze_fluency,
     get_pitch_statistics,
     estimate_word_prosody,
+    word_stress_summary,
     analyze_all,
 )
 from chinese_tones import (
@@ -54,6 +55,7 @@ from chinese_tones import (
 )
 from ai_feedback import generate_language_feedback, available_providers, default_provider
 from pypinyin import lazy_pinyin, Style
+import taiwan_pinyin; taiwan_pinyin.apply()
 
 # Load backend/.env first, then root .env.local for local full-stack runs.
 load_dotenv()
@@ -266,6 +268,9 @@ class CustomStoryFrameRequest(BaseModel):
     vocabulary: str = ""
     vocabularyGroups: Optional[List[dict]] = None
     grammarPattern: Optional[str] = None
+    grammarExample: Optional[str] = None
+    vocabularyPinyin: Optional[str] = None
+    suggestedAnswer: Optional[str] = None
     listenAudioUrl: Optional[str] = None
     listenScript: Optional[str] = None
 
@@ -278,6 +283,9 @@ class CustomStoryRequest(BaseModel):
     frames: List[CustomStoryFrameRequest]
     published: bool = False
     linear: bool = False
+    firstFrameIsExample: bool = False
+    lessonNumber: Optional[int] = None
+    narrativeMode: str = "story"
 
 
 class HelpRequest(BaseModel):
@@ -421,9 +429,9 @@ async def create_custom_story(story: CustomStoryRequest):
         db.execute(
             """
             INSERT OR REPLACE INTO custom_stories (
-                id, title, learning_goal, level, frames, published, linear
+                id, title, learning_goal, level, frames, published, linear, lesson_number, narrative_mode, first_frame_is_example
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 story.id,
@@ -433,6 +441,9 @@ async def create_custom_story(story: CustomStoryRequest):
                 json.dumps(stored_frames),
                 1 if story.published else 0,
                 1 if story.linear else 0,
+                story.lessonNumber,
+                story.narrativeMode,
+                1 if story.firstFrameIsExample else 0,
             ),
         )
     return {
@@ -725,6 +736,8 @@ async def resolve_image_b64(image_ref: str) -> Optional[Tuple[str, str]]:
     if ref.startswith("data:image/"):
         header, _, data = ref.partition(",")
         mime = header.removeprefix("data:").split(";")[0] or "image/png"
+        if mime == "image/svg+xml":
+            return None  # SVG is not supported by vision models (Gemini, OpenAI)
         return data, mime
 
     if ref.startswith("/uploads/"):
@@ -734,6 +747,8 @@ async def resolve_image_b64(image_ref: str) -> Optional[Tuple[str, str]]:
         if not path.startswith(upload_root) or not os.path.exists(path):
             return None
         mime = _IMAGE_MIME_BY_EXT.get(os.path.splitext(path)[1].lower(), "image/png")
+        if mime == "image/svg+xml":
+            return None  # SVG is not supported by vision models
         with open(path, "rb") as fh:
             return base64.b64encode(fh.read()).decode(), mime
 
@@ -744,6 +759,8 @@ async def resolve_image_b64(image_ref: str) -> Optional[Tuple[str, str]]:
             if response.status_code != 200:
                 return None
             mime = response.headers.get("content-type", "image/png").split(";")[0]
+            if mime == "image/svg+xml":
+                return None  # SVG is not supported by vision models
             return base64.b64encode(response.content).decode(), mime
         except Exception:
             return None
@@ -894,6 +911,9 @@ async def _do_analyze(
     scene_vocabulary: str = "",
     ai_provider: str = "",
     scene_image_url: str = "",
+    scene_grammar_pattern: str = "",
+    scene_suggested_answer: str = "",
+    scene_attempt_number: int = 1,
 ) -> AnalysisResponse:
     tmp_path = None
     try:
@@ -925,6 +945,8 @@ async def _do_analyze(
                     audio_result = await getattr(mod, fn_name)(
                         content, scene_prompt, scene_vocabulary,
                         image_b64=image_b64, image_mime=image_mime,
+                        scene_grammar_pattern=scene_grammar_pattern, scene_suggested_answer=scene_suggested_answer,
+                        scene_attempt_number=scene_attempt_number,
                     )
                     transcription = convert_to_traditional_chinese(audio_result["transcription"])
                     transcription_model = tag
@@ -952,6 +974,8 @@ async def _do_analyze(
             else generate_language_feedback(
                 transcription, scene_prompt, scene_vocabulary, provider=ai_provider or None,
                 image_b64=image_b64, image_mime=image_mime,
+                scene_grammar_pattern=scene_grammar_pattern, scene_suggested_answer=scene_suggested_answer,
+                scene_attempt_number=scene_attempt_number,
             )
         )
         (praat_result, maybe_feedback) = await asyncio.gather(
@@ -985,7 +1009,11 @@ async def _do_analyze(
             praat_vowel_quality=vowel_quality or "",
             praat_pause_analysis=pause_analysis,
             praat_speech_rate=float(speech_rate),
+            word_prosody=word_prosody,
             image_b64=image_b64,
+            scene_grammar_pattern=scene_grammar_pattern,
+            scene_suggested_answer=scene_suggested_answer,
+            scene_attempt_number=scene_attempt_number,
         )
         if isinstance(ai_feedback, dict):
             if ai_feedback.get("provider") == "local":
@@ -1029,13 +1057,21 @@ async def analyze_speech(
     scene_vocabulary: str = Form(""),
     ai_provider: str = Form(""),
     scene_image_url: str = Form(""),
+    scene_grammar_pattern: str = Form(""),
+    scene_suggested_answer: str = Form(""),
+    scene_attempt_number: int = Form(1),
     req: Request = None,
 ):
     """
     Analyze Chinese speech for tone, pitch, formants, speech rate, and fluency.
     If transcription is empty and asr_model is provided, transcribe first, then
     run Praat against the same audio. scene_prompt and scene_vocabulary are used
-    to make AI and local feedback context-aware.
+    to make AI and local feedback context-aware. scene_grammar_pattern and
+    scene_suggested_answer give the AI a reference for judging whether the
+    student's sentence actually means the right thing, before pronunciation
+    feedback matters. scene_attempt_number drives indirect corrective feedback —
+    hints only for the first two attempts on a scene, then the correct answer
+    is revealed.
     """
     if not file:
         raise HTTPException(status_code=400, detail="No audio file provided")
@@ -1053,7 +1089,10 @@ async def analyze_speech(
 
     try:
         return await asyncio.wait_for(
-            _do_analyze(content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url),
+            _do_analyze(
+                content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
+                scene_grammar_pattern, scene_suggested_answer, scene_attempt_number,
+            ),
             timeout=ANALYZE_TIMEOUT_SECONDS,
         )
     except asyncio.TimeoutError:

@@ -70,6 +70,9 @@ def init_db() -> None:
         )
         ensure_column(db, "custom_stories", "published", "INTEGER NOT NULL DEFAULT 0")
         ensure_column(db, "custom_stories", "linear", "INTEGER NOT NULL DEFAULT 0")
+        ensure_column(db, "custom_stories", "lesson_number", "INTEGER")
+        ensure_column(db, "custom_stories", "narrative_mode", "TEXT NOT NULL DEFAULT 'story'")
+        ensure_column(db, "custom_stories", "first_frame_is_example", "INTEGER NOT NULL DEFAULT 0")
         db.execute(
             """
             CREATE TABLE IF NOT EXISTS help_requests (
@@ -132,6 +135,9 @@ def row_to_custom_story(row: sqlite3.Row) -> dict:
         "frames": json.loads(row["frames"] or "[]"),
         "published": bool(row["published"]),
         "linear": bool(row["linear"]),
+        "lessonNumber": row["lesson_number"],
+        "narrativeMode": row["narrative_mode"],
+        "firstFrameIsExample": bool(row["first_frame_is_example"]),
     }
 
 

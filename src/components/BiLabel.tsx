@@ -1,20 +1,29 @@
+import translations from "../translations.json";
+
 /**
  * Bilingual label: Traditional Chinese primary, English subtitle.
  * Usage:
- *   <BiLabel zh="登出" en="Log out" />
- *   <BiLabel zh="提交故事給老師" en="Submit Story to Teacher" block />
+ *   <BiLabel k="log_out" />                    (looks up src/translations.json)
+ *   <BiLabel zh="登出" en="Log out" />          (inline, for dynamic/interpolated text)
+ *   <BiLabel k="submit_story_to_teacher" block />
  */
-export function BiLabel({
-  zh,
-  en,
-  block = false,
-}: {
-  zh: string;
-  en: string;
-  block?: boolean;
-}) {
+type BiLabelProps =
+  | { k: string; zh?: never; en?: never; block?: boolean }
+  | { k?: never; zh: string; en: string; block?: boolean };
+
+function resolve(props: { k?: string; zh?: string; en?: string }): { zh: string; en: string } {
+  if (props.k) {
+    const entry = (translations as Record<string, { zh: string; en: string }>)[props.k];
+    if (!entry) throw new Error(`Missing translation key: ${props.k}`);
+    return entry;
+  }
+  return { zh: props.zh!, en: props.en! };
+}
+
+export function BiLabel(props: BiLabelProps) {
+  const { zh, en } = resolve(props);
   return (
-    <span className={`bi-label${block ? " bi-label--block" : ""}`}>
+    <span className={`bi-label${props.block ? " bi-label--block" : ""}`}>
       <span className="bi-zh">{zh}</span>
       <small className="bi-en">{en}</small>
     </span>
@@ -22,7 +31,10 @@ export function BiLabel({
 }
 
 /** Bilingual paragraph: Chinese on top, English below in muted smaller text. */
-export function BiText({ zh, en }: { zh: string; en: string }) {
+type BiTextProps = { k: string; zh?: never; en?: never } | { k?: never; zh: string; en: string };
+
+export function BiText(props: BiTextProps) {
+  const { zh, en } = resolve(props);
   return (
     <span className="bi-text">
       <span className="bi-text-zh">{zh}</span>

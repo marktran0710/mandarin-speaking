@@ -40,6 +40,7 @@ STORY = {
         },
     ],
     "published": 1,
+    "narrative_mode": "listen_retell",
 }
 
 
@@ -75,8 +76,8 @@ def main():
     conn.execute(
         """
         INSERT OR REPLACE INTO custom_stories
-            (id, title, learning_goal, level, frames, published)
-        VALUES (?, ?, ?, ?, ?, ?)
+            (id, title, learning_goal, level, frames, published, narrative_mode)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
             STORY["id"],
@@ -85,6 +86,7 @@ def main():
             STORY["level"],
             json.dumps(STORY["frames"], ensure_ascii=False),
             STORY["published"],
+            STORY["narrative_mode"],
         ),
     )
     conn.commit()

@@ -33,14 +33,10 @@
 }
 
 .logo-icon {
-  display: inline-grid;
-  place-items: center;
   width: 34px;
   height: 34px;
-  border-radius: 999px;
-  background: var(--clay-primary);
-  color: #ffffff;
-  font-size: 20px;
+  border-radius: 8px;
+  object-fit: contain;
 }
 
 .navbar-menu {
@@ -61,12 +57,18 @@
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
 .nav-link:hover,
 .nav-link.active {
   background: var(--clay-mint);
   color: var(--clay-ink);
+  transform: translateY(-1px);
+}
+
+.nav-link:active {
+  transform: translateY(0) scale(0.97);
 }
 
 .nav-link.logout {

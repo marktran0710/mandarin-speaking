@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import PitchChart from "../PitchChart";
 import { getTopicVocabulary } from "../TopicSelector";
 import {
@@ -12,12 +12,15 @@ import {
 } from "../database";
 import {
   CustomTeacherStory,
+  NarrativeMode,
   VocabGroup,
   loadCustomStories,
   loadPublishedTeacherTopics,
   resolveImageUrl,
   saveCustomStories,
 } from "../utils/teacherStories";
+import { BiLabel, BiText } from "../components/BiLabel";
+import "../components/BiLabel.css";
 import "./MyStoriesPage.css";
 
 interface AudioRecord {
@@ -91,10 +94,133 @@ function getPromptImages(topics = getStudentTopics()): PromptImage[] {
   );
 }
 
+/** Normal-mode stories are a 6-scene story; Describe/Listen & Retell are single-frame activities. */
+function frameCountForMode(mode: NarrativeMode): number {
+  return mode === "story" ? 6 : 1;
+}
+
+interface StoryFrameGuide {
+  zh: string;
+  en: string;
+  tip: string;
+  color: string;
+  accent: string;
+  renderIcon: () => React.ReactElement;
+}
+
+const STORY_FRAME_GUIDES: StoryFrameGuide[] = [
+  {
+    zh: "開場 — 誰在哪裡？",
+    en: "Scene 1 · Setting",
+    tip: "Show the character(s) and location",
+    color: "#7c65d1",
+    accent: "#e9f0ff",
+    renderIcon: () => (
+      <g>
+        <circle cx="72" cy="56" r="18" fill="#7c65d1" />
+        <path d="M54 90 Q72 72 90 90 L90 108 L54 108 Z" fill="#7c65d1" opacity="0.8" />
+        <path d="M128 38 C128 52 112 68 112 68 C112 68 96 52 96 38 C96 29 103 22 112 22 C121 22 128 29 128 38 Z" fill="#e76f51" />
+        <circle cx="112" cy="38" r="7" fill="white" />
+      </g>
+    ),
+  },
+  {
+    zh: "第一個動作",
+    en: "Scene 2 · First Action",
+    tip: "What does the character do first?",
+    color: "#2786a5",
+    accent: "#e8f6ff",
+    renderIcon: () => (
+      <g>
+        <circle cx="88" cy="42" r="16" fill="#2786a5" />
+        <path d="M68 62 L88 58 L108 62" stroke="#2786a5" strokeWidth="5" fill="none" strokeLinecap="round" />
+        <path d="M72 62 L62 86 M78 62 L72 86" stroke="#2786a5" strokeWidth="5" strokeLinecap="round" />
+        <path d="M100 62 L108 82 M106 62 L116 80" stroke="#2786a5" strokeWidth="5" strokeLinecap="round" />
+        <path d="M52 70 L140 70" stroke="#2786a5" strokeWidth="3" strokeDasharray="6 4" opacity="0.5" />
+      </g>
+    ),
+  },
+  {
+    zh: "問題出現",
+    en: "Scene 3 · Problem",
+    tip: "A problem or surprise happens",
+    color: "#d9822b",
+    accent: "#fff3df",
+    renderIcon: () => (
+      <g>
+        <ellipse cx="88" cy="52" rx="34" ry="24" fill="#d9822b" opacity="0.85" />
+        <ellipse cx="68" cy="60" rx="22" ry="18" fill="#d9822b" opacity="0.85" />
+        <ellipse cx="108" cy="58" rx="26" ry="20" fill="#d9822b" opacity="0.85" />
+        <path d="M94 72 L80 96 L90 96 L80 114" stroke="#f4a261" strokeWidth="5" strokeLinecap="round" fill="none" />
+      </g>
+    ),
+  },
+  {
+    zh: "尋求幫助",
+    en: "Scene 4 · Asking for Help",
+    tip: "Someone asks or offers to help",
+    color: "#2f9e83",
+    accent: "#dff7ef",
+    renderIcon: () => (
+      <g>
+        <circle cx="62" cy="50" r="14" fill="#2f9e83" />
+        <path d="M48 72 Q62 60 76 72 L76 92 L48 92 Z" fill="#2f9e83" opacity="0.8" />
+        <circle cx="118" cy="50" r="14" fill="#2f9e83" opacity="0.7" />
+        <path d="M104 72 Q118 60 132 72 L132 92 L104 92 Z" fill="#2f9e83" opacity="0.55" />
+        <rect x="72" y="28" width="36" height="22" rx="6" fill="#f7c948" />
+        <polygon points="84,50 92,50 88,58" fill="#f7c948" />
+        <line x1="78" y1="36" x2="100" y2="36" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+        <line x1="78" y1="43" x2="94" y2="43" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+      </g>
+    ),
+  },
+  {
+    zh: "解決問題",
+    en: "Scene 5 · Solution",
+    tip: "Show how the problem gets solved",
+    color: "#4361ee",
+    accent: "#eef2ff",
+    renderIcon: () => (
+      <g>
+        <circle cx="88" cy="65" r="32" fill="#4361ee" opacity="0.15" />
+        <circle cx="88" cy="65" r="26" fill="#4361ee" opacity="0.2" />
+        <path d="M68 65 L82 79 L108 52" stroke="#4361ee" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <circle cx="118" cy="38" r="5" fill="#f7c948" />
+        <circle cx="60" cy="42" r="3" fill="#f7c948" />
+        <circle cx="126" cy="80" r="4" fill="#f7c948" />
+      </g>
+    ),
+  },
+  {
+    zh: "結尾感受",
+    en: "Scene 6 · Ending Feeling",
+    tip: "How does everyone feel at the end?",
+    color: "#e76f51",
+    accent: "#fff0ec",
+    renderIcon: () => (
+      <g>
+        <circle cx="88" cy="60" r="30" fill="#e76f51" opacity="0.15" />
+        <circle cx="88" cy="60" r="24" fill="#e76f51" opacity="0.85" />
+        <circle cx="80" cy="55" r="3.5" fill="white" />
+        <circle cx="96" cy="55" r="3.5" fill="white" />
+        <path d="M76 66 Q88 78 100 66" stroke="white" strokeWidth="3.5" strokeLinecap="round" fill="none" />
+        <path d="M112 28 C112 24 116 22 118 26 C120 22 124 24 124 28 C124 34 118 38 118 38 C118 38 112 34 112 28 Z" fill="#e76f51" />
+      </g>
+    ),
+  },
+];
+
+function resizeToCount<T>(items: T[], count: number, fill: T): T[] {
+  if (items.length === count) return items;
+  if (items.length > count) return items.slice(0, count);
+  return [...items, ...Array.from({ length: count - items.length }, () => fill)];
+}
+
 const emptyCustomStoryDraft = {
   title: "Taiwan Community Story",
   learningGoal: "Students describe who, where, what happened, and how people solved the problem.",
   level: "Beginner speaking",
+  lessonNumber: "",
   imageUrls: ["", "", "", "", "", ""],
   prompts: [
     "Introduce the place and the people.",
@@ -105,11 +231,16 @@ const emptyCustomStoryDraft = {
     "Finish with a lesson or next step.",
   ],
   vocabulary: ["", "", "", "", "", ""],
+  vocabularyPinyin: ["", "", "", "", "", ""],
   vocabularyGroups: [null, null, null, null, null, null] as (VocabGroup[] | null)[],
-  grammarPatterns: ["", "", "", "", "", ""],
+  grammarPattern: "",
+  grammarExample: "",
+  suggestedAnswers: ["", "", "", "", "", ""],
   listenAudioUrls: ["", "", "", "", "", ""],
   listenScripts: ["", "", "", "", "", ""],
   linear: false,
+  firstFrameIsExample: false,
+  narrativeMode: "story" as NarrativeMode,
 };
 
 function validateCustomStoryDraft(
@@ -128,16 +259,10 @@ function validateCustomStoryDraft(
 
   draft.imageUrls.forEach((imageUrl, index) => {
     const imageMissing = !imageUrl.trim();
-    const promptMissing = !draft.prompts[index].trim();
 
-    if (imageMissing || promptMissing) {
+    if (imageMissing) {
       frameErrors[index] = {
-        ...(imageMissing
-          ? { imageUrl: `Frame ${index + 1} needs an image URL or uploaded image.` }
-          : {}),
-        ...(promptMissing
-          ? { prompt: `Frame ${index + 1} needs a student prompt.` }
-          : {}),
+        imageUrl: `Frame ${index + 1} needs an image URL or uploaded image.`,
       };
     }
   });
@@ -186,24 +311,33 @@ export default function MyStoriesPage({
   return (
     <div className="my-stories-page">
         <div className="stories-header">
-          <p className="stories-kicker">My practice</p>
-          <h1>My Story Workbook</h1>
+          <p className="stories-kicker">
+            <BiLabel zh="我的練習" en="My practice" />
+          </p>
+          <h1>
+            <BiLabel zh="我的故事練習本" en="My Story Workbook" />
+          </h1>
           <p className="stories-subtitle">
-            Choose a picture, record your story part, then revise when feedback
-            is ready.
+            <BiText
+              zh="選一張圖片，錄製你的故事段落，等回饋出來後再修改。"
+              en="Choose a picture, record your story part, then revise when feedback is ready."
+            />
           </p>
         </div>
 
         <section className="student-progress-panel" aria-label="Learning progress">
           <div className="student-progress-main">
-            <span>Progress</span>
+            <span><BiLabel zh="進度" en="Progress" /></span>
             <strong>
               {completedPrompts}/{promptImages.length}
+              {promptImages.length > 0 && completedPrompts === promptImages.length && (
+                <span className="progress-complete-badge" title="全部場景完成！ All scenes complete!">🎉</span>
+              )}
             </strong>
-            <div className="summary-progress">
+            <div className={`summary-progress${completedPrompts === promptImages.length && promptImages.length > 0 ? " is-complete" : ""}`}>
               <span
                 style={{
-                  width: `${Math.round(
+                  width: `${promptImages.length === 0 ? 0 : Math.round(
                     (completedPrompts / promptImages.length) * 100,
                   )}%`,
                 }}
@@ -211,9 +345,15 @@ export default function MyStoriesPage({
             </div>
           </div>
           <div className="student-progress-stats">
-            <span>{records.length} recordings</span>
             <span>
-              {averageFluency === null ? "No fluency score yet" : `${averageFluency}/100 fluency`}
+              <BiLabel zh={`${records.length} 筆錄音`} en={`${records.length} recordings`} />
+            </span>
+            <span>
+              {averageFluency === null ? (
+                <BiLabel zh="尚無流暢度分數" en="No fluency score yet" />
+              ) : (
+                <BiLabel zh={`流暢度 ${averageFluency}/100`} en={`${averageFluency}/100 fluency`} />
+              )}
             </span>
           </div>
         </section>
@@ -234,7 +374,7 @@ export default function MyStoriesPage({
             const topicCompleted = prompts.filter((prompt) =>
               records.some((record) => isPromptRecord(record, prompt)),
             ).length;
-            const topicProgress = Math.round(
+            const topicProgress = prompts.length === 0 ? 0 : Math.round(
               (topicCompleted / prompts.length) * 100,
             );
 
@@ -242,13 +382,20 @@ export default function MyStoriesPage({
               <section className="topic-workbook-section" key={topic.id}>
                 <div className="topic-workbook-header">
                   <div>
-                    <p className="stories-kicker">{topic.name}</p>
+                    <p className="stories-kicker">
+                      {topic.lessonNumber != null && (
+                        <span className="topic-lesson-badge">
+                          <BiLabel zh={`第 ${topic.lessonNumber} 課`} en={`Lesson ${topic.lessonNumber}`} />
+                        </span>
+                      )}
+                      {topic.name}
+                    </p>
                     <h2>{topic.description}</h2>
                   </div>
                   <div className="topic-progress-card">
                     <strong>{topicCompleted}/{prompts.length}</strong>
                     <span>
-                      {topicProgress}% complete
+                      <BiLabel zh={`完成 ${topicProgress}%`} en={`${topicProgress}% complete`} />
                     </span>
                   </div>
                 </div>
@@ -285,7 +432,7 @@ export default function MyStoriesPage({
                           <div className="prompt-title-row">
                             <div>
                               <p className="picture-topic">
-                                Part {prompt.imageIndex + 1}
+                                <BiLabel zh={`第 ${prompt.imageIndex + 1} 部分`} en={`Part ${prompt.imageIndex + 1}`} />
                               </p>
                               <h3>{prompt.topicName}</h3>
                             </div>
@@ -294,13 +441,17 @@ export default function MyStoriesPage({
                                 isRevised ? "revised" : latestRecord ? "ready" : "todo"
                               }`}
                             >
-                              {latestRecord
-                                ? isRevised
-                                  ? "Revised"
-                                  : hasFeedback
-                                  ? "Feedback ready"
-                                  : "Recorded"
-                                : "Needs recording"}
+                              {latestRecord ? (
+                                isRevised ? (
+                                  <BiLabel zh="已修改" en="Revised" />
+                                ) : hasFeedback ? (
+                                  <BiLabel zh="回饋已就緒" en="Feedback ready" />
+                                ) : (
+                                  <BiLabel zh="已錄音" en="Recorded" />
+                                )
+                              ) : (
+                                <BiLabel zh="尚待錄音" en="Needs recording" />
+                              )}
                             </span>
                           </div>
 
@@ -322,23 +473,27 @@ export default function MyStoriesPage({
                               )
                             }
                           >
-                            {latestRecord
-                              ? "Revise with another recording"
-                              : "Record this part"}
+                            {latestRecord ? (
+                              <BiLabel zh="再錄一次以修改" en="Revise with another recording" />
+                            ) : (
+                              <BiLabel zh="錄製這個部分" en="Record this part" />
+                            )}
                           </button>
 
                           {latestRecord && (
                             <div className="revision-summary">
                               <strong>
-                                {attemptCount}{" "}
-                                {attemptCount === 1 ? "attempt" : "attempts"} collected
+                                <BiLabel
+                                  zh={`已收集 ${attemptCount} 次嘗試`}
+                                  en={`${attemptCount} ${attemptCount === 1 ? "attempt" : "attempts"} collected`}
+                                />
                               </strong>
                             </div>
                           )}
 
                           {latestRecord ? (
                             <details className="prompt-feedback-details">
-                              <summary>View feedback</summary>
+                              <summary><BiLabel zh="查看回饋" en="View feedback" /></summary>
                               <RecordCard
                                 record={latestRecord}
                                 onDeleteRecord={onDeleteRecord}
@@ -347,7 +502,7 @@ export default function MyStoriesPage({
                             </details>
                           ) : (
                             <div className="picture-empty-result">
-                              Record this picture when you are ready.
+                              <BiLabel zh="準備好之後就錄這張圖片。" en="Record this picture when you are ready." />
                             </div>
                           )}
                         </div>
@@ -358,9 +513,10 @@ export default function MyStoriesPage({
 
                 {topicRecords.length > 0 && (
                   <p className="topic-record-count">
-                    {topicRecords.length} total{" "}
-                    {topicRecords.length === 1 ? "attempt" : "attempts"} in
-                    this topic.
+                    <BiLabel
+                      zh={`此主題共 ${topicRecords.length} 次嘗試。`}
+                      en={`${topicRecords.length} total ${topicRecords.length === 1 ? "attempt" : "attempts"} in this topic.`}
+                    />
                   </p>
                 )}
               </section>
@@ -378,7 +534,7 @@ function StudentHelpCard({
   helpRequests: HelpRequest[];
   onRaiseHand?: (message: string) => void;
 }) {
-  const [message, setMessage] = useState("I need help with my story.");
+  const [message, setMessage] = useState("我的故事需要協助。 I need help with my story.");
   const studentName = getSessionName("studentSession", "Student");
   const activeRequest = helpRequests.find(
     (request) =>
@@ -388,12 +544,28 @@ function StudentHelpCard({
   return (
     <section className="student-help-card" aria-label="Ask teacher for help">
       <div>
-        <p className="stories-kicker">Teacher support</p>
-        <h2>{activeRequest ? "Your hand is raised" : "Raise your hand"}</h2>
+        <p className="stories-kicker">
+          <BiLabel zh="老師協助" en="Teacher support" />
+        </p>
+        <h2>
+          {activeRequest ? (
+            <BiLabel zh="已舉手" en="Your hand is raised" />
+          ) : (
+            <BiLabel zh="舉手提問" en="Raise your hand" />
+          )}
+        </h2>
         <p>
-          {activeRequest
-            ? "Your teacher can see your request. You can update the note if your question changed."
-            : "Send a quiet help request while you keep working on your story."}
+          {activeRequest ? (
+            <BiText
+              zh="老師已經看到你的請求。如果問題改變了，可以更新備註。"
+              en="Your teacher can see your request. You can update the note if your question changed."
+            />
+          ) : (
+            <BiText
+              zh="在繼續完成故事的同時，悄悄發送一個求助請求。"
+              en="Send a quiet help request while you keep working on your story."
+            />
+          )}
         </p>
       </div>
       <form
@@ -406,10 +578,14 @@ function StudentHelpCard({
           value={message}
           onChange={(event) => setMessage(event.target.value)}
           aria-label="Help request message"
-          placeholder="What should the teacher help with?"
+          placeholder="老師可以幫你什麼？ What should the teacher help with?"
         />
         <button type="submit" disabled={!onRaiseHand}>
-          {activeRequest ? "Update request" : "Raise hand"}
+          {activeRequest ? (
+            <BiLabel zh="更新請求" en="Update request" />
+          ) : (
+            <BiLabel zh="舉手" en="Raise hand" />
+          )}
         </button>
       </form>
     </section>
@@ -483,12 +659,29 @@ function TeacherDashboard({
   const clearNotice = () => setCustomStoryNotice("");
 
   const updateDraftField = (
-    field: "title" | "learningGoal" | "level",
+    field: "title" | "learningGoal" | "level" | "lessonNumber" | "grammarPattern" | "grammarExample",
     value: string,
   ) => {
     setCustomDraft((draft) => ({ ...draft, [field]: value }));
     setValidationErrors((errors) => ({ ...errors, [field]: undefined, form: undefined }));
     clearNotice();
+  };
+
+  const updateFrameCount = (count: number) => {
+    const clamped = Math.min(12, Math.max(1, count));
+    setCustomDraft((draft) => ({
+      ...draft,
+      imageUrls: resizeToCount(draft.imageUrls, clamped, ""),
+      prompts: resizeToCount(draft.prompts, clamped, ""),
+      vocabulary: resizeToCount(draft.vocabulary, clamped, ""),
+      vocabularyPinyin: resizeToCount(draft.vocabularyPinyin, clamped, ""),
+      vocabularyGroups: resizeToCount(draft.vocabularyGroups, clamped, null),
+
+      suggestedAnswers: resizeToCount(draft.suggestedAnswers, clamped, ""),
+      listenAudioUrls: resizeToCount(draft.listenAudioUrls, clamped, ""),
+      listenScripts: resizeToCount(draft.listenScripts, clamped, ""),
+    }));
+    setValidationErrors((errors) => ({ ...errors, frames: undefined, form: undefined }));
   };
 
   const updateDraftGroups = (index: number, groups: VocabGroup[] | null) => {
@@ -499,7 +692,7 @@ function TeacherDashboard({
   };
 
   const updateDraftFrame = (
-    field: "imageUrls" | "prompts" | "vocabulary" | "grammarPatterns" | "listenAudioUrls" | "listenScripts",
+    field: "imageUrls" | "prompts" | "vocabulary" | "vocabularyPinyin" | "suggestedAnswers" | "listenAudioUrls" | "listenScripts",
     index: number,
     value: string,
   ) => {
@@ -513,6 +706,20 @@ function TeacherDashboard({
       clearFrameError(errors, index, field),
     );
     clearNotice();
+  };
+
+  const handlePasteFrameImage = (index: number, event: React.ClipboardEvent) => {
+    const items = event.clipboardData?.items;
+    if (!items) {
+      return;
+    }
+    for (const item of items) {
+      if (item.type.startsWith("image/")) {
+        event.preventDefault();
+        handleUploadFrameImage(index, item.getAsFile() ?? undefined);
+        return;
+      }
+    }
   };
 
   const handleUploadFrameImage = (index: number, file?: File) => {
@@ -578,7 +785,14 @@ function TeacherDashboard({
       try {
         const persisted = await saveCustomStoryToDatabase(savedStory);
         if (persisted) {
-          storyToStore = { ...savedStory, ...persisted } as CustomTeacherStory;
+          storyToStore = {
+            ...savedStory,
+            ...persisted,
+            frames: persisted.frames.map((persistedFrame, i) => ({
+              ...savedStory.frames[i],
+              ...persistedFrame,
+            })),
+          } as CustomTeacherStory;
         }
       } catch (error) {
         console.error("Failed to save custom story to database:", error);
@@ -802,6 +1016,57 @@ function TeacherDashboard({
                   placeholder="e.g. Intermediate speaking"
                 />
               </label>
+              <label>
+                Lesson number
+                <input
+                  type="number"
+                  min={1}
+                  value={customDraft.lessonNumber}
+                  onChange={(event) => updateDraftField("lessonNumber", event.target.value)}
+                  placeholder="e.g. 3"
+                />
+              </label>
+              <label>
+                Narrative type
+                <select
+                  value={customDraft.narrativeMode}
+                  onChange={(event) => {
+                    const narrativeMode = event.target.value as NarrativeMode;
+                    setCustomDraft((draft) => ({ ...draft, narrativeMode }));
+                    updateFrameCount(frameCountForMode(narrativeMode));
+                  }}
+                >
+                  <option value="story">Normal mode (story with scenes)</option>
+                  <option value="describe">Descriptive (Describe the Picture)</option>
+                  <option value="listen_retell">Listen &amp; Retell</option>
+                </select>
+              </label>
+              <label>
+                Number of frames
+                <input
+                  type="number"
+                  min={1}
+                  max={12}
+                  value={customDraft.imageUrls.length}
+                  onChange={(event) => updateFrameCount(Number(event.target.value) || 1)}
+                />
+              </label>
+              <label>
+                Grammar pattern (optional)
+                <input
+                  value={customDraft.grammarPattern}
+                  onChange={(event) => updateDraftField("grammarPattern", event.target.value)}
+                  placeholder="S + Vaux + V(O)"
+                />
+              </label>
+              <label>
+                Example sentence (optional)
+                <input
+                  value={customDraft.grammarExample}
+                  onChange={(event) => updateDraftField("grammarExample", event.target.value)}
+                  placeholder="我要喝茶"
+                />
+              </label>
             </div>
 
             <label>
@@ -822,16 +1087,19 @@ function TeacherDashboard({
               )}
             </label>
 
-            <label className="teacher-checkbox-field">
-              <input
-                type="checkbox"
-                checked={customDraft.linear}
-                onChange={(event) =>
-                  setCustomDraft((draft) => ({ ...draft, linear: event.target.checked }))
-                }
-              />
-              Linear mode — frames are independent items, not a connected story (skips the Arrange Scenes ordering game)
-            </label>
+
+            {customDraft.narrativeMode === "story" && customDraft.imageUrls.length > 1 && (
+              <label className="teacher-checkbox-field">
+                <input
+                  type="checkbox"
+                  checked={customDraft.firstFrameIsExample}
+                  onChange={(event) =>
+                    setCustomDraft((draft) => ({ ...draft, firstFrameIsExample: event.target.checked }))
+                  }
+                />
+                First frame is a teacher model example — students see it before recording (frame 1 becomes a read-only demo)
+              </label>
+            )}
 
             {validationErrors.form && (
               <div className="teacher-form-alert" role="alert">
@@ -847,17 +1115,41 @@ function TeacherDashboard({
             <div className="teacher-frame-editor">
               {customDraft.imageUrls.map((imageUrl, index) => {
                 const frameError = validationErrors.frames?.[index];
+                const isExampleFrame = index === 0 && customDraft.firstFrameIsExample;
 
                 return (
                 <div
-                  className={`teacher-frame-card ${frameError ? "has-error" : ""}`}
+                  className={`teacher-frame-card ${frameError ? "has-error" : ""}${isExampleFrame ? " is-example-frame" : ""}`}
                   key={index}
                 >
-                  <div className="teacher-frame-image-preview">
+                  {isExampleFrame && (
+                    <div className="teacher-example-badge">🎯 Teacher Model Example — students watch this before recording</div>
+                  )}
+                  <div
+                    className="teacher-frame-image-preview"
+                    tabIndex={0}
+                    role="textbox"
+                    aria-label={`Paste an image for frame ${index + 1}`}
+                    onPaste={(event) => handlePasteFrameImage(index, event)}
+                    title="Click here, then paste (Ctrl+V) an image from your clipboard"
+                  >
                     {imageUrl ? (
                       <img src={resolveImageUrl(imageUrl)} alt={`Custom story frame ${index + 1}`} />
-                    ) : (
-                      <span>Frame {index + 1}</span>
+                    ) : customDraft.narrativeMode === "story" && STORY_FRAME_GUIDES[index] ? (() => {
+                      const g = STORY_FRAME_GUIDES[index];
+                      return (
+                        <svg viewBox="0 0 180 130" xmlns="http://www.w3.org/2000/svg" className="teacher-frame-guide-svg">
+                          <rect width="180" height="130" fill={g.accent} />
+                          {g.renderIcon()}
+                          <rect x="0" y="96" width="180" height="34" fill={g.color} />
+                          <text x="90" y="110" textAnchor="middle" fill="white" fontSize="9" fontWeight="700" fontFamily="sans-serif">{g.zh}</text>
+                          <text x="90" y="122" textAnchor="middle" fill="white" fontSize="7.5" fontFamily="sans-serif" opacity="0.9">{g.tip}</text>
+                          <text x="8" y="14" fill={g.color} fontSize="8" fontWeight="700" fontFamily="sans-serif">{g.en}</text>
+                          <text x="172" y="92" textAnchor="end" fill={g.color} fontSize="7" fontFamily="sans-serif" opacity="0.6">📋 paste image here</text>
+                        </svg>
+                      );
+                    })() : (
+                      <span>Frame {index + 1}<br /><small className="teacher-frame-paste-hint">📋 Click + paste (Ctrl+V)</small></span>
                     )}
                   </div>
                   <div className="teacher-frame-fields">
@@ -888,26 +1180,9 @@ function TeacherDashboard({
                       />
                     </label>
                     <label>
-                      Student prompt
-                      <textarea
-                        aria-invalid={Boolean(frameError?.prompt)}
-                        value={customDraft.prompts[index]}
-                        onChange={(event) =>
-                          updateDraftFrame("prompts", index, event.target.value)
-                        }
-                        rows={2}
-                        placeholder="What should students say for this picture?"
-                      />
-                      {frameError?.prompt && (
-                        <span className="teacher-form-error">
-                          {frameError.prompt}
-                        </span>
-                      )}
-                    </label>
-                    <label>
                       Vocabulary
                       <input
-                        value={customDraft.vocabulary[index]}
+                        value={customDraft.vocabulary[index] ?? ""}
                         onChange={(event) =>
                           updateDraftFrame("vocabulary", index, event.target.value)
                         }
@@ -915,46 +1190,63 @@ function TeacherDashboard({
                       />
                     </label>
                     <label>
-                      Grammar pattern (optional)
+                      Vocabulary Pinyin (optional)
                       <input
-                        value={customDraft.grammarPatterns[index]}
+                        value={customDraft.vocabularyPinyin[index] ?? ""}
                         onChange={(event) =>
-                          updateDraftFrame("grammarPatterns", index, event.target.value)
+                          updateDraftFrame("vocabularyPinyin", index, event.target.value)
                         }
-                        placeholder="S + Vaux + V(O) — 我要喝茶"
+                        placeholder="tái běi, xià yǔ, bāng máng"
                       />
                     </label>
-                    <label>
-                      Listening audio for "Listen & Retell" (optional)
-                      <input
-                        value={customDraft.listenAudioUrls[index]}
-                        onChange={(event) =>
-                          updateDraftFrame("listenAudioUrls", index, event.target.value)
-                        }
-                        placeholder="https://... or upload below"
-                      />
-                    </label>
-                    <label className="teacher-file-upload">
-                      Upload audio from computer
-                      <input
-                        type="file"
-                        accept="audio/mpeg,audio/wav,audio/webm,audio/ogg"
-                        onChange={(event) =>
-                          handleUploadFrameAudio(index, event.target.files?.[0])
-                        }
-                      />
-                    </label>
-                    <label>
-                      Listening script (read aloud by text-to-speech if no audio is uploaded — not shown to students)
-                      <textarea
-                        value={customDraft.listenScripts[index]}
-                        onChange={(event) =>
-                          updateDraftFrame("listenScripts", index, event.target.value)
-                        }
-                        rows={4}
-                        placeholder="The passage students should listen to before retelling the story"
-                      />
-                    </label>
+                    {customDraft.narrativeMode !== "listen_retell" && (
+                      <label>
+                        {isExampleFrame ? "Example script (shown to students as a model — helps them know how to start)" : "Suggested answer (optional)"}
+                        <textarea
+                          value={customDraft.suggestedAnswers[index] ?? ""}
+                          onChange={(event) =>
+                            updateDraftFrame("suggestedAnswers", index, event.target.value)
+                          }
+                          rows={isExampleFrame ? 4 : 2}
+                          placeholder={isExampleFrame ? "Write the model story text students will read before recording their own…" : ""}
+                        />
+                      </label>
+                    )}
+                    {customDraft.narrativeMode === "listen_retell" && (
+                      <>
+                        <label>
+                          Listening audio for "Listen & Retell" (optional)
+                          <input
+                            value={customDraft.listenAudioUrls[index] ?? ""}
+                            onChange={(event) =>
+                              updateDraftFrame("listenAudioUrls", index, event.target.value)
+                            }
+                            placeholder="https://... or upload below"
+                          />
+                        </label>
+                        <label className="teacher-file-upload">
+                          Upload audio from computer
+                          <input
+                            type="file"
+                            accept="audio/mpeg,audio/wav,audio/webm,audio/ogg"
+                            onChange={(event) =>
+                              handleUploadFrameAudio(index, event.target.files?.[0])
+                            }
+                          />
+                        </label>
+                        <label>
+                          Listening script (read aloud by text-to-speech if no audio is uploaded — not shown to students)
+                          <textarea
+                            value={customDraft.listenScripts[index] ?? ""}
+                            onChange={(event) =>
+                              updateDraftFrame("listenScripts", index, event.target.value)
+                            }
+                            rows={4}
+                            placeholder="The passage students should listen to before retelling the story"
+                          />
+                        </label>
+                      </>
+                    )}
                     <VocabGroupEditor
                       vocabulary={customDraft.vocabulary[index]}
                       groups={customDraft.vocabularyGroups[index]}
@@ -967,7 +1259,7 @@ function TeacherDashboard({
             </div>
 
             <div className="teacher-builder-actions">
-              <p>{preparedFrameCount}/6 frames prepared</p>
+              <p>{preparedFrameCount}/{customDraft.imageUrls.length} frames prepared</p>
               <div className="teacher-builder-buttons">
                 {editingStoryId && (
                   <button
@@ -1001,9 +1293,16 @@ function TeacherDashboard({
                   <article className="custom-story-item" key={story.id}>
                     <div className="custom-story-item-header">
                       <div>
-                        <strong>{story.title}</strong>
+                        <strong>
+                          {story.lessonNumber != null && (
+                            <span className="topic-lesson-badge">Lesson {story.lessonNumber}</span>
+                          )}
+                          {story.title}
+                        </strong>
                         <span>
                           {story.level} - {story.published ? "Published" : "Draft"}
+                          {" - "}
+                          {narrativeModeLabel(story.narrativeMode)}
                         </span>
                       </div>
                       <div className="custom-story-item-actions">
@@ -1168,23 +1467,23 @@ function TeacherDashboard({
                       <div key={scene.sceneIndex} className="story-submission-scene">
                         <div className="sss-header">
                           <span className="sss-scene-num">Scene {scene.sceneIndex + 1}</span>
-                          <span className="sss-score" title="Vocab / Tone / Pronunciation">
-                            Vocab {scene.vocabScore}% · Tone {scene.toneAccuracy}% · Pron {scene.pronScore}%
+                          <span className="sss-score" title="Vocab / Tone / Character-by-character prosody">
+                            Vocab {scene.vocabScore}% · Tone {scene.toneAccuracy}% · Prosody {scene.pronScore}%
                           </span>
                         </div>
                         {scene.transcription && (
                           <p className="sss-transcription" lang="zh-TW">"{scene.transcription}"</p>
                         )}
                         <div className="sss-vocab-row">
-                          {scene.vocabUsed.map(w => (
+                          {(scene.vocabUsed ?? []).map(w => (
                             <span key={w} className="sss-chip sss-chip-used">✓ {w}</span>
                           ))}
-                          {scene.vocabMissing.map(w => (
+                          {(scene.vocabMissing ?? []).map(w => (
                             <span key={w} className="sss-chip sss-chip-missing">✗ {w}</span>
                           ))}
                         </div>
                         {scene.audioUrl && (
-                          <audio controls src={scene.audioUrl} className="sss-audio" />
+                          <audio controls src={resolveImageUrl(scene.audioUrl)} className="sss-audio" />
                         )}
                       </div>
                     ))}
@@ -1279,6 +1578,17 @@ function getAverageMetric(records: AudioRecord[], metric: string): number | null
   return Math.round(total / records.length);
 }
 
+function narrativeModeLabel(mode?: NarrativeMode): string {
+  switch (mode) {
+    case "describe":
+      return "Descriptive";
+    case "listen_retell":
+      return "Listen & Retell";
+    default:
+      return "Normal mode";
+  }
+}
+
 function hasCustomStoryErrors(errors: CustomStoryValidationErrors): boolean {
   return Boolean(
     errors.title ||
@@ -1302,38 +1612,55 @@ function createCustomStory(
       prompt: draft.prompts[index].trim(),
       vocabulary: draft.vocabulary[index].trim(),
       ...(draft.vocabularyGroups[index] ? { vocabularyGroups: draft.vocabularyGroups[index]! } : {}),
-      ...(draft.grammarPatterns[index]?.trim() ? { grammarPattern: draft.grammarPatterns[index].trim() } : {}),
+      ...(draft.grammarPattern?.trim() ? { grammarPattern: draft.grammarPattern.trim() } : {}),
+      ...(draft.grammarExample?.trim() ? { grammarExample: draft.grammarExample.trim() } : {}),
+      ...(draft.vocabularyPinyin[index]?.trim() ? { vocabularyPinyin: draft.vocabularyPinyin[index].trim() } : {}),
+      ...(draft.suggestedAnswers[index]?.trim() ? { suggestedAnswer: draft.suggestedAnswers[index].trim() } : {}),
       ...(draft.listenAudioUrls[index]?.trim() ? { listenAudioUrl: draft.listenAudioUrls[index].trim() } : {}),
       ...(draft.listenScripts[index]?.trim() ? { listenScript: draft.listenScripts[index].trim() } : {}),
     })),
     ...(draft.linear ? { linear: true } : {}),
+    ...(draft.firstFrameIsExample ? { firstFrameIsExample: true } : {}),
+    ...(draft.lessonNumber.trim() ? { lessonNumber: Number(draft.lessonNumber) } : {}),
+    narrativeMode: draft.narrativeMode,
   };
 }
 
 function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
-  const frames = Array.from({ length: 6 }, (_, index) => story.frames[index]);
+  const narrativeMode = story.narrativeMode ?? "story";
+  // Preserve the story's actual saved frame count — it may have been
+  // changed away from the mode's default via "Number of frames" — and only
+  // fall back to the mode default if the story somehow has no frames at all.
+  const frameCount = story.frames.length || frameCountForMode(narrativeMode);
+  const frames = Array.from({ length: frameCount }, (_, index) => story.frames[index]);
 
   return {
     title: story.title,
     learningGoal: story.learningGoal,
     level: story.level,
+    lessonNumber: story.lessonNumber != null ? String(story.lessonNumber) : "",
     imageUrls: frames.map((frame) => frame?.imageUrl || ""),
     prompts: frames.map((frame, index) =>
       frame?.prompt || emptyCustomStoryDraft.prompts[index],
     ),
     vocabulary: frames.map((frame) => frame?.vocabulary || ""),
     vocabularyGroups: frames.map((frame) => frame?.vocabularyGroups || null),
-    grammarPatterns: frames.map((frame) => frame?.grammarPattern || ""),
+    grammarPattern: story.frames.find((f) => f?.grammarPattern)?.grammarPattern || "",
+    grammarExample: story.frames.find((f) => f?.grammarExample)?.grammarExample || "",
+    vocabularyPinyin: frames.map((frame) => frame?.vocabularyPinyin || ""),
+    suggestedAnswers: frames.map((frame) => frame?.suggestedAnswer || ""),
     listenAudioUrls: frames.map((frame) => frame?.listenAudioUrl || ""),
     listenScripts: frames.map((frame) => frame?.listenScript || ""),
     linear: story.linear ?? false,
+    firstFrameIsExample: story.firstFrameIsExample ?? false,
+    narrativeMode: story.narrativeMode ?? "story",
   };
 }
 
 function clearFrameError(
   errors: CustomStoryValidationErrors,
   index: number,
-  field: "imageUrls" | "prompts" | "vocabulary" | "grammarPatterns" | "listenAudioUrls" | "listenScripts",
+  field: "imageUrls" | "prompts" | "vocabulary" | "suggestedAnswers" | "listenAudioUrls" | "listenScripts",
 ): CustomStoryValidationErrors {
   const frameError = errors.frames?.[index];
 
@@ -1359,17 +1686,6 @@ function clearFrameError(
   };
 }
 
-const STORY_CANVAS_CATEGORIES = [
-  { name: "Characters",  hanzi: "角色", sub: "The Actors",                       color: "#4f46e5" },
-  { name: "Settings",    hanzi: "場景", sub: "The Places",                       color: "#0891b2" },
-  { name: "Actions",     hanzi: "動作", sub: "The Verbs & Grammar Glue",         color: "#d97706" },
-  { name: "Objects",     hanzi: "對象", sub: "The Targets of the Actions",       color: "#7c3aed" },
-  { name: "Instruments", hanzi: "工具", sub: "The Tools Used to Complete Tasks", color: "#be185d" },
-  { name: "Outcomes",    hanzi: "結果", sub: "Social & Task Consequences",       color: "#059669" },
-];
-
-const DEFAULT_GROUP_NAMES = STORY_CANVAS_CATEGORIES.map(c => c.name);
-
 const GRAMMAR_CANVAS_CATEGORIES = [
   { name: "Subject", hanzi: "主語", sub: "Who is doing it (S)",        color: "#4f46e5" },
   { name: "Verb",     hanzi: "動詞", sub: "Aux + main verb (Vaux + V)", color: "#d97706" },
@@ -1392,10 +1708,8 @@ function VocabGroupEditor({
   if (words.length === 0) return null;
 
   const active = groups !== null;
-  const isGrammarSet = active && groups!.length === GRAMMAR_GROUP_NAMES.length
-    && groups!.every((g, i) => g.name === GRAMMAR_GROUP_NAMES[i]);
-  const categoryMeta = isGrammarSet ? GRAMMAR_CANVAS_CATEGORIES : STORY_CANVAS_CATEGORIES;
-  const editorTitle = isGrammarSet ? "Grammar Pattern Canvas (Subject · Verb · Object)" : "Taiwan Community Story Canvas";
+  const categoryMeta = GRAMMAR_CANVAS_CATEGORIES;
+  const editorTitle = "Grammar Pattern Canvas (Subject · Verb · Object)";
 
   const handleToggle = (groupNames: string[] | null) => {
     onChange(groupNames ? groupNames.map((name) => ({ name, words: [] })) : null);
@@ -1404,9 +1718,6 @@ function VocabGroupEditor({
   if (!active) {
     return (
       <div className="vocab-group-toggle-row">
-        <button type="button" className="vocab-group-toggle-btn" onClick={() => handleToggle(DEFAULT_GROUP_NAMES)}>
-          + Add Story Canvas categories (Characters · Settings · Actions · Objects · Instruments · Outcomes)
-        </button>
         <button type="button" className="vocab-group-toggle-btn" onClick={() => handleToggle(GRAMMAR_GROUP_NAMES)}>
           + Add Grammar categories (Subject · Verb · Object)
         </button>
@@ -1581,23 +1892,27 @@ function RecordCard({
         <button
           className="btn-delete"
           onClick={() => onDeleteRecord(record.id)}
-          title="Delete this story"
+          title="刪除這則故事 Delete this story"
         >
-          Delete
+          <BiLabel zh="刪除" en="Delete" />
         </button>
       </div>
 
       <div className="story-content">
         {record.audioUrl && (
           <div className="saved-audio-player">
-            <strong>Saved voice recording</strong>
-            <audio controls src={record.audioUrl} />
+            <strong><BiLabel zh="已儲存的錄音" en="Saved voice recording" /></strong>
+            <audio controls src={resolveImageUrl(record.audioUrl)} />
           </div>
         )}
 
         <div className="transcription-box">
-          <strong>Transcription</strong>
-          <p>{record.transcription || "(no speech detected)"}</p>
+          <strong><BiLabel zh="逐字稿" en="Transcription" /></strong>
+          <p>
+            {record.transcription || (
+              <BiLabel zh="（未偵測到語音）" en="(no speech detected)" />
+            )}
+          </p>
         </div>
 
         {record.praatMetrics && (
@@ -1605,30 +1920,33 @@ function RecordCard({
             <div className="metrics-summary">
               <div className="metric-item tone">
                 <span className="metric-text">
-                  Tone: {getToneName(record.praatMetrics.detected_tone)}
+                  <BiLabel zh="聲調：" en="Tone: " />
+                  {getToneName(record.praatMetrics.detected_tone)}
                 </span>
               </div>
               <div className="metric-item accuracy">
                 <span className="metric-text">
-                  Accuracy: {Math.round(record.praatMetrics.tone_accuracy)}%
+                  <BiLabel zh="準確度：" en="Accuracy: " />
+                  {Math.round(record.praatMetrics.tone_accuracy)}%
                 </span>
               </div>
               <div className="metric-item fluency">
                 <span className="metric-text">
-                  Praat fluency:{" "}
+                  <BiLabel zh="Praat 流暢度：" en="Praat fluency: " />
                   {Math.round(record.praatMetrics.fluency_score)}/100
                 </span>
               </div>
               <div className="metric-item rate">
                 <span className="metric-text">
-                  Rate: {record.praatMetrics.speech_rate.toFixed(1)}/s
+                  <BiLabel zh="語速：" en="Rate: " />
+                  {record.praatMetrics.speech_rate.toFixed(1)}/s
                 </span>
               </div>
             </div>
 
             {record.praatMetrics.pitch_contour?.length > 0 && (
               <div className="story-prosody-chart">
-                <strong>Praat prosody visualization</strong>
+                <strong><BiLabel zh="Praat 音調視覺化" en="Praat prosody visualization" /></strong>
                 <PitchChart
                   pitchContour={record.praatMetrics.pitch_contour}
                   detectedTone={record.praatMetrics.detected_tone}
@@ -1638,7 +1956,7 @@ function RecordCard({
 
             {record.praatMetrics.word_prosody?.length > 0 && (
               <div className="saved-word-prosody">
-                <strong>Word-by-word prosody</strong>
+                <strong><BiLabel zh="逐字音調" en="Word-by-word prosody" /></strong>
                 <div className="saved-word-prosody-grid">
                   {record.praatMetrics.word_prosody.map((item: WordProsody) => (
                     <div
@@ -1663,7 +1981,10 @@ function RecordCard({
         {record.praatMetrics?.ai_feedback && (
           <div className="story-ai-summary">
             <strong>
-              AI coach ({record.praatMetrics.ai_feedback.provider || "Gemini"})
+              <BiLabel
+                zh={`AI 教練（${record.praatMetrics.ai_feedback.provider || "Gemini"}）`}
+                en={`AI coach (${record.praatMetrics.ai_feedback.provider || "Gemini"})`}
+              />
             </strong>
             <p>{record.praatMetrics.ai_feedback.fluency.feedback}</p>
             <p>{record.praatMetrics.ai_feedback.grammar.feedback}</p>
@@ -1688,26 +2009,26 @@ function isPromptRecord(record: AudioRecord, prompt: PromptImage): boolean {
 
 function getToneName(tone: number): string {
   const toneNames: Record<number, string> = {
-    1: "High Level (ma1)",
-    2: "Rising (ma2)",
-    3: "Falling-Rising (ma3)",
-    4: "Falling (ma4)",
+    1: "一聲 High Level (ma1)",
+    2: "二聲 Rising (ma2)",
+    3: "三聲 Falling-Rising (ma3)",
+    4: "四聲 Falling (ma4)",
   };
-  return toneNames[tone] || "Unknown";
+  return toneNames[tone] || "未知 Unknown";
 }
 
 function getTopicLabel(topicId?: string): string {
   const topic = getStudentTopics().find((item) => item.id === topicId);
-  return topic?.name || "Story";
+  return topic?.name || "故事 Story";
 }
 
 function formatContourShape(shape: string): string {
   const labels: Record<string, string> = {
-    dip: "Dipping",
-    falling: "Falling",
-    level: "Level",
-    rising: "Rising",
-    variable: "Variable",
+    dip: "低降 Dipping",
+    falling: "下降 Falling",
+    level: "平直 Level",
+    rising: "上升 Rising",
+    variable: "不規則 Variable",
   };
-  return labels[shape] || "Variable";
+  return labels[shape] || "不規則 Variable";
 }

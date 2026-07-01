@@ -49,6 +49,9 @@ export interface CustomStoryFrame {
   vocabulary: string;
   vocabularyGroups?: Array<{ name: string; words: string[] }>;
   grammarPattern?: string;
+  grammarExample?: string;
+  vocabularyPinyin?: string;
+  suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
 }
@@ -61,7 +64,12 @@ export interface StoredCustomStory {
   frames: CustomStoryFrame[];
   published?: boolean;
   linear?: boolean;
+  firstFrameIsExample?: boolean;
+  lessonNumber?: number | null;
+  narrativeMode?: NarrativeMode;
 }
+
+export type NarrativeMode = "story" | "describe" | "listen_retell";
 
 export interface SceneSubmission {
   sceneIndex: number;

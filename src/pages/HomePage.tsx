@@ -12,13 +12,10 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     <div className="home-page">
       <section className="hero">
         <div className="hero-content">
-          <p className="platform-kicker"><BiLabel zh="普通話口語練習" en="Mandarin speaking practice" /></p>
-          <h1 className="hero-title"><BiLabel zh="普通話故事教練" en="Mandarin Story Coach" /></h1>
+          <p className="platform-kicker"><BiLabel k="mandarin_speaking_practice" /></p>
+          <h1 className="hero-title"><BiLabel k="mandarin_story_coach" /></h1>
           <p className="hero-subtitle">
-            <BiText
-              zh="用圖片提示、語音錄製、發音回饋和語言指導，打造更好的中文故事。"
-              en="Build better Chinese stories with picture prompts, voice recording, pronunciation feedback, and helpful language coaching."
-            />
+            <BiText k="build_better_chinese_stories_with_pictur" />
           </p>
         </div>
       </section>
@@ -31,9 +28,9 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             onClick={() => onNavigate("student-login")}
           >
             <span className="portal-icon">學</span>
-            <span className="portal-title"><BiLabel zh="學生入口" en="Student Portal" /></span>
+            <span className="portal-title"><BiLabel k="student_portal" /></span>
             <span className="portal-description">
-              <BiText zh="完成圖片故事任務、錄製普通話語音，並查看 Praat 及 AI 回饋。" en="Complete picture-based story tasks, record Mandarin speech, and review Praat plus AI feedback." />
+              <BiText k="complete_picture_based_story_tasks_recor" />
             </span>
             <span className="portal-arrow">›</span>
           </button>
@@ -44,9 +41,9 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             onClick={() => onNavigate("teacher-login")}
           >
             <span className="portal-icon">師</span>
-            <span className="portal-title"><BiLabel zh="教師入口" en="Teacher Portal" /></span>
+            <span className="portal-title"><BiLabel k="teacher_portal" /></span>
             <span className="portal-description">
-              <BiText zh="監控學生錄音、查看語音指標，並支援敘事發展。" en="Monitor student recordings, inspect speech metrics, and support narrative development." />
+              <BiText k="monitor_student_recordings_inspect_speec" />
             </span>
             <span className="portal-arrow">›</span>
           </button>

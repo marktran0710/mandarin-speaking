@@ -10,7 +10,6 @@ import {
   createStorySubmission,
   type SceneSubmission,
 } from "../database";
-import PitchChart from "../PitchChart";
 import PraatTimeline from "./PraatTimeline";
 import StoryConceptMap from "./StoryConceptMap";
 import { toPinyin } from "../utils/pinyin";
@@ -47,9 +46,15 @@ interface Topic {
   vocabulary: Record<number, string[]>;
   vocabularyGroups?: Record<number, VocabGroup[]>;
   grammarPatterns?: Record<number, string>;
+  grammarExamples?: Record<number, string>;
+  vocabularyPinyin?: Record<number, string[]>;
+  suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
   listenScripts?: Record<number, string>;
   linear?: boolean;
+  lessonNumber?: number | null;
+  narrativeMode?: "story" | "describe" | "listen_retell";
+  firstFrameIsExample?: boolean;
 }
 
 interface PauseAnalysis {
@@ -91,6 +96,8 @@ interface WordProsody {
   end_pitch: number;
   contour_shape: string;
   feedback: string;
+  expected_tones?: number[];
+  tone_accuracy?: number;
 }
 
 interface LanguageFeedback {
@@ -115,6 +122,14 @@ interface LanguageFeedback {
     feedback: string;
     matched_details: string[];
     missed_details: string[];
+    accepted: boolean;
+    judged: boolean;
+  };
+  corrective_feedback?: {
+    errors: string[];
+    hint: string;
+    reveal_answer: boolean;
+    correct_version: string;
   };
   improved_version: string;
   practice_prompt: string;
@@ -197,8 +212,7 @@ export default function StoryRecorder({
   >({});
   const [storySubmitted, setStorySubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [practiceMode, setPracticeMode] = useState<"describe" | "listen">("describe");
-  const listenAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [showStartModal, setShowStartModal] = useState(false);
 
   // Learning phase: overview → sorting → conceptmap → practice
   const [phase, setPhase] = useState<
@@ -267,6 +281,14 @@ export default function StoryRecorder({
     };
   }, []);
 
+  // When firstFrameIsExample is set, skip frame 0 automatically on entering practice.
+  useEffect(() => {
+    if (topic.firstFrameIsExample && selectedImageIndex === 0 && topic.images.length > 1) {
+      onImageSelect(1);
+      onImageChange(topic.images[1]);
+    }
+  }, [topic.id, topic.firstFrameIsExample]);
+
   // Load the available AI feedback engines so the student can pick one.
   useEffect(() => {
     let cancelled = false;
@@ -277,7 +299,10 @@ export default function StoryRecorder({
         const data = await res.json();
         if (cancelled || !Array.isArray(data.providers)) return;
         setAiProviders(data.providers);
-        setAiProvider((prev) => prev || data.default || "");
+        const groqAvailable = data.providers.some(
+          (p: AiProviderOption) => p.id === "groq" && p.available,
+        );
+        setAiProvider((prev) => prev || (groqAvailable ? "groq" : data.default) || "");
       } catch {
         // Backend unreachable — the picker just stays hidden.
       }
@@ -479,7 +504,7 @@ export default function StoryRecorder({
       setError(
         err instanceof Error
           ? err.message
-          : "Failed to access microphone. Please check permissions.",
+          : "無法存取麥克風，請檢查權限設定。 Failed to access microphone. Please check permissions.",
       );
       setIsRecording(false);
       clearTimers();
@@ -494,7 +519,7 @@ export default function StoryRecorder({
 
     if (!SpeechRecognition) {
       throw new Error(
-        "Web Speech API is not supported in this browser. Use Chrome, Edge, or Safari.",
+        "此瀏覽器不支援 Web Speech API，請使用 Chrome、Edge 或 Safari。 Web Speech API is not supported in this browser. Use Chrome, Edge, or Safari.",
       );
     }
 
@@ -649,7 +674,7 @@ export default function StoryRecorder({
 
       if (!response.ok) {
         const errorData = await readErrorResponse(response);
-        throw new Error(errorData.detail || "Transcription failed");
+        throw new Error(errorData.detail || "轉錄失敗 Transcription failed");
       }
 
       const data = await response.json();
@@ -698,6 +723,15 @@ export default function StoryRecorder({
       if (aiProvider) {
         formData.append("ai_provider", aiProvider);
       }
+      const sceneGrammarPattern = topic.grammarPatterns?.[selectedImageIndex];
+      if (sceneGrammarPattern) {
+        formData.append("scene_grammar_pattern", sceneGrammarPattern);
+      }
+      const sceneSuggestedAnswer = topic.suggestedAnswers?.[selectedImageIndex];
+      if (sceneSuggestedAnswer) {
+        formData.append("scene_suggested_answer", sceneSuggestedAnswer);
+      }
+      formData.append("scene_attempt_number", String(attemptHistory.length + 1));
 
       const response = await fetch(`${backendUrl}/api/analyze`, {
         method: "POST",
@@ -707,7 +741,7 @@ export default function StoryRecorder({
 
       if (!response.ok) {
         const errorData = await readErrorResponse(response);
-        throw new Error(errorData.detail || "Praat analysis failed");
+        throw new Error(errorData.detail || "Praat 分析失敗 Praat analysis failed");
       }
 
       const metrics = (await response.json()) as PraatMetrics;
@@ -783,7 +817,7 @@ export default function StoryRecorder({
         vocabMissing: vc?.missing ?? [],
         vocabScore: vc?.score ?? 0,
         toneAccuracy: Math.round(metrics.tone_accuracy),
-        pronScore: metrics.ai_feedback?.pronunciation_note?.score ?? 0,
+        pronScore: averageWordProsodyAccuracy(metrics.word_prosody) ?? 0,
         audioUrl: "",
       };
       setSceneRecordings((prev) => {
@@ -826,7 +860,7 @@ export default function StoryRecorder({
     }
 
     if (!file.type.startsWith("audio/") && !hasAudioFileExtension(file.name)) {
-      setError(`Submit an audio file. "${file.name}" is not supported.`);
+      setError(`請上傳音訊檔案。不支援「${file.name}」。 Submit an audio file. "${file.name}" is not supported.`);
       return;
     }
 
@@ -874,32 +908,7 @@ export default function StoryRecorder({
   const practiceAnalysisText =
     conceptMapText || buildPracticeAnalysisText(selectedVocabulary);
   const hasWordProsody = Boolean(praatMetrics?.word_prosody?.length);
-  // Model sentence: teacher's scene prompt is the canonical reference.
-  // Student's own transcript is NOT used here — students should imitate the
-  // scene prompt, not hear their own words played back as a "perfect example".
-  const scenePromptText = topic.prompts?.[selectedImageIndex] || "";
-  const modelExampleText =
-    scenePromptText ||
-    buildPracticeAnalysisText(selectedVocabulary) ||
-    "今天下雨，所以我帶傘。";
-  const listenAudioUrl = topic.listenAudioUrls?.[selectedImageIndex] || "";
-  const listenScriptText = topic.listenScripts?.[selectedImageIndex] || "";
-  const playListenAudio = () => {
-    if (listenAudioUrl && listenAudioRef.current) {
-      listenAudioRef.current.currentTime = 0;
-      void listenAudioRef.current.play();
-      return;
-    }
-    if (!("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(listenScriptText || modelExampleText);
-    utterance.lang = "zh-TW";
-    utterance.rate = 0.82;
-    utterance.pitch = 1;
-    window.speechSynthesis.speak(utterance);
-  };
   const storyConnectors = ["一開始", "然後", "因為", "所以", "突然", "最後"];
-  const sentenceStarters = ["一開始，", "他們在", "然後，", "突然，", "最後，"];
   const recordingButtonDisabled = isTranscribing || isAnalyzing;
 
   const handlePrimaryRecordingAction = () => {
@@ -945,12 +954,12 @@ export default function StoryRecorder({
   );
 
   const PHASES = [
-    { key: "overview", label: <BiLabel zh="總覽" en="Overview" />, icon: "📖" },
+    { key: "overview", label: <BiLabel k="overview" />, icon: "📖" },
     ...(enableSorting
-      ? [{ key: "sorting" as const, label: <BiLabel zh="排列場景" en="Arrange Scenes" />, icon: "🧩" }]
+      ? [{ key: "sorting" as const, label: <BiLabel k="arrange_scenes" />, icon: "🧩" }]
       : []),
-    { key: "conceptmap", label: <BiLabel zh="詞彙地圖" en="Vocabulary Map" />, icon: "🗺️" },
-    { key: "practice", label: <BiLabel zh="口說練習" en="Speaking" />, icon: "🎙️" },
+    { key: "conceptmap", label: <BiLabel k="vocabulary_map" />, icon: "🗺️" },
+    { key: "practice", label: <BiLabel k="speaking" />, icon: "🎙️" },
   ] as const;
 
   const phaseOrder = PHASES.map((p) => p.key);
@@ -984,7 +993,12 @@ export default function StoryRecorder({
       {phase === "overview" && (
         <section className="story-overview">
           <div className="overview-hero">
-            <p className="eyebrow"><BiLabel zh="故事挑戰" en="Story Challenge" /></p>
+            <p className="eyebrow"><BiLabel k="story_challenge" /></p>
+            {topic.lessonNumber != null && (
+              <span className="lesson-number-badge">
+                <BiLabel zh={`第 ${topic.lessonNumber} 課`} en={`Lesson ${topic.lessonNumber}`} />
+              </span>
+            )}
             <h1 className="overview-title">{topic.name}</h1>
             {topic.description && (
               <p className="overview-desc">{topic.description}</p>
@@ -999,7 +1013,7 @@ export default function StoryRecorder({
 
           {allVocabulary.length > 0 && (
             <div className="overview-vocab-block">
-              <h2><BiLabel zh="關鍵詞彙" en="Key Vocabulary" /></h2>
+              <h2><BiLabel k="key_vocabulary" /></h2>
               {topic.images.map((_, si) => {
                 const sceneWords = topic.vocabulary[si] || [];
                 if (sceneWords.length === 0) return null;
@@ -1009,19 +1023,20 @@ export default function StoryRecorder({
                       <BiLabel zh={`場景 ${si + 1}`} en={`Scene ${si + 1}`} />
                     </span>
                     <div className="overview-vocab-chips">
-                      {sceneWords.map((word, i) => (
-                        <span
-                          key={`${word}-${i}`}
-                          className="overview-vocab-chip"
-                        >
-                          <span className="vocab-chip-hanzi">{word}</span>
-                          {toPinyin(word) && (
-                            <span className="vocab-chip-pinyin">
-                              {toPinyin(word)}
-                            </span>
-                          )}
-                        </span>
-                      ))}
+                      {sceneWords.map((word, i) => {
+                        const py = topic.vocabularyPinyin?.[si]?.[i] || toPinyin(word);
+                        return (
+                          <span
+                            key={`${word}-${i}`}
+                            className="overview-vocab-chip"
+                          >
+                            <span className="vocab-chip-hanzi">{word}</span>
+                            {py && (
+                              <span className="vocab-chip-pinyin">{py}</span>
+                            )}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 );
@@ -1030,29 +1045,29 @@ export default function StoryRecorder({
           )}
 
           <div className="overview-steps-block">
-            <h2><BiLabel zh="你的挑戰" en="Your Challenge" /></h2>
+            <h2><BiLabel k="your_challenge" /></h2>
             <div className="overview-steps">
               {enableSorting && (
                 <div className="overview-step">
                   <span className="overview-step-num">1</span>
                   <div>
-                    <strong><BiLabel zh="排列場景" en="Arrange Scenes" /></strong>
-                    <p><BiText zh="把故事圖片排成正確順序" en="Put the story pictures in the right order" /></p>
+                    <strong><BiLabel k="arrange_scenes" /></strong>
+                    <p><BiText k="put_the_story_pictures_in_the_right_orde" /></p>
                   </div>
                 </div>
               )}
               <div className="overview-step">
                 <span className="overview-step-num">{enableSorting ? 2 : 1}</span>
                 <div>
-                  <strong><BiLabel zh="詞彙地圖" en="Vocabulary Map" /></strong>
-                  <p><BiText zh="把關鍵詞彙配對到每個故事場景" en="Match key words to each story scene" /></p>
+                  <strong><BiLabel k="vocabulary_map" /></strong>
+                  <p><BiText k="match_key_words_to_each_story_scene" /></p>
                 </div>
               </div>
               <div className="overview-step">
                 <span className="overview-step-num">{enableSorting ? 3 : 2}</span>
                 <div>
-                  <strong><BiLabel zh="口說練習" en="Speaking Practice" /></strong>
-                  <p><BiText zh="把你的普通話故事大聲說出來並錄音" en="Record your Mandarin story out loud" /></p>
+                  <strong><BiLabel k="speaking_practice" /></strong>
+                  <p><BiText k="record_your_mandarin_story_out_loud" /></p>
                 </div>
               </div>
             </div>
@@ -1061,12 +1076,36 @@ export default function StoryRecorder({
           <div className="overview-cta">
             <button
               className="btn-start-challenge"
-              onClick={() => setPhase(enableSorting ? "sorting" : "conceptmap")}
+              onClick={() => setShowStartModal(true)}
             >
-<BiLabel zh="開始！→" en="Let's Go!" />
+<BiLabel k="let_s_go" />
             </button>
           </div>
         </section>
+      )}
+
+      {showStartModal && (
+        <div className="start-practice-modal-overlay" role="dialog" aria-modal="true">
+          <div className="start-practice-modal">
+            <span className="start-practice-modal-icon">🎬</span>
+            <h2><BiLabel k="start_practicing_title" /></h2>
+            <ul className="start-practice-modal-list">
+              <li><BiText k="create_story_based_on_images" /></li>
+              <li><BiText k="for_each_image_record_and_see_feedback" /></li>
+              <li><BiText k="complete_when_you_finish_all_images" /></li>
+            </ul>
+            <button
+              type="button"
+              className="btn-start-challenge"
+              onClick={() => {
+                setShowStartModal(false);
+                setPhase(enableSorting ? "sorting" : "practice");
+              }}
+            >
+              <BiLabel k="got_it_lets_start" />
+            </button>
+          </div>
+        </div>
       )}
 
       {phase === "sorting" && (
@@ -1074,10 +1113,10 @@ export default function StoryRecorder({
           {/* ── Header ── */}
           <div className="sorting-header">
             <div className="sorting-header-copy">
-              <p className="eyebrow"><BiLabel zh="步驟 1 · 排列場景" en="Step 1 · Arrange Scenes" /></p>
-              <h1><BiLabel zh="把故事排好順序" en="Put the Story in Order" /></h1>
+              <p className="eyebrow"><BiLabel k="step_1_arrange_scenes" /></p>
+              <h1><BiLabel k="put_the_story_in_order" /></h1>
               <p className="subtitle">
-                <BiText zh="把每張圖片拖到正確的場景位置，然後驗證順序以解鎖口說練習。" en="Drag each picture into the correct scene slot, then verify the sequence to unlock speaking practice." />
+                <BiText k="drag_each_picture_into_the_correct_scene" />
               </p>
             </div>
             <div className="sorting-progress">
@@ -1091,7 +1130,7 @@ export default function StoryRecorder({
                 <div
                   className="sorting-progress-fill"
                   style={{
-                    width: `${(placedImages.filter(Boolean).length / placedImages.length) * 100}%`,
+                    width: `${placedImages.length === 0 ? 0 : (placedImages.filter(Boolean).length / placedImages.length) * 100}%`,
                   }}
                 />
               </div>
@@ -1167,9 +1206,9 @@ export default function StoryRecorder({
                         <span className="placeholder-icon">🖼️</span>
                         <span className="placeholder-text">
                           {selectedPoolImage ? (
-                            <BiLabel zh="點擊放置" en="Click to place" />
+                            <BiLabel k="click_to_place" />
                           ) : (
-                            <BiLabel zh="拖曳到這裡" en="Drag here" />
+                            <BiLabel k="drag_here" />
                           )}
                         </span>
                       </div>
@@ -1189,14 +1228,14 @@ export default function StoryRecorder({
           {/* ── Picture pool ── */}
           <div className="sorting-pool-section">
             <div className="sorting-pool-header">
-              <h2>📷 <BiLabel zh="圖片庫" en="Picture Bank" /></h2>
+              <h2>📷 <BiLabel k="picture_bank" /></h2>
               <p className="pool-helper-text">
                 {selectedPoolImage ? (
-                  <BiText zh="點擊上方的場景位置以放置這張圖片。" en="Click a scene slot above to place this picture." />
+                  <BiText k="click_a_scene_slot_above_to_place_this_p" />
                 ) : shuffledPool.length === 0 ? (
-                  <BiText zh="所有圖片都已放置 — 請在下方驗證！" en="All pictures placed — verify below!" />
+                  <BiText k="all_pictures_placed_verify_below" />
                 ) : (
-                  <BiText zh="把圖片拖到某個位置，或點擊選取後再點擊位置。" en="Drag a picture to a slot, or click to select then click a slot." />
+                  <BiText k="drag_a_picture_to_a_slot_or_click_to_sel" />
                 )}
               </p>
             </div>
@@ -1208,12 +1247,12 @@ export default function StoryRecorder({
               {shuffledPool.length === 0 ? (
                 <div className="pool-empty-state">
                   <span className="star-icon">✨</span>
-                  <p><BiLabel zh="所有圖片都已放置！" en="All pictures placed!" /></p>
+                  <p><BiLabel k="all_pictures_placed" /></p>
                 </div>
               ) : (
-                shuffledPool.map((image) => (
+                shuffledPool.map((image, poolIdx) => (
                   <div
-                    key={image}
+                    key={poolIdx}
                     className={`sorting-pool-card ${selectedPoolImage === image ? "selected" : ""}`}
                     draggable
                     onDragStart={(e) => handleDragStart(e, image, "pool")}
@@ -1226,9 +1265,9 @@ export default function StoryRecorder({
                     <img src={image} alt="Story picture" />
                     <span className="drag-handle">
                       {selectedPoolImage === image ? (
-                        <BiLabel zh="✓ 已選取" en="Selected" />
+                        <BiLabel k="selected" />
                       ) : (
-                        <BiLabel zh="拖曳 · 點擊" en="Drag · Click" />
+                        <BiLabel k="drag_click" />
                       )}
                     </span>
                   </div>
@@ -1244,7 +1283,7 @@ export default function StoryRecorder({
               className="btn-reset-sorting"
               onClick={resetSorting}
             >
-↺ <BiLabel zh="重設" en="Reset" />
+↺ <BiLabel k="reset" />
             </button>
 
             {validationStates.some((s) => s === "correct") &&
@@ -1255,7 +1294,7 @@ export default function StoryRecorder({
                 className="btn-start-speaking"
                 onClick={() => setPhase("conceptmap")}
               >
-                <BiLabel zh="繼續到詞彙地圖 →" en="Continue to Vocabulary Map" />
+                <BiLabel k="continue_to_vocabulary_map" />
               </button>
             ) : (
               <button
@@ -1264,28 +1303,28 @@ export default function StoryRecorder({
                 onClick={checkSequence}
                 disabled={placedImages.some((img) => img === null)}
               >
-                <BiLabel zh="驗證順序" en="Verify Sequence" />
+                <BiLabel k="verify_sequence" />
               </button>
             )}
 
             <button
               type="button"
               className="btn-skip-sorting"
-              onClick={() => setPhase("conceptmap")}
+              onClick={() => setPhase("practice")}
             >
-              <BiLabel zh="跳過" en="Skip" />
+              <BiLabel k="skip" />
             </button>
           </div>
         </section>
       )}
 
-      {phase === "conceptmap" && (
+      {false && phase === "conceptmap" && (
         <section className="conceptmap-phase">
           <div className="conceptmap-phase-header">
-            <p className="eyebrow"><BiLabel zh="步驟 2 · 詞彙地圖" en="Step 2 · Vocabulary Map" /></p>
-            <h1><BiLabel zh="台灣社區故事畫布" en="Taiwan Community Story Canvas" /></h1>
+            <p className="eyebrow"><BiLabel k="step_2_vocabulary_map" /></p>
+            <h1><BiLabel k="grammar_pattern_canvas" /></h1>
             <p className="conceptmap-phase-sub">
-              <BiText zh="把每個詞彙拖到對應的故事角色 — 人物、動作、場景、物品與工具、文法連接詞，或結果" en="Drag each word into its story role — Characters, Actions, Settings, Objects & Tools, Grammar Glue, or Outcomes" />
+              <BiText k="drag_each_word_into_its_sentence_role_su" />
             </p>
           </div>
           <StoryConceptMap topic={topic} defaultOpen />
@@ -1295,14 +1334,14 @@ export default function StoryRecorder({
                 className="btn-back-phase"
                 onClick={() => setPhase("sorting")}
               >
-                <BiLabel zh="← 返回場景" en="Back to Scenes" />
+                <BiLabel k="back_to_scenes" />
               </button>
             )}
             <button
               className="btn-next-phase"
               onClick={() => setPhase("practice")}
             >
-              <BiLabel zh="繼續到口說練習 →" en="Continue to Speaking" />
+              <BiLabel k="continue_to_speaking" />
             </button>
           </div>
         </section>
@@ -1310,16 +1349,65 @@ export default function StoryRecorder({
 
       {phase === "practice" && (
         <>
+          {/* ── Teacher example frame (read-only, shown before recording starts) ── */}
+          {topic.firstFrameIsExample && topic.images.length > 1 && (
+            <div className="example-frame-panel">
+              <div className="example-frame-label">
+                <span className="example-frame-icon">🎯</span>
+                <BiLabel zh="老師示範" en="Teacher Model Example" />
+              </div>
+              <div className="example-frame-body">
+                {topic.images[0] && (
+                  <img
+                    src={topic.images[0]}
+                    alt="Teacher example"
+                    className="example-frame-image"
+                  />
+                )}
+                <div className="example-frame-content">
+                  {topic.prompts?.[0] && (
+                    <p className="example-frame-prompt">{topic.prompts[0]}</p>
+                  )}
+                  {(topic.listenAudioUrls?.[0]) && (
+                    <audio
+                      controls
+                      src={topic.listenAudioUrls[0]}
+                      className="example-frame-audio"
+                    />
+                  )}
+                  {(topic.suggestedAnswers?.[0] || topic.listenScripts?.[0]) && (
+                    <div className="example-frame-script-block">
+                      <p className="example-frame-script-label">
+                        <BiLabel zh="示範腳本" en="Model script" />
+                      </p>
+                      <p className="example-frame-script" lang="zh-TW">
+                        {topic.suggestedAnswers?.[0] || topic.listenScripts?.[0]}
+                      </p>
+                    </div>
+                  )}
+                  {(topic.vocabulary?.[0] ?? []).length > 0 && (
+                    <div className="example-frame-vocab">
+                      {topic.vocabulary[0].map((w) => (
+                        <span key={w} className="vocab-chip">{w}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ── Scene selector strip ── */}
           <div className="practice-scene-strip">
             {topic.images.map((img, idx) => {
+              if (topic.firstFrameIsExample && idx === 0) return null;
               const prog = sceneProgress[idx];
               const ready = prog ? sceneReady(prog) : false;
               const started = prog && prog.attempts > 0;
               return (
                 <button
                   type="button"
-                  key={img}
+                  key={idx}
                   className={`practice-scene-thumb${idx === selectedImageIndex ? " active" : ""}${ready ? " scene-ready" : ""}`}
                   onClick={() => {
                     onImageChange(img);
@@ -1332,7 +1420,7 @@ export default function StoryRecorder({
                   disabled={isBusy}
                 >
                   <img src={img} alt={`Scene ${idx + 1}`} />
-                  <span><BiLabel zh={`場景 ${idx + 1}`} en={`Scene ${idx + 1}`} /></span>
+                  <BiLabel zh={`場景 ${idx + 1}`} en={`Scene ${idx + 1}`} />
                   <span
                     className={`scene-badge ${ready ? "badge-ready" : started ? "badge-progress" : "badge-empty"}`}
                   >
@@ -1375,7 +1463,7 @@ export default function StoryRecorder({
                       currentTranscriptRef.current = "";
                     }}
                   >
-                    <BiLabel zh="下一個場景 →" en="Next scene" />
+                    <BiLabel k="next_scene" />
                   </button>
                 </div>
               );
@@ -1383,9 +1471,9 @@ export default function StoryRecorder({
             if (ready && !hasNext) {
               return (
                 <div className="scene-ready-banner scene-story-done">
-                  <strong><BiLabel zh="所有場景都已練習完成！" en="All scenes practiced!" /></strong>
+                  <strong><BiLabel k="all_scenes_practiced" /></strong>
                   <p>
-                    <BiText zh="你已完成整個故事。可以檢視你的錄音，或重新錄製任何場景。" en="You've completed the full story. Review your recordings or record any scene again." />
+                    <BiText k="you_ve_completed_the_full_story_review_y" />
                   </p>
                 </div>
               );
@@ -1406,35 +1494,13 @@ export default function StoryRecorder({
                       en={`${gap} more points needed to unlock the next scene — keep going.`}
                     />
                   ) : (
-                    <BiLabel zh="繼續練習 — 試著讓聲調形狀更清楚。" en="Keep practicing — try to make the tone shapes clearer." />
+                    <BiLabel k="keep_practicing_try_to_make_the_tone_sha" />
                   )}
                 </div>
               );
             }
             return null;
           })()}
-
-          {/* ── Describe vs Listen & Retell sub-tabs ── */}
-          <div className="practice-mode-tabs" role="tablist" aria-label="Speaking mode">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={practiceMode === "describe"}
-              className={`practice-mode-tab${practiceMode === "describe" ? " active" : ""}`}
-              onClick={() => setPracticeMode("describe")}
-            >
-              <BiLabel zh="描述圖片" en="Describe" />
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={practiceMode === "listen"}
-              className={`practice-mode-tab${practiceMode === "listen" ? " active" : ""}`}
-              onClick={() => setPracticeMode("listen")}
-            >
-              <BiLabel zh="聆聽複述" en="Listen & Retell" />
-            </button>
-          </div>
 
           {/* ── Main two-column workspace ── */}
           <div className="practice-workspace">
@@ -1445,74 +1511,40 @@ export default function StoryRecorder({
                   src={selectedImage}
                   alt={`Scene ${selectedImageIndex + 1}`}
                 />
-                <div className="practice-scene-badge">
-                  <BiLabel
-                    zh={`場景 ${selectedImageIndex + 1} / ${topic.images.length}`}
-                    en={`Scene ${selectedImageIndex + 1} / ${topic.images.length}`}
-                  />
-                  {topic.prompts?.[selectedImageIndex] && (
-                    <span> · {topic.prompts[selectedImageIndex]}</span>
-                  )}
-                </div>
               </div>
 
-              {practiceMode === "listen" && (
-                <div className="practice-listen-panel">
-                  <BiLabel zh="先聆聽，再用自己的話複述故事" en="Listen first, then retell the story in your own words" />
-                  {listenAudioUrl && (
-                    <audio ref={listenAudioRef} src={listenAudioUrl} preload="none" />
+              {(topic.grammarPatterns?.[selectedImageIndex] || topic.grammarExamples?.[selectedImageIndex]) && (
+                <div className="practice-grammar-hint">
+                  {topic.grammarPatterns?.[selectedImageIndex] && (
+                    <>
+                      <BiLabel k="grammar_pattern_to_use" />
+                      <span className="practice-grammar-pattern">
+                        {topic.grammarPatterns[selectedImageIndex]}
+                      </span>
+                    </>
                   )}
-                  <button type="button" className="practice-listen-play-btn" onClick={playListenAudio}>
-                    🔊 <BiLabel zh="播放" en="Play" />
-                  </button>
-                  {!listenAudioUrl && (
-                    <span className="practice-listen-tts-note">
-                      <BiText zh="目前播放的是語音合成（老師尚未上傳音檔）" en="Playing AI text-to-speech (no teacher audio uploaded yet)" />
+                  {topic.grammarExamples?.[selectedImageIndex] && (
+                    <span className="practice-grammar-example">
+                      {topic.grammarExamples[selectedImageIndex]}
                     </span>
                   )}
                 </div>
               )}
 
-              {topic.grammarPatterns?.[selectedImageIndex] && (
-                <div className="practice-grammar-hint">
-                  <BiLabel zh="練習句型" en="Grammar pattern to use" />
-                  <span className="practice-grammar-pattern">
-                    {topic.grammarPatterns[selectedImageIndex]}
-                  </span>
-                </div>
-              )}
-
-              {(() => {
-                const groups = topic.vocabularyGroups?.[selectedImageIndex];
-                if (
-                  groups &&
-                  groups.length > 0 &&
-                  selectedVocabulary.length > 0
-                ) {
-                  return (
-                    <VocabCategorizer
-                      key={selectedImageIndex}
-                      words={selectedVocabulary}
-                      groups={groups}
-                    />
-                  );
-                }
-                return null;
-              })()}
 
               {selectedVocabulary.length > 0 && (
                 <div className="practice-vocab-ref">
                   <p className="practice-vocab-heading">
-                    <BiLabel zh="場景詞彙" en="Scene vocabulary" />
+                    <BiLabel k="scene_vocabulary" />
                     {praatMetrics && (
                       <span className="vocab-check-hint">
                         {" "}
-                        — <BiLabel zh="檢查你使用了哪些詞彙" en="check which words you used" />
+                        — <BiLabel k="check_which_words_you_used" />
                       </span>
                     )}
                   </p>
                   <div className="practice-vocab-chips">
-                    {selectedVocabulary.map((w) => {
+                    {selectedVocabulary.map((w, wi) => {
                       // Prefer backend phonetic-match result; fall back to character search
                       const aiVC =
                         praatMetrics?.ai_feedback?.vocabulary_coverage;
@@ -1544,11 +1576,10 @@ export default function StoryRecorder({
                               <span className="vocab-tick">✗</span>
                             )}
                           </span>
-                          {toPinyin(w) && (
-                            <span className="vocab-chip-pinyin">
-                              {toPinyin(w)}
-                            </span>
-                          )}
+                          {(() => {
+                            const py = topic.vocabularyPinyin?.[selectedImageIndex]?.[wi] || toPinyin(w);
+                            return py ? <span className="vocab-chip-pinyin">{py}</span> : null;
+                          })()}
                         </span>
                       );
                     })}
@@ -1562,7 +1593,7 @@ export default function StoryRecorder({
                         const missedList = vc.missing ?? [];
                         if (missedList.length === 0)
                           return (
-                            <BiLabel zh="所有詞彙都使用了 — 太棒了！" en="All vocabulary words used — excellent!" />
+                            <BiLabel k="all_vocabulary_words_used_excellent" />
                           );
                         if (usedList.length === 0)
                           return (
@@ -1583,6 +1614,17 @@ export default function StoryRecorder({
                 </div>
               )}
 
+            </div>
+
+            {/* Right: record controls */}
+            <div className="practice-guide-panel">
+              <div className="practice-guide-header">
+                <span>🎙️</span>
+                <div>
+                  <h3><BiLabel k="record_your_story" /></h3>
+                </div>
+              </div>
+
               <div className="practice-record-area">
                 {aiProviders.length > 0 && (
                   <div
@@ -1590,30 +1632,27 @@ export default function StoryRecorder({
                     role="group"
                     aria-label="AI feedback engine"
                   >
-                    <span className="record-engine-switch-label">
-                      <BiLabel zh="AI 引擎" en="AI engine" />
-                    </span>
-                    <div className="record-engine-switch-options">
+                    <label className="record-engine-switch-label" htmlFor="ai-engine-select">
+                      <BiLabel k="ai_engine" />
+                    </label>
+                    <select
+                      id="ai-engine-select"
+                      className="record-engine-switch-options"
+                      value={aiProvider}
+                      onChange={(e) => setAiProvider(e.target.value)}
+                      disabled={isBusy}
+                    >
                       {aiProviders.map((p) => (
-                        <button
+                        <option
                           key={p.id}
-                          type="button"
-                          className={`record-engine-chip${aiProvider === p.id ? " is-active" : ""}`}
-                          onClick={() => setAiProvider(p.id)}
-                          disabled={isBusy || !p.available || p.id === "local"}
-                          title={
-                            p.id === "local"
-                              ? "本地引擎已停用 Local engine disabled"
-                              : p.available
-                                ? `使用 ${p.label} 取得回饋 Use ${p.label} for feedback`
-                                : `${p.label} 需要 API 金鑰 ${p.label} needs an API key`
-                          }
+                          value={p.id}
+                          disabled={!p.available || p.id === "local"}
                         >
                           {p.label}
                           {p.available && p.id !== "local" ? "" : " 🔒"}
-                        </button>
+                        </option>
                       ))}
-                    </div>
+                    </select>
                   </div>
                 )}
                 <button
@@ -1622,7 +1661,7 @@ export default function StoryRecorder({
                   disabled={recordingButtonDisabled}
                   className={`btn-practice-record${isRecording ? " is-recording" : ""}`}
                 >
-                  {isRecording ? <BiLabel zh="⏹ 停止錄音" en="Stop Recording" /> : <BiLabel zh="🎙 錄音" en="Record" />}
+                  {isRecording ? <BiLabel k="stop_recording" /> : <BiLabel k="record" />}
                 </button>
                 {isRecording && (
                   <div className="practice-timer">
@@ -1639,7 +1678,7 @@ export default function StoryRecorder({
                   role="button"
                   tabIndex={isBusy ? -1 : 0}
                 >
-                  <BiLabel zh="上傳音訊" en="Upload audio" />
+                  <BiLabel k="upload_audio" />
                   <input
                     className="submit-voice-input"
                     type="file"
@@ -1652,48 +1691,44 @@ export default function StoryRecorder({
                   <p className="submitted-audio-name">✓ {submittedAudioName}</p>
                 )}
               </div>
-            </div>
 
-            {/* Right: story guide */}
-            <div className="practice-guide-panel">
-              <div className="practice-guide-header">
-                <span>🗺️</span>
-                <div>
-                  <h3><BiLabel zh="故事指南" en="Story Guide" /></h3>
-                  <p>
-                    <BiText zh="運用你的詞彙地圖造一兩個句子，然後錄音。" en="Use your vocabulary map to build one or two sentences, then record." />
+              <div className="transcriptions">
+                <h2><BiLabel k="speech_transcript" /></h2>
+                {praatMetrics?.transcription && (
+                  <div className="transcription-item transcription-asr-primary">
+                    <div className="item-header">
+                      <span className="time"><BiLabel k="asr_result" /></span>
+                      <span className="model-badge">
+                        {(praatMetrics.transcription_model || "ASR").toUpperCase()}
+                      </span>
+                    </div>
+                    <p lang="zh-TW">{praatMetrics.transcription}</p>
+                  </div>
+                )}
+                {transcriptions.length === 0 && !praatMetrics?.transcription ? (
+                  <p className="empty">
+                    <BiText k="your_transcript_will_appear_after_record" />
                   </p>
-                </div>
-              </div>
-
-              <div className="practice-guide-qs">
-                <div className="practice-guide-q">
-                  <span className="guide-q-zh">誰?</span>
-                  <span className="guide-q-en">Who is in this scene?</span>
-                </div>
-                <div className="practice-guide-q">
-                  <span className="guide-q-zh">在哪裡?</span>
-                  <span className="guide-q-en">Where are they?</span>
-                </div>
-                <div className="practice-guide-q">
-                  <span className="guide-q-zh">做什麼?</span>
-                  <span className="guide-q-en">What are they doing?</span>
-                </div>
-              </div>
-
-              <div className="practice-chips-group">
-                <p><BiLabel zh="句子開頭" en="Sentence starters" /></p>
-                <div>
-                  {sentenceStarters.map((s) => (
-                    <span key={s} className="practice-chip">
-                      {s}
-                    </span>
-                  ))}
-                </div>
+                ) : (
+                  transcriptions.map((item) => (
+                    <div
+                      key={`${item.timestamp}-${item.text}`}
+                      className="transcription-item"
+                    >
+                      <div className="item-header">
+                        <span className="time">{item.timestamp}</span>
+                        <span className="model-badge">
+                          {item.model.toUpperCase()}
+                        </span>
+                      </div>
+                      <p>{item.text}</p>
+                    </div>
+                  ))
+                )}
               </div>
 
               <div className="practice-chips-group">
-                <p><BiLabel zh="連接詞" en="Connectors" /></p>
+                <p><BiLabel k="connectors" /></p>
                 <div>
                   {storyConnectors.map((c) => (
                     <span key={c} className="practice-chip">
@@ -1704,9 +1739,9 @@ export default function StoryRecorder({
               </div>
 
               <details className="practice-model-picker">
-                <summary><BiLabel zh="錄音選項" en="Recording options" /></summary>
+                <summary><BiLabel k="recording_options" /></summary>
                 <label className="practice-model-label" htmlFor="speech-source">
-                  <BiLabel zh="語音來源" en="Speech source" />
+                  <BiLabel k="speech_source" />
                 </label>
                 <select
                   id="speech-source"
@@ -1735,16 +1770,16 @@ export default function StoryRecorder({
               <div className="analysis-loading-text">
                 <p className="analysis-loading-title">
                   {isTranscribing ? (
-                    <BiLabel zh="正在聆聽你的語音…" en="Listening to your voice…" />
+                    <BiLabel k="listening_to_your_voice" />
                   ) : (
-                    <BiLabel zh="正在分析發音…" en="Analyzing pronunciation…" />
+                    <BiLabel k="analyzing_pronunciation" />
                   )}
                 </p>
                 <p className="analysis-loading-sub">
                   {isTranscribing ? (
-                    <BiLabel zh="將語音轉換為文字" en="Converting speech to text" />
+                    <BiLabel k="converting_speech_to_text" />
                   ) : (
-                    <BiLabel zh="檢查聲調、節奏與詞彙" en="Checking tones, rhythm, and vocabulary" />
+                    <BiLabel k="checking_tones_rhythm_and_vocabulary" />
                   )}
                 </p>
               </div>
@@ -1752,7 +1787,7 @@ export default function StoryRecorder({
                 <span
                   className={`loading-step ${isTranscribing ? "active" : "done"}`}
                 >
-                  <BiLabel zh="轉錄" en="Transcribe" />
+                  <BiLabel k="transcribe" />
                 </span>
                 <span className="loading-step-arrow">→</span>
                 <span
@@ -1761,7 +1796,7 @@ export default function StoryRecorder({
                   Praat
                 </span>
                 <span className="loading-step-arrow">→</span>
-                <span className="loading-step"><BiLabel zh="回饋" en="Feedback" /></span>
+                <span className="loading-step"><BiLabel k="feedback" /></span>
               </div>
             </div>
           )}
@@ -1776,108 +1811,147 @@ export default function StoryRecorder({
                 transcription={praatMetrics.transcription || ""}
               />
 
-              {(() => {
-                const missing =
-                  praatMetrics.ai_feedback?.vocabulary_coverage?.missing ?? [];
-                if (missing.length > 0) {
-                  return (
-                    <div className="try-again-vocab-gate">
-                      <p className="try-again-gate-title">
-                        <BiText zh="再練習一次 — 你還沒使用所有場景詞彙" en="Practice again — you haven't used all the scene words yet" />
-                      </p>
-                      <div className="try-again-missing-chips">
-                        {missing.map((w) => (
-                          <span key={w} className="try-again-missing-chip">
-                            {w}
-                          </span>
-                        ))}
+              {/* ── Indirect corrective feedback: hint-only for the first two
+                  attempts; the correct version is revealed only after that. ── */}
+              {topic.narrativeMode !== "listen_retell" &&
+                (() => {
+                  const cf = praatMetrics.ai_feedback?.corrective_feedback;
+                  const accepted = isContentAccepted(praatMetrics);
+                  const missing =
+                    praatMetrics.ai_feedback?.vocabulary_coverage?.missing ?? [];
+
+                  // Already correct — nothing to correct, so stay quiet here;
+                  // FeedbackSummary already shows the success state.
+                  if (accepted && missing.length === 0) return null;
+
+                  if (cf?.reveal_answer && cf.correct_version) {
+                    return (
+                      <div className="practice-suggested-answer">
+                        <p className="practice-suggested-answer-heading">
+                          <BiLabel zh="正確答案" en="Correct version" />
+                        </p>
+                        {cf.errors.length > 0 && (
+                          <p className="practice-suggested-answer-text">
+                            <BiLabel zh="可能的錯誤：" en="Possible errors: " />
+                            {cf.errors.join("；")}
+                          </p>
+                        )}
+                        <p className="practice-suggested-answer-text">
+                          <strong>{cf.correct_version}</strong>
+                        </p>
                       </div>
-                      <p className="try-again-gate-hint">
-                        <BiText zh="試著在下一次錄音中使用上方每個詞彙。↑ 再錄一次" en="Try to use every word above in your next recording. ↑ Record again" />
-                      </p>
-                    </div>
-                  );
-                }
-                return (
-                  <div className="try-again-complete">
-                    <span className="try-again-complete-icon">✓</span>
-                    <div>
-                      <p className="try-again-complete-title">
-                        <BiLabel zh="所有詞彙都使用了！" en="All vocabulary words used!" />
-                      </p>
-                      <p className="try-again-complete-hint">
-                        <BiText zh="現在練習發音 — 再錄一次，專注在聲調上。↑" en="Now work on pronunciation — record again and focus on the tones. ↑" />
-                      </p>
-                    </div>
+                    );
+                  }
+
+                  if (cf && (cf.errors.length > 0 || cf.hint)) {
+                    return (
+                      <div className="practice-suggested-answer is-hint">
+                        <p className="practice-suggested-answer-heading">
+                          <BiLabel zh="提示" en="Hint" />
+                        </p>
+                        {cf.errors.length > 0 && (
+                          <p className="practice-suggested-answer-text">
+                            <BiLabel zh="可能的錯誤：" en="Possible errors: " />
+                            {cf.errors.join("；")}
+                          </p>
+                        )}
+                        {cf.hint && (
+                          <p className="practice-suggested-answer-text">{cf.hint}</p>
+                        )}
+                        <p className="practice-suggested-answer-text">
+                          <BiLabel zh="請再試一次。" en="Please try again." />
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+              {(praatMetrics.ai_feedback?.vocabulary_coverage?.missing
+                ?.length ?? 0) === 0 && (
+                <div className="try-again-complete">
+                  <span className="try-again-complete-icon">✓</span>
+                  <div>
+                    <p className="try-again-complete-title">
+                      <BiLabel k="all_vocabulary_words_used" />
+                    </p>
+                    <p className="try-again-complete-hint">
+                      <BiText k="now_work_on_pronunciation_record_again_a" />
+                    </p>
                   </div>
-                );
-              })()}
+                </div>
+              )}
 
               {/* ── Zone 3: Listen back ──────────────────────────────────── */}
-              {/* Tone drill — only shown once student is using scene vocabulary */}
-              {(praatMetrics.word_prosody?.length ?? 0) > 0 &&
-                (praatMetrics.ai_feedback?.vocabulary_coverage?.used?.length ??
-                  0) > 0 && (
-                  <ToneDrillPanel
-                    wordProsody={praatMetrics.word_prosody || []}
-                  />
-                )}
-
               <div className="listen-try-zone">
                 {analysisAudioBlob && (
                   <RecordingPlayback blob={analysisAudioBlob} />
                 )}
               </div>
 
+              <div className="word-prosody-section">
+                <div className="word-prosody-header">
+                  <h3><BiLabel k="character_by_character_prosody" /></h3>
+                  <p><BiText k="pitch_movement_estimated_for_each_mandar" /></p>
+                </div>
+                {hasWordProsody ? (
+                  <div className="word-prosody-grid">
+                    {praatMetrics.word_prosody?.map((item) => (
+                      <WordProsodyCard
+                        key={`${item.token}-${item.index}`}
+                        item={item}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="word-prosody-empty">
+                    <strong><BiLabel k="no_character_feedback_yet" /></strong>
+                    <p>
+                      <BiText k="needs_a_clear_pitch_contour_and_transcri" />
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {/* ── Zone 4: Advanced details (collapsed) ────────────────── */}
               <details className="advanced-praat-details">
-                <summary><BiLabel zh="進階分析細節" en="Advanced analysis details" /></summary>
-
-                <div className="pitch-overview">
-                  <p className="pitch-overview-label">
-                    <BiLabel zh="你的音高曲線與目標聲調形狀對比" en="Your pitch contour vs. target tone shape" />
-                  </p>
-                  <PitchChart
-                    pitchContour={praatMetrics.pitch_contour}
-                    detectedTone={praatMetrics.detected_tone}
-                  />
-                </div>
+                <summary><BiLabel k="advanced_analysis_details" /></summary>
 
                 <div className="metrics-section">
                   <div className="metric-card tone-card">
-                    <div className="metric-label"><BiLabel zh="主要音高形狀" en="Dominant pitch shape" /></div>
+                    <div className="metric-label"><BiLabel k="dominant_pitch_shape" /></div>
                     <div className="metric-value compact">
                       {getToneName(praatMetrics.detected_tone)}
                     </div>
                     <div className="metric-subtext">
-                      <BiLabel zh="聲調準確度分數顯示於上方摘要" en="Tone accuracy score shown in the summary above" />
+                      <BiLabel k="tone_accuracy_score_shown_in_the_summary" />
                     </div>
                   </div>
                   <div className="metric-card rate-card">
-                    <div className="metric-label"><BiLabel zh="語速" en="Speech rate" /></div>
+                    <div className="metric-label"><BiLabel k="speech_rate" /></div>
                     <div className="metric-value">
                       {praatMetrics.speech_rate.toFixed(1)}
                     </div>
                     <div className="metric-subtext">
                       {praatMetrics.speech_rate < 2.5 ? (
-                        <BiLabel zh="太慢 — 增加流暢度" en="Too slow — add more flow" />
+                        <BiLabel k="too_slow_add_more_flow" />
                       ) : praatMetrics.speech_rate > 6.5 ? (
-                        <BiLabel zh="太快 — 放慢每個聲調" en="Too fast — slow each tone" />
+                        <BiLabel k="too_fast_slow_each_tone" />
                       ) : (
-                        <BiLabel zh="音節/秒 — 速度良好" en="syllables/sec — good pace" />
+                        <BiLabel k="syllables_sec_good_pace" />
                       )}
                     </div>
                   </div>
                   {praatMetrics.pause_analysis &&
                   praatMetrics.pause_analysis.duration > 0 ? (
                     <div className="metric-card pause-card">
-                      <div className="metric-label"><BiLabel zh="停頓" en="Pauses" /></div>
+                      <div className="metric-label"><BiLabel k="pauses" /></div>
                       <div className="metric-value">
                         {praatMetrics.pause_analysis.pause_count}
                       </div>
                       <div className="metric-subtext">
                         {praatMetrics.pause_analysis.pause_count === 0 ? (
-                          <BiLabel zh="沒有長停頓 — 流暢表達" en="No long pauses — smooth delivery" />
+                          <BiLabel k="no_long_pauses_smooth_delivery" />
                         ) : praatMetrics.pause_analysis.longest_pause >= 0.8 ? (
                           <BiLabel
                             zh={`最長間隔：${praatMetrics.pause_analysis.longest_pause.toFixed(1)}s`}
@@ -1893,7 +1967,7 @@ export default function StoryRecorder({
                     </div>
                   ) : (
                     <div className="metric-card fluency-card">
-                      <div className="metric-label"><BiLabel zh="流暢度" en="Fluency" /></div>
+                      <div className="metric-label"><BiLabel k="fluency" /></div>
                       <div className="metric-value">
                         {Math.round(praatMetrics.fluency_score)}
                       </div>
@@ -1907,7 +1981,7 @@ export default function StoryRecorder({
                   )}
                   {praatMetrics.vowel_quality && (
                     <div className="metric-card vowel-card">
-                      <div className="metric-label"><BiLabel zh="母音品質" en="Vowel quality" /></div>
+                      <div className="metric-label"><BiLabel k="vowel_quality" /></div>
                       <div className="metric-value compact">
                         {praatMetrics.vowel_quality.split(" — ")[0]}
                       </div>
@@ -1933,32 +2007,8 @@ export default function StoryRecorder({
                   transcription={currentTranscriptRef.current}
                 />
 
-                <div className="word-prosody-section">
-                  <div className="word-prosody-header">
-                    <h3><BiLabel zh="逐字韻律" en="Character-by-character prosody" /></h3>
-                    <p><BiText zh="估算每個普通話字的音高變化。" en="Pitch movement estimated for each Mandarin character." /></p>
-                  </div>
-                  {hasWordProsody ? (
-                    <div className="word-prosody-grid">
-                      {praatMetrics.word_prosody?.map((item) => (
-                        <WordProsodyCard
-                          key={`${item.token}-${item.index}`}
-                          item={item}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="word-prosody-empty">
-                      <strong><BiLabel zh="尚無逐字回饋" en="No character feedback yet" /></strong>
-                      <p>
-                        <BiText zh="需要清晰的音高曲線與逐字稿。試著說一個完整句子，或使用中文／台語 Whisper。" en="Needs a clear pitch contour and transcript. Try one complete sentence, or use Chinese/Taiwanese Whisper." />
-                      </p>
-                    </div>
-                  )}
-                </div>
-
                 <div className="formants-detail">
-                  <h3><BiLabel zh="共振峰測量" en="Formant measurements" /></h3>
+                  <h3><BiLabel k="formant_measurements" /></h3>
                   <div className="formants-grid">
                     {["F1", "F2", "F3"].map((f) => (
                       <div className="formant" key={f}>
@@ -1974,47 +2024,12 @@ export default function StoryRecorder({
             </section>
           )}
 
-          <div className="transcriptions">
-            <h2><BiLabel zh="語音逐字稿" en="Speech transcript" /></h2>
-            {praatMetrics?.transcription && (
-              <div className="transcription-item transcription-asr-primary">
-                <div className="item-header">
-                  <span className="time"><BiLabel zh="語音辨識結果" en="ASR result" /></span>
-                  <span className="model-badge">
-                    {(praatMetrics.transcription_model || "ASR").toUpperCase()}
-                  </span>
-                </div>
-                <p lang="zh-TW">{praatMetrics.transcription}</p>
-              </div>
-            )}
-            {transcriptions.length === 0 && !praatMetrics?.transcription ? (
-              <p className="empty">
-                <BiText zh="錄音後將顯示你的逐字稿。" en="Your transcript will appear after recording." />
-              </p>
-            ) : (
-              transcriptions.map((item) => (
-                <div
-                  key={`${item.timestamp}-${item.text}`}
-                  className="transcription-item"
-                >
-                  <div className="item-header">
-                    <span className="time">{item.timestamp}</span>
-                    <span className="model-badge">
-                      {item.model.toUpperCase()}
-                    </span>
-                  </div>
-                  <p>{item.text}</p>
-                </div>
-              ))
-            )}
-          </div>
-
           {/* ── Submit Story ────────────────────────────────────────── */}
           {storySubmitted ? (
             <div className="story-submit-panel story-submit-success">
               <span className="story-submit-icon">✓</span>
               <div>
-                <p className="story-submit-title"><BiLabel zh="故事已提交！" en="Story submitted!" /></p>
+                <p className="story-submit-title"><BiLabel k="story_submitted" /></p>
                 <p className="story-submit-hint">
                   <BiLabel
                     zh={`你的老師現在可以檢視全部 ${totalScenes} 個場景。`}
@@ -2036,7 +2051,7 @@ export default function StoryRecorder({
               </div>
               <p className="story-submit-label">
                 {allScenesRecorded ? (
-                  <BiLabel zh="所有場景都已錄製 — 可以提交了" en="All scenes recorded — ready to submit" />
+                  <BiLabel k="all_scenes_recorded_ready_to_submit" />
                 ) : (
                   <BiLabel
                     zh={`已錄製 ${completedSceneCount} / ${totalScenes} 個場景`}
@@ -2052,7 +2067,7 @@ export default function StoryRecorder({
                 disabled={!allScenesRecorded}
                 onClick={handleSubmitStory}
               >
-                <BiLabel zh="提交故事給老師" en="Submit Story to Teacher" />
+                <BiLabel k="submit_story_to_teacher" />
               </button>
             </div>
           )}
@@ -2062,7 +2077,51 @@ export default function StoryRecorder({
   );
 }
 
+/** Maps a Mandarin tone number to the TONE_SHAPES key for its target pitch shape. */
+const TONE_NUMBER_TO_SHAPE: Record<number, string> = {
+  1: "level",
+  2: "rising",
+  3: "dip",
+  4: "falling",
+};
+
+/** Actionable improvement tip for this character — only shown when the
+ * character actually needs work. Gated directly off item.feedback's own
+ * verdict (backend's _word_prosody_feedback), not a separate threshold
+ * re-check, so the tip can never disagree with the feedback text shown right
+ * above it. When there's an expected Mandarin tone, the tip points at THAT
+ * tone's target shape, not whatever (possibly wrong) shape the attempt
+ * happened to produce. */
+function prosodyImprovementTip(item: WordProsody): string | null {
+  const feedback = item.feedback ?? "";
+
+  if (item.expected_tones && item.expected_tones.length > 0) {
+    // item.feedback already says "Good match for ..." vs "Recognizable ...
+    // but contrast could be sharper" / "Expected ... doesn't match yet" —
+    // key off that text directly instead of re-deriving from tone_accuracy.
+    if (feedback.startsWith("Good match")) return null;
+
+    // Tone 5 (neutral) has no fixed target shape — it's short, light, and
+    // takes its pitch from the preceding syllable — so don't claim "no clear
+    // shape detected" (false; a shape WAS detected, it just isn't graded
+    // against rising/falling/level/dip the way tones 1-4 are).
+    if (item.expected_tones[0] === 5) {
+      return "輕聲沒有固定的音高形狀 — 試著把這個字說得更短、更輕。 Neutral tone has no fixed pitch shape — try making this syllable shorter and lighter instead.";
+    }
+
+    const targetKey = TONE_NUMBER_TO_SHAPE[item.expected_tones[0]] ?? "variable";
+    const target = TONE_SHAPES[targetKey];
+    return `目標形狀：${target.tip} 刻意誇大這個音高變化，再說一次。 Target shape: ${target.tip} Exaggerate that pitch movement and try again.`;
+  }
+
+  // No expected tone (open-vocabulary): backend only flags a problem when no
+  // clear shape was detected, which is the same "variable" case here.
+  if (item.contour_shape !== "variable") return null;
+  return TONE_SHAPES.variable.drill;
+}
+
 function WordProsodyCard({ item }: { item: WordProsody }) {
+  const improvementTip = prosodyImprovementTip(item);
   return (
     <div className="word-prosody-card">
       <div className="word-prosody-topline">
@@ -2090,10 +2149,13 @@ function WordProsodyCard({ item }: { item: WordProsody }) {
         )}
       </div>
       <div className="word-prosody-stats">
-        <span><BiLabel zh={`平均 ${Math.round(item.mean_pitch)} Hz`} en={`${Math.round(item.mean_pitch)} Hz avg`} /></span>
-        <span><BiLabel zh={`範圍 ${Math.round(item.pitch_range)} Hz`} en={`${Math.round(item.pitch_range)} Hz range`} /></span>
+        <BiLabel zh={`平均 ${Math.round(item.mean_pitch)} Hz`} en={`${Math.round(item.mean_pitch)} Hz avg`} />
+        <BiLabel zh={`範圍 ${Math.round(item.pitch_range)} Hz`} en={`${Math.round(item.pitch_range)} Hz range`} />
       </div>
       <p>{item.feedback}</p>
+      {improvementTip && (
+        <p className="word-prosody-tip">💡 {improvementTip}</p>
+      )}
     </div>
   );
 }
@@ -2107,6 +2169,26 @@ function sceneReady(prog: {
   // Long-sentence threshold: fluency ≥ 65%
   // Override: 4+ attempts always unlocks next scene
   return prog.bestTone >= 70 || prog.bestFluency >= 65 || prog.attempts >= 4;
+}
+
+/** Real, measured prosody score — the average per-character tone_accuracy from
+ * word_prosody — as opposed to the AI's generic pronunciation_note.score, which
+ * isn't grounded in the actual measured pitch data. */
+/** Pronunciation feedback only matters once the sentence's meaning is accepted. */
+function isContentAccepted(praatMetrics: PraatMetrics): boolean {
+  const contentAccuracy = praatMetrics.ai_feedback?.content_accuracy;
+  if (!contentAccuracy?.feedback) return true;
+  return contentAccuracy.accepted !== false;
+}
+
+function averageWordProsodyAccuracy(wordProsody?: WordProsody[]): number | null {
+  const accuracies = (wordProsody ?? [])
+    .map((item) => item.tone_accuracy)
+    .filter((value): value is number => typeof value === "number");
+  if (accuracies.length === 0) return null;
+  return Math.round(
+    accuracies.reduce((sum, value) => sum + value, 0) / accuracies.length,
+  );
 }
 
 function buildPracticeAnalysisText(vocabulary: string[]): string {
@@ -2188,11 +2270,11 @@ function StudentFeedbackCards({
   return (
     <section className="student-feedback-cards" aria-label="Student feedback">
       <div className="student-feedback-card good">
-        <span><BiLabel zh="優點" en="Good" /></span>
+        <BiLabel k="good" />
         <strong>{studentStrength(toneAccuracy, fluencyScore)}</strong>
       </div>
       <div className="student-feedback-card fix">
-        <span><BiLabel zh="待改進" en="Fix" /></span>
+        <BiLabel k="fix" />
         <strong>
           {studentFix(
             toneAccuracy,
@@ -2204,7 +2286,7 @@ function StudentFeedbackCards({
         </strong>
       </div>
       <div className="student-feedback-card next">
-        <span><BiLabel zh="下次嘗試" en="Next try" /></span>
+        <BiLabel k="next_try" />
         <strong>{studentNextStep(speechRate, focus, pauseAnalysis)}</strong>
       </div>
     </section>
@@ -2279,22 +2361,27 @@ function FeedbackSummary({
 }) {
   const ai = praatMetrics.ai_feedback;
   const vocabScore = ai?.vocabulary_coverage?.score ?? null;
-  const pronScore = ai?.pronunciation_note?.score ?? null;
+  const pronScore = averageWordProsodyAccuracy(praatMetrics.word_prosody);
   const toneScore = Math.round(praatMetrics.tone_accuracy);
   const contentAccuracy = ai?.content_accuracy;
-  const contentScore =
-    contentAccuracy && contentAccuracy.feedback ? contentAccuracy.score : null;
+  // Only a real score when a vision-capable engine actually judged it —
+  // otherwise it's a 0 placeholder (e.g. Groq/local can't see the image)
+  // that would misleadingly render as a failing score bar.
+  const contentScore = contentAccuracy?.judged ? contentAccuracy.score : null;
 
   const missingVocab = (ai?.vocabulary_coverage?.missing?.length ?? 0) > 0;
   const vocabListExists = ai?.vocabulary_coverage !== undefined;
+
+  const contentAccepted = isContentAccepted(praatMetrics);
 
   const overallScore =
     vocabScore !== null && pronScore !== null
       ? Math.round((vocabScore + pronScore + toneScore) / 3)
       : toneScore;
 
-  const overallLabel =
-    vocabListExists && missingVocab
+  const overallLabel = !contentAccepted
+    ? "先確認句子的意思 Check your sentence's meaning first"
+    : vocabListExists && missingVocab
       ? "先使用所有詞彙 Use all vocab first"
       : overallScore >= 85
         ? "太棒了！ Excellent!"
@@ -2329,103 +2416,25 @@ function FeedbackSummary({
               ) : trendDiff < 0 ? (
                 <BiLabel zh={`↓ ${trendDiff}% — 繼續加油`} en={`↓ ${trendDiff}% — keep going`} />
               ) : (
-                <BiLabel zh="→ 跟上次一樣" en="→ Same as last try" />
+                <BiLabel k="same_as_last_try" />
               )}
             </p>
           )}
         </div>
       </div>
 
-      {(() => {
-        const bars = [
-          ...(vocabScore !== null
-            ? [
-                { label: "詞彙 Vocabulary", score: vocabScore, color: "#7c3aed" },
-                { label: "發音 Pronunciation", score: pronScore!, color: "#059669" },
-              ]
-            : []),
-          { label: "聲調 Tone accuracy", score: toneScore, color: "#d97706" },
-          ...(contentScore !== null
-            ? [{ label: "內容準確度 Content accuracy", score: contentScore, color: "#2563eb" }]
-            : []),
-        ];
-        return bars.length > 0 ? (
-          <div className="feedback-summary-bars">
-            {bars.map(({ label, score, color }) => (
-              <div key={label} className="feedback-summary-bar-row">
-                <span className="feedback-summary-bar-label">{label}</span>
-                <div className="feedback-summary-bar-track">
-                  <div
-                    className="feedback-summary-bar-fill"
-                    style={{ width: `${score}%`, background: color }}
-                  />
-                </div>
-                <span className="feedback-summary-bar-pct">{score}%</span>
-              </div>
-            ))}
-          </div>
-        ) : null;
-      })()}
-
-      {(pronScore !== null || toneScore > 0) && (
-        <div className="score-guide">
-          <p className="score-guide-heading"><BiLabel zh="如何達到 100%" en="How to reach 100%" /></p>
-          <div className="score-guide-rows">
-            {pronScore !== null && pronScore < 100 && (
-              <div className="score-guide-row">
-                <span className="score-guide-label"><BiLabel zh="發音" en="Pronunciation" /></span>
-                <ul className="score-guide-tips">
-                  <li>
-                    <BiText zh="每個音節要拉長一點 — 太短促的聲音會讓偵測器混淆。" en="Hold each syllable long enough — short clipped sounds confuse the detector." />
-                  </li>
-                  <li>
-                    <BiText zh="用穩定的速度說話（每秒 4–5 個音節）。太快會讓音高曲線崩潰。" en="Speak at a steady pace (4–5 syllables/sec). Too fast collapses the pitch contour." />
-                  </li>
-                  <li>
-                    <BiText zh="誇張每個聲調：上升更高、下降更陡、低降更深。" en="Exaggerate each tone: make rising higher, falling sharper, dipping deeper." />
-                  </li>
-                  <li>
-                    <BiText zh="在安靜的地方錄音 — 背景噪音會讓偵測到的曲線變平。" en="Record in a quiet place — background noise flattens the detected contour." />
-                  </li>
-                </ul>
-              </div>
-            )}
-            {toneScore < 100 && (
-              <div className="score-guide-row">
-                <span className="score-guide-label"><BiLabel zh="聲調準確度" en="Tone accuracy" /></span>
-                <ul className="score-guide-tips">
-                  <li>
-                    <strong>一聲 Tone 1 (ā) →</strong> <BiText zh="保持音高高且全程平直。" en="Keep pitch high and completely flat throughout." />
-                  </li>
-                  <li>
-                    <strong>二聲 Tone 2 (á) ↗</strong> <BiText zh="從中間開始，把音高推到最高 — 像在問問題。" en="Start mid, push pitch up to the top — like asking a question." />
-                  </li>
-                  <li>
-                    <strong>三聲 Tone 3 (ǎ) ↘↗</strong> <BiText zh="先降後升 — 最低點最重要。" en="Dip down first, then rise back — the lowest point matters most." />
-                  </li>
-                  <li>
-                    <strong>四聲 Tone 4 (à) ↘</strong> <BiText zh="從最高處開始，然後急速下降到最低。" en="Start as high as you can and drop sharply to the bottom." />
-                  </li>
-                  <li>
-                    <BiText zh="從聲調練習面板中找出有問題的字，重複念 5 次後再錄完整句子。" en="Isolate problem characters from the Tone Drill panel and repeat them 5× before recording the full sentence." />
-                  </li>
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {transcription && (
         <p className="feedback-summary-transcript">
-          <BiLabel zh="你說的是：" en="You said:" /> <em lang="zh-TW">"{transcription}"</em>
+          <BiLabel k="you_said" /> <em lang="zh-TW">"{transcription}"</em>
         </p>
       )}
 
-      {contentAccuracy?.feedback && (
-        <div className="content-accuracy-panel">
+      {/* ── Meaning check comes first: does the sentence actually fit the picture? ── */}
+      {/* judged:true means a vision model actually evaluated it; false = placeholder */}
+      {contentAccuracy?.judged && contentAccuracy.feedback && (
+        <div className={`content-accuracy-panel ${contentAccepted ? "is-accepted" : "is-rejected"}`}>
           <p className="score-guide-heading">
-            <BiLabel zh="圖片內容比對" en="Does it match the image?" />
+            <BiLabel k="does_it_match_the_image" />
           </p>
           <p className="content-accuracy-feedback">{contentAccuracy.feedback}</p>
           {contentAccuracy.matched_details.length > 0 && (
@@ -2438,7 +2447,78 @@ function FeedbackSummary({
               ✗ {contentAccuracy.missed_details.join(", ")}
             </p>
           )}
+          {!contentAccepted && (
+            <p className="content-accuracy-gate-hint">
+              <BiLabel
+                zh="先修正句子的意思，再看發音回饋。"
+                en="Fix what your sentence means first — pronunciation feedback comes after that."
+              />
+            </p>
+          )}
         </div>
+      )}
+
+      {/* ── Pronunciation feedback only once the meaning is accepted ── */}
+      {contentAccepted && (
+        <>
+          {(() => {
+            const bars = [
+              ...(vocabScore !== null
+                ? [{ label: "詞彙 Vocabulary", score: vocabScore, color: "#7c3aed" }]
+                : []),
+              { label: "聲調 Tone accuracy", score: toneScore, color: "#d97706" },
+              ...(contentScore !== null
+                ? [{ label: "內容準確度 Content accuracy", score: contentScore, color: "#2563eb" }]
+                : []),
+            ];
+            return bars.length > 0 ? (
+              <div className="feedback-summary-bars">
+                {bars.map(({ label, score, color }) => (
+                  <div key={label} className="feedback-summary-bar-card">
+                    <span className="feedback-summary-bar-label">{label}</span>
+                    <span className="feedback-summary-bar-pct" style={{ color }}>{score}%</span>
+                    <div className="feedback-summary-bar-track">
+                      <div
+                        className="feedback-summary-bar-fill"
+                        style={{ width: `${score}%`, background: color }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null;
+          })()}
+
+          {toneScore > 0 && (
+            <div className="score-guide">
+              <p className="score-guide-heading"><BiLabel k="how_to_reach_100" /></p>
+              <div className="score-guide-rows">
+                {toneScore < 100 && (
+                  <div className="score-guide-row">
+                    <span className="score-guide-label"><BiLabel k="tone_accuracy" /></span>
+                    <ul className="score-guide-tips">
+                      <li>
+                        <strong>一聲 Tone 1 (ā) →</strong> <BiText k="keep_pitch_high_and_completely_flat_thro" />
+                      </li>
+                      <li>
+                        <strong>二聲 Tone 2 (á) ↗</strong> <BiText k="start_mid_push_pitch_up_to_the_top_like_" />
+                      </li>
+                      <li>
+                        <strong>三聲 Tone 3 (ǎ) ↘↗</strong> <BiText k="dip_down_first_then_rise_back_the_lowest" />
+                      </li>
+                      <li>
+                        <strong>四聲 Tone 4 (à) ↘</strong> <BiText k="start_as_high_as_you_can_and_drop_sharpl" />
+                      </li>
+                      <li>
+                        <BiText k="isolate_problem_characters_from_the_tone" />
+                      </li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -2493,122 +2573,8 @@ function RecordingPlayback({ blob }: { blob: Blob }) {
 
   return (
     <div className="recording-playback">
-      <p className="recording-playback-label"><BiLabel zh="你的錄音" en="Your recording" /></p>
+      <p className="recording-playback-label"><BiLabel k="your_recording" /></p>
       <audio controls src={url} className="recording-playback-audio" />
-    </div>
-  );
-}
-
-function ToneDrillPanel({ wordProsody }: { wordProsody: WordProsody[] }) {
-  const problems = wordProsody
-    .map((item) => {
-      let priority = 0;
-      if (item.contour_shape === "variable") priority += 4;
-      if (item.pitch_range < 12) priority += 3; // too flat to read
-      if (item.pitch_range > 110) priority += 2; // excessive movement
-      return { item, priority };
-    })
-    .filter((e) => e.priority > 0)
-    .sort((a, b) => b.priority - a.priority)
-    .slice(0, 3)
-    .map((e) => e.item);
-
-  if (problems.length === 0) {
-    return (
-      <div className="tone-drill-panel tone-drill-clean">
-        <span className="tone-drill-ok">
-          <BiLabel zh="所有聲調形狀都很清楚 — 做得好。" en="All tones have clear shape — good work." />
-        </span>
-      </div>
-    );
-  }
-
-  return (
-    <div className="tone-drill-panel">
-      <p className="tone-drill-heading"><BiLabel zh="聲調練習 — 重點字" en="Tone drill — focus characters" /></p>
-      <div className="tone-drill-cards">
-        {problems.map((item, i) => {
-          const shape = TONE_SHAPES[item.contour_shape] ?? TONE_SHAPES.variable;
-          return (
-            <div key={`${item.token}-${i}`} className="tone-drill-card">
-              <div className="tone-drill-char" lang="zh-TW">
-                {item.token}
-              </div>
-
-              {/* Detected */}
-              <div className="tone-drill-section">
-                <span className="tone-drill-label"><BiLabel zh="偵測到" en="Detected" /></span>
-                <div className="tone-drill-shape">
-                  <span className="tone-arrow">{shape.arrow}</span>
-                  <span className="tone-shape-label">{shape.label}</span>
-                </div>
-              </div>
-
-              {/* Recommendation */}
-              {/* <div className="tone-drill-section">
-                <span className="tone-drill-label">Recommendation</span>
-                <p className="tone-drill-tip">{shape.drill}</p>
-              </div> */}
-
-              {/* Detail */}
-              <div className="tone-drill-section">
-                <span className="tone-drill-label">
-                  <BiLabel zh="細節" en="Detail" />
-                  <a
-                    className="tone-drill-detail-link"
-                    href="#tone-shapes-reference"
-                    title="查看聲調形狀參考 See tone shapes reference"
-                  >
-                    ?
-                  </a>
-                </span>
-                <p className="tone-drill-tip">{shape.tip}</p>
-                <ol className="tone-drill-steps">
-                  <li>
-                    <BiLabel zh="單獨說" en="Say" /> <strong lang="zh-TW">{item.token}</strong> <BiLabel zh="— 誇張一點地表現變化。" en="alone — exaggerate the movement." />
-                  </li>
-                  <li>
-                    <BiLabel zh="重複 3 次：" en="Repeat 3×:" />{" "}
-                    <strong lang="zh-TW">
-                      {item.token} {item.token} {item.token}
-                    </strong>
-                  </li>
-                  <li><BiLabel zh="放回完整句子並再次錄音。" en="Put it back into the full sentence and record again." /></li>
-                </ol>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Tone shapes reference table */}
-      <div id="tone-shapes-reference" className="tone-shapes-reference">
-        <p className="tone-drill-heading" style={{ marginBottom: 10 }}>
-          <BiLabel zh="聲調形狀參考" en="Tone shapes reference" />
-        </p>
-        <table className="tone-ref-table">
-          <thead>
-            <tr>
-              <th><BiLabel zh="形狀" en="Shape" /></th>
-              <th><BiLabel zh="箭頭" en="Arrow" /></th>
-              <th><BiLabel zh="意思" en="What it means" /></th>
-              <th><BiLabel zh="如何修正" en="How to fix" /></th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(TONE_SHAPES).map(([key, s]) => (
-              <tr key={key}>
-                <td>
-                  <strong>{s.label}</strong>
-                </td>
-                <td className="tone-ref-arrow">{s.arrow}</td>
-                <td>{s.tip}</td>
-                <td>{s.drill}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }
@@ -2651,10 +2617,10 @@ function formatBackendError(error: unknown, backendUrl: string): string {
   ];
 
   if (networkFailures.some((failure) => message.includes(failure))) {
-    return `Cannot reach the speech analysis backend at ${backendUrl}. Start the FastAPI backend on port 8000, then record again.`;
+    return `無法連線到語音分析後端 ${backendUrl}。請先啟動 FastAPI 後端（連接埠 8000），再重新錄音。 Cannot reach the speech analysis backend at ${backendUrl}. Start the FastAPI backend on port 8000, then record again.`;
   }
 
-  return message || "Speech analysis error occurred";
+  return message || "語音分析發生錯誤 Speech analysis error occurred";
 }
 
 async function convertBlobToWav(blob: Blob): Promise<Blob> {
@@ -2766,12 +2732,14 @@ function VocabCategorizer({
   return (
     <div className="vocab-categorizer">
       <div className="vocab-categorizer-header">
-        <span className="vocab-categorizer-title">Sort words into groups</span>
+        <span className="vocab-categorizer-title">
+          <BiLabel zh="把詞彙分類" en="Sort words into groups" />
+        </span>
         {checked && (
           <span
             className={`vocab-categorizer-score ${correctCount === words.length ? "vc-score-perfect" : ""}`}
           >
-            {correctCount}/{words.length} correct
+            <BiLabel zh={`${correctCount}/${words.length} 正確`} en={`${correctCount}/${words.length} correct`} />
           </span>
         )}
       </div>
@@ -2779,7 +2747,7 @@ function VocabCategorizer({
       {unplaced.length > 0 && (
         <div className="vocab-categorizer-bank">
           <span className="vc-bank-label">
-            Drag or click a word, then drop it into a group below
+            <BiLabel zh="拖曳或點擊一個詞，再放到下方的分類中" en="Drag or click a word, then drop it into a group below" />
           </span>
           <div className="vc-bank-chips">
             {unplaced.map((word) => (
@@ -2831,7 +2799,7 @@ function VocabCategorizer({
                       <span
                         className={`vc-chip vc-chip-${status}`}
                         onClick={() => !checked && unplaceWord(word)}
-                        title={!checked ? "Click to move back" : undefined}
+                        title={!checked ? "點擊移回 Click to move back" : undefined}
                       >
                         {word}
                         {checked && correct && (
@@ -2848,7 +2816,9 @@ function VocabCategorizer({
                   );
                 })}
                 {wordsHere.length === 0 && (
-                  <span className="vc-group-empty">Drop here</span>
+                  <span className="vc-group-empty">
+                    <BiLabel zh="放在這裡" en="Drop here" />
+                  </span>
                 )}
               </div>
             </div>
@@ -2864,28 +2834,38 @@ function VocabCategorizer({
             disabled={!allPlaced}
             onClick={handleCheck}
           >
-            {allPlaced
-              ? "Check answers"
-              : `${unplaced.length} word${unplaced.length > 1 ? "s" : ""} left to place`}
+            {allPlaced ? (
+              <BiLabel zh="檢查答案" en="Check answers" />
+            ) : (
+              <BiLabel
+                zh={`還有 ${unplaced.length} 個詞待放置`}
+                en={`${unplaced.length} word${unplaced.length > 1 ? "s" : ""} left to place`}
+              />
+            )}
           </button>
         ) : (
           <div className="vc-result-row">
             {correctCount === words.length ? (
               <span className="vc-all-correct">
-                All correct! Now record your sentence using these words.
+                <BiLabel
+                  zh="全部正確！現在用這些詞錄製你的句子吧。"
+                  en="All correct! Now record your sentence using these words."
+                />
               </span>
             ) : (
               <>
                 <span className="vc-wrong-hint">
-                  Words marked ✗ show the correct group — fix them and try
-                  again.
+                  <BiLabel
+                    zh="標示 ✗ 的詞會顯示正確分類 — 修正後再試一次。"
+                    en="Words marked ✗ show the correct group — fix them and try again."
+                  />
                 </span>
                 <button
                   type="button"
                   className="vc-btn-retry"
                   onClick={handleReset}
                 >
-                  Try again
+                  <BiLabel zh="再試一次" en="Try again" />
                 </button>
               </>
             )}

@@ -1,5 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { toPinyin } from "../utils/pinyin";
+import { BiLabel } from "./BiLabel";
+import "./BiLabel.css";
 import "./StoryConceptMap.css";
 
 interface VocabGroup {
@@ -21,33 +23,12 @@ interface Props {
   defaultOpen?: boolean;
 }
 
-// Taiwan Community Story Canvas — 6 categories, 2 rows of 3
-const STORY_CATEGORIES = [
-  { id: "characters",   hanzi: "角色", english: "Characters",   sub: "The Actors",                        color: "#4f46e5", border: "#818cf8" },
-  { id: "settings",     hanzi: "場景", english: "Settings",     sub: "The Places",                        color: "#0891b2", border: "#67e8f9" },
-  { id: "actions",      hanzi: "動作", english: "Actions",      sub: "The Verbs & Grammar Glue",          color: "#d97706", border: "#fcd34d" },
-  { id: "objects",      hanzi: "對象", english: "Objects",      sub: "The Targets of the Actions",        color: "#7c3aed", border: "#c4b5fd" },
-  { id: "instruments",  hanzi: "工具", english: "Instruments",  sub: "The Tools Used to Complete Tasks",  color: "#be185d", border: "#f9a8d4" },
-  { id: "outcomes",     hanzi: "結果", english: "Outcomes",     sub: "Social & Task Consequences",        color: "#059669", border: "#6ee7b7" },
-];
-
 // Grammar pattern canvas — Subject + (Aux) Verb + Object, e.g. S + Vaux + V(O)
 const GRAMMAR_CATEGORIES = [
   { id: "subject", hanzi: "主語", english: "Subject", sub: "Who is doing it (S)",        color: "#4f46e5", border: "#818cf8" },
   { id: "verb",     hanzi: "動詞", english: "Verb",    sub: "Aux + main verb (Vaux + V)", color: "#d97706", border: "#fcd34d" },
   { id: "object",   hanzi: "受語", english: "Object",  sub: "What the verb acts on (O)",  color: "#7c3aed", border: "#c4b5fd" },
 ];
-
-function groupNameToStoryCategoryId(name: string): string | null {
-  const n = name.toLowerCase();
-  if (n.includes("character") || n.includes("actor") || n.includes("角色") || n.includes("人物")) return "characters";
-  if (n.includes("setting") || n.includes("place") || n.includes("場景") || n.includes("地點")) return "settings";
-  if (n.includes("action") || n.includes("verb") || n.includes("grammar") || n.includes("動作") || n.includes("語法")) return "actions";
-  if (n.includes("object") || n.includes("target") || n.includes("對象") || n.includes("物品")) return "objects";
-  if (n.includes("instrument") || n.includes("tool") || n.includes("工具")) return "instruments";
-  if (n.includes("outcome") || n.includes("result") || n.includes("consequence") || n.includes("結果")) return "outcomes";
-  return null;
-}
 
 function groupNameToGrammarCategoryId(name: string): string | null {
   const n = name.toLowerCase();
@@ -57,13 +38,9 @@ function groupNameToGrammarCategoryId(name: string): string | null {
   return null;
 }
 
-/** Pick the grammar (S/V/O) category set when a topic's group names match it; otherwise the 6-part story canvas. */
-function pickCategorySet(vocabularyGroups: Record<number, VocabGroup[]> | undefined) {
-  const names = Object.values(vocabularyGroups ?? {}).flatMap((groups) => groups.map((g) => g.name));
-  const isGrammar = names.length > 0 && names.every((name) => groupNameToGrammarCategoryId(name) !== null);
-  return isGrammar
-    ? { categories: GRAMMAR_CATEGORIES, groupNameToCategoryId: groupNameToGrammarCategoryId }
-    : { categories: STORY_CATEGORIES, groupNameToCategoryId: groupNameToStoryCategoryId };
+/** Every topic uses the grammar (Subject · Verb · Object) canvas. */
+function pickCategorySet(_vocabularyGroups: Record<number, VocabGroup[]> | undefined) {
+  return { categories: GRAMMAR_CATEGORIES, groupNameToCategoryId: groupNameToGrammarCategoryId };
 }
 
 // Layout: up to 3 columns, as many rows as needed for the active category set
@@ -103,6 +80,7 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
     Object.fromEntries(CATEGORIES.map(c => [c.id, []]))
   );
   const [dragOver, setDragOver]   = useState<string | null>(null);
+  const [draggingWord, setDraggingWord] = useState<string | null>(null);
   const [checked, setChecked]     = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [isOpen, setIsOpen]       = useState(defaultOpen);
@@ -199,10 +177,17 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
       <div className="scmap-collapsed" onClick={() => setIsOpen(true)}>
         <span className="scmap-collapsed-icon">🗺️</span>
         <div className="scmap-collapsed-text">
-          <strong>Story Concept Map</strong>
-          <span>Organize story vocabulary · {totalPlaced}/{totalWords} placed</span>
+          <strong><BiLabel zh="故事概念圖" en="Story Concept Map" /></strong>
+          <span>
+            <BiLabel
+              zh={`整理故事詞彙 · 已放置 ${totalPlaced}/${totalWords}`}
+              en={`Organize story vocabulary · ${totalPlaced}/${totalWords} placed`}
+            />
+          </span>
         </div>
-        <span className="scmap-collapsed-caret">▼ Open</span>
+        <span className="scmap-collapsed-caret">
+          <BiLabel zh="▼ 展開" en="▼ Open" />
+        </span>
       </div>
     );
   }
@@ -213,73 +198,92 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
       <div className="scmap-toolbar">
         <div className="scmap-toolbar-left">
           <div className="scmap-score-badge">
-            Words placed: <span>{totalPlaced}</span> / {totalWords}
+            <BiLabel zh="已放置詞彙：" en="Words placed: " />
+            <span>{totalPlaced}</span> / {totalWords}
           </div>
-          <button className="scmap-tbtn" onClick={reset} disabled={submitted}>↺ Reset</button>
+          <button className="scmap-tbtn" onClick={reset} disabled={submitted}>
+            <BiLabel zh="↺ 重設" en="↺ Reset" />
+          </button>
           <button
             className="scmap-tbtn scmap-tbtn-success"
             onClick={() => setChecked(true)}
             disabled={submitted || totalPlaced === 0}
           >
-            ✓ Check
+            <BiLabel zh="✓ 檢查" en="✓ Check" />
           </button>
           <button
             className={`scmap-tbtn scmap-tbtn-primary${submitted ? " is-submitted" : ""}`}
             onClick={() => { setSubmitted(true); setChecked(true); }}
             disabled={submitted}
           >
-            {submitted ? "✓ Submitted" : "Submit"}
+            {submitted ? <BiLabel zh="✓ 已提交" en="✓ Submitted" /> : <BiLabel zh="提交" en="Submit" />}
           </button>
         </div>
-        <button className="scmap-tbtn" onClick={() => setIsOpen(false)}>▲ Hide</button>
+        <button className="scmap-tbtn" onClick={() => setIsOpen(false)}>
+          <BiLabel zh="▲ 隱藏" en="▲ Hide" />
+        </button>
       </div>
 
       {checked && hasAnswerKey && (
         <div className={`scmap-check-banner${allCorrect ? " scmap-check-banner-perfect" : ""}`}>
-          {allCorrect
-            ? "🎉 All words in the right category! 太棒了！ Now continue to speaking."
-            : `✓ ${checkedCorrect} correct · ✗ ${checkedWrong} wrong — words marked ✗ show the correct category. Remove them and try again.`}
+          {allCorrect ? (
+            <BiLabel zh="🎉 所有詞彙都分類正確！太棒了！繼續進行口說練習。" en="🎉 All words in the right category! Now continue to speaking." />
+          ) : (
+            <BiLabel
+              zh={`✓ ${checkedCorrect} 個正確 · ✗ ${checkedWrong} 個錯誤 — 標示 ✗ 的詞彙會顯示正確分類，移除後再試一次。`}
+              en={`✓ ${checkedCorrect} correct · ✗ ${checkedWrong} wrong — words marked ✗ show the correct category. Remove them and try again.`}
+            />
+          )}
         </div>
       )}
       {checked && !hasAnswerKey && (
         <div className="scmap-check-banner">
-          {totalPlaced === totalWords
-            ? "🎉 All words placed! Ask your teacher to review your concept map."
-            : `${totalPlaced}/${totalWords} words placed. Keep going!`}
+          {totalPlaced === totalWords ? (
+            <BiLabel zh="🎉 所有詞彙都已放置！請老師檢查你的概念圖。" en="🎉 All words placed! Ask your teacher to review your concept map." />
+          ) : (
+            <BiLabel
+              zh={`已放置 ${totalPlaced}/${totalWords} 個詞彙，繼續加油！`}
+              en={`${totalPlaced}/${totalWords} words placed. Keep going!`}
+            />
+          )}
         </div>
       )}
 
       <div className="scmap-main">
 
         <div className="scmap-word-bank">
-          <h3>📚 Word Bank</h3>
+          <h3><BiLabel zh="📚 詞彙庫" en="📚 Word Bank" /></h3>
           {allWords.length > 0 && (
             <div className="scmap-scene-legend">
               {Array.from(new Set(Object.keys(topic.vocabulary).map(Number))).sort((a, b) => a - b).map(si => (
                 <span key={si} className={`chip-scene chip-scene-${si % 6}`}>S{si + 1}</span>
               ))}
-              <span className="scmap-legend-hint">= scene</span>
+              <span className="scmap-legend-hint">
+                <BiLabel zh="= 場景" en="= scene" />
+              </span>
             </div>
           )}
           {allWords.length === 0 ? (
             <div className="scmap-bank-empty">
               <span className="scmap-bank-empty-icon">📝</span>
-              <p>No vocabulary yet.</p>
-              <p>Ask your teacher to add words to this story.</p>
+              <p><BiLabel zh="尚無詞彙。" en="No vocabulary yet." /></p>
+              <p><BiLabel zh="請老師為這個故事新增詞彙。" en="Ask your teacher to add words to this story." /></p>
             </div>
           ) : allWords.map((w, i) => {
             const used = usedWords.has(w);
             return (
               <div
                 key={`${w}-${i}`}
-                className={`scmap-word-chip${used ? " used" : ""}${submitted ? " used" : ""}`}
+                className={`scmap-word-chip${used ? " used" : ""}${submitted ? " used" : ""}${draggingWord === w ? " dragging" : ""}`}
                 draggable={!used && !submitted}
                 onDragStart={e => {
                   if (!used && !submitted) {
                     e.dataTransfer.setData("text/plain", w);
                     e.dataTransfer.effectAllowed = "move";
+                    setDraggingWord(w);
                   }
                 }}
+                onDragEnd={() => setDraggingWord(null)}
               >
                 <span className="chip-hanzi">
                   {w}
@@ -348,7 +352,11 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                   <div className="scmap-cat-words">
                     {words.length === 0 ? (
                       <div className="scmap-cat-empty">
-                        {isOver ? "Release to place" : "Drop words here"}
+                        {isOver ? (
+                          <BiLabel zh="放開以放置" en="Release to place" />
+                        ) : (
+                          <BiLabel zh="把詞彙拖到這裡" en="Drop words here" />
+                        )}
                       </div>
                     ) : words.map(w => {
                       const result = wordResult[w];
@@ -365,13 +373,13 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                           </span>
                           {result === "correct" && <span className="cat-word-icon">✓</span>}
                           {result === "wrong" && correctCat && (
-                            <span className="cat-word-hint">→ {correctCat.english}</span>
+                            <span className="cat-word-hint">→ {correctCat.hanzi} {correctCat.english}</span>
                           )}
                           {!submitted && (
                             <button
                               className={`cat-word-remove${result === "wrong" ? " cat-word-remove-wrong" : ""}`}
                               onClick={() => removeFromCategory(cat.id, w, result === "wrong")}
-                              title={result === "wrong" ? "Wrong — click to move back" : "Remove"}
+                              title={result === "wrong" ? "錯誤 — 點擊移回 Wrong — click to move back" : "移除 Remove"}
                             >×</button>
                           )}
                         </div>

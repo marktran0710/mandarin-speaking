@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import HomePage from "./pages/HomePage";
 import CreateStoryPage from "./pages/CreateStoryPage";
 import MyStoriesPage from "./pages/MyStoriesPage";
 import VoiceTestPage from "./pages/VoiceTestPage";
 import ImageNarrationPage from "./pages/ImageNarrationPage";
+import ListenRetellPage from "./pages/ListenRetellPage";
 import TeacherImageBuilderPage from "./pages/TeacherImageBuilderPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 
@@ -35,6 +36,7 @@ export type Page =
   | "student-stories"
   | "voice-test"
   | "image-narration"
+  | "listen-retell"
   | "teacher-dashboard"
   | "teacher-image-builder";
 
@@ -65,6 +67,18 @@ export default function App() {
   const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(null);
   const [publishedTopics, setPublishedTopics] = useState<Topic[]>(
     () => loadPublishedTeacherTopics(),
+  );
+  const storyTopics = useMemo(
+    () => publishedTopics.filter((t) => (t.narrativeMode ?? "story") === "story"),
+    [publishedTopics],
+  );
+  const describeTopics = useMemo(
+    () => publishedTopics.filter((t) => t.narrativeMode === "describe"),
+    [publishedTopics],
+  );
+  const listenRetellTopics = useMemo(
+    () => publishedTopics.filter((t) => t.narrativeMode === "listen_retell"),
+    [publishedTopics],
   );
 
   const loadSavedAudioRecords = useCallback(async () => {
@@ -288,7 +302,7 @@ export default function App() {
           initialImageIndex={practiceTarget?.imageIndex}
           helpRequests={helpRequests}
           onRaiseHand={handleRaiseHand}
-          publishedTopics={publishedTopics}
+          publishedTopics={storyTopics}
         />
       )}
       {currentPage === "student-stories" && activeRole === "student" && (
@@ -299,14 +313,17 @@ export default function App() {
           mode="student"
           helpRequests={helpRequests}
           onRaiseHand={handleRaiseHand}
-          publishedTopics={publishedTopics}
+          publishedTopics={storyTopics}
         />
       )}
       {currentPage === "voice-test" && activeRole === "student" && (
         <VoiceTestPage />
       )}
       {currentPage === "image-narration" && activeRole === "student" && (
-        <ImageNarrationPage publishedTopics={publishedTopics} />
+        <ImageNarrationPage publishedTopics={describeTopics} />
+      )}
+      {currentPage === "listen-retell" && activeRole === "student" && (
+        <ListenRetellPage publishedTopics={listenRetellTopics} />
       )}
       {currentPage === "teacher-dashboard" && activeRole === "teacher" && (
         <MyStoriesPage

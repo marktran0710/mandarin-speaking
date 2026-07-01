@@ -627,6 +627,7 @@ def estimate_word_prosody(
         tone_score = (
             calculate_phrase_tone_accuracy(points, expected_tones) if is_chinese else 0.0
         )
+        is_content = _classify_content_word(token)
 
         segments.append(
             {
@@ -642,9 +643,20 @@ def estimate_word_prosody(
                 "contour_shape": contour_shape,
                 "expected_tones": expected_tones,
                 "tone_accuracy": round(tone_score, 1),
+                "is_content_word": is_content,
+                "prominence_score": 0.0,  # filled in below after utterance mean is known
                 "feedback": _word_prosody_feedback(contour_shape, pitch_range, expected_tones, tone_score),
             }
         )
+
+    # Compute prominence_score relative to utterance mean pitch
+    all_pitches = [s["mean_pitch"] for s in segments if s["mean_pitch"] > 0]
+    utterance_mean = float(np.mean(all_pitches)) if all_pitches else 0.0
+    if utterance_mean > 0:
+        for seg in segments:
+            seg["prominence_score"] = round(
+                (seg["mean_pitch"] - utterance_mean) / utterance_mean, 3
+            )
 
     return segments
 
@@ -692,6 +704,62 @@ def _snap_to_onset(
     if abs(nearest - proportional_time) <= tolerance:
         return nearest
     return proportional_time
+
+
+_CONTENT_POS_PREFIXES = frozenset({"n", "v", "a", "t", "s", "i"})
+
+
+def _classify_content_word(token: str) -> bool:
+    """True when a jieba token carries lexical (not grammatical) content.
+
+    POS prefix key: n=noun, v=verb, a=adjective, t=time noun, s=location noun,
+    i=idiom. Function words (r=pronoun, p=prep, c=conj, u=particle, y=modal,
+    e=exclamation, q=classifier, m=numeral) are treated as unstressed.
+    """
+    if not re.search(r"[一-鿿]", token):
+        return False
+    try:
+        import jieba.posseg as pseg
+        for _, flag in pseg.cut(token):
+            return flag[:1] in _CONTENT_POS_PREFIXES
+    except Exception:
+        pass
+    return True  # no POS tagging available → assume content
+
+
+def word_stress_summary(word_prosody: List[Dict]) -> Dict:
+    """Derive a sentence-level stress / topline summary from per-word segments.
+
+    Returns:
+      content_word_count: int
+      de_accented_words: List[str]  — content words whose pitch sat below average
+      prominent_words: List[str]    — content words with clearly elevated pitch
+      topline_slope_hz_per_sec: float  — negative = natural declination
+    """
+    if not word_prosody:
+        return {}
+
+    content_words = [w for w in word_prosody if w.get("is_content_word")]
+    de_accented = [w["token"] for w in content_words if w.get("prominence_score", 0) < -0.12]
+    prominent = [w["token"] for w in content_words if w.get("prominence_score", 0) > 0.10]
+
+    topline_slope = 0.0
+    if len(content_words) >= 2:
+        times = np.array([w["start_time"] for w in content_words], dtype=float)
+        peaks = np.array([w.get("start_pitch", w["mean_pitch"]) for w in content_words], dtype=float)
+        valid = peaks > 0
+        if valid.sum() >= 2:
+            t, p = times[valid], peaks[valid]
+            denom = float(((t - t.mean()) ** 2).sum())
+            if denom > 0:
+                topline_slope = float(((t - t.mean()) * (p - p.mean())).sum() / denom)
+
+    return {
+        "content_word_count": len(content_words),
+        "de_accented_words": de_accented,
+        "prominent_words": prominent,
+        "topline_slope_hz_per_sec": round(topline_slope, 1),
+    }
 
 
 def _prosody_tokens(transcription: str) -> List[str]:

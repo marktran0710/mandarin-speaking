@@ -1,11 +1,20 @@
 .home-page {
   min-height: calc(100vh - 64px);
-  background: var(--clay-canvas);
+  background:
+    radial-gradient(600px circle at 12% 0%, var(--accent-indigo-soft), transparent 60%),
+    radial-gradient(600px circle at 88% 10%, var(--accent-amber-soft), transparent 60%),
+    var(--clay-canvas);
 }
 
 .hero {
   padding: 48px 20px 22px;
   text-align: center;
+  animation: homeFadeUp 0.5s ease-out both;
+}
+
+@keyframes homeFadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .hero-content {
@@ -63,11 +72,31 @@
   box-shadow: none;
   color: var(--clay-ink);
   cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  animation: homeFadeUp 0.5s ease-out both;
+  animation-delay: 0.08s;
+}
+
+.portal-grid .portal-card:nth-child(2) {
+  animation-delay: 0.16s;
 }
 
 .portal-card:hover {
   border-color: var(--clay-primary);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
+  transform: translateY(-4px);
+}
+
+.portal-card:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+.portal-card:hover .portal-icon {
+  transform: scale(1.08) rotate(-4deg);
+}
+
+.portal-card:hover .portal-arrow {
+  transform: translateX(4px);
 }
 
 .portal-icon {
@@ -78,16 +107,25 @@
   border-radius: 999px;
   font-size: 36px;
   font-weight: 700;
+  transition: transform 0.2s ease;
 }
 
 .student-card .portal-icon {
-  background: var(--clay-primary);
+  background: linear-gradient(135deg, var(--accent-indigo), var(--accent-violet));
   color: #ffffff;
 }
 
 .teacher-card .portal-icon {
-  background: var(--clay-surface-strong);
-  color: var(--clay-ink);
+  background: linear-gradient(135deg, var(--accent-amber), var(--accent-rose));
+  color: #ffffff;
+}
+
+.student-card {
+  border-top: 4px solid var(--accent-indigo);
+}
+
+.teacher-card {
+  border-top: 4px solid var(--accent-amber);
 }
 
 .portal-title {
@@ -110,6 +148,7 @@
   color: var(--clay-primary);
   font-size: 24px;
   line-height: 1;
+  transition: transform 0.2s ease;
 }
 
 .features {
@@ -143,15 +182,15 @@
 }
 
 .feature-card.blue {
-  border-top: 4px solid var(--clay-primary);
+  border-top: 4px solid var(--accent-sky);
 }
 
 .feature-card.green {
-  border-top: 4px solid var(--clay-ink);
+  border-top: 4px solid var(--clay-success);
 }
 
 .feature-card.purple {
-  border-top: 4px solid var(--clay-muted);
+  border-top: 4px solid var(--accent-violet);
 }
 
 .feature-icon {
@@ -160,11 +199,14 @@
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: var(--clay-primary);
   color: #ffffff;
   font-weight: 800;
   margin-bottom: 16px;
 }
+
+.feature-card.blue .feature-icon   { background: var(--accent-sky); }
+.feature-card.green .feature-icon  { background: var(--clay-success); }
+.feature-card.purple .feature-icon { background: var(--accent-violet); }
 
 .feature-card h3 {
   color: var(--clay-ink);

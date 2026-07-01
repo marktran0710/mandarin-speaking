@@ -62,7 +62,7 @@ export default function CreateStoryPage({
         <div className="story-recorder-wrapper">
           <div className="btn-back-container">
             <button className="btn-back" onClick={handleBack}>
-              <BiLabel zh="返回主題" en="Back to Topics" />
+              <BiLabel k="back_to_topics" />
             </button>
           </div>
           <StoryRecorder
@@ -72,7 +72,7 @@ export default function CreateStoryPage({
             onImageSelect={setSelectedImageIndex}
             onImageChange={(image) => setSelectedImage(image)}
             onAddRecord={onAddRecord}
-            enableSorting={!selectedTopic.linear}
+            enableSorting={false}
             studentName={getStudentName()}
           />
         </div>
@@ -104,13 +104,13 @@ function StudentHelpPanel({
         <div>
           <strong>
             {activeRequest
-              ? <BiLabel zh="老師已收到你的求助" en="Teacher has your help request" />
-              : <BiLabel zh="需要老師協助嗎？" en="Need teacher help?" />}
+              ? <BiLabel k="teacher_has_your_help_request" />
+              : <BiLabel k="need_teacher_help" />}
           </strong>
           <p>
             {activeRequest
-              ? <BiText zh="請繼續你的任務，老師已經看到這個請求。" en="Stay on your task. Your teacher can see this request." />
-              : <BiText zh="點此舉手，老師會在儀表板上看到。" en="Raise your hand from here and your teacher will see it on the dashboard." />}
+              ? <BiText k="stay_on_your_task_your_teacher_can_see_t" />
+              : <BiText k="raise_your_hand_from_here_and_your_teach" />}
           </p>
         </div>
       </div>
@@ -127,7 +127,7 @@ function StudentHelpPanel({
           placeholder="需要什麼幫助？ What do you need help with?"
         />
         <button type="submit" disabled={!onRaiseHand}>
-          {activeRequest ? <BiLabel zh="更新請求" en="Update request" /> : <BiLabel zh="舉手" en="Raise hand" />}
+          {activeRequest ? <BiLabel k="update_request" /> : <BiLabel k="raise_hand" />}
         </button>
       </form>
     </section>

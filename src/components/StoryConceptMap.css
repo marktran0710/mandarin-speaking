@@ -126,11 +126,19 @@
   align-items: center;
   justify-content: space-between;
   gap: 6px;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+  animation: chipDropIn 0.25s ease-out backwards;
 }
 .scmap-word-chip:hover:not(.used) {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+.scmap-word-chip:active:not(.used) {
+  cursor: grabbing;
+}
+.scmap-word-chip.dragging {
+  opacity: 0.35;
+  transform: scale(0.96);
 }
 .scmap-word-chip.used {
   opacity: 0.4;
@@ -139,6 +147,19 @@
   cursor: default;
   transform: none;
 }
+@keyframes chipDropIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.scmap-word-chip:nth-child(1)  { animation-delay: 0.00s; }
+.scmap-word-chip:nth-child(2)  { animation-delay: 0.03s; }
+.scmap-word-chip:nth-child(3)  { animation-delay: 0.06s; }
+.scmap-word-chip:nth-child(4)  { animation-delay: 0.09s; }
+.scmap-word-chip:nth-child(5)  { animation-delay: 0.12s; }
+.scmap-word-chip:nth-child(6)  { animation-delay: 0.15s; }
+.scmap-word-chip:nth-child(7)  { animation-delay: 0.18s; }
+.scmap-word-chip:nth-child(8)  { animation-delay: 0.21s; }
+.scmap-word-chip:nth-child(n+9) { animation-delay: 0.24s; }
 .scmap-bank-empty {
   display: flex;
   flex-direction: column;
@@ -246,8 +267,8 @@
 }
 .scmap-cat-node.drag-over {
   border-color: #6366f1 !important;
-  box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
-  transform: scale(1.02);
+  box-shadow: 0 0 0 4px rgba(99,102,241,0.25);
+  transform: scale(1.03);
 }
 .scmap-cat-node.is-submitted {
   opacity: 0.85;
@@ -363,11 +384,25 @@
   background: #f0fdf4;
   border-color: #86efac;
   color: #166534;
+  animation: wordCorrectBounce 0.4s ease-out;
 }
 .scmap-cat-word.word-wrong {
   background: #fff1f2;
   border-color: #fca5a5;
   color: #991b1b;
+  animation: wordWrongShake 0.4s ease-in-out;
+}
+@keyframes wordCorrectBounce {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+@keyframes wordWrongShake {
+  0%, 100% { transform: translateX(0); }
+  20%      { transform: translateX(-4px); }
+  40%      { transform: translateX(4px); }
+  60%      { transform: translateX(-3px); }
+  80%      { transform: translateX(3px); }
 }
 
 /* ── Check result banner ── */
@@ -383,6 +418,13 @@
   background: #f0fdf4;
   border-bottom-color: #86efac;
   color: #166534;
+  font-weight: 700;
+  animation: bannerCelebrate 0.5s ease-out;
+}
+@keyframes bannerCelebrate {
+  0%   { transform: scale(0.97); opacity: 0.4; }
+  50%  { transform: scale(1.015); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* ── Submitted button state ── */

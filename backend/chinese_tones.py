@@ -2,6 +2,7 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 from pypinyin import Style, pinyin
+import taiwan_pinyin; taiwan_pinyin.apply()
 from scipy.interpolate import interp1d
 from scipy.spatial.distance import euclidean
 

@@ -1,0 +1,610 @@
+{
+  "activity_menu": {
+    "en": "Activity menu",
+    "zh": "活動選單"
+  },
+  "advanced_analysis_details": {
+    "en": "Advanced analysis details",
+    "zh": "進階分析細節"
+  },
+  "ai_engine": {
+    "en": "AI engine",
+    "zh": "AI 引擎"
+  },
+  "all_pictures_placed": {
+    "en": "All pictures placed!",
+    "zh": "所有圖片都已放置！"
+  },
+  "all_pictures_placed_verify_below": {
+    "en": "All pictures placed — verify below!",
+    "zh": "所有圖片都已放置 — 請在下方驗證！"
+  },
+  "all_scenes_practiced": {
+    "en": "All scenes practiced!",
+    "zh": "所有場景都已練習完成！"
+  },
+  "all_scenes_recorded_ready_to_submit": {
+    "en": "All scenes recorded — ready to submit",
+    "zh": "所有場景都已錄製 — 可以提交了"
+  },
+  "all_tones_have_clear_shape_good_work": {
+    "en": "All tones have clear shape — good work.",
+    "zh": "所有聲調形狀都很清楚 — 做得好。"
+  },
+  "all_vocabulary_words_used": {
+    "en": "All vocabulary words used!",
+    "zh": "所有詞彙都使用了！"
+  },
+  "all_vocabulary_words_used_excellent": {
+    "en": "All vocabulary words used — excellent!",
+    "zh": "所有詞彙都使用了 — 太棒了！"
+  },
+  "alone_exaggerate_the_movement": {
+    "en": "alone — exaggerate the movement.",
+    "zh": "— 誇張一點地表現變化。"
+  },
+  "analyzing_pronunciation": {
+    "en": "Analyzing pronunciation…",
+    "zh": "正在分析發音…"
+  },
+  "arrange_scenes": {
+    "en": "Arrange Scenes",
+    "zh": "排列場景"
+  },
+  "arrow": {
+    "en": "Arrow",
+    "zh": "箭頭"
+  },
+  "asr_result": {
+    "en": "ASR result",
+    "zh": "語音辨識結果"
+  },
+  "back_to_portals": {
+    "en": "Back to portals",
+    "zh": "返回入口"
+  },
+  "back_to_scenes": {
+    "en": "Back to Scenes",
+    "zh": "← 返回場景"
+  },
+  "back_to_topics": {
+    "en": "Back to Topics",
+    "zh": "返回主題"
+  },
+  "build_better_chinese_stories_with_pictur": {
+    "en": "Build better Chinese stories with picture prompts, voice recording, pronunciation feedback, and helpful language coaching.",
+    "zh": "用圖片提示、語音錄製、發音回饋和語言指導，打造更好的中文故事。"
+  },
+  "character_by_character_prosody": {
+    "en": "Character-by-character prosody",
+    "zh": "逐字韻律"
+  },
+  "check_which_words_you_used": {
+    "en": "check which words you used",
+    "zh": "檢查你使用了哪些詞彙"
+  },
+  "checking_tones_rhythm_and_vocabulary": {
+    "en": "Checking tones, rhythm, and vocabulary",
+    "zh": "檢查聲調、節奏與詞彙"
+  },
+  "choose_a_daily_situation": {
+    "en": "Choose a Daily Situation",
+    "zh": "選擇一個日常情境"
+  },
+  "click_a_scene_slot_above_to_place_this_p": {
+    "en": "Click a scene slot above to place this picture.",
+    "zh": "點擊上方的場景位置以放置這張圖片。"
+  },
+  "click_to_place": {
+    "en": "Click to place",
+    "zh": "點擊放置"
+  },
+  "complete_when_you_finish_all_images": {
+    "en": "You only complete your story when you finish recording all the images.",
+    "zh": "完成所有圖片的錄音後，你的故事才算完成。"
+  },
+  "create_story_based_on_images": {
+    "en": "Create your story based on the images below.",
+    "zh": "請根據下方的圖片創作你的故事。"
+  },
+  "complete_picture_based_story_tasks_recor": {
+    "en": "Complete picture-based story tasks, record Mandarin speech, and review Praat plus AI feedback.",
+    "zh": "完成圖片故事任務、錄製普通話語音，並查看 Praat 及 AI 回饋。"
+  },
+  "connectors": {
+    "en": "Connectors",
+    "zh": "連接詞"
+  },
+  "continue_to_speaking": {
+    "en": "Continue to Speaking",
+    "zh": "繼續到口說練習 →"
+  },
+  "continue_to_vocabulary_map": {
+    "en": "Continue to Vocabulary Map",
+    "zh": "繼續到詞彙地圖 →"
+  },
+  "converting_speech_to_text": {
+    "en": "Converting speech to text",
+    "zh": "將語音轉換為文字"
+  },
+  "dashboard": {
+    "en": "Dashboard",
+    "zh": "儀表板"
+  },
+  "detail": {
+    "en": "Detail",
+    "zh": "細節"
+  },
+  "detected": {
+    "en": "Detected",
+    "zh": "偵測到"
+  },
+  "dip_down_first_then_rise_back_the_lowest": {
+    "en": "Dip down first, then rise back — the lowest point matters most.",
+    "zh": "先降後升 — 最低點最重要。"
+  },
+  "does_it_match_the_image": {
+    "en": "Does it match the image?",
+    "zh": "圖片內容比對"
+  },
+  "dominant_pitch_shape": {
+    "en": "Dominant pitch shape",
+    "zh": "主要音高形狀"
+  },
+  "drag_a_picture_to_a_slot_or_click_to_sel": {
+    "en": "Drag a picture to a slot, or click to select then click a slot.",
+    "zh": "把圖片拖到某個位置，或點擊選取後再點擊位置。"
+  },
+  "drag_click": {
+    "en": "Drag · Click",
+    "zh": "拖曳 · 點擊"
+  },
+  "drag_each_picture_into_the_correct_scene": {
+    "en": "Drag each picture into the correct scene slot, then verify the sequence to unlock speaking practice.",
+    "zh": "把每張圖片拖到正確的場景位置，然後驗證順序以解鎖口說練習。"
+  },
+  "drag_each_word_into_its_sentence_role_su": {
+    "en": "Drag each word into its sentence role — Subject, Verb, or Object",
+    "zh": "把每個詞彙拖到對應的句子角色 — 主語、動詞，或受語"
+  },
+  "drag_here": {
+    "en": "Drag here",
+    "zh": "拖曳到這裡"
+  },
+  "feedback": {
+    "en": "Feedback",
+    "zh": "回饋"
+  },
+  "fix": {
+    "en": "Fix",
+    "zh": "待改進"
+  },
+  "fluency": {
+    "en": "Fluency",
+    "zh": "流暢度"
+  },
+  "for_each_image_record_and_see_feedback": {
+    "en": "For each image, record your voice and see the system feedback.",
+    "zh": "針對每一張圖片，你需要錄音並查看系統回饋。"
+  },
+  "formant_measurements": {
+    "en": "Formant measurements",
+    "zh": "共振峰測量"
+  },
+  "got_it_lets_start": {
+    "en": "Got it, let's start!",
+    "zh": "知道了，開始吧！"
+  },
+  "good": {
+    "en": "Good",
+    "zh": "優點"
+  },
+  "grammar_pattern_canvas": {
+    "en": "Grammar Pattern Canvas",
+    "zh": "文法句型畫布"
+  },
+  "grammar_pattern_to_use": {
+    "en": "Grammar pattern to use",
+    "zh": "練習句型"
+  },
+  "how_to_fix": {
+    "en": "How to fix",
+    "zh": "如何修正"
+  },
+  "how_to_reach_100": {
+    "en": "How to reach 100%",
+    "zh": "如何達到 100%"
+  },
+  "image_builder": {
+    "en": "Image Builder",
+    "zh": "圖片產生器"
+  },
+  "isolate_problem_characters_from_the_tone": {
+    "en": "Isolate problem characters from the Tone Drill panel and repeat them 5× before recording the full sentence.",
+    "zh": "從聲調練習面板中找出有問題的字，重複念 5 次後再錄完整句子。"
+  },
+  "keep_pitch_high_and_completely_flat_thro": {
+    "en": "Keep pitch high and completely flat throughout.",
+    "zh": "保持音高高且全程平直。"
+  },
+  "keep_practicing_try_to_make_the_tone_sha": {
+    "en": "Keep practicing — try to make the tone shapes clearer.",
+    "zh": "繼續練習 — 試著讓聲調形狀更清楚。"
+  },
+  "key_vocabulary": {
+    "en": "Key Vocabulary",
+    "zh": "關鍵詞彙"
+  },
+  "let_s_go": {
+    "en": "Let's Go!",
+    "zh": "開始！→"
+  },
+  "listening_to_your_voice": {
+    "en": "Listening to your voice…",
+    "zh": "正在聆聽你的語音…"
+  },
+  "loading_activities": {
+    "en": "Loading activities…",
+    "zh": "正在載入活動…"
+  },
+  "log_out": {
+    "en": "Log out",
+    "zh": "登出"
+  },
+  "mandarin_speaking_practice": {
+    "en": "Mandarin speaking practice",
+    "zh": "普通話口語練習"
+  },
+  "mandarin_story_coach": {
+    "en": "Mandarin Story Coach",
+    "zh": "普通話故事教練"
+  },
+  "match_key_words_to_each_story_scene": {
+    "en": "Match key words to each story scene",
+    "zh": "把關鍵詞彙配對到每個故事場景"
+  },
+  "monitor_student_recordings_inspect_speec": {
+    "en": "Monitor student recordings, inspect speech metrics, and support narrative development.",
+    "zh": "監控學生錄音、查看語音指標，並支援敘事發展。"
+  },
+  "need_teacher_help": {
+    "en": "Need teacher help?",
+    "zh": "需要老師協助嗎？"
+  },
+  "needs_a_clear_pitch_contour_and_transcri": {
+    "en": "Needs a clear pitch contour and transcript. Try one complete sentence, or use Chinese/Taiwanese Whisper.",
+    "zh": "需要清晰的音高曲線與逐字稿。試著說一個完整句子，或使用中文／台語 Whisper。"
+  },
+  "next_scene": {
+    "en": "Next scene",
+    "zh": "下一個場景 →"
+  },
+  "next_try": {
+    "en": "Next try",
+    "zh": "下次嘗試"
+  },
+  "no_activities_yet": {
+    "en": "No Activities Yet",
+    "zh": "目前還沒有活動"
+  },
+  "no_character_feedback_yet": {
+    "en": "No character feedback yet",
+    "zh": "尚無逐字回饋"
+  },
+  "no_long_pauses_smooth_delivery": {
+    "en": "No long pauses — smooth delivery",
+    "zh": "沒有長停頓 — 流暢表達"
+  },
+  "now_work_on_pronunciation_record_again_a": {
+    "en": "Now work on pronunciation — record again and focus on the tones. ↑",
+    "zh": "現在練習發音 — 再錄一次，專注在聲調上。↑"
+  },
+  "overview": {
+    "en": "Overview",
+    "zh": "總覽"
+  },
+  "pauses": {
+    "en": "Pauses",
+    "zh": "停頓"
+  },
+  "picture_bank": {
+    "en": "Picture Bank",
+    "zh": "圖片庫"
+  },
+  "pitch_movement_estimated_for_each_mandar": {
+    "en": "Pitch movement estimated for each Mandarin character.",
+    "zh": "估算每個普通話字的音高變化。"
+  },
+  "plan_the_story": {
+    "en": "Plan the story",
+    "zh": "規劃故事"
+  },
+  "portals": {
+    "en": "Portals",
+    "zh": "入口"
+  },
+  "practice_again_you_haven_t_used_all_the_": {
+    "en": "Practice again — you haven't used all the scene words yet",
+    "zh": "再練習一次 — 你還沒使用所有場景詞彙"
+  },
+  "pronunciation": {
+    "en": "Pronunciation",
+    "zh": "發音"
+  },
+  "put_it_back_into_the_full_sentence_and_r": {
+    "en": "Put it back into the full sentence and record again.",
+    "zh": "放回完整句子並再次錄音。"
+  },
+  "put_the_story_in_order": {
+    "en": "Put the Story in Order",
+    "zh": "把故事排好順序"
+  },
+  "put_the_story_pictures_in_the_right_orde": {
+    "en": "Put the story pictures in the right order",
+    "zh": "把故事圖片排成正確順序"
+  },
+  "raise_hand": {
+    "en": "Raise hand",
+    "zh": "舉手"
+  },
+  "raise_your_hand_from_here_and_your_teach": {
+    "en": "Raise your hand from here and your teacher will see it on the dashboard.",
+    "zh": "點此舉手，老師會在儀表板上看到。"
+  },
+  "real_life_speaking_practice": {
+    "en": "Real-life speaking practice",
+    "zh": "真實生活口語練習"
+  },
+  "record": {
+    "en": "Record",
+    "zh": "🎙 錄音"
+  },
+  "record_mandarin_speech": {
+    "en": "Record Mandarin speech",
+    "zh": "錄製普通話語音"
+  },
+  "record_your_mandarin_story_out_loud": {
+    "en": "Record your Mandarin story out loud",
+    "zh": "把你的普通話故事大聲說出來並錄音"
+  },
+  "record_your_story": {
+    "en": "Record Your Story",
+    "zh": "錄製你的故事"
+  },
+  "recording_options": {
+    "en": "Recording options",
+    "zh": "錄音選項"
+  },
+  "repeat_3": {
+    "en": "Repeat 3×:",
+    "zh": "重複 3 次："
+  },
+  "reset": {
+    "en": "Reset",
+    "zh": "重設"
+  },
+  "review_pronunciation_and_language_feedba": {
+    "en": "Review pronunciation and language feedback",
+    "zh": "檢視發音與語言回饋"
+  },
+  "same_as_last_try": {
+    "en": "→ Same as last try",
+    "zh": "→ 跟上次一樣"
+  },
+  "say": {
+    "en": "Say",
+    "zh": "單獨說"
+  },
+  "scene_vocabulary": {
+    "en": "Scene vocabulary",
+    "zh": "場景詞彙"
+  },
+  "start_practicing_title": {
+    "en": "Let's Get Started!",
+    "zh": "讓我們開始吧！"
+  },
+  "select_a_real_situation_students_may_mee": {
+    "en": "Select a real situation students may meet in daily life, study the six connected picture cues, prepare useful Mandarin phrases, and record each cue for Praat prosody and Gemini language feedback.",
+    "zh": "選擇學生日常生活中可能遇到的真實情境，研究六張相連的圖片提示，準備實用的普通話片語，並為每個提示錄音，獲得 Praat 韻律分析與 Gemini 語言回饋。"
+  },
+  "selected": {
+    "en": "Selected",
+    "zh": "✓ 已選取"
+  },
+  "selected_module": {
+    "en": "Selected module",
+    "zh": "已選模組"
+  },
+  "shape": {
+    "en": "Shape",
+    "zh": "形狀"
+  },
+  "skip": {
+    "en": "Skip",
+    "zh": "跳過"
+  },
+  "speaking": {
+    "en": "Speaking",
+    "zh": "口說練習"
+  },
+  "speaking_practice": {
+    "en": "Speaking Practice",
+    "zh": "口說練習"
+  },
+  "speech_rate": {
+    "en": "Speech rate",
+    "zh": "語速"
+  },
+  "speech_source": {
+    "en": "Speech source",
+    "zh": "語音來源"
+  },
+  "speech_transcript": {
+    "en": "Speech transcript",
+    "zh": "語音逐字稿"
+  },
+  "start_as_high_as_you_can_and_drop_sharpl": {
+    "en": "Start as high as you can and drop sharply to the bottom.",
+    "zh": "從最高處開始，然後急速下降到最低。"
+  },
+  "start_mid_push_pitch_up_to_the_top_like_": {
+    "en": "Start mid, push pitch up to the top — like asking a question.",
+    "zh": "從中間開始，把音高推到最高 — 像在問問題。"
+  },
+  "start_this_activity": {
+    "en": "Start this activity",
+    "zh": "開始這個活動 →"
+  },
+  "stay_on_your_task_your_teacher_can_see_t": {
+    "en": "Stay on your task. Your teacher can see this request.",
+    "zh": "請繼續你的任務，老師已經看到這個請求。"
+  },
+  "step_1_arrange_scenes": {
+    "en": "Step 1 · Arrange Scenes",
+    "zh": "步驟 1 · 排列場景"
+  },
+  "step_2_vocabulary_map": {
+    "en": "Step 2 · Vocabulary Map",
+    "zh": "步驟 2 · 詞彙地圖"
+  },
+  "stop_recording": {
+    "en": "Stop Recording",
+    "zh": "⏹ 停止錄音"
+  },
+  "story_challenge": {
+    "en": "Story Challenge",
+    "zh": "故事挑戰"
+  },
+  "story_submitted": {
+    "en": "Story submitted!",
+    "zh": "故事已提交！"
+  },
+  "student_login": {
+    "en": "Student Login",
+    "zh": "學生登入"
+  },
+  "student_portal": {
+    "en": "Student Portal",
+    "zh": "學生入口"
+  },
+  "submit_story_to_teacher": {
+    "en": "Submit Story to Teacher",
+    "zh": "提交故事給老師"
+  },
+  "syllables_sec_good_pace": {
+    "en": "syllables/sec — good pace",
+    "zh": "音節/秒 — 速度良好"
+  },
+  "teacher_has_your_help_request": {
+    "en": "Teacher has your help request",
+    "zh": "老師已收到你的求助"
+  },
+  "teacher_login": {
+    "en": "Teacher Login",
+    "zh": "教師登入"
+  },
+  "teacher_portal": {
+    "en": "Teacher Portal",
+    "zh": "教師入口"
+  },
+  "teacher_published_activity": {
+    "en": "Teacher published activity",
+    "zh": "老師發布的活動"
+  },
+  "teacher_published_topics": {
+    "en": "Teacher published topics",
+    "zh": "老師發布的主題"
+  },
+  "tone_accuracy": {
+    "en": "Tone accuracy",
+    "zh": "聲調準確度"
+  },
+  "tone_accuracy_score_shown_in_the_summary": {
+    "en": "Tone accuracy score shown in the summary above",
+    "zh": "聲調準確度分數顯示於上方摘要"
+  },
+  "tone_drill_focus_characters": {
+    "en": "Tone drill — focus characters",
+    "zh": "聲調練習 — 重點字"
+  },
+  "tone_shapes_reference": {
+    "en": "Tone shapes reference",
+    "zh": "聲調形狀參考"
+  },
+  "too_fast_slow_each_tone": {
+    "en": "Too fast — slow each tone",
+    "zh": "太快 — 放慢每個聲調"
+  },
+  "too_slow_add_more_flow": {
+    "en": "Too slow — add more flow",
+    "zh": "太慢 — 增加流暢度"
+  },
+  "training": {
+    "en": "Training",
+    "zh": "訓練"
+  },
+  "transcribe": {
+    "en": "Transcribe",
+    "zh": "轉錄"
+  },
+  "try_to_use_every_word_above_in_your_next": {
+    "en": "Try to use every word above in your next recording. ↑ Record again",
+    "zh": "試著在下一次錄音中使用上方每個詞彙。↑ 再錄一次"
+  },
+  "update_request": {
+    "en": "Update request",
+    "zh": "更新請求"
+  },
+  "upload_audio": {
+    "en": "Upload audio",
+    "zh": "上傳音訊"
+  },
+  "use_your_vocabulary_map_to_build_one_or_": {
+    "en": "Use your vocabulary map to build one or two sentences, then record.",
+    "zh": "運用你的詞彙地圖造一兩個句子，然後錄音。"
+  },
+  "verify_sequence": {
+    "en": "Verify Sequence",
+    "zh": "驗證順序"
+  },
+  "vocabulary_map": {
+    "en": "Vocabulary Map",
+    "zh": "詞彙地圖"
+  },
+  "vowel_quality": {
+    "en": "Vowel quality",
+    "zh": "母音品質"
+  },
+  "what_it_means": {
+    "en": "What it means",
+    "zh": "意思"
+  },
+  "you_said": {
+    "en": "You said:",
+    "zh": "你說的是："
+  },
+  "you_ve_completed_the_full_story_review_y": {
+    "en": "You've completed the full story. Review your recordings or record any scene again.",
+    "zh": "你已完成整個故事。可以檢視你的錄音，或重新錄製任何場景。"
+  },
+  "your_challenge": {
+    "en": "Your Challenge",
+    "zh": "你的挑戰"
+  },
+  "your_recording": {
+    "en": "Your recording",
+    "zh": "你的錄音"
+  },
+  "your_teacher_will_create_and_publish_spe": {
+    "en": "Your teacher will create and publish speaking activities. They'll appear here when ready.",
+    "zh": "你的老師將會建立並發布口語練習活動，準備好後會顯示在這裡。"
+  },
+  "your_teacher_will_publish_speaking_activ": {
+    "en": "Your teacher will publish speaking activities here. Check back once materials are ready!",
+    "zh": "你的老師會在這裡發布口語練習活動。請稍後再回來查看！"
+  },
+  "your_transcript_will_appear_after_record": {
+    "en": "Your transcript will appear after recording.",
+    "zh": "錄音後將顯示你的逐字稿。"
+  }
+}
