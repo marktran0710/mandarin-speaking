@@ -21,12 +21,12 @@ import {
   listHelpRequests,
   resolveHelpRequest,
   StoredAudioRecord,
-} from "./database";
+} from "./services/database";
 import {
   loadPublishedTeacherTopics,
   saveCustomStories,
 } from "./utils/teacherStories";
-import type { Topic } from "./TopicSelector";
+import type { Topic } from "./components/TopicSelector";
 
 export type Page =
   | "home"

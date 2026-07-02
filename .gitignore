@@ -20,4 +20,6 @@ backend/*.db
 backend/*.db-*
 backend/uploads/
 backend/uvicorn*.log
+backend/*.zip
 .models/
+.playwright-mcp/

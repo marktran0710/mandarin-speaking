@@ -1,4 +1,4 @@
-import type { Topic } from "../TopicSelector";
+import type { Topic } from "../components/TopicSelector";
 import { numericToToneMarked } from "./pinyin";
 
 const BACKEND_URL =
@@ -84,7 +84,7 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
     {},
   );
 
-  const vocabularyGroups: Record<number, import("../TopicSelector").VocabGroup[]> = {};
+  const vocabularyGroups: Record<number, import("../components/TopicSelector").VocabGroup[]> = {};
   const grammarPatterns: Record<number, string> = {};
   const grammarExamples: Record<number, string> = {};
   const vocabularyPinyin: Record<number, string[]> = {};

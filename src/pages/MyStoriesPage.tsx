@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import PitchChart from "../PitchChart";
-import { getTopicVocabulary } from "../TopicSelector";
+import PitchChart from "../components/PitchChart";
+import { getTopicVocabulary } from "../components/TopicSelector";
 import {
   canUseDatabase,
   createCustomStory as saveCustomStoryToDatabase,
@@ -9,7 +9,7 @@ import {
   listCustomStories,
   listStorySubmissions,
   type StorySubmission,
-} from "../database";
+} from "../services/database";
 import {
   CustomTeacherStory,
   NarrativeMode,
@@ -56,7 +56,7 @@ interface MyStoriesPageProps {
   onResolveHelpRequest?: (id: string) => void;
   onRefreshRecords?: () => Promise<void>;
   onStorySaved?: () => void;
-  publishedTopics?: import("../TopicSelector").Topic[];
+  publishedTopics?: import("../components/TopicSelector").Topic[];
 }
 
 interface PromptImage {

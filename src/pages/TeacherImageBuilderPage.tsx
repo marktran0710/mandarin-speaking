@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { canUseDatabase, createCustomStory } from "../database";
+import { canUseDatabase, createCustomStory } from "../services/database";
 import "./TeacherImageBuilderPage.css";
 
 const BACKEND_URL =

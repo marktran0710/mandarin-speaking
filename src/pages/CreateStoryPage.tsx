@@ -1,9 +1,9 @@
 import { useState } from "react";
-import TopicSelector from "../TopicSelector";
+import TopicSelector from "../components/TopicSelector";
 import StoryRecorder from "../components/StoryRecorder";
-import { HelpRequest } from "../database";
+import { HelpRequest } from "../services/database";
 import { loadPublishedTeacherTopics } from "../utils/teacherStories";
-import type { Topic } from "../TopicSelector";
+import type { Topic } from "../components/TopicSelector";
 import "./CreateStoryPage.css";
 import { BiLabel, BiText } from "../components/BiLabel";
 import "../components/BiLabel.css";
@@ -55,15 +55,22 @@ export default function CreateStoryPage({
 
   return (
     <div className="create-story-page">
-      <StudentHelpPanel helpRequests={helpRequests} onRaiseHand={onRaiseHand} />
+      <div className="csp-help-strip">
+        <StudentHelpPanel helpRequests={helpRequests} onRaiseHand={onRaiseHand} />
+      </div>
       {!selectedTopic ? (
         <TopicSelector onTopicSelect={handleTopicSelect} />
       ) : (
-        <div className="story-recorder-wrapper">
-          <div className="btn-back-container">
+        <div className="csp-recorder-body">
+          <div className="csp-page-header">
             <button className="btn-back" onClick={handleBack}>
-              <BiLabel k="back_to_topics" />
+              ← <BiLabel k="back_to_topics" />
             </button>
+            <div className="csp-breadcrumb">
+              <span><BiLabel k="activity_menu" /></span>
+              <span className="csp-breadcrumb-sep">›</span>
+              <span className="csp-breadcrumb-active">{selectedTopic.name}</span>
+            </div>
           </div>
           <StoryRecorder
             topic={selectedTopic}
@@ -88,7 +95,7 @@ function StudentHelpPanel({
   helpRequests: HelpRequest[];
   onRaiseHand?: (message: string) => void;
 }) {
-  const [message, setMessage] = useState("I need help with my story.");
+  const [message, setMessage] = useState("我的故事需要協助。");
   const studentName = getStudentName();
   const activeRequest = helpRequests.find(
     (request) =>

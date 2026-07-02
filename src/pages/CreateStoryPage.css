@@ -1,62 +1,64 @@
+/* ── Page shell ── */
 .create-story-page {
-  width: 100%;
-  min-height: calc(100vh - 80px);
-  background: var(--clay-canvas);
+  min-height: calc(100vh - 64px);
+  background:
+    radial-gradient(550px circle at 8% 0%, var(--accent-indigo-soft), transparent 60%),
+    radial-gradient(550px circle at 95% 5%, var(--accent-amber-soft), transparent 60%),
+    var(--clay-canvas);
 }
 
-.story-recorder-wrapper {
-  padding: 16px;
-}
-
-.btn-back-container {
-  max-width: 1180px;
-  margin: 0 auto;
+/* ── Help banner strip ── */
+.csp-help-strip {
+  padding: 10px 20px;
+  background: rgba(255,255,255,0.72);
+  border-bottom: 1px solid var(--clay-hairline);
+  backdrop-filter: blur(6px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .student-help-panel {
-  max-width: 1120px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 14px 16px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.7fr);
+  gap: 12px;
   align-items: center;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  background: #ffffff;
 }
 
 .student-help-panel > div {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
 }
 
 .student-help-icon {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
   flex: 0 0 auto;
   border-radius: 999px;
   background: var(--clay-ochre);
   color: var(--clay-ink);
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 900;
 }
 
 .student-help-panel strong {
   display: block;
   color: var(--clay-ink);
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .student-help-panel p {
   color: var(--clay-body);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.4;
-  margin: 4px 0 0;
+  margin: 2px 0 0;
 }
 
 .student-help-panel form {
@@ -69,54 +71,103 @@
   min-width: 0;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-soft);
+  background: var(--clay-canvas);
   color: var(--clay-ink);
   font: inherit;
-  font-size: 14px;
-  padding: 10px 12px;
+  font-size: 13px;
+  padding: 8px 12px;
 }
 
 .student-help-panel button {
-  min-height: 40px;
+  min-height: 36px;
   padding: 0 14px;
-  border: 1px solid var(--clay-primary);
+  border: none;
   border-radius: var(--clay-radius-md);
-  background: var(--clay-primary);
+  background: linear-gradient(135deg, var(--accent-indigo), var(--accent-violet));
   color: #ffffff;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 900;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(79,70,229,0.25);
 }
 
 .student-help-panel button:disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.55;
+}
+
+/* ── Recorder page body ── */
+.csp-recorder-body {
+  padding: 20px 20px 64px;
+}
+
+/* ── Back row (page header for the recorder state) ── */
+.csp-page-header {
+  max-width: 1180px;
+  margin: 0 auto 16px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: center;
 }
 
 .btn-back {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: var(--clay-primary);
-  color: white;
-  border: 1px solid var(--clay-primary);
+  gap: 6px;
+  padding: 9px 16px;
+  background: #ffffff;
+  color: var(--clay-ink);
+  border: 1px solid var(--clay-hairline);
   border-radius: 999px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 20px;
-  box-shadow: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
 .btn-back:hover {
-  background: var(--clay-primary-active);
+  border-color: var(--accent-indigo);
+  box-shadow: 0 2px 8px rgba(79,70,229,0.15);
 }
 
+.csp-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--clay-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.csp-breadcrumb-sep {
+  color: var(--clay-hairline);
+}
+
+.csp-breadcrumb-active {
+  color: var(--clay-ink);
+  font-weight: 650;
+}
+
+/* ── Responsive ── */
 @media (max-width: 768px) {
-  .student-help-panel,
-  .student-help-panel form {
+  .student-help-panel {
     grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .student-help-panel form {
+    grid-template-columns: 1fr auto;
+  }
+
+  .csp-recorder-body {
+    padding: 16px 12px 48px;
+  }
+
+  .csp-page-header {
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 }

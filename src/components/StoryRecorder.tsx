@@ -9,14 +9,14 @@ import {
   canUseDatabase,
   createStorySubmission,
   type SceneSubmission,
-} from "../database";
+} from "../services/database";
 import PraatTimeline from "./PraatTimeline";
 import StoryConceptMap from "./StoryConceptMap";
 import { toPinyin } from "../utils/pinyin";
 import "./StoryRecorder.css";
 import { BiLabel, BiText } from "./BiLabel";
 import "./BiLabel.css";
-import { SkillFocusLabel } from "../TopicSelector";
+import { SkillFocusLabel } from "./TopicSelector";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -189,18 +189,52 @@ export default function StoryRecorder({
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [transcriptions, setTranscriptions] = useState<TranscriptionItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<SpeechModel>("webspeech");
   const [aiProvider, setAiProvider] = useState<string>("");
   const [aiProviders, setAiProviders] = useState<AiProviderOption[]>([]);
   const [silenceDuration, setSilenceDuration] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const [praatMetrics, setPraatMetrics] = useState<PraatMetrics | null>(null);
-  const [analysisAudioBlob, setAnalysisAudioBlob] = useState<Blob | null>(null);
-  const [attemptHistory, setAttemptHistory] = useState<
-    Array<{ tone: number; fluency: number; attempt: number }>
-  >([]);
+
+  // Per-scene result maps — keyed by image index so switching scenes restores
+  // the last analysis result for that scene instead of showing a blank state.
+  const [praatMetricsMap, setPraatMetricsMap] = useState<Record<number, PraatMetrics | null>>({});
+  const [analysisAudioBlobMap, setAnalysisAudioBlobMap] = useState<Record<number, Blob | null>>({});
+  const [attemptHistoryMap, setAttemptHistoryMap] = useState<
+    Record<number, Array<{ tone: number; fluency: number; attempt: number }>>
+  >({});
+  const [transcriptionsMap, setTranscriptionsMap] = useState<Record<number, TranscriptionItem[]>>({});
+
+  // Derived values for the currently-selected scene — same names as before so
+  // all downstream reads require no changes.
+  const praatMetrics = praatMetricsMap[selectedImageIndex] ?? null;
+  const analysisAudioBlob = analysisAudioBlobMap[selectedImageIndex] ?? null;
+  const attemptHistory = attemptHistoryMap[selectedImageIndex] ?? [];
+  const transcriptions = transcriptionsMap[selectedImageIndex] ?? [];
+
+  // Setters scoped to the current scene index.
+  const setPraatMetrics = (v: PraatMetrics | null) =>
+    setPraatMetricsMap((prev) => ({ ...prev, [selectedImageIndex]: v }));
+  const setAnalysisAudioBlob = (v: Blob | null) =>
+    setAnalysisAudioBlobMap((prev) => ({ ...prev, [selectedImageIndex]: v }));
+  const setAttemptHistory = (
+    updater: Array<{ tone: number; fluency: number; attempt: number }> |
+      ((prev: Array<{ tone: number; fluency: number; attempt: number }>) =>
+        Array<{ tone: number; fluency: number; attempt: number }>),
+  ) =>
+    setAttemptHistoryMap((prev) => ({
+      ...prev,
+      [selectedImageIndex]:
+        typeof updater === "function" ? updater(prev[selectedImageIndex] ?? []) : updater,
+    }));
+  const setTranscriptions = (
+    updater: TranscriptionItem[] | ((prev: TranscriptionItem[]) => TranscriptionItem[]),
+  ) =>
+    setTranscriptionsMap((prev) => ({
+      ...prev,
+      [selectedImageIndex]:
+        typeof updater === "function" ? updater(prev[selectedImageIndex] ?? []) : updater,
+    }));
   // Per-scene progress: keyed by imageIndex
   const [sceneProgress, setSceneProgress] = useState<
     Record<number, { attempts: number; bestTone: number; bestFluency: number }>
@@ -302,7 +336,13 @@ export default function StoryRecorder({
         const groqAvailable = data.providers.some(
           (p: AiProviderOption) => p.id === "groq" && p.available,
         );
-        setAiProvider((prev) => prev || (groqAvailable ? "groq" : data.default) || "");
+        const defaultProvider = (groqAvailable ? "groq" : data.default) || "";
+        setAiProvider((prev) => prev || defaultProvider);
+        // Sync speech source: if Groq is the default AI provider, use Groq Whisper
+        // for transcription too so ASR and feedback both come from the same engine.
+        if (groqAvailable) {
+          setSelectedModel((prev) => (prev === "webspeech" ? "groq" : prev));
+        }
       } catch {
         // Backend unreachable — the picker just stays hidden.
       }
@@ -908,7 +948,6 @@ export default function StoryRecorder({
   const practiceAnalysisText =
     conceptMapText || buildPracticeAnalysisText(selectedVocabulary);
   const hasWordProsody = Boolean(praatMetrics?.word_prosody?.length);
-  const storyConnectors = ["一開始", "然後", "因為", "所以", "突然", "最後"];
   const recordingButtonDisabled = isTranscribing || isAnalyzing;
 
   const handlePrimaryRecordingAction = () => {
@@ -1412,9 +1451,6 @@ export default function StoryRecorder({
                   onClick={() => {
                     onImageChange(img);
                     onImageSelect(idx);
-                    setPraatMetrics(null);
-                    setAnalysisAudioBlob(null);
-                    setAttemptHistory([]);
                     currentTranscriptRef.current = "";
                   }}
                   disabled={isBusy}
@@ -1457,9 +1493,6 @@ export default function StoryRecorder({
                       const nextImg = topic.images[nextIdx];
                       onImageChange(nextImg);
                       onImageSelect(nextIdx);
-                      setPraatMetrics(null);
-                      setAnalysisAudioBlob(null);
-                      setAttemptHistory([]);
                       currentTranscriptRef.current = "";
                     }}
                   >
@@ -1515,13 +1548,13 @@ export default function StoryRecorder({
 
               {(topic.grammarPatterns?.[selectedImageIndex] || topic.grammarExamples?.[selectedImageIndex]) && (
                 <div className="practice-grammar-hint">
+                  <p className="block-label practice-grammar-label">
+                    <BiLabel k="grammar_pattern_to_use" />
+                  </p>
                   {topic.grammarPatterns?.[selectedImageIndex] && (
-                    <>
-                      <BiLabel k="grammar_pattern_to_use" />
-                      <span className="practice-grammar-pattern">
-                        {topic.grammarPatterns[selectedImageIndex]}
-                      </span>
-                    </>
+                    <span className="practice-grammar-pattern">
+                      {topic.grammarPatterns[selectedImageIndex]}
+                    </span>
                   )}
                   {topic.grammarExamples?.[selectedImageIndex] && (
                     <span className="practice-grammar-example">
@@ -1534,7 +1567,7 @@ export default function StoryRecorder({
 
               {selectedVocabulary.length > 0 && (
                 <div className="practice-vocab-ref">
-                  <p className="practice-vocab-heading">
+                  <p className="block-label practice-vocab-heading">
                     <BiLabel k="scene_vocabulary" />
                     {praatMetrics && (
                       <span className="vocab-check-hint">
@@ -1639,7 +1672,13 @@ export default function StoryRecorder({
                       id="ai-engine-select"
                       className="record-engine-switch-options"
                       value={aiProvider}
-                      onChange={(e) => setAiProvider(e.target.value)}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setAiProvider(next);
+                        // Groq handles Whisper transcription as well as feedback,
+                        // so align the speech source automatically.
+                        if (next === "groq") setSelectedModel("groq");
+                      }}
                       disabled={isBusy}
                     >
                       {aiProviders.map((p) => (
@@ -1710,32 +1749,23 @@ export default function StoryRecorder({
                     <BiText k="your_transcript_will_appear_after_record" />
                   </p>
                 ) : (
-                  transcriptions.map((item) => (
-                    <div
-                      key={`${item.timestamp}-${item.text}`}
-                      className="transcription-item"
-                    >
-                      <div className="item-header">
-                        <span className="time">{item.timestamp}</span>
-                        <span className="model-badge">
-                          {item.model.toUpperCase()}
-                        </span>
+                  <div className="transcriptions-scroll">
+                    {transcriptions.map((item) => (
+                      <div
+                        key={`${item.timestamp}-${item.text}`}
+                        className="transcription-item"
+                      >
+                        <div className="item-header">
+                          <span className="time">{item.timestamp}</span>
+                          <span className="model-badge">
+                            {item.model.toUpperCase()}
+                          </span>
+                        </div>
+                        <p>{item.text}</p>
                       </div>
-                      <p>{item.text}</p>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )}
-              </div>
-
-              <div className="practice-chips-group">
-                <p><BiLabel k="connectors" /></p>
-                <div>
-                  {storyConnectors.map((c) => (
-                    <span key={c} className="practice-chip">
-                      {c}
-                    </span>
-                  ))}
-                </div>
               </div>
 
               <details className="practice-model-picker">
@@ -1804,6 +1834,9 @@ export default function StoryRecorder({
 
           {praatMetrics && (
             <section className="analysis-panel">
+              {/* ── Main grid: left = scores & language feedback, right = playback ── */}
+              <div className="ap-grid">
+              <div className="ap-feedback-col">
               {/* ── Zone 1: Summary ─────────────────────────────────────── */}
               <FeedbackSummary
                 praatMetrics={praatMetrics}
@@ -1827,7 +1860,7 @@ export default function StoryRecorder({
                   if (cf?.reveal_answer && cf.correct_version) {
                     return (
                       <div className="practice-suggested-answer">
-                        <p className="practice-suggested-answer-heading">
+                        <p className="block-label practice-suggested-answer-heading">
                           <BiLabel zh="正確答案" en="Correct version" />
                         </p>
                         {cf.errors.length > 0 && (
@@ -1846,7 +1879,7 @@ export default function StoryRecorder({
                   if (cf && (cf.errors.length > 0 || cf.hint)) {
                     return (
                       <div className="practice-suggested-answer is-hint">
-                        <p className="practice-suggested-answer-heading">
+                        <p className="block-label practice-suggested-answer-heading">
                           <BiLabel zh="提示" en="Hint" />
                         </p>
                         {cf.errors.length > 0 && (
@@ -1866,6 +1899,62 @@ export default function StoryRecorder({
                   }
                   return null;
                 })()}
+              </div>{/* /ap-feedback-col */}
+
+              {/* ── Right column: scene thumbnail + playback + positive signals ── */}
+              <div className="ap-sidebar-col">
+              {/* Scene thumbnail */}
+              <div className="ap-scene-card">
+                <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} className="ap-scene-img" />
+                <div className="ap-scene-label">
+                  <span><BiLabel zh={`場景 ${selectedImageIndex + 1}`} en={`Scene ${selectedImageIndex + 1}`} /></span>
+                  {sceneProgress[selectedImageIndex] && (
+                    <span className="ap-scene-attempts">
+                      <BiLabel
+                        zh={`${sceneProgress[selectedImageIndex].attempts} 次嘗試`}
+                        en={`${sceneProgress[selectedImageIndex].attempts} attempt${sceneProgress[selectedImageIndex].attempts > 1 ? "s" : ""}`}
+                      />
+                    </span>
+                  )}
+                </div>
+              </div>
+              {/* ── Vocabulary for this scene ── */}
+              {selectedVocabulary.length > 0 && (
+                <div className="ap-vocab-ref">
+                  <p className="block-label ap-vocab-heading"><BiLabel k="scene_vocabulary" /></p>
+                  <div className="ap-vocab-chips">
+                    {selectedVocabulary.map((w, wi) => {
+                      const aiVC = praatMetrics?.ai_feedback?.vocabulary_coverage;
+                      let used: boolean | null = null;
+                      if (aiVC) {
+                        if (aiVC.used?.includes(w)) used = true;
+                        else if (aiVC.missing?.includes(w)) used = false;
+                      }
+                      const py = topic.vocabularyPinyin?.[selectedImageIndex]?.[wi] || toPinyin(w);
+                      return (
+                        <span
+                          key={w}
+                          className={`vocab-chip ${used === true ? "vocab-used" : used === false ? "vocab-missed" : ""}`}
+                        >
+                          <span className="vocab-chip-row">
+                            <span className="vocab-chip-hanzi">{w}</span>
+                            {used === true && <span className="vocab-tick">✓</span>}
+                            {used === false && <span className="vocab-tick">✗</span>}
+                          </span>
+                          {py && <span className="vocab-chip-pinyin">{py}</span>}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Zone 3: Listen back ──────────────────────────────────── */}
+              <div className="listen-try-zone">
+                {analysisAudioBlob && (
+                  <RecordingPlayback blob={analysisAudioBlob} />
+                )}
+              </div>
 
               {(praatMetrics.ai_feedback?.vocabulary_coverage?.missing
                 ?.length ?? 0) === 0 && (
@@ -1881,13 +1970,8 @@ export default function StoryRecorder({
                   </div>
                 </div>
               )}
-
-              {/* ── Zone 3: Listen back ──────────────────────────────────── */}
-              <div className="listen-try-zone">
-                {analysisAudioBlob && (
-                  <RecordingPlayback blob={analysisAudioBlob} />
-                )}
-              </div>
+              </div>{/* /ap-sidebar-col */}
+              </div>{/* /ap-grid */}
 
               <div className="word-prosody-section">
                 <div className="word-prosody-header">
@@ -2294,13 +2378,13 @@ function StudentFeedbackCards({
 }
 
 function studentStrength(toneAccuracy: number, fluencyScore: number): string {
-  if (toneAccuracy >= 80 && fluencyScore >= 75) {
+  if (toneAccuracy >= 68 && fluencyScore >= 65) {
     return "你的聲調和節奏夠清楚，可以試著造更長的句子。 Your tones and rhythm are clear enough to build a longer sentence.";
   }
-  if (toneAccuracy >= 75) {
+  if (toneAccuracy >= 60) {
     return "你的聲調形狀可以辨識。 Your tone shape is recognizable.";
   }
-  if (fluencyScore >= 75) {
+  if (fluencyScore >= 62) {
     return "你的說話節奏很穩定。 Your speaking rhythm is steady.";
   }
   return "你完成了一次錄音，現在改進一個小地方。 You completed a recording. Now improve one small part.";
@@ -2319,10 +2403,10 @@ function studentFix(
   if (pauseAnalysis && pauseAnalysis.longest_pause >= 0.8) {
     return `你停頓了 ${pauseAnalysis.longest_pause.toFixed(1)} 秒 — 試著把這些詞連起來不要停。 You paused ${pauseAnalysis.longest_pause.toFixed(1)}s — try linking those words without stopping.`;
   }
-  if (toneAccuracy < 65 && focus) {
+  if (toneAccuracy < 50 && focus) {
     return `把「${focus.token}」的聲調變化說得更清楚 — 先誇張一點，再放鬆。 Make the tone movement clearer on "${focus.token}" — exaggerate it first, then smooth it out.`;
   }
-  if (fluencyScore < 60) {
+  if (fluencyScore < 48) {
     return "把每個字連成一口氣 — 不要在每個詞之間停頓。 Connect the characters into one breath — don't stop between every word.";
   }
   if (focus) {

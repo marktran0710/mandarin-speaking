@@ -9,7 +9,7 @@ FILES = [
     "src/pages/CreateStoryPage.tsx",
     "src/pages/HomePage.tsx",
     "src/pages/LoginPage.tsx",
-    "src/TopicSelector.tsx",
+    "src/components/TopicSelector.tsx",
 ]
 
 # Matches <BiLabel ...zh="..." ...en="..."... /> or <BiText zh="..." en="..." />
@@ -93,7 +93,7 @@ def replace_in_file(path):
 for f in FILES:
     replace_in_file(f)
 
-out_path = os.path.join(ROOT, "src", "translations.json")
+out_path = os.path.join(ROOT, "src", "i18n", "translations.json")
 with open(out_path, "w", encoding="utf-8") as f:
     json.dump(translations, f, ensure_ascii=False, indent=2, sort_keys=True)
     f.write("\n")

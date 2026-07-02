@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import type { Topic } from "../TopicSelector";
+import type { Topic } from "../components/TopicSelector";
 import { convertBlobToWav } from "../utils/audio";
 import { BiLabel, BiText } from "../components/BiLabel";
 import "../components/BiLabel.css";
