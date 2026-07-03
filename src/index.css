@@ -5,51 +5,119 @@
 }
 
 :root {
-  --clay-primary: #7c3aed;
-  --clay-primary-active: #6d28d9;
-  --clay-primary-disabled: #ddd6fe;
-  --clay-ink: #222222;
-  --clay-body: #3f3f3f;
-  --clay-muted: #6a6a6a;
-  --clay-muted-soft: #929292;
-  --clay-hairline: #dddddd;
-  --clay-hairline-soft: #ebebeb;
-  --clay-canvas: #f8faf9;
-  --clay-surface-soft: #f3f6f5;
+  /* ── "Tone Colors" design tokens ──────────────────────────────────────
+     Pivoted from the earlier muted "Ink & Seal" system to something more
+     vivid and playful, grounded in a real Mandarin-teaching convention:
+     each of the four tones gets its own color (flat=blue, rising=green,
+     dip=amber, falling=red). Variable names kept from the old system so
+     the whole app repaints from these few values. */
+
+  /* Ink — text (kept dark/legible; the palette does the "fun" work) */
+  --clay-ink: #201d29;
+  --clay-body: #4a4556;
+  --clay-muted: #6f697c; /* AA-checked ≥4.5:1 on canvas/card */
+  --clay-muted-soft: #a79eb8; /* decorative/large-text use only */
+
+  /* Paper — surfaces, brighter and cleaner than the old muted paper */
+  --clay-canvas: #fffcf6;
+  --clay-surface-soft: #fff6ea;
   --clay-surface-card: #ffffff;
-  --clay-surface-strong: #f2f2f2;
-  --clay-pink: #e8f7f4;
-  --clay-teal: #7c3aed;
-  --clay-lavender: #f7f7f7;
-  --clay-peach: #fff8f6;
-  --clay-ochre: #fff4d8;
-  --clay-mint: #f5f3ff;
-  --clay-coral: #7c3aed;
-  --clay-success: #22c55e;
-  --clay-warning: #f59e0b;
-  --clay-error: #c13515;
-  --accent-indigo: #4f46e5;
-  --accent-indigo-soft: #eef2ff;
-  --accent-amber: #d97706;
-  --accent-amber-soft: #fff7ed;
-  --accent-violet: #7c3aed;
-  --accent-violet-soft: #f5f3ff;
-  --accent-rose: #db2777;
-  --accent-rose-soft: #fdf2f8;
-  --accent-sky: #0891b2;
-  --accent-sky-soft: #ecfeff;
-  --clay-radius-md: 10px;
-  --clay-radius-lg: 14px;
-  --clay-radius-xl: 20px;
-  --airbnb-shadow: rgba(0, 0, 0, 0.02) 0 0 0 1px,
-    rgba(0, 0, 0, 0.04) 0 2px 6px,
-    rgba(0, 0, 0, 0.1) 0 4px 8px;
+  --clay-surface-strong: #ffeedd;
+
+  /* Hairlines */
+  --clay-hairline: #f2e4ce;
+  --clay-hairline-soft: #f7ecda;
+
+  /* Tone 4 (falling) — vivid crimson-red, the primary brand accent.
+     -soft is a genuine pastel now (not a barely-there wash) so it reads as
+     one of "many pastel colors" wherever it's used as a card/section fill;
+     -deep stays dark enough to sit as text on top of it (≥4.5:1 AA). */
+  --clay-primary: #e01b3d;
+  --clay-primary-active: #a81230;
+  --clay-primary-disabled: #ffc7cf;
+  --seal: #e01b3d;
+  --seal-deep: #a81230;
+  --seal-soft: #ffc9d2;
+
+  /* Tone 2 (rising) — vivid leaf green; teacher / success context */
+  --jade: #1c9a5b;
+  --jade-deep: #106b45;
+  --jade-soft: #c8f0d6;
+
+  /* Tone 3 (dip) — sunny amber; highlight / caution */
+  --gold: #ffa726;
+  --gold-deep: #8a5a12;
+  --gold-soft: #ffe1b0;
+
+  /* Tone 1 (flat) — sky blue; new accent, used where a fourth voice helps
+     (nav/active states, tone-1 badges, secondary highlights) */
+  --tone1: #1e96ff;
+  --tone1-deep: #0b5fa8;
+  --tone1-soft: #c3e8ff;
+
+  /* Lavender — a fifth pastel with no single tone assigned, for general
+     decorative variety (card rotation, dividers) so the palette doesn't
+     feel capped at exactly four. */
+  --lavender: #9b7fd4;
+  --lavender-deep: #5b3ea8;
+  --lavender-soft: #e6dcfb;
+
+  /* Status */
+  --clay-success: #1c9a5b;
+  --clay-warning: #ffa726;
+  --clay-error: #c81e3a;
+  --clay-error-deep: #8f1329;
+
+  /* Role accents used across Home / Topic selector */
+  --accent-indigo: var(--seal);
+  --accent-indigo-soft: var(--seal-soft);
+  --accent-amber: var(--jade);
+  --accent-amber-soft: var(--jade-soft);
+  --accent-violet: var(--seal-deep);
+  --accent-violet-soft: var(--seal-soft);
+  --accent-rose: var(--gold);
+  --accent-rose-soft: var(--gold-soft);
+  --accent-sky: var(--tone1-deep);
+  --accent-sky-soft: var(--tone1-soft);
+
+  /* Legacy aliases kept for existing components */
+  --clay-pink: var(--seal-soft);
+  --clay-teal: var(--jade);
+  --clay-lavender: var(--tone1-soft);
+  --clay-peach: var(--gold-soft);
+  --clay-ochre: var(--gold-soft);
+  --clay-mint: var(--jade-soft);
+  --clay-coral: var(--seal);
+
+  /* Radius — bigger and bouncier than before */
+  --clay-radius-sm: 8px;
+  --clay-radius-md: 14px;
+  --clay-radius-lg: 20px;
+  --clay-radius-xl: 28px;
+  --clay-radius-pill: 999px;
+
+  /* Shadow */
+  --airbnb-shadow:
+    rgba(32, 29, 41, 0.03) 0 0 0 1px,
+    rgba(32, 29, 41, 0.06) 0 2px 6px,
+    rgba(32, 29, 41, 0.1) 0 4px 8px;
+  --shadow-sm: 0 2px 4px rgba(32, 29, 41, 0.07);
+  --shadow-md: 0 10px 26px rgba(32, 29, 41, 0.1);
+  --shadow-lg: 0 22px 52px rgba(32, 29, 41, 0.14);
+
+  /* Type — display keeps the brush-like serif but heavier, so it still
+     reads distinctive rather than "generic bold sans app" */
+  --font-display: "Noto Serif TC", "Songti TC", "PMingLiU", "Iowan Old Style", Georgia, serif;
+  --font-sans:
+    "Inter", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Segoe UI",
+    -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:
+    "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas,
+    "Liberation Mono", monospace;
 }
 
 body {
-  font-family:
-    "Inter", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei",
-    "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--clay-canvas);
@@ -70,10 +138,10 @@ body {
 .container {
   max-width: 600px;
   margin: 0 auto;
-  background: white;
-  border-radius: 12px;
+  background: var(--clay-surface-card);
+  border-radius: var(--clay-radius-lg);
   padding: 32px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-lg);
 }
 
 .app-container {
@@ -81,6 +149,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: var(--clay-canvas);
 }
 
 .story-header {
@@ -88,33 +157,15 @@ body {
   position: relative;
 }
 
-.btn-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background-color: var(--clay-primary);
-  border: 1px solid var(--clay-primary);
-  border-radius: var(--clay-radius-md);
-  font-size: 14px;
-  font-weight: 600;
-  color: #ffffff;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  margin-bottom: 16px;
-}
-
-.btn-back:hover {
-  background-color: var(--clay-primary-active);
-  border-color: var(--clay-primary-active);
-  color: #ffffff;
-}
+/* .btn-back intentionally not defined here — its only consumer,
+   CreateStoryPage.tsx, owns the full definition in CreateStoryPage.css.
+   A duplicate used to live here and silently fight that one via cascade order. */
 
 .story-image-preview {
   margin-top: 16px;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
   max-height: 300px;
 }
 
@@ -132,8 +183,8 @@ body {
 
 .topic-images-section h3 {
   font-size: 16px;
-  font-weight: 600;
-  color: #333;
+  font-weight: 650;
+  color: var(--clay-ink);
   margin-bottom: 12px;
 }
 
@@ -152,41 +203,41 @@ body {
 .topic-image-card {
   position: relative;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   overflow: hidden;
   aspect-ratio: 4/3;
-  border: 2px solid #e0e7ff;
-  transition: all 0.3s ease;
+  border: 2px solid var(--clay-hairline);
+  transition: all 0.2s ease;
 }
 
 .topic-image-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  border-color: var(--seal);
+  box-shadow: var(--shadow-sm);
   transform: translateY(-2px);
 }
 
 .topic-image-card.selected {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
-  background-color: rgba(102, 126, 234, 0.1);
+  border-color: var(--seal);
+  box-shadow: 0 0 0 3px var(--seal-soft);
+  background-color: var(--seal-soft);
 }
 
 .topic-image-card img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
+  transition: transform 0.25s ease;
 }
 
 .topic-image-card:hover img {
-  transform: scale(1.05);
+  transform: scale(1.04);
 }
 
 .image-vocabulary {
   text-align: center;
   font-size: 11px;
   font-weight: 600;
-  color: #555;
+  color: var(--clay-body);
   line-height: 1.3;
   word-break: break-word;
 }
@@ -200,113 +251,113 @@ body {
 }
 
 .metric-card {
-  background: linear-gradient(135deg, #f8f9fa, #ffffff);
-  border: 2px solid #e0e7ff;
-  border-radius: 12px;
+  background: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .metric-card:hover {
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+  box-shadow: var(--shadow-md);
   transform: translateY(-2px);
 }
 
-/* Colorful metric cards */
+/* Semantic metric-card accents — seal / jade / gold, no rainbow */
 .tone-card {
-  background: linear-gradient(135deg, #ffe0e0 0%, #ffcccc 100%);
-  border-color: #ff6b6b;
-  border-left: 4px solid #ff006e;
+  background: var(--seal-soft);
+  border-color: var(--seal);
+  border-left: 3px solid var(--seal);
 }
 
 .accuracy-card {
-  background: linear-gradient(135deg, #e0ffe0 0%, #ccffcc 100%);
-  border-color: #51cf66;
-  border-left: 4px solid #00ff6b;
+  background: var(--jade-soft);
+  border-color: var(--jade);
+  border-left: 3px solid var(--jade);
 }
 
 .fluency-card {
-  background: linear-gradient(135deg, #e0f2ff 0%, #ccebff 100%);
-  border-color: #4ecdc4;
-  border-left: 4px solid #00d9ff;
+  background: var(--gold-soft);
+  border-color: var(--gold);
+  border-left: 3px solid var(--gold);
 }
 
 .rate-card {
-  background: linear-gradient(135deg, #fff4e0 0%, #ffeacc 100%);
-  border-color: #ffa500;
-  border-left: 4px solid #ff9d00;
+  background: var(--jade-soft);
+  border-color: var(--jade-deep);
+  border-left: 3px solid var(--jade-deep);
 }
 
 .formants-card {
-  background: linear-gradient(135deg, #f0e6ff 0%, #e6d9ff 100%);
-  border-color: #7c3aed;
-  border-left: 4px solid #c084fc;
+  background: var(--clay-surface-card);
+  border-color: var(--clay-hairline);
+  border-left: 3px solid var(--clay-muted-soft);
 }
 
 .metric-label {
   font-size: 12px;
   font-weight: 700;
-  color: #667eea;
+  color: var(--clay-body);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.06em;
   margin-bottom: 12px;
 }
 
 .metric-value {
+  font-family: var(--font-mono);
   font-size: 32px;
   font-weight: 700;
-  color: #333;
+  color: var(--clay-ink);
   margin-bottom: 12px;
 }
 
 .metric-bar {
   width: 100%;
   height: 6px;
-  background-color: #e9ecef;
-  border-radius: 3px;
+  background-color: var(--clay-surface-strong);
+  border-radius: var(--clay-radius-sm);
   overflow: hidden;
 }
 
 .metric-fill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  border-radius: 3px;
+  background: var(--seal);
+  border-radius: var(--clay-radius-sm);
   transition: width 0.5s ease;
 }
 
 .metric-text {
   font-size: 13px;
-  color: #666;
+  color: var(--clay-body);
   line-height: 1.5;
-  font-style: italic;
 }
 
 .metric-badge {
   display: inline-block;
-  padding: 8px 16px;
-  background-color: #667eea;
-  color: white;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 6px 14px;
+  background-color: var(--seal-soft);
+  color: var(--seal-deep);
+  border-radius: var(--clay-radius-pill);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .score-card {
-  border-left: 4px solid #667eea;
+  border-left: 3px solid var(--seal);
 }
 
 .feedback-card {
-  border-left: 4px solid #764ba2;
+  border-left: 3px solid var(--jade);
 }
 
 .ranking-card {
-  border-left: 4px solid #ff6b6b;
+  border-left: 3px solid var(--gold);
 }
 
 .metric-subtext {
   font-size: 12px;
-  color: #999;
+  color: var(--clay-muted);
   margin-top: 4px;
   font-weight: 500;
 }
@@ -323,20 +374,21 @@ body {
   flex-direction: column;
   align-items: center;
   padding: 8px;
-  background-color: #f8f9fa;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
+  background-color: var(--clay-surface-soft);
+  border-radius: var(--clay-radius-sm);
+  border: 1px solid var(--clay-hairline);
 }
 
 .formant span {
   font-size: 12px;
-  color: #666;
+  color: var(--clay-body);
   font-weight: 600;
 }
 
 .formant strong {
+  font-family: var(--font-mono);
   font-size: 14px;
-  color: #667eea;
+  color: var(--clay-ink);
   margin-top: 4px;
 }
 
@@ -344,9 +396,9 @@ body {
 .chart-section {
   margin: 32px 0;
   padding: 20px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
+  background-color: var(--clay-surface-soft);
+  border-radius: var(--clay-radius-lg);
+  border: 1px solid var(--clay-hairline);
 }
 
 .pitch-chart-container {
@@ -360,50 +412,14 @@ body {
   max-width: 100%;
 }
 
-/* Feedback section */
-.feedback-section {
-  background: linear-gradient(135deg, #e0f7ff 0%, #fff4e0 100%);
-  border: 2px solid #00d9ff;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 32px;
-}
+/* .feedback-section removed — unused anywhere in the app (was dead CSS). */
 
-.feedback-section h3 {
-  color: #0066ff;
-  margin-bottom: 12px;
-  font-size: 18px;
-}
-
-.feedback-section p {
-  color: #0a5ba3;
-  font-size: 15px;
-  line-height: 1.6;
-  font-weight: 500;
-}
-
-/* Metrics summary in audio history */
-.metrics-summary {
-  display: flex;
-  gap: 12px;
-  margin-top: 12px;
-  padding: 8px 0;
-  border-top: 1px solid #e9ecef;
-  flex-wrap: wrap;
-}
-
-.metrics-summary span {
-  font-size: 12px;
-  color: #667eea;
-  font-weight: 600;
-  background-color: #f0f4ff;
-  padding: 4px 10px;
-  border-radius: 4px;
-}
+/* .metrics-summary removed — its only consumer, MyStoriesPage.tsx, now uses
+   .saved-metrics-summary so it no longer collides with this legacy block. */
 
 h1 {
   text-align: center;
-  color: #333;
+  color: var(--clay-ink);
   margin-bottom: 24px;
   font-size: 28px;
 }
@@ -411,14 +427,14 @@ h1 {
 .model-selector {
   margin-bottom: 24px;
   padding: 16px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
+  background-color: var(--clay-surface-soft);
+  border-radius: var(--clay-radius-lg);
+  border: 1px solid var(--clay-hairline);
 }
 
 .model-selector label {
   display: block;
-  color: #555;
+  color: var(--clay-body);
   font-weight: 600;
   margin-bottom: 8px;
   font-size: 14px;
@@ -427,23 +443,23 @@ h1 {
 .model-selector select {
   width: 100%;
   padding: 10px 12px;
-  border: 2px solid #667eea;
-  border-radius: 6px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
   font-size: 16px;
-  background-color: white;
-  color: #333;
+  background-color: var(--clay-surface-card);
+  color: var(--clay-ink);
   cursor: pointer;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.2s ease;
 }
 
 .model-selector select:hover:not(:disabled) {
-  border-color: #764ba2;
+  border-color: var(--seal);
 }
 
 .model-selector select:focus {
   outline: none;
-  border-color: #764ba2;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--seal);
+  box-shadow: 0 0 0 3px var(--seal-soft);
 }
 
 .model-selector select:disabled {
@@ -452,20 +468,11 @@ h1 {
 }
 
 h2 {
-  color: #0066ff;
+  color: var(--clay-ink);
   font-size: 20px;
   margin-bottom: 16px;
-  border-bottom: 3px solid;
-  border-image: linear-gradient(
-      90deg,
-      #ff006e,
-      #ff9d00,
-      #0066ff,
-      #00d9ff,
-      #00ff6b
-    )
-    1;
   padding-bottom: 8px;
+  border-bottom: 1px solid var(--clay-hairline-soft);
 }
 
 .controls {
@@ -480,13 +487,11 @@ h2 {
   min-width: 150px;
   padding: 12px 20px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-md);
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
 }
 
 .btn:disabled {
@@ -495,36 +500,36 @@ h2 {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #0066ff 0%, #00d9ff 50%, #00ff6b 100%);
+  background: var(--seal);
   color: white;
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 102, 255, 0.6);
+  background: var(--seal-deep);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, #ff006e 0%, #ff4757 100%);
+  background: var(--clay-error);
   color: white;
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .btn-danger:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(255, 0, 110, 0.6);
+  background: var(--clay-error-deep);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-secondary {
-  background: linear-gradient(135deg, #ff9d00 0%, #fbbf24 100%);
+  background: var(--jade);
   color: white;
-  font-weight: 700;
+  font-weight: 650;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(255, 157, 0, 0.6);
+  background: var(--jade-deep);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-small {
@@ -535,12 +540,12 @@ h2 {
 }
 
 .recording-info {
-  background-color: #ffe0e0;
-  border: 2px solid #ff6b6b;
-  border-radius: 8px;
+  background-color: var(--gold-soft);
+  border: 1px solid var(--gold);
+  border-radius: var(--clay-radius-lg);
   padding: 16px;
   margin-bottom: 20px;
-  color: #c92a2a;
+  color: var(--gold-deep);
   font-weight: 600;
 }
 
@@ -551,19 +556,19 @@ h2 {
 
 .loading {
   text-align: center;
-  color: #667eea;
+  color: var(--clay-body);
   font-weight: 600;
   margin-bottom: 20px;
   font-size: 16px;
 }
 
 .error {
-  background-color: #ffe0e0;
-  color: #c92a2a;
+  background-color: var(--seal-soft);
+  color: var(--clay-error);
   padding: 12px 16px;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-md);
   margin-bottom: 20px;
-  border-left: 4px solid #c92a2a;
+  border-left: 3px solid var(--clay-error);
 }
 
 .transcriptions {
@@ -572,17 +577,16 @@ h2 {
 
 .empty {
   text-align: center;
-  color: #999;
+  color: var(--clay-muted);
   padding: 40px 20px;
-  font-style: italic;
 }
 
 .transcription-item {
-  background-color: #f8f9fa;
+  background-color: var(--clay-surface-soft);
   padding: 16px;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-md);
   margin-bottom: 12px;
-  border-left: 4px solid #667eea;
+  border-left: 3px solid var(--seal);
   animation: slideIn 0.3s ease;
 }
 
@@ -594,37 +598,38 @@ h2 {
 }
 
 .transcription-item .time {
+  font-family: var(--font-mono);
   font-size: 12px;
-  color: #999;
+  color: var(--clay-muted);
   font-weight: 600;
 }
 
+/* .model-badge is the single canonical definition — StoryRecorder.css and
+   MyStoriesPage.css used to each redefine it at a different size; both were
+   removed so every "ASR model" badge in the app now renders identically. */
 .model-badge {
   display: inline-block;
-  padding: 4px 10px;
-  border-radius: 4px;
+  padding: 5px 10px;
+  border-radius: var(--clay-radius-pill);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.model-badge {
-  background-color: #667eea;
+  letter-spacing: 0.04em;
+  background-color: var(--seal);
   color: white;
 }
 
 .transcription-item p {
-  color: #333;
+  color: var(--clay-ink);
   font-size: 16px;
   line-height: 1.5;
   word-wrap: break-word;
 }
 
 .audio-history-panel {
-  background-color: #f0f4ff;
-  border: 2px solid #667eea;
-  border-radius: 8px;
+  background-color: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
   padding: 20px;
   margin-bottom: 32px;
   max-height: 600px;
@@ -632,8 +637,7 @@ h2 {
 }
 
 .audio-history-panel h2 {
-  color: #667eea;
-  border-bottom: 2px solid #667eea;
+  color: var(--clay-ink);
 }
 
 .audio-list {
@@ -643,9 +647,9 @@ h2 {
 }
 
 .audio-item {
-  background-color: white;
-  border: 1px solid #e0e7ff;
-  border-radius: 8px;
+  background-color: var(--clay-surface-soft);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -663,26 +667,28 @@ h2 {
   align-items: center;
   margin-bottom: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--clay-body);
 }
 
 .audio-header .timestamp {
+  font-family: var(--font-mono);
   font-weight: 600;
 }
 
 .audio-header .duration {
-  color: #667eea;
+  font-family: var(--font-mono);
+  color: var(--seal);
   font-weight: 600;
 }
 
 .audio-item .transcription {
-  color: #333;
+  color: var(--clay-ink);
   font-size: 14px;
   line-height: 1.5;
   margin: 8px 0 0 0;
   padding: 8px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
+  background-color: var(--clay-surface-card);
+  border-radius: var(--clay-radius-sm);
 }
 
 .audio-controls {
@@ -766,36 +772,20 @@ h2 {
   }
 }
 
-/* Airbnb-inspired baseline overrides for legacy global component rules. */
+/* ── Baseline type rules ─────────────────────────────────────────────── */
 h1,
 h2 {
   color: var(--clay-ink);
   letter-spacing: 0;
 }
 
-h2 {
-  border-bottom: 0;
-  border-image: none;
-}
-
 .btn-primary,
 .btn-secondary,
 .btn-danger {
-  background: var(--clay-primary);
-  color: #ffffff;
   letter-spacing: 0;
   text-transform: none;
 }
 
-.btn-primary:hover:not(:disabled),
-.btn-secondary:hover:not(:disabled),
-.btn-danger:hover:not(:disabled) {
-  background: var(--clay-primary-active);
-  box-shadow: none;
-  transform: none;
-}
-
-/* Readability pass for the student-facing learning app. */
 button,
 input,
 select,
@@ -819,6 +809,18 @@ h4,
 strong {
   font-weight: 650;
   letter-spacing: 0;
+}
+
+/* Chinese display headlines use the Song-style serif; Latin/UI stays sans. */
+h1 .bi-zh,
+h2 .bi-zh,
+.hero-title .bi-zh,
+.portal-title .bi-zh,
+.login-card h1,
+.ts-hero-copy h1 .bi-zh,
+.ts-card-title {
+  font-family: var(--font-display);
+  font-weight: 700;
 }
 
 .eyebrow,
@@ -856,7 +858,7 @@ strong {
   letter-spacing: 0;
 }
 
-/* Shared UI cleanup: quieter surfaces, clearer focus, less visual weight. */
+/* ── Shared UI cleanup: quieter surfaces, clearer focus ─────────────── */
 .app-container {
   background: var(--clay-canvas);
 }
@@ -877,7 +879,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(15, 118, 110, 0.18);
+  outline: 3px solid var(--seal-soft);
   outline-offset: 2px;
 }
 
@@ -886,7 +888,7 @@ textarea:focus-visible {
 .start-activity-btn,
 .btn-record-picture,
 .btn-save-custom-story {
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   box-shadow: none;
 }
 
@@ -895,5 +897,5 @@ textarea:focus-visible {
 .start-activity-btn:hover,
 .btn-record-picture:hover,
 .btn-save-custom-story:hover {
-  box-shadow: 0 6px 14px rgba(15, 118, 110, 0.12);
+  box-shadow: var(--shadow-sm);
 }

@@ -25,9 +25,9 @@ interface Props {
 
 // Grammar pattern canvas — Subject + (Aux) Verb + Object, e.g. S + Vaux + V(O)
 const GRAMMAR_CATEGORIES = [
-  { id: "subject", hanzi: "主語", english: "Subject", sub: "Who is doing it (S)",        color: "#4f46e5", border: "#818cf8" },
-  { id: "verb",     hanzi: "動詞", english: "Verb",    sub: "Aux + main verb (Vaux + V)", color: "#d97706", border: "#fcd34d" },
-  { id: "object",   hanzi: "受語", english: "Object",  sub: "What the verb acts on (O)",  color: "#7c3aed", border: "#c4b5fd" },
+  { id: "subject", hanzi: "主語", english: "Subject", sub: "Who is doing it (S)",        color: "var(--seal)", border: "var(--seal)" },
+  { id: "verb",     hanzi: "動詞", english: "Verb",    sub: "Aux + main verb (Vaux + V)", color: "var(--gold)", border: "var(--gold)" },
+  { id: "object",   hanzi: "受語", english: "Object",  sub: "What the verb acts on (O)",  color: "var(--jade)", border: "var(--jade)" },
 ];
 
 function groupNameToGrammarCategoryId(name: string): string | null {
@@ -81,6 +81,7 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
   );
   const [dragOver, setDragOver]   = useState<string | null>(null);
   const [draggingWord, setDraggingWord] = useState<string | null>(null);
+  const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [checked, setChecked]     = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [isOpen, setIsOpen]       = useState(defaultOpen);
@@ -134,6 +135,7 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
 
   function dropWordOnCategory(catId: string, word: string) {
     setChecked(false);
+    setSelectedWord(null);
     setPlaced(prev => {
       const next: Record<string, string[]> = {};
       for (const [k, v] of Object.entries(prev)) next[k] = v.filter(w => w !== word);
@@ -174,7 +176,7 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
 
   if (!isOpen) {
     return (
-      <div className="scmap-collapsed" onClick={() => setIsOpen(true)}>
+      <button type="button" className="scmap-collapsed" onClick={() => setIsOpen(true)}>
         <span className="scmap-collapsed-icon">🗺️</span>
         <div className="scmap-collapsed-text">
           <strong><BiLabel zh="故事概念圖" en="Story Concept Map" /></strong>
@@ -188,7 +190,7 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
         <span className="scmap-collapsed-caret">
           <BiLabel zh="▼ 展開" en="▼ Open" />
         </span>
-      </div>
+      </button>
     );
   }
 
@@ -271,11 +273,20 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
             </div>
           ) : allWords.map((w, i) => {
             const used = usedWords.has(w);
+            const isSelected = selectedWord === w;
             return (
-              <div
+              <button
+                type="button"
                 key={`${w}-${i}`}
-                className={`scmap-word-chip${used ? " used" : ""}${submitted ? " used" : ""}${draggingWord === w ? " dragging" : ""}`}
+                className={`scmap-word-chip${used ? " used" : ""}${submitted ? " used" : ""}${draggingWord === w ? " dragging" : ""}${isSelected ? " selected" : ""}`}
                 draggable={!used && !submitted}
+                disabled={used || submitted}
+                aria-pressed={isSelected}
+                title={
+                  isSelected
+                    ? "已選取 — 點擊一個分類來放置 Selected — click a category to place it"
+                    : "點擊選取，或拖曳到分類 Click to select, or drag to a category"
+                }
                 onDragStart={e => {
                   if (!used && !submitted) {
                     e.dataTransfer.setData("text/plain", w);
@@ -284,6 +295,7 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                   }
                 }}
                 onDragEnd={() => setDraggingWord(null)}
+                onClick={() => setSelectedWord(prev => (prev === w ? null : w))}
               >
                 <span className="chip-hanzi">
                   {w}
@@ -293,7 +305,7 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                   S{(wordScene[w] ?? 0) + 1}
                 </span>
                 {used && <span className="chip-check">✓</span>}
-              </div>
+              </button>
             );
           })}
         </div>
@@ -311,7 +323,7 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                   key={cat.id}
                   x1={CENTRAL_X + CENTRAL_W / 2} y1={CENTRAL_Y + CENTRAL_H}
                   x2={catCenterX(i)}             y2={catTop(i)}
-                  stroke="#a5b4fc" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4"
+                  stroke="var(--clay-muted-soft)" strokeWidth="2" strokeLinecap="round" strokeDasharray="6 4"
                 />
               ))}
             </svg>
@@ -330,8 +342,15 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
               return (
                 <div
                   key={cat.id}
-                  className={`scmap-cat-node${isOver ? " drag-over" : ""}${submitted ? " is-submitted" : ""}`}
+                  className={`scmap-cat-node${isOver ? " drag-over" : ""}${submitted ? " is-submitted" : ""}${selectedWord ? " selectable" : ""}`}
                   style={{ left: catLeft(i), top: catTop(i), width: CAT_W, borderColor: cat.border }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={
+                    selectedWord
+                      ? `Place "${selectedWord}" in ${cat.english} category`
+                      : `${cat.english} category, ${words.length} word${words.length === 1 ? "" : "s"} placed`
+                  }
                   onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(cat.id); }}
                   onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(null); }}
                   onDrop={e => {
@@ -339,6 +358,13 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                     const word = e.dataTransfer.getData("text/plain");
                     if (word) dropWordOnCategory(cat.id, word);
                     setDragOver(null);
+                  }}
+                  onClick={() => { if (selectedWord && !submitted) dropWordOnCategory(cat.id, selectedWord); }}
+                  onKeyDown={e => {
+                    if ((e.key === "Enter" || e.key === " ") && selectedWord && !submitted) {
+                      e.preventDefault();
+                      dropWordOnCategory(cat.id, selectedWord);
+                    }
                   }}
                 >
                   <div className="scmap-cat-header" style={{ background: cat.color }}>
@@ -354,8 +380,10 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                       <div className="scmap-cat-empty">
                         {isOver ? (
                           <BiLabel zh="放開以放置" en="Release to place" />
+                        ) : selectedWord ? (
+                          <BiLabel zh="點擊以放置選取的詞彙" en="Click to place the selected word" />
                         ) : (
-                          <BiLabel zh="把詞彙拖到這裡" en="Drop words here" />
+                          <BiLabel zh="拖曳或選取詞彙後點擊這裡" en="Drag here, or select a word and click here" />
                         )}
                       </div>
                     ) : words.map(w => {
@@ -378,7 +406,7 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                           {!submitted && (
                             <button
                               className={`cat-word-remove${result === "wrong" ? " cat-word-remove-wrong" : ""}`}
-                              onClick={() => removeFromCategory(cat.id, w, result === "wrong")}
+                              onClick={e => { e.stopPropagation(); removeFromCategory(cat.id, w, result === "wrong"); }}
                               title={result === "wrong" ? "錯誤 — 點擊移回 Wrong — click to move back" : "移除 Remove"}
                             >×</button>
                           )}

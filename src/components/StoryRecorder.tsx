@@ -90,6 +90,7 @@ interface WordProsody {
   start_time: number;
   end_time: number;
   pitch_contour: Array<[number, number]>;
+  reference_contour?: Array<[number, number]>;
   mean_pitch: number;
   pitch_range: number;
   start_pitch: number;
@@ -2206,32 +2207,26 @@ function prosodyImprovementTip(item: WordProsody): string | null {
 
 function WordProsodyCard({ item }: { item: WordProsody }) {
   const improvementTip = prosodyImprovementTip(item);
+  const hasReference = (item.reference_contour?.length ?? 0) > 1;
   return (
     <div className="word-prosody-card">
       <div className="word-prosody-topline">
         <strong>{item.token}</strong>
         <span>{formatContourShape(item.contour_shape)}</span>
       </div>
-      <div className="mini-contour" aria-label={`${item.token} pitch contour`}>
-        {item.pitch_contour.length > 1 ? (
-          item.pitch_contour.map((point, index) => {
-            const pitches = item.pitch_contour.map((entry) => entry[1]);
-            const min = Math.min(...pitches);
-            const max = Math.max(...pitches);
-            const range = Math.max(max - min, 1);
-            const height = 18 + ((point[1] - min) / range) * 42;
-
-            return (
-              <span
-                key={`${point[0]}-${index}`}
-                style={{ height: `${height}px` }}
-              />
-            );
-          })
-        ) : (
-          <span style={{ height: "28px" }} />
-        )}
+      <div className="mini-contour" aria-label={`${item.token} pitch contour vs target shape`}>
+        <MiniContourChart actual={item.pitch_contour} reference={item.reference_contour} />
       </div>
+      {hasReference && (
+        <div className="mini-contour-legend">
+          <span className="mini-contour-legend-actual">
+            <BiLabel zh="你的音高" en="Your pitch" />
+          </span>
+          <span className="mini-contour-legend-reference">
+            <BiLabel zh="目標形狀" en="Target shape" />
+          </span>
+        </div>
+      )}
       <div className="word-prosody-stats">
         <BiLabel zh={`平均 ${Math.round(item.mean_pitch)} Hz`} en={`${Math.round(item.mean_pitch)} Hz avg`} />
         <BiLabel zh={`範圍 ${Math.round(item.pitch_range)} Hz`} en={`${Math.round(item.pitch_range)} Hz range`} />
@@ -2240,7 +2235,271 @@ function WordProsodyCard({ item }: { item: WordProsody }) {
       {improvementTip && (
         <p className="word-prosody-tip">💡 {improvementTip}</p>
       )}
+      <WordPracticeDrill word={item} />
     </div>
+  );
+}
+
+/** Lets a student drill just this one character/word in place, right where its
+ * sentence feedback appeared — record it alone as many times as they like and
+ * see the chart update, instead of having to re-record the whole sentence to
+ * fix one weak syllable. Sends the known token as `transcription`, which makes
+ * the backend skip ASR entirely and score the recording directly against this
+ * word's real expected tone(s) — so a re-record here is never limited by
+ * speech-recognition accuracy. */
+function WordPracticeDrill({ word }: { word: WordProsody }) {
+  const [open, setOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState("");
+  const [attempts, setAttempts] = useState<WordProsody[]>([]);
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  const latest = attempts[attempts.length - 1];
+  const previous = attempts[attempts.length - 2];
+  const trend =
+    latest && previous
+      ? Math.round((latest.tone_accuracy ?? 0) - (previous.tone_accuracy ?? 0))
+      : undefined;
+
+  const startRecording = async () => {
+    setError("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      chunksRef.current = [];
+
+      const preferredType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+      const recorder = new MediaRecorder(stream, preferredType ? { mimeType: preferredType } : undefined);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data);
+      };
+
+      recorder.onstop = async () => {
+        const rawBlob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        await analyzeAttempt(rawBlob);
+      };
+
+      recorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "無法使用麥克風 Could not access the microphone.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
+
+  const analyzeAttempt = async (rawBlob: Blob) => {
+    setIsAnalyzing(true);
+    try {
+      const wavBlob = await convertBlobToWav(rawBlob);
+      const formData = new FormData();
+      formData.append("file", wavBlob, "word-practice.wav");
+      formData.append("transcription", word.token);
+      formData.append("ai_provider", "local");
+
+      const response = await fetch(`${getBackendUrl()}/api/analyze`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.detail || "Analysis failed.");
+      }
+
+      const data = await response.json();
+      const segment: WordProsody | undefined = data.word_prosody?.[0];
+      if (!segment) {
+        setError(
+          "沒聽清楚，靠近麥克風、把音拉長一點再試一次。 Didn't catch enough of that — move closer to the mic and hold the sound a little longer.",
+        );
+        return;
+      }
+      setAttempts((prev) => [...prev, segment]);
+    } catch (err) {
+      setError(formatBackendError(err, BACKEND_URL || "the configured backend"));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("audio/") && !/\.(wav|webm|mp3|m4a|ogg|aac|flac)$/i.test(file.name)) {
+      setError(`「${file.name}」不是音訊檔。 "${file.name}" isn't an audio file.`);
+      return;
+    }
+
+    setError("");
+    await analyzeAttempt(file);
+  };
+
+  return (
+    <div className="word-practice-drill">
+      <button
+        type="button"
+        className="word-practice-toggle"
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+      >
+        {open ? (
+          <BiLabel zh="收起單字練習" en="Hide word practice" />
+        ) : (
+          <BiLabel zh={`🎙 單獨練習「${word.token}」`} en={`🎙 Practice "${word.token}" alone`} />
+        )}
+      </button>
+
+      {open && (
+        <div className="word-practice-panel">
+          <div className="word-practice-controls">
+            <button
+              type="button"
+              className={`btn-mini ${isRecording ? "recording" : ""}`}
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isAnalyzing}
+            >
+              {isRecording ? (
+                <BiLabel zh="停止" en="Stop" />
+              ) : attempts.length > 0 ? (
+                <BiLabel zh="再錄一次" en="Record again" />
+              ) : (
+                <BiLabel zh="錄音" en="Record" />
+              )}
+            </button>
+            <label
+              className={`btn-mini btn-mini-secondary word-practice-upload-label ${
+                isRecording || isAnalyzing ? "disabled" : ""
+              }`}
+              role="button"
+              tabIndex={isRecording || isAnalyzing ? -1 : 0}
+            >
+              <BiLabel zh="上傳音檔" en="Upload audio" />
+              <input
+                type="file"
+                accept="audio/*,.wav,.webm,.mp3,.m4a,.ogg,.aac,.flac"
+                className="word-practice-upload-input"
+                onChange={handleImportFile}
+                disabled={isRecording || isAnalyzing}
+              />
+            </label>
+            {isAnalyzing && (
+              <span className="word-practice-status">
+                <BiLabel zh="分析中…" en="Analyzing…" />
+              </span>
+            )}
+            {attempts.length > 0 && (
+              <span className="word-practice-attempt-count">
+                <BiLabel zh="第" en="Try" /> {attempts.length}
+              </span>
+            )}
+          </div>
+
+          {error && <p className="word-practice-error">{error}</p>}
+
+          {latest && !isAnalyzing && (
+            <div className={`word-practice-result ${scoreBand(latest.tone_accuracy ?? 0)}`}>
+              <div className="mini-contour" aria-label={`Practice attempt pitch for ${word.token}`}>
+                <MiniContourChart actual={latest.pitch_contour} reference={latest.reference_contour} />
+              </div>
+              <div className="word-practice-result-meta">
+                <strong>{Math.round(latest.tone_accuracy ?? 0)}%</strong>
+                {typeof trend === "number" && trend !== 0 && (
+                  <em className={trend > 0 ? "trend-up" : "trend-down"}>
+                    {trend > 0 ? "↑" : "↓"} {Math.abs(trend)}%
+                  </em>
+                )}
+              </div>
+              <p>{latest.feedback}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function scoreBand(score: number): "good" | "ok" | "low" {
+  if (score >= 68) return "good";
+  if (score >= 48) return "ok";
+  return "low";
+}
+
+/** Overlays the student's measured pitch curve against the idealized target
+ * shape for the expected tone(s) — both scaled to a shared time/pitch range
+ * so the two lines are directly comparable, making the exact mismatch
+ * (wrong direction, not enough movement, dip too shallow, etc.) visible
+ * rather than something the student has to infer from a text description. */
+function MiniContourChart({
+  actual,
+  reference,
+}: {
+  actual: Array<[number, number]>;
+  reference?: Array<[number, number]>;
+}) {
+  const width = 160;
+  const height = 66;
+  const padY = 8;
+
+  const points = reference && reference.length > 1 ? [...actual, ...reference] : actual;
+  if (points.length < 2) {
+    return <svg viewBox={`0 0 ${width} ${height}`} className="mini-contour-svg" aria-hidden="true" />;
+  }
+
+  const times = points.map((p) => p[0]);
+  const freqs = points.map((p) => p[1]);
+  const minT = Math.min(...times);
+  const maxT = Math.max(...times);
+  const minF = Math.min(...freqs);
+  const maxF = Math.max(...freqs);
+  const timeSpan = Math.max(maxT - minT, 0.001);
+  const freqSpan = Math.max(maxF - minF, 1);
+
+  const toPath = (series: Array<[number, number]>) =>
+    series
+      .map(([t, f], index) => {
+        const x = ((t - minT) / timeSpan) * width;
+        const y = height - padY - ((f - minF) / freqSpan) * (height - padY * 2);
+        return `${index === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
+      })
+      .join(" ");
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="mini-contour-svg"
+      role="img"
+      aria-hidden="true"
+      preserveAspectRatio="none"
+    >
+      {reference && reference.length > 1 && (
+        <path d={toPath(reference)} className="mini-contour-reference" fill="none" />
+      )}
+      {actual.length > 1 && (
+        <path d={toPath(actual)} className="mini-contour-actual" fill="none" />
+      )}
+    </svg>
   );
 }
 
@@ -2457,6 +2716,7 @@ function FeedbackSummary({
   const vocabListExists = ai?.vocabulary_coverage !== undefined;
 
   const contentAccepted = isContentAccepted(praatMetrics);
+  const weakToneItems = weakToneGuideItems(praatMetrics.word_prosody || []);
 
   const overallScore =
     vocabScore !== null && pronScore !== null
@@ -2548,11 +2808,11 @@ function FeedbackSummary({
           {(() => {
             const bars = [
               ...(vocabScore !== null
-                ? [{ label: "詞彙 Vocabulary", score: vocabScore, color: "#7c3aed" }]
+                ? [{ label: "詞彙 Vocabulary", score: vocabScore, color: "var(--seal)" }]
                 : []),
-              { label: "聲調 Tone accuracy", score: toneScore, color: "#d97706" },
+              { label: "聲調 Tone accuracy", score: toneScore, color: "var(--gold)" },
               ...(contentScore !== null
-                ? [{ label: "內容準確度 Content accuracy", score: contentScore, color: "#2563eb" }]
+                ? [{ label: "內容準確度 Content accuracy", score: contentScore, color: "var(--jade)" }]
                 : []),
             ];
             return bars.length > 0 ? (
@@ -2581,21 +2841,43 @@ function FeedbackSummary({
                   <div className="score-guide-row">
                     <span className="score-guide-label"><BiLabel k="tone_accuracy" /></span>
                     <ul className="score-guide-tips">
-                      <li>
-                        <strong>一聲 Tone 1 (ā) →</strong> <BiText k="keep_pitch_high_and_completely_flat_thro" />
-                      </li>
-                      <li>
-                        <strong>二聲 Tone 2 (á) ↗</strong> <BiText k="start_mid_push_pitch_up_to_the_top_like_" />
-                      </li>
-                      <li>
-                        <strong>三聲 Tone 3 (ǎ) ↘↗</strong> <BiText k="dip_down_first_then_rise_back_the_lowest" />
-                      </li>
-                      <li>
-                        <strong>四聲 Tone 4 (à) ↘</strong> <BiText k="start_as_high_as_you_can_and_drop_sharpl" />
-                      </li>
-                      <li>
-                        <BiText k="isolate_problem_characters_from_the_tone" />
-                      </li>
+                      {weakToneItems.length > 0 ? (
+                        <>
+                          {weakToneItems.map((item) => {
+                            const tone = item.expected_tones![0];
+                            const shapeKey = TONE_NUMBER_TO_SHAPE[tone] ?? "variable";
+                            return (
+                              <li key={`${item.token}-${item.index}`}>
+                                <strong>
+                                  「{item.token}」 {TONE_NUMBER_ARROW_LABEL[tone] ?? ""}
+                                </strong>{" "}
+                                {TONE_SHAPES[shapeKey].tip} ({Math.round(item.tone_accuracy ?? 0)}%)
+                              </li>
+                            );
+                          })}
+                          <li>
+                            <BiText k="isolate_problem_characters_from_the_tone" />
+                          </li>
+                        </>
+                      ) : (
+                        <>
+                          <li>
+                            <strong>一聲 Tone 1 (ā) →</strong> <BiText k="keep_pitch_high_and_completely_flat_thro" />
+                          </li>
+                          <li>
+                            <strong>二聲 Tone 2 (á) ↗</strong> <BiText k="start_mid_push_pitch_up_to_the_top_like_" />
+                          </li>
+                          <li>
+                            <strong>三聲 Tone 3 (ǎ) ↘↗</strong> <BiText k="dip_down_first_then_rise_back_the_lowest" />
+                          </li>
+                          <li>
+                            <strong>四聲 Tone 4 (à) ↘</strong> <BiText k="start_as_high_as_you_can_and_drop_sharpl" />
+                          </li>
+                          <li>
+                            <BiText k="isolate_problem_characters_from_the_tone" />
+                          </li>
+                        </>
+                      )}
                     </ul>
                   </div>
                 )}
@@ -2661,6 +2943,30 @@ function RecordingPlayback({ blob }: { blob: Blob }) {
       <audio controls src={url} className="recording-playback-audio" />
     </div>
   );
+}
+
+const TONE_NUMBER_ARROW_LABEL: Record<number, string> = {
+  1: "一聲 Tone 1 (ā) →",
+  2: "二聲 Tone 2 (á) ↗",
+  3: "三聲 Tone 3 (ǎ) ↘↗",
+  4: "四聲 Tone 4 (à) ↘",
+};
+
+/** The characters actually dragging this attempt's tone score down — used to
+ * personalize the "how to reach 100%" guide with the specific tone(s) this
+ * student got wrong, instead of a generic list of all four tones every time.
+ * Threshold and neutral-tone exclusion match prosodyImprovementTip's own
+ * "Good match" cutoff so the two never disagree about what needs work. */
+function weakToneGuideItems(wordProsody: WordProsody[], limit = 3): WordProsody[] {
+  return wordProsody
+    .filter(
+      (item) =>
+        (item.expected_tones?.length ?? 0) > 0 &&
+        item.expected_tones![0] !== 5 &&
+        (item.tone_accuracy ?? 100) < 68,
+    )
+    .sort((a, b) => (a.tone_accuracy ?? 0) - (b.tone_accuracy ?? 0))
+    .slice(0, limit);
 }
 
 function getToneFocusItems(items: WordProsody[]): WordProsody[] {

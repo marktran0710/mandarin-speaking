@@ -36,7 +36,7 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
   };
 
   return (
-    <main className="login-page">
+    <main className={`login-page ${isStudent ? "student" : "teacher"}`}>
       <section className="login-shell">
         <button type="button" className="login-back" onClick={onBack}>
           <BiLabel k="back_to_portals" />

@@ -1,18 +1,14 @@
 /* ── Page shell ── */
 .create-story-page {
   min-height: calc(100vh - 64px);
-  background:
-    radial-gradient(550px circle at 8% 0%, var(--accent-indigo-soft), transparent 60%),
-    radial-gradient(550px circle at 95% 5%, var(--accent-amber-soft), transparent 60%),
-    var(--clay-canvas);
+  background: var(--clay-canvas);
 }
 
 /* ── Help banner strip ── */
 .csp-help-strip {
   padding: 10px 20px;
-  background: rgba(255,255,255,0.72);
+  background: var(--clay-surface-card);
   border-bottom: 1px solid var(--clay-hairline);
-  backdrop-filter: blur(6px);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -40,9 +36,9 @@
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  border-radius: 999px;
-  background: var(--clay-ochre);
-  color: var(--clay-ink);
+  border-radius: var(--clay-radius-pill);
+  background: var(--gold-soft);
+  color: var(--gold-deep);
   font-size: 18px;
   font-weight: 900;
 }
@@ -83,13 +79,17 @@
   padding: 0 14px;
   border: none;
   border-radius: var(--clay-radius-md);
-  background: linear-gradient(135deg, var(--accent-indigo), var(--accent-violet));
+  background: var(--seal);
   color: #ffffff;
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(79,70,229,0.25);
+}
+
+.student-help-panel button:hover:not(:disabled) {
+  background: var(--seal-deep);
+  box-shadow: var(--shadow-sm);
 }
 
 .student-help-panel button:disabled {
@@ -117,20 +117,20 @@
   align-items: center;
   gap: 6px;
   padding: 9px 16px;
-  background: #ffffff;
+  background: var(--clay-surface-card);
   color: var(--clay-ink);
   border: 1px solid var(--clay-hairline);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-back:hover {
-  border-color: var(--accent-indigo);
-  box-shadow: 0 2px 8px rgba(79,70,229,0.15);
+  border-color: var(--seal);
+  box-shadow: var(--shadow-md);
 }
 
 .csp-breadcrumb {

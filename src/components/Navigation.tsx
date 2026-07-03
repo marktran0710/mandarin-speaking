@@ -2,6 +2,7 @@ import "./Navigation.css";
 import { Page } from "../App";
 import { LoginRole } from "../pages/LoginPage";
 import { BiLabel } from "./BiLabel";
+import ToneMark from "./ToneMark";
 import "./BiLabel.css";
 
 interface NavigationProps {
@@ -30,6 +31,7 @@ export default function Navigation({
         >
           <img className="logo-icon" src="/logo.png" alt="Enjoyable Mandarin logo" />
           <span>Enjoyable Mandarin</span>
+          <ToneMark className="navbar-tonemark" size={26} />
         </button>
 
         <ul className="navbar-menu">
@@ -74,6 +76,15 @@ export default function Navigation({
                   onClick={() => onNavigate("student-practice")}
                 >
                   <BiLabel k="training" />
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className={`nav-link ${currentPage === "tone-practice" ? "active" : ""}`}
+                  onClick={() => onNavigate("tone-practice")}
+                >
+                  <BiLabel zh="聲調練習" en="Tone practice" />
                 </button>
               </li>
 

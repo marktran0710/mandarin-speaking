@@ -14,6 +14,7 @@ interface WordProsody {
   start_time?: number;
   end_time?: number;
   pitch_contour?: Array<[number, number]>;
+  reference_contour?: Array<[number, number]>;
   mean_pitch: number;
   pitch_range: number;
   start_pitch?: number;
@@ -466,6 +467,7 @@ function normalizeWordProsody(words: WordProsody[] = []) {
     start_time: word.start_time ?? index,
     end_time: word.end_time ?? index + 1,
     pitch_contour: word.pitch_contour ?? [],
+    reference_contour: word.reference_contour ?? [],
     mean_pitch: word.mean_pitch,
     pitch_range: word.pitch_range,
     start_pitch: word.start_pitch ?? word.mean_pitch,

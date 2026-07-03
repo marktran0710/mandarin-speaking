@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { canUseDatabase, createCustomStory, listCustomStories } from "./database";
-import { loadCustomStories, loadPublishedTeacherTopics, saveCustomStories, storyToTopic } from "./utils/teacherStories";
+import { canUseDatabase, createCustomStory, listCustomStories } from "../services/database";
+import { loadCustomStories, loadPublishedTeacherTopics, saveCustomStories, storyToTopic } from "../utils/teacherStories";
 import "./TopicSelector.css";
-import { BiLabel, BiText } from "./components/BiLabel";
-import "./components/BiLabel.css";
+import { BiLabel, BiText } from "./BiLabel";
+import "./BiLabel.css";
 
 export interface VocabGroup {
   name: string;

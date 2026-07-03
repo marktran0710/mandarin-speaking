@@ -20,7 +20,7 @@
   gap: 22px;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-xl);
-  background: #ffffff;
+  background: var(--clay-surface-card);
 }
 
 .teacher-image-hero h1 {
@@ -79,7 +79,7 @@
   padding: 18px;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-xl);
-  background: #ffffff;
+  background: var(--clay-surface-card);
 }
 
 .teacher-image-form {
@@ -118,8 +118,8 @@
 .teacher-image-form textarea:focus,
 .generated-frame-body input:focus,
 .generated-frame-body textarea:focus {
-  border-color: var(--clay-primary);
-  box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.12);
+  border-color: var(--jade);
+  box-shadow: 0 0 0 3px var(--jade-soft);
   outline: none;
 }
 
@@ -149,14 +149,24 @@
 }
 
 .btn-generate-images {
-  background: var(--clay-primary);
+  background: var(--jade);
   color: #ffffff;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.btn-generate-images:hover:not(:disabled) {
+  background: var(--jade-deep);
 }
 
 .btn-save-generated {
   border: 1px solid var(--clay-hairline);
-  background: #ffffff;
+  background: var(--clay-surface-card);
   color: var(--clay-ink);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.btn-save-generated:hover:not(:disabled) {
+  border-color: var(--jade);
 }
 
 .btn-generate-images:disabled,
@@ -175,15 +185,15 @@
 }
 
 .teacher-image-error {
-  border: 1px solid rgba(180, 35, 24, 0.22);
-  background: #fff1ee;
-  color: #912018;
+  border: 1px solid var(--clay-hairline);
+  background: var(--seal-soft);
+  color: var(--clay-error);
 }
 
 .teacher-image-success {
-  border: 1px solid rgba(22, 163, 74, 0.22);
-  background: #ecfdf3;
-  color: #166534;
+  border: 1px solid var(--clay-hairline);
+  background: var(--jade-soft);
+  color: var(--jade-deep);
 }
 
 .teacher-image-guide h2,
@@ -227,7 +237,7 @@
 
 .generated-frame-image {
   aspect-ratio: 3 / 2;
-  background: #e2e8f0;
+  background: var(--clay-surface-strong);
 }
 
 .generated-frame-image img {
@@ -245,7 +255,7 @@
 
 .image-prompt-details {
   border-radius: var(--clay-radius-md);
-  background: #ffffff;
+  background: var(--clay-surface-card);
 }
 
 .image-prompt-details summary {

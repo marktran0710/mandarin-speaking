@@ -74,8 +74,8 @@
 .voice-step-row span {
   padding: 7px 11px;
   border-radius: 999px;
-  background: #ecfeff;
-  color: var(--clay-primary-active);
+  background: var(--seal-soft);
+  color: var(--seal-deep);
   font-size: 13px;
   font-weight: 700;
 }
@@ -99,8 +99,8 @@
 }
 
 .target-text-card textarea:focus {
-  border-color: var(--clay-primary);
-  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.13);
+  border-color: var(--seal);
+  box-shadow: 0 0 0 3px var(--seal-soft);
   outline: none;
 }
 
@@ -161,8 +161,8 @@
   display: grid;
   gap: 8px;
   border-radius: var(--clay-radius-md);
-  background: #ecfeff;
-  border: 1px solid #a5f3fc;
+  background: var(--seal-soft);
+  border: 1px solid var(--seal);
 }
 
 .voice-live-transcript p {
@@ -181,14 +181,14 @@
 }
 
 .voice-test-loading {
-  color: var(--clay-primary-active);
-  background: var(--clay-pink);
+  color: var(--seal-deep);
+  background: var(--seal-soft);
 }
 
 .voice-test-error {
-  color: #991b1b;
-  background: #fee2e2;
-  border-left: 4px solid #ef4444;
+  color: var(--clay-error);
+  background: var(--seal-soft);
+  border-left: 4px solid var(--clay-error);
 }
 
 .voice-feedback-panel {
@@ -221,6 +221,7 @@
 .voice-score-card strong {
   display: block;
   color: var(--clay-ink);
+  font-family: var(--font-mono);
   font-size: 28px;
   margin-top: 8px;
 }
@@ -238,15 +239,15 @@
 }
 
 .voice-student-feedback-card.good {
-  background: #dcfce7;
+  background: var(--jade-soft);
 }
 
 .voice-student-feedback-card.fix {
-  background: #fef3c7;
+  background: var(--gold-soft);
 }
 
 .voice-student-feedback-card.next {
-  background: #e0f2fe;
+  background: var(--seal-soft);
 }
 
 .voice-student-feedback-card span,
@@ -280,7 +281,7 @@
 }
 
 .voice-model-example span {
-  color: var(--clay-primary);
+  color: var(--seal);
   display: block;
   font-size: 12px;
   font-weight: 900;
@@ -316,11 +317,16 @@
 .voice-model-example-actions button {
   border: 0;
   border-radius: var(--clay-radius-md);
-  background: var(--clay-primary);
+  background: var(--seal);
   color: #ffffff;
   cursor: pointer;
   font-weight: 800;
   padding: 10px 14px;
+  transition: background-color 0.2s ease;
+}
+
+.voice-model-example-actions button:hover {
+  background: var(--seal-deep);
 }
 
 .voice-advanced-details {
@@ -362,7 +368,7 @@
 }
 
 .tone-repair-card > span {
-  color: var(--clay-primary);
+  color: var(--seal);
   display: block;
   font-size: 12px;
   font-weight: 900;
@@ -392,11 +398,12 @@
 
 .voice-tone-focus strong {
   color: var(--clay-ink);
+  font-family: var(--font-mono);
   font-size: 28px;
 }
 
 .voice-tone-focus span {
-  color: var(--clay-primary);
+  color: var(--seal);
   font-size: 12px;
   font-weight: 900;
   margin-top: 3px;
@@ -452,6 +459,10 @@
   font-weight: 650;
 }
 
+.voice-script-token small {
+  font-family: var(--font-mono);
+}
+
 .voice-script-empty {
   margin-top: 12px;
   padding: 10px 12px;
@@ -465,6 +476,7 @@
   display: block;
   margin-top: 8px;
   color: var(--clay-muted);
+  font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 650;
 }
@@ -530,6 +542,10 @@
   margin-top: 4px;
 }
 
+.voice-word-card small {
+  font-family: var(--font-mono);
+}
+
 .voice-word-card p {
   margin-top: 8px;
 }
@@ -545,8 +561,8 @@
 .ai-card-header span {
   padding: 5px 10px;
   border-radius: 999px;
-  background: var(--clay-mint);
-  color: var(--clay-primary-active);
+  background: var(--jade-soft);
+  color: var(--jade-deep);
   font-size: 12px;
   font-weight: 650;
 }

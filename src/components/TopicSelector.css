@@ -1,11 +1,8 @@
 /* ── Page shell ── */
 .topic-selector {
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 68px);
   padding: 28px 20px 64px;
-  background:
-    radial-gradient(550px circle at 8% 0%, var(--accent-indigo-soft), transparent 60%),
-    radial-gradient(550px circle at 95% 5%, var(--accent-amber-soft), transparent 60%),
-    var(--clay-canvas);
+  background: var(--clay-canvas);
 }
 
 /* ── Hero ── */
@@ -20,14 +17,14 @@
 
 .ts-hero-copy {
   padding: 28px 30px;
-  background: linear-gradient(135deg, #ffffff, var(--accent-indigo-soft));
+  background: linear-gradient(135deg, var(--tone1-soft) 0%, var(--clay-surface-card) 60%);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-xl);
-  border-top: 4px solid var(--accent-indigo);
 }
 
 .ts-hero-copy h1 {
   color: var(--clay-ink);
+  font-weight: 600;
   font-size: clamp(28px, 4vw, 42px);
   line-height: 1.12;
   margin: 0 0 12px;
@@ -62,10 +59,14 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--clay-ink);
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, background 0.15s ease;
 }
 
 .ts-step:hover { transform: translateX(2px); }
+
+.ts-step:nth-child(1) { background: var(--seal-soft); }
+.ts-step:nth-child(2) { background: var(--jade-soft); }
+.ts-step:nth-child(3) { background: var(--gold-soft); }
 
 .ts-step-num {
   width: 40px;
@@ -78,9 +79,9 @@
   font-weight: 700;
 }
 
-.ts-step-1 { background: var(--accent-indigo); }
-.ts-step-2 { background: var(--accent-amber); }
-.ts-step-3 { background: var(--accent-violet); }
+.ts-step-1 { background: var(--seal); }
+.ts-step-2 { background: var(--jade); }
+.ts-step-3 { background: var(--gold); }
 
 /* ── Grid section ── */
 .ts-grid-section {
@@ -120,29 +121,29 @@
   gap: 18px;
 }
 
-/* ── Individual topic card ── */
+/* ── Individual topic card — one consistent pastel for the whole grid,
+   so the set reads as a uniform list rather than color-coded categories. */
 .ts-card {
   display: flex;
   flex-direction: column;
-  background: #ffffff;
-  border: 1px solid var(--clay-hairline);
+  background: var(--tone1-soft);
+  border: none;
   border-radius: var(--clay-radius-xl);
   overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .ts-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(79, 70, 229, 0.12);
-  border-color: var(--accent-indigo);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: var(--shadow-md);
 }
 
 /* Image area */
 .ts-card-image {
   position: relative;
   aspect-ratio: 16 / 9;
-  background: var(--clay-lavender, #ede9fe);
+  background: var(--clay-surface-soft);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -174,7 +175,7 @@
   right: 8px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(0,0,0,0.55);
+  background: rgba(28, 26, 23, 0.55);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -187,10 +188,10 @@
   left: 8px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: var(--accent-indigo);
+  background: var(--clay-ink);
   color: #fff;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.02em;
 }
 
@@ -213,8 +214,8 @@
 .ts-card-level {
   padding: 3px 10px;
   border-radius: 999px;
-  background: var(--accent-amber-soft);
-  color: var(--accent-amber);
+  background: var(--gold-soft);
+  color: var(--gold-deep);
   font-size: 11px;
   font-weight: 700;
 }
@@ -268,19 +269,19 @@
   gap: 8px;
   padding: 11px 16px;
   border: none;
-  border-radius: var(--clay-radius-md);
-  background: linear-gradient(135deg, var(--accent-indigo), var(--accent-violet));
+  border-radius: var(--clay-radius-pill);
+  background: var(--tone1-deep);
   color: #ffffff;
   font-size: 14px;
   font-weight: 650;
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
-  box-shadow: 0 3px 10px rgba(79, 70, 229, 0.25);
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .ts-card-btn:hover {
+  background: #094a85;
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+  box-shadow: var(--shadow-sm);
 }
 
 .ts-card-btn:active {

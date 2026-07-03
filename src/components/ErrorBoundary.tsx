@@ -28,15 +28,15 @@ export default class ErrorBoundary extends Component<Props, State> {
             style={{
               padding: "40px 24px",
               textAlign: "center",
-              fontFamily: "system-ui, sans-serif",
-              color: "#1e293b",
+              fontFamily: "var(--font-sans, system-ui, sans-serif)",
+              color: "var(--clay-ink, #1c1a17)",
             }}
           >
             <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>⚠️</div>
             <h2 style={{ margin: "0 0 8px", fontSize: "1.2rem" }}>
               Something went wrong
             </h2>
-            <p style={{ color: "#64748b", marginBottom: "20px", fontSize: "14px" }}>
+            <p style={{ color: "var(--clay-muted, #8a8275)", marginBottom: "20px", fontSize: "14px" }}>
               {this.state.error.message}
             </p>
             <button
@@ -44,10 +44,10 @@ export default class ErrorBoundary extends Component<Props, State> {
               onClick={() => this.setState({ error: null })}
               style={{
                 padding: "8px 20px",
-                background: "#6366f1",
+                background: "var(--seal, #b3312c)",
                 color: "#fff",
                 border: "none",
-                borderRadius: "8px",
+                borderRadius: "10px",
                 cursor: "pointer",
                 fontSize: "14px",
               }}

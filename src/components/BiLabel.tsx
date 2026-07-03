@@ -24,8 +24,8 @@ export function BiLabel(props: BiLabelProps) {
   const { zh, en } = resolve(props);
   return (
     <span className={`bi-label${props.block ? " bi-label--block" : ""}`}>
-      <span className="bi-zh">{zh}</span>
-      <small className="bi-en">{en}</small>
+      <span className="bi-zh" lang="zh-Hant">{zh}</span>
+      <small className="bi-en" lang="en">{en}</small>
     </span>
   );
 }
@@ -37,8 +37,8 @@ export function BiText(props: BiTextProps) {
   const { zh, en } = resolve(props);
   return (
     <span className="bi-text">
-      <span className="bi-text-zh">{zh}</span>
-      <span className="bi-text-en">{en}</span>
+      <span className="bi-text-zh" lang="zh-Hant">{zh}</span>
+      <span className="bi-text-en" lang="en">{en}</span>
     </span>
   );
 }

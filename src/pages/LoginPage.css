@@ -4,6 +4,14 @@
   padding: 36px 20px 72px;
 }
 
+.login-page.student {
+  background: linear-gradient(160deg, var(--seal-soft) 0%, var(--clay-canvas) 45%);
+}
+
+.login-page.teacher {
+  background: linear-gradient(160deg, var(--jade-soft) 0%, var(--clay-canvas) 45%);
+}
+
 .login-shell {
   max-width: 560px;
   margin: 0 auto;
@@ -26,7 +34,7 @@
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   background: #ffffff;
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+  box-shadow: var(--shadow-md);
   text-align: center;
 }
 
@@ -41,14 +49,18 @@
   font-weight: 800;
 }
 
+.login-icon {
+  font-family: var(--font-display);
+}
+
 .login-icon.student {
-  background: var(--clay-primary);
+  background: var(--seal);
   color: #ffffff;
 }
 
 .login-icon.teacher {
-  background: var(--clay-surface-strong);
-  color: var(--clay-ink);
+  background: var(--jade);
+  color: #ffffff;
 }
 
 .login-kicker {
