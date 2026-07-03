@@ -35,6 +35,7 @@ utterances. Measures and their sources:
 from __future__ import annotations
 
 import math
+import re
 from typing import Dict, List
 
 try:
@@ -47,30 +48,61 @@ try:
     # compound words are missing or have very low frequency, causing incorrect
     # splits (e.g. 覺得 → 覺 + 得). Register the common ones explicitly so
     # they are always treated as single tokens.
-    _TC_WORDS = [
-        # Verbs / verb-result compounds
-        "覺得", "知道", "喜歡", "告訴", "幫忙", "出來", "進來", "回來", "起來",
-        "下來", "出去", "進去", "回去", "看到", "聽到", "找到", "拿到", "說到",
-        "做到", "想到", "學到", "走過來", "跑過去",
-        # Common adjectives / stative verbs
-        "高興", "難過", "開心", "傷心", "生氣", "緊張", "害怕", "擔心", "漂亮",
-        "厲害", "麻煩", "奇怪", "清楚", "重要",
-        # Common nouns
-        "時候", "地方", "東西", "事情", "問題", "機會", "方法", "意思", "道理",
-        "老師", "同學", "同事", "朋友", "家人", "先生", "太太", "小姐",
-        "學生", "媽媽", "爸爸", "哥哥", "姐姐", "弟弟", "妹妹",
-        # Time words
-        "今天", "明天", "昨天", "以前", "以後", "現在", "剛才", "一下",
-        "這裡", "那裡", "哪裡", "這邊", "那邊",
-        # Modal / auxiliary
-        "可以", "應該", "需要", "必須", "能夠", "願意",
-        # Pronouns + particles
-        "我們", "你們", "他們", "她們", "它們", "大家",
-        # Common phrases
-        "沒有", "沒關係", "不客氣", "謝謝", "對不起", "沒問題",
-    ]
-    for _w in _TC_WORDS:
-        jieba.add_word(_w, freq=50000, tag="v" if _w.endswith(("得", "到", "來", "去")) else None)
+    #
+    # Every entry needs an explicit tag=. jieba.add_word() without one does
+    # NOT preserve whatever POS tag the word already had — verified directly
+    # against jieba.posseg.cut() output: even a word jieba's own dictionary
+    # already tags correctly (家裡 -> 's') reverts to the unknown tag 'x' the
+    # moment add_word touches it without a tag=. praat_analyzer's
+    # _classify_content_word keys off this tag's first letter to decide
+    # whether a word carries sentence stress, so an untagged entry here
+    # silently mislabeled every one of these words a "function word".
+    _TC_WORDS_BY_TAG: dict = {
+        "v": [
+            "覺得", "知道", "喜歡", "告訴", "幫忙", "出來", "進來", "回來", "起來",
+            "下來", "出去", "進去", "回去", "看到", "聽到", "找到", "拿到", "說到",
+            "做到", "想到", "學到", "走過來", "跑過去",
+            "可以", "應該", "需要", "必須", "能夠", "願意",
+            "沒有",
+            "做飯", "吃飯", "吃飽", "喝水", "買菜", "洗碗", "看書", "看電視",
+            "寫字", "唱歌", "跳舞", "打電話", "上網", "聽音樂", "做作業",
+        ],
+        "a": [
+            "高興", "難過", "開心", "傷心", "生氣", "緊張", "害怕", "擔心", "漂亮",
+            "厲害", "麻煩", "奇怪", "清楚", "重要",
+        ],
+        "n": [
+            "時候", "地方", "東西", "事情", "問題", "機會", "方法", "意思", "道理",
+            "老師", "同學", "同事", "朋友", "家人", "先生", "太太", "小姐",
+            "學生", "媽媽", "爸爸", "哥哥", "姐姐", "弟弟", "妹妹", "大家",
+            "校園", "大樓", "麵店",
+            "中文課", "英文課", "數學課",
+        ],
+        "t": ["今天", "明天", "昨天", "以前", "以後", "現在", "剛才"],
+        "m": ["一下"],
+        "r": ["這裡", "那裡", "哪裡", "這邊", "那邊", "我們", "你們", "他們", "她們", "它們"],
+        "l": ["沒關係", "不客氣", "謝謝", "對不起", "沒問題"],
+        "s": ["家裡", "教室裡", "廚房裡", "房間裡", "客廳裡", "學校裡", "校園裡", "大樓裡"],
+    }
+    for _tag, _words in _TC_WORDS_BY_TAG.items():
+        for _w in _words:
+            jieba.add_word(_w, freq=50000, tag=_tag)
+
+    # These entries need frequencies much higher than 50000 to override jieba's
+    # built-in SC compounds (e.g. 在家 freq≈40000 beats 在+家裡 at 50000).
+    # Boosting the TC form to 200000 makes the TC path win in Viterbi DP.
+    jieba.add_word("家裡", freq=200000, tag="s")
+    jieba.add_word("在家裡", freq=150000, tag="s")
+    jieba.add_word("校園裡", freq=150000, tag="s")   # beats 在校 (SC compound) in 在校園裡
+    jieba.add_word("在校園裡", freq=120000, tag="s")
+    jieba.add_word("大樓裡", freq=100000, tag="s")
+    jieba.add_word("做飯", freq=200000, tag="v")
+    jieba.add_word("吃飯", freq=200000, tag="v")
+    jieba.add_word("吃飽", freq=100000, tag="v")
+    jieba.add_word("做作業", freq=150000, tag="v")
+    jieba.add_word("教室裡", freq=100000, tag="s")
+    jieba.add_word("中文課", freq=100000, tag="n")
+    jieba.add_word("麵店", freq=80000, tag="n")
 
     _HAS_JIEBA = True
 except Exception:  # pragma: no cover - jieba is a declared dependency
@@ -94,13 +126,24 @@ def _is_han(ch: str) -> bool:
 def segment_words(text: str) -> List[str]:
     """Word-segment Mandarin text with jieba, keeping Han-character tokens only.
 
+    Each contiguous run of Han characters is segmented independently so that
+    punctuation (including the enumeration comma 、) acts as a word boundary
+    rather than being silently stripped before segmentation.
+
     Falls back to character tokens if jieba is unavailable.
     """
-    han = "".join(ch for ch in text if _is_han(ch))
-    if not han:
+    # 一-鿿 covers the main CJK Unified Ideographs block.
+    spans = re.findall(r"[一-鿿]+", text)
+    if not spans:
         return []
-    tokens = list(jieba.cut(han)) if _HAS_JIEBA else list(han)
-    return [t for t in (tok.strip() for tok in tokens) if t and any(_is_han(c) for c in t)]
+    result: List[str] = []
+    for span in spans:
+        if _HAS_JIEBA:
+            tokens = jieba.cut(span)
+        else:
+            tokens = list(span)
+        result.extend(t for t in (tok.strip() for tok in tokens) if t and any(_is_han(c) for c in t))
+    return result
 
 
 def _mtld(tokens: List[str], ttr_threshold: float = 0.72) -> float:

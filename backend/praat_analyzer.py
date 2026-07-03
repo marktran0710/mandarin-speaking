@@ -578,7 +578,12 @@ def estimate_word_prosody(
     if not tokens or len(pitch_contour) < 2:
         return []
 
-    from chinese_tones import apply_tone_sandhi, calculate_phrase_tone_accuracy, word_tones
+    from chinese_tones import (
+        apply_tone_sandhi,
+        calculate_phrase_tone_accuracy,
+        scaled_reference_contour,
+        word_tones,
+    )
 
     start_time = float(pitch_contour[0][0])
     end_time = float(pitch_contour[-1][0])
@@ -624,10 +629,37 @@ def estimate_word_prosody(
 
         is_chinese = bool(re.search(r"[\u4e00-\u9fff]", token))
         expected_tones = apply_tone_sandhi(word_tones(token)) if is_chinese else []
-        tone_score = (
-            calculate_phrase_tone_accuracy(points, expected_tones) if is_chinese else 0.0
-        )
+
+        # Coarticulation onset skip: the first ~12 % of a word's pitch frames
+        # often still carry the final pitch direction of the previous word.
+        # Skipping this transition window gives a cleaner tone-shape reading
+        # without affecting the visual contour or start/end pitch display.
+        _ONSET_SKIP = 0.12
+        onset_threshold = segment_start + (segment_end - segment_start) * _ONSET_SKIP
+        scoring_points = [p for p in points if p[0] >= onset_threshold] or points
+
+        # Need ≥4 pitch points for a reliable tone shape read. Fewer points
+        # (e.g. from a voicing gap at a word boundary) return a neutral 65 so
+        # a single unvoiced frame doesn't collapse the whole word score to 0.
+        if is_chinese and len(scoring_points) >= 4:
+            tone_score = calculate_phrase_tone_accuracy(scoring_points, expected_tones)
+        elif is_chinese and expected_tones:
+            tone_score = 65.0
+        else:
+            tone_score = 0.0
         is_content = _classify_content_word(token)
+
+        # Idealized target shape for this word, scaled to its own time span
+        # and pitch range so the frontend can overlay "your pitch" against
+        # "target shape" directly — the visual answer to "how do I fix this?"
+        reference_contour = (
+            scaled_reference_contour(
+                expected_tones, segment_start, segment_end,
+                float(np.min(frequencies)), float(np.max(frequencies)),
+            )
+            if is_chinese and expected_tones
+            else []
+        )
 
         segments.append(
             {
@@ -636,6 +668,7 @@ def estimate_word_prosody(
                 "start_time": round(segment_start, 3),
                 "end_time": round(segment_end, 3),
                 "pitch_contour": points,
+                "reference_contour": reference_contour,
                 "mean_pitch": round(mean_pitch, 2),
                 "pitch_range": round(pitch_range, 2),
                 "start_pitch": round(start_pitch, 2),
@@ -810,9 +843,9 @@ def _word_prosody_feedback(
 ) -> str:
     if expected_tones:
         tone_label = "+".join(_TONE_NAMES.get(t, str(t)) for t in expected_tones)
-        if tone_score >= 80:
+        if tone_score >= 68:
             return f"Good match for {tone_label}."
-        if tone_score >= 60:
+        if tone_score >= 48:
             return f"Recognizable {tone_label}, but contrast could be sharper."
         return f"Expected {tone_label} — pitch shape doesn't match yet."
 

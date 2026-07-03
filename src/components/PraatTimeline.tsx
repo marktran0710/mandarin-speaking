@@ -6,6 +6,7 @@ interface WordProsody {
   start_time: number;
   end_time: number;
   pitch_contour: Array<[number, number]>;
+  reference_contour?: Array<[number, number]>;
   mean_pitch: number;
   pitch_range: number;
   start_pitch: number;
@@ -134,6 +135,15 @@ export default function PraatTimeline({
     };
   }, [pitchContour]);
 
+  // Dashed target-shape overlay per word, on the same y-scale as the actual
+  // pitch line above so a visual gap between the two directly shows where a
+  // tone's shape diverges from the ideal — the same comparison as the
+  // per-character mini charts, but across the whole sentence.
+  const referencePaths = useMemo(
+    () => buildReferencePaths(words, timelineDuration, pitchRange.min, pitchRange.max),
+    [words, timelineDuration, pitchRange],
+  );
+
   return (
     <div className="praat-timeline-card">
       <div className="praat-timeline-header">
@@ -192,7 +202,34 @@ export default function PraatTimeline({
           <text x="942" y={PITCH_TOP + PITCH_HEIGHT - 10} className="praat-axis-label">
             {pitchRange.min || "--"} Hz
           </text>
+          {referencePaths.map(({ key, d }) => (
+            <path
+              key={key}
+              d={d}
+              fill="none"
+              stroke="#9aa7b5"
+              strokeWidth="2.5"
+              strokeDasharray="5 5"
+              opacity="0.8"
+            />
+          ))}
           {pitchPath && <path d={pitchPath} fill="none" stroke="#167f92" strokeWidth="4" />}
+          {referencePaths.length > 0 && (
+            <g className="praat-pitch-legend">
+              <line x1="800" y1={PITCH_TOP + 14} x2="818" y2={PITCH_TOP + 14} stroke="#167f92" strokeWidth="4" />
+              <text x="822" y={PITCH_TOP + 18} className="praat-axis-label">your pitch</text>
+              <line
+                x1="800"
+                y1={PITCH_TOP + 30}
+                x2="818"
+                y2={PITCH_TOP + 30}
+                stroke="#9aa7b5"
+                strokeWidth="2.5"
+                strokeDasharray="5 5"
+              />
+              <text x="822" y={PITCH_TOP + 34} className="praat-axis-label">target shape</text>
+            </g>
+          )}
 
           <text x="18" y={WORD_TOP + 18} className="praat-row-label">
             words
@@ -326,6 +363,17 @@ function WordSegment({
   );
 }
 
+function timeToX(time: number, duration: number): number {
+  return 92 + (time / duration) * 880;
+}
+
+function pitchToY(frequency: number, minPitch: number, maxPitch: number): number {
+  const pitchRange = Math.max(maxPitch - minPitch, 1);
+  return (
+    PITCH_TOP + PITCH_HEIGHT - 12 - ((frequency - minPitch) / pitchRange) * (PITCH_HEIGHT - 24)
+  );
+}
+
 function buildPitchPath(
   pitchContour: Array<[number, number]>,
   duration: number,
@@ -337,20 +385,37 @@ function buildPitchPath(
   const frequencies = pitchContour.map((point) => point[1]);
   const minPitch = Math.min(...frequencies);
   const maxPitch = Math.max(...frequencies);
-  const pitchRange = Math.max(maxPitch - minPitch, 1);
 
   return pitchContour
     .map(([time, frequency], index) => {
-      const x = 92 + (time / duration) * 880;
-      const y =
-        PITCH_TOP +
-        PITCH_HEIGHT -
-        12 -
-        ((frequency - minPitch) / pitchRange) * (PITCH_HEIGHT - 24);
-
+      const x = timeToX(time, duration);
+      const y = pitchToY(frequency, minPitch, maxPitch);
       return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
     })
     .join(" ");
+}
+
+/** Per-word dashed target-shape overlay, mapped onto the same y-scale as the
+ * whole-sentence actual pitch line (pitchRange.min/max) so the two are
+ * directly comparable rather than each auto-scaling to its own range. */
+function buildReferencePaths(
+  wordProsody: WordProsody[],
+  duration: number,
+  minPitch: number,
+  maxPitch: number,
+): Array<{ key: string; d: string }> {
+  return wordProsody
+    .filter((word) => (word.reference_contour?.length ?? 0) > 1)
+    .map((word) => ({
+      key: `ref-${word.token}-${word.index}`,
+      d: (word.reference_contour as Array<[number, number]>)
+        .map(([time, frequency], index) => {
+          const x = timeToX(time, duration);
+          const y = pitchToY(frequency, minPitch, maxPitch);
+          return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+        })
+        .join(" "),
+    }));
 }
 
 function fallbackWordSegments(

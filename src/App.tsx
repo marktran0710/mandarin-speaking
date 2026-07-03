@@ -3,6 +3,7 @@ import HomePage from "./pages/HomePage";
 import CreateStoryPage from "./pages/CreateStoryPage";
 import MyStoriesPage from "./pages/MyStoriesPage";
 import VoiceTestPage from "./pages/VoiceTestPage";
+import TonePracticePage from "./pages/TonePracticePage";
 import ImageNarrationPage from "./pages/ImageNarrationPage";
 import ListenRetellPage from "./pages/ListenRetellPage";
 import TeacherImageBuilderPage from "./pages/TeacherImageBuilderPage";
@@ -34,6 +35,7 @@ export type Page =
   | "teacher-login"
   | "student-practice"
   | "student-stories"
+  | "tone-practice"
   | "voice-test"
   | "image-narration"
   | "listen-retell"
@@ -315,6 +317,9 @@ export default function App() {
           onRaiseHand={handleRaiseHand}
           publishedTopics={storyTopics}
         />
+      )}
+      {currentPage === "tone-practice" && activeRole === "student" && (
+        <TonePracticePage />
       )}
       {currentPage === "voice-test" && activeRole === "student" && (
         <VoiceTestPage />

@@ -528,10 +528,10 @@ def _audio_assessment_prompt(
     )
     reveal_now = scene_attempt_number > MAX_HINT_ATTEMPTS
     corrective_instructions = f"""
-You are also acting as a tutor giving INDIRECT corrective feedback. This is attempt #{scene_attempt_number} on this picture.
-Do NOT provide the correct answer immediately. Instead: identify where the errors are, point at (don't fully solve)
-the incorrect or missing parts, give a hint only, and ask the learner to self-correct and try again.
-{"This is attempt 3 or later — the learner has had two tries with hints only, so now reveal the correct version (set reveal_answer to true and fill correct_version with a fluent sentence using the target vocabulary and grammar pattern)." if reveal_now else "The learner has not yet had two attempts — set reveal_answer to false and leave correct_version empty. Do not give away the full correct sentence in any field."}
+You are a tutor giving structured corrective feedback. This is attempt #{scene_attempt_number} on this picture.
+Use the teacher's model answer (if provided above) as the coaching target:
+1. Compare the student's sentence against the teacher's model — identify specific gaps: missing vocabulary, different grammar structure, content from the image not yet described.
+2. {"Do NOT reveal the teacher's answer verbatim. Give a targeted hint naming the most important gap (e.g. missing word, wrong grammar slot, missing detail from the image) and ask the student to self-correct. Set reveal_answer to false and leave correct_version empty." if not reveal_now else "This is attempt 3 or later — the student has had two chances with hints. Now reveal the answer: set reveal_answer to true, fill correct_version with the teacher's model answer (or a fluent equivalent). In the hint field, briefly explain the 1-2 key differences between what the student said and the correct version so they understand what changed."}
 """
 
     return f"""Listen to this Mandarin audio recording and do two things:
@@ -570,10 +570,10 @@ Return ONLY this JSON (no markdown):
     "feedback": "<one sentence citing specific tones or sounds to improve>"
   }}{content_accuracy_block},
   "corrective_feedback": {{
-    "errors": [<short phrases marking what's wrong or missing, never the fix itself>],
-    "hint": "<a hint only — point at vocabulary/grammar to try>",
+    "errors": [<short phrases marking the specific gap vs the teacher's model — e.g. "missing subject", "wrong verb" — never state the fix>],
+    "hint": "{'<briefly explain 1-2 key differences between the student answer and the correct version, then confirm the correct version>' if reveal_now else '<name the single most important missing element compared to the teacher model — which word, pattern, or image detail — do NOT reveal the full answer>'}",
     "reveal_answer": {str(reveal_now).lower()},
-    "correct_version": "{'<a fluent Traditional Chinese sentence using the target vocabulary and grammar pattern>' if reveal_now else ''}"
+    "correct_version": "{'<teacher model answer or fluent equivalent>' if reveal_now else ''}"
   }},
   "improved_version": "<a fluent Traditional Chinese sentence fitting the scene with the target vocabulary>",
   "practice_prompt": "<one concrete next step the student should try — a hint about vocabulary/grammar to use, not the finished sentence>"
@@ -607,16 +607,18 @@ def _build_audio_context(
 
     reference_context = ""
     if scene_grammar_pattern.strip() or scene_suggested_answer.strip():
-        reference_context = (
-            "\nReference material for judging meaning (do not require an exact match — use it as "
-            "the standard for what a correct answer looks like, and as scaffolding material for your "
-            "feedback — NEVER quote or paraphrase the model answer back to the student; that defeats "
-            "the practice. Instead point them at which vocabulary word(s) or grammar slot to try next):\n"
-        )
+        reference_context = "\nCoaching reference (use to identify specific gaps between what the student said and what is expected):\n"
         if scene_grammar_pattern.strip():
             reference_context += f"- Target grammar pattern: {scene_grammar_pattern.strip()}\n"
         if scene_suggested_answer.strip():
-            reference_context += f"- A teacher-written model answer for this scene (internal reference only, do not reveal it): {scene_suggested_answer.strip()}\n"
+            reference_context += (
+                f"- Teacher's model answer: {scene_suggested_answer.strip()}\n"
+                "  Compare the student's sentence word-by-word against this model: which vocabulary words are missing, "
+                "which grammar slots differ, and what content from the image is not yet described? "
+                "Use these gaps to drive your corrective_feedback. Do NOT quote the model answer verbatim in hint "
+                "fields on early attempts — instead name the specific missing element (word/pattern/content) so the "
+                "student can self-correct.\n"
+            )
 
     return vocab_line, praat_context, reference_context
 
@@ -939,16 +941,18 @@ Note: a word counts as "used" if the student pronounced it correctly even if the
 
     reference_context = ""
     if scene_grammar_pattern.strip() or scene_suggested_answer.strip():
-        reference_context = (
-            "\nReference material for judging meaning (do not require an exact match — use it as "
-            "the standard for what a correct answer looks like, and as scaffolding material for your "
-            "feedback — NEVER quote or paraphrase the model answer back to the student; that defeats "
-            "the practice. Instead point them at which vocabulary word(s) or grammar slot to try next):\n"
-        )
+        reference_context = "\nCoaching reference (use to identify specific gaps between what the student said and what is expected):\n"
         if scene_grammar_pattern.strip():
             reference_context += f"- Target grammar pattern: {scene_grammar_pattern.strip()}\n"
         if scene_suggested_answer.strip():
-            reference_context += f"- A teacher-written model answer for this scene (internal reference only, do not reveal it): {scene_suggested_answer.strip()}\n"
+            reference_context += (
+                f"- Teacher's model answer: {scene_suggested_answer.strip()}\n"
+                "  Compare the student's sentence word-by-word against this model: which vocabulary words are missing, "
+                "which grammar slots differ, and what content is not yet described? "
+                "Use these gaps to drive your corrective_feedback. Do NOT quote the model answer verbatim in hint "
+                "fields on early attempts — instead name the specific missing element (word/pattern/content) so the "
+                "student can self-correct.\n"
+            )
 
     praat_context = ""
     if praat_tone_accuracy > 0 or praat_fluency_score > 0:
@@ -979,15 +983,10 @@ Praat acoustic data (use to inform pronunciation feedback):
 
     reveal_now = scene_attempt_number > MAX_HINT_ATTEMPTS
     corrective_instructions = f"""
-You are a Mandarin speaking tutor giving INDIRECT corrective feedback. The learner's speech above was
-transcribed by ASR. This is attempt #{scene_attempt_number} on this picture.
-
-Do NOT provide the correct answer immediately. Instead:
-1. Identify where the errors are (wrong/missing vocabulary, grammar order, or meaning that doesn't fit the scene).
-2. Point out — but don't fully solve — the incorrect or missing parts (name the word/slot, not the fix).
-3. Give a hint only (point at the target vocabulary, grammar pattern, or missing detail in the picture).
-4. Ask the learner to self-correct and try again.
-5. {"This is attempt 3 or later — the learner has had two tries with hints only, so now reveal the correct version (set reveal_answer to true and fill correct_version with a fluent sentence using the target vocabulary and grammar pattern, grounded in the model answer reference if one was given)." if reveal_now else "The learner has not yet had two attempts — set reveal_answer to false and leave correct_version empty. Do not give away the full correct sentence in any field."}
+You are a Mandarin speaking tutor giving structured corrective feedback. This is attempt #{scene_attempt_number} on this picture.
+Use the teacher's model answer (if provided above) as the coaching target:
+1. Compare the student's sentence against the teacher's model answer word-by-word — identify specific gaps: missing vocabulary, different grammar structure, content not yet described.
+2. {"Do NOT reveal the teacher's answer verbatim. Give a targeted hint naming the single most important gap (missing word, wrong grammar slot, or missing scene detail) and ask the student to self-correct. Set reveal_answer to false and leave correct_version empty." if not reveal_now else "This is attempt 3 or later — the student has had two chances with hints. Now reveal the answer: set reveal_answer to true, fill correct_version with the teacher's model answer (or a fluent equivalent). In the hint field, briefly explain the 1-2 key differences between what the student said and the correct version so they understand what changed."}
 """
 
     return f"""Analyze this Mandarin learner's spoken response and return JSON feedback.
@@ -1023,10 +1022,10 @@ Return ONLY this JSON (no markdown, no extra keys):
     "feedback": "<one sentence — cite specific tones or sounds to improve, based on Praat data>"
   }}{content_accuracy_block},
   "corrective_feedback": {{
-    "errors": [<short phrases marking what's wrong or missing — e.g. "missing word for the action", "wrong word order in the middle clause" — never the fix itself>],
-    "hint": "<a hint only — point at vocabulary/grammar to try, phrased as guidance, e.g. 'Which word describes what she is carrying?'>",
+    "errors": [<short phrases marking the specific gap vs the teacher's model — e.g. "missing action verb", "wrong word order in the middle clause" — never state the fix itself>],
+    "hint": "{'<briefly explain 1-2 key differences between the student answer and the correct version, then show the correct version>' if reveal_now else '<name the single most important missing element compared to what the teacher expects — e.g. which vocabulary word, grammar slot, or image detail is absent — do NOT give the full answer>'}",
     "reveal_answer": {str(reveal_now).lower()},
-    "correct_version": "{'<a fluent Traditional Chinese sentence using the target vocabulary and grammar pattern>' if reveal_now else ''}"
+    "correct_version": "{'<teacher model answer or fluent equivalent>' if reveal_now else ''}"
   }},
   "improved_version": "<a fluent Traditional Chinese sentence that fits the scene and includes the target vocabulary>",
   "practice_prompt": "<one concrete next step the student should try — a hint about which vocabulary/grammar to use or which tone to fix, not the finished sentence>"

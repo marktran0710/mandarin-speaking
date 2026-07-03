@@ -1,0 +1,599 @@
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { convertBlobToWav } from "../utils/audio";
+import { BiLabel } from "../components/BiLabel";
+import "./TonePracticePage.css";
+
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+
+type ToneGroup = 1 | 2 | 3 | 4 | "mixed";
+
+interface PracticeWord {
+  id: string;
+  text: string;
+  pinyin: string;
+  gloss: string;
+  tone: ToneGroup;
+}
+
+// A small, hand-picked bank: four single-character syllables per canonical
+// tone (so a beginner can isolate one tone shape at a time), plus a few
+// everyday two-character words so practice isn't limited to isolated
+// syllables. Tone grouping here is only for the picker UI — the backend
+// independently derives the real expected tone(s) for scoring from the
+// character itself via pypinyin, so a wrong label here couldn't skew scoring.
+const PRACTICE_WORDS: PracticeWord[] = [
+  { id: "ma1", text: "媽", pinyin: "mā", gloss: "mom", tone: 1 },
+  { id: "tian1", text: "天", pinyin: "tiān", gloss: "sky / day", tone: 1 },
+  { id: "san1", text: "三", pinyin: "sān", gloss: "three", tone: 1 },
+  { id: "he1", text: "喝", pinyin: "hē", gloss: "drink", tone: 1 },
+
+  { id: "ma2", text: "麻", pinyin: "má", gloss: "hemp / numb", tone: 2 },
+  { id: "xue2", text: "學", pinyin: "xué", gloss: "study", tone: 2 },
+  { id: "lai2", text: "來", pinyin: "lái", gloss: "come", tone: 2 },
+  { id: "ren2", text: "人", pinyin: "rén", gloss: "person", tone: 2 },
+
+  { id: "ma3", text: "馬", pinyin: "mǎ", gloss: "horse", tone: 3 },
+  { id: "hao3", text: "好", pinyin: "hǎo", gloss: "good", tone: 3 },
+  { id: "wo3", text: "我", pinyin: "wǒ", gloss: "I / me", tone: 3 },
+  { id: "jiu3", text: "九", pinyin: "jiǔ", gloss: "nine", tone: 3 },
+
+  { id: "ma4", text: "罵", pinyin: "mà", gloss: "scold", tone: 4 },
+  { id: "shi4", text: "是", pinyin: "shì", gloss: "is / am", tone: 4 },
+  { id: "da4", text: "大", pinyin: "dà", gloss: "big", tone: 4 },
+  { id: "xie4", text: "謝", pinyin: "xiè", gloss: "thank", tone: 4 },
+
+  { id: "nihao", text: "你好", pinyin: "nǐ hǎo", gloss: "hello", tone: "mixed" },
+  { id: "xiexie", text: "謝謝", pinyin: "xiè xie", gloss: "thank you", tone: "mixed" },
+  { id: "zaijian", text: "再見", pinyin: "zài jiàn", gloss: "goodbye", tone: "mixed" },
+  { id: "zaoan", text: "早安", pinyin: "zǎo ān", gloss: "good morning", tone: "mixed" },
+];
+
+const FILTERS: Array<{ id: ToneGroup | "all"; label: string }> = [
+  { id: "all", label: "All" },
+  { id: 1, label: "Tone 1" },
+  { id: 2, label: "Tone 2" },
+  { id: 3, label: "Tone 3" },
+  { id: 4, label: "Tone 4" },
+  { id: "mixed", label: "Words" },
+];
+
+interface WordProsodySegment {
+  token: string;
+  pitch_contour: Array<[number, number]>;
+  reference_contour?: Array<[number, number]>;
+  tone_accuracy: number;
+  feedback: string;
+}
+
+interface AnalyzeResult {
+  tone_accuracy: number;
+  feedback: string;
+  word_prosody: WordProsodySegment[];
+}
+
+interface Attempt {
+  score: number;
+  at: number;
+}
+
+const BEST_SCORES_KEY = "tonePracticeBestScores";
+
+function loadBestScores(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(BEST_SCORES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveBestScores(scores: Record<string, number>) {
+  try {
+    localStorage.setItem(BEST_SCORES_KEY, JSON.stringify(scores));
+  } catch {
+    /* storage unavailable — best-score memory just won't persist */
+  }
+}
+
+export default function TonePracticePage() {
+  const [filter, setFilter] = useState<ToneGroup | "all">("all");
+  const [selected, setSelected] = useState<PracticeWord>(PRACTICE_WORDS[0]);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<AnalyzeResult | null>(null);
+  const [attempts, setAttempts] = useState<Attempt[]>([]);
+  const [bestScores, setBestScores] = useState<Record<string, number>>(() => loadBestScores());
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+
+  const visibleWords = useMemo(
+    () => (filter === "all" ? PRACTICE_WORDS : PRACTICE_WORDS.filter((w) => w.tone === filter)),
+    [filter],
+  );
+
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  const chooseWord = (word: PracticeWord) => {
+    setSelected(word);
+    setResult(null);
+    setError("");
+    setAttempts([]);
+  };
+
+  const playExample = () => {
+    if (!("speechSynthesis" in window)) {
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(selected.text);
+    utterance.lang = "zh-TW";
+    utterance.rate = 0.8;
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const startRecording = async () => {
+    setError("");
+    setResult(null);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      chunksRef.current = [];
+
+      const preferredType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+      const recorder = new MediaRecorder(stream, preferredType ? { mimeType: preferredType } : undefined);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const rawBlob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        await analyze(rawBlob);
+      };
+
+      recorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not access the microphone.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecording(false);
+  };
+
+  const analyze = async (rawBlob: Blob) => {
+    setIsAnalyzing(true);
+    try {
+      const wavBlob = await convertBlobToWav(rawBlob);
+      const formData = new FormData();
+      formData.append("file", wavBlob, "tone-practice.wav");
+      // Forcing the known transcription skips ASR entirely: Praat compares
+      // the recording directly against this word's real expected tone(s),
+      // so nothing here depends on speech-recognition accuracy.
+      formData.append("transcription", selected.text);
+      formData.append("ai_provider", "local");
+
+      const response = await fetch(`${getBackendUrl()}/api/analyze`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.detail || "Analysis failed.");
+      }
+
+      const data = (await response.json()) as AnalyzeResult;
+      setResult(data);
+
+      const score = data.word_prosody?.[0]?.tone_accuracy ?? data.tone_accuracy ?? 0;
+      setAttempts((prev) => [...prev, { score, at: Date.now() }]);
+      setBestScores((prev) => {
+        const next = { ...prev, [selected.id]: Math.max(prev[selected.id] || 0, score) };
+        saveBestScores(next);
+        return next;
+      });
+    } catch (err) {
+      setError(formatBackendError(err));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("audio/") && !/\.(wav|webm|mp3|m4a|ogg|aac|flac)$/i.test(file.name)) {
+      setError(`"${file.name}" isn't an audio file.`);
+      return;
+    }
+
+    setError("");
+    setResult(null);
+    await analyze(file);
+  };
+
+  const bestForSelected = bestScores[selected.id];
+  const latestScore = attempts[attempts.length - 1]?.score;
+  const previousScore = attempts[attempts.length - 2]?.score;
+
+  return (
+    <main className="tone-practice-page">
+      <section className="tone-practice-hero">
+        <p className="eyebrow">
+          <BiLabel zh="聲調練習角" en="Tone practice corner" />
+        </p>
+        <h1>
+          <BiLabel zh="試試你的聲調" en="Test your tone against the shape" />
+        </h1>
+        <p>
+          <BiLabel
+            zh="選一個字，聽範例，錄音，馬上看看你的音高曲線跟目標形狀有多接近。"
+            en="Pick a character, listen to the example, record yourself, and see your pitch curve next to the target shape right away."
+          />
+        </p>
+      </section>
+
+      <section className="tone-practice-filters" aria-label="Filter by tone">
+        {FILTERS.map((f) => (
+          <button
+            key={String(f.id)}
+            type="button"
+            className={`tone-filter-chip ${filter === f.id ? "active" : ""}`}
+            onClick={() => setFilter(f.id)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </section>
+
+      <section className="tone-practice-grid" aria-label="Practice words">
+        {visibleWords.map((word) => {
+          const best = bestScores[word.id];
+          return (
+            <button
+              key={word.id}
+              type="button"
+              className={`tone-word-card ${selected.id === word.id ? "selected" : ""}`}
+              onClick={() => chooseWord(word)}
+            >
+              <ToneShapeIcon tone={word.tone} />
+              <strong>{word.text}</strong>
+              <span>{word.pinyin}</span>
+              <small>{word.gloss}</small>
+              {typeof best === "number" && (
+                <em className={`tone-word-best ${scoreBand(best)}`}>{Math.round(best)}%</em>
+              )}
+            </button>
+          );
+        })}
+      </section>
+
+      <section className="tone-practice-panel">
+        <div className="tone-practice-target">
+          <div className="tone-practice-target-main">
+            <ToneShapeIcon tone={selected.tone} size={40} />
+            <div>
+              <strong className="tone-practice-char">{selected.text}</strong>
+              <span className="tone-practice-pinyin">{selected.pinyin}</span>
+              <span className="tone-practice-gloss">{selected.gloss}</span>
+            </div>
+          </div>
+          <button type="button" className="btn btn-secondary" onClick={playExample}>
+            <BiLabel zh="聽範例" en="Listen" />
+          </button>
+        </div>
+
+        <div className="tone-practice-controls">
+          <button
+            type="button"
+            className={`btn ${isRecording ? "btn-danger" : "btn-primary"}`}
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={isAnalyzing}
+          >
+            {isRecording ? (
+              <BiLabel zh="停止並看結果" en="Stop and see result" />
+            ) : (
+              <BiLabel zh="開始錄音" en="Record" />
+            )}
+          </button>
+          <label
+            className={`btn btn-secondary tone-practice-upload-label ${
+              isRecording || isAnalyzing ? "disabled" : ""
+            }`}
+            role="button"
+            tabIndex={isRecording || isAnalyzing ? -1 : 0}
+          >
+            <BiLabel zh="上傳音檔" en="Upload audio" />
+            <input
+              type="file"
+              accept="audio/*,.wav,.webm,.mp3,.m4a,.ogg,.aac,.flac"
+              className="tone-practice-upload-input"
+              onChange={handleImportFile}
+              disabled={isRecording || isAnalyzing}
+            />
+          </label>
+          {attempts.length > 0 && (
+            <span className="tone-practice-attempt-count">
+              <BiLabel zh="第" en="Attempt" /> {attempts.length}
+              {typeof bestForSelected === "number" && (
+                <>
+                  {" · "}
+                  <BiLabel zh="最佳" en="Best" /> {Math.round(bestForSelected)}%
+                </>
+              )}
+            </span>
+          )}
+        </div>
+
+        {isAnalyzing && (
+          <p className="tone-practice-status">
+            <BiLabel zh="正在分析你的聲音…" en="Analyzing your voice…" />
+          </p>
+        )}
+        {error && <p className="tone-practice-error">{error}</p>}
+
+        {result && !isAnalyzing && (
+          <ToneMatchResult
+            result={result}
+            targetText={selected.text}
+            latestScore={latestScore}
+            previousScore={attempts.length > 1 ? previousScore : undefined}
+          />
+        )}
+
+        {result && !isAnalyzing && (
+          <div className="tone-practice-retry-row">
+            <button type="button" className="btn btn-primary" onClick={startRecording} disabled={isRecording}>
+              <BiLabel zh="再試一次" en="Try again" />
+            </button>
+            <NextWordButton words={visibleWords} current={selected} onChoose={chooseWord} />
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function NextWordButton({
+  words,
+  current,
+  onChoose,
+}: {
+  words: PracticeWord[];
+  current: PracticeWord;
+  onChoose: (word: PracticeWord) => void;
+}) {
+  const currentIndex = words.findIndex((w) => w.id === current.id);
+  const next = words[(currentIndex + 1) % words.length];
+
+  if (words.length < 2) {
+    return null;
+  }
+
+  return (
+    <button type="button" className="btn btn-secondary" onClick={() => onChoose(next)}>
+      <BiLabel zh="下一個字" en="Next word" /> · {next.text}
+    </button>
+  );
+}
+
+function ToneMatchResult({
+  result,
+  targetText,
+  latestScore,
+  previousScore,
+}: {
+  result: AnalyzeResult;
+  targetText: string;
+  latestScore?: number;
+  previousScore?: number;
+}) {
+  const segments = result.word_prosody || [];
+
+  if (segments.length === 0) {
+    return (
+      <div className="tone-practice-result empty">
+        <p>
+          <BiLabel
+            zh="沒聽清楚。再靠近麥克風一點，把字音拉長一點再試一次。"
+            en="Didn't catch enough of that. Move closer to the mic, hold the sound a little longer, and try again."
+          />
+        </p>
+      </div>
+    );
+  }
+
+  const trend =
+    typeof latestScore === "number" && typeof previousScore === "number"
+      ? Math.round(latestScore - previousScore)
+      : undefined;
+
+  return (
+    <div className="tone-practice-result">
+      {segments.map((segment, index) => (
+        <div className={`tone-match-card ${scoreBand(segment.tone_accuracy)}`} key={`${segment.token}-${index}`}>
+          <div className="tone-match-header">
+            <div className="tone-match-score-ring">
+              <strong>{Math.round(segment.tone_accuracy)}%</strong>
+              <span>{scoreVerdict(segment.tone_accuracy)}</span>
+            </div>
+            <div className="tone-match-meta">
+              <strong>{segment.token || targetText}</strong>
+              {index === 0 && typeof trend === "number" && trend !== 0 && (
+                <em className={trend > 0 ? "trend-up" : "trend-down"}>
+                  {trend > 0 ? "↑" : "↓"} {Math.abs(trend)}% <BiLabel zh="比上次" en="vs last try" />
+                </em>
+              )}
+            </div>
+          </div>
+          <TonePitchOverlay
+            userContour={segment.pitch_contour}
+            referenceContour={segment.reference_contour || []}
+          />
+          <p className="tone-match-feedback">{segment.feedback}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function scoreBand(score: number): "good" | "ok" | "low" {
+  if (score >= 68) return "good";
+  if (score >= 48) return "ok";
+  return "low";
+}
+
+function scoreVerdict(score: number): string {
+  if (score >= 68) return "Great match";
+  if (score >= 48) return "Getting there";
+  return "Keep practicing";
+}
+
+const CHART_WIDTH = 560;
+const CHART_HEIGHT = 200;
+const CHART_PAD = 28;
+
+function TonePitchOverlay({
+  userContour,
+  referenceContour,
+}: {
+  userContour: Array<[number, number]>;
+  referenceContour: Array<[number, number]>;
+}) {
+  if (userContour.length < 2) {
+    return (
+      <div className="tone-pitch-overlay tone-pitch-overlay-empty">
+        <BiLabel zh="音檔太短，無法畫出音高曲線。" en="Recording too short to draw a pitch curve." />
+      </div>
+    );
+  }
+
+  const allPoints = [...userContour, ...referenceContour];
+  const times = allPoints.map((p) => p[0]);
+  const freqs = allPoints.map((p) => p[1]);
+  const minTime = Math.min(...times);
+  const maxTime = Math.max(...times, minTime + 0.01);
+  const minFreq = Math.min(...freqs);
+  const maxFreq = Math.max(...freqs, minFreq + 1);
+
+  const toX = (t: number) =>
+    CHART_PAD + ((t - minTime) / (maxTime - minTime)) * (CHART_WIDTH - CHART_PAD * 2);
+  const toY = (f: number) =>
+    CHART_HEIGHT - CHART_PAD - ((f - minFreq) / (maxFreq - minFreq)) * (CHART_HEIGHT - CHART_PAD * 2);
+
+  const toPath = (points: Array<[number, number]>) =>
+    points
+      .map(([t, f], i) => `${i === 0 ? "M" : "L"} ${toX(t).toFixed(1)} ${toY(f).toFixed(1)}`)
+      .join(" ");
+
+  return (
+    <div className="tone-pitch-overlay">
+      <svg
+        viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+        role="img"
+        aria-label="Your pitch compared with the target tone shape"
+      >
+        <rect x="0" y="0" width={CHART_WIDTH} height={CHART_HEIGHT} rx="12" fill="#f8fafc" />
+        <text x={CHART_PAD} y={CHART_PAD - 10} className="tone-pitch-axis-label">
+          {Math.round(maxFreq)} Hz
+        </text>
+        <text x={CHART_PAD} y={CHART_HEIGHT - CHART_PAD + 18} className="tone-pitch-axis-label">
+          {Math.round(minFreq)} Hz
+        </text>
+        {referenceContour.length > 1 && (
+          <path
+            d={toPath(referenceContour)}
+            fill="none"
+            stroke="#9aa7b5"
+            strokeWidth="3"
+            strokeDasharray="6 6"
+          />
+        )}
+        <path d={toPath(userContour)} fill="none" stroke="#167f92" strokeWidth="4" />
+        <g className="tone-pitch-legend">
+          <line x1={CHART_WIDTH - 150} y1="16" x2={CHART_WIDTH - 132} y2="16" stroke="#167f92" strokeWidth="4" />
+          <text x={CHART_WIDTH - 126} y="20" className="tone-pitch-axis-label">
+            your pitch
+          </text>
+          {referenceContour.length > 1 && (
+            <>
+              <line
+                x1={CHART_WIDTH - 150}
+                y1="34"
+                x2={CHART_WIDTH - 132}
+                y2="34"
+                stroke="#9aa7b5"
+                strokeWidth="3"
+                strokeDasharray="6 6"
+              />
+              <text x={CHART_WIDTH - 126} y="38" className="tone-pitch-axis-label">
+                target shape
+              </text>
+            </>
+          )}
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+function ToneShapeIcon({ tone, size = 22 }: { tone: ToneGroup; size?: number }) {
+  const paths: Record<ToneGroup, string> = {
+    1: "M4 14 H28",
+    2: "M4 22 L28 6",
+    3: "M4 10 C10 24 22 24 28 6",
+    4: "M4 6 L28 22",
+    mixed: "M4 14 H10 M14 22 L20 6 M24 10 C26 17 30 17 32 8",
+  };
+
+  return (
+    <svg
+      className="tone-shape-icon"
+      width={size}
+      height={size}
+      viewBox="0 0 32 28"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path d={paths[tone]} stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+}
+
+function getBackendUrl(): string {
+  if (BACKEND_URL) {
+    return BACKEND_URL;
+  }
+  throw new Error("Tone practice needs a deployed backend. Set VITE_BACKEND_URL.");
+}
+
+function formatBackendError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const networkFailures = ["Failed to fetch", "NetworkError", "Load failed"];
+  if (networkFailures.some((failure) => message.includes(failure))) {
+    return `Cannot reach the speech analysis backend${BACKEND_URL ? ` at ${BACKEND_URL}` : ""}. Start the backend and try again.`;
+  }
+  return message || "Something went wrong analyzing that recording.";
+}

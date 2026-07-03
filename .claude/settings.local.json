@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Skill(run)",
-      "Skill(run:*)"
+      "Skill(run:*)",
+      "Bash(SHOTDIR=/tmp/shots node /d/hautran/Lab/mandarin-speaking/pastelcheck.mjs)",
+      "Bash(SHOTDIR=/tmp/shots node *)"
     ]
   }
 }
