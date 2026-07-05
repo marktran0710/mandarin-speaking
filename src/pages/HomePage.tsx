@@ -1,7 +1,6 @@
 import "./HomePage.css";
 import { Page } from "../App";
 import { BiLabel, BiText } from "../components/BiLabel";
-import ToneMark from "../components/ToneMark";
 import "../components/BiLabel.css";
 
 interface HomePageProps {
@@ -13,7 +12,6 @@ export default function HomePage({ onNavigate }: HomePageProps) {
     <div className="home-page">
       <section className="hero">
         <div className="hero-content">
-          <ToneMark className="hero-tonemark" size={48} />
           <p className="platform-kicker"><BiLabel k="mandarin_speaking_practice" /></p>
           <h1 className="hero-title"><BiLabel k="mandarin_story_coach" /></h1>
           <p className="hero-subtitle">

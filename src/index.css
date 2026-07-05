@@ -28,12 +28,13 @@
   --clay-hairline: #f2e4ce;
   --clay-hairline-soft: #f7ecda;
 
-  /* Tone 4 (falling) — vivid crimson-red, the primary brand accent.
-     -soft is a genuine pastel now (not a barely-there wash) so it reads as
-     one of "many pastel colors" wherever it's used as a card/section fill;
-     -deep stays dark enough to sit as text on top of it (≥4.5:1 AA). */
-  --clay-primary: #e01b3d;
-  --clay-primary-active: #a81230;
+  /* Tone 4 (falling) — the primary brand accent, softened to a pastel soft
+     coral. White button labels (bold, large) stay above the 3:1 AA-large
+     floor; it also reads well as dark-on-light text. -active is a slightly
+     deeper coral for hover/pressed states.
+     -soft is a genuine pastel too, used as card/section fills. */
+  --clay-primary: #ef5a76;
+  --clay-primary-active: #e0455f;
   --clay-primary-disabled: #ffc7cf;
   --seal: #e01b3d;
   --seal-deep: #a81230;
@@ -107,7 +108,10 @@
 
   /* Type — display keeps the brush-like serif but heavier, so it still
      reads distinctive rather than "generic bold sans app" */
-  --font-display: "Noto Serif TC", "Songti TC", "PMingLiU", "Iowan Old Style", Georgia, serif;
+  /* Curvy, learner-friendly display type: Quicksand rounds the Latin glyphs;
+     LXGW WenKai TC renders Chinese in a flowing Kai (楷書) style. Quicksand is
+     listed first so Latin uses it and CJK falls through to the Kai face. */
+  --font-display: "Quicksand", "LXGW WenKai TC", "Noto Serif TC", "Songti TC", "Iowan Old Style", Georgia, serif;
   --font-sans:
     "Inter", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Segoe UI",
     -apple-system, BlinkMacSystemFont, sans-serif;
@@ -809,6 +813,16 @@ h4,
 strong {
   font-weight: 650;
   letter-spacing: 0;
+}
+
+/* Chinese legibility for learners: Han characters are denser than Latin, so
+   a touch of tracking separates the strokes and makes them easier to read at
+   a glance. Applies to any element tagged as Chinese (BiLabel output, teacher
+   scripts, etc.) without affecting Latin text. */
+:lang(zh-Hant),
+:lang(zh-TW),
+:lang(zh) {
+  letter-spacing: 0.02em;
 }
 
 /* Chinese display headlines use the Song-style serif; Latin/UI stays sans. */

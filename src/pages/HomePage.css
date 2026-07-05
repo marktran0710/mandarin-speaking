@@ -26,11 +26,6 @@
   margin: 0 auto;
 }
 
-.hero-tonemark {
-  color: var(--seal);
-  margin: 0 auto 20px;
-}
-
 .platform-kicker {
   color: var(--clay-muted);
   font-size: 14px;
