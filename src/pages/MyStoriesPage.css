@@ -100,6 +100,59 @@
   text-transform: none;
 }
 
+.my-story-feedback-history {
+  max-width: 980px;
+  margin: 0 auto 18px;
+  padding: 16px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+}
+
+.my-story-feedback-history h2 {
+  color: var(--clay-ink);
+  font-size: 22px;
+  margin: 0 0 6px;
+}
+
+.my-story-feedback-history .stories-subtitle {
+  margin: 0 0 14px;
+}
+
+.my-story-feedback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.my-story-feedback-item {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.my-story-feedback-item summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 700;
+  color: var(--clay-ink);
+}
+
+.my-story-feedback-item[open] summary {
+  border-bottom: 1px solid var(--clay-hairline);
+}
+
+.msfh-date {
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .student-help-card {
   max-width: 980px;
   margin: 0 auto 18px;

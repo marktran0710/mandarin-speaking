@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import httpx
 from dotenv import load_dotenv
@@ -1127,3 +1127,385 @@ def _score(value) -> int:
         return max(0, min(100, int(round(float(value)))))
     except (TypeError, ValueError):
         return 0
+
+
+# ── Story-level holistic feedback ──────────────────────────────────────────
+#
+# Runs once, after a student submits a whole story (all scenes concatenated),
+# on top of — never instead of — the per-scene feedback above. A separate
+# prompt/pipeline from _feedback_prompt, but unlike the first version of this
+# feature, Fluency-and-Coherence and Pronunciation ARE allowed to use the same
+# per-scene Praat metrics (tone accuracy, fluency score, word-prosody/
+# pronunciation accuracy) already computed during recording — averaged across
+# the whole story — since that's real acoustic signal, not a guess. Lexical
+# Resource and Grammatical Range and Accuracy stay text-only (Praat has no
+# opinion on vocabulary or grammar).
+
+_STORY_FEEDBACK_SYSTEM_PROMPT = (
+    "You are an expert Mandarin (Traditional Chinese) speaking coach for Taiwanese learners, "
+    "evaluating a full story narration as one connected performance. "
+    "Always respond in valid JSON only — no markdown fences, no prose outside the JSON."
+)
+
+
+def _story_feedback_prompt(
+    combined_transcript: str,
+    avg_tone_accuracy: float = 0,
+    avg_fluency_score: float = 0,
+    avg_pron_score: float = 0,
+) -> str:
+    scene_count = max(1, combined_transcript.count("[Scene "))
+    praat_context = ""
+    if avg_tone_accuracy > 0 or avg_fluency_score > 0 or avg_pron_score > 0:
+        praat_context = f"""
+Praat acoustic data, averaged across every scene in this story (this is real measured data — use it to ground fluency_coherence and pronunciation, and feel free to cite these numbers directly in your feedback):
+- Average tone accuracy: {round(avg_tone_accuracy)}%
+- Average fluency score: {round(avg_fluency_score)}%
+- Average pronunciation/prosody accuracy: {round(avg_pron_score)}%
+"""
+
+    return f"""You are evaluating a STORY-LEVEL transcript: everything a student said across every scene of a picture story, concatenated in order as one connected narration — not a single sentence.
+
+This story has exactly {scene_count} scene(s), listed below in order as [Scene 1], [Scene 2], etc. Base every dimension on ALL {scene_count} scene(s) together, not just the first or the longest one. A scene marked "(no speech transcribed for this scene)" means the student attempted that scene but nothing was recognized — treat that as a real gap in the narration (it should weigh down fluency_coherence, since a connected story with a missing beat is less coherent), not as a scene to ignore.
+
+Student's full story transcript (scene by scene):
+{combined_transcript}
+{praat_context}
+Score these four dimensions, using the standard IELTS Speaking rubric definitions. The student will NOT see the numeric score — only your feedback text — so every "feedback" field must be actionable coaching, not just a description: briefly name the current level in one clause, then spend most of the sentence(s) on 1-2 concrete, specific things the student should do differently NEXT time to improve this particular skill. Avoid generic advice ("practice more") — tie the suggestion to something actually observed in this story (a specific word, structure, scene, or the Praat numbers).
+
+1. fluency_coherence — base the FLUENCY part primarily on the average fluency score above (speaking rate, pausing, rhythm across the whole story, if provided); base the COHERENCE part on text signals (hesitation markers, repeated restarts, filler words, and how logically the scenes link together — sequencing, connectives, transitions). Blend both into one score. In the feedback, suggest a concrete way to speak more smoothly or link scenes better (e.g. a specific connective word to try, or where to slow down/pause less).
+2. lexical_resource — the range, precision, and appropriateness of vocabulary used across the WHOLE story: variety, avoidance of repetition, idiomatic or topic-appropriate word choice. Text-only — do not use the Praat numbers for this dimension. In the feedback, name a specific repeated or overly simple word from the transcript and suggest a richer alternative.
+3. grammatical_range_accuracy — the variety of sentence structures/grammar patterns attempted across the story, AND the grammatical correctness of the narration. Text-only — do not use the Praat numbers for this dimension. In the feedback, point at one specific sentence/structure from the transcript and suggest a concrete grammar pattern to try instead.
+4. pronunciation — base this primarily on the average tone accuracy and pronunciation/prosody accuracy Praat data above, if provided (cite the numbers directly, e.g. "tone accuracy averaged 72% across the story"); if no Praat data was given, fall back to a holistic impression from transcript-level signals only (unclear/garbled segments) and say so. In the feedback, suggest a concrete next step (e.g. reviewing a particular tone pattern, or slowing down on longer words).
+
+Return ONLY this JSON (no markdown):
+{{
+  "provider": "ai",
+  "fluency_coherence": {{"score": <int 0-100, internal only, not shown to the student>, "feedback": "<2-3 sentences: brief current-level note + concrete, specific suggestion for how to improve>"}},
+  "lexical_resource": {{"score": <int 0-100, internal only, not shown to the student>, "feedback": "<2-3 sentences: brief current-level note + concrete, specific suggestion for how to improve>"}},
+  "grammatical_range_accuracy": {{"score": <int 0-100, internal only, not shown to the student>, "feedback": "<2-3 sentences: brief current-level note + concrete, specific suggestion for how to improve>"}},
+  "pronunciation": {{"score": <int 0-100, internal only, not shown to the student>, "feedback": "<2-3 sentences: brief current-level note + concrete, specific suggestion for how to improve>"}}
+}}"""
+
+
+_STORY_FILLER_TOKENS = ["嗯", "呃", "那個", "就是說", "然後然後"]
+
+
+def _most_repeated_word(tokens: List[str]) -> Optional[str]:
+    """The most-repeated content word (2+ Han characters, appears 2+ times), for a concrete tip."""
+    counts: Dict[str, int] = {}
+    for tok in tokens:
+        if len(tok) >= 2 and tok not in _STORY_FILLER_TOKENS:
+            counts[tok] = counts.get(tok, 0) + 1
+    candidates = [(word, n) for word, n in counts.items() if n >= 2]
+    if not candidates:
+        return None
+    candidates.sort(key=lambda pair: pair[1], reverse=True)
+    return candidates[0][0]
+
+
+def _fluency_coherence_heuristic(text: str, tokens: List[str], avg_fluency_score: float = 0) -> Dict:
+    if not tokens and avg_fluency_score <= 0:
+        return {
+            "score": 0,
+            "feedback": "No speech was transcribed for this story.",
+            "judged": False,
+        }
+    filler_count = sum(text.count(tok) for tok in _STORY_FILLER_TOKENS)
+    filler_ratio = filler_count / max(len(tokens), 1)
+    length_score = max(0, min(100, round((len(tokens) / 40) * 100)))
+    filler_penalty = min(60, round(filler_ratio * 300))
+    coherence_score = max(0, min(100, length_score - filler_penalty))
+
+    improve_tip = (
+        "Try cutting down on filler words (e.g. 那個/嗯) between scenes, and link scenes with a "
+        "connective like 然後/因為/所以 so the story flows as one piece instead of separate sentences."
+        if filler_count > 0
+        else "Keep linking your scenes with connective words (然後/因為/所以/但是) so the story reads "
+        "as one continuous narration rather than isolated sentences."
+    )
+
+    if avg_fluency_score > 0:
+        # Real Praat fluency data available — ground the score in it, blended
+        # with the text-based coherence estimate (Praat has no opinion on
+        # whether the scenes logically link together as one narration).
+        score = round(0.6 * avg_fluency_score + 0.4 * coherence_score)
+        return {
+            "score": max(0, min(100, score)),
+            "feedback": f"Your speaking pace and pausing (from Praat) were the main factor here. {improve_tip}",
+            "judged": True,
+        }
+
+    return {
+        "score": coherence_score,
+        "feedback": f"{improve_tip} (No Praat fluency data was available for this estimate.)",
+        "judged": False,
+    }
+
+
+def _pronunciation_from_praat(avg_tone_accuracy: float, avg_pron_score: float) -> Dict:
+    if avg_tone_accuracy <= 0 and avg_pron_score <= 0:
+        return {
+            "score": 0,
+            "feedback": (
+                "No pronunciation data was available for this story — switch to an AI provider "
+                "(Groq/Gemini/OpenAI) for feedback, or make sure each scene finishes analysis before submitting."
+            ),
+            "judged": False,
+        }
+    score = (
+        round(0.5 * avg_tone_accuracy + 0.5 * avg_pron_score)
+        if avg_pron_score > 0
+        else round(avg_tone_accuracy)
+    )
+    weakest = "tones" if avg_tone_accuracy <= avg_pron_score else "word stress and rhythm"
+    return {
+        "score": max(0, min(100, score)),
+        "feedback": (
+            f"Your {weakest} needed the most work across this story. Go back through the per-scene "
+            "feedback above and re-practice the specific characters or words it flagged as low-accuracy "
+            "— repeating just those, out loud, a few times will help more than re-recording the whole story."
+        ),
+        "judged": True,
+    }
+
+
+def fallback_story_feedback(
+    combined_transcript: str,
+    avg_tone_accuracy: float = 0,
+    avg_fluency_score: float = 0,
+    avg_pron_score: float = 0,
+) -> Dict:
+    """Offline story-level feedback — no LLM call.
+
+    Fluency-and-Coherence and Pronunciation are grounded in the same per-scene
+    Praat metrics (tone accuracy, fluency score, word-prosody accuracy)
+    already computed during recording, averaged across the story — real
+    acoustic data, not a guess. Lexical Resource and Grammatical Range reuse
+    the deterministic CAF measures already computed for per-scene local
+    feedback (caf_metrics.py) and stay text-only, since Praat has no opinion
+    on vocabulary or grammar. If no Praat data is available at all (e.g. no
+    scene was ever analyzed), the acoustic-grounded dimensions fall back to a
+    clearly-flagged placeholder (``judged: False``) instead of a false score.
+    """
+    text = combined_transcript.strip()
+    tokens = caf_metrics.segment_words(text)
+    lexical = caf_metrics.lexical_metrics(tokens)
+    syntax = caf_metrics.syntactic_complexity(tokens, text)
+    repeated_word = _most_repeated_word(tokens)
+
+    lexical_tip = (
+        f'You repeated "{repeated_word}" several times — try swapping some repeats for a synonym or '
+        "a more descriptive word next time."
+        if repeated_word
+        else "Try adding a few more descriptive words (adjectives/verbs) instead of the simplest option each time."
+    )
+    grammar_tip = (
+        "Try connecting two short sentences into one with 因為...所以 or 雖然...但是 for more variety."
+        if len(syntax["connectives"]) == 0
+        else "Good use of connectives — next time try one you haven't used yet, like 雖然...但是 or 只要...就."
+    )
+
+    return {
+        "provider": "local",
+        "fluency_coherence": _fluency_coherence_heuristic(text, tokens, avg_fluency_score),
+        "lexical_resource": {
+            "score": lexical["score"],
+            "feedback": lexical_tip,
+            "judged": True,
+        },
+        "grammatical_range_accuracy": {
+            "score": syntax["score"],
+            "feedback": grammar_tip,
+            "judged": True,
+        },
+        "pronunciation": _pronunciation_from_praat(avg_tone_accuracy, avg_pron_score),
+    }
+
+
+def _normalize_story_feedback(
+    data: Dict,
+    avg_tone_accuracy: float = 0,
+    avg_fluency_score: float = 0,
+    avg_pron_score: float = 0,
+) -> Dict:
+    fallback = fallback_story_feedback(
+        "", avg_tone_accuracy=avg_tone_accuracy, avg_fluency_score=avg_fluency_score, avg_pron_score=avg_pron_score
+    )
+
+    def _dimension(key: str) -> Dict:
+        raw = data.get(key) or {}
+        return {
+            "score": _score(raw.get("score", fallback[key]["score"])),
+            "feedback": str(raw.get("feedback", fallback[key]["feedback"])),
+            "judged": True,
+        }
+
+    return {
+        "provider": str(data.get("provider", "ai")),
+        "fluency_coherence": _dimension("fluency_coherence"),
+        "lexical_resource": _dimension("lexical_resource"),
+        "grammatical_range_accuracy": _dimension("grammatical_range_accuracy"),
+        "pronunciation": _dimension("pronunciation"),
+    }
+
+
+async def _story_feedback_with_groq(
+    combined_transcript: str,
+    avg_tone_accuracy: float = 0,
+    avg_fluency_score: float = 0,
+    avg_pron_score: float = 0,
+) -> Dict:
+    payload = {
+        "model": GROQ_FEEDBACK_MODEL,
+        "response_format": {"type": "json_object"},
+        "temperature": 0.2,
+        "messages": [
+            {"role": "system", "content": _STORY_FEEDBACK_SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": _story_feedback_prompt(
+                    combined_transcript, avg_tone_accuracy, avg_fluency_score, avg_pron_score
+                ),
+            },
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["choices"][0]["message"]["content"]
+    data = json.loads(content)
+    data["provider"] = "groq"
+    return _normalize_story_feedback(data, avg_tone_accuracy, avg_fluency_score, avg_pron_score)
+
+
+async def _story_feedback_with_openai(
+    combined_transcript: str,
+    avg_tone_accuracy: float = 0,
+    avg_fluency_score: float = 0,
+    avg_pron_score: float = 0,
+) -> Dict:
+    payload = {
+        "model": OPENAI_FEEDBACK_MODEL,
+        "response_format": {"type": "json_object"},
+        "messages": [
+            {"role": "system", "content": _STORY_FEEDBACK_SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": _story_feedback_prompt(
+                    combined_transcript, avg_tone_accuracy, avg_fluency_score, avg_pron_score
+                ),
+            },
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["choices"][0]["message"]["content"]
+    data = json.loads(content)
+    data["provider"] = "openai"
+    return _normalize_story_feedback(data, avg_tone_accuracy, avg_fluency_score, avg_pron_score)
+
+
+async def _story_feedback_with_gemini(
+    combined_transcript: str,
+    avg_tone_accuracy: float = 0,
+    avg_fluency_score: float = 0,
+    avg_pron_score: float = 0,
+) -> Dict:
+    payload = {
+        "system_instruction": {"parts": [{"text": _STORY_FEEDBACK_SYSTEM_PROMPT}]},
+        "contents": [
+            {
+                "parts": [
+                    {
+                        "text": _story_feedback_prompt(
+                            combined_transcript, avg_tone_accuracy, avg_fluency_score, avg_pron_score
+                        )
+                    }
+                ]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0.2,
+            "responseMimeType": "application/json",
+        },
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_FEEDBACK_MODEL}:generateContent?key={GEMINI_API_KEY}",
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+    data = json.loads(_strip_json_fence(content))
+    data["provider"] = GEMINI_FEEDBACK_MODEL
+    return _normalize_story_feedback(data, avg_tone_accuracy, avg_fluency_score, avg_pron_score)
+
+
+async def generate_story_feedback(
+    combined_transcript: str,
+    provider: str | None = None,
+    avg_tone_accuracy: float = 0,
+    avg_fluency_score: float = 0,
+    avg_pron_score: float = 0,
+) -> Dict:
+    """Produce one holistic, story-level feedback after all scenes are submitted.
+
+    Mirrors the provider-dispatch-with-fallback shape of generate_language_feedback:
+    the requested engine is tried first, then any other configured cloud provider,
+    finally the offline CAF-based engine. Fluency-and-Coherence and Pronunciation
+    are grounded in avg_tone_accuracy/avg_fluency_score/avg_pron_score (the
+    per-scene Praat metrics, averaged across the story); Lexical Resource and
+    Grammatical Range and Accuracy stay text-only in every engine.
+    """
+    text = combined_transcript.strip()
+    praat_args = dict(
+        avg_tone_accuracy=avg_tone_accuracy,
+        avg_fluency_score=avg_fluency_score,
+        avg_pron_score=avg_pron_score,
+    )
+    if not text:
+        return fallback_story_feedback(text, **praat_args)
+
+    chosen = (provider or AI_FEEDBACK_PROVIDER or "local").strip().lower()
+    if chosen == "local":
+        return fallback_story_feedback(text, **praat_args)
+
+    all_providers = ["groq", "gemini", "openai"]
+    order = [chosen] + [p for p in all_providers if p != chosen]
+    callers = {
+        "groq": _story_feedback_with_groq,
+        "openai": _story_feedback_with_openai,
+        "gemini": _story_feedback_with_gemini,
+    }
+    keys = {"groq": GROQ_API_KEY, "openai": OPENAI_API_KEY, "gemini": GEMINI_API_KEY}
+    for name in order:
+        if not keys.get(name):
+            continue
+        try:
+            return await callers[name](text, **praat_args)
+        except Exception as exc:
+            print(f"{name} story feedback failed, trying next engine: {exc}")
+
+    return fallback_story_feedback(text, **praat_args)

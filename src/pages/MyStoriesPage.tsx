@@ -21,6 +21,7 @@ import {
 } from "../utils/teacherStories";
 import { BiLabel, BiText } from "../components/BiLabel";
 import "../components/BiLabel.css";
+import StoryFeedbackCard from "../components/StoryFeedbackCard";
 import "./MyStoriesPage.css";
 
 interface AudioRecord {
@@ -289,6 +290,28 @@ export default function MyStoriesPage({
 }: MyStoriesPageProps) {
   const isTeacher = mode === "teacher";
 
+  const [mySubmissions, setMySubmissions] = useState<StorySubmission[]>([]);
+
+  useEffect(() => {
+    if (isTeacher || !canUseDatabase()) return;
+    let cancelled = false;
+    listStorySubmissions()
+      .then((subs) => {
+        if (cancelled) return;
+        const studentName = getSessionName("studentSession", "Student");
+        const mine = subs
+          .filter((s) => s.studentName === studentName)
+          .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+        setMySubmissions(mine);
+      })
+      .catch(() => {
+        // Silently skip — the workbook view above is still fully usable.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isTeacher]);
+
   if (isTeacher) {
     return (
       <TeacherDashboard
@@ -363,6 +386,8 @@ export default function MyStoriesPage({
           helpRequests={helpRequests}
           onRaiseHand={onRaiseHand}
         />
+
+        <MyStoryFeedbackHistory submissions={mySubmissions} />
 
         <div className="learning-workbook">
           {studentTopics.map((topic) => {
@@ -525,6 +550,47 @@ export default function MyStoriesPage({
           })}
         </div>
       </div>
+  );
+}
+
+function MyStoryFeedbackHistory({
+  submissions,
+}: {
+  submissions: StorySubmission[];
+}) {
+  if (submissions.length === 0) return null;
+
+  return (
+    <section className="my-story-feedback-history" aria-label="My story feedback history">
+      <p className="stories-kicker">
+        <BiLabel zh="回顧與進步" en="Review and improve" />
+      </p>
+      <h2>
+        <BiLabel zh="我的故事回顧" en="My Story Feedback" />
+      </h2>
+      <p className="stories-subtitle">
+        <BiText
+          zh="再看一次你交過的故事，跟著建議練習，下次會更好。"
+          en="Look back at stories you've submitted and follow the suggestions to improve next time."
+        />
+      </p>
+      <div className="my-story-feedback-list">
+        {submissions.map((sub) => (
+          <details key={sub.id} className="my-story-feedback-item">
+            <summary>
+              <span className="msfh-title">{sub.storyTitle}</span>
+              <span className="msfh-date">
+                {new Date(sub.submittedAt).toLocaleDateString()}
+              </span>
+            </summary>
+            <StoryFeedbackCard
+              feedback={sub.storyFeedback}
+              concatenatedAudioUrl={sub.concatenatedAudioUrl}
+            />
+          </details>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -1489,6 +1555,12 @@ function TeacherDashboard({
                       </div>
                     ))}
                   </div>
+                  {(sub.concatenatedAudioUrl || sub.storyFeedback) && (
+                    <StoryFeedbackCard
+                      feedback={sub.storyFeedback}
+                      concatenatedAudioUrl={sub.concatenatedAudioUrl}
+                    />
+                  )}
                 </div>
               ))}
             </div>

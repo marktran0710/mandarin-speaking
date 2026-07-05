@@ -9,9 +9,11 @@ import {
   canUseDatabase,
   createStorySubmission,
   type SceneSubmission,
+  type StoryFeedback,
 } from "../services/database";
 import PraatTimeline from "./PraatTimeline";
 import StoryConceptMap from "./StoryConceptMap";
+import StoryFeedbackCard from "./StoryFeedbackCard";
 import { toPinyin } from "../utils/pinyin";
 import "./StoryRecorder.css";
 import { BiLabel, BiText } from "./BiLabel";
@@ -247,6 +249,10 @@ export default function StoryRecorder({
   >({});
   const [storySubmitted, setStorySubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [storyFeedbackResult, setStoryFeedbackResult] = useState<{
+    concatenatedAudioUrl?: string | null;
+    storyFeedback?: StoryFeedback | null;
+  } | null>(null);
   const [showStartModal, setShowStartModal] = useState(false);
 
   // Learning phase: overview → sorting → conceptmap → practice
@@ -859,6 +865,7 @@ export default function StoryRecorder({
         vocabScore: vc?.score ?? 0,
         toneAccuracy: Math.round(metrics.tone_accuracy),
         pronScore: averageWordProsodyAccuracy(metrics.word_prosody) ?? 0,
+        fluencyScore: Math.round(metrics.fluency_score ?? 0),
         audioUrl: "",
       };
       setSceneRecordings((prev) => {
@@ -978,7 +985,11 @@ export default function StoryRecorder({
     };
     try {
       if (canUseDatabase()) {
-        await createStorySubmission(submission);
+        const result = await createStorySubmission(submission);
+        setStoryFeedbackResult({
+          concatenatedAudioUrl: result.concatenatedAudioUrl,
+          storyFeedback: result.storyFeedback,
+        });
       }
       setStorySubmitted(true);
       setSubmitError(null);
@@ -2111,18 +2122,24 @@ export default function StoryRecorder({
 
           {/* ── Submit Story ────────────────────────────────────────── */}
           {storySubmitted ? (
-            <div className="story-submit-panel story-submit-success">
-              <span className="story-submit-icon">✓</span>
-              <div>
-                <p className="story-submit-title"><BiLabel k="story_submitted" /></p>
-                <p className="story-submit-hint">
-                  <BiLabel
-                    zh={`你的老師現在可以檢視全部 ${totalScenes} 個場景。`}
-                    en={`Your teacher can now review all ${totalScenes} scenes.`}
-                  />
-                </p>
+            <>
+              <div className="story-submit-panel story-submit-success">
+                <span className="story-submit-icon">✓</span>
+                <div>
+                  <p className="story-submit-title"><BiLabel k="story_submitted" /></p>
+                  <p className="story-submit-hint">
+                    <BiLabel
+                      zh={`你的老師現在可以檢視全部 ${totalScenes} 個場景。`}
+                      en={`Your teacher can now review all ${totalScenes} scenes.`}
+                    />
+                  </p>
+                </div>
               </div>
-            </div>
+              <StoryFeedbackCard
+                feedback={storyFeedbackResult?.storyFeedback}
+                concatenatedAudioUrl={storyFeedbackResult?.concatenatedAudioUrl}
+              />
+            </>
           ) : (
             <div className="story-submit-panel">
               <div className="story-submit-progress">

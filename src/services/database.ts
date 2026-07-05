@@ -80,7 +80,22 @@ export interface SceneSubmission {
   vocabScore: number;
   toneAccuracy: number;
   pronScore: number;
+  fluencyScore?: number;
   audioUrl?: string;
+}
+
+export interface StoryFeedbackDimension {
+  score: number;
+  feedback: string;
+  judged?: boolean; // false = offline/local placeholder, not a real judgment
+}
+
+export interface StoryFeedback {
+  provider: string;
+  fluency_coherence: StoryFeedbackDimension;
+  lexical_resource: StoryFeedbackDimension;
+  grammatical_range_accuracy: StoryFeedbackDimension;
+  pronunciation: StoryFeedbackDimension;
 }
 
 export interface StorySubmission {
@@ -90,6 +105,8 @@ export interface StorySubmission {
   studentName: string;
   submittedAt: string;
   scenes: SceneSubmission[];
+  concatenatedAudioUrl?: string | null;
+  storyFeedback?: StoryFeedback | null;
 }
 
 export interface HelpRequest {

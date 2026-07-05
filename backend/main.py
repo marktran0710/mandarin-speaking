@@ -53,7 +53,13 @@ from chinese_tones import (
     get_reference_tone_pattern,
     generate_comprehensive_feedback,
 )
-from ai_feedback import generate_language_feedback, available_providers, default_provider
+from ai_feedback import (
+    generate_language_feedback,
+    available_providers,
+    default_provider,
+    generate_story_feedback,
+)
+from audio_concat import concatenate_scene_audio
 from pypinyin import lazy_pinyin, Style
 import taiwan_pinyin; taiwan_pinyin.apply()
 
@@ -66,8 +72,10 @@ FRONTEND_DIST = Path(__file__).resolve().parent.parent / "dist"
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", os.path.join(os.path.dirname(__file__), "uploads"))
 AUDIO_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "audio")
 IMAGE_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "images")
+STORY_AUDIO_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "story_audio")
 os.makedirs(AUDIO_UPLOAD_DIR, exist_ok=True)
 os.makedirs(IMAGE_UPLOAD_DIR, exist_ok=True)
+os.makedirs(STORY_AUDIO_UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 
@@ -306,6 +314,7 @@ class SceneSubmission(BaseModel):
     vocabScore: float = 0
     toneAccuracy: float = 0
     pronScore: float = 0
+    fluencyScore: float = 0
     audioUrl: Optional[str] = None
 
 
@@ -558,6 +567,8 @@ async def list_story_submissions(story_id: Optional[str] = None):
 
 @app.post("/api/story-submissions")
 async def create_story_submission(submission: StorySubmissionRequest):
+    scenes_sorted = sorted(submission.scenes, key=lambda s: s.sceneIndex)
+
     with connect_db() as db:
         db.execute(
             """
@@ -571,10 +582,76 @@ async def create_story_submission(submission: StorySubmissionRequest):
                 submission.storyTitle,
                 submission.studentName,
                 submission.submittedAt,
-                json.dumps([s.model_dump() for s in submission.scenes]),
+                json.dumps([s.model_dump() for s in scenes_sorted]),
             ),
         )
-    return submission.model_dump()
+
+    # Story-level concatenated audio + holistic feedback are best-effort: the
+    # scenes above are already durably saved, so a failure here must never
+    # fail the whole submission — the student just doesn't get the story-level
+    # extras this time (no retry, per the synchronous/no-background-job design).
+    concatenated_audio_url: Optional[str] = None
+    try:
+        story_audio_path = os.path.join(
+            STORY_AUDIO_UPLOAD_DIR, f"{safe_file_stem(submission.id)}.wav"
+        )
+        wrote_file = concatenate_scene_audio(
+            [s.audioUrl for s in scenes_sorted if s.audioUrl],
+            upload_dir=UPLOAD_DIR,
+            output_path=story_audio_path,
+        )
+        if wrote_file:
+            concatenated_audio_url = f"/uploads/story_audio/{os.path.basename(story_audio_path)}"
+    except Exception as exc:
+        logger.error("Story audio concatenation failed for %s: %s", submission.id, exc)
+
+    story_feedback: Optional[dict] = None
+    try:
+        # Keep every scene in the transcript, even ones the ASR came back empty
+        # for (silence, recognition miss) — dropping them would silently shrink
+        # a 3-scene story down to whatever subset had text, so the "whole story"
+        # feedback would really only be judging part of it.
+        combined_transcript = "\n".join(
+            f"[Scene {s.sceneIndex + 1}] {s.transcription.strip() or '(no speech transcribed for this scene)'}"
+            for s in scenes_sorted
+        )
+        has_any_speech = any(s.transcription.strip() for s in scenes_sorted)
+        if has_any_speech:
+            # Average the per-scene Praat metrics already computed during
+            # recording (tone accuracy, fluency, word-prosody/pronunciation)
+            # across the whole story, so the story-level Fluency-and-Coherence
+            # and Pronunciation dimensions are grounded in real acoustic data
+            # instead of a text-only guess. Scenes with no speech contribute a
+            # real 0, which correctly drags the average down for a genuine gap.
+            scene_count = len(scenes_sorted) or 1
+            avg_tone_accuracy = sum(s.toneAccuracy for s in scenes_sorted) / scene_count
+            avg_fluency_score = sum(s.fluencyScore for s in scenes_sorted) / scene_count
+            avg_pron_score = sum(s.pronScore for s in scenes_sorted) / scene_count
+            story_feedback = await generate_story_feedback(
+                combined_transcript,
+                avg_tone_accuracy=avg_tone_accuracy,
+                avg_fluency_score=avg_fluency_score,
+                avg_pron_score=avg_pron_score,
+            )
+    except Exception as exc:
+        logger.error("Story feedback generation failed for %s: %s", submission.id, exc)
+
+    with connect_db() as db:
+        db.execute(
+            "UPDATE story_submissions SET concatenated_audio_url = ?, story_feedback = ? WHERE id = ?",
+            (
+                concatenated_audio_url,
+                json.dumps(story_feedback) if story_feedback else None,
+                submission.id,
+            ),
+        )
+
+    return {
+        **submission.model_dump(),
+        "scenes": [s.model_dump() for s in scenes_sorted],
+        "concatenatedAudioUrl": concatenated_audio_url,
+        "storyFeedback": story_feedback,
+    }
 
 
 async def save_uploaded_audio(file: UploadFile, record_id: str) -> str:

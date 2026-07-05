@@ -98,6 +98,8 @@ def init_db() -> None:
             )
             """
         )
+        ensure_column(db, "story_submissions", "concatenated_audio_url", "TEXT")
+        ensure_column(db, "story_submissions", "story_feedback", "TEXT")
 
 
 def row_to_audio_record(row: sqlite3.Row) -> dict:
@@ -116,6 +118,7 @@ def row_to_audio_record(row: sqlite3.Row) -> dict:
 
 
 def row_to_story_submission(row: sqlite3.Row) -> dict:
+    row_keys = row.keys()
     return {
         "id": row["id"],
         "storyId": row["story_id"],
@@ -123,6 +126,12 @@ def row_to_story_submission(row: sqlite3.Row) -> dict:
         "studentName": row["student_name"],
         "submittedAt": row["submitted_at"],
         "scenes": json.loads(row["scenes"] or "[]"),
+        "concatenatedAudioUrl": row["concatenated_audio_url"] if "concatenated_audio_url" in row_keys else None,
+        "storyFeedback": (
+            json.loads(row["story_feedback"])
+            if ("story_feedback" in row_keys and row["story_feedback"])
+            else None
+        ),
     }
 
 
