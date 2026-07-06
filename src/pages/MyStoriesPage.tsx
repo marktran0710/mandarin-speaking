@@ -19,6 +19,7 @@ import {
   resolveImageUrl,
   saveCustomStories,
 } from "../utils/teacherStories";
+import { exportStoryFile, readStoryImportFile } from "../utils/storyPortability";
 import { BiLabel, BiText } from "../components/BiLabel";
 import "../components/BiLabel.css";
 import StoryFeedbackCard from "../components/StoryFeedbackCard";
@@ -695,6 +696,8 @@ function TeacherDashboard({
   const [validationErrors, setValidationErrors] =
     useState<CustomStoryValidationErrors>({});
   const [customStoryNotice, setCustomStoryNotice] = useState("");
+  const [importError, setImportError] = useState("");
+  const [importNotice, setImportNotice] = useState("");
   const analyzedRecords = records.filter((record) => record.praatMetrics);
   const feedbackReadyRecords = records.filter(
     (record) => record.praatMetrics?.ai_feedback,
@@ -907,6 +910,64 @@ function TeacherDashboard({
     if (editingStoryId === id) {
       handleCancelCustomStoryEdit();
     }
+  };
+
+  const handleExportStory = async (story: CustomTeacherStory) => {
+    setImportError("");
+    try {
+      await exportStoryFile(story);
+    } catch (error) {
+      console.error("Failed to export story:", error);
+      setImportError(
+        error instanceof Error ? error.message : "Could not export this story.",
+      );
+    }
+  };
+
+  const handleImportStoryFile = async (file: File) => {
+    setImportError("");
+    setImportNotice("");
+    let imported: CustomTeacherStory;
+    try {
+      imported = await readStoryImportFile(file);
+    } catch (error) {
+      setImportError(
+        error instanceof Error ? error.message : "Could not read that story file.",
+      );
+      return;
+    }
+
+    let storyToStore = imported;
+    if (canUseDatabase()) {
+      try {
+        const persisted = await saveCustomStoryToDatabase(imported);
+        if (persisted) {
+          storyToStore = {
+            ...imported,
+            ...persisted,
+            frames: persisted.frames.map((persistedFrame, i) => ({
+              ...imported.frames[i],
+              ...persistedFrame,
+            })),
+          } as CustomTeacherStory;
+        }
+      } catch (error) {
+        console.error("Failed to save imported story to database:", error);
+        setImportError(
+          "The story was read but could not be saved to the server. Check that the backend is running and try again.",
+        );
+        return;
+      }
+    }
+
+    const nextStories = [storyToStore, ...customStories];
+    setCustomStories(nextStories);
+    try {
+      saveCustomStories(nextStories);
+    } catch {
+      console.warn("Could not cache imported story in localStorage (quota).");
+    }
+    setImportNotice(`Imported "${storyToStore.title}" as a new draft.`);
   };
 
   const handleTogglePublishCustomStory = (id: string) => {
@@ -1345,7 +1406,31 @@ function TeacherDashboard({
           </form>
 
           <div className="custom-story-library" aria-label="Saved custom stories">
-            <h3>Teacher Story Library</h3>
+            <div className="custom-story-library-header">
+              <h3>Teacher Story Library</h3>
+              <label className="btn-import-custom-story">
+                Import story
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    event.target.value = "";
+                    if (file) handleImportStoryFile(file);
+                  }}
+                />
+              </label>
+            </div>
+            {importError && (
+              <div className="teacher-form-alert" role="alert">
+                {importError}
+              </div>
+            )}
+            {importNotice && (
+              <div className="teacher-form-success" role="status">
+                {importNotice}
+              </div>
+            )}
             {customStories.length === 0 ? (
               <div className="teacher-empty-panel">
                 <strong>No custom stories yet</strong>
@@ -1386,6 +1471,13 @@ function TeacherDashboard({
                           onClick={() => handleEditCustomStory(story)}
                         >
                           Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-export-custom-story"
+                          onClick={() => handleExportStory(story)}
+                        >
+                          Export
                         </button>
                         <button
                           type="button"

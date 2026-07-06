@@ -98,6 +98,7 @@ flowchart LR
 | Word category editor | Assign each vocab word to Characters / Setting / Actions / Outcome for the drag-and-drop activity |
 | AI image generation | Generate photorealistic scene images with DALL-E 3 or Pollinations.ai |
 | Publish / unpublish | Control which stories appear in the student topic list |
+| Export / Import story | Download a story as a single file and load it on another device — see [Exporting & Importing Stories](#exporting--importing-stories) |
 | Dashboard | Class stats, help requests, progress per topic, all recordings with Praat + AI scores |
 | Refresh recordings | Fetch latest student recordings from the backend without reloading the page |
 
@@ -166,6 +167,43 @@ produces it.
 | **Pronunciation** | tone threshold | tone-contour proxy for Goodness of Pronunciation + fluency notes | `praat-parselmouth` pitch extraction + NumPy/SciPy contour correlation (`chinese_tones.py`) | Witt & Young 2000 |
 
 **Frontend rendering:** React + Vite, with **Chart.js** for the pitch-contour visualization.
+
+---
+
+## Exporting & Importing Stories
+
+A teacher story (its images, prompts, vocabulary, and — for Listen & Retell — listening
+audio) can be saved to a single file and loaded on a different device, even one with its
+own separate backend/database. This is handled entirely in the browser: exporting inlines
+any server-hosted images/audio as base64 so the file has no dependency on the original
+backend, and importing sends the story through the same save path as creating one by hand.
+
+### Export (device A)
+
+1. Log in as **Teacher** and open the **Materials** tab of the dashboard.
+2. Find the story in the **Teacher Story Library** list on the right.
+3. Click **Export** on that story.
+4. Your browser downloads a file named `<story-title>.mandarin-story.json`. Send it to the
+   other device however is convenient — USB drive, email, cloud storage, AirDrop, etc.
+
+### Import (device B)
+
+1. Log in as **Teacher** and open the **Materials** tab of the dashboard.
+2. Click **Import story** next to the "Teacher Story Library" heading and pick the
+   `.mandarin-story.json` file from step 4 above.
+3. The story appears at the top of the library as a new, unpublished draft — review it,
+   click **Edit** to tweak anything, then **Publish** when it's ready for students.
+
+**Notes**
+
+- Imported stories always land unpublished, so they never appear to students before you've
+  reviewed them.
+- The export is self-contained (images/audio are embedded as base64), so it works even if
+  device B has no network access to device A's backend. The trade-off is file size — a
+  story with several images can be a few megabytes.
+- If device B is running fully offline (no backend reachable), the import still works and
+  is cached in the browser's local storage, but very large exports can hit the browser's
+  ~5 MB local-storage quota. Connecting device B to a backend avoids that limit.
 
 ---
 

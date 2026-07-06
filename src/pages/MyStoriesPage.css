@@ -1439,10 +1439,46 @@
   background: var(--clay-surface-soft);
 }
 
+.custom-story-library-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
 .custom-story-library h3 {
   color: var(--clay-ink);
   font-size: 18px;
-  margin: 0 0 14px;
+  margin: 0;
+}
+
+.btn-import-custom-story {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px dashed var(--tone1);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  color: var(--tone1-deep);
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-import-custom-story:hover {
+  background: var(--tone1-soft);
+}
+
+.btn-import-custom-story input {
+  /* Visually hidden but still keyboard/click accessible via the label. */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
 }
 
 .custom-story-list {
@@ -1491,6 +1527,7 @@
 .btn-cancel-custom-story,
 .btn-publish-custom-story,
 .btn-edit-custom-story,
+.btn-export-custom-story,
 .btn-delete-custom-story {
   align-self: start;
   border: 1px solid var(--clay-hairline);
@@ -1514,6 +1551,10 @@
 
 .btn-publish-custom-story {
   color: var(--jade-deep);
+}
+
+.btn-export-custom-story {
+  color: var(--tone1-deep);
 }
 
 .btn-delete-custom-story {
