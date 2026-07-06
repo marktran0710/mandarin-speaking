@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Tuple
 import base64
 import logging
+import mimetypes
 import os
 import tempfile
 import time
@@ -800,21 +801,24 @@ _IMAGE_MIME_BY_EXT = {
 }
 
 
-async def resolve_image_b64(image_ref: str) -> Optional[Tuple[str, str]]:
-    """Resolve a scene image reference to (base64_data, mime_type) for vision prompts.
+async def resolve_media_b64(ref: str) -> Optional[Tuple[str, str]]:
+    """Resolve a data:, local /uploads/..., or remote http(s) reference to
+    (base64_data, mime_type), fetching remote URLs from the server rather
+    than the browser.
 
-    Accepts a data: URL, a local /uploads/... path (read straight off disk —
-    it's served by this same backend), or a remote http(s) URL.
+    This matters because story frames built via AI image generation
+    (DALL-E / Pollinations.ai) keep their original third-party URL, and
+    those hosts don't grant CORS permission for arbitrary origins — a
+    browser-side fetch() of them is blocked. A server-to-server request has
+    no CORS restriction at all, so resolving here sidesteps the problem.
     """
-    ref = (image_ref or "").strip()
+    ref = (ref or "").strip()
     if not ref:
         return None
 
-    if ref.startswith("data:image/"):
+    if ref.startswith("data:"):
         header, _, data = ref.partition(",")
-        mime = header.removeprefix("data:").split(";")[0] or "image/png"
-        if mime == "image/svg+xml":
-            return None  # SVG is not supported by vision models (Gemini, OpenAI)
+        mime = header.removeprefix("data:").split(";")[0] or "application/octet-stream"
         return data, mime
 
     if ref.startswith("/uploads/"):
@@ -823,9 +827,11 @@ async def resolve_image_b64(image_ref: str) -> Optional[Tuple[str, str]]:
         upload_root = os.path.abspath(UPLOAD_DIR)
         if not path.startswith(upload_root) or not os.path.exists(path):
             return None
-        mime = _IMAGE_MIME_BY_EXT.get(os.path.splitext(path)[1].lower(), "image/png")
-        if mime == "image/svg+xml":
-            return None  # SVG is not supported by vision models
+        mime = (
+            _IMAGE_MIME_BY_EXT.get(os.path.splitext(path)[1].lower())
+            or mimetypes.guess_type(path)[0]
+            or "application/octet-stream"
+        )
         with open(path, "rb") as fh:
             return base64.b64encode(fh.read()).decode(), mime
 
@@ -835,14 +841,36 @@ async def resolve_image_b64(image_ref: str) -> Optional[Tuple[str, str]]:
                 response = await client.get(ref)
             if response.status_code != 200:
                 return None
-            mime = response.headers.get("content-type", "image/png").split(";")[0]
-            if mime == "image/svg+xml":
-                return None  # SVG is not supported by vision models
+            mime = response.headers.get("content-type", "application/octet-stream").split(";")[0]
             return base64.b64encode(response.content).decode(), mime
         except Exception:
             return None
 
     return None
+
+
+async def resolve_image_b64(image_ref: str) -> Optional[Tuple[str, str]]:
+    """Resolve a scene image reference to (base64_data, mime_type) for vision
+    prompts. SVG is excluded since vision models (Gemini, OpenAI) don't
+    support it."""
+    result = await resolve_media_b64(image_ref)
+    if result and result[1] == "image/svg+xml":
+        return None
+    return result
+
+
+@app.get("/api/inline-media")
+async def inline_media(url: str = Query(..., max_length=2000)):
+    """Resolve an image/audio reference (local /uploads/... path or a remote
+    http(s) URL, e.g. a DALL-E/Pollinations.ai-hosted story image) to a
+    base64 data URL. Used by story export so the browser never has to
+    fetch() a third-party host directly, which CORS would otherwise block.
+    """
+    result = await resolve_media_b64(url)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Could not resolve that media reference.")
+    data, mime = result
+    return {"dataUrl": f"data:{mime};base64,{data}"}
 
 
 @app.post("/api/generate-story-images", response_model=StoryImageGenerationResponse)

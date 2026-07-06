@@ -1,5 +1,8 @@
 import type { CustomStoryFrame, CustomTeacherStory } from "./teacherStories";
-import { resolveImageUrl } from "./teacherStories";
+
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
 const EXPORT_FORMAT = "enjoyable-mandarin-story";
 const EXPORT_VERSION = 1;
@@ -11,23 +14,26 @@ interface StoryExportFile {
   story: CustomTeacherStory;
 }
 
-/** Fetches a /uploads/... or external URL and inlines it as a base64 data URL,
- * so the exported file has no dependency on the original backend. */
+/**
+ * Inlines a /uploads/... or external URL as a base64 data URL, so the
+ * exported file has no dependency on the original backend. Routed through
+ * our own backend's /api/inline-media rather than fetched directly from the
+ * browser: story images generated via DALL-E/Pollinations.ai keep their
+ * original third-party URL, and those hosts don't grant CORS permission for
+ * arbitrary origins, so a direct browser fetch() is blocked. A server-to-
+ * server request has no such restriction.
+ */
 async function inlineAsDataUrl(url: string): Promise<string> {
   if (!url || url.startsWith("data:")) return url;
 
-  const response = await fetch(resolveImageUrl(url));
+  const response = await fetch(
+    `${BACKEND_URL}/api/inline-media?url=${encodeURIComponent(url)}`,
+  );
   if (!response.ok) {
     throw new Error(`Could not download "${url}" while preparing the export.`);
   }
-  const blob = await response.blob();
-
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error(`Could not read "${url}" while preparing the export.`));
-    reader.onload = () => resolve(typeof reader.result === "string" ? reader.result : "");
-    reader.readAsDataURL(blob);
-  });
+  const { dataUrl } = await response.json();
+  return dataUrl;
 }
 
 async function inlineFrameMedia(frame: CustomStoryFrame): Promise<CustomStoryFrame> {
