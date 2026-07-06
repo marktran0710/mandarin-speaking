@@ -7,7 +7,7 @@ interface PitchChartProps {
 }
 
 const TONE_COLORS: Record<number, string> = {
-  1: "rgba(255, 107, 107, 0.85)",
+  1: "rgba(124, 58, 237, 0.85)",
   2: "rgba(34, 197, 94, 0.85)",
   3: "rgba(245, 158, 11, 0.85)",
   4: "rgba(59, 130, 246, 0.85)",

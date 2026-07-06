@@ -28,17 +28,17 @@
   --clay-hairline: #f2e4ce;
   --clay-hairline-soft: #f7ecda;
 
-  /* Tone 4 (falling) — the primary brand accent, softened to a pastel soft
-     coral. White button labels (bold, large) stay above the 3:1 AA-large
-     floor; it also reads well as dark-on-light text. -active is a slightly
-     deeper coral for hover/pressed states.
+  /* Tone 4 (falling) — the primary brand accent, a vivid violet (moved off
+     red 2026-07-06). White button labels (bold, large) stay above the 3:1
+     AA-large floor; it also reads well as dark-on-light text. -active is a
+     slightly deeper violet for hover/pressed states.
      -soft is a genuine pastel too, used as card/section fills. */
-  --clay-primary: #ef5a76;
-  --clay-primary-active: #e0455f;
-  --clay-primary-disabled: #ffc7cf;
-  --seal: #e01b3d;
-  --seal-deep: #a81230;
-  --seal-soft: #ffc9d2;
+  --clay-primary: #a78bfa;
+  --clay-primary-active: #8b5cf6;
+  --clay-primary-disabled: var(--lavender-soft);
+  --seal: #7c3aed;
+  --seal-deep: var(--lavender-deep);
+  --seal-soft: var(--lavender-soft);
 
   /* Tone 2 (rising) — vivid leaf green; teacher / success context */
   --jade: #1c9a5b;
