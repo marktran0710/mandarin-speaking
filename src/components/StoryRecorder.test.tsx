@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import StoryRecorder from "./StoryRecorder";
+import StoryRecorder, { vocabTooltip } from "./StoryRecorder";
 
 vi.mock("../PitchChart", () => ({
   default: () => <div data-testid="pitch-chart">Pitch chart</div>,
@@ -52,6 +52,24 @@ class MockMediaRecorder {
     void this.onstop?.();
   }
 }
+
+describe("vocabTooltip", () => {
+  it("combines part of speech and translation", () => {
+    expect(vocabTooltip("N", "restaurant")).toBe("(N) restaurant");
+  });
+
+  it("returns just the POS in parens when translation is missing", () => {
+    expect(vocabTooltip("N", undefined)).toBe("(N)");
+  });
+
+  it("returns just the translation when POS is missing", () => {
+    expect(vocabTooltip(undefined, "restaurant")).toBe("restaurant");
+  });
+
+  it("returns undefined when both are missing", () => {
+    expect(vocabTooltip(undefined, undefined)).toBeUndefined();
+  });
+});
 
 describe("StoryRecorder student prototype", () => {
   beforeEach(() => {

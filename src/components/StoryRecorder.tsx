@@ -24,6 +24,13 @@ const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
   (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
+export function vocabTooltip(pos?: string, translation?: string): string | undefined {
+  if (pos && translation) return `(${pos}) ${translation}`;
+  if (pos) return `(${pos})`;
+  if (translation) return translation;
+  return undefined;
+}
+
 type SpeechModel = "webspeech" | "ctwhisper" | "groq" | "vibevoice";
 
 interface AiProviderOption {
@@ -50,6 +57,8 @@ interface Topic {
   grammarPatterns?: Record<number, string>;
   grammarExamples?: Record<number, string>;
   vocabularyPinyin?: Record<number, string[]>;
+  vocabularyPos?: Record<number, string[]>;
+  vocabularyTranslation?: Record<number, string[]>;
   suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
   listenScripts?: Record<number, string>;
@@ -1076,12 +1085,16 @@ export default function StoryRecorder({
                     <div className="overview-vocab-chips">
                       {sceneWords.map((word, i) => {
                         const py = topic.vocabularyPinyin?.[si]?.[i] || toPinyin(word);
+                        const tooltip = vocabTooltip(
+                          topic.vocabularyPos?.[si]?.[i],
+                          topic.vocabularyTranslation?.[si]?.[i],
+                        );
                         return (
                           <span
                             key={`${word}-${i}`}
                             className="overview-vocab-chip"
                           >
-                            <span className="vocab-chip-hanzi">{word}</span>
+                            <span className="vocab-chip-hanzi" title={tooltip}>{word}</span>
                             {py && (
                               <span className="vocab-chip-pinyin">{py}</span>
                             )}
@@ -1613,7 +1626,15 @@ export default function StoryRecorder({
                           }
                         >
                           <span className="vocab-chip-row">
-                            <span className="vocab-chip-hanzi">{w}</span>
+                            <span
+                              className="vocab-chip-hanzi"
+                              title={vocabTooltip(
+                                topic.vocabularyPos?.[selectedImageIndex]?.[wi],
+                                topic.vocabularyTranslation?.[selectedImageIndex]?.[wi],
+                              )}
+                            >
+                              {w}
+                            </span>
                             {used === true && (
                               <span className="vocab-tick">✓</span>
                             )}
@@ -1949,7 +1970,15 @@ export default function StoryRecorder({
                           className={`vocab-chip ${used === true ? "vocab-used" : used === false ? "vocab-missed" : ""}`}
                         >
                           <span className="vocab-chip-row">
-                            <span className="vocab-chip-hanzi">{w}</span>
+                            <span
+                              className="vocab-chip-hanzi"
+                              title={vocabTooltip(
+                                topic.vocabularyPos?.[selectedImageIndex]?.[wi],
+                                topic.vocabularyTranslation?.[selectedImageIndex]?.[wi],
+                              )}
+                            >
+                              {w}
+                            </span>
                             {used === true && <span className="vocab-tick">✓</span>}
                             {used === false && <span className="vocab-tick">✗</span>}
                           </span>
