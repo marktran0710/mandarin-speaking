@@ -715,45 +715,6 @@
   gap: 10px;
 }
 
-.btn {
-  flex: 1;
-  min-width: 160px;
-  min-height: 48px;
-  padding: 12px 20px;
-  border: 0;
-  border-radius: var(--clay-radius-md);
-  font-size: 15px;
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--clay-primary);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--clay-primary-active);
-}
-
-.btn-secondary {
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--clay-hairline);
-  background: var(--clay-surface-card);
-  color: var(--clay-ink);
-}
-
-.btn-secondary:hover:not(.disabled) {
-  border-color: var(--clay-primary);
-  color: var(--clay-primary-active);
-}
-
 .submit-voice-label.disabled {
   cursor: not-allowed;
   opacity: 0.5;
@@ -769,17 +730,6 @@
   font-weight: 650;
   margin: 0;
   text-align: center;
-}
-
-.btn-danger {
-  background: var(--clay-coral);
-  color: white;
-}
-
-.btn-record-main {
-  width: 100%;
-  min-height: 58px;
-  font-size: 17px;
 }
 
 .advanced-recording-options {
@@ -1980,16 +1930,26 @@
   padding: 11px 24px;
   background: var(--seal);
   color: #fff;
-  border: none;
-  border-radius: 10px;
+  border: 2px solid var(--seal-deep);
+  border-radius: var(--clay-radius-pill);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s;
+  box-shadow: 0 4px 0 var(--seal-deep);
+  transition: transform 0.1s, box-shadow 0.1s;
 }
-.btn-submit-story:hover:not(:disabled) { background: var(--seal); }
+.btn-submit-story:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--seal-deep);
+}
+.btn-submit-story:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--seal-deep);
+}
 .btn-submit-story:disabled {
   background: var(--seal-soft);
+  border-color: var(--seal-soft);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
@@ -2700,30 +2660,44 @@
 .btn-verify-sorting {
   background: var(--clay-primary);
   color: #ffffff;
+  border: 2px solid var(--seal-deep);
+  box-shadow: 0 4px 0 var(--seal-deep);
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .btn-verify-sorting:hover:not(:disabled) {
-  opacity: 0.95;
   transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 5px 0 var(--seal-deep);
+}
+.btn-verify-sorting:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--seal-deep);
 }
 
 .btn-verify-sorting:disabled {
   background: var(--clay-hairline);
   color: var(--clay-muted);
+  border-color: var(--clay-hairline);
+  box-shadow: none;
   cursor: not-allowed;
 }
 
 .btn-start-speaking {
   background: var(--jade);
   color: #ffffff;
+  border: 2px solid var(--jade-deep);
+  box-shadow: 0 4px 0 var(--jade-deep);
   animation: pulseGreen 2s infinite;
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 
 .btn-start-speaking:hover {
-  background: var(--jade);
-  transform: scale(1.02);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--jade-deep);
+}
+.btn-start-speaking:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--jade-deep);
 }
 
 .btn-skip-sorting {
@@ -3390,6 +3364,8 @@
   gap: 16px;
 }
 
+/* A chunky game-tile card (thick colored border + bottom lip) rather than
+   a thin-hairline web card, matching the tactile buttons elsewhere. */
 .overview-choice-card {
   display: flex;
   flex-direction: column;
@@ -3397,22 +3373,29 @@
   text-align: center;
   gap: 8px;
   background: var(--clay-surface-card);
-  border: 1.5px solid var(--clay-hairline);
-  border-radius: 14px;
+  border: 2.5px solid var(--clay-hairline);
+  border-radius: 18px;
   padding: 24px 20px;
   cursor: pointer;
-  transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+  box-shadow: 0 4px 0 var(--clay-hairline);
+  transition: border-color 0.18s, transform 0.12s, box-shadow 0.12s;
 }
 
 .overview-choice-card:hover:not(:disabled) {
-  border-color: var(--seal-soft);
+  border-color: var(--seal);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 6px 0 var(--seal-deep);
+}
+
+.overview-choice-card:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--seal-deep);
 }
 
 .overview-choice-card:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+  box-shadow: none;
 }
 
 .overview-choice-icon {
@@ -3665,21 +3648,24 @@
 .btn-scene-step-continue {
   width: 100%;
   padding: 16px;
-  border-radius: 12px;
-  border: none;
+  border-radius: 16px;
+  border: 2px solid var(--seal-deep);
   background: var(--seal);
   color: #fff;
   font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  box-shadow: 0 5px 0 var(--seal-deep);
+  transition: transform 0.1s, box-shadow 0.1s;
 }
 .btn-scene-step-continue:hover {
-  background: var(--seal-deep);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 0 var(--seal-deep);
+}
+.btn-scene-step-continue:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--seal-deep);
 }
 
 @media (max-width: 640px) {
@@ -3963,11 +3949,14 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+/* Tactile "game piece" button: a solid bottom lip instead of a blurred
+   drop shadow, so the main action of the whole app reads as a pressable
+   game button. Hover lifts it a touch; pressing sinks it into its lip. */
 .btn-practice-record {
   width: 100%;
   padding: 16px;
-  border-radius: 12px;
-  border: none;
+  border-radius: 16px;
+  border: 2px solid var(--seal-deep);
   background: var(--seal);
   color: #fff;
   font-size: 1.1rem;
@@ -3975,22 +3964,31 @@
   cursor: pointer;
   transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
   letter-spacing: 0.02em;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 5px 0 var(--seal-deep);
 }
 .btn-practice-record:hover:not(:disabled) {
-  background: var(--seal-deep);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 0 var(--seal-deep);
+}
+.btn-practice-record:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--seal-deep);
 }
 .btn-practice-record.is-recording {
   background: var(--clay-error);
+  border-color: var(--clay-error-deep);
   animation: pulse-record 1.2s ease-in-out infinite;
 }
 @keyframes pulse-record {
   0%, 100% { box-shadow: 0 0 0 0 rgba(166, 52, 43, 0.4); }
   50%       { box-shadow: 0 0 0 10px rgba(166, 52, 43, 0); }
 }
-.btn-practice-record:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-practice-record:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
 
 .practice-timer {
   display: flex;
@@ -4251,14 +4249,23 @@
   padding: 10px 20px;
   background: var(--jade);
   color: #fff;
-  border: none;
-  border-radius: 8px;
+  border: 2px solid var(--jade-deep);
+  border-radius: var(--clay-radius-pill);
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: 0 4px 0 var(--jade-deep);
+  transition: transform 0.1s, box-shadow 0.1s;
 }
-.scene-next-btn:hover { background: var(--jade-deep); }
+.scene-next-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--jade-deep);
+}
+.scene-next-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--jade-deep);
+}
 
 .scene-progress-hint {
   font-size: 13px;

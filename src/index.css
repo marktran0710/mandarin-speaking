@@ -486,54 +486,80 @@ h2 {
   flex-wrap: wrap;
 }
 
+/* ── Tactile "game piece" buttons ──────────────────────────────────────
+   A solid, un-blurred bottom "lip" (box-shadow with 0 blur) instead of a
+   soft drop shadow, so a button reads as a pressable game piece rather
+   than a flat web control. Hover lifts it slightly; active presses it
+   down into its own lip — the classic chunky-button feel of learning
+   games, built from the same tone-color tokens (no new hues). */
 .btn {
   flex: 1;
   min-width: 150px;
   padding: 12px 20px;
-  border: none;
-  border-radius: var(--clay-radius-md);
+  border: 2px solid transparent;
+  border-radius: var(--clay-radius-pill);
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.16s ease;
 }
 
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none !important;
+  transform: none !important;
 }
 
 .btn-primary {
   background: var(--seal);
+  border-color: var(--seal-deep);
+  box-shadow: 0 4px 0 var(--seal-deep);
   color: white;
   font-weight: 650;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--seal-deep);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--seal-deep);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--seal-deep);
 }
 
 .btn-danger {
   background: var(--clay-error);
+  border-color: var(--clay-error-deep);
+  box-shadow: 0 4px 0 var(--clay-error-deep);
   color: white;
   font-weight: 650;
 }
 
 .btn-danger:hover:not(:disabled) {
-  background: var(--clay-error-deep);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--clay-error-deep);
+}
+.btn-danger:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--clay-error-deep);
 }
 
 .btn-secondary {
   background: var(--jade);
+  border-color: var(--jade-deep);
+  box-shadow: 0 4px 0 var(--jade-deep);
   color: white;
   font-weight: 650;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: var(--jade-deep);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--jade-deep);
+}
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--jade-deep);
 }
 
 .btn-small {
@@ -897,7 +923,9 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
-.btn,
+/* .btn itself is never used without a .btn-primary/-secondary/-danger
+   variant, which now own their own tactile box-shadow above — so it's
+   deliberately excluded here to avoid flattening that shadow back to none. */
 .login-submit,
 .start-activity-btn,
 .btn-record-picture,
@@ -906,7 +934,6 @@ textarea:focus-visible {
   box-shadow: none;
 }
 
-.btn:hover:not(:disabled),
 .login-submit:hover,
 .start-activity-btn:hover,
 .btn-record-picture:hover,
