@@ -235,6 +235,8 @@ const emptyCustomStoryDraft = {
   ],
   vocabulary: ["", "", "", "", "", ""],
   vocabularyPinyin: ["", "", "", "", "", ""],
+  vocabularyPos: ["", "", "", "", "", ""],
+  vocabularyTranslation: ["", "", "", "", "", ""],
   vocabularyGroups: [null, null, null, null, null, null] as (VocabGroup[] | null)[],
   grammarPattern: "",
   grammarExample: "",
@@ -745,6 +747,8 @@ function TeacherDashboard({
       prompts: resizeToCount(draft.prompts, clamped, ""),
       vocabulary: resizeToCount(draft.vocabulary, clamped, ""),
       vocabularyPinyin: resizeToCount(draft.vocabularyPinyin, clamped, ""),
+      vocabularyPos: resizeToCount(draft.vocabularyPos, clamped, ""),
+      vocabularyTranslation: resizeToCount(draft.vocabularyTranslation, clamped, ""),
       vocabularyGroups: resizeToCount(draft.vocabularyGroups, clamped, null),
 
       suggestedAnswers: resizeToCount(draft.suggestedAnswers, clamped, ""),
@@ -762,7 +766,16 @@ function TeacherDashboard({
   };
 
   const updateDraftFrame = (
-    field: "imageUrls" | "prompts" | "vocabulary" | "vocabularyPinyin" | "suggestedAnswers" | "listenAudioUrls" | "listenScripts",
+    field:
+      | "imageUrls"
+      | "prompts"
+      | "vocabulary"
+      | "vocabularyPinyin"
+      | "vocabularyPos"
+      | "vocabularyTranslation"
+      | "suggestedAnswers"
+      | "listenAudioUrls"
+      | "listenScripts",
     index: number,
     value: string,
   ) => {
@@ -1780,6 +1793,8 @@ function createCustomStory(
       ...(draft.grammarPattern?.trim() ? { grammarPattern: draft.grammarPattern.trim() } : {}),
       ...(draft.grammarExample?.trim() ? { grammarExample: draft.grammarExample.trim() } : {}),
       ...(draft.vocabularyPinyin[index]?.trim() ? { vocabularyPinyin: draft.vocabularyPinyin[index].trim() } : {}),
+      ...(draft.vocabularyPos[index]?.trim() ? { vocabularyPos: draft.vocabularyPos[index].trim() } : {}),
+      ...(draft.vocabularyTranslation[index]?.trim() ? { vocabularyTranslation: draft.vocabularyTranslation[index].trim() } : {}),
       ...(draft.suggestedAnswers[index]?.trim() ? { suggestedAnswer: draft.suggestedAnswers[index].trim() } : {}),
       ...(draft.listenAudioUrls[index]?.trim() ? { listenAudioUrl: draft.listenAudioUrls[index].trim() } : {}),
       ...(draft.listenScripts[index]?.trim() ? { listenScript: draft.listenScripts[index].trim() } : {}),
@@ -1813,6 +1828,8 @@ function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
     grammarPattern: story.frames.find((f) => f?.grammarPattern)?.grammarPattern || "",
     grammarExample: story.frames.find((f) => f?.grammarExample)?.grammarExample || "",
     vocabularyPinyin: frames.map((frame) => frame?.vocabularyPinyin || ""),
+    vocabularyPos: frames.map((frame) => frame?.vocabularyPos || ""),
+    vocabularyTranslation: frames.map((frame) => frame?.vocabularyTranslation || ""),
     suggestedAnswers: frames.map((frame) => frame?.suggestedAnswer || ""),
     listenAudioUrls: frames.map((frame) => frame?.listenAudioUrl || ""),
     listenScripts: frames.map((frame) => frame?.listenScript || ""),
@@ -1825,7 +1842,16 @@ function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
 function clearFrameError(
   errors: CustomStoryValidationErrors,
   index: number,
-  field: "imageUrls" | "prompts" | "vocabulary" | "suggestedAnswers" | "listenAudioUrls" | "listenScripts",
+  field:
+    | "imageUrls"
+    | "prompts"
+    | "vocabulary"
+    | "vocabularyPinyin"
+    | "vocabularyPos"
+    | "vocabularyTranslation"
+    | "suggestedAnswers"
+    | "listenAudioUrls"
+    | "listenScripts",
 ): CustomStoryValidationErrors {
   const frameError = errors.frames?.[index];
 
