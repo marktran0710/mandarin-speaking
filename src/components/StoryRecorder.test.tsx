@@ -1,6 +1,19 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { UserEvent } from "@testing-library/user-event";
 import StoryRecorder, { vocabTooltip } from "./StoryRecorder";
+
+/** Answers through every question of the vocabulary quiz currently on
+ * screen (any option — this is about reaching the end, not scoring), which
+ * is required to advance past a first-time (skip-not-yet-unlocked) quiz. */
+async function completeVocabQuiz(user: UserEvent) {
+  while (screen.queryByRole("region", { name: "Vocabulary quiz" })) {
+    const optionsGroup = screen.getByRole("group");
+    const firstOption = within(optionsGroup).getAllByRole("button")[0];
+    await user.click(firstOption);
+    await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
+  }
+}
 
 vi.mock("../PitchChart", () => ({
   default: () => <div data-testid="pitch-chart">Pitch chart</div>,
@@ -99,6 +112,7 @@ describe("vocabTooltip", () => {
 
 describe("StoryRecorder student prototype", () => {
   beforeEach(() => {
+    localStorage.clear();
     activeRecorder = null;
     vi.stubGlobal("MediaRecorder", MockMediaRecorder);
     vi.stubGlobal("fetch", vi.fn(async () => {
@@ -366,10 +380,10 @@ describe("StoryRecorder student prototype", () => {
     expect(screen.getByText("Recording options")).toBeInTheDocument();
   });
 
-  it("shows a two-choice activity screen before practice when enableOverview is set, and lets a student pick vocabulary or speaking independently", async () => {
+  it("requires finishing the vocabulary quiz once before Practice Speaking unlocks, then remembers it's done", async () => {
     const user = userEvent.setup();
 
-    render(
+    const { unmount } = render(
       <StoryRecorder
         topic={topicWithQuizVocab}
         selectedImage={topicWithQuizVocab.images[0]}
@@ -385,26 +399,52 @@ describe("StoryRecorder student prototype", () => {
     expect(screen.getByText("Your Challenge")).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Vocabulary quiz" })).not.toBeInTheDocument();
 
-    // Both activity choices are available and enabled (this topic has
-    // translated words, so "Practice Vocabulary" isn't disabled).
+    // Vocabulary is available (this topic has translated words), but
+    // Speaking starts locked until the quiz has been completed once.
     const vocabChoice = screen.getByRole("button", { name: /Vocabulary Quiz/ });
     const speakingChoice = screen.getByRole("button", { name: /Speaking Practice/ });
     expect(vocabChoice).toBeEnabled();
-    expect(speakingChoice).toBeEnabled();
+    expect(speakingChoice).toBeDisabled();
 
-    // Picking "Practice Vocabulary" goes straight to the quiz.
+    // Picking "Practice Vocabulary" goes to the quiz — no skip button yet,
+    // since it hasn't been completed before.
     await user.click(vocabChoice);
     expect(screen.getByRole("region", { name: "Vocabulary quiz" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
 
-    // Backing out returns to the choice screen, not into practice.
+    // Backing out still leaves Speaking locked — only finishing unlocks it.
     await user.click(screen.getByRole("button", { name: /Back to activities/ }));
-    expect(screen.getByText("Your Challenge")).toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "Vocabulary quiz" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Speaking Practice/ })).toBeDisabled();
 
-    // Picking "Practice Speaking" instead goes straight to practice,
-    // bypassing the quiz entirely (enableSorting is off here too).
-    await user.click(screen.getByRole("button", { name: /Speaking Practice/ }));
+    // Finish the quiz for real this time. The overview section was
+    // unmounted and remounted when we left and returned to it, so the
+    // earlier `vocabChoice` reference is stale — query it fresh.
+    await user.click(screen.getByRole("button", { name: /Vocabulary Quiz/ }));
+    await completeVocabQuiz(user);
+
+    // Landed in practice directly (quiz auto-advances on completion), with
+    // the scene vocabulary table visible.
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
+
+    // Simulate revisiting this story fresh: Speaking is now unlocked
+    // (completion was persisted), and re-entering the quiz offers a skip
+    // button this time since it's already been finished once.
+    unmount();
+    render(
+      <StoryRecorder
+        topic={topicWithQuizVocab}
+        selectedImage={topicWithQuizVocab.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+        enableOverview={true}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /Speaking Practice/ })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: /Vocabulary Quiz/ }));
+    expect(screen.getByRole("button", { name: /Skip/ })).toBeInTheDocument();
   });
 
   it("disables the vocabulary quiz choice when a story has no translated words", () => {
@@ -438,9 +478,9 @@ describe("StoryRecorder student prototype", () => {
     );
 
     // This topic now has 1 translated word, enough to trigger the vocab
-    // quiz gate — skip past it to reach practice, which is what this test
-    // actually covers.
-    await user.click(screen.getByRole("button", { name: /Skip/ }));
+    // quiz gate — it's mandatory the first time, so answer through it to
+    // reach practice, which is what this test actually covers.
+    await completeVocabQuiz(user);
 
     const table = screen.getByRole("table", { name: "Scene vocabulary" });
     expect(within(table).getByText("market")).toBeInTheDocument();
@@ -495,9 +535,9 @@ describe("StoryRecorder student prototype", () => {
       />,
     );
 
-    // Skip past the vocab quiz gate (this topic now has 1 translated word,
-    // enough to trigger it) to reach the practice-phase vocab table.
-    await user.click(screen.getByRole("button", { name: /Skip/ }));
+    // Finish the mandatory vocab quiz gate (this topic has 1 translated
+    // word, enough to trigger it) to reach the practice-phase vocab table.
+    await completeVocabQuiz(user);
 
     const practiceToggle = screen.getByRole("button", {
       name: "Practice pronouncing market",
@@ -537,8 +577,10 @@ describe("StoryRecorder student prototype", () => {
 
     expect(screen.getByRole("region", { name: "Vocabulary quiz" })).toBeInTheDocument();
     expect(screen.queryByRole("table", { name: "Scene vocabulary" })).not.toBeInTheDocument();
+    // Mandatory the first time through — no skip button yet.
+    expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Skip/ }));
+    await completeVocabQuiz(user);
 
     expect(screen.queryByRole("region", { name: "Vocabulary quiz" })).not.toBeInTheDocument();
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
@@ -579,9 +621,9 @@ describe("StoryRecorder student prototype", () => {
       />,
     );
 
-    // Skip past the vocab quiz gate (this topic has a translated word,
-    // enough to trigger it) to reach the practice-phase Vocabulary step.
-    await user.click(screen.getByRole("button", { name: /Skip/ }));
+    // Finish the mandatory vocab quiz gate (this topic has a translated
+    // word, enough to trigger it) to reach the practice-phase Vocabulary step.
+    await completeVocabQuiz(user);
 
     // Lands on Vocabulary by default — no record controls, grammar text, or
     // the story submit panel yet.

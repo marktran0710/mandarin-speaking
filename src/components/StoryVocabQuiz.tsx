@@ -80,16 +80,21 @@ export function buildQuizQuestions(entries: VocabQuizEntry[]): VocabQuizQuestion
   });
 }
 
-/** A skippable multiple-choice vocabulary check covering every glossed word
- * in the story, shown once before a student starts practicing any scene. */
+/** A multiple-choice vocabulary check covering every glossed word in the
+ * story, shown before a student starts practicing any scene. Mandatory
+ * (no skip button) the first time through a story — once `onDone` fires
+ * from actually finishing it, the caller is expected to remember that and
+ * pass `allowSkip` on future visits. */
 export default function StoryVocabQuiz({
   entries,
   onDone,
   onBack,
+  allowSkip = true,
 }: {
   entries: VocabQuizEntry[];
   onDone: () => void;
   onBack?: () => void;
+  allowSkip?: boolean;
 }) {
   const questions = useMemo(() => buildQuizQuestions(entries), [entries]);
   const [index, setIndex] = useState(0);
@@ -176,9 +181,11 @@ export default function StoryVocabQuiz({
             )}
           </button>
         )}
-        <button type="button" className="btn-skip-vocab-quiz" onClick={onDone}>
-          <BiLabel k="skip" />
-        </button>
+        {allowSkip && (
+          <button type="button" className="btn-skip-vocab-quiz" onClick={onDone}>
+            <BiLabel k="skip" />
+          </button>
+        )}
       </div>
     </section>
   );

@@ -26,6 +26,26 @@ const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
   (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
+const VOCAB_QUIZ_COMPLETED_KEY = "vocabQuizCompletedStoryIds";
+
+function loadCompletedVocabQuizzes(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(VOCAB_QUIZ_COMPLETED_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function markVocabQuizCompleted(topicId: string) {
+  try {
+    const next = { ...loadCompletedVocabQuizzes(), [topicId]: true };
+    localStorage.setItem(VOCAB_QUIZ_COMPLETED_KEY, JSON.stringify(next));
+  } catch {
+    /* storage unavailable — the quiz will just ask again next time */
+  }
+}
+
 export function vocabTooltip(pos?: string, translation?: string): string | undefined {
   if (pos && translation) return `(${pos}) ${translation}`;
   if (pos) return `(${pos})`;
@@ -290,13 +310,30 @@ export default function StoryRecorder({
   }, [topic]);
   const hasVocabQuiz = quizEntries.length >= 1;
 
+  // Whether this student has already finished the vocabulary quiz for this
+  // specific story (persisted across visits) — a story with no quiz content
+  // at all counts as "nothing to gate on", not "not yet done". Re-read
+  // directly in the topic-change effect below (not derived reactively from
+  // this state) so the very first phase decision after switching stories
+  // already reflects the new topic's completion status, not a stale one.
+  const [vocabQuizCompleted, setVocabQuizCompleted] = useState(
+    () => loadCompletedVocabQuizzes()[topic.id] === true,
+  );
+  const speakingLocked = hasVocabQuiz && !vocabQuizCompleted;
+
+  const handleVocabQuizDone = () => {
+    markVocabQuizCompleted(topic.id);
+    setVocabQuizCompleted(true);
+    setPhase("practice");
+  };
+
   // Learning phase: overview → sorting → vocabquiz → practice
   const [phase, setPhase] = useState<"overview" | "sorting" | "vocabquiz" | "practice">(
     enableOverview
       ? "overview"
       : enableSorting
         ? "sorting"
-        : hasVocabQuiz
+        : speakingLocked
           ? "vocabquiz"
           : "practice",
   );
@@ -364,12 +401,15 @@ export default function StoryRecorder({
   }, [selectedImageIndex, topic.id]);
 
   useEffect(() => {
+    const completed = loadCompletedVocabQuizzes()[topic.id] === true;
+    setVocabQuizCompleted(completed);
+    const stillLocked = hasVocabQuiz && !completed;
     setPhase(
       enableOverview
         ? "overview"
         : enableSorting
           ? "sorting"
-          : hasVocabQuiz
+          : stillLocked
             ? "vocabquiz"
             : "practice",
     );
@@ -1189,11 +1229,21 @@ export default function StoryRecorder({
               <button
                 type="button"
                 className="overview-choice-card"
+                disabled={speakingLocked}
                 onClick={() => setPhase(enableSorting ? "sorting" : "practice")}
               >
                 <span className="overview-choice-icon">🎙️</span>
                 <strong><BiLabel k="speaking_practice" /></strong>
-                <p><BiText k="record_your_mandarin_story_out_loud" /></p>
+                <p>
+                  {speakingLocked ? (
+                    <BiText
+                      zh="請先完成詞彙測驗"
+                      en="Complete the vocabulary quiz first"
+                    />
+                  ) : (
+                    <BiText k="record_your_mandarin_story_out_loud" />
+                  )}
+                </p>
               </button>
             </div>
           </div>
@@ -1384,7 +1434,7 @@ export default function StoryRecorder({
               <button
                 type="button"
                 className="btn-start-speaking"
-                onClick={() => setPhase(hasVocabQuiz ? "vocabquiz" : "practice")}
+                onClick={() => setPhase(speakingLocked ? "vocabquiz" : "practice")}
               >
                 <BiLabel k="continue_to_speaking" />
               </button>
@@ -1402,7 +1452,7 @@ export default function StoryRecorder({
             <button
               type="button"
               className="btn-skip-sorting"
-              onClick={() => setPhase(hasVocabQuiz ? "vocabquiz" : "practice")}
+              onClick={() => setPhase(speakingLocked ? "vocabquiz" : "practice")}
             >
               <BiLabel k="skip" />
             </button>
@@ -1413,8 +1463,9 @@ export default function StoryRecorder({
       {phase === "vocabquiz" && (
         <StoryVocabQuiz
           entries={quizEntries}
-          onDone={() => setPhase("practice")}
-          onBack={() => setPhase("overview")}
+          onDone={handleVocabQuizDone}
+          onBack={enableOverview ? () => setPhase("overview") : undefined}
+          allowSkip={vocabQuizCompleted}
         />
       )}
 
