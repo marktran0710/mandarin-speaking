@@ -279,6 +279,8 @@ class CustomStoryFrameRequest(BaseModel):
     grammarPattern: Optional[str] = None
     grammarExample: Optional[str] = None
     vocabularyPinyin: Optional[str] = None
+    vocabularyPos: Optional[str] = None
+    vocabularyTranslation: Optional[str] = None
     suggestedAnswer: Optional[str] = None
     listenAudioUrl: Optional[str] = None
     listenScript: Optional[str] = None
@@ -782,7 +784,7 @@ def safe_file_stem(value: str) -> str:
 
 
 def remove_uploaded_file(url: str) -> None:
-    if not url.startswith("/uploads/"):
+    if not url or not url.startswith("/uploads/"):
         return
     relative_path = url.removeprefix("/uploads/").replace("/", os.sep)
     path = os.path.abspath(os.path.join(UPLOAD_DIR, relative_path))
