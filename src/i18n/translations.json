@@ -248,8 +248,8 @@
     "zh": "普通話故事教練"
   },
   "match_key_words_to_each_story_scene": {
-    "en": "Look over the key words for each scene before you record",
-    "zh": "錄音前先看看每個場景的關鍵詞彙"
+    "en": "Answer a few quick questions about the story's key words",
+    "zh": "回答幾題故事關鍵詞彙的選擇題"
   },
   "monitor_student_recordings_inspect_speec": {
     "en": "Monitor student recordings, inspect speech metrics, and support narrative development.",
@@ -556,8 +556,8 @@
     "zh": "驗證順序"
   },
   "vocabulary_map": {
-    "en": "Review the vocabulary",
-    "zh": "檢視詞彙"
+    "en": "Vocabulary Quiz",
+    "zh": "詞彙測驗"
   },
   "vowel_quality": {
     "en": "Vowel quality",

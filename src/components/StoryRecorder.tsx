@@ -1,6 +1,7 @@
 import {
   type ChangeEvent,
   useEffect,
+  useMemo,
   useRef,
   useState,
   useCallback,
@@ -14,6 +15,7 @@ import {
 import PraatTimeline from "./PraatTimeline";
 import StoryFeedbackCard from "./StoryFeedbackCard";
 import ScenePracticeWord from "./ScenePracticeWord";
+import StoryVocabQuiz, { collectQuizEntries } from "./StoryVocabQuiz";
 import { toPinyin } from "../utils/pinyin";
 import "./StoryRecorder.css";
 import { BiLabel, BiText } from "./BiLabel";
@@ -157,6 +159,8 @@ interface TranscriptionItem {
   model: SpeechModel;
 }
 
+type ScenePracticeStep = "vocab" | "grammar" | "speaking";
+
 interface ConceptMapDraft {
   characters: string;
   place: string;
@@ -270,10 +274,46 @@ export default function StoryRecorder({
   } | null>(null);
   const [showStartModal, setShowStartModal] = useState(false);
 
-  // Learning phase: overview → sorting → practice
-  const [phase, setPhase] = useState<"overview" | "sorting" | "practice">(
-    enableOverview ? "overview" : enableSorting ? "sorting" : "practice",
+  // Every glossed word across every scene, deduped — the pool the
+  // pre-practice vocabulary quiz draws its questions from. A story needs at
+  // least 2 distinct translated words to make a meaningful multiple-choice
+  // question (1 correct answer + at least 1 distractor).
+  const quizEntries = useMemo(() => {
+    const words: string[] = [];
+    const translations: Array<string | undefined> = [];
+    topic.images.forEach((_, si) => {
+      (topic.vocabulary[si] || []).forEach((word, i) => {
+        words.push(word);
+        translations.push(topic.vocabularyTranslation?.[si]?.[i]);
+      });
+    });
+    return collectQuizEntries(words, translations);
+  }, [topic]);
+  const hasVocabQuiz = quizEntries.length >= 2;
+
+  // Learning phase: overview → sorting → vocabquiz → practice
+  const [phase, setPhase] = useState<"overview" | "sorting" | "vocabquiz" | "practice">(
+    enableOverview
+      ? "overview"
+      : enableSorting
+        ? "sorting"
+        : hasVocabQuiz
+          ? "vocabquiz"
+          : "practice",
   );
+  // Within the "practice" phase, each scene walks its own
+  // vocabulary → grammar → speaking sub-steps (skipping any step whose data
+  // isn't populated for that scene) rather than showing everything at once.
+  const sceneHasVocabStep = (idx: number) => (topic.vocabulary[idx] || []).length > 0;
+  const sceneHasGrammarStep = (idx: number) =>
+    Boolean(topic.grammarPatterns?.[idx] || topic.grammarExamples?.[idx]);
+  const firstScenePracticeStep = (idx: number): ScenePracticeStep =>
+    sceneHasVocabStep(idx) ? "vocab" : sceneHasGrammarStep(idx) ? "grammar" : "speaking";
+
+  const [scenePracticeStep, setScenePracticeStep] = useState<ScenePracticeStep>(
+    firstScenePracticeStep(selectedImageIndex),
+  );
+
   const [shuffledPool, setShuffledPool] = useState<string[]>([]);
   const [placedImages, setPlacedImages] = useState<Array<string | null>>([]);
   const [selectedPoolImage, setSelectedPoolImage] = useState<string | null>(
@@ -320,7 +360,20 @@ export default function StoryRecorder({
   };
 
   useEffect(() => {
-    setPhase(enableOverview ? "overview" : enableSorting ? "sorting" : "practice");
+    setScenePracticeStep(firstScenePracticeStep(selectedImageIndex));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedImageIndex, topic.id]);
+
+  useEffect(() => {
+    setPhase(
+      enableOverview
+        ? "overview"
+        : enableSorting
+          ? "sorting"
+          : hasVocabQuiz
+            ? "vocabquiz"
+            : "practice",
+    );
     setSelectedPoolImage(null);
     setSortingFeedback("");
     setSortingAttempts(0);
@@ -328,7 +381,7 @@ export default function StoryRecorder({
     const pool = shuffleImages(topic.images);
     setShuffledPool(pool);
     setPlacedImages(new Array(topic.images.length).fill(null));
-  }, [topic.id, topic.images, enableSorting, enableOverview]);
+  }, [topic.id, topic.images, enableSorting, enableOverview, hasVocabQuiz]);
 
   useEffect(() => {
     return () => {
@@ -1024,6 +1077,9 @@ export default function StoryRecorder({
     ...(enableSorting
       ? [{ key: "sorting" as const, label: <BiLabel k="arrange_scenes" />, icon: "🧩" }]
       : []),
+    ...(hasVocabQuiz
+      ? [{ key: "vocabquiz" as const, label: <BiLabel k="vocabulary_map" />, icon: "❓" }]
+      : []),
     { key: "practice", label: <BiLabel k="speaking" />, icon: "🎙️" },
   ] as const;
 
@@ -1120,15 +1176,19 @@ export default function StoryRecorder({
                   </div>
                 </div>
               )}
-              <div className="overview-step">
-                <span className="overview-step-num">{enableSorting ? 2 : 1}</span>
-                <div>
-                  <strong><BiLabel k="vocabulary_map" /></strong>
-                  <p><BiText k="match_key_words_to_each_story_scene" /></p>
+              {hasVocabQuiz && (
+                <div className="overview-step">
+                  <span className="overview-step-num">{enableSorting ? 2 : 1}</span>
+                  <div>
+                    <strong><BiLabel k="vocabulary_map" /></strong>
+                    <p><BiText k="match_key_words_to_each_story_scene" /></p>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="overview-step">
-                <span className="overview-step-num">{enableSorting ? 3 : 2}</span>
+                <span className="overview-step-num">
+                  {(enableSorting ? 1 : 0) + (hasVocabQuiz ? 1 : 0) + 1}
+                </span>
                 <div>
                   <strong><BiLabel k="speaking_practice" /></strong>
                   <p><BiText k="record_your_mandarin_story_out_loud" /></p>
@@ -1163,7 +1223,9 @@ export default function StoryRecorder({
               className="btn-start-challenge"
               onClick={() => {
                 setShowStartModal(false);
-                setPhase(enableSorting ? "sorting" : "practice");
+                setPhase(
+                  enableSorting ? "sorting" : hasVocabQuiz ? "vocabquiz" : "practice",
+                );
               }}
             >
               <BiLabel k="got_it_lets_start" />
@@ -1356,7 +1418,7 @@ export default function StoryRecorder({
               <button
                 type="button"
                 className="btn-start-speaking"
-                onClick={() => setPhase("practice")}
+                onClick={() => setPhase(hasVocabQuiz ? "vocabquiz" : "practice")}
               >
                 <BiLabel k="continue_to_speaking" />
               </button>
@@ -1374,12 +1436,19 @@ export default function StoryRecorder({
             <button
               type="button"
               className="btn-skip-sorting"
-              onClick={() => setPhase("practice")}
+              onClick={() => setPhase(hasVocabQuiz ? "vocabquiz" : "practice")}
             >
               <BiLabel k="skip" />
             </button>
           </div>
         </section>
+      )}
+
+      {phase === "vocabquiz" && (
+        <StoryVocabQuiz
+          entries={quizEntries}
+          onDone={() => setPhase("practice")}
+        />
       )}
 
       {phase === "practice" && (

@@ -1,0 +1,112 @@
+.story-vocab-quiz {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 32px 20px;
+  text-align: center;
+}
+
+.vocab-quiz-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.vocab-quiz-word {
+  font-size: 2.6rem;
+  color: var(--gold-deep);
+  margin: 4px 0;
+}
+
+.vocab-quiz-progress {
+  font-size: 13px;
+  color: var(--clay-muted);
+  font-weight: 700;
+}
+
+.vocab-quiz-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.vocab-quiz-option {
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md, 8px);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  font-size: 14.5px;
+  font-weight: 650;
+  padding: 14px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.vocab-quiz-option:hover:not(:disabled) {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.vocab-quiz-option:disabled {
+  cursor: default;
+}
+
+.vocab-quiz-option-correct {
+  background: var(--jade-soft);
+  border-color: var(--jade);
+  color: var(--jade-deep);
+}
+
+.vocab-quiz-option-incorrect {
+  background: var(--seal-soft);
+  border-color: var(--clay-error);
+  color: var(--clay-error);
+}
+
+.vocab-quiz-option-neutral:disabled {
+  opacity: 0.55;
+}
+
+.vocab-quiz-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-vocab-quiz-next {
+  font-size: 14.5px;
+  font-weight: 650;
+  padding: 12px 24px;
+  border-radius: var(--clay-radius-md, 8px);
+  cursor: pointer;
+  border: none;
+  background: var(--jade);
+  color: #ffffff;
+  transition: all 0.2s;
+}
+.btn-vocab-quiz-next:hover {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-skip-vocab-quiz {
+  font-size: 14.5px;
+  font-weight: 650;
+  padding: 12px 24px;
+  border-radius: var(--clay-radius-md, 8px);
+  cursor: pointer;
+  background: transparent;
+  color: var(--clay-muted);
+  border: 1px dashed var(--clay-hairline);
+  transition: all 0.2s;
+}
+.btn-skip-vocab-quiz:hover {
+  background: var(--clay-surface-soft);
+  color: var(--clay-ink);
+}

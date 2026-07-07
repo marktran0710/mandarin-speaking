@@ -40,6 +40,16 @@ const topicWithVocabDetails = {
   },
 };
 
+const topicWithQuizVocab = {
+  ...topic,
+  vocabulary: {
+    0: ["market", "help", "friend"],
+  },
+  vocabularyTranslation: {
+    0: ["marketplace", "to help", "friend"],
+  },
+};
+
 const TEST_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
 
 let activeRecorder: MockMediaRecorder | null = null;
@@ -356,13 +366,13 @@ describe("StoryRecorder student prototype", () => {
     expect(screen.getByText("Recording options")).toBeInTheDocument();
   });
 
-  it("shows an overview orientation screen before practice when enableOverview is set, without a stale vocabulary-map step", async () => {
+  it("shows an overview orientation screen before practice when enableOverview is set, then the vocabulary quiz since this topic has translated words", async () => {
     const user = userEvent.setup();
 
     render(
       <StoryRecorder
-        topic={topic}
-        selectedImage={topic.images[0]}
+        topic={topicWithQuizVocab}
+        selectedImage={topicWithQuizVocab.images[0]}
         selectedImageIndex={0}
         onImageSelect={vi.fn()}
         onImageChange={vi.fn()}
@@ -373,29 +383,29 @@ describe("StoryRecorder student prototype", () => {
 
     // Lands on the orientation screen first, not straight into practice.
     expect(screen.getByText("Your Challenge")).toBeInTheDocument();
-    expect(screen.queryByText("Recording options")).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Vocabulary quiz" })).not.toBeInTheDocument();
 
-    // enableSorting is off, so there's no picture-ordering step or its
-    // now-dead "Vocabulary Map" successor — just "review vocab" then "speak".
+    // enableSorting is off, so there's no picture-ordering step — just the
+    // (now live, no longer dead) vocabulary quiz step, then "speak".
     expect(screen.queryByText("Arrange the Story Scenes")).not.toBeInTheDocument();
-    expect(screen.queryByText("Vocabulary Map")).not.toBeInTheDocument();
-    expect(screen.getByText("Review the vocabulary")).toBeInTheDocument();
+    expect(screen.getAllByText("Vocabulary Quiz").length).toBeGreaterThan(0);
 
-    // The phase-nav stepper should only show the two real steps.
+    // The phase-nav stepper shows all three real steps.
     const nav = screen.getByRole("navigation", { name: "Progress" });
     expect(within(nav).getByText("Overview")).toBeInTheDocument();
+    expect(within(nav).getByText("Vocabulary Quiz")).toBeInTheDocument();
     expect(within(nav).getByText("Speaking")).toBeInTheDocument();
-    expect(within(nav).queryByText("Vocabulary map")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Let's Go/ }));
     await user.click(screen.getByRole("button", { name: /Got it, let's start/ }));
 
-    // Skips straight to practice (enableSorting is off) and, since this
-    // scene has no attempts yet, shows the first-time step-by-step hint.
-    expect(screen.getByText("Recording options")).toBeInTheDocument();
-    expect(
-      screen.getByText(/Step 1: look over the vocabulary below/),
-    ).toBeInTheDocument();
+    // Lands on the vocabulary quiz (enableSorting is off, so it's next).
+    expect(screen.getByRole("region", { name: "Vocabulary quiz" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Skip/ }));
+
+    // Now in practice, with the scene vocabulary table visible.
+    expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
   });
 
   it("shows the scene vocabulary as a read-only table with pos/translation, no status before analysis", () => {
@@ -484,6 +494,44 @@ describe("StoryRecorder student prototype", () => {
     expect(
       screen.queryByRole("button", { name: "Record market to check pronunciation" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows a vocabulary quiz before practice when the story has enough translated words", async () => {
+    const user = userEvent.setup();
+    render(
+      <StoryRecorder
+        topic={topicWithQuizVocab}
+        selectedImage={topicWithQuizVocab.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("region", { name: "Vocabulary quiz" })).toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Scene vocabulary" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Skip/ }));
+
+    expect(screen.queryByRole("region", { name: "Vocabulary quiz" })).not.toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
+  });
+
+  it("does not show the vocabulary quiz when a story has no translated words", () => {
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("region", { name: "Vocabulary quiz" })).not.toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
   });
 });
 
