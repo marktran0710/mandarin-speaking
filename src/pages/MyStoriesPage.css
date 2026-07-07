@@ -2023,3 +2023,59 @@
 }
 .teacher-refresh-btn:hover:not(:disabled) { background: var(--jade-soft); }
 .teacher-refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.vocab-table {
+  display: grid;
+  gap: 6px;
+}
+
+.vocab-table-header,
+.vocab-table-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1.1fr 0.9fr 1.3fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.vocab-table-header span {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--clay-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.vocab-table-row input,
+.vocab-table-row select {
+  padding: 8px 9px;
+  font-size: 13px;
+}
+
+.vocab-table-remove {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  color: var(--clay-error);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 900;
+  width: 30px;
+  height: 30px;
+}
+
+.vocab-table-add-btn {
+  justify-self: start;
+  margin-top: 2px;
+  border: 1px dashed var(--jade);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  color: var(--jade-deep);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 7px 12px;
+}
+
+.vocab-table-add-btn:hover {
+  background: var(--jade-soft);
+}
