@@ -256,6 +256,29 @@ export async function createStorySubmission(submission: StorySubmission): Promis
   return response.json() as Promise<StorySubmission>;
 }
 
+export interface VocabQuizAttempt {
+  id: string;
+  storyId: string;
+  studentName: string;
+  completedAt: string;
+  totalQuestions: number;
+  correctCount: number;
+  totalTimeMs: number;
+  questionResults: Array<{ word: string; correct: boolean; timeMs: number }>;
+}
+
+export async function createVocabQuizAttempt(
+  attempt: VocabQuizAttempt,
+): Promise<VocabQuizAttempt> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/vocab-quiz-attempts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(attempt),
+  });
+  if (!response.ok) throw new Error("Could not save the vocabulary quiz attempt.");
+  return response.json() as Promise<VocabQuizAttempt>;
+}
+
 export async function resolveHelpRequest(id: string) {
   const response = await fetchWithRetry(
     `${BACKEND_URL}/api/help-requests/${encodeURIComponent(id)}/resolve`,

@@ -9,13 +9,17 @@ import {
 import {
   canUseDatabase,
   createStorySubmission,
+  createVocabQuizAttempt,
   type SceneSubmission,
   type StoryFeedback,
 } from "../services/database";
 import PraatTimeline from "./PraatTimeline";
 import StoryFeedbackCard from "./StoryFeedbackCard";
 import ScenePracticeWord from "./ScenePracticeWord";
-import StoryVocabQuiz, { collectQuizEntries } from "./StoryVocabQuiz";
+import StoryVocabQuiz, {
+  collectQuizEntries,
+  type VocabQuizSummary,
+} from "./StoryVocabQuiz";
 import JourneyPath, { type JourneyStopStatus } from "./JourneyPath";
 import ToneShapeIcon from "./ToneShapeIcon";
 import { toPinyin } from "../utils/pinyin";
@@ -298,17 +302,23 @@ export default function StoryRecorder({
   // Every glossed word across every scene, deduped — the pool the
   // pre-practice vocabulary quiz draws its questions from. Even a single
   // translated word is enough for a real question: buildQuizQuestions pads
-  // out missing distractors with generic filler words.
+  // out missing distractors with generic filler words. A word only
+  // qualifies if it also appears in its scene's suggested-answer sentence
+  // (when one exists) — confirms it's used in real context, not just an
+  // isolated flashcard pair.
   const quizEntries = useMemo(() => {
     const words: string[] = [];
     const translations: Array<string | undefined> = [];
+    const suggestedAnswers: Array<string | undefined> = [];
     topic.images.forEach((_, si) => {
+      const sceneSuggestedAnswer = topic.suggestedAnswers?.[si];
       (topic.vocabulary[si] || []).forEach((word, i) => {
         words.push(word);
         translations.push(topic.vocabularyTranslation?.[si]?.[i]);
+        suggestedAnswers.push(sceneSuggestedAnswer);
       });
     });
-    return collectQuizEntries(words, translations);
+    return collectQuizEntries(words, translations, suggestedAnswers);
   }, [topic]);
   const hasVocabQuiz = quizEntries.length >= 1;
 
@@ -327,6 +337,26 @@ export default function StoryRecorder({
     markVocabQuizCompleted(topic.id);
     setVocabQuizCompleted(true);
     setPhase("practice");
+  };
+
+  // Records a finished quiz attempt for tracking (question-by-question
+  // correctness/timing, total score, total time). Best-effort: a save
+  // failure shouldn't block the student from moving on to practice, so it's
+  // fire-and-forget with just a console warning on failure.
+  const handleVocabQuizComplete = (summary: VocabQuizSummary) => {
+    if (!canUseDatabase()) return;
+    createVocabQuizAttempt({
+      id: `vocab-quiz-${topic.id}-${Date.now()}`,
+      storyId: topic.id,
+      studentName,
+      completedAt: new Date().toISOString(),
+      totalQuestions: summary.totalQuestions,
+      correctCount: summary.correctCount,
+      totalTimeMs: summary.totalTimeMs,
+      questionResults: summary.questionResults,
+    }).catch((error) => {
+      console.warn("Failed to save vocabulary quiz attempt:", error);
+    });
   };
 
   // Learning phase: overview → sorting → vocabquiz → practice
@@ -1468,6 +1498,7 @@ export default function StoryRecorder({
           onDone={handleVocabQuizDone}
           onBack={enableOverview ? () => setPhase("overview") : undefined}
           allowSkip={vocabQuizCompleted}
+          onComplete={handleVocabQuizComplete}
         />
       )}
 

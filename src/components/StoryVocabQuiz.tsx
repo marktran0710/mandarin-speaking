@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { BiLabel } from "./BiLabel";
 import "./StoryVocabQuiz.css";
 
@@ -11,6 +11,19 @@ export interface VocabQuizQuestion {
   word: string;
   correctTranslation: string;
   options: string[];
+}
+
+export interface VocabQuizQuestionResult {
+  word: string;
+  correct: boolean;
+  timeMs: number;
+}
+
+export interface VocabQuizSummary {
+  totalQuestions: number;
+  correctCount: number;
+  totalTimeMs: number;
+  questionResults: VocabQuizQuestionResult[];
 }
 
 const MAX_QUESTIONS = 8;
@@ -37,16 +50,25 @@ function shuffle<T>(items: T[]): T[] {
 
 /** Dedupes a story's vocabulary (by word, across every scene) down to the
  * entries that have a translation filled in — a question can't be asked
- * about a word the teacher hasn't glossed. */
+ * about a word the teacher hasn't glossed. When `suggestedAnswers` is given
+ * (one entry per word, aligned by index — typically the scene's suggested-
+ * answer sentence repeated for each of that scene's words), a word is only
+ * kept if it also actually appears in its scene's sentence, confirming it's
+ * used in real context rather than an isolated flashcard pair. Without
+ * `suggestedAnswers`, every translated word qualifies (no context to check
+ * against). */
 export function collectQuizEntries(
   words: string[],
   translations: Array<string | undefined>,
+  suggestedAnswers?: Array<string | undefined>,
 ): VocabQuizEntry[] {
   const seen = new Set<string>();
   const entries: VocabQuizEntry[] = [];
   words.forEach((word, i) => {
     const translation = translations[i]?.trim();
     if (!translation || seen.has(word)) return;
+    const context = suggestedAnswers?.[i];
+    if (context !== undefined && !context.includes(word)) return;
     seen.add(word);
     entries.push({ word, translation });
   });
@@ -84,21 +106,28 @@ export function buildQuizQuestions(entries: VocabQuizEntry[]): VocabQuizQuestion
  * story, shown before a student starts practicing any scene. Mandatory
  * (no skip button) the first time through a story — once `onDone` fires
  * from actually finishing it, the caller is expected to remember that and
- * pass `allowSkip` on future visits. */
+ * pass `allowSkip` on future visits. `onComplete`, when given, fires once
+ * with a full results summary — only on a genuine finish (every question
+ * answered), never on skip or back-out, since those aren't real attempts. */
 export default function StoryVocabQuiz({
   entries,
   onDone,
   onBack,
   allowSkip = true,
+  onComplete,
 }: {
   entries: VocabQuizEntry[];
   onDone: () => void;
   onBack?: () => void;
   allowSkip?: boolean;
+  onComplete?: (summary: VocabQuizSummary) => void;
 }) {
   const questions = useMemo(() => buildQuizQuestions(entries), [entries]);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
+  const [results, setResults] = useState<VocabQuizQuestionResult[]>([]);
+  const questionStartRef = useRef(Date.now());
+  const quizStartRef = useRef(Date.now());
 
   const question = questions[index];
 
@@ -111,13 +140,28 @@ export default function StoryVocabQuiz({
   const choose = (option: string) => {
     if (selected) return;
     setSelected(option);
+    setResults((prev) => [
+      ...prev,
+      {
+        word: question.word,
+        correct: option === question.correctTranslation,
+        timeMs: Date.now() - questionStartRef.current,
+      },
+    ]);
   };
 
   const next = () => {
     setSelected(null);
     if (isLast) {
+      onComplete?.({
+        totalQuestions: questions.length,
+        correctCount: results.filter((r) => r.correct).length,
+        totalTimeMs: Date.now() - quizStartRef.current,
+        questionResults: results,
+      });
       onDone();
     } else {
+      questionStartRef.current = Date.now();
       setIndex((i) => i + 1);
     }
   };

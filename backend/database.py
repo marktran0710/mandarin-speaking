@@ -100,6 +100,21 @@ def init_db() -> None:
         )
         ensure_column(db, "story_submissions", "concatenated_audio_url", "TEXT")
         ensure_column(db, "story_submissions", "story_feedback", "TEXT")
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS vocab_quiz_attempts (
+                id TEXT PRIMARY KEY,
+                story_id TEXT NOT NULL,
+                student_name TEXT NOT NULL,
+                completed_at TEXT NOT NULL,
+                total_questions INTEGER NOT NULL,
+                correct_count INTEGER NOT NULL,
+                total_time_ms INTEGER NOT NULL,
+                question_results TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
 
 
 def row_to_audio_record(row: sqlite3.Row) -> dict:
@@ -158,6 +173,19 @@ def row_to_help_request(row: sqlite3.Row) -> dict:
         "status": row["status"],
         "createdAt": row["created_at"],
         "resolvedAt": row["resolved_at"],
+    }
+
+
+def row_to_vocab_quiz_attempt(row: sqlite3.Row) -> dict:
+    return {
+        "id": row["id"],
+        "storyId": row["story_id"],
+        "studentName": row["student_name"],
+        "completedAt": row["completed_at"],
+        "totalQuestions": row["total_questions"],
+        "correctCount": row["correct_count"],
+        "totalTimeMs": row["total_time_ms"],
+        "questionResults": json.loads(row["question_results"] or "[]"),
     }
 
 

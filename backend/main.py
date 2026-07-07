@@ -36,6 +36,7 @@ from database import (
     row_to_custom_story,
     row_to_help_request,
     row_to_story_submission,
+    row_to_vocab_quiz_attempt,
 )
 
 from praat_analyzer import (
@@ -328,6 +329,23 @@ class StorySubmissionRequest(BaseModel):
     studentName: str = Field(default="Student", max_length=100)
     submittedAt: str
     scenes: List[SceneSubmission] = []
+
+
+class VocabQuizQuestionResult(BaseModel):
+    word: str = Field(..., max_length=200)
+    correct: bool
+    timeMs: int = Field(..., ge=0)
+
+
+class VocabQuizAttemptRequest(BaseModel):
+    id: str = Field(..., max_length=128)
+    storyId: str = Field(..., max_length=128)
+    studentName: str = Field(default="Student", max_length=100)
+    completedAt: str
+    totalQuestions: int = Field(..., ge=1)
+    correctCount: int = Field(..., ge=0)
+    totalTimeMs: int = Field(..., ge=0)
+    questionResults: List[VocabQuizQuestionResult] = []
 
 
 @app.get("/health")
@@ -655,6 +673,50 @@ async def create_story_submission(submission: StorySubmissionRequest):
         "concatenatedAudioUrl": concatenated_audio_url,
         "storyFeedback": story_feedback,
     }
+
+
+@app.get("/api/vocab-quiz-attempts")
+async def list_vocab_quiz_attempts(
+    story_id: Optional[str] = None,
+    student_name: Optional[str] = None,
+):
+    query = "SELECT * FROM vocab_quiz_attempts WHERE 1=1"
+    params: list = []
+    if story_id:
+        query += " AND story_id = ?"
+        params.append(story_id)
+    if student_name:
+        query += " AND student_name = ?"
+        params.append(student_name)
+    query += " ORDER BY completed_at DESC"
+
+    with connect_db() as db:
+        rows = db.execute(query, params).fetchall()
+    return [row_to_vocab_quiz_attempt(row) for row in rows]
+
+
+@app.post("/api/vocab-quiz-attempts")
+async def create_vocab_quiz_attempt(attempt: VocabQuizAttemptRequest):
+    with connect_db() as db:
+        db.execute(
+            """
+            INSERT OR REPLACE INTO vocab_quiz_attempts
+                (id, story_id, student_name, completed_at, total_questions,
+                 correct_count, total_time_ms, question_results)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                attempt.id,
+                attempt.storyId,
+                attempt.studentName,
+                attempt.completedAt,
+                attempt.totalQuestions,
+                attempt.correctCount,
+                attempt.totalTimeMs,
+                json.dumps([r.model_dump() for r in attempt.questionResults]),
+            ),
+        )
+    return attempt.model_dump()
 
 
 async def save_uploaded_audio(file: UploadFile, record_id: str) -> str:
