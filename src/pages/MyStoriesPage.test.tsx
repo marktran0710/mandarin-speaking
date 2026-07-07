@@ -127,6 +127,13 @@ describe("MyStoriesPage", () => {
     await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Restaurant Story");
+    const imageInputs = screen.getAllByLabelText("Image URL or uploaded file");
+    for (let index = 0; index < imageInputs.length; index += 1) {
+      await user.type(
+        imageInputs[index],
+        `https://example.com/restaurant-scene-${index + 1}.jpg`,
+      );
+    }
 
     await user.click(screen.getAllByRole("button", { name: "+ Add word" })[0]);
     await user.type(screen.getAllByLabelText("Chinese word")[0], "餐廳");
