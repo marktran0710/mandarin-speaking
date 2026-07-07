@@ -119,10 +119,6 @@
     "en": "Continue to Speaking",
     "zh": "繼續到口說練習 →"
   },
-  "continue_to_vocabulary_map": {
-    "en": "Continue to Vocabulary Map",
-    "zh": "繼續到詞彙地圖 →"
-  },
   "converting_speech_to_text": {
     "en": "Converting speech to text",
     "zh": "將語音轉換為文字"
@@ -163,10 +159,6 @@
     "en": "Drag each picture into the correct scene slot, then verify the sequence to unlock speaking practice.",
     "zh": "把每張圖片拖到正確的場景位置，然後驗證順序以解鎖口說練習。"
   },
-  "drag_each_word_into_its_sentence_role_su": {
-    "en": "Drag each word into its sentence role — Subject, Verb, or Object",
-    "zh": "把每個詞彙拖到對應的句子角色 — 主語、動詞，或受語"
-  },
   "drag_here": {
     "en": "Drag here",
     "zh": "拖曳到這裡"
@@ -198,10 +190,6 @@
   "good": {
     "en": "Good",
     "zh": "優點"
-  },
-  "grammar_pattern_canvas": {
-    "en": "Grammar Pattern Canvas",
-    "zh": "文法句型畫布"
   },
   "grammar_pattern_to_use": {
     "en": "Grammar pattern to use",
@@ -260,8 +248,8 @@
     "zh": "普通話故事教練"
   },
   "match_key_words_to_each_story_scene": {
-    "en": "Match key words to each story scene",
-    "zh": "把關鍵詞彙配對到每個故事場景"
+    "en": "Look over the key words for each scene before you record",
+    "zh": "錄音前先看看每個場景的關鍵詞彙"
   },
   "monitor_student_recordings_inspect_speec": {
     "en": "Monitor student recordings, inspect speech metrics, and support narrative development.",
@@ -395,6 +383,10 @@
     "en": "Say",
     "zh": "單獨說"
   },
+  "scene_first_time_hint": {
+    "en": "Step 1: look over the vocabulary below. Step 2: press Record and tell the story for this scene.",
+    "zh": "第一步：先看看下方的單字。第二步：按下錄音，說出這個場景的故事。"
+  },
   "scene_vocabulary": {
     "en": "Scene vocabulary",
     "zh": "場景詞彙"
@@ -462,10 +454,6 @@
   "step_1_arrange_scenes": {
     "en": "Step 1 · Arrange Scenes",
     "zh": "步驟 1 · 排列場景"
-  },
-  "step_2_vocabulary_map": {
-    "en": "Step 2 · Vocabulary Map",
-    "zh": "步驟 2 · 詞彙地圖"
   },
   "stop_recording": {
     "en": "Stop Recording",
@@ -568,8 +556,8 @@
     "zh": "驗證順序"
   },
   "vocabulary_map": {
-    "en": "Vocabulary Map",
-    "zh": "詞彙地圖"
+    "en": "Review the vocabulary",
+    "zh": "檢視詞彙"
   },
   "vowel_quality": {
     "en": "Vowel quality",

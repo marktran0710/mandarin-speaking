@@ -356,6 +356,48 @@ describe("StoryRecorder student prototype", () => {
     expect(screen.getByText("Recording options")).toBeInTheDocument();
   });
 
+  it("shows an overview orientation screen before practice when enableOverview is set, without a stale vocabulary-map step", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+        enableOverview={true}
+      />,
+    );
+
+    // Lands on the orientation screen first, not straight into practice.
+    expect(screen.getByText("Your Challenge")).toBeInTheDocument();
+    expect(screen.queryByText("Recording options")).not.toBeInTheDocument();
+
+    // enableSorting is off, so there's no picture-ordering step or its
+    // now-dead "Vocabulary Map" successor — just "review vocab" then "speak".
+    expect(screen.queryByText("Arrange the Story Scenes")).not.toBeInTheDocument();
+    expect(screen.queryByText("Vocabulary Map")).not.toBeInTheDocument();
+    expect(screen.getByText("Review the vocabulary")).toBeInTheDocument();
+
+    // The phase-nav stepper should only show the two real steps.
+    const nav = screen.getByRole("navigation", { name: "Progress" });
+    expect(within(nav).getByText("Overview")).toBeInTheDocument();
+    expect(within(nav).getByText("Speaking")).toBeInTheDocument();
+    expect(within(nav).queryByText("Vocabulary map")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Let's Go/ }));
+    await user.click(screen.getByRole("button", { name: /Got it, let's start/ }));
+
+    // Skips straight to practice (enableSorting is off) and, since this
+    // scene has no attempts yet, shows the first-time step-by-step hint.
+    expect(screen.getByText("Recording options")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Step 1: look over the vocabulary below/),
+    ).toBeInTheDocument();
+  });
+
   it("shows the scene vocabulary as a read-only table with pos/translation, no status before analysis", () => {
     render(
       <StoryRecorder
@@ -397,6 +439,7 @@ describe("StoryRecorder student prototype", () => {
         onImageChange={vi.fn()}
         onAddRecord={vi.fn()}
         enableSorting={true}
+        enableOverview={true}
       />,
     );
 

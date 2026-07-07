@@ -3537,96 +3537,11 @@
   font-size: 16px;
 }
 
-/* ── Concept Map Phase ──────────────────────────────── */
-
-.conceptmap-phase {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 28px 24px 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.conceptmap-phase-header {
-  text-align: center;
-  padding: 28px 24px 20px;
-  background: var(--seal-soft);
-  border: 1.5px solid var(--clay-hairline);
-  border-radius: 16px;
-}
-
-.conceptmap-phase-header .eyebrow {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--seal);
-  margin-bottom: 8px;
-}
-
-.conceptmap-phase-header h1 {
-  font-size: clamp(1.5rem, 4vw, 2.2rem);
-  font-weight: 900;
-  color: var(--clay-ink);
-  margin: 0 0 8px;
-}
-
-.conceptmap-phase-sub {
-  font-size: 14px;
-  color: var(--clay-body);
-  margin: 0;
-}
-
-.conceptmap-phase-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding-top: 8px;
-}
-
-.btn-back-phase {
-  background: var(--clay-surface-card);
-  border: 1.5px solid var(--clay-hairline);
-  color: var(--clay-body);
-  padding: 10px 24px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: border-color 0.15s;
-}
-
-.btn-back-phase:hover { border-color: var(--clay-muted); }
-
-.btn-next-phase {
-  background: var(--seal);
-  color: #fff;
-  border: none;
-  padding: 12px 32px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 800;
-  cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-
-.btn-next-phase:hover {
-  background: var(--seal-deep);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-md);
-}
-
 @media (max-width: 640px) {
   .story-overview { padding: 20px 16px 32px; gap: 24px; }
   .overview-hero { padding: 28px 16px 24px; }
   .overview-scenes-strip { gap: 10px; }
   .overview-scene-thumb { width: 130px; }
-  .conceptmap-phase { padding: 16px 12px 32px; }
-  .conceptmap-phase-actions { flex-direction: column; }
-  .btn-back-phase, .btn-next-phase { width: 100%; text-align: center; }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -4347,6 +4262,11 @@
   border-radius: 8px;
   padding: 10px 14px;
   margin-bottom: 12px;
+}
+.scene-progress-hint-start {
+  color: var(--seal-deep);
+  background: var(--seal-soft);
+  border-color: var(--seal);
 }
 
 @media (max-width: 640px) {

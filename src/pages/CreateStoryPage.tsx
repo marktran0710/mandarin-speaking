@@ -80,6 +80,7 @@ export default function CreateStoryPage({
             onImageChange={(image) => setSelectedImage(image)}
             onAddRecord={onAddRecord}
             enableSorting={false}
+            enableOverview={true}
             studentName={getStudentName()}
           />
         </div>

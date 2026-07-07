@@ -12,7 +12,6 @@ import {
   type StoryFeedback,
 } from "../services/database";
 import PraatTimeline from "./PraatTimeline";
-import StoryConceptMap from "./StoryConceptMap";
 import StoryFeedbackCard from "./StoryFeedbackCard";
 import ScenePracticeWord from "./ScenePracticeWord";
 import { toPinyin } from "../utils/pinyin";
@@ -186,6 +185,11 @@ interface StoryRecorderProps {
     praatMetrics: PraatMetrics;
   }) => Promise<string | undefined> | void;
   enableSorting?: boolean;
+  /** Show the orientation screen (challenge summary + "here's what you'll do"
+   * modal) before the student reaches the recording workspace. Independent of
+   * `enableSorting` so production can restore student-facing orientation
+   * without reintroducing the picture-ordering minigame. */
+  enableOverview?: boolean;
   studentName?: string;
 }
 
@@ -197,6 +201,7 @@ export default function StoryRecorder({
   onImageChange,
   onAddRecord,
   enableSorting = false,
+  enableOverview = false,
   studentName = "Student",
 }: StoryRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
@@ -265,10 +270,10 @@ export default function StoryRecorder({
   } | null>(null);
   const [showStartModal, setShowStartModal] = useState(false);
 
-  // Learning phase: overview → sorting → conceptmap → practice
-  const [phase, setPhase] = useState<
-    "overview" | "sorting" | "conceptmap" | "practice"
-  >(enableSorting ? "overview" : "practice");
+  // Learning phase: overview → sorting → practice
+  const [phase, setPhase] = useState<"overview" | "sorting" | "practice">(
+    enableOverview ? "overview" : enableSorting ? "sorting" : "practice",
+  );
   const [shuffledPool, setShuffledPool] = useState<string[]>([]);
   const [placedImages, setPlacedImages] = useState<Array<string | null>>([]);
   const [selectedPoolImage, setSelectedPoolImage] = useState<string | null>(
@@ -315,7 +320,7 @@ export default function StoryRecorder({
   };
 
   useEffect(() => {
-    setPhase(enableSorting ? "overview" : "practice");
+    setPhase(enableOverview ? "overview" : enableSorting ? "sorting" : "practice");
     setSelectedPoolImage(null);
     setSortingFeedback("");
     setSortingAttempts(0);
@@ -323,7 +328,7 @@ export default function StoryRecorder({
     const pool = shuffleImages(topic.images);
     setShuffledPool(pool);
     setPlacedImages(new Array(topic.images.length).fill(null));
-  }, [topic.id, topic.images, enableSorting]);
+  }, [topic.id, topic.images, enableSorting, enableOverview]);
 
   useEffect(() => {
     return () => {
@@ -1019,7 +1024,6 @@ export default function StoryRecorder({
     ...(enableSorting
       ? [{ key: "sorting" as const, label: <BiLabel k="arrange_scenes" />, icon: "🧩" }]
       : []),
-    { key: "conceptmap", label: <BiLabel k="vocabulary_map" />, icon: "🗺️" },
     { key: "practice", label: <BiLabel k="speaking" />, icon: "🎙️" },
   ] as const;
 
@@ -1352,9 +1356,9 @@ export default function StoryRecorder({
               <button
                 type="button"
                 className="btn-start-speaking"
-                onClick={() => setPhase("conceptmap")}
+                onClick={() => setPhase("practice")}
               >
-                <BiLabel k="continue_to_vocabulary_map" />
+                <BiLabel k="continue_to_speaking" />
               </button>
             ) : (
               <button
@@ -1373,35 +1377,6 @@ export default function StoryRecorder({
               onClick={() => setPhase("practice")}
             >
               <BiLabel k="skip" />
-            </button>
-          </div>
-        </section>
-      )}
-
-      {false && phase === "conceptmap" && (
-        <section className="conceptmap-phase">
-          <div className="conceptmap-phase-header">
-            <p className="eyebrow"><BiLabel k="step_2_vocabulary_map" /></p>
-            <h1><BiLabel k="grammar_pattern_canvas" /></h1>
-            <p className="conceptmap-phase-sub">
-              <BiText k="drag_each_word_into_its_sentence_role_su" />
-            </p>
-          </div>
-          <StoryConceptMap topic={topic} defaultOpen />
-          <div className="conceptmap-phase-actions">
-            {enableSorting && (
-              <button
-                className="btn-back-phase"
-                onClick={() => setPhase("sorting")}
-              >
-                <BiLabel k="back_to_scenes" />
-              </button>
-            )}
-            <button
-              className="btn-next-phase"
-              onClick={() => setPhase("practice")}
-            >
-              <BiLabel k="continue_to_speaking" />
             </button>
           </div>
         </section>
@@ -1491,7 +1466,13 @@ export default function StoryRecorder({
           {/* ── Scene readiness banner ── */}
           {(() => {
             const prog = sceneProgress[selectedImageIndex];
-            if (!prog) return null;
+            if (!prog || prog.attempts === 0) {
+              return (
+                <div className="scene-progress-hint scene-progress-hint-start">
+                  <BiLabel k="scene_first_time_hint" />
+                </div>
+              );
+            }
             const ready = sceneReady(prog);
             const nextIdx = selectedImageIndex + 1;
             const hasNext = nextIdx < topic.images.length;
