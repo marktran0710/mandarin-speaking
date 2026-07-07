@@ -23,6 +23,8 @@ export interface Topic {
   grammarPatterns?: Record<number, string>;
   grammarExamples?: Record<number, string>;
   vocabularyPinyin?: Record<number, string[]>;
+  vocabularyPos?: Record<number, string[]>;
+  vocabularyTranslation?: Record<number, string[]>;
   suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
   listenScripts?: Record<number, string>;

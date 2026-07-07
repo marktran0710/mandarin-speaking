@@ -25,6 +25,8 @@ export interface CustomStoryFrame {
   grammarPattern?: string;
   grammarExample?: string;
   vocabularyPinyin?: string;
+  vocabularyPos?: string;
+  vocabularyTranslation?: string;
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
@@ -88,6 +90,8 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
   const grammarPatterns: Record<number, string> = {};
   const grammarExamples: Record<number, string> = {};
   const vocabularyPinyin: Record<number, string[]> = {};
+  const vocabularyPos: Record<number, string[]> = {};
+  const vocabularyTranslation: Record<number, string[]> = {};
   const suggestedAnswers: Record<number, string> = {};
   const listenAudioUrls: Record<number, string> = {};
   const listenScripts: Record<number, string> = {};
@@ -105,6 +109,16 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
       vocabularyPinyin[index] = frame.vocabularyPinyin
         .split(",")
         .map((p) => numericToToneMarked(p.trim()));
+    }
+    if (frame.vocabularyPos && frame.vocabularyPos.trim()) {
+      vocabularyPos[index] = frame.vocabularyPos
+        .split(",")
+        .map((p) => p.trim());
+    }
+    if (frame.vocabularyTranslation && frame.vocabularyTranslation.trim()) {
+      vocabularyTranslation[index] = frame.vocabularyTranslation
+        .split(",")
+        .map((t) => t.trim());
     }
     if (frame.suggestedAnswer && frame.suggestedAnswer.trim()) {
       suggestedAnswers[index] = frame.suggestedAnswer.trim();
@@ -130,6 +144,8 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
     ...(Object.keys(grammarPatterns).length > 0 ? { grammarPatterns } : {}),
     ...(Object.keys(grammarExamples).length > 0 ? { grammarExamples } : {}),
     ...(Object.keys(vocabularyPinyin).length > 0 ? { vocabularyPinyin } : {}),
+    ...(Object.keys(vocabularyPos).length > 0 ? { vocabularyPos } : {}),
+    ...(Object.keys(vocabularyTranslation).length > 0 ? { vocabularyTranslation } : {}),
     ...(Object.keys(suggestedAnswers).length > 0 ? { suggestedAnswers } : {}),
     ...(Object.keys(listenAudioUrls).length > 0 ? { listenAudioUrls } : {}),
     ...(Object.keys(listenScripts).length > 0 ? { listenScripts } : {}),

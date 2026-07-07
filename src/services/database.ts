@@ -51,6 +51,8 @@ export interface CustomStoryFrame {
   grammarPattern?: string;
   grammarExample?: string;
   vocabularyPinyin?: string;
+  vocabularyPos?: string;
+  vocabularyTranslation?: string;
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
