@@ -1641,140 +1641,12 @@ export default function StoryRecorder({
             </button>
           </div>
 
-          {scenePracticeStep === "vocab" && selectedVocabulary.length > 0 && (
-            <section className="scene-step-panel scene-vocab-step">
-              <div className="practice-vocab-ref">
-                <p className="block-label practice-vocab-heading">
-                  <BiLabel k="scene_vocabulary" />
-                  {praatMetrics && (
-                    <span className="vocab-check-hint">
-                      {" "}
-                      — <BiLabel k="check_which_words_you_used" />
-                    </span>
-                  )}
-                </p>
-                <div
-                  className="scene-vocab-table scene-vocab-table-practice"
-                  role="table"
-                  aria-label="Scene vocabulary"
-                >
-                  {selectedVocabulary.map((w, wi) => {
-                    // Prefer backend phonetic-match result; fall back to character search
-                    const aiVC =
-                      praatMetrics?.ai_feedback?.vocabulary_coverage;
-                    let used: boolean | null = null;
-                    if (aiVC) {
-                      if (aiVC.used?.includes(w)) used = true;
-                      else if (aiVC.missing?.includes(w)) used = false;
-                    } else if (praatMetrics?.transcription) {
-                      used = praatMetrics.transcription.includes(w);
-                    }
-                    const py = topic.vocabularyPinyin?.[selectedImageIndex]?.[wi] || toPinyin(w);
-                    const pos = topic.vocabularyPos?.[selectedImageIndex]?.[wi];
-                    const translation = topic.vocabularyTranslation?.[selectedImageIndex]?.[wi];
-                    return (
-                      <div
-                        key={w}
-                        role="row"
-                        className={`scene-vocab-row scene-vocab-row-practice ${used === true ? "scene-vocab-used" : used === false ? "scene-vocab-missed" : ""}`}
-                        title={
-                          used === true
-                            ? "你使用了這個詞彙 ✓ You used this word"
-                            : used === false
-                              ? "試著加入這個詞彙 Try to include this word"
-                              : undefined
-                        }
-                      >
-                        <span className="scene-vocab-status" role="cell" aria-hidden="true">
-                          {used === true && "✓"}
-                          {used === false && "✗"}
-                        </span>
-                        <span className="scene-vocab-cell scene-vocab-hanzi" role="cell">{w}</span>
-                        <span className="scene-vocab-cell scene-vocab-pinyin" role="cell">{py}</span>
-                        <span className="scene-vocab-cell scene-vocab-pos" role="cell">{pos}</span>
-                        <span className="scene-vocab-cell scene-vocab-meaning" role="cell">{translation}</span>
-                        <ScenePracticeWord word={w} />
-                      </div>
-                    );
-                  })}
-                </div>
-                {praatMetrics?.ai_feedback?.vocabulary_coverage && (
-                  <p className="vocab-coverage-line">
-                    {(() => {
-                      const vc =
-                        praatMetrics.ai_feedback!.vocabulary_coverage!;
-                      const usedList = vc.used ?? [];
-                      const missedList = vc.missing ?? [];
-                      if (missedList.length === 0)
-                        return (
-                          <BiLabel k="all_vocabulary_words_used_excellent" />
-                        );
-                      if (usedList.length === 0)
-                        return (
-                          <BiLabel
-                            zh={`試著加入：${missedList.slice(0, 3).join("、")}`}
-                            en={`Try to include: ${missedList.slice(0, 3).join("、")}`}
-                          />
-                        );
-                      return (
-                        <BiLabel
-                          zh={`已使用 ${usedList.length}/${selectedVocabulary.length}。試著加入：${missedList.slice(0, 2).join("、")}`}
-                          en={`Used ${usedList.length}/${selectedVocabulary.length}. Try adding: ${missedList.slice(0, 2).join("、")}`}
-                        />
-                      );
-                    })()}
-                  </p>
-                )}
-              </div>
-              <button
-                type="button"
-                className="btn-scene-step-continue"
-                onClick={() =>
-                  setScenePracticeStep(
-                    sceneHasGrammarStep(selectedImageIndex) ? "grammar" : "speaking",
-                  )
-                }
-              >
-                <BiLabel
-                  k={sceneHasGrammarStep(selectedImageIndex) ? "continue_to_grammar" : "continue_to_speaking"}
-                />
-              </button>
-            </section>
-          )}
-
-          {scenePracticeStep === "grammar" &&
-            (topic.grammarPatterns?.[selectedImageIndex] || topic.grammarExamples?.[selectedImageIndex]) && (
-              <section className="scene-step-panel scene-grammar-step">
-                <div className="practice-grammar-hint practice-grammar-hint-full">
-                  <p className="block-label practice-grammar-label">
-                    <BiLabel k="grammar_pattern_to_use" />
-                  </p>
-                  {topic.grammarPatterns?.[selectedImageIndex] && (
-                    <span className="practice-grammar-pattern">
-                      {topic.grammarPatterns[selectedImageIndex]}
-                    </span>
-                  )}
-                  {topic.grammarExamples?.[selectedImageIndex] && (
-                    <span className="practice-grammar-example">
-                      {topic.grammarExamples[selectedImageIndex]}
-                    </span>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="btn-scene-step-continue"
-                  onClick={() => setScenePracticeStep("speaking")}
-                >
-                  <BiLabel k="continue_to_speaking" />
-                </button>
-              </section>
-            )}
-
-          {scenePracticeStep === "speaking" && (
-          <>
-          {/* ── Main two-column workspace ── */}
+          {/* ── Main two-column workspace: shape stays identical across every
+               step, so switching tabs never resizes or reflows the page —
+               only the reference content (left) and action area (right)
+               change underneath it. ── */}
           <div className="practice-workspace">
-            {/* Left: scene image + vocab chips + record button */}
+            {/* Left: scene image + step-specific reference material */}
             <div className="practice-scene-panel">
               <div className="practice-scene-image-wrap">
                 <img
@@ -1782,288 +1654,33 @@ export default function StoryRecorder({
                   alt={`Scene ${selectedImageIndex + 1}`}
                 />
               </div>
-            </div>
 
-            {/* Right: record controls */}
-            <div className="practice-guide-panel">
-              <div className="practice-guide-header">
-                <span>🎙️</span>
-                <div>
-                  <h3><BiLabel k="record_your_story" /></h3>
-                </div>
-              </div>
-
-              <div className="practice-record-area">
-                {aiProviders.length > 0 && (
-                  <div
-                    className="record-engine-switch"
-                    role="group"
-                    aria-label="AI feedback engine"
-                  >
-                    <label className="record-engine-switch-label" htmlFor="ai-engine-select">
-                      <BiLabel k="ai_engine" />
-                    </label>
-                    <select
-                      id="ai-engine-select"
-                      className="record-engine-switch-options"
-                      value={aiProvider}
-                      onChange={(e) => {
-                        const next = e.target.value;
-                        setAiProvider(next);
-                        // Groq handles Whisper transcription as well as feedback,
-                        // so align the speech source automatically.
-                        if (next === "groq") setSelectedModel("groq");
-                      }}
-                      disabled={isBusy}
-                    >
-                      {aiProviders.map((p) => (
-                        <option
-                          key={p.id}
-                          value={p.id}
-                          disabled={!p.available || p.id === "local"}
-                        >
-                          {p.label}
-                          {p.available && p.id !== "local" ? "" : " 🔒"}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={handlePrimaryRecordingAction}
-                  disabled={recordingButtonDisabled}
-                  className={`btn-practice-record${isRecording ? " is-recording" : ""}`}
-                >
-                  {isRecording ? <BiLabel k="stop_recording" /> : <BiLabel k="record" />}
-                </button>
-                {isRecording && (
-                  <div className="practice-timer">
-                    <span>{recordingDuration}s</span>
-                    {selectedModel === "webspeech" && (
-                      <span className="practice-silence">
-                        <BiLabel zh={`靜音 ${silenceDuration}s / 7s`} en={`silence ${silenceDuration}s / 7s`} />
+              {scenePracticeStep === "vocab" && selectedVocabulary.length > 0 && (
+                <div className="practice-vocab-ref">
+                  <p className="block-label practice-vocab-heading">
+                    <BiLabel k="scene_vocabulary" />
+                    {praatMetrics && (
+                      <span className="vocab-check-hint">
+                        {" "}
+                        — <BiLabel k="check_which_words_you_used" />
                       </span>
                     )}
-                  </div>
-                )}
-                <label
-                  className={`btn-practice-upload${isBusy ? " disabled" : ""}`}
-                  role="button"
-                  tabIndex={isBusy ? -1 : 0}
-                >
-                  <BiLabel k="upload_audio" />
-                  <input
-                    className="submit-voice-input"
-                    type="file"
-                    accept="audio/*,.wav,.wave,.webm,.mp3,.m4a,.ogg"
-                    onChange={handleSubmitVoiceFile}
-                    disabled={isBusy}
-                  />
-                </label>
-                {submittedAudioName && (
-                  <p className="submitted-audio-name">✓ {submittedAudioName}</p>
-                )}
-              </div>
-
-              <div className="transcriptions">
-                <h2><BiLabel k="speech_transcript" /></h2>
-                {praatMetrics?.transcription && (
-                  <div className="transcription-item transcription-asr-primary">
-                    <div className="item-header">
-                      <span className="time"><BiLabel k="asr_result" /></span>
-                      <span className="model-badge">
-                        {(praatMetrics.transcription_model || "ASR").toUpperCase()}
-                      </span>
-                    </div>
-                    <p lang="zh-TW">{praatMetrics.transcription}</p>
-                  </div>
-                )}
-                {transcriptions.length === 0 && !praatMetrics?.transcription ? (
-                  <p className="empty">
-                    <BiText k="your_transcript_will_appear_after_record" />
                   </p>
-                ) : (
-                  <div className="transcriptions-scroll">
-                    {transcriptions.map((item) => (
-                      <div
-                        key={`${item.timestamp}-${item.text}`}
-                        className="transcription-item"
-                      >
-                        <div className="item-header">
-                          <span className="time">{item.timestamp}</span>
-                          <span className="model-badge">
-                            {item.model.toUpperCase()}
-                          </span>
-                        </div>
-                        <p>{item.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <details className="practice-model-picker">
-                <summary><BiLabel k="recording_options" /></summary>
-                <label className="practice-model-label" htmlFor="speech-source">
-                  <BiLabel k="speech_source" />
-                </label>
-                <select
-                  id="speech-source"
-                  value={selectedModel}
-                  onChange={(e) =>
-                    setSelectedModel(e.target.value as SpeechModel)
-                  }
-                  disabled={isBusy}
-                >
-                  <option value="webspeech">
-                    瀏覽器（繁體中文） Browser (Traditional Chinese)
-                  </option>
-                  <option value="groq">Groq Whisper（免費，雲端） Groq Whisper (free, cloud)</option>
-                  <option value="ctwhisper">
-                    Whisper（中文／台語，本地） Whisper (Chinese / Taiwanese, local)
-                  </option>
-                  <option value="vibevoice">VibeVoice-ASR（本地檔案） VibeVoice-ASR (local file)</option>
-                </select>
-              </details>
-            </div>
-          </div>
-
-          {(isTranscribing || isAnalyzing) && (
-            <div className="analysis-loading-card">
-              <div className="analysis-loading-spinner" />
-              <div className="analysis-loading-text">
-                <p className="analysis-loading-title">
-                  {isTranscribing ? (
-                    <BiLabel k="listening_to_your_voice" />
-                  ) : (
-                    <BiLabel k="analyzing_pronunciation" />
-                  )}
-                </p>
-                <p className="analysis-loading-sub">
-                  {isTranscribing ? (
-                    <BiLabel k="converting_speech_to_text" />
-                  ) : (
-                    <BiLabel k="checking_tones_rhythm_and_vocabulary" />
-                  )}
-                </p>
-              </div>
-              <div className="analysis-loading-steps">
-                <span
-                  className={`loading-step ${isTranscribing ? "active" : "done"}`}
-                >
-                  <BiLabel k="transcribe" />
-                </span>
-                <span className="loading-step-arrow">→</span>
-                <span
-                  className={`loading-step ${isAnalyzing && !isTranscribing ? "active" : ""}`}
-                >
-                  Praat
-                </span>
-                <span className="loading-step-arrow">→</span>
-                <span className="loading-step"><BiLabel k="feedback" /></span>
-              </div>
-            </div>
-          )}
-          {error && <p className="error">{error}</p>}
-
-          {praatMetrics && (
-            <section className="analysis-panel">
-              {/* ── Main grid: left = scores & language feedback, right = playback ── */}
-              <div className="ap-grid">
-              <div className="ap-feedback-col">
-              {/* ── Zone 1: Summary ─────────────────────────────────────── */}
-              <FeedbackSummary
-                praatMetrics={praatMetrics}
-                attemptHistory={attemptHistory}
-                transcription={praatMetrics.transcription || ""}
-              />
-
-              {/* ── Indirect corrective feedback: hint-only for the first two
-                  attempts; the correct version is revealed only after that. ── */}
-              {topic.narrativeMode !== "listen_retell" &&
-                (() => {
-                  const cf = praatMetrics.ai_feedback?.corrective_feedback;
-                  const accepted = isContentAccepted(praatMetrics);
-                  const missing =
-                    praatMetrics.ai_feedback?.vocabulary_coverage?.missing ?? [];
-
-                  // Already correct — nothing to correct, so stay quiet here;
-                  // FeedbackSummary already shows the success state.
-                  if (accepted && missing.length === 0) return null;
-
-                  if (cf?.reveal_answer && cf.correct_version) {
-                    return (
-                      <div className="practice-suggested-answer">
-                        <p className="block-label practice-suggested-answer-heading">
-                          <BiLabel zh="正確答案" en="Correct version" />
-                        </p>
-                        {cf.errors.length > 0 && (
-                          <p className="practice-suggested-answer-text">
-                            <BiLabel zh="可能的錯誤：" en="Possible errors: " />
-                            {cf.errors.join("；")}
-                          </p>
-                        )}
-                        <p className="practice-suggested-answer-text">
-                          <strong>{cf.correct_version}</strong>
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  if (cf && (cf.errors.length > 0 || cf.hint)) {
-                    return (
-                      <div className="practice-suggested-answer is-hint">
-                        <p className="block-label practice-suggested-answer-heading">
-                          <BiLabel zh="提示" en="Hint" />
-                        </p>
-                        {cf.errors.length > 0 && (
-                          <p className="practice-suggested-answer-text">
-                            <BiLabel zh="可能的錯誤：" en="Possible errors: " />
-                            {cf.errors.join("；")}
-                          </p>
-                        )}
-                        {cf.hint && (
-                          <p className="practice-suggested-answer-text">{cf.hint}</p>
-                        )}
-                        <p className="practice-suggested-answer-text">
-                          <BiLabel zh="請再試一次。" en="Please try again." />
-                        </p>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-              </div>{/* /ap-feedback-col */}
-
-              {/* ── Right column: scene thumbnail + playback + positive signals ── */}
-              <div className="ap-sidebar-col">
-              {/* Scene thumbnail */}
-              <div className="ap-scene-card">
-                <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} className="ap-scene-img" />
-                <div className="ap-scene-label">
-                  <span><BiLabel zh={`場景 ${selectedImageIndex + 1}`} en={`Scene ${selectedImageIndex + 1}`} /></span>
-                  {sceneProgress[selectedImageIndex] && (
-                    <span className="ap-scene-attempts">
-                      <BiLabel
-                        zh={`${sceneProgress[selectedImageIndex].attempts} 次嘗試`}
-                        en={`${sceneProgress[selectedImageIndex].attempts} attempt${sceneProgress[selectedImageIndex].attempts > 1 ? "s" : ""}`}
-                      />
-                    </span>
-                  )}
-                </div>
-              </div>
-              {/* ── Vocabulary for this scene ── */}
-              {selectedVocabulary.length > 0 && (
-                <div className="ap-vocab-ref">
-                  <p className="block-label ap-vocab-heading"><BiLabel k="scene_vocabulary" /></p>
-                  <div className="scene-vocab-table" role="table" aria-label="Scene vocabulary">
+                  <div
+                    className="scene-vocab-table scene-vocab-table-practice"
+                    role="table"
+                    aria-label="Scene vocabulary"
+                  >
                     {selectedVocabulary.map((w, wi) => {
-                      const aiVC = praatMetrics?.ai_feedback?.vocabulary_coverage;
+                      // Prefer backend phonetic-match result; fall back to character search
+                      const aiVC =
+                        praatMetrics?.ai_feedback?.vocabulary_coverage;
                       let used: boolean | null = null;
                       if (aiVC) {
                         if (aiVC.used?.includes(w)) used = true;
                         else if (aiVC.missing?.includes(w)) used = false;
+                      } else if (praatMetrics?.transcription) {
+                        used = praatMetrics.transcription.includes(w);
                       }
                       const py = topic.vocabularyPinyin?.[selectedImageIndex]?.[wi] || toPinyin(w);
                       const pos = topic.vocabularyPos?.[selectedImageIndex]?.[wi];
@@ -2072,7 +1689,14 @@ export default function StoryRecorder({
                         <div
                           key={w}
                           role="row"
-                          className={`scene-vocab-row ${used === true ? "scene-vocab-used" : used === false ? "scene-vocab-missed" : ""}`}
+                          className={`scene-vocab-row scene-vocab-row-practice ${used === true ? "scene-vocab-used" : used === false ? "scene-vocab-missed" : ""}`}
+                          title={
+                            used === true
+                              ? "你使用了這個詞彙 ✓ You used this word"
+                              : used === false
+                                ? "試著加入這個詞彙 Try to include this word"
+                                : undefined
+                          }
                         >
                           <span className="scene-vocab-status" role="cell" aria-hidden="true">
                             {used === true && "✓"}
@@ -2082,227 +1706,633 @@ export default function StoryRecorder({
                           <span className="scene-vocab-cell scene-vocab-pinyin" role="cell">{py}</span>
                           <span className="scene-vocab-cell scene-vocab-pos" role="cell">{pos}</span>
                           <span className="scene-vocab-cell scene-vocab-meaning" role="cell">{translation}</span>
+                          <ScenePracticeWord word={w} />
                         </div>
                       );
                     })}
                   </div>
+                  {praatMetrics?.ai_feedback?.vocabulary_coverage && (
+                    <p className="vocab-coverage-line">
+                      {(() => {
+                        const vc =
+                          praatMetrics.ai_feedback!.vocabulary_coverage!;
+                        const usedList = vc.used ?? [];
+                        const missedList = vc.missing ?? [];
+                        if (missedList.length === 0)
+                          return (
+                            <BiLabel k="all_vocabulary_words_used_excellent" />
+                          );
+                        if (usedList.length === 0)
+                          return (
+                            <BiLabel
+                              zh={`試著加入：${missedList.slice(0, 3).join("、")}`}
+                              en={`Try to include: ${missedList.slice(0, 3).join("、")}`}
+                            />
+                          );
+                        return (
+                          <BiLabel
+                            zh={`已使用 ${usedList.length}/${selectedVocabulary.length}。試著加入：${missedList.slice(0, 2).join("、")}`}
+                            en={`Used ${usedList.length}/${selectedVocabulary.length}. Try adding: ${missedList.slice(0, 2).join("、")}`}
+                          />
+                        );
+                      })()}
+                    </p>
+                  )}
                 </div>
               )}
 
-              {/* ── Zone 3: Listen back ──────────────────────────────────── */}
-              <div className="listen-try-zone">
-                {analysisAudioBlob && (
-                  <RecordingPlayback blob={analysisAudioBlob} />
-                )}
-              </div>
-
-              {(praatMetrics.ai_feedback?.vocabulary_coverage?.missing
-                ?.length ?? 0) === 0 && (
-                <div className="try-again-complete">
-                  <span className="try-again-complete-icon">✓</span>
-                  <div>
-                    <p className="try-again-complete-title">
-                      <BiLabel k="all_vocabulary_words_used" />
+              {scenePracticeStep === "grammar" &&
+                (topic.grammarPatterns?.[selectedImageIndex] || topic.grammarExamples?.[selectedImageIndex]) && (
+                  <div className="practice-grammar-hint practice-grammar-hint-full">
+                    <p className="block-label practice-grammar-label">
+                      <BiLabel k="grammar_pattern_to_use" />
                     </p>
-                    <p className="try-again-complete-hint">
-                      <BiText k="now_work_on_pronunciation_record_again_a" />
-                    </p>
+                    {topic.grammarPatterns?.[selectedImageIndex] && (
+                      <span className="practice-grammar-pattern">
+                        {topic.grammarPatterns[selectedImageIndex]}
+                      </span>
+                    )}
+                    {topic.grammarExamples?.[selectedImageIndex] && (
+                      <span className="practice-grammar-example">
+                        {topic.grammarExamples[selectedImageIndex]}
+                      </span>
+                    )}
                   </div>
+                )}
+            </div>
+
+            {/* Right: step-specific action panel — same width/position as the
+                record panel in every step, so only its contents change. */}
+            <div className="practice-guide-panel">
+              {scenePracticeStep === "vocab" && (
+                <div className="scene-step-action">
+                  <div className="practice-guide-header">
+                    <span>👀</span>
+                    <div><h3><BiLabel k="vocab_step_tab" /></h3></div>
+                  </div>
+                  <p className="scene-step-action-copy">
+                    <BiText k="vocab_step_action_copy" />
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-scene-step-continue"
+                    onClick={() =>
+                      setScenePracticeStep(
+                        sceneHasGrammarStep(selectedImageIndex) ? "grammar" : "speaking",
+                      )
+                    }
+                  >
+                    <BiLabel
+                      k={sceneHasGrammarStep(selectedImageIndex) ? "continue_to_grammar" : "continue_to_speaking"}
+                    />
+                  </button>
                 </div>
               )}
-              </div>{/* /ap-sidebar-col */}
-              </div>{/* /ap-grid */}
 
-              <div className="word-prosody-section">
-                <div className="word-prosody-header">
-                  <h3><BiLabel k="character_by_character_prosody" /></h3>
-                  <p><BiText k="pitch_movement_estimated_for_each_mandar" /></p>
+              {scenePracticeStep === "grammar" && (
+                <div className="scene-step-action">
+                  <div className="practice-guide-header">
+                    <span>📐</span>
+                    <div><h3><BiLabel k="grammar_step_tab" /></h3></div>
+                  </div>
+                  <p className="scene-step-action-copy">
+                    <BiText k="grammar_step_action_copy" />
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-scene-step-continue"
+                    onClick={() => setScenePracticeStep("speaking")}
+                  >
+                    <BiLabel k="continue_to_speaking" />
+                  </button>
                 </div>
-                {hasWordProsody ? (
-                  <div className="word-prosody-grid">
-                    {praatMetrics.word_prosody?.map((item) => (
-                      <WordProsodyCard
-                        key={`${item.token}-${item.index}`}
-                        item={item}
+              )}
+
+              {scenePracticeStep === "speaking" && (
+                <>
+                  <div className="practice-guide-header">
+                    <span>🎙️</span>
+                    <div>
+                      <h3><BiLabel k="record_your_story" /></h3>
+                    </div>
+                  </div>
+
+                  <div className="practice-record-area">
+                    {aiProviders.length > 0 && (
+                      <div
+                        className="record-engine-switch"
+                        role="group"
+                        aria-label="AI feedback engine"
+                      >
+                        <label className="record-engine-switch-label" htmlFor="ai-engine-select">
+                          <BiLabel k="ai_engine" />
+                        </label>
+                        <select
+                          id="ai-engine-select"
+                          className="record-engine-switch-options"
+                          value={aiProvider}
+                          onChange={(e) => {
+                            const next = e.target.value;
+                            setAiProvider(next);
+                            // Groq handles Whisper transcription as well as feedback,
+                            // so align the speech source automatically.
+                            if (next === "groq") setSelectedModel("groq");
+                          }}
+                          disabled={isBusy}
+                        >
+                          {aiProviders.map((p) => (
+                            <option
+                              key={p.id}
+                              value={p.id}
+                              disabled={!p.available || p.id === "local"}
+                            >
+                              {p.label}
+                              {p.available && p.id !== "local" ? "" : " 🔒"}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handlePrimaryRecordingAction}
+                      disabled={recordingButtonDisabled}
+                      className={`btn-practice-record${isRecording ? " is-recording" : ""}`}
+                    >
+                      {isRecording ? <BiLabel k="stop_recording" /> : <BiLabel k="record" />}
+                    </button>
+                    {isRecording && (
+                      <div className="practice-timer">
+                        <span>{recordingDuration}s</span>
+                        {selectedModel === "webspeech" && (
+                          <span className="practice-silence">
+                            <BiLabel zh={`靜音 ${silenceDuration}s / 7s`} en={`silence ${silenceDuration}s / 7s`} />
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <label
+                      className={`btn-practice-upload${isBusy ? " disabled" : ""}`}
+                      role="button"
+                      tabIndex={isBusy ? -1 : 0}
+                    >
+                      <BiLabel k="upload_audio" />
+                      <input
+                        className="submit-voice-input"
+                        type="file"
+                        accept="audio/*,.wav,.wave,.webm,.mp3,.m4a,.ogg"
+                        onChange={handleSubmitVoiceFile}
+                        disabled={isBusy}
                       />
-                    ))}
+                    </label>
+                    {submittedAudioName && (
+                      <p className="submitted-audio-name">✓ {submittedAudioName}</p>
+                    )}
                   </div>
-                ) : (
-                  <div className="word-prosody-empty">
-                    <strong><BiLabel k="no_character_feedback_yet" /></strong>
-                    <p>
-                      <BiText k="needs_a_clear_pitch_contour_and_transcri" />
+
+                  <div className="transcriptions">
+                    <h2><BiLabel k="speech_transcript" /></h2>
+                    {praatMetrics?.transcription && (
+                      <div className="transcription-item transcription-asr-primary">
+                        <div className="item-header">
+                          <span className="time"><BiLabel k="asr_result" /></span>
+                          <span className="model-badge">
+                            {(praatMetrics.transcription_model || "ASR").toUpperCase()}
+                          </span>
+                        </div>
+                        <p lang="zh-TW">{praatMetrics.transcription}</p>
+                      </div>
+                    )}
+                    {transcriptions.length === 0 && !praatMetrics?.transcription ? (
+                      <p className="empty">
+                        <BiText k="your_transcript_will_appear_after_record" />
+                      </p>
+                    ) : (
+                      <div className="transcriptions-scroll">
+                        {transcriptions.map((item) => (
+                          <div
+                            key={`${item.timestamp}-${item.text}`}
+                            className="transcription-item"
+                          >
+                            <div className="item-header">
+                              <span className="time">{item.timestamp}</span>
+                              <span className="model-badge">
+                                {item.model.toUpperCase()}
+                              </span>
+                            </div>
+                            <p>{item.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <details className="practice-model-picker">
+                    <summary><BiLabel k="recording_options" /></summary>
+                    <label className="practice-model-label" htmlFor="speech-source">
+                      <BiLabel k="speech_source" />
+                    </label>
+                    <select
+                      id="speech-source"
+                      value={selectedModel}
+                      onChange={(e) =>
+                        setSelectedModel(e.target.value as SpeechModel)
+                      }
+                      disabled={isBusy}
+                    >
+                      <option value="webspeech">
+                        瀏覽器（繁體中文） Browser (Traditional Chinese)
+                      </option>
+                      <option value="groq">Groq Whisper（免費，雲端） Groq Whisper (free, cloud)</option>
+                      <option value="ctwhisper">
+                        Whisper（中文／台語，本地） Whisper (Chinese / Taiwanese, local)
+                      </option>
+                      <option value="vibevoice">VibeVoice-ASR（本地檔案） VibeVoice-ASR (local file)</option>
+                    </select>
+                  </details>
+                </>
+              )}
+            </div>
+          </div>
+
+          {scenePracticeStep === "speaking" && (
+            <>
+              {(isTranscribing || isAnalyzing) && (
+                <div className="analysis-loading-card">
+                  <div className="analysis-loading-spinner" />
+                  <div className="analysis-loading-text">
+                    <p className="analysis-loading-title">
+                      {isTranscribing ? (
+                        <BiLabel k="listening_to_your_voice" />
+                      ) : (
+                        <BiLabel k="analyzing_pronunciation" />
+                      )}
+                    </p>
+                    <p className="analysis-loading-sub">
+                      {isTranscribing ? (
+                        <BiLabel k="converting_speech_to_text" />
+                      ) : (
+                        <BiLabel k="checking_tones_rhythm_and_vocabulary" />
+                      )}
                     </p>
                   </div>
-                )}
-              </div>
-
-              {/* ── Zone 4: Advanced details (collapsed) ────────────────── */}
-              <details className="advanced-praat-details">
-                <summary><BiLabel k="advanced_analysis_details" /></summary>
-
-                <div className="metrics-section">
-                  <div className="metric-card tone-card">
-                    <div className="metric-label"><BiLabel k="dominant_pitch_shape" /></div>
-                    <div className="metric-value compact">
-                      {getToneName(praatMetrics.detected_tone)}
-                    </div>
-                    <div className="metric-subtext">
-                      <BiLabel k="tone_accuracy_score_shown_in_the_summary" />
-                    </div>
+                  <div className="analysis-loading-steps">
+                    <span
+                      className={`loading-step ${isTranscribing ? "active" : "done"}`}
+                    >
+                      <BiLabel k="transcribe" />
+                    </span>
+                    <span className="loading-step-arrow">→</span>
+                    <span
+                      className={`loading-step ${isAnalyzing && !isTranscribing ? "active" : ""}`}
+                    >
+                      Praat
+                    </span>
+                    <span className="loading-step-arrow">→</span>
+                    <span className="loading-step"><BiLabel k="feedback" /></span>
                   </div>
-                  <div className="metric-card rate-card">
-                    <div className="metric-label"><BiLabel k="speech_rate" /></div>
-                    <div className="metric-value">
-                      {praatMetrics.speech_rate.toFixed(1)}
-                    </div>
-                    <div className="metric-subtext">
-                      {praatMetrics.speech_rate < 2.5 ? (
-                        <BiLabel k="too_slow_add_more_flow" />
-                      ) : praatMetrics.speech_rate > 6.5 ? (
-                        <BiLabel k="too_fast_slow_each_tone" />
-                      ) : (
-                        <BiLabel k="syllables_sec_good_pace" />
+                </div>
+              )}
+              {error && <p className="error">{error}</p>}
+
+              {praatMetrics && (
+                <section className="analysis-panel">
+                  {/* ── Main grid: left = scores & language feedback, right = playback ── */}
+                  <div className="ap-grid">
+                  <div className="ap-feedback-col">
+                  {/* ── Zone 1: Summary ─────────────────────────────────────── */}
+                  <FeedbackSummary
+                    praatMetrics={praatMetrics}
+                    attemptHistory={attemptHistory}
+                    transcription={praatMetrics.transcription || ""}
+                  />
+
+                  {/* ── Indirect corrective feedback: hint-only for the first two
+                      attempts; the correct version is revealed only after that. ── */}
+                  {topic.narrativeMode !== "listen_retell" &&
+                    (() => {
+                      const cf = praatMetrics.ai_feedback?.corrective_feedback;
+                      const accepted = isContentAccepted(praatMetrics);
+                      const missing =
+                        praatMetrics.ai_feedback?.vocabulary_coverage?.missing ?? [];
+
+                      // Already correct — nothing to correct, so stay quiet here;
+                      // FeedbackSummary already shows the success state.
+                      if (accepted && missing.length === 0) return null;
+
+                      if (cf?.reveal_answer && cf.correct_version) {
+                        return (
+                          <div className="practice-suggested-answer">
+                            <p className="block-label practice-suggested-answer-heading">
+                              <BiLabel zh="正確答案" en="Correct version" />
+                            </p>
+                            {cf.errors.length > 0 && (
+                              <p className="practice-suggested-answer-text">
+                                <BiLabel zh="可能的錯誤：" en="Possible errors: " />
+                                {cf.errors.join("；")}
+                              </p>
+                            )}
+                            <p className="practice-suggested-answer-text">
+                              <strong>{cf.correct_version}</strong>
+                            </p>
+                          </div>
+                        );
+                      }
+
+                      if (cf && (cf.errors.length > 0 || cf.hint)) {
+                        return (
+                          <div className="practice-suggested-answer is-hint">
+                            <p className="block-label practice-suggested-answer-heading">
+                              <BiLabel zh="提示" en="Hint" />
+                            </p>
+                            {cf.errors.length > 0 && (
+                              <p className="practice-suggested-answer-text">
+                                <BiLabel zh="可能的錯誤：" en="Possible errors: " />
+                                {cf.errors.join("；")}
+                              </p>
+                            )}
+                            {cf.hint && (
+                              <p className="practice-suggested-answer-text">{cf.hint}</p>
+                            )}
+                            <p className="practice-suggested-answer-text">
+                              <BiLabel zh="請再試一次。" en="Please try again." />
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>{/* /ap-feedback-col */}
+
+                  {/* ── Right column: scene thumbnail + playback + positive signals ── */}
+                  <div className="ap-sidebar-col">
+                  {/* Scene thumbnail */}
+                  <div className="ap-scene-card">
+                    <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} className="ap-scene-img" />
+                    <div className="ap-scene-label">
+                      <span><BiLabel zh={`場景 ${selectedImageIndex + 1}`} en={`Scene ${selectedImageIndex + 1}`} /></span>
+                      {sceneProgress[selectedImageIndex] && (
+                        <span className="ap-scene-attempts">
+                          <BiLabel
+                            zh={`${sceneProgress[selectedImageIndex].attempts} 次嘗試`}
+                            en={`${sceneProgress[selectedImageIndex].attempts} attempt${sceneProgress[selectedImageIndex].attempts > 1 ? "s" : ""}`}
+                          />
+                        </span>
                       )}
                     </div>
                   </div>
-                  {praatMetrics.pause_analysis &&
-                  praatMetrics.pause_analysis.duration > 0 ? (
-                    <div className="metric-card pause-card">
-                      <div className="metric-label"><BiLabel k="pauses" /></div>
-                      <div className="metric-value">
-                        {praatMetrics.pause_analysis.pause_count}
-                      </div>
-                      <div className="metric-subtext">
-                        {praatMetrics.pause_analysis.pause_count === 0 ? (
-                          <BiLabel k="no_long_pauses_smooth_delivery" />
-                        ) : praatMetrics.pause_analysis.longest_pause >= 0.8 ? (
-                          <BiLabel
-                            zh={`最長間隔：${praatMetrics.pause_analysis.longest_pause.toFixed(1)}s`}
-                            en={`Longest gap: ${praatMetrics.pause_analysis.longest_pause.toFixed(1)}s`}
-                          />
-                        ) : (
-                          <BiLabel
-                            zh={`${praatMetrics.pause_analysis.pause_count} 次短停頓 — 接近流暢`}
-                            en={`${praatMetrics.pause_analysis.pause_count} short pause${praatMetrics.pause_analysis.pause_count > 1 ? "s" : ""} — nearly fluent`}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="metric-card fluency-card">
-                      <div className="metric-label"><BiLabel k="fluency" /></div>
-                      <div className="metric-value">
-                        {Math.round(praatMetrics.fluency_score)}
-                      </div>
-                      <div className="metric-bar">
-                        <div
-                          className="metric-fill"
-                          style={{ width: `${praatMetrics.fluency_score}%` }}
-                        />
+                  {/* ── Vocabulary for this scene ── */}
+                  {selectedVocabulary.length > 0 && (
+                    <div className="ap-vocab-ref">
+                      <p className="block-label ap-vocab-heading"><BiLabel k="scene_vocabulary" /></p>
+                      <div className="scene-vocab-table" role="table" aria-label="Scene vocabulary">
+                        {selectedVocabulary.map((w, wi) => {
+                          const aiVC = praatMetrics?.ai_feedback?.vocabulary_coverage;
+                          let used: boolean | null = null;
+                          if (aiVC) {
+                            if (aiVC.used?.includes(w)) used = true;
+                            else if (aiVC.missing?.includes(w)) used = false;
+                          }
+                          const py = topic.vocabularyPinyin?.[selectedImageIndex]?.[wi] || toPinyin(w);
+                          const pos = topic.vocabularyPos?.[selectedImageIndex]?.[wi];
+                          const translation = topic.vocabularyTranslation?.[selectedImageIndex]?.[wi];
+                          return (
+                            <div
+                              key={w}
+                              role="row"
+                              className={`scene-vocab-row ${used === true ? "scene-vocab-used" : used === false ? "scene-vocab-missed" : ""}`}
+                            >
+                              <span className="scene-vocab-status" role="cell" aria-hidden="true">
+                                {used === true && "✓"}
+                                {used === false && "✗"}
+                              </span>
+                              <span className="scene-vocab-cell scene-vocab-hanzi" role="cell">{w}</span>
+                              <span className="scene-vocab-cell scene-vocab-pinyin" role="cell">{py}</span>
+                              <span className="scene-vocab-cell scene-vocab-pos" role="cell">{pos}</span>
+                              <span className="scene-vocab-cell scene-vocab-meaning" role="cell">{translation}</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
-                  {praatMetrics.vowel_quality && (
-                    <div className="metric-card vowel-card">
-                      <div className="metric-label"><BiLabel k="vowel_quality" /></div>
-                      <div className="metric-value compact">
-                        {praatMetrics.vowel_quality.split(" — ")[0]}
-                      </div>
-                      <div className="metric-subtext">
-                        {praatMetrics.vowel_quality.split(" — ")[1] || ""}
+
+                  {/* ── Zone 3: Listen back ──────────────────────────────────── */}
+                  <div className="listen-try-zone">
+                    {analysisAudioBlob && (
+                      <RecordingPlayback blob={analysisAudioBlob} />
+                    )}
+                  </div>
+
+                  {(praatMetrics.ai_feedback?.vocabulary_coverage?.missing
+                    ?.length ?? 0) === 0 && (
+                    <div className="try-again-complete">
+                      <span className="try-again-complete-icon">✓</span>
+                      <div>
+                        <p className="try-again-complete-title">
+                          <BiLabel k="all_vocabulary_words_used" />
+                        </p>
+                        <p className="try-again-complete-hint">
+                          <BiText k="now_work_on_pronunciation_record_again_a" />
+                        </p>
                       </div>
                     </div>
                   )}
-                </div>
+                  </div>{/* /ap-sidebar-col */}
+                  </div>{/* /ap-grid */}
 
-                <StudentFeedbackCards
-                  toneAccuracy={praatMetrics.tone_accuracy}
-                  fluencyScore={praatMetrics.fluency_score}
-                  speechRate={praatMetrics.speech_rate}
-                  wordProsody={praatMetrics.word_prosody || []}
-                  pauseAnalysis={praatMetrics.pause_analysis}
-                />
-
-                <PraatTimeline
-                  audioBlob={analysisAudioBlob}
-                  pitchContour={praatMetrics.pitch_contour}
-                  wordProsody={praatMetrics.word_prosody}
-                  transcription={currentTranscriptRef.current}
-                />
-
-                <div className="formants-detail">
-                  <h3><BiLabel k="formant_measurements" /></h3>
-                  <div className="formants-grid">
-                    {["F1", "F2", "F3"].map((f) => (
-                      <div className="formant" key={f}>
-                        <span>{f}</span>
-                        <strong>
-                          {Math.round(praatMetrics.formants[f] || 0)} Hz
-                        </strong>
+                  <div className="word-prosody-section">
+                    <div className="word-prosody-header">
+                      <h3><BiLabel k="character_by_character_prosody" /></h3>
+                      <p><BiText k="pitch_movement_estimated_for_each_mandar" /></p>
+                    </div>
+                    {hasWordProsody ? (
+                      <div className="word-prosody-grid">
+                        {praatMetrics.word_prosody?.map((item) => (
+                          <WordProsodyCard
+                            key={`${item.token}-${item.index}`}
+                            item={item}
+                          />
+                        ))}
                       </div>
-                    ))}
+                    ) : (
+                      <div className="word-prosody-empty">
+                        <strong><BiLabel k="no_character_feedback_yet" /></strong>
+                        <p>
+                          <BiText k="needs_a_clear_pitch_contour_and_transcri" />
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Zone 4: Advanced details (collapsed) ────────────────── */}
+                  <details className="advanced-praat-details">
+                    <summary><BiLabel k="advanced_analysis_details" /></summary>
+
+                    <div className="metrics-section">
+                      <div className="metric-card tone-card">
+                        <div className="metric-label"><BiLabel k="dominant_pitch_shape" /></div>
+                        <div className="metric-value compact">
+                          {getToneName(praatMetrics.detected_tone)}
+                        </div>
+                        <div className="metric-subtext">
+                          <BiLabel k="tone_accuracy_score_shown_in_the_summary" />
+                        </div>
+                      </div>
+                      <div className="metric-card rate-card">
+                        <div className="metric-label"><BiLabel k="speech_rate" /></div>
+                        <div className="metric-value">
+                          {praatMetrics.speech_rate.toFixed(1)}
+                        </div>
+                        <div className="metric-subtext">
+                          {praatMetrics.speech_rate < 2.5 ? (
+                            <BiLabel k="too_slow_add_more_flow" />
+                          ) : praatMetrics.speech_rate > 6.5 ? (
+                            <BiLabel k="too_fast_slow_each_tone" />
+                          ) : (
+                            <BiLabel k="syllables_sec_good_pace" />
+                          )}
+                        </div>
+                      </div>
+                      {praatMetrics.pause_analysis &&
+                      praatMetrics.pause_analysis.duration > 0 ? (
+                        <div className="metric-card pause-card">
+                          <div className="metric-label"><BiLabel k="pauses" /></div>
+                          <div className="metric-value">
+                            {praatMetrics.pause_analysis.pause_count}
+                          </div>
+                          <div className="metric-subtext">
+                            {praatMetrics.pause_analysis.pause_count === 0 ? (
+                              <BiLabel k="no_long_pauses_smooth_delivery" />
+                            ) : praatMetrics.pause_analysis.longest_pause >= 0.8 ? (
+                              <BiLabel
+                                zh={`最長間隔：${praatMetrics.pause_analysis.longest_pause.toFixed(1)}s`}
+                                en={`Longest gap: ${praatMetrics.pause_analysis.longest_pause.toFixed(1)}s`}
+                              />
+                            ) : (
+                              <BiLabel
+                                zh={`${praatMetrics.pause_analysis.pause_count} 次短停頓 — 接近流暢`}
+                                en={`${praatMetrics.pause_analysis.pause_count} short pause${praatMetrics.pause_analysis.pause_count > 1 ? "s" : ""} — nearly fluent`}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="metric-card fluency-card">
+                          <div className="metric-label"><BiLabel k="fluency" /></div>
+                          <div className="metric-value">
+                            {Math.round(praatMetrics.fluency_score)}
+                          </div>
+                          <div className="metric-bar">
+                            <div
+                              className="metric-fill"
+                              style={{ width: `${praatMetrics.fluency_score}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {praatMetrics.vowel_quality && (
+                        <div className="metric-card vowel-card">
+                          <div className="metric-label"><BiLabel k="vowel_quality" /></div>
+                          <div className="metric-value compact">
+                            {praatMetrics.vowel_quality.split(" — ")[0]}
+                          </div>
+                          <div className="metric-subtext">
+                            {praatMetrics.vowel_quality.split(" — ")[1] || ""}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <StudentFeedbackCards
+                      toneAccuracy={praatMetrics.tone_accuracy}
+                      fluencyScore={praatMetrics.fluency_score}
+                      speechRate={praatMetrics.speech_rate}
+                      wordProsody={praatMetrics.word_prosody || []}
+                      pauseAnalysis={praatMetrics.pause_analysis}
+                    />
+
+                    <PraatTimeline
+                      audioBlob={analysisAudioBlob}
+                      pitchContour={praatMetrics.pitch_contour}
+                      wordProsody={praatMetrics.word_prosody}
+                      transcription={currentTranscriptRef.current}
+                    />
+
+                    <div className="formants-detail">
+                      <h3><BiLabel k="formant_measurements" /></h3>
+                      <div className="formants-grid">
+                        {["F1", "F2", "F3"].map((f) => (
+                          <div className="formant" key={f}>
+                            <span>{f}</span>
+                            <strong>
+                              {Math.round(praatMetrics.formants[f] || 0)} Hz
+                            </strong>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </details>
+                </section>
+              )}
+            </>
+          )}
+
+          {/* ── Submit Story: only once a scene's actually being recorded,
+               not while reviewing its vocabulary/grammar intro ── */}
+          {scenePracticeStep === "speaking" && (
+            storySubmitted ? (
+              <>
+                <div className="story-submit-panel story-submit-success">
+                  <span className="story-submit-icon">✓</span>
+                  <div>
+                    <p className="story-submit-title"><BiLabel k="story_submitted" /></p>
+                    <p className="story-submit-hint">
+                      <BiLabel
+                        zh={`你的老師現在可以檢視全部 ${totalScenes} 個場景。`}
+                        en={`Your teacher can now review all ${totalScenes} scenes.`}
+                      />
+                    </p>
                   </div>
                 </div>
-              </details>
-            </section>
-          )}
-          </>
-          )}
-
-          {/* ── Submit Story ────────────────────────────────────────── */}
-          {storySubmitted ? (
-            <>
-              <div className="story-submit-panel story-submit-success">
-                <span className="story-submit-icon">✓</span>
-                <div>
-                  <p className="story-submit-title"><BiLabel k="story_submitted" /></p>
-                  <p className="story-submit-hint">
-                    <BiLabel
-                      zh={`你的老師現在可以檢視全部 ${totalScenes} 個場景。`}
-                      en={`Your teacher can now review all ${totalScenes} scenes.`}
+                <StoryFeedbackCard
+                  feedback={storyFeedbackResult?.storyFeedback}
+                  concatenatedAudioUrl={storyFeedbackResult?.concatenatedAudioUrl}
+                />
+              </>
+            ) : (
+              <div className="story-submit-panel">
+                <div className="story-submit-progress">
+                  {topic.images.map((_, si) => (
+                    <div
+                      key={si}
+                      className={`story-submit-dot ${sceneRecordings[si] ? "done" : "pending"}`}
+                      title={`場景 ${si + 1}${sceneRecordings[si] ? " ✓ 已完成" : " — 尚未錄音 not yet recorded"} Scene ${si + 1}`}
                     />
-                  </p>
+                  ))}
                 </div>
-              </div>
-              <StoryFeedbackCard
-                feedback={storyFeedbackResult?.storyFeedback}
-                concatenatedAudioUrl={storyFeedbackResult?.concatenatedAudioUrl}
-              />
-            </>
-          ) : (
-            <div className="story-submit-panel">
-              <div className="story-submit-progress">
-                {topic.images.map((_, si) => (
-                  <div
-                    key={si}
-                    className={`story-submit-dot ${sceneRecordings[si] ? "done" : "pending"}`}
-                    title={`場景 ${si + 1}${sceneRecordings[si] ? " ✓ 已完成" : " — 尚未錄音 not yet recorded"} Scene ${si + 1}`}
-                  />
-                ))}
-              </div>
-              <p className="story-submit-label">
-                {allScenesRecorded ? (
-                  <BiLabel k="all_scenes_recorded_ready_to_submit" />
-                ) : (
-                  <BiLabel
-                    zh={`已錄製 ${completedSceneCount} / ${totalScenes} 個場景`}
-                    en={`${completedSceneCount} of ${totalScenes} scenes recorded`}
-                  />
+                <p className="story-submit-label">
+                  {allScenesRecorded ? (
+                    <BiLabel k="all_scenes_recorded_ready_to_submit" />
+                  ) : (
+                    <BiLabel
+                      zh={`已錄製 ${completedSceneCount} / ${totalScenes} 個場景`}
+                      en={`${completedSceneCount} of ${totalScenes} scenes recorded`}
+                    />
+                  )}
+                </p>
+                {submitError && (
+                  <p className="story-submit-error">{submitError}</p>
                 )}
-              </p>
-              {submitError && (
-                <p className="story-submit-error">{submitError}</p>
-              )}
-              <button
-                className="btn-submit-story"
-                disabled={!allScenesRecorded}
-                onClick={handleSubmitStory}
-              >
-                <BiLabel k="submit_story_to_teacher" />
-              </button>
-            </div>
-          )}
+                <button
+                  className="btn-submit-story"
+                  disabled={!allScenesRecorded}
+                  onClick={handleSubmitStory}
+                >
+                  <BiLabel k="submit_story_to_teacher" />
+                </button>
+              </div>
+          ))}
         </>
       )}
     </div>

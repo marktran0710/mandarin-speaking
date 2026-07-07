@@ -3688,13 +3688,8 @@
   border-bottom-color: var(--seal);
 }
 
-.scene-step-panel {
-  max-width: 720px;
-  margin: 0 auto 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+/* practice-grammar-hint's compact card, sized up for its own reference
+   panel (rather than a small inline hint next to the record controls). */
 .practice-grammar-hint-full {
   padding: 20px 24px;
   gap: 8px;
@@ -3702,28 +3697,43 @@
 .practice-grammar-hint-full .practice-grammar-pattern { font-size: 18px; }
 .practice-grammar-hint-full .practice-grammar-example { font-size: 16px; }
 
+/* The right-column action panel for the Vocabulary/Grammar steps — same
+   card, same header shape, and the same full-width primary-button rhythm
+   as the Speaking step's record controls, so the panel doesn't change
+   shape as a student moves between tabs. */
+.scene-step-action {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.scene-step-action-copy {
+  font-size: 13px;
+  color: var(--clay-body);
+  line-height: 1.6;
+  margin: 0;
+}
 .btn-scene-step-continue {
-  align-self: flex-end;
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  border: none;
   background: var(--seal);
   color: #fff;
-  border: none;
-  padding: 12px 28px;
-  border-radius: 10px;
-  font-size: 15px;
+  font-size: 1.1rem;
   font-weight: 800;
+  letter-spacing: 0.02em;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
 }
 .btn-scene-step-continue:hover {
   background: var(--seal-deep);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
 
 @media (max-width: 640px) {
   .scene-step-tabs { overflow-x: auto; }
-  .btn-scene-step-continue { align-self: stretch; text-align: center; }
 }
 
 .practice-workspace {

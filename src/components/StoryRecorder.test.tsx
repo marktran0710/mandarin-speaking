@@ -553,28 +553,33 @@ describe("StoryRecorder student prototype", () => {
       />,
     );
 
-    // Lands on Vocabulary by default — no record controls or grammar text yet.
+    // Lands on Vocabulary by default — no record controls, grammar text, or
+    // the story submit panel yet.
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
     expect(screen.queryByText("Recording options")).not.toBeInTheDocument();
     expect(screen.queryByText("S + V + O")).not.toBeInTheDocument();
+    expect(screen.queryByText("Submit Story to Teacher")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Continue to Grammar/ }));
 
-    // Grammar step: pattern shown, vocab table and record controls are gone.
+    // Grammar step: pattern shown, vocab table/record controls/submit panel gone.
     expect(screen.getByText("S + V + O")).toBeInTheDocument();
     expect(screen.queryByRole("table", { name: "Scene vocabulary" })).not.toBeInTheDocument();
     expect(screen.queryByText("Recording options")).not.toBeInTheDocument();
+    expect(screen.queryByText("Submit Story to Teacher")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Continue to Speaking/ }));
 
-    // Speaking step: record controls are back, grammar/vocab panels are gone.
+    // Speaking step: record controls and the submit panel are back, grammar/vocab panels are gone.
     expect(screen.getByText("Recording options")).toBeInTheDocument();
+    expect(screen.getByText("Submit Story to Teacher")).toBeInTheDocument();
     expect(screen.queryByText("S + V + O")).not.toBeInTheDocument();
     expect(screen.queryByRole("table", { name: "Scene vocabulary" })).not.toBeInTheDocument();
 
     // The tab bar lets a student jump straight back to Vocabulary at any time.
     await user.click(screen.getByRole("tab", { name: /Vocabulary/ }));
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
+    expect(screen.queryByText("Submit Story to Teacher")).not.toBeInTheDocument();
   });
 });
 

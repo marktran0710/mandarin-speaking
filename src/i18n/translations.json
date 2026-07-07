@@ -199,6 +199,10 @@
     "en": "Grammar pattern to use",
     "zh": "練習句型"
   },
+  "grammar_step_action_copy": {
+    "en": "This is the sentence pattern to use when you record. Read it over, then continue.",
+    "zh": "這是錄音時要用的句型，看熟了再繼續。"
+  },
   "grammar_step_tab": {
     "en": "Grammar",
     "zh": "文法"
@@ -562,6 +566,10 @@
   "verify_sequence": {
     "en": "Verify Sequence",
     "zh": "驗證順序"
+  },
+  "vocab_step_action_copy": {
+    "en": "Tap the mic next to each word to practice saying it, then continue.",
+    "zh": "點每個詞彙旁的麥克風練習發音，準備好了再繼續。"
   },
   "vocab_step_tab": {
     "en": "Vocabulary",
