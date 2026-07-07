@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from chinese_tones import (
     _shape_match_score,
     calculate_directional_tone_accuracy,
+    calculate_phrase_shape_accuracy,
     calculate_phrase_tone_accuracy,
     calculate_tone_accuracy,
     detect_tone,
@@ -182,6 +183,44 @@ class TestDirectionalToneAccuracy:
     def test_empty_inputs_return_zero(self):
         assert calculate_directional_tone_accuracy([], [1]) == 0.0
         assert calculate_directional_tone_accuracy([(0.0, 200.0)], []) == 0.0
+
+
+class TestCalculatePhraseShapeAccuracy:
+    """calculate_phrase_shape_accuracy is the pure shape-similarity half of
+    calculate_phrase_tone_accuracy, extracted so per-word feedback text (which
+    is paired with a chart that overlays the student's pitch directly against
+    the idealized target shape) can be graded on shape alone, instead of the
+    direction-weighted blend meant for whole-utterance, declination-robust
+    scoring."""
+
+    def test_clean_match_scores_high(self):
+        # Tone 3 dip (sandhi'd to tone2+tone3 for a doubled tone3 word).
+        contour = _synthetic_contour([0.5, 0.65, 0.8, 0.85, 0.7, 0.5, 0.3, 0.5, 0.7])
+        score = calculate_phrase_shape_accuracy(contour, [3, 3])
+        assert score >= 85.0, f"Clean rising+dip contour should score high, got {score:.1f}"
+
+    def test_reversed_internal_order_scores_low_even_though_blended_score_does_not(self):
+        """Regression guard for the exact defect this split fixes: a shape
+        with its rise/dip performed in the *wrong order* (dip-then-rise
+        instead of rise-then-dip) can still score deceptively close to
+        "good" under the direction-weighted blend (which only checks broad
+        per-syllable start/end direction), even though it looks clearly
+        wrong next to the target-shape overlay. The pure shape score must
+        not be fooled the same way."""
+        reversed_order = _synthetic_contour(
+            [0.7, 0.5, 0.3, 0.5, 0.7, 0.5, 0.65, 0.8, 0.85]
+        )
+        shape = calculate_phrase_shape_accuracy(reversed_order, [3, 3])
+        blended = calculate_phrase_tone_accuracy(reversed_order, [3, 3])
+        assert shape < 50.0, f"Reversed dip/rise order should score low on shape, got {shape:.1f}"
+        assert blended - shape > 10.0, (
+            f"Blended ({blended:.1f}) should sit well above the shape-only "
+            f"score ({shape:.1f}) for this exact case, or the bug isn't reproduced"
+        )
+
+    def test_empty_inputs_return_zero(self):
+        assert calculate_phrase_shape_accuracy([], [1]) == 0.0
+        assert calculate_phrase_shape_accuracy([(0.0, 200.0)], []) == 0.0
 
 
 class TestFlatReferenceShapeScore:

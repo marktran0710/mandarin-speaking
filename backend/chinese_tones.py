@@ -383,6 +383,30 @@ def calculate_directional_tone_accuracy(
     return float(np.mean(scores)) if scores else 0.0
 
 
+def calculate_phrase_shape_accuracy(
+    pitch_contour: List[Tuple[float, float]], tones: List[int]
+) -> float:
+    """Pure shape-similarity score against the idealized reference contour for
+    this tone sequence — correlation + distance, none of
+    ``calculate_phrase_tone_accuracy``'s directional blending.
+
+    Used wherever the UI shows a literal shape-overlay chart (the student's
+    pitch drawn against the idealized target curve, e.g. per-word practice
+    cards) — the feedback text there should track that visual comparison
+    directly, not the declination-robust blend tuned for whole-utterance
+    scoring/gating in connected speech.
+    """
+    if not pitch_contour or not tones:
+        return 0.0
+
+    user_pitch = normalize_pitch_contour(pitch_contour)
+    if len(user_pitch) == 0:
+        return 0.0
+
+    ref_pitch = build_phrase_reference_pattern(apply_tone_sandhi(tones), num_points=len(user_pitch))
+    return _shape_match_score(user_pitch, ref_pitch)
+
+
 def calculate_phrase_tone_accuracy(
     pitch_contour: List[Tuple[float, float]], tones: List[int]
 ) -> float:
@@ -402,15 +426,7 @@ def calculate_phrase_tone_accuracy(
     if not pitch_contour or not tones:
         return 0.0
 
-    user_pitch = normalize_pitch_contour(pitch_contour)
-    if len(user_pitch) == 0:
-        return 0.0
-
-    # ── Shape-matching component (original algorithm) ──────────────────────
-    ref_pitch = build_phrase_reference_pattern(apply_tone_sandhi(tones), num_points=len(user_pitch))
-    shape_score = _shape_match_score(user_pitch, ref_pitch)
-
-    # ── Directional component (connected-speech robust) ─────────────────────
+    shape_score = calculate_phrase_shape_accuracy(pitch_contour, tones)
     directional_score = calculate_directional_tone_accuracy(pitch_contour, tones)
 
     return float(max(0.0, min(100.0, shape_score * 0.30 + directional_score * 0.70)))

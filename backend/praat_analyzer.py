@@ -580,6 +580,7 @@ def estimate_word_prosody(
 
     from chinese_tones import (
         apply_tone_sandhi,
+        calculate_phrase_shape_accuracy,
         calculate_phrase_tone_accuracy,
         scaled_reference_contour,
         word_tones,
@@ -641,12 +642,25 @@ def estimate_word_prosody(
         # Need ≥4 pitch points for a reliable tone shape read. Fewer points
         # (e.g. from a voicing gap at a word boundary) return a neutral 65 so
         # a single unvoiced frame doesn't collapse the whole word score to 0.
+        #
+        # tone_score (declination-robust, direction-weighted) drives the
+        # numeric tone_accuracy used for aggregation/gating — unchanged here.
+        # shape_score is a *separate*, pure shape-similarity read used only
+        # for this word's feedback text, because the card shown to the
+        # student overlays "your pitch" directly against "target shape" —
+        # the feedback should track that same visual comparison, not the
+        # directional blend (which can score a shape with the right broad
+        # direction but the wrong internal contour, e.g. a dip performed as
+        # a rise-then-dip in the wrong order, deceptively close to "good").
         if is_chinese and len(scoring_points) >= 4:
             tone_score = calculate_phrase_tone_accuracy(scoring_points, expected_tones)
+            shape_score = calculate_phrase_shape_accuracy(scoring_points, expected_tones)
         elif is_chinese and expected_tones:
             tone_score = 65.0
+            shape_score = 65.0
         else:
             tone_score = 0.0
+            shape_score = 0.0
         is_content = _classify_content_word(token)
 
         # Idealized target shape for this word, scaled to its own time span
@@ -678,7 +692,7 @@ def estimate_word_prosody(
                 "tone_accuracy": round(tone_score, 1),
                 "is_content_word": is_content,
                 "prominence_score": 0.0,  # filled in below after utterance mean is known
-                "feedback": _word_prosody_feedback(contour_shape, pitch_range, expected_tones, tone_score),
+                "feedback": _word_prosody_feedback(contour_shape, pitch_range, expected_tones, shape_score),
             }
         )
 
@@ -839,13 +853,19 @@ def _word_prosody_feedback(
     contour_shape: str,
     pitch_range: float,
     expected_tones: List[int] | None = None,
-    tone_score: float = 0.0,
+    shape_score: float = 0.0,
 ) -> str:
+    """`shape_score` should be a pure shape-similarity score (e.g.
+    ``calculate_phrase_shape_accuracy``), not the direction-weighted
+    ``tone_accuracy`` blend — this text is paired with a chart that overlays
+    the student's pitch directly against the idealized target shape, so it
+    needs to agree with that same shape comparison, not a declination-robust
+    score that can rate a wrong-shaped-but-right-direction attempt as "good"."""
     if expected_tones:
         tone_label = "+".join(_TONE_NAMES.get(t, str(t)) for t in expected_tones)
-        if tone_score >= 68:
+        if shape_score >= 68:
             return f"Good match for {tone_label}."
-        if tone_score >= 48:
+        if shape_score >= 48:
             return f"Recognizable {tone_label}, but contrast could be sharper."
         return f"Expected {tone_label} — pitch shape doesn't match yet."
 
