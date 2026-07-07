@@ -116,15 +116,29 @@ def normalize_pitch_contour(
     return np.clip(interpolator(x_new), 0, 1)
 
 
-def calculate_tone_accuracy(
-    pitch_contour: List[Tuple[float, float]], tone_number: int
-) -> float:
-    user_pitch = normalize_pitch_contour(pitch_contour)
-    if len(user_pitch) == 0:
-        return 0.0
+FLAT_REFERENCE_VARIANCE_THRESHOLD = 0.015
 
-    ref = get_reference_tone_pattern(tone_number, num_points=len(user_pitch))
-    ref_pitch = np.array(ref["pitch_pattern"])
+
+def _shape_match_score(user_pitch: np.ndarray, ref_pitch: np.ndarray) -> float:
+    """Correlation + distance shape-similarity score between two equal-length
+    curves already on ``normalize_pitch_contour``'s [0, 1] scale, as 0-100.
+
+    Shared by ``calculate_tone_accuracy`` (single reference tone) and
+    ``calculate_phrase_tone_accuracy`` (concatenated phrase reference) so a
+    fix to the underlying math only has to happen in one place.
+    """
+    if float(np.var(ref_pitch)) < 1e-6:
+        # A flat reference (Tone 1, or an all-neutral-tone phrase) has zero
+        # variance, so Pearson correlation against it is mathematically
+        # undefined -- corrcoef divides by a zero standard deviation. Silently
+        # defaulting that NaN to 0.0 (a neutral 0.5 after rescaling) handed
+        # *every* contour the same baseline correlation credit regardless of
+        # whether it was actually flat or a full swing in the wrong
+        # direction. Score flatness directly instead: how little the user's
+        # own normalized contour varies.
+        user_variance = float(np.var(user_pitch))
+        flatness = max(0.0, 1.0 - user_variance / FLAT_REFERENCE_VARIANCE_THRESHOLD) * 100.0
+        return float(max(0.0, min(100.0, flatness)))
 
     correlation = np.corrcoef(user_pitch, ref_pitch)[0, 1]
     if np.isnan(correlation):
@@ -135,10 +149,27 @@ def calculate_tone_accuracy(
     # to sit doesn't get penalized for *level* rather than *shape* — that
     # level difference is already irrelevant after normalize_pitch_contour.
     distance = euclidean(user_pitch - np.mean(user_pitch), ref_pitch - np.mean(ref_pitch))
-    distance_score = max(0.0, 1.0 - distance / len(user_pitch))
+    # Euclidean distance across `n` dimensions each bounded to [-0.5, 0.5]
+    # scales with sqrt(n), not n: dividing by n (the old code) squashed
+    # distance_score into a near-constant ~0.95-1.0 band regardless of match
+    # quality, making the nominal 35% distance weight almost inert. Dividing
+    # by sqrt(n) restores its actual [0, 1] range so it discriminates.
+    distance_score = max(0.0, 1.0 - distance / np.sqrt(len(user_pitch)))
     correlation_score = (correlation + 1.0) / 2.0
     accuracy = (correlation_score * 0.65 + distance_score * 0.35) * 100.0
     return float(max(0.0, min(100.0, accuracy)))
+
+
+def calculate_tone_accuracy(
+    pitch_contour: List[Tuple[float, float]], tone_number: int
+) -> float:
+    user_pitch = normalize_pitch_contour(pitch_contour)
+    if len(user_pitch) == 0:
+        return 0.0
+
+    ref = get_reference_tone_pattern(tone_number, num_points=len(user_pitch))
+    ref_pitch = np.array(ref["pitch_pattern"])
+    return _shape_match_score(user_pitch, ref_pitch)
 
 
 def detect_tone(pitch_contour: List[Tuple[float, float]]) -> Dict:
@@ -377,16 +408,7 @@ def calculate_phrase_tone_accuracy(
 
     # ── Shape-matching component (original algorithm) ──────────────────────
     ref_pitch = build_phrase_reference_pattern(apply_tone_sandhi(tones), num_points=len(user_pitch))
-
-    correlation = np.corrcoef(user_pitch, ref_pitch)[0, 1]
-    if np.isnan(correlation):
-        correlation = 0.0
-    distance = euclidean(user_pitch - np.mean(user_pitch), ref_pitch - np.mean(ref_pitch))
-    distance_score = max(0.0, 1.0 - distance / len(user_pitch))
-    correlation_score = (correlation + 1.0) / 2.0
-    shape_score = float(max(0.0, min(100.0,
-        (correlation_score * 0.65 + distance_score * 0.35) * 100.0
-    )))
+    shape_score = _shape_match_score(user_pitch, ref_pitch)
 
     # ── Directional component (connected-speech robust) ─────────────────────
     directional_score = calculate_directional_tone_accuracy(pitch_contour, tones)

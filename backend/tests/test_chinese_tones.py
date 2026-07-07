@@ -15,6 +15,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from chinese_tones import (
+    _shape_match_score,
     calculate_directional_tone_accuracy,
     calculate_phrase_tone_accuracy,
     calculate_tone_accuracy,
@@ -181,6 +182,79 @@ class TestDirectionalToneAccuracy:
     def test_empty_inputs_return_zero(self):
         assert calculate_directional_tone_accuracy([], [1]) == 0.0
         assert calculate_directional_tone_accuracy([(0.0, 200.0)], []) == 0.0
+
+
+class TestFlatReferenceShapeScore:
+    """Tone 1's reference is flat by construction, so Pearson correlation
+    against it is mathematically undefined (corrcoef divides by a zero
+    standard deviation). The old code silently defaulted that NaN to 0.0,
+    giving every contour the same neutral correlation credit regardless of
+    whether it was actually flat -- to the point that a Tone 3 dip contour
+    used to outscore a genuine Tone 1 recording when both were graded
+    against Tone 1. ``_shape_match_score`` now scores flatness directly
+    whenever the reference itself has no variance."""
+
+    def test_genuine_flat_contour_scores_near_perfect_against_tone1(self):
+        flat = _synthetic_contour(TONE_SHAPES[1])
+        accuracy = calculate_tone_accuracy(flat, 1)
+        assert accuracy >= 95.0, f"Genuine flat contour should score ~100 for T1, got {accuracy:.1f}"
+
+    @pytest.mark.parametrize("tone_number", [2, 3, 4])
+    def test_clearly_non_flat_contour_scores_low_against_tone1(self, tone_number):
+        contour = _synthetic_contour(TONE_SHAPES[tone_number])
+        accuracy = calculate_tone_accuracy(contour, 1)
+        assert accuracy < 20.0, (
+            f"Tone {tone_number} contour (real movement) should score low against "
+            f"Tone 1's flat reference, got {accuracy:.1f}"
+        )
+
+    def test_flat_reference_never_outscores_a_genuine_flat_match(self):
+        """Regression guard for the exact defect this fix targets: before it,
+        a Tone 3 dip contour scored *higher* against Tone 1 (~70.8) than an
+        actual flat Tone 1 recording scored against itself (~67.5)."""
+        flat_match = calculate_tone_accuracy(_synthetic_contour(TONE_SHAPES[1]), 1)
+        dip_mismatch = calculate_tone_accuracy(_synthetic_contour(TONE_SHAPES[3]), 1)
+        assert flat_match > dip_mismatch
+
+    def test_helper_flat_reference_ignores_correlation(self):
+        flat_ref = np.full(50, 0.5)
+        flat_user = np.full(50, 0.5)
+        varying_user = np.linspace(0.0, 1.0, 50)
+
+        assert _shape_match_score(flat_user, flat_ref) == pytest.approx(100.0, abs=0.5)
+        assert _shape_match_score(varying_user, flat_ref) < 10.0
+
+    def test_helper_non_flat_reference_uses_correlation_and_distance(self):
+        curve = np.linspace(0.0, 1.0, 50)
+        assert _shape_match_score(curve, curve) == pytest.approx(100.0, abs=0.5)
+
+    def test_phrase_tone_accuracy_flat_reference_no_longer_capped(self):
+        """calculate_phrase_tone_accuracy shares _shape_match_score with
+        calculate_tone_accuracy, so an all-Tone-1 phrase spoken flat is no
+        longer capped by the same bug (blended score used to top out ~90.3
+        for a perfect flat contour; it should now reach ~100)."""
+        flat = _synthetic_contour(TONE_SHAPES[1])
+        score = calculate_phrase_tone_accuracy(flat, [1])
+        assert score >= 98.0, f"Expected near-perfect blended score, got {score:.1f}"
+
+
+class TestShapeMatchDistanceScaling:
+    """The Euclidean-distance half of the shape score is computed over ~100
+    dimensions each bounded to [-0.5, 0.5] post-normalization, so its scale
+    grows with sqrt(n), not n. Dividing by n (the old bug) squashed
+    distance_score into a near-constant ~0.95-1.0 band regardless of match
+    quality, making its nominal 35% weight almost inert."""
+
+    def test_opposite_direction_contour_scores_well_below_a_match(self):
+        rising = _synthetic_contour(TONE_SHAPES[2])
+        falling = _synthetic_contour(TONE_SHAPES[4])
+        matching_score = calculate_tone_accuracy(rising, 2)
+        opposite_score = calculate_tone_accuracy(falling, 2)
+        assert opposite_score < 35.0, (
+            f"A falling contour scored against a rising Tone 2 reference "
+            f"should score low, got {opposite_score:.1f}"
+        )
+        assert matching_score - opposite_score > 60
 
 
 class TestScaledReferenceContour:
