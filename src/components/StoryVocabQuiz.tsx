@@ -16,6 +16,16 @@ export interface VocabQuizQuestion {
 const MAX_QUESTIONS = 8;
 const OPTION_COUNT = 4;
 
+// Generic filler distractors, used only to pad out a question's wrong
+// answers when the story itself doesn't have enough other translated words
+// to draw real distractors from (common for a story with just 1-2 glossed
+// words so far). Never shown as the correct answer.
+const FILLER_DISTRACTORS = [
+  "friend", "house", "water", "book", "school",
+  "happy", "morning", "money", "food", "family",
+  "teacher", "street", "weather", "car", "phone",
+];
+
 function shuffle<T>(items: T[]): T[] {
   const result = [...items];
   for (let i = result.length - 1; i > 0; i--) {
@@ -44,17 +54,28 @@ export function collectQuizEntries(
 }
 
 /** Builds up to MAX_QUESTIONS multiple-choice questions, one per entry, each
- * offering the correct translation plus up to OPTION_COUNT-1 distractors
- * drawn from the other entries' translations. Fewer total entries just means
- * fewer options per question, not a broken quiz. */
+ * offering the correct translation plus up to OPTION_COUNT-1 distractors.
+ * Distractors come from the story's own other translated words first; if
+ * there aren't enough of those yet (e.g. only 1-2 words glossed so far),
+ * generic filler words pad out the remaining options so a question is still
+ * a real multiple-choice question, not a 1-option giveaway. */
 export function buildQuizQuestions(entries: VocabQuizEntry[]): VocabQuizQuestion[] {
   const pool = shuffle(entries).slice(0, MAX_QUESTIONS);
   return pool.map((entry) => {
-    const distractorPool = entries
-      .filter((e) => e.word !== entry.word && e.translation !== entry.translation)
+    const usedTranslations = new Set([entry.translation]);
+    const realDistractorPool = entries
+      .filter((e) => e.word !== entry.word && !usedTranslations.has(e.translation))
       .map((e) => e.translation);
-    const distractors = shuffle(distractorPool).slice(0, OPTION_COUNT - 1);
-    const options = shuffle([entry.translation, ...distractors]);
+    const realDistractors = shuffle(realDistractorPool).slice(0, OPTION_COUNT - 1);
+    realDistractors.forEach((d) => usedTranslations.add(d));
+
+    const fillerPool = FILLER_DISTRACTORS.filter((word) => !usedTranslations.has(word));
+    const fillerDistractors = shuffle(fillerPool).slice(
+      0,
+      OPTION_COUNT - 1 - realDistractors.length,
+    );
+
+    const options = shuffle([entry.translation, ...realDistractors, ...fillerDistractors]);
     return { word: entry.word, correctTranslation: entry.translation, options };
   });
 }
@@ -64,9 +85,11 @@ export function buildQuizQuestions(entries: VocabQuizEntry[]): VocabQuizQuestion
 export default function StoryVocabQuiz({
   entries,
   onDone,
+  onBack,
 }: {
   entries: VocabQuizEntry[];
   onDone: () => void;
+  onBack?: () => void;
 }) {
   const questions = useMemo(() => buildQuizQuestions(entries), [entries]);
   const [index, setIndex] = useState(0);
@@ -96,6 +119,11 @@ export default function StoryVocabQuiz({
 
   return (
     <section className="story-vocab-quiz" aria-label="Vocabulary quiz">
+      {onBack && (
+        <button type="button" className="btn-vocab-quiz-back" onClick={onBack}>
+          <BiLabel zh="← 返回活動" en="← Back to activities" />
+        </button>
+      )}
       <div className="vocab-quiz-header">
         <p className="eyebrow">
           <BiLabel zh="詞彙測驗" en="Vocabulary Quiz" />

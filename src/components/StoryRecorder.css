@@ -3383,85 +3383,71 @@
 }
 
 /* Challenge steps */
-.overview-steps {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+/* Two-function choice: Practice Vocabulary vs Practice Speaking */
+.overview-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
 }
 
-.overview-step {
+.overview-choice-card {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
   background: var(--clay-surface-card);
   border: 1.5px solid var(--clay-hairline);
   border-radius: 14px;
-  padding: 16px 20px;
+  padding: 24px 20px;
+  cursor: pointer;
   transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
 }
 
-.overview-step:hover {
+.overview-choice-card:hover:not(:disabled) {
   border-color: var(--seal-soft);
-  transform: translateX(3px);
-  box-shadow: var(--shadow-sm);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-.overview-step-num {
-  flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  background: var(--seal);
-  color: #fff;
-  font-size: 15px;
-  font-weight: 800;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 1px;
+.overview-choice-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
-.overview-step:nth-child(odd) .overview-step-num { background: var(--seal); }
-.overview-step:nth-child(even) .overview-step-num { background: var(--gold); }
+.overview-choice-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
 
-.overview-step strong {
-  display: block;
-  font-size: 15px;
+.overview-choice-card strong {
+  font-size: 16px;
   color: var(--clay-ink);
-  margin-bottom: 3px;
 }
 
-.overview-step p {
+.overview-choice-card p {
   margin: 0;
   font-size: 13px;
   color: var(--clay-body);
   line-height: 1.4;
 }
 
-/* CTA */
-.overview-cta {
-  text-align: center;
-  padding-top: 8px;
-}
-
-.btn-start-challenge {
-  background: var(--seal);
-  color: #fff;
+/* Shared "return to the activity picker" link, used from both the vocab
+   quiz and the per-scene practice steps. */
+.btn-vocab-quiz-back {
+  align-self: flex-start;
+  background: transparent;
   border: none;
-  border-radius: 14px;
-  padding: 16px 48px;
-  font-size: 18px;
-  font-weight: 800;
+  color: var(--clay-muted);
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.18s, box-shadow 0.18s;
-  letter-spacing: 0.01em;
+  padding: 4px 0;
+  margin-bottom: 8px;
 }
-
-.btn-start-challenge:hover {
-  background: var(--seal-deep);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+.btn-vocab-quiz-back:hover {
+  color: var(--clay-ink);
+  text-decoration: underline;
 }
 
 /* ── Start-practice instructions modal ──────────────── */

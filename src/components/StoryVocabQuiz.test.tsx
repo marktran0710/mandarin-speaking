@@ -65,7 +65,7 @@ describe("buildQuizQuestions", () => {
     expect(questions).toHaveLength(8);
   });
 
-  it("degrades gracefully with fewer than 4 total entries (fewer options, still valid)", () => {
+  it("pads with generic filler distractors when the story doesn't have enough of its own translated words", () => {
     const twoEntries = [
       { word: "餐廳", translation: "restaurant" },
       { word: "吃", translation: "to eat" },
@@ -74,9 +74,20 @@ describe("buildQuizQuestions", () => {
     const questions = buildQuizQuestions(twoEntries);
     expect(questions).toHaveLength(2);
     for (const question of questions) {
-      expect(question.options.length).toBe(2);
+      // Still a real 4-option question, not a giveaway with only 2 choices.
+      expect(question.options.length).toBe(4);
       expect(question.options).toContain(question.correctTranslation);
+      expect(new Set(question.options).size).toBe(4);
     }
+  });
+
+  it("still produces a real multiple-choice question from a single translated word", () => {
+    const oneEntry = [{ word: "餐廳", translation: "restaurant" }];
+
+    const questions = buildQuizQuestions(oneEntry);
+    expect(questions).toHaveLength(1);
+    expect(questions[0].options.length).toBe(4);
+    expect(questions[0].options).toContain("restaurant");
   });
 
   it("returns no questions for an empty entry list", () => {

@@ -272,12 +272,11 @@ export default function StoryRecorder({
     concatenatedAudioUrl?: string | null;
     storyFeedback?: StoryFeedback | null;
   } | null>(null);
-  const [showStartModal, setShowStartModal] = useState(false);
 
   // Every glossed word across every scene, deduped — the pool the
-  // pre-practice vocabulary quiz draws its questions from. A story needs at
-  // least 2 distinct translated words to make a meaningful multiple-choice
-  // question (1 correct answer + at least 1 distractor).
+  // pre-practice vocabulary quiz draws its questions from. Even a single
+  // translated word is enough for a real question: buildQuizQuestions pads
+  // out missing distractors with generic filler words.
   const quizEntries = useMemo(() => {
     const words: string[] = [];
     const translations: Array<string | undefined> = [];
@@ -289,7 +288,7 @@ export default function StoryRecorder({
     });
     return collectQuizEntries(words, translations);
   }, [topic]);
-  const hasVocabQuiz = quizEntries.length >= 2;
+  const hasVocabQuiz = quizEntries.length >= 1;
 
   // Learning phase: overview → sorting → vocabquiz → practice
   const [phase, setPhase] = useState<"overview" | "sorting" | "vocabquiz" | "practice">(
@@ -1166,72 +1165,39 @@ export default function StoryRecorder({
 
           <div className="overview-steps-block">
             <h2><BiLabel k="your_challenge" /></h2>
-            <div className="overview-steps">
-              {enableSorting && (
-                <div className="overview-step">
-                  <span className="overview-step-num">1</span>
-                  <div>
-                    <strong><BiLabel k="arrange_scenes" /></strong>
-                    <p><BiText k="put_the_story_pictures_in_the_right_orde" /></p>
-                  </div>
-                </div>
-              )}
-              {hasVocabQuiz && (
-                <div className="overview-step">
-                  <span className="overview-step-num">{enableSorting ? 2 : 1}</span>
-                  <div>
-                    <strong><BiLabel k="vocabulary_map" /></strong>
-                    <p><BiText k="match_key_words_to_each_story_scene" /></p>
-                  </div>
-                </div>
-              )}
-              <div className="overview-step">
-                <span className="overview-step-num">
-                  {(enableSorting ? 1 : 0) + (hasVocabQuiz ? 1 : 0) + 1}
-                </span>
-                <div>
-                  <strong><BiLabel k="speaking_practice" /></strong>
-                  <p><BiText k="record_your_mandarin_story_out_loud" /></p>
-                </div>
-              </div>
+            <div className="overview-choice-grid">
+              <button
+                type="button"
+                className="overview-choice-card"
+                disabled={!hasVocabQuiz}
+                onClick={() => setPhase("vocabquiz")}
+              >
+                <span className="overview-choice-icon">❓</span>
+                <strong><BiLabel k="vocabulary_map" /></strong>
+                <p>
+                  {hasVocabQuiz ? (
+                    <BiText k="match_key_words_to_each_story_scene" />
+                  ) : (
+                    <BiText
+                      zh="老師還沒填寫任何詞彙翻譯"
+                      en="Your teacher hasn't added any word translations yet"
+                    />
+                  )}
+                </p>
+              </button>
+
+              <button
+                type="button"
+                className="overview-choice-card"
+                onClick={() => setPhase(enableSorting ? "sorting" : "practice")}
+              >
+                <span className="overview-choice-icon">🎙️</span>
+                <strong><BiLabel k="speaking_practice" /></strong>
+                <p><BiText k="record_your_mandarin_story_out_loud" /></p>
+              </button>
             </div>
           </div>
-
-          <div className="overview-cta">
-            <button
-              className="btn-start-challenge"
-              onClick={() => setShowStartModal(true)}
-            >
-<BiLabel k="let_s_go" />
-            </button>
-          </div>
         </section>
-      )}
-
-      {showStartModal && (
-        <div className="start-practice-modal-overlay" role="dialog" aria-modal="true">
-          <div className="start-practice-modal">
-            <span className="start-practice-modal-icon">🎬</span>
-            <h2><BiLabel k="start_practicing_title" /></h2>
-            <ul className="start-practice-modal-list">
-              <li><BiText k="create_story_based_on_images" /></li>
-              <li><BiText k="for_each_image_record_and_see_feedback" /></li>
-              <li><BiText k="complete_when_you_finish_all_images" /></li>
-            </ul>
-            <button
-              type="button"
-              className="btn-start-challenge"
-              onClick={() => {
-                setShowStartModal(false);
-                setPhase(
-                  enableSorting ? "sorting" : hasVocabQuiz ? "vocabquiz" : "practice",
-                );
-              }}
-            >
-              <BiLabel k="got_it_lets_start" />
-            </button>
-          </div>
-        </div>
       )}
 
       {phase === "sorting" && (
@@ -1448,6 +1414,7 @@ export default function StoryRecorder({
         <StoryVocabQuiz
           entries={quizEntries}
           onDone={() => setPhase("practice")}
+          onBack={() => setPhase("overview")}
         />
       )}
 
@@ -1605,6 +1572,16 @@ export default function StoryRecorder({
             }
             return null;
           })()}
+
+          {enableOverview && (
+            <button
+              type="button"
+              className="btn-vocab-quiz-back"
+              onClick={() => setPhase("overview")}
+            >
+              <BiLabel zh="← 返回活動" en="← Back to activities" />
+            </button>
+          )}
 
           {/* ── Per-scene practice steps: vocabulary → grammar → speaking ── */}
           <div className="scene-step-tabs" role="tablist" aria-label="Practice steps">
