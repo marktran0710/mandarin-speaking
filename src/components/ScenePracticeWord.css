@@ -1,0 +1,80 @@
+.scene-practice-toggle {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.1em;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: var(--clay-radius-sm);
+  opacity: 0.65;
+  transition: opacity 0.15s, background 0.15s;
+}
+.scene-practice-toggle:hover {
+  opacity: 1;
+  background: var(--gold-soft);
+}
+.scene-practice-toggle.active {
+  opacity: 1;
+  background: var(--gold-soft);
+}
+
+.scene-practice-panel {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-canvas);
+  border: 1px dashed var(--gold);
+}
+
+.btn-scene-practice-record {
+  border: 1px solid var(--jade);
+  border-radius: var(--clay-radius-md);
+  background: var(--jade);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.btn-scene-practice-record.recording {
+  background: var(--clay-error);
+  border-color: var(--clay-error);
+}
+.btn-scene-practice-record:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.scene-practice-status {
+  font-size: 12px;
+  color: var(--clay-muted);
+}
+
+.scene-practice-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--clay-error);
+}
+
+.scene-practice-result {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.scene-practice-score {
+  font-size: 1.4em;
+  color: var(--gold-deep);
+}
+
+.scene-practice-feedback {
+  margin: 0;
+  font-size: 13px;
+  color: var(--clay-body);
+}

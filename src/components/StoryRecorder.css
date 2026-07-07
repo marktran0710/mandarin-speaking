@@ -3888,6 +3888,12 @@
   transition: background 0.2s, border-color 0.2s;
 }
 
+/* One extra trailing column for the per-word practice mic toggle, used only
+   on the scene vocabulary table shown during active recording practice. */
+.scene-vocab-row-practice {
+  grid-template-columns: auto 1.1fr 1.1fr 0.7fr 1.4fr auto;
+}
+
 .scene-vocab-status {
   font-size: 0.95em;
   font-weight: 900;

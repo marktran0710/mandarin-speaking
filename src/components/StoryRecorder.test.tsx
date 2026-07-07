@@ -406,5 +406,41 @@ describe("StoryRecorder student prototype", () => {
     expect(within(table).getByText("N")).toBeInTheDocument();
     expect(within(table).getByText("marketplace")).toBeInTheDocument();
   });
+
+  it("lets a student expand a scene vocabulary word to practice its pronunciation", async () => {
+    const user = userEvent.setup();
+    render(
+      <StoryRecorder
+        topic={topicWithVocabDetails}
+        selectedImage={topicWithVocabDetails.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    const practiceToggle = screen.getByRole("button", {
+      name: "Practice pronouncing market",
+    });
+
+    // Collapsed by default — no per-word record control for this word yet.
+    expect(
+      screen.queryByRole("button", { name: "Record market to check pronunciation" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(practiceToggle);
+    expect(
+      screen.getByRole("button", { name: "Record market to check pronunciation" }),
+    ).toBeInTheDocument();
+
+    // Toggling again collapses it.
+    await user.click(
+      screen.getByRole("button", { name: "Hide pronunciation practice for market" }),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Record market to check pronunciation" }),
+    ).not.toBeInTheDocument();
+  });
 });
 

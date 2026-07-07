@@ -14,6 +14,7 @@ import {
 import PraatTimeline from "./PraatTimeline";
 import StoryConceptMap from "./StoryConceptMap";
 import StoryFeedbackCard from "./StoryFeedbackCard";
+import ScenePracticeWord from "./ScenePracticeWord";
 import { toPinyin } from "../utils/pinyin";
 import "./StoryRecorder.css";
 import { BiLabel, BiText } from "./BiLabel";
@@ -1596,7 +1597,11 @@ export default function StoryRecorder({
                       </span>
                     )}
                   </p>
-                  <div className="scene-vocab-table" role="table" aria-label="Scene vocabulary">
+                  <div
+                    className="scene-vocab-table scene-vocab-table-practice"
+                    role="table"
+                    aria-label="Scene vocabulary"
+                  >
                     {selectedVocabulary.map((w, wi) => {
                       // Prefer backend phonetic-match result; fall back to character search
                       const aiVC =
@@ -1615,7 +1620,7 @@ export default function StoryRecorder({
                         <div
                           key={w}
                           role="row"
-                          className={`scene-vocab-row ${used === true ? "scene-vocab-used" : used === false ? "scene-vocab-missed" : ""}`}
+                          className={`scene-vocab-row scene-vocab-row-practice ${used === true ? "scene-vocab-used" : used === false ? "scene-vocab-missed" : ""}`}
                           title={
                             used === true
                               ? "你使用了這個詞彙 ✓ You used this word"
@@ -1632,6 +1637,7 @@ export default function StoryRecorder({
                           <span className="scene-vocab-cell scene-vocab-pinyin" role="cell">{py}</span>
                           <span className="scene-vocab-cell scene-vocab-pos" role="cell">{pos}</span>
                           <span className="scene-vocab-cell scene-vocab-meaning" role="cell">{translation}</span>
+                          <ScenePracticeWord word={w} />
                         </div>
                       );
                     })}

@@ -1,0 +1,24 @@
+.tone-pitch-overlay {
+  border-radius: var(--clay-radius-md);
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.tone-pitch-overlay svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.tone-pitch-overlay-empty {
+  padding: 24px 14px;
+  text-align: center;
+  color: var(--clay-muted);
+  font-size: 13px;
+}
+
+.tone-pitch-axis-label {
+  fill: var(--clay-muted);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
