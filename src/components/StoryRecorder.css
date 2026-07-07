@@ -975,17 +975,6 @@
   line-height: 1.3;
 }
 
-/* Vocabulary chips inside the analysis sidebar */
-.ap-vocab-ref {
-  padding: 10px 14px 12px;
-  border-bottom: 1px solid var(--clay-hairline-soft);
-}
-
-.ap-vocab-heading {
-  color: var(--clay-muted);
-}
-
-
 /* Playback and vocab-complete sections inside the sidebar card */
 .ap-sidebar-col .listen-try-zone {
   padding: 14px 16px;
@@ -1416,7 +1405,9 @@
 
 .word-prosody-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  /* auto-fit (not auto-fill): collapses unused tracks so 1-2 word cards
+     grow to fill the row instead of leaving empty phantom columns. */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
 }
 
@@ -2003,9 +1994,9 @@
 }
 
 /* ── Listen / Try Again (Zone 3) ───────────────────────────────────────────── */
-.listen-try-zone {
-  margin-bottom: 18px;
-}
+/* .listen-try-zone itself is styled by the more specific
+   .ap-sidebar-col .listen-try-zone rule above — this section only adds the
+   "all vocab used" positive-state card that can appear inside it. */
 /* All vocab done — positive state */
 .try-again-complete {
   margin-top: 12px;
@@ -4243,9 +4234,19 @@
   line-height: 1.5;
 }
 
-/* ── Vowel / pause metric cards ── */
-.metric-card.vowel-card { border-left: 3px solid var(--seal); }
-.metric-card.pause-card { border-left: 3px solid var(--jade-deep); }
+/* ── Vowel / pause metric cards — same tinted-background treatment as
+   their tone/rate/fluency siblings in .metrics-section, not just a bare
+   border-left, so the grid doesn't mix filled and blank tiles. ── */
+.metric-card.vowel-card {
+  background: var(--seal-soft);
+  border-left: 3px solid var(--seal);
+  color: var(--seal-deep);
+}
+.metric-card.pause-card {
+  background: var(--jade-soft);
+  border-left: 3px solid var(--jade-deep);
+  color: var(--jade-deep);
+}
 
 /* ── AI feedback improvements ── */
 .provider-badge {

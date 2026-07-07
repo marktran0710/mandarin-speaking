@@ -2081,41 +2081,9 @@ export default function StoryRecorder({
                       )}
                     </div>
                   </div>
-                  {/* ── Vocabulary for this scene ── */}
-                  {selectedVocabulary.length > 0 && (
-                    <div className="ap-vocab-ref">
-                      <p className="block-label ap-vocab-heading"><BiLabel k="scene_vocabulary" /></p>
-                      <div className="scene-vocab-table" role="table" aria-label="Scene vocabulary">
-                        {selectedVocabulary.map((w, wi) => {
-                          const aiVC = praatMetrics?.ai_feedback?.vocabulary_coverage;
-                          let used: boolean | null = null;
-                          if (aiVC) {
-                            if (aiVC.used?.includes(w)) used = true;
-                            else if (aiVC.missing?.includes(w)) used = false;
-                          }
-                          const py = topic.vocabularyPinyin?.[selectedImageIndex]?.[wi] || toPinyin(w);
-                          const pos = topic.vocabularyPos?.[selectedImageIndex]?.[wi];
-                          const translation = topic.vocabularyTranslation?.[selectedImageIndex]?.[wi];
-                          return (
-                            <div
-                              key={w}
-                              role="row"
-                              className={`scene-vocab-row ${used === true ? "scene-vocab-used" : used === false ? "scene-vocab-missed" : ""}`}
-                            >
-                              <span className="scene-vocab-status" role="cell" aria-hidden="true">
-                                {used === true && "✓"}
-                                {used === false && "✗"}
-                              </span>
-                              <span className="scene-vocab-cell scene-vocab-hanzi" role="cell">{w}</span>
-                              <span className="scene-vocab-cell scene-vocab-pinyin" role="cell">{py}</span>
-                              <span className="scene-vocab-cell scene-vocab-pos" role="cell">{pos}</span>
-                              <span className="scene-vocab-cell scene-vocab-meaning" role="cell">{translation}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
+                  {/* Scene vocabulary with used/missed status already lives on
+                      the Vocabulary tab (same data) — no need to repeat the
+                      whole table here too. */}
 
                   {/* ── Zone 3: Listen back ──────────────────────────────────── */}
                   <div className="listen-try-zone">
@@ -2923,6 +2891,10 @@ function FeedbackSummary({
   return (
     <div className="feedback-summary">
       <div className="feedback-summary-top">
+        <div className="feedback-summary-score">
+          <span className="feedback-summary-number">{overallScore}</span>
+          <span className="feedback-summary-denom">/100</span>
+        </div>
         <div className="feedback-summary-meta">
           <p className="feedback-summary-label">{overallLabel}</p>
           <p className="feedback-summary-attempt">
