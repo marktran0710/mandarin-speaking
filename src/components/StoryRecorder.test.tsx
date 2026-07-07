@@ -24,6 +24,22 @@ const topic = {
   },
 };
 
+const topicWithVocabDetails = {
+  ...topic,
+  vocabulary: {
+    0: ["market", "help"],
+  },
+  vocabularyPinyin: {
+    0: ["shìchǎng", "bāngmáng"],
+  },
+  vocabularyPos: {
+    0: ["N", "V"],
+  },
+  vocabularyTranslation: {
+    0: ["marketplace", ""],
+  },
+};
+
 const TEST_BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
 
 let activeRecorder: MockMediaRecorder | null = null;
@@ -338,6 +354,57 @@ describe("StoryRecorder student prototype", () => {
     // Verify it unlocks the standard recording UI
     expect(screen.queryByText("Arrange the Story Scenes")).not.toBeInTheDocument();
     expect(screen.getByText("Recording options")).toBeInTheDocument();
+  });
+
+  it("shows the scene vocabulary as a read-only table with pos/translation, no status before analysis", () => {
+    render(
+      <StoryRecorder
+        topic={topicWithVocabDetails}
+        selectedImage={topicWithVocabDetails.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    const table = screen.getByRole("table", { name: "Scene vocabulary" });
+    expect(within(table).getByText("market")).toBeInTheDocument();
+    expect(within(table).getByText("shìchǎng")).toBeInTheDocument();
+    expect(within(table).getByText("N")).toBeInTheDocument();
+    expect(within(table).getByText("marketplace")).toBeInTheDocument();
+
+    // "help" has no translation supplied — cell should just be empty, not crash.
+    expect(within(table).getByText("help")).toBeInTheDocument();
+    expect(within(table).getByText("bāngmáng")).toBeInTheDocument();
+    expect(within(table).getByText("V")).toBeInTheDocument();
+
+    // No recording analyzed yet: no used/missing status tint or tick.
+    const rows = within(table).getAllByRole("row");
+    for (const row of rows) {
+      expect(row.className).not.toContain("scene-vocab-used");
+      expect(row.className).not.toContain("scene-vocab-missed");
+    }
+  });
+
+  it("shows the key vocabulary overview as a read-only table with pos/translation", () => {
+    render(
+      <StoryRecorder
+        topic={topicWithVocabDetails}
+        selectedImage={topicWithVocabDetails.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+        enableSorting={true}
+      />,
+    );
+
+    const table = screen.getByRole("table", { name: "Key vocabulary" });
+    expect(within(table).getByText("market")).toBeInTheDocument();
+    expect(within(table).getByText("shìchǎng")).toBeInTheDocument();
+    expect(within(table).getByText("N")).toBeInTheDocument();
+    expect(within(table).getByText("marketplace")).toBeInTheDocument();
   });
 });
 

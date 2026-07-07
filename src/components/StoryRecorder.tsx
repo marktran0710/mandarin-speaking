@@ -1082,23 +1082,18 @@ export default function StoryRecorder({
                     <span className="overview-vocab-scene-label">
                       <BiLabel zh={`場景 ${si + 1}`} en={`Scene ${si + 1}`} />
                     </span>
-                    <div className="overview-vocab-chips">
+                    <div className="overview-vocab-table" role="table" aria-label="Key vocabulary">
                       {sceneWords.map((word, i) => {
                         const py = topic.vocabularyPinyin?.[si]?.[i] || toPinyin(word);
-                        const tooltip = vocabTooltip(
-                          topic.vocabularyPos?.[si]?.[i],
-                          topic.vocabularyTranslation?.[si]?.[i],
-                        );
+                        const pos = topic.vocabularyPos?.[si]?.[i];
+                        const translation = topic.vocabularyTranslation?.[si]?.[i];
                         return (
-                          <span
-                            key={`${word}-${i}`}
-                            className="overview-vocab-chip"
-                          >
-                            <span className="vocab-chip-hanzi" title={tooltip}>{word}</span>
-                            {py && (
-                              <span className="vocab-chip-pinyin">{py}</span>
-                            )}
-                          </span>
+                          <div className="overview-vocab-row" role="row" key={`${word}-${i}`}>
+                            <span className="overview-vocab-cell overview-vocab-hanzi" role="cell">{word}</span>
+                            <span className="overview-vocab-cell overview-vocab-pinyin" role="cell">{py}</span>
+                            <span className="overview-vocab-cell overview-vocab-pos" role="cell">{pos}</span>
+                            <span className="overview-vocab-cell overview-vocab-meaning" role="cell">{translation}</span>
+                          </div>
                         );
                       })}
                     </div>
@@ -1601,7 +1596,7 @@ export default function StoryRecorder({
                       </span>
                     )}
                   </p>
-                  <div className="practice-vocab-chips">
+                  <div className="scene-vocab-table" role="table" aria-label="Scene vocabulary">
                     {selectedVocabulary.map((w, wi) => {
                       // Prefer backend phonetic-match result; fall back to character search
                       const aiVC =
@@ -1613,40 +1608,31 @@ export default function StoryRecorder({
                       } else if (praatMetrics?.transcription) {
                         used = praatMetrics.transcription.includes(w);
                       }
+                      const py = topic.vocabularyPinyin?.[selectedImageIndex]?.[wi] || toPinyin(w);
+                      const pos = topic.vocabularyPos?.[selectedImageIndex]?.[wi];
+                      const translation = topic.vocabularyTranslation?.[selectedImageIndex]?.[wi];
                       return (
-                        <span
+                        <div
                           key={w}
-                          className={`vocab-chip ${used === true ? "vocab-used" : used === false ? "vocab-missed" : ""}`}
+                          role="row"
+                          className={`scene-vocab-row ${used === true ? "scene-vocab-used" : used === false ? "scene-vocab-missed" : ""}`}
                           title={
                             used === true
                               ? "你使用了這個詞彙 ✓ You used this word"
                               : used === false
                                 ? "試著加入這個詞彙 Try to include this word"
-                                : ""
+                                : undefined
                           }
                         >
-                          <span className="vocab-chip-row">
-                            <span
-                              className="vocab-chip-hanzi"
-                              title={vocabTooltip(
-                                topic.vocabularyPos?.[selectedImageIndex]?.[wi],
-                                topic.vocabularyTranslation?.[selectedImageIndex]?.[wi],
-                              )}
-                            >
-                              {w}
-                            </span>
-                            {used === true && (
-                              <span className="vocab-tick">✓</span>
-                            )}
-                            {used === false && (
-                              <span className="vocab-tick">✗</span>
-                            )}
+                          <span className="scene-vocab-status" role="cell" aria-hidden="true">
+                            {used === true && "✓"}
+                            {used === false && "✗"}
                           </span>
-                          {(() => {
-                            const py = topic.vocabularyPinyin?.[selectedImageIndex]?.[wi] || toPinyin(w);
-                            return py ? <span className="vocab-chip-pinyin">{py}</span> : null;
-                          })()}
-                        </span>
+                          <span className="scene-vocab-cell scene-vocab-hanzi" role="cell">{w}</span>
+                          <span className="scene-vocab-cell scene-vocab-pinyin" role="cell">{py}</span>
+                          <span className="scene-vocab-cell scene-vocab-pos" role="cell">{pos}</span>
+                          <span className="scene-vocab-cell scene-vocab-meaning" role="cell">{translation}</span>
+                        </div>
                       );
                     })}
                   </div>
@@ -1955,7 +1941,7 @@ export default function StoryRecorder({
               {selectedVocabulary.length > 0 && (
                 <div className="ap-vocab-ref">
                   <p className="block-label ap-vocab-heading"><BiLabel k="scene_vocabulary" /></p>
-                  <div className="ap-vocab-chips">
+                  <div className="scene-vocab-table" role="table" aria-label="Scene vocabulary">
                     {selectedVocabulary.map((w, wi) => {
                       const aiVC = praatMetrics?.ai_feedback?.vocabulary_coverage;
                       let used: boolean | null = null;
@@ -1964,26 +1950,23 @@ export default function StoryRecorder({
                         else if (aiVC.missing?.includes(w)) used = false;
                       }
                       const py = topic.vocabularyPinyin?.[selectedImageIndex]?.[wi] || toPinyin(w);
+                      const pos = topic.vocabularyPos?.[selectedImageIndex]?.[wi];
+                      const translation = topic.vocabularyTranslation?.[selectedImageIndex]?.[wi];
                       return (
-                        <span
+                        <div
                           key={w}
-                          className={`vocab-chip ${used === true ? "vocab-used" : used === false ? "vocab-missed" : ""}`}
+                          role="row"
+                          className={`scene-vocab-row ${used === true ? "scene-vocab-used" : used === false ? "scene-vocab-missed" : ""}`}
                         >
-                          <span className="vocab-chip-row">
-                            <span
-                              className="vocab-chip-hanzi"
-                              title={vocabTooltip(
-                                topic.vocabularyPos?.[selectedImageIndex]?.[wi],
-                                topic.vocabularyTranslation?.[selectedImageIndex]?.[wi],
-                              )}
-                            >
-                              {w}
-                            </span>
-                            {used === true && <span className="vocab-tick">✓</span>}
-                            {used === false && <span className="vocab-tick">✗</span>}
+                          <span className="scene-vocab-status" role="cell" aria-hidden="true">
+                            {used === true && "✓"}
+                            {used === false && "✗"}
                           </span>
-                          {py && <span className="vocab-chip-pinyin">{py}</span>}
-                        </span>
+                          <span className="scene-vocab-cell scene-vocab-hanzi" role="cell">{w}</span>
+                          <span className="scene-vocab-cell scene-vocab-pinyin" role="cell">{py}</span>
+                          <span className="scene-vocab-cell scene-vocab-pos" role="cell">{pos}</span>
+                          <span className="scene-vocab-cell scene-vocab-meaning" role="cell">{translation}</span>
+                        </div>
                       );
                     })}
                   </div>
