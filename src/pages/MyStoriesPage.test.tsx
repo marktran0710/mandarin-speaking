@@ -106,12 +106,8 @@ describe("MyStoriesPage", () => {
         `https://example.com/rain-scene-${index + 1}.jpg`,
       );
     }
-    await user.clear(screen.getAllByLabelText("Student prompt")[0]);
-    await user.type(
-      screen.getAllByLabelText("Student prompt")[0],
-      "Describe how the student helps someone in the rain.",
-    );
-    await user.type(screen.getAllByLabelText("Vocabulary")[0], "下雨, 幫忙");
+    await user.click(screen.getAllByRole("button", { name: "+ Add word" })[0]);
+    await user.type(screen.getAllByLabelText("Chinese word")[0], "下雨");
 
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
 
@@ -120,6 +116,31 @@ describe("MyStoriesPage", () => {
     expect(localStorage.getItem("teacherCustomStories")).toContain(
       "Taipei Rain Rescue",
     );
+  }, 10000);
+
+  it("saves all four vocabulary table columns for a word", async () => {
+    const user = userEvent.setup();
+    render(
+      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.clear(screen.getByLabelText("Story title"));
+    await user.type(screen.getByLabelText("Story title"), "Restaurant Story");
+
+    await user.click(screen.getAllByRole("button", { name: "+ Add word" })[0]);
+    await user.type(screen.getAllByLabelText("Chinese word")[0], "餐廳");
+    await user.type(screen.getAllByLabelText("Pinyin")[0], "cāntīng");
+    await user.selectOptions(screen.getAllByLabelText("Part of speech")[0], "N");
+    await user.type(screen.getAllByLabelText("English translation")[0], "restaurant");
+
+    await user.click(screen.getByRole("button", { name: "Save custom story" }));
+
+    const stored = localStorage.getItem("teacherCustomStories") || "";
+    expect(stored).toContain('"vocabulary":"餐廳"');
+    expect(stored).toContain('"vocabularyPinyin":"cāntīng"');
+    expect(stored).toContain('"vocabularyPos":"N"');
+    expect(stored).toContain('"vocabularyTranslation":"restaurant"');
   }, 10000);
 
   it("lets teachers edit a saved custom story activity", async () => {

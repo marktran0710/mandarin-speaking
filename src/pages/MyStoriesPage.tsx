@@ -700,6 +700,7 @@ function TeacherDashboard({
   );
   const [customDraft, setCustomDraft] = useState(emptyCustomStoryDraft);
   const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
+  const [vocabDraftGeneration, setVocabDraftGeneration] = useState(0);
   const [validationErrors, setValidationErrors] =
     useState<CustomStoryValidationErrors>({});
   const [customStoryNotice, setCustomStoryNotice] = useState("");
@@ -909,6 +910,7 @@ function TeacherDashboard({
     }
     setEditingStoryId(null);
     setCustomDraft(emptyCustomStoryDraft);
+    setVocabDraftGeneration((generation) => generation + 1);
     setValidationErrors({});
     setCustomStoryNotice(
       editingStoryId ? "Custom story updated." : "Custom story saved.",
@@ -1010,6 +1012,7 @@ function TeacherDashboard({
   const handleEditCustomStory = (story: CustomTeacherStory) => {
     setEditingStoryId(story.id);
     setCustomDraft(storyToDraft(story));
+    setVocabDraftGeneration((generation) => generation + 1);
     setValidationErrors({});
     setCustomStoryNotice("");
   };
@@ -1017,6 +1020,7 @@ function TeacherDashboard({
   const handleCancelCustomStoryEdit = () => {
     setEditingStoryId(null);
     setCustomDraft(emptyCustomStoryDraft);
+    setVocabDraftGeneration((generation) => generation + 1);
     setValidationErrors({});
     setCustomStoryNotice("");
   };
@@ -1326,6 +1330,7 @@ function TeacherDashboard({
                       />
                     </label>
                     <VocabularyTable
+                      key={`${vocabDraftGeneration}-${index}`}
                       vocabulary={customDraft.vocabulary[index] ?? ""}
                       vocabularyPinyin={customDraft.vocabularyPinyin[index] ?? ""}
                       vocabularyPos={customDraft.vocabularyPos[index] ?? ""}
@@ -1919,9 +1924,12 @@ function VocabularyTable({
     value: string,
   ) => void;
 }) {
-  const rows = buildVocabRows(vocabulary, vocabularyPinyin, vocabularyPos, vocabularyTranslation);
+  const [rows, setRows] = useState<VocabRow[]>(() =>
+    buildVocabRows(vocabulary, vocabularyPinyin, vocabularyPos, vocabularyTranslation),
+  );
 
   const commitRows = (nextRows: VocabRow[]) => {
+    setRows(nextRows);
     onChangeColumn("vocabulary", nextRows.map((r) => r.word).join(", "));
     onChangeColumn("vocabularyPinyin", nextRows.map((r) => r.pinyin).join(", "));
     onChangeColumn("vocabularyPos", nextRows.map((r) => r.pos).join(", "));
