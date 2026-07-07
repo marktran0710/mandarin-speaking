@@ -1606,19 +1606,146 @@ export default function StoryRecorder({
             return null;
           })()}
 
-          {/* ── Main two-column workspace ── */}
-          <div className="practice-workspace">
-            {/* Left: scene image + vocab chips + record button */}
-            <div className="practice-scene-panel">
-              <div className="practice-scene-image-wrap">
-                <img
-                  src={selectedImage}
-                  alt={`Scene ${selectedImageIndex + 1}`}
-                />
-              </div>
+          {/* ── Per-scene practice steps: vocabulary → grammar → speaking ── */}
+          <div className="scene-step-tabs" role="tablist" aria-label="Practice steps">
+            {sceneHasVocabStep(selectedImageIndex) && (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={scenePracticeStep === "vocab"}
+                className={`scene-step-tab${scenePracticeStep === "vocab" ? " active" : ""}`}
+                onClick={() => setScenePracticeStep("vocab")}
+              >
+                <BiLabel k="vocab_step_tab" />
+              </button>
+            )}
+            {sceneHasGrammarStep(selectedImageIndex) && (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={scenePracticeStep === "grammar"}
+                className={`scene-step-tab${scenePracticeStep === "grammar" ? " active" : ""}`}
+                onClick={() => setScenePracticeStep("grammar")}
+              >
+                <BiLabel k="grammar_step_tab" />
+              </button>
+            )}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={scenePracticeStep === "speaking"}
+              className={`scene-step-tab${scenePracticeStep === "speaking" ? " active" : ""}`}
+              onClick={() => setScenePracticeStep("speaking")}
+            >
+              <BiLabel k="speaking" />
+            </button>
+          </div>
 
-              {(topic.grammarPatterns?.[selectedImageIndex] || topic.grammarExamples?.[selectedImageIndex]) && (
-                <div className="practice-grammar-hint">
+          {scenePracticeStep === "vocab" && selectedVocabulary.length > 0 && (
+            <section className="scene-step-panel scene-vocab-step">
+              <div className="practice-vocab-ref">
+                <p className="block-label practice-vocab-heading">
+                  <BiLabel k="scene_vocabulary" />
+                  {praatMetrics && (
+                    <span className="vocab-check-hint">
+                      {" "}
+                      — <BiLabel k="check_which_words_you_used" />
+                    </span>
+                  )}
+                </p>
+                <div
+                  className="scene-vocab-table scene-vocab-table-practice"
+                  role="table"
+                  aria-label="Scene vocabulary"
+                >
+                  {selectedVocabulary.map((w, wi) => {
+                    // Prefer backend phonetic-match result; fall back to character search
+                    const aiVC =
+                      praatMetrics?.ai_feedback?.vocabulary_coverage;
+                    let used: boolean | null = null;
+                    if (aiVC) {
+                      if (aiVC.used?.includes(w)) used = true;
+                      else if (aiVC.missing?.includes(w)) used = false;
+                    } else if (praatMetrics?.transcription) {
+                      used = praatMetrics.transcription.includes(w);
+                    }
+                    const py = topic.vocabularyPinyin?.[selectedImageIndex]?.[wi] || toPinyin(w);
+                    const pos = topic.vocabularyPos?.[selectedImageIndex]?.[wi];
+                    const translation = topic.vocabularyTranslation?.[selectedImageIndex]?.[wi];
+                    return (
+                      <div
+                        key={w}
+                        role="row"
+                        className={`scene-vocab-row scene-vocab-row-practice ${used === true ? "scene-vocab-used" : used === false ? "scene-vocab-missed" : ""}`}
+                        title={
+                          used === true
+                            ? "你使用了這個詞彙 ✓ You used this word"
+                            : used === false
+                              ? "試著加入這個詞彙 Try to include this word"
+                              : undefined
+                        }
+                      >
+                        <span className="scene-vocab-status" role="cell" aria-hidden="true">
+                          {used === true && "✓"}
+                          {used === false && "✗"}
+                        </span>
+                        <span className="scene-vocab-cell scene-vocab-hanzi" role="cell">{w}</span>
+                        <span className="scene-vocab-cell scene-vocab-pinyin" role="cell">{py}</span>
+                        <span className="scene-vocab-cell scene-vocab-pos" role="cell">{pos}</span>
+                        <span className="scene-vocab-cell scene-vocab-meaning" role="cell">{translation}</span>
+                        <ScenePracticeWord word={w} />
+                      </div>
+                    );
+                  })}
+                </div>
+                {praatMetrics?.ai_feedback?.vocabulary_coverage && (
+                  <p className="vocab-coverage-line">
+                    {(() => {
+                      const vc =
+                        praatMetrics.ai_feedback!.vocabulary_coverage!;
+                      const usedList = vc.used ?? [];
+                      const missedList = vc.missing ?? [];
+                      if (missedList.length === 0)
+                        return (
+                          <BiLabel k="all_vocabulary_words_used_excellent" />
+                        );
+                      if (usedList.length === 0)
+                        return (
+                          <BiLabel
+                            zh={`試著加入：${missedList.slice(0, 3).join("、")}`}
+                            en={`Try to include: ${missedList.slice(0, 3).join("、")}`}
+                          />
+                        );
+                      return (
+                        <BiLabel
+                          zh={`已使用 ${usedList.length}/${selectedVocabulary.length}。試著加入：${missedList.slice(0, 2).join("、")}`}
+                          en={`Used ${usedList.length}/${selectedVocabulary.length}. Try adding: ${missedList.slice(0, 2).join("、")}`}
+                        />
+                      );
+                    })()}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                className="btn-scene-step-continue"
+                onClick={() =>
+                  setScenePracticeStep(
+                    sceneHasGrammarStep(selectedImageIndex) ? "grammar" : "speaking",
+                  )
+                }
+              >
+                <BiLabel
+                  k={sceneHasGrammarStep(selectedImageIndex) ? "continue_to_grammar" : "continue_to_speaking"}
+                />
+              </button>
+            </section>
+          )}
+
+          {scenePracticeStep === "grammar" &&
+            (topic.grammarPatterns?.[selectedImageIndex] || topic.grammarExamples?.[selectedImageIndex]) && (
+              <section className="scene-step-panel scene-grammar-step">
+                <div className="practice-grammar-hint practice-grammar-hint-full">
                   <p className="block-label practice-grammar-label">
                     <BiLabel k="grammar_pattern_to_use" />
                   </p>
@@ -1633,95 +1760,28 @@ export default function StoryRecorder({
                     </span>
                   )}
                 </div>
-              )}
+                <button
+                  type="button"
+                  className="btn-scene-step-continue"
+                  onClick={() => setScenePracticeStep("speaking")}
+                >
+                  <BiLabel k="continue_to_speaking" />
+                </button>
+              </section>
+            )}
 
-
-              {selectedVocabulary.length > 0 && (
-                <div className="practice-vocab-ref">
-                  <p className="block-label practice-vocab-heading">
-                    <BiLabel k="scene_vocabulary" />
-                    {praatMetrics && (
-                      <span className="vocab-check-hint">
-                        {" "}
-                        — <BiLabel k="check_which_words_you_used" />
-                      </span>
-                    )}
-                  </p>
-                  <div
-                    className="scene-vocab-table scene-vocab-table-practice"
-                    role="table"
-                    aria-label="Scene vocabulary"
-                  >
-                    {selectedVocabulary.map((w, wi) => {
-                      // Prefer backend phonetic-match result; fall back to character search
-                      const aiVC =
-                        praatMetrics?.ai_feedback?.vocabulary_coverage;
-                      let used: boolean | null = null;
-                      if (aiVC) {
-                        if (aiVC.used?.includes(w)) used = true;
-                        else if (aiVC.missing?.includes(w)) used = false;
-                      } else if (praatMetrics?.transcription) {
-                        used = praatMetrics.transcription.includes(w);
-                      }
-                      const py = topic.vocabularyPinyin?.[selectedImageIndex]?.[wi] || toPinyin(w);
-                      const pos = topic.vocabularyPos?.[selectedImageIndex]?.[wi];
-                      const translation = topic.vocabularyTranslation?.[selectedImageIndex]?.[wi];
-                      return (
-                        <div
-                          key={w}
-                          role="row"
-                          className={`scene-vocab-row scene-vocab-row-practice ${used === true ? "scene-vocab-used" : used === false ? "scene-vocab-missed" : ""}`}
-                          title={
-                            used === true
-                              ? "你使用了這個詞彙 ✓ You used this word"
-                              : used === false
-                                ? "試著加入這個詞彙 Try to include this word"
-                                : undefined
-                          }
-                        >
-                          <span className="scene-vocab-status" role="cell" aria-hidden="true">
-                            {used === true && "✓"}
-                            {used === false && "✗"}
-                          </span>
-                          <span className="scene-vocab-cell scene-vocab-hanzi" role="cell">{w}</span>
-                          <span className="scene-vocab-cell scene-vocab-pinyin" role="cell">{py}</span>
-                          <span className="scene-vocab-cell scene-vocab-pos" role="cell">{pos}</span>
-                          <span className="scene-vocab-cell scene-vocab-meaning" role="cell">{translation}</span>
-                          <ScenePracticeWord word={w} />
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {praatMetrics?.ai_feedback?.vocabulary_coverage && (
-                    <p className="vocab-coverage-line">
-                      {(() => {
-                        const vc =
-                          praatMetrics.ai_feedback!.vocabulary_coverage!;
-                        const usedList = vc.used ?? [];
-                        const missedList = vc.missing ?? [];
-                        if (missedList.length === 0)
-                          return (
-                            <BiLabel k="all_vocabulary_words_used_excellent" />
-                          );
-                        if (usedList.length === 0)
-                          return (
-                            <BiLabel
-                              zh={`試著加入：${missedList.slice(0, 3).join("、")}`}
-                              en={`Try to include: ${missedList.slice(0, 3).join("、")}`}
-                            />
-                          );
-                        return (
-                          <BiLabel
-                            zh={`已使用 ${usedList.length}/${selectedVocabulary.length}。試著加入：${missedList.slice(0, 2).join("、")}`}
-                            en={`Used ${usedList.length}/${selectedVocabulary.length}. Try adding: ${missedList.slice(0, 2).join("、")}`}
-                          />
-                        );
-                      })()}
-                    </p>
-                  )}
-                </div>
-              )}
-
+          {scenePracticeStep === "speaking" && (
+          <>
+          {/* ── Main two-column workspace ── */}
+          <div className="practice-workspace">
+            {/* Left: scene image + vocab chips + record button */}
+            <div className="practice-scene-panel">
+              <div className="practice-scene-image-wrap">
+                <img
+                  src={selectedImage}
+                  alt={`Scene ${selectedImageIndex + 1}`}
+                />
+              </div>
             </div>
 
             {/* Right: record controls */}
@@ -2186,6 +2246,8 @@ export default function StoryRecorder({
                 </div>
               </details>
             </section>
+          )}
+          </>
           )}
 
           {/* ── Submit Story ────────────────────────────────────────── */}

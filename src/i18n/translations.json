@@ -115,6 +115,10 @@
     "en": "Connectors",
     "zh": "連接詞"
   },
+  "continue_to_grammar": {
+    "en": "Continue to Grammar",
+    "zh": "繼續到文法 →"
+  },
   "continue_to_speaking": {
     "en": "Continue to Speaking",
     "zh": "繼續到口說練習 →"
@@ -194,6 +198,10 @@
   "grammar_pattern_to_use": {
     "en": "Grammar pattern to use",
     "zh": "練習句型"
+  },
+  "grammar_step_tab": {
+    "en": "Grammar",
+    "zh": "文法"
   },
   "how_to_fix": {
     "en": "How to fix",
@@ -384,8 +392,8 @@
     "zh": "單獨說"
   },
   "scene_first_time_hint": {
-    "en": "Step 1: look over the vocabulary below. Step 2: press Record and tell the story for this scene.",
-    "zh": "第一步：先看看下方的單字。第二步：按下錄音，說出這個場景的故事。"
+    "en": "New scene: check the Vocabulary and Grammar tabs above, then switch to Speaking when you're ready to record.",
+    "zh": "新的場景：先看看上方的「詞彙」和「文法」分頁，準備好了再切到「口說練習」錄音。"
   },
   "scene_vocabulary": {
     "en": "Scene vocabulary",
@@ -554,6 +562,10 @@
   "verify_sequence": {
     "en": "Verify Sequence",
     "zh": "驗證順序"
+  },
+  "vocab_step_tab": {
+    "en": "Vocabulary",
+    "zh": "詞彙"
   },
   "vocabulary_map": {
     "en": "Vocabulary Quiz",

@@ -3663,6 +3663,69 @@
 .practice-scene-thumb.active span { color: var(--seal); }
 
 /* Two-column workspace */
+/* ── Per-scene practice step tabs (vocabulary → grammar → speaking) ── */
+.scene-step-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+  border-bottom: 1.5px solid var(--clay-hairline);
+}
+.scene-step-tab {
+  border: none;
+  background: none;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--clay-muted);
+  cursor: pointer;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -1.5px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.scene-step-tab:hover { color: var(--clay-body); }
+.scene-step-tab.active {
+  color: var(--seal-deep);
+  border-bottom-color: var(--seal);
+}
+
+.scene-step-panel {
+  max-width: 720px;
+  margin: 0 auto 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.practice-grammar-hint-full {
+  padding: 20px 24px;
+  gap: 8px;
+}
+.practice-grammar-hint-full .practice-grammar-pattern { font-size: 18px; }
+.practice-grammar-hint-full .practice-grammar-example { font-size: 16px; }
+
+.btn-scene-step-continue {
+  align-self: flex-end;
+  background: var(--seal);
+  color: #fff;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn-scene-step-continue:hover {
+  background: var(--seal-deep);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 640px) {
+  .scene-step-tabs { overflow-x: auto; }
+  .btn-scene-step-continue { align-self: stretch; text-align: center; }
+}
+
 .practice-workspace {
   display: grid;
   grid-template-columns: 1fr 340px;
