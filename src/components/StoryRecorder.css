@@ -3599,71 +3599,44 @@
   gap: 6px;
 }
 
-.practice-scene-strip {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding: 4px 2px 12px;
-  margin-bottom: 16px;
-  scrollbar-width: thin;
-}
-.practice-scene-thumb {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  background: var(--clay-surface-card);
-  border: 2px solid var(--clay-hairline);
-  border-radius: 10px;
-  padding: 6px 8px;
-  cursor: pointer;
-  transition: border-color 0.15s, transform 0.12s;
-  width: 90px;
-}
-.practice-scene-thumb img {
-  width: 74px;
-  height: 52px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-.practice-scene-thumb span {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--clay-body);
-}
-.practice-scene-thumb.active {
-  border-color: var(--seal);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
-}
-.practice-scene-thumb.active span { color: var(--seal); }
-
 /* Two-column workspace */
-/* ── Per-scene practice step tabs (vocabulary → grammar → speaking) ── */
+/* ── Per-scene practice step tabs (vocabulary → grammar → speaking) ──
+   A soft rounded track instead of a hairline underline, so the three
+   steps read as stops on the same path rather than a flat file-tab bar. */
 .scene-step-tabs {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   margin-bottom: 16px;
-  border-bottom: 1.5px solid var(--clay-hairline);
+  padding: 5px;
+  background: var(--clay-surface-soft);
+  border-radius: var(--clay-radius-pill);
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
 }
 .scene-step-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   border: none;
   background: none;
-  padding: 10px 16px;
+  padding: 8px 16px;
+  border-radius: var(--clay-radius-pill);
   font-size: 14px;
   font-weight: 700;
   color: var(--clay-muted);
   cursor: pointer;
-  border-bottom: 2.5px solid transparent;
-  margin-bottom: -1.5px;
-  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  transition: color 0.15s, background-color 0.15s, box-shadow 0.15s;
 }
+.scene-step-tab .tone-shape-icon { color: var(--clay-muted-soft); }
 .scene-step-tab:hover { color: var(--clay-body); }
 .scene-step-tab.active {
   color: var(--seal-deep);
-  border-bottom-color: var(--seal);
+  background: var(--clay-surface-card);
+  box-shadow: var(--shadow-sm);
 }
+.scene-step-tab.active .tone-shape-icon { color: var(--seal); }
 
 /* practice-grammar-hint's compact card, sized up for its own reference
    panel (rather than a small inline hint next to the record controls). */
@@ -4256,29 +4229,6 @@
   color: var(--clay-body);
   margin: 0 0 10px;
 }
-
-/* ── Scene readiness badges on strip ── */
-.scene-badge {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-.badge-empty  { background: var(--clay-hairline); color: var(--clay-muted); }
-.badge-progress { background: var(--gold-soft); color: var(--gold-deep); }
-.badge-ready  { background: var(--jade-soft); color: var(--jade-deep); }
-
-.practice-scene-thumb { position: relative; }
-.practice-scene-thumb.scene-ready { border-color: var(--jade); }
 
 /* ── Scene readiness banner ── */
 .scene-ready-banner {

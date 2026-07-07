@@ -16,6 +16,8 @@ import PraatTimeline from "./PraatTimeline";
 import StoryFeedbackCard from "./StoryFeedbackCard";
 import ScenePracticeWord from "./ScenePracticeWord";
 import StoryVocabQuiz, { collectQuizEntries } from "./StoryVocabQuiz";
+import JourneyPath, { type JourneyStopStatus } from "./JourneyPath";
+import ToneShapeIcon from "./ToneShapeIcon";
 import { toPinyin } from "../utils/pinyin";
 import "./StoryRecorder.css";
 import { BiLabel, BiText } from "./BiLabel";
@@ -1519,36 +1521,34 @@ export default function StoryRecorder({
             </div>
           )}
 
-          {/* ── Scene selector strip ── */}
-          <div className="practice-scene-strip">
-            {topic.images.map((img, idx) => {
-              if (topic.firstFrameIsExample && idx === 0) return null;
-              const prog = sceneProgress[idx];
-              const ready = prog ? sceneReady(prog) : false;
-              const started = prog && prog.attempts > 0;
-              return (
-                <button
-                  type="button"
-                  key={idx}
-                  className={`practice-scene-thumb${idx === selectedImageIndex ? " active" : ""}${ready ? " scene-ready" : ""}`}
-                  onClick={() => {
+          {/* ── Scene journey: scenes threaded on one path, not a flat strip ── */}
+          <JourneyPath
+            stops={topic.images
+              .map((img, idx) => ({ img, idx }))
+              .filter(({ idx }) => !(topic.firstFrameIsExample && idx === 0))
+              .map(({ img, idx }) => {
+                const prog = sceneProgress[idx];
+                const ready = prog ? sceneReady(prog) : false;
+                const started = Boolean(prog && prog.attempts > 0);
+                return {
+                  key: idx,
+                  status: (idx === selectedImageIndex
+                    ? "current"
+                    : ready
+                      ? "done"
+                      : "upcoming") as JourneyStopStatus,
+                  thumbnail: img,
+                  label: <BiLabel zh={`場景 ${idx + 1}`} en={`Scene ${idx + 1}`} />,
+                  badge: !ready && started ? `${prog!.attempts}×` : undefined,
+                  disabled: isBusy,
+                  onClick: () => {
                     onImageChange(img);
                     onImageSelect(idx);
                     currentTranscriptRef.current = "";
-                  }}
-                  disabled={isBusy}
-                >
-                  <img src={img} alt={`Scene ${idx + 1}`} />
-                  <BiLabel zh={`場景 ${idx + 1}`} en={`Scene ${idx + 1}`} />
-                  <span
-                    className={`scene-badge ${ready ? "badge-ready" : started ? "badge-progress" : "badge-empty"}`}
-                  >
-                    {ready ? "✓" : started ? `${prog.attempts}×` : "○"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                  },
+                };
+              })}
+          />
 
           {/* ── Scene readiness banner ── */}
           {(() => {
@@ -1644,6 +1644,7 @@ export default function StoryRecorder({
                 className={`scene-step-tab${scenePracticeStep === "vocab" ? " active" : ""}`}
                 onClick={() => setScenePracticeStep("vocab")}
               >
+                <ToneShapeIcon tone={1} size={16} />
                 <BiLabel k="vocab_step_tab" />
               </button>
             )}
@@ -1655,6 +1656,7 @@ export default function StoryRecorder({
                 className={`scene-step-tab${scenePracticeStep === "grammar" ? " active" : ""}`}
                 onClick={() => setScenePracticeStep("grammar")}
               >
+                <ToneShapeIcon tone={3} size={16} />
                 <BiLabel k="grammar_step_tab" />
               </button>
             )}
@@ -1665,6 +1667,7 @@ export default function StoryRecorder({
               className={`scene-step-tab${scenePracticeStep === "speaking" ? " active" : ""}`}
               onClick={() => setScenePracticeStep("speaking")}
             >
+              <ToneShapeIcon tone={2} size={16} />
               <BiLabel k="speaking" />
             </button>
           </div>

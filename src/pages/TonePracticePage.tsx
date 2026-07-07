@@ -1,13 +1,12 @@
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { BiLabel } from "../components/BiLabel";
 import PitchOverlay from "../components/PitchOverlay";
+import ToneShapeIcon, { type ToneGroup } from "../components/ToneShapeIcon";
 import {
   useWordPronunciationPractice,
   type WordAnalyzeResult,
 } from "../hooks/useWordPronunciationPractice";
 import "./TonePracticePage.css";
-
-type ToneGroup = 1 | 2 | 3 | 4 | "mixed";
 
 interface PracticeWord {
   id: string;
@@ -385,28 +384,5 @@ function scoreVerdict(score: number): string {
   if (score >= 68) return "Great match";
   if (score >= 48) return "Getting there";
   return "Keep practicing";
-}
-
-function ToneShapeIcon({ tone, size = 22 }: { tone: ToneGroup; size?: number }) {
-  const paths: Record<ToneGroup, string> = {
-    1: "M4 14 H28",
-    2: "M4 22 L28 6",
-    3: "M4 10 C10 24 22 24 28 6",
-    4: "M4 6 L28 22",
-    mixed: "M4 14 H10 M14 22 L20 6 M24 10 C26 17 30 17 32 8",
-  };
-
-  return (
-    <svg
-      className="tone-shape-icon"
-      width={size}
-      height={size}
-      viewBox="0 0 32 28"
-      fill="none"
-      aria-hidden="true"
-    >
-      <path d={paths[tone]} stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none" />
-    </svg>
-  );
 }
 

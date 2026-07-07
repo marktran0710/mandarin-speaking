@@ -1,0 +1,138 @@
+.journey-path {
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  padding: 12px 4px 16px;
+  scrollbar-width: thin;
+}
+
+.journey-item {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── Connector: a pitch-contour-shaped stroke between stops, not a bar ── */
+.journey-connector {
+  width: 40px;
+  height: 28px;
+  flex-shrink: 0;
+  overflow: visible;
+}
+.journey-connector path {
+  stroke: var(--clay-hairline);
+  transition: stroke 0.25s ease;
+}
+.journey-connector.reached path {
+  stroke: var(--jade);
+}
+
+/* ── Stop: a circular "location" on the path, soft tinted ring rather
+   than a heavy solid fill — eye-catching without being harsh. ── */
+.journey-stop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 84px;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  position: relative;
+}
+.journey-stop:disabled { cursor: not-allowed; opacity: 0.6; }
+
+.journey-stop-ring {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--clay-radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 3px solid var(--clay-hairline);
+  background: var(--clay-surface-soft);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.journey-stop-ring img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.journey-stop-fallback {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--clay-muted);
+}
+
+.journey-stop:hover:not(:disabled) .journey-stop-ring {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.journey-stop-done .journey-stop-ring {
+  border-color: var(--jade);
+  background: var(--jade-soft);
+}
+
+.journey-stop-current .journey-stop-ring {
+  width: 64px;
+  height: 64px;
+  border-color: var(--seal);
+  background: var(--seal-soft);
+  box-shadow: 0 0 0 5px var(--seal-soft);
+}
+
+.journey-stop-upcoming .journey-stop-ring {
+  opacity: 0.75;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .journey-stop-current .journey-stop-ring {
+    animation: journey-current-pulse 2.4s ease-in-out infinite;
+  }
+}
+@keyframes journey-current-pulse {
+  0%, 100% { box-shadow: 0 0 0 5px var(--seal-soft); }
+  50%      { box-shadow: 0 0 0 9px var(--seal-soft); }
+}
+
+.journey-stop-star {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--clay-radius-pill);
+  background: var(--gold);
+  color: #fff;
+  font-size: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.journey-stop-label {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--clay-body);
+  text-align: center;
+  line-height: 1.25;
+}
+.journey-stop-current .journey-stop-label {
+  color: var(--seal-deep);
+}
+
+.journey-stop-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--clay-muted);
+  background: var(--clay-surface-strong);
+  padding: 1px 8px;
+  border-radius: var(--clay-radius-pill);
+}
