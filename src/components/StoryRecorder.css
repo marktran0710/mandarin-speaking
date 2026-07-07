@@ -3734,17 +3734,13 @@
   align-items: start;
 }
 
-/* Left: scene image panel — sticky so it stays in view instead of leaving a
-   blank gap once the right column's feedback/record content runs longer. */
+/* Left: scene image panel. Plain flow, no sticky/nested-scroll — the page
+   scrolls as one, which is simpler and clearer for students than a column
+   that detaches and scrolls independently of the rest of the screen. */
 .practice-scene-panel {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  position: sticky;
-  top: 16px;
-  align-self: start;
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
 }
 .practice-scene-image-wrap {
   position: relative;
