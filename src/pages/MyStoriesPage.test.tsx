@@ -51,7 +51,7 @@ const analyzedRecord = {
   },
 };
 
-vi.mock("../PitchChart", () => ({
+vi.mock("../components/PitchChart", () => ({
   default: () => <div data-testid="pitch-chart">Pitch chart</div>,
 }));
 
@@ -88,6 +88,44 @@ describe("MyStoriesPage", () => {
         ).toBeInTheDocument();
         expect(screen.getByTestId("pitch-chart")).toBeInTheDocument();
       });
+  });
+
+  it("doesn't crash the whole dashboard when a record's AI feedback is missing a category", async () => {
+    const user = userEvent.setup();
+    const partialFeedbackRecord = {
+      ...analyzedRecord,
+      id: "record-partial-feedback",
+      praatMetrics: {
+        ...analyzedRecord.praatMetrics,
+        ai_feedback: {
+          provider: "gemini",
+          fluency: { score: 82, feedback: "Good pacing with a clear story sequence." },
+          // grammar intentionally omitted — some real recordings' AI feedback
+          // is missing a category, which must not crash the dashboard.
+          vocabulary: { score: 80, feedback: "Good topic words.", suggestions: [] },
+          improved_version: "我和朋友去森林冒險，然後找到了地圖。",
+          practice_prompt: "Try adding one sentence about how you felt.",
+        },
+      },
+    };
+
+    render(
+      <MyStoriesPage
+        mode="teacher"
+        records={[partialFeedbackRecord]}
+        onDeleteRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Recordings/ }));
+
+    expect(
+      screen.getByRole("heading", { name: "Class Speaking Dashboard" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Good pacing with a clear story sequence."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Good topic words.")).toBeInTheDocument();
   });
 
   it("lets teachers save a custom image-based story activity", async () => {

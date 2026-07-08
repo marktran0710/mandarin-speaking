@@ -1083,6 +1083,7 @@ function TeacherDashboard({
     { id: "help", label: "Help", count: openHelpRequests.length },
     { id: "materials", label: "Materials", count: customStories.length },
     { id: "progress", label: "Progress" },
+    { id: "recordings", label: "Recordings", count: records.length },
   ];
 
   return (
@@ -2400,9 +2401,9 @@ function RecordCard({
                 en={`AI coach (${record.praatMetrics.ai_feedback.provider || "Gemini"})`}
               />
             </strong>
-            <p>{record.praatMetrics.ai_feedback.fluency.feedback}</p>
-            <p>{record.praatMetrics.ai_feedback.grammar.feedback}</p>
-            <p>{record.praatMetrics.ai_feedback.vocabulary.feedback}</p>
+            <p>{record.praatMetrics.ai_feedback.fluency?.feedback}</p>
+            <p>{record.praatMetrics.ai_feedback.grammar?.feedback}</p>
+            <p>{record.praatMetrics.ai_feedback.vocabulary?.feedback}</p>
           </div>
         )}
 
