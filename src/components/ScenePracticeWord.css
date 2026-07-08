@@ -31,6 +31,13 @@
   border: 1px dashed var(--gold);
 }
 
+.scene-practice-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .btn-scene-practice-record {
   border: 1px solid var(--jade);
   border-radius: var(--clay-radius-md);
@@ -48,6 +55,34 @@
 .btn-scene-practice-record:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.btn-scene-practice-upload {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  color: var(--clay-ink);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.btn-scene-practice-upload:hover {
+  border-color: var(--seal);
+}
+.btn-scene-practice-upload.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.scene-practice-upload-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .scene-practice-status {
