@@ -2079,3 +2079,25 @@
 .vocab-table-add-btn:hover {
   background: var(--jade-soft);
 }
+
+.btn-vocab-autofill {
+  justify-self: start;
+  margin-top: -6px;
+  border: 1px dashed var(--jade);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  color: var(--jade-deep);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 7px 12px;
+}
+
+.btn-vocab-autofill:hover:not(:disabled) {
+  background: var(--jade-soft);
+}
+
+.btn-vocab-autofill:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

@@ -25,6 +25,10 @@ import "../components/BiLabel.css";
 import StoryFeedbackCard from "../components/StoryFeedbackCard";
 import "./MyStoriesPage.css";
 
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL ||
+  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+
 interface AudioRecord {
   id: string;
   timestamp: string;
@@ -701,6 +705,8 @@ function TeacherDashboard({
   const [customDraft, setCustomDraft] = useState(emptyCustomStoryDraft);
   const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
   const [vocabDraftGeneration, setVocabDraftGeneration] = useState(0);
+  const [vocabFillLoadingIndex, setVocabFillLoadingIndex] = useState<number | null>(null);
+  const [vocabFillError, setVocabFillError] = useState("");
   const [validationErrors, setValidationErrors] =
     useState<CustomStoryValidationErrors>({});
   const [customStoryNotice, setCustomStoryNotice] = useState("");
@@ -849,6 +855,49 @@ function TeacherDashboard({
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleFillVocabFromSentence = async (index: number) => {
+    const sentence = customDraft.suggestedAnswers[index]?.trim();
+    if (!sentence) return;
+
+    setVocabFillError("");
+    setVocabFillLoadingIndex(index);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/vocab-from-sentence`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sentence }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Could not extract vocabulary from that sentence.");
+      }
+      const { words } = (await response.json()) as { words: VocabWordSuggestion[] };
+
+      const existingRows = buildVocabRows(
+        customDraft.vocabulary[index] ?? "",
+        customDraft.vocabularyPinyin[index] ?? "",
+        customDraft.vocabularyPos[index] ?? "",
+        customDraft.vocabularyTranslation[index] ?? "",
+      );
+      const mergedRows = mergeVocabSuggestions(existingRows, words);
+
+      setCustomDraft((draft) => ({
+        ...draft,
+        vocabulary: draft.vocabulary.map((v, i) => (i === index ? mergedRows.map((r) => r.word).join(", ") : v)),
+        vocabularyPinyin: draft.vocabularyPinyin.map((v, i) => (i === index ? mergedRows.map((r) => r.pinyin).join(", ") : v)),
+        vocabularyPos: draft.vocabularyPos.map((v, i) => (i === index ? mergedRows.map((r) => r.pos).join(", ") : v)),
+        vocabularyTranslation: draft.vocabularyTranslation.map((v, i) => (i === index ? mergedRows.map((r) => r.translation).join(", ") : v)),
+      }));
+      setVocabDraftGeneration((generation) => generation + 1);
+    } catch (error) {
+      setVocabFillError(
+        error instanceof Error ? error.message : "Could not extract vocabulary from that sentence.",
+      );
+    } finally {
+      setVocabFillLoadingIndex(null);
+    }
   };
 
   const handleSaveCustomStory = async () => {
@@ -1338,17 +1387,35 @@ function TeacherDashboard({
                       onChangeColumn={(field, value) => updateDraftFrame(field, index, value)}
                     />
                     {customDraft.narrativeMode !== "listen_retell" && (
-                      <label>
-                        {isExampleFrame ? "Example script (shown to students as a model — helps them know how to start)" : "Suggested answer (optional)"}
-                        <textarea
-                          value={customDraft.suggestedAnswers[index] ?? ""}
-                          onChange={(event) =>
-                            updateDraftFrame("suggestedAnswers", index, event.target.value)
+                      <>
+                        <label>
+                          {isExampleFrame ? "Example script (shown to students as a model — helps them know how to start)" : "Suggested answer (optional)"}
+                          <textarea
+                            value={customDraft.suggestedAnswers[index] ?? ""}
+                            onChange={(event) =>
+                              updateDraftFrame("suggestedAnswers", index, event.target.value)
+                            }
+                            rows={isExampleFrame ? 4 : 2}
+                            placeholder={isExampleFrame ? "Write the model story text students will read before recording their own…" : ""}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          className="btn-vocab-autofill"
+                          disabled={
+                            !customDraft.suggestedAnswers[index]?.trim() ||
+                            vocabFillLoadingIndex === index
                           }
-                          rows={isExampleFrame ? 4 : 2}
-                          placeholder={isExampleFrame ? "Write the model story text students will read before recording their own…" : ""}
-                        />
-                      </label>
+                          onClick={() => handleFillVocabFromSentence(index)}
+                        >
+                          {vocabFillLoadingIndex === index
+                            ? "Filling…"
+                            : "✨ Fill vocabulary table from this sentence"}
+                        </button>
+                        {vocabFillError && vocabFillLoadingIndex === null && (
+                          <span className="teacher-form-error">{vocabFillError}</span>
+                        )}
+                      </>
                     )}
                     {customDraft.narrativeMode === "listen_retell" && (
                       <>
@@ -1906,6 +1973,35 @@ function buildVocabRows(
     pos: pos[i] || "",
     translation: translations[i] || "",
   }));
+}
+
+interface VocabWordSuggestion {
+  word: string;
+  pinyin: string;
+  pos: string;
+  translation: string;
+}
+
+/** Non-destructively folds AI-suggested word rows into what's already in the
+ * table: a row the teacher already has keeps every cell they typed, only its
+ * blank cells get filled; a suggested word with no matching row is appended
+ * as a new row. Never removes or overwrites a cell the teacher already filled in. */
+function mergeVocabSuggestions(
+  existingRows: VocabRow[],
+  suggestions: VocabWordSuggestion[],
+): VocabRow[] {
+  const rows = existingRows.map((row) => ({ ...row }));
+  for (const suggestion of suggestions) {
+    const match = rows.find((row) => row.word === suggestion.word);
+    if (match) {
+      if (!match.pinyin.trim()) match.pinyin = suggestion.pinyin;
+      if (!match.pos.trim()) match.pos = suggestion.pos;
+      if (!match.translation.trim()) match.translation = suggestion.translation;
+    } else {
+      rows.push({ ...suggestion });
+    }
+  }
+  return rows;
 }
 
 function VocabularyTable({
