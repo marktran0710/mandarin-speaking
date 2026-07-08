@@ -23,6 +23,7 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--clay-muted);
+  background: var(--clay-surface-soft);
   white-space: nowrap;
   padding: 6px 12px;
   border-radius: 999px;
@@ -35,6 +36,7 @@
 .phase-nav-step.phase-nav-active {
   color: var(--seal);
   background: var(--seal-soft);
+  font-weight: 700;
   transform: scale(1.05);
 }
 .phase-nav-icon { font-size: 14px; }
@@ -44,10 +46,6 @@
   color: var(--clay-hairline);
   margin-left: 4px;
   font-weight: 400;
-}
-.phase-nav-step.phase-nav-active .phase-nav-label {
-  border-bottom: 2px solid var(--seal);
-  padding-bottom: 1px;
 }
 
 .student-flow-board {
