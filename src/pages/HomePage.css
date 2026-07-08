@@ -88,18 +88,8 @@
   animation-delay: 0.16s;
 }
 
-.student-card {
-  background: linear-gradient(180deg, var(--seal-soft) 0%, var(--clay-surface-card) 42%);
-}
-
 .teacher-card {
   background: linear-gradient(180deg, var(--jade-soft) 0%, var(--clay-surface-card) 42%);
-}
-
-.student-card:hover {
-  border-color: var(--seal);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-6px) rotate(-0.6deg);
 }
 
 .teacher-card:hover {
@@ -133,14 +123,51 @@
   transition: transform 0.2s ease;
 }
 
-.student-card .portal-icon {
-  background: var(--seal);
-  color: #ffffff;
-}
-
 .teacher-card .portal-icon {
   background: var(--jade);
   color: #ffffff;
+}
+
+/* ── Student portal card: the same tactile "game piece" treatment as the
+   in-story practice screen (thick border + solid unblurred "lip" shadow
+   that the card presses into on click), so the very first thing a student
+   sees already reads as a game piece rather than a flat web card. The
+   teacher card above keeps its original soft-lift style — this reskin is
+   student-only. ── */
+.student-card {
+  background: linear-gradient(180deg, var(--seal-soft) 0%, var(--clay-surface-card) 42%);
+  border: 2.5px solid var(--clay-hairline);
+  box-shadow: 0 6px 0 var(--seal-deep);
+}
+
+.student-card:hover {
+  border-color: var(--seal);
+  box-shadow: 0 8px 0 var(--seal-deep);
+  transform: translateY(-2px);
+}
+
+.student-card:active {
+  box-shadow: 0 2px 0 var(--seal-deep);
+  transform: translateY(4px);
+}
+
+.student-card .portal-icon {
+  width: 76px;
+  height: 76px;
+  border: 3px solid var(--seal-deep);
+  background: var(--seal);
+  color: #ffffff;
+  box-shadow: 0 0 0 5px var(--seal-soft);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .student-card .portal-icon {
+    animation: home-student-pulse 2.4s ease-in-out infinite;
+  }
+}
+@keyframes home-student-pulse {
+  0%, 100% { box-shadow: 0 0 0 5px var(--seal-soft); }
+  50%      { box-shadow: 0 0 0 9px var(--seal-soft); }
 }
 
 .student-card .portal-arrow {

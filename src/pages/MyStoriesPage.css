@@ -52,6 +52,9 @@
   vertical-align: middle;
 }
 
+/* ── Tactile game-piece panels: thick border + solid lip shadow, matching
+   the in-story practice screen, so the workbook a student lands on after
+   practicing reads as part of the same game rather than a plain dashboard. ── */
 .student-progress-panel {
   max-width: 980px;
   margin: 0 auto 18px;
@@ -60,9 +63,10 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: center;
-  border: 1px solid var(--clay-hairline);
+  border: 2.5px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
+  box-shadow: 0 5px 0 var(--seal-deep);
 }
 
 .student-progress-main {
@@ -104,9 +108,10 @@
   max-width: 980px;
   margin: 0 auto 18px;
   padding: 16px;
-  border: 1px solid var(--clay-hairline);
+  border: 2.5px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
+  box-shadow: 0 5px 0 var(--gold-deep);
 }
 
 .my-story-feedback-history h2 {
@@ -161,9 +166,10 @@
   grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
   gap: 16px;
   align-items: center;
-  border: 1px solid var(--clay-hairline);
+  border: 2.5px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
+  box-shadow: 0 5px 0 var(--jade-deep);
 }
 
 .student-help-card h2 {
@@ -199,13 +205,25 @@
 .student-help-card button {
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid var(--clay-primary);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-primary);
+  border: 2px solid var(--jade-deep);
+  border-radius: var(--clay-radius-pill);
+  background: var(--jade);
+  box-shadow: 0 3px 0 var(--jade-deep);
   color: #ffffff;
   cursor: pointer;
   font-size: 13px;
   font-weight: 900;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.student-help-card button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--jade-deep);
+}
+
+.student-help-card button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--jade-deep);
 }
 
 .learning-summary {
@@ -337,8 +355,9 @@
 .topic-workbook-section {
   padding: 16px;
   background: var(--clay-surface-card);
-  border: 1px solid var(--clay-hairline);
+  border: 2.5px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
+  box-shadow: 0 5px 0 var(--clay-hairline);
 }
 
 .topic-workbook-header {
@@ -361,6 +380,7 @@
   min-width: 120px;
   padding: 11px;
   background: var(--clay-surface-soft);
+  border: 2px solid var(--seal-soft);
   border-radius: var(--clay-radius-md);
   text-align: right;
 }
@@ -388,18 +408,42 @@
   gap: 10px;
 }
 
+/* Chunky game-tile card matching the in-story practice screen's tactile
+   pieces — a thick border + solid lip shadow rather than a thin web-card
+   hairline, so each scene reads as a game tile the student has (or hasn't
+   yet) collected. */
 .prompt-card {
   overflow: hidden;
   background: var(--clay-surface-card);
-  border: 1px solid var(--clay-hairline);
+  border: 2.5px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
+  box-shadow: 0 4px 0 var(--clay-hairline);
   display: grid;
   grid-template-columns: 132px minmax(0, 1fr);
   min-height: 132px;
+  position: relative;
 }
 
 .prompt-card.completed {
   border-color: var(--jade);
+  box-shadow: 0 4px 0 var(--jade-deep);
+}
+
+.prompt-card.completed::after {
+  content: "★";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--clay-radius-pill);
+  background: var(--gold);
+  color: #fff;
+  font-size: 13px;
+  box-shadow: var(--shadow-sm);
 }
 
 .prompt-image {
@@ -445,6 +489,9 @@
 
 .learning-status {
   flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 6px 8px;
   border-radius: 999px;
   font-size: 11px;
@@ -456,16 +503,19 @@
   background: var(--clay-surface-strong);
   color: var(--clay-muted);
 }
+.learning-status.todo::before { content: "⏳"; }
 
 .learning-status.ready {
   background: var(--clay-pink);
   color: var(--clay-primary-active);
 }
+.learning-status.ready::before { content: "✅"; }
 
 .learning-status.revised {
   background: var(--jade-soft);
   color: var(--jade-deep);
 }
+.learning-status.revised::before { content: "🔁"; }
 
 .picture-vocabulary {
   display: flex;
@@ -485,17 +535,25 @@
 .btn-record-picture {
   width: 100%;
   min-height: 38px;
-  border: 1px solid var(--clay-primary);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-primary);
+  border: 2px solid var(--seal-deep);
+  border-radius: var(--clay-radius-pill);
+  background: var(--seal);
+  box-shadow: 0 3px 0 var(--seal-deep);
   color: #ffffff;
   cursor: pointer;
   font-size: 14px;
   font-weight: 800;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .btn-record-picture:hover {
-  background: var(--clay-primary-active);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--seal-deep);
+}
+
+.btn-record-picture:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--seal-deep);
 }
 
 .picture-empty-result {

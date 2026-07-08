@@ -925,10 +925,11 @@ textarea:focus-visible {
 
 /* .btn itself is never used without a .btn-primary/-secondary/-danger
    variant, which now own their own tactile box-shadow above — so it's
-   deliberately excluded here to avoid flattening that shadow back to none. */
+   deliberately excluded here to avoid flattening that shadow back to none.
+   .btn-record-picture also owns its own tactile lip shadow now (see
+   MyStoriesPage.css) so it's excluded here too. */
 .login-submit,
 .start-activity-btn,
-.btn-record-picture,
 .btn-save-custom-story {
   border-radius: var(--clay-radius-pill);
   box-shadow: none;
@@ -936,7 +937,6 @@ textarea:focus-visible {
 
 .login-submit:hover,
 .start-activity-btn:hover,
-.btn-record-picture:hover,
 .btn-save-custom-story:hover {
   box-shadow: var(--shadow-sm);
 }

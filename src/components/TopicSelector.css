@@ -68,6 +68,10 @@
 .ts-step:nth-child(2) { background: var(--jade-soft); }
 .ts-step:nth-child(3) { background: var(--gold-soft); }
 
+/* Ring-style step markers matching the practice screen's journey-stop-ring
+   (a solid colored disc with its own contrasting border), so the "how this
+   works" steps already look like the game pieces the student will meet
+   right after picking a topic. */
 .ts-step-num {
   width: 40px;
   height: 40px;
@@ -77,11 +81,12 @@
   color: #fff;
   font-size: 15px;
   font-weight: 700;
+  border: 3px solid transparent;
 }
 
-.ts-step-1 { background: var(--seal); }
-.ts-step-2 { background: var(--jade); }
-.ts-step-3 { background: var(--gold); }
+.ts-step-1 { background: var(--seal); border-color: var(--seal-deep); }
+.ts-step-2 { background: var(--jade); border-color: var(--jade-deep); }
+.ts-step-3 { background: var(--gold); border-color: var(--gold-deep); }
 
 /* ── Grid section ── */
 .ts-grid-section {
@@ -122,21 +127,25 @@
 }
 
 /* ── Individual topic card — one consistent pastel for the whole grid,
-   so the set reads as a uniform list rather than color-coded categories. */
+   so the set reads as a uniform list rather than color-coded categories.
+   Tactile "game piece" treatment (thick border + solid lip shadow) matches
+   the in-story practice screen, so picking an activity already feels like
+   picking up a game tile. ── */
 .ts-card {
   display: flex;
   flex-direction: column;
   background: var(--tone1-soft);
-  border: none;
+  border: 2.5px solid var(--clay-hairline);
   border-radius: var(--clay-radius-xl);
   overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-  box-shadow: var(--shadow-sm);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  box-shadow: 0 6px 0 var(--tone1-deep);
 }
 
 .ts-card:hover {
-  transform: translateY(-4px) scale(1.01);
-  box-shadow: var(--shadow-md);
+  border-color: var(--tone1);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 0 var(--tone1-deep);
 }
 
 /* Image area */
@@ -268,24 +277,25 @@
   justify-content: center;
   gap: 8px;
   padding: 11px 16px;
-  border: none;
+  border: 2px solid var(--tone1-deep);
   border-radius: var(--clay-radius-pill);
-  background: var(--tone1-deep);
+  background: var(--tone1);
+  box-shadow: 0 4px 0 var(--tone1-deep);
   color: #ffffff;
   font-size: 14px;
   font-weight: 650;
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .ts-card-btn:hover {
-  background: #094a85;
   transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 5px 0 var(--tone1-deep);
 }
 
 .ts-card-btn:active {
-  transform: scale(0.98);
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--tone1-deep);
 }
 
 .ts-card-btn-arrow {

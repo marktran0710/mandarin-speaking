@@ -134,6 +134,40 @@
   background: var(--clay-primary-active);
 }
 
+/* ── Student login: same tactile game-piece card + lip button as the rest
+   of student mode, so logging in already feels like the game the student
+   is about to play. The teacher variant keeps its plain professional
+   look — this block only ever targets .login-page.student. ── */
+.login-page.student .login-card {
+  border: 2.5px solid var(--clay-hairline);
+  box-shadow: 0 6px 0 var(--seal-deep);
+}
+
+.login-page.student .login-icon.student {
+  border: 3px solid var(--seal-deep);
+  box-shadow: 0 0 0 5px var(--seal-soft);
+}
+
+.login-page.student .login-submit {
+  width: 100%;
+  border: 2px solid var(--seal-deep);
+  border-radius: var(--clay-radius-pill);
+  background: var(--seal);
+  box-shadow: 0 4px 0 var(--seal-deep);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.login-page.student .login-submit:hover {
+  background: var(--seal);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--seal-deep);
+}
+
+.login-page.student .login-submit:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--seal-deep);
+}
+
 @media (max-width: 560px) {
   .login-card {
     padding: 28px 20px;
