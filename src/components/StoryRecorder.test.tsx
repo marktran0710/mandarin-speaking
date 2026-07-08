@@ -3,16 +3,24 @@ import userEvent from "@testing-library/user-event";
 import type { UserEvent } from "@testing-library/user-event";
 import StoryRecorder, { vocabTooltip } from "./StoryRecorder";
 
-/** Answers through every question of the vocabulary quiz currently on
- * screen (any option — this is about reaching the end, not scoring), which
- * is required to advance past a first-time (skip-not-yet-unlocked) quiz. */
+/** Picks Free Practice mode (if the mode-select screen is showing) and
+ * answers through every question of the vocabulary quiz (any option — this
+ * is about reaching the end, not scoring), then continues past the results
+ * screen — required to advance past a first-time (skip-not-yet-unlocked)
+ * quiz. */
 async function completeVocabQuiz(user: UserEvent) {
-  while (screen.queryByRole("region", { name: "Vocabulary quiz" })) {
-    const optionsGroup = screen.getByRole("group");
+  const freeModeButton = screen.queryByRole("button", { name: /Free Practice/ });
+  if (freeModeButton) await user.click(freeModeButton);
+
+  while (screen.queryByRole("group", { name: /What does/ })) {
+    const optionsGroup = screen.getByRole("group", { name: /What does/ });
     const firstOption = within(optionsGroup).getAllByRole("button")[0];
     await user.click(firstOption);
     await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
   }
+
+  const continueButton = screen.queryByRole("button", { name: /Continue to practice/ });
+  if (continueButton) await user.click(continueButton);
 }
 
 vi.mock("../PitchChart", () => ({

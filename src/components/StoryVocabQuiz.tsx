@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BiLabel } from "./BiLabel";
 import "./StoryVocabQuiz.css";
 
@@ -26,8 +26,21 @@ export interface VocabQuizSummary {
   questionResults: VocabQuizQuestionResult[];
 }
 
+export type VocabQuizMode = "speed" | "strikes" | "free";
+
 const MAX_QUESTIONS = 8;
 const OPTION_COUNT = 4;
+
+// Speed mode: forces quick, decisive answers (a per-question countdown) and
+// caps the whole run (an overall countdown) — two distinct "speed" and
+// "time" limits, not the same constraint twice.
+const QUESTION_TIME_LIMIT_MS = 8_000;
+const TOTAL_TIME_LIMIT_MS = 60_000;
+const TIMER_TICK_MS = 100;
+
+// Strikes mode: three wrong answers *in a row* ends the run early, like a
+// game-over — a correct answer in between resets the counter.
+const STRIKES_LIMIT = 3;
 
 // Generic filler distractors, used only to pad out a question's wrong
 // answers when the story itself doesn't have enough other translated words
@@ -102,13 +115,43 @@ export function buildQuizQuestions(entries: VocabQuizEntry[]): VocabQuizQuestion
   });
 }
 
+const MODES: Array<{ mode: VocabQuizMode; icon: string; title: string; titleEn: string; desc: string; descEn: string }> = [
+  {
+    mode: "speed",
+    icon: "⏱️",
+    title: "限時模式",
+    titleEn: "Speed",
+    desc: "每題 8 秒，全部限時 60 秒 — 越快越好。",
+    descEn: "8s per question, 60s total — think fast.",
+  },
+  {
+    mode: "strikes",
+    icon: "❌",
+    title: "三振模式",
+    titleEn: "3 Strikes",
+    desc: "連續答錯 3 題就結束 — 保持連對。",
+    descEn: "3 wrong answers in a row ends the run.",
+  },
+  {
+    mode: "free",
+    icon: "🎯",
+    title: "自由練習",
+    titleEn: "Free Practice",
+    desc: "沒有時間限制，慢慢來。",
+    descEn: "No time limit, no elimination — go at your own pace.",
+  },
+];
+
 /** A multiple-choice vocabulary check covering every glossed word in the
  * story, shown before a student starts practicing any scene. Mandatory
  * (no skip button) the first time through a story — once `onDone` fires
  * from actually finishing it, the caller is expected to remember that and
  * pass `allowSkip` on future visits. `onComplete`, when given, fires once
- * with a full results summary — only on a genuine finish (every question
- * answered), never on skip or back-out, since those aren't real attempts. */
+ * with a full results summary — only on a genuine finish of the *original*
+ * round (every question answered, timed out, or eliminated by strikes),
+ * never on skip/back-out, and never again for the missed-words retry round
+ * offered afterward (that round is a same-session drill, not a new scored
+ * attempt). */
 export default function StoryVocabQuiz({
   entries,
   onDone,
@@ -122,49 +165,223 @@ export default function StoryVocabQuiz({
   allowSkip?: boolean;
   onComplete?: (summary: VocabQuizSummary) => void;
 }) {
-  const questions = useMemo(() => buildQuizQuestions(entries), [entries]);
+  const [screen, setScreen] = useState<"mode-select" | "quiz" | "summary">("mode-select");
+  const [mode, setMode] = useState<VocabQuizMode | null>(null);
+  const [roundEntries, setRoundEntries] = useState(entries);
+  const [isRetryRound, setIsRetryRound] = useState(false);
+
+  const questions = useMemo(() => buildQuizQuestions(roundEntries), [roundEntries]);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [results, setResults] = useState<VocabQuizQuestionResult[]>([]);
+  const [consecutiveFails, setConsecutiveFails] = useState(0);
+  const [questionTimeLeftMs, setQuestionTimeLeftMs] = useState(QUESTION_TIME_LIMIT_MS);
   const questionStartRef = useRef(Date.now());
   const quizStartRef = useRef(Date.now());
 
   const question = questions[index];
-
-  if (!question) {
-    return null;
-  }
-
   const isLast = index === questions.length - 1;
+  const isTimedOut = selected === "__timeout__";
+
+  // Guards against finishing twice: the speed-mode ticker can fire several
+  // times before React re-renders and tears the interval down (e.g. several
+  // ticks land past the total-time cap in the same batch), and without this
+  // guard each of those would re-report onComplete and re-enter "summary".
+  const finishedRef = useRef(false);
+
+  const finish = (finalResults: VocabQuizQuestionResult[]) => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    if (!isRetryRound) {
+      onComplete?.({
+        totalQuestions: finalResults.length,
+        correctCount: finalResults.filter((r) => r.correct).length,
+        totalTimeMs: Date.now() - quizStartRef.current,
+        questionResults: finalResults,
+      });
+    }
+    setScreen("summary");
+  };
+
+  const recordAnswer = (correct: boolean, chosen: string) => {
+    setSelected(chosen);
+    const nextResults = [
+      ...results,
+      { word: question.word, correct, timeMs: Date.now() - questionStartRef.current },
+    ];
+    setResults(nextResults);
+
+    if (mode === "strikes") {
+      const nextFails = correct ? 0 : consecutiveFails + 1;
+      setConsecutiveFails(nextFails);
+      if (nextFails >= STRIKES_LIMIT) {
+        // Let the student see the final (losing) answer highlighted for a
+        // beat before ending the run, same rhythm as a normal answer.
+        window.setTimeout(() => finish(nextResults), 700);
+        return;
+      }
+    }
+  };
 
   const choose = (option: string) => {
     if (selected) return;
-    setSelected(option);
-    setResults((prev) => [
-      ...prev,
-      {
-        word: question.word,
-        correct: option === question.correctTranslation,
-        timeMs: Date.now() - questionStartRef.current,
-      },
-    ]);
+    recordAnswer(option === question.correctTranslation, option);
   };
 
   const next = () => {
     setSelected(null);
+    setQuestionTimeLeftMs(QUESTION_TIME_LIMIT_MS);
     if (isLast) {
-      onComplete?.({
-        totalQuestions: questions.length,
-        correctCount: results.filter((r) => r.correct).length,
-        totalTimeMs: Date.now() - quizStartRef.current,
-        questionResults: results,
-      });
-      onDone();
+      finish(results);
     } else {
       questionStartRef.current = Date.now();
       setIndex((i) => i + 1);
     }
   };
+
+  // Speed mode: one ticking clock drives both the per-question countdown
+  // (forces a quick answer) and the overall run cap (checked each tick
+  // against wall-clock elapsed time, so it survives tab throttling better
+  // than decrementing a separate counter).
+  useEffect(() => {
+    if (mode !== "speed" || screen !== "quiz" || selected) return;
+    const tick = window.setInterval(() => {
+      if (Date.now() - quizStartRef.current >= TOTAL_TIME_LIMIT_MS) {
+        finish(results);
+        return;
+      }
+      setQuestionTimeLeftMs((t) => Math.max(0, t - TIMER_TICK_MS));
+    }, TIMER_TICK_MS);
+    return () => window.clearInterval(tick);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, screen, selected, index]);
+
+  useEffect(() => {
+    if (mode !== "speed" || screen !== "quiz" || selected) return;
+    if (questionTimeLeftMs <= 0) {
+      recordAnswer(false, "__timeout__");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questionTimeLeftMs, mode, screen, selected]);
+
+  const chooseMode = (picked: VocabQuizMode) => {
+    setMode(picked);
+    setScreen("quiz");
+    setIndex(0);
+    setSelected(null);
+    setResults([]);
+    setConsecutiveFails(0);
+    setQuestionTimeLeftMs(QUESTION_TIME_LIMIT_MS);
+    quizStartRef.current = Date.now();
+    questionStartRef.current = Date.now();
+    finishedRef.current = false;
+  };
+
+  const missedWords = results.filter((r) => !r.correct);
+  const missedEntries = roundEntries.filter((e) =>
+    missedWords.some((r) => r.word === e.word),
+  );
+
+  const practiceMissedWords = () => {
+    setIsRetryRound(true);
+    setRoundEntries(missedEntries);
+    chooseMode("free");
+  };
+
+  if (screen === "mode-select") {
+    return (
+      <section className="story-vocab-quiz vocab-quiz-mode-select" aria-label="Vocabulary quiz">
+        {onBack && (
+          <button type="button" className="btn-vocab-quiz-back" onClick={onBack}>
+            <BiLabel zh="← 返回活動" en="← Back to activities" />
+          </button>
+        )}
+        <div className="vocab-quiz-header">
+          <p className="eyebrow">
+            <BiLabel zh="詞彙測驗" en="Vocabulary Quiz" />
+          </p>
+          <h1 className="vocab-quiz-mode-title">
+            <BiLabel zh="選一種模式" en="Pick a mode" />
+          </h1>
+        </div>
+        <div className="vocab-quiz-mode-grid" role="group" aria-label="Quiz mode">
+          {MODES.map((m) => (
+            <button
+              key={m.mode}
+              type="button"
+              className={`vocab-quiz-mode-card vocab-quiz-mode-${m.mode}`}
+              onClick={() => chooseMode(m.mode)}
+            >
+              <span className="vocab-quiz-mode-icon">{m.icon}</span>
+              <strong>
+                <BiLabel zh={m.title} en={m.titleEn} />
+              </strong>
+              <p>
+                <BiLabel zh={m.desc} en={m.descEn} />
+              </p>
+            </button>
+          ))}
+        </div>
+        {allowSkip && (
+          <button type="button" className="btn-skip-vocab-quiz" onClick={onDone}>
+            <BiLabel k="skip" />
+          </button>
+        )}
+      </section>
+    );
+  }
+
+  if (screen === "summary") {
+    const correctCount = results.filter((r) => r.correct).length;
+    return (
+      <section className="story-vocab-quiz vocab-quiz-summary" aria-label="Vocabulary quiz results">
+        <div className="vocab-quiz-header">
+          <p className="eyebrow">
+            <BiLabel
+              zh={isRetryRound ? "複習結果" : "測驗結果"}
+              en={isRetryRound ? "Review results" : "Quiz results"}
+            />
+          </p>
+          <h1 className="vocab-quiz-mode-title">
+            <BiLabel
+              zh={`答對 ${correctCount} / ${results.length} 題`}
+              en={`${correctCount} / ${results.length} correct`}
+            />
+          </h1>
+        </div>
+
+        {missedWords.length > 0 ? (
+          <div className="vocab-quiz-missed-list" role="list" aria-label="Missed words">
+            {missedEntries.map((entry) => (
+              <div className="vocab-quiz-missed-item" role="listitem" key={entry.word}>
+                <span className="vocab-quiz-missed-word">{entry.word}</span>
+                <span className="vocab-quiz-missed-translation">{entry.translation}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="vocab-quiz-all-correct">
+            <BiLabel zh="全部答對，太棒了！" en="Perfect score — nice work!" />
+          </p>
+        )}
+
+        <div className="vocab-quiz-actions">
+          {missedWords.length > 0 && !isRetryRound && (
+            <button type="button" className="btn-vocab-quiz-retry" onClick={practiceMissedWords}>
+              <BiLabel zh="🔁 練習答錯的題目" en="🔁 Practice missed words" />
+            </button>
+          )}
+          <button type="button" className="btn-vocab-quiz-next" onClick={onDone}>
+            <BiLabel zh="繼續練習 →" en="Continue to practice →" />
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  if (!question) {
+    return null;
+  }
 
   return (
     <section className="story-vocab-quiz" aria-label="Vocabulary quiz">
@@ -175,7 +392,10 @@ export default function StoryVocabQuiz({
       )}
       <div className="vocab-quiz-header">
         <p className="eyebrow">
-          <BiLabel zh="詞彙測驗" en="Vocabulary Quiz" />
+          <BiLabel
+            zh={isRetryRound ? "複習答錯的題目" : "詞彙測驗"}
+            en={isRetryRound ? "Reviewing missed words" : "Vocabulary Quiz"}
+          />
         </p>
         <h1 className="vocab-quiz-word">{question.word}</h1>
         <p className="vocab-quiz-progress">
@@ -184,6 +404,23 @@ export default function StoryVocabQuiz({
             en={`Question ${index + 1} of ${questions.length}`}
           />
         </p>
+        {mode === "speed" && (
+          <p
+            className={`vocab-quiz-timer${questionTimeLeftMs <= 3000 ? " urgent" : ""}`}
+            aria-label={`${Math.ceil(questionTimeLeftMs / 1000)} seconds left`}
+          >
+            ⏱️ {Math.ceil(questionTimeLeftMs / 1000)}s
+          </p>
+        )}
+        {mode === "strikes" && (
+          <p className="vocab-quiz-strikes" aria-label={`${consecutiveFails} of ${STRIKES_LIMIT} strikes`}>
+            {Array.from({ length: STRIKES_LIMIT }, (_, i) => (
+              <span key={i} className={i < consecutiveFails ? "strike-used" : "strike-open"}>
+                {i < consecutiveFails ? "❌" : "◯"}
+              </span>
+            ))}
+          </p>
+        )}
       </div>
 
       <div
@@ -215,17 +452,24 @@ export default function StoryVocabQuiz({
         })}
       </div>
 
+      {isTimedOut && (
+        <p className="vocab-quiz-timeout-note">
+          <BiLabel zh="時間到！" en="Time's up!" />
+        </p>
+      )}
+
       <div className="vocab-quiz-actions">
-        {selected && (
-          <button type="button" className="btn-vocab-quiz-next" onClick={next}>
-            {isLast ? (
-              <BiLabel zh="開始練習" en="Start practice" />
-            ) : (
-              <BiLabel zh="下一題" en="Next question" />
-            )}
-          </button>
-        )}
-        {allowSkip && (
+        {selected &&
+          !(mode === "strikes" && consecutiveFails >= STRIKES_LIMIT) && (
+            <button type="button" className="btn-vocab-quiz-next" onClick={next}>
+              {isLast ? (
+                <BiLabel zh="開始練習" en="Start practice" />
+              ) : (
+                <BiLabel zh="下一題" en="Next question" />
+              )}
+            </button>
+          )}
+        {allowSkip && !isRetryRound && (
           <button type="button" className="btn-skip-vocab-quiz" onClick={onDone}>
             <BiLabel k="skip" />
           </button>
