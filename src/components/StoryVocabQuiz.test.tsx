@@ -144,12 +144,15 @@ describe("StoryVocabQuiz onComplete tracking", () => {
 
     await user.click(screen.getByRole("button", { name: /Free Practice/ }));
 
+    // Free mode is unlimited (no natural last question), so the student
+    // answers as many as they like, then explicitly finishes.
     for (let i = 0; i < entries.length; i += 1) {
       const group = screen.getByRole("group");
       const firstOption = within(group).getAllByRole("button")[0];
       await user.click(firstOption);
       await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
     }
+    await user.click(screen.getByRole("button", { name: /Finish & see results/ }));
 
     // Lands on the results screen first — onComplete fires here, but onDone
     // (which tells the caller to move on to practice) waits for the student
@@ -228,6 +231,41 @@ describe("StoryVocabQuiz modes", () => {
     expect(screen.getByRole("button", { name: /Free Practice/ })).toBeInTheDocument();
     // No question shown yet.
     expect(screen.queryByRole("group", { name: /What does/ })).not.toBeInTheDocument();
+  });
+
+  it("free/strikes modes are unlimited — the question pool cycles once every entry has been asked", async () => {
+    const user = userEvent.setup();
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /Free Practice/ }));
+
+    // Answer more questions than there are distinct entries (5) — proves the
+    // pool cycles/reshuffles instead of running out and the mode never
+    // shows "Start practice" (it has no fixed last question).
+    for (let i = 0; i < entries.length + 2; i += 1) {
+      expect(screen.getByRole("heading")).toBeInTheDocument();
+      await answerCurrentQuestion(user, true);
+      expect(screen.queryByRole("button", { name: /Start practice/ })).not.toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: /Next question/ }));
+    }
+    expect(screen.getByRole("heading")).toBeInTheDocument();
+  });
+
+  it("speed mode is a fixed 20-question run", async () => {
+    const user = userEvent.setup();
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /Speed/ }));
+    expect(screen.getByText(/Question 1 of 20/)).toBeInTheDocument();
+
+    for (let i = 0; i < 19; i += 1) {
+      await answerCurrentQuestion(user, true);
+      await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
+    }
+
+    expect(screen.getByText(/Question 20 of 20/)).toBeInTheDocument();
+    await answerCurrentQuestion(user, true);
+    expect(screen.getByRole("button", { name: /Start practice/ })).toBeInTheDocument();
   });
 
   it("strikes mode ends the run after 3 consecutive wrong answers, before all questions are answered", async () => {
@@ -323,13 +361,15 @@ describe("StoryVocabQuiz modes", () => {
 
     await user.click(screen.getByRole("button", { name: /Free Practice/ }));
 
-    // Get the first question wrong, the rest right.
+    // Get the first question wrong, the rest right, then finish (Free mode
+    // is unlimited, so there's no natural last question to trigger this).
     await answerCurrentQuestion(user, false);
     await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
     for (let i = 1; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true);
       await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
     }
+    await user.click(screen.getByRole("button", { name: /Finish & see results/ }));
 
     expect(onComplete).toHaveBeenCalledTimes(1);
     const missedList = screen.getByRole("list", { name: "Missed words" });

@@ -3,20 +3,20 @@ import userEvent from "@testing-library/user-event";
 import type { UserEvent } from "@testing-library/user-event";
 import StoryRecorder, { vocabTooltip } from "./StoryRecorder";
 
-/** Picks Free Practice mode (if the mode-select screen is showing) and
- * answers through every question of the vocabulary quiz (any option — this
- * is about reaching the end, not scoring), then continues past the results
- * screen — required to advance past a first-time (skip-not-yet-unlocked)
- * quiz. */
+/** Picks Free Practice mode (if the mode-select screen is showing), answers
+ * one question of the vocabulary quiz (any option — this is about reaching
+ * the end, not scoring), then finishes the run — Free mode is unlimited, so
+ * there's no natural last question — and continues past the results screen.
+ * Required to advance past a first-time (skip-not-yet-unlocked) quiz. */
 async function completeVocabQuiz(user: UserEvent) {
   const freeModeButton = screen.queryByRole("button", { name: /Free Practice/ });
   if (freeModeButton) await user.click(freeModeButton);
 
-  while (screen.queryByRole("group", { name: /What does/ })) {
-    const optionsGroup = screen.getByRole("group", { name: /What does/ });
+  const optionsGroup = screen.queryByRole("group", { name: /What does/ });
+  if (optionsGroup) {
     const firstOption = within(optionsGroup).getAllByRole("button")[0];
     await user.click(firstOption);
-    await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
+    await user.click(screen.getByRole("button", { name: /Finish & see results/ }));
   }
 
   const continueButton = screen.queryByRole("button", { name: /Continue to practice/ });

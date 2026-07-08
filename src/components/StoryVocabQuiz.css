@@ -116,6 +116,24 @@
   color: var(--clay-ink);
 }
 
+/* Quiet, secondary action — Strikes/Free are unlimited, so this is the
+   student's own way to stop; it deliberately doesn't compete visually
+   with the chunky primary "Next question" button. */
+.btn-vocab-quiz-finish {
+  font-size: 14.5px;
+  font-weight: 650;
+  padding: 12px 24px;
+  border-radius: var(--clay-radius-md, 8px);
+  cursor: pointer;
+  background: transparent;
+  color: var(--seal-deep);
+  border: 1px solid var(--seal-soft);
+  transition: all 0.2s;
+}
+.btn-vocab-quiz-finish:hover {
+  background: var(--seal-soft);
+}
+
 /* ── Mode select ── */
 .vocab-quiz-mode-title {
   font-size: 1.4rem;

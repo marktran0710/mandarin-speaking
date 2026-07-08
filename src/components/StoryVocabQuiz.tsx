@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BiLabel } from "./BiLabel";
 import "./StoryVocabQuiz.css";
 
@@ -31,15 +31,20 @@ export type VocabQuizMode = "speed" | "strikes" | "free";
 const MAX_QUESTIONS = 8;
 const OPTION_COUNT = 4;
 
-// Speed mode: forces quick, decisive answers (a per-question countdown) and
-// caps the whole run (an overall countdown) — two distinct "speed" and
-// "time" limits, not the same constraint twice.
+// Speed mode: a fixed 20-question run, forcing quick decisive answers (a
+// per-question countdown) and capping the whole run (an overall countdown)
+// — two distinct "speed" and "time" limits, not the same constraint twice.
+const SPEED_QUESTION_COUNT = 20;
 const QUESTION_TIME_LIMIT_MS = 8_000;
 const TOTAL_TIME_LIMIT_MS = 60_000;
 const TIMER_TICK_MS = 100;
 
 // Strikes mode: three wrong answers *in a row* ends the run early, like a
-// game-over — a correct answer in between resets the counter.
+// game-over — a correct answer in between resets the counter. Free and
+// Strikes both draw from an unlimited, endlessly-reshuffled pool of the
+// story's words (see drawFromBag below) rather than a fixed question count
+// — they end only via their own condition (strikes) or the student's own
+// choice (the "Finish" button), never by running out of questions.
 const STRIKES_LIMIT = 3;
 
 // Generic filler distractors, used only to pad out a question's wrong
@@ -88,31 +93,41 @@ export function collectQuizEntries(
   return entries;
 }
 
-/** Builds up to MAX_QUESTIONS multiple-choice questions, one per entry, each
- * offering the correct translation plus up to OPTION_COUNT-1 distractors.
- * Distractors come from the story's own other translated words first; if
- * there aren't enough of those yet (e.g. only 1-2 words glossed so far),
- * generic filler words pad out the remaining options so a question is still
- * a real multiple-choice question, not a 1-option giveaway. */
+/** Builds one multiple-choice question for `entry`, offering its correct
+ * translation plus up to OPTION_COUNT-1 distractors. Distractors come from
+ * the story's other translated words first; if there aren't enough of those
+ * yet (e.g. only 1-2 words glossed so far), generic filler words pad out the
+ * remaining options so the question is still a real multiple-choice
+ * question, not a 1-option giveaway. */
+function buildQuestionForEntry(
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+): VocabQuizQuestion {
+  const usedTranslations = new Set([entry.translation]);
+  const realDistractorPool = allEntries
+    .filter((e) => e.word !== entry.word && !usedTranslations.has(e.translation))
+    .map((e) => e.translation);
+  const realDistractors = shuffle(realDistractorPool).slice(0, OPTION_COUNT - 1);
+  realDistractors.forEach((d) => usedTranslations.add(d));
+
+  const fillerPool = FILLER_DISTRACTORS.filter((word) => !usedTranslations.has(word));
+  const fillerDistractors = shuffle(fillerPool).slice(
+    0,
+    OPTION_COUNT - 1 - realDistractors.length,
+  );
+
+  const options = shuffle([entry.translation, ...realDistractors, ...fillerDistractors]);
+  return { word: entry.word, correctTranslation: entry.translation, options };
+}
+
+/** Builds up to MAX_QUESTIONS multiple-choice questions, one per entry, all
+ * at once. The live quiz below generates questions one at a time instead
+ * (an endless shuffle-bag, so Speed/Strikes/Free/retry rounds can each set
+ * their own question count independently) — this batch form is kept as a
+ * standalone utility. */
 export function buildQuizQuestions(entries: VocabQuizEntry[]): VocabQuizQuestion[] {
   const pool = shuffle(entries).slice(0, MAX_QUESTIONS);
-  return pool.map((entry) => {
-    const usedTranslations = new Set([entry.translation]);
-    const realDistractorPool = entries
-      .filter((e) => e.word !== entry.word && !usedTranslations.has(e.translation))
-      .map((e) => e.translation);
-    const realDistractors = shuffle(realDistractorPool).slice(0, OPTION_COUNT - 1);
-    realDistractors.forEach((d) => usedTranslations.add(d));
-
-    const fillerPool = FILLER_DISTRACTORS.filter((word) => !usedTranslations.has(word));
-    const fillerDistractors = shuffle(fillerPool).slice(
-      0,
-      OPTION_COUNT - 1 - realDistractors.length,
-    );
-
-    const options = shuffle([entry.translation, ...realDistractors, ...fillerDistractors]);
-    return { word: entry.word, correctTranslation: entry.translation, options };
-  });
+  return pool.map((entry) => buildQuestionForEntry(entry, entries));
 }
 
 const MODES: Array<{ mode: VocabQuizMode; icon: string; title: string; titleEn: string; desc: string; descEn: string }> = [
@@ -121,24 +136,24 @@ const MODES: Array<{ mode: VocabQuizMode; icon: string; title: string; titleEn: 
     icon: "⏱️",
     title: "限時模式",
     titleEn: "Speed",
-    desc: "每題 8 秒，全部限時 60 秒 — 越快越好。",
-    descEn: "8s per question, 60s total — think fast.",
+    desc: "20 題，每題 8 秒，全部限時 60 秒 — 越快越好。",
+    descEn: "20 questions, 8s each, 60s total — think fast.",
   },
   {
     mode: "strikes",
     icon: "❌",
     title: "三振模式",
     titleEn: "3 Strikes",
-    desc: "連續答錯 3 題就結束 — 保持連對。",
-    descEn: "3 wrong answers in a row ends the run.",
+    desc: "題目不限量，連續答錯 3 題就結束 — 保持連對。",
+    descEn: "Unlimited questions — 3 wrong answers in a row ends the run.",
   },
   {
     mode: "free",
     icon: "🎯",
     title: "自由練習",
     titleEn: "Free Practice",
-    desc: "沒有時間限制，慢慢來。",
-    descEn: "No time limit, no elimination — go at your own pace.",
+    desc: "題目不限量，沒有時間限制，隨時可以結束。",
+    descEn: "Unlimited questions, no time limit — finish whenever you like.",
   },
 ];
 
@@ -169,8 +184,14 @@ export default function StoryVocabQuiz({
   const [mode, setMode] = useState<VocabQuizMode | null>(null);
   const [roundEntries, setRoundEntries] = useState(entries);
   const [isRetryRound, setIsRetryRound] = useState(false);
+  // null = unlimited (Strikes/Free): questions are generated endlessly from
+  // a reshuffled bag until the mode's own condition or the student ends it.
+  // A number bounds the round to exactly that many questions (Speed = 20,
+  // a missed-words retry = exactly that many missed words).
+  const [questionLimit, setQuestionLimit] = useState<number | null>(null);
 
-  const questions = useMemo(() => buildQuizQuestions(roundEntries), [roundEntries]);
+  const [questions, setQuestions] = useState<VocabQuizQuestion[]>([]);
+  const bagRef = useRef<VocabQuizEntry[]>([]);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [results, setResults] = useState<VocabQuizQuestionResult[]>([]);
@@ -180,8 +201,16 @@ export default function StoryVocabQuiz({
   const quizStartRef = useRef(Date.now());
 
   const question = questions[index];
-  const isLast = index === questions.length - 1;
+  const isLast = questionLimit !== null && index === questionLimit - 1;
+  const canFinishAnytime = questionLimit === null;
   const isTimedOut = selected === "__timeout__";
+
+  // Draws the next entry from an endlessly-reshuffled "bag" — every entry is
+  // asked once before any repeats, rather than pure random-with-replacement.
+  const drawFromBag = (pool: VocabQuizEntry[]): VocabQuizEntry => {
+    if (bagRef.current.length === 0) bagRef.current = shuffle(pool);
+    return bagRef.current.shift()!;
+  };
 
   // Guards against finishing twice: the speed-mode ticker can fire several
   // times before React re-renders and tears the interval down (e.g. several
@@ -233,10 +262,15 @@ export default function StoryVocabQuiz({
     setQuestionTimeLeftMs(QUESTION_TIME_LIMIT_MS);
     if (isLast) {
       finish(results);
-    } else {
-      questionStartRef.current = Date.now();
-      setIndex((i) => i + 1);
+      return;
     }
+    questionStartRef.current = Date.now();
+    const nextIndex = index + 1;
+    if (!questions[nextIndex]) {
+      const nextQuestion = buildQuestionForEntry(drawFromBag(roundEntries), roundEntries);
+      setQuestions((qs) => [...qs, nextQuestion]);
+    }
+    setIndex(nextIndex);
   };
 
   // Speed mode: one ticking clock drives both the per-question countdown
@@ -264,14 +298,25 @@ export default function StoryVocabQuiz({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questionTimeLeftMs, mode, screen, selected]);
 
-  const chooseMode = (picked: VocabQuizMode) => {
+  // `entriesForRound`/`limit` are explicit params (not read from state) so
+  // a retry launched via practiceMissedWords() below can't read a stale
+  // `roundEntries` closure from before its own setRoundEntries takes effect.
+  const chooseMode = (
+    picked: VocabQuizMode,
+    entriesForRound: VocabQuizEntry[],
+    limit: number | null,
+  ) => {
     setMode(picked);
     setScreen("quiz");
+    setRoundEntries(entriesForRound);
+    setQuestionLimit(limit);
     setIndex(0);
     setSelected(null);
     setResults([]);
     setConsecutiveFails(0);
     setQuestionTimeLeftMs(QUESTION_TIME_LIMIT_MS);
+    bagRef.current = shuffle(entriesForRound);
+    setQuestions([buildQuestionForEntry(bagRef.current.shift()!, entriesForRound)]);
     quizStartRef.current = Date.now();
     questionStartRef.current = Date.now();
     finishedRef.current = false;
@@ -284,8 +329,7 @@ export default function StoryVocabQuiz({
 
   const practiceMissedWords = () => {
     setIsRetryRound(true);
-    setRoundEntries(missedEntries);
-    chooseMode("free");
+    chooseMode("free", missedEntries, missedEntries.length);
   };
 
   if (screen === "mode-select") {
@@ -310,7 +354,7 @@ export default function StoryVocabQuiz({
               key={m.mode}
               type="button"
               className={`vocab-quiz-mode-card vocab-quiz-mode-${m.mode}`}
-              onClick={() => chooseMode(m.mode)}
+              onClick={() => chooseMode(m.mode, entries, m.mode === "speed" ? SPEED_QUESTION_COUNT : null)}
             >
               <span className="vocab-quiz-mode-icon">{m.icon}</span>
               <strong>
@@ -399,10 +443,14 @@ export default function StoryVocabQuiz({
         </p>
         <h1 className="vocab-quiz-word">{question.word}</h1>
         <p className="vocab-quiz-progress">
-          <BiLabel
-            zh={`第 ${index + 1} / ${questions.length} 題`}
-            en={`Question ${index + 1} of ${questions.length}`}
-          />
+          {questionLimit !== null ? (
+            <BiLabel
+              zh={`第 ${index + 1} / ${questionLimit} 題`}
+              en={`Question ${index + 1} of ${questionLimit}`}
+            />
+          ) : (
+            <BiLabel zh={`第 ${index + 1} 題`} en={`Question ${index + 1}`} />
+          )}
         </p>
         {mode === "speed" && (
           <p
@@ -469,6 +517,11 @@ export default function StoryVocabQuiz({
               )}
             </button>
           )}
+        {canFinishAnytime && (
+          <button type="button" className="btn-vocab-quiz-finish" onClick={() => finish(results)}>
+            <BiLabel zh="結束並查看結果" en="Finish & see results" />
+          </button>
+        )}
         {allowSkip && !isRetryRound && (
           <button type="button" className="btn-skip-vocab-quiz" onClick={onDone}>
             <BiLabel k="skip" />
