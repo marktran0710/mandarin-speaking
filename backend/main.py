@@ -60,6 +60,7 @@ from ai_feedback import (
     available_providers,
     default_provider,
     generate_story_feedback,
+    GROQ_FEEDBACK_MODEL,
 )
 from audio_concat import concatenate_scene_audio
 from pypinyin import lazy_pinyin, Style
@@ -257,6 +258,21 @@ class StoryImageGenerationResponse(BaseModel):
     title: str
     learning_goal: str
     frames: List[StoryImageFrame]
+
+
+class VocabFromSentenceRequest(BaseModel):
+    sentence: str
+
+
+class VocabWordSuggestion(BaseModel):
+    word: str
+    pinyin: str
+    pos: str
+    translation: str
+
+
+class VocabFromSentenceResponse(BaseModel):
+    words: List[VocabWordSuggestion]
 
 
 class AudioRecordRequest(BaseModel):
@@ -971,6 +987,53 @@ async def generate_story_images(request: StoryImageGenerationRequest, req: Reque
     )
 
 
+@app.post("/api/vocab-from-sentence", response_model=VocabFromSentenceResponse)
+async def vocab_from_sentence(request: VocabFromSentenceRequest, req: Request):
+    """
+    Segment a Chinese sentence (typically a scene's "suggested answer") into
+    its key vocabulary, with pinyin, part of speech, and English translation
+    for each word — lets a teacher autofill a scene's vocabulary table instead
+    of retyping/retranslating words that are already in the sentence.
+    """
+    client_ip = req.client.host if req.client else "unknown"
+    _check_rate_limit(f"vocab-from-sentence:{client_ip}", max_requests=10, window_seconds=60)
+
+    sentence = request.sentence.strip()
+    if not sentence:
+        raise HTTPException(status_code=400, detail="Provide a sentence to extract vocabulary from.")
+
+    # Groq first (fast, free tier, and its JSON mode avoids the markdown-fence
+    # parsing failures the Gemini path is prone to), falling back to Gemini —
+    # same "try each configured provider in order" pattern as the pronunciation
+    # feedback engines in ai_feedback.py.
+    engines = [
+        ("groq", GROQ_API_KEY, extract_vocab_from_sentence_with_groq),
+        ("gemini", GEMINI_API_KEY, extract_vocab_from_sentence_with_gemini),
+    ]
+    if not any(key for _, key, _ in engines):
+        raise HTTPException(
+            status_code=503,
+            detail="AI vocabulary extraction requires GROQ_API_KEY or GEMINI_API_KEY to be configured on the backend.",
+        )
+
+    last_error: Exception | None = None
+    for name, key, extract in engines:
+        if not key:
+            continue
+        try:
+            words = await extract(sentence)
+        except Exception as exc:
+            logger.warning("%s vocab extraction failed, trying next engine: %s", name, exc)
+            last_error = exc
+            continue
+        return VocabFromSentenceResponse(words=words)
+
+    raise HTTPException(
+        status_code=502,
+        detail="Could not extract vocabulary from that sentence.",
+    ) from last_error
+
+
 @app.get("/api/asr-status", response_model=AsrStatusResponse)
 async def get_asr_status():
     with _vibevoice_load_lock:
@@ -1410,6 +1473,115 @@ def build_analysis_description(
         f"{word_count} word-level prosody item{'s' if word_count != 1 else ''} "
         "for review."
     )
+
+
+VOCAB_POS_CODES = ["N", "V", "Adj", "Adv", "MW", "Particle", "Phrase", "Other"]
+
+
+def _vocab_from_sentence_prompt(sentence: str) -> str:
+    return f"""
+You are helping a Taiwan Mandarin (國語/臺灣華語) teacher build a vocabulary table
+for one sentence from a students' story.
+
+Sentence:
+{sentence}
+
+Segment this sentence into its key vocabulary words (skip purely grammatical
+particles that aren't useful vocabulary to study, but include meaningful
+multi-character words as single words rather than splitting them into
+individual characters). Return only valid JSON shaped exactly like:
+[
+  {{"word": "餐廳", "pinyin": "cāntīng", "pos": "N", "translation": "restaurant"}}
+]
+
+Rules:
+- Every "word" must be an exact substring of the sentence, in Traditional Chinese.
+- Do not repeat the same word twice.
+- "pinyin" must use Taiwan Mandarin (國語) tone-marked pronunciation, e.g. "cāntīng".
+- "pos" must be exactly one of: {", ".join(VOCAB_POS_CODES)}.
+- "translation" is a short English translation (a few words at most).
+- Return the JSON array only, no surrounding text.
+"""
+
+
+def _parse_vocab_words(data: object, sentence: str) -> List[VocabWordSuggestion]:
+    if not isinstance(data, list):
+        raise RuntimeError("Model did not return a JSON array of words")
+
+    seen: set[str] = set()
+    words: List[VocabWordSuggestion] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        word = str(item.get("word", "")).strip()
+        if not word or word in seen or word not in sentence:
+            continue
+        seen.add(word)
+        pos = str(item.get("pos", "")).strip()
+        words.append(
+            VocabWordSuggestion(
+                word=word,
+                pinyin=str(item.get("pinyin", "")).strip(),
+                pos=pos if pos in VOCAB_POS_CODES else "",
+                translation=str(item.get("translation", "")).strip(),
+            )
+        )
+    return words
+
+
+async def extract_vocab_from_sentence_with_groq(sentence: str) -> List[VocabWordSuggestion]:
+    # Groq's JSON mode (like OpenAI's) only guarantees a top-level JSON
+    # *object*, not a bare array, so the model is asked to wrap the array in
+    # {"words": [...]}. This sidesteps the markdown-fence/stray-prose
+    # failure mode entirely, unlike the Gemini path below.
+    payload = {
+        "model": GROQ_FEEDBACK_MODEL,
+        "response_format": {"type": "json_object"},
+        "temperature": 0.2,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a Taiwan Mandarin vocabulary-extraction assistant. "
+                    "Always respond in valid JSON only — no markdown fences, no prose "
+                    'outside the JSON. Wrap the array in a top-level object: {"words": [...]}.'
+                ),
+            },
+            {"role": "user", "content": _vocab_from_sentence_prompt(sentence)},
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["choices"][0]["message"]["content"]
+    parsed = json.loads(content)
+    data = parsed.get("words") if isinstance(parsed, dict) else parsed
+    return _parse_vocab_words(data, sentence)
+
+
+async def extract_vocab_from_sentence_with_gemini(sentence: str) -> List[VocabWordSuggestion]:
+    payload = {"contents": [{"parts": [{"text": _vocab_from_sentence_prompt(sentence)}]}]}
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}",
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+    data = json.loads(strip_json_fence(content))
+    return _parse_vocab_words(data, sentence)
 
 
 async def generate_story_images_with_gemini(

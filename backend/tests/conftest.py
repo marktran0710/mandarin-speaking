@@ -49,6 +49,16 @@ def no_gemini_key(monkeypatch):
     monkeypatch.setattr("main.GEMINI_API_KEY", None)
 
 
+@pytest.fixture()
+def with_groq_key(monkeypatch):
+    monkeypatch.setattr("main.GROQ_API_KEY", "gsk-test-groq-key")
+
+
+@pytest.fixture()
+def no_groq_key(monkeypatch):
+    monkeypatch.setattr("main.GROQ_API_KEY", None)
+
+
 # ── FastAPI test client ────────────────────────────────────────────────────
 
 @pytest.fixture()
