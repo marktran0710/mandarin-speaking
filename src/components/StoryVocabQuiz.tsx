@@ -158,26 +158,24 @@ const MODES: Array<{ mode: VocabQuizMode; icon: string; title: string; titleEn: 
 ];
 
 /** A multiple-choice vocabulary check covering every glossed word in the
- * story, shown before a student starts practicing any scene. Mandatory
- * (no skip button) the first time through a story — once `onDone` fires
- * from actually finishing it, the caller is expected to remember that and
- * pass `allowSkip` on future visits. `onComplete`, when given, fires once
- * with a full results summary — only on a genuine finish of the *original*
- * round (every question answered, timed out, or eliminated by strikes),
- * never on skip/back-out, and never again for the missed-words retry round
+ * story, shown before a student starts practicing any scene. Always
+ * mandatory — no skip button in any mode; `onBack` (if given) is the only
+ * way out before finishing, and it doesn't count as completion. `onComplete`,
+ * when given, fires once with a full results summary — only on a genuine
+ * finish of the *original* round (every question answered, timed out,
+ * eliminated by strikes, or ended via Free mode's own "Finish" button),
+ * never on back-out, and never again for the missed-words retry round
  * offered afterward (that round is a same-session drill, not a new scored
  * attempt). */
 export default function StoryVocabQuiz({
   entries,
   onDone,
   onBack,
-  allowSkip = true,
   onComplete,
 }: {
   entries: VocabQuizEntry[];
   onDone: () => void;
   onBack?: () => void;
-  allowSkip?: boolean;
   onComplete?: (summary: VocabQuizSummary) => void;
 }) {
   const [screen, setScreen] = useState<"mode-select" | "quiz" | "summary">("mode-select");
@@ -202,7 +200,11 @@ export default function StoryVocabQuiz({
 
   const question = questions[index];
   const isLast = questionLimit !== null && index === questionLimit - 1;
-  const canFinishAnytime = questionLimit === null;
+  // Only Free mode's *original* round (not the missed-words retry, which is
+  // also "free" internally but bounded to a real questionLimit) lets the
+  // student stop whenever — Strikes only ends by losing, Speed only by
+  // reaching its 20th question or running out of time.
+  const showFinishButton = mode === "free" && questionLimit === null;
   const isTimedOut = selected === "__timeout__";
 
   // Draws the next entry from an endlessly-reshuffled "bag" — every entry is
@@ -366,11 +368,6 @@ export default function StoryVocabQuiz({
             </button>
           ))}
         </div>
-        {allowSkip && (
-          <button type="button" className="btn-skip-vocab-quiz" onClick={onDone}>
-            <BiLabel k="skip" />
-          </button>
-        )}
       </section>
     );
   }
@@ -429,11 +426,18 @@ export default function StoryVocabQuiz({
 
   return (
     <section className="story-vocab-quiz" aria-label="Vocabulary quiz">
-      {onBack && (
-        <button type="button" className="btn-vocab-quiz-back" onClick={onBack}>
-          <BiLabel zh="← 返回活動" en="← Back to activities" />
-        </button>
-      )}
+      <div className="vocab-quiz-topbar">
+        {onBack && (
+          <button type="button" className="btn-vocab-quiz-back" onClick={onBack}>
+            <BiLabel zh="← 返回活動" en="← Back to activities" />
+          </button>
+        )}
+        {showFinishButton && (
+          <button type="button" className="btn-vocab-quiz-finish" onClick={() => finish(results)}>
+            <BiLabel zh="結束並查看結果" en="Finish & see results" />
+          </button>
+        )}
+      </div>
       <div className="vocab-quiz-header">
         <p className="eyebrow">
           <BiLabel
@@ -517,16 +521,6 @@ export default function StoryVocabQuiz({
               )}
             </button>
           )}
-        {canFinishAnytime && (
-          <button type="button" className="btn-vocab-quiz-finish" onClick={() => finish(results)}>
-            <BiLabel zh="結束並查看結果" en="Finish & see results" />
-          </button>
-        )}
-        {allowSkip && !isRetryRound && (
-          <button type="button" className="btn-skip-vocab-quiz" onClick={onDone}>
-            <BiLabel k="skip" />
-          </button>
-        )}
       </div>
     </section>
   );

@@ -176,23 +176,30 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     expect(onDone).toHaveBeenCalledTimes(1);
   });
 
-  it("does not call onComplete when the student skips instead of finishing", async () => {
+  it("never offers a skip button, in any mode, on the mode-select screen or mid-quiz", async () => {
+    const user = userEvent.setup();
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onBack={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Free Practice/ }));
+    expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
+  });
+
+  it("does not call onComplete when the student backs out instead of finishing", async () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();
     const onDone = vi.fn();
+    const onBack = vi.fn();
 
     render(
-      <StoryVocabQuiz
-        entries={entries}
-        onDone={onDone}
-        onComplete={onComplete}
-        allowSkip={true}
-      />,
+      <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} onBack={onBack} />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Skip/ }));
+    await user.click(screen.getByRole("button", { name: /Back to activities/ }));
 
-    expect(onDone).toHaveBeenCalledTimes(1);
+    expect(onBack).toHaveBeenCalledTimes(1);
+    expect(onDone).not.toHaveBeenCalled();
     expect(onComplete).not.toHaveBeenCalled();
   });
 });
@@ -231,6 +238,24 @@ describe("StoryVocabQuiz modes", () => {
     expect(screen.getByRole("button", { name: /Free Practice/ })).toBeInTheDocument();
     // No question shown yet.
     expect(screen.queryByRole("group", { name: /What does/ })).not.toBeInTheDocument();
+  });
+
+  it("only Free mode shows a Finish button, and it's visible immediately (not gated by answering first)", async () => {
+    const user = userEvent.setup();
+
+    const { unmount: unmountFree } = render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: /Free Practice/ }));
+    expect(screen.getByRole("button", { name: /Finish & see results/ })).toBeInTheDocument();
+    unmountFree();
+
+    const { unmount: unmountStrikes } = render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+    expect(screen.queryByRole("button", { name: /Finish & see results/ })).not.toBeInTheDocument();
+    unmountStrikes();
+
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: /Speed/ }));
+    expect(screen.queryByRole("button", { name: /Finish & see results/ })).not.toBeInTheDocument();
   });
 
   it("free/strikes modes are unlimited — the question pool cycles once every entry has been asked", async () => {
@@ -378,8 +403,10 @@ describe("StoryVocabQuiz modes", () => {
 
     await user.click(screen.getByRole("button", { name: /Practice missed words/ }));
 
-    // Retry round: exactly the one missed word, no mode-select screen.
+    // Retry round: exactly the one missed word, no mode-select screen, and
+    // no Finish button (it's bounded, unlike Free mode's original round).
     expect(screen.getByRole("heading").textContent).toBe(missedWord);
+    expect(screen.queryByRole("button", { name: /Finish & see results/ })).not.toBeInTheDocument();
     await answerCurrentQuestion(user, true);
     await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
 

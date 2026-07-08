@@ -414,8 +414,8 @@ describe("StoryRecorder student prototype", () => {
     expect(vocabChoice).toBeEnabled();
     expect(speakingChoice).toBeDisabled();
 
-    // Picking "Practice Vocabulary" goes to the quiz — no skip button yet,
-    // since it hasn't been completed before.
+    // Picking "Practice Vocabulary" goes to the quiz — never a skip button,
+    // in any mode, whether or not it's been completed before.
     await user.click(vocabChoice);
     expect(screen.getByRole("region", { name: "Vocabulary quiz" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
@@ -435,8 +435,8 @@ describe("StoryRecorder student prototype", () => {
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
 
     // Simulate revisiting this story fresh: Speaking is now unlocked
-    // (completion was persisted), and re-entering the quiz offers a skip
-    // button this time since it's already been finished once.
+    // (completion was persisted). Re-entering the quiz voluntarily still
+    // has no skip button — "Back to activities" remains the only way out.
     unmount();
     render(
       <StoryRecorder
@@ -452,7 +452,8 @@ describe("StoryRecorder student prototype", () => {
     expect(screen.getByRole("button", { name: /Speaking Practice/ })).toBeEnabled();
 
     await user.click(screen.getByRole("button", { name: /Vocabulary Quiz/ }));
-    expect(screen.getByRole("button", { name: /Skip/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Back to activities/ })).toBeInTheDocument();
   });
 
   it("disables the vocabulary quiz choice when a story has no translated words", () => {

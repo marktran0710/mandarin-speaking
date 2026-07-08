@@ -9,6 +9,33 @@
   text-align: center;
 }
 
+/* A persistent row above the question itself — Back (if given) and, in
+   Free mode only, Finish — so "I want to stop" is always on screen and
+   never tucked away behind an answer selection. */
+.vocab-quiz-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: -8px;
+}
+.vocab-quiz-topbar:empty { display: none; }
+
+.btn-vocab-quiz-back {
+  font-size: 13px;
+  font-weight: 650;
+  padding: 8px 14px;
+  border-radius: var(--clay-radius-md, 8px);
+  cursor: pointer;
+  background: transparent;
+  color: var(--clay-muted);
+  border: 1px solid var(--clay-hairline);
+}
+.btn-vocab-quiz-back:hover {
+  background: var(--clay-surface-soft);
+  color: var(--clay-ink);
+}
+
 .vocab-quiz-header {
   display: flex;
   flex-direction: column;
@@ -100,35 +127,20 @@
   box-shadow: 0 1px 0 var(--jade-deep);
 }
 
-.btn-skip-vocab-quiz {
-  font-size: 14.5px;
-  font-weight: 650;
-  padding: 12px 24px;
-  border-radius: var(--clay-radius-md, 8px);
-  cursor: pointer;
-  background: transparent;
-  color: var(--clay-muted);
-  border: 1px dashed var(--clay-hairline);
-  transition: all 0.2s;
-}
-.btn-skip-vocab-quiz:hover {
-  background: var(--clay-surface-soft);
-  color: var(--clay-ink);
-}
-
-/* Quiet, secondary action — Strikes/Free are unlimited, so this is the
-   student's own way to stop; it deliberately doesn't compete visually
-   with the chunky primary "Next question" button. */
+/* Quiet, secondary action — only Free mode's original round offers this
+   (Strikes/Speed have their own end conditions); it deliberately doesn't
+   compete visually with the chunky primary "Next question" button. */
 .btn-vocab-quiz-finish {
-  font-size: 14.5px;
+  font-size: 13px;
   font-weight: 650;
-  padding: 12px 24px;
+  padding: 8px 16px;
   border-radius: var(--clay-radius-md, 8px);
   cursor: pointer;
   background: transparent;
   color: var(--seal-deep);
   border: 1px solid var(--seal-soft);
   transition: all 0.2s;
+  margin-left: auto;
 }
 .btn-vocab-quiz-finish:hover {
   background: var(--seal-soft);

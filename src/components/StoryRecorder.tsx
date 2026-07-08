@@ -1497,7 +1497,6 @@ export default function StoryRecorder({
           entries={quizEntries}
           onDone={handleVocabQuizDone}
           onBack={enableOverview ? () => setPhase("overview") : undefined}
-          allowSkip={vocabQuizCompleted}
           onComplete={handleVocabQuizComplete}
         />
       )}
