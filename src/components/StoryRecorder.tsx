@@ -1584,9 +1584,42 @@ export default function StoryRecorder({
           {(() => {
             const prog = sceneProgress[selectedImageIndex];
             if (!prog || prog.attempts === 0) {
+              const hasVocab = sceneHasVocabStep(selectedImageIndex);
+              const hasGrammar = sceneHasGrammarStep(selectedImageIndex);
+              // Each scene can have a different mix of Vocabulary/Grammar
+              // tabs (or neither) — naming only the tabs this scene actually
+              // has, instead of a one-size-fits-all "Vocabulary and Grammar"
+              // reminder that doesn't match scenes missing one of them.
+              const tabsZh =
+                hasVocab && hasGrammar
+                  ? "「詞彙」和「文法」分頁"
+                  : hasVocab
+                    ? "「詞彙」分頁"
+                    : hasGrammar
+                      ? "「文法」分頁"
+                      : "";
+              const tabsEn =
+                hasVocab && hasGrammar
+                  ? "the Vocabulary and Grammar tabs"
+                  : hasVocab
+                    ? "the Vocabulary tab"
+                    : hasGrammar
+                      ? "the Grammar tab"
+                      : "";
               return (
                 <div className="scene-progress-hint scene-progress-hint-start">
-                  <BiLabel k="scene_first_time_hint" />
+                  <span className="scene-progress-hint-icon" aria-hidden="true">👀</span>
+                  {tabsZh ? (
+                    <BiLabel
+                      zh={`新的場景：先看看上方的${tabsZh}，準備好了再切到「口說練習」錄音。`}
+                      en={`New scene: check ${tabsEn} above, then switch to Speaking when you're ready to record.`}
+                    />
+                  ) : (
+                    <BiLabel
+                      zh="新的場景：準備好了就切到「口說練習」錄音。"
+                      en="New scene: switch to Speaking when you're ready to record."
+                    />
+                  )}
                 </div>
               );
             }

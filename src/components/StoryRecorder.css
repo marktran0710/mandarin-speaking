@@ -4274,10 +4274,28 @@
   padding: 10px 14px;
   margin-bottom: 12px;
 }
+
+/* Bigger and bolder than the plain .scene-progress-hint above — this is the
+   first thing a student sees on a brand-new scene, telling them to check
+   the reference tabs before recording, so it needs to actually get noticed
+   rather than read like fine print. */
 .scene-progress-hint-start {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--seal-deep);
   background: var(--seal-soft);
-  border-color: var(--seal);
+  border: 2px solid var(--seal);
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 0 var(--seal);
+}
+.scene-progress-hint-icon {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 @media (max-width: 640px) {

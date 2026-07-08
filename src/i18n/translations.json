@@ -395,10 +395,6 @@
     "en": "Say",
     "zh": "單獨說"
   },
-  "scene_first_time_hint": {
-    "en": "New scene: check the Vocabulary and Grammar tabs above, then switch to Speaking when you're ready to record.",
-    "zh": "新的場景：先看看上方的「詞彙」和「文法」分頁，準備好了再切到「口說練習」錄音。"
-  },
   "scene_vocabulary": {
     "en": "Scene vocabulary",
     "zh": "場景詞彙"
