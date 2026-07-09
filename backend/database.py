@@ -115,6 +115,7 @@ def init_db() -> None:
             )
             """
         )
+        ensure_column(db, "vocab_quiz_attempts", "mode", "TEXT")
 
 
 def row_to_audio_record(row: sqlite3.Row) -> dict:
@@ -177,10 +178,12 @@ def row_to_help_request(row: sqlite3.Row) -> dict:
 
 
 def row_to_vocab_quiz_attempt(row: sqlite3.Row) -> dict:
+    row_keys = row.keys()
     return {
         "id": row["id"],
         "storyId": row["story_id"],
         "studentName": row["student_name"],
+        "mode": row["mode"] if "mode" in row_keys else None,
         "completedAt": row["completed_at"],
         "totalQuestions": row["total_questions"],
         "correctCount": row["correct_count"],

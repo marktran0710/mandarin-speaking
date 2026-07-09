@@ -56,6 +56,46 @@ def test_list_filters_by_student_name(client):
     assert attempts[0]["studentName"] == "Alice"
 
 
+def test_mode_round_trips(client):
+    attempt = {
+        "id": "test-attempt-mode",
+        "storyId": "test-story-mode",
+        "studentName": "Test Student",
+        "mode": "speed",
+        "completedAt": "2026-07-08T00:00:00.000Z",
+        "totalQuestions": 1,
+        "correctCount": 1,
+        "totalTimeMs": 1000,
+        "questionResults": [{"word": "水", "correct": True, "timeMs": 1000}],
+    }
+
+    post_response = client.post("/api/vocab-quiz-attempts", json=attempt)
+    assert post_response.status_code == 200
+    assert post_response.json()["mode"] == "speed"
+
+    list_response = client.get(
+        "/api/vocab-quiz-attempts", params={"story_id": "test-story-mode"}
+    )
+    assert list_response.json()[0]["mode"] == "speed"
+
+
+def test_mode_is_null_when_not_provided(client):
+    attempt = {
+        "id": "test-attempt-no-mode",
+        "storyId": "test-story-no-mode",
+        "studentName": "Test Student",
+        "completedAt": "2026-07-08T00:00:00.000Z",
+        "totalQuestions": 1,
+        "correctCount": 1,
+        "totalTimeMs": 1000,
+        "questionResults": [{"word": "水", "correct": True, "timeMs": 1000}],
+    }
+
+    post_response = client.post("/api/vocab-quiz-attempts", json=attempt)
+    assert post_response.status_code == 200
+    assert post_response.json()["mode"] is None
+
+
 def test_rejects_attempt_with_no_questions(client):
     attempt = {
         "id": "test-attempt-invalid",

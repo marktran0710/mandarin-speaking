@@ -4,6 +4,7 @@ import numpy as np
 from pypinyin import Style, pinyin
 import taiwan_pinyin; taiwan_pinyin.apply()
 from scipy.interpolate import interp1d
+from scipy.ndimage import median_filter
 from scipy.spatial.distance import euclidean
 
 
@@ -211,6 +212,41 @@ def word_tones(word: str) -> List[int]:
     return tones
 
 
+_TONE_MARK_TONES = {
+    "ā": 1, "á": 2, "ǎ": 3, "à": 4,
+    "ē": 1, "é": 2, "ě": 3, "è": 4,
+    "ī": 1, "í": 2, "ǐ": 3, "ì": 4,
+    "ō": 1, "ó": 2, "ǒ": 3, "ò": 4,
+    "ū": 1, "ú": 2, "ǔ": 3, "ù": 4,
+    "ǖ": 1, "ǘ": 2, "ǚ": 3, "ǜ": 4,
+}
+
+
+def parse_pinyin_tones(pinyin_text: str) -> List[int]:
+    """Parse the tone (1-4, 5 = neutral) of each syllable in a space-separated,
+    tone-marked pinyin string, e.g. "jiě jie" -> [3, 5].
+
+    This exists so a word's *displayed* pinyin — whether pypinyin's own guess
+    or a teacher's manually corrected ``vocabularyPinyin`` — can be used
+    directly as the scoring/target-shape reference, instead of a second,
+    independent pypinyin lookup on the character that could silently
+    disagree with what the student is actually looking at.
+
+    Returns one entry per whitespace-separated syllable; a syllable with no
+    tone-mark character is treated as neutral (5). Returns [] for blank input.
+    """
+    syllables = pinyin_text.strip().split()
+    tones: List[int] = []
+    for syllable in syllables:
+        tone = 5
+        for ch in syllable:
+            if ch in _TONE_MARK_TONES:
+                tone = _TONE_MARK_TONES[ch]
+                break
+        tones.append(tone)
+    return tones
+
+
 def apply_tone_sandhi(tones: List[int]) -> List[int]:
     """Apply the third-tone sandhi rule: tone3 followed by tone3 -> tone2 + tone3.
 
@@ -304,6 +340,28 @@ def scaled_reference_contour(
     return [(float(t), float(pitch_min + s * span)) for t, s in zip(times, shape_norm)]
 
 
+def _smooth_for_directional_scoring(pitch: np.ndarray, kernel_size: int = 5) -> np.ndarray:
+    """Median-filter the normalized contour before computing the per-syllable
+    start/end/mid regional means directional scoring relies on.
+
+    ``_correct_octave_jumps`` (praat_analyzer.py) already fixes full ~2x/0.5x
+    pitch-tracker errors, but a smaller in-octave wobble near a syllable
+    boundary (a brief voicing glitch, not a tracking error large enough to
+    trigger that correction) still lands untouched in a regional mean —
+    and since directional scoring only ever averages a quarter-window, one
+    or two noisy frames there can swing a syllable's score by double digits
+    even when the surrounding contour matches the target shape well.
+    """
+    if len(pitch) < kernel_size:
+        return pitch
+    # mode="nearest" (edge-value replication) rather than scipy.signal.medfilt's
+    # implicit zero-padding: on a [0, 1]-scaled contour, zero-padding the last
+    # few frames pulls the median toward 0 right at the array boundary — which
+    # is exactly where a tone-3 syllable's recovery rise (the signal this
+    # function most needs to preserve) tends to sit.
+    return median_filter(pitch, size=kernel_size, mode="nearest")
+
+
 def calculate_directional_tone_accuracy(
     pitch_contour: List[Tuple[float, float]], tones: List[int]
 ) -> float:
@@ -328,6 +386,8 @@ def calculate_directional_tone_accuracy(
     user_pitch = normalize_pitch_contour(pitch_contour)
     if len(user_pitch) == 0 or not tones:
         return 0.0
+
+    user_pitch = _smooth_for_directional_scoring(user_pitch)
 
     tones_s = apply_tone_sandhi(tones)
     n = len(tones_s)

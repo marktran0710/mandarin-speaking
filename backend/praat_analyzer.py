@@ -115,11 +115,17 @@ def _formants_from_sound(
     return {k: float(np.median(vs)) if vs else 0.0 for k, vs in values.items()}
 
 
-def analyze_all(audio_path: str, transcription: str = "") -> tuple:
+def analyze_all(audio_path: str, transcription: str = "", pinyin_hint: str = "") -> tuple:
     """
     Single-pass analysis: load WAV once, run pitch + formant together,
     then derive all downstream metrics. ~3× faster than calling each
     function separately because Parselmouth only reads the file once.
+
+    ``pinyin_hint``, when given, is the caller's own tone-marked pinyin for
+    ``transcription`` (e.g. a vocabulary word's displayed/teacher-corrected
+    pinyin) — used to derive expected tones directly instead of a second,
+    independent pypinyin lookup on the characters. See
+    ``estimate_word_prosody`` for how it's applied.
 
     Returns a tuple matching the order expected by _run_praat in main.py:
     (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
@@ -130,7 +136,7 @@ def analyze_all(audio_path: str, transcription: str = "") -> tuple:
         formants = extract_formants(audio_path)
         speech_rate = calculate_speech_rate(audio_path, transcription)
         pitch_stats = get_pitch_statistics(pitch_contour)
-        word_prosody = estimate_word_prosody(pitch_contour, transcription)
+        word_prosody = estimate_word_prosody(pitch_contour, transcription, pinyin_hint=pinyin_hint)
         pause_analysis = analyze_pauses_and_utterances(audio_path)
         _syllables = sum(1 for c in transcription if "一" <= c <= "鿿")
         fluency_score = analyze_fluency(pitch_contour, speech_rate, pause_analysis, _syllables)
@@ -159,7 +165,7 @@ def analyze_all(audio_path: str, transcription: str = "") -> tuple:
         speech_rate = float(max(1, round(len(pitch_contour) / 9)) / duration)
 
     pitch_stats = get_pitch_statistics(pitch_contour)
-    word_prosody = estimate_word_prosody(pitch_contour, transcription)
+    word_prosody = estimate_word_prosody(pitch_contour, transcription, pinyin_hint=pinyin_hint)
     # Reuse already-loaded sound — avoids a second disk read
     pause_analysis = analyze_pauses_and_utterances(audio_path, _preloaded_sound=sound)
     fluency_score = analyze_fluency(pitch_contour, speech_rate, pause_analysis, chinese_chars)
@@ -562,6 +568,7 @@ def _aggregate_tone_from_words(
 def estimate_word_prosody(
     pitch_contour: List[Tuple[float, float]],
     transcription: str = "",
+    pinyin_hint: str = "",
 ) -> List[Dict]:
     """
     Estimate per-word prosody from the global pitch contour.
@@ -573,6 +580,16 @@ def estimate_word_prosody(
     pinyin, with third-tone sandhi applied), not a best-fit guess among the
     four canonical single-syllable shapes. This is a lightweight alignment
     approximation, not a replacement for forced alignment.
+
+    ``pinyin_hint``: the caller's own tone-marked pinyin for the whole
+    ``transcription`` (space-separated per syllable, e.g. "ji\u011b jie"). When
+    its syllable count matches the transcription's hanzi character count,
+    those tones are used directly instead of an independent pypinyin lookup
+    on the characters \u2014 so the scored/displayed target shape can never
+    silently disagree with whatever pinyin the student or teacher is
+    actually looking at (e.g. a teacher's manually corrected vocabulary
+    pinyin, or a polyphonic character pypinyin reads differently out of
+    context). Falls back to the pypinyin lookup when absent or mismatched.
     """
     tokens = _prosody_tokens(transcription)
     if not tokens or len(pitch_contour) < 2:
@@ -582,9 +599,17 @@ def estimate_word_prosody(
         apply_tone_sandhi,
         calculate_phrase_shape_accuracy,
         calculate_phrase_tone_accuracy,
+        parse_pinyin_tones,
         scaled_reference_contour,
         word_tones,
     )
+
+    hint_tones = parse_pinyin_tones(pinyin_hint) if pinyin_hint else []
+    total_hanzi_chars = sum(
+        len(t) for t in tokens if re.search(r"[\u4e00-\u9fff]", t)
+    )
+    use_hint = bool(hint_tones) and len(hint_tones) == total_hanzi_chars
+    hint_cursor = 0
 
     start_time = float(pitch_contour[0][0])
     end_time = float(pitch_contour[-1][0])
@@ -629,7 +654,12 @@ def estimate_word_prosody(
         contour_shape = _contour_shape(frequencies, slope, pitch_range)
 
         is_chinese = bool(re.search(r"[\u4e00-\u9fff]", token))
-        expected_tones = apply_tone_sandhi(word_tones(token)) if is_chinese else []
+        if is_chinese and use_hint:
+            token_tones = hint_tones[hint_cursor : hint_cursor + len(token)]
+            hint_cursor += len(token)
+        else:
+            token_tones = word_tones(token) if is_chinese else []
+        expected_tones = apply_tone_sandhi(token_tones) if is_chinese else []
 
         # Coarticulation onset skip: the first ~12 % of a word's pitch frames
         # often still carry the final pitch direction of the previous word.

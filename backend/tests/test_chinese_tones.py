@@ -16,15 +16,17 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from chinese_tones import (
     _shape_match_score,
+    _smooth_for_directional_scoring,
     calculate_directional_tone_accuracy,
     calculate_phrase_shape_accuracy,
     calculate_phrase_tone_accuracy,
     calculate_tone_accuracy,
     detect_tone,
     normalize_pitch_contour,
+    parse_pinyin_tones,
     scaled_reference_contour,
 )
-from praat_analyzer import _correct_octave_jumps
+from praat_analyzer import _correct_octave_jumps, estimate_word_prosody
 
 
 def _synthetic_contour(pitch_pattern, base_hz=220.0, spread_hz=60.0, num_points=40, duration=0.6):
@@ -74,6 +76,63 @@ def test_detect_tone_handles_empty_contour():
     result = detect_tone([])
     assert result["detected_tone"] == 0
     assert result["confidence"] == 0.0
+
+
+class TestParsePinyinTones:
+    """parse_pinyin_tones lets a word's *displayed* pinyin (pypinyin's own
+    guess, or a teacher's manually corrected vocabularyPinyin) drive tone
+    scoring directly, instead of a second, independent pypinyin lookup that
+    could silently disagree with it."""
+
+    def test_parses_one_tone_per_syllable(self):
+        assert parse_pinyin_tones("jiě jie") == [3, 5]
+
+    def test_parses_all_four_tone_marks(self):
+        assert parse_pinyin_tones("mā má mǎ mà") == [1, 2, 3, 4]
+
+    def test_syllable_without_a_mark_is_neutral(self):
+        assert parse_pinyin_tones("de ma") == [5, 5]
+
+    def test_handles_umlaut_u(self):
+        assert parse_pinyin_tones("nǚ lǜ") == [3, 4]
+
+    def test_empty_input_returns_empty_list(self):
+        assert parse_pinyin_tones("") == []
+        assert parse_pinyin_tones("   ") == []
+
+    def test_single_syllable_word(self):
+        assert parse_pinyin_tones("shuì") == [4]
+
+
+class TestEstimateWordProsodyPinyinHint:
+    """estimate_word_prosody should prefer a caller-supplied pinyin hint over
+    its own pypinyin lookup, but only when the hint's syllable count actually
+    matches the transcription — otherwise silently fall back rather than
+    misalign tones to the wrong characters."""
+
+    def test_hint_overrides_the_default_pypinyin_reading(self):
+        # 姐姐 read in isolation is [3, 3] -> sandhi'd to [2, 3] by the
+        # existing default path. Supply a hint that disagrees (as if a
+        # teacher had corrected the vocabulary pinyin) and confirm it wins.
+        contour = _synthetic_contour(TONE_SHAPES[4] + TONE_SHAPES[4], num_points=40)
+        default_result = estimate_word_prosody(contour, "姐姐")
+        hinted_result = estimate_word_prosody(contour, "姐姐", pinyin_hint="mà mà")
+        assert default_result[0]["expected_tones"] != hinted_result[0]["expected_tones"]
+        assert hinted_result[0]["expected_tones"] == [4, 4]
+
+    def test_mismatched_syllable_count_falls_back_to_default(self):
+        contour = _synthetic_contour(TONE_SHAPES[3] + TONE_SHAPES[3], num_points=40)
+        default_result = estimate_word_prosody(contour, "姐姐")
+        # Hint has only one syllable for a two-character word — can't be
+        # trusted to align, so the default pypinyin-derived tones should win.
+        mismatched_result = estimate_word_prosody(contour, "姐姐", pinyin_hint="jiě")
+        assert mismatched_result[0]["expected_tones"] == default_result[0]["expected_tones"]
+
+    def test_blank_hint_uses_default(self):
+        contour = _synthetic_contour(TONE_SHAPES[2] + TONE_SHAPES[2], num_points=40)
+        default_result = estimate_word_prosody(contour, "姐姐")
+        blank_hint_result = estimate_word_prosody(contour, "姐姐", pinyin_hint="")
+        assert blank_hint_result[0]["expected_tones"] == default_result[0]["expected_tones"]
 
 
 class TestNormalizePitchContour:
@@ -183,6 +242,35 @@ class TestDirectionalToneAccuracy:
     def test_empty_inputs_return_zero(self):
         assert calculate_directional_tone_accuracy([], [1]) == 0.0
         assert calculate_directional_tone_accuracy([(0.0, 200.0)], []) == 0.0
+
+
+class TestSmoothForDirectionalScoring:
+    """A brief in-octave pitch-tracking glitch (too small for
+    _correct_octave_jumps to touch) shouldn't be able to swing a syllable's
+    directional regional-mean stats just because it lands in a quarter-window.
+    """
+
+    def test_narrow_glitch_is_pulled_toward_its_neighbors(self):
+        pitch = np.full(100, 0.5)
+        pitch[50] = 0.05  # one-frame glitch, far from both neighbors
+        smoothed = _smooth_for_directional_scoring(pitch)
+        assert smoothed[50] > 0.4, (
+            f"a lone one-frame glitch should be outvoted by its flat neighbors, got {smoothed[50]:.3f}"
+        )
+
+    def test_preserves_a_real_trailing_rise_at_the_boundary(self):
+        # A genuine tone-3 recovery rise sitting at the very end of the array —
+        # this is exactly the signal a boundary-padding bug would corrupt.
+        pitch = np.array([0.3, 0.32, 0.35, 0.4, 0.46, 0.52])
+        smoothed = _smooth_for_directional_scoring(pitch, kernel_size=3)
+        assert smoothed[-1] > 0.45, (
+            "edge handling must not drag a genuine trailing rise toward zero "
+            f"(scipy.signal.medfilt's implicit zero-padding does this), got {smoothed[-1]:.3f}"
+        )
+
+    def test_short_contour_returned_unchanged(self):
+        pitch = np.array([0.2, 0.5, 0.8])
+        assert np.array_equal(_smooth_for_directional_scoring(pitch, kernel_size=5), pitch)
 
 
 class TestCalculatePhraseShapeAccuracy:

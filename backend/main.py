@@ -213,6 +213,13 @@ class AnalysisResponse(BaseModel):
     pause_analysis: dict = {}
     feedback: str
     ai_feedback: dict
+    # Set only when the caller passed `verify_word` — an independent real ASR
+    # pass confirming whether the recording actually contains that word,
+    # since `transcription` may have been supplied by the caller (not
+    # detected) to score tone against a known target. None means no check
+    # was requested (e.g. this wasn't a word-practice attempt).
+    recognized_text: Optional[str] = None
+    content_match: Optional[bool] = None
 
 
 class AsrStatusResponse(BaseModel):
@@ -357,6 +364,7 @@ class VocabQuizAttemptRequest(BaseModel):
     id: str = Field(..., max_length=128)
     storyId: str = Field(..., max_length=128)
     studentName: str = Field(default="Student", max_length=100)
+    mode: Optional[str] = None
     completedAt: str
     totalQuestions: int = Field(..., ge=1)
     correctCount: int = Field(..., ge=0)
@@ -717,14 +725,15 @@ async def create_vocab_quiz_attempt(attempt: VocabQuizAttemptRequest):
         db.execute(
             """
             INSERT OR REPLACE INTO vocab_quiz_attempts
-                (id, story_id, student_name, completed_at, total_questions,
+                (id, story_id, student_name, mode, completed_at, total_questions,
                  correct_count, total_time_ms, question_results)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 attempt.id,
                 attempt.storyId,
                 attempt.studentName,
+                attempt.mode,
                 attempt.completedAt,
                 attempt.totalQuestions,
                 attempt.correctCount,
@@ -1146,6 +1155,8 @@ async def _do_analyze(
     scene_grammar_pattern: str = "",
     scene_suggested_answer: str = "",
     scene_attempt_number: int = 1,
+    verify_word: str = "",
+    pinyin_hint: str = "",
 ) -> AnalysisResponse:
     tmp_path = None
     try:
@@ -1195,11 +1206,12 @@ async def _do_analyze(
             transcription_model = transcription_result.model
 
         def _run_praat(path: str, tx: str):
-            return analyze_all(path, tx)
+            return analyze_all(path, tx, pinyin_hint=pinyin_hint)
 
-        # Run Praat (CPU-bound, threadpool) and AI feedback (I/O-bound) in parallel.
-        # If audio assessment already produced feedback above, skip the feedback call.
-        # After both finish, patch pronunciation_note with real Praat numbers.
+        # Run Praat (CPU-bound, threadpool), AI feedback (I/O-bound), and the
+        # optional word-content verification pass all in parallel so checking
+        # "did they actually say this word" doesn't add extra latency on top
+        # of the analysis that was already happening.
         feedback_coro = (
             asyncio.sleep(0)  # no-op placeholder when feedback already done
             if audio_assessed
@@ -1210,9 +1222,15 @@ async def _do_analyze(
                 scene_attempt_number=scene_attempt_number,
             )
         )
-        (praat_result, maybe_feedback) = await asyncio.gather(
+        verify_coro = (
+            _verify_word_transcription(content, verify_word, vocab_hint=scene_vocabulary)
+            if verify_word.strip()
+            else asyncio.sleep(0, result=(None, None))
+        )
+        (praat_result, maybe_feedback, (recognized_text, content_match)) = await asyncio.gather(
             run_in_threadpool(_run_praat, tmp_path, transcription),
             feedback_coro,
+            verify_coro,
         )
         if not audio_assessed:
             ai_feedback = maybe_feedback
@@ -1271,6 +1289,8 @@ async def _do_analyze(
             pause_analysis=pause_analysis,
             feedback=feedback,
             ai_feedback=ai_feedback,
+            recognized_text=recognized_text,
+            content_match=content_match,
         )
     finally:
         if tmp_path and os.path.exists(tmp_path):
@@ -1292,6 +1312,8 @@ async def analyze_speech(
     scene_grammar_pattern: str = Form(""),
     scene_suggested_answer: str = Form(""),
     scene_attempt_number: int = Form(1),
+    verify_word: str = Form(""),
+    pinyin_hint: str = Form(""),
     req: Request = None,
 ):
     """
@@ -1304,6 +1326,19 @@ async def analyze_speech(
     feedback matters. scene_attempt_number drives indirect corrective feedback —
     hints only for the first two attempts on a scene, then the correct answer
     is revealed.
+
+    verify_word is for word-practice callers that force `transcription` to a
+    known target word (so tone scoring isn't at the mercy of ASR mangling a
+    single syllable) — it triggers a *separate* real ASR pass on the same
+    audio purely to confirm the student actually said that word, since
+    otherwise nothing checks the recording's content at all.
+
+    pinyin_hint is that same target word's own tone-marked pinyin (whatever
+    is actually displayed to the student/teacher, space-separated per
+    syllable, e.g. "jiě jie") — used to derive expected tones directly
+    instead of a second, independent pypinyin lookup that could silently
+    disagree with it (e.g. a teacher's manually corrected vocabulary pinyin,
+    or a polyphonic character pypinyin reads differently out of context).
     """
     if not file:
         raise HTTPException(status_code=400, detail="No audio file provided")
@@ -1323,7 +1358,7 @@ async def analyze_speech(
         return await asyncio.wait_for(
             _do_analyze(
                 content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
-                scene_grammar_pattern, scene_suggested_answer, scene_attempt_number,
+                scene_grammar_pattern, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
             ),
             timeout=ANALYZE_TIMEOUT_SECONDS,
         )
@@ -1414,6 +1449,34 @@ async def transcribe_audio_content(
         status_code=400,
         detail="Invalid model. Use 'auto', 'ctwhisper', 'openai', 'gemini', 'groq', 'funasr', or 'vibevoice'"
     )
+
+
+async def _verify_word_transcription(
+    audio_content: bytes, word: str, vocab_hint: str = ""
+) -> Tuple[Optional[str], Optional[bool]]:
+    """Runs an independent ASR pass to check whether `word` was actually spoken.
+
+    Word-practice callers pass the target word as the `transcription` so Praat
+    scores tone against a known reference instead of a possibly-wrong ASR guess.
+    That means tone scoring never actually confirms the student said the right
+    word. This runs ASR for real, on the side, purely to catch that mismatch.
+    Fails open (None, None) on ASR error so a transcription hiccup never blocks
+    the pitch/tone feedback the student came for.
+
+    Prefers Groq (fast, cloud) over the "auto" chain's default of the local
+    ctwhisper model, which is CPU-heavy and — running alongside the Praat
+    analysis on every single word attempt — made word practice noticeably
+    slower once this check was added.
+    """
+    model = "groq" if GROQ_API_KEY else "auto"
+    try:
+        result = await transcribe_audio_content(audio_content, model, vocab_hint=vocab_hint or word)
+        recognized = convert_to_traditional_chinese(result.text).strip()
+        match = bool(recognized) and word.strip() in recognized
+        return recognized, match
+    except Exception as exc:
+        logger.warning("Word content verification failed: %s", exc)
+        return None, None
 
 
 async def transcribe_with_auto_fallback(audio_content: bytes, vocab_hint: str = "") -> TranscriptionResponse:
