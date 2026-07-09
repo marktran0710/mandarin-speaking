@@ -5,6 +5,10 @@ import "./StoryVocabQuiz.css";
 export interface VocabQuizEntry {
   word: string;
   translation: string;
+  // AI-generated wrong-but-plausible translations for this word (see
+  // buildQuestionForEntry) — undefined/empty falls back to the old
+  // real-word-pool + generic-filler distractor logic.
+  aiDistractors?: string[];
 }
 
 export interface VocabQuizQuestion {
@@ -80,6 +84,7 @@ export function collectQuizEntries(
   words: string[],
   translations: Array<string | undefined>,
   suggestedAnswers?: Array<string | undefined>,
+  aiDistractors?: Array<string[] | undefined>,
 ): VocabQuizEntry[] {
   const seen = new Set<string>();
   const entries: VocabQuizEntry[] = [];
@@ -89,35 +94,54 @@ export function collectQuizEntries(
     const context = suggestedAnswers?.[i];
     if (context !== undefined && !context.includes(word)) return;
     seen.add(word);
-    entries.push({ word, translation });
+    const distractors = aiDistractors?.[i];
+    entries.push({ word, translation, ...(distractors?.length ? { aiDistractors: distractors } : {}) });
   });
   return entries;
 }
 
 /** Builds one multiple-choice question for `entry`, offering its correct
- * translation plus up to OPTION_COUNT-1 distractors. Distractors come from
- * the story's other translated words first; if there aren't enough of those
- * yet (e.g. only 1-2 words glossed so far), generic filler words pad out the
- * remaining options so the question is still a real multiple-choice
- * question, not a 1-option giveaway. */
+ * translation plus up to OPTION_COUNT-1 distractors. AI-generated distractors
+ * (near-synonyms, same part of speech — real wrong answers a student might
+ * actually pick) are used first when available; the story's other translated
+ * words, then generic filler words, pad out any remaining slots — covering
+ * both a story with no AI distractors yet and one where the AI returned
+ * fewer than OPTION_COUNT-1 for a word. */
 function buildQuestionForEntry(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
 ): VocabQuizQuestion {
   const usedTranslations = new Set([entry.translation]);
-  const realDistractorPool = allEntries
-    .filter((e) => e.word !== entry.word && !usedTranslations.has(e.translation))
-    .map((e) => e.translation);
-  const realDistractors = shuffle(realDistractorPool).slice(0, OPTION_COUNT - 1);
+
+  const aiPool = (entry.aiDistractors ?? []).filter((d) => !usedTranslations.has(d));
+  const aiDistractors = shuffle(aiPool).slice(0, OPTION_COUNT - 1);
+  aiDistractors.forEach((d) => usedTranslations.add(d));
+
+  const realDistractorPool = Array.from(
+    new Set(
+      allEntries
+        .filter((e) => e.word !== entry.word && !usedTranslations.has(e.translation))
+        .map((e) => e.translation),
+    ),
+  );
+  const realDistractors = shuffle(realDistractorPool).slice(
+    0,
+    OPTION_COUNT - 1 - aiDistractors.length,
+  );
   realDistractors.forEach((d) => usedTranslations.add(d));
 
   const fillerPool = FILLER_DISTRACTORS.filter((word) => !usedTranslations.has(word));
   const fillerDistractors = shuffle(fillerPool).slice(
     0,
-    OPTION_COUNT - 1 - realDistractors.length,
+    OPTION_COUNT - 1 - aiDistractors.length - realDistractors.length,
   );
 
-  const options = shuffle([entry.translation, ...realDistractors, ...fillerDistractors]);
+  const options = shuffle([
+    entry.translation,
+    ...aiDistractors,
+    ...realDistractors,
+    ...fillerDistractors,
+  ]);
   return { word: entry.word, correctTranslation: entry.translation, options };
 }
 

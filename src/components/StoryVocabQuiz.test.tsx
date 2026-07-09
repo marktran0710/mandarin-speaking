@@ -61,6 +61,19 @@ describe("collectQuizEntries", () => {
     const entries = collectQuizEntries(["餐廳"], ["restaurant"], [""]);
     expect(entries).toEqual([]);
   });
+
+  it("attaches AI distractors aligned by index, and omits the field entirely when none are given for a word", () => {
+    const entries = collectQuizEntries(
+      ["餐廳", "吃"],
+      ["restaurant", "to eat"],
+      undefined,
+      [["kitchen", "hotel"], undefined],
+    );
+    expect(entries).toEqual([
+      { word: "餐廳", translation: "restaurant", aiDistractors: ["kitchen", "hotel"] },
+      { word: "吃", translation: "to eat" },
+    ]);
+  });
 });
 
 describe("buildQuizQuestions", () => {
@@ -126,6 +139,63 @@ describe("buildQuizQuestions", () => {
 
   it("returns no questions for an empty entry list", () => {
     expect(buildQuizQuestions([])).toEqual([]);
+  });
+
+  it("prefers AI-generated distractors over the story's other words and generic filler", () => {
+    const entriesWithAi = [
+      {
+        word: "餐廳",
+        translation: "restaurant",
+        aiDistractors: ["kitchen", "hotel", "cafeteria"],
+      },
+      { word: "吃", translation: "to eat" },
+      { word: "喝", translation: "to drink" },
+    ];
+
+    const questions = buildQuizQuestions(entriesWithAi);
+    const question = questions.find((q) => q.word === "餐廳")!;
+
+    expect(question.options).toContain("restaurant");
+    // All 3 non-correct options come from the AI list, not "to eat"/"to
+    // drink" (the real-word pool) or the generic filler list.
+    const wrongOptions = question.options.filter((o) => o !== "restaurant");
+    expect(wrongOptions).toHaveLength(3);
+    for (const option of wrongOptions) {
+      expect(["kitchen", "hotel", "cafeteria"]).toContain(option);
+    }
+  });
+
+  it("falls back to real-word and filler distractors to fill any slots the AI list doesn't cover", () => {
+    const entries = [
+      { word: "餐廳", translation: "restaurant", aiDistractors: ["kitchen"] },
+      { word: "吃", translation: "to eat" },
+      { word: "喝", translation: "to drink" },
+    ];
+
+    const questions = buildQuizQuestions(entries);
+    const question = questions.find((q) => q.word === "餐廳")!;
+
+    expect(question.options).toHaveLength(4);
+    expect(question.options).toContain("restaurant");
+    expect(question.options).toContain("kitchen");
+    expect(new Set(question.options).size).toBe(4);
+  });
+
+  it("never shows the same translation text twice, even when two different words share an identical translation", () => {
+    const entriesWithSharedTranslation = [
+      { word: "中午", translation: "noon" },
+      { word: "然後", translation: "afterwards" },
+      { word: "之後", translation: "afterwards" },
+      { word: "在家", translation: "at home" },
+      { word: "吃飽", translation: "full (satiated)" },
+    ];
+
+    for (let i = 0; i < 20; i += 1) {
+      const questions = buildQuizQuestions(entriesWithSharedTranslation);
+      for (const question of questions) {
+        expect(new Set(question.options).size).toBe(question.options.length);
+      }
+    }
   });
 });
 
