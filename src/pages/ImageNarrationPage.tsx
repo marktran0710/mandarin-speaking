@@ -219,14 +219,15 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
     <main className="narration-page">
       <section className="narration-hero">
         <p className="eyebrow">
-          <BiLabel zh="原型 · 看圖敘述" en="Prototype · Image narration" />
+          <BiLabel zh="原型 · 看圖說話" pinyin="Yuánxíng · kàn tú shuōhuà" en="Prototype · Image narration" />
         </p>
         <h1>
-          <BiLabel zh="看圖說話" en="Describe the Picture" />
+          <BiLabel zh="看圖說話" pinyin="Kàn tú shuōhuà" en="Describe the Picture" />
         </h1>
         <p>
           <BiText
-            zh="觀察圖片，參考關鍵詞，大聲說出發生了什麼事。AI 會比對你說的內容與圖片中的實際情況。"
+            zh="看圖片，用重要的詞，大聲說出發生了什麼事。AI 會看看你說的和圖片裡的東西一不一樣。"
+            pinyin="Kàn túpiàn, yòng zhòngyào de cí, dàshēng shuō chū fāshēng le shénme shì. AI huì kànkan nǐ shuō de hé túpiàn lǐ de dōngxi yì bù yíyàng."
             en="Look at the image, use the keywords as a guide, and describe out loud what is happening. The AI compares what you said against what is actually in the picture."
           />
         </p>
@@ -247,7 +248,7 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
           >
             <img src={option.image} alt={`Scene ${index + 1}`} />
             <span>
-              <BiLabel zh={`場景 ${index + 1}`} en={`Scene ${index + 1}`} />
+              <BiLabel zh={`場景 ${index + 1}`} pinyin={`Chǎngjǐng ${index + 1}`} en={`Scene ${index + 1}`} />
             </span>
           </button>
         ))}
@@ -265,7 +266,7 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
             ))}
           </div>
           <label className="narration-custom-vocab">
-            <BiLabel zh="覆寫關鍵詞（用逗號分隔）" en="Override keywords (comma separated)" />
+            <BiLabel zh="改重要的詞（用逗號隔開）" pinyin="Gǎi zhòngyào de cí (yòng dòuhào gékāi)" en="Override keywords (comma separated)" />
             <input
               type="text"
               placeholder="e.g. 公園, 下雨, 雨傘"
@@ -283,20 +284,20 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
             disabled={isAnalyzing}
           >
             {isRecording ? (
-              <BiLabel zh="停止並評分" en="Stop and evaluate" />
+              <BiLabel zh="停止，評分" pinyin="Tíngzhǐ, píngfēn" en="Stop and evaluate" />
             ) : result ? (
-              <BiLabel zh="再錄一次" en="Record again" />
+              <BiLabel zh="再錄一次" pinyin="Zài lù yí cì" en="Record again" />
             ) : (
-              <BiLabel zh="開始描述" en="Start describing" />
+              <BiLabel zh="開始描述" pinyin="Kāishǐ miáoshù" en="Start describing" />
             )}
           </button>
           <p className="narration-status">
             {isRecording ? (
-              <BiLabel zh={`錄音中… ${recordingDuration}s`} en={`Recording... ${recordingDuration}s`} />
+              <BiLabel zh={`錄音中… ${recordingDuration}s`} pinyin={`Lùyīn zhōng… ${recordingDuration}s`} en={`Recording... ${recordingDuration}s`} />
             ) : isAnalyzing ? (
-              <BiLabel zh="正在比對你的描述與圖片…" en="Comparing your description with the image..." />
+              <BiLabel zh="正在看你說的對不對…" pinyin="Zhèngzài kàn nǐ shuō de duì bú duì…" en="Comparing your description with the image..." />
             ) : (
-              <BiLabel zh="準備好了" en="Ready" />
+              <BiLabel zh="準備好了" pinyin="Zhǔnbèi hǎo le" en="Ready" />
             )}
           </p>
           {audioUrl && <audio controls src={audioUrl} className="narration-audio-preview" />}
@@ -310,37 +311,37 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
             <span><BiLabel k="you_said" /></span>
             <p lang="zh-TW">
               {result.transcription || (
-                <BiLabel zh="（未偵測到語音）" en="(no speech detected)" />
+                <BiLabel zh="（沒聽到聲音）" pinyin="(méi tīngdào shēngyīn)" en="(no speech detected)" />
               )}
             </p>
           </div>
 
           <div className="narration-score-grid">
             {ai?.vocabulary_coverage && (
-              <ScoreCard label={<BiLabel zh="詞彙" en="Vocabulary" />} score={ai.vocabulary_coverage.score} />
+              <ScoreCard label={<BiLabel zh="詞彙" pinyin="Cíhuì" en="Vocabulary" />} score={ai.vocabulary_coverage.score} />
             )}
             {prosodyScore !== null && (
               <ScoreCard label={<BiLabel k="character_by_character_prosody" />} score={prosodyScore} />
             )}
-            <ScoreCard label={<BiLabel zh="聲調準確度" en="Tone accuracy" />} score={Math.round(result.tone_accuracy)} />
+            <ScoreCard label={<BiLabel zh="聲調準確度" pinyin="Shēngdiào zhǔnquè dù" en="Tone accuracy" />} score={Math.round(result.tone_accuracy)} />
             {contentAccuracy && (
-              <ScoreCard label={<BiLabel zh="內容準確度" en="Content accuracy" />} score={contentAccuracy.score} highlight />
+              <ScoreCard label={<BiLabel zh="內容準確度" pinyin="Nèiróng zhǔnquè dù" en="Content accuracy" />} score={contentAccuracy.score} highlight />
             )}
           </div>
 
           {contentAccuracy && (
             <div className="narration-content-accuracy">
-              <h2><BiLabel zh="你的描述符合圖片嗎？" en="Does your description match the image?" /></h2>
+              <h2><BiLabel zh="你說的跟圖片一樣嗎？" pinyin="Nǐ shuō de gēn túpiàn yíyàng ma?" en="Does your description match the image?" /></h2>
               <p>{contentAccuracy.feedback}</p>
               {contentAccuracy.matched_details.length > 0 && (
                 <p className="narration-matched">
-                  ✓ <BiLabel zh="符合：" en="Matched: " />
+                  ✓ <BiLabel zh="說對了：" pinyin="Shuō duì le:" en="Matched: " />
                   {contentAccuracy.matched_details.join(", ")}
                 </p>
               )}
               {contentAccuracy.missed_details.length > 0 && (
                 <p className="narration-missed">
-                  ✗ <BiLabel zh="遺漏：" en="Missed: " />
+                  ✗ <BiLabel zh="沒說到：" pinyin="Méi shuō dào:" en="Missed: " />
                   {contentAccuracy.missed_details.join(", ")}
                 </p>
               )}
@@ -349,13 +350,13 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
 
           {ai?.vocabulary_coverage && (
             <div className="narration-detail-card">
-              <h3><BiLabel zh="詞彙" en="Vocabulary" /></h3>
+              <h3><BiLabel zh="詞彙" pinyin="Cíhuì" en="Vocabulary" /></h3>
               <p>{ai.vocabulary_coverage.feedback}</p>
             </div>
           )}
           {ai?.coherence && (
             <div className="narration-detail-card">
-              <h3><BiLabel zh="連貫性" en="Coherence" /></h3>
+              <h3><BiLabel zh="順暢度" pinyin="Shùnchàng dù" en="Coherence" /></h3>
               <p>{ai.coherence.feedback}</p>
             </div>
           )}
@@ -371,7 +372,7 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
           )}
           {ai?.practice_prompt && (
             <div className="narration-detail-card practice">
-              <h3><BiLabel zh="下一步練習" en="Practice next" /></h3>
+              <h3><BiLabel zh="下一步練習" pinyin="Xià yí bù liànxí" en="Practice next" /></h3>
               <p>{ai.practice_prompt}</p>
             </div>
           )}

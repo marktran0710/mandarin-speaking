@@ -26,7 +26,7 @@
   background: var(--clay-surface-soft);
   white-space: nowrap;
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   transition: background 0.2s, color 0.2s, transform 0.2s;
 }
 .phase-nav-step.phase-nav-done {
@@ -34,10 +34,13 @@
   background: var(--jade-soft);
 }
 .phase-nav-step.phase-nav-active {
-  color: var(--seal);
+  /* --seal only reaches ~4.3:1 on seal-soft at this bold-but-not-large size —
+     seal-deep clears 4.5:1 (same pairing as .nav-link.active). */
+  color: var(--seal-deep);
   background: var(--seal-soft);
   font-weight: 700;
   transform: scale(1.05);
+  --bi-en-color: var(--clay-body);
 }
 .phase-nav-icon { font-size: 14px; }
 .phase-nav-label { letter-spacing: 0.01em; }
@@ -82,9 +85,9 @@
   display: grid;
   place-items: center;
   grid-row: span 2;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-strong);
-  color: #fff;
+  color: var(--clay-on-accent);
   font-size: 13px;
   font-weight: 650;
 }
@@ -114,11 +117,11 @@
 .flow-step.active span,
 .flow-step.completed span {
   background: var(--clay-primary);
-  color: #ffffff;
+  color: var(--clay-on-accent);
 }
 
 .eyebrow {
-  color: var(--clay-primary);
+  color: var(--seal-deep);
   font-size: 12px;
   font-weight: 650;
   letter-spacing: 0.02em;
@@ -174,7 +177,7 @@
 
 .challenge-meta span {
   padding: 7px 10px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-mint);
   color: var(--clay-ink);
   font-size: 12px;
@@ -323,7 +326,7 @@
 .recording-vocabulary span,
 .readiness-list span {
   padding: 7px 10px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   font-size: 13px;
   font-weight: 600;
 }
@@ -393,7 +396,7 @@
   display: inline-flex;
   margin-bottom: 10px;
   padding: 5px 8px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   font-size: 11px;
   font-weight: 650;
   text-transform: uppercase;
@@ -504,7 +507,7 @@
 
 .concept-chip-group span,
 .concept-practice-text span {
-  color: var(--clay-primary);
+  color: var(--seal-deep);
   font-size: 12px;
   font-weight: 650;
   text-transform: uppercase;
@@ -521,7 +524,7 @@
   min-height: 36px;
   padding: 8px 11px;
   border: 1px solid var(--clay-hairline);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-card);
   color: var(--clay-ink);
   cursor: pointer;
@@ -662,7 +665,7 @@
 }
 
 .recording-action-copy span {
-  color: var(--clay-primary);
+  color: var(--seal-deep);
   font-size: 12px;
   font-weight: 650;
   text-transform: uppercase;
@@ -697,7 +700,7 @@
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   font-size: 15px;
-  background-color: white;
+  background-color: var(--clay-surface-card);
   color: var(--clay-ink);
   cursor: pointer;
 }
@@ -823,7 +826,7 @@
 }
 .loading-step {
   padding: 3px 10px;
-  border-radius: 20px;
+  border-radius: var(--clay-radius-lg);
   background: var(--seal-soft);
   color: var(--seal);
   font-weight: 600;
@@ -831,12 +834,12 @@
 }
 .loading-step.active {
   background: var(--seal);
-  color: #fff;
+  color: var(--clay-on-accent);
   animation: pulse 1.2s ease-in-out infinite;
 }
 .loading-step.done {
   background: var(--jade);
-  color: #fff;
+  color: var(--clay-on-accent);
 }
 @keyframes pulse {
   0%, 100% { opacity: 1; }
@@ -878,7 +881,7 @@
   flex-direction: column;
   background: var(--clay-surface-card);
   border: 1.5px solid var(--clay-hairline);
-  border-radius: 14px;
+  border-radius: var(--clay-radius-md);
   overflow: hidden;
   gap: 0;
 }
@@ -944,7 +947,7 @@
     grid-template-columns: 1fr;
   }
   .ap-sidebar-col {
-    border-radius: 14px;
+    border-radius: var(--clay-radius-md);
   }
   .student-flow-board {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1025,14 +1028,14 @@
   width: 100%;
   height: 7px;
   background-color: rgba(255, 255, 255, 0.62);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   overflow: hidden;
 }
 
 .metric-fill {
   height: 100%;
   background: var(--clay-primary);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
 }
 
 .metric-subtext {
@@ -1156,7 +1159,7 @@
 }
 
 .tone-repair-heading span {
-  color: var(--clay-primary);
+  color: var(--seal-deep);
   font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
@@ -1204,7 +1207,7 @@
 
 .tone-focus-token span {
   padding: 5px 9px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-mint);
   color: var(--clay-ink);
   font-size: 12px;
@@ -1228,7 +1231,7 @@
 .meter-track {
   position: relative;
   height: 12px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-hairline);
   overflow: hidden;
 }
@@ -1237,7 +1240,7 @@
   position: absolute;
   top: 2px;
   bottom: 2px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
 }
 
 .meter-fill.rising {
@@ -1266,7 +1269,7 @@
 
 .praat-timeline-header span,
 .praat-timeline-header em {
-  color: var(--clay-primary);
+  color: var(--seal-deep);
   font-size: 12px;
   font-weight: 900;
   font-style: normal;
@@ -1402,7 +1405,7 @@
 
 .word-prosody-topline span {
   padding: 5px 8px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-mint);
   color: var(--clay-ink);
   font-size: 11px;
@@ -1491,7 +1494,7 @@
   color: var(--gold-deep);
   background: var(--gold-soft);
   border: 1px solid var(--gold);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   padding: 8px 10px;
   font-size: 12px;
   line-height: 1.45;
@@ -1506,7 +1509,7 @@
   width: 100%;
   padding: 8px 10px;
   border: 1px dashed var(--clay-hairline);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: #ffffff;
   color: var(--seal);
   font-size: 12px;
@@ -1522,7 +1525,7 @@
 .word-practice-panel {
   margin-top: 8px;
   padding: 10px;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: #ffffff;
   border: 1px solid var(--clay-hairline);
 }
@@ -1532,40 +1535,6 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.btn-mini {
-  padding: 6px 12px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--seal);
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.btn-mini:hover {
-  background: var(--seal-deep);
-}
-
-.btn-mini.recording {
-  background: var(--clay-error);
-}
-
-.btn-mini:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-mini-secondary {
-  background: var(--clay-surface-soft);
-  color: var(--clay-ink);
-  border: 1px solid var(--clay-hairline);
-}
-
-.btn-mini-secondary:hover {
-  border-color: var(--seal);
 }
 
 .word-practice-upload-label {
@@ -1597,7 +1566,7 @@
 .word-practice-error {
   margin: 8px 0 0;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: var(--seal-soft);
   color: var(--clay-error);
   font-size: 12px;
@@ -1607,8 +1576,13 @@
 .word-practice-result {
   margin-top: 10px;
   padding: 10px;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   border: 1px solid var(--clay-hairline);
+}
+
+.word-practice-result.excellent {
+  background: var(--jade-soft);
+  border-color: var(--jade-deep);
 }
 
 .word-practice-result.good {
@@ -1659,6 +1633,15 @@
   margin: 8px 0 0 !important;
   color: var(--clay-ink) !important;
   font-size: 12px !important;
+}
+
+.word-practice-result p.word-practice-content-warning {
+  margin: 0 0 8px !important;
+  padding: 6px 10px;
+  border-radius: var(--clay-radius-md);
+  background: var(--gold-soft);
+  color: var(--gold-deep) !important;
+  font-weight: 600;
 }
 
 .pitch-chart-container {
@@ -1927,7 +1910,7 @@
 .btn-submit-story {
   padding: 11px 24px;
   background: var(--seal);
-  color: #fff;
+  color: var(--clay-on-accent);
   border: 2px solid var(--seal-deep);
   border-radius: var(--clay-radius-pill);
   font-size: 14px;
@@ -1963,7 +1946,7 @@
   gap: 12px;
   background: var(--jade-soft);
   border: 2px solid var(--jade);
-  border-radius: 14px;
+  border-radius: var(--clay-radius-md);
   padding: 16px;
 }
 .try-again-complete-icon {
@@ -2023,7 +2006,7 @@
 .ai-feedback-header span {
   justify-self: start;
   padding: 5px 10px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--jade-soft);
   color: var(--jade-deep);
   font-size: 12px;
@@ -2287,13 +2270,13 @@
   width: 140px;
   height: 6px;
   background: var(--clay-hairline);
-  border-radius: 99px;
+  border-radius: var(--clay-radius-pill);
   overflow: hidden;
 }
 .sorting-progress-fill {
   height: 100%;
   background: var(--seal);
-  border-radius: 99px;
+  border-radius: var(--clay-radius-pill);
   transition: width 0.35s ease;
 }
 
@@ -2415,7 +2398,7 @@
   width: 20px;
   height: 20px;
   background: var(--clay-primary);
-  color: #fff;
+  color: var(--clay-on-accent);
   border-radius: 50%;
   font-size: 11px;
   font-weight: 800;
@@ -2427,7 +2410,7 @@
   font-size: 11px;
   font-weight: 650;
   padding: 2px 8px;
-  border-radius: 99px;
+  border-radius: var(--clay-radius-pill);
 }
 
 .slot-badge.correct {
@@ -2495,7 +2478,7 @@
   height: 24px;
   border-radius: 50%;
   background: rgba(28, 26, 23, 0.65);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   border: none;
   font-size: 16px;
   line-height: 1;
@@ -2614,7 +2597,7 @@
   left: 0;
   right: 0;
   background: rgba(28, 26, 23, 0.7);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   font-size: 10px;
   font-weight: 600;
   text-align: center;
@@ -2657,7 +2640,7 @@
 
 .btn-verify-sorting {
   background: var(--clay-primary);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   border: 2px solid var(--seal-deep);
   box-shadow: 0 4px 0 var(--seal-deep);
   transition: transform 0.1s, box-shadow 0.1s;
@@ -2682,7 +2665,7 @@
 
 .btn-start-speaking {
   background: var(--jade);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   border: 2px solid var(--jade-deep);
   box-shadow: 0 4px 0 var(--jade-deep);
   animation: pulseGreen 2s infinite;
@@ -2810,7 +2793,7 @@
   align-items: center;
   gap: 0;
   border: 1.5px solid var(--seal-soft);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   overflow: hidden;
   background: var(--clay-surface-card);
 }
@@ -2831,7 +2814,7 @@
 
 .scm-btn-add {
   background: var(--seal);
-  color: #fff;
+  color: var(--clay-on-accent);
   border: none;
   padding: 7px 14px;
   font-size: 13px;
@@ -2849,7 +2832,7 @@
   background: var(--clay-surface-card);
   color: var(--clay-body);
   border: 1.5px solid var(--clay-hairline);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   padding: 7px 12px;
   font-size: 12.5px;
   font-weight: 600;
@@ -2868,7 +2851,7 @@
   background: var(--clay-surface-card);
   color: var(--seal);
   border: 1.5px solid var(--seal-soft);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   padding: 7px 12px;
   font-size: 12.5px;
   font-weight: 650;
@@ -2920,7 +2903,7 @@
   padding: 5px 12px;
   background: var(--seal-soft);
   border: 1.5px solid var(--seal);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   font-size: 13.5px;
   color: var(--seal-deep);
   font-weight: 600;
@@ -3019,7 +3002,7 @@
   padding: 6px 10px 6px 8px;
   background: rgba(255, 255, 255, 0.95);
   border: 2px solid var(--clay-muted);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   cursor: grab;
   user-select: none;
   white-space: nowrap;
@@ -3114,7 +3097,7 @@
   color: var(--gold-deep);
   background: var(--gold-soft);
   border: 1px solid var(--gold);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   padding: 10px 14px;
   margin: 0;
   animation: fadeIn 0.2s ease-out;
@@ -3159,7 +3142,7 @@
   text-align: center;
   padding: 40px 24px 32px;
   background: var(--seal-soft);
-  border-radius: 20px;
+  border-radius: var(--clay-radius-lg);
   border: 1.5px solid var(--clay-hairline);
 }
 
@@ -3168,8 +3151,11 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--seal);
+  /* --seal only reaches ~4.3:1 on this seal-soft hero background —
+     seal-deep clears 4.5:1. */
+  color: var(--seal-deep);
   margin-bottom: 10px;
+  --bi-en-color: var(--clay-body);
 }
 
 .overview-title {
@@ -3184,9 +3170,9 @@
   display: inline-block;
   margin-bottom: 10px;
   padding: 4px 14px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--seal);
-  color: #fff;
+  color: var(--clay-on-accent);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.03em;
@@ -3217,7 +3203,7 @@
   font-size: 12px;
   font-weight: 700;
   padding: 7px 16px;
-  border-radius: 14px;
+  border-radius: var(--clay-radius-md);
   white-space: nowrap;
 }
 
@@ -3246,7 +3232,7 @@
   width: 160px;
   background: var(--clay-surface-card);
   border: 2px solid var(--seal-soft);
-  border-radius: 14px;
+  border-radius: var(--clay-radius-md);
   overflow: hidden;
   text-align: center;
   scroll-snap-align: start;
@@ -3449,7 +3435,7 @@
 }
 .start-practice-modal {
   background: var(--clay-surface-card);
-  border-radius: 20px;
+  border-radius: var(--clay-radius-lg);
   padding: 36px 32px;
   max-width: 440px;
   width: 100%;
@@ -3537,7 +3523,7 @@
   width: 160px;
   height: 110px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   flex-shrink: 0;
   border: 1px solid var(--jade-soft);
 }
@@ -3555,7 +3541,7 @@
 .example-frame-script-block {
   background: var(--clay-surface-card);
   border: 1.5px solid var(--jade);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   padding: 10px 12px;
   margin-bottom: 8px;
 }
@@ -3649,7 +3635,7 @@
   border-radius: 16px;
   border: 2px solid var(--seal-deep);
   background: var(--seal);
-  color: #fff;
+  color: var(--clay-on-accent);
   font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -3687,7 +3673,7 @@
 }
 .practice-scene-image-wrap {
   position: relative;
-  border-radius: 14px;
+  border-radius: var(--clay-radius-md);
   overflow: hidden;
   box-shadow: var(--shadow-md);
   background: var(--clay-hairline-soft);
@@ -3909,7 +3895,7 @@
   padding: 20px;
   background: var(--clay-surface-card);
   border: 1.5px solid var(--clay-hairline);
-  border-radius: 14px;
+  border-radius: var(--clay-radius-md);
 }
 .record-engine-switch {
   display: flex;
@@ -3929,7 +3915,7 @@
   width: 100%;
   padding: 9px 14px;
   border: 1.5px solid var(--clay-hairline);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-hairline-soft);
   color: var(--clay-ink);
   font-size: 13px;
@@ -3953,10 +3939,10 @@
 .btn-practice-record {
   width: 100%;
   padding: 16px;
-  border-radius: 16px;
+  border-radius: var(--clay-radius-md);
   border: 2px solid var(--seal-deep);
   background: var(--seal);
-  color: #fff;
+  color: var(--clay-on-accent);
   font-size: 1.1rem;
   font-weight: 800;
   cursor: pointer;
@@ -4015,7 +4001,7 @@
   gap: 18px;
   background: var(--clay-surface-card);
   border: 1.5px solid var(--clay-hairline);
-  border-radius: 14px;
+  border-radius: var(--clay-radius-md);
   padding: 20px;
 }
 .practice-guide-header {
@@ -4047,7 +4033,7 @@
   align-items: center;
   gap: 10px;
   background: var(--clay-surface-soft);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   padding: 10px 12px;
 }
 .guide-q-zh {
@@ -4206,7 +4192,7 @@
   color: var(--clay-body);
   background: var(--clay-hairline-soft);
   padding: 3px 8px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
 }
 .ai-example.next-practice {
   background: var(--gold-soft);
@@ -4246,7 +4232,7 @@
   flex-shrink: 0;
   padding: 10px 20px;
   background: var(--jade);
-  color: #fff;
+  color: var(--clay-on-accent);
   border: 2px solid var(--jade-deep);
   border-radius: var(--clay-radius-pill);
   font-size: 14px;
@@ -4270,7 +4256,7 @@
   color: var(--gold-deep);
   background: var(--gold-soft);
   border: 1px solid var(--gold);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   padding: 10px 14px;
   margin-bottom: 12px;
 }
@@ -4328,7 +4314,7 @@
   color: var(--jade-deep);
   background: var(--jade-soft);
   padding: 2px 10px;
-  border-radius: 99px;
+  border-radius: var(--clay-radius-pill);
 }
 .vocab-categorizer-bank {
   display: flex;
@@ -4336,7 +4322,7 @@
   gap: 6px;
   background: var(--seal-soft);
   border: 1px dashed var(--seal);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   padding: 10px;
   margin-bottom: 12px;
   min-height: 40px;
@@ -4381,7 +4367,7 @@
   display: inline-flex;
   align-items: center;
   padding: 4px 12px;
-  border-radius: 99px;
+  border-radius: var(--clay-radius-pill);
   font-size: 14px;
   font-weight: 500;
   cursor: grab;
@@ -4419,9 +4405,9 @@
 }
 .vc-btn-check {
   background: var(--seal);
-  color: #fff;
+  color: var(--clay-on-accent);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   padding: 8px 18px;
   font-size: 13px;
   font-weight: 600;
@@ -4436,7 +4422,7 @@
   background: var(--clay-surface-card);
   color: var(--seal);
   border: 1.5px solid var(--seal-soft);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   padding: 8px 16px;
   font-size: 13px;
   font-weight: 600;

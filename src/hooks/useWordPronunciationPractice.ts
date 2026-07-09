@@ -17,18 +17,30 @@ export interface WordAnalyzeResult {
   tone_accuracy: number;
   feedback: string;
   word_prosody: WordProsodySegment[];
+  recognized_text?: string | null;
+  content_match?: boolean | null;
 }
 
 /**
  * Records (or accepts an uploaded file for) a single word/phrase and scores
  * it against that word's expected tone shape. Forces `transcription` to the
  * target word so the backend skips ASR and compares Praat's pitch extraction
- * directly against the word's real tone(s) via pypinyin.
+ * directly against the word's real tone(s) via pypinyin. Also sends
+ * `verify_word` so the backend runs a real, independent ASR pass alongside
+ * the tone scoring to confirm the recording actually contains that word.
  *
  * Shared by TonePracticePage (general word-bank practice) and the inline
  * per-word practice affordance on a story scene's vocabulary table.
+ *
+ * `pinyin`, when given, is that word's own tone-marked pinyin as actually
+ * displayed to the student/teacher (space-separated per syllable, e.g.
+ * "jiě jie") — sent to the backend so the scored target shape is derived
+ * from it directly, instead of a second, independent pypinyin lookup on
+ * the characters that could silently disagree (e.g. a teacher's manually
+ * corrected vocabulary pinyin, or a polyphonic character read differently
+ * out of context).
  */
-export function useWordPronunciationPractice(word: string) {
+export function useWordPronunciationPractice(word: string, pinyin?: string) {
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState("");
@@ -56,6 +68,8 @@ export function useWordPronunciationPractice(word: string) {
       const formData = new FormData();
       formData.append("file", wavBlob, "word-practice.wav");
       formData.append("transcription", word);
+      formData.append("verify_word", word);
+      if (pinyin) formData.append("pinyin_hint", pinyin);
       formData.append("ai_provider", "local");
 
       const response = await fetch(`${getBackendUrl()}/api/analyze`, {

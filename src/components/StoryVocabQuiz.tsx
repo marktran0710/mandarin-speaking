@@ -20,6 +20,7 @@ export interface VocabQuizQuestionResult {
 }
 
 export interface VocabQuizSummary {
+  mode: VocabQuizMode;
   totalQuestions: number;
   correctCount: number;
   totalTimeMs: number;
@@ -130,29 +131,44 @@ export function buildQuizQuestions(entries: VocabQuizEntry[]): VocabQuizQuestion
   return pool.map((entry) => buildQuestionForEntry(entry, entries));
 }
 
-const MODES: Array<{ mode: VocabQuizMode; icon: string; title: string; titleEn: string; desc: string; descEn: string }> = [
+const MODES: Array<{
+  mode: VocabQuizMode;
+  icon: string;
+  title: string;
+  titlePinyin: string;
+  titleEn: string;
+  desc: string;
+  descPinyin: string;
+  descEn: string;
+}> = [
   {
     mode: "speed",
     icon: "⏱️",
-    title: "限時模式",
+    title: "快速模式",
+    titlePinyin: "Kuàisù móshì",
     titleEn: "Speed",
-    desc: "20 題，每題 8 秒，全部限時 60 秒 — 越快越好。",
+    desc: "20 題，每題 8 秒，總共 60 秒 — 越快越好。",
+    descPinyin: "20 tí, měi tí 8 miǎo, zǒnggòng 60 miǎo — yuè kuài yuè hǎo.",
     descEn: "20 questions, 8s each, 60s total — think fast.",
   },
   {
     mode: "strikes",
     icon: "❌",
-    title: "三振模式",
+    title: "三次機會",
+    titlePinyin: "Sān cì jīhuì",
     titleEn: "3 Strikes",
-    desc: "題目不限量，連續答錯 3 題就結束 — 保持連對。",
+    desc: "題目沒有限制，錯 3 題就結束 — 小心一點。",
+    descPinyin: "Tímù méiyǒu xiànzhì, cuò 3 tí jiù jiéshù — xiǎoxīn yìdiǎn.",
     descEn: "Unlimited questions — 3 wrong answers in a row ends the run.",
   },
   {
     mode: "free",
     icon: "🎯",
     title: "自由練習",
+    titlePinyin: "Zìyóu liànxí",
     titleEn: "Free Practice",
-    desc: "題目不限量，沒有時間限制，隨時可以結束。",
+    desc: "題目沒有限制，也沒有時間限制，隨時可以結束。",
+    descPinyin: "Tímù méiyǒu xiànzhì, yě méiyǒu shíjiān xiànzhì, suíshí kěyǐ jiéshù.",
     descEn: "Unlimited questions, no time limit — finish whenever you like.",
   },
 ];
@@ -225,6 +241,7 @@ export default function StoryVocabQuiz({
     finishedRef.current = true;
     if (!isRetryRound) {
       onComplete?.({
+        mode: mode!,
         totalQuestions: finalResults.length,
         correctCount: finalResults.filter((r) => r.correct).length,
         totalTimeMs: Date.now() - quizStartRef.current,
@@ -339,15 +356,15 @@ export default function StoryVocabQuiz({
       <section className="story-vocab-quiz vocab-quiz-mode-select" aria-label="Vocabulary quiz">
         {onBack && (
           <button type="button" className="btn-vocab-quiz-back" onClick={onBack}>
-            <BiLabel zh="← 返回活動" en="← Back to activities" />
+            <BiLabel zh="← 回活動" pinyin="← Huí huódòng" en="← Back to activities" />
           </button>
         )}
         <div className="vocab-quiz-header">
           <p className="eyebrow">
-            <BiLabel zh="詞彙測驗" en="Vocabulary Quiz" />
+            <BiLabel zh="詞彙測驗" pinyin="Cíhuì cèyàn" en="Vocabulary Quiz" />
           </p>
           <h1 className="vocab-quiz-mode-title">
-            <BiLabel zh="選一種模式" en="Pick a mode" />
+            <BiLabel zh="選一種模式" pinyin="Xuǎn yì zhǒng móshì" en="Pick a mode" />
           </h1>
         </div>
         <div className="vocab-quiz-mode-grid" role="group" aria-label="Quiz mode">
@@ -360,10 +377,10 @@ export default function StoryVocabQuiz({
             >
               <span className="vocab-quiz-mode-icon">{m.icon}</span>
               <strong>
-                <BiLabel zh={m.title} en={m.titleEn} />
+                <BiLabel zh={m.title} pinyin={m.titlePinyin} en={m.titleEn} />
               </strong>
               <p>
-                <BiLabel zh={m.desc} en={m.descEn} />
+                <BiLabel zh={m.desc} pinyin={m.descPinyin} en={m.descEn} />
               </p>
             </button>
           ))}
@@ -380,12 +397,14 @@ export default function StoryVocabQuiz({
           <p className="eyebrow">
             <BiLabel
               zh={isRetryRound ? "複習結果" : "測驗結果"}
+              pinyin={isRetryRound ? "Fùxí jiéguǒ" : "Cèyàn jiéguǒ"}
               en={isRetryRound ? "Review results" : "Quiz results"}
             />
           </p>
           <h1 className="vocab-quiz-mode-title">
             <BiLabel
               zh={`答對 ${correctCount} / ${results.length} 題`}
+              pinyin={`Dá duì ${correctCount} / ${results.length} tí`}
               en={`${correctCount} / ${results.length} correct`}
             />
           </h1>
@@ -402,18 +421,18 @@ export default function StoryVocabQuiz({
           </div>
         ) : (
           <p className="vocab-quiz-all-correct">
-            <BiLabel zh="全部答對，太棒了！" en="Perfect score — nice work!" />
+            <BiLabel zh="全部答對，太棒了！" pinyin="Quánbù dá duì, tài bàng le!" en="Perfect score — nice work!" />
           </p>
         )}
 
         <div className="vocab-quiz-actions">
           {missedWords.length > 0 && !isRetryRound && (
             <button type="button" className="btn-vocab-quiz-retry" onClick={practiceMissedWords}>
-              <BiLabel zh="🔁 練習答錯的題目" en="🔁 Practice missed words" />
+              <BiLabel zh="🔁 練習答錯的題目" pinyin="🔁 Liànxí dá cuò de tímù" en="🔁 Practice missed words" />
             </button>
           )}
           <button type="button" className="btn-vocab-quiz-next" onClick={onDone}>
-            <BiLabel zh="繼續練習 →" en="Continue to practice →" />
+            <BiLabel zh="繼續練習 →" pinyin="Jìxù liànxí →" en="Continue to practice →" />
           </button>
         </div>
       </section>
@@ -429,12 +448,12 @@ export default function StoryVocabQuiz({
       <div className="vocab-quiz-topbar">
         {onBack && (
           <button type="button" className="btn-vocab-quiz-back" onClick={onBack}>
-            <BiLabel zh="← 返回活動" en="← Back to activities" />
+            <BiLabel zh="← 回活動" pinyin="← Huí huódòng" en="← Back to activities" />
           </button>
         )}
         {showFinishButton && (
           <button type="button" className="btn-vocab-quiz-finish" onClick={() => finish(results)}>
-            <BiLabel zh="結束並查看結果" en="Finish & see results" />
+            <BiLabel zh="結束，看結果" pinyin="Jiéshù, kàn jiéguǒ" en="Finish & see results" />
           </button>
         )}
       </div>
@@ -442,6 +461,7 @@ export default function StoryVocabQuiz({
         <p className="eyebrow">
           <BiLabel
             zh={isRetryRound ? "複習答錯的題目" : "詞彙測驗"}
+            pinyin={isRetryRound ? "Fùxí dá cuò de tímù" : "Cíhuì cèyàn"}
             en={isRetryRound ? "Reviewing missed words" : "Vocabulary Quiz"}
           />
         </p>
@@ -450,10 +470,11 @@ export default function StoryVocabQuiz({
           {questionLimit !== null ? (
             <BiLabel
               zh={`第 ${index + 1} / ${questionLimit} 題`}
+              pinyin={`Dì ${index + 1} / ${questionLimit} tí`}
               en={`Question ${index + 1} of ${questionLimit}`}
             />
           ) : (
-            <BiLabel zh={`第 ${index + 1} 題`} en={`Question ${index + 1}`} />
+            <BiLabel zh={`第 ${index + 1} 題`} pinyin={`Dì ${index + 1} tí`} en={`Question ${index + 1}`} />
           )}
         </p>
         {mode === "speed" && (
@@ -506,7 +527,7 @@ export default function StoryVocabQuiz({
 
       {isTimedOut && (
         <p className="vocab-quiz-timeout-note">
-          <BiLabel zh="時間到！" en="Time's up!" />
+          <BiLabel zh="時間到！" pinyin="Shíjiān dào!" en="Time's up!" />
         </p>
       )}
 
@@ -515,9 +536,9 @@ export default function StoryVocabQuiz({
           !(mode === "strikes" && consecutiveFails >= STRIKES_LIMIT) && (
             <button type="button" className="btn-vocab-quiz-next" onClick={next}>
               {isLast ? (
-                <BiLabel zh="開始練習" en="Start practice" />
+                <BiLabel zh="開始練習" pinyin="Kāishǐ liànxí" en="Start practice" />
               ) : (
-                <BiLabel zh="下一題" en="Next question" />
+                <BiLabel zh="下一題" pinyin="Xià yì tí" en="Next question" />
               )}
             </button>
           )}

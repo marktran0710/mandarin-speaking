@@ -64,9 +64,11 @@
 
 .ts-step:hover { transform: translateX(2px); }
 
-.ts-step:nth-child(1) { background: var(--seal-soft); }
-.ts-step:nth-child(2) { background: var(--jade-soft); }
-.ts-step:nth-child(3) { background: var(--gold-soft); }
+/* clay-muted (BiLabel's default .bi-en color) lands at ~4.0-4.2:1 on these
+   pastel tints — just under 4.5:1 — so darken it via --bi-en-color. */
+.ts-step:nth-child(1) { background: var(--seal-soft); --bi-en-color: var(--clay-body); }
+.ts-step:nth-child(2) { background: var(--jade-soft); --bi-en-color: var(--clay-body); }
+.ts-step:nth-child(3) { background: var(--gold-soft); --bi-en-color: var(--clay-body); }
 
 /* Ring-style step markers matching the practice screen's journey-stop-ring
    (a solid colored disc with its own contrasting border), so the "how this
@@ -184,11 +186,16 @@
   right: 8px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(28, 26, 23, 0.55);
+  /* Darker than the lesson badge's plain --clay-ink fill since this sits
+     over an arbitrary photo, not a flat surface — needs the extra margin
+     to keep the white text readable regardless of what's underneath. */
+  background: rgba(20, 18, 25, 0.72);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
   backdrop-filter: blur(4px);
+  --bi-pinyin-color: var(--seal-soft);
+  --bi-en-color: rgba(255, 255, 255, 0.8);
 }
 
 .ts-card-lesson-badge {
@@ -230,7 +237,12 @@
 }
 
 .ts-card-skill {
-  color: var(--clay-muted);
+  /* clay-muted lands at ~4.1:1 on this card's tone1-soft blue background —
+     just under the 4.5:1 floor — so use the darker clay-body here. Also
+     set --bi-en-color: BiLabel's .bi-en sets its own color and doesn't
+     inherit the ambient `color` above. */
+  color: var(--clay-body);
+  --bi-en-color: var(--clay-body);
   font-size: 11px;
   font-weight: 500;
 }
@@ -258,7 +270,9 @@
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
-  color: var(--clay-muted);
+  /* Same tone1-soft background as .ts-card-skill above — see its comment. */
+  color: var(--clay-body);
+  --bi-en-color: var(--clay-body);
   font-size: 12px;
   font-weight: 500;
   margin-top: auto;
@@ -279,13 +293,16 @@
   padding: 11px 16px;
   border: 2px solid var(--tone1-deep);
   border-radius: var(--clay-radius-pill);
-  background: var(--tone1);
+  /* --tone1 only gets white text to ~3:1 — --tone1-deep clears 4.5:1. */
+  background: var(--tone1-deep);
   box-shadow: 0 4px 0 var(--tone1-deep);
   color: #ffffff;
   font-size: 14px;
   font-weight: 650;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.12s ease;
+  --bi-pinyin-color: var(--tone1-soft);
+  --bi-en-color: rgba(255, 255, 255, 0.8);
 }
 
 .ts-card-btn:hover {

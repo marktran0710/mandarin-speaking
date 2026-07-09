@@ -15,13 +15,13 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
   const isStudent = role === "student";
   const defaultName = isStudent ? "Student Demo" : "Teacher Demo";
   const [name, setName] = useState(defaultName);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(false);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
 
     if (!name.trim()) {
-      setError("請輸入名稱 · Please enter a name.");
+      setError(true);
       return;
     }
 
@@ -47,35 +47,49 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
             {isStudent ? "學" : "師"}
           </div>
           <p className="login-kicker">
-            <BiLabel zh={isStudent ? "學生入口" : "教師入口"} en={isStudent ? "Student Portal" : "Teacher Portal"} />
+            <BiLabel k={isStudent ? "student_portal" : "teacher_portal"} />
           </p>
-          <h1>{isStudent ? "學生登入" : "教師登入"}</h1>
+          <h1>
+            <BiLabel k={isStudent ? "student_login" : "teacher_login"} />
+          </h1>
           <p className="login-description">
             <BiText
               zh={isStudent
-                ? "使用預設帳號或輸入學生姓名開始練習。"
+                ? "你可以直接開始，或打上你的名字再開始練習。"
                 : "使用預設帳號或輸入教師姓名查看學習進度。"}
+              pinyin={isStudent
+                ? "Nǐ kěyǐ zhíjiē kāishǐ, huò dǎshàng nǐ de míngzi zài kāishǐ liànxí."
+                : "Shǐyòng yùshè zhànghào huò shūrù jiàoshī xìngmíng chákàn xuéxí jìndù."}
               en={isStudent
-                ? "Use the default profile or enter a student name to start training."
+                ? "You can start right away, or type your name to begin practicing."
                 : "Use the default profile or enter a teacher name to review progress."}
             />
           </p>
 
           <form className="login-form" onSubmit={handleSubmit}>
             <label>
-              <BiLabel zh={isStudent ? "學生姓名" : "教師姓名"} en={isStudent ? "Student name" : "Teacher name"} />
+              <BiLabel
+                zh={isStudent ? "學生名字" : "教師姓名"}
+                pinyin={isStudent ? "Xuéshēng míngzi" : "Jiàoshī xìngmíng"}
+                en={isStudent ? "Student name" : "Teacher name"}
+              />
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder={isStudent ? "輸入學生姓名 · Enter student name" : "輸入教師姓名 · Enter teacher name"}
+                placeholder={isStudent ? "打上學生的名字 · Enter student name" : "輸入教師姓名 · Enter teacher name"}
               />
             </label>
 
-            {error && <p className="login-error">{error}</p>}
+            {error && (
+              <p className="login-error">
+                <BiLabel k="please_enter_a_name" />
+              </p>
+            )}
 
             <button type="submit" className="login-submit">
               <BiLabel
                 zh={isStudent ? "進入學生模式" : "進入教師模式"}
+                pinyin={isStudent ? "Jìnrù xuéshēng móshì" : "Jìnrù jiàoshī móshì"}
                 en={isStudent ? "Enter Student Mode" : "Enter Teacher Mode"}
               />
             </button>

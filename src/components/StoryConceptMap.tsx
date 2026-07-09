@@ -179,16 +179,17 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
       <button type="button" className="scmap-collapsed" onClick={() => setIsOpen(true)}>
         <span className="scmap-collapsed-icon">🗺️</span>
         <div className="scmap-collapsed-text">
-          <strong><BiLabel zh="故事概念圖" en="Story Concept Map" /></strong>
+          <strong><BiLabel zh="故事概念圖" pinyin="Gùshì gàiniàn tú" en="Story Concept Map" /></strong>
           <span>
             <BiLabel
-              zh={`整理故事詞彙 · 已放置 ${totalPlaced}/${totalWords}`}
+              zh={`整理故事詞彙 · 已放 ${totalPlaced}/${totalWords}`}
+              pinyin={`Zhěnglǐ gùshì cíhuì · yǐ fàng ${totalPlaced}/${totalWords}`}
               en={`Organize story vocabulary · ${totalPlaced}/${totalWords} placed`}
             />
           </span>
         </div>
         <span className="scmap-collapsed-caret">
-          <BiLabel zh="▼ 展開" en="▼ Open" />
+          <BiLabel zh="▼ 打開" pinyin="▼ Dǎkāi" en="▼ Open" />
         </span>
       </button>
     );
@@ -200,39 +201,40 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
       <div className="scmap-toolbar">
         <div className="scmap-toolbar-left">
           <div className="scmap-score-badge">
-            <BiLabel zh="已放置詞彙：" en="Words placed: " />
+            <BiLabel zh="已放詞彙：" pinyin="Yǐ fàng cíhuì:" en="Words placed: " />
             <span>{totalPlaced}</span> / {totalWords}
           </div>
           <button className="scmap-tbtn" onClick={reset} disabled={submitted}>
-            <BiLabel zh="↺ 重設" en="↺ Reset" />
+            <BiLabel zh="↺ 重設" pinyin="↺ Chóngshè" en="↺ Reset" />
           </button>
           <button
             className="scmap-tbtn scmap-tbtn-success"
             onClick={() => setChecked(true)}
             disabled={submitted || totalPlaced === 0}
           >
-            <BiLabel zh="✓ 檢查" en="✓ Check" />
+            <BiLabel zh="✓ 檢查" pinyin="✓ Jiǎnchá" en="✓ Check" />
           </button>
           <button
             className={`scmap-tbtn scmap-tbtn-primary${submitted ? " is-submitted" : ""}`}
             onClick={() => { setSubmitted(true); setChecked(true); }}
             disabled={submitted}
           >
-            {submitted ? <BiLabel zh="✓ 已提交" en="✓ Submitted" /> : <BiLabel zh="提交" en="Submit" />}
+            {submitted ? <BiLabel zh="✓ 已交" pinyin="✓ Yǐ jiāo" en="✓ Submitted" /> : <BiLabel zh="交" pinyin="Jiāo" en="Submit" />}
           </button>
         </div>
         <button className="scmap-tbtn" onClick={() => setIsOpen(false)}>
-          <BiLabel zh="▲ 隱藏" en="▲ Hide" />
+          <BiLabel zh="▲ 隱藏" pinyin="▲ Yǐncáng" en="▲ Hide" />
         </button>
       </div>
 
       {checked && hasAnswerKey && (
         <div className={`scmap-check-banner${allCorrect ? " scmap-check-banner-perfect" : ""}`}>
           {allCorrect ? (
-            <BiLabel zh="🎉 所有詞彙都分類正確！太棒了！繼續進行口說練習。" en="🎉 All words in the right category! Now continue to speaking." />
+            <BiLabel zh="🎉 所有詞彙都分類正確！太棒了！繼續口說練習。" pinyin="🎉 Suǒyǒu cíhuì dōu fēnlèi zhèngquè! Tài bàng le! Jìxù kǒushuō liànxí." en="🎉 All words in the right category! Now continue to speaking." />
           ) : (
             <BiLabel
-              zh={`✓ ${checkedCorrect} 個正確 · ✗ ${checkedWrong} 個錯誤 — 標示 ✗ 的詞彙會顯示正確分類，移除後再試一次。`}
+              zh={`✓ ${checkedCorrect} 個正確 · ✗ ${checkedWrong} 個錯誤 — 有 ✗ 的詞彙會顯示正確分類，拿掉後再試一次。`}
+              pinyin={`✓ ${checkedCorrect} ge zhèngquè · ✗ ${checkedWrong} ge cuòwù — yǒu ✗ de cíhuì huì xiǎnshì zhèngquè fēnlèi, nádiào hòu zài shì yí cì.`}
               en={`✓ ${checkedCorrect} correct · ✗ ${checkedWrong} wrong — words marked ✗ show the correct category. Remove them and try again.`}
             />
           )}
@@ -241,10 +243,11 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
       {checked && !hasAnswerKey && (
         <div className="scmap-check-banner">
           {totalPlaced === totalWords ? (
-            <BiLabel zh="🎉 所有詞彙都已放置！請老師檢查你的概念圖。" en="🎉 All words placed! Ask your teacher to review your concept map." />
+            <BiLabel zh="🎉 所有詞彙都放好了！請老師看看你的概念圖。" pinyin="🎉 Suǒyǒu cíhuì dōu fàng hǎo le! Qǐng lǎoshī kànkan nǐ de gàiniàn tú." en="🎉 All words placed! Ask your teacher to review your concept map." />
           ) : (
             <BiLabel
-              zh={`已放置 ${totalPlaced}/${totalWords} 個詞彙，繼續加油！`}
+              zh={`已放 ${totalPlaced}/${totalWords} 個詞彙，繼續加油！`}
+              pinyin={`Yǐ fàng ${totalPlaced}/${totalWords} ge cíhuì, jìxù jiāyóu!`}
               en={`${totalPlaced}/${totalWords} words placed. Keep going!`}
             />
           )}
@@ -254,22 +257,22 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
       <div className="scmap-main">
 
         <div className="scmap-word-bank">
-          <h3><BiLabel zh="📚 詞彙庫" en="📚 Word Bank" /></h3>
+          <h3><BiLabel zh="📚 詞彙庫" pinyin="📚 Cíhuì kù" en="📚 Word Bank" /></h3>
           {allWords.length > 0 && (
             <div className="scmap-scene-legend">
               {Array.from(new Set(Object.keys(topic.vocabulary).map(Number))).sort((a, b) => a - b).map(si => (
                 <span key={si} className={`chip-scene chip-scene-${si % 6}`}>S{si + 1}</span>
               ))}
               <span className="scmap-legend-hint">
-                <BiLabel zh="= 場景" en="= scene" />
+                <BiLabel zh="= 場景" pinyin="= Chǎngjǐng" en="= scene" />
               </span>
             </div>
           )}
           {allWords.length === 0 ? (
             <div className="scmap-bank-empty">
               <span className="scmap-bank-empty-icon">📝</span>
-              <p><BiLabel zh="尚無詞彙。" en="No vocabulary yet." /></p>
-              <p><BiLabel zh="請老師為這個故事新增詞彙。" en="Ask your teacher to add words to this story." /></p>
+              <p><BiLabel zh="還沒有詞彙。" pinyin="Hái méiyǒu cíhuì." en="No vocabulary yet." /></p>
+              <p><BiLabel zh="請老師給這個故事加詞彙。" pinyin="Qǐng lǎoshī gěi zhège gùshì jiā cíhuì." en="Ask your teacher to add words to this story." /></p>
             </div>
           ) : allWords.map((w, i) => {
             const used = usedWords.has(w);
@@ -379,11 +382,11 @@ export default function StoryConceptMap({ topic, defaultOpen = false }: Props) {
                     {words.length === 0 ? (
                       <div className="scmap-cat-empty">
                         {isOver ? (
-                          <BiLabel zh="放開以放置" en="Release to place" />
+                          <BiLabel zh="放開就放置" pinyin="Fàngkāi jiù fàngzhì" en="Release to place" />
                         ) : selectedWord ? (
-                          <BiLabel zh="點擊以放置選取的詞彙" en="Click to place the selected word" />
+                          <BiLabel zh="點擊放已選的詞" pinyin="Diǎnjī fàng yǐ xuǎn de cí" en="Click to place the selected word" />
                         ) : (
-                          <BiLabel zh="拖曳或選取詞彙後點擊這裡" en="Drag here, or select a word and click here" />
+                          <BiLabel zh="拖或選詞彙後，點這裡" pinyin="Tuō huò xuǎn cíhuì hòu, diǎn zhèlǐ" en="Drag here, or select a word and click here" />
                         )}
                       </div>
                     ) : words.map(w => {

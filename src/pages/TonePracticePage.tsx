@@ -2,6 +2,7 @@ import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { BiLabel } from "../components/BiLabel";
 import PitchOverlay from "../components/PitchOverlay";
 import ToneShapeIcon, { type ToneGroup } from "../components/ToneShapeIcon";
+import { scoreTier, scoreTierLabel } from "../utils/scoreLabels";
 import {
   useWordPronunciationPractice,
   type WordAnalyzeResult,
@@ -98,7 +99,7 @@ export default function TonePracticePage() {
     stopRecording,
     analyzeBlob,
     reset,
-  } = useWordPronunciationPractice(selected.text);
+  } = useWordPronunciationPractice(selected.text, selected.pinyin);
 
   const visibleWords = useMemo(
     () => (filter === "all" ? PRACTICE_WORDS : PRACTICE_WORDS.filter((w) => w.tone === filter)),
@@ -157,52 +158,57 @@ export default function TonePracticePage() {
     <main className="tone-practice-page">
       <section className="tone-practice-hero">
         <p className="eyebrow">
-          <BiLabel zh="聲調練習角" en="Tone practice corner" />
+          <BiLabel zh="聲調練習角" pinyin="Shēngdiào liànxí jiǎo" en="Tone practice corner" />
         </p>
         <h1>
-          <BiLabel zh="試試你的聲調" en="Test your tone against the shape" />
+          <BiLabel zh="試試你的聲調" pinyin="Shìshi nǐ de shēngdiào" en="Test your tone against the shape" />
         </h1>
         <p>
           <BiLabel
             zh="選一個字，聽範例，錄音，馬上看看你的音高曲線跟目標形狀有多接近。"
+            pinyin="Xuǎn yí ge zì, tīng fànlì, lùyīn, mǎshàng kànkan nǐ de yīngāo qǔxiàn gēn mùbiāo xíngzhuàng yǒu duō jiējìn."
             en="Pick a character, listen to the example, record yourself, and see your pitch curve next to the target shape right away."
           />
         </p>
       </section>
 
-      <section className="tone-practice-filters" aria-label="Filter by tone">
-        {FILTERS.map((f) => (
-          <button
-            key={String(f.id)}
-            type="button"
-            className={`tone-filter-chip ${filter === f.id ? "active" : ""}`}
-            onClick={() => setFilter(f.id)}
-          >
-            {f.label}
-          </button>
-        ))}
-      </section>
-
-      <section className="tone-practice-grid" aria-label="Practice words">
-        {visibleWords.map((word) => {
-          const best = bestScores[word.id];
-          return (
+      <section className="tone-practice-picker">
+        <div className="tone-practice-filters" aria-label="Filter by tone">
+          {FILTERS.map((f) => (
             <button
-              key={word.id}
+              key={String(f.id)}
               type="button"
-              className={`tone-word-card ${selected.id === word.id ? "selected" : ""}`}
-              onClick={() => chooseWord(word)}
+              className={`tone-filter-chip ${filter === f.id ? "active" : ""}`}
+              onClick={() => setFilter(f.id)}
             >
-              <ToneShapeIcon tone={word.tone} />
-              <strong>{word.text}</strong>
-              <span>{word.pinyin}</span>
-              <small>{word.gloss}</small>
-              {typeof best === "number" && (
-                <em className={`tone-word-best ${scoreBand(best)}`}>{Math.round(best)}%</em>
-              )}
+              {f.label}
             </button>
-          );
-        })}
+          ))}
+        </div>
+
+        <div className="tone-practice-grid" aria-label="Practice words">
+          {visibleWords.map((word) => {
+            const best = bestScores[word.id];
+            return (
+              <button
+                key={word.id}
+                type="button"
+                className={`tone-word-card ${selected.id === word.id ? "selected" : ""}`}
+                onClick={() => chooseWord(word)}
+              >
+                <ToneShapeIcon tone={word.tone} />
+                <strong>{word.text}</strong>
+                <span>{word.pinyin}</span>
+                <small>{word.gloss}</small>
+                {typeof best === "number" && (
+                  <em className={`tone-word-best ${scoreTier(best)}`}>
+                    <BiLabel {...scoreTierLabel(scoreTier(best))} />
+                  </em>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       <section className="tone-practice-panel">
@@ -216,7 +222,7 @@ export default function TonePracticePage() {
             </div>
           </div>
           <button type="button" className="btn btn-secondary" onClick={playExample}>
-            <BiLabel zh="聽範例" en="Listen" />
+            <BiLabel zh="聽範例" pinyin="Tīng fànlì" en="Listen" />
           </button>
         </div>
 
@@ -228,9 +234,11 @@ export default function TonePracticePage() {
             disabled={isAnalyzing}
           >
             {isRecording ? (
-              <BiLabel zh="停止並看結果" en="Stop and see result" />
+              <BiLabel zh="停止，看結果" pinyin="Tíngzhǐ, kàn jiéguǒ" en="Stop and see result" />
+            ) : result ? (
+              <BiLabel zh="再試一次" pinyin="Zài shì yí cì" en="Try again" />
             ) : (
-              <BiLabel zh="開始錄音" en="Record" />
+              <BiLabel zh="開始錄音" pinyin="Kāishǐ lùyīn" en="Record" />
             )}
           </button>
           <label
@@ -240,7 +248,7 @@ export default function TonePracticePage() {
             role="button"
             tabIndex={isRecording || isAnalyzing ? -1 : 0}
           >
-            <BiLabel zh="上傳音檔" en="Upload audio" />
+            <BiLabel zh="上傳音檔" pinyin="Shàngchuán yīndàng" en="Upload audio" />
             <input
               type="file"
               accept="audio/*,.wav,.webm,.mp3,.m4a,.ogg,.aac,.flac"
@@ -251,11 +259,11 @@ export default function TonePracticePage() {
           </label>
           {attempts.length > 0 && (
             <span className="tone-practice-attempt-count">
-              <BiLabel zh="第" en="Attempt" /> {attempts.length}
+              <BiLabel zh="第" pinyin="Dì" en="Attempt" /> {attempts.length}
               {typeof bestForSelected === "number" && (
                 <>
                   {" · "}
-                  <BiLabel zh="最佳" en="Best" /> {Math.round(bestForSelected)}%
+                  <BiLabel zh="最佳" pinyin="Zuì jiā" en="Best" /> <BiLabel {...scoreTierLabel(scoreTier(bestForSelected))} />
                 </>
               )}
             </span>
@@ -264,7 +272,7 @@ export default function TonePracticePage() {
 
         {isAnalyzing && (
           <p className="tone-practice-status">
-            <BiLabel zh="正在分析你的聲音…" en="Analyzing your voice…" />
+            <BiLabel zh="正在分析你的聲音…" pinyin="Zhèngzài fēnxī nǐ de shēngyīn…" en="Analyzing your voice…" />
           </p>
         )}
         {error && <p className="tone-practice-error">{error}</p>}
@@ -280,9 +288,6 @@ export default function TonePracticePage() {
 
         {result && !isAnalyzing && (
           <div className="tone-practice-retry-row">
-            <button type="button" className="btn btn-primary" onClick={startRecording} disabled={isRecording}>
-              <BiLabel zh="再試一次" en="Try again" />
-            </button>
             <NextWordButton words={visibleWords} current={selected} onChoose={chooseWord} />
           </div>
         )}
@@ -309,7 +314,7 @@ function NextWordButton({
 
   return (
     <button type="button" className="btn btn-secondary" onClick={() => onChoose(next)}>
-      <BiLabel zh="下一個字" en="Next word" /> · {next.text}
+      <BiLabel zh="下一個字" pinyin="Xià yí ge zì" en="Next word" /> · {next.text}
     </button>
   );
 }
@@ -333,6 +338,7 @@ function ToneMatchResult({
         <p>
           <BiLabel
             zh="沒聽清楚。再靠近麥克風一點，把字音拉長一點再試一次。"
+            pinyin="Méi tīng qīngchu. Zài kàojìn màikèfēng yìdiǎn, bǎ zìyīn lā cháng yìdiǎn zài shì yí cì."
             en="Didn't catch enough of that. Move closer to the mic, hold the sound a little longer, and try again."
           />
         </p>
@@ -347,18 +353,26 @@ function ToneMatchResult({
 
   return (
     <div className="tone-practice-result">
+      {result.content_match === false && (
+        <p className="tone-match-content-warning">
+          <BiLabel
+            zh={`聽起來不太像「${targetText}」，分數可能不準。再唸一次試試？`}
+            pinyin={`Tīng qǐlái bú tài xiàng “${targetText}”, fēnshù kěnéng bù zhǔn. Zài niàn yí cì shìshi?`}
+            en={`That didn't sound like "${targetText}" — the score above may not be reliable. Try recording it again?`}
+          />
+        </p>
+      )}
       {segments.map((segment, index) => (
-        <div className={`tone-match-card ${scoreBand(segment.tone_accuracy)}`} key={`${segment.token}-${index}`}>
+        <div className={`tone-match-card ${scoreTier(segment.tone_accuracy)}`} key={`${segment.token}-${index}`}>
           <div className="tone-match-header">
             <div className="tone-match-score-ring">
-              <strong>{Math.round(segment.tone_accuracy)}%</strong>
-              <span>{scoreVerdict(segment.tone_accuracy)}</span>
+              <strong><BiLabel {...scoreTierLabel(scoreTier(segment.tone_accuracy))} /></strong>
             </div>
             <div className="tone-match-meta">
               <strong>{segment.token || targetText}</strong>
               {index === 0 && typeof trend === "number" && trend !== 0 && (
                 <em className={trend > 0 ? "trend-up" : "trend-down"}>
-                  {trend > 0 ? "↑" : "↓"} {Math.abs(trend)}% <BiLabel zh="比上次" en="vs last try" />
+                  {trend > 0 ? "↑" : "↓"} {Math.abs(trend)}% <BiLabel zh="比上次" pinyin="Bǐ shàngcì" en="vs last try" />
                 </em>
               )}
             </div>
@@ -372,17 +386,5 @@ function ToneMatchResult({
       ))}
     </div>
   );
-}
-
-function scoreBand(score: number): "good" | "ok" | "low" {
-  if (score >= 68) return "good";
-  if (score >= 48) return "ok";
-  return "low";
-}
-
-function scoreVerdict(score: number): string {
-  if (score >= 68) return "Great match";
-  if (score >= 48) return "Getting there";
-  return "Keep practicing";
 }
 

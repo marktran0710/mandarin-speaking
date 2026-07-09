@@ -123,15 +123,21 @@
   min-height: 46px;
   border: 0;
   border-radius: var(--clay-radius-md);
-  background: var(--clay-primary);
+  /* --clay-primary is too light for white text at this size (2.7:1) —
+     seal-deep is the same violet family but clears 4.5:1. */
+  background: var(--seal-deep);
   color: #ffffff;
   font-size: 15px;
   font-weight: 800;
   cursor: pointer;
+  /* Solid, not translucent — seal-soft/rgba blends only cleared ~4.2-4.3:1
+     against this medium-brightness purple, just under 4.5:1. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 
 .login-submit:hover {
-  background: var(--clay-primary-active);
+  background: var(--seal);
 }
 
 /* ── Student login: same tactile game-piece card + lip button as the rest

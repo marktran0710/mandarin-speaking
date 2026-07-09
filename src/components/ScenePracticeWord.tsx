@@ -2,13 +2,20 @@ import { useState, type ChangeEvent } from "react";
 import { useWordPronunciationPractice } from "../hooks/useWordPronunciationPractice";
 import PitchOverlay from "./PitchOverlay";
 import { BiLabel } from "./BiLabel";
+import { scoreTier, scoreTierLabel } from "../utils/scoreLabels";
 import "./ScenePracticeWord.css";
 
 /** A small mic toggle on a scene-vocabulary row that expands into an inline
  * record/upload → score → pitch-curve panel for that single word, reusing
  * the same record/analyze flow as the Tone Practice page. Optional —
  * doesn't block moving on to recording the full scene. */
-export default function ScenePracticeWord({ word }: { word: string }) {
+export default function ScenePracticeWord({
+  word,
+  pinyin,
+}: {
+  word: string;
+  pinyin?: string;
+}) {
   const [expanded, setExpanded] = useState(false);
   const {
     isRecording,
@@ -20,7 +27,7 @@ export default function ScenePracticeWord({ word }: { word: string }) {
     stopRecording,
     analyzeBlob,
     reset,
-  } = useWordPronunciationPractice(word);
+  } = useWordPronunciationPractice(word, pinyin);
 
   const toggle = () => {
     if (expanded) {
@@ -67,7 +74,7 @@ export default function ScenePracticeWord({ word }: { word: string }) {
           <div className="scene-practice-controls">
             <button
               type="button"
-              className={`btn-scene-practice-record ${isRecording ? "recording" : ""}`}
+              className={`btn-mini ${isRecording ? "recording" : ""}`}
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isAnalyzing}
               aria-label={
@@ -75,17 +82,19 @@ export default function ScenePracticeWord({ word }: { word: string }) {
               }
             >
               {isRecording ? (
-                <BiLabel zh="停止" en="Stop" />
+                <BiLabel zh="停止" pinyin="Tíngzhǐ" en="Stop" />
               ) : (
-                <BiLabel zh="錄音" en="Record" />
+                <BiLabel zh="錄音" pinyin="Lùyīn" en="Record" />
               )}
             </button>
             <label
-              className={`btn-scene-practice-upload ${isRecording || isAnalyzing ? "disabled" : ""}`}
+              className={`btn-mini btn-mini-secondary scene-practice-upload-label ${
+                isRecording || isAnalyzing ? "disabled" : ""
+              }`}
               role="button"
               tabIndex={isRecording || isAnalyzing ? -1 : 0}
             >
-              <BiLabel zh="上傳音檔" en="Upload audio" />
+              <BiLabel zh="上傳音檔" pinyin="Shàngchuán yīndàng" en="Upload audio" />
               <input
                 type="file"
                 accept="audio/*,.wav,.webm,.mp3,.m4a,.ogg,.aac,.flac"
@@ -97,13 +106,34 @@ export default function ScenePracticeWord({ word }: { word: string }) {
           </div>
           {isAnalyzing && (
             <span className="scene-practice-status">
-              <BiLabel zh="分析中…" en="Analyzing…" />
+              <BiLabel zh="分析中…" pinyin="Fēnxī zhōng…" en="Analyzing…" />
             </span>
           )}
           {error && <p className="scene-practice-error">{error}</p>}
           {segment && !isAnalyzing && (
             <div className="scene-practice-result">
-              <strong className="scene-practice-score">{Math.round(score ?? 0)}%</strong>
+              {result?.recognized_text && (
+                <p
+                  className={`scene-practice-recognized ${
+                    result.content_match === false ? "mismatch" : "match"
+                  }`}
+                >
+                  <BiLabel zh="聽到：" pinyin="Tīngdào:" en="Heard: " />
+                  <strong>{result.recognized_text}</strong>
+                  {result.content_match === false && (
+                    <span className="scene-practice-recognized-note">
+                      <BiLabel
+                        zh={`（跟「${word}」不太一樣，分數可能不準）`}
+                        pinyin={`(gēn “${word}” bú tài yíyàng, fēnshù kěnéng bù zhǔn)`}
+                        en={` (doesn't match "${word}" — score may not be reliable)`}
+                      />
+                    </span>
+                  )}
+                </p>
+              )}
+              <strong className={`scene-practice-score ${scoreTier(score ?? 0)}`}>
+                <BiLabel {...scoreTierLabel(scoreTier(score ?? 0))} />
+              </strong>
               <PitchOverlay
                 userContour={segment.pitch_contour}
                 referenceContour={segment.reference_contour || []}

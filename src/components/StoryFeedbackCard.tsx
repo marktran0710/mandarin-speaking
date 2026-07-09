@@ -20,10 +20,12 @@ function scoreBandClass(score: number): string {
 
 function DimensionRow({
   zh,
+  pinyin,
   en,
   dimension,
 }: {
   zh: string;
+  pinyin: string;
   en: string;
   dimension: StoryFeedbackDimension;
 }) {
@@ -33,7 +35,7 @@ function DimensionRow({
       className={`story-feedback-card ${notJudged ? "not-judged" : scoreBandClass(dimension.score)}`}
     >
       <div className="story-feedback-card-head">
-        <BiLabel zh={zh} en={en} />
+        <BiLabel zh={zh} pinyin={pinyin} en={en} />
       </div>
       <p className="story-feedback-text">{dimension.feedback}</p>
     </div>
@@ -52,7 +54,7 @@ export default function StoryFeedbackCard({
   return (
     <section className="story-feedback-panel" aria-label="Story-level feedback">
       <p className="story-feedback-heading">
-        <BiLabel zh="整篇故事回顧" en="Whole-story review" />
+        <BiLabel zh="整個故事回顧" pinyin="Zhěnggè gùshì huígù" en="Whole-story review" />
       </p>
       {concatenatedAudioUrl && (
         <audio
@@ -64,22 +66,26 @@ export default function StoryFeedbackCard({
       {feedback && (
         <div className="story-feedback-cards">
           <DimensionRow
-            zh="流暢與連貫"
+            zh="流暢和連貫"
+            pinyin="Liúchàng hé liánguàn"
             en="Fluency and Coherence"
             dimension={feedback.fluency_coherence}
           />
           <DimensionRow
             zh="詞彙量"
+            pinyin="Cíhuì liàng"
             en="Lexical Resource"
             dimension={feedback.lexical_resource}
           />
           <DimensionRow
-            zh="文法廣度與準確度"
+            zh="文法廣度和準確度"
+            pinyin="Wénfǎ guǎngdù hé zhǔnquè dù"
             en="Grammatical Range and Accuracy"
             dimension={feedback.grammatical_range_accuracy}
           />
           <DimensionRow
             zh="發音"
+            pinyin="Fāyīn"
             en="Pronunciation"
             dimension={feedback.pronunciation}
           />

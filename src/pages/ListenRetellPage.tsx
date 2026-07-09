@@ -245,14 +245,15 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
     <main className="listen-retell-page">
       <section className="lr-hero">
         <p className="eyebrow">
-          <BiLabel zh="原型 · 聽力複述" en="Prototype · Listen & Retell" />
+          <BiLabel zh="原型 · 聽和說" pinyin="Yuánxíng · tīng hé shuō" en="Prototype · Listen & Retell" />
         </p>
         <h1>
-          <BiLabel zh="聽力複述" en="Listen & Retell" />
+          <BiLabel zh="聽和說" pinyin="Tīng hé shuō" en="Listen & Retell" />
         </h1>
         <p>
           <BiText
-            zh="聆聽這段文字（可以重複聽幾次），然後用自己的話複述出來。AI 會比對你說的內容與你聽到的內容。"
+            zh="聽這段話（可以聽好幾次），然後用自己的話再說一次。AI 會看看你說的和你聽到的一不一樣。"
+            pinyin="Tīng zhè duàn huà (kěyǐ tīng hǎo jǐ cì), ránhòu yòng zìjǐ de huà zài shuō yí cì. AI huì kànkan nǐ shuō de hé nǐ tīngdào de yì bù yíyàng."
             en="Listen to the passage (as many times as you like), then retell it in your own words. The AI compares what you said against what you heard."
           />
         </p>
@@ -268,7 +269,7 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
           >
             <img src={option.image} alt={`Scene ${index + 1}`} />
             <span>
-              <BiLabel zh={`場景 ${index + 1}`} en={`Scene ${index + 1}`} />
+              <BiLabel zh={`場景 ${index + 1}`} pinyin={`Chǎngjǐng ${index + 1}`} en={`Scene ${index + 1}`} />
             </span>
           </button>
         ))}
@@ -282,15 +283,16 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
           )}
           <button type="button" className="lr-play-btn" onClick={playScript}>
             🔊 {hasListened ? (
-              <BiLabel zh="再聽一次" en="Play again" />
+              <BiLabel zh="再聽一次" pinyin="Zài tīng yí cì" en="Play again" />
             ) : (
-              <BiLabel zh="聆聽" en="Listen" />
+              <BiLabel zh="聽" pinyin="Tīng" en="Listen" />
             )}
           </button>
           {!scene.audioUrl && (
             <p className="lr-tts-note">
               <BiLabel
-                zh="正在播放 AI 文字轉語音 — 此場景尚未上傳老師的錄音。"
+                zh="正在播放 AI 的聲音 — 這個場景還沒有老師的錄音。"
+                pinyin="Zhèngzài bòfàng AI de shēngyīn — zhège chǎngjǐng hái méiyǒu lǎoshī de lùyīn."
                 en="Playing AI text-to-speech — no teacher audio uploaded for this scene."
               />
             </p>
@@ -312,28 +314,29 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
             disabled={isAnalyzing || !hasListened}
           >
             {isRecording ? (
-              <BiLabel zh="停止並評分" en="Stop and evaluate" />
+              <BiLabel zh="停止，評分" pinyin="Tíngzhǐ, píngfēn" en="Stop and evaluate" />
             ) : result ? (
-              <BiLabel zh="再錄一次" en="Record again" />
+              <BiLabel zh="再錄一次" pinyin="Zài lù yí cì" en="Record again" />
             ) : (
-              <BiLabel zh="開始複述" en="Start retelling" />
+              <BiLabel zh="開始說" pinyin="Kāishǐ shuō" en="Start retelling" />
             )}
           </button>
           {!hasListened && (
             <p className="lr-status">
               <BiLabel
-                zh="複述前請至少聽一次這段文字。"
+                zh="說之前，請先聽一次這段話。"
+                pinyin="Shuō zhīqián, qǐng xiān tīng yí cì zhè duàn huà."
                 en="Listen to the passage at least once before you retell it."
               />
             </p>
           )}
           <p className="lr-status">
             {isRecording ? (
-              <BiLabel zh={`錄音中… ${recordingDuration}s`} en={`Recording... ${recordingDuration}s`} />
+              <BiLabel zh={`錄音中… ${recordingDuration}s`} pinyin={`Lùyīn zhōng… ${recordingDuration}s`} en={`Recording... ${recordingDuration}s`} />
             ) : isAnalyzing ? (
-              <BiLabel zh="正在比對你的複述與原文…" en="Comparing your retelling with the passage..." />
+              <BiLabel zh="正在看你說的和原文一不一樣…" pinyin="Zhèngzài kàn nǐ shuō de hé yuánwén yì bù yíyàng…" en="Comparing your retelling with the passage..." />
             ) : (
-              <BiLabel zh="準備好了" en="Ready" />
+              <BiLabel zh="準備好了" pinyin="Zhǔnbèi hǎo le" en="Ready" />
             )}
           </p>
           {audioUrl && <audio controls src={audioUrl} className="lr-audio-preview" />}
@@ -347,37 +350,37 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
             <span><BiLabel k="you_said" /></span>
             <p lang="zh-TW">
               {result.transcription || (
-                <BiLabel zh="（未偵測到語音）" en="(no speech detected)" />
+                <BiLabel zh="（沒聽到聲音）" pinyin="(méi tīngdào shēngyīn)" en="(no speech detected)" />
               )}
             </p>
           </div>
 
           <div className="lr-score-grid">
             {ai?.vocabulary_coverage && (
-              <ScoreCard label={<BiLabel zh="詞彙" en="Vocabulary" />} score={ai.vocabulary_coverage.score} />
+              <ScoreCard label={<BiLabel zh="詞彙" pinyin="Cíhuì" en="Vocabulary" />} score={ai.vocabulary_coverage.score} />
             )}
             {prosodyScore !== null && (
               <ScoreCard label={<BiLabel k="character_by_character_prosody" />} score={prosodyScore} />
             )}
-            <ScoreCard label={<BiLabel zh="聲調準確度" en="Tone accuracy" />} score={Math.round(result.tone_accuracy)} />
+            <ScoreCard label={<BiLabel zh="聲調準確度" pinyin="Shēngdiào zhǔnquè dù" en="Tone accuracy" />} score={Math.round(result.tone_accuracy)} />
             {contentAccuracy && (
-              <ScoreCard label={<BiLabel zh="內容準確度" en="Content accuracy" />} score={contentAccuracy.score} highlight />
+              <ScoreCard label={<BiLabel zh="內容準確度" pinyin="Nèiróng zhǔnquè dù" en="Content accuracy" />} score={contentAccuracy.score} highlight />
             )}
           </div>
 
           {contentAccuracy && (
             <div className="lr-content-accuracy">
-              <h2><BiLabel zh="你的複述符合你聽到的內容嗎？" en="Does your retelling match what you heard?" /></h2>
+              <h2><BiLabel zh="你說的跟你聽到的一樣嗎？" pinyin="Nǐ shuō de gēn nǐ tīngdào de yíyàng ma?" en="Does your retelling match what you heard?" /></h2>
               <p>{contentAccuracy.feedback}</p>
               {contentAccuracy.matched_details.length > 0 && (
                 <p className="lr-matched">
-                  ✓ <BiLabel zh="符合：" en="Matched: " />
+                  ✓ <BiLabel zh="說對了：" pinyin="Shuō duì le:" en="Matched: " />
                   {contentAccuracy.matched_details.join(", ")}
                 </p>
               )}
               {contentAccuracy.missed_details.length > 0 && (
                 <p className="lr-missed">
-                  ✗ <BiLabel zh="遺漏：" en="Missed: " />
+                  ✗ <BiLabel zh="沒說到：" pinyin="Méi shuō dào:" en="Missed: " />
                   {contentAccuracy.missed_details.join(", ")}
                 </p>
               )}
@@ -386,13 +389,13 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
 
           {ai?.vocabulary_coverage && (
             <div className="lr-detail-card">
-              <h3><BiLabel zh="詞彙" en="Vocabulary" /></h3>
+              <h3><BiLabel zh="詞彙" pinyin="Cíhuì" en="Vocabulary" /></h3>
               <p>{ai.vocabulary_coverage.feedback}</p>
             </div>
           )}
           {ai?.coherence && (
             <div className="lr-detail-card">
-              <h3><BiLabel zh="連貫性" en="Coherence" /></h3>
+              <h3><BiLabel zh="順暢度" pinyin="Shùnchàng dù" en="Coherence" /></h3>
               <p>{ai.coherence.feedback}</p>
             </div>
           )}
@@ -408,7 +411,7 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
           )}
           {ai?.practice_prompt && (
             <div className="lr-detail-card practice">
-              <h3><BiLabel zh="下一步練習" en="Practice next" /></h3>
+              <h3><BiLabel zh="下一步練習" pinyin="Xià yí bù liànxí" en="Practice next" /></h3>
               <p>{ai.practice_prompt}</p>
             </div>
           )}

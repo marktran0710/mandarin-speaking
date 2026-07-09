@@ -38,41 +38,11 @@
   flex-wrap: wrap;
 }
 
-.btn-scene-practice-record {
-  border: 1px solid var(--jade);
-  border-radius: var(--clay-radius-md);
-  background: var(--jade);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 800;
-  padding: 6px 14px;
-  cursor: pointer;
-}
-.btn-scene-practice-record.recording {
-  background: var(--clay-error);
-  border-color: var(--clay-error);
-}
-.btn-scene-practice-record:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-scene-practice-upload {
+.scene-practice-upload-label {
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-soft);
-  color: var(--clay-ink);
-  font-size: 13px;
-  font-weight: 800;
-  padding: 6px 14px;
-  cursor: pointer;
 }
-.btn-scene-practice-upload:hover {
-  border-color: var(--seal);
-}
-.btn-scene-practice-upload.disabled {
+.scene-practice-upload-label.disabled {
   opacity: 0.5;
   pointer-events: none;
 }
@@ -105,11 +75,37 @@
 
 .scene-practice-score {
   font-size: 1.4em;
-  color: var(--gold-deep);
 }
+
+.scene-practice-score.excellent { color: var(--jade-deep); }
+.scene-practice-score.good { color: var(--jade); }
+.scene-practice-score.ok { color: var(--gold-deep); }
+.scene-practice-score.low { color: var(--seal); }
 
 .scene-practice-feedback {
   margin: 0;
   font-size: 13px;
   color: var(--clay-body);
+}
+
+.scene-practice-recognized {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: var(--clay-radius-md);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.scene-practice-recognized.match {
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.scene-practice-recognized.mismatch {
+  background: var(--gold-soft);
+  color: var(--gold-deep);
+}
+
+.scene-practice-recognized-note {
+  font-weight: 400;
 }

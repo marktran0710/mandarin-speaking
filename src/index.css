@@ -97,6 +97,19 @@
   --clay-radius-xl: 28px;
   --clay-radius-pill: 999px;
 
+  /* Text color for use on filled accent backgrounds (buttons, badges) —
+     one token instead of hardcoding #ffffff/white in every component file. */
+  --clay-on-accent: #ffffff;
+
+  /* Type scale — a fixed set of sizes so "small label" / "body" / "heading"
+     stay consistent instead of every file picking its own px value. */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 20px;
+  --text-xl: 28px;
+
   /* Shadow */
   --airbnb-shadow:
     rgba(32, 29, 41, 0.03) 0 0 0 1px,
@@ -515,8 +528,12 @@ h2 {
   background: var(--seal);
   border-color: var(--seal-deep);
   box-shadow: 0 4px 0 var(--seal-deep);
-  color: white;
+  color: var(--clay-on-accent);
   font-weight: 650;
+  /* BiLabel's default pinyin/en colors are picked for light surfaces —
+     nearly illegible on this seal-colored button. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -532,7 +549,7 @@ h2 {
   background: var(--clay-error);
   border-color: var(--clay-error-deep);
   box-shadow: 0 4px 0 var(--clay-error-deep);
-  color: white;
+  color: var(--clay-on-accent);
   font-weight: 650;
 }
 
@@ -546,11 +563,14 @@ h2 {
 }
 
 .btn-secondary {
-  background: var(--jade);
+  /* --jade only gets bold white text to ~3.6:1 — --jade-deep clears 4.5:1. */
+  background: var(--jade-deep);
   border-color: var(--jade-deep);
   box-shadow: 0 4px 0 var(--jade-deep);
-  color: white;
+  color: var(--clay-on-accent);
   font-weight: 650;
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 
 .btn-secondary:hover:not(:disabled) {
@@ -567,6 +587,43 @@ h2 {
   min-width: auto;
   padding: 8px 12px;
   font-size: 14px;
+}
+
+/* Compact record/upload pair used by the inline "practice this word alone"
+   panels — shared by StoryRecorder's word-practice drill and
+   ScenePracticeWord so both render the same button, not two lookalikes. */
+.btn-mini {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--clay-radius-pill);
+  background: var(--seal);
+  color: var(--clay-on-accent);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-mini:hover {
+  background: var(--seal-deep);
+}
+
+.btn-mini.recording {
+  background: var(--clay-error);
+}
+
+.btn-mini:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-mini-secondary {
+  background: var(--clay-surface-soft);
+  color: var(--clay-ink);
+  border: 1px solid var(--clay-hairline);
+}
+
+.btn-mini-secondary:hover {
+  border-color: var(--seal);
 }
 
 .recording-info {
@@ -646,7 +703,7 @@ h2 {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   background-color: var(--seal);
-  color: white;
+  color: var(--clay-on-accent);
 }
 
 .transcription-item p {

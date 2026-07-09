@@ -32,19 +32,27 @@
 
 .story-feedback-card.good {
   background: var(--jade-soft);
+  /* clay-muted (BiLabel's default .bi-en color) lands at ~4.2:1 on this
+     pastel tint — just under 4.5:1. */
+  --bi-en-color: var(--clay-body);
 }
 
 .story-feedback-card.fix {
   background: var(--gold-soft);
+  --bi-en-color: var(--clay-body);
 }
 
 .story-feedback-card.next {
   background: var(--seal-soft);
+  --bi-en-color: var(--clay-body);
 }
 
 .story-feedback-card.not-judged {
+  /* Convey "not yet judged" via the muted surface tone alone — opacity here
+     used to blend ALL descendant text (labels, pinyin, feedback copy) toward
+     white, breaking their contrast unpredictably (the same anti-pattern
+     fixed on BiLabel's .bi-en/.bi-pinyin elsewhere). */
   background: var(--clay-surface-strong);
-  opacity: 0.75;
 }
 
 .story-feedback-card-head {

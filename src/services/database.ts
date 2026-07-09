@@ -260,6 +260,8 @@ export interface VocabQuizAttempt {
   id: string;
   storyId: string;
   studentName: string;
+  // Optional: attempts saved before quiz mode was tracked have none.
+  mode?: "speed" | "strikes" | "free";
   completedAt: string;
   totalQuestions: number;
   correctCount: number;
@@ -277,6 +279,16 @@ export async function createVocabQuizAttempt(
   });
   if (!response.ok) throw new Error("Could not save the vocabulary quiz attempt.");
   return response.json() as Promise<VocabQuizAttempt>;
+}
+
+export async function listVocabQuizAttempts(storyId?: string): Promise<VocabQuizAttempt[]> {
+  const url = storyId
+    ? `${BACKEND_URL}/api/vocab-quiz-attempts?story_id=${encodeURIComponent(storyId)}`
+    : `${BACKEND_URL}/api/vocab-quiz-attempts`;
+  const response = await fetchWithRetry(url);
+  if (!response.ok) throw new Error("Could not load vocabulary quiz attempts.");
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
 }
 
 export async function resolveHelpRequest(id: string) {

@@ -27,6 +27,15 @@
   margin: 0;
 }
 
+.tone-practice-picker {
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: #ffffff;
+}
+
 .tone-practice-filters {
   display: flex;
   flex-wrap: wrap;
@@ -36,8 +45,8 @@
 .tone-filter-chip {
   padding: 8px 14px;
   border: 1px solid var(--clay-hairline);
-  border-radius: 999px;
-  background: #ffffff;
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-soft);
   color: var(--clay-body);
   font-weight: 650;
   font-size: 13px;
@@ -52,7 +61,7 @@
 .tone-filter-chip.active {
   background: var(--seal);
   border-color: var(--seal);
-  color: #ffffff;
+  color: var(--clay-on-accent);
 }
 
 .tone-practice-grid {
@@ -69,7 +78,7 @@
   padding: 14px 10px;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
-  background: #ffffff;
+  background: var(--clay-surface-soft);
   cursor: pointer;
   text-align: center;
   transition: all 0.15s ease;
@@ -84,6 +93,11 @@
   border-color: var(--seal);
   background: var(--seal-soft);
   box-shadow: 0 0 0 2px var(--seal-soft);
+}
+
+.tone-word-card.selected small {
+  /* clay-muted lands at ~4.0:1 on seal-soft — just under 4.5:1. */
+  color: var(--clay-body);
 }
 
 .tone-word-card .tone-shape-icon {
@@ -119,7 +133,12 @@
   font-weight: 800;
   font-size: 11px;
   padding: 2px 6px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
+}
+
+.tone-word-best.excellent {
+  background: var(--jade);
+  color: var(--clay-on-accent);
 }
 
 .tone-word-best.good {
@@ -254,12 +273,26 @@
   color: var(--gold-deep);
 }
 
+.tone-match-content-warning {
+  padding: 12px 14px;
+  border-radius: var(--clay-radius-md);
+  background: var(--gold-soft);
+  color: var(--gold-deep);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
 .tone-match-card {
   padding: 16px;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   display: grid;
   gap: 12px;
+}
+
+.tone-match-card.excellent {
+  background: var(--jade-soft);
+  border-color: var(--jade-deep);
 }
 
 .tone-match-card.good {
@@ -286,12 +319,17 @@
 .tone-match-score-ring {
   display: grid;
   justify-items: center;
-  min-width: 84px;
-  padding: 10px 6px;
+  align-content: center;
+  min-width: 96px;
+  padding: 10px 8px;
   border-radius: 50%;
   aspect-ratio: 1;
   background: #ffffff;
   border: 3px solid currentColor;
+}
+
+.tone-match-card.excellent .tone-match-score-ring {
+  color: var(--jade-deep);
 }
 
 .tone-match-card.good .tone-match-score-ring {
@@ -308,15 +346,10 @@
 
 .tone-match-score-ring strong {
   color: var(--clay-ink);
-  font-size: 22px;
-  line-height: 1.1;
-}
-
-.tone-match-score-ring span {
-  color: var(--clay-muted);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-align: center;
 }
 
 .tone-match-meta {

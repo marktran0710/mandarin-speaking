@@ -84,7 +84,7 @@ export default function Navigation({
                   className={`nav-link ${currentPage === "tone-practice" ? "active" : ""}`}
                   onClick={() => onNavigate("tone-practice")}
                 >
-                  <BiLabel zh="聲調練習" en="Tone practice" />
+                  <BiLabel zh="聲調練習" pinyin="Shēngdiào liànxí" en="Tone practice" />
                 </button>
               </li>
               <li>
@@ -93,7 +93,7 @@ export default function Navigation({
                   className={`nav-link ${currentPage === "student-stories" ? "active" : ""}`}
                   onClick={() => onNavigate("student-stories")}
                 >
-                  <BiLabel zh="我的故事" en="My Stories" />
+                  <BiLabel zh="我的故事" pinyin="Wǒ de gùshì" en="My Stories" />
                 </button>
               </li>
 

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import Chart from "chart.js/auto";
 import PitchChart from "../components/PitchChart";
 import { getTopicVocabulary } from "../components/TopicSelector";
 import {
@@ -8,7 +9,9 @@ import {
   HelpRequest,
   listCustomStories,
   listStorySubmissions,
+  listVocabQuizAttempts,
   type StorySubmission,
+  type VocabQuizAttempt,
 } from "../services/database";
 import {
   CustomTeacherStory,
@@ -28,6 +31,27 @@ import "./MyStoriesPage.css";
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
   (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+
+// ── Shared Chart.js look for the teacher analytics tabs ────────────────────
+// A plainer, more neutral "data dashboard" register than the rest of the
+// app's playful student-facing style: the app's own sans stack instead of
+// the display/heading font, restrained gridlines, and a flat (non-bold)
+// tick weight. Set once so every chart on Quiz Analytics and Recording
+// Analytics inherits it without repeating options per chart.
+const CHART_FONT_FAMILY =
+  '"Inter", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif';
+Chart.defaults.font.family = CHART_FONT_FAMILY;
+Chart.defaults.font.size = 12;
+Chart.defaults.color = "#6f697c";
+Chart.defaults.borderColor = "#efe6d3";
+Chart.defaults.plugins.tooltip.backgroundColor = "#201d29";
+Chart.defaults.plugins.tooltip.titleFont = { family: CHART_FONT_FAMILY, weight: "bold" };
+Chart.defaults.plugins.tooltip.bodyFont = { family: CHART_FONT_FAMILY };
+Chart.defaults.plugins.tooltip.padding = 10;
+Chart.defaults.plugins.tooltip.cornerRadius = 6;
+Chart.defaults.plugins.legend.labels.usePointStyle = true;
+Chart.defaults.plugins.legend.labels.boxWidth = 8;
+Chart.defaults.plugins.legend.labels.boxHeight = 8;
 
 interface AudioRecord {
   id: string;
@@ -82,7 +106,15 @@ interface CustomStoryValidationErrors {
   frames?: Record<number, { imageUrl?: string; prompt?: string }>;
 }
 
-type TeacherView = "overview" | "help" | "materials" | "progress" | "recordings" | "submissions";
+type TeacherView =
+  | "overview"
+  | "help"
+  | "materials"
+  | "progress"
+  | "recordings"
+  | "submissions"
+  | "quizAnalytics"
+  | "recordingAnalytics";
 
 function getStudentTopics() {
   return loadPublishedTeacherTopics();
@@ -348,14 +380,15 @@ export default function MyStoriesPage({
     <div className="my-stories-page">
         <div className="stories-header">
           <p className="stories-kicker">
-            <BiLabel zh="我的練習" en="My practice" />
+            <BiLabel zh="我的練習" pinyin="Wǒ de liànxí" en="My practice" />
           </p>
           <h1>
-            <BiLabel zh="我的故事練習本" en="My Story Workbook" />
+            <BiLabel zh="我的故事練習本" pinyin="Wǒ de gùshì liànxí běn" en="My Story Workbook" />
           </h1>
           <p className="stories-subtitle">
             <BiText
-              zh="選一張圖片，錄製你的故事段落，等回饋出來後再修改。"
+              zh="選一張圖片，錄你的故事部分，等回饋出來後再修改。"
+              pinyin="Xuǎn yì zhāng túpiàn, lù nǐ de gùshì bùfen, děng huíkuì chūlái hòu zài xiūgǎi."
               en="Choose a picture, record your story part, then revise when feedback is ready."
             />
           </p>
@@ -363,7 +396,7 @@ export default function MyStoriesPage({
 
         <section className="student-progress-panel" aria-label="Learning progress">
           <div className="student-progress-main">
-            <span><BiLabel zh="進度" en="Progress" /></span>
+            <span><BiLabel zh="進度" pinyin="Jìndù" en="Progress" /></span>
             <strong>
               {completedPrompts}/{promptImages.length}
               {promptImages.length > 0 && completedPrompts === promptImages.length && (
@@ -382,13 +415,13 @@ export default function MyStoriesPage({
           </div>
           <div className="student-progress-stats">
             <span>
-              <BiLabel zh={`${records.length} 筆錄音`} en={`${records.length} recordings`} />
+              <BiLabel zh={`${records.length} 個錄音`} pinyin={`${records.length} ge lùyīn`} en={`${records.length} recordings`} />
             </span>
             <span>
               {averageFluency === null ? (
-                <BiLabel zh="尚無流暢度分數" en="No fluency score yet" />
+                <BiLabel zh="還沒有流暢度分數" pinyin="Hái méiyǒu liúchàng dù fēnshù" en="No fluency score yet" />
               ) : (
-                <BiLabel zh={`流暢度 ${averageFluency}/100`} en={`${averageFluency}/100 fluency`} />
+                <BiLabel zh={`流暢度 ${averageFluency}/100`} pinyin={`Liúchàng dù ${averageFluency}/100`} en={`${averageFluency}/100 fluency`} />
               )}
             </span>
           </div>
@@ -423,7 +456,7 @@ export default function MyStoriesPage({
                     <p className="stories-kicker">
                       {topic.lessonNumber != null && (
                         <span className="topic-lesson-badge">
-                          <BiLabel zh={`第 ${topic.lessonNumber} 課`} en={`Lesson ${topic.lessonNumber}`} />
+                          <BiLabel zh={`第 ${topic.lessonNumber} 課`} pinyin={`Dì ${topic.lessonNumber} kè`} en={`Lesson ${topic.lessonNumber}`} />
                         </span>
                       )}
                       {topic.name}
@@ -433,7 +466,7 @@ export default function MyStoriesPage({
                   <div className="topic-progress-card">
                     <strong>{topicCompleted}/{prompts.length}</strong>
                     <span>
-                      <BiLabel zh={`完成 ${topicProgress}%`} en={`${topicProgress}% complete`} />
+                      <BiLabel zh={`完成 ${topicProgress}%`} pinyin={`Wánchéng ${topicProgress}%`} en={`${topicProgress}% complete`} />
                     </span>
                   </div>
                 </div>
@@ -470,7 +503,7 @@ export default function MyStoriesPage({
                           <div className="prompt-title-row">
                             <div>
                               <p className="picture-topic">
-                                <BiLabel zh={`第 ${prompt.imageIndex + 1} 部分`} en={`Part ${prompt.imageIndex + 1}`} />
+                                <BiLabel zh={`第 ${prompt.imageIndex + 1} 部分`} pinyin={`Dì ${prompt.imageIndex + 1} bùfen`} en={`Part ${prompt.imageIndex + 1}`} />
                               </p>
                               <h3>{prompt.topicName}</h3>
                             </div>
@@ -481,14 +514,14 @@ export default function MyStoriesPage({
                             >
                               {latestRecord ? (
                                 isRevised ? (
-                                  <BiLabel zh="已修改" en="Revised" />
+                                  <BiLabel zh="已修改" pinyin="Yǐ xiūgǎi" en="Revised" />
                                 ) : hasFeedback ? (
-                                  <BiLabel zh="回饋已就緒" en="Feedback ready" />
+                                  <BiLabel zh="回饋好了" pinyin="Huíkuì hǎo le" en="Feedback ready" />
                                 ) : (
-                                  <BiLabel zh="已錄音" en="Recorded" />
+                                  <BiLabel zh="已錄音" pinyin="Yǐ lùyīn" en="Recorded" />
                                 )
                               ) : (
-                                <BiLabel zh="尚待錄音" en="Needs recording" />
+                                <BiLabel zh="還沒錄音" pinyin="Hái méi lùyīn" en="Needs recording" />
                               )}
                             </span>
                           </div>
@@ -512,9 +545,9 @@ export default function MyStoriesPage({
                             }
                           >
                             {latestRecord ? (
-                              <BiLabel zh="再錄一次以修改" en="Revise with another recording" />
+                              <BiLabel zh="再錄一次來修改" pinyin="Zài lù yí cì lái xiūgǎi" en="Revise with another recording" />
                             ) : (
-                              <BiLabel zh="錄製這個部分" en="Record this part" />
+                              <BiLabel zh="錄這個部分" pinyin="Lù zhège bùfen" en="Record this part" />
                             )}
                           </button>
 
@@ -522,7 +555,8 @@ export default function MyStoriesPage({
                             <div className="revision-summary">
                               <strong>
                                 <BiLabel
-                                  zh={`已收集 ${attemptCount} 次嘗試`}
+                                  zh={`已經試了 ${attemptCount} 次`}
+                                  pinyin={`Yǐjīng shì le ${attemptCount} cì`}
                                   en={`${attemptCount} ${attemptCount === 1 ? "attempt" : "attempts"} collected`}
                                 />
                               </strong>
@@ -531,7 +565,7 @@ export default function MyStoriesPage({
 
                           {latestRecord ? (
                             <details className="prompt-feedback-details">
-                              <summary><BiLabel zh="查看回饋" en="View feedback" /></summary>
+                              <summary><BiLabel zh="看回饋" pinyin="Kàn huíkuì" en="View feedback" /></summary>
                               <RecordCard
                                 record={latestRecord}
                                 onDeleteRecord={onDeleteRecord}
@@ -540,7 +574,7 @@ export default function MyStoriesPage({
                             </details>
                           ) : (
                             <div className="picture-empty-result">
-                              <BiLabel zh="準備好之後就錄這張圖片。" en="Record this picture when you are ready." />
+                              <BiLabel zh="準備好了就錄這張圖片。" pinyin="Zhǔnbèi hǎo le jiù lù zhè zhāng túpiàn." en="Record this picture when you are ready." />
                             </div>
                           )}
                         </div>
@@ -552,7 +586,8 @@ export default function MyStoriesPage({
                 {topicRecords.length > 0 && (
                   <p className="topic-record-count">
                     <BiLabel
-                      zh={`此主題共 ${topicRecords.length} 次嘗試。`}
+                      zh={`這個主題一共有 ${topicRecords.length} 次嘗試。`}
+                      pinyin={`Zhège zhǔtí yígòng yǒu ${topicRecords.length} cì chángshì.`}
                       en={`${topicRecords.length} total ${topicRecords.length === 1 ? "attempt" : "attempts"} in this topic.`}
                     />
                   </p>
@@ -575,14 +610,15 @@ function MyStoryFeedbackHistory({
   return (
     <section className="my-story-feedback-history" aria-label="My story feedback history">
       <p className="stories-kicker">
-        <BiLabel zh="回顧與進步" en="Review and improve" />
+        <BiLabel zh="回顧和進步" pinyin="Huígù hé jìnbù" en="Review and improve" />
       </p>
       <h2>
-        <BiLabel zh="我的故事回顧" en="My Story Feedback" />
+        <BiLabel zh="我的故事回顧" pinyin="Wǒ de gùshì huígù" en="My Story Feedback" />
       </h2>
       <p className="stories-subtitle">
         <BiText
           zh="再看一次你交過的故事，跟著建議練習，下次會更好。"
+          pinyin="Zài kàn yí cì nǐ jiāo guò de gùshì, gēnzhe jiànyì liànxí, xiàcì huì gèng hǎo."
           en="Look back at stories you've submitted and follow the suggestions to improve next time."
         />
       </p>
@@ -613,7 +649,7 @@ function StudentHelpCard({
   helpRequests: HelpRequest[];
   onRaiseHand?: (message: string) => void;
 }) {
-  const [message, setMessage] = useState("我的故事需要協助。 I need help with my story.");
+  const [message, setMessage] = useState("我的故事需要幫忙。 I need help with my story.");
   const studentName = getSessionName("studentSession", "Student");
   const activeRequest = helpRequests.find(
     (request) =>
@@ -624,24 +660,26 @@ function StudentHelpCard({
     <section className="student-help-card" aria-label="Ask teacher for help">
       <div>
         <p className="stories-kicker">
-          <BiLabel zh="老師協助" en="Teacher support" />
+          <BiLabel zh="老師幫忙" pinyin="Lǎoshī bāngmáng" en="Teacher support" />
         </p>
         <h2>
           {activeRequest ? (
-            <BiLabel zh="已舉手" en="Your hand is raised" />
+            <BiLabel zh="已舉手" pinyin="Yǐ jǔshǒu" en="Your hand is raised" />
           ) : (
-            <BiLabel zh="舉手提問" en="Raise your hand" />
+            <BiLabel zh="舉手問問題" pinyin="Jǔshǒu wèn wèntí" en="Raise your hand" />
           )}
         </h2>
         <p>
           {activeRequest ? (
             <BiText
-              zh="老師已經看到你的請求。如果問題改變了，可以更新備註。"
+              zh="老師已經看到你舉手了。如果問題不一樣了，可以再說一次。"
+              pinyin="Lǎoshī yǐjīng kàndào nǐ jǔshǒu le. Rúguǒ wèntí bù yíyàng le, kěyǐ zài shuō yí cì."
               en="Your teacher can see your request. You can update the note if your question changed."
             />
           ) : (
             <BiText
-              zh="在繼續完成故事的同時，悄悄發送一個求助請求。"
+              zh="一邊做故事，一邊可以偷偷舉手，老師會看到。"
+              pinyin="Yìbiān zuò gùshì, yìbiān kěyǐ tōutōu jǔshǒu, lǎoshī huì kàndào."
               en="Send a quiet help request while you keep working on your story."
             />
           )}
@@ -661,9 +699,9 @@ function StudentHelpCard({
         />
         <button type="submit" disabled={!onRaiseHand}>
           {activeRequest ? (
-            <BiLabel zh="更新請求" en="Update request" />
+            <BiLabel zh="再舉手一次" pinyin="Zài jǔshǒu yí cì" en="Update request" />
           ) : (
-            <BiLabel zh="舉手" en="Raise hand" />
+            <BiLabel zh="舉手" pinyin="Jǔshǒu" en="Raise hand" />
           )}
         </button>
       </form>
@@ -699,6 +737,18 @@ function TeacherDashboard({
     if (activeView !== "submissions" || !canUseDatabase()) return;
     listStorySubmissions().then(setSubmissions).catch(() => {});
   }, [activeView]);
+
+  const [quizAttempts, setQuizAttempts] = useState<VocabQuizAttempt[]>([]);
+  const [quizAttemptsError, setQuizAttemptsError] = useState("");
+
+  useEffect(() => {
+    if (activeView !== "quizAnalytics" || !canUseDatabase()) return;
+    setQuizAttemptsError("");
+    listVocabQuizAttempts()
+      .then(setQuizAttempts)
+      .catch(() => setQuizAttemptsError("Could not load vocabulary quiz analytics."));
+  }, [activeView]);
+
   const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
     () => loadCustomStories(),
   );
@@ -1084,6 +1134,8 @@ function TeacherDashboard({
     { id: "materials", label: "Materials", count: customStories.length },
     { id: "progress", label: "Progress" },
     { id: "recordings", label: "Recordings", count: records.length },
+    { id: "quizAnalytics", label: "Quiz Analytics", count: quizAttempts.length },
+    { id: "recordingAnalytics", label: "Recording Analytics", count: feedbackReadyRecords.length },
   ];
 
   return (
@@ -1552,20 +1604,33 @@ function TeacherDashboard({
                         >
                           Edit
                         </button>
-                        <button
-                          type="button"
-                          className="btn-export-custom-story"
-                          onClick={() => handleExportStory(story)}
-                        >
-                          Export
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-delete-custom-story"
-                          onClick={() => handleDeleteCustomStory(story.id)}
-                        >
-                          Delete
-                        </button>
+                        <details className="custom-story-item-menu">
+                          <summary aria-label="More actions">⋯</summary>
+                          <div className="custom-story-item-menu-list" role="menu">
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="btn-export-custom-story"
+                              onClick={(event) => {
+                                handleExportStory(story);
+                                event.currentTarget.closest("details")?.removeAttribute("open");
+                              }}
+                            >
+                              Export
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="btn-delete-custom-story"
+                              onClick={(event) => {
+                                handleDeleteCustomStory(story.id);
+                                event.currentTarget.closest("details")?.removeAttribute("open");
+                              }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </details>
                       </div>
                     </div>
                     <p>{story.learningGoal}</p>
@@ -1739,8 +1804,713 @@ function TeacherDashboard({
           )}
         </section>
       )}
+
+      {activeView === "quizAnalytics" && (
+        <QuizAnalyticsPanel attempts={quizAttempts} loadError={quizAttemptsError} />
+      )}
+
+      {activeView === "recordingAnalytics" && (
+        <RecordingAnalyticsPanel records={records} />
+      )}
     </div>
   );
+}
+
+const QUIZ_MODE_ORDER: Array<"speed" | "strikes" | "free"> = ["speed", "strikes", "free"];
+const QUIZ_MODE_INFO: Record<"speed" | "strikes" | "free", { icon: string; label: string; color: string }> = {
+  speed: { icon: "⏱️", label: "Speed", color: "#7c3aed" },
+  strikes: { icon: "❌", label: "3 Strikes", color: "#1c9a5b" },
+  free: { icon: "🎯", label: "Free Practice", color: "#8a5a12" },
+};
+
+function quizAttemptAccuracy(attempt: VocabQuizAttempt): number {
+  return attempt.totalQuestions > 0
+    ? Math.round((attempt.correctCount / attempt.totalQuestions) * 100)
+    : 0;
+}
+
+function QuizAnalyticsPanel({
+  attempts,
+  loadError,
+}: {
+  attempts: VocabQuizAttempt[];
+  loadError: string;
+}) {
+  const [studentFilter, setStudentFilter] = useState("all");
+  const [modeFilter, setModeFilter] = useState<"all" | "speed" | "strikes" | "free">("all");
+
+  if (loadError) {
+    return (
+      <section className="teacher-panel teacher-quiz-analytics-panel">
+        <div className="teacher-panel-header">
+          <div>
+            <p className="stories-kicker">Vocabulary quiz analytics</p>
+            <h2>Quiz Analytics</h2>
+          </div>
+        </div>
+        <p className="teacher-form-error">{loadError}</p>
+      </section>
+    );
+  }
+
+  if (attempts.length === 0) {
+    return (
+      <section className="teacher-panel teacher-quiz-analytics-panel">
+        <div className="teacher-panel-header">
+          <div>
+            <p className="stories-kicker">Vocabulary quiz analytics</p>
+            <h2>Quiz Analytics</h2>
+          </div>
+        </div>
+        <div className="teacher-empty-panel">
+          <strong>No quiz attempts yet</strong>
+          <p>Time spent, accuracy, and repeated mistakes will appear here after students complete a vocabulary quiz.</p>
+        </div>
+      </section>
+    );
+  }
+
+  const students = Array.from(new Set(attempts.map((a) => a.studentName))).sort();
+  const studentFiltered = studentFilter === "all"
+    ? attempts
+    : attempts.filter((a) => a.studentName === studentFilter);
+  const filtered = modeFilter === "all"
+    ? studentFiltered
+    : studentFiltered.filter((a) => a.mode === modeFilter);
+
+  const totalQuestions = filtered.reduce((sum, a) => sum + a.totalQuestions, 0);
+  const correctCount = filtered.reduce((sum, a) => sum + a.correctCount, 0);
+  const totalTimeMs = filtered.reduce((sum, a) => sum + a.totalTimeMs, 0);
+  const overallAccuracy = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+  const avgTimePerQuestion = totalQuestions > 0 ? Math.round(totalTimeMs / totalQuestions / 1000) : 0;
+
+  const studentStats = computeStudentQuizStats(filtered);
+  const wordStats = computeWordMissStats(filtered).slice(0, 10);
+
+  // Mode comparison always reads the student-filtered set (not mode-filtered)
+  // so all three mode bars stay visible for comparison no matter which mode
+  // is picked in the filter above.
+  const modeChartData = QUIZ_MODE_ORDER.map((mode) => {
+    const modeAttempts = studentFiltered.filter((a) => a.mode === mode);
+    const avg = modeAttempts.length === 0
+      ? 0
+      : Math.round(modeAttempts.reduce((sum, a) => sum + quizAttemptAccuracy(a), 0) / modeAttempts.length);
+    return { mode, avg, count: modeAttempts.length };
+  });
+
+  // One point per attempt when a single student is selected (a short-term
+  // trend is visible); a single class-average-per-day line for "All
+  // students" — never one line per student, which would need an unbounded
+  // categorical palette for a whole classroom.
+  const sortedByDate = [...filtered].sort(
+    (a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime(),
+  );
+  const timeSeries = studentFilter !== "all"
+    ? sortedByDate.map((a) => ({ label: new Date(a.completedAt).toLocaleDateString(), value: quizAttemptAccuracy(a) }))
+    : (() => {
+        const byDay = new Map<string, number[]>();
+        sortedByDate.forEach((a) => {
+          const day = new Date(a.completedAt).toLocaleDateString();
+          byDay.set(day, [...(byDay.get(day) || []), quizAttemptAccuracy(a)]);
+        });
+        return Array.from(byDay.entries()).map(([day, values]) => ({
+          label: day,
+          value: Math.round(values.reduce((s, v) => s + v, 0) / values.length),
+        }));
+      })();
+
+  return (
+    <>
+      <section className="teacher-panel quiz-analytics-filters-panel">
+        <div className="quiz-analytics-filters">
+          <label>
+            Student
+            <select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}>
+              <option value="all">All students</option>
+              {students.map((name) => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Quiz mode
+            <select value={modeFilter} onChange={(e) => setModeFilter(e.target.value as typeof modeFilter)}>
+              <option value="all">All modes</option>
+              {QUIZ_MODE_ORDER.map((mode) => (
+                <option key={mode} value={mode}>{QUIZ_MODE_INFO[mode].icon} {QUIZ_MODE_INFO[mode].label}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </section>
+
+      {filtered.length === 0 ? (
+        <div className="teacher-empty-panel">
+          <strong>No attempts match this filter</strong>
+          <p>Try a different student or quiz mode.</p>
+        </div>
+      ) : (
+        <>
+          <section className="teacher-stat-grid" aria-label="Quiz analytics overview">
+            <DashboardStat
+              label="Quiz attempts"
+              value={String(filtered.length)}
+              note="Completed vocabulary quiz sessions"
+            />
+            <DashboardStat
+              label="Overall accuracy"
+              value={`${overallAccuracy}%`}
+              note={`${correctCount}/${totalQuestions} questions correct`}
+            />
+            <DashboardStat
+              label="Avg. time / question"
+              value={`${avgTimePerQuestion}s`}
+              note="Across all recorded attempts"
+            />
+          </section>
+
+          <section className="teacher-panel teacher-quiz-analytics-panel">
+            <div className="teacher-panel-header">
+              <div>
+                <p className="stories-kicker">Visualized</p>
+                <h2>Charts</h2>
+              </div>
+            </div>
+            <div className="quiz-analytics-charts">
+              <div className="quiz-analytics-chart-card">
+                <h3>Accuracy by quiz mode</h3>
+                <ModeAccuracyChart data={modeChartData} />
+              </div>
+              <div className="quiz-analytics-chart-card">
+                <h3>
+                  {studentFilter === "all"
+                    ? "Class average accuracy over time"
+                    : `${studentFilter}'s accuracy over time`}
+                </h3>
+                <AccuracyTimeChart points={timeSeries} />
+              </div>
+              <div className="quiz-analytics-chart-card quiz-analytics-chart-wide">
+                <h3>Most-missed vocabulary words</h3>
+                {wordStats.length === 0 ? (
+                  <p className="quiz-analytics-empty-note">No missed words in this filter — nice work!</p>
+                ) : (
+                  <WordMissChart data={wordStats} />
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section className="teacher-panel teacher-quiz-analytics-panel">
+            <div className="teacher-panel-header">
+              <div>
+                <p className="stories-kicker">Per student</p>
+                <h2>Student Quiz Performance</h2>
+              </div>
+              <span className="queue-count">{studentStats.length}</span>
+            </div>
+
+            <div className="quiz-analytics-student-table">
+              <div className="quiz-analytics-student-row quiz-analytics-student-head">
+                <span>Student</span>
+                <span>Attempts</span>
+                <span>Accuracy</span>
+                <span>Avg. time/question</span>
+                <span>Most repeated mistake</span>
+              </div>
+              {studentStats.map((student) => (
+                <div className="quiz-analytics-student-row" key={student.studentName}>
+                  <span>{student.studentName}</span>
+                  <span>{student.attempts}</span>
+                  <span>{student.accuracyPct}%</span>
+                  <span>{(student.avgTimePerQuestionMs / 1000).toFixed(1)}s</span>
+                  <span>
+                    {student.topMissedWord
+                      ? `${student.topMissedWord.word} (missed ${student.topMissedWord.missCount}×)`
+                      : "—"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="teacher-panel teacher-quiz-analytics-panel">
+            <div className="teacher-panel-header">
+              <div>
+                <p className="stories-kicker">Class-wide</p>
+                <h2>Words Needing the Most Practice</h2>
+              </div>
+              <span className="queue-count">{wordStats.length}</span>
+            </div>
+
+            {wordStats.length === 0 ? (
+              <div className="teacher-empty-panel">
+                <strong>No repeated mistakes yet</strong>
+                <p>Words students get wrong more than once will show up here.</p>
+              </div>
+            ) : (
+              <div className="quiz-analytics-word-list">
+                {wordStats.map((word) => (
+                  <div className="quiz-analytics-word-row" key={word.word}>
+                    <strong>{word.word}</strong>
+                    <span>
+                      Missed {word.timesMissed}/{word.timesAsked} times ({word.missRatePct}%)
+                    </span>
+                    <span>Avg. {(word.avgTimeMs / 1000).toFixed(1)}s/question</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </>
+      )}
+    </>
+  );
+}
+
+/** Chart.js canvas that (re)builds its chart whenever `build` changes,
+ * tearing down the previous instance first — same lifecycle as
+ * components/PitchChart.tsx. */
+function QuizChartCanvas({ build, height = 220 }: { build: (ctx: CanvasRenderingContext2D) => Chart; height?: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const chartRef = useRef<Chart | null>(null);
+
+  useEffect(() => {
+    const ctx = canvasRef.current?.getContext("2d");
+    if (!ctx) return;
+    chartRef.current?.destroy();
+    chartRef.current = build(ctx);
+    return () => chartRef.current?.destroy();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [build]);
+
+  return (
+    <div className="quiz-analytics-chart-canvas" style={{ height }}>
+      <canvas ref={canvasRef} />
+    </div>
+  );
+}
+
+function ModeAccuracyChart({ data }: { data: Array<{ mode: "speed" | "strikes" | "free"; avg: number; count: number }> }) {
+  const build = useMemo(
+    () => (ctx: CanvasRenderingContext2D) =>
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: data.map((m) => `${QUIZ_MODE_INFO[m.mode].icon} ${QUIZ_MODE_INFO[m.mode].label}`),
+          datasets: [{
+            label: "Average accuracy",
+            data: data.map((m) => m.avg),
+            backgroundColor: data.map((m) => QUIZ_MODE_INFO[m.mode].color),
+            borderRadius: 4,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (item) => {
+                  const m = data[item.dataIndex];
+                  return `${item.parsed.y}% avg accuracy (${m.count} attempt${m.count === 1 ? "" : "s"})`;
+                },
+              },
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              title: { display: true, text: "Accuracy" },
+              ticks: { callback: (v) => `${v}%` },
+            },
+            x: { grid: { display: false } },
+          },
+        },
+      }),
+    [data],
+  );
+  return <QuizChartCanvas build={build} />;
+}
+
+function AccuracyTimeChart({ points }: { points: Array<{ label: string; value: number }> }) {
+  const build = useMemo(
+    () => (ctx: CanvasRenderingContext2D) =>
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: points.map((p) => p.label),
+          datasets: [{
+            label: "Accuracy",
+            data: points.map((p) => p.value),
+            borderColor: "#7c3aed",
+            backgroundColor: "rgba(124, 58, 237, 0.14)",
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: (item) => `${item.parsed.y}% accuracy` } },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              title: { display: true, text: "Accuracy" },
+              ticks: { callback: (v) => `${v}%` },
+            },
+            x: { grid: { display: false } },
+          },
+        },
+      }),
+    [points],
+  );
+  return <QuizChartCanvas build={build} />;
+}
+
+function WordMissChart({ data }: { data: WordMissStats[] }) {
+  const build = useMemo(
+    () => (ctx: CanvasRenderingContext2D) =>
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: data.map((w) => w.word),
+          datasets: [{
+            label: "Miss rate",
+            data: data.map((w) => w.missRatePct),
+            backgroundColor: "#8a5a12",
+            borderRadius: 4,
+          }],
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (item) => {
+                  const w = data[item.dataIndex];
+                  return `Missed ${w.missRatePct}% of ${w.timesAsked} time${w.timesAsked === 1 ? "" : "s"}`;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              max: 100,
+              title: { display: true, text: "Miss rate" },
+              ticks: { callback: (v) => `${v}%` },
+            },
+            y: { grid: { display: false } },
+          },
+        },
+      }),
+    [data],
+  );
+  return <QuizChartCanvas build={build} height={Math.max(180, data.length * 32)} />;
+}
+
+const AI_FEEDBACK_CATEGORIES = ["fluency", "grammar", "vocabulary"] as const;
+const AI_FEEDBACK_CATEGORY_INFO: Record<(typeof AI_FEEDBACK_CATEGORIES)[number], { label: string; color: string }> = {
+  fluency: { label: "Fluency", color: "#7c3aed" },
+  grammar: { label: "Grammar", color: "#1c9a5b" },
+  vocabulary: { label: "Vocabulary", color: "#8a5a12" },
+};
+
+/** Class-wide analytics over story-recording feedback (Praat + AI). Unlike
+ * Quiz Analytics, recordings have no student-name field today, so this is
+ * aggregate-only — a topic filter, not a student one. */
+function RecordingAnalyticsPanel({ records }: { records: AudioRecord[] }) {
+  const [topicFilter, setTopicFilter] = useState("all");
+
+  if (records.length === 0) {
+    return (
+      <section className="teacher-panel teacher-recording-analytics-panel">
+        <div className="teacher-panel-header">
+          <div>
+            <p className="stories-kicker">Recording feedback analytics</p>
+            <h2>Recording Analytics</h2>
+          </div>
+        </div>
+        <div className="teacher-empty-panel">
+          <strong>No recordings yet</strong>
+          <p>Fluency, tone accuracy, and AI feedback trends will appear here once students submit recordings.</p>
+        </div>
+      </section>
+    );
+  }
+
+  const topicIds = Array.from(
+    new Set(records.map((r) => r.topicId).filter((id): id is string => Boolean(id))),
+  );
+
+  const filtered = topicFilter === "all" ? records : records.filter((r) => r.topicId === topicFilter);
+  const withMetrics = filtered.filter((r) => r.praatMetrics);
+  const withAiFeedback = filtered.filter((r) => r.praatMetrics?.ai_feedback);
+
+  const avgFluency = withMetrics.length > 0
+    ? Math.round(withMetrics.reduce((sum, r) => sum + (r.praatMetrics.fluency_score || 0), 0) / withMetrics.length)
+    : null;
+  const avgTone = withMetrics.length > 0
+    ? Math.round(withMetrics.reduce((sum, r) => sum + (r.praatMetrics.tone_accuracy || 0), 0) / withMetrics.length)
+    : null;
+
+  const categoryData = AI_FEEDBACK_CATEGORIES.map((category) => {
+    const scores = withAiFeedback
+      .map((r) => r.praatMetrics.ai_feedback[category]?.score)
+      .filter((s): s is number => typeof s === "number");
+    return {
+      category,
+      avg: scores.length > 0 ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length) : 0,
+      count: scores.length,
+    };
+  });
+  const allAiScores = categoryData.flatMap((c) => (c.count > 0 ? [c.avg] : []));
+  const avgAiScore = allAiScores.length > 0
+    ? Math.round(allAiScores.reduce((s, v) => s + v, 0) / allAiScores.length)
+    : null;
+
+  const parsedByTime = withMetrics
+    .map((r) => ({
+      time: new Date(r.timestamp).getTime(),
+      fluency: r.praatMetrics.fluency_score,
+      tone: r.praatMetrics.tone_accuracy,
+    }))
+    .filter((r) => !Number.isNaN(r.time))
+    .sort((a, b) => a.time - b.time);
+  const byDay = new Map<string, { fluency: number[]; tone: number[] }>();
+  parsedByTime.forEach((r) => {
+    const day = new Date(r.time).toLocaleDateString();
+    const entry = byDay.get(day) || { fluency: [], tone: [] };
+    entry.fluency.push(r.fluency || 0);
+    entry.tone.push(r.tone || 0);
+    byDay.set(day, entry);
+  });
+  const timeSeries = Array.from(byDay.entries()).map(([day, v]) => ({
+    label: day,
+    fluency: Math.round(v.fluency.reduce((s, x) => s + x, 0) / v.fluency.length),
+    tone: Math.round(v.tone.reduce((s, x) => s + x, 0) / v.tone.length),
+  }));
+
+  const perTopic = topicIds
+    .map((id) => ({ topic: getTopicLabel(id), count: records.filter((r) => r.topicId === id).length }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  return (
+    <>
+      <section className="teacher-panel quiz-analytics-filters-panel">
+        <div className="quiz-analytics-filters">
+          <label>
+            Topic
+            <select value={topicFilter} onChange={(e) => setTopicFilter(e.target.value)}>
+              <option value="all">All topics</option>
+              {topicIds.map((id) => (
+                <option key={id} value={id}>{getTopicLabel(id)}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </section>
+
+      {filtered.length === 0 ? (
+        <div className="teacher-empty-panel">
+          <strong>No recordings match this filter</strong>
+          <p>Try a different topic.</p>
+        </div>
+      ) : (
+        <>
+          <section className="teacher-stat-grid" aria-label="Recording analytics overview">
+            <DashboardStat
+              label="Recordings"
+              value={String(filtered.length)}
+              note="Total submitted recordings"
+            />
+            <DashboardStat
+              label="Avg. fluency"
+              value={avgFluency === null ? "--" : `${avgFluency}/100`}
+              note="Praat fluency score"
+            />
+            <DashboardStat
+              label="Avg. tone accuracy"
+              value={avgTone === null ? "--" : `${avgTone}%`}
+              note="Praat tone accuracy"
+            />
+            <DashboardStat
+              label="Avg. AI feedback score"
+              value={avgAiScore === null ? "--" : `${avgAiScore}/100`}
+              note="Fluency + grammar + vocabulary"
+            />
+          </section>
+
+          <section className="teacher-panel teacher-recording-analytics-panel">
+            <div className="teacher-panel-header">
+              <div>
+                <p className="stories-kicker">Visualized</p>
+                <h2>Charts</h2>
+              </div>
+            </div>
+            <div className="quiz-analytics-charts">
+              <div className="quiz-analytics-chart-card quiz-analytics-chart-wide">
+                <h3>Fluency &amp; tone accuracy over time</h3>
+                {timeSeries.length === 0 ? (
+                  <p className="quiz-analytics-empty-note">No analyzed recordings in this filter yet.</p>
+                ) : (
+                  <FluencyToneTimeChart points={timeSeries} />
+                )}
+              </div>
+              <div className="quiz-analytics-chart-card">
+                <h3>AI feedback score by category</h3>
+                {allAiScores.length === 0 ? (
+                  <p className="quiz-analytics-empty-note">No AI feedback in this filter yet.</p>
+                ) : (
+                  <AiFeedbackCategoryChart data={categoryData} />
+                )}
+              </div>
+              <div className="quiz-analytics-chart-card">
+                <h3>Recordings per topic</h3>
+                {perTopic.length === 0 ? (
+                  <p className="quiz-analytics-empty-note">No topic data yet.</p>
+                ) : (
+                  <RecordingsPerTopicChart data={perTopic} />
+                )}
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+    </>
+  );
+}
+
+function FluencyToneTimeChart({ points }: { points: Array<{ label: string; fluency: number; tone: number }> }) {
+  const build = useMemo(
+    () => (ctx: CanvasRenderingContext2D) =>
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: points.map((p) => p.label),
+          datasets: [
+            {
+              label: "Fluency",
+              data: points.map((p) => p.fluency),
+              borderColor: "#7c3aed",
+              backgroundColor: "rgba(124, 58, 237, 0.1)",
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+            },
+            {
+              label: "Tone accuracy",
+              data: points.map((p) => p.tone),
+              borderColor: "#1c9a5b",
+              backgroundColor: "rgba(28, 154, 91, 0.1)",
+              borderWidth: 2,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: true, position: "top", align: "end" } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              title: { display: true, text: "Score" },
+              ticks: { callback: (v) => `${v}` },
+            },
+            x: { grid: { display: false } },
+          },
+        },
+      }),
+    [points],
+  );
+  return <QuizChartCanvas build={build} />;
+}
+
+function AiFeedbackCategoryChart({ data }: { data: Array<{ category: (typeof AI_FEEDBACK_CATEGORIES)[number]; avg: number; count: number }> }) {
+  const build = useMemo(
+    () => (ctx: CanvasRenderingContext2D) =>
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: data.map((c) => AI_FEEDBACK_CATEGORY_INFO[c.category].label),
+          datasets: [{
+            label: "Average score",
+            data: data.map((c) => c.avg),
+            backgroundColor: data.map((c) => AI_FEEDBACK_CATEGORY_INFO[c.category].color),
+            borderRadius: 4,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (item) => {
+                  const c = data[item.dataIndex];
+                  return `${item.parsed.y}/100 avg (${c.count} score${c.count === 1 ? "" : "s"})`;
+                },
+              },
+            },
+          },
+          scales: {
+            y: { beginAtZero: true, max: 100, title: { display: true, text: "Score" } },
+            x: { grid: { display: false } },
+          },
+        },
+      }),
+    [data],
+  );
+  return <QuizChartCanvas build={build} />;
+}
+
+function RecordingsPerTopicChart({ data }: { data: Array<{ topic: string; count: number }> }) {
+  const build = useMemo(
+    () => (ctx: CanvasRenderingContext2D) =>
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: data.map((t) => t.topic),
+          datasets: [{
+            label: "Recordings",
+            data: data.map((t) => t.count),
+            backgroundColor: "#0b5fa8",
+            borderRadius: 4,
+          }],
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { beginAtZero: true, title: { display: true, text: "Recordings" }, ticks: { precision: 0 } },
+            y: { grid: { display: false } },
+          },
+        },
+      }),
+    [data],
+  );
+  return <QuizChartCanvas build={build} height={Math.max(160, data.length * 32)} />;
 }
 
 
@@ -1821,6 +2591,89 @@ function getAverageMetric(records: AudioRecord[], metric: string): number | null
     0,
   );
   return Math.round(total / records.length);
+}
+
+interface StudentQuizStats {
+  studentName: string;
+  attempts: number;
+  totalQuestions: number;
+  accuracyPct: number;
+  avgTimePerQuestionMs: number;
+  topMissedWord: { word: string; missCount: number } | null;
+}
+
+interface WordMissStats {
+  word: string;
+  timesAsked: number;
+  timesMissed: number;
+  missRatePct: number;
+  avgTimeMs: number;
+}
+
+function computeStudentQuizStats(attempts: VocabQuizAttempt[]): StudentQuizStats[] {
+  const byStudent = new Map<string, VocabQuizAttempt[]>();
+  for (const attempt of attempts) {
+    const list = byStudent.get(attempt.studentName) ?? [];
+    list.push(attempt);
+    byStudent.set(attempt.studentName, list);
+  }
+
+  return Array.from(byStudent.entries())
+    .map(([studentName, studentAttempts]) => {
+      const totalQuestions = studentAttempts.reduce((sum, a) => sum + a.totalQuestions, 0);
+      const correctCount = studentAttempts.reduce((sum, a) => sum + a.correctCount, 0);
+      const totalTimeMs = studentAttempts.reduce((sum, a) => sum + a.totalTimeMs, 0);
+
+      const missCounts = new Map<string, number>();
+      for (const attempt of studentAttempts) {
+        for (const result of attempt.questionResults) {
+          if (!result.correct) {
+            missCounts.set(result.word, (missCounts.get(result.word) ?? 0) + 1);
+          }
+        }
+      }
+      let topMissedWord: { word: string; missCount: number } | null = null;
+      for (const [word, missCount] of missCounts.entries()) {
+        if (!topMissedWord || missCount > topMissedWord.missCount) {
+          topMissedWord = { word, missCount };
+        }
+      }
+
+      return {
+        studentName,
+        attempts: studentAttempts.length,
+        totalQuestions,
+        accuracyPct: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
+        avgTimePerQuestionMs:
+          totalQuestions > 0 ? Math.round(totalTimeMs / totalQuestions) : 0,
+        topMissedWord,
+      };
+    })
+    .sort((a, b) => b.attempts - a.attempts);
+}
+
+function computeWordMissStats(attempts: VocabQuizAttempt[]): WordMissStats[] {
+  const stats = new Map<string, { asked: number; missed: number; timeMs: number }>();
+  for (const attempt of attempts) {
+    for (const result of attempt.questionResults) {
+      const entry = stats.get(result.word) ?? { asked: 0, missed: 0, timeMs: 0 };
+      entry.asked += 1;
+      if (!result.correct) entry.missed += 1;
+      entry.timeMs += result.timeMs;
+      stats.set(result.word, entry);
+    }
+  }
+
+  return Array.from(stats.entries())
+    .map(([word, { asked, missed, timeMs }]) => ({
+      word,
+      timesAsked: asked,
+      timesMissed: missed,
+      missRatePct: asked > 0 ? Math.round((missed / asked) * 100) : 0,
+      avgTimeMs: asked > 0 ? Math.round(timeMs / asked) : 0,
+    }))
+    .filter((w) => w.timesMissed > 0)
+    .sort((a, b) => b.timesMissed - a.timesMissed);
 }
 
 function narrativeModeLabel(mode?: NarrativeMode): string {
@@ -2309,23 +3162,23 @@ function RecordCard({
           onClick={() => onDeleteRecord(record.id)}
           title="刪除這則故事 Delete this story"
         >
-          <BiLabel zh="刪除" en="Delete" />
+          <BiLabel zh="刪除" pinyin="Shānchú" en="Delete" />
         </button>
       </div>
 
       <div className="story-content">
         {record.audioUrl && (
           <div className="saved-audio-player">
-            <strong><BiLabel zh="已儲存的錄音" en="Saved voice recording" /></strong>
+            <strong><BiLabel zh="已存的錄音" pinyin="Yǐ cún de lùyīn" en="Saved voice recording" /></strong>
             <audio controls src={resolveImageUrl(record.audioUrl)} />
           </div>
         )}
 
         <div className="transcription-box">
-          <strong><BiLabel zh="逐字稿" en="Transcription" /></strong>
+          <strong><BiLabel zh="逐字稿" pinyin="Zhúzìgǎo" en="Transcription" /></strong>
           <p>
             {record.transcription || (
-              <BiLabel zh="（未偵測到語音）" en="(no speech detected)" />
+              <BiLabel zh="（沒聽到聲音）" pinyin="(méi tīngdào shēngyīn)" en="(no speech detected)" />
             )}
           </p>
         </div>
@@ -2335,25 +3188,25 @@ function RecordCard({
             <div className="saved-metrics-summary">
               <div className="metric-item tone">
                 <span className="metric-text">
-                  <BiLabel zh="聲調：" en="Tone: " />
+                  <BiLabel zh="聲調：" pinyin="Shēngdiào:" en="Tone: " />
                   {getToneName(record.praatMetrics.detected_tone)}
                 </span>
               </div>
               <div className="metric-item accuracy">
                 <span className="metric-text">
-                  <BiLabel zh="準確度：" en="Accuracy: " />
+                  <BiLabel zh="準確度：" pinyin="Zhǔnquè dù:" en="Accuracy: " />
                   {Math.round(record.praatMetrics.tone_accuracy)}%
                 </span>
               </div>
               <div className="metric-item fluency">
                 <span className="metric-text">
-                  <BiLabel zh="Praat 流暢度：" en="Praat fluency: " />
+                  <BiLabel zh="Praat 流暢度：" pinyin="Praat liúchàng dù:" en="Praat fluency: " />
                   {Math.round(record.praatMetrics.fluency_score)}/100
                 </span>
               </div>
               <div className="metric-item rate">
                 <span className="metric-text">
-                  <BiLabel zh="語速：" en="Rate: " />
+                  <BiLabel zh="語速：" pinyin="Yǔsù:" en="Rate: " />
                   {record.praatMetrics.speech_rate.toFixed(1)}/s
                 </span>
               </div>
@@ -2361,7 +3214,7 @@ function RecordCard({
 
             {record.praatMetrics.pitch_contour?.length > 0 && (
               <div className="story-prosody-chart">
-                <strong><BiLabel zh="Praat 音調視覺化" en="Praat prosody visualization" /></strong>
+                <strong><BiLabel zh="Praat 音調圖" pinyin="Praat yīndiào tú" en="Praat prosody visualization" /></strong>
                 <PitchChart
                   pitchContour={record.praatMetrics.pitch_contour}
                   detectedTone={record.praatMetrics.detected_tone}
@@ -2371,7 +3224,7 @@ function RecordCard({
 
             {record.praatMetrics.word_prosody?.length > 0 && (
               <div className="saved-word-prosody">
-                <strong><BiLabel zh="逐字音調" en="Word-by-word prosody" /></strong>
+                <strong><BiLabel zh="逐字音調" pinyin="Zhúzì yīndiào" en="Word-by-word prosody" /></strong>
                 <div className="saved-word-prosody-grid">
                   {record.praatMetrics.word_prosody.map((item: WordProsody) => (
                     <div
@@ -2397,7 +3250,8 @@ function RecordCard({
           <div className="story-ai-summary">
             <strong>
               <BiLabel
-                zh={`AI 教練（${record.praatMetrics.ai_feedback.provider || "Gemini"}）`}
+                zh={`AI 老師（${record.praatMetrics.ai_feedback.provider || "Gemini"}）`}
+                pinyin={`AI lǎoshī (${record.praatMetrics.ai_feedback.provider || "Gemini"})`}
                 en={`AI coach (${record.praatMetrics.ai_feedback.provider || "Gemini"})`}
               />
             </strong>

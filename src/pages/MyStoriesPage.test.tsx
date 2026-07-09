@@ -2,6 +2,8 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TopicSelector from "../components/TopicSelector";
 import MyStoriesPage from "./MyStoriesPage";
+import * as db from "../services/database";
+import type { VocabQuizAttempt } from "../services/database";
 
 const analyzedRecord = {
   id: "record-1",
@@ -408,4 +410,149 @@ describe("MyStoriesPage", () => {
       within(firstPrompt).getByText("1 attempt collected"),
     ).toBeInTheDocument();
   }, 15000);
+});
+
+describe("Quiz Analytics tab", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => [] })));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  const attempts: VocabQuizAttempt[] = [
+    {
+      id: "a1",
+      storyId: "story-1",
+      studentName: "Amy",
+      completedAt: "2026-07-01T00:00:00Z",
+      totalQuestions: 5,
+      correctCount: 3,
+      totalTimeMs: 25000,
+      questionResults: [
+        { word: "姐姐", correct: false, timeMs: 6000 },
+        { word: "姐姐", correct: false, timeMs: 5000 },
+        { word: "水", correct: true, timeMs: 4000 },
+        { word: "水", correct: true, timeMs: 4000 },
+        { word: "貓", correct: true, timeMs: 6000 },
+      ],
+    },
+  ];
+
+  it("shows per-student accuracy, time, and repeated-mistake analytics", async () => {
+    vi.spyOn(db, "canUseDatabase").mockReturnValue(true);
+    vi.spyOn(db, "listVocabQuizAttempts").mockResolvedValue(attempts);
+
+    const user = userEvent.setup();
+    render(<MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /Quiz Analytics/ }));
+
+    const studentPerformanceHeading = await screen.findByRole("heading", {
+      name: "Student Quiz Performance",
+    });
+    const studentTable = studentPerformanceHeading.closest(
+      ".teacher-quiz-analytics-panel",
+    ) as HTMLElement;
+    expect(within(studentTable).getByText("Amy")).toBeInTheDocument();
+    expect(within(studentTable).getByText("60%")).toBeInTheDocument();
+    expect(within(studentTable).getByText(/姐姐 \(missed 2×\)/)).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("heading", { name: "Words Needing the Most Practice" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Missed 2\/2 times \(100%\)/)).toBeInTheDocument();
+  });
+
+  it("shows an empty state when there are no quiz attempts yet", async () => {
+    vi.spyOn(db, "canUseDatabase").mockReturnValue(true);
+    vi.spyOn(db, "listVocabQuizAttempts").mockResolvedValue([]);
+
+    const user = userEvent.setup();
+    render(<MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /Quiz Analytics/ }));
+
+    expect(await screen.findByText("No quiz attempts yet")).toBeInTheDocument();
+  });
+
+  it("filters student performance by the selected student and quiz mode", async () => {
+    const twoStudentAttempts: VocabQuizAttempt[] = [
+      ...attempts,
+      {
+        id: "a2",
+        storyId: "story-1",
+        studentName: "Bo",
+        mode: "strikes",
+        completedAt: "2026-07-02T00:00:00Z",
+        totalQuestions: 2,
+        correctCount: 2,
+        totalTimeMs: 8000,
+        questionResults: [
+          { word: "水", correct: true, timeMs: 4000 },
+          { word: "貓", correct: true, timeMs: 4000 },
+        ],
+      },
+    ];
+    vi.spyOn(db, "canUseDatabase").mockReturnValue(true);
+    vi.spyOn(db, "listVocabQuizAttempts").mockResolvedValue(twoStudentAttempts);
+
+    const user = userEvent.setup();
+    render(<MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /Quiz Analytics/ }));
+    const heading = await screen.findByRole("heading", { name: "Student Quiz Performance" });
+    const studentTable = heading.closest(".teacher-quiz-analytics-panel") as HTMLElement;
+
+    // Unfiltered: both students show up.
+    expect(within(studentTable).getByText("Amy")).toBeInTheDocument();
+    expect(within(studentTable).getByText("Bo")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Student"), "Bo");
+    expect(within(studentTable).queryByText("Amy")).not.toBeInTheDocument();
+    expect(within(studentTable).getByText("Bo")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Student"), "all");
+    await user.selectOptions(screen.getByLabelText("Quiz mode"), "strikes");
+    expect(within(studentTable).queryByText("Amy")).not.toBeInTheDocument();
+    expect(within(studentTable).getByText("Bo")).toBeInTheDocument();
+  });
+});
+
+describe("Recording Analytics tab", () => {
+  it("summarizes Praat and AI feedback scores across recordings", async () => {
+    const user = userEvent.setup();
+    render(
+      <MyStoriesPage
+        mode="teacher"
+        records={[analyzedRecord]}
+        onDeleteRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Recording Analytics/ }));
+
+    await screen.findByText("Fluency & tone accuracy over time");
+    expect(screen.getByText("78/100")).toBeInTheDocument();
+    expect(screen.getByText("86%")).toBeInTheDocument();
+    // (82 fluency + 76 grammar + 80 vocabulary) / 3 = 79.33 -> 79
+    expect(screen.getByText("79/100")).toBeInTheDocument();
+
+    expect(screen.getByText("AI feedback score by category")).toBeInTheDocument();
+    expect(screen.getByText("Recordings per topic")).toBeInTheDocument();
+  });
+
+  it("shows an empty state when there are no recordings yet", async () => {
+    const user = userEvent.setup();
+    render(
+      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Recording Analytics/ }));
+
+    expect(await screen.findByText("No recordings yet")).toBeInTheDocument();
+  });
 });

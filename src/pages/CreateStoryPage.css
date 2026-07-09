@@ -85,6 +85,8 @@
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 
 .student-help-panel button:hover:not(:disabled) {

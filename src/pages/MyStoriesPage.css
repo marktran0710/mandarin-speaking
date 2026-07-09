@@ -27,7 +27,7 @@
 }
 
 .stories-kicker {
-  color: var(--clay-primary);
+  color: var(--seal-deep);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -41,12 +41,16 @@
   flex-shrink: 0;
   margin-right: 8px;
   padding: 3px 9px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--accent-indigo);
-  color: #fff;
+  color: var(--clay-on-accent);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.02em;
+  /* BiLabel's default pinyin/en colors (seal-deep/clay-muted) are picked for
+     light surfaces and are nearly illegible on this seal-colored badge. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
   text-transform: none;
   white-space: nowrap;
   vertical-align: middle;
@@ -98,7 +102,7 @@
 
 .student-progress-stats span {
   padding: 7px 10px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-soft);
   color: var(--clay-body);
   text-transform: none;
@@ -207,13 +211,16 @@
   padding: 0 14px;
   border: 2px solid var(--jade-deep);
   border-radius: var(--clay-radius-pill);
-  background: var(--jade);
+  /* --jade only gets bold white text to ~3.6:1 — --jade-deep clears 4.5:1. */
+  background: var(--jade-deep);
   box-shadow: 0 3px 0 var(--jade-deep);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   cursor: pointer;
   font-size: 13px;
   font-weight: 900;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 
 .student-help-card button:hover {
@@ -259,9 +266,9 @@
   display: grid;
   place-items: center;
   grid-row: span 2;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-primary);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   font-size: 13px;
   font-weight: 650;
 }
@@ -316,14 +323,14 @@
   height: 8px;
   overflow: hidden;
   background: var(--clay-canvas);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
 }
 
 .summary-progress span {
   display: block;
   height: 100%;
   background: var(--seal);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -441,7 +448,7 @@
   justify-content: center;
   border-radius: var(--clay-radius-pill);
   background: var(--gold);
-  color: #fff;
+  color: var(--clay-on-accent);
   font-size: 13px;
   box-shadow: var(--shadow-sm);
 }
@@ -473,7 +480,7 @@
 }
 
 .picture-topic {
-  color: var(--clay-primary);
+  color: var(--seal-deep);
   font-size: 11px;
   font-weight: 700;
   margin: 0 0 4px;
@@ -493,7 +500,7 @@
   align-items: center;
   gap: 4px;
   padding: 6px 8px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
@@ -525,7 +532,7 @@
 
 .picture-vocabulary span {
   padding: 5px 8px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-mint);
   color: var(--clay-ink);
   font-size: 12px;
@@ -539,11 +546,13 @@
   border-radius: var(--clay-radius-pill);
   background: var(--seal);
   box-shadow: 0 3px 0 var(--seal-deep);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   cursor: pointer;
   font-size: 14px;
   font-weight: 800;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 
 .btn-record-picture:hover {
@@ -732,7 +741,7 @@
   background: var(--clay-error);
   border: 1px solid var(--clay-error);
   border-radius: var(--clay-radius-md);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
@@ -925,7 +934,7 @@
 }
 
 .saved-word-prosody-card em {
-  color: var(--clay-primary);
+  color: var(--seal-deep);
   font-size: 12px;
   font-style: normal;
   font-weight: 900;
@@ -979,7 +988,10 @@
   margin-right: auto;
 }
 
-.teacher-submissions-panel {
+.teacher-submissions-panel,
+.quiz-analytics-filters-panel,
+.teacher-quiz-analytics-panel,
+.teacher-recording-analytics-panel {
   max-width: 1180px;
   margin-left: auto;
   margin-right: auto;
@@ -1092,7 +1104,7 @@
   font-size: 11px;
   font-weight: 700;
   padding: 2px 8px;
-  border-radius: 20px;
+  border-radius: var(--clay-radius-lg);
 }
 
 .sss-chip-used {
@@ -1102,7 +1114,8 @@
 
 .sss-chip-missing {
   background: var(--seal-soft);
-  color: var(--clay-error);
+  /* clay-error lands at ~4.3:1 on seal-soft — clay-error-deep clears 4.5:1. */
+  color: var(--clay-error-deep);
 }
 
 .teacher-dashboard-hero {
@@ -1183,9 +1196,9 @@
 
 .teacher-view-tabs button:hover,
 .teacher-view-tabs button.active {
-  border-color: var(--jade);
-  background: var(--jade);
-  color: #ffffff;
+  border-color: var(--jade-deep);
+  background: var(--jade-deep);
+  color: var(--clay-on-accent);
 }
 
 .teacher-view-tabs strong {
@@ -1193,7 +1206,7 @@
   height: 26px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-soft);
   color: var(--clay-ink);
   font-size: 12px;
@@ -1201,8 +1214,8 @@
 
 .teacher-view-tabs button.active strong,
 .teacher-view-tabs button:hover strong {
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--clay-on-accent);
 }
 
 .teacher-stat-grid {
@@ -1391,7 +1404,7 @@
 .teacher-example-badge {
   grid-column: 1 / -1;
   background: var(--gold);
-  color: #fff;
+  color: var(--clay-on-accent);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.03em;
@@ -1472,15 +1485,16 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .btn-save-custom-story {
   min-height: 42px;
   padding: 0 18px;
-  border: 1px solid var(--jade);
+  border: 1px solid var(--jade-deep);
   border-radius: var(--clay-radius-md);
-  background: var(--jade);
-  color: #ffffff;
+  background: var(--jade-deep);
+  color: var(--clay-on-accent);
   cursor: pointer;
   font-size: 14px;
   font-weight: 900;
@@ -1488,6 +1502,7 @@
 
 .btn-save-custom-story:hover {
   background: var(--jade-deep);
+  filter: brightness(0.88);
 }
 
 .custom-story-library {
@@ -1604,7 +1619,7 @@
 }
 
 .btn-edit-custom-story {
-  color: var(--jade);
+  color: var(--jade-deep);
 }
 
 .btn-publish-custom-story {
@@ -1617,6 +1632,72 @@
 
 .btn-delete-custom-story {
   color: var(--clay-error);
+}
+
+/* Overflow menu for the less-frequent Export/Delete actions, so a story
+   row only shows two buttons (Publish, Edit) plus one "more" trigger
+   instead of four always-visible buttons that wrap on narrow screens. */
+.custom-story-item-menu {
+  position: relative;
+}
+
+.custom-story-item-menu summary {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  color: var(--clay-muted);
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+  list-style: none;
+}
+
+.custom-story-item-menu summary::-webkit-details-marker,
+.custom-story-item-menu summary::marker {
+  display: none;
+  content: "";
+}
+
+.custom-story-item-menu summary:hover {
+  background: var(--clay-surface-soft);
+}
+
+.custom-story-item-menu[open] summary {
+  border-color: var(--seal);
+  color: var(--seal);
+}
+
+.custom-story-item-menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+  padding: 6px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  box-shadow: var(--shadow-md);
+}
+
+.custom-story-item-menu-list button {
+  align-self: stretch;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 8px 10px;
+  border-radius: var(--clay-radius-sm);
+}
+
+.custom-story-item-menu-list button:hover {
+  background: var(--clay-surface-soft);
 }
 
 .custom-story-frame-strip {
@@ -1664,9 +1745,9 @@
   height: 42px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
-  background: var(--jade);
-  color: #ffffff;
+  border-radius: var(--clay-radius-pill);
+  background: var(--jade-deep);
+  color: var(--clay-on-accent);
   font-size: 14px;
   font-weight: 900;
 }
@@ -1701,7 +1782,7 @@
 .coverage-meter {
   height: 8px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-card);
 }
 
@@ -1723,7 +1804,7 @@
   font-family: var(--font-mono);
   min-width: 72px;
   padding: 8px 10px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-mint);
   color: var(--clay-ink);
   font-size: 13px;
@@ -1750,6 +1831,152 @@
   font-size: 14px;
   line-height: 1.5;
   margin: 0;
+}
+
+.teacher-quiz-analytics-panel,
+.teacher-recording-analytics-panel {
+  margin-top: 20px;
+}
+
+.quiz-analytics-student-table {
+  display: grid;
+  gap: 8px;
+}
+
+.quiz-analytics-student-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.7fr 0.8fr 1.1fr 1.6fr;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  font-size: 14px;
+  color: var(--clay-ink);
+}
+
+.quiz-analytics-student-head {
+  background: transparent;
+  border: none;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--clay-muted);
+}
+
+.quiz-analytics-word-list {
+  display: grid;
+  gap: 10px;
+}
+
+.quiz-analytics-word-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-md);
+  background: var(--gold-soft);
+}
+
+.quiz-analytics-word-row strong {
+  color: var(--clay-ink);
+  font-size: 15px;
+}
+
+.quiz-analytics-word-row span {
+  color: var(--gold-deep);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .quiz-analytics-student-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .quiz-analytics-student-head {
+    display: none;
+  }
+}
+
+.quiz-analytics-filters-panel {
+  margin-bottom: 22px;
+}
+
+.quiz-analytics-filters {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.quiz-analytics-filters label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clay-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.quiz-analytics-filters select {
+  min-width: 180px;
+  padding: 9px 12px;
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.quiz-analytics-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.quiz-analytics-chart-wide {
+  grid-column: 1 / -1;
+}
+
+.quiz-analytics-chart-card {
+  padding: 18px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+}
+
+.quiz-analytics-chart-card h3 {
+  margin: 0 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  color: var(--clay-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.quiz-analytics-chart-canvas {
+  position: relative;
+  width: 100%;
+}
+
+.quiz-analytics-empty-note {
+  color: var(--clay-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .quiz-analytics-charts {
+    grid-template-columns: 1fr;
+  }
 }
 
 .teacher-help-panel {
@@ -1799,7 +2026,7 @@
   border: 1px solid var(--jade);
   border-radius: var(--clay-radius-md);
   background: var(--jade);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   cursor: pointer;
   font-size: 12px;
   font-weight: 900;
@@ -1855,6 +2082,18 @@
   }
   50% {
     transform: translateY(-10px);
+  }
+}
+
+/* Tablet: the 5- and 4-column teacher dashboard grids stay dense enough to
+   collapse before the 768px "stack everything" breakpoint kicks in. */
+@media (max-width: 1024px) {
+  .teacher-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .teacher-view-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -1932,6 +2171,18 @@
   .teacher-frame-card {
     grid-template-columns: 1fr;
   }
+
+  /* The vocab table's 5 proportional columns get too cramped for their
+     input/select fields on a phone screen — scroll horizontally instead
+     of squeezing every field unusably narrow. */
+  .vocab-table {
+    overflow-x: auto;
+  }
+
+  .vocab-table-header,
+  .vocab-table-row {
+    min-width: 560px;
+  }
 }
 
 /* ── VocabGroupEditor (teacher form) ── */
@@ -1991,10 +2242,13 @@
   gap: 5px;
 }
 .vocab-group-chip {
-  padding: 3px 10px;
-  border-radius: 99px;
+  padding: 8px 12px;
+  border-radius: var(--clay-radius-pill);
   font-size: 13px;
   font-weight: 500;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
 }
 .vocab-group-chip.unassigned {
   background: var(--jade-soft);
@@ -2029,7 +2283,7 @@
 .vgs-hanzi {
   font-size: 1.1rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--clay-on-accent);
   line-height: 1;
   flex-shrink: 0;
 }
@@ -2041,7 +2295,7 @@
 .vgs-name {
   font-size: 11px;
   font-weight: 700;
-  color: #fff;
+  color: var(--clay-on-accent);
   letter-spacing: 0.03em;
 }
 .vgs-sub {
@@ -2065,7 +2319,7 @@
   font-size: 12px;
   cursor: pointer;
 }
-.vocab-group-add-word-btn:hover { background: var(--jade); color: #ffffff; border-color: var(--jade); }
+.vocab-group-add-word-btn:hover { background: var(--jade); color: var(--clay-on-accent); border-color: var(--jade); }
 
 .teacher-refresh-btn {
   margin-top: 10px;
@@ -2117,8 +2371,8 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 900;
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
 }
 
 .vocab-table-add-btn {
