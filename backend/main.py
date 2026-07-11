@@ -324,6 +324,8 @@ class CustomStoryFrameRequest(BaseModel):
     vocabularyPinyin: Optional[str] = None
     vocabularyPos: Optional[str] = None
     vocabularyTranslation: Optional[str] = None
+    phrases: Optional[str] = None
+    phrasesTranslation: Optional[str] = None
     suggestedAnswer: Optional[str] = None
     listenAudioUrl: Optional[str] = None
     listenScript: Optional[str] = None
