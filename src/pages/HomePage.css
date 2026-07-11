@@ -13,7 +13,19 @@
     var(--jade-soft) 66%,
     var(--tone1-soft) 100%
   );
+  background-size: 200% 200%;
   animation: homeFadeUp 0.5s ease-out both;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero {
+    animation: homeFadeUp 0.5s ease-out both, hero-gradient-drift 16s ease-in-out infinite;
+  }
+}
+
+@keyframes hero-gradient-drift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
 }
 
 @keyframes homeFadeUp {
@@ -27,13 +39,27 @@
 }
 
 .platform-kicker {
-  color: var(--clay-muted);
-  font-size: 14px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
+  display: inline-block;
+  color: var(--seal-deep);
+  background: var(--clay-surface-card);
+  border: 1.5px solid var(--clay-hairline);
+  padding: 5px 14px;
+  border-radius: var(--clay-radius-pill);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   line-height: 1.4;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.platform-kicker:hover {
+  border-color: var(--seal);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
 }
 
 .hero-title {
@@ -45,6 +71,123 @@
   margin: 0 0 16px;
 }
 
+/* ── Signature moment: the title performs its own tones. Each character's
+   entrance shape matches its real pitch contour (flat / rising / dip /
+   falling) — the same four shapes as ToneMark — so the headline itself
+   is a tiny, true tone lesson rather than a generic bounce-in. A thin
+   tone-colored mark stays under each character afterward as the lasting
+   accent. ── */
+.hero-title-zh {
+  display: inline-flex;
+}
+
+.hero-char {
+  display: inline-block;
+  position: relative;
+  color: var(--clay-ink);
+  cursor: default;
+}
+
+/* The entrance animation (below) sets transform/color/opacity on `.hero-char`
+   itself with animation-fill-mode: both — meaning the animation keeps
+   "owning" those properties even after it finishes (CSS animations win over
+   :hover transitions on the same property of the same element, silently).
+   So the hover zoom lives on this separate, never-animated inner span
+   instead — a different element has no conflict, and the two transforms
+   (outer's frozen translateY, inner's hover scale) compose correctly. */
+.hero-char-inner {
+  display: inline-block;
+}
+
+.hero-char::after {
+  content: "";
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -6px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--tone-color);
+}
+
+/* Hover replays the character's own tone as a little interactive toy —
+   each glyph still "sounds like" its tone shape, just faster and reversible.
+   Every tone also zooms in (grows) on hover, so the character under the
+   cursor pops forward out of the line. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-char-inner {
+    transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1), color 220ms ease;
+    transform-origin: center bottom;
+  }
+  .hero-char.tone-1:hover .hero-char-inner { transform: translateY(-3px) scale(1.35); }
+  .hero-char.tone-2:hover .hero-char-inner { transform: translateY(-9px) rotate(-3deg) scale(1.35); }
+  .hero-char.tone-3:hover .hero-char-inner { transform: translateY(3px) rotate(2deg) scale(1.35); }
+  .hero-char.tone-4:hover .hero-char-inner { transform: translateY(6px) scale(1.3); }
+  .hero-char:hover .hero-char-inner {
+    color: var(--tone-color);
+    position: relative;
+    z-index: 1;
+  }
+}
+
+.hero-char.tone-1 { --tone-color: var(--tone1); }
+.hero-char.tone-2 { --tone-color: var(--jade); }
+.hero-char.tone-3 { --tone-color: var(--gold-deep); }
+.hero-char.tone-4 { --tone-color: var(--seal); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-char {
+    animation-duration: 700ms;
+    animation-timing-function: cubic-bezier(0.22, 0.75, 0.2, 1);
+    animation-fill-mode: both;
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+  .hero-char.tone-1 { animation-name: hero-char-in-flat; }
+  .hero-char.tone-2 { animation-name: hero-char-in-rise; }
+  .hero-char.tone-3 { animation-name: hero-char-in-dip; }
+  .hero-char.tone-4 { animation-name: hero-char-in-fall; }
+
+  .hero-char::after {
+    transform: scaleX(0);
+    transform-origin: center;
+    animation: hero-char-underline 320ms ease-out both;
+    animation-delay: calc(var(--i, 0) * 90ms + 420ms);
+  }
+}
+
+@keyframes hero-char-underline {
+  to { transform: scaleX(1); }
+}
+
+/* Tone 1 — flat: barely lifts into place, no overshoot. */
+@keyframes hero-char-in-flat {
+  0%   { opacity: 0; transform: translateY(6px); color: var(--tone-color); }
+  70%  { color: var(--tone-color); }
+  100% { opacity: 1; transform: translateY(0); color: var(--clay-ink); }
+}
+
+/* Tone 2 — rising: swoops up from below, slight overshoot past rest. */
+@keyframes hero-char-in-rise {
+  0%   { opacity: 0; transform: translateY(24px); color: var(--tone-color); }
+  55%  { opacity: 1; transform: translateY(-6px); color: var(--tone-color); }
+  100% { transform: translateY(0); color: var(--clay-ink); }
+}
+
+/* Tone 3 — dip: falls first, then rises past rest before settling. */
+@keyframes hero-char-in-dip {
+  0%   { opacity: 0; transform: translateY(-4px); color: var(--tone-color); }
+  40%  { opacity: 1; transform: translateY(16px); color: var(--tone-color); }
+  75%  { transform: translateY(-8px); }
+  100% { transform: translateY(0); color: var(--clay-ink); }
+}
+
+/* Tone 4 — falling: drops sharply from above. */
+@keyframes hero-char-in-fall {
+  0%   { opacity: 0; transform: translateY(-24px); color: var(--tone-color); }
+  55%  { opacity: 1; transform: translateY(4px); color: var(--tone-color); }
+  100% { transform: translateY(0); color: var(--clay-ink); }
+}
+
 .hero-subtitle {
   color: var(--clay-body);
   font-size: 16px;
@@ -52,6 +195,52 @@
   margin: 0 auto;
   max-width: 560px;
 }
+
+/* ── Stat chips: small tactile "score tokens" under the subtitle, in the
+   same four tone colors as the title above — the first hint that this is a
+   game-like practice app, not just a description of one. ── */
+.hero-stats {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 28px 0 0;
+  padding: 0;
+}
+
+.hero-stat-chip {
+  padding: 8px 16px;
+  border: 2px solid var(--tile-accent-deep);
+  border-radius: var(--clay-radius-pill);
+  background: var(--tile-accent-soft);
+  box-shadow: 0 3px 0 var(--tile-accent-deep);
+  font-size: 13px;
+  font-weight: 700;
+  animation: homeFadeUp 0.5s ease-out both;
+  animation-delay: 0.35s;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hero-stat-chip:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 5px 0 var(--tile-accent-deep);
+}
+
+.hero-stat-chip:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: 0 1px 0 var(--tile-accent-deep);
+}
+
+.hero-stat-chip .bi-zh {
+  font-family: var(--font-mono);
+  color: var(--tile-accent-deep);
+}
+
+.hero-stat-chip.tone-1 { --tile-accent: var(--tone1); --tile-accent-deep: var(--tone1-deep); --tile-accent-soft: var(--tone1-soft); }
+.hero-stat-chip.tone-2 { --tile-accent: var(--jade); --tile-accent-deep: var(--jade-deep); --tile-accent-soft: var(--jade-soft); }
+.hero-stat-chip.tone-3 { --tile-accent: var(--gold); --tile-accent-deep: var(--gold-deep); --tile-accent-soft: var(--gold-soft); }
+.hero-stat-chip.tone-4 { --tile-accent: var(--seal); --tile-accent-deep: var(--seal-deep); --tile-accent-soft: var(--seal-soft); }
 
 .portal-section {
   padding: 20px 20px 40px;
@@ -90,16 +279,19 @@
 
 .teacher-card {
   background: linear-gradient(180deg, var(--jade-soft) 0%, var(--clay-surface-card) 42%);
+  border: 2.5px solid var(--clay-hairline);
+  box-shadow: 0 6px 0 var(--jade-deep);
 }
 
 .teacher-card:hover {
   border-color: var(--jade);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-6px) rotate(0.6deg);
+  box-shadow: 0 8px 0 var(--jade-deep);
+  transform: translateY(-2px);
 }
 
-.portal-card:active {
-  transform: translateY(-1px) scale(0.99);
+.teacher-card:active {
+  box-shadow: 0 2px 0 var(--jade-deep);
+  transform: translateY(4px);
 }
 
 .portal-card:hover .portal-icon {
@@ -124,8 +316,12 @@
 }
 
 .teacher-card .portal-icon {
+  width: 76px;
+  height: 76px;
+  border: 3px solid var(--jade-deep);
   background: var(--jade);
   color: #ffffff;
+  box-shadow: 0 0 0 5px var(--jade-soft);
 }
 
 /* ── Student portal card: the same tactile "game piece" treatment as the
@@ -200,75 +396,108 @@
   transition: transform 0.2s ease;
 }
 
-.features {
-  padding: 30px 20px 72px;
+/* ── "How it works": a genuine 3-step sequence (pick → record → get
+   feedback), so numbered tiles are earned here, not decorative. Same
+   tactile lip-shadow language as the portal cards, in the tone-color
+   rotation, so the section reads as one more page of the same game. ── */
+.how-it-works {
+  padding: 12px 20px 72px;
 }
 
-.features-container {
+.how-it-works-kicker {
+  max-width: 1040px;
+  margin: 0 auto 20px;
+  text-align: center;
+  color: var(--clay-muted);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.how-it-works-grid {
+  list-style: none;
   max-width: 1040px;
   margin: 0 auto;
-}
-
-.features-container h2 {
-  color: var(--clay-ink);
-  font-size: 26px;
-  border-bottom: 0;
-  padding-bottom: 0;
-  margin-bottom: 20px;
-  text-align: center;
-}
-
-.features-grid {
+  padding: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
 }
 
-.feature-card {
-  min-height: 168px;
-  padding: 20px;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-card);
+.how-it-works-tile {
+  position: relative;
+  padding: 26px 22px 22px;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: 8px;
+  background: var(--tile-accent-soft);
+  border: 2.5px solid var(--tile-accent-deep);
+  border-radius: var(--clay-radius-xl);
+  box-shadow: 0 6px 0 var(--tile-accent-deep);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.feature-card.blue {
-  border-top: 3px solid var(--jade-deep);
+.how-it-works-tile:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 0 var(--tile-accent-deep);
 }
 
-.feature-card.green {
-  border-top: 3px solid var(--jade);
+.how-it-works-tile.tone-1 { --tile-accent: var(--tone1); --tile-accent-deep: var(--tone1-deep); --tile-accent-soft: var(--tone1-soft); }
+.how-it-works-tile.tone-2 { --tile-accent: var(--jade); --tile-accent-deep: var(--jade-deep); --tile-accent-soft: var(--jade-soft); }
+.how-it-works-tile.tone-3 { --tile-accent: var(--gold); --tile-accent-deep: var(--gold-deep); --tile-accent-soft: var(--gold-soft); }
+.how-it-works-tile.tone-4 { --tile-accent: var(--seal); --tile-accent-deep: var(--seal-deep); --tile-accent-soft: var(--seal-soft); }
+
+.how-it-works-num {
+  position: absolute;
+  top: 14px;
+  left: 18px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tile-accent-deep);
+  opacity: 0.55;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.feature-card.purple {
-  border-top: 3px solid var(--seal);
+.how-it-works-tile:hover .how-it-works-num {
+  opacity: 1;
+  transform: scale(1.15);
 }
 
-.feature-icon {
-  width: 42px;
-  height: 42px;
+.how-it-works-icon {
+  width: 56px;
+  height: 56px;
   display: grid;
   place-items: center;
   border-radius: 999px;
-  color: #ffffff;
-  font-weight: 700;
-  margin-bottom: 16px;
+  background: var(--clay-surface-card);
+  border: 2px solid var(--tile-accent-deep);
+  font-size: 26px;
+  margin-bottom: 4px;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.feature-card.blue .feature-icon   { background: var(--jade-deep); }
-.feature-card.green .feature-icon  { background: var(--jade); }
-.feature-card.purple .feature-icon { background: var(--seal); }
+.how-it-works-tile:hover .how-it-works-icon {
+  transform: scale(1.15) rotate(-8deg);
+}
 
-.feature-card h3 {
-  color: var(--clay-ink);
+.how-it-works-title {
   font-size: 18px;
-  margin-bottom: 10px;
+  color: var(--clay-ink);
 }
 
-.feature-card p {
+.how-it-works-title .bi-en {
+  color: var(--tile-accent-deep);
+}
+
+.how-it-works-desc .bi-text-zh {
   color: var(--clay-body);
   font-size: 14px;
-  line-height: 1.55;
+}
+
+.how-it-works-desc .bi-text-en {
+  font-size: 12px;
 }
 
 @media (max-width: 768px) {
@@ -281,7 +510,7 @@
   }
 
   .portal-grid,
-  .features-grid {
+  .how-it-works-grid {
     grid-template-columns: 1fr;
   }
 }

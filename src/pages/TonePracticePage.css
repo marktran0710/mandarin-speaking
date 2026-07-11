@@ -152,8 +152,8 @@
 }
 
 .tone-word-best.low {
-  background: var(--seal-soft);
-  color: var(--seal-deep);
+  background: var(--clay-error-soft);
+  color: var(--clay-error-deep);
 }
 
 .tone-practice-panel {
@@ -306,8 +306,8 @@
 }
 
 .tone-match-card.low {
-  background: var(--seal-soft);
-  border-color: var(--seal);
+  background: var(--clay-error-soft);
+  border-color: var(--clay-error);
 }
 
 .tone-match-header {
@@ -341,7 +341,7 @@
 }
 
 .tone-match-card.low .tone-match-score-ring {
-  color: var(--seal);
+  color: var(--clay-error);
 }
 
 .tone-match-score-ring strong {

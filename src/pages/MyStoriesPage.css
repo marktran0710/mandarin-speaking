@@ -1170,52 +1170,89 @@
   margin-top: 6px;
 }
 
+/* Grouped as a few labeled clusters (a segmented control per group) instead
+   of eight identically-bordered pills wrapping onto an uneven second row —
+   see teacherViewGroups in MyStoriesPage.tsx for which tab belongs to which
+   job (Review / Content / Analytics). */
 .teacher-view-tabs {
   margin-bottom: 22px;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.teacher-view-tab-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.teacher-view-tab-group-label {
+  padding-left: 2px;
+  color: var(--clay-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.teacher-view-tab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-soft);
 }
 
 .teacher-view-tabs button {
-  min-height: 48px;
-  padding: 0 14px;
+  min-height: 40px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  border: 1px solid var(--clay-hairline);
+  justify-content: center;
+  gap: 8px;
+  border: none;
   border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-card);
+  background: transparent;
   color: var(--clay-muted);
   cursor: pointer;
   font: inherit;
-  font-size: 14px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-.teacher-view-tabs button:hover,
+.teacher-view-tabs button:hover {
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+}
+
 .teacher-view-tabs button.active {
-  border-color: var(--jade-deep);
   background: var(--jade-deep);
   color: var(--clay-on-accent);
 }
 
 .teacher-view-tabs strong {
-  min-width: 26px;
-  height: 26px;
+  min-width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
   border-radius: var(--clay-radius-pill);
-  background: var(--clay-surface-soft);
+  background: var(--clay-surface-card);
   color: var(--clay-ink);
-  font-size: 12px;
+  font-size: 11px;
 }
 
-.teacher-view-tabs button.active strong,
-.teacher-view-tabs button:hover strong {
-  background: rgba(0, 0, 0, 0.18);
+.teacher-view-tabs button.active strong {
+  background: rgba(255, 255, 255, 0.22);
   color: var(--clay-on-accent);
+}
+
+.teacher-view-tabs button:hover strong {
+  background: var(--clay-surface-soft);
 }
 
 .teacher-stat-grid {
@@ -1894,6 +1931,42 @@
   font-weight: 600;
 }
 
+.word-severity-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #ffffff !important;
+}
+
+.word-severity-critical {
+  background: var(--clay-error);
+}
+
+.word-severity-watch {
+  background: var(--gold-deep);
+}
+
+.word-severity-ok {
+  background: var(--jade);
+}
+
+.quiz-analytics-insight {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--clay-hairline-soft);
+  border-left: 3px solid var(--gold-deep);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft);
+  color: var(--clay-body);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 @media (max-width: 720px) {
   .quiz-analytics-student-row {
     grid-template-columns: 1fr;
@@ -2091,10 +2164,6 @@
   .teacher-stat-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-
-  .teacher-view-tabs {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 768px) {
@@ -2158,7 +2227,6 @@
   }
 
   .teacher-stat-grid,
-  .teacher-view-tabs,
   .teacher-dashboard-grid,
   .teacher-builder-layout,
   .teacher-form-grid,
@@ -2166,6 +2234,14 @@
   .student-help-card form,
   .teacher-help-request {
     grid-template-columns: 1fr;
+  }
+
+  .teacher-view-tab-row {
+    width: 100%;
+  }
+
+  .teacher-view-tabs button {
+    flex: 1 1 auto;
   }
 
   .teacher-frame-card {
@@ -2390,6 +2466,14 @@
 
 .vocab-table-add-btn:hover {
   background: var(--jade-soft);
+}
+
+/* Phrase table has 2 data columns (phrase/translation) instead of
+   VocabularyTable's 4 (word/pinyin/pos/translation) — override the shared
+   5-track grid-template rather than leaving two tracks unused. */
+.phrase-table .vocab-table-header,
+.phrase-table .vocab-table-row {
+  grid-template-columns: 1.3fr 1.3fr auto;
 }
 
 .btn-vocab-autofill {

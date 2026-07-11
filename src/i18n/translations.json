@@ -137,9 +137,9 @@
     "en": "Connectors",
     "zh": "連接詞"
   },
-  "continue_to_grammar": {
-    "en": "Continue to Grammar",
-    "zh": "繼續到文法 →"
+  "continue_to_phrases": {
+    "en": "Continue to Phrases",
+    "zh": "繼續到常用短語 →"
   },
   "continue_to_speaking": {
     "en": "Continue to Speaking",
@@ -231,20 +231,25 @@
     "zh": "好的地方",
     "pinyin": "Hǎo de dìfang"
   },
-  "grammar_pattern_to_use": {
-    "en": "Grammar pattern to use",
-    "zh": "練習句型",
-    "pinyin": "Liànxí jùxíng"
+  "phrases_to_use": {
+    "en": "Phrases to use",
+    "zh": "練習短語",
+    "pinyin": "Liànxí duǎnyǔ"
   },
-  "grammar_step_action_copy": {
-    "en": "This is the sentence pattern to use when you record. Read it over, then continue.",
-    "zh": "這是錄音時要用的句型，看熟了再繼續。",
-    "pinyin": "Zhè shì lùyīn shí yào yòng de jùxíng, kàn shú le zài jìxù."
+  "phrases_step_action_copy": {
+    "en": "These are handy phrases for this scene — easy to learn, practice, and reuse. Read them over, then continue.",
+    "zh": "這些是這個場景好用的短語 — 容易學、容易練習、容易記住。看熟了再繼續。",
+    "pinyin": "Zhèxiē shì zhège chǎngjǐng hǎoyòng de duǎnyǔ — róngyì xué, róngyì liànxí, róngyì jìzhù. Kàn shú le zài jìxù."
   },
-  "grammar_step_tab": {
-    "en": "Grammar",
-    "zh": "文法",
-    "pinyin": "Wénfǎ"
+  "phrases_step_tab": {
+    "en": "Phrases",
+    "zh": "短語",
+    "pinyin": "Duǎnyǔ"
+  },
+  "speaking_model_sentence": {
+    "en": "Model sentence — look and practice saying it",
+    "zh": "範例句子 — 看著練習說說看",
+    "pinyin": "Fànlì jùzi — kànzhe liànxí shuō shuō kàn"
   },
   "how_to_fix": {
     "en": "How to fix",
@@ -320,8 +325,13 @@
   },
   "need_teacher_help": {
     "en": "Need teacher help?",
-    "zh": "需要老師幫忙嗎？",
-    "pinyin": "Xūyào lǎoshī bāngmáng ma?"
+    "zh": "要老師幫忙嗎？",
+    "pinyin": "Yào lǎoshī bāngmáng ma?"
+  },
+  "need_teacher_help_prompt": {
+    "en": "Need help? Raise your hand here and your teacher will see it.",
+    "zh": "要老師幫忙嗎？在這裡舉手，老師會看到。",
+    "pinyin": "Yào lǎoshī bāngmáng ma? Zài zhèlǐ jǔshǒu, lǎoshī huì kàndào."
   },
   "needs_a_clear_pitch_contour_and_transcri": {
     "en": "Needs a clear pitch contour and transcript. Try one complete sentence, or use Chinese/Taiwanese Whisper.",
@@ -421,8 +431,8 @@
   },
   "raise_your_hand_from_here_and_your_teach": {
     "en": "Raise your hand here and your teacher will see it.",
-    "zh": "在這裡舉手，老師就會看到。",
-    "pinyin": "Zài zhèlǐ jǔshǒu, lǎoshī jiù huì kàndào."
+    "zh": "在這裡舉手，老師會看到。",
+    "pinyin": "Zài zhèlǐ jǔshǒu, lǎoshī huì kàndào."
   },
   "real_life_speaking_practice": {
     "en": "Real-life speaking practice",

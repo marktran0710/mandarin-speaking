@@ -18,6 +18,12 @@
   width: 100%;
 }
 
+.story-feedback-radar {
+  max-width: 340px;
+  height: 260px;
+  margin: 0 auto;
+}
+
 .story-feedback-cards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -43,7 +49,10 @@
 }
 
 .story-feedback-card.next {
-  background: var(--seal-soft);
+  /* --seal is a violet accent now, not a "needs work" color — use the real
+     error-red ramp so this band reads as the weakest one at a glance,
+     matching the radar chart's point coloring below. */
+  background: var(--clay-error-soft);
   --bi-en-color: var(--clay-body);
 }
 

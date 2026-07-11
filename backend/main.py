@@ -282,6 +282,25 @@ class VocabFromSentenceResponse(BaseModel):
     words: List[VocabWordSuggestion]
 
 
+class VocabDistractorWord(BaseModel):
+    word: str
+    translation: str
+    context: Optional[str] = None
+
+
+class VocabDistractorRequest(BaseModel):
+    words: List[VocabDistractorWord]
+
+
+class VocabDistractorResult(BaseModel):
+    word: str
+    distractors: List[str]
+
+
+class VocabDistractorResponse(BaseModel):
+    results: List[VocabDistractorResult]
+
+
 class AudioRecordRequest(BaseModel):
     id: str
     timestamp: str
@@ -343,6 +362,13 @@ class SceneSubmission(BaseModel):
     pronScore: float = 0
     fluencyScore: float = 0
     audioUrl: Optional[str] = None
+    # Praat pause-analysis data for this scene's recording — see
+    # ai_feedback.generate_story_feedback for why this now feeds story-level
+    # feedback directly (delivery matters more once scenes can hand the
+    # student a suggestedAnswer to read, since vocab/grammar aren't a choice).
+    pauseCount: float = 0
+    longestPause: float = 0
+    utteranceCount: float = 0
 
 
 class StorySubmissionRequest(BaseModel):
@@ -672,11 +698,23 @@ async def create_story_submission(submission: StorySubmissionRequest):
             avg_tone_accuracy = sum(s.toneAccuracy for s in scenes_sorted) / scene_count
             avg_fluency_score = sum(s.fluencyScore for s in scenes_sorted) / scene_count
             avg_pron_score = sum(s.pronScore for s in scenes_sorted) / scene_count
+            # Real delivery data (not just the composite fluency score) so the
+            # story-level feedback can cite actual pausing/utterance behavior —
+            # this matters more now that a scene can hand the student a
+            # suggestedAnswer to read, where vocabulary/grammar isn't really a
+            # choice the student is making, but delivery still is.
+            total_pause_count = sum(s.pauseCount for s in scenes_sorted)
+            longest_single_pause = max((s.longestPause for s in scenes_sorted), default=0)
+            total_utterance_count = sum(s.utteranceCount for s in scenes_sorted)
             story_feedback = await generate_story_feedback(
                 combined_transcript,
                 avg_tone_accuracy=avg_tone_accuracy,
                 avg_fluency_score=avg_fluency_score,
                 avg_pron_score=avg_pron_score,
+                total_pause_count=total_pause_count,
+                longest_single_pause=longest_single_pause,
+                total_utterance_count=total_utterance_count,
+                scene_count=scene_count,
             )
     except Exception as exc:
         logger.error("Story feedback generation failed for %s: %s", submission.id, exc)
@@ -1043,6 +1081,51 @@ async def vocab_from_sentence(request: VocabFromSentenceRequest, req: Request):
     ) from last_error
 
 
+@app.post("/api/vocab-quiz-distractors", response_model=VocabDistractorResponse)
+async def vocab_quiz_distractors(request: VocabDistractorRequest, req: Request):
+    """
+    Generate plausible-but-wrong English translations for each of a story's
+    vocabulary words, for the pre-practice vocabulary quiz's multiple-choice
+    options. Real distractors (near-synonyms, same part of speech, common
+    learner mix-ups) make students actually discriminate meaning instead of
+    eliminating obviously-unrelated filler words — generated once per story
+    and cached by the caller, not regenerated per student attempt.
+    """
+    client_ip = req.client.host if req.client else "unknown"
+    _check_rate_limit(f"vocab-quiz-distractors:{client_ip}", max_requests=10, window_seconds=60)
+
+    words = [w for w in request.words if w.word.strip() and w.translation.strip()]
+    if not words:
+        raise HTTPException(status_code=400, detail="Provide at least one word with a translation.")
+
+    engines = [
+        ("groq", GROQ_API_KEY, generate_vocab_distractors_with_groq),
+        ("gemini", GEMINI_API_KEY, generate_vocab_distractors_with_gemini),
+    ]
+    if not any(key for _, key, _ in engines):
+        raise HTTPException(
+            status_code=503,
+            detail="AI distractor generation requires GROQ_API_KEY or GEMINI_API_KEY to be configured on the backend.",
+        )
+
+    last_error: Exception | None = None
+    for name, key, generate in engines:
+        if not key:
+            continue
+        try:
+            results = await generate(words)
+        except Exception as exc:
+            logger.warning("%s distractor generation failed, trying next engine: %s", name, exc)
+            last_error = exc
+            continue
+        return VocabDistractorResponse(results=results)
+
+    raise HTTPException(
+        status_code=502,
+        detail="Could not generate quiz distractors for these words.",
+    ) from last_error
+
+
 @app.get("/api/asr-status", response_model=AsrStatusResponse)
 async def get_asr_status():
     with _vibevoice_load_lock:
@@ -1152,7 +1235,7 @@ async def _do_analyze(
     scene_vocabulary: str = "",
     ai_provider: str = "",
     scene_image_url: str = "",
-    scene_grammar_pattern: str = "",
+    scene_phrases: str = "",
     scene_suggested_answer: str = "",
     scene_attempt_number: int = 1,
     verify_word: str = "",
@@ -1188,7 +1271,7 @@ async def _do_analyze(
                     audio_result = await getattr(mod, fn_name)(
                         content, scene_prompt, scene_vocabulary,
                         image_b64=image_b64, image_mime=image_mime,
-                        scene_grammar_pattern=scene_grammar_pattern, scene_suggested_answer=scene_suggested_answer,
+                        scene_phrases=scene_phrases, scene_suggested_answer=scene_suggested_answer,
                         scene_attempt_number=scene_attempt_number,
                     )
                     transcription = convert_to_traditional_chinese(audio_result["transcription"])
@@ -1218,7 +1301,7 @@ async def _do_analyze(
             else generate_language_feedback(
                 transcription, scene_prompt, scene_vocabulary, provider=ai_provider or None,
                 image_b64=image_b64, image_mime=image_mime,
-                scene_grammar_pattern=scene_grammar_pattern, scene_suggested_answer=scene_suggested_answer,
+                scene_phrases=scene_phrases, scene_suggested_answer=scene_suggested_answer,
                 scene_attempt_number=scene_attempt_number,
             )
         )
@@ -1261,7 +1344,7 @@ async def _do_analyze(
             praat_speech_rate=float(speech_rate),
             word_prosody=word_prosody,
             image_b64=image_b64,
-            scene_grammar_pattern=scene_grammar_pattern,
+            scene_phrases=scene_phrases,
             scene_suggested_answer=scene_suggested_answer,
             scene_attempt_number=scene_attempt_number,
         )
@@ -1309,7 +1392,7 @@ async def analyze_speech(
     scene_vocabulary: str = Form(""),
     ai_provider: str = Form(""),
     scene_image_url: str = Form(""),
-    scene_grammar_pattern: str = Form(""),
+    scene_phrases: str = Form(""),
     scene_suggested_answer: str = Form(""),
     scene_attempt_number: int = Form(1),
     verify_word: str = Form(""),
@@ -1320,7 +1403,7 @@ async def analyze_speech(
     Analyze Chinese speech for tone, pitch, formants, speech rate, and fluency.
     If transcription is empty and asr_model is provided, transcribe first, then
     run Praat against the same audio. scene_prompt and scene_vocabulary are used
-    to make AI and local feedback context-aware. scene_grammar_pattern and
+    to make AI and local feedback context-aware. scene_phrases and
     scene_suggested_answer give the AI a reference for judging whether the
     student's sentence actually means the right thing, before pronunciation
     feedback matters. scene_attempt_number drives indirect corrective feedback —
@@ -1358,7 +1441,7 @@ async def analyze_speech(
         return await asyncio.wait_for(
             _do_analyze(
                 content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
-                scene_grammar_pattern, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
+                scene_phrases, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
             ),
             timeout=ANALYZE_TIMEOUT_SECONDS,
         )
@@ -1645,6 +1728,122 @@ async def extract_vocab_from_sentence_with_gemini(sentence: str) -> List[VocabWo
     content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
     data = json.loads(strip_json_fence(content))
     return _parse_vocab_words(data, sentence)
+
+
+def _vocab_distractors_prompt(words: List[VocabDistractorWord]) -> str:
+    word_lines = "\n".join(
+        f'{i + 1}. "{w.word}" -> "{w.translation}"'
+        + (f' (used in: "{w.context}")' if w.context else "")
+        for i, w in enumerate(words)
+    )
+    return f"""
+You are building multiple-choice distractors for a Mandarin vocabulary quiz.
+For each word below, its correct English translation is already given.
+Generate 3 WRONG but PLAUSIBLE English translations for each word — answers a
+real student might mistakenly pick because they're close in meaning, the same
+part of speech, or a common confusion (not random unrelated words).
+
+Words:
+{word_lines}
+
+Return only valid JSON shaped exactly like:
+[
+  {{"word": "餐廳", "distractors": ["kitchen", "hotel", "cafeteria"]}}
+]
+
+Rules:
+- "word" must exactly match one of the words given above.
+- Each distractor must be different from that word's correct translation and
+  from the other distractors for that word.
+- Distractors are short English translations (a few words at most), matching
+  the style of the correct translation.
+- Return the JSON array only, no surrounding text.
+"""
+
+
+def _parse_vocab_distractors(
+    data: object, words: List[VocabDistractorWord]
+) -> List[VocabDistractorResult]:
+    if not isinstance(data, list):
+        raise RuntimeError("Model did not return a JSON array of distractors")
+
+    by_word = {w.word: w for w in words}
+    results: List[VocabDistractorResult] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        word = str(item.get("word", "")).strip()
+        source = by_word.get(word)
+        if not source:
+            continue
+        correct = source.translation.strip().lower()
+        seen = {correct}
+        distractors: List[str] = []
+        for raw in item.get("distractors", []):
+            distractor = str(raw).strip()
+            key = distractor.lower()
+            if not distractor or key in seen:
+                continue
+            seen.add(key)
+            distractors.append(distractor)
+        if distractors:
+            results.append(VocabDistractorResult(word=word, distractors=distractors[:3]))
+    return results
+
+
+async def generate_vocab_distractors_with_groq(
+    words: List[VocabDistractorWord],
+) -> List[VocabDistractorResult]:
+    payload = {
+        "model": GROQ_FEEDBACK_MODEL,
+        "response_format": {"type": "json_object"},
+        "temperature": 0.4,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a Mandarin vocabulary-quiz assistant. Always respond in "
+                    "valid JSON only — no markdown fences, no prose outside the JSON. "
+                    'Wrap the array in a top-level object: {"results": [...]}.'
+                ),
+            },
+            {"role": "user", "content": _vocab_distractors_prompt(words)},
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["choices"][0]["message"]["content"]
+    parsed = json.loads(content)
+    data = parsed.get("results") if isinstance(parsed, dict) else parsed
+    return _parse_vocab_distractors(data, words)
+
+
+async def generate_vocab_distractors_with_gemini(
+    words: List[VocabDistractorWord],
+) -> List[VocabDistractorResult]:
+    payload = {"contents": [{"parts": [{"text": _vocab_distractors_prompt(words)}]}]}
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}",
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+    data = json.loads(strip_json_fence(content))
+    return _parse_vocab_distractors(data, words)
 
 
 async def generate_story_images_with_gemini(

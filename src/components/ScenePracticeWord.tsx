@@ -132,7 +132,7 @@ export default function ScenePracticeWord({
                 </p>
               )}
               <strong className={`scene-practice-score ${scoreTier(score ?? 0)}`}>
-                <BiLabel {...scoreTierLabel(scoreTier(score ?? 0))} />
+                {scoreTierLabel(scoreTier(score ?? 0)).zh}
               </strong>
               <PitchOverlay
                 userContour={segment.pitch_contour}

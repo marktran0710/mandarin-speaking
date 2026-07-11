@@ -104,7 +104,7 @@ describe("TonePracticePage word content verification", () => {
     const resultPanel = (await screen.findByText("Good match for Tone 1 (flat).")).closest(
       ".tone-practice-result",
     ) as HTMLElement;
-    expect(within(resultPanel).getByText("Good")).toBeInTheDocument();
+    expect(within(resultPanel).getByText("不錯")).toBeInTheDocument();
     expect(screen.queryByText(/the score above may not be reliable/i)).not.toBeInTheDocument();
   });
 

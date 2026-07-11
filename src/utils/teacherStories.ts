@@ -22,11 +22,18 @@ export interface CustomStoryFrame {
   prompt: string;
   vocabulary: string;
   vocabularyGroups?: VocabGroup[];
-  grammarPattern?: string;
-  grammarExample?: string;
+  // Handy, easy-to-learn-and-reuse phrases for this scene (replaces the old
+  // single whole-story "grammar pattern" note), comma-joined per scene —
+  // same convention as vocabulary/vocabularyTranslation below.
+  phrases?: string;
+  phrasesTranslation?: string;
   vocabularyPinyin?: string;
   vocabularyPos?: string;
   vocabularyTranslation?: string;
+  // JSON-encoded array of arrays (one entry per word, aligned with the
+  // comma-split `vocabulary` above) — distractors are inherently multi-valued
+  // per word, unlike the other comma-joined single-value fields.
+  vocabularyDistractors?: string;
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
@@ -87,11 +94,12 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
   );
 
   const vocabularyGroups: Record<number, import("../components/TopicSelector").VocabGroup[]> = {};
-  const grammarPatterns: Record<number, string> = {};
-  const grammarExamples: Record<number, string> = {};
+  const phrases: Record<number, string[]> = {};
+  const phrasesTranslation: Record<number, string[]> = {};
   const vocabularyPinyin: Record<number, string[]> = {};
   const vocabularyPos: Record<number, string[]> = {};
   const vocabularyTranslation: Record<number, string[]> = {};
+  const vocabularyDistractors: Record<number, string[][]> = {};
   const suggestedAnswers: Record<number, string> = {};
   const listenAudioUrls: Record<number, string> = {};
   const listenScripts: Record<number, string> = {};
@@ -99,11 +107,16 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
     if (frame.vocabularyGroups && frame.vocabularyGroups.length > 0) {
       vocabularyGroups[index] = frame.vocabularyGroups;
     }
-    if (frame.grammarPattern && frame.grammarPattern.trim()) {
-      grammarPatterns[index] = frame.grammarPattern.trim();
+    if (frame.phrases && frame.phrases.trim()) {
+      phrases[index] = frame.phrases
+        .split(",")
+        .map((p) => p.trim())
+        .filter(Boolean);
     }
-    if (frame.grammarExample && frame.grammarExample.trim()) {
-      grammarExamples[index] = frame.grammarExample.trim();
+    if (frame.phrasesTranslation && frame.phrasesTranslation.trim()) {
+      phrasesTranslation[index] = frame.phrasesTranslation
+        .split(",")
+        .map((t) => t.trim());
     }
     if (frame.vocabularyPinyin && frame.vocabularyPinyin.trim()) {
       vocabularyPinyin[index] = frame.vocabularyPinyin
@@ -119,6 +132,18 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
       vocabularyTranslation[index] = frame.vocabularyTranslation
         .split(",")
         .map((t) => t.trim());
+    }
+    if (frame.vocabularyDistractors && frame.vocabularyDistractors.trim()) {
+      try {
+        const parsed = JSON.parse(frame.vocabularyDistractors);
+        if (Array.isArray(parsed)) {
+          vocabularyDistractors[index] = parsed.map((row) =>
+            Array.isArray(row) ? row.filter((d): d is string => typeof d === "string") : [],
+          );
+        }
+      } catch {
+        // Malformed/stale data — treat as absent rather than breaking the quiz.
+      }
     }
     if (frame.suggestedAnswer && frame.suggestedAnswer.trim()) {
       suggestedAnswers[index] = frame.suggestedAnswer.trim();
@@ -141,11 +166,12 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
     prompts: story.frames.map((frame) => frame.prompt),
     vocabulary,
     ...(Object.keys(vocabularyGroups).length > 0 ? { vocabularyGroups } : {}),
-    ...(Object.keys(grammarPatterns).length > 0 ? { grammarPatterns } : {}),
-    ...(Object.keys(grammarExamples).length > 0 ? { grammarExamples } : {}),
+    ...(Object.keys(phrases).length > 0 ? { phrases } : {}),
+    ...(Object.keys(phrasesTranslation).length > 0 ? { phrasesTranslation } : {}),
     ...(Object.keys(vocabularyPinyin).length > 0 ? { vocabularyPinyin } : {}),
     ...(Object.keys(vocabularyPos).length > 0 ? { vocabularyPos } : {}),
     ...(Object.keys(vocabularyTranslation).length > 0 ? { vocabularyTranslation } : {}),
+    ...(Object.keys(vocabularyDistractors).length > 0 ? { vocabularyDistractors } : {}),
     ...(Object.keys(suggestedAnswers).length > 0 ? { suggestedAnswers } : {}),
     ...(Object.keys(listenAudioUrls).length > 0 ? { listenAudioUrls } : {}),
     ...(Object.keys(listenScripts).length > 0 ? { listenScripts } : {}),

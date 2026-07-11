@@ -202,7 +202,7 @@ export default function TonePracticePage() {
                 <small>{word.gloss}</small>
                 {typeof best === "number" && (
                   <em className={`tone-word-best ${scoreTier(best)}`}>
-                    <BiLabel {...scoreTierLabel(scoreTier(best))} />
+                    {scoreTierLabel(scoreTier(best)).zh}
                   </em>
                 )}
               </button>
@@ -263,7 +263,10 @@ export default function TonePracticePage() {
               {typeof bestForSelected === "number" && (
                 <>
                   {" · "}
-                  <BiLabel zh="最佳" pinyin="Zuì jiā" en="Best" /> <BiLabel {...scoreTierLabel(scoreTier(bestForSelected))} />
+                  <BiLabel zh="最佳" pinyin="Zuì jiā" en="Best" />{" "}
+                  <span className={`score-tier-text ${scoreTier(bestForSelected)}`}>
+                    {scoreTierLabel(scoreTier(bestForSelected)).zh}
+                  </span>
                 </>
               )}
             </span>
@@ -366,7 +369,7 @@ function ToneMatchResult({
         <div className={`tone-match-card ${scoreTier(segment.tone_accuracy)}`} key={`${segment.token}-${index}`}>
           <div className="tone-match-header">
             <div className="tone-match-score-ring">
-              <strong><BiLabel {...scoreTierLabel(scoreTier(segment.tone_accuracy))} /></strong>
+              <strong>{scoreTierLabel(scoreTier(segment.tone_accuracy)).zh}</strong>
             </div>
             <div className="tone-match-meta">
               <strong>{segment.token || targetText}</strong>

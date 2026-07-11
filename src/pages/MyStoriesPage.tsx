@@ -278,9 +278,10 @@ const emptyCustomStoryDraft = {
   vocabularyPinyin: ["", "", "", "", "", ""],
   vocabularyPos: ["", "", "", "", "", ""],
   vocabularyTranslation: ["", "", "", "", "", ""],
+  vocabularyDistractors: ["", "", "", "", "", ""],
   vocabularyGroups: [null, null, null, null, null, null] as (VocabGroup[] | null)[],
-  grammarPattern: "",
-  grammarExample: "",
+  phrases: ["", "", "", "", "", ""],
+  phrasesTranslation: ["", "", "", "", "", ""],
   suggestedAnswers: ["", "", "", "", "", ""],
   listenAudioUrls: ["", "", "", "", "", ""],
   listenScripts: ["", "", "", "", "", ""],
@@ -634,6 +635,7 @@ function MyStoryFeedbackHistory({
             <StoryFeedbackCard
               feedback={sub.storyFeedback}
               concatenatedAudioUrl={sub.concatenatedAudioUrl}
+              scenes={sub.scenes}
             />
           </details>
         ))}
@@ -757,6 +759,8 @@ function TeacherDashboard({
   const [vocabDraftGeneration, setVocabDraftGeneration] = useState(0);
   const [vocabFillLoadingIndex, setVocabFillLoadingIndex] = useState<number | null>(null);
   const [vocabFillError, setVocabFillError] = useState("");
+  const [distractorGenLoadingIndex, setDistractorGenLoadingIndex] = useState<number | null>(null);
+  const [distractorGenError, setDistractorGenError] = useState("");
   const [validationErrors, setValidationErrors] =
     useState<CustomStoryValidationErrors>({});
   const [customStoryNotice, setCustomStoryNotice] = useState("");
@@ -793,7 +797,7 @@ function TeacherDashboard({
   const clearNotice = () => setCustomStoryNotice("");
 
   const updateDraftField = (
-    field: "title" | "learningGoal" | "level" | "lessonNumber" | "grammarPattern" | "grammarExample",
+    field: "title" | "learningGoal" | "level" | "lessonNumber",
     value: string,
   ) => {
     setCustomDraft((draft) => ({ ...draft, [field]: value }));
@@ -811,7 +815,10 @@ function TeacherDashboard({
       vocabularyPinyin: resizeToCount(draft.vocabularyPinyin, clamped, ""),
       vocabularyPos: resizeToCount(draft.vocabularyPos, clamped, ""),
       vocabularyTranslation: resizeToCount(draft.vocabularyTranslation, clamped, ""),
+      vocabularyDistractors: resizeToCount(draft.vocabularyDistractors, clamped, ""),
       vocabularyGroups: resizeToCount(draft.vocabularyGroups, clamped, null),
+      phrases: resizeToCount(draft.phrases, clamped, ""),
+      phrasesTranslation: resizeToCount(draft.phrasesTranslation, clamped, ""),
 
       suggestedAnswers: resizeToCount(draft.suggestedAnswers, clamped, ""),
       listenAudioUrls: resizeToCount(draft.listenAudioUrls, clamped, ""),
@@ -835,6 +842,8 @@ function TeacherDashboard({
       | "vocabularyPinyin"
       | "vocabularyPos"
       | "vocabularyTranslation"
+      | "phrases"
+      | "phrasesTranslation"
       | "suggestedAnswers"
       | "listenAudioUrls"
       | "listenScripts",
@@ -947,6 +956,54 @@ function TeacherDashboard({
       );
     } finally {
       setVocabFillLoadingIndex(null);
+    }
+  };
+
+  // Generates AI distractors for a scene's vocab quiz once, when the teacher
+  // has words + translations ready — cached in the draft (and persisted with
+  // the story on save) rather than regenerated per student attempt.
+  const handleGenerateQuizDistractors = async (index: number) => {
+    const rows = buildVocabRows(
+      customDraft.vocabulary[index] ?? "",
+      customDraft.vocabularyPinyin[index] ?? "",
+      customDraft.vocabularyPos[index] ?? "",
+      customDraft.vocabularyTranslation[index] ?? "",
+    ).filter((row) => row.word.trim() && row.translation.trim());
+    if (rows.length === 0) return;
+
+    const context = customDraft.suggestedAnswers[index]?.trim() || undefined;
+    setDistractorGenError("");
+    setDistractorGenLoadingIndex(index);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/vocab-quiz-distractors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          words: rows.map((row) => ({ word: row.word, translation: row.translation, context })),
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Could not generate quiz distractors for these words.");
+      }
+      const { results } = (await response.json()) as {
+        results: { word: string; distractors: string[] }[];
+      };
+      const byWord = new Map(results.map((r) => [r.word, r.distractors]));
+      const aligned = rows.map((row) => byWord.get(row.word) ?? []);
+
+      setCustomDraft((draft) => ({
+        ...draft,
+        vocabularyDistractors: draft.vocabularyDistractors.map((v, i) =>
+          i === index ? JSON.stringify(aligned) : v,
+        ),
+      }));
+    } catch (error) {
+      setDistractorGenError(
+        error instanceof Error ? error.message : "Could not generate quiz distractors for these words.",
+      );
+    } finally {
+      setDistractorGenLoadingIndex(null);
     }
   };
 
@@ -1123,19 +1180,41 @@ function TeacherDashboard({
     setValidationErrors({});
     setCustomStoryNotice("");
   };
-  const teacherViews: Array<{
-    id: TeacherView;
-    label: string;
-    count?: number;
+  // Grouped so the nav reads as a few labeled clusters instead of eight
+  // identical pills wrapping onto an uneven second row — "things students
+  // sent you" (Review), "what you're teaching" (Content), and "data" (
+  // Analytics) are genuinely different jobs, not just a flat list.
+  const teacherViewGroups: Array<{
+    label: string | null;
+    items: Array<{ id: TeacherView; label: string; count?: number }>;
   }> = [
-    { id: "overview", label: "Overview" },
-    { id: "submissions", label: "Submissions", count: submissions.length },
-    { id: "help", label: "Help", count: openHelpRequests.length },
-    { id: "materials", label: "Materials", count: customStories.length },
-    { id: "progress", label: "Progress" },
-    { id: "recordings", label: "Recordings", count: records.length },
-    { id: "quizAnalytics", label: "Quiz Analytics", count: quizAttempts.length },
-    { id: "recordingAnalytics", label: "Recording Analytics", count: feedbackReadyRecords.length },
+    { label: null, items: [{ id: "overview", label: "Overview" }] },
+    {
+      label: "Review",
+      items: [
+        { id: "submissions", label: "Submissions", count: submissions.length },
+        { id: "recordings", label: "Recordings", count: records.length },
+        { id: "help", label: "Help", count: openHelpRequests.length },
+      ],
+    },
+    {
+      label: "Content",
+      items: [
+        { id: "materials", label: "Materials", count: customStories.length },
+        { id: "progress", label: "Progress" },
+      ],
+    },
+    {
+      label: "Analytics",
+      items: [
+        { id: "quizAnalytics", label: "Quiz Analytics", count: quizAttempts.length },
+        {
+          id: "recordingAnalytics",
+          label: "Recording Analytics",
+          count: feedbackReadyRecords.length,
+        },
+      ],
+    },
   ];
 
   return (
@@ -1171,17 +1250,26 @@ function TeacherDashboard({
       </section>
 
       <nav className="teacher-view-tabs" aria-label="Teacher tools">
-        {teacherViews.map((view) => (
-          <button
-            type="button"
-            className={activeView === view.id ? "active" : ""}
-            aria-current={activeView === view.id ? "page" : undefined}
-            onClick={() => setActiveView(view.id)}
-            key={view.id}
-          >
-            <span>{view.label}</span>
-            {view.count !== undefined && <strong>{view.count}</strong>}
-          </button>
+        {teacherViewGroups.map((group, gi) => (
+          <div className="teacher-view-tab-group" key={group.label ?? `group-${gi}`}>
+            {group.label && (
+              <span className="teacher-view-tab-group-label">{group.label}</span>
+            )}
+            <div className="teacher-view-tab-row" role="group" aria-label={group.label ?? "Overview"}>
+              {group.items.map((view) => (
+                <button
+                  type="button"
+                  className={activeView === view.id ? "active" : ""}
+                  aria-current={activeView === view.id ? "page" : undefined}
+                  onClick={() => setActiveView(view.id)}
+                  key={view.id}
+                >
+                  <span>{view.label}</span>
+                  {view.count !== undefined && <strong>{view.count}</strong>}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
@@ -1303,22 +1391,6 @@ function TeacherDashboard({
                   onChange={(event) => updateFrameCount(Number(event.target.value) || 1)}
                 />
               </label>
-              <label>
-                Grammar pattern (optional)
-                <input
-                  value={customDraft.grammarPattern}
-                  onChange={(event) => updateDraftField("grammarPattern", event.target.value)}
-                  placeholder="S + Vaux + V(O)"
-                />
-              </label>
-              <label>
-                Example sentence (optional)
-                <input
-                  value={customDraft.grammarExample}
-                  onChange={(event) => updateDraftField("grammarExample", event.target.value)}
-                  placeholder="我要喝茶"
-                />
-              </label>
             </div>
 
             <label>
@@ -1437,6 +1509,31 @@ function TeacherDashboard({
                       vocabularyPinyin={customDraft.vocabularyPinyin[index] ?? ""}
                       vocabularyPos={customDraft.vocabularyPos[index] ?? ""}
                       vocabularyTranslation={customDraft.vocabularyTranslation[index] ?? ""}
+                      onChangeColumn={(field, value) => updateDraftFrame(field, index, value)}
+                    />
+                    <button
+                      type="button"
+                      className="btn-vocab-autofill"
+                      disabled={
+                        !customDraft.vocabulary[index]?.trim() ||
+                        !customDraft.vocabularyTranslation[index]?.trim() ||
+                        distractorGenLoadingIndex === index
+                      }
+                      onClick={() => handleGenerateQuizDistractors(index)}
+                    >
+                      {distractorGenLoadingIndex === index
+                        ? "Generating…"
+                        : customDraft.vocabularyDistractors[index]?.trim()
+                          ? "🤖 Regenerate quiz distractors"
+                          : "🤖 Generate quiz distractors"}
+                    </button>
+                    {distractorGenError && distractorGenLoadingIndex === null && (
+                      <span className="teacher-form-error">{distractorGenError}</span>
+                    )}
+                    <PhraseTable
+                      key={`phrases-${index}`}
+                      phrases={customDraft.phrases[index] ?? ""}
+                      phrasesTranslation={customDraft.phrasesTranslation[index] ?? ""}
                       onChangeColumn={(field, value) => updateDraftFrame(field, index, value)}
                     />
                     {customDraft.narrativeMode !== "listen_retell" && (
@@ -1796,6 +1893,7 @@ function TeacherDashboard({
                     <StoryFeedbackCard
                       feedback={sub.storyFeedback}
                       concatenatedAudioUrl={sub.concatenatedAudioUrl}
+                      scenes={sub.scenes}
                     />
                   )}
                 </div>
@@ -1885,7 +1983,9 @@ function QuizAnalyticsPanel({
   const avgTimePerQuestion = totalQuestions > 0 ? Math.round(totalTimeMs / totalQuestions / 1000) : 0;
 
   const studentStats = computeStudentQuizStats(filtered);
-  const wordStats = computeWordMissStats(filtered).slice(0, 10);
+  const allWordStats = computeWordMissStats(filtered);
+  const wordStats = allWordStats.slice(0, 10);
+  const wordMissInsight = summarizeWordMissTrends(allWordStats, wordStats.length);
 
   // Mode comparison always reads the student-filtered set (not mode-filtered)
   // so all three mode bars stay visible for comparison no matter which mode
@@ -1994,7 +2094,10 @@ function QuizAnalyticsPanel({
                 {wordStats.length === 0 ? (
                   <p className="quiz-analytics-empty-note">No missed words in this filter — nice work!</p>
                 ) : (
-                  <WordMissChart data={wordStats} />
+                  <>
+                    <p className="quiz-analytics-insight">{wordMissInsight}</p>
+                    <WordMissChart data={wordStats} />
+                  </>
                 )}
               </div>
             </div>
@@ -2049,15 +2152,21 @@ function QuizAnalyticsPanel({
               </div>
             ) : (
               <div className="quiz-analytics-word-list">
-                {wordStats.map((word) => (
-                  <div className="quiz-analytics-word-row" key={word.word}>
-                    <strong>{word.word}</strong>
-                    <span>
-                      Missed {word.timesMissed}/{word.timesAsked} times ({word.missRatePct}%)
-                    </span>
-                    <span>Avg. {(word.avgTimeMs / 1000).toFixed(1)}s/question</span>
-                  </div>
-                ))}
+                {wordStats.map((word) => {
+                  const severity = wordMissSeverity(word.missRatePct);
+                  return (
+                    <div className="quiz-analytics-word-row" key={word.word}>
+                      <strong>{word.word}</strong>
+                      <span className={`word-severity-badge word-severity-${severity}`}>
+                        {WORD_SEVERITY_LABEL[severity]}
+                      </span>
+                      <span>
+                        Missed {word.timesMissed}/{word.timesAsked} times ({word.missRatePct}%)
+                      </span>
+                      <span>Avg. {(word.avgTimeMs / 1000).toFixed(1)}s/question</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>
@@ -2178,15 +2287,42 @@ function AccuracyTimeChart({ points }: { points: Array<{ label: string; value: n
 
 function WordMissChart({ data }: { data: WordMissStats[] }) {
   const build = useMemo(
-    () => (ctx: CanvasRenderingContext2D) =>
-      new Chart(ctx, {
+    () => (ctx: CanvasRenderingContext2D) => {
+      // Draws "N× (P%)" past the end of each bar. Chart.js has no built-in
+      // data-label support without a paid/extra plugin, so this is a small
+      // inline plugin closing over `data` rather than a new dependency.
+      const barEndLabels = {
+        id: "wordMissBarLabels",
+        afterDatasetsDraw(chart: Chart) {
+          const meta = chart.getDatasetMeta(0);
+          chart.ctx.save();
+          chart.ctx.font = `600 12px ${CHART_FONT_FAMILY}`;
+          chart.ctx.fillStyle = "#4a4556";
+          chart.ctx.textBaseline = "middle";
+          chart.ctx.textAlign = "left";
+          meta.data.forEach((bar, i) => {
+            const w = data[i];
+            const { x, y } = bar.getProps(["x", "y"], true);
+            chart.ctx.fillText(`${w.timesMissed}× (${w.missRatePct}%)`, x + 6, y);
+          });
+          chart.ctx.restore();
+        },
+      };
+
+      return new Chart(ctx, {
         type: "bar",
         data: {
           labels: data.map((w) => w.word),
           datasets: [{
-            label: "Miss rate",
-            data: data.map((w) => w.missRatePct),
-            backgroundColor: "#8a5a12",
+            label: "Times missed",
+            data: data.map((w) => w.timesMissed),
+            backgroundColor: data.map((w) =>
+              wordMissSeverity(w.missRatePct) === "critical"
+                ? "#c81e3a"
+                : wordMissSeverity(w.missRatePct) === "watch"
+                  ? "#ffa726"
+                  : "#8a5a12",
+            ),
             borderRadius: 4,
           }],
         },
@@ -2194,13 +2330,17 @@ function WordMissChart({ data }: { data: WordMissStats[] }) {
           indexAxis: "y",
           responsive: true,
           maintainAspectRatio: false,
+          layout: { padding: { right: 64 } },
           plugins: {
             legend: { display: false },
             tooltip: {
               callbacks: {
                 label: (item) => {
                   const w = data[item.dataIndex];
-                  return `Missed ${w.missRatePct}% of ${w.timesAsked} time${w.timesAsked === 1 ? "" : "s"}`;
+                  return [
+                    `Missed ${w.timesMissed} of ${w.timesAsked} time${w.timesAsked === 1 ? "" : "s"} (${w.missRatePct}%)`,
+                    `Avg. ${(w.avgTimeMs / 1000).toFixed(1)}s to answer`,
+                  ];
                 },
               },
             },
@@ -2208,14 +2348,15 @@ function WordMissChart({ data }: { data: WordMissStats[] }) {
           scales: {
             x: {
               beginAtZero: true,
-              max: 100,
-              title: { display: true, text: "Miss rate" },
-              ticks: { callback: (v) => `${v}%` },
+              ticks: { precision: 0 },
+              title: { display: true, text: "Times missed (most to least common)" },
             },
             y: { grid: { display: false } },
           },
         },
-      }),
+        plugins: [barEndLabels],
+      });
+    },
     [data],
   );
   return <QuizChartCanvas build={build} height={Math.max(180, data.length * 32)} />;
@@ -2673,7 +2814,52 @@ function computeWordMissStats(attempts: VocabQuizAttempt[]): WordMissStats[] {
       avgTimeMs: asked > 0 ? Math.round(timeMs / asked) : 0,
     }))
     .filter((w) => w.timesMissed > 0)
-    .sort((a, b) => b.timesMissed - a.timesMissed);
+    .sort((a, b) => b.timesMissed - a.timesMissed || b.missRatePct - a.missRatePct);
+}
+
+type WordMissSeverity = "critical" | "watch" | "ok";
+
+const WORD_SEVERITY_LABEL: Record<WordMissSeverity, string> = {
+  critical: "Critical",
+  watch: "Watch",
+  ok: "OK",
+};
+
+/** Miss rate is the % of asks a word is gotten wrong — a small-sample word
+ * missed once can swing to 100%, so this is a triage signal, not a verdict. */
+function wordMissSeverity(missRatePct: number): WordMissSeverity {
+  if (missRatePct >= 60) return "critical";
+  if (missRatePct >= 30) return "watch";
+  return "ok";
+}
+
+/** Turns the ranked word-miss table into a one-paragraph reading for a
+ * teacher: which word to act on first, and whether mistakes are concentrated
+ * (a few words worth a class-wide review) or spread thin across many words. */
+function summarizeWordMissTrends(stats: WordMissStats[], shownCount: number): string {
+  if (stats.length === 0) return "";
+
+  const top = stats[0];
+  const criticalCount = stats.filter((w) => wordMissSeverity(w.missRatePct) === "critical").length;
+  const totalMisses = stats.reduce((sum, w) => sum + w.timesMissed, 0);
+
+  const topSentence =
+    `"${top.word}" is missed most often — ${top.timesMissed} of ${top.timesAsked} attempts` +
+    ` (${top.missRatePct}%), averaging ${(top.avgTimeMs / 1000).toFixed(1)}s to answer.`;
+
+  const spreadSentence =
+    criticalCount === 0
+      ? `No word has crossed a 60% miss rate — mistakes are spread across ${stats.length} words rather than concentrated, so a quick review of the list below should cover it.`
+      : criticalCount === 1
+        ? `1 word is at a critical (≥60%) miss rate and is responsible for outsized trouble — start there.`
+        : `${criticalCount} words are at a critical (≥60%) miss rate out of ${stats.length} missed overall — worth a focused, class-wide review before moving on.`;
+
+  const coverageNote =
+    shownCount < stats.length
+      ? ` Showing the top ${shownCount} of ${stats.length} missed words (${totalMisses} total misses) for this filter.`
+      : "";
+
+  return `${topSentence} ${spreadSentence}${coverageNote}`;
 }
 
 function narrativeModeLabel(mode?: NarrativeMode): string {
@@ -2710,11 +2896,12 @@ function createCustomStory(
       prompt: draft.prompts[index].trim(),
       vocabulary: draft.vocabulary[index].trim(),
       ...(draft.vocabularyGroups[index] ? { vocabularyGroups: draft.vocabularyGroups[index]! } : {}),
-      ...(draft.grammarPattern?.trim() ? { grammarPattern: draft.grammarPattern.trim() } : {}),
-      ...(draft.grammarExample?.trim() ? { grammarExample: draft.grammarExample.trim() } : {}),
+      ...(draft.phrases[index]?.trim() ? { phrases: draft.phrases[index].trim() } : {}),
+      ...(draft.phrasesTranslation[index]?.trim() ? { phrasesTranslation: draft.phrasesTranslation[index].trim() } : {}),
       ...(draft.vocabularyPinyin[index]?.trim() ? { vocabularyPinyin: draft.vocabularyPinyin[index].trim() } : {}),
       ...(draft.vocabularyPos[index]?.trim() ? { vocabularyPos: draft.vocabularyPos[index].trim() } : {}),
       ...(draft.vocabularyTranslation[index]?.trim() ? { vocabularyTranslation: draft.vocabularyTranslation[index].trim() } : {}),
+      ...(draft.vocabularyDistractors[index]?.trim() ? { vocabularyDistractors: draft.vocabularyDistractors[index].trim() } : {}),
       ...(draft.suggestedAnswers[index]?.trim() ? { suggestedAnswer: draft.suggestedAnswers[index].trim() } : {}),
       ...(draft.listenAudioUrls[index]?.trim() ? { listenAudioUrl: draft.listenAudioUrls[index].trim() } : {}),
       ...(draft.listenScripts[index]?.trim() ? { listenScript: draft.listenScripts[index].trim() } : {}),
@@ -2745,11 +2932,12 @@ function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
     ),
     vocabulary: frames.map((frame) => frame?.vocabulary || ""),
     vocabularyGroups: frames.map((frame) => frame?.vocabularyGroups || null),
-    grammarPattern: story.frames.find((f) => f?.grammarPattern)?.grammarPattern || "",
-    grammarExample: story.frames.find((f) => f?.grammarExample)?.grammarExample || "",
+    phrases: frames.map((frame) => frame?.phrases || ""),
+    phrasesTranslation: frames.map((frame) => frame?.phrasesTranslation || ""),
     vocabularyPinyin: frames.map((frame) => frame?.vocabularyPinyin || ""),
     vocabularyPos: frames.map((frame) => frame?.vocabularyPos || ""),
     vocabularyTranslation: frames.map((frame) => frame?.vocabularyTranslation || ""),
+    vocabularyDistractors: frames.map((frame) => frame?.vocabularyDistractors || ""),
     suggestedAnswers: frames.map((frame) => frame?.suggestedAnswer || ""),
     listenAudioUrls: frames.map((frame) => frame?.listenAudioUrl || ""),
     listenScripts: frames.map((frame) => frame?.listenScript || ""),
@@ -2769,6 +2957,8 @@ function clearFrameError(
     | "vocabularyPinyin"
     | "vocabularyPos"
     | "vocabularyTranslation"
+    | "phrases"
+    | "phrasesTranslation"
     | "suggestedAnswers"
     | "listenAudioUrls"
     | "listenScripts",
@@ -2949,6 +3139,97 @@ function VocabularyTable({
       ))}
       <button type="button" className="vocab-table-add-btn" onClick={addRow}>
         + Add word
+      </button>
+    </div>
+  );
+}
+
+interface PhraseRow {
+  phrase: string;
+  translation: string;
+}
+
+function splitPhraseColumn(value: string): string[] {
+  return value
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
+
+function buildPhraseRows(phrases: string, phrasesTranslation: string): PhraseRow[] {
+  const rawPhrases = splitPhraseColumn(phrases);
+  const translations = splitPhraseColumn(phrasesTranslation);
+  return rawPhrases.map((phrase, i) => ({ phrase, translation: translations[i] || "" }));
+}
+
+/** Per-scene "handy phrases" table — easy-to-learn, practice, and remember
+ * chunks students can reuse (replaces the old single whole-story grammar
+ * pattern/example fields). Same comma-joined-column convention as
+ * VocabularyTable above, just with fewer columns. */
+function PhraseTable({
+  phrases,
+  phrasesTranslation,
+  onChangeColumn,
+}: {
+  phrases: string;
+  phrasesTranslation: string;
+  onChangeColumn: (field: "phrases" | "phrasesTranslation", value: string) => void;
+}) {
+  const [rows, setRows] = useState<PhraseRow[]>(() =>
+    buildPhraseRows(phrases, phrasesTranslation),
+  );
+
+  const commitRows = (nextRows: PhraseRow[]) => {
+    setRows(nextRows);
+    onChangeColumn("phrases", nextRows.map((r) => r.phrase).join(", "));
+    onChangeColumn("phrasesTranslation", nextRows.map((r) => r.translation).join(", "));
+  };
+
+  const updateCell = (rowIndex: number, field: keyof PhraseRow, value: string) => {
+    commitRows(rows.map((row, i) => (i === rowIndex ? { ...row, [field]: value } : row)));
+  };
+
+  const addRow = () => {
+    commitRows([...rows, { phrase: "", translation: "" }]);
+  };
+
+  const removeRow = (rowIndex: number) => {
+    commitRows(rows.filter((_, i) => i !== rowIndex));
+  };
+
+  return (
+    <div className="vocab-table phrase-table" role="table" aria-label="Phrases">
+      <div className="vocab-table-header" role="row">
+        <span role="columnheader">Phrase (Chinese)</span>
+        <span role="columnheader">English translation</span>
+        <span role="columnheader" aria-hidden="true" />
+      </div>
+      {rows.map((row, index) => (
+        <div className="vocab-table-row phrase-table-row" role="row" key={index}>
+          <input
+            aria-label="Phrase"
+            value={row.phrase}
+            onChange={(event) => updateCell(index, "phrase", event.target.value)}
+            placeholder="我想要…"
+          />
+          <input
+            aria-label="English translation"
+            value={row.translation}
+            onChange={(event) => updateCell(index, "translation", event.target.value)}
+            placeholder="I would like…"
+          />
+          <button
+            type="button"
+            className="vocab-table-remove"
+            aria-label={`Remove phrase ${index + 1}`}
+            onClick={() => removeRow(index)}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      <button type="button" className="vocab-table-add-btn" onClick={addRow}>
+        + Add phrase
       </button>
     </div>
   );

@@ -20,11 +20,19 @@ export interface Topic {
   prompts?: string[];
   vocabulary: Record<number, string[]>;
   vocabularyGroups?: Record<number, VocabGroup[]>;
-  grammarPatterns?: Record<number, string>;
-  grammarExamples?: Record<number, string>;
+  // Handy, easy-to-learn-and-reuse phrases for this scene (replaces the old
+  // single whole-story "grammar pattern" note) — same word/translation shape
+  // as vocabulary, aligned by index.
+  phrases?: Record<number, string[]>;
+  phrasesTranslation?: Record<number, string[]>;
   vocabularyPinyin?: Record<number, string[]>;
   vocabularyPos?: Record<number, string[]>;
   vocabularyTranslation?: Record<number, string[]>;
+  // AI-generated wrong-but-plausible translations per word (aligned by
+  // index with vocabulary[scene]), used as the vocab quiz's multiple-choice
+  // distractors instead of unrelated filler words. Optional — older stories
+  // without generated distractors still get a quiz via the old fallback.
+  vocabularyDistractors?: Record<number, string[][]>;
   suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
   listenScripts?: Record<number, string>;

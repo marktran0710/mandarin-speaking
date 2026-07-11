@@ -48,11 +48,12 @@ export interface CustomStoryFrame {
   prompt: string;
   vocabulary: string;
   vocabularyGroups?: Array<{ name: string; words: string[] }>;
-  grammarPattern?: string;
-  grammarExample?: string;
+  phrases?: string;
+  phrasesTranslation?: string;
   vocabularyPinyin?: string;
   vocabularyPos?: string;
   vocabularyTranslation?: string;
+  vocabularyDistractors?: string;
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
@@ -84,6 +85,15 @@ export interface SceneSubmission {
   pronScore: number;
   fluencyScore?: number;
   audioUrl?: string;
+  // Delivery data from Praat's pause analysis on this scene's recording —
+  // threaded through to story-level feedback so it can cite real pausing/
+  // utterance behavior instead of just an opaque fluency percentage. Matters
+  // more now that scenes can hand the student a suggestedAnswer to read
+  // aloud, where vocabulary/grammar choice isn't really being tested but
+  // delivery (pauses, utterance chunking) still is.
+  pauseCount?: number;
+  longestPause?: number;
+  utteranceCount?: number;
 }
 
 export interface StoryFeedbackDimension {

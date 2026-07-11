@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "./App";
 
@@ -399,12 +399,15 @@ describe("App role flows", () => {
     expect(localStorage.getItem("helpRequests")).toContain("resolved");
   });
 
-  it("persists the active role across reloads", () => {
+  it("no longer grants teacher access from a stale localStorage flag", () => {
+    // The teacher dashboard moved to a separate app (TeacherApp.tsx) gated by
+    // a real backend-issued token — this app must not resurrect a teacher
+    // session just because an old `activeRole=teacher` flag is still around
+    // from the previous fake-login scheme.
     localStorage.setItem("activeRole", "teacher");
 
     render(<App />);
 
-    const overview = screen.getByRole("region", { name: "Class overview" });
-    expect(within(overview).getByText("Submissions")).toBeInTheDocument();
+    expect(screen.queryByText("Class overview")).not.toBeInTheDocument();
   });
 });

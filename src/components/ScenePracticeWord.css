@@ -80,7 +80,7 @@
 .scene-practice-score.excellent { color: var(--jade-deep); }
 .scene-practice-score.good { color: var(--jade); }
 .scene-practice-score.ok { color: var(--gold-deep); }
-.scene-practice-score.low { color: var(--seal); }
+.scene-practice-score.low { color: var(--clay-error); }
 
 .scene-practice-feedback {
   margin: 0;
