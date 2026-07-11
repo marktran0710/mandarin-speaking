@@ -1,0 +1,63 @@
+Single square-ish image, divided into a clean grid of 6 equal panels (2
+columns × 3 rows), thin light gutters between panels, no hard comic-book
+borders, no text, no letters, no words, no speech bubbles, no panel numbers,
+no captions. Flat digital illustration style, soft rounded shapes, warm
+cozy evening color palette, limited color palette, gentle clean outlines,
+friendly simple style, consistent lighting and color palette across all
+panels.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHONGMING] a friendly young man, early 20s, short neat black hair, medium
+build, light denim jacket over a white t-shirt, dark jeans, a black analog
+wristwatch on his left wrist as his signature accessory.
+[YOUMEI] a friendly young woman, early 20s, shoulder-length wavy black hair
+held back with a red hair clip, soft yellow cardigan over a white blouse,
+light blue jeans.
+
+Panel 1 (top-left): medium shot, Zhongming sitting at a small desk in his
+room in the evening, warm lamp light, typing on his phone with a soft smile,
+a couple of books stacked on the desk beside him.
+
+Panel 2 (top-right): medium shot from a slight side angle, Youmei sitting
+cross-legged on her bed, holding an open book in one hand, headphones resting
+around her neck, her phone lying on the blanket beside her, cozy relaxed
+expression.
+
+Panel 3 (middle-left): close-up on Zhongming's face and shoulders, a hopeful
+expression, leaning slightly forward over his phone with one finger pointing
+at the screen as if indicating a date on a calendar.
+
+Panel 4 (middle-right): medium shot, Youmei sitting up eagerly on her bed,
+holding her phone with both hands and smiling brightly, a small floating
+question-mark shape near her head.
+
+Panel 5 (bottom-left): wide shot, Zhongming standing outside a small café
+storefront, pointing up with one hand at a cheerful ice-cream-cone-shaped
+sign above the door, looking pleased.
+
+Panel 6 (bottom-right): medium-wide shot, Zhongming and Youmei sitting
+together at a small round café table, each with a cup of chocolate ice cream
+in front of them, a round wall clock in the background showing two-thirty,
+both laughing together.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Zhongming's denim jacket and black
+  wristwatch, Youmei's red hair clip and yellow cardigan) recognizable in
+  every panel.
+- Keep one art style and one lighting mood across all 6 panels so the page
+  reads as one connected world.
+- Vary pose, shot framing, and camera angle panel to panel (see Rules) so it
+  reads as six different moments, not one pose repeated six times.
+- If one panel looks off after generation, it's harder to regenerate in
+  isolation than with separate images — accept minor variance, or fall back
+  to generating that one beat as its own image and swapping it in during
+  editing if it matters.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1536 for a 2×3 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
