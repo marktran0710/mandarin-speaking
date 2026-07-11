@@ -420,8 +420,9 @@ describe("StoryRecorder student prototype", () => {
     expect(screen.getByRole("region", { name: "Vocabulary quiz" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
 
-    // Backing out still leaves Speaking locked — only finishing unlocks it.
-    await user.click(screen.getByRole("button", { name: /Back to activities/ }));
+    // Backing out (via the completed "Overview" step in the phase nav)
+    // still leaves Speaking locked — only finishing unlocks it.
+    await user.click(screen.getByRole("button", { name: /Overview/ }));
     expect(screen.getByRole("button", { name: /Speaking Practice/ })).toBeDisabled();
 
     // Finish the quiz for real this time. The overview section was
@@ -436,7 +437,8 @@ describe("StoryRecorder student prototype", () => {
 
     // Simulate revisiting this story fresh: Speaking is now unlocked
     // (completion was persisted). Re-entering the quiz voluntarily still
-    // has no skip button — "Back to activities" remains the only way out.
+    // has no skip button — the "Overview" phase-nav step remains the only
+    // way out.
     unmount();
     render(
       <StoryRecorder
@@ -453,7 +455,7 @@ describe("StoryRecorder student prototype", () => {
 
     await user.click(screen.getByRole("button", { name: /Vocabulary Quiz/ }));
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Back to activities/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Overview/ })).toBeInTheDocument();
   });
 
   it("disables the vocabulary quiz choice when a story has no translated words", () => {
@@ -611,18 +613,18 @@ describe("StoryRecorder student prototype", () => {
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
   });
 
-  it("walks a scene through separate Vocabulary → Grammar → Speaking steps instead of showing everything at once", async () => {
+  it("walks a scene through separate Vocabulary → Phrases → Speaking steps instead of showing everything at once", async () => {
     const user = userEvent.setup();
-    const topicWithGrammar = {
+    const topicWithPhrases = {
       ...topicWithVocabDetails,
-      grammarPatterns: { 0: "S + V + O" },
-      grammarExamples: { 0: "我去市場。" },
+      phrases: { 0: ["我要去市場"] },
+      phrasesTranslation: { 0: ["I'm going to the market"] },
     };
 
     render(
       <StoryRecorder
-        topic={topicWithGrammar}
-        selectedImage={topicWithGrammar.images[0]}
+        topic={topicWithPhrases}
+        selectedImage={topicWithPhrases.images[0]}
         selectedImageIndex={0}
         onImageSelect={vi.fn()}
         onImageChange={vi.fn()}
@@ -634,33 +636,52 @@ describe("StoryRecorder student prototype", () => {
     // word, enough to trigger it) to reach the practice-phase Vocabulary step.
     await completeVocabQuiz(user);
 
-    // Lands on Vocabulary by default — no record controls, grammar text, or
-    // the story submit panel yet.
+    // Lands on Vocabulary by default — no record controls or phrase text yet.
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
     expect(screen.queryByText("Recording options")).not.toBeInTheDocument();
-    expect(screen.queryByText("S + V + O")).not.toBeInTheDocument();
-    expect(screen.queryByText("Submit Story to Teacher")).not.toBeInTheDocument();
+    expect(screen.queryByText("我要去市場")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Continue to Grammar/ }));
+    await user.click(screen.getByRole("button", { name: /Continue to Phrases/ }));
 
-    // Grammar step: pattern shown, vocab table/record controls/submit panel gone.
-    expect(screen.getByText("S + V + O")).toBeInTheDocument();
+    // Phrases step: phrase shown, vocab table/record controls gone.
+    expect(screen.getByText("我要去市場")).toBeInTheDocument();
     expect(screen.queryByRole("table", { name: "Scene vocabulary" })).not.toBeInTheDocument();
     expect(screen.queryByText("Recording options")).not.toBeInTheDocument();
-    expect(screen.queryByText("Submit Story to Teacher")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Continue to Speaking/ }));
 
-    // Speaking step: record controls and the submit panel are back, grammar/vocab panels are gone.
+    // Speaking step: record controls are back, phrases/vocab panels are gone.
     expect(screen.getByText("Recording options")).toBeInTheDocument();
-    expect(screen.getByText("Submit Story to Teacher")).toBeInTheDocument();
-    expect(screen.queryByText("S + V + O")).not.toBeInTheDocument();
+    expect(screen.queryByText("我要去市場")).not.toBeInTheDocument();
     expect(screen.queryByRole("table", { name: "Scene vocabulary" })).not.toBeInTheDocument();
 
     // The tab bar lets a student jump straight back to Vocabulary at any time.
     await user.click(screen.getByRole("tab", { name: /Vocabulary/ }));
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
-    expect(screen.queryByText("Submit Story to Teacher")).not.toBeInTheDocument();
+  });
+
+  it("shows the teacher's suggested-answer sentence during the Speaking step so students can read along", async () => {
+    const user = userEvent.setup();
+    const topicWithSuggestedAnswer = {
+      ...topicWithVocabDetails,
+      suggestedAnswers: { 0: "我在餐廳吃飯。" },
+    };
+
+    render(
+      <StoryRecorder
+        topic={topicWithSuggestedAnswer}
+        selectedImage={topicWithSuggestedAnswer.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    await completeVocabQuiz(user);
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+
+    expect(screen.getByText("我在餐廳吃飯。")).toBeInTheDocument();
   });
 });
 

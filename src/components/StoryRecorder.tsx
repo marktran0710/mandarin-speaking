@@ -86,11 +86,15 @@ interface Topic {
   prompts?: string[];
   vocabulary: Record<number, string[]>;
   vocabularyGroups?: Record<number, VocabGroup[]>;
-  grammarPatterns?: Record<number, string>;
-  grammarExamples?: Record<number, string>;
+  // Handy, easy-to-learn-and-reuse phrases for this scene (replaces the old
+  // single whole-story "grammar pattern" note) — same word/translation shape
+  // as vocabulary, aligned by index.
+  phrases?: Record<number, string[]>;
+  phrasesTranslation?: Record<number, string[]>;
   vocabularyPinyin?: Record<number, string[]>;
   vocabularyPos?: Record<number, string[]>;
   vocabularyTranslation?: Record<number, string[]>;
+  vocabularyDistractors?: Record<number, string[][]>;
   suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
   listenScripts?: Record<number, string>;
@@ -189,7 +193,7 @@ interface TranscriptionItem {
   model: SpeechModel;
 }
 
-type ScenePracticeStep = "vocab" | "grammar" | "speaking";
+type ScenePracticeStep = "vocab" | "phrases" | "speaking";
 
 interface ConceptMapDraft {
   characters: string;
@@ -225,6 +229,10 @@ interface StoryRecorderProps {
    * without reintroducing the picture-ordering minigame. */
   enableOverview?: boolean;
   studentName?: string;
+  /** Leaves this topic entirely, back to the topic list — rendered as the
+   * single exit action in the nav panel above the phase steps. Omitted
+   * (no button shown) when there's nowhere to exit to. */
+  onExit?: () => void;
 }
 
 export default function StoryRecorder({
@@ -237,6 +245,7 @@ export default function StoryRecorder({
   enableSorting = false,
   enableOverview = false,
   studentName = "Student",
+  onExit,
 }: StoryRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -328,15 +337,17 @@ export default function StoryRecorder({
     const words: string[] = [];
     const translations: Array<string | undefined> = [];
     const suggestedAnswers: Array<string | undefined> = [];
+    const aiDistractors: Array<string[] | undefined> = [];
     topic.images.forEach((_, si) => {
       const sceneSuggestedAnswer = topic.suggestedAnswers?.[si];
       (topic.vocabulary[si] || []).forEach((word, i) => {
         words.push(word);
         translations.push(topic.vocabularyTranslation?.[si]?.[i]);
         suggestedAnswers.push(sceneSuggestedAnswer);
+        aiDistractors.push(topic.vocabularyDistractors?.[si]?.[i]);
       });
     });
-    return collectQuizEntries(words, translations, suggestedAnswers);
+    return collectQuizEntries(words, translations, suggestedAnswers, aiDistractors);
   }, [topic]);
   const hasVocabQuiz = quizEntries.length >= 1;
 
@@ -378,9 +389,9 @@ export default function StoryRecorder({
     });
   };
 
-  // Learning phase: overview → sorting → vocabquiz → practice
+  // Learning phase: overview → sorting → vocabquiz → practice → summary
   const [phase, setPhase] = useState<
-    "overview" | "sorting" | "vocabquiz" | "practice"
+    "overview" | "sorting" | "vocabquiz" | "practice" | "summary"
   >(
     enableOverview
       ? "overview"
@@ -391,17 +402,17 @@ export default function StoryRecorder({
           : "practice",
   );
   // Within the "practice" phase, each scene walks its own
-  // vocabulary → grammar → speaking sub-steps (skipping any step whose data
+  // vocabulary → phrases → speaking sub-steps (skipping any step whose data
   // isn't populated for that scene) rather than showing everything at once.
   const sceneHasVocabStep = (idx: number) =>
     (topic.vocabulary[idx] || []).length > 0;
-  const sceneHasGrammarStep = (idx: number) =>
-    Boolean(topic.grammarPatterns?.[idx] || topic.grammarExamples?.[idx]);
+  const sceneHasPhrasesStep = (idx: number) =>
+    (topic.phrases?.[idx] || []).length > 0;
   const firstScenePracticeStep = (idx: number): ScenePracticeStep =>
     sceneHasVocabStep(idx)
       ? "vocab"
-      : sceneHasGrammarStep(idx)
-        ? "grammar"
+      : sceneHasPhrasesStep(idx)
+        ? "phrases"
         : "speaking";
 
   const [scenePracticeStep, setScenePracticeStep] = useState<ScenePracticeStep>(
@@ -939,9 +950,9 @@ export default function StoryRecorder({
       if (aiProvider) {
         formData.append("ai_provider", aiProvider);
       }
-      const sceneGrammarPattern = topic.grammarPatterns?.[selectedImageIndex];
-      if (sceneGrammarPattern) {
-        formData.append("scene_grammar_pattern", sceneGrammarPattern);
+      const scenePhrases = topic.phrases?.[selectedImageIndex];
+      if (scenePhrases && scenePhrases.length > 0) {
+        formData.append("scene_phrases", scenePhrases.join("; "));
       }
       const sceneSuggestedAnswer = topic.suggestedAnswers?.[selectedImageIndex];
       if (sceneSuggestedAnswer) {
@@ -1041,6 +1052,9 @@ export default function StoryRecorder({
         pronScore: averageWordProsodyAccuracy(metrics.word_prosody) ?? 0,
         fluencyScore: Math.round(metrics.fluency_score ?? 0),
         audioUrl: "",
+        pauseCount: metrics.pause_analysis?.pause_count ?? 0,
+        longestPause: metrics.pause_analysis?.longest_pause ?? 0,
+        utteranceCount: metrics.pause_analysis?.utterance_count ?? 0,
       };
       setSceneRecordings((prev) => {
         const existing = prev[selectedImageIndex];
@@ -1204,32 +1218,107 @@ export default function StoryRecorder({
   ] as const;
 
   const phaseOrder = PHASES.map((p) => p.key);
-  const currentPhaseIdx = phaseOrder.indexOf(phase);
+  // "summary" isn't a phase-nav tab (it's only reachable after finishing
+  // every scene) — treat it as past the last tab so the nav bar shows
+  // every real phase as done rather than falling back to "upcoming".
+  const currentPhaseIdx =
+    phase === "summary"
+      ? phaseOrder.length
+      : phaseOrder.indexOf(phase as (typeof phaseOrder)[number]);
+
+  // Shared scene-stop data for the journey path — rendered both in the
+  // practice header (jump between scenes) and in the end-of-journey summary
+  // (review everything at a glance). `goToScene` differs per caller: from
+  // practice it just switches the selected image; from summary it also has
+  // to switch phase back to "practice" first.
+  const journeyStopsBase = topic.images
+    .map((img, idx) => ({ img, idx }))
+    .filter(({ idx }) => !(topic.firstFrameIsExample && idx === 0))
+    .map(({ img, idx }) => {
+      const prog = sceneProgress[idx];
+      const ready = prog ? sceneReady(prog) : false;
+      const started = Boolean(prog && prog.attempts > 0);
+      return {
+        key: idx,
+        img,
+        idx,
+        status: (idx === selectedImageIndex
+          ? "current"
+          : ready
+            ? "done"
+            : "upcoming") as JourneyStopStatus,
+        thumbnail: img,
+        label: (
+          <BiLabel zh={`場景 ${idx + 1}`} pinyin={`Chǎngjǐng ${idx + 1}`} en={`Scene ${idx + 1}`} />
+        ),
+        badge: !ready && started ? `${prog!.attempts}×` : undefined,
+      };
+    });
+
+  const goToScene = (idx: number, img: string) => {
+    onImageChange(img);
+    onImageSelect(idx);
+    currentTranscriptRef.current = "";
+  };
 
   return (
     <div className="story-recorder">
-      {/* ── Phase navigation bar ── */}
-      <nav className="phase-nav" aria-label="Progress">
-        {PHASES.map((p, i) => {
-          const status =
-            i < currentPhaseIdx
-              ? "done"
-              : i === currentPhaseIdx
-                ? "active"
-                : "upcoming";
-          return (
-            <div key={p.key} className={`phase-nav-step phase-nav-${status}`}>
-              <span className="phase-nav-icon">
-                {status === "done" ? "✓" : p.icon}
+      {/* ── Story nav panel: exit + topic name + clickable phase progress —
+           a done step jumps straight there, replacing the separate
+           "back to activities/story" buttons phases used to render. ── */}
+      <div className="story-nav-panel">
+        <div className="story-nav-topline">
+          {onExit && (
+            <button
+              type="button"
+              className="btn-story-exit"
+              onClick={onExit}
+              aria-label="Back to topics"
+            >
+              ←
+            </button>
+          )}
+          <span className="story-nav-topic-name">{topic.name}</span>
+        </div>
+        <nav className="phase-nav" aria-label="Progress">
+          {PHASES.map((p, i) => {
+            const status =
+              i < currentPhaseIdx
+                ? "done"
+                : i === currentPhaseIdx
+                  ? "active"
+                  : "upcoming";
+            const marker = (
+              <span className={`phase-nav-marker phase-nav-marker-${status}`}>
+                {status === "done" && "✓"}
+                {status === "active" && <span className="phase-nav-marker-dot" />}
               </span>
-              <span className="phase-nav-label">{p.label}</span>
-              {i < PHASES.length - 1 && (
-                <span className="phase-nav-arrow">›</span>
-              )}
-            </div>
-          );
-        })}
-      </nav>
+            );
+            const caption = (
+              <span className="phase-nav-caption">
+                <span className="phase-nav-caption-icon">{p.icon}</span>
+                {p.label}
+              </span>
+            );
+            return status === "done" ? (
+              <button
+                key={p.key}
+                type="button"
+                className={`phase-nav-node phase-nav-node-${status}`}
+                onClick={() => setPhase(p.key)}
+              >
+                {marker}
+                {caption}
+              </button>
+            ) : (
+              <div key={p.key} className={`phase-nav-node phase-nav-node-${status}`}>
+                {marker}
+                {caption}
+              </div>
+            );
+          })}
+        </nav>
+      </div>
 
       {phase === "overview" && (
         <section className="story-overview">
@@ -1612,7 +1701,6 @@ export default function StoryRecorder({
         <StoryVocabQuiz
           entries={quizEntries}
           onDone={handleVocabQuizDone}
-          onBack={enableOverview ? () => setPhase("overview") : undefined}
           onComplete={handleVocabQuizComplete}
         />
       )}
@@ -1673,68 +1761,60 @@ export default function StoryRecorder({
 
           {/* ── Scene journey: scenes threaded on one path, not a flat strip ── */}
           <JourneyPath
-            stops={topic.images
-              .map((img, idx) => ({ img, idx }))
-              .filter(({ idx }) => !(topic.firstFrameIsExample && idx === 0))
-              .map(({ img, idx }) => {
-                const prog = sceneProgress[idx];
-                const ready = prog ? sceneReady(prog) : false;
-                const started = Boolean(prog && prog.attempts > 0);
-                return {
-                  key: idx,
-                  status: (idx === selectedImageIndex
-                    ? "current"
-                    : ready
-                      ? "done"
-                      : "upcoming") as JourneyStopStatus,
-                  thumbnail: img,
-                  label: (
-                    <BiLabel zh={`場景 ${idx + 1}`} pinyin={`Chǎngjǐng ${idx + 1}`} en={`Scene ${idx + 1}`} />
-                  ),
-                  badge: !ready && started ? `${prog!.attempts}×` : undefined,
-                  disabled: isBusy,
-                  onClick: () => {
-                    onImageChange(img);
-                    onImageSelect(idx);
-                    currentTranscriptRef.current = "";
-                  },
-                };
-              })}
+            stops={journeyStopsBase.map((stop) => ({
+              ...stop,
+              disabled: isBusy,
+              onClick: () => goToScene(stop.idx, stop.img),
+            }))}
           />
+
+          {/* ── Always-available way to reach the summary once every scene
+               is recorded, regardless of which order they were finished in
+               (the per-scene banner below only fires when the *last-index*
+               scene is the one that just became ready). ── */}
+          {allScenesRecorded && (
+            <button
+              type="button"
+              className="journey-view-summary-link"
+              onClick={() => setPhase("summary")}
+            >
+              <BiLabel zh="查看總結" pinyin="Chákàn zǒngjié" en="View summary" />
+            </button>
+          )}
 
           {/* ── Scene readiness banner ── */}
           {(() => {
             const prog = sceneProgress[selectedImageIndex];
             if (!prog || prog.attempts === 0) {
               const hasVocab = sceneHasVocabStep(selectedImageIndex);
-              const hasGrammar = sceneHasGrammarStep(selectedImageIndex);
-              // Each scene can have a different mix of Vocabulary/Grammar
+              const hasPhrases = sceneHasPhrasesStep(selectedImageIndex);
+              // Each scene can have a different mix of Vocabulary/Phrases
               // tabs (or neither) — naming only the tabs this scene actually
-              // has, instead of a one-size-fits-all "Vocabulary and Grammar"
+              // has, instead of a one-size-fits-all "Vocabulary and Phrases"
               // reminder that doesn't match scenes missing one of them.
               const tabsZh =
-                hasVocab && hasGrammar
-                  ? "「詞彙」和「文法」分頁"
+                hasVocab && hasPhrases
+                  ? "「詞彙」和「短語」分頁"
                   : hasVocab
                     ? "「詞彙」分頁"
-                    : hasGrammar
-                      ? "「文法」分頁"
+                    : hasPhrases
+                      ? "「短語」分頁"
                       : "";
               const tabsPinyin =
-                hasVocab && hasGrammar
-                  ? "“cíhuì” hé “wénfǎ” fēnyè"
+                hasVocab && hasPhrases
+                  ? "“cíhuì” hé “duǎnyǔ” fēnyè"
                   : hasVocab
                     ? "“cíhuì” fēnyè"
-                    : hasGrammar
-                      ? "“wénfǎ” fēnyè"
+                    : hasPhrases
+                      ? "“duǎnyǔ” fēnyè"
                       : "";
               const tabsEn =
-                hasVocab && hasGrammar
-                  ? "the Vocabulary and Grammar tabs"
+                hasVocab && hasPhrases
+                  ? "the Vocabulary and Phrases tabs"
                   : hasVocab
                     ? "the Vocabulary tab"
-                    : hasGrammar
-                      ? "the Grammar tab"
+                    : hasPhrases
+                      ? "the Phrases tab"
                       : "";
               return (
                 <div className="scene-progress-hint scene-progress-hint-start">
@@ -1797,12 +1877,21 @@ export default function StoryRecorder({
             if (ready && !hasNext) {
               return (
                 <div className="scene-ready-banner scene-story-done">
-                  <strong>
-                    <BiLabel k="all_scenes_practiced" />
-                  </strong>
-                  <p>
-                    <BiText k="you_ve_completed_the_full_story_review_y" />
-                  </p>
+                  <div>
+                    <strong>
+                      <BiLabel k="all_scenes_practiced" />
+                    </strong>
+                    <p>
+                      <BiText k="you_ve_completed_the_full_story_review_y" />
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="scene-next-btn"
+                    onClick={() => setPhase("summary")}
+                  >
+                    <BiLabel zh="查看總結" pinyin="Chákàn zǒngjié" en="View summary" />
+                  </button>
                 </div>
               );
             }
@@ -1831,17 +1920,7 @@ export default function StoryRecorder({
             return null;
           })()}
 
-          {enableOverview && (
-            <button
-              type="button"
-              className="btn-vocab-quiz-back"
-              onClick={() => setPhase("overview")}
-            >
-              <BiLabel zh="← 回活動" pinyin="← Huí huódòng" en="← Back to activities" />
-            </button>
-          )}
-
-          {/* ── Per-scene practice steps: vocabulary → grammar → speaking ── */}
+          {/* ── Per-scene practice steps: vocabulary → phrases → speaking ── */}
           <div
             className="scene-step-tabs"
             role="tablist"
@@ -1859,16 +1938,16 @@ export default function StoryRecorder({
                 <BiLabel k="vocab_step_tab" />
               </button>
             )}
-            {sceneHasGrammarStep(selectedImageIndex) && (
+            {sceneHasPhrasesStep(selectedImageIndex) && (
               <button
                 type="button"
                 role="tab"
-                aria-selected={scenePracticeStep === "grammar"}
-                className={`scene-step-tab${scenePracticeStep === "grammar" ? " active" : ""}`}
-                onClick={() => setScenePracticeStep("grammar")}
+                aria-selected={scenePracticeStep === "phrases"}
+                className={`scene-step-tab${scenePracticeStep === "phrases" ? " active" : ""}`}
+                onClick={() => setScenePracticeStep("phrases")}
               >
                 <ToneShapeIcon tone={3} size={16} />
-                <BiLabel k="grammar_step_tab" />
+                <BiLabel k="phrases_step_tab" />
               </button>
             )}
             <button
@@ -2016,23 +2095,42 @@ export default function StoryRecorder({
                   </div>
                 )}
 
-              {scenePracticeStep === "grammar" &&
-                (topic.grammarPatterns?.[selectedImageIndex] ||
-                  topic.grammarExamples?.[selectedImageIndex]) && (
-                  <div className="practice-grammar-hint practice-grammar-hint-full">
-                    <p className="block-label practice-grammar-label">
-                      <BiLabel k="grammar_pattern_to_use" />
+              {scenePracticeStep === "phrases" &&
+                (topic.phrases?.[selectedImageIndex] || []).length > 0 && (
+                  <div className="practice-phrases-hint practice-phrases-hint-full">
+                    <p className="block-label practice-phrases-label">
+                      <BiLabel k="phrases_to_use" />
                     </p>
-                    {topic.grammarPatterns?.[selectedImageIndex] && (
-                      <span className="practice-grammar-pattern">
-                        {topic.grammarPatterns[selectedImageIndex]}
-                      </span>
-                    )}
-                    {topic.grammarExamples?.[selectedImageIndex] && (
-                      <span className="practice-grammar-example">
-                        {topic.grammarExamples[selectedImageIndex]}
-                      </span>
-                    )}
+                    <div
+                      className="practice-phrases-list"
+                      role="table"
+                      aria-label="Scene phrases"
+                    >
+                      {topic.phrases![selectedImageIndex].map((phrase, pi) => (
+                        <div className="practice-phrase-row" role="row" key={phrase}>
+                          <span className="practice-phrase-text" role="cell" lang="zh-Hant">
+                            {phrase}
+                          </span>
+                          {topic.phrasesTranslation?.[selectedImageIndex]?.[pi] && (
+                            <span className="practice-phrase-translation" role="cell">
+                              {topic.phrasesTranslation[selectedImageIndex][pi]}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {scenePracticeStep === "speaking" &&
+                topic.suggestedAnswers?.[selectedImageIndex] && (
+                  <div className="practice-model-sentence">
+                    <p className="block-label practice-model-sentence-label">
+                      <BiLabel k="speaking_model_sentence" />
+                    </p>
+                    <p className="practice-model-sentence-text" lang="zh-Hant">
+                      {topic.suggestedAnswers[selectedImageIndex]}
+                    </p>
                   </div>
                 )}
             </div>
@@ -2058,16 +2156,16 @@ export default function StoryRecorder({
                     className="btn-scene-step-continue"
                     onClick={() =>
                       setScenePracticeStep(
-                        sceneHasGrammarStep(selectedImageIndex)
-                          ? "grammar"
+                        sceneHasPhrasesStep(selectedImageIndex)
+                          ? "phrases"
                           : "speaking",
                       )
                     }
                   >
                     <BiLabel
                       k={
-                        sceneHasGrammarStep(selectedImageIndex)
-                          ? "continue_to_grammar"
+                        sceneHasPhrasesStep(selectedImageIndex)
+                          ? "continue_to_phrases"
                           : "continue_to_speaking"
                       }
                     />
@@ -2075,18 +2173,18 @@ export default function StoryRecorder({
                 </div>
               )}
 
-              {scenePracticeStep === "grammar" && (
+              {scenePracticeStep === "phrases" && (
                 <div className="scene-step-action">
                   <div className="practice-guide-header">
-                    <span>📐</span>
+                    <span>💬</span>
                     <div>
                       <h3>
-                        <BiLabel k="grammar_step_tab" />
+                        <BiLabel k="phrases_step_tab" />
                       </h3>
                     </div>
                   </div>
                   <p className="scene-step-action-copy">
-                    <BiText k="grammar_step_action_copy" />
+                    <BiText k="phrases_step_action_copy" />
                   </p>
                   <button
                     type="button"
@@ -2625,67 +2723,82 @@ export default function StoryRecorder({
             </>
           )}
 
-          {/* ── Submit Story: only once a scene's actually being recorded,
-               not while reviewing its vocabulary/grammar intro ── */}
-          {scenePracticeStep === "speaking" &&
-            (storySubmitted ? (
-              <>
-                <div className="story-submit-panel story-submit-success">
-                  <span className="story-submit-icon">✓</span>
-                  <div>
-                    <p className="story-submit-title">
-                      <BiLabel k="story_submitted" />
-                    </p>
-                    <p className="story-submit-hint">
-                      <BiLabel
-                        zh={`你的老師現在可以看全部 ${totalScenes} 個場景。`}
-                        pinyin={`Nǐ de lǎoshī xiànzài kěyǐ kàn quánbù ${totalScenes} ge chǎngjǐng.`}
-                        en={`Your teacher can now review all ${totalScenes} scenes.`}
-                      />
-                    </p>
-                  </div>
-                </div>
-                <StoryFeedbackCard
-                  feedback={storyFeedbackResult?.storyFeedback}
-                  concatenatedAudioUrl={
-                    storyFeedbackResult?.concatenatedAudioUrl
-                  }
-                />
-              </>
-            ) : (
-              <div className="story-submit-panel">
-                <div className="story-submit-progress">
-                  {topic.images.map((_, si) => (
-                    <div
-                      key={si}
-                      className={`story-submit-dot ${sceneRecordings[si] ? "done" : "pending"}`}
-                      title={`場景 ${si + 1}${sceneRecordings[si] ? " ✓ 已完成" : " — 還沒錄音 not yet recorded"} Scene ${si + 1}`}
-                    />
-                  ))}
-                </div>
-                <p className="story-submit-label">
-                  {allScenesRecorded ? (
-                    <BiLabel k="all_scenes_recorded_ready_to_submit" />
-                  ) : (
+        </>
+      )}
+
+      {/* ── Journey summary: reached once every scene is recorded, instead
+           of the submit panel repeating on every scene's speaking step ── */}
+      {phase === "summary" && (
+        <>
+          <JourneyPath
+            stops={journeyStopsBase.map((stop) => ({
+              ...stop,
+              onClick: () => {
+                goToScene(stop.idx, stop.img);
+                setPhase("practice");
+              },
+            }))}
+          />
+
+          {storySubmitted ? (
+            <>
+              <div className="story-submit-panel story-submit-success">
+                <span className="story-submit-icon">✓</span>
+                <div>
+                  <p className="story-submit-title">
+                    <BiLabel k="story_submitted" />
+                  </p>
+                  <p className="story-submit-hint">
                     <BiLabel
-                      zh={`已錄 ${completedSceneCount} / ${totalScenes} 個場景`}
-                      pinyin={`Yǐ lù ${completedSceneCount} / ${totalScenes} ge chǎngjǐng`}
-                      en={`${completedSceneCount} of ${totalScenes} scenes recorded`}
+                      zh={`你的老師現在可以看全部 ${totalScenes} 個場景。`}
+                      pinyin={`Nǐ de lǎoshī xiànzài kěyǐ kàn quánbù ${totalScenes} ge chǎngjǐng.`}
+                      en={`Your teacher can now review all ${totalScenes} scenes.`}
                     />
-                  )}
-                </p>
-                {submitError && (
-                  <p className="story-submit-error">{submitError}</p>
-                )}
-                <button
-                  className="btn-submit-story"
-                  disabled={!allScenesRecorded}
-                  onClick={handleSubmitStory}
-                >
-                  <BiLabel k="submit_story_to_teacher" />
-                </button>
+                  </p>
+                </div>
               </div>
-            ))}
+              <StoryFeedbackCard
+                feedback={storyFeedbackResult?.storyFeedback}
+                concatenatedAudioUrl={
+                  storyFeedbackResult?.concatenatedAudioUrl
+                }
+                scenes={Object.values(sceneRecordings)}
+              />
+            </>
+          ) : (
+            <div className="story-submit-panel">
+              <div className="story-submit-progress">
+                {topic.images.map((_, si) => (
+                  <div
+                    key={si}
+                    className={`story-submit-dot ${sceneRecordings[si] ? "done" : "pending"}`}
+                    title={`場景 ${si + 1}${sceneRecordings[si] ? " ✓ 已完成" : " — 還沒錄音 not yet recorded"} Scene ${si + 1}`}
+                  />
+                ))}
+              </div>
+              <p className="story-submit-label">
+                {allScenesRecorded ? (
+                  <BiLabel k="all_scenes_recorded_ready_to_submit" />
+                ) : (
+                  <BiLabel
+                    zh={`已錄 ${completedSceneCount} / ${totalScenes} 個場景`}
+                    pinyin={`Yǐ lù ${completedSceneCount} / ${totalScenes} ge chǎngjǐng`}
+                    en={`${completedSceneCount} of ${totalScenes} scenes recorded`}
+                  />
+                )}
+              </p>
+              {submitError && (
+                <p className="story-submit-error">{submitError}</p>
+              )}
+              <button
+                className="btn-submit-story"
+                disabled={!allScenesRecorded}
+                onClick={handleSubmitStory}
+              >
+                <BiLabel k="submit_story_to_teacher" />
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -3011,7 +3124,9 @@ function WordPracticeDrill({ word }: { word: WordProsody }) {
                 />
               </div>
               <div className="word-practice-result-meta">
-                <strong><BiLabel {...scoreTierLabel(scoreTier(latest.tone_accuracy ?? 0))} /></strong>
+                <strong className={`score-tier-text ${scoreTier(latest.tone_accuracy ?? 0)}`}>
+                  {scoreTierLabel(scoreTier(latest.tone_accuracy ?? 0)).zh}
+                </strong>
                 {typeof trend === "number" && trend !== 0 && (
                   <em className={trend > 0 ? "trend-up" : "trend-down"}>
                     {trend > 0 ? "↑" : "↓"} {Math.abs(trend)}%
@@ -3455,11 +3570,15 @@ function FeedbackSummary({
                   <div key={label} className="feedback-summary-bar-card">
                     <span className="feedback-summary-bar-label">{label}</span>
                     <span
-                      className="feedback-summary-bar-pct"
-                      style={{ color }}
+                      className={
+                        isPraatTone
+                          ? `feedback-summary-bar-pct score-tier-text ${scoreTier(score)}`
+                          : "feedback-summary-bar-pct"
+                      }
+                      style={isPraatTone ? undefined : { color }}
                     >
                       {isPraatTone ? (
-                        <BiLabel {...scoreTierLabel(scoreTier(score))} />
+                        scoreTierLabel(scoreTier(score)).zh
                       ) : (
                         `${score}%`
                       )}
@@ -3501,7 +3620,10 @@ function FeedbackSummary({
                                   {TONE_NUMBER_ARROW_LABEL[tone] ?? ""}
                                 </strong>{" "}
                                 {TONE_SHAPES[shapeKey].tip} (
-                                <BiLabel {...scoreTierLabel(scoreTier(item.tone_accuracy ?? 0))} />)
+                                <span className={`score-tier-text ${scoreTier(item.tone_accuracy ?? 0)}`}>
+                                  {scoreTierLabel(scoreTier(item.tone_accuracy ?? 0)).zh}
+                                </span>
+                                )
                               </li>
                             );
                           })}

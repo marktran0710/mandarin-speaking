@@ -1,5 +1,5 @@
 import "./Navigation.css";
-import { Page } from "../App";
+import { Page } from "../types/page";
 import { LoginRole } from "../pages/LoginPage";
 import { BiLabel } from "./BiLabel";
 import ToneMark from "./ToneMark";
@@ -10,6 +10,14 @@ interface NavigationProps {
   activeRole: LoginRole | null;
   onNavigate: (page: Page) => void;
   onLogout: () => void;
+  /** Shrinks the navbar to just the logo + log out, hiding the section
+   * tabs — used while a student is mid-practice-session so this bar isn't
+   * one more stacked nav row above the story's own back/progress panel. */
+  compact?: boolean;
+  /** The student app (index.html) and teacher app (teacher.html) are two
+   * separate Vite entries sharing this component — this picks which
+   * pre-login nav items and logo target make sense for each. */
+  appVariant?: "student" | "teacher";
 }
 
 export default function Navigation({
@@ -17,9 +25,13 @@ export default function Navigation({
   activeRole,
   onNavigate,
   onLogout,
+  compact = false,
+  appVariant = "student",
 }: NavigationProps) {
   const isStudent = activeRole === "student";
   const isTeacher = activeRole === "teacher";
+  const logoTarget: Page =
+    appVariant === "teacher" ? (isTeacher ? "teacher-dashboard" : "teacher-login") : "home";
 
   return (
     <nav className="navbar">
@@ -27,7 +39,7 @@ export default function Navigation({
         <button
           type="button"
           className="navbar-logo"
-          onClick={() => onNavigate("home")}
+          onClick={() => onNavigate(logoTarget)}
         >
           <img className="logo-icon" src="/logo.png" alt="Enjoyable Mandarin logo" />
           <span>Enjoyable Mandarin</span>
@@ -35,7 +47,7 @@ export default function Navigation({
         </button>
 
         <ul className="navbar-menu">
-          {!activeRole && (
+          {!compact && !activeRole && appVariant === "student" && (
             <>
               <li>
                 <button
@@ -56,18 +68,22 @@ export default function Navigation({
                 </button>
               </li>
               <li>
-                <button
-                  type="button"
-                  className={`nav-link ${currentPage === "teacher-login" ? "active" : ""}`}
-                  onClick={() => onNavigate("teacher-login")}
-                >
+                <a className="nav-link" href={`${import.meta.env.BASE_URL}teacher.html`}>
                   <BiLabel k="teacher_login" />
-                </button>
+                </a>
               </li>
             </>
           )}
 
-          {isStudent && (
+          {!compact && !activeRole && appVariant === "teacher" && (
+            <li>
+              <a className="nav-link" href={import.meta.env.BASE_URL}>
+                <BiLabel zh="返回學生網站" pinyin="Fǎnhuí xuéshēng wǎngzhàn" en="Back to student site" />
+              </a>
+            </li>
+          )}
+
+          {!compact && isStudent && (
             <>
               <li>
                 <button
@@ -100,7 +116,7 @@ export default function Navigation({
             </>
           )}
 
-          {isTeacher && (
+          {!compact && isTeacher && (
             <>
               <li>
                 <button

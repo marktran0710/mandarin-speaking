@@ -6,10 +6,9 @@ import VoiceTestPage from "./pages/VoiceTestPage";
 import TonePracticePage from "./pages/TonePracticePage";
 import ImageNarrationPage from "./pages/ImageNarrationPage";
 import ListenRetellPage from "./pages/ListenRetellPage";
-import TeacherImageBuilderPage from "./pages/TeacherImageBuilderPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 
-import LoginPage, { LoginRole } from "./pages/LoginPage";
+import LoginPage from "./pages/LoginPage";
 import Navigation from "./components/Navigation";
 import {
   canUseDatabase,
@@ -20,7 +19,6 @@ import {
   listAudioRecords,
   listCustomStories,
   listHelpRequests,
-  resolveHelpRequest,
   StoredAudioRecord,
 } from "./services/database";
 import {
@@ -28,19 +26,9 @@ import {
   saveCustomStories,
 } from "./utils/teacherStories";
 import type { Topic } from "./components/TopicSelector";
+import type { Page } from "./types/page";
 
-export type Page =
-  | "home"
-  | "student-login"
-  | "teacher-login"
-  | "student-practice"
-  | "student-stories"
-  | "tone-practice"
-  | "voice-test"
-  | "image-narration"
-  | "listen-retell"
-  | "teacher-dashboard"
-  | "teacher-image-builder";
+export type { Page };
 
 interface AudioRecord {
   id: string;
@@ -63,7 +51,8 @@ interface PracticeTarget {
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
-  const [activeRole, setActiveRole] = useState<LoginRole | null>(null);
+  const [activeRole, setActiveRole] = useState<"student" | null>(null);
+  const [isInPracticeSession, setIsInPracticeSession] = useState(false);
   const [audioRecords, setAudioRecords] = useState<AudioRecord[]>([]);
   const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
   const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(null);
@@ -109,15 +98,9 @@ export default function App() {
       window.location.pathname === "/analyze" ||
       window.location.pathname === "/voice-test";
     const storedRole = localStorage.getItem("activeRole");
-    if (storedRole === "student" || storedRole === "teacher") {
-      setActiveRole(storedRole);
-      setCurrentPage(
-        storedRole === "student" && directVoiceTestPath
-          ? "voice-test"
-          : storedRole === "student"
-            ? "student-practice"
-            : "teacher-dashboard",
-      );
+    if (storedRole === "student") {
+      setActiveRole("student");
+      setCurrentPage(directVoiceTestPath ? "voice-test" : "student-practice");
     }
 
     loadSavedAudioRecords();
@@ -208,10 +191,10 @@ export default function App() {
     }
   };
 
-  const handleLogin = (role: LoginRole) => {
-    setActiveRole(role);
-    localStorage.setItem("activeRole", role);
-    setCurrentPage(role === "student" ? "student-practice" : "teacher-dashboard");
+  const handleLogin = () => {
+    setActiveRole("student");
+    localStorage.setItem("activeRole", "student");
+    setCurrentPage("student-practice");
   };
 
   const handleLogout = () => {
@@ -256,31 +239,6 @@ export default function App() {
     }
   };
 
-  const handleResolveHelpRequest = (id: string) => {
-    const resolvedAt = new Date().toISOString();
-    setHelpRequests((requests) =>
-      saveHelpRequestsLocally(
-        requests.map((request) =>
-          request.id === id
-            ? { ...request, status: "resolved", resolvedAt }
-            : request,
-        ),
-      ),
-    );
-
-    if (canUseDatabase()) {
-      resolveHelpRequest(id)
-        .then((savedRequest) => {
-          setHelpRequests((requests) =>
-            saveHelpRequestsLocally(upsertHelpRequest(requests, savedRequest)),
-          );
-        })
-        .catch((error) => {
-          console.error("Failed to resolve help request in database:", error);
-        });
-    }
-  };
-
   return (
     <ErrorBoundary>
     <div className="app-container">
@@ -289,13 +247,11 @@ export default function App() {
         activeRole={activeRole}
         onNavigate={setCurrentPage}
         onLogout={handleLogout}
+        compact={currentPage === "student-practice" && isInPracticeSession}
       />
       {currentPage === "home" && <HomePage onNavigate={setCurrentPage} />}
       {currentPage === "student-login" && (
         <LoginPage role="student" onLogin={handleLogin} onBack={() => setCurrentPage("home")} />
-      )}
-      {currentPage === "teacher-login" && (
-        <LoginPage role="teacher" onLogin={handleLogin} onBack={() => setCurrentPage("home")} />
       )}
       {currentPage === "student-practice" && activeRole === "student" && (
         <CreateStoryPage
@@ -305,6 +261,7 @@ export default function App() {
           helpRequests={helpRequests}
           onRaiseHand={handleRaiseHand}
           publishedTopics={storyTopics}
+          onSessionActiveChange={setIsInPracticeSession}
         />
       )}
       {currentPage === "student-stories" && activeRole === "student" && (
@@ -329,20 +286,6 @@ export default function App() {
       )}
       {currentPage === "listen-retell" && activeRole === "student" && (
         <ListenRetellPage publishedTopics={listenRetellTopics} />
-      )}
-      {currentPage === "teacher-dashboard" && activeRole === "teacher" && (
-        <MyStoriesPage
-          records={audioRecords}
-          onDeleteRecord={deleteAudioRecord}
-          mode="teacher"
-          helpRequests={helpRequests}
-          onResolveHelpRequest={handleResolveHelpRequest}
-          onRefreshRecords={loadSavedAudioRecords}
-          onStorySaved={refreshPublishedTopics}
-        />
-      )}
-      {currentPage === "teacher-image-builder" && activeRole === "teacher" && (
-        <TeacherImageBuilderPage />
       )}
     </div>
     </ErrorBoundary>

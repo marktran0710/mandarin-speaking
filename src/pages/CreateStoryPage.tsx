@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TopicSelector from "../components/TopicSelector";
 import StoryRecorder from "../components/StoryRecorder";
 import { HelpRequest } from "../services/database";
@@ -15,6 +15,10 @@ interface CreateStoryPageProps {
   helpRequests?: HelpRequest[];
   onRaiseHand?: (message: string) => void;
   publishedTopics?: Topic[];
+  /** Fires whenever a topic practice session starts/ends, so the app shell
+   * can shrink its top navbar while the student is mid-session instead of
+   * stacking a full tab bar above the story's own nav panel. */
+  onSessionActiveChange?: (active: boolean) => void;
 }
 
 
@@ -25,6 +29,7 @@ export default function CreateStoryPage({
   helpRequests = [],
   onRaiseHand,
   publishedTopics,
+  onSessionActiveChange,
 }: CreateStoryPageProps) {
   const topics = publishedTopics ?? loadPublishedTeacherTopics();
   const initialTopic =
@@ -40,6 +45,12 @@ export default function CreateStoryPage({
   );
   const [selectedImageIndex, setSelectedImageIndex] =
     useState<number>(safeInitialIndex);
+
+  useEffect(() => {
+    onSessionActiveChange?.(Boolean(selectedTopic));
+    return () => onSessionActiveChange?.(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTopic]);
 
   const handleTopicSelect = (topic: Topic) => {
     setSelectedTopic(topic);
@@ -62,16 +73,6 @@ export default function CreateStoryPage({
         <TopicSelector onTopicSelect={handleTopicSelect} />
       ) : (
         <div className="csp-recorder-body">
-          <div className="csp-page-header">
-            <button className="btn-back" onClick={handleBack}>
-              ← <BiLabel k="back_to_topics" />
-            </button>
-            <div className="csp-breadcrumb">
-              <span><BiLabel k="activity_menu" /></span>
-              <span className="csp-breadcrumb-sep">›</span>
-              <span className="csp-breadcrumb-active">{selectedTopic.name}</span>
-            </div>
-          </div>
           <StoryRecorder
             topic={selectedTopic}
             selectedImage={selectedImage}
@@ -82,6 +83,7 @@ export default function CreateStoryPage({
             enableSorting={false}
             enableOverview={true}
             studentName={getStudentName()}
+            onExit={handleBack}
           />
         </div>
       )}
@@ -110,16 +112,20 @@ function StudentHelpPanel({
           ?
         </span>
         <div>
-          <strong>
-            {activeRequest
-              ? <BiLabel k="teacher_has_your_help_request" />
-              : <BiLabel k="need_teacher_help" />}
-          </strong>
-          <p>
-            {activeRequest
-              ? <BiText k="stay_on_your_task_your_teacher_can_see_t" />
-              : <BiText k="raise_your_hand_from_here_and_your_teach" />}
-          </p>
+          {activeRequest ? (
+            <>
+              <strong>
+                <BiLabel k="teacher_has_your_help_request" />
+              </strong>
+              <p>
+                <BiText k="stay_on_your_task_your_teacher_can_see_t" />
+              </p>
+            </>
+          ) : (
+            <p>
+              <BiText k="need_teacher_help_prompt" />
+            </p>
+          )}
         </div>
       </div>
       <form

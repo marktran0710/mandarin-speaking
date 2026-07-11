@@ -4,51 +4,157 @@
   padding: 24px 20px 72px;
 }
 
-/* ── Phase navigation bar ── */
-.phase-nav {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 12px 16px;
+/* ── Story nav panel: exit + topic name + phase progress, one card ── */
+.story-nav-panel {
   background: var(--clay-surface-card);
   border: 1.5px solid var(--clay-hairline);
   border-radius: 12px;
+  padding: 16px 20px;
   margin-bottom: 20px;
-  flex-wrap: wrap;
 }
-.phase-nav-step {
+.story-nav-topline {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--clay-hairline);
+}
+.btn-story-exit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: var(--clay-surface-soft);
+  color: var(--clay-ink);
+  border: 1px solid var(--clay-hairline);
+  border-radius: 50%;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.btn-story-exit:hover {
+  border-color: var(--seal);
+  background: var(--clay-surface-card);
+  box-shadow: var(--shadow-sm);
+}
+.story-nav-topic-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--clay-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Phase stepper: a continuous connecting line running through evenly
+   spaced circular markers — checked/filled/hollow for done/active/upcoming —
+   rather than three disconnected pill buttons. Only a "done" marker is a
+   real <button> (jumps back there); active/upcoming render as plain <div>s. */
+.phase-nav {
+  display: flex;
+  flex-wrap: wrap;
+}
+.phase-nav-node {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 88px;
+  background: none;
+  border: none;
+  font-family: inherit;
+  padding: 0;
+}
+button.phase-nav-node {
+  cursor: pointer;
+}
+/* Connecting line: spans from this node's own center back to the previous
+   node's center — works for any number/width of evenly-flexed columns. */
+.phase-nav-node:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 13px;
+  right: 50%;
+  width: 100%;
+  height: 2px;
+  background: var(--clay-hairline);
+  z-index: 0;
+}
+.phase-nav-node:not(.phase-nav-node-upcoming):not(:first-child)::before {
+  background: var(--jade);
+}
+
+.phase-nav-marker {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
   font-size: 13px;
+  font-weight: 700;
+  background: var(--clay-surface-card);
+  border: 2px solid var(--clay-hairline);
+  color: var(--clay-muted);
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+.phase-nav-marker-done {
+  background: var(--jade);
+  border-color: var(--jade);
+  color: #fff;
+}
+.phase-nav-marker-active {
+  border-color: var(--seal);
+  box-shadow: 0 0 0 4px var(--seal-soft);
+}
+.phase-nav-marker-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--seal);
+}
+button.phase-nav-node:hover .phase-nav-marker-done {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-sm);
+}
+
+.phase-nav-caption {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--clay-muted);
-  background: var(--clay-surface-soft);
   white-space: nowrap;
-  padding: 6px 12px;
-  border-radius: var(--clay-radius-pill);
-  transition: background 0.2s, color 0.2s, transform 0.2s;
 }
-.phase-nav-step.phase-nav-done {
-  color: var(--jade);
-  background: var(--jade-soft);
-}
-.phase-nav-step.phase-nav-active {
-  /* --seal only reaches ~4.3:1 on seal-soft at this bold-but-not-large size —
-     seal-deep clears 4.5:1 (same pairing as .nav-link.active). */
+.phase-nav-caption-icon { font-size: 13px; }
+.phase-nav-node-done .phase-nav-caption { color: var(--clay-ink); }
+.phase-nav-node-active .phase-nav-caption {
+  /* --seal only reaches ~4.3:1 on white at this size — seal-deep clears
+     4.5:1 (same pairing as .nav-link.active). */
   color: var(--seal-deep);
-  background: var(--seal-soft);
   font-weight: 700;
-  transform: scale(1.05);
-  --bi-en-color: var(--clay-body);
 }
-.phase-nav-icon { font-size: 14px; }
-.phase-nav-label { letter-spacing: 0.01em; }
-.phase-nav-arrow {
-  font-size: 16px;
-  color: var(--clay-hairline);
-  margin-left: 4px;
-  font-weight: 400;
+
+@media (max-width: 640px) {
+  .story-nav-topline {
+    flex-wrap: wrap;
+  }
+  .story-nav-topic-name {
+    white-space: normal;
+  }
+  .phase-nav-node {
+    min-width: 64px;
+  }
+  .phase-nav-caption-icon { display: none; }
 }
 
 .student-flow-board {
@@ -1596,8 +1702,8 @@
 }
 
 .word-practice-result.low {
-  background: var(--seal-soft);
-  border-color: var(--seal);
+  background: var(--clay-error-soft);
+  border-color: var(--clay-error);
 }
 
 .word-practice-result .mini-contour {
@@ -3605,14 +3711,12 @@
 }
 .scene-step-tab.active .tone-shape-icon { color: var(--seal); }
 
-/* practice-grammar-hint's compact card, sized up for its own reference
+/* practice-phrases-hint's compact card, sized up for its own reference
    panel (rather than a small inline hint next to the record controls). */
-.practice-grammar-hint-full {
+.practice-phrases-hint-full {
   padding: 20px 24px;
   gap: 8px;
 }
-.practice-grammar-hint-full .practice-grammar-pattern { font-size: 18px; }
-.practice-grammar-hint-full .practice-grammar-example { font-size: 16px; }
 
 /* The right-column action panel for the Vocabulary/Grammar steps — same
    card, same header shape, and the same full-width primary-button rhythm
@@ -3685,7 +3789,7 @@
   display: block;
   margin: 0 auto;
 }
-.practice-grammar-hint {
+.practice-phrases-hint {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -3695,19 +3799,49 @@
   padding: 10px 14px;
   margin-top: 10px;
 }
-.practice-grammar-label {
+.practice-phrases-label {
   color: var(--seal-deep);
 }
-.practice-grammar-pattern {
+.practice-phrases-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+.practice-phrase-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.practice-phrase-text {
   font-weight: 700;
+  font-size: 18px;
   color: var(--seal-deep);
 }
-.practice-grammar-example {
-  display: block;
-  margin-top: 4px;
-  font-size: 15px;
-  color: var(--seal);
-  font-style: italic;
+.practice-phrase-translation {
+  font-size: 14px;
+  color: var(--clay-body);
+}
+
+/* Always-visible model sentence during the Speaking step — a script to read
+   along and practice saying, not gated behind a mistake-reveal like
+   .practice-suggested-answer below. */
+.practice-model-sentence {
+  background: var(--jade-soft);
+  border: 1.5px solid var(--jade);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-top: 16px;
+}
+.practice-model-sentence-label {
+  color: var(--jade-deep);
+  margin-bottom: 6px;
+}
+.practice-model-sentence-text {
+  font-size: 18px;
+  font-weight: 650;
+  color: var(--jade-deep);
+  line-height: 1.5;
 }
 
 /* Suggested answer (shown after analysis, in Normal / Descriptive modes) */
@@ -4210,6 +4344,25 @@
   font-weight: 700;
   color: var(--clay-body);
   margin: 0 0 10px;
+}
+
+/* ── "View summary" link, shown under the journey path once every scene
+     is recorded (robust to finishing scenes out of order) ── */
+.journey-view-summary-link {
+  display: inline-flex;
+  align-self: flex-start;
+  margin: -6px 0 16px;
+  padding: 6px 14px;
+  background: transparent;
+  border: 1.5px solid var(--jade);
+  border-radius: var(--clay-radius-pill);
+  color: var(--jade-deep);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.journey-view-summary-link:hover {
+  background: var(--jade-soft);
 }
 
 /* ── Scene readiness banner ── */

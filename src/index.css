@@ -68,6 +68,7 @@
   --clay-warning: #ffa726;
   --clay-error: #c81e3a;
   --clay-error-deep: #8f1329;
+  --clay-error-soft: #fbdadf;
 
   /* Role accents used across Home / Topic selector */
   --accent-indigo: var(--seal);
@@ -152,6 +153,17 @@ body {
   height: 100%;
 }
 
+/* Shared 4-tier score-quality gradient — used everywhere a Praat/tone score
+   tier label (非常好/不錯/還可以/再試試) is rendered as plain text, so the
+   color reads as "decreasing from very good" consistently across pages
+   instead of each screen inventing its own scale. Deliberately uses
+   --clay-error (red) rather than --seal for the lowest tier — --seal is a
+   violet accent now, not a "bad" color, and wouldn't read as low-quality. */
+.score-tier-text.excellent { color: var(--jade-deep); font-weight: 800; }
+.score-tier-text.good { color: var(--jade); font-weight: 700; }
+.score-tier-text.ok { color: var(--gold-deep); font-weight: 700; }
+.score-tier-text.low { color: var(--clay-error); font-weight: 700; }
+
 .container {
   max-width: 600px;
   margin: 0 auto;
@@ -173,10 +185,6 @@ body {
   margin-bottom: 32px;
   position: relative;
 }
-
-/* .btn-back intentionally not defined here — its only consumer,
-   CreateStoryPage.tsx, owns the full definition in CreateStoryPage.css.
-   A duplicate used to live here and silently fight that one via cascade order. */
 
 .story-image-preview {
   margin-top: 16px;

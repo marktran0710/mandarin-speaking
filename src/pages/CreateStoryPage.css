@@ -104,55 +104,6 @@
   padding: 20px 20px 64px;
 }
 
-/* ── Back row (page header for the recorder state) ── */
-.csp-page-header {
-  max-width: 1180px;
-  margin: 0 auto 16px;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 16px;
-  align-items: center;
-}
-
-.btn-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 9px 16px;
-  background: var(--clay-surface-card);
-  color: var(--clay-ink);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-pill);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-back:hover {
-  border-color: var(--seal);
-  box-shadow: var(--shadow-md);
-}
-
-.csp-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--clay-muted);
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.csp-breadcrumb-sep {
-  color: var(--clay-hairline);
-}
-
-.csp-breadcrumb-active {
-  color: var(--clay-ink);
-  font-weight: 650;
-}
-
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .student-help-panel {
@@ -166,10 +117,5 @@
 
   .csp-recorder-body {
     padding: 16px 12px 48px;
-  }
-
-  .csp-page-header {
-    grid-template-columns: 1fr;
-    gap: 8px;
   }
 }
