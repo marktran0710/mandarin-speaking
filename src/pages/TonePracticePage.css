@@ -75,7 +75,11 @@
   display: grid;
   gap: 4px;
   justify-items: center;
-  padding: 14px 10px;
+  /* Extra top padding clears the absolutely-positioned .tone-word-best
+     badge (top:8px, ~19px tall) so it never overlaps the centered
+     ToneShapeIcon — at the grid's minimum 120px column width the icon
+     sits close enough to the right edge that the two used to clip. */
+  padding: 30px 10px 14px;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
