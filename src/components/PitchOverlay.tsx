@@ -47,7 +47,7 @@ export default function PitchOverlay({
         role="img"
         aria-label="Your pitch compared with the target tone shape"
       >
-        <rect x="0" y="0" width={CHART_WIDTH} height={CHART_HEIGHT} rx="12" fill="#f8fafc" />
+        <rect x="0" y="0" width={CHART_WIDTH} height={CHART_HEIGHT} rx="12" className="tone-pitch-bg" />
         <text x={CHART_PAD} y={CHART_PAD - 10} className="tone-pitch-axis-label">
           {Math.round(maxFreq)} Hz
         </text>
@@ -55,17 +55,11 @@ export default function PitchOverlay({
           {Math.round(minFreq)} Hz
         </text>
         {referenceContour.length > 1 && (
-          <path
-            d={toPath(referenceContour)}
-            fill="none"
-            stroke="#9aa7b5"
-            strokeWidth="3"
-            strokeDasharray="6 6"
-          />
+          <path d={toPath(referenceContour)} className="tone-pitch-reference" />
         )}
-        <path d={toPath(userContour)} fill="none" stroke="#167f92" strokeWidth="4" />
+        <path d={toPath(userContour)} className="tone-pitch-user" />
         <g className="tone-pitch-legend">
-          <line x1={CHART_WIDTH - 150} y1="16" x2={CHART_WIDTH - 132} y2="16" stroke="#167f92" strokeWidth="4" />
+          <line x1={CHART_WIDTH - 150} y1="16" x2={CHART_WIDTH - 132} y2="16" className="tone-pitch-user" />
           <text x={CHART_WIDTH - 126} y="20" className="tone-pitch-axis-label">
             your pitch
           </text>
@@ -76,9 +70,7 @@ export default function PitchOverlay({
                 y1="34"
                 x2={CHART_WIDTH - 132}
                 y2="34"
-                stroke="#9aa7b5"
-                strokeWidth="3"
-                strokeDasharray="6 6"
+                className="tone-pitch-reference"
               />
               <text x={CHART_WIDTH - 126} y="38" className="tone-pitch-axis-label">
                 target shape

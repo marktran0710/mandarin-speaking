@@ -1,7 +1,7 @@
 .tone-pitch-overlay {
   border-radius: var(--clay-radius-md);
   overflow: hidden;
-  background: #f8fafc;
+  background: var(--clay-surface-soft);
 }
 
 .tone-pitch-overlay svg {
@@ -21,4 +21,24 @@
   fill: var(--clay-muted);
   font-size: 11px;
   font-family: var(--font-mono);
+}
+
+/* Reference (target) contour uses the muted-soft token, decorative use
+   being exactly what that token is reserved for. The user's own contour
+   uses the app's primary accent so it reads as the "active" line. */
+.tone-pitch-reference {
+  fill: none;
+  stroke: var(--clay-muted-soft);
+  stroke-width: 3;
+  stroke-dasharray: 6 6;
+}
+
+.tone-pitch-user {
+  fill: none;
+  stroke: var(--seal);
+  stroke-width: 4;
+}
+
+.tone-pitch-bg {
+  fill: var(--clay-surface-soft);
 }
