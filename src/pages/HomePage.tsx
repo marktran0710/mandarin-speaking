@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import "./HomePage.css";
 import { Page } from "../types/page";
 import { BiLabel, BiText } from "../components/BiLabel";
@@ -7,11 +8,6 @@ interface HomePageProps {
   onNavigate: (page: Page) => void;
 }
 
-// "普通話故事老師" (Pǔtōnghuà gùshì lǎoshī) with each character's real tone,
-// so the hero title's entrance animation is drawn from the actual pitch
-// contour of its own tones (3-1-4-4-4-3-1) rather than a generic bounce —
-// the same flat/rising/dip/falling shapes as ToneMark, performed by the
-// headline itself.
 const HERO_TITLE_CHARS: Array<{ char: string; tone: 1 | 2 | 3 | 4 }> = [
   { char: "普", tone: 3 },
   { char: "通", tone: 1 },
@@ -22,19 +18,54 @@ const HERO_TITLE_CHARS: Array<{ char: string; tone: 1 | 2 | 3 | 4 }> = [
   { char: "師", tone: 1 },
 ];
 
-// The 4-color tone rotation, reused for the stat chips and step numbers so
-// the whole page — not just the hero title — reads as built from the same
-// four tones instead of an arbitrary palette.
 const TONE_ROTATION = ["tone-1", "tone-2", "tone-3", "tone-4"] as const;
+
+const VERTICAL_TITLE_SKILLS: Array<{
+  zh: string;
+  pinyin: string;
+  en: string;
+  chars: Array<{ char: string; tone: 1 | 2 | 3 | 4 }>;
+}> = [
+  {
+    zh: "發音",
+    pinyin: "Fāyīn",
+    en: "Pronunciation",
+    chars: [
+      { char: "發", tone: 1 },
+      { char: "音", tone: 1 },
+    ],
+  },
+  {
+    zh: "詞彙",
+    pinyin: "Cíhuì",
+    en: "Vocabulary",
+    chars: [
+      { char: "詞", tone: 2 },
+      { char: "彙", tone: 4 },
+    ],
+  },
+  {
+    zh: "應用",
+    pinyin: "Yìngyòng",
+    en: "Practical use",
+    chars: [
+      { char: "應", tone: 4 },
+      { char: "用", tone: 4 },
+    ],
+  },
+];
 
 const STATS: Array<{ zh: string; pinyin: string; en: string }> = [
   { zh: "4 個聲調", pinyin: "4 ge shēngdiào", en: "4 tones" },
   { zh: "6 個場景", pinyin: "6 ge chǎngjǐng", en: "6 scenes a story" },
-  { zh: "AI 馬上回饋", pinyin: "AI mǎshàng huíkuì", en: "AI feedback right away" },
+  {
+    zh: "AI 即時回饋",
+    pinyin: "AI jíshí huíkuì",
+    en: "AI feedback right away",
+  },
 ];
 
 const HOW_IT_WORKS: Array<{
-  icon: string;
   zh: string;
   pinyin: string;
   en: string;
@@ -43,56 +74,59 @@ const HOW_IT_WORKS: Array<{
   descEn: string;
 }> = [
   {
-    icon: "🖼️",
-    zh: "選場景",
-    pinyin: "Xuǎn chǎngjǐng",
-    en: "Pick a scene",
-    descZh: "挑一張圖片開始練習。",
-    descPinyin: "Tiāo yì zhāng túpiàn kāishǐ liànxí.",
-    descEn: "Choose a picture to start practicing.",
+    zh: "看圖片",
+    pinyin: "Kàn túpiàn",
+    en: "Look",
+    descZh: "先看清楚場景，找出故事裡的人、地點和動作。",
+    descPinyin:
+      "Xiān kàn qīngchǔ chǎngjǐng, zhǎo chū gùshì lǐ de rén, dìdiǎn hé dòngzuò.",
+    descEn: "Study the scene and notice who, where, and what happens.",
   },
   {
-    icon: "🎙️",
-    zh: "錄音練習",
-    pinyin: "Lùyīn liànxí",
-    en: "Record & practice",
-    descZh: "說中文，錄下你的聲音。",
-    descPinyin: "Shuō Zhōngwén, lù xià nǐ de shēngyīn.",
-    descEn: "Speak Mandarin and record your voice.",
+    zh: "說故事",
+    pinyin: "Shuō gùshì",
+    en: "Speak",
+    descZh: "用普通話錄下你的句子，練習把畫面變成故事。",
+    descPinyin:
+      "Yòng Pǔtōnghuà lù xià nǐ de jùzi, liànxí bǎ huàmiàn biànchéng gùshì.",
+    descEn: "Record your Mandarin and turn the picture into a story.",
   },
   {
-    icon: "⭐",
     zh: "看回饋",
     pinyin: "Kàn huíkuì",
-    en: "Get feedback",
-    descZh: "馬上看你的聲調和分數。",
-    descPinyin: "Mǎshàng kàn nǐ de shēngdiào hé fēnshù.",
-    descEn: "See your tone and score right away.",
+    en: "Improve",
+    descZh: "檢查聲調、節奏和詞彙，再錄一次會更自然。",
+    descPinyin:
+      "Jiǎnchá shēngdiào, jiézòu hé cíhuì, zài lù yí cì huì gèng zìrán.",
+    descEn: "Review tone, rhythm, and vocabulary feedback before trying again.",
   },
 ];
 
 export default function HomePage({ onNavigate }: HomePageProps) {
   return (
     <div className="home-page">
-      <section className="hero">
-        <div className="hero-content">
-          <p className="platform-kicker"><BiLabel k="mandarin_speaking_practice" /></p>
-          <h1 className="hero-title">
-            <span className="bi-label">
-              <span className="bi-zh hero-title-zh" lang="zh-Hant" aria-label="普通話故事老師">
-                {HERO_TITLE_CHARS.map(({ char, tone }, i) => (
-                  <span
-                    key={i}
-                    className={`hero-char tone-${tone}`}
-                    style={{ "--i": i } as React.CSSProperties}
-                    aria-hidden="true"
-                  >
-                    <span className="hero-char-inner">{char}</span>
-                  </span>
-                ))}
-              </span>
-              <span className="bi-pinyin">Pǔtōnghuà gùshì lǎoshī</span>
-              <small className="bi-en" lang="en">Mandarin Story Coach</small>
+      <section className="home-hero" aria-labelledby="home-hero-title">
+        <div className="home-hero-copy">
+          <h1 id="home-hero-title" className="hero-title">
+            <span
+              className="hero-title-zh"
+              lang="zh-Hant"
+              aria-label="普通話故事老師"
+            >
+              {HERO_TITLE_CHARS.map(({ char, tone }, i) => (
+                <span
+                  key={char}
+                  className={`hero-char tone-${tone}`}
+                  style={{ "--i": i } as CSSProperties}
+                  aria-hidden="true"
+                >
+                  {char}
+                </span>
+              ))}
+            </span>
+            <span className="hero-title-meta">
+              <span className="hero-title-pinyin">Pǔtōnghuà gùshì lǎoshī</span>
+              <span className="hero-title-en">Mandarin Story Coach</span>
             </span>
           </h1>
           <p className="hero-subtitle">
@@ -110,40 +144,69 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             ))}
           </ul>
         </div>
-      </section>
 
-      <section className="portal-section" aria-label="Learning portals">
-        <div className="portal-grid">
-          <button
-            type="button"
-            className="portal-card student-card"
-            onClick={() => onNavigate("student-login")}
-          >
-            <span className="portal-icon">學</span>
-            <span className="portal-title"><BiLabel k="student_portal" /></span>
-            <span className="portal-description">
-              <BiText k="complete_picture_based_story_tasks_recor" />
-            </span>
-            <span className="portal-arrow">›</span>
-          </button>
+        <div className="home-hero-visual" aria-label="Story practice preview">
+          <div className="story-preview-stage">
+            <div className="story-preview-scenes" aria-hidden="true">
+              <img
+                src={`${import.meta.env.BASE_URL}sample-scenes/street-conversation.png`}
+                alt=""
+                className="story-preview-image image-one"
+              />
+              <img
+                src={`${import.meta.env.BASE_URL}sample-scenes/missing-cat-card.png`}
+                alt=""
+                className="story-preview-image image-two"
+              />
+              <img
+                src={`${import.meta.env.BASE_URL}sample-scenes/campus-chat.png`}
+                alt=""
+                className="story-preview-image image-three"
+              />
+            </div>
 
-          <a
-            className="portal-card teacher-card"
-            href={`${import.meta.env.BASE_URL}teacher.html`}
-          >
-            <span className="portal-icon">師</span>
-            <span className="portal-title"><BiLabel k="teacher_portal" /></span>
-            <span className="portal-description">
-              <BiText k="monitor_student_recordings_inspect_speec" />
-            </span>
-            <span className="portal-arrow">›</span>
-          </a>
+            <div
+              className="vertical-title"
+              lang="zh-Hant"
+              aria-label="發音 Pronunciation, 詞彙 Vocabulary, 應用 Practical use"
+            >
+              {VERTICAL_TITLE_SKILLS.map((skill, gi) => (
+                <div
+                  className="vertical-title-group"
+                  key={skill.en}
+                  title={`${skill.pinyin} · ${skill.en}`}
+                >
+                  {skill.chars.map(({ char, tone }, i) => (
+                    <span
+                      key={char}
+                      className={`vertical-title-char tone-${tone}`}
+                      style={{ "--i": gi * 2 + i } as CSSProperties}
+                      aria-hidden="true"
+                    >
+                      {char}
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
+      <div className="home-cta">
+        <button
+          type="button"
+          className="hero-primary-action"
+          onClick={() => onNavigate("student-login")}
+        >
+          <BiLabel zh="開始學習" pinyin="Kāishǐ xuéxí" en="Start Learning" />
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>
+
       <section className="how-it-works" aria-label="How it works">
         <p className="how-it-works-kicker">
-          <BiLabel zh="怎麼玩" pinyin="Zěnme wán" en="How it works" />
+          <BiLabel zh="三步開始" pinyin="Sān bù kāishǐ" en="Three-step flow" />
         </p>
         <ol className="how-it-works-grid">
           {HOW_IT_WORKS.map((step, i) => (
@@ -154,12 +217,15 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               <span className="how-it-works-num" aria-hidden="true">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <span className="how-it-works-icon" aria-hidden="true">{step.icon}</span>
               <strong className="how-it-works-title">
                 <BiLabel zh={step.zh} pinyin={step.pinyin} en={step.en} />
               </strong>
               <span className="how-it-works-desc">
-                <BiText zh={step.descZh} pinyin={step.descPinyin} en={step.descEn} />
+                <BiText
+                  zh={step.descZh}
+                  pinyin={step.descPinyin}
+                  en={step.descEn}
+                />
               </span>
             </li>
           ))}
