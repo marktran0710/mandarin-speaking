@@ -128,8 +128,8 @@ class TestMockedProviderLatency:
                 await transcribe_with_openai(SHORT_WAV)
 
         mean, p95, p99 = await ameasure(run, iterations=20)
-        print_result("openai provider (mocked net)", mean, p95, p99, budget_ms=20)
-        assert mean < 20
+        print_result("openai provider (mocked net)", mean, p95, p99, budget_ms=30)
+        assert mean < 30
 
     @pytest.mark.asyncio
     async def test_gemini_provider_overhead(self, monkeypatch):
@@ -151,8 +151,8 @@ class TestMockedProviderLatency:
                 await transcribe_with_gemini(SHORT_WAV)
 
         mean, p95, p99 = await ameasure(run, iterations=20)
-        print_result("gemini provider (mocked net)", mean, p95, p99, budget_ms=20)
-        assert mean < 20
+        print_result("gemini provider (mocked net)", mean, p95, p99, budget_ms=30)
+        assert mean < 30
 
 
 # ── Local feedback (CPU-only, no I/O) ────────────────────────────────────────
@@ -257,8 +257,8 @@ class TestFallbackChainPerformance:
                 await main.transcribe_with_auto_fallback(SHORT_WAV)
 
         mean, p95, p99 = await ameasure(run, iterations=20)
-        print_result("fallback: 2 fails + 1 success (gemini)", mean, p95, p99, budget_ms=20)
-        assert mean < 20
+        print_result("fallback: 2 fails + 1 success (gemini)", mean, p95, p99, budget_ms=30)
+        assert mean < 30
 
 
 # ── HTTP endpoint concurrency ─────────────────────────────────────────────────

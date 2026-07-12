@@ -109,7 +109,7 @@ class TestTranscribeAudioContentRouting:
         with patch("main.transcribe_with_auto_fallback", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="你好", model="auto:ctwhisper")
             result = await transcribe_audio_content(SILENT_WAV, "auto")
-            mock.assert_awaited_once_with(SILENT_WAV)
+            mock.assert_awaited_once_with(SILENT_WAV, vocab_hint="")
             assert result.text == "你好"
 
     @pytest.mark.asyncio
