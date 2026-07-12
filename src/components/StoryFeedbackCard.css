@@ -71,6 +71,37 @@
   margin-bottom: 8px;
 }
 
+/* Icon + text tier badge so good/fix/next reads without relying on the
+   card's background color alone (jade/gold/red is hard to tell apart for
+   red-green colorblind users). */
+.story-feedback-tier-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: #ffffff;
+}
+
+.story-feedback-card.good .story-feedback-tier-badge {
+  border: 1.5px solid var(--jade-deep);
+  color: var(--jade-deep);
+}
+
+.story-feedback-card.fix .story-feedback-tier-badge {
+  border: 1.5px dashed var(--gold-deep);
+  color: var(--gold-deep);
+}
+
+.story-feedback-card.next .story-feedback-tier-badge {
+  border: 1.5px dotted var(--clay-error-deep);
+  color: var(--clay-error-deep);
+}
+
 .story-feedback-text {
   color: var(--clay-body);
   font-size: 13px;

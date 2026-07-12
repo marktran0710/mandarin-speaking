@@ -36,6 +36,15 @@ function scoreBandClass(score: number): string {
   return "next";
 }
 
+// Icon + text per band so the good/fix/next signal isn't color-only —
+// jade/gold/red is exactly the red-green pair colorblind users struggle
+// with, and this is the app's primary "how did I do" assessment surface.
+const TIER_BADGE: Record<"good" | "fix" | "next", { icon: string; zh: string; pinyin: string; en: string }> = {
+  good: { icon: "✓", zh: "很好", pinyin: "Hěn hǎo", en: "Good" },
+  fix: { icon: "△", zh: "待加強", pinyin: "Dài jiāqiáng", en: "Needs work" },
+  next: { icon: "!", zh: "再試試", pinyin: "Zài shìshi", en: "Try again" },
+};
+
 function scoreBandColor(score: number): string {
   if (score >= 75) return COLOR.jadeDeep;
   if (score >= 50) return COLOR.goldDeep;
@@ -193,12 +202,18 @@ function DimensionRow({
   dimension: StoryFeedbackDimension;
 }) {
   const notJudged = dimension.judged === false;
+  const band = notJudged ? null : TIER_BADGE[scoreBandClass(dimension.score) as "good" | "fix" | "next"];
   return (
     <div
       className={`story-feedback-card ${notJudged ? "not-judged" : scoreBandClass(dimension.score)}`}
     >
       <div className="story-feedback-card-head">
         <BiLabel zh={zh} pinyin={pinyin} en={en} />
+        {band && (
+          <span className="story-feedback-tier-badge" title={`${band.pinyin} · ${band.en}`}>
+            <span aria-hidden="true">{band.icon}</span> {band.zh}
+          </span>
+        )}
       </div>
       <p className="story-feedback-text">{dimension.feedback}</p>
     </div>
