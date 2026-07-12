@@ -61,6 +61,24 @@ class TestGroqPath:
         # are filtered; capped at 3 distractors.
         assert results[0]["distractors"] == ["kitchen", "hotel", "cafeteria"]
 
+    def test_avoid_list_is_included_in_the_prompt(self, client, with_groq_key, no_gemini_key):
+        mock_response = _mock_groq_response(DISTRACTORS_PAYLOAD)
+        with patch("httpx.AsyncClient") as mock_client_cls:
+            mock_patched = _patched_client(mock_response)
+            mock_client_cls.return_value = mock_patched
+            response = client.post(
+                "/api/vocab-quiz-distractors",
+                json={
+                    "words": [
+                        {"word": "餐廳", "translation": "restaurant", "avoid": ["kitchen", "hotel"]},
+                    ]
+                },
+            )
+
+        assert response.status_code == 200
+        sent_prompt = mock_patched.post.await_args.kwargs["json"]["messages"][1]["content"]
+        assert "already used, do not repeat: kitchen, hotel" in sent_prompt
+
 
 class TestGeminiPath:
     def test_generates_and_filters_distractors(self, client, with_gemini_key, no_groq_key):

@@ -10,8 +10,10 @@ import {
   canUseDatabase,
   createStorySubmission,
   createVocabQuizAttempt,
+  updateVocabularyDistractors,
   type SceneSubmission,
   type StoryFeedback,
+  type VocabularyDistractorUpdate,
 } from "../services/database";
 import PraatTimeline from "./PraatTimeline";
 import StoryFeedbackCard from "./StoryFeedbackCard";
@@ -24,6 +26,8 @@ import JourneyPath, { type JourneyStopStatus } from "./JourneyPath";
 import ToneShapeIcon from "./ToneShapeIcon";
 import { toPinyin } from "../utils/pinyin";
 import { scoreTier, scoreTierLabel } from "../utils/scoreLabels";
+import { markStoryLevelSubmitted } from "../utils/storyLevelProgress";
+import type { CustomTeacherStory, StoryDifficultyLevel } from "../utils/teacherStories";
 import "./StoryRecorder.css";
 import { BiLabel, BiText } from "./BiLabel";
 import "./BiLabel.css";
@@ -34,6 +38,12 @@ const BACKEND_URL =
   (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
 const VOCAB_QUIZ_COMPLETED_KEY = "vocabQuizCompletedStoryIds";
+
+// Mirrors the backend's MAX_VOCAB_DISTRACTORS_PER_WORD cap — checked
+// client-side so a story where every word already has a full pool skips the
+// AI call entirely instead of generating distractors the backend would just
+// discard.
+const MAX_VOCAB_DISTRACTORS_PER_WORD = 8;
 
 function loadCompletedVocabQuizzes(): Record<string, boolean> {
   try {
@@ -102,6 +112,66 @@ interface Topic {
   lessonNumber?: number | null;
   narrativeMode?: "story" | "describe" | "listen_retell";
   firstFrameIsExample?: boolean;
+  difficultyLevel?: StoryDifficultyLevel;
+  sourceStory?: CustomTeacherStory;
+}
+
+export interface DistractorGrowthCandidate {
+  frameIndex: number;
+  wordIndex: number;
+  word: string;
+  translation: string;
+  context?: string;
+  existing: string[];
+}
+
+/** Pure planning step for growVocabularyDistractorPool: picks the words in a
+ * story whose persisted distractor pool hasn't reached the cap yet, pairing
+ * each with its existing pool (sent as the AI's "avoid" list). Returns an
+ * empty array once every word is already at cap, the caller's signal to
+ * skip the AI call entirely. */
+export function planDistractorGrowth(
+  topic: Pick<
+    Topic,
+    "images" | "vocabulary" | "vocabularyTranslation" | "vocabularyDistractors" | "suggestedAnswers"
+  >,
+): DistractorGrowthCandidate[] {
+  const candidates: DistractorGrowthCandidate[] = [];
+  topic.images.forEach((_, si) => {
+    const sceneSuggestedAnswer = topic.suggestedAnswers?.[si];
+    (topic.vocabulary[si] || []).forEach((word, i) => {
+      const translation = topic.vocabularyTranslation?.[si]?.[i];
+      if (!translation) return;
+      const existing = topic.vocabularyDistractors?.[si]?.[i] ?? [];
+      if (existing.length >= MAX_VOCAB_DISTRACTORS_PER_WORD) return;
+      candidates.push({
+        frameIndex: si,
+        wordIndex: i,
+        word,
+        translation,
+        context: sceneSuggestedAnswer,
+        existing,
+      });
+    });
+  });
+  return candidates;
+}
+
+/** Pairs each growth candidate with the AI-generated distractors for its
+ * word (matched by word text), dropping any candidate the AI returned
+ * nothing for. */
+export function buildDistractorPatchUpdates(
+  candidates: DistractorGrowthCandidate[],
+  results: Array<{ word: string; distractors: string[] }>,
+): VocabularyDistractorUpdate[] {
+  const byWord = new Map(results.map((r) => [r.word, r.distractors]));
+  return candidates
+    .map((candidate) => ({
+      frameIndex: candidate.frameIndex,
+      wordIndex: candidate.wordIndex,
+      distractors: byWord.get(candidate.word) ?? [],
+    }))
+    .filter((update) => update.distractors.length > 0);
 }
 
 interface PauseAnalysis {
@@ -194,15 +264,6 @@ interface TranscriptionItem {
 }
 
 type ScenePracticeStep = "vocab" | "phrases" | "speaking";
-
-interface ConceptMapDraft {
-  characters: string;
-  place: string;
-  actions: string;
-  vocabulary: string;
-  connectors: string;
-  fullStory: string;
-}
 
 interface StoryRecorderProps {
   topic: Topic;
@@ -387,6 +448,42 @@ export default function StoryRecorder({
     }).catch((error) => {
       console.warn("Failed to save vocabulary quiz attempt:", error);
     });
+    growVocabularyDistractorPool().catch((error) => {
+      console.warn("Failed to grow vocabulary distractor pool:", error);
+    });
+  };
+
+  // Each genuine quiz round completion (never the missed-words retry, since
+  // onComplete above only fires for the original round) is a chance to top
+  // up the story's persisted distractor pool for any word still under the
+  // cap — so across many rounds the wrong-answer options keep changing
+  // instead of settling into a small fixed set the student can memorize.
+  // Skips the AI call entirely once every word has reached the cap.
+  const growVocabularyDistractorPool = async () => {
+    const candidates = planDistractorGrowth(topic);
+    if (candidates.length === 0) return;
+
+    const response = await fetch(`${BACKEND_URL}/api/vocab-quiz-distractors`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        words: candidates.map((entry) => ({
+          word: entry.word,
+          translation: entry.translation,
+          context: entry.context,
+          avoid: entry.existing,
+        })),
+      }),
+    });
+    if (!response.ok) throw new Error("Could not generate new quiz distractors.");
+
+    const { results } = (await response.json()) as {
+      results: { word: string; distractors: string[] }[];
+    };
+    const updates = buildDistractorPatchUpdates(candidates, results);
+    if (updates.length === 0) return;
+
+    await updateVocabularyDistractors(topic.id, updates);
   };
 
   // Learning phase: overview → sorting → vocabquiz → practice → summary
@@ -429,10 +526,6 @@ export default function StoryRecorder({
   >([]);
   const [sortingFeedback, setSortingFeedback] = useState<string>("");
   const [, setSortingAttempts] = useState(0);
-
-  const [conceptDraft, setConceptDraft] = useState<ConceptMapDraft>(
-    createEmptyConceptMapDraft(),
-  );
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -538,10 +631,6 @@ export default function StoryRecorder({
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    setConceptDraft(createEmptyConceptMapDraft());
-  }, [selectedImageIndex, topic.id]);
 
   // Sorting Challenge Handlers
   const handleDragStart = (
@@ -1142,9 +1231,7 @@ export default function StoryRecorder({
 
   const isBusy = isRecording || isTranscribing || isAnalyzing;
   const selectedVocabulary = topic.vocabulary[selectedImageIndex] || [];
-  const conceptMapText = buildConceptMapText(conceptDraft);
-  const practiceAnalysisText =
-    conceptMapText || buildPracticeAnalysisText(selectedVocabulary);
+  const practiceAnalysisText = buildPracticeAnalysisText(selectedVocabulary);
   const hasWordProsody = Boolean(praatMetrics?.word_prosody?.length);
   const recordingButtonDisabled = isTranscribing || isAnalyzing;
 
@@ -1183,6 +1270,9 @@ export default function StoryRecorder({
       }
       setStorySubmitted(true);
       setSubmitError(null);
+      if (topic.sourceStory && topic.difficultyLevel) {
+        markStoryLevelSubmitted(topic.sourceStory.id, topic.difficultyLevel);
+      }
     } catch {
       setSubmitError(
         "Could not submit story — check your connection and try again.",
@@ -3250,35 +3340,6 @@ function buildPracticeAnalysisText(vocabulary: string[]): string {
     .join(" ");
 }
 
-function createEmptyConceptMapDraft(): ConceptMapDraft {
-  return {
-    characters: "",
-    place: "",
-    actions: "",
-    vocabulary: "",
-    connectors: "",
-    fullStory: "",
-  };
-}
-
-function buildConceptMapText(draft: ConceptMapDraft): string {
-  const fullStory = draft.fullStory.trim();
-  if (fullStory) {
-    return fullStory;
-  }
-
-  return [
-    draft.characters,
-    draft.place,
-    draft.actions,
-    draft.vocabulary,
-    draft.connectors,
-  ]
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .join(" ");
-}
-
 function hasAudioFileExtension(fileName: string): boolean {
   return /\.(wav|wave|webm|mp3|m4a|ogg)$/i.test(fileName);
 }
@@ -3858,209 +3919,4 @@ function writeString(view: DataView, offset: number, value: string) {
   for (let index = 0; index < value.length; index += 1) {
     view.setUint8(offset + index, value.charCodeAt(index));
   }
-}
-
-function VocabCategorizer({
-  words,
-  groups,
-}: {
-  words: string[];
-  groups: VocabGroup[];
-}) {
-  const [placement, setPlacement] = useState<Record<string, number | null>>(
-    () => Object.fromEntries(words.map((w) => [w, null])),
-  );
-  const [checked, setChecked] = useState(false);
-  const [dragWord, setDragWord] = useState<string | null>(null);
-
-  const unplaced = words.filter((w) => placement[w] === null);
-  const allPlaced = unplaced.length === 0;
-
-  const correctGroupIndex = (word: string): number =>
-    groups.findIndex((g) => g.words.includes(word));
-
-  const isCorrect = (word: string, groupIndex: number): boolean =>
-    correctGroupIndex(word) === groupIndex;
-
-  const placeWord = (word: string, groupIndex: number) => {
-    setPlacement((p) => ({ ...p, [word]: groupIndex }));
-    setChecked(false);
-  };
-
-  const unplaceWord = (word: string) => {
-    setPlacement((p) => ({ ...p, [word]: null }));
-    setChecked(false);
-  };
-
-  const handleCheck = () => setChecked(true);
-  const handleReset = () => {
-    setPlacement(Object.fromEntries(words.map((w) => [w, null])));
-    setChecked(false);
-  };
-
-  const correctCount = checked
-    ? words.filter((w) => {
-        const gi = placement[w];
-        return gi !== null && isCorrect(w, gi);
-      }).length
-    : 0;
-
-  return (
-    <div className="vocab-categorizer">
-      <div className="vocab-categorizer-header">
-        <span className="vocab-categorizer-title">
-          <BiLabel zh="把詞彙分類" pinyin="Bǎ cíhuì fēnlèi" en="Sort words into groups" />
-        </span>
-        {checked && (
-          <span
-            className={`vocab-categorizer-score ${correctCount === words.length ? "vc-score-perfect" : ""}`}
-          >
-            <BiLabel
-              zh={`${correctCount}/${words.length} 正確`}
-              pinyin={`${correctCount}/${words.length} zhèngquè`}
-              en={`${correctCount}/${words.length} correct`}
-            />
-          </span>
-        )}
-      </div>
-
-      {unplaced.length > 0 && (
-        <div className="vocab-categorizer-bank">
-          <span className="vc-bank-label">
-            <BiLabel
-              zh="拖或點一個詞，再放到下面的分類中"
-              pinyin="Tuō huò diǎn yí ge cí, zài fàng dào xiàmiàn de fēnlèi zhōng"
-              en="Drag or click a word, then drop it into a group below"
-            />
-          </span>
-          <div className="vc-bank-chips">
-            {unplaced.map((word) => (
-              <span
-                key={word}
-                className="vc-chip vc-chip-bank"
-                draggable
-                onDragStart={() => setDragWord(word)}
-                onDragEnd={() => setDragWord(null)}
-              >
-                {word}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="vocab-categorizer-groups">
-        {groups.map((group, gi) => {
-          const wordsHere = words.filter((w) => placement[w] === gi);
-          const isDragTarget = dragWord !== null;
-          return (
-            <div
-              key={gi}
-              className={`vc-group ${isDragTarget ? "vc-group-droppable" : ""}`}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => {
-                if (dragWord) {
-                  placeWord(dragWord, gi);
-                  setDragWord(null);
-                }
-              }}
-            >
-              <div className="vc-group-name">{group.name}</div>
-              <div className="vc-group-words">
-                {wordsHere.map((word) => {
-                  const correct = isCorrect(word, gi);
-                  const status = checked
-                    ? correct
-                      ? "correct"
-                      : "wrong"
-                    : "placed";
-                  const hintGroup =
-                    !correct && checked
-                      ? groups[correctGroupIndex(word)]?.name
-                      : null;
-                  return (
-                    <span key={word} className="vc-word-wrap">
-                      <span
-                        className={`vc-chip vc-chip-${status}`}
-                        onClick={() => !checked && unplaceWord(word)}
-                        title={
-                          !checked ? "點擊移回 Click to move back" : undefined
-                        }
-                      >
-                        {word}
-                        {checked && correct && (
-                          <span className="vc-icon">✓</span>
-                        )}
-                        {checked && !correct && (
-                          <span className="vc-icon">✗</span>
-                        )}
-                      </span>
-                      {hintGroup && (
-                        <span className="vc-hint">→ {hintGroup}</span>
-                      )}
-                    </span>
-                  );
-                })}
-                {wordsHere.length === 0 && (
-                  <span className="vc-group-empty">
-                    <BiLabel zh="放在這裡" pinyin="Fàng zài zhèlǐ" en="Drop here" />
-                  </span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="vocab-categorizer-actions">
-        {!checked ? (
-          <button
-            type="button"
-            className="vc-btn-check"
-            disabled={!allPlaced}
-            onClick={handleCheck}
-          >
-            {allPlaced ? (
-              <BiLabel zh="檢查答案" pinyin="Jiǎnchá dá'àn" en="Check answers" />
-            ) : (
-              <BiLabel
-                zh={`還有 ${unplaced.length} 個詞還沒放`}
-                pinyin={`Hái yǒu ${unplaced.length} ge cí hái méi fàng`}
-                en={`${unplaced.length} word${unplaced.length > 1 ? "s" : ""} left to place`}
-              />
-            )}
-          </button>
-        ) : (
-          <div className="vc-result-row">
-            {correctCount === words.length ? (
-              <span className="vc-all-correct">
-                <BiLabel
-                  zh="全部正確！現在用這些詞錄你的句子吧。"
-                  pinyin="Quánbù zhèngquè! Xiànzài yòng zhèxiē cí lù nǐ de jùzi ba."
-                  en="All correct! Now record your sentence using these words."
-                />
-              </span>
-            ) : (
-              <>
-                <span className="vc-wrong-hint">
-                  <BiLabel
-                    zh="有 ✗ 的詞會顯示正確分類 — 改好後再試一次。"
-                    pinyin="Yǒu ✗ de cí huì xiǎnshì zhèngquè fēnlèi — gǎi hǎo hòu zài shì yí cì."
-                    en="Words marked ✗ show the correct group — fix them and try again."
-                  />
-                </span>
-                <button
-                  type="button"
-                  className="vc-btn-retry"
-                  onClick={handleReset}
-                >
-                  <BiLabel zh="再試一次" pinyin="Zài shì yí cì" en="Try again" />
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }

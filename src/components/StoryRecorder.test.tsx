@@ -1,7 +1,11 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { UserEvent } from "@testing-library/user-event";
-import StoryRecorder, { vocabTooltip } from "./StoryRecorder";
+import StoryRecorder, {
+  vocabTooltip,
+  planDistractorGrowth,
+  buildDistractorPatchUpdates,
+} from "./StoryRecorder";
 
 /** Picks Free Practice mode (if the mode-select screen is showing), answers
  * one question of the vocabulary quiz (any option — this is about reaching
@@ -118,6 +122,98 @@ describe("vocabTooltip", () => {
   });
 });
 
+describe("planDistractorGrowth", () => {
+  const baseTopic = {
+    images: ["scene-1.jpg"],
+    vocabulary: { 0: ["餐廳", "吃"] },
+    vocabularyTranslation: { 0: ["restaurant", "to eat"] },
+    suggestedAnswers: { 0: "我在餐廳吃飯。" },
+  };
+
+  it("includes words with no persisted distractors yet", () => {
+    const candidates = planDistractorGrowth(baseTopic);
+    expect(candidates).toEqual([
+      {
+        frameIndex: 0,
+        wordIndex: 0,
+        word: "餐廳",
+        translation: "restaurant",
+        context: "我在餐廳吃飯。",
+        existing: [],
+      },
+      {
+        frameIndex: 0,
+        wordIndex: 1,
+        word: "吃",
+        translation: "to eat",
+        context: "我在餐廳吃飯。",
+        existing: [],
+      },
+    ]);
+  });
+
+  it("skips words that already reached the 8-distractor cap", () => {
+    const candidates = planDistractorGrowth({
+      ...baseTopic,
+      vocabularyDistractors: {
+        0: [["a", "b", "c", "d", "e", "f", "g", "h"], ["kitchen"]],
+      },
+    });
+    expect(candidates.map((c) => c.word)).toEqual(["吃"]);
+    expect(candidates[0].existing).toEqual(["kitchen"]);
+  });
+
+  it("returns an empty array once every word is at cap (signal to skip the AI call)", () => {
+    const candidates = planDistractorGrowth({
+      ...baseTopic,
+      vocabularyDistractors: {
+        0: [
+          ["a", "b", "c", "d", "e", "f", "g", "h"],
+          ["a", "b", "c", "d", "e", "f", "g", "h"],
+        ],
+      },
+    });
+    expect(candidates).toEqual([]);
+  });
+
+  it("skips words with no translation", () => {
+    const candidates = planDistractorGrowth({
+      ...baseTopic,
+      vocabularyTranslation: { 0: ["restaurant", ""] },
+    });
+    expect(candidates.map((c) => c.word)).toEqual(["餐廳"]);
+  });
+});
+
+describe("buildDistractorPatchUpdates", () => {
+  const candidates = [
+    { frameIndex: 0, wordIndex: 0, word: "餐廳", translation: "restaurant", existing: [] },
+    { frameIndex: 0, wordIndex: 1, word: "吃", translation: "to eat", existing: ["kitchen"] },
+  ];
+
+  it("maps AI results back to frame/word indices by word text", () => {
+    const updates = buildDistractorPatchUpdates(candidates, [
+      { word: "餐廳", distractors: ["hotel", "cafe"] },
+      { word: "吃", distractors: ["to drink"] },
+    ]);
+    expect(updates).toEqual([
+      { frameIndex: 0, wordIndex: 0, distractors: ["hotel", "cafe"] },
+      { frameIndex: 0, wordIndex: 1, distractors: ["to drink"] },
+    ]);
+  });
+
+  it("drops candidates the AI returned nothing for", () => {
+    const updates = buildDistractorPatchUpdates(candidates, [
+      { word: "餐廳", distractors: ["hotel"] },
+    ]);
+    expect(updates).toEqual([{ frameIndex: 0, wordIndex: 0, distractors: ["hotel"] }]);
+  });
+
+  it("returns an empty array when the AI returned nothing for any candidate", () => {
+    expect(buildDistractorPatchUpdates(candidates, [])).toEqual([]);
+  });
+});
+
 describe("StoryRecorder student prototype", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -194,7 +290,7 @@ describe("StoryRecorder student prototype", () => {
     vi.unstubAllGlobals();
   });
 
-  it("lets a student build a concept map and receive word-level pronunciation feedback", async () => {
+  it("lets a student record their own attempt and receive word-level pronunciation feedback", async () => {
     const user = userEvent.setup();
     const onAddRecord = vi.fn();
 
@@ -209,34 +305,19 @@ describe("StoryRecorder student prototype", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("heading", { name: "Plan this picture cue" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("region", { name: "Student practice flow" }),
-    ).toBeInTheDocument();
-
-    await user.type(screen.getByLabelText(/Characters/), "Student A");
-    await user.type(screen.getByLabelText(/Place/), "night market");
-    await user.type(screen.getByLabelText(/Actions/), "helps a friend");
-    await user.click(screen.getByRole("button", { name: "market" }));
-    await user.click(screen.getByRole("button", { name: "Draft story from map" }));
-
-    const target = screen.getByText("Pronunciation target").closest("div");
-    expect(target).not.toBeNull();
-    expect(within(target as HTMLElement).getByText(/Student A/)).toBeInTheDocument();
-    expect(within(target as HTMLElement).getByText(/night market/)).toBeInTheDocument();
+    // Scene 0 has vocabulary, so practice lands on the Vocabulary step first
+    // — jump straight to Speaking via the tab bar.
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
 
     await user.click(screen.getByText("Recording options"));
-    await user.selectOptions(screen.getByLabelText("Speech source"), "vibevoice");
-    await user.click(screen.getByRole("button", { name: "Start recording" }));
+    await user.selectOptions(screen.getByLabelText(/Speech source/), "vibevoice");
+    await user.click(screen.getByRole("button", { name: /Record$/ }));
     expect(activeRecorder?.state).toBe("recording");
 
-    await user.click(screen.getByRole("button", { name: "Stop and analyze" }));
+    await user.click(screen.getByRole("button", { name: /Stop Recording$/ }));
 
     await waitFor(() => {
-      expect(screen.getByText("Character prosody preview")).toBeInTheDocument();
-      expect(screen.getByText("Word-by-word prosody")).toBeInTheDocument();
+      expect(screen.getByText("Character-by-character prosody")).toBeInTheDocument();
       expect(screen.getByText("Pitch rises clearly.")).toBeInTheDocument();
     });
 
@@ -255,7 +336,8 @@ describe("StoryRecorder student prototype", () => {
     );
   });
 
-  it("defaults live recording to browser Traditional Chinese transcription", () => {
+  it("defaults live recording to browser Traditional Chinese transcription", async () => {
+    const user = userEvent.setup();
     render(
       <StoryRecorder
         topic={topic}
@@ -267,7 +349,11 @@ describe("StoryRecorder student prototype", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Speech source")).toHaveValue("webspeech");
+    // Scene 0 has vocabulary, so practice lands on the Vocabulary step first
+    // — jump straight to Speaking via the tab bar.
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+
+    expect(screen.getByLabelText(/Speech source/)).toHaveValue("webspeech");
   });
 
   it("uses Chinese/Taiwanese Whisper when a student submits a voice file", async () => {
@@ -285,6 +371,13 @@ describe("StoryRecorder student prototype", () => {
       />,
     );
 
+    // Scene 0 has vocabulary, so practice lands on the Vocabulary step first
+    // — jump straight to Speaking via the tab bar.
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+    // Uploading with the webspeech default falls back to Groq (webspeech
+    // itself can't transcribe a file) — pick ctwhisper explicitly.
+    await user.selectOptions(screen.getByLabelText(/Speech source/), "ctwhisper");
+
     const voiceFile = new File(["RIFF....WAVEfmt "], "story-attempt.wav", {
       type: "audio/wav",
     });
@@ -298,10 +391,15 @@ describe("StoryRecorder student prototype", () => {
       `${TEST_BACKEND_URL}/api/analyze`,
       expect.objectContaining({ method: "POST" }),
     );
-    const requestBody = vi.mocked(globalThis.fetch).mock.calls[0][1]?.body as FormData;
+    // Mount also fires a GET to /api/ai-providers, so find the /api/analyze
+    // call by URL rather than assuming it's the first fetch.
+    const analyzeCall = vi
+      .mocked(globalThis.fetch)
+      .mock.calls.find(([url]) => String(url).includes("/api/analyze"));
+    const requestBody = analyzeCall?.[1]?.body as FormData;
     expect(requestBody.get("transcription")).toBe("");
     expect(requestBody.get("asr_model")).toBe("ctwhisper");
-    expect(await screen.findByText("Submitted: story-attempt.wav")).toBeInTheDocument();
+    expect(await screen.findByText(/story-attempt\.wav/)).toBeInTheDocument();
     expect(onAddRecord).toHaveBeenCalledWith(
       expect.objectContaining({
         transcription: "Student tells the market story",
@@ -325,8 +423,12 @@ describe("StoryRecorder student prototype", () => {
       />,
     );
 
+    // Scene 0 has vocabulary, so practice lands on the Vocabulary step first
+    // — jump straight to Speaking via the tab bar.
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+
     await user.click(screen.getByText("Recording options"));
-    await user.selectOptions(screen.getByLabelText("Speech source"), "vibevoice");
+    await user.selectOptions(screen.getByLabelText(/Speech source/), "vibevoice");
 
     const voiceFile = new File(["RIFF....WAVEfmt "], "story-attempt.wav", {
       type: "audio/wav",
@@ -341,10 +443,15 @@ describe("StoryRecorder student prototype", () => {
       `${TEST_BACKEND_URL}/api/analyze`,
       expect.objectContaining({ method: "POST" }),
     );
-    const requestBody = vi.mocked(globalThis.fetch).mock.calls[0][1]?.body as FormData;
+    // Mount also fires a GET to /api/ai-providers, so find the /api/analyze
+    // call by URL rather than assuming it's the first fetch.
+    const analyzeCall = vi
+      .mocked(globalThis.fetch)
+      .mock.calls.find(([url]) => String(url).includes("/api/analyze"));
+    const requestBody = analyzeCall?.[1]?.body as FormData;
     expect(requestBody.get("transcription")).toBe("");
     expect(requestBody.get("asr_model")).toBe("vibevoice");
-    expect(await screen.findByText("Submitted: story-attempt.wav")).toBeInTheDocument();
+    expect(await screen.findByText(/story-attempt\.wav/)).toBeInTheDocument();
     expect(
       (await screen.findAllByText("Student tells the market story")).length,
     ).toBeGreaterThan(0);
@@ -373,18 +480,20 @@ describe("StoryRecorder student prototype", () => {
     );
 
     // Verify sorting challenge is shown
-    expect(screen.getByText("Arrange the Story Scenes")).toBeInTheDocument();
+    expect(screen.getByText("Put the Story in Order")).toBeInTheDocument();
     expect(screen.queryByText("Recording options")).not.toBeInTheDocument();
 
     // Verify prompts are rendered as hints
     expect(screen.getByText("First prompt")).toBeInTheDocument();
     expect(screen.getByText("Second prompt")).toBeInTheDocument();
 
-    // Click Skip Challenge to unlock standard UI
-    await user.click(screen.getByRole("button", { name: "Skip Challenge" }));
+    // Click Skip to unlock standard UI
+    await user.click(screen.getByRole("button", { name: /Skip/ }));
 
-    // Verify it unlocks the standard recording UI
-    expect(screen.queryByText("Arrange the Story Scenes")).not.toBeInTheDocument();
+    // Verify it unlocks the standard recording UI — scene 0 has vocabulary,
+    // so practice lands on the Vocabulary step first, then jump to Speaking.
+    expect(screen.queryByText("Put the Story in Order")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
     expect(screen.getByText("Recording options")).toBeInTheDocument();
   });
 

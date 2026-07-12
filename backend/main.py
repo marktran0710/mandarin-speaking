@@ -286,6 +286,10 @@ class VocabDistractorWord(BaseModel):
     word: str
     translation: str
     context: Optional[str] = None
+    # Distractors already shown to students for this word (from a prior
+    # generation), so a regeneration call can top up the pool with genuinely
+    # new options instead of the model re-suggesting the same ones.
+    avoid: List[str] = []
 
 
 class VocabDistractorRequest(BaseModel):
@@ -329,6 +333,31 @@ class CustomStoryFrameRequest(BaseModel):
     suggestedAnswer: Optional[str] = None
     listenAudioUrl: Optional[str] = None
     listenScript: Optional[str] = None
+    vocabularyDistractors: Optional[str] = None
+    # Medium/Hard tiers of the same scene — same plot/scene/imageUrl, just
+    # progressively more complex text. Absent/blank means that tier hasn't
+    # been authored yet; the student-facing conversion falls back to the
+    # base (Easy) field above rather than showing blank content.
+    promptMedium: Optional[str] = None
+    promptHard: Optional[str] = None
+    vocabularyMedium: Optional[str] = None
+    vocabularyHard: Optional[str] = None
+    vocabularyPinyinMedium: Optional[str] = None
+    vocabularyPinyinHard: Optional[str] = None
+    vocabularyPosMedium: Optional[str] = None
+    vocabularyPosHard: Optional[str] = None
+    vocabularyTranslationMedium: Optional[str] = None
+    vocabularyTranslationHard: Optional[str] = None
+    phrasesMedium: Optional[str] = None
+    phrasesHard: Optional[str] = None
+    phrasesTranslationMedium: Optional[str] = None
+    phrasesTranslationHard: Optional[str] = None
+    suggestedAnswerMedium: Optional[str] = None
+    suggestedAnswerHard: Optional[str] = None
+    listenAudioUrlMedium: Optional[str] = None
+    listenAudioUrlHard: Optional[str] = None
+    listenScriptMedium: Optional[str] = None
+    listenScriptHard: Optional[str] = None
 
 
 class CustomStoryRequest(BaseModel):
@@ -546,6 +575,70 @@ async def delete_custom_story(story_id: str):
         for frame in json.loads(row["frames"] or "[]"):
             remove_uploaded_file(frame.get("imageUrl", ""))
             remove_uploaded_file(frame.get("listenAudioUrl", ""))
+    return {"ok": True}
+
+
+MAX_VOCAB_DISTRACTORS_PER_WORD = 8
+
+
+class VocabularyDistractorUpdate(BaseModel):
+    frameIndex: int
+    wordIndex: int
+    distractors: List[str]
+
+
+class VocabularyDistractorsUpdateRequest(BaseModel):
+    updates: List[VocabularyDistractorUpdate]
+
+
+@app.patch("/api/custom-stories/{story_id}/vocabulary-distractors")
+async def update_vocabulary_distractors(
+    story_id: str, request: VocabularyDistractorsUpdateRequest
+):
+    """
+    Tops up a story's per-word distractor pool (grown over time as students
+    complete quiz rounds) rather than replacing it — merges new distractors
+    into the existing list per word, deduping case-insensitively and capping
+    at MAX_VOCAB_DISTRACTORS_PER_WORD so the pool doesn't grow unbounded.
+    """
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT frames FROM custom_stories WHERE id = ?", (story_id,)
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Story not found.")
+
+        frames = json.loads(row["frames"] or "[]")
+        for update in request.updates:
+            if update.frameIndex < 0 or update.frameIndex >= len(frames):
+                continue
+            if update.wordIndex < 0:
+                continue
+            frame = frames[update.frameIndex]
+            try:
+                pool: List[List[str]] = json.loads(frame.get("vocabularyDistractors") or "[]")
+            except (json.JSONDecodeError, TypeError):
+                pool = []
+            while len(pool) <= update.wordIndex:
+                pool.append([])
+
+            existing = pool[update.wordIndex]
+            seen = {d.strip().lower() for d in existing}
+            merged = list(existing)
+            for distractor in update.distractors:
+                distractor = distractor.strip()
+                key = distractor.lower()
+                if not distractor or key in seen or len(merged) >= MAX_VOCAB_DISTRACTORS_PER_WORD:
+                    continue
+                seen.add(key)
+                merged.append(distractor)
+            pool[update.wordIndex] = merged
+            frame["vocabularyDistractors"] = json.dumps(pool)
+
+        db.execute(
+            "UPDATE custom_stories SET frames = ? WHERE id = ?",
+            (json.dumps(frames), story_id),
+        )
     return {"ok": True}
 
 
@@ -1736,6 +1829,7 @@ def _vocab_distractors_prompt(words: List[VocabDistractorWord]) -> str:
     word_lines = "\n".join(
         f'{i + 1}. "{w.word}" -> "{w.translation}"'
         + (f' (used in: "{w.context}")' if w.context else "")
+        + (f" (already used, do not repeat: {', '.join(w.avoid)})" if w.avoid else "")
         for i, w in enumerate(words)
     )
     return f"""

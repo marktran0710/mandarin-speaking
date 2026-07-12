@@ -57,6 +57,28 @@ export interface CustomStoryFrame {
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
+  // Medium/Hard tiers of the same scene — same imageUrl/plot, progressively
+  // more complex text. Absent means that tier hasn't been authored yet.
+  promptMedium?: string;
+  promptHard?: string;
+  vocabularyMedium?: string;
+  vocabularyHard?: string;
+  vocabularyPinyinMedium?: string;
+  vocabularyPinyinHard?: string;
+  vocabularyPosMedium?: string;
+  vocabularyPosHard?: string;
+  vocabularyTranslationMedium?: string;
+  vocabularyTranslationHard?: string;
+  phrasesMedium?: string;
+  phrasesHard?: string;
+  phrasesTranslationMedium?: string;
+  phrasesTranslationHard?: string;
+  suggestedAnswerMedium?: string;
+  suggestedAnswerHard?: string;
+  listenAudioUrlMedium?: string;
+  listenAudioUrlHard?: string;
+  listenScriptMedium?: string;
+  listenScriptHard?: string;
 }
 
 export interface StoredCustomStory {
@@ -219,6 +241,34 @@ export async function deleteCustomStoryFromDatabase(id: string) {
 
   if (!response.ok) {
     throw new Error("Could not delete custom story from the database.");
+  }
+}
+
+export interface VocabularyDistractorUpdate {
+  frameIndex: number;
+  wordIndex: number;
+  distractors: string[];
+}
+
+// Tops up a story's persisted per-word distractor pool (merged/deduped/capped
+// server-side) rather than replacing it — called after a student finishes a
+// vocab quiz round so the pool grows over time instead of staying fixed at
+// whatever the teacher generated once at authoring time.
+export async function updateVocabularyDistractors(
+  storyId: string,
+  updates: VocabularyDistractorUpdate[],
+): Promise<void> {
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/vocabulary-distractors`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ updates }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Could not update vocabulary distractors for the story.");
   }
 }
 
