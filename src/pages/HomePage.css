@@ -1,8 +1,5 @@
 .home-page {
-  /* 84px = real rendered .navbar height (~81px, incl. its padding), not the
-     68px min-height set on .navbar-container — using that alone left a
-     ~13px overflow that forced page scroll on every laptop viewport. */
-  min-height: calc(100vh - 84px);
+  min-height: calc(100vh - var(--navbar-height));
   display: flex;
   flex-direction: column;
   justify-content: center;

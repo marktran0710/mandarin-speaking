@@ -111,6 +111,13 @@
   --text-lg: 20px;
   --text-xl: 28px;
 
+  /* Real rendered .navbar height (~81px incl. its padding), not the 68px
+     min-height set on .navbar-container — that alone left a page short of
+     the viewport and forced scroll on every laptop viewport. Every
+     `min-height: calc(100vh - Npx)` page shell should reference this
+     instead of re-guessing its own N. */
+  --navbar-height: 84px;
+
   /* Shadow */
   --airbnb-shadow:
     rgba(32, 29, 41, 0.03) 0 0 0 1px,

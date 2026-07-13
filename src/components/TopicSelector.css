@@ -1,6 +1,6 @@
 /* ── Page shell ── */
 .topic-selector {
-  min-height: calc(100vh - 68px);
+  min-height: calc(100vh - var(--navbar-height));
   padding: 28px 20px 64px;
   background: var(--clay-canvas);
 }

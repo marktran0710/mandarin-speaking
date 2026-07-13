@@ -1,6 +1,6 @@
 /* ── Page shell ── */
 .create-story-page {
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - var(--navbar-height));
   background: var(--clay-canvas);
 }
 
