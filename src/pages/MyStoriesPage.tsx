@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Chart from "chart.js/auto";
 import PitchChart from "../components/PitchChart";
-import { getTopicVocabulary } from "../components/TopicSelector";
 import {
   canUseDatabase,
   createCustomStory as saveCustomStoryToDatabase,
@@ -14,11 +13,12 @@ import {
   type VocabQuizAttempt,
 } from "../services/database";
 import {
+  type CustomStoryFrame,
   CustomTeacherStory,
   NarrativeMode,
+  type StoryDifficultyLevel,
   VocabGroup,
   loadCustomStories,
-  loadPublishedTeacherTopics,
   resolveImageUrl,
   saveCustomStories,
 } from "../utils/teacherStories";
@@ -27,10 +27,52 @@ import { BiLabel, BiText } from "../components/BiLabel";
 import "../components/BiLabel.css";
 import StoryFeedbackCard from "../components/StoryFeedbackCard";
 import "./MyStoriesPage.css";
+import {
+  buildPhraseRows,
+  buildVocabRows,
+  clearFrameError,
+  formatContourShape,
+  formatRequestTime,
+  frameCountForMode,
+  getAudioUploadError,
+  getAverageMetric,
+  getImageUploadError,
+  getPromptImages,
+  getSessionName,
+  getStudentTopics,
+  getToneName,
+  getTopicLabel,
+  hasCustomStoryErrors,
+  isPromptRecord,
+  mergePhraseSuggestions,
+  mergeVocabSuggestions,
+  narrativeModeLabel,
+  computeStudentQuizStats,
+  computeWordMissStats,
+  quizAttemptAccuracy,
+  resizeToCount,
+  summarizeWordMissTrends,
+  wordMissSeverity,
+  type PhraseRow,
+  type PhraseSuggestion,
+  type VocabRow,
+  type VocabWordSuggestion,
+  type WordMissSeverity,
+  type WordMissStats,
+} from "../utils/myStoriesUtils";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
   (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+
+// How many phrases to ask the AI for per difficulty tier — a harder tier's
+// suggested-answer sentence is longer/more complex, so it naturally yields
+// more reusable phrase-level chunks.
+const PHRASE_COUNT_BY_LEVEL: Record<StoryDifficultyLevel, number> = {
+  easy: 1,
+  medium: 2,
+  hard: 3,
+};
 
 // ── Shared Chart.js look for the teacher analytics tabs ────────────────────
 // A plainer, more neutral "data dashboard" register than the rest of the
@@ -53,7 +95,7 @@ Chart.defaults.plugins.legend.labels.usePointStyle = true;
 Chart.defaults.plugins.legend.labels.boxWidth = 8;
 Chart.defaults.plugins.legend.labels.boxHeight = 8;
 
-interface AudioRecord {
+export interface AudioRecord {
   id: string;
   timestamp: string;
   duration: number;
@@ -90,16 +132,7 @@ interface MyStoriesPageProps {
   publishedTopics?: import("../components/TopicSelector").Topic[];
 }
 
-interface PromptImage {
-  topicId: string;
-  topicName: string;
-  description: string;
-  imageUrl: string;
-  imageIndex: number;
-  vocabulary: string[];
-}
-
-interface CustomStoryValidationErrors {
+export interface CustomStoryValidationErrors {
   title?: string;
   learningGoal?: string;
   form?: string;
@@ -115,28 +148,6 @@ type TeacherView =
   | "submissions"
   | "quizAnalytics"
   | "recordingAnalytics";
-
-function getStudentTopics() {
-  return loadPublishedTeacherTopics();
-}
-
-function getPromptImages(topics = getStudentTopics()): PromptImage[] {
-  return topics.flatMap((topic) =>
-    topic.images.map((imageUrl, imageIndex) => ({
-      topicId: topic.id,
-      topicName: topic.name,
-      description: topic.description,
-      imageUrl,
-      imageIndex,
-      vocabulary: getTopicVocabulary(topic, imageIndex),
-    })),
-  );
-}
-
-/** Normal-mode stories are a 6-scene story; Describe/Listen & Retell are single-frame activities. */
-function frameCountForMode(mode: NarrativeMode): number {
-  return mode === "story" ? 6 : 1;
-}
 
 interface StoryFrameGuide {
   zh: string;
@@ -249,42 +260,64 @@ const STORY_FRAME_GUIDES: StoryFrameGuide[] = [
   },
 ];
 
-function resizeToCount<T>(items: T[], count: number, fill: T): T[] {
-  if (items.length === count) return items;
-  if (items.length > count) return items.slice(0, count);
-  return [...items, ...Array.from({ length: count - items.length }, () => fill)];
-}
-
 // Temporarily disabled 2026-07-07 at the user's request. The component,
 // its data (vocabularyGroups), and this flag stay in place so it's a
 // one-line flip to bring back.
 const GRAMMAR_CANVAS_ENABLED = false;
+
+/** Fields that vary per difficulty tier — same scene/plot/imageUrl, just
+ * progressively more complex text. Each holds one array per tier, all three
+ * kept the same length as `imageUrls` (see updateFrameCount). */
+type TieredDraftField =
+  | "prompts"
+  | "vocabulary"
+  | "vocabularyPinyin"
+  | "vocabularyPos"
+  | "vocabularyTranslation"
+  | "phrases"
+  | "phrasesTranslation"
+  | "suggestedAnswers"
+  | "listenAudioUrls"
+  | "listenScripts";
+
+function blankTiers(count: number): Record<StoryDifficultyLevel, string[]> {
+  return {
+    easy: new Array(count).fill(""),
+    medium: new Array(count).fill(""),
+    hard: new Array(count).fill(""),
+  };
+}
 
 const emptyCustomStoryDraft = {
   title: "Taiwan Community Story",
   learningGoal: "Students describe who, where, what happened, and how people solved the problem.",
   level: "Beginner speaking",
   lessonNumber: "",
+  activeLevel: "easy" as StoryDifficultyLevel,
   imageUrls: ["", "", "", "", "", ""],
-  prompts: [
-    "Introduce the place and the people.",
-    "Describe the first event.",
-    "Explain the problem or surprise.",
-    "Tell the result and feeling.",
-    "Revise the story with one clearer detail.",
-    "Finish with a lesson or next step.",
-  ],
-  vocabulary: ["", "", "", "", "", ""],
-  vocabularyPinyin: ["", "", "", "", "", ""],
-  vocabularyPos: ["", "", "", "", "", ""],
-  vocabularyTranslation: ["", "", "", "", "", ""],
+  prompts: {
+    easy: [
+      "Introduce the place and the people.",
+      "Describe the first event.",
+      "Explain the problem or surprise.",
+      "Tell the result and feeling.",
+      "Revise the story with one clearer detail.",
+      "Finish with a lesson or next step.",
+    ],
+    medium: ["", "", "", "", "", ""],
+    hard: ["", "", "", "", "", ""],
+  },
+  vocabulary: blankTiers(6),
+  vocabularyPinyin: blankTiers(6),
+  vocabularyPos: blankTiers(6),
+  vocabularyTranslation: blankTiers(6),
   vocabularyDistractors: ["", "", "", "", "", ""],
   vocabularyGroups: [null, null, null, null, null, null] as (VocabGroup[] | null)[],
-  phrases: ["", "", "", "", "", ""],
-  phrasesTranslation: ["", "", "", "", "", ""],
-  suggestedAnswers: ["", "", "", "", "", ""],
-  listenAudioUrls: ["", "", "", "", "", ""],
-  listenScripts: ["", "", "", "", "", ""],
+  phrases: blankTiers(6),
+  phrasesTranslation: blankTiers(6),
+  suggestedAnswers: blankTiers(6),
+  listenAudioUrls: blankTiers(6),
+  listenScripts: blankTiers(6),
   linear: false,
   firstFrameIsExample: false,
   narrativeMode: "story" as NarrativeMode,
@@ -761,6 +794,9 @@ function TeacherDashboard({
   const [vocabFillError, setVocabFillError] = useState("");
   const [distractorGenLoadingIndex, setDistractorGenLoadingIndex] = useState<number | null>(null);
   const [distractorGenError, setDistractorGenError] = useState("");
+  const [phraseDraftGeneration, setPhraseDraftGeneration] = useState(0);
+  const [phraseFillLoadingIndex, setPhraseFillLoadingIndex] = useState<number | null>(null);
+  const [phraseFillError, setPhraseFillError] = useState("");
   const [validationErrors, setValidationErrors] =
     useState<CustomStoryValidationErrors>({});
   const [customStoryNotice, setCustomStoryNotice] = useState("");
@@ -776,7 +812,7 @@ function TeacherDashboard({
     (request) => request.status === "open",
   );
   const preparedFrameCount = customDraft.imageUrls.filter((imageUrl, index) => {
-    return imageUrl.trim() || customDraft.prompts[index].trim();
+    return imageUrl.trim() || customDraft.prompts.easy[index].trim();
   }).length;
 
   useEffect(() => {
@@ -805,24 +841,32 @@ function TeacherDashboard({
     clearNotice();
   };
 
+  const resizeTiers = (
+    tiers: Record<StoryDifficultyLevel, string[]>,
+    clamped: number,
+  ): Record<StoryDifficultyLevel, string[]> => ({
+    easy: resizeToCount(tiers.easy, clamped, ""),
+    medium: resizeToCount(tiers.medium, clamped, ""),
+    hard: resizeToCount(tiers.hard, clamped, ""),
+  });
+
   const updateFrameCount = (count: number) => {
     const clamped = Math.min(12, Math.max(1, count));
     setCustomDraft((draft) => ({
       ...draft,
       imageUrls: resizeToCount(draft.imageUrls, clamped, ""),
-      prompts: resizeToCount(draft.prompts, clamped, ""),
-      vocabulary: resizeToCount(draft.vocabulary, clamped, ""),
-      vocabularyPinyin: resizeToCount(draft.vocabularyPinyin, clamped, ""),
-      vocabularyPos: resizeToCount(draft.vocabularyPos, clamped, ""),
-      vocabularyTranslation: resizeToCount(draft.vocabularyTranslation, clamped, ""),
+      prompts: resizeTiers(draft.prompts, clamped),
+      vocabulary: resizeTiers(draft.vocabulary, clamped),
+      vocabularyPinyin: resizeTiers(draft.vocabularyPinyin, clamped),
+      vocabularyPos: resizeTiers(draft.vocabularyPos, clamped),
+      vocabularyTranslation: resizeTiers(draft.vocabularyTranslation, clamped),
       vocabularyDistractors: resizeToCount(draft.vocabularyDistractors, clamped, ""),
       vocabularyGroups: resizeToCount(draft.vocabularyGroups, clamped, null),
-      phrases: resizeToCount(draft.phrases, clamped, ""),
-      phrasesTranslation: resizeToCount(draft.phrasesTranslation, clamped, ""),
-
-      suggestedAnswers: resizeToCount(draft.suggestedAnswers, clamped, ""),
-      listenAudioUrls: resizeToCount(draft.listenAudioUrls, clamped, ""),
-      listenScripts: resizeToCount(draft.listenScripts, clamped, ""),
+      phrases: resizeTiers(draft.phrases, clamped),
+      phrasesTranslation: resizeTiers(draft.phrasesTranslation, clamped),
+      suggestedAnswers: resizeTiers(draft.suggestedAnswers, clamped),
+      listenAudioUrls: resizeTiers(draft.listenAudioUrls, clamped),
+      listenScripts: resizeTiers(draft.listenScripts, clamped),
     }));
     setValidationErrors((errors) => ({ ...errors, frames: undefined, form: undefined }));
   };
@@ -834,28 +878,30 @@ function TeacherDashboard({
     }));
   };
 
+  // Text fields are edited one tier at a time (via the level dropdown) —
+  // `imageUrls` is the one frame field shared across all three tiers.
   const updateDraftFrame = (
-    field:
-      | "imageUrls"
-      | "prompts"
-      | "vocabulary"
-      | "vocabularyPinyin"
-      | "vocabularyPos"
-      | "vocabularyTranslation"
-      | "phrases"
-      | "phrasesTranslation"
-      | "suggestedAnswers"
-      | "listenAudioUrls"
-      | "listenScripts",
+    field: "imageUrls" | TieredDraftField,
     index: number,
     value: string,
   ) => {
-    setCustomDraft((draft) => ({
-      ...draft,
-      [field]: draft[field].map((item, itemIndex) =>
-        itemIndex === index ? value : item,
-      ),
-    }));
+    setCustomDraft((draft) => {
+      if (field === "imageUrls") {
+        return {
+          ...draft,
+          imageUrls: draft.imageUrls.map((item, i) => (i === index ? value : item)),
+        };
+      }
+      const level = draft.activeLevel;
+      const tiers = draft[field];
+      return {
+        ...draft,
+        [field]: {
+          ...tiers,
+          [level]: tiers[level].map((item, i) => (i === index ? value : item)),
+        },
+      };
+    });
     setValidationErrors((errors) =>
       clearFrameError(errors, index, field),
     );
@@ -917,7 +963,8 @@ function TeacherDashboard({
   };
 
   const handleFillVocabFromSentence = async (index: number) => {
-    const sentence = customDraft.suggestedAnswers[index]?.trim();
+    const level = customDraft.activeLevel;
+    const sentence = customDraft.suggestedAnswers[level][index]?.trim();
     if (!sentence) return;
 
     setVocabFillError("");
@@ -935,19 +982,31 @@ function TeacherDashboard({
       const { words } = (await response.json()) as { words: VocabWordSuggestion[] };
 
       const existingRows = buildVocabRows(
-        customDraft.vocabulary[index] ?? "",
-        customDraft.vocabularyPinyin[index] ?? "",
-        customDraft.vocabularyPos[index] ?? "",
-        customDraft.vocabularyTranslation[index] ?? "",
+        customDraft.vocabulary[level][index] ?? "",
+        customDraft.vocabularyPinyin[level][index] ?? "",
+        customDraft.vocabularyPos[level][index] ?? "",
+        customDraft.vocabularyTranslation[level][index] ?? "",
       );
       const mergedRows = mergeVocabSuggestions(existingRows, words);
 
       setCustomDraft((draft) => ({
         ...draft,
-        vocabulary: draft.vocabulary.map((v, i) => (i === index ? mergedRows.map((r) => r.word).join(", ") : v)),
-        vocabularyPinyin: draft.vocabularyPinyin.map((v, i) => (i === index ? mergedRows.map((r) => r.pinyin).join(", ") : v)),
-        vocabularyPos: draft.vocabularyPos.map((v, i) => (i === index ? mergedRows.map((r) => r.pos).join(", ") : v)),
-        vocabularyTranslation: draft.vocabularyTranslation.map((v, i) => (i === index ? mergedRows.map((r) => r.translation).join(", ") : v)),
+        vocabulary: {
+          ...draft.vocabulary,
+          [level]: draft.vocabulary[level].map((v, i) => (i === index ? mergedRows.map((r) => r.word).join(", ") : v)),
+        },
+        vocabularyPinyin: {
+          ...draft.vocabularyPinyin,
+          [level]: draft.vocabularyPinyin[level].map((v, i) => (i === index ? mergedRows.map((r) => r.pinyin).join(", ") : v)),
+        },
+        vocabularyPos: {
+          ...draft.vocabularyPos,
+          [level]: draft.vocabularyPos[level].map((v, i) => (i === index ? mergedRows.map((r) => r.pos).join(", ") : v)),
+        },
+        vocabularyTranslation: {
+          ...draft.vocabularyTranslation,
+          [level]: draft.vocabularyTranslation[level].map((v, i) => (i === index ? mergedRows.map((r) => r.translation).join(", ") : v)),
+        },
       }));
       setVocabDraftGeneration((generation) => generation + 1);
     } catch (error) {
@@ -959,19 +1018,66 @@ function TeacherDashboard({
     }
   };
 
+  const handleFillPhrasesFromSentence = async (index: number) => {
+    const level = customDraft.activeLevel;
+    const sentence = customDraft.suggestedAnswers[level][index]?.trim();
+    if (!sentence) return;
+
+    setPhraseFillError("");
+    setPhraseFillLoadingIndex(index);
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/phrases-from-sentence`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sentence, count: PHRASE_COUNT_BY_LEVEL[level] }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Could not extract phrases from that sentence.");
+      }
+      const { phrases } = (await response.json()) as { phrases: PhraseSuggestion[] };
+
+      const existingRows = buildPhraseRows(
+        customDraft.phrases[level][index] ?? "",
+        customDraft.phrasesTranslation[level][index] ?? "",
+      );
+      const mergedRows = mergePhraseSuggestions(existingRows, phrases);
+
+      setCustomDraft((draft) => ({
+        ...draft,
+        phrases: {
+          ...draft.phrases,
+          [level]: draft.phrases[level].map((v, i) => (i === index ? mergedRows.map((r) => r.phrase).join(", ") : v)),
+        },
+        phrasesTranslation: {
+          ...draft.phrasesTranslation,
+          [level]: draft.phrasesTranslation[level].map((v, i) => (i === index ? mergedRows.map((r) => r.translation).join(", ") : v)),
+        },
+      }));
+      setPhraseDraftGeneration((generation) => generation + 1);
+    } catch (error) {
+      setPhraseFillError(
+        error instanceof Error ? error.message : "Could not extract phrases from that sentence.",
+      );
+    } finally {
+      setPhraseFillLoadingIndex(null);
+    }
+  };
+
   // Generates AI distractors for a scene's vocab quiz once, when the teacher
   // has words + translations ready — cached in the draft (and persisted with
   // the story on save) rather than regenerated per student attempt.
   const handleGenerateQuizDistractors = async (index: number) => {
+    const level = customDraft.activeLevel;
     const rows = buildVocabRows(
-      customDraft.vocabulary[index] ?? "",
-      customDraft.vocabularyPinyin[index] ?? "",
-      customDraft.vocabularyPos[index] ?? "",
-      customDraft.vocabularyTranslation[index] ?? "",
+      customDraft.vocabulary[level][index] ?? "",
+      customDraft.vocabularyPinyin[level][index] ?? "",
+      customDraft.vocabularyPos[level][index] ?? "",
+      customDraft.vocabularyTranslation[level][index] ?? "",
     ).filter((row) => row.word.trim() && row.translation.trim());
     if (rows.length === 0) return;
 
-    const context = customDraft.suggestedAnswers[index]?.trim() || undefined;
+    const context = customDraft.suggestedAnswers[level][index]?.trim() || undefined;
     setDistractorGenError("");
     setDistractorGenLoadingIndex(index);
     try {
@@ -1391,7 +1497,30 @@ function TeacherDashboard({
                   onChange={(event) => updateFrameCount(Number(event.target.value) || 1)}
                 />
               </label>
+              <label>
+                Editing difficulty tier
+                <select
+                  value={customDraft.activeLevel}
+                  onChange={(event) =>
+                    setCustomDraft((draft) => ({
+                      ...draft,
+                      activeLevel: event.target.value as StoryDifficultyLevel,
+                    }))
+                  }
+                >
+                  <option value="easy">Easy (required — students always see this)</option>
+                  <option value="medium">Medium (optional)</option>
+                  <option value="hard">Hard (optional)</option>
+                </select>
+              </label>
             </div>
+            {customDraft.activeLevel !== "easy" && (
+              <p className="teacher-tier-hint">
+                Editing the {customDraft.activeLevel === "medium" ? "Medium" : "Hard"} version of each
+                scene's text below — the images and frame count stay shared with Easy. Any scene left
+                blank here falls back to its Easy text for students.
+              </p>
+            )}
 
             <label>
               Learning goal
@@ -1440,6 +1569,7 @@ function TeacherDashboard({
               {customDraft.imageUrls.map((imageUrl, index) => {
                 const frameError = validationErrors.frames?.[index];
                 const isExampleFrame = index === 0 && customDraft.firstFrameIsExample;
+                const level = customDraft.activeLevel;
 
                 return (
                 <div
@@ -1504,19 +1634,19 @@ function TeacherDashboard({
                       />
                     </label>
                     <VocabularyTable
-                      key={`${vocabDraftGeneration}-${index}`}
-                      vocabulary={customDraft.vocabulary[index] ?? ""}
-                      vocabularyPinyin={customDraft.vocabularyPinyin[index] ?? ""}
-                      vocabularyPos={customDraft.vocabularyPos[index] ?? ""}
-                      vocabularyTranslation={customDraft.vocabularyTranslation[index] ?? ""}
+                      key={`${vocabDraftGeneration}-${index}-${level}`}
+                      vocabulary={customDraft.vocabulary[level][index] ?? ""}
+                      vocabularyPinyin={customDraft.vocabularyPinyin[level][index] ?? ""}
+                      vocabularyPos={customDraft.vocabularyPos[level][index] ?? ""}
+                      vocabularyTranslation={customDraft.vocabularyTranslation[level][index] ?? ""}
                       onChangeColumn={(field, value) => updateDraftFrame(field, index, value)}
                     />
                     <button
                       type="button"
                       className="btn-vocab-autofill"
                       disabled={
-                        !customDraft.vocabulary[index]?.trim() ||
-                        !customDraft.vocabularyTranslation[index]?.trim() ||
+                        !customDraft.vocabulary[level][index]?.trim() ||
+                        !customDraft.vocabularyTranslation[level][index]?.trim() ||
                         distractorGenLoadingIndex === index
                       }
                       onClick={() => handleGenerateQuizDistractors(index)}
@@ -1531,9 +1661,9 @@ function TeacherDashboard({
                       <span className="teacher-form-error">{distractorGenError}</span>
                     )}
                     <PhraseTable
-                      key={`phrases-${index}`}
-                      phrases={customDraft.phrases[index] ?? ""}
-                      phrasesTranslation={customDraft.phrasesTranslation[index] ?? ""}
+                      key={`${phraseDraftGeneration}-phrases-${index}-${level}`}
+                      phrases={customDraft.phrases[level][index] ?? ""}
+                      phrasesTranslation={customDraft.phrasesTranslation[level][index] ?? ""}
                       onChangeColumn={(field, value) => updateDraftFrame(field, index, value)}
                     />
                     {customDraft.narrativeMode !== "listen_retell" && (
@@ -1541,7 +1671,7 @@ function TeacherDashboard({
                         <label>
                           {isExampleFrame ? "Example script (shown to students as a model — helps them know how to start)" : "Suggested answer (optional)"}
                           <textarea
-                            value={customDraft.suggestedAnswers[index] ?? ""}
+                            value={customDraft.suggestedAnswers[level][index] ?? ""}
                             onChange={(event) =>
                               updateDraftFrame("suggestedAnswers", index, event.target.value)
                             }
@@ -1553,7 +1683,7 @@ function TeacherDashboard({
                           type="button"
                           className="btn-vocab-autofill"
                           disabled={
-                            !customDraft.suggestedAnswers[index]?.trim() ||
+                            !customDraft.suggestedAnswers[level][index]?.trim() ||
                             vocabFillLoadingIndex === index
                           }
                           onClick={() => handleFillVocabFromSentence(index)}
@@ -1565,6 +1695,22 @@ function TeacherDashboard({
                         {vocabFillError && vocabFillLoadingIndex === null && (
                           <span className="teacher-form-error">{vocabFillError}</span>
                         )}
+                        <button
+                          type="button"
+                          className="btn-vocab-autofill"
+                          disabled={
+                            !customDraft.suggestedAnswers[level][index]?.trim() ||
+                            phraseFillLoadingIndex === index
+                          }
+                          onClick={() => handleFillPhrasesFromSentence(index)}
+                        >
+                          {phraseFillLoadingIndex === index
+                            ? "Generating…"
+                            : `✨ Generate ${PHRASE_COUNT_BY_LEVEL[customDraft.activeLevel]} phrase${PHRASE_COUNT_BY_LEVEL[customDraft.activeLevel] > 1 ? "s" : ""} from this sentence`}
+                        </button>
+                        {phraseFillError && phraseFillLoadingIndex === null && (
+                          <span className="teacher-form-error">{phraseFillError}</span>
+                        )}
                       </>
                     )}
                     {customDraft.narrativeMode === "listen_retell" && (
@@ -1572,7 +1718,7 @@ function TeacherDashboard({
                         <label>
                           Listening audio for "Listen & Retell" (optional)
                           <input
-                            value={customDraft.listenAudioUrls[index] ?? ""}
+                            value={customDraft.listenAudioUrls[level][index] ?? ""}
                             onChange={(event) =>
                               updateDraftFrame("listenAudioUrls", index, event.target.value)
                             }
@@ -1592,7 +1738,7 @@ function TeacherDashboard({
                         <label>
                           Listening script (read aloud by text-to-speech if no audio is uploaded — not shown to students)
                           <textarea
-                            value={customDraft.listenScripts[index] ?? ""}
+                            value={customDraft.listenScripts[level][index] ?? ""}
                             onChange={(event) =>
                               updateDraftFrame("listenScripts", index, event.target.value)
                             }
@@ -1604,7 +1750,7 @@ function TeacherDashboard({
                     )}
                     {GRAMMAR_CANVAS_ENABLED && (
                       <VocabGroupEditor
-                        vocabulary={customDraft.vocabulary[index]}
+                        vocabulary={customDraft.vocabulary[level][index]}
                         groups={customDraft.vocabularyGroups[index]}
                         onChange={(groups) => updateDraftGroups(index, groups)}
                       />
@@ -1920,12 +2066,6 @@ const QUIZ_MODE_INFO: Record<"speed" | "strikes" | "free", { icon: string; label
   strikes: { icon: "❌", label: "3 Strikes", color: "#1c9a5b" },
   free: { icon: "🎯", label: "Free Practice", color: "#8a5a12" },
 };
-
-function quizAttemptAccuracy(attempt: VocabQuizAttempt): number {
-  return attempt.totalQuestions > 0
-    ? Math.round((attempt.correctCount / attempt.totalQuestions) * 100)
-    : 0;
-}
 
 function QuizAnalyticsPanel({
   attempts,
@@ -2722,165 +2862,64 @@ function TeacherHelpQueue({
   );
 }
 
-function getAverageMetric(records: AudioRecord[], metric: string): number | null {
-  if (records.length === 0) {
-    return null;
-  }
-
-  const total = records.reduce(
-    (sum, record) => sum + (record.praatMetrics?.[metric] || 0),
-    0,
-  );
-  return Math.round(total / records.length);
-}
-
-interface StudentQuizStats {
-  studentName: string;
-  attempts: number;
-  totalQuestions: number;
-  accuracyPct: number;
-  avgTimePerQuestionMs: number;
-  topMissedWord: { word: string; missCount: number } | null;
-}
-
-interface WordMissStats {
-  word: string;
-  timesAsked: number;
-  timesMissed: number;
-  missRatePct: number;
-  avgTimeMs: number;
-}
-
-function computeStudentQuizStats(attempts: VocabQuizAttempt[]): StudentQuizStats[] {
-  const byStudent = new Map<string, VocabQuizAttempt[]>();
-  for (const attempt of attempts) {
-    const list = byStudent.get(attempt.studentName) ?? [];
-    list.push(attempt);
-    byStudent.set(attempt.studentName, list);
-  }
-
-  return Array.from(byStudent.entries())
-    .map(([studentName, studentAttempts]) => {
-      const totalQuestions = studentAttempts.reduce((sum, a) => sum + a.totalQuestions, 0);
-      const correctCount = studentAttempts.reduce((sum, a) => sum + a.correctCount, 0);
-      const totalTimeMs = studentAttempts.reduce((sum, a) => sum + a.totalTimeMs, 0);
-
-      const missCounts = new Map<string, number>();
-      for (const attempt of studentAttempts) {
-        for (const result of attempt.questionResults) {
-          if (!result.correct) {
-            missCounts.set(result.word, (missCounts.get(result.word) ?? 0) + 1);
-          }
-        }
-      }
-      let topMissedWord: { word: string; missCount: number } | null = null;
-      for (const [word, missCount] of missCounts.entries()) {
-        if (!topMissedWord || missCount > topMissedWord.missCount) {
-          topMissedWord = { word, missCount };
-        }
-      }
-
-      return {
-        studentName,
-        attempts: studentAttempts.length,
-        totalQuestions,
-        accuracyPct: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
-        avgTimePerQuestionMs:
-          totalQuestions > 0 ? Math.round(totalTimeMs / totalQuestions) : 0,
-        topMissedWord,
-      };
-    })
-    .sort((a, b) => b.attempts - a.attempts);
-}
-
-function computeWordMissStats(attempts: VocabQuizAttempt[]): WordMissStats[] {
-  const stats = new Map<string, { asked: number; missed: number; timeMs: number }>();
-  for (const attempt of attempts) {
-    for (const result of attempt.questionResults) {
-      const entry = stats.get(result.word) ?? { asked: 0, missed: 0, timeMs: 0 };
-      entry.asked += 1;
-      if (!result.correct) entry.missed += 1;
-      entry.timeMs += result.timeMs;
-      stats.set(result.word, entry);
-    }
-  }
-
-  return Array.from(stats.entries())
-    .map(([word, { asked, missed, timeMs }]) => ({
-      word,
-      timesAsked: asked,
-      timesMissed: missed,
-      missRatePct: asked > 0 ? Math.round((missed / asked) * 100) : 0,
-      avgTimeMs: asked > 0 ? Math.round(timeMs / asked) : 0,
-    }))
-    .filter((w) => w.timesMissed > 0)
-    .sort((a, b) => b.timesMissed - a.timesMissed || b.missRatePct - a.missRatePct);
-}
-
-type WordMissSeverity = "critical" | "watch" | "ok";
-
 const WORD_SEVERITY_LABEL: Record<WordMissSeverity, string> = {
   critical: "Critical",
   watch: "Watch",
   ok: "OK",
 };
 
-/** Miss rate is the % of asks a word is gotten wrong — a small-sample word
- * missed once can swing to 100%, so this is a triage signal, not a verdict. */
-function wordMissSeverity(missRatePct: number): WordMissSeverity {
-  if (missRatePct >= 60) return "critical";
-  if (missRatePct >= 30) return "watch";
-  return "ok";
-}
+/** Maps a TieredDraftField name to its backend base/Medium/Hard field names
+ * (e.g. "suggestedAnswers" -> "suggestedAnswer"/"suggestedAnswerMedium"/
+ * "suggestedAnswerHard") — the draft's plural array names don't always match
+ * the singular per-frame field names on CustomStoryFrame. */
+const TIER_BACKEND_FIELD: Record<
+  TieredDraftField,
+  { easy: keyof CustomStoryFrame; medium: keyof CustomStoryFrame; hard: keyof CustomStoryFrame }
+> = {
+  prompts: { easy: "prompt", medium: "promptMedium", hard: "promptHard" },
+  vocabulary: { easy: "vocabulary", medium: "vocabularyMedium", hard: "vocabularyHard" },
+  vocabularyPinyin: {
+    easy: "vocabularyPinyin",
+    medium: "vocabularyPinyinMedium",
+    hard: "vocabularyPinyinHard",
+  },
+  vocabularyPos: { easy: "vocabularyPos", medium: "vocabularyPosMedium", hard: "vocabularyPosHard" },
+  vocabularyTranslation: {
+    easy: "vocabularyTranslation",
+    medium: "vocabularyTranslationMedium",
+    hard: "vocabularyTranslationHard",
+  },
+  phrases: { easy: "phrases", medium: "phrasesMedium", hard: "phrasesHard" },
+  phrasesTranslation: {
+    easy: "phrasesTranslation",
+    medium: "phrasesTranslationMedium",
+    hard: "phrasesTranslationHard",
+  },
+  suggestedAnswers: {
+    easy: "suggestedAnswer",
+    medium: "suggestedAnswerMedium",
+    hard: "suggestedAnswerHard",
+  },
+  listenAudioUrls: {
+    easy: "listenAudioUrl",
+    medium: "listenAudioUrlMedium",
+    hard: "listenAudioUrlHard",
+  },
+  listenScripts: { easy: "listenScript", medium: "listenScriptMedium", hard: "listenScriptHard" },
+};
 
-/** Turns the ranked word-miss table into a one-paragraph reading for a
- * teacher: which word to act on first, and whether mistakes are concentrated
- * (a few words worth a class-wide review) or spread thin across many words. */
-function summarizeWordMissTrends(stats: WordMissStats[], shownCount: number): string {
-  if (stats.length === 0) return "";
-
-  const top = stats[0];
-  const criticalCount = stats.filter((w) => wordMissSeverity(w.missRatePct) === "critical").length;
-  const totalMisses = stats.reduce((sum, w) => sum + w.timesMissed, 0);
-
-  const topSentence =
-    `"${top.word}" is missed most often — ${top.timesMissed} of ${top.timesAsked} attempts` +
-    ` (${top.missRatePct}%), averaging ${(top.avgTimeMs / 1000).toFixed(1)}s to answer.`;
-
-  const spreadSentence =
-    criticalCount === 0
-      ? `No word has crossed a 60% miss rate — mistakes are spread across ${stats.length} words rather than concentrated, so a quick review of the list below should cover it.`
-      : criticalCount === 1
-        ? `1 word is at a critical (≥60%) miss rate and is responsible for outsized trouble — start there.`
-        : `${criticalCount} words are at a critical (≥60%) miss rate out of ${stats.length} missed overall — worth a focused, class-wide review before moving on.`;
-
-  const coverageNote =
-    shownCount < stats.length
-      ? ` Showing the top ${shownCount} of ${stats.length} missed words (${totalMisses} total misses) for this filter.`
-      : "";
-
-  return `${topSentence} ${spreadSentence}${coverageNote}`;
-}
-
-function narrativeModeLabel(mode?: NarrativeMode): string {
-  switch (mode) {
-    case "describe":
-      return "Descriptive";
-    case "listen_retell":
-      return "Listen & Retell";
-    default:
-      return "Normal mode";
-  }
-}
-
-function hasCustomStoryErrors(errors: CustomStoryValidationErrors): boolean {
-  return Boolean(
-    errors.title ||
-      errors.learningGoal ||
-      errors.form ||
-      Object.keys(errors.frames ?? {}).length > 0,
-  );
-}
+const TIERED_DRAFT_FIELDS: TieredDraftField[] = [
+  "prompts",
+  "vocabulary",
+  "vocabularyPinyin",
+  "vocabularyPos",
+  "vocabularyTranslation",
+  "phrases",
+  "phrasesTranslation",
+  "suggestedAnswers",
+  "listenAudioUrls",
+  "listenScripts",
+];
 
 function createCustomStory(
   draft: typeof emptyCustomStoryDraft,
@@ -2891,21 +2930,44 @@ function createCustomStory(
     title: draft.title.trim() || "Untitled teacher story",
     learningGoal: draft.learningGoal.trim(),
     level: draft.level.trim() || "Custom activity",
-    frames: draft.imageUrls.map((imageUrl, index) => ({
-      imageUrl: imageUrl.trim(),
-      prompt: draft.prompts[index].trim(),
-      vocabulary: draft.vocabulary[index].trim(),
-      ...(draft.vocabularyGroups[index] ? { vocabularyGroups: draft.vocabularyGroups[index]! } : {}),
-      ...(draft.phrases[index]?.trim() ? { phrases: draft.phrases[index].trim() } : {}),
-      ...(draft.phrasesTranslation[index]?.trim() ? { phrasesTranslation: draft.phrasesTranslation[index].trim() } : {}),
-      ...(draft.vocabularyPinyin[index]?.trim() ? { vocabularyPinyin: draft.vocabularyPinyin[index].trim() } : {}),
-      ...(draft.vocabularyPos[index]?.trim() ? { vocabularyPos: draft.vocabularyPos[index].trim() } : {}),
-      ...(draft.vocabularyTranslation[index]?.trim() ? { vocabularyTranslation: draft.vocabularyTranslation[index].trim() } : {}),
-      ...(draft.vocabularyDistractors[index]?.trim() ? { vocabularyDistractors: draft.vocabularyDistractors[index].trim() } : {}),
-      ...(draft.suggestedAnswers[index]?.trim() ? { suggestedAnswer: draft.suggestedAnswers[index].trim() } : {}),
-      ...(draft.listenAudioUrls[index]?.trim() ? { listenAudioUrl: draft.listenAudioUrls[index].trim() } : {}),
-      ...(draft.listenScripts[index]?.trim() ? { listenScript: draft.listenScripts[index].trim() } : {}),
-    })),
+    frames: draft.imageUrls.map((imageUrl, index) => {
+      const frame: CustomStoryFrame = {
+        imageUrl: imageUrl.trim(),
+        prompt: draft.prompts.easy[index].trim(),
+        vocabulary: draft.vocabulary.easy[index].trim(),
+      };
+      if (draft.vocabularyGroups[index]) {
+        frame.vocabularyGroups = draft.vocabularyGroups[index]!;
+      }
+      if (draft.vocabularyDistractors[index]?.trim()) {
+        frame.vocabularyDistractors = draft.vocabularyDistractors[index].trim();
+      }
+      TIERED_DRAFT_FIELDS.forEach((field) => {
+        (["medium", "hard"] as const).forEach((level) => {
+          const value = draft[field][level][index]?.trim();
+          if (value) {
+            (frame as any)[TIER_BACKEND_FIELD[field][level]] = value;
+          }
+        });
+      });
+      // Easy's optional fields (beyond prompt/vocabulary, always present)
+      if (draft.phrases.easy[index]?.trim()) frame.phrases = draft.phrases.easy[index].trim();
+      if (draft.phrasesTranslation.easy[index]?.trim())
+        frame.phrasesTranslation = draft.phrasesTranslation.easy[index].trim();
+      if (draft.vocabularyPinyin.easy[index]?.trim())
+        frame.vocabularyPinyin = draft.vocabularyPinyin.easy[index].trim();
+      if (draft.vocabularyPos.easy[index]?.trim())
+        frame.vocabularyPos = draft.vocabularyPos.easy[index].trim();
+      if (draft.vocabularyTranslation.easy[index]?.trim())
+        frame.vocabularyTranslation = draft.vocabularyTranslation.easy[index].trim();
+      if (draft.suggestedAnswers.easy[index]?.trim())
+        frame.suggestedAnswer = draft.suggestedAnswers.easy[index].trim();
+      if (draft.listenAudioUrls.easy[index]?.trim())
+        frame.listenAudioUrl = draft.listenAudioUrls.easy[index].trim();
+      if (draft.listenScripts.easy[index]?.trim())
+        frame.listenScript = draft.listenScripts.easy[index].trim();
+      return frame;
+    }),
     ...(draft.linear ? { linear: true } : {}),
     ...(draft.firstFrameIsExample ? { firstFrameIsExample: true } : {}),
     ...(draft.lessonNumber.trim() ? { lessonNumber: Number(draft.lessonNumber) } : {}),
@@ -2921,132 +2983,44 @@ function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
   const frameCount = story.frames.length || frameCountForMode(narrativeMode);
   const frames = Array.from({ length: frameCount }, (_, index) => story.frames[index]);
 
+  const tiersFor = (field: TieredDraftField): Record<StoryDifficultyLevel, string[]> => {
+    const backendFields = TIER_BACKEND_FIELD[field];
+    return {
+      easy: frames.map((frame, index) => {
+        const value = frame?.[backendFields.easy] as string | undefined;
+        return value || (field === "prompts" ? emptyCustomStoryDraft.prompts.easy[index] : "");
+      }),
+      medium: frames.map((frame) => (frame?.[backendFields.medium] as string | undefined) || ""),
+      hard: frames.map((frame) => (frame?.[backendFields.hard] as string | undefined) || ""),
+    };
+  };
+
   return {
     title: story.title,
     learningGoal: story.learningGoal,
     level: story.level,
     lessonNumber: story.lessonNumber != null ? String(story.lessonNumber) : "",
+    activeLevel: "easy",
     imageUrls: frames.map((frame) => frame?.imageUrl || ""),
-    prompts: frames.map((frame, index) =>
-      frame?.prompt || emptyCustomStoryDraft.prompts[index],
-    ),
-    vocabulary: frames.map((frame) => frame?.vocabulary || ""),
+    prompts: tiersFor("prompts"),
+    vocabulary: tiersFor("vocabulary"),
     vocabularyGroups: frames.map((frame) => frame?.vocabularyGroups || null),
-    phrases: frames.map((frame) => frame?.phrases || ""),
-    phrasesTranslation: frames.map((frame) => frame?.phrasesTranslation || ""),
-    vocabularyPinyin: frames.map((frame) => frame?.vocabularyPinyin || ""),
-    vocabularyPos: frames.map((frame) => frame?.vocabularyPos || ""),
-    vocabularyTranslation: frames.map((frame) => frame?.vocabularyTranslation || ""),
+    phrases: tiersFor("phrases"),
+    phrasesTranslation: tiersFor("phrasesTranslation"),
+    vocabularyPinyin: tiersFor("vocabularyPinyin"),
+    vocabularyPos: tiersFor("vocabularyPos"),
+    vocabularyTranslation: tiersFor("vocabularyTranslation"),
     vocabularyDistractors: frames.map((frame) => frame?.vocabularyDistractors || ""),
-    suggestedAnswers: frames.map((frame) => frame?.suggestedAnswer || ""),
-    listenAudioUrls: frames.map((frame) => frame?.listenAudioUrl || ""),
-    listenScripts: frames.map((frame) => frame?.listenScript || ""),
+    suggestedAnswers: tiersFor("suggestedAnswers"),
+    listenAudioUrls: tiersFor("listenAudioUrls"),
+    listenScripts: tiersFor("listenScripts"),
     linear: story.linear ?? false,
     firstFrameIsExample: story.firstFrameIsExample ?? false,
     narrativeMode: story.narrativeMode ?? "story",
   };
 }
 
-function clearFrameError(
-  errors: CustomStoryValidationErrors,
-  index: number,
-  field:
-    | "imageUrls"
-    | "prompts"
-    | "vocabulary"
-    | "vocabularyPinyin"
-    | "vocabularyPos"
-    | "vocabularyTranslation"
-    | "phrases"
-    | "phrasesTranslation"
-    | "suggestedAnswers"
-    | "listenAudioUrls"
-    | "listenScripts",
-): CustomStoryValidationErrors {
-  const frameError = errors.frames?.[index];
-
-  if (!frameError) {
-    return { ...errors, form: undefined };
-  }
-
-  const nextFrames = { ...errors.frames };
-  nextFrames[index] = {
-    ...frameError,
-    imageUrl: field === "imageUrls" ? undefined : frameError.imageUrl,
-    prompt: field === "prompts" ? undefined : frameError.prompt,
-  };
-
-  if (!nextFrames[index].imageUrl && !nextFrames[index].prompt) {
-    delete nextFrames[index];
-  }
-
-  return {
-    ...errors,
-    form: undefined,
-    frames: Object.keys(nextFrames).length > 0 ? nextFrames : undefined,
-  };
-}
-
 const VOCAB_POS_OPTIONS = ["N", "V", "Adj", "Adv", "MW", "Particle", "Phrase", "Other"];
-
-interface VocabRow {
-  word: string;
-  pinyin: string;
-  pos: string;
-  translation: string;
-}
-
-function splitVocabColumn(value: string): string[] {
-  if (!value.trim()) return [];
-  return value.split(",").map((v) => v.trim());
-}
-
-function buildVocabRows(
-  vocabulary: string,
-  vocabularyPinyin: string,
-  vocabularyPos: string,
-  vocabularyTranslation: string,
-): VocabRow[] {
-  const words = splitVocabColumn(vocabulary);
-  const pinyins = splitVocabColumn(vocabularyPinyin);
-  const pos = splitVocabColumn(vocabularyPos);
-  const translations = splitVocabColumn(vocabularyTranslation);
-  return words.map((word, i) => ({
-    word,
-    pinyin: pinyins[i] || "",
-    pos: pos[i] || "",
-    translation: translations[i] || "",
-  }));
-}
-
-interface VocabWordSuggestion {
-  word: string;
-  pinyin: string;
-  pos: string;
-  translation: string;
-}
-
-/** Non-destructively folds AI-suggested word rows into what's already in the
- * table: a row the teacher already has keeps every cell they typed, only its
- * blank cells get filled; a suggested word with no matching row is appended
- * as a new row. Never removes or overwrites a cell the teacher already filled in. */
-function mergeVocabSuggestions(
-  existingRows: VocabRow[],
-  suggestions: VocabWordSuggestion[],
-): VocabRow[] {
-  const rows = existingRows.map((row) => ({ ...row }));
-  for (const suggestion of suggestions) {
-    const match = rows.find((row) => row.word === suggestion.word);
-    if (match) {
-      if (!match.pinyin.trim()) match.pinyin = suggestion.pinyin;
-      if (!match.pos.trim()) match.pos = suggestion.pos;
-      if (!match.translation.trim()) match.translation = suggestion.translation;
-    } else {
-      rows.push({ ...suggestion });
-    }
-  }
-  return rows;
-}
 
 function VocabularyTable({
   vocabulary,
@@ -3142,24 +3116,6 @@ function VocabularyTable({
       </button>
     </div>
   );
-}
-
-interface PhraseRow {
-  phrase: string;
-  translation: string;
-}
-
-function splitPhraseColumn(value: string): string[] {
-  return value
-    .split(",")
-    .map((v) => v.trim())
-    .filter(Boolean);
-}
-
-function buildPhraseRows(phrases: string, phrasesTranslation: string): PhraseRow[] {
-  const rawPhrases = splitPhraseColumn(phrases);
-  const translations = splitPhraseColumn(phrasesTranslation);
-  return rawPhrases.map((phrase, i) => ({ phrase, translation: translations[i] || "" }));
 }
 
 /** Per-scene "handy phrases" table — easy-to-learn, practice, and remember
@@ -3354,53 +3310,6 @@ function VocabGroupEditor({
   );
 }
 
-function getSessionName(storageKey: string, fallback: string) {
-  try {
-    const session = JSON.parse(localStorage.getItem(storageKey) || "{}");
-    return typeof session.name === "string" && session.name.trim()
-      ? session.name.trim()
-      : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function formatRequestTime(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Just now";
-  }
-
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function getImageUploadError(file: File): string {
-  if (!file.type.startsWith("image/")) {
-    return "Please upload an image file.";
-  }
-
-  if (file.size > 1_500_000) {
-    return "This image is too large for browser storage. Use an image under 1.5 MB or paste an image URL.";
-  }
-
-  return "";
-}
-
-function getAudioUploadError(file: File): string {
-  if (!file.type.startsWith("audio/")) {
-    return "Please upload an audio file.";
-  }
-
-  if (file.size > 5_000_000) {
-    return "This audio file is too large. Use a clip under 5 MB.";
-  }
-
-  return "";
-}
-
 function DashboardStat({
   label,
   value,
@@ -3550,35 +3459,3 @@ function RecordCard({
   );
 }
 
-function isPromptRecord(record: AudioRecord, prompt: PromptImage): boolean {
-  return (
-    record.imageUrl === prompt.imageUrl ||
-    (record.topicId === prompt.topicId && record.imageIndex === prompt.imageIndex)
-  );
-}
-
-function getToneName(tone: number): string {
-  const toneNames: Record<number, string> = {
-    1: "一聲 High Level (ma1)",
-    2: "二聲 Rising (ma2)",
-    3: "三聲 Falling-Rising (ma3)",
-    4: "四聲 Falling (ma4)",
-  };
-  return toneNames[tone] || "未知 Unknown";
-}
-
-function getTopicLabel(topicId?: string): string {
-  const topic = getStudentTopics().find((item) => item.id === topicId);
-  return topic?.name || "故事 Story";
-}
-
-function formatContourShape(shape: string): string {
-  const labels: Record<string, string> = {
-    dip: "低降 Dipping",
-    falling: "下降 Falling",
-    level: "平直 Level",
-    rising: "上升 Rising",
-    variable: "不規則 Variable",
-  };
-  return labels[shape] || "不規則 Variable";
-}

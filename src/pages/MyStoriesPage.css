@@ -1398,6 +1398,17 @@
   color: var(--clay-muted);
 }
 
+.teacher-tier-hint {
+  margin: -8px 0 4px;
+  padding: 10px 14px;
+  border-radius: var(--clay-radius-md);
+  border: 1px dashed var(--clay-hairline);
+  background: var(--clay-surface-soft);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--clay-muted);
+}
+
 .teacher-frame-image-preview img {
   width: 100%;
   height: 100%;

@@ -245,6 +245,57 @@ describe("MyStoriesPage", () => {
     ).toBeDisabled();
   });
 
+  it("generates phrases from the suggested-answer sentence via AI, scaled to the active difficulty tier", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        phrases: [{ phrase: "想要", translation: "want to" }],
+      }),
+    })));
+
+    render(
+      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.type(
+      screen.getAllByLabelText("Suggested answer (optional)")[0],
+      "我想要在餐廳吃飯。",
+    );
+
+    // Easy tier (the default) asks for 1 phrase.
+    const generateButton = screen.getAllByRole("button", {
+      name: "✨ Generate 1 phrase from this sentence",
+    })[0];
+    await user.click(generateButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByLabelText("Phrase").map((el) => (el as HTMLInputElement).value),
+      ).toContain("想要");
+    });
+    const fetchCall = vi.mocked(fetch).mock.calls.find(([url]) =>
+      String(url).includes("/api/phrases-from-sentence"),
+    );
+    const body = JSON.parse(fetchCall![1]!.body as string);
+    expect(body).toEqual({ sentence: "我想要在餐廳吃飯。", count: 1 });
+
+    vi.unstubAllGlobals();
+  }, 10000);
+
+  it("disables the phrase generate button until a suggested-answer sentence is entered", async () => {
+    render(
+      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: /Materials/ }));
+
+    expect(
+      screen.getAllByRole("button", { name: "✨ Generate 1 phrase from this sentence" })[0],
+    ).toBeDisabled();
+  });
+
   it("lets teachers edit a saved custom story activity", async () => {
     const user = userEvent.setup();
     render(
