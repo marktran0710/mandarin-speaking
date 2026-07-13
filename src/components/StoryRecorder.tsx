@@ -73,7 +73,7 @@ export function vocabTooltip(
   return undefined;
 }
 
-type SpeechModel = "webspeech" | "ctwhisper" | "groq" | "vibevoice";
+export type SpeechModel = "webspeech" | "ctwhisper" | "groq" | "vibevoice";
 
 interface AiProviderOption {
   id: string;
@@ -265,24 +265,31 @@ interface TranscriptionItem {
 
 type ScenePracticeStep = "vocab" | "phrases" | "speaking";
 
+/** Shape a freshly recorded scene attempt is handed up in via
+ * `onAddRecord`, before it's persisted (see StoredAudioRecord in
+ * services/database.ts for the shape after upload). Exported so callers
+ * like CreateStoryPage can type their own onAddRecord prop instead of
+ * widening it to `any`. */
+export interface NewAudioRecord {
+  id: string;
+  audioBlob: Blob;
+  timestamp: string;
+  duration: number;
+  transcription: string;
+  model: SpeechModel;
+  topicId: string;
+  imageUrl: string;
+  imageIndex: number;
+  praatMetrics: PraatMetrics;
+}
+
 interface StoryRecorderProps {
   topic: Topic;
   selectedImage: string;
   selectedImageIndex: number;
   onImageSelect: (index: number) => void;
   onImageChange: (image: string) => void;
-  onAddRecord: (record: {
-    id: string;
-    audioBlob: Blob;
-    timestamp: string;
-    duration: number;
-    transcription: string;
-    model: SpeechModel;
-    topicId: string;
-    imageUrl: string;
-    imageIndex: number;
-    praatMetrics: PraatMetrics;
-  }) => Promise<string | undefined> | void;
+  onAddRecord: (record: NewAudioRecord) => Promise<string | undefined> | void;
   enableSorting?: boolean;
   /** Show the orientation screen (challenge summary + "here's what you'll do"
    * modal) before the student reaches the recording workspace. Independent of

@@ -27,6 +27,7 @@ import {
 } from "./utils/teacherStories";
 import type { Topic } from "./components/TopicSelector";
 import type { Page } from "./types/page";
+import type { SpeechModel } from "./components/StoryRecorder";
 
 export type { Page };
 
@@ -36,7 +37,10 @@ interface AudioRecord {
   timestamp: string;
   duration: number;
   transcription: string;
-  model: "openai" | "gemini" | "webspeech" | "funasr" | "vibevoice";
+  // Was its own stale "openai" | "gemini" | ... | "funasr" union, drifted
+  // from StoryRecorder's actual SpeechModel options (only ever masked
+  // because CreateStoryPage's onAddRecord prop was typed `any`).
+  model: SpeechModel;
   praatMetrics?: any;
   topicId?: string;
   imageUrl?: string;

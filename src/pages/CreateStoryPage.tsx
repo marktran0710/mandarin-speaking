@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import TopicSelector from "../components/TopicSelector";
-import StoryRecorder from "../components/StoryRecorder";
+import StoryRecorder, { type NewAudioRecord } from "../components/StoryRecorder";
 import { HelpRequest } from "../services/database";
 import { loadPublishedTeacherTopics } from "../utils/teacherStories";
 import type { Topic } from "../components/TopicSelector";
@@ -9,7 +9,7 @@ import { BiLabel, BiText } from "../components/BiLabel";
 import "../components/BiLabel.css";
 
 interface CreateStoryPageProps {
-  onAddRecord: (record: any) => void;
+  onAddRecord: (record: NewAudioRecord) => void;
   initialTopicId?: string;
   initialImageIndex?: number;
   helpRequests?: HelpRequest[];
