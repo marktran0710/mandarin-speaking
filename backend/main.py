@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query, Request
+from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -32,11 +32,6 @@ logger = logging.getLogger("speaking_app")
 from database import (
     connect_db,
     init_db,
-    row_to_audio_record,
-    row_to_custom_story,
-    row_to_help_request,
-    row_to_story_submission,
-    row_to_vocab_quiz_attempt,
 )
 
 from praat_analyzer import (
@@ -52,17 +47,12 @@ from praat_analyzer import (
 from chinese_tones import (
     detect_tone,
     calculate_tone_accuracy,
-    get_reference_tone_pattern,
     generate_comprehensive_feedback,
 )
 from ai_feedback import (
     generate_language_feedback,
-    available_providers,
-    default_provider,
-    generate_story_feedback,
     GROQ_FEEDBACK_MODEL,
 )
-from audio_concat import concatenate_scene_audio
 from pypinyin import lazy_pinyin, Style
 import taiwan_pinyin; taiwan_pinyin.apply()
 
@@ -446,40 +436,6 @@ async def health_check():
     }
 
 
-@app.get("/api/audio-records")
-async def list_audio_records(
-    limit: int = Query(default=200, ge=1, le=1000),
-    skip: int = Query(default=0, ge=0),
-):
-    with connect_db() as db:
-        rows = db.execute(
-            "SELECT * FROM audio_records ORDER BY created_at DESC LIMIT ? OFFSET ?",
-            (limit, skip),
-        ).fetchall()
-    return [row_to_audio_record(row) for row in rows]
-
-
-@app.post("/api/audio-records")
-async def create_audio_record(record: AudioRecordRequest):
-    save_audio_record(record)
-    return record
-
-
-@app.post("/api/audio-records/upload")
-async def upload_audio_record(
-    record: str = Form(...),
-    file: UploadFile = File(...),
-):
-    try:
-        audio_record = AudioRecordRequest.model_validate_json(record)
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail="Invalid audio record JSON") from exc
-
-    audio_record.audioUrl = await save_uploaded_audio(file, audio_record.id)
-    save_audio_record(audio_record)
-    return audio_record
-
-
 def save_audio_record(record: AudioRecordRequest):
     with connect_db() as db:
         db.execute(
@@ -505,79 +461,6 @@ def save_audio_record(record: AudioRecordRequest):
         )
 
 
-@app.delete("/api/audio-records/{record_id}")
-async def delete_audio_record(record_id: str):
-    with connect_db() as db:
-        row = db.execute(
-            "SELECT audio_url FROM audio_records WHERE id = ?",
-            (record_id,),
-        ).fetchone()
-        db.execute("DELETE FROM audio_records WHERE id = ?", (record_id,))
-    if row and row["audio_url"]:
-        remove_uploaded_file(row["audio_url"])
-    return {"ok": True}
-
-
-@app.get("/api/custom-stories")
-async def list_custom_stories(
-    limit: int = Query(default=100, ge=1, le=500),
-    skip: int = Query(default=0, ge=0),
-):
-    with connect_db() as db:
-        rows = db.execute(
-            "SELECT * FROM custom_stories ORDER BY created_at DESC LIMIT ? OFFSET ?",
-            (limit, skip),
-        ).fetchall()
-    return [row_to_custom_story(row) for row in rows]
-
-
-@app.post("/api/custom-stories")
-async def create_custom_story(story: CustomStoryRequest):
-    frames = [frame.model_dump() for frame in story.frames]
-    stored_frames = persist_story_frame_images(story.id, frames)
-    stored_frames = persist_story_frame_audio(story.id, stored_frames)
-    with connect_db() as db:
-        db.execute(
-            """
-            INSERT OR REPLACE INTO custom_stories (
-                id, title, learning_goal, level, frames, published, linear, lesson_number, narrative_mode, first_frame_is_example
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                story.id,
-                story.title,
-                story.learningGoal,
-                story.level,
-                json.dumps(stored_frames),
-                1 if story.published else 0,
-                1 if story.linear else 0,
-                story.lessonNumber,
-                story.narrativeMode,
-                1 if story.firstFrameIsExample else 0,
-            ),
-        )
-    return {
-        **story.model_dump(),
-        "frames": stored_frames,
-    }
-
-
-@app.delete("/api/custom-stories/{story_id}")
-async def delete_custom_story(story_id: str):
-    with connect_db() as db:
-        row = db.execute(
-            "SELECT frames FROM custom_stories WHERE id = ?",
-            (story_id,),
-        ).fetchone()
-        db.execute("DELETE FROM custom_stories WHERE id = ?", (story_id,))
-    if row:
-        for frame in json.loads(row["frames"] or "[]"):
-            remove_uploaded_file(frame.get("imageUrl", ""))
-            remove_uploaded_file(frame.get("listenAudioUrl", ""))
-    return {"ok": True}
-
-
 MAX_VOCAB_DISTRACTORS_PER_WORD = 8
 
 
@@ -589,292 +472,6 @@ class VocabularyDistractorUpdate(BaseModel):
 
 class VocabularyDistractorsUpdateRequest(BaseModel):
     updates: List[VocabularyDistractorUpdate]
-
-
-@app.patch("/api/custom-stories/{story_id}/vocabulary-distractors")
-async def update_vocabulary_distractors(
-    story_id: str, request: VocabularyDistractorsUpdateRequest
-):
-    """
-    Tops up a story's per-word distractor pool (grown over time as students
-    complete quiz rounds) rather than replacing it — merges new distractors
-    into the existing list per word, deduping case-insensitively and capping
-    at MAX_VOCAB_DISTRACTORS_PER_WORD so the pool doesn't grow unbounded.
-    """
-    with connect_db() as db:
-        row = db.execute(
-            "SELECT frames FROM custom_stories WHERE id = ?", (story_id,)
-        ).fetchone()
-        if not row:
-            raise HTTPException(status_code=404, detail="Story not found.")
-
-        frames = json.loads(row["frames"] or "[]")
-        for update in request.updates:
-            if update.frameIndex < 0 or update.frameIndex >= len(frames):
-                continue
-            if update.wordIndex < 0:
-                continue
-            frame = frames[update.frameIndex]
-            try:
-                pool: List[List[str]] = json.loads(frame.get("vocabularyDistractors") or "[]")
-            except (json.JSONDecodeError, TypeError):
-                pool = []
-            while len(pool) <= update.wordIndex:
-                pool.append([])
-
-            existing = pool[update.wordIndex]
-            seen = {d.strip().lower() for d in existing}
-            merged = list(existing)
-            for distractor in update.distractors:
-                distractor = distractor.strip()
-                key = distractor.lower()
-                if not distractor or key in seen or len(merged) >= MAX_VOCAB_DISTRACTORS_PER_WORD:
-                    continue
-                seen.add(key)
-                merged.append(distractor)
-            pool[update.wordIndex] = merged
-            frame["vocabularyDistractors"] = json.dumps(pool)
-
-        db.execute(
-            "UPDATE custom_stories SET frames = ? WHERE id = ?",
-            (json.dumps(frames), story_id),
-        )
-    return {"ok": True}
-
-
-@app.get("/api/help-requests")
-async def list_help_requests(
-    limit: int = Query(default=100, ge=1, le=500),
-    skip: int = Query(default=0, ge=0),
-):
-    with connect_db() as db:
-        rows = db.execute(
-            """
-            SELECT * FROM help_requests
-            ORDER BY
-                CASE status WHEN 'open' THEN 0 ELSE 1 END,
-                created_at DESC
-            LIMIT ? OFFSET ?
-            """,
-            (limit, skip),
-        ).fetchall()
-    return [row_to_help_request(row) for row in rows]
-
-
-@app.post("/api/help-requests")
-async def create_help_request(request: HelpRequest):
-    student_name = request.studentName.strip() or "Student"
-    message = request.message.strip() or "I need teacher help."
-    with connect_db() as db:
-        db.execute(
-            """
-            INSERT OR REPLACE INTO help_requests (
-                id, student_name, message, status, created_at, resolved_at
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                request.id,
-                student_name,
-                message,
-                "open",
-                request.createdAt,
-                None,
-            ),
-        )
-    return {
-        **request.model_dump(),
-        "studentName": student_name,
-        "message": message,
-        "status": "open",
-        "resolvedAt": None,
-    }
-
-
-@app.post("/api/help-requests/{request_id}/resolve")
-async def resolve_help_request(request_id: str):
-    resolved_at = datetime.datetime.utcnow().isoformat() + "Z"
-    with connect_db() as db:
-        row = db.execute(
-            "SELECT * FROM help_requests WHERE id = ?",
-            (request_id,),
-        ).fetchone()
-        if row is None:
-            raise HTTPException(status_code=404, detail="Help request not found")
-        db.execute(
-            """
-            UPDATE help_requests
-            SET status = 'resolved', resolved_at = ?
-            WHERE id = ?
-            """,
-            (resolved_at, request_id),
-        )
-        updated = db.execute(
-            "SELECT * FROM help_requests WHERE id = ?",
-            (request_id,),
-        ).fetchone()
-    return row_to_help_request(updated)
-
-
-@app.get("/api/story-submissions")
-async def list_story_submissions(story_id: Optional[str] = None):
-    with connect_db() as db:
-        if story_id:
-            rows = db.execute(
-                "SELECT * FROM story_submissions WHERE story_id = ? ORDER BY submitted_at DESC",
-                (story_id,),
-            ).fetchall()
-        else:
-            rows = db.execute(
-                "SELECT * FROM story_submissions ORDER BY submitted_at DESC"
-            ).fetchall()
-    return [row_to_story_submission(row) for row in rows]
-
-
-@app.post("/api/story-submissions")
-async def create_story_submission(submission: StorySubmissionRequest):
-    scenes_sorted = sorted(submission.scenes, key=lambda s: s.sceneIndex)
-
-    with connect_db() as db:
-        db.execute(
-            """
-            INSERT OR REPLACE INTO story_submissions
-                (id, story_id, story_title, student_name, submitted_at, scenes)
-            VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            (
-                submission.id,
-                submission.storyId,
-                submission.storyTitle,
-                submission.studentName,
-                submission.submittedAt,
-                json.dumps([s.model_dump() for s in scenes_sorted]),
-            ),
-        )
-
-    # Story-level concatenated audio + holistic feedback are best-effort: the
-    # scenes above are already durably saved, so a failure here must never
-    # fail the whole submission — the student just doesn't get the story-level
-    # extras this time (no retry, per the synchronous/no-background-job design).
-    concatenated_audio_url: Optional[str] = None
-    try:
-        story_audio_path = os.path.join(
-            STORY_AUDIO_UPLOAD_DIR, f"{safe_file_stem(submission.id)}.wav"
-        )
-        wrote_file = concatenate_scene_audio(
-            [s.audioUrl for s in scenes_sorted if s.audioUrl],
-            upload_dir=UPLOAD_DIR,
-            output_path=story_audio_path,
-        )
-        if wrote_file:
-            concatenated_audio_url = f"/uploads/story_audio/{os.path.basename(story_audio_path)}"
-    except Exception as exc:
-        logger.error("Story audio concatenation failed for %s: %s", submission.id, exc)
-
-    story_feedback: Optional[dict] = None
-    try:
-        # Keep every scene in the transcript, even ones the ASR came back empty
-        # for (silence, recognition miss) — dropping them would silently shrink
-        # a 3-scene story down to whatever subset had text, so the "whole story"
-        # feedback would really only be judging part of it.
-        combined_transcript = "\n".join(
-            f"[Scene {s.sceneIndex + 1}] {s.transcription.strip() or '(no speech transcribed for this scene)'}"
-            for s in scenes_sorted
-        )
-        has_any_speech = any(s.transcription.strip() for s in scenes_sorted)
-        if has_any_speech:
-            # Average the per-scene Praat metrics already computed during
-            # recording (tone accuracy, fluency, word-prosody/pronunciation)
-            # across the whole story, so the story-level Fluency-and-Coherence
-            # and Pronunciation dimensions are grounded in real acoustic data
-            # instead of a text-only guess. Scenes with no speech contribute a
-            # real 0, which correctly drags the average down for a genuine gap.
-            scene_count = len(scenes_sorted) or 1
-            avg_tone_accuracy = sum(s.toneAccuracy for s in scenes_sorted) / scene_count
-            avg_fluency_score = sum(s.fluencyScore for s in scenes_sorted) / scene_count
-            avg_pron_score = sum(s.pronScore for s in scenes_sorted) / scene_count
-            # Real delivery data (not just the composite fluency score) so the
-            # story-level feedback can cite actual pausing/utterance behavior —
-            # this matters more now that a scene can hand the student a
-            # suggestedAnswer to read, where vocabulary/grammar isn't really a
-            # choice the student is making, but delivery still is.
-            total_pause_count = sum(s.pauseCount for s in scenes_sorted)
-            longest_single_pause = max((s.longestPause for s in scenes_sorted), default=0)
-            total_utterance_count = sum(s.utteranceCount for s in scenes_sorted)
-            story_feedback = await generate_story_feedback(
-                combined_transcript,
-                avg_tone_accuracy=avg_tone_accuracy,
-                avg_fluency_score=avg_fluency_score,
-                avg_pron_score=avg_pron_score,
-                total_pause_count=total_pause_count,
-                longest_single_pause=longest_single_pause,
-                total_utterance_count=total_utterance_count,
-                scene_count=scene_count,
-            )
-    except Exception as exc:
-        logger.error("Story feedback generation failed for %s: %s", submission.id, exc)
-
-    with connect_db() as db:
-        db.execute(
-            "UPDATE story_submissions SET concatenated_audio_url = ?, story_feedback = ? WHERE id = ?",
-            (
-                concatenated_audio_url,
-                json.dumps(story_feedback) if story_feedback else None,
-                submission.id,
-            ),
-        )
-
-    return {
-        **submission.model_dump(),
-        "scenes": [s.model_dump() for s in scenes_sorted],
-        "concatenatedAudioUrl": concatenated_audio_url,
-        "storyFeedback": story_feedback,
-    }
-
-
-@app.get("/api/vocab-quiz-attempts")
-async def list_vocab_quiz_attempts(
-    story_id: Optional[str] = None,
-    student_name: Optional[str] = None,
-):
-    query = "SELECT * FROM vocab_quiz_attempts WHERE 1=1"
-    params: list = []
-    if story_id:
-        query += " AND story_id = ?"
-        params.append(story_id)
-    if student_name:
-        query += " AND student_name = ?"
-        params.append(student_name)
-    query += " ORDER BY completed_at DESC"
-
-    with connect_db() as db:
-        rows = db.execute(query, params).fetchall()
-    return [row_to_vocab_quiz_attempt(row) for row in rows]
-
-
-@app.post("/api/vocab-quiz-attempts")
-async def create_vocab_quiz_attempt(attempt: VocabQuizAttemptRequest):
-    with connect_db() as db:
-        db.execute(
-            """
-            INSERT OR REPLACE INTO vocab_quiz_attempts
-                (id, story_id, student_name, mode, completed_at, total_questions,
-                 correct_count, total_time_ms, question_results)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                attempt.id,
-                attempt.storyId,
-                attempt.studentName,
-                attempt.mode,
-                attempt.completedAt,
-                attempt.totalQuestions,
-                attempt.correctCount,
-                attempt.totalTimeMs,
-                json.dumps([r.model_dump() for r in attempt.questionResults]),
-            ),
-        )
-    return attempt.model_dump()
 
 
 async def save_uploaded_audio(file: UploadFile, record_id: str) -> str:
@@ -1079,186 +676,6 @@ async def resolve_image_b64(image_ref: str) -> Optional[Tuple[str, str]]:
     if result and result[1] == "image/svg+xml":
         return None
     return result
-
-
-@app.get("/api/inline-media")
-async def inline_media(url: str = Query(..., max_length=2000)):
-    """Resolve an image/audio reference (local /uploads/... path or a remote
-    http(s) URL, e.g. a DALL-E/Pollinations.ai-hosted story image) to a
-    base64 data URL. Used by story export so the browser never has to
-    fetch() a third-party host directly, which CORS would otherwise block.
-    """
-    result = await resolve_media_b64(url)
-    if result is None:
-        raise HTTPException(status_code=404, detail="Could not resolve that media reference.")
-    data, mime = result
-    return {"dataUrl": f"data:{mime};base64,{data}"}
-
-
-@app.post("/api/generate-story-images", response_model=StoryImageGenerationResponse)
-async def generate_story_images(request: StoryImageGenerationRequest, req: Request):
-    """
-    Generate a six-image story sequence plan from a classroom situation.
-    Gemini creates the scene plan when configured; deterministic local fallback
-    keeps the teacher workflow usable offline.
-    """
-    client_ip = req.client.host if req.client else "unknown"
-    _check_rate_limit(f"gen-images:{client_ip}", max_requests=10, window_seconds=60)
-
-    situation = request.situation.strip()
-    if len(situation) < 8:
-        raise HTTPException(
-            status_code=400,
-            detail="Describe the situation context with at least 8 characters.",
-        )
-
-    if GEMINI_API_KEY:
-        try:
-            return await generate_story_images_with_gemini(request)
-        except Exception as exc:
-            logger.warning("Gemini story image planning failed, using local fallback: %s", exc)
-
-    fallback = build_story_image_fallback(request, provider="local")
-    return await normalize_story_image_response(
-        {"title": fallback.title, "learning_goal": fallback.learning_goal,
-         "frames": [{"title": f.title, "student_prompt": f.student_prompt,
-                     "vocabulary": f.vocabulary, "image_prompt": f.image_prompt}
-                    for f in fallback.frames]},
-        request,
-        provider="local",
-    )
-
-
-@app.post("/api/vocab-from-sentence", response_model=VocabFromSentenceResponse)
-async def vocab_from_sentence(request: VocabFromSentenceRequest, req: Request):
-    """
-    Segment a Chinese sentence (typically a scene's "suggested answer") into
-    its key vocabulary, with pinyin, part of speech, and English translation
-    for each word — lets a teacher autofill a scene's vocabulary table instead
-    of retyping/retranslating words that are already in the sentence.
-    """
-    client_ip = req.client.host if req.client else "unknown"
-    _check_rate_limit(f"vocab-from-sentence:{client_ip}", max_requests=10, window_seconds=60)
-
-    sentence = request.sentence.strip()
-    if not sentence:
-        raise HTTPException(status_code=400, detail="Provide a sentence to extract vocabulary from.")
-
-    # Groq first (fast, free tier, and its JSON mode avoids the markdown-fence
-    # parsing failures the Gemini path is prone to), falling back to Gemini —
-    # same "try each configured provider in order" pattern as the pronunciation
-    # feedback engines in ai_feedback.py.
-    engines = [
-        ("groq", GROQ_API_KEY, extract_vocab_from_sentence_with_groq),
-        ("gemini", GEMINI_API_KEY, extract_vocab_from_sentence_with_gemini),
-    ]
-    if not any(key for _, key, _ in engines):
-        raise HTTPException(
-            status_code=503,
-            detail="AI vocabulary extraction requires GROQ_API_KEY or GEMINI_API_KEY to be configured on the backend.",
-        )
-
-    last_error: Exception | None = None
-    for name, key, extract in engines:
-        if not key:
-            continue
-        try:
-            words = await extract(sentence)
-        except Exception as exc:
-            logger.warning("%s vocab extraction failed, trying next engine: %s", name, exc)
-            last_error = exc
-            continue
-        return VocabFromSentenceResponse(words=words)
-
-    raise HTTPException(
-        status_code=502,
-        detail="Could not extract vocabulary from that sentence.",
-    ) from last_error
-
-
-@app.post("/api/vocab-quiz-distractors", response_model=VocabDistractorResponse)
-async def vocab_quiz_distractors(request: VocabDistractorRequest, req: Request):
-    """
-    Generate plausible-but-wrong English translations for each of a story's
-    vocabulary words, for the pre-practice vocabulary quiz's multiple-choice
-    options. Real distractors (near-synonyms, same part of speech, common
-    learner mix-ups) make students actually discriminate meaning instead of
-    eliminating obviously-unrelated filler words — generated once per story
-    and cached by the caller, not regenerated per student attempt.
-    """
-    client_ip = req.client.host if req.client else "unknown"
-    _check_rate_limit(f"vocab-quiz-distractors:{client_ip}", max_requests=10, window_seconds=60)
-
-    words = [w for w in request.words if w.word.strip() and w.translation.strip()]
-    if not words:
-        raise HTTPException(status_code=400, detail="Provide at least one word with a translation.")
-
-    engines = [
-        ("groq", GROQ_API_KEY, generate_vocab_distractors_with_groq),
-        ("gemini", GEMINI_API_KEY, generate_vocab_distractors_with_gemini),
-    ]
-    if not any(key for _, key, _ in engines):
-        raise HTTPException(
-            status_code=503,
-            detail="AI distractor generation requires GROQ_API_KEY or GEMINI_API_KEY to be configured on the backend.",
-        )
-
-    last_error: Exception | None = None
-    for name, key, generate in engines:
-        if not key:
-            continue
-        try:
-            results = await generate(words)
-        except Exception as exc:
-            logger.warning("%s distractor generation failed, trying next engine: %s", name, exc)
-            last_error = exc
-            continue
-        return VocabDistractorResponse(results=results)
-
-    raise HTTPException(
-        status_code=502,
-        detail="Could not generate quiz distractors for these words.",
-    ) from last_error
-
-
-@app.get("/api/asr-status", response_model=AsrStatusResponse)
-async def get_asr_status():
-    with _vibevoice_load_lock:
-        if _vibevoice_asr_model is not None:
-            return AsrStatusResponse(
-                provider="vibevoice",
-                status="ready",
-                message="VibeVoice-ASR is ready.",
-            )
-        if _vibevoice_load_error:
-            return AsrStatusResponse(
-                provider="vibevoice",
-                status="error",
-                message=f"VibeVoice-ASR failed to load: {_vibevoice_load_error}",
-            )
-        if _vibevoice_load_thread is not None and _vibevoice_load_thread.is_alive():
-            return AsrStatusResponse(
-                provider="vibevoice",
-                status="loading",
-                message="VibeVoice-ASR is loading the local model weights.",
-            )
-
-    return AsrStatusResponse(
-        provider="vibevoice",
-        status="idle",
-        message="VibeVoice-ASR is not loaded. It starts only when a VibeVoice transcription request is submitted.",
-    )
-
-
-@app.get("/api/ai-providers")
-async def get_ai_providers():
-    """List language-feedback engines for the student-facing engine picker.
-
-    Each entry reports whether it is usable right now (cloud engines need an
-    API key). ``default`` is the env-configured engine used when the student
-    doesn't pick one.
-    """
-    return {"providers": available_providers(), "default": default_provider()}
 
 
 ANALYZE_TIMEOUT_SECONDS = int(os.getenv("ANALYZE_TIMEOUT_SECONDS", "120"))
@@ -1476,110 +893,6 @@ async def _do_analyze(
 
 
 _MAX_AUDIO_BYTES = int(os.getenv("MAX_AUDIO_BYTES", str(10 * 1024 * 1024)))  # 10 MB
-
-
-@app.post("/api/analyze", response_model=AnalysisResponse)
-async def analyze_speech(
-    file: UploadFile = File(...),
-    transcription: str = Form(""),
-    asr_model: str = Form(""),
-    scene_prompt: str = Form(""),
-    scene_vocabulary: str = Form(""),
-    ai_provider: str = Form(""),
-    scene_image_url: str = Form(""),
-    scene_phrases: str = Form(""),
-    scene_suggested_answer: str = Form(""),
-    scene_attempt_number: int = Form(1),
-    verify_word: str = Form(""),
-    pinyin_hint: str = Form(""),
-    req: Request = None,
-):
-    """
-    Analyze Chinese speech for tone, pitch, formants, speech rate, and fluency.
-    If transcription is empty and asr_model is provided, transcribe first, then
-    run Praat against the same audio. scene_prompt and scene_vocabulary are used
-    to make AI and local feedback context-aware. scene_phrases and
-    scene_suggested_answer give the AI a reference for judging whether the
-    student's sentence actually means the right thing, before pronunciation
-    feedback matters. scene_attempt_number drives indirect corrective feedback —
-    hints only for the first two attempts on a scene, then the correct answer
-    is revealed.
-
-    verify_word is for word-practice callers that force `transcription` to a
-    known target word (so tone scoring isn't at the mercy of ASR mangling a
-    single syllable) — it triggers a *separate* real ASR pass on the same
-    audio purely to confirm the student actually said that word, since
-    otherwise nothing checks the recording's content at all.
-
-    pinyin_hint is that same target word's own tone-marked pinyin (whatever
-    is actually displayed to the student/teacher, space-separated per
-    syllable, e.g. "jiě jie") — used to derive expected tones directly
-    instead of a second, independent pypinyin lookup that could silently
-    disagree with it (e.g. a teacher's manually corrected vocabulary pinyin,
-    or a polyphonic character pypinyin reads differently out of context).
-    """
-    if not file:
-        raise HTTPException(status_code=400, detail="No audio file provided")
-
-    if req is not None:
-        client_ip = req.client.host if req.client else "unknown"
-        _check_rate_limit(f"analyze:{client_ip}", max_requests=30, window_seconds=60)
-
-    content = await file.read()
-    if len(content) > _MAX_AUDIO_BYTES:
-        raise HTTPException(
-            status_code=413,
-            detail=f"Audio file too large. Maximum size is {_MAX_AUDIO_BYTES // (1024 * 1024)} MB.",
-        )
-
-    try:
-        return await asyncio.wait_for(
-            _do_analyze(
-                content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
-                scene_phrases, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
-            ),
-            timeout=ANALYZE_TIMEOUT_SECONDS,
-        )
-    except asyncio.TimeoutError:
-        raise HTTPException(
-            status_code=504,
-            detail=f"Analysis timed out after {ANALYZE_TIMEOUT_SECONDS}s. Try a shorter recording.",
-        )
-    except HTTPException:
-        raise
-    except Exception as exc:
-        logger.exception("Error in analyze_speech")
-        raise HTTPException(status_code=500, detail=f"Error analyzing speech: {exc}") from exc
-
-
-@app.post("/api/transcribe", response_model=TranscriptionResponse)
-async def transcribe_speech(
-    file: UploadFile = File(...),
-    model: str = Form("ctwhisper"),
-    vocab_hint: str = Form(""),
-):
-    """
-    Transcribe audio to text using the requested backend ASR model.
-    The default upload flow uses local Chinese/Taiwanese Whisper.
-    """
-    if not file:
-        raise HTTPException(status_code=400, detail="No audio file provided")
-
-    try:
-        content = await file.read()
-        result = await transcribe_audio_content(content, model, vocab_hint=vocab_hint)
-        if vocab_hint.strip():
-            result.text = correct_homophones(result.text, vocab_hint)
-        return result
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception("Error in transcribe_speech")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error transcribing speech: {str(e)}"
-        )
 
 
 async def transcribe_audio_content(
@@ -2716,45 +2029,24 @@ async def transcribe_with_vibevoice(audio_content: bytes) -> TranscriptionRespon
     return TranscriptionResponse(text=text, model="vibevoice")
 
 
-@app.get("/api/reference-tone/{tone_number}", response_model=ReferenceToneResponse)
-async def get_reference_tone(tone_number: int):
-    """
-    Get reference pitch contour for a Mandarin tone (1-4).
-    """
-    if tone_number not in [1, 2, 3, 4]:
-        raise HTTPException(
-            status_code=400,
-            detail="Tone number must be 1, 2, 3, or 4"
-        )
-
-    ref = get_reference_tone_pattern(tone_number)
-
-    if not ref:
-        raise HTTPException(status_code=404, detail="Tone reference not found")
-
-    return ReferenceToneResponse(
-        tone=ref["tone"],
-        name=ref["name"],
-        character=ref["character"],
-        pinyin=ref["pinyin"],
-        description=ref["description"],
-        pitch_pattern=ref["pitch_pattern"],
-        frequency_range=ref["frequency_range"],
-        expected_mean=ref["expected_mean"],
-    )
-
-
-@app.get("/api/all-tones")
-async def get_all_tones():
-    """
-    Get all Mandarin tone references.
-    """
-    tones = {}
-    for tone_num in [1, 2, 3, 4]:
-        ref = get_reference_tone_pattern(tone_num)
-        tones[tone_num] = ref
-
-    return tones
+# ── Routers (imported here, after all shared models/helpers above are
+# defined, since each router imports names back from this module) ─────────
+from routers.asr import router as asr_router  # noqa: E402
+from routers.audio import router as audio_router  # noqa: E402
+from routers.help_requests import router as help_requests_router  # noqa: E402
+from routers.media import router as media_router  # noqa: E402
+from routers.stories import router as stories_router  # noqa: E402
+from routers.submissions import router as submissions_router  # noqa: E402
+from routers.tones import router as tones_router  # noqa: E402
+from routers.vocab_quiz import router as vocab_quiz_router  # noqa: E402
+app.include_router(asr_router)
+app.include_router(audio_router)
+app.include_router(help_requests_router)
+app.include_router(media_router)
+app.include_router(stories_router)
+app.include_router(submissions_router)
+app.include_router(tones_router)
+app.include_router(vocab_quiz_router)
 
 
 @app.get("/{frontend_path:path}")
