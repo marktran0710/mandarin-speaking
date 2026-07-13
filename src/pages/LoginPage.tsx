@@ -77,11 +77,13 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder={isStudent ? "打上學生的名字 · Enter student name" : "輸入教師姓名 · Enter teacher name"}
+                aria-invalid={error || undefined}
+                aria-describedby={error ? "login-name-error" : undefined}
               />
             </label>
 
             {error && (
-              <p className="login-error">
+              <p className="login-error" id="login-name-error" role="alert">
                 <BiLabel k="please_enter_a_name" />
               </p>
             )}

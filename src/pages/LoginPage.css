@@ -108,7 +108,10 @@
 }
 
 .login-form input:focus {
-  outline: none;
+  /* outline:none used to silently override index.css's global
+     button/input:focus-visible ring (3px solid --seal-soft) with just a
+     1px→2px border-width bump — too subtle to see for low-vision users.
+     Let the global ring show through; keep the border tweak alongside it. */
   border-color: var(--clay-ink);
   border-width: 2px;
 }
