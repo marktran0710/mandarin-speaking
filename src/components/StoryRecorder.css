@@ -753,10 +753,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   background: var(--gold-soft);
 }
 
-.sentence-starters {
-  display: none;
-}
-
 .recording-console {
   margin-top: 18px;
   padding: 16px;

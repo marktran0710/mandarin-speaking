@@ -233,92 +233,6 @@
   box-shadow: 0 1px 0 var(--jade-deep);
 }
 
-.learning-summary {
-  max-width: 1180px;
-  margin: 0 auto 20px;
-  display: grid;
-  grid-template-columns: 1.2fr 1fr 1fr;
-  gap: 16px;
-}
-
-.student-loop-guide {
-  max-width: 1180px;
-  margin: -8px auto 28px;
-  padding: 14px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  background: var(--clay-surface-soft);
-}
-
-.student-loop-guide div {
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  column-gap: 10px;
-  align-items: start;
-}
-
-.student-loop-guide span {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  grid-row: span 2;
-  border-radius: var(--clay-radius-pill);
-  background: var(--clay-primary);
-  color: var(--clay-on-accent);
-  font-size: 13px;
-  font-weight: 650;
-}
-.student-loop-guide div:nth-child(1) span { background: var(--accent-indigo); }
-.student-loop-guide div:nth-child(2) span { background: var(--accent-amber); }
-.student-loop-guide div:nth-child(3) span { background: var(--accent-violet); }
-
-.student-loop-guide strong {
-  color: var(--clay-ink);
-  font-size: 14px;
-}
-
-.student-loop-guide p {
-  color: var(--clay-muted);
-  font-size: 12px;
-  line-height: 1.35;
-  margin: 3px 0 0;
-}
-
-.summary-card {
-  min-height: 112px;
-  padding: 18px;
-  background: var(--clay-surface-card);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.summary-card span {
-  color: var(--clay-muted);
-  font-size: 13px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.summary-card strong {
-  font-family: var(--font-mono);
-  color: var(--clay-ink);
-  font-size: 34px;
-  line-height: 1;
-}
-
-.summary-card p {
-  color: var(--clay-body);
-  font-size: 13px;
-  margin: 0;
-}
-
 .summary-progress {
   height: 8px;
   overflow: hidden;
@@ -2176,14 +2090,6 @@
   }
 
   .stories-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .learning-summary {
-    grid-template-columns: 1fr;
-  }
-
-  .student-loop-guide {
     grid-template-columns: 1fr;
   }
 

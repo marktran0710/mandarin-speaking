@@ -456,30 +456,6 @@
   border-color: var(--jade);
 }
 
-/* ── Result modal ── */
-.scmap-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(28, 26, 23, 0.5);
-  z-index: 200;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.scmap-modal {
-  background: var(--clay-surface-card);
-  border-radius: var(--clay-radius-lg);
-  padding: 36px;
-  text-align: center;
-  max-width: 380px;
-  width: 90%;
-  box-shadow: var(--shadow-lg);
-}
-.scmap-modal-emoji { font-size: 3.2rem; margin-bottom: 12px; }
-.scmap-modal-title { font-size: 1.4rem; font-weight: 800; margin: 0 0 8px; color: var(--clay-ink); }
-.scmap-modal-score { font-size: 2.4rem; font-weight: 900; color: var(--jade-deep); margin-bottom: 8px; }
-.scmap-modal-msg   { color: var(--clay-muted); font-size: 14px; margin-bottom: 22px; }
-
 /* ── Responsive ── */
 @media (max-width: 640px) {
   .scmap-main { height: 460px; }
