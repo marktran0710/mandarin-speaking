@@ -99,6 +99,13 @@
   opacity: 0.55;
 }
 
+/* Correct/incorrect were signaled by border/background color alone
+   (jade vs. red) — add an icon so the result doesn't rely on color
+   perception to read. */
+.vocab-quiz-option-icon {
+  font-weight: 800;
+}
+
 .vocab-quiz-actions {
   display: flex;
   gap: 16px;

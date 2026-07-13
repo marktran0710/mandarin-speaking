@@ -542,7 +542,20 @@ export default function StoryVocabQuiz({
               className={`vocab-quiz-option vocab-quiz-option-${state}`}
               onClick={() => choose(option)}
               disabled={Boolean(selected)}
+              aria-label={
+                state === "correct"
+                  ? `${option} (correct answer)`
+                  : state === "incorrect"
+                    ? `${option} (your answer, incorrect)`
+                    : undefined
+              }
             >
+              {state === "correct" && (
+                <span className="vocab-quiz-option-icon" aria-hidden="true">✓ </span>
+              )}
+              {state === "incorrect" && (
+                <span className="vocab-quiz-option-icon" aria-hidden="true">✗ </span>
+              )}
               {option}
             </button>
           );
