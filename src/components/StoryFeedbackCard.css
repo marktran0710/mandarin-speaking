@@ -4,7 +4,7 @@
   padding: 20px 24px;
   background: var(--clay-surface-card);
   border: 1.5px solid var(--clay-hairline);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-lg);
   display: flex;
   flex-direction: column;
   gap: 16px;

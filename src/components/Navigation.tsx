@@ -142,7 +142,7 @@ export default function Navigation({
           {activeRole && (
             <li>
               <button type="button" className="nav-link logout" onClick={onLogout}>
-<BiLabel k="log_out" />
+                <BiLabel k="log_out" />
               </button>
             </li>
           )}
