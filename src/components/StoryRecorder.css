@@ -3504,24 +3504,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   line-height: 1.4;
 }
 
-/* Shared "return to the activity picker" link, used from both the vocab
-   quiz and the per-scene practice steps. */
-.btn-vocab-quiz-back {
-  align-self: flex-start;
-  background: transparent;
-  border: none;
-  color: var(--clay-muted);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 4px 0;
-  margin-bottom: 8px;
-}
-.btn-vocab-quiz-back:hover {
-  color: var(--clay-ink);
-  text-decoration: underline;
-}
-
 /* ── Start-practice instructions modal ──────────────── */
 .start-practice-modal-overlay {
   position: fixed;
