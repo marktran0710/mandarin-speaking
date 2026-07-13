@@ -1,0 +1,35 @@
+.mini-score-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.mini-score-card {
+  background: var(--clay-surface-soft);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mini-score-card span {
+  font-size: 0.75rem;
+  color: var(--clay-muted);
+}
+
+.mini-score-card strong {
+  font-family: var(--font-mono);
+  font-size: 1.4rem;
+  color: var(--clay-ink);
+}
+
+.mini-score-card.highlight {
+  background: var(--seal-soft);
+  border-color: var(--seal);
+}
+
+.mini-score-card.highlight strong {
+  color: var(--seal-deep);
+}
