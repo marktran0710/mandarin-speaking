@@ -1,6 +1,8 @@
-import { type ChangeEvent, useRef, useState } from "react";
+import { type ChangeEvent, type ReactNode, useRef, useState } from "react";
 import PraatTimeline from "../components/PraatTimeline";
 import { convertBlobToWav } from "../utils/audio";
+import { BiLabel, BiText } from "../components/BiLabel";
+import "../components/BiLabel.css";
 import "./VoiceTestPage.css";
 
 const BACKEND_URL =
@@ -115,7 +117,7 @@ export default function VoiceTestPage() {
       startSpeechRecognition();
       setIsRecording(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not access microphone.");
+      setError(err instanceof Error ? err.message : "無法存取麥克風。 Could not access microphone.");
       stopTracks();
       clearDurationTimer();
     }
@@ -146,7 +148,7 @@ export default function VoiceTestPage() {
       file.name.toLowerCase().endsWith(".wav");
 
     if (!isWav) {
-      setError(`Import a WAV file. "${file.name}" is not supported yet.`);
+      setError(`匯入的檔案格式不支援，請上傳 WAV 檔案。 Import a WAV file. "${file.name}" is not supported yet.`);
       return;
     }
 
@@ -163,7 +165,7 @@ export default function VoiceTestPage() {
       (window as any).webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setLiveTranscript("Browser speech transcription is not available.");
+      setLiveTranscript("瀏覽器不支援即時語音轉錄。 Browser speech transcription is not available.");
       return;
     }
 
@@ -192,7 +194,7 @@ export default function VoiceTestPage() {
     recognition.onerror = () => {
       setLiveTranscript(
         transcriptRef.current ||
-          "Browser speech transcription stopped. Praat will still analyze the audio.",
+          "瀏覽器語音轉錄已停止，Praat 仍會分析這段音檔。 Browser speech transcription stopped. Praat will still analyze the audio.",
       );
     };
 
@@ -227,7 +229,7 @@ export default function VoiceTestPage() {
 
       if (!response.ok) {
         const errorData = await readErrorResponse(response);
-        throw new Error(errorData.detail || "Voice analysis failed.");
+        throw new Error(errorData.detail || "語音分析失敗。 Voice analysis failed.");
       }
 
       setMetrics((await response.json()) as VoiceMetrics);
@@ -252,36 +254,67 @@ export default function VoiceTestPage() {
   };
 
   const primaryLabel = isRecording
-    ? "Stop and get feedback"
+    ? { zh: "停止，看回饋", pinyin: "Tíngzhǐ, kàn huíkuì", en: "Stop and get feedback" }
     : metrics
-      ? "Record again"
-      : "Start voice test";
+      ? { zh: "再錄一次", pinyin: "Zài lù yí cì", en: "Record again" }
+      : { zh: "開始語音測試", pinyin: "Kāishǐ yǔyīn cèshì", en: "Start voice test" };
 
   return (
     <main className="voice-test-page">
       <section className="voice-test-hero">
         <div>
-          <p className="eyebrow">Voice practice</p>
-          <h1>Analyze Your Voice</h1>
+          <p className="eyebrow">
+            <BiLabel zh="語音練習" pinyin="Yǔyīn liànxí" en="Voice practice" />
+          </p>
+          <h1>
+            <BiLabel zh="分析你的聲音" pinyin="Fēnxī nǐ de shēngyīn" en="Analyze Your Voice" />
+          </h1>
           <p>
-            Record or upload a WAV file. The system transcribes the audio, then
-            checks pronunciation and language feedback from the recording.
+            <BiText
+              zh="錄音或上傳 WAV 檔案，系統會轉錄音檔，然後檢查發音和語言表現，給你回饋。"
+              pinyin="Lùyīn huò shàngchuán WAV dǎng'àn, xìtǒng huì zhuǎnlù yīndǎng, ránhòu jiǎnchá fāyīn hé yǔyán biǎoxiàn, gěi nǐ huíkuì."
+              en="Record or upload a WAV file. The system transcribes the audio, then checks pronunciation and language feedback from the recording."
+            />
           </p>
         </div>
         <div className="voice-test-status">
-          <span>Status</span>
+          <span>
+            <BiLabel zh="狀態" pinyin="Zhuàngtài" en="Status" />
+          </span>
           <strong>
-            {isRecording ? "Recording" : isAnalyzing ? "Analyzing" : "Ready"}
+            {isRecording ? (
+              <BiLabel zh="錄音中" pinyin="Lùyīn zhōng" en="Recording" />
+            ) : isAnalyzing ? (
+              <BiLabel zh="分析中" pinyin="Fēnxī zhōng" en="Analyzing" />
+            ) : (
+              <BiLabel zh="準備好了" pinyin="Zhǔnbèi hǎo le" en="Ready" />
+            )}
           </strong>
-          <p>{isRecording ? `${recordingDuration}s recorded` : "One recording is enough."}</p>
+          <p>
+            {isRecording ? (
+              <BiLabel
+                zh={`已錄音 ${recordingDuration} 秒`}
+                pinyin={`Yǐ lùyīn ${recordingDuration} miǎo`}
+                en={`${recordingDuration}s recorded`}
+              />
+            ) : (
+              <BiLabel zh="錄一次就夠了。" pinyin="Lù yí cì jiù gòu le." en="One recording is enough." />
+            )}
+          </p>
         </div>
       </section>
 
       <section className="voice-test-workspace">
         <div className="voice-step-row" aria-label="Voice test steps">
-          <span>1. Speak or upload</span>
-          <span>2. Transcribe audio</span>
-          <span>3. Review</span>
+          <span>
+            <BiLabel zh="1. 說話或上傳" pinyin="1. Shuōhuà huò shàngchuán" en="1. Speak or upload" />
+          </span>
+          <span>
+            <BiLabel zh="2. 轉錄音檔" pinyin="2. Zhuǎnlù yīndǎng" en="2. Transcribe audio" />
+          </span>
+          <span>
+            <BiLabel zh="3. 查看結果" pinyin="3. Chákàn jiéguǒ" en="3. Review" />
+          </span>
         </div>
 
         <div className="voice-test-controls">
@@ -291,7 +324,7 @@ export default function VoiceTestPage() {
             onClick={isRecording ? stopRecording : startRecording}
             disabled={isAnalyzing}
           >
-            {primaryLabel}
+            <BiLabel zh={primaryLabel.zh} pinyin={primaryLabel.pinyin} en={primaryLabel.en} />
           </button>
           <label
             className={`btn btn-secondary voice-file-label ${
@@ -300,7 +333,7 @@ export default function VoiceTestPage() {
             role="button"
             tabIndex={isRecording || isAnalyzing ? -1 : 0}
           >
-            Import WAV file
+            <BiLabel zh="匯入 WAV 檔案" pinyin="Huìrù WAV dǎng'àn" en="Import WAV file" />
             <input
               className="voice-file-input"
               type="file"
@@ -313,7 +346,9 @@ export default function VoiceTestPage() {
 
         {audioUrl && (
           <div className="voice-audio-preview">
-            <span>Recording preview</span>
+            <span>
+              <BiLabel zh="錄音預覽" pinyin="Lùyīn yùlǎn" en="Recording preview" />
+            </span>
             {selectedAudioName && <strong>{selectedAudioName}</strong>}
             <audio controls src={audioUrl} />
           </div>
@@ -321,21 +356,36 @@ export default function VoiceTestPage() {
 
         {liveTranscript && (
           <div className="voice-live-transcript">
-            <span>Live transcript</span>
+            <span>
+              <BiLabel zh="即時轉錄" pinyin="Jíshí zhuǎnlù" en="Live transcript" />
+            </span>
             <p>{liveTranscript}</p>
           </div>
         )}
       </section>
 
-      {isAnalyzing && <p className="voice-test-loading">Running Praat and local feedback...</p>}
+      {isAnalyzing && (
+        <p className="voice-test-loading">
+          <BiLabel zh="正在執行 Praat 分析和本地回饋…" pinyin="Zhèngzài zhíxíng Praat fēnxī hé běndì huíkuì…" en="Running Praat and local feedback..." />
+        </p>
+      )}
       {error && <p className="voice-test-error">{error}</p>}
 
       {metrics && (
         <section className="voice-feedback-panel">
           <div className="voice-score-grid">
-            <ScoreCard label="Fluency" value={`${Math.round(metrics.fluency_score)}/100`} />
-            <ScoreCard label="Tone accuracy" value={`${Math.round(metrics.tone_accuracy)}%`} />
-            <ScoreCard label="Speech rate" value={`${metrics.speech_rate.toFixed(1)}/s`} />
+            <ScoreCard
+              label={<BiLabel zh="流暢度" pinyin="Liúchàng dù" en="Fluency" />}
+              value={`${Math.round(metrics.fluency_score)}/100`}
+            />
+            <ScoreCard
+              label={<BiLabel zh="聲調準確度" pinyin="Shēngdiào zhǔnquè dù" en="Tone accuracy" />}
+              value={`${Math.round(metrics.tone_accuracy)}%`}
+            />
+            <ScoreCard
+              label={<BiLabel zh="語速" pinyin="Yǔsù" en="Speech rate" />}
+              value={`${metrics.speech_rate.toFixed(1)}/s`}
+            />
           </div>
 
           <StudentFeedbackCards
@@ -351,13 +401,20 @@ export default function VoiceTestPage() {
           />
 
           <div className="voice-feedback-card">
-            <h2>Transcription from audio</h2>
+            <h2>
+              <BiLabel zh="音檔轉錄結果" pinyin="Yīndǎng zhuǎnlù jiéguǒ" en="Transcription from audio" />
+            </h2>
             {metrics.description && (
               <p className="voice-result-description">{metrics.description}</p>
             )}
             <p className="voice-transcript-text">
-              {metrics.transcription ||
-                "No transcription was returned. Praat metrics are based on the audio file."}
+              {metrics.transcription || (
+                <BiText
+                  zh="沒有轉錄結果，以下數據以音檔本身為準。"
+                  pinyin="Méiyǒu zhuǎnlù jiéguǒ, yǐxià shùjù yǐ yīndǎng běnshēn wéi zhǔn."
+                  en="No transcription was returned. Praat metrics are based on the audio file."
+                />
+              )}
             </p>
             <ScriptWordLevel
               transcription={metrics.transcription || ""}
@@ -365,20 +422,26 @@ export default function VoiceTestPage() {
             />
             {metrics.transcription_model && (
               <small className="voice-model-note">
-                ASR model: {metrics.transcription_model}
+                <BiLabel zh={`辨識模型：${metrics.transcription_model}`} en={`ASR model: ${metrics.transcription_model}`} />
               </small>
             )}
           </div>
 
           <details className="voice-advanced-details">
-            <summary>Advanced Praat details</summary>
+            <summary>
+              <BiLabel zh="進階 Praat 詳細資料" pinyin="Jìnjiē Praat xiángxì zīliào" en="Advanced Praat details" />
+            </summary>
           <div className="voice-feedback-card">
-            <h2>Praat feedback</h2>
+            <h2>
+              <BiLabel zh="Praat 回饋" pinyin="Praat huíkuì" en="Praat feedback" />
+            </h2>
             <p>{metrics.feedback}</p>
           </div>
 
           <div className="voice-feedback-card voice-praat-visual-card">
-            <h2>Praat visualization</h2>
+            <h2>
+              <BiLabel zh="Praat 視覺化圖表" pinyin="Praat shìjué huà túbiǎo" en="Praat visualization" />
+            </h2>
             <PraatTimeline
               audioBlob={audioBlob}
               pitchContour={metrics.pitch_contour}
@@ -389,15 +452,21 @@ export default function VoiceTestPage() {
 
           {metrics.word_prosody && metrics.word_prosody.length > 0 && (
             <div className="voice-feedback-card">
-              <h2>Word-level prosody</h2>
+              <h2>
+                <BiLabel zh="逐字韻律分析" pinyin="Zhúzì yùnlǜ fēnxī" en="Word-level prosody" />
+              </h2>
               <div className="voice-word-grid">
                 {metrics.word_prosody.map((word) => (
                   <div className="voice-word-card" key={`${word.token}-${word.index}`}>
                     <strong>{word.token}</strong>
-                    <span>{formatContourShape(word.contour_shape)}</span>
+                    <span>
+                      <BiLabel {...formatContourShape(word.contour_shape)} />
+                    </span>
                     <small>
-                      {Math.round(word.mean_pitch)} Hz avg ·{" "}
-                      {Math.round(word.pitch_range)} Hz range
+                      <BiLabel
+                        zh={`平均 ${Math.round(word.mean_pitch)} Hz · 範圍 ${Math.round(word.pitch_range)} Hz`}
+                        en={`${Math.round(word.mean_pitch)} Hz avg · ${Math.round(word.pitch_range)} Hz range`}
+                      />
                     </small>
                     <p>{word.feedback}</p>
                   </div>
@@ -411,34 +480,41 @@ export default function VoiceTestPage() {
           {metrics.ai_feedback && (
             <div className="voice-feedback-card ai-card">
               <div className="ai-card-header">
-                <h2>AI feedback</h2>
+                <h2>
+                  <BiLabel zh="AI 回饋" pinyin="AI huíkuì" en="AI feedback" />
+                </h2>
                 <span>{metrics.ai_feedback.provider}</span>
               </div>
               <div className="ai-feedback-columns">
                 <FeedbackBlock
-                  title="Fluency"
+                  title={<BiLabel zh="流暢度" pinyin="Liúchàng dù" en="Fluency" />}
                   score={metrics.ai_feedback.fluency.score}
                   text={metrics.ai_feedback.fluency.feedback}
                 />
                 <FeedbackBlock
-                  title="Grammar"
+                  title={<BiLabel zh="文法" pinyin="Wénfǎ" en="Grammar" />}
                   score={metrics.ai_feedback.grammar.score}
                   text={metrics.ai_feedback.grammar.feedback}
                 />
                 <FeedbackBlock
-                  title="Vocabulary"
+                  title={<BiLabel zh="詞彙" pinyin="Cíhuì" en="Vocabulary" />}
                   score={metrics.ai_feedback.vocabulary.score}
                   text={metrics.ai_feedback.vocabulary.feedback}
                 />
               </div>
               {metrics.ai_feedback.improved_version && (
                 <p className="improved-version">
-                  <strong>Improved version:</strong>{" "}
+                  <strong>
+                    <BiLabel zh="改進版本：" pinyin="Gǎijìn bǎnběn:" en="Improved version:" />
+                  </strong>{" "}
                   {metrics.ai_feedback.improved_version}
                 </p>
               )}
               <p className="practice-prompt">
-                <strong>Practice next:</strong> {metrics.ai_feedback.practice_prompt}
+                <strong>
+                  <BiLabel zh="下一步練習：" pinyin="Xià yí bù liànxí:" en="Practice next:" />
+                </strong>{" "}
+                {metrics.ai_feedback.practice_prompt}
               </p>
             </div>
           )}
@@ -506,7 +582,11 @@ function ScriptWordLevel({
   if (scriptWords.length === 0) {
     return (
       <div className="voice-script-empty">
-        Word-level script appears after audio transcription.
+        <BiText
+          zh="音檔轉錄完成後，會顯示逐字稿。"
+          pinyin="Yīndǎng zhuǎnlù wánchéng hòu, huì xiǎnshì zhúzì gǎo."
+          en="Word-level script appears after audio transcription."
+        />
       </div>
     );
   }
@@ -520,7 +600,11 @@ function ScriptWordLevel({
           title={word.feedback || undefined}
         >
           <strong>{word.token}</strong>
-          {word.contour && <em>{formatContourShape(word.contour)}</em>}
+          {word.contour && (
+            <em>
+              <BiLabel {...formatContourShape(word.contour)} />
+            </em>
+          )}
           {word.meanPitch > 0 && (
             <small>
               {Math.round(word.meanPitch)} Hz / {Math.round(word.pitchRange)} Hz
@@ -538,7 +622,7 @@ function tokenizeTranscript(transcription: string): string[] {
   );
 }
 
-function ScoreCard({ label, value }: { label: string; value: string }) {
+function ScoreCard({ label, value }: { label: ReactNode; value: string }) {
   return (
     <div className="voice-score-card">
       <span>{label}</span>
@@ -572,14 +656,22 @@ function ModelExampleCard({
   return (
     <section className="voice-model-example" aria-label="100 score example">
       <div>
-        <span>100-score example</span>
-        <h2>Listen, then copy with your voice</h2>
+        <span>
+          <BiLabel zh="滿分示範" pinyin="Mǎnfēn shìfàn" en="100-score example" />
+        </span>
+        <h2>
+          <BiLabel zh="先聽，再用你的聲音跟著說" pinyin="Xiān tīng, zài yòng nǐ de shēngyīn gēnzhe shuō" en="Listen, then copy with your voice" />
+        </h2>
         <p>{exampleText}</p>
       </div>
       <div className="voice-model-example-actions">
-        {focusWord && <em>Focus first: {focusWord}</em>}
+        {focusWord && (
+          <em>
+            <BiLabel zh={`先練：${focusWord}`} en={`Focus first: ${focusWord}`} />
+          </em>
+        )}
         <button type="button" onClick={playExample}>
-          Play example
+          <BiLabel zh="播放示範" pinyin="Bòfàng shìfàn" en="Play example" />
         </button>
       </div>
     </section>
@@ -598,36 +690,73 @@ function StudentFeedbackCards({
   wordProsody: WordProsody[];
 }) {
   const focus = getToneFocusItems(wordProsody)[0];
+  const strength = studentStrength(toneAccuracy, fluencyScore);
+  const fix = studentFix(toneAccuracy, fluencyScore, speechRate, focus);
+  const next = studentNextStep(speechRate, focus);
 
   return (
     <section className="voice-student-feedback" aria-label="Student feedback">
       <div className="voice-student-feedback-card good">
-        <span>Good</span>
-        <strong>{studentStrength(toneAccuracy, fluencyScore)}</strong>
+        <span>
+          <BiLabel zh="優點" pinyin="Yōudiǎn" en="Good" />
+        </span>
+        <strong>
+          <BiText zh={strength.zh} pinyin={strength.pinyin} en={strength.en} />
+        </strong>
       </div>
       <div className="voice-student-feedback-card fix">
-        <span>Fix</span>
-        <strong>{studentFix(toneAccuracy, fluencyScore, speechRate, focus)}</strong>
+        <span>
+          <BiLabel zh="待改進" pinyin="Dài gǎijìn" en="Fix" />
+        </span>
+        <strong>
+          <BiText zh={fix.zh} pinyin={fix.pinyin} en={fix.en} />
+        </strong>
       </div>
       <div className="voice-student-feedback-card next">
-        <span>Next try</span>
-        <strong>{studentNextStep(speechRate, focus)}</strong>
+        <span>
+          <BiLabel zh="下次試試" pinyin="Xiàcì shìshi" en="Next try" />
+        </span>
+        <strong>
+          <BiText zh={next.zh} pinyin={next.pinyin} en={next.en} />
+        </strong>
       </div>
     </section>
   );
 }
 
-function studentStrength(toneAccuracy: number, fluencyScore: number): string {
+interface BilingualLine {
+  zh: string;
+  pinyin?: string;
+  en: string;
+}
+
+function studentStrength(toneAccuracy: number, fluencyScore: number): BilingualLine {
   if (toneAccuracy >= 80 && fluencyScore >= 75) {
-    return "Your tones and rhythm are clear enough to build a longer sentence.";
+    return {
+      zh: "你的聲調和節奏已經夠清楚，可以試著說更長的句子了。",
+      pinyin: "Nǐ de shēngdiào hé jiézòu yǐjīng gòu qīngchǔ, kěyǐ shìzhe shuō gèng cháng de jùzi le.",
+      en: "Your tones and rhythm are clear enough to build a longer sentence.",
+    };
   }
   if (toneAccuracy >= 75) {
-    return "Your tone shape is recognizable.";
+    return {
+      zh: "你的聲調形狀聽得出來。",
+      pinyin: "Nǐ de shēngdiào xíngzhuàng tīng de chūlái.",
+      en: "Your tone shape is recognizable.",
+    };
   }
   if (fluencyScore >= 75) {
-    return "Your speaking rhythm is steady.";
+    return {
+      zh: "你說話的節奏很穩定。",
+      pinyin: "Nǐ shuōhuà de jiézòu hěn wěndìng.",
+      en: "Your speaking rhythm is steady.",
+    };
   }
-  return "You completed a recording. Now improve one small part.";
+  return {
+    zh: "你完成了一次錄音，現在來改進一個小地方吧。",
+    pinyin: "Nǐ wánchéng le yí cì lùyīn, xiànzài lái gǎijìn yí gè xiǎo dìfāng ba.",
+    en: "You completed a recording. Now improve one small part.",
+  };
 }
 
 function studentFix(
@@ -635,30 +764,59 @@ function studentFix(
   fluencyScore: number,
   speechRate: number,
   focus?: WordProsody,
-): string {
+): BilingualLine {
   if (speechRate > 6.5) {
-    return "Slow down so each Mandarin tone has time to finish.";
+    return {
+      zh: "說慢一點，讓每個聲調都有時間發完整。",
+      pinyin: "Shuō màn yìdiǎn, ràng měi gè shēngdiào dōu yǒu shíjiān fā wánzhěng.",
+      en: "Slow down so each Mandarin tone has time to finish.",
+    };
   }
   if (toneAccuracy < 65 && focus) {
-    return `Make the tone movement clearer on "${focus.token}".`;
+    return {
+      zh: `把「${focus.token}」的聲調變化說得更清楚一點。`,
+      en: `Make the tone movement clearer on "${focus.token}".`,
+    };
   }
   if (fluencyScore < 60) {
-    return "Connect the words more smoothly without stopping between every character.";
+    return {
+      zh: "把字跟字連得更順一點，不要每個字中間都停頓。",
+      pinyin: "Bǎ zì gēn zì lián de gèng shùn yìdiǎn, búyào měi gè zì zhōngjiān dōu tíngdùn.",
+      en: "Connect the words more smoothly without stopping between every character.",
+    };
   }
   if (focus) {
-    return `Polish "${focus.token}" first.`;
+    return {
+      zh: `先把「${focus.token}」練熟一點。`,
+      en: `Polish "${focus.token}" first.`,
+    };
   }
-  return "Keep the sentence short and make every tone clear.";
+  return {
+    zh: "句子保持簡短，把每個聲調都說清楚。",
+    pinyin: "Jùzi bǎochí jiǎnduǎn, bǎ měi gè shēngdiào dōu shuō qīngchǔ.",
+    en: "Keep the sentence short and make every tone clear.",
+  };
 }
 
-function studentNextStep(speechRate: number, focus?: WordProsody): string {
+function studentNextStep(speechRate: number, focus?: WordProsody): BilingualLine {
   if (focus) {
-    return `Say "${focus.token}" three times, then repeat the full sentence.`;
+    return {
+      zh: `把「${focus.token}」說三次，再說一次完整的句子。`,
+      en: `Say "${focus.token}" three times, then repeat the full sentence.`,
+    };
   }
   if (speechRate < 2.5) {
-    return "Try the same sentence again with a little more flow.";
+    return {
+      zh: "再說一次同一句話，試著說得更順一點。",
+      pinyin: "Zài shuō yí cì tóng yí jù huà, shìzhe shuō de gèng shùn yìdiǎn.",
+      en: "Try the same sentence again with a little more flow.",
+    };
   }
-  return "Record again and try to match the same clear rhythm.";
+  return {
+    zh: "再錄一次，試著保持一樣清楚的節奏。",
+    pinyin: "Zài lù yí cì, shìzhe bǎochí yíyàng qīngchǔ de jiézòu.",
+    en: "Record again and try to match the same clear rhythm.",
+  };
 }
 
 function getToneFocusItems(items: WordProsody[]): WordProsody[] {
@@ -684,7 +842,7 @@ function FeedbackBlock({
   score,
   text,
 }: {
-  title: string;
+  title: ReactNode;
   score: number;
   text: string;
 }) {
@@ -698,15 +856,15 @@ function FeedbackBlock({
   );
 }
 
-function formatContourShape(shape: string): string {
-  const labels: Record<string, string> = {
-    dip: "Dipping",
-    falling: "Falling",
-    level: "Level",
-    rising: "Rising",
-    variable: "Variable",
+function formatContourShape(shape: string): { zh: string; en: string } {
+  const labels: Record<string, { zh: string; en: string }> = {
+    dip: { zh: "凹型", en: "Dipping" },
+    falling: { zh: "下降", en: "Falling" },
+    level: { zh: "平", en: "Level" },
+    rising: { zh: "上升", en: "Rising" },
+    variable: { zh: "不穩定", en: "Variable" },
   };
-  return labels[shape] || "Variable";
+  return labels[shape] || labels.variable;
 }
 
 async function readErrorResponse(response: Response): Promise<{ detail?: string }> {
@@ -723,7 +881,7 @@ function getBackendUrl(): string {
   }
 
   throw new Error(
-    "Voice testing needs a deployed backend in production. Deploy the FastAPI backend and set VITE_BACKEND_URL.",
+    "語音測試需要正式部署的後端。請部署 FastAPI 後端並設定 VITE_BACKEND_URL。 Voice testing needs a deployed backend in production. Deploy the FastAPI backend and set VITE_BACKEND_URL.",
   );
 }
 
@@ -732,8 +890,8 @@ function formatBackendError(error: unknown, backendUrl: string): string {
   const networkFailures = ["Failed to fetch", "NetworkError", "Load failed"];
 
   if (networkFailures.some((failure) => message.includes(failure))) {
-    return `Cannot reach the speech analysis backend at ${backendUrl}. Start the FastAPI backend on port 8000, then try again.`;
+    return `無法連線到語音分析伺服器 (${backendUrl})，請先啟動 FastAPI 後端（8000 埠），再試一次。 Cannot reach the speech analysis backend at ${backendUrl}. Start the FastAPI backend on port 8000, then try again.`;
   }
 
-  return message || "Voice analysis error occurred.";
+  return message || "語音分析發生錯誤。 Voice analysis error occurred.";
 }
