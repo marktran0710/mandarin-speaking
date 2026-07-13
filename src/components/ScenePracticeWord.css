@@ -1,4 +1,13 @@
 .scene-practice-toggle {
+  /* min-width/height widen the tap target well past the old ~20px box
+     (2px/4px padding around a 1.1em glyph) without blowing out this dense
+     vocab table's row height the way a full 44px square would. */
+  min-width: 32px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
   border: none;
   background: transparent;
   cursor: pointer;

@@ -368,14 +368,17 @@
   to   { transform: scale(1);    opacity: 1; }
 }
 .cat-word-remove {
+  /* 24px is the largest circle that still fits this chip's ~29px height
+     without forcing it taller — short of the 44px ideal, but a real step
+     up from the old 18px, which failed even WCAG's 24px AA minimum. */
   flex-shrink: 0;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   background: var(--seal-soft);
   color: var(--clay-error);
   border: none;
   border-radius: 50%;
-  font-size: 12px;
+  font-size: 13px;
   cursor: pointer;
   display: flex;
   align-items: center;

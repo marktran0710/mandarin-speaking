@@ -2577,16 +2577,19 @@ button.phase-nav-node:hover .phase-nav-marker-done {
 }
 
 .remove-slot-image {
+  /* Bumped from 24px toward the 44px touch-target guideline — capped at
+     32px so the corner badge doesn't swallow too much of a ~120px-tall
+     image slot. */
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: rgba(28, 26, 23, 0.65);
   color: var(--clay-on-accent);
   border: none;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1;
   display: flex;
   align-items: center;
