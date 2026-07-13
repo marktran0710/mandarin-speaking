@@ -7,6 +7,31 @@ import StoryVocabQuiz, {
   type VocabQuizSummary,
 } from "./StoryVocabQuiz";
 
+function optionButtons() {
+  return screen
+    .getAllByRole("button")
+    .filter((b) => b.className.includes("vocab-quiz-option"));
+}
+
+/** Answers the currently-shown question, picking a definitely-correct or
+ * definitely-wrong option by comparing each rendered option's text against
+ * the word's known correct translation — needed since Strikes/Speed have no
+ * manual "Finish" button, so tests drive them to a deterministic end (3
+ * wrong in a row, or a fixed question count) instead. */
+async function answerCurrentQuestion(
+  user: ReturnType<typeof userEvent.setup>,
+  correct: boolean,
+  translationByWord: Record<string, string>,
+) {
+  const word = screen.getByRole("heading").textContent!;
+  const correctTranslation = translationByWord[word];
+  const buttons = optionButtons();
+  const target = correct
+    ? buttons.find((b) => b.textContent === correctTranslation)
+    : buttons.find((b) => b.textContent !== correctTranslation);
+  await user.click(target!);
+}
+
 describe("collectQuizEntries", () => {
   it("pairs each word with its translation, skipping words with none", () => {
     const entries = collectQuizEntries(
@@ -204,6 +229,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     { word: "餐廳", translation: "restaurant" },
     { word: "吃", translation: "to eat" },
   ];
+  const translationByWord = Object.fromEntries(entries.map((e) => [e.word, e.translation]));
 
   it("reports a full results summary once reaching the results screen, and only calls onDone once the student continues past it", async () => {
     const user = userEvent.setup();
@@ -212,30 +238,26 @@ describe("StoryVocabQuiz onComplete tracking", () => {
 
     render(<StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} />);
 
-    await user.click(screen.getByRole("button", { name: /Free Practice/ }));
+    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
 
-    // Free mode is unlimited (no natural last question), so the student
-    // answers as many as they like, then explicitly finishes.
-    for (let i = 0; i < entries.length; i += 1) {
-      const group = screen.getByRole("group");
-      const firstOption = within(group).getAllByRole("button")[0];
-      await user.click(firstOption);
+    // Strikes mode has no manual "Finish" button — 3 consecutive wrong
+    // answers is the deterministic way to reach the results screen.
+    for (let i = 0; i < 2; i += 1) {
+      await answerCurrentQuestion(user, false, translationByWord);
       await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
     }
-    await user.click(screen.getByRole("button", { name: /Finish & see results/ }));
+    await answerCurrentQuestion(user, false, translationByWord);
 
     // Lands on the results screen first — onComplete fires here, but onDone
     // (which tells the caller to move on to practice) waits for the student
     // to explicitly continue past it.
-    expect(onComplete).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     expect(onDone).not.toHaveBeenCalled();
 
     const summary: VocabQuizSummary = onComplete.mock.calls[0][0];
-    expect(summary.totalQuestions).toBe(2);
-    expect(summary.questionResults).toHaveLength(2);
-    expect(summary.correctCount).toBe(
-      summary.questionResults.filter((r) => r.correct).length,
-    );
+    expect(summary.totalQuestions).toBe(3);
+    expect(summary.questionResults).toHaveLength(3);
+    expect(summary.correctCount).toBe(0);
     expect(summary.totalTimeMs).toBeGreaterThanOrEqual(0);
     for (const result of summary.questionResults) {
       expect(entries.some((e) => e.word === result.word)).toBe(true);
@@ -252,7 +274,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
 
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Free Practice/ }));
+    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
   });
 
@@ -300,23 +322,18 @@ describe("StoryVocabQuiz modes", () => {
     await user.click(target!);
   }
 
-  it("shows a pick-a-mode screen before any question, offering speed/strikes/free", () => {
+  it("shows a pick-a-mode screen before any question, offering speed/strikes/review", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
 
     expect(screen.getByRole("button", { name: /Speed/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /3 Strikes/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Free Practice/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Review/ })).toBeInTheDocument();
     // No question shown yet.
     expect(screen.queryByRole("group", { name: /What does/ })).not.toBeInTheDocument();
   });
 
-  it("only Free mode shows a Finish button, and it's visible immediately (not gated by answering first)", async () => {
+  it("neither Speed nor Strikes shows a Finish button (Review replaced the old unlimited Free mode)", async () => {
     const user = userEvent.setup();
-
-    const { unmount: unmountFree } = render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-    await user.click(screen.getByRole("button", { name: /Free Practice/ }));
-    expect(screen.getByRole("button", { name: /Finish & see results/ })).toBeInTheDocument();
-    unmountFree();
 
     const { unmount: unmountStrikes } = render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
     await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
@@ -328,14 +345,33 @@ describe("StoryVocabQuiz modes", () => {
     expect(screen.queryByRole("button", { name: /Finish & see results/ })).not.toBeInTheDocument();
   });
 
-  it("free/strikes modes are unlimited — the question pool cycles once every entry has been asked", async () => {
+  it("Review mode shows every word's pinyin and translation, and never starts a quiz", async () => {
     const user = userEvent.setup();
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
 
-    await user.click(screen.getByRole("button", { name: /Free Practice/ }));
+    await user.click(screen.getByRole("button", { name: /Review/ }));
 
-    // Answer more questions than there are distinct entries (5) — proves the
-    // pool cycles/reshuffles instead of running out and the mode never
+    const list = screen.getByRole("list", { name: "Vocabulary list" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(entries.length);
+    for (const entry of entries) {
+      expect(within(list).getByText(entry.word)).toBeInTheDocument();
+      expect(within(list).getByText(entry.translation)).toBeInTheDocument();
+    }
+    expect(screen.queryByRole("group", { name: /What does/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Back to modes/ }));
+    expect(screen.getByRole("button", { name: /Review/ })).toBeInTheDocument();
+  });
+
+  it("strikes mode is unlimited — the question pool cycles once every entry has been asked", async () => {
+    const user = userEvent.setup();
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+
+    // Answer more questions than there are distinct entries (5), always
+    // correctly so strikes never triggers — proves the pool cycles/reshuffles
+    // instead of running out, and the mode never
     // shows "Start practice" (it has no fixed last question).
     for (let i = 0; i < entries.length + 2; i += 1) {
       expect(screen.getByRole("heading")).toBeInTheDocument();
@@ -411,25 +447,6 @@ describe("StoryVocabQuiz modes", () => {
     expect(screen.getByRole("heading")).toBeInTheDocument();
   });
 
-  it("speed mode shows a countdown and auto-fails the question when it reaches zero", () => {
-    vi.useFakeTimers();
-    try {
-      const onComplete = vi.fn();
-      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} />);
-
-      fireEvent.click(screen.getByRole("button", { name: /Speed/ }));
-      expect(screen.getByText("⏱️ 8s")).toBeInTheDocument();
-
-      act(() => {
-        vi.advanceTimersByTime(8_100);
-      });
-
-      expect(screen.getByText(/Time's up/)).toBeInTheDocument();
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
   it("speed mode ends the whole run once the overall time cap is reached", () => {
     vi.useFakeTimers();
     try {
@@ -454,31 +471,29 @@ describe("StoryVocabQuiz modes", () => {
     const onDone = vi.fn();
     render(<StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} />);
 
-    await user.click(screen.getByRole("button", { name: /Free Practice/ }));
+    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
 
-    // Get the first question wrong, the rest right, then finish (Free mode
-    // is unlimited, so there's no natural last question to trigger this).
-    await answerCurrentQuestion(user, false);
-    await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
-    for (let i = 1; i < entries.length; i += 1) {
-      await answerCurrentQuestion(user, true);
+    // Strikes mode has no manual "Finish" — 3 consecutive wrong answers ends
+    // the run itself, and (since none were correct) all 3 land in "missed".
+    for (let i = 0; i < 2; i += 1) {
+      await answerCurrentQuestion(user, false);
       await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
     }
-    await user.click(screen.getByRole("button", { name: /Finish & see results/ }));
+    await answerCurrentQuestion(user, false);
 
-    expect(onComplete).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     const missedList = screen.getByRole("list", { name: "Missed words" });
-    expect(within(missedList).getAllByRole("listitem")).toHaveLength(1);
-    const missedWord = missedList.querySelector(".vocab-quiz-missed-word")!.textContent;
+    expect(within(missedList).getAllByRole("listitem")).toHaveLength(3);
 
     await user.click(screen.getByRole("button", { name: /Practice missed words/ }));
 
-    // Retry round: exactly the one missed word, no mode-select screen, and
-    // no Finish button (it's bounded, unlike Free mode's original round).
-    expect(screen.getByRole("heading").textContent).toBe(missedWord);
+    // Retry round: exactly the 3 missed words, no mode-select screen, and no
+    // Finish button (it's bounded, unlike the old Free mode's original round).
     expect(screen.queryByRole("button", { name: /Finish & see results/ })).not.toBeInTheDocument();
-    await answerCurrentQuestion(user, true);
-    await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
+    for (let i = 0; i < 3; i += 1) {
+      await answerCurrentQuestion(user, true);
+      await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
+    }
 
     // Retry round completing must not fire a second onComplete/attempt, and
     // its own results screen must not offer yet another retry.

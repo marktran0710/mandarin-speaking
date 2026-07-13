@@ -208,43 +208,20 @@
 .vocab-quiz-mode-strikes:hover { box-shadow: 0 6px 0 var(--clay-error-deep); }
 .vocab-quiz-mode-strikes:active { box-shadow: 0 2px 0 var(--clay-error-deep); }
 
-.vocab-quiz-mode-free {
+.vocab-quiz-mode-review {
   border-color: var(--jade);
   box-shadow: 0 4px 0 var(--jade-deep);
 }
-.vocab-quiz-mode-free:hover { box-shadow: 0 6px 0 var(--jade-deep); }
-.vocab-quiz-mode-free:active { box-shadow: 0 2px 0 var(--jade-deep); }
+.vocab-quiz-mode-review:hover { box-shadow: 0 6px 0 var(--jade-deep); }
+.vocab-quiz-mode-review:active { box-shadow: 0 2px 0 var(--jade-deep); }
 
 /* ── In-quiz mode indicators ── */
-.vocab-quiz-timer {
-  font-family: var(--font-mono);
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--gold-deep);
-  margin: 2px 0 0;
-}
-.vocab-quiz-timer.urgent {
-  color: var(--clay-error);
-  animation: vocab-quiz-timer-pulse 0.6s ease-in-out infinite;
-}
-@keyframes vocab-quiz-timer-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
 .vocab-quiz-strikes {
   font-size: 18px;
   letter-spacing: 4px;
   margin: 2px 0 0;
 }
 .vocab-quiz-strikes .strike-open { opacity: 0.35; }
-
-.vocab-quiz-timeout-note {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--clay-error);
-  margin: -8px 0 0;
-}
 
 /* ── Summary / results screen ── */
 .vocab-quiz-missed-list {
@@ -300,4 +277,49 @@
 .btn-vocab-quiz-retry:active {
   transform: translateY(3px);
   box-shadow: 0 1px 0 var(--gold-deep);
+}
+
+/* ── Review screen ── */
+.vocab-quiz-review {
+  max-width: 560px;
+}
+
+.vocab-quiz-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-height: 420px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.vocab-quiz-review-item {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.4fr;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--seal-soft);
+  border: 1.5px solid var(--seal);
+  border-radius: 10px;
+  text-align: left;
+}
+
+.vocab-quiz-review-word {
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--seal-deep);
+}
+
+.vocab-quiz-review-pinyin {
+  font-size: 13px;
+  color: var(--clay-muted);
+}
+
+.vocab-quiz-review-translation {
+  font-size: 13px;
+  color: var(--clay-body);
 }

@@ -7,24 +7,31 @@ import StoryRecorder, {
   buildDistractorPatchUpdates,
 } from "./StoryRecorder";
 
-/** Picks Free Practice mode (if the mode-select screen is showing), answers
- * one question of the vocabulary quiz (any option — this is about reaching
- * the end, not scoring), then finishes the run — Free mode is unlimited, so
- * there's no natural last question — and continues past the results screen.
- * Required to advance past a first-time (skip-not-yet-unlocked) quiz. */
+/** Picks Strikes mode (if the mode-select screen is showing) and answers
+ * wrong on purpose until the run ends itself after 3 consecutive misses —
+ * the deterministic way to reach the results screen now that Review
+ * replaced Free Practice's unlimited "answer a couple, then Finish" path.
+ * Each click is checked against the resulting DOM (rather than assumed)
+ * since the same rendered option can land correct or incorrect depending on
+ * shuffle. Then continues past the results screen. Required to advance past
+ * a first-time (skip-not-yet-unlocked) quiz. */
 async function completeVocabQuiz(user: UserEvent) {
-  const freeModeButton = screen.queryByRole("button", { name: /Free Practice/ });
-  if (freeModeButton) await user.click(freeModeButton);
+  const strikesButton = screen.queryByRole("button", { name: /Strikes/ });
+  if (!strikesButton) return;
+  await user.click(strikesButton);
 
-  const optionsGroup = screen.queryByRole("group", { name: /What does/ });
-  if (optionsGroup) {
+  let strikes = 0;
+  while (strikes < 3) {
+    const optionsGroup = screen.getByRole("group", { name: /What does/ });
     const firstOption = within(optionsGroup).getAllByRole("button")[0];
     await user.click(firstOption);
-    await user.click(screen.getByRole("button", { name: /Finish & see results/ }));
+    strikes = firstOption.className.includes("vocab-quiz-option-incorrect") ? strikes + 1 : 0;
+    const nextButton = screen.queryByRole("button", { name: /Next question|Start practice/ });
+    if (nextButton) await user.click(nextButton);
   }
 
-  const continueButton = screen.queryByRole("button", { name: /Continue to practice/ });
-  if (continueButton) await user.click(continueButton);
+  const continueButton = await screen.findByRole("button", { name: /Continue to practice/ });
+  await user.click(continueButton);
 }
 
 vi.mock("../PitchChart", () => ({

@@ -406,6 +406,7 @@ export default function StoryRecorder({
     const translations: Array<string | undefined> = [];
     const suggestedAnswers: Array<string | undefined> = [];
     const aiDistractors: Array<string[] | undefined> = [];
+    const pinyins: Array<string | undefined> = [];
     topic.images.forEach((_, si) => {
       const sceneSuggestedAnswer = topic.suggestedAnswers?.[si];
       (topic.vocabulary[si] || []).forEach((word, i) => {
@@ -413,9 +414,10 @@ export default function StoryRecorder({
         translations.push(topic.vocabularyTranslation?.[si]?.[i]);
         suggestedAnswers.push(sceneSuggestedAnswer);
         aiDistractors.push(topic.vocabularyDistractors?.[si]?.[i]);
+        pinyins.push(topic.vocabularyPinyin?.[si]?.[i]);
       });
     });
-    return collectQuizEntries(words, translations, suggestedAnswers, aiDistractors);
+    return collectQuizEntries(words, translations, suggestedAnswers, aiDistractors, pinyins);
   }, [topic]);
   const hasVocabQuiz = quizEntries.length >= 1;
 
