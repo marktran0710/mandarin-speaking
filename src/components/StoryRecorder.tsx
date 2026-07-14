@@ -16,7 +16,6 @@ import {
   type VocabularyDistractorUpdate,
 } from "../services/database";
 import PraatTimeline from "./PraatTimeline";
-import StoryFeedbackCard from "./StoryFeedbackCard";
 import ScenePracticeWord from "./ScenePracticeWord";
 import StoryVocabQuiz, {
   collectQuizEntries,
@@ -45,11 +44,15 @@ import {
 import "./StoryRecorder.css";
 import { BiLabel, BiText } from "./BiLabel";
 import "./BiLabel.css";
-import { SkillFocusLabel } from "./TopicSelector";
 import WordProsodyCard from "./WordProsodyCard";
 import StudentFeedbackCards from "./StudentFeedbackCards";
 import FeedbackSummary from "./FeedbackSummary";
 import RecordingPlayback from "./RecordingPlayback";
+import StoryOverviewSection from "./StoryOverviewSection";
+import SortingChallenge from "./SortingChallenge";
+import StorySummarySection, {
+  type JourneyStopBase,
+} from "./StorySummarySection";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -84,7 +87,7 @@ interface VocabGroup {
   words: string[];
 }
 
-interface Topic {
+export interface Topic {
   id: string;
   name: string;
   description?: string;
@@ -523,17 +526,6 @@ export default function StoryRecorder({
     firstScenePracticeStep(selectedImageIndex),
   );
 
-  const [shuffledPool, setShuffledPool] = useState<string[]>([]);
-  const [placedImages, setPlacedImages] = useState<Array<string | null>>([]);
-  const [selectedPoolImage, setSelectedPoolImage] = useState<string | null>(
-    null,
-  );
-  const [validationStates, setValidationStates] = useState<
-    Array<"correct" | "incorrect" | null>
-  >([]);
-  const [sortingFeedback, setSortingFeedback] = useState<string>("");
-  const [, setSortingAttempts] = useState(0);
-
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
@@ -545,24 +537,6 @@ export default function StoryRecorder({
   const recordingStartRef = useRef(0);
   const lastSpeechAtRef = useRef(0);
   const currentTranscriptRef = useRef("");
-
-  const shuffleImages = (images: string[]) => {
-    if (!images || images.length === 0) return [];
-    let scrambled = [...images];
-    // Fisher-Yates shuffle
-    for (let i = scrambled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [scrambled[i], scrambled[j]] = [scrambled[j], scrambled[i]];
-    }
-    // Swap first two if order is unchanged
-    const isSameOrder = scrambled.every((img, idx) => img === images[idx]);
-    if (isSameOrder && scrambled.length > 1) {
-      const temp = scrambled[0];
-      scrambled[0] = scrambled[1];
-      scrambled[1] = temp;
-    }
-    return scrambled;
-  };
 
   useEffect(() => {
     setScenePracticeStep(firstScenePracticeStep(selectedImageIndex));
@@ -582,13 +556,6 @@ export default function StoryRecorder({
             ? "vocabquiz"
             : "practice",
     );
-    setSelectedPoolImage(null);
-    setSortingFeedback("");
-    setSortingAttempts(0);
-    setValidationStates(new Array(topic.images.length).fill(null));
-    const pool = shuffleImages(topic.images);
-    setShuffledPool(pool);
-    setPlacedImages(new Array(topic.images.length).fill(null));
   }, [topic.id, topic.images, enableSorting, enableOverview, hasVocabQuiz]);
 
   useEffect(() => {
@@ -638,144 +605,6 @@ export default function StoryRecorder({
       cancelled = true;
     };
   }, []);
-
-  // Sorting Challenge Handlers
-  const handleDragStart = (
-    e: React.DragEvent,
-    image: string,
-    source: "pool" | "slot",
-    index?: number,
-  ) => {
-    e.dataTransfer.setData(
-      "text/plain",
-      JSON.stringify({ image, source, index }),
-    );
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const placePoolImageInSlot = (image: string, targetIndex: number) => {
-    setPlacedImages((prev) => {
-      const next = [...prev];
-      const existingImage = next[targetIndex];
-      next[targetIndex] = image;
-
-      setShuffledPool((pool) => {
-        let nextPool = pool.filter((img) => img !== image);
-        if (existingImage) {
-          nextPool.push(existingImage);
-        }
-        return nextPool;
-      });
-
-      return next;
-    });
-    setSelectedPoolImage(null);
-    setValidationStates(new Array(topic.images.length).fill(null));
-    setSortingFeedback("");
-  };
-
-  const swapSlots = (sourceIndex: number, targetIndex: number) => {
-    setPlacedImages((prev) => {
-      const next = [...prev];
-      const temp = next[targetIndex];
-      next[targetIndex] = next[sourceIndex];
-      next[sourceIndex] = temp;
-      return next;
-    });
-    setValidationStates(new Array(topic.images.length).fill(null));
-    setSortingFeedback("");
-  };
-
-  const removeImageFromSlot = (slotIndex: number) => {
-    const image = placedImages[slotIndex];
-    if (!image) return;
-
-    setPlacedImages((prev) => {
-      const next = [...prev];
-      next[slotIndex] = null;
-      return next;
-    });
-
-    setShuffledPool((pool) => [...pool, image]);
-    setSelectedPoolImage(null);
-    setValidationStates(new Array(topic.images.length).fill(null));
-    setSortingFeedback("");
-  };
-
-  const handleDropToSlot = (e: React.DragEvent, targetIndex: number) => {
-    e.preventDefault();
-    try {
-      const dataStr = e.dataTransfer.getData("text/plain");
-      if (!dataStr) return;
-      const data = JSON.parse(dataStr);
-      const { image, source, index: sourceIndex } = data;
-
-      if (source === "pool") {
-        placePoolImageInSlot(image, targetIndex);
-      } else if (source === "slot" && sourceIndex !== undefined) {
-        swapSlots(sourceIndex, targetIndex);
-      }
-    } catch (err) {
-      console.error("Drop to slot failed", err);
-    }
-  };
-
-  const handleDropToPool = (e: React.DragEvent) => {
-    e.preventDefault();
-    try {
-      const dataStr = e.dataTransfer.getData("text/plain");
-      if (!dataStr) return;
-      const data = JSON.parse(dataStr);
-      const { source, index: sourceIndex } = data;
-
-      if (source === "slot" && sourceIndex !== undefined) {
-        removeImageFromSlot(sourceIndex);
-      }
-    } catch (err) {
-      console.error("Drop to pool failed", err);
-    }
-  };
-
-  const checkSequence = () => {
-    const isAnySlotEmpty = placedImages.some((img) => img === null);
-    if (isAnySlotEmpty) {
-      setSortingFeedback(
-        "請先把所有圖片放進場景再檢查！Please place all pictures into the scenes before checking!",
-      );
-      return;
-    }
-
-    const nextValidationStates = placedImages.map((image, index) => {
-      return image === topic.images[index] ? "correct" : "incorrect";
-    });
-    setValidationStates(nextValidationStates);
-
-    const isAllCorrect = nextValidationStates.every(
-      (state) => state === "correct",
-    );
-    setSortingAttempts((prev) => prev + 1);
-
-    if (isAllCorrect) {
-      setSortingFeedback(
-        "完全正確！做得很好，你已經把場景排成正確順序了！Spot on! Excellent job. You have arranged the scenes in the correct order!",
-      );
-    } else {
-      setSortingFeedback(
-        "有些圖片順序不對。請檢查紅色標示的場景並再試一次！Some pictures are not in the correct sequence. Check the red highlighted scenes and try again!",
-      );
-    }
-  };
-
-  const resetSorting = () => {
-    setPlacedImages(new Array(topic.images.length).fill(null));
-    setShuffledPool([...topic.images]);
-    setSelectedPoolImage(null);
-    setValidationStates(new Array(topic.images.length).fill(null));
-    setSortingFeedback("");
-  };
 
   const clearTimers = () => {
     if (silenceTimerRef.current) {
@@ -1331,7 +1160,7 @@ export default function StoryRecorder({
   const journeyStopsBase = topic.images
     .map((img, idx) => ({ img, idx }))
     .filter(({ idx }) => !(topic.firstFrameIsExample && idx === 0))
-    .map(({ img, idx }) => {
+    .map(({ img, idx }): JourneyStopBase => {
       const prog = sceneProgress[idx];
       const ready = prog ? sceneReady(prog) : false;
       const started = Boolean(prog && prog.attempts > 0);
@@ -1418,380 +1247,22 @@ export default function StoryRecorder({
       </div>
 
       {phase === "overview" && (
-        <section className="story-overview">
-          <div className="overview-hero">
-            <p className="eyebrow">
-              <BiLabel k="story_challenge" />
-            </p>
-            {topic.lessonNumber != null && (
-              <span className="lesson-number-badge">
-                <BiLabel
-                  zh={`第 ${topic.lessonNumber} 課`}
-                  pinyin={`Dì ${topic.lessonNumber} kè`}
-                  en={`Lesson ${topic.lessonNumber}`}
-                />
-              </span>
-            )}
-            <h1 className="overview-title">{topic.name}</h1>
-            {topic.description && (
-              <p className="overview-desc">{topic.description}</p>
-            )}
-            {(topic.level || topic.skillFocus) && (
-              <div className="overview-meta">
-                {topic.level && <span>{topic.level}</span>}
-                {topic.skillFocus && (
-                  <span>
-                    <SkillFocusLabel skillFocus={topic.skillFocus} />
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {allVocabulary.length > 0 && (
-            <div className="overview-vocab-block">
-              <h2>
-                <BiLabel k="key_vocabulary" />
-              </h2>
-              {topic.images.map((_, si) => {
-                const sceneWords = topic.vocabulary[si] || [];
-                if (sceneWords.length === 0) return null;
-                return (
-                  <div key={si} className="overview-vocab-scene">
-                    <span className="overview-vocab-scene-label">
-                      <BiLabel zh={`場景 ${si + 1}`} pinyin={`Chǎngjǐng ${si + 1}`} en={`Scene ${si + 1}`} />
-                    </span>
-                    <div
-                      className="overview-vocab-table"
-                      role="table"
-                      aria-label="Key vocabulary"
-                    >
-                      {sceneWords.map((word, i) => {
-                        const py =
-                          topic.vocabularyPinyin?.[si]?.[i] || toPinyin(word);
-                        const pos = topic.vocabularyPos?.[si]?.[i];
-                        const translation =
-                          topic.vocabularyTranslation?.[si]?.[i];
-                        return (
-                          <div
-                            className="overview-vocab-row"
-                            role="row"
-                            key={`${word}-${i}`}
-                          >
-                            <span
-                              className="overview-vocab-cell overview-vocab-hanzi"
-                              role="cell"
-                            >
-                              {word}
-                            </span>
-                            <span
-                              className="overview-vocab-cell overview-vocab-pinyin"
-                              role="cell"
-                            >
-                              {py}
-                            </span>
-                            <span
-                              className="overview-vocab-cell overview-vocab-pos"
-                              role="cell"
-                            >
-                              {pos}
-                            </span>
-                            <span
-                              className="overview-vocab-cell overview-vocab-meaning"
-                              role="cell"
-                            >
-                              {translation}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          <div className="overview-steps-block">
-            <h2>
-              <BiLabel k="your_challenge" />
-            </h2>
-            <div className="overview-choice-grid">
-              <button
-                type="button"
-                className="overview-choice-card"
-                disabled={!hasVocabQuiz}
-                onClick={() => setPhase("vocabquiz")}
-              >
-                <span className="overview-choice-icon">❓</span>
-                <strong>
-                  <BiLabel k="vocabulary_map" />
-                </strong>
-                <p>
-                  {hasVocabQuiz ? (
-                    <BiText k="match_key_words_to_each_story_scene" />
-                  ) : (
-                    <BiText
-                      zh="老師還沒有詞彙翻譯"
-                      pinyin="Lǎoshī hái méiyǒu cíhuì fānyì"
-                      en="Your teacher hasn't added any word translations yet"
-                    />
-                  )}
-                </p>
-              </button>
-
-              <button
-                type="button"
-                className="overview-choice-card"
-                disabled={speakingLocked}
-                onClick={() => setPhase(enableSorting ? "sorting" : "practice")}
-              >
-                <span className="overview-choice-icon">🎙️</span>
-                <strong>
-                  <BiLabel k="speaking_practice" />
-                </strong>
-                <p>
-                  {speakingLocked ? (
-                    <BiText
-                      zh="請先完成詞彙測驗"
-                      pinyin="Qǐng xiān wánchéng cíhuì cèyàn"
-                      en="Complete the vocabulary quiz first"
-                    />
-                  ) : (
-                    <BiText k="record_your_mandarin_story_out_loud" />
-                  )}
-                </p>
-              </button>
-            </div>
-          </div>
-        </section>
+        <StoryOverviewSection
+          topic={topic}
+          hasVocabQuiz={hasVocabQuiz}
+          speakingLocked={speakingLocked}
+          allVocabulary={allVocabulary}
+          enableSorting={enableSorting}
+          onSelectPhase={setPhase}
+        />
       )}
 
       {phase === "sorting" && (
-        <section className="sorting-challenge-container">
-          {/* ── Header ── */}
-          <div className="sorting-header">
-            <div className="sorting-header-copy">
-              <p className="eyebrow">
-                <BiLabel k="step_1_arrange_scenes" />
-              </p>
-              <h1>
-                <BiLabel k="put_the_story_in_order" />
-              </h1>
-              <p className="subtitle">
-                <BiText k="drag_each_picture_into_the_correct_scene" />
-              </p>
-            </div>
-            <div className="sorting-progress">
-              <div className="sorting-progress-label">
-                <BiLabel
-                  zh={`已放 ${placedImages.filter(Boolean).length} / ${placedImages.length}`}
-                  pinyin={`Yǐ fàng ${placedImages.filter(Boolean).length} / ${placedImages.length}`}
-                  en={`${placedImages.filter(Boolean).length} / ${placedImages.length} placed`}
-                />
-              </div>
-              <div className="sorting-progress-bar">
-                <div
-                  className="sorting-progress-fill"
-                  style={{
-                    width: `${placedImages.length === 0 ? 0 : (placedImages.filter(Boolean).length / placedImages.length) * 100}%`,
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {sortingFeedback && (
-            <div
-              className={`sorting-feedback-banner ${sortingFeedback.includes("Spot on") ? "success" : "info"}`}
-            >
-              <span className="feedback-icon">
-                {sortingFeedback.includes("Spot on") ? "🎉" : "💡"}
-              </span>
-              <p>{sortingFeedback}</p>
-            </div>
-          )}
-
-          {/* ── Scene slots ── */}
-          <div className="sorting-slots-grid">
-            {placedImages.map((image, index) => {
-              const validation = validationStates[index];
-              const scenePrompt = topic.prompts?.[index];
-              return (
-                <div
-                  key={`slot-${index}`}
-                  className={`sorting-slot-card ${validation || ""} ${selectedPoolImage ? "droppable" : ""}`}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDropToSlot(e, index)}
-                  onClick={() => {
-                    if (selectedPoolImage)
-                      placePoolImageInSlot(selectedPoolImage, index);
-                    else if (image) removeImageFromSlot(index);
-                  }}
-                >
-                  <div className="slot-header">
-                    <span className="slot-number">
-                      <span className="slot-num-badge">{index + 1}</span>
-                      <BiLabel
-                        zh={`場景 ${index + 1}`}
-                        pinyin={`Chǎngjǐng ${index + 1}`}
-                        en={`Scene ${index + 1}`}
-                      />
-                    </span>
-                    {validation === "correct" && (
-                      <span className="slot-badge correct">✓</span>
-                    )}
-                    {validation === "incorrect" && (
-                      <span className="slot-badge incorrect">✗</span>
-                    )}
-                  </div>
-
-                  <div className="slot-body">
-                    {image ? (
-                      <div className="slot-image-wrapper">
-                        <img
-                          src={image}
-                          alt={`Scene ${index + 1}`}
-                          draggable
-                          onDragStart={(e) =>
-                            handleDragStart(e, image, "slot", index)
-                          }
-                        />
-                        <button
-                          type="button"
-                          className="remove-slot-image"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeImageFromSlot(index);
-                          }}
-                          aria-label="Remove"
-                        >
-                          &times;
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="slot-placeholder">
-                        <span className="placeholder-icon">🖼️</span>
-                        <span className="placeholder-text">
-                          {selectedPoolImage ? (
-                            <BiLabel k="click_to_place" />
-                          ) : (
-                            <BiLabel k="drag_here" />
-                          )}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {scenePrompt && (
-                    <div className="slot-footer">
-                      <p className="slot-prompt">{scenePrompt}</p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* ── Picture pool ── */}
-          <div className="sorting-pool-section">
-            <div className="sorting-pool-header">
-              <h2>
-                📷 <BiLabel k="picture_bank" />
-              </h2>
-              <p className="pool-helper-text">
-                {selectedPoolImage ? (
-                  <BiText k="click_a_scene_slot_above_to_place_this_p" />
-                ) : shuffledPool.length === 0 ? (
-                  <BiText k="all_pictures_placed_verify_below" />
-                ) : (
-                  <BiText k="drag_a_picture_to_a_slot_or_click_to_sel" />
-                )}
-              </p>
-            </div>
-            <div
-              className="sorting-pool"
-              onDragOver={handleDragOver}
-              onDrop={handleDropToPool}
-            >
-              {shuffledPool.length === 0 ? (
-                <div className="pool-empty-state">
-                  <span className="star-icon">✨</span>
-                  <p>
-                    <BiLabel k="all_pictures_placed" />
-                  </p>
-                </div>
-              ) : (
-                shuffledPool.map((image, poolIdx) => (
-                  <div
-                    key={poolIdx}
-                    className={`sorting-pool-card ${selectedPoolImage === image ? "selected" : ""}`}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, image, "pool")}
-                    onClick={() =>
-                      setSelectedPoolImage(
-                        selectedPoolImage === image ? null : image,
-                      )
-                    }
-                  >
-                    <img src={image} alt="Story picture" />
-                    <span className="drag-handle">
-                      {selectedPoolImage === image ? (
-                        <BiLabel k="selected" />
-                      ) : (
-                        <BiLabel k="drag_click" />
-                      )}
-                    </span>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* ── Actions ── */}
-          <div className="sorting-actions">
-            <button
-              type="button"
-              className="btn-reset-sorting"
-              onClick={resetSorting}
-            >
-              ↺ <BiLabel k="reset" />
-            </button>
-
-            {validationStates.some((s) => s === "correct") &&
-            !validationStates.includes("incorrect") &&
-            placedImages.every(Boolean) ? (
-              <button
-                type="button"
-                className="btn-start-speaking"
-                onClick={() =>
-                  setPhase(speakingLocked ? "vocabquiz" : "practice")
-                }
-              >
-                <BiLabel k="continue_to_speaking" />
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="btn-verify-sorting"
-                onClick={checkSequence}
-                disabled={placedImages.some((img) => img === null)}
-              >
-                <BiLabel k="verify_sequence" />
-              </button>
-            )}
-
-            <button
-              type="button"
-              className="btn-skip-sorting"
-              onClick={() =>
-                setPhase(speakingLocked ? "vocabquiz" : "practice")
-              }
-            >
-              <BiLabel k="skip" />
-            </button>
-          </div>
-        </section>
+        <SortingChallenge
+          topic={topic}
+          speakingLocked={speakingLocked}
+          onContinue={setPhase}
+        />
       )}
 
       {phase === "vocabquiz" && (
@@ -2826,77 +2297,22 @@ export default function StoryRecorder({
       {/* ── Journey summary: reached once every scene is recorded, instead
            of the submit panel repeating on every scene's speaking step ── */}
       {phase === "summary" && (
-        <>
-          <JourneyPath
-            stops={journeyStopsBase.map((stop) => ({
-              ...stop,
-              onClick: () => {
-                goToScene(stop.idx, stop.img);
-                setPhase("practice");
-              },
-            }))}
-          />
-
-          {storySubmitted ? (
-            <>
-              <div className="story-submit-panel story-submit-success">
-                <span className="story-submit-icon">✓</span>
-                <div>
-                  <p className="story-submit-title">
-                    <BiLabel k="story_submitted" />
-                  </p>
-                  <p className="story-submit-hint">
-                    <BiLabel
-                      zh={`你的老師現在可以看全部 ${totalScenes} 個場景。`}
-                      pinyin={`Nǐ de lǎoshī xiànzài kěyǐ kàn quánbù ${totalScenes} ge chǎngjǐng.`}
-                      en={`Your teacher can now review all ${totalScenes} scenes.`}
-                    />
-                  </p>
-                </div>
-              </div>
-              <StoryFeedbackCard
-                feedback={storyFeedbackResult?.storyFeedback}
-                concatenatedAudioUrl={
-                  storyFeedbackResult?.concatenatedAudioUrl
-                }
-                scenes={Object.values(sceneRecordings)}
-              />
-            </>
-          ) : (
-            <div className="story-submit-panel">
-              <div className="story-submit-progress">
-                {topic.images.map((_, si) => (
-                  <div
-                    key={si}
-                    className={`story-submit-dot ${sceneRecordings[si] ? "done" : "pending"}`}
-                    title={`場景 ${si + 1}${sceneRecordings[si] ? " ✓ 已完成" : " — 還沒錄音 not yet recorded"} Scene ${si + 1}`}
-                  />
-                ))}
-              </div>
-              <p className="story-submit-label">
-                {allScenesRecorded ? (
-                  <BiLabel k="all_scenes_recorded_ready_to_submit" />
-                ) : (
-                  <BiLabel
-                    zh={`已錄 ${completedSceneCount} / ${totalScenes} 個場景`}
-                    pinyin={`Yǐ lù ${completedSceneCount} / ${totalScenes} ge chǎngjǐng`}
-                    en={`${completedSceneCount} of ${totalScenes} scenes recorded`}
-                  />
-                )}
-              </p>
-              {submitError && (
-                <p className="story-submit-error">{submitError}</p>
-              )}
-              <button
-                className="btn-submit-story"
-                disabled={!allScenesRecorded}
-                onClick={handleSubmitStory}
-              >
-                <BiLabel k="submit_story_to_teacher" />
-              </button>
-            </div>
-          )}
-        </>
+        <StorySummarySection
+          topic={topic}
+          journeyStopsBase={journeyStopsBase}
+          storySubmitted={storySubmitted}
+          storyFeedbackResult={storyFeedbackResult}
+          sceneRecordings={sceneRecordings}
+          submitError={submitError}
+          allScenesRecorded={allScenesRecorded}
+          completedSceneCount={completedSceneCount}
+          totalScenes={totalScenes}
+          onSubmitStory={handleSubmitStory}
+          onJourneyStopClick={(idx, img) => {
+            goToScene(idx, img);
+            setPhase("practice");
+          }}
+        />
       )}
     </div>
   );
