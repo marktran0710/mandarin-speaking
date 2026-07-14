@@ -6,6 +6,8 @@ from fastapi import APIRouter, HTTPException, Request
 from database import connect_db, row_to_vocab_quiz_attempt
 import main
 from main import (
+    PhraseFromSentenceRequest,
+    PhraseFromSentenceResponse,
     VocabDistractorRequest,
     VocabDistractorResponse,
     VocabFromSentenceRequest,
@@ -105,6 +107,49 @@ async def vocab_from_sentence(request: VocabFromSentenceRequest, req: Request):
     raise HTTPException(
         status_code=502,
         detail="Could not extract vocabulary from that sentence.",
+    ) from last_error
+
+
+@router.post("/api/phrases-from-sentence", response_model=PhraseFromSentenceResponse)
+async def phrases_from_sentence(request: PhraseFromSentenceRequest, req: Request):
+    """
+    Extract handy, reusable phrase-level chunks (not single words, not the
+    whole sentence) from a scene's suggested-answer sentence — lets a
+    teacher autofill the phrases table instead of typing them by hand.
+    """
+    client_ip = req.client.host if req.client else "unknown"
+    main._check_rate_limit(f"phrases-from-sentence:{client_ip}", max_requests=10, window_seconds=60)
+
+    sentence = request.sentence.strip()
+    if not sentence:
+        raise HTTPException(status_code=400, detail="Provide a sentence to extract phrases from.")
+    count = max(1, request.count)
+
+    engines = [
+        ("groq", main.GROQ_API_KEY, main.extract_phrases_from_sentence_with_groq),
+        ("gemini", main.GEMINI_API_KEY, main.extract_phrases_from_sentence_with_gemini),
+    ]
+    if not any(key for _, key, _ in engines):
+        raise HTTPException(
+            status_code=503,
+            detail="AI phrase extraction requires GROQ_API_KEY or GEMINI_API_KEY to be configured on the backend.",
+        )
+
+    last_error: Exception | None = None
+    for name, key, extract in engines:
+        if not key:
+            continue
+        try:
+            phrases = await extract(sentence, count)
+        except Exception as exc:
+            main.logger.warning("%s phrase extraction failed, trying next engine: %s", name, exc)
+            last_error = exc
+            continue
+        return PhraseFromSentenceResponse(phrases=phrases)
+
+    raise HTTPException(
+        status_code=502,
+        detail="Could not extract phrases from that sentence.",
     ) from last_error
 
 

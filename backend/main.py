@@ -272,6 +272,23 @@ class VocabFromSentenceResponse(BaseModel):
     words: List[VocabWordSuggestion]
 
 
+class PhraseFromSentenceRequest(BaseModel):
+    sentence: str
+    # How many phrases to request — the caller scales this with the story's
+    # difficulty tier (e.g. 1 for easy, 2 for medium, 3 for hard) since a
+    # longer/harder sentence naturally has more phrase-worthy chunks.
+    count: int = 1
+
+
+class PhraseSuggestion(BaseModel):
+    phrase: str
+    translation: str
+
+
+class PhraseFromSentenceResponse(BaseModel):
+    phrases: List[PhraseSuggestion]
+
+
 class VocabDistractorWord(BaseModel):
     word: str
     translation: str
@@ -1136,6 +1153,108 @@ async def extract_vocab_from_sentence_with_gemini(sentence: str) -> List[VocabWo
     content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
     data = json.loads(strip_json_fence(content))
     return _parse_vocab_words(data, sentence)
+
+
+def _phrases_from_sentence_prompt(sentence: str, count: int) -> str:
+    return f"""
+You are helping a Taiwan Mandarin (國語/臺灣華語) teacher build a "handy phrases"
+table for one sentence from a students' story — reusable multi-word
+expressions or sentence patterns (not single vocabulary words, not the
+whole sentence itself) that a student could reuse in other sentences.
+
+Sentence:
+{sentence}
+
+Pick up to {count} of the most reusable phrase-level chunks from this
+sentence. Return only valid JSON shaped exactly like:
+[
+  {{"phrase": "想要", "translation": "want to"}}
+]
+
+Rules:
+- Every "phrase" must be an exact substring of the sentence, in Traditional
+  Chinese, and at least two characters long.
+- Do not repeat the same phrase twice.
+- "translation" is a short English translation (a few words at most).
+- Return the JSON array only, no surrounding text.
+"""
+
+
+def _parse_phrases(data: object, sentence: str) -> List[PhraseSuggestion]:
+    if not isinstance(data, list):
+        raise RuntimeError("Model did not return a JSON array of phrases")
+
+    seen: set[str] = set()
+    phrases: List[PhraseSuggestion] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        phrase = str(item.get("phrase", "")).strip()
+        if not phrase or phrase in seen or phrase not in sentence:
+            continue
+        seen.add(phrase)
+        phrases.append(
+            PhraseSuggestion(
+                phrase=phrase,
+                translation=str(item.get("translation", "")).strip(),
+            )
+        )
+    return phrases
+
+
+async def extract_phrases_from_sentence_with_groq(
+    sentence: str, count: int
+) -> List[PhraseSuggestion]:
+    payload = {
+        "model": GROQ_FEEDBACK_MODEL,
+        "response_format": {"type": "json_object"},
+        "temperature": 0.2,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a Taiwan Mandarin phrase-extraction assistant. "
+                    "Always respond in valid JSON only — no markdown fences, no prose "
+                    'outside the JSON. Wrap the array in a top-level object: {"phrases": [...]}.'
+                ),
+            },
+            {"role": "user", "content": _phrases_from_sentence_prompt(sentence, count)},
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["choices"][0]["message"]["content"]
+    parsed = json.loads(content)
+    data = parsed.get("phrases") if isinstance(parsed, dict) else parsed
+    return _parse_phrases(data, sentence)
+
+
+async def extract_phrases_from_sentence_with_gemini(
+    sentence: str, count: int
+) -> List[PhraseSuggestion]:
+    payload = {"contents": [{"parts": [{"text": _phrases_from_sentence_prompt(sentence, count)}]}]}
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}",
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+    data = json.loads(strip_json_fence(content))
+    return _parse_phrases(data, sentence)
 
 
 def _vocab_distractors_prompt(words: List[VocabDistractorWord]) -> str:
