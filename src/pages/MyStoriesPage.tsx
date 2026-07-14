@@ -23,15 +23,17 @@ import {
 import { exportStoryFile, readStoryImportFile } from "../utils/storyPortability";
 import { BiLabel, BiText } from "../components/BiLabel";
 import "../components/BiLabel.css";
-import StoryFeedbackCard from "../components/StoryFeedbackCard";
 import "./MyStoriesPage.css";
-import DashboardStat from "../components/DashboardStat";
 import StudentHelpCard from "../components/StudentHelpCard";
 import MyStoryFeedbackHistory from "../components/MyStoryFeedbackHistory";
 import TeacherHelpQueue from "../components/TeacherHelpQueue";
 import RecordCard from "../components/RecordCard";
 import QuizAnalyticsPanel from "../components/QuizAnalyticsPanel";
 import RecordingAnalyticsPanel from "../components/RecordingAnalyticsPanel";
+import TeacherOverviewView from "../components/TeacherOverviewView";
+import TeacherProgressView from "../components/TeacherProgressView";
+import TeacherRecordingsView from "../components/TeacherRecordingsView";
+import TeacherSubmissionsView from "../components/TeacherSubmissionsView";
 import VocabularyTable from "../components/VocabularyTable";
 import PhraseTable from "../components/PhraseTable";
 import VocabGroupEditor from "../components/VocabGroupEditor";
@@ -46,7 +48,6 @@ import {
   getPromptImages,
   getSessionName,
   getStudentTopics,
-  getTopicLabel,
   hasCustomStoryErrors,
   isPromptRecord,
   mergePhraseSuggestions,
@@ -1245,40 +1246,14 @@ function TeacherDashboard({
       </nav>
 
       {activeView === "overview" && (
-        <>
-          <section className="teacher-stat-grid" aria-label="Class overview">
-            <DashboardStat
-              label="Submissions"
-              value={String(records.length)}
-              note="Total saved student attempts"
-            />
-            <DashboardStat
-              label="Feedback ready"
-              value={String(feedbackReadyRecords.length)}
-              note="Gemini/Praat results available"
-            />
-            <DashboardStat
-              label="Avg. fluency"
-              value={averageFluency === null ? "--" : `${averageFluency}/100`}
-              note="Based on analyzed recordings"
-            />
-            <DashboardStat
-              label="Tone accuracy"
-              value={
-                averageToneAccuracy === null ? "--" : `${averageToneAccuracy}%`
-              }
-              note="Class pronunciation trend"
-            />
-          </section>
-
-          <section className="teacher-dashboard-grid">
-            <TeacherHelpQueue
-              helpRequests={helpRequests}
-              onResolveHelpRequest={onResolveHelpRequest}
-              compact
-            />
-          </section>
-        </>
+        <TeacherOverviewView
+          totalRecords={records.length}
+          feedbackReadyCount={feedbackReadyRecords.length}
+          averageFluency={averageFluency}
+          averageToneAccuracy={averageToneAccuracy}
+          helpRequests={helpRequests}
+          onResolveHelpRequest={onResolveHelpRequest}
+        />
       )}
 
       {activeView === "help" && (
@@ -1763,155 +1738,14 @@ function TeacherDashboard({
 
       )}
 
-      {activeView === "progress" && (
-      <section className="teacher-dashboard-grid">
-        <div className="teacher-panel topic-coverage-panel">
-          <div className="teacher-panel-header">
-            <div>
-              <p className="stories-kicker">Curriculum coverage</p>
-              <h2>Topic Progress</h2>
-            </div>
-          </div>
-
-          <div className="topic-coverage-list">
-            {<div className="teacher-empty-panel">
-              <strong>Activity Coverage</strong>
-              <p>Coverage displays for published teacher materials.</p>
-            </div>}
-          </div>
-        </div>
-
-        <div className="teacher-panel review-queue-panel">
-          <div className="teacher-panel-header">
-            <div>
-              <p className="stories-kicker">Review queue</p>
-              <h2>Recent Submissions</h2>
-            </div>
-            <span className="queue-count">{records.length}</span>
-          </div>
-
-          {records.length === 0 ? (
-            <div className="teacher-empty-panel">
-              <strong>No submissions yet</strong>
-              <p>Student recordings will appear here after practice sessions.</p>
-            </div>
-          ) : (
-            <div className="teacher-submission-list">
-              {records.slice(0, 5).map((record) => (
-                <div className="teacher-submission-row" key={record.id}>
-                  <div>
-                    <strong>{getTopicLabel(record.topicId)}</strong>
-                    <span>
-                      Part {(record.imageIndex ?? 0) + 1} · {record.duration}s
-                    </span>
-                  </div>
-                  <div className="submission-score">
-                    {record.praatMetrics
-                      ? `${Math.round(record.praatMetrics.fluency_score)}/100`
-                      : "Pending"}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-      )}
+      {activeView === "progress" && <TeacherProgressView records={records} />}
 
       {activeView === "recordings" && (
-      <section className="teacher-panel teacher-recordings-panel">
-        <div className="teacher-panel-header">
-          <div>
-            <p className="stories-kicker">Detailed review</p>
-            <h2>Student Recording Evidence</h2>
-          </div>
-        </div>
-
-        {records.length === 0 ? (
-          <div className="stories-empty-state">
-            <div className="stories-empty-icon">Data</div>
-            <h2>No Student Recordings Yet</h2>
-            <p>Student submissions will appear here after practice sessions.</p>
-          </div>
-        ) : (
-          <div className="stories-grid teacher-recording-grid">
-            {records.map((record) => (
-              <RecordCard
-                key={record.id}
-                record={record}
-                onDeleteRecord={onDeleteRecord}
-              />
-            ))}
-          </div>
-        )}
-      </section>
+        <TeacherRecordingsView records={records} onDeleteRecord={onDeleteRecord} />
       )}
 
       {activeView === "submissions" && (
-        <section className="teacher-panel teacher-submissions-panel">
-          <div className="teacher-panel-header">
-            <div>
-              <p className="stories-kicker">Student story submissions</p>
-              <h2>Submitted Stories</h2>
-            </div>
-            <span className="queue-count">{submissions.length}</span>
-          </div>
-          {submissions.length === 0 ? (
-            <div className="teacher-empty-panel">
-              <strong>No submissions yet</strong>
-              <p>Students will appear here after they complete and submit all scenes of a story.</p>
-            </div>
-          ) : (
-            <div className="story-submission-list">
-              {submissions.map((sub) => (
-                <div key={sub.id} className="story-submission-card">
-                  <div className="story-submission-header">
-                    <div>
-                      <p className="story-submission-student">{sub.studentName}</p>
-                      <p className="story-submission-title">{sub.storyTitle}</p>
-                    </div>
-                    <span className="story-submission-date">
-                      {new Date(sub.submittedAt).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="story-submission-scenes">
-                    {sub.scenes.map((scene) => (
-                      <div key={scene.sceneIndex} className="story-submission-scene">
-                        <div className="sss-header">
-                          <span className="sss-scene-num">Scene {scene.sceneIndex + 1}</span>
-                          <span className="sss-score" title="Vocab / Tone / Character-by-character prosody">
-                            Vocab {scene.vocabScore}% · Tone {scene.toneAccuracy}% · Prosody {scene.pronScore}%
-                          </span>
-                        </div>
-                        {scene.transcription && (
-                          <p className="sss-transcription" lang="zh-TW">"{scene.transcription}"</p>
-                        )}
-                        <div className="sss-vocab-row">
-                          {(scene.vocabUsed ?? []).map(w => (
-                            <span key={w} className="sss-chip sss-chip-used">✓ {w}</span>
-                          ))}
-                          {(scene.vocabMissing ?? []).map(w => (
-                            <span key={w} className="sss-chip sss-chip-missing">✗ {w}</span>
-                          ))}
-                        </div>
-                        {scene.audioUrl && (
-                          <audio controls src={resolveImageUrl(scene.audioUrl)} className="sss-audio" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  {(sub.concatenatedAudioUrl || sub.storyFeedback) && (
-                    <StoryFeedbackCard
-                      feedback={sub.storyFeedback}
-                      concatenatedAudioUrl={sub.concatenatedAudioUrl}
-                      scenes={sub.scenes}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        <TeacherSubmissionsView submissions={submissions} />
       )}
 
       {activeView === "quizAnalytics" && (
