@@ -2,13 +2,22 @@
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  line-height: 1.2;
-  gap: 1px;
+  line-height: 1.25;
+  gap: 2px;
 }
 
-.bi-label--block {
+/* Explicit opt-in (.bi-label--block) for callers that pass the `block`
+   prop, plus an automatic case: a BiLabel used directly inside a <p> is,
+   by definition, description-length text that's likely to wrap — center-
+   aligning wrapped text reads as ragged/ununiform, so left-align it without
+   requiring every such call site to remember the `block` prop. Buttons,
+   headings, and inline labels don't sit inside a bare <p>, so this never
+   touches short single-line labels. */
+.bi-label--block,
+p > .bi-label {
   display: flex;
   align-items: flex-start;
+  text-align: left;
 }
 
 .bi-zh {
@@ -20,22 +29,40 @@
 
 /* Solid colors, not opacity — opacity blends toward whatever's behind the
    text, which makes contrast unpredictable and was failing WCAG AA (as low
-   as 1.8:1) on several backgrounds this component renders on. --seal-deep
-   and --clay-muted clear 4.5:1 against every light surface BiLabel appears
-   on (white, canvas, the pastel -soft tokens). Read through --bi-pinyin-
-   color/--bi-en-color so any container with a solid colored or dark
-   background (buttons, badges, the nav's dark "Log out" pill) can switch
-   both to a light tint in one line instead of overriding each span. */
+   as 1.8:1) on several backgrounds this component renders on. --clay-muted
+   clears 4.5:1 against every light surface BiLabel appears on (white,
+   canvas, the pastel -soft tokens). Pinyin and English share the same
+   muted color and near-identical size on purpose — they're both secondary
+   detail under the Chinese headline, and giving pinyin its own accent
+   color (the old treatment) signaled it as more important than the
+   translation for no real reason, which read as busy/unbalanced. Only the
+   font family still tells them apart (mono for the phonetic reading, sans
+   for the translation). Read through --bi-pinyin-color/--bi-en-color so a
+   container with a solid colored or dark background (buttons, badges, the
+   nav's dark "Log out" pill) can switch both to a light tint in one line
+   instead of overriding each span. */
 .bi-pinyin {
   font-family: var(--font-mono);
-  font-size: 0.6em;
-  font-weight: 600;
-  color: var(--bi-pinyin-color, var(--seal-deep));
+  font-size: 0.62em;
+  font-weight: 500;
+  color: var(--bi-pinyin-color, var(--clay-muted));
   letter-spacing: 0.01em;
 }
 
+/* Buttons stay to two lines (Chinese + English) — a third pinyin line was
+   the main source of uneven heights between sibling buttons (some
+   translations.json entries have pinyin, some don't) and of visual
+   clutter in already-compact controls. Reading text (BiText, headings,
+   paragraphs) keeps pinyin; only clickable controls drop it. Hiding via
+   CSS rather than a prop keeps every existing <BiLabel k="..." /> call
+   site unchanged. */
+button .bi-pinyin,
+a.nav-link .bi-pinyin {
+  display: none;
+}
+
 .bi-en {
-  font-size: 0.65em;
+  font-size: 0.62em;
   font-weight: 500;
   color: var(--bi-en-color, var(--clay-muted));
   letter-spacing: 0.01em;

@@ -52,28 +52,49 @@
 }
 
 .nav-link {
+  /* Teacher Login is an <a> (external .html target), Home/Student Login
+     are <button>s — a bare <a> defaults to display:inline, which ignores
+     min-height and vertical padding entirely, so it rendered ~40px tall
+     next to the buttons' ~66px. inline-flex makes every .nav-link size
+     and center its text identically regardless of element type. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
   min-height: 38px;
   padding: 9px 14px;
-  background: transparent;
+  /* Every nav item is the same "chip" at rest — a filled, bordered rounded
+     box — so the row reads as one consistent set of buttons. Only .active
+     swaps the fill/border/text to the accent palette; before this, inactive
+     items had no background or border at all, so the active item looked
+     like a totally different kind of element (a colored badge) sitting
+     next to bare, unstyled text instead of a same-shaped sibling. */
+  background: var(--clay-surface-soft);
   color: var(--clay-body);
-  border: 0;
-  border-radius: var(--clay-radius-pill);
+  border: 1.5px solid var(--clay-hairline);
+  /* A full pill radius (999px) rounds a short, roughly-square box — this
+     item's content is a 3-line BiLabel stack (zh/pinyin/en), not a single
+     wide line — into an oval/blob shape. A moderate radius keeps it a
+     clean rounded tag instead. */
+  border-radius: var(--clay-radius-lg);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   /* Darker than BiLabel's clay-muted default, which was landing at
      ~4.0-4.4:1 (just under 4.5:1) on this nav's various pill tints. */
   --bi-en-color: var(--clay-body);
 }
 
 .nav-link:hover {
-  background: var(--clay-surface-soft);
+  background: var(--clay-surface-strong);
+  border-color: var(--clay-hairline);
   color: var(--clay-ink);
 }
 
 .nav-link.active {
   background: var(--seal-soft);
+  border-color: var(--seal);
   color: var(--seal-deep);
   /* clay-muted (BiLabel's default .bi-en color) lands at ~4.0-4.4:1 on this
      pastel pill — just under the 4.5:1 floor — so darken it here. */
@@ -90,6 +111,7 @@
    contrast). */
 .nav-link.logout {
   background: var(--clay-ink);
+  border-color: var(--clay-ink);
   color: #ffffff;
   --bi-pinyin-color: var(--seal-soft);
   --bi-en-color: rgba(255, 255, 255, 0.75);
@@ -97,6 +119,7 @@
 
 .nav-link.logout:hover {
   background: var(--seal-deep);
+  border-color: var(--seal-deep);
 }
 
 @media (max-width: 768px) {
