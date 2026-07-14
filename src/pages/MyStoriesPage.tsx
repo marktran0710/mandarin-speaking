@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Chart from "chart.js/auto";
-import PitchChart from "../components/PitchChart";
 import {
   canUseDatabase,
   createCustomStory as saveCustomStoryToDatabase,
@@ -27,12 +26,15 @@ import { BiLabel, BiText } from "../components/BiLabel";
 import "../components/BiLabel.css";
 import StoryFeedbackCard from "../components/StoryFeedbackCard";
 import "./MyStoriesPage.css";
+import DashboardStat from "../components/DashboardStat";
+import StudentHelpCard from "../components/StudentHelpCard";
+import MyStoryFeedbackHistory from "../components/MyStoryFeedbackHistory";
+import TeacherHelpQueue from "../components/TeacherHelpQueue";
+import RecordCard from "../components/RecordCard";
 import {
   buildPhraseRows,
   buildVocabRows,
   clearFrameError,
-  formatContourShape,
-  formatRequestTime,
   frameCountForMode,
   getAudioUploadError,
   getAverageMetric,
@@ -40,7 +42,6 @@ import {
   getPromptImages,
   getSessionName,
   getStudentTopics,
-  getToneName,
   getTopicLabel,
   hasCustomStoryErrors,
   isPromptRecord,
@@ -108,7 +109,7 @@ export interface AudioRecord {
   praatMetrics?: any;
 }
 
-interface WordProsody {
+export interface WordProsody {
   token: string;
   index: number;
   pitch_contour: Array<[number, number]>;
@@ -631,116 +632,6 @@ export default function MyStoriesPage({
           })}
         </div>
       </div>
-  );
-}
-
-function MyStoryFeedbackHistory({
-  submissions,
-}: {
-  submissions: StorySubmission[];
-}) {
-  if (submissions.length === 0) return null;
-
-  return (
-    <section className="my-story-feedback-history" aria-label="My story feedback history">
-      <p className="stories-kicker">
-        <BiLabel zh="回顧和進步" pinyin="Huígù hé jìnbù" en="Review and improve" />
-      </p>
-      <h2>
-        <BiLabel zh="我的故事回顧" pinyin="Wǒ de gùshì huígù" en="My Story Feedback" />
-      </h2>
-      <p className="stories-subtitle">
-        <BiText
-          zh="再看一次你交過的故事，跟著建議練習，下次會更好。"
-          pinyin="Zài kàn yí cì nǐ jiāo guò de gùshì, gēnzhe jiànyì liànxí, xiàcì huì gèng hǎo."
-          en="Look back at stories you've submitted and follow the suggestions to improve next time."
-        />
-      </p>
-      <div className="my-story-feedback-list">
-        {submissions.map((sub) => (
-          <details key={sub.id} className="my-story-feedback-item">
-            <summary>
-              <span className="msfh-title">{sub.storyTitle}</span>
-              <span className="msfh-date">
-                {new Date(sub.submittedAt).toLocaleDateString()}
-              </span>
-            </summary>
-            <StoryFeedbackCard
-              feedback={sub.storyFeedback}
-              concatenatedAudioUrl={sub.concatenatedAudioUrl}
-              scenes={sub.scenes}
-            />
-          </details>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function StudentHelpCard({
-  helpRequests,
-  onRaiseHand,
-}: {
-  helpRequests: HelpRequest[];
-  onRaiseHand?: (message: string) => void;
-}) {
-  const [message, setMessage] = useState("我的故事需要幫忙。 I need help with my story.");
-  const studentName = getSessionName("studentSession", "Student");
-  const activeRequest = helpRequests.find(
-    (request) =>
-      request.studentName === studentName && request.status === "open",
-  );
-
-  return (
-    <section className="student-help-card" aria-label="Ask teacher for help">
-      <div>
-        <p className="stories-kicker">
-          <BiLabel zh="老師幫忙" pinyin="Lǎoshī bāngmáng" en="Teacher support" />
-        </p>
-        <h2>
-          {activeRequest ? (
-            <BiLabel zh="已舉手" pinyin="Yǐ jǔshǒu" en="Your hand is raised" />
-          ) : (
-            <BiLabel zh="舉手問問題" pinyin="Jǔshǒu wèn wèntí" en="Raise your hand" />
-          )}
-        </h2>
-        <p>
-          {activeRequest ? (
-            <BiText
-              zh="老師已經看到你舉手了。如果問題不一樣了，可以再說一次。"
-              pinyin="Lǎoshī yǐjīng kàndào nǐ jǔshǒu le. Rúguǒ wèntí bù yíyàng le, kěyǐ zài shuō yí cì."
-              en="Your teacher can see your request. You can update the note if your question changed."
-            />
-          ) : (
-            <BiText
-              zh="一邊做故事，一邊可以偷偷舉手，老師會看到。"
-              pinyin="Yìbiān zuò gùshì, yìbiān kěyǐ tōutōu jǔshǒu, lǎoshī huì kàndào."
-              en="Send a quiet help request while you keep working on your story."
-            />
-          )}
-        </p>
-      </div>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          onRaiseHand?.(message);
-        }}
-      >
-        <input
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          aria-label="Help request message"
-          placeholder="老師可以幫你什麼？ What should the teacher help with?"
-        />
-        <button type="submit" disabled={!onRaiseHand}>
-          {activeRequest ? (
-            <BiLabel zh="再舉手一次" pinyin="Zài jǔshǒu yí cì" en="Update request" />
-          ) : (
-            <BiLabel zh="舉手" pinyin="Jǔshǒu" en="Raise hand" />
-          )}
-        </button>
-      </form>
-    </section>
   );
 }
 
@@ -2795,73 +2686,6 @@ function RecordingsPerTopicChart({ data }: { data: Array<{ topic: string; count:
 }
 
 
-function TeacherHelpQueue({
-  helpRequests,
-  onResolveHelpRequest,
-  compact = false,
-}: {
-  helpRequests: HelpRequest[];
-  onResolveHelpRequest?: (id: string) => void;
-  compact?: boolean;
-}) {
-  const openRequests = helpRequests.filter(
-    (request) => request.status === "open",
-  );
-  const resolvedRequests = helpRequests
-    .filter((request) => request.status === "resolved")
-    .slice(0, compact ? 2 : 5);
-
-  return (
-    <section className="teacher-panel teacher-help-panel">
-      <div className="teacher-panel-header">
-        <div>
-          <p className="stories-kicker">Live support</p>
-          <h2>Student Help Requests</h2>
-        </div>
-        <span className="queue-count">{openRequests.length}</span>
-      </div>
-
-      {openRequests.length === 0 ? (
-        <div className="teacher-empty-panel">
-          <strong>No raised hands</strong>
-          <p>Open help requests will appear here when students ask for support.</p>
-        </div>
-      ) : (
-        <div className="teacher-help-list">
-          {openRequests.map((request) => (
-            <article className="teacher-help-request" key={request.id}>
-              <div>
-                <strong>{request.studentName}</strong>
-                <span>{formatRequestTime(request.createdAt)}</span>
-                <p>{request.message}</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => onResolveHelpRequest?.(request.id)}
-                disabled={!onResolveHelpRequest}
-              >
-                Mark helped
-              </button>
-            </article>
-          ))}
-        </div>
-      )}
-
-      {!compact && resolvedRequests.length > 0 && (
-        <div className="teacher-resolved-help">
-          <h3>Recently helped</h3>
-          {resolvedRequests.map((request) => (
-            <div className="teacher-resolved-row" key={request.id}>
-              <span>{request.studentName}</span>
-              <small>{formatRequestTime(request.resolvedAt || request.createdAt)}</small>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 const WORD_SEVERITY_LABEL: Record<WordMissSeverity, string> = {
   critical: "Critical",
   watch: "Watch",
@@ -3310,152 +3134,4 @@ function VocabGroupEditor({
   );
 }
 
-function DashboardStat({
-  label,
-  value,
-  note,
-}: {
-  label: string;
-  value: string;
-  note: string;
-}) {
-  return (
-    <div className="teacher-stat-card">
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <p>{note}</p>
-    </div>
-  );
-}
-
-function RecordCard({
-  record,
-  onDeleteRecord,
-  compact = false,
-}: {
-  record: AudioRecord;
-  onDeleteRecord: (id: string) => void;
-  compact?: boolean;
-}) {
-  return (
-    <div className={compact ? "record-summary" : "story-card"}>
-      <div className="story-header">
-        <div className="story-title-group">
-          <span className="topic-emoji">{getTopicLabel(record.topicId)}</span>
-          <div>
-            <div className="story-timestamp">{record.timestamp}</div>
-            <div className="story-duration">{record.duration}s</div>
-          </div>
-        </div>
-        <button
-          className="btn-delete"
-          onClick={() => onDeleteRecord(record.id)}
-          title="刪除這則故事 Delete this story"
-        >
-          <BiLabel zh="刪除" pinyin="Shānchú" en="Delete" />
-        </button>
-      </div>
-
-      <div className="story-content">
-        {record.audioUrl && (
-          <div className="saved-audio-player">
-            <strong><BiLabel zh="已存的錄音" pinyin="Yǐ cún de lùyīn" en="Saved voice recording" /></strong>
-            <audio controls src={resolveImageUrl(record.audioUrl)} />
-          </div>
-        )}
-
-        <div className="transcription-box">
-          <strong><BiLabel zh="逐字稿" pinyin="Zhúzìgǎo" en="Transcription" /></strong>
-          <p>
-            {record.transcription || (
-              <BiLabel zh="（沒聽到聲音）" pinyin="(méi tīngdào shēngyīn)" en="(no speech detected)" />
-            )}
-          </p>
-        </div>
-
-        {record.praatMetrics && (
-          <>
-            <div className="saved-metrics-summary">
-              <div className="metric-item tone">
-                <span className="metric-text">
-                  <BiLabel zh="聲調：" pinyin="Shēngdiào:" en="Tone: " />
-                  {getToneName(record.praatMetrics.detected_tone)}
-                </span>
-              </div>
-              <div className="metric-item accuracy">
-                <span className="metric-text">
-                  <BiLabel zh="準確度：" pinyin="Zhǔnquè dù:" en="Accuracy: " />
-                  {Math.round(record.praatMetrics.tone_accuracy)}%
-                </span>
-              </div>
-              <div className="metric-item fluency">
-                <span className="metric-text">
-                  <BiLabel zh="Praat 流暢度：" pinyin="Praat liúchàng dù:" en="Praat fluency: " />
-                  {Math.round(record.praatMetrics.fluency_score)}/100
-                </span>
-              </div>
-              <div className="metric-item rate">
-                <span className="metric-text">
-                  <BiLabel zh="語速：" pinyin="Yǔsù:" en="Rate: " />
-                  {record.praatMetrics.speech_rate.toFixed(1)}/s
-                </span>
-              </div>
-            </div>
-
-            {record.praatMetrics.pitch_contour?.length > 0 && (
-              <div className="story-prosody-chart">
-                <strong><BiLabel zh="Praat 音調圖" pinyin="Praat yīndiào tú" en="Praat prosody visualization" /></strong>
-                <PitchChart
-                  pitchContour={record.praatMetrics.pitch_contour}
-                  detectedTone={record.praatMetrics.detected_tone}
-                />
-              </div>
-            )}
-
-            {record.praatMetrics.word_prosody?.length > 0 && (
-              <div className="saved-word-prosody">
-                <strong><BiLabel zh="逐字音調" pinyin="Zhúzì yīndiào" en="Word-by-word prosody" /></strong>
-                <div className="saved-word-prosody-grid">
-                  {record.praatMetrics.word_prosody.map((item: WordProsody) => (
-                    <div
-                      className="saved-word-prosody-card"
-                      key={`${item.token}-${item.index}`}
-                    >
-                      <span>{item.token}</span>
-                      <em>{formatContourShape(item.contour_shape)}</em>
-                      <small>
-                        {Math.round(item.mean_pitch)} Hz ·{" "}
-                        {Math.round(item.pitch_range)} Hz range
-                      </small>
-                      <p>{item.feedback}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {record.praatMetrics?.ai_feedback && (
-          <div className="story-ai-summary">
-            <strong>
-              <BiLabel
-                zh={`AI 老師（${record.praatMetrics.ai_feedback.provider || "Gemini"}）`}
-                pinyin={`AI lǎoshī (${record.praatMetrics.ai_feedback.provider || "Gemini"})`}
-                en={`AI coach (${record.praatMetrics.ai_feedback.provider || "Gemini"})`}
-              />
-            </strong>
-            <p>{record.praatMetrics.ai_feedback.fluency?.feedback}</p>
-            <p>{record.praatMetrics.ai_feedback.grammar?.feedback}</p>
-            <p>{record.praatMetrics.ai_feedback.vocabulary?.feedback}</p>
-          </div>
-        )}
-
-        <div className="model-info">
-          <span className="model-badge">{record.model}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
