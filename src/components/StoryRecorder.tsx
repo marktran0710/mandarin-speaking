@@ -28,6 +28,31 @@ import { toPinyin } from "../utils/pinyin";
 import { scoreTier, scoreTierLabel } from "../utils/scoreLabels";
 import { markStoryLevelSubmitted } from "../utils/storyLevelProgress";
 import type { CustomTeacherStory, StoryDifficultyLevel } from "../utils/teacherStories";
+import { convertBlobToWav } from "../utils/audio";
+import {
+  TONE_NUMBER_TO_SHAPE,
+  TONE_SHAPES,
+  TONE_NUMBER_ARROW_LABEL,
+  prosodyImprovementTip,
+  sceneReady,
+  isContentAccepted,
+  averageWordProsodyAccuracy,
+  buildPracticeAnalysisText,
+  hasAudioFileExtension,
+  formatContourShape,
+  getBackendUrl,
+  studentStrength,
+  studentFix,
+  studentNextStep,
+  weakToneGuideItems,
+  getToneFocusItems,
+  readErrorResponse,
+  formatBackendError,
+} from "../utils/storyRecorderFeedback";
+import {
+  loadCompletedVocabQuizzes,
+  markVocabQuizCompleted,
+} from "../utils/vocabQuizStorage";
 import "./StoryRecorder.css";
 import { BiLabel, BiText } from "./BiLabel";
 import "./BiLabel.css";
@@ -37,31 +62,11 @@ const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
   (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
-const VOCAB_QUIZ_COMPLETED_KEY = "vocabQuizCompletedStoryIds";
-
 // Mirrors the backend's MAX_VOCAB_DISTRACTORS_PER_WORD cap — checked
 // client-side so a story where every word already has a full pool skips the
 // AI call entirely instead of generating distractors the backend would just
 // discard.
 const MAX_VOCAB_DISTRACTORS_PER_WORD = 8;
-
-function loadCompletedVocabQuizzes(): Record<string, boolean> {
-  try {
-    const raw = localStorage.getItem(VOCAB_QUIZ_COMPLETED_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function markVocabQuizCompleted(topicId: string) {
-  try {
-    const next = { ...loadCompletedVocabQuizzes(), [topicId]: true };
-    localStorage.setItem(VOCAB_QUIZ_COMPLETED_KEY, JSON.stringify(next));
-  } catch {
-    /* storage unavailable — the quiz will just ask again next time */
-  }
-}
 
 export function vocabTooltip(
   pos?: string,
@@ -174,7 +179,7 @@ export function buildDistractorPatchUpdates(
     .filter((update) => update.distractors.length > 0);
 }
 
-interface PauseAnalysis {
+export interface PauseAnalysis {
   duration: number;
   utterance_count: number;
   pause_count: number;
@@ -183,7 +188,7 @@ interface PauseAnalysis {
   speech_ratio: number;
 }
 
-interface PraatMetrics {
+export interface PraatMetrics {
   transcription?: string;
   transcription_model?: string;
   pitch_contour: Array<[number, number]>;
@@ -201,7 +206,7 @@ interface PraatMetrics {
   ai_feedback?: LanguageFeedback;
 }
 
-interface WordProsody {
+export interface WordProsody {
   token: string;
   index: number;
   start_time: number;
@@ -2904,50 +2909,6 @@ export default function StoryRecorder({
   );
 }
 
-/** Maps a Mandarin tone number to the TONE_SHAPES key for its target pitch shape. */
-const TONE_NUMBER_TO_SHAPE: Record<number, string> = {
-  1: "level",
-  2: "rising",
-  3: "dip",
-  4: "falling",
-};
-
-/** Actionable improvement tip for this character — only shown when the
- * character actually needs work. Gated directly off item.feedback's own
- * verdict (backend's _word_prosody_feedback), not a separate threshold
- * re-check, so the tip can never disagree with the feedback text shown right
- * above it. When there's an expected Mandarin tone, the tip points at THAT
- * tone's target shape, not whatever (possibly wrong) shape the attempt
- * happened to produce. */
-function prosodyImprovementTip(item: WordProsody): string | null {
-  const feedback = item.feedback ?? "";
-
-  if (item.expected_tones && item.expected_tones.length > 0) {
-    // item.feedback already says "Good match for ..." vs "Recognizable ...
-    // but contrast could be sharper" / "Expected ... doesn't match yet" —
-    // key off that text directly instead of re-deriving from tone_accuracy.
-    if (feedback.startsWith("Good match")) return null;
-
-    // Tone 5 (neutral) has no fixed target shape — it's short, light, and
-    // takes its pitch from the preceding syllable — so don't claim "no clear
-    // shape detected" (false; a shape WAS detected, it just isn't graded
-    // against rising/falling/level/dip the way tones 1-4 are).
-    if (item.expected_tones[0] === 5) {
-      return "輕聲沒有固定的音高形狀 — 試著把這個字說得更短、更輕。 Neutral tone has no fixed pitch shape — try making this syllable shorter and lighter instead.";
-    }
-
-    const targetKey =
-      TONE_NUMBER_TO_SHAPE[item.expected_tones[0]] ?? "variable";
-    const target = TONE_SHAPES[targetKey];
-    return `目標形狀：${target.tip} 刻意誇大這個音高變化，再說一次。 Target shape: ${target.tip} Exaggerate that pitch movement and try again.`;
-  }
-
-  // No expected tone (open-vocabulary): backend only flags a problem when no
-  // clear shape was detected, which is the same "variable" case here.
-  if (item.contour_shape !== "variable") return null;
-  return TONE_SHAPES.variable.drill;
-}
-
 function WordProsodyCard({ item }: { item: WordProsody }) {
   const improvementTip = prosodyImprovementTip(item);
   const hasReference = (item.reference_contour?.length ?? 0) > 1;
@@ -3309,71 +3270,6 @@ function MiniContourChart({
   );
 }
 
-function sceneReady(prog: {
-  attempts: number;
-  bestTone: number;
-  bestFluency: number;
-}): boolean {
-  // Short-phrase threshold: tone accuracy ≥ 70%
-  // Long-sentence threshold: fluency ≥ 65%
-  // Override: 4+ attempts always unlocks next scene
-  return prog.bestTone >= 70 || prog.bestFluency >= 65 || prog.attempts >= 4;
-}
-
-/** Real, measured prosody score — the average per-character tone_accuracy from
- * word_prosody — as opposed to the AI's generic pronunciation_note.score, which
- * isn't grounded in the actual measured pitch data. */
-/** Pronunciation feedback only matters once the sentence's meaning is accepted. */
-function isContentAccepted(praatMetrics: PraatMetrics): boolean {
-  const contentAccuracy = praatMetrics.ai_feedback?.content_accuracy;
-  if (!contentAccuracy?.feedback) return true;
-  return contentAccuracy.accepted !== false;
-}
-
-function averageWordProsodyAccuracy(
-  wordProsody?: WordProsody[],
-): number | null {
-  const accuracies = (wordProsody ?? [])
-    .map((item) => item.tone_accuracy)
-    .filter((value): value is number => typeof value === "number");
-  if (accuracies.length === 0) return null;
-  return Math.round(
-    accuracies.reduce((sum, value) => sum + value, 0) / accuracies.length,
-  );
-}
-
-function buildPracticeAnalysisText(vocabulary: string[]): string {
-  return vocabulary
-    .map((word) => word.trim())
-    .filter(Boolean)
-    .join(" ");
-}
-
-function hasAudioFileExtension(fileName: string): boolean {
-  return /\.(wav|wave|webm|mp3|m4a|ogg)$/i.test(fileName);
-}
-
-function formatContourShape(shape: string): string {
-  const labels: Record<string, string> = {
-    dip: "低降 Dipping",
-    falling: "下降 Falling",
-    level: "平直 Level",
-    rising: "上升 Rising",
-    variable: "變化 Variable",
-  };
-  return labels[shape] || "變化 Variable";
-}
-
-function getBackendUrl(): string {
-  if (BACKEND_URL) {
-    return BACKEND_URL;
-  }
-
-  throw new Error(
-    "Praat analysis needs a deployed backend in production. Deploy the FastAPI backend and set VITE_BACKEND_URL to its public URL.",
-  );
-}
-
 function StudentFeedbackCards({
   toneAccuracy,
   fluencyScore,
@@ -3413,61 +3309,6 @@ function StudentFeedbackCards({
       </div>
     </section>
   );
-}
-
-function studentStrength(toneAccuracy: number, fluencyScore: number): string {
-  if (toneAccuracy >= 68 && fluencyScore >= 65) {
-    return "你的聲調和節奏夠清楚，可以試著造更長的句子。 Your tones and rhythm are clear enough to build a longer sentence.";
-  }
-  if (toneAccuracy >= 60) {
-    return "你的聲調形狀可以辨識。 Your tone shape is recognizable.";
-  }
-  if (fluencyScore >= 62) {
-    return "你的說話節奏很穩定。 Your speaking rhythm is steady.";
-  }
-  return "你完成了一次錄音，現在改進一個小地方。 You completed a recording. Now improve one small part.";
-}
-
-function studentFix(
-  toneAccuracy: number,
-  fluencyScore: number,
-  speechRate: number,
-  focus?: WordProsody,
-  pauseAnalysis?: PauseAnalysis,
-): string {
-  if (speechRate > 6.5) {
-    return "放慢速度 — 每個普通話聲調都需要時間才能完整呈現。 Slow down — each Mandarin tone needs time to complete its shape.";
-  }
-  if (pauseAnalysis && pauseAnalysis.longest_pause >= 0.8) {
-    return `你停頓了 ${pauseAnalysis.longest_pause.toFixed(1)} 秒 — 試著把這些詞連起來不要停。 You paused ${pauseAnalysis.longest_pause.toFixed(1)}s — try linking those words without stopping.`;
-  }
-  if (toneAccuracy < 50 && focus) {
-    return `把「${focus.token}」的聲調變化說得更清楚 — 先誇張一點，再放鬆。 Make the tone movement clearer on "${focus.token}" — exaggerate it first, then smooth it out.`;
-  }
-  if (fluencyScore < 48) {
-    return "把每個字連成一口氣 — 不要在每個詞之間停頓。 Connect the characters into one breath — don't stop between every word.";
-  }
-  if (focus) {
-    return `「${focus.token}」的音高不穩 — 先單獨說兩次，再說完整句子。 "${focus.token}" has uneven pitch — isolate it, say it twice, then say the full sentence.`;
-  }
-  return "把句子說短一點，並讓每個聲調形狀都清晰分明。 Keep the sentence short and make every tone shape distinct.";
-}
-
-function studentNextStep(
-  speechRate: number,
-  focus?: WordProsody,
-  pauseAnalysis?: PauseAnalysis,
-): string {
-  if (focus) {
-    return `練習「${focus.token}」：單獨說 3 次，再放回句子裡。 Drill "${focus.token}": say it alone 3×, then put it back in the sentence.`;
-  }
-  if (pauseAnalysis && pauseAnalysis.pause_count > 2) {
-    return "再錄一次，試著一口氣說完整個句子。 Record again but try to say the whole sentence in one breath.";
-  }
-  if (speechRate < 2.5) {
-    return "再試一次這個句子 — 稍微快一點，並保持聲調清晰。 Try the sentence again — a little faster, keeping the tones clear.";
-  }
-  return "再錄一次，把聲調形狀做得更誇張一些。 Record again and push the tone shapes a bit further (exaggerate).";
 }
 
 // ─── Learning Scaffold ────────────────────────────────────────────────────────
@@ -3736,47 +3577,6 @@ function FeedbackSummary({
   );
 }
 
-const TONE_SHAPES: Record<
-  string,
-  { label: string; arrow: string; tip: string; drill: string }
-> = {
-  level: {
-    label: "平直 Level →",
-    arrow: "→",
-    tip: "全程保持平直。 Stays flat throughout.",
-    drill:
-      "再說一次，試著加入更多變化 — 上升或下降。 Say it again and try to add more movement — either rise or fall.",
-  },
-  rising: {
-    label: "上升 Rising ↗",
-    arrow: "↗",
-    tip: "音高從頭到尾上升。 Pitch rises start to end.",
-    drill:
-      "上升形狀不錯。把開頭降低一點，結尾再推高一點。 Good upward shape. Make the start lower and push the end higher.",
-  },
-  falling: {
-    label: "下降 Falling ↘",
-    arrow: "↘",
-    tip: "音高從頭到尾下降。 Pitch falls start to end.",
-    drill:
-      "下降形狀不錯。開頭要高，然後急速下降。 Good downward shape. Start high and let it drop sharply.",
-  },
-  dip: {
-    label: "低降 Dip ↘↗",
-    arrow: "↘↗",
-    tip: "先下降再上升。 Dips down, then rises.",
-    drill:
-      "低降形狀不錯。最低點要更深一點再回升。 Good dip shape. Make the lowest point deeper before rising back.",
-  },
-  variable: {
-    label: "不清楚 Unclear ??",
-    arrow: "??",
-    tip: "未偵測到清楚的形狀。 No clear shape was detected.",
-    drill:
-      "把這個字單獨拿出來，慢慢說 3 次，再放回句子。 Isolate this character, say it 3 times slowly, then put it back.",
-  },
-};
-
 function RecordingPlayback({ blob }: { blob: Blob }) {
   const [url, setUrl] = useState<string | null>(null);
 
@@ -3798,134 +3598,4 @@ function RecordingPlayback({ blob }: { blob: Blob }) {
   );
 }
 
-const TONE_NUMBER_ARROW_LABEL: Record<number, string> = {
-  1: "一聲 Tone 1 (ā) →",
-  2: "二聲 Tone 2 (á) ↗",
-  3: "三聲 Tone 3 (ǎ) ↘↗",
-  4: "四聲 Tone 4 (à) ↘",
-};
 
-/** The characters actually dragging this attempt's tone score down — used to
- * personalize the "how to reach 100%" guide with the specific tone(s) this
- * student got wrong, instead of a generic list of all four tones every time.
- * Threshold and neutral-tone exclusion match prosodyImprovementTip's own
- * "Good match" cutoff so the two never disagree about what needs work. */
-function weakToneGuideItems(
-  wordProsody: WordProsody[],
-  limit = 3,
-): WordProsody[] {
-  return wordProsody
-    .filter(
-      (item) =>
-        (item.expected_tones?.length ?? 0) > 0 &&
-        item.expected_tones![0] !== 5 &&
-        (item.tone_accuracy ?? 100) < 68,
-    )
-    .sort((a, b) => (a.tone_accuracy ?? 0) - (b.tone_accuracy ?? 0))
-    .slice(0, limit);
-}
-
-function getToneFocusItems(items: WordProsody[]): WordProsody[] {
-  const scored = items.map((item) => ({
-    item,
-    score:
-      (item.contour_shape === "variable" ? 3 : 0) +
-      (item.pitch_range < 15 ? 2 : 0) +
-      (item.pitch_range > 95 ? 1 : 0),
-  }));
-
-  const focus = scored
-    .filter((entry) => entry.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map((entry) => entry.item)
-    .slice(0, 4);
-
-  return focus.length > 0 ? focus : items.slice(0, 4);
-}
-
-async function readErrorResponse(
-  response: Response,
-): Promise<{ detail?: string }> {
-  try {
-    return await response.json();
-  } catch {
-    return { detail: `${response.status} ${response.statusText}` };
-  }
-}
-
-function formatBackendError(error: unknown, backendUrl: string): string {
-  const message = error instanceof Error ? error.message : String(error);
-  const networkFailures = [
-    "Failed to fetch",
-    "NetworkError",
-    "Load failed",
-    "The operation was aborted",
-  ];
-
-  if (networkFailures.some((failure) => message.includes(failure))) {
-    return `無法連線到語音分析後端 ${backendUrl}。請先啟動 FastAPI 後端（連接埠 8000），再重新錄音。 Cannot reach the speech analysis backend at ${backendUrl}. Start the FastAPI backend on port 8000, then record again.`;
-  }
-
-  return message || "語音分析發生錯誤 Speech analysis error occurred";
-}
-
-async function convertBlobToWav(blob: Blob): Promise<Blob> {
-  if (blob.type === "audio/wav" || blob.type === "audio/wave") {
-    return blob;
-  }
-
-  const audioContext = new AudioContext();
-  try {
-    const arrayBuffer = await blob.arrayBuffer();
-    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-    return encodeWav(audioBuffer);
-  } finally {
-    await audioContext.close();
-  }
-}
-
-function encodeWav(audioBuffer: AudioBuffer): Blob {
-  const numberOfChannels = audioBuffer.numberOfChannels;
-  const sampleRate = audioBuffer.sampleRate;
-  const samples = audioBuffer.length;
-  const bytesPerSample = 2;
-  const blockAlign = numberOfChannels * bytesPerSample;
-  const buffer = new ArrayBuffer(44 + samples * blockAlign);
-  const view = new DataView(buffer);
-
-  writeString(view, 0, "RIFF");
-  view.setUint32(4, 36 + samples * blockAlign, true);
-  writeString(view, 8, "WAVE");
-  writeString(view, 12, "fmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, numberOfChannels, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * blockAlign, true);
-  view.setUint16(32, blockAlign, true);
-  view.setUint16(34, 16, true);
-  writeString(view, 36, "data");
-  view.setUint32(40, samples * blockAlign, true);
-
-  let offset = 44;
-  for (let sampleIndex = 0; sampleIndex < samples; sampleIndex += 1) {
-    for (let channel = 0; channel < numberOfChannels; channel += 1) {
-      const sample = audioBuffer.getChannelData(channel)[sampleIndex];
-      const clamped = Math.max(-1, Math.min(1, sample));
-      view.setInt16(
-        offset,
-        clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff,
-        true,
-      );
-      offset += bytesPerSample;
-    }
-  }
-
-  return new Blob([view], { type: "audio/wav" });
-}
-
-function writeString(view: DataView, offset: number, value: string) {
-  for (let index = 0; index < value.length; index += 1) {
-    view.setUint8(offset + index, value.charCodeAt(index));
-  }
-}
