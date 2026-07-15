@@ -58,6 +58,29 @@ export function getAverageMetric(records: AudioRecord[], metric: string): number
   return Math.round(total / records.length);
 }
 
+export type DateRangePreset = "all" | "7d" | "30d" | "90d";
+
+export const DATE_RANGE_LABEL: Record<DateRangePreset, string> = {
+  all: "All time",
+  "7d": "Last 7 days",
+  "30d": "Last 30 days",
+  "90d": "Last 90 days",
+};
+
+/** Scopes any dated list (quiz attempts, recordings) to a preset window
+ * ending now — the same filter shape for both analytics panels, applied
+ * before every other filter so stats/charts/tables stay in agreement. */
+export function filterByDateRange<T>(
+  items: T[],
+  getDate: (item: T) => string,
+  preset: DateRangePreset,
+): T[] {
+  if (preset === "all") return items;
+  const days = preset === "7d" ? 7 : preset === "30d" ? 30 : 90;
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  return items.filter((item) => new Date(getDate(item)).getTime() >= cutoff);
+}
+
 export interface StudentQuizStats {
   studentName: string;
   attempts: number;

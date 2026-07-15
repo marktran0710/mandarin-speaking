@@ -63,6 +63,27 @@
   --lavender-deep: #5b3ea8;
   --lavender-soft: #e6dcfb;
 
+  /* ── Home page palette ──────────────────────────────────────────────
+     Dedicated colors for the redesigned home page — warm, playful, and
+     harmonious. These do NOT override existing tone/seal/jade/gold tokens
+     so every other page stays untouched. */
+  --home-coral: #FF6B6B;
+  --home-coral-deep: #E04E4E;
+  --home-coral-soft: #FFE0E0;
+  --home-peach: #FFB347;
+  --home-peach-soft: #FFE8C8;
+  --home-violet: #8B5CF6;
+  --home-violet-deep: #7C3AED;
+  --home-violet-soft: #EDE9FE;
+  --home-sky: #38BDF8;
+  --home-sky-deep: #0EA5E9;
+  --home-sky-soft: #E0F2FE;
+  --home-mint: #34D399;
+  --home-mint-deep: #10B981;
+  --home-mint-soft: #D1FAE5;
+  --home-lemon: #FBBF24;
+  --home-lemon-soft: #FEF3C7;
+
   /* Status */
   --clay-success: #1c9a5b;
   --clay-warning: #ffa726;
@@ -927,7 +948,6 @@ strong {
 h1 .bi-zh,
 h2 .bi-zh,
 .hero-title .bi-zh,
-.portal-title .bi-zh,
 .login-card h1,
 .ts-hero-copy h1 .bi-zh,
 .ts-card-title {

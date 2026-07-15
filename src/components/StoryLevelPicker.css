@@ -1,0 +1,86 @@
+.story-level-picker {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+}
+
+.slp-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px;
+  background: none;
+  border: none;
+  color: var(--clay-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.slp-back:hover {
+  color: var(--clay-ink);
+}
+
+.slp-title {
+  color: var(--clay-ink);
+  font-weight: 600;
+  font-size: clamp(24px, 3.6vw, 34px);
+  line-height: 1.15;
+  margin: 12px 0 6px;
+}
+
+.slp-subtitle {
+  color: var(--clay-body);
+  font-size: 14px;
+  margin: 0 0 24px;
+}
+
+.slp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.slp-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 22px 16px;
+  background: var(--tone1-soft);
+  border: 2.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-xl);
+  box-shadow: 0 6px 0 var(--tone1-deep);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.slp-card:hover:not(:disabled) {
+  border-color: var(--tone1);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 0 var(--tone1-deep);
+}
+
+.slp-card:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 3px 0 var(--tone1-deep);
+}
+
+.slp-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+  background: var(--clay-surface-soft);
+}
+
+.slp-card-icon {
+  font-size: 32px;
+}
+
+.slp-card-locked-note {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--clay-muted);
+  text-align: center;
+}

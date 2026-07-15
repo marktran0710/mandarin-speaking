@@ -1546,6 +1546,14 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   gap: 12px;
   margin-top: -4px;
   margin-bottom: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Shape-match % sits with the legend it explains, pushed to the row's end;
+   its color comes from the shared .score-tier-text tier classes. */
+.word-prosody-shape-score {
+  margin-left: auto;
 }
 
 .mini-contour-legend span {
@@ -3653,44 +3661,97 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   gap: 6px;
 }
 
-/* Two-column workspace */
-/* ── Per-scene practice step tabs (vocabulary → grammar → speaking) ──
-   A soft rounded track instead of a hairline underline, so the three
-   steps read as stops on the same path rather than a flat file-tab bar. */
+/* ── The practice stage: one framed surface holding the step header and
+   the step content, so vocabulary → phrases → speaking reads as chapters
+   of the same object instead of a floating pill row above an unrelated
+   card. Children (the workspace grid, the speaking flow card) drop their
+   own outer borders inside it. ── */
+.practice-stage {
+  background: var(--clay-surface-card);
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  overflow: hidden;
+}
+.practice-stage > .practice-workspace {
+  padding: 18px;
+  margin-top: 0;
+}
+.practice-stage .speaking-flow-card {
+  border: 0;
+  border-radius: 0;
+}
+
+/* ── Per-scene practice step header (vocabulary → phrases → speaking) ──
+   Numbered markers joined by connector lines — the same visual language
+   as the story-level phase stepper above it, one size smaller, so the
+   inner steps clearly belong to the same journey. */
 .scene-step-tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 16px;
-  padding: 5px;
+  align-items: center;
+  padding: 14px 18px;
+  border-bottom: 1.5px solid var(--clay-hairline);
   background: var(--clay-surface-soft);
-  border-radius: var(--clay-radius-pill);
-  width: fit-content;
-  max-width: 100%;
   overflow-x: auto;
 }
 .scene-step-tab {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   border: none;
   background: none;
-  padding: 8px 16px;
+  padding: 6px 10px;
   border-radius: var(--clay-radius-pill);
   font-size: 14px;
   font-weight: 700;
   color: var(--clay-muted);
   cursor: pointer;
   white-space: nowrap;
-  transition: color 0.15s, background-color 0.15s, box-shadow 0.15s;
+  transition: color 0.15s;
 }
-.scene-step-tab .tone-shape-icon { color: var(--clay-muted-soft); }
+/* Connector line between steps — drawn by every tab except the first. */
+.scene-step-tab + .scene-step-tab::before {
+  content: "";
+  width: 36px;
+  height: 2px;
+  margin: 0 10px 0 2px;
+  border-radius: 1px;
+  background: var(--clay-hairline);
+  flex-shrink: 0;
+}
+.scene-step-done + .scene-step-tab::before,
+.scene-step-tab.scene-step-active::before {
+  background: var(--jade);
+}
+.scene-step-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.scene-step-marker-done {
+  background: var(--jade);
+  color: var(--clay-on-accent);
+}
+.scene-step-marker-active {
+  background: var(--seal);
+  color: var(--clay-on-accent);
+  box-shadow: 0 0 0 4px var(--seal-soft);
+}
+.scene-step-marker-upcoming {
+  background: var(--clay-surface-card);
+  border: 2px solid var(--clay-hairline);
+  color: var(--clay-muted);
+}
 .scene-step-tab:hover { color: var(--clay-body); }
+.scene-step-tab.scene-step-done { color: var(--jade-deep); }
 .scene-step-tab.active {
   color: var(--seal-deep);
-  background: var(--clay-surface-card);
-  box-shadow: var(--shadow-sm);
 }
-.scene-step-tab.active .tone-shape-icon { color: var(--seal); }
 
 /* practice-phrases-hint's compact card, sized up for its own reference
    panel (rather than a small inline hint next to the record controls). */
@@ -4064,6 +4125,10 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
   letter-spacing: 0.02em;
   box-shadow: 0 5px 0 var(--seal-deep);
+  /* BiLabel's default sublabel colors are dark-on-light — unreadable on
+     this violet fill. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 .btn-practice-record:hover:not(:disabled) {
   transform: translateY(-1px);

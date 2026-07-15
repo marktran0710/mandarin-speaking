@@ -630,3 +630,40 @@ class TestFeedbackConsistency:
         words = [_word("嗎", [5], 75.0), _word("呢", [5], 80.0)]
         fb = generate_phrase_tone_feedback(words, 77.5)
         assert isinstance(fb, str) and "Excellent" in fb
+
+
+class TestWordProsodyFeedbackDiagnosis:
+    """Below 48 the feedback must say what the student's pitch DID and give
+    a concrete vocal action — not just restate that the shape was wrong."""
+
+    def test_rose_when_tone4_expected_names_the_error_and_fix(self):
+        fb = _word_prosody_feedback("rising", 60.0, [4], 30.0)
+        assert "doesn't match yet" in fb
+        assert "rose" in fb and "fall" in fb.lower()
+
+    def test_fell_when_tone2_expected_names_the_error_and_fix(self):
+        fb = _word_prosody_feedback("falling", 60.0, [2], 30.0)
+        assert "fell" in fb and "rise" in fb.lower()
+
+    def test_rose_when_tone3_expected_explains_dip_order(self):
+        fb = _word_prosody_feedback("rising", 60.0, [3], 30.0)
+        assert "dips first" in fb
+
+    def test_flat_when_tone4_expected_calls_out_flatness(self):
+        fb = _word_prosody_feedback("level", 5.0, [4], 30.0)
+        assert "Too flat" in fb
+
+    def test_moving_when_tone1_expected_asks_for_steady_note(self):
+        fb = _word_prosody_feedback("dip", 70.0, [1], 30.0)
+        assert "steady" in fb
+
+    def test_mid_tier_appends_exaggeration_tip(self):
+        fb = _word_prosody_feedback("rising", 40.0, [2], 55.0)
+        assert fb.startswith("Recognizable")
+        assert "Exaggerate" in fb
+
+    def test_neutral_only_word_keeps_generic_message(self):
+        fb = _word_prosody_feedback("level", 5.0, [5], 30.0)
+        assert "doesn't match yet" in fb
+        # No tones 1-4 to anchor a diagnosis — must not invent one.
+        assert "Too flat" not in fb and "steady" not in fb

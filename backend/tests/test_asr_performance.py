@@ -25,7 +25,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.dirname(__file__))
-from fixtures import SILENT_WAV, SHORT_WAV, LONG_WAV
+from fixtures import SILENT_WAV, SHORT_WAV, LONG_WAV, SPEECH_WAV
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ class TestRoutingPerformance:
         async def route():
             with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as m:
                 m.return_value = MagicMock(text="你好", model="ctwhisper")
-                await transcribe_audio_content(SHORT_WAV, "ctwhisper")
+                await transcribe_audio_content(SPEECH_WAV, "ctwhisper")
 
         mean, p95, p99 = await ameasure(route, iterations=30)
         print_result("routing (ctwhisper alias)", mean, p95, p99, budget_ms=5)
@@ -95,7 +95,7 @@ class TestRoutingPerformance:
         async def route():
             with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as m:
                 m.return_value = MagicMock(text="你好", model="ctwhisper")
-                await main.transcribe_with_auto_fallback(SHORT_WAV)
+                await main.transcribe_with_auto_fallback(SPEECH_WAV)
 
         mean, p95, p99 = await ameasure(route, iterations=30)
         print_result("auto-fallback (1 provider)", mean, p95, p99, budget_ms=5)
@@ -226,7 +226,7 @@ class TestFallbackChainPerformance:
                  patch("main.transcribe_with_funasr", new_callable=AsyncMock) as funasr:
                 ctw.side_effect = RuntimeError("not loaded")
                 funasr.return_value = MagicMock(text="你好", model="funasr")
-                await main.transcribe_with_auto_fallback(SHORT_WAV)
+                await main.transcribe_with_auto_fallback(SPEECH_WAV)
 
         mean, p95, p99 = await ameasure(run, iterations=20)
         print_result("fallback: 1 fail + 1 success", mean, p95, p99, budget_ms=10)
@@ -254,7 +254,7 @@ class TestFallbackChainPerformance:
                 cli.__aexit__ = AsyncMock(return_value=False)
                 cli.post = AsyncMock(return_value=mock_gemini_resp)
                 cls.return_value = cli
-                await main.transcribe_with_auto_fallback(SHORT_WAV)
+                await main.transcribe_with_auto_fallback(SPEECH_WAV)
 
         mean, p95, p99 = await ameasure(run, iterations=20)
         print_result("fallback: 2 fails + 1 success (gemini)", mean, p95, p99, budget_ms=30)
@@ -283,7 +283,7 @@ class TestEndpointConcurrency:
                 def single_request():
                     return client.post(
                         "/api/transcribe",
-                        files={"file": ("t.wav", SHORT_WAV, "audio/wav")},
+                        files={"file": ("t.wav", SPEECH_WAV, "audio/wav")},
                         data={"model": "ctwhisper"},
                     )
 
@@ -325,19 +325,26 @@ class TestPayloadSizeImpact:
     @pytest.mark.asyncio
     async def test_short_vs_long_wav_routing_similar(self, monkeypatch):
         import main
+        from fixtures import make_tone_wav_bytes
+
         monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper"])
+
+        # Speech-like tones (not silence) so both payloads pass the silence
+        # gate and exercise the full routing path incl. the gate's decode.
+        short_wav = make_tone_wav_bytes(0.5)
+        long_wav = make_tone_wav_bytes(5.0)
 
         async def route(wav):
             with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as m:
                 m.return_value = MagicMock(text="你好", model="ctwhisper")
                 await main.transcribe_with_auto_fallback(wav)
 
-        mean_short, _, _ = await ameasure(lambda: route(SHORT_WAV), iterations=20)
-        mean_long,  _, _ = await ameasure(lambda: route(LONG_WAV),  iterations=20)
+        mean_short, _, _ = await ameasure(lambda: route(short_wav), iterations=20)
+        mean_long,  _, _ = await ameasure(lambda: route(long_wav),  iterations=20)
 
         print(f"\n  [routing overhead by size]")
-        print(f"    short WAV ({len(SHORT_WAV):,} B): {mean_short:.2f}ms")
-        print(f"    long  WAV ({len(LONG_WAV):,} B): {mean_long:.2f}ms")
+        print(f"    short WAV ({len(short_wav):,} B): {mean_short:.2f}ms")
+        print(f"    long  WAV ({len(long_wav):,} B): {mean_long:.2f}ms")
         print(f"    ratio: {mean_long/mean_short:.1f}x")
 
         # Routing overhead (not inference!) should not scale with file size

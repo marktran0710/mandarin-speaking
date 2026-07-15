@@ -323,10 +323,14 @@ describe("StoryRecorder student prototype", () => {
 
     await user.click(screen.getByRole("button", { name: /Stop Recording$/ }));
 
+    // Analysis lands on the results screen; the per-word feedback lives
+    // behind its Pronunciation chip.
     await waitFor(() => {
-      expect(screen.getByText("Character-by-character prosody")).toBeInTheDocument();
-      expect(screen.getByText("Pitch rises clearly.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Pronunciation/ })).toBeInTheDocument();
     });
+    await user.click(screen.getByRole("button", { name: /Pronunciation/ }));
+    expect(screen.getByText("Character-by-character prosody")).toBeInTheDocument();
+    expect(screen.getByText("Pitch rises clearly.")).toBeInTheDocument();
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       `${TEST_BACKEND_URL}/api/analyze`,

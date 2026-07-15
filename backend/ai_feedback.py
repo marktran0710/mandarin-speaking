@@ -500,6 +500,20 @@ async def _feedback_with_openai(
     return _normalize_feedback(data, scene_attempt_number=scene_attempt_number, scene_suggested_answer=scene_suggested_answer)
 
 
+# Shared by the text and audio feedback prompts. Exists because the fields
+# students actually read were coming back generic ("watch your tones",
+# "good effort") — feedback a learner can't act on. Every rule here forces
+# the model to anchor advice to something specific the student said and to
+# phrase it for the app's audience: adult A1-A2 learners of Taiwan Mandarin.
+_FEEDBACK_STYLE_RULES = """
+Feedback style rules (apply to EVERY feedback / hint / practice_prompt string):
+- Bilingual: one short Traditional Chinese sentence first (Taiwan usage — 臺灣華語 wording, e.g. 捷運 not 地鐵, 腳踏車 not 自行車), then " / " and a simple English version an A1-A2 learner can read.
+- Anchor every point to a specific word the student actually said — quote it in 「」.
+- pronunciation_note.feedback: name the exact syllable to fix and give ONE concrete vocal action (e.g. 「賣」: start high and fall firmly). When a tone was wrong, add one minimal pair to contrast, e.g. 買 mǎi (tone 3) vs 賣 mài (tone 4).
+- Never give generic advice ("practice more", "watch your tones", "good job") — every sentence must contain a specific word, sound, or pattern the student can act on right now.
+"""
+
+
 def _audio_assessment_prompt(
     scene_prompt: str,
     vocab_line: str,
@@ -549,7 +563,7 @@ Scoring guide:
 - vocabulary_coverage.score: 0 = no target words used, 100 = all used
 - coherence.score: 60 = acceptable grammar, 90+ = natural native-level
 - pronunciation_note.score: use Praat tone accuracy if provided; 80+ = clear tones
-
+{_FEEDBACK_STYLE_RULES}
 Return ONLY this JSON (no markdown):
 {{
   "transcription": "<exact Traditional Chinese transcript of the audio>",
@@ -1002,7 +1016,7 @@ Scoring guide:
 - vocabulary_coverage.score: 0 = no target words used, 100 = all used correctly
 - coherence.score: 0 = incomprehensible, 60 = grammatically acceptable, 90+ = natural native-level
 - pronunciation_note.score: base it on Praat tone accuracy % above if provided; 0 = no speech, 50 = many tone errors, 80+ = clear tones
-
+{_FEEDBACK_STYLE_RULES}
 Return ONLY this JSON (no markdown, no extra keys):
 {{
   "provider": "ai",

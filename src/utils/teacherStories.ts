@@ -37,6 +37,28 @@ export interface CustomStoryFrame {
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
+  // Medium/Hard tiers of the same scene — same imageUrl/plot, progressively
+  // more complex text. Absent means that tier hasn't been authored yet.
+  promptMedium?: string;
+  promptHard?: string;
+  vocabularyMedium?: string;
+  vocabularyHard?: string;
+  vocabularyPinyinMedium?: string;
+  vocabularyPinyinHard?: string;
+  vocabularyPosMedium?: string;
+  vocabularyPosHard?: string;
+  vocabularyTranslationMedium?: string;
+  vocabularyTranslationHard?: string;
+  phrasesMedium?: string;
+  phrasesHard?: string;
+  phrasesTranslationMedium?: string;
+  phrasesTranslationHard?: string;
+  suggestedAnswerMedium?: string;
+  suggestedAnswerHard?: string;
+  listenAudioUrlMedium?: string;
+  listenAudioUrlHard?: string;
+  listenScriptMedium?: string;
+  listenScriptHard?: string;
 }
 
 export type NarrativeMode = "story" | "describe" | "listen_retell";
@@ -45,7 +67,6 @@ export interface CustomTeacherStory {
   id: string;
   title: string;
   learningGoal: string;
-  level: string;
   frames: CustomStoryFrame[];
   published?: boolean;
   linear?: boolean;
@@ -78,14 +99,84 @@ export function saveCustomStories(stories: CustomTeacherStory[]) {
 export function loadPublishedTeacherTopics(): Topic[] {
   return loadCustomStories()
     .filter((story) => story.published)
-    .map(storyToTopic);
+    .map((story) => storyToTopic(story));
 }
 
-export function storyToTopic(story: CustomTeacherStory): Topic {
+/** A story is authored once per scene, at the Easy tier, then optionally
+ * gains Medium/Hard variants of the same text fields (same imageUrl/plot).
+ * Picking a level just changes which tier of text storyToTopic reads. */
+export type StoryDifficultyLevel = "easy" | "medium" | "hard";
+
+const TIER_SUFFIX: Record<StoryDifficultyLevel, ""  | "Medium" | "Hard"> = {
+  easy: "",
+  medium: "Medium",
+  hard: "Hard",
+};
+
+type TieredField =
+  | "prompt"
+  | "vocabulary"
+  | "vocabularyPinyin"
+  | "vocabularyPos"
+  | "vocabularyTranslation"
+  | "phrases"
+  | "phrasesTranslation"
+  | "suggestedAnswer"
+  | "listenAudioUrl"
+  | "listenScript";
+
+/** Read a frame's text for the given tier, falling back to the base (Easy)
+ * field when that tier hasn't been authored yet — so a partially-filled-in
+ * Medium/Hard story still shows workable content instead of blanks. */
+function tierText(
+  frame: CustomStoryFrame,
+  base: TieredField,
+  level: StoryDifficultyLevel,
+): string | undefined {
+  const baseValue = frame[base];
+  if (level === "easy") return baseValue;
+  const suffixed = frame[`${base}${TIER_SUFFIX[level]}` as keyof CustomStoryFrame] as
+    | string
+    | undefined;
+  return suffixed && suffixed.trim() ? suffixed : baseValue;
+}
+
+/** Whether a story has any teacher-authored content for Medium/Hard beyond
+ * the Easy fields — lets the student-facing level picker hide tiers that
+ * would just silently fall back to Easy text. */
+export function storyHasTierContent(
+  story: CustomTeacherStory,
+  level: "medium" | "hard",
+): boolean {
+  const suffix = TIER_SUFFIX[level];
+  const fields: TieredField[] = [
+    "prompt",
+    "vocabulary",
+    "vocabularyPinyin",
+    "vocabularyPos",
+    "vocabularyTranslation",
+    "phrases",
+    "phrasesTranslation",
+    "suggestedAnswer",
+    "listenAudioUrl",
+    "listenScript",
+  ];
+  return story.frames.some((frame) =>
+    fields.some((base) => {
+      const value = frame[`${base}${suffix}` as keyof CustomStoryFrame] as string | undefined;
+      return Boolean(value && value.trim());
+    }),
+  );
+}
+
+export function storyToTopic(
+  story: CustomTeacherStory,
+  difficultyLevel: StoryDifficultyLevel = "easy",
+): Topic {
   const vocabulary = story.frames.reduce<Record<number, string[]>>(
     (allWords, frame, index) => ({
       ...allWords,
-      [index]: frame.vocabulary
+      [index]: (tierText(frame, "vocabulary", difficultyLevel) || "")
         .split(",")
         .map((word) => word.trim())
         .filter(Boolean),
@@ -107,32 +198,40 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
     if (frame.vocabularyGroups && frame.vocabularyGroups.length > 0) {
       vocabularyGroups[index] = frame.vocabularyGroups;
     }
-    if (frame.phrases && frame.phrases.trim()) {
-      phrases[index] = frame.phrases
+    const framePhrases = tierText(frame, "phrases", difficultyLevel);
+    if (framePhrases && framePhrases.trim()) {
+      phrases[index] = framePhrases
         .split(",")
         .map((p) => p.trim())
         .filter(Boolean);
     }
-    if (frame.phrasesTranslation && frame.phrasesTranslation.trim()) {
-      phrasesTranslation[index] = frame.phrasesTranslation
+    const framePhrasesTranslation = tierText(frame, "phrasesTranslation", difficultyLevel);
+    if (framePhrasesTranslation && framePhrasesTranslation.trim()) {
+      phrasesTranslation[index] = framePhrasesTranslation
         .split(",")
         .map((t) => t.trim());
     }
-    if (frame.vocabularyPinyin && frame.vocabularyPinyin.trim()) {
-      vocabularyPinyin[index] = frame.vocabularyPinyin
+    const frameVocabularyPinyin = tierText(frame, "vocabularyPinyin", difficultyLevel);
+    if (frameVocabularyPinyin && frameVocabularyPinyin.trim()) {
+      vocabularyPinyin[index] = frameVocabularyPinyin
         .split(",")
         .map((p) => numericToToneMarked(p.trim()));
     }
-    if (frame.vocabularyPos && frame.vocabularyPos.trim()) {
-      vocabularyPos[index] = frame.vocabularyPos
+    const frameVocabularyPos = tierText(frame, "vocabularyPos", difficultyLevel);
+    if (frameVocabularyPos && frameVocabularyPos.trim()) {
+      vocabularyPos[index] = frameVocabularyPos
         .split(",")
         .map((p) => p.trim());
     }
-    if (frame.vocabularyTranslation && frame.vocabularyTranslation.trim()) {
-      vocabularyTranslation[index] = frame.vocabularyTranslation
+    const frameVocabularyTranslation = tierText(frame, "vocabularyTranslation", difficultyLevel);
+    if (frameVocabularyTranslation && frameVocabularyTranslation.trim()) {
+      vocabularyTranslation[index] = frameVocabularyTranslation
         .split(",")
         .map((t) => t.trim());
     }
+    // vocabularyDistractors isn't tiered — it's regenerated per word by a
+    // dedicated AI endpoint rather than authored text, and isn't currently
+    // persisted by the backend at all (a separate, pre-existing gap).
     if (frame.vocabularyDistractors && frame.vocabularyDistractors.trim()) {
       try {
         const parsed = JSON.parse(frame.vocabularyDistractors);
@@ -145,25 +244,36 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
         // Malformed/stale data — treat as absent rather than breaking the quiz.
       }
     }
-    if (frame.suggestedAnswer && frame.suggestedAnswer.trim()) {
-      suggestedAnswers[index] = frame.suggestedAnswer.trim();
+    const frameSuggestedAnswer = tierText(frame, "suggestedAnswer", difficultyLevel);
+    if (frameSuggestedAnswer && frameSuggestedAnswer.trim()) {
+      suggestedAnswers[index] = frameSuggestedAnswer.trim();
     }
-    if (frame.listenAudioUrl && frame.listenAudioUrl.trim()) {
-      listenAudioUrls[index] = resolveImageUrl(frame.listenAudioUrl.trim());
+    const frameListenAudioUrl = tierText(frame, "listenAudioUrl", difficultyLevel);
+    if (frameListenAudioUrl && frameListenAudioUrl.trim()) {
+      listenAudioUrls[index] = resolveImageUrl(frameListenAudioUrl.trim());
     }
-    if (frame.listenScript && frame.listenScript.trim()) {
-      listenScripts[index] = frame.listenScript.trim();
+    const frameListenScript = tierText(frame, "listenScript", difficultyLevel);
+    if (frameListenScript && frameListenScript.trim()) {
+      listenScripts[index] = frameListenScript.trim();
     }
   });
 
+  // Easy keeps the story's original id (no behavior change for existing
+  // single-tier stories); Medium/Hard get their own id so vocab-quiz
+  // completion, scene recordings, and submissions track independently per
+  // tier instead of colliding with Easy's.
+  const topicId =
+    difficultyLevel === "easy"
+      ? `teacher-${story.id}`
+      : `teacher-${story.id}-${difficultyLevel}`;
+
   return {
-    id: `teacher-${story.id}`,
+    id: topicId,
     name: story.title,
     description: story.learningGoal,
     skillFocus: "Teacher published activity",
-    level: story.level,
     images: story.frames.map((frame) => resolveImageUrl(frame.imageUrl)),
-    prompts: story.frames.map((frame) => frame.prompt),
+    prompts: story.frames.map((frame) => tierText(frame, "prompt", difficultyLevel) || ""),
     vocabulary,
     ...(Object.keys(vocabularyGroups).length > 0 ? { vocabularyGroups } : {}),
     ...(Object.keys(phrases).length > 0 ? { phrases } : {}),
@@ -179,5 +289,7 @@ export function storyToTopic(story: CustomTeacherStory): Topic {
     ...(story.lessonNumber != null ? { lessonNumber: story.lessonNumber } : {}),
     narrativeMode: story.narrativeMode ?? "story",
     ...(story.firstFrameIsExample ? { firstFrameIsExample: true } : {}),
+    difficultyLevel,
+    sourceStory: story,
   };
 }

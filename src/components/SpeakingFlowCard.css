@@ -1,0 +1,409 @@
+/* ── SpeakingFlowCard — the Speaking step as a fixed-height app card ──
+   One card, two screens (record → results). The height is clamped so the
+   whole flow fits a laptop viewport without page scrolling; anything that
+   can't fit (the per-word card row) scrolls horizontally inside its own
+   region, never the page. */
+
+.speaking-flow-card {
+  display: flex;
+  flex-direction: column;
+  height: clamp(460px, calc(100vh - 360px), 720px);
+  background: var(--clay-surface-card);
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  padding: 18px;
+  overflow: hidden;
+}
+
+/* ── Analyzing state ── */
+.sfc-analyzing {
+  align-items: center;
+  justify-content: center;
+}
+.sfc-loading {
+  margin: 0;
+}
+
+/* ── Record screen ── */
+.sfc-record-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr);
+  gap: 18px;
+  flex: 1;
+  min-height: 0;
+}
+
+.sfc-scene-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+.sfc-scene-panel img {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+.sfc-model-sentence {
+  flex-shrink: 0;
+}
+
+.sfc-record-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 4px;
+}
+
+.sfc-record-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.sfc-record-title {
+  margin: 0;
+  font-size: 17px;
+}
+
+.sfc-scene-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--seal-deep);
+  background: var(--seal-soft);
+  border-radius: var(--clay-radius-pill);
+  padding: 4px 12px;
+}
+.sfc-attempt-chip {
+  color: var(--clay-body);
+  background: var(--clay-surface-card);
+  border-radius: var(--clay-radius-pill);
+  padding: 2px 8px;
+}
+
+.sfc-record-btn {
+  font-size: 18px;
+  padding: 18px 40px;
+}
+
+.sfc-steps-preview {
+  list-style: none;
+  margin: 0;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--clay-surface-soft);
+  border-radius: var(--clay-radius-md);
+  width: 100%;
+  max-width: 320px;
+}
+.sfc-steps-preview li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--clay-body);
+}
+.sfc-step-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--seal-soft);
+  color: var(--seal-deep);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sfc-options {
+  width: 100%;
+  max-width: 320px;
+}
+.sfc-error {
+  max-width: 320px;
+  text-align: center;
+}
+
+/* ── Screen transition: record ⇄ results slide in as one continuous flow
+   rather than swapping abruptly. ── */
+.sfc-screen {
+  animation: sfc-screen-in 0.28s ease;
+}
+@keyframes sfc-screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sfc-screen {
+    animation: none;
+  }
+}
+
+/* ── Results screen ── */
+.sfc-results-grid {
+  display: grid;
+  grid-template-columns: minmax(200px, 0.8fr) minmax(0, 1.9fr);
+  gap: 18px;
+  flex: 1;
+  min-height: 0;
+}
+.sfc-results-scene {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.sfc-results-scene img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+.sfc-results-main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.sfc-verdict {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--clay-radius-md);
+  flex-shrink: 0;
+}
+.sfc-verdict-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+.sfc-verdict-text {
+  margin: 0;
+  flex: 1;
+  font-weight: 650;
+}
+.sfc-verdict-meaning {
+  background: var(--clay-error-soft);
+  border: 1.5px solid var(--clay-error);
+}
+.sfc-verdict-vocab {
+  background: var(--gold-soft);
+  border: 1.5px solid var(--gold);
+}
+.sfc-verdict-pronounce {
+  background: var(--tone1-soft);
+  border: 1.5px solid var(--tone1);
+}
+.sfc-verdict-ready {
+  background: var(--jade-soft);
+  border: 1.5px solid var(--jade);
+}
+
+.sfc-step-chips {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-top: 12px;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+/* Short connector between checklist chips — the same "stops on one path"
+   language as the practice stepper above and the journey path. */
+.sfc-chip-link {
+  width: 20px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--clay-hairline);
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+.sfc-step-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: var(--clay-radius-pill);
+  border: 1.5px solid var(--clay-hairline);
+  background: var(--clay-surface-soft);
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--clay-body);
+  cursor: pointer;
+}
+.sfc-step-chip.active {
+  border-color: var(--seal);
+  background: var(--seal-soft);
+  color: var(--seal-deep);
+}
+.sfc-chip-status {
+  font-weight: 800;
+  font-size: 12px;
+}
+.sfc-chip-status.pass {
+  color: var(--jade-deep);
+}
+.sfc-chip-status.fail {
+  color: var(--clay-error);
+}
+
+.sfc-body {
+  flex: 1;
+  min-height: 0;
+  margin-top: 12px;
+  overflow-y: auto;
+}
+
+.sfc-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.sfc-transcript {
+  margin: 0;
+  font-size: 15px;
+}
+.sfc-transcript em {
+  font-style: normal;
+  font-weight: 700;
+}
+
+.sfc-missing-words .block-label {
+  margin-bottom: 6px;
+}
+.sfc-missing-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sfc-missing-chip {
+  background: var(--gold-soft);
+  color: var(--gold-deep);
+  border: 1px solid var(--gold);
+}
+
+.sfc-goto-words {
+  align-self: flex-start;
+  background: transparent;
+  border: 1.5px solid var(--seal);
+  color: var(--seal-deep);
+  border-radius: var(--clay-radius-pill);
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sfc-goto-words:hover {
+  background: var(--seal-soft);
+}
+
+.sfc-words-heading {
+  margin: 0 0 8px;
+}
+.sfc-words-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+.sfc-words-row .word-prosody-card {
+  flex: 0 0 240px;
+}
+
+/* ── Footer action bar ── */
+.sfc-footer {
+  flex-shrink: 0;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--clay-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.sfc-unlock-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--clay-muted);
+}
+.sfc-footer-actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+.sfc-btn-again {
+  padding: 10px 20px;
+  border-radius: var(--clay-radius-pill);
+  border: 1.5px solid var(--clay-hairline);
+  background: var(--clay-surface-soft);
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--clay-ink);
+  cursor: pointer;
+}
+.sfc-btn-again:hover {
+  background: var(--clay-surface-strong);
+}
+.sfc-btn-next {
+  padding: 10px 24px;
+  border-radius: var(--clay-radius-pill);
+  border: 2px solid var(--jade-deep);
+  background: var(--jade-deep);
+  color: var(--clay-on-accent);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 0 var(--jade-deep);
+  /* BiLabel sublabels: light tints for this dark green fill. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
+}
+.sfc-btn-next:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.sfc-btn-next:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+@media (max-width: 860px) {
+  .speaking-flow-card {
+    height: auto;
+    max-height: none;
+  }
+  .sfc-record-grid,
+  .sfc-results-grid {
+    grid-template-columns: 1fr;
+  }
+  .sfc-scene-panel img {
+    max-height: 260px;
+  }
+  .sfc-results-scene img {
+    max-height: 160px;
+  }
+}

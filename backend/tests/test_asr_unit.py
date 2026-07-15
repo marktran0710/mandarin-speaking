@@ -24,7 +24,7 @@ from fastapi import HTTPException
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.dirname(__file__))
 
-from fixtures import SILENT_WAV, SHORT_WAV, LONG_WAV
+from fixtures import SILENT_WAV, SHORT_WAV, LONG_WAV, SPEECH_WAV
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -108,8 +108,8 @@ class TestTranscribeAudioContentRouting:
         from main import transcribe_audio_content
         with patch("main.transcribe_with_auto_fallback", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="你好", model="auto:ctwhisper")
-            result = await transcribe_audio_content(SILENT_WAV, "auto")
-            mock.assert_awaited_once_with(SILENT_WAV, vocab_hint="")
+            result = await transcribe_audio_content(SPEECH_WAV, "auto")
+            mock.assert_awaited_once_with(SPEECH_WAV, vocab_hint="")
             assert result.text == "你好"
 
     @pytest.mark.asyncio
@@ -117,14 +117,14 @@ class TestTranscribeAudioContentRouting:
         from main import transcribe_audio_content
         with patch("main.transcribe_with_openai", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="你好", model="openai")
-            result = await transcribe_audio_content(SILENT_WAV, "openai")
+            result = await transcribe_audio_content(SPEECH_WAV, "openai")
             mock.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_openai_without_key_raises_500(self, no_openai_key):
         from main import transcribe_audio_content
         with pytest.raises(HTTPException) as exc_info:
-            await transcribe_audio_content(SILENT_WAV, "openai")
+            await transcribe_audio_content(SPEECH_WAV, "openai")
         assert exc_info.value.status_code == 500
         assert "OpenAI" in exc_info.value.detail
 
@@ -133,14 +133,14 @@ class TestTranscribeAudioContentRouting:
         from main import transcribe_audio_content
         with patch("main.transcribe_with_gemini", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="你好", model="gemini")
-            result = await transcribe_audio_content(SILENT_WAV, "gemini")
+            result = await transcribe_audio_content(SPEECH_WAV, "gemini")
             mock.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_gemini_without_key_raises_500(self, no_gemini_key):
         from main import transcribe_audio_content
         with pytest.raises(HTTPException) as exc_info:
-            await transcribe_audio_content(SILENT_WAV, "gemini")
+            await transcribe_audio_content(SPEECH_WAV, "gemini")
         assert exc_info.value.status_code == 500
         assert "Gemini" in exc_info.value.detail
 
@@ -149,7 +149,7 @@ class TestTranscribeAudioContentRouting:
         from main import transcribe_audio_content
         with patch("main.transcribe_with_funasr", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="早上好", model="funasr")
-            result = await transcribe_audio_content(SILENT_WAV, "funasr")
+            result = await transcribe_audio_content(SPEECH_WAV, "funasr")
             mock.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -157,7 +157,7 @@ class TestTranscribeAudioContentRouting:
         from main import transcribe_audio_content
         with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="謝謝", model="ctwhisper")
-            await transcribe_audio_content(SILENT_WAV, "ctwhisper")
+            await transcribe_audio_content(SPEECH_WAV, "ctwhisper")
             mock.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -165,7 +165,7 @@ class TestTranscribeAudioContentRouting:
         from main import transcribe_audio_content
         with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="謝謝", model="ctwhisper")
-            await transcribe_audio_content(SILENT_WAV, "chinese_taiwanese_whisper")
+            await transcribe_audio_content(SPEECH_WAV, "chinese_taiwanese_whisper")
             mock.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -173,14 +173,14 @@ class TestTranscribeAudioContentRouting:
         from main import transcribe_audio_content
         with patch("main.transcribe_with_vibevoice", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="再見", model="vibevoice")
-            await transcribe_audio_content(SILENT_WAV, "vibevoice")
+            await transcribe_audio_content(SPEECH_WAV, "vibevoice")
             mock.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_unknown_model_raises_400(self):
         from main import transcribe_audio_content
         with pytest.raises(HTTPException) as exc_info:
-            await transcribe_audio_content(SILENT_WAV, "nonexistent_model")
+            await transcribe_audio_content(SPEECH_WAV, "nonexistent_model")
         assert exc_info.value.status_code == 400
 
 
@@ -196,7 +196,7 @@ class TestTranscribeWithAutoFallback:
         monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "funasr"])
         with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as mock_ctw:
             mock_ctw.return_value = MagicMock(text="你好", model="ctwhisper")
-            result = await main.transcribe_with_auto_fallback(SILENT_WAV)
+            result = await main.transcribe_with_auto_fallback(SPEECH_WAV)
         assert result.text == "你好"
         assert "auto:ctwhisper" in result.model
 
@@ -208,7 +208,7 @@ class TestTranscribeWithAutoFallback:
              patch("main.transcribe_with_funasr", new_callable=AsyncMock) as funasrm:
             ctw.side_effect = RuntimeError("model not loaded")
             funasrm.return_value = MagicMock(text="早上好", model="funasr")
-            result = await main.transcribe_with_auto_fallback(SILENT_WAV)
+            result = await main.transcribe_with_auto_fallback(SPEECH_WAV)
         assert result.text == "早上好"
         assert "funasr" in result.model
 
@@ -220,7 +220,7 @@ class TestTranscribeWithAutoFallback:
              patch("main.transcribe_with_funasr", new_callable=AsyncMock) as funasrm:
             ctw.return_value = MagicMock(text="   ", model="ctwhisper")  # empty
             funasrm.return_value = MagicMock(text="謝謝", model="funasr")
-            result = await main.transcribe_with_auto_fallback(SILENT_WAV)
+            result = await main.transcribe_with_auto_fallback(SPEECH_WAV)
         assert result.text == "謝謝"
 
     @pytest.mark.asyncio
@@ -230,7 +230,7 @@ class TestTranscribeWithAutoFallback:
         with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw:
             ctw.side_effect = RuntimeError("model missing")
             with pytest.raises(HTTPException) as exc_info:
-                await main.transcribe_with_auto_fallback(SILENT_WAV)
+                await main.transcribe_with_auto_fallback(SPEECH_WAV)
         assert exc_info.value.status_code == 503
 
     @pytest.mark.asyncio
@@ -239,7 +239,7 @@ class TestTranscribeWithAutoFallback:
         monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["gemini", "ctwhisper"])
         with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw:
             ctw.return_value = MagicMock(text="你好", model="ctwhisper")
-            result = await main.transcribe_with_auto_fallback(SILENT_WAV)
+            result = await main.transcribe_with_auto_fallback(SPEECH_WAV)
         assert result.text == "你好"
 
     @pytest.mark.asyncio
@@ -248,7 +248,7 @@ class TestTranscribeWithAutoFallback:
         monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["openai", "ctwhisper"])
         with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw:
             ctw.return_value = MagicMock(text="早上好", model="ctwhisper")
-            result = await main.transcribe_with_auto_fallback(SILENT_WAV)
+            result = await main.transcribe_with_auto_fallback(SPEECH_WAV)
         assert result.text == "早上好"
 
 
@@ -513,7 +513,7 @@ class TestTranscribeEndpoint:
             mock.return_value = MagicMock(text="你好", model="ctwhisper")
             resp = client.post(
                 "/api/transcribe",
-                files={"file": ("test.wav", SILENT_WAV, "audio/wav")},
+                files={"file": ("test.wav", SPEECH_WAV, "audio/wav")},
                 data={"model": "ctwhisper"},
             )
         assert resp.status_code == 200

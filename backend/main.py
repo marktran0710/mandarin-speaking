@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Tuple
 import base64
+import io
 import logging
 import mimetypes
 import os
@@ -148,11 +149,16 @@ OPENAI_API_KEY = clean_api_key(os.getenv("OPENAI_API_KEY") or os.getenv("VITE_OP
 GEMINI_API_KEY = clean_api_key(os.getenv("GEMINI_API_KEY") or os.getenv("VITE_GEMINI_API_KEY"))
 GROQ_API_KEY = clean_api_key(os.getenv("GROQ_API_KEY") or os.getenv("VITE_GROQ_API_KEY"))
 GROQ_WHISPER_MODEL = os.getenv("GROQ_WHISPER_MODEL", "whisper-large-v3")
+# Groq's whisper-large-v3 leads: it's dramatically more accurate for
+# Traditional Chinese than the local whisper-small, and the deployed backend
+# (Render free tier, CPU-only) has a GROQ_API_KEY but no GPU. The auto chain
+# already skips providers whose key is missing, so local-only setups still
+# fall through to ctwhisper unchanged.
 ASR_FALLBACK_ORDER = [
     model.strip()
     for model in os.getenv(
         "ASR_FALLBACK_ORDER",
-        "ctwhisper",
+        "groq,ctwhisper",
     ).split(",")
     if model.strip()
 ]
@@ -371,7 +377,6 @@ class CustomStoryRequest(BaseModel):
     id: str
     title: str
     learningGoal: str
-    level: str
     frames: List[CustomStoryFrameRequest]
     published: bool = False
     linear: bool = False
@@ -911,12 +916,107 @@ async def _do_analyze(
 
 _MAX_AUDIO_BYTES = int(os.getenv("MAX_AUDIO_BYTES", str(10 * 1024 * 1024)))  # 10 MB
 
+# Silence gate: audio with less energy/voiced speech than this never reaches
+# an ASR model at all. Whisper-family models hallucinate on silence — worst
+# of all by echoing the vocab-hint prompt back as the "transcript", which
+# scores a student who said nothing as if they'd said the target words.
+# Thresholds match the earlier prod-hardening tuning: 0.005 RMS let fan/room
+# hum through, 0.02 doesn't; 0.4s of voiced audio rejects pops and hum that
+# still pass RMS.
+ASR_SILENCE_RMS = float(os.getenv("ASR_SILENCE_RMS", "0.02"))
+ASR_MIN_SPEECH_SECONDS = float(os.getenv("ASR_MIN_SPEECH_SECONDS", "0.4"))
+
+
+def _decode_wav_mono(audio_content: bytes) -> Tuple[np.ndarray, int]:
+    """Decode PCM WAV bytes to mono float32 in [-1, 1] using only the stdlib
+    — librosa/soundfile are optional deps that may not exist on the deployed
+    backend, and every in-app recording path already produces WAV."""
+    import wave
+
+    with wave.open(io.BytesIO(audio_content)) as wav_file:
+        sample_rate = wav_file.getframerate()
+        sample_width = wav_file.getsampwidth()
+        channels = wav_file.getnchannels()
+        raw = wav_file.readframes(wav_file.getnframes())
+
+    dtype = {1: np.int8, 2: np.int16, 4: np.int32}.get(sample_width)
+    if dtype is None:
+        raise ValueError(f"Unsupported WAV sample width: {sample_width}")
+    data = np.frombuffer(raw, dtype=dtype).astype(np.float32)
+    data /= float(2 ** (8 * sample_width - 1))
+    if channels > 1:
+        data = data.reshape(-1, channels).mean(axis=1)
+    return data, sample_rate
+
+
+def _has_speech(audio_content: bytes) -> bool:
+    """Two-stage speech check: overall RMS (rejects near-silence), then a
+    frame-level voiced-duration estimate (rejects brief pops / steady hum
+    that pass RMS). Fails open — any decode problem (non-WAV upload, odd
+    encoding) assumes speech, so the gate can only ever *prevent* a
+    hallucination, never block a real recording."""
+    try:
+        data, sample_rate = _decode_wav_mono(audio_content)
+        if len(data) == 0:
+            return False
+        rms = float(np.sqrt(np.mean(data**2)))
+        if rms < ASR_SILENCE_RMS:
+            return False
+
+        # Voiced frames = 25ms windows (10ms hop) within 30 dB of the loudest
+        # frame — the same relative criterion as librosa.effects.split's
+        # top_db=30, without needing librosa installed. Vectorized via a
+        # strided window view: a Python per-frame loop costs milliseconds on
+        # a long recording, and this gate runs before every ASR request.
+        frame = max(1, int(sample_rate * 0.025))
+        hop = max(1, int(sample_rate * 0.010))
+        if len(data) < frame:
+            return False
+        windows = np.lib.stride_tricks.sliding_window_view(data, frame)[::hop]
+        frame_rms = np.sqrt(np.mean(windows**2, axis=1))
+        peak = float(frame_rms.max()) if len(frame_rms) else 0.0
+        if peak <= 0.0:
+            return False
+        voiced = frame_rms > peak * 10 ** (-30 / 20)
+        voiced_seconds = float(np.sum(voiced)) * hop / sample_rate
+        return voiced_seconds >= ASR_MIN_SPEECH_SECONDS
+    except Exception as exc:
+        logger.debug("Silence gate could not decode audio, assuming speech: %s", exc)
+        return True
+
+
+# Stock phrases Whisper-family models emit for silence/noise — video-outro
+# boilerplate from the training data, never something an A1-A2 student
+# recording a story scene actually said. Entries are pre-normalized the
+# same way _filter_asr_phantoms normalizes its input: lowercased, spaces
+# and trailing punctuation removed.
+_ASR_PHANTOM_PHRASES = {
+    "謝謝", "謝謝觀看", "謝謝收看", "謝謝收聽", "感謝收聽", "感謝觀看",
+    "謝謝大家", "請訂閱", "字幕由amara.org社群提供",
+    "thankyou", "thankyouforwatching", "thankyouforlistening", "you",
+}
+
+
+def _filter_asr_phantoms(text: str) -> str:
+    normalized = text.strip().strip("。.!！?？,， ").replace(" ", "").lower()
+    if normalized in _ASR_PHANTOM_PHRASES:
+        logger.info("ASR phantom phrase filtered: %r", text)
+        return ""
+    return text
+
 
 async def transcribe_audio_content(
     audio_content: bytes,
     model: str,
     vocab_hint: str = "",
 ) -> TranscriptionResponse:
+    # Gate before dispatching to ANY provider — cloud Whisper hallucinates
+    # on silence exactly like the local model, and with a vocab-hint prompt
+    # attached it echoes the hint itself back as the transcript.
+    if not _has_speech(audio_content):
+        logger.info("Silence gate: no speech detected, skipping ASR (model=%s)", model)
+        return TranscriptionResponse(text="", model="silence-gate")
+
     if model == "auto":
         return await transcribe_with_auto_fallback(audio_content, vocab_hint=vocab_hint)
 
@@ -1011,10 +1111,16 @@ async def transcribe_with_auto_fallback(audio_content: bytes, vocab_hint: str = 
         except Exception as exc:
             errors.append(f"{provider}: {exc}")
 
+    # Every provider ran but heard nothing — that's silence or unclear
+    # speech, not a server failure. Return empty so Praat still analyzes
+    # the audio and the student gets an honest "no speech detected" rather
+    # than a 503 error page.
+    if errors and all(e.endswith(": empty transcription") for e in errors):
+        logger.info("Auto ASR: every provider returned empty — silent or unclear audio")
+        return TranscriptionResponse(text="", model="auto:silent")
+
     detail = (
-        "No local ASR model produced a transcript. Make sure the Chinese/Taiwanese "
-        "Whisper model is installed on the backend. Tried: "
-        + "; ".join(errors)
+        "No ASR provider produced a transcript. Tried: " + "; ".join(errors)
     )
     logger.error("Auto ASR failed. Errors: %s", errors)
     raise HTTPException(status_code=503, detail=detail)
@@ -1753,7 +1859,7 @@ async def transcribe_with_groq(audio_content: bytes, vocab_hint: str = "") -> Tr
         if response.status_code != 200:
             raise Exception(f"Groq API error: {response.text}")
 
-        text = convert_to_traditional_chinese(response.text.strip())
+        text = _filter_asr_phantoms(convert_to_traditional_chinese(response.text.strip()))
         return TranscriptionResponse(text=text, model="groq")
 
 
@@ -1931,9 +2037,10 @@ def _transcribe_with_ct_whisper_sync(audio_content: bytes, vocab_hint: str = "")
             predicted_ids,
             skip_special_tokens=True,
         )[0].strip()
-        text = convert_to_traditional_chinese(text)
-        if not text:
-            raise RuntimeError("Chinese/Taiwanese Whisper returned an empty transcript.")
+        text = _filter_asr_phantoms(convert_to_traditional_chinese(text))
+        # Empty is a legitimate result (silence, filtered phantom) — not a
+        # server error. Raising here used to turn a silent recording into a
+        # 503 for the whole auto-fallback chain.
         return text
     finally:
         if os.path.exists(tmp_path):

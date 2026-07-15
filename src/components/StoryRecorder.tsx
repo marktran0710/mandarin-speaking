@@ -21,7 +21,6 @@ import StoryVocabQuiz, {
   type VocabQuizSummary,
 } from "./StoryVocabQuiz";
 import JourneyPath, { type JourneyStopStatus } from "./JourneyPath";
-import ToneShapeIcon from "./ToneShapeIcon";
 import { toPinyin } from "../utils/pinyin";
 import { markStoryLevelSubmitted } from "../utils/storyLevelProgress";
 import type { CustomTeacherStory, StoryDifficultyLevel } from "../utils/teacherStories";
@@ -29,7 +28,6 @@ import { convertBlobToWav } from "../utils/audio";
 import {
   sceneReady,
   averageWordProsodyAccuracy,
-  buildPracticeAnalysisText,
   hasAudioFileExtension,
   getBackendUrl,
   readErrorResponse,
@@ -47,8 +45,7 @@ import SortingChallenge from "./SortingChallenge";
 import StorySummarySection, {
   type JourneyStopBase,
 } from "./StorySummarySection";
-import PracticeSpeakingStep from "./PracticeSpeakingStep";
-import PracticeAnalysisPanel from "./PracticeAnalysisPanel";
+import SpeakingFlowCard from "./SpeakingFlowCard";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -205,6 +202,12 @@ export interface WordProsody {
   end_time: number;
   pitch_contour: Array<[number, number]>;
   reference_contour?: Array<[number, number]>;
+  // The exact normalized [0,1] curves the backend's shape score compared
+  // (user vs idealized target) — drawn by MiniContourChart so the chart
+  // can never disagree with the score. Empty/absent when the segment was
+  // too short to score (chart falls back to the raw-Hz pair above).
+  user_curve?: number[];
+  target_curve?: number[];
   mean_pitch: number;
   pitch_range: number;
   start_pitch: number;
@@ -213,6 +216,9 @@ export interface WordProsody {
   feedback: string;
   expected_tones?: number[];
   tone_accuracy?: number;
+  // Pure shape-similarity score (the one the chart visualizes), as opposed
+  // to tone_accuracy's direction-weighted blend used for aggregation.
+  shape_accuracy?: number;
 }
 
 interface LanguageFeedback {
@@ -333,7 +339,10 @@ export default function StoryRecorder({
   const [attemptHistoryMap, setAttemptHistoryMap] = useState<
     Record<number, Array<{ tone: number; fluency: number; attempt: number }>>
   >({});
-  const [transcriptionsMap, setTranscriptionsMap] = useState<
+  // Transcript history is still collected per scene (submission/summary
+  // consumers read the latest via currentTranscriptRef) even though the
+  // Speaking flow now shows only the newest transcript inline.
+  const [, setTranscriptionsMap] = useState<
     Record<number, TranscriptionItem[]>
   >({});
 
@@ -342,7 +351,6 @@ export default function StoryRecorder({
   const praatMetrics = praatMetricsMap[selectedImageIndex] ?? null;
   const analysisAudioBlob = analysisAudioBlobMap[selectedImageIndex] ?? null;
   const attemptHistory = attemptHistoryMap[selectedImageIndex] ?? [];
-  const transcriptions = transcriptionsMap[selectedImageIndex] ?? [];
 
   // Setters scoped to the current scene index.
   const setPraatMetrics = (v: PraatMetrics | null) =>
@@ -898,19 +906,17 @@ export default function StoryRecorder({
       }
 
       const metrics = (await response.json()) as PraatMetrics;
-      const finalTranscription = (
-        metrics.transcription ||
-        analysisText ||
-        practiceAnalysisText
-      ).trim();
+      // Only real transcripts (backend ASR, or the live WebSpeech text) —
+      // never the scene's vocabulary list as a stand-in. That old fallback
+      // meant a silent recording got "transcribed" as the exact target
+      // words and scored as if the student had said them all.
+      const finalTranscription = (metrics.transcription || analysisText).trim();
       if (
         finalTranscription &&
         finalTranscription !== currentTranscriptRef.current
       ) {
         currentTranscriptRef.current = finalTranscription;
-        if (finalTranscription !== practiceAnalysisText) {
-          addTranscription(finalTranscription, recordModel);
-        }
+        addTranscription(finalTranscription, recordModel);
       }
       setPraatMetrics(metrics);
       setAnalysisAudioBlob(wavBlob);
@@ -1053,7 +1059,6 @@ export default function StoryRecorder({
 
   const isBusy = isRecording || isTranscribing || isAnalyzing;
   const selectedVocabulary = topic.vocabulary[selectedImageIndex] || [];
-  const practiceAnalysisText = buildPracticeAnalysisText(selectedVocabulary);
   const recordingButtonDisabled = isTranscribing || isAnalyzing;
 
   const handlePrimaryRecordingAction = () => {
@@ -1312,14 +1317,19 @@ export default function StoryRecorder({
             </div>
           )}
 
-          {/* ── Scene journey: scenes threaded on one path, not a flat strip ── */}
-          <JourneyPath
-            stops={journeyStopsBase.map((stop) => ({
-              ...stop,
-              disabled: isBusy,
-              onClick: () => goToScene(stop.idx, stop.img),
-            }))}
-          />
+          {/* ── Scene journey: scenes threaded on one path, not a flat strip.
+               Hidden during the Speaking flow — its fixed-height app card
+               carries its own scene indicator + gated Next button, and the
+               reclaimed height is what lets that card fit one screen. ── */}
+          {scenePracticeStep !== "speaking" && (
+            <JourneyPath
+              stops={journeyStopsBase.map((stop) => ({
+                ...stop,
+                disabled: isBusy,
+                onClick: () => goToScene(stop.idx, stop.img),
+              }))}
+            />
+          )}
 
           {/* ── Always-available way to reach the summary once every scene
                is recorded, regardless of which order they were finished in
@@ -1335,8 +1345,9 @@ export default function StoryRecorder({
             </button>
           )}
 
-          {/* ── Scene readiness banner ── */}
-          {(() => {
+          {/* ── Scene readiness banner — Speaking's app card replaces all of
+               these with its own verdict header and gated footer actions. ── */}
+          {scenePracticeStep !== "speaking" && (() => {
             const prog = sceneProgress[selectedImageIndex];
             if (!prog || prog.attempts === 0) {
               const hasVocab = sceneHasVocabStep(selectedImageIndex);
@@ -1474,51 +1485,88 @@ export default function StoryRecorder({
           })()}
 
           {/* ── Per-scene practice steps: vocabulary → phrases → speaking ── */}
-          <div
-            className="scene-step-tabs"
-            role="tablist"
-            aria-label="Practice steps"
-          >
-            {sceneHasVocabStep(selectedImageIndex) && (
-              <button
-                type="button"
-                role="tab"
-                aria-selected={scenePracticeStep === "vocab"}
-                className={`scene-step-tab${scenePracticeStep === "vocab" ? " active" : ""}`}
-                onClick={() => setScenePracticeStep("vocab")}
+          {/* ── One continuous practice stage: a numbered stepper header
+               fused to the step content below it (same visual language as
+               the story-level phase stepper above), instead of a floating
+               pill row + a disconnected card. ── */}
+          <section className="practice-stage">
+          {(() => {
+            const steps: Array<{ key: ScenePracticeStep; label: JSX.Element }> = [
+              ...(sceneHasVocabStep(selectedImageIndex)
+                ? [{ key: "vocab" as const, label: <BiLabel k="vocab_step_tab" /> }]
+                : []),
+              ...(sceneHasPhrasesStep(selectedImageIndex)
+                ? [{ key: "phrases" as const, label: <BiLabel k="phrases_step_tab" /> }]
+                : []),
+              { key: "speaking" as const, label: <BiLabel k="speaking" /> },
+            ];
+            const activeIdx = steps.findIndex((s) => s.key === scenePracticeStep);
+            return (
+              <div
+                className="scene-step-tabs"
+                role="tablist"
+                aria-label="Practice steps"
               >
-                <ToneShapeIcon tone={1} size={16} />
-                <BiLabel k="vocab_step_tab" />
-              </button>
-            )}
-            {sceneHasPhrasesStep(selectedImageIndex) && (
-              <button
-                type="button"
-                role="tab"
-                aria-selected={scenePracticeStep === "phrases"}
-                className={`scene-step-tab${scenePracticeStep === "phrases" ? " active" : ""}`}
-                onClick={() => setScenePracticeStep("phrases")}
-              >
-                <ToneShapeIcon tone={3} size={16} />
-                <BiLabel k="phrases_step_tab" />
-              </button>
-            )}
-            <button
-              type="button"
-              role="tab"
-              aria-selected={scenePracticeStep === "speaking"}
-              className={`scene-step-tab${scenePracticeStep === "speaking" ? " active" : ""}`}
-              onClick={() => setScenePracticeStep("speaking")}
-            >
-              <ToneShapeIcon tone={2} size={16} />
-              <BiLabel k="speaking" />
-            </button>
-          </div>
+                {steps.map((step, i) => {
+                  const state =
+                    i < activeIdx ? "done" : i === activeIdx ? "active" : "upcoming";
+                  return (
+                    <button
+                      key={step.key}
+                      type="button"
+                      role="tab"
+                      aria-selected={scenePracticeStep === step.key}
+                      className={`scene-step-tab scene-step-${state}${scenePracticeStep === step.key ? " active" : ""}`}
+                      onClick={() => setScenePracticeStep(step.key)}
+                    >
+                      <span className={`scene-step-marker scene-step-marker-${state}`}>
+                        {state === "done" ? "✓" : i + 1}
+                      </span>
+                      {step.label}
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
-          {/* ── Main two-column workspace: shape stays identical across every
-               step, so switching tabs never resizes or reflows the page —
-               only the reference content (left) and action area (right)
-               change underneath it. ── */}
+          {/* ── Speaking runs as its own fixed-height app flow (record →
+               results, gated Next); Vocabulary/Phrases keep the two-column
+               reference workspace. ── */}
+          {scenePracticeStep === "speaking" ? (
+            <SpeakingFlowCard
+              selectedImage={selectedImage}
+              selectedImageIndex={selectedImageIndex}
+              totalScenes={topic.images.length}
+              modelSentence={topic.suggestedAnswers?.[selectedImageIndex]}
+              narrativeMode={topic.narrativeMode}
+              prog={sceneProgress[selectedImageIndex]}
+              praatMetrics={praatMetrics}
+              analysisAudioBlob={analysisAudioBlob}
+              error={error}
+              isRecording={isRecording}
+              isBusy={isBusy}
+              isTranscribing={isTranscribing}
+              isAnalyzing={isAnalyzing}
+              recordingDuration={recordingDuration}
+              silenceDuration={silenceDuration}
+              submittedAudioName={submittedAudioName}
+              selectedModel={selectedModel}
+              onSelectedModelChange={setSelectedModel}
+              aiProviders={aiProviders}
+              aiProvider={aiProvider}
+              onAiProviderChange={setAiProvider}
+              recordingButtonDisabled={recordingButtonDisabled}
+              onPrimaryRecordingAction={handlePrimaryRecordingAction}
+              onSubmitVoiceFile={handleSubmitVoiceFile}
+              hasNextScene={selectedImageIndex + 1 < topic.images.length}
+              onNextScene={() => {
+                const nextIdx = selectedImageIndex + 1;
+                goToScene(nextIdx, topic.images[nextIdx]);
+              }}
+              onViewSummary={() => setPhase("summary")}
+            />
+          ) : (
           <div className="practice-workspace">
             {/* Left: scene image + step-specific reference material */}
             <div className="practice-scene-panel">
@@ -1675,17 +1723,6 @@ export default function StoryRecorder({
                   </div>
                 )}
 
-              {scenePracticeStep === "speaking" &&
-                topic.suggestedAnswers?.[selectedImageIndex] && (
-                  <div className="practice-model-sentence">
-                    <p className="block-label practice-model-sentence-label">
-                      <BiLabel k="speaking_model_sentence" />
-                    </p>
-                    <p className="practice-model-sentence-text" lang="zh-Hant">
-                      {topic.suggestedAnswers[selectedImageIndex]}
-                    </p>
-                  </div>
-                )}
             </div>
 
             {/* Right: step-specific action panel — same width/position as the
@@ -1749,44 +1786,10 @@ export default function StoryRecorder({
                 </div>
               )}
 
-              {scenePracticeStep === "speaking" && (
-                <PracticeSpeakingStep
-                  aiProviders={aiProviders}
-                  aiProvider={aiProvider}
-                  onAiProviderChange={setAiProvider}
-                  selectedModel={selectedModel}
-                  onSelectedModelChange={setSelectedModel}
-                  silenceDuration={silenceDuration}
-                  recordingDuration={recordingDuration}
-                  submittedAudioName={submittedAudioName}
-                  praatMetrics={praatMetrics}
-                  transcriptions={transcriptions}
-                  isRecording={isRecording}
-                  isBusy={isBusy}
-                  recordingButtonDisabled={recordingButtonDisabled}
-                  onPrimaryRecordingAction={handlePrimaryRecordingAction}
-                  onSubmitVoiceFile={handleSubmitVoiceFile}
-                />
-              )}
             </div>
           </div>
-
-          {scenePracticeStep === "speaking" && (
-            <PracticeAnalysisPanel
-              isTranscribing={isTranscribing}
-              isAnalyzing={isAnalyzing}
-              error={error}
-              praatMetrics={praatMetrics}
-              attemptHistory={attemptHistory}
-              narrativeMode={topic.narrativeMode}
-              selectedImage={selectedImage}
-              selectedImageIndex={selectedImageIndex}
-              sceneAttempts={sceneProgress[selectedImageIndex]?.attempts}
-              analysisAudioBlob={analysisAudioBlob}
-              transcription={currentTranscriptRef.current}
-            />
           )}
-
+          </section>
         </>
       )}
 

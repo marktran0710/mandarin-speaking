@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import TopicSelector from "../components/TopicSelector";
 import StoryRecorder, { type NewAudioRecord } from "../components/StoryRecorder";
+import StoryLevelPicker from "../components/StoryLevelPicker";
 import { HelpRequest } from "../services/database";
-import { loadPublishedTeacherTopics } from "../utils/teacherStories";
+import { loadPublishedTeacherTopics, storyHasTierContent, storyToTopic } from "../utils/teacherStories";
 import type { Topic } from "../components/TopicSelector";
 import "./CreateStoryPage.css";
 import { BiLabel, BiText } from "../components/BiLabel";
@@ -45,21 +46,38 @@ export default function CreateStoryPage({
   );
   const [selectedImageIndex, setSelectedImageIndex] =
     useState<number>(safeInitialIndex);
+  // Set while a story with authored Medium/Hard tiers is chosen but before a
+  // level has been picked — shows StoryLevelPicker instead of jumping
+  // straight into StoryRecorder. Stories with no Medium/Hard content skip
+  // this step entirely (nothing to choose between).
+  const [pendingTopic, setPendingTopic] = useState<Topic | null>(null);
 
   useEffect(() => {
-    onSessionActiveChange?.(Boolean(selectedTopic));
+    onSessionActiveChange?.(Boolean(selectedTopic) || Boolean(pendingTopic));
     return () => onSessionActiveChange?.(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTopic]);
+  }, [selectedTopic, pendingTopic]);
 
-  const handleTopicSelect = (topic: Topic) => {
+  const openTopicAtLevel = (topic: Topic) => {
     setSelectedTopic(topic);
     setSelectedImage(topic.images[0]);
     setSelectedImageIndex(0);
   };
 
+  const handleTopicSelect = (topic: Topic) => {
+    const story = topic.sourceStory;
+    const hasTiers =
+      story && (storyHasTierContent(story, "medium") || storyHasTierContent(story, "hard"));
+    if (hasTiers) {
+      setPendingTopic(topic);
+      return;
+    }
+    openTopicAtLevel(topic);
+  };
+
   const handleBack = () => {
     setSelectedTopic(null);
+    setPendingTopic(null);
     setSelectedImage("");
     setSelectedImageIndex(0);
   };
@@ -69,7 +87,17 @@ export default function CreateStoryPage({
       <div className="csp-help-strip">
         <StudentHelpPanel helpRequests={helpRequests} onRaiseHand={onRaiseHand} />
       </div>
-      {!selectedTopic ? (
+      {pendingTopic && pendingTopic.sourceStory ? (
+        <StoryLevelPicker
+          story={pendingTopic.sourceStory}
+          onBack={() => setPendingTopic(null)}
+          onSelectLevel={(level) => {
+            const story = pendingTopic.sourceStory!;
+            openTopicAtLevel(storyToTopic(story, level));
+            setPendingTopic(null);
+          }}
+        />
+      ) : !selectedTopic ? (
         <TopicSelector onTopicSelect={handleTopicSelect} />
       ) : (
         <div className="csp-recorder-body">

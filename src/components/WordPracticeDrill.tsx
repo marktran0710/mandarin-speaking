@@ -42,9 +42,15 @@ export default function WordPracticeDrill({ word }: { word: WordProsody }) {
 
   const latest = attempts[attempts.length - 1];
   const previous = attempts[attempts.length - 2];
+  // The drill's verdict sits right under a shape-overlay chart, so it must
+  // be keyed to the same shape score the chart visualizes — tone_accuracy's
+  // directional blend can rate a wrong-looking shape "good", which is
+  // exactly the chart-vs-verdict contradiction that erodes trust.
+  const drillScore = (attempt: WordProsody) =>
+    attempt.shape_accuracy ?? attempt.tone_accuracy ?? 0;
   const trend =
     latest && previous
-      ? Math.round((latest.tone_accuracy ?? 0) - (previous.tone_accuracy ?? 0))
+      ? Math.round(drillScore(latest) - drillScore(previous))
       : undefined;
 
   const startRecording = async () => {
@@ -219,7 +225,7 @@ export default function WordPracticeDrill({ word }: { word: WordProsody }) {
 
           {latest && !isAnalyzing && (
             <div
-              className={`word-practice-result ${scoreTier(latest.tone_accuracy ?? 0)}`}
+              className={`word-practice-result ${scoreTier(drillScore(latest))}`}
             >
               {latestContentMatch === false && (
                 <p className="word-practice-content-warning">
@@ -236,11 +242,13 @@ export default function WordPracticeDrill({ word }: { word: WordProsody }) {
                 <MiniContourChart
                   actual={latest.pitch_contour}
                   reference={latest.reference_contour}
+                  userCurve={latest.user_curve}
+                  targetCurve={latest.target_curve}
                 />
               </div>
               <div className="word-practice-result-meta">
-                <strong className={`score-tier-text ${scoreTier(latest.tone_accuracy ?? 0)}`}>
-                  {scoreTierLabel(scoreTier(latest.tone_accuracy ?? 0)).zh}
+                <strong className={`score-tier-text ${scoreTier(drillScore(latest))}`}>
+                  {scoreTierLabel(scoreTier(drillScore(latest))).zh}
                 </strong>
                 {typeof trend === "number" && trend !== 0 && (
                   <em className={trend > 0 ? "trend-up" : "trend-down"}>

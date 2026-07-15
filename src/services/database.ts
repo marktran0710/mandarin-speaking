@@ -85,7 +85,6 @@ export interface StoredCustomStory {
   id: string;
   title: string;
   learningGoal: string;
-  level: string;
   frames: CustomStoryFrame[];
   published?: boolean;
   linear?: boolean;

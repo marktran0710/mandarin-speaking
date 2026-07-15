@@ -1,0 +1,176 @@
+《捷運站在哪裡？》Where Is the MRT Station?
+Situation: A student is running late for class and stops a stranger on the street to ask for directions to the MRT station.
+
+═══════════════════
+EASY (A1)
+═══════════════════
+
+[Turn 1 — 路上 On the street, morning; 承翰 checks the time, looking lost]
+Narrator：承翰要去學校。他不知道捷運站在哪裡。
+Chénghàn yào qù xuéxiào. Tā bù zhīdào jiéyùnzhàn zài nǎlǐ.
+Chenghan needs to go to school. He doesn't know where the MRT station is.
+
+[Turn 2 — 承翰 stops a passerby, 婉婷, on the sidewalk]
+承翰：請問，捷運站在哪裡？
+Qǐngwèn, jiéyùnzhàn zài nǎlǐ?
+Excuse me, where is the MRT station?
+
+[Turn 3 — 婉婷 points down the street]
+婉婷：捷運站在那裡。
+Jiéyùnzhàn zài nàlǐ.
+The MRT station is over there.
+
+[Turn 4 — 承翰 looks at the distance, a little worried]
+承翰：遠嗎？
+Yuǎn ma?
+Is it far?
+
+[Turn 5 — 婉婷 shakes her head, smiles]
+婉婷：不遠，很近。
+Bù yuǎn, hěn jìn.
+Not far, very close.
+
+[Turn 6 — 承翰 smiles with relief, walks off toward the station]
+Narrator：承翰說謝謝。他走去捷運站。他很高興。
+Chénghàn shuō xièxie. Tā zǒu qù jiéyùnzhàn. Tā hěn gāoxìng.
+Chenghan says thank you. He walks to the MRT station. He is happy.
+
+Vocabulary
+1  要      yào        Aux  want to; need to
+2  去      qù         V    to go
+3  學校    xuéxiào    N    school
+4  知道    zhīdào     V    to know
+5  捷運站  jiéyùnzhàn N    MRT station
+6  哪裡    nǎlǐ       N    where
+7  請問    qǐngwèn    Ph   excuse me (polite opener)
+8  在      zài        Vst  to be located at
+9  那裡    nàlǐ       N    there
+10 遠      yuǎn       Vs   far
+11 嗎      ma         Ptc  question particle
+12 近      jìn        Vs   close; near
+13 謝謝    xièxie     V/Ph thank you
+14 走      zǒu        V    to walk
+15 高興    gāoxìng    Vs   happy
+
+Key Phrases
+1  X 在哪裡？   —  請問，捷運站在哪裡？   —  Ask where a place is; swap in any noun.
+2  不 + Vs      —  不遠，很近。            —  Negate a simple adjective (far/near, big/small) with 不.
+3  很 + Vs      —  他很高興。              —  Attach 很 before an adjective to describe a feeling — no 是 needed.
+
+═══════════════════
+MEDIUM (A1-A2)
+═══════════════════
+
+[Turn 1 — 路上 On the street, early morning; 承翰 hurries along checking his phone]
+Narrator：今天承翰要去學校上課，可是他不知道捷運站在哪裡，心裡很緊張。
+Jīntiān Chénghàn yào qù xuéxiào shàngkè, kěshì tā bù zhīdào jiéyùnzhàn zài nǎlǐ, xīnlǐ hěn jǐnzhāng.
+Today Chenghan needs to go to school for class, but he doesn't know where the MRT station is, and he feels very nervous.
+
+[Turn 2 — 承翰 stops 婉婷 on the sidewalk]
+承翰：不好意思，請問捷運站怎麼走？
+Bùhǎoyìsi, qǐngwèn jiéyùnzhàn zěnme zǒu?
+Excuse me, how do I get to the MRT station?
+
+[Turn 3 — 婉婷 points ahead down the road]
+婉婷：你往前走，咖啡店旁邊就是捷運站。
+Nǐ wǎng qián zǒu, kāfēidiàn pángbiān jiù shì jiéyùnzhàn.
+Walk straight ahead — the MRT station is right beside the coffee shop.
+
+[Turn 4 — 承翰 checks his watch, anxious]
+承翰：要走多久？我沒有很多時間。
+Yào zǒu duōjiǔ? Wǒ méiyǒu hěn duō shíjiān.
+How long does it take to walk? I don't have much time.
+
+[Turn 5 — 婉婷 smiles reassuringly]
+婉婷：不會很久，大概五分鐘，你可以走快一點。
+Bú huì hěn jiǔ, dàgài wǔ fēnzhōng, nǐ kěyǐ zǒu kuài yìdiǎn.
+It won't take long, about five minutes — you can walk a bit faster.
+
+[Turn 6 — 承翰 smiles, hurries off]
+Narrator：承翰謝謝婉婷，因為她的幫忙，他準時到學校。
+Chénghàn xièxie Wǎntíng, yīnwèi tā de bāngmáng, tā zhǔnshí dào xuéxiào.
+Chenghan thanks Wanting; because of her help, he arrives at school on time.
+
+Vocabulary
+16 今天    jīntiān    N    today
+17 上課    shàngkè    Vsep to attend class
+18 可是    kěshì      Conj but
+19 心裡    xīnlǐ      N    inside one's heart; mentally
+20 緊張    jǐnzhāng   Vs   nervous
+21 不好意思 bùhǎoyìsi Ph   excuse me; sorry
+22 怎麼走  zěnme zǒu  Ph   how do I get there
+23 往前    wǎng qián  PP   forward; toward the front
+24 咖啡店  kāfēidiàn  N    coffee shop
+25 旁邊    pángbiān   N    beside; next to
+26 就是    jiùshì     Adv  precisely is; is exactly
+27 多久    duōjiǔ     QW   how long
+28 時間    shíjiān    N    time
+29 大概    dàgài      Adv  approximately; probably
+30 分鐘    fēnzhōng   N    minute
+31 可以    kěyǐ       Aux  can; may
+32 因為    yīnwèi     Conj because
+33 幫忙    bāngmáng   V/N  to help; help
+34 準時    zhǔnshí    Adv  on time
+
+Key Phrases
+1  X 怎麼走？        —  請問捷運站怎麼走？          —  Ask for directions to a place.
+2  要 V 多久？        —  要走多久？                  —  Ask how long an activity takes.
+3  因為 X，Y          —  因為她的幫忙，他準時到學校。 —  Give a reason before its result.
+
+═══════════════════
+HARD (A2)
+═══════════════════
+
+[Turn 1 — 路上 On the street; 承翰 rushes along, checking his phone anxiously]
+Narrator：承翰今天起晚了，他要趕快去學校，可是他從來沒走過這條路，心裡很緊張。
+Chénghàn jīntiān qǐ wǎn le, tā yào gǎnkuài qù xuéxiào, kěshì tā cónglái méi zǒuguò zhè tiáo lù, xīnlǐ hěn jǐnzhāng.
+Chenghan got up late today; he needs to hurry to school, but he's never walked this road before, so he feels very nervous.
+
+[Turn 2 — 承翰 stops 婉婷, slightly out of breath]
+承翰：不好意思，請問一下，去捷運站是不是要一直往前走？
+Bùhǎoyìsi, qǐng wèn yíxià, qù jiéyùnzhàn shì bú shì yào yìzhí wǎng qián zǒu?
+Excuse me, may I ask — to get to the MRT station, do I need to keep walking straight ahead?
+
+[Turn 3 — 婉婷 points toward a traffic light in the distance]
+婉婷：對，你一直走，走到紅綠燈右轉，比走這條巷子快多了。
+Duì, nǐ yìzhí zǒu, zǒu dào hónglǜdēng yòu zhuǎn, bǐ zǒu zhè tiáo xiàngzi kuài duōle.
+Right — keep going straight, turn right at the traffic light. It's much faster than walking through this alley.
+
+[Turn 4 — 承翰 looks at his watch, worried]
+承翰：太好了，那我大概幾分鐘可以到？我已經遲到十分鐘了。
+Tài hǎo le, nà wǒ dàgài jǐ fēnzhōng kěyǐ dào? Wǒ yǐjīng chídào shí fēnzhōng le.
+Great — so about how many minutes until I get there? I'm already ten minutes late.
+
+[Turn 5 — 婉婷 gives an encouraging smile]
+婉婷：別擔心，你跑步過去，五分鐘應該就到了，加油！
+Bié dānxīn, nǐ pǎobù guòqù, wǔ fēnzhōng yīnggāi jiù dào le, jiāyóu!
+Don't worry — run there, and you should arrive in about five minutes. Good luck!
+
+[Turn 6 — 承翰 thanks her and runs off toward the station]
+Narrator：承翰謝謝婉婷，然後跑去捷運站，最後比平常更快到學校，他很開心。
+Chénghàn xièxie Wǎntíng, ránhòu pǎo qù jiéyùnzhàn, zuìhòu bǐ píngcháng gèng kuài dào xuéxiào, tā hěn kāixīn.
+Chenghan thanks Wanting, then runs to the MRT station; in the end he arrives at school faster than usual, and he's very happy.
+
+Vocabulary
+35 起晚    qǐ wǎn      V-comp to get up late
+36 趕快    gǎnkuài     Adv    hurry; quickly
+37 從來沒  cónglái méi Adv    never (have not ever)
+38 條      tiáo        M      measure word (for roads, streets)
+39 一直    yìzhí       Adv    straight; continuously
+40 紅綠燈  hónglǜdēng  N      traffic light
+41 右轉    yòu zhuǎn   Vsep   to turn right
+42 比      bǐ          Prep   compared to (comparison marker)
+43 巷子    xiàngzi     N      alley; lane
+44 幾      jǐ          QW     how many
+45 已經    yǐjīng      Adv    already
+46 別擔心  bié dānxīn  Ph     don't worry
+47 跑步    pǎobù       V      to run; to jog
+48 應該    yīnggāi     Aux    should
+49 加油    jiāyóu      Ph     good luck; keep it up
+50 平常    píngcháng   Adv    usually; normally
+51 開心    kāixīn      Vs     happy; glad
+
+Key Phrases
+1  從來沒 + V過      —  他從來沒走過這條路。            —  Say you've never done something before (experience negation).
+2  是不是要...？     —  去捷運站是不是要一直往前走？    —  Politely confirm a plan or method (A-not-A with 是不是).
+3  比 + N + Vs + 多了/更 —  比走這條巷子快多了。／比平常更快到學校。 —  Compare two things directly with 比.

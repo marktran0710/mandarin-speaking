@@ -1,17 +1,21 @@
 import { useState } from "react";
 import type { VocabQuizAttempt } from "../services/database";
 import DashboardStat from "./DashboardStat";
-import { AccuracyTimeChart, ModeAccuracyChart, QUIZ_MODE_INFO, WordMissChart } from "./MyStoriesCharts";
+import { AccuracyTimeChart, ModeAccuracyChart, QUIZ_MODE_INFO, TimeAccuracyScatterChart, WordMissChart } from "./MyStoriesCharts";
 import {
   computeStudentQuizStats,
   computeWordMissStats,
+  DATE_RANGE_LABEL,
+  filterByDateRange,
   quizAttemptAccuracy,
   summarizeWordMissTrends,
   wordMissSeverity,
+  type DateRangePreset,
   type WordMissSeverity,
 } from "../utils/myStoriesUtils";
 
 const QUIZ_MODE_ORDER: Array<"speed" | "strikes" | "free"> = ["speed", "strikes", "free"];
+const DATE_RANGE_OPTIONS: DateRangePreset[] = ["all", "7d", "30d", "90d"];
 
 const WORD_SEVERITY_LABEL: Record<WordMissSeverity, string> = {
   critical: "Critical",
@@ -26,6 +30,7 @@ export default function QuizAnalyticsPanel({
   attempts: VocabQuizAttempt[];
   loadError: string;
 }) {
+  const [dateRange, setDateRange] = useState<DateRangePreset>("all");
   const [studentFilter, setStudentFilter] = useState("all");
   const [modeFilter, setModeFilter] = useState<"all" | "speed" | "strikes" | "free">("all");
 
@@ -61,9 +66,10 @@ export default function QuizAnalyticsPanel({
   }
 
   const students = Array.from(new Set(attempts.map((a) => a.studentName))).sort();
+  const dateFiltered = filterByDateRange(attempts, (a) => a.completedAt, dateRange);
   const studentFiltered = studentFilter === "all"
-    ? attempts
-    : attempts.filter((a) => a.studentName === studentFilter);
+    ? dateFiltered
+    : dateFiltered.filter((a) => a.studentName === studentFilter);
   const filtered = modeFilter === "all"
     ? studentFiltered
     : studentFiltered.filter((a) => a.mode === modeFilter);
@@ -111,10 +117,35 @@ export default function QuizAnalyticsPanel({
         }));
       })();
 
+  // One point per attempt — speed (seconds/question) vs. accuracy, colored
+  // by mode — the only chart in this panel that shows whether an
+  // individual attempt's pace and correctness move together, instead of
+  // each metric's own average in isolation.
+  const speedAccuracyPoints = filtered
+    // Attempts saved before quiz mode was tracked have no mode — excluded
+    // here rather than guessed, since which mode they're plotted as
+    // changes what the color-by-mode split actually means.
+    .filter((a): a is typeof a & { mode: "speed" | "strikes" | "free" } =>
+      a.totalQuestions > 0 && a.mode != null,
+    )
+    .map((a) => ({
+      mode: a.mode,
+      secondsPerQuestion: a.totalTimeMs / a.totalQuestions / 1000,
+      accuracy: quizAttemptAccuracy(a),
+    }));
+
   return (
     <>
       <section className="teacher-panel quiz-analytics-filters-panel">
         <div className="quiz-analytics-filters">
+          <label>
+            Date range
+            <select value={dateRange} onChange={(e) => setDateRange(e.target.value as DateRangePreset)}>
+              {DATE_RANGE_OPTIONS.map((preset) => (
+                <option key={preset} value={preset}>{DATE_RANGE_LABEL[preset]}</option>
+              ))}
+            </select>
+          </label>
           <label>
             Student
             <select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}>
@@ -180,6 +211,14 @@ export default function QuizAnalyticsPanel({
                     : `${studentFilter}'s accuracy over time`}
                 </h3>
                 <AccuracyTimeChart points={timeSeries} />
+              </div>
+              <div className="quiz-analytics-chart-card quiz-analytics-chart-wide">
+                <h3>Speed vs. accuracy, per attempt</h3>
+                {speedAccuracyPoints.length === 0 ? (
+                  <p className="quiz-analytics-empty-note">No attempts with a recorded mode in this filter.</p>
+                ) : (
+                  <TimeAccuracyScatterChart points={speedAccuracyPoints} />
+                )}
               </div>
               <div className="quiz-analytics-chart-card quiz-analytics-chart-wide">
                 <h3>Most-missed vocabulary words</h3>

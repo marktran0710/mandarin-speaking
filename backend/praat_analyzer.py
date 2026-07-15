@@ -600,6 +600,7 @@ def estimate_word_prosody(
         calculate_phrase_shape_accuracy,
         calculate_phrase_tone_accuracy,
         parse_pinyin_tones,
+        phrase_shape_curves,
         scaled_reference_contour,
         word_tones,
     )
@@ -682,9 +683,16 @@ def estimate_word_prosody(
         # directional blend (which can score a shape with the right broad
         # direction but the wrong internal contour, e.g. a dip performed as
         # a rise-then-dip in the wrong order, deceptively close to "good").
+        # user_curve/target_curve are the *same normalized arrays* the shape
+        # score compares (see phrase_shape_curves) — returned so the frontend
+        # chart draws exactly what was scored. Empty when the segment was too
+        # short to score, in which case the card falls back to raw Hz.
+        user_curve: List[float] = []
+        target_curve: List[float] = []
         if is_chinese and len(scoring_points) >= 4:
             tone_score = calculate_phrase_tone_accuracy(scoring_points, expected_tones)
             shape_score = calculate_phrase_shape_accuracy(scoring_points, expected_tones)
+            user_curve, target_curve = phrase_shape_curves(scoring_points, expected_tones)
         elif is_chinese and expected_tones:
             tone_score = 65.0
             shape_score = 65.0
@@ -713,6 +721,8 @@ def estimate_word_prosody(
                 "end_time": round(segment_end, 3),
                 "pitch_contour": points,
                 "reference_contour": reference_contour,
+                "user_curve": [round(v, 3) for v in user_curve],
+                "target_curve": [round(v, 3) for v in target_curve],
                 "mean_pitch": round(mean_pitch, 2),
                 "pitch_range": round(pitch_range, 2),
                 "start_pitch": round(start_pitch, 2),
@@ -720,6 +730,7 @@ def estimate_word_prosody(
                 "contour_shape": contour_shape,
                 "expected_tones": expected_tones,
                 "tone_accuracy": round(tone_score, 1),
+                "shape_accuracy": round(shape_score, 1),
                 "is_content_word": is_content,
                 "prominence_score": 0.0,  # filled in below after utterance mean is known
                 "feedback": _word_prosody_feedback(contour_shape, pitch_range, expected_tones, shape_score),
@@ -879,6 +890,79 @@ def _contour_shape(frequencies: np.ndarray, slope: float, pitch_range: float) ->
 _TONE_NAMES = {1: "Tone 1 (level)", 2: "Tone 2 (rising)", 3: "Tone 3 (dip)", 4: "Tone 4 (falling)", 5: "neutral tone"}
 
 
+# One concrete "do this with your voice" instruction per tone — the anchors
+# (question intonation, a firm command, humming a note) are cross-language
+# vocal gestures an A1-A2 learner can imitate without phonetics vocabulary.
+_TONE_EXAGGERATION_TIPS = {
+    1: "hold one steady, level note from start to end, like humming a single musical note",
+    2: "climb clearly from mid to high, like asking “huh?”",
+    3: "drop to your lowest pitch before the small rise — the low point is the goal",
+    4: "fall fast and firm from high to low, like a short command",
+}
+
+
+def _tone_mismatch_diagnosis(expected_tone: int, contour_shape: str) -> str:
+    """What actually went wrong, in terms of what the student's own pitch
+    did versus what the target tone does — so the fix is a specific vocal
+    action, not a restatement of the score."""
+    if expected_tone == 1:
+        if contour_shape in {"rising", "falling", "dip", "variable"}:
+            return (
+                "Your pitch moved around — Tone 1 holds one steady level "
+                "note from start to end, like humming a single musical note."
+            )
+    elif expected_tone == 2:
+        if contour_shape == "falling":
+            return (
+                "Your pitch fell — Tone 2 rises: start mid and lift to "
+                "high, like asking “huh?”"
+            )
+        if contour_shape == "level":
+            return (
+                "Too flat — Tone 2 must climb clearly from mid to high, "
+                "like the end of a question."
+            )
+        return (
+            "Tone 2 is one smooth rise, mid to high — no dip on the way, "
+            "just up, like asking a question."
+        )
+    elif expected_tone == 3:
+        if contour_shape == "rising":
+            return (
+                "You rose right away — Tone 3 dips first: start mid, drop "
+                "low, then relax back up."
+            )
+        if contour_shape == "falling":
+            return (
+                "You fell but didn't come back — Tone 3 drops low, then "
+                "bounces lightly up at the end."
+            )
+        if contour_shape == "level":
+            return (
+                "Too flat — Tone 3 needs a clear drop to your lowest "
+                "pitch before the small rise."
+            )
+        return (
+            "Make the dip deeper: mid → low → small rise. The low "
+            "point is the goal."
+        )
+    elif expected_tone == 4:
+        if contour_shape == "rising":
+            return (
+                "Your pitch rose — Tone 4 falls: start high and drop fast "
+                "and firm, like a short command."
+            )
+        if contour_shape == "level":
+            return (
+                "Too flat — Tone 4 needs a sharp fall from high to low."
+            )
+        return (
+            "One clean fall, high to low, no bounce — short and firm "
+            "like a command."
+        )
+    return ""
+
+
 def _word_prosody_feedback(
     contour_shape: str,
     pitch_range: float,
@@ -890,14 +974,34 @@ def _word_prosody_feedback(
     ``tone_accuracy`` blend — this text is paired with a chart that overlays
     the student's pitch directly against the idealized target shape, so it
     needs to agree with that same shape comparison, not a declination-robust
-    score that can rate a wrong-shaped-but-right-direction attempt as "good"."""
+    score that can rate a wrong-shaped-but-right-direction attempt as "good".
+
+    The three tiers keep their stable lead-in strings ("Good match" /
+    "Recognizable" / "Expected ... doesn't match yet") — the frontend's
+    prosodyImprovementTip keys off them — but the two problem tiers now end
+    with a concrete vocal action derived from what the student's pitch
+    actually did, instead of only restating that it was wrong.
+    """
     if expected_tones:
         tone_label = "+".join(_TONE_NAMES.get(t, str(t)) for t in expected_tones)
+        # First non-neutral tone anchors the diagnosis: it's the syllable
+        # with a real target shape, and for 1-2 syllable A1-A2 words it is
+        # almost always the word's tonal center.
+        primary_tone = next((t for t in expected_tones if t in (1, 2, 3, 4)), None)
+
         if shape_score >= 68:
             return f"Good match for {tone_label}."
         if shape_score >= 48:
-            return f"Recognizable {tone_label}, but contrast could be sharper."
-        return f"Expected {tone_label} — pitch shape doesn't match yet."
+            tip = _TONE_EXAGGERATION_TIPS.get(primary_tone or 0, "")
+            suffix = f" Exaggerate it: {tip}." if tip else ""
+            return f"Recognizable {tone_label}, but contrast could be sharper.{suffix}"
+        diagnosis = (
+            _tone_mismatch_diagnosis(primary_tone, contour_shape)
+            if primary_tone
+            else ""
+        )
+        suffix = f" {diagnosis}" if diagnosis else ""
+        return f"Expected {tone_label} — pitch shape doesn't match yet.{suffix}"
 
     if contour_shape == "level":
         return "Stable pitch. Good for level or unstressed syllables."

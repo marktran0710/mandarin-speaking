@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { canUseDatabase, createCustomStory, listCustomStories } from "../services/database";
-import { loadCustomStories, loadPublishedTeacherTopics, saveCustomStories, storyToTopic } from "../utils/teacherStories";
+import {
+  type CustomTeacherStory,
+  type StoryDifficultyLevel,
+  loadCustomStories,
+  loadPublishedTeacherTopics,
+  saveCustomStories,
+  storyToTopic,
+} from "../utils/teacherStories";
 import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
 import "./BiLabel.css";
@@ -15,7 +22,6 @@ export interface Topic {
   name: string;
   description: string;
   skillFocus: string;
-  level: string;
   images: string[];
   prompts?: string[];
   vocabulary: Record<number, string[]>;
@@ -40,6 +46,12 @@ export interface Topic {
   lessonNumber?: number | null;
   narrativeMode?: "story" | "describe" | "listen_retell";
   firstFrameIsExample?: boolean;
+  // Which easy/medium/hard tier this Topic was built at, plus a reference to
+  // the raw multi-tier story it came from — lets a level picker re-derive a
+  // Topic at a different tier, and lets progress tracking know what to mark
+  // as done on submit. Absent for topics that aren't teacher-authored.
+  difficultyLevel?: StoryDifficultyLevel;
+  sourceStory?: CustomTeacherStory;
 }
 
 interface TopicSelectorProps {
@@ -198,7 +210,6 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
                 {/* Body */}
                 <div className="ts-card-body">
                   <div className="ts-card-meta-row">
-                    <span className="ts-card-level">{t.level}</span>
                     <span className="ts-card-skill">
                       <SkillFocusLabel skillFocus={t.skillFocus} />
                     </span>

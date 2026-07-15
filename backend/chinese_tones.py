@@ -443,6 +443,37 @@ def calculate_directional_tone_accuracy(
     return float(np.mean(scores)) if scores else 0.0
 
 
+def phrase_shape_curves(
+    pitch_contour: List[Tuple[float, float]], tones: List[int]
+) -> Tuple[List[float], List[float]]:
+    """The exact pair of normalized curves ``calculate_phrase_shape_accuracy``
+    compares — (user_curve, target_curve), both on the same [0, 1] scale and
+    equal length.
+
+    Exists so the UI can draw *literally the same two arrays the scorer
+    scores* instead of re-deriving its own visual from raw Hz. The old
+    overlay rescaled the idealized target into the student's own raw-Hz
+    min/max band, which broke trust in both directions: a near-flat attempt
+    squashed the target flat too (looked "matching", scored low), while one
+    stray octave-error frame stretched the shared Hz range so a genuinely
+    good attempt looked wrong (yet scored high, because scoring clips that
+    outlier). Chart-visible similarity and the score can only agree if they
+    consume the same normalized data — this function is that single source.
+
+    Returns ([], []) when the contour or tone list can't produce a score
+    (the same inputs for which the scorer returns 0.0).
+    """
+    if not pitch_contour or not tones:
+        return [], []
+
+    user_pitch = normalize_pitch_contour(pitch_contour)
+    if len(user_pitch) == 0:
+        return [], []
+
+    ref_pitch = build_phrase_reference_pattern(apply_tone_sandhi(tones), num_points=len(user_pitch))
+    return user_pitch.tolist(), np.asarray(ref_pitch).tolist()
+
+
 def calculate_phrase_shape_accuracy(
     pitch_contour: List[Tuple[float, float]], tones: List[int]
 ) -> float:
@@ -455,16 +486,15 @@ def calculate_phrase_shape_accuracy(
     cards) — the feedback text there should track that visual comparison
     directly, not the declination-robust blend tuned for whole-utterance
     scoring/gating in connected speech.
+
+    Built on ``phrase_shape_curves`` so the score and any chart drawn from
+    those curves can never disagree about what was compared.
     """
-    if not pitch_contour or not tones:
+    user_curve, target_curve = phrase_shape_curves(pitch_contour, tones)
+    if not user_curve:
         return 0.0
 
-    user_pitch = normalize_pitch_contour(pitch_contour)
-    if len(user_pitch) == 0:
-        return 0.0
-
-    ref_pitch = build_phrase_reference_pattern(apply_tone_sandhi(tones), num_points=len(user_pitch))
-    return _shape_match_score(user_pitch, ref_pitch)
+    return _shape_match_score(np.asarray(user_curve), np.asarray(target_curve))
 
 
 def calculate_phrase_tone_accuracy(

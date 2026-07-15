@@ -1,0 +1,184 @@
+═══════════════════
+TEXT-FREE VERSION
+═══════════════════
+
+Image prompt for 《咪咪不見了》Mimi Is Missing
+Method: references/image-prompt-template.md (one prompt, one page, N panels)
+
+Single portrait image, divided into a clean grid of 6 equal panels (2
+columns × 3 rows), thin light gutters between panels, no hard comic-book
+borders, no text, no letters, no words, no speech bubbles, no panel numbers,
+no captions. Flat digital illustration style, soft rounded shapes, cozy warm
+apartment color palette, limited color palette, gentle clean outlines,
+friendly simple style, consistent lighting and color palette across all
+panels.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHIWEI] a friendly young man, early 20s, short messy brown-black hair,
+round glasses, mustard yellow hoodie, dark jeans, white sneakers, navy
+backpack over one shoulder.
+[PEIZHEN] a friendly young woman, early 20s, shoulder-length wavy black
+hair with a red hair tie, cozy oversized cream sweater, light denim jeans.
+[MIMI] a small orange tabby cat with white paws and a white chest patch,
+round green eyes.
+
+Panel 1 (top-left): wide shot, full figure, Zhiwei standing in the living
+room with his backpack on, looking anxiously at an empty sofa, checking his
+phone for the time, soft morning light through a window.
+
+Panel 2 (top-right): medium shot at eye level, Zhiwei calling out toward
+the kitchen doorway where Peizhen appears, one hand cupped near his mouth,
+Peizhen leaning out with a curious, attentive expression.
+
+Panel 3 (middle-left): wider shot showing the living room table and sofa,
+Peizhen pointing down toward the table, Zhiwei crouching down beside it to
+look underneath.
+
+Panel 4 (middle-right): close-up on Zhiwei's face and shoulders as he
+straightens up empty-handed, shaking his head with a puzzled expression,
+Peizhen visible at the edge of frame watching him.
+
+Panel 5 (bottom-left): medium shot from a slight side angle, Peizhen
+gesturing toward a bedroom doorway, Zhiwei turning to look in that
+direction with a hopeful expression.
+
+Panel 6 (bottom-right): close-up shot from a low angle, Zhiwei kneeling
+beside a bed, lifting the blanket edge to reveal Mimi curled up asleep
+underneath, a relieved smile on his face.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Zhiwei's yellow hoodie and glasses,
+  Peizhen's red hair tie, Mimi's orange-and-white coloring) recognizable in
+  every panel.
+- Keep one art style and one lighting mood across all 6 panels so the page
+  reads as one connected apartment on the same morning.
+- Each panel above uses a different shot framing and camera angle (wide /
+  medium / wider / close-up / side-angle / low-angle close-up) on purpose,
+  so the page reads as six different moments, not one pose stamped six
+  times.
+- If one panel looks off after generation, regenerating in isolation is
+  harder than with separate images — accept minor variance, or regenerate
+  that one beat as its own image and swap it in during editing if it
+  matters.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible, e.g.
+  1024 x 1536 for this 2×3 grid.
+- Export as JPG at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+
+═══════════════════
+SPEECH-BUBBLE VERSION
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble/box after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 11.)
+
+Image prompt for 《咪咪不見了》Mimi Is Missing
+Method: references/image-prompt-template.md (one prompt, one page, N panels)
+
+Single portrait image, divided into a clean grid of 6 equal panels (2
+columns × 3 rows), thin light gutters between panels, no hard comic-book
+borders. Each panel that has a speaking character includes one simple
+rounded speech bubble with a small tail pointing at that character,
+containing that panel's Chinese text written clearly and accurately
+inside, plain white bubble with black outline; each narrator-only panel
+instead includes one small rectangular caption box (no tail) along the
+bottom edge containing that panel's Chinese narration text, plain white
+box with a thin black border; no other text, letters, words, or captions
+anywhere else in the image. Flat digital illustration style, soft rounded
+shapes, cozy warm apartment color palette, limited color palette, gentle
+clean outlines, friendly simple style, consistent lighting and color
+palette across all panels.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHIWEI] a friendly young man, early 20s, short messy brown-black hair,
+round glasses, mustard yellow hoodie, dark jeans, white sneakers, navy
+backpack over one shoulder.
+[PEIZHEN] a friendly young woman, early 20s, shoulder-length wavy black
+hair with a red hair tie, cozy oversized cream sweater, light denim jeans.
+[MIMI] a small orange tabby cat with white paws and a white chest patch,
+round green eyes.
+
+Panel 1 (top-left): wide shot, full figure, Zhiwei standing in the living
+room with his backpack on, looking anxiously at an empty sofa, checking his
+phone for the time, soft morning light through a window. Narration caption
+box at the bottom contains the Chinese text "今天志偉要去上課，可是他找不到
+貓咪咪，客廳的沙發上也沒有牠。" written clearly.
+
+Panel 2 (top-right): medium shot at eye level, Zhiwei calling out toward
+the kitchen doorway where Peizhen appears, one hand cupped near his mouth,
+Peizhen leaning out with a curious, attentive expression. Speech bubble
+near Zhiwei contains the Chinese text "佩珍，妳有沒有看到咪咪？我沒有很多
+時間。" written clearly.
+
+Panel 3 (middle-left): wider shot showing the living room table and sofa,
+Peizhen pointing down toward the table, Zhiwei crouching down beside it to
+look underneath. Speech bubble near Peizhen contains the Chinese text "你
+可以先看看客廳的桌子下面跟沙發旁邊。" written clearly.
+
+Panel 4 (middle-right): close-up on Zhiwei's face and shoulders as he
+straightens up empty-handed, shaking his head with a puzzled expression,
+Peizhen visible at the edge of frame watching him. Speech bubble near
+Zhiwei contains the Chinese text "桌子下面沒有，沙發旁邊也沒有，真奇怪。"
+written clearly.
+
+Panel 5 (bottom-left): medium shot from a slight side angle, Peizhen
+gesturing toward a bedroom doorway, Zhiwei turning to look in that
+direction with a hopeful expression. Speech bubble near Peizhen contains
+the Chinese text "因為你早上開窗戶，牠可能在房間裡。" written clearly.
+
+Panel 6 (bottom-right): close-up shot from a low angle, Zhiwei kneeling
+beside a bed, lifting the blanket edge to reveal Mimi curled up asleep
+underneath, a relieved smile on his face. Narration caption box at the
+bottom contains the Chinese text "志偉去房間找，咪咪就在床下面，他終於放心。"
+written clearly.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Zhiwei's yellow hoodie and glasses,
+  Peizhen's red hair tie, Mimi's orange-and-white coloring) recognizable in
+  every panel.
+- Keep one art style and one lighting mood across all 6 panels so the page
+  reads as one connected apartment on the same morning.
+- Each panel above uses a different shot framing and camera angle (wide /
+  medium / wider / close-up / side-angle / low-angle close-up) on purpose,
+  so the page reads as six different moments, not one pose stamped six
+  times.
+- If one panel looks off after generation, regenerating in isolation is
+  harder than with separate images — accept minor variance, or regenerate
+  that one beat as its own image and swap it in during editing if it
+  matters.
+
+CAPTION SCRIPT (for proofreading the generated bubbles/boxes against — not
+part of the prompt above; if a bubble comes out garbled, use these to fix
+it by hand in an image editor or as the source for
+scripts/overlay_captions.py):
+Panel 1 — Narrator: 今天志偉要去上課，可是他找不到貓咪咪，客廳的沙發上也沒有牠。
+  Jīntiān Zhìwěi yào qù shàngkè, kěshì tā zhǎo bú dào māo Mīmī, kètīng de
+  shāfā shàng yě méiyǒu tā. — Today Zhiwei needs to go to class, but he
+  can't find the cat Mimi — she's not on the living room sofa either.
+Panel 2 — Zhiwei: 佩珍，妳有沒有看到咪咪？我沒有很多時間。
+  Pèizhēn, nǐ yǒu méiyǒu kàndào Mīmī? Wǒ méiyǒu hěn duō shíjiān. —
+  Peizhen, have you seen Mimi? I don't have much time.
+Panel 3 — Peizhen: 你可以先看看客廳的桌子下面跟沙發旁邊。
+  Nǐ kěyǐ xiān kànkan kètīng de zhuōzi xiàmiàn gēn shāfā pángbiān. — You
+  can first check under the living room table and beside the sofa.
+Panel 4 — Zhiwei: 桌子下面沒有，沙發旁邊也沒有，真奇怪。
+  Zhuōzi xiàmiàn méiyǒu, shāfā pángbiān yě méiyǒu, zhēn qíguài. — Not
+  under the table, and not beside the sofa either — that's really strange.
+Panel 5 — Peizhen: 因為你早上開窗戶，牠可能在房間裡。
+  Yīnwèi nǐ zǎoshàng kāi chuānghù, tā kěnéng zài fángjiān lǐ. — Because
+  you opened the window this morning, she's probably in the bedroom.
+Panel 6 — Narrator: 志偉去房間找，咪咪就在床下面，他終於放心。
+  Zhìwěi qù fángjiān zhǎo, Mīmī jiù zài chuáng xiàmiàn, tā zhōngyú fàngxīn.
+  — Zhiwei goes to look in the bedroom; Mimi is right there under the bed
+  — he finally feels relieved.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible, e.g.
+  1024 x 1536 for this 2×3 grid.
+- Export as JPG at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.

@@ -498,8 +498,8 @@
   },
   "select_a_real_situation_students_may_mee": {
     "en": "Select a real situation students may meet in daily life, study the six connected picture cues, prepare useful Mandarin phrases, and record each cue for Praat prosody and Gemini language feedback.",
-    "zh": "選一個生活情況，看圖片，想一想要說什麼，然後錄音。",
-    "pinyin": "Xuǎn yí ge shēnghuó qíngkuàng, kàn túpiàn, xiǎng yi xiǎng yào shuō shénme, ránhòu lùyīn."
+    "zh": "選一個學生生活中可能遇到的真實情境，仔細看六張相連的圖片，準備實用的中文用語，然後為每張圖片錄音，取得 Praat 語調分析和 Gemini 語言回饋。",
+    "pinyin": "Xuǎn yí ge xuéshēng shēnghuó zhōng kěnéng yùdào de zhēnshí qíngjìng, zǐxì kàn liù zhāng xiānglián de túpiàn, zhǔnbèi shíyòng de Zhōngwén yòngyǔ, ránhòu wèi měi zhāng túpiàn lùyīn, qǔdé Praat yǔdiào fēnxī hé Gemini yǔyán huíkuì."
   },
   "selected": {
     "en": "Selected",

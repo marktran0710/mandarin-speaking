@@ -34,15 +34,14 @@ async def create_custom_story(story: CustomStoryRequest):
         db.execute(
             """
             INSERT OR REPLACE INTO custom_stories (
-                id, title, learning_goal, level, frames, published, linear, lesson_number, narrative_mode, first_frame_is_example
+                id, title, learning_goal, frames, published, linear, lesson_number, narrative_mode, first_frame_is_example
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 story.id,
                 story.title,
                 story.learningGoal,
-                story.level,
                 json.dumps(stored_frames),
                 1 if story.published else 0,
                 1 if story.linear else 0,

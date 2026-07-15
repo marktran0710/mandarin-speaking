@@ -61,7 +61,6 @@ def init_db() -> None:
                 id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
                 learning_goal TEXT NOT NULL,
-                level TEXT NOT NULL,
                 frames TEXT NOT NULL,
                 published INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -73,6 +72,9 @@ def init_db() -> None:
         ensure_column(db, "custom_stories", "lesson_number", "INTEGER")
         ensure_column(db, "custom_stories", "narrative_mode", "TEXT NOT NULL DEFAULT 'story'")
         ensure_column(db, "custom_stories", "first_frame_is_example", "INTEGER NOT NULL DEFAULT 0")
+        # Superseded by the per-frame easy/medium/hard difficulty tiers —
+        # a single free-text "level" description no longer means anything.
+        ensure_column_dropped(db, "custom_stories", "level")
         db.execute(
             """
             CREATE TABLE IF NOT EXISTS help_requests (
@@ -156,7 +158,6 @@ def row_to_custom_story(row: sqlite3.Row) -> dict:
         "id": row["id"],
         "title": row["title"],
         "learningGoal": row["learning_goal"],
-        "level": row["level"],
         "frames": json.loads(row["frames"] or "[]"),
         "published": bool(row["published"]),
         "linear": bool(row["linear"]),
@@ -204,3 +205,19 @@ def ensure_column(
     }
     if column_name not in columns:
         db.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+
+
+def ensure_column_dropped(
+    db: sqlite3.Connection,
+    table_name: str,
+    column_name: str,
+) -> None:
+    """Mirrors ensure_column for the opposite direction — drops a retired
+    column if it's still there (SQLite 3.35+ supports DROP COLUMN
+    directly), a no-op on a fresh DB that never had it."""
+    columns = {
+        row["name"]
+        for row in db.execute(f"PRAGMA table_info({table_name})").fetchall()
+    }
+    if column_name in columns:
+        db.execute(f"ALTER TABLE {table_name} DROP COLUMN {column_name}")

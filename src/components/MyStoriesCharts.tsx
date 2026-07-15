@@ -340,3 +340,123 @@ export function RecordingsPerTopicChart({ data }: { data: Array<{ topic: string;
   );
   return <QuizChartCanvas build={build} height={Math.max(160, data.length * 32)} />;
 }
+
+/** One point per quiz attempt, plotted by speed vs. accuracy — the other
+ * quiz charts each show one metric at a time (accuracy by mode, accuracy
+ * over time); this is the only view that shows whether the two move
+ * together for an individual attempt (rushing trading off correctness) at
+ * a glance, colored by mode so the three modes' speed/accuracy trade-offs
+ * are visually separable in one chart instead of three. */
+export function TimeAccuracyScatterChart({
+  points,
+}: {
+  points: Array<{ mode: "speed" | "strikes" | "free"; secondsPerQuestion: number; accuracy: number }>;
+}) {
+  const build = useMemo(
+    () => (ctx: CanvasRenderingContext2D) =>
+      new Chart(ctx, {
+        type: "scatter",
+        data: {
+          datasets: QUIZ_MODE_ORDER_FOR_SCATTER.map((mode) => ({
+            label: QUIZ_MODE_INFO[mode].label,
+            data: points
+              .filter((p) => p.mode === mode)
+              .map((p) => ({ x: p.secondsPerQuestion, y: p.accuracy })),
+            backgroundColor: QUIZ_MODE_INFO[mode].color,
+            // Visual mark stays small; pointHitRadius extends the pointer
+            // target well past the painted dot so a single point is easy
+            // to hover.
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            pointHitRadius: 12,
+          })),
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: "top", align: "end" },
+            tooltip: {
+              callbacks: {
+                label: (item) =>
+                  `${item.dataset.label}: ${(item.raw as { x: number; y: number }).y}% accuracy, ` +
+                  `${(item.raw as { x: number; y: number }).x.toFixed(1)}s/question`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              title: { display: true, text: "Seconds per question" },
+              beginAtZero: true,
+            },
+            y: {
+              title: { display: true, text: "Accuracy" },
+              beginAtZero: true,
+              max: 100,
+              ticks: { callback: (v) => `${v}%` },
+            },
+          },
+        },
+      }),
+    [points],
+  );
+  return <QuizChartCanvas build={build} />;
+}
+
+const QUIZ_MODE_ORDER_FOR_SCATTER: Array<"speed" | "strikes" | "free"> = ["speed", "strikes", "free"];
+
+/** One point per recording, plotted by fluency vs. tone accuracy — reveals
+ * whether the two move together (a student weak in one tends to be weak in
+ * the other) or are independent skills, which the separate over-time lines
+ * elsewhere in this panel can't show since they only average each metric
+ * per day, not pair them per recording. */
+export function FluencyToneScatterChart({
+  points,
+}: {
+  points: Array<{ fluency: number; tone: number }>;
+}) {
+  const build = useMemo(
+    () => (ctx: CanvasRenderingContext2D) =>
+      new Chart(ctx, {
+        type: "scatter",
+        data: {
+          datasets: [{
+            label: "Recordings",
+            data: points.map((p) => ({ x: p.fluency, y: p.tone })),
+            backgroundColor: "#7c3aed",
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            pointHitRadius: 12,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (item) =>
+                  `Fluency ${(item.raw as { x: number; y: number }).x}, tone accuracy ${(item.raw as { x: number; y: number }).y}%`,
+              },
+            },
+          },
+          scales: {
+            x: {
+              title: { display: true, text: "Fluency score" },
+              beginAtZero: true,
+              max: 100,
+            },
+            y: {
+              title: { display: true, text: "Tone accuracy" },
+              beginAtZero: true,
+              max: 100,
+              ticks: { callback: (v) => `${v}%` },
+            },
+          },
+        },
+      }),
+    [points],
+  );
+  return <QuizChartCanvas build={build} />;
+}

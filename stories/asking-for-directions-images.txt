@@ -1,0 +1,193 @@
+═══════════════════
+TEXT-FREE VERSION
+═══════════════════
+
+Image prompt for 《捷運站在哪裡？》Where Is the MRT Station?
+Method: references/image-prompt-template.md (one prompt, one page, N panels)
+
+Single portrait image, divided into a clean grid of 6 equal panels (2
+columns × 3 rows), thin light gutters between panels, no hard comic-book
+borders, no text, no letters, no words, no speech bubbles, no panel numbers,
+no captions. Flat digital illustration style, soft rounded shapes, warm
+morning color palette, limited color palette, gentle clean outlines,
+friendly simple style, consistent lighting and color palette across all
+panels.
+
+CHARACTERS (identical in every panel they appear in):
+[CHENGHAN] a friendly young man, early 20s, short tousled black hair, slim
+build, light blue button-up shirt, dark grey pants, white sneakers, navy
+blue backpack with one visible strap over one shoulder.
+[WANTING] a friendly young woman, early 20s, straight black hair in a low
+ponytail tied with a yellow scrunchie, round glasses, soft green cardigan
+over a white t-shirt, denim skirt, tan tote bag over one shoulder.
+
+Panel 1 (top-left): wide shot, full figure, Chenghan alone on a city
+sidewalk in the early morning, looking around anxiously and checking a
+wristwatch, simple low buildings and a street lamp in the background, soft
+morning sunlight.
+
+Panel 2 (top-right): medium shot at eye level, both figures shown head to
+waist, Chenghan stopping Wanting on the sidewalk, leaning slightly forward
+and raising one hand politely to get her attention while asking a question,
+Wanting turning toward him with a friendly, attentive expression.
+
+Panel 3 (middle-left): wider shot from slightly behind Chenghan's shoulder,
+looking past him down the street they are both facing, Wanting pointing
+down the street with one arm extended, Chenghan following her gesture, a
+small distant building visible where she is pointing.
+
+Panel 4 (middle-right): close-up on Chenghan's face and shoulders from a
+slightly low angle looking up the street, a slightly worried expression,
+one hand shading his eyes as he judges the distance, Wanting's shoulder
+visible at the edge of frame beside him.
+
+Panel 5 (bottom-left): medium shot from a slight side angle, Wanting
+shaking her head gently and smiling reassuringly, one hand making a small
+"it's close" gesture, Chenghan facing her and looking relieved as he
+listens.
+
+Panel 6 (bottom-right): wide shot from behind and to the side, Chenghan
+walking away toward a small MRT station entrance sign visible in the
+distance, glancing back with a relieved smile and a wave, Wanting standing
+where he left him, waving back.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Chenghan's navy backpack, Wanting's
+  yellow scrunchie and round glasses) recognizable in every panel.
+- Keep one art style and one lighting mood across all 6 panels so the page
+  reads as one connected morning on the same street.
+- Each panel above uses a different shot framing and camera angle (wide /
+  medium / over-the-shoulder / close-up / side-angle / wide-from-behind) on
+  purpose, so the page reads as six different moments, not one pose stamped
+  six times.
+- If one panel looks off after generation, regenerating in isolation is
+  harder than with separate images — accept minor variance, or regenerate
+  that one beat as its own image and swap it in during editing if it
+  matters.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible, e.g.
+  1024 x 1536 for this 2×3 grid.
+- Export as JPG at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+
+═══════════════════
+SPEECH-BUBBLE VERSION
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble/box after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 11.)
+
+Image prompt for 《捷運站在哪裡？》Where Is the MRT Station?
+Method: references/image-prompt-template.md (one prompt, one page, N panels)
+
+Single portrait image, divided into a clean grid of 6 equal panels (2
+columns × 3 rows), thin light gutters between panels, no hard comic-book
+borders. Each panel that has a speaking character includes one simple
+rounded speech bubble with a small tail pointing at that character,
+containing that panel's Chinese text written clearly and accurately
+inside, plain white bubble with black outline; each narrator-only panel
+instead includes one small rectangular caption box (no tail) along the
+bottom edge containing that panel's Chinese narration text, plain white
+box with a thin black border; no other text, letters, words, or captions
+anywhere else in the image. Flat digital illustration style, soft rounded
+shapes, warm morning color palette, limited color palette, gentle clean
+outlines, friendly simple style, consistent lighting and color palette
+across all panels.
+
+CHARACTERS (identical in every panel they appear in):
+[CHENGHAN] a friendly young man, early 20s, short tousled black hair, slim
+build, light blue button-up shirt, dark grey pants, white sneakers, navy
+blue backpack with one visible strap over one shoulder.
+[WANTING] a friendly young woman, early 20s, straight black hair in a low
+ponytail tied with a yellow scrunchie, round glasses, soft green cardigan
+over a white t-shirt, denim skirt, tan tote bag over one shoulder.
+
+Panel 1 (top-left): wide shot, full figure, Chenghan alone on a city
+sidewalk in the early morning, looking around anxiously and checking a
+wristwatch, simple low buildings and a street lamp in the background, soft
+morning sunlight. Narration caption box at the bottom contains the Chinese
+text "今天承翰要去學校上課，可是他不知道捷運站在哪裡，心裡很緊張。" written
+clearly.
+
+Panel 2 (top-right): medium shot at eye level, both figures shown head to
+waist, Chenghan stopping Wanting on the sidewalk, leaning slightly forward
+and raising one hand politely to get her attention while asking a question,
+Wanting turning toward him with a friendly, attentive expression. Speech
+bubble near Chenghan contains the Chinese text "不好意思，請問捷運站怎麼
+走？" written clearly.
+
+Panel 3 (middle-left): wider shot from slightly behind Chenghan's shoulder,
+looking past him down the street they are both facing, Wanting pointing
+down the street with one arm extended, Chenghan following her gesture, a
+small distant building visible where she is pointing. Speech bubble near
+Wanting contains the Chinese text "你往前走，咖啡店旁邊就是捷運站。" written
+clearly.
+
+Panel 4 (middle-right): close-up on Chenghan's face and shoulders from a
+slightly low angle looking up the street, a slightly worried expression,
+one hand shading his eyes as he judges the distance, Wanting's shoulder
+visible at the edge of frame beside him. Speech bubble near Chenghan
+contains the Chinese text "要走多久？我沒有很多時間。" written clearly.
+
+Panel 5 (bottom-left): medium shot from a slight side angle, Wanting
+shaking her head gently and smiling reassuringly, one hand making a small
+"it's close" gesture, Chenghan facing her and looking relieved as he
+listens. Speech bubble near Wanting contains the Chinese text "不會很久，
+大概五分鐘，你可以走快一點。" written clearly.
+
+Panel 6 (bottom-right): wide shot from behind and to the side, Chenghan
+walking away toward a small MRT station entrance sign visible in the
+distance, glancing back with a relieved smile and a wave, Wanting standing
+where he left him, waving back. Narration caption box at the bottom
+contains the Chinese text "承翰謝謝婉婷，因為她的幫忙，他準時到學校。"
+written clearly.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Chenghan's navy backpack, Wanting's
+  yellow scrunchie and round glasses) recognizable in every panel.
+- Keep one art style and one lighting mood across all 6 panels so the page
+  reads as one connected morning on the same street.
+- Each panel above uses a different shot framing and camera angle (wide /
+  medium / over-the-shoulder / close-up / side-angle / wide-from-behind) on
+  purpose, so the page reads as six different moments, not one pose stamped
+  six times.
+- If one panel looks off after generation, regenerating in isolation is
+  harder than with separate images — accept minor variance, or regenerate
+  that one beat as its own image and swap it in during editing if it
+  matters.
+
+CAPTION SCRIPT (for proofreading the generated bubbles/boxes against — not
+part of the prompt above; if a bubble comes out garbled, use these to fix
+it by hand in an image editor or as the source for
+scripts/overlay_captions.py):
+Panel 1 — Narrator: 今天承翰要去學校上課，可是他不知道捷運站在哪裡，心裡很緊張。
+  Jīntiān Chénghàn yào qù xuéxiào shàngkè, kěshì tā bù zhīdào jiéyùnzhàn
+  zài nǎlǐ, xīnlǐ hěn jǐnzhāng. — Today Chenghan needs to go to school for
+  class, but he doesn't know where the MRT station is, and he feels very
+  nervous.
+Panel 2 — Chenghan: 不好意思，請問捷運站怎麼走？
+  Bùhǎoyìsi, qǐngwèn jiéyùnzhàn zěnme zǒu? — Excuse me, how do I get to
+  the MRT station?
+Panel 3 — Wanting: 你往前走，咖啡店旁邊就是捷運站。
+  Nǐ wǎng qián zǒu, kāfēidiàn pángbiān jiù shì jiéyùnzhàn. — Walk straight
+  ahead — the MRT station is right beside the coffee shop.
+Panel 4 — Chenghan: 要走多久？我沒有很多時間。
+  Yào zǒu duōjiǔ? Wǒ méiyǒu hěn duō shíjiān. — How long does it take to
+  walk? I don't have much time.
+Panel 5 — Wanting: 不會很久，大概五分鐘，你可以走快一點。
+  Bú huì hěn jiǔ, dàgài wǔ fēnzhōng, nǐ kěyǐ zǒu kuài yìdiǎn. — It won't
+  take long, about five minutes — you can walk a bit faster.
+Panel 6 — Narrator: 承翰謝謝婉婷，因為她的幫忙，他準時到學校。
+  Chénghàn xièxie Wǎntíng, yīnwèi tā de bāngmáng, tā zhǔnshí dào xuéxiào. —
+  Chenghan thanks Wanting; because of her help, he arrives at school on
+  time.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible, e.g.
+  1024 x 1536 for this 2×3 grid.
+- Export as JPG at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.

@@ -330,6 +330,15 @@
   font-weight: 750;
 }
 
+/* BiLabel centers its zh/pinyin/en lines within its own auto-sized box by
+   default — fine for a standalone badge, but here it made each tile's
+   Chinese text start at a different x-offset since the three titles'
+   boxes are different widths. Left-align so all three line up with the
+   num/desc above and below them instead. */
+.how-it-works-title .bi-label {
+  align-items: flex-start;
+}
+
 .how-it-works-desc {
   color: var(--clay-body);
   font-size: 13.5px;

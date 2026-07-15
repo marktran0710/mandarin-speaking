@@ -267,7 +267,6 @@ function blankTiers(count: number): Record<StoryDifficultyLevel, string[]> {
 const emptyCustomStoryDraft = {
   title: "Taiwan Community Story",
   learningGoal: "Students describe who, where, what happened, and how people solved the problem.",
-  level: "Beginner speaking",
   lessonNumber: "",
   activeLevel: "easy" as StoryDifficultyLevel,
   imageUrls: ["", "", "", "", "", ""],
@@ -699,7 +698,7 @@ function TeacherDashboard({
   const clearNotice = () => setCustomStoryNotice("");
 
   const updateDraftField = (
-    field: "title" | "learningGoal" | "level" | "lessonNumber",
+    field: "title" | "learningGoal" | "lessonNumber",
     value: string,
   ) => {
     setCustomDraft((draft) => ({ ...draft, [field]: value }));
@@ -1295,14 +1294,6 @@ function TeacherDashboard({
                 )}
               </label>
               <label>
-                Level
-                <input
-                  value={customDraft.level}
-                  onChange={(event) => updateDraftField("level", event.target.value)}
-                  placeholder="e.g. Intermediate speaking"
-                />
-              </label>
-              <label>
                 Lesson number
                 <input
                   type="number"
@@ -1338,7 +1329,7 @@ function TeacherDashboard({
                 />
               </label>
               <label>
-                Editing difficulty tier
+                Level
                 <select
                   value={customDraft.activeLevel}
                   onChange={(event) =>
@@ -1667,7 +1658,7 @@ function TeacherDashboard({
                           {story.title}
                         </strong>
                         <span>
-                          {story.level} - {story.published ? "Published" : "Draft"}
+                          {story.published ? "Published" : "Draft"}
                           {" - "}
                           {narrativeModeLabel(story.narrativeMode)}
                         </span>
@@ -1820,7 +1811,6 @@ function createCustomStory(
     id: existingId || `custom-story-${Date.now()}`,
     title: draft.title.trim() || "Untitled teacher story",
     learningGoal: draft.learningGoal.trim(),
-    level: draft.level.trim() || "Custom activity",
     frames: draft.imageUrls.map((imageUrl, index) => {
       const frame: CustomStoryFrame = {
         imageUrl: imageUrl.trim(),
@@ -1889,7 +1879,6 @@ function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
   return {
     title: story.title,
     learningGoal: story.learningGoal,
-    level: story.level,
     lessonNumber: story.lessonNumber != null ? String(story.lessonNumber) : "",
     activeLevel: "easy",
     imageUrls: frames.map((frame) => frame?.imageUrl || ""),

@@ -4,15 +4,19 @@ import DashboardStat from "./DashboardStat";
 import {
   AI_FEEDBACK_CATEGORIES,
   AiFeedbackCategoryChart,
+  FluencyToneScatterChart,
   FluencyToneTimeChart,
   RecordingsPerTopicChart,
 } from "./MyStoriesCharts";
-import { getTopicLabel } from "../utils/myStoriesUtils";
+import { DATE_RANGE_LABEL, filterByDateRange, getTopicLabel, type DateRangePreset } from "../utils/myStoriesUtils";
+
+const DATE_RANGE_OPTIONS: DateRangePreset[] = ["all", "7d", "30d", "90d"];
 
 /** Class-wide analytics over story-recording feedback (Praat + AI). Unlike
  * Quiz Analytics, recordings have no student-name field today, so this is
  * aggregate-only — a topic filter, not a student one. */
 export default function RecordingAnalyticsPanel({ records }: { records: AudioRecord[] }) {
+  const [dateRange, setDateRange] = useState<DateRangePreset>("all");
   const [topicFilter, setTopicFilter] = useState("all");
 
   if (records.length === 0) {
@@ -36,7 +40,8 @@ export default function RecordingAnalyticsPanel({ records }: { records: AudioRec
     new Set(records.map((r) => r.topicId).filter((id): id is string => Boolean(id))),
   );
 
-  const filtered = topicFilter === "all" ? records : records.filter((r) => r.topicId === topicFilter);
+  const dateFiltered = filterByDateRange(records, (r) => r.timestamp, dateRange);
+  const filtered = topicFilter === "all" ? dateFiltered : dateFiltered.filter((r) => r.topicId === topicFilter);
   const withMetrics = filtered.filter((r) => r.praatMetrics);
   const withAiFeedback = filtered.filter((r) => r.praatMetrics?.ai_feedback);
 
@@ -89,10 +94,26 @@ export default function RecordingAnalyticsPanel({ records }: { records: AudioRec
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
+  // One point per recording — fluency vs. tone accuracy — reveals whether
+  // the two skills move together for the same recording, which the
+  // per-day-averaged lines above can't show since they average each
+  // metric separately rather than pairing them.
+  const fluencyTonePoints = withMetrics
+    .filter((r) => typeof r.praatMetrics.fluency_score === "number" && typeof r.praatMetrics.tone_accuracy === "number")
+    .map((r) => ({ fluency: r.praatMetrics.fluency_score, tone: r.praatMetrics.tone_accuracy }));
+
   return (
     <>
       <section className="teacher-panel quiz-analytics-filters-panel">
         <div className="quiz-analytics-filters">
+          <label>
+            Date range
+            <select value={dateRange} onChange={(e) => setDateRange(e.target.value as DateRangePreset)}>
+              {DATE_RANGE_OPTIONS.map((preset) => (
+                <option key={preset} value={preset}>{DATE_RANGE_LABEL[preset]}</option>
+              ))}
+            </select>
+          </label>
           <label>
             Topic
             <select value={topicFilter} onChange={(e) => setTopicFilter(e.target.value)}>
@@ -149,6 +170,14 @@ export default function RecordingAnalyticsPanel({ records }: { records: AudioRec
                   <p className="quiz-analytics-empty-note">No analyzed recordings in this filter yet.</p>
                 ) : (
                   <FluencyToneTimeChart points={timeSeries} />
+                )}
+              </div>
+              <div className="quiz-analytics-chart-card quiz-analytics-chart-wide">
+                <h3>Fluency vs. tone accuracy, per recording</h3>
+                {fluencyTonePoints.length === 0 ? (
+                  <p className="quiz-analytics-empty-note">No analyzed recordings in this filter yet.</p>
+                ) : (
+                  <FluencyToneScatterChart points={fluencyTonePoints} />
                 )}
               </div>
               <div className="quiz-analytics-chart-card">
