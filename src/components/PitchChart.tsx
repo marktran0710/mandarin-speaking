@@ -102,7 +102,7 @@ export default function PitchChart({
   }, [pitchContour, detectedTone]);
 
   return (
-    <div className="pitch-chart-container">
+    <div className="pitch-chart-container" role="img" aria-label={`Pitch contour chart for ${TONE_NAMES[detectedTone] ?? "the recorded audio"}`}>
       <canvas ref={chartRef}></canvas>
     </div>
   );

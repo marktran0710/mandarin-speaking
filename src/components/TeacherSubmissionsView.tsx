@@ -48,14 +48,19 @@ export default function TeacherSubmissionsView({
                     )}
                     <div className="sss-vocab-row">
                       {(scene.vocabUsed ?? []).map(w => (
-                        <span key={w} className="sss-chip sss-chip-used">✓ {w}</span>
+                        <span key={w} className="sss-chip sss-chip-used" lang="zh-Hant">✓ {w}</span>
                       ))}
                       {(scene.vocabMissing ?? []).map(w => (
-                        <span key={w} className="sss-chip sss-chip-missing">✗ {w}</span>
+                        <span key={w} className="sss-chip sss-chip-missing" lang="zh-Hant">✗ {w}</span>
                       ))}
                     </div>
                     {scene.audioUrl && (
-                      <audio controls src={resolveImageUrl(scene.audioUrl)} className="sss-audio" />
+                      <audio
+                        controls
+                        src={resolveImageUrl(scene.audioUrl)}
+                        className="sss-audio"
+                        aria-label={`Scene ${scene.sceneIndex + 1} recording`}
+                      />
                     )}
                   </div>
                 ))}

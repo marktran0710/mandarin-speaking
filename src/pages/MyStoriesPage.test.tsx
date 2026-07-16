@@ -510,7 +510,8 @@ describe("Quiz Analytics tab", () => {
     ) as HTMLElement;
     expect(within(studentTable).getByText("Amy")).toBeInTheDocument();
     expect(within(studentTable).getByText("60%")).toBeInTheDocument();
-    expect(within(studentTable).getByText(/姐姐 \(missed 2×\)/)).toBeInTheDocument();
+    expect(within(studentTable).getByText("姐姐")).toBeInTheDocument();
+    expect(within(studentTable).getByText(/\(missed 2×\)/)).toBeInTheDocument();
 
     expect(
       screen.getByRole("heading", { name: "Words Needing the Most Practice" }),

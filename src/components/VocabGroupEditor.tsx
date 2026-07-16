@@ -2,7 +2,9 @@ import { VocabGroup } from "../utils/teacherStories";
 
 const GRAMMAR_CANVAS_CATEGORIES = [
   { name: "Subject", hanzi: "主語", sub: "Who is doing it (S)",        color: "var(--jade)" },
-  { name: "Verb",     hanzi: "動詞", sub: "Aux + main verb (Vaux + V)", color: "var(--seal)" },
+  // --lavender: a fifth pastel with no assigned tone, used here purely for
+  // categorical variety rather than reusing --seal (the student accent).
+  { name: "Verb",     hanzi: "動詞", sub: "Aux + main verb (Vaux + V)", color: "var(--lavender)" },
   { name: "Object",   hanzi: "受語", sub: "What the verb acts on (O)",  color: "var(--gold-deep)" },
 ];
 
@@ -68,10 +70,10 @@ export default function VocabGroupEditor({
 
       {unassigned.length > 0 && (
         <div className="vocab-group-unassigned">
-          <span className="vocab-group-label">Unassigned words — click a word then pick a group:</span>
+          <span className="vocab-group-label">Unassigned words — click + under a group below to assign:</span>
           <div className="vocab-group-chips">
             {unassigned.map((word) => (
-              <span key={word} className="vocab-group-chip unassigned">{word}</span>
+              <span key={word} className="vocab-group-chip unassigned" lang="zh-Hant">{word}</span>
             ))}
           </div>
         </div>
@@ -83,7 +85,7 @@ export default function VocabGroupEditor({
           return (
           <div key={gi} className="vocab-group-slot">
             <div className="vocab-group-slot-header" style={{ background: cat?.color ?? "var(--clay-muted)" }}>
-              <span className="vgs-hanzi">{cat?.hanzi}</span>
+              <span className="vgs-hanzi" lang="zh-Hant">{cat?.hanzi}</span>
               <div className="vgs-title-block">
                 <span className="vgs-name">{group.name}</span>
                 <span className="vgs-sub">{cat?.sub}</span>
@@ -99,7 +101,7 @@ export default function VocabGroupEditor({
                   aria-label={`Remove ${word}`}
                   title="Click to remove"
                 >
-                  {word} ×
+                  <span lang="zh-Hant">{word}</span> ×
                 </button>
               ))}
               {unassigned.map((word) => (
@@ -109,7 +111,7 @@ export default function VocabGroupEditor({
                   className="vocab-group-add-word-btn"
                   onClick={() => assignWord(word, gi)}
                 >
-                  + {word}
+                  + <span lang="zh-Hant">{word}</span>
                 </button>
               ))}
             </div>

@@ -258,9 +258,14 @@ export default function QuizAnalyticsPanel({
                   <span>{student.accuracyPct}%</span>
                   <span>{(student.avgTimePerQuestionMs / 1000).toFixed(1)}s</span>
                   <span>
-                    {student.topMissedWord
-                      ? `${student.topMissedWord.word} (missed ${student.topMissedWord.missCount}×)`
-                      : "—"}
+                    {student.topMissedWord ? (
+                      <>
+                        <span lang="zh-Hant">{student.topMissedWord.word}</span>
+                        {` (missed ${student.topMissedWord.missCount}×)`}
+                      </>
+                    ) : (
+                      "—"
+                    )}
                   </span>
                 </div>
               ))}
@@ -287,7 +292,7 @@ export default function QuizAnalyticsPanel({
                   const severity = wordMissSeverity(word.missRatePct);
                   return (
                     <div className="quiz-analytics-word-row" key={word.word}>
-                      <strong>{word.word}</strong>
+                      <strong lang="zh-Hant">{word.word}</strong>
                       <span className={`word-severity-badge word-severity-${severity}`}>
                         {WORD_SEVERITY_LABEL[severity]}
                       </span>

@@ -76,7 +76,7 @@ export default function TeacherRosterView() {
           placeholder="Student name"
           aria-label="New student name"
         />
-        <button type="submit" className="btn btn-small btn-primary" disabled={saving || !name.trim()}>
+        <button type="submit" className="btn btn-small btn-secondary" disabled={saving || !name.trim()}>
           {saving ? "Adding…" : "Add"}
         </button>
       </form>

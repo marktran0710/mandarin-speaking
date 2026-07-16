@@ -45,7 +45,17 @@ export const AI_FEEDBACK_CATEGORY_INFO: Record<(typeof AI_FEEDBACK_CATEGORIES)[n
 /** Chart.js canvas that (re)builds its chart whenever `build` changes,
  * tearing down the previous instance first — same lifecycle as
  * components/PitchChart.tsx. */
-export function QuizChartCanvas({ build, height = 220 }: { build: (ctx: CanvasRenderingContext2D) => Chart; height?: number }) {
+export function QuizChartCanvas({
+  build,
+  height = 220,
+  ariaLabel,
+}: {
+  build: (ctx: CanvasRenderingContext2D) => Chart;
+  height?: number;
+  /** Text alternative for screen readers — Chart.js renders to <canvas>,
+   * which has no accessible content of its own. */
+  ariaLabel?: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
 
@@ -59,7 +69,12 @@ export function QuizChartCanvas({ build, height = 220 }: { build: (ctx: CanvasRe
   }, [build]);
 
   return (
-    <div className="quiz-analytics-chart-canvas" style={{ height }}>
+    <div
+      className="quiz-analytics-chart-canvas"
+      style={{ height }}
+      role={ariaLabel ? "img" : undefined}
+      aria-label={ariaLabel}
+    >
       <canvas ref={canvasRef} />
     </div>
   );
@@ -106,7 +121,7 @@ export function ModeAccuracyChart({ data }: { data: Array<{ mode: "speed" | "str
       }),
     [data],
   );
-  return <QuizChartCanvas build={build} />;
+  return <QuizChartCanvas build={build} ariaLabel="Bar chart: average quiz accuracy by mode (Speed, 3 Strikes, Free Practice)" />;
 }
 
 export function AccuracyTimeChart({ points }: { points: Array<{ label: string; value: number }> }) {
@@ -148,7 +163,7 @@ export function AccuracyTimeChart({ points }: { points: Array<{ label: string; v
       }),
     [points],
   );
-  return <QuizChartCanvas build={build} />;
+  return <QuizChartCanvas build={build} ariaLabel="Line chart: quiz accuracy over time" />;
 }
 
 export function WordMissChart({ data }: { data: WordMissStats[] }) {
@@ -225,7 +240,7 @@ export function WordMissChart({ data }: { data: WordMissStats[] }) {
     },
     [data],
   );
-  return <QuizChartCanvas build={build} height={Math.max(180, data.length * 32)} />;
+  return <QuizChartCanvas build={build} height={Math.max(180, data.length * 32)} ariaLabel="Bar chart: most frequently missed vocabulary words" />;
 }
 
 export function FluencyToneTimeChart({ points }: { points: Array<{ label: string; fluency: number; tone: number }> }) {
@@ -275,7 +290,7 @@ export function FluencyToneTimeChart({ points }: { points: Array<{ label: string
       }),
     [points],
   );
-  return <QuizChartCanvas build={build} />;
+  return <QuizChartCanvas build={build} ariaLabel="Line chart: fluency and tone scores over time" />;
 }
 
 export function AiFeedbackCategoryChart({ data }: { data: Array<{ category: (typeof AI_FEEDBACK_CATEGORIES)[number]; avg: number; count: number }> }) {
@@ -314,7 +329,7 @@ export function AiFeedbackCategoryChart({ data }: { data: Array<{ category: (typ
       }),
     [data],
   );
-  return <QuizChartCanvas build={build} />;
+  return <QuizChartCanvas build={build} ariaLabel="Bar chart: average AI feedback score by category (fluency, grammar, vocabulary)" />;
 }
 
 export function RecordingsPerTopicChart({ data }: { data: Array<{ topic: string; count: number }> }) {
@@ -344,7 +359,7 @@ export function RecordingsPerTopicChart({ data }: { data: Array<{ topic: string;
       }),
     [data],
   );
-  return <QuizChartCanvas build={build} height={Math.max(160, data.length * 32)} />;
+  return <QuizChartCanvas build={build} height={Math.max(160, data.length * 32)} ariaLabel="Bar chart: number of recordings per topic" />;
 }
 
 /** One point per quiz attempt, plotted by speed vs. accuracy — the other
@@ -406,7 +421,7 @@ export function TimeAccuracyScatterChart({
       }),
     [points],
   );
-  return <QuizChartCanvas build={build} />;
+  return <QuizChartCanvas build={build} ariaLabel="Scatter chart: time per question versus accuracy" />;
 }
 
 const QUIZ_MODE_ORDER_FOR_SCATTER: Array<"speed" | "strikes" | "free"> = ["speed", "strikes", "free"];
@@ -464,5 +479,5 @@ export function FluencyToneScatterChart({
       }),
     [points],
   );
-  return <QuizChartCanvas build={build} />;
+  return <QuizChartCanvas build={build} ariaLabel="Scatter chart: fluency versus tone accuracy per recording" />;
 }
