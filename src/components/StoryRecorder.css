@@ -2781,6 +2781,10 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   box-shadow: 0 4px 0 var(--jade-deep);
   animation: pulseGreen 2s infinite;
   transition: transform 0.1s, box-shadow 0.1s;
+  /* BiLabel's .bi-en/.bi-pinyin default to --clay-muted (dark gray) —
+     unreadable on this solid green fill without a light override. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 
 .btn-start-speaking:hover {
@@ -2815,17 +2819,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @media (max-width: 640px) {
   .sorting-challenge-container {
     padding: 20px;
@@ -2842,399 +2835,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   .btn-start-speaking,
   .btn-skip-sorting {
     width: 100%;
-  }
-}
-
-/* ─────────────────────────────────────────────
-   (Story Concept Map styles live in StoryConceptMap.css)
-───────────────────────────────────────────── */
-
-.sorting-concept-map-panel {
-  background: var(--seal-soft);
-  border: 1.5px solid var(--seal);
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  animation: fadeIn 0.3s ease-out;
-}
-
-.scm-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 16px 20px;
-  background: var(--seal-soft);
-  border-bottom: 1px solid var(--clay-hairline);
-}
-
-.scm-header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.scm-eyebrow {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--seal);
-}
-
-.scm-subtitle {
-  font-size: 13px;
-  color: var(--clay-body);
-  margin: 0;
-  max-width: 480px;
-  line-height: 1.4;
-  transition: color 0.2s;
-}
-
-.scm-header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.scm-custom-input {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  border: 1.5px solid var(--seal-soft);
-  border-radius: var(--clay-radius-sm);
-  overflow: hidden;
-  background: var(--clay-surface-card);
-}
-
-.scm-custom-input input {
-  border: none;
-  outline: none;
-  padding: 7px 12px;
-  font-size: 13px;
-  color: var(--clay-ink);
-  width: 140px;
-  background: transparent;
-}
-
-.scm-custom-input input::placeholder {
-  color: var(--clay-muted);
-}
-
-.scm-btn-add {
-  background: var(--seal);
-  color: var(--clay-on-accent);
-  border: none;
-  padding: 7px 14px;
-  font-size: 13px;
-  font-weight: 650;
-  cursor: pointer;
-  transition: background 0.2s;
-  white-space: nowrap;
-}
-
-.scm-btn-add:hover {
-  background: var(--seal);
-}
-
-.scm-btn-reset {
-  background: var(--clay-surface-card);
-  color: var(--clay-body);
-  border: 1.5px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-sm);
-  padding: 7px 12px;
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.scm-btn-reset:hover {
-  background: var(--seal-soft);
-  color: var(--clay-error);
-  border-color: var(--clay-error);
-}
-
-.scm-btn-toggle {
-  background: var(--clay-surface-card);
-  color: var(--seal);
-  border: 1.5px solid var(--seal-soft);
-  border-radius: var(--clay-radius-sm);
-  padding: 7px 12px;
-  font-size: 12.5px;
-  font-weight: 650;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.scm-btn-toggle:hover {
-  background: var(--seal-soft);
-}
-
-/* Body (collapsible) */
-.scm-body {
-  padding: 16px 20px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  animation: fadeIn 0.25s ease-out;
-}
-
-/* Word Bank */
-.scm-word-bank {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.scm-word-bank-label {
-  font-size: 11.5px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--clay-muted);
-  padding-top: 5px;
-  white-space: nowrap;
-}
-
-.scm-word-bank-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
-}
-
-.scm-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 12px;
-  background: var(--seal-soft);
-  border: 1.5px solid var(--seal);
-  border-radius: var(--clay-radius-pill);
-  font-size: 13.5px;
-  color: var(--seal-deep);
-  font-weight: 600;
-  cursor: grab;
-  user-select: none;
-  transition: all 0.18s ease;
-}
-
-.scm-chip:hover {
-  background: color-mix(in srgb, var(--seal-soft) 70%, var(--seal) 30%);
-  border-color: var(--seal);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
-
-.scm-chip:active {
-  cursor: grabbing;
-  transform: scale(0.97);
-}
-
-.scm-chip.used {
-  opacity: 0.45;
-  background: var(--clay-surface-soft);
-  border-color: var(--clay-hairline);
-  color: var(--clay-muted);
-}
-
-/* Canvas */
-.scm-canvas {
-  position: relative;
-  min-height: 260px;
-  background: var(--clay-surface-soft);
-  border: 1.5px dashed var(--seal-soft);
-  border-radius: 12px;
-  overflow: hidden;
-  transition: border-color 0.2s, background-color 0.2s;
-}
-
-.scm-canvas.connecting-mode {
-  border-color: var(--gold);
-  background: var(--gold-soft);
-  cursor: crosshair;
-}
-
-.scm-canvas.dragging {
-  cursor: grabbing;
-}
-
-.scm-canvas-empty {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  pointer-events: none;
-}
-
-.scm-canvas-empty span {
-  font-size: 36px;
-  opacity: 0.5;
-}
-
-.scm-canvas-empty p {
-  font-size: 13.5px;
-  color: var(--clay-muted);
-  text-align: center;
-  max-width: 280px;
-  line-height: 1.45;
-  margin: 0;
-}
-
-/* SVG edge layer */
-.scm-svg-layer {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  overflow: visible;
-}
-
-.scm-svg-layer line,
-.scm-svg-layer circle,
-.scm-svg-layer text {
-  pointer-events: all;
-}
-
-/* Nodes */
-.scm-node {
-  position: absolute;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px 6px 8px;
-  background: rgba(255, 255, 255, 0.95);
-  border: 2px solid var(--clay-muted);
-  border-radius: var(--clay-radius-sm);
-  cursor: grab;
-  user-select: none;
-  white-space: nowrap;
-  transition: box-shadow 0.18s ease, transform 0.12s ease, border-color 0.18s;
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(6px);
-  z-index: 2;
-  animation: nodeAppear 0.2s ease-out;
-}
-
-@keyframes nodeAppear {
-  from {
-    opacity: 0;
-    transform: scale(0.8);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.scm-node:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-  z-index: 3;
-}
-
-.scm-node:active {
-  cursor: grabbing;
-}
-
-.scm-node.selected-source {
-  z-index: 10;
-  transform: scale(1.06);
-  animation: nodePulse 1s ease-in-out infinite;
-}
-
-@keyframes nodePulse {
-  0%, 100% { box-shadow: 0 0 0 0px rgba(184, 135, 58, 0.4); }
-  50%       { box-shadow: 0 0 0 8px rgba(184, 135, 58, 0); }
-}
-
-.scm-node.connectable-target {
-  cursor: pointer;
-  border-style: dashed;
-}
-
-.scm-node.connectable-target:hover {
-  transform: scale(1.05) translateY(-1px);
-}
-
-.scm-node-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.scm-node-label {
-  font-size: 13.5px;
-  font-weight: 650;
-  color: var(--clay-ink);
-}
-
-.scm-node-delete {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: none;
-  background: var(--clay-hairline-soft);
-  color: var(--clay-muted);
-  font-size: 13px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
-  flex-shrink: 0;
-  transition: all 0.15s;
-  margin-left: 2px;
-}
-
-.scm-node-delete:hover {
-  background: var(--seal-soft);
-  color: var(--clay-error);
-}
-
-/* Connection hint banner */
-.scm-connect-hint {
-  font-size: 13px;
-  color: var(--gold-deep);
-  background: var(--gold-soft);
-  border: 1px solid var(--gold);
-  border-radius: var(--clay-radius-sm);
-  padding: 10px 14px;
-  margin: 0;
-  animation: fadeIn 0.2s ease-out;
-}
-
-/* Responsive */
-@media (max-width: 640px) {
-  .scm-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .scm-header-right {
-    width: 100%;
-  }
-
-  .scm-custom-input {
-    flex: 1;
-  }
-
-  .scm-custom-input input {
-    width: 100%;
-  }
-
-  .scm-canvas {
-    min-height: 200px;
   }
 }
 
@@ -3735,7 +3335,10 @@ button.phase-nav-node:hover .phase-nav-marker-done {
 /* practice-phrases-hint's compact card, sized up for its own reference
    panel (rather than a small inline hint next to the record controls). */
 .practice-phrases-hint-full {
-  padding: 20px 24px;
+  /* Matches .practice-vocab-ref's padding — the two now stack as sibling
+     sub-cards inside the merged Study tab, so they need to read as the
+     same size of "thing," not two differently-scaled cards. */
+  padding: 14px 16px;
   gap: 8px;
   margin-top: 0;
 }
@@ -4476,6 +4079,10 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   white-space: nowrap;
   box-shadow: 0 4px 0 var(--jade-deep);
   transition: transform 0.1s, box-shadow 0.1s;
+  /* BiLabel's .bi-en/.bi-pinyin default to --clay-muted (dark gray) —
+     unreadable on this solid green fill without a light override. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 .scene-next-btn:hover {
   transform: translateY(-1px);

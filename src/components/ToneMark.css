@@ -1,0 +1,29 @@
+/* Draw-in for ToneMark's four strokes — pathLength="1" on each <path>
+   normalizes stroke-dasharray to 1 regardless of the stroke's real
+   geometry, so one keyframe animation works for all four shapes
+   (straight, diagonal, and the curved dip) without per-path tuning. */
+@keyframes tonemark-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.tonemark-stroke-animated {
+  stroke-dasharray: 1;
+  /* Visible by default — only the animation's own "from" keyframe (below)
+     declares the transient hidden starting point. If the animation is
+     ever skipped or interrupted for any reason, the stroke fails safe to
+     fully drawn instead of staying permanently invisible. */
+  stroke-dashoffset: 0;
+  animation: tonemark-draw 0.5s ease-out both;
+  animation-delay: var(--tonemark-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tonemark-stroke-animated {
+    animation: none;
+  }
+}

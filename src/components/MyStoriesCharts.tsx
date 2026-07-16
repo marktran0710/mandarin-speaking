@@ -13,7 +13,8 @@ const CHART_FONT_FAMILY =
 Chart.defaults.font.family = CHART_FONT_FAMILY;
 Chart.defaults.font.size = 12;
 Chart.defaults.color = "#6f697c";
-Chart.defaults.borderColor = "#efe6d3";
+// Resolved hex value for --clay-hairline (Chart.js can't read CSS custom properties) — keep in sync with src/index.css.
+Chart.defaults.borderColor = "#f2e4ce";
 Chart.defaults.plugins.tooltip.backgroundColor = "#201d29";
 Chart.defaults.plugins.tooltip.titleFont = { family: CHART_FONT_FAMILY, weight: "bold" };
 Chart.defaults.plugins.tooltip.bodyFont = { family: CHART_FONT_FAMILY };

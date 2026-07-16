@@ -112,6 +112,7 @@
 }
 
 .voice-file-label {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -323,6 +324,10 @@
   font-weight: 800;
   padding: 10px 14px;
   transition: background-color 0.2s ease;
+  /* BiLabel's .bi-en/.bi-pinyin default to --clay-muted (dark gray) —
+     unreadable on this solid violet fill without a light override. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 
 .voice-model-example-actions button:hover {

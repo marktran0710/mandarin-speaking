@@ -165,6 +165,7 @@
 }
 
 .hero-stat-chip .bi-zh,
+.hero-stat-chip .bi-pinyin,
 .hero-stat-chip .bi-en {
   color: var(--chip-text);
 }

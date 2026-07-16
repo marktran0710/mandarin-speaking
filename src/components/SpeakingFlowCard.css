@@ -443,3 +443,18 @@
   cursor: not-allowed;
   box-shadow: none;
 }
+
+/* Same breakpoint the rest of the app stacks at. The verdict header packs
+   an icon, text, an 84px sparkline, and the scene chip into one row —
+   fine on a laptop-width card, cramped on a phone-width one, so let it
+   wrap instead of squeezing everything down illegibly small. */
+@media (max-width: 768px) {
+  .sfc-verdict {
+    flex-wrap: wrap;
+  }
+  .sfc-verdict-body {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

@@ -11,7 +11,10 @@
      so the navbar's left/right edge lines up with the page content
      instead of drifting from a different max-width + padding combo. */
   width: min(1160px, calc(100% - 40px));
-  min-height: 68px;
+  /* Derived from the shared --navbar-height token (minus .navbar's 1px
+     border) instead of a separately-guessed literal, so this can't drift
+     out of sync with the pages that compute calc(100vh - var(--navbar-height)). */
+  min-height: calc(var(--navbar-height) - 1px);
   margin: 0 auto;
   display: flex;
   justify-content: space-between;

@@ -91,14 +91,16 @@ export default function VocabGroupEditor({
             </div>
             <div className="vocab-group-slot-words">
               {group.words.map((word) => (
-                <span
+                <button
                   key={word}
+                  type="button"
                   className="vocab-group-chip assigned"
                   onClick={() => removeWord(word, gi)}
+                  aria-label={`Remove ${word}`}
                   title="Click to remove"
                 >
                   {word} ×
-                </span>
+                </button>
               ))}
               {unassigned.map((word) => (
                 <button

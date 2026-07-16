@@ -1,22 +1,22 @@
 /* ── Page shell ── */
 .topic-selector {
   min-height: calc(100vh - var(--navbar-height));
-  padding: 28px 20px 64px;
+  padding: var(--space-lg) var(--space-md) var(--space-3xl);
   background: var(--clay-canvas);
 }
 
 /* ── Hero ── */
 .ts-hero {
   max-width: 1180px;
-  margin: 0 auto 32px;
+  margin: 0 auto var(--space-xl);
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.7fr);
-  gap: 18px;
+  gap: var(--space-md);
   align-items: stretch;
 }
 
 .ts-hero-copy {
-  padding: 28px 30px;
+  padding: var(--space-lg) var(--space-xl);
   background: linear-gradient(135deg, var(--tone1-soft) 0%, var(--clay-surface-card) 60%);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-xl);
@@ -27,7 +27,7 @@
   font-weight: 600;
   font-size: clamp(28px, 4vw, 42px);
   line-height: 1.12;
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-sm);
 }
 
 .ts-hero-copy p {
@@ -40,9 +40,9 @@
 /* Steps panel */
 .ts-steps {
   display: grid;
-  gap: 10px;
-  padding: 18px;
-  background: #ffffff;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-xl);
   align-content: center;
@@ -51,9 +51,9 @@
 .ts-step {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr);
-  gap: 12px;
+  gap: var(--space-sm);
   align-items: center;
-  padding: 10px 12px;
+  padding: var(--space-xs) var(--space-sm);
   background: var(--clay-canvas);
   border-radius: var(--clay-radius-md);
   font-size: 13px;
@@ -80,7 +80,7 @@
   display: grid;
   place-items: center;
   border-radius: 999px;
-  color: #fff;
+  color: var(--clay-on-accent);
   font-size: 15px;
   font-weight: 700;
   border: 3px solid transparent;
@@ -99,8 +99,8 @@
 .ts-grid-header {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  margin-bottom: 18px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
   flex-wrap: wrap;
 }
 
@@ -113,7 +113,7 @@
 
 .ts-topic-count {
   margin-left: auto;
-  padding: 4px 12px;
+  padding: var(--space-2xs) var(--space-sm);
   border-radius: 999px;
   background: var(--clay-surface-soft, #f1f5f9);
   color: var(--clay-muted);
@@ -125,7 +125,7 @@
 .ts-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--space-md);
 }
 
 /* ── Individual topic card — one consistent pastel for the whole grid,
@@ -184,13 +184,13 @@
   position: absolute;
   bottom: 8px;
   right: 8px;
-  padding: 4px 10px;
+  padding: var(--space-2xs) var(--space-xs);
   border-radius: 999px;
   /* Darker than the lesson badge's plain --clay-ink fill since this sits
      over an arbitrary photo, not a flat surface — needs the extra margin
      to keep the white text readable regardless of what's underneath. */
   background: rgba(20, 18, 25, 0.72);
-  color: #fff;
+  color: var(--clay-on-accent);
   font-size: 11px;
   font-weight: 700;
   backdrop-filter: blur(4px);
@@ -202,10 +202,10 @@
   position: absolute;
   top: 8px;
   left: 8px;
-  padding: 4px 10px;
+  padding: var(--space-2xs) var(--space-xs);
   border-radius: 999px;
   background: var(--clay-ink);
-  color: #fff;
+  color: var(--clay-on-accent);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -214,16 +214,16 @@
 /* Body */
 .ts-card-body {
   flex: 1;
-  padding: 16px 18px 12px;
+  padding: var(--space-md) var(--space-md) var(--space-sm);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .ts-card-meta-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-xs);
   flex-wrap: wrap;
 }
 
@@ -259,7 +259,7 @@
 
 .ts-card-stats {
   display: flex;
-  gap: 14px;
+  gap: var(--space-sm);
   flex-wrap: wrap;
   /* Same tone1-soft background as .ts-card-skill above — see its comment. */
   color: var(--clay-body);
@@ -267,12 +267,12 @@
   font-size: 12px;
   font-weight: 500;
   margin-top: auto;
-  padding-top: 4px;
+  padding-top: var(--space-2xs);
 }
 
 /* Footer / CTA */
 .ts-card-footer {
-  padding: 0 18px 16px;
+  padding: 0 var(--space-md) var(--space-md);
 }
 
 .ts-card-btn {
@@ -280,14 +280,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 11px 16px;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
   border: 2px solid var(--tone1-deep);
   border-radius: var(--clay-radius-pill);
   /* --tone1 only gets white text to ~3:1 — --tone1-deep clears 4.5:1. */
   background: var(--tone1-deep);
   box-shadow: 0 4px 0 var(--tone1-deep);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   font-size: 14px;
   font-weight: 650;
   cursor: pointer;
@@ -318,23 +318,23 @@
 /* ── Empty / loading states ── */
 .empty-state {
   max-width: 480px;
-  margin: 48px auto;
+  margin: var(--space-2xl) auto;
   text-align: center;
-  padding: 48px 24px;
-  background: #ffffff;
+  padding: var(--space-2xl) var(--space-lg);
+  background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-xl);
 }
 
 .empty-icon {
   font-size: 52px;
-  margin-bottom: 18px;
+  margin-bottom: var(--space-md);
 }
 
 .empty-state h2 {
   color: var(--clay-ink);
   font-size: 22px;
-  margin: 0 0 12px;
+  margin: 0 0 var(--space-sm);
 }
 
 .empty-state p {
@@ -359,7 +359,7 @@
 
 @media (max-width: 600px) {
   .topic-selector {
-    padding: 20px 12px 48px;
+    padding: var(--space-md) var(--space-sm) var(--space-2xl);
   }
 
   .ts-grid {
@@ -367,6 +367,6 @@
   }
 
   .ts-hero-copy {
-    padding: 20px;
+    padding: var(--space-md);
   }
 }

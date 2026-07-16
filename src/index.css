@@ -132,6 +132,21 @@
   --text-lg: 20px;
   --text-xl: 28px;
 
+  /* Spacing — a fixed scale so margins/padding/gaps stop being re-guessed
+     per component. Named to match the existing --clay-radius-*/--text-*
+     t-shirt convention. Pick the nearest step; don't hardcode px unless a
+     value is a genuine one-off (e.g. clearing an absolutely-positioned
+     sibling), and leave a comment when you do. */
+  --space-3xs: 2px;
+  --space-2xs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
   /* Real rendered .navbar height (~81px incl. its padding), not the 68px
      min-height set on .navbar-container — that alone left a page short of
      the viewport and forced scroll on every laptop viewport. Every
@@ -207,11 +222,6 @@ body {
   display: flex;
   flex-direction: column;
   background: var(--clay-canvas);
-}
-
-.story-header {
-  margin-bottom: 32px;
-  position: relative;
 }
 
 .story-image-preview {
@@ -587,6 +597,10 @@ h2 {
   box-shadow: 0 4px 0 var(--clay-error-deep);
   color: var(--clay-on-accent);
   font-weight: 650;
+  /* BiLabel's .bi-en/.bi-pinyin default to --clay-muted (dark gray) —
+     unreadable on this solid red fill without a light override. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 
 .btn-danger:hover:not(:disabled) {
@@ -637,6 +651,10 @@ h2 {
   font-size: var(--text-xs);
   font-weight: 700;
   cursor: pointer;
+  /* BiLabel's .bi-en/.bi-pinyin default to --clay-muted (dark gray) —
+     unreadable on this solid violet fill without a light override. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 
 .btn-mini:hover {

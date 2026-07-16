@@ -6,7 +6,7 @@
 
 /* ── Help banner strip ── */
 .csp-help-strip {
-  padding: 10px 20px;
+  padding: var(--space-xs) var(--space-md);
   background: var(--clay-surface-card);
   border-bottom: 1px solid var(--clay-hairline);
   position: sticky;
@@ -19,14 +19,14 @@
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 0.7fr);
-  gap: 12px;
+  gap: var(--space-sm);
   align-items: center;
 }
 
 .student-help-panel > div {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-xs);
   min-width: 0;
 }
 
@@ -54,13 +54,13 @@
   color: var(--clay-body);
   font-size: 12px;
   line-height: 1.4;
-  margin: 2px 0 0;
+  margin: var(--space-3xs) 0 0;
 }
 
 .student-help-panel form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .student-help-panel input {
@@ -71,16 +71,16 @@
   color: var(--clay-ink);
   font: inherit;
   font-size: 13px;
-  padding: 8px 12px;
+  padding: var(--space-xs) var(--space-sm);
 }
 
 .student-help-panel button {
   min-height: 44px;
-  padding: 0 14px;
+  padding: 0 var(--space-sm);
   border: none;
   border-radius: var(--clay-radius-md);
   background: var(--seal);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
@@ -101,14 +101,14 @@
 
 /* ── Recorder page body ── */
 .csp-recorder-body {
-  padding: 20px 20px 64px;
+  padding: var(--space-md) var(--space-md) var(--space-3xl);
 }
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .student-help-panel {
     grid-template-columns: 1fr;
-    gap: 8px;
+    gap: var(--space-xs);
   }
 
   .student-help-panel form {
@@ -116,6 +116,6 @@
   }
 
   .csp-recorder-body {
-    padding: 16px 12px 48px;
+    padding: var(--space-md) var(--space-sm) var(--space-2xl);
   }
 }
