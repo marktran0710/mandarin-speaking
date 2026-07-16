@@ -193,10 +193,10 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
       <section className="narration-workspace">
         <div className="narration-image-panel">
           <img src={scene.image} alt="Scene to describe" className="narration-image" />
-          <p className="narration-prompt">{scene.prompt}</p>
+          <p className="narration-prompt" lang="zh-Hant">{scene.prompt}</p>
           <div className="narration-vocab-chips">
             {effectiveVocabulary.map((word) => (
-              <span key={word} className="narration-vocab-chip">
+              <span key={word} className="narration-vocab-chip" lang="zh-Hant">
                 {word}
               </span>
             ))}

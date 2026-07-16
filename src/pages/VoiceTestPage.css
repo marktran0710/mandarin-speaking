@@ -8,7 +8,7 @@
 .voice-test-workspace,
 .voice-test-controls,
 .voice-feedback-panel {
-  background: #ffffff;
+  background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
 }
@@ -20,6 +20,19 @@
   gap: 16px;
   align-items: center;
   margin-bottom: 14px;
+}
+
+.voice-test-hero h1,
+.voice-test-hero p,
+.voice-test-hero .eyebrow {
+  text-align: left;
+}
+
+/* .eyebrow is a bare shared class (index.css/StoryRecorder.css) with no
+   color of its own here — pin it explicitly instead of relying on
+   whichever other file's rule happens to load first. */
+.voice-test-hero .eyebrow {
+  color: var(--seal-deep);
 }
 
 .voice-test-hero h1 {
@@ -46,8 +59,7 @@
   background: var(--clay-surface-soft);
 }
 
-.voice-test-status span,
-.target-text-card span {
+.voice-test-status span {
   color: var(--clay-muted);
   font-size: 12px;
   font-weight: 650;
@@ -78,30 +90,6 @@
   color: var(--seal-deep);
   font-size: 13px;
   font-weight: 700;
-}
-
-.target-text-card {
-  display: grid;
-  gap: 10px;
-}
-
-.target-text-card textarea {
-  width: 100%;
-  min-height: 128px;
-  padding: 14px;
-  resize: vertical;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  color: var(--clay-ink);
-  background: #ffffff;
-  font-size: 18px;
-  line-height: 1.7;
-}
-
-.target-text-card textarea:focus {
-  border-color: var(--seal);
-  box-shadow: 0 0 0 3px var(--seal-soft);
-  outline: none;
 }
 
 .voice-test-controls {
@@ -278,7 +266,7 @@
   align-items: center;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
-  background: #ffffff;
+  background: var(--clay-surface-card);
 }
 
 .voice-model-example span {
@@ -319,7 +307,7 @@
   border: 0;
   border-radius: var(--clay-radius-md);
   background: var(--seal);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   cursor: pointer;
   font-weight: 800;
   padding: 10px 14px;
@@ -337,7 +325,7 @@
 .voice-advanced-details {
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
-  background: #ffffff;
+  background: var(--clay-surface-card);
 }
 
 .voice-advanced-details summary {
@@ -368,60 +356,6 @@
   margin: 0;
 }
 
-.tone-repair-card {
-  background: #ffffff;
-}
-
-.tone-repair-card > span {
-  color: var(--seal);
-  display: block;
-  font-size: 12px;
-  font-weight: 900;
-  margin-bottom: 6px;
-  text-transform: uppercase;
-}
-
-.voice-tone-focus-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
-  margin-top: 14px;
-}
-
-.voice-tone-focus {
-  padding: 12px;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-soft);
-}
-
-.voice-tone-focus strong,
-.voice-tone-focus span,
-.voice-tone-focus small {
-  display: block;
-}
-
-.voice-tone-focus strong {
-  color: var(--clay-ink);
-  font-family: var(--font-mono);
-  font-size: 28px;
-}
-
-.voice-tone-focus span {
-  color: var(--seal);
-  font-size: 12px;
-  font-weight: 900;
-  margin-top: 3px;
-  text-transform: uppercase;
-}
-
-.voice-tone-focus small {
-  color: var(--clay-body);
-  font-size: 12px;
-  line-height: 1.4;
-  margin-top: 8px;
-}
-
 .voice-result-description {
   margin-bottom: 10px !important;
   color: var(--clay-body) !important;
@@ -447,7 +381,7 @@
   gap: 3px;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
-  background: #ffffff;
+  background: var(--clay-surface-card);
 }
 
 .voice-script-token strong {
@@ -489,7 +423,7 @@
 .voice-praat-visual-card {
   padding: 0;
   overflow: hidden;
-  background: #ffffff;
+  background: var(--clay-surface-card);
 }
 
 .voice-praat-visual-card > h2 {
@@ -501,7 +435,7 @@
   padding: 16px;
   border: 0;
   border-radius: 0;
-  background: #ffffff;
+  background: var(--clay-surface-card);
 }
 
 .voice-praat-visual-card .praat-timeline-header {
@@ -530,7 +464,7 @@
   padding: 13px;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
-  background: #ffffff;
+  background: var(--clay-surface-card);
 }
 
 .voice-word-card strong {

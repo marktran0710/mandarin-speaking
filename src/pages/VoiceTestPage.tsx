@@ -330,8 +330,6 @@ export default function VoiceTestPage() {
             className={`btn btn-secondary voice-file-label ${
               isRecording || isAnalyzing ? "disabled" : ""
             }`}
-            role="button"
-            tabIndex={isRecording || isAnalyzing ? -1 : 0}
           >
             <BiLabel zh="匯入 WAV 檔案" pinyin="Huìrù WAV dǎng'àn" en="Import WAV file" />
             <input
@@ -346,11 +344,11 @@ export default function VoiceTestPage() {
 
         {audioUrl && (
           <div className="voice-audio-preview">
-            <span>
+            <span id="voice-audio-preview-label">
               <BiLabel zh="錄音預覽" pinyin="Lùyīn yùlǎn" en="Recording preview" />
             </span>
             {selectedAudioName && <strong>{selectedAudioName}</strong>}
-            <audio controls src={audioUrl} />
+            <audio controls src={audioUrl} aria-labelledby="voice-audio-preview-label" />
           </div>
         )}
 
@@ -458,7 +456,7 @@ export default function VoiceTestPage() {
               <div className="voice-word-grid">
                 {metrics.word_prosody.map((word) => (
                   <div className="voice-word-card" key={`${word.token}-${word.index}`}>
-                    <strong>{word.token}</strong>
+                    <strong lang="zh-Hant">{word.token}</strong>
                     <span>
                       <BiLabel {...formatContourShape(word.contour_shape)} />
                     </span>
@@ -599,7 +597,7 @@ function ScriptWordLevel({
           key={`${word.token}-${word.index}`}
           title={word.feedback || undefined}
         >
-          <strong>{word.token}</strong>
+          <strong lang="zh-Hant">{word.token}</strong>
           {word.contour && (
             <em>
               <BiLabel {...formatContourShape(word.contour)} />
@@ -662,7 +660,7 @@ function ModelExampleCard({
         <h2>
           <BiLabel zh="先聽，再用你的聲音跟著說" pinyin="Xiān tīng, zài yòng nǐ de shēngyīn gēnzhe shuō" en="Listen, then copy with your voice" />
         </h2>
-        <p>{exampleText}</p>
+        <p lang="zh-Hant">{exampleText}</p>
       </div>
       <div className="voice-model-example-actions">
         {focusWord && (

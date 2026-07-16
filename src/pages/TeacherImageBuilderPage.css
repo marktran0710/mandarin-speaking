@@ -28,6 +28,7 @@
   color: var(--clay-ink);
   font-size: clamp(30px, 4vw, 44px);
   line-height: 1.12;
+  text-align: left;
 }
 
 .teacher-image-hero p {
@@ -35,6 +36,13 @@
   margin: 0;
   color: var(--clay-body);
   line-height: 1.6;
+}
+
+/* .stories-kicker's base color (--seal-deep) is scoped to student pages via
+   MyStoriesPage.css's .teacher-dashboard-page wrapper — this page doesn't
+   use that wrapper, so pin the teacher-correct color locally instead. */
+.teacher-image-page .stories-kicker {
+  color: var(--jade-deep);
 }
 
 .teacher-image-status {
@@ -150,7 +158,7 @@
 
 .btn-generate-images {
   background: var(--jade);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   transition: background 0.15s ease, transform 0.15s ease;
 }
 
