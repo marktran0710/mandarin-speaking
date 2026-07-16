@@ -280,7 +280,7 @@ export default function SpeakingFlowCard({
             {submittedAudioName && (
               <p className="submitted-audio-name">✓ {submittedAudioName}</p>
             )}
-            {error && <p className="error sfc-error">{error}</p>}
+            {error && <p className="sfc-error">{error}</p>}
 
             <details className="practice-model-picker sfc-options">
               <summary>

@@ -245,8 +245,6 @@ export default function TonePracticePage() {
             className={`btn btn-secondary tone-practice-upload-label ${
               isRecording || isAnalyzing ? "disabled" : ""
             }`}
-            role="button"
-            tabIndex={isRecording || isAnalyzing ? -1 : 0}
           >
             <BiLabel zh="上傳音檔" pinyin="Shàngchuán yīndàng" en="Upload audio" />
             <input

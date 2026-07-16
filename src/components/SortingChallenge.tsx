@@ -243,16 +243,25 @@ export default function SortingChallenge({
         {placedImages.map((image, index) => {
           const validation = validationStates[index];
           const scenePrompt = topic.prompts?.[index];
+          const activateSlot = () => {
+            if (selectedPoolImage)
+              placePoolImageInSlot(selectedPoolImage, index);
+            else if (image) removeImageFromSlot(index);
+          };
           return (
             <div
               key={`slot-${index}`}
               className={`sorting-slot-card ${validation || ""} ${selectedPoolImage ? "droppable" : ""}`}
+              role="button"
+              tabIndex={0}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDropToSlot(e, index)}
-              onClick={() => {
-                if (selectedPoolImage)
-                  placePoolImageInSlot(selectedPoolImage, index);
-                else if (image) removeImageFromSlot(index);
+              onClick={activateSlot}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  activateSlot();
+                }
               }}
             >
               <div className="slot-header">
@@ -353,12 +362,22 @@ export default function SortingChallenge({
                 key={poolIdx}
                 className={`sorting-pool-card ${selectedPoolImage === image ? "selected" : ""}`}
                 draggable
+                role="button"
+                tabIndex={0}
                 onDragStart={(e) => handleDragStart(e, image, "pool")}
                 onClick={() =>
                   setSelectedPoolImage(
                     selectedPoolImage === image ? null : image,
                   )
                 }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedPoolImage(
+                      selectedPoolImage === image ? null : image,
+                    );
+                  }
+                }}
               >
                 <img src={image} alt="Story picture" />
                 <span className="drag-handle">

@@ -1,3 +1,4 @@
+import { useId } from "react";
 import PitchChart from "./PitchChart";
 import { resolveImageUrl } from "../utils/teacherStories";
 import { BiLabel } from "./BiLabel";
@@ -13,6 +14,7 @@ export default function RecordCard({
   onDeleteRecord: (id: string) => void;
   compact?: boolean;
 }) {
+  const savedAudioLabelId = useId();
   return (
     <div className={compact ? "record-summary" : "story-card"}>
       <div className="story-header">
@@ -35,8 +37,8 @@ export default function RecordCard({
       <div className="story-content">
         {record.audioUrl && (
           <div className="saved-audio-player">
-            <strong><BiLabel zh="已存的錄音" pinyin="Yǐ cún de lùyīn" en="Saved voice recording" /></strong>
-            <audio controls src={resolveImageUrl(record.audioUrl)} />
+            <strong id={savedAudioLabelId}><BiLabel zh="已存的錄音" pinyin="Yǐ cún de lùyīn" en="Saved voice recording" /></strong>
+            <audio controls src={resolveImageUrl(record.audioUrl)} aria-labelledby={savedAudioLabelId} />
           </div>
         )}
 

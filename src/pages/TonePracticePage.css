@@ -1,23 +1,26 @@
 .tone-practice-page {
   max-width: 960px;
   margin: 0 auto;
-  padding: 24px 20px 72px;
+  /* 72px bottom sits outside the token scale — same exception as
+     LoginPage's page-shell bottom padding, kept literal rather than
+     forced onto a wrong step. */
+  padding: var(--space-lg) var(--space-lg) 72px;
   display: grid;
-  gap: 16px;
+  gap: var(--space-md);
 }
 
 .tone-practice-hero {
-  padding: 20px;
+  padding: var(--space-lg);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
-  background: #ffffff;
+  background: var(--clay-surface-card);
 }
 
 .tone-practice-hero h1 {
   color: var(--clay-ink);
   font-size: clamp(26px, 4vw, 36px);
   line-height: 1.15;
-  margin: 6px 0 8px;
+  margin: var(--space-xs) 0 var(--space-xs);
 }
 
 .tone-practice-hero p {
@@ -28,22 +31,22 @@
 }
 
 .tone-practice-picker {
-  padding: 18px;
+  padding: var(--space-md);
   display: grid;
-  gap: 14px;
+  gap: var(--space-md);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
-  background: #ffffff;
+  background: var(--clay-surface-card);
 }
 
 .tone-practice-filters {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .tone-filter-chip {
-  padding: 8px 14px;
+  padding: var(--space-xs) var(--space-md);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-soft);
@@ -67,19 +70,19 @@
 .tone-practice-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .tone-word-card {
   position: relative;
   display: grid;
-  gap: 4px;
+  gap: var(--space-2xs);
   justify-items: center;
   /* Extra top padding clears the absolutely-positioned .tone-word-best
      badge (top:8px, ~19px tall) so it never overlaps the centered
      ToneShapeIcon — at the grid's minimum 120px column width the icon
      sits close enough to the right edge that the two used to clip. */
-  padding: 30px 10px 14px;
+  padding: 30px var(--space-sm) var(--space-md);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
@@ -136,7 +139,7 @@
   font-style: normal;
   font-weight: 800;
   font-size: 11px;
-  padding: 2px 6px;
+  padding: var(--space-3xs) var(--space-xs);
   border-radius: var(--clay-radius-pill);
 }
 
@@ -161,21 +164,21 @@
 }
 
 .tone-practice-panel {
-  padding: 18px;
+  padding: var(--space-md);
   display: grid;
-  gap: 16px;
+  gap: var(--space-md);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
-  background: #ffffff;
+  background: var(--clay-surface-card);
 }
 
 .tone-practice-target {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: var(--space-md);
   align-items: center;
   justify-content: space-between;
-  padding: 14px;
+  padding: var(--space-md);
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
 }
@@ -183,7 +186,7 @@
 .tone-practice-target-main {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-md);
 }
 
 .tone-practice-target-main .tone-shape-icon {
@@ -193,7 +196,7 @@
 
 .tone-practice-target-main div {
   display: grid;
-  gap: 2px;
+  gap: var(--space-3xs);
 }
 
 .tone-practice-char {
@@ -217,7 +220,7 @@
 .tone-practice-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: var(--space-sm);
   align-items: center;
 }
 
@@ -249,7 +252,7 @@
 
 .tone-practice-status {
   margin: 0;
-  padding: 12px 14px;
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--clay-radius-md);
   background: var(--seal-soft);
   color: var(--seal-deep);
@@ -258,7 +261,7 @@
 
 .tone-practice-error {
   margin: 0;
-  padding: 12px 14px;
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--clay-radius-md);
   background: var(--seal-soft);
   border-left: 4px solid var(--clay-error);
@@ -268,18 +271,18 @@
 
 .tone-practice-result {
   display: grid;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .tone-practice-result.empty {
-  padding: 14px;
+  padding: var(--space-md);
   border-radius: var(--clay-radius-md);
   background: var(--gold-soft);
   color: var(--gold-deep);
 }
 
 .tone-match-content-warning {
-  padding: 12px 14px;
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--clay-radius-md);
   background: var(--gold-soft);
   color: var(--gold-deep);
@@ -288,11 +291,11 @@
 }
 
 .tone-match-card {
-  padding: 16px;
+  padding: var(--space-md);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   display: grid;
-  gap: 12px;
+  gap: var(--space-sm);
 }
 
 .tone-match-card.excellent {
@@ -318,7 +321,7 @@
 .tone-match-header {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-md);
 }
 
 .tone-match-score-ring {
@@ -326,10 +329,10 @@
   justify-items: center;
   align-content: center;
   min-width: 96px;
-  padding: 10px 8px;
+  padding: var(--space-sm) var(--space-xs);
   border-radius: 50%;
   aspect-ratio: 1;
-  background: #ffffff;
+  background: var(--clay-surface-card);
   border: 3px solid currentColor;
 }
 
@@ -359,7 +362,7 @@
 
 .tone-match-meta {
   display: grid;
-  gap: 4px;
+  gap: var(--space-2xs);
 }
 
 .tone-match-meta strong {
@@ -391,7 +394,7 @@
 .tone-practice-retry-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 @media (max-width: 640px) {

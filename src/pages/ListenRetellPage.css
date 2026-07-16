@@ -18,7 +18,7 @@
 }
 .lr-hero h1 {
   margin: 0 0 8px;
-  font-size: 2rem;
+  font-size: clamp(28px, 5vw, 38px);
 }
 .lr-hero p {
   color: var(--clay-body);
@@ -93,7 +93,7 @@
   border: none;
   border-radius: var(--clay-radius-md);
   background: var(--seal);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   font-size: 0.95rem;
   font-weight: 650;
   cursor: pointer;

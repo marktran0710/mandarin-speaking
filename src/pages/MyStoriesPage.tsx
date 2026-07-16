@@ -1419,7 +1419,7 @@ function TeacherDashboard({
                   <div
                     className="teacher-frame-image-preview"
                     tabIndex={0}
-                    role="textbox"
+                    role="button"
                     aria-label={`Paste an image for frame ${index + 1}`}
                     onPaste={(event) => handlePasteFrameImage(index, event)}
                     title="Click here, then paste (Ctrl+V) an image from your clipboard"

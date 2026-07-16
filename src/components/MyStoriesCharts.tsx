@@ -12,8 +12,10 @@ const CHART_FONT_FAMILY =
   '"Inter", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif';
 Chart.defaults.font.family = CHART_FONT_FAMILY;
 Chart.defaults.font.size = 12;
+// The next three are resolved hex values for --clay-muted, --clay-hairline,
+// and --clay-ink (Chart.js can't read CSS custom properties) — keep in sync
+// with src/index.css.
 Chart.defaults.color = "#6f697c";
-// Resolved hex value for --clay-hairline (Chart.js can't read CSS custom properties) — keep in sync with src/index.css.
 Chart.defaults.borderColor = "#f2e4ce";
 Chart.defaults.plugins.tooltip.backgroundColor = "#201d29";
 Chart.defaults.plugins.tooltip.titleFont = { family: CHART_FONT_FAMILY, weight: "bold" };
@@ -24,6 +26,8 @@ Chart.defaults.plugins.legend.labels.usePointStyle = true;
 Chart.defaults.plugins.legend.labels.boxWidth = 8;
 Chart.defaults.plugins.legend.labels.boxHeight = 8;
 
+// Colors are resolved hex for --seal/--jade/--gold-deep (Chart.js can't read
+// CSS custom properties) — keep in sync with src/index.css.
 export const QUIZ_MODE_INFO: Record<"speed" | "strikes" | "free", { icon: string; label: string; color: string }> = {
   speed: { icon: "⏱️", label: "Speed", color: "#7c3aed" },
   strikes: { icon: "❌", label: "3 Strikes", color: "#1c9a5b" },
@@ -31,6 +35,7 @@ export const QUIZ_MODE_INFO: Record<"speed" | "strikes" | "free", { icon: string
 };
 
 export const AI_FEEDBACK_CATEGORIES = ["fluency", "grammar", "vocabulary"] as const;
+// Same --seal/--jade/--gold-deep mirror as QUIZ_MODE_INFO above.
 export const AI_FEEDBACK_CATEGORY_INFO: Record<(typeof AI_FEEDBACK_CATEGORIES)[number], { label: string; color: string }> = {
   fluency: { label: "Fluency", color: "#7c3aed" },
   grammar: { label: "Grammar", color: "#1c9a5b" },

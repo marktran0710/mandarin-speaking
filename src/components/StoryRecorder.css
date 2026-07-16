@@ -235,43 +235,10 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   text-transform: uppercase;
 }
 
-.recorder-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: 18px;
-  margin-bottom: 18px;
-}
-
-.recorder-hero-copy,
-.recording-status-card,
-.prompt-stage,
-.recording-coach-panel,
-.recording-console,
-.analysis-panel,
-.transcriptions {
+.recording-status-card {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
-}
-
-.recorder-hero-copy {
-  padding: 22px;
-  background: linear-gradient(135deg, var(--seal-soft) 0%, rgba(255, 255, 255, 0.92) 60%);
-}
-
-.recorder-hero-copy h1 {
-  color: var(--clay-ink);
-  font-size: clamp(31px, 5vw, 46px);
-  line-height: 1.12;
-  margin: 0 0 12px;
-}
-
-.recorder-hero-copy p {
-  max-width: 760px;
-  color: var(--clay-body);
-  font-size: 16px;
-  line-height: 1.6;
-  margin: 0;
 }
 
 .challenge-meta {
@@ -319,79 +286,11 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   margin: 0;
 }
 
-.recording-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
-  gap: 16px;
-  align-items: stretch;
-}
-
-.prompt-stage {
-  overflow: hidden;
-}
-
-.story-image-preview {
-  aspect-ratio: 16 / 10;
-  background: var(--clay-lavender);
-}
-
-.story-image-preview img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-}
-
 .prompt-thumbnails {
   padding: 14px;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: 10px;
-}
-
-.prompt-mini-card {
-  padding: 8px;
-  display: grid;
-  gap: 7px;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-card);
-  color: var(--clay-ink);
-  cursor: pointer;
-}
-
-.prompt-mini-card:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.prompt-mini-card.selected {
-  border-color: var(--clay-primary);
-  box-shadow: 0 0 0 3px var(--seal-soft);
-}
-
-.prompt-mini-card img {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-.prompt-mini-card span {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.recording-coach-panel {
-  padding: 16px;
-  display: grid;
-  gap: 14px;
-}
-
-.coach-block {
-  padding: 14px;
-  background: var(--clay-canvas);
-  border-radius: var(--clay-radius-lg);
 }
 
 .task-card {
@@ -404,22 +303,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   font-size: 14px;
   line-height: 1.55;
   margin: 0;
-}
-
-.coach-block h2 {
-  color: var(--clay-ink);
-  font-size: 17px;
-  margin: 0 0 12px;
-  border: 0;
-  padding: 0;
-}
-
-.coach-block ol {
-  margin: 0;
-  padding-left: 20px;
-  color: var(--clay-body);
-  font-size: 14px;
-  line-height: 1.65;
 }
 
 .recording-vocabulary,
@@ -447,154 +330,8 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   color: var(--gold-deep);
 }
 
-.concept-map-section {
-  margin-top: 16px;
-  padding: 18px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-xl);
-}
-
-.concept-map-header {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 18px;
-}
-
-.concept-map-header h2 {
-  color: var(--clay-ink);
-  font-size: 24px;
-  margin: 0;
-  border: 0;
-  padding: 0;
-}
-
-.concept-map-header p {
-  color: var(--clay-body);
-  font-size: 15px;
-  line-height: 1.55;
-  margin: 0;
-}
-
-.concept-map {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.concept-node.vocabulary-node,
-.concept-node.connector-node,
-.concept-node.full-story-node {
-  background: var(--clay-surface-soft);
-}
-
-.concept-node {
-  min-height: 108px;
-  padding: 12px;
-  display: grid;
-  gap: 8px;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  background: var(--clay-canvas);
-}
-
-.concept-node span {
-  display: inline-flex;
-  margin-bottom: 10px;
-  padding: 5px 8px;
-  border-radius: var(--clay-radius-pill);
-  font-size: 11px;
-  font-weight: 650;
-  text-transform: uppercase;
-}
-
-.concept-node strong {
-  display: block;
-  color: var(--clay-ink);
-  font-size: 17px;
-  font-weight: 650;
-}
-
-.concept-node p,
-.concept-node textarea {
-  color: var(--clay-body);
-  font-size: 14px;
-  line-height: 1.55;
-  margin: 0;
-}
-
-.concept-node textarea {
-  width: 100%;
-  min-height: 78px;
-  padding: 10px;
-  resize: vertical;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-card);
-  color: var(--clay-ink);
-  font-family: inherit;
-}
-
-.concept-node textarea:focus {
-  border-color: var(--clay-primary);
-  box-shadow: 0 0 0 3px var(--seal-soft);
-  outline: none;
-}
-
-.concept-node.scene span {
-  background: var(--clay-pink);
-  color: var(--clay-primary-active);
-}
-
-.concept-node.character span {
-  background: var(--jade-soft);
-  color: var(--jade-deep);
-}
-
-.concept-node.event span {
-  background: var(--gold-soft);
-  color: var(--gold-deep);
-}
-
-.concept-node.problem span {
-  background: var(--seal-soft);
-  color: var(--clay-error);
-}
-
-.concept-node.feeling span {
-  background: var(--jade-soft);
-  color: var(--jade-deep);
-}
-
-.concept-node.ending span {
-  background: var(--gold-soft);
-  color: var(--gold-deep);
-}
-
-.concept-node.vocabulary-node span {
-  background: var(--jade-soft);
-  color: var(--jade-deep);
-}
-
-.concept-node.connector-node span {
-  background: var(--gold-soft);
-  color: var(--gold-deep);
-}
-
-.concept-node.full-story-node {
-  grid-column: span 2;
-}
-
-.concept-node.full-story-node span {
-  background: var(--seal-soft);
-  color: var(--seal-deep);
-}
-
 .concept-chip-panel,
-.concept-practice-text,
-.concept-map-actions,
-.word-level-note,
-.word-level-preview {
+.concept-practice-text {
   margin-top: 14px;
   padding: 14px 16px;
   border-radius: var(--clay-radius-lg);
@@ -625,8 +362,7 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   gap: 8px;
 }
 
-.concept-chip-group button,
-.concept-map-actions button {
+.concept-chip-group button {
   min-height: 36px;
   padding: 8px 11px;
   border: 1px solid var(--clay-hairline);
@@ -638,14 +374,12 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   font-weight: 600;
 }
 
-.concept-chip-group button:hover:not(:disabled),
-.concept-map-actions button:hover:not(:disabled) {
+.concept-chip-group button:hover:not(:disabled) {
   border-color: var(--clay-primary);
   color: var(--clay-primary-active);
 }
 
-.concept-chip-group button:disabled,
-.concept-map-actions button:disabled {
+.concept-chip-group button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
@@ -663,107 +397,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   font-weight: 500;
   line-height: 1.65;
   margin: 0;
-}
-
-.concept-map-actions {
-  padding-left: 0;
-  padding-right: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.concept-map-actions button {
-  border-radius: var(--clay-radius-md);
-}
-
-.word-level-note {
-  background: var(--jade-soft);
-  border: 1px solid var(--jade);
-}
-
-.word-level-note strong {
-  display: block;
-  color: var(--jade-deep);
-  font-size: 15px;
-  margin-bottom: 6px;
-}
-
-.word-level-note p {
-  color: var(--clay-ink);
-  font-size: 13px;
-  line-height: 1.55;
-  margin: 0;
-}
-
-.word-level-preview {
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-xl);
-}
-
-.word-level-preview h2 {
-  color: var(--clay-ink);
-  font-size: 24px;
-  margin: 0;
-}
-
-.word-level-strip {
-  margin-top: 14px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.word-level-token {
-  min-width: 68px;
-  padding: 9px 10px;
-  display: grid;
-  gap: 4px;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-soft);
-}
-
-.word-level-token strong {
-  color: var(--clay-ink);
-  font-size: 22px;
-  line-height: 1;
-}
-
-.word-level-token span {
-  color: var(--clay-muted);
-  font-size: 11px;
-  font-weight: 900;
-}
-
-.word-level-token.rising {
-  background: var(--jade-soft);
-}
-
-.word-level-token.falling {
-  background: var(--clay-surface-strong);
-}
-
-.word-level-token.level {
-  background: var(--seal-soft);
-}
-
-.word-level-token.dip {
-  background: var(--gold-soft);
-}
-
-.recording-console {
-  margin-top: 18px;
-  padding: 16px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
-  gap: 18px;
-  align-items: center;
-  position: sticky;
-  bottom: 14px;
-  z-index: 5;
-  box-shadow: var(--shadow-md);
 }
 
 .recording-action-copy span {
@@ -786,36 +419,10 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   margin: 0;
 }
 
-.model-selector label {
-  display: block;
-  color: var(--clay-muted);
-  font-weight: 800;
-  margin-bottom: 8px;
-  font-size: 13px;
-  text-transform: uppercase;
-}
-
-.model-selector select {
-  width: 100%;
-  min-height: 46px;
-  padding: 10px 12px;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  font-size: 15px;
-  background-color: var(--clay-surface-card);
-  color: var(--clay-ink);
-  cursor: pointer;
-}
-
 .controls {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-}
-
-.simple-controls {
-  display: grid;
-  gap: 10px;
 }
 
 .submit-voice-label.disabled {
@@ -832,49 +439,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   font-size: 13px;
   font-weight: 650;
   margin: 0;
-  text-align: center;
-}
-
-.advanced-recording-options {
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-canvas);
-}
-
-.advanced-recording-options summary {
-  min-height: 42px;
-  padding: 12px 14px;
-  color: var(--clay-muted);
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 650;
-}
-
-.advanced-recording-options .model-selector {
-  padding: 0 14px 14px;
-}
-
-.recording-info,
-.loading,
-.error {
-  margin: 18px 0 0;
-  padding: 14px 16px;
-  border-radius: var(--clay-radius-lg);
-  font-weight: 800;
-}
-
-.recording-info {
-  background: var(--seal-soft);
-  color: var(--clay-error);
-}
-
-.recording-info p {
-  margin: 6px 0;
-}
-
-.loading {
-  background: var(--clay-pink);
-  color: var(--clay-primary-active);
   text-align: center;
 }
 
@@ -952,69 +516,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   font-weight: 700;
 }
 
-.error {
-  background: var(--seal-soft);
-  color: var(--clay-error);
-  border-left: 4px solid var(--clay-error);
-}
-
-.analysis-panel {
-  margin: 28px 0 0;
-}
-
-/* ── Analysis panel grid — mirrors practice-workspace layout ── */
-.ap-grid {
-  display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 20px;
-  margin-bottom: 20px;
-  align-items: start;
-}
-
-.ap-feedback-col {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* Right sidebar — same card treatment as practice-guide-panel */
-.ap-sidebar-col {
-  display: flex;
-  flex-direction: column;
-  background: var(--clay-surface-card);
-  border: 1.5px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  overflow: hidden;
-  gap: 0;
-}
-
-/* Scene thumbnail — full-bleed at top of sidebar card */
-.ap-scene-card {
-  border-bottom: 1px solid var(--clay-hairline);
-}
-
-.ap-scene-img {
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  object-fit: cover;
-  display: block;
-}
-
-.ap-scene-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 14px;
-  font-size: 12px;
-  font-weight: 650;
-  color: var(--clay-ink);
-}
-
-.ap-scene-attempts {
-  color: var(--clay-muted);
-  font-weight: 500;
-}
-
 /* ── Shared block-label token ── */
 /* Every section heading inside a practice/analysis block uses this. */
 .block-label {
@@ -1028,29 +529,8 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   line-height: 1.3;
 }
 
-/* Playback and vocab-complete sections inside the sidebar card */
-.ap-sidebar-col .listen-try-zone {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--clay-hairline-soft);
-}
-
-.ap-sidebar-col .listen-try-zone:empty {
-  display: none;
-}
-
-.ap-sidebar-col .try-again-complete {
-  margin: 12px;
-  border-radius: 10px;
-}
-
 /* Responsive — match practice-workspace breakpoint */
 @media (max-width: 768px) {
-  .ap-grid {
-    grid-template-columns: 1fr;
-  }
-  .ap-sidebar-col {
-    border-radius: var(--clay-radius-md);
-  }
   .student-flow-board {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1067,113 +547,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   margin: 0;
   border: 0;
   padding: 0;
-}
-
-.metrics-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px;
-  margin-bottom: 24px;
-}
-
-.metric-card {
-  padding: 18px;
-  border-radius: var(--clay-radius-lg);
-}
-
-.tone-card {
-  background: var(--seal-soft);
-  color: var(--seal-deep);
-}
-
-.accuracy-card {
-  background: var(--jade-soft);
-  color: var(--jade-deep);
-}
-
-.fluency-card {
-  background: var(--gold-soft);
-  color: var(--gold-deep);
-}
-
-.rate-card {
-  background: var(--clay-surface-strong);
-  color: var(--clay-ink);
-}
-
-.formants-card {
-  background: var(--clay-surface-card);
-  border: 1px solid var(--clay-hairline);
-  color: var(--clay-ink);
-}
-
-.metric-label {
-  font-size: 12px;
-  font-weight: 650;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-}
-
-.metric-value {
-  font-family: var(--font-mono);
-  font-size: 30px;
-  font-weight: 650;
-  margin-bottom: 10px;
-}
-
-.metric-value.compact {
-  font-size: 17px;
-  line-height: 1.35;
-}
-
-.metric-bar {
-  width: 100%;
-  height: 7px;
-  background-color: rgba(255, 255, 255, 0.62);
-  border-radius: var(--clay-radius-pill);
-  overflow: hidden;
-}
-
-.metric-fill {
-  height: 100%;
-  background: var(--clay-primary);
-  border-radius: var(--clay-radius-pill);
-}
-
-.metric-subtext {
-  color: var(--clay-body);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.formants-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.formant {
-  padding: 8px;
-  text-align: center;
-  background-color: rgba(255, 255, 255, 0.72);
-  border-radius: 6px;
-}
-
-.formant span,
-.formant strong {
-  display: block;
-}
-
-.formant span {
-  color: var(--clay-muted);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.formant strong {
-  font-family: var(--font-mono);
-  color: var(--clay-ink);
-  font-size: 13px;
 }
 
 .student-feedback-cards {
@@ -1198,7 +571,7 @@ button.phase-nav-node:hover .phase-nav-marker-done {
 }
 
 .student-feedback-card.next {
-  background: var(--jade-soft);
+  background: var(--clay-error-soft);
 }
 
 .student-feedback-card span,
@@ -1218,32 +591,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   color: var(--clay-ink);
   font-size: 15px;
   line-height: 1.45;
-}
-
-.advanced-praat-details {
-  margin: 0 0 24px;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  background: var(--clay-surface-card);
-}
-
-.advanced-praat-details summary {
-  cursor: pointer;
-  padding: 16px 18px;
-  color: var(--clay-ink);
-  font-weight: 900;
-}
-
-.advanced-praat-details[open] summary {
-  border-bottom: 1px solid var(--clay-hairline);
-}
-
-.chart-section {
-  margin: 24px 0;
-  padding: 18px;
-  background: var(--clay-canvas);
-  border-radius: var(--clay-radius-lg);
-  border: 1px solid var(--clay-hairline);
 }
 
 .tone-repair-section {
@@ -1429,39 +776,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   fill: var(--clay-body);
   font-size: 10px;
   font-weight: 800;
-}
-
-.word-prosody-section {
-  margin: 24px 0;
-  padding: 18px;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  background: var(--clay-surface-card);
-}
-
-.word-prosody-header {
-  margin-bottom: 14px;
-}
-
-.word-prosody-header h3 {
-  color: var(--clay-ink);
-  font-size: 20px;
-  margin: 0 0 6px;
-}
-
-.word-prosody-header p {
-  color: var(--clay-body);
-  font-size: 14px;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.word-prosody-grid {
-  display: grid;
-  /* auto-fit (not auto-fill): collapses unused tracks so 1-2 word cards
-     grow to fill the row instead of leaving empty phantom columns. */
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
 }
 
 .word-prosody-empty {
@@ -1754,16 +1068,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   font-weight: 600;
 }
 
-.pitch-chart-container {
-  position: relative;
-  width: 100%;
-  height: 300px;
-}
-
-.pitch-chart-container canvas {
-  max-width: 100%;
-}
-
 .feedback-section,
 .ai-feedback-section {
   border-radius: var(--clay-radius-lg);
@@ -1944,8 +1248,10 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   margin: 0;
 }
 .content-accuracy-panel.is-rejected {
-  background: var(--seal-soft);
-  border-color: var(--seal);
+  /* --seal is the violet brand accent now, not a "bad" color — use the
+     real error-red ramp to signal failure. */
+  background: var(--clay-error-soft);
+  border-color: var(--clay-error);
 }
 .content-accuracy-gate-hint {
   font-size: 0.8rem;
@@ -2046,39 +1352,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   border-color: var(--seal-soft);
   box-shadow: none;
   cursor: not-allowed;
-}
-
-/* ── Listen / Try Again (Zone 3) ───────────────────────────────────────────── */
-/* .listen-try-zone itself is styled by the more specific
-   .ap-sidebar-col .listen-try-zone rule above — this section only adds the
-   "all vocab used" positive-state card that can appear inside it. */
-/* All vocab done — positive state */
-.try-again-complete {
-  margin-top: 12px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  background: var(--jade-soft);
-  border: 2px solid var(--jade);
-  border-radius: var(--clay-radius-md);
-  padding: 16px;
-}
-.try-again-complete-icon {
-  font-size: 1.4rem;
-  color: var(--jade);
-  flex-shrink: 0;
-  line-height: 1;
-}
-.try-again-complete-title {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: var(--jade-deep);
-  margin: 0 0 4px;
-}
-.try-again-complete-hint {
-  font-size: 0.82rem;
-  color: var(--jade-deep);
-  margin: 0;
 }
 
 .feedback-section {
@@ -2187,117 +1460,13 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   margin-bottom: 6px;
 }
 
-.transcriptions {
-  margin-top: 28px;
-  padding: 22px;
-}
-
-.transcriptions h2 {
-  color: var(--clay-ink);
-  font-size: 22px;
-  margin: 0 0 16px;
-  border: 0;
-  padding: 0;
-}
-
-.empty {
-  color: var(--clay-muted);
-  padding: 24px;
-  text-align: center;
-}
-
-.transcription-item {
-  padding: 16px;
-  border-radius: var(--clay-radius-lg);
-  margin-bottom: 12px;
-  background: var(--clay-canvas);
-  border-left: 4px solid var(--clay-teal);
-}
-
-.item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.transcription-item .time {
-  font-family: var(--font-mono);
-  color: var(--clay-muted);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-/* .model-badge removed — index.css owns the single canonical definition now. */
-
-.transcription-item p {
-  color: var(--clay-ink);
-  font-size: 16px;
-  line-height: 1.5;
-  margin: 0;
-}
-
-.transcription-asr-primary {
-  border: 2px solid var(--clay-primary);
-  background: color-mix(in srgb, var(--clay-primary) 8%, var(--clay-canvas));
-}
-
-.transcription-asr-primary p {
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.transcriptions-scroll {
-  max-height: 264px; /* ~3 items (each ~76px + 12px margin) */
-  overflow-y: auto;
-  padding-right: 4px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--clay-primary) transparent;
-}
-
-.transcriptions-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-
-.transcriptions-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.transcriptions-scroll::-webkit-scrollbar-thumb {
-  background: var(--clay-primary);
-  border-radius: 3px;
-}
-
-.transcriptions-scroll .transcription-item:last-child {
-  margin-bottom: 0;
-}
-
-@media (max-width: 920px) {
-  .recorder-hero,
-  .recording-workspace,
-  .recording-console {
-    grid-template-columns: 1fr;
-  }
-}
-
 @media (max-width: 640px) {
   .story-recorder {
     padding: 16px 12px 56px;
   }
 
-  .recorder-hero-copy,
-  .recording-status-card,
-  .recording-coach-panel,
-  .recording-console,
-  .concept-map-section,
-  .analysis-panel,
-  .transcriptions {
+  .recording-status-card {
     padding: 16px;
-  }
-
-  .concept-map {
-    grid-template-columns: 1fr;
   }
 
   .prompt-thumbnails {
@@ -2310,10 +1479,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
 
   .btn {
     min-width: unset;
-  }
-
-  .metrics-section {
-    grid-template-columns: 1fr;
   }
 
   .student-feedback-cards {
@@ -3524,8 +2689,7 @@ button.phase-nav-node:hover .phase-nav-marker-done {
 }
 
 /* Always-visible model sentence during the Speaking step — a script to read
-   along and practice saying, not gated behind a mistake-reveal like
-   .practice-suggested-answer below. */
+   along and practice saying. */
 .practice-model-sentence {
   background: var(--jade-soft);
   border: 1.5px solid var(--jade);
@@ -3542,41 +2706,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   font-weight: 650;
   color: var(--jade-deep);
   line-height: 1.5;
-}
-
-/* Suggested answer (shown after analysis, in Normal / Descriptive modes) */
-.practice-suggested-answer {
-  background: var(--jade-soft);
-  border: 1.5px solid var(--jade);
-  border-radius: 12px;
-  padding: 10px 14px;
-  margin-top: 10px;
-  font-size: 13px;
-}
-.practice-suggested-answer-heading {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--jade-deep);
-  margin: 0 0 6px;
-}
-.practice-suggested-answer-text {
-  margin: 0;
-  color: var(--jade-deep);
-}
-.practice-suggested-answer-text + .practice-suggested-answer-text {
-  margin-top: 4px;
-}
-.practice-suggested-answer.is-hint {
-  background: var(--gold-soft);
-  border-color: var(--gold);
-}
-.practice-suggested-answer.is-hint .practice-suggested-answer-heading {
-  color: var(--gold-deep);
-}
-.practice-suggested-answer.is-hint .practice-suggested-answer-text {
-  color: var(--gold-deep);
 }
 
 /* Vocab reference */
@@ -3721,52 +2850,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
 }
 
 /* Record area */
-.practice-record-area {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 20px;
-  background: var(--clay-surface-card);
-  border: 1.5px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-}
-.record-engine-switch {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-}
-.record-engine-switch-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--clay-muted);
-}
-.record-engine-switch-options {
-  width: 100%;
-  padding: 9px 14px;
-  border: 1.5px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-pill);
-  background: var(--clay-hairline-soft);
-  color: var(--clay-ink);
-  font-size: 13px;
-  font-weight: 650;
-  cursor: pointer;
-  text-align: center;
-  text-align-last: center;
-}
-.record-engine-switch-options:focus {
-  outline: none;
-  border-color: var(--seal);
-  box-shadow: 0 0 0 3px var(--seal-soft);
-}
-.record-engine-switch-options:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 /* Tactile "game piece" button: a solid bottom lip instead of a blurred
    drop shadow, so the main action of the whole app reads as a pressable
    game button. Hover lifts it a touch; pressing sinks it into its lip. */
@@ -3831,25 +2914,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   text-underline-offset: 2px;
 }
 .btn-practice-upload.disabled { opacity: 0.4; cursor: not-allowed; }
-
-.practice-guide-header {
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-}
-.practice-guide-header > span { font-size: 1.6rem; }
-.practice-guide-header h3 {
-  font-size: 1rem;
-  font-weight: 800;
-  color: var(--clay-ink);
-  margin: 0 0 4px;
-}
-.practice-guide-header p {
-  font-size: 12px;
-  color: var(--clay-body);
-  margin: 0;
-  line-height: 1.5;
-}
 
 .practice-guide-qs {
   display: flex;
@@ -3990,20 +3054,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   line-height: 1.5;
 }
 
-/* ── Vowel / pause metric cards — same tinted-background treatment as
-   their tone/rate/fluency siblings in .metrics-section, not just a bare
-   border-left, so the grid doesn't mix filled and blank tiles. ── */
-.metric-card.vowel-card {
-  background: var(--seal-soft);
-  border-left: 3px solid var(--seal);
-  color: var(--seal-deep);
-}
-.metric-card.pause-card {
-  background: var(--jade-soft);
-  border-left: 3px solid var(--jade-deep);
-  color: var(--jade-deep);
-}
-
 /* ── AI feedback improvements ── */
 .provider-badge {
   font-size: 11px;
@@ -4016,19 +3066,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
 .ai-example.next-practice {
   background: var(--gold-soft);
   border-color: var(--gold);
-}
-
-/* ── Formants detail (moved to advanced) ── */
-.formants-detail {
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--clay-hairline);
-}
-.formants-detail h3 {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--clay-body);
-  margin: 0 0 10px;
 }
 
 /* ── "View summary" link, shown under the journey path once every scene

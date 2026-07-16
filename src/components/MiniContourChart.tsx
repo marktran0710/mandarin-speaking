@@ -54,7 +54,6 @@ export default function MiniContourChart({
       <svg
         viewBox={`0 0 ${width} ${height}`}
         className="mini-contour-svg"
-        role="img"
         aria-hidden="true"
         preserveAspectRatio="none"
       >

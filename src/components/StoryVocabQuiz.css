@@ -323,3 +323,11 @@
   font-size: 13px;
   color: var(--clay-body);
 }
+
+@media (max-width: 480px) {
+  .vocab-quiz-review-item {
+    grid-template-columns: 1fr;
+    gap: 2px;
+    text-align: left;
+  }
+}

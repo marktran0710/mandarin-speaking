@@ -115,7 +115,7 @@
   margin-left: auto;
   padding: var(--space-2xs) var(--space-sm);
   border-radius: 999px;
-  background: var(--clay-surface-soft, #f1f5f9);
+  background: var(--clay-surface-soft, #fff6ea);
   color: var(--clay-muted);
   font-size: 12px;
   font-weight: 600;

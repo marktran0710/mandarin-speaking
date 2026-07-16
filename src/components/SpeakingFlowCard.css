@@ -117,6 +117,13 @@
 .sfc-error {
   max-width: 320px;
   text-align: center;
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  border-radius: var(--clay-radius-lg);
+  font-weight: 800;
+  background: var(--seal-soft);
+  color: var(--clay-error);
+  border-left: 4px solid var(--clay-error);
 }
 
 /* ── Screen transition: record ⇄ results slide in as one continuous flow
