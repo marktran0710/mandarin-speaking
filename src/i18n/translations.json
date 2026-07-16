@@ -137,10 +137,6 @@
     "en": "Connectors",
     "zh": "連接詞"
   },
-  "continue_to_phrases": {
-    "en": "Continue to Phrases",
-    "zh": "繼續到常用短語 →"
-  },
   "continue_to_speaking": {
     "en": "Continue to Speaking",
     "zh": "繼續到口說練習 →",
@@ -235,16 +231,6 @@
     "en": "Phrases to use",
     "zh": "練習短語",
     "pinyin": "Liànxí duǎnyǔ"
-  },
-  "phrases_step_action_copy": {
-    "en": "These are handy phrases for this scene — easy to learn, practice, and reuse. Read them over, then continue.",
-    "zh": "這些是這個場景好用的短語 — 容易學、容易練習、容易記住。看熟了再繼續。",
-    "pinyin": "Zhèxiē shì zhège chǎngjǐng hǎoyòng de duǎnyǔ — róngyì xué, róngyì liànxí, róngyì jìzhù. Kàn shú le zài jìxù."
-  },
-  "phrases_step_tab": {
-    "en": "Phrases",
-    "zh": "短語",
-    "pinyin": "Duǎnyǔ"
   },
   "speaking_model_sentence": {
     "en": "Model sentence — look and practice saying it",
@@ -594,6 +580,16 @@
     "zh": "學生入口",
     "pinyin": "Xuéshēng rùkǒu"
   },
+  "study_step_action_copy": {
+    "en": "Review the vocabulary and phrases below, then start speaking.",
+    "zh": "看看下面的詞彙和短語，準備好了就開始錄音。",
+    "pinyin": "Kànkan xiàmiàn de cíhuì hé duǎnyǔ, zhǔnbèi hǎo le jiù kāishǐ lùyīn."
+  },
+  "study_step_tab": {
+    "en": "Study",
+    "zh": "學習",
+    "pinyin": "Xuéxí"
+  },
   "submit_story_to_teacher": {
     "en": "Submit Story to Teacher",
     "zh": "把故事交給老師",
@@ -689,16 +685,6 @@
     "en": "Verify Sequence",
     "zh": "檢查順序",
     "pinyin": "Jiǎnchá shùnxù"
-  },
-  "vocab_step_action_copy": {
-    "en": "Tap the mic to practice, then continue.",
-    "zh": "點麥克風，練習發音。好了就繼續。",
-    "pinyin": "Diǎn màikèfēng, liànxí fāyīn. Hǎo le jiù jìxù."
-  },
-  "vocab_step_tab": {
-    "en": "Vocabulary",
-    "zh": "詞彙",
-    "pinyin": "Cíhuì"
   },
   "vocabulary_map": {
     "en": "Vocabulary Quiz",

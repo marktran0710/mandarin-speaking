@@ -323,13 +323,11 @@ describe("StoryRecorder student prototype", () => {
 
     await user.click(screen.getByRole("button", { name: /Stop Recording$/ }));
 
-    // Analysis lands on the results screen; the per-word feedback lives
-    // behind its Pronunciation chip.
+    // Analysis lands on the results screen; the per-word feedback shows
+    // alongside the meaning/vocabulary feedback, with no click required.
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /Pronunciation/ })).toBeInTheDocument();
+      expect(screen.getByText("Character-by-character prosody")).toBeInTheDocument();
     });
-    await user.click(screen.getByRole("button", { name: /Pronunciation/ }));
-    expect(screen.getByText("Character-by-character prosody")).toBeInTheDocument();
     expect(screen.getByText("Pitch rises clearly.")).toBeInTheDocument();
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -733,7 +731,7 @@ describe("StoryRecorder student prototype", () => {
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
   });
 
-  it("walks a scene through separate Vocabulary → Phrases → Speaking steps instead of showing everything at once", async () => {
+  it("walks a scene through a merged Study step (vocabulary + phrases together) then Speaking, instead of a separate tab per reference type", async () => {
     const user = userEvent.setup();
     const topicWithPhrases = {
       ...topicWithVocabDetails,
@@ -753,31 +751,26 @@ describe("StoryRecorder student prototype", () => {
     );
 
     // Finish the mandatory vocab quiz gate (this topic has a translated
-    // word, enough to trigger it) to reach the practice-phase Vocabulary step.
+    // word, enough to trigger it) to reach the practice-phase Study step.
     await completeVocabQuiz(user);
 
-    // Lands on Vocabulary by default — no record controls or phrase text yet.
+    // Lands on Study by default — vocabulary and phrases show together, no
+    // record controls yet.
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
-    expect(screen.queryByText("Recording options")).not.toBeInTheDocument();
-    expect(screen.queryByText("我要去市場")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /Continue to Phrases/ }));
-
-    // Phrases step: phrase shown, vocab table/record controls gone.
     expect(screen.getByText("我要去市場")).toBeInTheDocument();
-    expect(screen.queryByRole("table", { name: "Scene vocabulary" })).not.toBeInTheDocument();
     expect(screen.queryByText("Recording options")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Continue to Speaking/ }));
 
-    // Speaking step: record controls are back, phrases/vocab panels are gone.
+    // Speaking step: record controls are back, the Study panels are gone.
     expect(screen.getByText("Recording options")).toBeInTheDocument();
     expect(screen.queryByText("我要去市場")).not.toBeInTheDocument();
     expect(screen.queryByRole("table", { name: "Scene vocabulary" })).not.toBeInTheDocument();
 
-    // The tab bar lets a student jump straight back to Vocabulary at any time.
-    await user.click(screen.getByRole("tab", { name: /Vocabulary/ }));
+    // The tab bar lets a student jump straight back to Study at any time.
+    await user.click(screen.getByRole("tab", { name: /Study/ }));
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
+    expect(screen.getByText("我要去市場")).toBeInTheDocument();
   });
 
   it("shows the teacher's suggested-answer sentence during the Speaking step so students can read along", async () => {

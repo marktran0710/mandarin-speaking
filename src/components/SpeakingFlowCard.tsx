@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { BiLabel, BiText } from "./BiLabel";
 import RecordingPlayback from "./RecordingPlayback";
 import WordProsodyCard from "./WordProsodyCard";
+import MiniContourChart from "./MiniContourChart";
 import { scoreTier, scoreTierLabel } from "../utils/scoreLabels";
 import {
   isContentAccepted,
@@ -91,7 +92,6 @@ export default function SpeakingFlowCard({
   onViewSummary,
 }: SpeakingFlowCardProps) {
   const [screen, setScreen] = useState<"record" | "results">("record");
-  const [view, setView] = useState<"overview" | "words">("overview");
 
   // Flip to results exactly when an analysis finishes (busy → idle with
   // fresh metrics) — not merely "metrics exist", which would trap the
@@ -100,7 +100,6 @@ export default function SpeakingFlowCard({
   useEffect(() => {
     if (wasBusy.current && !isBusy && praatMetrics) {
       setScreen("results");
-      setView("overview");
     }
     wasBusy.current = isBusy;
   }, [isBusy, praatMetrics]);
@@ -108,7 +107,6 @@ export default function SpeakingFlowCard({
   // A new scene always starts back at the record screen.
   useEffect(() => {
     setScreen("record");
-    setView("overview");
   }, [selectedImageIndex]);
 
   const attempts = prog?.attempts ?? 0;
@@ -139,14 +137,12 @@ export default function SpeakingFlowCard({
     <span className="sfc-scene-chip">
       <BiLabel
         zh={`場景 ${selectedImageIndex + 1}/${totalScenes}`}
-        pinyin={`Chǎngjǐng ${selectedImageIndex + 1}/${totalScenes}`}
         en={`Scene ${selectedImageIndex + 1} of ${totalScenes}`}
       />
       {attempts > 0 && (
         <span className="sfc-attempt-chip">
           <BiLabel
             zh={`第 ${attempts} 次`}
-            pinyin={`Dì ${attempts} cì`}
             en={`Attempt ${attempts}`}
           />
         </span>
@@ -198,28 +194,30 @@ export default function SpeakingFlowCard({
   if (screen === "record") {
     return (
       <section className="speaking-flow-card sfc-screen" aria-label="Record your story">
-        <div className="sfc-record-grid">
-          <div className="sfc-scene-panel">
+        <div className="practice-workspace">
+        <div className="practice-scene-col">
+          <div className="practice-scene-image">
             <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} />
-            {modelSentence && (
-              <div className="practice-model-sentence sfc-model-sentence">
-                <p className="block-label practice-model-sentence-label">
-                  <BiLabel k="speaking_model_sentence" />
-                </p>
-                <p className="practice-model-sentence-text" lang="zh-Hant">
-                  {modelSentence}
-                </p>
-              </div>
-            )}
           </div>
+          {sceneChip}
+        </div>
 
-          <div className="sfc-record-panel">
-            <div className="sfc-record-top">
-              {sceneChip}
-              <h3 className="sfc-record-title">
-                <BiLabel k="record_your_story" />
-              </h3>
-            </div>
+        <div className="sfc-record-main">
+        {modelSentence && (
+          <div className="practice-model-sentence sfc-model-sentence">
+            <p className="block-label practice-model-sentence-label">
+              <BiLabel k="speaking_model_sentence" />
+            </p>
+            <p className="practice-model-sentence-text" lang="zh-Hant">
+              {modelSentence}
+            </p>
+          </div>
+        )}
+
+        <div className="sfc-record-panel">
+            <h3 className="sfc-record-title">
+              <BiLabel k="record_your_story" />
+            </h3>
 
             <button
               type="button"
@@ -341,6 +339,7 @@ export default function SpeakingFlowCard({
             </details>
           </div>
         </div>
+        </div>
       </section>
     );
   }
@@ -409,74 +408,96 @@ export default function SpeakingFlowCard({
 
   return (
     <section className="speaking-flow-card sfc-results sfc-screen" aria-label="Recording results">
-      <div className="sfc-results-grid">
-        {/* The scene image persists from the record screen — the anchor
-            that makes record → results read as one continuous place. */}
-        <aside className="sfc-results-scene">
+      <div className="practice-workspace">
+      {/* The scene image persists from the record screen at the same
+          width/ratio — the anchor that makes record → results read as one
+          continuous place. */}
+      <div className="practice-scene-col">
+        <div className="practice-scene-image">
           <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} />
-          {analysisAudioBlob && <RecordingPlayback blob={analysisAudioBlob} />}
-          {praatMetrics?.transcription && (
-            <p className="sfc-transcript">
-              <BiLabel k="you_said" />{" "}
-              <em lang="zh-TW">{praatMetrics.transcription}</em>
-            </p>
-          )}
-          {submittedAudioName && (
-            <p className="submitted-audio-name">✓ {submittedAudioName}</p>
-          )}
-        </aside>
+        </div>
+        {sceneChip}
+      </div>
 
         <div className="sfc-results-main">
+          {(analysisAudioBlob || praatMetrics?.transcription || submittedAudioName) && (
+            <div className="sfc-results-scene-extras">
+              {analysisAudioBlob && <RecordingPlayback blob={analysisAudioBlob} />}
+              {praatMetrics?.transcription && (
+                <p className="sfc-transcript">
+                  <BiLabel k="you_said" />{" "}
+                  <em lang="zh-TW">{praatMetrics.transcription}</em>
+                </p>
+              )}
+              {submittedAudioName && (
+                <p className="submitted-audio-name">✓ {submittedAudioName}</p>
+              )}
+            </div>
+          )}
+
           <header className={`sfc-verdict ${verdictContent.className}`}>
             <span className="sfc-verdict-icon" aria-hidden="true">
               {verdictContent.icon}
             </span>
-            <p className="sfc-verdict-text">{verdictContent.text}</p>
+            <div className="sfc-verdict-body">
+              <p className="sfc-verdict-text">{verdictContent.text}</p>
+              {/* A glimpse of the real Praat data behind the verdict, not
+                  just a sentence describing it — the same overlay
+                  WordProsodyCard draws per character, shrunk to a
+                  sparkline for the single weakest word. */}
+              {verdict === "pronounce" && weakItems[0] && (
+                <div className="sfc-verdict-contour" aria-hidden="true">
+                  <MiniContourChart
+                    actual={weakItems[0].pitch_contour}
+                    reference={weakItems[0].reference_contour}
+                    userCurve={weakItems[0].user_curve}
+                    targetCurve={weakItems[0].target_curve}
+                  />
+                </div>
+              )}
+            </div>
             {sceneChip}
           </header>
 
+          {/* Status summary, not a tab switch — every section below is
+              always visible, so these are just an at-a-glance readout. */}
           <div className="sfc-step-chips" role="group" aria-label="Result checklist">
-            <button
-              type="button"
-              className={`sfc-step-chip${view === "overview" ? " active" : ""}`}
-              onClick={() => setView("overview")}
-            >
+            <span className="sfc-step-chip">
               <span className={`sfc-chip-status ${meaningJudged ? (accepted ? "pass" : "fail") : ""}`}>
                 {meaningJudged ? (accepted ? "✓" : "✗") : "①"}
               </span>
               <BiLabel zh="意思" pinyin="Yìsi" en="Meaning" />
-            </button>
+            </span>
             <span className="sfc-chip-link" aria-hidden="true" />
-            <button
-              type="button"
-              className={`sfc-step-chip${view === "overview" ? " active" : ""}`}
-              onClick={() => setView("overview")}
-            >
+            <span className="sfc-step-chip">
               <span className={`sfc-chip-status ${hasVocabList ? (missing.length === 0 ? "pass" : "fail") : ""}`}>
                 {hasVocabList ? `${usedCount}/${vocabTotal}` : "②"}
               </span>
               <BiLabel zh="詞彙" pinyin="Cíhuì" en="Vocabulary" />
-            </button>
+            </span>
             <span className="sfc-chip-link" aria-hidden="true" />
-            <button
-              type="button"
-              className={`sfc-step-chip${view === "words" ? " active" : ""}`}
-              onClick={() => setView("words")}
-            >
+            <span className="sfc-step-chip">
               <span className={`sfc-chip-status score-tier-text ${scoreTier(toneScore)}`}>
                 {scoreTierLabel(scoreTier(toneScore)).zh}
               </span>
               <BiLabel zh="發音" pinyin="Fāyīn" en="Pronunciation" />
-            </button>
+            </span>
           </div>
 
+          {/* One card shape reused for all three sections — same padding,
+              radius and header layout, only the accent color changes.
+              Replaces the previous mix of a bordered banner, a left-rule
+              text block and a bare chip row. */}
           <div className="sfc-body">
-            {view === "overview" && (
-              <div className="sfc-overview">
+            {(meaningJudged || showCorrective) && (
+              <section className={`sfc-result-card sfc-result-card--meaning${accepted ? " is-good" : " is-bad"}`}>
+                <header className="sfc-result-card-header">
+                  <span aria-hidden="true">🧭</span>
+                  <BiLabel zh="意思" en="Meaning" />
+                </header>
+
                 {meaningJudged && contentAccuracy?.feedback && (
-                  <div
-                    className={`content-accuracy-panel ${accepted ? "is-accepted" : "is-rejected"}`}
-                  >
+                  <div className="sfc-result-card-body">
                     <p className="content-accuracy-feedback">
                       {contentAccuracy.feedback}
                     </p>
@@ -489,63 +510,52 @@ export default function SpeakingFlowCard({
                 )}
 
                 {showCorrective && (
-                  <div
-                    className={`practice-suggested-answer${corrective!.reveal_answer ? "" : " is-hint"}`}
-                  >
-                    <p className="block-label practice-suggested-answer-heading">
+                  <div className={`sfc-result-card-body sfc-corrective${corrective!.reveal_answer ? "" : " is-hint"}`}>
+                    <p className="sfc-corrective-heading">
                       {corrective!.reveal_answer ? (
-                        <BiLabel zh="正確答案" pinyin="Zhèngquè dá'àn" en="Correct version" />
+                        <BiLabel zh="正確答案" en="Correct version" />
                       ) : (
-                        <BiLabel zh="提示" pinyin="Tíshì" en="Hint" />
+                        <BiLabel zh="提示" en="Hint" />
                       )}
                     </p>
-                    {corrective!.hint && (
-                      <p className="practice-suggested-answer-text">{corrective!.hint}</p>
-                    )}
+                    {corrective!.hint && <p>{corrective!.hint}</p>}
                     {corrective!.reveal_answer && corrective!.correct_version && (
-                      <p className="practice-suggested-answer-text">
+                      <p>
                         <strong>{corrective!.correct_version}</strong>
                       </p>
                     )}
                   </div>
                 )}
-
-                {hasVocabList && missing.length > 0 && (
-                  <div className="sfc-missing-words">
-                    <p className="block-label">
-                      <BiLabel zh="試著加入" pinyin="Shìzhe jiārù" en="Try to include" />
-                    </p>
-                    <div className="sfc-missing-chips">
-                      {missing.map((w) => (
-                        <span key={w} className="vocab-chip sfc-missing-chip">
-                          {w}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {verdict === "pronounce" && weakItems.length > 0 && (
-                  <button
-                    type="button"
-                    className="sfc-goto-words"
-                    onClick={() => setView("words")}
-                  >
-                    <BiLabel
-                      zh={`看「${weakItems[0].token}」的發音回饋 →`}
-                      pinyin={`Kàn “${weakItems[0].token}” de fāyīn huíkuì →`}
-                      en={`See feedback for "${weakItems[0].token}" →`}
-                    />
-                  </button>
-                )}
-              </div>
+              </section>
             )}
 
-            {view === "words" && (
-              <div className="sfc-words">
-                <p className="block-label sfc-words-heading">
-                  <BiLabel k="character_by_character_prosody" />
-                </p>
+            {hasVocabList && missing.length > 0 && (
+              <section className="sfc-result-card sfc-result-card--vocab">
+                <header className="sfc-result-card-header">
+                  <span aria-hidden="true">📝</span>
+                  <BiLabel zh="詞彙" en="Vocabulary" />
+                </header>
+                <div className="sfc-result-card-body">
+                  <p className="sfc-result-card-lead">
+                    <BiLabel zh="試著加入" en="Try to include" />
+                  </p>
+                  <div className="sfc-missing-chips">
+                    {missing.map((w) => (
+                      <span key={w} className="vocab-chip sfc-missing-chip">
+                        {w}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            <section className="sfc-result-card sfc-result-card--pronounce">
+              <header className="sfc-result-card-header">
+                <span aria-hidden="true">🎯</span>
+                <BiLabel k="character_by_character_prosody" />
+              </header>
+              <div className="sfc-result-card-body">
                 {(praatMetrics?.word_prosody?.length ?? 0) > 0 ? (
                   <div className="sfc-words-row">
                     {praatMetrics!.word_prosody!.map((item) => (
@@ -563,7 +573,7 @@ export default function SpeakingFlowCard({
                   </div>
                 )}
               </div>
-            )}
+            </section>
           </div>
         </div>
       </div>

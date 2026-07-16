@@ -1,18 +1,17 @@
-/* ── SpeakingFlowCard — the Speaking step as a fixed-height app card ──
-   One card, two screens (record → results). The height is clamped so the
-   whole flow fits a laptop viewport without page scrolling; anything that
-   can't fit (the per-word card row) scrolls horizontally inside its own
-   region, never the page. */
+/* ── SpeakingFlowCard — the Speaking step as one continuous panel ──
+   One card, two screens (record → results), sized by its content — same
+   flowing-page model as the Vocabulary/Phrases steps (.practice-workspace),
+   not a clamped-height app card. The per-word card row is the one thing
+   that scrolls inside its own region (horizontally); everything else
+   grows with the page. */
 
 .speaking-flow-card {
   display: flex;
   flex-direction: column;
-  height: clamp(460px, calc(100vh - 360px), 720px);
   background: var(--clay-surface-card);
   border: 1.5px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   padding: 18px;
-  overflow: hidden;
 }
 
 /* ── Analyzing state ── */
@@ -24,49 +23,27 @@
   margin: 0;
 }
 
-/* ── Record screen ── */
-.sfc-record-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 1fr);
-  gap: 18px;
-  flex: 1;
-  min-height: 0;
-}
-
-.sfc-scene-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 0;
-}
-.sfc-scene-panel img {
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  object-fit: contain;
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-soft);
-}
-.sfc-model-sentence {
-  flex-shrink: 0;
-}
-
+/* ── Record screen ──
+   Reuses .practice-workspace's rail directly (~1/5–1/4 width scene image
+   beside the content, shared with Vocabulary/Phrases — not a duplicated
+   rule, so the three steps can't drift out of sync). The record controls
+   sit inside their own bordered card that fills the full content column
+   (not a narrow 480px card floating with dead space on both sides next to
+   the image column) — the button and helper elements inside stay a
+   moderate, centered size on their own. */
 .sfc-record-panel {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 8px 4px;
+  gap: 14px;
+  width: 100%;
+  margin: 0 auto;
+  background: var(--clay-surface-card);
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  padding: 24px 20px;
 }
 
-.sfc-record-top {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
 .sfc-record-title {
   margin: 0;
   font-size: 17px;
@@ -90,9 +67,14 @@
   padding: 2px 8px;
 }
 
+/* Smaller than a full-bleed hero button — .btn-practice-record's base
+   width:100% would otherwise stretch it across the whole (now wider)
+   card. */
 .sfc-record-btn {
-  font-size: 18px;
-  padding: 18px 40px;
+  width: 100%;
+  max-width: 340px;
+  font-size: 16px;
+  padding: 14px 32px;
 }
 
 .sfc-steps-preview {
@@ -158,33 +140,29 @@
   }
 }
 
-/* ── Results screen ── */
-.sfc-results-grid {
-  display: grid;
-  grid-template-columns: minmax(200px, 0.8fr) minmax(0, 1.9fr);
-  gap: 18px;
-  flex: 1;
-  min-height: 0;
+/* ── Results screen ──
+   Same scene rail as the record screen — the image persists across
+   record → results as the same-size anchor, only the content beside it
+   swaps. Playback/transcript sit at the top of the content column rather
+   than the narrow image rail, which stays image+chip only on every step. */
+
+/* No pinyin in the results readout — this screen is fast-scanning status
+   and feedback, not reading practice; the Chinese + English pair already
+   carries the meaning. Same "hide via CSS, not per-call-site" technique
+   BiLabel already uses to hide pinyin inside buttons. */
+.sfc-results-main .bi-pinyin {
+  display: none;
 }
-.sfc-results-scene {
+
+.sfc-results-scene-extras {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  min-height: 0;
-  overflow-y: auto;
-}
-.sfc-results-scene img {
-  width: 100%;
-  max-height: 200px;
-  object-fit: cover;
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-soft);
+  margin-top: 10px;
 }
 .sfc-results-main {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  min-width: 0;
 }
 
 .sfc-verdict {
@@ -199,10 +177,25 @@
   font-size: 24px;
   line-height: 1;
 }
+.sfc-verdict-body {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
 .sfc-verdict-text {
   margin: 0;
   flex: 1;
   font-weight: 650;
+}
+/* A real pitch-contour sparkline, not decoration — same overlay as
+   WordProsodyCard's .mini-contour, shrunk to sit inline with the verdict
+   text instead of waiting to be found lower on the page. */
+.sfc-verdict-contour {
+  width: 84px;
+  height: 32px;
+  flex-shrink: 0;
 }
 .sfc-verdict-meaning {
   background: var(--clay-error-soft);
@@ -250,12 +243,6 @@
   font-size: 13px;
   font-weight: 650;
   color: var(--clay-body);
-  cursor: pointer;
-}
-.sfc-step-chip.active {
-  border-color: var(--seal);
-  background: var(--seal-soft);
-  color: var(--seal-deep);
 }
 .sfc-chip-status {
   font-weight: 800;
@@ -269,17 +256,10 @@
 }
 
 .sfc-body {
-  flex: 1;
-  min-height: 0;
-  margin-top: 12px;
-  overflow-y: auto;
-}
-
-.sfc-overview {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  min-width: 0;
+  gap: 14px;
+  margin-top: 12px;
 }
 
 .sfc-transcript {
@@ -291,8 +271,92 @@
   font-weight: 700;
 }
 
-.sfc-missing-words .block-label {
-  margin-bottom: 6px;
+/* ── One card shape for all three result sections ──
+   Same border weight, radius and header layout everywhere — Meaning,
+   Vocabulary and Pronunciation used to be a bordered banner, a left-rule
+   text block and a bare chip row respectively; now they're the same
+   component with only the accent color (and a status flip for Meaning)
+   changing between them. */
+.sfc-result-card {
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  padding: 14px 16px;
+  background: var(--clay-surface-card);
+}
+.sfc-result-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+.sfc-result-card-header > span {
+  font-size: 16px;
+  line-height: 1;
+}
+.sfc-result-card-body {
+  font-size: 14px;
+  color: var(--clay-body);
+}
+.sfc-result-card-body + .sfc-result-card-body {
+  margin-top: 10px;
+}
+.sfc-result-card-lead {
+  margin: 0 0 8px;
+  font-weight: 650;
+  color: var(--clay-ink);
+}
+
+.sfc-result-card--meaning.is-good {
+  border-color: var(--jade);
+  background: var(--jade-soft);
+}
+.sfc-result-card--meaning.is-good .sfc-result-card-header {
+  color: var(--jade-deep);
+}
+.sfc-result-card--meaning.is-bad {
+  border-color: var(--clay-error);
+  background: var(--clay-error-soft);
+}
+.sfc-result-card--meaning.is-bad .sfc-result-card-header {
+  color: var(--clay-error);
+}
+.sfc-result-card-body .content-accuracy-feedback,
+.sfc-result-card-body .content-accuracy-missed {
+  margin: 0;
+}
+
+.sfc-corrective {
+  border-top: 1px dashed currentColor;
+  padding-top: 10px;
+  color: var(--jade-deep);
+}
+.sfc-corrective.is-hint {
+  color: var(--gold-deep);
+}
+.sfc-corrective-heading {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.sfc-corrective p {
+  margin: 0;
+}
+.sfc-corrective p + p {
+  margin-top: 4px;
+}
+
+.sfc-result-card--vocab {
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+.sfc-result-card--vocab .sfc-result-card-header {
+  color: var(--gold-deep);
 }
 .sfc-missing-chips {
   display: flex;
@@ -300,28 +364,17 @@
   gap: 6px;
 }
 .sfc-missing-chip {
-  background: var(--gold-soft);
+  background: var(--clay-surface-card);
   color: var(--gold-deep);
   border: 1px solid var(--gold);
 }
 
-.sfc-goto-words {
-  align-self: flex-start;
-  background: transparent;
-  border: 1.5px solid var(--seal);
-  color: var(--seal-deep);
-  border-radius: var(--clay-radius-pill);
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
+.sfc-result-card--pronounce {
+  border-color: var(--tone1);
+  background: var(--tone1-soft);
 }
-.sfc-goto-words:hover {
-  background: var(--seal-soft);
-}
-
-.sfc-words-heading {
-  margin: 0 0 8px;
+.sfc-result-card--pronounce .sfc-result-card-header {
+  color: var(--tone1-deep);
 }
 .sfc-words-row {
   display: flex;
@@ -389,21 +442,4 @@
   opacity: 0.45;
   cursor: not-allowed;
   box-shadow: none;
-}
-
-@media (max-width: 860px) {
-  .speaking-flow-card {
-    height: auto;
-    max-height: none;
-  }
-  .sfc-record-grid,
-  .sfc-results-grid {
-    grid-template-columns: 1fr;
-  }
-  .sfc-scene-panel img {
-    max-height: 260px;
-  }
-  .sfc-results-scene img {
-    max-height: 160px;
-  }
 }

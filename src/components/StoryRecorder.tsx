@@ -266,7 +266,7 @@ export interface TranscriptionItem {
   model: SpeechModel;
 }
 
-type ScenePracticeStep = "vocab" | "phrases" | "speaking";
+type ScenePracticeStep = "study" | "speaking";
 
 /** Shape a freshly recorded scene attempt is handed up in via
  * `onAddRecord`, before it's persisted (see StoredAudioRecord in
@@ -512,19 +512,20 @@ export default function StoryRecorder({
           ? "vocabquiz"
           : "practice",
   );
-  // Within the "practice" phase, each scene walks its own
-  // vocabulary → phrases → speaking sub-steps (skipping any step whose data
-  // isn't populated for that scene) rather than showing everything at once.
+  // Within the "practice" phase, each scene walks its own study → speaking
+  // sub-steps (skipping the study step if this scene has neither vocabulary
+  // nor phrases) rather than showing everything at once. Vocabulary and
+  // phrases share one "study" step — both are reference material read
+  // before recording, not separate tasks — so they no longer compete for a
+  // tab slot of their own.
   const sceneHasVocabStep = (idx: number) =>
     (topic.vocabulary[idx] || []).length > 0;
   const sceneHasPhrasesStep = (idx: number) =>
     (topic.phrases?.[idx] || []).length > 0;
+  const sceneHasStudyStep = (idx: number) =>
+    sceneHasVocabStep(idx) || sceneHasPhrasesStep(idx);
   const firstScenePracticeStep = (idx: number): ScenePracticeStep =>
-    sceneHasVocabStep(idx)
-      ? "vocab"
-      : sceneHasPhrasesStep(idx)
-        ? "phrases"
-        : "speaking";
+    sceneHasStudyStep(idx) ? "study" : "speaking";
 
   const [scenePracticeStep, setScenePracticeStep] = useState<ScenePracticeStep>(
     firstScenePracticeStep(selectedImageIndex),
@@ -1318,18 +1319,17 @@ export default function StoryRecorder({
           )}
 
           {/* ── Scene journey: scenes threaded on one path, not a flat strip.
-               Hidden during the Speaking flow — its fixed-height app card
-               carries its own scene indicator + gated Next button, and the
-               reclaimed height is what lets that card fit one screen. ── */}
-          {scenePracticeStep !== "speaking" && (
-            <JourneyPath
-              stops={journeyStopsBase.map((stop) => ({
-                ...stop,
-                disabled: isBusy,
-                onClick: () => goToScene(stop.idx, stop.img),
-              }))}
-            />
-          )}
+               Always shown (vocab/phrases/speaking alike) so the practice
+               steps don't rearrange the page around a student as they move
+               between tabs — the Speaking app card's own height clamp
+               reserves room for it instead of hiding it. ── */}
+          <JourneyPath
+            stops={journeyStopsBase.map((stop) => ({
+              ...stop,
+              disabled: isBusy,
+              onClick: () => goToScene(stop.idx, stop.img),
+            }))}
+          />
 
           {/* ── Always-available way to reach the summary once every scene
                is recorded, regardless of which order they were finished in
@@ -1345,51 +1345,26 @@ export default function StoryRecorder({
             </button>
           )}
 
-          {/* ── Scene readiness banner — Speaking's app card replaces all of
-               these with its own verdict header and gated footer actions. ── */}
-          {scenePracticeStep !== "speaking" && (() => {
+          {/* ── Scene readiness banner. The "new scene, check X first" start
+               hint always shows (same consistency reasoning as JourneyPath
+               above) — but once there's an attempt, Speaking's app card
+               already carries its own verdict header and gated footer
+               action, so the ready/gap banners below stay hidden there to
+               avoid showing the same status twice. ── */}
+          {(() => {
             const prog = sceneProgress[selectedImageIndex];
             if (!prog || prog.attempts === 0) {
-              const hasVocab = sceneHasVocabStep(selectedImageIndex);
-              const hasPhrases = sceneHasPhrasesStep(selectedImageIndex);
-              // Each scene can have a different mix of Vocabulary/Phrases
-              // tabs (or neither) — naming only the tabs this scene actually
-              // has, instead of a one-size-fits-all "Vocabulary and Phrases"
-              // reminder that doesn't match scenes missing one of them.
-              const tabsZh =
-                hasVocab && hasPhrases
-                  ? "「詞彙」和「短語」分頁"
-                  : hasVocab
-                    ? "「詞彙」分頁"
-                    : hasPhrases
-                      ? "「短語」分頁"
-                      : "";
-              const tabsPinyin =
-                hasVocab && hasPhrases
-                  ? "“cíhuì” hé “duǎnyǔ” fēnyè"
-                  : hasVocab
-                    ? "“cíhuì” fēnyè"
-                    : hasPhrases
-                      ? "“duǎnyǔ” fēnyè"
-                      : "";
-              const tabsEn =
-                hasVocab && hasPhrases
-                  ? "the Vocabulary and Phrases tabs"
-                  : hasVocab
-                    ? "the Vocabulary tab"
-                    : hasPhrases
-                      ? "the Phrases tab"
-                      : "";
+              const hasStudy = sceneHasStudyStep(selectedImageIndex);
               return (
                 <div className="scene-progress-hint scene-progress-hint-start">
                   <span className="scene-progress-hint-icon" aria-hidden="true">
                     👀
                   </span>
-                  {tabsZh ? (
+                  {hasStudy ? (
                     <BiLabel
-                      zh={`新的場景：先看看上面的${tabsZh}，然後開始錄音。`}
-                      pinyin={`Xīn de chǎngjǐng: xiān kànkan shàngmiàn de ${tabsPinyin}, ránhòu kāishǐ lùyīn.`}
-                      en={`New scene: check ${tabsEn} above, then start recording.`}
+                      zh="新的場景：先看看上面的「學習」分頁，然後開始錄音。"
+                      pinyin="Xīn de chǎngjǐng: xiān kànkan shàngmiàn de “xuéxí” fēnyè, ránhòu kāishǐ lùyīn."
+                      en="New scene: check the Study tab above, then start recording."
                     />
                   ) : (
                     <BiLabel
@@ -1401,6 +1376,7 @@ export default function StoryRecorder({
                 </div>
               );
             }
+            if (scenePracticeStep === "speaking") return null;
             const ready = sceneReady(prog);
             const nextIdx = selectedImageIndex + 1;
             const hasNext = nextIdx < topic.images.length;
@@ -1484,7 +1460,7 @@ export default function StoryRecorder({
             return null;
           })()}
 
-          {/* ── Per-scene practice steps: vocabulary → phrases → speaking ── */}
+          {/* ── Per-scene practice steps: study → speaking ── */}
           {/* ── One continuous practice stage: a numbered stepper header
                fused to the step content below it (same visual language as
                the story-level phase stepper above), instead of a floating
@@ -1492,11 +1468,8 @@ export default function StoryRecorder({
           <section className="practice-stage">
           {(() => {
             const steps: Array<{ key: ScenePracticeStep; label: JSX.Element }> = [
-              ...(sceneHasVocabStep(selectedImageIndex)
-                ? [{ key: "vocab" as const, label: <BiLabel k="vocab_step_tab" /> }]
-                : []),
-              ...(sceneHasPhrasesStep(selectedImageIndex)
-                ? [{ key: "phrases" as const, label: <BiLabel k="phrases_step_tab" /> }]
+              ...(sceneHasStudyStep(selectedImageIndex)
+                ? [{ key: "study" as const, label: <BiLabel k="study_step_tab" /> }]
                 : []),
               { key: "speaking" as const, label: <BiLabel k="speaking" /> },
             ];
@@ -1519,9 +1492,9 @@ export default function StoryRecorder({
                       className={`scene-step-tab scene-step-${state}${scenePracticeStep === step.key ? " active" : ""}`}
                       onClick={() => setScenePracticeStep(step.key)}
                     >
-                      <span className={`scene-step-marker scene-step-marker-${state}`}>
-                        {state === "done" ? "✓" : i + 1}
-                      </span>
+                      {state === "done" && (
+                        <span className="scene-step-check" aria-hidden="true">✓</span>
+                      )}
                       {step.label}
                     </button>
                   );
@@ -1568,18 +1541,42 @@ export default function StoryRecorder({
             />
           ) : (
           <div className="practice-workspace">
-            {/* Left: scene image + step-specific reference material */}
-            <div className="practice-scene-panel">
-              <div className="practice-scene-image-wrap">
+            {/* Scene reference rail — ~1/5–1/4 of the width, big enough to
+                actually read the scene (including any speech-bubble text),
+                shared as-is with Speaking so the ratio never drifts
+                between practice steps. */}
+            <div className="practice-scene-col">
+              <div className="practice-scene-image">
                 <img
                   src={selectedImage}
                   alt={`Scene ${selectedImageIndex + 1}`}
                 />
               </div>
+              <span className="practice-scene-chip">
+                <BiLabel
+                  zh={`場景 ${selectedImageIndex + 1}/${topic.images.length}`}
+                  en={`Scene ${selectedImageIndex + 1} of ${topic.images.length}`}
+                />
+              </span>
+            </div>
 
-              {scenePracticeStep === "vocab" &&
-                selectedVocabulary.length > 0 && (
-                  <div className="practice-vocab-ref">
+            <div className="practice-scene-main">
+            {scenePracticeStep === "study" && (
+              <div className="practice-content practice-study-ref">
+                <div className="practice-content-header">
+                  <span aria-hidden="true">📖</span>
+                  <div>
+                    <h3>
+                      <BiLabel k="study_step_tab" />
+                    </h3>
+                    <p>
+                      <BiText k="study_step_action_copy" />
+                    </p>
+                  </div>
+                </div>
+
+                {selectedVocabulary.length > 0 && (
+                  <div className="practice-study-block practice-vocab-ref">
                     <p className="block-label practice-vocab-heading">
                       <BiLabel k="scene_vocabulary" />
                       {praatMetrics && (
@@ -1696,9 +1693,8 @@ export default function StoryRecorder({
                   </div>
                 )}
 
-              {scenePracticeStep === "phrases" &&
-                (topic.phrases?.[selectedImageIndex] || []).length > 0 && (
-                  <div className="practice-phrases-hint practice-phrases-hint-full">
+                {(topic.phrases?.[selectedImageIndex] || []).length > 0 && (
+                  <div className="practice-study-block practice-phrases-hint practice-phrases-hint-full">
                     <p className="block-label practice-phrases-label">
                       <BiLabel k="phrases_to_use" />
                     </p>
@@ -1722,70 +1718,22 @@ export default function StoryRecorder({
                     </div>
                   </div>
                 )}
+              </div>
+            )}
 
-            </div>
-
-            {/* Right: step-specific action panel — same width/position as the
-                record panel in every step, so only its contents change. */}
-            <div className="practice-guide-panel">
-              {scenePracticeStep === "vocab" && (
-                <div className="scene-step-action">
-                  <div className="practice-guide-header">
-                    <span>👀</span>
-                    <div>
-                      <h3>
-                        <BiLabel k="vocab_step_tab" />
-                      </h3>
-                    </div>
-                  </div>
-                  <p className="scene-step-action-copy">
-                    <BiText k="vocab_step_action_copy" />
-                  </p>
-                  <button
-                    type="button"
-                    className="btn-scene-step-continue"
-                    onClick={() =>
-                      setScenePracticeStep(
-                        sceneHasPhrasesStep(selectedImageIndex)
-                          ? "phrases"
-                          : "speaking",
-                      )
-                    }
-                  >
-                    <BiLabel
-                      k={
-                        sceneHasPhrasesStep(selectedImageIndex)
-                          ? "continue_to_phrases"
-                          : "continue_to_speaking"
-                      }
-                    />
-                  </button>
-                </div>
+            {/* Footer action bar — same shape as SpeakingFlowCard's results
+                footer, so both practice steps end the same way. */}
+            <footer className="practice-footer">
+              {scenePracticeStep === "study" && (
+                <button
+                  type="button"
+                  className="btn-scene-step-continue"
+                  onClick={() => setScenePracticeStep("speaking")}
+                >
+                  <BiLabel k="continue_to_speaking" />
+                </button>
               )}
-
-              {scenePracticeStep === "phrases" && (
-                <div className="scene-step-action">
-                  <div className="practice-guide-header">
-                    <span>💬</span>
-                    <div>
-                      <h3>
-                        <BiLabel k="phrases_step_tab" />
-                      </h3>
-                    </div>
-                  </div>
-                  <p className="scene-step-action-copy">
-                    <BiText k="phrases_step_action_copy" />
-                  </p>
-                  <button
-                    type="button"
-                    className="btn-scene-step-continue"
-                    onClick={() => setScenePracticeStep("speaking")}
-                  >
-                    <BiLabel k="continue_to_speaking" />
-                  </button>
-                </div>
-              )}
-
+            </footer>
             </div>
           </div>
           )}

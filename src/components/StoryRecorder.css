@@ -2028,6 +2028,10 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   cursor: pointer;
   box-shadow: 0 4px 0 var(--seal-deep);
   transition: transform 0.1s, box-shadow 0.1s;
+  /* BiLabel's .bi-en subtitle defaults to --clay-muted (dark gray) —
+     unreadable on this solid violet fill without a light override. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 .btn-submit-story:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -2194,16 +2198,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   margin: 0 0 16px;
   border: 0;
   padding: 0;
-}
-
-.practice-guide-panel .transcriptions {
-  margin-top: 0;
-  padding: 14px;
-}
-
-.practice-guide-panel .transcriptions h2 {
-  font-size: 15px;
-  margin-bottom: 8px;
 }
 
 .empty {
@@ -2757,6 +2751,10 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   border: 2px solid var(--seal-deep);
   box-shadow: 0 4px 0 var(--seal-deep);
   transition: transform 0.1s, box-shadow 0.1s;
+  /* BiLabel's .bi-en subtitle defaults to --clay-muted (dark gray) —
+     unreadable on this solid violet fill without a light override. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
 }
 
 .btn-verify-sorting:hover:not(:disabled) {
@@ -3685,10 +3683,17 @@ button.phase-nav-node:hover .phase-nav-marker-done {
    Numbered markers joined by connector lines — the same visual language
    as the story-level phase stepper above it, one size smaller, so the
    inner steps clearly belong to the same journey. */
+/* A plain underline tab strip, deliberately not JourneyPath's circular-ring
+   + contour-connector language — JourneyPath answers "which scene" (the
+   story-level journey), this answers "which step within this scene"
+   (vocab → phrases → speaking). Giving them different shapes keeps the two
+   scopes from reading as duplicate copies of the same stepper. Step names
+   are self-explanatory, so order is carried by position + the done check,
+   not a repeated numbered badge. */
 .scene-step-tabs {
   display: flex;
   align-items: center;
-  padding: 14px 18px;
+  padding: 0 18px;
   border-bottom: 1.5px solid var(--clay-hairline);
   background: var(--clay-surface-soft);
   overflow-x: auto;
@@ -3696,61 +3701,35 @@ button.phase-nav-node:hover .phase-nav-marker-done {
 .scene-step-tab {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   border: none;
+  border-bottom: 2px solid transparent;
   background: none;
-  padding: 6px 10px;
-  border-radius: var(--clay-radius-pill);
+  margin-bottom: -1.5px;
+  padding: 14px 2px;
+  margin-right: 26px;
   font-size: 14px;
   font-weight: 700;
   color: var(--clay-muted);
   cursor: pointer;
   white-space: nowrap;
-  transition: color 0.15s;
+  transition: color 0.15s, border-color 0.15s;
 }
-/* Connector line between steps — drawn by every tab except the first. */
-.scene-step-tab + .scene-step-tab::before {
-  content: "";
-  width: 36px;
-  height: 2px;
-  margin: 0 10px 0 2px;
-  border-radius: 1px;
-  background: var(--clay-hairline);
-  flex-shrink: 0;
+.scene-step-tab:last-child {
+  margin-right: 0;
 }
-.scene-step-done + .scene-step-tab::before,
-.scene-step-tab.scene-step-active::before {
-  background: var(--jade);
-}
-.scene-step-marker {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  font-size: 12px;
+.scene-step-check {
+  color: var(--jade-deep);
   font-weight: 800;
-  flex-shrink: 0;
-}
-.scene-step-marker-done {
-  background: var(--jade);
-  color: var(--clay-on-accent);
-}
-.scene-step-marker-active {
-  background: var(--seal);
-  color: var(--clay-on-accent);
-  box-shadow: 0 0 0 4px var(--seal-soft);
-}
-.scene-step-marker-upcoming {
-  background: var(--clay-surface-card);
-  border: 2px solid var(--clay-hairline);
-  color: var(--clay-muted);
 }
 .scene-step-tab:hover { color: var(--clay-body); }
-.scene-step-tab.scene-step-done { color: var(--jade-deep); }
+.scene-step-tab.scene-step-done {
+  color: var(--jade-deep);
+  border-color: var(--jade);
+}
 .scene-step-tab.active {
   color: var(--seal-deep);
+  border-color: var(--seal);
 }
 
 /* practice-phrases-hint's compact card, sized up for its own reference
@@ -3758,27 +3737,12 @@ button.phase-nav-node:hover .phase-nav-marker-done {
 .practice-phrases-hint-full {
   padding: 20px 24px;
   gap: 8px;
+  margin-top: 0;
 }
 
-/* The right-column action panel for the Vocabulary/Grammar steps — same
-   card, same header shape, and the same full-width primary-button rhythm
-   as the Speaking step's record controls, so the panel doesn't change
-   shape as a student moves between tabs. */
-.scene-step-action {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-.scene-step-action-copy {
-  font-size: 13px;
-  color: var(--clay-body);
-  line-height: 1.6;
-  margin: 0;
-}
 .btn-scene-step-continue {
-  width: 100%;
-  padding: 16px;
-  border-radius: 16px;
+  padding: 14px 28px;
+  border-radius: var(--clay-radius-pill);
   border: 2px solid var(--seal-deep);
   background: var(--seal);
   color: var(--clay-on-accent);
@@ -3787,6 +3751,10 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   letter-spacing: 0.02em;
   cursor: pointer;
   box-shadow: 0 5px 0 var(--seal-deep);
+  /* BiLabel's .bi-en subtitle defaults to --clay-muted (dark gray) —
+     unreadable on this solid violet fill without a light override. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
   transition: transform 0.1s, box-shadow 0.1s;
 }
 .btn-scene-step-continue:hover {
@@ -3802,35 +3770,122 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   .scene-step-tabs { overflow-x: auto; }
 }
 
+/* A scene rail (~1/2.7 of the width, roughly double the area of the
+   previous ~1/4 pass) beside the step's content, shared by Vocabulary/
+   Phrases (merged as "Study") and Speaking alike (see .practice-scene-col
+   /.practice-scene-image, reused directly rather than duplicated per
+   step). A fixed 4:3 box (not height:auto off the source image) keeps it
+   a real, legible size even for a wide/landscape scene illustration —
+   including any speech-bubble text baked into the artwork — without
+   letting the reference image out-size the thing being studied next to
+   it. .practice-scene-image must stay a block-level element (a <div>,
+   never a <span>) — width/aspect-ratio are silently ignored on inline
+   elements, which is what was collapsing this box to nothing. */
 .practice-workspace {
   display: grid;
-  grid-template-columns: 1fr 340px;
-  gap: 20px;
+  grid-template-columns: minmax(200px, 1fr) minmax(0, 1.7fr);
+  gap: 24px;
   align-items: start;
 }
 
-/* Left: scene image panel. Plain flow, no sticky/nested-scroll — the page
-   scrolls as one, which is simpler and clearer for students than a column
-   that detaches and scrolls independently of the rest of the screen. */
-.practice-scene-panel {
+.practice-scene-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.practice-scene-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--clay-radius-md);
+  overflow: hidden;
+  border: 1.5px solid var(--clay-hairline);
+  background: var(--clay-surface-soft);
+}
+.practice-scene-image img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+.practice-scene-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--seal-deep);
+  background: var(--seal-soft);
+  border-radius: var(--clay-radius-pill);
+  padding: 4px 12px;
+}
+
+.practice-scene-main {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-width: 0;
 }
-.practice-scene-image-wrap {
-  position: relative;
+
+@media (max-width: 768px) {
+  .practice-workspace {
+    grid-template-columns: 1fr;
+  }
+  .practice-scene-image {
+    aspect-ratio: 16 / 9;
+  }
+}
+
+/* Study tab — one neutral outer card (icon + title + instruction), holding
+   the vocabulary table and/or phrases list as their own colored sub-cards
+   below it (gold for vocabulary, violet for phrases — unchanged), instead
+   of two separate tabs each repeating the same header shape. */
+.practice-study-ref {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--clay-surface-card);
+  border: 1.5px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
-  background: var(--clay-hairline-soft);
+  padding: 18px;
 }
-.practice-scene-image-wrap img {
-  width: 100%;
-  max-height: 420px;
-  object-fit: contain;
-  display: block;
-  margin: 0 auto;
+.practice-study-block {
+  margin-top: 0;
 }
+
+/* Icon + title + one-line instruction, now living inside the step's own
+   colored card (practice-vocab-ref / practice-phrases-hint) instead of a
+   separate guide panel disconnected from the content it explains. */
+.practice-content-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+.practice-content-header > span {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+.practice-content-header h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--clay-ink);
+  margin: 0 0 4px;
+}
+.practice-content-header p {
+  font-size: 13px;
+  color: var(--clay-body);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Footer action bar — same shape as SpeakingFlowCard's results footer, so
+   Vocabulary, Phrases and Speaking all end the same way. */
+.practice-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
 .practice-phrases-hint {
   display: flex;
   flex-direction: column;
@@ -4174,16 +4229,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
 }
 .btn-practice-upload.disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* Right: story guide panel */
-.practice-guide-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  background: var(--clay-surface-card);
-  border: 1.5px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  padding: 20px;
-}
 .practice-guide-header {
   display: flex;
   gap: 12px;
@@ -4273,15 +4318,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
-  .practice-workspace { grid-template-columns: 1fr; }
-  .practice-scene-image-wrap img { max-height: 280px; }
-  .practice-scene-panel {
-    position: static;
-    max-height: none;
-    overflow-y: visible;
-  }
-}
 
 /* ── Attempt progress trend ── */
 .attempt-trend {
