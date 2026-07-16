@@ -32,6 +32,8 @@ import QuizAnalyticsPanel from "../components/QuizAnalyticsPanel";
 import RecordingAnalyticsPanel from "../components/RecordingAnalyticsPanel";
 import TeacherOverviewView from "../components/TeacherOverviewView";
 import TeacherProgressView from "../components/TeacherProgressView";
+import TeacherRosterView from "../components/TeacherRosterView";
+import TeacherInsightsView from "../components/TeacherInsightsView";
 import TeacherRecordingsView from "../components/TeacherRecordingsView";
 import TeacherSubmissionsView from "../components/TeacherSubmissionsView";
 import VocabularyTable from "../components/VocabularyTable";
@@ -120,10 +122,12 @@ type TeacherView =
   | "help"
   | "materials"
   | "progress"
+  | "roster"
   | "recordings"
   | "submissions"
   | "quizAnalytics"
-  | "recordingAnalytics";
+  | "recordingAnalytics"
+  | "insights";
 
 interface StoryFrameGuide {
   zh: string;
@@ -1173,6 +1177,7 @@ function TeacherDashboard({
       items: [
         { id: "materials", label: "Materials", count: customStories.length },
         { id: "progress", label: "Progress" },
+        { id: "roster", label: "Roster" },
       ],
     },
     {
@@ -1184,6 +1189,7 @@ function TeacherDashboard({
           label: "Recording Analytics",
           count: feedbackReadyRecords.length,
         },
+        { id: "insights", label: "Insights" },
       ],
     },
   ];
@@ -1731,6 +1737,8 @@ function TeacherDashboard({
 
       {activeView === "progress" && <TeacherProgressView records={records} />}
 
+      {activeView === "roster" && <TeacherRosterView />}
+
       {activeView === "recordings" && (
         <TeacherRecordingsView records={records} onDeleteRecord={onDeleteRecord} />
       )}
@@ -1746,6 +1754,8 @@ function TeacherDashboard({
       {activeView === "recordingAnalytics" && (
         <RecordingAnalyticsPanel records={records} />
       )}
+
+      {activeView === "insights" && <TeacherInsightsView />}
     </div>
   );
 }

@@ -319,6 +319,10 @@ export interface VocabQuizAttempt {
   id: string;
   storyId: string;
   studentName: string;
+  // Optional: attempts saved before the student roster existed have none —
+  // student_name (free-typed, collision-prone) is the only join key for
+  // those legacy rows.
+  studentId?: string;
   // Optional: attempts saved before quiz mode was tracked have none.
   mode?: "speed" | "strikes" | "free";
   completedAt: string;
@@ -361,4 +365,121 @@ export async function resolveHelpRequest(id: string) {
   }
 
   return response.json() as Promise<HelpRequest>;
+}
+
+// ── Student roster ─────────────────────────────────────────────────────
+// A stable id per student, curated by a teacher, instead of the free-typed
+// name string every attempt used to carry (collision- and typo-prone, and
+// no real join key for per-student analysis).
+export interface Student {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+export async function listStudents(): Promise<Student[]> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/students`);
+  if (!response.ok) throw new Error("Could not load the student roster.");
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createStudent(name: string): Promise<Student> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/students`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) throw new Error("Could not add the student to the roster.");
+  return response.json() as Promise<Student>;
+}
+
+export async function deleteStudent(id: string): Promise<void> {
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/students/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+  if (!response.ok) throw new Error("Could not remove the student from the roster.");
+}
+
+// ── Vocab quiz analytics (IRT / joint speed-accuracy / FREX) ───────────
+// Model-based views computed server-side from vocab_quiz_attempts, distinct
+// from the raw client-side stats in myStoriesUtils.ts: item difficulty and
+// student ability account for *who answered what*, not just raw miss %.
+export interface VocabQuizIrt {
+  nResponses: number;
+  items: Array<{ word: string; difficulty: number; nResponses: number }>;
+  students: Array<{
+    studentId: string;
+    name: string;
+    ability: number;
+    nResponses: number;
+  }>;
+}
+
+export async function getVocabQuizIrt(storyId?: string): Promise<VocabQuizIrt> {
+  const url = storyId
+    ? `${BACKEND_URL}/api/analytics/vocab-quiz/irt?story_id=${encodeURIComponent(storyId)}`
+    : `${BACKEND_URL}/api/analytics/vocab-quiz/irt`;
+  const response = await fetchWithRetry(url);
+  if (!response.ok) throw new Error("Could not load quiz ability/difficulty estimates.");
+  return response.json() as Promise<VocabQuizIrt>;
+}
+
+export type VocabQuizMode = "speed" | "strikes" | "free" | "review";
+
+export interface VocabQuizJointModel {
+  mode: VocabQuizMode;
+  nResponses: number;
+  abilitySpeedCorrelation: number | null;
+  items: Array<{ word: string; difficulty: number | null; timeIntensity: number }>;
+  students: Array<{
+    studentId: string;
+    name: string;
+    ability: number | null;
+    speed: number;
+  }>;
+}
+
+export async function getVocabQuizJointModel(
+  mode: VocabQuizMode,
+  storyId?: string,
+): Promise<VocabQuizJointModel> {
+  const params = new URLSearchParams({ mode });
+  if (storyId) params.set("story_id", storyId);
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/analytics/vocab-quiz/joint?${params.toString()}`,
+  );
+  if (!response.ok) throw new Error("Could not load the joint speed/accuracy model.");
+  return response.json() as Promise<VocabQuizJointModel>;
+}
+
+export interface VocabQuizFrexStudent {
+  studentId: string;
+  name: string;
+  words: Array<{
+    word: string;
+    frex: number;
+    frequency: number;
+    exclusivity: number;
+    missCount: number;
+  }>;
+}
+
+export async function getVocabQuizFrex(options?: {
+  studentId?: string;
+  top?: number;
+  storyId?: string;
+}): Promise<VocabQuizFrexStudent[]> {
+  const params = new URLSearchParams();
+  if (options?.studentId) params.set("student_id", options.studentId);
+  if (options?.top) params.set("top", String(options.top));
+  if (options?.storyId) params.set("story_id", options.storyId);
+  const query = params.toString();
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/analytics/vocab-quiz/frex${query ? `?${query}` : ""}`,
+  );
+  if (!response.ok) throw new Error("Could not load characteristic weak words.");
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
 }

@@ -18,6 +18,7 @@ htmlcov/
 vite-dev*.log
 backend/*.db
 backend/*.db-*
+backend/*.db.bak*
 backend/uploads/
 backend/uvicorn*.log
 backend/*.zip

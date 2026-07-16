@@ -22,6 +22,7 @@ router = APIRouter()
 async def list_vocab_quiz_attempts(
     story_id: Optional[str] = None,
     student_name: Optional[str] = None,
+    student_id: Optional[str] = None,
 ):
     query = "SELECT * FROM vocab_quiz_attempts WHERE 1=1"
     params: list = []
@@ -31,6 +32,9 @@ async def list_vocab_quiz_attempts(
     if student_name:
         query += " AND student_name = ?"
         params.append(student_name)
+    if student_id:
+        query += " AND student_id = ?"
+        params.append(student_id)
     query += " ORDER BY completed_at DESC"
 
     with connect_db() as db:
@@ -44,14 +48,15 @@ async def create_vocab_quiz_attempt(attempt: VocabQuizAttemptRequest):
         db.execute(
             """
             INSERT OR REPLACE INTO vocab_quiz_attempts
-                (id, story_id, student_name, mode, completed_at, total_questions,
-                 correct_count, total_time_ms, question_results)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, story_id, student_name, student_id, mode, completed_at,
+                 total_questions, correct_count, total_time_ms, question_results)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 attempt.id,
                 attempt.storyId,
                 attempt.studentName,
+                attempt.studentId,
                 attempt.mode,
                 attempt.completedAt,
                 attempt.totalQuestions,

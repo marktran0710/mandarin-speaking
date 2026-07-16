@@ -111,6 +111,7 @@ export default function CreateStoryPage({
             enableSorting={false}
             enableOverview={true}
             studentName={getStudentName()}
+            studentId={getStudentId()}
             onExit={handleBack}
           />
         </div>
@@ -184,5 +185,16 @@ function getStudentName() {
       : "Student";
   } catch {
     return "Student";
+  }
+}
+
+// The roster-assigned id (see LoginPage), when the student signed in via
+// the roster picker rather than a name typed before the roster existed.
+function getStudentId(): string | undefined {
+  try {
+    const session = JSON.parse(localStorage.getItem("studentSession") || "{}");
+    return typeof session.id === "string" && session.id ? session.id : undefined;
+  } catch {
+    return undefined;
   }
 }

@@ -433,12 +433,23 @@ class VocabQuizAttemptRequest(BaseModel):
     id: str = Field(..., max_length=128)
     storyId: str = Field(..., max_length=128)
     studentName: str = Field(default="Student", max_length=100)
+    studentId: Optional[str] = Field(default=None, max_length=128)
     mode: Optional[str] = None
     completedAt: str
     totalQuestions: int = Field(..., ge=1)
     correctCount: int = Field(..., ge=0)
     totalTimeMs: int = Field(..., ge=0)
     questionResults: List[VocabQuizQuestionResult] = []
+
+
+class StudentCreateRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+
+
+class Student(BaseModel):
+    id: str
+    name: str
+    createdAt: str
 
 
 @app.get("/health")
@@ -2262,17 +2273,21 @@ from routers.audio import router as audio_router  # noqa: E402
 from routers.help_requests import router as help_requests_router  # noqa: E402
 from routers.media import router as media_router  # noqa: E402
 from routers.stories import router as stories_router  # noqa: E402
+from routers.students import router as students_router  # noqa: E402
 from routers.submissions import router as submissions_router  # noqa: E402
 from routers.tones import router as tones_router  # noqa: E402
 from routers.vocab_quiz import router as vocab_quiz_router  # noqa: E402
+from routers.vocab_quiz_analytics import router as vocab_quiz_analytics_router  # noqa: E402
 app.include_router(asr_router)
 app.include_router(audio_router)
 app.include_router(help_requests_router)
 app.include_router(media_router)
 app.include_router(stories_router)
+app.include_router(students_router)
 app.include_router(submissions_router)
 app.include_router(tones_router)
 app.include_router(vocab_quiz_router)
+app.include_router(vocab_quiz_analytics_router)
 
 
 @app.get("/{frontend_path:path}")

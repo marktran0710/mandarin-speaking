@@ -118,6 +118,22 @@ def init_db() -> None:
             """
         )
         ensure_column(db, "vocab_quiz_attempts", "mode", "TEXT")
+        # Nullable: legacy attempts recorded before the roster existed only
+        # have student_name (a free-typed string, prone to collisions/typos)
+        # and stay that way — new attempts carry the stable roster id
+        # alongside it so per-student analysis (IRT, FREX) has a real join
+        # key instead of matching on name text.
+        ensure_column(db, "vocab_quiz_attempts", "student_id", "TEXT")
+
+        db.execute(
+            """
+            CREATE TABLE IF NOT EXISTS students (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
 
 
 def row_to_audio_record(row: sqlite3.Row) -> dict:
@@ -184,12 +200,21 @@ def row_to_vocab_quiz_attempt(row: sqlite3.Row) -> dict:
         "id": row["id"],
         "storyId": row["story_id"],
         "studentName": row["student_name"],
+        "studentId": row["student_id"] if "student_id" in row_keys else None,
         "mode": row["mode"] if "mode" in row_keys else None,
         "completedAt": row["completed_at"],
         "totalQuestions": row["total_questions"],
         "correctCount": row["correct_count"],
         "totalTimeMs": row["total_time_ms"],
         "questionResults": json.loads(row["question_results"] or "[]"),
+    }
+
+
+def row_to_student(row: sqlite3.Row) -> dict:
+    return {
+        "id": row["id"],
+        "name": row["name"],
+        "createdAt": row["created_at"],
     }
 
 

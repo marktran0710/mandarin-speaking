@@ -300,6 +300,11 @@ interface StoryRecorderProps {
    * without reintroducing the picture-ordering minigame. */
   enableOverview?: boolean;
   studentName?: string;
+  /** Roster-assigned id (see LoginPage), when the student signed in via the
+   * roster picker rather than a name typed before the roster existed —
+   * lets attempt records join on a stable id instead of a free-typed
+   * name. */
+  studentId?: string;
   /** Leaves this topic entirely, back to the topic list — rendered as the
    * single exit action in the nav panel above the phase steps. Omitted
    * (no button shown) when there's nowhere to exit to. */
@@ -316,6 +321,7 @@ export default function StoryRecorder({
   enableSorting = false,
   enableOverview = false,
   studentName = "Student",
+  studentId,
   onExit,
 }: StoryRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
@@ -453,6 +459,7 @@ export default function StoryRecorder({
       id: `vocab-quiz-${topic.id}-${Date.now()}`,
       storyId: topic.id,
       studentName,
+      studentId,
       mode: summary.mode,
       completedAt: new Date().toISOString(),
       totalQuestions: summary.totalQuestions,

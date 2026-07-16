@@ -1,7 +1,9 @@
 .login-page {
   min-height: calc(100vh - var(--navbar-height));
   background: var(--clay-canvas);
-  padding: 36px 20px 72px;
+  /* 72px bottom padding sits outside the token scale (>56px but not near
+     3xl's 64px) — left as a literal rather than forced onto a wrong token. */
+  padding: var(--space-xl) var(--space-md) 72px;
 }
 
 .login-page.student {
@@ -19,95 +21,82 @@
 
 .login-back {
   min-height: 40px;
-  margin-bottom: 20px;
-  padding: 8px 14px;
+  margin-bottom: var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--clay-hairline);
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--clay-surface-card);
   color: var(--clay-body);
   font-weight: 700;
   cursor: pointer;
 }
 
 .login-card {
-  padding: 32px;
+  padding: var(--space-xl);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
-  background: #ffffff;
+  background: var(--clay-surface-card);
   box-shadow: var(--shadow-md);
   text-align: center;
 }
 
-.login-icon {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 20px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  font-size: 36px;
-  font-weight: 800;
-}
-
-.login-icon {
-  font-family: var(--font-display);
-}
-
-.login-icon.student {
-  background: var(--seal);
-  color: #ffffff;
-}
-
-.login-icon.teacher {
-  background: var(--jade);
-  color: #ffffff;
+.login-tonemark {
+  display: block;
+  margin: 0 auto var(--space-md);
 }
 
 .login-kicker {
   color: var(--clay-body);
   font-size: 18px;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-xs);
 }
 
 .login-card h1 {
   color: var(--clay-ink);
   font-size: 30px;
-  margin-bottom: 10px;
+  margin-bottom: var(--space-xs);
 }
 
 .login-description {
   color: var(--clay-muted);
   font-size: 14px;
   line-height: 1.6;
-  margin-bottom: 28px;
+  margin-bottom: var(--space-lg);
 }
 
 .login-form {
   display: grid;
-  gap: 16px;
+  gap: var(--space-md);
   text-align: left;
 }
 
 .login-form label {
   display: grid;
-  gap: 8px;
+  gap: var(--space-xs);
   color: var(--clay-ink);
   font-size: 14px;
   font-weight: 700;
 }
 
-.login-form input {
+.login-form input,
+.login-form select {
   width: 100%;
   min-height: 44px;
-  padding: 12px 14px;
+  padding: var(--space-sm) var(--space-sm);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
-  background: #ffffff;
+  background: var(--clay-surface-card);
   color: var(--clay-ink);
   font-size: 15px;
+  cursor: pointer;
 }
 
-.login-form input:focus {
+.login-form input {
+  cursor: text;
+}
+
+.login-form input:focus,
+.login-form select:focus {
   /* outline:none used to silently override index.css's global
      button/input:focus-visible ring (3px solid --seal-soft) with just a
      1px→2px border-width bump — too subtle to see for low-vision users.
@@ -129,7 +118,7 @@
   /* --clay-primary is too light for white text at this size (2.7:1) —
      seal-deep is the same violet family but clears 4.5:1. */
   background: var(--seal-deep);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   font-size: 15px;
   font-weight: 800;
   cursor: pointer;
@@ -152,7 +141,9 @@
   box-shadow: 0 6px 0 var(--seal-deep);
 }
 
-.login-page.student .login-icon.student {
+.login-page.student .login-tonemark {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--clay-radius-lg);
   border: 3px solid var(--seal-deep);
   box-shadow: 0 0 0 5px var(--seal-soft);
 }
@@ -179,6 +170,6 @@
 
 @media (max-width: 560px) {
   .login-card {
-    padding: 28px 20px;
+    padding: var(--space-lg) var(--space-md);
   }
 }
