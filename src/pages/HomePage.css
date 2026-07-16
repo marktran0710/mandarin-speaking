@@ -5,7 +5,7 @@
   justify-content: center;
   gap: clamp(12px, 3vh, 32px);
   background:
-    linear-gradient(180deg, #fff8ef 0%, #fffcf6 42%, var(--clay-canvas) 100%);
+    linear-gradient(180deg, var(--clay-surface-soft) 0%, var(--clay-canvas) 42%, var(--clay-canvas) 100%);
   overflow: hidden;
 }
 
@@ -183,8 +183,10 @@
     linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(255, 246, 234, 0.74)),
     repeating-linear-gradient(
       90deg,
-      rgba(124, 58, 237, 0.07) 0,
-      rgba(124, 58, 237, 0.07) 1px,
+      /* --seal at low alpha — color-mix so this repaints if --seal changes,
+         instead of a raw rgb triplet duplicating its hex value. */
+      color-mix(in srgb, var(--seal) 7%, transparent) 0,
+      color-mix(in srgb, var(--seal) 7%, transparent) 1px,
       transparent 1px,
       transparent 34px
     );
@@ -196,7 +198,7 @@
   content: "";
   position: absolute;
   inset: 28px;
-  border: 1px dashed rgba(124, 58, 237, 0.22);
+  border: 1px dashed color-mix(in srgb, var(--seal) 22%, transparent);
   border-radius: 22px;
   pointer-events: none;
 }
@@ -213,7 +215,7 @@
   max-width: 220px;
   aspect-ratio: 3 / 2;
   object-fit: cover;
-  border: 6px solid #ffffff;
+  border: 6px solid var(--clay-surface-card);
   border-radius: 16px;
   box-shadow: var(--shadow-md);
 }
@@ -251,7 +253,7 @@
   gap: 8px;
   padding: 8px 6px;
   border-radius: var(--clay-radius-md);
-  background: #ffffff;
+  background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
   box-shadow: var(--shadow-md);
   font-family: var(--font-display);
@@ -493,7 +495,7 @@
   }
   36% {
     transform: translateX(-6px) scale(1.08);
-    background: #ffffff;
+    background: var(--clay-surface-card);
   }
   54% {
     transform: translateX(0) scale(1);

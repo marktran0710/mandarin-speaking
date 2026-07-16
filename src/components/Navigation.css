@@ -118,7 +118,7 @@
 .nav-link.logout {
   background: var(--clay-ink);
   border-color: var(--clay-ink);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   --bi-pinyin-color: var(--seal-soft);
   --bi-en-color: rgba(255, 255, 255, 0.75);
 }
