@@ -1,0 +1,360 @@
+═══════════════════
+TEXT-FREE VERSION
+═══════════════════
+
+Single image, divided into a clean grid of 6 equal panels (2 columns × 3
+rows), thin light gutters between panels, no hard comic-book borders, no
+text, no letters, no words, no speech bubbles, no panel numbers, no
+captions. Flat digital illustration style, soft rounded shapes, warm evening
+color palette (soft oranges, warm yellows, dusky blues), limited color
+palette, gentle clean outlines, friendly simple style, consistent lighting
+and color palette across all panels.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHIHAO] a friendly young man, early 20s, short messy black hair, round
+friendly face, bright orange hoodie, dark jeans, white sneakers, always
+holding a black smartphone with a clear phone case.
+[JIALING] a friendly young woman, early 20s, shoulder-length black hair with
+blunt bangs, mustard-yellow cardigan over a white t-shirt, light blue jeans,
+small cream-colored crossbody bag, silver stud earrings.
+
+Panel 1 (top-left): wide shot, full figure, Zhihao alone sitting on his bed
+in a cozy bedroom lit by a warm lamp, Friday evening, scrolling his phone
+with a thoughtful expression, as if trying to decide who to message.
+
+Panel 2 (top-right): medium shot at eye level, Zhihao sitting up, typing
+quickly on his phone with both thumbs, eyebrows raised, an eager and
+hopeful expression on his face.
+
+Panel 3 (middle-left): medium shot from a slight side angle, Jialing sitting
+cross-legged on a sofa in her living room, holding her phone up in front of
+her, smiling warmly as she reads a message.
+
+Panel 4 (middle-right): close-up on Zhihao's face and phone screen, his
+screen glowing with a warm orange light suggesting a lively photo, Zhihao
+grinning excitedly as he types, leaning slightly forward.
+
+Panel 5 (bottom-left): close-up on Jialing's face, eyes wide and sparkling
+with excitement, a big happy smile, both hands holding her phone up close
+as she types a reply.
+
+Panel 6 (bottom-right): medium shot, Zhihao sitting back against his
+pillows, holding up one hand showing six fingers playfully toward the
+camera while his other hand holds his phone, laughing warmly.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Zhihao's orange hoodie and clear
+  phone case, Jialing's mustard-yellow cardigan and cream crossbody bag)
+  recognizable in every panel.
+- Keep one art style and one lighting mood across all 6 panels so the page
+  reads as one connected world.
+- Vary pose, shot framing, and camera angle panel to panel (see Rules) so it
+  reads as six different moments, not one pose repeated six times.
+- If one panel looks off after generation, it's harder to regenerate in
+  isolation than with separate images — accept minor variance, or fall back
+  to generating that one beat as its own image and swapping it in during
+  editing if it matters.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1536 for a 2×3 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
+
+═══════════════════
+SPEECH-BUBBLE VERSION — EASY
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble/box after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 11.)
+
+Single image, divided into a clean grid of 6 equal panels (2 columns × 3
+rows), thin light gutters between panels, no hard comic-book borders. Flat
+digital illustration style, soft rounded shapes, warm evening color palette
+(soft oranges, warm yellows, dusky blues), limited color palette, gentle
+clean outlines, friendly simple style, consistent lighting and color
+palette across all panels. Each panel that has a speaking character
+includes one simple rounded speech bubble with a small tail pointing at
+that character, containing that panel's Chinese text written clearly and
+accurately inside, plain white bubble with black outline; each
+narrator-only panel instead includes one small rectangular caption box (no
+tail) along the bottom edge containing that panel's Chinese narration text,
+plain white box with a thin black border; no other text, letters, words, or
+captions anywhere else in the image.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHIHAO] a friendly young man, early 20s, short messy black hair, round
+friendly face, bright orange hoodie, dark jeans, white sneakers, always
+holding a black smartphone with a clear phone case.
+[JIALING] a friendly young woman, early 20s, shoulder-length black hair with
+blunt bangs, mustard-yellow cardigan over a white t-shirt, light blue jeans,
+small cream-colored crossbody bag, silver stud earrings.
+
+Panel 1 (top-left): wide shot, full figure, Zhihao alone sitting on his bed
+in a cozy bedroom lit by a warm lamp, Friday evening, scrolling his phone
+with a thoughtful expression, as if trying to decide who to message.
+Narration caption box at the bottom contains the Chinese text
+"星期五晚上，志豪在家，想找佳玲一起出去。" written clearly.
+
+Panel 2 (top-right): medium shot at eye level, Zhihao sitting up, typing
+quickly on his phone with both thumbs, eyebrows raised, an eager and
+hopeful expression on his face. Speech bubble near Zhihao contains the
+Chinese text "佳玲，妳星期六晚上要做什麼？" written clearly.
+
+Panel 3 (middle-left): medium shot from a slight side angle, Jialing sitting
+cross-legged on a sofa in her living room, holding her phone up in front of
+her, smiling warmly as she reads a message. Speech bubble near Jialing
+contains the Chinese text "我沒事，你呢？" written clearly.
+
+Panel 4 (middle-right): close-up on Zhihao's face and phone screen, his
+screen glowing with a warm orange light suggesting a lively photo, Zhihao
+grinning excitedly as he types, leaning slightly forward. Speech bubble
+near Zhihao contains the Chinese text
+"我們去士林夜市，好嗎？那裡的雞排很好吃。" written clearly.
+
+Panel 5 (bottom-left): close-up on Jialing's face, eyes wide and sparkling
+with excitement, a big happy smile, both hands holding her phone up close
+as she types a reply. Speech bubble near Jialing contains the Chinese text
+"太好了！那裡有珍珠奶茶嗎？" written clearly.
+
+Panel 6 (bottom-right): medium shot, Zhihao sitting back against his
+pillows, holding up one hand showing six fingers playfully toward the
+camera while his other hand holds his phone, laughing warmly. Speech
+bubble near Zhihao contains the Chinese text
+"有啊！我們六點在捷運站見。" written clearly.
+
+CAPTION SCRIPT (for proofreading the generated bubbles/boxes against — not
+part of the prompt above):
+Panel 1 — Narrator: 星期五晚上，志豪在家，想找佳玲一起出去。
+  Xīngqíwǔ wǎnshàng, Zhìháo zài jiā, xiǎng zhǎo Jiālíng yìqǐ chūqù. —
+  Friday evening, Zhihao is home, wanting to ask Jialing to go out
+  together.
+Panel 2 — Zhihao: 佳玲，妳星期六晚上要做什麼？
+  Jiālíng, nǐ xīngqíliù wǎnshàng yào zuò shénme? — Jialing, what are you
+  doing Saturday evening?
+Panel 3 — Jialing: 我沒事，你呢？
+  Wǒ méishì, nǐ ne? — I'm free, what about you?
+Panel 4 — Zhihao: 我們去士林夜市，好嗎？那裡的雞排很好吃。
+  Wǒmen qù Shìlín yèshì, hǎo ma? Nàlǐ de jīpái hěn hǎochī. — Let's go to
+  Shilin Night Market, okay? The fried chicken there is delicious.
+Panel 5 — Jialing: 太好了！那裡有珍珠奶茶嗎？
+  Tài hǎo le! Nàlǐ yǒu zhēnzhū nǎichá ma? — Great! Do they have bubble tea
+  there?
+Panel 6 — Zhihao: 有啊！我們六點在捷運站見。
+  Yǒu a! Wǒmen liù diǎn zài jiéyùnzhàn jiàn. — Yes! Let's meet at the MRT
+  station at six.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1536 for a 2×3 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
+
+═══════════════════
+SPEECH-BUBBLE VERSION — MEDIUM
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble/box after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 11.)
+
+Single image, divided into a clean grid of 6 equal panels (2 columns × 3
+rows), thin light gutters between panels, no hard comic-book borders. Flat
+digital illustration style, soft rounded shapes, warm evening color palette
+(soft oranges, warm yellows, dusky blues), limited color palette, gentle
+clean outlines, friendly simple style, consistent lighting and color
+palette across all panels. Each panel that has a speaking character
+includes one simple rounded speech bubble with a small tail pointing at
+that character, containing that panel's Chinese text written clearly and
+accurately inside, plain white bubble with black outline; each
+narrator-only panel instead includes one small rectangular caption box (no
+tail) along the bottom edge containing that panel's Chinese narration text,
+plain white box with a thin black border; no other text, letters, words, or
+captions anywhere else in the image.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHIHAO] a friendly young man, early 20s, short messy black hair, round
+friendly face, bright orange hoodie, dark jeans, white sneakers, always
+holding a black smartphone with a clear phone case.
+[JIALING] a friendly young woman, early 20s, shoulder-length black hair with
+blunt bangs, mustard-yellow cardigan over a white t-shirt, light blue jeans,
+small cream-colored crossbody bag, silver stud earrings.
+
+Panel 1 (top-left): wide shot, full figure, Zhihao alone sitting on his bed
+in a cozy bedroom lit by a warm lamp, Friday evening, scrolling his phone
+with a thoughtful expression, as if trying to decide who to message.
+Narration caption box at the bottom contains the Chinese text
+"星期五晚上，志豪在家，想找佳玲這個週末一起出去玩。" written clearly.
+
+Panel 2 (top-right): medium shot at eye level, Zhihao sitting up, typing
+quickly on his phone with both thumbs, eyebrows raised, an eager and
+hopeful expression on his face. Speech bubble near Zhihao contains the
+Chinese text "佳玲，這個星期六晚上妳想做什麼？" written clearly.
+
+Panel 3 (middle-left): medium shot from a slight side angle, Jialing sitting
+cross-legged on a sofa in her living room, holding her phone up in front of
+her, smiling warmly as she reads a message. Speech bubble near Jialing
+contains the Chinese text "我還沒有計畫，怎麼了？" written clearly.
+
+Panel 4 (middle-right): close-up on Zhihao's face and phone screen, his
+screen glowing with a warm orange light suggesting a lively photo, Zhihao
+grinning excitedly as he types, leaning slightly forward. Speech bubble
+near Zhihao contains the Chinese text
+"我們一起去士林夜市，好不好？那裡有一家雞排特別好吃。" written clearly.
+
+Panel 5 (bottom-left): close-up on Jialing's face, eyes wide and sparkling
+with excitement, a big happy smile, both hands holding her phone up close
+as she types a reply. Speech bubble near Jialing contains the Chinese text
+"好啊，可是我更想喝珍珠奶茶，那裡有嗎？" written clearly.
+
+Panel 6 (bottom-right): medium shot, Zhihao sitting back against his
+pillows, holding up one hand showing six fingers playfully toward the
+camera while his other hand holds his phone, laughing warmly. Speech
+bubble near Zhihao contains the Chinese text
+"當然有！我們星期六晚上六點在捷運站門口見面吧。" written clearly.
+
+CAPTION SCRIPT (for proofreading the generated bubbles/boxes against — not
+part of the prompt above):
+Panel 1 — Narrator: 星期五晚上，志豪在家，想找佳玲這個週末一起出去玩。
+  Xīngqíwǔ wǎnshàng, Zhìháo zài jiā, xiǎng zhǎo Jiālíng zhège zhōumò yìqǐ
+  chūqù wán. — Friday evening, Zhihao is home, wanting to ask Jialing to go
+  out and have fun together this weekend.
+Panel 2 — Zhihao: 佳玲，這個星期六晚上妳想做什麼？
+  Jiālíng, zhège xīngqíliù wǎnshàng nǐ xiǎng zuò shénme? — Jialing, what do
+  you want to do this Saturday evening?
+Panel 3 — Jialing: 我還沒有計畫，怎麼了？
+  Wǒ hái méiyǒu jìhuà, zěnme le? — I don't have any plans yet — why do you
+  ask?
+Panel 4 — Zhihao: 我們一起去士林夜市，好不好？那裡有一家雞排特別好吃。
+  Wǒmen yìqǐ qù Shìlín yèshì, hǎo bù hǎo? Nàlǐ yǒu yì jiā jīpái tèbié
+  hǎochī. — Let's go to Shilin Night Market together, okay? There's a fried
+  chicken stall there that's especially delicious.
+Panel 5 — Jialing: 好啊，可是我更想喝珍珠奶茶，那裡有嗎？
+  Hǎo a, kěshì wǒ gèng xiǎng hē zhēnzhū nǎichá, nàlǐ yǒu ma? — Sure, but I
+  want bubble tea even more — do they have that there?
+Panel 6 — Zhihao: 當然有！我們星期六晚上六點在捷運站門口見面吧。
+  Dāngrán yǒu! Wǒmen xīngqíliù wǎnshàng liù diǎn zài jiéyùnzhàn ménkǒu
+  jiànmiàn ba. — Of course! Let's meet at the MRT station entrance at six
+  on Saturday evening.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1536 for a 2×3 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
+
+═══════════════════
+SPEECH-BUBBLE VERSION — HARD
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble/box after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 11.)
+
+Single image, divided into a clean grid of 6 equal panels (2 columns × 3
+rows), thin light gutters between panels, no hard comic-book borders. Flat
+digital illustration style, soft rounded shapes, warm evening color palette
+(soft oranges, warm yellows, dusky blues), limited color palette, gentle
+clean outlines, friendly simple style, consistent lighting and color
+palette across all panels. Each panel that has a speaking character
+includes one simple rounded speech bubble with a small tail pointing at
+that character, containing that panel's Chinese text written clearly and
+accurately inside, plain white bubble with black outline; each
+narrator-only panel instead includes one small rectangular caption box (no
+tail) along the bottom edge containing that panel's Chinese narration text,
+plain white box with a thin black border; no other text, letters, words, or
+captions anywhere else in the image.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHIHAO] a friendly young man, early 20s, short messy black hair, round
+friendly face, bright orange hoodie, dark jeans, white sneakers, always
+holding a black smartphone with a clear phone case.
+[JIALING] a friendly young woman, early 20s, shoulder-length black hair with
+blunt bangs, mustard-yellow cardigan over a white t-shirt, light blue jeans,
+small cream-colored crossbody bag, silver stud earrings.
+
+Panel 1 (top-left): wide shot, full figure, Zhihao alone sitting on his bed
+in a cozy bedroom lit by a warm lamp, Friday evening, scrolling his phone
+with a thoughtful expression, as if trying to decide who to message.
+Narration caption box at the bottom contains the Chinese text
+"星期五晚上，志豪在家滑手機，突然想到已經好幾個星期沒跟佳玲出去了。" written
+clearly.
+
+Panel 2 (top-right): medium shot at eye level, Zhihao sitting up, typing
+quickly on his phone with both thumbs, eyebrows raised, an eager and
+hopeful expression on his face. Speech bubble near Zhihao contains the
+Chinese text "佳玲，我們好久沒見面了，妳這個星期六晚上有空嗎？" written
+clearly.
+
+Panel 3 (middle-left): medium shot from a slight side angle, Jialing sitting
+cross-legged on a sofa in her living room, holding her phone up in front of
+her, smiling warmly as she reads a message. Speech bubble near Jialing
+contains the Chinese text "剛好有空，我最近工作有點累，想出去放鬆一下。"
+written clearly.
+
+Panel 4 (middle-right): close-up on Zhihao's face and phone screen, his
+screen glowing with a warm orange light suggesting a lively photo, Zhihao
+grinning excitedly as he types, leaning slightly forward. Speech bubble
+near Zhihao contains the Chinese text
+"那我們一起去士林夜市吧，我上次去過，那裡的雞排比別家好吃很多。" written
+clearly.
+
+Panel 5 (bottom-left): close-up on Jialing's face, eyes wide and sparkling
+with excitement, a big happy smile, both hands holding her phone up close
+as she types a reply. Speech bubble near Jialing contains the Chinese text
+"聽起來不錯，我也想喝那裡有名的珍珠奶茶。" written clearly.
+
+Panel 6 (bottom-right): medium shot, Zhihao sitting back against his
+pillows, holding up one hand showing six fingers playfully toward the
+camera while his other hand holds his phone, laughing warmly. Speech
+bubble near Zhihao contains the Chinese text
+"沒問題，我們星期六晚上六點在捷運站門口見面，比平常早一點出發。" written
+clearly.
+
+CAPTION SCRIPT (for proofreading the generated bubbles/boxes against — not
+part of the prompt above):
+Panel 1 — Narrator: 星期五晚上，志豪在家滑手機，突然想到已經好幾個星期沒跟佳玲出去了。
+  Xīngqíwǔ wǎnshàng, Zhìháo zài jiā huá shǒujī, túrán xiǎngdào yǐjīng hǎo jǐ
+  ge xīngqí méi gēn Jiālíng chūqù le. — Friday evening, Zhihao is at home
+  scrolling his phone when he suddenly realizes it's been several weeks
+  since he went out with Jialing.
+Panel 2 — Zhihao: 佳玲，我們好久沒見面了，妳這個星期六晚上有空嗎？
+  Jiālíng, wǒmen hǎojiǔ méi jiànmiàn le, nǐ zhège xīngqíliù wǎnshàng
+  yǒukòng ma? — Jialing, it's been so long since we've seen each other —
+  are you free this Saturday evening?
+Panel 3 — Jialing: 剛好有空，我最近工作有點累，想出去放鬆一下。
+  Gānghǎo yǒukòng, wǒ zuìjìn gōngzuò yǒudiǎn lèi, xiǎng chūqù fàngsōng
+  yíxià. — I happen to be free — I've been a bit tired from work lately and
+  want to go out and relax a little.
+Panel 4 — Zhihao: 那我們一起去士林夜市吧，我上次去過，那裡的雞排比別家好吃很多。
+  Nà wǒmen yìqǐ qù Shìlín yèshì ba, wǒ shàngcì qùguò, nàlǐ de jīpái bǐ
+  biéjiā hǎochī hěn duō. — Then let's go to Shilin Night Market together —
+  I went last time, and the fried chicken there is much better than other
+  places.
+Panel 5 — Jialing: 聽起來不錯，我也想喝那裡有名的珍珠奶茶。
+  Tīng qǐlái búcuò, wǒ yě xiǎng hē nàlǐ yǒumíng de zhēnzhū nǎichá. — That
+  sounds great — I also want to drink the famous bubble tea there.
+Panel 6 — Zhihao: 沒問題，我們星期六晚上六點在捷運站門口見面，比平常早一點出發。
+  Méi wèntí, wǒmen xīngqíliù wǎnshàng liù diǎn zài jiéyùnzhàn ménkǒu
+  jiànmiàn, bǐ píngcháng zǎo yìdiǎn chūfā. — No problem — let's meet at the
+  MRT station entrance at six on Saturday evening; we'll set off a bit
+  earlier than usual.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1536 for a 2×3 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.

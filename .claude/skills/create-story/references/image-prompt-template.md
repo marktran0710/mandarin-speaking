@@ -5,40 +5,50 @@ image-generation prompts (ChatGPT/DALL·E, Midjourney, Canva Magic Media,
 etc.), each producing a **single image containing a grid of panels** — one
 panel per turn, comic-strip style, consistent characters and art style
 throughout. Each prompt is a single generation call, not a batch of separate
-prompts: the whole story fits on one page. Two prompts — text-free and
-speech-bubble — are written into the same `-images.txt` file; see "Two
-modes" below.
+prompts: the whole story fits on one page. **Four** prompts — one text-free,
+plus one speech-bubble prompt per difficulty tier (easy, medium, hard) — are
+written into the same `-images.txt` file; see "Four prompts, two modes"
+below.
 
-## Two modes, both written into the same file
+## Four prompts, two modes, all in the same file
 
-SKILL.md step 10 writes **both** prompts into one `-images.txt` file, so the
-user can pick whichever they want without asking for a regenerate:
+SKILL.md step 11 writes **four** prompts into one `-images.txt` file, so the
+user can pick whichever they want — including which difficulty tier to
+illustrate — without asking for a regenerate:
 
-- **Text-free** — no words anywhere in the image, including no speech
-  bubbles. Safer: image models are unreliable at rendering legible Chinese
-  text, so garbled/wrong characters are a real risk in bubble mode. This is
-  the mode documented in the "Core method" and "Example output" sections
-  below. Write this one first.
-- **Speech bubbles** — each speaking panel gets a bubble pointing at the
-  character *with that panel's real Chinese dialogue written inside it*,
-  and each narrator-only panel gets a rectangular caption box (no tail)
-  with its narration text — so pasting this prompt straight into an image
-  generator produces a finished page with the actual script already in it,
-  no manual editing step required. AI image models render Chinese text
-  inconsistently (a real risk of garbled or wrong characters), so this mode
-  says so explicitly right above the prompt and tells the user to proofread
-  every bubble/box after generating — see the "Speech bubble mode" section
-  near the end for exactly what changes from the core method, including the
-  fallback (text-free + `scripts/overlay_captions.py` from SKILL.md step 11)
-  for when a generation comes back garbled. Write this one second.
+- **Text-free** (one prompt) — no words anywhere in the image, including no
+  speech bubbles. Safer: image models are unreliable at rendering legible
+  Chinese text, so garbled/wrong characters are a real risk in bubble mode.
+  This is the mode documented in the "Core method" and "Example output"
+  sections below. Write this one first.
+- **Speech bubbles** (three prompts — easy, medium, hard) — each speaking
+  panel gets a bubble pointing at the character *with that panel's real
+  Chinese dialogue written inside it*, and each narrator-only panel gets a
+  rectangular caption box (no tail) with its narration text — so pasting
+  one of these prompts straight into an image generator produces a
+  finished page with that tier's actual script already in it, no manual
+  editing step required. Because the story is the same beats told at three
+  reading levels, generate **one full speech-bubble prompt per tier**, each
+  quoting only that tier's own lines — not a single prompt defaulting to
+  one tier — so the user can illustrate whichever difficulty they're
+  practicing. AI image models render Chinese text inconsistently (a real
+  risk of garbled or wrong characters), so each of the three prompts says
+  so explicitly right above it and tells the user to proofread every
+  bubble/box after generating — see the "Speech bubble mode" section near
+  the end for exactly what changes from the core method, including the
+  fallback (text-free + `scripts/overlay_captions.py` from SKILL.md step 12)
+  for when a generation comes back garbled. Write these three after the
+  text-free prompt, in tier order (easy, medium, hard).
 
-Both modes share the same grid layout, cast block, and panel-by-panel scene
-descriptions — only the "no text" style line and the per-panel dialogue
-differ, so most of the prompt text can be reused between the two sections.
+All four prompts share the same grid layout, cast block, and panel-by-panel
+scene descriptions — only the "no text" style line and the per-panel
+dialogue (and, across the three speech-bubble prompts, which tier's lines
+are quoted) differ, so most of the prompt text can be reused across all
+four sections.
 
 ## File shape
 
-Separate the two prompts with a clear header so each is easy to find and
+Separate all four prompts with a clear header so each is easy to find and
 copy on its own — just the header and the prompt text, no explanatory
 bracketed notes:
 
@@ -50,16 +60,30 @@ TEXT-FREE VERSION
 [... text-free prompt, per "Core method" below ...]
 
 ═══════════════════
-SPEECH-BUBBLE VERSION
+SPEECH-BUBBLE VERSION — EASY
 ═══════════════════
 (AI image models render Chinese text inconsistently — proofread every
 bubble/box after generating. If any line comes out garbled or wrong,
 regenerate, or fall back to the TEXT-FREE VERSION above plus
-scripts/overlay_captions.py, per SKILL.md step 11.)
+scripts/overlay_captions.py, per SKILL.md step 12.)
 
 [... speech-bubble prompt, per "Speech bubble mode" below, with each
 panel's real Chinese dialogue/narration written directly into that
-panel's bubble or caption box, using the medium tier's lines ...]
+panel's bubble or caption box, using the EASY tier's lines ...]
+
+═══════════════════
+SPEECH-BUBBLE VERSION — MEDIUM
+═══════════════════
+(same caution note as above)
+
+[... same layout, this time using the MEDIUM tier's lines ...]
+
+═══════════════════
+SPEECH-BUBBLE VERSION — HARD
+═══════════════════
+(same caution note as above)
+
+[... same layout, this time using the HARD tier's lines ...]
 ```
 
 OUTPUT SIZE TARGET: the final image must be under 1.5 MB. File size is set
@@ -208,14 +232,23 @@ finished page — no separate editing step. The tradeoff: AI image models
 render Chinese text inconsistently, so a caution note and a fallback path
 are required (see below).
 
-To generate a speech-bubble version, keep the same grid layout, cast block,
+Generate **three full speech-bubble prompts, one per difficulty tier**
+(easy, medium, hard) — never a single speech-bubble prompt that defaults to
+one tier. The three prompts are otherwise identical (same grid, same cast
+block, same panel framing); only the quoted Chinese line per panel changes
+between them, pulled from that tier's own story text. Produce all three by
+repeating the steps below once per tier.
+
+To generate each speech-bubble prompt, keep the same grid layout, cast block,
 and per-panel scene descriptions, but make these changes:
 
-1) **Header caution**: immediately under the `SPEECH-BUBBLE VERSION` divider
-   (before the prompt itself), add a note that Chinese text rendering is
-   unreliable, to proofread every bubble/box after generating, and that the
-   fallback is the TEXT-FREE VERSION plus `scripts/overlay_captions.py`
-   (SKILL.md step 11) if a generation comes back garbled. See the File
+1) **Header caution**: immediately under each tier's `SPEECH-BUBBLE
+   VERSION — EASY/MEDIUM/HARD` divider (before that prompt itself), add a
+   note that Chinese text rendering is unreliable, to proofread every
+   bubble/box after generating, and that the fallback is the TEXT-FREE
+   VERSION plus `scripts/overlay_captions.py` (SKILL.md step 12) if a
+   generation comes back garbled. Repeat this note under all three tier
+   dividers — it's the same note each time. See the File
    shape example above for the exact wording.
 
 2) **Style line**: drop "no text, no letters, no words, no speech bubbles,
@@ -232,11 +265,20 @@ and per-panel scene descriptions, but make these changes:
    left silently text-free in this mode.
 
 3) **Per-panel text**: write each panel's real Chinese line directly into
-   that panel's description — quote it exactly (verbatim from the
-   **medium** tier unless the user says otherwise, and only after checking
-   it actually matches that panel's visual scene note, per the mismatch
-   check below). Chinese only inside the bubble/box (no pinyin, no
-   English). Example:
+   that panel's description — quote it exactly, verbatim from **this
+   prompt's own tier** (the easy prompt quotes only easy-tier lines, the
+   medium prompt only medium-tier lines, the hard prompt only hard-tier
+   lines). First run the **mismatch check**: scene notes are supposed to be
+   identical across all three tiers (SKILL.md step 6), but if a turn's
+   phrasing drifted enough that this tier's line no longer matches what the
+   panel actually depicts, fix the mismatch before writing the prompt —
+   either adjust the panel description to fit this tier's line, or note the
+   discrepancy so it can be corrected in the story file. Do this check
+   separately for each of the three tier prompts; a match in the medium
+   prompt doesn't guarantee one in the easy or hard prompt. Chinese only
+   inside the bubble/box (no pinyin, no English). Example (medium tier
+   shown; the easy and hard prompts follow the identical shape with their
+   own tier's lines):
 
    ```
    Panel 1 (top-left): wide shot, full figure, Chenghan alone on a city
@@ -251,11 +293,13 @@ and per-panel scene descriptions, but make these changes:
    written clearly.
    ```
 
-4) **Append a consolidated Caption Script** after the full image prompt
-   (before EXPORT SETTINGS) — the same per-panel lines (narrator panels
-   included), Chinese + pinyin + English, as a proofreading reference to
-   check the generated bubbles against (and to fall back on if a bubble
-   needs fixing by hand or regenerating):
+4) **Append a consolidated Caption Script** after each of the three prompts
+   (before EXPORT SETTINGS, and specific to that prompt's own tier) — the
+   same per-panel lines (narrator panels included), Chinese + pinyin +
+   English, as a proofreading reference to check the generated bubbles
+   against (and to fall back on if a bubble needs fixing by hand or
+   regenerating). Each tier prompt gets its own Caption Script matching its
+   own lines — the easy prompt's script quotes easy-tier lines, etc.:
 
    ```
    CAPTION SCRIPT (for proofreading the generated bubbles/boxes against —
@@ -273,9 +317,11 @@ and per-panel scene descriptions, but make these changes:
      straight ahead, the MRT station is right beside the coffee shop.
    ```
 
-   Both copies must always agree — if a panel's tier-matched line changes
-   (see the mismatch check above), update it in both places.
+   A tier's prompt and its own Caption Script must always agree — if a
+   panel's line changes after the mismatch check above, update it in both
+   places, and only within that tier's prompt/script pair (don't let a fix
+   in the medium prompt leak into the easy or hard one).
 
-5) Keep the rest of the method identical: grid shape by turn count, one
-   cast/style block stated once, varied pose/framing/angle panel to panel,
-   and the same EXPORT SETTINGS.
+5) Keep the rest of the method identical across all three tier prompts:
+   grid shape by turn count, one cast/style block stated once per prompt,
+   varied pose/framing/angle panel to panel, and the same EXPORT SETTINGS.
