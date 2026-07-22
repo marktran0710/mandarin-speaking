@@ -1,13 +1,13 @@
 /* ── Page shell ── */
 .topic-selector {
   min-height: calc(100vh - var(--navbar-height));
-  padding: var(--space-lg) var(--space-md) var(--space-3xl);
+  padding: var(--space-lg) 0 var(--space-3xl);
   background: var(--clay-canvas);
 }
 
 /* ── Hero ── */
 .ts-hero {
-  max-width: 1180px;
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto var(--space-xl);
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.7fr);
@@ -92,7 +92,7 @@
 
 /* ── Grid section ── */
 .ts-grid-section {
-  max-width: 1180px;
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
 }
 

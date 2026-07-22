@@ -413,7 +413,7 @@ export default function MyStoriesPage({
             <strong>
               {completedPrompts}/{promptImages.length}
               {promptImages.length > 0 && completedPrompts === promptImages.length && (
-                <span className="progress-complete-badge" title="全部場景完成！ All scenes complete!">🎉</span>
+                <span className="progress-complete-badge" title="全部部分完成！ All scenes complete!">🎉</span>
               )}
             </strong>
             <div className={`summary-progress${completedPrompts === promptImages.length && promptImages.length > 0 ? " is-complete" : ""}`}>

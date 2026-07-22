@@ -1,7 +1,7 @@
 .story-recorder {
-  max-width: 1180px;
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
-  padding: 24px 20px 72px;
+  padding: 24px 0 72px;
 }
 
 /* ── Story nav panel: exit + topic name + phase progress, one card ── */
@@ -806,8 +806,7 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   background: var(--clay-surface-soft);
 }
 
-.word-prosody-topline,
-.word-prosody-stats {
+.word-prosody-topline {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -819,13 +818,27 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   font-size: 24px;
 }
 
-.word-prosody-topline span {
+.word-prosody-topline-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.word-prosody-shape-pill {
   padding: 5px 8px;
   border-radius: var(--clay-radius-pill);
   background: var(--clay-mint);
   color: var(--clay-ink);
   font-size: 11px;
   font-weight: 650;
+  white-space: nowrap;
+}
+
+/* Shape-match % — the same comparison the chart draws, now read directly
+   off the topline instead of a separate legend row underneath. */
+.word-prosody-score {
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .mini-contour {
@@ -864,12 +877,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   align-items: center;
 }
 
-/* Shape-match % sits with the legend it explains, pushed to the row's end;
-   its color comes from the shared .score-tier-text tier classes. */
-.word-prosody-shape-score {
-  margin-left: auto;
-}
-
 .mini-contour-legend span {
   font-size: 11px;
   font-weight: 600;
@@ -899,12 +906,6 @@ button.phase-nav-node:hover .phase-nav-marker-done {
     transparent 3px,
     transparent 6px
   );
-}
-
-.word-prosody-stats span {
-  color: var(--clay-muted);
-  font-size: 11px;
-  font-weight: 600;
 }
 
 .word-prosody-card p {
@@ -1262,7 +1263,7 @@ button.phase-nav-node:hover .phase-nav-marker-done {
 
 /* ── Submit Story ───────────────────────────────────────────────────────────── */
 .story-submit-panel {
-  max-width: 1180px;
+  max-width: var(--content-max);
   margin: 24px auto 0;
   padding: 20px 24px;
   background: var(--clay-surface-card);

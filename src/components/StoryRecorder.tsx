@@ -10,10 +10,14 @@ import {
   canUseDatabase,
   createStorySubmission,
   createVocabQuizAttempt,
+  updateVocabularyCloze,
   updateVocabularyDistractors,
+  updateVocabularySynonym,
   type SceneSubmission,
   type StoryFeedback,
+  type VocabularyClozeUpdate,
   type VocabularyDistractorUpdate,
+  type VocabularySynonymUpdate,
 } from "../services/database";
 import ScenePracticeWord from "./ScenePracticeWord";
 import StoryVocabQuiz, {
@@ -99,6 +103,8 @@ export interface Topic {
   vocabularyPos?: Record<number, string[]>;
   vocabularyTranslation?: Record<number, string[]>;
   vocabularyDistractors?: Record<number, string[][]>;
+  vocabularyCloze?: Record<number, Array<{ sentence: string; distractors: string[] }[]>>;
+  vocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
   suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
   listenScripts?: Record<number, string>;
@@ -168,6 +174,130 @@ export function buildDistractorPatchUpdates(
     .filter((update) => update.distractors.length > 0);
 }
 
+// Mirrors the backend's MAX_VOCAB_CLOZE_PER_WORD cap.
+const MAX_VOCAB_CLOZE_PER_WORD = 4;
+
+export interface ClozeGrowthCandidate {
+  frameIndex: number;
+  wordIndex: number;
+  word: string;
+  translation: string;
+  context?: string;
+  existing: string[];
+}
+
+/** Pure planning step for growVocabularyClozePool: picks the words in a
+ * story whose persisted cloze-candidate pool hasn't reached the cap yet,
+ * pairing each with its existing sentences (sent as the AI's "avoid" list).
+ * Mirrors planDistractorGrowth above. */
+export function planClozeGrowth(
+  topic: Pick<
+    Topic,
+    "images" | "vocabulary" | "vocabularyTranslation" | "vocabularyCloze" | "suggestedAnswers"
+  >,
+): ClozeGrowthCandidate[] {
+  const candidates: ClozeGrowthCandidate[] = [];
+  topic.images.forEach((_, si) => {
+    const sceneSuggestedAnswer = topic.suggestedAnswers?.[si];
+    (topic.vocabulary[si] || []).forEach((word, i) => {
+      const translation = topic.vocabularyTranslation?.[si]?.[i];
+      if (!translation) return;
+      const existing = topic.vocabularyCloze?.[si]?.[i] ?? [];
+      if (existing.length >= MAX_VOCAB_CLOZE_PER_WORD) return;
+      candidates.push({
+        frameIndex: si,
+        wordIndex: i,
+        word,
+        translation,
+        context: sceneSuggestedAnswer,
+        existing: existing.map((c) => c.sentence),
+      });
+    });
+  });
+  return candidates;
+}
+
+/** Pairs each growth candidate with the AI-generated cloze result for its
+ * word (matched by word text), dropping any candidate the AI returned
+ * nothing for. Mirrors buildDistractorPatchUpdates above. */
+export function buildClozePatchUpdates(
+  candidates: ClozeGrowthCandidate[],
+  results: Array<{ word: string; sentence: string; distractors: string[] }>,
+): VocabularyClozeUpdate[] {
+  const byWord = new Map(results.map((r) => [r.word, r]));
+  return candidates
+    .map((candidate) => {
+      const result = byWord.get(candidate.word);
+      return {
+        frameIndex: candidate.frameIndex,
+        wordIndex: candidate.wordIndex,
+        candidates: result ? [{ sentence: result.sentence, distractors: result.distractors }] : [],
+      };
+    })
+    .filter((update) => update.candidates.length > 0);
+}
+
+// Mirrors the backend's MAX_VOCAB_SYNONYM_PER_WORD cap.
+const MAX_VOCAB_SYNONYM_PER_WORD = 4;
+
+export interface SynonymGrowthCandidate {
+  frameIndex: number;
+  wordIndex: number;
+  word: string;
+  translation: string;
+  context?: string;
+  existing: string[];
+}
+
+/** Pure planning step for growVocabularySynonymPool — mirrors
+ * planClozeGrowth above, for the synonym-candidate pool instead. */
+export function planSynonymGrowth(
+  topic: Pick<
+    Topic,
+    "images" | "vocabulary" | "vocabularyTranslation" | "vocabularySynonym" | "suggestedAnswers"
+  >,
+): SynonymGrowthCandidate[] {
+  const candidates: SynonymGrowthCandidate[] = [];
+  topic.images.forEach((_, si) => {
+    const sceneSuggestedAnswer = topic.suggestedAnswers?.[si];
+    (topic.vocabulary[si] || []).forEach((word, i) => {
+      const translation = topic.vocabularyTranslation?.[si]?.[i];
+      if (!translation) return;
+      const existing = topic.vocabularySynonym?.[si]?.[i] ?? [];
+      if (existing.length >= MAX_VOCAB_SYNONYM_PER_WORD) return;
+      candidates.push({
+        frameIndex: si,
+        wordIndex: i,
+        word,
+        translation,
+        context: sceneSuggestedAnswer,
+        existing: existing.map((c) => c.synonym),
+      });
+    });
+  });
+  return candidates;
+}
+
+/** Pairs each growth candidate with the AI-generated synonym result for its
+ * word (matched by word text), dropping any candidate the AI returned
+ * nothing for. Mirrors buildClozePatchUpdates above. */
+export function buildSynonymPatchUpdates(
+  candidates: SynonymGrowthCandidate[],
+  results: Array<{ word: string; synonym: string; distractors: string[] }>,
+): VocabularySynonymUpdate[] {
+  const byWord = new Map(results.map((r) => [r.word, r]));
+  return candidates
+    .map((candidate) => {
+      const result = byWord.get(candidate.word);
+      return {
+        frameIndex: candidate.frameIndex,
+        wordIndex: candidate.wordIndex,
+        candidates: result ? [{ synonym: result.synonym, distractors: result.distractors }] : [],
+      };
+    })
+    .filter((update) => update.candidates.length > 0);
+}
+
 export interface PauseAnalysis {
   duration: number;
   utterance_count: number;
@@ -175,6 +305,11 @@ export interface PauseAnalysis {
   total_pause_duration: number;
   longest_pause: number;
   speech_ratio: number;
+  // Judged pause placement + articulation rate — see backend
+  // caf_metrics.classify_pauses and speech_rate_verdict.
+  choppy_pause_count?: number;
+  natural_pause_count?: number;
+  articulation_rate?: number;
 }
 
 export interface PraatMetrics {
@@ -237,6 +372,10 @@ interface LanguageFeedback {
   pronunciation_note: {
     score: number;
     feedback: string;
+    // Same text as `feedback`, split into one entry per aspect (tone,
+    // rhythm_pace, pausing, vowel_quality, word_stress) — see backend
+    // ai_feedback.fallback_language_feedback for how these are built.
+    details?: { key: string; text: string }[];
   };
   content_accuracy?: {
     score: number;
@@ -330,7 +469,6 @@ export default function StoryRecorder({
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<SpeechModel>("webspeech");
   const [aiProvider, setAiProvider] = useState<string>("");
-  const [aiProviders, setAiProviders] = useState<AiProviderOption[]>([]);
   const [silenceDuration, setSilenceDuration] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
 
@@ -418,6 +556,9 @@ export default function StoryRecorder({
     const suggestedAnswers: Array<string | undefined> = [];
     const aiDistractors: Array<string[] | undefined> = [];
     const pinyins: Array<string | undefined> = [];
+    const aiCloze: Array<Array<{ sentence: string; distractors: string[] }> | undefined> = [];
+    const partsOfSpeech: Array<string | undefined> = [];
+    const aiSynonyms: Array<Array<{ synonym: string; distractors: string[] }> | undefined> = [];
     topic.images.forEach((_, si) => {
       const sceneSuggestedAnswer = topic.suggestedAnswers?.[si];
       (topic.vocabulary[si] || []).forEach((word, i) => {
@@ -426,9 +567,21 @@ export default function StoryRecorder({
         suggestedAnswers.push(sceneSuggestedAnswer);
         aiDistractors.push(topic.vocabularyDistractors?.[si]?.[i]);
         pinyins.push(topic.vocabularyPinyin?.[si]?.[i]);
+        aiCloze.push(topic.vocabularyCloze?.[si]?.[i]);
+        partsOfSpeech.push(topic.vocabularyPos?.[si]?.[i]);
+        aiSynonyms.push(topic.vocabularySynonym?.[si]?.[i]);
       });
     });
-    return collectQuizEntries(words, translations, suggestedAnswers, aiDistractors, pinyins);
+    return collectQuizEntries(
+      words,
+      translations,
+      suggestedAnswers,
+      aiDistractors,
+      pinyins,
+      aiCloze,
+      partsOfSpeech,
+      aiSynonyms,
+    );
   }, [topic]);
   const hasVocabQuiz = quizEntries.length >= 1;
 
@@ -472,7 +625,23 @@ export default function StoryRecorder({
     growVocabularyDistractorPool().catch((error) => {
       console.warn("Failed to grow vocabulary distractor pool:", error);
     });
+    growVocabularyClozePool().catch((error) => {
+      console.warn("Failed to grow vocabulary cloze pool:", error);
+    });
+    growVocabularySynonymPool().catch((error) => {
+      console.warn("Failed to grow vocabulary synonym pool:", error);
+    });
   };
+
+  // topic.id is a quiz-tracking id, prefixed/suffixed for teacher-authored
+  // stories (`teacher-{realId}` or `teacher-{realId}-{tier}` — see
+  // storyToTopic) so Easy/Medium/Hard track vocab-quiz completion and
+  // attempts independently. The custom-stories PATCH endpoints below key on
+  // the *real* story id instead (topic.sourceStory.id) — using topic.id
+  // there 404s silently (caught by the .catch below) and the AI pool never
+  // actually persists. Falls back to topic.id for non-teacher-authored
+  // topics, which have no sourceStory and use their id as-is.
+  const persistedStoryId = topic.sourceStory?.id ?? topic.id;
 
   // Each genuine quiz round completion (never the missed-words retry, since
   // onComplete above only fires for the original round) is a chance to top
@@ -504,7 +673,65 @@ export default function StoryRecorder({
     const updates = buildDistractorPatchUpdates(candidates, results);
     if (updates.length === 0) return;
 
-    await updateVocabularyDistractors(topic.id, updates);
+    await updateVocabularyDistractors(persistedStoryId, updates);
+  };
+
+  // Same growth pattern as growVocabularyDistractorPool above, for the
+  // fill-in-the-blank cloze question pool instead.
+  const growVocabularyClozePool = async () => {
+    const candidates = planClozeGrowth(topic);
+    if (candidates.length === 0) return;
+
+    const response = await fetch(`${BACKEND_URL}/api/vocab-quiz-cloze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        words: candidates.map((entry) => ({
+          word: entry.word,
+          translation: entry.translation,
+          context: entry.context,
+          avoid: entry.existing,
+        })),
+      }),
+    });
+    if (!response.ok) throw new Error("Could not generate new quiz cloze questions.");
+
+    const { results } = (await response.json()) as {
+      results: { word: string; sentence: string; distractors: string[] }[];
+    };
+    const updates: VocabularyClozeUpdate[] = buildClozePatchUpdates(candidates, results);
+    if (updates.length === 0) return;
+
+    await updateVocabularyCloze(persistedStoryId, updates);
+  };
+
+  // Same growth pattern as growVocabularyClozePool above, for the
+  // "which word means the same?" synonym question pool instead.
+  const growVocabularySynonymPool = async () => {
+    const candidates = planSynonymGrowth(topic);
+    if (candidates.length === 0) return;
+
+    const response = await fetch(`${BACKEND_URL}/api/vocab-quiz-synonym`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        words: candidates.map((entry) => ({
+          word: entry.word,
+          translation: entry.translation,
+          context: entry.context,
+          avoid: entry.existing,
+        })),
+      }),
+    });
+    if (!response.ok) throw new Error("Could not generate new quiz synonym questions.");
+
+    const { results } = (await response.json()) as {
+      results: { word: string; synonym: string; distractors: string[] }[];
+    };
+    const updates: VocabularySynonymUpdate[] = buildSynonymPatchUpdates(candidates, results);
+    if (updates.length === 0) return;
+
+    await updateVocabularySynonym(persistedStoryId, updates);
   };
 
   // Learning phase: overview → sorting → vocabquiz → practice → summary
@@ -589,7 +816,7 @@ export default function StoryRecorder({
     }
   }, [topic.id, topic.firstFrameIsExample]);
 
-  // Load the available AI feedback engines so the student can pick one.
+  // Load the available AI feedback engines to pick a sensible default.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -598,7 +825,6 @@ export default function StoryRecorder({
         if (!res.ok) return;
         const data = await res.json();
         if (cancelled || !Array.isArray(data.providers)) return;
-        setAiProviders(data.providers);
         const groqAvailable = data.providers.some(
           (p: AiProviderOption) => p.id === "groq" && p.available,
         );
@@ -990,6 +1216,8 @@ export default function StoryRecorder({
         pauseCount: metrics.pause_analysis?.pause_count ?? 0,
         longestPause: metrics.pause_analysis?.longest_pause ?? 0,
         utteranceCount: metrics.pause_analysis?.utterance_count ?? 0,
+        choppyPauseCount: metrics.pause_analysis?.choppy_pause_count ?? 0,
+        articulationRate: metrics.pause_analysis?.articulation_rate ?? 0,
       };
       setSceneRecordings((prev) => {
         const existing = prev[selectedImageIndex];
@@ -1173,7 +1401,7 @@ export default function StoryRecorder({
             : "upcoming") as JourneyStopStatus,
         thumbnail: img,
         label: (
-          <BiLabel zh={`場景 ${idx + 1}`} pinyin={`Chǎngjǐng ${idx + 1}`} en={`Scene ${idx + 1}`} />
+          <BiLabel zh={`部分 ${idx + 1}`} pinyin={`Bùfen ${idx + 1}`} en={`Scene ${idx + 1}`} />
         ),
         badge: !ready && started ? `${prog!.attempts}×` : undefined,
       };
@@ -1268,6 +1496,9 @@ export default function StoryRecorder({
           entries={quizEntries}
           onDone={handleVocabQuizDone}
           onComplete={handleVocabQuizComplete}
+          storyId={topic.id}
+          studentId={studentId}
+          studentName={studentName}
         />
       )}
 
@@ -1369,14 +1600,14 @@ export default function StoryRecorder({
                   </span>
                   {hasStudy ? (
                     <BiLabel
-                      zh="新的場景：先看看上面的「學習」分頁，然後開始錄音。"
-                      pinyin="Xīn de chǎngjǐng: xiān kànkan shàngmiàn de “xuéxí” fēnyè, ránhòu kāishǐ lùyīn."
+                      zh="新的部分：先看看上面的「學習」分頁，然後開始錄音。"
+                      pinyin="Xīn de bùfen: xiān kànkan shàngmiàn de “xuéxí” fēnyè, ránhòu kāishǐ lùyīn."
                       en="New scene: check the Study tab above, then start recording."
                     />
                   ) : (
                     <BiLabel
-                      zh="新的場景：準備好了就切到「口說練習」錄音。"
-                      pinyin="Xīn de chǎngjǐng: zhǔnbèi hǎo le jiù qiè dào 'kǒushuō liànxí' lùyīn."
+                      zh="新的部分：準備好了就切到「口說練習」錄音。"
+                      pinyin="Xīn de bùfen: zhǔnbèi hǎo le jiù qiè dào 'kǒushuō liànxí' lùyīn."
                       en="New scene: switch to Speaking when you're ready to record."
                     />
                   )}
@@ -1393,8 +1624,8 @@ export default function StoryRecorder({
                   <div>
                     <strong>
                       <BiLabel
-                        zh={`場景 ${selectedImageIndex + 1} 完成`}
-                        pinyin={`Chǎngjǐng ${selectedImageIndex + 1} wánchéng`}
+                        zh={`部分 ${selectedImageIndex + 1} 完成`}
+                        pinyin={`Bùfen ${selectedImageIndex + 1} wánchéng`}
                         en={`Scene ${selectedImageIndex + 1} complete`}
                       />
                     </strong>
@@ -1454,8 +1685,8 @@ export default function StoryRecorder({
                 <div className="scene-progress-hint">
                   {gap > 0 ? (
                     <BiLabel
-                      zh={`還需要 ${gap} 分才能解鎖下一場景 — 繼續加油。`}
-                      pinyin={`Hái xūyào ${gap} fēn cái néng jiěsuǒ xià yí ge chǎngjǐng — jìxù jiāyóu.`}
+                      zh={`還需要 ${gap} 分才能打開下一個部分 — 繼續加油。`}
+                      pinyin={`Hái xūyào ${gap} fēn cái néng dǎkāi xià yí ge bùfen — jìxù jiāyóu.`}
                       en={`${gap} more points needed to unlock the next scene — keep going.`}
                     />
                   ) : (
@@ -1532,10 +1763,6 @@ export default function StoryRecorder({
               silenceDuration={silenceDuration}
               submittedAudioName={submittedAudioName}
               selectedModel={selectedModel}
-              onSelectedModelChange={setSelectedModel}
-              aiProviders={aiProviders}
-              aiProvider={aiProvider}
-              onAiProviderChange={setAiProvider}
               recordingButtonDisabled={recordingButtonDisabled}
               onPrimaryRecordingAction={handlePrimaryRecordingAction}
               onSubmitVoiceFile={handleSubmitVoiceFile}
@@ -1561,7 +1788,7 @@ export default function StoryRecorder({
               </div>
               <span className="practice-scene-chip">
                 <BiLabel
-                  zh={`場景 ${selectedImageIndex + 1}/${topic.images.length}`}
+                  zh={`部分 ${selectedImageIndex + 1}/${topic.images.length}`}
                   en={`Scene ${selectedImageIndex + 1} of ${topic.images.length}`}
                 />
               </span>
@@ -1625,9 +1852,9 @@ export default function StoryRecorder({
                             className={`scene-vocab-row scene-vocab-row-practice ${used === true ? "scene-vocab-used" : used === false ? "scene-vocab-missed" : ""}`}
                             title={
                               used === true
-                                ? "你使用了這個詞彙 ✓ You used this word"
+                                ? "你使用了這個生詞 ✓ You used this word"
                                 : used === false
-                                  ? "試著加入這個詞彙 Try to include this word"
+                                  ? "試著加入這個生詞 Try to include this word"
                                   : undefined
                             }
                           >

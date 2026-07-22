@@ -49,6 +49,33 @@
   margin: 4px 0;
 }
 
+.vocab-quiz-ai-badge {
+  display: inline-block;
+  font-size: 0.55em;
+  margin-left: 6px;
+  vertical-align: super;
+  cursor: help;
+}
+
+.vocab-quiz-cloze-sentence {
+  font-size: 1.4rem;
+  line-height: 1.6;
+  color: var(--clay-ink);
+}
+
+.vocab-quiz-cloze-blank {
+  display: inline-block;
+  color: var(--seal-deep);
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.vocab-quiz-instruction {
+  font-size: 14px;
+  color: var(--clay-muted);
+  margin: 0;
+}
+
 .vocab-quiz-progress {
   font-size: 13px;
   color: var(--clay-muted);
@@ -215,6 +242,13 @@
 .vocab-quiz-mode-review:hover { box-shadow: 0 6px 0 var(--jade-deep); }
 .vocab-quiz-mode-review:active { box-shadow: 0 2px 0 var(--jade-deep); }
 
+.vocab-quiz-mode-weak_words {
+  border-color: var(--seal);
+  box-shadow: 0 4px 0 var(--seal-deep);
+}
+.vocab-quiz-mode-weak_words:hover { box-shadow: 0 6px 0 var(--seal-deep); }
+.vocab-quiz-mode-weak_words:active { box-shadow: 0 2px 0 var(--seal-deep); }
+
 /* ── In-quiz mode indicators ── */
 .vocab-quiz-strikes {
   font-size: 18px;
@@ -222,6 +256,16 @@
   margin: 2px 0 0;
 }
 .vocab-quiz-strikes .strike-open { opacity: 0.35; }
+
+.vocab-quiz-timer {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--clay-muted);
+  margin: 2px 0 0;
+}
+.vocab-quiz-timer.is-low {
+  color: var(--clay-error);
+}
 
 /* ── Summary / results screen ── */
 .vocab-quiz-missed-list {

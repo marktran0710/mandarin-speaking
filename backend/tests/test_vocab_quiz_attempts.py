@@ -96,6 +96,78 @@ def test_mode_is_null_when_not_provided(client):
     assert post_response.json()["mode"] is None
 
 
+def test_weak_words_requires_student_identity(client):
+    response = client.get("/api/vocab-quiz-attempts/weak-words", params={"story_id": "s"})
+    assert response.status_code == 400
+
+
+def test_weak_words_returns_only_words_wrong_in_their_most_recent_attempt(client):
+    # First attempt: both words wrong.
+    client.post(
+        "/api/vocab-quiz-attempts",
+        json={
+            "id": "weak-attempt-1",
+            "storyId": "weak-story",
+            "studentName": "Alice",
+            "completedAt": "2026-07-08T00:00:00.000Z",
+            "totalQuestions": 2,
+            "correctCount": 0,
+            "totalTimeMs": 2000,
+            "questionResults": [
+                {"word": "餐廳", "correct": False, "timeMs": 1000},
+                {"word": "吃", "correct": False, "timeMs": 1000},
+            ],
+        },
+    )
+    # Second, later attempt: got 餐廳 right this time, 吃 still wrong.
+    client.post(
+        "/api/vocab-quiz-attempts",
+        json={
+            "id": "weak-attempt-2",
+            "storyId": "weak-story",
+            "studentName": "Alice",
+            "completedAt": "2026-07-09T00:00:00.000Z",
+            "totalQuestions": 2,
+            "correctCount": 1,
+            "totalTimeMs": 2000,
+            "questionResults": [
+                {"word": "餐廳", "correct": True, "timeMs": 1000},
+                {"word": "吃", "correct": False, "timeMs": 1000},
+            ],
+        },
+    )
+
+    response = client.get(
+        "/api/vocab-quiz-attempts/weak-words",
+        params={"story_id": "weak-story", "student_name": "Alice"},
+    )
+    assert response.status_code == 200
+    assert response.json()["words"] == ["吃"]
+
+
+def test_weak_words_is_scoped_to_the_given_student(client):
+    client.post(
+        "/api/vocab-quiz-attempts",
+        json={
+            "id": "weak-attempt-other-student",
+            "storyId": "weak-story-2",
+            "studentName": "Bob",
+            "completedAt": "2026-07-08T00:00:00.000Z",
+            "totalQuestions": 1,
+            "correctCount": 0,
+            "totalTimeMs": 1000,
+            "questionResults": [{"word": "水", "correct": False, "timeMs": 1000}],
+        },
+    )
+
+    response = client.get(
+        "/api/vocab-quiz-attempts/weak-words",
+        params={"story_id": "weak-story-2", "student_name": "Carol"},
+    )
+    assert response.status_code == 200
+    assert response.json()["words"] == []
+
+
 def test_rejects_attempt_with_no_questions(client):
     attempt = {
         "id": "test-attempt-invalid",

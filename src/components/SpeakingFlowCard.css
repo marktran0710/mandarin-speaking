@@ -44,11 +44,6 @@
   padding: 24px 20px;
 }
 
-.sfc-record-title {
-  margin: 0;
-  font-size: 17px;
-}
-
 .sfc-scene-chip {
   display: inline-flex;
   align-items: center;
@@ -77,43 +72,6 @@
   padding: 14px 32px;
 }
 
-.sfc-steps-preview {
-  list-style: none;
-  margin: 0;
-  padding: 10px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--clay-surface-soft);
-  border-radius: var(--clay-radius-md);
-  width: 100%;
-  max-width: 320px;
-}
-.sfc-steps-preview li {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--clay-body);
-}
-.sfc-step-num {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--seal-soft);
-  color: var(--seal-deep);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.sfc-options {
-  width: 100%;
-  max-width: 320px;
-}
 .sfc-error {
   max-width: 320px;
   text-align: center;
@@ -219,47 +177,6 @@
 .sfc-verdict-ready {
   background: var(--jade-soft);
   border: 1.5px solid var(--jade);
-}
-
-.sfc-step-chips {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  margin-top: 12px;
-  flex-shrink: 0;
-  overflow-x: auto;
-}
-/* Short connector between checklist chips — the same "stops on one path"
-   language as the practice stepper above and the journey path. */
-.sfc-chip-link {
-  width: 20px;
-  height: 2px;
-  border-radius: 1px;
-  background: var(--clay-hairline);
-  flex-shrink: 0;
-  margin: 0 4px;
-}
-.sfc-step-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border-radius: var(--clay-radius-pill);
-  border: 1.5px solid var(--clay-hairline);
-  background: var(--clay-surface-soft);
-  font-size: 13px;
-  font-weight: 650;
-  color: var(--clay-body);
-}
-.sfc-chip-status {
-  font-weight: 800;
-  font-size: 12px;
-}
-.sfc-chip-status.pass {
-  color: var(--jade-deep);
-}
-.sfc-chip-status.fail {
-  color: var(--clay-error);
 }
 
 .sfc-body {
@@ -382,6 +299,56 @@
 }
 .sfc-result-card--pronounce .sfc-result-card-header {
   color: var(--tone1-deep);
+}
+/* Small per-aspect pronunciation cards, stacked under the scene image in the
+   left column — fills the space that column otherwise leaves empty once the
+   results column (verdict + step chips + result cards) grows taller than a
+   4:3 image + scene chip. */
+.sfc-scene-detail-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.sfc-scene-detail-heading {
+  color: var(--tone1-deep);
+}
+/* One container for every aspect, not a separate bordered card each — the
+   items share a divider instead, so the group reads as a single feedback
+   panel with one consistent label/body type scale throughout. */
+.sfc-scene-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  padding: 12px 14px;
+}
+.sfc-scene-detail-item + .sfc-scene-detail-item {
+  padding-top: 12px;
+  border-top: 1px solid var(--clay-hairline);
+}
+.sfc-scene-detail-label {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--clay-muted);
+}
+.sfc-scene-detail-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--clay-ink);
+}
+/* Overrides .mini-contour-legend's per-card negative top margin (tuned for
+   sitting right under a chart) — here it opens the section instead, right
+   under the header, so it needs normal, positive spacing on both sides. */
+.sfc-pronounce-legend.mini-contour-legend {
+  margin-top: 0;
+  margin-bottom: 10px;
 }
 .sfc-words-row {
   display: flex;

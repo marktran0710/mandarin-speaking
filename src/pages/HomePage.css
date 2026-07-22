@@ -10,7 +10,7 @@
 }
 
 .home-hero {
-  width: min(1160px, calc(100% - 40px));
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
   padding: 0;
   display: grid;
@@ -277,14 +277,14 @@
 }
 
 .home-cta {
-  width: min(1160px, calc(100% - 40px));
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
   display: flex;
   justify-content: center;
 }
 
 .how-it-works {
-  width: min(1160px, calc(100% - 40px));
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
   padding: 0;
 }

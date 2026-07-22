@@ -7,10 +7,10 @@
 }
 
 .navbar-container {
-  /* Same width formula as the page containers below it (e.g. .home-hero)
-     so the navbar's left/right edge lines up with the page content
+  /* Shared content-container formula (--content-max / --content-gutter) so
+     the navbar's left/right edge lines up with every page's centered column
      instead of drifting from a different max-width + padding combo. */
-  width: min(1160px, calc(100% - 40px));
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   /* Derived from the shared --navbar-height token (minus .navbar's 1px
      border) instead of a separately-guessed literal, so this can't drift
      out of sync with the pages that compute calc(100vh - var(--navbar-height)). */

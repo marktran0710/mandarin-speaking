@@ -67,8 +67,8 @@ export default function StorySummarySection({
               </p>
               <p className="story-submit-hint">
                 <BiLabel
-                  zh={`你的老師現在可以看全部 ${totalScenes} 個場景。`}
-                  pinyin={`Nǐ de lǎoshī xiànzài kěyǐ kàn quánbù ${totalScenes} ge chǎngjǐng.`}
+                  zh={`你的老師現在可以看全部 ${totalScenes} 個部分。`}
+                  pinyin={`Nǐ de lǎoshī xiànzài kěyǐ kàn quánbù ${totalScenes} ge bùfen.`}
                   en={`Your teacher can now review all ${totalScenes} scenes.`}
                 />
               </p>
@@ -87,7 +87,7 @@ export default function StorySummarySection({
               <div
                 key={si}
                 className={`story-submit-dot ${sceneRecordings[si] ? "done" : "pending"}`}
-                title={`場景 ${si + 1}${sceneRecordings[si] ? " ✓ 已完成" : " — 還沒錄音 not yet recorded"} Scene ${si + 1}`}
+                title={`部分 ${si + 1}${sceneRecordings[si] ? " ✓ 已完成" : " — 還沒錄音 not yet recorded"} Scene ${si + 1}`}
               />
             ))}
           </div>
@@ -96,8 +96,8 @@ export default function StorySummarySection({
               <BiLabel k="all_scenes_recorded_ready_to_submit" />
             ) : (
               <BiLabel
-                zh={`已錄 ${completedSceneCount} / ${totalScenes} 個場景`}
-                pinyin={`Yǐ lù ${completedSceneCount} / ${totalScenes} ge chǎngjǐng`}
+                zh={`已錄 ${completedSceneCount} / ${totalScenes} 個部分`}
+                pinyin={`Yǐ lù ${completedSceneCount} / ${totalScenes} ge bùfen`}
                 en={`${completedSceneCount} of ${totalScenes} scenes recorded`}
               />
             )}

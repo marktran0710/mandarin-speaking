@@ -1,10 +1,10 @@
 .tone-practice-page {
-  max-width: 960px;
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
   /* 72px bottom sits outside the token scale — same exception as
      LoginPage's page-shell bottom padding, kept literal rather than
      forced onto a wrong step. */
-  padding: var(--space-lg) var(--space-lg) 72px;
+  padding: var(--space-lg) 0 72px;
   display: grid;
   gap: var(--space-md);
 }

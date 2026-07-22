@@ -45,7 +45,7 @@ export default function FeedbackSummary({
   const overallLabel = !contentAccepted
     ? "先確認句子的意思 Check your sentence's meaning first"
     : vocabListExists && missingVocab
-      ? "先使用所有詞彙 Use all vocab first"
+      ? "先使用所有生詞 Use all vocab first"
       : overallScore >= 85
         ? "太棒了！ Excellent!"
         : overallScore >= 70
@@ -150,7 +150,7 @@ export default function FeedbackSummary({
               ...(vocabScore !== null
                 ? [
                     {
-                      label: "詞彙 Vocabulary",
+                      label: "生詞 Vocabulary",
                       score: vocabScore,
                       color: "var(--seal)",
                       isPraatTone: false,

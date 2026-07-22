@@ -8,11 +8,15 @@ import main
 from main import (
     PhraseFromSentenceRequest,
     PhraseFromSentenceResponse,
+    VocabClozeRequest,
+    VocabClozeResponse,
     VocabDistractorRequest,
     VocabDistractorResponse,
     VocabFromSentenceRequest,
     VocabFromSentenceResponse,
     VocabQuizAttemptRequest,
+    VocabSynonymRequest,
+    VocabSynonymResponse,
 )
 
 router = APIRouter()
@@ -40,6 +44,48 @@ async def list_vocab_quiz_attempts(
     with connect_db() as db:
         rows = db.execute(query, params).fetchall()
     return [row_to_vocab_quiz_attempt(row) for row in rows]
+
+
+@router.get("/api/vocab-quiz-attempts/weak-words")
+async def get_weak_words(
+    story_id: str,
+    student_id: Optional[str] = None,
+    student_name: Optional[str] = None,
+):
+    """
+    Words in this story whose most recent answer (across every past attempt,
+    any mode) was wrong — lets the quiz mode-select screen offer a
+    persistent "practice what you still get wrong" round instead of only
+    the same-session retry. A word answered wrong once but right in a later
+    attempt is not weak; ordering is by completed_at desc across attempts,
+    and by result order (last occurrence wins) within an attempt.
+    """
+    if not student_id and not student_name:
+        raise HTTPException(status_code=400, detail="Provide student_id or student_name.")
+
+    query = "SELECT question_results FROM vocab_quiz_attempts WHERE story_id = ?"
+    params: list = [story_id]
+    if student_id:
+        query += " AND student_id = ?"
+        params.append(student_id)
+    else:
+        query += " AND student_name = ?"
+        params.append(student_name)
+    query += " ORDER BY completed_at DESC"
+
+    with connect_db() as db:
+        rows = db.execute(query, params).fetchall()
+
+    resolved: dict[str, bool] = {}
+    for row in rows:
+        results = json.loads(row["question_results"] or "[]")
+        for result in reversed(results):
+            word = result.get("word")
+            if word is None or word in resolved:
+                continue
+            resolved[word] = bool(result.get("correct"))
+
+    return {"words": [word for word, correct in resolved.items() if not correct]}
 
 
 @router.post("/api/vocab-quiz-attempts")
@@ -200,4 +246,89 @@ async def vocab_quiz_distractors(request: VocabDistractorRequest, req: Request):
     raise HTTPException(
         status_code=502,
         detail="Could not generate quiz distractors for these words.",
+    ) from last_error
+
+
+@router.post("/api/vocab-quiz-cloze", response_model=VocabClozeResponse)
+async def vocab_quiz_cloze(request: VocabClozeRequest, req: Request):
+    """
+    Generate fill-in-the-blank (cloze) questions for the vocabulary quiz: a
+    natural example sentence per word plus plausible wrong-word options —
+    an alternative to the word->translation multiple-choice question, mixed
+    in for variety (see StoryVocabQuiz's weak_words-adjacent cloze mixing).
+    """
+    client_ip = req.client.host if req.client else "unknown"
+    main._check_rate_limit(f"vocab-quiz-cloze:{client_ip}", max_requests=10, window_seconds=60)
+
+    words = [w for w in request.words if w.word.strip() and w.translation.strip()]
+    if not words:
+        raise HTTPException(status_code=400, detail="Provide at least one word with a translation.")
+
+    engines = [
+        ("groq", main.GROQ_API_KEY, main.generate_vocab_cloze_with_groq),
+        ("gemini", main.GEMINI_API_KEY, main.generate_vocab_cloze_with_gemini),
+    ]
+    if not any(key for _, key, _ in engines):
+        raise HTTPException(
+            status_code=503,
+            detail="AI cloze generation requires GROQ_API_KEY or GEMINI_API_KEY to be configured on the backend.",
+        )
+
+    last_error: Exception | None = None
+    for name, key, generate in engines:
+        if not key:
+            continue
+        try:
+            results = await generate(words)
+        except Exception as exc:
+            main.logger.warning("%s cloze generation failed, trying next engine: %s", name, exc)
+            last_error = exc
+            continue
+        return VocabClozeResponse(results=results)
+
+    raise HTTPException(
+        status_code=502,
+        detail="Could not generate cloze questions for these words.",
+    ) from last_error
+
+
+@router.post("/api/vocab-quiz-synonym", response_model=VocabSynonymResponse)
+async def vocab_quiz_synonym(request: VocabSynonymRequest, req: Request):
+    """
+    Generate "which word means the same?" questions for the vocabulary quiz:
+    a real Chinese synonym per word plus plausible non-synonym distractors —
+    another alternative question shape mixed in alongside translation/cloze.
+    """
+    client_ip = req.client.host if req.client else "unknown"
+    main._check_rate_limit(f"vocab-quiz-synonym:{client_ip}", max_requests=10, window_seconds=60)
+
+    words = [w for w in request.words if w.word.strip() and w.translation.strip()]
+    if not words:
+        raise HTTPException(status_code=400, detail="Provide at least one word with a translation.")
+
+    engines = [
+        ("groq", main.GROQ_API_KEY, main.generate_vocab_synonym_with_groq),
+        ("gemini", main.GEMINI_API_KEY, main.generate_vocab_synonym_with_gemini),
+    ]
+    if not any(key for _, key, _ in engines):
+        raise HTTPException(
+            status_code=503,
+            detail="AI synonym generation requires GROQ_API_KEY or GEMINI_API_KEY to be configured on the backend.",
+        )
+
+    last_error: Exception | None = None
+    for name, key, generate in engines:
+        if not key:
+            continue
+        try:
+            results = await generate(words)
+        except Exception as exc:
+            main.logger.warning("%s synonym generation failed, trying next engine: %s", name, exc)
+            last_error = exc
+            continue
+        return VocabSynonymResponse(results=results)
+
+    raise HTTPException(
+        status_code=502,
+        detail="Could not generate synonym questions for these words.",
     ) from last_error

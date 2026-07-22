@@ -6,7 +6,7 @@
 
 /* ── Help banner strip ── */
 .csp-help-strip {
-  padding: var(--space-xs) var(--space-md);
+  padding: var(--space-xs) 0;
   background: var(--clay-surface-card);
   border-bottom: 1px solid var(--clay-hairline);
   position: sticky;
@@ -15,7 +15,7 @@
 }
 
 .student-help-panel {
-  max-width: 1180px;
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(300px, 0.7fr);
@@ -101,7 +101,7 @@
 
 /* ── Recorder page body ── */
 .csp-recorder-body {
-  padding: var(--space-md) var(--space-md) var(--space-3xl);
+  padding: var(--space-md) 0 var(--space-3xl);
 }
 
 /* ── Responsive ── */

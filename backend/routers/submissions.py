@@ -98,6 +98,8 @@ async def create_story_submission(submission: StorySubmissionRequest):
             total_pause_count = sum(s.pauseCount for s in scenes_sorted)
             longest_single_pause = max((s.longestPause for s in scenes_sorted), default=0)
             total_utterance_count = sum(s.utteranceCount for s in scenes_sorted)
+            total_choppy_pause_count = sum(s.choppyPauseCount for s in scenes_sorted)
+            avg_articulation_rate = sum(s.articulationRate for s in scenes_sorted) / scene_count
             story_feedback = await generate_story_feedback(
                 combined_transcript,
                 avg_tone_accuracy=avg_tone_accuracy,
@@ -107,6 +109,8 @@ async def create_story_submission(submission: StorySubmissionRequest):
                 longest_single_pause=longest_single_pause,
                 total_utterance_count=total_utterance_count,
                 scene_count=scene_count,
+                total_choppy_pause_count=total_choppy_pause_count,
+                avg_articulation_rate=avg_articulation_rate,
             )
     except Exception as exc:
         main.logger.error("Story feedback generation failed for %s: %s", submission.id, exc)

@@ -248,3 +248,141 @@ def fluency_metrics(speech_rate: float, pause_analysis: Dict, syllable_count: in
         "speech_rate": round(float(speech_rate or 0), 2),
         "score": max(0, min(100, score)),
     }
+
+
+def speech_rate_verdict(articulation_rate: float) -> Dict:
+    """Translate a measured articulation rate (syllables/sec, excluding
+    pauses) into a plain-language too-slow/good/too-fast judgment.
+
+    Reuses the reference bands already established elsewhere in this
+    codebase rather than inventing new ones: the 2.5 / 6.5 syl/s cutoffs
+    from praat_analyzer.analyze_fluency's rate_penalty, and the 3-5 syl/s
+    beginner "good" band documented on fluency_metrics above.
+    """
+    rate = float(articulation_rate or 0)
+    if rate < 2.5:
+        return {
+            "verdict": "slow",
+            "text": (
+                f"You're speaking quite slowly ({rate:.1f} syllables/sec) — "
+                "most learners at this level land around 3-5/sec. Try linking "
+                "syllables together more closely."
+            ),
+        }
+    if rate > 6.5:
+        return {
+            "verdict": "fast",
+            "text": (
+                f"You're speaking quite fast ({rate:.1f} syllables/sec) — "
+                "slowing down toward 3-5/sec will make each tone easier to hear."
+            ),
+        }
+    return {
+        "verdict": "good",
+        "text": f"Your pace ({rate:.1f} syllables/sec) is in a good range.",
+    }
+
+
+def _natural_pause_offsets(reference_text: str) -> set:
+    """Han-character offsets in ``reference_text`` after which a pause is
+    linguistically natural: right before punctuation, or right before a
+    connective word (因為/所以/但是...).
+
+    Offsets are counted in the Han-only character stream (matching how
+    ``classify_pauses`` counts characters in word_prosody tokens), so this
+    is independent of exactly how either side got word-segmented.
+    """
+    offsets: set = set()
+    pos = 0
+    for ch in reference_text:
+        if _is_han(ch):
+            pos += 1
+        else:
+            offsets.add(pos)
+
+    han_only = "".join(ch for ch in reference_text if _is_han(ch))
+    for connective in CONNECTIVES:
+        start = 0
+        while True:
+            i = han_only.find(connective, start)
+            if i == -1:
+                break
+            offsets.add(i)
+            start = i + 1
+
+    return offsets
+
+
+def _nearest_word_index_before(pause_start: float, word_prosody: List[Dict]):
+    """Index of the word_prosody segment whose end_time is closest to
+    ``pause_start``, restricted to segments that have a following segment
+    (so the pause can be described as "between token i and i+1").
+    """
+    best_idx = None
+    best_diff = None
+    for i, word in enumerate(word_prosody[:-1]):
+        end_time = word.get("end_time")
+        if end_time is None:
+            continue
+        diff = abs(float(end_time) - float(pause_start))
+        if best_diff is None or diff < best_diff:
+            best_diff = diff
+            best_idx = i
+    return best_idx
+
+
+def classify_pauses(
+    reference_text: str,
+    pause_analysis: Dict,
+    word_prosody: List[Dict],
+) -> Dict:
+    """Judge each detected pause as landing at a natural boundary in the
+    reference script (after punctuation, or before a connective) versus
+    mid-phrase ("choppy").
+
+    Alignment between the reference script and the student's word_prosody
+    (built from their transcription) is done by cumulative Han-character
+    offset rather than word/token count, since jieba may segment the two
+    texts differently even when they describe the same characters in the
+    same order. When the total character counts don't match (misread,
+    ASR error), the alignment is too unreliable to judge pauses at all, so
+    ``judged`` comes back False and no pauses are classified either way.
+    """
+    pauses = (pause_analysis or {}).get("pauses", []) or []
+    if not pauses:
+        return {"natural": [], "choppy": [], "judged": True}
+
+    boundary_offsets = _natural_pause_offsets(reference_text)
+    total_ref_chars = sum(1 for ch in reference_text if _is_han(ch))
+
+    token_han_counts = [
+        sum(1 for ch in (word.get("token") or "") if _is_han(ch))
+        for word in word_prosody
+    ]
+    total_word_chars = sum(token_han_counts)
+    if total_ref_chars == 0 or total_word_chars != total_ref_chars:
+        return {"natural": [], "choppy": [], "judged": False}
+
+    cumulative: List[int] = []
+    running = 0
+    for count in token_han_counts:
+        running += count
+        cumulative.append(running)
+
+    natural: List[Dict] = []
+    choppy: List[Dict] = []
+    for pause in pauses:
+        idx = _nearest_word_index_before(pause["start"], word_prosody)
+        if idx is None:
+            continue
+        entry = {
+            "before": word_prosody[idx].get("token", ""),
+            "after": word_prosody[idx + 1].get("token", ""),
+            "duration": float(pause.get("duration", pause["end"] - pause["start"])),
+        }
+        if cumulative[idx] in boundary_offsets:
+            natural.append(entry)
+        else:
+            choppy.append(entry)
+
+    return {"natural": natural, "choppy": choppy, "judged": True}

@@ -1,7 +1,7 @@
 .narration-page {
-  max-width: 980px;
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
-  padding: 24px 20px 60px;
+  padding: 24px 0 60px;
 }
 
 .narration-hero {

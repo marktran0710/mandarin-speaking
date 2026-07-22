@@ -133,6 +133,13 @@
      instead of re-guessing its own N. */
   --navbar-height: 84px;
 
+  /* Shared content container: one source of truth for the centered column
+     width + side gutters, used by the navbar and every page shell so their
+     left/right edges line up instead of each page re-guessing a max-width.
+     Narrow pages (e.g. Login) override --content-max locally. */
+  --content-max: 1160px;
+  --content-gutter: 20px;
+
   /* Shadow */
   --airbnb-shadow:
     rgba(32, 29, 41, 0.03) 0 0 0 1px,
@@ -986,10 +993,6 @@ h2 .bi-zh,
 }
 
 /* ── Shared UI cleanup: quieter surfaces, clearer focus ─────────────── */
-.app-container {
-  background: var(--clay-canvas);
-}
-
 button,
 a,
 input,

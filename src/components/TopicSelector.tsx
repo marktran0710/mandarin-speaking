@@ -39,6 +39,14 @@ export interface Topic {
   // distractors instead of unrelated filler words. Optional — older stories
   // without generated distractors still get a quiz via the old fallback.
   vocabularyDistractors?: Record<number, string[][]>;
+  // AI-generated fill-in-the-blank (cloze) candidates per word — each word's
+  // entry is a list of {sentence, distractors} options, grown the same way
+  // vocabularyDistractors is. Optional, same graceful fallback as above.
+  vocabularyCloze?: Record<number, Array<{ sentence: string; distractors: string[] }[]>>;
+  // AI-generated synonym candidates per word — each word's entry is a list
+  // of {synonym, distractors} options, grown the same way vocabularyCloze
+  // is. Optional, same graceful fallback as above.
+  vocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
   suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
   listenScripts?: Record<number, string>;
@@ -199,7 +207,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
                   )}
                   {totalScenes > 1 && (
                     <span className="ts-card-scene-badge">
-                      <BiLabel zh={`${totalScenes} 場景`} en={`${totalScenes} scenes`} />
+                      <BiLabel zh={`${totalScenes} 部分`} en={`${totalScenes} scenes`} />
                     </span>
                   )}
                   {t.lessonNumber != null && (
@@ -222,7 +230,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
                   )}
 
                   <div className="ts-card-stats">
-                    <span>🎬 <BiLabel zh={`${totalScenes} 場景`} en={`${totalScenes} scenes`} /></span>
+                    <span>🎬 <BiLabel zh={`${totalScenes} 部分`} en={`${totalScenes} scenes`} /></span>
                     {totalWords > 0 && (
                       <span>📝 <BiLabel zh={`${totalWords} 詞`} en={`${totalWords} words`} /></span>
                     )}

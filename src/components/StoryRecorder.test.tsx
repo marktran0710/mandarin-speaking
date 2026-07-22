@@ -5,6 +5,8 @@ import StoryRecorder, {
   vocabTooltip,
   planDistractorGrowth,
   buildDistractorPatchUpdates,
+  planClozeGrowth,
+  buildClozePatchUpdates,
 } from "./StoryRecorder";
 
 /** Picks Strikes mode (if the mode-select screen is showing) and answers
@@ -218,6 +220,121 @@ describe("buildDistractorPatchUpdates", () => {
 
   it("returns an empty array when the AI returned nothing for any candidate", () => {
     expect(buildDistractorPatchUpdates(candidates, [])).toEqual([]);
+  });
+});
+
+describe("planClozeGrowth", () => {
+  const baseTopic = {
+    images: ["scene-1.jpg"],
+    vocabulary: { 0: ["餐廳", "吃"] },
+    vocabularyTranslation: { 0: ["restaurant", "to eat"] },
+    suggestedAnswers: { 0: "我在餐廳吃飯。" },
+  };
+
+  it("includes words with no persisted cloze candidates yet", () => {
+    const candidates = planClozeGrowth(baseTopic);
+    expect(candidates).toEqual([
+      {
+        frameIndex: 0,
+        wordIndex: 0,
+        word: "餐廳",
+        translation: "restaurant",
+        context: "我在餐廳吃飯。",
+        existing: [],
+      },
+      {
+        frameIndex: 0,
+        wordIndex: 1,
+        word: "吃",
+        translation: "to eat",
+        context: "我在餐廳吃飯。",
+        existing: [],
+      },
+    ]);
+  });
+
+  it("skips words that already reached the 4-candidate cap, passing existing sentences as the avoid list", () => {
+    const candidates = planClozeGrowth({
+      ...baseTopic,
+      vocabularyCloze: {
+        0: [
+          [
+            { sentence: "s1", distractors: ["a"] },
+            { sentence: "s2", distractors: ["b"] },
+            { sentence: "s3", distractors: ["c"] },
+            { sentence: "s4", distractors: ["d"] },
+          ],
+          [{ sentence: "s5", distractors: ["e"] }],
+        ],
+      },
+    });
+    expect(candidates.map((c) => c.word)).toEqual(["吃"]);
+    expect(candidates[0].existing).toEqual(["s5"]);
+  });
+
+  it("returns an empty array once every word is at cap (signal to skip the AI call)", () => {
+    const fullPool = [
+      { sentence: "s1", distractors: ["a"] },
+      { sentence: "s2", distractors: ["b"] },
+      { sentence: "s3", distractors: ["c"] },
+      { sentence: "s4", distractors: ["d"] },
+    ];
+    const candidates = planClozeGrowth({
+      ...baseTopic,
+      vocabularyCloze: { 0: [fullPool, fullPool] },
+    });
+    expect(candidates).toEqual([]);
+  });
+
+  it("skips words with no translation", () => {
+    const candidates = planClozeGrowth({
+      ...baseTopic,
+      vocabularyTranslation: { 0: ["restaurant", ""] },
+    });
+    expect(candidates.map((c) => c.word)).toEqual(["餐廳"]);
+  });
+});
+
+describe("buildClozePatchUpdates", () => {
+  const candidates = [
+    { frameIndex: 0, wordIndex: 0, word: "餐廳", translation: "restaurant", existing: [] },
+    { frameIndex: 0, wordIndex: 1, word: "吃", translation: "to eat", existing: ["s1"] },
+  ];
+
+  it("maps AI results back to frame/word indices by word text", () => {
+    const updates = buildClozePatchUpdates(candidates, [
+      { word: "餐廳", sentence: "我在餐廳吃飯。", distractors: ["教室", "公園"] },
+      { word: "吃", sentence: "我要吃飯。", distractors: ["喝"] },
+    ]);
+    expect(updates).toEqual([
+      {
+        frameIndex: 0,
+        wordIndex: 0,
+        candidates: [{ sentence: "我在餐廳吃飯。", distractors: ["教室", "公園"] }],
+      },
+      {
+        frameIndex: 0,
+        wordIndex: 1,
+        candidates: [{ sentence: "我要吃飯。", distractors: ["喝"] }],
+      },
+    ]);
+  });
+
+  it("drops candidates the AI returned nothing for", () => {
+    const updates = buildClozePatchUpdates(candidates, [
+      { word: "餐廳", sentence: "我在餐廳吃飯。", distractors: ["教室"] },
+    ]);
+    expect(updates).toEqual([
+      {
+        frameIndex: 0,
+        wordIndex: 0,
+        candidates: [{ sentence: "我在餐廳吃飯。", distractors: ["教室"] }],
+      },
+    ]);
+  });
+
+  it("returns an empty array when the AI returned nothing for any candidate", () => {
+    expect(buildClozePatchUpdates(candidates, [])).toEqual([]);
   });
 });
 

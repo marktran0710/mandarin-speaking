@@ -41,7 +41,7 @@ function scoreBandClass(score: number): string {
 // with, and this is the app's primary "how did I do" assessment surface.
 const TIER_BADGE: Record<"good" | "fix" | "next", { icon: string; zh: string; pinyin: string; en: string }> = {
   good: { icon: "✓", zh: "很好", pinyin: "Hěn hǎo", en: "Good" },
-  fix: { icon: "△", zh: "待加強", pinyin: "Dài jiāqiáng", en: "Needs work" },
+  fix: { icon: "△", zh: "要加油", pinyin: "Yào jiāyóu", en: "Needs work" },
   next: { icon: "!", zh: "再試試", pinyin: "Zài shìshi", en: "Try again" },
 };
 
@@ -247,28 +247,28 @@ export default function StoryFeedbackCard({
       {feedback && (
         <div className="story-feedback-cards">
           <DimensionRow
-            zh="流暢和連貫"
-            pinyin="Liúchàng hé liánguàn"
-            en="Fluency and Coherence"
-            dimension={feedback.fluency_coherence}
+            zh="聲調"
+            pinyin="Shēngdiào"
+            en="Tone"
+            dimension={feedback.tone}
           />
           <DimensionRow
-            zh="詞彙量"
-            pinyin="Cíhuì liàng"
-            en="Lexical Resource"
-            dimension={feedback.lexical_resource}
+            zh="重音"
+            pinyin="Zhòngyīn"
+            en="Word Stress"
+            dimension={feedback.word_stress}
           />
           <DimensionRow
-            zh="文法廣度和準確度"
-            pinyin="Wénfǎ guǎngdù hé zhǔnquè dù"
-            en="Grammatical Range and Accuracy"
-            dimension={feedback.grammatical_range_accuracy}
+            zh="節奏和速度"
+            pinyin="Jiézòu hé sùdù"
+            en="Rhythm and Pace"
+            dimension={feedback.rhythm_pace}
           />
           <DimensionRow
-            zh="發音"
-            pinyin="Fāyīn"
-            en="Pronunciation"
-            dimension={feedback.pronunciation}
+            zh="停頓"
+            pinyin="Tíngdùn"
+            en="Pausing"
+            dimension={feedback.pausing}
           />
         </div>
       )}

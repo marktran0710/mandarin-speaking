@@ -1,7 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { BiLabel } from "./BiLabel";
 import { toPinyin } from "../utils/pinyin";
+import { canUseDatabase, getVocabQuizWeakWords } from "../services/database";
 import "./StoryVocabQuiz.css";
+
+export interface VocabQuizClozeCandidate {
+  sentence: string;
+  distractors: string[];
+}
+
+export interface VocabQuizSynonymCandidate {
+  synonym: string;
+  distractors: string[];
+}
 
 export interface VocabQuizEntry {
   word: string;
@@ -9,17 +20,82 @@ export interface VocabQuizEntry {
   // Teacher-authored pinyin for this word, if any — falls back to a computed
   // reading (see the Review screen) when absent.
   pinyin?: string;
+  // Teacher-authored part of speech (N/V/ADJ/...), if any — undefined means
+  // this word never becomes a "part of speech" question.
+  pos?: string;
   // AI-generated wrong-but-plausible translations for this word (see
-  // buildQuestionForEntry) — undefined/empty falls back to the old
+  // buildTranslationQuestion) — undefined/empty falls back to the old
   // real-word-pool + generic-filler distractor logic.
   aiDistractors?: string[];
+  // AI-generated fill-in-the-blank sentences for this word (see
+  // buildClozeQuestion) — undefined/empty means this word never becomes a
+  // cloze question, only a translation one.
+  aiCloze?: VocabQuizClozeCandidate[];
+  // AI-generated synonym candidates for this word (see
+  // buildSynonymQuestion) — undefined/empty means this word never becomes a
+  // synonym question.
+  aiSynonym?: VocabQuizSynonymCandidate[];
 }
 
-export interface VocabQuizQuestion {
+// The blank marker inside a cloze question's sentence — split out at render
+// time so it can be styled distinctly from the surrounding text.
+export const CLOZE_BLANK = "____";
+
+export interface VocabQuizTranslationQuestion {
+  kind: "translation";
   word: string;
   correctTranslation: string;
   options: string[];
+  // True when at least one of the shown options came from AI-generated
+  // distractors rather than the story's other words / generic filler.
+  isAiGenerated: boolean;
 }
+
+export interface VocabQuizClozeQuestion {
+  kind: "cloze";
+  word: string;
+  // The candidate's sentence with `word`'s first occurrence replaced by
+  // CLOZE_BLANK.
+  sentenceWithBlank: string;
+  correctWord: string;
+  options: string[];
+  // Cloze questions only exist via AI generation — always true.
+  isAiGenerated: true;
+}
+
+export interface VocabQuizPinyinQuestion {
+  kind: "pinyin";
+  word: string;
+  correctPinyin: string;
+  options: string[];
+  // Pinyin questions are computed deterministically, never AI-generated.
+  isAiGenerated: false;
+}
+
+export interface VocabQuizPosQuestion {
+  kind: "pos";
+  word: string;
+  correctPos: string;
+  options: string[];
+  // Part-of-speech questions use teacher-authored data, never AI-generated.
+  isAiGenerated: false;
+}
+
+export interface VocabQuizSynonymQuestion {
+  kind: "synonym";
+  word: string;
+  correctSynonym: string;
+  options: string[];
+  // Synonym questions only exist via AI generation — always true.
+  isAiGenerated: true;
+}
+
+export type VocabQuizQuestion =
+  | VocabQuizTranslationQuestion
+  | VocabQuizClozeQuestion
+  | VocabQuizPinyinQuestion
+  | VocabQuizPosQuestion
+  | VocabQuizSynonymQuestion;
 
 export interface VocabQuizQuestionResult {
   word: string;
@@ -35,7 +111,12 @@ export interface VocabQuizSummary {
   questionResults: VocabQuizQuestionResult[];
 }
 
-export type VocabQuizMode = "speed" | "strikes" | "free";
+// "weak_words" mirrors "free"'s unlimited/no-timer engine but, unlike the
+// same-session missed-words retry below, is a real scored mode: it reports
+// via onComplete and gets saved as an attempt, so a correct answer there
+// actually clears the word from the next weak-words list (see
+// getVocabQuizWeakWords) rather than resetting on page leave.
+export type VocabQuizMode = "speed" | "strikes" | "free" | "weak_words";
 
 const MAX_QUESTIONS = 8;
 const OPTION_COUNT = 4;
@@ -90,6 +171,9 @@ export function collectQuizEntries(
   suggestedAnswers?: Array<string | undefined>,
   aiDistractors?: Array<string[] | undefined>,
   pinyins?: Array<string | undefined>,
+  aiCloze?: Array<VocabQuizClozeCandidate[] | undefined>,
+  partsOfSpeech?: Array<string | undefined>,
+  aiSynonym?: Array<VocabQuizSynonymCandidate[] | undefined>,
 ): VocabQuizEntry[] {
   const seen = new Set<string>();
   const entries: VocabQuizEntry[] = [];
@@ -101,11 +185,24 @@ export function collectQuizEntries(
     seen.add(word);
     const distractors = aiDistractors?.[i];
     const pinyin = pinyins?.[i]?.trim();
+    const pos = partsOfSpeech?.[i]?.trim();
+    // A candidate is only usable once it actually has a distractor and its
+    // sentence really contains the word — belt-and-suspenders on top of the
+    // backend's own validation, in case stale/malformed data slipped through.
+    const cloze = (aiCloze?.[i] ?? []).filter(
+      (c) => c.distractors.length > 0 && c.sentence.includes(word),
+    );
+    const synonym = (aiSynonym?.[i] ?? []).filter(
+      (c) => c.distractors.length > 0 && c.synonym !== word,
+    );
     entries.push({
       word,
       translation,
       ...(distractors?.length ? { aiDistractors: distractors } : {}),
       ...(pinyin ? { pinyin } : {}),
+      ...(pos ? { pos } : {}),
+      ...(cloze.length ? { aiCloze: cloze } : {}),
+      ...(synonym.length ? { aiSynonym: synonym } : {}),
     });
   });
   return entries;
@@ -118,10 +215,10 @@ export function collectQuizEntries(
  * words, then generic filler words, pad out any remaining slots — covering
  * both a story with no AI distractors yet and one where the AI returned
  * fewer than OPTION_COUNT-1 for a word. */
-function buildQuestionForEntry(
+function buildTranslationQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
-): VocabQuizQuestion {
+): VocabQuizTranslationQuestion {
   const usedTranslations = new Set([entry.translation]);
 
   const aiPool = (entry.aiDistractors ?? []).filter((d) => !usedTranslations.has(d));
@@ -153,17 +250,221 @@ function buildQuestionForEntry(
     ...realDistractors,
     ...fillerDistractors,
   ]);
-  return { word: entry.word, correctTranslation: entry.translation, options };
+  return {
+    kind: "translation",
+    word: entry.word,
+    correctTranslation: entry.translation,
+    options,
+    isAiGenerated: aiDistractors.length > 0,
+  };
 }
 
-/** Builds up to MAX_QUESTIONS multiple-choice questions, one per entry, all
- * at once. The live quiz below generates questions one at a time instead
- * (an endless shuffle-bag, so Speed/Strikes/Free/retry rounds can each set
- * their own question count independently) — this batch form is kept as a
- * standalone utility. */
-export function buildQuizQuestions(entries: VocabQuizEntry[]): VocabQuizQuestion[] {
+/** Builds one fill-in-the-blank question from a randomly-picked cached AI
+ * cloze candidate for `entry` (only called when at least one exists — see
+ * buildQuizQuestion). Wrong-word options are drawn the same tiered way as
+ * buildTranslationQuestion's distractors: the candidate's own AI-generated
+ * words first, then other story words, since there's no Chinese-word
+ * equivalent of FILLER_DISTRACTORS to pad out the rest with. */
+function buildClozeQuestion(
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+): VocabQuizClozeQuestion {
+  const candidate = shuffle(entry.aiCloze!)[0];
+  const usedWords = new Set([entry.word]);
+
+  const aiWordPool = candidate.distractors.filter((d) => !usedWords.has(d));
+  const aiWordDistractors = shuffle(aiWordPool).slice(0, OPTION_COUNT - 1);
+  aiWordDistractors.forEach((d) => usedWords.add(d));
+
+  const realWordPool = Array.from(
+    new Set(
+      allEntries
+        .filter((e) => e.word !== entry.word && !usedWords.has(e.word))
+        .map((e) => e.word),
+    ),
+  );
+  const realWordDistractors = shuffle(realWordPool).slice(
+    0,
+    OPTION_COUNT - 1 - aiWordDistractors.length,
+  );
+
+  const options = shuffle([entry.word, ...aiWordDistractors, ...realWordDistractors]);
+  return {
+    kind: "cloze",
+    word: entry.word,
+    sentenceWithBlank: candidate.sentence.replace(entry.word, CLOZE_BLANK),
+    correctWord: entry.word,
+    options,
+    isAiGenerated: true,
+  };
+}
+
+/** Builds a "how do you read this?" question: the word's correct pinyin
+ * (teacher-authored, or computed the same way the Review screen does) among
+ * up to OPTION_COUNT-1 wrong readings drawn from the other story words'
+ * pinyin — always buildable, since every Chinese word has a computed
+ * reading even without a teacher-authored one. */
+function buildPinyinQuestion(
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+): VocabQuizPinyinQuestion {
+  const correctPinyin = entry.pinyin || toPinyin(entry.word);
+  const usedPinyin = new Set([correctPinyin]);
+
+  const pinyinPool = Array.from(
+    new Set(
+      allEntries
+        .filter((e) => e.word !== entry.word)
+        .map((e) => e.pinyin || toPinyin(e.word))
+        .filter((p) => p && !usedPinyin.has(p)),
+    ),
+  );
+  const distractors = shuffle(pinyinPool).slice(0, OPTION_COUNT - 1);
+
+  const options = shuffle([correctPinyin, ...distractors]);
+  return {
+    kind: "pinyin",
+    word: entry.word,
+    correctPinyin,
+    options,
+    isAiGenerated: false,
+  };
+}
+
+// Fallback pool when a story doesn't have enough distinct teacher-authored
+// parts of speech to draw real distractors from — mirrors FILLER_DISTRACTORS
+// above, just for POS tags instead of English words.
+const FILLER_POS = ["N", "V", "ADJ", "ADV", "MW", "PREP", "CONJ", "PRON"];
+
+/** Builds a "what part of speech is this?" question — only called when
+ * `entry.pos` is set (see buildQuizQuestion). Distractors: other story
+ * words' POS tags first, then the generic POS pool above. */
+function buildPosQuestion(
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+): VocabQuizPosQuestion {
+  const correctPos = entry.pos!;
+  const usedPos = new Set([correctPos]);
+
+  const realPosPool = Array.from(
+    new Set(
+      allEntries
+        .filter((e) => e.word !== entry.word && e.pos && !usedPos.has(e.pos))
+        .map((e) => e.pos!),
+    ),
+  );
+  const realDistractors = shuffle(realPosPool).slice(0, OPTION_COUNT - 1);
+  realDistractors.forEach((p) => usedPos.add(p));
+
+  const fillerPool = FILLER_POS.filter((p) => !usedPos.has(p));
+  const fillerDistractors = shuffle(fillerPool).slice(
+    0,
+    OPTION_COUNT - 1 - realDistractors.length,
+  );
+
+  const options = shuffle([correctPos, ...realDistractors, ...fillerDistractors]);
+  return {
+    kind: "pos",
+    word: entry.word,
+    correctPos,
+    options,
+    isAiGenerated: false,
+  };
+}
+
+/** Builds a "which word means the same?" question from a randomly-picked
+ * cached AI synonym candidate for `entry` (only called when at least one
+ * exists — see buildQuizQuestion). Mirrors buildClozeQuestion's tiered
+ * wrong-option sourcing: the candidate's own AI-generated distractors
+ * first, then other story words. */
+function buildSynonymQuestion(
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+): VocabQuizSynonymQuestion {
+  const candidate = shuffle(entry.aiSynonym!)[0];
+  const usedWords = new Set([entry.word, candidate.synonym]);
+
+  const aiWordPool = candidate.distractors.filter((d) => !usedWords.has(d));
+  const aiWordDistractors = shuffle(aiWordPool).slice(0, OPTION_COUNT - 1);
+  aiWordDistractors.forEach((d) => usedWords.add(d));
+
+  const realWordPool = Array.from(
+    new Set(
+      allEntries
+        .filter((e) => e.word !== entry.word && !usedWords.has(e.word))
+        .map((e) => e.word),
+    ),
+  );
+  const realWordDistractors = shuffle(realWordPool).slice(
+    0,
+    OPTION_COUNT - 1 - aiWordDistractors.length,
+  );
+
+  const options = shuffle([candidate.synonym, ...aiWordDistractors, ...realWordDistractors]);
+  return {
+    kind: "synonym",
+    word: entry.word,
+    correctSynonym: candidate.synonym,
+    options,
+    isAiGenerated: true,
+  };
+}
+
+// Relative weights for picking a question kind among whichever are actually
+// available for a given entry (translation and pinyin are always available;
+// cloze/pos/synonym only when the entry has the matching data — see
+// buildQuizQuestion). Translation stays dominant, appropriate for A1-A2
+// learners; the rest mix in for variety.
+type QuestionKind = "translation" | "cloze" | "pinyin" | "pos" | "synonym";
+const KIND_WEIGHTS: Record<QuestionKind, number> = {
+  translation: 50,
+  pinyin: 20,
+  cloze: 15,
+  synonym: 10,
+  pos: 5,
+};
+
+function pickQuestionKind(entry: VocabQuizEntry): QuestionKind {
+  const available: QuestionKind[] = ["translation", "pinyin"];
+  if (entry.aiCloze?.length) available.push("cloze");
+  if (entry.pos) available.push("pos");
+  if (entry.aiSynonym?.length) available.push("synonym");
+
+  const total = available.reduce((sum, kind) => sum + KIND_WEIGHTS[kind], 0);
+  let roll = Math.random() * total;
+  for (const kind of available) {
+    roll -= KIND_WEIGHTS[kind];
+    if (roll <= 0) return kind;
+  }
+  return available[available.length - 1];
+}
+
+function buildQuizQuestion(
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+): VocabQuizQuestion {
+  switch (pickQuestionKind(entry)) {
+    case "cloze":
+      return buildClozeQuestion(entry, allEntries);
+    case "pinyin":
+      return buildPinyinQuestion(entry, allEntries);
+    case "pos":
+      return buildPosQuestion(entry, allEntries);
+    case "synonym":
+      return buildSynonymQuestion(entry, allEntries);
+    default:
+      return buildTranslationQuestion(entry, allEntries);
+  }
+}
+
+/** Builds up to MAX_QUESTIONS multiple-choice translation questions, one per
+ * entry, all at once. The live quiz below generates questions one at a time
+ * instead (an endless shuffle-bag, so Speed/Strikes/Free/retry rounds can
+ * each set their own question count independently, and mix in cloze — see
+ * buildQuizQuestion) — this batch form is kept as a standalone utility. */
+export function buildQuizQuestions(entries: VocabQuizEntry[]): VocabQuizTranslationQuestion[] {
   const pool = shuffle(entries).slice(0, MAX_QUESTIONS);
-  return pool.map((entry) => buildQuestionForEntry(entry, entries));
+  return pool.map((entry) => buildTranslationQuestion(entry, entries));
 }
 
 const MODES: Array<{
@@ -202,8 +503,8 @@ const MODES: Array<{
     title: "複習模式",
     titlePinyin: "Fùxí móshì",
     titleEn: "Review",
-    desc: "沒有題目限制 — 直接看所有詞彙和它們的聲調。",
-    descPinyin: "Méiyǒu tímù xiànzhì — zhíjiē kàn suǒyǒu cíhuì hàn tāmen de shēngdiào.",
+    desc: "沒有題目限制 — 直接看所有生詞和它們的聲調。",
+    descPinyin: "Méiyǒu tímù xiànzhì — zhíjiē kàn suǒyǒu shēngcí hàn tāmen de shēngdiào.",
     descEn: "No question limit — just browse every word and its tones.",
   },
 ];
@@ -224,11 +525,20 @@ export default function StoryVocabQuiz({
   onDone,
   onBack,
   onComplete,
+  storyId,
+  studentId,
+  studentName,
 }: {
   entries: VocabQuizEntry[];
   onDone: () => void;
   onBack?: () => void;
   onComplete?: (summary: VocabQuizSummary) => void;
+  // All three optional and only used to fetch the persistent weak-words
+  // list (see getVocabQuizWeakWords) — omitting storyId/student identity
+  // just means that mode card never appears, same as having no weak words.
+  storyId?: string;
+  studentId?: string;
+  studentName?: string;
 }) {
   const [screen, setScreen] = useState<"mode-select" | "quiz" | "review" | "summary">("mode-select");
   const [mode, setMode] = useState<VocabQuizMode | null>(null);
@@ -246,8 +556,26 @@ export default function StoryVocabQuiz({
   const [selected, setSelected] = useState<string | null>(null);
   const [results, setResults] = useState<VocabQuizQuestionResult[]>([]);
   const [consecutiveFails, setConsecutiveFails] = useState(0);
+  const [timeLeftMs, setTimeLeftMs] = useState(TOTAL_TIME_LIMIT_MS);
   const questionStartRef = useRef(Date.now());
   const quizStartRef = useRef(Date.now());
+
+  const [weakWords, setWeakWords] = useState<string[]>([]);
+  useEffect(() => {
+    if (!storyId || !canUseDatabase()) return;
+    let cancelled = false;
+    getVocabQuizWeakWords(storyId, { studentId, studentName })
+      .then((words) => {
+        if (!cancelled) setWeakWords(words);
+      })
+      .catch(() => {
+        /* best-effort — the weak-words card just stays hidden */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storyId, studentId, studentName]);
+  const weakEntries = entries.filter((e) => weakWords.includes(e.word));
 
   const question = questions[index];
   const isLast = questionLimit !== null && index === questionLimit - 1;
@@ -306,9 +634,24 @@ export default function StoryVocabQuiz({
     }
   };
 
+  const correctAnswer = (q: VocabQuizQuestion) => {
+    switch (q.kind) {
+      case "translation":
+        return q.correctTranslation;
+      case "cloze":
+        return q.correctWord;
+      case "pinyin":
+        return q.correctPinyin;
+      case "pos":
+        return q.correctPos;
+      case "synonym":
+        return q.correctSynonym;
+    }
+  };
+
   const choose = (option: string) => {
     if (selected) return;
-    recordAnswer(option === question.correctTranslation, option);
+    recordAnswer(option === correctAnswer(question), option);
   };
 
   const next = () => {
@@ -320,7 +663,7 @@ export default function StoryVocabQuiz({
     questionStartRef.current = Date.now();
     const nextIndex = index + 1;
     if (!questions[nextIndex]) {
-      const nextQuestion = buildQuestionForEntry(drawFromBag(roundEntries), roundEntries);
+      const nextQuestion = buildQuizQuestion(drawFromBag(roundEntries), roundEntries);
       setQuestions((qs) => [...qs, nextQuestion]);
     }
     setIndex(nextIndex);
@@ -328,13 +671,19 @@ export default function StoryVocabQuiz({
 
   // Speed mode: no per-question timer — just an overall 60s cap on the whole
   // run, checked each tick against wall-clock elapsed time (so it survives
-  // tab throttling better than a decrementing counter).
+  // tab throttling better than a decrementing counter). timeLeftMs is
+  // recomputed from that same elapsed-time check purely for display — the
+  // finish() call above is still what actually ends the round.
   useEffect(() => {
     if (mode !== "speed" || screen !== "quiz" || selected) return;
     const tick = window.setInterval(() => {
-      if (Date.now() - quizStartRef.current >= TOTAL_TIME_LIMIT_MS) {
+      const remaining = TOTAL_TIME_LIMIT_MS - (Date.now() - quizStartRef.current);
+      if (remaining <= 0) {
+        setTimeLeftMs(0);
         finish(results);
+        return;
       }
+      setTimeLeftMs(remaining);
     }, TIMER_TICK_MS);
     return () => window.clearInterval(tick);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -356,8 +705,9 @@ export default function StoryVocabQuiz({
     setSelected(null);
     setResults([]);
     setConsecutiveFails(0);
+    setTimeLeftMs(TOTAL_TIME_LIMIT_MS);
     bagRef.current = shuffle(entriesForRound);
-    setQuestions([buildQuestionForEntry(bagRef.current.shift()!, entriesForRound)]);
+    setQuestions([buildQuizQuestion(bagRef.current.shift()!, entriesForRound)]);
     quizStartRef.current = Date.now();
     questionStartRef.current = Date.now();
     finishedRef.current = false;
@@ -383,7 +733,7 @@ export default function StoryVocabQuiz({
         )}
         <div className="vocab-quiz-header">
           <p className="eyebrow">
-            <BiLabel zh="詞彙測驗" pinyin="Cíhuì cèyàn" en="Vocabulary Quiz" />
+            <BiLabel zh="生詞測驗" pinyin="Shēngcí cèyàn" en="Vocabulary Quiz" />
           </p>
           <h1 className="vocab-quiz-mode-title">
             <BiLabel zh="選一種模式" pinyin="Xuǎn yì zhǒng móshì" en="Pick a mode" />
@@ -410,6 +760,29 @@ export default function StoryVocabQuiz({
               </p>
             </button>
           ))}
+          {weakEntries.length > 0 && (
+            <button
+              type="button"
+              className="vocab-quiz-mode-card vocab-quiz-mode-weak_words"
+              onClick={() => chooseMode("weak_words", weakEntries, weakEntries.length)}
+            >
+              <span className="vocab-quiz-mode-icon">🎯</span>
+              <strong>
+                <BiLabel
+                  zh={`弱項複習 (${weakEntries.length})`}
+                  pinyin="Ruòxiàng fùxí"
+                  en={`Weak words (${weakEntries.length})`}
+                />
+              </strong>
+              <p>
+                <BiLabel
+                  zh="只考你上次答錯的字。"
+                  pinyin="Zhǐ kǎo nǐ shàng cì dá cuò de zì."
+                  en="Only quizzes the words you got wrong last time."
+                />
+              </p>
+            </button>
+          )}
         </div>
       </section>
     );
@@ -430,7 +803,7 @@ export default function StoryVocabQuiz({
             <BiLabel zh="複習模式" pinyin="Fùxí móshì" en="Review Mode" />
           </p>
           <h1 className="vocab-quiz-mode-title">
-            <BiLabel zh="所有詞彙" pinyin="Suǒyǒu cíhuì" en="All vocabulary" />
+            <BiLabel zh="所有生詞" pinyin="Suǒyǒu shēngcí" en="All vocabulary" />
           </h1>
         </div>
         <ul className="vocab-quiz-review-list" aria-label="Vocabulary list">
@@ -519,12 +892,52 @@ export default function StoryVocabQuiz({
       <div className="vocab-quiz-header">
         <p className="eyebrow">
           <BiLabel
-            zh={isRetryRound ? "複習答錯的題目" : "詞彙測驗"}
-            pinyin={isRetryRound ? "Fùxí dá cuò de tímù" : "Cíhuì cèyàn"}
+            zh={isRetryRound ? "複習答錯的題目" : "生詞測驗"}
+            pinyin={isRetryRound ? "Fùxí dá cuò de tímù" : "Shēngcí cèyàn"}
             en={isRetryRound ? "Reviewing missed words" : "Vocabulary Quiz"}
           />
         </p>
-        <h1 className="vocab-quiz-word">{question.word}</h1>
+        {question.kind === "pinyin" && (
+          <p className="vocab-quiz-instruction">
+            <BiLabel zh="這個字怎麼念？" pinyin="Zhège zì zěnme niàn?" en="How do you read this word?" />
+          </p>
+        )}
+        {question.kind === "pos" && (
+          <p className="vocab-quiz-instruction">
+            <BiLabel zh="這是什麼詞類？" pinyin="Zhè shì shénme cílèi?" en="What part of speech is this?" />
+          </p>
+        )}
+        {question.kind === "synonym" && (
+          <p className="vocab-quiz-instruction">
+            <BiLabel zh="哪個字意思一樣？" pinyin="Nǎge zì yìsi yíyàng?" en="Which word means the same?" />
+          </p>
+        )}
+        {question.kind === "cloze" ? (
+          <h1 className="vocab-quiz-word vocab-quiz-cloze-sentence">
+            {question.sentenceWithBlank.split(CLOZE_BLANK).map((part, i, parts) => (
+              <span key={i}>
+                {part}
+                {i < parts.length - 1 && (
+                  <span className="vocab-quiz-cloze-blank" aria-hidden="true">
+                    {CLOZE_BLANK}
+                  </span>
+                )}
+              </span>
+            ))}
+            <span className="vocab-quiz-ai-badge" title="AI-generated question" aria-label="AI-generated question">
+              ✨
+            </span>
+          </h1>
+        ) : (
+          <h1 className="vocab-quiz-word">
+            {question.word}
+            {question.isAiGenerated && (
+              <span className="vocab-quiz-ai-badge" title="AI-generated question" aria-label="AI-generated question">
+                ✨
+              </span>
+            )}
+          </h1>
+        )}
         <p className="vocab-quiz-progress">
           {questionLimit !== null ? (
             <BiLabel
@@ -545,15 +958,33 @@ export default function StoryVocabQuiz({
             ))}
           </p>
         )}
+        {mode === "speed" && (
+          <p
+            className={`vocab-quiz-timer${timeLeftMs <= 10_000 ? " is-low" : ""}`}
+            aria-label={`${Math.ceil(timeLeftMs / 1000)} seconds left`}
+          >
+            ⏱️ {Math.ceil(timeLeftMs / 1000)}s
+          </p>
+        )}
       </div>
 
       <div
         className="vocab-quiz-options"
         role="group"
-        aria-label={`What does ${question.word} mean?`}
+        aria-label={
+          question.kind === "translation"
+            ? `What does ${question.word} mean?`
+            : question.kind === "cloze"
+              ? "Which word fits the blank?"
+              : question.kind === "pinyin"
+                ? `How do you read ${question.word}?`
+                : question.kind === "pos"
+                  ? `What part of speech is ${question.word}?`
+                  : `Which word means the same as ${question.word}?`
+        }
       >
         {question.options.map((option) => {
-          const isCorrect = option === question.correctTranslation;
+          const isCorrect = option === correctAnswer(question);
           const isChosen = option === selected;
           const state = selected
             ? isCorrect

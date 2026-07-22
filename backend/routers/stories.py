@@ -6,7 +6,9 @@ from database import connect_db, row_to_custom_story
 import main
 from main import (
     CustomStoryRequest,
+    VocabularyClozeUpdateRequest,
     VocabularyDistractorsUpdateRequest,
+    VocabularySynonymUpdateRequest,
 )
 
 router = APIRouter()
@@ -118,6 +120,111 @@ async def update_vocabulary_distractors(
                 merged.append(distractor)
             pool[update.wordIndex] = merged
             frame["vocabularyDistractors"] = json.dumps(pool)
+
+        db.execute(
+            "UPDATE custom_stories SET frames = ? WHERE id = ?",
+            (json.dumps(frames), story_id),
+        )
+    return {"ok": True}
+
+
+@router.patch("/api/custom-stories/{story_id}/vocabulary-cloze")
+async def update_vocabulary_cloze(story_id: str, request: VocabularyClozeUpdateRequest):
+    """
+    Tops up a story's per-word cloze-question pool (grown over time as
+    students complete quiz rounds), mirroring update_vocabulary_distractors
+    above — merges new {sentence, distractors} candidates into the existing
+    list per word, deduping by sentence text and capping at
+    MAX_VOCAB_CLOZE_PER_WORD so the pool doesn't grow unbounded.
+    """
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT frames FROM custom_stories WHERE id = ?", (story_id,)
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Story not found.")
+
+        frames = json.loads(row["frames"] or "[]")
+        for update in request.updates:
+            if update.frameIndex < 0 or update.frameIndex >= len(frames):
+                continue
+            if update.wordIndex < 0:
+                continue
+            frame = frames[update.frameIndex]
+            try:
+                pool: list = json.loads(frame.get("vocabularyCloze") or "[]")
+            except (json.JSONDecodeError, TypeError):
+                pool = []
+            while len(pool) <= update.wordIndex:
+                pool.append([])
+
+            existing = pool[update.wordIndex]
+            seen = {c.get("sentence", "").strip() for c in existing if isinstance(c, dict)}
+            merged = list(existing)
+            for candidate in update.candidates:
+                sentence = candidate.sentence.strip()
+                if (
+                    not sentence
+                    or sentence in seen
+                    or len(merged) >= main.MAX_VOCAB_CLOZE_PER_WORD
+                ):
+                    continue
+                seen.add(sentence)
+                merged.append({"sentence": sentence, "distractors": candidate.distractors})
+            pool[update.wordIndex] = merged
+            frame["vocabularyCloze"] = json.dumps(pool)
+
+        db.execute(
+            "UPDATE custom_stories SET frames = ? WHERE id = ?",
+            (json.dumps(frames), story_id),
+        )
+    return {"ok": True}
+
+
+@router.patch("/api/custom-stories/{story_id}/vocabulary-synonym")
+async def update_vocabulary_synonym(story_id: str, request: VocabularySynonymUpdateRequest):
+    """
+    Tops up a story's per-word synonym-question pool, mirroring
+    update_vocabulary_cloze above — merges new {synonym, distractors}
+    candidates into the existing list per word, deduping by synonym text and
+    capping at MAX_VOCAB_SYNONYM_PER_WORD.
+    """
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT frames FROM custom_stories WHERE id = ?", (story_id,)
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Story not found.")
+
+        frames = json.loads(row["frames"] or "[]")
+        for update in request.updates:
+            if update.frameIndex < 0 or update.frameIndex >= len(frames):
+                continue
+            if update.wordIndex < 0:
+                continue
+            frame = frames[update.frameIndex]
+            try:
+                pool: list = json.loads(frame.get("vocabularySynonym") or "[]")
+            except (json.JSONDecodeError, TypeError):
+                pool = []
+            while len(pool) <= update.wordIndex:
+                pool.append([])
+
+            existing = pool[update.wordIndex]
+            seen = {c.get("synonym", "").strip() for c in existing if isinstance(c, dict)}
+            merged = list(existing)
+            for candidate in update.candidates:
+                synonym = candidate.synonym.strip()
+                if (
+                    not synonym
+                    or synonym in seen
+                    or len(merged) >= main.MAX_VOCAB_SYNONYM_PER_WORD
+                ):
+                    continue
+                seen.add(synonym)
+                merged.append({"synonym": synonym, "distractors": candidate.distractors})
+            pool[update.wordIndex] = merged
+            frame["vocabularySynonym"] = json.dumps(pool)
 
         db.execute(
             "UPDATE custom_stories SET frames = ? WHERE id = ?",

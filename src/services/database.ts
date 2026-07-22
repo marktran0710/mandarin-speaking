@@ -54,6 +54,14 @@ export interface CustomStoryFrame {
   vocabularyPos?: string;
   vocabularyTranslation?: string;
   vocabularyDistractors?: string;
+  // JSON-encoded array of arrays (one entry per word) — each word's entry
+  // is a list of AI-generated {sentence, distractors} cloze candidates,
+  // grown over time the same way vocabularyDistractors is.
+  vocabularyCloze?: string;
+  // JSON-encoded array of arrays (one entry per word) — each word's entry
+  // is a list of AI-generated {synonym, distractors} candidates, grown the
+  // same way vocabularyCloze is.
+  vocabularySynonym?: string;
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
@@ -115,6 +123,11 @@ export interface SceneSubmission {
   pauseCount?: number;
   longestPause?: number;
   utteranceCount?: number;
+  // Judged pause placement (mid-phrase vs. a natural clause/punctuation
+  // boundary) and articulation rate — see backend caf_metrics.classify_pauses
+  // and speech_rate_verdict for how these are derived.
+  choppyPauseCount?: number;
+  articulationRate?: number;
 }
 
 export interface StoryFeedbackDimension {
@@ -123,12 +136,18 @@ export interface StoryFeedbackDimension {
   judged?: boolean; // false = offline/local placeholder, not a real judgment
 }
 
+// Four pronunciation-focused dimensions, mirroring the same axes the radar
+// chart already draws from Praat data (StoryFeedbackCard's
+// computePronunciationProfile). Not IELTS-style vocabulary/grammar pillars —
+// once a scene hands the student a script to read rather than compose
+// freely, vocabulary/grammar choice isn't really being tested, only delivery
+// is. See backend ai_feedback.fallback_story_feedback.
 export interface StoryFeedback {
   provider: string;
-  fluency_coherence: StoryFeedbackDimension;
-  lexical_resource: StoryFeedbackDimension;
-  grammatical_range_accuracy: StoryFeedbackDimension;
-  pronunciation: StoryFeedbackDimension;
+  tone: StoryFeedbackDimension;
+  word_stress: StoryFeedbackDimension;
+  rhythm_pace: StoryFeedbackDimension;
+  pausing: StoryFeedbackDimension;
 }
 
 export interface StorySubmission {
@@ -271,6 +290,70 @@ export async function updateVocabularyDistractors(
   }
 }
 
+export interface VocabularyClozeCandidate {
+  sentence: string;
+  distractors: string[];
+}
+
+export interface VocabularyClozeUpdate {
+  frameIndex: number;
+  wordIndex: number;
+  candidates: VocabularyClozeCandidate[];
+}
+
+// Tops up a story's persisted per-word cloze-question pool (merged/deduped/
+// capped server-side) rather than replacing it — mirrors
+// updateVocabularyDistractors above, called after a student finishes a vocab
+// quiz round so cloze sentences keep varying over time.
+export async function updateVocabularyCloze(
+  storyId: string,
+  updates: VocabularyClozeUpdate[],
+): Promise<void> {
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/vocabulary-cloze`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ updates }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Could not update vocabulary cloze questions for the story.");
+  }
+}
+
+export interface VocabularySynonymCandidate {
+  synonym: string;
+  distractors: string[];
+}
+
+export interface VocabularySynonymUpdate {
+  frameIndex: number;
+  wordIndex: number;
+  candidates: VocabularySynonymCandidate[];
+}
+
+// Tops up a story's persisted per-word synonym-question pool, mirroring
+// updateVocabularyCloze above.
+export async function updateVocabularySynonym(
+  storyId: string,
+  updates: VocabularySynonymUpdate[],
+): Promise<void> {
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/vocabulary-synonym`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ updates }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Could not update vocabulary synonym questions for the story.");
+  }
+}
+
 export async function listHelpRequests(): Promise<HelpRequest[]> {
   const response = await fetchWithRetry(`${BACKEND_URL}/api/help-requests`);
   if (!response.ok) {
@@ -324,7 +407,7 @@ export interface VocabQuizAttempt {
   // those legacy rows.
   studentId?: string;
   // Optional: attempts saved before quiz mode was tracked have none.
-  mode?: "speed" | "strikes" | "free";
+  mode?: "speed" | "strikes" | "free" | "weak_words";
   completedAt: string;
   totalQuestions: number;
   correctCount: number;
@@ -352,6 +435,25 @@ export async function listVocabQuizAttempts(storyId?: string): Promise<VocabQuiz
   if (!response.ok) throw new Error("Could not load vocabulary quiz attempts.");
   const data = await response.json();
   return Array.isArray(data) ? data : [];
+}
+
+// Words in a story whose most recent quiz answer (any past attempt, any
+// mode) was wrong — powers the persistent "weak words" quiz mode, distinct
+// from the same-session-only missed-words retry inside StoryVocabQuiz.
+export async function getVocabQuizWeakWords(
+  storyId: string,
+  student: { studentId?: string; studentName?: string },
+): Promise<string[]> {
+  const params = new URLSearchParams({ story_id: storyId });
+  if (student.studentId) params.set("student_id", student.studentId);
+  else if (student.studentName) params.set("student_name", student.studentName);
+  else return [];
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/vocab-quiz-attempts/weak-words?${params.toString()}`,
+  );
+  if (!response.ok) throw new Error("Could not load weak words.");
+  const data = await response.json();
+  return Array.isArray(data?.words) ? data.words : [];
 }
 
 export async function resolveHelpRequest(id: string) {

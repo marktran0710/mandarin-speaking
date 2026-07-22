@@ -5,7 +5,7 @@
 }
 
 .stories-header {
-  max-width: 980px;
+  max-width: var(--content-max);
   margin: 0 auto 18px;
   text-align: left;
 }
@@ -60,7 +60,7 @@
    the in-story practice screen, so the workbook a student lands on after
    practicing reads as part of the same game rather than a plain dashboard. ── */
 .student-progress-panel {
-  max-width: 980px;
+  max-width: var(--content-max);
   margin: 0 auto 18px;
   padding: 16px;
   display: grid;
@@ -109,7 +109,7 @@
 }
 
 .my-story-feedback-history {
-  max-width: 980px;
+  max-width: var(--content-max);
   margin: 0 auto 18px;
   padding: 16px;
   border: 2.5px solid var(--clay-hairline);
@@ -163,7 +163,7 @@
 }
 
 .student-help-card {
-  max-width: 980px;
+  max-width: var(--content-max);
   margin: 0 auto 18px;
   padding: 16px;
   display: grid;
@@ -266,7 +266,7 @@
 }
 
 .learning-workbook {
-  max-width: 980px;
+  max-width: var(--content-max);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -568,7 +568,7 @@
 }
 
 .stories-grid {
-  max-width: 1200px;
+  max-width: var(--content-max);
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -907,7 +907,7 @@
 .teacher-dashboard-grid,
 .teacher-content-builder,
 .teacher-recordings-panel {
-  max-width: 1180px;
+  max-width: var(--content-max);
   margin-left: auto;
   margin-right: auto;
 }
@@ -916,7 +916,7 @@
 .quiz-analytics-filters-panel,
 .teacher-quiz-analytics-panel,
 .teacher-recording-analytics-panel {
-  max-width: 1180px;
+  max-width: var(--content-max);
   margin-left: auto;
   margin-right: auto;
 }
@@ -1845,7 +1845,7 @@
    so its content stretched full-bleed while every sibling tab stayed
    centered. */
 .insights-view {
-  max-width: 1180px;
+  max-width: var(--content-max);
   margin-left: auto;
   margin-right: auto;
 }

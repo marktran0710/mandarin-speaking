@@ -1,4 +1,7 @@
 .login-page {
+  /* Narrow, centered auth column — overrides the global 1160px content width
+     while still flowing through the shared --content-max mechanism. */
+  --content-max: 560px;
   min-height: calc(100vh - var(--navbar-height));
   background: var(--clay-canvas);
   /* 72px bottom padding sits outside the token scale (>56px but not near
@@ -15,7 +18,7 @@
 }
 
 .login-shell {
-  max-width: 560px;
+  max-width: var(--content-max);
   margin: 0 auto;
 }
 

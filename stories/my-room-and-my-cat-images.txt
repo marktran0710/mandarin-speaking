@@ -67,7 +67,111 @@ EXPORT SETTINGS (to keep the file under 1.5 MB):
   compress with a tool like TinyPNG to get under 1.5 MB.
 
 ═══════════════════
-SPEECH-BUBBLE VERSION
+SPEECH-BUBBLE VERSION — EASY TIER (A1)
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble/box after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 11.)
+
+Single square-ish image, divided into a clean grid of 6 equal panels (2
+columns × 3 rows), thin light gutters between panels, no hard comic-book
+borders. Each panel that has a speaking character includes one simple
+rounded speech bubble with a small tail pointing at that character,
+containing that panel's Chinese text written clearly and accurately
+inside, plain white bubble with black outline; each narrator-only panel
+instead includes one small rectangular caption box (no tail) along the
+bottom edge containing that panel's Chinese narration text, plain white
+box with a thin black border; no other text, letters, words, or captions
+anywhere else in the image. Flat digital illustration style, soft rounded
+shapes, warm cozy afternoon color palette, limited color palette, gentle
+clean outlines, friendly simple style, consistent lighting and color
+palette across all panels.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHONGMING] a friendly young man, early 20s, short neat black hair, medium
+build, light denim jacket over a white t-shirt, dark jeans, a black analog
+wristwatch on his left wrist as his signature accessory.
+[YOUMEI] a friendly young woman, early 20s, shoulder-length wavy black hair
+held back with a red hair clip, soft yellow cardigan over a white blouse,
+light blue jeans.
+[JUZI] a small orange tabby cat, round face, curled-up sleepy posture, one
+white patch on its chest as its signature marking.
+
+Panel 1 (top-left): wide shot, Zhongming opening his front door and waving
+Youmei inside, both standing in a bright doorway, warm afternoon light
+spilling in. Narration caption box at the bottom contains the Chinese text
+"友美來中明家。他們一起去房間。" written clearly.
+
+Panel 2 (top-right): medium shot at eye level, Youmei standing beside a
+small desk stacked with several books, eyes wide and pointing at the stack
+with one hand, Zhongming standing nearby watching her reaction. Speech
+bubble near Youmei contains the Chinese text "哇！你的書好多！" written
+clearly.
+
+Panel 3 (middle-left): medium shot from a slight side angle, Zhongming
+sitting on a cozy sofa with one book open on his lap, gesturing toward the
+sofa cushion beside him with a relaxed smile. Speech bubble near Zhongming
+contains the Chinese text "我喜歡在沙發上看書。" written clearly.
+
+Panel 4 (middle-right): close-up shot, Youmei crouching near a sunlit window,
+pointing gently at Juzi the cat curled up asleep on the windowsill, her
+expression delighted. Speech bubble near Youmei contains the Chinese text
+"那是你的貓嗎？好可愛！" written clearly.
+
+Panel 5 (bottom-left): medium shot, Zhongming kneeling beside the window,
+softly petting Juzi's fur, looking fondly at the cat while Youmei watches
+from behind him. Speech bubble near Zhongming contains the Chinese text
+"牠叫橘子。牠喜歡曬太陽。" written clearly.
+
+Panel 6 (bottom-right): wide shot from a slightly higher angle, Youmei
+sitting cross-legged on the floor by the window with Juzi curled up in her
+lap, both her and Zhongming smiling down at the cat together. Speech bubble
+near Youmei contains the Chinese text "我也想要一隻貓！" written clearly.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Zhongming's denim jacket and black
+  wristwatch, Youmei's red hair clip and yellow cardigan, Juzi's orange fur
+  and white chest patch) recognizable in every panel.
+- Keep one art style and one lighting mood across all 6 panels so the page
+  reads as one connected world.
+- Vary pose, shot framing, and camera angle panel to panel so it reads as
+  six different moments, not one pose repeated six times.
+- If one panel looks off after generation, it's harder to regenerate in
+  isolation than with separate images — accept minor variance, or fall back
+  to generating that one beat as its own image and swapping it in during
+  editing if it matters.
+
+CAPTION SCRIPT (for proofreading the generated bubbles/boxes against — not
+part of the prompt above; if a bubble comes out garbled, use these to fix
+it by hand in an image editor or as the source for
+scripts/overlay_captions.py):
+Panel 1 — Narrator: 友美來中明家。他們一起去房間。
+  Yǒuměi lái Zhōngmíng jiā. Tāmen yìqǐ qù fángjiān. — Youmei comes to
+  Zhongming's house. They go to his room together.
+Panel 2 — Youmei: 哇！你的書好多！
+  Wa! Nǐ de shū hǎo duō! — Wow! You have so many books!
+Panel 3 — Zhongming: 我喜歡在沙發上看書。
+  Wǒ xǐhuān zài shāfā shàng kànshū. — I like reading on the sofa.
+Panel 4 — Youmei: 那是你的貓嗎？好可愛！
+  Nà shì nǐ de māo ma? Hǎo kě'ài! — Is that your cat? So cute!
+Panel 5 — Zhongming: 牠叫橘子。牠喜歡曬太陽。
+  Tā jiào Júzi. Tā xǐhuān shài tàiyáng. — Its name is Juzi. It likes
+  basking in the sun.
+Panel 6 — Youmei: 我也想要一隻貓！
+  Wǒ yě xiǎng yào yì zhī māo! — I want a cat too!
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1536 for a 2×3 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
+
+═══════════════════
+SPEECH-BUBBLE VERSION — MEDIUM TIER (A1-A2)
 ═══════════════════
 (AI image models render Chinese text inconsistently — proofread every
 bubble/box after generating. If any line comes out garbled or wrong,
@@ -172,6 +276,128 @@ Panel 5 — Zhongming: 對啊，牠叫橘子，因為喜歡曬太陽，所以常
 Panel 6 — Youmei: 太可愛了，我也好想養一隻貓！
   Tài kě'ài le, wǒ yě hǎo xiǎng yǎng yì zhī māo! — So cute, I really want
   to have a cat too!
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1536 for a 2×3 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
+
+═══════════════════
+SPEECH-BUBBLE VERSION — HARD TIER (A2)
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble/box after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 11.)
+
+Single square-ish image, divided into a clean grid of 6 equal panels (2
+columns × 3 rows), thin light gutters between panels, no hard comic-book
+borders. Each panel that has a speaking character includes one simple
+rounded speech bubble with a small tail pointing at that character,
+containing that panel's Chinese text written clearly and accurately
+inside, plain white bubble with black outline; each narrator-only panel
+instead includes one small rectangular caption box (no tail) along the
+bottom edge containing that panel's Chinese narration text, plain white
+box with a thin black border; no other text, letters, words, or captions
+anywhere else in the image. Flat digital illustration style, soft rounded
+shapes, warm cozy afternoon color palette, limited color palette, gentle
+clean outlines, friendly simple style, consistent lighting and color
+palette across all panels.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHONGMING] a friendly young man, early 20s, short neat black hair, medium
+build, light denim jacket over a white t-shirt, dark jeans, a black analog
+wristwatch on his left wrist as his signature accessory.
+[YOUMEI] a friendly young woman, early 20s, shoulder-length wavy black hair
+held back with a red hair clip, soft yellow cardigan over a white blouse,
+light blue jeans.
+[JUZI] a small orange tabby cat, round face, curled-up sleepy posture, one
+white patch on its chest as its signature marking.
+
+Panel 1 (top-left): wide shot, Zhongming opening his front door and waving
+Youmei inside, both standing in a bright doorway, warm afternoon light
+spilling in. Narration caption box at the bottom contains the Chinese text
+"友美這個週末下午來中明家玩，他一開門就帶她去看他剛整理過的房間。" written
+clearly.
+
+Panel 2 (top-right): medium shot at eye level, Youmei standing beside a
+small desk stacked with several books, eyes wide and pointing at the stack
+with one hand, Zhongming standing nearby watching her reaction. Speech
+bubble near Youmei contains the Chinese text "你的書好多！" written clearly.
+(Deliberately using the easy tier's short line here, not hard's — it
+matches this panel's books-stack visual; the hard tier's line for this turn
+describes the room's overall tidiness/comparison instead, which this panel
+doesn't show.)
+
+Panel 3 (middle-left): medium shot from a slight side angle, Zhongming
+sitting on a cozy sofa with one book open on his lap, gesturing toward the
+sofa cushion beside him with a relaxed smile. Speech bubble near Zhongming
+contains the Chinese text "桌上的書我大概都看過了，不過我最常坐在沙發上看。"
+written clearly.
+
+Panel 4 (middle-right): close-up shot, Youmei crouching near a sunlit window,
+pointing gently at Juzi the cat curled up asleep on the windowsill, her
+expression delighted. Speech bubble near Youmei contains the Chinese text
+"窗戶旁邊那隻貓睡得比我還舒服，牠是你養的嗎？" written clearly.
+
+Panel 5 (bottom-left): medium shot, Zhongming kneeling beside the window,
+softly petting Juzi's fur, looking fondly at the cat while Youmei watches
+from behind him. Speech bubble near Zhongming contains the Chinese text
+"對啊，牠叫橘子，因為每天都在那裡曬太陽，毛已經比以前更軟了。" written
+clearly.
+
+Panel 6 (bottom-right): wide shot from a slightly higher angle, Youmei
+sitting cross-legged on the floor by the window with Juzi curled up in her
+lap, both her and Zhongming smiling down at the cat together. Speech bubble
+near Youmei contains the Chinese text "真羨慕，我也好想養一隻，可是我家不能
+養寵物。" written clearly.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Zhongming's denim jacket and black
+  wristwatch, Youmei's red hair clip and yellow cardigan, Juzi's orange fur
+  and white chest patch) recognizable in every panel.
+- Keep one art style and one lighting mood across all 6 panels so the page
+  reads as one connected world.
+- Vary pose, shot framing, and camera angle panel to panel so it reads as
+  six different moments, not one pose repeated six times.
+- If one panel looks off after generation, it's harder to regenerate in
+  isolation than with separate images — accept minor variance, or fall back
+  to generating that one beat as its own image and swapping it in during
+  editing if it matters.
+
+CAPTION SCRIPT (for proofreading the generated bubbles/boxes against — not
+part of the prompt above; if a bubble comes out garbled, use these to fix
+it by hand in an image editor or as the source for
+scripts/overlay_captions.py):
+Panel 1 — Narrator: 友美這個週末下午來中明家玩，他一開門就帶她去看他剛整理過的房間。
+  Yǒuměi zhège zhōumò xiàwǔ lái Zhōngmíng jiā wán, tā yì kāimén jiù dài tā qù
+  kàn tā gāng zhěnglǐguò de fángjiān. — Youmei comes over to Zhongming's
+  place this weekend afternoon, and the moment he opens the door, he takes
+  her to see the room he just tidied up.
+Panel 2 — Youmei: 你的書好多！
+  Wa! Nǐ de shū hǎo duō! — Wow! You have so many books!
+  (Easy tier's line — used here instead of hard's because this panel's
+  visual is the books-stack reaction, not the room-tidiness comparison.)
+Panel 3 — Zhongming: 桌上的書我大概都看過了，不過我最常坐在沙發上看。
+  Zhuō shàng de shū wǒ dàgài dōu kànguò le, búguò wǒ zuì cháng zuò zài shāfā
+  shàng kàn. — I've pretty much read all the books on the table, but I
+  usually sit on the sofa to read.
+Panel 4 — Youmei: 窗戶旁邊那隻貓睡得比我還舒服，牠是你養的嗎？
+  Chuānghù pángbiān nà zhī māo shuì de bǐ wǒ hái shūfú, tā shì nǐ yǎng de
+  ma? — That cat by the window is sleeping more comfortably than I do — is
+  it yours?
+Panel 5 — Zhongming: 對啊，牠叫橘子，因為每天都在那裡曬太陽，毛已經比以前更軟了。
+  Duì a, tā jiào Júzi, yīnwèi měitiān dōu zài nàlǐ shài tàiyáng, máo yǐjīng
+  bǐ yǐqián gèng ruǎn le. — Yeah, its name is Juzi — because it basks in
+  the sun there every day, its fur has gotten even softer than before.
+Panel 6 — Youmei: 真羨慕，我也好想養一隻，可是我家不能養寵物。
+  Zhēn xiànmù, wǒ yě hǎo xiǎng yǎng yì zhī, kěshì wǒ jiā bù néng yǎng
+  chǒngwù. — I'm so jealous, I really want to have one too, but my place
+  doesn't allow pets.
 
 EXPORT SETTINGS (to keep the file under 1.5 MB):
 - Generate at a resolution that keeps individual panels legible — e.g.

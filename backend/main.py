@@ -35,6 +35,8 @@ from database import (
     init_db,
 )
 
+import caf_metrics
+
 from praat_analyzer import (
     extract_pitch,
     extract_formants,
@@ -127,7 +129,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
@@ -318,6 +320,62 @@ class VocabDistractorResponse(BaseModel):
     results: List[VocabDistractorResult]
 
 
+class VocabClozeWord(BaseModel):
+    word: str
+    translation: str
+    context: Optional[str] = None
+    # Sentences already generated for this word (from a prior generation),
+    # so a regeneration call tops up the pool with a genuinely new sentence
+    # instead of the model repeating itself.
+    avoid: List[str] = []
+
+
+class VocabClozeRequest(BaseModel):
+    words: List[VocabClozeWord]
+
+
+class VocabClozeResult(BaseModel):
+    word: str
+    # A natural sentence containing `word` verbatim (the blank is cut client
+    # side by replacing that occurrence — the model isn't asked to place a
+    # blank marker itself, which it does unreliably).
+    sentence: str
+    # Wrong-but-plausible Chinese words that could grammatically fill the
+    # same blank — the cloze question's multiple-choice options.
+    distractors: List[str]
+
+
+class VocabClozeResponse(BaseModel):
+    results: List[VocabClozeResult]
+
+
+class VocabSynonymWord(BaseModel):
+    word: str
+    translation: str
+    context: Optional[str] = None
+    # Synonyms already generated for this word (from a prior generation), so
+    # a regeneration call tops up the pool with a genuinely new synonym
+    # instead of the model repeating itself.
+    avoid: List[str] = []
+
+
+class VocabSynonymRequest(BaseModel):
+    words: List[VocabSynonymWord]
+
+
+class VocabSynonymResult(BaseModel):
+    word: str
+    # A real Chinese word/phrase with (nearly) the same meaning as `word`.
+    synonym: str
+    # Wrong-but-plausible Chinese words — NOT synonyms of `word` — for the
+    # "which word means the same?" multiple-choice options.
+    distractors: List[str]
+
+
+class VocabSynonymResponse(BaseModel):
+    results: List[VocabSynonymResult]
+
+
 class AudioRecordRequest(BaseModel):
     id: str
     timestamp: str
@@ -347,6 +405,16 @@ class CustomStoryFrameRequest(BaseModel):
     listenAudioUrl: Optional[str] = None
     listenScript: Optional[str] = None
     vocabularyDistractors: Optional[str] = None
+    # JSON-encoded array of arrays (one entry per word, aligned with the
+    # comma-split `vocabulary` above) — each word's entry is a list of
+    # AI-generated {sentence, distractors} cloze candidates, grown over time
+    # the same way vocabularyDistractors is (see vocab_quiz_cloze / the
+    # vocabulary-cloze PATCH endpoint).
+    vocabularyCloze: Optional[str] = None
+    # JSON-encoded array of arrays (one entry per word) — each word's entry
+    # is a list of AI-generated {synonym, distractors} candidates, grown the
+    # same way vocabularyCloze is.
+    vocabularySynonym: Optional[str] = None
     # Medium/Hard tiers of the same scene — same plot/scene/imageUrl, just
     # progressively more complex text. Absent/blank means that tier hasn't
     # been authored yet; the student-facing conversion falls back to the
@@ -412,6 +480,10 @@ class SceneSubmission(BaseModel):
     pauseCount: float = 0
     longestPause: float = 0
     utteranceCount: float = 0
+    # Judged pause placement + articulation rate — see caf_metrics.classify_pauses
+    # and caf_metrics.speech_rate_verdict for how these are derived.
+    choppyPauseCount: float = 0
+    articulationRate: float = 0
 
 
 class StorySubmissionRequest(BaseModel):
@@ -505,6 +577,45 @@ class VocabularyDistractorUpdate(BaseModel):
 
 class VocabularyDistractorsUpdateRequest(BaseModel):
     updates: List[VocabularyDistractorUpdate]
+
+
+# Lower than MAX_VOCAB_DISTRACTORS_PER_WORD: each cloze candidate bundles a
+# whole sentence plus its own distractors, so a handful of varied sentences
+# is plenty to avoid staleness without growing the pool unbounded.
+MAX_VOCAB_CLOZE_PER_WORD = 4
+
+
+class VocabularyClozeCandidate(BaseModel):
+    sentence: str
+    distractors: List[str]
+
+
+class VocabularyClozeUpdate(BaseModel):
+    frameIndex: int
+    wordIndex: int
+    candidates: List[VocabularyClozeCandidate]
+
+
+class VocabularyClozeUpdateRequest(BaseModel):
+    updates: List[VocabularyClozeUpdate]
+
+
+MAX_VOCAB_SYNONYM_PER_WORD = 4
+
+
+class VocabularySynonymCandidate(BaseModel):
+    synonym: str
+    distractors: List[str]
+
+
+class VocabularySynonymUpdate(BaseModel):
+    frameIndex: int
+    wordIndex: int
+    candidates: List[VocabularySynonymCandidate]
+
+
+class VocabularySynonymUpdateRequest(BaseModel):
+    updates: List[VocabularySynonymUpdate]
 
 
 async def save_uploaded_audio(file: UploadFile, record_id: str) -> str:
@@ -874,6 +985,26 @@ async def _do_analyze(
 
         vowel_quality = classify_vowel_quality(formants)
         tone_direction = build_tone_direction(pitch_contour, detected_tone, tone_accuracy)
+
+        # Turn the raw pause/rate measurements into judged, story-aggregatable
+        # signals: how many pauses landed at a natural clause/punctuation
+        # boundary in the reference script vs. mid-phrase ("choppy"), and the
+        # articulation rate (syllables/sec, pauses excluded) for speed
+        # feedback. Merged into pause_analysis so the frontend can pick these
+        # up the same way it already reads pause_count/longest_pause.
+        character_count = sum(1 for ch in transcription if "一" <= ch <= "鿿")
+        fluency_for_response = caf_metrics.fluency_metrics(
+            speech_rate, pause_analysis, character_count
+        )
+        pause_judgment = caf_metrics.classify_pauses(
+            scene_suggested_answer.strip() or transcription, pause_analysis, word_prosody
+        )
+        pause_analysis = {
+            **pause_analysis,
+            "articulation_rate": fluency_for_response["articulation_rate"],
+            "choppy_pause_count": len(pause_judgment["choppy"]) if pause_judgment["judged"] else 0,
+            "natural_pause_count": len(pause_judgment["natural"]) if pause_judgment["judged"] else 0,
+        }
 
         # The parallel feedback call ran before Praat finished. Recompute the
         # local CAF feedback now that we have the acoustic numbers: when the
@@ -1489,6 +1620,254 @@ async def generate_vocab_distractors_with_gemini(
     content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
     data = json.loads(strip_json_fence(content))
     return _parse_vocab_distractors(data, words)
+
+
+def _vocab_cloze_prompt(words: List[VocabClozeWord]) -> str:
+    word_lines = "\n".join(
+        f'{i + 1}. "{w.word}" -> "{w.translation}"'
+        + (f' (style/level reference: "{w.context}")' if w.context else "")
+        + (f" (already used, write a different sentence: {' / '.join(w.avoid)})" if w.avoid else "")
+        for i, w in enumerate(words)
+    )
+    return f"""
+You are building fill-in-the-blank (cloze) questions for an A1-A2 Mandarin
+vocabulary quiz. For each word below, write ONE short, natural Traditional
+Chinese sentence that uses that word — simple enough for a beginner, and
+matching the style/vocabulary level of the reference sentence when one is
+given. Also give 3 WRONG but PLAUSIBLE Chinese words that could grammatically
+fill the same blank in that sentence (same part of speech, a real point of
+confusion for a learner) — not random unrelated words.
+
+Words:
+{word_lines}
+
+Return only valid JSON shaped exactly like:
+[
+  {{"word": "餐廳", "sentence": "我們今天要去餐廳吃飯。", "distractors": ["教室", "公園", "醫院"]}}
+]
+
+Rules:
+- "word" must exactly match one of the words given above.
+- "sentence" must contain that exact word, written naturally (not blanked out).
+- Each distractor must be a different Chinese word from "word" and from the
+  other distractors for that word, and must not itself appear in "sentence".
+- Return the JSON array only, no surrounding text.
+"""
+
+
+def _parse_vocab_cloze(
+    data: object, words: List[VocabClozeWord]
+) -> List[VocabClozeResult]:
+    if not isinstance(data, list):
+        raise RuntimeError("Model did not return a JSON array of cloze results")
+
+    by_word = {w.word: w for w in words}
+    results: List[VocabClozeResult] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        word = str(item.get("word", "")).strip()
+        source = by_word.get(word)
+        if not source:
+            continue
+        # The model sometimes ignores the Traditional-Chinese instruction and
+        # writes Simplified — convert before the containment check below,
+        # since a Simplified sentence otherwise silently fails to contain a
+        # Traditional-only word (e.g. "廳" not found in "厅") and the whole
+        # candidate gets dropped.
+        sentence = convert_to_traditional_chinese(str(item.get("sentence", "")).strip())
+        if not sentence or word not in sentence:
+            continue
+        seen = {word}
+        distractors: List[str] = []
+        for raw in item.get("distractors", []):
+            distractor = convert_to_traditional_chinese(str(raw).strip())
+            if not distractor or distractor in seen or distractor in sentence:
+                continue
+            seen.add(distractor)
+            distractors.append(distractor)
+        if distractors:
+            results.append(
+                VocabClozeResult(word=word, sentence=sentence, distractors=distractors[:3])
+            )
+    return results
+
+
+async def generate_vocab_cloze_with_groq(
+    words: List[VocabClozeWord],
+) -> List[VocabClozeResult]:
+    payload = {
+        "model": GROQ_FEEDBACK_MODEL,
+        "response_format": {"type": "json_object"},
+        "temperature": 0.6,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a Mandarin vocabulary-quiz assistant. Always respond in "
+                    "valid JSON only — no markdown fences, no prose outside the JSON. "
+                    'Wrap the array in a top-level object: {"results": [...]}.'
+                ),
+            },
+            {"role": "user", "content": _vocab_cloze_prompt(words)},
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["choices"][0]["message"]["content"]
+    parsed = json.loads(content)
+    data = parsed.get("results") if isinstance(parsed, dict) else parsed
+    return _parse_vocab_cloze(data, words)
+
+
+async def generate_vocab_cloze_with_gemini(
+    words: List[VocabClozeWord],
+) -> List[VocabClozeResult]:
+    payload = {"contents": [{"parts": [{"text": _vocab_cloze_prompt(words)}]}]}
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}",
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+    data = json.loads(strip_json_fence(content))
+    return _parse_vocab_cloze(data, words)
+
+
+def _vocab_synonym_prompt(words: List[VocabSynonymWord]) -> str:
+    word_lines = "\n".join(
+        f'{i + 1}. "{w.word}" -> "{w.translation}"'
+        + (f' (used in: "{w.context}")' if w.context else "")
+        + (f" (already used, give a different synonym: {' / '.join(w.avoid)})" if w.avoid else "")
+        for i, w in enumerate(words)
+    )
+    return f"""
+You are building "which word means the same?" questions for an A1-A2
+Mandarin vocabulary quiz. For each word below, give ONE real Traditional
+Chinese word or short phrase that is a close synonym — a beginner-level word
+a student would recognize as meaning (nearly) the same thing. Also give 3
+WRONG but PLAUSIBLE Chinese words that are NOT synonyms of the original word
+(different meaning) but could look tempting — e.g. same topic/category or
+same part of speech, a real point of confusion for a learner.
+
+Words:
+{word_lines}
+
+Return only valid JSON shaped exactly like:
+[
+  {{"word": "高興", "synonym": "開心", "distractors": ["生氣", "累", "餓"]}}
+]
+
+Rules:
+- "word" must exactly match one of the words given above.
+- "synonym" must be a real word genuinely close in meaning to "word", and
+  different from "word" itself.
+- Each distractor must be a different Chinese word from "word", from
+  "synonym", and from the other distractors for that word.
+- Return the JSON array only, no surrounding text.
+"""
+
+
+def _parse_vocab_synonym(
+    data: object, words: List[VocabSynonymWord]
+) -> List[VocabSynonymResult]:
+    if not isinstance(data, list):
+        raise RuntimeError("Model did not return a JSON array of synonym results")
+
+    by_word = {w.word: w for w in words}
+    results: List[VocabSynonymResult] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        word = str(item.get("word", "")).strip()
+        source = by_word.get(word)
+        if not source:
+            continue
+        synonym = convert_to_traditional_chinese(str(item.get("synonym", "")).strip())
+        if not synonym or synonym == word:
+            continue
+        seen = {word, synonym}
+        distractors: List[str] = []
+        for raw in item.get("distractors", []):
+            distractor = convert_to_traditional_chinese(str(raw).strip())
+            if not distractor or distractor in seen:
+                continue
+            seen.add(distractor)
+            distractors.append(distractor)
+        if distractors:
+            results.append(
+                VocabSynonymResult(word=word, synonym=synonym, distractors=distractors[:3])
+            )
+    return results
+
+
+async def generate_vocab_synonym_with_groq(
+    words: List[VocabSynonymWord],
+) -> List[VocabSynonymResult]:
+    payload = {
+        "model": GROQ_FEEDBACK_MODEL,
+        "response_format": {"type": "json_object"},
+        "temperature": 0.6,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a Mandarin vocabulary-quiz assistant. Always respond in "
+                    "valid JSON only — no markdown fences, no prose outside the JSON. "
+                    'Wrap the array in a top-level object: {"results": [...]}.'
+                ),
+            },
+            {"role": "user", "content": _vocab_synonym_prompt(words)},
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["choices"][0]["message"]["content"]
+    parsed = json.loads(content)
+    data = parsed.get("results") if isinstance(parsed, dict) else parsed
+    return _parse_vocab_synonym(data, words)
+
+
+async def generate_vocab_synonym_with_gemini(
+    words: List[VocabSynonymWord],
+) -> List[VocabSynonymResult]:
+    payload = {"contents": [{"parts": [{"text": _vocab_synonym_prompt(words)}]}]}
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}",
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+    data = json.loads(strip_json_fence(content))
+    return _parse_vocab_synonym(data, words)
 
 
 async def generate_story_images_with_gemini(

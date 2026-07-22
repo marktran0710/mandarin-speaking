@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import httpx
 from dotenv import load_dotenv
@@ -175,7 +175,8 @@ def fallback_language_feedback(
             },
             "pronunciation_note": {
                 "score": 0,
-                "feedback": f"Record a sentence to get pronunciation feedback.",
+                "feedback": "Record a sentence to get pronunciation feedback.",
+                "details": [],
             },
             "content_accuracy": _content_accuracy_placeholder(image_b64),
             "corrective_feedback": _corrective_feedback_placeholder(),
@@ -235,35 +236,62 @@ def fallback_language_feedback(
             f"{', '.join(complexity['connectives'][:3])} \u2014 good clause linking."
         )
 
-    # \u2500\u2500 Pronunciation: tone-contour proxy for Goodness of Pronunciation \u2500\u2500\u2500\u2500\u2500
+    # ── Pronunciation: tone-contour proxy for Goodness of Pronunciation ─────
+    # Built as separate {key, text} entries — one per card the frontend shows
+    # below the scene image — instead of one concatenated paragraph. The
+    # joined "feedback" string is kept for callers that still want flat text.
     tone_pct = round(praat_tone_accuracy)
     fluency_pct = round(praat_fluency_score)
+    pron_details: List[Dict] = []
     if tone_pct >= 80 and fluency_pct >= 75:
         pron_score = 88
-        pron_feedback = f"Tones and rhythm both sound strong ({tone_pct}% tone-contour match)."
+        tone_text = f"Tones sound strong ({tone_pct}% tone-contour match)."
     elif tone_pct >= 60:
         pron_score = 65
-        pron_feedback = f"Tone-contour match {tone_pct}% \u2014 keep working on the weaker tones. Rhythm: {fluency_pct}%."
+        tone_text = f"Tone-contour match {tone_pct}% — keep working on the weaker tones."
     elif tone_pct > 0:
         pron_score = 45
-        pron_feedback = f"Tone-contour match {tone_pct}% \u2014 focus on the tones marked in the pitch chart."
+        tone_text = f"Tone-contour match {tone_pct}% — focus on the tones marked in the pitch chart."
     else:
         pron_score = 50
-        pron_feedback = "Speak clearly and hold each syllable long enough for tone recognition."
+        tone_text = "Speak clearly and hold each syllable long enough for tone recognition."
+    pron_details.append({"key": "tone", "text": tone_text})
 
     if praat_pause_analysis is not None:
         fluency = caf_metrics.fluency_metrics(
             praat_speech_rate, praat_pause_analysis, character_count
         )
-        pron_feedback += (
-            f" Fluency: {fluency['articulation_rate']} syl/s articulation, "
-            f"mean run {fluency['mean_length_of_run']} syllables."
+        rate_verdict = caf_metrics.speech_rate_verdict(fluency["articulation_rate"])
+        pron_details.append({
+            "key": "rhythm_pace",
+            "text": f"{rate_verdict['text']} (mean run {fluency['mean_length_of_run']} syllables.)",
+        })
+
+        reference_text = scene_suggested_answer.strip() or text
+        pause_result = caf_metrics.classify_pauses(
+            reference_text, praat_pause_analysis, word_prosody or []
         )
+        if pause_result["judged"] and pause_result["choppy"]:
+            worst = max(pause_result["choppy"], key=lambda p: p["duration"])
+            pron_details.append({
+                "key": "pausing",
+                "text": (
+                    f"You paused between {worst['before']} and {worst['after']} — "
+                    "try saying these together without a gap."
+                ),
+            })
+        elif pause_result["judged"] and pause_result["natural"] and not pause_result["choppy"]:
+            pron_details.append({
+                "key": "pausing",
+                "text": "Your pauses landed in natural spots — good phrasing.",
+            })
     if praat_vowel_quality:
-        pron_feedback += f" Vowel quality: {praat_vowel_quality}."
+        pron_details.append({"key": "vowel_quality", "text": praat_vowel_quality})
     stress_note = _word_stress_note(word_prosody)
     if stress_note:
-        pron_feedback += f" Word stress: {stress_note}."
+        pron_details.append({"key": "word_stress", "text": f"{stress_note}."})
+
+    pron_feedback = " ".join(d["text"] for d in pron_details)
 
     practice_next = (
         f"Say the sentence again adding {missing_words[0]}."
@@ -310,6 +338,7 @@ def fallback_language_feedback(
         "pronunciation_note": {
             "score": pron_score,
             "feedback": pron_feedback,
+            "details": pron_details,
         },
         "content_accuracy": _content_accuracy_placeholder(image_b64),
         "corrective_feedback": {
@@ -1171,12 +1200,14 @@ def _story_feedback_prompt(
     longest_single_pause: float = 0,
     total_utterance_count: float = 0,
     scene_count: int = 1,
+    total_choppy_pause_count: float = 0,
+    avg_articulation_rate: float = 0,
 ) -> str:
     scene_count = max(1, scene_count, combined_transcript.count("[Scene "))
     praat_context = ""
     if avg_tone_accuracy > 0 or avg_fluency_score > 0 or avg_pron_score > 0:
         praat_context = f"""
-Praat acoustic data, averaged across every scene in this story (this is real measured data — use it to ground fluency_coherence and pronunciation, and feel free to cite these numbers directly in your feedback):
+Praat acoustic data, averaged across every scene in this story (this is real measured data — use it to ground tone, word_stress, and rhythm_pace, and feel free to cite these numbers directly in your feedback):
 - Average tone accuracy: {round(avg_tone_accuracy)}%
 - Average fluency score: {round(avg_fluency_score)}%
 - Average pronunciation/prosody accuracy: {round(avg_pron_score)}%
@@ -1185,160 +1216,130 @@ Praat acoustic data, averaged across every scene in this story (this is real mea
     if total_pause_count > 0 or total_utterance_count > 0 or longest_single_pause > 0:
         avg_pauses_per_scene = round(total_pause_count / max(1, scene_count), 1)
         delivery_context = f"""
-Delivery data, measured directly from the audio across the whole story (real counts, not an estimate — cite these directly in fluency_coherence's feedback):
+Delivery data, measured directly from the audio across the whole story (real counts, not an estimate — cite these directly in pausing's and rhythm_pace's feedback):
 - Total pauses across the story: {round(total_pause_count)} ({avg_pauses_per_scene} per scene on average)
 - Longest single pause anywhere in the story: {longest_single_pause:.1f}s
 - Total utterances (speech chunks between pauses): {round(total_utterance_count)}
+- Pauses that broke up a phrase rather than landing at a natural boundary (comma/connective): {round(total_choppy_pause_count)}
+- Average articulation rate (syllables/sec while actually speaking, pauses excluded): {avg_articulation_rate:.1f}
 """
 
-    return f"""You are evaluating a STORY-LEVEL transcript: everything a student said across every scene of a picture story, concatenated in order as one connected narration — not a single sentence.
+    return f"""You are evaluating a STORY-LEVEL transcript: everything a student said across every scene of a picture story, concatenated in order as one connected narration — not a single sentence. The student was reading an assigned script for each scene, not composing freely, so vocabulary and grammar choice aren't being tested here — only delivery.
 
-This story has exactly {scene_count} scene(s), listed below in order as [Scene 1], [Scene 2], etc. Base every dimension on ALL {scene_count} scene(s) together, not just the first or the longest one. A scene marked "(no speech transcribed for this scene)" means the student attempted that scene but nothing was recognized — treat that as a real gap in the narration (it should weigh down fluency_coherence, since a connected story with a missing beat is less coherent), not as a scene to ignore.
+This story has exactly {scene_count} scene(s), listed below in order as [Scene 1], [Scene 2], etc. Base every dimension on ALL {scene_count} scene(s) together, not just the first or the longest one. A scene marked "(no speech transcribed for this scene)" means the student attempted that scene but nothing was recognized — treat that as a real gap (it should weigh down every dimension), not as a scene to ignore.
 
 Student's full story transcript (scene by scene):
 {combined_transcript}
 {praat_context}{delivery_context}
-Score these four dimensions, using the standard IELTS Speaking rubric definitions. The student will NOT see the numeric score — only your feedback text — so every "feedback" field must be actionable coaching, not just a description: briefly name the current level in one clause, then spend most of the sentence(s) on 1-2 concrete, specific things the student should do differently NEXT time to improve this particular skill. Avoid generic advice ("practice more") — tie the suggestion to something actually observed in this story (a specific word, structure, scene, or the Praat/delivery numbers).
+Score these four pronunciation-focused dimensions, all grounded in the real measured Praat/delivery data above wherever it's provided. The student will NOT see the numeric score — only your feedback text — so every "feedback" field must be actionable coaching, not just a description: briefly name the current level in one clause, then spend most of the sentence(s) on 1-2 concrete, specific things the student should do differently NEXT time to improve this particular skill. Cite the actual numbers directly (e.g. "tone accuracy averaged 72%", "you paused 6 times, including one 1.8s gap") rather than vague praise or criticism.
 
-1. fluency_coherence — base the FLUENCY part primarily on the delivery data above (pause count, longest pause, utterance chunking) and the average fluency score, if provided — cite the actual pause count or longest pause directly (e.g. "you paused 6 times, including one 1.8s gap in scene 3"); base the COHERENCE part on text signals (hesitation markers, repeated restarts, filler words, and how logically the scenes link together — sequencing, connectives, transitions). Blend both into one score. In the feedback, suggest a concrete way to reduce pausing or link scenes better (e.g. a specific connective word to try, or which scene to slow down less on).
-2. lexical_resource — the range, precision, and appropriateness of vocabulary used across the WHOLE story: variety, avoidance of repetition, idiomatic or topic-appropriate word choice. Text-only — do not use the Praat numbers for this dimension. In the feedback, name a specific repeated or overly simple word from the transcript and suggest a richer alternative.
-3. grammatical_range_accuracy — the variety of sentence structures/grammar patterns attempted across the story, AND the grammatical correctness of the narration. Text-only — do not use the Praat numbers for this dimension. In the feedback, point at one specific sentence/structure from the transcript and suggest a concrete grammar pattern to try instead.
-4. pronunciation — base this primarily on the average tone accuracy and pronunciation/prosody accuracy Praat data above, if provided (cite the numbers directly, e.g. "tone accuracy averaged 72% across the story"); if no Praat data was given, fall back to a holistic impression from transcript-level signals only (unclear/garbled segments) and say so. In the feedback, suggest a concrete next step (e.g. reviewing a particular tone pattern, or slowing down on longer words).
+1. tone — base this on the average tone accuracy above (cite it directly). Point at tones as the likely weak spot and suggest re-practicing the specific characters flagged low-accuracy in the per-scene feedback.
+2. word_stress — base this on the average pronunciation/prosody accuracy above (cite it directly). This measures whether content words (nouns, verbs, adjectives) are stressed — louder/higher-pitched — relative to function words (的/了/嗎). Suggest listening for that contrast.
+3. rhythm_pace — base this on the average fluency score and articulation rate above (cite the syllables/sec figure directly). Judge whether the pace was too slow, too fast, or good, and suggest a concrete pacing adjustment.
+4. pausing — base this on the pause count, longest pause, and choppy-vs-natural pause breakdown above (cite the actual counts directly). Judge whether pauses landed at natural clause/phrase boundaries or broke up phrases, and suggest a concrete way to reduce disruptive pausing.
 
 Return ONLY this JSON (no markdown):
 {{
   "provider": "ai",
-  "fluency_coherence": {{"score": <int 0-100, internal only, not shown to the student>, "feedback": "<2-3 sentences: brief current-level note + concrete, specific suggestion for how to improve>"}},
-  "lexical_resource": {{"score": <int 0-100, internal only, not shown to the student>, "feedback": "<2-3 sentences: brief current-level note + concrete, specific suggestion for how to improve>"}},
-  "grammatical_range_accuracy": {{"score": <int 0-100, internal only, not shown to the student>, "feedback": "<2-3 sentences: brief current-level note + concrete, specific suggestion for how to improve>"}},
-  "pronunciation": {{"score": <int 0-100, internal only, not shown to the student>, "feedback": "<2-3 sentences: brief current-level note + concrete, specific suggestion for how to improve>"}}
+  "tone": {{"score": <int 0-100, internal only, not shown to the student>, "feedback": "<2-3 sentences: brief current-level note + concrete, specific suggestion for how to improve>"}},
+  "word_stress": {{"score": <int 0-100, internal only, not shown to the student>, "feedback": "<2-3 sentences: brief current-level note + concrete, specific suggestion for how to improve>"}},
+  "rhythm_pace": {{"score": <int 0-100, internal only, not shown to the student>, "feedback": "<2-3 sentences: brief current-level note + concrete, specific suggestion for how to improve>"}},
+  "pausing": {{"score": <int 0-100, internal only, not shown to the student>, "feedback": "<2-3 sentences: brief current-level note + concrete, specific suggestion for how to improve>"}}
 }}"""
 
 
-_STORY_FILLER_TOKENS = ["嗯", "呃", "那個", "就是說", "然後然後"]
-
-
-def _most_repeated_word(tokens: List[str]) -> Optional[str]:
-    """The most-repeated content word (2+ Han characters, appears 2+ times), for a concrete tip."""
-    counts: Dict[str, int] = {}
-    for tok in tokens:
-        if len(tok) >= 2 and tok not in _STORY_FILLER_TOKENS:
-            counts[tok] = counts.get(tok, 0) + 1
-    candidates = [(word, n) for word, n in counts.items() if n >= 2]
-    if not candidates:
-        return None
-    candidates.sort(key=lambda pair: pair[1], reverse=True)
-    return candidates[0][0]
-
-
-def _fluency_coherence_heuristic(
-    text: str,
-    tokens: List[str],
-    avg_fluency_score: float = 0,
-    total_pause_count: float = 0,
-    longest_single_pause: float = 0,
-    scene_count: int = 1,
-    total_utterance_count: float = 0,
-) -> Dict:
-    has_delivery_data = avg_fluency_score > 0 or total_pause_count > 0 or longest_single_pause > 0
-    if not tokens and not has_delivery_data:
+def _tone_dimension(avg_tone_accuracy: float) -> Dict:
+    if avg_tone_accuracy <= 0:
         return {
             "score": 0,
-            "feedback": "No speech was transcribed for this story.",
+            "feedback": "No tone data was available for this story — make sure each scene finishes analysis before submitting.",
             "judged": False,
         }
-    filler_count = sum(text.count(tok) for tok in _STORY_FILLER_TOKENS)
-    filler_ratio = filler_count / max(len(tokens), 1)
-    length_score = max(0, min(100, round((len(tokens) / 40) * 100)))
-    filler_penalty = min(60, round(filler_ratio * 300))
-    coherence_score = max(0, min(100, length_score - filler_penalty))
-
-    # Real, measured pause/utterance behavior — cite it directly instead of
-    # just naming an opaque "fluency score", and let heavy pausing or choppy
-    # utterance chunking pull the tip toward something actionable about
-    # delivery rather than vocabulary/connectives.
-    avg_pauses_per_scene = total_pause_count / max(1, scene_count)
-    words_per_utterance = len(tokens) / max(1, total_utterance_count)
-    pause_note = ""
-    pause_tip = ""
-    if total_pause_count > 0:
-        pause_note = (
-            f"You paused {round(total_pause_count)} time"
-            f"{'s' if round(total_pause_count) != 1 else ''} across the story "
-            f"({avg_pauses_per_scene:.1f} per scene)"
-        )
-        if longest_single_pause >= 0.8:
-            pause_note += f", including a {longest_single_pause:.1f}s gap at the longest point"
-        pause_note += ". "
-        choppy = words_per_utterance < 3 and total_utterance_count >= 2
-        pause_tip = (
-            "Your utterances were quite short and broken up — try running through the whole sentence in "
-            "your head once before you start recording, so you don't need to stop partway through to think "
-            "of the next word."
-            if choppy or avg_pauses_per_scene > 1.5 or longest_single_pause >= 1.2
-            else "Your pausing was reasonably controlled — keep chunking sentences at natural phrase breaks like that."
-        )
-
-    connective_tip = (
-        "Try cutting down on filler words (e.g. 那個/嗯) between scenes, and link scenes with a "
-        "connective like 然後/因為/所以 so the story flows as one piece instead of separate sentences."
-        if filler_count > 0
-        else "Keep linking your scenes with connective words (然後/因為/所以/但是) so the story reads "
-        "as one continuous narration rather than isolated sentences."
-    )
-    improve_tip = pause_tip or connective_tip
-
-    if avg_fluency_score > 0:
-        # Real Praat fluency data available — ground the score in it, blended
-        # with the text-based coherence estimate (Praat has no opinion on
-        # whether the scenes logically link together as one narration).
-        score = round(0.6 * avg_fluency_score + 0.4 * coherence_score)
-        # A single very long pause is easy for a composite fluency score to
-        # wash out — nudge the score down when one actually happened.
-        if longest_single_pause >= 1.5:
-            score -= 8
-        return {
-            "score": max(0, min(100, score)),
-            "feedback": f"{pause_note}{improve_tip}",
-            "judged": True,
-        }
-
     return {
-        "score": coherence_score,
+        "score": max(0, min(100, round(avg_tone_accuracy))),
         "feedback": (
-            f"{pause_note}{improve_tip}"
-            if pause_note
-            else f"{improve_tip} (No Praat fluency data was available for this estimate.)"
-        ),
-        "judged": bool(pause_note),
-    }
-
-
-def _pronunciation_from_praat(avg_tone_accuracy: float, avg_pron_score: float) -> Dict:
-    if avg_tone_accuracy <= 0 and avg_pron_score <= 0:
-        return {
-            "score": 0,
-            "feedback": (
-                "No pronunciation data was available for this story — switch to an AI provider "
-                "(Groq/Gemini/OpenAI) for feedback, or make sure each scene finishes analysis before submitting."
-            ),
-            "judged": False,
-        }
-    score = (
-        round(0.5 * avg_tone_accuracy + 0.5 * avg_pron_score)
-        if avg_pron_score > 0
-        else round(avg_tone_accuracy)
-    )
-    weakest = "tones" if avg_tone_accuracy <= avg_pron_score else "word stress and rhythm"
-    return {
-        "score": max(0, min(100, score)),
-        "feedback": (
-            f"Your {weakest} needed the most work across this story. Go back through the per-scene "
-            "feedback above and re-practice the specific characters or words it flagged as low-accuracy "
-            "— repeating just those, out loud, a few times will help more than re-recording the whole story."
+            f"Tone-contour accuracy averaged {round(avg_tone_accuracy)}% across the story. "
+            "Go back through the per-scene pitch charts and re-practice the specific characters "
+            "flagged as low-accuracy — repeating just those a few times out loud helps more than "
+            "re-recording the whole story."
         ),
         "judged": True,
     }
+
+
+def _word_stress_dimension(avg_pron_score: float) -> Dict:
+    if avg_pron_score <= 0:
+        return {
+            "score": 0,
+            "feedback": "No word-stress data was available for this story.",
+            "judged": False,
+        }
+    return {
+        "score": max(0, min(100, round(avg_pron_score))),
+        "feedback": (
+            f"Word-stress and prosody accuracy averaged {round(avg_pron_score)}% across the story. "
+            "Content words (nouns, verbs, adjectives) should sound a little louder and higher-pitched "
+            "than function words like 的/了/嗎 — listen for that contrast in your recordings."
+        ),
+        "judged": True,
+    }
+
+
+def _rhythm_pace_dimension(avg_fluency_score: float, avg_articulation_rate: float) -> Dict:
+    if avg_fluency_score <= 0:
+        return {
+            "score": 0,
+            "feedback": "No pacing data was available for this story.",
+            "judged": False,
+        }
+    rate_note = (
+        caf_metrics.speech_rate_verdict(avg_articulation_rate)["text"]
+        if avg_articulation_rate > 0
+        else f"Your pacing scored {round(avg_fluency_score)}% overall."
+    )
+    return {
+        "score": max(0, min(100, round(avg_fluency_score))),
+        "feedback": rate_note,
+        "judged": True,
+    }
+
+
+def _pausing_dimension(
+    total_pause_count: float,
+    longest_single_pause: float,
+    total_utterance_count: float,
+    scene_count: int,
+    total_choppy_pause_count: float,
+) -> Dict:
+    has_data = total_pause_count > 0 or total_utterance_count > 0 or longest_single_pause > 0
+    if not has_data:
+        return {
+            "score": 0,
+            "feedback": "No pause data was available for this story.",
+            "judged": False,
+        }
+    avg_pauses_per_scene = total_pause_count / max(1, scene_count)
+    note = (
+        f"You paused {round(total_pause_count)} time"
+        f"{'s' if round(total_pause_count) != 1 else ''} across the story "
+        f"({avg_pauses_per_scene:.1f} per scene)"
+    )
+    if longest_single_pause >= 0.8:
+        note += f", including a {longest_single_pause:.1f}s gap at the longest point"
+    note += ". "
+    if total_choppy_pause_count > 0:
+        note += (
+            f"{round(total_choppy_pause_count)} of those pause"
+            f"{'s' if round(total_choppy_pause_count) != 1 else ''} broke up a phrase rather than "
+            "landing at a comma or clause break — try running the sentence through your head once "
+            "before recording so you don't need to stop mid-phrase."
+        )
+    else:
+        note += "Keep chunking your pauses at natural phrase breaks like that."
+
+    longest_penalty = 20 if longest_single_pause >= 1.5 else (10 if longest_single_pause >= 0.8 else 0)
+    score = round(100 - avg_pauses_per_scene * 12 - longest_penalty - total_choppy_pause_count * 6)
+    return {"score": max(0, min(100, score)), "feedback": note, "judged": True}
 
 
 def fallback_story_feedback(
@@ -1350,55 +1351,29 @@ def fallback_story_feedback(
     longest_single_pause: float = 0,
     total_utterance_count: float = 0,
     scene_count: int = 1,
+    total_choppy_pause_count: float = 0,
+    avg_articulation_rate: float = 0,
 ) -> Dict:
     """Offline story-level feedback — no LLM call.
 
-    Fluency-and-Coherence and Pronunciation are grounded in the same per-scene
-    Praat metrics (tone accuracy, fluency score, word-prosody accuracy, and
-    now pause/utterance counts) already computed during recording, averaged
-    or summed across the story — real acoustic data, not a guess. Lexical
-    Resource and Grammatical Range reuse the deterministic CAF measures
-    already computed for per-scene local feedback (caf_metrics.py) and stay
-    text-only, since Praat has no opinion on vocabulary or grammar. If no
-    Praat data is available at all (e.g. no scene was ever analyzed), the
-    acoustic-grounded dimensions fall back to a clearly-flagged placeholder
-    (``judged: False``) instead of a false score.
+    Four pronunciation-focused dimensions — tone, word_stress, rhythm_pace,
+    pausing — mirroring the same four axes the frontend's radar chart already
+    draws straight from Praat data. Not the old IELTS-style vocabulary/grammar
+    pillars: once a scene hands the student a script to read rather than
+    compose freely, vocabulary/grammar choice isn't really being tested, only
+    delivery is. If no Praat data is available at all for a dimension (e.g.
+    no scene was ever analyzed), it falls back to a clearly-flagged
+    placeholder (``judged: False``) instead of a false score.
     """
-    text = combined_transcript.strip()
-    tokens = caf_metrics.segment_words(text)
-    lexical = caf_metrics.lexical_metrics(tokens)
-    syntax = caf_metrics.syntactic_complexity(tokens, text)
-    repeated_word = _most_repeated_word(tokens)
-
-    lexical_tip = (
-        f'You repeated "{repeated_word}" several times — try swapping some repeats for a synonym or '
-        "a more descriptive word next time."
-        if repeated_word
-        else "Try adding a few more descriptive words (adjectives/verbs) instead of the simplest option each time."
-    )
-    grammar_tip = (
-        "Try connecting two short sentences into one with 因為...所以 or 雖然...但是 for more variety."
-        if len(syntax["connectives"]) == 0
-        else "Good use of connectives — next time try one you haven't used yet, like 雖然...但是 or 只要...就."
-    )
-
     return {
         "provider": "local",
-        "fluency_coherence": _fluency_coherence_heuristic(
-            text, tokens, avg_fluency_score, total_pause_count, longest_single_pause, scene_count,
-            total_utterance_count,
+        "tone": _tone_dimension(avg_tone_accuracy),
+        "word_stress": _word_stress_dimension(avg_pron_score),
+        "rhythm_pace": _rhythm_pace_dimension(avg_fluency_score, avg_articulation_rate),
+        "pausing": _pausing_dimension(
+            total_pause_count, longest_single_pause, total_utterance_count,
+            scene_count, total_choppy_pause_count,
         ),
-        "lexical_resource": {
-            "score": lexical["score"],
-            "feedback": lexical_tip,
-            "judged": True,
-        },
-        "grammatical_range_accuracy": {
-            "score": syntax["score"],
-            "feedback": grammar_tip,
-            "judged": True,
-        },
-        "pronunciation": _pronunciation_from_praat(avg_tone_accuracy, avg_pron_score),
     }
 
 
@@ -1411,6 +1386,8 @@ def _normalize_story_feedback(
     longest_single_pause: float = 0,
     total_utterance_count: float = 0,
     scene_count: int = 1,
+    total_choppy_pause_count: float = 0,
+    avg_articulation_rate: float = 0,
 ) -> Dict:
     fallback = fallback_story_feedback(
         "",
@@ -1421,6 +1398,8 @@ def _normalize_story_feedback(
         longest_single_pause=longest_single_pause,
         total_utterance_count=total_utterance_count,
         scene_count=scene_count,
+        total_choppy_pause_count=total_choppy_pause_count,
+        avg_articulation_rate=avg_articulation_rate,
     )
 
     def _dimension(key: str) -> Dict:
@@ -1433,10 +1412,10 @@ def _normalize_story_feedback(
 
     return {
         "provider": str(data.get("provider", "ai")),
-        "fluency_coherence": _dimension("fluency_coherence"),
-        "lexical_resource": _dimension("lexical_resource"),
-        "grammatical_range_accuracy": _dimension("grammatical_range_accuracy"),
-        "pronunciation": _dimension("pronunciation"),
+        "tone": _dimension("tone"),
+        "word_stress": _dimension("word_stress"),
+        "rhythm_pace": _dimension("rhythm_pace"),
+        "pausing": _dimension("pausing"),
     }
 
 
@@ -1449,6 +1428,8 @@ async def _story_feedback_with_groq(
     longest_single_pause: float = 0,
     total_utterance_count: float = 0,
     scene_count: int = 1,
+    total_choppy_pause_count: float = 0,
+    avg_articulation_rate: float = 0,
 ) -> Dict:
     payload = {
         "model": GROQ_FEEDBACK_MODEL,
@@ -1461,6 +1442,7 @@ async def _story_feedback_with_groq(
                 "content": _story_feedback_prompt(
                     combined_transcript, avg_tone_accuracy, avg_fluency_score, avg_pron_score,
                     total_pause_count, longest_single_pause, total_utterance_count, scene_count,
+                    total_choppy_pause_count, avg_articulation_rate,
                 ),
             },
         ],
@@ -1482,6 +1464,7 @@ async def _story_feedback_with_groq(
     return _normalize_story_feedback(
         data, avg_tone_accuracy, avg_fluency_score, avg_pron_score,
         total_pause_count, longest_single_pause, total_utterance_count, scene_count,
+        total_choppy_pause_count, avg_articulation_rate,
     )
 
 
@@ -1494,6 +1477,8 @@ async def _story_feedback_with_openai(
     longest_single_pause: float = 0,
     total_utterance_count: float = 0,
     scene_count: int = 1,
+    total_choppy_pause_count: float = 0,
+    avg_articulation_rate: float = 0,
 ) -> Dict:
     payload = {
         "model": OPENAI_FEEDBACK_MODEL,
@@ -1505,6 +1490,7 @@ async def _story_feedback_with_openai(
                 "content": _story_feedback_prompt(
                     combined_transcript, avg_tone_accuracy, avg_fluency_score, avg_pron_score,
                     total_pause_count, longest_single_pause, total_utterance_count, scene_count,
+                    total_choppy_pause_count, avg_articulation_rate,
                 ),
             },
         ],
@@ -1526,6 +1512,7 @@ async def _story_feedback_with_openai(
     return _normalize_story_feedback(
         data, avg_tone_accuracy, avg_fluency_score, avg_pron_score,
         total_pause_count, longest_single_pause, total_utterance_count, scene_count,
+        total_choppy_pause_count, avg_articulation_rate,
     )
 
 
@@ -1538,6 +1525,8 @@ async def _story_feedback_with_gemini(
     longest_single_pause: float = 0,
     total_utterance_count: float = 0,
     scene_count: int = 1,
+    total_choppy_pause_count: float = 0,
+    avg_articulation_rate: float = 0,
 ) -> Dict:
     payload = {
         "system_instruction": {"parts": [{"text": _STORY_FEEDBACK_SYSTEM_PROMPT}]},
@@ -1574,6 +1563,7 @@ async def _story_feedback_with_gemini(
     return _normalize_story_feedback(
         data, avg_tone_accuracy, avg_fluency_score, avg_pron_score,
         total_pause_count, longest_single_pause, total_utterance_count, scene_count,
+        total_choppy_pause_count, avg_articulation_rate,
     )
 
 
@@ -1587,6 +1577,8 @@ async def generate_story_feedback(
     longest_single_pause: float = 0,
     total_utterance_count: float = 0,
     scene_count: int = 1,
+    total_choppy_pause_count: float = 0,
+    avg_articulation_rate: float = 0,
 ) -> Dict:
     """Produce one holistic, story-level feedback after all scenes are submitted.
 
@@ -1611,6 +1603,8 @@ async def generate_story_feedback(
         longest_single_pause=longest_single_pause,
         total_utterance_count=total_utterance_count,
         scene_count=scene_count,
+        total_choppy_pause_count=total_choppy_pause_count,
+        avg_articulation_rate=avg_articulation_rate,
     )
     if not text:
         return fallback_story_feedback(text, **praat_args)

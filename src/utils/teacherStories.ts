@@ -34,6 +34,15 @@ export interface CustomStoryFrame {
   // comma-split `vocabulary` above) — distractors are inherently multi-valued
   // per word, unlike the other comma-joined single-value fields.
   vocabularyDistractors?: string;
+  // JSON-encoded array of arrays (one entry per word, aligned with the
+  // comma-split `vocabulary` above) — each word's entry is a list of
+  // AI-generated {sentence, distractors} cloze candidates, grown the same
+  // way vocabularyDistractors is.
+  vocabularyCloze?: string;
+  // JSON-encoded array of arrays (one entry per word) — each word's entry
+  // is a list of AI-generated {synonym, distractors} candidates, grown the
+  // same way vocabularyCloze is.
+  vocabularySynonym?: string;
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
@@ -191,6 +200,8 @@ export function storyToTopic(
   const vocabularyPos: Record<number, string[]> = {};
   const vocabularyTranslation: Record<number, string[]> = {};
   const vocabularyDistractors: Record<number, string[][]> = {};
+  const vocabularyCloze: Record<number, Array<{ sentence: string; distractors: string[] }[]>> = {};
+  const vocabularySynonym: Record<number, Array<{ synonym: string; distractors: string[] }[]>> = {};
   const suggestedAnswers: Record<number, string> = {};
   const listenAudioUrls: Record<number, string> = {};
   const listenScripts: Record<number, string> = {};
@@ -244,6 +255,44 @@ export function storyToTopic(
         // Malformed/stale data — treat as absent rather than breaking the quiz.
       }
     }
+    // Same "not tiered, AI-grown rather than authored" story as
+    // vocabularyDistractors above.
+    if (frame.vocabularyCloze && frame.vocabularyCloze.trim()) {
+      try {
+        const parsed = JSON.parse(frame.vocabularyCloze);
+        if (Array.isArray(parsed)) {
+          vocabularyCloze[index] = parsed.map((row) =>
+            Array.isArray(row)
+              ? row.filter(
+                  (c): c is { sentence: string; distractors: string[] } =>
+                    Boolean(c) && typeof c.sentence === "string" && Array.isArray(c.distractors),
+                )
+              : [],
+          );
+        }
+      } catch {
+        // Malformed/stale data — treat as absent rather than breaking the quiz.
+      }
+    }
+    // Same "not tiered, AI-grown rather than authored" story as
+    // vocabularyCloze above.
+    if (frame.vocabularySynonym && frame.vocabularySynonym.trim()) {
+      try {
+        const parsed = JSON.parse(frame.vocabularySynonym);
+        if (Array.isArray(parsed)) {
+          vocabularySynonym[index] = parsed.map((row) =>
+            Array.isArray(row)
+              ? row.filter(
+                  (c): c is { synonym: string; distractors: string[] } =>
+                    Boolean(c) && typeof c.synonym === "string" && Array.isArray(c.distractors),
+                )
+              : [],
+          );
+        }
+      } catch {
+        // Malformed/stale data — treat as absent rather than breaking the quiz.
+      }
+    }
     const frameSuggestedAnswer = tierText(frame, "suggestedAnswer", difficultyLevel);
     if (frameSuggestedAnswer && frameSuggestedAnswer.trim()) {
       suggestedAnswers[index] = frameSuggestedAnswer.trim();
@@ -282,6 +331,8 @@ export function storyToTopic(
     ...(Object.keys(vocabularyPos).length > 0 ? { vocabularyPos } : {}),
     ...(Object.keys(vocabularyTranslation).length > 0 ? { vocabularyTranslation } : {}),
     ...(Object.keys(vocabularyDistractors).length > 0 ? { vocabularyDistractors } : {}),
+    ...(Object.keys(vocabularyCloze).length > 0 ? { vocabularyCloze } : {}),
+    ...(Object.keys(vocabularySynonym).length > 0 ? { vocabularySynonym } : {}),
     ...(Object.keys(suggestedAnswers).length > 0 ? { suggestedAnswers } : {}),
     ...(Object.keys(listenAudioUrls).length > 0 ? { listenAudioUrls } : {}),
     ...(Object.keys(listenScripts).length > 0 ? { listenScripts } : {}),

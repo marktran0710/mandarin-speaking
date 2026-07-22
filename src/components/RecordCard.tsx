@@ -43,7 +43,7 @@ export default function RecordCard({
         )}
 
         <div className="transcription-box">
-          <strong><BiLabel zh="逐字稿" pinyin="Zhúzìgǎo" en="Transcription" /></strong>
+          <strong><BiLabel zh="文字稿" pinyin="Wénzìgǎo" en="Transcription" /></strong>
           <p>
             {record.transcription || (
               <BiLabel zh="（沒聽到聲音）" pinyin="(méi tīngdào shēngyīn)" en="(no speech detected)" />

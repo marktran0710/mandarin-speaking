@@ -78,7 +78,20 @@
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('src/i18n/translations.json','utf8'\\)\\); console.log\\('valid JSON'\\)\")",
       "PowerShell(python -c \"import scipy; print\\(scipy.__version__\\)\" 2>&1; python -c \"import numpy; print\\(numpy.__version__\\)\")",
       "PowerShell(python \"C:\\\\Users\\\\ADMINI~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--hautran-Lab-mandarin-speaking\\\\b39d7fd5-3607-4abf-a765-157f840912ec\\\\scratchpad\\\\detect_bubbles2.py\")",
-      "Bash(sed -i 's/5177/5173/g' check.js)"
+      "Bash(sed -i 's/5177/5173/g' check.js)",
+      "Bash(grep -v \"PracticeSpeakingStep.tsx$\")",
+      "Bash(node -e ' *)",
+      "Bash(wc -l /tmp_classdump.txt)",
+      "Bash(python3 -)",
+      "Bash(sed -i '2852,3244d' src/components/StoryRecorder.css)",
+      "Bash(awk 'NR>=2845 && NR<=2860 {print NR\": \"$0}' src/components/StoryRecorder.css)",
+      "Bash(python3)",
+      "Bash(curl -s -o /dev/null -w \"vite:%{http_code}\\\\n\" http://127.0.0.1:5173/)",
+      "Bash(curl -s -o /dev/null -w \"backend:%{http_code}\\\\n\" http://127.0.0.1:8000/health)",
+      "PowerShell(git add *)"
     ]
+  },
+  "enabledPlugins": {
+    "ai-plugins@claude-plugins-official": false
   }
 }

@@ -66,7 +66,7 @@ export default function StoryOverviewSection({
             return (
               <div key={si} className="overview-vocab-scene">
                 <span className="overview-vocab-scene-label">
-                  <BiLabel zh={`場景 ${si + 1}`} pinyin={`Chǎngjǐng ${si + 1}`} en={`Scene ${si + 1}`} />
+                  <BiLabel zh={`部分 ${si + 1}`} pinyin={`Bùfen ${si + 1}`} en={`Scene ${si + 1}`} />
                 </span>
                 <div
                   className="overview-vocab-table"
@@ -139,8 +139,8 @@ export default function StoryOverviewSection({
                 <BiText k="match_key_words_to_each_story_scene" />
               ) : (
                 <BiText
-                  zh="老師還沒有詞彙翻譯"
-                  pinyin="Lǎoshī hái méiyǒu cíhuì fānyì"
+                  zh="老師還沒有生詞翻譯"
+                  pinyin="Lǎoshī hái méiyǒu shēngcí fānyì"
                   en="Your teacher hasn't added any word translations yet"
                 />
               )}
@@ -160,8 +160,8 @@ export default function StoryOverviewSection({
             <p>
               {speakingLocked ? (
                 <BiText
-                  zh="請先完成詞彙測驗"
-                  pinyin="Qǐng xiān wánchéng cíhuì cèyàn"
+                  zh="請先完成生詞測驗"
+                  pinyin="Qǐng xiān wánchéng shēngcí cèyàn"
                   en="Complete the vocabulary quiz first"
                 />
               ) : (

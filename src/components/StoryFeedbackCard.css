@@ -1,5 +1,5 @@
 .story-feedback-panel {
-  max-width: 1180px;
+  max-width: var(--content-max);
   margin: 16px auto 0;
   padding: 20px 24px;
   background: var(--clay-surface-card);

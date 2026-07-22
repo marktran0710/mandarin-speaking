@@ -159,7 +159,7 @@ export default function SortingChallenge({
     const isAnySlotEmpty = placedImages.some((img) => img === null);
     if (isAnySlotEmpty) {
       setSortingFeedback(
-        "請先把所有圖片放進場景再檢查！Please place all pictures into the scenes before checking!",
+        "請先把所有圖片放進位置再檢查！Please place all pictures into the scenes before checking!",
       );
       return;
     }
@@ -176,11 +176,11 @@ export default function SortingChallenge({
 
     if (isAllCorrect) {
       setSortingFeedback(
-        "完全正確！做得很好，你已經把場景排成正確順序了！Spot on! Excellent job. You have arranged the scenes in the correct order!",
+        "完全正確！做得很好，你已經把圖片排成正確順序了！Spot on! Excellent job. You have arranged the scenes in the correct order!",
       );
     } else {
       setSortingFeedback(
-        "有些圖片順序不對。請檢查紅色標示的場景並再試一次！Some pictures are not in the correct sequence. Check the red highlighted scenes and try again!",
+        "有些圖片順序不對。請檢查紅色標示的部分並再試一次！Some pictures are not in the correct sequence. Check the red highlighted scenes and try again!",
       );
     }
   };
@@ -268,8 +268,8 @@ export default function SortingChallenge({
                 <span className="slot-number">
                   <span className="slot-num-badge">{index + 1}</span>
                   <BiLabel
-                    zh={`場景 ${index + 1}`}
-                    pinyin={`Chǎngjǐng ${index + 1}`}
+                    zh={`部分 ${index + 1}`}
+                    pinyin={`Bùfen ${index + 1}`}
                     en={`Scene ${index + 1}`}
                   />
                 </span>

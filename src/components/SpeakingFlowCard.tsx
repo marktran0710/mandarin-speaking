@@ -3,14 +3,12 @@ import { BiLabel, BiText } from "./BiLabel";
 import RecordingPlayback from "./RecordingPlayback";
 import WordProsodyCard from "./WordProsodyCard";
 import MiniContourChart from "./MiniContourChart";
-import { scoreTier, scoreTierLabel } from "../utils/scoreLabels";
 import {
   isContentAccepted,
   sceneReady,
   weakToneGuideItems,
 } from "../utils/storyRecorderFeedback";
 import type {
-  AiProviderOption,
   PraatMetrics,
   SpeechModel,
   Topic,
@@ -22,6 +20,20 @@ interface SceneProgressEntry {
   bestTone: number;
   bestFluency: number;
 }
+
+// Labels for pronunciation_note.details — one small card per aspect, shown
+// below the scene image on the results screen (fills the space the tall
+// image column otherwise leaves empty next to the results content).
+const PRONUNCIATION_DETAIL_LABELS: Record<
+  string,
+  { icon: string; zh: string; pinyin: string; en: string }
+> = {
+  tone: { icon: "🎵", zh: "聲調", pinyin: "Shēngdiào", en: "Tone" },
+  rhythm_pace: { icon: "⏱️", zh: "節奏和速度", pinyin: "Jiézòu hé sùdù", en: "Rhythm & Pace" },
+  pausing: { icon: "⏸️", zh: "停頓", pinyin: "Tíngdùn", en: "Pausing" },
+  vowel_quality: { icon: "👄", zh: "母音", pinyin: "Mǔyīn", en: "Vowel Quality" },
+  word_stress: { icon: "💪", zh: "重音", pinyin: "Zhòngyīn", en: "Word Stress" },
+};
 
 interface SpeakingFlowCardProps {
   selectedImage: string;
@@ -41,10 +53,6 @@ interface SpeakingFlowCardProps {
   silenceDuration: number;
   submittedAudioName: string;
   selectedModel: SpeechModel;
-  onSelectedModelChange: (model: SpeechModel) => void;
-  aiProviders: AiProviderOption[];
-  aiProvider: string;
-  onAiProviderChange: (value: string) => void;
   recordingButtonDisabled: boolean;
   onPrimaryRecordingAction: () => void;
   onSubmitVoiceFile: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -80,10 +88,6 @@ export default function SpeakingFlowCard({
   silenceDuration,
   submittedAudioName,
   selectedModel,
-  onSelectedModelChange,
-  aiProviders,
-  aiProvider,
-  onAiProviderChange,
   recordingButtonDisabled,
   onPrimaryRecordingAction,
   onSubmitVoiceFile,
@@ -104,9 +108,12 @@ export default function SpeakingFlowCard({
     wasBusy.current = isBusy;
   }, [isBusy, praatMetrics]);
 
-  // A new scene always starts back at the record screen.
+  // Switching scenes shows that scene's last result if it has one (praatMetrics
+  // is already cached per scene by the parent), instead of always dropping
+  // back to the record screen and losing the student's earlier attempt.
   useEffect(() => {
-    setScreen("record");
+    setScreen(praatMetrics ? "results" : "record");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedImageIndex]);
 
   const attempts = prog?.attempts ?? 0;
@@ -118,10 +125,10 @@ export default function SpeakingFlowCard({
   const missing = vocabCoverage?.missing ?? [];
   const usedCount = vocabCoverage?.used?.length ?? 0;
   const vocabTotal = usedCount + missing.length;
-  const toneScore = Math.round(praatMetrics?.tone_accuracy ?? 0);
   const weakItems = weakToneGuideItems(praatMetrics?.word_prosody || []);
   const contentAccuracy = ai?.content_accuracy;
   const corrective = ai?.corrective_feedback;
+  const pronunciationNote = ai?.pronunciation_note;
 
   // The one-verdict ladder: meaning gates everything, then the unlock
   // state, then vocabulary, then pronunciation polish.
@@ -136,7 +143,7 @@ export default function SpeakingFlowCard({
   const sceneChip = (
     <span className="sfc-scene-chip">
       <BiLabel
-        zh={`場景 ${selectedImageIndex + 1}/${totalScenes}`}
+        zh={`部分 ${selectedImageIndex + 1}/${totalScenes}`}
         en={`Scene ${selectedImageIndex + 1} of ${totalScenes}`}
       />
       {attempts > 0 && (
@@ -215,10 +222,6 @@ export default function SpeakingFlowCard({
         )}
 
         <div className="sfc-record-panel">
-            <h3 className="sfc-record-title">
-              <BiLabel k="record_your_story" />
-            </h3>
-
             <button
               type="button"
               onClick={onPrimaryRecordingAction}
@@ -246,23 +249,6 @@ export default function SpeakingFlowCard({
               </div>
             )}
 
-            {!isRecording && (
-              <ol className="sfc-steps-preview" aria-label="What happens next">
-                <li>
-                  <span className="sfc-step-num">1</span>
-                  <BiLabel zh="錄音" pinyin="Lùyīn" en="Record" />
-                </li>
-                <li>
-                  <span className="sfc-step-num">2</span>
-                  <BiLabel zh="AI 分析" pinyin="AI fēnxī" en="AI listens" />
-                </li>
-                <li>
-                  <span className="sfc-step-num">3</span>
-                  <BiLabel zh="看回饋，變更好" pinyin="Kàn huíkuì, biàn gèng hǎo" en="Read feedback, improve" />
-                </li>
-              </ol>
-            )}
-
             <label
               className={`btn-practice-upload${isBusy ? " disabled" : ""}`}
               role="button"
@@ -281,62 +267,6 @@ export default function SpeakingFlowCard({
               <p className="submitted-audio-name">✓ {submittedAudioName}</p>
             )}
             {error && <p className="sfc-error">{error}</p>}
-
-            <details className="practice-model-picker sfc-options">
-              <summary>
-                <BiLabel k="recording_options" />
-              </summary>
-              {aiProviders.length > 0 && (
-                <>
-                  <label className="practice-model-label" htmlFor="ai-engine-select">
-                    <BiLabel k="ai_engine" />
-                  </label>
-                  <select
-                    id="ai-engine-select"
-                    value={aiProvider}
-                    onChange={(e) => {
-                      const next = e.target.value;
-                      onAiProviderChange(next);
-                      if (next === "groq") onSelectedModelChange("groq");
-                    }}
-                    disabled={isBusy}
-                  >
-                    {aiProviders.map((p) => (
-                      <option
-                        key={p.id}
-                        value={p.id}
-                        disabled={!p.available || p.id === "local"}
-                      >
-                        {p.label}
-                        {p.available && p.id !== "local" ? "" : " 🔒"}
-                      </option>
-                    ))}
-                  </select>
-                </>
-              )}
-              <label className="practice-model-label" htmlFor="speech-source">
-                <BiLabel k="speech_source" />
-              </label>
-              <select
-                id="speech-source"
-                value={selectedModel}
-                onChange={(e) => onSelectedModelChange(e.target.value as SpeechModel)}
-                disabled={isBusy}
-              >
-                <option value="webspeech">
-                  瀏覽器（繁體中文） Browser (Traditional Chinese)
-                </option>
-                <option value="groq">
-                  Groq Whisper（免費，雲端） Groq Whisper (free, cloud)
-                </option>
-                <option value="ctwhisper">
-                  Whisper（中文／台語，本地） Whisper (Chinese / Taiwanese, local)
-                </option>
-                <option value="vibevoice">
-                  VibeVoice-ASR（本地檔案） VibeVoice-ASR (local file)
-                </option>
-              </select>
-            </details>
           </div>
         </div>
         </div>
@@ -373,8 +303,8 @@ export default function SpeakingFlowCard({
       className: "sfc-verdict-pronounce",
       text: weakItems[0] ? (
         <BiLabel
-          zh={`詞彙都用到了！現在練「${weakItems[0].token}」的聲調。`}
-          pinyin={`Cíhuì dōu yòng dào le! Xiànzài liàn “${weakItems[0].token}” de shēngdiào.`}
+          zh={`生詞都用到了！現在練「${weakItems[0].token}」的聲調。`}
+          pinyin={`Shēngcí dōu yòng dào le! Xiànzài liàn “${weakItems[0].token}” de shēngdiào.`}
           en={`All words used! Now practice the tone of "${weakItems[0].token}".`}
         />
       ) : (
@@ -390,8 +320,8 @@ export default function SpeakingFlowCard({
       className: "sfc-verdict-ready",
       text: (
         <BiLabel
-          zh={`場景 ${selectedImageIndex + 1} 完成！可以前往下一個場景。`}
-          pinyin={`Chǎngjǐng ${selectedImageIndex + 1} wánchéng! Kěyǐ qiánwǎng xià yí ge chǎngjǐng.`}
+          zh={`部分 ${selectedImageIndex + 1} 完成！可以前往下一個部分。`}
+          pinyin={`Bùfen ${selectedImageIndex + 1} wánchéng! Kěyǐ qiánwǎng xià yí ge bùfen.`}
           en={`Scene ${selectedImageIndex + 1} complete! You can move on.`}
         />
       ),
@@ -416,7 +346,28 @@ export default function SpeakingFlowCard({
         <div className="practice-scene-image">
           <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} />
         </div>
-        {sceneChip}
+        {pronunciationNote?.details && pronunciationNote.details.length > 0 && (
+          <div className="sfc-scene-detail-cards">
+            <p className="block-label sfc-scene-detail-heading">
+              <BiLabel zh="發音回饋" pinyin="Fāyīn huíkuì" en="Pronunciation Feedback" />
+            </p>
+            <div className="sfc-scene-detail-list">
+              {pronunciationNote.details.map((d) => {
+                const meta = PRONUNCIATION_DETAIL_LABELS[d.key];
+                if (!meta) return null;
+                return (
+                  <div key={d.key} className="sfc-scene-detail-item">
+                    <p className="sfc-scene-detail-label">
+                      <span aria-hidden="true">{meta.icon}</span>{" "}
+                      <BiLabel zh={meta.zh} pinyin={meta.pinyin} en={meta.en} />
+                    </p>
+                    <p className="sfc-scene-detail-text">{d.text}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
         <div className="sfc-results-main">
@@ -458,31 +409,6 @@ export default function SpeakingFlowCard({
             </div>
             {sceneChip}
           </header>
-
-          {/* Status summary, not a tab switch — every section below is
-              always visible, so these are just an at-a-glance readout. */}
-          <div className="sfc-step-chips" role="group" aria-label="Result checklist">
-            <span className="sfc-step-chip">
-              <span className={`sfc-chip-status ${meaningJudged ? (accepted ? "pass" : "fail") : ""}`}>
-                {meaningJudged ? (accepted ? "✓" : "✗") : "①"}
-              </span>
-              <BiLabel zh="意思" pinyin="Yìsi" en="Meaning" />
-            </span>
-            <span className="sfc-chip-link" aria-hidden="true" />
-            <span className="sfc-step-chip">
-              <span className={`sfc-chip-status ${hasVocabList ? (missing.length === 0 ? "pass" : "fail") : ""}`}>
-                {hasVocabList ? `${usedCount}/${vocabTotal}` : "②"}
-              </span>
-              <BiLabel zh="詞彙" pinyin="Cíhuì" en="Vocabulary" />
-            </span>
-            <span className="sfc-chip-link" aria-hidden="true" />
-            <span className="sfc-step-chip">
-              <span className={`sfc-chip-status score-tier-text ${scoreTier(toneScore)}`}>
-                {scoreTierLabel(scoreTier(toneScore)).zh}
-              </span>
-              <BiLabel zh="發音" pinyin="Fāyīn" en="Pronunciation" />
-            </span>
-          </div>
 
           {/* One card shape reused for all three sections — same padding,
               radius and header layout, only the accent color changes.
@@ -533,7 +459,7 @@ export default function SpeakingFlowCard({
               <section className="sfc-result-card sfc-result-card--vocab">
                 <header className="sfc-result-card-header">
                   <span aria-hidden="true">📝</span>
-                  <BiLabel zh="詞彙" en="Vocabulary" />
+                  <BiLabel zh="生詞" en="Vocabulary" />
                 </header>
                 <div className="sfc-result-card-body">
                   <p className="sfc-result-card-lead">
@@ -557,11 +483,27 @@ export default function SpeakingFlowCard({
               </header>
               <div className="sfc-result-card-body">
                 {(praatMetrics?.word_prosody?.length ?? 0) > 0 ? (
-                  <div className="sfc-words-row">
-                    {praatMetrics!.word_prosody!.map((item) => (
-                      <WordProsodyCard key={`${item.token}-${item.index}`} item={item} />
-                    ))}
-                  </div>
+                  <>
+                    {/* Chart legend shown once for the whole row instead of
+                        repeated on every character card — same meaning
+                        everywhere, no reason to re-explain it per card. */}
+                    <div
+                      className="sfc-pronounce-legend mini-contour-legend"
+                      aria-hidden="true"
+                    >
+                      <span className="mini-contour-legend-actual">
+                        <BiLabel zh="你的音高" en="Your pitch" />
+                      </span>
+                      <span className="mini-contour-legend-reference">
+                        <BiLabel zh="目標形狀" en="Target shape" />
+                      </span>
+                    </div>
+                    <div className="sfc-words-row">
+                      {praatMetrics!.word_prosody!.map((item) => (
+                        <WordProsodyCard key={`${item.token}-${item.index}`} item={item} />
+                      ))}
+                    </div>
+                  </>
                 ) : (
                   <div className="word-prosody-empty">
                     <strong>
@@ -583,8 +525,8 @@ export default function SpeakingFlowCard({
           <p className="sfc-unlock-note">
             🔒{" "}
             <BiLabel
-              zh={`聲調 70 分、流暢 65 分，或練習 4 次即可解鎖（目前 ${attempts} 次）`}
-              pinyin={`Shēngdiào 70 fēn, liúchàng 65 fēn, huò liànxí 4 cì jí kě jiěsuǒ (mùqián ${attempts} cì)`}
+              zh={`聲調 70 分、流暢 65 分，或練習 4 次即可打開（目前 ${attempts} 次）`}
+              pinyin={`Shēngdiào 70 fēn, liúchàng 65 fēn, huò liànxí 4 cì jí kě dǎkāi (mùqián ${attempts} cì)`}
               en={`Unlock with tone 70, fluency 65, or 4 attempts (now: ${attempts})`}
             />
           </p>

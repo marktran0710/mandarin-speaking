@@ -67,7 +67,110 @@ EXPORT SETTINGS (to keep the file under 1.5 MB):
   compress with a tool like TinyPNG to get under 1.5 MB.
 
 ═══════════════════
-SPEECH-BUBBLE VERSION
+SPEECH-BUBBLE VERSION — EASY TIER (A1)
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 11.)
+
+Single square-ish image, divided into a clean grid of 6 equal panels (2
+columns × 3 rows), thin light gutters between panels, no hard comic-book
+borders. Each panel that has a speaking character includes one simple
+rounded speech bubble with a small tail pointing at that character,
+containing that panel's Chinese text written clearly and accurately
+inside, plain white bubble with black outline, no other text, letters,
+words, or captions anywhere else in the image. Flat digital illustration
+style, soft rounded shapes, warm cozy evening color palette, limited color
+palette, gentle clean outlines, friendly simple style, consistent lighting
+and color palette across all panels.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHONGMING] a friendly young man, early 20s, short neat black hair, medium
+build, light denim jacket over a white t-shirt, dark jeans, a black analog
+wristwatch on his left wrist as his signature accessory.
+[YOUMEI] a friendly young woman, early 20s, shoulder-length wavy black hair
+held back with a red hair clip, soft yellow cardigan over a white blouse,
+light blue jeans.
+
+Panel 1 (top-left): medium shot, Zhongming sitting at a small desk in his
+room in the evening, warm lamp light, typing on his phone with a soft smile,
+a couple of books stacked on the desk beside him. Speech bubble near
+Zhongming contains the Chinese text "友美，妳週末要做什麼？" written clearly.
+
+Panel 2 (top-right): medium shot from a slight side angle, Youmei sitting
+cross-legged on her bed, holding an open book in one hand, headphones resting
+around her neck, her phone lying on the blanket beside her, cozy relaxed
+expression. Speech bubble near Youmei contains the Chinese text "我要在家看
+書、聽音樂。" written clearly.
+
+Panel 3 (middle-left): close-up on Zhongming's face and shoulders, a hopeful
+expression, leaning slightly forward over his phone with one finger pointing
+at the screen as if indicating a date on a calendar. Speech bubble near
+Zhongming contains the Chinese text "妳星期六下午有空嗎？我們喝下午茶，好
+嗎？" written clearly.
+
+Panel 4 (middle-right): medium shot, Youmei sitting up eagerly on her bed,
+holding her phone with both hands and smiling brightly, a small floating
+question-mark shape near her head. Speech bubble near Youmei contains the
+Chinese text "好啊！去哪裡？" written clearly.
+
+Panel 5 (bottom-left): wide shot, Zhongming standing outside a small café
+storefront, pointing up with one hand at a cheerful ice-cream-cone-shaped
+sign above the door, looking pleased. Speech bubble near Zhongming contains
+the Chinese text "那家咖啡廳不錯，有巧克力冰淇淋。" written clearly.
+
+Panel 6 (bottom-right): medium-wide shot, Zhongming and Youmei sitting
+together at a small round café table, each with a cup of chocolate ice cream
+in front of them, a round wall clock in the background showing two-thirty,
+both laughing together. Speech bubble near Youmei contains the Chinese text
+"我們星期六下午兩點半去吧。" written clearly.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Zhongming's denim jacket and black
+  wristwatch, Youmei's red hair clip and yellow cardigan) recognizable in
+  every panel.
+- Keep one art style and one lighting mood across all 6 panels so the page
+  reads as one connected world.
+- Vary pose, shot framing, and camera angle panel to panel (see Rules) so it
+  reads as six different moments, not one pose repeated six times.
+- If one panel looks off after generation, it's harder to regenerate in
+  isolation than with separate images — accept minor variance, or fall back
+  to generating that one beat as its own image and swapping it in during
+  editing if it matters.
+
+CAPTION SCRIPT (for proofreading the generated bubbles against — not part
+of the prompt above; if a bubble comes out garbled, use these to fix it by
+hand in an image editor or as the source for scripts/overlay_captions.py):
+Panel 1 — Zhongming: 友美，妳週末要做什麼？
+  Yǒuměi, nǐ zhōumò yào zuò shénme? — Youmei, what are you doing this
+  weekend?
+Panel 2 — Youmei: 我要在家看書、聽音樂。
+  Wǒ yào zài jiā kànshū, tīng yīnyuè. — I'm going to stay home, read, and
+  listen to music.
+Panel 3 — Zhongming: 妳星期六下午有空嗎？我們喝下午茶，好嗎？
+  Nǐ xīngqíliù xiàwǔ yǒukòng ma? Wǒmen hē xiàwǔchá, hǎo ma? — Are you free
+  Saturday afternoon? Let's have afternoon tea, okay?
+Panel 4 — Youmei: 好啊！去哪裡？
+  Hǎo a! Qù nǎlǐ? — Sure! Where should we go?
+Panel 5 — Zhongming: 那家咖啡廳不錯，有巧克力冰淇淋。
+  Nà jiā kāfēitīng búcuò, yǒu qiǎokèlì bīngqílín. — That café is good —
+  they have chocolate ice cream.
+Panel 6 — Youmei: 我們星期六下午兩點半去吧。
+  Wǒmen xīngqíliù xiàwǔ liǎng diǎn bàn qù ba. — Let's go this Saturday at
+  2:30 in the afternoon.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1536 for a 2×3 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
+
+═══════════════════
+SPEECH-BUBBLE VERSION — MEDIUM TIER (A1-A2)
 ═══════════════════
 (AI image models render Chinese text inconsistently — proofread every
 bubble after generating. If any line comes out garbled or wrong,
@@ -164,6 +267,120 @@ Panel 5 — Zhongming: 我知道一家咖啡廳很不錯，那裡的巧克力冰
 Panel 6 — Youmei: 太好了，我們這個星期六下午兩點半去那裡吧！
   Tài hǎo le, wǒmen zhège xīngqíliù xiàwǔ liǎng diǎn bàn qù nàlǐ ba! —
   Great, let's go there this Saturday at 2:30 in the afternoon!
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1536 for a 2×3 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
+
+═══════════════════
+SPEECH-BUBBLE VERSION — HARD TIER (A2)
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 11.)
+
+Single square-ish image, divided into a clean grid of 6 equal panels (2
+columns × 3 rows), thin light gutters between panels, no hard comic-book
+borders. Each panel that has a speaking character includes one simple
+rounded speech bubble with a small tail pointing at that character,
+containing that panel's Chinese text written clearly and accurately
+inside, plain white bubble with black outline, no other text, letters,
+words, or captions anywhere else in the image. Flat digital illustration
+style, soft rounded shapes, warm cozy evening color palette, limited color
+palette, gentle clean outlines, friendly simple style, consistent lighting
+and color palette across all panels.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHONGMING] a friendly young man, early 20s, short neat black hair, medium
+build, light denim jacket over a white t-shirt, dark jeans, a black analog
+wristwatch on his left wrist as his signature accessory.
+[YOUMEI] a friendly young woman, early 20s, shoulder-length wavy black hair
+held back with a red hair clip, soft yellow cardigan over a white blouse,
+light blue jeans.
+
+Panel 1 (top-left): medium shot, Zhongming sitting at a small desk in his
+room in the evening, warm lamp light, typing on his phone with a soft smile,
+a couple of books stacked on the desk beside him. Speech bubble near
+Zhongming contains the Chinese text "友美，我們好久沒見面了，妳這個週末要做
+什麼？" written clearly.
+
+Panel 2 (top-right): medium shot from a slight side angle, Youmei sitting
+cross-legged on her bed, holding an open book in one hand, headphones resting
+around her neck, her phone lying on the blanket beside her, cozy relaxed
+expression. Speech bubble near Youmei contains the Chinese text "我這幾天有
+點累，想在家看書、聽音樂，好好休息一下。" written clearly.
+
+Panel 3 (middle-left): close-up on Zhongming's face and shoulders, a hopeful
+expression, leaning slightly forward over his phone with one finger pointing
+at the screen as if indicating a date on a calendar. Speech bubble near
+Zhongming contains the Chinese text "那妳星期六下午有空嗎？要不要一起去喝杯
+下午茶，放鬆一下？" written clearly.
+
+Panel 4 (middle-right): medium shot, Youmei sitting up eagerly on her bed,
+holding her phone with both hands and smiling brightly, a small floating
+question-mark shape near her head. Speech bubble near Youmei contains the
+Chinese text "好啊，聽起來比在家看書有趣多了，我們去哪裡呢？" written clearly.
+
+Panel 5 (bottom-left): wide shot, Zhongming standing outside a small café
+storefront, pointing up with one hand at a cheerful ice-cream-cone-shaped
+sign above the door, looking pleased. Speech bubble near Zhongming contains
+the Chinese text "我上次去過一家咖啡廳，那裡的冰淇淋比別家好吃很多，還有各
+種口味的巧克力冰淇淋。" written clearly.
+
+Panel 6 (bottom-right): medium-wide shot, Zhongming and Youmei sitting
+together at a small round café table, each with a cup of chocolate ice cream
+in front of them, a round wall clock in the background showing two-thirty,
+both laughing together. Speech bubble near Youmei contains the Chinese text
+"太棒了，那我們這個星期六下午兩點半就約在那裡吧！" written clearly.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Zhongming's denim jacket and black
+  wristwatch, Youmei's red hair clip and yellow cardigan) recognizable in
+  every panel.
+- Keep one art style and one lighting mood across all 6 panels so the page
+  reads as one connected world.
+- Vary pose, shot framing, and camera angle panel to panel (see Rules) so it
+  reads as six different moments, not one pose repeated six times.
+- If one panel looks off after generation, it's harder to regenerate in
+  isolation than with separate images — accept minor variance, or fall back
+  to generating that one beat as its own image and swapping it in during
+  editing if it matters.
+
+CAPTION SCRIPT (for proofreading the generated bubbles against — not part
+of the prompt above; if a bubble comes out garbled, use these to fix it by
+hand in an image editor or as the source for scripts/overlay_captions.py):
+Panel 1 — Zhongming: 友美，我們好久沒見面了，妳這個週末要做什麼？
+  Yǒuměi, wǒmen hǎojiǔ méi jiànmiàn le, nǐ zhège zhōumò yào zuò shénme? —
+  Youmei, we haven't seen each other in a while — what are you doing this
+  weekend?
+Panel 2 — Youmei: 我這幾天有點累，想在家看書、聽音樂，好好休息一下。
+  Wǒ zhè jǐ tiān yǒudiǎn lèi, xiǎng zài jiā kànshū, tīng yīnyuè, hǎohǎo
+  xiūxí yíxià. — I've been a bit tired these past few days, so I want to
+  stay home, read, listen to music, and rest a while.
+Panel 3 — Zhongming: 那妳星期六下午有空嗎？要不要一起去喝杯下午茶，放鬆一下？
+  Nà nǐ xīngqíliù xiàwǔ yǒukòng ma? Yào bú yào yìqǐ qù hē bēi xiàwǔchá,
+  fàngsōng yíxià? — Then are you free Saturday afternoon? Want to go have
+  some afternoon tea together and relax a bit?
+Panel 4 — Youmei: 好啊，聽起來比在家看書有趣多了，我們去哪裡呢？
+  Hǎo a, tīng qǐlái bǐ zài jiā kànshū yǒuqù duō le, wǒmen qù nǎlǐ ne? —
+  Sure, that sounds a lot more fun than staying home reading — where should
+  we go?
+Panel 5 — Zhongming: 我上次去過一家咖啡廳，那裡的冰淇淋比別家好吃很多，還有
+各種口味的巧克力冰淇淋。
+  Wǒ shàngcì qùguò yì jiā kāfēitīng, nàlǐ de bīngqílín bǐ biéjiā hǎochī hěn
+  duō, hái yǒu gèzhǒng kǒuwèi de qiǎokèlì bīngqílín. — I went to a café
+  last time — their ice cream is much better than other places, and they
+  have all kinds of chocolate ice cream flavors.
+Panel 6 — Youmei: 太棒了，那我們這個星期六下午兩點半就約在那裡吧！
+  Tài bàng le, nà wǒmen zhège xīngqíliù xiàwǔ liǎng diǎn bàn jiù yuē zài
+  nàlǐ ba! — Awesome, then let's meet there this Saturday at 2:30 in the
+  afternoon!
 
 EXPORT SETTINGS (to keep the file under 1.5 MB):
 - Generate at a resolution that keeps individual panels legible — e.g.

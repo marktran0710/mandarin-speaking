@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import StoryVocabQuiz, {
@@ -6,6 +6,38 @@ import StoryVocabQuiz, {
   collectQuizEntries,
   type VocabQuizSummary,
 } from "./StoryVocabQuiz";
+import * as database from "../services/database";
+
+vi.mock("../services/database", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/database")>();
+  return {
+    ...actual,
+    canUseDatabase: vi.fn(() => true),
+    getVocabQuizWeakWords: vi.fn(async () => []),
+  };
+});
+
+// The question-kind picker rolls Math.random() against a weighted list of
+// whichever kinds are available for the entry (translation and pinyin are
+// always available; cloze/pos/synonym only when the entry has that data —
+// see pickQuestionKind in StoryVocabQuiz.tsx). Mocking Math.random() to 0
+// always lands on the first-checked kind, translation (weight > 0, checked
+// first) — every test in this file defaults to that below, since most were
+// written before pinyin/cloze/pos/synonym existed and assume translation
+// questions throughout; individual tests override the mock to exercise a
+// specific other kind. Mocking it close to 1 always lands on the
+// last-available kind — convenient when an entry gives exactly one "extra"
+// kind of data, making that the last (and therefore selected) kind.
+const FORCE_TRANSLATION = 0;
+const FORCE_LAST_AVAILABLE_KIND = 0.999;
+
+beforeEach(() => {
+  vi.spyOn(Math, "random").mockReturnValue(FORCE_TRANSLATION);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 function optionButtons() {
   return screen
@@ -465,6 +497,32 @@ describe("StoryVocabQuiz modes", () => {
     }
   });
 
+  it("speed mode shows a live countdown of seconds remaining", () => {
+    vi.useFakeTimers();
+    try {
+      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+
+      fireEvent.click(screen.getByRole("button", { name: /Speed/ }));
+      expect(screen.getByText("⏱️ 60s")).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(10_000);
+      });
+      expect(screen.getByText("⏱️ 50s")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("strikes mode does not show the speed countdown", async () => {
+    const user = userEvent.setup();
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+
+    expect(screen.queryByText(/⏱️/)).not.toBeInTheDocument();
+  });
+
   it("offers a missed-words retry after the run, scoped to only the words gotten wrong, and does not record it as a new attempt", async () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();
@@ -499,6 +557,270 @@ describe("StoryVocabQuiz modes", () => {
     // its own results screen must not offer yet another retry.
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: /Practice missed words/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Continue to practice/ }));
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("StoryVocabQuiz AI badge + cloze questions", () => {
+  it("shows the AI badge on a translation question whose options draw from AI-generated distractors", async () => {
+    const user = userEvent.setup();
+    const entries = [
+      { word: "喝", translation: "to drink", aiDistractors: ["to buy", "to look", "to do"] },
+    ];
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_TRANSLATION);
+    try {
+      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+
+      expect(screen.getByRole("heading")).toHaveTextContent("喝");
+      expect(screen.getByLabelText("AI-generated question")).toBeInTheDocument();
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
+  it("shows no AI badge on a translation question that has no AI-generated distractors", async () => {
+    const user = userEvent.setup();
+    const entries = [
+      { word: "一", translation: "one" },
+      { word: "二", translation: "two" },
+    ];
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_TRANSLATION);
+    try {
+      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+
+      expect(screen.queryByLabelText("AI-generated question")).not.toBeInTheDocument();
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
+  it("mixes in a cloze question (sentence with a blank, Chinese-word options) when the word has cached AI cloze candidates", async () => {
+    const user = userEvent.setup();
+    const entries = [
+      {
+        word: "喝",
+        translation: "to drink",
+        aiCloze: [{ sentence: "我要喝水。", distractors: ["買", "看", "做"] }],
+      },
+    ];
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    try {
+      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+
+      expect(
+        screen.getByRole("group", { name: "Which word fits the blank?" }),
+      ).toBeInTheDocument();
+      expect(screen.getByRole("heading")).toHaveTextContent("我要____水。");
+      expect(screen.getByLabelText("AI-generated question")).toBeInTheDocument();
+
+      const options = optionButtons();
+      expect(options.map((o) => o.textContent)).toEqual(
+        expect.arrayContaining(["喝", "買", "看", "做"]),
+      );
+
+      await user.click(options.find((o) => o.textContent === "喝")!);
+      expect(screen.getByRole("button", { name: "喝 (correct answer)" })).toBeInTheDocument();
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
+  it("never asks a cloze question for a word with no cached AI cloze candidates, even when the random roll would allow it", async () => {
+    const user = userEvent.setup();
+    const entries = [{ word: "一", translation: "one" }];
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    try {
+      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+
+      // With no cloze/pos/synonym data, pinyin is the only other kind ever
+      // available, so a high random roll lands there instead of cloze.
+      expect(
+        screen.queryByRole("group", { name: "Which word fits the blank?" }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole("group", { name: "How do you read 一?" })).toBeInTheDocument();
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+});
+
+describe("StoryVocabQuiz pinyin/pos/synonym questions", () => {
+  it("asks a pinyin question (no AI badge) when the random roll lands there, with the reading among the options", async () => {
+    const user = userEvent.setup();
+    const entries = [
+      { word: "喝", translation: "to drink", pinyin: "hē" },
+      { word: "看", translation: "to look", pinyin: "kàn" },
+      { word: "做", translation: "to do", pinyin: "zuò" },
+    ];
+    // Only translation + pinyin are ever available for these entries (no
+    // cloze/pos/synonym data), so a high roll lands on pinyin — the last
+    // kind checked in pickQuestionKind.
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    try {
+      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+
+      const word = screen.getByRole("heading").textContent!;
+      expect(screen.queryByLabelText("AI-generated question")).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("group", { name: `How do you read ${word}?` }),
+      ).toBeInTheDocument();
+
+      const pinyinByWord: Record<string, string> = { 喝: "hē", 看: "kàn", 做: "zuò" };
+      const options = optionButtons();
+      expect(options.map((o) => o.textContent)).toContain(pinyinByWord[word]);
+
+      await user.click(options.find((o) => o.textContent === pinyinByWord[word])!);
+      expect(
+        screen.getByRole("button", { name: `${pinyinByWord[word]} (correct answer)` }),
+      ).toBeInTheDocument();
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
+  it("asks a part-of-speech question (no AI badge) only for a word with teacher-authored pos data", async () => {
+    const user = userEvent.setup();
+    const entries = [
+      { word: "貓", translation: "cat", pos: "N" },
+      { word: "跑", translation: "to run", pos: "V" },
+    ];
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    try {
+      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+
+      const word = screen.getByRole("heading").textContent!;
+      expect(screen.queryByLabelText("AI-generated question")).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("group", { name: `What part of speech is ${word}?` }),
+      ).toBeInTheDocument();
+
+      const posByWord: Record<string, string> = { 貓: "N", 跑: "V" };
+      const options = optionButtons();
+      expect(options.map((o) => o.textContent)).toContain(posByWord[word]);
+
+      await user.click(options.find((o) => o.textContent === posByWord[word])!);
+      expect(
+        screen.getByRole("button", { name: `${posByWord[word]} (correct answer)` }),
+      ).toBeInTheDocument();
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
+  it("never asks a part-of-speech question for a word with no authored pos data", async () => {
+    const user = userEvent.setup();
+    const entries = [{ word: "一", translation: "one" }];
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    try {
+      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+
+      expect(
+        screen.queryByRole("group", { name: "What part of speech is 一?" }),
+      ).not.toBeInTheDocument();
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
+  it("asks a synonym question (with AI badge) whose correct answer is the synonym, not the original word", async () => {
+    const user = userEvent.setup();
+    const entries = [
+      {
+        word: "高興",
+        translation: "happy",
+        aiSynonym: [{ synonym: "開心", distractors: ["生氣", "累", "餓"] }],
+      },
+    ];
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    try {
+      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+
+      expect(screen.getByRole("heading")).toHaveTextContent("高興");
+      expect(screen.getByLabelText("AI-generated question")).toBeInTheDocument();
+      expect(
+        screen.getByRole("group", { name: "Which word means the same as 高興?" }),
+      ).toBeInTheDocument();
+
+      const options = optionButtons();
+      expect(options.map((o) => o.textContent)).toEqual(
+        expect.arrayContaining(["開心", "生氣", "累", "餓"]),
+      );
+      // The original word itself must never appear as an option.
+      expect(options.map((o) => o.textContent)).not.toContain("高興");
+
+      await user.click(options.find((o) => o.textContent === "開心")!);
+      expect(screen.getByRole("button", { name: "開心 (correct answer)" })).toBeInTheDocument();
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+});
+
+describe("StoryVocabQuiz weak-words mode", () => {
+  const entries = [
+    { word: "一", translation: "one" },
+    { word: "二", translation: "two" },
+    { word: "三", translation: "three" },
+  ];
+  const translationByWord = Object.fromEntries(entries.map((e) => [e.word, e.translation]));
+
+  async function answerCurrentQuestion(user: ReturnType<typeof userEvent.setup>, correct: boolean) {
+    const word = screen.getByRole("heading").textContent!;
+    const correctTranslation = translationByWord[word];
+    const buttons = optionButtons();
+    const target = correct
+      ? buttons.find((b) => b.textContent === correctTranslation)
+      : buttons.find((b) => b.textContent !== correctTranslation);
+    await user.click(target!);
+  }
+
+  it("does not offer the weak-words card without a storyId, or when there are no persisted weak words", async () => {
+    vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue([]);
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="story-1" studentId="s1" />);
+
+    await waitFor(() => expect(database.getVocabQuizWeakWords).toHaveBeenCalled());
+    expect(screen.queryByRole("button", { name: /Weak words/ })).not.toBeInTheDocument();
+  });
+
+  it("offers a weak-words card scoped to only the persisted missed words, and reports it as a real 'weak_words' attempt", async () => {
+    vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(["一", "三"]);
+    const user = userEvent.setup();
+    const onComplete = vi.fn();
+    const onDone = vi.fn();
+
+    render(
+      <StoryVocabQuiz
+        entries={entries}
+        onDone={onDone}
+        onComplete={onComplete}
+        storyId="story-1"
+        studentId="s1"
+      />,
+    );
+
+    const weakWordsButton = await screen.findByRole("button", { name: /Weak words \(2\)/ });
+    await user.click(weakWordsButton);
+
+    for (let i = 0; i < 2; i += 1) {
+      await answerCurrentQuestion(user, true);
+      await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
+    }
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    const summary: VocabQuizSummary = onComplete.mock.calls[0][0];
+    expect(summary.mode).toBe("weak_words");
+    expect(summary.totalQuestions).toBe(2);
+    expect(summary.questionResults.map((r) => r.word).sort()).toEqual(["一", "三"]);
 
     await user.click(screen.getByRole("button", { name: /Continue to practice/ }));
     expect(onDone).toHaveBeenCalledTimes(1);

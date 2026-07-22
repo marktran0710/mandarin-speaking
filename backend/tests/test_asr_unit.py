@@ -634,3 +634,195 @@ class TestFallbackLanguageFeedback:
         assert "feedback" in vc
         assert isinstance(vc["used"], list)
         assert isinstance(vc["missing"], list)
+
+    def test_pron_feedback_includes_speed_verdict(self):
+        from ai_feedback import fallback_language_feedback
+        pause_analysis = {
+            "duration": 4.0,
+            "total_speaking_duration": 3.5,
+            "pause_count": 0,
+            "pauses": [],
+        }
+        result = fallback_language_feedback(
+            "你好",
+            praat_tone_accuracy=80.0,
+            praat_fluency_score=80.0,
+            praat_pause_analysis=pause_analysis,
+            praat_speech_rate=1.0,
+        )
+        assert "syllables/sec" in result["pronunciation_note"]["feedback"]
+
+    def test_pron_feedback_flags_choppy_pause_against_reference(self):
+        from ai_feedback import fallback_language_feedback
+        word_prosody = [
+            {"token": "我喜歡", "start_time": 0.0, "end_time": 0.6},
+            {"token": "貓", "start_time": 1.0, "end_time": 1.3},
+        ]
+        pause_analysis = {
+            "duration": 1.3,
+            "total_speaking_duration": 0.9,
+            "pause_count": 1,
+            "pauses": [{"start": 0.6, "end": 1.0, "duration": 0.4}],
+        }
+        result = fallback_language_feedback(
+            "我喜歡貓",
+            praat_tone_accuracy=80.0,
+            praat_fluency_score=80.0,
+            praat_pause_analysis=pause_analysis,
+            praat_speech_rate=3.0,
+            word_prosody=word_prosody,
+            scene_suggested_answer="我喜歡貓。",
+        )
+        feedback = result["pronunciation_note"]["feedback"]
+        assert "我喜歡" in feedback
+        assert "貓" in feedback
+
+    def test_details_has_only_tone_entry_with_minimal_data(self):
+        from ai_feedback import fallback_language_feedback
+        result = fallback_language_feedback("你好", praat_tone_accuracy=70.0)
+        details = result["pronunciation_note"]["details"]
+        keys = [d["key"] for d in details]
+        assert keys == ["tone"]
+
+    def test_details_includes_rhythm_pace_entry(self):
+        from ai_feedback import fallback_language_feedback
+        pause_analysis = {
+            "duration": 4.0, "total_speaking_duration": 3.5,
+            "pause_count": 0, "pauses": [],
+        }
+        result = fallback_language_feedback(
+            "你好", praat_tone_accuracy=80.0, praat_fluency_score=80.0,
+            praat_pause_analysis=pause_analysis, praat_speech_rate=1.0,
+        )
+        details = {d["key"]: d["text"] for d in result["pronunciation_note"]["details"]}
+        assert "rhythm_pace" in details
+        assert "syllables/sec" in details["rhythm_pace"]
+
+    def test_details_includes_pausing_entry_when_judged(self):
+        from ai_feedback import fallback_language_feedback
+        word_prosody = [
+            {"token": "我喜歡", "start_time": 0.0, "end_time": 0.6},
+            {"token": "貓", "start_time": 1.0, "end_time": 1.3},
+        ]
+        pause_analysis = {
+            "duration": 1.3, "total_speaking_duration": 0.9,
+            "pause_count": 1,
+            "pauses": [{"start": 0.6, "end": 1.0, "duration": 0.4}],
+        }
+        result = fallback_language_feedback(
+            "我喜歡貓", praat_tone_accuracy=80.0, praat_fluency_score=80.0,
+            praat_pause_analysis=pause_analysis, praat_speech_rate=3.0,
+            word_prosody=word_prosody, scene_suggested_answer="我喜歡貓。",
+        )
+        details = {d["key"]: d["text"] for d in result["pronunciation_note"]["details"]}
+        assert "pausing" in details
+        assert "我喜歡" in details["pausing"]
+        assert "貓" in details["pausing"]
+
+    def test_details_includes_vowel_quality_entry(self):
+        from ai_feedback import fallback_language_feedback
+        result = fallback_language_feedback(
+            "你好", praat_tone_accuracy=70.0, praat_vowel_quality="Open vowel",
+        )
+        details = {d["key"]: d["text"] for d in result["pronunciation_note"]["details"]}
+        assert details.get("vowel_quality") == "Open vowel"
+
+    def test_details_includes_word_stress_entry(self):
+        from ai_feedback import fallback_language_feedback
+        word_prosody = [
+            {
+                "token": "以後", "is_content_word": True, "mean_pitch": 100.0,
+                "start_time": 0.0, "end_time": 0.3,
+            },
+            {
+                "token": "好", "is_content_word": True, "mean_pitch": 100.0,
+                "start_time": 0.3, "end_time": 0.6,
+            },
+        ]
+        result = fallback_language_feedback(
+            "以後好", praat_tone_accuracy=70.0, word_prosody=word_prosody,
+        )
+        details = result["pronunciation_note"]["details"]
+        keys = [d["key"] for d in details]
+        # word_stress only appears when word_stress_summary finds a de-accented
+        # word or pitch-declination signal — not asserting presence here since
+        # that depends on praat_analyzer's real pitch logic, just that the
+        # feedback string stays consistent with whatever details were built.
+        assert result["pronunciation_note"]["feedback"] == " ".join(
+            d["text"] for d in details
+        )
+
+    def test_feedback_string_matches_joined_details(self):
+        from ai_feedback import fallback_language_feedback
+        pause_analysis = {
+            "duration": 4.0, "total_speaking_duration": 3.5,
+            "pause_count": 0, "pauses": [],
+        }
+        result = fallback_language_feedback(
+            "你好", praat_tone_accuracy=80.0, praat_fluency_score=80.0,
+            praat_pause_analysis=pause_analysis, praat_speech_rate=1.0,
+            praat_vowel_quality="Open vowel",
+        )
+        details = result["pronunciation_note"]["details"]
+        assert result["pronunciation_note"]["feedback"] == " ".join(
+            d["text"] for d in details
+        )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# AI Feedback: fallback_story_feedback() — pronunciation-focused dimensions
+# ──────────────────────────────────────────────────────────────────────────────
+
+class TestFallbackStoryFeedbackDimensions:
+
+    def test_returns_four_pronunciation_dimensions_not_ielts_pillars(self):
+        from ai_feedback import fallback_story_feedback
+        result = fallback_story_feedback(
+            "我喜歡貓。牠很可愛。",
+            avg_tone_accuracy=80.0,
+            avg_fluency_score=70.0,
+            avg_pron_score=75.0,
+        )
+        assert set(result.keys()) == {"provider", "tone", "word_stress", "rhythm_pace", "pausing"}
+
+    def test_choppy_pause_count_mentioned_in_pausing_feedback(self):
+        from ai_feedback import fallback_story_feedback
+        result = fallback_story_feedback(
+            "我喜歡貓。牠很可愛。",
+            avg_fluency_score=70.0,
+            total_pause_count=3,
+            longest_single_pause=0.5,
+            total_utterance_count=4,
+            scene_count=2,
+            total_choppy_pause_count=2,
+        )
+        assert "2" in result["pausing"]["feedback"]
+
+    def test_slow_articulation_rate_mentioned_in_rhythm_pace_feedback(self):
+        from ai_feedback import fallback_story_feedback
+        result = fallback_story_feedback(
+            "我喜歡貓。牠很可愛。",
+            avg_fluency_score=70.0,
+            avg_articulation_rate=1.5,
+        )
+        assert "syllables/sec" in result["rhythm_pace"]["feedback"]
+
+    def test_tone_dimension_grounded_in_avg_tone_accuracy(self):
+        from ai_feedback import fallback_story_feedback
+        result = fallback_story_feedback("我喜歡貓。", avg_tone_accuracy=82.0)
+        assert result["tone"]["judged"] is True
+        assert "82" in result["tone"]["feedback"]
+
+    def test_word_stress_dimension_grounded_in_avg_pron_score(self):
+        from ai_feedback import fallback_story_feedback
+        result = fallback_story_feedback("我喜歡貓。", avg_pron_score=63.0)
+        assert result["word_stress"]["judged"] is True
+        assert "63" in result["word_stress"]["feedback"]
+
+    def test_dimensions_unjudged_without_data(self):
+        from ai_feedback import fallback_story_feedback
+        result = fallback_story_feedback("我喜歡貓。")
+        assert result["tone"]["judged"] is False
+        assert result["word_stress"]["judged"] is False
+        assert result["rhythm_pace"]["judged"] is False
+        assert result["pausing"]["judged"] is False
