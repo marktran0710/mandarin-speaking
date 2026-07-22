@@ -89,7 +89,10 @@
       "Bash(curl -s -o /dev/null -w \"vite:%{http_code}\\\\n\" http://127.0.0.1:5173/)",
       "Bash(curl -s -o /dev/null -w \"backend:%{http_code}\\\\n\" http://127.0.0.1:8000/health)",
       "PowerShell(git add *)",
-      "PowerShell(git push *)"
+      "PowerShell(git push *)",
+      "PowerShell(git commit *)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 15)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 8; npx vitest run src/components/StoryVocabQuiz.test.tsx src/utils/quizTiers.test.ts src/utils/prosodyGate.test.ts 2>&1 | Select-Object -Last 6)"
     ]
   },
   "enabledPlugins": {
