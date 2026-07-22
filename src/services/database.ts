@@ -290,6 +290,32 @@ export async function updateVocabularyDistractors(
   }
 }
 
+export interface VocabularyLookalikeUpdate {
+  frameIndex: number;
+  wordIndex: number;
+  lookalikes: string[];
+}
+
+// Tops up a story's persisted per-word look-alike pool (the tier-3 quiz's
+// face-confusion traps), mirroring updateVocabularyDistractors above.
+export async function updateVocabularyLookalike(
+  storyId: string,
+  updates: VocabularyLookalikeUpdate[],
+): Promise<void> {
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/vocabulary-lookalike`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ updates }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Could not update vocabulary look-alikes for the story.");
+  }
+}
+
 export interface VocabularyClozeCandidate {
   sentence: string;
   distractors: string[];
@@ -538,7 +564,16 @@ export async function getVocabQuizIrt(storyId?: string): Promise<VocabQuizIrt> {
   return response.json() as Promise<VocabQuizIrt>;
 }
 
-export type VocabQuizMode = "speed" | "strikes" | "free" | "review";
+export type VocabQuizMode =
+  | "tier1"
+  | "tier2"
+  | "tier3"
+  | "weak_words"
+  // Legacy modes — attempts recorded before the star-tier ladder.
+  | "speed"
+  | "strikes"
+  | "free"
+  | "review";
 
 export interface VocabQuizJointModel {
   mode: VocabQuizMode;

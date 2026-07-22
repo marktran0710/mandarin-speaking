@@ -43,6 +43,10 @@ export interface CustomStoryFrame {
   // is a list of AI-generated {synonym, distractors} candidates, grown the
   // same way vocabularyCloze is.
   vocabularySynonym?: string;
+  // JSON-encoded array of arrays (one entry per word) — each word's entry
+  // is a list of AI-generated visually-confusable words (喝/渴), grown the
+  // same way vocabularyDistractors is.
+  vocabularyLookalike?: string;
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
@@ -200,6 +204,7 @@ export function storyToTopic(
   const vocabularyPos: Record<number, string[]> = {};
   const vocabularyTranslation: Record<number, string[]> = {};
   const vocabularyDistractors: Record<number, string[][]> = {};
+  const vocabularyLookalike: Record<number, string[][]> = {};
   const vocabularyCloze: Record<number, Array<{ sentence: string; distractors: string[] }[]>> = {};
   const vocabularySynonym: Record<number, Array<{ synonym: string; distractors: string[] }[]>> = {};
   const suggestedAnswers: Record<number, string> = {};
@@ -248,6 +253,20 @@ export function storyToTopic(
         const parsed = JSON.parse(frame.vocabularyDistractors);
         if (Array.isArray(parsed)) {
           vocabularyDistractors[index] = parsed.map((row) =>
+            Array.isArray(row) ? row.filter((d): d is string => typeof d === "string") : [],
+          );
+        }
+      } catch {
+        // Malformed/stale data — treat as absent rather than breaking the quiz.
+      }
+    }
+    // Same "not tiered, AI-grown rather than authored" story as
+    // vocabularyDistractors above.
+    if (frame.vocabularyLookalike && frame.vocabularyLookalike.trim()) {
+      try {
+        const parsed = JSON.parse(frame.vocabularyLookalike);
+        if (Array.isArray(parsed)) {
+          vocabularyLookalike[index] = parsed.map((row) =>
             Array.isArray(row) ? row.filter((d): d is string => typeof d === "string") : [],
           );
         }
@@ -331,6 +350,7 @@ export function storyToTopic(
     ...(Object.keys(vocabularyPos).length > 0 ? { vocabularyPos } : {}),
     ...(Object.keys(vocabularyTranslation).length > 0 ? { vocabularyTranslation } : {}),
     ...(Object.keys(vocabularyDistractors).length > 0 ? { vocabularyDistractors } : {}),
+    ...(Object.keys(vocabularyLookalike).length > 0 ? { vocabularyLookalike } : {}),
     ...(Object.keys(vocabularyCloze).length > 0 ? { vocabularyCloze } : {}),
     ...(Object.keys(vocabularySynonym).length > 0 ? { vocabularySynonym } : {}),
     ...(Object.keys(suggestedAnswers).length > 0 ? { suggestedAnswers } : {}),

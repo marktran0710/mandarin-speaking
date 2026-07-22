@@ -54,6 +54,21 @@ export function starsFromAttempts(
   return stars;
 }
 
+/** Per-story stars across a mixed attempt history (every story that appears
+ * gets an entry, 0 included) — powers the teacher star board and the story
+ * list's earned-star badges. */
+export function starsByStory(
+  attempts: Array<{ storyId: string; mode?: string | null; correctCount: number }>,
+): Record<string, 0 | QuizTier> {
+  const byStory: Record<string, 0 | QuizTier> = {};
+  for (const attempt of attempts) {
+    const earned = attemptEarnsStar(attempt.mode, attempt.correctCount);
+    const current = byStory[attempt.storyId] ?? 0;
+    byStory[attempt.storyId] = earned !== null && earned > current ? earned : current;
+  }
+  return byStory;
+}
+
 /** Tier 1 is always open; each later tier opens once the previous star is
  * earned. */
 export function isTierUnlocked(tier: QuizTier, stars: number): boolean {

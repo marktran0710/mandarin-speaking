@@ -14,6 +14,8 @@ from main import (
     VocabDistractorResponse,
     VocabFromSentenceRequest,
     VocabFromSentenceResponse,
+    VocabLookalikeRequest,
+    VocabLookalikeResponse,
     VocabQuizAttemptRequest,
     VocabSynonymRequest,
     VocabSynonymResponse,
@@ -289,6 +291,49 @@ async def vocab_quiz_cloze(request: VocabClozeRequest, req: Request):
     raise HTTPException(
         status_code=502,
         detail="Could not generate cloze questions for these words.",
+    ) from last_error
+
+
+@router.post("/api/vocab-quiz-lookalike", response_model=VocabLookalikeResponse)
+async def vocab_quiz_lookalike(request: VocabLookalikeRequest, req: Request):
+    """
+    Generate visually-confusable Traditional Chinese words (喝/渴, 買/賣) for
+    each of a story's vocabulary words — the tier-3 quiz's face-confusion
+    traps, mixed into reverse/listening question options. Same generate-once,
+    cache-per-story flow as the distractor/cloze/synonym endpoints above.
+    """
+    client_ip = req.client.host if req.client else "unknown"
+    main._check_rate_limit(f"vocab-quiz-lookalike:{client_ip}", max_requests=10, window_seconds=60)
+
+    words = [w for w in request.words if w.word.strip() and w.translation.strip()]
+    if not words:
+        raise HTTPException(status_code=400, detail="Provide at least one word with a translation.")
+
+    engines = [
+        ("groq", main.GROQ_API_KEY, main.generate_vocab_lookalike_with_groq),
+        ("gemini", main.GEMINI_API_KEY, main.generate_vocab_lookalike_with_gemini),
+    ]
+    if not any(key for _, key, _ in engines):
+        raise HTTPException(
+            status_code=503,
+            detail="AI look-alike generation requires GROQ_API_KEY or GEMINI_API_KEY to be configured on the backend.",
+        )
+
+    last_error: Exception | None = None
+    for name, key, generate in engines:
+        if not key:
+            continue
+        try:
+            results = await generate(words)
+        except Exception as exc:
+            main.logger.warning("%s look-alike generation failed, trying next engine: %s", name, exc)
+            last_error = exc
+            continue
+        return VocabLookalikeResponse(results=results)
+
+    raise HTTPException(
+        status_code=502,
+        detail="Could not generate look-alike traps for these words.",
     ) from last_error
 
 

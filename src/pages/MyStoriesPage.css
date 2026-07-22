@@ -1870,6 +1870,37 @@
   font-size: 12px;
 }
 
+/* ── Class star board ── */
+/* Wide classes scroll the grid inside the panel instead of the page. */
+.star-board-scroll {
+  overflow-x: auto;
+}
+.star-board-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.star-board-table th,
+.star-board-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--clay-hairline);
+  text-align: left;
+  white-space: nowrap;
+}
+.star-board-table thead th {
+  color: var(--clay-muted);
+  font-weight: 650;
+  font-size: 12px;
+}
+.star-board-table tbody th {
+  font-weight: 650;
+  color: var(--clay-ink);
+}
+.star-board-total {
+  font-weight: 700;
+  color: var(--gold-deep);
+}
+
 .insights-list {
   display: flex;
   flex-direction: column;

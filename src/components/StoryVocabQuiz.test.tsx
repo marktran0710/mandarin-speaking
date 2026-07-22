@@ -310,7 +310,8 @@ describe("StoryVocabQuiz onComplete tracking", () => {
 
     await user.click(screen.getByRole("button", { name: /Continue to practice/ }));
     expect(onDone).toHaveBeenCalledTimes(1);
-  });
+    // A 42-question UI walk legitimately outlasts the 5s default timeout.
+  }, 20_000);
 
   it("never offers a skip button, in any mode, on the mode-select screen or mid-quiz", async () => {
     const user = userEvent.setup();
@@ -938,6 +939,125 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
   });
 });
 
+describe("StoryVocabQuiz tier-3 look-alike traps", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  async function unlockTier3(storyId: string) {
+    const { recordLocalStars } = await import("../utils/quizTiers");
+    recordLocalStars(storyId, 2);
+  }
+
+  it("collectQuizEntries carries per-word AI look-alikes through", async () => {
+    const { collectQuizEntries } = await import("./StoryVocabQuiz");
+    const entries = collectQuizEntries(
+      ["喝", "吃"],
+      ["to drink", "to eat"],
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      [["渴", "喂"], undefined],
+    );
+    expect(entries[0].aiLookalike).toEqual(["渴", "喂"]);
+    expect(entries[1].aiLookalike).toBeUndefined();
+  });
+
+  it("tier 3 reverse questions lead with look-alike characters as distractors", async () => {
+    await unlockTier3("s1");
+    // No pos/cloze/synonym data and no speech synthesis: reverse is the
+    // last available kind at tier 3.
+    vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    const user = userEvent.setup();
+    render(
+      <StoryVocabQuiz
+        entries={[
+          { word: "喝", translation: "to drink", aiLookalike: ["渴", "喂", "揭"] },
+          { word: "吃", translation: "to eat", aiLookalike: ["乞", "吼", "叱"] },
+        ]}
+        onDone={vi.fn()}
+        storyId="s1"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Tier 3/ }));
+
+    const prompt = screen.getByRole("group", { name: /Which word means/ });
+    const asked = prompt.getAttribute("aria-label")!.includes("to drink") ? "喝" : "吃";
+    const lookalikes = asked === "喝" ? ["渴", "喂", "揭"] : ["乞", "吼", "叱"];
+    const options = optionButtons().map((b) => b.textContent);
+    // All three wrong options come from the look-alike pool, not the other
+    // story word.
+    expect(options).toHaveLength(4);
+    for (const lookalike of lookalikes) {
+      expect(options).toContain(lookalike);
+    }
+  });
+
+  it("tier 1 reverse questions never use look-alike traps", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    const user = userEvent.setup();
+    render(
+      <StoryVocabQuiz
+        entries={[
+          { word: "喝", translation: "to drink", aiLookalike: ["渴", "喂", "揭"] },
+          { word: "吃", translation: "to eat", aiLookalike: ["乞", "吼", "叱"] },
+        ]}
+        onDone={vi.fn()}
+        storyId="s1"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+
+    const options = optionButtons().map((b) => b.textContent);
+    for (const trap of ["渴", "喂", "揭", "乞", "吼", "叱"]) {
+      expect(options).not.toContain(trap);
+    }
+  });
+
+  it("tier 3 listening questions skip look-alikes that sound identical to the answer", async () => {
+    await unlockTier3("s1");
+    vi.stubGlobal("speechSynthesis", { speak: vi.fn(), cancel: vi.fn() });
+    vi.stubGlobal(
+      "SpeechSynthesisUtterance",
+      class {
+        text: string;
+        lang = "";
+        constructor(text: string) {
+          this.text = text;
+        }
+      },
+    );
+    try {
+      // Speech stubbed: listening is the last available kind at tier 3.
+      vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+      const user = userEvent.setup();
+      render(
+        <StoryVocabQuiz
+          entries={[
+            // 她 is a homophone of 他 (both "tā") — a look-alike that would
+            // also be correct by ear; 地 reads differently and may appear.
+            { word: "他", translation: "he", aiLookalike: ["她", "地"] },
+            { word: "吃", translation: "to eat", aiLookalike: ["乞"] },
+          ]}
+          onDone={vi.fn()}
+          storyId="s1"
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: /Tier 3/ }));
+
+      const options = optionButtons().map((b) => b.textContent);
+      if (options.includes("他")) {
+        expect(options).not.toContain("她");
+      }
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 describe("StoryVocabQuiz stable question chrome", () => {
   it("shows an instruction line on every question kind, including plain translation", async () => {
     const user = userEvent.setup();
@@ -1038,7 +1158,8 @@ describe("StoryVocabQuiz star tiers", () => {
     expect(onComplete).toHaveBeenCalledTimes(2);
     expect(onComplete.mock.calls[1][0].mode).toBe("tier2");
     expect(screen.getByRole("button", { name: /Continue to practice/ })).toBeInTheDocument();
-  });
+    // A 42-question UI walk legitimately outlasts the 5s default timeout.
+  }, 20_000);
 
   it("failing tier 1 near the threshold shows the near-miss gap and a Try again button, without unlocking practice", async () => {
     const user = userEvent.setup();

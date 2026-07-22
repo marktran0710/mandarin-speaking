@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { canUseDatabase, createCustomStory, listCustomStories } from "../services/database";
+import { loadLocalStars } from "../utils/quizTiers";
 import {
   type CustomTeacherStory,
   type StoryDifficultyLevel,
@@ -233,6 +234,19 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
                     <span>🎬 <BiLabel zh={`${totalScenes} 部分`} en={`${totalScenes} scenes`} /></span>
                     {totalWords > 0 && (
                       <span>📝 <BiLabel zh={`${totalWords} 詞`} en={`${totalWords} words`} /></span>
+                    )}
+                    {totalWords > 0 && (
+                      // Earned quiz stars for this story (this device's
+                      // localStorage — the same source the quiz itself seeds
+                      // from, so the card always matches what the student
+                      // last saw in the quiz).
+                      <span
+                        className="ts-card-stars"
+                        aria-label={`${loadLocalStars(t.id)} of 3 quiz stars earned`}
+                      >
+                        {"⭐".repeat(loadLocalStars(t.id))}
+                        {"☆".repeat(3 - loadLocalStars(t.id))}
+                      </span>
                     )}
                   </div>
                 </div>

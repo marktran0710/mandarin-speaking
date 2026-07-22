@@ -91,6 +91,20 @@ describe("isTierUnlocked", () => {
   });
 });
 
+describe("starsByStory", () => {
+  it("derives each story's stars from a mixed attempt history", async () => {
+    const { starsByStory } = await import("./quizTiers");
+    expect(
+      starsByStory([
+        { storyId: "a", mode: "tier1", correctCount: 15 },
+        { storyId: "a", mode: "tier2", correctCount: 19 },
+        { storyId: "b", mode: "tier1", correctCount: 3 },
+        { storyId: "c", mode: "speed", correctCount: 20 },
+      ]),
+    ).toEqual({ a: 2, b: 0, c: 0 });
+  });
+});
+
 describe("practiceUnlocked", () => {
   it("opens speaking practice at two stars, not one", () => {
     expect(practiceUnlocked(0)).toBe(false);

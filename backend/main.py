@@ -376,6 +376,31 @@ class VocabSynonymResponse(BaseModel):
     results: List[VocabSynonymResult]
 
 
+class VocabLookalikeWord(BaseModel):
+    word: str
+    translation: str
+    context: Optional[str] = None
+    # Look-alikes already generated for this word (from a prior generation),
+    # so a regeneration call tops up the pool with genuinely new characters
+    # instead of the model repeating itself.
+    avoid: List[str] = []
+
+
+class VocabLookalikeRequest(BaseModel):
+    words: List[VocabLookalikeWord]
+
+
+class VocabLookalikeResult(BaseModel):
+    word: str
+    # Visually-confusable Traditional Chinese words (喝/渴, 買/賣) with a
+    # clearly different meaning — the tier-3 quiz's face-confusion traps.
+    lookalikes: List[str]
+
+
+class VocabLookalikeResponse(BaseModel):
+    results: List[VocabLookalikeResult]
+
+
 class AudioRecordRequest(BaseModel):
     id: str
     timestamp: str
@@ -415,6 +440,11 @@ class CustomStoryFrameRequest(BaseModel):
     # is a list of AI-generated {synonym, distractors} candidates, grown the
     # same way vocabularyCloze is.
     vocabularySynonym: Optional[str] = None
+    # JSON-encoded array of arrays (one entry per word) — each word's entry
+    # is a list of AI-generated visually-confusable words (喝/渴), grown the
+    # same way vocabularyDistractors is (see vocab_quiz_lookalike / the
+    # vocabulary-lookalike PATCH endpoint).
+    vocabularyLookalike: Optional[str] = None
     # Medium/Hard tiers of the same scene — same plot/scene/imageUrl, just
     # progressively more complex text. Absent/blank means that tier hasn't
     # been authored yet; the student-facing conversion falls back to the
@@ -598,6 +628,19 @@ class VocabularyClozeUpdate(BaseModel):
 
 class VocabularyClozeUpdateRequest(BaseModel):
     updates: List[VocabularyClozeUpdate]
+
+
+MAX_VOCAB_LOOKALIKE_PER_WORD = 6
+
+
+class VocabularyLookalikeUpdate(BaseModel):
+    frameIndex: int
+    wordIndex: int
+    lookalikes: List[str]
+
+
+class VocabularyLookalikeUpdateRequest(BaseModel):
+    updates: List[VocabularyLookalikeUpdate]
 
 
 MAX_VOCAB_SYNONYM_PER_WORD = 4
@@ -1879,6 +1922,122 @@ async def generate_vocab_synonym_with_gemini(
     content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
     data = json.loads(strip_json_fence(content))
     return _parse_vocab_synonym(data, words)
+
+
+def _vocab_lookalike_prompt(words: List[VocabLookalikeWord]) -> str:
+    word_lines = "\n".join(
+        f'{i + 1}. "{w.word}" -> "{w.translation}"'
+        + (f' (used in: "{w.context}")' if w.context else "")
+        + (f" (already used, do not repeat: {', '.join(w.avoid)})" if w.avoid else "")
+        for i, w in enumerate(words)
+    )
+    return f"""
+You are building look-alike character traps for an A1-A2 Mandarin vocabulary
+quiz. For each Traditional Chinese word below, give 3 real Traditional
+Chinese words or characters that LOOK visually similar on the page — shared
+components, one different radical, easily-confused shapes (like 喝/渴 or
+買/賣) — but have a clearly DIFFERENT meaning.
+
+Words:
+{word_lines}
+
+Return only valid JSON shaped exactly like:
+[
+  {{"word": "喝", "lookalikes": ["渴", "喂", "揭"]}}
+]
+
+Rules:
+- "word" must exactly match one of the words given above.
+- Each look-alike must be a real Traditional Chinese word/character,
+  different from "word" and from the other look-alikes for that word.
+- A look-alike must NOT be a synonym or near-synonym of "word", and must
+  not share its meaning — "word" must stay the ONLY correct option when
+  these appear beside it in a quiz.
+- Prefer look-alikes with a different pronunciation from "word".
+- Return the JSON array only, no surrounding text.
+"""
+
+
+def _parse_vocab_lookalike(
+    data: object, words: List[VocabLookalikeWord]
+) -> List[VocabLookalikeResult]:
+    if not isinstance(data, list):
+        raise RuntimeError("Model did not return a JSON array of look-alike results")
+
+    by_word = {w.word: w for w in words}
+    results: List[VocabLookalikeResult] = []
+    for item in data:
+        if not isinstance(item, dict):
+            continue
+        word = str(item.get("word", "")).strip()
+        if word not in by_word:
+            continue
+        seen = {word}
+        lookalikes: List[str] = []
+        for raw in item.get("lookalikes", []):
+            lookalike = convert_to_traditional_chinese(str(raw).strip())
+            if not lookalike or lookalike in seen:
+                continue
+            seen.add(lookalike)
+            lookalikes.append(lookalike)
+        if lookalikes:
+            results.append(VocabLookalikeResult(word=word, lookalikes=lookalikes[:3]))
+    return results
+
+
+async def generate_vocab_lookalike_with_groq(
+    words: List[VocabLookalikeWord],
+) -> List[VocabLookalikeResult]:
+    payload = {
+        "model": GROQ_FEEDBACK_MODEL,
+        "response_format": {"type": "json_object"},
+        "temperature": 0.4,
+        "messages": [
+            {
+                "role": "system",
+                "content": (
+                    "You are a Mandarin vocabulary-quiz assistant. Always respond in "
+                    "valid JSON only — no markdown fences, no prose outside the JSON. "
+                    'Wrap the array in a top-level object: {"results": [...]}.'
+                ),
+            },
+            {"role": "user", "content": _vocab_lookalike_prompt(words)},
+        ],
+    }
+
+    async with httpx.AsyncClient(timeout=20) as client:
+        response = await client.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["choices"][0]["message"]["content"]
+    parsed = json.loads(content)
+    data = parsed.get("results") if isinstance(parsed, dict) else parsed
+    return _parse_vocab_lookalike(data, words)
+
+
+async def generate_vocab_lookalike_with_gemini(
+    words: List[VocabLookalikeWord],
+) -> List[VocabLookalikeResult]:
+    payload = {"contents": [{"parts": [{"text": _vocab_lookalike_prompt(words)}]}]}
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        response = await client.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}",
+            json=payload,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(response.text)
+
+    content = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+    data = json.loads(strip_json_fence(content))
+    return _parse_vocab_lookalike(data, words)
 
 
 async def generate_story_images_with_gemini(

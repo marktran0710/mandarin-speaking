@@ -3,20 +3,69 @@ import {
   getVocabQuizFrex,
   getVocabQuizIrt,
   getVocabQuizJointModel,
+  listStudents,
+  listVocabQuizAttempts,
+  type Student,
+  type VocabQuizAttempt,
   type VocabQuizFrexStudent,
   type VocabQuizIrt,
   type VocabQuizJointModel,
   type VocabQuizMode,
 } from "../services/database";
+import { starsByStory } from "../utils/quizTiers";
 
-const MODES: VocabQuizMode[] = ["speed", "strikes", "free", "review"];
+// tier1-3 are the star-ladder runs; speed/strikes only carry pre-ladder
+// attempt history, kept so old data stays inspectable.
+const MODES: VocabQuizMode[] = ["tier1", "tier2", "tier3", "weak_words", "speed", "strikes"];
 const MODE_LABEL: Record<VocabQuizMode, string> = {
-  speed: "Speed",
-  strikes: "Strikes",
-  free: "Free",
-  review: "Review",
+  tier1: "⭐ Tier 1",
+  tier2: "⭐⭐ Tier 2",
+  tier3: "⭐⭐⭐ Tier 3",
+  weak_words: "Weak words",
+  speed: "Speed (legacy)",
+  strikes: "Strikes (legacy)",
+  free: "Free (legacy)",
+  review: "Review (legacy)",
 };
 const REFRESH_INTERVAL_MS = 20_000;
+
+interface StarBoard {
+  students: Student[];
+  storyIds: string[];
+  // studentId -> storyId -> stars
+  stars: Record<string, Record<string, number>>;
+}
+
+/** Rows = roster students, columns = every story with at least one tier
+ * attempt, cells = earned stars — derived entirely from attempt history
+ * (starsByStory), no separate storage. */
+function buildStarBoard(students: Student[], attempts: VocabQuizAttempt[]): StarBoard {
+  const byStudent = new Map<string, VocabQuizAttempt[]>();
+  for (const attempt of attempts) {
+    if (!attempt.studentId) continue;
+    const list = byStudent.get(attempt.studentId) ?? [];
+    list.push(attempt);
+    byStudent.set(attempt.studentId, list);
+  }
+  const stars: Record<string, Record<string, number>> = {};
+  const storyIds = new Set<string>();
+  for (const [studentId, studentAttempts] of byStudent) {
+    stars[studentId] = starsByStory(studentAttempts);
+    for (const [storyId, earned] of Object.entries(stars[studentId])) {
+      if (earned > 0) storyIds.add(storyId);
+    }
+  }
+  return {
+    students: students.filter((s) => byStudent.has(s.id)),
+    storyIds: [...storyIds].sort(),
+    stars,
+  };
+}
+
+/** A compact display label for an attempt's storyId ("teacher-{id}[-tier]"). */
+function storyLabel(storyId: string): string {
+  return storyId.replace(/^teacher-/, "").replace(/-(medium|hard)$/, " ($1)");
+}
 
 /** Model-based reading of the vocab quiz — item response theory (ability
  * accounting for *which* words a student got, not just how many), a joint
@@ -28,7 +77,8 @@ export default function TeacherInsightsView() {
   const [irt, setIrt] = useState<VocabQuizIrt | null>(null);
   const [joint, setJoint] = useState<VocabQuizJointModel | null>(null);
   const [frex, setFrex] = useState<VocabQuizFrexStudent[]>([]);
-  const [mode, setMode] = useState<VocabQuizMode>("speed");
+  const [starBoard, setStarBoard] = useState<StarBoard | null>(null);
+  const [mode, setMode] = useState<VocabQuizMode>("tier1");
   const [expandedStudent, setExpandedStudent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,14 +87,18 @@ export default function TeacherInsightsView() {
   const refresh = async (nextMode: VocabQuizMode) => {
     setLoading(true);
     try {
-      const [irtResult, jointResult, frexResult] = await Promise.all([
-        getVocabQuizIrt(),
-        getVocabQuizJointModel(nextMode),
-        getVocabQuizFrex(),
-      ]);
+      const [irtResult, jointResult, frexResult, studentsResult, attemptsResult] =
+        await Promise.all([
+          getVocabQuizIrt(),
+          getVocabQuizJointModel(nextMode),
+          getVocabQuizFrex(),
+          listStudents(),
+          listVocabQuizAttempts(),
+        ]);
       setIrt(irtResult);
       setJoint(jointResult);
       setFrex(frexResult);
+      setStarBoard(buildStarBoard(studentsResult, attemptsResult));
       setError(null);
       setLastUpdated(new Date());
     } catch {
@@ -128,6 +182,60 @@ export default function TeacherInsightsView() {
           Refreshes automatically every {REFRESH_INTERVAL_MS / 1000}s.
         </p>
       </section>
+
+      {starBoard && starBoard.students.length > 0 && (
+        <section className="teacher-panel">
+          <div className="teacher-panel-header">
+            <div>
+              <p className="stories-kicker">Star ladder</p>
+              <h2>Class Star Board</h2>
+            </div>
+            <span className="queue-count">{starBoard.students.length}</span>
+          </div>
+          <p className="insights-note">
+            Quiz stars per story (⭐ pass tier 1, ⭐⭐ tier 2 — unlocks speaking
+            practice, ⭐⭐⭐ tier 3), derived from roster-linked attempts.
+          </p>
+          <div className="star-board-scroll">
+            <table className="star-board-table">
+              <thead>
+                <tr>
+                  <th scope="col">Student</th>
+                  {starBoard.storyIds.map((storyId) => (
+                    <th scope="col" key={storyId} title={storyId}>
+                      {storyLabel(storyId)}
+                    </th>
+                  ))}
+                  <th scope="col">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {starBoard.students.map((student) => {
+                  const row = starBoard.stars[student.id] ?? {};
+                  const total = starBoard.storyIds.reduce(
+                    (sum, storyId) => sum + (row[storyId] ?? 0),
+                    0,
+                  );
+                  return (
+                    <tr key={student.id}>
+                      <th scope="row">{student.name}</th>
+                      {starBoard.storyIds.map((storyId) => {
+                        const earned = row[storyId] ?? 0;
+                        return (
+                          <td key={storyId} aria-label={`${earned} of 3 stars`}>
+                            {earned > 0 ? "⭐".repeat(earned) : "—"}
+                          </td>
+                        );
+                      })}
+                      <td className="star-board-total">⭐ {total}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <section className="teacher-dashboard-grid">
         <div className="teacher-panel">

@@ -12,11 +12,13 @@ import {
   createVocabQuizAttempt,
   updateVocabularyCloze,
   updateVocabularyDistractors,
+  updateVocabularyLookalike,
   updateVocabularySynonym,
   type SceneSubmission,
   type StoryFeedback,
   type VocabularyClozeUpdate,
   type VocabularyDistractorUpdate,
+  type VocabularyLookalikeUpdate,
   type VocabularySynonymUpdate,
 } from "../services/database";
 import ScenePracticeWord from "./ScenePracticeWord";
@@ -104,6 +106,7 @@ export interface Topic {
   vocabularyPos?: Record<number, string[]>;
   vocabularyTranslation?: Record<number, string[]>;
   vocabularyDistractors?: Record<number, string[][]>;
+  vocabularyLookalike?: Record<number, string[][]>;
   vocabularyCloze?: Record<number, Array<{ sentence: string; distractors: string[] }[]>>;
   vocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
   suggestedAnswers?: Record<number, string>;
@@ -173,6 +176,66 @@ export function buildDistractorPatchUpdates(
       distractors: byWord.get(candidate.word) ?? [],
     }))
     .filter((update) => update.distractors.length > 0);
+}
+
+// Mirrors the backend's MAX_VOCAB_LOOKALIKE_PER_WORD cap.
+const MAX_VOCAB_LOOKALIKE_PER_WORD = 6;
+
+export interface LookalikeGrowthCandidate {
+  frameIndex: number;
+  wordIndex: number;
+  word: string;
+  translation: string;
+  context?: string;
+  existing: string[];
+}
+
+/** Pure planning step for growVocabularyLookalikePool: picks the words in a
+ * story whose persisted look-alike pool hasn't reached the cap yet, pairing
+ * each with its existing pool (sent as the AI's "avoid" list). Mirrors
+ * planDistractorGrowth above. */
+export function planLookalikeGrowth(
+  topic: Pick<
+    Topic,
+    "images" | "vocabulary" | "vocabularyTranslation" | "vocabularyLookalike" | "suggestedAnswers"
+  >,
+): LookalikeGrowthCandidate[] {
+  const candidates: LookalikeGrowthCandidate[] = [];
+  topic.images.forEach((_, si) => {
+    const sceneSuggestedAnswer = topic.suggestedAnswers?.[si];
+    (topic.vocabulary[si] || []).forEach((word, i) => {
+      const translation = topic.vocabularyTranslation?.[si]?.[i];
+      if (!translation) return;
+      const existing = topic.vocabularyLookalike?.[si]?.[i] ?? [];
+      if (existing.length >= MAX_VOCAB_LOOKALIKE_PER_WORD) return;
+      candidates.push({
+        frameIndex: si,
+        wordIndex: i,
+        word,
+        translation,
+        context: sceneSuggestedAnswer,
+        existing,
+      });
+    });
+  });
+  return candidates;
+}
+
+/** Pairs each growth candidate with the AI-generated look-alikes for its
+ * word (matched by word text), dropping any candidate the AI returned
+ * nothing for. Mirrors buildDistractorPatchUpdates above. */
+export function buildLookalikePatchUpdates(
+  candidates: LookalikeGrowthCandidate[],
+  results: Array<{ word: string; lookalikes: string[] }>,
+): VocabularyLookalikeUpdate[] {
+  const byWord = new Map(results.map((r) => [r.word, r.lookalikes]));
+  return candidates
+    .map((candidate) => ({
+      frameIndex: candidate.frameIndex,
+      wordIndex: candidate.wordIndex,
+      lookalikes: byWord.get(candidate.word) ?? [],
+    }))
+    .filter((update) => update.lookalikes.length > 0);
 }
 
 // Mirrors the backend's MAX_VOCAB_CLOZE_PER_WORD cap.
@@ -595,6 +658,7 @@ export default function StoryRecorder({
     const aiCloze: Array<Array<{ sentence: string; distractors: string[] }> | undefined> = [];
     const partsOfSpeech: Array<string | undefined> = [];
     const aiSynonyms: Array<Array<{ synonym: string; distractors: string[] }> | undefined> = [];
+    const aiLookalikes: Array<string[] | undefined> = [];
     topic.images.forEach((_, si) => {
       const sceneSuggestedAnswer = topic.suggestedAnswers?.[si];
       (topic.vocabulary[si] || []).forEach((word, i) => {
@@ -606,6 +670,7 @@ export default function StoryRecorder({
         aiCloze.push(topic.vocabularyCloze?.[si]?.[i]);
         partsOfSpeech.push(topic.vocabularyPos?.[si]?.[i]);
         aiSynonyms.push(topic.vocabularySynonym?.[si]?.[i]);
+        aiLookalikes.push(topic.vocabularyLookalike?.[si]?.[i]);
       });
     });
     return collectQuizEntries(
@@ -617,6 +682,7 @@ export default function StoryRecorder({
       aiCloze,
       partsOfSpeech,
       aiSynonyms,
+      aiLookalikes,
     );
   }, [topic]);
   const hasVocabQuiz = quizEntries.length >= 1;
@@ -667,6 +733,9 @@ export default function StoryRecorder({
     growVocabularySynonymPool().catch((error) => {
       console.warn("Failed to grow vocabulary synonym pool:", error);
     });
+    growVocabularyLookalikePool().catch((error) => {
+      console.warn("Failed to grow vocabulary look-alike pool:", error);
+    });
   };
 
   // topic.id is a quiz-tracking id, prefixed/suffixed for teacher-authored
@@ -710,6 +779,35 @@ export default function StoryRecorder({
     if (updates.length === 0) return;
 
     await updateVocabularyDistractors(persistedStoryId, updates);
+  };
+
+  // Same growth pattern as growVocabularyDistractorPool above, for the
+  // tier-3 look-alike (face-confusion) trap pool instead.
+  const growVocabularyLookalikePool = async () => {
+    const candidates = planLookalikeGrowth(topic);
+    if (candidates.length === 0) return;
+
+    const response = await fetch(`${BACKEND_URL}/api/vocab-quiz-lookalike`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        words: candidates.map((entry) => ({
+          word: entry.word,
+          translation: entry.translation,
+          context: entry.context,
+          avoid: entry.existing,
+        })),
+      }),
+    });
+    if (!response.ok) throw new Error("Could not generate new look-alike traps.");
+
+    const { results } = (await response.json()) as {
+      results: { word: string; lookalikes: string[] }[];
+    };
+    const updates = buildLookalikePatchUpdates(candidates, results);
+    if (updates.length === 0) return;
+
+    await updateVocabularyLookalike(persistedStoryId, updates);
   };
 
   // Same growth pattern as growVocabularyDistractorPool above, for the

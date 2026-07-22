@@ -53,6 +53,11 @@ export interface VocabQuizEntry {
   // buildSynonymQuestion) — undefined/empty means this word never becomes a
   // synonym question.
   aiSynonym?: VocabQuizSynonymCandidate[];
+  // AI-generated visually-confusable words (喝/渴) — tier 3's face-confusion
+  // traps, leading the distractor pool of reverse/listening questions there
+  // (see buildReverseQuestion/buildListeningQuestion). Lower tiers ignore
+  // them entirely.
+  aiLookalike?: string[];
 }
 
 // The blank marker inside a cloze question's sentence — split out at render
@@ -115,8 +120,9 @@ export interface VocabQuizReverseQuestion {
   translation: string;
   correctWord: string;
   options: string[];
-  // Reverse questions draw options from the story's own words — never AI.
-  isAiGenerated: false;
+  // True when at least one option came from the AI look-alike pool (tier 3)
+  // rather than the story's other words.
+  isAiGenerated: boolean;
 }
 
 export interface VocabQuizListeningQuestion {
@@ -126,7 +132,9 @@ export interface VocabQuizListeningQuestion {
   // are Chinese words and the student picks the one they heard.
   correctWord: string;
   options: string[];
-  isAiGenerated: false;
+  // True when at least one option came from the AI look-alike pool (tier 3)
+  // rather than the story's other words.
+  isAiGenerated: boolean;
 }
 
 export type VocabQuizQuestion =
@@ -222,6 +230,7 @@ export function collectQuizEntries(
   aiCloze?: Array<VocabQuizClozeCandidate[] | undefined>,
   partsOfSpeech?: Array<string | undefined>,
   aiSynonym?: Array<VocabQuizSynonymCandidate[] | undefined>,
+  aiLookalike?: Array<string[] | undefined>,
 ): VocabQuizEntry[] {
   const seen = new Set<string>();
   const entries: VocabQuizEntry[] = [];
@@ -243,6 +252,7 @@ export function collectQuizEntries(
     const synonym = (aiSynonym?.[i] ?? []).filter(
       (c) => c.distractors.length > 0 && c.synonym !== word,
     );
+    const lookalike = (aiLookalike?.[i] ?? []).filter((l) => l && l !== word);
     entries.push({
       word,
       translation,
@@ -251,6 +261,7 @@ export function collectQuizEntries(
       ...(pos ? { pos } : {}),
       ...(cloze.length ? { aiCloze: cloze } : {}),
       ...(synonym.length ? { aiSynonym: synonym } : {}),
+      ...(lookalike.length ? { aiLookalike: lookalike } : {}),
     });
   });
   return entries;
@@ -414,52 +425,83 @@ function buildPinyinQuestion(
 }
 
 /** Builds the reverse of a translation question: the English translation is
- * the prompt and the student picks the Chinese word for it, drawn against
- * the story's other words — excluding any word that means the same thing,
- * which would be a second correct answer for the shown translation. */
+ * the prompt and the student picks the Chinese word for it. At tier 3
+ * (`useLookalikes`) the wrong options lead with the word's AI look-alike
+ * characters (喝/渴) — the face-confusion traps — before falling back to the
+ * story's other words; either pool excludes any word that means the same
+ * thing, which would be a second correct answer for the shown translation. */
 function buildReverseQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
+  useLookalikes = false,
 ): VocabQuizReverseQuestion {
-  const pool = Array.from(
+  const usedWords = new Set([entry.word]);
+
+  const lookalikePool = useLookalikes
+    ? (entry.aiLookalike ?? []).filter((l) => !usedWords.has(l))
+    : [];
+  const lookalikeDistractors = shuffle(lookalikePool).slice(0, OPTION_COUNT - 1);
+  lookalikeDistractors.forEach((l) => usedWords.add(l));
+
+  const realWordPool = Array.from(
     new Set(
       allEntries
         .filter(
           (e) =>
+            !usedWords.has(e.word) &&
             e.word !== entry.word &&
             normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation),
         )
         .map((e) => e.word),
     ),
   );
-  const distractors = shuffle(pool).slice(0, OPTION_COUNT - 1);
+  const realWordDistractors = shuffle(realWordPool).slice(
+    0,
+    OPTION_COUNT - 1 - lookalikeDistractors.length,
+  );
+
   return {
     kind: "reverse",
     word: entry.word,
     translation: entry.translation,
     correctWord: entry.word,
-    options: shuffle([entry.word, ...distractors]),
-    isAiGenerated: false,
+    options: shuffle([entry.word, ...lookalikeDistractors, ...realWordDistractors]),
+    isAiGenerated: lookalikeDistractors.length > 0,
   };
 }
 
 /** Builds a listening question: the word is spoken aloud (browser TTS, see
  * the speak effect in the component) and the student picks the word they
- * heard from the story's words. Only offered when speech synthesis exists
- * (see kind availability below). Words that would also be right by ear or
- * meaning are excluded from the options: homophones (他/她, identical
- * reading) sound exactly like the answer, and same-translation words are
- * ambiguous the moment the student mentally translates what they heard. */
+ * heard. At tier 3 (`useLookalikes`) the wrong options lead with the word's
+ * AI look-alikes before the story's other words. Words that would also be
+ * right by ear or meaning are excluded from either pool: homophones (他/她,
+ * identical reading) sound exactly like the answer, and same-translation
+ * words are ambiguous the moment the student mentally translates what they
+ * heard. */
 function buildListeningQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
+  useLookalikes = false,
 ): VocabQuizListeningQuestion {
   const reading = normalizeReading(entry);
-  const pool = Array.from(
+  const usedWords = new Set([entry.word]);
+
+  const lookalikePool = useLookalikes
+    ? (entry.aiLookalike ?? []).filter(
+        (l) =>
+          !usedWords.has(l) &&
+          toPinyin(l).trim().toLowerCase().replace(/\s+/g, " ") !== reading,
+      )
+    : [];
+  const lookalikeDistractors = shuffle(lookalikePool).slice(0, OPTION_COUNT - 1);
+  lookalikeDistractors.forEach((l) => usedWords.add(l));
+
+  const realWordPool = Array.from(
     new Set(
       allEntries
         .filter(
           (e) =>
+            !usedWords.has(e.word) &&
             e.word !== entry.word &&
             normalizeReading(e) !== reading &&
             normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation),
@@ -467,13 +509,17 @@ function buildListeningQuestion(
         .map((e) => e.word),
     ),
   );
-  const distractors = shuffle(pool).slice(0, OPTION_COUNT - 1);
+  const realWordDistractors = shuffle(realWordPool).slice(
+    0,
+    OPTION_COUNT - 1 - lookalikeDistractors.length,
+  );
+
   return {
     kind: "listening",
     word: entry.word,
     correctWord: entry.word,
-    options: shuffle([entry.word, ...distractors]),
-    isAiGenerated: false,
+    options: shuffle([entry.word, ...lookalikeDistractors, ...realWordDistractors]),
+    isAiGenerated: lookalikeDistractors.length > 0,
   };
 }
 
@@ -685,9 +731,10 @@ function buildQuizQuestion(
     case "synonym":
       return buildSynonymQuestion(entry, allEntries);
     case "reverse":
-      return buildReverseQuestion(entry, allEntries);
+      // Look-alike traps are tier 3's signature difficulty bump.
+      return buildReverseQuestion(entry, allEntries, tier === 3);
     case "listening":
-      return buildListeningQuestion(entry, allEntries);
+      return buildListeningQuestion(entry, allEntries, tier === 3);
     default:
       // Tier 1 keeps its translation options easy — no AI near-miss traps.
       return buildTranslationQuestion(entry, allEntries, tier !== 1);

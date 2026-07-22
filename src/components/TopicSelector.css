@@ -270,6 +270,15 @@
   padding-top: var(--space-2xs);
 }
 
+/* Earned quiz stars for the story — unearned slots stay visible as hollow
+   stars so "something left to win here" reads at a glance. */
+.ts-card-stars {
+  letter-spacing: 1px;
+}
+.ts-card-stars:not(:empty) {
+  color: var(--gold-deep);
+}
+
 /* Footer / CTA */
 .ts-card-footer {
   padding: 0 var(--space-md) var(--space-md);

@@ -2,12 +2,19 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { UserEvent } from "@testing-library/user-event";
 import { toPinyin } from "../utils/pinyin";
+
+// Unlocking practice now means walking a 42-question star ladder (see
+// completeVocabQuiz below) — integration tests in this file legitimately
+// outlast the 5s default.
+vi.setConfig({ testTimeout: 20_000 });
 import StoryRecorder, {
   vocabTooltip,
   planDistractorGrowth,
   buildDistractorPatchUpdates,
   planClozeGrowth,
   buildClozePatchUpdates,
+  planLookalikeGrowth,
+  buildLookalikePatchUpdates,
 } from "./StoryRecorder";
 
 // Every quiz-eligible word across this file's topic fixtures, with the data
@@ -254,6 +261,59 @@ describe("buildDistractorPatchUpdates", () => {
 
   it("returns an empty array when the AI returned nothing for any candidate", () => {
     expect(buildDistractorPatchUpdates(candidates, [])).toEqual([]);
+  });
+});
+
+describe("planLookalikeGrowth", () => {
+  const baseTopic = {
+    images: ["scene-1.jpg"],
+    vocabulary: { 0: ["喝", "買"] },
+    vocabularyTranslation: { 0: ["to drink", "to buy"] },
+    suggestedAnswers: { 0: "我要喝水，買茶。" },
+  };
+
+  it("includes words with no persisted look-alikes yet", () => {
+    const candidates = planLookalikeGrowth(baseTopic);
+    expect(candidates.map((c) => c.word)).toEqual(["喝", "買"]);
+    expect(candidates[0]).toMatchObject({
+      frameIndex: 0,
+      wordIndex: 0,
+      translation: "to drink",
+      existing: [],
+    });
+  });
+
+  it("skips words that already reached the 6-look-alike cap", () => {
+    const candidates = planLookalikeGrowth({
+      ...baseTopic,
+      vocabularyLookalike: {
+        0: [["a", "b", "c", "d", "e", "f"], ["賣"]],
+      },
+    });
+    expect(candidates.map((c) => c.word)).toEqual(["買"]);
+    expect(candidates[0].existing).toEqual(["賣"]);
+  });
+
+  it("skips words with no translation", () => {
+    const candidates = planLookalikeGrowth({
+      ...baseTopic,
+      vocabularyTranslation: { 0: ["to drink", ""] },
+    });
+    expect(candidates.map((c) => c.word)).toEqual(["喝"]);
+  });
+});
+
+describe("buildLookalikePatchUpdates", () => {
+  const candidates = [
+    { frameIndex: 0, wordIndex: 0, word: "喝", translation: "to drink", existing: [] },
+    { frameIndex: 0, wordIndex: 1, word: "買", translation: "to buy", existing: ["賣"] },
+  ];
+
+  it("maps AI results back to frame/word indices by word text, dropping empty ones", () => {
+    const updates = buildLookalikePatchUpdates(candidates, [
+      { word: "喝", lookalikes: ["渴", "喂"] },
+    ]);
+    expect(updates).toEqual([{ frameIndex: 0, wordIndex: 0, lookalikes: ["渴", "喂"] }]);
   });
 });
 
