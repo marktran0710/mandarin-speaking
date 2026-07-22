@@ -26,7 +26,7 @@ import {
 import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
 import "./BiLabel.css";
-import JourneyStrip from "./JourneyStrip";
+import JourneyBubble from "./JourneyBubble";
 
 export interface VocabGroup {
   name: string;
@@ -206,12 +206,12 @@ export default function TopicSelector({
       lessonCompletion(group, submittedIds).done < group.topics.length,
   );
 
-  // The unified student-shell opener (see JourneyStrip): identical on the
+  // The floating star bubble (see JourneyBubble): identical on the
   // contents screen and inside a lesson, so the "journey" reads as one
-  // place. Jumping from a near-miss nudge opens that story directly (quiz
-  // ids for Medium/Hard tiers suffix the base topic id).
-  const journeyStrip = (
-    <JourneyStrip
+  // place. Jumping from the needs-stars state opens that story directly
+  // (quiz ids for Medium/Hard tiers suffix the base topic id).
+  const journeyBubble = (
+    <JourneyBubble
       studentName={studentName}
       studentId={studentId}
       storyCount={topics.length}
@@ -343,7 +343,7 @@ export default function TopicSelector({
     return (
       <div className="topic-selector">
         <div className="ts-container">
-        {journeyStrip}
+        {journeyBubble}
         <button
           type="button"
           className="ts-crumb"
@@ -408,7 +408,7 @@ export default function TopicSelector({
   return (
     <div className="topic-selector">
       <div className="ts-container">
-      {journeyStrip}
+      {journeyBubble}
       <header className="ts-toc-head">
         <div>
           <p className="platform-kicker"><BiLabel k="real_life_speaking_practice" /></p>

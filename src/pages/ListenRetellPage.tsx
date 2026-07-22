@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import type { Topic } from "../components/TopicSelector";
 import { convertBlobToWav } from "../utils/audio";
 import { BiLabel } from "../components/BiLabel";
-import JourneyStrip from "../components/JourneyStrip";
+import JourneyBubble from "../components/JourneyBubble";
 import StudentPageHeader from "../components/StudentPageHeader";
 import { getStudentId, getStudentName } from "../utils/studentSession";
 import ScoreCard from "../components/ScoreCard";
@@ -182,7 +182,7 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
 
   return (
     <main className="listen-retell-page">
-      <JourneyStrip studentName={getStudentName()} studentId={getStudentId()} />
+      <JourneyBubble studentName={getStudentName()} studentId={getStudentId()} />
       <StudentPageHeader
         eyebrow={{ zh: "原型 · 聽和說", pinyin: "Yuánxíng · tīng hé shuō", en: "Prototype · Listen & Retell" }}
         title={{ zh: "聽和說", pinyin: "Tīng hé shuō", en: "Listen & Retell" }}

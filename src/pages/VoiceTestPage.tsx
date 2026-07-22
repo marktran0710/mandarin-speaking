@@ -1,6 +1,6 @@
 import { type ChangeEvent, type ReactNode, useRef, useState } from "react";
 import PraatTimeline from "../components/PraatTimeline";
-import JourneyStrip from "../components/JourneyStrip";
+import JourneyBubble from "../components/JourneyBubble";
 import StudentPageHeader from "../components/StudentPageHeader";
 import { getStudentId, getStudentName } from "../utils/studentSession";
 import { convertBlobToWav } from "../utils/audio";
@@ -264,7 +264,7 @@ export default function VoiceTestPage() {
 
   return (
     <main className="voice-test-page">
-      <JourneyStrip studentName={getStudentName()} studentId={getStudentId()} />
+      <JourneyBubble studentName={getStudentName()} studentId={getStudentId()} />
       <StudentPageHeader
         eyebrow={{ zh: "語音練習", pinyin: "Yǔyīn liànxí", en: "Voice practice" }}
         title={{ zh: "分析你的聲音", pinyin: "Fēnxī nǐ de shēngyīn", en: "Analyze Your Voice" }}

@@ -1,6 +1,6 @@
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { BiLabel } from "../components/BiLabel";
-import JourneyStrip from "../components/JourneyStrip";
+import JourneyBubble from "../components/JourneyBubble";
 import StudentPageHeader from "../components/StudentPageHeader";
 import { getStudentId, getStudentName } from "../utils/studentSession";
 import PitchOverlay from "../components/PitchOverlay";
@@ -159,7 +159,7 @@ export default function TonePracticePage() {
 
   return (
     <main className="tone-practice-page">
-      <JourneyStrip studentName={getStudentName()} studentId={getStudentId()} />
+      <JourneyBubble studentName={getStudentName()} studentId={getStudentId()} />
       <StudentPageHeader
         eyebrow={{ zh: "聲調練習角", pinyin: "Shēngdiào liànxí jiǎo", en: "Tone practice corner" }}
         title={{ zh: "試試你的聲調", pinyin: "Shìshi nǐ de shēngdiào", en: "Test your tone against the shape" }}
