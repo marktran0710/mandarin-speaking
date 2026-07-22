@@ -1,5 +1,8 @@
 import { type ChangeEvent, type ReactNode, useRef, useState } from "react";
 import PraatTimeline from "../components/PraatTimeline";
+import JourneyStrip from "../components/JourneyStrip";
+import StudentPageHeader from "../components/StudentPageHeader";
+import { getStudentId, getStudentName } from "../utils/studentSession";
 import { convertBlobToWav } from "../utils/audio";
 import { BiLabel, BiText } from "../components/BiLabel";
 import "../components/BiLabel.css";
@@ -261,22 +264,17 @@ export default function VoiceTestPage() {
 
   return (
     <main className="voice-test-page">
+      <JourneyStrip studentName={getStudentName()} studentId={getStudentId()} />
+      <StudentPageHeader
+        eyebrow={{ zh: "語音練習", pinyin: "Yǔyīn liànxí", en: "Voice practice" }}
+        title={{ zh: "分析你的聲音", pinyin: "Fēnxī nǐ de shēngyīn", en: "Analyze Your Voice" }}
+        lede={{
+          zh: "錄音或上傳 WAV 檔案，系統會轉錄音檔，然後檢查發音和語言表現，給你回饋。",
+          pinyin: "Lùyīn huò shàngchuán WAV dǎng'àn, xìtǒng huì zhuǎnlù yīndǎng, ránhòu jiǎnchá fāyīn hé yǔyán biǎoxiàn, gěi nǐ huíkuì.",
+          en: "Record or upload a WAV file. The system transcribes the audio, then checks pronunciation and language feedback from the recording.",
+        }}
+      />
       <section className="voice-test-hero">
-        <div>
-          <p className="eyebrow">
-            <BiLabel zh="語音練習" pinyin="Yǔyīn liànxí" en="Voice practice" />
-          </p>
-          <h1>
-            <BiLabel zh="分析你的聲音" pinyin="Fēnxī nǐ de shēngyīn" en="Analyze Your Voice" />
-          </h1>
-          <p>
-            <BiText
-              zh="錄音或上傳 WAV 檔案，系統會轉錄音檔，然後檢查發音和語言表現，給你回饋。"
-              pinyin="Lùyīn huò shàngchuán WAV dǎng'àn, xìtǒng huì zhuǎnlù yīndǎng, ránhòu jiǎnchá fāyīn hé yǔyán biǎoxiàn, gěi nǐ huíkuì."
-              en="Record or upload a WAV file. The system transcribes the audio, then checks pronunciation and language feedback from the recording."
-            />
-          </p>
-        </div>
         <div className="voice-test-status">
           <span>
             <BiLabel zh="狀態" pinyin="Zhuàngtài" en="Status" />

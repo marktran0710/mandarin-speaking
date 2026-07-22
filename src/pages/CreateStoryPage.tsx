@@ -6,6 +6,7 @@ import StudentHelpPanel from "../components/StudentHelpPanel";
 import { HelpRequest } from "../services/database";
 import { loadPublishedTeacherTopics, storyHasTierContent, storyToTopic } from "../utils/teacherStories";
 import type { Topic } from "../components/TopicSelector";
+import { getStudentId, getStudentName } from "../utils/studentSession";
 import "./CreateStoryPage.css";
 import "../components/BiLabel.css";
 
@@ -135,24 +136,3 @@ export default function CreateStoryPage({
   );
 }
 
-function getStudentName() {
-  try {
-    const session = JSON.parse(localStorage.getItem("studentSession") || "{}");
-    return typeof session.name === "string" && session.name.trim()
-      ? session.name.trim()
-      : "Student";
-  } catch {
-    return "Student";
-  }
-}
-
-// The roster-assigned id (see LoginPage), when the student signed in via
-// the roster picker rather than a name typed before the roster existed.
-function getStudentId(): string | undefined {
-  try {
-    const session = JSON.parse(localStorage.getItem("studentSession") || "{}");
-    return typeof session.id === "string" && session.id ? session.id : undefined;
-  } catch {
-    return undefined;
-  }
-}

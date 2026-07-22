@@ -1,5 +1,8 @@
 import { type ChangeEvent, useEffect, useMemo, useState } from "react";
 import { BiLabel } from "../components/BiLabel";
+import JourneyStrip from "../components/JourneyStrip";
+import StudentPageHeader from "../components/StudentPageHeader";
+import { getStudentId, getStudentName } from "../utils/studentSession";
 import PitchOverlay from "../components/PitchOverlay";
 import ToneShapeIcon, { type ToneGroup } from "../components/ToneShapeIcon";
 import { scoreTier, scoreTierLabel } from "../utils/scoreLabels";
@@ -156,21 +159,16 @@ export default function TonePracticePage() {
 
   return (
     <main className="tone-practice-page">
-      <section className="tone-practice-hero">
-        <p className="eyebrow">
-          <BiLabel zh="聲調練習角" pinyin="Shēngdiào liànxí jiǎo" en="Tone practice corner" />
-        </p>
-        <h1>
-          <BiLabel zh="試試你的聲調" pinyin="Shìshi nǐ de shēngdiào" en="Test your tone against the shape" />
-        </h1>
-        <p>
-          <BiLabel
-            zh="選一個字，聽範例，錄音，馬上看看你的音高曲線跟目標形狀有多接近。"
-            pinyin="Xuǎn yí ge zì, tīng fànlì, lùyīn, mǎshàng kànkan nǐ de yīngāo qǔxiàn gēn mùbiāo xíngzhuàng yǒu duō jiējìn."
-            en="Pick a character, listen to the example, record yourself, and see your pitch curve next to the target shape right away."
-          />
-        </p>
-      </section>
+      <JourneyStrip studentName={getStudentName()} studentId={getStudentId()} />
+      <StudentPageHeader
+        eyebrow={{ zh: "聲調練習角", pinyin: "Shēngdiào liànxí jiǎo", en: "Tone practice corner" }}
+        title={{ zh: "試試你的聲調", pinyin: "Shìshi nǐ de shēngdiào", en: "Test your tone against the shape" }}
+        lede={{
+          zh: "選一個字，聽範例，錄音，馬上看看你的音高曲線跟目標形狀有多接近。",
+          pinyin: "Xuǎn yí ge zì, tīng fànlì, lùyīn, mǎshàng kànkan nǐ de yīngāo qǔxiàn gēn mùbiāo xíngzhuàng yǒu duō jiējìn.",
+          en: "Pick a character, listen to the example, record yourself, and see your pitch curve next to the target shape right away.",
+        }}
+      />
 
       <section className="tone-practice-picker">
         <div className="tone-practice-filters" aria-label="Filter by tone">

@@ -1,7 +1,10 @@
 import { useMemo, useRef, useState } from "react";
 import type { Topic } from "../components/TopicSelector";
 import { convertBlobToWav } from "../utils/audio";
-import { BiLabel, BiText } from "../components/BiLabel";
+import { BiLabel } from "../components/BiLabel";
+import JourneyStrip from "../components/JourneyStrip";
+import StudentPageHeader from "../components/StudentPageHeader";
+import { getStudentId, getStudentName } from "../utils/studentSession";
 import ScoreCard from "../components/ScoreCard";
 import {
   averageWordProsodyAccuracy,
@@ -153,21 +156,16 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
 
   return (
     <main className="narration-page">
-      <section className="narration-hero">
-        <p className="eyebrow">
-          <BiLabel zh="原型 · 看圖說話" pinyin="Yuánxíng · kàn tú shuōhuà" en="Prototype · Image narration" />
-        </p>
-        <h1>
-          <BiLabel zh="看圖說話" pinyin="Kàn tú shuōhuà" en="Describe the Picture" />
-        </h1>
-        <p>
-          <BiText
-            zh="看圖片，用重要的詞，大聲說出發生了什麼事。AI 會看看你說的和圖片裡的東西一不一樣。"
-            pinyin="Kàn túpiàn, yòng zhòngyào de cí, dàshēng shuō chū fāshēng le shénme shì. AI huì kànkan nǐ shuō de hé túpiàn lǐ de dōngxi yì bù yíyàng."
-            en="Look at the image, use the keywords as a guide, and describe out loud what is happening. The AI compares what you said against what is actually in the picture."
-          />
-        </p>
-      </section>
+      <JourneyStrip studentName={getStudentName()} studentId={getStudentId()} />
+      <StudentPageHeader
+        eyebrow={{ zh: "原型 · 看圖說話", pinyin: "Yuánxíng · kàn tú shuōhuà", en: "Prototype · Image narration" }}
+        title={{ zh: "看圖說話", pinyin: "Kàn tú shuōhuà", en: "Describe the Picture" }}
+        lede={{
+          zh: "看圖片，用重要的詞，大聲說出發生了什麼事。AI 會看看你說的和圖片裡的東西一不一樣。",
+          pinyin: "Kàn túpiàn, yòng zhòngyào de cí, dàshēng shuō chū fāshēng le shénme shì. AI huì kànkan nǐ shuō de hé túpiàn lǐ de dōngxi yì bù yíyàng.",
+          en: "Look at the image, use the keywords as a guide, and describe out loud what is happening. The AI compares what you said against what is actually in the picture.",
+        }}
+      />
 
       <section className="narration-scene-picker">
         {scenes.map((option, index) => (

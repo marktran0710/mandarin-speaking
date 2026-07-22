@@ -18,15 +18,17 @@ export default function JourneyStrip({
 }: {
   studentName?: string;
   studentId?: string;
-  // How many stories exist (denominator: 3 stars each) and their display
-  // titles by quiz storyId — used for the near-miss button label.
-  storyCount: number;
-  storyTitles: Record<string, string>;
+  // How many stories exist (denominator: 3 stars each) — omit on pages that
+  // don't know the story list; the tally then shows just the earned total.
+  storyCount?: number;
+  // Display titles by quiz storyId — used for the near-miss button label.
+  storyTitles?: Record<string, string>;
   onJumpToStory?: (storyId: string) => void;
 }) {
+  const titles = storyTitles ?? {};
   // Device-local stars paint instantly; the attempts fetch below raises the
   // total and picks the message once (and if) the backend answers.
-  const localTotal = Object.keys(storyTitles).reduce(
+  const localTotal = Object.keys(titles).reduce(
     (sum, id) => sum + loadLocalStars(id),
     0,
   );
@@ -64,8 +66,16 @@ export default function JourneyStrip({
           en={studentName ? `Hi, ${studentName}!` : "Hi!"}
         />
       </span>
-      <span className="journey-strip-stars" aria-label={`${totalStars} of ${storyCount * 3} stars earned`}>
-        ⭐ {totalStars} / {storyCount * 3}
+      <span
+        className="journey-strip-stars"
+        aria-label={
+          storyCount
+            ? `${totalStars} of ${storyCount * 3} stars earned`
+            : `${totalStars} stars earned`
+        }
+      >
+        ⭐ {totalStars}
+        {storyCount ? ` / ${storyCount * 3}` : ""}
       </span>
       <span className="journey-strip-message">
         {message.kind === "near_miss" && (
@@ -82,7 +92,7 @@ export default function JourneyStrip({
                 className="journey-strip-jump"
                 onClick={() => onJumpToStory(message.storyId)}
               >
-                {storyTitles[message.storyId] ?? message.storyId} →
+                {titles[message.storyId] ?? message.storyId} →
               </button>
             )}
           </>

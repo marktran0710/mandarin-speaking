@@ -1,0 +1,27 @@
+/* Unified student page title block — same measure, size, and spacing on
+   every non-practice page, on the shared content column. */
+.student-page-header {
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
+  margin: 0 auto var(--space-lg);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.student-page-header h1 {
+  margin: 4px 0 0;
+  font-size: clamp(26px, 3.4vw, 36px);
+  line-height: 1.15;
+  color: var(--clay-ink);
+  font-weight: 700;
+}
+
+.student-page-lede {
+  margin: var(--space-xs) 0 0;
+  max-width: 640px;
+  color: var(--clay-body);
+  font-size: 14px;
+  line-height: 1.6;
+}

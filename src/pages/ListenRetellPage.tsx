@@ -1,7 +1,10 @@
 import { useMemo, useRef, useState } from "react";
 import type { Topic } from "../components/TopicSelector";
 import { convertBlobToWav } from "../utils/audio";
-import { BiLabel, BiText } from "../components/BiLabel";
+import { BiLabel } from "../components/BiLabel";
+import JourneyStrip from "../components/JourneyStrip";
+import StudentPageHeader from "../components/StudentPageHeader";
+import { getStudentId, getStudentName } from "../utils/studentSession";
 import ScoreCard from "../components/ScoreCard";
 import {
   averageWordProsodyAccuracy,
@@ -179,21 +182,16 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
 
   return (
     <main className="listen-retell-page">
-      <section className="lr-hero">
-        <p className="eyebrow">
-          <BiLabel zh="原型 · 聽和說" pinyin="Yuánxíng · tīng hé shuō" en="Prototype · Listen & Retell" />
-        </p>
-        <h1>
-          <BiLabel zh="聽和說" pinyin="Tīng hé shuō" en="Listen & Retell" />
-        </h1>
-        <p>
-          <BiText
-            zh="聽這段話（可以聽好幾次），然後用自己的話再說一次。AI 會看看你說的和你聽到的一不一樣。"
-            pinyin="Tīng zhè duàn huà (kěyǐ tīng hǎo jǐ cì), ránhòu yòng zìjǐ de huà zài shuō yí cì. AI huì kànkan nǐ shuō de hé nǐ tīngdào de yì bù yíyàng."
-            en="Listen to the passage (as many times as you like), then retell it in your own words. The AI compares what you said against what you heard."
-          />
-        </p>
-      </section>
+      <JourneyStrip studentName={getStudentName()} studentId={getStudentId()} />
+      <StudentPageHeader
+        eyebrow={{ zh: "原型 · 聽和說", pinyin: "Yuánxíng · tīng hé shuō", en: "Prototype · Listen & Retell" }}
+        title={{ zh: "聽和說", pinyin: "Tīng hé shuō", en: "Listen & Retell" }}
+        lede={{
+          zh: "聽這段話（可以聽好幾次），然後用自己的話再說一次。AI 會看看你說的和你聽到的一不一樣。",
+          pinyin: "Tīng zhè duàn huà (kěyǐ tīng hǎo jǐ cì), ránhòu yòng zìjǐ de huà zài shuō yí cì. AI huì kànkan nǐ shuō de hé nǐ tīngdào de yì bù yíyàng.",
+          en: "Listen to the passage (as many times as you like), then retell it in your own words. The AI compares what you said against what you heard.",
+        }}
+      />
 
       <section className="lr-scene-picker">
         {scenes.map((option, index) => (
