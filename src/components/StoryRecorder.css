@@ -13,6 +13,17 @@
 .story-session-main {
   min-width: 0;
 }
+/* Inside the session shell every phase must start flush at the grid top,
+   level with the sidebar card's top edge — Overview and the vocab quiz
+   carry their own generous top padding from their pre-sidebar life, which
+   left the main column visibly lower than the sidebar. Their bottom/side
+   padding stays; only the top offset goes. */
+.story-session-main .story-overview {
+  padding-top: 0;
+}
+.story-session-main .story-vocab-quiz {
+  padding-top: 0;
+}
 @media (max-width: 900px) {
   .story-recorder {
     grid-template-columns: 1fr;
