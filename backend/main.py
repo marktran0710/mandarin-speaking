@@ -1531,6 +1531,10 @@ Rules:
 - "word" must exactly match one of the words given above.
 - Each distractor must be different from that word's correct translation and
   from the other distractors for that word.
+- A distractor must NOT be another acceptable translation of the word — the
+  given correct translation must stay the ONLY correct option. If a
+  candidate distractor could also be defended as a correct answer, replace
+  it with a clearly wrong one.
 - Distractors are short English translations (a few words at most), matching
   the style of the correct translation.
 - Return the JSON array only, no surrounding text.
@@ -1651,6 +1655,9 @@ Rules:
 - "sentence" must contain that exact word, written naturally (not blanked out).
 - Each distractor must be a different Chinese word from "word" and from the
   other distractors for that word, and must not itself appear in "sentence".
+- Only "word" may correctly fill the blank: each distractor, placed in the
+  blank, must make the sentence clearly wrong or unnatural. Never use a
+  synonym of "word" or any word that would also produce a correct sentence.
 - Return the JSON array only, no surrounding text.
 """
 
@@ -1778,6 +1785,10 @@ Rules:
   different from "word" itself.
 - Each distractor must be a different Chinese word from "word", from
   "synonym", and from the other distractors for that word.
+- Distractors must NOT be synonyms or near-synonyms of "word" — "synonym"
+  must stay the ONLY option that means the same. If a candidate distractor
+  is close enough in meaning to defend as correct, replace it with a
+  clearly different one.
 - Return the JSON array only, no surrounding text.
 """
 

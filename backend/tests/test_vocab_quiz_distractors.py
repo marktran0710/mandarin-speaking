@@ -151,3 +151,13 @@ def test_both_engines_failing_returns_502(client, with_groq_key, with_gemini_key
         )
 
     assert response.status_code == 502
+
+
+class TestPromptSingleAnswerRule:
+    def test_prompt_forbids_distractors_that_are_also_correct(self):
+        import main
+
+        prompt = main._vocab_distractors_prompt(
+            [main.VocabDistractorWord(word="餐廳", translation="restaurant")]
+        )
+        assert "ONLY correct option" in prompt

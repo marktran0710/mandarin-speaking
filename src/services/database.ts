@@ -407,7 +407,9 @@ export interface VocabQuizAttempt {
   // those legacy rows.
   studentId?: string;
   // Optional: attempts saved before quiz mode was tracked have none.
-  mode?: "speed" | "strikes" | "free" | "weak_words";
+  // tier1/2/3 are the star-tier runs (see quizTiers.ts); speed/strikes are
+  // legacy modes kept for old rows.
+  mode?: "tier1" | "tier2" | "tier3" | "speed" | "strikes" | "free" | "weak_words";
   completedAt: string;
   totalQuestions: number;
   correctCount: number;
@@ -427,9 +429,17 @@ export async function createVocabQuizAttempt(
   return response.json() as Promise<VocabQuizAttempt>;
 }
 
-export async function listVocabQuizAttempts(storyId?: string): Promise<VocabQuizAttempt[]> {
-  const url = storyId
-    ? `${BACKEND_URL}/api/vocab-quiz-attempts?story_id=${encodeURIComponent(storyId)}`
+export async function listVocabQuizAttempts(
+  storyId?: string,
+  student?: { studentId?: string; studentName?: string },
+): Promise<VocabQuizAttempt[]> {
+  const params = new URLSearchParams();
+  if (storyId) params.set("story_id", storyId);
+  if (student?.studentId) params.set("student_id", student.studentId);
+  else if (student?.studentName) params.set("student_name", student.studentName);
+  const query = params.toString();
+  const url = query
+    ? `${BACKEND_URL}/api/vocab-quiz-attempts?${query}`
     : `${BACKEND_URL}/api/vocab-quiz-attempts`;
   const response = await fetchWithRetry(url);
   if (!response.ok) throw new Error("Could not load vocabulary quiz attempts.");

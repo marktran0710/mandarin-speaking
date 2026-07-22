@@ -178,3 +178,13 @@ def test_both_engines_failing_returns_502(client, with_groq_key, with_gemini_key
         response = client.post("/api/vocab-quiz-cloze", json={"words": REQUEST_WORDS})
 
     assert response.status_code == 502
+
+
+class TestPromptSingleAnswerRule:
+    def test_prompt_forbids_distractors_that_also_fit_the_blank(self):
+        import main
+
+        prompt = main._vocab_cloze_prompt(
+            [main.VocabClozeWord(word="高興", translation="happy")]
+        )
+        assert "may correctly fill the blank" in prompt

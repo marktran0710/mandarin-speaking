@@ -1551,6 +1551,7 @@ export default function StoryRecorder({
           storyId={topic.id}
           studentId={studentId}
           studentName={studentName}
+          alreadyCompleted={vocabQuizCompleted}
         />
       )}
 

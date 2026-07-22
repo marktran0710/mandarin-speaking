@@ -101,6 +101,54 @@
   transition: all 0.2s;
 }
 
+/* ── Fixed question geometry ──
+   Question kinds render very different prompts (a 2.6rem word, a two-line
+   cloze sentence, an English translation, a play button) and the Next
+   button only exists after an answer — without reservations the card
+   grows/shrinks on every question, and the option a student is about to
+   tap drifts out from under their finger. Each zone of the question screen
+   therefore reserves its worst-case height up front: same-size card from
+   question 1 to question N. */
+.vocab-quiz-question-screen .vocab-quiz-header {
+  width: 100%;
+}
+.vocab-quiz-question-screen .vocab-quiz-word {
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+.vocab-quiz-question-screen .vocab-quiz-options {
+  /* Two rows of options (the 4-option worst case), held even when a small
+     story can only field 2-3 options. */
+  min-height: 140px;
+  align-content: start;
+}
+.vocab-quiz-question-screen .vocab-quiz-option {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vocab-quiz-question-screen .vocab-quiz-actions {
+  /* The two-line Next/See-results button (buttons drop BiLabel's pinyin
+     line) appears only after answering — hold its slot so the options
+     never jump when it lands. */
+  min-height: 68px;
+  align-items: flex-start;
+}
+
+/* Pinyin answers render in the same mono face BiLabel uses for readings —
+   its full diacritic coverage keeps tone marks (ā á ǎ à) aligned and
+   legible, where the default UI face can fall back per-glyph and make
+   tone-trap options look subtly different from each other. */
+.vocab-quiz-options-pinyin .vocab-quiz-option {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
 .vocab-quiz-option:hover:not(:disabled) {
   border-color: var(--gold);
   background: var(--gold-soft);
@@ -221,19 +269,34 @@
 .vocab-quiz-mode-card p { margin: 0; font-size: 12px; color: var(--clay-body); line-height: 1.4; }
 .vocab-quiz-mode-icon { font-size: 1.8rem; line-height: 1; }
 
-.vocab-quiz-mode-speed {
+/* The three star-tier cards share the gold "challenge" look; locked ones
+   drop to a muted, flat state so the ladder reads at a glance. */
+.vocab-quiz-mode-tier1,
+.vocab-quiz-mode-tier2,
+.vocab-quiz-mode-tier3 {
   border-color: var(--gold);
   box-shadow: 0 4px 0 var(--gold-deep);
 }
-.vocab-quiz-mode-speed:hover { box-shadow: 0 6px 0 var(--gold-deep); }
-.vocab-quiz-mode-speed:active { box-shadow: 0 2px 0 var(--gold-deep); }
+.vocab-quiz-mode-tier1:hover, .vocab-quiz-mode-tier2:hover, .vocab-quiz-mode-tier3:hover { box-shadow: 0 6px 0 var(--gold-deep); }
+.vocab-quiz-mode-tier1:active, .vocab-quiz-mode-tier2:active, .vocab-quiz-mode-tier3:active { box-shadow: 0 2px 0 var(--gold-deep); }
 
-.vocab-quiz-mode-strikes {
-  border-color: var(--clay-error);
-  box-shadow: 0 4px 0 var(--clay-error-deep);
+.vocab-quiz-mode-card.is-locked,
+.vocab-quiz-mode-card.is-locked:hover,
+.vocab-quiz-mode-card.is-locked:active {
+  border-color: var(--clay-hairline);
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+  opacity: 0.65;
 }
-.vocab-quiz-mode-strikes:hover { box-shadow: 0 6px 0 var(--clay-error-deep); }
-.vocab-quiz-mode-strikes:active { box-shadow: 0 2px 0 var(--clay-error-deep); }
+
+.vocab-quiz-mode-card.is-earned {
+  border-color: var(--jade);
+  box-shadow: 0 4px 0 var(--jade-deep);
+}
+.vocab-quiz-mode-card.is-earned:hover { box-shadow: 0 6px 0 var(--jade-deep); }
+.vocab-quiz-mode-card.is-earned:active { box-shadow: 0 2px 0 var(--jade-deep); }
+.vocab-quiz-tier-done { color: var(--jade-deep); }
 
 .vocab-quiz-mode-review {
   border-color: var(--jade);
@@ -249,14 +312,25 @@
 .vocab-quiz-mode-weak_words:hover { box-shadow: 0 6px 0 var(--seal-deep); }
 .vocab-quiz-mode-weak_words:active { box-shadow: 0 2px 0 var(--seal-deep); }
 
-/* ── In-quiz mode indicators ── */
-.vocab-quiz-strikes {
-  font-size: 18px;
+/* Earned-star tally on the ladder header. */
+.vocab-quiz-star-count {
+  font-size: 22px;
   letter-spacing: 4px;
   margin: 2px 0 0;
 }
-.vocab-quiz-strikes .strike-open { opacity: 0.35; }
+.vocab-quiz-star-count .star-open { opacity: 0.4; }
 
+/* The "why am I doing this" line under the stars (mode-select) and the
+   locked note under the summary actions — same quiet emphasis. */
+.vocab-quiz-unlock-goal,
+.vocab-quiz-unlock-note {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--clay-muted);
+}
+
+/* ── In-quiz mode indicators ── */
 .vocab-quiz-timer {
   font-size: 14px;
   font-weight: 800;
@@ -323,6 +397,102 @@
   box-shadow: 0 1px 0 var(--gold-deep);
 }
 
+/* Star / near-miss verdict line under the summary score. */
+.vocab-quiz-star-result {
+  margin: 6px 0 0;
+  font-size: 15px;
+  font-weight: 800;
+}
+.vocab-quiz-star-result.is-earned { color: var(--gold-deep); }
+.vocab-quiz-star-result.is-near-miss { color: var(--seal-deep); }
+
+/* Try again (same tier, fresh scored run) shares the chunky retry look;
+   the next-tier challenge gets the jade "go" treatment to stand apart. */
+.btn-vocab-quiz-try-again {
+  font-size: 14.5px;
+  font-weight: 800;
+  padding: 12px 24px;
+  border-radius: var(--clay-radius-pill);
+  cursor: pointer;
+  border: 2px solid var(--gold-deep);
+  background: var(--gold);
+  color: #fff;
+  box-shadow: 0 4px 0 var(--gold-deep);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.btn-vocab-quiz-try-again:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--gold-deep);
+}
+.btn-vocab-quiz-try-again:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--gold-deep);
+}
+
+/* Quiet exit for a summary that can't continue to practice yet — the same
+   understated treatment as the back button, so Try again / Challenge stay
+   the visually loud paths. */
+.btn-vocab-quiz-menu {
+  font-size: 13px;
+  font-weight: 650;
+  padding: 10px 16px;
+  border-radius: var(--clay-radius-md, 8px);
+  cursor: pointer;
+  background: transparent;
+  color: var(--clay-muted);
+  border: 1px solid var(--clay-hairline);
+}
+.btn-vocab-quiz-menu:hover {
+  background: var(--clay-surface-soft);
+  color: var(--clay-ink);
+}
+
+.btn-vocab-quiz-challenge {
+  font-size: 14.5px;
+  font-weight: 800;
+  padding: 12px 24px;
+  border-radius: var(--clay-radius-pill);
+  cursor: pointer;
+  border: 2px solid var(--jade-deep);
+  background: var(--jade);
+  color: #fff;
+  box-shadow: 0 4px 0 var(--jade-deep);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.btn-vocab-quiz-challenge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--jade-deep);
+}
+.btn-vocab-quiz-challenge:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--jade-deep);
+}
+
+/* ── Listening / reverse question prompts ── */
+.vocab-quiz-reverse-prompt {
+  font-size: 1.6rem;
+}
+
+.btn-vocab-quiz-play {
+  font-size: 2rem;
+  line-height: 1;
+  padding: 14px 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2.5px solid var(--jade-deep);
+  background: var(--jade);
+  box-shadow: 0 4px 0 var(--jade-deep);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.btn-vocab-quiz-play:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--jade-deep);
+}
+.btn-vocab-quiz-play:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--jade-deep);
+}
+
 /* ── Review screen ── */
 .vocab-quiz-review {
   max-width: 560px;
@@ -359,6 +529,7 @@
 }
 
 .vocab-quiz-review-pinyin {
+  font-family: var(--font-mono);
   font-size: 13px;
   color: var(--clay-muted);
 }

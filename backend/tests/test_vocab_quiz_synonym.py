@@ -162,3 +162,13 @@ def test_converts_simplified_chinese_output_to_traditional(client, with_groq_key
     results = response.json()["results"]
     assert results[0]["synonym"] == "開心"
     assert results[0]["distractors"] == ["生氣", "累", "餓"]
+
+
+class TestPromptSingleAnswerRule:
+    def test_prompt_forbids_distractors_that_are_also_synonyms(self):
+        import main
+
+        prompt = main._vocab_synonym_prompt(
+            [main.VocabSynonymWord(word="高興", translation="happy")]
+        )
+        assert "ONLY option that means the same" in prompt

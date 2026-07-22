@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { UserEvent } from "@testing-library/user-event";
+import { toPinyin } from "../utils/pinyin";
 import StoryRecorder, {
   vocabTooltip,
   planDistractorGrowth,
@@ -9,28 +10,61 @@ import StoryRecorder, {
   buildClozePatchUpdates,
 } from "./StoryRecorder";
 
-/** Picks Strikes mode (if the mode-select screen is showing) and answers
- * wrong on purpose until the run ends itself after 3 consecutive misses —
- * the deterministic way to reach the results screen now that Review
- * replaced Free Practice's unlimited "answer a couple, then Finish" path.
- * Each click is checked against the resulting DOM (rather than assumed)
- * since the same rendered option can land correct or incorrect depending on
- * shuffle. Then continues past the results screen. Required to advance past
- * a first-time (skip-not-yet-unlocked) quiz. */
-async function completeVocabQuiz(user: UserEvent) {
-  const strikesButton = screen.queryByRole("button", { name: /Strikes/ });
-  if (!strikesButton) return;
-  await user.click(strikesButton);
+// Every quiz-eligible word across this file's topic fixtures, with the data
+// needed to answer any tier-1 question kind correctly — the vocab quiz now
+// gates practice on actually passing tier 1 (14/20 right), so the helper
+// below must genuinely know the answers rather than losing on purpose.
+const QUIZ_ANSWERS: Record<string, { translation: string; pinyin?: string }> = {
+  market: { translation: "marketplace", pinyin: "shìchǎng" },
+  help: { translation: "to help" },
+  friend: { translation: "friend" },
+  餐廳: { translation: "restaurant" },
+  吃: { translation: "to eat" },
+};
 
-  let strikes = 0;
-  while (strikes < 3) {
-    const optionsGroup = screen.getByRole("group", { name: /What does/ });
-    const firstOption = within(optionsGroup).getAllByRole("button")[0];
-    await user.click(firstOption);
-    strikes = firstOption.className.includes("vocab-quiz-option-incorrect") ? strikes + 1 : 0;
-    const nextButton = screen.queryByRole("button", { name: /Next question|Start practice/ });
-    if (nextButton) await user.click(nextButton);
+/** Answers every question of the current tier run correctly via
+ * QUIZ_ANSWERS — tiers 1-2 only ever ask translation / reverse / pinyin
+ * questions for these fixtures (no AI cloze/synonym data, no jsdom speech
+ * synthesis), each identified here by its options group's aria-label. */
+async function passTierRun(user: UserEvent, questionCount: number) {
+  for (let i = 0; i < questionCount; i += 1) {
+    const optionsGroup = screen.getByRole("group", {
+      name: /What does|How do you read|Which word means/,
+    });
+    const label = optionsGroup.getAttribute("aria-label")!;
+    let correct: string;
+    let match = label.match(/^What does (.+) mean\?$/);
+    if (match) {
+      correct = QUIZ_ANSWERS[match[1]].translation;
+    } else if ((match = label.match(/^How do you read (.+)\?$/))) {
+      correct = QUIZ_ANSWERS[match[1]]?.pinyin ?? toPinyin(match[1]);
+    } else {
+      const translation = label.match(/^Which word means (.+)\?$/)![1];
+      correct = Object.keys(QUIZ_ANSWERS).find(
+        (word) => QUIZ_ANSWERS[word].translation === translation,
+      )!;
+    }
+    await user.click(
+      within(optionsGroup)
+        .getAllByRole("button")
+        .find((b) => b.textContent === correct)!,
+    );
+    await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
   }
+}
+
+/** Climbs the star ladder far enough to open practice (⭐⭐: pass tier 1,
+ * then the tier-2 challenge straight off its summary), if the tier-select
+ * screen is showing, then continues past the results screen. Required to
+ * advance past a first-time (locked-practice) quiz. */
+async function completeVocabQuiz(user: UserEvent) {
+  const tierButton = screen.queryByRole("button", { name: /Tier 1/ });
+  if (!tierButton) return;
+  await user.click(tierButton);
+  await passTierRun(user, 20);
+
+  await user.click(await screen.findByRole("button", { name: /Challenge Tier 2/ }));
+  await passTierRun(user, 22);
 
   const continueButton = await screen.findByRole("button", { name: /Continue to practice/ });
   await user.click(continueButton);

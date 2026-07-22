@@ -1,7 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import { BiLabel } from "./BiLabel";
 import { toPinyin } from "../utils/pinyin";
-import { canUseDatabase, getVocabQuizWeakWords } from "../services/database";
+import { toneTrapVariants } from "../utils/toneTraps";
+import {
+  TIER_CONFIGS,
+  attemptEarnsStar,
+  isTierUnlocked,
+  loadLocalStars,
+  nextStarGap,
+  practiceUnlocked,
+  recordLocalStars,
+  starsFromAttempts,
+  tierConfigFromMode,
+  type QuizTier,
+  type TierMode,
+} from "../utils/quizTiers";
+import {
+  canUseDatabase,
+  getVocabQuizWeakWords,
+  listVocabQuizAttempts,
+} from "../services/database";
 import "./StoryVocabQuiz.css";
 
 export interface VocabQuizClozeCandidate {
@@ -90,12 +108,35 @@ export interface VocabQuizSynonymQuestion {
   isAiGenerated: true;
 }
 
+export interface VocabQuizReverseQuestion {
+  kind: "reverse";
+  word: string;
+  // The English translation shown as the prompt — the answer is the word.
+  translation: string;
+  correctWord: string;
+  options: string[];
+  // Reverse questions draw options from the story's own words — never AI.
+  isAiGenerated: false;
+}
+
+export interface VocabQuizListeningQuestion {
+  kind: "listening";
+  word: string;
+  // The prompt is spoken (browser TTS), never written — the shown options
+  // are Chinese words and the student picks the one they heard.
+  correctWord: string;
+  options: string[];
+  isAiGenerated: false;
+}
+
 export type VocabQuizQuestion =
   | VocabQuizTranslationQuestion
   | VocabQuizClozeQuestion
   | VocabQuizPinyinQuestion
   | VocabQuizPosQuestion
-  | VocabQuizSynonymQuestion;
+  | VocabQuizSynonymQuestion
+  | VocabQuizReverseQuestion
+  | VocabQuizListeningQuestion;
 
 export interface VocabQuizQuestionResult {
   word: string;
@@ -111,31 +152,20 @@ export interface VocabQuizSummary {
   questionResults: VocabQuizQuestionResult[];
 }
 
-// "weak_words" mirrors "free"'s unlimited/no-timer engine but, unlike the
-// same-session missed-words retry below, is a real scored mode: it reports
-// via onComplete and gets saved as an attempt, so a correct answer there
-// actually clears the word from the next weak-words list (see
-// getVocabQuizWeakWords) rather than resetting on page leave.
-export type VocabQuizMode = "speed" | "strikes" | "free" | "weak_words";
+// The scored modes are the three star tiers (see quizTiers.ts): a fixed
+// question count each, escalating difficulty/distractors, and a star for
+// meeting the tier's pass threshold. "weak_words" mirrors "free"'s
+// unlimited/no-timer engine but, unlike the same-session missed-words retry
+// below, is a real scored mode: it reports via onComplete and gets saved as
+// an attempt, so a correct answer there actually clears the word from the
+// next weak-words list (see getVocabQuizWeakWords) rather than resetting on
+// page leave.
+export type VocabQuizMode = TierMode | "free" | "weak_words";
 
 const MAX_QUESTIONS = 8;
 const OPTION_COUNT = 4;
 
-// Speed mode: a fixed 20-question run capped at 60 seconds total — no
-// per-question timer, just an overall countdown, so the pressure is "get
-// through as many as you can before time's up" rather than a forced answer
-// on every single question.
-const SPEED_QUESTION_COUNT = 20;
-const TOTAL_TIME_LIMIT_MS = 60_000;
 const TIMER_TICK_MS = 100;
-
-// Strikes mode: three wrong answers *in a row* ends the run early, like a
-// game-over — a correct answer in between resets the counter. Free and
-// Strikes both draw from an unlimited, endlessly-reshuffled pool of the
-// story's words (see drawFromBag below) rather than a fixed question count
-// — they end only via their own condition (strikes) or the student's own
-// choice (the "Finish" button), never by running out of questions.
-const STRIKES_LIMIT = 3;
 
 // Generic filler distractors, used only to pad out a question's wrong
 // answers when the story itself doesn't have enough other translated words
@@ -154,6 +184,24 @@ function shuffle<T>(items: T[]): T[] {
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
+}
+
+/** "Would a student read these two options as the same answer?" form:
+ * lowercased, trimmed, trailing punctuation stripped. Every question
+ * builder compares answers through this so a distractor can never be a
+ * disguised second correct option ("Restaurant." vs "restaurant"). */
+function normalizeAnswer(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[.。!！?？]+$/u, "")
+    .trim();
+}
+
+/** The word's reading for sound-based comparisons (authored pinyin first,
+ * computed otherwise), normalized for spacing/case differences. */
+function normalizeReading(entry: VocabQuizEntry): string {
+  return (entry.pinyin || toPinyin(entry.word)).trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 /** Dedupes a story's vocabulary (by word, across every scene) down to the
@@ -214,21 +262,30 @@ export function collectQuizEntries(
  * actually pick) are used first when available; the story's other translated
  * words, then generic filler words, pad out any remaining slots — covering
  * both a story with no AI distractors yet and one where the AI returned
- * fewer than OPTION_COUNT-1 for a word. */
+ * fewer than OPTION_COUNT-1 for a word. Tier 1 passes `useAiDistractors:
+ * false` so its options stay easy to tell apart — the near-miss traps are a
+ * tier 2+ difficulty lever, not a starting hurdle. */
 function buildTranslationQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
+  useAiDistractors = true,
 ): VocabQuizTranslationQuestion {
-  const usedTranslations = new Set([entry.translation]);
+  // Tracked in normalized form so "Restaurant." can never slip in beside
+  // "restaurant" as a disguised second correct answer.
+  const usedTranslations = new Set([normalizeAnswer(entry.translation)]);
 
-  const aiPool = (entry.aiDistractors ?? []).filter((d) => !usedTranslations.has(d));
+  const aiPool = useAiDistractors
+    ? (entry.aiDistractors ?? []).filter((d) => !usedTranslations.has(normalizeAnswer(d)))
+    : [];
   const aiDistractors = shuffle(aiPool).slice(0, OPTION_COUNT - 1);
-  aiDistractors.forEach((d) => usedTranslations.add(d));
+  aiDistractors.forEach((d) => usedTranslations.add(normalizeAnswer(d)));
 
   const realDistractorPool = Array.from(
     new Set(
       allEntries
-        .filter((e) => e.word !== entry.word && !usedTranslations.has(e.translation))
+        .filter(
+          (e) => e.word !== entry.word && !usedTranslations.has(normalizeAnswer(e.translation)),
+        )
         .map((e) => e.translation),
     ),
   );
@@ -236,9 +293,9 @@ function buildTranslationQuestion(
     0,
     OPTION_COUNT - 1 - aiDistractors.length,
   );
-  realDistractors.forEach((d) => usedTranslations.add(d));
+  realDistractors.forEach((d) => usedTranslations.add(normalizeAnswer(d)));
 
-  const fillerPool = FILLER_DISTRACTORS.filter((word) => !usedTranslations.has(word));
+  const fillerPool = FILLER_DISTRACTORS.filter((word) => !usedTranslations.has(normalizeAnswer(word)));
   const fillerDistractors = shuffle(fillerPool).slice(
     0,
     OPTION_COUNT - 1 - aiDistractors.length - realDistractors.length,
@@ -279,7 +336,14 @@ function buildClozeQuestion(
   const realWordPool = Array.from(
     new Set(
       allEntries
-        .filter((e) => e.word !== entry.word && !usedWords.has(e.word))
+        .filter(
+          (e) =>
+            e.word !== entry.word &&
+            !usedWords.has(e.word) &&
+            // A story word meaning the same thing (高興/開心 both "happy")
+            // would fit the blank just as well — a second correct answer.
+            normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation),
+        )
         .map((e) => e.word),
     ),
   );
@@ -301,17 +365,24 @@ function buildClozeQuestion(
 
 /** Builds a "how do you read this?" question: the word's correct pinyin
  * (teacher-authored, or computed the same way the Review screen does) among
- * up to OPTION_COUNT-1 wrong readings drawn from the other story words'
- * pinyin — always buildable, since every Chinese word has a computed
- * reading even without a teacher-authored one. */
+ * up to OPTION_COUNT-1 wrong readings — always buildable, since every
+ * Chinese word has a computed reading even without a teacher-authored one.
+ *
+ * Distractor sourcing is the tier-difficulty lever: `toneTraps: "primary"`
+ * (tier 2+) leads with readings that differ by exactly one syllable's tone
+ * (hē chá → hé chá) so the student must really know the tones, while
+ * `"pad"` (tier 1 / legacy modes) keeps the easy other-words readings first
+ * and only falls back to tone traps when the story is too small to fill the
+ * options. */
 function buildPinyinQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
+  toneTraps: "primary" | "pad" = "pad",
 ): VocabQuizPinyinQuestion {
   const correctPinyin = entry.pinyin || toPinyin(entry.word);
   const usedPinyin = new Set([correctPinyin]);
 
-  const pinyinPool = Array.from(
+  const otherWordPool = Array.from(
     new Set(
       allEntries
         .filter((e) => e.word !== entry.word)
@@ -319,7 +390,18 @@ function buildPinyinQuestion(
         .filter((p) => p && !usedPinyin.has(p)),
     ),
   );
-  const distractors = shuffle(pinyinPool).slice(0, OPTION_COUNT - 1);
+  const trapPool = toneTrapVariants(correctPinyin).filter((p) => !usedPinyin.has(p));
+
+  const distractors: string[] = [];
+  const pools = toneTraps === "primary" ? [trapPool, otherWordPool] : [otherWordPool, trapPool];
+  for (const pool of pools) {
+    for (const candidate of shuffle(pool)) {
+      if (distractors.length >= OPTION_COUNT - 1) break;
+      if (usedPinyin.has(candidate)) continue;
+      usedPinyin.add(candidate);
+      distractors.push(candidate);
+    }
+  }
 
   const options = shuffle([correctPinyin, ...distractors]);
   return {
@@ -327,6 +409,70 @@ function buildPinyinQuestion(
     word: entry.word,
     correctPinyin,
     options,
+    isAiGenerated: false,
+  };
+}
+
+/** Builds the reverse of a translation question: the English translation is
+ * the prompt and the student picks the Chinese word for it, drawn against
+ * the story's other words — excluding any word that means the same thing,
+ * which would be a second correct answer for the shown translation. */
+function buildReverseQuestion(
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+): VocabQuizReverseQuestion {
+  const pool = Array.from(
+    new Set(
+      allEntries
+        .filter(
+          (e) =>
+            e.word !== entry.word &&
+            normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation),
+        )
+        .map((e) => e.word),
+    ),
+  );
+  const distractors = shuffle(pool).slice(0, OPTION_COUNT - 1);
+  return {
+    kind: "reverse",
+    word: entry.word,
+    translation: entry.translation,
+    correctWord: entry.word,
+    options: shuffle([entry.word, ...distractors]),
+    isAiGenerated: false,
+  };
+}
+
+/** Builds a listening question: the word is spoken aloud (browser TTS, see
+ * the speak effect in the component) and the student picks the word they
+ * heard from the story's words. Only offered when speech synthesis exists
+ * (see kind availability below). Words that would also be right by ear or
+ * meaning are excluded from the options: homophones (他/她, identical
+ * reading) sound exactly like the answer, and same-translation words are
+ * ambiguous the moment the student mentally translates what they heard. */
+function buildListeningQuestion(
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+): VocabQuizListeningQuestion {
+  const reading = normalizeReading(entry);
+  const pool = Array.from(
+    new Set(
+      allEntries
+        .filter(
+          (e) =>
+            e.word !== entry.word &&
+            normalizeReading(e) !== reading &&
+            normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation),
+        )
+        .map((e) => e.word),
+    ),
+  );
+  const distractors = shuffle(pool).slice(0, OPTION_COUNT - 1);
+  return {
+    kind: "listening",
+    word: entry.word,
+    correctWord: entry.word,
+    options: shuffle([entry.word, ...distractors]),
     isAiGenerated: false,
   };
 }
@@ -391,7 +537,14 @@ function buildSynonymQuestion(
   const realWordPool = Array.from(
     new Set(
       allEntries
-        .filter((e) => e.word !== entry.word && !usedWords.has(e.word))
+        .filter(
+          (e) =>
+            e.word !== entry.word &&
+            !usedWords.has(e.word) &&
+            // A story word sharing the target's translation is itself a
+            // synonym — a second correct "means the same" answer.
+            normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation),
+        )
         .map((e) => e.word),
     ),
   );
@@ -412,48 +565,132 @@ function buildSynonymQuestion(
 
 // Relative weights for picking a question kind among whichever are actually
 // available for a given entry (translation and pinyin are always available;
-// cloze/pos/synonym only when the entry has the matching data — see
-// buildQuizQuestion). Translation stays dominant, appropriate for A1-A2
-// learners; the rest mix in for variety.
-type QuestionKind = "translation" | "cloze" | "pinyin" | "pos" | "synonym";
-const KIND_WEIGHTS: Record<QuestionKind, number> = {
-  translation: 50,
-  pinyin: 20,
-  cloze: 15,
-  synonym: 10,
-  pos: 5,
+// reverse/listening need at least two story words for their Chinese-word
+// options — and listening needs speech synthesis; cloze/pos/synonym only
+// when the entry has the matching data — see buildQuizQuestion). Each mode
+// mixes its own kinds: tier 1 keeps to the direct forms, tiers 2-3 add the
+// harder shapes, and the legacy weights power the free/weak-words rounds.
+// Translation stays dominant throughout, appropriate for A1-A2 learners.
+type QuestionKind =
+  | "translation"
+  | "cloze"
+  | "pinyin"
+  | "pos"
+  | "synonym"
+  | "reverse"
+  | "listening";
+
+// Order matters beyond weighting: availability is checked in list order, so
+// tests can force "the last available kind" deterministically.
+type KindWeights = Array<[QuestionKind, number]>;
+const LEGACY_KIND_WEIGHTS: KindWeights = [
+  ["translation", 50],
+  ["pinyin", 20],
+  ["cloze", 15],
+  ["pos", 5],
+  ["synonym", 10],
+];
+const TIER_KIND_WEIGHTS: Record<TierMode, KindWeights> = {
+  tier1: [
+    ["translation", 50],
+    ["pinyin", 20],
+    ["reverse", 30],
+  ],
+  tier2: [
+    ["translation", 25],
+    ["pinyin", 15],
+    ["reverse", 15],
+    ["cloze", 15],
+    ["synonym", 10],
+    ["listening", 20],
+  ],
+  tier3: [
+    ["translation", 15],
+    ["pinyin", 15],
+    ["reverse", 15],
+    ["cloze", 15],
+    ["synonym", 10],
+    ["pos", 10],
+    ["listening", 20],
+  ],
 };
 
-function pickQuestionKind(entry: VocabQuizEntry): QuestionKind {
-  const available: QuestionKind[] = ["translation", "pinyin"];
-  if (entry.aiCloze?.length) available.push("cloze");
-  if (entry.pos) available.push("pos");
-  if (entry.aiSynonym?.length) available.push("synonym");
+function canUseSpeechSynthesis(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    "speechSynthesis" in window &&
+    "SpeechSynthesisUtterance" in window
+  );
+}
 
-  const total = available.reduce((sum, kind) => sum + KIND_WEIGHTS[kind], 0);
+function isKindAvailable(
+  kind: QuestionKind,
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+): boolean {
+  switch (kind) {
+    case "translation":
+      return true;
+    case "pinyin":
+      // A word with no authored pinyin and no computable reading (e.g. an
+      // English key word) would produce a question whose answer is empty.
+      return Boolean(entry.pinyin || toPinyin(entry.word));
+    case "reverse":
+      return allEntries.length >= 2;
+    case "listening":
+      return allEntries.length >= 2 && canUseSpeechSynthesis();
+    case "cloze":
+      return Boolean(entry.aiCloze?.length);
+    case "pos":
+      return Boolean(entry.pos);
+    case "synonym":
+      return Boolean(entry.aiSynonym?.length);
+  }
+}
+
+function pickQuestionKind(
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+  mode: VocabQuizMode,
+): QuestionKind {
+  const weights = tierConfigFromMode(mode)
+    ? TIER_KIND_WEIGHTS[mode as TierMode]
+    : LEGACY_KIND_WEIGHTS;
+  const available = weights.filter(([kind]) => isKindAvailable(kind, entry, allEntries));
+
+  const total = available.reduce((sum, [, weight]) => sum + weight, 0);
   let roll = Math.random() * total;
-  for (const kind of available) {
-    roll -= KIND_WEIGHTS[kind];
+  for (const [kind, weight] of available) {
+    roll -= weight;
     if (roll <= 0) return kind;
   }
-  return available[available.length - 1];
+  return available[available.length - 1][0];
 }
 
 function buildQuizQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
+  mode: VocabQuizMode,
 ): VocabQuizQuestion {
-  switch (pickQuestionKind(entry)) {
+  const tier = tierConfigFromMode(mode)?.tier ?? null;
+  switch (pickQuestionKind(entry, allEntries, mode)) {
     case "cloze":
       return buildClozeQuestion(entry, allEntries);
     case "pinyin":
-      return buildPinyinQuestion(entry, allEntries);
+      // Tone traps lead from tier 2 up; tier 1 and legacy modes keep the
+      // easy other-words readings first (traps only pad small stories).
+      return buildPinyinQuestion(entry, allEntries, tier !== null && tier >= 2 ? "primary" : "pad");
     case "pos":
       return buildPosQuestion(entry, allEntries);
     case "synonym":
       return buildSynonymQuestion(entry, allEntries);
+    case "reverse":
+      return buildReverseQuestion(entry, allEntries);
+    case "listening":
+      return buildListeningQuestion(entry, allEntries);
     default:
-      return buildTranslationQuestion(entry, allEntries);
+      // Tier 1 keeps its translation options easy — no AI near-miss traps.
+      return buildTranslationQuestion(entry, allEntries, tier !== 1);
   }
 }
 
@@ -467,8 +704,10 @@ export function buildQuizQuestions(entries: VocabQuizEntry[]): VocabQuizTranslat
   return pool.map((entry) => buildTranslationQuestion(entry, entries));
 }
 
-const MODES: Array<{
-  mode: VocabQuizMode | "review";
+// The star ladder shown on mode-select: one card per tier, in climbing
+// order. Copy stays at A1-A2 chrome level (第一關/第二關/第三關 — "level 1/2/3").
+const TIER_CARDS: Array<{
+  mode: TierMode;
   icon: string;
   title: string;
   titlePinyin: string;
@@ -478,48 +717,61 @@ const MODES: Array<{
   descEn: string;
 }> = [
   {
-    mode: "speed",
-    icon: "⏱️",
-    title: "快速模式",
-    titlePinyin: "Kuàisù móshì",
-    titleEn: "Speed",
-    desc: "20 題，總共 60 秒 — 越快越好。",
-    descPinyin: "20 tí, zǒnggòng 60 miǎo — yuè kuài yuè hǎo.",
-    descEn: "20 questions, 60s total — think fast.",
+    mode: "tier1",
+    icon: "⭐",
+    title: "第一關",
+    titlePinyin: "Dì yī guān",
+    titleEn: "Tier 1",
+    desc: "20 題 — 答對 14 題就過關。",
+    descPinyin: "20 tí — dá duì 14 tí jiù guòguān.",
+    descEn: "20 questions — 14 right to pass.",
   },
   {
-    mode: "strikes",
-    icon: "❌",
-    title: "三次機會",
-    titlePinyin: "Sān cì jīhuì",
-    titleEn: "3 Strikes",
-    desc: "題目沒有限制，錯 3 題就結束 — 小心一點。",
-    descPinyin: "Tímù méiyǒu xiànzhì, cuò 3 tí jiù jiéshù — xiǎoxīn yìdiǎn.",
-    descEn: "Unlimited questions — 3 wrong answers in a row ends the run.",
+    mode: "tier2",
+    icon: "⭐⭐",
+    title: "第二關",
+    titlePinyin: "Dì èr guān",
+    titleEn: "Tier 2",
+    desc: "22 題，選項更難 — 答對 18 題就能開始說話練習。",
+    descPinyin: "22 tí, xuǎnxiàng gèng nán — dá duì 18 tí jiù néng kāishǐ shuōhuà liànxí.",
+    descEn: "22 questions, trickier options — 18 right opens speaking practice.",
   },
   {
-    mode: "review",
-    icon: "📖",
-    title: "複習模式",
-    titlePinyin: "Fùxí móshì",
-    titleEn: "Review",
-    desc: "沒有題目限制 — 直接看所有生詞和它們的聲調。",
-    descPinyin: "Méiyǒu tímù xiànzhì — zhíjiē kàn suǒyǒu shēngcí hàn tāmen de shēngdiào.",
-    descEn: "No question limit — just browse every word and its tones.",
+    mode: "tier3",
+    icon: "⭐⭐⭐",
+    title: "第三關",
+    titlePinyin: "Dì sān guān",
+    titleEn: "Tier 3",
+    desc: "25 題，150 秒，有陷阱 — 答對 22 題。",
+    descPinyin: "25 tí, 150 miǎo, yǒu xiànjǐng — dá duì 22 tí.",
+    descEn: "25 questions in 150s, with traps — 22 right to pass.",
   },
 ];
 
+const REVIEW_CARD = {
+  icon: "📖",
+  title: "複習模式",
+  titlePinyin: "Fùxí móshì",
+  titleEn: "Review",
+  desc: "沒有題目限制 — 直接看所有生詞和它們的聲調。",
+  descPinyin: "Méiyǒu tímù xiànzhì — zhíjiē kàn suǒyǒu shēngcí hàn tāmen de shēngdiào.",
+  descEn: "No question limit — just browse every word and its tones.",
+};
+
 /** A multiple-choice vocabulary check covering every glossed word in the
- * story, shown before a student starts practicing any scene. Always
- * mandatory — no skip button in any scored mode; `onBack` (if given) is the
- * only way out before finishing, and it doesn't count as completion.
- * Review mode is the exception: it's a browsable list, not a quiz, so it
- * never produces a summary and never unlocks practice on its own. `onComplete`,
- * when given, fires once with a full results summary — only on a genuine
- * finish of the *original* Speed/Strikes round (every question answered,
- * timed out, or eliminated by strikes), never on back-out, and never again
- * for the missed-words retry round offered afterward (that round is a
- * same-session drill, not a new scored attempt). */
+ * story, shown before a student starts practicing any scene, structured as
+ * a three-tier star ladder (see quizTiers.ts): speaking practice unlocks at
+ * ⭐⭐ (pass tier 1, then tier 2 — see practiceUnlocked), with tier 3 as an
+ * optional extra challenge for the last star. Always mandatory — no skip
+ * button in any scored mode; `onBack` (if given) is the only way out before
+ * finishing, and it doesn't count as completion. Review mode is the
+ * exception: it's a browsable list, not a quiz, so it never produces a
+ * summary and never unlocks practice on its own. `onComplete`, when given,
+ * fires once per scored round with a full results summary — on a genuine
+ * finish (every question answered or timed out), never on back-out, and
+ * never for the missed-words retry round offered afterward (that round is a
+ * same-session drill, not a new scored attempt — unlike Try again, which
+ * starts a fresh scored run of the same tier). */
 export default function StoryVocabQuiz({
   entries,
   onDone,
@@ -528,26 +780,32 @@ export default function StoryVocabQuiz({
   storyId,
   studentId,
   studentName,
+  alreadyCompleted,
 }: {
   entries: VocabQuizEntry[];
   onDone: () => void;
   onBack?: () => void;
   onComplete?: (summary: VocabQuizSummary) => void;
   // All three optional and only used to fetch the persistent weak-words
-  // list (see getVocabQuizWeakWords) — omitting storyId/student identity
-  // just means that mode card never appears, same as having no weak words.
+  // list (see getVocabQuizWeakWords) and this story's earned stars —
+  // omitting storyId/student identity just means the weak-words card never
+  // appears and stars only come from this device's localStorage.
   storyId?: string;
   studentId?: string;
   studentName?: string;
+  // True when this student already unlocked practice for this story in a
+  // past visit — keeps "Continue to practice" available on the summary even
+  // after a failed run (the gate only applies to the first unlock).
+  alreadyCompleted?: boolean;
 }) {
   const [screen, setScreen] = useState<"mode-select" | "quiz" | "review" | "summary">("mode-select");
   const [mode, setMode] = useState<VocabQuizMode | null>(null);
   const [roundEntries, setRoundEntries] = useState(entries);
   const [isRetryRound, setIsRetryRound] = useState(false);
-  // null = unlimited (Strikes/Free): questions are generated endlessly from
-  // a reshuffled bag until the mode's own condition or the student ends it.
-  // A number bounds the round to exactly that many questions (Speed = 20,
-  // a missed-words retry = exactly that many missed words).
+  // null = unlimited (Free): questions are generated endlessly from a
+  // reshuffled bag until the student ends the round. A number bounds the
+  // round to exactly that many questions (a tier's configured count, a
+  // missed-words retry = exactly that many missed words).
   const [questionLimit, setQuestionLimit] = useState<number | null>(null);
 
   const [questions, setQuestions] = useState<VocabQuizQuestion[]>([]);
@@ -555,10 +813,34 @@ export default function StoryVocabQuiz({
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [results, setResults] = useState<VocabQuizQuestionResult[]>([]);
-  const [consecutiveFails, setConsecutiveFails] = useState(0);
-  const [timeLeftMs, setTimeLeftMs] = useState(TOTAL_TIME_LIMIT_MS);
+  const [timeLeftMs, setTimeLeftMs] = useState(0);
   const questionStartRef = useRef(Date.now());
   const quizStartRef = useRef(Date.now());
+
+  // This story's earned stars: seeded from this device's localStorage for an
+  // instant first paint, then raised (never lowered) by whatever the attempt
+  // history on the backend proves — so stars follow the student across
+  // devices once attempts sync.
+  const [stars, setStars] = useState<0 | QuizTier>(() =>
+    storyId ? loadLocalStars(storyId) : 0,
+  );
+  useEffect(() => {
+    if (!storyId || !canUseDatabase()) return;
+    let cancelled = false;
+    listVocabQuizAttempts(storyId, { studentId, studentName })
+      .then((attempts) => {
+        if (cancelled) return;
+        const derived = starsFromAttempts(attempts);
+        setStars((current) => (derived > current ? derived : current));
+      })
+      .catch(() => {
+        /* best-effort — localStorage stars still apply */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storyId, studentId, studentName]);
+
 
   const [weakWords, setWeakWords] = useState<string[]>([]);
   useEffect(() => {
@@ -593,7 +875,7 @@ export default function StoryVocabQuiz({
     return bagRef.current.shift()!;
   };
 
-  // Guards against finishing twice: the speed-mode ticker can fire several
+  // Guards against finishing twice: the countdown ticker can fire several
   // times before React re-renders and tears the interval down (e.g. several
   // ticks land past the total-time cap in the same batch), and without this
   // guard each of those would re-report onComplete and re-enter "summary".
@@ -602,11 +884,20 @@ export default function StoryVocabQuiz({
   const finish = (finalResults: VocabQuizQuestionResult[]) => {
     if (finishedRef.current) return;
     finishedRef.current = true;
+    const correctCount = finalResults.filter((r) => r.correct).length;
     if (!isRetryRound) {
+      // A passing tier run earns its star on the spot — recorded locally
+      // (and implicitly on the backend via the attempt the caller saves in
+      // onComplete, which starsFromAttempts re-derives next visit).
+      const earned = attemptEarnsStar(mode, correctCount);
+      if (earned !== null) {
+        if (storyId) recordLocalStars(storyId, earned);
+        setStars((current) => (earned > current ? earned : current));
+      }
       onComplete?.({
         mode: mode!,
         totalQuestions: finalResults.length,
-        correctCount: finalResults.filter((r) => r.correct).length,
+        correctCount,
         totalTimeMs: Date.now() - quizStartRef.current,
         questionResults: finalResults,
       });
@@ -616,22 +907,10 @@ export default function StoryVocabQuiz({
 
   const recordAnswer = (correct: boolean, chosen: string) => {
     setSelected(chosen);
-    const nextResults = [
+    setResults([
       ...results,
       { word: question.word, correct, timeMs: Date.now() - questionStartRef.current },
-    ];
-    setResults(nextResults);
-
-    if (mode === "strikes") {
-      const nextFails = correct ? 0 : consecutiveFails + 1;
-      setConsecutiveFails(nextFails);
-      if (nextFails >= STRIKES_LIMIT) {
-        // Let the student see the final (losing) answer highlighted for a
-        // beat before ending the run, same rhythm as a normal answer.
-        window.setTimeout(() => finish(nextResults), 700);
-        return;
-      }
-    }
+    ]);
   };
 
   const correctAnswer = (q: VocabQuizQuestion) => {
@@ -646,6 +925,9 @@ export default function StoryVocabQuiz({
         return q.correctPos;
       case "synonym":
         return q.correctSynonym;
+      case "reverse":
+      case "listening":
+        return q.correctWord;
     }
   };
 
@@ -663,21 +945,23 @@ export default function StoryVocabQuiz({
     questionStartRef.current = Date.now();
     const nextIndex = index + 1;
     if (!questions[nextIndex]) {
-      const nextQuestion = buildQuizQuestion(drawFromBag(roundEntries), roundEntries);
+      const nextQuestion = buildQuizQuestion(drawFromBag(roundEntries), roundEntries, mode!);
       setQuestions((qs) => [...qs, nextQuestion]);
     }
     setIndex(nextIndex);
   };
 
-  // Speed mode: no per-question timer — just an overall 60s cap on the whole
-  // run, checked each tick against wall-clock elapsed time (so it survives
-  // tab throttling better than a decrementing counter). timeLeftMs is
-  // recomputed from that same elapsed-time check purely for display — the
-  // finish() call above is still what actually ends the round.
+  // The overall time cap for timed tiers (tier 3's 150s) — no per-question
+  // timer, just a countdown on the whole run, checked each tick against
+  // wall-clock elapsed time (so it survives tab throttling better than a
+  // decrementing counter). timeLeftMs is recomputed from that same
+  // elapsed-time check purely for display — the finish() call above is
+  // still what actually ends the round.
+  const timeLimitMs = tierConfigFromMode(mode)?.timeLimitMs ?? null;
   useEffect(() => {
-    if (mode !== "speed" || screen !== "quiz" || selected) return;
+    if (timeLimitMs === null || screen !== "quiz" || selected) return;
     const tick = window.setInterval(() => {
-      const remaining = TOTAL_TIME_LIMIT_MS - (Date.now() - quizStartRef.current);
+      const remaining = timeLimitMs - (Date.now() - quizStartRef.current);
       if (remaining <= 0) {
         setTimeLeftMs(0);
         finish(results);
@@ -687,7 +971,22 @@ export default function StoryVocabQuiz({
     }, TIMER_TICK_MS);
     return () => window.clearInterval(tick);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, screen, selected, index]);
+  }, [timeLimitMs, screen, selected, index]);
+
+  // Listening questions have no written prompt — speak the word as soon as
+  // the question appears (and again via the replay button in the header).
+  const speakWord = (text: string) => {
+    if (!canUseSpeechSynthesis()) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "zh-TW";
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+  useEffect(() => {
+    if (screen !== "quiz" || question?.kind !== "listening" || selected) return;
+    speakWord(question.correctWord);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, index, question?.kind]);
 
   // `entriesForRound`/`limit` are explicit params (not read from state) so
   // a retry launched via practiceMissedWords() below can't read a stale
@@ -704,13 +1003,17 @@ export default function StoryVocabQuiz({
     setIndex(0);
     setSelected(null);
     setResults([]);
-    setConsecutiveFails(0);
-    setTimeLeftMs(TOTAL_TIME_LIMIT_MS);
+    setTimeLeftMs(tierConfigFromMode(picked)?.timeLimitMs ?? 0);
     bagRef.current = shuffle(entriesForRound);
-    setQuestions([buildQuizQuestion(bagRef.current.shift()!, entriesForRound)]);
+    setQuestions([buildQuizQuestion(bagRef.current.shift()!, entriesForRound, picked)]);
     quizStartRef.current = Date.now();
     questionStartRef.current = Date.now();
     finishedRef.current = false;
+  };
+
+  const startTier = (tierMode: TierMode) => {
+    setIsRetryRound(false);
+    chooseMode(tierMode, entries, TIER_CONFIGS[tierMode].questionCount);
   };
 
   const missedWords = results.filter((r) => !r.correct);
@@ -736,35 +1039,92 @@ export default function StoryVocabQuiz({
             <BiLabel zh="生詞測驗" pinyin="Shēngcí cèyàn" en="Vocabulary Quiz" />
           </p>
           <h1 className="vocab-quiz-mode-title">
-            <BiLabel zh="選一種模式" pinyin="Xuǎn yì zhǒng móshì" en="Pick a mode" />
+            <BiLabel zh="拿到三顆星！" pinyin="Nádào sān kē xīng!" en="Earn all three stars!" />
           </h1>
+          <p className="vocab-quiz-star-count" aria-label={`${stars} of 3 stars earned`}>
+            {([1, 2, 3] as const).map((tier) => (
+              <span key={tier} className={stars >= tier ? "star-earned" : "star-open"}>
+                {stars >= tier ? "⭐" : "☆"}
+              </span>
+            ))}
+          </p>
+          {!alreadyCompleted && !practiceUnlocked(stars) && (
+            <p className="vocab-quiz-unlock-goal">
+              <BiLabel
+                zh="拿到 ⭐⭐ 就可以開始說話練習"
+                pinyin="Nádào ⭐⭐ jiù kěyǐ kāishǐ shuōhuà liànxí"
+                en="Earn ⭐⭐ to start speaking practice"
+              />
+            </p>
+          )}
         </div>
         <div className="vocab-quiz-mode-grid" role="group" aria-label="Quiz mode">
-          {MODES.map((m) => (
-            <button
-              key={m.mode}
-              type="button"
-              className={`vocab-quiz-mode-card vocab-quiz-mode-${m.mode}`}
-              onClick={() =>
-                m.mode === "review"
-                  ? setScreen("review")
-                  : chooseMode(m.mode, entries, m.mode === "speed" ? SPEED_QUESTION_COUNT : null)
-              }
-            >
-              <span className="vocab-quiz-mode-icon">{m.icon}</span>
-              <strong>
-                <BiLabel zh={m.title} pinyin={m.titlePinyin} en={m.titleEn} />
-              </strong>
-              <p>
-                <BiLabel zh={m.desc} pinyin={m.descPinyin} en={m.descEn} />
-              </p>
-            </button>
-          ))}
+          {TIER_CARDS.map((card) => {
+            const config = TIER_CONFIGS[card.mode];
+            const unlocked = isTierUnlocked(config.tier, stars);
+            const earned = stars >= config.tier;
+            return (
+              <button
+                key={card.mode}
+                type="button"
+                className={`vocab-quiz-mode-card vocab-quiz-mode-${card.mode}${
+                  unlocked ? "" : " is-locked"
+                }${earned ? " is-earned" : ""}`}
+                disabled={!unlocked}
+                onClick={() => startTier(card.mode)}
+              >
+                <span className="vocab-quiz-mode-icon">{unlocked ? card.icon : "🔒"}</span>
+                <strong>
+                  <BiLabel zh={card.title} pinyin={card.titlePinyin} en={card.titleEn} />
+                  {earned && (
+                    <span className="vocab-quiz-tier-done" aria-label="Star earned">
+                      {" "}✓
+                    </span>
+                  )}
+                </strong>
+                <p>
+                  {unlocked ? (
+                    <BiLabel zh={card.desc} pinyin={card.descPinyin} en={card.descEn} />
+                  ) : (
+                    <BiLabel
+                      zh={`先拿到 ${"⭐".repeat(config.tier - 1)}。`}
+                      pinyin={`Xiān nádào ${"⭐".repeat(config.tier - 1)}.`}
+                      en={`Earn ${"⭐".repeat(config.tier - 1)} first.`}
+                    />
+                  )}
+                </p>
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            className="vocab-quiz-mode-card vocab-quiz-mode-review"
+            onClick={() => setScreen("review")}
+          >
+            <span className="vocab-quiz-mode-icon">{REVIEW_CARD.icon}</span>
+            <strong>
+              <BiLabel
+                zh={REVIEW_CARD.title}
+                pinyin={REVIEW_CARD.titlePinyin}
+                en={REVIEW_CARD.titleEn}
+              />
+            </strong>
+            <p>
+              <BiLabel
+                zh={REVIEW_CARD.desc}
+                pinyin={REVIEW_CARD.descPinyin}
+                en={REVIEW_CARD.descEn}
+              />
+            </p>
+          </button>
           {weakEntries.length > 0 && (
             <button
               type="button"
               className="vocab-quiz-mode-card vocab-quiz-mode-weak_words"
-              onClick={() => chooseMode("weak_words", weakEntries, weakEntries.length)}
+              onClick={() => {
+                setIsRetryRound(false);
+                chooseMode("weak_words", weakEntries, weakEntries.length);
+              }}
             >
               <span className="vocab-quiz-mode-icon">🎯</span>
               <strong>
@@ -823,6 +1183,23 @@ export default function StoryVocabQuiz({
 
   if (screen === "summary") {
     const correctCount = results.filter((r) => r.correct).length;
+    // Star-tier context for this summary: whether the finished run was a
+    // tier run, whether it passed, and — for the near-miss nudge — how many
+    // more right answers it needed. Retry-round (missed-words drill)
+    // summaries stay plain.
+    const tierConfig = !isRetryRound ? tierConfigFromMode(mode) : null;
+    const passed = tierConfig !== null && correctCount >= tierConfig.passCount;
+    const gap = tierConfig !== null ? nextStarGap(mode, correctCount)! : null;
+    const nextTierCard =
+      tierConfig && passed && tierConfig.tier < 3
+        ? TIER_CARDS.find((c) => TIER_CONFIGS[c.mode].tier === tierConfig.tier + 1)!
+        : null;
+    const starIcons = "⭐".repeat(tierConfig?.tier ?? 0);
+    // Practice only opens at ⭐⭐ — earned this session or a previous one
+    // (stars persist locally and via attempt history). alreadyCompleted
+    // covers students who unlocked practice under an older, looser rule so
+    // a rule change never re-locks them.
+    const showContinue = alreadyCompleted || practiceUnlocked(stars);
     return (
       <section className="story-vocab-quiz vocab-quiz-summary" aria-label="Vocabulary quiz results">
         <div className="vocab-quiz-header">
@@ -840,6 +1217,24 @@ export default function StoryVocabQuiz({
               en={`${correctCount} / ${results.length} correct`}
             />
           </h1>
+          {tierConfig && passed && (
+            <p className="vocab-quiz-star-result is-earned">
+              <BiLabel
+                zh={`你拿到 ${starIcons} 了！`}
+                pinyin={`Nǐ nádào ${starIcons} le!`}
+                en={`You earned ${starIcons}!`}
+              />
+            </p>
+          )}
+          {tierConfig && !passed && (
+            <p className="vocab-quiz-star-result is-near-miss">
+              <BiLabel
+                zh={`再答對 ${gap} 題就拿到 ${starIcons} 了！`}
+                pinyin={`Zài dá duì ${gap} tí jiù nádào ${starIcons} le!`}
+                en={`Just ${gap} more right for ${starIcons}!`}
+              />
+            </p>
+          )}
         </div>
 
         {missedWords.length > 0 ? (
@@ -858,15 +1253,58 @@ export default function StoryVocabQuiz({
         )}
 
         <div className="vocab-quiz-actions">
+          {tierConfig && !passed && (
+            <button
+              type="button"
+              className="btn-vocab-quiz-try-again"
+              onClick={() => startTier(tierConfig.mode)}
+            >
+              <BiLabel zh="🔁 再試一次" pinyin="🔁 Zài shì yí cì" en="🔁 Try again" />
+            </button>
+          )}
+          {nextTierCard && (
+            <button
+              type="button"
+              className="btn-vocab-quiz-challenge"
+              onClick={() => startTier(nextTierCard.mode)}
+            >
+              <BiLabel
+                zh={`${nextTierCard.icon} 挑戰${nextTierCard.title}`}
+                pinyin={`${nextTierCard.icon} Tiǎozhàn ${nextTierCard.titlePinyin.toLowerCase()}`}
+                en={`${nextTierCard.icon} Challenge ${nextTierCard.titleEn}`}
+              />
+            </button>
+          )}
           {missedWords.length > 0 && !isRetryRound && (
             <button type="button" className="btn-vocab-quiz-retry" onClick={practiceMissedWords}>
               <BiLabel zh="🔁 練習答錯的題目" pinyin="🔁 Liànxí dá cuò de tímù" en="🔁 Practice missed words" />
             </button>
           )}
-          <button type="button" className="btn-vocab-quiz-next" onClick={onDone}>
-            <BiLabel zh="繼續練習 →" pinyin="Jìxù liànxí →" en="Continue to practice →" />
-          </button>
+          {showContinue && (
+            <button type="button" className="btn-vocab-quiz-next" onClick={onDone}>
+              <BiLabel zh="繼續練習 →" pinyin="Jìxù liànxí →" en="Continue to practice →" />
+            </button>
+          )}
+          {!showContinue && (
+            <button
+              type="button"
+              className="btn-vocab-quiz-menu"
+              onClick={() => setScreen("mode-select")}
+            >
+              <BiLabel zh="回選單" pinyin="Huí xuǎndān" en="Back to menu" />
+            </button>
+          )}
         </div>
+        {!showContinue && (
+          <p className="vocab-quiz-unlock-note">
+            🔒{" "}
+            <BiLabel
+              zh="拿到 ⭐⭐ 才能開始說話練習"
+              pinyin="Nádào ⭐⭐ cáinéng kāishǐ shuōhuà liànxí"
+              en="Speaking practice opens at ⭐⭐"
+            />
+          </p>
+        )}
       </section>
     );
   }
@@ -876,7 +1314,7 @@ export default function StoryVocabQuiz({
   }
 
   return (
-    <section className="story-vocab-quiz" aria-label="Vocabulary quiz">
+    <section className="story-vocab-quiz vocab-quiz-question-screen" aria-label="Vocabulary quiz">
       <div className="vocab-quiz-topbar">
         {onBack && (
           <button type="button" className="btn-vocab-quiz-back" onClick={onBack}>
@@ -897,6 +1335,16 @@ export default function StoryVocabQuiz({
             en={isRetryRound ? "Reviewing missed words" : "Vocabulary Quiz"}
           />
         </p>
+        {question.kind === "translation" && (
+          <p className="vocab-quiz-instruction">
+            <BiLabel zh="這是什麼意思？" pinyin="Zhè shì shénme yìsi?" en="What does this word mean?" />
+          </p>
+        )}
+        {question.kind === "cloze" && (
+          <p className="vocab-quiz-instruction">
+            <BiLabel zh="哪個字可以填進去？" pinyin="Nǎge zì kěyǐ tián jìnqù?" en="Which word fits the blank?" />
+          </p>
+        )}
         {question.kind === "pinyin" && (
           <p className="vocab-quiz-instruction">
             <BiLabel zh="這個字怎麼念？" pinyin="Zhège zì zěnme niàn?" en="How do you read this word?" />
@@ -910,6 +1358,16 @@ export default function StoryVocabQuiz({
         {question.kind === "synonym" && (
           <p className="vocab-quiz-instruction">
             <BiLabel zh="哪個字意思一樣？" pinyin="Nǎge zì yìsi yíyàng?" en="Which word means the same?" />
+          </p>
+        )}
+        {question.kind === "reverse" && (
+          <p className="vocab-quiz-instruction">
+            <BiLabel zh="哪個是這個意思？" pinyin="Nǎge shì zhège yìsi?" en="Which word means this?" />
+          </p>
+        )}
+        {question.kind === "listening" && (
+          <p className="vocab-quiz-instruction">
+            <BiLabel zh="聽一聽，選對的字。" pinyin="Tīng yi tīng, xuǎn duì de zì." en="Listen and pick the word you hear." />
           </p>
         )}
         {question.kind === "cloze" ? (
@@ -927,6 +1385,19 @@ export default function StoryVocabQuiz({
             <span className="vocab-quiz-ai-badge" title="AI-generated question" aria-label="AI-generated question">
               ✨
             </span>
+          </h1>
+        ) : question.kind === "reverse" ? (
+          <h1 className="vocab-quiz-word vocab-quiz-reverse-prompt">{question.translation}</h1>
+        ) : question.kind === "listening" ? (
+          <h1 className="vocab-quiz-word vocab-quiz-listening-prompt">
+            <button
+              type="button"
+              className="btn-vocab-quiz-play"
+              aria-label="Play the word"
+              onClick={() => speakWord(question.correctWord)}
+            >
+              🔊
+            </button>
           </h1>
         ) : (
           <h1 className="vocab-quiz-word">
@@ -949,16 +1420,7 @@ export default function StoryVocabQuiz({
             <BiLabel zh={`第 ${index + 1} 題`} pinyin={`Dì ${index + 1} tí`} en={`Question ${index + 1}`} />
           )}
         </p>
-        {mode === "strikes" && (
-          <p className="vocab-quiz-strikes" aria-label={`${consecutiveFails} of ${STRIKES_LIMIT} strikes`}>
-            {Array.from({ length: STRIKES_LIMIT }, (_, i) => (
-              <span key={i} className={i < consecutiveFails ? "strike-used" : "strike-open"}>
-                {i < consecutiveFails ? "❌" : "◯"}
-              </span>
-            ))}
-          </p>
-        )}
-        {mode === "speed" && (
+        {timeLimitMs !== null && (
           <p
             className={`vocab-quiz-timer${timeLeftMs <= 10_000 ? " is-low" : ""}`}
             aria-label={`${Math.ceil(timeLeftMs / 1000)} seconds left`}
@@ -969,7 +1431,9 @@ export default function StoryVocabQuiz({
       </div>
 
       <div
-        className="vocab-quiz-options"
+        className={`vocab-quiz-options${
+          question.kind === "pinyin" ? " vocab-quiz-options-pinyin" : ""
+        }`}
         role="group"
         aria-label={
           question.kind === "translation"
@@ -980,7 +1444,11 @@ export default function StoryVocabQuiz({
                 ? `How do you read ${question.word}?`
                 : question.kind === "pos"
                   ? `What part of speech is ${question.word}?`
-                  : `Which word means the same as ${question.word}?`
+                  : question.kind === "reverse"
+                    ? `Which word means ${question.translation}?`
+                    : question.kind === "listening"
+                      ? "Which word did you hear?"
+                      : `Which word means the same as ${question.word}?`
         }
       >
         {question.options.map((option) => {
@@ -1021,16 +1489,15 @@ export default function StoryVocabQuiz({
       </div>
 
       <div className="vocab-quiz-actions">
-        {selected &&
-          !(mode === "strikes" && consecutiveFails >= STRIKES_LIMIT) && (
-            <button type="button" className="btn-vocab-quiz-next" onClick={next}>
-              {isLast ? (
-                <BiLabel zh="開始練習" pinyin="Kāishǐ liànxí" en="Start practice" />
-              ) : (
-                <BiLabel zh="下一題" pinyin="Xià yì tí" en="Next question" />
-              )}
-            </button>
-          )}
+        {selected && (
+          <button type="button" className="btn-vocab-quiz-next" onClick={next}>
+            {isLast ? (
+              <BiLabel zh="看結果" pinyin="Kàn jiéguǒ" en="See results" />
+            ) : (
+              <BiLabel zh="下一題" pinyin="Xià yì tí" en="Next question" />
+            )}
+          </button>
+        )}
       </div>
     </section>
   );

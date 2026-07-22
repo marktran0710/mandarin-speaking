@@ -14,6 +14,7 @@ vi.mock("../services/database", async (importOriginal) => {
     ...actual,
     canUseDatabase: vi.fn(() => true),
     getVocabQuizWeakWords: vi.fn(async () => []),
+    listVocabQuizAttempts: vi.fn(async () => []),
   };
 });
 
@@ -268,17 +269,18 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     const onComplete = vi.fn();
     const onDone = vi.fn();
 
-    render(<StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} />);
+    // alreadyCompleted: this test drives onComplete/onDone sequencing, not
+    // the ⭐⭐ practice gate (covered in the star-tier describe).
+    render(
+      <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} alreadyCompleted />,
+    );
 
-    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
 
-    // Strikes mode has no manual "Finish" button — 3 consecutive wrong
-    // answers is the deterministic way to reach the results screen.
-    for (let i = 0; i < 2; i += 1) {
-      await answerCurrentQuestion(user, false, translationByWord);
-      await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
+    for (let i = 0; i < 20; i += 1) {
+      await answerCurrentQuestion(user, true, translationByWord);
+      await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
     }
-    await answerCurrentQuestion(user, false, translationByWord);
 
     // Lands on the results screen first — onComplete fires here, but onDone
     // (which tells the caller to move on to practice) waits for the student
@@ -287,14 +289,24 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     expect(onDone).not.toHaveBeenCalled();
 
     const summary: VocabQuizSummary = onComplete.mock.calls[0][0];
-    expect(summary.totalQuestions).toBe(3);
-    expect(summary.questionResults).toHaveLength(3);
-    expect(summary.correctCount).toBe(0);
+    expect(summary.totalQuestions).toBe(20);
+    expect(summary.questionResults).toHaveLength(20);
+    expect(summary.correctCount).toBe(20);
     expect(summary.totalTimeMs).toBeGreaterThanOrEqual(0);
     for (const result of summary.questionResults) {
       expect(entries.some((e) => e.word === result.word)).toBe(true);
       expect(result.timeMs).toBeGreaterThanOrEqual(0);
     }
+
+    // Practice opens at ⭐⭐, so the road to onDone runs through tier 2 —
+    // each scored round reports its own onComplete along the way.
+    await user.click(screen.getByRole("button", { name: /Challenge Tier 2/ }));
+    for (let i = 0; i < 22; i += 1) {
+      await answerCurrentQuestion(user, true, translationByWord);
+      await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
+    }
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(2));
+    expect(onDone).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: /Continue to practice/ }));
     expect(onDone).toHaveBeenCalledTimes(1);
@@ -306,7 +318,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
 
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
   });
 
@@ -354,26 +366,22 @@ describe("StoryVocabQuiz modes", () => {
     await user.click(target!);
   }
 
-  it("shows a pick-a-mode screen before any question, offering speed/strikes/review", () => {
+  it("shows the star-ladder screen before any question, offering the three tiers + review", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
 
-    expect(screen.getByRole("button", { name: /Speed/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /3 Strikes/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Tier 1/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Tier 2/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Tier 3/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Review/ })).toBeInTheDocument();
     // No question shown yet.
     expect(screen.queryByRole("group", { name: /What does/ })).not.toBeInTheDocument();
   });
 
-  it("neither Speed nor Strikes shows a Finish button (Review replaced the old unlimited Free mode)", async () => {
+  it("tier runs show no Finish button — a round always plays out its full question count", async () => {
     const user = userEvent.setup();
 
-    const { unmount: unmountStrikes } = render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
-    expect(screen.queryByRole("button", { name: /Finish & see results/ })).not.toBeInTheDocument();
-    unmountStrikes();
-
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-    await user.click(screen.getByRole("button", { name: /Speed/ }));
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
     expect(screen.queryByRole("button", { name: /Finish & see results/ })).not.toBeInTheDocument();
   });
 
@@ -395,130 +403,32 @@ describe("StoryVocabQuiz modes", () => {
     expect(screen.getByRole("button", { name: /Review/ })).toBeInTheDocument();
   });
 
-  it("strikes mode is unlimited — the question pool cycles once every entry has been asked", async () => {
-    const user = userEvent.setup();
-    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-
-    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
-
-    // Answer more questions than there are distinct entries (5), always
-    // correctly so strikes never triggers — proves the pool cycles/reshuffles
-    // instead of running out, and the mode never
-    // shows "Start practice" (it has no fixed last question).
-    for (let i = 0; i < entries.length + 2; i += 1) {
-      expect(screen.getByRole("heading")).toBeInTheDocument();
-      await answerCurrentQuestion(user, true);
-      expect(screen.queryByRole("button", { name: /Start practice/ })).not.toBeInTheDocument();
-      await user.click(screen.getByRole("button", { name: /Next question/ }));
-    }
-    expect(screen.getByRole("heading")).toBeInTheDocument();
-  });
-
-  it("speed mode is a fixed 20-question run", async () => {
-    const user = userEvent.setup();
-    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-
-    await user.click(screen.getByRole("button", { name: /Speed/ }));
-    expect(screen.getByText(/Question 1 of 20/)).toBeInTheDocument();
-
-    for (let i = 0; i < 19; i += 1) {
-      await answerCurrentQuestion(user, true);
-      await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
-    }
-
-    expect(screen.getByText(/Question 20 of 20/)).toBeInTheDocument();
-    await answerCurrentQuestion(user, true);
-    expect(screen.getByRole("button", { name: /Start practice/ })).toBeInTheDocument();
-  });
-
-  it("strikes mode ends the run after 3 consecutive wrong answers, before all questions are answered", async () => {
-    const user = userEvent.setup();
-    const onComplete = vi.fn();
-    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} />);
-
-    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
-
-    for (let i = 0; i < 2; i += 1) {
-      await answerCurrentQuestion(user, false);
-      await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
-    }
-    await answerCurrentQuestion(user, false);
-
-    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    const summary: VocabQuizSummary = onComplete.mock.calls[0][0];
-    // Ended after the 3rd wrong answer, not all 5 words.
-    expect(summary.questionResults).toHaveLength(3);
-    expect(summary.correctCount).toBe(0);
-  });
-
-  it("strikes mode resets the streak on a correct answer, so 2 wrong + 1 right + 2 wrong does not end the run", async () => {
-    const user = userEvent.setup();
-    const onComplete = vi.fn();
-    const sixEntries = [...entries, { word: "六", translation: "six" }];
-    const sixTranslationByWord = Object.fromEntries(sixEntries.map((e) => [e.word, e.translation]));
-    render(<StoryVocabQuiz entries={sixEntries} onDone={vi.fn()} onComplete={onComplete} />);
-
-    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
-
-    const sequence = [false, false, true, false, false];
-    for (const correct of sequence) {
-      const word = screen.getByRole("heading").textContent!;
-      const correctTranslation = sixTranslationByWord[word];
-      const buttons = optionButtons();
-      const target = correct
-        ? buttons.find((b) => b.textContent === correctTranslation)
-        : buttons.find((b) => b.textContent !== correctTranslation);
-      await user.click(target!);
-      const nextBtn = screen.queryByRole("button", { name: /Next question|Start practice/ });
-      if (nextBtn) await user.click(nextBtn);
-    }
-
-    // Never 3 wrong in a row, and a 6th question remains unanswered, so the
-    // run should still be going rather than finished (early or otherwise).
-    expect(onComplete).not.toHaveBeenCalled();
-    expect(screen.getByRole("heading")).toBeInTheDocument();
-  });
-
-  it("speed mode ends the whole run once the overall time cap is reached", () => {
+  it("tier 3 shows a live countdown of seconds remaining", async () => {
+    const { recordLocalStars } = await import("../utils/quizTiers");
+    localStorage.clear();
+    recordLocalStars("s-timer", 2);
     vi.useFakeTimers();
     try {
-      const onComplete = vi.fn();
-      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} />);
+      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-timer" />);
 
-      fireEvent.click(screen.getByRole("button", { name: /Speed/ }));
-
-      act(() => {
-        vi.advanceTimersByTime(60_100);
-      });
-
-      expect(onComplete).toHaveBeenCalledTimes(1);
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it("speed mode shows a live countdown of seconds remaining", () => {
-    vi.useFakeTimers();
-    try {
-      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-
-      fireEvent.click(screen.getByRole("button", { name: /Speed/ }));
-      expect(screen.getByText("⏱️ 60s")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /Tier 3/ }));
+      expect(screen.getByText("⏱️ 150s")).toBeInTheDocument();
 
       act(() => {
         vi.advanceTimersByTime(10_000);
       });
-      expect(screen.getByText("⏱️ 50s")).toBeInTheDocument();
+      expect(screen.getByText("⏱️ 140s")).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
+      localStorage.clear();
     }
   });
 
-  it("strikes mode does not show the speed countdown", async () => {
+  it("untimed tiers show no countdown", async () => {
     const user = userEvent.setup();
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
 
-    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
 
     expect(screen.queryByText(/⏱️/)).not.toBeInTheDocument();
   });
@@ -527,30 +437,30 @@ describe("StoryVocabQuiz modes", () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();
     const onDone = vi.fn();
-    render(<StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} />);
+    render(
+      <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} alreadyCompleted />,
+    );
 
-    await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
 
-    // Strikes mode has no manual "Finish" — 3 consecutive wrong answers ends
-    // the run itself, and (since none were correct) all 3 land in "missed".
-    for (let i = 0; i < 2; i += 1) {
+    // Answer every question wrong: all 5 distinct words land in "missed".
+    for (let i = 0; i < 20; i += 1) {
       await answerCurrentQuestion(user, false);
-      await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
+      await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
     }
-    await answerCurrentQuestion(user, false);
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     const missedList = screen.getByRole("list", { name: "Missed words" });
-    expect(within(missedList).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(missedList).getAllByRole("listitem")).toHaveLength(5);
 
     await user.click(screen.getByRole("button", { name: /Practice missed words/ }));
 
-    // Retry round: exactly the 3 missed words, no mode-select screen, and no
+    // Retry round: exactly the 5 missed words, no mode-select screen, and no
     // Finish button (it's bounded, unlike the old Free mode's original round).
     expect(screen.queryByRole("button", { name: /Finish & see results/ })).not.toBeInTheDocument();
-    for (let i = 0; i < 3; i += 1) {
+    for (let i = 0; i < 5; i += 1) {
       await answerCurrentQuestion(user, true);
-      await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
+      await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
     }
 
     // Retry round completing must not fire a second onComplete/attempt, and
@@ -571,8 +481,13 @@ describe("StoryVocabQuiz AI badge + cloze questions", () => {
     ];
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_TRANSLATION);
     try {
-      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+      // The weak-words engine keeps the legacy question mix (no tier
+      // policies), so these kind-forcing tests run through it.
+      vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(entries.map((e) => e.word));
+      render(
+        <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-legacy" studentId="stu" />,
+      );
+      await user.click(await screen.findByRole("button", { name: /Weak words/ }));
 
       expect(screen.getByRole("heading")).toHaveTextContent("喝");
       expect(screen.getByLabelText("AI-generated question")).toBeInTheDocument();
@@ -589,8 +504,13 @@ describe("StoryVocabQuiz AI badge + cloze questions", () => {
     ];
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_TRANSLATION);
     try {
-      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+      // The weak-words engine keeps the legacy question mix (no tier
+      // policies), so these kind-forcing tests run through it.
+      vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(entries.map((e) => e.word));
+      render(
+        <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-legacy" studentId="stu" />,
+      );
+      await user.click(await screen.findByRole("button", { name: /Weak words/ }));
 
       expect(screen.queryByLabelText("AI-generated question")).not.toBeInTheDocument();
     } finally {
@@ -609,8 +529,13 @@ describe("StoryVocabQuiz AI badge + cloze questions", () => {
     ];
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
     try {
-      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+      // The weak-words engine keeps the legacy question mix (no tier
+      // policies), so these kind-forcing tests run through it.
+      vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(entries.map((e) => e.word));
+      render(
+        <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-legacy" studentId="stu" />,
+      );
+      await user.click(await screen.findByRole("button", { name: /Weak words/ }));
 
       expect(
         screen.getByRole("group", { name: "Which word fits the blank?" }),
@@ -635,8 +560,13 @@ describe("StoryVocabQuiz AI badge + cloze questions", () => {
     const entries = [{ word: "一", translation: "one" }];
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
     try {
-      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+      // The weak-words engine keeps the legacy question mix (no tier
+      // policies), so these kind-forcing tests run through it.
+      vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(entries.map((e) => e.word));
+      render(
+        <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-legacy" studentId="stu" />,
+      );
+      await user.click(await screen.findByRole("button", { name: /Weak words/ }));
 
       // With no cloze/pos/synonym data, pinyin is the only other kind ever
       // available, so a high random roll lands there instead of cloze.
@@ -663,8 +593,13 @@ describe("StoryVocabQuiz pinyin/pos/synonym questions", () => {
     // kind checked in pickQuestionKind.
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
     try {
-      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+      // The weak-words engine keeps the legacy question mix (no tier
+      // policies), so these kind-forcing tests run through it.
+      vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(entries.map((e) => e.word));
+      render(
+        <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-legacy" studentId="stu" />,
+      );
+      await user.click(await screen.findByRole("button", { name: /Weak words/ }));
 
       const word = screen.getByRole("heading").textContent!;
       expect(screen.queryByLabelText("AI-generated question")).not.toBeInTheDocument();
@@ -693,8 +628,13 @@ describe("StoryVocabQuiz pinyin/pos/synonym questions", () => {
     ];
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
     try {
-      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+      // The weak-words engine keeps the legacy question mix (no tier
+      // policies), so these kind-forcing tests run through it.
+      vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(entries.map((e) => e.word));
+      render(
+        <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-legacy" studentId="stu" />,
+      );
+      await user.click(await screen.findByRole("button", { name: /Weak words/ }));
 
       const word = screen.getByRole("heading").textContent!;
       expect(screen.queryByLabelText("AI-generated question")).not.toBeInTheDocument();
@@ -715,13 +655,40 @@ describe("StoryVocabQuiz pinyin/pos/synonym questions", () => {
     }
   });
 
+  it("never asks a pinyin question for a word with no computable reading (e.g. an English key word)", async () => {
+    const user = userEvent.setup();
+    const entries = [{ word: "market", translation: "marketplace" }];
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    try {
+      vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(entries.map((e) => e.word));
+      render(
+        <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-legacy" studentId="stu" />,
+      );
+      await user.click(await screen.findByRole("button", { name: /Weak words/ }));
+
+      // "market" has no pinyin reading, so even the highest roll must fall
+      // back to a translation question instead of one with an empty answer.
+      expect(
+        screen.queryByRole("group", { name: "How do you read market?" }),
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole("group", { name: "What does market mean?" })).toBeInTheDocument();
+    } finally {
+      randomSpy.mockRestore();
+    }
+  });
+
   it("never asks a part-of-speech question for a word with no authored pos data", async () => {
     const user = userEvent.setup();
     const entries = [{ word: "一", translation: "one" }];
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
     try {
-      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+      // The weak-words engine keeps the legacy question mix (no tier
+      // policies), so these kind-forcing tests run through it.
+      vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(entries.map((e) => e.word));
+      render(
+        <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-legacy" studentId="stu" />,
+      );
+      await user.click(await screen.findByRole("button", { name: /Weak words/ }));
 
       expect(
         screen.queryByRole("group", { name: "What part of speech is 一?" }),
@@ -742,8 +709,13 @@ describe("StoryVocabQuiz pinyin/pos/synonym questions", () => {
     ];
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
     try {
-      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
-      await user.click(screen.getByRole("button", { name: /3 Strikes/ }));
+      // The weak-words engine keeps the legacy question mix (no tier
+      // policies), so these kind-forcing tests run through it.
+      vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(entries.map((e) => e.word));
+      render(
+        <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-legacy" studentId="stu" />,
+      );
+      await user.click(await screen.findByRole("button", { name: /Weak words/ }));
 
       expect(screen.getByRole("heading")).toHaveTextContent("高興");
       expect(screen.getByLabelText("AI-generated question")).toBeInTheDocument();
@@ -805,6 +777,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
         onComplete={onComplete}
         storyId="story-1"
         studentId="s1"
+        alreadyCompleted
       />,
     );
 
@@ -813,7 +786,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
 
     for (let i = 0; i < 2; i += 1) {
       await answerCurrentQuestion(user, true);
-      await user.click(screen.getByRole("button", { name: /Next question|Start practice/ }));
+      await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
     }
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -824,5 +797,406 @@ describe("StoryVocabQuiz weak-words mode", () => {
 
     await user.click(screen.getByRole("button", { name: /Continue to practice/ }));
     expect(onDone).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("StoryVocabQuiz single-correct-answer guards", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  async function startTier2() {
+    const { recordLocalStars } = await import("../utils/quizTiers");
+    recordLocalStars("s1", 1);
+  }
+
+  it("drops an AI translation distractor that differs from the correct answer only by case/punctuation", async () => {
+    await startTier2();
+    const user = userEvent.setup();
+    render(
+      <StoryVocabQuiz
+        entries={[
+          {
+            word: "餐廳",
+            translation: "restaurant",
+            aiDistractors: ["Restaurant.", "hotel", "kitchen"],
+          },
+        ]}
+        onDone={vi.fn()}
+        storyId="s1"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+
+    const options = optionButtons().map((b) => b.textContent);
+    expect(options).toContain("restaurant");
+    expect(options).not.toContain("Restaurant.");
+  });
+
+  it("never offers a second word with the same translation as a reverse-question option", async () => {
+    // Both words translate to "restaurant" — whichever is asked, the other
+    // would be a second correct answer and must be filtered out.
+    vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    const user = userEvent.setup();
+    render(
+      <StoryVocabQuiz
+        entries={[
+          { word: "餐廳", translation: "restaurant" },
+          { word: "飯館", translation: "Restaurant." },
+        ]}
+        onDone={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+
+    const options = optionButtons().map((b) => b.textContent);
+    expect(options).toHaveLength(1);
+    expect(["餐廳", "飯館"]).toContain(options[0]);
+  });
+
+  it("never offers a homophone of the spoken word as a listening option", async () => {
+    await startTier2();
+    vi.stubGlobal("speechSynthesis", { speak: vi.fn(), cancel: vi.fn() });
+    vi.stubGlobal(
+      "SpeechSynthesisUtterance",
+      class {
+        text: string;
+        lang = "";
+        constructor(text: string) {
+          this.text = text;
+        }
+      },
+    );
+    try {
+      // 他 and 她 are both read "tā" — by sound alone both would be correct.
+      vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+      const user = userEvent.setup();
+      render(
+        <StoryVocabQuiz
+          entries={[
+            { word: "他", translation: "he" },
+            { word: "她", translation: "she" },
+          ]}
+          onDone={vi.fn()}
+          storyId="s1"
+        />,
+      );
+      await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+
+      const options = optionButtons().map((b) => b.textContent);
+      expect(options).toHaveLength(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("never pads cloze options with a story word that shares the answer's translation", async () => {
+    await startTier2();
+    vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    const user = userEvent.setup();
+    render(
+      <StoryVocabQuiz
+        entries={[
+          {
+            word: "高興",
+            translation: "happy",
+            aiCloze: [{ sentence: "我今天很高興。", distractors: ["生氣"] }],
+          },
+          {
+            word: "開心",
+            translation: "happy",
+            aiCloze: [{ sentence: "他玩得很開心。", distractors: ["難過"] }],
+          },
+        ]}
+        onDone={vi.fn()}
+        storyId="s1"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+
+    // Whichever word the blank asks for, the other "happy" word would fit
+    // the sentence just as well — it must never appear alongside it.
+    const options = optionButtons().map((b) => b.textContent);
+    expect(options.includes("高興") && options.includes("開心")).toBe(false);
+  });
+
+  it("styles pinyin options with the dedicated pinyin (mono) font class", async () => {
+    await startTier2();
+    vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    const user = userEvent.setup();
+    render(
+      <StoryVocabQuiz
+        entries={[{ word: "喝茶", translation: "drink tea", pinyin: "hē chá" }]}
+        onDone={vi.fn()}
+        storyId="s1"
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+
+    const group = screen.getByRole("group", { name: /How do you read/ });
+    expect(group.className).toContain("vocab-quiz-options-pinyin");
+  });
+});
+
+describe("StoryVocabQuiz stable question chrome", () => {
+  it("shows an instruction line on every question kind, including plain translation", async () => {
+    const user = userEvent.setup();
+    render(
+      <StoryVocabQuiz
+        entries={[
+          { word: "喝", translation: "to drink" },
+          { word: "吃", translation: "to eat" },
+        ]}
+        onDone={vi.fn()}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+
+    // Math.random is pinned to 0 → translation question; its instruction
+    // keeps the header the same height as every other kind's.
+    expect(screen.getByRole("group", { name: /What does/ })).toBeInTheDocument();
+    expect(screen.getByText("What does this word mean?")).toBeInTheDocument();
+  });
+});
+
+describe("StoryVocabQuiz star tiers", () => {
+  const entries = [
+    { word: "一", translation: "one" },
+    { word: "二", translation: "two" },
+    { word: "三", translation: "three" },
+    { word: "四", translation: "four" },
+    { word: "五", translation: "five" },
+  ];
+  const translationByWord = Object.fromEntries(entries.map((e) => [e.word, e.translation]));
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  /** Drives one tier run answering `correctCount` questions right and the
+   * rest wrong, ending on the summary screen. */
+  async function playTierRun(
+    user: ReturnType<typeof userEvent.setup>,
+    questionCount: number,
+    correctCount: number,
+    byWord: Record<string, string> = translationByWord,
+  ) {
+    for (let i = 0; i < questionCount; i += 1) {
+      await answerCurrentQuestion(user, i < correctCount, byWord);
+      await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
+    }
+  }
+
+  it("locks tiers 2 and 3 until the previous star is earned, keeping Review available", () => {
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
+
+    expect(screen.getByRole("button", { name: /Tier 1/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Tier 2/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Tier 3/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Review/ })).toBeEnabled();
+  });
+
+  it("unlocks tier 2 (but not 3) once the story has 1 star recorded locally", async () => {
+    const { recordLocalStars } = await import("../utils/quizTiers");
+    recordLocalStars("s1", 1);
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
+
+    expect(screen.getByRole("button", { name: /Tier 2/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Tier 3/ })).toBeDisabled();
+  });
+
+  it("passing tier 1 earns the star and dangles tier 2, but only a tier-2 pass unlocks practice", async () => {
+    const user = userEvent.setup();
+    const onComplete = vi.fn();
+    const onDone = vi.fn();
+    render(
+      <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} storyId="s1" />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    expect(screen.getByText(/Question 1 of 20/)).toBeInTheDocument();
+    await playTierRun(user, 20, 20);
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    const summary: VocabQuizSummary = onComplete.mock.calls[0][0];
+    expect(summary.mode).toBe("tier1");
+    expect(summary.totalQuestions).toBe(20);
+    expect(summary.correctCount).toBe(20);
+
+    const { loadLocalStars } = await import("../utils/quizTiers");
+    expect(loadLocalStars("s1")).toBe(1);
+
+    // One star isn't enough for practice yet — the summary celebrates and
+    // dangles tier 2 as the way in.
+    expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Challenge Tier 2/ }));
+    expect(screen.getByText(/Question 1 of 22/)).toBeInTheDocument();
+    await playTierRun(user, 22, 22);
+
+    // ⭐⭐ earned: practice opens, and the attempt was recorded as tier2.
+    expect(loadLocalStars("s1")).toBe(2);
+    expect(onComplete).toHaveBeenCalledTimes(2);
+    expect(onComplete.mock.calls[1][0].mode).toBe("tier2");
+    expect(screen.getByRole("button", { name: /Continue to practice/ })).toBeInTheDocument();
+  });
+
+  it("failing tier 1 near the threshold shows the near-miss gap and a Try again button, without unlocking practice", async () => {
+    const user = userEvent.setup();
+    const onComplete = vi.fn();
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} storyId="s1" />);
+
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await playTierRun(user, 20, 13);
+
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    // 13/20 with a 14 threshold: one more right answer would have passed.
+    expect(screen.getByText(/1 more/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
+    // A quiet exit back to the tier ladder exists so the student is never
+    // trapped between retrying and nothing.
+    expect(screen.getByRole("button", { name: /Back to menu/ })).toBeInTheDocument();
+
+    // Try again immediately restarts the same tier as a fresh scored run.
+    await user.click(screen.getByRole("button", { name: /Try again/ }));
+    expect(screen.getByText(/Question 1 of 20/)).toBeInTheDocument();
+  });
+
+  it("still offers Continue to practice after a failed run when practice was already unlocked earlier", async () => {
+    const user = userEvent.setup();
+    render(
+      <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" alreadyCompleted />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await playTierRun(user, 20, 0);
+
+    expect(screen.getByRole("button", { name: /Continue to practice/ })).toBeInTheDocument();
+  });
+
+  it("tier 3 runs against a 150-second overall countdown and ends at the cap", async () => {
+    const { recordLocalStars } = await import("../utils/quizTiers");
+    recordLocalStars("s1", 2);
+    vi.useFakeTimers();
+    try {
+      const onComplete = vi.fn();
+      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} storyId="s1" />);
+
+      fireEvent.click(screen.getByRole("button", { name: /Tier 3/ }));
+      expect(screen.getByText("⏱️ 150s")).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(150_100);
+      });
+      expect(onComplete).toHaveBeenCalledTimes(1);
+      expect(onComplete.mock.calls[0][0].mode).toBe("tier3");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("tier 1 ignores AI translation distractors while tier 2 uses them", async () => {
+    const { recordLocalStars } = await import("../utils/quizTiers");
+    const user = userEvent.setup();
+    const aiEntries = entries.map((e) => ({
+      ...e,
+      aiDistractors: ["ai-trap-a", "ai-trap-b", "ai-trap-c"],
+    }));
+
+    const { unmount } = render(<StoryVocabQuiz entries={aiEntries} onDone={vi.fn()} storyId="s1" />);
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    for (const button of optionButtons()) {
+      expect(button.textContent).not.toMatch(/ai-trap/);
+    }
+    unmount();
+
+    recordLocalStars("s1", 1);
+    render(<StoryVocabQuiz entries={aiEntries} onDone={vi.fn()} storyId="s1" />);
+    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+    expect(optionButtons().some((b) => /ai-trap/.test(b.textContent ?? ""))).toBe(true);
+  });
+
+  it("tier 2 pinyin questions use tone-trap distractors (same syllables, different tone)", async () => {
+    const { recordLocalStars } = await import("../utils/quizTiers");
+    recordLocalStars("s1", 1);
+    // A single entry leaves pinyin as the last available kind at tier 2.
+    vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    const user = userEvent.setup();
+    render(
+      <StoryVocabQuiz
+        entries={[{ word: "喝茶", translation: "drink tea", pinyin: "hē chá" }]}
+        onDone={vi.fn()}
+        storyId="s1"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+    const options = optionButtons().map((b) => b.textContent);
+    expect(options.length).toBeGreaterThan(1);
+    const strip = (s: string) => s.normalize("NFD").replace(/\p{Mn}/gu, "");
+    for (const option of options) {
+      expect(strip(option!)).toBe("he cha");
+    }
+  });
+
+  it("tier 2 listening questions speak the word and are answered by picking the heard word", async () => {
+    const { recordLocalStars } = await import("../utils/quizTiers");
+    recordLocalStars("s1", 1);
+    const speak = vi.fn();
+    vi.stubGlobal("speechSynthesis", { speak, cancel: vi.fn() });
+    vi.stubGlobal(
+      "SpeechSynthesisUtterance",
+      class {
+        text: string;
+        lang = "";
+        constructor(text: string) {
+          this.text = text;
+        }
+      },
+    );
+    try {
+      // Two entries with no AI data: listening is the last available kind.
+      vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+      const user = userEvent.setup();
+      render(
+        <StoryVocabQuiz
+          entries={[
+            { word: "喝茶", translation: "drink tea" },
+            { word: "餐廳", translation: "restaurant" },
+          ]}
+          onDone={vi.fn()}
+          storyId="s1"
+        />,
+      );
+
+      await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+      await waitFor(() => expect(speak).toHaveBeenCalled());
+      const spokenWord = speak.mock.calls[0][0].text;
+
+      // The prompt hides the word (it IS the answer) behind a replay button.
+      expect(screen.getByRole("button", { name: /Play the word/ })).toBeInTheDocument();
+      const correctButton = optionButtons().find((b) => b.textContent === spokenWord)!;
+      await user.click(correctButton);
+      expect(correctButton.textContent).toContain("✓");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("tier 1 reverse questions show the translation and offer Chinese words as options", async () => {
+    // With >=2 entries, reverse is the last available kind at tier 1.
+    vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
+    const user = userEvent.setup();
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
+
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    const prompt = screen.getByRole("heading").textContent!;
+    expect(Object.values(translationByWord)).toContain(prompt);
+
+    const expectedWord = Object.keys(translationByWord).find(
+      (w) => translationByWord[w] === prompt,
+    )!;
+    const correctButton = optionButtons().find((b) => b.textContent === expectedWord)!;
+    await user.click(correctButton);
+    expect(correctButton.textContent).toContain("✓");
   });
 });
