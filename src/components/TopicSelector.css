@@ -384,6 +384,14 @@
    The picker is the book's table of contents: numbered lesson cards
    threaded by a progress spine, each opening into that lesson's stories. */
 
+/* Both picker screens share the app-wide content column (same formula as
+   the navbar and every page shell — see --content-max in index.css), so
+   the picker's edges line up with the rest of the app. */
+.ts-container {
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
+  margin: 0 auto;
+}
+
 .ts-toc-head {
   display: flex;
   align-items: flex-end;

@@ -314,6 +314,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
     const { done, total } = lessonCompletion(openGroup, submittedIds);
     return (
       <div className="topic-selector">
+        <div className="ts-container">
         <button
           type="button"
           className="ts-crumb"
@@ -366,6 +367,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
         </header>
 
         <div className="ts-grid">{openGroup.topics.map(renderTopicCard)}</div>
+        </div>
       </div>
     );
   }
@@ -376,6 +378,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
 
   return (
     <div className="topic-selector">
+      <div className="ts-container">
       <header className="ts-toc-head">
         <div>
           <p className="platform-kicker"><BiLabel k="real_life_speaking_practice" /></p>
@@ -518,6 +521,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
