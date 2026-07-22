@@ -24,3 +24,4 @@ backend/uvicorn*.log
 backend/*.zip
 .models/
 .playwright-mcp/
+.superpowers/

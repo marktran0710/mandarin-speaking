@@ -49,10 +49,25 @@ function JourneyConnector({ index, reached }: { index: number; reached: boolean 
  * app's own subject (tone contours are wavy pitch lines) doubles as the
  * "journey" visual, so scene N feels like the next stop on a path rather
  * than an unrelated thumbnail sitting next to the others.
+ *
+ * `orientation="vertical"` renders the same stops as a top-to-bottom column
+ * (thumbnail ring left, label right) for the session sidebar — the contour
+ * connectors rotate a quarter turn so the thread still reads as a pitch
+ * line running down the path.
  */
-export default function JourneyPath({ stops }: { stops: JourneyStop[] }) {
+export default function JourneyPath({
+  stops,
+  orientation = "horizontal",
+}: {
+  stops: JourneyStop[];
+  orientation?: "horizontal" | "vertical";
+}) {
   return (
-    <div className="journey-path" role="list" aria-label="Practice journey">
+    <div
+      className={`journey-path${orientation === "vertical" ? " journey-path-vertical" : ""}`}
+      role="list"
+      aria-label="Practice journey"
+    >
       {stops.map((stop, i) => (
         <div className="journey-item" key={stop.key} role="listitem">
           {i > 0 && (

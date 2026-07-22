@@ -136,3 +136,60 @@
   padding: 1px 8px;
   border-radius: var(--clay-radius-pill);
 }
+
+/* ── Vertical variant (session sidebar): stops stack top-to-bottom as
+   thumbnail-ring + label rows; the contour connectors rotate a quarter
+   turn so the thread keeps reading as a pitch line down the path. ── */
+.journey-path-vertical {
+  flex-direction: column;
+  align-items: stretch;
+  overflow-x: visible;
+  padding: 4px 0;
+}
+.journey-path-vertical .journey-item {
+  flex-direction: column;
+  align-items: flex-start;
+}
+.journey-path-vertical .journey-connector {
+  width: 28px;
+  height: 22px;
+  margin-left: 7px; /* centers under the 42px ring below */
+  transform: rotate(90deg);
+}
+.journey-path-vertical .journey-stop {
+  flex-direction: row;
+  width: 100%;
+  gap: 10px;
+  padding: 3px 2px;
+  text-align: left;
+}
+.journey-path-vertical .journey-stop-ring {
+  width: 42px;
+  height: 42px;
+  border-width: 2.5px;
+  flex-shrink: 0;
+}
+.journey-path-vertical .journey-stop-current .journey-stop-ring {
+  width: 48px;
+  height: 48px;
+  box-shadow: 0 0 0 4px var(--seal-soft);
+}
+.journey-path-vertical .journey-stop-star {
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+}
+.journey-path-vertical .journey-stop-label {
+  text-align: left;
+  flex: 1;
+  min-width: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .journey-path-vertical .journey-stop-current .journey-stop-ring {
+    animation: journey-current-pulse-sm 2.4s ease-in-out infinite;
+  }
+}
+@keyframes journey-current-pulse-sm {
+  0%, 100% { box-shadow: 0 0 0 4px var(--seal-soft); }
+  50%      { box-shadow: 0 0 0 7px var(--seal-soft); }
+}

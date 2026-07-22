@@ -1,25 +1,25 @@
+/* ── Session shell: sidebar rail + main workspace. The sidebar itself is
+   styled in StorySessionSidebar.css; this grid is what keeps the main
+   column stable while phases/scenes change. ── */
 .story-recorder {
   width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
   padding: 24px 0 72px;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.story-session-main {
+  min-width: 0;
+}
+@media (max-width: 900px) {
+  .story-recorder {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
 }
 
-/* ── Story nav panel: exit + topic name + phase progress, one card ── */
-.story-nav-panel {
-  background: var(--clay-surface-card);
-  border: 1.5px solid var(--clay-hairline);
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 20px;
-}
-.story-nav-topline {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 14px;
-  margin-bottom: 16px;
-  border-bottom: 1px solid var(--clay-hairline);
-}
 .btn-story-exit {
   display: inline-flex;
   align-items: center;
@@ -41,122 +41,6 @@
   background: var(--clay-surface-card);
   box-shadow: var(--shadow-sm);
 }
-.story-nav-topic-name {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--clay-ink);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ── Phase stepper: a continuous connecting line running through evenly
-   spaced circular markers — checked/filled/hollow for done/active/upcoming —
-   rather than three disconnected pill buttons. Only a "done" marker is a
-   real <button> (jumps back there); active/upcoming render as plain <div>s. */
-.phase-nav {
-  display: flex;
-  flex-wrap: wrap;
-}
-.phase-nav-node {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-  min-width: 88px;
-  background: none;
-  border: none;
-  font-family: inherit;
-  padding: 0;
-}
-button.phase-nav-node {
-  cursor: pointer;
-}
-/* Connecting line: spans from this node's own center back to the previous
-   node's center — works for any number/width of evenly-flexed columns. */
-.phase-nav-node:not(:first-child)::before {
-  content: "";
-  position: absolute;
-  top: 13px;
-  right: 50%;
-  width: 100%;
-  height: 2px;
-  background: var(--clay-hairline);
-  z-index: 0;
-}
-.phase-nav-node:not(.phase-nav-node-upcoming):not(:first-child)::before {
-  background: var(--jade);
-}
-
-.phase-nav-marker {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  font-size: 13px;
-  font-weight: 700;
-  background: var(--clay-surface-card);
-  border: 2px solid var(--clay-hairline);
-  color: var(--clay-muted);
-  transition: background 0.2s, border-color 0.2s, transform 0.2s;
-}
-.phase-nav-marker-done {
-  background: var(--jade);
-  border-color: var(--jade);
-  color: #fff;
-}
-.phase-nav-marker-active {
-  border-color: var(--seal);
-  box-shadow: 0 0 0 4px var(--seal-soft);
-}
-.phase-nav-marker-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--seal);
-}
-button.phase-nav-node:hover .phase-nav-marker-done {
-  transform: scale(1.1);
-  box-shadow: var(--shadow-sm);
-}
-
-.phase-nav-caption {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--clay-muted);
-  white-space: nowrap;
-}
-.phase-nav-caption-icon { font-size: 13px; }
-.phase-nav-node-done .phase-nav-caption { color: var(--clay-ink); }
-.phase-nav-node-active .phase-nav-caption {
-  /* --seal only reaches ~4.3:1 on white at this size — seal-deep clears
-     4.5:1 (same pairing as .nav-link.active). */
-  color: var(--seal-deep);
-  font-weight: 700;
-}
-
-@media (max-width: 640px) {
-  .story-nav-topline {
-    flex-wrap: wrap;
-  }
-  .story-nav-topic-name {
-    white-space: normal;
-  }
-  .phase-nav-node {
-    min-width: 64px;
-  }
-  .phase-nav-caption-icon { display: none; }
-}
-
 .student-flow-board {
   margin-bottom: 14px;
   display: grid;
@@ -2610,7 +2494,9 @@ button.phase-nav-node:hover .phase-nav-marker-done {
    elements, which is what was collapsing this box to nothing. */
 .practice-workspace {
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) minmax(0, 1.7fr);
+  /* Image 35% / content 65% — the ratio the sidebar redesign settled on,
+     shared by Study and Speaking so steps never reflow the page. */
+  grid-template-columns: minmax(200px, 35fr) minmax(0, 65fr);
   gap: 24px;
   align-items: start;
 }
@@ -2707,10 +2593,53 @@ button.phase-nav-node:hover .phase-nav-marker-done {
 }
 
 /* Footer action bar — same shape as SpeakingFlowCard's results footer, so
-   Vocabulary, Phrases and Speaking all end the same way. */
+   Vocabulary, Phrases and Speaking all end the same way. Carries the
+   scene's readiness status on the left (start hint / complete / gap),
+   replacing the banners that used to stack above the practice stage. */
 .practice-footer {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--clay-hairline);
+  padding-top: 14px;
+}
+.practice-footer-status {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.practice-footer-hint {
+  color: var(--gold-deep);
+}
+.practice-footer-ready {
+  color: var(--jade-deep);
+  font-weight: 700;
+}
+.practice-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  .practice-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .practice-footer-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
+/* Example view footer — the way back from the 🎯 teacher-model stop. */
+.example-frame-footer {
+  display: flex;
   justify-content: flex-end;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--clay-hairline);
 }
 
 .practice-phrases-hint {
@@ -3127,41 +3056,7 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   border-color: var(--gold);
 }
 
-/* ── "View summary" link, shown under the journey path once every scene
-     is recorded (robust to finishing scenes out of order) ── */
-.journey-view-summary-link {
-  display: inline-flex;
-  align-self: flex-start;
-  margin: -6px 0 16px;
-  padding: 6px 14px;
-  background: transparent;
-  border: 1.5px solid var(--jade);
-  border-radius: var(--clay-radius-pill);
-  color: var(--jade-deep);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.journey-view-summary-link:hover {
-  background: var(--jade-soft);
-}
-
-/* ── Scene readiness banner ── */
-.scene-ready-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 20px;
-  background: var(--jade-soft);
-  border: 1.5px solid var(--jade);
-  border-radius: 12px;
-  margin-bottom: 16px;
-}
-.scene-ready-banner strong { display: block; font-size: 15px; color: var(--jade-deep); }
-.scene-ready-banner p { margin: 2px 0 0; font-size: 12px; color: var(--jade); }
-.scene-ready-banner.scene-story-done { background: var(--seal-soft); border-color: var(--seal); }
-.scene-ready-banner.scene-story-done strong { color: var(--seal-deep); }
+/* ── Next-scene / view-summary action (practice footer + summary) ── */
 .scene-next-btn {
   flex-shrink: 0;
   padding: 10px 20px;
@@ -3189,40 +3084,4 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   box-shadow: 0 1px 0 var(--jade-deep);
 }
 
-.scene-progress-hint {
-  font-size: 13px;
-  color: var(--gold-deep);
-  background: var(--gold-soft);
-  border: 1px solid var(--gold);
-  border-radius: var(--clay-radius-sm);
-  padding: 10px 14px;
-  margin-bottom: 12px;
-}
-
-/* Bigger and bolder than the plain .scene-progress-hint above — this is the
-   first thing a student sees on a brand-new scene, telling them to check
-   the reference tabs before recording, so it needs to actually get noticed
-   rather than read like fine print. */
-.scene-progress-hint-start {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--seal-deep);
-  background: var(--seal-soft);
-  border: 2px solid var(--seal);
-  border-radius: 12px;
-  padding: 16px 20px;
-  box-shadow: 0 4px 0 var(--seal);
-}
-.scene-progress-hint-icon {
-  font-size: 22px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-@media (max-width: 640px) {
-  .scene-ready-banner { flex-direction: column; align-items: flex-start; }
-}
 

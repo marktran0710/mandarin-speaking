@@ -1,0 +1,253 @@
+/* ── Story session sidebar ──
+   Left rail of the practice session shell (.story-recorder grid). Sticky on
+   desktop; collapses to a horizontal strip above the workspace on narrow
+   screens, with the help panel folding behind a floating button. */
+
+.story-session-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: var(--clay-surface-card);
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  padding: 16px 14px;
+  position: sticky;
+  top: calc(var(--navbar-height) + 12px);
+  max-height: calc(100vh - var(--navbar-height) - 24px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.ssb-topline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--clay-hairline);
+}
+.ssb-topic-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--clay-ink);
+  line-height: 1.3;
+  min-width: 0;
+}
+
+/* ── Vertical phase list ── */
+.ssb-phases {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ssb-phase {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 6px;
+  border: none;
+  border-radius: var(--clay-radius-md);
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+}
+button.ssb-phase {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+button.ssb-phase:hover {
+  background: var(--clay-surface-soft);
+}
+
+.ssb-phase-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--clay-surface-card);
+  border: 2px solid var(--clay-hairline);
+  color: var(--clay-muted);
+}
+.ssb-phase-marker-done {
+  background: var(--jade);
+  border-color: var(--jade);
+  color: #fff;
+}
+.ssb-phase-marker-active {
+  border-color: var(--seal);
+  box-shadow: 0 0 0 3px var(--seal-soft);
+}
+.ssb-phase-marker-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--seal);
+}
+
+.ssb-phase-caption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--clay-muted);
+  min-width: 0;
+}
+.ssb-phase-icon { font-size: 14px; }
+.ssb-phase-done .ssb-phase-caption { color: var(--clay-ink); }
+.ssb-phase-active .ssb-phase-caption {
+  color: var(--seal-deep);
+  font-weight: 700;
+}
+.ssb-phase-upcoming .ssb-phase-caption { color: var(--clay-muted); }
+
+/* ── Scene journey nested under the Practice phase ── */
+.ssb-practice-group {
+  display: flex;
+  flex-direction: column;
+}
+.ssb-journey {
+  /* Indent the journey under the phase marker column so the vertical
+     thread lines up with the phase markers above it. */
+  padding-left: 12px;
+  margin-left: 17px;
+  border-left: 1px dashed var(--clay-hairline);
+}
+
+/* ── Help panel docked at the bottom ── */
+.ssb-help {
+  margin-top: auto;
+  border-top: 1px solid var(--clay-hairline);
+  padding-top: 12px;
+}
+/* Sidebar variant of the shared .student-help-panel markup: stacked, not
+   the topic-browser's two-column banner grid. */
+.ssb-help .student-help-panel {
+  width: auto;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ssb-help .student-help-panel form {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+.ssb-help .student-help-panel input {
+  font-size: 12px;
+}
+.ssb-help .student-help-panel button {
+  min-height: 38px;
+}
+.ssb-help .student-help-icon {
+  width: 28px;
+  height: 28px;
+  font-size: 14px;
+}
+.ssb-help .student-help-panel p {
+  font-size: 11px;
+}
+
+/* Floating toggle only exists on narrow screens. */
+.ssb-help-toggle { display: none; }
+
+/* ── Narrow screens: horizontal strip + floating help button ── */
+@media (max-width: 900px) {
+  .story-session-sidebar {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    gap: 10px;
+    padding: 12px;
+  }
+  .ssb-topline {
+    padding-bottom: 8px;
+  }
+  .ssb-phases {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+  }
+  .ssb-phase {
+    width: auto;
+    padding: 5px 8px;
+  }
+  .ssb-phase-caption { font-size: 12px; }
+  .ssb-practice-group {
+    flex-direction: row;
+    align-items: center;
+    flex: 1 1 100%;
+  }
+  .ssb-journey {
+    border-left: none;
+    margin-left: 0;
+    padding-left: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+  /* The nested journey flips back to a horizontal scroll row: hide the
+     rotated connectors, let stops flow inline. */
+  .ssb-journey .journey-path-vertical {
+    flex-direction: row;
+    align-items: center;
+    overflow-x: auto;
+    padding: 2px 0;
+  }
+  .ssb-journey .journey-path-vertical .journey-item {
+    flex-direction: row;
+    align-items: center;
+  }
+  .ssb-journey .journey-path-vertical .journey-connector { display: none; }
+  .ssb-journey .journey-path-vertical .journey-stop {
+    width: auto;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ssb-journey .journey-path-vertical .journey-stop-label {
+    text-align: center;
+    font-size: 10px;
+  }
+
+  /* Help panel folds behind a floating round button. */
+  .ssb-help {
+    display: none;
+  }
+  .ssb-help.ssb-help-open {
+    display: block;
+    position: fixed;
+    right: 16px;
+    bottom: 72px;
+    z-index: 40;
+    width: min(320px, calc(100vw - 32px));
+    background: var(--clay-surface-card);
+    border: 1.5px solid var(--clay-hairline);
+    border-radius: var(--clay-radius-lg);
+    box-shadow: var(--shadow-lg, 0 8px 24px rgba(0, 0, 0, 0.18));
+    padding: 12px;
+    margin: 0;
+  }
+  .ssb-help-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 41;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 1.5px solid var(--clay-hairline);
+    background: var(--gold-soft);
+    color: var(--gold-deep);
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+  }
+}

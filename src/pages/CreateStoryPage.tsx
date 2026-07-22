@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import TopicSelector from "../components/TopicSelector";
 import StoryRecorder, { type NewAudioRecord } from "../components/StoryRecorder";
 import StoryLevelPicker from "../components/StoryLevelPicker";
+import StudentHelpPanel from "../components/StudentHelpPanel";
 import { HelpRequest } from "../services/database";
 import { loadPublishedTeacherTopics, storyHasTierContent, storyToTopic } from "../utils/teacherStories";
 import type { Topic } from "../components/TopicSelector";
 import "./CreateStoryPage.css";
-import { BiLabel, BiText } from "../components/BiLabel";
 import "../components/BiLabel.css";
 
 interface CreateStoryPageProps {
@@ -84,9 +84,18 @@ export default function CreateStoryPage({
 
   return (
     <div className="create-story-page">
-      <div className="csp-help-strip">
-        <StudentHelpPanel helpRequests={helpRequests} onRaiseHand={onRaiseHand} />
-      </div>
+      {/* Outside a session the raise-hand panel is a banner strip; during a
+          session (level picker included) it lives at the bottom of the story
+          sidebar instead (see StorySessionSidebar via StoryRecorder's
+          helpRequests prop). */}
+      {!selectedTopic && !pendingTopic && (
+        <div className="csp-help-strip">
+          <StudentHelpPanel
+            helpRequests={helpRequests}
+            onRaiseHand={onRaiseHand}
+          />
+        </div>
+      )}
       {pendingTopic && pendingTopic.sourceStory ? (
         <StoryLevelPicker
           story={pendingTopic.sourceStory}
@@ -113,67 +122,12 @@ export default function CreateStoryPage({
             studentName={getStudentName()}
             studentId={getStudentId()}
             onExit={handleBack}
+            helpRequests={helpRequests}
+            onRaiseHand={onRaiseHand}
           />
         </div>
       )}
     </div>
-  );
-}
-
-function StudentHelpPanel({
-  helpRequests,
-  onRaiseHand,
-}: {
-  helpRequests: HelpRequest[];
-  onRaiseHand?: (message: string) => void;
-}) {
-  const [message, setMessage] = useState("我的故事需要協助。");
-  const studentName = getStudentName();
-  const activeRequest = helpRequests.find(
-    (request) =>
-      request.studentName === studentName && request.status === "open",
-  );
-
-  return (
-    <section className="student-help-panel" aria-label="Ask teacher for help">
-      <div>
-        <span className="student-help-icon" aria-hidden="true">
-          ?
-        </span>
-        <div>
-          {activeRequest ? (
-            <>
-              <strong>
-                <BiLabel k="teacher_has_your_help_request" />
-              </strong>
-              <p>
-                <BiText k="stay_on_your_task_your_teacher_can_see_t" />
-              </p>
-            </>
-          ) : (
-            <p>
-              <BiText k="need_teacher_help_prompt" />
-            </p>
-          )}
-        </div>
-      </div>
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          onRaiseHand?.(message);
-        }}
-      >
-        <input
-          value={message}
-          onChange={(event) => setMessage(event.target.value)}
-          aria-label="Help request message"
-          placeholder="需要什麼幫助？ What do you need help with?"
-        />
-        <button type="submit" disabled={!onRaiseHand}>
-          {activeRequest ? <BiLabel k="update_request" /> : <BiLabel k="raise_hand" />}
-        </button>
-      </form>
-    </section>
   );
 }
 

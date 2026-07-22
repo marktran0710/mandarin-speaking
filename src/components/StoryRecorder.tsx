@@ -14,6 +14,7 @@ import {
   updateVocabularyDistractors,
   updateVocabularyLookalike,
   updateVocabularySynonym,
+  type HelpRequest,
   type SceneSubmission,
   type StoryFeedback,
   type VocabularyClozeUpdate,
@@ -26,7 +27,7 @@ import StoryVocabQuiz, {
   collectQuizEntries,
   type VocabQuizSummary,
 } from "./StoryVocabQuiz";
-import JourneyPath, { type JourneyStopStatus } from "./JourneyPath";
+import { type JourneyStop, type JourneyStopStatus } from "./JourneyPath";
 import { toPinyin } from "../utils/pinyin";
 import { markStoryLevelSubmitted } from "../utils/storyLevelProgress";
 import type { CustomTeacherStory, StoryDifficultyLevel } from "../utils/teacherStories";
@@ -53,6 +54,11 @@ import StorySummarySection, {
   type JourneyStopBase,
 } from "./StorySummarySection";
 import SpeakingFlowCard from "./SpeakingFlowCard";
+import StorySessionSidebar, {
+  type SidebarPhase,
+  type SidebarSummaryStatus,
+} from "./StorySessionSidebar";
+import StudentHelpPanel from "./StudentHelpPanel";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -525,6 +531,10 @@ interface StoryRecorderProps {
    * single exit action in the nav panel above the phase steps. Omitted
    * (no button shown) when there's nowhere to exit to. */
   onExit?: () => void;
+  /** Open help requests for the raise-hand panel docked at the bottom of
+   * the session sidebar. Omitted (no panel) outside the student app. */
+  helpRequests?: HelpRequest[];
+  onRaiseHand?: (message: string) => void;
 }
 
 export default function StoryRecorder({
@@ -539,6 +549,8 @@ export default function StoryRecorder({
   studentName = "Student",
   studentId,
   onExit,
+  helpRequests,
+  onRaiseHand,
 }: StoryRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -898,6 +910,10 @@ export default function StoryRecorder({
   const [scenePracticeStep, setScenePracticeStep] = useState<ScenePracticeStep>(
     firstScenePracticeStep(selectedImageIndex),
   );
+  // The teacher's model frame is a 🎯 stop on the sidebar journey rather
+  // than a stacked panel — this flag swaps the practice stage for the
+  // read-only example view while it's set.
+  const [viewingExample, setViewingExample] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -1561,67 +1577,95 @@ export default function StoryRecorder({
     onImageChange(img);
     onImageSelect(idx);
     currentTranscriptRef.current = "";
+    setViewingExample(false);
   };
+
+  // ── Sidebar data: vertical phase list + scene journey + summary node ──
+  const sidebarPhases: SidebarPhase[] = PHASES.map((p, i) => {
+    const status =
+      i < currentPhaseIdx ? "done" : i === currentPhaseIdx ? "active" : "upcoming";
+    return {
+      key: p.key,
+      label: p.label,
+      icon: p.icon,
+      status,
+      // Same jump-back rule as the old horizontal stepper: only completed
+      // phases are clickable.
+      onClick: status === "done" ? () => setPhase(p.key) : undefined,
+    };
+  });
+
+  const practiceReachable = phase === "practice" || phase === "summary";
+  const hasExampleFrame =
+    Boolean(topic.firstFrameIsExample) && topic.images.length > 1;
+  const sidebarJourneyStops: JourneyStop[] = [
+    ...(hasExampleFrame
+      ? [
+          {
+            key: "example",
+            status: (viewingExample ? "current" : "done") as JourneyStopStatus,
+            thumbnail: topic.images[0],
+            label: (
+              <BiLabel zh="老師示範" pinyin="Lǎoshī shìfàn" en="Teacher example" />
+            ),
+            badge: "🎯",
+            disabled: isBusy,
+            onClick: () => {
+              setViewingExample(true);
+              if (phase !== "practice") setPhase("practice");
+            },
+          },
+        ]
+      : []),
+    ...journeyStopsBase.map((stop) => ({
+      ...stop,
+      // While the example view is open no scene is "current" — show the
+      // selected scene as a plain stop so the 🎯 ring reads as the place
+      // the student is at.
+      status: (viewingExample && stop.status === "current"
+        ? "upcoming"
+        : stop.status) as JourneyStopStatus,
+      disabled: isBusy,
+      onClick: () => {
+        goToScene(stop.idx, stop.img);
+        if (phase !== "practice") setPhase("practice");
+      },
+    })),
+  ];
+
+  const summaryStatus: SidebarSummaryStatus =
+    phase === "summary"
+      ? storySubmitted
+        ? "done"
+        : "active"
+      : allScenesRecorded
+        ? "available"
+        : "locked";
 
   return (
     <div className="story-recorder">
-      {/* ── Story nav panel: exit + topic name + clickable phase progress —
-           a done step jumps straight there, replacing the separate
-           "back to activities/story" buttons phases used to render. ── */}
-      <div className="story-nav-panel">
-        <div className="story-nav-topline">
-          {onExit && (
-            <button
-              type="button"
-              className="btn-story-exit"
-              onClick={onExit}
-              aria-label="Back to topics"
-            >
-              ←
-            </button>
-          )}
-          <span className="story-nav-topic-name">{topic.name}</span>
-        </div>
-        <nav className="phase-nav" aria-label="Progress">
-          {PHASES.map((p, i) => {
-            const status =
-              i < currentPhaseIdx
-                ? "done"
-                : i === currentPhaseIdx
-                  ? "active"
-                  : "upcoming";
-            const marker = (
-              <span className={`phase-nav-marker phase-nav-marker-${status}`}>
-                {status === "done" && "✓"}
-                {status === "active" && <span className="phase-nav-marker-dot" />}
-              </span>
-            );
-            const caption = (
-              <span className="phase-nav-caption">
-                <span className="phase-nav-caption-icon">{p.icon}</span>
-                {p.label}
-              </span>
-            );
-            return status === "done" ? (
-              <button
-                key={p.key}
-                type="button"
-                className={`phase-nav-node phase-nav-node-${status}`}
-                onClick={() => setPhase(p.key)}
-              >
-                {marker}
-                {caption}
-              </button>
-            ) : (
-              <div key={p.key} className={`phase-nav-node phase-nav-node-${status}`}>
-                {marker}
-                {caption}
-              </div>
-            );
-          })}
-        </nav>
-      </div>
+      {/* ── Session sidebar: exit + topic name, vertical phase list, the
+           scene journey threaded under Practice, raise-hand panel at the
+           bottom — replaces the stacked nav panel + horizontal journey +
+           page-top help strip. ── */}
+      <StorySessionSidebar
+        topicName={topic.name}
+        onExit={onExit}
+        phases={sidebarPhases}
+        journeyStops={practiceReachable ? sidebarJourneyStops : undefined}
+        summaryStatus={summaryStatus}
+        onOpenSummary={() => setPhase("summary")}
+        helpPanel={
+          helpRequests ? (
+            <StudentHelpPanel
+              helpRequests={helpRequests}
+              onRaiseHand={onRaiseHand}
+            />
+          ) : undefined
+        }
+      />
 
+      <div className="story-session-main">
       {phase === "overview" && (
         <StoryOverviewSection
           topic={topic}
@@ -1653,10 +1697,10 @@ export default function StoryRecorder({
         />
       )}
 
-      {phase === "practice" && (
-        <>
-          {/* ── Teacher example frame (read-only, shown before recording starts) ── */}
-          {topic.firstFrameIsExample && topic.images.length > 1 && (
+      {/* ── Teacher example view: opened from the 🎯 stop on the sidebar
+           journey, shown in place of the practice stage rather than
+           stacked above it. ── */}
+      {phase === "practice" && viewingExample && hasExampleFrame && (
             <div className="example-frame-panel">
               <div className="example-frame-label">
                 <span className="example-frame-icon">🎯</span>
@@ -1704,158 +1748,30 @@ export default function StoryRecorder({
                   )}
                 </div>
               </div>
+              <footer className="example-frame-footer">
+                <button
+                  type="button"
+                  className="btn-scene-step-continue"
+                  onClick={() => setViewingExample(false)}
+                >
+                  <BiLabel
+                    zh="回到練習"
+                    pinyin="Huí dào liànxí"
+                    en="Back to practice"
+                  />
+                </button>
+              </footer>
             </div>
-          )}
+      )}
 
-          {/* ── Scene journey: scenes threaded on one path, not a flat strip.
-               Always shown (vocab/phrases/speaking alike) so the practice
-               steps don't rearrange the page around a student as they move
-               between tabs — the Speaking app card's own height clamp
-               reserves room for it instead of hiding it. ── */}
-          <JourneyPath
-            stops={journeyStopsBase.map((stop) => ({
-              ...stop,
-              disabled: isBusy,
-              onClick: () => goToScene(stop.idx, stop.img),
-            }))}
-          />
-
-          {/* ── Always-available way to reach the summary once every scene
-               is recorded, regardless of which order they were finished in
-               (the per-scene banner below only fires when the *last-index*
-               scene is the one that just became ready). ── */}
-          {allScenesRecorded && (
-            <button
-              type="button"
-              className="journey-view-summary-link"
-              onClick={() => setPhase("summary")}
-            >
-              <BiLabel zh="查看總結" pinyin="Chákàn zǒngjié" en="View summary" />
-            </button>
-          )}
-
-          {/* ── Scene readiness banner. The "new scene, check X first" start
-               hint always shows (same consistency reasoning as JourneyPath
-               above) — but once there's an attempt, Speaking's app card
-               already carries its own verdict header and gated footer
-               action, so the ready/gap banners below stay hidden there to
-               avoid showing the same status twice. ── */}
-          {(() => {
-            const prog = sceneProgress[selectedImageIndex];
-            if (!prog || prog.attempts === 0) {
-              const hasStudy = sceneHasStudyStep(selectedImageIndex);
-              return (
-                <div className="scene-progress-hint scene-progress-hint-start">
-                  <span className="scene-progress-hint-icon" aria-hidden="true">
-                    👀
-                  </span>
-                  {hasStudy ? (
-                    <BiLabel
-                      zh="新的部分：先看看上面的「學習」分頁，然後開始錄音。"
-                      pinyin="Xīn de bùfen: xiān kànkan shàngmiàn de “xuéxí” fēnyè, ránhòu kāishǐ lùyīn."
-                      en="New scene: check the Study tab above, then start recording."
-                    />
-                  ) : (
-                    <BiLabel
-                      zh="新的部分：準備好了就切到「口說練習」錄音。"
-                      pinyin="Xīn de bùfen: zhǔnbèi hǎo le jiù qiè dào 'kǒushuō liànxí' lùyīn."
-                      en="New scene: switch to Speaking when you're ready to record."
-                    />
-                  )}
-                </div>
-              );
-            }
-            if (scenePracticeStep === "speaking") return null;
-            const ready =
-              sceneReady(prog) &&
-              (masteryPassedMap[selectedImageIndex] ?? false);
-            const nextIdx = selectedImageIndex + 1;
-            const hasNext = nextIdx < topic.images.length;
-            if (ready && hasNext) {
-              return (
-                <div className="scene-ready-banner">
-                  <div>
-                    <strong>
-                      <BiLabel
-                        zh={`部分 ${selectedImageIndex + 1} 完成`}
-                        pinyin={`Bùfen ${selectedImageIndex + 1} wánchéng`}
-                        en={`Scene ${selectedImageIndex + 1} complete`}
-                      />
-                    </strong>
-                    <p>
-                      <BiLabel
-                        zh={`最佳聲調：${prog.bestTone}% · ${prog.attempts} 次`}
-                        pinyin={`Zuì jiā shēngdiào: ${prog.bestTone}% · ${prog.attempts} cì`}
-                        en={`Best tone: ${prog.bestTone}% · ${prog.attempts} attempt${prog.attempts > 1 ? "s" : ""}`}
-                      />
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="scene-next-btn"
-                    onClick={() => {
-                      const nextImg = topic.images[nextIdx];
-                      onImageChange(nextImg);
-                      onImageSelect(nextIdx);
-                      currentTranscriptRef.current = "";
-                    }}
-                  >
-                    <BiLabel k="next_scene" />
-                  </button>
-                </div>
-              );
-            }
-            if (ready && !hasNext) {
-              return (
-                <div className="scene-ready-banner scene-story-done">
-                  <div>
-                    <strong>
-                      <BiLabel k="all_scenes_practiced" />
-                    </strong>
-                    <p>
-                      <BiText k="you_ve_completed_the_full_story_review_y" />
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="scene-next-btn"
-                    onClick={() => setPhase("summary")}
-                  >
-                    <BiLabel zh="查看總結" pinyin="Chákàn zǒngjié" en="View summary" />
-                  </button>
-                </div>
-              );
-            }
-            if (!ready && prog.attempts > 0) {
-              const charCount = (praatMetrics?.transcription || "").replace(
-                /[^一-鿿]/g,
-                "",
-              ).length;
-              const threshold = charCount <= 6 ? 70 : 65;
-              const best = charCount <= 6 ? prog.bestTone : prog.bestFluency;
-              const gap = threshold - best;
-              return (
-                <div className="scene-progress-hint">
-                  {gap > 0 ? (
-                    <BiLabel
-                      zh={`還需要 ${gap} 分才能打開下一個部分 — 繼續加油。`}
-                      pinyin={`Hái xūyào ${gap} fēn cái néng dǎkāi xià yí ge bùfen — jìxù jiāyóu.`}
-                      en={`${gap} more points needed to unlock the next scene — keep going.`}
-                    />
-                  ) : (
-                    <BiLabel k="keep_practicing_try_to_make_the_tone_sha" />
-                  )}
-                </div>
-              );
-            }
-            return null;
-          })()}
-
-          {/* ── Per-scene practice steps: study → speaking ── */}
-          {/* ── One continuous practice stage: a numbered stepper header
+      {phase === "practice" && !viewingExample && (
+        <>
+          {/* ── Per-scene practice steps: study → speaking ──
+               One continuous practice stage: a numbered stepper header
                fused to the step content below it (same visual language as
-               the story-level phase stepper above), instead of a floating
-               pill row + a disconnected card. ── */}
+               the sidebar's phase list), instead of a floating pill row +
+               a disconnected card. Scene navigation and readiness state
+               live in the sidebar journey + the stage footer. ── */}
           <section className="practice-stage">
           {(() => {
             const steps: Array<{ key: ScenePracticeStep; label: JSX.Element }> = [
@@ -2112,17 +2028,106 @@ export default function StoryRecorder({
             )}
 
             {/* Footer action bar — same shape as SpeakingFlowCard's results
-                footer, so both practice steps end the same way. */}
+                footer, so both practice steps end the same way. The scene's
+                readiness status lives here too (start hint / complete /
+                points-to-go), instead of banners stacked above the stage —
+                Speaking carries its own verdict, so this only renders on
+                the Study step. */}
             <footer className="practice-footer">
-              {scenePracticeStep === "study" && (
-                <button
-                  type="button"
-                  className="btn-scene-step-continue"
-                  onClick={() => setScenePracticeStep("speaking")}
-                >
-                  <BiLabel k="continue_to_speaking" />
-                </button>
-              )}
+              {(() => {
+                const prog = sceneProgress[selectedImageIndex];
+                const ready =
+                  Boolean(prog) &&
+                  sceneReady(prog) &&
+                  (masteryPassedMap[selectedImageIndex] ?? false);
+                const nextIdx = selectedImageIndex + 1;
+                const hasNext = nextIdx < topic.images.length;
+                let status: JSX.Element;
+                if (!prog || prog.attempts === 0) {
+                  status = (
+                    <span className="practice-footer-hint">
+                      <span aria-hidden="true">👀 </span>
+                      <BiLabel
+                        zh="新的部分：先看看生詞，然後開始錄音。"
+                        pinyin="Xīn de bùfen: xiān kànkan shēngcí, ránhòu kāishǐ lùyīn."
+                        en="New scene: read the words first, then start recording."
+                      />
+                    </span>
+                  );
+                } else if (ready) {
+                  status = (
+                    <span className="practice-footer-ready">
+                      <span aria-hidden="true">✓ </span>
+                      {hasNext ? (
+                        <BiLabel
+                          zh={`部分 ${selectedImageIndex + 1} 完成 · 最佳聲調 ${prog.bestTone}%`}
+                          pinyin={`Bùfen ${selectedImageIndex + 1} wánchéng · zuì jiā shēngdiào ${prog.bestTone}%`}
+                          en={`Scene ${selectedImageIndex + 1} complete · best tone ${prog.bestTone}%`}
+                        />
+                      ) : (
+                        <BiLabel k="all_scenes_practiced" />
+                      )}
+                    </span>
+                  );
+                } else {
+                  const charCount = (praatMetrics?.transcription || "").replace(
+                    /[^一-鿿]/g,
+                    "",
+                  ).length;
+                  const threshold = charCount <= 6 ? 70 : 65;
+                  const best = charCount <= 6 ? prog.bestTone : prog.bestFluency;
+                  const gap = threshold - best;
+                  status = (
+                    <span className="practice-footer-hint">
+                      {gap > 0 ? (
+                        <BiLabel
+                          zh={`還需要 ${gap} 分才能打開下一個部分 — 繼續加油。`}
+                          pinyin={`Hái xūyào ${gap} fēn cái néng dǎkāi xià yí ge bùfen — jìxù jiāyóu.`}
+                          en={`${gap} more points needed to unlock the next scene — keep going.`}
+                        />
+                      ) : (
+                        <BiLabel k="keep_practicing_try_to_make_the_tone_sha" />
+                      )}
+                    </span>
+                  );
+                }
+                return (
+                  <>
+                    <div className="practice-footer-status">{status}</div>
+                    <div className="practice-footer-actions">
+                      <button
+                        type="button"
+                        className="btn-scene-step-continue"
+                        onClick={() => setScenePracticeStep("speaking")}
+                      >
+                        <BiLabel k="continue_to_speaking" />
+                      </button>
+                      {ready && hasNext && (
+                        <button
+                          type="button"
+                          className="scene-next-btn"
+                          onClick={() => goToScene(nextIdx, topic.images[nextIdx])}
+                        >
+                          <BiLabel k="next_scene" />
+                        </button>
+                      )}
+                      {ready && !hasNext && (
+                        <button
+                          type="button"
+                          className="scene-next-btn"
+                          onClick={() => setPhase("summary")}
+                        >
+                          <BiLabel
+                            zh="查看總結"
+                            pinyin="Chákàn zǒngjié"
+                            en="View summary"
+                          />
+                        </button>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </footer>
             </div>
           </div>
@@ -2151,6 +2156,7 @@ export default function StoryRecorder({
           }}
         />
       )}
+      </div>
     </div>
   );
 }
