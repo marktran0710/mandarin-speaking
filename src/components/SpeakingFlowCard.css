@@ -44,6 +44,19 @@
   padding: 24px 20px;
 }
 
+/* Record screen's content column: center vertically against the scene
+   rail, so a short control stack (model sentence + record button) sits
+   level with the image instead of hugging the top with a hole below it —
+   the two columns read as one balanced row. Results keep their own
+   top-down flow (.sfc-results-main), which is usually the taller side. */
+.sfc-record-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  min-width: 0;
+}
+
 .sfc-scene-chip {
   display: inline-flex;
   align-items: center;

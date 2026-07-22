@@ -2498,7 +2498,11 @@
      shared by Study and Speaking so steps never reflow the page. */
   grid-template-columns: minmax(200px, 35fr) minmax(0, 65fr);
   gap: 24px;
-  align-items: start;
+  /* Stretch, not start: both columns always span the same height, so
+     whichever side has less content never reads as a broken half-row. The
+     scene rail below is a bounded panel for the same reason — its full
+     height is visibly intentional even when the image doesn't fill it. */
+  align-items: stretch;
 }
 
 .practice-scene-col {
@@ -2506,6 +2510,10 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  background: var(--clay-surface-soft);
+  border: 1.5px solid var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-md);
+  padding: 12px;
 }
 .practice-scene-image {
   display: block;
