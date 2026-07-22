@@ -28,6 +28,12 @@ import {
   saveCustomStories,
 } from "./utils/teacherStories";
 import type { Topic } from "./components/TopicSelector";
+import {
+  groupTopicsByLesson,
+  isLessonGroupUnlocked,
+  lessonCompletion,
+} from "./utils/lessonGroups";
+import { loadSubmittedStoryIds } from "./utils/storyLevelProgress";
 import type { Page } from "./types/page";
 import type { SpeechModel } from "./components/StoryRecorder";
 
@@ -249,6 +255,30 @@ export default function App() {
     [quizStoryTopics],
   );
 
+  // The bubble's jump candidates: the newest unlocked lesson — the TOC's
+  // "you are here" row (first unlocked numbered lesson still holding
+  // unsubmitted stories) — narrowed to its quiz-capable stories. Groups
+  // are built from ALL story topics so the sequential lock matches the
+  // TOC exactly; only the candidate list is quiz-filtered. Recomputed per
+  // render on purpose: submission state lives in localStorage and changes
+  // as stories are finished.
+  const bubbleTargetIds = (() => {
+    const groups = groupTopicsByLesson(storyTopics);
+    const submittedIds = loadSubmittedStoryIds();
+    const nowGroup = groups.find(
+      (group, index) =>
+        group.lessonNumber !== null &&
+        isLessonGroupUnlocked(groups, index, submittedIds) &&
+        lessonCompletion(group, submittedIds).done < group.topics.length,
+    );
+    if (!nowGroup) return undefined;
+    const quizIds = new Set(quizStoryTopics.map((t) => t.id));
+    const ids = nowGroup.topics
+      .map((t) => t.id)
+      .filter((id) => quizIds.has(id));
+    return ids.length > 0 ? ids : undefined;
+  })();
+
   // One bubble across every logged-in student page (it mounts here, not
   // per-page) — hidden only while a practice session is active, where its
   // "jump into your current story" call-to-action would point at the
@@ -348,6 +378,7 @@ export default function App() {
           studentId={getStudentId()}
           storyCount={quizStoryTopics.length}
           storyTitles={storyTitles}
+          targetIds={bubbleTargetIds}
           onJumpToStory={handleJumpToStory}
         />
       )}

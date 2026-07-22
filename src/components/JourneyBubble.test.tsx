@@ -84,4 +84,28 @@ describe("JourneyBubble", () => {
     expect(screen.getByRole("status")).toHaveTextContent("⭐ 0");
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
+
+  it("keeps the target inside targetIds (the current lesson) even when the near-miss story is in a later lesson", async () => {
+    const onJump = vi.fn();
+    render(
+      <JourneyBubble
+        studentName="Minh"
+        studentId="stu-1"
+        storyCount={7}
+        storyTitles={{
+          "s-lesson5": "我的錢包在哪裡",
+          "s-market": "去市場買菜",
+        }}
+        // Current lesson holds only s-lesson5 — the s-market near-miss from
+        // the attempts mock must not pull the student off it.
+        targetIds={["s-lesson5"]}
+        onJumpToStory={onJump}
+      />,
+    );
+
+    const bubble = await screen.findByRole("button", { name: /我的錢包在哪裡/ });
+    expect(await screen.findByText(/⭐ 0\/2/)).toBeInTheDocument();
+    await userEvent.setup().click(bubble);
+    expect(onJump).toHaveBeenCalledWith("s-lesson5");
+  });
 });

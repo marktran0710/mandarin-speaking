@@ -30,6 +30,7 @@ export default function JourneyBubble({
   studentId,
   storyCount,
   storyTitles,
+  targetIds,
   onJumpToStory,
 }: {
   studentName?: string;
@@ -40,6 +41,11 @@ export default function JourneyBubble({
   // Display titles by quiz storyId, in lesson order — also the candidate
   // list for the "first story still below the gate" target.
   storyTitles?: Record<string, string>;
+  /** Ordered ids the needs-stars target may come from — the newest
+   * unlocked lesson's stories (the TOC's "you are here" row), so the
+   * nudge always points at the lesson the student is actually on.
+   * Omitted: every story in storyTitles is a candidate. */
+  targetIds?: string[];
   onJumpToStory?: (storyId: string) => void;
 }) {
   const titles = storyTitles ?? {};
@@ -78,11 +84,22 @@ export default function JourneyBubble({
   const baseId = (id: string) =>
     storyIds.find((known) => known === id || id.startsWith(`${known}-`)) ?? id;
 
-  const firstBelowGate = storyIds.find(
+  // Target scope: the caller-provided candidate list (current lesson)
+  // when given, else every known story. The near-miss story still wins
+  // the slot, but only when it belongs to the scope — a near-miss in a
+  // later lesson must not pull the student off their current one.
+  const candidateIds = targetIds ?? storyIds;
+  const firstBelowGate = candidateIds.find(
     (id) => starsFor(id) < PRACTICE_UNLOCK_STARS,
   );
+  const nearMissBase =
+    message.kind === "near_miss" ? baseId(message.storyId) : undefined;
   const targetId =
-    message.kind === "near_miss" ? baseId(message.storyId) : firstBelowGate;
+    nearMissBase !== undefined &&
+    candidateIds.includes(nearMissBase) &&
+    starsFor(nearMissBase) < PRACTICE_UNLOCK_STARS
+      ? nearMissBase
+      : firstBelowGate;
   const needsStars = firstBelowGate !== undefined;
 
   // ── Needs-stars state: pulsing quiz call-to-action ──────────────────────
@@ -93,11 +110,7 @@ export default function JourneyBubble({
       <button
         type="button"
         className="journey-bubble journey-bubble-locked"
-        onClick={() =>
-          onJumpToStory(
-            message.kind === "near_miss" ? message.storyId : targetId,
-          )
-        }
+        onClick={() => onJumpToStory(targetId)}
         aria-label={`做測驗拿星星 — ${targetTitle} (${targetStars}/${PRACTICE_UNLOCK_STARS} stars). Take the quiz to earn stars.`}
         title={targetTitle}
       >
