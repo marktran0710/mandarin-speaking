@@ -4,6 +4,7 @@ import RecordingPlayback from "./RecordingPlayback";
 import WordProsodyCard from "./WordProsodyCard";
 import MiniContourChart from "./MiniContourChart";
 import {
+  failedProsodyWords,
   isContentAccepted,
   sceneReady,
   weakToneGuideItems,
@@ -56,6 +57,14 @@ interface SpeakingFlowCardProps {
   recordingButtonDisabled: boolean;
   onPrimaryRecordingAction: () => void;
   onSubmitVoiceFile: (event: ChangeEvent<HTMLInputElement>) => void;
+  /** Pronunciation mastery gate: true once a full-sentence recording had
+   * every word clear the per-syllable pass verdict. Gates Next Scene /
+   * View Summary alongside sceneReady. */
+  masteryPassed: boolean;
+  /** Words from the latest failing recording the student has since drilled
+   * back to a pass — drives the words-first-then-sentence checklist. */
+  clearedWords: string[];
+  onWordDrillPass: (token: string) => void;
   hasNextScene: boolean;
   onNextScene: () => void;
   onViewSummary: () => void;
@@ -91,6 +100,9 @@ export default function SpeakingFlowCard({
   recordingButtonDisabled,
   onPrimaryRecordingAction,
   onSubmitVoiceFile,
+  masteryPassed,
+  clearedWords,
+  onWordDrillPass,
   hasNextScene,
   onNextScene,
   onViewSummary,
@@ -117,7 +129,20 @@ export default function SpeakingFlowCard({
   }, [selectedImageIndex]);
 
   const attempts = prog?.attempts ?? 0;
-  const ready = prog ? sceneReady(prog) : false;
+  // Mastery (every word passed its per-syllable verdict on a full-sentence
+  // recording) gates progression alongside the score/attempts unlock — the
+  // attempts escape hatch never bypasses failing words.
+  const ready = (prog ? sceneReady(prog) : false) && masteryPassed;
+
+  // Words-first-then-sentence loop state, derived from the latest analysis:
+  // which words failed, which of those the student has drilled back to a
+  // pass, and whether the only step left is re-recording the sentence.
+  const failedWords = failedProsodyWords(praatMetrics?.word_prosody);
+  const remainingDrillWords = failedWords.filter(
+    (word) => !clearedWords.includes(word.token),
+  );
+  const allDrillsCleared =
+    failedWords.length > 0 && remainingDrillWords.length === 0;
 
   const ai = praatMetrics?.ai_feedback;
   const accepted = praatMetrics ? isContentAccepted(praatMetrics) : true;
@@ -482,6 +507,47 @@ export default function SpeakingFlowCard({
                 <BiLabel k="character_by_character_prosody" />
               </header>
               <div className="sfc-result-card-body">
+                {/* Words-first-then-sentence mastery checklist: which words
+                    still block this scene, live ✗→✓ as drills clear them,
+                    then the re-record call-to-action. */}
+                {failedWords.length > 0 && (
+                  <div
+                    className={`sfc-mastery-banner${allDrillsCleared ? " is-cleared" : ""}`}
+                  >
+                    {allDrillsCleared ? (
+                      <p className="sfc-mastery-lead">
+                        🎉{" "}
+                        <BiLabel
+                          zh="這些字都好了！現在再錄一次整句。"
+                          pinyin="Zhèxiē zì dōu hǎo le! Xiànzài zài lù yí cì zhěng jù."
+                          en="All words cleared! Now record the whole sentence again."
+                        />
+                      </p>
+                    ) : (
+                      <p className="sfc-mastery-lead">
+                        🔑{" "}
+                        <BiLabel
+                          zh="先練好這些字，再錄整句："
+                          pinyin="Xiān liàn hǎo zhèxiē zì, zài lù zhěng jù:"
+                          en="First practice these words, then re-record the sentence:"
+                        />
+                      </p>
+                    )}
+                    <div className="sfc-mastery-chips">
+                      {failedWords.map((word) => {
+                        const cleared = clearedWords.includes(word.token);
+                        return (
+                          <span
+                            key={`${word.token}-${word.index}`}
+                            className={`sfc-mastery-chip ${cleared ? "is-cleared" : "is-pending"}`}
+                          >
+                            {word.token} {cleared ? "✓" : "✗"}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
                 {(praatMetrics?.word_prosody?.length ?? 0) > 0 ? (
                   <>
                     {/* Chart legend shown once for the whole row instead of
@@ -500,7 +566,11 @@ export default function SpeakingFlowCard({
                     </div>
                     <div className="sfc-words-row">
                       {praatMetrics!.word_prosody!.map((item) => (
-                        <WordProsodyCard key={`${item.token}-${item.index}`} item={item} />
+                        <WordProsodyCard
+                          key={`${item.token}-${item.index}`}
+                          item={item}
+                          onDrillPass={onWordDrillPass}
+                        />
                       ))}
                     </div>
                   </>
@@ -521,7 +591,16 @@ export default function SpeakingFlowCard({
       </div>
 
       <footer className="sfc-footer">
-        {!ready && (
+        {!ready && !masteryPassed && failedWords.length > 0 ? (
+          <p className="sfc-unlock-note">
+            🔒{" "}
+            <BiLabel
+              zh={`每個字都要 ✓ 才能過關 — 還有 ${remainingDrillWords.length > 0 ? `${remainingDrillWords.length} 個字要練` : "整句要再錄一次"}`}
+              pinyin={`Měi ge zì dōu yào ✓ cáinéng guòguān — hái yǒu ${remainingDrillWords.length > 0 ? `${remainingDrillWords.length} ge zì yào liàn` : "zhěng jù yào zài lù yí cì"}`}
+              en={`Every word needs a ✓ to pass — ${remainingDrillWords.length > 0 ? `${remainingDrillWords.length} word${remainingDrillWords.length > 1 ? "s" : ""} left to practice` : "re-record the whole sentence"}`}
+            />
+          </p>
+        ) : !ready ? (
           <p className="sfc-unlock-note">
             🔒{" "}
             <BiLabel
@@ -530,7 +609,7 @@ export default function SpeakingFlowCard({
               en={`Unlock with tone 70, fluency 65, or 4 attempts (now: ${attempts})`}
             />
           </p>
-        )}
+        ) : null}
         <div className="sfc-footer-actions">
           <button
             type="button"

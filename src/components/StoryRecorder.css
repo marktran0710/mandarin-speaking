@@ -834,6 +834,64 @@ button.phase-nav-node:hover .phase-nav-marker-done {
   white-space: nowrap;
 }
 
+/* "You said" pill stays mint; the target pill goes lavender so the pair
+   reads as a comparison, not one verdict. */
+.word-prosody-target-pill {
+  background: var(--seal-soft);
+}
+
+/* Per-syllable verdicts: one chip per character, ✓/✗ from the backend's
+   min-rule pass gate — the answer to "which character was wrong?". */
+.word-syllable-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 2px;
+}
+
+.word-syllable-chip {
+  padding: 3px 8px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.word-syllable-chip.syllable-pass {
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.word-syllable-chip.syllable-fail {
+  background: var(--clay-error-soft);
+  color: var(--clay-error-deep);
+}
+
+/* A failed word's card carries a soft red edge so it stands out in the
+   words row as the one blocking the scene. */
+.word-prosody-card.word-prosody-failed {
+  border: 1.5px solid var(--clay-error);
+}
+
+.word-practice-pass-chip,
+.word-practice-fail-chip {
+  padding: 3px 8px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.word-practice-pass-chip {
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.word-practice-fail-chip {
+  background: var(--clay-error-soft);
+  color: var(--clay-error-deep);
+}
+
 /* Shape-match % — the same comparison the chart draws, now read directly
    off the topline instead of a separate legend row underneath. */
 .word-prosody-score {

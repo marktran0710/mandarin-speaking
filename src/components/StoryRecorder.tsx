@@ -34,6 +34,7 @@ import {
   averageWordProsodyAccuracy,
   hasAudioFileExtension,
   getBackendUrl,
+  prosodyGatePassed,
   readErrorResponse,
   formatBackendError,
 } from "../utils/storyRecorderFeedback";
@@ -354,6 +355,19 @@ export interface WordProsody {
   // Pure shape-similarity score (the one the chart visualizes), as opposed
   // to tone_accuracy's direction-weighted blend used for aggregation.
   shape_accuracy?: number;
+  // Per-syllable directional scores + verdicts. The word-level scores
+  // average across syllables, which lets a clean syllable hide a
+  // wrong-direction one — `passed` is the MIN-rule verdict (every syllable
+  // must clear the backend's pass bar). Absent/null for non-Chinese tokens.
+  syllables?: WordProsodySyllable[];
+  passed?: boolean | null;
+}
+
+export interface WordProsodySyllable {
+  char: string;
+  tone: number;
+  score: number;
+  passed: boolean;
 }
 
 interface LanguageFeedback {
@@ -531,6 +545,28 @@ export default function StoryRecorder({
   const [sceneProgress, setSceneProgress] = useState<
     Record<number, { attempts: number; bestTone: number; bestFluency: number }>
   >({});
+  // Pronunciation mastery gate, keyed by imageIndex. A scene is "mastered"
+  // only when a full-sentence recording had every word clear the backend's
+  // per-syllable pass verdict. When it didn't, the student first drills each
+  // failed word to a pass (clearedWordsMap tracks those), then must re-record
+  // the whole sentence — every fresh analysis resets the cleared list because
+  // the new recording re-judges everything.
+  const [masteryPassedMap, setMasteryPassedMap] = useState<
+    Record<number, boolean>
+  >({});
+  const [clearedWordsMap, setClearedWordsMap] = useState<
+    Record<number, string[]>
+  >({});
+  const handleWordDrillPass = useCallback(
+    (token: string) => {
+      setClearedWordsMap((prev) => {
+        const current = prev[selectedImageIndex] ?? [];
+        if (current.includes(token)) return prev;
+        return { ...prev, [selectedImageIndex]: [...current, token] };
+      });
+    },
+    [selectedImageIndex],
+  );
   const [submittedAudioName, setSubmittedAudioName] = useState("");
   // Completed scene snapshots for story submission
   const [sceneRecordings, setSceneRecordings] = useState<
@@ -1183,6 +1219,14 @@ export default function StoryRecorder({
           },
         };
       });
+      // Mastery gate verdict for this full-sentence attempt. A fresh
+      // recording re-judges every word, so the per-word drill clearances
+      // from the previous attempt reset alongside it.
+      setMasteryPassedMap((prev) => ({
+        ...prev,
+        [selectedImageIndex]: prosodyGatePassed(metrics.word_prosody),
+      }));
+      setClearedWordsMap((prev) => ({ ...prev, [selectedImageIndex]: [] }));
 
       const recordResult = onAddRecord({
         id: `audio-${Date.now()}`,
@@ -1308,7 +1352,14 @@ export default function StoryRecorder({
 
   const totalScenes = topic.images.length;
   const completedSceneCount = Object.keys(sceneRecordings).length;
-  const allScenesRecorded = completedSceneCount >= totalScenes;
+  // Submission needs every scene recorded AND pronunciation-mastered — a
+  // scene whose latest full-sentence attempt still has failing words keeps
+  // the story locked even if an earlier snapshot was saved for it.
+  const allScenesRecorded =
+    completedSceneCount >= totalScenes &&
+    Object.keys(sceneRecordings).every(
+      (key) => masteryPassedMap[Number(key)] ?? false,
+    );
 
   const handleSubmitStory = useCallback(async () => {
     const scenes = Object.values(sceneRecordings).sort(
@@ -1388,7 +1439,8 @@ export default function StoryRecorder({
     .filter(({ idx }) => !(topic.firstFrameIsExample && idx === 0))
     .map(({ img, idx }): JourneyStopBase => {
       const prog = sceneProgress[idx];
-      const ready = prog ? sceneReady(prog) : false;
+      const ready =
+        (prog ? sceneReady(prog) : false) && (masteryPassedMap[idx] ?? false);
       const started = Boolean(prog && prog.attempts > 0);
       return {
         key: idx,
@@ -1615,7 +1667,9 @@ export default function StoryRecorder({
               );
             }
             if (scenePracticeStep === "speaking") return null;
-            const ready = sceneReady(prog);
+            const ready =
+              sceneReady(prog) &&
+              (masteryPassedMap[selectedImageIndex] ?? false);
             const nextIdx = selectedImageIndex + 1;
             const hasNext = nextIdx < topic.images.length;
             if (ready && hasNext) {
@@ -1766,6 +1820,9 @@ export default function StoryRecorder({
               recordingButtonDisabled={recordingButtonDisabled}
               onPrimaryRecordingAction={handlePrimaryRecordingAction}
               onSubmitVoiceFile={handleSubmitVoiceFile}
+              masteryPassed={masteryPassedMap[selectedImageIndex] ?? false}
+              clearedWords={clearedWordsMap[selectedImageIndex] ?? []}
+              onWordDrillPass={handleWordDrillPass}
               hasNextScene={selectedImageIndex + 1 < topic.images.length}
               onNextScene={() => {
                 const nextIdx = selectedImageIndex + 1;

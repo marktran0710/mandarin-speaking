@@ -143,6 +143,48 @@ export function averageWordProsodyAccuracy(
   );
 }
 
+/** Chinese words in this recording that failed the backend's per-syllable
+ * pass gate (min syllable score below the bar). Words the backend couldn't
+ * judge (passed null/undefined — non-Chinese tokens, too-short segments)
+ * never count as failed. */
+export function failedProsodyWords(
+  wordProsody?: WordProsody[],
+): WordProsody[] {
+  return (wordProsody ?? []).filter((item) => item.passed === false);
+}
+
+/** The pronunciation mastery gate: a recording clears it when no word
+ * failed the per-syllable verdict. An empty/absent word_prosody passes —
+ * the gate only ever blocks on evidence, not on missing data. */
+export function prosodyGatePassed(wordProsody?: WordProsody[]): boolean {
+  return failedProsodyWords(wordProsody).length === 0;
+}
+
+/** Compact arrow for a tone number (target shapes shown next to what the
+ * student actually did). */
+export function toneArrow(tone: number): string {
+  const arrows: Record<number, string> = {
+    1: "→",
+    2: "↗",
+    3: "˅",
+    4: "↘",
+    5: "·",
+  };
+  return arrows[tone] ?? "?";
+}
+
+/** Compact arrow for a measured contour_shape classification. */
+export function shapeArrow(shape: string): string {
+  const arrows: Record<string, string> = {
+    level: "→",
+    rising: "↗",
+    falling: "↘",
+    dip: "˅",
+    variable: "~",
+  };
+  return arrows[shape] ?? "~";
+}
+
 export function buildPracticeAnalysisText(vocabulary: string[]): string {
   return vocabulary
     .map((word) => word.trim())

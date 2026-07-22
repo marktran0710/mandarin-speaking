@@ -20,7 +20,16 @@ const BACKEND_URL =
  * the backend skip ASR entirely and score the recording directly against this
  * word's real expected tone(s) — so a re-record here is never limited by
  * speech-recognition accuracy. */
-export default function WordPracticeDrill({ word }: { word: WordProsody }) {
+export default function WordPracticeDrill({
+  word,
+  onPass,
+}: {
+  word: WordProsody;
+  /** Fires when a drill attempt clears the per-syllable pass gate AND the
+   * content check didn't reject it — how the scene's mastery checklist
+   * learns this word has been re-earned. */
+  onPass?: (token: string) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -130,6 +139,9 @@ export default function WordPracticeDrill({ word }: { word: WordProsody }) {
       }
       setLatestContentMatch(data.content_match ?? null);
       setAttempts((prev) => [...prev, segment]);
+      if (segment.passed === true && data.content_match !== false) {
+        onPass?.(word.token);
+      }
     } catch (err) {
       setError(
         formatBackendError(err, BACKEND_URL || "the configured backend"),
@@ -250,6 +262,12 @@ export default function WordPracticeDrill({ word }: { word: WordProsody }) {
                 <strong className={`score-tier-text ${scoreTier(drillScore(latest))}`}>
                   {scoreTierLabel(scoreTier(drillScore(latest))).zh}
                 </strong>
+                {latest.passed === true && (
+                  <span className="word-practice-pass-chip">✓ 過關 Passed</span>
+                )}
+                {latest.passed === false && (
+                  <span className="word-practice-fail-chip">✗ 再試一次 Try again</span>
+                )}
                 {typeof trend === "number" && trend !== 0 && (
                   <em className={trend > 0 ? "trend-up" : "trend-down"}>
                     {trend > 0 ? "↑" : "↓"} {Math.abs(trend)}%

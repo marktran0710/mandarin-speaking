@@ -350,6 +350,51 @@
   margin-top: 0;
   margin-bottom: 10px;
 }
+/* ── Mastery checklist banner: the words-first-then-sentence loop ── */
+.sfc-mastery-banner {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-error-soft);
+  border: 1px solid var(--clay-error);
+}
+.sfc-mastery-banner.is-cleared {
+  background: var(--jade-soft);
+  border-color: var(--jade);
+}
+.sfc-mastery-lead {
+  margin: 0 0 8px;
+  font-weight: 650;
+  color: var(--clay-ink);
+}
+.sfc-mastery-banner.is-cleared .sfc-mastery-lead {
+  margin-bottom: 0;
+}
+.sfc-mastery-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sfc-mastery-banner.is-cleared .sfc-mastery-chips {
+  margin-top: 8px;
+}
+.sfc-mastery-chip {
+  padding: 4px 10px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--clay-surface-card);
+}
+.sfc-mastery-chip.is-pending {
+  color: var(--clay-error-deep);
+  border: 1px solid var(--clay-error);
+}
+.sfc-mastery-chip.is-cleared {
+  color: var(--jade-deep);
+  border: 1px solid var(--jade);
+}
+
 .sfc-words-row {
   display: flex;
   gap: 12px;

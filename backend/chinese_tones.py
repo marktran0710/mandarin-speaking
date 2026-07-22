@@ -362,30 +362,22 @@ def _smooth_for_directional_scoring(pitch: np.ndarray, kernel_size: int = 5) -> 
     return median_filter(pitch, size=kernel_size, mode="nearest")
 
 
-def calculate_directional_tone_accuracy(
+def directional_tone_scores(
     pitch_contour: List[Tuple[float, float]], tones: List[int]
-) -> float:
-    """Directional / ordinal tone scoring tuned for connected speech.
+) -> List[float]:
+    """Per-syllable directional tone scores, one entry per tone in ``tones``.
 
-    Instead of comparing against an idealized isolated-syllable reference curve,
-    this checks only whether pitch *moves in the right direction* within each
-    syllable window.  This is far more robust to the declination, coarticulation,
-    and speaking-rate effects that distort tone shapes in natural running speech:
+    This is ``calculate_directional_tone_accuracy``'s scoring loop exposed
+    before the final mean, so callers that need to know *which* syllable
+    failed (e.g. the per-word pass gate in word prosody) can read each
+    syllable window's own score instead of a whole-word average that lets a
+    good second syllable hide a wrong-direction first one.
 
-        T1 (flat)    — variance within the syllable window is low
-        T2 (rising)  — end-region pitch > start-region pitch
-        T4 (falling) — start-region pitch > end-region pitch
-        T3 (dip)     — midpoint is lower than the average of start and end
-        T5 (neutral) — generously rewarded; shape is context-dependent
-
-    Regional means (first/last quarter of each syllable window) are used instead
-    of single-frame endpoints so that edge noise does not dominate the score.
-
-    Returns a score in [0, 100].
+    Returns [] when the contour or tone list can't be scored.
     """
     user_pitch = normalize_pitch_contour(pitch_contour)
     if len(user_pitch) == 0 or not tones:
-        return 0.0
+        return []
 
     user_pitch = _smooth_for_directional_scoring(user_pitch)
 
@@ -440,6 +432,31 @@ def calculate_directional_tone_accuracy(
 
         scores.append(score)
 
+    return scores
+
+
+def calculate_directional_tone_accuracy(
+    pitch_contour: List[Tuple[float, float]], tones: List[int]
+) -> float:
+    """Directional / ordinal tone scoring tuned for connected speech.
+
+    Instead of comparing against an idealized isolated-syllable reference curve,
+    this checks only whether pitch *moves in the right direction* within each
+    syllable window.  This is far more robust to the declination, coarticulation,
+    and speaking-rate effects that distort tone shapes in natural running speech:
+
+        T1 (flat)    — variance within the syllable window is low
+        T2 (rising)  — end-region pitch > start-region pitch
+        T4 (falling) — start-region pitch > end-region pitch
+        T3 (dip)     — midpoint is lower than the average of start and end
+        T5 (neutral) — generously rewarded; shape is context-dependent
+
+    Regional means (first/last quarter of each syllable window) are used instead
+    of single-frame endpoints so that edge noise does not dominate the score.
+
+    Returns the mean of ``directional_tone_scores`` in [0, 100].
+    """
+    scores = directional_tone_scores(pitch_contour, tones)
     return float(np.mean(scores)) if scores else 0.0
 
 

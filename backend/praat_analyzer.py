@@ -565,6 +565,14 @@ def _aggregate_tone_from_words(
     return dominant_tone, round(weighted_accuracy, 1)
 
 
+# A syllable "passes" when its directional score clears this bar — the same
+# 58-point boundary generate_phrase_tone_feedback already treats as "needs
+# the clearest work". The word-level pass verdict is the MINIMUM syllable
+# score (see estimate_word_prosody), so one wrong-direction syllable fails
+# the word even when the whole-word average looks fine.
+SYLLABLE_PASS_THRESHOLD = 58.0
+
+
 def estimate_word_prosody(
     pitch_contour: List[Tuple[float, float]],
     transcription: str = "",
@@ -599,6 +607,7 @@ def estimate_word_prosody(
         apply_tone_sandhi,
         calculate_phrase_shape_accuracy,
         calculate_phrase_tone_accuracy,
+        directional_tone_scores,
         parse_pinyin_tones,
         phrase_shape_curves,
         scaled_reference_contour,
@@ -689,17 +698,42 @@ def estimate_word_prosody(
         # short to score, in which case the card falls back to raw Hz.
         user_curve: List[float] = []
         target_curve: List[float] = []
+        syllable_scores: List[float] = []
         if is_chinese and len(scoring_points) >= 4:
             tone_score = calculate_phrase_tone_accuracy(scoring_points, expected_tones)
             shape_score = calculate_phrase_shape_accuracy(scoring_points, expected_tones)
             user_curve, target_curve = phrase_shape_curves(scoring_points, expected_tones)
+            syllable_scores = directional_tone_scores(scoring_points, expected_tones)
         elif is_chinese and expected_tones:
             tone_score = 65.0
             shape_score = 65.0
+            # Too short to judge — same benefit of the doubt as the word score.
+            syllable_scores = [65.0] * len(expected_tones)
         else:
             tone_score = 0.0
             shape_score = 0.0
         is_content = _classify_content_word(token)
+
+        # Per-syllable breakdown + pass verdict. The word-level scores above
+        # average across syllables, which lets a clean second syllable mask a
+        # wrong-direction first one (e.g. 在 said rising in 在家) — so the
+        # pass gate is the *minimum* syllable score, not the mean. One entry
+        # per character; empty for non-Chinese tokens. `passed` is None for
+        # non-Chinese tokens (nothing to gate on).
+        syllables: List[Dict] = []
+        if is_chinese and syllable_scores and len(expected_tones) == len(token):
+            syllables = [
+                {
+                    "char": token[i],
+                    "tone": expected_tones[i],
+                    "score": round(score, 1),
+                    "passed": score >= SYLLABLE_PASS_THRESHOLD,
+                }
+                for i, score in enumerate(syllable_scores)
+            ]
+        word_passed = (
+            all(entry["passed"] for entry in syllables) if syllables else None
+        )
 
         # Idealized target shape for this word, scaled to its own time span
         # and pitch range so the frontend can overlay "your pitch" against
@@ -731,6 +765,8 @@ def estimate_word_prosody(
                 "expected_tones": expected_tones,
                 "tone_accuracy": round(tone_score, 1),
                 "shape_accuracy": round(shape_score, 1),
+                "syllables": syllables,
+                "passed": word_passed,
                 "is_content_word": is_content,
                 "prominence_score": 0.0,  # filled in below after utterance mean is known
                 "feedback": _word_prosody_feedback(contour_shape, pitch_range, expected_tones, shape_score),

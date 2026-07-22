@@ -88,7 +88,8 @@
       "Bash(python3)",
       "Bash(curl -s -o /dev/null -w \"vite:%{http_code}\\\\n\" http://127.0.0.1:5173/)",
       "Bash(curl -s -o /dev/null -w \"backend:%{http_code}\\\\n\" http://127.0.0.1:8000/health)",
-      "PowerShell(git add *)"
+      "PowerShell(git add *)",
+      "PowerShell(git push *)"
     ]
   },
   "enabledPlugins": {
