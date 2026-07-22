@@ -2,9 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import type { Topic } from "../components/TopicSelector";
 import { convertBlobToWav } from "../utils/audio";
 import { BiLabel } from "../components/BiLabel";
-import JourneyBubble from "../components/JourneyBubble";
 import StudentPageHeader from "../components/StudentPageHeader";
-import { getStudentId, getStudentName } from "../utils/studentSession";
 import ScoreCard from "../components/ScoreCard";
 import {
   averageWordProsodyAccuracy,
@@ -156,7 +154,6 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
 
   return (
     <main className="narration-page">
-      <JourneyBubble studentName={getStudentName()} studentId={getStudentId()} />
       <StudentPageHeader
         eyebrow={{ zh: "原型 · 看圖說話", pinyin: "Yuánxíng · kàn tú shuōhuà", en: "Prototype · Image narration" }}
         title={{ zh: "看圖說話", pinyin: "Kàn tú shuōhuà", en: "Describe the Picture" }}

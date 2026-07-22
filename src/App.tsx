@@ -10,6 +10,8 @@ import ErrorBoundary from "./components/ErrorBoundary";
 
 import LoginPage from "./pages/LoginPage";
 import Navigation from "./components/Navigation";
+import JourneyBubble from "./components/JourneyBubble";
+import { getStudentName, getStudentId } from "./utils/studentSession";
 import {
   canUseDatabase,
   createAudioRecord,
@@ -51,6 +53,10 @@ interface AudioRecord {
 interface PracticeTarget {
   topicId: string;
   imageIndex: number;
+  /** Bumped on every jump so CreateStoryPage remounts (and opens the
+   * target story) even when the student is already on the practice page
+   * or jumps to the same story twice. */
+  seq?: number;
 }
 
 export default function App() {
@@ -209,9 +215,49 @@ export default function App() {
   };
 
   const handlePracticeImage = (topicId: string, imageIndex: number) => {
-    setPracticeTarget({ topicId, imageIndex });
+    setPracticeTarget({ topicId, imageIndex, seq: Date.now() });
     setCurrentPage("student-practice");
   };
+
+  // The floating star bubble's jump target — quiz story ids may carry a
+  // Medium/Hard tier suffix on the base topic id.
+  const handleJumpToStory = (storyId: string) => {
+    const topic = storyTopics.find(
+      (t) => t.id === storyId || storyId.startsWith(`${t.id}-`),
+    );
+    if (topic) handlePracticeImage(topic.id, 0);
+  };
+
+  // Stars only come from vocab quizzes, so only quiz-capable stories join
+  // the bubble's tally and target list — a story with no translated
+  // vocabulary gets no quiz phase (see StoryRecorder's collectQuizEntries)
+  // and would otherwise pulse forever as a dead-end target. "Has any
+  // translated word" is a light proxy for that pipeline.
+  const quizStoryTopics = useMemo(
+    () =>
+      storyTopics.filter((t) =>
+        t.images.some((_, si) =>
+          (t.vocabulary[si] || []).some(
+            (_word, i) => t.vocabularyTranslation?.[si]?.[i],
+          ),
+        ),
+      ),
+    [storyTopics],
+  );
+  const storyTitles = useMemo(
+    () => Object.fromEntries(quizStoryTopics.map((t) => [t.id, t.name])),
+    [quizStoryTopics],
+  );
+
+  // One bubble across every logged-in student page (it mounts here, not
+  // per-page) — hidden only while a practice session is active, where its
+  // "jump into your current story" call-to-action would point at the
+  // place the student already is.
+  const showJourneyBubble =
+    activeRole === "student" &&
+    currentPage !== "home" &&
+    currentPage !== "student-login" &&
+    !(currentPage === "student-practice" && isInPracticeSession);
 
   const handleRaiseHand = (message: string) => {
     const studentName = getSessionName("studentSession", "Student");
@@ -259,6 +305,11 @@ export default function App() {
       )}
       {currentPage === "student-practice" && activeRole === "student" && (
         <CreateStoryPage
+          key={
+            practiceTarget
+              ? `${practiceTarget.topicId}:${practiceTarget.seq ?? 0}`
+              : "browse"
+          }
           onAddRecord={addAudioRecord}
           initialTopicId={practiceTarget?.topicId}
           initialImageIndex={practiceTarget?.imageIndex}
@@ -290,6 +341,15 @@ export default function App() {
       )}
       {currentPage === "listen-retell" && activeRole === "student" && (
         <ListenRetellPage publishedTopics={listenRetellTopics} />
+      )}
+      {showJourneyBubble && (
+        <JourneyBubble
+          studentName={getStudentName()}
+          studentId={getStudentId()}
+          storyCount={quizStoryTopics.length}
+          storyTitles={storyTitles}
+          onJumpToStory={handleJumpToStory}
+        />
       )}
     </div>
     </ErrorBoundary>
