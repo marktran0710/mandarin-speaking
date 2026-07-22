@@ -170,6 +170,82 @@ produces it.
 
 ---
 
+## Student Progression & Unlock Ladder
+
+Students never skip ahead: every stage is unlocked by measured performance, in a fixed
+chain. There are three stacked quality gates — **know the words** (quiz stars), **say them
+right** (pronunciation mastery), **level up the language** (story difficulty tiers).
+
+```mermaid
+flowchart TD
+    P([Pick a story]) --> L{Difficulty tier}
+    L -->|"🌱 Easy (always open)"| Q
+
+    subgraph Q["1 · Vocabulary quiz — star ladder"]
+        direction LR
+        T1["⭐ Tier 1\n20 questions · pass 14"] --> T2["⭐⭐ Tier 2\n22 questions · pass 18"]
+        T2 -.optional.-> T3["⭐⭐⭐ Tier 3\n25 questions · 150s · traps"]
+    end
+
+    T2 -->|"⭐⭐ earned"| SP
+
+    subgraph SP["2 · Speaking practice — mastery gate"]
+        direction TB
+        R[Record the scene sentence] --> V{Every word passes\nper-syllable tone check?}
+        V -->|no| D[Drill each failed word\nthen re-record the sentence] --> R
+        V -->|yes| N[Next scene] --> R
+    end
+
+    SP -->|all scenes passed| SUB[Submit story]
+    SUB -->|"unlocks 🌿 Medium"| L
+    SUB -->|"Medium submitted → unlocks 🌳 Hard"| L
+```
+
+### 1. Vocabulary quiz — the star ladder (`src/utils/quizTiers.ts`)
+
+| Tier | Questions | Must answer right | Time limit | Character |
+|---|---|---|---|---|
+| ⭐ Tier 1 (第一關) | 20 | 14 (70%) | none | baseline questions |
+| ⭐⭐ Tier 2 (第二關) | 22 | 18 (~82%) | none | trickier distractors |
+| ⭐⭐⭐ Tier 3 (第三關) | 25 | 22 (88%) | 150 s whole run | tone traps, timed |
+
+- Tier 1 is always open; each later tier opens once the previous star is earned
+  (`isTierUnlocked`).
+- Passing a tier earns its star **permanently** — a later failed run never demotes it
+  (`recordLocalStars` only ever raises).
+- **⭐⭐ is the gate into speaking practice** (`PRACTICE_UNLOCK_STARS = 2`): the results
+  screen only shows *Continue to practice* at two stars; below that it shows a lock note
+  plus *Try again* / *Challenge next tier*. Tier 3 is an optional extra challenge.
+- Stars are **derived, not stored**: computed from the `vocab_quiz_attempts` history
+  (`mode = tier1/2/3`, `starsFromAttempts`), so they follow the student across devices;
+  a localStorage mirror (`vocabQuizStars`) gives an instant first paint and covers
+  offline/no-database mode.
+- Backward compatibility: students who unlocked practice under an older, looser rule
+  keep their unlock (`alreadyCompleted`).
+
+### 2. Speaking practice — the pronunciation mastery gate
+
+Each scene recording is scored **per syllable** (directional pitch check against the
+expected tone, `backend/praat_analyzer.py`): a word passes only if its *weakest* syllable
+clears the bar — an average can't hide one wrong-direction tone.
+
+- Words that fail show ✗ chips per character; the student drills each failed word alone
+  (`WordPracticeDrill`), then must **re-record the whole sentence** — words first, then
+  the sentence.
+- *Next scene*, *View summary*, and *Submit* stay locked until the latest full-sentence
+  recording passes every word; the old 4-attempts escape hatch no longer bypasses
+  failing words.
+
+### 3. Story difficulty tiers — Easy → Medium → Hard (`src/utils/storyLevelProgress.ts`)
+
+Each teacher story is authored at three language tiers of the **same plot**. 🌱 Easy is
+always open; 🌿 Medium unlocks when Easy has been **submitted**; 🌳 Hard unlocks when
+Medium has been submitted (`StoryLevelPicker`). Because submission itself sits behind the
+mastery gate, "submitted" always means "spoken to standard" — so tier progression is
+earned by data, never by clicking through.
+
+---
+
 ## Exporting & Importing Stories
 
 A teacher story (its images, prompts, vocabulary, and — for Listen & Retell — listening
