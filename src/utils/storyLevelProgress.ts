@@ -29,6 +29,26 @@ export function markStoryLevelSubmitted(storyId: string, level: StoryDifficultyL
   window.localStorage.setItem(STORY_LEVEL_PROGRESS_KEY, JSON.stringify(next));
 }
 
+/** Every story id with at least one submitted difficulty level — the
+ * "story completed" signal the lesson picker's sequential lock and
+ * progress dots run on. */
+export function loadSubmittedStoryIds(): Set<string> {
+  const progress = loadStoryLevelProgress();
+  return new Set(
+    Object.keys(progress).filter((storyId) =>
+      Object.values(progress[storyId] ?? {}).some(Boolean),
+    ),
+  );
+}
+
+/** The submitted-levels map for one story ({} when none) — drives the
+ * per-story 🌱🌿🌳 tier track on the picker cards. */
+export function loadSubmittedLevels(
+  storyId: string,
+): Partial<Record<StoryDifficultyLevel, boolean>> {
+  return loadStoryLevelProgress()[storyId] ?? {};
+}
+
 /** Whether `level` is unlocked for `storyId` — Easy always is; Medium/Hard
  * require the previous tier to have been submitted at least once. */
 export function isStoryLevelUnlocked(storyId: string, level: StoryDifficultyLevel): boolean {

@@ -379,3 +379,354 @@
     padding: var(--space-md);
   }
 }
+
+/* ══ Lesson table of contents (目錄) ══════════════════════════════════
+   The picker is the book's table of contents: numbered lesson cards
+   threaded by a progress spine, each opening into that lesson's stories. */
+
+.ts-toc-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 26px;
+}
+
+.ts-toc-title {
+  font-size: 34px;
+  letter-spacing: 0.04em;
+  color: var(--clay-ink);
+  margin: 4px 0 0;
+}
+
+.ts-toc-title .ts-lesson-sub {
+  font-size: 14px;
+  margin-left: 10px;
+}
+
+.ts-lesson-sub {
+  font-family: var(--font-mono, Consolas, monospace);
+  font-size: 12.5px;
+  color: var(--clay-muted);
+  margin: 0;
+}
+
+.ts-book-chip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--clay-surface-card);
+  border: 2px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  padding: 10px 14px;
+  box-shadow: 0 3px 0 var(--clay-hairline);
+}
+
+.ts-book-cover {
+  width: 34px;
+  height: 44px;
+  border-radius: 5px;
+  background: linear-gradient(160deg, var(--seal) 0%, var(--seal-deep) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--clay-on-accent);
+  font-size: 11px;
+  font-weight: 800;
+  writing-mode: vertical-rl;
+}
+
+.ts-book-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--clay-ink);
+}
+
+.ts-book-name .ts-lesson-sub {
+  display: block;
+  font-size: 10.5px;
+}
+
+/* ── The spine: node + connector per lesson row. The connector's color is
+   the state of ITS OWN row (done = jade, current = gold, else hairline),
+   so the filled part of the line reads as "how far I've come". ── */
+.ts-lesson {
+  position: relative;
+  padding-left: 30px;
+  margin-bottom: 18px;
+}
+
+.ts-lesson::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 40px;
+  bottom: -18px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--clay-hairline);
+}
+
+.ts-lesson.is-done::before { background: var(--jade); }
+.ts-lesson.is-now::before { background: var(--gold); }
+.ts-lesson.ts-lesson-last::before { display: none; }
+
+.ts-lesson::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 32px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 4px solid var(--clay-canvas);
+  background: var(--clay-hairline);
+}
+
+.ts-lesson.is-done::after { background: var(--jade); }
+.ts-lesson.is-now::after {
+  background: var(--gold);
+  box-shadow: 0 0 0 4px var(--gold-soft);
+}
+
+/* ── Lesson card ── */
+.ts-lesson-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: var(--clay-surface-card);
+  border: 2.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  box-shadow: 0 4px 0 var(--clay-hairline);
+  padding: 18px 22px;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+
+.ts-lesson-card:hover { transform: translateY(-2px); }
+.ts-lesson-card:focus-visible {
+  outline: 3px solid var(--seal);
+  outline-offset: 2px;
+}
+.ts-lesson.is-now .ts-lesson-card {
+  border-color: var(--gold);
+  box-shadow: 0 5px 0 var(--gold-soft);
+}
+.ts-lesson.is-done .ts-lesson-card:hover {
+  border-color: var(--jade);
+  box-shadow: 0 5px 0 var(--jade-soft);
+}
+.ts-lesson.is-locked .ts-lesson-card {
+  cursor: not-allowed;
+  background: var(--clay-surface-soft);
+  box-shadow: none;
+  opacity: 0.75;
+}
+.ts-lesson.is-locked .ts-lesson-card:hover { transform: none; }
+.ts-lesson.is-locked .ts-lesson-title { color: var(--clay-muted); }
+
+.ts-num-tile {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--clay-radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  font-weight: 800;
+  color: var(--clay-on-accent);
+}
+
+.ts-num-tile-label {
+  font-size: 10px;
+  opacity: 0.85;
+  letter-spacing: 0.08em;
+}
+
+.ts-num-tile-n {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.ts-tile-seal { background: linear-gradient(150deg, var(--clay-primary), var(--seal)); }
+.ts-tile-jade { background: linear-gradient(150deg, #34c37f, var(--jade)); }
+.ts-tile-tone1 { background: linear-gradient(150deg, #5eb6ff, var(--tone1)); }
+.ts-tile-gold { background: linear-gradient(150deg, #ffc25e, var(--gold)); }
+.ts-tile-other { background: var(--clay-surface-strong); color: var(--gold-deep); }
+.ts-tile-locked { background: var(--clay-hairline); color: var(--clay-muted); }
+
+.ts-lesson-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ts-lesson-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--clay-ink);
+}
+
+.ts-lesson-main .ts-lesson-sub { margin-top: 4px; }
+
+.ts-lesson-side {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ts-story-dots {
+  display: flex;
+  gap: 5px;
+}
+
+.ts-story-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--clay-surface-card);
+  border: 2px solid var(--clay-hairline);
+}
+
+.ts-story-dot.is-done {
+  background: var(--jade);
+  border-color: var(--jade);
+}
+
+.ts-side-chip {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: var(--clay-radius-pill);
+}
+
+.ts-chip-done { background: var(--jade-soft); color: var(--jade-deep); }
+.ts-chip-now { background: var(--gold-soft); color: var(--gold-deep); }
+.ts-chip-lock {
+  background: transparent;
+  color: var(--clay-muted);
+  border: 1.5px dashed var(--clay-hairline);
+}
+.ts-chip-open { background: var(--clay-surface-soft); color: var(--clay-muted); }
+
+/* 其他 sits outside the book, detached from the spine. */
+.ts-other-block { margin-top: 30px; }
+.ts-other-block .ts-lesson::after { display: none; }
+
+.ts-other-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--clay-muted);
+  margin: 0 0 10px 30px;
+}
+
+/* ── Lesson detail screen ── */
+.ts-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--clay-muted);
+  background: transparent;
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  padding: 8px 16px;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+.ts-crumb:hover {
+  background: var(--clay-surface-soft);
+  color: var(--clay-ink);
+}
+
+.ts-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: var(--clay-surface-card);
+  border: 2.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-xl);
+  box-shadow: 0 4px 0 var(--clay-hairline);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+
+.ts-detail-head .ts-num-tile {
+  width: 72px;
+  height: 72px;
+}
+
+.ts-detail-title h2 {
+  font-size: 24px;
+  color: var(--clay-ink);
+  margin: 0;
+}
+
+.ts-detail-title .ts-lesson-sub { margin-top: 3px; }
+
+.ts-detail-progress {
+  margin-left: auto;
+  text-align: right;
+}
+
+.ts-detail-progress .ts-story-dots {
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+
+/* ── Per-story 🌱🌿🌳 tier track on the cards ── */
+.ts-tier-track {
+  display: flex;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1.5px dashed var(--clay-hairline-soft);
+}
+
+.ts-tier-cell {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.ts-tier-done { background: var(--jade-soft); }
+.ts-tier-open {
+  background: var(--clay-surface-soft);
+  border: 1.5px solid var(--clay-hairline);
+}
+.ts-tier-lock {
+  background: var(--clay-surface-soft);
+  border: 1.5px solid var(--clay-hairline);
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+@media (max-width: 560px) {
+  .ts-toc-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .ts-lesson-card {
+    flex-wrap: wrap;
+  }
+  .ts-lesson-side {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
