@@ -183,20 +183,29 @@ button.ssb-phase:hover {
     flex-direction: row;
     align-items: center;
     flex: 1 1 100%;
+    /* Hard caps: without these the group's auto minimum tracks the
+       journey's full row of stops and pushes past the sidebar edge,
+       giving the whole page a horizontal scrollbar on phones. */
+    min-width: 0;
+    max-width: 100%;
   }
+  /* The journey flips back to a horizontal row that scrolls inside this
+     box — the scroll container is the flex item itself (min-width: 0
+     guarantees it shrinks), with the path laid out at max-content inside. */
   .ssb-journey {
     border-left: none;
     margin-left: 0;
     padding-left: 4px;
     flex: 1;
     min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
   }
-  /* The nested journey flips back to a horizontal scroll row: hide the
-     rotated connectors, let stops flow inline. */
   .ssb-journey .journey-path-vertical {
     flex-direction: row;
     align-items: center;
-    overflow-x: auto;
+    overflow-x: visible;
+    width: max-content;
     padding: 2px 0;
   }
   .ssb-journey .journey-path-vertical .journey-item {

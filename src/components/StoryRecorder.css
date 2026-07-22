@@ -26,7 +26,10 @@
 }
 @media (max-width: 900px) {
   .story-recorder {
-    grid-template-columns: 1fr;
+    /* minmax(0, …), not bare 1fr — 1fr's auto minimum lets wide inner
+       content (the 5-column vocab table) win over the viewport and give
+       the whole page a horizontal scrollbar on phones. */
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
   }
 }
@@ -2525,6 +2528,10 @@
   border: 1.5px solid var(--clay-hairline-soft);
   border-radius: var(--clay-radius-md);
   padding: 12px;
+  /* The card hugs its image + chip — without this, the default grid-item
+     stretch drags the tinted card down the full height of the (much
+     taller) content column beside it. */
+  align-self: start;
 }
 .practice-scene-image {
   display: block;
@@ -2753,7 +2760,9 @@
 
 .scene-vocab-row {
   display: grid;
-  grid-template-columns: auto 1.1fr 1.1fr 0.7fr 1.4fr;
+  /* minmax(0, …) so long cells wrap inside their track instead of
+     inflating the row's min-content width past narrow viewports. */
+  grid-template-columns: auto minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 0.7fr) minmax(0, 1.4fr);
   gap: 10px;
   align-items: baseline;
   padding: 5px 8px;
@@ -2765,7 +2774,7 @@
 /* One extra trailing column for the per-word practice mic toggle, used only
    on the scene vocabulary table shown during active recording practice. */
 .scene-vocab-row-practice {
-  grid-template-columns: auto 1.1fr 1.1fr 0.7fr 1.4fr auto;
+  grid-template-columns: auto minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 0.7fr) minmax(0, 1.4fr) auto;
 }
 
 .scene-vocab-status {
