@@ -107,7 +107,11 @@ export default function CreateStoryPage({
           }}
         />
       ) : !selectedTopic ? (
-        <TopicSelector onTopicSelect={handleTopicSelect} />
+        <TopicSelector
+          onTopicSelect={handleTopicSelect}
+          studentName={getStudentName()}
+          studentId={getStudentId()}
+        />
       ) : (
         <div className="csp-recorder-body">
           <StoryRecorder

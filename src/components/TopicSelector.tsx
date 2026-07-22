@@ -26,6 +26,7 @@ import {
 import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
 import "./BiLabel.css";
+import JourneyStrip from "./JourneyStrip";
 
 export interface VocabGroup {
   name: string;
@@ -79,6 +80,10 @@ export interface Topic {
 
 interface TopicSelectorProps {
   onTopicSelect?: (topic: Topic) => void;
+  // Optional student identity — powers the journey strip's greeting and its
+  // backend-derived star totals; omitting them keeps the strip local-only.
+  studentName?: string;
+  studentId?: string;
 }
 
 export const TOPICS: Topic[] = [];
@@ -116,7 +121,11 @@ const LEVEL_ICONS: Record<StoryDifficultyLevel, string> = {
   hard: "🌳",
 };
 
-export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
+export default function TopicSelector({
+  onTopicSelect,
+  studentName,
+  studentId,
+}: TopicSelectorProps) {
   const [topics, setTopics] = useState<Topic[]>(() =>
     loadPublishedTeacherTopics().filter(isStoryModeTopic),
   );
@@ -195,6 +204,25 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
       group.lessonNumber !== null &&
       isLessonGroupUnlocked(groups, index, submittedIds) &&
       lessonCompletion(group, submittedIds).done < group.topics.length,
+  );
+
+  // The unified student-shell opener (see JourneyStrip): identical on the
+  // contents screen and inside a lesson, so the "journey" reads as one
+  // place. Jumping from a near-miss nudge opens that story directly (quiz
+  // ids for Medium/Hard tiers suffix the base topic id).
+  const journeyStrip = (
+    <JourneyStrip
+      studentName={studentName}
+      studentId={studentId}
+      storyCount={topics.length}
+      storyTitles={Object.fromEntries(topics.map((t) => [t.id, t.name]))}
+      onJumpToStory={(storyId) => {
+        const topic = topics.find(
+          (t) => t.id === storyId || storyId.startsWith(`${t.id}-`),
+        );
+        if (topic) onTopicSelect?.(topic);
+      }}
+    />
   );
 
   const openGroup =
@@ -315,6 +343,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
     return (
       <div className="topic-selector">
         <div className="ts-container">
+        {journeyStrip}
         <button
           type="button"
           className="ts-crumb"
@@ -379,6 +408,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
   return (
     <div className="topic-selector">
       <div className="ts-container">
+      {journeyStrip}
       <header className="ts-toc-head">
         <div>
           <p className="platform-kicker"><BiLabel k="real_life_speaking_practice" /></p>

@@ -1,0 +1,58 @@
+/* The unified opener strip of every non-practice student page — one thin
+   band, same order everywhere: greeting · star tally · motivational slot.
+   Sits on the shared 1160px content column (--content-max). */
+.journey-strip {
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
+  margin: 0 auto var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  padding: var(--space-xs) var(--space-md);
+  background: var(--clay-surface-card);
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill, 999px);
+  font-size: 14px;
+}
+
+.journey-strip-greeting {
+  font-weight: 700;
+  color: var(--clay-ink);
+}
+
+.journey-strip-stars {
+  font-weight: 800;
+  color: var(--gold-deep);
+  white-space: nowrap;
+}
+
+.journey-strip-message {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin-left: auto;
+  color: var(--clay-body);
+}
+
+/* The near-miss jump button — the strip's only loud element. */
+.journey-strip-jump {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  border: 2px solid var(--gold-deep);
+  background: var(--gold);
+  color: #fff;
+  box-shadow: 0 3px 0 var(--gold-deep);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.journey-strip-jump:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--gold-deep);
+}
+.journey-strip-jump:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--gold-deep);
+}
