@@ -38,13 +38,20 @@ class TestVerifyWordTranscription:
         assert match is False
 
     @pytest.mark.asyncio
-    async def test_no_match_when_recognized_text_empty(self):
+    async def test_unverifiable_when_recognized_text_empty(self):
+        """Empty ASR output means "couldn't hear", not "wrong word".
+
+        Whisper routinely returns nothing for 1-2s single-syllable clips
+        (e.g. a student drilling 在) — treating that as a mismatch blocked
+        passing drills from ever firing onPass. Empty is unverifiable
+        (None), the same fail-open contract as an ASR error.
+        """
         from main import _verify_word_transcription
         with patch("main.transcribe_audio_content", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="   ", model="auto:ctwhisper")
             recognized, match = await _verify_word_transcription(SILENT_WAV, "你好")
         assert recognized == ""
-        assert match is False
+        assert match is None
 
     @pytest.mark.asyncio
     async def test_fails_open_on_asr_error(self):

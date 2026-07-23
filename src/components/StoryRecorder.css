@@ -771,6 +771,25 @@
   border: 1.5px solid var(--clay-error);
 }
 
+/* …and flips green the moment its own drill re-earns the word, so the
+   frame agrees with the ✓ the student just saw (the chips elsewhere
+   already turned). */
+.word-prosody-card.word-prosody-cleared {
+  border: 1.5px solid var(--jade);
+}
+.word-prosody-card.word-prosody-cleared .word-prosody-topline > strong {
+  color: var(--jade-deep);
+}
+.word-prosody-cleared-chip {
+  padding: 3px 8px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
 .word-practice-pass-chip,
 .word-practice-fail-chip {
   padding: 3px 8px;

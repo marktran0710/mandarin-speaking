@@ -1265,8 +1265,14 @@ async def _verify_word_transcription(
     try:
         result = await transcribe_audio_content(audio_content, model, vocab_hint=vocab_hint or word)
         recognized = convert_to_traditional_chinese(result.text).strip()
-        match = bool(recognized) and word.strip() in recognized
-        return recognized, match
+        if not recognized:
+            # ASR heard nothing — on a 1-2s single-syllable drill clip
+            # that's an ASR limitation, not evidence the wrong word was
+            # spoken. Unverifiable (None), the same fail-open contract as
+            # an ASR error; a hard False here silently blocked passing
+            # drills from ever clearing their mastery chip.
+            return recognized, None
+        return recognized, word.strip() in recognized
     except Exception as exc:
         logger.warning("Word content verification failed: %s", exc)
         return None, None
