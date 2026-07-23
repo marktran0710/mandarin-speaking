@@ -346,7 +346,7 @@
   padding: 20px 20px 16px;
   background: var(--seal-soft);
   border: 1.5px solid var(--seal);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-md);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1054,7 +1054,7 @@
    that reads as a stamped panel, using rgba-on-ink instead of cold slate. */
 .feedback-summary {
   background: var(--clay-ink);
-  border-radius: 18px;
+  border-radius: var(--clay-radius-lg);
   padding: 22px 20px 18px;
   margin-bottom: 18px;
   color: rgba(250, 248, 244, 0.92);
@@ -1119,7 +1119,7 @@
   gap: 4px;
   padding: 12px 10px;
   background: rgba(250, 248, 244, 0.08);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   text-align: center;
 }
 .feedback-summary-bar-label {
@@ -1150,7 +1150,7 @@
   padding: 14px 16px;
   background: var(--clay-surface-soft);
   border: 1px solid var(--clay-hairline);
-  border-radius: 10px;
+  border-radius: var(--clay-radius-md);
 }
 .score-guide-heading {
   font-size: 10px;
@@ -1206,7 +1206,7 @@
   padding: 14px 16px;
   background: var(--jade-soft);
   border: 1px solid var(--jade);
-  border-radius: 10px;
+  border-radius: var(--clay-radius-md);
 }
 .content-accuracy-feedback {
   font-size: 0.85rem;
@@ -1243,7 +1243,7 @@
   padding: 20px 24px;
   background: var(--clay-surface-card);
   border: 1.5px solid var(--clay-hairline);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-md);
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1469,7 +1469,7 @@
   gap: 24px;
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-xl, 16px);
+  border-radius: var(--clay-radius-xl);
   padding: 28px 32px;
   box-shadow: var(--shadow-sm);
   animation: slideIn 0.4s ease-out;
@@ -1546,7 +1546,7 @@
   gap: 14px;
   margin-top: 20px;
   padding: 16px 20px;
-  border-radius: var(--clay-radius-lg, 12px);
+  border-radius: var(--clay-radius-lg);
   border-left: 5px solid;
   animation: fadeIn 0.3s ease-out;
 }
@@ -1587,7 +1587,7 @@
   flex-direction: column;
   background: var(--clay-surface-card);
   border: 2px dashed var(--clay-hairline);
-  border-radius: var(--clay-radius-lg, 12px);
+  border-radius: var(--clay-radius-lg);
   padding: 16px;
   min-height: 260px;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1698,7 +1698,7 @@
   position: relative;
   width: 100%;
   height: 120px;
-  border-radius: var(--clay-radius-md, 8px);
+  border-radius: var(--clay-radius-md);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
@@ -1760,7 +1760,7 @@
 .sorting-pool-section {
   background: var(--clay-surface-soft);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg, 12px);
+  border-radius: var(--clay-radius-lg);
   padding: 20px 24px;
 }
 
@@ -1778,7 +1778,7 @@
   align-items: center;
   justify-content: center;
   border: 2px dashed var(--clay-hairline);
-  border-radius: var(--clay-radius-md, 8px);
+  border-radius: var(--clay-radius-md);
   background: var(--clay-surface-card);
   padding: 16px;
   transition: background 0.2s;
@@ -1807,7 +1807,7 @@
 .sorting-pool-card {
   width: 140px;
   height: 100px;
-  border-radius: var(--clay-radius-md, 8px);
+  border-radius: var(--clay-radius-md);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   position: relative;
@@ -1869,7 +1869,7 @@
   font-size: 14.5px;
   font-weight: 650;
   padding: 12px 24px;
-  border-radius: var(--clay-radius-md, 8px);
+  border-radius: var(--clay-radius-md);
   cursor: pointer;
   transition: all 0.2s;
   border: none;
@@ -2148,7 +2148,7 @@
   display: grid;
   gap: 4px;
   border: 1.5px solid var(--gold);
-  border-radius: 10px;
+  border-radius: var(--clay-radius-md);
   background: var(--gold-soft);
   padding: 6px;
 }
@@ -2159,7 +2159,7 @@
   gap: 10px;
   align-items: baseline;
   padding: 5px 8px;
-  border-radius: 6px;
+  border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-card);
 }
 
@@ -2210,7 +2210,7 @@
   gap: 8px;
   background: var(--clay-surface-card);
   border: 2.5px solid var(--clay-hairline);
-  border-radius: 18px;
+  border-radius: var(--clay-radius-lg);
   padding: 24px 20px;
   cursor: pointer;
   box-shadow: 0 4px 0 var(--clay-hairline);
@@ -2304,7 +2304,7 @@
 .start-practice-modal-list li {
   background: var(--clay-surface-soft);
   border: 1px solid var(--clay-hairline);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   padding: 12px 14px;
   font-size: 14px;
   line-height: 1.5;
@@ -2331,7 +2331,7 @@
 .example-frame-panel {
   background: var(--jade-soft);
   border: 2px solid var(--jade);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   padding: 16px;
   margin-bottom: 16px;
 }
@@ -2693,7 +2693,7 @@
   gap: 4px;
   background: var(--seal-soft);
   border: 1.5px solid var(--seal);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   padding: 10px 14px;
   margin-top: 10px;
 }
@@ -2726,7 +2726,7 @@
 .practice-model-sentence {
   background: var(--jade-soft);
   border: 1.5px solid var(--jade);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   padding: 14px 16px;
   margin-top: 16px;
 }
@@ -2745,7 +2745,7 @@
 .practice-vocab-ref {
   background: var(--gold-soft);
   border: 1.5px solid var(--gold);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   padding: 14px 16px;
 }
 .practice-vocab-heading {
@@ -2755,7 +2755,7 @@
 .vocab-chip {
   background: var(--clay-surface-card);
   border: 1.5px solid var(--gold);
-  border-radius: 7px;
+  border-radius: var(--clay-radius-sm);
   padding: 5px 11px;
   font-size: 1rem;
   font-weight: 700;
@@ -2772,7 +2772,7 @@
   display: grid;
   gap: 4px;
   border: 1.5px solid var(--gold);
-  border-radius: 10px;
+  border-radius: var(--clay-radius-md);
   background: var(--gold-soft);
   padding: 6px;
 }
@@ -2785,7 +2785,7 @@
   gap: 10px;
   align-items: baseline;
   padding: 5px 8px;
-  border-radius: 6px;
+  border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-card);
   transition: background 0.2s, border-color 0.2s;
 }
@@ -2867,7 +2867,7 @@
 .recording-playback {
   background: var(--clay-hairline-soft);
   border: 1.5px solid var(--clay-hairline);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   padding: 14px 16px;
   margin-bottom: 20px;
 }
@@ -2983,7 +2983,7 @@
 .practice-chips-group > div { display: flex; flex-wrap: wrap; gap: 6px; }
 .practice-chip {
   background: var(--clay-hairline-soft);
-  border-radius: 6px;
+  border-radius: var(--clay-radius-sm);
   padding: 4px 10px;
   font-size: 13px;
   font-weight: 600;
@@ -3001,7 +3001,7 @@
   margin-top: 6px;
   padding: 7px 10px;
   border: 1.5px solid var(--clay-hairline);
-  border-radius: 7px;
+  border-radius: var(--clay-radius-sm);
   font-size: 12px;
   color: var(--clay-ink);
   background: var(--clay-surface-card);
@@ -3025,7 +3025,7 @@
 .attempt-trend {
   background: var(--clay-surface-soft);
   border: 1px solid var(--clay-hairline);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   padding: 16px 20px;
   margin-bottom: 16px;
 }
@@ -3077,7 +3077,7 @@
 .tone-direction-card {
   background: var(--jade-soft);
   border: 1.5px solid var(--jade);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   padding: 16px 20px;
   margin-bottom: 16px;
 }

@@ -79,7 +79,7 @@
   right: 12%;
   bottom: -8px;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--tone-color);
   transform-origin: center;
 }
@@ -199,7 +199,7 @@
   position: absolute;
   inset: 28px;
   border: 1px dashed color-mix(in srgb, var(--seal) 22%, transparent);
-  border-radius: 22px;
+  border-radius: var(--clay-radius-lg);
   pointer-events: none;
 }
 
@@ -216,7 +216,7 @@
   aspect-ratio: 3 / 2;
   object-fit: cover;
   border: 6px solid var(--clay-surface-card);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-md);
   box-shadow: var(--shadow-md);
 }
 
@@ -596,12 +596,12 @@
 
   .story-preview-stage {
     min-height: 410px;
-    border-radius: 22px;
+    border-radius: var(--clay-radius-lg);
   }
 
   .story-preview-stage::before {
     inset: 18px;
-    border-radius: 16px;
+    border-radius: var(--clay-radius-md);
   }
 
   .story-preview-scenes {
@@ -612,7 +612,7 @@
   .story-preview-image {
     width: 68%;
     border-width: 6px;
-    border-radius: 14px;
+    border-radius: var(--clay-radius-md);
   }
 
   .vertical-title {

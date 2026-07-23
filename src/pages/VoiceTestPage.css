@@ -85,7 +85,7 @@
 
 .voice-step-row span {
   padding: 7px 11px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--seal-soft);
   color: var(--seal-deep);
   font-size: 13px;
@@ -499,7 +499,7 @@
 
 .ai-card-header span {
   padding: 5px 10px;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--jade-soft);
   color: var(--jade-deep);
   font-size: 12px;

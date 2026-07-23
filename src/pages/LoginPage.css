@@ -27,7 +27,7 @@
   margin-bottom: var(--space-md);
   padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--clay-hairline);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-card);
   color: var(--clay-body);
   font-weight: 700;

@@ -79,7 +79,7 @@
   height: 40px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   color: var(--clay-on-accent);
   font-size: 15px;
   font-weight: 700;
@@ -114,7 +114,7 @@
 .ts-topic-count {
   margin-left: auto;
   padding: var(--space-2xs) var(--space-sm);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-soft, #fff6ea);
   color: var(--clay-muted);
   font-size: 12px;
@@ -185,7 +185,7 @@
   bottom: 8px;
   right: 8px;
   padding: var(--space-2xs) var(--space-xs);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   /* Darker than the lesson badge's plain --clay-ink fill since this sits
      over an arbitrary photo, not a flat surface — needs the extra margin
      to keep the white text readable regardless of what's underneath. */
@@ -203,7 +203,7 @@
   top: 8px;
   left: 8px;
   padding: var(--space-2xs) var(--space-xs);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-ink);
   color: var(--clay-on-accent);
   font-size: 11px;
@@ -704,7 +704,7 @@
 .ts-tier-cell {
   width: 26px;
   height: 26px;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
