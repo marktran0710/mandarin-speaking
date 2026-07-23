@@ -29,6 +29,7 @@ import StoryVocabQuiz, {
 } from "./StoryVocabQuiz";
 import { type JourneyStop, type JourneyStopStatus } from "./JourneyPath";
 import { toPinyin } from "../utils/pinyin";
+import { isAdminSession } from "../utils/studentSession";
 import { markStoryLevelSubmitted } from "../utils/storyLevelProgress";
 import type { CustomTeacherStory, StoryDifficultyLevel } from "../utils/teacherStories";
 import { convertBlobToWav } from "../utils/audio";
@@ -708,7 +709,11 @@ export default function StoryRecorder({
   const [vocabQuizCompleted, setVocabQuizCompleted] = useState(
     () => loadCompletedVocabQuizzes()[topic.id] === true,
   );
-  const speakingLocked = hasVocabQuiz && !vocabQuizCompleted;
+  // Admin backdoor (name "admin" at login): every gate in the session
+  // reads as passed — quiz-before-speaking here, per-scene mastery below
+  // (sceneReady's own bypass lives in storyRecorderFeedback).
+  const isAdmin = isAdminSession();
+  const speakingLocked = hasVocabQuiz && !vocabQuizCompleted && !isAdmin;
 
   const handleVocabQuizDone = () => {
     markVocabQuizCompleted(topic.id);
@@ -1472,7 +1477,7 @@ export default function StoryRecorder({
   const allScenesRecorded =
     completedSceneCount >= totalScenes &&
     Object.keys(sceneRecordings).every(
-      (key) => masteryPassedMap[Number(key)] ?? false,
+      (key) => isAdmin || (masteryPassedMap[Number(key)] ?? false),
     );
 
   const handleSubmitStory = useCallback(async () => {
@@ -1554,7 +1559,8 @@ export default function StoryRecorder({
     .map(({ img, idx }): JourneyStopBase => {
       const prog = sceneProgress[idx];
       const ready =
-        (prog ? sceneReady(prog) : false) && (masteryPassedMap[idx] ?? false);
+        (prog ? sceneReady(prog) : isAdmin) &&
+        (isAdmin || (masteryPassedMap[idx] ?? false));
       const started = Boolean(prog && prog.attempts > 0);
       return {
         key: idx,
@@ -1835,7 +1841,9 @@ export default function StoryRecorder({
               recordingButtonDisabled={recordingButtonDisabled}
               onPrimaryRecordingAction={handlePrimaryRecordingAction}
               onSubmitVoiceFile={handleSubmitVoiceFile}
-              masteryPassed={masteryPassedMap[selectedImageIndex] ?? false}
+              masteryPassed={
+                isAdmin || (masteryPassedMap[selectedImageIndex] ?? false)
+              }
               clearedWords={clearedWordsMap[selectedImageIndex] ?? []}
               onWordDrillPass={handleWordDrillPass}
               hasNextScene={selectedImageIndex + 1 < topic.images.length}
@@ -2037,9 +2045,10 @@ export default function StoryRecorder({
               {(() => {
                 const prog = sceneProgress[selectedImageIndex];
                 const ready =
-                  Boolean(prog) &&
-                  sceneReady(prog) &&
-                  (masteryPassedMap[selectedImageIndex] ?? false);
+                  isAdmin ||
+                  (Boolean(prog) &&
+                    sceneReady(prog) &&
+                    (masteryPassedMap[selectedImageIndex] ?? false));
                 const nextIdx = selectedImageIndex + 1;
                 const hasNext = nextIdx < topic.images.length;
                 let status: JSX.Element;

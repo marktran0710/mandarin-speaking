@@ -6,6 +6,8 @@
 // working off the same table; the localStorage mirror below covers the
 // no-database mode, following the storyLevelProgress.ts pattern.
 
+import { isAdminSession } from "./studentSession";
+
 export type QuizTier = 1 | 2 | 3;
 export type TierMode = "tier1" | "tier2" | "tier3";
 
@@ -72,6 +74,7 @@ export function starsByStory(
 /** Tier 1 is always open; each later tier opens once the previous star is
  * earned. */
 export function isTierUnlocked(tier: QuizTier, stars: number): boolean {
+  if (isAdminSession()) return true;
   return stars >= tier - 1;
 }
 
@@ -81,6 +84,7 @@ export const PRACTICE_UNLOCK_STARS = 2;
 
 /** Whether this many stars opens the story's speaking practice. */
 export function practiceUnlocked(stars: number): boolean {
+  if (isAdminSession()) return true;
   return stars >= PRACTICE_UNLOCK_STARS;
 }
 

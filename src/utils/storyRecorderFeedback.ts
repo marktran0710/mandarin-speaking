@@ -3,6 +3,7 @@ import type {
   PraatMetrics,
   WordProsody,
 } from "../components/StoryRecorder";
+import { isAdminSession } from "./studentSession";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -115,6 +116,8 @@ export function sceneReady(prog: {
   bestTone: number;
   bestFluency: number;
 }): boolean {
+  // Admin backdoor: every scene reads as passed (see isAdminSession).
+  if (isAdminSession()) return true;
   // Short-phrase threshold: tone accuracy ≥ 70%
   // Long-sentence threshold: fluency ≥ 65%
   // Override: 4+ attempts always unlocks next scene

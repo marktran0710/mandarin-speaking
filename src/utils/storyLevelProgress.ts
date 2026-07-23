@@ -1,4 +1,5 @@
 import type { StoryDifficultyLevel } from "./teacherStories";
+import { isAdminSession } from "./studentSession";
 
 // Mirrors the vocabQuizCompletedStoryIds pattern in StoryRecorder.tsx: a
 // flat, per-browser/device localStorage map (not per-student, not synced to
@@ -53,6 +54,7 @@ export function loadSubmittedLevels(
  * require the previous tier to have been submitted at least once. */
 export function isStoryLevelUnlocked(storyId: string, level: StoryDifficultyLevel): boolean {
   if (level === "easy") return true;
+  if (isAdminSession()) return true;
   const progress = loadStoryLevelProgress();
   const done = progress[storyId] || {};
   if (level === "medium") return done.easy === true;

@@ -1,4 +1,5 @@
 import type { Topic } from "../components/TopicSelector";
+import { isAdminSession } from "./studentSession";
 
 /** The lesson picker is the table of contents of 時代華語 第一冊 (Modern
  * Chinese Book 1) — the textbook every story in this app is grounded in.
@@ -100,6 +101,7 @@ export function isLessonGroupUnlocked(
 ): boolean {
   const group = groups[index];
   if (!group) return false;
+  if (isAdminSession()) return true;
   if (group.lessonNumber === null) return true;
   if (index === 0) return true;
   const previous = groups[index - 1];
