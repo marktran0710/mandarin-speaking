@@ -11,11 +11,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import StudentLoginPage from "./pages/StudentLoginPage";
 import Navigation from "./components/Navigation";
 import JourneyBubble from "./components/JourneyBubble";
-import {
-  getStudentName,
-  getStudentId,
-  isAdminSession,
-} from "./utils/studentSession";
+import { getStudentName, getStudentId } from "./utils/studentSession";
 import {
   canUseDatabase,
   createAudioRecord,
@@ -385,10 +381,10 @@ export default function App() {
           studentId={getStudentId()}
           storyCount={quizStoryTopics.length}
           storyTitles={storyTitles}
-          // Admin has nothing locked — an empty candidate list keeps the
-          // bubble on its quiet dial instead of pulsing at a gate that
-          // doesn't apply.
-          targetIds={isAdminSession() ? [] : bubbleTargetIds}
+          // Admin gets the same bubble as a student — the pulse is a demo
+          // surface, not a gate, and an inert dial reads as broken when
+          // the teacher walks through the app (which is what admin is for).
+          targetIds={bubbleTargetIds}
           refreshToken={`${currentPage}:${isInPracticeSession}`}
           onJumpToStory={handleJumpToStory}
         />
