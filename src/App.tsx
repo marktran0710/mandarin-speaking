@@ -8,7 +8,7 @@ import ImageNarrationPage from "./pages/ImageNarrationPage";
 import ListenRetellPage from "./pages/ListenRetellPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 
-import LoginPage from "./pages/LoginPage";
+import StudentLoginPage from "./pages/StudentLoginPage";
 import Navigation from "./components/Navigation";
 import JourneyBubble from "./components/JourneyBubble";
 import {
@@ -335,7 +335,10 @@ export default function App() {
       />
       {currentPage === "home" && <HomePage onNavigate={setCurrentPage} />}
       {currentPage === "student-login" && (
-        <LoginPage role="student" onLogin={handleLogin} onBack={() => setCurrentPage("home")} />
+        <StudentLoginPage
+          onLogin={handleLogin}
+          onBack={() => setCurrentPage("home")}
+        />
       )}
       {currentPage === "student-practice" && activeRole === "student" && (
         <CreateStoryPage

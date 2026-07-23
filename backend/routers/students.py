@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, HTTPException
 
 from database import connect_db, row_to_student
-from main import StudentCreateRequest
+from main import StudentCreateRequest, StudentLoginRequest
 
 router = APIRouter()
 
@@ -41,6 +41,36 @@ async def create_student(request: StudentCreateRequest):
             "SELECT * FROM students WHERE id = ?", (student_id,)
         ).fetchone()
     return row_to_student(created)
+
+
+@router.post("/api/students/login")
+async def login_student(request: StudentLoginRequest):
+    """Password check for the student login page (default 123456).
+
+    A classroom friction gate, not real auth: plaintext comparison, no
+    tokens — success just hands back the roster record the frontend
+    stores in its localStorage session, same as before passwords existed.
+    """
+    if not (request.studentId or (request.name and request.name.strip())):
+        raise HTTPException(status_code=400, detail="Provide a student id or name.")
+
+    with connect_db() as db:
+        if request.studentId:
+            row = db.execute(
+                "SELECT * FROM students WHERE id = ?", (request.studentId,)
+            ).fetchone()
+        else:
+            row = db.execute(
+                "SELECT * FROM students WHERE name = ? COLLATE NOCASE",
+                (request.name.strip(),),
+            ).fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=404, detail="Student not found")
+    stored = row["password"] if "password" in row.keys() else None
+    if request.password != (stored or "123456"):
+        raise HTTPException(status_code=401, detail="Wrong password")
+    return row_to_student(row)
 
 
 @router.delete("/api/students/{student_id}")

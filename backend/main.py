@@ -548,6 +548,14 @@ class StudentCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
 
 
+class StudentLoginRequest(BaseModel):
+    # Either the roster id (preferred, stable) or the display name —
+    # whichever the login form has in hand.
+    studentId: Optional[str] = None
+    name: Optional[str] = None
+    password: str = Field(..., min_length=1, max_length=100)
+
+
 class Student(BaseModel):
     id: str
     name: str

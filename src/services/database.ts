@@ -522,6 +522,28 @@ export async function listStudents(): Promise<Student[]> {
   return Array.isArray(data) ? data : [];
 }
 
+/** Password check for the student login page (default 123456). Throws with
+ * a wrong-password flag so the form can tell "wrong password" apart from
+ * "backend unreachable". */
+export async function loginStudent(params: {
+  studentId?: string;
+  name?: string;
+  password: string;
+}): Promise<Student> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/students/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (response.status === 401 || response.status === 404) {
+    const error = new Error("Wrong name or password.");
+    (error as Error & { wrongCredentials?: boolean }).wrongCredentials = true;
+    throw error;
+  }
+  if (!response.ok) throw new Error("Could not sign in.");
+  return response.json() as Promise<Student>;
+}
+
 export async function createStudent(name: string): Promise<Student> {
   const response = await fetchWithRetry(`${BACKEND_URL}/api/students`, {
     method: "POST",

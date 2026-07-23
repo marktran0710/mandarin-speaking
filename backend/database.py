@@ -134,6 +134,10 @@ def init_db() -> None:
             )
             """
         )
+        # Student login password — plaintext by design: a classroom
+        # friction gate (default 123456, teacher-resettable later), not a
+        # security boundary; the whole app runs on a trusted LAN.
+        ensure_column(db, "students", "password", "TEXT NOT NULL DEFAULT '123456'")
 
 
 def row_to_audio_record(row: sqlite3.Row) -> dict:
