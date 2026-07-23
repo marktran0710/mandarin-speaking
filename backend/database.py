@@ -72,6 +72,9 @@ def init_db() -> None:
         ensure_column(db, "custom_stories", "lesson_number", "INTEGER")
         ensure_column(db, "custom_stories", "narrative_mode", "TEXT NOT NULL DEFAULT 'story'")
         ensure_column(db, "custom_stories", "first_frame_is_example", "INTEGER NOT NULL DEFAULT 0")
+        # Teacher-marked bad quiz material (see /quiz-exclusions): JSON list
+        # of {word, kind, index?} the quiz must never build questions from.
+        ensure_column(db, "custom_stories", "quiz_exclusions", "TEXT")
         # Superseded by the per-frame easy/medium/hard difficulty tiers —
         # a single free-text "level" description no longer means anything.
         ensure_column_dropped(db, "custom_stories", "level")
@@ -174,6 +177,7 @@ def row_to_story_submission(row: sqlite3.Row) -> dict:
 
 
 def row_to_custom_story(row: sqlite3.Row) -> dict:
+    row_keys = row.keys()
     return {
         "id": row["id"],
         "title": row["title"],
@@ -184,6 +188,11 @@ def row_to_custom_story(row: sqlite3.Row) -> dict:
         "lessonNumber": row["lesson_number"],
         "narrativeMode": row["narrative_mode"],
         "firstFrameIsExample": bool(row["first_frame_is_example"]),
+        "quizExclusions": (
+            json.loads(row["quiz_exclusions"] or "[]")
+            if "quiz_exclusions" in row_keys
+            else []
+        ),
     }
 
 

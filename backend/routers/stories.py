@@ -6,6 +6,7 @@ from database import connect_db, row_to_custom_story
 import main
 from main import (
     CustomStoryRequest,
+    QuizExclusionsUpdateRequest,
     VocabularyClozeUpdateRequest,
     VocabularyDistractorsUpdateRequest,
     VocabularyLookalikeUpdateRequest,
@@ -181,6 +182,28 @@ async def update_vocabulary_lookalike(
             (json.dumps(frames), story_id),
         )
     return {"ok": True}
+
+
+@router.put("/api/custom-stories/{story_id}/quiz-exclusions")
+async def update_quiz_exclusions(story_id: str, request: QuizExclusionsUpdateRequest):
+    """Replaces the story's teacher-marked bad-quiz-material list wholesale —
+    the review page's toggles always send the complete current set, so PUT
+    semantics keep the endpoint idempotent and trivially undoable."""
+    payload = json.dumps(
+        [exclusion.model_dump(exclude_none=True) for exclusion in request.exclusions],
+        ensure_ascii=False,
+    )
+    with connect_db() as db:
+        row = db.execute(
+            "SELECT id FROM custom_stories WHERE id = ?", (story_id,)
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Story not found.")
+        db.execute(
+            "UPDATE custom_stories SET quiz_exclusions = ? WHERE id = ?",
+            (payload, story_id),
+        )
+    return {"id": story_id, "quizExclusions": json.loads(payload)}
 
 
 @router.patch("/api/custom-stories/{story_id}/vocabulary-cloze")

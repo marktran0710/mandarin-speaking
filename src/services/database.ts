@@ -331,6 +331,25 @@ export interface VocabularyClozeUpdate {
 // capped server-side) rather than replacing it — mirrors
 // updateVocabularyDistractors above, called after a student finishes a vocab
 // quiz round so cloze sentences keep varying over time.
+/** Replaces a story's teacher-marked bad-quiz-material list (see
+ * TeacherQuizReviewPage) — PUT semantics, the full current set each time. */
+export async function updateQuizExclusions(
+  storyId: string,
+  exclusions: Array<{ word: string; kind: string; index?: number }>,
+): Promise<void> {
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/quiz-exclusions`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ exclusions }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error("Could not save the quiz exclusion list.");
+  }
+}
+
 export async function updateVocabularyCloze(
   storyId: string,
   updates: VocabularyClozeUpdate[],

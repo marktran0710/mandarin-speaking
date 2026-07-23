@@ -548,6 +548,20 @@ class StudentCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
 
 
+class QuizExclusion(BaseModel):
+    """One piece of quiz material the teacher marked bad (see the teacher
+    quiz-review page): a whole word ("word") or one candidate of a per-word
+    AI pool ("cloze"/"synonym" with its pool index, or the whole
+    "lookalike"/"distractors" pool)."""
+    word: str = Field(..., min_length=1, max_length=50)
+    kind: str = Field(..., pattern="^(word|cloze|synonym|lookalike|distractors)$")
+    index: Optional[int] = Field(default=None, ge=0)
+
+
+class QuizExclusionsUpdateRequest(BaseModel):
+    exclusions: List[QuizExclusion]
+
+
 class StudentLoginRequest(BaseModel):
     # Either the roster id (preferred, stable) or the display name —
     # whichever the login form has in hand.
