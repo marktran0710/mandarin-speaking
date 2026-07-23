@@ -85,6 +85,25 @@ describe("JourneyBubble", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
+  it("folds tier-suffixed stars onto the base story — best across tiers, never the sum", async () => {
+    // 2⭐ earned in a Medium-tier session, 1⭐ in the base (easy) session:
+    // the story's stars are 2 (best), not 3 (sum) — enough to clear the
+    // ⭐⭐ gate, so the bubble is the quiet dial showing 2.
+    window.localStorage.setItem(
+      "vocabQuizStars",
+      JSON.stringify({ "s-tiered": 1, "s-tiered-medium": 2 }),
+    );
+    try {
+      render(
+        <JourneyBubble storyCount={1} storyTitles={{ "s-tiered": "夜市" }} />,
+      );
+      expect(screen.queryByRole("button")).not.toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent("⭐ 2/3");
+    } finally {
+      window.localStorage.removeItem("vocabQuizStars");
+    }
+  });
+
   it("keeps the target inside targetIds (the current lesson) even when the near-miss story is in a later lesson", async () => {
     const onJump = vi.fn();
     render(

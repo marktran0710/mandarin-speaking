@@ -379,6 +379,7 @@ export default function App() {
           storyCount={quizStoryTopics.length}
           storyTitles={storyTitles}
           targetIds={bubbleTargetIds}
+          refreshToken={`${currentPage}:${isInPracticeSession}`}
           onJumpToStory={handleJumpToStory}
         />
       )}

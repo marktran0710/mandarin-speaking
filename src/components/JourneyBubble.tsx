@@ -31,6 +31,7 @@ export default function JourneyBubble({
   storyCount,
   storyTitles,
   targetIds,
+  refreshToken,
   onJumpToStory,
 }: {
   studentName?: string;
@@ -46,6 +47,11 @@ export default function JourneyBubble({
    * nudge always points at the lesson the student is actually on.
    * Omitted: every story in storyTitles is a candidate. */
   targetIds?: string[];
+  /** Any value that changes when fresh backend stars might exist (page
+   * switches, a practice session ending) — the bubble mounts once at App
+   * level, so without this its attempts snapshot would go stale the
+   * moment a quiz earns a star. */
+  refreshToken?: unknown;
   onJumpToStory?: (storyId: string) => void;
 }) {
   const titles = storyTitles ?? {};
@@ -68,15 +74,35 @@ export default function JourneyBubble({
     return () => {
       cancelled = true;
     };
-  }, [studentId, studentName]);
+  }, [studentId, studentName, refreshToken]);
 
-  // Per-story stars: whichever of the device-local mirror and the backend
-  // history is higher (they can drift across devices).
+  // Per-story stars. Two folds happen here:
+  // - local mirror vs backend history: whichever is higher (they drift
+  //   across devices);
+  // - text tiers: Medium/Hard sessions run the same 3-star quiz ladder
+  //   under tier-suffixed quiz ids (`{id}-medium`, `{id}-hard`), so a
+  //   story's stars are the BEST earned across its tiers — never the sum,
+  //   which would triple-count the same ladder.
+  const TIER_SUFFIXES = ["", "-medium", "-hard"];
   const starsFor = (id: string) =>
-    Math.max(loadLocalStars(id), dbStars[id] ?? 0);
+    Math.max(
+      ...TIER_SUFFIXES.map((suffix) =>
+        Math.max(
+          loadLocalStars(`${id}${suffix}`),
+          dbStars[`${id}${suffix}`] ?? 0,
+        ),
+      ),
+    );
 
   const totalFromTitles = storyIds.reduce((sum, id) => sum + starsFor(id), 0);
-  const totalFromDb = Object.values(dbStars).reduce((sum, s) => sum + s, 0);
+  // Pages without a story list can't enumerate ids — fold the backend map
+  // onto base ids (best per story) and total that instead.
+  const foldedDb: Record<string, number> = {};
+  for (const [id, stars] of Object.entries(dbStars)) {
+    const base = id.replace(/-(medium|hard)$/, "");
+    foldedDb[base] = Math.max(foldedDb[base] ?? 0, stars);
+  }
+  const totalFromDb = Object.values(foldedDb).reduce((sum, s) => sum + s, 0);
   const totalStars = Math.max(totalFromTitles, totalFromDb);
 
   // Quiz ids for Medium/Hard tiers suffix the base topic id — map a
