@@ -1,0 +1,475 @@
+Image prompts for 《我的錢包在哪裡？》Where Is My Wallet?
+Source: Lesson 5 – 我的錢包在哪裡？ (Dialogue 2), mode: book
+7 turns (one per line of the book's dialogue) → 2 columns × 4 rows, with the
+final row a single wide panel spanning both columns.
+
+═══════════════════
+TEXT-FREE VERSION
+═══════════════════
+
+Single portrait image, divided into a clean grid of 7 panels: 2 columns × 4
+rows, where the bottom row is one wide panel spanning both columns. Thin light
+gutters between panels, no hard comic-book borders, no text, no letters, no
+words, no speech bubbles, no panel numbers, no captions. Flat digital
+illustration style, soft rounded shapes, warm afternoon indoor color palette
+(cream walls, light wood floor, muted teal and terracotta accents), limited
+color palette, gentle clean outlines, friendly simple style, consistent
+lighting and color palette across all panels. All panels take place inside the
+same small modern Taiwanese apartment.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHONGMING] a young man, about 19, short neat black hair, slim build, round
+friendly face, mustard-yellow t-shirt, dark grey jeans, white sneakers, and a
+dark green canvas backpack hanging off his right shoulder in every panel.
+[MOM] a warm middle-aged woman, short curly dark hair with a few grey strands,
+light coral blouse with sleeves rolled to the elbow, navy trousers, and a
+striped blue-and-white apron tied at the waist in every panel.
+
+Panel 1 (row 1, left): medium shot at eye level, Zhongming standing in his
+bedroom doorway with one hand on the door frame, backpack on one shoulder,
+patting his empty trouser pocket with the other hand and calling out to his
+left, worried expression; behind him a small desk with books and an unmade
+bed.
+
+Panel 2 (row 1, right): wider shot of the living room from a slight side
+angle, Mom standing beside a low wooden coffee table, one arm extended
+pointing down at a brown leather wallet lying on the table top, calm helpful
+expression; a teal sofa and a framed photo on the wall behind her.
+
+Panel 3 (row 2, left): close-up on Zhongming's face, hands and shoulders,
+holding the brown wallet up at eye level with both hands and shaking his head,
+mouth slightly open, disappointed expression; the blurred edge of the coffee
+table in the foreground.
+
+Panel 4 (row 2, right): medium shot from behind Zhongming's shoulder, Mom
+half-turned toward the teal sofa, chin tilted toward it and one hand making a
+small low gesture down near floor level, questioning expression, eyebrows
+raised; the sofa filling the right side of the frame.
+
+Panel 5 (row 3, left): low wide shot from floor level, Zhongming kneeling on
+the wooden floor beside the teal sofa, cheek almost touching the ground, right
+arm reaching deep underneath the sofa, head turned up and to the side looking
+off-panel toward his mom, pleading expression; sofa cushions pushed askew.
+
+Panel 6 (row 3, right): medium shot from slightly behind Zhongming's shoulder,
+Mom standing in the kitchen doorway holding a small steaming pot with a cloth,
+waving him away with her free hand toward the bedroom, busy but affectionate
+expression; a stove and hanging utensils visible behind her.
+
+Panel 7 (row 4, wide panel spanning the full width): close medium shot at desk
+height, Zhongming back at his bedroom desk lifting a thick textbook with one
+hand to reveal a red wallet underneath, other hand reaching for it, face lit up
+with relief and a big smile; the empty doorway he came through visible at the
+far left of the wide frame.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Zhongming's mustard t-shirt and dark
+  green backpack, Mom's striped apron and coral blouse) recognizable in every
+  panel.
+- Keep the two wallets clearly different: the one on the living room table is
+  brown leather and slightly larger (the brother's), the one under the book in
+  Panel 7 is red and smaller (Zhongming's).
+- Keep one art style and one lighting mood across all 7 panels so the page
+  reads as one connected apartment.
+- Vary pose, shot framing, and camera angle panel to panel so it reads as seven
+  different moments, not one pose repeated seven times.
+- If one panel looks off after generation, accept minor variance, or generate
+  that one beat as its own image and swap it in during editing if it matters.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1792 for a 2×4 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
+
+
+═══════════════════
+SPEECH-BUBBLE VERSION — EASY
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble/box after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 12.)
+
+Single portrait image, divided into a clean grid of 7 panels: 2 columns × 4
+rows, where the bottom row is one wide panel spanning both columns. Thin light
+gutters between panels, no hard comic-book borders. Flat digital illustration
+style, soft rounded shapes, warm afternoon indoor color palette (cream walls,
+light wood floor, muted teal and terracotta accents), limited color palette,
+gentle clean outlines, friendly simple style, consistent lighting and color
+palette across all panels. All panels take place inside the same small modern
+Taiwanese apartment. Each panel includes one simple rounded speech bubble with
+a small tail pointing at the speaking character, containing that panel's
+Traditional Chinese text written clearly and accurately inside, plain white
+bubble with black outline; no other text, letters, words, or captions anywhere
+else in the image.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHONGMING] a young man, about 19, short neat black hair, slim build, round
+friendly face, mustard-yellow t-shirt, dark grey jeans, white sneakers, and a
+dark green canvas backpack hanging off his right shoulder in every panel.
+[MOM] a warm middle-aged woman, short curly dark hair with a few grey strands,
+light coral blouse with sleeves rolled to the elbow, navy trousers, and a
+striped blue-and-white apron tied at the waist in every panel.
+
+Panel 1 (row 1, left): medium shot at eye level, Zhongming standing in his
+bedroom doorway with one hand on the door frame, backpack on one shoulder,
+patting his empty trouser pocket with the other hand and calling out to his
+left, worried expression; behind him a small desk with books and an unmade
+bed. Speech bubble near Zhongming contains the Chinese text
+「媽，我跟友美要去喝下午茶，可是我的錢包不在房間裡。」written clearly.
+
+Panel 2 (row 1, right): wider shot of the living room from a slight side
+angle, Mom standing beside a low wooden coffee table, one arm extended
+pointing down at a brown leather wallet lying on the table top, calm helpful
+expression; a teal sofa and a framed photo on the wall behind her. Speech
+bubble near Mom contains the Chinese text「客廳的桌子上有一個錢包，是不是你的？」
+written clearly.
+
+Panel 3 (row 2, left): close-up on Zhongming's face, hands and shoulders,
+holding the brown wallet up at eye level with both hands and shaking his head,
+mouth slightly open, disappointed expression; the blurred edge of the coffee
+table in the foreground. Speech bubble near Zhongming contains the Chinese
+text「那不是我的，是哥哥的。我的錢包不在客廳裡。」written clearly.
+
+Panel 4 (row 2, right): medium shot from behind Zhongming's shoulder, Mom
+half-turned toward the teal sofa, chin tilted toward it and one hand making a
+small low gesture down near floor level, questioning expression, eyebrows
+raised; the sofa filling the right side of the frame. Speech bubble near Mom
+contains the Chinese text「沙發下面呢？」written clearly.
+
+Panel 5 (row 3, left): low wide shot from floor level, Zhongming kneeling on
+the wooden floor beside the teal sofa, cheek almost touching the ground, right
+arm reaching deep underneath the sofa, head turned up and to the side looking
+off-panel toward his mom, pleading expression; sofa cushions pushed askew.
+Speech bubble near Zhongming contains the Chinese text
+「沙發上面、下面跟旁邊都沒有。媽，妳幫我找，好嗎？」written clearly.
+
+Panel 6 (row 3, right): medium shot from slightly behind Zhongming's shoulder,
+Mom standing in the kitchen doorway holding a small steaming pot with a cloth,
+waving him away with her free hand toward the bedroom, busy but affectionate
+expression; a stove and hanging utensils visible behind her. Speech bubble
+near Mom contains the Chinese text
+「我很忙，現在要去廚房做飯，你再去房間找吧。」written clearly.
+
+Panel 7 (row 4, wide panel spanning the full width): close medium shot at desk
+height, Zhongming back at his bedroom desk lifting a thick textbook with one
+hand to reveal a red wallet underneath, other hand reaching for it, face lit up
+with relief and a big smile; the empty doorway he came through visible at the
+far left of the wide frame. Speech bubble near Zhongming contains the Chinese
+text「啊！在這裡！錢包在我的書下面。」written clearly.
+
+CAPTION SCRIPT (for proofreading the generated bubbles against — not part of
+the prompt above):
+Panel 1 — Zhongming: 媽，我跟友美要去喝下午茶，可是我的錢包不在房間裡。
+  Mā, wǒ gēn Yǒuměi yào qù hē xiàwǔ chá, kěshì wǒ de qiánbāo bú zài fángjiān
+  lǐ. — Mom, Youmei and I are going to have afternoon tea now, but my wallet
+  is not in the bedroom.
+Panel 2 — Mom: 客廳的桌子上有一個錢包，是不是你的？
+  Kètīng de zhuōzi shàng yǒu yí ge qiánbāo, shì bú shì nǐ de? — In the living
+  room, there is a wallet on the table. Is that yours?
+Panel 3 — Zhongming: 那不是我的，是哥哥的。我的錢包不在客廳裡。
+  Nà bú shì wǒ de, shì gēge de. Wǒ de qiánbāo bú zài kètīng lǐ. — It is not
+  mine. It is my elder brother's. Mine is not in the living room.
+Panel 4 — Mom: 沙發下面呢？
+  Shāfā xiàmiàn ne? — How about checking under the sofa?
+Panel 5 — Zhongming: 沙發上面、下面跟旁邊都沒有。媽，妳幫我找，好嗎？
+  Shāfā shàngmiàn, xiàmiàn gēn pángbiān dōu méi yǒu. Mā, nǐ bāng wǒ zhǎo, hǎo
+  ma? — It is neither on the sofa, under the sofa, nor beside the sofa. Mom,
+  could you find it for me?
+Panel 6 — Mom: 我很忙，現在要去廚房做飯，你再去房間找吧。
+  Wǒ hěn máng, xiànzài yào qù chúfáng zuòfàn, nǐ zài qù fángjiān zhǎo ba. —
+  I am very busy and I am going to the kitchen to cook now. You go check your
+  room again.
+Panel 7 — Zhongming: 啊！在這裡！錢包在我的書下面。
+  Ā! Zài zhèlǐ! Qiánbāo zài wǒ de shū xiàmiàn. — Ah! There it is! The wallet
+  is under my book.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Zhongming's mustard t-shirt and dark
+  green backpack, Mom's striped apron and coral blouse) recognizable in every
+  panel.
+- Keep the two wallets clearly different: brown leather on the living room
+  table (the brother's), red under the book in Panel 7 (Zhongming's).
+- Use Traditional Chinese characters only, no pinyin and no English anywhere
+  in the image.
+- Vary pose, shot framing, and camera angle panel to panel so it reads as seven
+  different moments, not one pose repeated seven times.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1792 for a 2×4 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
+
+
+═══════════════════
+SPEECH-BUBBLE VERSION — MEDIUM
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble/box after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 12.)
+
+Single portrait image, divided into a clean grid of 7 panels: 2 columns × 4
+rows, where the bottom row is one wide panel spanning both columns. Thin light
+gutters between panels, no hard comic-book borders. Flat digital illustration
+style, soft rounded shapes, warm afternoon indoor color palette (cream walls,
+light wood floor, muted teal and terracotta accents), limited color palette,
+gentle clean outlines, friendly simple style, consistent lighting and color
+palette across all panels. All panels take place inside the same small modern
+Taiwanese apartment. Each panel includes one simple rounded speech bubble with
+a small tail pointing at the speaking character, containing that panel's
+Traditional Chinese text written clearly and accurately inside, plain white
+bubble with black outline; no other text, letters, words, or captions anywhere
+else in the image.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHONGMING] a young man, about 19, short neat black hair, slim build, round
+friendly face, mustard-yellow t-shirt, dark grey jeans, white sneakers, and a
+dark green canvas backpack hanging off his right shoulder in every panel.
+[MOM] a warm middle-aged woman, short curly dark hair with a few grey strands,
+light coral blouse with sleeves rolled to the elbow, navy trousers, and a
+striped blue-and-white apron tied at the waist in every panel.
+
+Panel 1 (row 1, left): medium shot at eye level, Zhongming standing in his
+bedroom doorway with one hand on the door frame, backpack on one shoulder,
+patting his empty trouser pocket with the other hand and calling out to his
+left, worried expression; behind him a small desk with books and an unmade
+bed. Speech bubble near Zhongming contains the Chinese text
+「媽，我跟友美兩點半要去喝下午茶，可是我的錢包不見了，房間裡到處都沒有。」
+written clearly.
+
+Panel 2 (row 1, right): wider shot of the living room from a slight side
+angle, Mom standing beside a low wooden coffee table, one arm extended
+pointing down at a brown leather wallet lying on the table top, calm helpful
+expression; a teal sofa and a framed photo on the wall behind her. Speech
+bubble near Mom contains the Chinese text
+「我記得客廳的桌子上有一個錢包，那個是不是你的？」written clearly.
+
+Panel 3 (row 2, left): close-up on Zhongming's face, hands and shoulders,
+holding the brown wallet up at eye level with both hands and shaking his head,
+mouth slightly open, disappointed expression; the blurred edge of the coffee
+table in the foreground. Speech bubble near Zhongming contains the Chinese
+text「那個不是我的，是哥哥的。客廳我每個地方都看了，真的沒有。」written clearly.
+
+Panel 4 (row 2, right): medium shot from behind Zhongming's shoulder, Mom
+half-turned toward the teal sofa, chin tilted toward it and one hand making a
+small low gesture down near floor level, questioning expression, eyebrows
+raised; the sofa filling the right side of the frame. Speech bubble near Mom
+contains the Chinese text「沙發下面呢？你找了沒有？」written clearly.
+
+Panel 5 (row 3, left): low wide shot from floor level, Zhongming kneeling on
+the wooden floor beside the teal sofa, cheek almost touching the ground, right
+arm reaching deep underneath the sofa, head turned up and to the side looking
+off-panel toward his mom, pleading expression; sofa cushions pushed askew.
+Speech bubble near Zhongming contains the Chinese text
+「沙發上面、下面跟旁邊我都找了，還是沒有。媽，妳幫幫我，好不好？」written clearly.
+
+Panel 6 (row 3, right): medium shot from slightly behind Zhongming's shoulder,
+Mom standing in the kitchen doorway holding a small steaming pot with a cloth,
+waving him away with her free hand toward the bedroom, busy but affectionate
+expression; a stove and hanging utensils visible behind her. Speech bubble
+near Mom contains the Chinese text
+「我現在很忙，快要去廚房做飯了，你自己再去房間找一次吧。」written clearly.
+
+Panel 7 (row 4, wide panel spanning the full width): close medium shot at desk
+height, Zhongming back at his bedroom desk lifting a thick textbook with one
+hand to reveal a red wallet underneath, other hand reaching for it, face lit up
+with relief and a big smile; the empty doorway he came through visible at the
+far left of the wide frame. Speech bubble near Zhongming contains the Chinese
+text「啊！在這裡！原來錢包在我的書下面。」written clearly.
+
+CAPTION SCRIPT (for proofreading the generated bubbles against — not part of
+the prompt above):
+Panel 1 — Zhongming: 媽，我跟友美兩點半要去喝下午茶，可是我的錢包不見了，房間裡到處都沒有。
+  Mā, wǒ gēn Yǒuměi liǎng diǎn bàn yào qù hē xiàwǔchá, kěshì wǒ de qiánbāo bú
+  jiàn le, fángjiān lǐ dàochù dōu méiyǒu. — Mom, Youmei and I are going for
+  afternoon tea at two thirty, but my wallet has disappeared — it's nowhere in
+  my room.
+Panel 2 — Mom: 我記得客廳的桌子上有一個錢包，那個是不是你的？
+  Wǒ jìde kètīng de zhuōzi shàng yǒu yí ge qiánbāo, nà ge shì bú shì nǐ de? —
+  I remember there's a wallet on the living room table — is that one yours?
+Panel 3 — Zhongming: 那個不是我的，是哥哥的。客廳我每個地方都看了，真的沒有。
+  Nà ge bú shì wǒ de, shì gēge de. Kètīng wǒ měi ge dìfāng dōu kàn le, zhēn de
+  méiyǒu. — That one's not mine, it's my brother's. I've looked everywhere in
+  the living room — it's really not there.
+Panel 4 — Mom: 沙發下面呢？你找了沒有？
+  Shāfā xiàmiàn ne? Nǐ zhǎo le méiyǒu? — What about under the sofa? Have you
+  looked there?
+Panel 5 — Zhongming: 沙發上面、下面跟旁邊我都找了，還是沒有。媽，妳幫幫我，好不好？
+  Shāfā shàngmiàn, xiàmiàn gēn pángbiān wǒ dōu zhǎo le, háishì méiyǒu. Mā, nǐ
+  bāngbang wǒ, hǎo bù hǎo? — I've looked on the sofa, under it and beside it —
+  still nothing. Mom, give me a hand, would you?
+Panel 6 — Mom: 我現在很忙，快要去廚房做飯了，你自己再去房間找一次吧。
+  Wǒ xiànzài hěn máng, kuài yào qù chúfáng zuòfàn le, nǐ zìjǐ zài qù fángjiān
+  zhǎo yí cì ba. — I'm busy right now, I'm about to go cook in the kitchen. Go
+  look in your room one more time yourself.
+Panel 7 — Zhongming: 啊！在這裡！原來錢包在我的書下面。
+  Ā! Zài zhèlǐ! Yuánlái qiánbāo zài wǒ de shū xiàmiàn. — Ah! Here it is! So
+  the wallet was under my book all along.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Zhongming's mustard t-shirt and dark
+  green backpack, Mom's striped apron and coral blouse) recognizable in every
+  panel.
+- Keep the two wallets clearly different: brown leather on the living room
+  table (the brother's), red under the book in Panel 7 (Zhongming's).
+- Use Traditional Chinese characters only, no pinyin and no English anywhere
+  in the image.
+- Vary pose, shot framing, and camera angle panel to panel so it reads as seven
+  different moments, not one pose repeated seven times.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1792 for a 2×4 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
+
+
+═══════════════════
+SPEECH-BUBBLE VERSION — HARD
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble/box after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 12.)
+
+Single portrait image, divided into a clean grid of 7 panels: 2 columns × 4
+rows, where the bottom row is one wide panel spanning both columns. Thin light
+gutters between panels, no hard comic-book borders. Flat digital illustration
+style, soft rounded shapes, warm afternoon indoor color palette (cream walls,
+light wood floor, muted teal and terracotta accents), limited color palette,
+gentle clean outlines, friendly simple style, consistent lighting and color
+palette across all panels. All panels take place inside the same small modern
+Taiwanese apartment. Each panel includes one simple rounded speech bubble with
+a small tail pointing at the speaking character, containing that panel's
+Traditional Chinese text written clearly and accurately inside, plain white
+bubble with black outline; make the bubbles generously sized so the longer
+lines still fit comfortably; no other text, letters, words, or captions
+anywhere else in the image.
+
+CHARACTERS (identical in every panel they appear in):
+[ZHONGMING] a young man, about 19, short neat black hair, slim build, round
+friendly face, mustard-yellow t-shirt, dark grey jeans, white sneakers, and a
+dark green canvas backpack hanging off his right shoulder in every panel.
+[MOM] a warm middle-aged woman, short curly dark hair with a few grey strands,
+light coral blouse with sleeves rolled to the elbow, navy trousers, and a
+striped blue-and-white apron tied at the waist in every panel.
+
+Panel 1 (row 1, left): medium shot at eye level, Zhongming standing in his
+bedroom doorway with one hand on the door frame, backpack on one shoulder,
+patting his empty trouser pocket with the other hand and calling out to his
+left, worried expression; behind him a small desk with books, an unmade bed,
+and a wall clock reading just past two. Speech bubble near Zhongming contains
+the Chinese text
+「媽，我跟友美兩點半要去喝下午茶，可是我找了半天，房間裡還是沒有，我快遲到了。」
+written clearly.
+
+Panel 2 (row 1, right): wider shot of the living room from a slight side
+angle, Mom standing beside a low wooden coffee table, one arm extended
+pointing down at a brown leather wallet lying on the table top, calm helpful
+expression; a teal sofa and a framed photo on the wall behind her. Speech
+bubble near Mom contains the Chinese text
+「我剛剛看過，客廳的桌子上有一個錢包，那個是不是你的？」written clearly.
+
+Panel 3 (row 2, left): close-up on Zhongming's face, hands and shoulders,
+holding the brown wallet up at eye level with both hands and shaking his head,
+the wallet visibly large and bulky in his hands, disappointed expression; the
+blurred edge of the coffee table in the foreground. Speech bubble near
+Zhongming contains the Chinese text
+「那個比我的大一點，是哥哥的。客廳我也找過了，真的沒有。」written clearly.
+
+Panel 4 (row 2, right): medium shot from behind Zhongming's shoulder, Mom
+half-turned toward the teal sofa, chin tilted toward it and one hand making a
+small low gesture down near floor level, questioning expression, eyebrows
+raised; the sofa filling the right side of the frame, a coin and a pen visible
+on the floor near its base. Speech bubble near Mom contains the Chinese text
+「沙發下面呢？那裡最容易掉東西了，你找過了沒有？」written clearly.
+
+Panel 5 (row 3, left): low wide shot from floor level, Zhongming kneeling on
+the wooden floor beside the teal sofa, cheek almost touching the ground, right
+arm reaching deep underneath the sofa, head turned up and to the side looking
+off-panel toward his mom, pleading expression; sofa cushions pushed askew and
+piled to one side as if already searched. Speech bubble near Zhongming
+contains the Chinese text
+「沙發上面、下面跟旁邊我都找過了，還是沒有。媽，如果妳有空，幫我一起找，好嗎？」
+written clearly.
+
+Panel 6 (row 3, right): medium shot from slightly behind Zhongming's shoulder,
+Mom standing in the kitchen doorway holding a small steaming pot with a cloth,
+waving him away with her free hand toward the bedroom, busy but affectionate
+expression; a stove and hanging utensils visible behind her. Speech bubble
+near Mom contains the Chinese text
+「我今天真的沒空，現在要去廚房做飯，你再去房間仔細找一次吧。」written clearly.
+
+Panel 7 (row 4, wide panel spanning the full width): close medium shot at desk
+height, Zhongming back at his bedroom desk lifting a thick textbook with one
+hand to reveal a red wallet underneath, other hand reaching for it, face lit up
+with relief and a big smile; the empty doorway he came through visible at the
+far left of the wide frame. Speech bubble near Zhongming contains the Chinese
+text「啊！找到了！原來錢包一直在我的書下面，我剛剛都沒看見。」written clearly.
+
+CAPTION SCRIPT (for proofreading the generated bubbles against — not part of
+the prompt above):
+Panel 1 — Zhongming: 媽，我跟友美兩點半要去喝下午茶，可是我找了半天，房間裡還是沒有，我快遲到了。
+  Mā, wǒ gēn Yǒuměi liǎng diǎn bàn yào qù hē xiàwǔchá, kěshì wǒ zhǎo le
+  bàntiān, fángjiān lǐ háishì méiyǒu, wǒ kuài chídào le. — Mom, Youmei and I
+  are going for afternoon tea at two thirty, but I've searched forever and
+  it's still not in my room — I'm going to be late.
+Panel 2 — Mom: 我剛剛看過，客廳的桌子上有一個錢包，那個是不是你的？
+  Wǒ gānggāng kàn guò, kètīng de zhuōzi shàng yǒu yí ge qiánbāo, nà ge shì bú
+  shì nǐ de? — I saw one just now — there's a wallet on the living room table.
+  Is that one yours?
+Panel 3 — Zhongming: 那個比我的大一點，是哥哥的。客廳我也找過了，真的沒有。
+  Nà ge bǐ wǒ de dà yìdiǎn, shì gēge de. Kètīng wǒ yě zhǎo guò le, zhēn de
+  méiyǒu. — That one's a bit bigger than mine — it's my brother's. I've been
+  through the living room too, it's really not there.
+Panel 4 — Mom: 沙發下面呢？那裡最容易掉東西了，你找過了沒有？
+  Shāfā xiàmiàn ne? Nàlǐ zuì róngyì diào dōngxi le, nǐ zhǎo guò le méiyǒu? —
+  What about under the sofa? That's where things drop most easily — have you
+  checked there?
+Panel 5 — Zhongming: 沙發上面、下面跟旁邊我都找過了，還是沒有。媽，如果妳有空，幫我一起找，好嗎？
+  Shāfā shàngmiàn, xiàmiàn gēn pángbiān wǒ dōu zhǎo guò le, háishì méiyǒu. Mā,
+  rúguǒ nǐ yǒu kòng, bāng wǒ yìqǐ zhǎo, hǎo ma? — I've already been over the
+  sofa, under it and beside it — still nothing. Mom, if you have a moment,
+  look with me, okay?
+Panel 6 — Mom: 我今天真的沒空，現在要去廚房做飯，你再去房間仔細找一次吧。
+  Wǒ jīntiān zhēn de méi kòng, xiànzài yào qù chúfáng zuòfàn, nǐ zài qù
+  fángjiān zǐxì zhǎo yí cì ba. — I really don't have time today, I'm going to
+  cook now. Go back to your room and look properly one more time.
+Panel 7 — Zhongming: 啊！找到了！原來錢包一直在我的書下面，我剛剛都沒看見。
+  Ā! Zhǎodào le! Yuánlái qiánbāo yìzhí zài wǒ de shū xiàmiàn, wǒ gānggāng dōu
+  méi kànjiàn. — Ah! Found it! The wallet was under my book the whole time —
+  I just didn't see it.
+
+CONSISTENCY TIPS:
+- Keep the exact same character design (Zhongming's mustard t-shirt and dark
+  green backpack, Mom's striped apron and coral blouse) recognizable in every
+  panel.
+- Keep the two wallets clearly different: the one on the living room table is
+  brown leather and noticeably larger (the brother's), the one under the book
+  in Panel 7 is red and smaller (Zhongming's) — the size difference is what
+  Panel 3's line is about.
+- Use Traditional Chinese characters only, no pinyin and no English anywhere
+  in the image.
+- Vary pose, shot framing, and camera angle panel to panel so it reads as seven
+  different moments, not one pose repeated seven times.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1792 for a 2×4 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.

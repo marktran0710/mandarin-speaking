@@ -5,6 +5,8 @@ Source: Lesson 5 – 我的錢包在哪裡？Where Is My Wallet? (Dialogue 1), m
 ═══════════════════
 EASY (A1) — the book's dialogue, verbatim
 ═══════════════════
+(Textbook Dialogue 1, p.80; pinyin and English are the book's own, from the
+companion spread on p.81.)
 
 [Turn 1 — 下課後的教室，中明走到友美的座位旁，跟她打招呼]
 中明：友美，妳這個週末要做什麼？
@@ -18,12 +20,12 @@ I am going to read and listen to music at home.
 
 [Turn 3 — 中明比出邀請的手勢，頭上有「星期六」日曆的想像泡泡]
 中明：妳星期六下午有空嗎？我們一起去喝下午茶，怎麼樣？
-Nǐ xīngqíliù xiàwǔ yǒukòng ma? Wǒmen yìqǐ qù hē xiàwǔchá, zěnmeyàng?
+Nǐ xīngqí liù xiàwǔ yǒukòng ma? Wǒmen yìqǐ qù hē xiàwǔ chá, zěnmeyàng?
 Are you available on Saturday afternoon? How about we have afternoon tea together?
 
 [Turn 4 — 友美開心地笑，好奇地看著中明]
 友美：好啊！你想去哪裡？
-Hǎo a! Nǐ xiǎng qù nǎlǐ?
+Hǎo ā! Nǐ xiǎng qù nǎlǐ?
 Sounds great! Where do you want to go?
 
 [Turn 5 — 中明頭上有想像泡泡：一家可愛的咖啡廳]
@@ -38,12 +40,12 @@ Do they have chocolate ice cream?
 
 [Turn 7 — 中明張開雙手，想像泡泡裡有很多種顏色的冰淇淋]
 中明：有啊！他們有很多種冰淇淋。
-Yǒu a! Tāmen yǒu hěn duō zhǒng bīngqílín.
+Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín.
 Oh, yeah. They have lots of kinds of ice cream.
 
 [Turn 8 — 友美站起來，指著牆上兩點半的時鐘]
 友美：我們這個星期六下午兩點半去吧。
-Wǒmen zhè ge xīngqíliù xiàwǔ liǎng diǎn bàn qù ba.
+Wǒmen zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba.
 Let's go this Saturday at 2:30 p.m.
 
 [Turn 9 — 兩人互相點頭微笑，說定了計畫]
@@ -88,12 +90,12 @@ I want to stay home, read, listen to music, and get a good rest.
 
 [Turn 3 — 中明比出邀請的手勢，頭上有「星期六」日曆的想像泡泡]
 中明：妳星期六下午有空嗎？我們一起去咖啡廳喝下午茶，怎麼樣？
-Nǐ xīngqíliù xiàwǔ yǒukòng ma? Wǒmen yìqǐ qù kāfēitīng hē xiàwǔchá, zěnmeyàng?
+Nǐ xīngqí liù xiàwǔ yǒukòng ma? Wǒmen yìqǐ qù kāfēitīng hē xiàwǔ chá, zěnmeyàng?
 Are you free Saturday afternoon? How about we go to a café for afternoon tea together?
 
 [Turn 4 — 友美開心地笑，好奇地看著中明]
 友美：好啊！可是你想去哪裡？
-Hǎo a! Kěshì nǐ xiǎng qù nǎlǐ?
+Hǎo ā! Kěshì nǐ xiǎng qù nǎlǐ?
 Sure! But where do you want to go?
 
 [Turn 5 — 中明頭上有想像泡泡：一家可愛的咖啡廳]
@@ -108,28 +110,28 @@ Really? Do they have chocolate ice cream?
 
 [Turn 7 — 中明張開雙手，想像泡泡裡有很多種顏色的冰淇淋]
 中明：有啊！他們有很多種冰淇淋，每種都很好吃。
-Yǒu a! Tāmen yǒu hěn duō zhǒng bīngqílín, měi zhǒng dōu hěn hǎochī.
+Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín, měi zhǒng dōu hěn hǎochī.
 They do! They have many kinds of ice cream, and every kind is delicious.
 
 [Turn 8 — 友美站起來，指著牆上兩點半的時鐘]
 友美：太好了！我們這個星期六下午兩點半去吧。
-Tài hǎo le! Wǒmen zhè ge xīngqíliù xiàwǔ liǎng diǎn bàn qù ba.
+Tài hǎo le! Wǒmen zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba.
 Great! Let's go this Saturday at 2:30 in the afternoon.
 
 [Turn 9 — 兩人互相點頭微笑，說定了計畫]
 中明：好，星期六見！
-Hǎo, xīngqíliù jiàn!
+Hǎo, xīngqí liù jiàn!
 Okay, see you Saturday!
 
 Vocabulary
-14 快...了 kuài...le  Ph   about to; almost (a time is near)
-15 休息    xiūxí      V    to rest
-16 可是    kěshì      Conj but; however
-17 非常    fēicháng   Adv  very; extremely
-18 真的    zhēnde     Adv  really
-19 每      měi        Det  every; each
-20 太...了 tài...le   Ph   so/too...!
-21 見      jiàn       V    to see; to meet
+1  快...了 kuài...le  Ph   about to; almost (a time is near)
+2  休息    xiūxí      V    to rest
+3  可是    kěshì      Conj but; however
+4  非常    fēicháng   Adv  very; extremely
+5  真的    zhēnde     Adv  really
+6  每      měi        Det  every; each
+7  太...了 tài...le   Ph   so/too...!
+8  見      jiàn       V    to see; to meet
 
 Key Phrases
 1  快...了            —  週末快到了。            —  Say a time or event is coming up soon.
@@ -142,8 +144,8 @@ HARD (A2) — same beats, fullest word choice
 ═══════════════════
 
 [Turn 1 — 下課後的教室，中明走到友美的座位旁，跟她打招呼]
-中明：友美，這個星期快過完了，妳週末打算做什麼？
-Yǒuměi, zhè ge xīngqí kuài guò wán le, nǐ zhōumò dǎsuàn zuò shénme?
+中明：友美，這個星期快結束了，妳週末打算做什麼？
+Yǒuměi, zhè ge xīngqí kuài jiéshù le, nǐ zhōumò dǎsuàn zuò shénme?
 Youmei, this week is almost over — what do you plan to do this weekend?
 
 [Turn 2 — 友美坐在座位上，托著下巴，想像泡泡裡有一本書和耳機]
@@ -153,12 +155,12 @@ I've been too busy this week, so this weekend I want to stay home, read, listen 
 
 [Turn 3 — 中明比出邀請的手勢，頭上有「星期六」日曆的想像泡泡]
 中明：如果妳星期六下午有空，我們一起去喝下午茶，怎麼樣？
-Rúguǒ nǐ xīngqíliù xiàwǔ yǒukòng, wǒmen yìqǐ qù hē xiàwǔchá, zěnmeyàng?
+Rúguǒ nǐ xīngqí liù xiàwǔ yǒukòng, wǒmen yìqǐ qù hē xiàwǔ chá, zěnmeyàng?
 If you're free Saturday afternoon, how about we go have afternoon tea together?
 
 [Turn 4 — 友美開心地笑，好奇地看著中明]
 友美：好啊！我很久沒喝下午茶了，你想去哪裡？
-Hǎo a! Wǒ hěn jiǔ méi hē xiàwǔchá le, nǐ xiǎng qù nǎlǐ?
+Hǎo ā! Wǒ hěn jiǔ méi hē xiàwǔ chá le, nǐ xiǎng qù nǎlǐ?
 Sure! I haven't had afternoon tea in ages — where do you want to go?
 
 [Turn 5 — 中明頭上有想像泡泡：一家可愛的咖啡廳]
@@ -173,31 +175,32 @@ Really? Do they have chocolate ice cream?
 
 [Turn 7 — 中明張開雙手，想像泡泡裡有很多種顏色的冰淇淋]
 中明：有啊！他們有很多種冰淇淋，我覺得巧克力的最好吃。
-Yǒu a! Tāmen yǒu hěn duō zhǒng bīngqílín, wǒ juéde qiǎokèlì de zuì hǎochī.
+Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín, wǒ juéde qiǎokèlì de zuì hǎochī.
 They do! They have many kinds of ice cream — I think the chocolate one is the best.
 
 [Turn 8 — 友美站起來，指著牆上兩點半的時鐘]
 友美：太好了！那我們這個星期六下午兩點半去吧。
-Tài hǎo le! Nà wǒmen zhè ge xīngqíliù xiàwǔ liǎng diǎn bàn qù ba.
+Tài hǎo le! Nà wǒmen zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba.
 Great! Then let's go this Saturday at 2:30 in the afternoon.
 
 [Turn 9 — 兩人互相點頭微笑，說定了計畫]
 中明：好啊，那就星期六下午兩點半見！
-Hǎo a, nà jiù xīngqíliù xiàwǔ liǎng diǎn bàn jiàn!
+Hǎo ā, nà jiù xīngqí liù xiàwǔ liǎng diǎn bàn jiàn!
 Sounds good — see you Saturday at 2:30 then!
 
 Vocabulary
-22 打算    dǎsuàn     Vaux to plan; to intend
-23 忙      máng       Vs   busy
-24 所以    suǒyǐ      Conj so; therefore
-25 就      jiù        Adv  then; in that case (那就...)
-26 一下    yíxià      Ph   for a bit; briefly
-27 如果    rúguǒ      Conj if
-28 過      guò        Ptc  aspect marker: have done before (experience)
-29 比      bǐ         Prep than (comparison)
-30 別家    biéjiā     N    other shops/places
-31 覺得    juéde      Vst  to feel; to think
-32 最      zuì        Adv  most; the ...-est
+1  結束    jiéshù     V    to end; to finish
+2  打算    dǎsuàn     Vaux to plan; to intend
+3  忙      máng       Vs   busy
+4  所以    suǒyǐ      Conj so; therefore
+5  就      jiù        Adv  then; in that case (那就...)
+6  一下    yíxià      Ph   for a bit; briefly
+7  如果    rúguǒ      Conj if
+8  過      guò        Ptc  aspect marker: have done before (experience)
+9  比      bǐ         Prep than (comparison)
+10 別家    biéjiā     N    other shops/places
+11 覺得    juéde      Vst  to feel; to think
+12 最      zuì        Adv  most; the ...-est
 
 Key Phrases
 1  如果...，...怎麼樣？  —  如果妳星期六下午有空，我們一起去喝下午茶，怎麼樣？  —  Make an invitation conditional on the other person being free.

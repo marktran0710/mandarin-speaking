@@ -1,0 +1,378 @@
+Image prompts for 《我的房間》My Room
+Source: Lesson 5 – 我的錢包在哪裡？ (短文 Reading, track 05-3), mode: book
+4 turns (one per sentence of the book's reading passage) → 2 columns × 2 rows.
+
+Note: this source text is a first-person monologue, not a dialogue — every
+panel is narrator-only, so all four panels take a rectangular caption box
+along the bottom edge (no tail), never a speech bubble.
+
+═══════════════════
+TEXT-FREE VERSION
+═══════════════════
+
+Single square image, divided into a clean grid of 4 equal panels (2 columns ×
+2 rows), thin light gutters between panels, no hard comic-book borders, no
+text, no letters, no words, no speech bubbles, no panel numbers, no captions.
+Flat digital illustration style, soft rounded shapes, warm late-afternoon
+color palette (cream walls, honey-coloured wood, muted sage green and soft
+orange accents), limited color palette, gentle clean outlines, friendly simple
+style, consistent lighting and color palette across all panels. All four
+panels show the same single bedroom from different angles.
+
+CHARACTERS AND FIXED PROPS (identical in every panel they appear in):
+[THE STUDENT] a young man, about 19, wavy dark hair falling over his
+forehead, slim build, plain forest-green t-shirt and grey shorts, barefoot.
+[THE CAT] a small ginger tabby with white paws and a white chest.
+[THE ROOM] cream walls, honey-coloured wooden floor, one wooden desk, one
+neatly made single bed with a navy blanket, one sage-green two-seater sofa,
+one tall bookshelf, and one large window with a thin cream curtain — the same
+furniture in the same positions in every panel.
+
+Panel 1 (top-left): wide establishing shot of the whole room from the doorway,
+slightly high angle, showing the wooden desk against the left wall, the neatly
+made bed along the back wall, and the sage-green sofa facing into the room on
+the right; no people, warm afternoon light across the floor.
+
+Panel 2 (top-right): medium shot at eye level from the side, a modern
+flat-screen television standing dark and switched off on a low stand in front
+of the sofa, and the student curled up sideways on the sofa behind it with his
+knees drawn up and an open book in both hands, absorbed in reading, ignoring
+the TV completely.
+
+Panel 3 (bottom-left): close-up on the tall bookshelf and the stack of books
+on the desk beside it, shot straight-on, crowded rows of colourful book spines
+— some with Chinese-looking title blocks, some with Latin-alphabet-looking
+title blocks (keep all titles as abstract unreadable marks, not real words); no
+people in this panel.
+
+Panel 4 (bottom-right): low wide shot from floor level, the large window with
+the cream curtain pushed aside, a bright rectangle of sunlight falling across
+the floorboards, and the ginger cat stretched out flat on its side in the
+middle of that sunlight with its eyes closed, deeply asleep; no people.
+
+CONSISTENCY TIPS:
+- Keep the same room in all four panels — same cream walls, same honey wooden
+  floor, same sage-green sofa, same furniture positions — so the four panels
+  read as one room seen four ways, not four different rooms.
+- Keep the cat's ginger-and-white markings identical wherever it appears.
+- Vary shot framing and camera angle panel to panel (wide from the doorway /
+  eye-level side view / straight-on close-up / low floor-level shot) — with no
+  dialogue to carry the page, camera variety is what keeps it from reading as
+  four static furniture photos.
+- Keep every panel uncluttered; a plain, calm room compresses to a much
+  smaller file than a busy one.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1024 for a 2×2 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
+
+
+═══════════════════
+SPEECH-BUBBLE VERSION — EASY
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble/box after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 12.)
+
+Single square image, divided into a clean grid of 4 equal panels (2 columns ×
+2 rows), thin light gutters between panels, no hard comic-book borders. Flat
+digital illustration style, soft rounded shapes, warm late-afternoon color
+palette (cream walls, honey-coloured wood, muted sage green and soft orange
+accents), limited color palette, gentle clean outlines, friendly simple style,
+consistent lighting and color palette across all panels. All four panels show
+the same single bedroom from different angles. This page is narration, not
+dialogue: every panel includes one small rectangular caption box with no tail,
+running along the bottom edge of that panel, plain white box with a thin black
+border, containing that panel's Traditional Chinese narration text written
+clearly and accurately inside. No speech bubbles anywhere, and no other text,
+letters, words or captions anywhere else in the image.
+
+CHARACTERS AND FIXED PROPS (identical in every panel they appear in):
+[THE STUDENT] a young man, about 19, wavy dark hair falling over his
+forehead, slim build, plain forest-green t-shirt and grey shorts, barefoot.
+[THE CAT] a small ginger tabby with white paws and a white chest.
+[THE ROOM] cream walls, honey-coloured wooden floor, one wooden desk, one
+neatly made single bed with a navy blanket, one sage-green two-seater sofa,
+one tall bookshelf, and one large window with a thin cream curtain — the same
+furniture in the same positions in every panel.
+
+Panel 1 (top-left): wide establishing shot of the whole room from the doorway,
+slightly high angle, showing the wooden desk against the left wall, the neatly
+made bed along the back wall, and the sage-green sofa facing into the room on
+the right; no people, warm afternoon light across the floor. Caption box along
+the bottom edge contains the Chinese text
+「我的房間裡有一張桌子、一張床跟一張沙發。」written clearly.
+
+Panel 2 (top-right): medium shot at eye level from the side, a modern
+flat-screen television standing dark and switched off on a low stand in front
+of the sofa, and the student curled up sideways on the sofa behind it with his
+knees drawn up and an open book in both hands, absorbed in reading, ignoring
+the TV completely. Caption box along the bottom edge contains the Chinese text
+「沙發前面有一台很新的電視機，可是我不常看電視，我最喜歡在沙發上看書。」
+written clearly.
+
+Panel 3 (bottom-left): close-up on the tall bookshelf and the stack of books
+on the desk beside it, shot straight-on, crowded rows of colourful book spines;
+no people in this panel. Caption box along the bottom edge contains the Chinese
+text「我的書很多，有中文書，也有英文書。」written clearly.
+
+Panel 4 (bottom-right): low wide shot from floor level, the large window with
+the cream curtain pushed aside, a bright rectangle of sunlight falling across
+the floorboards, and the ginger cat stretched out flat on its side in the
+middle of that sunlight with its eyes closed, deeply asleep; no people. Caption
+box along the bottom edge contains the Chinese text
+「我房間的窗戶很大，我的貓喜歡在窗戶旁邊曬太陽。」written clearly.
+
+CAPTION SCRIPT (for proofreading the generated caption boxes against — not
+part of the prompt above):
+Panel 1 — Narrator: 我的房間裡有一張桌子、一張床跟一張沙發。
+  Wǒ de fángjiān lǐ yǒu yì zhāng zhuōzi, yì zhāng chuáng gēn yì zhāng shāfā.
+  — There is a table, a bed, and a sofa in my room.
+Panel 2 — Narrator: 沙發前面有一台很新的電視機，可是我不常看電視，我最喜歡在沙發上看書。
+  Shāfā qiánmiàn yǒu yì tái hěn xīn de diànshìjī, kěshì wǒ bù cháng kàn
+  diànshì, wǒ zuì xǐhuān zài shāfā shàng kànshū. — There is a new television
+  in front of the sofa, but I do not watch television often. I like to read on
+  the sofa the most.
+Panel 3 — Narrator: 我的書很多，有中文書，也有英文書。
+  Wǒ de shū hěn duō, yǒu Zhōngwén shū, yě yǒu Yīngwén shū. — I have many
+  books. I have books in Chinese and in English as well.
+Panel 4 — Narrator: 我房間的窗戶很大，我的貓喜歡在窗戶旁邊曬太陽。
+  Wǒ fángjiān de chuānghù hěn dà, wǒ de māo xǐhuān zài chuānghù pángbiān shài
+  tàiyáng. — The window in my room is big. My cat likes to bask in the sun
+  next to it.
+
+CONSISTENCY TIPS:
+- Keep the same room in all four panels — same walls, floor, sofa and
+  furniture positions.
+- Keep the cat's ginger-and-white markings identical wherever it appears.
+- Use Traditional Chinese characters only, no pinyin and no English anywhere
+  in the image.
+- Panel 2's caption is long — make that panel's caption box wider or allow two
+  lines of text inside it rather than shrinking the characters until they blur.
+- Vary shot framing and camera angle panel to panel so it reads as four
+  different views, not four static furniture photos.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1024 for a 2×2 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
+
+
+═══════════════════
+SPEECH-BUBBLE VERSION — MEDIUM
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble/box after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 12.)
+
+Single square image, divided into a clean grid of 4 equal panels (2 columns ×
+2 rows), thin light gutters between panels, no hard comic-book borders. Flat
+digital illustration style, soft rounded shapes, warm late-afternoon color
+palette (cream walls, honey-coloured wood, muted sage green and soft orange
+accents), limited color palette, gentle clean outlines, friendly simple style,
+consistent lighting and color palette across all panels. All four panels show
+the same single bedroom from different angles. This page is narration, not
+dialogue: every panel includes one small rectangular caption box with no tail,
+running along the bottom edge of that panel, plain white box with a thin black
+border, containing that panel's Traditional Chinese narration text written
+clearly and accurately inside. No speech bubbles anywhere, and no other text,
+letters, words or captions anywhere else in the image.
+
+CHARACTERS AND FIXED PROPS (identical in every panel they appear in):
+[THE STUDENT] a young man, about 19, wavy dark hair falling over his
+forehead, slim build, plain forest-green t-shirt and grey shorts, barefoot.
+[THE CAT] a small ginger tabby with white paws and a white chest.
+[THE ROOM] cream walls, honey-coloured wooden floor, one wooden desk, one
+neatly made single bed with a navy blanket, one sage-green two-seater sofa,
+one tall bookshelf, and one large window with a thin cream curtain — the same
+furniture in the same positions in every panel.
+
+Panel 1 (top-left): wide establishing shot of the whole room from the doorway,
+slightly high angle, showing the wooden desk against the left wall, the neatly
+made bed along the back wall, and the sage-green sofa facing into the room on
+the right; the room reads small but cosy and tidy; no people, warm afternoon
+light across the floor. Caption box along the bottom edge contains the Chinese
+text「我的房間不大，可是很舒服，裡面有一張桌子、一張床跟一張沙發。」written
+clearly.
+
+Panel 2 (top-right): medium shot at eye level from the side, a conspicuously
+new flat-screen television standing dark and switched off on a low stand in
+front of the sofa, and the student sitting on the sofa behind it with an open
+book in both hands, absorbed in reading, ignoring the TV completely. Caption
+box along the bottom edge contains the Chinese text
+「沙發前面有一台非常新的電視機，可是我平常不看電視，最喜歡坐在沙發上看書。」
+written clearly.
+
+Panel 3 (bottom-left): close-up on the tall bookshelf and the stack of books
+on the desk beside it, shot straight-on, crowded rows of colourful book spines;
+no people in this panel. Caption box along the bottom edge contains the Chinese
+text「我的書很多，中文書、英文書我都有，每一本都很好看。」written clearly.
+
+Panel 4 (bottom-right): low wide shot from floor level, the large window with
+the cream curtain pushed aside, a bright rectangle of late-afternoon sunlight
+falling across the floorboards, and the ginger cat stretched out flat on its
+side in the middle of that sunlight with its eyes closed, deeply asleep; no
+people. Caption box along the bottom edge contains the Chinese text
+「我房間的窗戶很大，每天下午我的貓都喜歡在窗戶旁邊曬太陽。」written clearly.
+
+CAPTION SCRIPT (for proofreading the generated caption boxes against — not
+part of the prompt above):
+Panel 1 — Narrator: 我的房間不大，可是很舒服，裡面有一張桌子、一張床跟一張沙發。
+  Wǒ de fángjiān bú dà, kěshì hěn shūfú, lǐmiàn yǒu yì zhāng zhuōzi, yì zhāng
+  chuáng gēn yì zhāng shāfā. — My room isn't big, but it's very comfortable —
+  inside there's a desk, a bed and a sofa.
+Panel 2 — Narrator: 沙發前面有一台非常新的電視機，可是我平常不看電視，最喜歡坐在沙發上看書。
+  Shāfā qiánmiàn yǒu yì tái fēicháng xīn de diànshìjī, kěshì wǒ píngcháng bú
+  kàn diànshì, zuì xǐhuān zuò zài shāfā shàng kànshū. — In front of the sofa
+  there's a brand-new television, but I don't usually watch TV — what I like
+  best is sitting on the sofa reading.
+Panel 3 — Narrator: 我的書很多，中文書、英文書我都有，每一本都很好看。
+  Wǒ de shū hěn duō, Zhōngwén shū, Yīngwén shū wǒ dōu yǒu, měi yì běn dōu hěn
+  hǎokàn. — I have a lot of books — Chinese ones and English ones, and every
+  single one is good.
+Panel 4 — Narrator: 我房間的窗戶很大，每天下午我的貓都喜歡在窗戶旁邊曬太陽。
+  Wǒ fángjiān de chuānghù hěn dà, měitiān xiàwǔ wǒ de māo dōu xǐhuān zài
+  chuānghù pángbiān shài tàiyáng. — The window in my room is big, and every
+  afternoon my cat likes to sun itself beside it.
+
+CONSISTENCY TIPS:
+- Keep the same room in all four panels — same walls, floor, sofa and
+  furniture positions.
+- Keep the cat's ginger-and-white markings identical wherever it appears.
+- Use Traditional Chinese characters only, no pinyin and no English anywhere
+  in the image.
+- Panels 1 and 2 have long captions — make those caption boxes wider or allow
+  two lines of text inside them rather than shrinking the characters.
+- Vary shot framing and camera angle panel to panel so it reads as four
+  different views, not four static furniture photos.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1024 for a 2×2 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.
+
+
+═══════════════════
+SPEECH-BUBBLE VERSION — HARD
+═══════════════════
+(AI image models render Chinese text inconsistently — proofread every
+bubble/box after generating. If any line comes out garbled or wrong,
+regenerate, or fall back to the TEXT-FREE VERSION above plus
+scripts/overlay_captions.py, per SKILL.md step 12.)
+
+Single square image, divided into a clean grid of 4 equal panels (2 columns ×
+2 rows), thin light gutters between panels, no hard comic-book borders. Flat
+digital illustration style, soft rounded shapes, warm late-afternoon color
+palette (cream walls, honey-coloured wood, muted sage green and soft orange
+accents), limited color palette, gentle clean outlines, friendly simple style,
+consistent lighting and color palette across all panels. All four panels show
+the same single bedroom from different angles. This page is narration, not
+dialogue: every panel includes one rectangular caption box with no tail,
+running along the bottom edge of that panel, plain white box with a thin black
+border, containing that panel's Traditional Chinese narration text written
+clearly and accurately inside; make these boxes generously tall, since the
+lines are long. No speech bubbles anywhere, and no other text, letters, words
+or captions anywhere else in the image.
+
+CHARACTERS AND FIXED PROPS (identical in every panel they appear in):
+[THE STUDENT] a young man, about 19, wavy dark hair falling over his
+forehead, slim build, plain forest-green t-shirt and grey shorts, barefoot.
+[THE CAT] a small ginger tabby with white paws and a white chest.
+[THE ROOM] cream walls, honey-coloured wooden floor, one wooden desk, one
+neatly made single bed with a navy blanket, one sage-green two-seater sofa,
+one tall bookshelf, and one large window with a thin cream curtain — the same
+furniture in the same positions in every panel.
+
+Panel 1 (top-left): wide establishing shot of the whole room from the doorway,
+slightly high angle, showing the wooden desk against the left wall, the neatly
+made bed along the back wall, and the sage-green sofa facing into the room on
+the right; the room is visibly small but warm, tidy and clearly loved; no
+people, warm afternoon light across the floor. Caption box along the bottom
+edge contains the Chinese text
+「我的房間雖然不大，可是我很喜歡，裡面有一張桌子、一張床跟一張沙發。」written
+clearly.
+
+Panel 2 (top-right): medium shot at eye level from the side, a large modern
+flat-screen television standing dark and switched off on a low stand in front
+of the sofa with a faint film of dust on its top edge, and the student settled
+comfortably on the sofa behind it with an open book in both hands, absorbed in
+reading, ignoring the TV completely. Caption box along the bottom edge contains
+the Chinese text
+「沙發前面那台電視機比舊的大多了，可是我已經很久沒看電視了，我覺得坐在沙發上看書最舒服。」
+written clearly.
+
+Panel 3 (bottom-left): close-up on the tall bookshelf, shelves packed full and
+overflowing into a tall stack on the desk beside it, a small separate pile of
+three or four well-worn favourites sitting apart on the desktop; no people in
+this panel. Caption box along the bottom edge contains the Chinese text
+「我的書比以前多了很多，中文的、英文的我都看過，最喜歡的那幾本就放在桌子上。」
+written clearly.
+
+Panel 4 (bottom-right): low wide shot from floor level, the large window
+dominating the frame with the cream curtain pushed fully aside, a broad bright
+rectangle of late-afternoon sunlight falling across the floorboards, and the
+ginger cat stretched out flat on its side in the middle of that sunlight with
+its eyes closed, deeply asleep; no people. Caption box along the bottom edge
+contains the Chinese text
+「我房間的窗戶比客廳的還大，所以我的貓每天下午都在窗戶旁邊曬太陽。」written
+clearly.
+
+CAPTION SCRIPT (for proofreading the generated caption boxes against — not
+part of the prompt above):
+Panel 1 — Narrator: 我的房間雖然不大，可是我很喜歡，裡面有一張桌子、一張床跟一張沙發。
+  Wǒ de fángjiān suīrán bú dà, kěshì wǒ hěn xǐhuān, lǐmiàn yǒu yì zhāng
+  zhuōzi, yì zhāng chuáng gēn yì zhāng shāfā. — My room may not be big, but I
+  really like it — inside there's a desk, a bed and a sofa.
+Panel 2 — Narrator: 沙發前面那台電視機比舊的大多了，可是我已經很久沒看電視了，我覺得坐在沙發上看書最舒服。
+  Shāfā qiánmiàn nà tái diànshìjī bǐ jiù de dà duō le, kěshì wǒ yǐjīng hěn jiǔ
+  méi kàn diànshì le, wǒ juéde zuò zài shāfā shàng kànshū zuì shūfú. — That
+  television in front of the sofa is much bigger than the old one, but I
+  haven't watched TV in ages — to me, sitting on the sofa reading is the most
+  comfortable thing there is.
+Panel 3 — Narrator: 我的書比以前多了很多，中文的、英文的我都看過，最喜歡的那幾本就放在桌子上。
+  Wǒ de shū bǐ yǐqián duō le hěn duō, Zhōngwén de, Yīngwén de wǒ dōu kàn guò,
+  zuì xǐhuān de nà jǐ běn jiù fàng zài zhuōzi shàng. — I have far more books
+  than I used to — I've read both the Chinese and the English ones, and my
+  favourite few sit right on the desk.
+Panel 4 — Narrator: 我房間的窗戶比客廳的還大，所以我的貓每天下午都在窗戶旁邊曬太陽。
+  Wǒ fángjiān de chuānghù bǐ kètīng de hái dà, suǒyǐ wǒ de māo měitiān xiàwǔ
+  dōu zài chuānghù pángbiān shài tàiyáng. — The window in my room is even
+  bigger than the living room's, so every afternoon my cat suns itself right
+  beside it.
+
+CONSISTENCY TIPS:
+- Keep the same room in all four panels — same walls, floor, sofa and
+  furniture positions.
+- Keep the cat's ginger-and-white markings identical wherever it appears.
+- Use Traditional Chinese characters only, no pinyin and no English anywhere
+  in the image.
+- All four captions are long at this tier — give every caption box two lines of
+  text rather than shrinking the characters until they blur. If the generator
+  can't fit them legibly, use the TEXT-FREE VERSION and add the captions with
+  scripts/overlay_captions.py instead.
+- Vary shot framing and camera angle panel to panel so it reads as four
+  different views, not four static furniture photos.
+
+EXPORT SETTINGS (to keep the file under 1.5 MB):
+- Generate at a resolution that keeps individual panels legible — e.g.
+  1024 x 1024 for a 2×2 grid.
+- Export as JPG (much smaller than PNG) at about 80-85% quality.
+- If the file is still too large, lower JPG quality slightly, reduce overall
+  dimensions, or simplify panel backgrounds.
+- Use PNG only if you need transparency; if so, expect larger files and
+  compress with a tool like TinyPNG to get under 1.5 MB.

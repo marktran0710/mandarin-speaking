@@ -184,21 +184,21 @@ Panel 2 — Youmei: 我要在家看書、聽音樂。
   Wǒ yào zài jiā kànshū, tīng yīnyuè. — I am going to read and listen to
   music at home.
 Panel 3 — Zhongming: 妳星期六下午有空嗎？我們一起去喝下午茶，怎麼樣？
-  Nǐ xīngqíliù xiàwǔ yǒukòng ma? Wǒmen yìqǐ qù hē xiàwǔchá, zěnmeyàng? —
+  Nǐ xīngqí liù xiàwǔ yǒukòng ma? Wǒmen yìqǐ qù hē xiàwǔ chá, zěnmeyàng? —
   Are you available on Saturday afternoon? How about we have afternoon tea
   together?
 Panel 4 — Youmei: 好啊！你想去哪裡？
-  Hǎo a! Nǐ xiǎng qù nǎlǐ? — Sounds great! Where do you want to go?
+  Hǎo ā! Nǐ xiǎng qù nǎlǐ? — Sounds great! Where do you want to go?
 Panel 5 — Zhongming: 我知道一家很不錯的咖啡廳，那裡的冰淇淋很好吃。
   Wǒ zhīdào yì jiā hěn búcuò de kāfēitīng, nàlǐ de bīngqílín hěn hǎochī. —
   I know a nice café. They serve delicious ice cream.
 Panel 6 — Youmei: 他們有巧克力冰淇淋嗎？
   Tāmen yǒu qiǎokèlì bīngqílín ma? — Do they have chocolate ice cream?
 Panel 7 — Zhongming: 有啊！他們有很多種冰淇淋。
-  Yǒu a! Tāmen yǒu hěn duō zhǒng bīngqílín. — Oh, yeah. They have lots of
+  Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín. — Oh, yeah. They have lots of
   kinds of ice cream.
 Panel 8 — Youmei: 我們這個星期六下午兩點半去吧。
-  Wǒmen zhè ge xīngqíliù xiàwǔ liǎng diǎn bàn qù ba. — Let's go this
+  Wǒmen zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba. — Let's go this
   Saturday at 2:30 p.m.
 Panel 9 — Zhongming: 好。
   Hǎo. — Okay.
@@ -314,11 +314,11 @@ Panel 2 — Youmei: 我想在家看書、聽音樂，好好休息。
   Wǒ xiǎng zài jiā kànshū, tīng yīnyuè, hǎohǎo xiūxí. — I want to stay
   home, read, listen to music, and get a good rest.
 Panel 3 — Zhongming: 妳星期六下午有空嗎？我們一起去咖啡廳喝下午茶，怎麼樣？
-  Nǐ xīngqíliù xiàwǔ yǒukòng ma? Wǒmen yìqǐ qù kāfēitīng hē xiàwǔchá,
+  Nǐ xīngqí liù xiàwǔ yǒukòng ma? Wǒmen yìqǐ qù kāfēitīng hē xiàwǔ chá,
   zěnmeyàng? — Are you free Saturday afternoon? How about we go to a café
   for afternoon tea together?
 Panel 4 — Youmei: 好啊！可是你想去哪裡？
-  Hǎo a! Kěshì nǐ xiǎng qù nǎlǐ? — Sure! But where do you want to go?
+  Hǎo ā! Kěshì nǐ xiǎng qù nǎlǐ? — Sure! But where do you want to go?
 Panel 5 — Zhongming: 我知道一家很不錯的咖啡廳，那裡的冰淇淋非常好吃。
   Wǒ zhīdào yì jiā hěn búcuò de kāfēitīng, nàlǐ de bīngqílín fēicháng
   hǎochī. — I know a really nice café — the ice cream there is extremely
@@ -327,13 +327,13 @@ Panel 6 — Youmei: 真的嗎？他們有巧克力冰淇淋嗎？
   Zhēnde ma? Tāmen yǒu qiǎokèlì bīngqílín ma? — Really? Do they have
   chocolate ice cream?
 Panel 7 — Zhongming: 有啊！他們有很多種冰淇淋，每種都很好吃。
-  Yǒu a! Tāmen yǒu hěn duō zhǒng bīngqílín, měi zhǒng dōu hěn hǎochī. —
+  Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín, měi zhǒng dōu hěn hǎochī. —
   They do! They have many kinds of ice cream, and every kind is delicious.
 Panel 8 — Youmei: 太好了！我們這個星期六下午兩點半去吧。
-  Tài hǎo le! Wǒmen zhè ge xīngqíliù xiàwǔ liǎng diǎn bàn qù ba. — Great!
+  Tài hǎo le! Wǒmen zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba. — Great!
   Let's go this Saturday at 2:30 in the afternoon.
 Panel 9 — Zhongming: 好，星期六見！
-  Hǎo, xīngqíliù jiàn! — Okay, see you Saturday!
+  Hǎo, xīngqí liù jiàn! — Okay, see you Saturday!
 
 EXPORT SETTINGS (to keep the file under 1.5 MB):
 - Generate at a resolution that keeps individual panels legible — e.g.
@@ -378,7 +378,7 @@ empty desks, big windows with afternoon light, Zhongming walking up to
 Youmei's desk raising one hand in a cheerful greeting, Youmei seated at her
 desk turning toward him with a friendly look. Speech bubble pointing at
 Zhongming contains the Chinese text
-"友美，這個星期快過完了，妳週末打算做什麼？" written clearly.
+"友美，這個星期快結束了，妳週末打算做什麼？" written clearly.
 
 Panel 2 (top-center): medium shot from a slight side angle, Youmei seated at
 her desk with her chin resting on one hand, a dreamy relaxed expression, a
@@ -442,19 +442,19 @@ CONSISTENCY TIPS:
 
 CAPTION SCRIPT (for proofreading the generated bubbles/boxes against —
 not part of the prompt above):
-Panel 1 — Zhongming: 友美，這個星期快過完了，妳週末打算做什麼？
-  Yǒuměi, zhè ge xīngqí kuài guò wán le, nǐ zhōumò dǎsuàn zuò shénme? —
+Panel 1 — Zhongming: 友美，這個星期快結束了，妳週末打算做什麼？
+  Yǒuměi, zhè ge xīngqí kuài jiéshù le, nǐ zhōumò dǎsuàn zuò shénme? —
   Youmei, this week is almost over — what do you plan to do this weekend?
 Panel 2 — Youmei: 這個星期我太忙了，所以週末想在家看書、聽音樂，好好休息一下。
   Zhè ge xīngqí wǒ tài máng le, suǒyǐ zhōumò xiǎng zài jiā kànshū, tīng
   yīnyuè, hǎohǎo xiūxí yíxià. — I've been too busy this week, so this
   weekend I want to stay home, read, listen to music, and rest up a bit.
 Panel 3 — Zhongming: 如果妳星期六下午有空，我們一起去喝下午茶，怎麼樣？
-  Rúguǒ nǐ xīngqíliù xiàwǔ yǒukòng, wǒmen yìqǐ qù hē xiàwǔchá,
+  Rúguǒ nǐ xīngqí liù xiàwǔ yǒukòng, wǒmen yìqǐ qù hē xiàwǔ chá,
   zěnmeyàng? — If you're free Saturday afternoon, how about we go have
   afternoon tea together?
 Panel 4 — Youmei: 好啊！我很久沒喝下午茶了，你想去哪裡？
-  Hǎo a! Wǒ hěn jiǔ méi hē xiàwǔchá le, nǐ xiǎng qù nǎlǐ? — Sure! I
+  Hǎo ā! Wǒ hěn jiǔ méi hē xiàwǔ chá le, nǐ xiǎng qù nǎlǐ? — Sure! I
   haven't had afternoon tea in ages — where do you want to go?
 Panel 5 — Zhongming: 我去過一家很不錯的咖啡廳，那裡的冰淇淋比別家的好吃。
   Wǒ qùguò yì jiā hěn búcuò de kāfēitīng, nàlǐ de bīngqílín bǐ biéjiā de
@@ -464,14 +464,14 @@ Panel 6 — Youmei: 真的嗎？他們有沒有巧克力冰淇淋？
   Zhēnde ma? Tāmen yǒu méi yǒu qiǎokèlì bīngqílín? — Really? Do they have
   chocolate ice cream?
 Panel 7 — Zhongming: 有啊！他們有很多種冰淇淋，我覺得巧克力的最好吃。
-  Yǒu a! Tāmen yǒu hěn duō zhǒng bīngqílín, wǒ juéde qiǎokèlì de zuì
+  Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín, wǒ juéde qiǎokèlì de zuì
   hǎochī. — They do! They have many kinds of ice cream — I think the
   chocolate one is the best.
 Panel 8 — Youmei: 太好了！那我們這個星期六下午兩點半去吧。
-  Tài hǎo le! Nà wǒmen zhè ge xīngqíliù xiàwǔ liǎng diǎn bàn qù ba. —
+  Tài hǎo le! Nà wǒmen zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba. —
   Great! Then let's go this Saturday at 2:30 in the afternoon.
 Panel 9 — Zhongming: 好啊，那就星期六下午兩點半見！
-  Hǎo a, nà jiù xīngqíliù xiàwǔ liǎng diǎn bàn jiàn! — Sounds good — see
+  Hǎo ā, nà jiù xīngqí liù xiàwǔ liǎng diǎn bàn jiàn! — Sounds good — see
   you Saturday at 2:30 then!
 
 EXPORT SETTINGS (to keep the file under 1.5 MB):

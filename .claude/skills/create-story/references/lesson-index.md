@@ -28,6 +28,14 @@ Each lesson generally contains, in this order: a title/divider page (with Dialog
 
 ## Referencing a specific dialogue ("chapter")
 
-A lesson number alone (e.g. `5`) means "use this lesson generally." A lesson-chapter pair (e.g. `5-2`) means "use dialogue 2 specifically" — 對話一 = chapter 1, 對話二 = chapter 2.
+A lesson number alone (e.g. `5`) means "use this lesson generally." A lesson-chapter pair (e.g. `5-2`) means "use section 2 specifically":
+
+| Chapter | Section | Where it sits |
+|---|---|---|
+| 1 | 對話一 Dialogue 1 | on the lesson's title/divider page |
+| 2 | 對話二 Dialogue 2 | partway through, after Dialogue 1's vocabulary |
+| 3 | 短文 Reading | near the back, **after** the 語法 grammar notes |
+
+Chapter 3 is a **reading passage, not a dialogue** — a short first-person monologue with its own Simplified/Pinyin/English companion spread and its own vocabulary list, exactly like the dialogues. The book's audio track numbers confirm the numbering (Lesson 5's reading is labelled 05-3-1 / 05-3-2). Not every lesson necessarily has one, but never conclude a chapter is missing after scanning only for 對話 headers — check for the 短文 banner near the end of the lesson first.
 
 This index does not pre-map dialogue-level page numbers (that would mean scanning every page of every lesson up front for a fairly small benefit). Instead, resolve a chapter reference on demand: render the full page range for that lesson (it's only 20-25 pages), scan the rendered images for the "對話一 Dialogue 1" / "對話二 Dialogue 2" section headers, and read from the requested one until the next section header (usually a vocabulary list) begins.
