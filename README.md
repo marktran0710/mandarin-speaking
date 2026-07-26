@@ -301,12 +301,30 @@ separate `mandarin_test` database and truncate every table between tests.
 Schema changes are Alembic migrations in `backend/migrations/versions/` — the
 app no longer creates or alters tables at startup.
 
-The pre-migration SQLite file (`backend/mandarin_stories.db`) is kept on disk
-as a backup. To re-import it:
+The pre-migration SQLite file (`backend/mandarin_stories.db`) is kept on disk,
+but it is a snapshot of the day of the migration, not a live backup — the app
+has not written to it since. To re-import it:
 
 ```bash
 cd backend && python -m scripts.migrate_sqlite_to_postgres
 ```
+
+#### Backups
+
+Everything lives in the `mandarin_pgdata` Docker volume, so `docker compose
+down -v` or a lost machine takes the teacher's materials with it. Dump the
+whole database before anything risky:
+
+```bash
+cd backend
+python -m scripts.backup_db                        # -> pg_dump_mandarin_<timestamp>.sql
+python -m scripts.backup_db --restore <file>       # restore into an empty database
+python -m scripts.backup_db --restore <file> --yes # ... or over one that has rows
+```
+
+Windows has no `pg_dump` on PATH, so the script runs the PostgreSQL 17 client
+tools inside the `mandarin-postgres` container; pass `--url` to point it at any
+other database (a managed one included). Dumps are `.gitignore`d.
 
 ### 1. Backend (Python 3.10+)
 
