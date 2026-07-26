@@ -35,6 +35,7 @@ from database import (
     connect_db,
     init_db,
 )
+from psycopg.types.json import Jsonb
 
 import caf_metrics
 
@@ -603,11 +604,21 @@ def save_audio_record(record: AudioRecordRequest):
     with connect_db() as db:
         db.execute(
             """
-            INSERT OR REPLACE INTO audio_records (
+            INSERT INTO audio_records (
                 id, timestamp, duration, transcription, model, topic_id,
                 image_url, image_index, audio_url, praat_metrics
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                timestamp = EXCLUDED.timestamp,
+                duration = EXCLUDED.duration,
+                transcription = EXCLUDED.transcription,
+                model = EXCLUDED.model,
+                topic_id = EXCLUDED.topic_id,
+                image_url = EXCLUDED.image_url,
+                image_index = EXCLUDED.image_index,
+                audio_url = EXCLUDED.audio_url,
+                praat_metrics = EXCLUDED.praat_metrics
             """,
             (
                 record.id,
@@ -619,7 +630,7 @@ def save_audio_record(record: AudioRecordRequest):
                 record.imageUrl,
                 record.imageIndex,
                 record.audioUrl,
-                json.dumps(record.praatMetrics),
+                Jsonb(record.praatMetrics),
             ),
         )
 

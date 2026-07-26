@@ -1,8 +1,8 @@
-import json
 import os
 from typing import Optional
 
 from fastapi import APIRouter
+from psycopg.types.json import Jsonb
 
 from database import connect_db, row_to_story_submission
 from audio_concat import concatenate_scene_audio
@@ -18,7 +18,7 @@ async def list_story_submissions(story_id: Optional[str] = None):
     with connect_db() as db:
         if story_id:
             rows = db.execute(
-                "SELECT * FROM story_submissions WHERE story_id = ? ORDER BY submitted_at DESC",
+                "SELECT * FROM story_submissions WHERE story_id = %s ORDER BY submitted_at DESC",
                 (story_id,),
             ).fetchall()
         else:
@@ -35,9 +35,15 @@ async def create_story_submission(submission: StorySubmissionRequest):
     with connect_db() as db:
         db.execute(
             """
-            INSERT OR REPLACE INTO story_submissions
+            INSERT INTO story_submissions
                 (id, story_id, story_title, student_name, submitted_at, scenes)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                story_id = EXCLUDED.story_id,
+                story_title = EXCLUDED.story_title,
+                student_name = EXCLUDED.student_name,
+                submitted_at = EXCLUDED.submitted_at,
+                scenes = EXCLUDED.scenes
             """,
             (
                 submission.id,
@@ -45,7 +51,7 @@ async def create_story_submission(submission: StorySubmissionRequest):
                 submission.storyTitle,
                 submission.studentName,
                 submission.submittedAt,
-                json.dumps([s.model_dump() for s in scenes_sorted]),
+                Jsonb([s.model_dump() for s in scenes_sorted]),
             ),
         )
 
@@ -117,10 +123,10 @@ async def create_story_submission(submission: StorySubmissionRequest):
 
     with connect_db() as db:
         db.execute(
-            "UPDATE story_submissions SET concatenated_audio_url = ?, story_feedback = ? WHERE id = ?",
+            "UPDATE story_submissions SET concatenated_audio_url = %s, story_feedback = %s WHERE id = %s",
             (
                 concatenated_audio_url,
-                json.dumps(story_feedback) if story_feedback else None,
+                Jsonb(story_feedback) if story_feedback else None,
                 submission.id,
             ),
         )
