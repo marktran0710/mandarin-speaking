@@ -13,6 +13,7 @@ import {
   starsFromAttempts,
   tierConfigFromMode,
   type QuizTier,
+  type TierConfig,
   type TierMode,
 } from "../utils/quizTiers";
 import {
@@ -244,10 +245,12 @@ export function collectQuizEntries(
     const pinyin = pinyins?.[i]?.trim();
     const pos = partsOfSpeech?.[i]?.trim();
     // A candidate is only usable once it actually has a distractor and its
-    // sentence really contains the word — belt-and-suspenders on top of the
-    // backend's own validation, in case stale/malformed data slipped through.
+    // sentence contains the word EXACTLY once — belt-and-suspenders on top
+    // of the backend's own validation. A sentence using the word twice
+    // ("有啊！他們有…") would leak the answer right next to the blank, since
+    // buildClozeQuestion only blanks the first occurrence.
     const cloze = (aiCloze?.[i] ?? []).filter(
-      (c) => c.distractors.length > 0 && c.sentence.includes(word),
+      (c) => c.distractors.length > 0 && c.sentence.split(word).length === 2,
     );
     const synonym = (aiSynonym?.[i] ?? []).filter(
       (c) => c.distractors.length > 0 && c.synonym !== word,
@@ -713,7 +716,11 @@ function pickQuestionKind(
   return available[available.length - 1][0];
 }
 
-function buildQuizQuestion(
+/** Exported for the quiz audit test (StoryVocabQuiz.audit.test.tsx), which
+ * generates thousands of questions from real story data and checks the
+ * one-correct-answer invariants — the component itself is the only other
+ * caller. */
+export function buildQuizQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
   mode: VocabQuizMode,
@@ -804,6 +811,97 @@ const REVIEW_CARD = {
   descPinyin: "Méiyǒu tímù xiànzhì — zhíjiē kàn suǒyǒu shēngcí hàn tāmen de shēngdiào.",
   descEn: "No question limit — just browse every word and its tones.",
 };
+
+/** The tier's pass rule, drawn to scale. The rail runs 0 → questionCount,
+ * the notch sits at the tier's real passCount, and the pale headroom shows
+ * how far this run can still reach — so a student can read "am I on track
+ * for the star" without doing the arithmetic. Every tier has a different
+ * fraction (14/20, 18/22, 22/25), which is why the notch is positioned from
+ * the config rather than drawn at a fixed spot.
+ *
+ * Only scored tier runs get this: Review and the missed-words retry round
+ * earn no star, so they have no threshold to draw. */
+function QuizScoreTrack({
+  correct,
+  answered,
+  config,
+}: {
+  correct: number;
+  answered: number;
+  config: TierConfig;
+}) {
+  const max = config.questionCount;
+  const pass = config.passCount;
+  // Best score this run can still finish on: every unanswered question
+  // going right. Once that falls under the threshold the star is out of
+  // reach for this attempt.
+  const bestPossible = correct + (max - answered);
+  const reachable = bestPossible >= pass;
+  const stars = "⭐".repeat(config.tier);
+  const need = pass - correct;
+  const pct = (n: number) => `${Math.min(100, (n / max) * 100)}%`;
+
+  return (
+    <div className={`vq-track${reachable ? "" : " is-out-of-reach"}`}>
+      <div className="vq-track-scale">
+        <span className="vq-track-scale-left">
+          <BiLabel zh={`答對 ${correct}`} pinyin={`Dá duì ${correct}`} en={`${correct} correct`} />
+        </span>
+        <span className="vq-track-scale-right">
+          <BiLabel zh={`最多 ${max}`} pinyin={`Zuìduō ${max}`} en={`Max ${max}`} />
+        </span>
+      </div>
+
+      <div
+        className="vq-track-rail"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={max}
+        aria-valuenow={correct}
+        aria-valuetext={`${correct} correct of ${max}; ${pass} needed for ${config.tier} star${config.tier > 1 ? "s" : ""}`}
+      >
+        {/* The ceiling only appears once a wrong answer has lowered it —
+            drawn from the start it spans the whole rail and just reads as
+            "already full", which is the opposite of what it means. */}
+        {bestPossible < max && (
+          <span className="vq-track-headroom" style={{ width: pct(bestPossible) }} />
+        )}
+        <span className="vq-track-fill" style={{ width: pct(correct) }} />
+        <span className="vq-track-notch" style={{ left: pct(pass) }} aria-hidden="true" />
+      </div>
+
+      <div className="vq-track-notch-row" aria-hidden="true">
+        <span className="vq-track-notch-label" style={{ left: pct(pass) }}>
+          {stars} {pass}
+        </span>
+      </div>
+
+      <p className="vq-track-note">
+        {reachable ? (
+          need > 0 ? (
+            <BiLabel
+              zh={`還要對 ${need} 題`}
+              pinyin={`Hái yào duì ${need} tí`}
+              en={`${need} more correct for ${stars}`}
+            />
+          ) : (
+            <BiLabel
+              zh={`${stars} 拿到了！`}
+              pinyin={`${stars} Nádào le!`}
+              en={`${stars} earned — keep going`}
+            />
+          )
+        ) : (
+          <BiLabel
+            zh={`這次先練習，下次再拿 ${stars}`}
+            pinyin={`Zhè cì xiān liànxí, xià cì zài ná ${stars}`}
+            en={`Practice run — try for ${stars} next time`}
+          />
+        )}
+      </p>
+    </div>
+  );
+}
 
 /** A multiple-choice vocabulary check covering every glossed word in the
  * story, shown before a student starts practicing any scene, structured as
@@ -1467,6 +1565,13 @@ export default function StoryVocabQuiz({
             <BiLabel zh={`第 ${index + 1} 題`} pinyin={`Dì ${index + 1} tí`} en={`Question ${index + 1}`} />
           )}
         </p>
+        {!isRetryRound && tierConfigFromMode(mode) && (
+          <QuizScoreTrack
+            correct={results.filter((r) => r.correct).length}
+            answered={results.length}
+            config={tierConfigFromMode(mode)!}
+          />
+        )}
         {timeLimitMs !== null && (
           <p
             className={`vocab-quiz-timer${timeLeftMs <= 10_000 ? " is-low" : ""}`}

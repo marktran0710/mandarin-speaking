@@ -64,7 +64,7 @@
 .tone-filter-chip.active {
   background: var(--seal);
   border-color: var(--seal);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
 }
 
 .tone-practice-grid {
@@ -263,7 +263,7 @@
   margin: 0;
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--clay-radius-md);
-  background: var(--seal-soft);
+  background: var(--clay-error-soft);
   border-left: 4px solid var(--clay-error);
   color: var(--clay-error);
   font-weight: 600;

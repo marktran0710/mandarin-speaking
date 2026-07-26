@@ -10,6 +10,7 @@ import {
   loginStudent,
   type Student,
 } from "../services/database";
+import { signIn } from "../utils/session";
 
 const NEW_STUDENT_VALUE = "__new__";
 const DEFAULT_PASSWORD = "123456";
@@ -57,14 +58,7 @@ export default function StudentLoginPage({
   const usingRoster = canUseDatabase() && !rosterError;
 
   const startSession = (finalName: string, studentId?: string) => {
-    localStorage.setItem(
-      "studentSession",
-      JSON.stringify({
-        name: finalName,
-        id: studentId,
-        signedInAt: new Date().toISOString(),
-      }),
-    );
+    signIn("student", finalName, studentId);
     onLogin();
   };
 

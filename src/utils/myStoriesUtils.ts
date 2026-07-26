@@ -1,7 +1,8 @@
 import { getTopicVocabulary } from "../components/TopicSelector";
 import type { VocabQuizAttempt } from "../services/database";
 import { loadPublishedTeacherTopics, type NarrativeMode } from "./teacherStories";
-import type { AudioRecord, CustomStoryValidationErrors } from "../pages/MyStoriesPage";
+import type { AudioRecord } from "../pages/MyStoriesPage";
+import type { CustomStoryValidationErrors } from "../components/teacher/StoryBuilderSection";
 
 export function getStudentTopics() {
   return loadPublishedTeacherTopics();

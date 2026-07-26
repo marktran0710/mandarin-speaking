@@ -11,7 +11,9 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import StudentLoginPage from "./pages/StudentLoginPage";
 import Navigation from "./components/Navigation";
 import JourneyBubble from "./components/JourneyBubble";
+import WrongMode from "./components/WrongMode";
 import { getStudentName, getStudentId } from "./utils/studentSession";
+import { currentRole, signOut } from "./utils/session";
 import {
   canUseDatabase,
   createAudioRecord,
@@ -68,6 +70,10 @@ interface PracticeTarget {
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
   const [activeRole, setActiveRole] = useState<"student" | null>(null);
+  // A teacher session reaching the student site. Read once on mount, like
+  // `activeRole` below — the session only changes through a sign-in or a
+  // sign-out, and both of those reload or re-render this component anyway.
+  const [blockedRole, setBlockedRole] = useState(false);
   const [isInPracticeSession, setIsInPracticeSession] = useState(false);
   const [audioRecords, setAudioRecords] = useState<AudioRecord[]>([]);
   const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
@@ -110,11 +116,23 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    // Deliberately URL-only: the voice test is a diagnostic tool (raw pitch
+    // contours, Praat plots) for the teacher and for debugging, not a
+    // student learning section, so it gets no navbar link. Reaching it
+    // still requires an existing student session — the paths below only
+    // choose the landing page for a student who is already logged in.
     const directVoiceTestPath =
       window.location.pathname === "/analyze" ||
       window.location.pathname === "/voice-test";
-    const storedRole = localStorage.getItem("activeRole");
-    if (storedRole === "student") {
+    const role = currentRole();
+    if (role === "teacher") {
+      // Teacher signed in on this device — the student site is closed to
+      // them until they sign out. Covers the /analyze and /voice-test deep
+      // links too, since those route through here.
+      setBlockedRole(true);
+      return;
+    }
+    if (role === "student") {
       setActiveRole("student");
       setCurrentPage(directVoiceTestPath ? "voice-test" : "student-practice");
     }
@@ -208,15 +226,19 @@ export default function App() {
   };
 
   const handleLogin = () => {
+    // StudentLoginPage has already written the session (it owns the name and
+    // roster id); this only reacts to it.
     setActiveRole("student");
-    localStorage.setItem("activeRole", "student");
     setCurrentPage("student-practice");
   };
 
   const handleLogout = () => {
     setActiveRole(null);
     setPracticeTarget(null);
-    localStorage.removeItem("activeRole");
+    // Clears the whole session, not just the role — the old code removed
+    // `activeRole` and left `studentSession` behind forever, which meant a
+    // "logged out" browser still carried a student identity.
+    signOut();
     setCurrentPage("home");
   };
 
@@ -290,7 +312,7 @@ export default function App() {
     !(currentPage === "student-practice" && isInPracticeSession);
 
   const handleRaiseHand = (message: string) => {
-    const studentName = getSessionName("studentSession", "Student");
+    const studentName = getStudentName();
     const existingOpenRequest = helpRequests.find(
       (request) =>
         request.studentName === studentName && request.status === "open",
@@ -319,6 +341,14 @@ export default function App() {
     }
   };
 
+  if (blockedRole) {
+    return (
+      <ErrorBoundary>
+        <WrongMode expected="student" />
+      </ErrorBoundary>
+    );
+  }
+
   return (
     <ErrorBoundary>
     <div className="app-container">
@@ -328,6 +358,8 @@ export default function App() {
         onNavigate={setCurrentPage}
         onLogout={handleLogout}
         compact={currentPage === "student-practice" && isInPracticeSession}
+        hasDescribeStories={describeTopics.length > 0}
+        hasListenRetellStories={listenRetellTopics.length > 0}
       />
       {currentPage === "home" && <HomePage onNavigate={setCurrentPage} />}
       {currentPage === "student-login" && (
@@ -357,7 +389,6 @@ export default function App() {
           records={audioRecords}
           onDeleteRecord={deleteAudioRecord}
           onPracticeImage={handlePracticeImage}
-          mode="student"
           helpRequests={helpRequests}
           onRaiseHand={handleRaiseHand}
           publishedTopics={storyTopics}
@@ -392,17 +423,6 @@ export default function App() {
     </div>
     </ErrorBoundary>
   );
-}
-
-function getSessionName(storageKey: string, fallback: string) {
-  try {
-    const session = JSON.parse(localStorage.getItem(storageKey) || "{}");
-    return typeof session.name === "string" && session.name.trim()
-      ? session.name.trim()
-      : fallback;
-  } catch {
-    return fallback;
-  }
 }
 
 function loadLocalHelpRequests(): HelpRequest[] {

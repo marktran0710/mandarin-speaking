@@ -1,6 +1,6 @@
 """PUT /api/custom-stories/{id}/quiz-exclusions — the teacher review page's
 bad-material list. Whole-list replace, persisted on the story row, echoed
-back by row_to_custom_story. Runs against a temp database."""
+back by row_to_custom_story. Runs against the isolated test database."""
 import os
 import sys
 
@@ -11,14 +11,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 
 @pytest.fixture()
-def temp_db(tmp_path, monkeypatch):
-    import database
-    monkeypatch.setattr(database, "DATABASE_PATH", str(tmp_path / "test.db"))
-    database.init_db()
-
-
-@pytest.fixture()
-def story_client(temp_db, client):
+def story_client(client):
     story = {
         "id": "story-quiz-x",
         "title": "測試故事",

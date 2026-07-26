@@ -121,7 +121,7 @@
 .flow-step.active span,
 .flow-step.completed span {
   background: var(--clay-primary);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
 }
 
 .eyebrow {
@@ -392,13 +392,15 @@
   padding: 3px 10px;
   border-radius: var(--clay-radius-lg);
   background: var(--seal-soft);
-  color: var(--seal);
+  /* --seal is the bright gold: 1.8:1 on its own soft tint. Text on any
+     gold tint uses the -deep shade. */
+  color: var(--seal-deep);
   font-weight: 600;
   transition: all 0.3s;
 }
 .loading-step.active {
   background: var(--seal);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
   animation: pulse 1.2s ease-in-out infinite;
 }
 .loading-step.done {
@@ -711,9 +713,27 @@
   gap: 8px;
 }
 
+/* Character over its pinyin — a beginner can't act on "say 在 with a
+   falling tone" without zài, so the reading travels with the character
+   everywhere this card names a word. */
+.word-prosody-token {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
 .word-prosody-topline strong {
   color: var(--clay-ink);
   font-size: 24px;
+  line-height: 1.15;
+}
+
+.word-prosody-token-pinyin {
+  color: var(--clay-muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .word-prosody-topline-meta {
@@ -732,7 +752,7 @@
   white-space: nowrap;
 }
 
-/* "You said" pill stays mint; the target pill goes lavender so the pair
+/* "You said" pill stays mint; the target pill goes celadon so the pair
    reads as a comparison, not one verdict. */
 .word-prosody-target-pill {
   background: var(--seal-soft);
@@ -748,11 +768,21 @@
 }
 
 .word-syllable-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
   padding: 3px 8px;
   border-radius: var(--clay-radius-pill);
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.word-syllable-pinyin {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.8;
 }
 
 .word-syllable-chip.syllable-pass {
@@ -816,9 +846,15 @@
   font-weight: 800;
 }
 
+/* The SVG draws with preserveAspectRatio="none", so a full-width container
+   stretches the curve horizontally and flattens every tone shape into a
+   near-straight line — the wider it got, the less there was to read.
+   Capping the box near the SVG's own 160×66 drawing ratio keeps the
+   rise/fall legible; the chart is a glyph, not a panel. */
 .mini-contour {
-  height: 66px;
-  margin: 12px 0;
+  height: 60px;
+  max-width: 150px;
+  margin: 10px 0;
 }
 
 .mini-contour-svg {
@@ -901,6 +937,38 @@
   margin-top: 8px !important;
 }
 
+/* Disclosure for the sentence-attempt readout this card folds away once the
+   student records the word on its own — history, one line, reopenable. */
+.word-prosody-past-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--clay-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.word-prosody-past-toggle:hover {
+  color: var(--clay-ink);
+}
+
+/* The pass rule, stated where the student is trying to clear it. */
+.word-practice-gate-note {
+  margin: 0 0 10px !important;
+  padding: 6px 10px;
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft);
+  color: var(--clay-muted) !important;
+  font-size: 12px !important;
+  line-height: 1.4;
+}
+
 .word-practice-drill {
   margin-top: 10px;
 }
@@ -967,7 +1035,7 @@
   margin: 8px 0 0;
   padding: 8px 10px;
   border-radius: var(--clay-radius-sm);
-  background: var(--seal-soft);
+  background: var(--clay-error-soft);
   color: var(--clay-error);
   font-size: 12px;
   line-height: 1.45;
@@ -1224,7 +1292,7 @@
   margin: 0;
 }
 .content-accuracy-panel.is-rejected {
-  /* --seal is the violet brand accent now, not a "bad" color — use the
+  /* --seal is the cinnabar brand accent, not a "bad" color — use the
      real error-red ramp to signal failure. */
   background: var(--clay-error-soft);
   border-color: var(--clay-error);
@@ -1302,7 +1370,7 @@
 .btn-submit-story {
   padding: 11px 24px;
   background: var(--seal);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
   border: 2px solid var(--seal-deep);
   border-radius: var(--clay-radius-pill);
   font-size: 14px;
@@ -1311,9 +1379,9 @@
   box-shadow: 0 4px 0 var(--seal-deep);
   transition: transform 0.1s, box-shadow 0.1s;
   /* BiLabel's .bi-en subtitle defaults to --clay-muted (dark gray) —
-     unreadable on this solid violet fill without a light override. */
-  --bi-pinyin-color: #ffffff;
-  --bi-en-color: var(--clay-canvas);
+     unreadable on this solid accent fill without a light override. */
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
 }
 .btn-submit-story:hover:not(:disabled) {
   transform: translateY(-1px);
@@ -1616,7 +1684,7 @@
 .sorting-slot-card.incorrect {
   border-style: solid;
   border-color: var(--clay-error);
-  background: var(--seal-soft);
+  background: var(--clay-error-soft);
 }
 
 .slot-header {
@@ -1643,7 +1711,7 @@
   width: 20px;
   height: 20px;
   background: var(--clay-primary);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
   border-radius: 50%;
   font-size: 11px;
   font-weight: 800;
@@ -1664,7 +1732,7 @@
 }
 
 .slot-badge.incorrect {
-  background: var(--seal-soft);
+  background: var(--clay-error-soft);
   color: var(--clay-error);
 }
 
@@ -1888,14 +1956,14 @@
 
 .btn-verify-sorting {
   background: var(--clay-primary);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
   border: 2px solid var(--seal-deep);
   box-shadow: 0 4px 0 var(--seal-deep);
   transition: transform 0.1s, box-shadow 0.1s;
   /* BiLabel's .bi-en subtitle defaults to --clay-muted (dark gray) —
-     unreadable on this solid violet fill without a light override. */
-  --bi-pinyin-color: #ffffff;
-  --bi-en-color: var(--clay-canvas);
+     unreadable on this solid accent fill without a light override. */
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
 }
 
 .btn-verify-sorting:hover:not(:disabled) {
@@ -2024,7 +2092,7 @@
   padding: 4px 14px;
   border-radius: var(--clay-radius-pill);
   background: var(--seal);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.03em;
@@ -2051,7 +2119,7 @@
   align-items: center;
   background: var(--clay-surface-card);
   border: 1.5px solid var(--seal-soft);
-  color: var(--seal);
+  color: var(--seal-deep);
   font-size: 12px;
   font-weight: 700;
   padding: 7px 16px;
@@ -2489,16 +2557,16 @@
   border-radius: var(--clay-radius-pill);
   border: 2px solid var(--seal-deep);
   background: var(--seal);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
   font-size: 1.1rem;
   font-weight: 800;
   letter-spacing: 0.02em;
   cursor: pointer;
   box-shadow: 0 5px 0 var(--seal-deep);
   /* BiLabel's .bi-en subtitle defaults to --clay-muted (dark gray) —
-     unreadable on this solid violet fill without a light override. */
-  --bi-pinyin-color: #ffffff;
-  --bi-en-color: var(--clay-canvas);
+     unreadable on this solid accent fill without a light override. */
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
   transition: transform 0.1s, box-shadow 0.1s;
 }
 .btn-scene-step-continue:hover {
@@ -2596,7 +2664,9 @@
 
 /* Study tab — one neutral outer card (icon + title + instruction), holding
    the vocabulary table and/or phrases list as their own colored sub-cards
-   below it (gold for vocabulary, violet for phrases — unchanged), instead
+   below it (gold for vocabulary, celadon for phrases — phrases moved off
+   --seal when the brand became gold, which would have made the two
+   sub-cards the same color), instead
    of two separate tabs each repeating the same header shape. */
 .practice-study-ref {
   display: flex;
@@ -2691,14 +2761,14 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: var(--seal-soft);
-  border: 1.5px solid var(--seal);
+  background: var(--lavender-soft);
+  border: 1.5px solid var(--lavender);
   border-radius: var(--clay-radius-md);
   padding: 10px 14px;
   margin-top: 10px;
 }
 .practice-phrases-label {
-  color: var(--seal-deep);
+  color: var(--lavender-deep);
 }
 .practice-phrases-list {
   display: flex;
@@ -2841,7 +2911,7 @@
 }
 
 .scene-vocab-row.scene-vocab-missed {
-  background: var(--seal-soft);
+  background: var(--clay-error-soft);
   border: 1px solid var(--clay-error);
 }
 .scene-vocab-row.scene-vocab-missed .scene-vocab-status {
@@ -2894,7 +2964,7 @@
   border-radius: var(--clay-radius-md);
   border: 2px solid var(--seal-deep);
   background: var(--seal);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
   font-size: 1.1rem;
   font-weight: 800;
   cursor: pointer;
@@ -2902,9 +2972,9 @@
   letter-spacing: 0.02em;
   box-shadow: 0 5px 0 var(--seal-deep);
   /* BiLabel's default sublabel colors are dark-on-light — unreadable on
-     this violet fill. */
-  --bi-pinyin-color: #ffffff;
-  --bi-en-color: var(--clay-canvas);
+     this accent fill. */
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
 }
 .btn-practice-record:hover:not(:disabled) {
   transform: translateY(-1px);

@@ -59,6 +59,45 @@ def no_groq_key(monkeypatch):
     monkeypatch.setattr("main.GROQ_API_KEY", None)
 
 
+# ── Database isolation ─────────────────────────────────────────────────────
+#
+# Before this existed, most tests wrote straight into the development
+# database (backend/mandarin_stories.db) and left rows behind — the roster
+# analytics were polluted with 29 junk quiz attempts. Every test now runs
+# against the separate `mandarin_test` database, truncated between tests.
+
+TEST_DATABASE_URL = os.getenv(
+    "TEST_DATABASE_URL", "postgresql://mandarin:mandarin@127.0.0.1:5432/mandarin_test"
+)
+
+TRUNCATED_TABLES = (
+    "audio_records",
+    "custom_stories",
+    "help_requests",
+    "story_submissions",
+    "students",
+    "vocab_quiz_attempts",
+)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def use_test_database():
+    import database
+
+    database.reset_pool_for_tests(TEST_DATABASE_URL)
+    yield
+    database.close_db()
+
+
+@pytest.fixture(autouse=True)
+def clean_database(use_test_database):
+    import database
+
+    with database.connect_db() as db:
+        db.execute(f"TRUNCATE {', '.join(TRUNCATED_TABLES)} RESTART IDENTITY CASCADE")
+    yield
+
+
 # ── FastAPI test client ────────────────────────────────────────────────────
 
 @pytest.fixture()

@@ -100,11 +100,18 @@ to: describe the cast and style once, lay out the grid, and give each panel
 its own distinct scene line so the panels read as a sequence of moments
 rather than one pose copy-pasted six times.
 
-1) **Pick the grid shape from the turn count N** (4-6, locked in step 5):
+1) **Pick the grid shape from the turn count N** (locked in step 5 — 4-6 in
+   generate mode, one per book dialogue line in book mode, which can be more):
    - N=4 → 2 columns × 2 rows
    - N=5 → 2 columns × 3 rows, with the final row a single wide panel
      spanning both columns (5 panels total)
    - N=6 → 2 columns × 3 rows (matches a standard comic page)
+   - N=7 → 2 columns × 4 rows, final row one wide panel spanning both columns
+   - N=8 → 2 columns × 4 rows
+   - N=9 → 3 columns × 3 rows
+   - N>9 → keep growing to the nearest near-square grid, letting the last row
+     hold a wide panel if N is odd; never merge two turns to reach a tidier
+     grid — the panel count follows the story, not the layout.
 
 2) Write ONE cast + style block, stated once at the top of the prompt (not
    repeated per panel):

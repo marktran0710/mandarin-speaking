@@ -1,14 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { BiLabel, BiText } from "./BiLabel";
-import RecordingPlayback from "./RecordingPlayback";
-import WordProsodyCard from "./WordProsodyCard";
-import MiniContourChart from "./MiniContourChart";
-import {
-  failedProsodyWords,
-  isContentAccepted,
-  sceneReady,
-  weakToneGuideItems,
-} from "../utils/storyRecorderFeedback";
+import { BiLabel } from "./BiLabel";
+import SpeakingResultsFlow from "./SpeakingResultsFlow";
+import { sceneReady } from "../utils/storyRecorderFeedback";
 import type {
   PraatMetrics,
   SpeechModel,
@@ -21,20 +14,6 @@ interface SceneProgressEntry {
   bestTone: number;
   bestFluency: number;
 }
-
-// Labels for pronunciation_note.details — one small card per aspect, shown
-// below the scene image on the results screen (fills the space the tall
-// image column otherwise leaves empty next to the results content).
-const PRONUNCIATION_DETAIL_LABELS: Record<
-  string,
-  { icon: string; zh: string; pinyin: string; en: string }
-> = {
-  tone: { icon: "🎵", zh: "聲調", pinyin: "Shēngdiào", en: "Tone" },
-  rhythm_pace: { icon: "⏱️", zh: "節奏和速度", pinyin: "Jiézòu hé sùdù", en: "Rhythm & Pace" },
-  pausing: { icon: "⏸️", zh: "停頓", pinyin: "Tíngdùn", en: "Pausing" },
-  vowel_quality: { icon: "👄", zh: "母音", pinyin: "Mǔyīn", en: "Vowel Quality" },
-  word_stress: { icon: "💪", zh: "重音", pinyin: "Zhòngyīn", en: "Word Stress" },
-};
 
 interface SpeakingFlowCardProps {
   selectedImage: string;
@@ -72,13 +51,13 @@ interface SpeakingFlowCardProps {
 
 /** The Speaking step as a two-screen app flow inside one fixed-height card:
  *
- *   record  →  (analyzing)  →  results  →  next scene / record again
+ *   record  →  (analyzing)  →  results flow  →  next scene / record again
  *
  * The results screen *replaces* the record controls, so a student always
- * passes through their feedback before acting — and the Next Scene button
- * lives on that screen, locked behind the same sceneReady rule the journey
- * path uses (score threshold, or enough attempts). No page scrolling: both
- * screens lay out inside the card's height. */
+ * passes through their feedback before acting. What used to be one dense
+ * results readout is now SpeakingResultsFlow — a guided overview → fix →
+ * practice mini-flow; this component keeps only the record screen, the
+ * analyzing overlay, and the record ⇄ results switching. */
 export default function SpeakingFlowCard({
   selectedImage,
   selectedImageIndex,
@@ -133,37 +112,6 @@ export default function SpeakingFlowCard({
   // recording) gates progression alongside the score/attempts unlock — the
   // attempts escape hatch never bypasses failing words.
   const ready = (prog ? sceneReady(prog) : false) && masteryPassed;
-
-  // Words-first-then-sentence loop state, derived from the latest analysis:
-  // which words failed, which of those the student has drilled back to a
-  // pass, and whether the only step left is re-recording the sentence.
-  const failedWords = failedProsodyWords(praatMetrics?.word_prosody);
-  const remainingDrillWords = failedWords.filter(
-    (word) => !clearedWords.includes(word.token),
-  );
-  const allDrillsCleared =
-    failedWords.length > 0 && remainingDrillWords.length === 0;
-
-  const ai = praatMetrics?.ai_feedback;
-  const accepted = praatMetrics ? isContentAccepted(praatMetrics) : true;
-  const vocabCoverage = ai?.vocabulary_coverage;
-  const missing = vocabCoverage?.missing ?? [];
-  const usedCount = vocabCoverage?.used?.length ?? 0;
-  const vocabTotal = usedCount + missing.length;
-  const weakItems = weakToneGuideItems(praatMetrics?.word_prosody || []);
-  const contentAccuracy = ai?.content_accuracy;
-  const corrective = ai?.corrective_feedback;
-  const pronunciationNote = ai?.pronunciation_note;
-
-  // The one-verdict ladder: meaning gates everything, then the unlock
-  // state, then vocabulary, then pronunciation polish.
-  const verdict: "meaning" | "ready" | "vocab" | "pronounce" = !accepted
-    ? "meaning"
-    : ready
-      ? "ready"
-      : missing.length > 0
-        ? "vocab"
-        : "pronounce";
 
   const sceneChip = (
     <span className="sfc-scene-chip">
@@ -223,7 +171,7 @@ export default function SpeakingFlowCard({
   }
 
   // ── Screen 1: record ──────────────────────────────────────────────────
-  if (screen === "record") {
+  if (screen === "record" || !praatMetrics) {
     return (
       <section className="speaking-flow-card sfc-screen" aria-label="Record your story">
         <div className="practice-workspace">
@@ -299,346 +247,28 @@ export default function SpeakingFlowCard({
     );
   }
 
-  // ── Screen 2: results ─────────────────────────────────────────────────
-  const verdictContent = {
-    meaning: {
-      icon: "🧭",
-      className: "sfc-verdict-meaning",
-      text: (
-        <BiLabel
-          zh="先修正句子的意思，再管發音。"
-          pinyin="Xiān xiūzhèng jùzi de yìsi, zài guǎn fāyīn."
-          en="Fix what your sentence means first — pronunciation comes after."
-        />
-      ),
-    },
-    vocab: {
-      icon: "📝",
-      className: "sfc-verdict-vocab",
-      text: (
-        <BiLabel
-          zh={`還缺 ${missing.length} 個詞：${missing.slice(0, 3).join("、")}`}
-          pinyin={`Hái quē ${missing.length} ge cí: ${missing.slice(0, 3).join("、")}`}
-          en={`${missing.length} word${missing.length > 1 ? "s" : ""} still missing: ${missing.slice(0, 3).join("、")}`}
-        />
-      ),
-    },
-    pronounce: {
-      icon: "🎯",
-      className: "sfc-verdict-pronounce",
-      text: weakItems[0] ? (
-        <BiLabel
-          zh={`生詞都用到了！現在練「${weakItems[0].token}」的聲調。`}
-          pinyin={`Shēngcí dōu yòng dào le! Xiànzài liàn “${weakItems[0].token}” de shēngdiào.`}
-          en={`All words used! Now practice the tone of "${weakItems[0].token}".`}
-        />
-      ) : (
-        <BiLabel
-          zh="再錄一次，讓聲調更清楚。"
-          pinyin="Zài lù yí cì, ràng shēngdiào gèng qīngchu."
-          en="Record again and make your tones clearer."
-        />
-      ),
-    },
-    ready: {
-      icon: "🎉",
-      className: "sfc-verdict-ready",
-      text: (
-        <BiLabel
-          zh={`部分 ${selectedImageIndex + 1} 完成！可以前往下一個部分。`}
-          pinyin={`Bùfen ${selectedImageIndex + 1} wánchéng! Kěyǐ qiánwǎng xià yí ge bùfen.`}
-          en={`Scene ${selectedImageIndex + 1} complete! You can move on.`}
-        />
-      ),
-    },
-  }[verdict];
-
-  const meaningJudged = Boolean(contentAccuracy?.judged);
-  const hasVocabList = vocabCoverage !== undefined && vocabTotal > 0;
-  const showCorrective =
-    narrativeMode !== "listen_retell" &&
-    !(accepted && missing.length === 0) &&
-    corrective &&
-    (corrective.errors.length > 0 || corrective.hint || corrective.correct_version);
-
+  // ── Screen 2: results — the guided overview → fix → practice flow.
+  // Keyed per scene + attempt so a fresh analysis always restarts the flow
+  // on its overview step (and drops any stale step/focus state). ──────────
   return (
-    <section className="speaking-flow-card sfc-results sfc-screen" aria-label="Recording results">
-      <div className="practice-workspace">
-      {/* The scene image persists from the record screen at the same
-          width/ratio — the anchor that makes record → results read as one
-          continuous place. */}
-      <div className="practice-scene-col">
-        <div className="practice-scene-image">
-          <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} />
-        </div>
-        {pronunciationNote?.details && pronunciationNote.details.length > 0 && (
-          <div className="sfc-scene-detail-cards">
-            <p className="block-label sfc-scene-detail-heading">
-              <BiLabel zh="發音回饋" pinyin="Fāyīn huíkuì" en="Pronunciation Feedback" />
-            </p>
-            <div className="sfc-scene-detail-list">
-              {pronunciationNote.details.map((d) => {
-                const meta = PRONUNCIATION_DETAIL_LABELS[d.key];
-                if (!meta) return null;
-                return (
-                  <div key={d.key} className="sfc-scene-detail-item">
-                    <p className="sfc-scene-detail-label">
-                      <span aria-hidden="true">{meta.icon}</span>{" "}
-                      <BiLabel zh={meta.zh} pinyin={meta.pinyin} en={meta.en} />
-                    </p>
-                    <p className="sfc-scene-detail-text">{d.text}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-        <div className="sfc-results-main">
-          {(analysisAudioBlob || praatMetrics?.transcription || submittedAudioName) && (
-            <div className="sfc-results-scene-extras">
-              {analysisAudioBlob && <RecordingPlayback blob={analysisAudioBlob} />}
-              {praatMetrics?.transcription && (
-                <p className="sfc-transcript">
-                  <BiLabel k="you_said" />{" "}
-                  <em lang="zh-TW">{praatMetrics.transcription}</em>
-                </p>
-              )}
-              {submittedAudioName && (
-                <p className="submitted-audio-name">✓ {submittedAudioName}</p>
-              )}
-            </div>
-          )}
-
-          <header className={`sfc-verdict ${verdictContent.className}`}>
-            <span className="sfc-verdict-icon" aria-hidden="true">
-              {verdictContent.icon}
-            </span>
-            <div className="sfc-verdict-body">
-              <p className="sfc-verdict-text">{verdictContent.text}</p>
-              {/* A glimpse of the real Praat data behind the verdict, not
-                  just a sentence describing it — the same overlay
-                  WordProsodyCard draws per character, shrunk to a
-                  sparkline for the single weakest word. */}
-              {verdict === "pronounce" && weakItems[0] && (
-                <div className="sfc-verdict-contour" aria-hidden="true">
-                  <MiniContourChart
-                    actual={weakItems[0].pitch_contour}
-                    reference={weakItems[0].reference_contour}
-                    userCurve={weakItems[0].user_curve}
-                    targetCurve={weakItems[0].target_curve}
-                  />
-                </div>
-              )}
-            </div>
-            {sceneChip}
-          </header>
-
-          {/* One card shape reused for all three sections — same padding,
-              radius and header layout, only the accent color changes.
-              Replaces the previous mix of a bordered banner, a left-rule
-              text block and a bare chip row. */}
-          <div className="sfc-body">
-            {(meaningJudged || showCorrective) && (
-              <section className={`sfc-result-card sfc-result-card--meaning${accepted ? " is-good" : " is-bad"}`}>
-                <header className="sfc-result-card-header">
-                  <span aria-hidden="true">🧭</span>
-                  <BiLabel zh="意思" en="Meaning" />
-                </header>
-
-                {meaningJudged && contentAccuracy?.feedback && (
-                  <div className="sfc-result-card-body">
-                    <p className="content-accuracy-feedback">
-                      {contentAccuracy.feedback}
-                    </p>
-                    {contentAccuracy.missed_details.length > 0 && (
-                      <p className="content-accuracy-missed">
-                        ✗ {contentAccuracy.missed_details.join(", ")}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {showCorrective && (
-                  <div className={`sfc-result-card-body sfc-corrective${corrective!.reveal_answer ? "" : " is-hint"}`}>
-                    <p className="sfc-corrective-heading">
-                      {corrective!.reveal_answer ? (
-                        <BiLabel zh="正確答案" en="Correct version" />
-                      ) : (
-                        <BiLabel zh="提示" en="Hint" />
-                      )}
-                    </p>
-                    {corrective!.hint && <p>{corrective!.hint}</p>}
-                    {corrective!.reveal_answer && corrective!.correct_version && (
-                      <p>
-                        <strong>{corrective!.correct_version}</strong>
-                      </p>
-                    )}
-                  </div>
-                )}
-              </section>
-            )}
-
-            {hasVocabList && missing.length > 0 && (
-              <section className="sfc-result-card sfc-result-card--vocab">
-                <header className="sfc-result-card-header">
-                  <span aria-hidden="true">📝</span>
-                  <BiLabel zh="生詞" en="Vocabulary" />
-                </header>
-                <div className="sfc-result-card-body">
-                  <p className="sfc-result-card-lead">
-                    <BiLabel zh="試著加入" en="Try to include" />
-                  </p>
-                  <div className="sfc-missing-chips">
-                    {missing.map((w) => (
-                      <span key={w} className="vocab-chip sfc-missing-chip">
-                        {w}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </section>
-            )}
-
-            <section className="sfc-result-card sfc-result-card--pronounce">
-              <header className="sfc-result-card-header">
-                <span aria-hidden="true">🎯</span>
-                <BiLabel k="character_by_character_prosody" />
-              </header>
-              <div className="sfc-result-card-body">
-                {/* Words-first-then-sentence mastery checklist: which words
-                    still block this scene, live ✗→✓ as drills clear them,
-                    then the re-record call-to-action. */}
-                {failedWords.length > 0 && (
-                  <div
-                    className={`sfc-mastery-banner${allDrillsCleared ? " is-cleared" : ""}`}
-                  >
-                    {allDrillsCleared ? (
-                      <p className="sfc-mastery-lead">
-                        🎉{" "}
-                        <BiLabel
-                          zh="這些字都好了！現在再錄一次整句。"
-                          pinyin="Zhèxiē zì dōu hǎo le! Xiànzài zài lù yí cì zhěng jù."
-                          en="All words cleared! Now record the whole sentence again."
-                        />
-                      </p>
-                    ) : (
-                      <p className="sfc-mastery-lead">
-                        🔑{" "}
-                        <BiLabel
-                          zh="先練好這些字，再錄整句："
-                          pinyin="Xiān liàn hǎo zhèxiē zì, zài lù zhěng jù:"
-                          en="First practice these words, then re-record the sentence:"
-                        />
-                      </p>
-                    )}
-                    <div className="sfc-mastery-chips">
-                      {failedWords.map((word) => {
-                        const cleared = clearedWords.includes(word.token);
-                        return (
-                          <span
-                            key={`${word.token}-${word.index}`}
-                            className={`sfc-mastery-chip ${cleared ? "is-cleared" : "is-pending"}`}
-                          >
-                            {word.token} {cleared ? "✓" : "✗"}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-                {(praatMetrics?.word_prosody?.length ?? 0) > 0 ? (
-                  <>
-                    {/* Chart legend shown once for the whole row instead of
-                        repeated on every character card — same meaning
-                        everywhere, no reason to re-explain it per card. */}
-                    <div
-                      className="sfc-pronounce-legend mini-contour-legend"
-                      aria-hidden="true"
-                    >
-                      <span className="mini-contour-legend-actual">
-                        <BiLabel zh="你的音高" en="Your pitch" />
-                      </span>
-                      <span className="mini-contour-legend-reference">
-                        <BiLabel zh="目標形狀" en="Target shape" />
-                      </span>
-                    </div>
-                    <div className="sfc-words-row">
-                      {praatMetrics!.word_prosody!.map((item) => (
-                        <WordProsodyCard
-                          key={`${item.token}-${item.index}`}
-                          item={item}
-                          onDrillPass={onWordDrillPass}
-                        />
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="word-prosody-empty">
-                    <strong>
-                      <BiLabel k="no_character_feedback_yet" />
-                    </strong>
-                    <p>
-                      <BiText k="needs_a_clear_pitch_contour_and_transcri" />
-                    </p>
-                  </div>
-                )}
-              </div>
-            </section>
-          </div>
-        </div>
-      </div>
-
-      <footer className="sfc-footer">
-        {!ready && !masteryPassed && failedWords.length > 0 ? (
-          <p className="sfc-unlock-note">
-            🔒{" "}
-            <BiLabel
-              zh={`每個字都要 ✓ 才能過關 — 還有 ${remainingDrillWords.length > 0 ? `${remainingDrillWords.length} 個字要練` : "整句要再錄一次"}`}
-              pinyin={`Měi ge zì dōu yào ✓ cáinéng guòguān — hái yǒu ${remainingDrillWords.length > 0 ? `${remainingDrillWords.length} ge zì yào liàn` : "zhěng jù yào zài lù yí cì"}`}
-              en={`Every word needs a ✓ to pass — ${remainingDrillWords.length > 0 ? `${remainingDrillWords.length} word${remainingDrillWords.length > 1 ? "s" : ""} left to practice` : "re-record the whole sentence"}`}
-            />
-          </p>
-        ) : !ready ? (
-          <p className="sfc-unlock-note">
-            🔒{" "}
-            <BiLabel
-              zh={`聲調 70 分、流暢 65 分，或練習 4 次即可打開（目前 ${attempts} 次）`}
-              pinyin={`Shēngdiào 70 fēn, liúchàng 65 fēn, huò liànxí 4 cì jí kě dǎkāi (mùqián ${attempts} cì)`}
-              en={`Unlock with tone 70, fluency 65, or 4 attempts (now: ${attempts})`}
-            />
-          </p>
-        ) : null}
-        <div className="sfc-footer-actions">
-          <button
-            type="button"
-            className="sfc-btn-again"
-            onClick={() => setScreen("record")}
-          >
-            🎙️ <BiLabel zh="再錄一次" pinyin="Zài lù yí cì" en="Record again" />
-          </button>
-          {hasNextScene ? (
-            <button
-              type="button"
-              className="sfc-btn-next"
-              disabled={!ready}
-              onClick={onNextScene}
-            >
-              <BiLabel k="next_scene" /> →
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="sfc-btn-next"
-              disabled={!ready}
-              onClick={onViewSummary}
-            >
-              <BiLabel zh="查看總結" pinyin="Chákàn zǒngjié" en="View summary" /> →
-            </button>
-          )}
-        </div>
-      </footer>
-    </section>
+    <SpeakingResultsFlow
+      key={`${selectedImageIndex}-${attempts}`}
+      selectedImage={selectedImage}
+      selectedImageIndex={selectedImageIndex}
+      totalScenes={totalScenes}
+      narrativeMode={narrativeMode}
+      attempts={attempts}
+      ready={ready}
+      masteryPassed={masteryPassed}
+      praatMetrics={praatMetrics}
+      analysisAudioBlob={analysisAudioBlob}
+      submittedAudioName={submittedAudioName}
+      clearedWords={clearedWords}
+      onWordDrillPass={onWordDrillPass}
+      hasNextScene={hasNextScene}
+      onNextScene={onNextScene}
+      onViewSummary={onViewSummary}
+      onRecordAgain={() => setScreen("record")}
+    />
   );
 }

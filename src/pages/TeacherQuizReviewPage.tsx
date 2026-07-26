@@ -27,8 +27,7 @@ import {
  * bad items. Marks persist per story (custom_stories.quiz_exclusions) and
  * the quiz never builds questions from marked material.
  *
- * Standalone page — mounting it in the teacher nav is deferred until the
- * dashboard refactor in flight elsewhere lands. */
+ * Reached from the teacher shell: Materials → Quiz Review. */
 export default function TeacherQuizReviewPage() {
   const [stories, setStories] = useState<CustomTeacherStory[]>([]);
   const [storyId, setStoryId] = useState<string>("");

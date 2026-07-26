@@ -1,0 +1,461 @@
+我們去喝下午茶 | cloze | ____是你的朋友。 → 我 | pool: 他 / 去 / 哪裡 / 喝 / 在 / 她 / 家 / 有空 / 知道
+我們去喝下午茶 | cloze | ____是我的休息日。 → 星期六 | pool: 星期一 / 星期三 / 星期二
+我們去喝下午茶 | cloze | ____是我的好朋友，她很友善。 → 友美 | pool: 小美 / 美好 / 美麗
+我們去喝下午茶 | cloze | ____是我的朋友。 → 他們 | pool: 你們 / 它們 / 我們
+我們去喝下午茶 | cloze | ____是我的朋友。 → 你 | pool: 他 / 做 / 友美 / 她 / 好吃 / 看書 / 週末
+我們去喝下午茶 | cloze | ____要在家看書、聽音樂。 → 我 | pool: 他 / 你 / 她
+我們去喝下午茶 | cloze | ____！你想去哪裡？ → 好啊 | pool: 不好 / 很好 / 還可以
+我們去喝下午茶 | cloze | ____，妳這個週末要做什麼？ → 友美 | pool: 同事 / 家人 / 朋友
+我們去喝下午茶 | cloze | ____，我們去吧。 → 好啊 | pool: 不去 / 不好 / 不行
+我們去喝下午茶 | cloze | ____，我明白了。 → 啊 | pool: 哎呀 / 哦 / 嗯
+我們去喝下午茶 | cloze | 他們有____冰淇淋嗎？ → 巧克力 | pool: 芒果 / 草莓 / 香蕉
+我們去喝下午茶 | cloze | 你在____? → 哪裡 | pool: 什麼 / 怎麼 / 誰
+我們去喝下午茶 | cloze | 友美，妳這個____要做什麼？ → 週末 | pool: 假期 / 冬天 / 星期一
+我們去喝下午茶 | cloze | 友美，妳這個週末要____什麼？ → 做 | pool: 吃 / 喝 / 玩
+我們去喝下午茶 | cloze | 好啊！____想去哪裡？ → 你 | pool: 他 / 她 / 我
+我們去喝下午茶 | cloze | 好啊！你____去哪裡？ → 想 | pool: 可以 / 必須 / 需要
+我們去喝下午茶 | cloze | 好啊！你想____哪裡？ → 去 | pool: 來 / 回 / 走
+我們去喝下午茶 | cloze | 好啊！你想去____？ → 哪裡 | pool: 什麼 / 什麼時候 / 誰
+我們去喝下午茶 | cloze | 妳星期六下午____嗎？ → 有空 | pool: 有時間 / 有空間 / 有錢
+我們去喝下午茶 | cloze | 我____一家很不錯的咖啡廳。 → 知道 | pool: 不懂 / 不清楚 / 不知道
+我們去喝下午茶 | cloze | 我____了。 → 知道 | pool: 不明白 / 不清楚 / 不知道
+我們去喝下午茶 | cloze | 我____去旅行。 → 想 | pool: 必須 / 想要 / 需要
+我們去喝下午茶 | cloze | 我____去看電影。 → 要 | pool: 必須 / 想要 / 需要
+我們去喝下午茶 | cloze | 我____在家看書、聽音樂。 → 要 | pool: 可以 / 必須 / 需要
+我們去喝下午茶 | cloze | 我____家裡。 → 在 | pool: 以 / 到 / 從
+我們去喝下午茶 | cloze | 我____有課。 → 下午 | pool: 中午 / 早上 / 晚上
+我們去喝下午茶 | cloze | 我____本書。 → 有 | pool: 不夠 / 沒有 / 缺少
+我們去喝下午茶 | cloze | 我今天____。 → 有空 | pool: 困 / 忙 / 累
+我們去喝下午茶 | cloze | 我們____去喝下午茶，怎麼樣？ → 一起 | pool: 分開 / 各自 / 單獨
+我們去喝下午茶 | cloze | 我們____去看電影。 → 一起 | pool: 分開 / 各自 / 單獨
+我們去喝下午茶 | cloze | 我們____見面。 → 兩點半 | pool: 一點 / 三點 / 四點
+我們去喝下午茶 | cloze | 我們一起去____下午茶，怎麼樣？ → 喝 | pool: 吃 / 玩 / 看
+我們去喝下午茶 | cloze | 我們一起去喝____，怎麼樣？ → 下午茶 | pool: 午餐 / 早餐 / 晚餐
+我們去喝下午茶 | cloze | 我們這個____下午兩點半去吧。 → 星期六 | pool: 星期一 / 星期五 / 星期日
+我們去喝下午茶 | cloze | 我們這個星期六____兩點半去吧。 → 下午 | pool: 中午 / 早上 / 晚上
+我們去喝下午茶 | cloze | 我們這個星期六下午____去吧。 → 兩點半 | pool: 三點 / 五點 / 四點
+我們去喝下午茶 | cloze | 我喜歡____。 → 看書 | pool: 玩遊戲 / 看電影 / 聽音樂
+我們去喝下午茶 | cloze | 我喜歡____。 → 聽音樂 | pool: 玩遊戲 / 看電影 / 讀書
+我們去喝下午茶 | cloze | 我喜歡去____。 → 咖啡廳 | pool: 商店 / 酒店 / 餐廳
+我們去喝下午茶 | cloze | 我喜歡喝____。 → 下午茶 | pool: 午餐 / 早餐 / 晚餐
+我們去喝下午茶 | cloze | 我喜歡在____睡懶覺。 → 週末 | pool: 假期 / 星期一 / 星期五
+我們去喝下午茶 | cloze | 我想____一杯水。 → 喝 | pool: 吃 / 玩 / 看
+我們去喝下午茶 | cloze | 我愛吃____。 → 冰淇淋 | pool: 冰棒 / 果汁 / 雪糕
+我們去喝下午茶 | cloze | 我愛吃____。 → 巧克力 | pool: 糖果 / 蛋糕 / 餅乾
+我們去喝下午茶 | cloze | 我愛我的____。 → 家 | pool: 公司 / 學校 / 醫院
+我們去喝下午茶 | cloze | 我有____書。 → 很多 | pool: 一些 / 少 / 幾
+我們去喝下午茶 | cloze | 我知道一家很不錯的____。 → 咖啡廳 | pool: 商店 / 酒店 / 餐廳
+我們去喝下午茶 | cloze | 我知道一家很不錯的咖啡廳，那裡的冰淇淋很____。 → 好吃 | pool: 一般 / 不好吃 / 很難吃
+我們去喝下午茶 | cloze | 我要____一份報告。 → 做 | pool: 吃 / 喝 / 玩
+我們去喝下午茶 | cloze | 我要____家看書、聽音樂。 → 在 | pool: 到 / 從 / 為了
+我們去喝下午茶 | cloze | 我要____看電影。 → 去 | pool: 來 / 回 / 走
+我們去喝下午茶 | cloze | 我要在____看書、聽音樂。 → 家 | pool: 公司 / 圖書館 / 學校
+我們去喝下午茶 | cloze | 我要在家____、聽音樂。 → 看書 | pool: 玩遊戲 / 看電影 / 聊天
+我們去喝下午茶 | cloze | 我要在家看書、____。 → 聽音樂 | pool: 看電視 / 練習 / 聽廣播
+我們去喝下午茶 | cloze | 有____！他們有很多種冰淇淋。 → 啊 | pool: 哇 / 哦 / 嗯
+我們去喝下午茶 | cloze | 有啊！____有很多種冰淇淋。 → 他們 | pool: 你 / 我 / 我們
+我們去喝下午茶 | cloze | 有啊！他們有____種冰淇淋。 → 很多 | pool: 只有 / 幾個 / 很少
+我們去喝下午茶 | cloze | 有啊！他們有很多____冰淇淋。 → 種 | pool: 型 / 樣 / 類
+我們去喝下午茶 | cloze | 有啊！他們有很多種____。 → 冰淇淋 | pool: 冰棒 / 冰沙 / 雪糕
+我們去喝下午茶 | cloze | 這____花很漂亮。 → 種 | pool: 做 / 友美 / 咖啡廳 / 我 / 有 / 聽音樂 / 要 / 這個 / 那些
+我們去喝下午茶 | cloze | 這個蛋糕____。 → 好吃 | pool: 不 ngon / 不好吃 / 難吃
+我們去喝下午茶 | pinyin | 一起 → yīqǐ | pool: a / hěn duō / kànshū / liǎng diǎn bàn / nǎlǐ / nǐ / qiǎokèlì / tāmen / wǒ / xiàwǔ / xiàwǔchá / xiǎng / yiqi1 / yiqi2 / yiqi4 / yào / zhōu mò / zài
+我們去喝下午茶 | pinyin | 下午 → xiàwǔ | pool: a / hē / hǎo a / hǎochī / kànshū / nǐ / qù / tāmen / tīngyīnyuè / xiawu1 / xiawu2 / xiawu4 / xīngqīliù / yīqǐ / zhǒng / zuò / zài
+我們去喝下午茶 | pinyin | 下午茶 → xiàwǔchá | pool: a / bīngqílín / hē / kāfēitīng / liǎng diǎn bàn / nǐ / qiǎokèlì / qù / tāmen / xiawucha1 / xiawucha3 / xiawucha4 / xiàwǔ / zhīdào
+我們去喝下午茶 | pinyin | 他們 → tāmen | pool: hē / hǎo a / jiā / kànshū / kāfēitīng / qiǎokèlì / tamen2 / tamen3 / tamen4 / wǒ / xiàwǔchá / xiǎng / yīqǐ / yǒu kòng / yǒu měi / zhīdào / zhǒng / zài
+我們去喝下午茶 | pinyin | 你 → nǐ | pool: hē / hěn duō / hǎo a / nì / ní / nī / tīngyīnyuè / xiàwǔchá / xiǎng / yǒu / zhīdào / zài
+我們去喝下午茶 | pinyin | 做 → zuò | pool: a / bīngqílín / hē / hěn duō / hǎochī / jiā / kànshū / liǎng diǎn bàn / nǎlǐ / nǐ / qiǎokèlì / tīngyīnyuè / yào / yǒu kòng / yǒu měi / zhīdào / zhōu mò / zúo / zūo / zǔo
+我們去喝下午茶 | pinyin | 兩點半 → liǎng diǎn bàn | pool: hěn duō / liàng diǎn bàn / liáng diǎn bàn / liāng diǎn bàn / liǎng diàn bàn / liǎng dián bàn / liǎng diān bàn / liǎng diǎn bán / liǎng diǎn bān / liǎng diǎn bǎn / wǒ / yào / yǒu měi / zhǒng / zuò
+我們去喝下午茶 | pinyin | 冰淇淋 → bīngqílín | pool: bingqilin1 / bingqilin3 / bingqilin4 / hē / hǎochī / liǎng diǎn bàn / qù / tīngyīnyuè / xiàwǔ / xiǎng / yǒu kòng / zhōu mò / zài
+我們去喝下午茶 | pinyin | 去 → qù | pool: hǎo a / jiā / liǎng diǎn bàn / qú / qū / qǔ / wǒ / xiàwǔ / xiàwǔchá / xīngqīliù / yào / yǒu / yǒu měi / zhǒng / zuò / zài
+我們去喝下午茶 | pinyin | 友美 → yǒu měi | pool: hē / hěn duō / hǎochī / jiā / nǎlǐ / nǐ / qiǎokèlì / tāmen / tīngyīnyuè / wǒ / xiàwǔchá / xīngqīliù / yào / yòu měi / yóu měi / yōu měi / yǒu kòng / yǒu mèi / yǒu méi / yǒu mēi / zhōu mò / zhǒng / zài
+我們去喝下午茶 | pinyin | 咖啡廳 → kāfēitīng | pool: a / hěn duō / hǎochī / jiā / kafeiting2 / kafeiting3 / kafeiting4 / kànshū / nǐ / tīngyīnyuè / xiàwǔ / xiàwǔchá / yào / yǒu měi / zuò / zài
+我們去喝下午茶 | pinyin | 哪裡 → nǎlǐ | pool: hē / jiā / nali1 / nali2 / nali4 / yào / zhīdào / zhǒng / zài
+我們去喝下午茶 | pinyin | 啊 → a | pool: hěn duō / hǎochī / jiā / kànshū / qù / tāmen / tīngyīnyuè / wǒ / xiàwǔ / xīngqīliù / yào / yǒu / zài / à / á / ā / ǎ
+我們去喝下午茶 | pinyin | 喝 → hē | pool: hè / hé / hě / hěn duō / kànshū / liǎng diǎn bàn / nǎlǐ / nǐ / tāmen / wǒ / xiǎng / xīngqīliù / yào / yǒu / yǒu kòng / zhǒng / zuò
+我們去喝下午茶 | pinyin | 在 → zài | pool: a / bīngqílín / hē / hǎo a / hǎochī / kànshū / nǎlǐ / nǐ / qiǎokèlì / tāmen / xiàwǔ / xiàwǔchá / xiǎng / yīqǐ / yǒu kòng / zái / zāi / zǎi
+我們去喝下午茶 | pinyin | 好吃 → hǎochī | pool: a / bīngqílín / haochi2 / haochi3 / haochi4 / hē / hěn duō / nǐ / tīngyīnyuè / xiàwǔ / xiàwǔchá / xiǎng / yǒu / zhōu mò / zhǒng / zài
+我們去喝下午茶 | pinyin | 好啊 → hǎo a | pool: hào a / háo a / hāo a / hē / hěn duō / hǎo à / hǎo á / hǎo ā / hǎo ǎ / kànshū / nǎlǐ / qiǎokèlì / tīngyīnyuè / wǒ / xiàwǔchá / xiǎng / xīngqīliù / yǒu kòng / yǒu měi / zhǒng
+我們去喝下午茶 | pinyin | 家 → jiā | pool: a / bīngqílín / jià / jiá / jiǎ / nǐ / tāmen / wǒ / xiàwǔchá / xīngqīliù / yīqǐ / yǒu / yǒu měi / zhōu mò
+我們去喝下午茶 | pinyin | 巧克力 → qiǎokèlì | pool: hē / hěn duō / hǎo a / jiā / kànshū / kāfēitīng / liǎng diǎn bàn / nǎlǐ / nǐ / qiaokeli1 / qiaokeli2 / qiaokeli3 / qù / tīngyīnyuè / xiǎng / yīqǐ / yǒu / yǒu kòng / yǒu měi / zhīdào / zuò / zài
+我們去喝下午茶 | pinyin | 很多 → hěn duō | pool: a / bīngqílín / hèn duō / hén duō / hēn duō / hěn dùo / hěn dúo / hěn dǔo / hǎo a / hǎochī / jiā / kànshū / kāfēitīng / liǎng diǎn bàn / nǎlǐ / nǐ / qiǎokèlì / tīngyīnyuè / xiàwǔchá / xiǎng / yào
+我們去喝下午茶 | pinyin | 想 → xiǎng | pool: a / hē / hǎo a / jiā / kànshū / liǎng diǎn bàn / nǎlǐ / qiǎokèlì / qù / tāmen / xiàng / xiàwǔ / xiáng / xiāng / xīngqīliù / yīqǐ / yǒu měi / zhǒng
+我們去喝下午茶 | pinyin | 我 → wǒ | pool: hǎochī / jiā / kànshū / liǎng diǎn bàn / nǐ / qiǎokèlì / wò / wó / wō / xiǎng / xīngqīliù / yīqǐ / yǒu
+我們去喝下午茶 | pinyin | 星期六 → xīngqīliù | pool: hē / hǎo a / hǎochī / jiā / kànshū / kāfēitīng / nǎlǐ / nǐ / tīngyīnyuè / wǒ / xingqiliu1 / xingqiliu2 / xingqiliu3 / yīqǐ / zhōu mò / zuò
+我們去喝下午茶 | pinyin | 有 → yǒu | pool: a / bīngqílín / hē / hěn duō / hǎo a / kànshū / liǎng diǎn bàn / nǎlǐ / qiǎokèlì / tīngyīnyuè / xiàwǔchá / xīngqīliù / yòu / yóu / yīqǐ / yōu / yǒu kòng / yǒu měi / zuò
+我們去喝下午茶 | pinyin | 有空 → yǒu kòng | pool: bīngqílín / hěn duō / hǎochī / kāfēitīng / nǎlǐ / nǐ / qiǎokèlì / tāmen / tīngyīnyuè / wǒ / xiàwǔ / yào / yòu kòng / yóu kòng / yōu kòng / yǒu kóng / yǒu kōng / yǒu kǒng / yǒu měi / zhīdào / zhōu mò
+我們去喝下午茶 | pinyin | 看書 → kànshū | pool: a / bīngqílín / hǎo a / hǎochī / kanshu2 / kanshu3 / kanshu4 / nǎlǐ / nǐ / tāmen / xiàwǔ / xiàwǔchá / xīngqīliù / yǒu měi / zhōu mò / zuò
+我們去喝下午茶 | pinyin | 知道 → zhīdào | pool: a / bīngqílín / hǎo a / jiā / kànshū / liǎng diǎn bàn / qiǎokèlì / qù / tīngyīnyuè / xiàwǔchá / xīngqīliù / yīqǐ / yǒu / zhidao1 / zhidao2 / zhidao3 / zuò
+我們去喝下午茶 | pinyin | 種 → zhǒng | pool: a / hē / hěn duō / hǎochī / kànshū / nǎlǐ / nǐ / xiǎng / xīngqīliù / yào / yīqǐ / yǒu / yǒu kòng / zhòng / zhóng / zhōng
+我們去喝下午茶 | pinyin | 聽音樂 → tīngyīnyuè | pool: a / bīngqílín / hē / hěn duō / kāfēitīng / tingyinyue1 / tingyinyue2 / tingyinyue3 / xiǎng / yào / yīqǐ / zhīdào / zhōu mò / zhǒng / zuò / zài
+我們去喝下午茶 | pinyin | 要 → yào | pool: hē / hǎo a / hǎochī / qù / xiàwǔchá / xiǎng / xīngqīliù / yáo / yāo / yīqǐ / yǎo / yǒu / zuò
+我們去喝下午茶 | pinyin | 週末 → zhōu mò | pool: a / hǎo a / kànshū / kāfēitīng / qiǎokèlì / xīngqīliù / yǒu kòng / yǒu měi / zhòu mò / zhóu mò / zhōu mó / zhōu mō / zhōu mǒ / zhǒu mò
+我們去喝下午茶 | pos | 一起 → Adv | pool: Adj / MW / N / Particle / Phrase / V
+我們去喝下午茶 | pos | 下午 → N | pool: Adv / MW / Particle / V
+我們去喝下午茶 | pos | 下午茶 → N | pool: Adj / Adv / Particle / Phrase / V
+我們去喝下午茶 | pos | 他們 → N | pool: Adj / Adv / MW / Particle / Phrase / V
+我們去喝下午茶 | pos | 你 → N | pool: Adj / Adv / V
+我們去喝下午茶 | pos | 做 → V | pool: MW / N / Particle / Phrase
+我們去喝下午茶 | pos | 兩點半 → MW | pool: Adv / N / Particle / Phrase / V
+我們去喝下午茶 | pos | 冰淇淋 → N | pool: Adj / Adv / Particle / Phrase / V
+我們去喝下午茶 | pos | 去 → V | pool: Adj / MW / N / Phrase
+我們去喝下午茶 | pos | 友美 → N | pool: Adj / MW / Particle / V
+我們去喝下午茶 | pos | 咖啡廳 → N | pool: Adv / MW / Particle / Phrase
+我們去喝下午茶 | pos | 哪裡 → N | pool: Adj / Adv / MW / Phrase / V
+我們去喝下午茶 | pos | 啊 → Particle | pool: N / Phrase / V
+我們去喝下午茶 | pos | 喝 → V | pool: Adj / Adv / Particle
+我們去喝下午茶 | pos | 在 → Particle | pool: Adj / Adv / MW / N / Phrase / V
+我們去喝下午茶 | pos | 好吃 → Adj | pool: Adv / MW / N / Particle / Phrase / V
+我們去喝下午茶 | pos | 好啊 → Phrase | pool: Adv / MW / N / Particle / V
+我們去喝下午茶 | pos | 家 → N | pool: Adj / Adv / MW / Particle / Phrase / V
+我們去喝下午茶 | pos | 巧克力 → N | pool: Adj / Adv / MW / Particle / Phrase
+我們去喝下午茶 | pos | 很多 → Adj | pool: Adv / MW / N / Particle / Phrase / V
+我們去喝下午茶 | pos | 想 → V | pool: Adj / Adv / MW / N / Particle / Phrase
+我們去喝下午茶 | pos | 我 → N | pool: Adj / Adv / MW / Particle / Phrase
+我們去喝下午茶 | pos | 星期六 → N | pool: Adj / MW / Phrase / V
+我們去喝下午茶 | pos | 有 → V | pool: Adj / Adv / MW / N / Particle / Phrase
+我們去喝下午茶 | pos | 有空 → Phrase | pool: Adv / N / Particle
+我們去喝下午茶 | pos | 看書 → V | pool: Adj / Adv / MW / N / Particle / Phrase
+我們去喝下午茶 | pos | 知道 → V | pool: Adj / Adv / MW / N / Particle / Phrase
+我們去喝下午茶 | pos | 種 → MW | pool: Adj / Adv / N / Particle / Phrase
+我們去喝下午茶 | pos | 聽音樂 → V | pool: Adj / Adv / N / Particle / Phrase
+我們去喝下午茶 | pos | 要 → V | pool: Adj / Adv / MW / Particle / Phrase
+我們去喝下午茶 | reverse | I → 我 | pool: 下午 / 下午茶 / 他們 / 做 / 兩點半 / 吳 / 吳姓 / 咖啡廳 / 啊 / 喝 / 在 / 好吃 / 好啊 / 妳 / 妳你 / 家 / 巧克力 / 很多 / 想 / 有 / 有空 / 知道 / 種 / 聽音樂 / 要 / 麼字
+我們去喝下午茶 | reverse | Saturday → 星期六 | pool: 一起 / 下午 / 他們 / 你 / 兩點半 / 六合 / 六月 / 六角 / 冰淇淋 / 去 / 友美 / 哪裡 / 啊 / 在 / 好吃 / 家 / 很多 / 星期五 / 星期四 / 星期日 / 有空 / 看書 / 聽音樂
+我們去喝下午茶 | reverse | afternoon tea → 下午茶 | pool: 一起 / 下午 / 你 / 做 / 兩點半 / 冰淇淋 / 午餐會 / 去 / 友美 / 喝 / 在 / 好吃 / 巧克力 / 很多 / 早餐時間 / 星期六 / 晚餐 / 晚餐聚會 / 有 / 有空 / 看書 / 知道 / 種 / 聽音樂 / 週末
+我們去喝下午茶 | reverse | afternoon → 下午 | pool: 一起 / 下午茶 / 下班 / 下班時間 / 下課 / 下課鈴 / 下載 / 下載檔案 / 他們 / 你 / 兩點半 / 冰淇淋 / 去 / 友美 / 咖啡廳 / 啊 / 喝 / 在 / 好吃 / 好啊 / 家 / 巧克力 / 很多 / 想 / 我 / 星期六 / 有 / 聽音樂 / 要
+我們去喝下午茶 | reverse | ah → 啊 | pool: 一起 / 他們 / 做 / 兩點半 / 去 / 哦 / 哪裡 / 唉 / 喝 / 嗚 / 嗯 / 在 / 好吃 / 好啊 / 家 / 想 / 我 / 星期六 / 有 / 有空 / 看書 / 知道 / 種 / 聽音樂 / 要
+我們去喝下午茶 | reverse | at → 在 | pool: 一起 / 下午 / 仔 / 仔細 / 他們 / 你 / 做 / 兩點半 / 去 / 友美 / 咖啡廳 / 喝 / 好吃 / 好啊 / 宰 / 很多 / 我 / 星期六 / 有空 / 知道 / 種 / 聽音樂 / 週末
+我們去喝下午茶 | reverse | cafe → 咖啡廳 | pool: 一起 / 下午 / 下午茶 / 他們 / 你 / 做 / 冰淇淋 / 去 / 友美 / 哪裡 / 啊 / 喝 / 在 / 好吃 / 好啊 / 家 / 巧克力 / 很多 / 星期六 / 有 / 有空 / 看書 / 知道 / 種 / 聽音樂 / 茶室 / 茶會 / 茶館 / 要 / 週末 / 酒吧 / 餐廳
+我們去喝下午茶 | reverse | chocolate → 巧克力 | pool: 下午 / 下午茶 / 你 / 做 / 力士 / 去 / 友美 / 可可 / 可樂 / 咖啡廳 / 哪裡 / 好吃 / 很多 / 想 / 我 / 星期六 / 有 / 果凍 / 看書 / 知道 / 種 / 糖果 / 聽音樂 / 週末 / 餅乾
+我們去喝下午茶 | reverse | delicious → 好吃 | pool: 下午 / 下午茶 / 吃驚 / 咖啡廳 / 哪裡 / 喝 / 在 / 好人 / 好喝 / 好玩 / 好看 / 家 / 想 / 我 / 有空 / 種 / 聽音樂 / 週末
+我們去喝下午茶 | reverse | drink → 喝 | pool: 下午 / 他們 / 做 / 冰淇淋 / 友美 / 咖啡廳 / 啊 / 喂 / 在 / 好吃 / 好啊 / 家 / 巧克力 / 很多 / 我 / 揭 / 揭開 / 星期六 / 有空 / 渴 / 渴望 / 知道 / 種 / 要 / 週末 / 餵食
+我們去喝下午茶 | reverse | friend's name → 友美 | pool: 一起 / 下午 / 他們 / 你 / 做 / 冰淇淋 / 友善 / 友好 / 咖啡廳 / 啊 / 好吃 / 好啊 / 家 / 巧克力 / 很多 / 想 / 我 / 星期六 / 有 / 有空 / 看書 / 知道 / 種 / 美人 / 美味 / 美好 / 美麗 / 聽音樂 / 週末
+我們去喝下午茶 | reverse | have time → 有空 | pool: 一起 / 下午 / 他們 / 你 / 做 / 兩點半 / 冰淇淋 / 去 / 友美 / 咖啡廳 / 哪裡 / 啊 / 在 / 好吃 / 好啊 / 很多 / 想 / 我 / 星期六 / 有 / 有趣 / 有錢 / 看書 / 知道 / 種 / 空氣 / 空白 / 空間 / 聽音樂 / 要
+我們去喝下午茶 | reverse | have → 有 | pool: 一起 / 下午 / 下午茶 / 他們 / 佇 / 你 / 做 / 兩點半 / 冰淇淋 / 又 / 啊 / 喝 / 在 / 好吃 / 好啊 / 家 / 巧克力 / 很多 / 星期六 / 有無 / 有空 / 有關 / 知道 / 種 / 聽音樂
+我們去喝下午茶 | reverse | home → 家 | pool: 下午 / 下午茶 / 你 / 做 / 兩點半 / 冰淇淋 / 加 / 加油 / 去 / 友美 / 咖啡廳 / 哪裡 / 喝 / 嘉獎 / 在 / 好吃 / 好啊 / 嫁給 / 巧克力 / 想 / 星期六 / 有 / 看書 / 聽音樂 / 要
+我們去喝下午茶 | reverse | ice cream → 冰淇淋 | pool: 一起 / 下午茶 / 他們 / 你 / 做 / 兩點半 / 冰棒 / 冰沙 / 去 / 友美 / 咖啡廳 / 哪裡 / 啊 / 巧克力 / 很多 / 想 / 我 / 有 / 有空 / 淇淋 / 知道 / 種 / 要
+我們去喝下午茶 | reverse | kind → 種 | pool: 一起 / 下午 / 他們 / 你 / 做 / 兩點半 / 冰淇淋 / 去 / 友美 / 咖啡廳 / 哪裡 / 啊 / 喝 / 型 / 好吃 / 好啊 / 家 / 巧克力 / 想 / 我 / 星期六 / 樣 / 看書 / 知道 / 秩 / 聽音樂 / 要 / 週末 / 類
+我們去喝下午茶 | reverse | know → 知道 | pool: 一起 / 下午 / 下午茶 / 他們 / 你 / 做 / 兩點半 / 冰淇淋 / 去 / 友美 / 咖啡廳 / 哪裡 / 啊 / 喝 / 好吃 / 好啊 / 家 / 導致 / 巧克力 / 想 / 我 / 明白 / 星期六 / 曉得 / 有 / 有空 / 清晰 / 清楚 / 看書 / 種 / 聽音樂 / 週末 / 道德
+我們去喝下午茶 | reverse | many → 很多 | pool: 一起 / 下午 / 下午茶 / 他們 / 你 / 做 / 兩點半 / 冰淇淋 / 去 / 友美 / 咖啡廳 / 啊 / 在 / 大量 / 好啊 / 家 / 少數 / 巧克力 / 想 / 數量 / 星期六 / 有 / 有空 / 種 / 要 / 許多 / 週末
+我們去喝下午茶 | reverse | okay → 好啊 | pool: 一起 / 下午 / 下午茶 / 他們 / 你 / 做 / 兩點半 / 冰淇淋 / 去 / 友美 / 咖啡廳 / 哪裡 / 啊 / 啊哈 / 喝 / 在 / 好事 / 好事多磨 / 好吃 / 好吧 / 好運 / 好運氣 / 家 / 巧克力 / 我 / 有空 / 知道 / 種 / 週末
+我們去喝下午茶 | reverse | they → 他們 | pool: 下午 / 下午茶 / 人們 / 你 / 兩點半 / 冰淇淋 / 去 / 咖啡廳 / 哪裡 / 啊 / 喝 / 在 / 她們 / 好吃 / 好啊 / 巧克力 / 很多 / 我 / 我們 / 星期六 / 有 / 看書 / 知道 / 種
+我們去喝下午茶 | reverse | to do → 做 | pool: 下午 / 他們 / 佇 / 佇立 / 你 / 兩點半 / 冰淇淋 / 去 / 友美 / 哪裡 / 啊 / 喝 / 在 / 家 / 很多 / 想 / 我 / 措辭 / 有 / 有空 / 看書 / 知道 / 種 / 聽音樂 / 著 / 著作 / 要
+我們去喝下午茶 | reverse | to go → 去 | pool: 一起 / 下午 / 下午茶 / 他們 / 你 / 做 / 兩點半 / 冰淇淋 / 友美 / 咖啡廳 / 啊 / 喝 / 在 / 好吃 / 好啊 / 家 / 巧克力 / 往 / 往事 / 很多 / 我 / 有 / 看書 / 種 / 聽音樂 / 至 / 至於 / 要 / 赴 / 赴任 / 週末
+我們去喝下午茶 | reverse | to listen to music → 聽音樂 | pool: 一起 / 下午 / 下午茶 / 你 / 做 / 冰淇淋 / 去 / 咖啡廳 / 哪裡 / 啊 / 喝 / 在 / 好吃 / 好啊 / 家 / 巧克力 / 很多 / 想 / 我 / 星期六 / 有 / 看書 / 種 / 聽力 / 聽力學 / 聽診 / 聽診器 / 聽證 / 聽證會 / 週末
+我們去喝下午茶 | reverse | to read → 看書 | pool: 一起 / 下午 / 他們 / 你 / 做 / 兩點半 / 冰淇淋 / 咖啡廳 / 哪裡 / 啊 / 喝 / 在 / 好吃 / 好啊 / 巧克力 / 很多 / 想 / 我 / 星期六 / 有 / 有空 / 看守 / 看守門口 / 看板 / 看板廣告 / 看護 / 看護病人 / 知道 / 種 / 聽音樂 / 要 / 週末
+我們去喝下午茶 | reverse | to want → 要 | pool: 一起 / 下午 / 下午茶 / 他們 / 做 / 兩點半 / 冰淇淋 / 去 / 咖啡廳 / 哪裡 / 啊 / 好吃 / 好啊 / 家 / 巧克力 / 想 / 我 / 星期六 / 有 / 有空 / 椰 / 椰子 / 耀 / 耀眼 / 藥 / 藥物
+我們去喝下午茶 | reverse | together → 一起 | pool: 一同前行 / 一致同意 / 一體 / 一體兩面 / 下午茶 / 他們 / 你 / 做 / 冰淇淋 / 去 / 友美 / 在 / 好吃 / 好啊 / 家 / 巧克力 / 很多 / 想 / 我 / 有 / 有空 / 看書 / 知道 / 種 / 要 / 週末
+我們去喝下午茶 | reverse | two thirty → 兩點半 | pool: 一起 / 三點 / 下午 / 五點 / 他們 / 半夜 / 咖啡廳 / 哪裡 / 啊 / 喝 / 四點 / 好吃 / 好啊 / 很多 / 我 / 星期六 / 有 / 有空 / 看書 / 知道 / 種 / 聽音樂 / 要 / 週末
+我們去喝下午茶 | reverse | weekend → 週末 | pool: 一起 / 下午茶 / 他們 / 你 / 做 / 去 / 友美 / 咖啡廳 / 哪裡 / 啊 / 喝 / 在 / 好吃 / 好啊 / 家 / 巧克力 / 很多 / 想 / 我 / 星期六 / 有 / 末日 / 末端 / 知道 / 種 / 聽音樂 / 要 / 週報 / 週期 / 週間
+我們去喝下午茶 | reverse | where → 哪裡 | pool: 一起 / 下午 / 下午茶 / 他們 / 做 / 兩點半 / 冰淇淋 / 去 / 友美 / 咖啡廳 / 哪個 / 哪兒 / 哪吒 / 哪天 / 啊 / 喝 / 在 / 好吃 / 想 / 我 / 星期六 / 有 / 有空 / 看書 / 知道 / 種 / 聽音樂 / 裡面 / 要 / 週末
+我們去喝下午茶 | reverse | would like to → 想 | pool: 一起 / 下午 / 下午茶 / 做 / 兩點半 / 冰淇淋 / 去 / 友美 / 咖啡廳 / 哪裡 / 啊 / 喝 / 在 / 好吃 / 好啊 / 巧克力 / 很多 / 念 / 念頭 / 憶 / 憶念 / 懷 / 懷疑 / 我 / 有 / 知道 / 種 / 聽音樂 / 要 / 週末
+我們去喝下午茶 | reverse | you → 你 | pool: 下午 / 下午茶 / 做 / 儒 / 兩點半 / 冰淇淋 / 去 / 咖啡廳 / 啊 / 喝 / 在 / 好吃 / 好啊 / 它 / 家 / 巧克力 / 很多 / 忍 / 想 / 我 / 星期六 / 有 / 有空 / 知道 / 禰 / 種 / 聽音樂 / 要 / 週末
+我們去喝下午茶 | synonym | 一起 → 共同 | pool: 分開 / 單獨 / 孤獨
+我們去喝下午茶 | synonym | 下午 → 午後 | pool: 凌晨 / 早晨 / 晚上
+我們去喝下午茶 | synonym | 下午茶 → 茶會 | pool: 午餐 / 早餐 / 晚餐
+我們去喝下午茶 | synonym | 他們 → 它們 | pool: 你們 / 我 / 我們
+我們去喝下午茶 | synonym | 你 → 您 | pool: 他 / 她 / 我
+我們去喝下午茶 | synonym | 做 → 幹 | pool: 吃 / 喝 / 玩
+我們去喝下午茶 | synonym | 兩點半 → 下午2:30 | pool: 中午12:00 / 早上8:00 / 晚上8:00
+我們去喝下午茶 | synonym | 冰淇淋 → 雪糕 | pool: 冰棒 / 冰沙 / 冰茶
+我們去喝下午茶 | synonym | 去 → 前往 | pool: 來 / 回 / 留
+我們去喝下午茶 | synonym | 友美 → 名字 | pool: 同事 / 家人 / 朋友
+我們去喝下午茶 | synonym | 咖啡廳 → 咖啡店 | pool: 書店 / 酒店 / 餐廳
+我們去喝下午茶 | synonym | 哪裡 → 什麼地方 | pool: 什麼 / 什麼時候 / 誰
+我們去喝下午茶 | synonym | 啊 → 哦 | pool: 呃 / 嗨 / 嗯
+我們去喝下午茶 | synonym | 喝 → 飲 | pool: 吃 / 吐 / 拉
+我們去喝下午茶 | synonym | 在 → 於 | pool: 來 / 去 / 回
+我們去喝下午茶 | synonym | 好吃 → 美味 | pool: 不健康 / 不新鮮 / 難吃
+我們去喝下午茶 | synonym | 好啊 → 同意 | pool: 不同意 / 不清楚 / 不知道
+我們去喝下午茶 | synonym | 家 → 屋 | pool: 公司 / 公園 / 學校
+我們去喝下午茶 | synonym | 巧克力 → 朱古力 | pool: 糖果 / 蛋糕 / 餅乾
+我們去喝下午茶 | synonym | 很多 → 許多 | pool: 不多 / 很少 / 沒有
+我們去喝下午茶 | synonym | 想 → 想要 | pool: 不想 / 不知道 / 知道
+我們去喝下午茶 | synonym | 我 → 自己 | pool: 他 / 你 / 她
+我們去喝下午茶 | synonym | 星期六 → 六日 | pool: 星期一 / 星期五 / 星期日
+我們去喝下午茶 | synonym | 有 → 具有 | pool: 不夠 / 沒有 / 缺少
+我們去喝下午茶 | synonym | 有空 → 有時間 | pool: 有朋友 / 有車 / 有錢
+我們去喝下午茶 | synonym | 看書 → 閱讀 | pool: 寫作 / 畫畫 / 音樂
+我們去喝下午茶 | synonym | 知道 → 曉得 | pool: 不明白 / 不清楚 / 不知道
+我們去喝下午茶 | synonym | 種 → 類別 | pool: 大小 / 數量 / 顏色
+我們去喝下午茶 | synonym | 聽音樂 → 收聽 | pool: 玩遊戲 / 看電影 / 聊天
+我們去喝下午茶 | synonym | 要 → 需要 | pool: 吃 / 喝 / 買
+我們去喝下午茶 | synonym | 週末 → 假期 | pool: 休息 / 工作日 / 星期一
+我們去喝下午茶 | translation | 一起 → together | pool: I / Saturday / afternoon tea / alone / apart / at / cafe / chocolate / delicious / drink / have / have time / ice cream / in line / in order / in sequence / individually / kind / many / okay / separately / singly / they / to do / to go / to listen to music / to read / to want / two thirty / where / would like to / you
+我們去喝下午茶 | translation | 下午 → afternoon | pool: I / Saturday / ah / at / cafe / chocolate / daytime / delicious / drink / dusk / evening / friend's name / have / have time / home / ice cream / know / many / morning / night / noontime / okay / sunset / they / to do / to go / to listen to music / to want / together / twilight / two thirty / weekend / where / you
+我們去喝下午茶 | translation | 下午茶 → afternoon tea | pool: I / afternoon / ah / at / chocolate / evening snack / evening tea / friend's name / have / have time / home / ice cream / kind / know / many / midday snack / midnight meal / midnight snack / morning coffee / okay / supper / they / to do / to go / to read / to want / together / two thirty / weekend / where / would like to / you
+我們去喝下午茶 | translation | 他們 → they | pool: I / Saturday / afternoon / ah / at / cafe / chocolate / delicious / drink / folks / friend's name / have / have time / home / ice cream / know / many / okay / our / ours / people / to do / to listen to music / to want / together / two thirty / us / we / weekend / where / you
+我們去喝下午茶 | translation | 你 → you | pool: I / Saturday / a person / afternoon / afternoon tea / anyone / at / cafe / chocolate / delicious / drink / friend's name / have / have time / he / home / ice cream / it / know / okay / one / she / someone / they / to do / to go / to read / to want / together / weekend / where
+我們去喝下午茶 | translation | 做 → to do | pool: I / afternoon / afternoon tea / ah / at / cafe / delicious / drink / friend's name / have time / home / ice cream / kind / know / many / okay / they / to achieve / to act / to create / to exercise / to listen to music / to perform / to practice / to prepare / to read / two thirty / weekend / where / would like to / you
+我們去喝下午茶 | translation | 兩點半 → two thirty | pool: I / Saturday / afternoon / afternoon tea / ah / at / cafe / delicious / drink / four o'clock / four thirty / half past one / have / have time / home / ice cream / kind / know / many / okay / one thirty / quarter to three / they / three fifteen / three thirty / to do / to go / to listen to music / to read / to want / together / weekend / where / would like to / you
+我們去喝下午茶 | translation | 冰淇淋 → ice cream | pool: I / Saturday / afternoon / afternoon tea / at / cafe / chocolate / cold treat / delicious / drink / friend's name / frozen yogurt / have / home / kind / know / many / okay / sorbet / they / to do / to go / to listen to music / to read / to want / together / two thirty / weekend / where / would like to / you
+我們去喝下午茶 | translation | 去 → to go | pool: I / afternoon / afternoon tea / cafe / chocolate / drink / have / have time / home / ice cream / kind / know / many / okay / they / to advance / to come / to do / to move forward / to proceed / to remain / to return / to stay / to stop / to want / together / weekend / where / would like to
+我們去喝下午茶 | translation | 友美 → friend's name | pool: I / afternoon / afternoon tea / at / beautiful friend / best buddy / cafe / chocolate / close friend / delicious / drink / friendship / friendship name / good friend / have / ice cream / kind / know / lovely friend / many / okay / pen pal / they / to do / to listen to music / to want / together / two thirty / weekend / where / would like to / you
+我們去喝下午茶 | translation | 咖啡廳 → cafe | pool: I / Saturday / afternoon tea / ah / bistro / bookstore / chocolate / delicious / drink / friend's name / have / have time / ice cream / kind / know / library / many / museum / tea house / to do / to go / to listen to music / to read / together / two thirty / weekend / where / would like to / you
+我們去喝下午茶 | translation | 哪裡 → where | pool: I / afternoon / afternoon tea / ah / anywhere / at / cafe / chocolate / friend's name / have / have time / how / ice cream / kind / many / nowhere / okay / somewhere / they / to do / to go / to read / to want / together / two thirty / weekend / what / when / why / would like to / you
+我們去喝下午茶 | translation | 啊 → ah | pool: Saturday / afternoon tea / at / cafe / chocolate / delicious / drink / friend's name / have / have time / home / ice cream / kind / know / maybe / oh / oh dear / oh me / oh no / okay / oops / ouch / they / to do / to go / to listen to music / to read / to want / two thirty / weekend / where / would like to / yes
+我們去喝下午茶 | translation | 喝 → drink | pool: I / Saturday / afternoon / afternoon tea / ah / at / cafe / friend's name / have / have time / home / know / many / okay / they / to do / to eat / to go / to listen to music / to read / to smell / to touch / to want / together / weekend / where / would like to / you
+我們去喝下午茶 | translation | 在 → at | pool: I / Saturday / across / afternoon / afternoon tea / ah / beside / cafe / chocolate / delicious / drink / during / friend's name / from / have / have time / home / ice cream / kind / know / many / okay / on / to do / to go / to listen to music / to read / to want / together / two thirty / under / where / with / within / would like to / you
+我們去喝下午茶 | translation | 好吃 → delicious | pool: Saturday / afternoon / afternoon tea / ah / at / bad taste / bitter / cafe / chocolate / drink / fine cuisine / friend's name / have / have time / home / know / many / okay / sour / tasty food / they / to do / to go / to listen to music / to read / to want / two thirty / weekend / where / would like to
+我們去喝下午茶 | translation | 好啊 → okay | pool: I / Saturday / afternoon tea / ah / at / awful / bad / cafe / chocolate / delicious / drink / fair / friend's name / have / have time / home / ice cream / kind / know / many / so so / terrible / they / to do / to listen to music / to read / to want / together / two thirty / weekend / well done / where / you
+我們去喝下午茶 | translation | 家 → home | pool: I / Saturday / afternoon / ah / at / cafe / chocolate / city / delicious / drink / friend's name / have / have time / hut / ice cream / kind / know / office / okay / school / shack / store / they / to go / to listen to music / to read / to want / together / town / two thirty / village / weekend / where / you
+我們去喝下午茶 | translation | 巧克力 → chocolate | pool: Saturday / afternoon / ah / at / brown sugar / cafe / cocoa / cocoa powder / coffee / delicious / drink / friend's name / have / have time / home / ice cream / lemon / many / mocha / okay / strawberry / they / to do / to go / to listen to music / to read / to want / two thirty / vanilla / weekend / would like to / you
+我們去喝下午茶 | translation | 很多 → many | pool: I / Saturday / a few / afternoon tea / ah / at / cafe / chocolate / delicious / friend's name / have / have time / home / ice cream / know / little / none / okay / they / to listen to music / to read / to want / two thirty / weekend / where / you
+我們去喝下午茶 | translation | 想 → would like to | pool: I / Saturday / ah / at / delicious / friend's name / have / have time / home / ice cream / many / okay / they / to do / to dream / to forget / to ignore / to listen to music / to read / to recall / to recollect / to remember / to want / together / two thirty / where / you
+我們去喝下午茶 | translation | 我 → I | pool: Saturday / afternoon / afternoon tea / ah / at / cafe / delicious / drink / friend's name / have / have time / home / ice cream / kind / know / okay / ours / they / to do / to go / to read / to want / two thirty / us / we / weekend / where / would like to / you / yours
+我們去喝下午茶 | translation | 星期六 → Saturday | pool: Friday / I / Monday / Sunday / Tuesday / Wednesday / afternoon tea / ah / at / cafe / chocolate / day off / delicious / drink / have / have time / home / ice cream / kind / know / many / off-day / okay / they / to do / to go / to listen to music / to read / together / weekdays / weekend / where / would like to / you
+我們去喝下午茶 | translation | 有 → have | pool: I / Saturday / afternoon / afternoon tea / ah / at / cafe / delicious / have time / ice cream / know / lacking / none / nothing / to do / to go / to listen to music / to read / together / two thirty / weekend / where / you
+我們去喝下午茶 | translation | 有空 → have time | pool: I / afternoon / afternoon tea / ah / at / cafe / chocolate / delicious / drink / home / ice cream / kind / to be bored / to be busy / to be idle / to be lazy / to be tired / to be unemployed / to listen to music / to read / to want / two thirty / weekend / you
+我們去喝下午茶 | translation | 看書 → to read | pool: Saturday / afternoon / afternoon tea / ah / at / cafe / chocolate / delicious / drink / friend's name / have time / ice cream / kind / know / many / they / to browse / to glance / to listen / to scan / to skim / to study / to want / to watch / to write / together / weekend / where / you
+我們去喝下午茶 | translation | 知道 → know | pool: I / Saturday / afternoon / ah / at / cafe / chocolate / delicious / friend's name / have / have time / home / ice cream / many / they / to acknowledge / to discover / to do / to forget / to go / to ignore / to learn / to misunderstand / to read / to want / together / two thirty / weekend / would like to / you
+我們去喝下午茶 | translation | 種 → kind | pool: I / afternoon / afternoon tea / ah / brand / cafe / chocolate / drink / friend's name / have / have time / home / ice cream / know / many / model / they / to do / to go / to listen to music / to read / to want / together / two thirty / where / you
+我們去喝下午茶 | translation | 聽音樂 → to listen to music | pool: Saturday / afternoon / ah / at / cafe / delicious / drink / friend's name / have / have time / ice cream / kind / know / many / they / to attend concert / to compose music / to compose song / to dance / to do / to go / to play instrument / to play music / to read / to sing / to want / together / weekend / where / would like to / you
+我們去喝下午茶 | translation | 要 → to want | pool: I / Saturday / afternoon / afternoon tea / at / cafe / chocolate / delicious / drink / have / home / ice cream / kind / know / many / okay / they / to do / to expect / to go / to hope / to intend / to listen to music / to love / to plan / to read / to wish / together / two thirty / you
+我們去喝下午茶 | translation | 週末 → weekend | pool: I / Saturday / afternoon / ah / break time / cafe / chocolate / drink / friend's name / have / have time / holiday / holidays / kind / long weekend / many / okay / short break / summer holiday / they / to do / to go / to read / to want / two thirty / vacation / weekdays / you
+我們去士林夜市 | cloze | ____我要去看電視。 → 晚上 | pool: 下午 / 中午 / 早上
+我們去士林夜市 | cloze | ____我要去逛街。 → 星期六 | pool: 星期一 / 星期三 / 星期五
+我們去士林夜市 | cloze | ____是我的朋友，他很友善。 → 志豪 | pool: 佳玲 / 李小 / 王大
+我們去士林夜市 | cloze | ____是我的朋友，她很好。 → 佳玲 | pool: 志豪 / 李美 / 王小
+我們去士林夜市 | cloze | ____是朋友，很好。 → 我們 | pool: 他們 / 你們 / 她們
+我們去士林夜市 | cloze | ____，我很高興。 → 太好了 | pool: 不好 / 不高興 / 很壞
+我們去士林夜市 | cloze | 我____有課，所以不能去玩。 → 星期五 | pool: 星期三 / 星期二 / 星期日
+我們去士林夜市 | cloze | 我____錢，可以買東西。 → 有 | pool: 不夠 / 沒有 / 沒有錢
+我們去士林夜市 | cloze | 我____，謝謝你的關心。 → 沒事 | pool: 受傷 / 有事 / 生病
+我們去士林夜市 | cloze | 我們____去公園玩。 → 一起 | pool: 分開 / 各自 / 單獨
+我們去士林夜市 | cloze | 我們____散步，享受新鮮空氣。 → 出去 | pool: 回家 / 留下 / 進來
+我們去士林夜市 | cloze | 我們____要去看電影。 → 六點 | pool: 七點 / 九點 / 八點
+我們去士林夜市 | cloze | 我們六點在捷運站____。 → 見 | pool: 走 / 跑 / 跳
+我們去士林夜市 | cloze | 我們去____吃小吃。 → 士林夜市 | pool: 臺中夜市 / 臺北夜市 / 高雄夜市
+我們去士林夜市 | cloze | 我們在____見面。 → 捷運站 | pool: 巴士站 / 港口 / 火車站
+我們去士林夜市 | cloze | 我回____了，很高興。 → 家 | pool: 公司 / 公園 / 學校
+我們去士林夜市 | cloze | 我愛吃____，很好吃。 → 雞排 | pool: 牛排 / 豬排 / 魚排
+我們去士林夜市 | cloze | 我愛喝____，很好喝。 → 珍珠奶茶 | pool: 咖啡 / 紅茶 / 綠茶
+我們去士林夜市 | cloze | 我要____我的作業。 → 做 | pool: 吃 / 喝 / 玩
+我們去士林夜市 | cloze | 我要____我的手機，誰看到它了嗎？ → 找 | pool: 借 / 買 / 賣
+我們去士林夜市 | cloze | 這個東西很____，我很喜歡。 → 好 | pool: 不好 / 不好吃 / 壞
+我們去士林夜市 | cloze | 這個食物很____，我很喜歡。 → 好吃 | pool: 不好吃 / 不好喝 / 不香
+我們去士林夜市 | pinyin | 一起 → yīqǐ | pool: chūqù / hǎo / hǎo chī / jiéyùnzhàn / jīpái / liù diǎn / méi shì / nǐ / shìlín yèshì / tài hǎo le / wǎnshàng / wǒmen / xīngqīliù / yiqi1 / yiqi2 / yiqi4 / yǒu / zhēnzhū nǎichá / zuò
+我們去士林夜市 | pinyin | 你 → nǐ | pool: hǎo / hǎo chī / jiā / méi shì / nì / ní / nī / yǒu / zhēnzhū nǎichá / zhǎo / zuò
+我們去士林夜市 | pinyin | 佳玲 → jiālíng | pool: chūqù / hǎo chī / jialing1 / jialing3 / jialing4 / jiàn / jīpái / liù diǎn / méi shì / shìlín yèshì / wǎnshàng / wǒ / wǒmen / yǒu / zhìháo / zhēnzhū nǎichá / zhǎo
+我們去士林夜市 | pinyin | 做 → zuò | pool: hǎo / hǎo chī / jiàn / jiā / jīpái / méi shì / nǐ / tài hǎo le / wǒmen / yīqǐ / yǒu / zhìháo / zhēnzhū nǎichá / zhǎo / zúo / zūo / zǔo
+我們去士林夜市 | pinyin | 六點 → liù diǎn | pool: chūqù / jiàn / jiālíng / jīpái / liù diàn / liù dián / liù diān / liú diǎn / liū diǎn / liǔ diǎn / méi shì / nǐ / shìlín yèshì / tài hǎo le / wǎnshàng / wǒ / xīngqīliù / xīngqīwǔ / yīqǐ / yǒu / zhìháo
+我們去士林夜市 | pinyin | 出去 → chūqù | pool: chuqu1 / chuqu2 / chuqu3 / hǎo / jiàn / jiéyùnzhàn / jīpái / liù diǎn / nǐ / wǎnshàng / wǒmen / xīngqīwǔ / yǒu / zhìháo
+我們去士林夜市 | pinyin | 士林夜市 → shìlín yèshì | pool: chūqù / hǎo / jiā / liù diǎn / méi shì / shilin1 yèshì / shilin3 yèshì / shilin4 yèshì / shìlín yeshi1 / shìlín yeshi2 / shìlín yeshi3 / wǎnshàng / wǒ / wǒmen / xīngqīwǔ / yǒu / zhǎo
+我們去士林夜市 | pinyin | 太好了 → tài hǎo le | pool: hǎo / jiéyùnzhàn / méi shì / shìlín yèshì / tài hào le / tài háo le / tài hāo le / tài hǎo lè / tài hǎo lé / tài hǎo lē / tài hǎo lě / tái hǎo le / tāi hǎo le / tǎi hǎo le / wǎnshàng / yīqǐ / zhìháo / zhēnzhū nǎichá / zhǎo
+我們去士林夜市 | pinyin | 好 → hǎo | pool: chūqù / hào / háo / hāo / hǎo chī / jiàn / jiéyùnzhàn / jiā / jīpái / méi shì / nǐ / wǎnshàng / wǒ / xīngqīliù / yīqǐ / zhìháo / zhēnzhū nǎichá
+我們去士林夜市 | pinyin | 好吃 → hǎo chī | pool: hào chī / háo chī / hāo chī / hǎo chì / hǎo chí / hǎo chǐ / jiàn / jiā / jiālíng / jīpái / méi shì / nǐ / wǒ / wǒmen / xīngqīwǔ / yīqǐ / zhìháo / zhǎo
+我們去士林夜市 | pinyin | 家 → jiā | pool: chūqù / hǎo chī / jià / jiá / jiéyùnzhàn / jiālíng / jiǎ / jīpái / méi shì / wǒ / wǒmen / yīqǐ / zhǎo / zuò
+我們去士林夜市 | pinyin | 志豪 → zhìháo | pool: hǎo / jiā / jīpái / liù diǎn / méi shì / shìlín yèshì / wǎnshàng / xīngqīliù / yīqǐ / yǒu / zhihao1 / zhihao3 / zhihao4 / zhēnzhū nǎichá / zuò
+我們去士林夜市 | pinyin | 我 → wǒ | pool: hǎo chī / jiéyùnzhàn / jīpái / nǐ / wò / wó / wō / wǎnshàng / xīngqīliù / zhǎo
+我們去士林夜市 | pinyin | 我們 → wǒmen | pool: chūqù / jiàn / jiéyùnzhàn / jiā / liù diǎn / nǐ / shìlín yèshì / women1 / women2 / women4 / wǒ / xīngqīwǔ / yīqǐ / zhìháo / zhēnzhū nǎichá / zhǎo / zuò
+我們去士林夜市 | pinyin | 找 → zhǎo | pool: hǎo chī / jiàn / jiéyùnzhàn / jiā / jiālíng / liù diǎn / méi shì / tài hǎo le / wǒ / xīngqīwǔ / zhào / zháo / zhāo / zuò
+我們去士林夜市 | pinyin | 捷運站 → jiéyùnzhàn | pool: chūqù / jieyunzhan1 / jieyunzhan2 / jieyunzhan3 / jīpái / méi shì / nǐ / wǎnshàng / wǒmen / xīngqīwǔ / zhēnzhū nǎichá / zuò
+我們去士林夜市 | pinyin | 星期五 → xīngqīwǔ | pool: chūqù / hǎo chī / jiàn / jiéyùnzhàn / jīpái / wǎnshàng / wǒ / xingqiwu1 / xingqiwu2 / xingqiwu4 / yǒu / zhǎo
+我們去士林夜市 | pinyin | 星期六 → xīngqīliù | pool: chūqù / hǎo / hǎo chī / jiā / liù diǎn / méi shì / shìlín yèshì / tài hǎo le / wǒ / wǒmen / xingqiliu1 / xingqiliu2 / xingqiliu3 / xīngqīwǔ / zhìháo / zhēnzhū nǎichá / zhǎo / zuò
+我們去士林夜市 | pinyin | 晚上 → wǎnshàng | pool: chūqù / jiéyùnzhàn / jīpái / nǐ / tài hǎo le / wanshang1 / wanshang2 / wanshang3 / yīqǐ / yǒu / zhēnzhū nǎichá / zhǎo
+我們去士林夜市 | pinyin | 有 → yǒu | pool: chūqù / hǎo / hǎo chī / jiālíng / jīpái / nǐ / shìlín yèshì / tài hǎo le / wǎnshàng / xīngqīwǔ / yòu / yóu / yīqǐ / yōu / zhǎo
+我們去士林夜市 | pinyin | 沒事 → méi shì | pool: chūqù / hǎo chī / jiā / jiālíng / liù diǎn / mèi shì / méi shí / méi shī / méi shǐ / mēi shì / měi shì / nǐ / shìlín yèshì / tài hǎo le / xīngqīliù / zhēnzhū nǎichá / zuò
+我們去士林夜市 | pinyin | 珍珠奶茶 → zhēnzhū nǎichá | pool: chūqù / hǎo / hǎo chī / jiàn / jiéyùnzhàn / jiālíng / méi shì / nǐ / shìlín yèshì / wǎnshàng / wǒ / wǒmen / xīngqīliù / xīngqīwǔ / zhenzhu2 nǎichá / zhenzhu3 nǎichá / zhenzhu4 nǎichá / zhēnzhū naicha1 / zhēnzhū naicha3 / zhēnzhū naicha4 / zhǎo / zuò
+我們去士林夜市 | pinyin | 見 → jiàn | pool: chūqù / jián / jiā / jiān / jiǎn / liù diǎn / nǐ / shìlín yèshì / tài hǎo le / wǎnshàng / wǒ / xīngqīliù / xīngqīwǔ / yīqǐ / zhìháo
+我們去士林夜市 | pinyin | 雞排 → jīpái | pool: chūqù / hǎo / hǎo chī / jipai1 / jipai3 / jipai4 / jiā / jiālíng / méi shì / nǐ / shìlín yèshì / tài hǎo le / wǒ / wǒmen / xīngqīliù / xīngqīwǔ / yīqǐ
+我們去士林夜市 | pos | 一起 → Adv | pool: Adj / N / V
+我們去士林夜市 | pos | 你 → N | pool: Adj / Adv / V
+我們去士林夜市 | pos | 佳玲 → N | pool: Adj / Adv / V
+我們去士林夜市 | pos | 做 → V | pool: Adj / Adv / N
+我們去士林夜市 | pos | 六點 → N | pool: Adj / Adv / V
+我們去士林夜市 | pos | 出去 → V | pool: Adj / Adv / N
+我們去士林夜市 | pos | 士林夜市 → N | pool: Adj / Adv / V
+我們去士林夜市 | pos | 太好了 → Adj | pool: Adv / N / V
+我們去士林夜市 | pos | 好 → Adj | pool: Adv / N / V
+我們去士林夜市 | pos | 好吃 → Adj | pool: Adv / N / V
+我們去士林夜市 | pos | 家 → N | pool: Adj / Adv / V
+我們去士林夜市 | pos | 志豪 → N | pool: Adj / Adv / V
+我們去士林夜市 | pos | 我 → N | pool: Adj / Adv / V
+我們去士林夜市 | pos | 找 → V | pool: Adj / Adv / N
+我們去士林夜市 | pos | 捷運站 → N | pool: Adj / Adv / V
+我們去士林夜市 | pos | 星期五 → N | pool: Adj / Adv / V
+我們去士林夜市 | pos | 星期六 → N | pool: Adj / Adv / V
+我們去士林夜市 | pos | 晚上 → N | pool: Adj / Adv / V
+我們去士林夜市 | pos | 有 → V | pool: Adj / Adv / N
+我們去士林夜市 | pos | 沒事 → Adj | pool: Adv / N / V
+我們去士林夜市 | pos | 見 → V | pool: Adj / Adv / N
+我們去士林夜市 | pos | 雞排 → N | pool: Adj / Adv / V
+我們去士林夜市 | reverse | Friday → 星期五 | pool: 一起 / 佳玲 / 做 / 六點 / 出去 / 士林夜市 / 太好了 / 好 / 好吃 / 家 / 志豪 / 我 / 找 / 捷運站 / 星期六 / 晚上 / 有 / 沒事 / 珍珠奶茶 / 雞排
+我們去士林夜市 | reverse | I → 我 | pool: 一起 / 佳玲 / 做 / 六點 / 出去 / 吳 / 士林夜市 / 太好了 / 好 / 好吃 / 妳 / 家 / 志豪 / 我們 / 找 / 捷運站 / 星期五 / 星期六 / 晚上 / 有 / 沒事 / 珍珠奶茶 / 見 / 雞排 / 麼
+我們去士林夜市 | reverse | Jialing → 佳玲 | pool: 一起 / 你 / 佳人 / 佳美 / 做 / 六點 / 出去 / 士林夜市 / 太好了 / 好吃 / 家 / 志豪 / 我們 / 找 / 捷運站 / 星期五 / 晚上 / 沒事 / 玲瓏 / 珍珠奶茶 / 見 / 雞排
+我們去士林夜市 | reverse | MRT station → 捷運站 | pool: 一起 / 佳玲 / 做 / 公車站 / 六點 / 出去 / 士林夜市 / 太好了 / 好 / 好吃 / 家 / 志豪 / 我 / 我們 / 找 / 星期五 / 星期六 / 晚上 / 有 / 汽車站 / 沒事 / 火車站 / 珍珠奶茶 / 見 / 雞排
+我們去士林夜市 | reverse | Saturday → 星期六 | pool: 一起 / 你 / 佳玲 / 做 / 六點 / 出去 / 士林夜市 / 太好了 / 好 / 家 / 志豪 / 我 / 我們 / 找 / 捷運站 / 星期五 / 星期日 / 晚上 / 沒事 / 珍珠奶茶 / 見 / 週六 / 雞排
+我們去士林夜市 | reverse | Shilin Night Market → 士林夜市 | pool: 一起 / 你 / 佳玲 / 六點 / 出去 / 士林區 / 士林街 / 夜市小吃 / 太好了 / 好 / 家 / 志豪 / 我們 / 找 / 捷運站 / 星期五 / 星期六 / 晚上 / 有 / 沒事 / 珍珠奶茶 / 雞排
+我們去士林夜市 | reverse | Zhihao → 志豪 | pool: 你 / 六點 / 出去 / 太好了 / 好 / 好吃 / 家 / 志強 / 志明 / 我 / 找 / 星期五 / 星期六 / 晚上 / 沒事 / 珍珠奶茶 / 豪情
+我們去士林夜市 | reverse | bubble tea → 珍珠奶茶 | pool: 一起 / 你 / 佳玲 / 做 / 六點 / 士林夜市 / 太好了 / 奶茶 / 好 / 好吃 / 家 / 志豪 / 我們 / 找 / 捷運站 / 星期五 / 星期六 / 晚上 / 有 / 沒事 / 珍珠粉 / 綠茶 / 見 / 雞排
+我們去士林夜市 | reverse | chicken cutlet → 雞排 | pool: 一起 / 你 / 佳玲 / 做 / 六點 / 出去 / 士林夜市 / 太好了 / 好 / 好吃 / 家 / 志豪 / 我 / 我們 / 找 / 捷運站 / 星期六 / 有 / 沒事 / 牛排 / 珍珠奶茶 / 見 / 豬排 / 鴨排
+我們去士林夜市 | reverse | delicious → 好吃 | pool: 一起 / 不好吃 / 做 / 六點 / 吃得 / 士林夜市 / 太好了 / 好 / 家 / 很吃 / 志豪 / 我 / 我們 / 找 / 捷運站 / 星期五 / 星期六 / 晚上 / 有 / 沒事 / 珍珠奶茶 / 見
+我們去士林夜市 | reverse | evening → 晚上 | pool: 一起 / 中午 / 你 / 佳玲 / 做 / 六點 / 出去 / 士林夜市 / 夜晚 / 太好了 / 好 / 好吃 / 家 / 志豪 / 我 / 我們 / 找 / 捷運站 / 早上 / 星期六 / 有 / 沒事 / 珍珠奶茶 / 見 / 雞排
+我們去士林夜市 | reverse | find → 找 | pool: 一起 / 佳玲 / 做 / 六點 / 出去 / 士林夜市 / 太好了 / 好 / 好吃 / 志豪 / 我 / 我們 / 招 / 捷運站 / 晚上 / 有 / 沒事 / 見 / 訪 / 貢 / 雞排
+我們去士林夜市 | reverse | go out → 出去 | pool: 一起 / 你 / 做 / 六點 / 回去 / 士林夜市 / 太好了 / 好 / 好吃 / 家 / 志豪 / 我 / 我們 / 找 / 捷運站 / 星期五 / 星期六 / 有 / 沒事 / 珍珠奶茶 / 進去 / 過去
+我們去士林夜市 | reverse | good → 好 | pool: 一起 / 做 / 六點 / 太好了 / 家 / 志豪 / 我 / 我們 / 找 / 捷運站 / 星期六 / 晚上 / 沒事 / 珍珠奶茶 / 號 / 豪 / 雞排 / 顥
+我們去士林夜市 | reverse | great → 太好了 | pool: 你 / 做 / 六點 / 出去 / 士林夜市 / 太壞了 / 好 / 好吃 / 好極了 / 家 / 很好 / 我 / 我們 / 找 / 捷運站 / 星期五 / 晚上 / 有 / 沒事 / 珍珠奶茶 / 見 / 雞排
+我們去士林夜市 | reverse | have → 有 | pool: 你 / 佳玲 / 做 / 出去 / 又 / 友 / 太好了 / 好 / 好吃 / 家 / 志豪 / 我 / 我們 / 找 / 捷運站 / 星期五 / 星期六 / 晚上 / 無 / 珍珠奶茶
+我們去士林夜市 | reverse | home → 家 | pool: 你 / 做 / 六點 / 嘉 / 太好了 / 好 / 好吃 / 嫁 / 志豪 / 我 / 我們 / 找 / 捷運站 / 星期五 / 星期六 / 有 / 架 / 沒事 / 見 / 雞排
+我們去士林夜市 | reverse | nothing wrong → 沒事 | pool: 一起 / 事情 / 你 / 佳玲 / 做 / 六點 / 士林夜市 / 大事 / 太好了 / 好 / 好吃 / 小事 / 志豪 / 我 / 我們 / 捷運站 / 星期五 / 星期六 / 晚上 / 珍珠奶茶 / 見 / 雞排
+我們去士林夜市 | reverse | see → 見 | pool: 一起 / 你 / 佳玲 / 做 / 六點 / 出去 / 士林夜市 / 太好了 / 好吃 / 家 / 志豪 / 我 / 我們 / 找 / 捷運站 / 星期五 / 星期六 / 晚上 / 有 / 珍珠奶茶 / 現 / 視 / 覽 / 雞排
+我們去士林夜市 | reverse | six o'clock → 六點 | pool: 一起 / 做 / 六日 / 六時 / 六月 / 出去 / 士林夜市 / 好 / 好吃 / 志豪 / 我 / 我們 / 星期五 / 星期六 / 珍珠奶茶 / 見 / 雞排
+我們去士林夜市 | reverse | to do → 做 | pool: 一起 / 你 / 佳玲 / 六點 / 出去 / 士林夜市 / 太好了 / 好 / 家 / 志豪 / 我 / 我們 / 找 / 捷運站 / 措 / 星期五 / 星期六 / 有 / 沒事 / 珍珠奶茶 / 著 / 見 / 造
+我們去士林夜市 | reverse | together → 一起 | pool: 一同 / 一起子 / 一齊 / 佳玲 / 做 / 六點 / 出去 / 士林夜市 / 太好了 / 好 / 好吃 / 志豪 / 我 / 我們 / 找 / 捷運站 / 星期六 / 有 / 沒事 / 珍珠奶茶 / 見 / 雞排
+我們去士林夜市 | reverse | we → 我們 | pool: 你 / 你們 / 佳玲 / 做 / 六點 / 士林夜市 / 太好了 / 好 / 好吃 / 妳 / 家 / 志豪 / 我 / 找 / 星期五 / 星期六 / 晚上 / 有 / 沒事 / 珍珠奶茶 / 見 / 雞排
+我們去士林夜市 | reverse | you → 你 | pool: 一起 / 佳玲 / 做 / 儒 / 出去 / 士林夜市 / 太好了 / 好吃 / 妳 / 家 / 志豪 / 我 / 找 / 捷運站 / 星期五 / 星期六 / 晚上 / 有 / 汝 / 沒事 / 珍珠奶茶 / 見 / 雞排
+我們去士林夜市 | synonym | 一起 → 共同 | pool: 分開 / 單獨 / 獨自
+我們去士林夜市 | synonym | 你 → 妳 | pool: 他 / 她 / 我
+我們去士林夜市 | synonym | 佳玲 → 名字 | pool: 同事 / 家人 / 朋友
+我們去士林夜市 | synonym | 做 → 幹 | pool: 吃 / 喝 / 睡
+我們去士林夜市 | synonym | 六點 → 六時 | pool: 七點 / 九點 / 八點
+我們去士林夜市 | synonym | 出去 → 出門 | pool: 回家 / 留下 / 進來
+我們去士林夜市 | synonym | 士林夜市 → 夜市 | pool: 公園 / 商場 / 餐廳
+我們去士林夜市 | synonym | 太好了 → 真棒 | pool: 不好 / 很差 / 糟糕
+我們去士林夜市 | synonym | 好 → 好棒 | pool: 不好 / 很差 / 糟糕
+我們去士林夜市 | synonym | 好吃 → 美味 | pool: 不好吃 / 不新鮮 / 難吃
+我們去士林夜市 | synonym | 志豪 → 名字 | pool: 同事 / 家人 / 朋友
+我們去士林夜市 | synonym | 我 → 自己 | pool: 他 / 你 / 她
+我們去士林夜市 | synonym | 我們 → 我們自己 | pool: 他們 / 你們 / 她們
+我們去士林夜市 | synonym | 找 → 尋找 | pool: 看 / 聽 / 買
+我們去士林夜市 | synonym | 捷運站 → 地鐵站 | pool: 巴士站 / 港口 / 火車站
+我們去士林夜市 | synonym | 星期六 → 禮拜六 | pool: 星期一 / 星期四 / 星期日
+我們去士林夜市 | synonym | 晚上 → 傍晚 | pool: 下午 / 中午 / 清晨
+我們去士林夜市 | synonym | 有 → 有的 | pool: 不夠 / 沒有 / 缺少
+我們去士林夜市 | synonym | 沒事 → 一切都好 | pool: 不舒服 / 受傷 / 生病
+我們去士林夜市 | synonym | 珍珠奶茶 → 泡茶 | pool: 可樂 / 咖啡 / 果汁
+我們去士林夜市 | synonym | 見 → 遇見 | pool: 看 / 聽 / 買
+我們去士林夜市 | synonym | 雞排 → 炸雞 | pool: 牛肉 / 羊肉 / 豬肉
+我們去士林夜市 | translation | 一起 → together | pool: Friday / I / MRT station / Zhihao / alone / apart / bubble tea / chicken cutlet / delicious / evening / find / go out / good / great / have / home / nothing wrong / see / separately / to do / we / you
+我們去士林夜市 | translation | 你 → you | pool: I / Jialing / MRT station / Saturday / Shilin Night Market / Zhihao / bubble tea / chicken cutlet / delicious / evening / find / go out / good / great / have / he / home / it / nothing wrong / see / she / six o'clock / they / to do / together / we / your / yours
+我們去士林夜市 | translation | 佳玲 → Jialing | pool: Friday / I / Jiahui / Jiali / Jianing / Jiaying / Jiayun / Jingling / Jingyi / Jingyu / MRT station / Saturday / Shilin Night Market / Zhihao / bubble tea / chicken cutlet / delicious / find / go out / good / great / home / nothing wrong / see / six o'clock / together / we / you
+我們去士林夜市 | translation | 做 → to do | pool: Friday / I / Jialing / MRT station / Prepare / Saturday / Shilin Night Market / bubble tea / build / chicken cutlet / create / delicious / eat / evening / find / go out / good / great / have / home / nothing wrong / play / see / six o'clock / together / we / work
+我們去士林夜市 | translation | 六點 → six o'clock | pool: Early evening / Friday / Half past five / I / Jialing / MRT station / Saturday / Shilin Night Market / Zhihao / bubble tea / chicken cutlet / delicious / eight o'clock / find / five o'clock / go out / good / great / half past six / have / home / nothing wrong / seven o'clock / six thirty / to do / together / you
+我們去士林夜市 | translation | 出去 → go out | pool: Friday / I / Jialing / MRT station / Shilin Night Market / Zhihao / bubble tea / chicken cutlet / come back / evening / find / go home / good / have / home / nothing wrong / see / six o'clock / stay in / to do / together / we / you
+我們去士林夜市 | translation | 士林夜市 → Shilin Night Market | pool: Beijing Night Market / Friday / I / Jialing / MRT station / Night Bazaar / Saturday / Shilin Day Market / Shilin Market / Street Food / Taipei Night / Taipei Night Market / Taipei Street / Zhihao / bubble tea / chicken cutlet / delicious / evening / find / go out / good / great / have / home / nothing wrong / see / six o'clock / to do / together / you
+我們去士林夜市 | translation | 太好了 → great | pool: Friday / I / Jialing / MRT station / Saturday / Shilin Night Market / Zhihao / bubble tea / chicken cutlet / delicious / evening / find / go out / good / have / home / not good / nothing wrong / see / six o'clock / to do / together / very bad / we / you
+我們去士林夜市 | translation | 好 → good | pool: Friday / I / Jialing / MRT station / Saturday / Shilin Night Market / Zhihao / bad / bubble tea / chicken cutlet / delicious / evening / find / go out / great / have / home / nothing wrong / see / six o'clock / to do / together / we / you
+我們去士林夜市 | translation | 好吃 → delicious | pool: Friday / I / Jialing / MRT station / Saturday / Zhihao / bitter / bubble tea / chicken cutlet / evening / find / go out / good / great / have / home / nothing wrong / see / six o'clock / to do / together / we / you
+我們去士林夜市 | translation | 家 → home | pool: Friday / Jialing / MRT station / Saturday / Shilin Night Market / Zhihao / apartment / chicken cutlet / delicious / evening / find / go out / good / great / have / nothing wrong / office / school / see / to do / together / village / we / you
+我們去士林夜市 | translation | 志豪 → Zhihao | pool: Friday / I / Jialing / MRT station / Saturday / Shilin Night Market / Zhenghao / Zhiheng / Zhilin / Zhilong / Zhiming / Zhiwen / Zhixin / Zhiyuan / chicken cutlet / delicious / evening / find / go out / good / great / have / home / nothing wrong / see / six o'clock / to do / together / we / you
+我們去士林夜市 | translation | 我 → I | pool: Friday / Jialing / MRT station / Saturday / Zhihao / bubble tea / chicken cutlet / delicious / evening / find / go out / great / have / he / home / it / mine / nothing wrong / ours / see / she / six o'clock / to do / together / we / you
+我們去士林夜市 | translation | 我們 → we | pool: Friday / I / Jialing / Shilin Night Market / Zhihao / bubble tea / chicken cutlet / delicious / evening / find / go out / good / great / have / home / see / six o'clock / them / they / together / you
+我們去士林夜市 | translation | 找 → find | pool: Friday / I / Jialing / MRT station / Saturday / Shilin Night Market / Zhihao / bubble tea / chase / chicken cutlet / delicious / evening / follow / go out / good / great / have / home / meet / see / six o'clock / to do / together / we
+我們去士林夜市 | translation | 捷運站 → MRT station | pool: Friday / I / Jialing / Saturday / Shilin Night Market / Zhihao / airport / bubble tea / bus station / bus stop / chicken cutlet / delicious / evening / find / go out / good / have / home / nothing wrong / see / six o'clock / together / we / you
+我們去士林夜市 | translation | 星期五 → Friday | pool: End of week / Friday afternoon / Friday morning / Friday night / Jialing / MRT station / Saturday / Shilin Night Market / Zhihao / bubble tea / chicken cutlet / delicious / evening / find / go out / good / great / have / holiday / home / nothing wrong / off day / see / six o'clock / to do / we / weekend / working day / you
+我們去士林夜市 | translation | 星期六 → Saturday | pool: Day off / Friday / Jialing / MRT station / Saturday morning / Shilin Night Market / Sunday / Weekend day / Zhihao / bubble tea / chicken cutlet / delicious / evening / find / go out / good / great / have / holiday / home / nothing wrong / see / together / we / weekday / weekend / workday / you
+我們去士林夜市 | translation | 晚上 → evening | pool: Dinner time / Friday / I / Jialing / MRT station / Saturday / Shilin Night Market / Zhihao / afternoon / chicken cutlet / delicious / dusk / find / go out / good / have / home / morning / nothing wrong / see / six o'clock / sundown / to do / together / we / you
+我們去士林夜市 | translation | 有 → have | pool: Friday / I / Jialing / MRT station / Saturday / Shilin Night Market / Zhihao / bubble tea / chicken cutlet / delicious / evening / exist / find / go out / good / great / home / little / none / nothing wrong / see / six o'clock / to do / together / we / you
+我們去士林夜市 | translation | 沒事 → nothing wrong | pool: Friday / I / Jialing / MRT station / Saturday / Shilin Night Market / Zhihao / a problem / an issue / bubble tea / chicken cutlet / delicious / evening / find / good / great / have / home / six o'clock / something wrong / to do / together / we / you
+我們去士林夜市 | translation | 珍珠奶茶 → bubble tea | pool: Friday / I / Jialing / MRT station / Saturday / Shilin Night Market / Zhihao / chicken cutlet / coffee / find / go out / good / great / have / home / juice / nothing wrong / see / six o'clock / to do / together / we / you
+我們去士林夜市 | translation | 見 → see | pool: Friday / Jialing / MRT station / Saturday / Shilin Night Market / Zhihao / bubble tea / delicious / evening / find / go out / good / great / have / hear / home / nothing wrong / six o'clock / speak / to do / together / we / you
+我們去士林夜市 | translation | 雞排 → chicken cutlet | pool: Friday / I / MRT station / Saturday / Shilin Night Market / bubble tea / chicken breast / chicken nuggets / chicken soup / chicken thigh / chicken wings / delicious / evening / go out / good / great / have / nothing wrong / roast chicken / see / six o'clock / to do / together / we
+捷運站在哪裡？ | cloze | ____說謝謝。他走去捷運站。他很高興。 → 承翰 | pool: 俊雄 / 志偉 / 志明
+捷運站在哪裡？ | cloze | ____：不遠，很近。 → 婉婷 | pool: 淑芬 / 美華 / 雅玲
+捷運站在哪裡？ | cloze | 婉婷：____站在那裡 → 捷運 | pool: 公車 / 火車 / 計程車
+捷運站在哪裡？ | cloze | 婉婷：____，很近。 → 不遠 | pool: 很遠 / 有點遠 / 比較遠
+捷運站在哪裡？ | cloze | 婉婷：不遠，____。 → 很近 | pool: 很遠 / 有一點遠 / 比較遠
+捷運站在哪裡？ | cloze | 婉婷：捷運____那裡 → 站在 | pool: 位在 / 位於 / 坐落
+捷運站在哪裡？ | cloze | 婉婷：捷運站在____ → 那裡 | pool: 右邊 / 左邊 / 這裡
+捷運站在哪裡？ | cloze | 承翰要____學校。他不知道捷運站在哪裡 → 去 | pool: 來 / 買 / 賣
+捷運站在哪裡？ | cloze | 承翰要去____。他不知道捷運站在哪裡 → 學校 | pool: 公司 / 圖書館 / 醫院
+捷運站在哪裡？ | cloze | 承翰要去學校。他____捷運站在哪裡 → 不知道 | pool: 很近 / 曉得 / 記得 / 謝謝 / 走 / 高興
+捷運站在哪裡？ | cloze | 承翰說____。他走去捷運站。他很高興。 → 謝謝 | pool: 不好意思 / 對不起 / 抱歉
+捷運站在哪裡？ | cloze | 承翰說謝謝。他____去捷運站。他很高興。 → 走 | pool: 坐 / 跑 / 跳
+捷運站在哪裡？ | cloze | 承翰說謝謝。他走去____。他很高興。 → 捷運站 | pool: 公車站 / 港口 / 火車站
+捷運站在哪裡？ | cloze | 承翰說謝謝。他走去捷運站。他很____。 → 高興 | pool: 失望 / 悲傷 / 難過
+捷運站在哪裡？ | cloze | 承翰：____嗎？ → 遠 | pool: 快 / 慢 / 近
+捷運站在哪裡？ | cloze | 承翰：____，捷運站在哪裡？ → 請問 | pool: 對不起 / 抱歉 / 謝謝
+捷運站在哪裡？ | cloze | 承翰：請問，____站在哪裡？ → 捷運 | pool: 巴士 / 船 / 飛機
+捷運站在哪裡？ | cloze | 承翰：請問，捷運____哪裡？ → 站在 | pool: 坐著 / 站著 / 躺著
+捷運站在哪裡？ | cloze | 承翰：遠____？ → 嗎 | pool: 吧 / 呢 / 啦
+捷運站在哪裡？ | pinyin | 不知道 → bù zhīdào | pool: Chéng Hàn / bù yuǎn / bù zhidao1 / bù zhidao2 / bù zhidao3 / bú zhīdào / bū zhīdào / bǔ zhīdào / gāoxìng / nàlǐ / qù / wǎntíng / xièxiè / yuǎn
+捷運站在哪裡？ | pinyin | 不遠 → bù yuǎn | pool: Chéng Hàn / bù yuàn / bù yuán / bù yuān / bú yuǎn / bū yuǎn / bǔ yuǎn / hěn jìn / jiéyùn / jiéyùnzhàn / qù / qǐngwèn / xuéxiào / yuǎn / zǒu
+捷運站在哪裡？ | pinyin | 去 → qù | pool: Chéng Hàn / bù yuǎn / bù zhīdào / gāoxìng / hěn jìn / jiéyùn / ma / nàlǐ / qú / qū / qǐngwèn / qǔ / wǎntíng / xièxiè / xuéxiào / zǒu
+捷運站在哪裡？ | pinyin | 嗎 → ma | pool: Chéng Hàn / bù yuǎn / jiéyùnzhàn / mà / má / mā / mǎ / nàlǐ / qù / wǎntíng / xuéxiào / yuǎn / zhàn zài
+捷運站在哪裡？ | pinyin | 婉婷 → wǎntíng | pool: Chéng Hàn / bù yuǎn / gāoxìng / hěn jìn / jiéyùn / nàlǐ / qù / wanting1 / wanting3 / wanting4 / xuéxiào / yuǎn / zhàn zài
+捷運站在哪裡？ | pinyin | 學校 → xuéxiào | pool: Chéng Hàn / bù yuǎn / hěn jìn / jiéyùn / qù / qǐngwèn / wǎntíng / xièxiè / xuexiao1 / xuexiao2 / xuexiao3 / yuǎn / zhàn zài / zǒu
+捷運站在哪裡？ | pinyin | 很近 → hěn jìn | pool: Chéng Hàn / bù yuǎn / bù zhīdào / gāoxìng / hèn jìn / hén jìn / hēn jìn / hěn jín / hěn jīn / hěn jǐn / jiéyùn / jiéyùnzhàn / ma / qù / qǐngwèn / wǎntíng / xièxiè / xuéxiào / yuǎn / zhàn zài
+捷運站在哪裡？ | pinyin | 承翰 → Chéng Hàn | pool: Chèng Hàn / Chéng Hán / Chéng Hān / Chéng Hǎn / Chēng Hàn / Chěng Hàn / bù yuǎn / bù zhīdào / gāoxìng / hěn jìn / jiéyùn / ma / nàlǐ / qù / qǐngwèn / wǎntíng / xièxiè / xuéxiào / zǒu
+捷運站在哪裡？ | pinyin | 捷運 → jiéyùn | pool: Chéng Hàn / bù zhīdào / jieyun1 / jieyun2 / jieyun3 / jiéyùnzhàn / ma / nàlǐ / qù / qǐngwèn / xièxiè / xuéxiào / yuǎn / zhàn zài
+捷運站在哪裡？ | pinyin | 捷運站 → jiéyùnzhàn | pool: Chéng Hàn / bù yuǎn / bù zhīdào / gāoxìng / hěn jìn / jieyunzhan1 / jieyunzhan2 / jieyunzhan3 / ma / nàlǐ / qù / qǐngwèn / wǎntíng / xièxiè / xuéxiào / zhàn zài / zǒu
+捷運站在哪裡？ | pinyin | 站在 → zhàn zài | pool: Chéng Hàn / bù yuǎn / bù zhīdào / hěn jìn / jiéyùnzhàn / ma / nàlǐ / qù / wǎntíng / xièxiè / xuéxiào / yuǎn / zhàn zái / zhàn zāi / zhán zài / zhān zài / zhǎn zài
+捷運站在哪裡？ | pinyin | 請問 → qǐngwèn | pool: Chéng Hàn / bù zhīdào / hěn jìn / jiéyùn / ma / qingwen1 / qingwen2 / qingwen3 / qù / xièxiè / xuéxiào / yuǎn
+捷運站在哪裡？ | pinyin | 謝謝 → xièxiè | pool: Chéng Hàn / bù yuǎn / bù zhīdào / gāoxìng / hěn jìn / jiéyùnzhàn / nàlǐ / qǐngwèn / wǎntíng / xiexie1 / xiexie2 / xiexie3 / yuǎn
+捷運站在哪裡？ | pinyin | 走 → zǒu | pool: bù yuǎn / hěn jìn / ma / qù / qǐngwèn / wǎntíng / xièxiè / xuéxiào / zhàn zài / zòu / zóu / zōu
+捷運站在哪裡？ | pinyin | 遠 → yuǎn | pool: bù yuǎn / bù zhīdào / jiéyùn / jiéyùnzhàn / nàlǐ / qù / qǐngwèn / wǎntíng / xièxiè / yuàn / yuán / yuān / zhàn zài / zǒu
+捷運站在哪裡？ | pinyin | 那裡 → nàlǐ | pool: Chéng Hàn / bù yuǎn / bù zhīdào / gāoxìng / jiéyùn / jiéyùnzhàn / ma / nali1 / nali2 / nali4 / qù / qǐngwèn / wǎntíng / xièxiè / xuéxiào / yuǎn
+捷運站在哪裡？ | pinyin | 高興 → gāoxìng | pool: bù yuǎn / gaoxing1 / gaoxing2 / gaoxing3 / hěn jìn / jiéyùn / jiéyùnzhàn / ma / qǐngwèn / xièxiè / yuǎn / zhàn zài / zǒu
+捷運站在哪裡？ | pos | 不知道 → V | pool: Adj / N / Other / Particle / Phrase
+捷運站在哪裡？ | pos | 不遠 → Adv | pool: N / Other / Particle / Phrase / V
+捷運站在哪裡？ | pos | 去 → V | pool: Adj / Adv / N / Other / Particle
+捷運站在哪裡？ | pos | 嗎 → Particle | pool: Adj / Adv / Other / Phrase / V
+捷運站在哪裡？ | pos | 婉婷 → N | pool: Adj / Adv / Other
+捷運站在哪裡？ | pos | 學校 → N | pool: Adj / Adv / Other / Particle / Phrase
+捷運站在哪裡？ | pos | 很近 → Adv | pool: Adj / N / Other / Particle / Phrase / V
+捷運站在哪裡？ | pos | 承翰 → N | pool: Adj / Adv / Other / Particle / Phrase / V
+捷運站在哪裡？ | pos | 捷運 → N | pool: Adj / Particle / Phrase
+捷運站在哪裡？ | pos | 捷運站 → N | pool: Other / Particle / Phrase / V
+捷運站在哪裡？ | pos | 站在 → V | pool: Adj / Adv / N / Other / Particle / Phrase
+捷運站在哪裡？ | pos | 請問 → Phrase | pool: Adj / Adv / Other / Particle / V
+捷運站在哪裡？ | pos | 謝謝 → Other | pool: Adj / N / Particle / Phrase / V
+捷運站在哪裡？ | pos | 走 → V | pool: Adj / Adv / N / Particle / Phrase
+捷運站在哪裡？ | pos | 遠 → Adj | pool: Adv / N / Particle / Phrase / V
+捷運站在哪裡？ | pos | 那裡 → Adv | pool: Adj / N / Other / Particle / Phrase
+捷運站在哪裡？ | pos | 高興 → Adj | pool: Adv / N / Other / Particle / Phrase / V
+捷運站在哪裡？ | reverse | Cheng Han → 承翰 | pool: 不知道 / 不遠 / 去 / 嗎 / 婉婷 / 學校 / 很近 / 承擔 / 承認 / 承諾 / 捷運 / 捷運站 / 站在 / 請問 / 謝謝 / 走 / 遠 / 那裡 / 高興
+捷運站在哪裡？ | reverse | MRT station → 捷運站 | pool: 不知道 / 不遠 / 去 / 嗎 / 婉婷 / 學校 / 巴士 / 很近 / 捷運 / 機場 / 碼頭 / 站在 / 請問 / 謝謝 / 走 / 車站 / 遠 / 那裡 / 鐵路 / 高興
+捷運站在哪裡？ | reverse | MRT → 捷運 | pool: 不遠 / 去 / 嗎 / 婉婷 / 學校 / 很近 / 截止 / 承翰 / 捷運站 / 決勝 / 決戰 / 站在 / 節約 / 請問 / 謝謝 / 走 / 遠 / 那裡 / 高興
+捷運站在哪裡？ | reverse | Wan Ting → 婉婷 | pool: 不知道 / 不遠 / 去 / 婉惜 / 婉拒 / 婉言 / 婉轉 / 婷婷 / 學校 / 很近 / 承翰 / 捷運 / 捷運站 / 站在 / 請問 / 謝謝 / 走 / 遠 / 那裡 / 高興
+捷運站在哪裡？ | reverse | do not know → 不知道 | pool: 不懂 / 不知 / 不遠 / 去 / 嗎 / 婉婷 / 學校 / 很近 / 承翰 / 捷運 / 捷運站 / 無知 / 知道 / 站在 / 請問 / 謝謝 / 走 / 道理 / 遠 / 那裡 / 高興
+捷運站在哪裡？ | reverse | far → 遠 | pool: 不知道 / 不遠 / 元 / 去 / 嗎 / 園 / 學校 / 很近 / 承翰 / 捷運 / 捷運站 / 站在 / 請問 / 謝謝 / 遙遠 / 遠景 / 遠離 / 那裡 / 院 / 高興
+捷運站在哪裡？ | reverse | happy → 高興 | pool: 不遠 / 去 / 嗎 / 婉婷 / 很近 / 承翰 / 捷運 / 捷運站 / 站在 / 請問 / 謝謝 / 遠 / 那裡 / 高傲 / 高尚 / 高潮 / 高興劑 / 高興地
+捷運站在哪裡？ | reverse | is located at → 站在 | pool: 不知道 / 不遠 / 佇立 / 停留 / 去 / 婉婷 / 學校 / 很近 / 承翰 / 捷運 / 捷運站 / 站牌 / 站立 / 站長 / 請問 / 謝謝 / 走 / 那裡 / 高興
+捷運站在哪裡？ | reverse | not far → 不遠 | pool: 不服 / 不滿 / 不知道 / 不近 / 不遠的 / 不齒 / 去 / 嗎 / 婉婷 / 學校 / 很近 / 承翰 / 捷運 / 捷運站 / 站在 / 請問 / 謝謝 / 走 / 遠 / 那裡 / 高興
+捷運站在哪裡？ | reverse | please ask → 請問 | pool: 不知道 / 不遠 / 去 / 嗎 / 婉婷 / 學校 / 很近 / 捷運 / 捷運站 / 站在 / 詢問 / 請假 / 請客 / 請教 / 謝謝 / 質問 / 走 / 那裡 / 高興
+捷運站在哪裡？ | reverse | question marker → 嗎 | pool: 不知道 / 去 / 婉婷 / 學校 / 很近 / 站在 / 請問 / 謝謝 / 遠 / 那裡 / 高興
+捷運站在哪裡？ | reverse | school → 學校 | pool: 不知道 / 不遠 / 去 / 嗎 / 婉婷 / 學府 / 學生 / 學習 / 學術 / 很近 / 承翰 / 捷運 / 捷運站 / 站在 / 請問 / 謝謝 / 走 / 遠 / 那裡 / 高興
+捷運站在哪裡？ | reverse | thank you → 謝謝 | pool: 不知道 / 不遠 / 去 / 嗎 / 婉婷 / 學校 / 很近 / 承翰 / 捷運 / 捷運站 / 站在 / 請問 / 謝意 / 謝絕 / 謝罪 / 走 / 遠 / 那裡 / 高興
+捷運站在哪裡？ | reverse | there → 那裡 | pool: 不知道 / 不遠 / 哪裡 / 嗎 / 婉婷 / 學校 / 很近 / 承翰 / 捷運 / 捷運站 / 站在 / 請問 / 走 / 遠 / 那兒 / 那時 / 那邊 / 高興
+捷運站在哪裡？ | reverse | to go → 去 | pool: 不知道 / 不遠 / 嗎 / 婉婷 / 學校 / 很近 / 承翰 / 捷運 / 捷運站 / 站在 / 請問 / 謝謝 / 走 / 趣 / 過 / 遠 / 遣 / 遣送 / 那裡 / 高興 / 鵠
+捷運站在哪裡？ | reverse | very close → 很近 | pool: 不知道 / 不遠 / 去 / 嗎 / 婉婷 / 學校 / 很低 / 很近的 / 很高 / 承翰 / 捷運 / 捷運站 / 站在 / 請問 / 謝謝 / 走 / 遠 / 那裡 / 高興
+捷運站在哪裡？ | reverse | walk → 走 | pool: 不知道 / 不遠 / 去 / 嗎 / 婉婷 / 學校 / 很近 / 承翰 / 捷運 / 捷運站 / 站在 / 行 / 謝謝 / 跑 / 跳 / 躍 / 遠 / 那裡
+捷運站在哪裡？ | synonym | 不知道 → 不清楚 | pool: 忘記 / 想 / 記得
+捷運站在哪裡？ | synonym | 不遠 → 近 | pool: 低 / 遠 / 高
+捷運站在哪裡？ | synonym | 去 → 前往 | pool: 吃 / 買 / 賣
+捷運站在哪裡？ | synonym | 嗎 → 呢 | pool: 了 / 吧 / 啊
+捷運站在哪裡？ | synonym | 婉婷 → 名字 | pool: 女生 / 朋友 / 男生
+捷運站在哪裡？ | synonym | 學校 → 學堂 | pool: 圖書館 / 書店 / 課本
+捷運站在哪裡？ | synonym | 學校 → 學院 | pool: 書 / 老師 / 課程
+捷運站在哪裡？ | synonym | 很近 → 非常近 | pool: 低 / 非常遠 / 高
+捷運站在哪裡？ | synonym | 承翰 → 名字 | pool: 學生 / 校長 / 老師
+捷運站在哪裡？ | synonym | 捷運 → 地鐵 | pool: 公車 / 腳踏車 / 計程車
+捷運站在哪裡？ | synonym | 捷運站 → 地鐵站 | pool: 公車總站 / 港口 / 火車站
+捷運站在哪裡？ | synonym | 捷運站 → 車站 | pool: 橋樑 / 路口 / 隧道
+捷運站在哪裡？ | synonym | 站在 → 位於 | pool: 移動 / 跳躍 / 靜止
+捷運站在哪裡？ | synonym | 請問 → 問一下 | pool: 請假 / 請客 / 請求
+捷運站在哪裡？ | synonym | 請問 → 詢問 | pool: 介紹 / 回答 / 說明
+捷運站在哪裡？ | synonym | 謝謝 → 感謝 | pool: 再見 / 對不起 / 抱歉
+捷運站在哪裡？ | synonym | 走 → 步行 | pool: 游泳 / 跑 / 跳
+捷運站在哪裡？ | synonym | 走 → 行走 | pool: 停 / 跑 / 跳
+捷運站在哪裡？ | synonym | 遠 → 遙遠 | pool: 低 / 近 / 高
+捷運站在哪裡？ | synonym | 那裡 → 哪裡 | pool: 右邊 / 左邊 / 這裡
+捷運站在哪裡？ | synonym | 高興 → 開心 | pool: 生氣 / 累 / 餓
+捷運站在哪裡？ | translation | 不知道 → do not know | pool: MRT / MRT station / Wan Ting / do not care / do not hear / do not see / far / happy / is located at / not far / please ask / question marker / school / thank you / there / to forget / to go / to know / to remember / very close / walk
+捷運站在哪裡？ | translation | 不遠 → not far | pool: Cheng Han / MRT / MRT station / Wan Ting / do not know / extremely distant / far / happy / is located at / please ask / question marker / school / thank you / there / to go / very close / very distant / very long / walk
+捷運站在哪裡？ | translation | 去 → to go | pool: Cheng Han / MRT / MRT station / Wan Ting / do not know / far / happy / is located at / not far / please ask / question marker / school / thank you / there / to come / to run / to stay / very close / walk
+捷運站在哪裡？ | translation | 嗎 → question marker | pool: Cheng Han / MRT station / Wan Ting / comma / do not know / exclamation mark / far / happy / is located at / not far / period / please ask / school / thank you / there / to go / very close / walk
+捷運站在哪裡？ | translation | 婉婷 → Wan Ting | pool: Cheng Han / Li Li / MRT / MRT station / Mei Mei / Ting Ting / Wan Juan / Wan Ling / Wan Xia / do not know / far / happy / is located at / not far / please ask / question marker / school / thank you / there / to go / very close / walk
+捷運站在哪裡？ | translation | 學校 → school | pool: Cheng Han / MRT / MRT station / Wan Ting / do not know / far / happy / is located at / kindergarten / library / not far / please ask / question marker / thank you / there / to go / university / very close / walk
+捷運站在哪裡？ | translation | 很近 → very close | pool: Cheng Han / MRT / MRT station / Wan Ting / a little distant / do not know / extremely distant / far / happy / is located at / not far / not very close / please ask / question marker / school / somewhat far / thank you / to go / walk
+捷運站在哪裡？ | translation | 承翰 → Cheng Han | pool: Chen Guang / Chen Han / Cheng Ming / Han Wang / MRT / MRT station / Wan Ting / Wang Chen / Zhang Wei / do not know / far / happy / is located at / please ask / question marker / school / thank you / there / to go / very close / walk
+捷運站在哪裡？ | translation | 捷運 → MRT | pool: Cheng Han / MRT station / Wan Ting / cable car / elevator / far / funicular / happy / is located at / maglev / monorail / not far / please ask / question marker / school / thank you / there / to go / very close / walk
+捷運站在哪裡？ | translation | 捷運站 → MRT station | pool: Cheng Han / MRT / Wan Ting / airport terminal / border crossing / bus garage / do not know / far / ferry dock / happy / is located at / not far / question marker / school / seaport / there / to go / train depot / very close
+捷運站在哪裡？ | translation | 站在 → is located at | pool: Cheng Han / MRT / MRT station / Wan Ting / do not know / far / happy / not far / please ask / question marker / school / thank you / there / to be arriving at / to be heading to / to be leaving from / to go / to hang from / to lie on / to sit at / very close / walk
+捷運站在哪裡？ | translation | 請問 → please ask | pool: Cheng Han / MRT / MRT station / Wan Ting / do not know / far / happy / is located at / not far / please do / please say / please tell / please write / question marker / school / thank you / to go / very close / walk
+捷運站在哪裡？ | translation | 謝謝 → thank you | pool: Cheng Han / MRT / MRT station / Wan Ting / do not know / excuse me / far / goodbye / happy / hello / is located at / not far / please ask / question marker / school / sorry / there / to go / very close / walk
+捷運站在哪裡？ | translation | 走 → walk | pool: Cheng Han / MRT / MRT station / Wan Ting / do not know / far / happy / is located at / not far / please ask / question marker / school / thank you / there / to fly / to go / to jump / to swim / very close
+捷運站在哪裡？ | translation | 遠 → far | pool: Cheng Han / MRT / MRT station / Wan Ting / deep / do not know / happy / is located at / long / not far / please ask / question marker / school / short / thank you / there / to go / walk / wide
+捷運站在哪裡？ | translation | 那裡 → there | pool: Cheng Han / MRT / MRT station / Wan Ting / do not know / everywhere / far / happy / here / is located at / not far / nowhere / please ask / school / thank you / to go / very close / walk
+捷運站在哪裡？ | translation | 高興 → happy | pool: Cheng Han / MRT / Wan Ting / angry / bored / do not know / far / is located at / not far / please ask / question marker / sad / school / thank you / there / to go / walk

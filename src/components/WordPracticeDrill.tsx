@@ -1,9 +1,15 @@
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { convertBlobToWav } from "../utils/audio";
-import { scoreTier, scoreTierLabel } from "../utils/scoreLabels";
+import {
+  SYLLABLE_PASS_SCORE,
+  scoreTier,
+  scoreTierLabel,
+} from "../utils/scoreLabels";
+import { toPinyin, toPinyinSyllables } from "../utils/pinyin";
 import {
   formatBackendError,
   getBackendUrl,
+  toneArrow,
 } from "../utils/storyRecorderFeedback";
 import type { WordProsody } from "./StoryRecorder";
 import { BiLabel } from "./BiLabel";
@@ -23,14 +29,21 @@ const BACKEND_URL =
 export default function WordPracticeDrill({
   word,
   onPass,
+  onAttempt,
+  defaultOpen = false,
 }: {
   word: WordProsody;
   /** Fires when a drill attempt clears the per-syllable pass gate AND the
    * content check didn't reject it — how the scene's mastery checklist
    * learns this word has been re-earned. */
   onPass?: (token: string) => void;
+  /** Fires on every scored attempt, pass or fail — lets the host card fold
+   * away the older sentence-level readout it renders above this drill. */
+  onAttempt?: (token: string) => void;
+  /** Start with the practice panel expanded (focus mode). */
+  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState("");
@@ -57,6 +70,8 @@ export default function WordPracticeDrill({
   // exactly the chart-vs-verdict contradiction that erodes trust.
   const drillScore = (attempt: WordProsody) =>
     attempt.shape_accuracy ?? attempt.tone_accuracy ?? 0;
+  const wordPinyin = toPinyin(word.token);
+  const syllablePinyin = toPinyinSyllables(word.token);
   const trend =
     latest && previous
       ? Math.round(drillScore(latest) - drillScore(previous))
@@ -139,6 +154,7 @@ export default function WordPracticeDrill({
       }
       setLatestContentMatch(data.content_match ?? null);
       setAttempts((prev) => [...prev, segment]);
+      onAttempt?.(word.token);
       if (segment.passed === true && data.content_match !== false) {
         onPass?.(word.token);
       }
@@ -182,14 +198,25 @@ export default function WordPracticeDrill({
           <BiLabel zh="關掉單字練習" pinyin="Guāndiào dānzì liànxí" en="Hide word practice" />
         ) : (
           <BiLabel
-            zh={`🎙 自己練習「${word.token}」`}
-            en={`🎙 Practice "${word.token}" alone`}
+            zh={`🎙 自己練習「${word.token}」${wordPinyin ? ` ${wordPinyin}` : ""}`}
+            en={`🎙 Practice "${word.token}"${wordPinyin ? ` (${wordPinyin})` : ""} alone`}
           />
         )}
       </button>
 
       {open && (
         <div className="word-practice-panel">
+          {/* The gate is the MINIMUM syllable score, so a word-level score
+              comfortably above the bar can still come back ✗. Saying the
+              rule out loud is what makes that readable instead of arbitrary. */}
+          <p className="word-practice-gate-note">
+            🎯{" "}
+            <BiLabel
+              zh={`每個字都要 ${SYLLABLE_PASS_SCORE} 分以上，才算過關 ✓`}
+              pinyin={`Měi ge zì dōu yào ${SYLLABLE_PASS_SCORE} fēn yǐshàng, cái suàn guòguān ✓`}
+              en={`Every syllable needs ${SYLLABLE_PASS_SCORE}+ to count as passed ✓`}
+            />
+          </p>
           <div className="word-practice-controls">
             <button
               type="button"
@@ -247,6 +274,34 @@ export default function WordPracticeDrill({
                   />
                 </p>
               )}
+              {/* Which character actually failed, and by how much — without
+                  this the verdict chip below is a ✗ with no address, and the
+                  min-rule note above has nothing to point at. */}
+              {(latest.syllables?.length ?? 0) > 0 && (
+                <div
+                  className="word-syllable-row"
+                  aria-label={`${word.token} per-syllable practice scores`}
+                >
+                  {latest.syllables!.map((syllable, index) => (
+                    <span
+                      key={`${syllable.char}-${index}`}
+                      className={`word-syllable-chip ${
+                        syllable.passed ? "syllable-pass" : "syllable-fail"
+                      }`}
+                    >
+                      <span className="word-syllable-char">
+                        {syllable.char} {toneArrow(syllable.tone)}{" "}
+                        {Math.round(syllable.score)} {syllable.passed ? "✓" : "✗"}
+                      </span>
+                      {syllablePinyin[index] && (
+                        <span className="word-syllable-pinyin">
+                          {syllablePinyin[index]}
+                        </span>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
               <div
                 className="mini-contour"
                 aria-label={`Practice attempt pitch for ${word.token}`}
@@ -262,10 +317,16 @@ export default function WordPracticeDrill({
                 <strong className={`score-tier-text ${scoreTier(drillScore(latest))}`}>
                   {scoreTierLabel(scoreTier(drillScore(latest))).zh}
                 </strong>
-                {latest.passed === true && (
+                {/* The verdict chip must agree with what the mastery
+                    checklist will do: a shape pass whose content check
+                    rejected it (didn't sound like this word) never fires
+                    onPass, so showing "✓ 過關" there contradicts the chip
+                    staying ✗ — count it as try-again instead. */}
+                {latest.passed === true && latestContentMatch !== false && (
                   <span className="word-practice-pass-chip">✓ 過關 Passed</span>
                 )}
-                {latest.passed === false && (
+                {(latest.passed === false ||
+                  (latest.passed === true && latestContentMatch === false)) && (
                   <span className="word-practice-fail-chip">✗ 再試一次 Try again</span>
                 )}
                 {typeof trend === "number" && trend !== 0 && (

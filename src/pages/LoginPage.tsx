@@ -4,13 +4,16 @@ import ToneMark from "../components/ToneMark";
 import "../components/BiLabel.css";
 import "./LoginPage.css";
 import { canUseDatabase, createStudent, listStudents, type Student } from "../services/database";
+import { signIn } from "../utils/session";
 
 export type LoginRole = "student" | "teacher";
 
 interface LoginPageProps {
   role: LoginRole;
   onLogin: (role: LoginRole) => void;
-  onBack: () => void;
+  /** Omit to render no back button. The teacher app does exactly that —
+   * it has no route to the student site by design. */
+  onBack?: () => void;
 }
 
 const NEW_STUDENT_VALUE = "__new__";
@@ -74,23 +77,18 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
       }
     }
 
-    localStorage.setItem(
-      `${role}Session`,
-      JSON.stringify({
-        name: trimmed,
-        id: studentId,
-        signedInAt: new Date().toISOString(),
-      }),
-    );
+    signIn(role, trimmed, studentId);
     onLogin(role);
   };
 
   return (
     <main className={`login-page ${isStudent ? "student" : "teacher"}`}>
       <section className="login-shell">
-        <button type="button" className="login-back" onClick={onBack}>
-          <BiLabel k="back_to_portals" />
-        </button>
+        {onBack && (
+          <button type="button" className="login-back" onClick={onBack}>
+            <BiLabel k="back_to_portals" />
+          </button>
+        )}
 
         <div className="login-card">
           <ToneMark className="login-tonemark" size={72} animated />

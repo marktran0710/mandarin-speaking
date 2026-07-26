@@ -1,0 +1,31 @@
+# Local PostgreSQL for the mandarin-speaking backend.
+#   docker compose up -d db      -> start
+#   docker compose down          -> stop (data survives in the named volume)
+#   docker compose down -v       -> stop AND wipe all data
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: mandarin-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mandarin
+      POSTGRES_PASSWORD: mandarin
+      POSTGRES_DB: mandarin
+      # Deterministic collation so ORDER BY on Chinese/ASCII text behaves the
+      # same on every machine regardless of the host locale.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - mandarin_pgdata:/var/lib/postgresql/data
+      # Scripts in this directory run once, on first initialisation of an
+      # empty data volume.
+      - ./backend/db_init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mandarin -d mandarin"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mandarin_pgdata:

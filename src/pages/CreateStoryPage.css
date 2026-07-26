@@ -80,13 +80,13 @@
   border: none;
   border-radius: var(--clay-radius-md);
   background: var(--seal);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
-  --bi-pinyin-color: #ffffff;
-  --bi-en-color: var(--clay-canvas);
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
 }
 
 .student-help-panel button:hover:not(:disabled) {

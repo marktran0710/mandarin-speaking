@@ -31,9 +31,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger("speaking_app")
 from database import (
+    close_db,
     connect_db,
     init_db,
 )
+from psycopg.types.json import Jsonb
 
 import caf_metrics
 
@@ -78,6 +80,11 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 @app.on_event("startup")
 async def startup_event():
     init_db()
+
+
+@app.on_event("shutdown")
+async def shutdown_database():
+    close_db()
 
 
 def get_cors_origins() -> list[str]:
@@ -597,11 +604,21 @@ def save_audio_record(record: AudioRecordRequest):
     with connect_db() as db:
         db.execute(
             """
-            INSERT OR REPLACE INTO audio_records (
+            INSERT INTO audio_records (
                 id, timestamp, duration, transcription, model, topic_id,
                 image_url, image_index, audio_url, praat_metrics
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                timestamp = EXCLUDED.timestamp,
+                duration = EXCLUDED.duration,
+                transcription = EXCLUDED.transcription,
+                model = EXCLUDED.model,
+                topic_id = EXCLUDED.topic_id,
+                image_url = EXCLUDED.image_url,
+                image_index = EXCLUDED.image_index,
+                audio_url = EXCLUDED.audio_url,
+                praat_metrics = EXCLUDED.praat_metrics
             """,
             (
                 record.id,
@@ -613,7 +630,7 @@ def save_audio_record(record: AudioRecordRequest):
                 record.imageUrl,
                 record.imageIndex,
                 record.audioUrl,
-                json.dumps(record.praatMetrics),
+                Jsonb(record.praatMetrics),
             ),
         )
 
@@ -697,9 +714,9 @@ def persist_story_frame_images(story_id: str, frames: list[dict]) -> list[dict]:
     # Load existing frames so we can delete replaced image files
     with connect_db() as db:
         row = db.execute(
-            "SELECT frames FROM custom_stories WHERE id = ?", (story_id,)
+            "SELECT frames FROM custom_stories WHERE id = %s", (story_id,)
         ).fetchone()
-    old_frames = json.loads(row["frames"] or "[]") if row else []
+    old_frames = (row["frames"] or []) if row else []
 
     stored_frames = []
     for index, frame in enumerate(frames, start=1):
@@ -719,9 +736,9 @@ def persist_story_frame_audio(story_id: str, frames: list[dict]) -> list[dict]:
     # Load existing frames so we can delete replaced audio files
     with connect_db() as db:
         row = db.execute(
-            "SELECT frames FROM custom_stories WHERE id = ?", (story_id,)
+            "SELECT frames FROM custom_stories WHERE id = %s", (story_id,)
         ).fetchone()
-    old_frames = json.loads(row["frames"] or "[]") if row else []
+    old_frames = (row["frames"] or []) if row else []
 
     stored_frames = []
     for index, frame in enumerate(frames, start=1):

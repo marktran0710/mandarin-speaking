@@ -7,23 +7,22 @@ Modeled on a classroom worksheet with one worked example (chocolate) and
 five picture prompts (drink, MRT, jacket, bicycle, music) that students
 fill in themselves — kept here as five practice scenes.
 
-Run this after the backend has started at least once (so the
-custom_stories table already has the published/linear/lesson_number
-columns from database.py's migrations).
+Run this after `python -m alembic upgrade head` has created the
+custom_stories table (published/linear/lesson_number columns included).
 
 Usage:
     python seed_vv_kan_lesson.py [--overwrite]
 """
 
 import argparse
-import json
 import os
-import sqlite3
+import sys
 
-DATABASE_PATH = os.getenv(
-    "DATABASE_PATH",
-    os.path.join(os.path.dirname(__file__), "mandarin_stories.db"),
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from psycopg.types.json import Jsonb  # noqa: E402
+
+from database import connect_db  # noqa: E402
 
 STORY_ID = "lesson-vv-kan"
 GRAMMAR_PATTERN_BASE = "VV看 — 我覺得...很...，你要不要 VV看？ (try V-ing and see)"
@@ -128,56 +127,40 @@ STORY = {
 }
 
 
-def init_db(conn: sqlite3.Connection):
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS custom_stories (
-            id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
-            learning_goal TEXT NOT NULL,
-            level TEXT NOT NULL,
-            frames TEXT NOT NULL,
-            published INTEGER NOT NULL DEFAULT 0,
-            linear INTEGER NOT NULL DEFAULT 0,
-            lesson_number INTEGER,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    conn.commit()
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--overwrite", action="store_true", help="Replace the lesson if it already exists")
     args = parser.parse_args()
 
-    conn = sqlite3.connect(DATABASE_PATH)
-    init_db(conn)
+    with connect_db() as db:
+        existing = db.execute("SELECT id FROM custom_stories WHERE id = %s", (STORY_ID,)).fetchone()
+        if existing and not args.overwrite:
+            print(f"Lesson '{STORY_ID}' already exists. Use --overwrite to replace it.")
+            return
 
-    existing = conn.execute("SELECT id FROM custom_stories WHERE id = ?", (STORY_ID,)).fetchone()
-    if existing and not args.overwrite:
-        print(f"Lesson '{STORY_ID}' already exists. Use --overwrite to replace it.")
-        conn.close()
-        return
-
-    conn.execute(
-        """
-        INSERT OR REPLACE INTO custom_stories
-            (id, title, learning_goal, level, frames, published, linear, lesson_number)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            STORY["id"],
-            STORY["title"],
-            STORY["learning_goal"],
-            STORY["level"],
-            json.dumps(STORY["frames"], ensure_ascii=False),
-            STORY["published"],
-            STORY["linear"],
-            STORY["lesson_number"],
-        ),
-    )
-    conn.commit()
-    conn.close()
+        db.execute(
+            """
+            INSERT INTO custom_stories
+                (id, title, learning_goal, frames, published, linear, lesson_number)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                title = EXCLUDED.title,
+                learning_goal = EXCLUDED.learning_goal,
+                frames = EXCLUDED.frames,
+                published = EXCLUDED.published,
+                linear = EXCLUDED.linear,
+                lesson_number = EXCLUDED.lesson_number
+            """,
+            (
+                STORY["id"],
+                STORY["title"],
+                STORY["learning_goal"],
+                Jsonb(STORY["frames"]),
+                bool(STORY["published"]),
+                bool(STORY["linear"]),
+                STORY["lesson_number"],
+            ),
+        )
     print(f"Seeded lesson '{STORY['title']}' (id={STORY_ID}).")
 
 

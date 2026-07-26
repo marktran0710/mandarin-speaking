@@ -1,5 +1,7 @@
 import type { Topic } from "../components/TopicSelector";
 import { isAdminSession } from "./studentSession";
+import { loadBestLocalStars, PRACTICE_UNLOCK_STARS } from "./quizTiers";
+import { topicHasQuiz } from "./topicQuiz";
 
 /** The lesson picker is the table of contents of 時代華語 第一冊 (Modern
  * Chinese Book 1) — the textbook every story in this app is grounded in.
@@ -78,26 +80,51 @@ export function groupTopicsByLesson(topics: Topic[]): LessonGroup[] {
   return groups;
 }
 
-/** How many of this lesson's stories have been submitted (at any tier). */
+/** Best stars recorded for a story on this device, folded across its text
+ * tiers. Injectable so the completion rules below stay testable without
+ * localStorage. */
+export type StarsForTopic = (topic: Topic) => number;
+
+const localStarsForTopic: StarsForTopic = (topic) => loadBestLocalStars(topic.id);
+
+/** A story is finished when it's been submitted (at any tier) AND its quiz
+ * ladder reached ⭐⭐ — tier 1 and tier 2 both passed, since tier 2 can't be
+ * attempted until tier 1 is earned. Stories that run no quiz at all (no
+ * glossed vocabulary — see topicHasQuiz) are finished on submission alone;
+ * requiring stars they can never earn would wall off the rest of the book. */
+export function isStoryFinished(
+  topic: Topic,
+  submittedStoryIds: ReadonlySet<string>,
+  starsFor: StarsForTopic = localStarsForTopic,
+): boolean {
+  if (!submittedStoryIds.has(topicStoryId(topic))) return false;
+  if (isAdminSession()) return true;
+  if (!topicHasQuiz(topic)) return true;
+  return starsFor(topic) >= PRACTICE_UNLOCK_STARS;
+}
+
+/** How many of this lesson's stories are finished. */
 export function lessonCompletion(
   group: LessonGroup,
   submittedStoryIds: ReadonlySet<string>,
+  starsFor: StarsForTopic = localStarsForTopic,
 ): { done: number; total: number } {
   const done = group.topics.filter((topic) =>
-    submittedStoryIds.has(topicStoryId(topic)),
+    isStoryFinished(topic, submittedStoryIds, starsFor),
   ).length;
   return { done, total: group.topics.length };
 }
 
 /** Sequential lesson lock, following the lessons that actually exist (a
  * published 5→7→9 chain locks 7 behind 5, not behind a nonexistent 6):
- * the first numbered lesson is always open, each later one opens once the
- * previous numbered lesson has at least one submitted story, and the 其他
- * group is always open. */
+ * the first numbered lesson is always open, each later one opens once
+ * EVERY story in the previous lesson is finished (submitted + ⭐⭐, see
+ * isStoryFinished), and the 其他 group is always open. */
 export function isLessonGroupUnlocked(
   groups: LessonGroup[],
   index: number,
   submittedStoryIds: ReadonlySet<string>,
+  starsFor: StarsForTopic = localStarsForTopic,
 ): boolean {
   const group = groups[index];
   if (!group) return false;
@@ -106,5 +133,6 @@ export function isLessonGroupUnlocked(
   if (index === 0) return true;
   const previous = groups[index - 1];
   // Defensive: numbered groups always precede 其他, so previous is numbered.
-  return lessonCompletion(previous, submittedStoryIds).done >= 1;
+  const { done, total } = lessonCompletion(previous, submittedStoryIds, starsFor);
+  return total > 0 && done === total;
 }

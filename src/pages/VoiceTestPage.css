@@ -176,7 +176,7 @@
 
 .voice-test-error {
   color: var(--clay-error);
-  background: var(--seal-soft);
+  background: var(--clay-error-soft);
   border-left: 4px solid var(--clay-error);
 }
 
@@ -307,15 +307,15 @@
   border: 0;
   border-radius: var(--clay-radius-md);
   background: var(--seal);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
   cursor: pointer;
   font-weight: 800;
   padding: 10px 14px;
   transition: background-color 0.2s ease;
   /* BiLabel's .bi-en/.bi-pinyin default to --clay-muted (dark gray) —
      unreadable on this solid violet fill without a light override. */
-  --bi-pinyin-color: #ffffff;
-  --bi-en-color: var(--clay-canvas);
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
 }
 
 .voice-model-example-actions button:hover {

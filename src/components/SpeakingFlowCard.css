@@ -92,7 +92,7 @@
   padding: 14px 16px;
   border-radius: var(--clay-radius-lg);
   font-weight: 800;
-  background: var(--seal-soft);
+  background: var(--clay-error-soft);
   color: var(--clay-error);
   border-left: 4px solid var(--clay-error);
 }
@@ -167,14 +167,6 @@
   flex: 1;
   font-weight: 650;
 }
-/* A real pitch-contour sparkline, not decoration — same overlay as
-   WordProsodyCard's .mini-contour, shrunk to sit inline with the verdict
-   text instead of waiting to be found lower on the page. */
-.sfc-verdict-contour {
-  width: 84px;
-  height: 32px;
-  flex-shrink: 0;
-}
 .sfc-verdict-meaning {
   background: var(--clay-error-soft);
   border: 1.5px solid var(--clay-error);
@@ -192,11 +184,139 @@
   border: 1.5px solid var(--jade);
 }
 
-.sfc-body {
+/* ── Stepper: 結果 → 改句子 → 練習 ──
+   Numbered pills across the top of the results column. Steps that don't
+   apply to this result aren't rendered at all; steps not yet reached
+   through a CTA are visible but disabled, so the path ahead is legible
+   without being skippable. */
+.sfc-stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.sfc-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px 6px 8px;
+  border-radius: var(--clay-radius-pill);
+  border: 1.5px solid var(--clay-hairline);
+  background: var(--clay-surface-soft);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--clay-muted);
+  cursor: pointer;
+}
+.sfc-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--clay-surface-card);
+  border: 1.5px solid var(--clay-hairline);
+  font-size: 11px;
+}
+.sfc-step.is-current {
+  border-color: var(--seal-deep);
+  background: var(--seal-soft);
+  color: var(--seal-deep);
+}
+.sfc-step.is-current .sfc-step-num {
+  background: var(--seal-deep);
+  border-color: var(--seal-deep);
+  color: var(--clay-on-accent);
+}
+.sfc-step.is-visited {
+  color: var(--clay-ink);
+}
+.sfc-step:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* One step's content — the vertical rhythm every step shares. */
+.sfc-step-panel {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  margin-top: 12px;
+}
+
+/* Overview stats line: X/Y words ✓ · vocabulary used/total. */
+.sfc-stats-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--clay-ink);
+}
+
+/* Overview's read-only preview of the words waiting in the practice step —
+   the same chip look as the practice list, but here each chip is a jump
+   link into that word's focus view. */
+.sfc-fail-preview {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sfc-fail-preview-lead {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--clay-muted);
+  margin-right: 2px;
+}
+.sfc-fail-preview-chip,
+.sfc-practice-chip {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sfc-practice-chip.is-current {
+  outline: 2px solid var(--seal-deep);
+  outline-offset: 1px;
+}
+/* Each word to practice carries its reading — the chip row is where the
+   student picks what to say next, so it can't be characters alone. */
+.sfc-practice-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  line-height: 1.2;
+}
+.sfc-practice-chip-pinyin {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+/* Forward CTA at the bottom of a step — same jade pill as the footer's
+   Next button, but left-aligned with the step content it concludes. */
+.sfc-step-cta {
+  align-self: flex-start;
+}
+.sfc-step-cta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sfc-practice-lead {
+  margin: 0;
+}
+
+/* Focus mode: the single word being practiced fills the column width
+   instead of the old 240px card-in-a-row size. */
+.sfc-focus-word .word-prosody-card {
+  width: 100%;
 }
 
 .sfc-transcript {
@@ -313,11 +433,10 @@
 .sfc-result-card--pronounce .sfc-result-card-header {
   color: var(--tone1-deep);
 }
-/* Small per-aspect pronunciation cards, stacked under the scene image in the
-   left column — fills the space that column otherwise leaves empty once the
-   results column (verdict + step chips + result cards) grows taller than a
-   4:3 image + scene chip. */
-.sfc-scene-detail-cards {
+/* Per-aspect pronunciation notes (tone / rhythm / pausing / vowel / stress)
+   — the "overall pronunciation feedback" panel on the overview step, laid
+   out as a responsive grid inside one bordered container. */
+.sfc-overview-details {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -326,21 +445,14 @@
 .sfc-scene-detail-heading {
   color: var(--tone1-deep);
 }
-/* One container for every aspect, not a separate bordered card each — the
-   items share a divider instead, so the group reads as a single feedback
-   panel with one consistent label/body type scale throughout. */
 .sfc-scene-detail-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px 18px;
   border: 1.5px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
   padding: 12px 14px;
-}
-.sfc-scene-detail-item + .sfc-scene-detail-item {
-  padding-top: 12px;
-  border-top: 1px solid var(--clay-hairline);
 }
 .sfc-scene-detail-label {
   margin: 0 0 4px;
@@ -383,13 +495,12 @@
 .sfc-mastery-banner.is-cleared .sfc-mastery-lead {
   margin-bottom: 0;
 }
-.sfc-mastery-chips {
+/* The word-progress chips on the practice step (and their preview twins on
+   the overview step). */
+.sfc-practice-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-}
-.sfc-mastery-banner.is-cleared .sfc-mastery-chips {
-  margin-top: 8px;
 }
 .sfc-mastery-chip {
   padding: 4px 10px;
@@ -406,16 +517,6 @@
 .sfc-mastery-chip.is-cleared {
   color: var(--jade-deep);
   border: 1px solid var(--jade);
-}
-
-.sfc-words-row {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-.sfc-words-row .word-prosody-card {
-  flex: 0 0 240px;
 }
 
 /* ── Footer action bar ── */
@@ -477,9 +578,9 @@
 }
 
 /* Same breakpoint the rest of the app stacks at. The verdict header packs
-   an icon, text, an 84px sparkline, and the scene chip into one row —
-   fine on a laptop-width card, cramped on a phone-width one, so let it
-   wrap instead of squeezing everything down illegibly small. */
+   an icon, text, and the scene chip into one row — fine on a laptop-width
+   card, cramped on a phone-width one, so let it wrap instead of squeezing
+   everything down illegibly small. */
 @media (max-width: 768px) {
   .sfc-verdict {
     flex-wrap: wrap;

@@ -8,16 +8,16 @@ import "./StoryFeedbackCard.css";
 // a <canvas>, which can't read CSS custom properties, so these are copied
 // from index.css's :root. Keep in sync if those change.
 const COLOR = {
-  ink: "#201d29",
-  muted: "#6f697c",
-  mutedSoft: "#a79eb8",
-  hairline: "#f2e4ce",
-  seal: "#7c3aed",
+  ink: "#2a2318",
+  muted: "#6f6248",
+  mutedSoft: "#a2937a",
+  hairline: "#f0e3c4",
+  seal: "#e9a825",
   jade: "#1c9a5b",
   jadeDeep: "#106b45",
   gold: "#ffa726",
   goldDeep: "#8a5a12",
-  error: "#c81e3a",
+  error: "#c0154b",
 };
 
 const BACKEND_URL =
@@ -199,8 +199,12 @@ function DimensionRow({
   zh: string;
   pinyin: string;
   en: string;
-  dimension: StoryFeedbackDimension;
+  /** Optional: submissions saved before the current StoryFeedback shape
+   * can miss whole dimensions — a missing one renders nothing instead of
+   * crashing the teacher review view. */
+  dimension?: StoryFeedbackDimension;
 }) {
+  if (!dimension) return null;
   const notJudged = dimension.judged === false;
   const band = notJudged ? null : TIER_BADGE[scoreBandClass(dimension.score) as "good" | "fix" | "next"];
   return (

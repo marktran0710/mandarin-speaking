@@ -1,0 +1,48 @@
+/* The wrong-mode interstitial is a full-screen dead end with no navbar, so
+   it centers rather than sitting under one. It reuses LoginPage's neutral
+   card pieces (.login-shell, .login-card, .login-kicker, .login-description,
+   .login-submit) but NOT its page class — `.login-page.student` carries a
+   framed tone-mark variant tuned for that screen, which collapses this
+   layout's mark into an empty pill. */
+.wrong-mode-page {
+  --content-max: 520px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-xl) var(--space-md);
+  background: var(--clay-canvas);
+}
+
+.wrong-mode-page.expects-student {
+  background: linear-gradient(160deg, var(--seal-soft) 0%, var(--clay-canvas) 45%);
+}
+
+.wrong-mode-page.expects-teacher {
+  background: linear-gradient(160deg, var(--jade-soft) 0%, var(--clay-canvas) 45%);
+}
+
+.wrong-mode-page .login-shell {
+  width: 100%;
+}
+
+.wrong-mode-tonemark {
+  display: block;
+  margin: 0 auto var(--space-md);
+}
+
+/* .login-submit is sized by .login-form's grid on the login screens; here
+   it stands alone, so it has to claim the width itself. */
+.wrong-mode-page .login-submit {
+  width: 100%;
+  margin-top: var(--space-lg);
+}
+
+/* Who is currently signed in — the fact the whole screen turns on, so it
+   reads as identity rather than as another line of body copy. */
+.wrong-mode-who {
+  margin-top: var(--space-sm);
+  color: var(--clay-ink);
+  font-size: 18px;
+  font-weight: 700;
+}

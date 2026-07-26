@@ -124,6 +124,21 @@ export function loadLocalStars(storyId: string): 0 | QuizTier {
   return stars === 1 || stars === 2 || stars === 3 ? stars : 0;
 }
 
+// Medium/Hard sessions run the same 3-star ladder under tier-suffixed quiz
+// ids, so a story's stars are the BEST earned across its text tiers — never
+// the sum, which would triple-count one ladder.
+const TIER_SUFFIXES = ["", "-medium", "-hard"];
+
+/** Best stars this browser has recorded for a story, across its Easy /
+ * Medium / Hard text tiers. `baseTopicId` is the Easy topic id (the one the
+ * story picker lists). */
+export function loadBestLocalStars(baseTopicId: string): 0 | QuizTier {
+  return TIER_SUFFIXES.reduce<0 | QuizTier>((best, suffix) => {
+    const stars = loadLocalStars(`${baseTopicId}${suffix}`);
+    return stars > best ? stars : best;
+  }, 0);
+}
+
 /** Records `stars` for `storyId`, keeping the best ever earned — earning a
  * lower star again never demotes the story. */
 export function recordLocalStars(storyId: string, stars: QuizTier) {

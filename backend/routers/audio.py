@@ -14,7 +14,7 @@ async def list_audio_records(
 ):
     with connect_db() as db:
         rows = db.execute(
-            "SELECT * FROM audio_records ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            "SELECT * FROM audio_records ORDER BY created_at DESC LIMIT %s OFFSET %s",
             (limit, skip),
         ).fetchall()
     return [row_to_audio_record(row) for row in rows]
@@ -45,10 +45,9 @@ async def upload_audio_record(
 async def delete_audio_record(record_id: str):
     with connect_db() as db:
         row = db.execute(
-            "SELECT audio_url FROM audio_records WHERE id = ?",
+            "DELETE FROM audio_records WHERE id = %s RETURNING audio_url",
             (record_id,),
         ).fetchone()
-        db.execute("DELETE FROM audio_records WHERE id = ?", (record_id,))
     if row and row["audio_url"]:
         main.remove_uploaded_file(row["audio_url"])
     return {"ok": True}
