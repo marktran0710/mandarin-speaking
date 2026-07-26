@@ -49,7 +49,7 @@
 }
 
 .story-feedback-card.next {
-  /* --seal is a violet accent now, not a "needs work" color — use the real
+  /* --seal is the brand accent (cinnabar), not a "needs work" color — use the real
      error-red ramp so this band reads as the weakest one at a glance,
      matching the radar chart's point coloring below. */
   background: var(--clay-error-soft);

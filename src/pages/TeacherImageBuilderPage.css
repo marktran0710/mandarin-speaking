@@ -194,7 +194,7 @@
 
 .teacher-image-error {
   border: 1px solid var(--clay-hairline);
-  background: var(--seal-soft);
+  background: var(--clay-error-soft);
   color: var(--clay-error);
 }
 

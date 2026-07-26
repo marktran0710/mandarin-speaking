@@ -15,9 +15,9 @@ Chart.defaults.font.size = 12;
 // The next three are resolved hex values for --clay-muted, --clay-hairline,
 // and --clay-ink (Chart.js can't read CSS custom properties) — keep in sync
 // with src/index.css.
-Chart.defaults.color = "#6f697c";
-Chart.defaults.borderColor = "#f2e4ce";
-Chart.defaults.plugins.tooltip.backgroundColor = "#201d29";
+Chart.defaults.color = "#6f6248";
+Chart.defaults.borderColor = "#f0e3c4";
+Chart.defaults.plugins.tooltip.backgroundColor = "#2a2318";
 Chart.defaults.plugins.tooltip.titleFont = { family: CHART_FONT_FAMILY, weight: "bold" };
 Chart.defaults.plugins.tooltip.bodyFont = { family: CHART_FONT_FAMILY };
 Chart.defaults.plugins.tooltip.padding = 10;
@@ -26,10 +26,11 @@ Chart.defaults.plugins.legend.labels.usePointStyle = true;
 Chart.defaults.plugins.legend.labels.boxWidth = 8;
 Chart.defaults.plugins.legend.labels.boxHeight = 8;
 
-// Colors are resolved hex for --seal/--jade/--gold-deep (Chart.js can't read
-// CSS custom properties) — keep in sync with src/index.css.
+// Colors are resolved hex for --seal (cinnabar) / --jade / --gold-deep
+// (Chart.js can't read CSS custom properties) — keep in sync with
+// src/index.css. These stay at their light-mode values in dark mode.
 export const QUIZ_MODE_INFO: Record<"speed" | "strikes" | "free", { icon: string; label: string; color: string }> = {
-  speed: { icon: "⏱️", label: "Speed", color: "#7c3aed" },
+  speed: { icon: "⏱️", label: "Speed", color: "#e9a825" },
   strikes: { icon: "❌", label: "3 Strikes", color: "#1c9a5b" },
   free: { icon: "🎯", label: "Free Practice", color: "#8a5a12" },
 };
@@ -37,7 +38,7 @@ export const QUIZ_MODE_INFO: Record<"speed" | "strikes" | "free", { icon: string
 export const AI_FEEDBACK_CATEGORIES = ["fluency", "grammar", "vocabulary"] as const;
 // Same --seal/--jade/--gold-deep mirror as QUIZ_MODE_INFO above.
 export const AI_FEEDBACK_CATEGORY_INFO: Record<(typeof AI_FEEDBACK_CATEGORIES)[number], { label: string; color: string }> = {
-  fluency: { label: "Fluency", color: "#7c3aed" },
+  fluency: { label: "Fluency", color: "#e9a825" },
   grammar: { label: "Grammar", color: "#1c9a5b" },
   vocabulary: { label: "Vocabulary", color: "#8a5a12" },
 };
@@ -134,7 +135,7 @@ export function AccuracyTimeChart({ points }: { points: Array<{ label: string; v
           datasets: [{
             label: "Accuracy",
             data: points.map((p) => p.value),
-            borderColor: "#7c3aed",
+            borderColor: "#e9a825",
             backgroundColor: "rgba(124, 58, 237, 0.14)",
             borderWidth: 2,
             tension: 0.3,
@@ -178,7 +179,7 @@ export function WordMissChart({ data }: { data: WordMissStats[] }) {
           const meta = chart.getDatasetMeta(0);
           chart.ctx.save();
           chart.ctx.font = `600 12px ${CHART_FONT_FAMILY}`;
-          chart.ctx.fillStyle = "#4a4556";
+          chart.ctx.fillStyle = "#4d4230";
           chart.ctx.textBaseline = "middle";
           chart.ctx.textAlign = "left";
           meta.data.forEach((bar, i) => {
@@ -199,7 +200,7 @@ export function WordMissChart({ data }: { data: WordMissStats[] }) {
             data: data.map((w) => w.timesMissed),
             backgroundColor: data.map((w) =>
               wordMissSeverity(w.missRatePct) === "critical"
-                ? "#c81e3a"
+                ? "#c0154b"
                 : wordMissSeverity(w.missRatePct) === "watch"
                   ? "#ffa726"
                   : "#8a5a12",
@@ -254,7 +255,7 @@ export function FluencyToneTimeChart({ points }: { points: Array<{ label: string
             {
               label: "Fluency",
               data: points.map((p) => p.fluency),
-              borderColor: "#7c3aed",
+              borderColor: "#e9a825",
               backgroundColor: "rgba(124, 58, 237, 0.1)",
               borderWidth: 2,
               tension: 0.3,
@@ -444,7 +445,7 @@ export function FluencyToneScatterChart({
           datasets: [{
             label: "Recordings",
             data: points.map((p) => ({ x: p.fluency, y: p.tone })),
-            backgroundColor: "#7c3aed",
+            backgroundColor: "#e9a825",
             pointRadius: 5,
             pointHoverRadius: 7,
             pointHitRadius: 12,

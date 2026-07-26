@@ -9,12 +9,13 @@ interface PitchChartProps {
 // Chart.js can't read CSS custom properties, so these mirror the app's real
 // tone→color tokens by hand (see ToneMark.tsx for the canonical mapping):
 // tone1=--tone1 (blue), tone2=--jade (green), tone3=--gold (amber),
-// tone4=--seal (violet). Keep these in sync if the tokens in index.css change.
+// tone4 keeps cinnabar as a pure tone marker — it is no longer --seal,
+// which became gold. Keep in sync if the tokens in index.css change.
 const TONE_COLORS: Record<number, string> = {
   1: "rgba(30, 150, 255, 0.85)", // --tone1
   2: "rgba(28, 154, 91, 0.85)", // --jade
   3: "rgba(255, 167, 38, 0.85)", // --gold
-  4: "rgba(124, 58, 237, 0.85)", // --seal
+  4: "rgba(239, 90, 61, 0.85)", // cinnabar, tone-4 marker only
 };
 
 const TONE_NAMES: Record<number, string> = {

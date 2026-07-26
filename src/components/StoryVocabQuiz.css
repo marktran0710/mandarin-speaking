@@ -82,6 +82,135 @@
   font-weight: 700;
 }
 
+/* ── Score track: the tier's pass rule drawn to scale ──────────────────
+   Three layers on one rail — earned (gold), still-reachable (pale gold),
+   unearned (hairline) — with the threshold notch at the tier's real
+   passCount. The gold is the brand accent, matching the ⭐ it buys. */
+.vq-track {
+  width: min(100%, 420px);
+  margin: 10px 0 2px;
+}
+
+.vq-track-scale {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--clay-muted);
+}
+
+.vq-track-scale .bi-label {
+  align-items: flex-start;
+}
+
+.vq-track-scale-right .bi-label {
+  align-items: flex-end;
+}
+
+.vq-track-rail {
+  position: relative;
+  height: 9px;
+  margin-top: 5px;
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-hairline-soft);
+  overflow: hidden;
+}
+
+.vq-track-headroom,
+.vq-track-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  transition: width 260ms ease;
+}
+
+.vq-track-headroom {
+  background: var(--seal-soft);
+}
+
+.vq-track-fill {
+  background: var(--clay-primary);
+}
+
+/* Sits above both fills: the line the student is aiming at stays legible
+   whether it's been passed or not. The surface-colored ring is what keeps
+   it legible once the gold fill runs past it — --gold-deep is a dark bronze
+   in light mode but flips to a pale gold in dark, where it would otherwise
+   disappear into the fill it's drawn on top of. */
+.vq-track-notch {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--gold-deep);
+  border-radius: 1px;
+  box-shadow: 0 0 0 1px var(--clay-surface-card);
+}
+
+.vq-track-notch-row {
+  position: relative;
+  height: 15px;
+}
+
+.vq-track-notch-label {
+  position: absolute;
+  top: 2px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--gold-deep);
+}
+
+.vq-track-note {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clay-body);
+  text-align: center;
+}
+
+/* Beats BiLabel.css's `p > .bi-label` left-align default: this note is one
+   short line, not wrapping description text, so it stays centered under
+   the rail. */
+.vq-track-note .bi-label {
+  align-items: center;
+  text-align: center;
+}
+
+/* Star out of reach for this run: the rule stays visible but goes quiet —
+   a cold notch, not an alarm. The run is still worth finishing. */
+.vq-track.is-out-of-reach .vq-track-headroom {
+  background: var(--clay-hairline);
+}
+
+.vq-track.is-out-of-reach .vq-track-fill {
+  background: var(--clay-muted-soft);
+}
+
+.vq-track.is-out-of-reach .vq-track-notch,
+.vq-track.is-out-of-reach .vq-track-notch-label {
+  background: none;
+  color: var(--clay-muted);
+}
+
+.vq-track.is-out-of-reach .vq-track-notch {
+  background: var(--clay-muted-soft);
+}
+
+.vq-track.is-out-of-reach .vq-track-note {
+  color: var(--clay-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vq-track-headroom,
+  .vq-track-fill {
+    transition: none;
+  }
+}
+
 .vocab-quiz-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -165,7 +294,7 @@
 }
 
 .vocab-quiz-option-incorrect {
-  background: var(--seal-soft);
+  background: var(--clay-error-soft);
   border-color: var(--clay-error);
   color: var(--clay-error);
 }

@@ -245,10 +245,22 @@ export function storyToTopic(
         .split(",")
         .map((t) => t.trim());
     }
+    // The per-word AI arrays below (distractors/lookalike/cloze/synonym)
+    // exist only for the Easy word list — they're index-aligned to
+    // frame.vocabulary. When this tier authored its OWN vocabulary, that
+    // alignment is meaningless: word[i] would inherit a different word's
+    // distractors and, worse, its synonym "correct" answer (the quiz audit
+    // caught 今天 being keyed to 名字 this way). Only attach them when this
+    // tier is actually showing the Easy word list.
+    const tierUsesEasyVocabulary =
+      difficultyLevel === "easy" ||
+      !(frame[`vocabulary${TIER_SUFFIX[difficultyLevel]}` as keyof CustomStoryFrame] as
+        | string
+        | undefined)?.trim();
     // vocabularyDistractors isn't tiered — it's regenerated per word by a
     // dedicated AI endpoint rather than authored text, and isn't currently
     // persisted by the backend at all (a separate, pre-existing gap).
-    if (frame.vocabularyDistractors && frame.vocabularyDistractors.trim()) {
+    if (tierUsesEasyVocabulary && frame.vocabularyDistractors && frame.vocabularyDistractors.trim()) {
       try {
         const parsed = JSON.parse(frame.vocabularyDistractors);
         if (Array.isArray(parsed)) {
@@ -262,7 +274,7 @@ export function storyToTopic(
     }
     // Same "not tiered, AI-grown rather than authored" story as
     // vocabularyDistractors above.
-    if (frame.vocabularyLookalike && frame.vocabularyLookalike.trim()) {
+    if (tierUsesEasyVocabulary && frame.vocabularyLookalike && frame.vocabularyLookalike.trim()) {
       try {
         const parsed = JSON.parse(frame.vocabularyLookalike);
         if (Array.isArray(parsed)) {
@@ -276,7 +288,7 @@ export function storyToTopic(
     }
     // Same "not tiered, AI-grown rather than authored" story as
     // vocabularyDistractors above.
-    if (frame.vocabularyCloze && frame.vocabularyCloze.trim()) {
+    if (tierUsesEasyVocabulary && frame.vocabularyCloze && frame.vocabularyCloze.trim()) {
       try {
         const parsed = JSON.parse(frame.vocabularyCloze);
         if (Array.isArray(parsed)) {
@@ -295,7 +307,7 @@ export function storyToTopic(
     }
     // Same "not tiered, AI-grown rather than authored" story as
     // vocabularyCloze above.
-    if (frame.vocabularySynonym && frame.vocabularySynonym.trim()) {
+    if (tierUsesEasyVocabulary && frame.vocabularySynonym && frame.vocabularySynonym.trim()) {
       try {
         const parsed = JSON.parse(frame.vocabularySynonym);
         if (Array.isArray(parsed)) {

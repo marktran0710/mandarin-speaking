@@ -11,6 +11,4 @@ export type Page =
   | "tone-practice"
   | "voice-test"
   | "image-narration"
-  | "listen-retell"
-  | "teacher-dashboard"
-  | "teacher-image-builder";
+  | "listen-retell";

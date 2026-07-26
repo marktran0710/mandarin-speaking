@@ -3,13 +3,17 @@ import { getStudentName, isAdminSession } from "./studentSession";
 import { isTierUnlocked, practiceUnlocked } from "./quizTiers";
 import { isStoryLevelUnlocked } from "./storyLevelProgress";
 import { sceneReady } from "./storyRecorderFeedback";
+import { signIn, signOut } from "./session";
 
+// Goes through the session module rather than writing its storage key, so
+// these stay about the gates' behaviour and don't re-break the next time
+// identity moves.
 function signInAs(name: string) {
-  localStorage.setItem("studentSession", JSON.stringify({ name }));
+  signIn("student", name);
 }
 
 afterEach(() => {
-  localStorage.removeItem("studentSession");
+  signOut();
 });
 
 describe("isAdminSession", () => {
@@ -20,7 +24,16 @@ describe("isAdminSession", () => {
     expect(isAdminSession()).toBe(true);
     signInAs("Minh");
     expect(isAdminSession()).toBe(false);
-    localStorage.removeItem("studentSession");
+    signOut();
+    expect(getStudentName()).toBe("Student");
+    expect(isAdminSession()).toBe(false);
+  });
+
+  it("reads a teacher session as nobody, so it can never bypass a gate", () => {
+    // Both roles now share one key; a teacher named "admin" must not inherit
+    // the student backdoor just by being signed in on the same device.
+    signIn("teacher", "admin");
+
     expect(getStudentName()).toBe("Student");
     expect(isAdminSession()).toBe(false);
   });

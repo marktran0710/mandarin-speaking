@@ -2,18 +2,37 @@ import { describe, expect, it } from "vitest";
 import {
   groupTopicsByLesson,
   isLessonGroupUnlocked,
+  isStoryFinished,
   lessonCompletion,
   lessonTitle,
   topicStoryId,
 } from "./lessonGroups";
 import type { Topic } from "../components/TopicSelector";
 
+// No images/vocabulary, so topicHasQuiz is false and these stories are
+// finished on submission alone — the tests that care about the ⭐⭐ half of
+// the rule build quiz-capable topics with quizTopic() instead.
 const topic = (id: string, lessonNumber: number | null, sourceId?: string): Topic =>
   ({
     id,
     lessonNumber,
+    images: [],
+    vocabulary: {},
     ...(sourceId ? { sourceStory: { id: sourceId } } : {}),
   }) as unknown as Topic;
+
+/** A story with one glossed word — enough for collectQuizEntries to build a
+ * real quiz, so the ⭐⭐ requirement applies to it. */
+const quizTopic = (id: string, lessonNumber: number | null, sourceId?: string): Topic =>
+  ({
+    ...topic(id, lessonNumber, sourceId),
+    images: ["scene.png"],
+    vocabulary: { 0: ["書"] },
+    vocabularyTranslation: { 0: ["book"] },
+  }) as unknown as Topic;
+
+const noStars = () => 0;
+const twoStars = () => 2;
 
 describe("lessonTitle", () => {
   it("returns the Book 1 title for known lessons", () => {
@@ -63,14 +82,46 @@ describe("topicStoryId", () => {
   });
 });
 
+describe("isStoryFinished", () => {
+  it("needs a submission before anything else", () => {
+    expect(isStoryFinished(quizTopic("teacher-a", 5, "a"), new Set(), twoStars)).toBe(false);
+  });
+
+  it("needs ⭐⭐ on top of the submission when the story has a quiz", () => {
+    const t = quizTopic("teacher-a", 5, "a");
+    expect(isStoryFinished(t, new Set(["a"]), noStars)).toBe(false);
+    expect(isStoryFinished(t, new Set(["a"]), () => 1)).toBe(false);
+    expect(isStoryFinished(t, new Set(["a"]), twoStars)).toBe(true);
+  });
+
+  it("finishes a quiz-less story on submission alone, so it can't wall off the book", () => {
+    expect(isStoryFinished(topic("teacher-a", 5, "a"), new Set(["a"]), noStars)).toBe(true);
+  });
+});
+
 describe("lessonCompletion", () => {
   it("counts submitted stories by their tracked id", () => {
     const group = {
       lessonNumber: 5,
       topics: [topic("teacher-a", 5, "a"), topic("teacher-b", 5, "b")],
     };
-    expect(lessonCompletion(group, new Set(["a"]))).toEqual({ done: 1, total: 2 });
-    expect(lessonCompletion(group, new Set())).toEqual({ done: 0, total: 2 });
+    expect(lessonCompletion(group, new Set(["a"]), noStars)).toEqual({ done: 1, total: 2 });
+    expect(lessonCompletion(group, new Set(), noStars)).toEqual({ done: 0, total: 2 });
+  });
+
+  it("does not count a submitted story that hasn't earned ⭐⭐", () => {
+    const group = {
+      lessonNumber: 5,
+      topics: [quizTopic("teacher-a", 5, "a"), quizTopic("teacher-b", 5, "b")],
+    };
+    expect(lessonCompletion(group, new Set(["a", "b"]), noStars)).toEqual({
+      done: 0,
+      total: 2,
+    });
+    expect(lessonCompletion(group, new Set(["a", "b"]), twoStars)).toEqual({
+      done: 2,
+      total: 2,
+    });
   });
 });
 
@@ -84,26 +135,46 @@ describe("isLessonGroupUnlocked", () => {
 
   it("always opens the first numbered lesson and 其他", () => {
     const none = new Set<string>();
-    expect(isLessonGroupUnlocked(groups, 0, none)).toBe(true);
-    expect(isLessonGroupUnlocked(groups, 3, none)).toBe(true);
+    expect(isLessonGroupUnlocked(groups, 0, none, noStars)).toBe(true);
+    expect(isLessonGroupUnlocked(groups, 3, none, noStars)).toBe(true);
   });
 
-  it("locks each later lesson until the previous existing lesson has a submitted story", () => {
+  it("locks each later lesson until the previous existing lesson is finished", () => {
     const none = new Set<string>();
-    expect(isLessonGroupUnlocked(groups, 1, none)).toBe(false);
-    expect(isLessonGroupUnlocked(groups, 2, none)).toBe(false);
+    expect(isLessonGroupUnlocked(groups, 1, none, noStars)).toBe(false);
+    expect(isLessonGroupUnlocked(groups, 2, none, noStars)).toBe(false);
 
-    // Submitting lesson 5's story opens lesson 7 (the next *existing*
-    // lesson — no phantom lesson 6 in the chain), but not lesson 9.
+    // Finishing lesson 5 opens lesson 7 (the next *existing* lesson — no
+    // phantom lesson 6 in the chain), but not lesson 9.
     const after5 = new Set(["a"]);
-    expect(isLessonGroupUnlocked(groups, 1, after5)).toBe(true);
-    expect(isLessonGroupUnlocked(groups, 2, after5)).toBe(false);
+    expect(isLessonGroupUnlocked(groups, 1, after5, noStars)).toBe(true);
+    expect(isLessonGroupUnlocked(groups, 2, after5, noStars)).toBe(false);
 
     const after7 = new Set(["a", "b"]);
-    expect(isLessonGroupUnlocked(groups, 2, after7)).toBe(true);
+    expect(isLessonGroupUnlocked(groups, 2, after7, noStars)).toBe(true);
+  });
+
+  it("needs EVERY story in the previous lesson, not just one", () => {
+    const multi = groupTopicsByLesson([
+      topic("teacher-a1", 5, "a1"),
+      topic("teacher-a2", 5, "a2"),
+      topic("teacher-b", 7, "b"),
+    ]);
+    expect(isLessonGroupUnlocked(multi, 1, new Set(["a1"]), noStars)).toBe(false);
+    expect(isLessonGroupUnlocked(multi, 1, new Set(["a1", "a2"]), noStars)).toBe(true);
+  });
+
+  it("holds the next lesson shut until the previous lesson's quizzes hit ⭐⭐", () => {
+    const quizzed = groupTopicsByLesson([
+      quizTopic("teacher-a", 5, "a"),
+      quizTopic("teacher-b", 7, "b"),
+    ]);
+    const submitted = new Set(["a"]);
+    expect(isLessonGroupUnlocked(quizzed, 1, submitted, () => 1)).toBe(false);
+    expect(isLessonGroupUnlocked(quizzed, 1, submitted, twoStars)).toBe(true);
   });
 
   it("is false for an out-of-range index", () => {
-    expect(isLessonGroupUnlocked(groups, 99, new Set())).toBe(false);
+    expect(isLessonGroupUnlocked(groups, 99, new Set(), noStars)).toBe(false);
   });
 });

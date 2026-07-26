@@ -23,10 +23,8 @@ import {
   type VocabularySynonymUpdate,
 } from "../services/database";
 import ScenePracticeWord from "./ScenePracticeWord";
-import StoryVocabQuiz, {
-  collectQuizEntries,
-  type VocabQuizSummary,
-} from "./StoryVocabQuiz";
+import StoryVocabQuiz, { type VocabQuizSummary } from "./StoryVocabQuiz";
+import { topicQuizEntries } from "../utils/topicQuiz";
 import { type JourneyStop, type JourneyStopStatus } from "./JourneyPath";
 import { toPinyin } from "../utils/pinyin";
 import { isAdminSession } from "../utils/studentSession";
@@ -655,49 +653,9 @@ export default function StoryRecorder({
     storyFeedback?: StoryFeedback | null;
   } | null>(null);
 
-  // Every glossed word across every scene, deduped — the pool the
-  // pre-practice vocabulary quiz draws its questions from. Even a single
-  // translated word is enough for a real question: buildQuizQuestions pads
-  // out missing distractors with generic filler words. A word only
-  // qualifies if it also appears in its scene's suggested-answer sentence
-  // (when one exists) — confirms it's used in real context, not just an
-  // isolated flashcard pair.
-  const quizEntries = useMemo(() => {
-    const words: string[] = [];
-    const translations: Array<string | undefined> = [];
-    const suggestedAnswers: Array<string | undefined> = [];
-    const aiDistractors: Array<string[] | undefined> = [];
-    const pinyins: Array<string | undefined> = [];
-    const aiCloze: Array<Array<{ sentence: string; distractors: string[] }> | undefined> = [];
-    const partsOfSpeech: Array<string | undefined> = [];
-    const aiSynonyms: Array<Array<{ synonym: string; distractors: string[] }> | undefined> = [];
-    const aiLookalikes: Array<string[] | undefined> = [];
-    topic.images.forEach((_, si) => {
-      const sceneSuggestedAnswer = topic.suggestedAnswers?.[si];
-      (topic.vocabulary[si] || []).forEach((word, i) => {
-        words.push(word);
-        translations.push(topic.vocabularyTranslation?.[si]?.[i]);
-        suggestedAnswers.push(sceneSuggestedAnswer);
-        aiDistractors.push(topic.vocabularyDistractors?.[si]?.[i]);
-        pinyins.push(topic.vocabularyPinyin?.[si]?.[i]);
-        aiCloze.push(topic.vocabularyCloze?.[si]?.[i]);
-        partsOfSpeech.push(topic.vocabularyPos?.[si]?.[i]);
-        aiSynonyms.push(topic.vocabularySynonym?.[si]?.[i]);
-        aiLookalikes.push(topic.vocabularyLookalike?.[si]?.[i]);
-      });
-    });
-    return collectQuizEntries(
-      words,
-      translations,
-      suggestedAnswers,
-      aiDistractors,
-      pinyins,
-      aiCloze,
-      partsOfSpeech,
-      aiSynonyms,
-      aiLookalikes,
-    );
-  }, [topic]);
+  // Shared with the lesson gate (see utils/topicQuiz) so "this story has a
+  // quiz" means exactly one thing app-wide.
+  const quizEntries = useMemo(() => topicQuizEntries(topic), [topic]);
   const hasVocabQuiz = quizEntries.length >= 1;
 
   // Whether this student has already finished the vocabulary quiz for this

@@ -78,7 +78,7 @@
   },
   "back_to_scenes": {
     "en": "Back to Scenes",
-    "zh": "← 回到部分"
+    "zh": "回到部分"
   },
   "back_to_topics": {
     "en": "Back to Topics",
@@ -139,8 +139,8 @@
   },
   "continue_to_speaking": {
     "en": "Continue to Speaking",
-    "zh": "繼續到口說練習 →",
-    "pinyin": "Jìxù dào kǒushuō liànxí →"
+    "zh": "繼續到口說練習",
+    "pinyin": "Jìxù dào kǒushuō liànxí"
   },
   "converting_speech_to_text": {
     "en": "Converting speech to text",
@@ -272,7 +272,7 @@
   },
   "let_s_go": {
     "en": "Let's Go!",
-    "zh": "開始！→"
+    "zh": "開始！"
   },
   "listening_to_your_voice": {
     "en": "Listening to your voice…",
@@ -326,8 +326,8 @@
   },
   "next_scene": {
     "en": "Next scene",
-    "zh": "下一個部分 →",
-    "pinyin": "Xià yí ge bùfen →"
+    "zh": "下一個部分",
+    "pinyin": "Xià yí ge bùfen"
   },
   "next_try": {
     "en": "Next try",
@@ -350,9 +350,9 @@
     "pinyin": "Méiyǒu cháng tíngdùn — shuō de hěn shùn"
   },
   "now_work_on_pronunciation_record_again_a": {
-    "en": "Now work on pronunciation — record again and focus on the tones. ↑",
+    "en": "Now work on pronunciation — record again and focus on the tones.",
     "zh": "現在練習發音 — 再錄一次，注意聲調。↑",
-    "pinyin": "Xiànzài liànxí fāyīn — zài lù yí cì, zhùyì shēngdiào. ↑"
+    "pinyin": "Xiànzài liànxí fāyīn — zài lù yí cì, zhùyì shēngdiào."
   },
   "overview": {
     "en": "Overview",
@@ -420,11 +420,6 @@
     "zh": "在這裡舉手，老師會看到。",
     "pinyin": "Zài zhèlǐ jǔshǒu, lǎoshī huì kàndào."
   },
-  "real_life_speaking_practice": {
-    "en": "Real-life speaking practice",
-    "zh": "生活口語練習",
-    "pinyin": "Shēnghuó kǒuyǔ liànxí"
-  },
   "record": {
     "en": "Record",
     "zh": "🎙 錄音",
@@ -489,8 +484,8 @@
   },
   "selected": {
     "en": "Selected",
-    "zh": "✓ 已選",
-    "pinyin": "✓ Yǐ xuǎn"
+    "zh": "已選",
+    "pinyin": "Yǐ xuǎn"
   },
   "selected_module": {
     "en": "Selected module",
@@ -557,8 +552,8 @@
   },
   "stop_recording": {
     "en": "Stop Recording",
-    "zh": "⏹ 停止錄音",
-    "pinyin": "⏹ Tíngzhǐ lùyīn"
+    "zh": "停止錄音",
+    "pinyin": "Tíngzhǐ lùyīn"
   },
   "story_challenge": {
     "en": "Story Challenge",

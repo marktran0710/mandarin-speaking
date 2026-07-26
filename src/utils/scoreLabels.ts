@@ -23,3 +23,10 @@ export function scoreTier(score: number): ScoreTier {
 export function scoreTierLabel(tier: ScoreTier): { zh: string; pinyin: string; en: string } {
   return TIER_LABELS[tier];
 }
+
+/** The bar a single syllable must clear for its word to count as passed.
+ * Mirrors `SYLLABLE_PASS_THRESHOLD` in backend/praat_analyzer.py — the
+ * word verdict is the MINIMUM syllable score, so a word-level score well
+ * above this can still fail. Shown to the student so "why is this still ✗
+ * at 70%?" has a visible answer; keep the two values in step. */
+export const SYLLABLE_PASS_SCORE = 58;

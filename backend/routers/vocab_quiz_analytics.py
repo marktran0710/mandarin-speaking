@@ -11,7 +11,10 @@ from database import connect_db
 
 router = APIRouter()
 
-VALID_MODES = {"speed", "strikes", "free", "review"}
+# Legacy round modes plus the star-tier ladder (tier1/2/3) and the scored
+# weak-words retry — the frontend Insights view queries tier modes since the
+# quiz moved to stars, and a 400 here blanks that whole tab.
+VALID_MODES = {"speed", "strikes", "free", "review", "tier1", "tier2", "tier3", "weak_words"}
 
 
 def _student_names() -> Dict[str, str]:
@@ -86,7 +89,7 @@ async def get_vocab_quiz_irt(story_id: Optional[str] = None):
 
 @router.get("/api/analytics/vocab-quiz/joint")
 async def get_vocab_quiz_joint_model(
-    mode: str = Query(..., description="One of: speed, strikes, free, review"),
+    mode: str = Query(..., description="One of: tier1, tier2, tier3, weak_words, speed, strikes, free, review"),
     story_id: Optional[str] = None,
 ):
     """Joint accuracy + response-time model, fit within a single quiz mode

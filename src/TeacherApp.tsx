@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import MyStoriesPage from "./pages/MyStoriesPage";
-import TeacherImageBuilderPage from "./pages/TeacherImageBuilderPage";
+import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 import LoginPage from "./pages/LoginPage";
 import Navigation from "./components/Navigation";
 import ErrorBoundary from "./components/ErrorBoundary";
+import WrongMode from "./components/WrongMode";
+import { currentRole, signOut } from "./utils/session";
 import {
   canUseDatabase,
   deleteAudioRecordFromDatabase,
@@ -13,13 +14,12 @@ import {
   resolveHelpRequest,
   StoredAudioRecord,
 } from "./services/database";
-import type { Page } from "./types/page";
-
-type TeacherPage = Extract<Page, "teacher-login" | "teacher-dashboard" | "teacher-image-builder">;
 
 export default function TeacherApp() {
-  const [currentPage, setCurrentPage] = useState<TeacherPage>("teacher-login");
   const [activeRole, setActiveRole] = useState<"teacher" | null>(null);
+  // A student session reaching the teacher site — blocked until they sign
+  // out. Read once on mount, same as `activeRole`.
+  const [blockedRole, setBlockedRole] = useState(false);
   const [audioRecords, setAudioRecords] = useState<StoredAudioRecord[]>([]);
   const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
 
@@ -33,9 +33,13 @@ export default function TeacherApp() {
   }, []);
 
   useEffect(() => {
-    if (localStorage.getItem("activeRole") === "teacher") {
+    const role = currentRole();
+    if (role === "student") {
+      setBlockedRole(true);
+      return;
+    }
+    if (role === "teacher") {
       setActiveRole("teacher");
-      setCurrentPage("teacher-dashboard");
     }
     loadSavedAudioRecords();
   }, [loadSavedAudioRecords]);
@@ -86,51 +90,56 @@ export default function TeacherApp() {
   };
 
   const handleLogin = () => {
+    // LoginPage has already written the session; this only reacts to it.
     setActiveRole("teacher");
-    localStorage.setItem("activeRole", "teacher");
-    setCurrentPage("teacher-dashboard");
   };
 
   const handleLogout = () => {
     setActiveRole(null);
-    setCurrentPage("teacher-login");
-    localStorage.removeItem("activeRole");
-    localStorage.removeItem("teacherSession");
+    signOut();
   };
 
+  if (blockedRole) {
+    return (
+      <ErrorBoundary>
+        <WrongMode expected="teacher" />
+      </ErrorBoundary>
+    );
+  }
+
+  // Logged-in teachers get the admin shell (its sidebar is the only nav);
+  // the top Navigation bar only remains on the login screen.
   return (
     <ErrorBoundary>
-      <div className="app-container">
-        <Navigation
-          currentPage={currentPage}
-          activeRole={activeRole}
-          onNavigate={(page) => setCurrentPage(page as TeacherPage)}
+      {activeRole === "teacher" ? (
+        <TeacherDashboardPage
+          records={audioRecords}
+          onDeleteRecord={deleteAudioRecord}
+          helpRequests={helpRequests}
+          onResolveHelpRequest={handleResolveHelpRequest}
+          onRefreshRecords={loadSavedAudioRecords}
           onLogout={handleLogout}
-          appVariant="teacher"
         />
-        {currentPage === "teacher-login" && (
-          <LoginPage
-            role="teacher"
-            onLogin={handleLogin}
-            onBack={() => {
-              window.location.href = import.meta.env.BASE_URL;
+      ) : (
+        <div className="app-container">
+          <Navigation
+            currentPage="teacher-login"
+            activeRole={null}
+            // This app has no in-page router, so the logo's only sensible
+            // destination is the teacher app root — a no-op here made the
+            // logo look broken.
+            onNavigate={() => {
+              window.location.href = `${import.meta.env.BASE_URL}teacher.html`;
             }}
+            onLogout={handleLogout}
+            appVariant="teacher"
           />
-        )}
-        {currentPage === "teacher-dashboard" && activeRole === "teacher" && (
-          <MyStoriesPage
-            records={audioRecords}
-            onDeleteRecord={deleteAudioRecord}
-            mode="teacher"
-            helpRequests={helpRequests}
-            onResolveHelpRequest={handleResolveHelpRequest}
-            onRefreshRecords={loadSavedAudioRecords}
-          />
-        )}
-        {currentPage === "teacher-image-builder" && activeRole === "teacher" && (
-          <TeacherImageBuilderPage />
-        )}
-      </div>
+          {/* No `onBack`: the teacher site deliberately has no route to the
+              student site. The back button used to jump to BASE_URL, which
+              was the third door between the two modes. */}
+          <LoginPage role="teacher" onLogin={handleLogin} />
+        </div>
+      )}
     </ErrorBoundary>
   );
 }

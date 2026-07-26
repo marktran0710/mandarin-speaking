@@ -1,0 +1,224 @@
+/* Teacher dashboard workspace inside the admin shell — view headers,
+   sub-tab segmented controls, and the redesigned Overview panels.
+   Class namespace: .tdash-* (owned by TeacherDashboardPage.tsx). Legacy
+   view internals (teacher-panel, builder form, tables) stay in
+   MyStoriesPage.css. */
+
+.tdash-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Legacy view panels keep their own horizontal margin:auto centering from
+   the old standalone teacher page. Inside this flex column, cross-axis
+   auto margins cancel the default stretch — the panel shrinks to its
+   content and floats centered (the Overview stat row sat ~95px right of
+   the panels below it). Force full width; their own max-width still caps
+   them at the shared content measure. */
+.tdash-workspace .teacher-panel,
+.tdash-workspace .teacher-stat-grid,
+.tdash-workspace .teacher-submissions-panel,
+.tdash-workspace .teacher-content-builder,
+.tdash-workspace .quiz-analytics-filters-panel,
+.tdash-workspace .teacher-quiz-analytics-panel,
+.tdash-workspace .teacher-recording-analytics-panel,
+.tdash-workspace .insights-view {
+  width: 100%;
+}
+
+/* The old full-page hero is gone — each view gets a slim header row. */
+.tdash-view-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.tdash-view-header h1 {
+  margin: 0;
+  color: var(--clay-ink);
+  font-size: clamp(24px, 3.4vw, 32px);
+  line-height: 1.15;
+}
+
+.tdash-view-date {
+  font-family: var(--font-mono);
+  color: var(--clay-muted);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+/* Sub-tabs: one segmented control per merged sidebar section. */
+.tdash-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs);
+  align-self: flex-start;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-soft);
+}
+
+.tdash-subtabs button {
+  min-height: 38px;
+  padding: 0 var(--space-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  border: none;
+  border-radius: var(--clay-radius-md);
+  background: transparent;
+  color: var(--clay-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tdash-subtabs button:hover {
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+}
+
+.tdash-subtabs button.active {
+  background: var(--jade-deep);
+  color: var(--clay-on-accent);
+}
+
+.tdash-subtabs strong {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 var(--space-2xs);
+  display: grid;
+  place-items: center;
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  font-size: var(--text-xs);
+}
+
+.tdash-subtabs button.active strong {
+  /* White-tint overlay on the active tab's accent fill — matches the
+     .teacher-view-tabs treatment this control replaces. */
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--clay-on-accent);
+}
+
+/* Overview: two side-by-side action panels under the stat grid. */
+.tdash-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: var(--space-md);
+}
+
+.tdash-overview-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.tdash-overview-panel-header h2 {
+  margin: 0;
+  color: var(--clay-ink);
+  font-size: var(--text-md);
+}
+
+.tdash-overview-panel-header button {
+  border: none;
+  background: none;
+  color: var(--jade-deep);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tdash-overview-panel-header button:hover {
+  text-decoration: underline;
+}
+
+.tdash-overview-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.tdash-overview-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--clay-hairline-soft);
+}
+
+.tdash-overview-list li:last-child {
+  border-bottom: none;
+}
+
+.tdash-overview-list strong {
+  color: var(--clay-ink);
+  font-size: var(--text-base);
+  white-space: nowrap;
+}
+
+.tdash-overview-detail {
+  flex: 1;
+  min-width: 0;
+  color: var(--clay-body);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tdash-overview-meta {
+  color: var(--clay-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.tdash-overview-wait {
+  color: var(--clay-error-deep);
+  background: var(--clay-error-soft);
+  padding: var(--space-3xs) var(--space-xs);
+  border-radius: var(--clay-radius-pill);
+  font-family: var(--font-sans);
+  font-weight: 700;
+}
+
+.tdash-resolve-btn {
+  min-height: 30px;
+  padding: 0 var(--space-sm);
+  border: 1px solid var(--jade);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--jade-deep);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tdash-resolve-btn:hover {
+  background: var(--jade-soft);
+}
+
+@media (max-width: 900px) {
+  .tdash-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tdash-overview-list li {
+    flex-wrap: wrap;
+  }
+}

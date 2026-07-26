@@ -1,4 +1,8 @@
+/* The 560×200 chart scales to its container, so on a wide panel it grew to
+   a wall-sized plot where a 20 Hz wobble and a real tone fall look the
+   same. Capped near its drawn size, the curve reads as a shape again. */
 .tone-pitch-overlay {
+  max-width: 420px;
   border-radius: var(--clay-radius-md);
   overflow: hidden;
   background: var(--clay-surface-soft);

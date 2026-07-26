@@ -118,21 +118,26 @@
   min-height: 46px;
   border: 0;
   border-radius: var(--clay-radius-md);
-  /* --clay-primary is too light for white text at this size (2.7:1) —
-     seal-deep is the same violet family but clears 4.5:1. */
+  /* The bright brand gold cannot carry a white label (2.1:1), so the
+     teacher button fills with seal-deep, which clears 4.5:1 on white. */
   background: var(--seal-deep);
   color: var(--clay-on-accent);
   font-size: 15px;
   font-weight: 800;
   cursor: pointer;
   /* Solid, not translucent — seal-soft/rgba blends only cleared ~4.2-4.3:1
-     against this medium-brightness purple, just under 4.5:1. */
+     against this medium-brightness fill, just under 4.5:1. */
   --bi-pinyin-color: #ffffff;
   --bi-en-color: var(--clay-canvas);
 }
 
 .login-submit:hover {
+  /* Hover brightens to the gold itself, which inverts the whole label set
+     to dark ink — white on this gold is 2.1:1. */
   background: var(--seal);
+  color: var(--clay-on-seal);
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
 }
 
 /* ── Student login: same tactile game-piece card + lip button as the rest
@@ -155,7 +160,11 @@
   width: 100%;
   border: 2px solid var(--seal-deep);
   border-radius: var(--clay-radius-pill);
+  /* Gold fill, so every label layer flips to ink (see --clay-on-seal). */
   background: var(--seal);
+  color: var(--clay-on-seal);
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
   box-shadow: 0 4px 0 var(--seal-deep);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }

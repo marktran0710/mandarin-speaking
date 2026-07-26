@@ -103,7 +103,7 @@ export function getTopicVocabulary(topic: Topic, imageIndex: number): string[] {
 // Lesson number tiles rotate through the four tone colors, matching the
 // palette's tone-per-color convention (T4 violet, T2 green, T1 blue, T3
 // amber) so consecutive lessons never share a tile color.
-const TILE_CLASSES = ["ts-tile-seal", "ts-tile-jade", "ts-tile-tone1", "ts-tile-gold"];
+const TILE_CLASSES = ["ts-tile-seal", "ts-tile-jade", "ts-tile-tone1", "ts-tile-celadon"];
 
 function tileClass(group: LessonGroup): string {
   if (group.lessonNumber === null) return "ts-tile-other";
@@ -172,7 +172,6 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
       <div className="topic-selector">
         <section className="ts-hero">
           <div className="ts-hero-copy">
-            <p className="platform-kicker"><BiLabel k="real_life_speaking_practice" /></p>
             <h1><BiLabel k="choose_a_daily_situation" /></h1>
             <p><BiText k="your_teacher_will_publish_speaking_activ" /></p>
           </div>
@@ -381,7 +380,6 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
       <div className="ts-container">
       <header className="ts-toc-head">
         <div>
-          <p className="platform-kicker"><BiLabel k="real_life_speaking_practice" /></p>
           <h1 className="ts-toc-title">
             目錄 <span className="ts-lesson-sub">Mùlù · Contents</span>
           </h1>

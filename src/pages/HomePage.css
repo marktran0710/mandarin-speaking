@@ -23,21 +23,6 @@
   min-width: 0;
 }
 
-.platform-kicker {
-  display: inline-block;
-  color: var(--seal-deep);
-  background: var(--clay-surface-card);
-  border: 1px solid var(--clay-hairline);
-  padding: 7px 14px;
-  border-radius: var(--clay-radius-pill);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.35;
-  margin-bottom: 16px;
-  box-shadow: var(--shadow-sm);
-}
-
 .hero-title {
   margin: 0;
   text-align: left;
@@ -120,13 +105,13 @@
   border: 0;
   border-radius: var(--clay-radius-pill);
   background: var(--seal);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
   box-shadow: 0 6px 0 var(--seal-deep);
   cursor: pointer;
   font-weight: 750;
   font-size: 18px;
-  --bi-pinyin-color: #ffffff;
-  --bi-en-color: rgba(255, 255, 255, 0.82);
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
 }
 
 .hero-primary-action:hover {
@@ -365,15 +350,17 @@
   font-size: 12px;
 }
 
+/* Per-tone accent blocks. Every value here MUST resolve through a global
+   token from index.css — never a literal. A literal freezes at its light-mode
+   value while its neighbours flip under [data-theme="dark"], which is how the
+   hero chips ended up as pale-on-pale (1.3:1) in dark mode. */
 .tone-1 {
   --tone-color: var(--tone1);
   --tone-deep: var(--tone1-deep);
   --tone-soft: var(--tone1-soft);
-  --chip-bg: #e6f5ff;
-  --chip-border: #8bd0ff;
-  --chip-text: var(--tone1-deep);
-  --tile-bg: linear-gradient(180deg, #f2f9ff, #ffffff);
-  --tile-border: #b8dcff;
+  --chip-bg: var(--tone-soft);
+  --chip-border: var(--tone-color);
+  --chip-text: var(--tone-deep);
   --tile-deep: var(--tone1-deep);
 }
 
@@ -381,11 +368,9 @@
   --tone-color: var(--jade);
   --tone-deep: var(--jade-deep);
   --tone-soft: var(--jade-soft);
-  --chip-bg: #e5f8eb;
-  --chip-border: #9cddba;
-  --chip-text: var(--jade-deep);
-  --tile-bg: linear-gradient(180deg, #f0fbf3, #ffffff);
-  --tile-border: #b7e3c8;
+  --chip-bg: var(--tone-soft);
+  --chip-border: var(--tone-color);
+  --chip-text: var(--tone-deep);
   --tile-deep: var(--jade-deep);
 }
 
@@ -393,11 +378,9 @@
   --tone-color: var(--gold);
   --tone-deep: var(--gold-deep);
   --tone-soft: var(--gold-soft);
-  --chip-bg: #fff3d7;
-  --chip-border: #ffc966;
-  --chip-text: var(--gold-deep);
-  --tile-bg: linear-gradient(180deg, #fff8e8, #ffffff);
-  --tile-border: #ffd58a;
+  --chip-bg: var(--tone-soft);
+  --chip-border: var(--tone-color);
+  --chip-text: var(--tone-deep);
   --tile-deep: var(--gold-deep);
 }
 
@@ -405,11 +388,9 @@
   --tone-color: var(--seal);
   --tone-deep: var(--seal-deep);
   --tone-soft: var(--seal-soft);
-  --chip-bg: #efe8ff;
-  --chip-border: #c4b0ff;
-  --chip-text: var(--seal-deep);
-  --tile-bg: linear-gradient(180deg, #f6f1ff, #ffffff);
-  --tile-border: #d4c5ff;
+  --chip-bg: var(--tone-soft);
+  --chip-border: var(--tone-color);
+  --chip-text: var(--tone-deep);
   --tile-deep: var(--seal-deep);
 }
 
@@ -570,10 +551,6 @@
   .home-hero {
     gap: 28px;
     padding: 26px 0 24px;
-  }
-
-  .platform-kicker {
-    margin-bottom: 18px;
   }
 
   .hero-title-zh {

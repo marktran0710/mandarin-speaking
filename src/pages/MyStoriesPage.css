@@ -43,14 +43,15 @@
   padding: 3px 9px;
   border-radius: var(--clay-radius-pill);
   background: var(--accent-indigo);
-  color: var(--clay-on-accent);
+  /* Gold badge, so every label layer is ink rather than white (white on this
+     gold is 2.1:1). BiLabel's own pinyin/en defaults are tuned for light
+     surfaces and would be nearly invisible here, hence the overrides. */
+  color: var(--clay-on-seal);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.02em;
-  /* BiLabel's default pinyin/en colors (seal-deep/clay-muted) are picked for
-     light surfaces and are nearly illegible on this seal-colored badge. */
-  --bi-pinyin-color: #ffffff;
-  --bi-en-color: var(--clay-canvas);
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
   text-transform: none;
   white-space: nowrap;
   vertical-align: middle;
@@ -214,13 +215,13 @@
   border-radius: var(--clay-radius-pill);
   background: var(--seal);
   box-shadow: 0 3px 0 var(--seal-deep);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
   cursor: pointer;
   font-size: 13px;
   font-weight: 900;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
-  --bi-pinyin-color: #ffffff;
-  --bi-en-color: var(--clay-canvas);
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
 }
 
 .student-help-card button:hover {
@@ -428,7 +429,7 @@
 
 .learning-status.ready {
   background: var(--clay-pink);
-  color: var(--clay-primary-active);
+  color: var(--seal-deep);
 }
 .learning-status.ready::before { content: "✅"; }
 
@@ -460,13 +461,13 @@
   border-radius: var(--clay-radius-pill);
   background: var(--seal);
   box-shadow: 0 3px 0 var(--seal-deep);
-  color: var(--clay-on-accent);
+  color: var(--clay-on-seal);
   cursor: pointer;
   font-size: 14px;
   font-weight: 800;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
-  --bi-pinyin-color: #ffffff;
-  --bi-en-color: var(--clay-canvas);
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
 }
 
 .btn-record-picture:hover {
@@ -1042,7 +1043,7 @@
 }
 
 .sss-chip-missing {
-  background: var(--seal-soft);
+  background: var(--clay-error-soft);
   /* clay-error lands at ~4.3:1 on seal-soft — clay-error-deep clears 4.5:1. */
   color: var(--clay-error-deep);
 }
@@ -1189,7 +1190,10 @@
 .teacher-stat-grid {
   margin-bottom: 22px;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* auto-fit, not a fixed 4 — the analytics views show 3 stats and a fixed
+     4-column template leaves a dangling empty cell (the row stopped ~290px
+     short of the panels below it). Four stats still lay out as 4 columns. */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 14px;
 }
 
@@ -1298,7 +1302,7 @@
 .custom-story-form input[aria-invalid="true"],
 .custom-story-form textarea[aria-invalid="true"] {
   border-color: var(--clay-error);
-  background: var(--seal-soft);
+  background: var(--clay-error-soft);
 }
 
 .teacher-form-error {
@@ -1319,7 +1323,7 @@
 
 .teacher-form-alert {
   border: 1px solid var(--clay-error);
-  background: var(--seal-soft);
+  background: var(--clay-error-soft);
   color: var(--clay-error);
 }
 
@@ -1360,7 +1364,7 @@
 
 .teacher-frame-card.has-error {
   border-color: var(--clay-error);
-  background: var(--seal-soft);
+  background: var(--clay-error-soft);
 }
 
 .teacher-frame-card.is-example-frame {

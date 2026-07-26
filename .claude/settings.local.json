@@ -92,7 +92,24 @@
       "PowerShell(git push *)",
       "PowerShell(git commit *)",
       "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 15)",
-      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 8; npx vitest run src/components/StoryVocabQuiz.test.tsx src/utils/quizTiers.test.ts src/utils/prosodyGate.test.ts 2>&1 | Select-Object -Last 6)"
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 8; npx vitest run src/components/StoryVocabQuiz.test.tsx src/utils/quizTiers.test.ts src/utils/prosodyGate.test.ts 2>&1 | Select-Object -Last 6)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5174/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5175/)",
+      "PowerShell(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:56616/?key=823bc149590fdb5b57fe89b2ebf083bafbd86dde3a8b5630eb1042c8dfc00403\")",
+      "PowerShell(npx tsc 2>&1 | Select-Object -First 20; if \\($?\\) { \"typecheck OK\" })",
+      "Bash(node mobile-test.js)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 6; npx vitest run src/utils/lessonGroups.test.ts 2>&1 | Select-Object -Last 3)",
+      "Bash(node debug-ids.js)",
+      "Bash(C:/Users/Administrator/.claude/plugins/cache/claude-plugins-official/superpowers/6.1.1/skills/brainstorming/scripts/start-server.sh *)",
+      "PowerShell(\"---\")",
+      "Bash(grep -rn \"sourceStory\\\\|id: \\\\`\" src/utils/teacherStories.ts)",
+      "PowerShell(New-Item *)",
+      "PowerShell(Get-NetTCPConnection *)",
+      "Bash(curl -s -m 5 -o /dev/null -w \"localhost:5173 -> %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s -m 5 -o /dev/null -w \"teacher.html -> %{http_code}\\\\n\" http://localhost:5173/teacher.html)",
+      "Read(//d/hautran/Lab/quiz-analytics-api/**)",
+      "Bash(git commit -q -m ' *)"
     ]
   },
   "enabledPlugins": {

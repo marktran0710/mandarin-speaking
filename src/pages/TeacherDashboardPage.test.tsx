@@ -1,7 +1,8 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TopicSelector from "../components/TopicSelector";
-import MyStoriesPage from "./MyStoriesPage";
+import TeacherDashboardPage from "./TeacherDashboardPage";
+import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
 import * as db from "../services/database";
 import type { VocabQuizAttempt } from "../services/database";
 
@@ -57,23 +58,29 @@ vi.mock("../components/PitchChart", () => ({
   default: () => <div data-testid="pitch-chart">Pitch chart</div>,
 }));
 
-describe("MyStoriesPage", () => {
+function renderDashboard(records: AudioRecord[] = []) {
+  return render(
+    <TeacherDashboardPage
+      records={records}
+      onDeleteRecord={vi.fn()}
+      helpRequests={[]}
+      onLogout={vi.fn()}
+    />,
+  );
+}
+
+describe("TeacherDashboardPage", () => {
   beforeEach(() => {
     localStorage.clear();
+    document.documentElement.removeAttribute("data-theme");
   });
 
-  it("summarizes analyzed student recordings for teachers", () => {
+  it("summarizes analyzed student recordings on the overview", async () => {
     const user = userEvent.setup();
-    render(
-      <MyStoriesPage
-        mode="teacher"
-        records={[analyzedRecord]}
-        onDeleteRecord={vi.fn()}
-      />,
-    );
+    renderDashboard([analyzedRecord]);
 
     expect(
-      screen.getByRole("heading", { name: "Class Speaking Dashboard" }),
+      screen.getByRole("heading", { name: "Class Overview" }),
     ).toBeInTheDocument();
     const overview = screen.getByRole("region", { name: "Class overview" });
     expect(within(overview).getAllByText("1")).toHaveLength(2);
@@ -82,14 +89,25 @@ describe("MyStoriesPage", () => {
     expect(
       screen.getByRole("navigation", { name: "Teacher tools" }),
     ).toBeInTheDocument();
-    return user
-      .click(screen.getByRole("button", { name: /Recordings/ }))
-      .then(() => {
-        expect(
-          screen.getByText("Good pacing with a clear story sequence."),
-        ).toBeInTheDocument();
-        expect(screen.getByTestId("pitch-chart")).toBeInTheDocument();
-      });
+
+    await user.click(screen.getByRole("button", { name: /Recordings & Help/ }));
+    expect(
+      screen.getByText("Good pacing with a clear story sequence."),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("pitch-chart")).toBeInTheDocument();
+  });
+
+  it("toggles dark mode from the shell and persists the choice", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+
+    await user.click(screen.getByRole("button", { name: /Dark/ }));
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+    expect(localStorage.getItem("colorMode")).toBe("dark");
+
+    await user.click(screen.getByRole("button", { name: /Light/ }));
+    expect(document.documentElement.getAttribute("data-theme")).toBeNull();
+    expect(localStorage.getItem("colorMode")).toBe("light");
   });
 
   it("doesn't crash the whole dashboard when a record's AI feedback is missing a category", async () => {
@@ -111,19 +129,10 @@ describe("MyStoriesPage", () => {
       },
     };
 
-    render(
-      <MyStoriesPage
-        mode="teacher"
-        records={[partialFeedbackRecord]}
-        onDeleteRecord={vi.fn()}
-      />,
-    );
+    renderDashboard([partialFeedbackRecord]);
+    const user2 = user;
+    await user2.click(screen.getByRole("button", { name: /Recordings & Help/ }));
 
-    await user.click(screen.getByRole("button", { name: /Recordings/ }));
-
-    expect(
-      screen.getByRole("heading", { name: "Class Speaking Dashboard" }),
-    ).toBeInTheDocument();
     expect(
       screen.getByText("Good pacing with a clear story sequence."),
     ).toBeInTheDocument();
@@ -132,9 +141,7 @@ describe("MyStoriesPage", () => {
 
   it("lets teachers save a custom image-based story activity", async () => {
     const user = userEvent.setup();
-    render(
-      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
-    );
+    renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.clear(screen.getByLabelText("Story title"));
@@ -160,9 +167,7 @@ describe("MyStoriesPage", () => {
 
   it("saves all four vocabulary table columns for a word", async () => {
     const user = userEvent.setup();
-    render(
-      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
-    );
+    renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.clear(screen.getByLabelText("Story title"));
@@ -202,9 +207,7 @@ describe("MyStoriesPage", () => {
       }),
     })));
 
-    render(
-      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
-    );
+    renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
 
@@ -234,9 +237,7 @@ describe("MyStoriesPage", () => {
   }, 10000);
 
   it("disables the vocab autofill button until a suggested-answer sentence is entered", async () => {
-    render(
-      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
-    );
+    renderDashboard();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /Materials/ }));
 
@@ -254,9 +255,7 @@ describe("MyStoriesPage", () => {
       }),
     })));
 
-    render(
-      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
-    );
+    renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.type(
@@ -285,9 +284,7 @@ describe("MyStoriesPage", () => {
   }, 10000);
 
   it("disables the phrase generate button until a suggested-answer sentence is entered", async () => {
-    render(
-      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
-    );
+    renderDashboard();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /Materials/ }));
 
@@ -298,9 +295,7 @@ describe("MyStoriesPage", () => {
 
   it("lets teachers edit a saved custom story activity", async () => {
     const user = userEvent.setup();
-    render(
-      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
-    );
+    renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.clear(screen.getByLabelText("Story title"));
@@ -327,9 +322,7 @@ describe("MyStoriesPage", () => {
 
   it("publishes a teacher story into the student topic selector", async () => {
     const user = userEvent.setup();
-    const { unmount } = render(
-      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
-    );
+    const { unmount } = renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.clear(screen.getByLabelText("Story title"));
@@ -359,9 +352,7 @@ describe("MyStoriesPage", () => {
 
   it("shows validation errors when a teacher saves an incomplete custom story", async () => {
     const user = userEvent.setup();
-    render(
-      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
-    );
+    renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.clear(screen.getByLabelText("Story title"));
@@ -378,9 +369,7 @@ describe("MyStoriesPage", () => {
 
   it("lets teachers upload a local image for a custom story frame", async () => {
     const user = userEvent.setup();
-    render(
-      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
-    );
+    renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
     const imageFile = new File(["story-image"], "story-frame.png", {
@@ -411,12 +400,24 @@ describe("MyStoriesPage", () => {
     );
   });
 
+  it("opens the quiz review tool from the Materials section", async () => {
+    // TeacherQuizReviewPage shipped without a nav mount, so nothing could
+    // reach it — this pins the edge that makes it reachable.
+    const user = userEvent.setup();
+    renderDashboard();
+
+    await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("tab", { name: /Quiz Review/ }));
+
+    expect(
+      await screen.findByRole("heading", { name: /Verify quiz questions and answers/ }),
+    ).toBeInTheDocument();
+  });
+
   it("shows completed picture status in the student workbook with published teacher materials", async () => {
     const user = userEvent.setup();
     // First, create and publish a teacher story
-    const { unmount } = render(
-      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
-    );
+    const { unmount } = renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.clear(screen.getByLabelText("Story title"));
@@ -436,7 +437,6 @@ describe("MyStoriesPage", () => {
     // Now show the student view with the published story
     render(
       <MyStoriesPage
-        mode="student"
         records={[{
           ...analyzedRecord,
           imageUrl: "https://example.com/adventure-1.jpg",
@@ -447,7 +447,9 @@ describe("MyStoriesPage", () => {
     );
 
     expect(
-      screen.getByRole("heading", { name: "My Story Workbook" }),
+      // The workbook heading is a bilingual BiLabel — its accessible name is
+      // "我的故事練習本 … My Story Workbook", so match by substring.
+      screen.getByRole("heading", { name: /My Story Workbook/ }),
     ).toBeInTheDocument();
     const progressElements = screen.getAllByText("1/6");
     expect(progressElements.length).toBeGreaterThan(0);
@@ -493,14 +495,26 @@ describe("Quiz Analytics tab", () => {
     },
   ];
 
+  async function openQuizAnalytics(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole("button", { name: /Analytics/ }));
+    // "Quiz" is the default analytics sub-tab, so it's already showing.
+  }
+
   it("shows per-student accuracy, time, and repeated-mistake analytics", async () => {
     vi.spyOn(db, "canUseDatabase").mockReturnValue(true);
     vi.spyOn(db, "listVocabQuizAttempts").mockResolvedValue(attempts);
 
     const user = userEvent.setup();
-    render(<MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />);
+    render(
+      <TeacherDashboardPage
+        records={[]}
+        onDeleteRecord={vi.fn()}
+        helpRequests={[]}
+        onLogout={vi.fn()}
+      />,
+    );
 
-    await user.click(screen.getByRole("button", { name: /Quiz Analytics/ }));
+    await openQuizAnalytics(user);
 
     const studentPerformanceHeading = await screen.findByRole("heading", {
       name: "Student Quiz Performance",
@@ -524,9 +538,16 @@ describe("Quiz Analytics tab", () => {
     vi.spyOn(db, "listVocabQuizAttempts").mockResolvedValue([]);
 
     const user = userEvent.setup();
-    render(<MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />);
+    render(
+      <TeacherDashboardPage
+        records={[]}
+        onDeleteRecord={vi.fn()}
+        helpRequests={[]}
+        onLogout={vi.fn()}
+      />,
+    );
 
-    await user.click(screen.getByRole("button", { name: /Quiz Analytics/ }));
+    await openQuizAnalytics(user);
 
     expect(await screen.findByText("No quiz attempts yet")).toBeInTheDocument();
   });
@@ -553,9 +574,16 @@ describe("Quiz Analytics tab", () => {
     vi.spyOn(db, "listVocabQuizAttempts").mockResolvedValue(twoStudentAttempts);
 
     const user = userEvent.setup();
-    render(<MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />);
+    render(
+      <TeacherDashboardPage
+        records={[]}
+        onDeleteRecord={vi.fn()}
+        helpRequests={[]}
+        onLogout={vi.fn()}
+      />,
+    );
 
-    await user.click(screen.getByRole("button", { name: /Quiz Analytics/ }));
+    await openQuizAnalytics(user);
     const heading = await screen.findByRole("heading", { name: "Student Quiz Performance" });
     const studentTable = heading.closest(".teacher-quiz-analytics-panel") as HTMLElement;
 
@@ -578,14 +606,16 @@ describe("Recording Analytics tab", () => {
   it("summarizes Praat and AI feedback scores across recordings", async () => {
     const user = userEvent.setup();
     render(
-      <MyStoriesPage
-        mode="teacher"
+      <TeacherDashboardPage
         records={[analyzedRecord]}
         onDeleteRecord={vi.fn()}
+        helpRequests={[]}
+        onLogout={vi.fn()}
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Recording Analytics/ }));
+    await user.click(screen.getByRole("button", { name: /Analytics/ }));
+    await user.click(screen.getByRole("tab", { name: /Recordings/ }));
 
     await screen.findByText("Fluency & tone accuracy over time");
     expect(screen.getByText("78/100")).toBeInTheDocument();
@@ -600,10 +630,16 @@ describe("Recording Analytics tab", () => {
   it("shows an empty state when there are no recordings yet", async () => {
     const user = userEvent.setup();
     render(
-      <MyStoriesPage mode="teacher" records={[]} onDeleteRecord={vi.fn()} />,
+      <TeacherDashboardPage
+        records={[]}
+        onDeleteRecord={vi.fn()}
+        helpRequests={[]}
+        onLogout={vi.fn()}
+      />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Recording Analytics/ }));
+    await user.click(screen.getByRole("button", { name: /Analytics/ }));
+    await user.click(screen.getByRole("tab", { name: /Recordings/ }));
 
     expect(await screen.findByText("No recordings yet")).toBeInTheDocument();
   });

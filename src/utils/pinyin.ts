@@ -171,3 +171,17 @@ export function toPinyin(text: string): string {
   cache.set(word, result);
   return result;
 }
+
+/**
+ * Same as {@link toPinyin} but split per syllable, aligned 1:1 with the
+ * word's characters — for UIs that label each character separately (the
+ * per-syllable pass chips on a pronunciation card). Returns an empty array
+ * when the split doesn't line up with the character count, so a caller can
+ * fall back to the whole-word string instead of pairing the wrong syllable
+ * with the wrong character.
+ */
+export function toPinyinSyllables(text: string): string[] {
+  const word = text.trim();
+  const syllables = toPinyin(word).split(/\s+/).filter(Boolean);
+  return syllables.length === [...word].length ? syllables : [];
+}
