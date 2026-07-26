@@ -703,9 +703,9 @@ def persist_story_frame_images(story_id: str, frames: list[dict]) -> list[dict]:
     # Load existing frames so we can delete replaced image files
     with connect_db() as db:
         row = db.execute(
-            "SELECT frames FROM custom_stories WHERE id = ?", (story_id,)
+            "SELECT frames FROM custom_stories WHERE id = %s", (story_id,)
         ).fetchone()
-    old_frames = json.loads(row["frames"] or "[]") if row else []
+    old_frames = (row["frames"] or []) if row else []
 
     stored_frames = []
     for index, frame in enumerate(frames, start=1):
@@ -725,9 +725,9 @@ def persist_story_frame_audio(story_id: str, frames: list[dict]) -> list[dict]:
     # Load existing frames so we can delete replaced audio files
     with connect_db() as db:
         row = db.execute(
-            "SELECT frames FROM custom_stories WHERE id = ?", (story_id,)
+            "SELECT frames FROM custom_stories WHERE id = %s", (story_id,)
         ).fetchone()
-    old_frames = json.loads(row["frames"] or "[]") if row else []
+    old_frames = (row["frames"] or []) if row else []
 
     stored_frames = []
     for index, frame in enumerate(frames, start=1):

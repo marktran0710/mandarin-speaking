@@ -1,6 +1,7 @@
 import json
 
 from fastapi import APIRouter, HTTPException, Query
+from psycopg.types.json import Jsonb
 
 from database import connect_db, row_to_custom_story
 import main
@@ -23,7 +24,7 @@ async def list_custom_stories(
 ):
     with connect_db() as db:
         rows = db.execute(
-            "SELECT * FROM custom_stories ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            "SELECT * FROM custom_stories ORDER BY created_at DESC LIMIT %s OFFSET %s",
             (limit, skip),
         ).fetchall()
     return [row_to_custom_story(row) for row in rows]
@@ -35,23 +36,38 @@ async def create_custom_story(story: CustomStoryRequest):
     stored_frames = main.persist_story_frame_images(story.id, frames)
     stored_frames = main.persist_story_frame_audio(story.id, stored_frames)
     with connect_db() as db:
+        # ON CONFLICT DO UPDATE, not the old INSERT OR REPLACE: SQLite's
+        # replace was a DELETE+INSERT, so every re-save wiped the two columns
+        # missing from this list (quiz_exclusions, created_at). Updating only
+        # the listed columns keeps a teacher's quiz-review work and the
+        # story's original position in the list.
         db.execute(
             """
-            INSERT OR REPLACE INTO custom_stories (
-                id, title, learning_goal, frames, published, linear, lesson_number, narrative_mode, first_frame_is_example
+            INSERT INTO custom_stories (
+                id, title, learning_goal, frames, published, linear,
+                lesson_number, narrative_mode, first_frame_is_example
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                title = EXCLUDED.title,
+                learning_goal = EXCLUDED.learning_goal,
+                frames = EXCLUDED.frames,
+                published = EXCLUDED.published,
+                linear = EXCLUDED.linear,
+                lesson_number = EXCLUDED.lesson_number,
+                narrative_mode = EXCLUDED.narrative_mode,
+                first_frame_is_example = EXCLUDED.first_frame_is_example
             """,
             (
                 story.id,
                 story.title,
                 story.learningGoal,
-                json.dumps(stored_frames),
-                1 if story.published else 0,
-                1 if story.linear else 0,
+                Jsonb(stored_frames),
+                story.published,
+                story.linear,
                 story.lessonNumber,
                 story.narrativeMode,
-                1 if story.firstFrameIsExample else 0,
+                story.firstFrameIsExample,
             ),
         )
     return {
@@ -64,12 +80,12 @@ async def create_custom_story(story: CustomStoryRequest):
 async def delete_custom_story(story_id: str):
     with connect_db() as db:
         row = db.execute(
-            "SELECT frames FROM custom_stories WHERE id = ?",
+            "SELECT frames FROM custom_stories WHERE id = %s",
             (story_id,),
         ).fetchone()
-        db.execute("DELETE FROM custom_stories WHERE id = ?", (story_id,))
+        db.execute("DELETE FROM custom_stories WHERE id = %s", (story_id,))
     if row:
-        for frame in json.loads(row["frames"] or "[]"):
+        for frame in row["frames"] or []:
             main.remove_uploaded_file(frame.get("imageUrl", ""))
             main.remove_uploaded_file(frame.get("listenAudioUrl", ""))
     return {"ok": True}
@@ -189,21 +205,15 @@ async def update_quiz_exclusions(story_id: str, request: QuizExclusionsUpdateReq
     """Replaces the story's teacher-marked bad-quiz-material list wholesale —
     the review page's toggles always send the complete current set, so PUT
     semantics keep the endpoint idempotent and trivially undoable."""
-    payload = json.dumps(
-        [exclusion.model_dump(exclude_none=True) for exclusion in request.exclusions],
-        ensure_ascii=False,
-    )
+    exclusions = [exclusion.model_dump(exclude_none=True) for exclusion in request.exclusions]
     with connect_db() as db:
         row = db.execute(
-            "SELECT id FROM custom_stories WHERE id = ?", (story_id,)
+            "UPDATE custom_stories SET quiz_exclusions = %s WHERE id = %s RETURNING id",
+            (Jsonb(exclusions), story_id),
         ).fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Story not found.")
-        db.execute(
-            "UPDATE custom_stories SET quiz_exclusions = ? WHERE id = ?",
-            (payload, story_id),
-        )
-    return {"id": story_id, "quizExclusions": json.loads(payload)}
+    return {"id": story_id, "quizExclusions": exclusions}
 
 
 @router.patch("/api/custom-stories/{story_id}/vocabulary-cloze")
