@@ -11,7 +11,9 @@ router = APIRouter()
 @router.get("/api/students")
 async def list_students():
     with connect_db() as db:
-        rows = db.execute("SELECT * FROM students ORDER BY name COLLATE NOCASE").fetchall()
+        # Postgres has no COLLATE NOCASE; lower() reproduces SQLite's
+        # case-insensitive roster ordering (backed by ix_students_lower_name).
+        rows = db.execute("SELECT * FROM students ORDER BY lower(name)").fetchall()
     return [row_to_student(row) for row in rows]
 
 
@@ -23,7 +25,7 @@ async def create_student(request: StudentCreateRequest):
 
     with connect_db() as db:
         existing = db.execute(
-            "SELECT * FROM students WHERE name = ? COLLATE NOCASE",
+            "SELECT * FROM students WHERE lower(name) = lower(%s)",
             (name,),
         ).fetchone()
         if existing is not None:
@@ -33,12 +35,9 @@ async def create_student(request: StudentCreateRequest):
             return row_to_student(existing)
 
         student_id = str(uuid.uuid4())
-        db.execute(
-            "INSERT INTO students (id, name) VALUES (?, ?)",
-            (student_id, name),
-        )
         created = db.execute(
-            "SELECT * FROM students WHERE id = ?", (student_id,)
+            "INSERT INTO students (id, name) VALUES (%s, %s) RETURNING *",
+            (student_id, name),
         ).fetchone()
     return row_to_student(created)
 
@@ -57,18 +56,17 @@ async def login_student(request: StudentLoginRequest):
     with connect_db() as db:
         if request.studentId:
             row = db.execute(
-                "SELECT * FROM students WHERE id = ?", (request.studentId,)
+                "SELECT * FROM students WHERE id = %s", (request.studentId,)
             ).fetchone()
         else:
             row = db.execute(
-                "SELECT * FROM students WHERE name = ? COLLATE NOCASE",
+                "SELECT * FROM students WHERE lower(name) = lower(%s)",
                 (request.name.strip(),),
             ).fetchone()
 
     if row is None:
         raise HTTPException(status_code=404, detail="Student not found")
-    stored = row["password"] if "password" in row.keys() else None
-    if request.password != (stored or "123456"):
+    if request.password != (row.get("password") or "123456"):
         raise HTTPException(status_code=401, detail="Wrong password")
     return row_to_student(row)
 
@@ -76,8 +74,9 @@ async def login_student(request: StudentLoginRequest):
 @router.delete("/api/students/{student_id}")
 async def delete_student(student_id: str):
     with connect_db() as db:
-        row = db.execute("SELECT * FROM students WHERE id = ?", (student_id,)).fetchone()
+        row = db.execute(
+            "DELETE FROM students WHERE id = %s RETURNING id", (student_id,)
+        ).fetchone()
         if row is None:
             raise HTTPException(status_code=404, detail="Student not found")
-        db.execute("DELETE FROM students WHERE id = ?", (student_id,))
     return {"id": student_id, "deleted": True}
