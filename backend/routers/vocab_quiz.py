@@ -1,7 +1,7 @@
-import json
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request
+from psycopg.types.json import Jsonb
 
 from database import connect_db, row_to_vocab_quiz_attempt
 import main
@@ -33,13 +33,13 @@ async def list_vocab_quiz_attempts(
     query = "SELECT * FROM vocab_quiz_attempts WHERE 1=1"
     params: list = []
     if story_id:
-        query += " AND story_id = ?"
+        query += " AND story_id = %s"
         params.append(story_id)
     if student_name:
-        query += " AND student_name = ?"
+        query += " AND student_name = %s"
         params.append(student_name)
     if student_id:
-        query += " AND student_id = ?"
+        query += " AND student_id = %s"
         params.append(student_id)
     query += " ORDER BY completed_at DESC"
 
@@ -65,13 +65,13 @@ async def get_weak_words(
     if not student_id and not student_name:
         raise HTTPException(status_code=400, detail="Provide student_id or student_name.")
 
-    query = "SELECT question_results FROM vocab_quiz_attempts WHERE story_id = ?"
+    query = "SELECT question_results FROM vocab_quiz_attempts WHERE story_id = %s"
     params: list = [story_id]
     if student_id:
-        query += " AND student_id = ?"
+        query += " AND student_id = %s"
         params.append(student_id)
     else:
-        query += " AND student_name = ?"
+        query += " AND student_name = %s"
         params.append(student_name)
     query += " ORDER BY completed_at DESC"
 
@@ -80,7 +80,7 @@ async def get_weak_words(
 
     resolved: dict[str, bool] = {}
     for row in rows:
-        results = json.loads(row["question_results"] or "[]")
+        results = row["question_results"] or []
         for result in reversed(results):
             word = result.get("word")
             if word is None or word in resolved:
@@ -95,10 +95,20 @@ async def create_vocab_quiz_attempt(attempt: VocabQuizAttemptRequest):
     with connect_db() as db:
         db.execute(
             """
-            INSERT OR REPLACE INTO vocab_quiz_attempts
+            INSERT INTO vocab_quiz_attempts
                 (id, story_id, student_name, student_id, mode, completed_at,
                  total_questions, correct_count, total_time_ms, question_results)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                story_id = EXCLUDED.story_id,
+                student_name = EXCLUDED.student_name,
+                student_id = EXCLUDED.student_id,
+                mode = EXCLUDED.mode,
+                completed_at = EXCLUDED.completed_at,
+                total_questions = EXCLUDED.total_questions,
+                correct_count = EXCLUDED.correct_count,
+                total_time_ms = EXCLUDED.total_time_ms,
+                question_results = EXCLUDED.question_results
             """,
             (
                 attempt.id,
@@ -110,7 +120,7 @@ async def create_vocab_quiz_attempt(attempt: VocabQuizAttemptRequest):
                 attempt.totalQuestions,
                 attempt.correctCount,
                 attempt.totalTimeMs,
-                json.dumps([r.model_dump() for r in attempt.questionResults]),
+                Jsonb([r.model_dump() for r in attempt.questionResults]),
             ),
         )
     return attempt.model_dump()

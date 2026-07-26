@@ -1,5 +1,3 @@
-import json
-import sqlite3
 from typing import Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, HTTPException, Query
@@ -23,11 +21,11 @@ def _student_names() -> Dict[str, str]:
     return {row["id"]: row["name"] for row in rows}
 
 
-def _load_attempts(story_id: Optional[str] = None) -> List[sqlite3.Row]:
+def _load_attempts(story_id: Optional[str] = None) -> List[dict]:
     query = "SELECT student_id, mode, question_results FROM vocab_quiz_attempts WHERE student_id IS NOT NULL"
     params: list = []
     if story_id:
-        query += " AND story_id = ?"
+        query += " AND story_id = %s"
         params.append(story_id)
     with connect_db() as db:
         return db.execute(query, params).fetchall()
@@ -43,7 +41,7 @@ def _accuracy_responses(
     for row in _load_attempts(story_id):
         if mode and row["mode"] != mode:
             continue
-        for q in json.loads(row["question_results"] or "[]"):
+        for q in row["question_results"] or []:
             responses.append((row["student_id"], q["word"], bool(q["correct"])))
     return responses
 
@@ -55,7 +53,7 @@ def _timed_responses(
     for row in _load_attempts(story_id):
         if row["mode"] != mode:
             continue
-        for q in json.loads(row["question_results"] or "[]"):
+        for q in row["question_results"] or []:
             responses.append((row["student_id"], q["word"], bool(q["correct"]), float(q["timeMs"])))
     return responses
 
