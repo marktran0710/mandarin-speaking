@@ -69,7 +69,7 @@ flowchart LR
         direction TB
         API["/api/analyze\nPraat + AI feedback"]
         ASR["/api/transcribe\nASR models"]
-        DB["/api/audio-records\n/api/custom-stories\nSQLite"]
+        DB["/api/audio-records\n/api/custom-stories\nPostgreSQL"]
         IMG["/api/generate-story-images\nDALL-E 3 / Pollinations.ai"]
         UPL["/uploads/audio\n/uploads/images"]
     end
@@ -84,7 +84,7 @@ flowchart LR
     IMG --> UPL
     ASR -->|"optional"| FunASR["FunASR / VibeVoice\n(local GPU)"]
 
-    DB --> SQLite[(mandarin_stories.db)]
+    DB --> Postgres[(PostgreSQL 17)]
 ```
 
 ---
@@ -285,6 +285,29 @@ backend, and importing sends the story through the same save path as creating on
 
 ## Quick Start
 
+### Database
+
+The backend uses PostgreSQL 17, run locally through Docker Compose:
+
+```bash
+docker compose up -d db          # start (data lives in the mandarin_pgdata volume)
+cd backend && python -m alembic upgrade head   # apply schema migrations
+```
+
+The connection string comes from `DATABASE_URL` (default
+`postgresql://mandarin:mandarin@127.0.0.1:5432/mandarin`). Tests run against a
+separate `mandarin_test` database and truncate every table between tests.
+
+Schema changes are Alembic migrations in `backend/migrations/versions/` — the
+app no longer creates or alters tables at startup.
+
+The pre-migration SQLite file (`backend/mandarin_stories.db`) is kept on disk
+as a backup. To re-import it:
+
+```bash
+cd backend && python -m scripts.migrate_sqlite_to_postgres
+```
+
 ### 1. Backend (Python 3.10+)
 
 ```powershell
@@ -338,7 +361,7 @@ VIBEVOICE_DEVICE=-1                  # -1 = CPU, 0 = first GPU
 
 # Server
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-DATABASE_PATH=./mandarin_stories.db
+DATABASE_URL=postgresql://mandarin:mandarin@127.0.0.1:5432/mandarin
 UPLOAD_DIR=./uploads
 ```
 
@@ -398,7 +421,7 @@ npx vercel --prod
 ├── backend/
 │   ├── ai_feedback.py        # Gemini / OpenAI / local language feedback
 │   ├── chinese_tones.py      # Mandarin tone reference patterns
-│   ├── database.py           # SQLite helpers
+│   ├── database.py           # PostgreSQL (psycopg3) helpers
 │   ├── main.py               # FastAPI routes, image generation, parallel analysis
 │   ├── praat_analyzer.py     # Parselmouth acoustic analysis
 │   ├── Dockerfile

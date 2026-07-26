@@ -9,33 +9,25 @@ Usage:
 import argparse
 import json
 import os
-import sqlite3
+import sys
 import zipfile
 
-DATABASE_PATH = os.getenv(
-    "DATABASE_PATH",
-    os.path.join(os.path.dirname(__file__), "mandarin_stories.db"),
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from psycopg.types.json import Jsonb  # noqa: E402
+
+from database import connect_db  # noqa: E402
+
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", os.path.join(os.path.dirname(__file__), "uploads"))
 
 
-def init_db(conn: sqlite3.Connection):
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS custom_stories (
-            id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
-            learning_goal TEXT NOT NULL,
-            level TEXT NOT NULL,
-            frames TEXT NOT NULL,
-            published INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    # Add published column if missing (older DBs).
-    columns = {row[1] for row in conn.execute("PRAGMA table_info(custom_stories)").fetchall()}
-    if "published" not in columns:
-        conn.execute("ALTER TABLE custom_stories ADD COLUMN published INTEGER NOT NULL DEFAULT 0")
-    conn.commit()
+def _story_columns() -> set:
+    with connect_db() as db:
+        rows = db.execute(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name = 'custom_stories'"
+        ).fetchall()
+    return {row["column_name"] for row in rows}
 
 
 def main():
@@ -68,39 +60,65 @@ def main():
                 dst.write(src.read())
         print(f"Extracted {len(image_entries)} images to {UPLOAD_DIR}")
 
-    conn = sqlite3.connect(DATABASE_PATH)
-    init_db(conn)
+    columns = _story_columns()
+    required = {
+        "id", "title", "learning_goal", "frames", "published",
+        "linear", "lesson_number", "narrative_mode", "first_frame_is_example",
+    }
+    missing = required - columns
+    if missing:
+        print(f"ERROR: custom_stories table is missing columns: {sorted(missing)}")
+        raise SystemExit(1)
 
     inserted = skipped = 0
-    for story in stories:
-        existing = conn.execute(
-            "SELECT id FROM custom_stories WHERE id = ?", (story["id"],)
-        ).fetchone()
+    with connect_db() as db:
+        for story in stories:
+            existing = db.execute(
+                "SELECT id FROM custom_stories WHERE id = %s", (story["id"],)
+            ).fetchone()
 
-        if existing and not args.overwrite:
-            skipped += 1
-            continue
+            if existing and not args.overwrite:
+                skipped += 1
+                continue
 
-        conn.execute(
-            """
-            INSERT OR REPLACE INTO custom_stories
-                (id, title, learning_goal, level, frames, published, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                story["id"],
-                story["title"],
-                story["learning_goal"],
-                story["level"],
-                story["frames"],
-                story.get("published", 0),
-                story.get("created_at", ""),
-            ),
-        )
-        inserted += 1
+            # Exports from before this cut-over stored frames double-encoded
+            # (the SQLite TEXT column already held a JSON string); a fresh
+            # export re-stringifies frames for the same on-disk format, so
+            # this always arrives as a string here — parse it back before
+            # handing it to Jsonb().
+            frames = story["frames"]
+            if isinstance(frames, str):
+                frames = json.loads(frames)
 
-    conn.commit()
-    conn.close()
+            db.execute(
+                """
+                INSERT INTO custom_stories
+                    (id, title, learning_goal, frames, published, linear,
+                     lesson_number, narrative_mode, first_frame_is_example)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (id) DO UPDATE SET
+                    title = EXCLUDED.title,
+                    learning_goal = EXCLUDED.learning_goal,
+                    frames = EXCLUDED.frames,
+                    published = EXCLUDED.published,
+                    linear = EXCLUDED.linear,
+                    lesson_number = EXCLUDED.lesson_number,
+                    narrative_mode = EXCLUDED.narrative_mode,
+                    first_frame_is_example = EXCLUDED.first_frame_is_example
+                """,
+                (
+                    story["id"],
+                    story["title"],
+                    story["learning_goal"],
+                    Jsonb(frames),
+                    bool(story.get("published", False)),
+                    bool(story.get("linear", False)),
+                    story.get("lesson_number"),
+                    story.get("narrative_mode", "story"),
+                    bool(story.get("first_frame_is_example", False)),
+                ),
+            )
+            inserted += 1
 
     print(f"Imported {inserted} stories, skipped {skipped} duplicates.")
     if skipped:

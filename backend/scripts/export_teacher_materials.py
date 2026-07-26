@@ -9,14 +9,14 @@ Usage:
 import argparse
 import json
 import os
-import sqlite3
+import sys
 import zipfile
 from datetime import datetime
 
-DATABASE_PATH = os.getenv(
-    "DATABASE_PATH",
-    os.path.join(os.path.dirname(__file__), "mandarin_stories.db"),
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from database import connect_db  # noqa: E402
+
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", os.path.join(os.path.dirname(__file__), "uploads"))
 
 
@@ -29,20 +29,20 @@ def main():
     )
     args = parser.parse_args()
 
-    conn = sqlite3.connect(DATABASE_PATH)
-    conn.row_factory = sqlite3.Row
-    rows = conn.execute("SELECT * FROM custom_stories ORDER BY created_at").fetchall()
-    conn.close()
+    with connect_db() as db:
+        rows = db.execute("SELECT * FROM custom_stories ORDER BY created_at").fetchall()
 
     stories = [dict(row) for row in rows]
     print(f"Found {len(stories)} custom stories.")
 
     with zipfile.ZipFile(args.output, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("stories.json", json.dumps(stories, ensure_ascii=False, indent=2))
-
         image_count = 0
         for story in stories:
-            frames = json.loads(story.get("frames") or "[]")
+            # frames arrives already parsed (JSONB); walk it directly to find
+            # images, then re-stringify below so stories.json keeps the same
+            # double-encoded frames field the importer (and older exports)
+            # expect.
+            frames = story["frames"] or []
             for frame in frames:
                 image_url = frame.get("imageUrl", "")
                 if not image_url.startswith("/uploads/"):
@@ -56,6 +56,9 @@ def main():
                     image_count += 1
                 else:
                     print(f"  WARNING: image not found on disk: {abs_path}")
+            story["frames"] = json.dumps(frames, ensure_ascii=False)
+
+        zf.writestr("stories.json", json.dumps(stories, ensure_ascii=False, indent=2))
 
     print(f"Exported {image_count} images.")
     print(f"Saved to: {args.output}")

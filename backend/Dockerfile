@@ -3,13 +3,13 @@ FROM python:3.11-slim
 
 # - PYTHONUNBUFFERED: stream logs straight to stdout (no buffering)
 # - PYTHONDONTWRITEBYTECODE: no .pyc clutter
-# - data dir for the SQLite DB + uploaded audio/images (mount a volume here
-#   so they survive container restarts and image rebuilds)
+# - data dir for uploaded audio/images (mount a volume here so they survive
+#   container restarts). The database now lives in PostgreSQL — set
+#   DATABASE_URL at run time.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    DATABASE_PATH=/data/mandarin_stories.db \
     UPLOAD_DIR=/data/uploads
 
 WORKDIR /app
@@ -50,4 +50,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD python -c "import os,urllib.request,sys; url='http://127.0.0.1:'+os.getenv('PORT','8000')+'/health'; sys.exit(0 if urllib.request.urlopen(url, timeout=4).status==200 else 1)"
 
 # ${PORT} lets hosts like Render/Fly inject the port; defaults to 8000 locally.
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=*"]
+# Migrations run before the server starts — the schema is no longer created
+# by the app itself.
+CMD ["sh", "-c", "python -m alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=*"]

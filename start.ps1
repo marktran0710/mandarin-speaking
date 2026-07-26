@@ -3,6 +3,9 @@
 
 $root = $PSScriptRoot
 
+Write-Host "Starting PostgreSQL (docker compose)..." -ForegroundColor Cyan
+docker compose up -d db
+
 Write-Host "Starting backend (port 8000)..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$root\backend'; python -m uvicorn main:app --reload --port 8000"
 
