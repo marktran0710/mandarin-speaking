@@ -19,6 +19,7 @@ vite-dev*.log
 backend/*.db
 backend/*.db-*
 backend/*.db.bak*
+backend/pg_dump_*.sql
 backend/uploads/
 backend/uvicorn*.log
 backend/*.zip
