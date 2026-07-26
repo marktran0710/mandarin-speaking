@@ -31,6 +31,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("speaking_app")
 from database import (
+    close_db,
     connect_db,
     init_db,
 )
@@ -78,6 +79,11 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 @app.on_event("startup")
 async def startup_event():
     init_db()
+
+
+@app.on_event("shutdown")
+async def shutdown_database():
+    close_db()
 
 
 def get_cors_origins() -> list[str]:

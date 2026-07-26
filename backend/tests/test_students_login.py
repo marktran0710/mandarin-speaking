@@ -1,7 +1,7 @@
 """Student login endpoint: password check against the roster (default 123456).
 
 A classroom friction gate, not real auth — plaintext comparison, no tokens.
-Runs against a temp database so the dev roster is never touched.
+Runs against the isolated test database so the dev roster is never touched.
 """
 import os
 import sys
@@ -13,14 +13,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 
 @pytest.fixture()
-def temp_db(tmp_path, monkeypatch):
-    import database
-    monkeypatch.setattr(database, "DATABASE_PATH", str(tmp_path / "test.db"))
-    database.init_db()
-
-
-@pytest.fixture()
-def roster_client(temp_db, client):
+def roster_client(client):
     """Client with one seeded student, returned as (client, student)."""
     created = client.post("/api/students", json={"name": "Minh"}).json()
     return client, created
