@@ -155,7 +155,11 @@ def test_postgres_is_reachable():
 def test_test_database_exists():
     url = os.getenv(
         "DATABASE_URL", "postgresql://mandarin:mandarin@127.0.0.1:5432/mandarin"
-    ).replace("/mandarin", "/mandarin_test")
+    )
+    # Swap only the trailing database name. A plain str.replace of
+    # "/mandarin" would also rewrite the username in "//mandarin:...".
+    head, _, _ = url.rpartition("/")
+    url = f"{head}/mandarin_test"
     with psycopg.connect(url, connect_timeout=5) as conn:
         name = conn.execute("SELECT current_database()").fetchone()[0]
     assert name == "mandarin_test"
