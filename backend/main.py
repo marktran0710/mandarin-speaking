@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Tuple
+from typing import Any, Dict, Optional, List, Tuple
 import base64
 import io
 import logging
@@ -567,6 +567,88 @@ class QuizExclusion(BaseModel):
 
 class QuizExclusionsUpdateRequest(BaseModel):
     exclusions: List[QuizExclusion]
+    # The full per-word quiz material tree at save time, keyed by difficulty
+    # tier (easy/medium/hard word text and pools can differ per tier), so
+    # the Quiz Review page can diff live material against it next time
+    # (new/changed/kept). Opaque here — the frontend owns the per-tier shape
+    # and sends the whole map each time (merging in whichever tier changed),
+    # so a save under one tier never clobbers another tier's baseline.
+    materialSnapshot: Optional[Dict[str, List[dict]]] = None
+
+
+class QuizClozeCandidateIn(BaseModel):
+    sentence: str
+    distractors: List[str] = []
+
+
+class QuizSynonymCandidateIn(BaseModel):
+    synonym: str
+    distractors: List[str] = []
+
+
+class QuizWordMaterialIn(BaseModel):
+    """One word's current AI-generated quiz material, as the Quiz Review
+    page already displays it (see storyToTopic/quizMaterialDiff) — the
+    shape /quiz/validate and /quiz/approve both take, so the same JSON the
+    frontend already builds for the diff snapshot can be sent as-is.
+    lookalike isn't validated by the pipeline (a plain word list has no
+    "also correct" question to judge) but still rides along in /quiz/approve
+    so it's gated behind approval like every other AI pool — it grows from
+    unreviewed student practice the same way distractors/cloze/synonym do."""
+    word: str
+    translation: Optional[str] = None
+    distractors: List[str] = []
+    cloze: List[QuizClozeCandidateIn] = []
+    synonym: List[QuizSynonymCandidateIn] = []
+    lookalike: List[str] = []
+
+
+class QuizValidateRequest(BaseModel):
+    words: List[QuizWordMaterialIn]
+    exclusions: List[QuizExclusion] = []
+
+
+class QuizValidateResultItem(BaseModel):
+    word: str
+    kind: str  # "translation" | "cloze" | "synonym" — matches the pools above
+    poolIndex: Optional[int] = None
+    status: str  # "clean" | "suspicious"
+    reason: str = ""
+
+
+class QuizValidateResponse(BaseModel):
+    results: List[QuizValidateResultItem]
+
+
+class QuizApproveRequest(BaseModel):
+    level: str = Field(..., pattern="^(easy|medium|hard)$")
+    # Selection-based, not exclusion-based: the caller builds this from only
+    # the candidates a teacher explicitly checked in the opt-in review UI —
+    # this becomes exactly what topicQuizEntries/storyToTopic serve students
+    # for this tier once approved.
+    material: List[QuizWordMaterialIn]
+
+
+class QuizPendingApprovalsUpdateRequest(BaseModel):
+    """The Quiz Review page's opt-in checkbox selections for one tier — not
+    yet published (that's /quiz/approve), just surviving a page reload."""
+    level: str = Field(..., pattern="^(easy|medium|hard)$")
+    approvals: List[QuizExclusion]  # same {word, kind, index} shape, reused as-is
+
+
+class QuizQuestionReplaceRequest(BaseModel):
+    """Replaces one candidate's content in place — the existing vocabulary-*
+    PATCH endpoints only merge new items into a pool, which can't fix an
+    existing bad candidate's text. distractors has no poolIndex (editing it
+    replaces the word's whole distractor list, matching how Quiz Review
+    shows it as one row)."""
+    frameIndex: int = Field(..., ge=0)
+    wordIndex: int = Field(..., ge=0)
+    kind: str = Field(..., pattern="^(distractors|cloze|synonym)$")
+    poolIndex: Optional[int] = Field(default=None, ge=0)
+    # distractors: List[str]; cloze: {sentence, distractors}; synonym: {synonym, distractors}
+    # — a plain Any because the shape depends on `kind`; the handler validates it.
+    value: Any
 
 
 class StudentLoginRequest(BaseModel):
@@ -2866,6 +2948,7 @@ from routers.asr import router as asr_router  # noqa: E402
 from routers.audio import router as audio_router  # noqa: E402
 from routers.help_requests import router as help_requests_router  # noqa: E402
 from routers.media import router as media_router  # noqa: E402
+from routers.quiz_review import router as quiz_review_router  # noqa: E402
 from routers.stories import router as stories_router  # noqa: E402
 from routers.students import router as students_router  # noqa: E402
 from routers.submissions import router as submissions_router  # noqa: E402
@@ -2876,6 +2959,7 @@ app.include_router(asr_router)
 app.include_router(audio_router)
 app.include_router(help_requests_router)
 app.include_router(media_router)
+app.include_router(quiz_review_router)
 app.include_router(stories_router)
 app.include_router(students_router)
 app.include_router(submissions_router)

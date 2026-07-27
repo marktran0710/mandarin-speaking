@@ -103,7 +103,7 @@ export default function CreateStoryPage({
           onBack={() => setPendingTopic(null)}
           onSelectLevel={(level) => {
             const story = pendingTopic.sourceStory!;
-            openTopicAtLevel(storyToTopic(story, level));
+            openTopicAtLevel(storyToTopic(story, level, "approved"));
             setPendingTopic(null);
           }}
         />

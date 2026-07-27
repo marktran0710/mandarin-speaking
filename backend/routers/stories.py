@@ -8,6 +8,8 @@ import main
 from main import (
     CustomStoryRequest,
     QuizExclusionsUpdateRequest,
+    QuizPendingApprovalsUpdateRequest,
+    QuizQuestionReplaceRequest,
     VocabularyClozeUpdateRequest,
     VocabularyDistractorsUpdateRequest,
     VocabularyLookalikeUpdateRequest,
@@ -228,16 +230,93 @@ async def update_vocabulary_lookalike(
 async def update_quiz_exclusions(story_id: str, request: QuizExclusionsUpdateRequest):
     """Replaces the story's teacher-marked bad-quiz-material list wholesale —
     the review page's toggles always send the complete current set, so PUT
-    semantics keep the endpoint idempotent and trivially undoable."""
+    semantics keep the endpoint idempotent and trivially undoable. Also
+    stamps quiz_material_snapshot (when sent) in the same statement, so the
+    two columns can never drift out of sync with each other."""
     exclusions = [exclusion.model_dump(exclude_none=True) for exclusion in request.exclusions]
     with connect_db() as db:
         row = db.execute(
-            "UPDATE custom_stories SET quiz_exclusions = %s WHERE id = %s RETURNING id",
-            (Jsonb(exclusions), story_id),
+            "UPDATE custom_stories SET quiz_exclusions = %s, "
+            "quiz_material_snapshot = COALESCE(%s, quiz_material_snapshot) "
+            "WHERE id = %s RETURNING id",
+            (
+                Jsonb(exclusions),
+                Jsonb(request.materialSnapshot) if request.materialSnapshot is not None else None,
+                story_id,
+            ),
         ).fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Story not found.")
     return {"id": story_id, "quizExclusions": exclusions}
+
+
+@router.put("/api/custom-stories/{story_id}/quiz-pending-approvals")
+async def update_quiz_pending_approvals(story_id: str, request: QuizPendingApprovalsUpdateRequest):
+    """Saves the Quiz Review page's opt-in checkbox selections for one tier
+    — not a publish action (see /quiz/approve), just so a teacher's
+    in-progress review survives a page reload. Keyed by tier like
+    quiz_approved_snapshot, replaced wholesale per tier so one tier's save
+    never clobbers another's."""
+    approvals = [a.model_dump(exclude_none=True) for a in request.approvals]
+    with connect_db() as db:
+        row = db.execute(
+            "UPDATE custom_stories SET quiz_pending_approvals = "
+            "jsonb_set(COALESCE(quiz_pending_approvals, '{}'::jsonb), ARRAY[%s], %s) "
+            "WHERE id = %s RETURNING id",
+            (request.level, Jsonb(approvals), story_id),
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Story not found.")
+    return {"id": story_id, "level": request.level, "approvals": approvals}
+
+
+@router.put("/api/custom-stories/{story_id}/quiz-question")
+async def replace_quiz_question(story_id: str, request: QuizQuestionReplaceRequest):
+    """Replaces one candidate's content in place, unlike the vocabulary-*
+    PATCH endpoints above (which only merge new items into a pool and can't
+    fix an existing bad one). distractors has no poolIndex — editing it
+    replaces the word's whole distractor list, matching how Quiz Review
+    shows it as a single row. Frontend resets that row to unvalidated and
+    unchecked after a successful edit."""
+    with connect_db() as db:
+        frames = _load_frames(db, story_id)
+        if request.frameIndex >= len(frames):
+            raise HTTPException(status_code=404, detail="Frame not found.")
+        frame = frames[request.frameIndex]
+        field = {
+            "distractors": "vocabularyDistractors",
+            "cloze": "vocabularyCloze",
+            "synonym": "vocabularySynonym",
+        }[request.kind]
+        pool = _existing_pool(frame, field)
+        while len(pool) <= request.wordIndex:
+            pool.append([] if request.kind != "distractors" else [])
+
+        if request.kind == "distractors":
+            if not isinstance(request.value, list) or not all(
+                isinstance(d, str) for d in request.value
+            ):
+                raise HTTPException(status_code=422, detail="distractors value must be a list of strings.")
+            pool[request.wordIndex] = request.value
+        else:
+            candidates = pool[request.wordIndex]
+            if request.poolIndex is None or request.poolIndex >= len(candidates):
+                raise HTTPException(status_code=404, detail="Candidate not found at poolIndex.")
+            key = "sentence" if request.kind == "cloze" else "synonym"
+            if key not in request.value or not isinstance(request.value.get("distractors"), list):
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"{request.kind} value must have '{key}' and 'distractors'.",
+                )
+            candidates[request.poolIndex] = {
+                key: request.value[key],
+                "distractors": request.value["distractors"],
+            }
+            pool[request.wordIndex] = candidates
+
+        serialized = json.dumps(pool, ensure_ascii=False)
+        _write_frame_field(db, story_id, request.frameIndex, field, serialized)
+    return {"ok": True}
 
 
 @router.patch("/api/custom-stories/{story_id}/vocabulary-cloze")

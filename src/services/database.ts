@@ -8,11 +8,12 @@ async function fetchWithRetry(
   input: RequestInfo | URL,
   init?: RequestInit,
   maxAttempts = 3,
+  timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<Response> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetch(input, { ...init, signal: controller.signal });
       clearTimeout(timer);
@@ -262,6 +263,74 @@ export async function deleteCustomStoryFromDatabase(id: string) {
   }
 }
 
+export interface VocabGrowthWord {
+  word: string;
+  translation: string;
+  context?: string;
+  avoid: string[];
+}
+
+/** The four raw AI-generation endpoints StoryRecorder's background pool
+ * growth already calls inline — exposed as reusable service functions so
+ * TeacherQuizReviewPage's "Generate/Update Questions" can call the exact
+ * same generation the app already relies on, just staged for teacher
+ * accept/reject instead of merged in immediately. */
+export async function generateVocabDistractors(
+  words: VocabGrowthWord[],
+): Promise<Array<{ word: string; distractors: string[] }>> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/vocab-quiz-distractors`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ words }),
+  });
+  if (!response.ok) throw new Error("Could not generate new quiz distractors.");
+  const { results } = (await response.json()) as { results: Array<{ word: string; distractors: string[] }> };
+  return results;
+}
+
+export async function generateVocabCloze(
+  words: VocabGrowthWord[],
+): Promise<Array<{ word: string; sentence: string; distractors: string[] }>> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/vocab-quiz-cloze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ words }),
+  });
+  if (!response.ok) throw new Error("Could not generate new quiz cloze questions.");
+  const { results } = (await response.json()) as {
+    results: Array<{ word: string; sentence: string; distractors: string[] }>;
+  };
+  return results;
+}
+
+export async function generateVocabSynonym(
+  words: VocabGrowthWord[],
+): Promise<Array<{ word: string; synonym: string; distractors: string[] }>> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/vocab-quiz-synonym`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ words }),
+  });
+  if (!response.ok) throw new Error("Could not generate new quiz synonym questions.");
+  const { results } = (await response.json()) as {
+    results: Array<{ word: string; synonym: string; distractors: string[] }>;
+  };
+  return results;
+}
+
+export async function generateVocabLookalike(
+  words: VocabGrowthWord[],
+): Promise<Array<{ word: string; lookalikes: string[] }>> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/vocab-quiz-lookalike`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ words }),
+  });
+  if (!response.ok) throw new Error("Could not generate new look-alike traps.");
+  const { results } = (await response.json()) as { results: Array<{ word: string; lookalikes: string[] }> };
+  return results;
+}
+
 export interface VocabularyDistractorUpdate {
   frameIndex: number;
   wordIndex: number;
@@ -332,21 +401,141 @@ export interface VocabularyClozeUpdate {
 // updateVocabularyDistractors above, called after a student finishes a vocab
 // quiz round so cloze sentences keep varying over time.
 /** Replaces a story's teacher-marked bad-quiz-material list (see
- * TeacherQuizReviewPage) — PUT semantics, the full current set each time. */
+ * TeacherQuizReviewPage) — PUT semantics, the full current set each time.
+ * `materialSnapshot`, when passed, is stamped in the same request as the
+ * new diff baseline (custom_stories.quiz_material_snapshot) — the whole
+ * per-tier map, per withUpdatedSnapshot; omitting it leaves the stored
+ * snapshot untouched. */
 export async function updateQuizExclusions(
   storyId: string,
   exclusions: Array<{ word: string; kind: string; index?: number }>,
+  materialSnapshot?: Record<string, unknown>,
 ): Promise<void> {
   const response = await fetchWithRetry(
     `${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/quiz-exclusions`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ exclusions }),
+      body: JSON.stringify({ exclusions, materialSnapshot }),
     },
   );
   if (!response.ok) {
     throw new Error("Could not save the quiz exclusion list.");
+  }
+}
+
+export interface QuizValidateWord {
+  word: string;
+  translation?: string;
+  distractors: string[];
+  cloze: Array<{ sentence: string; distractors: string[] }>;
+  synonym: Array<{ synonym: string; distractors: string[] }>;
+  lookalike: string[];
+}
+
+export interface QuizValidateResultItem {
+  word: string;
+  kind: "distractors" | "cloze" | "synonym";
+  poolIndex?: number;
+  status: "clean" | "suspicious";
+  reason: string;
+}
+
+/** Runs the adversarial validation pipeline (blind solver + judge, no
+ * auto-repair) against a story's *current* live quiz material — read-only,
+ * nothing is written. A 60s timeout: a full lesson's worth of words is
+ * several sequential LLM batches, not a quick fetch. */
+export async function validateQuizMaterial(
+  storyId: string,
+  words: QuizValidateWord[],
+  exclusions: Array<{ word: string; kind: string; index?: number }>,
+): Promise<QuizValidateResultItem[]> {
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/quiz/validate`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ words, exclusions }),
+    },
+    3,
+    60_000,
+  );
+  if (!response.ok) {
+    throw new Error("Could not validate the quiz questions.");
+  }
+  const { results } = (await response.json()) as { results: QuizValidateResultItem[] };
+  return results;
+}
+
+/** The only call that changes what students are served: writes
+ * custom_stories.quiz_approved_snapshot for one tier. `material` is built
+ * by the caller from only the candidates a teacher explicitly checked in
+ * the opt-in review UI (see utils/quizApprovedMaterial.ts's
+ * buildApprovedMaterial). */
+export async function approveQuizMaterial(
+  storyId: string,
+  level: string,
+  material: QuizValidateWord[],
+): Promise<void> {
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/quiz/approve`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ level, material }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error("Could not publish the quiz.");
+  }
+}
+
+/** Saves the Quiz Review page's opt-in checkbox selections for one tier —
+ * not a publish action (see approveQuizMaterial), just persistence so a
+ * teacher's in-progress review survives a reload. PUT semantics: the full
+ * current set each time, mirroring updateQuizExclusions. */
+export async function saveQuizPendingApprovals(
+  storyId: string,
+  level: string,
+  approvals: Array<{ word: string; kind: string; index?: number }>,
+): Promise<void> {
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/quiz-pending-approvals`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ level, approvals }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error("Could not save the quiz review selections.");
+  }
+}
+
+/** Replaces one candidate's content in place (Quiz Review's inline Edit) —
+ * unlike updateVocabularyDistractors/-Cloze/-Synonym, which only merge new
+ * items into a pool and can't fix an existing bad candidate's text.
+ * `value` is a string[] for "distractors" (the word's whole list, no
+ * poolIndex — Quiz Review shows it as one row) or {sentence,distractors} /
+ * {synonym,distractors} for "cloze" / "synonym" at `poolIndex`. */
+export async function replaceQuizQuestion(
+  storyId: string,
+  frameIndex: number,
+  wordIndex: number,
+  kind: "distractors" | "cloze" | "synonym",
+  poolIndex: number | undefined,
+  value: string[] | { sentence: string; distractors: string[] } | { synonym: string; distractors: string[] },
+): Promise<void> {
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/quiz-question`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ frameIndex, wordIndex, kind, poolIndex, value }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error("Could not save the edited question.");
   }
 }
 

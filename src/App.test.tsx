@@ -28,7 +28,7 @@ describe("App role flows", () => {
       screen.getByRole("heading", { name: "Choose a Daily Situation" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "My Stories" }),
+      screen.getByRole("button", { name: "My Profile" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Voice Test" }),

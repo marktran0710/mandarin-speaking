@@ -118,6 +118,9 @@ def row_to_custom_story(row: dict) -> dict:
         "narrativeMode": row["narrative_mode"],
         "firstFrameIsExample": bool(row["first_frame_is_example"]),
         "quizExclusions": row.get("quiz_exclusions") or [],
+        "quizMaterialSnapshot": row.get("quiz_material_snapshot"),
+        "quizApprovedSnapshot": row.get("quiz_approved_snapshot"),
+        "quizPendingApprovals": row.get("quiz_pending_approvals"),
     }
 
 

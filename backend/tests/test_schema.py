@@ -21,6 +21,7 @@ EXPECTED_TABLES = {
 JSONB_COLUMNS = [
     ("custom_stories", "frames"),
     ("custom_stories", "quiz_exclusions"),
+    ("custom_stories", "quiz_material_snapshot"),
     ("story_submissions", "scenes"),
     ("story_submissions", "story_feedback"),
     ("vocab_quiz_attempts", "question_results"),

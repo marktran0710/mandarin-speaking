@@ -10,14 +10,23 @@ import "../components/BiLabel.css";
 import "./MyStoriesPage.css";
 import StudentHelpCard from "../components/StudentHelpCard";
 import MyStoryFeedbackHistory from "../components/MyStoryFeedbackHistory";
-import RecordCard from "../components/RecordCard";
 import {
   getAverageMetric,
-  getPromptImages,
   getSessionName,
   getStudentTopics,
-  isPromptRecord,
 } from "../utils/myStoriesUtils";
+import {
+  groupTopicsByLesson,
+  isLessonGroupUnlocked,
+  isStoryFinished,
+  lessonCompletion,
+  lessonTitle,
+  topicStoryId,
+  type LessonGroup,
+} from "../utils/lessonGroups";
+import { loadBestLocalStars } from "../utils/quizTiers";
+import { loadSubmittedStoryIds } from "../utils/storyLevelProgress";
+import { topicHasQuiz } from "../utils/topicQuiz";
 
 export interface AudioRecord {
   id: string;
@@ -45,22 +54,42 @@ export interface WordProsody {
 
 interface MyStoriesPageProps {
   records: AudioRecord[];
-  onDeleteRecord: (id: string) => void;
-  onPracticeImage?: (topicId: string, imageIndex: number) => void;
   helpRequests?: HelpRequest[];
   onRaiseHand?: (message: string) => void;
   publishedTopics?: import("../components/TopicSelector").Topic[];
+  /** Sends the student back to the lesson list (table of contents) to
+   * actually practice — this page is an overview only, no per-picture
+   * recording detail lives here anymore. */
+  onBrowsePractice?: () => void;
+}
+
+type ProfileTab = "lesson" | "story";
+
+// Same four-color rotation as TopicSelector's lesson tiles (kept as a
+// separate copy here rather than a shared import, so each page's tile
+// styling can drift independently — see design_system_ink_and_seal memory).
+const LESSON_TILE_CLASSES = [
+  "profile-tile-seal",
+  "profile-tile-jade",
+  "profile-tile-tone1",
+  "profile-tile-celadon",
+];
+
+function lessonTileClass(group: LessonGroup, unlocked: boolean): string {
+  if (!unlocked) return "profile-tile-locked";
+  if (group.lessonNumber === null) return "profile-tile-other";
+  return LESSON_TILE_CLASSES[(group.lessonNumber - 1) % LESSON_TILE_CLASSES.length];
 }
 
 export default function MyStoriesPage({
   records,
-  onDeleteRecord,
-  onPracticeImage,
   helpRequests = [],
   onRaiseHand,
   publishedTopics,
+  onBrowsePractice,
 }: MyStoriesPageProps) {
   const [mySubmissions, setMySubmissions] = useState<StorySubmission[]>([]);
+  const [profileTab, setProfileTab] = useState<ProfileTab>("lesson");
 
   useEffect(() => {
     if (!canUseDatabase()) return;
@@ -75,7 +104,7 @@ export default function MyStoriesPage({
         setMySubmissions(mine);
       })
       .catch(() => {
-        // Silently skip — the workbook view above is still fully usable.
+        // Silently skip — the overview above is still fully usable.
       });
     return () => {
       cancelled = true;
@@ -83,232 +112,267 @@ export default function MyStoriesPage({
   }, []);
 
   const studentTopics = publishedTopics ?? getStudentTopics();
-  const promptImages = getPromptImages(studentTopics);
-  const completedPrompts = promptImages.filter((prompt) =>
-    records.some((record) => isPromptRecord(record, prompt)),
-  ).length;
   const analyzedRecords = records.filter((record) => record.praatMetrics);
   const averageFluency = getAverageMetric(analyzedRecords, "fluency_score");
+  const averageToneAccuracy = getAverageMetric(analyzedRecords, "tone_accuracy");
+
+  const submittedIds = loadSubmittedStoryIds();
+  const groups = groupTopicsByLesson(studentTopics);
+  const numberedGroups = groups.filter((group) => group.lessonNumber !== null);
+
+  const quizTopics = studentTopics.filter((topic) => topicHasQuiz(topic));
+  const totalStars = quizTopics.reduce(
+    (sum, topic) => sum + loadBestLocalStars(topic.id),
+    0,
+  );
+  const maxStars = quizTopics.length * 3;
+
+  const lessonsDone = numberedGroups.filter((group) => {
+    const { done, total } = lessonCompletion(group, submittedIds);
+    return total > 0 && done === total;
+  }).length;
+  const lessonsTotal = numberedGroups.length;
+
   return (
     <div className="my-stories-page">
-        <div className="stories-header">
-          <p className="stories-kicker">
-            <BiLabel zh="我的練習" pinyin="Wǒ de liànxí" en="My practice" />
-          </p>
-          <h1>
-            <BiLabel zh="我的故事練習本" pinyin="Wǒ de gùshì liànxí běn" en="My Story Workbook" />
-          </h1>
-          <p className="stories-subtitle">
-            <BiText
-              zh="選一張圖片，錄你的故事部分，等回饋出來後再修改。"
-              pinyin="Xuǎn yì zhāng túpiàn, lù nǐ de gùshì bùfen, děng huíkuì chūlái hòu zài xiūgǎi."
-              en="Choose a picture, record your story part, then revise when feedback is ready."
-            />
-          </p>
-        </div>
-
-        <section className="student-progress-panel" aria-label="Learning progress">
-          <div className="student-progress-main">
-            <span><BiLabel zh="進度" pinyin="Jìndù" en="Progress" /></span>
-            <strong>
-              {completedPrompts}/{promptImages.length}
-              {promptImages.length > 0 && completedPrompts === promptImages.length && (
-                <span className="progress-complete-badge" title="全部部分完成！ All scenes complete!">🎉</span>
-              )}
-            </strong>
-            <div className={`summary-progress${completedPrompts === promptImages.length && promptImages.length > 0 ? " is-complete" : ""}`}>
-              <span
-                style={{
-                  width: `${promptImages.length === 0 ? 0 : Math.round(
-                    (completedPrompts / promptImages.length) * 100,
-                  )}%`,
-                }}
-              />
-            </div>
-          </div>
-          <div className="student-progress-stats">
-            <span>
-              <BiLabel zh={`${records.length} 個錄音`} pinyin={`${records.length} ge lùyīn`} en={`${records.length} recordings`} />
-            </span>
-            <span>
-              {averageFluency === null ? (
-                <BiLabel zh="還沒有流暢度分數" pinyin="Hái méiyǒu liúchàng dù fēnshù" en="No fluency score yet" />
-              ) : (
-                <BiLabel zh={`流暢度 ${averageFluency}/100`} pinyin={`Liúchàng dù ${averageFluency}/100`} en={`${averageFluency}/100 fluency`} />
-              )}
-            </span>
-          </div>
-        </section>
-
-        <StudentHelpCard
-          helpRequests={helpRequests}
-          onRaiseHand={onRaiseHand}
-        />
-
-        <MyStoryFeedbackHistory submissions={mySubmissions} />
-
-        <div className="learning-workbook">
-          {studentTopics.map((topic) => {
-            const prompts = promptImages.filter(
-              (prompt) => prompt.topicId === topic.id,
-            );
-            const topicRecords = records.filter(
-              (record) => record.topicId === topic.id,
-            );
-            const topicCompleted = prompts.filter((prompt) =>
-              records.some((record) => isPromptRecord(record, prompt)),
-            ).length;
-            const topicProgress = prompts.length === 0 ? 0 : Math.round(
-              (topicCompleted / prompts.length) * 100,
-            );
-
-            return (
-              <section className="topic-workbook-section" key={topic.id}>
-                <div className="topic-workbook-header">
-                  <div>
-                    <p className="stories-kicker">
-                      {topic.lessonNumber != null && (
-                        <span className="topic-lesson-badge">
-                          <BiLabel zh={`第 ${topic.lessonNumber} 課`} pinyin={`Dì ${topic.lessonNumber} kè`} en={`Lesson ${topic.lessonNumber}`} />
-                        </span>
-                      )}
-                      {topic.name}
-                    </p>
-                    <h2>{topic.description}</h2>
-                  </div>
-                  <div className="topic-progress-card">
-                    <strong>{topicCompleted}/{prompts.length}</strong>
-                    <span>
-                      <BiLabel zh={`完成 ${topicProgress}%`} pinyin={`Wánchéng ${topicProgress}%`} en={`${topicProgress}% complete`} />
-                    </span>
-                  </div>
-                </div>
-
-                <div className="prompt-grid">
-                  {prompts.map((prompt) => {
-                    const promptRecords = records.filter((record) =>
-                      isPromptRecord(record, prompt),
-                    );
-                    const latestRecord = promptRecords[0];
-                    const attemptCount = promptRecords.length;
-                    const isRevised = attemptCount > 1;
-                    const hasFeedback = Boolean(
-                      latestRecord?.praatMetrics?.ai_feedback,
-                    );
-
-                    return (
-                      <article
-                        className={`prompt-card ${
-                          latestRecord ? "completed" : ""
-                        }`}
-                        key={`${prompt.topicId}-${prompt.imageIndex}`}
-                      >
-                        <div className="prompt-image">
-                          <img
-                            src={prompt.imageUrl}
-                            alt={`${prompt.topicName} prompt ${
-                              prompt.imageIndex + 1
-                            }`}
-                          />
-                        </div>
-
-                        <div className="prompt-content">
-                          <div className="prompt-title-row">
-                            <div>
-                              <p className="picture-topic">
-                                <BiLabel zh={`第 ${prompt.imageIndex + 1} 部分`} pinyin={`Dì ${prompt.imageIndex + 1} bùfen`} en={`Part ${prompt.imageIndex + 1}`} />
-                              </p>
-                              <h3>{prompt.topicName}</h3>
-                            </div>
-                            <span
-                              className={`learning-status ${
-                                isRevised ? "revised" : latestRecord ? "ready" : "todo"
-                              }`}
-                            >
-                              {latestRecord ? (
-                                isRevised ? (
-                                  <BiLabel zh="已修改" pinyin="Yǐ xiūgǎi" en="Revised" />
-                                ) : hasFeedback ? (
-                                  <BiLabel zh="回饋好了" pinyin="Huíkuì hǎo le" en="Feedback ready" />
-                                ) : (
-                                  <BiLabel zh="已錄音" pinyin="Yǐ lùyīn" en="Recorded" />
-                                )
-                              ) : (
-                                <BiLabel zh="還沒錄音" pinyin="Hái méi lùyīn" en="Needs recording" />
-                              )}
-                            </span>
-                          </div>
-
-                          {prompt.vocabulary.length > 0 && (
-                            <div className="picture-vocabulary">
-                              {prompt.vocabulary.map((word) => (
-                                <span key={word}>{word}</span>
-                              ))}
-                            </div>
-                          )}
-
-                          <button
-                            type="button"
-                            className="btn-record-picture"
-                            onClick={() =>
-                              onPracticeImage?.(
-                                prompt.topicId,
-                                prompt.imageIndex,
-                              )
-                            }
-                          >
-                            {latestRecord ? (
-                              <BiLabel zh="再錄一次來修改" pinyin="Zài lù yí cì lái xiūgǎi" en="Revise with another recording" />
-                            ) : (
-                              <BiLabel zh="錄這個部分" pinyin="Lù zhège bùfen" en="Record this part" />
-                            )}
-                          </button>
-
-                          {latestRecord && (
-                            <div className="revision-summary">
-                              <strong>
-                                <BiLabel
-                                  zh={`已經試了 ${attemptCount} 次`}
-                                  pinyin={`Yǐjīng shì le ${attemptCount} cì`}
-                                  en={`${attemptCount} ${attemptCount === 1 ? "attempt" : "attempts"} collected`}
-                                />
-                              </strong>
-                            </div>
-                          )}
-
-                          {latestRecord ? (
-                            <details className="prompt-feedback-details">
-                              <summary><BiLabel zh="看回饋" pinyin="Kàn huíkuì" en="View feedback" /></summary>
-                              <RecordCard
-                                record={latestRecord}
-                                onDeleteRecord={onDeleteRecord}
-                                compact
-                              />
-                            </details>
-                          ) : (
-                            <div className="picture-empty-result">
-                              <BiLabel zh="準備好了就錄這張圖片。" pinyin="Zhǔnbèi hǎo le jiù lù zhè zhāng túpiàn." en="Record this picture when you are ready." />
-                            </div>
-                          )}
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-
-                {topicRecords.length > 0 && (
-                  <p className="topic-record-count">
-                    <BiLabel
-                      zh={`這個主題一共有 ${topicRecords.length} 次嘗試。`}
-                      pinyin={`Zhège zhǔtí yígòng yǒu ${topicRecords.length} cì chángshì.`}
-                      en={`${topicRecords.length} total ${topicRecords.length === 1 ? "attempt" : "attempts"} in this topic.`}
-                    />
-                  </p>
-                )}
-              </section>
-            );
-          })}
-        </div>
+      <div className="stories-header">
+        <p className="stories-kicker">
+          <BiLabel zh="我的練習" pinyin="Wǒ de liànxí" en="My practice" />
+        </p>
+        <h1>
+          <BiLabel zh="我的成績" pinyin="Wǒ de chéngjì" en="My Profile" />
+        </h1>
+        <p className="stories-subtitle">
+          <BiText
+            zh="看看你學了多少、拿了幾顆星。想練習就回課程列表。"
+            pinyin="Kànkan nǐ xué le duōshǎo, ná le jǐ kē xīng. Xiǎng liànxí jiù huí kèchéng lièbiǎo."
+            en="See your overall progress and stars — go back to the lesson list to practice."
+          />
+        </p>
       </div>
+
+      <section className="profile-stats" aria-label="Overall progress">
+        <div className="profile-stat-card">
+          <span className="profile-stat-label">
+            <BiLabel zh="總星星" pinyin="Zǒng xīngxīng" en="Total stars" />
+          </span>
+          <strong className="profile-stat-value profile-stat-stars">
+            {totalStars}
+            <span className="profile-stat-max"> / {maxStars}</span> ⭐
+          </strong>
+        </div>
+
+        <div className="profile-stat-card">
+          <span className="profile-stat-label">
+            <BiLabel zh="課程完成" pinyin="Kèchéng wánchéng" en="Lessons complete" />
+          </span>
+          <strong className="profile-stat-value">
+            {lessonsDone}
+            <span className="profile-stat-max"> / {lessonsTotal}</span>
+          </strong>
+          <div className="summary-progress">
+            <span
+              style={{
+                width: `${
+                  lessonsTotal === 0 ? 0 : Math.round((lessonsDone / lessonsTotal) * 100)
+                }%`,
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="profile-stat-card">
+          <span className="profile-stat-label">
+            <BiLabel zh="發音準確度" pinyin="Fāyīn zhǔnquèdù" en="Tone accuracy (avg)" />
+          </span>
+          <strong className="profile-stat-value">
+            {averageToneAccuracy === null ? "—" : `${averageToneAccuracy}%`}
+          </strong>
+        </div>
+
+        <div className="profile-stat-card">
+          <span className="profile-stat-label">
+            <BiLabel zh="流暢度" pinyin="Liúchàng dù" en="Fluency (avg)" />
+          </span>
+          <strong className="profile-stat-value">
+            {averageFluency === null ? "—" : `${averageFluency}/100`}
+          </strong>
+        </div>
+      </section>
+
+      <StudentHelpCard helpRequests={helpRequests} onRaiseHand={onRaiseHand} />
+
+      <MyStoryFeedbackHistory submissions={mySubmissions} />
+
+      <section className="profile-overview" aria-label="Progress overview">
+        <div className="profile-tabs" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={profileTab === "lesson"}
+            className={`profile-tab-btn ${profileTab === "lesson" ? "active" : ""}`}
+            onClick={() => setProfileTab("lesson")}
+          >
+            <BiLabel zh="按課程" pinyin="Àn kèchéng" en="By lesson" />
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={profileTab === "story"}
+            className={`profile-tab-btn ${profileTab === "story" ? "active" : ""}`}
+            onClick={() => setProfileTab("story")}
+          >
+            <BiLabel zh="按故事" pinyin="Àn gùshì" en="By story" />
+          </button>
+        </div>
+
+        {profileTab === "lesson" ? (
+          <div className="profile-lesson-list">
+            {groups.map((group, index) => {
+              const unlocked = isLessonGroupUnlocked(groups, index, submittedIds);
+              const { done, total } = lessonCompletion(group, submittedIds);
+              const finished = total > 0 && done === total;
+              const groupQuizTopics = group.topics.filter((topic) => topicHasQuiz(topic));
+              const groupStars = groupQuizTopics.reduce(
+                (sum, topic) => sum + loadBestLocalStars(topic.id),
+                0,
+              );
+              const title =
+                group.lessonNumber !== null
+                  ? lessonTitle(group.lessonNumber)
+                  : { zh: "其他練習", pinyin: "Qítā liànxí", en: "Extra practice" };
+
+              return (
+                <div
+                  key={group.lessonNumber ?? "other"}
+                  className={`profile-lesson-row ${unlocked ? "" : "is-locked"}`}
+                >
+                  <div className={`profile-lesson-tile ${lessonTileClass(group, unlocked)}`}>
+                    {group.lessonNumber !== null ? (
+                      <>
+                        <span>LESSON</span>
+                        <strong>{group.lessonNumber}</strong>
+                      </>
+                    ) : (
+                      <strong>✦</strong>
+                    )}
+                  </div>
+
+                  <div className="profile-lesson-main">
+                    <p className="profile-lesson-title">
+                      {title.zh} <span className="profile-lesson-pin">{title.pinyin}</span>
+                    </p>
+                    {groupQuizTopics.length > 0 && (
+                      <p className="profile-lesson-stars">
+                        {"⭐".repeat(groupStars)}
+                        {"☆".repeat(groupQuizTopics.length * 3 - groupStars)}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="profile-lesson-side">
+                    {unlocked ? (
+                      <>
+                        <span className={`profile-chip ${finished ? "profile-chip-done" : ""}`}>
+                          {done}/{total} 完成
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-profile-practice"
+                          onClick={onBrowsePractice}
+                        >
+                          {finished ? (
+                            <BiLabel zh="複習" pinyin="Fùxí" en="Review" />
+                          ) : (
+                            <BiLabel zh="去練習" pinyin="Qù liànxí" en="Practice" />
+                          )}{" "}
+                          →
+                        </button>
+                      </>
+                    ) : (
+                      <span className="profile-chip profile-chip-locked">
+                        🔒{" "}
+                        <BiLabel
+                          zh="先完成上一課"
+                          pinyin="Xiān wánchéng shàng yí kè"
+                          en="finish the previous lesson"
+                        />
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="profile-story-list">
+            {studentTopics.map((topic) => {
+              const hasQuiz = topicHasQuiz(topic);
+              const stars = hasQuiz ? loadBestLocalStars(topic.id) : null;
+              const submitted = submittedIds.has(topicStoryId(topic));
+              const finished = isStoryFinished(topic, submittedIds);
+              const previewImage = topic.images[0];
+
+              return (
+                <div key={topic.id} className="profile-story-row">
+                  <div className="profile-story-thumb">
+                    {previewImage ? <img src={previewImage} alt="" /> : "🖼️"}
+                  </div>
+
+                  <div className="profile-story-main">
+                    <p className="profile-story-name">{topic.name}</p>
+                    <p className="profile-story-tag">
+                      {topic.lessonNumber != null ? (
+                        <BiLabel
+                          zh={`第 ${topic.lessonNumber} 課`}
+                          pinyin={`Dì ${topic.lessonNumber} kè`}
+                          en={`Lesson ${topic.lessonNumber}`}
+                        />
+                      ) : (
+                        <BiLabel zh="其他" pinyin="Qítā" en="Extra" />
+                      )}
+                    </p>
+                  </div>
+
+                  {stars !== null && (
+                    <span className="profile-story-stars">
+                      {"⭐".repeat(stars)}
+                      {"☆".repeat(3 - stars)}
+                    </span>
+                  )}
+
+                  <span
+                    className={`profile-chip ${
+                      finished ? "profile-chip-done" : submitted ? "" : "profile-chip-todo"
+                    }`}
+                  >
+                    {finished ? (
+                      <BiLabel zh="完成" pinyin="Wánchéng" en="Done" />
+                    ) : submitted ? (
+                      <BiLabel zh="練習中" pinyin="Liànxí zhōng" en="In progress" />
+                    ) : (
+                      <BiLabel zh="還沒開始" pinyin="Hái méi kāishǐ" en="Not started" />
+                    )}
+                  </span>
+
+                  <button
+                    type="button"
+                    className="btn-profile-practice ghost"
+                    onClick={onBrowsePractice}
+                  >
+                    {submitted ? (
+                      <BiLabel zh="複習" pinyin="Fùxí" en="Review" />
+                    ) : (
+                      <BiLabel zh="練習" pinyin="Liànxí" en="Practice" />
+                    )}{" "}
+                    →
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }

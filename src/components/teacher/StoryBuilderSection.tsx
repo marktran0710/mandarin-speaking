@@ -14,7 +14,10 @@ import {
   loadCustomStories,
   resolveImageUrl,
   saveCustomStories,
+  storyToTopic,
 } from "../../utils/teacherStories";
+import { storyQuizExclusions } from "../../utils/quizExclusions";
+import { buildApprovedMaterial, storyQuizNeedsReview } from "../../utils/quizApprovedMaterial";
 import { exportStoryFile, readStoryImportFile } from "../../utils/storyPortability";
 import VocabularyTable from "../VocabularyTable";
 import PhraseTable from "../PhraseTable";
@@ -261,14 +264,24 @@ function validateCustomStoryDraft(
 
 export default function StoryBuilderSection({
   onStorySaved,
+  onGoToQuizReview,
 }: {
   onStorySaved?: () => void;
+  /** Jumps the teacher shell to Materials → Quiz Review, pre-selecting the
+   * lesson the just-saved story belongs to. */
+  onGoToQuizReview?: (lessonNumber: number | null) => void;
 }) {
   const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
     () => loadCustomStories(),
   );
   const [customDraft, setCustomDraft] = useState(emptyCustomStoryDraft);
   const [editingStoryId, setEditingStoryId] = useState<string | null>(null);
+  // Shown after updating an existing story — quiz material may now be
+  // stale against what's approved, and there was previously no prompt at
+  // all telling a teacher to go check.
+  const [savedReviewBanner, setSavedReviewBanner] = useState<{ lessonNumber: number | null } | null>(
+    null,
+  );
   const [vocabDraftGeneration, setVocabDraftGeneration] = useState(0);
   const [vocabFillLoadingIndex, setVocabFillLoadingIndex] = useState<number | null>(null);
   const [vocabFillError, setVocabFillError] = useState("");
@@ -282,6 +295,7 @@ export default function StoryBuilderSection({
   const [customStoryNotice, setCustomStoryNotice] = useState("");
   const [importError, setImportError] = useState("");
   const [importNotice, setImportNotice] = useState("");
+  const [lessonFilter, setLessonFilter] = useState<string>("all");
   const preparedFrameCount = customDraft.imageUrls.filter((imageUrl, index) => {
     return imageUrl.trim() || customDraft.prompts.easy[index].trim();
   }).length;
@@ -641,13 +655,16 @@ export default function StoryBuilderSection({
       // keep going rather than failing the whole save.
       console.warn("Could not cache custom stories in localStorage (quota).");
     }
+    setCustomStoryNotice(
+      editingStoryId ? "Custom story updated." : "Custom story saved.",
+    );
+    if (editingStoryId) {
+      setSavedReviewBanner({ lessonNumber: storyToStore.lessonNumber ?? null });
+    }
     setEditingStoryId(null);
     setCustomDraft(emptyCustomStoryDraft);
     setVocabDraftGeneration((generation) => generation + 1);
     setValidationErrors({});
-    setCustomStoryNotice(
-      editingStoryId ? "Custom story updated." : "Custom story saved.",
-    );
     onStorySaved?.();
   };
 
@@ -757,6 +774,21 @@ export default function StoryBuilderSection({
     setValidationErrors({});
     setCustomStoryNotice("");
   };
+
+  const lessonNumbersInUse = Array.from(
+    new Set(
+      customStories
+        .map((story) => story.lessonNumber)
+        .filter((lessonNumber): lessonNumber is number => lessonNumber != null),
+    ),
+  ).sort((a, b) => a - b);
+  const hasStoriesWithoutLesson = customStories.some((story) => story.lessonNumber == null);
+
+  const filteredCustomStories = customStories.filter((story) => {
+    if (lessonFilter === "all") return true;
+    if (lessonFilter === "others") return story.lessonNumber == null;
+    return story.lessonNumber === Number(lessonFilter);
+  });
 
   return (
     <section className="teacher-panel teacher-content-builder">
@@ -889,6 +921,31 @@ export default function StoryBuilderSection({
           {customStoryNotice && (
             <div className="teacher-form-success" role="status">
               {customStoryNotice}
+            </div>
+          )}
+          {savedReviewBanner && (
+            <div className="quiz-review-nudge-banner" role="status">
+              <span>⚙️ Quiz material may need review before students see it.</span>
+              <div className="quiz-review-nudge-actions">
+                <button
+                  type="button"
+                  className="quiz-review-nudge-go"
+                  onClick={() => {
+                    onGoToQuizReview?.(savedReviewBanner.lessonNumber);
+                    setSavedReviewBanner(null);
+                  }}
+                >
+                  Go to Quiz Review →
+                </button>
+                <button
+                  type="button"
+                  className="quiz-review-nudge-dismiss"
+                  aria-label="Dismiss"
+                  onClick={() => setSavedReviewBanner(null)}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
           )}
 
@@ -1110,6 +1167,22 @@ export default function StoryBuilderSection({
         <div className="custom-story-library" aria-label="Saved custom stories">
           <div className="custom-story-library-header">
             <h3>Teacher Story Library</h3>
+            {(lessonNumbersInUse.length > 0 || hasStoriesWithoutLesson) && (
+              <select
+                className="custom-story-lesson-filter"
+                aria-label="Filter stories by lesson"
+                value={lessonFilter}
+                onChange={(event) => setLessonFilter(event.target.value)}
+              >
+                <option value="all">All lessons</option>
+                {lessonNumbersInUse.map((lessonNumber) => (
+                  <option key={lessonNumber} value={String(lessonNumber)}>
+                    Lesson {lessonNumber}
+                  </option>
+                ))}
+                {hasStoriesWithoutLesson && <option value="others">Others</option>}
+              </select>
+            )}
             <label className="btn-import-custom-story">
               Import story
               <input
@@ -1133,17 +1206,29 @@ export default function StoryBuilderSection({
               {importNotice}
             </div>
           )}
-          {customStories.length === 0 ? (
+          {filteredCustomStories.length === 0 ? (
             <div className="teacher-empty-panel">
-              <strong>No custom stories yet</strong>
+              <strong>
+                {customStories.length === 0 ? "No custom stories yet" : "No stories for this lesson"}
+              </strong>
               <p>
-                Add image links and prompts to prepare a reusable classroom
-                speaking activity.
+                {customStories.length === 0
+                  ? "Add image links and prompts to prepare a reusable classroom speaking activity."
+                  : "Try a different lesson filter."}
               </p>
             </div>
           ) : (
             <div className="custom-story-list">
-              {customStories.map((story) => (
+              {filteredCustomStories.map((story) => {
+                // Easy tier only: the fine-grained per-tier view lives on
+                // the Quiz Review page once a teacher acts on this badge —
+                // this is just a "something here needs a look" signal.
+                const quizNeedsReview = storyQuizNeedsReview(
+                  story,
+                  buildApprovedMaterial(storyToTopic(story, "easy"), storyQuizExclusions(story)),
+                  "easy",
+                );
+                return (
                 <article className="custom-story-item" key={story.id}>
                   <div className="custom-story-item-header">
                     <div>
@@ -1153,6 +1238,14 @@ export default function StoryBuilderSection({
                         )}
                         {story.title}
                       </strong>
+                      {quizNeedsReview && (
+                        <span
+                          className="quiz-needs-review-badge"
+                          title="Quiz material has changed since it was last approved — check Quiz Review before students see it."
+                        >
+                          ⚙️ Quiz needs review
+                        </span>
+                      )}
                       <span>
                         {story.published ? "Published" : "Draft"}
                         {" - "}
@@ -1216,7 +1309,8 @@ export default function StoryBuilderSection({
                     ))}
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -1344,7 +1438,12 @@ function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
     return {
       easy: frames.map((frame, index) => {
         const value = frame?.[backendFields.easy] as string | undefined;
-        return value || (field === "prompts" ? emptyCustomStoryDraft.prompts.easy[index] : "");
+        // The default prompt list only covers the 6 stock scenes, so a story
+        // saved with more frames than that has no default to fall back on —
+        // every tier array still has to come out as strings, not holes.
+        const fallback =
+          field === "prompts" ? emptyCustomStoryDraft.prompts.easy[index] ?? "" : "";
+        return value || fallback;
       }),
       medium: frames.map((frame) => (frame?.[backendFields.medium] as string | undefined) || ""),
       hard: frames.map((frame) => (frame?.[backendFields.hard] as string | undefined) || ""),

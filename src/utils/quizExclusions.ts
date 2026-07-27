@@ -66,6 +66,71 @@ export interface WordQuizMaterial {
   aiLookalikes?: string[];
 }
 
+export interface QuizMarksExportFile {
+  storyId: string;
+  storyTitle: string;
+  exportedAt: string;
+  exclusions: QuizExclusion[];
+}
+
+/** Downloads a story's current marks as a standalone .json file — a backup
+ * a teacher can restore later via readQuizMarksImportFile, mirroring
+ * storyPortability.ts's exportStoryFile/readStoryImportFile pair. */
+export function exportQuizMarksFile(
+  story: { id: string; title: string },
+  exclusions: QuizExclusion[],
+): void {
+  const payload: QuizMarksExportFile = {
+    storyId: story.id,
+    storyTitle: story.title,
+    exportedAt: new Date().toISOString(),
+    exclusions,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `quiz-marks-${story.id}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+/** Parses and validates a file produced by exportQuizMarksFile. Doesn't
+ * check storyId against the story being imported into — the caller decides
+ * whether to warn (a teacher may deliberately copy marks between two
+ * similar stories). */
+export async function readQuizMarksImportFile(file: File): Promise<QuizMarksExportFile> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await file.text());
+  } catch {
+    throw new Error("That file is not valid JSON.");
+  }
+
+  const obj = parsed as Partial<QuizMarksExportFile> | null;
+  if (!obj || typeof obj !== "object" || !Array.isArray(obj.exclusions)) {
+    throw new Error("This file doesn't look like a quiz-marks export.");
+  }
+  const exclusions = obj.exclusions.filter(
+    (e): e is QuizExclusion =>
+      Boolean(e) &&
+      typeof e === "object" &&
+      typeof (e as QuizExclusion).word === "string" &&
+      typeof (e as QuizExclusion).kind === "string",
+  );
+
+  return {
+    storyId: typeof obj.storyId === "string" ? obj.storyId : "",
+    storyTitle: typeof obj.storyTitle === "string" ? obj.storyTitle : "",
+    exportedAt: typeof obj.exportedAt === "string" ? obj.exportedAt : "",
+    exclusions,
+  };
+}
+
 /** Strips excluded material from one word's quiz inputs. Returns null when
  * the whole word is excluded (the caller drops the entry entirely). */
 export function applyExclusionsToWord(

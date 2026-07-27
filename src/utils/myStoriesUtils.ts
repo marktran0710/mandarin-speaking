@@ -1,4 +1,3 @@
-import { getTopicVocabulary } from "../components/TopicSelector";
 import type { VocabQuizAttempt } from "../services/database";
 import { loadPublishedTeacherTopics, type NarrativeMode } from "./teacherStories";
 import type { AudioRecord } from "../pages/MyStoriesPage";
@@ -6,28 +5,6 @@ import type { CustomStoryValidationErrors } from "../components/teacher/StoryBui
 
 export function getStudentTopics() {
   return loadPublishedTeacherTopics();
-}
-
-export interface PromptImage {
-  topicId: string;
-  topicName: string;
-  description: string;
-  imageUrl: string;
-  imageIndex: number;
-  vocabulary: string[];
-}
-
-export function getPromptImages(topics = getStudentTopics()): PromptImage[] {
-  return topics.flatMap((topic) =>
-    topic.images.map((imageUrl, imageIndex) => ({
-      topicId: topic.id,
-      topicName: topic.name,
-      description: topic.description,
-      imageUrl,
-      imageIndex,
-      vocabulary: getTopicVocabulary(topic, imageIndex),
-    })),
-  );
 }
 
 /** Normal-mode stories are a 6-scene story; Describe/Listen & Retell are single-frame activities. */
@@ -411,13 +388,6 @@ export function getAudioUploadError(file: File): string {
   }
 
   return "";
-}
-
-export function isPromptRecord(record: AudioRecord, prompt: PromptImage): boolean {
-  return (
-    record.imageUrl === prompt.imageUrl ||
-    (record.topicId === prompt.topicId && record.imageIndex === prompt.imageIndex)
-  );
 }
 
 export function getToneName(tone: number): string {

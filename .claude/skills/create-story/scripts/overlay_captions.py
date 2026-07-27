@@ -1,8 +1,13 @@
 """Overlay Chinese caption text into the empty speech bubbles of a generated
-comic-grid image (see references/image-prompt-template.md's speech-bubble
+comic-grid image (see references/image-prompt-template.md's blank-bubble
 mode: the image prompt only ever asks for blank bubble shapes, never for
 AI-rendered text, so the real text is added here afterward from the
 Caption Script).
+
+This captions ONE image at one reading level. For the usual case — the same
+artwork captioned at all three tiers and stacked into one page — use
+build_tiered_page.py instead; it wraps this logic and adds caption strips for
+panels with no bubble.
 
 Usage:
     python overlay_captions.py IMAGE_PATH CONFIG_JSON OUT_PATH [--font PATH]
@@ -42,6 +47,11 @@ DEFAULT_FONT_CANDIDATES = [
 LINE_SPACING = 1.5
 PAD = 0.82  # shrink each box by this factor for margin from the drawn outline
 
+# Chinese typesetting forbids these from starting a line (禁則). Breaking
+# "整齊多了，快進來坐" after 了 would push the comma to the head of the next
+# line, which reads as a typo to anyone literate in the script.
+NO_LINE_START = "。，、；：？！）」』】〉》”’%…·"
+
 
 def find_font():
     for path in DEFAULT_FONT_CANDIDATES:
@@ -52,25 +62,39 @@ def find_font():
     )
 
 
+def wrap_text(draw, text, box_w, font):
+    """Wrap to `box_w`, honouring explicit newlines and the 禁則 rule.
+
+    Chinese has no spaces to break on, so wrapping is by character width. A
+    line may run one character over rather than orphan a comma or full stop
+    onto the next line.
+    """
+    sample = "測試字寬"
+    avg_w = draw.textlength(sample, font=font) / len(sample)
+    per_line = max(1, int(box_w / avg_w))
+    lines = []
+    for paragraph in text.split("\n"):
+        if not paragraph:
+            lines.append("")
+            continue
+        current = ""
+        for char in paragraph:
+            if len(current) + 1 > per_line and char not in NO_LINE_START:
+                lines.append(current)
+                current = char
+            else:
+                current += char
+        lines.append(current)
+    return lines
+
+
 def wrap_and_fit(draw, text, box_w, box_h, font_path, max_size=22, min_size=8):
     box_w *= PAD
     box_h *= PAD
     font, lines, line_h = None, [text], 1
     for size in range(max_size, min_size - 1, -1):
         font = ImageFont.truetype(font_path, size)
-        sample = "測試字寬"
-        avg_w = draw.textlength(sample, font=font) / len(sample)
-        chars_per_line = max(1, int(box_w / avg_w))
-        lines = []
-        cur = ""
-        for ch in text:
-            if len(cur) + 1 > chars_per_line:
-                lines.append(cur)
-                cur = ch
-            else:
-                cur += ch
-        if cur:
-            lines.append(cur)
+        lines = wrap_text(draw, text, box_w, font)
         line_h = font.getbbox("測")[3] - font.getbbox("測")[1]
         total_h = line_h * len(lines) * LINE_SPACING
         max_line_w = max(draw.textlength(line, font=font) for line in lines)

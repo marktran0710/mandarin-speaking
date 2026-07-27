@@ -1,6 +1,7 @@
 《我的錢包在哪裡？》Where Is My Wallet?
 Situation: Zhongming is about to leave for afternoon tea with Youmei, but his wallet is missing — he searches the house room by room and asks his mom for help.
 Source: Lesson 5 – 我的錢包在哪裡？ (Dialogue 2), mode: book
+7 turns — one per line of the book's dialogue, exactly as the book has them.
 
 ═══════════════════
 EASY (A1)
@@ -137,9 +138,9 @@ HARD (A2)
 ═══════════════════
 
 [Turn 1 — scene note: Zhongming stands in his bedroom doorway, backpack on one shoulder, patting his empty pockets, calling out to the living room]
-中明：媽，我跟友美兩點半要去喝下午茶，可是我找了半天，房間裡還是沒有，我快遲到了。
-Mā, wǒ gēn Yǒuměi liǎng diǎn bàn yào qù hē xiàwǔchá, kěshì wǒ zhǎo le bàntiān, fángjiān lǐ háishì méiyǒu, wǒ kuài chídào le.
-Mom, Youmei and I are going for afternoon tea at two thirty, but I've searched forever and it's still not in my room — I'm going to be late.
+中明：媽，我跟友美兩點半要去喝下午茶，可是我找了半天還是沒有，我快遲到了。
+Mā, wǒ gēn Yǒuměi liǎng diǎn bàn yào qù hē xiàwǔchá, kěshì wǒ zhǎo le bàntiān háishì méiyǒu, wǒ kuài chídào le.
+Mom, Youmei and I are going for afternoon tea at two thirty, but I've searched forever and still haven't found it — I'm going to be late.
 
 [Turn 2 — scene note: Mom in the living room, pointing at a wallet lying on the low table]
 媽媽：我剛剛看過，客廳的桌子上有一個錢包，那個是不是你的？
@@ -152,14 +153,14 @@ Nà ge bǐ wǒ de dà yìdiǎn, shì gēge de. Kètīng wǒ yě zhǎo guò le, z
 That one's a bit bigger than mine — it's my brother's. I've been through the living room too, it's really not there.
 
 [Turn 4 — scene note: Mom tilting her head toward the teal sofa, one hand gesturing low at floor level]
-媽媽：沙發下面呢？那裡最容易掉東西了，你找過了沒有？
-Shāfā xiàmiàn ne? Nàlǐ zuì róngyì diào dōngxi le, nǐ zhǎo guò le méiyǒu?
-What about under the sofa? That's where things drop most easily — have you checked there?
+媽媽：沙發下面呢？那裡最容易掉東西了。
+Shāfā xiàmiàn ne? Nàlǐ zuì róngyì diào dōngxi le.
+What about under the sofa? That's where things drop most easily.
 
 [Turn 5 — scene note: Zhongming kneeling on the floor, one arm reaching under the sofa, looking up at his mom]
-中明：沙發上面、下面跟旁邊我都找過了，還是沒有。媽，如果妳有空，幫我一起找，好嗎？
-Shāfā shàngmiàn, xiàmiàn gēn pángbiān wǒ dōu zhǎo guò le, háishì méiyǒu. Mā, rúguǒ nǐ yǒu kòng, bāng wǒ yìqǐ zhǎo, hǎo ma?
-I've already been over the sofa, under it and beside it — still nothing. Mom, if you have a moment, look with me, okay?
+中明：沙發上面、下面跟旁邊我都找過了。媽，如果妳有空，幫我一起找，好嗎？
+Shāfā shàngmiàn, xiàmiàn gēn pángbiān wǒ dōu zhǎo guò le. Mā, rúguǒ nǐ yǒu kòng, bāng wǒ yìqǐ zhǎo, hǎo ma?
+I've already been over the sofa, under it and beside it. Mom, if you have a moment, look with me, okay?
 
 [Turn 6 — scene note: Mom in the kitchen doorway, apron on, holding a pot, waving him back toward his room]
 媽媽：我今天真的沒空，現在要去廚房做飯，你再去房間仔細找一次吧。
@@ -167,9 +168,9 @@ Wǒ jīntiān zhēn de méi kòng, xiànzài yào qù chúfáng zuòfàn, nǐ z�
 I really don't have time today, I'm going to cook now. Go back to your room and look properly one more time.
 
 [Turn 7 — scene note: （中明再去房間）Zhongming back at his desk, lifting a textbook, the wallet underneath, face lighting up]
-中明：啊！找到了！原來錢包一直在我的書下面，我剛剛都沒看見。
-Ā! Zhǎodào le! Yuánlái qiánbāo yìzhí zài wǒ de shū xiàmiàn, wǒ gānggāng dōu méi kànjiàn.
-Ah! Found it! The wallet was under my book the whole time — I just didn't see it.
+中明：啊！找到了！原來錢包一直在我的書下面。
+Ā! Zhǎodào le! Yuánlái qiánbāo yìzhí zài wǒ de shū xiàmiàn.
+Ah! Found it! The wallet was under my book the whole time.
 
 Vocabulary
 1  半天    bàntiān    N     a long while; "half the day"
@@ -184,12 +185,11 @@ Vocabulary
 10 一起    yìqǐ       Adv   together
 11 仔細    zǐxì       Adv   carefully; thoroughly
 12 一直    yìzhí      Adv   all along; continuously
-13 看見    kànjiàn    V     to see; to catch sight of
 
 Key Phrases
 1  A 比 B + Adj + 一點。  —  那個比我的大一點。  —  Compare two things sitting side by side; 一點 keeps the difference modest and natural.
 2  我 + V + 過了。  —  客廳我也找過了。  —  Report that something is already done so nobody repeats it — the backbone of describing a search.
-3  V 了半天，還是…  —  我找了半天，房間裡還是沒有。  —  Complain that long effort changed nothing; extremely common in spoken Mandarin.
+3  V 了半天，還是…  —  我找了半天還是沒有。  —  Complain that long effort changed nothing; extremely common in spoken Mandarin.
 4  最容易 + V + 了。  —  那裡最容易掉東西了。  —  Name the most likely case; the 了 at the end is the spoken flavour, not past tense.
 5  如果…，…  —  如果妳有空，幫我一起找，好嗎？  —  Attach a polite condition to a request, giving the other person a way out.
 6  原來…一直…  —  原來錢包一直在我的書下面。  —  "It was there the whole time" — pairs the 原來 realization with 一直 for duration.

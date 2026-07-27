@@ -5,6 +5,8 @@
 // those are, not guess from a proxy like "has a translated word".
 
 import { collectQuizEntries, type VocabQuizEntry } from "../components/StoryVocabQuiz";
+import { applyExclusionsToWord, storyQuizExclusions } from "./quizExclusions";
+import type { CustomTeacherStory } from "./teacherStories";
 
 /** Just the story fields the quiz is built from. Structural on purpose:
  * TopicSelector and StoryRecorder each declare their own `Topic` and the
@@ -21,6 +23,10 @@ export interface QuizSourceTopic {
   vocabularyPos?: Record<number, string[]>;
   vocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
   vocabularyLookalike?: Record<number, string[][]>;
+  /** Present on teacher-authored topics (see teacherStories.ts's
+   * storyToTopic) — carries quizExclusions so a teacher's Quiz Review marks
+   * actually take effect here instead of only being saved and ignored. */
+  sourceStory?: CustomTeacherStory;
 }
 
 /** Every glossed word across every scene, deduped — the pool the
@@ -40,18 +46,30 @@ export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
   const partsOfSpeech: Array<string | undefined> = [];
   const aiSynonyms: Array<Array<{ synonym: string; distractors: string[] }> | undefined> = [];
   const aiLookalikes: Array<string[] | undefined> = [];
+  const exclusions = topic.sourceStory ? storyQuizExclusions(topic.sourceStory) : [];
   topic.images.forEach((_, si) => {
     const sceneSuggestedAnswer = topic.suggestedAnswers?.[si];
     (topic.vocabulary[si] || []).forEach((word, i) => {
+      const filtered = applyExclusionsToWord(
+        word,
+        {
+          aiDistractors: topic.vocabularyDistractors?.[si]?.[i],
+          aiCloze: topic.vocabularyCloze?.[si]?.[i],
+          aiSynonyms: topic.vocabularySynonym?.[si]?.[i],
+          aiLookalikes: topic.vocabularyLookalike?.[si]?.[i],
+        },
+        exclusions,
+      );
+      if (!filtered) return; // whole word excluded by the teacher
       words.push(word);
       translations.push(topic.vocabularyTranslation?.[si]?.[i]);
       suggestedAnswers.push(sceneSuggestedAnswer);
-      aiDistractors.push(topic.vocabularyDistractors?.[si]?.[i]);
+      aiDistractors.push(filtered.aiDistractors);
       pinyins.push(topic.vocabularyPinyin?.[si]?.[i]);
-      aiCloze.push(topic.vocabularyCloze?.[si]?.[i]);
+      aiCloze.push(filtered.aiCloze);
       partsOfSpeech.push(topic.vocabularyPos?.[si]?.[i]);
-      aiSynonyms.push(topic.vocabularySynonym?.[si]?.[i]);
-      aiLookalikes.push(topic.vocabularyLookalike?.[si]?.[i]);
+      aiSynonyms.push(filtered.aiSynonyms);
+      aiLookalikes.push(filtered.aiLookalikes);
     });
   });
   return collectQuizEntries(

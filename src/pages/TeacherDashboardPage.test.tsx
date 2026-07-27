@@ -414,7 +414,7 @@ describe("TeacherDashboardPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows completed picture status in the student workbook with published teacher materials", async () => {
+  it("lists a published teacher story in the My Profile by-story overview", async () => {
     const user = userEvent.setup();
     // First, create and publish a teacher story
     const { unmount } = renderDashboard();
@@ -441,27 +441,17 @@ describe("TeacherDashboardPage", () => {
           ...analyzedRecord,
           imageUrl: "https://example.com/adventure-1.jpg",
         }]}
-        onDeleteRecord={vi.fn()}
-        onPracticeImage={vi.fn()}
       />,
     );
 
     expect(
-      // The workbook heading is a bilingual BiLabel — its accessible name is
-      // "我的故事練習本 … My Story Workbook", so match by substring.
-      screen.getByRole("heading", { name: /My Story Workbook/ }),
+      // The page heading is a bilingual BiLabel — its accessible name is
+      // "我的成績 … My Profile", so match by substring.
+      screen.getByRole("heading", { name: /My Profile/ }),
     ).toBeInTheDocument();
-    const progressElements = screen.getAllByText("1/6");
-    expect(progressElements.length).toBeGreaterThan(0);
-    expect(screen.getByText("Feedback ready")).toBeInTheDocument();
 
-    const firstPrompt = screen.getAllByRole("article")[0];
-    expect(
-      within(firstPrompt).getByText("Revise with another recording"),
-    ).toBeInTheDocument();
-    expect(
-      within(firstPrompt).getByText("1 attempt collected"),
-    ).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /By story/ }));
+    expect(screen.getByText("Adventure Story")).toBeInTheDocument();
   }, 15000);
 });
 

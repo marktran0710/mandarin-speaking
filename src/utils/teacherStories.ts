@@ -1,5 +1,6 @@
 import type { Topic } from "../components/TopicSelector";
 import { numericToToneMarked } from "./pinyin";
+import { storyApprovedSnapshot } from "./quizApprovedMaterial";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -86,6 +87,17 @@ export interface CustomTeacherStory {
   lessonNumber?: number | null;
   narrativeMode?: NarrativeMode;
   firstFrameIsExample?: boolean;
+  /** Teacher quiz review's diff baseline, keyed by tier — see
+   * utils/quizMaterialDiff.ts. Opaque here to avoid a dependency cycle
+   * (quizMaterialDiff already imports StoryDifficultyLevel from this file). */
+  quizMaterialSnapshot?: Record<string, unknown>;
+  /** Teacher-approved AI quiz material, keyed by tier — see
+   * utils/quizApprovedMaterial.ts. What storyToTopic(story, level,
+   * "approved") actually serves students. */
+  quizApprovedSnapshot?: Record<string, unknown>;
+  /** Quiz Review's in-progress checkbox selections, keyed by tier — see
+   * utils/quizPendingApprovals.ts. Not yet published; survives a reload. */
+  quizPendingApprovals?: Record<string, unknown>;
 }
 
 export const CUSTOM_STORY_STORAGE_KEY = "teacherCustomStories";
@@ -112,7 +124,7 @@ export function saveCustomStories(stories: CustomTeacherStory[]) {
 export function loadPublishedTeacherTopics(): Topic[] {
   return loadCustomStories()
     .filter((story) => story.published)
-    .map((story) => storyToTopic(story));
+    .map((story) => storyToTopic(story, "easy", "approved"));
 }
 
 /** A story is authored once per scene, at the Easy tier, then optionally
@@ -185,7 +197,28 @@ export function storyHasTierContent(
 export function storyToTopic(
   story: CustomTeacherStory,
   difficultyLevel: StoryDifficultyLevel = "easy",
+  // "live" (default): the AI pools reflect whatever exists right now —
+  // what TeacherQuizReviewPage needs to show a teacher for review. "approved":
+  // the AI pools come only from quiz_approved_snapshot — what a student
+  // must be served, so an in-progress edit or a background pool-growth call
+  // (StoryRecorder's growVocabularyDistractorPool and friends) never reaches
+  // a student ahead of a teacher's explicit Approve & Publish.
+  source: "live" | "approved" = "live",
 ): Topic {
+  const approvedSnapshotEntries =
+    source === "approved" ? storyApprovedSnapshot(story, difficultyLevel) : null;
+  // Null (not an empty Map) when nothing has ever been approved for this
+  // tier — distinct from an approved-but-empty snapshot, which should still
+  // serve empty AI pools rather than falling through to live material.
+  // First occurrence wins on a duplicate word (built with a plain loop, not
+  // `new Map(entries)`, which would let a later scene's entry silently
+  // overwrite an earlier one) — matching collectQuizEntries' own dedup.
+  const approvedByWord = approvedSnapshotEntries
+    ? approvedSnapshotEntries.reduce((map, e) => {
+        if (!map.has(e.word)) map.set(e.word, e);
+        return map;
+      }, new Map<string, (typeof approvedSnapshotEntries)[number]>())
+    : null;
   const vocabulary = story.frames.reduce<Record<number, string[]>>(
     (allWords, frame, index) => ({
       ...allWords,
@@ -257,72 +290,85 @@ export function storyToTopic(
       !(frame[`vocabulary${TIER_SUFFIX[difficultyLevel]}` as keyof CustomStoryFrame] as
         | string
         | undefined)?.trim();
-    // vocabularyDistractors isn't tiered — it's regenerated per word by a
-    // dedicated AI endpoint rather than authored text, and isn't currently
-    // persisted by the backend at all (a separate, pre-existing gap).
-    if (tierUsesEasyVocabulary && frame.vocabularyDistractors && frame.vocabularyDistractors.trim()) {
-      try {
-        const parsed = JSON.parse(frame.vocabularyDistractors);
-        if (Array.isArray(parsed)) {
-          vocabularyDistractors[index] = parsed.map((row) =>
-            Array.isArray(row) ? row.filter((d): d is string => typeof d === "string") : [],
-          );
+    if (source === "live") {
+      // vocabularyDistractors isn't tiered — it's regenerated per word by a
+      // dedicated AI endpoint rather than authored text, and isn't currently
+      // persisted by the backend at all (a separate, pre-existing gap).
+      if (tierUsesEasyVocabulary && frame.vocabularyDistractors && frame.vocabularyDistractors.trim()) {
+        try {
+          const parsed = JSON.parse(frame.vocabularyDistractors);
+          if (Array.isArray(parsed)) {
+            vocabularyDistractors[index] = parsed.map((row) =>
+              Array.isArray(row) ? row.filter((d): d is string => typeof d === "string") : [],
+            );
+          }
+        } catch {
+          // Malformed/stale data — treat as absent rather than breaking the quiz.
         }
-      } catch {
-        // Malformed/stale data — treat as absent rather than breaking the quiz.
       }
-    }
-    // Same "not tiered, AI-grown rather than authored" story as
-    // vocabularyDistractors above.
-    if (tierUsesEasyVocabulary && frame.vocabularyLookalike && frame.vocabularyLookalike.trim()) {
-      try {
-        const parsed = JSON.parse(frame.vocabularyLookalike);
-        if (Array.isArray(parsed)) {
-          vocabularyLookalike[index] = parsed.map((row) =>
-            Array.isArray(row) ? row.filter((d): d is string => typeof d === "string") : [],
-          );
+      // Same "not tiered, AI-grown rather than authored" story as
+      // vocabularyDistractors above.
+      if (tierUsesEasyVocabulary && frame.vocabularyLookalike && frame.vocabularyLookalike.trim()) {
+        try {
+          const parsed = JSON.parse(frame.vocabularyLookalike);
+          if (Array.isArray(parsed)) {
+            vocabularyLookalike[index] = parsed.map((row) =>
+              Array.isArray(row) ? row.filter((d): d is string => typeof d === "string") : [],
+            );
+          }
+        } catch {
+          // Malformed/stale data — treat as absent rather than breaking the quiz.
         }
-      } catch {
-        // Malformed/stale data — treat as absent rather than breaking the quiz.
       }
-    }
-    // Same "not tiered, AI-grown rather than authored" story as
-    // vocabularyDistractors above.
-    if (tierUsesEasyVocabulary && frame.vocabularyCloze && frame.vocabularyCloze.trim()) {
-      try {
-        const parsed = JSON.parse(frame.vocabularyCloze);
-        if (Array.isArray(parsed)) {
-          vocabularyCloze[index] = parsed.map((row) =>
-            Array.isArray(row)
-              ? row.filter(
-                  (c): c is { sentence: string; distractors: string[] } =>
-                    Boolean(c) && typeof c.sentence === "string" && Array.isArray(c.distractors),
-                )
-              : [],
-          );
+      // Same "not tiered, AI-grown rather than authored" story as
+      // vocabularyDistractors above.
+      if (tierUsesEasyVocabulary && frame.vocabularyCloze && frame.vocabularyCloze.trim()) {
+        try {
+          const parsed = JSON.parse(frame.vocabularyCloze);
+          if (Array.isArray(parsed)) {
+            vocabularyCloze[index] = parsed.map((row) =>
+              Array.isArray(row)
+                ? row.filter(
+                    (c): c is { sentence: string; distractors: string[] } =>
+                      Boolean(c) && typeof c.sentence === "string" && Array.isArray(c.distractors),
+                  )
+                : [],
+            );
+          }
+        } catch {
+          // Malformed/stale data — treat as absent rather than breaking the quiz.
         }
-      } catch {
-        // Malformed/stale data — treat as absent rather than breaking the quiz.
       }
-    }
-    // Same "not tiered, AI-grown rather than authored" story as
-    // vocabularyCloze above.
-    if (tierUsesEasyVocabulary && frame.vocabularySynonym && frame.vocabularySynonym.trim()) {
-      try {
-        const parsed = JSON.parse(frame.vocabularySynonym);
-        if (Array.isArray(parsed)) {
-          vocabularySynonym[index] = parsed.map((row) =>
-            Array.isArray(row)
-              ? row.filter(
-                  (c): c is { synonym: string; distractors: string[] } =>
-                    Boolean(c) && typeof c.synonym === "string" && Array.isArray(c.distractors),
-                )
-              : [],
-          );
+      // Same "not tiered, AI-grown rather than authored" story as
+      // vocabularyCloze above.
+      if (tierUsesEasyVocabulary && frame.vocabularySynonym && frame.vocabularySynonym.trim()) {
+        try {
+          const parsed = JSON.parse(frame.vocabularySynonym);
+          if (Array.isArray(parsed)) {
+            vocabularySynonym[index] = parsed.map((row) =>
+              Array.isArray(row)
+                ? row.filter(
+                    (c): c is { synonym: string; distractors: string[] } =>
+                      Boolean(c) && typeof c.synonym === "string" && Array.isArray(c.distractors),
+                  )
+                : [],
+            );
+          }
+        } catch {
+          // Malformed/stale data — treat as absent rather than breaking the quiz.
         }
-      } catch {
-        // Malformed/stale data — treat as absent rather than breaking the quiz.
       }
+    } else if (tierUsesEasyVocabulary && approvedByWord) {
+      // Serving mode: every AI pool comes from the teacher-approved
+      // snapshot, looked up per word — never from whatever the live fields
+      // currently hold. A word with no approved entry (never reviewed, or
+      // added to the story since the last approval) simply gets no AI
+      // pools, same as a story that's never had any generated at all.
+      const words = vocabulary[index] || [];
+      vocabularyDistractors[index] = words.map((word) => approvedByWord.get(word)?.distractors ?? []);
+      vocabularyLookalike[index] = words.map((word) => approvedByWord.get(word)?.lookalike ?? []);
+      vocabularyCloze[index] = words.map((word) => approvedByWord.get(word)?.cloze ?? []);
+      vocabularySynonym[index] = words.map((word) => approvedByWord.get(word)?.synonym ?? []);
     }
     const frameSuggestedAnswer = tierText(frame, "suggestedAnswer", difficultyLevel);
     if (frameSuggestedAnswer && frameSuggestedAnswer.trim()) {

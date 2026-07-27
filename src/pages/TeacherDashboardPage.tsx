@@ -83,6 +83,11 @@ export default function TeacherDashboardPage({
   const [activeView, setActiveView] = useState<TeacherView>("overview");
   const [recordingsHelpTab, setRecordingsHelpTab] = useState<RecordingsHelpTab>("recordings");
   const [materialsTab, setMaterialsTab] = useState<MaterialsTab>("builder");
+  // A nonce (not just the lesson number) so clicking "Go to Quiz Review"
+  // twice for the same lesson still re-triggers the jump on the second click.
+  const [quizReviewJump, setQuizReviewJump] = useState<{ lessonNumber: number | null; nonce: number } | null>(
+    null,
+  );
   const [studentsTab, setStudentsTab] = useState<StudentsTab>("progress");
   const [analyticsTab, setAnalyticsTab] = useState<AnalyticsTab>("quiz");
   const [refreshing, setRefreshing] = useState(false);
@@ -287,10 +292,16 @@ export default function TeacherDashboardPage({
               onSelect={setMaterialsTab}
             />
             {materialsTab === "builder" && (
-              <StoryBuilderSection onStorySaved={onStorySaved} />
+              <StoryBuilderSection
+                onStorySaved={onStorySaved}
+                onGoToQuizReview={(lessonNumber) => {
+                  setQuizReviewJump({ lessonNumber, nonce: Date.now() });
+                  setMaterialsTab("quizReview");
+                }}
+              />
             )}
             {materialsTab === "imageBuilder" && <TeacherImageBuilderPage />}
-            {materialsTab === "quizReview" && <TeacherQuizReviewPage />}
+            {materialsTab === "quizReview" && <TeacherQuizReviewPage jumpToLesson={quizReviewJump} />}
           </>
         )}
 

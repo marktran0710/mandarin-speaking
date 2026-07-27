@@ -114,7 +114,12 @@
       "Bash(docker compose *)",
       "Bash(git -C \"D:/hautran/Lab/mandarin-speaking\" status --short)",
       "Bash(git -C \"D:/hautran/Lab/mandarin-speaking\" diff --stat)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(curl -s -m 5 -o /dev/null -w \"GET /api/custom-stories -> %{http_code}\\\\n\" http://127.0.0.1:8000/api/custom-stories)",
+      "Bash(curl -s -m 30 -X POST http://127.0.0.1:8000/api/custom-stories -H \"Content-Type: application/json\" --data-binary @one.json -o resp.json -w \"HTTP %{http_code}\\\\n\")",
+      "Bash(nohup npm run dev -- --port 5183)",
+      "Bash(taskkill //F //IM node.exe //FI \"WINDOWTITLE eq *vite*\")",
+      "Bash(pkill -f \"vite --port 5183\")"
     ]
   },
   "enabledPlugins": {

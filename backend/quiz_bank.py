@@ -245,6 +245,85 @@ def assemble_candidates(
     return picked[:target]
 
 
+def _is_excluded(
+    exclusions: Sequence[dict], word: str, kind: str, index: int | None = None
+) -> bool:
+    return any(
+        e.get("word") == word
+        and e.get("kind") == kind
+        and (e.get("index") is None or e.get("index") == index)
+        for e in exclusions
+    )
+
+
+def candidates_for_review(
+    words: Sequence[dict], exclusions: Sequence[dict]
+) -> list[Candidate]:
+    """Every currently-live AI question candidate for a story tier, as the
+    Quiz Review page's 'Validate' action checks them — one Candidate per
+    distractor pool (kind 'translation'), cloze candidate, and synonym
+    candidate, skipping whatever the teacher already excluded. Mirrors
+    scripts/dump-quiz-questions.py's word_questions() validity rules
+    (collectQuizEntries parity) so a validated item matches what the quiz
+    could actually serve. Look-alike pools aren't validated: they're plain
+    word lists with no "is this also correct" question shape to judge."""
+    out: list[Candidate] = []
+    for entry in words:
+        word = entry["word"]
+        translation = (entry.get("translation") or "").strip()
+
+        if not _is_excluded(exclusions, word, "distractors"):
+            wrongs = [d for d in entry.get("distractors", []) if d and d != translation]
+            if translation and wrongs:
+                out.append(
+                    Candidate(
+                        kind="translation",
+                        word=word,
+                        prompt=word,
+                        answer=translation,
+                        wrong_options=tuple(wrongs[: OPTION_COUNT - 1]),
+                        key=f"{word}:distractors",
+                    )
+                )
+
+        for i, candidate in enumerate(entry.get("cloze", [])):
+            if _is_excluded(exclusions, word, "cloze", i):
+                continue
+            sentence = candidate.get("sentence", "")
+            wrongs = [d for d in candidate.get("distractors", []) if d and d != word]
+            if not wrongs or sentence.count(word) != 1:
+                continue
+            out.append(
+                Candidate(
+                    kind="cloze",
+                    word=word,
+                    prompt=sentence.replace(word, CLOZE_BLANK, 1),
+                    answer=word,
+                    wrong_options=tuple(wrongs[: OPTION_COUNT - 1]),
+                    key=f"{word}:cloze:{i}",
+                )
+            )
+
+        for i, candidate in enumerate(entry.get("synonym", [])):
+            if _is_excluded(exclusions, word, "synonym", i):
+                continue
+            synonym = candidate.get("synonym", "")
+            wrongs = [d for d in candidate.get("distractors", []) if d and d != synonym]
+            if not synonym or synonym == word or not wrongs:
+                continue
+            out.append(
+                Candidate(
+                    kind="synonym",
+                    word=word,
+                    prompt=word,
+                    answer=synonym,
+                    wrong_options=tuple(wrongs[: OPTION_COUNT - 1]),
+                    key=f"{word}:synonym:{i}",
+                )
+            )
+    return out
+
+
 async def build_bank(
     chat: Chat,
     material_source: MaterialSource,

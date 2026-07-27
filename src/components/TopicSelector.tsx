@@ -138,7 +138,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
           saveCustomStories(merged);
           const published = merged
             .filter((s) => s.published)
-            .map((s) => storyToTopic(s as any))
+            .map((s) => storyToTopic(s as any, "easy", "approved"))
             .filter(isStoryModeTopic);
           setTopics(published);
           return;
@@ -148,7 +148,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
         }
         const published = (dbStories.length > 0 ? dbStories : localStories)
           .filter((s) => s.published)
-          .map((s) => storyToTopic(s as any))
+          .map((s) => storyToTopic(s as any, "easy", "approved"))
           .filter(isStoryModeTopic);
         setTopics(published);
       })

@@ -18,7 +18,6 @@ import {
   canUseDatabase,
   createAudioRecord,
   createHelpRequest,
-  deleteAudioRecordFromDatabase,
   HelpRequest,
   listAudioRecords,
   listCustomStories,
@@ -212,19 +211,6 @@ export default function App() {
     return undefined;
   };
 
-  const deleteAudioRecord = (id: string) => {
-    setAudioRecords((prev) => prev.filter((record) => record.id !== id));
-    const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
-    const updated = stored.filter((record: any) => record.id !== id);
-    localStorage.setItem("audioRecords", JSON.stringify(updated));
-
-    if (canUseDatabase()) {
-      deleteAudioRecordFromDatabase(id).catch((error) => {
-        console.error("Failed to delete audio record from database:", error);
-      });
-    }
-  };
-
   const handleLogin = () => {
     // StudentLoginPage has already written the session (it owns the name and
     // roster id); this only reacts to it.
@@ -244,6 +230,14 @@ export default function App() {
 
   const handlePracticeImage = (topicId: string, imageIndex: number) => {
     setPracticeTarget({ topicId, imageIndex, seq: Date.now() });
+    setCurrentPage("student-practice");
+  };
+
+  // My Profile's lesson/story rows link back to the lesson list to practice
+  // rather than jumping into a specific prompt — clears any stale target so
+  // CreateStoryPage renders the table-of-contents browse view.
+  const handleBrowsePractice = () => {
+    setPracticeTarget(null);
     setCurrentPage("student-practice");
   };
 
@@ -387,8 +381,7 @@ export default function App() {
       {currentPage === "student-stories" && activeRole === "student" && (
         <MyStoriesPage
           records={audioRecords}
-          onDeleteRecord={deleteAudioRecord}
-          onPracticeImage={handlePracticeImage}
+          onBrowsePractice={handleBrowsePractice}
           helpRequests={helpRequests}
           onRaiseHand={handleRaiseHand}
           publishedTopics={storyTopics}

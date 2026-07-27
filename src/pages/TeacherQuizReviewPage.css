@@ -70,6 +70,101 @@
 .tqr-count { color: var(--clay-muted); font-size: 12px; }
 .tqr-empty { color: var(--clay-muted); }
 
+.tqr-validate {
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--clay-body);
+  font-weight: 700;
+  cursor: pointer;
+}
+.tqr-validate:hover { border-color: var(--seal); }
+.tqr-validate:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Approve & Publish is the gate that actually changes what students see —
+   the gold/--seal primary, same as the rest of the design system's most
+   consequential actions. Gold fills never take a white label (see
+   --clay-on-seal), and switch to the warning color while confirming an
+   unresolved-suspicious publish rather than looking like the same calm
+   primary action. */
+.tqr-approve {
+  min-height: 40px;
+  padding: 0 18px;
+  border: none;
+  border-radius: var(--clay-radius-pill);
+  background: var(--seal);
+  color: var(--clay-on-seal);
+  font-weight: 700;
+  cursor: pointer;
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
+}
+.tqr-approve:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.tqr-only-changes {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clay-muted);
+  padding-bottom: 8px;
+}
+
+.tqr-file-input { display: none; }
+
+.tqr-story {
+  border-top: 1px solid var(--clay-hairline);
+  padding-top: 18px;
+  margin-top: 18px;
+}
+.tqr-story:first-of-type { border-top: none; margin-top: 0; }
+.tqr-story-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.tqr-story-title {
+  font-size: 19px;
+  margin: 0;
+  color: var(--clay-ink);
+}
+.tqr-story-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.tqr-io {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--clay-body);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.tqr-io:hover { border-color: var(--jade-deep); }
+.tqr-import-note {
+  font-size: 12px;
+  color: var(--clay-muted);
+  margin: -6px 0 10px;
+}
+
+.tqr-diff-badge {
+  font-size: 12px;
+  line-height: 1;
+}
+.tqr-diff-new { color: var(--clay-warning); }
+.tqr-diff-changed { color: var(--tone1-deep); }
+
 .tqr-scene { margin-bottom: 22px; }
 .tqr-scene-title {
   font-size: 15px;
@@ -111,6 +206,7 @@
 .tqr-pool {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 10px;
   font-size: 13px;
   padding: 4px 8px;
@@ -132,6 +228,62 @@
 }
 .tqr-pool-items { color: var(--clay-body); min-width: 0; }
 
+/* One assembled question — prompt + options with the correct answer
+   highlighted, instead of the raw pool text a teacher would otherwise have
+   to parse. Mirrors the approved mockup's .q-row layout. */
+.tqr-qrow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 10px;
+  padding: 10px 8px;
+  border-radius: var(--clay-radius-sm);
+}
+.tqr-qrow:hover { background: var(--clay-surface-soft, var(--clay-canvas)); }
+.tqr-qkind {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--clay-muted);
+  margin-bottom: 4px;
+}
+.tqr-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: var(--clay-radius-pill);
+  margin-bottom: 4px;
+}
+.tqr-status-badge.is-unchecked { background: var(--clay-hairline-soft, var(--clay-canvas)); color: var(--clay-muted); }
+.tqr-status-badge.is-clean { background: var(--jade-soft); color: var(--jade-deep); }
+.tqr-status-badge.is-suspicious { background: var(--clay-error-soft); color: var(--clay-error-deep); }
+.tqr-status-reason { font-weight: 500; }
+.tqr-qprompt { font-size: 14px; color: var(--clay-ink); margin-bottom: 6px; }
+.tqr-qprompt-en { font-size: 12px; color: var(--clay-muted); font-weight: 400; }
+.tqr-qoptions { display: flex; flex-wrap: wrap; gap: 6px; }
+.tqr-opt {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: var(--clay-radius-pill);
+  border: 1px solid var(--clay-hairline);
+  background: var(--clay-surface-card);
+  color: var(--clay-body);
+}
+.tqr-opt.is-correct {
+  border-color: var(--jade);
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+  font-weight: 700;
+}
+.tqr-qrow > .tqr-edit-form { grid-column: 1 / -1; }
+
 .tqr-trash {
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-pill);
@@ -145,4 +297,170 @@
 .tqr-trash.is-marked {
   background: var(--clay-error-soft);
   border-color: var(--clay-error);
+}
+
+.tqr-approve-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--seal);
+  cursor: pointer;
+}
+.tqr-approve-checkbox:disabled { cursor: not-allowed; opacity: 0.4; }
+
+.tqr-edit {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--clay-body);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 8px;
+}
+.tqr-edit:hover { border-color: var(--seal); }
+
+.tqr-edit-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 10px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+}
+.tqr-edit-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clay-muted);
+}
+.tqr-edit-form input[type="text"] {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-canvas);
+  color: var(--clay-ink);
+  font: inherit;
+  padding: 6px 8px;
+}
+.tqr-edit-actions { display: flex; gap: 8px; align-items: center; }
+
+/* Generate/Update Questions + the pending-candidate accept/reject panel */
+.tqr-generate {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--seal);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--seal-deep);
+  font-weight: 700;
+  cursor: pointer;
+}
+.tqr-generate:hover:not(:disabled) { background: var(--seal-soft); }
+.tqr-generate:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.tqr-generate-spinner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--clay-muted);
+  margin: 10px 0;
+}
+.tqr-spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid var(--clay-hairline);
+  border-top-color: var(--seal);
+  animation: tqr-spin 0.8s linear infinite;
+}
+@keyframes tqr-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .tqr-spinner { animation: none; } }
+
+.tqr-pending-panel {
+  margin: 10px 0 16px;
+  padding: 12px;
+  border: 1px solid var(--seal);
+  border-radius: var(--clay-radius-md);
+  background: var(--seal-soft);
+}
+.tqr-pending-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--clay-on-seal);
+  margin-bottom: 8px;
+}
+.tqr-pending-summary-actions { display: flex; gap: 8px; }
+
+.tqr-pending-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  opacity: 0;
+  transform: translateY(6px);
+  animation: tqr-reveal-row 0.32s ease forwards;
+}
+@keyframes tqr-reveal-row { to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .tqr-pending-row { animation: none; opacity: 1; transform: none; } }
+.tqr-pending-row.is-pending { border: 1px dashed var(--seal); }
+.tqr-pending-row.is-rejected { opacity: 0.6; }
+.tqr-pending-body { flex: 1; min-width: 0; }
+.tqr-pending-decide { display: flex; gap: 8px; flex-shrink: 0; }
+.tqr-pending-decided { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+.diff-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1px 8px;
+  border-radius: var(--clay-radius-pill);
+  margin-left: 6px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.diff-tag.is-new { background: var(--jade-soft); color: var(--jade-deep); }
+
+.decide-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--clay-hairline);
+  background: var(--clay-surface-card);
+  color: var(--clay-body);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: var(--clay-radius-pill);
+  cursor: pointer;
+}
+.decide-btn.accept:hover { border-color: var(--jade); background: var(--jade-soft); color: var(--jade-deep); }
+.decide-btn.reject:hover { border-color: var(--clay-error); background: var(--clay-error-soft); color: var(--clay-error-deep); }
+
+.undo-link {
+  border: none;
+  background: transparent;
+  color: var(--clay-muted);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
 }

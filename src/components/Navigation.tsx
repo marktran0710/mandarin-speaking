@@ -110,7 +110,7 @@ export default function Navigation({
                   className={`nav-link ${currentPage === "student-stories" ? "active" : ""}`}
                   onClick={() => onNavigate("student-stories")}
                 >
-                  <BiLabel zh="我的故事" pinyin="Wǒ de gùshì" en="My Stories" />
+                  <BiLabel zh="我的成績" pinyin="Wǒ de chéngjì" en="My Profile" />
                 </button>
               </li>
               {hasDescribeStories && (

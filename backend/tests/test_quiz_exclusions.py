@@ -85,3 +85,48 @@ class TestQuizExclusions:
             json={"exclusions": [{"word": "喝", "kind": "banana"}]},
         )
         assert response.status_code == 422
+
+
+class TestQuizMaterialSnapshot:
+    """materialSnapshot is keyed by difficulty tier (easy/medium/hard word
+    text and pools can differ per tier) — the frontend sends the whole map
+    each save, so one tier's save must not clobber another's baseline."""
+
+    def test_snapshot_round_trips(self, story_client):
+        snapshot = {
+            "easy": [
+                {"word": "喝", "translation": "drink", "distractors": ["吃"], "cloze": [], "synonym": []},
+            ],
+        }
+        response = story_client.put(
+            "/api/custom-stories/story-quiz-x/quiz-exclusions",
+            json={"exclusions": [], "materialSnapshot": snapshot},
+        )
+        assert response.status_code == 200
+
+        stories = story_client.get("/api/custom-stories").json()
+        story = next(s for s in stories if s["id"] == "story-quiz-x")
+        assert story["quizMaterialSnapshot"] == snapshot
+
+    def test_omitted_snapshot_leaves_previous_value(self, story_client):
+        snapshot = {
+            "easy": [{"word": "喝", "translation": "drink", "distractors": [], "cloze": [], "synonym": []}],
+        }
+        story_client.put(
+            "/api/custom-stories/story-quiz-x/quiz-exclusions",
+            json={"exclusions": [], "materialSnapshot": snapshot},
+        )
+        # A later save that marks something bad, without re-sending a
+        # snapshot, must not wipe the one already stored.
+        story_client.put(
+            "/api/custom-stories/story-quiz-x/quiz-exclusions",
+            json={"exclusions": [{"word": "喝", "kind": "word"}]},
+        )
+        stories = story_client.get("/api/custom-stories").json()
+        story = next(s for s in stories if s["id"] == "story-quiz-x")
+        assert story["quizMaterialSnapshot"] == snapshot
+
+    def test_new_story_has_no_snapshot(self, story_client):
+        stories = story_client.get("/api/custom-stories").json()
+        story = next(s for s in stories if s["id"] == "story-quiz-x")
+        assert story["quizMaterialSnapshot"] is None
