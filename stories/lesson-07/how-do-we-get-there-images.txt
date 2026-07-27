@@ -1,0 +1,310 @@
+Image prompt for 《怎麼到飯店去？》How Do We Get to the Hotel?
+8 turns → 3 columns × 3 rows (1 blank filler cell). Turn count follows
+the source text — never adjusted to suit a grid.
+
+HOW TO USE THIS FILE — generate ONE image, then edit it twice, all in the
+SAME chat:
+  1. Paste the IMAGE PROMPT — EASY block. This generates the base picture.
+  2. Paste the IMAGE EDIT PROMPT — MEDIUM block right after, in the same
+     chat. This asks the model to edit the image it just made — same
+     artwork, only the bubble text changes — instead of drawing a new one.
+  3. Paste the IMAGE EDIT PROMPT — HARD block the same way, still in the
+     same chat (it edits the EASY image again, not the MEDIUM one, so
+     changes don't stack).
+Editing preserves far more of the actual picture than a fresh generation
+does, because the model is transforming an image it can see rather than
+reconstructing the scene from text. If your chat doesn't carry the image
+forward (a new conversation, a different device), upload the EASY image
+file before pasting the edit prompt.
+
+This still will not produce byte-identical artwork across all three — an
+edit can nudge a line or a colour. For that, use the local compositing
+route in SKILL.md step 12 instead.
+
+(Chinese text in AI-generated images is unreliable — proofread every
+speech bubble against the CAPTION SCRIPT under each prompt and regenerate
+if any characters look wrong.)
+
+═══════════════════
+IMAGE PROMPT — EASY  (paste this first, to generate the base image)
+═══════════════════
+
+Single image — one comic page of 8 panels in a STRICT UNIFORM GRID of
+3 COLUMNS × 3 ROWS, laid out exactly like this:
+
++---------+---------+---------+
+| Panel 1 | Panel 2 | Panel 3 |
++---------+---------+---------+
+| Panel 4 | Panel 5 | Panel 6 |
++---------+---------+---------+
+| Panel 7 | Panel 8 |  blank  |
++---------+---------+---------+
+
+Every panel is EXACTLY THE SAME SIZE: identical width, identical height, each
+a landscape rectangle roughly 4:3, edges aligned so the columns and rows line
+up, equal thin light gutters, no hard comic-book borders. No panel may span
+two cells, no panel may be larger than another, and a panel's size does not
+change because its scene has more detail in it. No splash panel, no inset, no
+overlapping frame, no dynamic irregular comic layout.
+
+The story has 8 panels and the grid has 9 cells, so the last 1
+cell is drawn as a BLANK WHITE FILLER PANEL: same size, same border, same
+gutters as the rest, empty inside — no artwork, no bubble, no text. Do NOT widen the
+last real panel to fill the row, and do not drop a line to make the story fit a
+smaller grid.
+
+ONE PANEL = ONE LINE. All 8 lines listed below must appear, each alone in
+its own panel, in reading order.
+A panel whose line is spoken gets ONE simple rounded speech bubble — plain
+white with a black outline and a small tail pointing at the character named
+below. A narrator panel gets ONE rectangular caption box (no tail) along the
+bottom edge instead. Never two in a panel, never a panel without one. Write
+only the quoted Chinese inside a bubble; never write the speaker's name in it.
+
+Make the bubbles and boxes generously sized — roughly the top third of the
+panel, with the characters composed into the lower two thirds (this story's
+HARD lines are the longest — leave room for them even though this is the EASY
+image, since the next two prompts reuse these same bubble positions). No other
+text anywhere in the image: no title, no level label, no panel numbers, no
+signage, no letters of any alphabet outside the bubbles and boxes.
+
+COUNT CHECK — before finishing, count the panels: exactly 8 drawn panels plus 1 blank filler, filling
+the 3×3 grid. If a line has nowhere to go, a panel has been dropped: add
+it back rather than merging two lines into one bubble. Panel 8 is the ending
+of the story — a page without it is not the story.
+
+Flat digital illustration style, soft rounded shapes, bright late-morning
+school colour palette (pale mint walls, warm wood desks, navy and coral
+accents), limited colour palette, gentle clean outlines, friendly simple
+style, consistent lighting and colour across every panel.
+All panels take place in the same modern Taiwanese school building and just
+outside its front gate.
+
+CHARACTERS (identical in every panel they appear in):
+[YOUMEI] a young woman, about 19, long straight black hair half tied back
+with a small white clip, slim build, lavender hoodie, navy pleated skirt,
+white sneakers, and a small yellow notebook in her hand or bag in every panel.
+[YUANZHEN] a young woman, about 20, short neat black bob, warm oval face,
+red hairpin on her left side, mint green cardigan over a white t-shirt,
+dark jeans, beige canvas tote bag, and a blue smartphone in her hand in every panel.
+
+PANELS:
+Panel 1 (row 1, left): medium shot during school break, Youmei standing
+beside Yuanzhen's desk in a bright classroom doorway, yellow notebook open
+in one hand, leaning forward to ask about tomorrow's plan; Yuanzhen seated
+beside her desk, looking up attentively.
+Panel 2 (row 1, centre): closer over-the-shoulder shot from Youmei's side,
+Yuanzhen pointing to her blue smartphone screen with a simple hotel icon and
+route line, no readable text or numbers on the screen; Yuanzhen looks focused.
+Panel 3 (row 1, right): wider shot near a hallway window, Youmei holding a
+transit card and gesturing between a bus and a metro train visible outside
+in the distance, asking about transportation; Yuanzhen listens beside her.
+Panel 4 (row 2, left): medium shot just outside the school gate, Yuanzhen
+pointing down a nearby street toward a small modern hotel building visible
+not far away, confident expression; Youmei stands beside her watching the route.
+Panel 5 (row 2, centre): close-up from above, Youmei frowning at Yuanzhen's
+phone map while tracing a curved route line with one finger, uncertain face;
+Yuanzhen holds the phone steady.
+Panel 6 (row 2, right): two-shot in the hallway, Yuanzhen raising the blue
+phone between them and opening an online map, both girls leaning in to study
+the route, shoulders close, practical focused expressions.
+Panel 7 (row 3, left): medium shot at desk height, Youmei suddenly looking
+at the watch on her wrist, eyes wide, grabbing a textbook from the desk as
+class is about to resume; Yuanzhen turns toward the classroom.
+Panel 8 (row 3, centre): medium shot from behind the two girls, Yuanzhen
+nodding and closing the map on her phone while following Youmei through the
+classroom door, both carrying books and moving back to their seats.
+
+TEXT FOR EACH PANEL (EASY level):
+Panel 1 (bubble → Youmei): 元真，我們明天幾點去找妳的韓國朋友？
+Panel 2 (bubble → Yuanzhen): 我們下午四點要到天美飯店，她在那裡等我們。
+Panel 3 (bubble → Youmei): 我們要怎麼去？坐捷運還是坐公車？
+Panel 4 (bubble → Yuanzhen): 聽說那家飯店不遠，我想我們可以從學校走路去。
+Panel 5 (bubble → Youmei): 可是我不知道怎麼走，妳知道嗎？
+Panel 6 (bubble → Yuanzhen): 我也不知道。我們可以先上網看地圖。
+Panel 7 (bubble → Youmei): 啊！上課了！我們先上課吧。
+Panel 8 (bubble → Yuanzhen): 好。
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+EXPORT: about 4:3 (e.g. 1536 × 1152). Export as JPG at 80-85% quality,
+keeping backgrounds plain so each panel stays legible when scaled down.
+
+───────────────────
+CAPTION SCRIPT — EASY (proofread the generated text against this; not part
+of the prompt above)
+───────────────────
+Panel 1 — 友美：元真，我們明天幾點去找妳的韓國朋友？
+  Yuánzhēn, wǒmen míngtiān jǐ diǎn qù zhǎo nǐ de Hánguó péngyǒu?
+  — Yuanzhen, what time are we going to meet up with your Korean friends tomorrow?
+Panel 2 — 元真：我們下午四點要到天美飯店，她在那裡等我們。
+  Wǒmen xiàwǔ sì diǎn yào dào Tiānměi Fàndiàn, tā zài nàlǐ děng wǒmen.
+  — We have to arrive at Tianmei Hotel at 4 in the afternoon. She will wait for us there.
+Panel 3 — 友美：我們要怎麼去？坐捷運還是坐公車？
+  Wǒmen yào zěnme qù? Zuò jiéyùn háishì zuò gōngchē?
+  — How do we get there? By MRT or bus?
+Panel 4 — 元真：聽說那家飯店不遠，我想我們可以從學校走路去。
+  Tīngshuō nà jiā fàndiàn bù yuǎn, wǒ xiǎng wǒmen kěyǐ cóng xuéxiào zǒulù qù.
+  — I heard that the hotel is not far; I think we can go there from the school on foot.
+Panel 5 — 友美：可是我不知道怎麼走，妳知道嗎？
+  Kěshì wǒ bù zhīdào zěnme zǒu, nǐ zhīdào ma?
+  — But I don't know how to get there, do you?
+Panel 6 — 元真：我也不知道。我們可以先上網看地圖。
+  Wǒ yě bù zhīdào. Wǒmen kěyǐ xiān shàngwǎng kàn dìtú.
+  — I don't know either. We can check the map online first.
+Panel 7 — 友美：啊！上課了！我們先上課吧。
+  Ā! Shàngkè le! Wǒmen xiān shàngkè ba.
+  — Ah! The class has started! Let's go to class now.
+Panel 8 — 元真：好。
+  Hǎo.
+  — Okay.
+
+═══════════════════
+IMAGE EDIT PROMPT — MEDIUM  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes. The blank filler panel
+stays blank.
+
+The ONLY change: replace the text inside each panel's speech bubble or
+caption box with the lines below, panel by panel. If a bubble is now too
+small for its new text, resize ONLY that bubble to fit — never resize the
+artwork, move a panel, or change the panel count to make room.
+
+TEXT FOR EACH PANEL (MEDIUM level):
+Panel 1 (bubble → Youmei): 元真，我們明天下午幾點去找妳的韓國朋友？
+Panel 2 (bubble → Yuanzhen): 我們下午四點以前要到天美飯店，她會在那裡等我們。
+Panel 3 (bubble → Youmei): 我們應該怎麼去？坐捷運比較快，還是坐公車比較方便？
+Panel 4 (bubble → Yuanzhen): 聽說那家飯店離學校不太遠，我覺得我們可以直接走路去。
+Panel 5 (bubble → Youmei): 可是我還不知道怎麼走，妳可以先告訴我嗎？
+Panel 6 (bubble → Yuanzhen): 我也不太清楚。我們先上網看地圖，再決定怎麼走。
+Panel 7 (bubble → Youmei): 啊，已經上課了！我們先回教室上課吧。
+Panel 8 (bubble → Yuanzhen): 好，我們下課以後再看地圖。
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the MEDIUM lines above, and add "match the style, characters and panel layout
+of the image already generated in this chat as closely as possible" at the
+top.
+
+───────────────────
+CAPTION SCRIPT — MEDIUM (proofread the generated text against this; not
+part of the prompt above)
+───────────────────
+Panel 1 — 友美：元真，我們明天下午幾點去找妳的韓國朋友？
+  Yuánzhēn, wǒmen míngtiān xiàwǔ jǐ diǎn qù zhǎo nǐ de Hánguó péngyǒu?
+  — Yuanzhen, what time tomorrow afternoon are we going to meet up with your Korean friend?
+Panel 2 — 元真：我們下午四點以前要到天美飯店，她會在那裡等我們。
+  Wǒmen xiàwǔ sì diǎn yǐqián yào dào Tiānměi Fàndiàn, tā huì zài nàlǐ děng wǒmen.
+  — We need to arrive at Tianmei Hotel before four in the afternoon. She will be waiting for us there.
+Panel 3 — 友美：我們應該怎麼去？坐捷運比較快，還是坐公車比較方便？
+  Wǒmen yīnggāi zěnme qù? Zuò jiéyùn bǐjiào kuài, háishì zuò gōngchē bǐjiào fāngbiàn?
+  — How should we go? Is taking the MRT faster, or is taking the bus more convenient?
+Panel 4 — 元真：聽說那家飯店離學校不太遠，我覺得我們可以直接走路去。
+  Tīngshuō nà jiā fàndiàn lí xuéxiào bù tài yuǎn, wǒ juéde wǒmen kěyǐ zhíjiē zǒulù qù.
+  — I heard that hotel is not too far from school. I think we can walk there directly.
+Panel 5 — 友美：可是我還不知道怎麼走，妳可以先告訴我嗎？
+  Kěshì wǒ hái bù zhīdào zěnme zǒu, nǐ kěyǐ xiān gàosu wǒ ma?
+  — But I still don't know how to get there. Can you tell me first?
+Panel 6 — 元真：我也不太清楚。我們先上網看地圖，再決定怎麼走。
+  Wǒ yě bù tài qīngchǔ. Wǒmen xiān shàngwǎng kàn dìtú, zài juédìng zěnme zǒu.
+  — I'm not very sure either. Let's check the map online first, then decide how to go.
+Panel 7 — 友美：啊，已經上課了！我們先回教室上課吧。
+  Ā, yǐjīng shàngkè le! Wǒmen xiān huí jiàoshì shàngkè ba.
+  — Ah, class has already started! Let's go back to the classroom first.
+Panel 8 — 元真：好，我們下課以後再看地圖。
+  Hǎo, wǒmen xiàkè yǐhòu zài kàn dìtú.
+  — Okay, we'll look at the map again after class.
+
+═══════════════════
+IMAGE EDIT PROMPT — HARD  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes. The blank filler panel
+stays blank.
+
+The ONLY change: replace the text inside each panel's speech bubble or
+caption box with the lines below, panel by panel. If a bubble is now too
+small for its new text, resize ONLY that bubble to fit — never resize the
+artwork, move a panel, or change the panel count to make room.
+
+TEXT FOR EACH PANEL (HARD level):
+Panel 1 (bubble → Youmei): 元真，我們明天幾點出發，去找妳那位韓國朋友？
+Panel 2 (bubble → Yuanzhen): 我們下午四點前一定要到天美飯店，她會先在大廳等我們。
+Panel 3 (bubble → Youmei): 那我們怎麼過去？搭捷運比坐公車快，還是公車比較方便？
+Panel 4 (bubble → Yuanzhen): 聽說那家飯店離學校很近，走路比坐車方便，我們從學校出發就可以。
+Panel 5 (bubble → Youmei): 可是路線我不熟，如果走錯路怎麼辦？妳知道方向嗎？
+Panel 6 (bubble → Yuanzhen): 我也不熟。我們先上網查地圖，知道路線以後再走。
+Panel 7 (bubble → Youmei): 啊，已經上課了！我們先進教室，下課以後再看吧。
+Panel 8 (bubble → Yuanzhen): 好，等一下我傳地圖給妳。
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the HARD lines above, and add "match the style, characters and panel layout
+of the image already generated in this chat as closely as possible" at the
+top.
+
+───────────────────
+CAPTION SCRIPT — HARD (proofread the generated text against this; not
+part of the prompt above)
+───────────────────
+Panel 1 — 友美：元真，我們明天幾點出發，去找妳那位韓國朋友？
+  Yuánzhēn, wǒmen míngtiān jǐ diǎn chūfā, qù zhǎo nǐ nà wèi Hánguó péngyǒu?
+  — Yuanzhen, what time are we leaving tomorrow to go meet that Korean friend of yours?
+Panel 2 — 元真：我們下午四點前一定要到天美飯店，她會先在大廳等我們。
+  Wǒmen xiàwǔ sì diǎn qián yídìng yào dào Tiānměi Fàndiàn, tā huì xiān zài dàtīng děng wǒmen.
+  — We definitely need to arrive at Tianmei Hotel before four in the afternoon. She will wait for us in the lobby first.
+Panel 3 — 友美：那我們怎麼過去？搭捷運比坐公車快，還是公車比較方便？
+  Nà wǒmen zěnme guòqù? Dā jiéyùn bǐ zuò gōngchē kuài, háishì gōngchē bǐjiào fāngbiàn?
+  — Then how do we get over there? Is taking the MRT faster than taking the bus, or is the bus more convenient?
+Panel 4 — 元真：聽說那家飯店離學校很近，走路比坐車方便，我們從學校出發就可以。
+  Tīngshuō nà jiā fàndiàn lí xuéxiào hěn jìn, zǒulù bǐ zuòchē fāngbiàn, wǒmen cóng xuéxiào chūfā jiù kěyǐ.
+  — I heard that hotel is very close to school. Walking is more convenient than riding, so we can just leave from school.
+Panel 5 — 友美：可是路線我不熟，如果走錯路怎麼辦？妳知道方向嗎？
+  Kěshì lùxiàn wǒ bù shú, rúguǒ zǒu cuò lù zěnme bàn? Nǐ zhīdào fāngxiàng ma?
+  — But I'm not familiar with the route. What if we go the wrong way? Do you know the direction?
+Panel 6 — 元真：我也不熟。我們先上網查地圖，知道路線以後再走。
+  Wǒ yě bù shú. Wǒmen xiān shàngwǎng chá dìtú, zhīdào lùxiàn yǐhòu zài zǒu.
+  — I'm not familiar with it either. Let's check the map online first and leave after we know the route.
+Panel 7 — 友美：啊，已經上課了！我們先進教室，下課以後再看吧。
+  Ā, yǐjīng shàngkè le! Wǒmen xiān jìn jiàoshì, xiàkè yǐhòu zài kàn ba.
+  — Ah, class has already started! Let's go into the classroom first and look again after class.
+Panel 8 — 元真：好，等一下我傳地圖給妳。
+  Hǎo, děng yíxià wǒ chuán dìtú gěi nǐ.
+  — Okay, I'll send you the map in a little while.
+
+───────────────────
+FIXING A BAD GENERATION — reply in the same chat rather than starting over:
+
+- A panel missing (count first — there must be 8):
+  "This page only has 7 panels. It needs all 8, one line each, in order,
+  with the last 1 cell of the 3×3 grid left as a blank white panel. Do not
+  drop a line to make the grid fit."
+- Uneven panels / one big "hero" panel:
+  "Redraw with a strict uniform grid: 3 columns × 3 rows, all 8 panels
+  exactly the same size. No large panel, no merged cells."
+- An edit changed more than the text (redrew a face, shifted a panel):
+  "You changed more than the bubble text. Undo that and only replace the
+  words inside the bubbles — keep every other pixel of the artwork the same."
+- Garbled Chinese: regenerate or re-edit first — it often lands on the second
+  or third try. If it keeps failing, ask for the same page with every bubble
+  and box left completely blank, then composite the text locally (SKILL.md
+  step 12) for sharp, correct characters.

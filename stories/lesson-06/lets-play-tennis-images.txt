@@ -1,0 +1,306 @@
+Image prompt for 《週末去打網球吧！》Let's Play Tennis This Weekend!
+7 turns → 3 columns × 3 rows (2 blank filler cells). Turn count follows
+the source text — never adjusted to suit a grid.
+
+HOW TO USE THIS FILE — generate ONE image, then edit it twice, all in the
+SAME chat:
+  1. Paste the IMAGE PROMPT — EASY block. This generates the base picture.
+  2. Paste the IMAGE EDIT PROMPT — MEDIUM block right after, in the same
+     chat. This asks the model to edit the image it just made — same
+     artwork, only the bubble text changes — instead of drawing a new one.
+  3. Paste the IMAGE EDIT PROMPT — HARD block the same way, still in the
+     same chat (it edits the EASY image again, not the MEDIUM one, so
+     changes don't stack).
+Editing preserves far more of the actual picture than a fresh generation
+does, because the model is transforming an image it can see rather than
+reconstructing the scene from text. If your chat doesn't carry the image
+forward (a new conversation, a different device), upload the EASY image
+file before pasting the edit prompt.
+
+This still will not produce byte-identical artwork across all three — an
+edit can nudge a line or a colour. For that, use the local compositing
+route in SKILL.md step 12 instead.
+
+(Chinese text in AI-generated images is unreliable — proofread every
+speech bubble against the CAPTION SCRIPT under each prompt and regenerate
+if any characters look wrong.)
+
+═══════════════════
+IMAGE PROMPT — EASY  (paste this first, to generate the base image)
+═══════════════════
+
+Single image — one comic page of 7 panels in a STRICT UNIFORM GRID of
+3 COLUMNS × 3 ROWS, laid out exactly like this:
+
++---------+---------+---------+
+| Panel 1 | Panel 2 | Panel 3 |
++---------+---------+---------+
+| Panel 4 | Panel 5 | Panel 6 |
++---------+---------+---------+
+| Panel 7 |  blank  |  blank  |
++---------+---------+---------+
+
+Every panel is EXACTLY THE SAME SIZE: identical width, identical height, each
+a landscape rectangle roughly 4:3, edges aligned so the columns and rows line
+up, equal thin light gutters, no hard comic-book borders. No panel may span
+two cells, no panel may be larger than another, and a panel's size does not
+change because its scene has more detail in it. No splash panel, no inset, no
+overlapping frame, no dynamic irregular comic layout.
+
+The story has 7 panels and the grid has 9 cells, so the last 2
+cells are drawn as BLANK WHITE FILLER PANELS: same size, same border, same
+gutters as the rest, empty inside — no artwork, no bubble, no text. Do NOT widen the
+last real panel to fill the row, and do not drop a line to make the story fit a
+smaller grid.
+
+ONE PANEL = ONE LINE. All 7 lines listed below must appear, each alone in
+its own panel, in reading order.
+A panel whose line is spoken gets ONE simple rounded speech bubble — plain
+white with a black outline and a small tail pointing at the character named
+below. A narrator panel gets ONE rectangular caption box (no tail) along the
+bottom edge instead. Never two in a panel, never a panel without one. Write
+only the quoted Chinese inside a bubble; never write the speaker's name in it.
+
+Make the bubbles and boxes generously sized — roughly the top third of the
+panel, with the characters composed into the lower two thirds (this story's
+HARD lines are the longest — leave room for them even though this is the EASY
+image, since the next two prompts reuse these same bubble positions). No other
+text anywhere in the image: no title, no level label, no panel numbers, no
+signage, no letters of any alphabet outside the bubbles and boxes.
+
+COUNT CHECK — before finishing, count the panels: exactly 7 drawn panels plus 2 blank fillers, filling
+the 3×3 grid. If a line has nowhere to go, a panel has been dropped: add
+it back rather than merging two lines into one bubble. Panel 7 is the ending
+of the story — a page without it is not the story.
+
+Flat digital illustration style, soft rounded shapes, bright sunny outdoor
+colour palette (clear blue sky, leafy green campus trees, pale concrete,
+clean tennis-court green and red accents), limited colour palette, gentle
+clean outlines, friendly simple style, consistent lighting and colour across
+every panel. All panels take place around the same modern Taiwanese campus
+sports area with a running track, tennis courts, and a bench nearby.
+
+CHARACTERS (identical in every panel they appear in):
+[GUOAN] a friendly young man, about 20, short neat black hair, slim athletic
+build, square jaw, cobalt-blue zip hoodie over a white t-shirt, black jogger
+trousers, white running shoes, and a red sports watch on his left wrist in
+every panel.
+[YOUMEI] a young woman, about 19, shoulder-length black hair with a small
+yellow hairclip on the right side, round face, soft pink sweatshirt, light
+blue jeans, white sneakers, and a cream canvas tote bag over one shoulder in
+every panel.
+[YIWEN] a young woman, about 20, long black hair in a low ponytail, oval
+glasses, mint-green cardigan over a white top, navy pleated skirt, grey
+sneakers, and a purple tennis racket bag held or slung near her in every
+panel.
+
+PANELS:
+Panel 1 (row 1, left): medium wide shot at eye level, Guoan standing with
+Youmei and Yiwen near a campus sports bench, bright sunlight on the ground,
+Guoan holding up a phone showing a beach photo with no visible words,
+pointing toward the sunny sky with an excited expression; Youmei and Yiwen
+look at the phone.
+Panel 2 (row 1, centre): medium shot from slightly above, Youmei in the
+foreground raising both hands in a small embarrassed no gesture, shoulders
+drawn in, turning her head toward Yiwen; Guoan stands to the side listening,
+Yiwen is visible beside her.
+Panel 3 (row 1, right): closer shot on Yiwen, one hand near her chest and
+the other making a small so-so wave, modest smile, with a simple blue pool
+towel or water bottle on the bench behind her to keep the swimming topic
+visible without adding text.
+Panel 4 (row 2, left): wider side-angle shot, Guoan pointing toward the
+oval running track behind them, body turned from the group toward the track,
+inviting expression; Youmei and Yiwen follow his gesture with their eyes.
+Panel 5 (row 2, centre): medium shot, Youmei looking at the track and
+shaking her head with a shy smile, one hand held low and moving slowly as if
+showing slow running; Guoan and Yiwen remain nearby, listening.
+Panel 6 (row 2, right): medium wide shot from behind Youmei's shoulder,
+Yiwen pointing toward the tennis courts and lightly miming a forehand swing
+with one hand, purple racket bag visible; Guoan looks interested and Youmei
+looks surprised but encouraged.
+Panel 7 (row 3, left): wider closing shot, the three friends walking
+together toward the tennis court gate, Youmei smiling and nodding while
+holding a tennis racket, Guoan beside her with his red watch visible, Yiwen
+walking ahead with the purple racket bag.
+
+TEXT FOR EACH PANEL (EASY level):
+Panel 1 (bubble — Guoan): 今天天氣不錯，海邊的風景也很漂亮，我想去游泳，妳們想去嗎？
+Panel 2 (bubble — Youmei): 我不會游泳。宜文，妳會游泳嗎？
+Panel 3 (bubble — Yiwen): 我會游泳，可是游得不太好。
+Panel 4 (bubble — Guoan): 我們去跑步，怎麼樣？
+Panel 5 (bubble — Youmei): 我不喜歡跑步，我跑步跑得很慢。
+Panel 6 (bubble — Yiwen): 打網球怎麼樣？中明說妳的網球打得很好，我們一起去打吧。
+Panel 7 (bubble — Youmei): 好啊。
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+EXPORT: about 4:3 (e.g. 1536 × 1152). Export as JPG at 80-85% quality,
+keeping backgrounds plain so each panel stays legible when scaled down.
+
+───────────────────
+CAPTION SCRIPT — EASY (proofread the generated text against this; not part
+of the prompt above)
+───────────────────
+Panel 1 — 國安：今天天氣不錯，海邊的風景也很漂亮，我想去游泳，妳們想去嗎？
+  Jīntiān tiānqì búcuò, hǎibiān de fēngjǐng yě hěn piàoliàng, wǒ xiǎng qù yóuyǒng, nǐmen xiǎng qù ma?
+  — The weather is pretty good today, so is the view at the beach. I want to go swimming. Do you want to go?
+Panel 2 — 友美：我不會游泳。宜文，妳會游泳嗎？
+  Wǒ bú huì yóuyǒng. Yíwén, nǐ huì yóuyǒng ma?
+  — I can not swim. Yiwen, can you swim?
+Panel 3 — 宜文：我會游泳，可是游得不太好。
+  Wǒ huì yóuyǒng, kěshì yóu de bú tài hǎo.
+  — I can swim, but not very well.
+Panel 4 — 國安：我們去跑步，怎麼樣？
+  Wǒmen qù pǎobù, zěnmeyàng?
+  — How about we go running then?
+Panel 5 — 友美：我不喜歡跑步，我跑步跑得很慢。
+  Wǒ bù xǐhuān pǎobù, wǒ pǎobù pǎo de hěn màn.
+  — I do not like to run; I run slowly.
+Panel 6 — 宜文：打網球怎麼樣？中明說妳的網球打得很好，我們一起去打吧。
+  Dǎ wǎngqiú zěnmeyàng? Zhōngmíng shuō nǐ de wǎngqiú dǎ de hěn hǎo, wǒmen yìqǐ qù dǎ ba.
+  — How about playing tennis? Zhongming said you plays it well. Let's go play it together.
+Panel 7 — 友美：好啊。
+  Hǎo ā.
+  — Okay.
+
+═══════════════════
+IMAGE EDIT PROMPT — MEDIUM  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes. The blank filler panels
+stay blank.
+
+The ONLY change: replace the text inside each panel's speech bubble or
+caption box with the lines below, panel by panel. If a bubble is now too
+small for its new text, resize ONLY that bubble to fit — never resize the
+artwork, move a panel, or change the panel count to make room.
+
+TEXT FOR EACH PANEL (MEDIUM level):
+Panel 1 (bubble — Guoan): 今天天氣真不錯，海邊風景也很漂亮，我想先去游泳，妳們要一起去嗎？
+Panel 2 (bubble — Youmei): 我不太會游泳，所以有一點怕。宜文，妳會不會游泳？
+Panel 3 (bubble — Yiwen): 我會游泳，可是只會一點，游得還不太好。
+Panel 4 (bubble — Guoan): 那我們改去跑步，好不好？
+Panel 5 (bubble — Youmei): 我不太喜歡跑步，因為我跑得很慢，也很容易累。
+Panel 6 (bubble — Yiwen): 打網球怎麼樣？中明說妳網球打得很好，我們一起去打比較好玩。
+Panel 7 (bubble — Youmei): 好啊，那我們一起去打網球吧。
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the MEDIUM lines above, and add "match the style, characters and panel layout
+of the image already generated in this chat as closely as possible" at the
+top.
+
+───────────────────
+CAPTION SCRIPT — MEDIUM (proofread the generated text against this; not
+part of the prompt above)
+───────────────────
+Panel 1 — 國安：今天天氣真不錯，海邊風景也很漂亮，我想先去游泳，妳們要一起去嗎？
+  Jīntiān tiānqì zhēn búcuò, hǎibiān fēngjǐng yě hěn piàoliàng, wǒ xiǎng xiān qù yóuyǒng, nǐmen yào yìqǐ qù ma?
+  — The weather is really nice today, and the beach scenery is beautiful too. I want to go swimming first; do you want to go together?
+Panel 2 — 友美：我不太會游泳，所以有一點怕。宜文，妳會不會游泳？
+  Wǒ bú tài huì yóuyǒng, suǒyǐ yǒu yìdiǎn pà. Yíwén, nǐ huì bú huì yóuyǒng?
+  — I am not very good at swimming, so I am a little scared. Yiwen, can you swim?
+Panel 3 — 宜文：我會游泳，可是只會一點，游得還不太好。
+  Wǒ huì yóuyǒng, kěshì zhǐ huì yìdiǎn, yóu de hái bú tài hǎo.
+  — I can swim, but only a little, and I still do not swim very well.
+Panel 4 — 國安：那我們改去跑步，好不好？
+  Nà wǒmen gǎi qù pǎobù, hǎo bù hǎo?
+  — Then let's change and go running, okay?
+Panel 5 — 友美：我不太喜歡跑步，因為我跑得很慢，也很容易累。
+  Wǒ bú tài xǐhuān pǎobù, yīnwèi wǒ pǎo de hěn màn, yě hěn róngyì lèi.
+  — I do not really like running, because I run very slowly and get tired easily too.
+Panel 6 — 宜文：打網球怎麼樣？中明說妳網球打得很好，我們一起去打比較好玩。
+  Dǎ wǎngqiú zěnmeyàng? Zhōngmíng shuō nǐ wǎngqiú dǎ de hěn hǎo, wǒmen yìqǐ qù dǎ bǐjiào hǎowán.
+  — How about playing tennis? Zhongming said you play tennis well. It will be more fun if we go play together.
+Panel 7 — 友美：好啊，那我們一起去打網球吧。
+  Hǎo ā, nà wǒmen yìqǐ qù dǎ wǎngqiú ba.
+  — Okay, then let's go play tennis together.
+
+═══════════════════
+IMAGE EDIT PROMPT — HARD  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes. The blank filler panels
+stay blank.
+
+The ONLY change: replace the text inside each panel's speech bubble or
+caption box with the lines below, panel by panel. If a bubble is now too
+small for its new text, resize ONLY that bubble to fit — never resize the
+artwork, move a panel, or change the panel count to make room.
+
+TEXT FOR EACH PANEL (HARD level):
+Panel 1 (bubble — Guoan): 今天天氣這麼好，海邊風景又漂亮，我本來想去游泳，妳們願意一起去嗎？
+Panel 2 (bubble — Youmei): 我其實不會游泳，去海邊有點不安心。宜文，妳游泳游得怎麼樣？
+Panel 3 (bubble — Yiwen): 我會游，可是游得沒有國安好，只能慢慢游。
+Panel 4 (bubble — Guoan): 如果不想游泳，我們改去跑步怎麼樣？
+Panel 5 (bubble — Youmei): 跑步比游泳還不適合我，我跑得很慢，一下子就累了。
+Panel 6 (bubble — Yiwen): 不然我們去打網球吧。中明說妳打得很好，大家一起打一定更有意思。
+Panel 7 (bubble — Youmei): 好啊，網球比跑步好玩，我們現在就去吧。
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the HARD lines above, and add "match the style, characters and panel layout
+of the image already generated in this chat as closely as possible" at the
+top.
+
+───────────────────
+CAPTION SCRIPT — HARD (proofread the generated text against this; not part
+of the prompt above)
+───────────────────
+Panel 1 — 國安：今天天氣這麼好，海邊風景又漂亮，我本來想去游泳，妳們願意一起去嗎？
+  Jīntiān tiānqì zhème hǎo, hǎibiān fēngjǐng yòu piàoliàng, wǒ běnlái xiǎng qù yóuyǒng, nǐmen yuànyì yìqǐ qù ma?
+  — The weather is so nice today, and the beach scenery is beautiful too. I was thinking of going swimming; would you be willing to go together?
+Panel 2 — 友美：我其實不會游泳，去海邊有點不安心。宜文，妳游泳游得怎麼樣？
+  Wǒ qíshí bú huì yóuyǒng, qù hǎibiān yǒudiǎn bù ānxīn. Yíwén, nǐ yóuyǒng yóu de zěnmeyàng?
+  — Actually I cannot swim, so going to the beach makes me a bit uneasy. Yiwen, how well do you swim?
+Panel 3 — 宜文：我會游，可是游得沒有國安好，只能慢慢游。
+  Wǒ huì yóu, kěshì yóu de méiyǒu Guó'ān hǎo, zhǐ néng mànmàn yóu.
+  — I can swim, but I do not swim as well as Guoan; I can only swim slowly.
+Panel 4 — 國安：如果不想游泳，我們改去跑步怎麼樣？
+  Rúguǒ bù xiǎng yóuyǒng, wǒmen gǎi qù pǎobù zěnmeyàng?
+  — If you do not want to swim, how about we change and go running?
+Panel 5 — 友美：跑步比游泳還不適合我，我跑得很慢，一下子就累了。
+  Pǎobù bǐ yóuyǒng hái bú shìhé wǒ, wǒ pǎo de hěn màn, yíxiàzi jiù lèi le.
+  — Running suits me even less than swimming. I run very slowly and get tired right away.
+Panel 6 — 宜文：不然我們去打網球吧。中明說妳打得很好，大家一起打一定更有意思。
+  Bùrán wǒmen qù dǎ wǎngqiú ba. Zhōngmíng shuō nǐ dǎ de hěn hǎo, dàjiā yìqǐ dǎ yídìng gèng yǒu yìsi.
+  — Otherwise, let's go play tennis. Zhongming said you play well; if everyone plays together, it will definitely be more interesting.
+Panel 7 — 友美：好啊，網球比跑步好玩，我們現在就去吧。
+  Hǎo ā, wǎngqiú bǐ pǎobù hǎowán, wǒmen xiànzài jiù qù ba.
+  — Okay. Tennis is more fun than running; let's go now.
+
+───────────────────
+FIXING A BAD GENERATION — reply in the same chat rather than starting over:
+
+- A panel missing (count first — there must be 7):
+  "This page only has 6 panels. It needs all 7, one line each, in order,
+  with the last 2 cells of the 3×3 grid left as blank white panels. Do not
+  drop a line to make the grid fit."
+- Uneven panels / one big "hero" panel:
+  "Redraw with a strict uniform grid: 3 columns × 3 rows, all 7 panels
+  exactly the same size. No large panel, no merged cells."
+- An edit changed more than the text (redrew a face, shifted a panel):
+  "You changed more than the bubble text. Undo that and only replace the
+  words inside the bubbles — keep every other pixel of the artwork the same."
+- Garbled Chinese: regenerate or re-edit first — it often lands on the second
+  or third try. If it keeps failing, ask for the same page with every bubble
+  and box left completely blank, then composite the text locally (SKILL.md
+  step 12) for sharp, correct characters.

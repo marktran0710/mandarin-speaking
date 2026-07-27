@@ -119,7 +119,10 @@
       "Bash(curl -s -m 30 -X POST http://127.0.0.1:8000/api/custom-stories -H \"Content-Type: application/json\" --data-binary @one.json -o resp.json -w \"HTTP %{http_code}\\\\n\")",
       "Bash(nohup npm run dev -- --port 5183)",
       "Bash(taskkill //F //IM node.exe //FI \"WINDOWTITLE eq *vite*\")",
-      "Bash(pkill -f \"vite --port 5183\")"
+      "Bash(pkill -f \"vite --port 5183\")",
+      "Bash(PYTHONIOENCODING=utf-8 python -c ' *)",
+      "Bash(awk 'NR==503,NR==515' pg_dump_mandarin_20260726_174502.sql)",
+      "Bash(codex doctor *)"
     ]
   },
   "enabledPlugins": {

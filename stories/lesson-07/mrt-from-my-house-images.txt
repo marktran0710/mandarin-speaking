@@ -1,0 +1,280 @@
+Image prompt for 《從我家坐捷運很方便》It Is Convenient to Take MRT from My Home
+5 turns → 3 columns × 2 rows, with 1 blank filler panel. Turn count follows
+the source text — never adjusted to suit a grid.
+
+HOW TO USE THIS FILE — generate ONE image, then edit it twice, all in the
+SAME chat:
+  1. Paste the IMAGE PROMPT — EASY block. This generates the base picture.
+  2. Paste the IMAGE EDIT PROMPT — MEDIUM block right after, in the same
+     chat. This asks the model to edit the image it just made — same
+     artwork, only the bubble text changes — instead of drawing a new one.
+  3. Paste the IMAGE EDIT PROMPT — HARD block the same way, still in the
+     same chat (it edits the EASY image again, not the MEDIUM one, so
+     changes don't stack).
+Editing preserves far more of the actual picture than a fresh generation
+does, because the model is transforming an image it can see rather than
+reconstructing the scene from text. If your chat doesn't carry the image
+forward (a new conversation, a different device), upload the EASY image
+file before pasting the edit prompt.
+
+This still will not produce byte-identical artwork across all three — an
+edit can nudge a line or a colour. For that, use the local compositing
+route in SKILL.md step 12 instead.
+
+(Chinese text in AI-generated images is unreliable — proofread every
+caption box against the CAPTION SCRIPT under each prompt and regenerate
+if any characters look wrong.)
+
+═══════════════════
+IMAGE PROMPT — EASY  (paste this first, to generate the base image)
+═══════════════════
+
+Single image — one comic page of 5 drawn panels plus 1 blank filler panel in
+a STRICT UNIFORM GRID of 3 COLUMNS × 2 ROWS, laid out exactly like this:
+
++---------+---------+---------+
+| Panel 1 | Panel 2 | Panel 3 |
++---------+---------+---------+
+| Panel 4 | Panel 5 | blank   |
++---------+---------+---------+
+
+Every cell is EXACTLY THE SAME SIZE: identical width, identical height, each
+a landscape rectangle roughly 4:3, edges aligned so the columns and rows line
+up, equal thin light gutters, no hard comic-book borders. No panel may span
+two cells, no panel may be larger than another, and a panel's size does not
+change because its scene has more detail in it. No splash panel, no inset, no
+overlapping frame, no dynamic irregular comic layout. The blank filler cell
+is a plain white empty panel with the same size, border, and gutter spacing as
+the drawn panels; do not widen Panel 5 into the blank filler cell.
+
+ONE PANEL = ONE SENTENCE. All 5 sentences listed below must appear, each alone
+in its own panel, in reading order.
+Every drawn panel has exactly one rectangular caption box along its bottom
+edge — plain white with a thin dark border, spanning the panel's width, no
+tail (this story is narration, nobody speaks on the page). Never two boxes in
+a panel, never a drawn panel without one. The blank filler panel has no image
+and no caption box.
+
+Make the bubbles and boxes generously sized — roughly the top third of the
+panel, with the characters composed into the lower two thirds (this story's
+HARD lines are the longest — leave room for them even though this is the EASY
+image, since the next two prompts reuse these same bubble positions). No other
+text anywhere in the image: no title, no level label, no panel numbers, no
+signage, no letters of any alphabet outside the caption boxes.
+
+COUNT CHECK — before finishing, count the panels: exactly 5 drawn panels plus
+1 blank white filler panel, filling the 3×2 grid. If a sentence has nowhere
+to go, a panel has been dropped: add it back rather than merging two sentences
+into one caption box. Panel 5 is the ending of the story — a page without it
+is not the story.
+
+Flat digital illustration style, soft rounded shapes, clean modern Taiwan
+city setting, bright clear daylight, limited colour palette with warm concrete
+grey, MRT red, MRT green, MRT blue, sky blue, and soft yellow accents, gentle
+clean outlines, friendly simple style, consistent lighting and colour across
+every panel.
+
+CHARACTERS AND FIXED PROPS (identical in every panel they appear in):
+[THE NARRATOR] a Taiwanese university student, about 20, short straight black
+hair, slim build, white t-shirt under a light denim overshirt, dark navy
+pants, white sneakers, and a small red canvas backpack.
+[THE FRIENDS] two young Taiwanese students, about 20; one with a yellow
+hoodie and round glasses, one with a green jacket and a black tote bag.
+[THE MRT VISUAL LANGUAGE] clean Taipei-style MRT train interiors and station
+entrances, but no readable station names or signage; route maps use only
+simple red, green, and blue lines with dots, no letters or words.
+[THE AIRPORT AREA] a simple modern airport terminal, an elevated MRT track, a
+road with a small car, an observation area, open sky, distant green hills, and
+airplanes; keep all signs blank.
+
+PANELS:
+Panel 1 (top row, left cell): wide establishing shot from street level
+outside the narrator's apartment building, an MRT entrance nearby and a route
+map board showing a bright current map with three clean colored lines — red,
+green, and blue — plus a smaller faded old map beside it with only one simple
+line; all maps use round station dots but no text; the narrator stands near
+the entrance with the red backpack, looking at the map.
+Panel 2 (top row, centre cell): medium shot inside a red-line MRT car, the
+narrator seated with a school backpack and notebook on their lap; beside the
+seat are a small gym bag and a simple movie ticket shape with no writing,
+hinting at weekend plans; the train window shows a red route stripe only.
+Panel 3 (top row, right cell): medium-wide shot outside a neighborhood MRT
+exit, the two friends stepping out happily while the narrator waits nearby and
+waves; they have relaxed faces and light bags, while farther down the street a
+small line of cars moves slowly, making the MRT visit feel faster and easier.
+Panel 4 (bottom row, left cell): wide side view of the route toward the
+airport, with a small car on a clean road and an MRT train on an elevated
+track both heading toward the same modern terminal in the distance; the
+narrator is small in the foreground, looking toward both choices.
+Panel 5 (bottom row, centre cell): low wide shot near the airport observation
+area, the narrator leaning on a railing and looking out at open sky, green
+hills, and a plane taking off; the airport terminal sits to one side, with no
+readable signs.
+Blank filler (bottom row, right cell): plain white empty panel, same size and
+border as the others, no art, no caption box, no text.
+
+TEXT FOR EACH PANEL (EASY level):
+Panel 1 (caption box): 我家附近有三條捷運線，一條紅的、一條綠的和一條藍的。
+Panel 2 (caption box): 我平常坐紅線去學校上課，週末也坐捷運去運動、看電影。
+Panel 3 (caption box): 朋友常來找我，他們都覺得坐捷運來我家，又快又方便。
+Panel 4 (caption box): 從我家到機場也不遠，開車去、坐捷運去都可以。
+Panel 5 (caption box): 機場附近的風景也很漂亮，我常常去看風景、看飛機。
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+EXPORT: about 3:2 (e.g. 1536 × 1024). Export as JPG at 80-85% quality,
+keeping backgrounds plain so each panel stays legible when scaled down.
+
+───────────────────
+CAPTION SCRIPT — EASY (proofread the generated text against this; not part
+of the prompt above)
+───────────────────
+Panel 1 — Narrator：我家附近有三條捷運線，一條紅的、一條綠的和一條藍的。
+  Wǒ jiā fùjìn yǒu sān tiáo jiéyùn xiàn, yì tiáo hóng de, yì tiáo lǜ de hé yì tiáo lán de.
+  — There are three MRT routes near my place; the red one, the green one and the blue one.
+Panel 2 — Narrator：我平常坐紅線去學校上課，週末也坐捷運去運動、看電影。
+  Wǒ píngcháng zuò hóng xiàn qù xuéxiào shàngkè, zhōumò yě zuò jiéyùn qù yùndòng, kàn diànyǐng.
+  — I usually go to school by the red one. On weekends I take it to exercise or see a movie as well.
+Panel 3 — Narrator：朋友常來找我，他們都覺得坐捷運來我家，又快又方便。
+  Péngyǒu cháng lái zhǎo wǒ, tāmen dōu juéde zuò jiéyùn lái wǒ jiā, yòu kuài yòu fāngbiàn.
+  — My friends often visit me. They all think taking the MRT to my house is both fast and convenient.
+Panel 4 — Narrator：從我家到機場也不遠，開車去、坐捷運去都可以。
+  Cóng wǒ jiā dào jīchǎng yě bù yuǎn, kāichē qù, zuò jiéyùn qù dōu kěyǐ.
+  — It is not far from my house to the airport. I can go by car or MRT.
+Panel 5 — Narrator：機場附近的風景也很漂亮，我常常去看風景、看飛機。
+  Jīchǎng fùjìn de fēngjǐng yě hěn piàoliàng, wǒ chángcháng qù kàn fēngjǐng, kàn fēijī.
+  — The scenery near the airport is beautiful; I often go there to see the view and watch the planes.
+
+═══════════════════
+IMAGE EDIT PROMPT — MEDIUM  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes, including the blank filler
+panel.
+
+The ONLY change: replace the text inside each panel's caption box with the
+lines below, panel by panel. If a caption box is now too small for its new
+text, resize ONLY that box to fit — never resize the artwork, move a panel,
+or change the panel count to make room. Keep all caption boxes rectangular,
+with no speech-bubble tails.
+
+TEXT FOR EACH PANEL (MEDIUM level):
+Panel 1 (caption box): 我家附近有三條不同的捷運線，有紅線、綠線和藍線。
+Panel 2 (caption box): 我平常坐紅線去學校上課，週末也常坐捷運去運動、看電影。
+Panel 3 (caption box): 我的朋友下課以後常常來找我，他們都覺得坐捷運來我家很快，也很方便。
+Panel 4 (caption box): 從我家到機場不太遠，所以開車去、坐捷運去都可以。
+Panel 5 (caption box): 機場附近的風景非常漂亮，我週末常常去看風景，也去看飛機。
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the MEDIUM lines above, and add "match the style, characters and panel layout
+of the image already generated in this chat as closely as possible" at the
+top.
+
+───────────────────
+CAPTION SCRIPT — MEDIUM (proofread the generated text against this; not
+part of the prompt above)
+───────────────────
+Panel 1 — Narrator：我家附近有三條不同的捷運線，有紅線、綠線和藍線。
+  Wǒ jiā fùjìn yǒu sān tiáo bùtóng de jiéyùn xiàn, yǒu hóng xiàn, lǜ xiàn hé lán xiàn.
+  — Near my house there are three different MRT lines: a red line, a green line, and a blue line.
+Panel 2 — Narrator：我平常坐紅線去學校上課，週末也常坐捷運去運動、看電影。
+  Wǒ píngcháng zuò hóng xiàn qù xuéxiào shàngkè, zhōumò yě cháng zuò jiéyùn qù yùndòng, kàn diànyǐng.
+  — I usually take the red line to school for class, and on weekends I often take the MRT to exercise or watch a movie.
+Panel 3 — Narrator：我的朋友下課以後常常來找我，他們都覺得坐捷運來我家很快，也很方便。
+  Wǒ de péngyǒu xiàkè yǐhòu chángcháng lái zhǎo wǒ, tāmen dōu juéde zuò jiéyùn lái wǒ jiā hěn kuài, yě hěn fāngbiàn.
+  — My friends often come to see me after class. They all think taking the MRT to my house is fast and also convenient.
+Panel 4 — Narrator：從我家到機場不太遠，所以開車去、坐捷運去都可以。
+  Cóng wǒ jiā dào jīchǎng bú tài yuǎn, suǒyǐ kāichē qù, zuò jiéyùn qù dōu kěyǐ.
+  — It is not too far from my house to the airport, so going by car or by MRT both work.
+Panel 5 — Narrator：機場附近的風景非常漂亮，我週末常常去看風景，也去看飛機。
+  Jīchǎng fùjìn de fēngjǐng fēicháng piàoliàng, wǒ zhōumò chángcháng qù kàn fēngjǐng, yě qù kàn fēijī.
+  — The scenery near the airport is very beautiful. On weekends I often go to see the scenery and also watch the planes.
+
+═══════════════════
+IMAGE EDIT PROMPT — HARD  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes, including the blank filler
+panel.
+
+The ONLY change: replace the text inside each panel's caption box with the
+lines below, panel by panel. If a caption box is now too small for its new
+text, resize ONLY that box to fit — never resize the artwork, move a panel,
+or change the panel count to make room. Keep all caption boxes rectangular,
+with no speech-bubble tails.
+
+TEXT FOR EACH PANEL (HARD level):
+Panel 1 (caption box): 我家附近的捷運線比以前多了，有紅線、綠線和藍線，去哪裡都方便。
+Panel 2 (caption box): 我平常都坐紅線去學校，如果週末有空，也會坐捷運去運動、看電影。
+Panel 3 (caption box): 朋友來過我家以後，都覺得坐捷運比開車快，也方便多了。
+Panel 4 (caption box): 從我家到機場比到市中心近一點，開車或坐捷運去都沒問題。
+Panel 5 (caption box): 我去過機場附近很多次，覺得那裡的風景最漂亮，飛機起飛也很好看。
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the HARD lines above, and add "match the style, characters and panel layout
+of the image already generated in this chat as closely as possible" at the
+top.
+
+───────────────────
+CAPTION SCRIPT — HARD (proofread the generated text against this; not
+part of the prompt above)
+───────────────────
+Panel 1 — Narrator：我家附近的捷運線比以前多了，有紅線、綠線和藍線，去哪裡都方便。
+  Wǒ jiā fùjìn de jiéyùn xiàn bǐ yǐqián duō le, yǒu hóng xiàn, lǜ xiàn hé lán xiàn, qù nǎlǐ dōu fāngbiàn.
+  — There are more MRT lines near my house than before: red, green, and blue, so going anywhere is convenient.
+Panel 2 — Narrator：我平常都坐紅線去學校，如果週末有空，也會坐捷運去運動、看電影。
+  Wǒ píngcháng dōu zuò hóng xiàn qù xuéxiào, rúguǒ zhōumò yǒu kòng, yě huì zuò jiéyùn qù yùndòng, kàn diànyǐng.
+  — I usually take the red line to school. If I have free time on the weekend, I also take the MRT to exercise or see a movie.
+Panel 3 — Narrator：朋友來過我家以後，都覺得坐捷運比開車快，也方便多了。
+  Péngyǒu lái guò wǒ jiā yǐhòu, dōu juéde zuò jiéyùn bǐ kāichē kuài, yě fāngbiàn duō le.
+  — After my friends have come to my house, they all feel that taking the MRT is faster than driving, and much more convenient too.
+Panel 4 — Narrator：從我家到機場比到市中心近一點，開車或坐捷運去都沒問題。
+  Cóng wǒ jiā dào jīchǎng bǐ dào shì zhōngxīn jìn yìdiǎn, kāichē huò zuò jiéyùn qù dōu méi wèntí.
+  — From my house, the airport is a little closer than downtown, and going by car or MRT is both no problem.
+Panel 5 — Narrator：我去過機場附近很多次，覺得那裡的風景最漂亮，飛機起飛也很好看。
+  Wǒ qù guò jīchǎng fùjìn hěn duō cì, juéde nàlǐ de fēngjǐng zuì piàoliàng, fēijī qǐfēi yě hěn hǎokàn.
+  — I have been near the airport many times, and I think the scenery there is the prettiest; planes taking off are also great to watch.
+
+───────────────────
+FIXING A BAD GENERATION — reply in the same chat rather than starting over:
+
+- A panel missing (count first — there must be 5 drawn panels plus 1 blank
+  filler):
+  "This page only has 4 drawn panels. It needs all 5 drawn panels, one
+  sentence each, in order, plus 1 blank white filler panel, filling the 3×2
+  grid. Do not drop a sentence to make the grid fit."
+- Uneven panels / one big "hero" panel:
+  "Redraw with a strict uniform grid: 3 columns × 2 rows, all 6 cells exactly
+  the same size. The bottom-right cell must be a blank white filler panel.
+  No large panel, no merged cells."
+- Last panel widened into the blank filler:
+  "Panel 5 must stay the same size as Panels 1-4. The bottom-right cell is a
+  separate blank white filler panel, not extra space for Panel 5."
+- An edit changed more than the text (redrew a face, shifted a panel):
+  "You changed more than the caption text. Undo that and only replace the
+  words inside the caption boxes — keep every other pixel of the artwork the
+  same."
+- Garbled Chinese: regenerate or re-edit first — it often lands on the second
+  or third try. If it keeps failing, ask for the same page with every caption
+  box left completely blank, then composite the text locally (SKILL.md
+  step 12) for sharp, correct characters.

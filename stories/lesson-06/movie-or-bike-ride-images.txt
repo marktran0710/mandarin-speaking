@@ -1,0 +1,278 @@
+Image prompt for 《看電影還是騎腳踏車？》Movie or Bike Ride?
+6 turns → 2 columns × 3 rows. Turn count follows
+the source text — never adjusted to suit a grid.
+
+HOW TO USE THIS FILE — generate ONE image, then edit it twice, all in the
+SAME chat:
+  1. Paste the IMAGE PROMPT — EASY block. This generates the base picture.
+  2. Paste the IMAGE EDIT PROMPT — MEDIUM block right after, in the same
+     chat. This asks the model to edit the image it just made — same
+     artwork, only the bubble text changes — instead of drawing a new one.
+  3. Paste the IMAGE EDIT PROMPT — HARD block the same way, still in the
+     same chat (it edits the EASY image again, not the MEDIUM one, so
+     changes don't stack).
+Editing preserves far more of the actual picture than a fresh generation
+does, because the model is transforming an image it can see rather than
+reconstructing the scene from text. If your chat doesn't carry the image
+forward (a new conversation, a different device), upload the EASY image
+file before pasting the edit prompt.
+
+This still will not produce byte-identical artwork across all three — an
+edit can nudge a line or a colour. For that, use the local compositing
+route in SKILL.md step 12 instead.
+
+(Chinese text in AI-generated images is unreliable — proofread every
+speech bubble against the CAPTION SCRIPT under each prompt and regenerate
+if any characters look wrong.)
+
+═══════════════════
+IMAGE PROMPT — EASY  (paste this first, to generate the base image)
+═══════════════════
+
+Single image — one comic page of 6 panels in a STRICT UNIFORM GRID of
+2 COLUMNS × 3 ROWS, laid out exactly like this:
+
++---------+---------+
+| Panel 1 | Panel 2 |
++---------+---------+
+| Panel 3 | Panel 4 |
++---------+---------+
+| Panel 5 | Panel 6 |
++---------+---------+
+
+Every cell is filled — no spare cell, no ragged row, no blank filler panels.
+Every panel is EXACTLY THE SAME SIZE: identical width, identical height, each
+a landscape rectangle roughly 4:3, edges aligned so the columns and rows line
+up, equal thin light gutters, no hard comic-book borders. No panel may span
+two cells, no panel may be larger than another, and a panel's size does not
+change because its scene has more detail in it. No splash panel, no inset, no
+overlapping frame, no dynamic irregular comic layout.
+
+ONE PANEL = ONE LINE. All 6 lines listed below must appear, each alone in
+its own panel, in reading order.
+A panel whose line is spoken gets ONE simple rounded speech bubble — plain
+white with a black outline and a small tail pointing at the character named
+below. Never two bubbles in a panel, never a panel without one. Write only
+the quoted Chinese inside a bubble; never write the speaker's name in it.
+
+Make the bubbles generously sized — roughly the top half of the panel, with
+the characters composed into the lower half (this story's book line 3 is very
+long and cannot be shortened — leave room for it and for the later edits).
+No other text anywhere in the image: no title, no level label, no panel
+numbers, no signage, no letters of any alphabet outside the bubbles.
+
+COUNT CHECK — before finishing, count the panels: exactly 6 panels, filling
+the 2×3 grid. If a line has nowhere to go, a panel has been dropped: add
+it back rather than merging two lines into one bubble. Panel 6 is the ending
+of the story — a page without it is not the story.
+
+Flat digital illustration style, soft rounded shapes, warm early-evening
+campus colour palette with cool hints of windy weather, limited palette,
+gentle clean outlines, friendly simple style, consistent lighting and colour
+across every panel. All panels take place near the same university campus
+entrance after class, with simple pictorial thought bubbles when needed.
+
+CHARACTERS (identical in every panel they appear in):
+[GUOAN] a friendly young man, early 20s, short wavy black hair, lively eyes,
+forest-green zip jacket over a white t-shirt, dark grey pants, white
+sneakers, orange bicycle helmet clipped to his black backpack as his
+signature accessory.
+[ZHONGMING] a tired but friendly young man, early 20s, short neat black
+hair, mustard-yellow sweatshirt, dark blue jeans, navy backpack over both
+shoulders, silver over-ear headphones around his neck as his signature
+accessory.
+
+PANELS:
+Panel 1 (row 1, left): medium-wide shot near the campus entrance in early
+evening, Guoan holding up a phone that shows only a colorful movie-poster
+picture with no readable text, smiling excitedly as he invites Zhongming;
+Zhongming stands beside him listening.
+Panel 2 (row 1, right): closer shot on Zhongming, shoulders slumped under
+his backpack, one hand rubbing his eye, holding a stack of class books and
+loose papers with simple picture-only classroom-door shapes behind him,
+looking tired and ready to go home; Guoan is partly visible at the side,
+listening.
+Panel 3 (row 2, left): medium shot from a slight side angle, Guoan gently
+pointing toward Zhongming's phone and headphones with one hand, and with the
+other hand gesturing toward a pictorial thought bubble showing a sofa with
+computer and phone icons crossed out, a blank calendar with the next empty
+square highlighted, and two bicycles in a park; no words, numerals, or
+letters inside the thought bubble.
+Panel 4 (row 2, right): medium shot of Zhongming hugging his backpack, his
+head tilted tiredly, with a pictorial thought bubble showing headphones,
+music notes, a pillow, and a bed; Guoan watches him patiently.
+Panel 5 (row 3, left): medium shot of Guoan holding up two fingers to offer
+another day, pointing toward a simple picture-only calendar made of blank
+squares and a small sunny-cloud weather icon; no numerals or letters.
+Panel 6 (row 3, right): wider shot showing a cool breeze moving the trees
+near the campus gate, Zhongming pulling his sweatshirt sleeves down and
+pointing toward a pictorial weekend thought bubble with warmer sunlight,
+two bicycles, and both friends riding together; Guoan nods.
+
+TEXT FOR EACH PANEL (EASY level):
+Panel 1 (bubble → Guoan): 聽說這部電影很有趣，我們晚上一起去看，好不好？
+Panel 2 (bubble → Zhongming): 我覺得有一點兒累，我想回家休息。
+Panel 3 (bubble → Guoan): 你不要常常在家上網、看電腦、玩手機，應該去運動。明天我有空，我們可以一起去騎腳踏車。
+Panel 4 (bubble → Zhongming): 可是我只想聽音樂、睡覺。
+Panel 5 (bubble → Guoan): 後天去呢？
+Panel 6 (bubble → Zhongming): 這兩天天氣有點兒冷，我們週末去，好嗎？
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+EXPORT: about 8:9 (e.g. 1408 × 1584). Export as JPG at 80-85% quality,
+keeping backgrounds plain so each panel stays legible when scaled down.
+
+───────────────────
+CAPTION SCRIPT — EASY (proofread the generated text against this; not part
+of the prompt above)
+───────────────────
+Panel 1 — 國安：聽說這部電影很有趣，我們晚上一起去看，好不好？
+  Tīngshuō zhè bù diànyǐng hěn yǒuqù. Wǒmen wǎnshàng yìqǐ qù kàn, hǎo bù hǎo?
+  — I heard that this movie is very interesting. How about we go to see it tonight?
+Panel 2 — 中明：我覺得有一點兒累，我想回家休息。
+  Wǒ juéde yǒu yìdiǎnr lèi, wǒ xiǎng huí jiā xiūxí.
+  — I am feeling a bit tired, I want to go home for a rest.
+Panel 3 — 國安：你不要常常在家上網、看電腦、玩手機，應該去運動。明天我有空，我們可以一起去騎腳踏車。
+  Nǐ búyào chángcháng zài jiā shàngwǎng, kàn diànnǎo, wán shǒujī, yīnggāi qù yùndòng. Míngtiān wǒ yǒukòng, wǒmen kěyǐ yìqǐ qù qí jiǎotàchē.
+  — Don't surf the internet, use the computer or play on the cell phone at home often. You should go exercise. I am available tomorrow. We can go ride bikes together.
+Panel 4 — 中明：可是我只想聽音樂、睡覺。
+  Kěshì wǒ zhǐ xiǎng tīng yīnyuè, shuìjiào.
+  — But I only want to listen to music and sleep.
+Panel 5 — 國安：後天去呢？
+  Hòutiān qù ne?
+  — How about the day after tomorrow then?
+Panel 6 — 中明：這兩天天氣有點兒冷，我們週末去，好嗎？
+  Zhè liǎng tiān tiānqì yǒudiǎnr lěng, wǒmen zhōumò qù, hǎo ma?
+  — It is a bit cold those two days. How about we do it this weekend?
+
+═══════════════════
+IMAGE EDIT PROMPT — MEDIUM  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes.
+
+The ONLY change: replace the text inside each panel's speech bubble or
+caption box with the lines below, panel by panel. If a bubble is now too
+small for its new text, resize ONLY that bubble to fit — never resize the
+artwork, move a panel, or change the panel count to make room.
+
+TEXT FOR EACH PANEL (MEDIUM level):
+Panel 1 (bubble → Guoan): 聽說這部電影非常有趣，我們今天晚上一起去電影院看，好不好？
+Panel 2 (bubble → Zhongming): 我覺得有一點兒累，今天想早一點回家休息。
+Panel 3 (bubble → Guoan): 你不要常常在家上網、看電腦、玩手機，應該多去運動。明天我有空，我們可以一起去騎腳踏車。
+Panel 4 (bubble → Zhongming): 可是我今天只想聽音樂、睡覺，不想出門。
+Panel 5 (bubble → Guoan): 那後天去呢？天氣可能比較好。
+Panel 6 (bubble → Zhongming): 這兩天天氣有點兒冷，我們週末再去，好嗎？
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the MEDIUM lines above, and add "match the style, characters and panel layout
+of the image already generated in this chat as closely as possible" at the
+top.
+
+───────────────────
+CAPTION SCRIPT — MEDIUM (proofread the generated text against this; not
+part of the prompt above)
+───────────────────
+Panel 1 — 國安：聽說這部電影非常有趣，我們今天晚上一起去電影院看，好不好？
+  Tīngshuō zhè bù diànyǐng fēicháng yǒuqù, wǒmen jīntiān wǎnshàng yìqǐ qù diànyǐngyuàn kàn, hǎo bù hǎo?
+  — I heard this movie is very interesting; how about we go to the movie theater tonight to see it together?
+Panel 2 — 中明：我覺得有一點兒累，今天想早一點回家休息。
+  Wǒ juéde yǒu yìdiǎnr lèi, jīntiān xiǎng zǎo yìdiǎn huí jiā xiūxí.
+  — I feel a little tired and want to go home a bit early today to rest.
+Panel 3 — 國安：你不要常常在家上網、看電腦、玩手機，應該多去運動。明天我有空，我們可以一起去騎腳踏車。
+  Nǐ búyào chángcháng zài jiā shàngwǎng, kàn diànnǎo, wán shǒujī, yīnggāi duō qù yùndòng. Míngtiān wǒ yǒukòng, wǒmen kěyǐ yìqǐ qù qí jiǎotàchē.
+  — Don't often stay home surfing the internet, using the computer, and playing on your phone; you should exercise more. I'm free tomorrow, so we can go ride bikes together.
+Panel 4 — 中明：可是我今天只想聽音樂、睡覺，不想出門。
+  Kěshì wǒ jīntiān zhǐ xiǎng tīng yīnyuè, shuìjiào, bù xiǎng chūmén.
+  — But today I only want to listen to music and sleep; I don't want to go out.
+Panel 5 — 國安：那後天去呢？天氣可能比較好。
+  Nà hòutiān qù ne? Tiānqì kěnéng bǐjiào hǎo.
+  — Then how about the day after tomorrow? The weather might be better.
+Panel 6 — 中明：這兩天天氣有點兒冷，我們週末再去，好嗎？
+  Zhè liǎng tiān tiānqì yǒudiǎnr lěng, wǒmen zhōumò zài qù, hǎo ma?
+  — The weather is a little cold these two days; how about we go this weekend instead?
+
+═══════════════════
+IMAGE EDIT PROMPT — HARD  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes.
+
+The ONLY change: replace the text inside each panel's speech bubble or
+caption box with the lines below, panel by panel. If a bubble is now too
+small for its new text, resize ONLY that bubble to fit — never resize the
+artwork, move a panel, or change the panel count to make room.
+
+TEXT FOR EACH PANEL (HARD level):
+Panel 1 (bubble → Guoan): 聽說這部電影很有意思，我想看很久了，晚上一起去，好不好？
+Panel 2 (bubble → Zhongming): 我覺得有點累，今天上了一天課，想先回家休息一下。
+Panel 3 (bubble → Guoan): 你不要老是在家上網、看電腦、玩手機，應該出去運動。明天我有空，一起騎腳踏車比一直在家好。
+Panel 4 (bubble → Zhongming): 可是我只想放音樂、早點睡，這樣比較舒服。
+Panel 5 (bubble → Guoan): 那後天呢？如果天氣好，我們就去。
+Panel 6 (bubble → Zhongming): 這兩天天氣有點冷，我怕騎車不舒服，週末天氣比較暖，我們那時候去，好嗎？
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the HARD lines above, and add "match the style, characters and panel layout
+of the image already generated in this chat as closely as possible" at the
+top.
+
+───────────────────
+CAPTION SCRIPT — HARD (proofread the generated text against this; not
+part of the prompt above)
+───────────────────
+Panel 1 — 國安：聽說這部電影很有意思，我想看很久了，晚上一起去，好不好？
+  Tīngshuō zhè bù diànyǐng hěn yǒu yìsi, wǒ xiǎng kàn hěn jiǔ le, wǎnshàng yìqǐ qù, hǎo bù hǎo?
+  — I heard this movie is really interesting, and I've wanted to see it for a long time; how about we go together tonight?
+Panel 2 — 中明：我覺得有點累，今天上了一天課，想先回家休息一下。
+  Wǒ juéde yǒudiǎn lèi, jīntiān shàng le yì tiān kè, xiǎng xiān huí jiā xiūxí yíxià.
+  — I feel a little tired; I had class all day today and want to go home first to rest a bit.
+Panel 3 — 國安：你不要老是在家上網、看電腦、玩手機，應該出去運動。明天我有空，一起騎腳踏車比一直在家好。
+  Nǐ búyào lǎoshì zài jiā shàngwǎng, kàn diànnǎo, wán shǒujī, yīnggāi chūqù yùndòng. Míngtiān wǒ yǒukòng, yìqǐ qí jiǎotàchē bǐ yìzhí zài jiā hǎo.
+  — Don't always stay home surfing the internet, using the computer, and playing on your phone; you should go out and exercise. I'm free tomorrow, and riding bikes together is better than staying home all the time.
+Panel 4 — 中明：可是我只想放音樂、早點睡，這樣比較舒服。
+  Kěshì wǒ zhǐ xiǎng fàng yīnyuè, zǎodiǎn shuì, zhèyàng bǐjiào shūfu.
+  — But I only want to put on some music and sleep early; that feels more comfortable.
+Panel 5 — 國安：那後天呢？如果天氣好，我們就去。
+  Nà hòutiān ne? Rúguǒ tiānqì hǎo, wǒmen jiù qù.
+  — Then what about the day after tomorrow? If the weather is good, we'll go then.
+Panel 6 — 中明：這兩天天氣有點冷，我怕騎車不舒服，週末天氣比較暖，我們那時候去，好嗎？
+  Zhè liǎng tiān tiānqì yǒudiǎn lěng, wǒ pà qí chē bù shūfu, zhōumò tiānqì bǐjiào nuǎn, wǒmen nà shíhòu qù, hǎo ma?
+  — The weather is a little cold these two days, and I'm afraid riding won't be comfortable; the weekend will be warmer, so how about we go then?
+
+───────────────────
+FIXING A BAD GENERATION — reply in the same chat rather than starting over:
+
+- A panel missing (count first — there must be 6):
+  "This page only has 5 panels. It needs all 6, one line each, in order,
+  filling the 2×3 grid. Do not drop a line
+  to make the grid fit."
+- Uneven panels / one big "hero" panel:
+  "Redraw with a strict uniform grid: 2 columns × 3 rows, all 6 panels
+  exactly the same size. No large panel, no merged cells."
+- An edit changed more than the text (redrew a face, shifted a panel):
+  "You changed more than the bubble text. Undo that and only replace the
+  words inside the bubbles — keep every other pixel of the artwork the same."
+- Garbled Chinese: regenerate or re-edit first — it often lands on the second
+  or third try. If it keeps failing, ask for the same page with every bubble
+  and box left completely blank, then composite the text locally (SKILL.md
+  step 12) for sharp, correct characters.
