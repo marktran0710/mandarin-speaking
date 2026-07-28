@@ -1,23 +1,39 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { BiLabel, BiText } from "../components/BiLabel";
 import ToneMark from "../components/ToneMark";
+import ToneField from "../components/ToneField";
 import "../components/BiLabel.css";
 import "./LoginPage.css";
-import {
-  canUseDatabase,
-  createStudent,
-  listStudents,
-  loginStudent,
-  type Student,
-} from "../services/database";
+import { canUseDatabase, createStudent, loginStudent } from "../services/database";
 import { signIn } from "../utils/session";
 
-const NEW_STUDENT_VALUE = "__new__";
+function EyeIcon({ open }: { open: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
+      {!open && <path d="M3 21L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />}
+    </svg>
+  );
+}
+
 const DEFAULT_PASSWORD = "123456";
 
-/** Dedicated student sign-in: pick (or type) your name, enter the password
- * (default 123456 for every student, teacher-resettable in the backend).
- * The teacher page keeps the old passwordless LoginPage.
+/** Dedicated student sign-in: type your name and password (default 123456
+ * for every student, teacher-resettable in the backend). The teacher page
+ * keeps the old passwordless LoginPage.
+ *
+ * Deliberately no roster picker — showing every classmate's name on a
+ * public login screen isn't something a student needs to see to sign
+ * in themselves. A name that isn't on the roster yet still joins on the
+ * shared default password, same as before; the backend just tells a
+ * genuinely new name (404) apart from an existing name with the wrong
+ * password (401) so the latter can't slide through as a "new" signup.
  *
  * A classroom friction gate, not real auth — verification happens against
  * the roster's plaintext password column; without a backend it falls back
@@ -31,31 +47,11 @@ export default function StudentLoginPage({
 }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<"empty" | "password" | "server" | null>(
     null,
   );
   const [busy, setBusy] = useState(false);
-
-  const [roster, setRoster] = useState<Student[]>([]);
-  const [selectedId, setSelectedId] = useState<string>(NEW_STUDENT_VALUE);
-  const [rosterError, setRosterError] = useState(false);
-  const [nameTouched, setNameTouched] = useState(false);
-
-  useEffect(() => {
-    if (!canUseDatabase()) return;
-    listStudents()
-      .then((students) => {
-        setRoster(students);
-        if (students.length > 0 && !nameTouched) {
-          setSelectedId(students[0].id);
-          setName(students[0].name);
-        }
-      })
-      .catch(() => setRosterError(true));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const usingRoster = canUseDatabase() && !rosterError;
 
   const startSession = (finalName: string, studentId?: string) => {
     signIn("student", finalName, studentId);
@@ -73,7 +69,7 @@ export default function StudentLoginPage({
     // The admin demo backdoor stays off the roster — checking it locally
     // avoids creating an "admin" student the teacher would see.
     const isAdminName = trimmed.toLowerCase() === "admin";
-    if (isAdminName || !usingRoster) {
+    if (isAdminName || !canUseDatabase()) {
       if (password !== DEFAULT_PASSWORD) {
         setError("password");
         return;
@@ -85,25 +81,25 @@ export default function StudentLoginPage({
     setBusy(true);
     setError(null);
     try {
-      if (selectedId !== NEW_STUDENT_VALUE) {
-        const student = await loginStudent({
-          studentId: selectedId,
-          password,
-        });
-        startSession(student.name, student.id);
-        return;
-      }
-      // New name: joining the roster requires the shared default password —
-      // checked before the record is created so a typo'd password doesn't
-      // add a stray student.
-      if (password !== DEFAULT_PASSWORD) {
-        setError("password");
-        return;
-      }
-      const created = await createStudent(trimmed);
-      startSession(created.name, created.id);
+      const student = await loginStudent({ name: trimmed, password });
+      startSession(student.name, student.id);
     } catch (err) {
-      if ((err as { wrongCredentials?: boolean }).wrongCredentials) {
+      const flags = err as { notFound?: boolean; wrongCredentials?: boolean };
+      if (flags.notFound) {
+        // No student with this name yet — joins on the shared default
+        // password, checked before the record is created so a typo'd
+        // password doesn't add a stray student.
+        if (password !== DEFAULT_PASSWORD) {
+          setError("password");
+        } else {
+          try {
+            const created = await createStudent(trimmed);
+            startSession(created.name, created.id);
+          } catch {
+            setError("server");
+          }
+        }
+      } else if (flags.wrongCredentials) {
         setError("password");
       } else {
         setError("server");
@@ -113,15 +109,24 @@ export default function StudentLoginPage({
     }
   };
 
+  const step1Done = name.trim().length > 0;
+  const step2Done = password.length > 0;
+  const trailState = (step: 1 | 2 | 3) => {
+    if (step === 1) return step1Done ? "is-done" : "is-active";
+    if (step === 2) return !step1Done ? "" : step2Done ? "is-done" : "is-active";
+    return step1Done && step2Done ? "is-active" : "";
+  };
+
   return (
     <main className="login-page student">
+      <ToneField variant="student" />
       <section className="login-shell">
         <button type="button" className="login-back" onClick={onBack}>
           <BiLabel k="back_to_portals" />
         </button>
 
         <div className="login-card">
-          <ToneMark className="login-tonemark" size={72} animated />
+          <ToneMark className="login-tonemark" size={96} animated />
           <p className="login-kicker">
             <BiLabel k="student_portal" />
           </p>
@@ -130,69 +135,67 @@ export default function StudentLoginPage({
           </h1>
           <p className="login-description">
             <BiText
-              zh="選你的名字，輸入密碼再開始練習。"
-              pinyin="Xuǎn nǐ de míngzi, shūrù mìmǎ zài kāishǐ liànxí."
-              en="Pick your name and enter your password to begin practicing."
+              zh="輸入你的名字和密碼，開始練習。"
+              pinyin="Shūrù nǐ de míngzi hé mìmǎ, kāishǐ liànxí."
+              en="Enter your name and password to begin practicing."
             />
           </p>
 
-          <ol className="student-login-steps" aria-label="Login steps">
-            <li><span>1</span><BiLabel zh="選擇名字" en="Choose your name" /></li>
-            <li><span>2</span><BiLabel zh="輸入密碼" en="Enter password" /></li>
-            <li><span>3</span><BiLabel zh="開始練習" en="Start practicing" /></li>
+          <ol className="login-trail" aria-label="Sign-in steps">
+            <li className={trailState(1)}>
+              <span className="login-trail-dot" aria-hidden="true">{step1Done ? "✓" : "1"}</span>
+              <span className="login-trail-label">
+                <span lang="zh-Hant">輸入名字</span>
+                <small lang="en">Name</small>
+              </span>
+            </li>
+            <li className={trailState(2)}>
+              <span className="login-trail-dot" aria-hidden="true">{step2Done ? "✓" : "2"}</span>
+              <span className="login-trail-label">
+                <span lang="zh-Hant">輸入密碼</span>
+                <small lang="en">Password</small>
+              </span>
+            </li>
+            <li className={trailState(3)}>
+              <span className="login-trail-dot" aria-hidden="true">3</span>
+              <span className="login-trail-label">
+                <span lang="zh-Hant">開始練習</span>
+                <small lang="en">Start</small>
+              </span>
+            </li>
           </ol>
 
           <form className="login-form" onSubmit={handleSubmit}>
-            {usingRoster && roster.length > 0 && selectedId !== NEW_STUDENT_VALUE ? (
-              <label>
-                <BiLabel zh="學生名字" pinyin="Xuéshēng míngzi" en="Student name" />
-                <select
-                  value={selectedId}
-                  onChange={(event) => {
-                    const next = event.target.value;
-                    setNameTouched(true);
-                    setSelectedId(next);
-                    if (next !== NEW_STUDENT_VALUE) {
-                      const match = roster.find((s) => s.id === next);
-                      setName(match?.name ?? "");
-                    } else {
-                      setName("");
-                    }
-                  }}
-                >
-                  {roster.map((student) => (
-                    <option key={student.id} value={student.id}>
-                      {student.name}
-                    </option>
-                  ))}
-                  <option value={NEW_STUDENT_VALUE}>+ 其他人 · Someone new</option>
-                </select>
-              </label>
-            ) : (
-              <label>
-                <BiLabel zh="學生名字" pinyin="Xuéshēng míngzi" en="Student name" />
-                <input
-                  value={name}
-                  onChange={(event) => {
-                    setNameTouched(true);
-                    setName(event.target.value);
-                  }}
-                  placeholder="打上學生的名字 · Enter student name"
-                  autoComplete="username"
-                />
-              </label>
-            )}
+            <label>
+              <BiLabel zh="學生名字" pinyin="Xuéshēng míngzi" en="Student name" />
+              <input
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="打上你的名字 · Enter your name"
+                autoComplete="username"
+              />
+            </label>
 
             <label>
               <BiLabel zh="密碼" pinyin="Mìmǎ" en="Password" />
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="預設 123456 · Default 123456"
-                autoComplete="current-password"
-                aria-invalid={error === "password" || undefined}
-              />
+              <div className="login-password-field">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="預設 123456 · Default 123456"
+                  autoComplete="current-password"
+                  aria-invalid={error === "password" || undefined}
+                />
+                <button
+                  type="button"
+                  className="login-password-toggle"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? "隱藏密碼 · Hide password" : "顯示密碼 · Show password"}
+                >
+                  <EyeIcon open={showPassword} />
+                </button>
+              </div>
             </label>
 
             {error && (

@@ -769,8 +769,11 @@ export async function listStudents(): Promise<Student[]> {
 }
 
 /** Password check for the student login page (default 123456). Throws with
- * a wrong-password flag so the form can tell "wrong password" apart from
- * "backend unreachable". */
+ * `notFound` (no student with that name — may just be new) kept distinct
+ * from `wrongCredentials` (that name exists, password didn't match), so a
+ * caller can let a brand-new name join on the default password without
+ * also letting a wrong guess at an *existing* name slip through as a
+ * "new" signup. */
 export async function loginStudent(params: {
   studentId?: string;
   name?: string;
@@ -783,7 +786,8 @@ export async function loginStudent(params: {
   });
   if (response.status === 401 || response.status === 404) {
     const error = new Error("Wrong name or password.");
-    (error as Error & { wrongCredentials?: boolean }).wrongCredentials = true;
+    (error as Error & { wrongCredentials?: boolean; notFound?: boolean }).wrongCredentials = true;
+    (error as Error & { wrongCredentials?: boolean; notFound?: boolean }).notFound = response.status === 404;
     throw error;
   }
   if (!response.ok) throw new Error("Could not sign in.");

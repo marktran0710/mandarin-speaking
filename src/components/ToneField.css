@@ -1,0 +1,54 @@
+.tone-field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.tone-field-stroke {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.tone-field-stroke--thick {
+  stroke-width: 70;
+}
+
+.tone-field-stroke--thin {
+  stroke-width: 16;
+}
+
+.tone-field--student .tone-field-stroke {
+  stroke: var(--seal);
+}
+.tone-field--student .tone-field-stroke--thick {
+  opacity: 0.12;
+}
+.tone-field--student .tone-field-stroke--thin {
+  opacity: 0.09;
+}
+
+.tone-field--teacher .tone-field-stroke {
+  stroke: var(--jade);
+}
+.tone-field--teacher .tone-field-stroke--thick {
+  opacity: 0.08;
+}
+.tone-field--teacher .tone-field-stroke--thin {
+  opacity: 0.06;
+}
+
+:root[data-theme="dark"] .tone-field--student .tone-field-stroke--thick {
+  opacity: 0.22;
+}
+:root[data-theme="dark"] .tone-field--student .tone-field-stroke--thin {
+  opacity: 0.16;
+}
+:root[data-theme="dark"] .tone-field--teacher .tone-field-stroke--thick {
+  opacity: 0.16;
+}
+:root[data-theme="dark"] .tone-field--teacher .tone-field-stroke--thin {
+  opacity: 0.12;
+}

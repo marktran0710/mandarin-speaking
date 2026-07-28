@@ -160,6 +160,7 @@ export default function TeacherDashboardPage({
     .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
     .slice(0, 5);
   const viewCopy = VIEW_COPY[activeView];
+  const isQuizReview = activeView === "materials" && materialsTab === "quizReview";
 
   const openHelpQueue = () => {
     setActiveView("recordingsHelp");
@@ -185,7 +186,7 @@ export default function TeacherDashboardPage({
       onLogout={onLogout}
     >
       <div className="teacher-dashboard-page tdash-workspace">
-        <header className="tdash-view-header">
+        {!isQuizReview && <header className="tdash-view-header">
           <div>
             <p className="tdash-view-kicker">{viewCopy.eyebrow}</p>
             <h1>{viewCopy.title}</h1>
@@ -198,7 +199,7 @@ export default function TeacherDashboardPage({
               <small>{openHelpRequests.length} open help request{openHelpRequests.length === 1 ? "" : "s"}</small>
             </div>
           )}
-        </header>
+        </header>}
 
         {activeView === "overview" && (
           <>

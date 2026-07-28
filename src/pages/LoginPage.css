@@ -2,25 +2,18 @@
   /* Narrow, centered auth column — overrides the global 1160px content width
      while still flowing through the shared --content-max mechanism. */
   --content-max: 560px;
+  position: relative;
   min-height: calc(100vh - var(--navbar-height));
   background: var(--clay-canvas);
+  overflow: hidden;
   /* 72px bottom padding sits outside the token scale (>56px but not near
      3xl's 64px) — left as a literal rather than forced onto a wrong token. */
   padding: var(--space-xl) var(--space-md) 72px;
 }
 
-.login-page.student {
-  background:
-    radial-gradient(circle at 86% 8%, color-mix(in srgb, var(--tone1-soft) 80%, transparent), transparent 22rem),
-    radial-gradient(circle at 10% 20%, color-mix(in srgb, var(--seal-soft) 76%, transparent), transparent 20rem),
-    linear-gradient(160deg, var(--seal-soft) 0%, var(--clay-canvas) 52%);
-}
-
-.login-page.teacher {
-  background: linear-gradient(160deg, var(--jade-soft) 0%, var(--clay-canvas) 45%);
-}
-
 .login-shell {
+  position: relative;
+  z-index: 1;
   max-width: var(--content-max);
   margin: 0 auto;
 }
@@ -175,44 +168,115 @@
   line-height: 1.7;
 }
 
-.student-login-steps {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+/* ── Sign-in trail: a functional 3-dot progress line, not decoration —
+   each dot's is-done/is-active state is driven by real form state (name
+   picked, password typed), so the numbering actually tells the student
+   where they are instead of just labeling a fixed sequence. ── */
+.login-trail {
+  display: flex;
   margin: 0 0 var(--space-lg);
   padding: 0;
   list-style: none;
 }
 
-.student-login-steps li {
+.login-trail li {
+  position: relative;
   display: flex;
+  flex: 1;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  min-width: 0;
-  padding: 8px 6px;
-  border-radius: var(--clay-radius-sm);
-  background: var(--clay-surface-soft);
-  color: var(--clay-body);
+  gap: 4px;
+  color: var(--clay-muted-soft);
   font-size: 11px;
   font-weight: 700;
+  text-align: center;
 }
 
-.student-login-steps li > span {
-  display: grid;
-  flex: 0 0 20px;
-  width: 20px;
-  height: 20px;
-  place-items: center;
-  border-radius: 50%;
+.login-trail li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 11px;
+  left: 55%;
+  z-index: 0;
+  width: 90%;
+  height: 2px;
+  background: var(--clay-hairline);
+}
+
+.login-trail li.is-done:not(:last-child)::after {
   background: var(--seal);
-  color: var(--clay-on-seal);
+}
+
+.login-trail-dot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border: 2px solid var(--clay-hairline);
+  border-radius: 50%;
+  background: var(--clay-surface-card);
+  color: var(--clay-muted-soft);
   font-size: 11px;
   font-weight: 800;
 }
 
-.student-login-steps .bi-label { align-items: flex-start; text-align: left; gap: 1px; }
-.student-login-steps .bi-zh { font-size: 1em; }
-.student-login-steps .bi-en { font-size: 0.7em; }
+.login-trail li.is-active .login-trail-dot {
+  border-color: var(--seal);
+  background: var(--seal);
+  color: var(--clay-on-seal);
+}
+.login-trail li.is-active { color: var(--clay-ink); }
+
+.login-trail li.is-done .login-trail-dot {
+  border-color: var(--seal);
+  color: var(--seal-deep);
+}
+.login-trail li.is-done { color: var(--clay-body); }
+
+.login-trail-label {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.login-trail-label small {
+  display: block;
+  font-size: 0.82em;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+/* ── Password visibility toggle ── */
+.login-password-field {
+  position: relative;
+}
+
+.login-password-field input {
+  padding-right: 44px;
+}
+
+.login-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: var(--clay-radius-sm);
+  background: transparent;
+  color: var(--clay-muted);
+  cursor: pointer;
+}
+
+.login-password-toggle:hover {
+  color: var(--clay-ink);
+  background: var(--clay-surface-soft);
+}
 
 .login-page.student .login-form { gap: 14px; }
 .login-page.student .login-form label { gap: 6px; }
@@ -221,13 +285,6 @@
   min-height: 48px;
   background: var(--clay-surface-soft);
   border-color: color-mix(in srgb, var(--clay-hairline) 80%, var(--seal-soft));
-}
-
-.login-page.student .login-tonemark {
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--clay-radius-lg);
-  border: 2px solid var(--seal-deep);
-  box-shadow: 0 0 0 6px var(--seal-soft), 0 10px 20px color-mix(in srgb, var(--seal) 18%, transparent);
 }
 
 .login-page.student .login-submit {
@@ -258,5 +315,4 @@
   .login-card {
     padding: var(--space-lg) var(--space-md);
   }
-  .student-login-steps { grid-template-columns: 1fr; }
 }

@@ -243,7 +243,7 @@ describe("TeacherQuizReviewPage", () => {
 
     const zhidaoCheckbox = screen.getByRole("checkbox", { name: "Approve synonym for 知道" });
     expect(zhidaoCheckbox).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Approve & Publish|核准並發佈/ })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /Approve & Publish|核准並發佈/ })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Validate|檢查題目/ }));
     expect(await screen.findByText(/second correct answer/)).toBeInTheDocument();
@@ -259,7 +259,7 @@ describe("TeacherQuizReviewPage", () => {
     // Only 知道's synonym gets checked — 一起's stays unchecked despite also
     // visible for correction but is not publishable.
     await user.click(zhidaoCheckbox);
-    await user.click(screen.getByRole("button", { name: /Approve & Publish|核准並發佈/ }));
+    await user.click(await screen.findByRole("button", { name: /Approve & Publish|核准並發佈/ }));
 
     expect(approveQuizMaterial).toHaveBeenCalledTimes(1);
     const [, , material] = (approveQuizMaterial as ReturnType<typeof vi.fn>).mock.calls[0];
@@ -304,11 +304,15 @@ describe("TeacherQuizReviewPage", () => {
     await user.click(checkbox);
     expect(checkbox).toBeChecked();
 
-    await user.click(screen.getAllByRole("button", { name: /Edit|編輯/ })[0]);
+    const synonymEdit = screen
+      .getAllByRole("button", { name: /Edit|編輯/ })
+      .find((button) => button.closest(".tqr-qrow")?.textContent?.includes("Synonym"));
+    expect(synonymEdit).toBeDefined();
+    await user.click(synonymEdit!);
     const synonymInput = screen.getByLabelText(/Synonym|同義詞/);
     await user.clear(synonymInput);
     await user.type(synonymInput, "明白");
-    await user.click(screen.getByRole("button", { name: /needs re-validate|重新檢查/ }));
+    await user.click(screen.getByRole("button", { name: /needs re-validation|重新驗證/ }));
 
     expect(replaceQuizQuestion).toHaveBeenCalledWith(
       "s1",
@@ -333,13 +337,13 @@ describe("TeacherQuizReviewPage", () => {
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
     await screen.findByText("測試故事");
-    await user.click(screen.getByRole("button", { name: /Check Questions/ }));
-    await user.click(screen.getAllByRole("button", { name: /Change answer/ })[0]);
+    await user.click(screen.getByRole("button", { name: /Validate Questions/ }));
+    await user.click(screen.getAllByRole("button", { name: /Edit answer|編輯答案/ })[0]);
 
     const answerInput = screen.getByLabelText(/Correct answer/);
     await user.clear(answerInput);
     await user.type(answerInput, "understand");
-    await user.click(screen.getByRole("button", { name: /needs re-validate/ }));
+    await user.click(screen.getByRole("button", { name: /needs re-validation/ }));
 
     expect(replaceQuizQuestion).toHaveBeenCalledWith(
       "s1", 0, 0, "translation", undefined, "understand", "vocabularyTranslation",
@@ -436,10 +440,19 @@ describe("Generate / Update Questions", () => {
   });
 
   it("generates, reveals a new candidate, and only persists it once accepted and applied", async () => {
-    const { generateVocabDistractors, updateVocabularyDistractors } = await import("../services/database");
+    const {
+      generateVocabDistractors,
+      generateVocabCloze,
+      generateVocabSynonym,
+      generateVocabLookalike,
+      updateVocabularyDistractors,
+    } = await import("../services/database");
     (generateVocabDistractors as ReturnType<typeof vi.fn>).mockResolvedValue([
       { word: "知道", distractors: ["to see", "to hear", "to say"] },
     ]);
+    (generateVocabCloze as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (generateVocabLookalike as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
     setStories([storyWithNoMaterial]);
     render(<TeacherQuizReviewPage />);
@@ -448,19 +461,17 @@ describe("Generate / Update Questions", () => {
 
     await user.click(screen.getByRole("button", { name: /Generate Questions/ }));
 
-    // Reveals as a 🆕 New candidate; Apply is disabled until decided.
+    // Reveals as a 🆕 New candidate; Apply is hidden until it is decided.
     const distractorLine = await screen.findByText(/New distractors/);
     expect(distractorLine.closest(".diff-row")).toHaveClass("row-add");
     expect(screen.getByText(/🆕 New/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Apply Changes/ })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /Apply Changes/ })).not.toBeInTheDocument();
     expect(updateVocabularyDistractors).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: /Accept$/ }));
     expect(await screen.findByText(/Added/)).toBeInTheDocument();
 
-    const applyButton = screen.getByRole("button", { name: /Apply Changes/ });
-    expect(applyButton).not.toBeDisabled();
-    await user.click(applyButton);
+    await user.click(screen.getByRole("button", { name: /Apply Changes/ }));
 
     expect(updateVocabularyDistractors).toHaveBeenCalledWith("s3", [
       { frameIndex: 0, wordIndex: 0, distractors: ["to see", "to hear", "to say"] },
@@ -493,7 +504,7 @@ describe("Generate / Update Questions", () => {
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
     await screen.findByText("Changed review");
-    await user.click(screen.getByRole("button", { name: /Check Questions|Validate/ }));
+    await user.click(screen.getByRole("button", { name: /Validate Questions/ }));
     await screen.findByText(/too obvious/);
     await user.click(screen.getByRole("button", { name: /Update Questions/ }));
 
@@ -560,7 +571,7 @@ describe("Generate / Update Questions", () => {
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
     await screen.findByText("Changed review");
-    await user.click(screen.getByRole("button", { name: /Check Questions|Validate/ }));
+    await user.click(screen.getByRole("button", { name: /Validate Questions/ }));
     await screen.findByText(/too obvious/);
     await user.click(screen.getByRole("button", { name: /Update Questions/ }));
 
@@ -617,10 +628,13 @@ describe("Generate / Update Questions", () => {
   });
 
   it("a rejected candidate is discarded, not persisted, when Apply runs", async () => {
-    const { generateVocabDistractors, updateVocabularyDistractors } = await import("../services/database");
+    const { generateVocabDistractors, generateVocabCloze, generateVocabSynonym, generateVocabLookalike, updateVocabularyDistractors } = await import("../services/database");
     (generateVocabDistractors as ReturnType<typeof vi.fn>).mockResolvedValue([
       { word: "知道", distractors: ["to see", "to hear", "to say"] },
     ]);
+    (generateVocabCloze as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (generateVocabLookalike as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
     setStories([storyWithNoMaterial]);
     render(<TeacherQuizReviewPage />);

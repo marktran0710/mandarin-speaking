@@ -1053,14 +1053,16 @@ export default function StoryBuilderSection({
                   {customDraft.narrativeMode !== "listen_retell" && (
                     <>
                       <label>
-                        {isExampleFrame ? "Example script (shown to students as a model — helps them know how to start)" : "Suggested answer (optional)"}
+                        {isExampleFrame
+                          ? "Example script (shown to students as a model — helps them know how to start)"
+                          : "Script (used to compare student voice)"}
                         <textarea
                           value={customDraft.suggestedAnswers[level][index] ?? ""}
                           onChange={(event) =>
                             updateDraftFrame("suggestedAnswers", index, event.target.value)
                           }
                           rows={isExampleFrame ? 4 : 2}
-                          placeholder={isExampleFrame ? "Write the model story text students will read before recording their own…" : ""}
+                          placeholder={isExampleFrame ? "Write the model story text students will read before recording their own…" : "Write the sentence students should say. Their voice transcript will be compared with this script."}
                         />
                       </label>
                       <button

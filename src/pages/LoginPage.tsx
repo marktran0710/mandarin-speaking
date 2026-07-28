@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { BiLabel, BiText } from "../components/BiLabel";
 import ToneMark from "../components/ToneMark";
+import ToneField from "../components/ToneField";
 import "../components/BiLabel.css";
 import "./LoginPage.css";
 import { canUseDatabase, createStudent, listStudents, type Student } from "../services/database";
@@ -83,6 +84,7 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
 
   return (
     <main className={`login-page ${isStudent ? "student" : "teacher"}`}>
+      <ToneField variant={isStudent ? "student" : "teacher"} />
       <section className="login-shell">
         {onBack && (
           <button type="button" className="login-back" onClick={onBack}>
@@ -91,7 +93,7 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
         )}
 
         <div className="login-card">
-          <ToneMark className="login-tonemark" size={72} animated />
+          <ToneMark className="login-tonemark" size={isStudent ? 96 : 80} animated />
           <p className="login-kicker">
             <BiLabel k={isStudent ? "student_portal" : "teacher_portal"} />
           </p>

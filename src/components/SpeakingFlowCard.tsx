@@ -280,6 +280,7 @@ export default function SpeakingFlowCard({
       selectedImage={selectedImage}
       selectedImageIndex={selectedImageIndex}
       totalScenes={totalScenes}
+      modelSentence={modelSentence}
       narrativeMode={narrativeMode}
       attempts={attempts}
       ready={ready}

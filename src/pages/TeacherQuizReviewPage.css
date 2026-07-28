@@ -2,9 +2,9 @@
    radii per the design-system rule. */
 
 .teacher-quiz-review {
-  width: min(1000px, calc(100% - var(--content-gutter) * 2));
-  margin: 0 auto;
-  padding: 14px 0 84px;
+  width: 100%;
+  margin: 0;
+  padding: 0 0 84px;
   --tqr-sticky-gap: 12px;
   --tqr-story-actions-top: calc(var(--navbar-height) + var(--tqr-sticky-gap));
   --tqr-pending-summary-top: calc(var(--tqr-story-actions-top) + 52px);
@@ -84,6 +84,7 @@
 .tqr-save:disabled { opacity: 0.5; cursor: not-allowed; }
 .tqr-status-ok { color: var(--jade-deep); font-weight: 700; font-size: 13px; }
 .tqr-status-error { color: var(--clay-error-deep); font-weight: 700; font-size: 13px; }
+.tqr-status-progress { color: var(--clay-muted); font-size: 13px; font-weight: 700; }
 .tqr-count { color: var(--clay-muted); font-size: 12px; }
 .tqr-empty { color: var(--clay-muted); }
 
@@ -583,6 +584,7 @@
   flex-wrap: wrap;
 }
 
+
 .tqr-toolbar-primary {
   padding: 10px 12px;
   border-bottom: 1px solid var(--clay-hairline-soft);
@@ -595,6 +597,38 @@
 .tqr-toolbar-spacer {
   flex: 1 1 auto;
 }
+
+.tqr-more-actions { position: relative; }
+.tqr-more-actions > summary {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: var(--clay-radius-sm);
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+.tqr-more-actions > summary::-webkit-details-marker { display: none; }
+.tqr-more-actions > summary::after { content: "⌄"; margin-left: 5px; }
+.tqr-more-actions[open] > summary { background: var(--clay-surface-soft); color: var(--clay-ink); }
+.tqr-more-actions-menu {
+  position: absolute;
+  right: 0;
+  z-index: 25;
+  min-width: 168px;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  box-shadow: var(--shadow-md);
+}
+.tqr-more-actions-menu .tqr-io,
+.tqr-more-actions-menu .tqr-save { justify-content: flex-start; width: 100%; }
 
 .tqr-generate,
 .tqr-validate,

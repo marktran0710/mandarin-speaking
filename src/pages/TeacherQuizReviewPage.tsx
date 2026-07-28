@@ -626,6 +626,7 @@ export default function TeacherQuizReviewPage({
 } = {}) {
   const [stories, setStories] = useState<CustomTeacherStory[]>([]);
   const [lessonKey, setLessonKey] = useState<string>("");
+  const [storyFilterId, setStoryFilterId] = useState<string>("all");
   const [level, setLevel] = useState<StoryDifficultyLevel>("easy");
   const [onlyChanges, setOnlyChanges] = useState(false);
   const [exclusionsByStory, setExclusionsByStory] = useState<Record<string, QuizExclusion[]>>({});
@@ -733,6 +734,13 @@ export default function TeacherQuizReviewPage({
     setEditTarget(null);
     setEditDraft(null);
   }, [level]);
+
+  useEffect(() => {
+    // Start focused on one story. Batch review remains an explicit choice,
+    // preventing a teacher from accidentally generating a large lesson-wide
+    // draft while they are inspecting a single story.
+    setStoryFilterId(currentGroup?.stories[0]?.id ?? "all");
+  }, [lessonKey, currentGroup]);
 
   const levels: StoryDifficultyLevel[] = useMemo(() => {
     if (!currentGroup) return ["easy"];
@@ -1368,13 +1376,13 @@ export default function TeacherQuizReviewPage({
           <button type="button" className="tqr-io" onClick={onCancelEdit}>
             <BiLabel zh="取消" en="Cancel" />
           </button>
-          <button type="button" className="tqr-save" disabled={editStatus === "saving"} onClick={onSaveEdit}>
-            {editStatus === "saving" ? (
-              <BiLabel zh="儲存中…" en="Saving…" />
-            ) : (
-              <BiLabel zh="儲存並重新檢查" en="Save (needs re-validate)" />
-            )}
-          </button>
+          {editStatus !== "saving" ? (
+            <button type="button" className="tqr-save" onClick={onSaveEdit}>
+              <BiLabel zh="儲存並重新驗證" en="Save (needs re-validation)" />
+            </button>
+          ) : (
+            <span className="tqr-status-progress"><BiLabel zh="儲存中…" en="Saving…" /></span>
+          )}
         </div>
         {editStatus === "error" && (
           <span className="tqr-status-error" role="alert">
@@ -1578,6 +1586,17 @@ export default function TeacherQuizReviewPage({
               </select>
             </label>
           )}
+          {currentGroup && currentGroup.stories.length > 1 && (
+            <label>
+              <BiLabel zh="故事" en="Story" />
+              <select value={storyFilterId} onChange={(e) => setStoryFilterId(e.target.value)}>
+                <option value="all">All stories (batch review)</option>
+                {currentGroup.stories.map((story) => (
+                  <option key={story.id} value={story.id}>{story.title}</option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="tqr-only-changes">
             <input
               type="checkbox"
@@ -1600,7 +1619,7 @@ export default function TeacherQuizReviewPage({
       )}
 
       {currentGroup &&
-        currentGroup.stories.map((story) => {
+        currentGroup.stories.filter((story) => storyFilterId === "all" || story.id === storyFilterId).map((story) => {
           if (level !== "easy" && !storyHasTierContent(story, level)) return null;
           const topic = storyToTopic(story, level);
           const exclusions = exclusionsByStory[story.id] ?? [];
@@ -1637,6 +1656,12 @@ export default function TeacherQuizReviewPage({
           );
           const pendingDecidedCount = pendingCandidates.filter((c) => c.decision !== "pending").length;
           const pendingAcceptedCount = pendingCandidates.filter((c) => c.decision === "accept").length;
+          const isGenerating = generateStatus === "generating" || generateStatus === "revealing" || generateStatus === "applying";
+          const isValidating = validateStatus === "validating";
+          const isPublishing = approveStatus === "approving";
+          const isSavingMarks = status === "saving";
+          const canApproveAll = (validation?.length ?? 0) > 0;
+          const canApplyPending = pendingCandidates.length > 0 && pendingDecidedCount === pendingCandidates.length;
 
           return (
             <section className="tqr-story" key={story.id}>
@@ -1644,54 +1669,51 @@ export default function TeacherQuizReviewPage({
                 <h2 className="tqr-story-title">{story.title}</h2>
                 <div className="tqr-story-actions">
                   <div className="tqr-toolbar-primary">
-                  <button
+                  {!isGenerating ? <button
                     type="button"
                     className="tqr-generate"
-                    disabled={generateStatus === "generating" || generateStatus === "revealing"}
+                    title="Create a new draft, or refresh only questions affected by story changes. Students cannot see a draft."
                     onClick={() => onGenerate(story, topic)}
                   >
-                    {generateStatus === "generating" ? (
-                      <BiLabel zh="生成中…" en="Generating…" />
-                    ) : hasAnyMaterial ? (
+                    {hasAnyMaterial ? (
                       <BiLabel zh="🔄 更新題目" en="🔄 Update Questions" />
                     ) : (
                       <BiLabel zh="✨ 生成題目" en="✨ Generate Questions" />
                     )}
-                  </button>
+                  </button> : (
+                    <span className="tqr-status-progress">
+                      {generateStatus === "applying" ? <BiLabel zh="套用中…" en="Applying…" /> : <BiLabel zh="生成中…" en="Generating…" />}
+                    </span>
+                  )}
                   {generateStatus === "error" && (
                     <span className="tqr-status-error" role="alert">
                       <BiLabel zh="生成失敗，請稍後再試" en="Generate failed. Try again in a moment" />
                     </span>
                   )}
-                  <button
+                  {!isValidating ? <button
                     type="button"
                     className="tqr-validate"
-                    disabled={validateStatus === "validating"}
+                    title="Validate the current draft for duplicate or unsafe answers before selecting questions to publish."
                     onClick={() => onValidate(story, topic)}
                   >
-                    {validateStatus === "validating" ? (
-                      <BiLabel zh="檢查中…" pinyin="Jiǎnchá zhōng…" en="Checking…" />
-                    ) : (
-                      <BiLabel zh="檢查題目" pinyin="Jiǎnchá tímù" en="Check Questions" />
-                    )}
-                  </button>
+                    <BiLabel zh="驗證題目" pinyin="Yànzhèng tímù" en="Validate Questions" />
+                  </button> : (
+                    <span className="tqr-status-progress"><BiLabel zh="驗證中…" en="Validating…" /></span>
+                  )}
                   {validateStatus === "error" && (
                     <span className="tqr-status-error" role="alert">
                       <BiLabel zh="檢查失敗" en="Validate failed" />
                     </span>
                   )}
-                  <button
+                  {approvedCount > 0 && !isPublishing && <button
                     type="button"
                     className="tqr-approve"
-                    disabled={approveStatus === "approving" || approvedCount === 0}
+                    title="Publish the checked questions as the version students receive."
                     onClick={() => onApprove(story, topic)}
                   >
-                    {approveStatus === "approving" ? (
-                      <BiLabel zh="發佈中…" pinyin="Fābù zhōng…" en="Publishing…" />
-                    ) : (
-                      <BiLabel zh="核准並發佈" pinyin="Hézhǔn bìng fābù" en="Approve & Publish" />
-                    )}
-                  </button>
+                    <BiLabel zh="核准並發佈" pinyin="Hézhǔn bìng fābù" en="Approve & Publish" />
+                  </button>}
+                  {isPublishing && <span className="tqr-status-progress"><BiLabel zh="發佈中…" en="Publishing…" /></span>}
                   {approveStatus === "approved" && (
                     <span className="tqr-status-ok">✓ <BiLabel zh="已發佈" en="Published" /></span>
                   )}
@@ -1709,26 +1731,24 @@ export default function TeacherQuizReviewPage({
                     <BiLabel zh={`已標記 ${exclusions.length} 項`} en={`${exclusions.length} marked`} />
                   </span>
                   <span className="tqr-toolbar-spacer" />
-                  <button
+                  <details className="tqr-more-actions">
+                    <summary>More actions</summary>
+                    <div className="tqr-more-actions-menu">
+                  {canApproveAll && <button
                     type="button"
                     className="tqr-io"
-                    disabled={!validation || validation.length === 0}
                     onClick={() => onApproveAll(story)}
                   >
                     <BiLabel zh="核准全部（乾淨）" pinyin="Hézhǔn quánbù" en="Approve all clean" />
-                  </button>
-                  <button
+                  </button>}
+                  {dirty && !isSavingMarks && <button
                     type="button"
                     className="tqr-save"
-                    disabled={!dirty || status === "saving"}
                     onClick={() => onSave(story, topic)}
                   >
-                    {status === "saving" ? (
-                      <BiLabel zh="儲存中…" pinyin="Chǔcún zhōng…" en="Saving…" />
-                    ) : (
-                      <BiLabel zh="儲存標記" pinyin="Chǔcún biāojì" en="Save marks" />
-                    )}
-                  </button>
+                    <BiLabel zh="儲存標記" pinyin="Chǔcún biāojì" en="Save marks" />
+                  </button>}
+                  {isSavingMarks && <span className="tqr-status-progress"><BiLabel zh="儲存中…" en="Saving…" /></span>}
                   {status === "saved" && !dirty && (
                     <span className="tqr-status-ok">✓ <BiLabel zh="已儲存" en="Saved" /></span>
                   )}
@@ -1743,6 +1763,8 @@ export default function TeacherQuizReviewPage({
                   <button type="button" className="tqr-io" onClick={() => triggerImport(story.id)}>
                     <BiLabel zh="匯入" en="Import" />
                   </button>
+                    </div>
+                  </details>
                   </div>
                 </div>
               </header>
@@ -1806,25 +1828,27 @@ export default function TeacherQuizReviewPage({
                                 <BiLabel zh="沒有翻譯，不會出題" en="No translation — never quizzed" />
                               </span>
                             )}
-                            <button
-                              type="button"
-                              className="tqr-edit tqr-edit-answer"
-                              onClick={() =>
-                                onStartTranslationEdit(
-                                  {
-                                    storyId: story.id,
-                                    frameIndex: si,
-                                    wordIndex: wi,
-                                    word,
-                                    kind: "translation",
-                                    translationField,
-                                  },
-                                  translation ?? "",
-                                )
-                              }
-                            >
-                              <BiLabel zh="修改答案" en={translation ? "Change answer" : "Add answer"} />
-                            </button>
+                            {translation && distractors.length === 0 && (
+                              <button
+                                type="button"
+                                className="tqr-edit tqr-edit-answer"
+                                onClick={() =>
+                                  onStartTranslationEdit(
+                                    {
+                                      storyId: story.id,
+                                      frameIndex: si,
+                                      wordIndex: wi,
+                                      word,
+                                      kind: "translation",
+                                      translationField,
+                                    },
+                                    translation,
+                                  )
+                                }
+                              >
+                                <BiLabel zh="編輯答案" en="Edit answer" />
+                              </button>
+                            )}
                             <span className="tqr-answer-check">
                               <BiLabel zh="答案檢查" en="Answer check" />
                               {questionStatusBadge(translationCheck)}
@@ -1945,21 +1969,18 @@ export default function TeacherQuizReviewPage({
                     )}
                   </span>
                   <span className="tqr-decision-actions">
-                    <button type="button" className="tqr-io" onClick={() => onAcceptAllPending(story.id)}>
+                    {pendingDecidedCount < pendingCandidates.length && <button type="button" className="tqr-io" onClick={() => onAcceptAllPending(story.id)}>
                       <BiLabel zh="全部接受" en="Accept All" />
-                    </button>
-                    <button
+                    </button>}
+                    {canApplyPending && generateStatus !== "applying" && <button
                       type="button"
                       className="tqr-approve"
-                      disabled={pendingDecidedCount !== pendingCandidates.length || generateStatus === "applying"}
                       onClick={() => onApplyPendingCandidates(story)}
                     >
-                      {generateStatus === "applying" ? (
-                        <BiLabel zh="套用中…" en="Applying…" />
-                      ) : (
-                        <BiLabel zh={`套用變更（${pendingAcceptedCount}）`} en={`Apply Changes (${pendingAcceptedCount})`} />
-                      )}
+                      <BiLabel zh={`套用變更（${pendingAcceptedCount}）`} en={`Apply Changes (${pendingAcceptedCount})`} />
                     </button>
+                    }
+                    {generateStatus === "applying" && <span className="tqr-status-progress"><BiLabel zh="套用中…" en="Applying…" /></span>}
                   </span>
                 </div>
               )}

@@ -8,6 +8,7 @@ import {
   isContentAccepted,
   weakToneGuideItems,
 } from "../utils/storyRecorderFeedback";
+import { scriptMismatchTokens } from "../utils/scriptAlignment";
 import type { PraatMetrics, Topic } from "./StoryRecorder";
 import { toPinyin } from "../utils/pinyin";
 
@@ -36,6 +37,7 @@ interface SpeakingResultsFlowProps {
   selectedImage: string;
   selectedImageIndex: number;
   totalScenes: number;
+  modelSentence?: string;
   narrativeMode: Topic["narrativeMode"];
   attempts: number;
   /** Scene unlocked: score/attempts plus content and pronunciation gates. */
@@ -68,6 +70,7 @@ export default function SpeakingResultsFlow({
   selectedImage,
   selectedImageIndex,
   totalScenes,
+  modelSentence,
   narrativeMode,
   attempts,
   ready,
@@ -86,6 +89,7 @@ export default function SpeakingResultsFlow({
   const accepted = isContentAccepted(praatMetrics);
   const vocabCoverage = ai?.vocabulary_coverage;
   const missing = vocabCoverage?.missing ?? [];
+  const scriptMismatches = scriptMismatchTokens(modelSentence, praatMetrics.transcription);
   const usedCount = vocabCoverage?.used?.length ?? 0;
   const vocabTotal = usedCount + missing.length;
   const weakItems = weakToneGuideItems(praatMetrics.word_prosody || []);
@@ -107,10 +111,15 @@ export default function SpeakingResultsFlow({
   );
   const allDrillsCleared =
     practiceWords.length > 0 && remainingDrillWords.length === 0;
+  const wordsToPractice = Array.from(
+    new Set([...scriptMismatches, ...missing, ...practiceWords.map((word) => word.token)]),
+  );
+  const hasScriptMismatch = scriptMismatches.length > 0;
+  const hasWordsToPractice = wordsToPractice.length > 0;
 
   // The one-verdict ladder: meaning and required vocabulary gate the unlock;
   // pronunciation polish follows only after the learner has said the script.
-  const verdict: "meaning" | "ready" | "vocab" | "pronounce" = !accepted
+  const verdict: "meaning" | "ready" | "vocab" | "pronounce" = !accepted || hasScriptMismatch
     ? "meaning"
     : missing.length > 0
       ? "vocab"
@@ -127,7 +136,7 @@ export default function SpeakingResultsFlow({
   // Adaptive step list. A meaning failure never leads to word practice —
   // drilling pronunciation of a sentence that means the wrong thing is
   // wasted effort, so the flow stops at "fix it" and points back to record.
-  const hasFix = !accepted || missing.length > 0;
+  const hasFix = !accepted || missing.length > 0 || hasScriptMismatch;
   const hasPractice = accepted && practiceWords.length > 0;
   const steps: ResultsStep[] = [
     "overview",
@@ -213,9 +222,9 @@ export default function SpeakingResultsFlow({
       className: "sfc-verdict-vocab",
       text: (
         <BiLabel
-          zh={`還缺 ${missing.length} 個詞：${missing.slice(0, 3).join("、")}`}
-          pinyin={`Hái quē ${missing.length} ge cí: ${missing.slice(0, 3).join("、")}`}
-          en={`${missing.length} word${missing.length > 1 ? "s" : ""} still missing: ${missing.slice(0, 3).join("、")}`}
+          zh={`還缺 ${missing.length} 個詞：${missing.join("、")}`}
+          pinyin={`Hái quē ${missing.length} ge cí: ${missing.join("、")}`}
+          en={`${missing.length} word${missing.length > 1 ? "s" : ""} still missing: ${missing.join("、")}`}
         />
       ),
     },
@@ -307,27 +316,28 @@ export default function SpeakingResultsFlow({
         </p>
       )}
 
-      {hasPractice && (
+      {hasWordsToPractice && (
         <div className="sfc-fail-preview">
           <span className="sfc-fail-preview-lead">
             <BiLabel zh="要練的字：" en="Words to practice:" />
           </span>
-          {practiceWords.map((word, index) => {
-            const cleared = clearedWords.includes(word.token);
+          {wordsToPractice.map((word) => {
+            const practiceIndex = practiceWords.findIndex((item) => item.token === word);
+            const cleared = practiceIndex >= 0 && clearedWords.includes(word);
             return (
               <button
-                key={`${word.token}-${word.index}`}
+                key={word}
                 type="button"
                 className={`sfc-mastery-chip sfc-fail-preview-chip ${cleared ? "is-cleared" : "is-pending"}`}
                 onClick={() => {
-                  setFocusIndex(index);
+                  if (practiceIndex >= 0) setFocusIndex(practiceIndex);
                   // When the sentence itself still needs fixing, keep the
                   // learner in the intended order: Fix it first, then drill
                   // pronunciation in Step 3.
                   goToStep(hasFix ? "fix" : "practice");
                 }}
               >
-                {word.token} {cleared ? "✓" : "✗"}
+                {word} {cleared ? "✓" : "✗"}
               </button>
             );
           })}
@@ -442,6 +452,27 @@ export default function SpeakingResultsFlow({
         </section>
       )}
 
+      {hasScriptMismatch && (
+        <section className="sfc-result-card sfc-result-card--vocab">
+          <header className="sfc-result-card-header">
+            <span aria-hidden="true">📝</span>
+            <BiLabel zh="跟讀對照" en="Script check" />
+          </header>
+          <div className="sfc-result-card-body">
+            <p className="sfc-result-card-lead">
+              <BiLabel zh="這些字和範例句不同，請再說一次" en="These parts differ from the model sentence. Say them again." />
+            </p>
+            <div className="sfc-missing-chips">
+              {scriptMismatches.map((word) => (
+                <span key={word} className="vocab-chip sfc-missing-chip">
+                  {word}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       {missing.length > 0 && (
         <section className="sfc-result-card sfc-result-card--vocab">
           <header className="sfc-result-card-header">
@@ -453,7 +484,7 @@ export default function SpeakingResultsFlow({
               <BiLabel zh="試著加入" en="Try to include" />
             </p>
             <div className="sfc-missing-chips">
-              {missing.slice(0, 3).map((w) => (
+              {missing.map((w) => (
                 <span key={w} className="vocab-chip sfc-missing-chip">
                   {w}
                 </span>
