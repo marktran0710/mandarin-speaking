@@ -1,0 +1,252 @@
+Image prompt for 《年輕人喜歡新東西》Young People Like the New Trend
+3 turns → 1 column × 3 rows, with no blank filler panel. Turn count follows
+the source text — never adjusted to suit a grid.
+
+HOW TO USE THIS FILE — generate ONE image, then edit it twice, all in the
+SAME chat:
+  1. Paste the IMAGE PROMPT — EASY block. This generates the base picture.
+  2. Paste the IMAGE EDIT PROMPT — MEDIUM block right after, in the same
+     chat. This asks the model to edit the image it just made — same
+     artwork, only the bubble text changes — instead of drawing a new one.
+  3. Paste the IMAGE EDIT PROMPT — HARD block the same way, still in the
+     same chat (it edits the EASY image again, not the MEDIUM one, so
+     changes don't stack).
+Editing preserves far more of the actual picture than a fresh generation
+does, because the model is transforming an image it can see rather than
+reconstructing the scene from text. If your chat doesn't carry the image
+forward (a new conversation, a different device), upload the EASY image
+file before pasting the edit prompt.
+
+This still will not produce byte-identical artwork across all three — an
+edit can nudge a line or a colour. For that, use the local compositing
+route in SKILL.md step 12 instead.
+
+(Chinese text in AI-generated images is unreliable — proofread every
+caption box against the CAPTION SCRIPT under each prompt and regenerate
+if any characters look wrong.)
+
+═══════════════════
+IMAGE PROMPT — EASY  (paste this first, to generate the base image)
+═══════════════════
+
+Single image — one comic page of 3 drawn panels and no blank filler panels in
+a STRICT UNIFORM GRID of 1 COLUMN × 3 ROWS, laid out exactly like this:
+
++---------+
+| Panel 1 |
++---------+
+| Panel 2 |
++---------+
+| Panel 3 |
++---------+
+
+Every cell is EXACTLY THE SAME SIZE: identical width, identical height, each
+a wide landscape rectangle, edges aligned so the single column and all rows
+line up, equal thin light gutters, no hard comic-book borders. No panel may
+span two cells, no panel may be larger than another, and a panel's size does
+not change because its scene has more detail in it. No splash panel, no
+inset, no overlapping frame, no dynamic irregular comic layout. No blank
+filler panel is needed because all 3 cells are real story panels.
+
+ONE PANEL = ONE SENTENCE. All 3 sentences listed below must appear, each
+alone in its own panel, in reading order.
+Every drawn panel has exactly one rectangular caption box along its bottom
+edge — plain white with a thin dark border, spanning the panel's width, no
+tail (this story is narration, nobody speaks on the page). Never two boxes in
+a panel, never a drawn panel without one. There are no speech bubbles and no
+speech-bubble tails anywhere.
+
+Make the caption boxes generously sized — roughly the bottom third to bottom
+half of each panel, with the characters composed in clear rows. This story's
+HARD lines are the longest — leave room for them even though this is the EASY
+image, since the next two prompts reuse these same caption positions. No
+other text anywhere in the image: no title, no level label, no panel numbers,
+no signage, no letters of any alphabet outside the caption boxes.
+
+COUNT CHECK — before finishing, count the panels: exactly 3 drawn panels and
+0 blank filler panels, filling the 1×3 grid. If a sentence has nowhere to go,
+a panel has been dropped: add it back rather than merging two sentences into
+one caption box. Panel 3 is the ending of the story — a page without it is
+not the story.
+
+Flat digital illustration style, soft rounded shapes, clean modern Taiwan
+shopping setting, bright indoor mall and bookstore lighting, limited colour
+palette with warm white, teal, coral red, soft yellow, charcoal, and small
+metallic car accents, gentle clean outlines, friendly simple style,
+consistent lighting and colour across every panel.
+
+CHARACTERS AND FIXED PROPS (identical in every panel they appear in):
+[THE NARRATOR] a Taiwanese university student, about 20, short straight black
+hair, slim build, pale teal overshirt over a white t-shirt, dark charcoal
+pants, white sneakers, and a small mustard yellow wallet.
+[YOUNG WOMEN SHOPPERS] three Taiwanese university-age women; one wears a
+coral cardigan and carries a small cream purse, one wears a soft yellow top
+and white skirt, one wears a denim jacket and holds a pair of shoes. They are
+friendly and curious, looking at clothes and accessories.
+[YOUNG MEN READERS] three Taiwanese university-age men in casual clothes;
+one has round glasses and a navy hoodie, one has a green t-shirt, one has a
+grey jacket. They happily read car magazines with car pictures but no
+readable words.
+[SHOPPING VISUAL LANGUAGE] department store displays, clothing racks, shoe
+shelves, purse shelves, bookstore magazine racks, small car pictures, and
+shop windows are allowed, but keep all signs, price tags, magazine covers,
+brand names, and labels completely blank.
+
+PANELS:
+Panel 1 (top row): wide establishing shot inside a bright department store,
+with the narrator standing slightly to the side and observing; racks of new
+clothes, shelves of shoes, and neat purse displays fill the background, while
+young women shoppers browse, hold up pretty clothes, and try on a jacket in a
+mirror; no readable signage or brand names.
+Panel 2 (middle row): medium-wide shot in a bookstore magazine corner, viewed
+from slightly above a table; young men readers sit and stand around open car
+magazines, smiling and pointing at glossy car pictures; a shiny small model
+car and a blank price tag sit nearby to suggest expensive new cars, but all
+magazine covers and signs have no words.
+Panel 3 (bottom row): balanced side-by-side composition in a shop corridor:
+on the left, an old but clean backpack and an older jacket sit neatly on a
+small table; on the right, a window display shows new clothes and simple car
+models; the narrator stands between them holding the mustard yellow wallet
+with a thoughtful, modest smile, clearly looking without buying.
+
+TEXT FOR EACH PANEL (EASY level):
+Panel 1 (caption box): 百貨公司裡有很多衣服、鞋子和皮包，都是最新的，所以很多年輕女生喜歡到百貨公司去，漂亮的、流行的衣服，她們都想穿穿看。
+Panel 2 (caption box): 很多年輕男生愛在書店看汽車雜誌，汽車很貴，他們不一定可以買新車，可是都看得很開心。
+Panel 3 (caption box): 我覺得有的舊東西很不錯，有的新東西也很有趣，我很喜歡看新車、新衣服，可是因為我的錢不多，所以我不常買。
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+EXPORT: about 2:3 (e.g. 1024 × 1536). Export as JPG at 80-85% quality,
+keeping backgrounds plain so each panel stays legible when scaled down.
+
+───────────────────
+CAPTION SCRIPT — EASY (proofread the generated text against this; not part
+of the prompt above)
+───────────────────
+Panel 1 — Narrator：百貨公司裡有很多衣服、鞋子和皮包，都是最新的，所以很多年輕女生喜歡到百貨公司去，漂亮的、流行的衣服，她們都想穿穿看。
+  Bǎihuògōngsī lǐ yǒu hěn duō yīfu, xiézi hé píbāo, dōu shì zuì xīn de, suǒyǐ hěn duō niánqīng nǚshēng xǐhuān dào bǎihuògōngsī qù, piàoliàng de, liúxíng de yīfu, tāmen dōu xiǎng chuānchuān kàn.
+  — Clothes, shoes and purses in department stores are all the latest; therefore, many young ladies like to go there and try on both beautiful and trendy items.
+Panel 2 — Narrator：很多年輕男生愛在書店看汽車雜誌，汽車很貴，他們不一定可以買新車，可是都看得很開心。
+  Hěn duō niánqīng nánshēng ài zài shūdiàn kàn qìchē zázhì, qìchē hěn guì, tāmen bù yídìng kěyǐ mǎi xīn chē, kěshì dōu kàn de hěn kāixīn.
+  — Many young men like to read car magazines at bookstores. Cars are expensive and they don't usually have the money to buy new ones; however, they are very happy just by reading those magazines.
+Panel 3 — Narrator：我覺得有的舊東西很不錯，有的新東西也很有趣，我很喜歡看新車、新衣服，可是因為我的錢不多，所以我不常買。
+  Wǒ juéde yǒude jiù dōngxi hěn búcuò, yǒude xīn dōngxi yě hěn yǒuqù, wǒ hěn xǐhuān kàn xīn chē, xīn yīfu, kěshì yīnwèi wǒ de qián bù duō, suǒyǐ wǒ bù cháng mǎi.
+  — I think some old stuff is good and some new ones are interesting. I like to check the new car, new clothes out, but I do not have much money, so I don't buy them often.
+
+═══════════════════
+IMAGE EDIT PROMPT — MEDIUM  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes, and no blank filler panels.
+
+The ONLY change: replace the text inside each panel's caption box with the
+lines below, panel by panel. If a caption box is now too small for its new
+text, resize ONLY that box to fit — never resize the artwork, move a panel,
+or change the panel count to make room. Keep all caption boxes rectangular,
+with no speech-bubble tails.
+
+TEXT FOR EACH PANEL (MEDIUM level):
+Panel 1 (caption box): 百貨公司裡有各種衣服、鞋子和皮包，差不多都是最新的，所以很多年輕女生一下課就喜歡去逛，看到漂亮、流行的衣服，也想試穿看看。
+Panel 2 (caption box): 很多年輕男生常在書店看汽車雜誌，雖然汽車很貴，他們不一定可以買新車，可是只看一看也覺得很開心。
+Panel 3 (caption box): 我覺得有些舊東西很不錯，有些新東西也很有趣；我喜歡看新車和新衣服，可是因為錢不多，所以只是偶爾買。
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the MEDIUM lines above, and add "match the style, characters and panel layout
+of the image already generated in this chat as closely as possible" at the
+top.
+
+───────────────────
+CAPTION SCRIPT — MEDIUM (proofread the generated text against this; not
+part of the prompt above)
+───────────────────
+Panel 1 — Narrator：百貨公司裡有各種衣服、鞋子和皮包，差不多都是最新的，所以很多年輕女生一下課就喜歡去逛，看到漂亮、流行的衣服，也想試穿看看。
+  Bǎihuògōngsī lǐ yǒu gèzhǒng yīfu, xiézi hé píbāo, chàbuduō dōu shì zuì xīn de, suǒyǐ hěn duō niánqīng nǚshēng yí xiàkè jiù xǐhuān qù guàng, kàn dào piàoliàng, liúxíng de yīfu, yě xiǎng shìchuān kànkan.
+  — Department stores have all kinds of clothes, shoes, and purses, and almost all of them are the newest, so many young women like to go browse as soon as class ends; when they see pretty, trendy clothes, they also want to try them on.
+Panel 2 — Narrator：很多年輕男生常在書店看汽車雜誌，雖然汽車很貴，他們不一定可以買新車，可是只看一看也覺得很開心。
+  Hěn duō niánqīng nánshēng cháng zài shūdiàn kàn qìchē zázhì, suīrán qìchē hěn guì, tāmen bù yídìng kěyǐ mǎi xīn chē, kěshì zhǐ kàn yi kàn yě juéde hěn kāixīn.
+  — Many young men often read car magazines at bookstores. Although cars are expensive and they cannot necessarily buy a new car, they still feel happy just looking.
+Panel 3 — Narrator：我覺得有些舊東西很不錯，有些新東西也很有趣；我喜歡看新車和新衣服，可是因為錢不多，所以只是偶爾買。
+  Wǒ juéde yǒuxiē jiù dōngxi hěn búcuò, yǒuxiē xīn dōngxi yě hěn yǒuqù; wǒ xǐhuān kàn xīn chē hé xīn yīfu, kěshì yīnwèi qián bù duō, suǒyǐ zhǐshì ǒu'ěr mǎi.
+  — I think some old things are pretty good, and some new things are interesting too. I like looking at new cars and new clothes, but because I do not have much money, I only buy them once in a while.
+
+═══════════════════
+IMAGE EDIT PROMPT — HARD  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes, and no blank filler panels.
+
+The ONLY change: replace the text inside each panel's caption box with the
+lines below, panel by panel. If a caption box is now too small for its new
+text, resize ONLY that box to fit — never resize the artwork, move a panel,
+or change the panel count to make room. Keep all caption boxes rectangular,
+with no speech-bubble tails.
+
+TEXT FOR EACH PANEL (HARD level):
+Panel 1 (caption box): 百貨公司裡的新衣服、鞋子和皮包一樣比一樣流行，所以不少年輕女生一有時間就去逛；看到好看的款式，她們總想先試穿看看。
+Panel 2 (caption box): 很多年輕男生雖然知道汽車很貴，不一定有錢買新車，可是只要在書店看過幾本汽車雜誌，就覺得很開心。
+Panel 3 (caption box): 比起什麼都買新的，我更喜歡先看看、想想；舊東西有時候很實用，新車、新衣服也很有趣，可是錢不多，所以我不常買。
+
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the HARD lines above, and add "match the style, characters and panel layout
+of the image already generated in this chat as closely as possible" at the
+top.
+
+───────────────────
+CAPTION SCRIPT — HARD (proofread the generated text against this; not
+part of the prompt above)
+───────────────────
+Panel 1 — Narrator：百貨公司裡的新衣服、鞋子和皮包一樣比一樣流行，所以不少年輕女生一有時間就去逛；看到好看的款式，她們總想先試穿看看。
+  Bǎihuògōngsī lǐ de xīn yīfu, xiézi hé píbāo yíyàng bǐ yíyàng liúxíng, suǒyǐ bù shǎo niánqīng nǚshēng yì yǒu shíjiān jiù qù guàng; kàn dào hǎokàn de kuǎnshì, tāmen zǒng xiǎng xiān shìchuān kànkan.
+  — The new clothes, shoes, and purses in department stores are each trendier than the last, so quite a few young women go browsing whenever they have time. When they see a nice-looking style, they always want to try it on first.
+Panel 2 — Narrator：很多年輕男生雖然知道汽車很貴，不一定有錢買新車，可是只要在書店看過幾本汽車雜誌，就覺得很開心。
+  Hěn duō niánqīng nánshēng suīrán zhīdào qìchē hěn guì, bù yídìng yǒu qián mǎi xīn chē, kěshì zhǐyào zài shūdiàn kàn guò jǐ běn qìchē zázhì, jiù juéde hěn kāixīn.
+  — Although many young men know cars are expensive and they may not have the money to buy a new car, as long as they have read a few car magazines at a bookstore, they feel happy.
+Panel 3 — Narrator：比起什麼都買新的，我更喜歡先看看、想想；舊東西有時候很實用，新車、新衣服也很有趣，可是錢不多，所以我不常買。
+  Bǐqǐ shénme dōu mǎi xīn de, wǒ gèng xǐhuān xiān kànkan, xiǎngxiang; jiù dōngxi yǒu shíhòu hěn shíyòng, xīn chē, xīn yīfu yě hěn yǒuqù, kěshì qián bù duō, suǒyǐ wǒ bù cháng mǎi.
+  — Compared with buying everything new, I prefer to look and think first. Old things are sometimes very useful, and new cars and new clothes are interesting too, but I do not have much money, so I do not buy them often.
+
+───────────────────
+FIXING A BAD GENERATION — reply in the same chat rather than starting over:
+
+- A panel missing (count first — there must be exactly 3 drawn panels and no
+  blank filler):
+  "This page only has 2 drawn panels. It needs all 3 drawn panels, one
+  sentence each, in order, filling the 1×3 grid. Do not drop a sentence or
+  merge two sentences into one caption box."
+- An unwanted blank filler panel appears:
+  "Remove the blank filler panel. This story has exactly 3 drawn panels in a
+  1 column × 3 rows grid, so every cell is a real story panel."
+- Uneven panels / one big "hero" panel:
+  "Redraw with a strict uniform grid: 1 column × 3 rows, all 3 cells exactly
+  the same size. No large panel, no merged cells, no inset."
+- Caption boxes have speech-bubble tails:
+  "Remove all speech-bubble tails. This page is narrator-only, so every panel
+  needs a rectangular caption box with no tail."
+- An edit changed more than the text (redrew a face, shifted a panel):
+  "You changed more than the caption text. Undo that and only replace the
+  words inside the caption boxes — keep every other pixel of the artwork the
+  same."
+- Garbled Chinese: regenerate or re-edit first — it often lands on the second
+  or third try. If it keeps failing, ask for the same page with every caption
+  box left completely blank, then composite the text locally (SKILL.md
+  step 12) for sharp, correct characters.

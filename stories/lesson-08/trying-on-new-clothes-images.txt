@@ -1,0 +1,329 @@
+Image prompt for 《試穿新衣服》Trying On New Clothes
+9 turns → 3 columns × 3 rows, with no blank filler panels. Turn count follows
+the source text — never adjusted to suit a grid.
+
+HOW TO USE THIS FILE — generate ONE image, then edit it twice, all in the
+SAME chat:
+  1. Paste the IMAGE PROMPT — EASY block. This generates the base picture.
+  2. Paste the IMAGE EDIT PROMPT — MEDIUM block right after, in the same
+     chat. This asks the model to edit the image it just made — same
+     artwork, only the bubble text changes — instead of drawing a new one.
+  3. Paste the IMAGE EDIT PROMPT — HARD block the same way, still in the
+     same chat (it edits the EASY image again, not the MEDIUM one, so
+     changes don't stack).
+Editing preserves far more of the actual picture than a fresh generation
+does, because the model is transforming an image it can see rather than
+reconstructing the scene from text. If your chat doesn't carry the image
+forward (a new conversation, a different device), upload the EASY image
+file before pasting the edit prompt.
+
+This still will not produce byte-identical artwork across all three — an
+edit can nudge a line or a colour. For that, use the local compositing
+route in SKILL.md step 12 instead.
+
+(Chinese text in AI-generated images is unreliable — proofread every
+speech bubble against the CAPTION SCRIPT under each prompt and regenerate
+if any characters look wrong.)
+
+═══════════════════
+IMAGE PROMPT — EASY  (paste this first, to generate the base image)
+═══════════════════
+
+Single image — one comic page of 9 drawn panels in a STRICT UNIFORM GRID of
+3 COLUMNS × 3 ROWS, laid out exactly like this:
+
++---------+---------+---------+
+| Panel 1 | Panel 2 | Panel 3 |
++---------+---------+---------+
+| Panel 4 | Panel 5 | Panel 6 |
++---------+---------+---------+
+| Panel 7 | Panel 8 | Panel 9 |
++---------+---------+---------+
+
+Every panel is EXACTLY THE SAME SIZE: identical width, identical height,
+each a landscape rectangle roughly 4:3, edges aligned so the columns and
+rows line up, equal thin light gutters, no hard comic-book borders. No panel
+may span two cells, no panel may be larger than another, and a panel's size
+does not change because its scene has more detail in it. No splash panel, no
+inset, no overlapping frame, no dynamic irregular comic layout.
+
+ONE DRAWN PANEL = ONE LINE. All 9 lines listed below must appear, each
+alone in its own panel, in reading order. There are no blank filler panels
+for this story; every cell in the 3×3 grid is a drawn panel with artwork and
+one bubble.
+A panel whose line is spoken gets ONE simple rounded speech bubble — plain
+white with a black outline and a small tail pointing at the character named
+below. Never two in a drawn panel, never a drawn panel without one. Write
+only the quoted Chinese inside a bubble; never write the speaker's name in it.
+
+Make the bubbles generously sized — roughly the top third of the panel, with
+the characters composed into the lower two thirds (this story's HARD lines
+are the longest — leave room for them even though this is the EASY image,
+since the next two prompts reuse these same bubble positions). No other text
+anywhere in the image: no title, no level label, no panel numbers, no
+signage, no letters of any alphabet outside the bubbles.
+
+COUNT CHECK — before finishing, count the cells: exactly 9 drawn panels and
+0 blank filler panels, filling the 3×3 grid. If a line has nowhere to go, a
+panel has been dropped: add it back rather than merging two lines into one
+bubble. Panel 9 is the ending of the story — a page without it is not the
+story.
+
+Flat digital illustration style, soft rounded shapes, bright department
+store colour palette with lemon yellow, denim blue, warm white, black, and
+soft grey accents, gentle clean outlines, friendly simple style, consistent
+lighting and colour across every panel. All drawn panels take place inside
+the same modern department store clothing area in the evening, with clothing
+racks, a mirror, a fitting room curtain, a floor directory with icons only,
+an elevator, and a clock as recurring props. Store signs and directory
+boards may show simple icons only; no readable letters or characters.
+
+CHARACTERS (identical in every panel they appear in):
+[YIWEN] a friendly young woman, early 20s, shoulder-length black hair, small
+silver hoop earrings as her signature accessory, cream knit top, light beige
+shopping tote, white sneakers. When trying pants, keep her top, earrings,
+hair, tote, and sneakers consistent.
+[YUANZHEN] a friendly young man, early 20s, short neat black hair, medium
+build, forest-green zip jacket over a white t-shirt, dark grey pants, white
+sneakers, navy canvas backpack strap over one shoulder as his signature
+accessory.
+
+PANELS:
+Panel 1 (row 1, left): wide shot inside the department store clothing area,
+Yiwen standing at a pants rack and pointing to a pair of yellow pants on a
+hanger, Yuanzhen beside her looking at the pants, bright fitting room area
+visible in the background.
+Panel 2 (row 1, centre): medium shot from slightly behind Yiwen, Yuanzhen
+holding a blue pair of pants next to the yellow pair for comparison, both
+colors clearly visible, a small fashion display with color swatches only and
+no text behind them.
+Panel 3 (row 1, right): side-angle shot, Yiwen smiling and carrying both
+the yellow and blue pants over one arm while walking toward a fitting room
+curtain, Yuanzhen waiting politely near the rack.
+Panel 4 (row 2, left): five minutes later outside the fitting room, Yuanzhen
+standing by the curtain with an open-palmed question gesture, Yiwen just
+stepping out from the fitting room area, the mirror edge visible.
+Panel 5 (row 2, centre): fitting-room mirror shot showing two side-by-side
+mirror views of Yiwen's try-on results, one with the yellow pants and one
+with the blue pants, both pairs visibly too short above her shoes and tight
+at the waist, Yiwen disappointed but calm, Yuanzhen reflected nearby.
+Panel 6 (row 2, right): medium shot, Yuanzhen smiling reassuringly while
+showing Yiwen a phone calendar with a highlighted weekend icon and pointing
+toward a shoe area icon on a floor directory, Yiwen listening.
+Panel 7 (row 3, left): close-up of Yiwen nodding and imagining a simple pair
+of black shoes, with a small black shoe display sample on a low shelf near
+her hands, her expression interested again.
+Panel 8 (row 3, centre): wider shot near a floor directory and wall clock
+showing nine o'clock with hands only, Yuanzhen pointing down toward the
+lower-floor direction and the elevator area, store shutters partly lowered
+in the far background without any text.
+Panel 9 (row 3, right): final wide shot, Yiwen pointing at open elevator
+doors while both students walk toward them together, the pants rack behind
+them and a black shoe display icon visible near the elevator direction.
+
+TEXT FOR EACH PANEL (EASY level):
+Panel 1 (bubble → Yiwen): 妳看，這條黃色的褲子不錯吧？
+Panel 2 (bubble → Yuanzhen): 很好看。這條藍的也很漂亮，藍色是今年很流行的顏色。
+Panel 3 (bubble → Yiwen): 這兩條我都去穿穿看。
+Panel 4 (bubble → Yuanzhen): 妳覺得怎麼樣？
+Panel 5 (bubble → Yiwen): 都太短，也太小了。
+Panel 6 (bubble → Yuanzhen): 沒關係，我們可以下個週末再來看。對了，妳要買鞋子吧？
+Panel 7 (bubble → Yiwen): 是啊，我想買一雙黑色的。
+Panel 8 (bubble → Yuanzhen): 鞋子都在一樓，我們到樓下去吧！九點了，百貨公司快要關了。
+Panel 9 (bubble → Yiwen): 電梯在那裡！我們現在去買。
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+EXPORT: about 4:3 (e.g. 1536 × 1152). Export as JPG at 80-85% quality,
+keeping backgrounds plain so each panel stays legible when scaled down.
+
+───────────────────
+CAPTION SCRIPT — EASY (proofread the generated text against this; not part
+of the prompt above)
+───────────────────
+Panel 1 — 宜文：妳看，這條黃色的褲子不錯吧？
+  Nǐ kàn, zhè tiáo huángsè de kùzi búcuò ba?
+  — Look! This pair of yellow pants is nice, isn't it?
+Panel 2 — 元真：很好看。這條藍的也很漂亮，藍色是今年很流行的顏色。
+  Hěn hǎokàn. Zhè tiáo lán de yě hěn piàoliàng, lánsè shì jīnnián hěn liúxíng de yánsè.
+  — It is. This pair of blue pants is beautiful too. Blue is a popular color of this year.
+Panel 3 — 宜文：這兩條我都去穿穿看。
+  Zhè liǎng tiáo wǒ dōu qù chuānchuān kàn.
+  — I will try both on.
+Panel 4 — 元真：妳覺得怎麼樣？
+  Nǐ juéde zěnmeyàng?
+  — What do you think?
+Panel 5 — 宜文：都太短，也太小了。
+  Dōu tài duǎn, yě tài xiǎo le.
+  — They are both too short and too small.
+Panel 6 — 元真：沒關係，我們可以下個週末再來看。對了，妳要買鞋子吧？
+  Méiguānxi, wǒmen kěyǐ xià ge zhōumò zài lái kàn. Duìle, nǐ yào mǎi xiézi ba?
+  — It's okay; we can come again next weekend. By the way, you want to buy shoes, don't you?
+Panel 7 — 宜文：是啊，我想買一雙黑色的。
+  Shì ā, wǒ xiǎng mǎi yì shuāng hēisè de.
+  — Yes, I would like to buy a pair of black ones.
+Panel 8 — 元真：鞋子都在一樓，我們到樓下去吧！九點了，百貨公司快要關了。
+  Xiézi dōu zài yì lóu, wǒmen dào lóu xià qù ba! Jiǔ diǎn le, bǎihuògōngsī kuàiyào guān le.
+  — All the shoes are on the first floor. Let's go downstairs. It's 9:00; the department store is closing soon.
+Panel 9 — 宜文：電梯在那裡！我們現在去買。
+  Diàntī zài nàlǐ! Wǒmen xiànzài qù mǎi.
+  — There is the elevator! Let's go get them now.
+
+═══════════════════
+IMAGE EDIT PROMPT — MEDIUM  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes.
+
+The ONLY change: replace the text inside each drawn panel's speech bubble
+with the lines below, panel by panel. If a bubble is now too small for its
+new text, resize ONLY that bubble to fit — never resize the artwork, move a
+panel, or change the panel count to make room.
+
+TEXT FOR EACH PANEL (MEDIUM level):
+Panel 1 (bubble → Yiwen): 你看，這條黃色的褲子很不錯，顏色也很亮吧？
+Panel 2 (bubble → Yuanzhen): 很好看。這條藍色的也漂亮，而且今年很流行。
+Panel 3 (bubble → Yiwen): 這兩條我都想試穿看看，等一下再決定。
+Panel 4 (bubble → Yuanzhen): 你覺得穿起來怎麼樣？
+Panel 5 (bubble → Yiwen): 兩條都太短，也有一點太小了。
+Panel 6 (bubble → Yuanzhen): 沒關係，我們下個週末可以再來看。對了，你還要買鞋子吧？
+Panel 7 (bubble → Yiwen): 是啊，我想買一雙黑色的鞋子。
+Panel 8 (bubble → Yuanzhen): 鞋子都在一樓，我們先到樓下去吧。九點了，百貨公司快要關門了。
+Panel 9 (bubble → Yiwen): 電梯就在那裡！我們現在先去買鞋。
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the MEDIUM lines above, and add "match the style, characters and panel
+layout of the image already generated in this chat as closely as possible"
+at the top.
+
+───────────────────
+CAPTION SCRIPT — MEDIUM (proofread the generated text against this; not
+part of the prompt above)
+───────────────────
+Panel 1 — 宜文：你看，這條黃色的褲子很不錯，顏色也很亮吧？
+  Nǐ kàn, zhè tiáo huángsè de kùzi hěn bùcuò, yánsè yě hěn liàng ba?
+  — Look, this pair of yellow pants is very nice, and the color is bright too, isn't it?
+Panel 2 — 元真：很好看。這條藍色的也漂亮，而且今年很流行。
+  Hěn hǎokàn. Zhè tiáo lánsè de yě piàoliàng, érqiě jīnnián hěn liúxíng.
+  — It looks good. This blue pair is beautiful too, and it is very fashionable this year.
+Panel 3 — 宜文：這兩條我都想試穿看看，等一下再決定。
+  Zhè liǎng tiáo wǒ dōu xiǎng shìchuān kànkan, děng yíxià zài juédìng.
+  — I want to try both pairs on and decide in a little while.
+Panel 4 — 元真：你覺得穿起來怎麼樣？
+  Nǐ juéde chuān qǐlái zěnmeyàng?
+  — How do you think they feel when you wear them?
+Panel 5 — 宜文：兩條都太短，也有一點太小了。
+  Liǎng tiáo dōu tài duǎn, yě yǒu yìdiǎn tài xiǎo le.
+  — Both pairs are too short, and they are also a little too small.
+Panel 6 — 元真：沒關係，我們下個週末可以再來看。對了，你還要買鞋子吧？
+  Méiguānxi, wǒmen xià ge zhōumò kěyǐ zài lái kàn. Duìle, nǐ hái yào mǎi xiézi ba?
+  — It's okay; we can come look again next weekend. By the way, you still want to buy shoes, right?
+Panel 7 — 宜文：是啊，我想買一雙黑色的鞋子。
+  Shì a, wǒ xiǎng mǎi yì shuāng hēisè de xiézi.
+  — Yes, I want to buy a pair of black shoes.
+Panel 8 — 元真：鞋子都在一樓，我們先到樓下去吧。九點了，百貨公司快要關門了。
+  Xiézi dōu zài yì lóu, wǒmen xiān dào lóu xià qù ba. Jiǔ diǎn le, bǎihuògōngsī kuàiyào guānmén le.
+  — All the shoes are on the first floor, so let's go downstairs first. It is nine; the department store is about to close.
+Panel 9 — 宜文：電梯就在那裡！我們現在先去買鞋。
+  Diàntī jiù zài nàlǐ! Wǒmen xiànzài xiān qù mǎi xié.
+  — The elevator is right there! Let's go buy shoes now first.
+
+═══════════════════
+IMAGE EDIT PROMPT — HARD  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes.
+
+The ONLY change: replace the text inside each drawn panel's speech bubble
+with the lines below, panel by panel. If a bubble is now too small for its
+new text, resize ONLY that bubble to fit — never resize the artwork, move a
+panel, or change the panel count to make room.
+
+TEXT FOR EACH PANEL (HARD level):
+Panel 1 (bubble → Yiwen): 你看，這條黃色的褲子不但不錯，跟我的上衣也很搭吧？
+Panel 2 (bubble → Yuanzhen): 我覺得很好看。不過這條藍色的也很漂亮，藍色今年最流行。
+Panel 3 (bubble → Yiwen): 如果兩條都合適，我想都試穿看看，再挑比較喜歡的。
+Panel 4 (bubble → Yuanzhen): 你試好了嗎？覺得哪一條比較合身？
+Panel 5 (bubble → Yiwen): 兩條穿起來都太短，而且尺寸也太小，不太適合我。
+Panel 6 (bubble → Yuanzhen): 沒關係，如果今天買不到，我們下個週末再來。對了，你不是還想買鞋子嗎？
+Panel 7 (bubble → Yiwen): 對，我想買一雙黑色的鞋子，最好簡單一點。
+Panel 8 (bubble → Yuanzhen): 鞋子都在一樓，我們趕快下樓吧；已經九點，百貨公司快關門了。
+Panel 9 (bubble → Yiwen): 電梯在那邊，我們現在就下去買吧。
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the HARD lines above, and add "match the style, characters and panel layout
+of the image already generated in this chat as closely as possible" at the
+top.
+
+───────────────────
+CAPTION SCRIPT — HARD (proofread the generated text against this; not part
+of the prompt above)
+───────────────────
+Panel 1 — 宜文：你看，這條黃色的褲子不但不錯，跟我的上衣也很搭吧？
+  Nǐ kàn, zhè tiáo huángsè de kùzi búdàn bùcuò, gēn wǒ de shàngyī yě hěn dā ba?
+  — Look, this pair of yellow pants is not only nice, it also matches my top well, right?
+Panel 2 — 元真：我覺得很好看。不過這條藍色的也很漂亮，藍色今年最流行。
+  Wǒ juéde hěn hǎokàn. Búguò zhè tiáo lánsè de yě hěn piàoliàng, lánsè jīnnián zuì liúxíng.
+  — I think it looks good. But this blue pair is also beautiful; blue is the most fashionable this year.
+Panel 3 — 宜文：如果兩條都合適，我想都試穿看看，再挑比較喜歡的。
+  Rúguǒ liǎng tiáo dōu héshì, wǒ xiǎng dōu shìchuān kànkan, zài tiāo bǐjiào xǐhuān de.
+  — If both pairs are suitable, I want to try both on and then choose the one I like more.
+Panel 4 — 元真：你試好了嗎？覺得哪一條比較合身？
+  Nǐ shì hǎo le ma? Juéde nǎ yì tiáo bǐjiào héshēn?
+  — Are you done trying them on? Which pair do you think fits better?
+Panel 5 — 宜文：兩條穿起來都太短，而且尺寸也太小，不太適合我。
+  Liǎng tiáo chuān qǐlái dōu tài duǎn, érqiě chǐcùn yě tài xiǎo, bú tài shìhé wǒ.
+  — Both pairs are too short when worn, and the size is also too small; they do not really suit me.
+Panel 6 — 元真：沒關係，如果今天買不到，我們下個週末再來。對了，你不是還想買鞋子嗎？
+  Méiguānxi, rúguǒ jīntiān mǎi bú dào, wǒmen xià ge zhōumò zài lái. Duìle, nǐ bú shì hái xiǎng mǎi xiézi ma?
+  — It's okay; if we cannot buy them today, we can come again next weekend. By the way, didn't you still want to buy shoes?
+Panel 7 — 宜文：對，我想買一雙黑色的鞋子，最好簡單一點。
+  Duì, wǒ xiǎng mǎi yì shuāng hēisè de xiézi, zuì hǎo jiǎndān yìdiǎn.
+  — Yes, I want to buy a pair of black shoes, preferably something a little simple.
+Panel 8 — 元真：鞋子都在一樓，我們趕快下樓吧；已經九點，百貨公司快關門了。
+  Xiézi dōu zài yì lóu, wǒmen gǎnkuài xià lóu ba; yǐjīng jiǔ diǎn, bǎihuògōngsī kuài guānmén le.
+  — All the shoes are on the first floor, so let's hurry downstairs; it is already nine, and the department store is about to close.
+Panel 9 — 宜文：電梯在那邊，我們現在就下去買吧。
+  Diàntī zài nà biān, wǒmen xiànzài jiù xià qù mǎi ba.
+  — The elevator is over there; let's go down and buy them right now.
+
+───────────────────
+FIXING A BAD GENERATION — reply in the same chat rather than starting over:
+
+- A panel missing (count first — there must be 9 drawn panels and no blank filler panels):
+  "This page does not have the correct 3×3 layout. It needs exactly 9 drawn
+  panels, one line per drawn panel, in order. Do not drop a line or merge
+  two lines into one bubble."
+- Uneven panels / one big "hero" panel:
+  "Redraw with a strict uniform grid: 3 columns × 3 rows, all 9 cells
+  exactly the same size. Every cell is a drawn panel. No large panel, no
+  merged cells."
+- A panel was left blank:
+  "This story has no blank filler panels. Every cell in the 3×3 grid must be
+  a drawn panel with artwork and one speech bubble. Add the missing artwork
+  and keep the panel order unchanged."
+- An edit changed more than the text (redrew a face, shifted a panel):
+  "You changed more than the bubble text. Undo that and only replace the
+  words inside the bubbles — keep every other pixel of the artwork the same,
+  including the 3×3 grid and all character poses."
+- Garbled Chinese: regenerate or re-edit first — it often lands on the second
+  or third try. If it keeps failing, ask for the same page with every bubble
+  left completely blank, then composite the text locally (SKILL.md step 12)
+  for sharp, correct characters.

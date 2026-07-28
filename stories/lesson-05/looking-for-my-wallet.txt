@@ -1,45 +1,44 @@
 《我的錢包在哪裡？》Where Is My Wallet?
-Situation: Zhongming is about to leave for afternoon tea with Youmei, but his wallet is missing — he searches the house room by room and asks his mom for help.
-Source: Lesson 5 – 我的錢包在哪裡？ (Dialogue 2), mode: book
-7 turns — one per line of the book's dialogue, exactly as the book has them.
+Situation: Zhongming can't find his wallet before going out for afternoon tea with Youmei; his mom suggests places to check while she is busy cooking, and he finally finds it under his book.
+Source: Lesson 5 – 我的錢包在哪裡？Where Is My Wallet? (Dialogue 2), mode: book
 
 ═══════════════════
-EASY (A1)
+EASY (A1) — the book's dialogue, verbatim
 ═══════════════════
-(This tier is the textbook's Dialogue 2 verbatim, p.87; pinyin and English are
-the book's own, from the companion spread on p.88.)
+(Textbook Dialogue 2; pinyin and English are copied from the provided
+source packet.)
 
-[Turn 1 — scene note: Zhongming stands in his bedroom doorway, backpack on one shoulder, patting his empty pockets, calling out to the living room]
+[Turn 1 — 中明站在房間門口，肩上背著包，一邊摸空口袋一邊對客廳叫媽媽]
 中明：媽，我跟友美要去喝下午茶，可是我的錢包不在房間裡。
 Mā, wǒ gēn Yǒuměi yào qù hē xiàwǔ chá, kěshì wǒ de qiánbāo bú zài fángjiān lǐ.
 Mom, Youmei and I are going to have afternoon tea now, but my wallet is not in the bedroom.
 
-[Turn 2 — scene note: Mom in the living room, pointing at a wallet lying on the low table]
+[Turn 2 — 媽媽站在客廳桌子旁，指著桌上的一個錢包]
 媽媽：客廳的桌子上有一個錢包，是不是你的？
 Kètīng de zhuōzi shàng yǒu yí ge qiánbāo, shì bú shì nǐ de?
 In the living room, there is a wallet on the table. Is that yours?
 
-[Turn 3 — scene note: Zhongming picks the wallet up, holds it at eye level, shakes his head]
+[Turn 3 — 中明拿起桌上的錢包看一看，搖頭說不是自己的]
 中明：那不是我的，是哥哥的。我的錢包不在客廳裡。
 Nà bú shì wǒ de, shì gēge de. Wǒ de qiánbāo bú zài kètīng lǐ.
 It is not mine. It is my elder brother's. Mine is not in the living room.
 
-[Turn 4 — scene note: Mom tilting her head toward the teal sofa, one hand gesturing low at floor level]
+[Turn 4 — 媽媽看向沙發，手往低處比，提醒中明再找一個地方]
 媽媽：沙發下面呢？
 Shāfā xiàmiàn ne?
 How about checking under the sofa?
 
-[Turn 5 — scene note: Zhongming kneeling on the floor, one arm reaching under the sofa, looking up at his mom]
+[Turn 5 — 中明跪在沙發旁邊，一手伸到沙發下面找，抬頭求媽媽幫忙]
 中明：沙發上面、下面跟旁邊都沒有。媽，妳幫我找，好嗎？
 Shāfā shàngmiàn, xiàmiàn gēn pángbiān dōu méi yǒu. Mā, nǐ bāng wǒ zhǎo, hǎo ma?
 It is neither on the sofa, under the sofa, nor beside the sofa. Mom, could you find it for me?
 
-[Turn 6 — scene note: Mom in the kitchen doorway, apron on, holding a pot, waving him back toward his room]
+[Turn 6 — 媽媽站在廚房門口，穿著圍裙拿著鍋，忙著要去做飯]
 媽媽：我很忙，現在要去廚房做飯，你再去房間找吧。
 Wǒ hěn máng, xiànzài yào qù chúfáng zuòfàn, nǐ zài qù fángjiān zhǎo ba.
 I am very busy and I am going to the kitchen to cook now. You go check your room again.
 
-[Turn 7 — scene note: （中明再去房間）Zhongming back at his desk, lifting a textbook, the wallet underneath, face lighting up]
+[Turn 7 — （中明再去房間）中明回到房間書桌前，拿起一本書，看見錢包在書下面]
 中明：啊！在這裡！錢包在我的書下面。
 Ā! Zài zhèlǐ! Qiánbāo zài wǒ de shū xiàmiàn.
 Ah! There it is! The wallet is under my book.
@@ -47,149 +46,150 @@ Ah! There it is! The wallet is under my book.
 Vocabulary
 1  跟      gēn        Conj  and
 2  可是    kěshì      Conj  but
-3  房間    fángjiān   N     room (M:個/間 jiān)
+3  房間    fángjiān   N     room
 4  裡(面)  lǐ(miàn)   N     inside; in
-5  客廳    kètīng     N     living room (M:間)
-6  桌子    zhuōzi     N     table (M:張 zhāng)
+5  客廳    kètīng     N     living room
+6  桌子    zhuōzi     N     table
 7  上(面)  shàng(miàn) N    above; over; on top of
 8  有      yǒu        Vst   there is/are; to exist
 9  哥哥    gēge       N     elder brother
-10 沙發    shāfā      N     sofa (M:張)
-11 下面    xiàmiàn    N     under; below
-12 旁邊    pángbiān   N     beside; next to
-13 錢包    qiánbāo    N     wallet
+10 沙發    shāfā      N     sofa
+11 下(面)  xià(miàn)  N     below; under; underneath
+12 旁邊    pángbiān   N     side; by the side of; next to
+13 幫      bāng       V     to help
 14 找      zhǎo       V     to look for
-15 幫      bāng       V     to help
-16 忙      máng       Vs    busy
-17 廚房    chúfáng    N     kitchen
-18 做飯    zuòfàn     V     to cook
-19 再      zài        Adv   again
+15 廚房    chúfáng    N     kitchen
+16 再      zài        Adv   again
 
 Key Phrases
-1  X 不在 [place] 裡。  —  我的錢包不在房間裡。  —  Report where something is NOT; the everyday way to announce a missing object before asking for help.
-2  [Place] 上有 [thing]，是不是你的？  —  客廳的桌子上有一個錢包，是不是你的？  —  Point something out and check whose it is in one breath; 是不是 confirms without needing 嗎.
-3  那不是我的，是 X 的。  —  那不是我的，是哥哥的。  —  Correct a wrong guess about ownership; the 的 stands alone, no noun after it.
-4  A、B 跟 C 都沒有。  —  沙發上面、下面跟旁邊都沒有。  —  List several places and rule them all out at once with 都.
-5  妳幫我 + V，好嗎？  —  媽，妳幫我找，好嗎？  —  The core favour-asking frame at this level; 好嗎 makes it a request, not an order.
-6  你再 + V + 吧。  —  你再去房間找吧。  —  Suggest someone try again; 再 = one more time, 吧 softens it into advice.
+1  X 不在 [place] 裡。  —  我的錢包不在房間裡。  —  Report where something is not when you are looking for it.
+2  [Place] 上有 [thing]，是不是你的？  —  客廳的桌子上有一個錢包，是不是你的？  —  Point something out and check ownership with 是不是.
+3  那不是我的，是 X 的。  —  那不是我的，是哥哥的。  —  Correct a wrong guess about whose thing it is.
+4  A、B 跟 C 都沒有。  —  沙發上面、下面跟旁邊都沒有。  —  List several places and say none of them has the thing.
+5  妳幫我 + V，好嗎？  —  媽，妳幫我找，好嗎？  —  Ask for a favor politely with 幫我.
 
 ═══════════════════
-MEDIUM (A1-A2)
+MEDIUM (A1-A2) — same beats, richer word choice
 ═══════════════════
 
-[Turn 1 — scene note: Zhongming stands in his bedroom doorway, backpack on one shoulder, patting his empty pockets, calling out to the living room]
+[Turn 1 — 中明站在房間門口，肩上背著包，一邊摸空口袋一邊對客廳叫媽媽]
 中明：媽，我跟友美兩點半要去喝下午茶，可是我的錢包不見了，房間裡到處都沒有。
-Mā, wǒ gēn Yǒuměi liǎng diǎn bàn yào qù hē xiàwǔchá, kěshì wǒ de qiánbāo bú jiàn le, fángjiān lǐ dàochù dōu méiyǒu.
-Mom, Youmei and I are going for afternoon tea at two thirty, but my wallet has disappeared — it's nowhere in my room.
+Mā, wǒ gēn Yǒuměi liǎng diǎn bàn yào qù hē xiàwǔ chá, kěshì wǒ de qiánbāo bú jiàn le, fángjiān lǐ dàochù dōu méiyǒu.
+Mom, Youmei and I are going for afternoon tea at two thirty, but my wallet has disappeared; it's nowhere in my room.
 
-[Turn 2 — scene note: Mom in the living room, pointing at a wallet lying on the low table]
+[Turn 2 — 媽媽站在客廳桌子旁，指著桌上的一個錢包]
 媽媽：我記得客廳的桌子上有一個錢包，那個是不是你的？
 Wǒ jìde kètīng de zhuōzi shàng yǒu yí ge qiánbāo, nà ge shì bú shì nǐ de?
-I remember there's a wallet on the living room table — is that one yours?
+I remember there is a wallet on the living room table; is that one yours?
 
-[Turn 3 — scene note: Zhongming picks the wallet up, holds it at eye level, shakes his head]
+[Turn 3 — 中明拿起桌上的錢包看一看，搖頭說不是自己的]
 中明：那個不是我的，是哥哥的。客廳我每個地方都看了，真的沒有。
 Nà ge bú shì wǒ de, shì gēge de. Kètīng wǒ měi ge dìfāng dōu kàn le, zhēn de méiyǒu.
-That one's not mine, it's my brother's. I've looked everywhere in the living room — it's really not there.
+That one is not mine; it is my brother's. I looked everywhere in the living room, and it really is not there.
 
-[Turn 4 — scene note: Mom tilting her head toward the teal sofa, one hand gesturing low at floor level]
+[Turn 4 — 媽媽看向沙發，手往低處比，提醒中明再找一個地方]
 媽媽：沙發下面呢？你找了沒有？
 Shāfā xiàmiàn ne? Nǐ zhǎo le méiyǒu?
 What about under the sofa? Have you looked there?
 
-[Turn 5 — scene note: Zhongming kneeling on the floor, one arm reaching under the sofa, looking up at his mom]
+[Turn 5 — 中明跪在沙發旁邊，一手伸到沙發下面找，抬頭求媽媽幫忙]
 中明：沙發上面、下面跟旁邊我都找了，還是沒有。媽，妳幫幫我，好不好？
 Shāfā shàngmiàn, xiàmiàn gēn pángbiān wǒ dōu zhǎo le, háishì méiyǒu. Mā, nǐ bāngbang wǒ, hǎo bù hǎo?
-I've looked on the sofa, under it and beside it — still nothing. Mom, give me a hand, would you?
+I looked on the sofa, under it, and beside it, but still nothing. Mom, help me a little, okay?
 
-[Turn 6 — scene note: Mom in the kitchen doorway, apron on, holding a pot, waving him back toward his room]
+[Turn 6 — 媽媽站在廚房門口，穿著圍裙拿著鍋，忙著要去做飯]
 媽媽：我現在很忙，快要去廚房做飯了，你自己再去房間找一次吧。
 Wǒ xiànzài hěn máng, kuài yào qù chúfáng zuòfàn le, nǐ zìjǐ zài qù fángjiān zhǎo yí cì ba.
-I'm busy right now, I'm about to go cook in the kitchen. Go look in your room one more time yourself.
+I am busy right now and am about to go cook in the kitchen. Go look in your room one more time yourself.
 
-[Turn 7 — scene note: （中明再去房間）Zhongming back at his desk, lifting a textbook, the wallet underneath, face lighting up]
+[Turn 7 — （中明再去房間）中明回到房間書桌前，拿起一本書，看見錢包在書下面]
 中明：啊！在這裡！原來錢包在我的書下面。
 Ā! Zài zhèlǐ! Yuánlái qiánbāo zài wǒ de shū xiàmiàn.
-Ah! Here it is! So the wallet was under my book all along.
+Ah! Here it is! So the wallet was under my book.
 
 Vocabulary
-1  不見了  bú jiàn le  V-Ptc  to have gone missing
-2  到處    dàochù     Adv   everywhere
-3  記得    jìde       Vst   to remember
-4  地方    dìfāng     N     place; spot
-5  真的    zhēn de    Adv   really
-6  還是    háishì     Adv   still (as before)
-7  好不好  hǎo bù hǎo Ptc   "…, okay?" (softened request tag)
-8  快…了  kuài…le    Ptc   about to; soon going to
-9  自己    zìjǐ       N     oneself; by oneself
-10 一次    yí cì      N-M   once; one time
-11 原來    yuánlái    Adv   so it turns out; all along
+1  兩點半    liǎng diǎn bàn N    two thirty
+2  不見了    bú jiàn le      V-Ptc to have gone missing
+3  到處      dàochù          Adv  everywhere
+4  記得      jìde            Vst  to remember
+5  那個      nà ge           Det  that one
+6  每個      měi ge          Det  every
+7  地方      dìfāng          N    place; spot
+8  真的      zhēn de         Adv  really
+9  還是      háishì          Adv  still
+10 幫幫      bāngbang        V    to help a little
+11 快要...了 kuài yào...le   Ph   to be about to
+12 自己      zìjǐ            N    oneself; by oneself
+13 一次      yí cì           N-M  once; one time
+14 原來      yuánlái         Adv  so it turns out
 
 Key Phrases
-1  [Place] 到處都沒有。  —  房間裡到處都沒有。  —  Say you've searched a whole space and come up empty, in four characters.
-2  我記得…  —  我記得客廳的桌子上有一個錢包。  —  Introduce something you half-remember; softens a claim you're not fully sure of.
-3  每個 + N + 都 + V 了。  —  客廳我每個地方都看了。  —  Cover every member of a set; 每 always pairs with 都.
-4  快要 + V + 了。  —  快要去廚房做飯了。  —  Announce something about to happen; the 了 is required, not optional.
-5  V 一次 / 再 V 一次。  —  你自己再去房間找一次吧。  —  Count an attempt; much more natural than repeating the bare verb.
-6  原來…  —  原來錢包在我的書下面。  —  The "oh, so THAT's it" reaction — use it the moment a puzzle resolves.
+1  [Thing] 不見了。  —  我的錢包不見了。  —  Say something has gone missing.
+2  [Place] 裡到處都沒有。  —  房間裡到處都沒有。  —  Say you searched a whole space and found nothing.
+3  我記得...  —  我記得客廳的桌子上有一個錢包。  —  Introduce something you remember, while keeping the tone soft.
+4  每個 + N + 都 + V 了。  —  客廳我每個地方都看了。  —  Say every place or item in a set has been checked.
+5  快要 + V + 了。  —  快要去廚房做飯了。  —  Say something is about to happen soon.
+6  再 V 一次。  —  你自己再去房間找一次吧。  —  Ask someone to try one more time.
 
 ═══════════════════
-HARD (A2)
+HARD (A2) — same beats, fullest word choice
 ═══════════════════
 
-[Turn 1 — scene note: Zhongming stands in his bedroom doorway, backpack on one shoulder, patting his empty pockets, calling out to the living room]
+[Turn 1 — 中明站在房間門口，肩上背著包，一邊摸空口袋一邊對客廳叫媽媽]
 中明：媽，我跟友美兩點半要去喝下午茶，可是我找了半天還是沒有，我快遲到了。
-Mā, wǒ gēn Yǒuměi liǎng diǎn bàn yào qù hē xiàwǔchá, kěshì wǒ zhǎo le bàntiān háishì méiyǒu, wǒ kuài chídào le.
-Mom, Youmei and I are going for afternoon tea at two thirty, but I've searched forever and still haven't found it — I'm going to be late.
+Mā, wǒ gēn Yǒuměi liǎng diǎn bàn yào qù hē xiàwǔ chá, kěshì wǒ zhǎo le bàntiān háishì méiyǒu, wǒ kuài chídào le.
+Mom, Youmei and I are going for afternoon tea at two thirty, but I have searched for a long time and still do not have it; I am going to be late.
 
-[Turn 2 — scene note: Mom in the living room, pointing at a wallet lying on the low table]
+[Turn 2 — 媽媽站在客廳桌子旁，指著桌上的一個錢包]
 媽媽：我剛剛看過，客廳的桌子上有一個錢包，那個是不是你的？
 Wǒ gānggāng kàn guò, kètīng de zhuōzi shàng yǒu yí ge qiánbāo, nà ge shì bú shì nǐ de?
-I saw one just now — there's a wallet on the living room table. Is that one yours?
+I saw one just now; there is a wallet on the living room table. Is that one yours?
 
-[Turn 3 — scene note: Zhongming picks the wallet up, holds it at eye level, shakes his head]
+[Turn 3 — 中明拿起桌上的錢包看一看，搖頭說不是自己的]
 中明：那個比我的大一點，是哥哥的。客廳我也找過了，真的沒有。
 Nà ge bǐ wǒ de dà yìdiǎn, shì gēge de. Kètīng wǒ yě zhǎo guò le, zhēn de méiyǒu.
-That one's a bit bigger than mine — it's my brother's. I've been through the living room too, it's really not there.
+That one is a little bigger than mine; it is my brother's. I have looked in the living room too, and it really is not there.
 
-[Turn 4 — scene note: Mom tilting her head toward the teal sofa, one hand gesturing low at floor level]
+[Turn 4 — 媽媽看向沙發，手往低處比，提醒中明再找一個地方]
 媽媽：沙發下面呢？那裡最容易掉東西了。
 Shāfā xiàmiàn ne? Nàlǐ zuì róngyì diào dōngxi le.
-What about under the sofa? That's where things drop most easily.
+What about under the sofa? Things fall there most easily.
 
-[Turn 5 — scene note: Zhongming kneeling on the floor, one arm reaching under the sofa, looking up at his mom]
+[Turn 5 — 中明跪在沙發旁邊，一手伸到沙發下面找，抬頭求媽媽幫忙]
 中明：沙發上面、下面跟旁邊我都找過了。媽，如果妳有空，幫我一起找，好嗎？
 Shāfā shàngmiàn, xiàmiàn gēn pángbiān wǒ dōu zhǎo guò le. Mā, rúguǒ nǐ yǒu kòng, bāng wǒ yìqǐ zhǎo, hǎo ma?
-I've already been over the sofa, under it and beside it. Mom, if you have a moment, look with me, okay?
+I have already looked on the sofa, under it, and beside it. Mom, if you have time, help me look together, okay?
 
-[Turn 6 — scene note: Mom in the kitchen doorway, apron on, holding a pot, waving him back toward his room]
+[Turn 6 — 媽媽站在廚房門口，穿著圍裙拿著鍋，忙著要去做飯]
 媽媽：我今天真的沒空，現在要去廚房做飯，你再去房間仔細找一次吧。
 Wǒ jīntiān zhēn de méi kòng, xiànzài yào qù chúfáng zuòfàn, nǐ zài qù fángjiān zǐxì zhǎo yí cì ba.
-I really don't have time today, I'm going to cook now. Go back to your room and look properly one more time.
+I really do not have time today, and I am going to the kitchen to cook now. Go look carefully in your room one more time.
 
-[Turn 7 — scene note: （中明再去房間）Zhongming back at his desk, lifting a textbook, the wallet underneath, face lighting up]
+[Turn 7 — （中明再去房間）中明回到房間書桌前，拿起一本書，看見錢包在書下面]
 中明：啊！找到了！原來錢包一直在我的書下面。
 Ā! Zhǎodào le! Yuánlái qiánbāo yìzhí zài wǒ de shū xiàmiàn.
-Ah! Found it! The wallet was under my book the whole time.
+Ah! Found it! So the wallet was under my book the whole time.
 
 Vocabulary
-1  半天    bàntiān    N     a long while; "half the day"
-2  遲到    chídào     V     to be late
-3  剛剛    gānggāng   Adv   just now; a moment ago
-4  過      guò        Ptc   (experiential marker: have done before)
-5  比      bǐ         Prep  compared to; than
-6  容易    róngyì     Vs    easy; likely to
-7  掉      diào       V     to drop; to fall
-8  如果    rúguǒ      Conj  if
-9  有空／沒空  yǒu kòng / méi kòng  Vs  to have / not have free time
-10 一起    yìqǐ       Adv   together
-11 仔細    zǐxì       Adv   carefully; thoroughly
-12 一直    yìzhí      Adv   all along; continuously
+1  半天      bàntiān    N     a long while
+2  遲到      chídào     V     to be late
+3  剛剛      gānggāng   Adv   just now
+4  過        guò        Ptc   experiential marker
+5  比        bǐ         Prep  compared to; than
+6  大一點    dà yìdiǎn  Ph    a little bigger
+7  容易      róngyì     Vs    easy; likely to
+8  掉        diào       V     to drop; to fall
+9  東西      dōngxi     N     thing; stuff
+10 如果      rúguǒ      Conj  if
+11 有空／沒空 yǒu kòng / méi kòng Vs to have / not have free time
+12 一起      yìqǐ       Adv   together
+13 仔細      zǐxì       Adv   carefully; thoroughly
+14 一直      yìzhí      Adv   all along; continuously
 
 Key Phrases
-1  A 比 B + Adj + 一點。  —  那個比我的大一點。  —  Compare two things sitting side by side; 一點 keeps the difference modest and natural.
-2  我 + V + 過了。  —  客廳我也找過了。  —  Report that something is already done so nobody repeats it — the backbone of describing a search.
-3  V 了半天，還是…  —  我找了半天還是沒有。  —  Complain that long effort changed nothing; extremely common in spoken Mandarin.
-4  最容易 + V + 了。  —  那裡最容易掉東西了。  —  Name the most likely case; the 了 at the end is the spoken flavour, not past tense.
-5  如果…，…  —  如果妳有空，幫我一起找，好嗎？  —  Attach a polite condition to a request, giving the other person a way out.
-6  原來…一直…  —  原來錢包一直在我的書下面。  —  "It was there the whole time" — pairs the 原來 realization with 一直 for duration.
+1  V 了半天，還是...  —  我找了半天還是沒有。  —  Say you tried for a long time but the result did not change.
+2  V 過了。  —  客廳我也找過了。  —  Report that you have already checked or tried something.
+3  A 比 B + Adj + 一點。  —  那個比我的大一點。  —  Compare two similar things with a small difference.
+4  最容易 + V + 了。  —  那裡最容易掉東西了。  —  Say where something is most likely to happen.
+5  如果...，...  —  如果妳有空，幫我一起找，好嗎？  —  Add a polite condition before making a request.
+6  原來...一直...  —  原來錢包一直在我的書下面。  —  Express a realization that something was true all along.

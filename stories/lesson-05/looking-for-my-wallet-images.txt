@@ -47,11 +47,11 @@ two cells, no panel may be larger than another, and a panel's size does not
 change because its scene has more detail in it. No splash panel, no inset, no
 overlapping frame, no dynamic irregular comic layout.
 
-The story has 7 panels and the grid has 9 cells, so the last 2
-cells are drawn as BLANK WHITE FILLER PANELS: same size, same border, same
-gutters as the rest, empty inside — no artwork, no bubble, no text. Do NOT widen the
-last real panel to fill the row, and do not drop a line to make the story fit a
-smaller grid.
+The story has 7 panels and the grid has 9 cells, so the last 2 cells are
+drawn as BLANK WHITE FILLER PANELS: same size, same border, same gutters as
+the rest, empty inside — no artwork, no bubble, no text. Do NOT widen the
+last real panel to fill the row, and do not drop a line to make the story fit
+a smaller grid.
 
 ONE PANEL = ONE LINE. All 7 lines listed below must appear, each alone in
 its own panel, in reading order.
@@ -68,10 +68,10 @@ image, since the next two prompts reuse these same bubble positions). No other
 text anywhere in the image: no title, no level label, no panel numbers, no
 signage, no letters of any alphabet outside the bubbles and boxes.
 
-COUNT CHECK — before finishing, count the panels: exactly 7 drawn panels plus 2 blank fillers, filling
-the 3×3 grid. If a line has nowhere to go, a panel has been dropped: add
-it back rather than merging two lines into one bubble. Panel 7 is the ending
-of the story — a page without it is not the story.
+COUNT CHECK — before finishing, count the panels: exactly 7 drawn panels plus
+2 blank fillers, filling the 3×3 grid. If a line has nowhere to go, a panel
+has been dropped: add it back rather than merging two lines into one bubble.
+Panel 7 is the ending of the story — a page without it is not the story.
 
 Flat digital illustration style, soft rounded shapes, warm afternoon indoor
 colour palette (cream walls, light wood floor, muted teal and terracotta
@@ -91,32 +91,34 @@ PANELS:
 Panel 1 (row 1, left): medium shot at eye level, Zhongming standing in his
 bedroom doorway with one hand on the door frame, backpack on one shoulder,
 patting his empty trouser pocket with the other hand and calling out to his
-left, worried expression; a small desk with books behind him.
+left, worried expression; behind him are opened desk drawers, shifted books,
+and a simple clock with hands near afternoon tea time but no numbers.
 Panel 2 (row 1, centre): wider shot of the living room from a slight side
 angle, Mom standing beside a low wooden coffee table, one arm extended
 pointing down at a brown leather wallet lying on the table top, calm helpful
 expression; a teal sofa and a framed photo on the wall behind her.
-Panel 3 (row 1, right): closer shot on Zhongming, holding the brown wallet
-up at eye level with both hands and shaking his head, mouth slightly open,
-disappointed expression — keep him in the lower two thirds so the bubble
-above stays clear.
+Panel 3 (row 1, right): closer shot on Zhongming, holding the chunky brown
+wallet up at eye level with both hands and shaking his head, mouth slightly
+open, disappointed expression, making it clear this wallet is not his smaller
+red wallet found later — keep him in the lower two thirds so the bubble above
+stays clear.
 Panel 4 (row 2, left): medium shot from behind Zhongming's shoulder, Mom
 half-turned toward the teal sofa, chin tilted toward it and one hand making
 a small low gesture near floor level, questioning expression, eyebrows
 raised; the sofa filling the right side of the frame.
 Panel 5 (row 2, centre): low wide shot from floor level, Zhongming kneeling
 on the wooden floor beside the teal sofa, cheek almost touching the ground,
-right arm reaching deep underneath it, head turned up and to the side
-looking off-panel toward his mom, pleading expression; cushions pushed
-askew.
+right arm reaching deep underneath it, head turned up and to the side looking
+off-panel toward his mom, pleading expression; cushions on top are pushed
+askew and the floor beside the sofa is cleared and visibly empty.
 Panel 6 (row 2, right): medium shot from slightly behind Zhongming's
 shoulder, Mom standing in the kitchen doorway holding a small steaming pot
 with a cloth, waving him away with her free hand toward the bedroom, busy
 but affectionate expression; a stove and hanging utensils behind her.
 Panel 7 (row 3, left): medium shot at desk height, Zhongming back at his
-bedroom desk lifting a thick textbook with one hand to reveal a red wallet
-underneath, other hand reaching for it, face lit up with relief and a big
-smile.
+bedroom desk lifting a thick textbook with one hand to reveal a smaller red
+wallet underneath, other hand reaching for it, face lit up with relief and a
+big smile.
 
 TEXT FOR EACH PANEL (EASY level):
 Panel 1 (bubble → Zhongming): 媽，我跟友美要去喝下午茶，可是我的錢包不在房間裡。
@@ -200,26 +202,26 @@ CAPTION SCRIPT — MEDIUM (proofread the generated text against this; not
 part of the prompt above)
 ───────────────────
 Panel 1 — 中明：媽，我跟友美兩點半要去喝下午茶，可是我的錢包不見了，房間裡到處都沒有。
-  Mā, wǒ gēn Yǒuměi liǎng diǎn bàn yào qù hē xiàwǔchá, kěshì wǒ de qiánbāo bú jiàn le, fángjiān lǐ dàochù dōu méiyǒu.
-  — Mom, Youmei and I are going for afternoon tea at two thirty, but my wallet has disappeared — it's nowhere in my room.
+  Mā, wǒ gēn Yǒuměi liǎng diǎn bàn yào qù hē xiàwǔ chá, kěshì wǒ de qiánbāo bú jiàn le, fángjiān lǐ dàochù dōu méiyǒu.
+  — Mom, Youmei and I are going for afternoon tea at two thirty, but my wallet has disappeared; it's nowhere in my room.
 Panel 2 — 媽媽：我記得客廳的桌子上有一個錢包，那個是不是你的？
   Wǒ jìde kètīng de zhuōzi shàng yǒu yí ge qiánbāo, nà ge shì bú shì nǐ de?
-  — I remember there's a wallet on the living room table — is that one yours?
+  — I remember there is a wallet on the living room table; is that one yours?
 Panel 3 — 中明：那個不是我的，是哥哥的。客廳我每個地方都看了，真的沒有。
   Nà ge bú shì wǒ de, shì gēge de. Kètīng wǒ měi ge dìfāng dōu kàn le, zhēn de méiyǒu.
-  — That one's not mine, it's my brother's. I've looked everywhere in the living room — it's really not there.
+  — That one is not mine; it is my brother's. I looked everywhere in the living room, and it really is not there.
 Panel 4 — 媽媽：沙發下面呢？你找了沒有？
   Shāfā xiàmiàn ne? Nǐ zhǎo le méiyǒu?
   — What about under the sofa? Have you looked there?
 Panel 5 — 中明：沙發上面、下面跟旁邊我都找了，還是沒有。媽，妳幫幫我，好不好？
   Shāfā shàngmiàn, xiàmiàn gēn pángbiān wǒ dōu zhǎo le, háishì méiyǒu. Mā, nǐ bāngbang wǒ, hǎo bù hǎo?
-  — I've looked on the sofa, under it and beside it — still nothing. Mom, give me a hand, would you?
+  — I looked on the sofa, under it, and beside it, but still nothing. Mom, help me a little, okay?
 Panel 6 — 媽媽：我現在很忙，快要去廚房做飯了，你自己再去房間找一次吧。
   Wǒ xiànzài hěn máng, kuài yào qù chúfáng zuòfàn le, nǐ zìjǐ zài qù fángjiān zhǎo yí cì ba.
-  — I'm busy right now, I'm about to go cook in the kitchen. Go look in your room one more time yourself.
+  — I am busy right now and am about to go cook in the kitchen. Go look in your room one more time yourself.
 Panel 7 — 中明：啊！在這裡！原來錢包在我的書下面。
   Ā! Zài zhèlǐ! Yuánlái qiánbāo zài wǒ de shū xiàmiàn.
-  — Ah! Here it is! So the wallet was under my book all along.
+  — Ah! Here it is! So the wallet was under my book.
 
 ═══════════════════
 IMAGE EDIT PROMPT — HARD  (paste in the SAME chat as the EASY image —
@@ -261,26 +263,26 @@ CAPTION SCRIPT — HARD (proofread the generated text against this; not
 part of the prompt above)
 ───────────────────
 Panel 1 — 中明：媽，我跟友美兩點半要去喝下午茶，可是我找了半天還是沒有，我快遲到了。
-  Mā, wǒ gēn Yǒuměi liǎng diǎn bàn yào qù hē xiàwǔchá, kěshì wǒ zhǎo le bàntiān háishì méiyǒu, wǒ kuài chídào le.
-  — Mom, Youmei and I are going for afternoon tea at two thirty, but I've searched forever and still haven't found it — I'm going to be late.
+  Mā, wǒ gēn Yǒuměi liǎng diǎn bàn yào qù hē xiàwǔ chá, kěshì wǒ zhǎo le bàntiān háishì méiyǒu, wǒ kuài chídào le.
+  — Mom, Youmei and I are going for afternoon tea at two thirty, but I have searched for a long time and still do not have it; I am going to be late.
 Panel 2 — 媽媽：我剛剛看過，客廳的桌子上有一個錢包，那個是不是你的？
   Wǒ gānggāng kàn guò, kètīng de zhuōzi shàng yǒu yí ge qiánbāo, nà ge shì bú shì nǐ de?
-  — I saw one just now — there's a wallet on the living room table. Is that one yours?
+  — I saw one just now; there is a wallet on the living room table. Is that one yours?
 Panel 3 — 中明：那個比我的大一點，是哥哥的。客廳我也找過了，真的沒有。
   Nà ge bǐ wǒ de dà yìdiǎn, shì gēge de. Kètīng wǒ yě zhǎo guò le, zhēn de méiyǒu.
-  — That one's a bit bigger than mine — it's my brother's. I've been through the living room too, it's really not there.
+  — That one is a little bigger than mine; it is my brother's. I have looked in the living room too, and it really is not there.
 Panel 4 — 媽媽：沙發下面呢？那裡最容易掉東西了。
   Shāfā xiàmiàn ne? Nàlǐ zuì róngyì diào dōngxi le.
-  — What about under the sofa? That's where things drop most easily.
+  — What about under the sofa? Things fall there most easily.
 Panel 5 — 中明：沙發上面、下面跟旁邊我都找過了。媽，如果妳有空，幫我一起找，好嗎？
   Shāfā shàngmiàn, xiàmiàn gēn pángbiān wǒ dōu zhǎo guò le. Mā, rúguǒ nǐ yǒu kòng, bāng wǒ yìqǐ zhǎo, hǎo ma?
-  — I've already been over the sofa, under it and beside it. Mom, if you have a moment, look with me, okay?
+  — I have already looked on the sofa, under it, and beside it. Mom, if you have time, help me look together, okay?
 Panel 6 — 媽媽：我今天真的沒空，現在要去廚房做飯，你再去房間仔細找一次吧。
   Wǒ jīntiān zhēn de méi kòng, xiànzài yào qù chúfáng zuòfàn, nǐ zài qù fángjiān zǐxì zhǎo yí cì ba.
-  — I really don't have time today, I'm going to cook now. Go back to your room and look properly one more time.
+  — I really do not have time today, and I am going to the kitchen to cook now. Go look carefully in your room one more time.
 Panel 7 — 中明：啊！找到了！原來錢包一直在我的書下面。
   Ā! Zhǎodào le! Yuánlái qiánbāo yìzhí zài wǒ de shū xiàmiàn.
-  — Ah! Found it! The wallet was under my book the whole time.
+  — Ah! Found it! So the wallet was under my book the whole time.
 
 ───────────────────
 FIXING A BAD GENERATION — reply in the same chat rather than starting over:

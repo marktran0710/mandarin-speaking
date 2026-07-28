@@ -7,7 +7,7 @@ SAME chat:
   1. Paste the IMAGE PROMPT — EASY block. This generates the base picture.
   2. Paste the IMAGE EDIT PROMPT — MEDIUM block right after, in the same
      chat. This asks the model to edit the image it just made — same
-     artwork, only the bubble text changes — instead of drawing a new one.
+     artwork, only the caption text changes — instead of drawing a new one.
   3. Paste the IMAGE EDIT PROMPT — HARD block the same way, still in the
      same chat (it edits the EASY image again, not the MEDIUM one, so
      changes don't stack).
@@ -43,7 +43,9 @@ a landscape rectangle roughly 4:3, edges aligned so the columns and rows line
 up, equal thin light gutters, no hard comic-book borders. No panel may span
 two cells, no panel may be larger than another, and a panel's size does not
 change because its scene has more detail in it. No splash panel, no inset, no
-overlapping frame, no dynamic irregular comic layout.
+overlapping frame, no dynamic irregular comic layout. No blank filler panels
+are needed because all 4 cells are real story panels; do not add extra empty
+panels.
 
 ONE PANEL = ONE SENTENCE. All 4 sentences listed below must appear, each alone in
 its own panel, in reading order.
@@ -52,52 +54,58 @@ plain white with a thin dark border, spanning the panel's width, no tail
 (this story is narration, nobody speaks on the page). Never two boxes in a
 panel, never a panel without one.
 
-Make the bubbles and boxes generously sized — roughly the top third of the
-panel, with the characters composed into the lower two thirds (this story's
-HARD lines are the longest — leave room for them even though this is the EASY
-image, since the next two prompts reuse these same bubble positions). No other
-text anywhere in the image: no title, no level label, no panel numbers, no
-signage, no letters of any alphabet outside the bubbles and boxes.
+Make the caption boxes generously sized — roughly the bottom third of the
+panel, and large enough to wrap longer lines cleanly without covering the main
+room details. Panel 2 has the longest sentence in the whole story, so its
+caption box may be slightly taller, but the panel itself must stay the same
+size as every other panel. No other text anywhere in the image: no title, no
+level label, no panel numbers, no signage, no letters of any alphabet outside
+the caption boxes.
 
-COUNT CHECK — before finishing, count the panels: exactly 4 panels, filling
-the 2×2 grid. If a sentence has nowhere to go, a panel has been dropped: add
-it back rather than merging two sentences into one bubble. Panel 4 is the ending
-of the story — a page without it is not the story.
+COUNT CHECK — before finishing, count the panels: exactly 4 drawn panels plus
+0 blank fillers, filling the 2×2 grid. If a sentence has nowhere to go, a
+panel has been dropped: add it back rather than merging two sentences into one
+caption box. Panel 4 is the ending of the story — a page without it is not the
+story.
 
-Flat digital illustration style, soft rounded shapes, warm late-afternoon
-colour palette (cream walls, honey-coloured wood, muted sage green and soft
-orange accents), limited colour palette, gentle clean outlines, friendly
-simple style, consistent lighting and colour across every panel. All panels show the same single bedroom from different angles.
+Flat digital illustration style, soft rounded shapes, clear bright colours,
+clean friendly outlines, warm late-afternoon daylight, quiet student-bedroom
+feeling, consistent lighting and colour across every panel. All panels show
+the same single bedroom from different angles and moments.
 
 CHARACTERS AND FIXED PROPS (identical in every panel they appear in):
-[THE STUDENT] a young man, about 19, wavy dark hair falling over his
-forehead, slim build, plain forest-green t-shirt and grey shorts, barefoot.
+[THE STUDENT] a Taiwanese college student, about 19, short dark hair, slim
+build, plain forest-green t-shirt and grey shorts, barefoot, calm reader's
+posture.
 [THE CAT] a small ginger tabby with white paws and a white chest.
 [THE ROOM] cream walls, honey-coloured wooden floor, one wooden desk, one
-neatly made single bed with a navy blanket, one sage-green two-seater sofa,
-one tall bookshelf, and one large window with a thin cream curtain — the
-same furniture in the same positions in every panel.
+neatly made single bed with a navy blanket, one sage-green two-seat sofa,
+one tall bookshelf, one large window with a thin cream curtain, one plain
+bedroom door, and one new flat-screen television on a low stand — the same
+furniture in the same positions in every panel.
+[BOOKS] Chinese and English books are shown only through different cover
+colours and abstract unreadable spine marks; never draw readable titles,
+letters, words, or symbols.
 
 PANELS:
-Panel 1 (top row, left cell): wide establishing shot of the whole room from
-the doorway, slightly high angle, showing the wooden desk against the left
-wall, the neatly made bed along the back wall, and the sage-green sofa
-facing into the room on the right; no people, warm afternoon light across
-the floor.
-Panel 2 (top row, right cell): medium shot at eye level from the side, a
-modern flat-screen television standing dark and switched off on a low stand
-in front of the sofa, and the student curled up sideways on the sofa behind
-it with his knees drawn up and an open book in both hands, absorbed in
-reading, ignoring the TV completely.
-Panel 3 (bottom row, left cell): close-up on the tall bookshelf and the
-stack of books on the desk beside it, shot straight-on, crowded rows of
-colourful book spines — keep all titles as abstract unreadable marks, not
-real words; no people in this panel.
+Panel 1 (top row, left cell): wide establishing shot from the bedroom doorway,
+slightly high angle, showing the wooden desk against the left wall, the neatly
+made single bed along the back wall, and the sage-green sofa facing into the
+room on the right; no people, tidy room, warm afternoon light across the floor.
+Panel 2 (top row, right cell): medium eye-level side shot, a new flat-screen
+television standing dark and switched off on a low stand in front of the sofa,
+and the student curled up sideways on the sofa behind it with an open book in
+both hands, absorbed in reading, ignoring the TV completely.
+Panel 3 (bottom row, left cell): close-up on the tall bookshelf and the stack
+of well-used books on the desk beside it, shot straight-on, crowded rows of
+colourful book spines and covers with abstract unreadable marks only; a few
+books on the desk are open or have bookmarks and lightly worn corners, showing
+they are read often; no people in this panel.
 Panel 4 (bottom row, right cell): low wide shot from floor level, the large
-window with the cream curtain pushed aside, a bright rectangle of sunlight
-falling across the floorboards, and the ginger cat stretched out flat on its
-side in the middle of that sunlight with its eyes closed, deeply asleep; no
-people.
+window with the cream curtain pushed aside, a plain bedroom door edge visible
+nearby to show the window's size, a bright rectangle of sunlight falling
+across the floorboards, and the ginger cat stretched out beside the window in
+the sunlight with its eyes closed; no people.
 
 TEXT FOR EACH PANEL (EASY level):
 Panel 1 (caption box): 我的房間裡有一張桌子、一張床跟一張沙發。
@@ -138,9 +146,9 @@ Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
 the artwork exactly as it is: same characters, same poses, same background,
 same colours, same panel grid, same panel sizes.
 
-The ONLY change: replace the text inside each panel's speech bubble or
-caption box with the lines below, panel by panel. If a bubble is now too
-small for its new text, resize ONLY that bubble to fit — never resize the
+The ONLY change: replace the text inside each panel's caption box with the
+lines below, panel by panel. If a caption box is now too small for its new
+text, resize ONLY that caption box to fit — never resize the
 artwork, move a panel, or change the panel count to make room.
 
 TEXT FOR EACH PANEL (MEDIUM level):
@@ -166,16 +174,16 @@ part of the prompt above)
 ───────────────────
 Panel 1 — Narrator：我的房間不大，可是很舒服，裡面有一張桌子、一張床跟一張沙發。
   Wǒ de fángjiān bú dà, kěshì hěn shūfú, lǐmiàn yǒu yì zhāng zhuōzi, yì zhāng chuáng gēn yì zhāng shāfā.
-  — My room isn't big, but it's very comfortable — inside there's a desk, a bed and a sofa.
+  — My room is not big, but it is comfortable. Inside there is a table, a bed, and a sofa.
 Panel 2 — Narrator：沙發前面有一台非常新的電視機，可是我平常不看電視，最喜歡坐在沙發上看書。
   Shāfā qiánmiàn yǒu yì tái fēicháng xīn de diànshìjī, kěshì wǒ píngcháng bú kàn diànshì, zuì xǐhuān zuò zài shāfā shàng kànshū.
-  — In front of the sofa there's a brand-new television, but I don't usually watch TV — what I like best is sitting on the sofa reading.
+  — There is a very new television in front of the sofa, but I usually do not watch TV. I like sitting on the sofa and reading the most.
 Panel 3 — Narrator：我的書很多，中文書、英文書我都有，每一本都很好看。
   Wǒ de shū hěn duō, Zhōngwén shū, Yīngwén shū wǒ dōu yǒu, měi yì běn dōu hěn hǎokàn.
-  — I have a lot of books — Chinese ones and English ones, and every single one is good.
+  — I have many books. I have both Chinese books and English books, and every one is good to read.
 Panel 4 — Narrator：我房間的窗戶很大，每天下午我的貓都喜歡在窗戶旁邊曬太陽。
   Wǒ fángjiān de chuānghù hěn dà, měitiān xiàwǔ wǒ de māo dōu xǐhuān zài chuānghù pángbiān shài tàiyáng.
-  — The window in my room is big, and every afternoon my cat likes to sun itself beside it.
+  — The window in my room is big. Every afternoon my cat likes to bask in the sun beside the window.
 
 ═══════════════════
 IMAGE EDIT PROMPT — HARD  (paste in the SAME chat as the EASY image —
@@ -186,16 +194,16 @@ Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
 the artwork exactly as it is: same characters, same poses, same background,
 same colours, same panel grid, same panel sizes.
 
-The ONLY change: replace the text inside each panel's speech bubble or
-caption box with the lines below, panel by panel. If a bubble is now too
-small for its new text, resize ONLY that bubble to fit — never resize the
+The ONLY change: replace the text inside each panel's caption box with the
+lines below, panel by panel. If a caption box is now too small for its new
+text, resize ONLY that caption box to fit — never resize the
 artwork, move a panel, or change the panel count to make room.
 
 TEXT FOR EACH PANEL (HARD level):
 Panel 1 (caption box): 我的房間雖然不大，可是我很喜歡，裡面有一張桌子、一張床跟一張沙發。
-Panel 2 (caption box): 沙發前面那台電視機比舊的大多了，可是我已經很久沒看電視了，我覺得坐在沙發上看書最舒服。
-Panel 3 (caption box): 我的書比以前多了很多，中文的、英文的我都看過，最喜歡的那幾本就放在桌子上。
-Panel 4 (caption box): 我房間的窗戶比客廳的還大，所以我的貓每天下午都在窗戶旁邊曬太陽。
+Panel 2 (caption box): 沙發前面那台電視機很新，可是我已經很久沒看電視了，我覺得在沙發上看書最舒服。
+Panel 3 (caption box): 我的書很多，中文書、英文書我都看過，常看的幾本放在桌子上。
+Panel 4 (caption box): 我房間的窗戶比房門還大，所以我的貓每天下午都在窗戶旁邊曬太陽。
 
 TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
 not invent, simplify, or substitute characters, and do not add any text that
@@ -214,16 +222,16 @@ part of the prompt above)
 ───────────────────
 Panel 1 — Narrator：我的房間雖然不大，可是我很喜歡，裡面有一張桌子、一張床跟一張沙發。
   Wǒ de fángjiān suīrán bú dà, kěshì wǒ hěn xǐhuān, lǐmiàn yǒu yì zhāng zhuōzi, yì zhāng chuáng gēn yì zhāng shāfā.
-  — My room may not be big, but I really like it — inside there's a desk, a bed and a sofa.
-Panel 2 — Narrator：沙發前面那台電視機比舊的大多了，可是我已經很久沒看電視了，我覺得坐在沙發上看書最舒服。
-  Shāfā qiánmiàn nà tái diànshìjī bǐ jiù de dà duō le, kěshì wǒ yǐjīng hěn jiǔ méi kàn diànshì le, wǒ juéde zuò zài shāfā shàng kànshū zuì shūfú.
-  — That television in front of the sofa is much bigger than the old one, but I haven't watched TV in ages — to me, sitting on the sofa reading is the most comfortable thing there is.
-Panel 3 — Narrator：我的書比以前多了很多，中文的、英文的我都看過，最喜歡的那幾本就放在桌子上。
-  Wǒ de shū bǐ yǐqián duō le hěn duō, Zhōngwén de, Yīngwén de wǒ dōu kàn guò, zuì xǐhuān de nà jǐ běn jiù fàng zài zhuōzi shàng.
-  — I have far more books than I used to — I've read both the Chinese and the English ones, and my favourite few sit right on the desk.
-Panel 4 — Narrator：我房間的窗戶比客廳的還大，所以我的貓每天下午都在窗戶旁邊曬太陽。
-  Wǒ fángjiān de chuānghù bǐ kètīng de hái dà, suǒyǐ wǒ de māo měitiān xiàwǔ dōu zài chuānghù pángbiān shài tàiyáng.
-  — The window in my room is even bigger than the living room's, so every afternoon my cat suns itself right beside it.
+  — Although my room is not big, I like it a lot. Inside there is a table, a bed, and a sofa.
+Panel 2 — Narrator：沙發前面那台電視機很新，可是我已經很久沒看電視了，我覺得在沙發上看書最舒服。
+  Shāfā qiánmiàn nà tái diànshìjī hěn xīn, kěshì wǒ yǐjīng hěn jiǔ méi kàn diànshì le, wǒ juéde zài shāfā shàng kànshū zuì shūfú.
+  — That television in front of the sofa is new, but I have not watched TV for a long time. I think reading on the sofa is the most comfortable.
+Panel 3 — Narrator：我的書很多，中文書、英文書我都看過，常看的幾本放在桌子上。
+  Wǒ de shū hěn duō, Zhōngwén shū, Yīngwén shū wǒ dōu kàn guò, cháng kàn de jǐ běn fàng zài zhuōzi shàng.
+  — I have many books. I have read both the Chinese books and the English books, and the few I often read are on the table.
+Panel 4 — Narrator：我房間的窗戶比房門還大，所以我的貓每天下午都在窗戶旁邊曬太陽。
+  Wǒ fángjiān de chuānghù bǐ fángmén hái dà, suǒyǐ wǒ de māo měitiān xiàwǔ dōu zài chuānghù pángbiān shài tàiyáng.
+  — The window in my room is even bigger than the bedroom door, so every afternoon my cat basks in the sun beside it.
 
 ───────────────────
 FIXING A BAD GENERATION — reply in the same chat rather than starting over:
@@ -235,10 +243,14 @@ FIXING A BAD GENERATION — reply in the same chat rather than starting over:
 - Uneven panels / one big "hero" panel:
   "Redraw with a strict uniform grid: 2 columns × 2 rows, all 4 panels
   exactly the same size. No large panel, no merged cells."
+- A filler panel was added:
+  "Remove the extra filler panel. This story has exactly 4 real panels and
+  0 blank fillers, filling the 2×2 grid."
 - An edit changed more than the text (redrew a face, shifted a panel):
-  "You changed more than the bubble text. Undo that and only replace the
-  words inside the bubbles — keep every other pixel of the artwork the same."
+  "You changed more than the caption text. Undo that and only replace the
+  words inside the caption boxes — keep every other pixel of the artwork the
+  same."
 - Garbled Chinese: regenerate or re-edit first — it often lands on the second
-  or third try. If it keeps failing, ask for the same page with every bubble
-  and box left completely blank, then composite the text locally (SKILL.md
-  step 12) for sharp, correct characters.
+  or third try. If it keeps failing, ask for the same page with every caption
+  box left completely blank, then composite the text locally (SKILL.md step 12)
+  for sharp, correct characters.

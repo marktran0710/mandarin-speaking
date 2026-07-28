@@ -1,4 +1,4 @@
-Image prompt for 《我們去喝下午茶》Let's Get Afternoon Tea
+Image prompt for 《週末去喝下午茶吧！》Let's Go Have Afternoon Tea This Weekend!
 9 turns → 3 columns × 3 rows. Turn count follows
 the source text — never adjusted to suit a grid.
 
@@ -40,12 +40,13 @@ Single image — one comic page of 9 panels in a STRICT UNIFORM GRID of
 | Panel 7 | Panel 8 | Panel 9 |
 +---------+---------+---------+
 
-Every panel is EXACTLY THE SAME SIZE: identical width, identical height, each
-a landscape rectangle roughly 4:3, edges aligned so the columns and rows line
-up, equal thin light gutters, no hard comic-book borders. No panel may span
-two cells, no panel may be larger than another, and a panel's size does not
-change because its scene has more detail in it. No splash panel, no inset, no
-overlapping frame, no dynamic irregular comic layout.
+Every cell is filled — no spare cell, no ragged row. Every panel is EXACTLY
+THE SAME SIZE: identical width, identical height, each a landscape rectangle
+roughly 4:3, edges aligned so the columns and rows line up, equal thin light
+gutters, no hard comic-book borders. No panel may span two cells, no panel may
+be larger than another, and a panel's size does not change because its scene
+has more detail in it. No splash panel, no inset, no overlapping frame, no
+dynamic irregular comic layout.
 
 ONE PANEL = ONE LINE. All 9 lines listed below must appear, each alone in
 its own panel, in reading order.
@@ -68,56 +69,70 @@ it back rather than merging two lines into one bubble. Panel 9 is the ending
 of the story — a page without it is not the story.
 
 Flat digital illustration style, soft rounded shapes, warm bright afternoon
-colour palette, limited colour palette, gentle clean outlines, friendly
-simple style, consistent lighting and colour across every panel. All panels take place in the same bright classroom just after
-class.
+colour palette (sunlit classroom cream walls, pale wooden desks, soft teal
+and yellow accents, small café-imagination details in warm pink and brown),
+limited colour palette, gentle clean outlines, friendly simple style,
+consistent lighting and colour across every panel. All panels take place in
+the same bright Taiwanese classroom just after class.
 
 CHARACTERS (identical in every panel they appear in):
-[ZHONGMING] a friendly young man, early 20s, short neat black hair, medium
-build, mustard-yellow t-shirt, dark blue jeans, white sneakers, a black
-analog wristwatch on his left wrist as his signature accessory.
-[YOUMEI] a friendly young woman, early 20s, shoulder-length black hair with
-straight bangs, a small red hair clip above her right ear as her signature
-accessory, light blue cardigan over a white blouse, grey skirt.
+[ZHONGMING] a friendly young man, about 20, short neat black hair, medium
+build, warm mustard-yellow t-shirt under a navy casual jacket, dark blue
+jeans, white sneakers, and a black analog wristwatch on his left wrist in
+every panel.
+[YOUMEI] a friendly young woman, about 20, shoulder-length black hair with
+straight bangs, a small red hairclip above her right ear as her signature
+accessory, light blue cardigan over a white blouse, grey pleated skirt, and
+white flats in every panel.
 
 PANELS:
 Panel 1 (row 1, left): wide shot of the classroom just after class, a few
-empty desks, big windows with afternoon light, Zhongming walking up to
-Youmei's desk raising one hand in a cheerful greeting, Youmei seated and
-turning toward him with a friendly look.
+empty desks and chairs, big windows with afternoon light, Zhongming walking
+up to Youmei's desk and raising one hand in a friendly greeting; Youmei is
+seated and turning toward him with a relaxed smile.
 Panel 2 (row 1, centre): medium shot from a slight side angle, Youmei seated
-at her desk with her chin resting on one hand, a dreamy relaxed expression,
-looking off to one side as she pictures her weekend.
+at her desk with a closed book, simple earbuds, and a small stack of
+notebooks beside her, one hand near her chin, slightly tired but relieved as
+she describes staying home and resting.
 Panel 3 (row 1, right): medium shot over Youmei's shoulder, Zhongming
-leaning slightly on the edge of her desk making a small inviting gesture
-with one open hand, a hopeful expression.
+leaning slightly toward her desk and making a small open-handed invitation;
+a simple blank calendar card and a small tea cup icon-like prop appear near
+the desk with no letters or numbers.
 Panel 4 (row 2, left): closer shot on Youmei, eyes bright, smiling with
-delight, both hands clasped near her chest, head tilted with curiosity —
-keep her in the lower two thirds so the bubble above stays clear.
+delight, both hands clasped near her chest, head tilted with curiosity; a
+small wordless thought bubble shows a tea cup beside flipped calendar pages,
+with no letters or numbers; keep her lower in the frame so the speech bubble
+above stays clear.
 Panel 5 (row 2, centre): medium shot straight-on, Zhongming with one hand on
-his chest looking proud of his recommendation, the other hand gesturing
-outward as if describing a place he knows well.
+his chest and the other gesturing outward proudly, as if recommending a café
+he knows well; behind him, a small wordless thought bubble shows Zhongming
+previously seated at a cozy café table with ice cream, plus one highlighted
+ice cream bowl beside two dimmer less appealing bowls, with no text.
 Panel 6 (row 2, right): closer shot on Youmei from a slight low angle, eyes
-sparkling, leaning forward eagerly with both hands flat on her desk.
+sparkling, leaning forward eagerly with both hands flat on the desk; a small
+wordless thought bubble shows one scoop of chocolate ice cream.
 Panel 7 (row 3, left): medium shot from a slight side angle, Zhongming
-spreading both arms wide enthusiastically, grinning.
+grinning and spreading both arms wide enthusiastically; a small wordless
+thought bubble shows several colorful scoops of ice cream, with the chocolate
+scoop largest and frontmost as Zhongming points toward it.
 Panel 8 (row 3, centre): medium-wide shot, Youmei standing up beside her
-desk now, pointing at a simple round analog wall clock whose hands read half
-past two (no numerals on the clock face), Zhongming watching and listening.
-Panel 9 (row 3, right): wide shot of both from a slight distance, nodding at
-each other with big smiles, Zhongming giving a thumbs up, warm sunlight
-through the classroom windows behind them.
+desk now, pointing toward a simple round analog wall clock whose hands read
+half past two, with no numerals on the clock face; Zhongming watches and
+listens.
+Panel 9 (row 3, right): wide closing shot from a slight distance, Zhongming
+and Youmei nodding at each other with satisfied smiles, Zhongming giving a
+thumbs up, warm sunlight through the classroom windows behind them.
 
 TEXT FOR EACH PANEL (EASY level):
-Panel 1 (bubble → Zhongming): 友美，妳這個週末要做什麼？
-Panel 2 (bubble → Youmei): 我要在家看書、聽音樂。
-Panel 3 (bubble → Zhongming): 妳星期六下午有空嗎？我們一起去喝下午茶，怎麼樣？
-Panel 4 (bubble → Youmei): 好啊！你想去哪裡？
-Panel 5 (bubble → Zhongming): 我知道一家很不錯的咖啡廳，那裡的冰淇淋很好吃。
-Panel 6 (bubble → Youmei): 他們有巧克力冰淇淋嗎？
-Panel 7 (bubble → Zhongming): 有啊！他們有很多種冰淇淋。
-Panel 8 (bubble → Youmei): 我們這個星期六下午兩點半去吧。
-Panel 9 (bubble → Zhongming): 好。
+Panel 1 (bubble — Zhongming): 友美，妳這個週末要做什麼？
+Panel 2 (bubble — Youmei): 我要在家看書、聽音樂。
+Panel 3 (bubble — Zhongming): 妳星期六下午有空嗎？我們一起去喝下午茶，怎麼樣？
+Panel 4 (bubble — Youmei): 好啊！你想去哪裡？
+Panel 5 (bubble — Zhongming): 我知道一家很不錯的咖啡廳，那裡的冰淇淋很好吃。
+Panel 6 (bubble — Youmei): 他們有巧克力冰淇淋嗎？
+Panel 7 (bubble — Zhongming): 有啊！他們有很多種冰淇淋。
+Panel 8 (bubble — Youmei): 我們這個星期六下午兩點半去吧。
+Panel 9 (bubble — Zhongming): 好。
 
 TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
 not invent, simplify, or substitute characters, and do not add any text that
@@ -131,8 +146,8 @@ CAPTION SCRIPT — EASY (proofread the generated text against this; not part
 of the prompt above)
 ───────────────────
 Panel 1 — 中明：友美，妳這個週末要做什麼？
-  Yǒuměi, nǐ zhè ge zhōumò yào zuò shénme?
-  — Youmei, what are you going to do this weekend?
+  Zhōngmíng: Yǒuměi, nǐ zhè ge zhōumò yào zuò shénme?
+  — Zhongming: Youmei, what are you going to do this weekend?
 Panel 2 — 友美：我要在家看書、聽音樂。
   Wǒ yào zài jiā kànshū, tīng yīnyuè.
   — I am going to read and listen to music at home.
@@ -173,15 +188,15 @@ small for its new text, resize ONLY that bubble to fit — never resize the
 artwork, move a panel, or change the panel count to make room.
 
 TEXT FOR EACH PANEL (MEDIUM level):
-Panel 1 (bubble → Zhongming): 友美，週末快到了，妳這個週末想做什麼？
-Panel 2 (bubble → Youmei): 我想在家看書、聽音樂，好好休息。
-Panel 3 (bubble → Zhongming): 妳星期六下午有空嗎？我們一起去咖啡廳喝下午茶，怎麼樣？
-Panel 4 (bubble → Youmei): 好啊！可是你想去哪裡？
-Panel 5 (bubble → Zhongming): 我知道一家很不錯的咖啡廳，那裡的冰淇淋非常好吃。
-Panel 6 (bubble → Youmei): 真的嗎？他們有巧克力冰淇淋嗎？
-Panel 7 (bubble → Zhongming): 有啊！他們有很多種冰淇淋，每種都很好吃。
-Panel 8 (bubble → Youmei): 太好了！我們這個星期六下午兩點半去吧。
-Panel 9 (bubble → Zhongming): 好，星期六見！
+Panel 1 (bubble — Zhongming): 友美，週末快到了，妳這個週末想做什麼？
+Panel 2 (bubble — Youmei): 我想在家看書、聽音樂，也好好休息一下。
+Panel 3 (bubble — Zhongming): 妳星期六下午有空嗎？我們一起去咖啡廳喝下午茶，怎麼樣？
+Panel 4 (bubble — Youmei): 好啊！可是你想去哪裡？
+Panel 5 (bubble — Zhongming): 我知道一家很不錯的咖啡廳，那裡的冰淇淋特別好吃。
+Panel 6 (bubble — Youmei): 真的嗎？他們有沒有巧克力冰淇淋？
+Panel 7 (bubble — Zhongming): 有啊！他們有很多種冰淇淋，每一種都很好吃。
+Panel 8 (bubble — Youmei): 太好了！那我們這個星期六下午兩點半去吧。
+Panel 9 (bubble — Zhongming): 好，星期六下午見！
 
 TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
 not invent, simplify, or substitute characters, and do not add any text that
@@ -200,31 +215,31 @@ part of the prompt above)
 ───────────────────
 Panel 1 — 中明：友美，週末快到了，妳這個週末想做什麼？
   Yǒuměi, zhōumò kuài dào le, nǐ zhè ge zhōumò xiǎng zuò shénme?
-  — Youmei, the weekend is almost here — what do you want to do this weekend?
-Panel 2 — 友美：我想在家看書、聽音樂，好好休息。
-  Wǒ xiǎng zài jiā kànshū, tīng yīnyuè, hǎohǎo xiūxí.
-  — I want to stay home, read, listen to music, and get a good rest.
+  — Youmei, the weekend is almost here. What do you want to do this weekend?
+Panel 2 — 友美：我想在家看書、聽音樂，也好好休息一下。
+  Wǒ xiǎng zài jiā kànshū, tīng yīnyuè, yě hǎohǎo xiūxí yíxià.
+  — I want to read and listen to music at home, and also get a good rest.
 Panel 3 — 中明：妳星期六下午有空嗎？我們一起去咖啡廳喝下午茶，怎麼樣？
   Nǐ xīngqí liù xiàwǔ yǒukòng ma? Wǒmen yìqǐ qù kāfēitīng hē xiàwǔ chá, zěnmeyàng?
   — Are you free Saturday afternoon? How about we go to a café for afternoon tea together?
 Panel 4 — 友美：好啊！可是你想去哪裡？
   Hǎo ā! Kěshì nǐ xiǎng qù nǎlǐ?
   — Sure! But where do you want to go?
-Panel 5 — 中明：我知道一家很不錯的咖啡廳，那裡的冰淇淋非常好吃。
-  Wǒ zhīdào yì jiā hěn búcuò de kāfēitīng, nàlǐ de bīngqílín fēicháng hǎochī.
-  — I know a really nice café — the ice cream there is extremely good.
-Panel 6 — 友美：真的嗎？他們有巧克力冰淇淋嗎？
-  Zhēnde ma? Tāmen yǒu qiǎokèlì bīngqílín ma?
+Panel 5 — 中明：我知道一家很不錯的咖啡廳，那裡的冰淇淋特別好吃。
+  Wǒ zhīdào yì jiā hěn búcuò de kāfēitīng, nàlǐ de bīngqílín tèbié hǎochī.
+  — I know a really nice café. The ice cream there is especially delicious.
+Panel 6 — 友美：真的嗎？他們有沒有巧克力冰淇淋？
+  Zhēnde ma? Tāmen yǒu méi yǒu qiǎokèlì bīngqílín?
   — Really? Do they have chocolate ice cream?
-Panel 7 — 中明：有啊！他們有很多種冰淇淋，每種都很好吃。
-  Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín, měi zhǒng dōu hěn hǎochī.
+Panel 7 — 中明：有啊！他們有很多種冰淇淋，每一種都很好吃。
+  Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín, měi yì zhǒng dōu hěn hǎochī.
   — They do! They have many kinds of ice cream, and every kind is delicious.
-Panel 8 — 友美：太好了！我們這個星期六下午兩點半去吧。
-  Tài hǎo le! Wǒmen zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba.
-  — Great! Let's go this Saturday at 2:30 in the afternoon.
-Panel 9 — 中明：好，星期六見！
-  Hǎo, xīngqí liù jiàn!
-  — Okay, see you Saturday!
+Panel 8 — 友美：太好了！那我們這個星期六下午兩點半去吧。
+  Tài hǎo le! Nà wǒmen zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba.
+  — Great! Then let's go this Saturday at 2:30 in the afternoon.
+Panel 9 — 中明：好，星期六下午見！
+  Hǎo, xīngqí liù xiàwǔ jiàn!
+  — Okay, see you Saturday afternoon!
 
 ═══════════════════
 IMAGE EDIT PROMPT — HARD  (paste in the SAME chat as the EASY image —
@@ -241,15 +256,15 @@ small for its new text, resize ONLY that bubble to fit — never resize the
 artwork, move a panel, or change the panel count to make room.
 
 TEXT FOR EACH PANEL (HARD level):
-Panel 1 (bubble → Zhongming): 友美，這個星期快結束了，妳週末打算做什麼？
-Panel 2 (bubble → Youmei): 這個星期我太忙了，所以週末想在家看書、聽音樂，好好休息一下。
-Panel 3 (bubble → Zhongming): 如果妳星期六下午有空，我們一起去喝下午茶，怎麼樣？
-Panel 4 (bubble → Youmei): 好啊！我很久沒喝下午茶了，你想去哪裡？
-Panel 5 (bubble → Zhongming): 我去過一家很不錯的咖啡廳，那裡的冰淇淋比別家的好吃。
-Panel 6 (bubble → Youmei): 真的嗎？他們有沒有巧克力冰淇淋？
-Panel 7 (bubble → Zhongming): 有啊！他們有很多種冰淇淋，我覺得巧克力的最好吃。
-Panel 8 (bubble → Youmei): 太好了！那我們這個星期六下午兩點半去吧。
-Panel 9 (bubble → Zhongming): 好啊，那就星期六下午兩點半見！
+Panel 1 (bubble — Zhongming): 友美，這個星期快結束了，妳週末打算做什麼？
+Panel 2 (bubble — Youmei): 這個星期我太忙了，所以週末想在家看書、聽音樂，好好休息一下。
+Panel 3 (bubble — Zhongming): 如果妳星期六下午有空，我們一起去喝下午茶，怎麼樣？
+Panel 4 (bubble — Youmei): 好啊！我很久沒喝下午茶了，你想去哪裡？
+Panel 5 (bubble — Zhongming): 我去過一家很不錯的咖啡廳，那裡的冰淇淋比別家的好吃。
+Panel 6 (bubble — Youmei): 真的嗎？那他們有沒有巧克力口味的冰淇淋？
+Panel 7 (bubble — Zhongming): 有啊！他們有很多種冰淇淋，我覺得巧克力的最好吃。
+Panel 8 (bubble — Youmei): 太好了！那就這個星期六下午兩點半去吧。
+Panel 9 (bubble — Zhongming): 好啊，那星期六下午兩點半見！
 
 TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
 not invent, simplify, or substitute characters, and do not add any text that
@@ -263,44 +278,43 @@ of the image already generated in this chat as closely as possible" at the
 top.
 
 ───────────────────
-CAPTION SCRIPT — HARD (proofread the generated text against this; not
-part of the prompt above)
+CAPTION SCRIPT — HARD (proofread the generated text against this; not part
+of the prompt above)
 ───────────────────
 Panel 1 — 中明：友美，這個星期快結束了，妳週末打算做什麼？
   Yǒuměi, zhè ge xīngqí kuài jiéshù le, nǐ zhōumò dǎsuàn zuò shénme?
-  — Youmei, this week is almost over — what do you plan to do this weekend?
+  — Youmei, this week is almost over. What do you plan to do this weekend?
 Panel 2 — 友美：這個星期我太忙了，所以週末想在家看書、聽音樂，好好休息一下。
   Zhè ge xīngqí wǒ tài máng le, suǒyǐ zhōumò xiǎng zài jiā kànshū, tīng yīnyuè, hǎohǎo xiūxí yíxià.
-  — I've been too busy this week, so this weekend I want to stay home, read, listen to music, and rest up a bit.
+  — I have been too busy this week, so this weekend I want to read and listen to music at home, and rest a bit.
 Panel 3 — 中明：如果妳星期六下午有空，我們一起去喝下午茶，怎麼樣？
   Rúguǒ nǐ xīngqí liù xiàwǔ yǒukòng, wǒmen yìqǐ qù hē xiàwǔ chá, zěnmeyàng?
-  — If you're free Saturday afternoon, how about we go have afternoon tea together?
+  — If you are free Saturday afternoon, how about we go have afternoon tea together?
 Panel 4 — 友美：好啊！我很久沒喝下午茶了，你想去哪裡？
   Hǎo ā! Wǒ hěn jiǔ méi hē xiàwǔ chá le, nǐ xiǎng qù nǎlǐ?
-  — Sure! I haven't had afternoon tea in ages — where do you want to go?
+  — Sure! I have not had afternoon tea in a long time. Where do you want to go?
 Panel 5 — 中明：我去過一家很不錯的咖啡廳，那裡的冰淇淋比別家的好吃。
   Wǒ qùguò yì jiā hěn búcuò de kāfēitīng, nàlǐ de bīngqílín bǐ biéjiā de hǎochī.
-  — I've been to a really nice café — their ice cream is tastier than other places'.
-Panel 6 — 友美：真的嗎？他們有沒有巧克力冰淇淋？
-  Zhēnde ma? Tāmen yǒu méi yǒu qiǎokèlì bīngqílín?
-  — Really? Do they have chocolate ice cream?
+  — I have been to a really nice café. The ice cream there is tastier than other places'.
+Panel 6 — 友美：真的嗎？那他們有沒有巧克力口味的冰淇淋？
+  Zhēnde ma? Nà tāmen yǒu méi yǒu qiǎokèlì kǒuwèi de bīngqílín?
+  — Really? Then do they have chocolate-flavored ice cream?
 Panel 7 — 中明：有啊！他們有很多種冰淇淋，我覺得巧克力的最好吃。
   Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín, wǒ juéde qiǎokèlì de zuì hǎochī.
-  — They do! They have many kinds of ice cream — I think the chocolate one is the best.
-Panel 8 — 友美：太好了！那我們這個星期六下午兩點半去吧。
-  Tài hǎo le! Nà wǒmen zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba.
+  — They do! They have many kinds of ice cream, and I think the chocolate one is the best.
+Panel 8 — 友美：太好了！那就這個星期六下午兩點半去吧。
+  Tài hǎo le! Nà jiù zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba.
   — Great! Then let's go this Saturday at 2:30 in the afternoon.
-Panel 9 — 中明：好啊，那就星期六下午兩點半見！
-  Hǎo ā, nà jiù xīngqí liù xiàwǔ liǎng diǎn bàn jiàn!
-  — Sounds good — see you Saturday at 2:30 then!
+Panel 9 — 中明：好啊，那星期六下午兩點半見！
+  Hǎo ā, nà xīngqí liù xiàwǔ liǎng diǎn bàn jiàn!
+  — Sounds good. Then see you Saturday afternoon at 2:30!
 
 ───────────────────
 FIXING A BAD GENERATION — reply in the same chat rather than starting over:
 
 - A panel missing (count first — there must be 9):
   "This page only has 8 panels. It needs all 9, one line each, in order,
-  filling the 3×3 grid. Do not drop a line
-  to make the grid fit."
+  filling the 3×3 grid. Do not drop a line to make the grid fit."
 - Uneven panels / one big "hero" panel:
   "Redraw with a strict uniform grid: 3 columns × 3 rows, all 9 panels
   exactly the same size. No large panel, no merged cells."

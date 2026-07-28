@@ -1,0 +1,320 @@
+Image prompt for 《喜歡一個新牌子》Liking a New Brand
+9 turns → 3 columns × 3 rows (no blank filler cells). Turn count follows
+the source text — never adjusted to suit a grid.
+
+HOW TO USE THIS FILE — generate ONE image, then edit it twice, all in the
+SAME chat:
+  1. Paste the IMAGE PROMPT — EASY block. This generates the base picture.
+  2. Paste the IMAGE EDIT PROMPT — MEDIUM block right after, in the same
+     chat. This asks the model to edit the image it just made — same
+     artwork, only the bubble text changes — instead of drawing a new one.
+  3. Paste the IMAGE EDIT PROMPT — HARD block the same way, still in the
+     same chat (it edits the EASY image again, not the MEDIUM one, so
+     changes don't stack).
+Editing preserves far more of the actual picture than a fresh generation
+does, because the model is transforming an image it can see rather than
+reconstructing the scene from text. If your chat doesn't carry the image
+forward (a new conversation, a different device), upload the EASY image
+file before pasting the edit prompt.
+
+This still will not produce byte-identical artwork across all three — an
+edit can nudge a line or a colour. For that, use the local compositing
+route in SKILL.md step 12 instead.
+
+(Chinese text in AI-generated images is unreliable — proofread every
+speech bubble against the CAPTION SCRIPT under each prompt and regenerate
+if any characters look wrong.)
+
+═══════════════════
+IMAGE PROMPT — EASY  (paste this first, to generate the base image)
+═══════════════════
+
+Single image — one comic page of 9 panels in a STRICT UNIFORM GRID of
+3 COLUMNS × 3 ROWS, laid out exactly like this:
+
++---------+---------+---------+
+| Panel 1 | Panel 2 | Panel 3 |
++---------+---------+---------+
+| Panel 4 | Panel 5 | Panel 6 |
++---------+---------+---------+
+| Panel 7 | Panel 8 | Panel 9 |
++---------+---------+---------+
+
+Every cell is filled — no spare cell, no ragged row, no blank filler panel.
+Every panel is EXACTLY THE SAME SIZE: identical width, identical height, each
+a landscape rectangle roughly 4:3, edges aligned so the columns and rows line
+up, equal thin light gutters, no hard comic-book borders. No panel may span
+two cells, no panel may be larger than another, and a panel's size does not
+change because its scene has more detail in it. No splash panel, no inset, no
+overlapping frame, no dynamic irregular comic layout.
+
+ONE PANEL = ONE LINE. All 9 lines listed below must appear, each alone in
+its own panel, in reading order.
+A panel whose line is spoken gets ONE simple rounded speech bubble — plain
+white with a black outline and a small tail pointing at the character named
+below. A narrator panel gets ONE rectangular caption box (no tail) along the
+bottom edge instead. Never two in a panel, never a panel without one. Write
+only the quoted Chinese inside a bubble; never write the speaker's name in it.
+
+Make the bubbles and boxes generously sized — roughly the top third of the
+panel, with the characters composed into the lower two thirds (this story's
+HARD lines are the longest — leave room for them even though this is the EASY
+image, since the next two prompts reuse these same bubble positions). No other
+text anywhere in the image: no title, no level label, no panel numbers, no
+signage, no letters of any alphabet outside the bubbles and boxes.
+
+COUNT CHECK — before finishing, count the panels: exactly 9 drawn panels,
+filling the 3×3 grid. If a line has nowhere to go, a panel has been dropped:
+add it back rather than merging two lines into one bubble. Panel 9 is the
+ending of the story — a page without it is not the story.
+
+Flat digital illustration style, soft rounded shapes, bright after-class
+shopping colour palette (clean white classroom light, warm wood desks, teal,
+coral, denim blue and soft yellow accents), limited colour palette, gentle
+clean outlines, friendly simple style, consistent lighting and colour across
+every panel.
+All panels take place in the same modern Taiwanese school building, with the
+friends imagining or preparing for a nearby department-store shopping trip.
+
+CHARACTERS (identical in every panel they appear in):
+[YIWEN] a young woman, about 19, shoulder-length straight black hair with a
+small yellow barrette, slim build, cream short-sleeve blouse, coral cardigan,
+dark navy skirt, white sneakers, and a small black phone in her hand or bag in
+every panel.
+[YUANZHEN] a young woman, about 20, short neat black bob, warm oval face, red
+hairpin on her left side, wearing the featured knee-length teal skirt, a white
+t-shirt tucked into it, light denim jacket, beige canvas tote bag, and a blue
+smartphone in her hand or tote in every panel.
+
+PANELS:
+Panel 1 (row 1, left): medium shot in a bright classroom after class, Yiwen
+standing beside Yuanzhen's desk and smiling at Yuanzhen's teal skirt, one hand
+gesturing politely toward the hem; Yuanzhen stands relaxed beside her chair.
+Panel 2 (row 1, centre): closer shot from waist height, Yuanzhen looking down
+at the teal skirt and touching the fabric lightly, smiling as she explains it
+was a birthday gift; Yiwen listens warmly.
+Panel 3 (row 1, right): two-shot near the classroom window, Yiwen leaning in
+with interest and holding her backpack strap while discussing the brand;
+Yuanzhen listens, the skirt still clearly visible.
+Panel 4 (row 2, left): medium shot beside a simple clothing display poster
+with no readable text, Yuanzhen nodding and gesturing from her skirt toward
+generic tops and pants pictured as icons; behind the poster, two students
+eagerly look at a mostly empty clothing rack, showing the brand is popular and
+sells quickly; Yiwen looks impressed.
+Panel 5 (row 2, centre): over-the-shoulder shot of Yiwen taking out her black
+phone as if ready to search for stores, looking curious and practical;
+Yuanzhen turns toward the screen.
+Panel 6 (row 2, right): medium shot by Yuanzhen's chair, Yuanzhen pointing
+toward a department-store shopping bag beside the desk while a simple station
+entrance silhouette and nearby department-store building shape are visible
+through the classroom window, no readable text; Yiwen looks relieved that the
+brand is findable near the station.
+Panel 7 (row 3, left): closer full-body shot, Yiwen looking at Yuanzhen's
+skirt again and then glancing down at herself with a worried face, one hand
+near her waist; Yuanzhen watches sympathetically.
+Panel 8 (row 3, centre): friendly two-shot, Yuanzhen giving Yiwen a reassuring
+smile and lifting her blue phone, ready to go shopping together; both women
+face each other with relaxed body language.
+Panel 9 (row 3, right): medium shot near the classroom doorway, Yiwen relaxed
+and nodding while holding her phone calendar, both friends smiling as they make
+a plan to shop together later.
+
+TEXT FOR EACH PANEL (EASY level):
+Panel 1 (bubble → Yiwen): 元真，妳的這條裙子真好看，我很喜歡。
+Panel 2 (bubble → Yuanzhen): 謝謝，這是我去年的生日禮物。
+Panel 3 (bubble → Yiwen): 聽說這個牌子的東西很貴，可是很多人喜歡。
+Panel 4 (bubble → Yuanzhen): 是啊，因為這個牌子很有名，衣服、褲子和裙子也都很好看，所以很多人買。
+Panel 5 (bubble → Yiwen): 妳知道去哪裡買這個牌子的衣服嗎？
+Panel 6 (bubble → Yuanzhen): 知道，百貨公司都有，不難找。
+Panel 7 (bubble → Yiwen): 我很想去看，可是我最近胖了五公斤，我怕衣服不好買。
+Panel 8 (bubble → Yuanzhen): 妳胖了嗎？我不覺得啊，我跟妳一起去看。我也想去買今年夏天的新衣服。
+Panel 9 (bubble → Yiwen): 好，我們找時間一起去。
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+EXPORT: about 4:3 (e.g. 1536 × 1152). Export as JPG at 80-85% quality,
+keeping backgrounds plain so each panel stays legible when scaled down.
+
+───────────────────
+CAPTION SCRIPT — EASY (proofread the generated text against this; not part
+of the prompt above)
+───────────────────
+Panel 1 — 宜文：元真，妳的這條裙子真好看，我很喜歡。
+  Yuánzhēn, nǐ de zhè tiáo qúnzi zhēn hǎokàn, wǒ hěn xǐhuān.
+  — Yuanzhen, your skirt is very beautiful; I like it very much.
+Panel 2 — 元真：謝謝，這是我去年的生日禮物。
+  Xièxie, zhè shì wǒ qùnián de shēngrì lǐwù.
+  — Thanks, this is my birthday gift from last year.
+Panel 3 — 宜文：聽說這個牌子的東西很貴，可是很多人喜歡。
+  Tīngshuō zhè ge páizi de dōngxi hěn guì, kěshì hěn duō rén xǐhuān.
+  — I heard that this clothing brand is very expensive, but a lot of people like it.
+Panel 4 — 元真：是啊，因為這個牌子很有名，衣服、褲子和裙子也都很好看，所以很多人買。
+  Shì ā, yīnwèi zhè ge páizi hěn yǒumíng, yīfu, kùzi hé qúnzi yě dōu hěn hǎokàn, suǒyǐ hěn duō rén mǎi.
+  — Yes, it is. This brand is very famous and its tops, pants and skirts are very beautiful, so many people buy it.
+Panel 5 — 宜文：妳知道去哪裡買這個牌子的衣服嗎？
+  Nǐ zhīdào qù nǎlǐ mǎi zhè ge páizi de yīfu ma?
+  — Do you know where you can get this clothing brand?
+Panel 6 — 元真：知道，百貨公司都有，不難找。
+  Zhīdào, bǎihuògōngsī dōu yǒu, bù nán zhǎo.
+  — Yes. I think you can get them in department stores; it is not too difficult to find.
+Panel 7 — 宜文：我很想去看，可是我最近胖了五公斤，我怕衣服不好買。
+  Wǒ hěn xiǎng qù kàn, kěshì wǒ zuìjìn pàng le wǔ gōngjīn, wǒ pà yīfu bù hǎo mǎi.
+  — I would like to check it out. But I have recently gained 5 kilograms, so I am worried that they don't have my size.
+Panel 8 — 元真：妳胖了嗎？我不覺得啊，我跟妳一起去看。我也想去買今年夏天的新衣服。
+  Nǐ pàng le ma? Wǒ bù juéde ā, wǒ gēn nǐ yìqǐ qù kàn. Wǒ yě xiǎng qù mǎi jīnnián xiàtiān de xīn yīfu.
+  — Have you gained weight? I don't think so. I can go check with you. I would like to buy the new summer collections.
+Panel 9 — 宜文：好，我們找時間一起去。
+  Hǎo, wǒmen zhǎo shíjiān yìqǐ qù.
+  — Okay, let's make time for it.
+
+═══════════════════
+IMAGE EDIT PROMPT — MEDIUM  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes.
+
+The ONLY change: replace the text inside each panel's speech bubble or
+caption box with the lines below, panel by panel. If a bubble is now too
+small for its new text, resize ONLY that bubble to fit — never resize the
+artwork, move a panel, or change the panel count to make room.
+
+TEXT FOR EACH PANEL (MEDIUM level):
+Panel 1 (bubble → Yiwen): 元真，你的這條裙子真好看，顏色也很適合你，我真的很喜歡。
+Panel 2 (bubble → Yuanzhen): 謝謝，這是我去年生日的禮物，是我姊姊送的。
+Panel 3 (bubble → Yiwen): 聽說這個牌子的衣服比較貴，可是同學都說很好看。
+Panel 4 (bubble → Yuanzhen): 是啊，因為這個牌子很有名，衣服、褲子和裙子都好看，所以很多人買。
+Panel 5 (bubble → Yiwen): 你知道哪一家百貨公司可以買這個牌子的衣服嗎？
+Panel 6 (bubble → Yuanzhen): 知道，車站附近的百貨公司都有，不太難找。
+Panel 7 (bubble → Yiwen): 我很想去看看，可是最近胖了五公斤，怕沒有合適的尺寸。
+Panel 8 (bubble → Yuanzhen): 你胖了嗎？我不覺得。我跟你一起去看，也想買今年夏天的新衣服。
+Panel 9 (bubble → Yiwen): 好，我們下課以後找時間一起去。
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the MEDIUM lines above, and add "match the style, characters and panel layout
+of the image already generated in this chat as closely as possible" at the
+top.
+
+───────────────────
+CAPTION SCRIPT — MEDIUM (proofread the generated text against this; not
+part of the prompt above)
+───────────────────
+Panel 1 — 宜文：元真，你的這條裙子真好看，顏色也很適合你，我真的很喜歡。
+  Yuánzhēn, nǐ de zhè tiáo qúnzi zhēn hǎokàn, yánsè yě hěn shìhé nǐ, wǒ zhēnde hěn xǐhuān.
+  — Yuanzhen, your skirt is really pretty. The color also suits you; I really like it.
+Panel 2 — 元真：謝謝，這是我去年生日的禮物，是我姊姊送的。
+  Xièxie, zhè shì wǒ qùnián shēngrì de lǐwù, shì wǒ jiějie sòng de.
+  — Thanks. This is my birthday gift from last year; my older sister gave it to me.
+Panel 3 — 宜文：聽說這個牌子的衣服比較貴，可是同學都說很好看。
+  Tīngshuō zhè ge páizi de yīfu bǐjiào guì, kěshì tóngxué dōu shuō hěn hǎokàn.
+  — I heard this brand's clothes are comparatively expensive, but classmates all say they look great.
+Panel 4 — 元真：是啊，因為這個牌子很有名，衣服、褲子和裙子都好看，所以很多人買。
+  Shì ā, yīnwèi zhè ge páizi hěn yǒumíng, yīfu, kùzi hé qúnzi dōu hǎokàn, suǒyǐ hěn duō rén mǎi.
+  — Yes. Because this brand is famous, its tops, pants, and skirts all look good, so many people buy it.
+Panel 5 — 宜文：你知道哪一家百貨公司可以買這個牌子的衣服嗎？
+  Nǐ zhīdào nǎ yì jiā bǎihuògōngsī kěyǐ mǎi zhè ge páizi de yīfu ma?
+  — Do you know which department store sells this brand's clothes?
+Panel 6 — 元真：知道，車站附近的百貨公司都有，不太難找。
+  Zhīdào, chēzhàn fùjìn de bǎihuògōngsī dōu yǒu, bù tài nán zhǎo.
+  — Yes. Department stores near the station all have them; they are not too hard to find.
+Panel 7 — 宜文：我很想去看看，可是最近胖了五公斤，怕沒有合適的尺寸。
+  Wǒ hěn xiǎng qù kànkan, kěshì zuìjìn pàng le wǔ gōngjīn, pà méiyǒu héshì de chǐcùn.
+  — I really want to go look, but I recently gained five kilograms, so I'm afraid there won't be a suitable size.
+Panel 8 — 元真：你胖了嗎？我不覺得。我跟你一起去看，也想買今年夏天的新衣服。
+  Nǐ pàng le ma? Wǒ bù juéde. Wǒ gēn nǐ yìqǐ qù kàn, yě xiǎng mǎi jīnnián xiàtiān de xīn yīfu.
+  — Have you gained weight? I don't think so. I'll go look with you, and I also want to buy new clothes for this summer.
+Panel 9 — 宜文：好，我們下課以後找時間一起去。
+  Hǎo, wǒmen xiàkè yǐhòu zhǎo shíjiān yìqǐ qù.
+  — Okay, after class let's find a time to go together.
+
+═══════════════════
+IMAGE EDIT PROMPT — HARD  (paste in the SAME chat as the EASY image —
+or upload that image first if you're in a new chat)
+═══════════════════
+
+Edit the image above. Do NOT redraw, restyle, or recompose anything — keep
+the artwork exactly as it is: same characters, same poses, same background,
+same colours, same panel grid, same panel sizes.
+
+The ONLY change: replace the text inside each panel's speech bubble or
+caption box with the lines below, panel by panel. If a bubble is now too
+small for its new text, resize ONLY that bubble to fit — never resize the
+artwork, move a panel, or change the panel count to make room.
+
+TEXT FOR EACH PANEL (HARD level):
+Panel 1 (bubble → Yiwen): 元真，這條裙子的剪裁比我想的還好看，很適合你，我越看越喜歡。
+Panel 2 (bubble → Yuanzhen): 謝謝，這是我去年生日收到的禮物，我一直很喜歡。
+Panel 3 (bubble → Yiwen): 我聽說這個牌子的東西雖然很貴，可是樣子不錯，所以很多人喜歡。
+Panel 4 (bubble → Yuanzhen): 對，因為這個牌子很有名，衣服、褲子、裙子的樣子都好看，所以常常賣得很快。
+Panel 5 (bubble → Yiwen): 那你知道哪一家百貨公司比較容易買到這個牌子的衣服嗎？
+Panel 6 (bubble → Yuanzhen): 知道，車站旁邊那家百貨公司應該有，找起來不會太難。
+Panel 7 (bubble → Yiwen): 我想先試穿看看，可是最近胖了五公斤，如果尺寸不合怎麼辦？
+Panel 8 (bubble → Yuanzhen): 你看起來沒有胖，我陪你去試；我也正想買今年夏天的新衣服。
+Panel 9 (bubble → Yiwen): 好，那我們這週找個時間一起去逛。
+TEXT ACCURACY: reproduce the Chinese characters exactly as written above. Do
+not invent, simplify, or substitute characters, and do not add any text that
+is not listed here.
+
+If your tool can't edit an existing image (no image carried into this chat,
+and nothing to upload), fall back to a fresh generation: paste the IMAGE
+PROMPT — EASY block again with its TEXT FOR EACH PANEL section swapped for
+the HARD lines above, and add "match the style, characters and panel layout
+of the image already generated in this chat as closely as possible" at the
+top.
+
+───────────────────
+CAPTION SCRIPT — HARD (proofread the generated text against this; not
+part of the prompt above)
+───────────────────
+Panel 1 — 宜文：元真，這條裙子的剪裁比我想的還好看，很適合你，我越看越喜歡。
+  Yuánzhēn, zhè tiáo qúnzi de jiǎncái bǐ wǒ xiǎng de hái hǎokàn, hěn shìhé nǐ, wǒ yuè kàn yuè xǐhuān.
+  — Yuanzhen, the cut of this skirt looks even better than I expected. It suits you, and the more I look, the more I like it.
+Panel 2 — 元真：謝謝，這是我去年生日收到的禮物，我一直很喜歡。
+  Xièxie, zhè shì wǒ qùnián shēngrì shōudào de lǐwù, wǒ yìzhí hěn xǐhuān.
+  — Thanks. This is a gift I received for my birthday last year, and I have always liked it.
+Panel 3 — 宜文：我聽說這個牌子的東西雖然很貴，可是樣子不錯，所以很多人喜歡。
+  Wǒ tīngshuō zhè ge páizi de dōngxi suīrán hěn guì, kěshì yàngzi bùcuò, suǒyǐ hěn duō rén xǐhuān.
+  — I heard that although this brand's things are expensive, the styles are good, so many people like them.
+Panel 4 — 元真：對，因為這個牌子很有名，衣服、褲子、裙子的樣子都好看，所以常常賣得很快。
+  Duì, yīnwèi zhè ge páizi hěn yǒumíng, yīfu, kùzi, qúnzi de yàngzi dōu hǎokàn, suǒyǐ chángcháng mài de hěn kuài.
+  — Right. Because this brand is famous, the tops, pants, and skirts all look good, so they often sell quickly.
+Panel 5 — 宜文：那你知道哪一家百貨公司比較容易買到這個牌子的衣服嗎？
+  Nà nǐ zhīdào nǎ yì jiā bǎihuògōngsī bǐjiào róngyì mǎi dào zhè ge páizi de yīfu ma?
+  — Then do you know which department store is more likely to have this brand's clothes?
+Panel 6 — 元真：知道，車站旁邊那家百貨公司應該有，找起來不會太難。
+  Zhīdào, chēzhàn pángbiān nà jiā bǎihuògōngsī yīnggāi yǒu, zhǎo qǐlái bú huì tài nán.
+  — Yes. The department store next to the station should have them; looking for them won't be too hard.
+Panel 7 — 宜文：我想先試穿看看，可是最近胖了五公斤，如果尺寸不合怎麼辦？
+  Wǒ xiǎng xiān shìchuān kànkan, kěshì zuìjìn pàng le wǔ gōngjīn, rúguǒ chǐcùn bù hé zěnme bàn?
+  — I want to try them on first, but I recently gained five kilograms. What if the size doesn't fit?
+Panel 8 — 元真：你看起來沒有胖，我陪你去試；我也正想買今年夏天的新衣服。
+  Nǐ kàn qǐlái méiyǒu pàng, wǒ péi nǐ qù shì; wǒ yě zhèng xiǎng mǎi jīnnián xiàtiān de xīn yīfu.
+  — You don't look like you've gained weight. I'll go try things on with you; I was also just thinking of buying new summer clothes.
+Panel 9 — 宜文：好，那我們這週找個時間一起去逛。
+  Hǎo, nà wǒmen zhè zhōu zhǎo ge shíjiān yìqǐ qù guàng.
+  — Okay, then let's find a time this week to go shopping together.
+
+───────────────────
+FIXING A BAD GENERATION — reply in the same chat rather than starting over:
+
+- A panel missing (count first — there must be 9):
+  "This page only has 8 panels. It needs all 9, one line each, in order,
+  filling the 3×3 grid. Do not drop a line to make the grid fit."
+- Uneven panels / one big "hero" panel:
+  "Redraw with a strict uniform grid: 3 columns × 3 rows, all 9 panels
+  exactly the same size. No large panel, no merged cells."
+- An edit changed more than the text (redrew a face, shifted a panel):
+  "You changed more than the bubble text. Undo that and only replace the
+  words inside the bubbles — keep every other pixel of the artwork the same."
+- Garbled Chinese: regenerate or re-edit first — it often lands on the second
+  or third try. If it keeps failing, ask for the same page with every bubble
+  and box left completely blank, then composite the text locally (SKILL.md
+  step 12) for sharp, correct characters.

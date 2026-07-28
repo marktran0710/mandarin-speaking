@@ -1,210 +1,227 @@
-《我們去喝下午茶》Let's Get Afternoon Tea
-Situation: After class, Zhongming invites his classmate Youmei to afternoon tea at a café known for its ice cream, and they agree to meet Saturday at 2:30.
+《週末去喝下午茶吧！》Let's Go Have Afternoon Tea This Weekend!
+Situation: Zhongming invites Youmei to afternoon tea at a café known for ice cream after she says she plans to stay home on the weekend, and they agree on Saturday at 2:30 p.m.
 Source: Lesson 5 – 我的錢包在哪裡？Where Is My Wallet? (Dialogue 1), mode: book
+9 turns — one per line of the book's dialogue, exactly as the book has them.
 
 ═══════════════════
-EASY (A1) — the book's dialogue, verbatim
+EASY (A1)
 ═══════════════════
-(Textbook Dialogue 1, p.80; pinyin and English are the book's own, from the
-companion spread on p.81.)
+(This tier is the textbook's Dialogue 1 verbatim from the source packet; pinyin
+and English are the book's own from the same packet.)
 
-[Turn 1 — 下課後的教室，中明走到友美的座位旁，跟她打招呼]
+[Turn 1 — scene note: Zhongming walks up to Youmei's desk in the classroom after class, raising one hand in a friendly greeting as she turns toward him]
 中明：友美，妳這個週末要做什麼？
-Yǒuměi, nǐ zhè ge zhōumò yào zuò shénme?
-Youmei, what are you going to do this weekend?
+Zhōngmíng: Yǒuměi, nǐ zhè ge zhōumò yào zuò shénme?
+Zhongming: Youmei, what are you going to do this weekend?
 
-[Turn 2 — 友美坐在座位上，托著下巴，想像泡泡裡有一本書和耳機]
+[Turn 2 — scene note: Youmei sits at her desk with a book, earbuds, and a small stack of notebooks nearby, looking slightly tired but relieved as she describes her quiet weekend plan]
 友美：我要在家看書、聽音樂。
 Wǒ yào zài jiā kànshū, tīng yīnyuè.
 I am going to read and listen to music at home.
 
-[Turn 3 — 中明比出邀請的手勢，頭上有「星期六」日曆的想像泡泡]
+[Turn 3 — scene note: Zhongming gestures invitingly, with a simple Saturday afternoon calendar card and tea cup in the visual space between them]
 中明：妳星期六下午有空嗎？我們一起去喝下午茶，怎麼樣？
 Nǐ xīngqí liù xiàwǔ yǒukòng ma? Wǒmen yìqǐ qù hē xiàwǔ chá, zěnmeyàng?
 Are you available on Saturday afternoon? How about we have afternoon tea together?
 
-[Turn 4 — 友美開心地笑，好奇地看著中明]
+[Turn 4 — scene note: Youmei smiles brightly and leans forward with curiosity, with a wordless thought bubble showing a tea cup and flipped calendar pages]
 友美：好啊！你想去哪裡？
 Hǎo ā! Nǐ xiǎng qù nǎlǐ?
 Sounds great! Where do you want to go?
 
-[Turn 5 — 中明頭上有想像泡泡：一家可愛的咖啡廳]
+[Turn 5 — scene note: Zhongming proudly recommends a café, with a wordless thought bubble showing him previously at a café table and one highlighted ice cream beside dimmer bowls]
 中明：我知道一家很不錯的咖啡廳，那裡的冰淇淋很好吃。
 Wǒ zhīdào yì jiā hěn búcuò de kāfēitīng, nàlǐ de bīngqílín hěn hǎochī.
 I know a nice café. They serve delicious ice cream.
 
-[Turn 6 — 友美眼睛發亮，想像泡泡裡有一支巧克力冰淇淋]
+[Turn 6 — scene note: Youmei's eyes light up as she imagines a scoop of chocolate ice cream]
 友美：他們有巧克力冰淇淋嗎？
 Tāmen yǒu qiǎokèlì bīngqílín ma?
 Do they have chocolate ice cream?
 
-[Turn 7 — 中明張開雙手，想像泡泡裡有很多種顏色的冰淇淋]
+[Turn 7 — scene note: Zhongming grins and spreads both hands wide, suggesting many colorful ice cream choices with the chocolate scoop largest and frontmost]
 中明：有啊！他們有很多種冰淇淋。
 Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín.
 Oh, yeah. They have lots of kinds of ice cream.
 
-[Turn 8 — 友美站起來，指著牆上兩點半的時鐘]
+[Turn 8 — scene note: Youmei stands beside her desk and points toward a simple wall clock set to half past two]
 友美：我們這個星期六下午兩點半去吧。
 Wǒmen zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba.
 Let's go this Saturday at 2:30 p.m.
 
-[Turn 9 — 兩人互相點頭微笑，說定了計畫]
+[Turn 9 — scene note: Zhongming and Youmei nod at each other with satisfied smiles, the plan settled]
 中明：好。
 Hǎo.
 Okay.
 
 Vocabulary
-1  在      zài        Vst/Prep  (to be located) at; in; on
-2  哪裡    nǎlǐ       N    where
-3  聽      tīng       V    to listen
-4  音樂    yīnyuè     N    music
-5  有空    yǒukòng    Vs   free; at leisure; available
-6  下午茶  xiàwǔchá   N    afternoon tea
-7  不錯    búcuò      Vs   not bad
-8  咖啡廳  kāfēitīng  N    café
-9  那裡    nàlǐ       N    there
-10 冰淇淋  bīngqílín  N    ice cream
-11 巧克力  qiǎokèlì   N    chocolate
-12 半      bàn        N    half
-13 吧      ba         Ptc  final particle for suggestion
+1  錢包      qiánbāo        N         wallet; purse
+2  在        zài            Vst/Prep  (to be located) at; in; on
+3  哪裡/哪兒  nǎlǐ/nǎr       N         where
+4  聽        tīng           V         to listen
+5  音樂      yīnyuè         N         music
+6  有空      yǒukòng        Vs        free; at leisure; available
+7  下午茶    xiàwǔ chá      N         afternoon tea
+8  不錯      búcuò          Vs        not bad
+9  咖啡廳    kāfēitīng      N         café
+10 那裡/那兒  nàlǐ/nàr       N         there
+11 這裡/這兒  zhèlǐ/zhèr     N         here
+12 冰淇淋    bīngqílín      N         ice cream
+13 巧克力    qiǎokèlì       N         chocolate
+14 半        bàn            N         half
+15 吧        ba             Ptc       final particle for suggestion
 
 Key Phrases
-1  X 有空嗎？      —  妳星期六下午有空嗎？              —  Ask if someone is free before you invite them.
-2  ...，怎麼樣？   —  我們一起去喝下午茶，怎麼樣？      —  Propose a plan, then invite the other person's reaction.
-3  有...嗎？       —  他們有巧克力冰淇淋嗎？            —  Ask whether a place has/serves something, with 有.
-4  ...吧           —  我們這個星期六下午兩點半去吧。    —  Add 吧 to turn a plan into a soft "let's..." suggestion.
+1  這個週末要做什麼？  —  妳這個週末要做什麼？  —  Ask someone about their plans for the coming weekend.
+2  在 + place + V  —  我要在家看書、聽音樂。  —  Say where an activity will happen before naming the activity.
+3  X 有空嗎？  —  妳星期六下午有空嗎？  —  Ask if someone is free before making an invitation.
+4  我們一起去 + V，怎麼樣？  —  我們一起去喝下午茶，怎麼樣？  —  Suggest doing something together and ask how it sounds.
+5  有...嗎？  —  他們有巧克力冰淇淋嗎？  —  Ask whether a place has or serves something.
+6  ...吧。  —  我們這個星期六下午兩點半去吧。  —  Add 吧 to make a soft "let's..." suggestion.
 
 ═══════════════════
-MEDIUM (A1-A2) — same beats, richer word choice
+MEDIUM (A1-A2)
 ═══════════════════
 
-[Turn 1 — 下課後的教室，中明走到友美的座位旁，跟她打招呼]
+[Turn 1 — scene note: Zhongming walks up to Youmei's desk in the classroom after class, raising one hand in a friendly greeting as she turns toward him]
 中明：友美，週末快到了，妳這個週末想做什麼？
 Yǒuměi, zhōumò kuài dào le, nǐ zhè ge zhōumò xiǎng zuò shénme?
-Youmei, the weekend is almost here — what do you want to do this weekend?
+Youmei, the weekend is almost here. What do you want to do this weekend?
 
-[Turn 2 — 友美坐在座位上，托著下巴，想像泡泡裡有一本書和耳機]
-友美：我想在家看書、聽音樂，好好休息。
-Wǒ xiǎng zài jiā kànshū, tīng yīnyuè, hǎohǎo xiūxí.
-I want to stay home, read, listen to music, and get a good rest.
+[Turn 2 — scene note: Youmei sits at her desk with a book, earbuds, and a small stack of notebooks nearby, looking slightly tired but relieved as she describes her quiet weekend plan]
+友美：我想在家看書、聽音樂，也好好休息一下。
+Wǒ xiǎng zài jiā kànshū, tīng yīnyuè, yě hǎohǎo xiūxí yíxià.
+I want to read and listen to music at home, and also get a good rest.
 
-[Turn 3 — 中明比出邀請的手勢，頭上有「星期六」日曆的想像泡泡]
+[Turn 3 — scene note: Zhongming gestures invitingly, with a simple Saturday afternoon calendar card and tea cup in the visual space between them]
 中明：妳星期六下午有空嗎？我們一起去咖啡廳喝下午茶，怎麼樣？
 Nǐ xīngqí liù xiàwǔ yǒukòng ma? Wǒmen yìqǐ qù kāfēitīng hē xiàwǔ chá, zěnmeyàng?
 Are you free Saturday afternoon? How about we go to a café for afternoon tea together?
 
-[Turn 4 — 友美開心地笑，好奇地看著中明]
+[Turn 4 — scene note: Youmei smiles brightly and leans forward with curiosity, with a wordless thought bubble showing a tea cup and flipped calendar pages]
 友美：好啊！可是你想去哪裡？
 Hǎo ā! Kěshì nǐ xiǎng qù nǎlǐ?
 Sure! But where do you want to go?
 
-[Turn 5 — 中明頭上有想像泡泡：一家可愛的咖啡廳]
-中明：我知道一家很不錯的咖啡廳，那裡的冰淇淋非常好吃。
-Wǒ zhīdào yì jiā hěn búcuò de kāfēitīng, nàlǐ de bīngqílín fēicháng hǎochī.
-I know a really nice café — the ice cream there is extremely good.
+[Turn 5 — scene note: Zhongming proudly recommends a café, with a wordless thought bubble showing him previously at a café table and one highlighted ice cream beside dimmer bowls]
+中明：我知道一家很不錯的咖啡廳，那裡的冰淇淋特別好吃。
+Wǒ zhīdào yì jiā hěn búcuò de kāfēitīng, nàlǐ de bīngqílín tèbié hǎochī.
+I know a really nice café. The ice cream there is especially delicious.
 
-[Turn 6 — 友美眼睛發亮，想像泡泡裡有一支巧克力冰淇淋]
-友美：真的嗎？他們有巧克力冰淇淋嗎？
-Zhēnde ma? Tāmen yǒu qiǎokèlì bīngqílín ma?
-Really? Do they have chocolate ice cream?
-
-[Turn 7 — 中明張開雙手，想像泡泡裡有很多種顏色的冰淇淋]
-中明：有啊！他們有很多種冰淇淋，每種都很好吃。
-Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín, měi zhǒng dōu hěn hǎochī.
-They do! They have many kinds of ice cream, and every kind is delicious.
-
-[Turn 8 — 友美站起來，指著牆上兩點半的時鐘]
-友美：太好了！我們這個星期六下午兩點半去吧。
-Tài hǎo le! Wǒmen zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba.
-Great! Let's go this Saturday at 2:30 in the afternoon.
-
-[Turn 9 — 兩人互相點頭微笑，說定了計畫]
-中明：好，星期六見！
-Hǎo, xīngqí liù jiàn!
-Okay, see you Saturday!
-
-Vocabulary
-1  快...了 kuài...le  Ph   about to; almost (a time is near)
-2  休息    xiūxí      V    to rest
-3  可是    kěshì      Conj but; however
-4  非常    fēicháng   Adv  very; extremely
-5  真的    zhēnde     Adv  really
-6  每      měi        Det  every; each
-7  太...了 tài...le   Ph   so/too...!
-8  見      jiàn       V    to see; to meet
-
-Key Phrases
-1  快...了            —  週末快到了。            —  Say a time or event is coming up soon.
-2  A，可是 B          —  好啊！可是你想去哪裡？  —  Agree, then raise a follow-up question or concern.
-3  每 + M + 都...     —  每種都很好吃。          —  Say something is true of every one, with 每...都.
-4  太...了            —  太好了！                —  React strongly and positively to good news.
-
-═══════════════════
-HARD (A2) — same beats, fullest word choice
-═══════════════════
-
-[Turn 1 — 下課後的教室，中明走到友美的座位旁，跟她打招呼]
-中明：友美，這個星期快結束了，妳週末打算做什麼？
-Yǒuměi, zhè ge xīngqí kuài jiéshù le, nǐ zhōumò dǎsuàn zuò shénme?
-Youmei, this week is almost over — what do you plan to do this weekend?
-
-[Turn 2 — 友美坐在座位上，托著下巴，想像泡泡裡有一本書和耳機]
-友美：這個星期我太忙了，所以週末想在家看書、聽音樂，好好休息一下。
-Zhè ge xīngqí wǒ tài máng le, suǒyǐ zhōumò xiǎng zài jiā kànshū, tīng yīnyuè, hǎohǎo xiūxí yíxià.
-I've been too busy this week, so this weekend I want to stay home, read, listen to music, and rest up a bit.
-
-[Turn 3 — 中明比出邀請的手勢，頭上有「星期六」日曆的想像泡泡]
-中明：如果妳星期六下午有空，我們一起去喝下午茶，怎麼樣？
-Rúguǒ nǐ xīngqí liù xiàwǔ yǒukòng, wǒmen yìqǐ qù hē xiàwǔ chá, zěnmeyàng?
-If you're free Saturday afternoon, how about we go have afternoon tea together?
-
-[Turn 4 — 友美開心地笑，好奇地看著中明]
-友美：好啊！我很久沒喝下午茶了，你想去哪裡？
-Hǎo ā! Wǒ hěn jiǔ méi hē xiàwǔ chá le, nǐ xiǎng qù nǎlǐ?
-Sure! I haven't had afternoon tea in ages — where do you want to go?
-
-[Turn 5 — 中明頭上有想像泡泡：一家可愛的咖啡廳]
-中明：我去過一家很不錯的咖啡廳，那裡的冰淇淋比別家的好吃。
-Wǒ qùguò yì jiā hěn búcuò de kāfēitīng, nàlǐ de bīngqílín bǐ biéjiā de hǎochī.
-I've been to a really nice café — their ice cream is tastier than other places'.
-
-[Turn 6 — 友美眼睛發亮，想像泡泡裡有一支巧克力冰淇淋]
+[Turn 6 — scene note: Youmei's eyes light up as she imagines a scoop of chocolate ice cream]
 友美：真的嗎？他們有沒有巧克力冰淇淋？
 Zhēnde ma? Tāmen yǒu méi yǒu qiǎokèlì bīngqílín?
 Really? Do they have chocolate ice cream?
 
-[Turn 7 — 中明張開雙手，想像泡泡裡有很多種顏色的冰淇淋]
-中明：有啊！他們有很多種冰淇淋，我覺得巧克力的最好吃。
-Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín, wǒ juéde qiǎokèlì de zuì hǎochī.
-They do! They have many kinds of ice cream — I think the chocolate one is the best.
+[Turn 7 — scene note: Zhongming grins and spreads both hands wide, suggesting many colorful ice cream choices with the chocolate scoop largest and frontmost]
+中明：有啊！他們有很多種冰淇淋，每一種都很好吃。
+Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín, měi yì zhǒng dōu hěn hǎochī.
+They do! They have many kinds of ice cream, and every kind is delicious.
 
-[Turn 8 — 友美站起來，指著牆上兩點半的時鐘]
+[Turn 8 — scene note: Youmei stands beside her desk and points toward a simple wall clock set to half past two]
 友美：太好了！那我們這個星期六下午兩點半去吧。
 Tài hǎo le! Nà wǒmen zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba.
 Great! Then let's go this Saturday at 2:30 in the afternoon.
 
-[Turn 9 — 兩人互相點頭微笑，說定了計畫]
-中明：好啊，那就星期六下午兩點半見！
-Hǎo ā, nà jiù xīngqí liù xiàwǔ liǎng diǎn bàn jiàn!
-Sounds good — see you Saturday at 2:30 then!
+[Turn 9 — scene note: Zhongming and Youmei nod at each other with satisfied smiles, the plan settled]
+中明：好，星期六下午見！
+Hǎo, xīngqí liù xiàwǔ jiàn!
+Okay, see you Saturday afternoon!
 
 Vocabulary
-1  結束    jiéshù     V    to end; to finish
-2  打算    dǎsuàn     Vaux to plan; to intend
-3  忙      máng       Vs   busy
-4  所以    suǒyǐ      Conj so; therefore
-5  就      jiù        Adv  then; in that case (那就...)
-6  一下    yíxià      Ph   for a bit; briefly
-7  如果    rúguǒ      Conj if
-8  過      guò        Ptc  aspect marker: have done before (experience)
-9  比      bǐ         Prep than (comparison)
-10 別家    biéjiā     N    other shops/places
-11 覺得    juéde      Vst  to feel; to think
-12 最      zuì        Adv  most; the ...-est
+1  快...了    kuài...le      Ph    about to; almost
+2  想          xiǎng          Vaux  to want; would like
+3  也          yě             Adv   also; too
+4  好好        hǎohǎo         Adv   well; properly
+5  休息        xiūxí          V     to rest
+6  一下        yíxià          Ph    for a bit; briefly
+7  一起        yìqǐ           Adv   together
+8  可是        kěshì          Conj  but; however
+9  特別        tèbié          Adv   especially
+10 真的        zhēnde         Adv   really
+11 有沒有      yǒu méi yǒu    Ph    have or not; whether there is
+12 每一        měi yī         Det   every; each
+13 太...了    tài...le       Ph    so...!
+14 見          jiàn           V     to see; to meet
 
 Key Phrases
-1  如果...，...怎麼樣？  —  如果妳星期六下午有空，我們一起去喝下午茶，怎麼樣？  —  Make an invitation conditional on the other person being free.
-2  V 過                  —  我去過一家很不錯的咖啡廳。                          —  Use past experience (have been there) to back up a recommendation.
-3  A 比 B + Vs           —  那裡的冰淇淋比別家的好吃。                          —  Compare two things directly with 比.
-4  我覺得...最...        —  我覺得巧克力的最好吃。                              —  Give a personal opinion with 覺得, ranked with 最.
-5  很久沒 V 了           —  我很久沒喝下午茶了。                                —  Say it's been a long time since you did something.
+1  快...了  —  週末快到了。  —  Say that a time or event is coming soon.
+2  也 + VP  —  也好好休息一下。  —  Add one more related plan or detail.
+3  可是...  —  好啊！可是你想去哪裡？  —  Agree first, then ask a follow-up question.
+4  有沒有 + N？  —  他們有沒有巧克力冰淇淋？  —  Ask a yes/no 有 question in a conversational form.
+5  每一種都...  —  每一種都很好吃。  —  Say that something is true for every kind.
+6  太...了！  —  太好了！  —  React strongly to good news.
+
+═══════════════════
+HARD (A2)
+═══════════════════
+
+[Turn 1 — scene note: Zhongming walks up to Youmei's desk in the classroom after class, raising one hand in a friendly greeting as she turns toward him]
+中明：友美，這個星期快結束了，妳週末打算做什麼？
+Yǒuměi, zhè ge xīngqí kuài jiéshù le, nǐ zhōumò dǎsuàn zuò shénme?
+Youmei, this week is almost over. What do you plan to do this weekend?
+
+[Turn 2 — scene note: Youmei sits at her desk with a book, earbuds, and a small stack of notebooks nearby, looking slightly tired but relieved as she describes her quiet weekend plan]
+友美：這個星期我太忙了，所以週末想在家看書、聽音樂，好好休息一下。
+Zhè ge xīngqí wǒ tài máng le, suǒyǐ zhōumò xiǎng zài jiā kànshū, tīng yīnyuè, hǎohǎo xiūxí yíxià.
+I have been too busy this week, so this weekend I want to read and listen to music at home, and rest a bit.
+
+[Turn 3 — scene note: Zhongming gestures invitingly, with a simple Saturday afternoon calendar card and tea cup in the visual space between them]
+中明：如果妳星期六下午有空，我們一起去喝下午茶，怎麼樣？
+Rúguǒ nǐ xīngqí liù xiàwǔ yǒukòng, wǒmen yìqǐ qù hē xiàwǔ chá, zěnmeyàng?
+If you are free Saturday afternoon, how about we go have afternoon tea together?
+
+[Turn 4 — scene note: Youmei smiles brightly and leans forward with curiosity, with a wordless thought bubble showing a tea cup and flipped calendar pages]
+友美：好啊！我很久沒喝下午茶了，你想去哪裡？
+Hǎo ā! Wǒ hěn jiǔ méi hē xiàwǔ chá le, nǐ xiǎng qù nǎlǐ?
+Sure! I have not had afternoon tea in a long time. Where do you want to go?
+
+[Turn 5 — scene note: Zhongming proudly recommends a café, with a wordless thought bubble showing him previously at a café table and one highlighted ice cream beside dimmer bowls]
+中明：我去過一家很不錯的咖啡廳，那裡的冰淇淋比別家的好吃。
+Wǒ qùguò yì jiā hěn búcuò de kāfēitīng, nàlǐ de bīngqílín bǐ biéjiā de hǎochī.
+I have been to a really nice café. The ice cream there is tastier than other places'.
+
+[Turn 6 — scene note: Youmei's eyes light up as she imagines a scoop of chocolate ice cream]
+友美：真的嗎？那他們有沒有巧克力口味的冰淇淋？
+Zhēnde ma? Nà tāmen yǒu méi yǒu qiǎokèlì kǒuwèi de bīngqílín?
+Really? Then do they have chocolate-flavored ice cream?
+
+[Turn 7 — scene note: Zhongming grins and spreads both hands wide, suggesting many colorful ice cream choices with the chocolate scoop largest and frontmost]
+中明：有啊！他們有很多種冰淇淋，我覺得巧克力的最好吃。
+Yǒu ā! Tāmen yǒu hěn duō zhǒng bīngqílín, wǒ juéde qiǎokèlì de zuì hǎochī.
+They do! They have many kinds of ice cream, and I think the chocolate one is the best.
+
+[Turn 8 — scene note: Youmei stands beside her desk and points toward a simple wall clock set to half past two]
+友美：太好了！那就這個星期六下午兩點半去吧。
+Tài hǎo le! Nà jiù zhè ge xīngqí liù xiàwǔ liǎng diǎn bàn qù ba.
+Great! Then let's go this Saturday at 2:30 in the afternoon.
+
+[Turn 9 — scene note: Zhongming and Youmei nod at each other with satisfied smiles, the plan settled]
+中明：好啊，那星期六下午兩點半見！
+Hǎo ā, nà xīngqí liù xiàwǔ liǎng diǎn bàn jiàn!
+Sounds good. Then see you Saturday afternoon at 2:30!
+
+Vocabulary
+1  結束      jiéshù     V     to end; to finish
+2  打算      dǎsuàn     Vaux  to plan; to intend
+3  忙        máng       Vs    busy
+4  所以      suǒyǐ      Conj  so; therefore
+5  如果      rúguǒ      Conj  if
+6  很久沒...了 hěn jiǔ méi...le Ph   have not...in a long time
+7  過        guò        Ptc   experiential aspect marker
+8  比        bǐ         Prep  than; compared with
+9  別家      biéjiā     N     other shops; other places
+10 覺得      juéde      Vst   to feel; to think
+11 最        zuì        Adv   most; the ...-est
+12 口味      kǒuwèi     N     flavor; taste
+13 那就      nà jiù     Adv   then; in that case
+
+Key Phrases
+1  打算 + V  —  妳週末打算做什麼？  —  Ask about someone's plan or intention.
+2  所以...  —  所以週末想在家看書、聽音樂。  —  Give a result after explaining the reason.
+3  如果...，...怎麼樣？  —  如果妳星期六下午有空，我們一起去喝下午茶，怎麼樣？  —  Make an invitation depend on whether the other person is free.
+4  很久沒 + V + 了  —  我很久沒喝下午茶了。  —  Say it has been a long time since doing something.
+5  V 過  —  我去過一家很不錯的咖啡廳。  —  Use past experience to support a recommendation.
+6  A 比 B + Adj  —  那裡的冰淇淋比別家的好吃。  —  Compare two places or things directly.
+7  我覺得...最...  —  我覺得巧克力的最好吃。  —  Give a personal opinion and name the top choice.
+8  那就...吧。  —  那就這個星期六下午兩點半去吧。  —  Confirm a decision after hearing enough information.
