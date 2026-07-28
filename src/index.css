@@ -189,6 +189,10 @@
   --font-sans:
     "Inter", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Segoe UI",
     -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Student-facing copy favours the highly legible CJK face first.  It keeps
+     strokes open at small sizes and avoids a decorative font becoming harder
+     to read during a speaking exercise. */
+  --font-student: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Inter", "Segoe UI", sans-serif;
   --font-mono:
     "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas,
     "Liberation Mono", monospace;
@@ -276,6 +280,53 @@ body {
   font-weight: 400;
   line-height: 1.55;
   text-rendering: optimizeLegibility;
+}
+
+/* ── Student learning surface ────────────────────────────────────────── */
+.home-page,
+.my-stories-page,
+.topic-selector,
+.story-recorder,
+.login-page.student {
+  font-family: var(--font-student);
+  letter-spacing: 0.005em;
+}
+
+.home-page h1,
+.my-stories-page h1,
+.topic-selector h1,
+.story-recorder h1,
+.login-page.student h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+/* Reading the Chinese task first, then pinyin, then a short English aid
+   makes bilingual labels useful instead of feeling like three competing
+   headings.  The overrides stay out of Teacher mode. */
+.home-page .bi-label,
+.my-stories-page .bi-label,
+.topic-selector .bi-label,
+.story-recorder .bi-label,
+.login-page.student .bi-label {
+  gap: 3px;
+}
+
+.home-page .bi-zh,
+.my-stories-page .bi-zh,
+.topic-selector .bi-zh,
+.story-recorder .bi-zh,
+.login-page.student .bi-zh {
+  line-height: 1.32;
+}
+
+.home-page .bi-pinyin,
+.my-stories-page .bi-pinyin,
+.topic-selector .bi-pinyin,
+.story-recorder .bi-pinyin,
+.login-page.student .bi-pinyin {
+  font-size: 0.66em;
+  line-height: 1.25;
 }
 
 #root {

@@ -1,6 +1,6 @@
 .my-stories-page {
   min-height: calc(100vh - var(--navbar-height));
-  padding: 24px 20px 56px;
+  padding: 20px 20px 56px;
   background:
     radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--tone1-soft) 60%, transparent), transparent 23rem),
     radial-gradient(circle at 5% 22%, color-mix(in srgb, var(--seal-soft) 52%, transparent), transparent 20rem),
@@ -10,7 +10,7 @@
 .stories-header {
   max-width: var(--content-max);
   margin: 0 auto 20px;
-  padding: clamp(20px, 3vw, 30px);
+  padding: clamp(20px, 3vw, 28px);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-xl);
   background: linear-gradient(120deg, color-mix(in srgb, var(--clay-surface-card) 94%, transparent), color-mix(in srgb, var(--seal-soft) 54%, var(--clay-surface-card)));
@@ -20,7 +20,7 @@
 
 .stories-header h1 {
   color: var(--clay-ink);
-  font-size: clamp(30px, 5vw, 40px);
+  font-size: clamp(28px, 4vw, 36px);
   font-weight: 650;
   letter-spacing: 0;
   margin-bottom: 8px;
@@ -29,9 +29,9 @@
 .stories-subtitle {
   max-width: 620px;
   margin: 0;
-  font-size: 16px;
-  color: var(--clay-muted);
-  line-height: 1.6;
+  font-size: 15px;
+  color: var(--clay-body);
+  line-height: 1.7;
 }
 
 .stories-kicker {

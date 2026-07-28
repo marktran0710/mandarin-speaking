@@ -136,6 +136,12 @@ export default function StudentLoginPage({
             />
           </p>
 
+          <ol className="student-login-steps" aria-label="Login steps">
+            <li><span>1</span><BiLabel zh="選擇名字" en="Choose your name" /></li>
+            <li><span>2</span><BiLabel zh="輸入密碼" en="Enter password" /></li>
+            <li><span>3</span><BiLabel zh="開始練習" en="Start practicing" /></li>
+          </ol>
+
           <form className="login-form" onSubmit={handleSubmit}>
             {usingRoster && roster.length > 0 && selectedId !== NEW_STUDENT_VALUE ? (
               <label>

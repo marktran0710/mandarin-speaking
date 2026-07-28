@@ -148,8 +148,79 @@
    is about to play. The teacher variant keeps its plain professional
    look — this block only ever targets .login-page.student. ── */
 .login-page.student .login-card {
+  max-width: 500px;
+  margin: 0 auto;
   border: 1px solid var(--clay-hairline);
   box-shadow: 0 22px 48px color-mix(in srgb, var(--seal) 18%, transparent);
+}
+
+.login-page.student .login-back {
+  background: color-mix(in srgb, var(--clay-surface-card) 88%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+.login-page.student .login-kicker {
+  color: var(--seal-deep);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.login-page.student .login-card h1 {
+  font-size: clamp(28px, 6vw, 34px);
+  letter-spacing: 0;
+}
+
+.login-page.student .login-description {
+  color: var(--clay-body);
+  line-height: 1.7;
+}
+
+.student-login-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 var(--space-lg);
+  padding: 0;
+  list-style: none;
+}
+
+.student-login-steps li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 6px;
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft);
+  color: var(--clay-body);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.student-login-steps li > span {
+  display: grid;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--seal);
+  color: var(--clay-on-seal);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.student-login-steps .bi-label { align-items: flex-start; text-align: left; gap: 1px; }
+.student-login-steps .bi-zh { font-size: 1em; }
+.student-login-steps .bi-en { font-size: 0.7em; }
+
+.login-page.student .login-form { gap: 14px; }
+.login-page.student .login-form label { gap: 6px; }
+.login-page.student .login-form input,
+.login-page.student .login-form select {
+  min-height: 48px;
+  background: var(--clay-surface-soft);
+  border-color: color-mix(in srgb, var(--clay-hairline) 80%, var(--seal-soft));
 }
 
 .login-page.student .login-tonemark {
@@ -187,4 +258,5 @@
   .login-card {
     padding: var(--space-lg) var(--space-md);
   }
+  .student-login-steps { grid-template-columns: 1fr; }
 }

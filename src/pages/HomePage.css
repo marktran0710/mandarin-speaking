@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: clamp(12px, 3vh, 32px);
+  gap: clamp(18px, 3vh, 36px);
   background:
     linear-gradient(180deg, var(--clay-surface-soft) 0%, var(--clay-canvas) 42%, var(--clay-canvas) 100%);
   overflow: hidden;
@@ -21,6 +21,7 @@
 
 .home-hero-copy {
   min-width: 0;
+  max-width: 620px;
 }
 
 .hero-title {
@@ -89,8 +90,8 @@
 
 .hero-subtitle {
   color: var(--clay-body);
-  font-size: 17px;
-  line-height: 1.55;
+  font-size: 16px;
+  line-height: 1.7;
   max-width: 560px;
   margin: 14px 0 0;
 }
@@ -100,7 +101,7 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
-  min-height: 62px;
+  min-height: 56px;
   padding: 14px 34px;
   border: 0;
   border-radius: var(--clay-radius-pill);
@@ -109,7 +110,7 @@
   box-shadow: 0 6px 0 var(--seal-deep);
   cursor: pointer;
   font-weight: 750;
-  font-size: 18px;
+  font-size: 16px;
   --bi-pinyin-color: var(--clay-on-seal);
   --bi-en-color: var(--clay-on-seal);
 }
