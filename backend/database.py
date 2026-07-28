@@ -99,6 +99,7 @@ def row_to_story_submission(row: dict) -> dict:
         "storyId": row["story_id"],
         "storyTitle": row["story_title"],
         "studentName": row["student_name"],
+        "studentId": row.get("student_id"),
         "submittedAt": row["submitted_at"],
         "scenes": row["scenes"] or [],
         "concatenatedAudioUrl": row.get("concatenated_audio_url"),

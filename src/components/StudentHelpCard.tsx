@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { HelpRequest } from "../services/database";
 import { BiLabel, BiText } from "./BiLabel";
-import { getSessionName } from "../utils/myStoriesUtils";
+import { getStudentName } from "../utils/studentSession";
 
 export default function StudentHelpCard({
   helpRequests,
@@ -11,7 +11,7 @@ export default function StudentHelpCard({
   onRaiseHand?: (message: string) => void;
 }) {
   const [message, setMessage] = useState("我的故事需要幫忙。 I need help with my story.");
-  const studentName = getSessionName("studentSession", "Student");
+  const studentName = getStudentName();
   const activeRequest = helpRequests.find(
     (request) =>
       request.studentName === studentName && request.status === "open",

@@ -898,7 +898,7 @@ export default function StoryRecorder({
   useEffect(() => {
     const completed = loadCompletedVocabQuizzes()[topic.id] === true;
     setVocabQuizCompleted(completed);
-    const stillLocked = hasVocabQuiz && !completed;
+    const stillLocked = hasVocabQuiz && !completed && !isAdmin;
     setPhase(
       enableOverview
         ? "overview"
@@ -908,7 +908,7 @@ export default function StoryRecorder({
             ? "vocabquiz"
             : "practice",
     );
-  }, [topic.id, topic.images, enableSorting, enableOverview, hasVocabQuiz]);
+  }, [topic.id, topic.images, enableSorting, enableOverview, hasVocabQuiz, isAdmin]);
 
   useEffect(() => {
     return () => {
@@ -1447,6 +1447,7 @@ export default function StoryRecorder({
       storyId: topic.id,
       storyTitle: topic.name,
       studentName,
+      studentId,
       submittedAt: new Date().toISOString(),
       scenes,
     };

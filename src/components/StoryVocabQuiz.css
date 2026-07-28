@@ -513,7 +513,7 @@
   cursor: pointer;
   border: 2px solid var(--gold-deep);
   background: var(--gold);
-  color: #fff;
+  color: var(--clay-on-seal);
   box-shadow: 0 4px 0 var(--gold-deep);
   transition: transform 0.1s, box-shadow 0.1s;
 }
@@ -545,7 +545,7 @@
   cursor: pointer;
   border: 2px solid var(--gold-deep);
   background: var(--gold);
-  color: #fff;
+  color: var(--clay-on-seal);
   box-shadow: 0 4px 0 var(--gold-deep);
   transition: transform 0.1s, box-shadow 0.1s;
 }

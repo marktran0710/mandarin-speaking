@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TeacherQuizReviewPage from "./TeacherQuizReviewPage";
 import { buildMaterialSnapshot } from "../utils/quizMaterialDiff";
@@ -336,6 +336,67 @@ describe("Generate / Update Questions", () => {
     ],
   };
 
+  const storyWithFullSynonymMaterial: CustomTeacherStory = {
+    id: "s4",
+    title: "Changed review",
+    learningGoal: "goal",
+    published: true,
+    lessonNumber: 10,
+    frames: [
+      {
+        imageUrl: "u4",
+        prompt: "p4",
+        vocabulary: "alpha",
+        vocabularyTranslation: "first letter",
+        vocabularyDistractors: JSON.stringify([["d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8"]]),
+        vocabularyLookalike: JSON.stringify([["l1", "l2", "l3", "l4", "l5", "l6"]]),
+        vocabularyCloze: JSON.stringify([
+          [
+            { sentence: "alpha cloze one", distractors: ["c1"] },
+            { sentence: "alpha cloze two", distractors: ["c2"] },
+            { sentence: "alpha cloze three", distractors: ["c3"] },
+            { sentence: "alpha cloze four", distractors: ["c4"] },
+          ],
+        ]),
+        vocabularySynonym: JSON.stringify([
+          [
+            { synonym: "old match", distractors: ["old miss"] },
+            { synonym: "kept two", distractors: ["miss two"] },
+            { synonym: "kept three", distractors: ["miss three"] },
+            { synonym: "kept four", distractors: ["miss four"] },
+          ],
+        ]),
+      },
+    ],
+  };
+
+  const storyWithDroppedSnapshot: CustomTeacherStory = {
+    id: "s5",
+    title: "Removed review",
+    learningGoal: "goal",
+    published: true,
+    lessonNumber: 11,
+    quizMaterialSnapshot: {
+      easy: [
+        {
+          word: "dropped",
+          translation: "gone",
+          distractors: [],
+          cloze: [{ sentence: "dropped was here", distractors: ["other choice"] }],
+          synonym: [],
+        },
+      ],
+    },
+    frames: [
+      {
+        imageUrl: "u5",
+        prompt: "p5",
+        vocabulary: "alpha",
+        vocabularyTranslation: "first letter",
+      },
+    ],
+  };
+
   it("shows 'Generate Questions' for a story with no AI material yet, 'Update Questions' once it has some", async () => {
     setStories([storyWithNoMaterial]);
     render(<TeacherQuizReviewPage />);
@@ -360,13 +421,14 @@ describe("Generate / Update Questions", () => {
     await user.click(screen.getByRole("button", { name: /Generate Questions/ }));
 
     // Reveals as a 🆕 New candidate; Apply is disabled until decided.
-    expect(await screen.findByText(/New distractors/)).toBeInTheDocument();
+    const distractorLine = await screen.findByText(/New distractors/);
+    expect(distractorLine.closest(".diff-row")).toHaveClass("row-add");
     expect(screen.getByText(/🆕 New/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Apply Changes/ })).toBeDisabled();
     expect(updateVocabularyDistractors).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: /Accept$/ }));
-    expect(await screen.findByText(/✓ Accepted/)).toBeInTheDocument();
+    expect(await screen.findByText(/Added/)).toBeInTheDocument();
 
     const applyButton = screen.getByRole("button", { name: /Apply Changes/ });
     expect(applyButton).not.toBeDisabled();
@@ -375,6 +437,131 @@ describe("Generate / Update Questions", () => {
     expect(updateVocabularyDistractors).toHaveBeenCalledWith("s3", [
       { frameIndex: 0, wordIndex: 0, distractors: ["to see", "to hear", "to say"] },
     ]);
+  });
+
+  it("shows an error when question generation fails", async () => {
+    const { generateVocabCloze } = await import("../services/database");
+    (generateVocabCloze as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("rate limited"));
+
+    setStories([storyWithNoMaterial]);
+    render(<TeacherQuizReviewPage />);
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: /Generate Questions/ }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Generate failed. Try again in a moment");
+  });
+
+  it("renders a changed candidate diff and replaces the old question with the new value", async () => {
+    const { generateVocabSynonym, replaceQuizQuestion, validateQuizMaterial } = await import("../services/database");
+    (validateQuizMaterial as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { word: "alpha", kind: "synonym", poolIndex: 0, status: "suspicious", reason: "too obvious" },
+    ]);
+    (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { word: "alpha", synonym: "new match", distractors: ["new miss"] },
+    ]);
+
+    setStories([storyWithFullSynonymMaterial]);
+    render(<TeacherQuizReviewPage />);
+    const user = userEvent.setup();
+    await screen.findByText("Changed review");
+    await user.click(screen.getByRole("button", { name: /Check Questions|Validate/ }));
+    await screen.findByText(/too obvious/);
+    await user.click(screen.getByRole("button", { name: /Update Questions/ }));
+
+    const oldLine = (await screen.findAllByText(/old match/))
+      .map((node) => node.closest(".diff-row"))
+      .find((node): node is HTMLElement => node instanceof HTMLElement && node.classList.contains("row-del"));
+    expect(oldLine).toHaveClass("row-del");
+    const newLine = await screen.findByText(/new match/);
+    expect(newLine.closest(".diff-row")).toHaveClass("row-add");
+
+    const row = newLine.closest(".tqr-pending-change");
+    expect(row).not.toBeNull();
+    await user.click(within(row as HTMLElement).getByRole("button", { name: /Accept$/ }));
+    await user.click(screen.getByRole("button", { name: /Apply Changes/ }));
+
+    await waitFor(() =>
+      expect(replaceQuizQuestion).toHaveBeenCalledWith(
+        "s4",
+        0,
+        0,
+        "synonym",
+        0,
+        { synonym: "new match", distractors: ["new miss"] },
+      ),
+    );
+  });
+
+  it("renders a removed candidate diff and soft-deletes it through quiz exclusions", async () => {
+    const { generateVocabSynonym, updateQuizExclusions } = await import("../services/database");
+    (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    setStories([storyWithDroppedSnapshot]);
+    render(<TeacherQuizReviewPage />);
+    const user = userEvent.setup();
+    await screen.findByText("Removed review");
+    await user.click(screen.getByRole("button", { name: /Generate Questions/ }));
+
+    const removedLine = await screen.findByText(/other choice/);
+    expect(removedLine.closest(".diff-row")).toHaveClass("row-del");
+    expect(screen.getByText(/dropped since the last review/)).toBeInTheDocument();
+
+    const row = removedLine.closest(".tqr-pending-change");
+    expect(row).not.toBeNull();
+    await user.click(within(row as HTMLElement).getByRole("button", { name: /Accept$/ }));
+    await user.click(screen.getByRole("button", { name: /Apply Changes/ }));
+
+    await waitFor(() =>
+      expect(updateQuizExclusions).toHaveBeenCalledWith("s5", [
+        { word: "dropped", kind: "cloze", index: 0 },
+      ]),
+    );
+  });
+
+  it("does not replace a changed candidate when it is rejected", async () => {
+    const { generateVocabSynonym, replaceQuizQuestion, validateQuizMaterial } = await import("../services/database");
+    (validateQuizMaterial as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { word: "alpha", kind: "synonym", poolIndex: 0, status: "suspicious", reason: "too obvious" },
+    ]);
+    (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { word: "alpha", synonym: "new match", distractors: ["new miss"] },
+    ]);
+
+    setStories([storyWithFullSynonymMaterial]);
+    render(<TeacherQuizReviewPage />);
+    const user = userEvent.setup();
+    await screen.findByText("Changed review");
+    await user.click(screen.getByRole("button", { name: /Check Questions|Validate/ }));
+    await screen.findByText(/too obvious/);
+    await user.click(screen.getByRole("button", { name: /Update Questions/ }));
+
+    const newLine = await screen.findByText(/new match/);
+    const row = newLine.closest(".tqr-pending-change");
+    expect(row).not.toBeNull();
+    await user.click(within(row as HTMLElement).getByRole("button", { name: /Reject$/ }));
+    await user.click(screen.getByRole("button", { name: /Apply Changes/ }));
+
+    await waitFor(() => expect(replaceQuizQuestion).not.toHaveBeenCalled());
+  });
+
+  it("does not update exclusions for a removed candidate when it is rejected", async () => {
+    const { generateVocabSynonym, updateQuizExclusions } = await import("../services/database");
+    (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    setStories([storyWithDroppedSnapshot]);
+    render(<TeacherQuizReviewPage />);
+    const user = userEvent.setup();
+    await screen.findByText("Removed review");
+    await user.click(screen.getByRole("button", { name: /Generate Questions/ }));
+
+    const removedLine = await screen.findByText(/other choice/);
+    const row = removedLine.closest(".tqr-pending-change");
+    expect(row).not.toBeNull();
+    await user.click(within(row as HTMLElement).getByRole("button", { name: /Reject$/ }));
+    await user.click(screen.getByRole("button", { name: /Apply Changes/ }));
+
+    await waitFor(() => expect(updateQuizExclusions).not.toHaveBeenCalled());
   });
 
   it("Accept All decides every still-pending candidate at once", async () => {
@@ -396,7 +583,7 @@ describe("Generate / Update Questions", () => {
 
     await user.click(screen.getByRole("button", { name: /Accept All/ }));
 
-    const acceptedTags = await screen.findAllByText(/✓ Accepted/);
+    const acceptedTags = await screen.findAllByText(/Added/);
     expect(acceptedTags).toHaveLength(2);
     expect(screen.getByRole("button", { name: /Apply Changes/ })).not.toBeDisabled();
   });
@@ -415,7 +602,7 @@ describe("Generate / Update Questions", () => {
     await screen.findByText(/New distractors/);
 
     await user.click(screen.getByRole("button", { name: /Reject$/ }));
-    expect(await screen.findByText(/✕ Rejected/)).toBeInTheDocument();
+    expect(await screen.findByText(/Discarded/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Apply Changes/ }));
     expect(updateVocabularyDistractors).not.toHaveBeenCalled();

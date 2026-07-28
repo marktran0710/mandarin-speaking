@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { canUseDatabase, createCustomStory, listCustomStories } from "../services/database";
-import { loadLocalStars } from "../utils/quizTiers";
+import { loadBestLocalStars } from "../utils/quizTiers";
 import {
   type CustomTeacherStory,
   type StoryDifficultyLevel,
@@ -280,10 +280,10 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
               // last saw in the quiz).
               <span
                 className="ts-card-stars"
-                aria-label={`${loadLocalStars(t.id)} of 3 quiz stars earned`}
+                aria-label={`${loadBestLocalStars(t.id)} of 3 quiz stars earned`}
               >
-                {"⭐".repeat(loadLocalStars(t.id))}
-                {"☆".repeat(3 - loadLocalStars(t.id))}
+                {"⭐".repeat(loadBestLocalStars(t.id))}
+                {"☆".repeat(3 - loadBestLocalStars(t.id))}
               </span>
             )}
           </div>

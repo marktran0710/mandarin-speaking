@@ -1,9 +1,11 @@
 import type { StoryDifficultyLevel } from "./teacherStories";
-import { isAdminSession } from "./studentSession";
+import { getStudentScopeKey, isAdminSession } from "./studentSession";
 
 // Mirrors the vocabQuizCompletedStoryIds pattern in StoryRecorder.tsx: a
-// flat, per-browser/device localStorage map (not per-student, not synced to
-// the backend) rather than a new persistence layer for something this small.
+// flat, per-browser/device localStorage map (not synced to the backend)
+// rather than a new persistence layer for something this small — but keyed
+// per student so a shared classroom device can't leak one student's
+// unlocked tiers into the next student's session.
 const STORY_LEVEL_PROGRESS_KEY = "storyLevelProgress";
 
 type StoryLevelProgress = Record<string, Partial<Record<StoryDifficultyLevel, boolean>>>;
@@ -11,7 +13,7 @@ type StoryLevelProgress = Record<string, Partial<Record<StoryDifficultyLevel, bo
 function loadStoryLevelProgress(): StoryLevelProgress {
   if (typeof window === "undefined") return {};
   try {
-    const raw = window.localStorage.getItem(STORY_LEVEL_PROGRESS_KEY);
+    const raw = window.localStorage.getItem(`${STORY_LEVEL_PROGRESS_KEY}:${getStudentScopeKey()}`);
     return raw ? JSON.parse(raw) : {};
   } catch {
     return {};
@@ -27,7 +29,7 @@ export function markStoryLevelSubmitted(storyId: string, level: StoryDifficultyL
     ...progress,
     [storyId]: { ...progress[storyId], [level]: true },
   };
-  window.localStorage.setItem(STORY_LEVEL_PROGRESS_KEY, JSON.stringify(next));
+  window.localStorage.setItem(`${STORY_LEVEL_PROGRESS_KEY}:${getStudentScopeKey()}`, JSON.stringify(next));
 }
 
 /** Every story id with at least one submitted difficulty level — the

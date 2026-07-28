@@ -93,6 +93,14 @@
   --clay-error-deep: #8c0f37;
   --clay-error-soft: #fbd9e3;
 
+  /* Diff views: semantic add/delete colors used by review-style UIs. */
+  --diff-add-bg: #e3f6ea;
+  --diff-add-text: #106b45;
+  --diff-add-border: #1c9a5b;
+  --diff-del-bg: #fdeef0;
+  --diff-del-text: #8c0f37;
+  --diff-del-border: #c0154b;
+
   /* Role accents used across Home / Topic selector */
   --accent-indigo: var(--seal);
   --accent-indigo-soft: var(--seal-soft);
@@ -237,6 +245,13 @@
   --clay-error: #ff6b9c;
   --clay-error-deep: #ffa9c4;
   --clay-error-soft: #4a1930;
+
+  --diff-add-bg: #12301f;
+  --diff-add-text: #85e0b0;
+  --diff-add-border: #37c07e;
+  --diff-del-bg: #3a1420;
+  --diff-del-text: #ffa9c4;
+  --diff-del-border: #ff6b9c;
 
   --clay-on-accent: #1b1712;
 

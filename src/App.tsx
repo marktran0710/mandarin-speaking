@@ -35,6 +35,7 @@ import {
   lessonCompletion,
 } from "./utils/lessonGroups";
 import { loadSubmittedStoryIds } from "./utils/storyLevelProgress";
+import { topicHasQuiz } from "./utils/topicQuiz";
 import type { Page } from "./types/page";
 import type { SpeechModel } from "./components/StoryRecorder";
 
@@ -251,19 +252,12 @@ export default function App() {
   };
 
   // Stars only come from vocab quizzes, so only quiz-capable stories join
-  // the bubble's tally and target list — a story with no translated
-  // vocabulary gets no quiz phase (see StoryRecorder's collectQuizEntries)
-  // and would otherwise pulse forever as a dead-end target. "Has any
-  // translated word" is a light proxy for that pipeline.
+  // the bubble's tally and target list — a story with no quiz content gets
+  // no quiz phase (see StoryRecorder's hasVocabQuiz) and would otherwise
+  // pulse forever as a dead-end target. Same test the lesson gate uses
+  // (utils/topicQuiz), not a proxy, so both agree on which stories count.
   const quizStoryTopics = useMemo(
-    () =>
-      storyTopics.filter((t) =>
-        t.images.some((_, si) =>
-          (t.vocabulary[si] || []).some(
-            (_word, i) => t.vocabularyTranslation?.[si]?.[i],
-          ),
-        ),
-      ),
+    () => storyTopics.filter((t) => topicHasQuiz(t)),
     [storyTopics],
   );
   const storyTitles = useMemo(
@@ -289,10 +283,10 @@ export default function App() {
     );
     if (!nowGroup) return undefined;
     const quizIds = new Set(quizStoryTopics.map((t) => t.id));
-    const ids = nowGroup.topics
-      .map((t) => t.id)
-      .filter((id) => quizIds.has(id));
-    return ids.length > 0 ? ids : undefined;
+    // Empty is a real answer here (this lesson has no quiz-capable
+    // stories), not "unknown scope" — only a missing group falls back to
+    // undefined, so the bubble never pulses for a story outside this lesson.
+    return nowGroup.topics.map((t) => t.id).filter((id) => quizIds.has(id));
   })();
 
   // One bubble across every logged-in student page (it mounts here, not

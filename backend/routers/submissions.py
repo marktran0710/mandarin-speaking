@@ -36,12 +36,13 @@ async def create_story_submission(submission: StorySubmissionRequest):
         db.execute(
             """
             INSERT INTO story_submissions
-                (id, story_id, story_title, student_name, submitted_at, scenes)
-            VALUES (%s, %s, %s, %s, %s, %s)
+                (id, story_id, story_title, student_name, student_id, submitted_at, scenes)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 story_id = EXCLUDED.story_id,
                 story_title = EXCLUDED.story_title,
                 student_name = EXCLUDED.student_name,
+                student_id = EXCLUDED.student_id,
                 submitted_at = EXCLUDED.submitted_at,
                 scenes = EXCLUDED.scenes
             """,
@@ -50,6 +51,7 @@ async def create_story_submission(submission: StorySubmissionRequest):
                 submission.storyId,
                 submission.storyTitle,
                 submission.studentName,
+                submission.studentId,
                 submission.submittedAt,
                 Jsonb([s.model_dump() for s in scenes_sorted]),
             ),

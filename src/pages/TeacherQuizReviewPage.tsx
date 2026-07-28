@@ -1,4 +1,4 @@
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { BiLabel, BiText } from "../components/BiLabel";
 import "../components/BiLabel.css";
 import "./TeacherQuizReviewPage.css";
@@ -54,6 +54,7 @@ import {
   storyMaterialSnapshot,
   withUpdatedSnapshot,
   type MaterialDiffStatus,
+  type MaterialSnapshotEntry,
 } from "../utils/quizMaterialDiff";
 import { buildApprovedMaterial, buildApprovedMaterialFromApprovals } from "../utils/quizApprovedMaterial";
 import {
@@ -228,6 +229,11 @@ function applyLocalEdit(
  * superset of QuizApprovalKind since lookalike has no approve-checkbox of
  * its own but is still something Generate/Update Questions can produce. */
 type GeneratedKind = "distractors" | "cloze" | "synonym" | "lookalike";
+type CandidateOrigin = "new" | "changed" | "removed";
+type PendingCandidateValue =
+  | string[]
+  | { sentence: string; distractors: string[] }
+  | { synonym: string; distractors: string[] };
 
 const GENERATED_POOL_FIELD: Record<GeneratedKind, keyof CustomStoryFrame> = {
   distractors: "vocabularyDistractors",
@@ -241,11 +247,154 @@ interface PendingCandidate {
   wordIndex: number;
   word: string;
   kind: GeneratedKind;
+  origin: CandidateOrigin;
   // distractors/lookalike: the whole new batch to append (matches how the
   // merge endpoints below already top up a pool). cloze/synonym: one new
   // candidate (the generation endpoint only ever returns one at a time).
-  value: string[] | { sentence: string; distractors: string[] } | { synonym: string; distractors: string[] };
+  value: PendingCandidateValue;
+  oldValue?: PendingCandidateValue;
+  poolIndex?: number;
   decision: "pending" | "accept" | "reject";
+}
+
+interface IndexedPendingCandidate {
+  candidate: PendingCandidate;
+  index: number;
+}
+
+type ReviewTopic = ReturnType<typeof storyToTopic>;
+type ChangedKind = QuizValidateResultItem["kind"];
+
+interface ChangedCandidateTarget {
+  frameIndex: number;
+  wordIndex: number;
+  word: string;
+  kind: ChangedKind;
+  poolIndex?: number;
+  currentValue: PendingCandidateValue;
+  growthWord: VocabGrowthWord;
+}
+
+function findLiveWordOccurrence(topic: ReviewTopic, word: string): { frameIndex: number; wordIndex: number } | null {
+  for (let si = 0; si < topic.images.length; si += 1) {
+    const wordIndex = (topic.vocabulary[si] || []).indexOf(word);
+    if (wordIndex !== -1) return { frameIndex: si, wordIndex };
+  }
+  return null;
+}
+
+function changedTargetForValidation(
+  topic: ReviewTopic,
+  result: QuizValidateResultItem,
+): ChangedCandidateTarget | null {
+  if (result.status !== "suspicious") return null;
+  const occurrence = findLiveWordOccurrence(topic, result.word);
+  if (!occurrence) return null;
+  const { frameIndex, wordIndex } = occurrence;
+  const translation = topic.vocabularyTranslation?.[frameIndex]?.[wordIndex];
+  if (!translation) return null;
+  const context = topic.suggestedAnswers?.[frameIndex];
+
+  if (result.kind === "distractors") {
+    const currentValue = topic.vocabularyDistractors?.[frameIndex]?.[wordIndex] ?? [];
+    return {
+      frameIndex,
+      wordIndex,
+      word: result.word,
+      kind: result.kind,
+      currentValue,
+      growthWord: { word: result.word, translation, context, avoid: currentValue },
+    };
+  }
+
+  if (typeof result.poolIndex !== "number") return null;
+
+  if (result.kind === "cloze") {
+    const clozePools = topic.vocabularyCloze?.[frameIndex]?.[wordIndex] ?? [];
+    const currentValue = clozePools[result.poolIndex];
+    if (!currentValue) return null;
+    return {
+      frameIndex,
+      wordIndex,
+      word: result.word,
+      kind: result.kind,
+      poolIndex: result.poolIndex,
+      currentValue,
+      growthWord: {
+        word: result.word,
+        translation,
+        context,
+        avoid: clozePools.map((c) => c.sentence),
+      },
+    };
+  }
+
+  const synonymPools = topic.vocabularySynonym?.[frameIndex]?.[wordIndex] ?? [];
+  const currentValue = synonymPools[result.poolIndex];
+  if (!currentValue) return null;
+  return {
+    frameIndex,
+    wordIndex,
+    word: result.word,
+    kind: result.kind,
+    poolIndex: result.poolIndex,
+    currentValue,
+    growthWord: {
+      word: result.word,
+      translation,
+      context,
+      avoid: synonymPools.map((s) => s.synonym),
+    },
+  };
+}
+
+function removedCandidatesFromSnapshot(snapshot: MaterialSnapshotEntry[] | null, topic: ReviewTopic): PendingCandidate[] {
+  if (!snapshot) return [];
+  const currentWords = new Set<string>();
+  topic.images.forEach((_, si) => {
+    (topic.vocabulary[si] || []).forEach((word) => currentWords.add(word));
+  });
+
+  const pending: PendingCandidate[] = [];
+  for (const entry of snapshot) {
+    if (currentWords.has(entry.word)) continue;
+    if (entry.distractors.length > 0) {
+      pending.push({
+        frameIndex: -1,
+        wordIndex: -1,
+        word: entry.word,
+        kind: "distractors",
+        origin: "removed",
+        value: [...entry.distractors],
+        decision: "pending",
+      });
+    }
+    entry.cloze.forEach((value, poolIndex) => {
+      pending.push({
+        frameIndex: -1,
+        wordIndex: -1,
+        word: entry.word,
+        kind: "cloze",
+        origin: "removed",
+        value: { sentence: value.sentence, distractors: [...value.distractors] },
+        poolIndex,
+        decision: "pending",
+      });
+    });
+    entry.synonym.forEach((value, poolIndex) => {
+      pending.push({
+        frameIndex: -1,
+        wordIndex: -1,
+        word: entry.word,
+        kind: "synonym",
+        origin: "removed",
+        value: { synonym: value.synonym, distractors: [...value.distractors] },
+        poolIndex,
+        decision: "pending",
+      });
+    });
+  }
+  return pending;
 }
 
 /** Appends every accepted candidate into a local copy of the story's
@@ -255,6 +404,7 @@ interface PendingCandidate {
 function applyAcceptedCandidatesLocally(story: CustomTeacherStory, accepted: PendingCandidate[]): CustomTeacherStory {
   let frames = story.frames;
   for (const candidate of accepted) {
+    if (candidate.origin !== "new") continue;
     frames = frames.map((frame, fi) => {
       if (fi !== candidate.frameIndex) return frame;
       const field = GENERATED_POOL_FIELD[candidate.kind];
@@ -273,58 +423,160 @@ function applyAcceptedCandidatesLocally(story: CustomTeacherStory, accepted: Pen
   return { ...story, frames };
 }
 
-/** Renders one pending candidate's content — a coherent prompt+options for
- * cloze/synonym (mirrors questionRow's already-persisted version), or a
- * plain new-items list for distractors/lookalike, which aren't single
- * questions so much as pool top-ups. */
-function renderPendingPrompt(candidate: PendingCandidate) {
+function isChangedCandidate(
+  candidate: PendingCandidate,
+): candidate is PendingCandidate & { kind: QuizApprovalKind; value: ReplaceValue } {
+  return candidate.origin === "changed" && candidate.kind !== "lookalike";
+}
+
+function applyChangedCandidatesLocally(story: CustomTeacherStory, accepted: PendingCandidate[]): CustomTeacherStory {
+  let frames = story.frames;
+  for (const candidate of accepted) {
+    if (!isChangedCandidate(candidate)) continue;
+    frames = frames.map((frame, fi) =>
+      fi === candidate.frameIndex
+        ? applyLocalEdit(frame, candidate.kind, candidate.wordIndex, candidate.poolIndex, candidate.value)
+        : frame,
+    );
+  }
+  return { ...story, frames };
+}
+
+function appendUniqueExclusions(exclusions: QuizExclusion[], additions: QuizExclusion[]): QuizExclusion[] {
+  const next = [...exclusions];
+  for (const addition of additions) {
+    if (
+      !next.some(
+        (exclusion) =>
+          exclusion.word === addition.word &&
+          exclusion.kind === addition.kind &&
+          exclusion.index === addition.index,
+      )
+    ) {
+      next.push(addition);
+    }
+  }
+  return next;
+}
+
+const PENDING_KIND_LABELS: Record<GeneratedKind, { zh: string; en: string }> = {
+  distractors: { zh: "干擾選項", en: "Distractors" },
+  cloze: { zh: "填空", en: "Cloze" },
+  synonym: { zh: "同義詞", en: "Synonym" },
+  lookalike: { zh: "形近字", en: "Look-alikes" },
+};
+
+const PENDING_ORIGIN_LABELS: Record<CandidateOrigin, { zh: string; en: string }> = {
+  new: { zh: "🆕 新增", en: "🆕 New" },
+  changed: { zh: "✎ 已更改", en: "✎ Changed" },
+  removed: { zh: "🗑 已移除", en: "🗑 Removed" },
+};
+
+function pendingDecisionCopy(origin: CandidateOrigin, decision: "accept" | "reject") {
+  if (decision === "accept") {
+    if (origin === "changed") return { zh: "使用新版本", en: "Using new version" };
+    if (origin === "removed") return { zh: "已刪除", en: "Removed" };
+    return { zh: "已新增", en: "Added" };
+  }
+  if (origin === "changed") return { zh: "保留舊版本", en: "Kept old version" };
+  if (origin === "removed") return { zh: "已還原", en: "Restored" };
+  return { zh: "已捨棄", en: "Discarded" };
+}
+
+/** Formats one pending candidate value for a diff-style line, preserving the
+ * existing prompt/options content while allowing old/new/removed rendering. */
+function renderPendingValue(candidate: PendingCandidate, value: PendingCandidateValue) {
   if (candidate.kind === "distractors" || candidate.kind === "lookalike") {
-    const items = candidate.value as string[];
+    const items = value as string[];
     return (
-      <p className="tqr-qprompt" lang="zh-Hant">
+      <>
         {candidate.kind === "distractors" ? (
           <BiLabel zh="新增干擾選項：" en="New distractors: " />
         ) : (
           <BiLabel zh="新增形近字：" en="New look-alikes: " />
         )}
         {items.join("、")}
-      </p>
-    );
-  }
-  if (candidate.kind === "cloze") {
-    const value = candidate.value as { sentence: string; distractors: string[] };
-    return (
-      <>
-        <p className="tqr-qprompt" lang="zh-Hant">
-          {value.sentence.replace(candidate.word, "＿＿＿")}
-          <br />
-          <span className="tqr-qprompt-en">Which word fills the blank?</span>
-        </p>
-        <div className="tqr-qoptions">
-          <span className="tqr-opt is-correct">{candidate.word}</span>
-          {value.distractors.map((d, i) => (
-            <span className="tqr-opt" key={i}>{d}</span>
-          ))}
-        </div>
       </>
     );
   }
-  const value = candidate.value as { synonym: string; distractors: string[] };
+  if (candidate.kind === "cloze") {
+    const cloze = value as { sentence: string; distractors: string[] };
+    return (
+      <>
+        <span lang="zh-Hant">{cloze.sentence.replace(candidate.word, "＿＿＿")}</span>
+        <br />
+        <span className="tqr-qprompt-en">Which word fills the blank?</span>
+        <br />
+        <span>
+          Options: {[candidate.word, ...cloze.distractors].join("、")}
+        </span>
+      </>
+    );
+  }
+  const synonym = value as { synonym: string; distractors: string[] };
   return (
     <>
-      <p className="tqr-qprompt" lang="zh-Hant">
+      <span lang="zh-Hant">
         哪一個字跟「{candidate.word}」意思一樣？
-        <br />
-        <span className="tqr-qprompt-en">Which word means the same as "{candidate.word}"?</span>
-      </p>
-      <div className="tqr-qoptions">
-        <span className="tqr-opt is-correct">{value.synonym}</span>
-        {value.distractors.map((d, i) => (
-          <span className="tqr-opt" key={i}>{d}</span>
-        ))}
-      </div>
+      </span>
+      <br />
+      <span className="tqr-qprompt-en">Which word means the same as "{candidate.word}"?</span>
+      <br />
+      <span>
+        Options: {[synonym.synonym, ...synonym.distractors].join("、")}
+      </span>
     </>
   );
+}
+
+function renderDiffLine(
+  candidate: PendingCandidate,
+  value: PendingCandidateValue,
+  diffType: "add" | "del",
+  actions: ReactNode = null,
+) {
+  return (
+    <div className={`diff-row row-${diffType}`}>
+      <span className="gutter" aria-hidden="true">
+        {diffType === "add" ? "+" : "-"}
+      </span>
+      <div className="diff-content">
+        <span className="tqr-pending-meta">
+          <BiLabel zh={PENDING_KIND_LABELS[candidate.kind].zh} en={PENDING_KIND_LABELS[candidate.kind].en} />
+          <span className={`diff-tag is-${candidate.origin}`}>
+            <BiLabel zh={PENDING_ORIGIN_LABELS[candidate.origin].zh} en={PENDING_ORIGIN_LABELS[candidate.origin].en} />
+          </span>
+        </span>
+        <span className="tqr-pending-value">{renderPendingValue(candidate, value)}</span>
+      </div>
+      <div className="diff-actions">{actions}</div>
+    </div>
+  );
+}
+
+function renderPendingDiff(candidate: PendingCandidate, actions: ReactNode = null) {
+  if (candidate.origin === "changed") {
+    return (
+      <>
+        {candidate.oldValue ? renderDiffLine(candidate, candidate.oldValue, "del") : null}
+        {renderDiffLine(candidate, candidate.value, "add", actions)}
+      </>
+    );
+  }
+  if (candidate.origin === "removed") {
+    return (
+      <>
+        {renderDiffLine(candidate, candidate.value, "del", actions)}
+        <p className="row-note">
+          <BiLabel
+            zh="這個詞已不在此場景使用，自上次檢查後已移除。"
+            en="Word no longer used in this scene — dropped since the last review."
+          />
+        </p>
+      </>
+    );
+  }
+  return renderDiffLine(candidate, candidate.value, "add", actions);
 }
 
 export interface QuizReviewJump {
@@ -662,34 +914,115 @@ export default function TeacherQuizReviewPage({
       const clozeCandidates = planClozeGrowth(topic);
       const synonymCandidates = planSynonymGrowth(topic);
       const lookalikeCandidates = planLookalikeGrowth(lookalikeTopic);
+      const changedTargets = (validationByStory[storyId] ?? [])
+        .map((result) => changedTargetForValidation(topic, result))
+        .filter((target): target is ChangedCandidateTarget => target !== null);
+      const changedDistractorTargets = changedTargets.filter((target) => target.kind === "distractors");
+      const changedClozeTargets = changedTargets.filter((target) => target.kind === "cloze");
+      const changedSynonymTargets = changedTargets.filter((target) => target.kind === "synonym");
 
       const toWords = (list: Array<{ word: string; translation: string; context?: string; existing: string[] }>): VocabGrowthWord[] =>
         list.map((c) => ({ word: c.word, translation: c.translation, context: c.context, avoid: c.existing }));
 
-      const [distractorResults, clozeResults, synonymResults, lookalikeResults] = await Promise.all([
+      const [
+        distractorResults,
+        clozeResults,
+        synonymResults,
+        lookalikeResults,
+        changedDistractorResults,
+        changedClozeResults,
+        changedSynonymResults,
+      ] = await Promise.all([
         distractorCandidates.length ? generateVocabDistractors(toWords(distractorCandidates)) : Promise.resolve([]),
         clozeCandidates.length ? generateVocabCloze(toWords(clozeCandidates)) : Promise.resolve([]),
         synonymCandidates.length ? generateVocabSynonym(toWords(synonymCandidates)) : Promise.resolve([]),
         lookalikeCandidates.length ? generateVocabLookalike(toWords(lookalikeCandidates)) : Promise.resolve([]),
+        Promise.all(
+          changedDistractorTargets.map(async (target) => {
+            const results = await generateVocabDistractors([target.growthWord]);
+            const result = results.find((r) => r.word === target.word) ?? results[0];
+            return result && result.distractors.length > 0 ? { target, value: result.distractors } : null;
+          }),
+        ),
+        Promise.all(
+          changedClozeTargets.map(async (target) => {
+            const results = await generateVocabCloze([target.growthWord]);
+            const result = results.find((r) => r.word === target.word) ?? results[0];
+            return result
+              ? { target, value: { sentence: result.sentence, distractors: result.distractors } }
+              : null;
+          }),
+        ),
+        Promise.all(
+          changedSynonymTargets.map(async (target) => {
+            const results = await generateVocabSynonym([target.growthWord]);
+            const result = results.find((r) => r.word === target.word) ?? results[0];
+            return result
+              ? { target, value: { synonym: result.synonym, distractors: result.distractors } }
+              : null;
+          }),
+        ),
       ]);
 
       const pending: PendingCandidate[] = [];
       for (const u of buildDistractorPatchUpdates(distractorCandidates, distractorResults)) {
         const c = distractorCandidates.find((x) => x.frameIndex === u.frameIndex && x.wordIndex === u.wordIndex)!;
-        pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "distractors", value: u.distractors, decision: "pending" });
+        pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "distractors", origin: "new", value: u.distractors, decision: "pending" });
       }
       for (const u of buildClozePatchUpdates(clozeCandidates, clozeResults)) {
         const c = clozeCandidates.find((x) => x.frameIndex === u.frameIndex && x.wordIndex === u.wordIndex)!;
-        pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "cloze", value: u.candidates[0], decision: "pending" });
+        pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "cloze", origin: "new", value: u.candidates[0], decision: "pending" });
       }
       for (const u of buildSynonymPatchUpdates(synonymCandidates, synonymResults)) {
         const c = synonymCandidates.find((x) => x.frameIndex === u.frameIndex && x.wordIndex === u.wordIndex)!;
-        pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "synonym", value: u.candidates[0], decision: "pending" });
+        pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "synonym", origin: "new", value: u.candidates[0], decision: "pending" });
       }
       for (const u of buildLookalikePatchUpdates(lookalikeCandidates, lookalikeResults)) {
         const c = lookalikeCandidates.find((x) => x.frameIndex === u.frameIndex && x.wordIndex === u.wordIndex)!;
-        pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "lookalike", value: u.lookalikes, decision: "pending" });
+        pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "lookalike", origin: "new", value: u.lookalikes, decision: "pending" });
       }
+      changedDistractorResults.forEach((item) => {
+        if (!item) return;
+        pending.push({
+          frameIndex: item.target.frameIndex,
+          wordIndex: item.target.wordIndex,
+          word: item.target.word,
+          kind: "distractors",
+          origin: "changed",
+          value: item.value,
+          oldValue: item.target.currentValue,
+          decision: "pending",
+        });
+      });
+      changedClozeResults.forEach((item) => {
+        if (!item) return;
+        pending.push({
+          frameIndex: item.target.frameIndex,
+          wordIndex: item.target.wordIndex,
+          word: item.target.word,
+          kind: "cloze",
+          origin: "changed",
+          value: item.value,
+          oldValue: item.target.currentValue,
+          poolIndex: item.target.poolIndex,
+          decision: "pending",
+        });
+      });
+      changedSynonymResults.forEach((item) => {
+        if (!item) return;
+        pending.push({
+          frameIndex: item.target.frameIndex,
+          wordIndex: item.target.wordIndex,
+          word: item.target.word,
+          kind: "synonym",
+          origin: "changed",
+          value: item.value,
+          oldValue: item.target.currentValue,
+          poolIndex: item.target.poolIndex,
+          decision: "pending",
+        });
+      });
+      pending.push(...removedCandidatesFromSnapshot(storyMaterialSnapshot(story, level), topic));
 
       if (pending.length === 0) {
         setGenerateStatusByStory((prev) => ({ ...prev, [storyId]: "idle" }));
@@ -738,29 +1071,70 @@ export default function TeacherQuizReviewPage({
     const storyId = story.id;
     const pending = pendingCandidatesByStory[storyId] ?? [];
     const accepted = pending.filter((c) => c.decision === "accept");
+    const acceptedNew = accepted.filter((c) => c.origin === "new");
+    const acceptedChanged = accepted.filter(isChangedCandidate);
+    const removedExclusionAdditions: QuizExclusion[] = accepted
+      .filter((c) => c.origin === "removed")
+      .map((c) => ({
+        word: c.word,
+        kind: c.kind as QuizExclusionKind,
+        index: c.poolIndex,
+      }));
+    const nextExclusions =
+      removedExclusionAdditions.length > 0
+        ? appendUniqueExclusions(exclusionsByStory[storyId] ?? [], removedExclusionAdditions)
+        : exclusionsByStory[storyId] ?? [];
     setGenerateStatusByStory((prev) => ({ ...prev, [storyId]: "applying" }));
     try {
-      const distractorUpdates = accepted
+      const distractorUpdates = acceptedNew
         .filter((c) => c.kind === "distractors")
         .map((c) => ({ frameIndex: c.frameIndex, wordIndex: c.wordIndex, distractors: c.value as string[] }));
-      const clozeUpdates = accepted
+      const clozeUpdates = acceptedNew
         .filter((c) => c.kind === "cloze")
         .map((c) => ({ frameIndex: c.frameIndex, wordIndex: c.wordIndex, candidates: [c.value as { sentence: string; distractors: string[] }] }));
-      const synonymUpdates = accepted
+      const synonymUpdates = acceptedNew
         .filter((c) => c.kind === "synonym")
         .map((c) => ({ frameIndex: c.frameIndex, wordIndex: c.wordIndex, candidates: [c.value as { synonym: string; distractors: string[] }] }));
-      const lookalikeUpdates = accepted
+      const lookalikeUpdates = acceptedNew
         .filter((c) => c.kind === "lookalike")
         .map((c) => ({ frameIndex: c.frameIndex, wordIndex: c.wordIndex, lookalikes: c.value as string[] }));
 
       await Promise.all([
-        distractorUpdates.length ? updateVocabularyDistractors(storyId, distractorUpdates) : Promise.resolve(),
-        clozeUpdates.length ? updateVocabularyCloze(storyId, clozeUpdates) : Promise.resolve(),
-        synonymUpdates.length ? updateVocabularySynonym(storyId, synonymUpdates) : Promise.resolve(),
-        lookalikeUpdates.length ? updateVocabularyLookalike(storyId, lookalikeUpdates) : Promise.resolve(),
+        Promise.all([
+          distractorUpdates.length ? updateVocabularyDistractors(storyId, distractorUpdates) : Promise.resolve(),
+          clozeUpdates.length ? updateVocabularyCloze(storyId, clozeUpdates) : Promise.resolve(),
+          synonymUpdates.length ? updateVocabularySynonym(storyId, synonymUpdates) : Promise.resolve(),
+          lookalikeUpdates.length ? updateVocabularyLookalike(storyId, lookalikeUpdates) : Promise.resolve(),
+        ]),
+        Promise.all(
+          acceptedChanged.map((candidate) =>
+            replaceQuizQuestion(
+              storyId,
+              candidate.frameIndex,
+              candidate.wordIndex,
+              candidate.kind,
+              candidate.poolIndex,
+              candidate.value,
+            ),
+          ),
+        ),
+        removedExclusionAdditions.length
+          ? updateQuizExclusions(storyId, nextExclusions)
+          : Promise.resolve(),
       ]);
 
-      setStories((prev) => prev.map((s) => (s.id === storyId ? applyAcceptedCandidatesLocally(s, accepted) : s)));
+      setStories((prev) =>
+        prev.map((s) =>
+          s.id === storyId
+            ? applyChangedCandidatesLocally(applyAcceptedCandidatesLocally(s, acceptedNew), acceptedChanged)
+            : s,
+        ),
+      );
+      if (removedExclusionAdditions.length > 0) {
+        setExclusionsByStory((prev) => ({ ...prev, [storyId]: nextExclusions }));
+        setDirtyByStory((prev) => ({ ...prev, [storyId]: false }));
+        setStatusByStory((prev) => ({ ...prev, [storyId]: "saved" }));
+      }
       setPendingCandidatesByStory((prev) => ({ ...prev, [storyId]: [] }));
       setGenerateStatusByStory((prev) => ({ ...prev, [storyId]: "idle" }));
     } catch {
@@ -930,15 +1304,16 @@ export default function TeacherQuizReviewPage({
   }) => {
     const result = findValidation(validationByStory[spec.storyId], spec.word, spec.kind, spec.poolIndex);
     return (
-      <div className="tqr-qrow" key={`${spec.kind}-${spec.poolIndex ?? 0}`}>
-        {approvalCheckbox(spec.storyId, spec.word, spec.kind, spec.poolIndex)}
-        <div className="tqr-qbody">
+      <div className="tqr-qrow diff-row row-ctx" key={`${spec.kind}-${spec.poolIndex ?? 0}`}>
+        <span className="gutter" aria-hidden="true">
+          {" "}
+        </span>
+        <div className="diff-content tqr-qbody">
           <span className="tqr-qkind">
             {diffBadge(spec.diffStatus)}
             <BiLabel zh={spec.kindLabel.zh} en={spec.kindLabel.en} />
             {spec.poolIndex !== undefined && ` #${spec.poolIndex + 1}`}
           </span>
-          {questionStatusBadge(result)}
           <p className="tqr-qprompt" lang="zh-Hant">
             {spec.promptZh}
             <br />
@@ -952,21 +1327,86 @@ export default function TeacherQuizReviewPage({
             ))}
           </div>
         </div>
-        {editButton(
-          {
-            storyId: spec.storyId,
-            frameIndex: spec.frameIndex,
-            wordIndex: spec.wordIndex,
-            word: spec.word,
-            kind: spec.kind,
-            poolIndex: spec.poolIndex,
-          },
-          spec.editValue,
-        )}
+        <div className="diff-actions tqr-q-actions">
+          {approvalCheckbox(spec.storyId, spec.word, spec.kind, spec.poolIndex)}
+          {questionStatusBadge(result)}
+          {editButton(
+            {
+              storyId: spec.storyId,
+              frameIndex: spec.frameIndex,
+              wordIndex: spec.wordIndex,
+              word: spec.word,
+              kind: spec.kind,
+              poolIndex: spec.poolIndex,
+            },
+            spec.editValue,
+          )}
+        </div>
         {isEditing({ word: spec.word, kind: spec.kind, poolIndex: spec.poolIndex }, spec.storyId) && editForm()}
       </div>
     );
   };
+
+  const pendingDecisionActions = (storyId: string, candidate: PendingCandidate, index: number) => {
+    if (candidate.decision === "pending") {
+      return (
+        <div className="tqr-pending-decide">
+          <button
+            type="button"
+            className="tqr-icon-btn accept"
+            aria-label="Accept"
+            title="Accept"
+            onClick={() => onDecideCandidate(storyId, index, "accept")}
+          >
+            <span aria-hidden="true">✓</span>
+          </button>
+          <button
+            type="button"
+            className="tqr-icon-btn reject"
+            aria-label="Reject"
+            title="Reject"
+            onClick={() => onDecideCandidate(storyId, index, "reject")}
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+      );
+    }
+    return (
+      <div className="tqr-pending-decided">
+        <span className={`tqr-decision-tag ${candidate.decision === "accept" ? "is-accept" : "is-reject"}`}>
+          {candidate.decision === "accept" ? "✓ " : "× "}
+          <BiLabel
+            zh={pendingDecisionCopy(candidate.origin, candidate.decision).zh}
+            en={pendingDecisionCopy(candidate.origin, candidate.decision).en}
+          />
+        </span>
+        <button type="button" className="undo-link" onClick={() => onUndoDecision(storyId, index)}>
+          <BiLabel zh="復原" en="Undo" />
+        </button>
+      </div>
+    );
+  };
+
+  const pendingCandidateRows = (storyId: string, entries: IndexedPendingCandidate[]) =>
+    entries.map(({ candidate, index }) => (
+      <div
+        className={`tqr-pending-change is-${candidate.origin}${candidate.decision === "reject" ? " is-rejected" : ""}`}
+        key={`${candidate.word}-${candidate.kind}-${index}`}
+      >
+        {renderPendingDiff(candidate, pendingDecisionActions(storyId, candidate, index))}
+      </div>
+    ));
+
+  const changeChip = (count: number, hasRemoved = false) => (
+    <span className={`tqr-change-chip ${count === 0 ? "is-none" : hasRemoved ? "is-mix" : "is-add"}`}>
+      {count === 0 ? (
+        <BiLabel zh="沒有變更" en="no changes" />
+      ) : (
+        <BiLabel zh={`${count} 項變更`} en={`${count} ${count === 1 ? "change" : "changes"}`} />
+      )}
+    </span>
+  );
 
   return (
     <main className="teacher-quiz-review">
@@ -1062,6 +1502,22 @@ export default function TeacherQuizReviewPage({
           const generateStatus = generateStatusByStory[story.id] ?? "idle";
           const pendingCandidates = pendingCandidatesByStory[story.id] ?? [];
           const revealedCount = revealedCountByStory[story.id] ?? 0;
+          const pendingByWord = new Map<string, IndexedPendingCandidate[]>();
+          pendingCandidates.forEach((candidate, index) => {
+            const entries = pendingByWord.get(candidate.word) ?? [];
+            entries.push({ candidate, index });
+            pendingByWord.set(candidate.word, entries);
+          });
+          const liveWords = new Set<string>();
+          topic.images.forEach((_, si) => {
+            (topic.vocabulary[si] || []).forEach((word) => liveWords.add(word));
+          });
+          const removedPendingGroups = [...pendingByWord.entries()]
+            .map(([word, entries]) => ({
+              word,
+              entries: entries.filter(({ candidate }) => candidate.origin === "removed"),
+            }))
+            .filter(({ word, entries }) => entries.length > 0 && !liveWords.has(word));
           const hasAnyMaterial = buildApprovedMaterial(topic, []).some(
             (e) => e.distractors.length || e.cloze.length || e.synonym.length || e.lookalike.length,
           );
@@ -1073,6 +1529,7 @@ export default function TeacherQuizReviewPage({
               <header className="tqr-story-head">
                 <h2 className="tqr-story-title">{story.title}</h2>
                 <div className="tqr-story-actions">
+                  <div className="tqr-toolbar-primary">
                   <button
                     type="button"
                     className="tqr-generate"
@@ -1087,30 +1544,9 @@ export default function TeacherQuizReviewPage({
                       <BiLabel zh="✨ 生成題目" en="✨ Generate Questions" />
                     )}
                   </button>
-                  <button type="button" className="tqr-io" onClick={() => onExport(story)}>
-                    <BiLabel zh="匯出" en="Export" />
-                  </button>
-                  <button type="button" className="tqr-io" onClick={() => triggerImport(story.id)}>
-                    <BiLabel zh="匯入" en="Import" />
-                  </button>
-                  <button
-                    type="button"
-                    className="tqr-save"
-                    disabled={!dirty || status === "saving"}
-                    onClick={() => onSave(story, topic)}
-                  >
-                    {status === "saving" ? (
-                      <BiLabel zh="儲存中…" pinyin="Chǔcún zhōng…" en="Saving…" />
-                    ) : (
-                      <BiLabel zh="儲存標記" pinyin="Chǔcún biāojì" en="Save marks" />
-                    )}
-                  </button>
-                  {status === "saved" && !dirty && (
-                    <span className="tqr-status-ok">✓ <BiLabel zh="已儲存" en="Saved" /></span>
-                  )}
-                  {status === "error" && (
+                  {generateStatus === "error" && (
                     <span className="tqr-status-error" role="alert">
-                      <BiLabel zh="儲存失敗" en="Save failed" />
+                      <BiLabel zh="生成失敗，請稍後再試" en="Generate failed. Try again in a moment" />
                     </span>
                   )}
                   <button
@@ -1132,14 +1568,6 @@ export default function TeacherQuizReviewPage({
                   )}
                   <button
                     type="button"
-                    className="tqr-io"
-                    disabled={!validation || validation.length === 0}
-                    onClick={() => onApproveAll(story)}
-                  >
-                    <BiLabel zh="核准全部（乾淨）" pinyin="Hézhǔn quánbù" en="Approve all clean" />
-                  </button>
-                  <button
-                    type="button"
                     className="tqr-approve"
                     disabled={approveStatus === "approving" || approvedCount === 0}
                     onClick={() => onApprove(story, topic)}
@@ -1158,12 +1586,50 @@ export default function TeacherQuizReviewPage({
                       <BiLabel zh="發佈失敗" en="Publish failed" />
                     </span>
                   )}
+                  </div>
+                  <div className="tqr-toolbar-utility">
                   <span className="tqr-count">
                     <BiLabel zh={`已勾選 ${approvedCount} 題`} en={`${approvedCount} checked`} />
                   </span>
                   <span className="tqr-count">
                     <BiLabel zh={`已標記 ${exclusions.length} 項`} en={`${exclusions.length} marked`} />
                   </span>
+                  <span className="tqr-toolbar-spacer" />
+                  <button
+                    type="button"
+                    className="tqr-io"
+                    disabled={!validation || validation.length === 0}
+                    onClick={() => onApproveAll(story)}
+                  >
+                    <BiLabel zh="核准全部（乾淨）" pinyin="Hézhǔn quánbù" en="Approve all clean" />
+                  </button>
+                  <button
+                    type="button"
+                    className="tqr-save"
+                    disabled={!dirty || status === "saving"}
+                    onClick={() => onSave(story, topic)}
+                  >
+                    {status === "saving" ? (
+                      <BiLabel zh="儲存中…" pinyin="Chǔcún zhōng…" en="Saving…" />
+                    ) : (
+                      <BiLabel zh="儲存標記" pinyin="Chǔcún biāojì" en="Save marks" />
+                    )}
+                  </button>
+                  {status === "saved" && !dirty && (
+                    <span className="tqr-status-ok">✓ <BiLabel zh="已儲存" en="Saved" /></span>
+                  )}
+                  {status === "error" && (
+                    <span className="tqr-status-error" role="alert">
+                      <BiLabel zh="儲存失敗" en="Save failed" />
+                    </span>
+                  )}
+                  <button type="button" className="tqr-io" onClick={() => onExport(story)}>
+                    <BiLabel zh="匯出" en="Export" />
+                  </button>
+                  <button type="button" className="tqr-io" onClick={() => triggerImport(story.id)}>
+                    <BiLabel zh="匯入" en="Import" />
+                  </button>
+                  </div>
                 </div>
               </header>
               {importNote && <p className="tqr-import-note">{importNote}</p>}
@@ -1173,74 +1639,6 @@ export default function TeacherQuizReviewPage({
                   <span className="tqr-spinner" aria-hidden="true" />
                   <BiLabel zh="正在生成題目…" en="Generating questions…" />
                 </div>
-              )}
-
-              {pendingCandidates.length > 0 && (
-                <section className="tqr-pending-panel">
-                  <div className="tqr-pending-summary">
-                    <span>
-                      {pendingDecidedCount === pendingCandidates.length ? (
-                        <BiLabel zh={`✓ 已決定全部 ${pendingCandidates.length} 項`} en={`✓ All ${pendingCandidates.length} changes decided`} />
-                      ) : (
-                        <BiLabel
-                          zh={`已決定 ${pendingDecidedCount} / ${pendingCandidates.length} 項`}
-                          en={`${pendingDecidedCount} of ${pendingCandidates.length} changes decided`}
-                        />
-                      )}
-                    </span>
-                    <span className="tqr-pending-summary-actions">
-                      <button type="button" className="tqr-io" onClick={() => onAcceptAllPending(story.id)}>
-                        <BiLabel zh="✓ 全部接受" en="✓ Accept All" />
-                      </button>
-                      <button
-                        type="button"
-                        className="tqr-approve"
-                        disabled={pendingDecidedCount !== pendingCandidates.length || generateStatus === "applying"}
-                        onClick={() => onApplyPendingCandidates(story)}
-                      >
-                        {generateStatus === "applying" ? (
-                          <BiLabel zh="套用中…" en="Applying…" />
-                        ) : (
-                          <BiLabel zh={`套用變更（${pendingAcceptedCount}）`} en={`Apply Changes (${pendingAcceptedCount})`} />
-                        )}
-                      </button>
-                    </span>
-                  </div>
-
-                  {pendingCandidates.slice(0, revealedCount).map((candidate, index) => (
-                    <div
-                      className={`tqr-pending-row${candidate.decision === "pending" ? " is-pending" : ""}${candidate.decision === "reject" ? " is-rejected" : ""}`}
-                      key={`${candidate.word}-${candidate.kind}-${index}`}
-                    >
-                      <div className="tqr-pending-body">
-                        <span className="tqr-qkind">
-                          {candidate.word} · {candidate.kind}
-                          <span className="diff-tag is-new">🆕 New</span>
-                        </span>
-                        {renderPendingPrompt(candidate)}
-                      </div>
-                      {candidate.decision === "pending" ? (
-                        <div className="tqr-pending-decide">
-                          <button type="button" className="decide-btn accept" onClick={() => onDecideCandidate(story.id, index, "accept")}>
-                            ✓ <BiLabel zh="接受" en="Accept" />
-                          </button>
-                          <button type="button" className="decide-btn reject" onClick={() => onDecideCandidate(story.id, index, "reject")}>
-                            ✕ <BiLabel zh="拒絕" en="Reject" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="tqr-pending-decided">
-                          <span className={`tqr-status-badge ${candidate.decision === "accept" ? "is-clean" : "is-suspicious"}`}>
-                            {candidate.decision === "accept" ? "✓ Accepted" : "✕ Rejected"}
-                          </span>
-                          <button type="button" className="undo-link" onClick={() => onUndoDecision(story.id, index)}>
-                            <BiLabel zh="復原" en="Undo" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </section>
               )}
 
               {topic.images.map((_, si) => {
@@ -1266,16 +1664,22 @@ export default function TeacherQuizReviewPage({
                         (topic as unknown as { vocabularyLookalike?: Record<number, string[][]> })
                           .vocabularyLookalike?.[si]?.[wi] ?? [];
                       const diff = diffWord(word, { distractors, cloze, synonym: synonyms }, snapshot);
+                      const wordPending = (pendingByWord.get(word) ?? []).filter(
+                        ({ candidate, index }) => candidate.origin !== "removed" && index < revealedCount,
+                      );
+                      const wordPendingTotal = (pendingByWord.get(word) ?? []).filter(
+                        ({ candidate }) => candidate.origin !== "removed",
+                      ).length;
 
-                      if (onlyChanges && diff && diff.status === "kept") return null;
+                      if (onlyChanges && diff && diff.status === "kept" && wordPendingTotal === 0) return null;
 
                       return (
                         <article
-                          className={`tqr-word${wordGone ? " is-word-gone" : ""}`}
+                          className={`tqr-word-file${wordGone ? " is-word-gone" : ""}`}
                           key={`${word}-${wi}`}
                         >
                           <header className="tqr-word-head">
-                            {diffBadge(diff?.status)}
+                            <span className="tqr-word-chev" aria-hidden="true">▾</span>
                             <strong lang="zh-Hant">{word}</strong>
                             {pinyin && <span className="tqr-pinyin">{pinyin}</span>}
                             {pos && <span className="tqr-pos">{pos}</span>}
@@ -1287,6 +1691,9 @@ export default function TeacherQuizReviewPage({
                               </span>
                             )}
                             {translation && trashButton(story.id, word, "word")}
+                            <span className="tqr-word-head-spacer" />
+                            {diffBadge(diff?.status)}
+                            {changeChip(wordPending.length)}
                           </header>
                           {!wordGone && translation && (
                             <div className="tqr-pools">
@@ -1347,6 +1754,7 @@ export default function TeacherQuizReviewPage({
                                   </span>
                                 </div>
                               )}
+                              {pendingCandidateRows(story.id, wordPending)}
                             </div>
                           )}
                         </article>
@@ -1355,6 +1763,65 @@ export default function TeacherQuizReviewPage({
                   </section>
                 );
               })}
+              {removedPendingGroups.some(({ entries }) => entries.some(({ index }) => index < revealedCount)) && (
+                <section className="tqr-removed-section">
+                  <h3 className="tqr-scene-title">
+                    <BiLabel zh="已從場景移除" en="Removed from scene" />
+                  </h3>
+                  {removedPendingGroups.map(({ word, entries }) => {
+                    const visibleEntries = entries.filter(({ index }) => index < revealedCount);
+                    if (visibleEntries.length === 0) return null;
+                    return (
+                      <article className="tqr-word-file is-removed-word" key={`removed-${word}`}>
+                        <header className="tqr-word-head">
+                          <span className="tqr-word-chev" aria-hidden="true">▾</span>
+                          <strong lang="zh-Hant">{word}</strong>
+                          <span className="tqr-no-quiz">
+                            <BiLabel zh="已從場景移除" en="removed from scene" />
+                          </span>
+                          <span className="tqr-word-head-spacer" />
+                          {changeChip(visibleEntries.length, true)}
+                        </header>
+                        <div className="tqr-pools">{pendingCandidateRows(story.id, visibleEntries)}</div>
+                      </article>
+                    );
+                  })}
+                </section>
+              )}
+              {pendingCandidates.length > 0 && (
+                <div className="tqr-decision-bar">
+                  <span>
+                    {pendingDecidedCount === pendingCandidates.length ? (
+                      <BiLabel
+                        zh={`已決定全部 ${pendingCandidates.length} 項`}
+                        en={`All ${pendingCandidates.length} changes decided`}
+                      />
+                    ) : (
+                      <BiLabel
+                        zh={`已決定 ${pendingDecidedCount} / ${pendingCandidates.length} 項`}
+                        en={`${pendingDecidedCount} of ${pendingCandidates.length} changes decided`}
+                      />
+                    )}
+                  </span>
+                  <span className="tqr-decision-actions">
+                    <button type="button" className="tqr-io" onClick={() => onAcceptAllPending(story.id)}>
+                      <BiLabel zh="全部接受" en="Accept All" />
+                    </button>
+                    <button
+                      type="button"
+                      className="tqr-approve"
+                      disabled={pendingDecidedCount !== pendingCandidates.length || generateStatus === "applying"}
+                      onClick={() => onApplyPendingCandidates(story)}
+                    >
+                      {generateStatus === "applying" ? (
+                        <BiLabel zh="套用中…" en="Applying…" />
+                      ) : (
+                        <BiLabel zh={`套用變更（${pendingAcceptedCount}）`} en={`Apply Changes (${pendingAcceptedCount})`} />
+                      )}
+                    </button>
+                  </span>
+                </div>
+              )}
             </section>
           );
         })}

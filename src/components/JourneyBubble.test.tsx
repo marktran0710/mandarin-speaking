@@ -61,7 +61,7 @@ describe("JourneyBubble", () => {
 
   it("shows a display-only star dial once every story clears the gate", async () => {
     window.localStorage.setItem(
-      "vocabQuizStars",
+      "vocabQuizStars:student",
       JSON.stringify({ "s-market": 3 }),
     );
     try {
@@ -75,7 +75,7 @@ describe("JourneyBubble", () => {
       expect(screen.queryByRole("button")).not.toBeInTheDocument();
       expect(screen.getByRole("status")).toHaveTextContent("⭐ 3/3");
     } finally {
-      window.localStorage.removeItem("vocabQuizStars");
+      window.localStorage.removeItem("vocabQuizStars:student");
     }
   });
 
@@ -90,7 +90,7 @@ describe("JourneyBubble", () => {
     // the story's stars are 2 (best), not 3 (sum) — enough to clear the
     // ⭐⭐ gate, so the bubble is the quiet dial showing 2.
     window.localStorage.setItem(
-      "vocabQuizStars",
+      "vocabQuizStars:student",
       JSON.stringify({ "s-tiered": 1, "s-tiered-medium": 2 }),
     );
     try {
@@ -100,7 +100,7 @@ describe("JourneyBubble", () => {
       expect(screen.queryByRole("button")).not.toBeInTheDocument();
       expect(screen.getByRole("status")).toHaveTextContent("⭐ 2/3");
     } finally {
-      window.localStorage.removeItem("vocabQuizStars");
+      window.localStorage.removeItem("vocabQuizStars:student");
     }
   });
 

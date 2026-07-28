@@ -6,7 +6,7 @@
 // working off the same table; the localStorage mirror below covers the
 // no-database mode, following the storyLevelProgress.ts pattern.
 
-import { isAdminSession } from "./studentSession";
+import { getStudentScopeKey, isAdminSession } from "./studentSession";
 
 export type QuizTier = 1 | 2 | 3;
 export type TierMode = "tier1" | "tier2" | "tier3";
@@ -101,9 +101,10 @@ export function nextStarGap(
 }
 
 // ── localStorage mirror ────────────────────────────────────────────────
-// Same flat per-browser map pattern as storyLevelProgress.ts — the source
-// of truth when the backend/database is unavailable, and a fast first paint
-// before the attempts fetch resolves when it is.
+// Same per-browser map pattern as storyLevelProgress.ts — the source of
+// truth when the backend/database is unavailable, and a fast first paint
+// before the attempts fetch resolves when it is. Keyed per student so a
+// shared classroom device can't leak one student's stars into the next.
 
 const QUIZ_STARS_KEY = "vocabQuizStars";
 
@@ -112,7 +113,7 @@ type StarProgress = Record<string, number>;
 function loadStarProgress(): StarProgress {
   if (typeof window === "undefined") return {};
   try {
-    const raw = window.localStorage.getItem(QUIZ_STARS_KEY);
+    const raw = window.localStorage.getItem(`${QUIZ_STARS_KEY}:${getStudentScopeKey()}`);
     return raw ? JSON.parse(raw) : {};
   } catch {
     return {};
@@ -146,7 +147,7 @@ export function recordLocalStars(storyId: string, stars: QuizTier) {
   if (stars <= loadLocalStars(storyId)) return;
   const next = { ...loadStarProgress(), [storyId]: stars };
   try {
-    window.localStorage.setItem(QUIZ_STARS_KEY, JSON.stringify(next));
+    window.localStorage.setItem(`${QUIZ_STARS_KEY}:${getStudentScopeKey()}`, JSON.stringify(next));
   } catch {
     /* storage unavailable — stars just won't persist on this device */
   }

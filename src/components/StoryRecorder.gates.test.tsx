@@ -1,0 +1,345 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import type { UserEvent } from "@testing-library/user-event";
+import StoryRecorder from "./StoryRecorder";
+
+vi.setConfig({ testTimeout: 20_000 });
+
+const TEST_BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
+
+const topic = {
+  id: "student-gates-topic",
+  name: "Taiwan Market",
+  description: "Tell a short story about helping someone at a market.",
+  skillFocus: "Story connectors",
+  level: "Beginner",
+  images: ["https://example.com/market-1.jpg", "https://example.com/market-2.jpg"],
+  prompts: ["First prompt", "Second prompt"],
+  vocabulary: {
+    0: ["market", "help", "friend"],
+    1: ["rain", "umbrella"],
+  },
+};
+
+let activeRecorder: MockMediaRecorder | null = null;
+
+class MockMediaRecorder {
+  static isTypeSupported = () => false;
+
+  mimeType = "audio/wav";
+  state = "inactive";
+  ondataavailable: ((event: { data: Blob }) => void) | null = null;
+  onstop: (() => void | Promise<void>) | null = null;
+
+  constructor() {
+    activeRecorder = this;
+  }
+
+  start() {
+    this.state = "recording";
+  }
+
+  stop() {
+    this.state = "inactive";
+    this.ondataavailable?.({
+      data: new Blob(["student speech"], { type: "audio/wav" }),
+    });
+    void this.onstop?.();
+  }
+}
+
+function jsonResponse(data: unknown, ok = true) {
+  return {
+    ok,
+    status: ok ? 200 : 500,
+    statusText: ok ? "OK" : "Server Error",
+    json: async () => data,
+  };
+}
+
+function buildAnalyzeResponse(overrides: Record<string, unknown> = {}) {
+  return {
+    transcription: "Student tells the market story",
+    transcription_model: "groq",
+    pitch_contour: [
+      [0, 180],
+      [0.2, 205],
+      [0.4, 190],
+    ],
+    word_prosody: [
+      {
+        token: "市",
+        index: 0,
+        start_time: 0,
+        end_time: 0.2,
+        pitch_contour: [
+          [0, 210],
+          [0.2, 205],
+        ],
+        reference_contour: [
+          [0, 230],
+          [0.2, 150],
+        ],
+        user_curve: [0.7, 0.68],
+        target_curve: [0.9, 0.1],
+        mean_pitch: 208,
+        pitch_range: 5,
+        start_pitch: 210,
+        end_pitch: 205,
+        contour_shape: "level",
+        feedback: "Expected falling movement does not match yet.",
+        expected_tones: [4],
+        tone_accuracy: 57,
+        shape_accuracy: 57,
+        syllables: [{ char: "市", tone: 4, score: 57, passed: false }],
+        passed: false,
+      },
+    ],
+    detected_tone: 2,
+    tone_accuracy: 95,
+    formants: { F1: 500, F2: 1500, F3: 2500 },
+    speech_rate: 3.4,
+    fluency_score: 92,
+    pitch_statistics: {},
+    feedback: "Good start. Keep your tones clear.",
+    ai_feedback: {
+      provider: "test",
+      vocabulary_coverage: {
+        score: 100,
+        used: ["market"],
+        missing: [],
+        feedback: "Good vocabulary coverage.",
+      },
+      coherence: {
+        score: 90,
+        feedback: "The sentence fits the scene.",
+        corrections: [],
+      },
+      pronunciation_note: {
+        score: 70,
+        feedback: "Keep the tones crisp.",
+        details: [{ key: "tone", text: "Pronunciation detail should be gated." }],
+      },
+      content_accuracy: {
+        score: 90,
+        feedback: "The sentence matches the image.",
+        matched_details: ["market"],
+        missed_details: [],
+        accepted: true,
+        judged: true,
+      },
+      corrective_feedback: {
+        errors: [],
+        hint: "",
+        reveal_answer: false,
+        correct_version: "",
+      },
+      improved_version: "Student tells the market story.",
+      practice_prompt: "Try again.",
+    },
+    ...overrides,
+  };
+}
+
+function mockBackendAnalyze(
+  analyze:
+    | Record<string, unknown>
+    | ((url: string, init?: RequestInit) => Record<string, unknown> | Promise<Record<string, unknown>>),
+) {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/ai-providers")) {
+        return jsonResponse({ providers: [], default: "" });
+      }
+      if (url.includes("/api/transcribe")) {
+        return jsonResponse({ text: "Student tells the market story" });
+      }
+      if (url.includes("/api/analyze")) {
+        const data =
+          typeof analyze === "function" ? await analyze(url, init) : analyze;
+        return jsonResponse(data);
+      }
+      return jsonResponse({});
+    }),
+  );
+}
+
+async function uploadVoiceAttempt(user: UserEvent, fileName = "story-attempt.wav") {
+  const voiceFile = new File(["RIFF....WAVEfmt "], fileName, {
+    type: "audio/wav",
+  });
+  const input = document.querySelector(".submit-voice-input") as HTMLInputElement;
+  await user.upload(input, voiceFile);
+}
+
+describe("StoryRecorder speaking practice gates", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    activeRecorder = null;
+    vi.stubGlobal("MediaRecorder", MockMediaRecorder);
+    mockBackendAnalyze(buildAnalyzeResponse());
+
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: {
+        getUserMedia: vi.fn(async () => ({
+          getTracks: () => [{ stop: vi.fn() }],
+        })),
+      },
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("does not let the 4-attempt escape hatch bypass a failing per-syllable prosody gate", async () => {
+    const user = userEvent.setup();
+    const onAddRecord = vi.fn();
+
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={onAddRecord}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+
+    for (let attempt = 1; attempt <= 4; attempt += 1) {
+      await uploadVoiceAttempt(user, `failed-attempt-${attempt}.wav`);
+      await screen.findByText(`Attempt ${attempt}`);
+      if (attempt < 4) {
+        await user.click(screen.getByRole("button", { name: /Record again/ }));
+      }
+    }
+
+    expect(onAddRecord).toHaveBeenCalledTimes(4);
+    expect(screen.getByText("Attempt 4")).toBeInTheDocument();
+    expect(screen.getByText("Scene 1 of 2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Next scene/i })).toBeDisabled();
+    expect(screen.queryByText("Scene 2 of 2")).not.toBeInTheDocument();
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      `${TEST_BACKEND_URL}/api/analyze`,
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  // BUG: SpeakingResultsFlow renders pronunciation_note.details on the
+  // overview step even when content_accuracy.accepted is false. Meaning
+  // rejection should stop pronunciation feedback until the sentence is accepted.
+  it.fails("blocks pronunciation feedback while rejected content is on the fix path", async () => {
+    const user = userEvent.setup();
+    const base = buildAnalyzeResponse();
+    mockBackendAnalyze({
+      ...base,
+      ai_feedback: {
+        ...base.ai_feedback,
+        content_accuracy: {
+          score: 20,
+          feedback: "This describes the wrong scene.",
+          matched_details: [],
+          missed_details: ["market"],
+          accepted: false,
+          judged: true,
+        },
+        corrective_feedback: {
+          errors: ["wrong scene"],
+          hint: "Mention the market helper before recording again.",
+          reveal_answer: false,
+          correct_version: "",
+        },
+      },
+    });
+
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+    await uploadVoiceAttempt(user, "wrong-content.wav");
+
+    await screen.findByRole("region", { name: "Recording results" });
+    expect(screen.getByRole("button", { name: /See how to fix it/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Practice the words/ })).not.toBeInTheDocument();
+    expect(screen.queryByText("Pronunciation Feedback")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pronunciation detail should be gated.")).not.toBeInTheDocument();
+  });
+
+  // BUG: StoryRecorder still has selectedModel state, but no rendered
+  // speech-source selector reaches students in the current SpeakingFlowCard.
+  // Without that control, a mid-session webspeech -> groq switch cannot be
+  // exercised by a user-facing test.
+  it.fails("preserves scene and attempt state across a mid-session speech model switch", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+    const speechSource = screen.getByLabelText(/Speech source/);
+    expect(speechSource).toHaveValue("webspeech");
+
+    await uploadVoiceAttempt(user, "before-switch.wav");
+    await screen.findByText("Attempt 1");
+    await user.click(screen.getByRole("button", { name: /Record again/ }));
+    await user.selectOptions(speechSource, "groq");
+    await uploadVoiceAttempt(user, "after-switch.wav");
+
+    await screen.findByText("Attempt 2");
+    expect(screen.getByText("Scene 1 of 2")).toBeInTheDocument();
+  });
+
+  it("shows a visible retry path when speech analysis fails", async () => {
+    const user = userEvent.setup();
+    mockBackendAnalyze(async (url) => {
+      if (url.includes("/api/analyze")) {
+        throw new Error("The operation was aborted");
+      }
+      return buildAnalyzeResponse();
+    });
+
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+    await uploadVoiceAttempt(user, "timeout.wav");
+
+    expect(
+      await screen.findByText(/Cannot reach the speech analysis backend/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Analyzing recording" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Record$/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Upload audio/ })).toBeInTheDocument();
+  });
+});

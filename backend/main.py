@@ -528,6 +528,7 @@ class StorySubmissionRequest(BaseModel):
     storyId: str = Field(..., max_length=128)
     storyTitle: str = Field(default="", max_length=200)
     studentName: str = Field(default="Student", max_length=100)
+    studentId: Optional[str] = Field(default=None, max_length=128)
     submittedAt: str
     scenes: List[SceneSubmission] = []
 

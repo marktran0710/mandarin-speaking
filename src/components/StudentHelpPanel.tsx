@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { HelpRequest } from "../services/database";
 import { BiLabel, BiText } from "./BiLabel";
-import { getSessionName } from "../utils/myStoriesUtils";
+import { getStudentName } from "../utils/studentSession";
 
 /** The quiet "raise your hand" form students use mid-practice. Lives at the
  * bottom of the story-session sidebar during a practice session (compact,
@@ -15,7 +15,7 @@ export default function StudentHelpPanel({
   onRaiseHand?: (message: string) => void;
 }) {
   const [message, setMessage] = useState("我的故事需要協助。");
-  const studentName = getSessionName("studentSession", "Student");
+  const studentName = getStudentName();
   const activeRequest = helpRequests.find(
     (request) =>
       request.studentName === studentName && request.status === "open",

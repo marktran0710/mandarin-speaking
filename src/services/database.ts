@@ -3,12 +3,14 @@ const BACKEND_URL =
   (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
 const REQUEST_TIMEOUT_MS = 15_000;
+const VOCAB_GENERATION_RETRY_STATUSES = [429, 500, 502, 503, 504];
 
 async function fetchWithRetry(
   input: RequestInfo | URL,
   init?: RequestInit,
   maxAttempts = 3,
   timeoutMs = REQUEST_TIMEOUT_MS,
+  retryOnStatus: number[] = [],
 ): Promise<Response> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -17,14 +19,24 @@ async function fetchWithRetry(
     try {
       const response = await fetch(input, { ...init, signal: controller.signal });
       clearTimeout(timer);
+      if (retryOnStatus.includes(response.status) && attempt < maxAttempts) {
+        await new Promise((r) => setTimeout(r, 300 * 2 ** (attempt - 1)));
+        continue;
+      }
       return response;
     } catch (err) {
       clearTimeout(timer);
       lastError = err;
       const isAbort = err instanceof DOMException && err.name === "AbortError";
-      // Don't retry mutations to avoid double-writes
+      // Don't retry mutations to avoid double-writes unless callers explicitly opt in.
       const method = (init?.method ?? "GET").toUpperCase();
-      if (isAbort || method !== "GET" || attempt === maxAttempts) break;
+      if (
+        isAbort ||
+        (method !== "GET" && retryOnStatus.length === 0) ||
+        attempt === maxAttempts
+      ) {
+        break;
+      }
       await new Promise((r) => setTimeout(r, 300 * 2 ** (attempt - 1)));
     }
   }
@@ -156,6 +168,7 @@ export interface StorySubmission {
   storyId: string;
   storyTitle: string;
   studentName: string;
+  studentId?: string;
   submittedAt: string;
   scenes: SceneSubmission[];
   concatenatedAudioUrl?: string | null;
@@ -278,11 +291,17 @@ export interface VocabGrowthWord {
 export async function generateVocabDistractors(
   words: VocabGrowthWord[],
 ): Promise<Array<{ word: string; distractors: string[] }>> {
-  const response = await fetchWithRetry(`${BACKEND_URL}/api/vocab-quiz-distractors`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ words }),
-  });
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/vocab-quiz-distractors`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ words }),
+    },
+    3,
+    REQUEST_TIMEOUT_MS,
+    VOCAB_GENERATION_RETRY_STATUSES,
+  );
   if (!response.ok) throw new Error("Could not generate new quiz distractors.");
   const { results } = (await response.json()) as { results: Array<{ word: string; distractors: string[] }> };
   return results;
@@ -291,11 +310,17 @@ export async function generateVocabDistractors(
 export async function generateVocabCloze(
   words: VocabGrowthWord[],
 ): Promise<Array<{ word: string; sentence: string; distractors: string[] }>> {
-  const response = await fetchWithRetry(`${BACKEND_URL}/api/vocab-quiz-cloze`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ words }),
-  });
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/vocab-quiz-cloze`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ words }),
+    },
+    3,
+    REQUEST_TIMEOUT_MS,
+    VOCAB_GENERATION_RETRY_STATUSES,
+  );
   if (!response.ok) throw new Error("Could not generate new quiz cloze questions.");
   const { results } = (await response.json()) as {
     results: Array<{ word: string; sentence: string; distractors: string[] }>;
@@ -306,11 +331,17 @@ export async function generateVocabCloze(
 export async function generateVocabSynonym(
   words: VocabGrowthWord[],
 ): Promise<Array<{ word: string; synonym: string; distractors: string[] }>> {
-  const response = await fetchWithRetry(`${BACKEND_URL}/api/vocab-quiz-synonym`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ words }),
-  });
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/vocab-quiz-synonym`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ words }),
+    },
+    3,
+    REQUEST_TIMEOUT_MS,
+    VOCAB_GENERATION_RETRY_STATUSES,
+  );
   if (!response.ok) throw new Error("Could not generate new quiz synonym questions.");
   const { results } = (await response.json()) as {
     results: Array<{ word: string; synonym: string; distractors: string[] }>;
@@ -321,11 +352,17 @@ export async function generateVocabSynonym(
 export async function generateVocabLookalike(
   words: VocabGrowthWord[],
 ): Promise<Array<{ word: string; lookalikes: string[] }>> {
-  const response = await fetchWithRetry(`${BACKEND_URL}/api/vocab-quiz-lookalike`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ words }),
-  });
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/vocab-quiz-lookalike`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ words }),
+    },
+    3,
+    REQUEST_TIMEOUT_MS,
+    VOCAB_GENERATION_RETRY_STATUSES,
+  );
   if (!response.ok) throw new Error("Could not generate new look-alike traps.");
   const { results } = (await response.json()) as { results: Array<{ word: string; lookalikes: string[] }> };
   return results;

@@ -111,7 +111,7 @@
   justify-content: center;
   border-radius: var(--clay-radius-pill);
   background: var(--gold);
-  color: #fff;
+  color: var(--clay-on-seal);
   font-size: 12px;
   box-shadow: var(--shadow-sm);
 }

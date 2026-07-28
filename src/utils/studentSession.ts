@@ -34,3 +34,11 @@ export function isAdminSession(): boolean {
 export function getStudentId(): string | undefined {
   return studentSession()?.id;
 }
+
+/** Stable key for scoping per-student localStorage mirrors (progress,
+ * stars, completed-quiz flags) so a shared classroom device doesn't leak
+ * one student's unlocks into the next student's session. Prefers the
+ * roster id; falls back to the typed name for free-entry logins. */
+export function getStudentScopeKey(): string {
+  return getStudentId() ?? getStudentName().toLowerCase().trim();
+}

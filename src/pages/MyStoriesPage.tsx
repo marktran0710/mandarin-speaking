@@ -12,9 +12,9 @@ import StudentHelpCard from "../components/StudentHelpCard";
 import MyStoryFeedbackHistory from "../components/MyStoryFeedbackHistory";
 import {
   getAverageMetric,
-  getSessionName,
   getStudentTopics,
 } from "../utils/myStoriesUtils";
+import { getStudentId, getStudentName } from "../utils/studentSession";
 import {
   groupTopicsByLesson,
   isLessonGroupUnlocked,
@@ -97,9 +97,10 @@ export default function MyStoriesPage({
     listStorySubmissions()
       .then((subs) => {
         if (cancelled) return;
-        const studentName = getSessionName("studentSession", "Student");
+        const studentId = getStudentId();
+        const studentName = getStudentName();
         const mine = subs
-          .filter((s) => s.studentName === studentName)
+          .filter((s) => (studentId ? s.studentId === studentId : s.studentName === studentName))
           .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
         setMySubmissions(mine);
       })

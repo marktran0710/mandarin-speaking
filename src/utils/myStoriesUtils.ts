@@ -343,17 +343,6 @@ export function mergePhraseSuggestions(
   return rows;
 }
 
-export function getSessionName(storageKey: string, fallback: string) {
-  try {
-    const session = JSON.parse(localStorage.getItem(storageKey) || "{}");
-    return typeof session.name === "string" && session.name.trim()
-      ? session.name.trim()
-      : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
 export function formatRequestTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
