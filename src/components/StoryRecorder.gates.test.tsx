@@ -196,7 +196,7 @@ describe("StoryRecorder speaking practice gates", () => {
     vi.unstubAllGlobals();
   });
 
-  it("does not let the 4-attempt escape hatch bypass a failing per-syllable prosody gate", async () => {
+  it("keeps a failing prosody result in the word-practice flow", async () => {
     const user = userEvent.setup();
     const onAddRecord = vi.fn();
 
@@ -213,18 +213,13 @@ describe("StoryRecorder speaking practice gates", () => {
 
     await user.click(screen.getByRole("tab", { name: /Speaking/ }));
 
-    for (let attempt = 1; attempt <= 4; attempt += 1) {
-      await uploadVoiceAttempt(user, `failed-attempt-${attempt}.wav`);
-      await screen.findByText(`Attempt ${attempt}`);
-      if (attempt < 4) {
-        await user.click(screen.getByRole("button", { name: /Record again/ }));
-      }
-    }
+    await uploadVoiceAttempt(user, "failed-attempt.wav");
+    await screen.findByText("Attempt 1");
 
-    expect(onAddRecord).toHaveBeenCalledTimes(4);
-    expect(screen.getByText("Attempt 4")).toBeInTheDocument();
+    expect(onAddRecord).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Scene 1 of 2")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Next scene/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Practice the words/i })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /Next scene/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Scene 2 of 2")).not.toBeInTheDocument();
     expect(globalThis.fetch).toHaveBeenCalledWith(
       `${TEST_BACKEND_URL}/api/analyze`,
@@ -232,10 +227,88 @@ describe("StoryRecorder speaking practice gates", () => {
     );
   });
 
-  // BUG: SpeakingResultsFlow renders pronunciation_note.details on the
-  // overview step even when content_accuracy.accepted is false. Meaning
-  // rejection should stop pronunciation feedback until the sentence is accepted.
-  it.fails("blocks pronunciation feedback while rejected content is on the fix path", async () => {
+  it("keeps a high-scoring but incomplete script on Fix it and blocks Next scene", async () => {
+    const user = userEvent.setup();
+    const base = buildAnalyzeResponse();
+    mockBackendAnalyze({
+      ...base,
+      word_prosody: [{
+        ...base.word_prosody[0],
+        tone_accuracy: 92,
+        shape_accuracy: 92,
+        passed: true,
+        syllables: [{ char: "市", tone: 4, score: 92, passed: true }],
+      }],
+      ai_feedback: {
+        ...base.ai_feedback,
+        vocabulary_coverage: {
+          score: 50,
+          used: ["market"],
+          missing: ["help", "friend"],
+          feedback: "Include the missing words.",
+        },
+      },
+    });
+
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+    await uploadVoiceAttempt(user, "incomplete-script.wav");
+
+    expect(await screen.findByRole("button", { name: /See the missing words/i })).toBeEnabled();
+    expect(screen.queryByText(/Scene 1 complete/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Next scene/i })).not.toBeInTheDocument();
+  });
+
+  it("opens Fix it before word practice when a learner clicks a wrong word", async () => {
+    const user = userEvent.setup();
+    const base = buildAnalyzeResponse();
+    mockBackendAnalyze({
+      ...base,
+      ai_feedback: {
+        ...base.ai_feedback,
+        vocabulary_coverage: {
+          score: 50,
+          used: ["market"],
+          missing: ["help"],
+          feedback: "Include the missing word.",
+        },
+      },
+    });
+
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+    await uploadVoiceAttempt(user, "fix-before-practice.wav");
+    await screen.findByText("Words to practice:");
+
+    const wrongWord = document.querySelector(".sfc-fail-preview-chip");
+    expect(wrongWord).not.toBeNull();
+    await user.click(wrongWord as HTMLButtonElement);
+
+    expect(screen.getByText("Try to include")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Practice the words/i })).toBeEnabled();
+  });
+
+  it("blocks pronunciation feedback while rejected content is on the fix path", async () => {
     const user = userEvent.setup();
     const base = buildAnalyzeResponse();
     mockBackendAnalyze({

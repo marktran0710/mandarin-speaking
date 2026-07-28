@@ -25,6 +25,12 @@ export type ApprovedSnapshot = ApprovedMaterialEntry[];
 
 export type StoredApprovedSnapshot = Partial<Record<StoryDifficultyLevel, ApprovedSnapshot>>;
 
+// The runtime quiz shuffles and draws at most three AI distractors. Keeping
+// exactly that many in a published snapshot means the set reviewed by the
+// adversarial validator is the same set a student can actually be shown;
+// an unreviewed fourth pool entry can never rotate into a question later.
+const MAX_PUBLISHED_WRONG_OPTIONS = 3;
+
 /** The story's approved AI material for one tier, or null when that tier
  * has never been approved — the caller should serve no AI pools in that
  * case rather than falling back to live/unreviewed material. */
@@ -89,9 +95,15 @@ export function buildApprovedMaterial(
       entries.push({
         word,
         translation: filtered.translation,
-        distractors: filtered.aiDistractors ?? [],
-        cloze: filtered.aiCloze ?? [],
-        synonym: filtered.aiSynonyms ?? [],
+        distractors: (filtered.aiDistractors ?? []).slice(0, MAX_PUBLISHED_WRONG_OPTIONS),
+        cloze: (filtered.aiCloze ?? []).map((candidate) => ({
+          ...candidate,
+          distractors: candidate.distractors.slice(0, MAX_PUBLISHED_WRONG_OPTIONS),
+        })),
+        synonym: (filtered.aiSynonyms ?? []).map((candidate) => ({
+          ...candidate,
+          distractors: candidate.distractors.slice(0, MAX_PUBLISHED_WRONG_OPTIONS),
+        })),
         lookalike: filtered.aiLookalikes ?? [],
       });
     });
@@ -124,10 +136,20 @@ export function buildApprovedMaterialFromApprovals(
         word,
         translation: topic.vocabularyTranslation?.[si]?.[wi],
         distractors: isApproved(approvals, word, "distractors")
-          ? topic.vocabularyDistractors?.[si]?.[wi] ?? []
+          ? (topic.vocabularyDistractors?.[si]?.[wi] ?? []).slice(0, MAX_PUBLISHED_WRONG_OPTIONS)
           : [],
-        cloze: cloze.filter((_, ci) => isApproved(approvals, word, "cloze", ci)),
-        synonym: synonym.filter((_, syi) => isApproved(approvals, word, "synonym", syi)),
+        cloze: cloze
+          .filter((_, ci) => isApproved(approvals, word, "cloze", ci))
+          .map((candidate) => ({
+            ...candidate,
+            distractors: candidate.distractors.slice(0, MAX_PUBLISHED_WRONG_OPTIONS),
+          })),
+        synonym: synonym
+          .filter((_, syi) => isApproved(approvals, word, "synonym", syi))
+          .map((candidate) => ({
+            ...candidate,
+            distractors: candidate.distractors.slice(0, MAX_PUBLISHED_WRONG_OPTIONS),
+          })),
         lookalike: isExcluded(exclusions, word, "lookalike")
           ? []
           : topic.vocabularyLookalike?.[si]?.[wi] ?? [],

@@ -645,8 +645,15 @@ class QuizQuestionReplaceRequest(BaseModel):
     shows it as one row)."""
     frameIndex: int = Field(..., ge=0)
     wordIndex: int = Field(..., ge=0)
-    kind: str = Field(..., pattern="^(distractors|cloze|synonym)$")
+    kind: str = Field(..., pattern="^(translation|distractors|cloze|synonym)$")
     poolIndex: Optional[int] = Field(default=None, ge=0)
+    # Translation edits change the teacher-authored correct answer.  The
+    # field is explicit because Medium/Hard can own a separate translation
+    # list; omitting it keeps the existing Easy/base behaviour.
+    translationField: Optional[str] = Field(
+        default=None,
+        pattern="^(vocabularyTranslation|vocabularyTranslationMedium|vocabularyTranslationHard)$",
+    )
     # distractors: List[str]; cloze: {sentence, distractors}; synonym: {synonym, distractors}
     # — a plain Any because the shape depends on `kind`; the handler validates it.
     value: Any

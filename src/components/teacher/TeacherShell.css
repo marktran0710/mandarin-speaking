@@ -17,8 +17,10 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-xs) var(--space-md);
-  background: var(--clay-surface-card);
+  min-height: 62px;
+  padding: var(--space-xs) clamp(var(--space-md), 3vw, var(--space-xl));
+  background: color-mix(in srgb, var(--clay-surface-card) 92%, transparent);
+  backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--clay-hairline);
 }
 
@@ -27,14 +29,14 @@
   align-items: center;
   gap: var(--space-xs);
   font-family: var(--font-display);
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
   font-weight: 700;
   color: var(--clay-ink);
 }
 
 .tshell-brand img {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--clay-radius-sm);
 }
 
@@ -93,11 +95,11 @@
 .tshell-sidebar {
   width: 232px;
   flex-shrink: 0;
-  padding: var(--space-md) var(--space-xs);
+  padding: var(--space-lg) var(--space-sm);
   display: flex;
   flex-direction: column;
   gap: var(--space-2xs);
-  background: var(--clay-surface-soft);
+  background: linear-gradient(180deg, var(--clay-surface-soft), var(--clay-canvas));
   border-right: 1px solid var(--clay-hairline);
 }
 
@@ -120,8 +122,8 @@
   display: flex;
   align-items: center;
   gap: var(--space-xs);
-  min-height: 40px;
-  padding: 0 var(--space-xs);
+  min-height: 44px;
+  padding: 0 var(--space-sm);
   border: none;
   border-radius: var(--clay-radius-md);
   background: transparent;
@@ -139,9 +141,10 @@
 }
 
 .tshell-nav-item.active {
-  background: var(--jade-soft);
+  background: linear-gradient(135deg, var(--jade-soft), rgba(90, 191, 151, 0.08));
   color: var(--jade-deep);
   font-weight: 800;
+  box-shadow: inset 3px 0 0 var(--jade);
 }
 
 .tshell-nav-icon {
@@ -179,7 +182,7 @@
 .tshell-main {
   flex: 1;
   min-width: 0;
-  padding: var(--space-lg) var(--content-gutter) var(--space-2xl);
+  padding: clamp(var(--space-lg), 3vw, var(--space-2xl)) var(--content-gutter) var(--space-2xl);
 }
 
 /* Inside the shell the workspace is bounded by the shared content column so

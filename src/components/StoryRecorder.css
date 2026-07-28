@@ -3201,4 +3201,27 @@
   box-shadow: 0 1px 0 var(--jade-deep);
 }
 
+/* Practice-stage CTAs now use AppButton. These layout hooks stay only for
+   width and wrapping, so their interaction states cannot drift from the
+   rest of the application. */
+.ui-button.btn-scene-step-continue {
+  min-width: 184px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--seal) 30%, transparent);
+}
+
+.ui-button.scene-next-btn {
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--jade-deep);
+  background: var(--jade-deep);
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--jade) 30%, transparent);
+}
+
+.ui-button.btn-scene-step-continue:hover:not(:disabled),
+.ui-button.scene-next-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
 

@@ -446,8 +446,8 @@ describe("TeacherDashboardPage", () => {
 
     expect(
       // The page heading is a bilingual BiLabel — its accessible name is
-      // "我的成績 … My Profile", so match by substring.
-      screen.getByRole("heading", { name: /My Profile/ }),
+  // "我的學習 … My learning", so match by substring.
+  screen.getByRole("heading", { name: /My learning/ }),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: /By story/ }));

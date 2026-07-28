@@ -33,6 +33,39 @@ type MaterialsTab = "builder" | "imageBuilder" | "quizReview";
 type StudentsTab = "progress" | "roster";
 type AnalyticsTab = "quiz" | "recordings" | "insights";
 
+const VIEW_COPY: Record<TeacherView, { eyebrow: string; title: string; description: string }> = {
+  overview: {
+    eyebrow: "Teacher workspace",
+    title: "Class Overview",
+    description: "A calm snapshot of what needs your attention today.",
+  },
+  submissions: {
+    eyebrow: "Review student work",
+    title: "Story Submissions",
+    description: "Read completed story runs and give students clear next steps.",
+  },
+  recordingsHelp: {
+    eyebrow: "Listen and support",
+    title: "Recordings & Help",
+    description: "Review recordings, then respond to students who need you.",
+  },
+  materials: {
+    eyebrow: "Plan the next lesson",
+    title: "Teaching Materials",
+    description: "Build stories, prepare images, and check quiz material before publishing.",
+  },
+  students: {
+    eyebrow: "Know your class",
+    title: "Students",
+    description: "Follow progress and keep your class list up to date.",
+  },
+  analytics: {
+    eyebrow: "Spot patterns early",
+    title: "Learning Insights",
+    description: "Use class trends to decide what to revisit next.",
+  },
+};
+
 function SubTabs<Tab extends string>({
   tabs,
   active,
@@ -126,6 +159,7 @@ export default function TeacherDashboardPage({
   const latestSubmissions = [...submissions]
     .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
     .slice(0, 5);
+  const viewCopy = VIEW_COPY[activeView];
 
   const openHelpQueue = () => {
     setActiveView("recordingsHelp");
@@ -151,16 +185,23 @@ export default function TeacherDashboardPage({
       onLogout={onLogout}
     >
       <div className="teacher-dashboard-page tdash-workspace">
+        <header className="tdash-view-header">
+          <div>
+            <p className="tdash-view-kicker">{viewCopy.eyebrow}</p>
+            <h1>{viewCopy.title}</h1>
+            <p className="tdash-view-description">{viewCopy.description}</p>
+          </div>
+          {activeView === "overview" && (
+            <div className="tdash-view-summary">
+              <span>Today</span>
+              <strong>{new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" })}</strong>
+              <small>{openHelpRequests.length} open help request{openHelpRequests.length === 1 ? "" : "s"}</small>
+            </div>
+          )}
+        </header>
+
         {activeView === "overview" && (
           <>
-            <header className="tdash-view-header">
-              <div>
-                <p className="stories-kicker">Teacher workspace</p>
-                <h1>Class Overview</h1>
-              </div>
-              <span className="tdash-view-date">{new Date().toLocaleDateString()}</span>
-            </header>
-
             <section className="teacher-stat-grid" aria-label="Class overview">
               <DashboardStat
                 label="Recordings"

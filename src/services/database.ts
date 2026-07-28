@@ -472,7 +472,7 @@ export interface QuizValidateWord {
 
 export interface QuizValidateResultItem {
   word: string;
-  kind: "distractors" | "cloze" | "synonym";
+  kind: "translation" | "distractors" | "cloze" | "synonym";
   poolIndex?: number;
   status: "clean" | "suspicious";
   reason: string;
@@ -552,23 +552,24 @@ export async function saveQuizPendingApprovals(
 /** Replaces one candidate's content in place (Quiz Review's inline Edit) —
  * unlike updateVocabularyDistractors/-Cloze/-Synonym, which only merge new
  * items into a pool and can't fix an existing bad candidate's text.
- * `value` is a string[] for "distractors" (the word's whole list, no
+ * `value` is a string for "translation", a string[] for "distractors" (the word's whole list, no
  * poolIndex — Quiz Review shows it as one row) or {sentence,distractors} /
  * {synonym,distractors} for "cloze" / "synonym" at `poolIndex`. */
 export async function replaceQuizQuestion(
   storyId: string,
   frameIndex: number,
   wordIndex: number,
-  kind: "distractors" | "cloze" | "synonym",
+  kind: "translation" | "distractors" | "cloze" | "synonym",
   poolIndex: number | undefined,
-  value: string[] | { sentence: string; distractors: string[] } | { synonym: string; distractors: string[] },
+  value: string | string[] | { sentence: string; distractors: string[] } | { synonym: string; distractors: string[] },
+  translationField?: "vocabularyTranslation" | "vocabularyTranslationMedium" | "vocabularyTranslationHard",
 ): Promise<void> {
   const response = await fetchWithRetry(
     `${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/quiz-question`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ frameIndex, wordIndex, kind, poolIndex, value }),
+      body: JSON.stringify({ frameIndex, wordIndex, kind, poolIndex, value, translationField }),
     },
   );
   if (!response.ok) {

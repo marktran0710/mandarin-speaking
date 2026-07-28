@@ -177,12 +177,14 @@ interface EditTarget {
   frameIndex: number;
   wordIndex: number;
   word: string;
-  kind: QuizApprovalKind;
+  kind: QuizApprovalKind | "translation";
   poolIndex?: number;
+  translationField?: TranslationField;
 }
 
 type EditDraft =
-  | { kind: "distractors"; distractors: string }
+  | { kind: "translation"; translation: string }
+  | { kind: "distractors"; distractors: string; correctAnswer?: string }
   | { kind: "cloze"; sentence: string; distractors: string }
   | { kind: "synonym"; synonym: string; distractors: string };
 
@@ -191,6 +193,7 @@ function pendingKeyFor(storyId: string, level: StoryDifficultyLevel): string {
 }
 
 type ReplaceValue =
+  | string
   | string[]
   | { sentence: string; distractors: string[] }
   | { synonym: string; distractors: string[] };
@@ -205,13 +208,23 @@ const POOL_FIELD: Record<QuizApprovalKind, keyof CustomStoryFrame> = {
  * routers/stories.py's replace_quiz_question just wrote to the database —
  * so storyToTopic recomputes with the new content without waiting on a
  * refetch. Pure: returns a new frame, doesn't mutate the one passed in. */
+type TranslationField = "vocabularyTranslation" | "vocabularyTranslationMedium" | "vocabularyTranslationHard";
+
 function applyLocalEdit(
   frame: CustomStoryFrame,
-  kind: QuizApprovalKind,
+  kind: QuizApprovalKind | "translation",
   wordIndex: number,
   poolIndex: number | undefined,
   value: ReplaceValue,
+  translationField?: TranslationField,
 ): CustomStoryFrame {
+  if (kind === "translation") {
+    const field = translationField ?? "vocabularyTranslation";
+    const translations = String(frame[field] ?? "").split(",").map((item) => item.trim());
+    while (translations.length <= wordIndex) translations.push("");
+    translations[wordIndex] = value as string;
+    return { ...frame, [field]: translations.join(", ") };
+  }
   const field = POOL_FIELD[kind];
   const pool: unknown[] = JSON.parse((frame[field] as string | undefined) || "[]");
   while (pool.length <= wordIndex) pool.push([]);
@@ -223,6 +236,25 @@ function applyLocalEdit(
     pool[wordIndex] = candidates;
   }
   return { ...frame, [field]: JSON.stringify(pool) };
+}
+
+function translationFieldForLevel(frame: CustomStoryFrame, level: StoryDifficultyLevel): TranslationField {
+  if (level === "medium" && frame.vocabularyTranslationMedium?.trim()) return "vocabularyTranslationMedium";
+  if (level === "hard" && frame.vocabularyTranslationHard?.trim()) return "vocabularyTranslationHard";
+  return "vocabularyTranslation";
+}
+
+function invalidateApprovedWord(story: CustomTeacherStory, word: string): CustomTeacherStory {
+  if (!story.quizApprovedSnapshot || typeof story.quizApprovedSnapshot !== "object") return story;
+  const snapshot = Object.fromEntries(
+    Object.entries(story.quizApprovedSnapshot).map(([level, entries]) => [
+      level,
+      Array.isArray(entries)
+        ? entries.filter((entry) => !(entry && typeof entry === "object" && (entry as { word?: unknown }).word === word))
+        : entries,
+    ]),
+  );
+  return { ...story, quizApprovedSnapshot: snapshot };
 }
 
 /** Kind of a freshly-generated candidate awaiting accept/reject — a
@@ -263,7 +295,7 @@ interface IndexedPendingCandidate {
 }
 
 type ReviewTopic = ReturnType<typeof storyToTopic>;
-type ChangedKind = QuizValidateResultItem["kind"];
+type ChangedKind = Exclude<QuizValidateResultItem["kind"], "translation">;
 
 interface ChangedCandidateTarget {
   frameIndex: number;
@@ -288,6 +320,7 @@ function changedTargetForValidation(
   result: QuizValidateResultItem,
 ): ChangedCandidateTarget | null {
   if (result.status !== "suspicious") return null;
+  if (result.kind === "translation") return null;
   const occurrence = findLiveWordOccurrence(topic, result.word);
   if (!occurrence) return null;
   const { frameIndex, wordIndex } = occurrence;
@@ -745,6 +778,24 @@ export default function TeacherQuizReviewPage({
       const exclusions = exclusionsByStory[story.id] ?? [];
       const results = await validateQuizMaterial(story.id, words, exclusions);
       setValidationByStory((prev) => ({ ...prev, [story.id]: results }));
+      // A later validation failure revokes the old local selection. Without
+      // this, a checkbox saved from an earlier clean pass could remain in
+      // the publish payload even though the question is now suspicious.
+      const approvalKey = pendingKeyFor(story.id, level);
+      const currentApprovals = pendingApprovalsByKey[approvalKey] ?? [];
+      const cleanApprovals = currentApprovals.filter((approval) =>
+        results.some(
+          (result) =>
+            result.status === "clean" &&
+            result.word === approval.word &&
+            (result.kind === approval.kind || (approval.kind === "distractors" && result.kind === "translation")) &&
+            (result.poolIndex ?? undefined) === (approval.index ?? undefined),
+        ),
+      );
+      if (cleanApprovals.length !== currentApprovals.length) {
+        setPendingApprovalsByKey((prev) => ({ ...prev, [approvalKey]: cleanApprovals }));
+        saveQuizPendingApprovals(story.id, level, cleanApprovals).catch(() => {});
+      }
       setValidateStatusByStory((prev) => ({ ...prev, [story.id]: "idle" }));
     } catch {
       setValidateStatusByStory((prev) => ({ ...prev, [story.id]: "error" }));
@@ -754,7 +805,12 @@ export default function TeacherQuizReviewPage({
   /** Whether this candidate has survived a Validate pass THIS session —
    * checking it on is gated on this; unchecking is always free. */
   const canCheck = (storyId: string, word: string, kind: QuizApprovalKind, poolIndex?: number): boolean =>
-    findValidation(validationByStory[storyId], word, kind, poolIndex) !== undefined;
+    findValidation(
+      validationByStory[storyId],
+      word,
+      kind === "distractors" ? "translation" : kind,
+      poolIndex,
+    )?.status === "clean";
 
   const onToggleApproval = async (story: CustomTeacherStory, mark: QuizApprovalMark) => {
     const key = pendingKeyFor(story.id, level);
@@ -774,8 +830,9 @@ export default function TeacherQuizReviewPage({
     let next = pendingApprovalsByKey[key] ?? [];
     for (const r of validationByStory[story.id] ?? []) {
       if (r.status !== "clean") continue;
-      if (!isApproved(next, r.word, r.kind, r.poolIndex)) {
-        next = toggleApproval(next, { word: r.word, kind: r.kind, index: r.poolIndex });
+      const approvalKind = r.kind === "translation" ? "distractors" : r.kind;
+      if (!isApproved(next, r.word, approvalKind, r.poolIndex)) {
+        next = toggleApproval(next, { word: r.word, kind: approvalKind, index: r.poolIndex });
       }
     }
     setPendingApprovalsByKey((prev) => ({ ...prev, [key]: next }));
@@ -804,12 +861,12 @@ export default function TeacherQuizReviewPage({
 
   const onStartEdit = (
     target: EditTarget,
-    current: { distractors: string[]; sentence?: string; synonym?: string },
+    current: { distractors: string[]; sentence?: string; synonym?: string; correctAnswer?: string },
   ) => {
     setEditTarget(target);
     setEditStatus("idle");
     if (target.kind === "distractors") {
-      setEditDraft({ kind: "distractors", distractors: current.distractors.join(", ") });
+      setEditDraft({ kind: "distractors", distractors: current.distractors.join(", "), correctAnswer: current.correctAnswer });
     } else if (target.kind === "cloze") {
       setEditDraft({
         kind: "cloze",
@@ -825,6 +882,12 @@ export default function TeacherQuizReviewPage({
     }
   };
 
+  const onStartTranslationEdit = (target: EditTarget, translation: string) => {
+    setEditTarget(target);
+    setEditDraft({ kind: "translation", translation });
+    setEditStatus("idle");
+  };
+
   const onCancelEdit = () => {
     setEditTarget(null);
     setEditDraft(null);
@@ -834,34 +897,63 @@ export default function TeacherQuizReviewPage({
   const onSaveEdit = async () => {
     if (!editTarget || !editDraft) return;
     setEditStatus("saving");
-    const distractors = editDraft.distractors.split(",").map((d) => d.trim()).filter(Boolean);
+    const distractors = "distractors" in editDraft
+      ? editDraft.distractors.split(",").map((d) => d.trim()).filter(Boolean)
+      : [];
     const value: ReplaceValue =
-      editDraft.kind === "distractors"
+      editDraft.kind === "translation"
+        ? editDraft.translation.trim()
+        : editDraft.kind === "distractors"
         ? distractors
         : editDraft.kind === "cloze"
           ? { sentence: editDraft.sentence.trim(), distractors }
           : { synonym: editDraft.synonym.trim(), distractors };
 
     try {
-      await replaceQuizQuestion(
-        editTarget.storyId,
-        editTarget.frameIndex,
-        editTarget.wordIndex,
-        editTarget.kind,
-        editTarget.poolIndex,
-        value,
-      );
+      if (editTarget.kind === "distractors" && editDraft.kind === "distractors" && editDraft.correctAnswer !== undefined) {
+        await replaceQuizQuestion(editTarget.storyId, editTarget.frameIndex, editTarget.wordIndex, "translation", undefined, editDraft.correctAnswer.trim(), editTarget.translationField);
+      }
+      if (editTarget.kind === "translation") {
+        await replaceQuizQuestion(
+          editTarget.storyId,
+          editTarget.frameIndex,
+          editTarget.wordIndex,
+          editTarget.kind,
+          editTarget.poolIndex,
+          value,
+          editTarget.translationField,
+        );
+      } else {
+        await replaceQuizQuestion(
+          editTarget.storyId,
+          editTarget.frameIndex,
+          editTarget.wordIndex,
+          editTarget.kind,
+          editTarget.poolIndex,
+          value,
+        );
+      }
       setStories((prev) =>
         prev.map((s) =>
           s.id === editTarget.storyId
-            ? {
+            ? (() => {
+                const updated: CustomTeacherStory = {
                 ...s,
                 frames: s.frames.map((frame, fi) =>
                   fi === editTarget.frameIndex
-                    ? applyLocalEdit(frame, editTarget.kind, editTarget.wordIndex, editTarget.poolIndex, value)
+                    ? (() => {
+                        const edited = applyLocalEdit(frame, editTarget.kind, editTarget.wordIndex, editTarget.poolIndex, value, editTarget.translationField);
+                        return editTarget.kind === "distractors" && editDraft.kind === "distractors" && editDraft.correctAnswer !== undefined
+                          ? applyLocalEdit(edited, "translation", editTarget.wordIndex, undefined, editDraft.correctAnswer.trim(), editTarget.translationField)
+                          : edited;
+                      })()
                     : frame,
                 ),
-              }
+                };
+                return editTarget.kind === "translation"
+                  ? invalidateApprovedWord(updated, editTarget.word)
+                  : updated;
+              })()
             : s,
         ),
       );
@@ -869,23 +961,20 @@ export default function TeacherQuizReviewPage({
       // again — drop any stale result and un-check it if it was checked.
       setValidationByStory((prev) => ({
         ...prev,
-        [editTarget.storyId]: (prev[editTarget.storyId] ?? []).filter(
-          (r) =>
-            !(
-              r.word === editTarget.word &&
-              r.kind === editTarget.kind &&
-              (r.poolIndex ?? undefined) === editTarget.poolIndex
-            ),
+        [editTarget.storyId]: (prev[editTarget.storyId] ?? []).filter((r) =>
+          editTarget.kind === "translation"
+            ? r.word !== editTarget.word
+            : !(r.word === editTarget.word && r.kind === editTarget.kind && (r.poolIndex ?? undefined) === editTarget.poolIndex),
         ),
       }));
       const key = pendingKeyFor(editTarget.storyId, level);
       const current = pendingApprovalsByKey[key] ?? [];
-      if (isApproved(current, editTarget.word, editTarget.kind, editTarget.poolIndex)) {
-        const next = toggleApproval(current, {
-          word: editTarget.word,
-          kind: editTarget.kind,
-          index: editTarget.poolIndex,
-        });
+      const next = editTarget.kind === "translation"
+        ? current.filter((approval) => approval.word !== editTarget.word)
+        : isApproved(current, editTarget.word, editTarget.kind, editTarget.poolIndex)
+          ? toggleApproval(current, { word: editTarget.word, kind: editTarget.kind, index: editTarget.poolIndex })
+          : current;
+      if (next !== current) {
         setPendingApprovalsByKey((prev) => ({ ...prev, [key]: next }));
         saveQuizPendingApprovals(editTarget.storyId, level, next).catch(() => {});
       }
@@ -1200,7 +1289,9 @@ export default function TeacherQuizReviewPage({
   const approvalCheckbox = (storyId: string, word: string, kind: QuizApprovalKind, poolIndex?: number) => {
     const approvals = pendingApprovalsByKey[pendingKeyFor(storyId, level)] ?? [];
     const checked = isApproved(approvals, word, kind, poolIndex);
-    const checkable = checked || canCheck(storyId, word, kind, poolIndex);
+    // A prior selection must not bypass a later failed validation. This can
+    // happen when a teacher re-checks an item after its AI pool changed.
+    const checkable = canCheck(storyId, word, kind, poolIndex);
     return (
       <input
         type="checkbox"
@@ -1227,6 +1318,22 @@ export default function TeacherQuizReviewPage({
     if (!editDraft) return null;
     return (
       <div className="tqr-edit-form">
+        {editDraft.kind === "translation" && (
+          <label>
+            <BiLabel zh="正確答案" en="Correct answer" />
+            <input
+              type="text"
+              value={editDraft.translation}
+              onChange={(e) => setEditDraft({ kind: "translation", translation: e.target.value })}
+            />
+          </label>
+        )}
+        {editDraft.kind === "distractors" && editDraft.correctAnswer !== undefined && (
+          <label>
+            <BiLabel zh="正確答案" en="Correct answer" />
+            <input type="text" value={editDraft.correctAnswer} onChange={(e) => setEditDraft({ ...editDraft, correctAnswer: e.target.value })} />
+          </label>
+        )}
         {editDraft.kind === "cloze" && (
           <label>
             <BiLabel zh="句子" en="Sentence" />
@@ -1249,14 +1356,14 @@ export default function TeacherQuizReviewPage({
             />
           </label>
         )}
-        <label>
+        {editDraft.kind !== "translation" && <label>
           <BiLabel zh="錯誤選項（逗號分隔）" en="Wrong options (comma-separated)" />
           <input
             type="text"
             value={editDraft.distractors}
             onChange={(e) => setEditDraft({ ...editDraft, distractors: e.target.value })}
           />
-        </label>
+        </label>}
         <div className="tqr-edit-actions">
           <button type="button" className="tqr-io" onClick={onCancelEdit}>
             <BiLabel zh="取消" en="Cancel" />
@@ -1299,10 +1406,16 @@ export default function TeacherQuizReviewPage({
     promptZh: string;
     promptEn: string;
     options: string[];
-    editValue: { distractors: string[]; sentence?: string; synonym?: string };
+    translationField?: TranslationField;
+    editValue: { distractors: string[]; sentence?: string; synonym?: string; correctAnswer?: string };
     diffStatus: MaterialDiffStatus | undefined;
   }) => {
-    const result = findValidation(validationByStory[spec.storyId], spec.word, spec.kind, spec.poolIndex);
+    const result = findValidation(
+      validationByStory[spec.storyId],
+      spec.word,
+      spec.kind === "distractors" ? "translation" : spec.kind,
+      spec.poolIndex,
+    );
     return (
       <div className="tqr-qrow diff-row row-ctx" key={`${spec.kind}-${spec.poolIndex ?? 0}`}>
         <span className="gutter" aria-hidden="true">
@@ -1338,6 +1451,7 @@ export default function TeacherQuizReviewPage({
               word: spec.word,
               kind: spec.kind,
               poolIndex: spec.poolIndex,
+              translationField: spec.translationField,
             },
             spec.editValue,
           )}
@@ -1418,8 +1532,8 @@ export default function TeacherQuizReviewPage({
         className="tqr-file-input"
         data-testid="tqr-import-input"
       />
-      <header className="tqr-header">
-        <div>
+      <header className="tqr-header" aria-label="Quiz review controls">
+        <div className="tqr-header-copy">
           <p className="tqr-kicker">
             <BiLabel zh="測驗檢查" pinyin="Cèyàn jiǎnchá" en="Quiz review" />
           </p>
@@ -1654,6 +1768,8 @@ export default function TeacherQuizReviewPage({
                       const pinyin = topic.vocabularyPinyin?.[si]?.[wi];
                       const pos = topic.vocabularyPos?.[si]?.[wi];
                       const translation = topic.vocabularyTranslation?.[si]?.[wi];
+                      const translationField = translationFieldForLevel(story.frames[si], level);
+                      const translationCheck = findValidation(validationByStory[story.id], word, "translation");
                       const distractors = topic.vocabularyDistractors?.[si]?.[wi] ?? [];
                       const cloze = topic.vocabularyCloze?.[si]?.[wi] ?? [];
                       const synonyms = topic.vocabularySynonym?.[si]?.[wi] ?? [];
@@ -1690,11 +1806,35 @@ export default function TeacherQuizReviewPage({
                                 <BiLabel zh="沒有翻譯，不會出題" en="No translation — never quizzed" />
                               </span>
                             )}
+                            <button
+                              type="button"
+                              className="tqr-edit tqr-edit-answer"
+                              onClick={() =>
+                                onStartTranslationEdit(
+                                  {
+                                    storyId: story.id,
+                                    frameIndex: si,
+                                    wordIndex: wi,
+                                    word,
+                                    kind: "translation",
+                                    translationField,
+                                  },
+                                  translation ?? "",
+                                )
+                              }
+                            >
+                              <BiLabel zh="修改答案" en={translation ? "Change answer" : "Add answer"} />
+                            </button>
+                            <span className="tqr-answer-check">
+                              <BiLabel zh="答案檢查" en="Answer check" />
+                              {questionStatusBadge(translationCheck)}
+                            </span>
                             {translation && trashButton(story.id, word, "word")}
                             <span className="tqr-word-head-spacer" />
                             {diffBadge(diff?.status)}
                             {changeChip(wordPending.length)}
                           </header>
+                          {isEditing({ word, kind: "translation" }, story.id) && editForm()}
                           {!wordGone && translation && (
                             <div className="tqr-pools">
                               {distractors.length > 0 &&
@@ -1708,7 +1848,8 @@ export default function TeacherQuizReviewPage({
                                   promptZh: `「${word}」是什麼意思？`,
                                   promptEn: `What does "${word}" mean?`,
                                   options: [translation, ...distractors],
-                                  editValue: { distractors },
+                                  translationField,
+                                  editValue: { distractors, correctAnswer: translation },
                                   diffStatus: diff?.distractorsStatus,
                                 })}
                               {cloze.map((c, ci) =>

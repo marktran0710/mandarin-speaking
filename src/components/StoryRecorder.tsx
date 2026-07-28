@@ -33,6 +33,7 @@ import type { CustomTeacherStory, StoryDifficultyLevel } from "../utils/teacherS
 import { convertBlobToWav } from "../utils/audio";
 import {
   sceneReady,
+  sceneContentGatePassed,
   averageWordProsodyAccuracy,
   hasAudioFileExtension,
   getBackendUrl,
@@ -46,6 +47,7 @@ import {
 } from "../utils/vocabQuizStorage";
 import "./StoryRecorder.css";
 import { BiLabel, BiText } from "./BiLabel";
+import AppButton from "./AppButton";
 import "./BiLabel.css";
 import StoryOverviewSection from "./StoryOverviewSection";
 import SortingChallenge from "./SortingChallenge";
@@ -489,6 +491,17 @@ export interface TranscriptionItem {
 
 type ScenePracticeStep = "study" | "speaking";
 
+/** Returns only the image frames a student is expected to record. A first
+ * teacher-model frame is deliberately excluded from completion and submit
+ * gates, while remaining available as a reference in the session sidebar. */
+export function practiceSceneIndicesFor(
+  topic: Pick<Topic, "images" | "firstFrameIsExample">,
+): number[] {
+  return topic.images
+    .map((_, index) => index)
+    .filter((index) => !(topic.firstFrameIsExample && index === 0));
+}
+
 /** Shape a freshly recorded scene attempt is handed up in via
  * `onAddRecord`, before it's persisted (see StoredAudioRecord in
  * services/database.ts for the shape after upload). Exported so callers
@@ -626,6 +639,11 @@ export default function StoryRecorder({
   // the whole sentence — every fresh analysis resets the cleared list because
   // the new recording re-judges everything.
   const [masteryPassedMap, setMasteryPassedMap] = useState<
+    Record<number, boolean>
+  >({});
+  // A high tone/fluency score alone must not unlock a scene when the learner
+  // said a different sentence or skipped required words.
+  const [contentPassedMap, setContentPassedMap] = useState<
     Record<number, boolean>
   >({});
   const [clearedWordsMap, setClearedWordsMap] = useState<
@@ -1303,6 +1321,10 @@ export default function StoryRecorder({
         ...prev,
         [selectedImageIndex]: prosodyGatePassed(metrics.word_prosody),
       }));
+      setContentPassedMap((prev) => ({
+        ...prev,
+        [selectedImageIndex]: sceneContentGatePassed(metrics),
+      }));
       setClearedWordsMap((prev) => ({ ...prev, [selectedImageIndex]: [] }));
 
       const recordResult = onAddRecord({
@@ -1427,15 +1449,30 @@ export default function StoryRecorder({
     startRecording();
   };
 
-  const totalScenes = topic.images.length;
-  const completedSceneCount = Object.keys(sceneRecordings).length;
+  // A teacher-model first frame is reference material, not an activity a
+  // student must record. Keep one source of truth for all gates and labels
+  // so it cannot accidentally make a story impossible to finish.
+  const practiceSceneIndices = practiceSceneIndicesFor(topic);
+  const totalScenes = practiceSceneIndices.length;
+  const selectedPracticeScenePosition = Math.max(
+    practiceSceneIndices.indexOf(selectedImageIndex),
+    0,
+  );
+  const nextPracticeSceneIndex = practiceSceneIndices[selectedPracticeScenePosition + 1];
+  const completedSceneCount = practiceSceneIndices.filter(
+    (index) => sceneRecordings[index],
+  ).length;
   // Submission needs every scene recorded AND pronunciation-mastered — a
   // scene whose latest full-sentence attempt still has failing words keeps
   // the story locked even if an earlier snapshot was saved for it.
   const allScenesRecorded =
-    completedSceneCount >= totalScenes &&
-    Object.keys(sceneRecordings).every(
-      (key) => isAdmin || (masteryPassedMap[Number(key)] ?? false),
+    totalScenes > 0 &&
+    practiceSceneIndices.every(
+      (index) =>
+        Boolean(sceneRecordings[index]) &&
+        (isAdmin ||
+          ((masteryPassedMap[index] ?? false) &&
+            (contentPassedMap[index] ?? false))),
     );
 
   const handleSubmitStory = useCallback(async () => {
@@ -1519,7 +1556,9 @@ export default function StoryRecorder({
       const prog = sceneProgress[idx];
       const ready =
         (prog ? sceneReady(prog) : isAdmin) &&
-        (isAdmin || (masteryPassedMap[idx] ?? false));
+        (isAdmin ||
+          ((masteryPassedMap[idx] ?? false) &&
+            (contentPassedMap[idx] ?? false)));
       const started = Boolean(prog && prog.attempts > 0);
       return {
         key: idx,
@@ -1714,8 +1753,8 @@ export default function StoryRecorder({
                 </div>
               </div>
               <footer className="example-frame-footer">
-                <button
-                  type="button"
+                <AppButton
+                  tone="primary"
                   className="btn-scene-step-continue"
                   onClick={() => setViewingExample(false)}
                 >
@@ -1724,7 +1763,7 @@ export default function StoryRecorder({
                     pinyin="Huí dào liànxí"
                     en="Back to practice"
                   />
-                </button>
+                </AppButton>
               </footer>
             </div>
       )}
@@ -1781,8 +1820,8 @@ export default function StoryRecorder({
           {scenePracticeStep === "speaking" ? (
             <SpeakingFlowCard
               selectedImage={selectedImage}
-              selectedImageIndex={selectedImageIndex}
-              totalScenes={topic.images.length}
+              selectedImageIndex={selectedPracticeScenePosition}
+              totalScenes={totalScenes}
               modelSentence={topic.suggestedAnswers?.[selectedImageIndex]}
               narrativeMode={topic.narrativeMode}
               prog={sceneProgress[selectedImageIndex]}
@@ -1803,12 +1842,16 @@ export default function StoryRecorder({
               masteryPassed={
                 isAdmin || (masteryPassedMap[selectedImageIndex] ?? false)
               }
+              contentPassed={
+                isAdmin || (contentPassedMap[selectedImageIndex] ?? false)
+              }
               clearedWords={clearedWordsMap[selectedImageIndex] ?? []}
               onWordDrillPass={handleWordDrillPass}
-              hasNextScene={selectedImageIndex + 1 < topic.images.length}
+              hasNextScene={nextPracticeSceneIndex !== undefined}
               onNextScene={() => {
-                const nextIdx = selectedImageIndex + 1;
-                goToScene(nextIdx, topic.images[nextIdx]);
+                if (nextPracticeSceneIndex !== undefined) {
+                  goToScene(nextPracticeSceneIndex, topic.images[nextPracticeSceneIndex]);
+                }
               }}
               onViewSummary={() => setPhase("summary")}
             />
@@ -2007,9 +2050,10 @@ export default function StoryRecorder({
                   isAdmin ||
                   (Boolean(prog) &&
                     sceneReady(prog) &&
-                    (masteryPassedMap[selectedImageIndex] ?? false));
-                const nextIdx = selectedImageIndex + 1;
-                const hasNext = nextIdx < topic.images.length;
+                    (masteryPassedMap[selectedImageIndex] ?? false) &&
+                    (contentPassedMap[selectedImageIndex] ?? false));
+                const nextIdx = nextPracticeSceneIndex;
+                const hasNext = nextIdx !== undefined;
                 let status: JSX.Element;
                 if (!prog || prog.attempts === 0) {
                   status = (
@@ -2063,25 +2107,25 @@ export default function StoryRecorder({
                   <>
                     <div className="practice-footer-status">{status}</div>
                     <div className="practice-footer-actions">
-                      <button
-                        type="button"
+                      <AppButton
+                        tone="primary"
                         className="btn-scene-step-continue"
                         onClick={() => setScenePracticeStep("speaking")}
                       >
                         <BiLabel k="continue_to_speaking" />
-                      </button>
+                      </AppButton>
                       {ready && hasNext && (
-                        <button
-                          type="button"
+                        <AppButton
+                          tone="secondary"
                           className="scene-next-btn"
-                          onClick={() => goToScene(nextIdx, topic.images[nextIdx])}
+                          onClick={() => goToScene(nextIdx!, topic.images[nextIdx!])}
                         >
                           <BiLabel k="next_scene" />
-                        </button>
+                        </AppButton>
                       )}
                       {ready && !hasNext && (
-                        <button
-                          type="button"
+                        <AppButton
+                          tone="secondary"
                           className="scene-next-btn"
                           onClick={() => setPhase("summary")}
                         >
@@ -2090,7 +2134,7 @@ export default function StoryRecorder({
                             pinyin="Chákàn zǒngjié"
                             en="View summary"
                           />
-                        </button>
+                        </AppButton>
                       )}
                     </div>
                   </>
@@ -2108,7 +2152,6 @@ export default function StoryRecorder({
            of the submit panel repeating on every scene's speaking step ── */}
       {phase === "summary" && (
         <StorySummarySection
-          topic={topic}
           journeyStopsBase={journeyStopsBase}
           storySubmitted={storySubmitted}
           storyFeedbackResult={storyFeedbackResult}
@@ -2117,6 +2160,7 @@ export default function StoryRecorder({
           allScenesRecorded={allScenesRecorded}
           completedSceneCount={completedSceneCount}
           totalScenes={totalScenes}
+          practiceSceneIndices={practiceSceneIndices}
           onSubmitStory={handleSubmitStory}
           onJourneyStopClick={(idx, img) => {
             goToScene(idx, img);

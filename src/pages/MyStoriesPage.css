@@ -1,12 +1,20 @@
 .my-stories-page {
   min-height: calc(100vh - var(--navbar-height));
   padding: 24px 20px 56px;
-  background: var(--clay-canvas);
+  background:
+    radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--tone1-soft) 60%, transparent), transparent 23rem),
+    radial-gradient(circle at 5% 22%, color-mix(in srgb, var(--seal-soft) 52%, transparent), transparent 20rem),
+    var(--clay-canvas);
 }
 
 .stories-header {
   max-width: var(--content-max);
-  margin: 0 auto 18px;
+  margin: 0 auto 20px;
+  padding: clamp(20px, 3vw, 30px);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-xl);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--clay-surface-card) 94%, transparent), color-mix(in srgb, var(--seal-soft) 54%, var(--clay-surface-card)));
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--clay-ink) 8%, transparent);
   text-align: left;
 }
 
@@ -68,10 +76,11 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: center;
-  border: 2.5px solid var(--clay-hairline);
+  border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
-  box-shadow: 0 5px 0 var(--seal-deep);
+  background: linear-gradient(110deg, var(--clay-surface-card), color-mix(in srgb, var(--tone1-soft) 45%, var(--clay-surface-card)));
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--seal) 15%, transparent);
 }
 
 .student-progress-main {
@@ -277,10 +286,17 @@
 
 .profile-stat-card {
   padding: 16px;
-  border: 2px solid var(--clay-hairline);
+  border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
-  box-shadow: 0 4px 0 var(--clay-hairline);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--clay-ink) 6%, transparent);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.profile-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--seal) 45%, var(--clay-hairline));
+  box-shadow: 0 13px 24px color-mix(in srgb, var(--seal) 13%, transparent);
 }
 
 .profile-stat-label {
@@ -358,10 +374,18 @@
   align-items: center;
   gap: 14px;
   padding: 12px 16px;
-  border: 2px solid var(--clay-hairline);
+  border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
-  box-shadow: 0 4px 0 var(--clay-hairline);
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--clay-ink) 6%, transparent);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.profile-lesson-row:not(.is-locked):hover,
+.profile-story-row:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--seal) 45%, var(--clay-hairline));
+  box-shadow: 0 12px 24px color-mix(in srgb, var(--seal) 12%, transparent);
 }
 
 .profile-lesson-row.is-locked {
@@ -471,10 +495,10 @@
   flex-shrink: 0;
   min-height: 36px;
   padding: 0 16px;
-  border: 2px solid var(--seal-deep);
-  border-radius: var(--clay-radius-pill);
+  border: 1px solid var(--seal-deep);
+  border-radius: 11px;
   background: var(--seal);
-  box-shadow: 0 3px 0 var(--seal-deep);
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--seal) 24%, transparent);
   color: var(--clay-on-seal);
   cursor: pointer;
   font-size: 13px;
@@ -487,12 +511,12 @@
 
 .btn-profile-practice:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 0 var(--seal-deep);
+  box-shadow: 0 8px 16px color-mix(in srgb, var(--seal) 30%, transparent);
 }
 
 .btn-profile-practice:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 var(--seal-deep);
+  transform: translateY(1px);
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--seal) 22%, transparent);
 }
 
 .btn-profile-practice.ghost {

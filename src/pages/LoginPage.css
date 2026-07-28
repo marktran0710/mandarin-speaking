@@ -10,7 +10,10 @@
 }
 
 .login-page.student {
-  background: linear-gradient(160deg, var(--seal-soft) 0%, var(--clay-canvas) 45%);
+  background:
+    radial-gradient(circle at 86% 8%, color-mix(in srgb, var(--tone1-soft) 80%, transparent), transparent 22rem),
+    radial-gradient(circle at 10% 20%, color-mix(in srgb, var(--seal-soft) 76%, transparent), transparent 20rem),
+    linear-gradient(160deg, var(--seal-soft) 0%, var(--clay-canvas) 52%);
 }
 
 .login-page.teacher {
@@ -145,39 +148,39 @@
    is about to play. The teacher variant keeps its plain professional
    look — this block only ever targets .login-page.student. ── */
 .login-page.student .login-card {
-  border: 2.5px solid var(--clay-hairline);
-  box-shadow: 0 6px 0 var(--seal-deep);
+  border: 1px solid var(--clay-hairline);
+  box-shadow: 0 22px 48px color-mix(in srgb, var(--seal) 18%, transparent);
 }
 
 .login-page.student .login-tonemark {
   padding: var(--space-xs) var(--space-sm);
   border-radius: var(--clay-radius-lg);
-  border: 3px solid var(--seal-deep);
-  box-shadow: 0 0 0 5px var(--seal-soft);
+  border: 2px solid var(--seal-deep);
+  box-shadow: 0 0 0 6px var(--seal-soft), 0 10px 20px color-mix(in srgb, var(--seal) 18%, transparent);
 }
 
 .login-page.student .login-submit {
   width: 100%;
-  border: 2px solid var(--seal-deep);
-  border-radius: var(--clay-radius-pill);
+  border: 1px solid var(--seal-deep);
+  border-radius: 12px;
   /* Gold fill, so every label layer flips to ink (see --clay-on-seal). */
   background: var(--seal);
   color: var(--clay-on-seal);
   --bi-pinyin-color: var(--clay-on-seal);
   --bi-en-color: var(--clay-on-seal);
-  box-shadow: 0 4px 0 var(--seal-deep);
+  box-shadow: 0 7px 16px color-mix(in srgb, var(--seal) 28%, transparent);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
 .login-page.student .login-submit:hover {
   background: var(--seal);
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--seal-deep);
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--seal) 34%, transparent);
 }
 
 .login-page.student .login-submit:active {
-  transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--seal-deep);
+  transform: translateY(1px);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--seal) 24%, transparent);
 }
 
 @media (max-width: 560px) {

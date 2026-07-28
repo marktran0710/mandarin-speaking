@@ -3,7 +3,6 @@ import type { SceneSubmission, StoryFeedback } from "../services/database";
 import StoryFeedbackCard from "./StoryFeedbackCard";
 import JourneyPath, { type JourneyStopStatus } from "./JourneyPath";
 import { BiLabel } from "./BiLabel";
-import type { Topic } from "./StoryRecorder";
 
 /** Scene-stop data shared with the practice header's journey path — everything
  * but the per-caller `onClick`, which this section supplies itself. */
@@ -18,7 +17,6 @@ export interface JourneyStopBase {
 }
 
 interface StorySummarySectionProps {
-  topic: Topic;
   journeyStopsBase: JourneyStopBase[];
   storySubmitted: boolean;
   storyFeedbackResult: {
@@ -30,13 +28,14 @@ interface StorySummarySectionProps {
   allScenesRecorded: boolean;
   completedSceneCount: number;
   totalScenes: number;
+  /** Image indices a student actually records; excludes a teacher model frame. */
+  practiceSceneIndices: number[];
   onSubmitStory: () => void;
   /** A journey stop was clicked — jump back to that scene in practice. */
   onJourneyStopClick: (idx: number, img: string) => void;
 }
 
 export default function StorySummarySection({
-  topic,
   journeyStopsBase,
   storySubmitted,
   storyFeedbackResult,
@@ -45,6 +44,7 @@ export default function StorySummarySection({
   allScenesRecorded,
   completedSceneCount,
   totalScenes,
+  practiceSceneIndices,
   onSubmitStory,
   onJourneyStopClick,
 }: StorySummarySectionProps) {
@@ -83,7 +83,7 @@ export default function StorySummarySection({
       ) : (
         <div className="story-submit-panel">
           <div className="story-submit-progress">
-            {topic.images.map((_, si) => (
+            {practiceSceneIndices.map((si) => (
               <div
                 key={si}
                 className={`story-submit-dot ${sceneRecordings[si] ? "done" : "pending"}`}

@@ -22,6 +22,7 @@ def story_client(client):
                 "imageUrl": "u",
                 "prompt": "p",
                 "vocabulary": "知道",
+                "vocabularyTranslation": "to know",
                 "vocabularyDistractors": json.dumps([["to see", "to hear", "to say"]]),
                 "vocabularyCloze": json.dumps(
                     [[{"sentence": "我知道了。", "distractors": ["不知道"]}]]
@@ -141,6 +142,28 @@ class TestReplaceSynonym:
                 "poolIndex": 0,
                 "value": {"sentence": "wrong key for synonym", "distractors": []},
             },
+        )
+        assert response.status_code == 422
+
+
+class TestReplaceTranslation:
+    def test_replaces_the_correct_answer(self, story_client):
+        response = story_client.put(
+            "/api/custom-stories/story-replace-x/quiz-question",
+            json={
+                "frameIndex": 0,
+                "wordIndex": 0,
+                "kind": "translation",
+                "value": "to understand",
+            },
+        )
+        assert response.status_code == 200
+        assert get_frame(story_client)["vocabularyTranslation"] == "to understand"
+
+    def test_rejects_an_empty_correct_answer(self, story_client):
+        response = story_client.put(
+            "/api/custom-stories/story-replace-x/quiz-question",
+            json={"frameIndex": 0, "wordIndex": 0, "kind": "translation", "value": "  "},
         )
         assert response.status_code == 422
 

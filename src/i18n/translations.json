@@ -1,13 +1,13 @@
 {
   "activity_menu": {
     "en": "Activity menu",
-    "zh": "活動選單",
-    "pinyin": "Huódòng xuǎndān"
+    "zh": "活動",
+    "pinyin": "Huódòng"
   },
   "advanced_analysis_details": {
     "en": "Advanced analysis details",
-    "zh": "更多資料",
-    "pinyin": "Gèng duō zīliào"
+    "zh": "看更多",
+    "pinyin": "Kàn gèng duō"
   },
   "ai_engine": {
     "en": "AI engine",
@@ -87,8 +87,8 @@
   },
   "build_better_chinese_stories_with_pictur": {
     "en": "Build better Chinese stories with picture prompts, voice recording, pronunciation feedback, and helpful language coaching.",
-    "zh": "用圖片、錄音和老師的回饋，讓你的中文故事更好。",
-    "pinyin": "Yòng túpiàn, lùyīn hé lǎoshī de huíkuì, ràng nǐ de Zhōngwén gùshì gèng hǎo."
+    "zh": "看圖、說中文，慢慢把故事說得更好。",
+    "pinyin": "Kàn tú, shuō Zhōngwén, mànmàn bǎ gùshì shuō de gèng hǎo."
   },
   "character_by_character_prosody": {
     "en": "Character-by-character prosody",
@@ -107,8 +107,8 @@
   },
   "choose_a_daily_situation": {
     "en": "Choose a Daily Situation",
-    "zh": "選一個日常情況",
-    "pinyin": "Xuǎn yí ge rìcháng qíngkuàng"
+    "zh": "選一個生活情境",
+    "pinyin": "Xuǎn yí ge shēnghuó qíngjìng"
   },
   "click_a_scene_slot_above_to_place_this_p": {
     "en": "Click a scene slot above to place this picture.",
@@ -130,8 +130,8 @@
   },
   "complete_picture_based_story_tasks_recor": {
     "en": "Complete picture-based story tasks, record Mandarin speech, and review Praat plus AI feedback.",
-    "zh": "看圖片，錄普通話，看老師和 AI 的回饋。",
-    "pinyin": "Kàn túpiàn, lù Pǔtōnghuà, kàn lǎoshī hé AI de huíkuì."
+    "zh": "看圖、說中文；老師和 AI 會給你小提醒。",
+    "pinyin": "Kàn tú, shuō Zhōngwén; lǎoshī hé AI huì gěi nǐ xiǎo tíxǐng."
   },
   "connectors": {
     "en": "Connectors",
@@ -149,15 +149,15 @@
   },
   "dashboard": {
     "en": "Dashboard",
-    "zh": "儀表板"
+    "zh": "學習總覽"
   },
   "detail": {
     "en": "Detail",
-    "zh": "細節"
+    "zh": "更多內容"
   },
   "detected": {
     "en": "Detected",
-    "zh": "偵測到"
+    "zh": "找到"
   },
   "dip_down_first_then_rise_back_the_lowest": {
     "en": "Dip down first, then rise back — the lowest point matters most.",
@@ -248,7 +248,7 @@
   },
   "image_builder": {
     "en": "Image Builder",
-    "zh": "圖片產生器"
+    "zh": "做圖片"
   },
   "isolate_problem_characters_from_the_tone": {
     "en": "Isolate problem characters from the Tone Drill panel and repeat them 5× before recording the full sentence.",
@@ -267,8 +267,8 @@
   },
   "key_vocabulary": {
     "en": "Key Vocabulary",
-    "zh": "重要生詞",
-    "pinyin": "Zhòngyào shēngcí"
+    "zh": "這課的生詞",
+    "pinyin": "Zhè kè de shēngcí"
   },
   "let_s_go": {
     "en": "Let's Go!",
@@ -291,8 +291,8 @@
   },
   "mandarin_speaking_practice": {
     "en": "Mandarin speaking practice",
-    "zh": "普通話口語練習",
-    "pinyin": "Pǔtōnghuà kǒuyǔ liànxí"
+    "zh": "中文口說練習",
+    "pinyin": "Zhōngwén kǒushuō liànxí"
   },
   "mandarin_story_coach": {
     "en": "Mandarin Story Coach",
@@ -301,13 +301,13 @@
   },
   "match_key_words_to_each_story_scene": {
     "en": "Answer a few quick questions about the story's key words",
-    "zh": "回答幾題故事重要生詞的選擇題",
-    "pinyin": "Huídá jǐ tí gùshì zhòngyào shēngcí de xuǎnzétí"
+    "zh": "先認識故事裡的幾個生詞",
+    "pinyin": "Xiān rènshi gùshì lǐ de jǐ ge shēngcí"
   },
   "monitor_student_recordings_inspect_speec": {
     "en": "Monitor student recordings, inspect speech metrics, and support narrative development.",
-    "zh": "監控學生錄音、查看語音指標，並支援敘事發展。",
-    "pinyin": "Jiānkòng xuéshēng lùyīn, chákàn yǔyīn zhǐbiāo, bìng zhīyuán xùshì fāzhǎn."
+    "zh": "看看學生的錄音和學習情況。",
+    "pinyin": "Kànkan xuéshēng de lùyīn hé xuéxí qíngkuàng."
   },
   "need_teacher_help": {
     "en": "Need teacher help?",
@@ -356,8 +356,8 @@
   },
   "overview": {
     "en": "Overview",
-    "zh": "總覽",
-    "pinyin": "Zǒnglǎn"
+    "zh": "先看看",
+    "pinyin": "Xiān kànkan"
   },
   "pauses": {
     "en": "Pauses",
@@ -366,8 +366,8 @@
   },
   "picture_bank": {
     "en": "Picture Bank",
-    "zh": "圖片庫",
-    "pinyin": "Túpiàn kù"
+    "zh": "圖片",
+    "pinyin": "Túpiàn"
   },
   "pitch_movement_estimated_for_each_mandar": {
     "en": "Pitch movement estimated for each Mandarin character.",
@@ -427,13 +427,13 @@
   },
   "record_mandarin_speech": {
     "en": "Record Mandarin speech",
-    "zh": "錄普通話語音",
-    "pinyin": "Lù Pǔtōnghuà yǔyīn"
+    "zh": "錄下你的中文",
+    "pinyin": "Lù xià nǐ de Zhōngwén"
   },
   "record_your_mandarin_story_out_loud": {
     "en": "Record your Mandarin story out loud",
-    "zh": "把你的普通話故事大聲說出來，然後錄音",
-    "pinyin": "Bǎ nǐ de Pǔtōnghuà gùshì dàshēng shuō chūlái, ránhòu lùyīn"
+    "zh": "看圖說中文，錄下你的聲音",
+    "pinyin": "Kàn tú shuō Zhōngwén, lù xià nǐ de shēngyīn"
   },
   "record_your_story": {
     "en": "Record Your Story",
@@ -442,8 +442,8 @@
   },
   "recording_options": {
     "en": "Recording options",
-    "zh": "錄音選項",
-    "pinyin": "Lùyīn xuǎnxiàng"
+    "zh": "怎麼錄音",
+    "pinyin": "Zěnme lùyīn"
   },
   "repeat_3": {
     "en": "Repeat 3×:",
@@ -456,8 +456,8 @@
   },
   "review_pronunciation_and_language_feedba": {
     "en": "Review pronunciation and language feedback",
-    "zh": "看發音和語言的回饋",
-    "pinyin": "Kàn fāyīn hé yǔyán de huíkuì"
+    "zh": "看看可以怎麼說得更好",
+    "pinyin": "Kànkan kěyǐ zěnme shuō de gèng hǎo"
   },
   "same_as_last_try": {
     "en": "→ Same as last try",
@@ -517,13 +517,13 @@
   },
   "speech_source": {
     "en": "Speech source",
-    "zh": "語音來源",
-    "pinyin": "Yǔyīn láiyuán"
+    "zh": "聲音從哪裡來",
+    "pinyin": "Shēngyīn cóng nǎlǐ lái"
   },
   "speech_transcript": {
     "en": "Speech transcript",
-    "zh": "語音文字稿",
-    "pinyin": "Yǔyīn wénzìgǎo"
+    "zh": "你說的話",
+    "pinyin": "Nǐ shuō de huà"
   },
   "start_as_high_as_you_can_and_drop_sharpl": {
     "en": "Start as high as you can and drop sharply to the bottom.",
@@ -557,8 +557,8 @@
   },
   "story_challenge": {
     "en": "Story Challenge",
-    "zh": "故事挑戰",
-    "pinyin": "Gùshì tiǎozhàn"
+    "zh": "一起說故事",
+    "pinyin": "Yìqǐ shuō gùshì"
   },
   "story_submitted": {
     "en": "Story submitted!",
@@ -572,8 +572,8 @@
   },
   "student_portal": {
     "en": "Student Portal",
-    "zh": "學生入口",
-    "pinyin": "Xuéshēng rùkǒu"
+    "zh": "學生專區",
+    "pinyin": "Xuéshēng zhuānqū"
   },
   "study_step_action_copy": {
     "en": "Review the vocabulary and phrases below, then start speaking.",
@@ -607,23 +607,23 @@
   },
   "teacher_portal": {
     "en": "Teacher Portal",
-    "zh": "教師入口",
-    "pinyin": "Jiàoshī rùkǒu"
+    "zh": "教師專區",
+    "pinyin": "Jiàoshī zhuānqū"
   },
   "teacher_published_activity": {
     "en": "From your teacher",
-    "zh": "老師的活動",
-    "pinyin": "Lǎoshī de huódòng"
+    "zh": "老師準備的活動",
+    "pinyin": "Lǎoshī zhǔnbèi de huódòng"
   },
   "teacher_published_topics": {
     "en": "Teacher's topics",
-    "zh": "老師的主題",
-    "pinyin": "Lǎoshī de zhǔtí"
+    "zh": "老師的活動",
+    "pinyin": "Lǎoshī de huódòng"
   },
   "tone_accuracy": {
     "en": "Tone accuracy",
-    "zh": "聲調準確度",
-    "pinyin": "Shēngdiào zhǔnquè dù"
+    "zh": "聲調表現",
+    "pinyin": "Shēngdiào biǎoxiàn"
   },
   "tone_accuracy_score_shown_in_the_summary": {
     "en": "Tone accuracy score shown in the summary above",
@@ -650,8 +650,8 @@
   },
   "training": {
     "en": "Practice",
-    "zh": "練習",
-    "pinyin": "Liànxí"
+    "zh": "練一練",
+    "pinyin": "Liàn yí liàn"
   },
   "transcribe": {
     "en": "Transcribe",
@@ -669,8 +669,8 @@
   },
   "upload_audio": {
     "en": "Upload audio",
-    "zh": "上傳聲音",
-    "pinyin": "Shàngchuán shēngyīn"
+    "zh": "上傳錄音",
+    "pinyin": "Shàngchuán lùyīn"
   },
   "use_your_vocabulary_map_to_build_one_or_": {
     "en": "Use your vocabulary map to build one or two sentences, then record.",
@@ -683,8 +683,8 @@
   },
   "vocabulary_map": {
     "en": "Vocabulary Quiz",
-    "zh": "生詞測驗",
-    "pinyin": "Shēngcí cèyàn"
+    "zh": "生詞小練習",
+    "pinyin": "Shēngcí xiǎo liànxí"
   },
   "vowel_quality": {
     "en": "Vowel quality",
@@ -707,8 +707,8 @@
   },
   "your_challenge": {
     "en": "Your Challenge",
-    "zh": "你的挑戰",
-    "pinyin": "Nǐ de tiǎozhàn"
+    "zh": "今天要做什麼",
+    "pinyin": "Jīntiān yào zuò shénme"
   },
   "your_recording": {
     "en": "Your recording",

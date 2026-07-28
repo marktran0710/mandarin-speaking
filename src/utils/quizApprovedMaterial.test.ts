@@ -53,6 +53,20 @@ describe("buildApprovedMaterial", () => {
   });
 });
 
+describe("published wrong-option cap", () => {
+  it("keeps only the three wrong options that validation can verify", () => {
+    const draft = topic();
+    draft.vocabularyDistractors![0][0] = ["one", "two", "three", "unreviewed fourth"];
+    draft.vocabularyCloze![0][0][0].distractors = ["a", "b", "c", "unreviewed fourth"];
+    draft.vocabularySynonym![0][0][0].distractors = ["x", "y", "z", "unreviewed fourth"];
+
+    const entry = buildApprovedMaterial(draft, [])[0];
+    expect(entry.distractors).toEqual(["one", "two", "three"]);
+    expect(entry.cloze[0].distractors).toEqual(["a", "b", "c"]);
+    expect(entry.synonym[0].distractors).toEqual(["x", "y", "z"]);
+  });
+});
+
 describe("storyApprovedSnapshot", () => {
   it("returns null when the tier has never been approved", () => {
     expect(storyApprovedSnapshot({}, "easy")).toBeNull();

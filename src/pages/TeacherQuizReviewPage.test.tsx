@@ -248,10 +248,16 @@ describe("TeacherQuizReviewPage", () => {
     await user.click(screen.getByRole("button", { name: /Validate|檢查題目/ }));
     expect(await screen.findByText(/second correct answer/)).toBeInTheDocument();
     expect(zhidaoCheckbox).not.toBeDisabled();
+    const suspiciousCheckbox = screen
+      .getAllByRole("checkbox")
+      .find((checkbox) => checkbox !== zhidaoCheckbox && checkbox.getAttribute("aria-label")?.startsWith("Approve synonym"));
+    expect(suspiciousCheckbox).toBeDefined();
+    expect(suspiciousCheckbox!).toBeDisabled();
+
+    // A suspicious result is never selectable for publication.
 
     // Only 知道's synonym gets checked — 一起's stays unchecked despite also
-    // having been validated (suspicious items are checkable, just not
-    // auto-checked).
+    // visible for correction but is not publishable.
     await user.click(zhidaoCheckbox);
     await user.click(screen.getByRole("button", { name: /Approve & Publish|核准並發佈/ }));
 
@@ -316,6 +322,28 @@ describe("TeacherQuizReviewPage", () => {
     // be checked again.
     expect(await screen.findByRole("checkbox", { name: "Approve synonym for 知道" })).toBeDisabled();
     expect(screen.getByRole("checkbox", { name: "Approve synonym for 知道" })).not.toBeChecked();
+  });
+  it("lets a teacher replace the correct answer and invalidates the word's review", async () => {
+    const { validateQuizMaterial, replaceQuizQuestion } = await import("../services/database");
+    (validateQuizMaterial as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { word: "?仿?", kind: "translation", status: "clean", reason: "" },
+      { word: "?仿?", kind: "synonym", poolIndex: 0, status: "clean", reason: "" },
+    ]);
+
+    render(<TeacherQuizReviewPage />);
+    const user = userEvent.setup();
+    await screen.findByText("測試故事");
+    await user.click(screen.getByRole("button", { name: /Check Questions/ }));
+    await user.click(screen.getAllByRole("button", { name: /Change answer/ })[0]);
+
+    const answerInput = screen.getByLabelText(/Correct answer/);
+    await user.clear(answerInput);
+    await user.type(answerInput, "understand");
+    await user.click(screen.getByRole("button", { name: /needs re-validate/ }));
+
+    expect(replaceQuizQuestion).toHaveBeenCalledWith(
+      "s1", 0, 0, "translation", undefined, "understand", "vocabularyTranslation",
+    );
   });
 });
 

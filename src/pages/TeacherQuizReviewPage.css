@@ -2,9 +2,9 @@
    radii per the design-system rule. */
 
 .teacher-quiz-review {
-  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
+  width: min(1000px, calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
-  padding: 24px 0 72px;
+  padding: 14px 0 84px;
   --tqr-sticky-gap: 12px;
   --tqr-story-actions-top: calc(var(--navbar-height) + var(--tqr-sticky-gap));
   --tqr-pending-summary-top: calc(var(--tqr-story-actions-top) + 52px);
@@ -12,11 +12,28 @@
 
 .tqr-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 20px;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  min-height: 56px;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  box-shadow: var(--shadow-sm);
+}
+.tqr-header-copy {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 .tqr-kicker {
   font-size: 13px;
@@ -34,17 +51,12 @@
 
 .tqr-controls {
   display: flex;
-  align-items: flex-end;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
   flex-wrap: wrap;
 }
 .tqr-controls label {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--clay-muted);
+  display: contents;
 }
 .tqr-controls select {
   border: 1px solid var(--clay-hairline);
@@ -52,8 +64,10 @@
   background: var(--clay-surface-card);
   color: var(--clay-ink);
   font: inherit;
-  padding: 8px 10px;
-  min-width: 180px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 28px 7px 10px;
+  min-width: 138px;
 }
 .tqr-save {
   min-height: 40px;
@@ -107,7 +121,7 @@
 .tqr-approve:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .tqr-only-changes {
-  display: flex !important;
+  display: inline-flex !important;
   flex-direction: row !important;
   align-items: center;
   gap: 6px;
@@ -120,9 +134,9 @@
 .tqr-file-input { display: none; }
 
 .tqr-story {
-  border-top: 1px solid var(--clay-hairline);
-  padding-top: 18px;
-  margin-top: 18px;
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
 }
 .tqr-story:first-of-type { border-top: none; margin-top: 0; }
 .tqr-story-head {
@@ -134,9 +148,15 @@
   margin-bottom: 12px;
 }
 .tqr-story-title {
-  font-size: 19px;
-  margin: 0;
-  color: var(--clay-ink);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 .tqr-story-actions {
   display: flex;
@@ -204,6 +224,16 @@
 }
 .tqr-translation { color: var(--clay-body); font-size: 14px; }
 .tqr-no-quiz { color: var(--clay-muted); font-size: 12px; font-style: italic; }
+.tqr-edit-answer { color: var(--seal-deep, var(--seal)); }
+.tqr-answer-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--clay-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.tqr-answer-check .tqr-status-badge { margin: 0; }
 
 .tqr-pools {
   margin-top: 8px;
@@ -532,7 +562,7 @@
 }
 
 .tqr-story-actions {
-  width: min(100%, 760px);
+  width: 100%;
   display: block;
   position: sticky;
   top: var(--tqr-story-actions-top);

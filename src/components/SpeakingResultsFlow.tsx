@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BiLabel } from "./BiLabel";
+import AppButton from "./AppButton";
 import RecordingPlayback from "./RecordingPlayback";
 import WordProsodyCard from "./WordProsodyCard";
 import {
@@ -37,8 +38,9 @@ interface SpeakingResultsFlowProps {
   totalScenes: number;
   narrativeMode: Topic["narrativeMode"];
   attempts: number;
-  /** Scene unlocked (score/attempts rule AND pronunciation mastery). */
+  /** Scene unlocked: score/attempts plus content and pronunciation gates. */
   ready: boolean;
+  /** Pronunciation gate only; used for the word-drill guidance. */
   masteryPassed: boolean;
   praatMetrics: PraatMetrics;
   analysisAudioBlob: Blob | null;
@@ -106,14 +108,14 @@ export default function SpeakingResultsFlow({
   const allDrillsCleared =
     practiceWords.length > 0 && remainingDrillWords.length === 0;
 
-  // The one-verdict ladder: meaning gates everything, then the unlock
-  // state, then vocabulary, then pronunciation polish.
+  // The one-verdict ladder: meaning and required vocabulary gate the unlock;
+  // pronunciation polish follows only after the learner has said the script.
   const verdict: "meaning" | "ready" | "vocab" | "pronounce" = !accepted
     ? "meaning"
-    : ready
-      ? "ready"
-      : missing.length > 0
-        ? "vocab"
+    : missing.length > 0
+      ? "vocab"
+      : ready
+        ? "ready"
         : "pronounce";
 
   const showCorrective =
@@ -319,7 +321,10 @@ export default function SpeakingResultsFlow({
                 className={`sfc-mastery-chip sfc-fail-preview-chip ${cleared ? "is-cleared" : "is-pending"}`}
                 onClick={() => {
                   setFocusIndex(index);
-                  goToStep("practice");
+                  // When the sentence itself still needs fixing, keep the
+                  // learner in the intended order: Fix it first, then drill
+                  // pronunciation in Step 3.
+                  goToStep(hasFix ? "fix" : "practice");
                 }}
               >
                 {word.token} {cleared ? "✓" : "✗"}
@@ -329,7 +334,7 @@ export default function SpeakingResultsFlow({
         </div>
       )}
 
-      {pronunciationNote?.details && pronunciationNote.details.length > 0 && (
+      {accepted && pronunciationNote?.details && pronunciationNote.details.length > 0 && (
         <div className="sfc-overview-details">
           <p className="block-label sfc-scene-detail-heading">
             <BiLabel zh="發音回饋" pinyin="Fāyīn huíkuì" en="Pronunciation Feedback" />
@@ -354,40 +359,40 @@ export default function SpeakingResultsFlow({
 
       {/* Forward CTA — where the verdict points, one obvious next action. */}
       {verdict === "meaning" && hasFix && (
-        <button
-          type="button"
+        <AppButton
+          tone="primary"
           className="sfc-btn-next sfc-step-cta"
           onClick={() => goToStep("fix")}
         >
           <BiLabel zh="看怎麼改" en="See how to fix it" /> →
-        </button>
+        </AppButton>
       )}
       {verdict === "vocab" && hasFix && (
-        <button
-          type="button"
+        <AppButton
+          tone="primary"
           className="sfc-btn-next sfc-step-cta"
           onClick={() => goToStep("fix")}
         >
           <BiLabel zh="看少了的生詞" en="See the missing words" /> →
-        </button>
+        </AppButton>
       )}
       {verdict === "pronounce" &&
         (hasPractice ? (
-          <button
-            type="button"
+          <AppButton
+            tone="primary"
             className="sfc-btn-next sfc-step-cta"
             onClick={() => goToStep("practice")}
           >
             <BiLabel zh="練習生詞" en="Practice the words" /> →
-          </button>
+          </AppButton>
         ) : (
-          <button
-            type="button"
+          <AppButton
+            tone="primary"
             className="sfc-btn-next sfc-step-cta"
             onClick={onRecordAgain}
           >
             🎙️ <BiLabel zh="再錄一次" en="Record again" />
-          </button>
+          </AppButton>
         ))}
     </div>
   );
@@ -448,7 +453,7 @@ export default function SpeakingResultsFlow({
               <BiLabel zh="試著加入" en="Try to include" />
             </p>
             <div className="sfc-missing-chips">
-              {missing.map((w) => (
+              {missing.slice(0, 3).map((w) => (
                 <span key={w} className="vocab-chip sfc-missing-chip">
                   {w}
                 </span>
@@ -478,21 +483,23 @@ export default function SpeakingResultsFlow({
       )}
 
       <div className="sfc-step-cta-row">
-        <button
-          type="button"
+        {!hasPractice && (
+        <AppButton
+          tone="primary"
           className="sfc-btn-next sfc-step-cta"
           onClick={onRecordAgain}
         >
           🎙️ <BiLabel zh="再錄一次" en="Record again" />
-        </button>
+        </AppButton>
+        )}
         {hasPractice && (
-          <button
-            type="button"
-            className="sfc-btn-again"
+          <AppButton
+            tone="primary"
+            className="sfc-btn-next sfc-step-cta"
             onClick={() => goToStep("practice")}
           >
             <BiLabel zh="練習生詞" en="Practice the words" /> →
-          </button>
+          </AppButton>
         )}
       </div>
     </div>
@@ -570,13 +577,13 @@ export default function SpeakingResultsFlow({
       )}
 
       {allDrillsCleared && (
-        <button
-          type="button"
+        <AppButton
+          tone="primary"
           className="sfc-btn-next sfc-step-cta"
           onClick={onRecordAgain}
         >
           🎙️ <BiLabel zh="再錄整句" en="Record the whole sentence" />
-        </button>
+        </AppButton>
       )}
     </div>
   );
@@ -615,7 +622,9 @@ export default function SpeakingResultsFlow({
                     aria-current={current ? "step" : undefined}
                     onClick={() => setStep(s)}
                   >
-                    <span className="sfc-step-num">{index + 1}</span>
+                    <span className="sfc-step-num" aria-hidden="true">
+                      {visited && !current ? "✓" : index + 1}
+                    </span>
                     <BiLabel zh={STEP_LABELS[s].zh} en={STEP_LABELS[s].en} />
                   </button>
                 );
@@ -646,30 +655,30 @@ export default function SpeakingResultsFlow({
             />
           </p>
         ) : null}
+        {ready && (
         <div className="sfc-footer-actions">
-          <button type="button" className="sfc-btn-again" onClick={onRecordAgain}>
+          <AppButton tone="subtle" className="sfc-btn-again" onClick={onRecordAgain}>
             🎙️ <BiLabel zh="再錄一次" pinyin="Zài lù yí cì" en="Record again" />
-          </button>
+          </AppButton>
           {hasNextScene ? (
-            <button
-              type="button"
+            <AppButton
+              tone="secondary"
               className="sfc-btn-next"
-              disabled={!ready}
               onClick={onNextScene}
             >
               <BiLabel k="next_scene" /> →
-            </button>
+            </AppButton>
           ) : (
-            <button
-              type="button"
+            <AppButton
+              tone="secondary"
               className="sfc-btn-next"
-              disabled={!ready}
               onClick={onViewSummary}
             >
               <BiLabel zh="查看總結" pinyin="Chákàn zǒngjié" en="View summary" /> →
-            </button>
+            </AppButton>
           )}
         </div>
+        )}
       </footer>
     </section>
   );

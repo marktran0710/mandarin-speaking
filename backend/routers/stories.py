@@ -283,6 +283,33 @@ async def replace_quiz_question(story_id: str, request: QuizQuestionReplaceReque
         if request.frameIndex >= len(frames):
             raise HTTPException(status_code=404, detail="Frame not found.")
         frame = frames[request.frameIndex]
+        if request.kind == "translation":
+            if not isinstance(request.value, str) or not request.value.strip():
+                raise HTTPException(status_code=422, detail="translation value must be a non-empty string.")
+            field = request.translationField or "vocabularyTranslation"
+            translations = [item.strip() for item in str(frame.get(field) or "").split(",")]
+            while len(translations) <= request.wordIndex:
+                translations.append("")
+            vocabulary_field = field.replace("Translation", "")
+            vocabulary_text = str(frame.get(vocabulary_field) or frame.get("vocabulary") or "")
+            words = [word.strip() for word in vocabulary_text.split(",")]
+            if request.wordIndex >= len(words) or not words[request.wordIndex]:
+                raise HTTPException(status_code=422, detail="Translation does not have a matching vocabulary word.")
+            translations[request.wordIndex] = request.value.strip()
+            _write_frame_field(db, story_id, request.frameIndex, field, ", ".join(translations))
+            # Existing approved AI pools were checked against the previous
+            # answer. Remove this word from every tier immediately, so a
+            # learner falls back to safe deterministic options until the
+            # teacher checks and publishes it again.
+            db.execute(
+                "UPDATE custom_stories SET quiz_approved_snapshot = "
+                "COALESCE((SELECT jsonb_object_agg(k, COALESCE((SELECT jsonb_agg(item) "
+                "FROM jsonb_array_elements(v) AS item WHERE item->>'word' <> %s), '[]'::jsonb)) "
+                "FROM jsonb_each(quiz_approved_snapshot) AS entries(k, v)), '{}'::jsonb) "
+                "WHERE id = %s",
+                (words[request.wordIndex], story_id),
+            )
+            return {"ok": True, "approvedSnapshotsInvalidated": True}
         field = {
             "distractors": "vocabularyDistractors",
             "cloze": "vocabularyCloze",

@@ -138,15 +138,15 @@ export default function MyStoriesPage({
     <div className="my-stories-page">
       <div className="stories-header">
         <p className="stories-kicker">
-          <BiLabel zh="我的練習" pinyin="Wǒ de liànxí" en="My practice" />
+          <BiLabel zh="我的學習" pinyin="Wǒ de xuéxí" en="My learning" />
         </p>
         <h1>
-          <BiLabel zh="我的成績" pinyin="Wǒ de chéngjì" en="My Profile" />
+          <BiLabel zh="我的學習" pinyin="Wǒ de xuéxí" en="My learning" />
         </h1>
         <p className="stories-subtitle">
           <BiText
-            zh="看看你學了多少、拿了幾顆星。想練習就回課程列表。"
-            pinyin="Kànkan nǐ xué le duōshǎo, ná le jǐ kē xīng. Xiǎng liànxí jiù huí kèchéng lièbiǎo."
+            zh="看看你學到哪裡了。想再練習，就回課程列表。"
+            pinyin="Kànkan nǐ xué dào nǎlǐ le. Xiǎng zài liànxí, jiù huí kèchéng lièbiǎo."
             en="See your overall progress and stars — go back to the lesson list to practice."
           />
         </p>
@@ -184,7 +184,7 @@ export default function MyStoriesPage({
 
         <div className="profile-stat-card">
           <span className="profile-stat-label">
-            <BiLabel zh="發音準確度" pinyin="Fāyīn zhǔnquèdù" en="Tone accuracy (avg)" />
+            <BiLabel zh="發音表現" pinyin="Fāyīn biǎoxiàn" en="Tone accuracy (avg)" />
           </span>
           <strong className="profile-stat-value">
             {averageToneAccuracy === null ? "—" : `${averageToneAccuracy}%`}
@@ -193,7 +193,7 @@ export default function MyStoriesPage({
 
         <div className="profile-stat-card">
           <span className="profile-stat-label">
-            <BiLabel zh="流暢度" pinyin="Liúchàng dù" en="Fluency (avg)" />
+            <BiLabel zh="說得順不順" pinyin="Shuō de shùn bu shùn" en="Fluency (avg)" />
           </span>
           <strong className="profile-stat-value">
             {averageFluency === null ? "—" : `${averageFluency}/100`}

@@ -134,6 +134,14 @@ export function isContentAccepted(praatMetrics: PraatMetrics): boolean {
   return contentAccuracy.accepted !== false;
 }
 
+/** A scene can only unlock when the learner's sentence has the right meaning
+ * and includes every vocabulary item the evaluator expects. Pronunciation is
+ * intentionally checked separately by the prosody gate. */
+export function sceneContentGatePassed(praatMetrics: PraatMetrics): boolean {
+  if (!isContentAccepted(praatMetrics)) return false;
+  return (praatMetrics.ai_feedback?.vocabulary_coverage?.missing?.length ?? 0) === 0;
+}
+
 export function averageWordProsodyAccuracy(
   wordProsody?: WordProsody[],
 ): number | null {

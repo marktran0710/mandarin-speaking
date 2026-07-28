@@ -15,6 +15,7 @@ import StoryRecorder, {
   buildClozePatchUpdates,
   planLookalikeGrowth,
   buildLookalikePatchUpdates,
+  practiceSceneIndicesFor,
 } from "./StoryRecorder";
 
 // Every quiz-eligible word across this file's topic fixtures, with the data
@@ -610,6 +611,21 @@ describe("buildClozePatchUpdates", () => {
 });
 
 describe("StoryRecorder student prototype", () => {
+  it("does not count a teacher model frame as a required student scene", () => {
+    expect(
+      practiceSceneIndicesFor({
+        images: ["teacher-example.png", "scene-one.png", "scene-two.png"],
+        firstFrameIsExample: true,
+      }),
+    ).toEqual([1, 2]);
+
+    expect(
+      practiceSceneIndicesFor({
+        images: ["scene-one.png", "scene-two.png"],
+      }),
+    ).toEqual([0, 1]);
+  });
+
   beforeEach(() => {
     localStorage.clear();
     activeRecorder = null;

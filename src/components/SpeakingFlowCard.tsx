@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { BiLabel } from "./BiLabel";
+import AppButton from "./AppButton";
 import SpeakingResultsFlow from "./SpeakingResultsFlow";
 import { sceneReady } from "../utils/storyRecorderFeedback";
 import type {
@@ -37,9 +38,10 @@ interface SpeakingFlowCardProps {
   onPrimaryRecordingAction: () => void;
   onSubmitVoiceFile: (event: ChangeEvent<HTMLInputElement>) => void;
   /** Pronunciation mastery gate: true once a full-sentence recording had
-   * every word clear the per-syllable pass verdict. Gates Next Scene /
-   * View Summary alongside sceneReady. */
+   * every word clear the per-syllable pass verdict. */
   masteryPassed: boolean;
+  /** The recording says the intended scene and contains all required words. */
+  contentPassed: boolean;
   /** Words from the latest failing recording the student has since drilled
    * back to a pass — drives the words-first-then-sentence checklist. */
   clearedWords: string[];
@@ -80,6 +82,7 @@ export default function SpeakingFlowCard({
   onPrimaryRecordingAction,
   onSubmitVoiceFile,
   masteryPassed,
+  contentPassed,
   clearedWords,
   onWordDrillPass,
   hasNextScene,
@@ -87,6 +90,7 @@ export default function SpeakingFlowCard({
   onViewSummary,
 }: SpeakingFlowCardProps) {
   const [screen, setScreen] = useState<"record" | "results">("record");
+  const uploadInputRef = useRef<HTMLInputElement>(null);
 
   // Flip to results exactly when an analysis finishes (busy → idle with
   // fresh metrics) — not merely "metrics exist", which would trap the
@@ -111,7 +115,8 @@ export default function SpeakingFlowCard({
   // Mastery (every word passed its per-syllable verdict on a full-sentence
   // recording) gates progression alongside the score/attempts unlock — the
   // attempts escape hatch never bypasses failing words.
-  const ready = (prog ? sceneReady(prog) : false) && masteryPassed;
+  const ready =
+    (prog ? sceneReady(prog) : false) && masteryPassed && contentPassed;
 
   const sceneChip = (
     <span className="sfc-scene-chip">
@@ -195,20 +200,32 @@ export default function SpeakingFlowCard({
         )}
 
         <div className="sfc-record-panel">
-            <button
-              type="button"
+            <div className="sfc-action-intro">
+              <span className="sfc-action-step" aria-hidden="true">1</span>
+              <div>
+                <p className="sfc-action-title"><BiLabel k="speaking" /></p>
+                <p className="sfc-action-note"><BiLabel k="record" /></p>
+              </div>
+            </div>
+            <AppButton
+              tone={isRecording ? "danger" : "primary"}
+              size="lg"
               onClick={onPrimaryRecordingAction}
               disabled={recordingButtonDisabled}
-              className={`btn-practice-record sfc-record-btn${isRecording ? " is-recording" : ""}`}
+              className={`sfc-record-btn${isRecording ? " is-recording" : ""}`}
+              aria-pressed={isRecording}
             >
+              <span className="sfc-record-icon" aria-hidden="true">
+                {isRecording ? "■" : "●"}
+              </span>
               {isRecording ? (
                 <BiLabel k="stop_recording" />
               ) : (
                 <BiLabel k="record" />
               )}
-            </button>
+            </AppButton>
             {isRecording && (
-              <div className="practice-timer">
+              <div className="practice-timer" aria-live="polite">
                 <span>{recordingDuration}s</span>
                 {selectedModel === "webspeech" && (
                   <span className="practice-silence">
@@ -222,20 +239,27 @@ export default function SpeakingFlowCard({
               </div>
             )}
 
-            <label
-              className={`btn-practice-upload${isBusy ? " disabled" : ""}`}
-              role="button"
-              tabIndex={isBusy ? -1 : 0}
-            >
-              <BiLabel k="upload_audio" />
+            <div className="sfc-secondary-actions">
+              <AppButton
+                tone="subtle"
+                size="sm"
+                className="sfc-upload-btn"
+                onClick={() => uploadInputRef.current?.click()}
+                disabled={isBusy}
+              >
+                <span aria-hidden="true">↥</span>
+                <BiLabel k="upload_audio" />
+              </AppButton>
               <input
+                ref={uploadInputRef}
                 className="submit-voice-input"
                 type="file"
                 accept="audio/*,.wav,.wave,.webm,.mp3,.m4a,.ogg"
                 onChange={onSubmitVoiceFile}
                 disabled={isBusy}
+                tabIndex={-1}
               />
-            </label>
+            </div>
             {submittedAudioName && (
               <p className="submitted-audio-name">✓ {submittedAudioName}</p>
             )}

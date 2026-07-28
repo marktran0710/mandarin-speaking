@@ -66,6 +66,15 @@ AI_KINDS = {"translation", "cloze", "synonym"}
 
 MAX_BANK_SIZE = 100
 
+# These are only used while verifying a teacher-authored translation that has
+# too few real story alternatives. They let the blind solver check the
+# *meaning* of every answer, including questions that would otherwise use the
+# browser's fallback choices rather than an AI distractor pool.
+TRANSLATION_CHECK_FALLBACKS = (
+    "always", "before", "because", "inside", "many", "never", "outside",
+    "tomorrow", "weekend", "with",
+)
+
 
 @dataclass
 class BankWord:
@@ -321,6 +330,55 @@ def candidates_for_review(
                     key=f"{word}:synonym:{i}",
                 )
             )
+    return out
+
+
+def translation_integrity_candidates(words: Sequence[dict]) -> list[Candidate]:
+    """Build one independent meaning-check for every translated word.
+
+    The old review path only checked a translation when it also had an
+    AI-generated distractor pool. That leaves the teacher-authored answer
+    itself unchecked for fallback questions — exactly the case where a
+    misaligned word/translation can make a student question impossible.
+    """
+    out: list[Candidate] = []
+    for entry in words:
+        word = str(entry.get("word", "")).strip()
+        answer = str(entry.get("translation") or "").strip()
+        if not word or not answer:
+            continue
+
+        used = {answer.casefold()}
+        wrongs: list[str] = []
+
+        def add(option: object) -> None:
+            value = str(option or "").strip()
+            if not value or value.casefold() in used:
+                return
+            used.add(value.casefold())
+            wrongs.append(value)
+
+        # Prefer the choices the student may actually see, then other lesson
+        # translations and a stable fallback pool to reach four options.
+        for option in entry.get("distractors", []):
+            add(option)
+        for other in words:
+            if other is not entry:
+                add(other.get("translation"))
+        for option in TRANSLATION_CHECK_FALLBACKS:
+            add(option)
+        if len(wrongs) < OPTION_COUNT - 1:
+            continue
+        out.append(
+            Candidate(
+                kind="translation",
+                word=word,
+                prompt=word,
+                answer=answer,
+                wrong_options=tuple(wrongs[: OPTION_COUNT - 1]),
+                key=f"{word}:translation",
+            )
+        )
     return out
 
 

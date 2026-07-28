@@ -84,7 +84,7 @@ class TestValidate:
         assert results[0]["status"] == "clean"
         # Internal pipeline kind "translation" is exposed as "distractors" —
         # the same pool name TeacherQuizReviewPage's trash button already uses.
-        assert results[0]["kind"] == "distractors"
+        assert results[0]["kind"] == "translation"
         assert results[0]["word"] == "知道"
 
     def test_rejected_item_is_suspicious_with_reason(self, story_client, monkeypatch):
@@ -123,8 +123,15 @@ class TestValidate:
         results = response.json()["results"]
         assert results[0]["status"] == "suspicious"
 
-    def test_excluded_pool_is_not_validated(self, story_client, monkeypatch):
-        monkeypatch.setattr(quiz_review, "make_chat", fake_make_chat())
+    def test_excluded_pool_still_checks_the_teacher_authored_answer(self, story_client, monkeypatch):
+        monkeypatch.setattr(
+            quiz_review,
+            "make_chat",
+            fake_make_chat(
+                json.dumps({"results": [solver_row(1, "to know")]}),
+                json.dumps({"results": [judge_row(1, "pass")]}),
+            ),
+        )
         response = story_client.post(
             "/api/custom-stories/story-review-x/quiz/validate",
             json={
@@ -132,7 +139,8 @@ class TestValidate:
                 "exclusions": [{"word": "知道", "kind": "distractors"}],
             },
         )
-        assert response.json()["results"] == []
+        assert response.json()["results"][0]["kind"] == "translation"
+        assert response.json()["results"][0]["status"] == "clean"
 
     def test_no_candidates_skips_llm_entirely(self, story_client, monkeypatch):
         calls = []
@@ -150,7 +158,15 @@ class TestValidate:
 
 
 class TestApprove:
-    def test_approve_writes_snapshot(self, story_client):
+    def test_approve_writes_snapshot(self, story_client, monkeypatch):
+        monkeypatch.setattr(
+            quiz_review,
+            "make_chat",
+            fake_make_chat(
+                json.dumps({"results": [solver_row(1, "to know")]}),
+                json.dumps({"results": [judge_row(1, "pass")]}),
+            ),
+        )
         response = story_client.post(
             "/api/custom-stories/story-review-x/quiz/approve",
             json={"level": "easy", "material": WORDS},
@@ -160,7 +176,15 @@ class TestApprove:
         story = next(s for s in stories if s["id"] == "story-review-x")
         assert story["quizApprovedSnapshot"]["easy"][0]["word"] == "知道"
 
-    def test_approving_one_tier_leaves_another_tier_untouched(self, story_client):
+    def test_approving_one_tier_leaves_another_tier_untouched(self, story_client, monkeypatch):
+        monkeypatch.setattr(
+            quiz_review,
+            "make_chat",
+            fake_make_chat(
+                json.dumps({"results": [solver_row(1, "to know")]}),
+                json.dumps({"results": [judge_row(1, "pass")]}),
+            ),
+        )
         story_client.post(
             "/api/custom-stories/story-review-x/quiz/approve",
             json={"level": "easy", "material": WORDS},
@@ -180,3 +204,19 @@ class TestApprove:
             json={"level": "easy", "material": []},
         )
         assert response.status_code == 404
+
+    def test_approve_rejects_a_suspicious_item(self, story_client, monkeypatch):
+        monkeypatch.setattr(
+            quiz_review,
+            "make_chat",
+            fake_make_chat(
+                json.dumps({"results": [solver_row(1, "to see", also_correct=["to know"])]}),
+                json.dumps({"results": [judge_row(1, "reject", reason="second correct answer")]}),
+            ),
+        )
+        response = story_client.post(
+            "/api/custom-stories/story-review-x/quiz/approve",
+            json={"level": "easy", "material": WORDS},
+        )
+        assert response.status_code == 422
+        assert "second correct answer" in response.json()["detail"]

@@ -9,13 +9,11 @@ interface HomePageProps {
 }
 
 const HERO_TITLE_CHARS: Array<{ char: string; tone: 1 | 2 | 3 | 4 }> = [
-  { char: "普", tone: 3 },
-  { char: "通", tone: 1 },
-  { char: "話", tone: 4 },
-  { char: "故", tone: 4 },
-  { char: "事", tone: 4 },
-  { char: "老", tone: 3 },
-  { char: "師", tone: 1 },
+  { char: "一", tone: 1 },
+  { char: "起", tone: 3 },
+  { char: "學", tone: 2 },
+  { char: "中", tone: 1 },
+  { char: "文", tone: 2 },
 ];
 
 const TONE_ROTATION = ["tone-1", "tone-2", "tone-3", "tone-4"] as const;
@@ -86,18 +84,18 @@ const HOW_IT_WORKS: Array<{
     zh: "說故事",
     pinyin: "Shuō gùshì",
     en: "Speak",
-    descZh: "用普通話錄下你的句子，練習把圖片變成故事。",
+    descZh: "說一句中文，錄下來，把圖片變成故事。",
     descPinyin:
-      "Yòng Pǔtōnghuà lù xià nǐ de jùzi, liànxí bǎ túpiàn biànchéng gùshì.",
+      "Shuō yí jù Zhōngwén, lù xiàlái, bǎ túpiàn biànchéng gùshì.",
     descEn: "Record your Mandarin and turn the picture into a story.",
   },
   {
     zh: "看回饋",
     pinyin: "Kàn huíkuì",
     en: "Improve",
-    descZh: "檢查聲調、節奏和生詞，再錄一次會更自然。",
+    descZh: "看看小提醒，再說一次會更自然。",
     descPinyin:
-      "Jiǎnchá shēngdiào, jiézòu hé shēngcí, zài lù yí cì huì gèng zìrán.",
+      "Kànkan xiǎo tíxǐng, zài shuō yí cì huì gèng zìrán.",
     descEn: "Review tone, rhythm, and vocabulary feedback before trying again.",
   },
 ];
@@ -111,7 +109,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             <span
               className="hero-title-zh"
               lang="zh-Hant"
-              aria-label="普通話故事老師"
+              aria-label="一起學中文"
             >
               {HERO_TITLE_CHARS.map(({ char, tone }, i) => (
                 <span
@@ -125,8 +123,8 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               ))}
             </span>
             <span className="hero-title-meta">
-              <span className="hero-title-pinyin">Pǔtōnghuà gùshì lǎoshī</span>
-              <span className="hero-title-en">Mandarin Story Coach</span>
+              <span className="hero-title-pinyin">Yìqǐ xué Zhōngwén</span>
+              <span className="hero-title-en">Learn Mandarin Together</span>
             </span>
           </h1>
           <p className="hero-subtitle">
