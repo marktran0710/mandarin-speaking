@@ -3,6 +3,7 @@ import {
   canUseDatabase,
   HelpRequest,
   listStorySubmissions,
+  listVocabQuizAttempts,
   type StorySubmission,
 } from "../services/database";
 import { BiLabel, BiText } from "../components/BiLabel";
@@ -27,6 +28,7 @@ import {
 import { loadBestLocalStars } from "../utils/quizTiers";
 import { loadSubmittedStoryIds } from "../utils/storyLevelProgress";
 import { topicHasQuiz } from "../utils/topicQuiz";
+import type { Topic } from "../components/TopicSelector";
 
 export interface AudioRecord {
   id: string;
@@ -81,6 +83,24 @@ function lessonTileClass(group: LessonGroup, unlocked: boolean): string {
   return LESSON_TILE_CLASSES[(group.lessonNumber - 1) % LESSON_TILE_CLASSES.length];
 }
 
+/** The personal story list only includes stories the learner has touched.
+ * Topic ids can be tier-suffixed while completion records keep the raw
+ * teacher-story id, so accept either form. */
+export function topicWasStarted(
+  topic: Pick<Topic, "id" | "sourceStory">,
+  activityStoryIds: ReadonlySet<string>,
+): boolean {
+  const topicIds = [topic.id, topicStoryId(topic)];
+  return topicIds.some((topicId) =>
+    Array.from(activityStoryIds).some(
+      (activityId) =>
+        activityId === topicId ||
+        activityId.startsWith(`${topicId}-`) ||
+        topicId.startsWith(`${activityId}-`),
+    ),
+  );
+}
+
 export default function MyStoriesPage({
   records,
   helpRequests = [],
@@ -89,20 +109,27 @@ export default function MyStoriesPage({
   onBrowsePractice,
 }: MyStoriesPageProps) {
   const [mySubmissions, setMySubmissions] = useState<StorySubmission[]>([]);
+  const [quizAttemptStoryIds, setQuizAttemptStoryIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [profileTab, setProfileTab] = useState<ProfileTab>("lesson");
 
   useEffect(() => {
     if (!canUseDatabase()) return;
     let cancelled = false;
-    listStorySubmissions()
-      .then((subs) => {
+    const studentId = getStudentId();
+    const studentName = getStudentName();
+    void Promise.all([
+      listStorySubmissions(),
+      listVocabQuizAttempts(undefined, { studentId, studentName }),
+    ])
+      .then(([subs, quizAttempts]) => {
         if (cancelled) return;
-        const studentId = getStudentId();
-        const studentName = getStudentName();
         const mine = subs
           .filter((s) => (studentId ? s.studentId === studentId : s.studentName === studentName))
           .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
         setMySubmissions(mine);
+        setQuizAttemptStoryIds(new Set(quizAttempts.map((attempt) => attempt.storyId)));
       })
       .catch(() => {
         // Silently skip — the overview above is still fully usable.
@@ -127,6 +154,19 @@ export default function MyStoriesPage({
     0,
   );
   const maxStars = quizTopics.length * 3;
+
+  const activityStoryIds = new Set<string>([
+    ...submittedIds,
+    ...records.map((record) => record.topicId).filter((id): id is string => Boolean(id)),
+    ...mySubmissions.map((submission) => submission.storyId),
+    ...quizAttemptStoryIds,
+    ...quizTopics
+      .filter((topic) => loadBestLocalStars(topic.id) > 0)
+      .map((topic) => topic.id),
+  ]);
+  const activeStoryTopics = studentTopics.filter((topic) =>
+    topicWasStarted(topic, activityStoryIds),
+  );
 
   const lessonsDone = numberedGroups.filter((group) => {
     const { done, total } = lessonCompletion(group, submittedIds);
@@ -307,11 +347,20 @@ export default function MyStoriesPage({
           </div>
         ) : (
           <div className="profile-story-list">
-            {studentTopics.map((topic) => {
+            {activeStoryTopics.length === 0 ? (
+              <p className="profile-story-empty">
+                <BiLabel
+                  zh="你還沒有開始任何故事。先到課程列表練習吧！"
+                  pinyin="Nǐ hái méiyǒu kāishǐ rènhé gùshì. Xiān dào kèchéng lièbiǎo liànxí ba!"
+                  en="No stories started yet. Start one from the lesson list and it will appear here."
+                />
+              </p>
+            ) : activeStoryTopics.map((topic) => {
               const hasQuiz = topicHasQuiz(topic);
               const stars = hasQuiz ? loadBestLocalStars(topic.id) : null;
               const submitted = submittedIds.has(topicStoryId(topic));
               const finished = isStoryFinished(topic, submittedIds);
+              const started = topicWasStarted(topic, activityStoryIds);
               const previewImage = topic.images[0];
 
               return (
@@ -344,12 +393,12 @@ export default function MyStoriesPage({
 
                   <span
                     className={`profile-chip ${
-                      finished ? "profile-chip-done" : submitted ? "" : "profile-chip-todo"
+                      finished ? "profile-chip-done" : started ? "" : "profile-chip-todo"
                     }`}
                   >
                     {finished ? (
                       <BiLabel zh="完成" pinyin="Wánchéng" en="Done" />
-                    ) : submitted ? (
+                    ) : started ? (
                       <BiLabel zh="練習中" pinyin="Liànxí zhōng" en="In progress" />
                     ) : (
                       <BiLabel zh="還沒開始" pinyin="Hái méi kāishǐ" en="Not started" />
@@ -361,8 +410,10 @@ export default function MyStoriesPage({
                     className="btn-profile-practice ghost"
                     onClick={onBrowsePractice}
                   >
-                    {submitted ? (
+                    {finished ? (
                       <BiLabel zh="複習" pinyin="Fùxí" en="Review" />
+                    ) : started ? (
+                      <BiLabel zh="繼續" pinyin="Jìxù" en="Continue" />
                     ) : (
                       <BiLabel zh="練習" pinyin="Liànxí" en="Practice" />
                     )}{" "}

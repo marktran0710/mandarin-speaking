@@ -368,6 +368,17 @@
   gap: 10px;
 }
 
+.profile-story-empty {
+  margin: 0;
+  padding: 22px;
+  border: 1px dashed var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-soft);
+  color: var(--clay-body);
+  line-height: 1.55;
+  text-align: center;
+}
+
 .profile-lesson-row,
 .profile-story-row {
   display: flex;
