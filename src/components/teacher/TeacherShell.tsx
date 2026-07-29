@@ -95,7 +95,7 @@ export default function TeacherShell({
           ☰
         </button>
         <div className="tshell-brand">
-          <img src="/logo.png" alt="Enjoyable Mandarin logo" />
+          <img src="/logo.png" alt="慢慢中文 logo" />
           <span>Teacher Studio</span>
           <ToneMark className="tshell-tonemark" size={22} />
         </div>

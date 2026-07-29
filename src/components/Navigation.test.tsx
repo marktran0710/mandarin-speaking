@@ -120,7 +120,7 @@ describe("Navigation teacher variant", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Enjoyable Mandarin/ }));
+    await user.click(screen.getByRole("button", { name: /慢慢中文/ }));
     expect(onNavigate).toHaveBeenCalledWith("teacher-login");
   });
 });

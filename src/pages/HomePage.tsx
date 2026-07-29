@@ -9,9 +9,8 @@ interface HomePageProps {
 }
 
 const HERO_TITLE_CHARS: Array<{ char: string; tone: 1 | 2 | 3 | 4 }> = [
-  { char: "一", tone: 1 },
-  { char: "起", tone: 3 },
-  { char: "學", tone: 2 },
+  { char: "慢", tone: 4 },
+  { char: "慢", tone: 4 },
   { char: "中", tone: 1 },
   { char: "文", tone: 2 },
 ];
@@ -109,11 +108,11 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             <span
               className="hero-title-zh"
               lang="zh-Hant"
-              aria-label="一起學中文"
+              aria-label="慢慢中文"
             >
               {HERO_TITLE_CHARS.map(({ char, tone }, i) => (
                 <span
-                  key={char}
+                  key={`${char}-${i}`}
                   className={`hero-char tone-${tone}`}
                   style={{ "--i": i } as CSSProperties}
                   aria-hidden="true"
@@ -123,8 +122,8 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               ))}
             </span>
             <span className="hero-title-meta">
-              <span className="hero-title-pinyin">Yìqǐ xué Zhōngwén</span>
-              <span className="hero-title-en">Learn Mandarin Together</span>
+              <span className="hero-title-pinyin">Mànmàn Zhōngwén</span>
+              <span className="hero-title-en">Mandarin, little by little</span>
             </span>
           </h1>
           <p className="hero-subtitle">

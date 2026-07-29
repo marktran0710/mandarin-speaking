@@ -27,7 +27,7 @@ describe("TeacherApp login screen", () => {
     const user = userEvent.setup();
     render(<TeacherApp />);
 
-    await user.click(screen.getByRole("button", { name: /Enjoyable Mandarin/ }));
+    await user.click(screen.getByRole("button", { name: /慢慢中文/ }));
 
     expect(window.location.href).toContain("teacher.html");
   });

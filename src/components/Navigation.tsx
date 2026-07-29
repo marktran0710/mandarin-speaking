@@ -55,8 +55,8 @@ export default function Navigation({
           className="navbar-logo"
           onClick={() => onNavigate(logoTarget)}
         >
-          <img className="logo-icon" src="/logo.png" alt="Enjoyable Mandarin logo" />
-          <span>Enjoyable Mandarin</span>
+          <img className="logo-icon" src="/logo.png" alt="慢慢中文 logo" />
+          <span>慢慢中文</span>
           <ToneMark className="navbar-tonemark" size={26} />
         </button>
 

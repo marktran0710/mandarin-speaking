@@ -1,4 +1,4 @@
-# Enjoyable Mandarin
+# 慢慢中文 · Mandarin, little by little
 
 A classroom speaking-practice platform for Mandarin learners. Teachers build story activities with picture cues and vocabulary; students record Mandarin speech and receive acoustic + AI language feedback in real time.
 
