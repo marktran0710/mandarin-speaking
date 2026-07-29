@@ -8,6 +8,9 @@ import { pinyin, customPinyin } from "pinyin-pro";
 customPinyin({
   // ── Different base reading ────────────────────────────────────────────────
   "垃圾": "lè sè",
+  // pinyin-pro's dictionary misreads 妳 (the feminine "you", same word/tone
+  // as 你) as "nǎi" — likely confused with 奶. It's always nǐ.
+  "妳": "nǐ",
 
   // ── Directional complements keep full tone in Taiwan ─────────────────────
   "出來": "chū lái",

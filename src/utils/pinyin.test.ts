@@ -17,6 +17,11 @@ describe("toPinyin Taiwan Mandarin overrides", () => {
     expect(toPinyin("謝謝")).toBe("xiè xiè");
   });
 
+  it("reads 妳 as nǐ, not pinyin-pro's default misreading of nǎi", () => {
+    expect(toPinyin("妳")).toBe("nǐ");
+    expect(toPinyin("妳這個週末要做什麼")).toBe("nǐ zhè gè zhōu mò yào zuò shén mó");
+  });
+
   it("returns empty string for non-Chinese input", () => {
     expect(toPinyin("hello")).toBe("");
   });

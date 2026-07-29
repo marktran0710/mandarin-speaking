@@ -56,6 +56,18 @@ export interface StoredAudioRecord {
   praatMetrics?: any;
 }
 
+export interface StoredSpeakingProgress {
+  studentId: string;
+  topicId: string;
+  sceneIndex: number;
+  attempts: number;
+  bestTone: number;
+  bestFluency: number;
+  masteryPassed: boolean;
+  contentPassed: boolean;
+  clearedWords: string[];
+}
+
 export interface CustomStoryFrame {
   imageUrl: string;
   prompt: string;
@@ -230,6 +242,32 @@ async function uploadAudioRecord(record: StoredAudioRecord, audioBlob: Blob) {
     method: "POST",
     body: formData,
   });
+}
+
+export async function listSpeakingProgress(
+  studentId: string,
+  topicId: string,
+): Promise<StoredSpeakingProgress[]> {
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/speaking-progress?student_id=${encodeURIComponent(studentId)}&topic_id=${encodeURIComponent(topicId)}`,
+  );
+  if (!response.ok) {
+    throw new Error("Could not load speaking progress from the database.");
+  }
+  const records = await response.json();
+  return Array.isArray(records) ? records : [];
+}
+
+export async function saveSpeakingProgress(progress: StoredSpeakingProgress) {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/speaking-progress`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(progress),
+  });
+  if (!response.ok) {
+    throw new Error("Could not save speaking progress to the database.");
+  }
+  return response.json() as Promise<StoredSpeakingProgress>;
 }
 
 export async function deleteAudioRecordFromDatabase(id: string) {

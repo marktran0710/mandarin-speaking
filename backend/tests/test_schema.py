@@ -13,6 +13,7 @@ EXPECTED_TABLES = {
     "audio_records",
     "custom_stories",
     "help_requests",
+    "speaking_progress",
     "story_submissions",
     "students",
     "vocab_quiz_attempts",
@@ -26,12 +27,15 @@ JSONB_COLUMNS = [
     ("story_submissions", "story_feedback"),
     ("vocab_quiz_attempts", "question_results"),
     ("audio_records", "praat_metrics"),
+    ("speaking_progress", "cleared_words"),
 ]
 
 BOOLEAN_COLUMNS = [
     ("custom_stories", "published"),
     ("custom_stories", "linear"),
     ("custom_stories", "first_frame_is_example"),
+    ("speaking_progress", "mastery_passed"),
+    ("speaking_progress", "content_passed"),
 ]
 
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   scoreScriptChunks,
+  scriptMatchRatio,
   scriptMismatchTokens,
   splitScriptIntoChunks,
 } from "./scriptAlignment";
@@ -18,6 +19,35 @@ describe("scriptMismatchTokens", () => {
   it("ignores punctuation and does not flag a script without a transcript", () => {
     expect(scriptMismatchTokens("你好，朋友！", "你好朋友")).toEqual([]);
     expect(scriptMismatchTokens("你好，朋友！", "")).toEqual([]);
+  });
+});
+
+describe("scriptMatchRatio", () => {
+  it("returns 1 for a perfect match", () => {
+    expect(scriptMatchRatio("你這個週末要做什麼", "你這個週末要做什麼")).toBe(1);
+  });
+
+  it("tolerates a single mismatched character in a longer phrase", () => {
+    // One ASR-slipped character ("這" -> "者") out of 9 should not read as
+    // a total mismatch — this is the exact case an exact-substring check
+    // (the old backend content_match rule) would fail outright.
+    const ratio = scriptMatchRatio("你這個週末要做什麼", "你者個週末要做什麼");
+    expect(ratio).toBeGreaterThan(0.8);
+    expect(ratio).toBeLessThan(1);
+  });
+
+  it("returns 0 when there is no transcript yet", () => {
+    expect(scriptMatchRatio("你這個週末要做什麼", "")).toBe(0);
+    expect(scriptMatchRatio("你這個週末要做什麼", undefined)).toBe(0);
+  });
+
+  it("returns 1 for an empty script (nothing to mismatch)", () => {
+    expect(scriptMatchRatio("", "隨便說什麼都可以")).toBe(1);
+    expect(scriptMatchRatio(undefined, "隨便說什麼都可以")).toBe(1);
+  });
+
+  it("returns a low ratio for a completely different transcript", () => {
+    expect(scriptMatchRatio("你這個週末要做什麼", "今天天氣很好")).toBeLessThan(0.3);
   });
 });
 

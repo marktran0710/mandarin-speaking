@@ -252,49 +252,83 @@
   flex-direction: column;
 }
 
+/* The verdict header reads as a teacher's chop stamp on the scene: a small
+   tilted ink-stamp badge (the app's own seal motif, not a generic colored
+   alert box) carries the state's color, everything else stays quiet. Each
+   state sets only `color` — the stamp, the hairline border, and the faint
+   wash all derive from that single value via currentColor, so a state with
+   no text (e.g. "meaning", which points at the Fix It step instead of
+   asserting a verdict in a sentence) still reads as a deliberate, complete
+   mark instead of a banner with a hole in it. */
 .sfc-verdict {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 14px;
   border-radius: var(--clay-radius-md);
+  border: 1px solid color-mix(in srgb, currentColor 22%, var(--clay-hairline));
+  background: color-mix(in srgb, currentColor 6%, var(--clay-surface-card));
   flex-shrink: 0;
 }
-.sfc-verdict-icon {
-  font-size: 24px;
-  line-height: 1;
-}
-.sfc-verdict-body {
+.sfc-verdict-lead {
   display: flex;
   align-items: center;
   gap: 14px;
-  flex: 1;
   min-width: 0;
+}
+/* States with nothing to say beyond the stamp itself (currently just
+   "meaning" — it points at the Fix It step rather than asserting a verdict
+   sentence) shrink to their content instead of stretching the stamp and the
+   scene chip apart across a mostly-empty bar. */
+.sfc-verdict--compact {
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+}
+.sfc-verdict-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  font-size: 19px;
+  line-height: 1;
+  border-radius: 9px;
+  background: color-mix(in srgb, currentColor 16%, var(--clay-surface-card));
+  box-shadow: inset 0 0 0 1.5px currentColor;
+  transform: rotate(-4deg);
+}
+/* The engraved inner ring that reads as a real stamp rather than a flat
+   colored square — a second, fainter line just inside the edge. */
+.sfc-verdict-icon::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px currentColor;
+  opacity: 0.4;
 }
 .sfc-verdict-text {
   margin: 0;
-  flex: 1;
   font-weight: 650;
+  color: var(--clay-ink);
 }
 .sfc-verdict-meaning {
-  background: var(--clay-error-soft);
-  border: 1.5px solid var(--clay-error);
+  color: var(--clay-error);
 }
 .sfc-verdict-vocab {
-  background: var(--gold-soft);
-  border: 1.5px solid var(--gold);
+  color: var(--gold-deep);
 }
 .sfc-verdict-pronounce {
-  background: var(--tone1-soft);
-  border: 1.5px solid var(--tone1);
+  color: var(--tone1-deep);
 }
 .sfc-verdict-ready {
-  background: var(--jade-soft);
-  border: 1.5px solid var(--jade);
+  color: var(--jade-deep);
 }
 .sfc-verdict-join {
-  background: var(--lavender-soft);
-  border: 1.5px solid var(--lavender);
+  color: var(--lavender-deep);
 }
 
 /* ── Stepper: 結果 → 改句子 → 練習 ──
@@ -363,7 +397,7 @@
   gap: 14px;
 }
 
-/* Overview stats line: X/Y words ✓ · vocabulary used/total. */
+/* Overview stats line: vocabulary used/total. */
 .sfc-stats-line {
   display: flex;
   flex-wrap: wrap;
@@ -754,9 +788,7 @@
   .sfc-verdict {
     flex-wrap: wrap;
   }
-  .sfc-verdict-body {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+  .sfc-verdict-lead {
+    flex-wrap: wrap;
   }
 }

@@ -74,6 +74,7 @@ TRUNCATED_TABLES = (
     "audio_records",
     "custom_stories",
     "help_requests",
+    "speaking_progress",
     "story_submissions",
     "students",
     "vocab_quiz_attempts",

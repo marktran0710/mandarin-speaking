@@ -152,6 +152,21 @@ def row_to_vocab_quiz_attempt(row: dict) -> dict:
     }
 
 
+def row_to_speaking_progress(row: dict) -> dict:
+    return {
+        "studentId": row["student_id"],
+        "topicId": row["topic_id"],
+        "sceneIndex": row["scene_index"],
+        "attempts": row["attempts"],
+        "bestTone": row["best_tone"],
+        "bestFluency": row["best_fluency"],
+        "masteryPassed": row["mastery_passed"],
+        "contentPassed": row["content_passed"],
+        "clearedWords": row["cleared_words"] or [],
+        "updatedAt": row["updated_at"],
+    }
+
+
 def row_to_student(row: dict) -> dict:
     return {
         "id": row["id"],

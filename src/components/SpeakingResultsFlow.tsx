@@ -277,13 +277,12 @@ export default function SpeakingResultsFlow({
     meaning: {
       icon: "🧭",
       className: "sfc-verdict-meaning",
-      text: (
-        <BiLabel
-          zh="先修正句子的意思，再管發音。"
-          pinyin="Xiān xiūzhèng jùzi de yìsi, zài guǎn fāyīn."
-          en="Fix what your sentence means first — pronunciation comes after."
-        />
-      ),
+      // No fixed banner text: the "meaning" verdict fires for anything from a
+      // real content-accuracy rejection to just one short ASR-mismatched
+      // chunk (e.g. a proper noun) — the Fix It step's own feedback already
+      // says what's actually wrong, so a generic "your meaning is wrong"
+      // line here was often misleading rather than helpful.
+      text: null,
     },
     vocab: {
       icon: "📝",
@@ -337,22 +336,19 @@ export default function SpeakingResultsFlow({
     },
   }[verdict];
 
-  // Per-word tally for the overview stats line — only words the backend
-  // actually judged (passed is a boolean) count either way.
-  const judgedWords = (praatMetrics.word_prosody ?? []).filter(
-    (word) => typeof word.passed === "boolean",
-  );
-  const passedCount = judgedWords.filter((word) => word.passed).length;
-
   // ── Step body: overview ───────────────────────────────────────────────
   const overviewStep = (
     <div className="sfc-step-panel">
-      <header className={`sfc-verdict ${verdictContent.className}`}>
-        <span className="sfc-verdict-icon" aria-hidden="true">
-          {verdictContent.icon}
-        </span>
-        <div className="sfc-verdict-body">
-          <p className="sfc-verdict-text">{verdictContent.text}</p>
+      <header
+        className={`sfc-verdict ${verdictContent.className}${verdictContent.text ? "" : " sfc-verdict--compact"}`}
+      >
+        <div className="sfc-verdict-lead">
+          <span className="sfc-verdict-icon" aria-hidden="true">
+            {verdictContent.icon}
+          </span>
+          {verdictContent.text && (
+            <p className="sfc-verdict-text">{verdictContent.text}</p>
+          )}
         </div>
         {sceneChip}
       </header>
@@ -372,26 +368,15 @@ export default function SpeakingResultsFlow({
         </div>
       )}
 
-      {(judgedWords.length > 0 || vocabTotal > 0) && (
+      {vocabTotal > 0 && (
         <p className="sfc-stats-line">
-          {judgedWords.length > 0 && (
-            <span>
-              🎯{" "}
-              <BiLabel
-                zh={`${passedCount}/${judgedWords.length} 個字 ✓`}
-                en={`${passedCount}/${judgedWords.length} words ✓`}
-              />
-            </span>
-          )}
-          {vocabTotal > 0 && (
-            <span>
-              📝{" "}
-              <BiLabel
-                zh={`生詞 ${usedCount}/${vocabTotal}`}
-                en={`Vocabulary ${usedCount}/${vocabTotal}`}
-              />
-            </span>
-          )}
+          <span>
+            📝{" "}
+            <BiLabel
+              zh={`生詞 ${usedCount}/${vocabTotal}`}
+              en={`Vocabulary ${usedCount}/${vocabTotal}`}
+            />
+          </span>
         </p>
       )}
 
@@ -739,13 +724,22 @@ export default function SpeakingResultsFlow({
       {allPhrasesCleared ? (
         <div className="sfc-mastery-banner is-cleared">
           <p className="sfc-mastery-lead">
-            Every part has passed. Now say the whole sentence naturally.
+            🎉{" "}
+            <BiLabel
+              zh="每個部分都通過了！現在自然地說一次整句。"
+              pinyin="Měi ge bùfen dōu tōngguò le! Xiànzài zìrán de shuō yí cì zhěng jù."
+              en="Every part has passed! Now say the whole sentence naturally."
+            />
           </p>
         </div>
       ) : (
         <p className="sfc-mastery-lead sfc-practice-lead">
-          Practice one part at a time. The blue line is your pitch; the dashed
-          line is the target shape.
+          🔑{" "}
+          <BiLabel
+            zh="一次練一個部分，藍線是你的音高，虛線是目標形狀。"
+            pinyin="Yí cì liàn yí ge bùfen, lán xiàn shì nǐ de yīngāo, xūxiàn shì mùbiāo xíngzhuàng."
+            en="Practice one part at a time. The blue line is your pitch; the dashed line is the target shape."
+          />
         </p>
       )}
 
@@ -767,13 +761,26 @@ export default function SpeakingResultsFlow({
       </div>
 
       {focusPhrase && !allPhrasesCleared && (
-        <div className="sfc-focus-word sfc-focus-phrase">
-          <PhrasePracticeDrill
-            key={focusPhrase}
-            phrase={focusPhrase}
-            onPass={handlePhrasePass}
-          />
-        </div>
+        <>
+          <div
+            className="sfc-pronounce-legend mini-contour-legend"
+            aria-hidden="true"
+          >
+            <span className="mini-contour-legend-actual">
+              <BiLabel zh="你的音高" en="Your pitch" />
+            </span>
+            <span className="mini-contour-legend-reference">
+              <BiLabel zh="目標形狀" en="Target shape" />
+            </span>
+          </div>
+          <div className="sfc-focus-word sfc-focus-phrase">
+            <PhrasePracticeDrill
+              key={focusPhrase}
+              phrase={focusPhrase}
+              onPass={handlePhrasePass}
+            />
+          </div>
+        </>
       )}
 
       {allPhrasesCleared && (
@@ -782,7 +789,7 @@ export default function SpeakingResultsFlow({
           className="sfc-btn-next sfc-step-cta"
           onClick={onRecordAgain}
         >
-          Record the whole sentence
+          🎙️ <BiLabel zh="再錄整句" pinyin="Zài lù zhěng jù" en="Record the whole sentence" />
         </AppButton>
       )}
     </div>
@@ -840,11 +847,21 @@ export default function SpeakingResultsFlow({
       <footer className="sfc-footer">
         {hasPhrasePractice && !allPhrasesCleared ? (
           <p className="sfc-unlock-note">
-            Complete {remainingPracticePhrases.length} more part{remainingPracticePhrases.length === 1 ? "" : "s"} before recording the whole sentence.
+            🔒{" "}
+            <BiLabel
+              zh={`還有 ${remainingPracticePhrases.length} 個部分要練，才能錄整句`}
+              pinyin={`Hái yǒu ${remainingPracticePhrases.length} ge bùfen yào liàn, cáinéng lù zhěng jù`}
+              en={`${remainingPracticePhrases.length} more part${remainingPracticePhrases.length === 1 ? "" : "s"} to practice before recording the whole sentence`}
+            />
           </p>
         ) : hasPhrasePractice && allPhrasesCleared && !ready ? (
           <p className="sfc-unlock-note">
-            All parts passed. Record the full sentence once more to complete this scene.
+            🔒{" "}
+            <BiLabel
+              zh="每個部分都通過了，再錄一次整句就能完成這一部分。"
+              pinyin="Měi ge bùfen dōu tōngguò le, zài lù yí cì zhěng jù jiù néng wánchéng zhè yí bùfen."
+              en="All parts passed. Record the full sentence once more to complete this scene."
+            />
           </p>
         ) : !ready && !masteryPassed && practiceWords.length > 0 ? (
           <p className="sfc-unlock-note">

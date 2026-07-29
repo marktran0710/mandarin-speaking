@@ -87,6 +87,26 @@ export function scriptMismatchTokens(script: string | undefined, transcript: str
   return mismatches;
 }
 
+/**
+ * Fraction of `script`'s alignable characters that were actually found (via
+ * LCS alignment, so out-of-order ASR noise doesn't count against it) in
+ * `transcript`. Used where a single ASR slip inside a longer phrase
+ * shouldn't fail the whole phrase the way an exact-substring check would —
+ * ASR errors are noisier than genuine mispronunciation, so this is
+ * deliberately more forgiving than a per-word tone-pass ratio.
+ *
+ * Returns 1 for an empty script (nothing to mismatch) and 0 when there is no
+ * transcript yet to compare against.
+ */
+export function scriptMatchRatio(script: string | undefined, transcript: string | undefined): number {
+  const expectedChars = alignableChars(script);
+  if (expectedChars.length === 0) return 1;
+  if (alignableChars(transcript).length === 0) return 0;
+  const { matched } = alignChars(script, transcript);
+  const matchedCount = matched.filter(Boolean).length;
+  return matchedCount / expectedChars.length;
+}
+
 /** Punctuation marks that separate one meaning-chunk of a script from the
  * next. Splitting on these — rather than running clause-detection NLP — lets
  * a teacher control chunk boundaries just by how they punctuate the script

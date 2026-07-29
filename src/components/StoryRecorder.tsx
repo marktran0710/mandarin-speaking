@@ -10,12 +10,15 @@ import {
   canUseDatabase,
   createStorySubmission,
   createVocabQuizAttempt,
+  listSpeakingProgress,
+  saveSpeakingProgress,
   updateVocabularyCloze,
   updateVocabularyDistractors,
   updateVocabularyLookalike,
   updateVocabularySynonym,
   type HelpRequest,
   type SceneSubmission,
+  type StoredSpeakingProgress,
   type StoryFeedback,
   type VocabularyClozeUpdate,
   type VocabularyDistractorUpdate,
@@ -650,15 +653,50 @@ export default function StoryRecorder({
   const [clearedWordsMap, setClearedWordsMap] = useState<
     Record<number, string[]>
   >({});
-  const handleWordDrillPass = useCallback(
-    (token: string) => {
-      setClearedWordsMap((prev) => {
-        const current = prev[selectedImageIndex] ?? [];
-        if (current.includes(token)) return prev;
-        return { ...prev, [selectedImageIndex]: [...current, token] };
+  // Fire-and-forget: a save failure must never block the practice flow the
+  // student is already mid-way through. Skipped without a logged-in student
+  // (admin/guest) since there's no id to key the row on.
+  const persistSpeakingProgress = useCallback(
+    (sceneIndex: number, fields: Partial<StoredSpeakingProgress>) => {
+      if (!studentId || !canUseDatabase()) return;
+      const prog = sceneProgress[sceneIndex] ?? {
+        attempts: 0,
+        bestTone: 0,
+        bestFluency: 0,
+      };
+      saveSpeakingProgress({
+        studentId,
+        topicId: topic.id,
+        sceneIndex,
+        attempts: prog.attempts,
+        bestTone: prog.bestTone,
+        bestFluency: prog.bestFluency,
+        masteryPassed: masteryPassedMap[sceneIndex] ?? false,
+        contentPassed: contentPassedMap[sceneIndex] ?? false,
+        clearedWords: clearedWordsMap[sceneIndex] ?? [],
+        ...fields,
+      }).catch((err) => {
+        console.error("Failed to save speaking progress:", err);
       });
     },
-    [selectedImageIndex],
+    [
+      studentId,
+      topic.id,
+      sceneProgress,
+      masteryPassedMap,
+      contentPassedMap,
+      clearedWordsMap,
+    ],
+  );
+  const handleWordDrillPass = useCallback(
+    (token: string) => {
+      const current = clearedWordsMap[selectedImageIndex] ?? [];
+      if (current.includes(token)) return;
+      const next = [...current, token];
+      setClearedWordsMap((prev) => ({ ...prev, [selectedImageIndex]: next }));
+      persistSpeakingProgress(selectedImageIndex, { clearedWords: next });
+    },
+    [selectedImageIndex, clearedWordsMap, persistSpeakingProgress],
   );
   const [submittedAudioName, setSubmittedAudioName] = useState("");
   // Completed scene snapshots for story submission
@@ -928,6 +966,58 @@ export default function StoryRecorder({
             : "practice",
     );
   }, [topic.id, topic.images, enableSorting, enableOverview, hasVocabQuiz, isAdmin]);
+
+  // Restore whatever speaking-practice progress this student already has for
+  // this story, so reloading or leaving mid-scene doesn't reset attempts,
+  // best scores, or the mastery/content gates back to zero. Skipped for
+  // admin/guest sessions — there's no studentId to look progress up by.
+  useEffect(() => {
+    if (!studentId || !canUseDatabase()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await listSpeakingProgress(studentId, topic.id);
+        if (cancelled) return;
+        setSceneProgress((prev) => {
+          const next = { ...prev };
+          rows.forEach((row) => {
+            next[row.sceneIndex] = {
+              attempts: row.attempts,
+              bestTone: row.bestTone,
+              bestFluency: row.bestFluency,
+            };
+          });
+          return next;
+        });
+        setMasteryPassedMap((prev) => {
+          const next = { ...prev };
+          rows.forEach((row) => {
+            next[row.sceneIndex] = row.masteryPassed;
+          });
+          return next;
+        });
+        setContentPassedMap((prev) => {
+          const next = { ...prev };
+          rows.forEach((row) => {
+            next[row.sceneIndex] = row.contentPassed;
+          });
+          return next;
+        });
+        setClearedWordsMap((prev) => {
+          const next = { ...prev };
+          rows.forEach((row) => {
+            next[row.sceneIndex] = row.clearedWords;
+          });
+          return next;
+        });
+      } catch (err) {
+        console.error("Failed to load speaking progress:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [studentId, topic.id]);
 
   useEffect(() => {
     return () => {
@@ -1294,39 +1384,43 @@ export default function StoryRecorder({
           attempt: prev.length + 1,
         },
       ]);
-      setSceneProgress((prev) => {
-        const curr = prev[selectedImageIndex] ?? {
-          attempts: 0,
-          bestTone: 0,
-          bestFluency: 0,
-        };
-        return {
-          ...prev,
-          [selectedImageIndex]: {
-            attempts: curr.attempts + 1,
-            bestTone: Math.max(
-              curr.bestTone,
-              Math.round(metrics.tone_accuracy),
-            ),
-            bestFluency: Math.max(
-              curr.bestFluency,
-              Math.round(metrics.fluency_score),
-            ),
-          },
-        };
-      });
+      const priorProgress = sceneProgress[selectedImageIndex] ?? {
+        attempts: 0,
+        bestTone: 0,
+        bestFluency: 0,
+      };
+      const nextProgress = {
+        attempts: priorProgress.attempts + 1,
+        bestTone: Math.max(priorProgress.bestTone, Math.round(metrics.tone_accuracy)),
+        bestFluency: Math.max(
+          priorProgress.bestFluency,
+          Math.round(metrics.fluency_score),
+        ),
+      };
+      setSceneProgress((prev) => ({
+        ...prev,
+        [selectedImageIndex]: nextProgress,
+      }));
       // Mastery gate verdict for this full-sentence attempt. A fresh
       // recording re-judges every word, so the per-word drill clearances
       // from the previous attempt reset alongside it.
+      const nextMasteryPassed = prosodyGatePassed(metrics.word_prosody);
+      const nextContentPassed = sceneContentGatePassed(metrics);
       setMasteryPassedMap((prev) => ({
         ...prev,
-        [selectedImageIndex]: prosodyGatePassed(metrics.word_prosody),
+        [selectedImageIndex]: nextMasteryPassed,
       }));
       setContentPassedMap((prev) => ({
         ...prev,
-        [selectedImageIndex]: sceneContentGatePassed(metrics),
+        [selectedImageIndex]: nextContentPassed,
       }));
       setClearedWordsMap((prev) => ({ ...prev, [selectedImageIndex]: [] }));
+      persistSpeakingProgress(selectedImageIndex, {
+        ...nextProgress,
+        masteryPassed: nextMasteryPassed,
+        contentPassed: nextContentPassed,
+        clearedWords: [],
+      });
 
       const recordResult = onAddRecord({
         id: `audio-${Date.now()}`,
@@ -1565,10 +1659,15 @@ export default function StoryRecorder({
         key: idx,
         img,
         idx,
-        status: (idx === selectedImageIndex
-          ? "current"
-          : ready
-            ? "done"
+        // Completion outranks mere selection: revisiting a scene you've
+        // already finished must still read as done (green ring + star),
+        // not fall back to the plain "current" ring just because it's the
+        // one open right now. "current" is reserved for the scene you're
+        // actively still working toward finishing.
+        status: (ready
+          ? "done"
+          : idx === selectedImageIndex
+            ? "current"
             : "upcoming") as JourneyStopStatus,
         thumbnail: img,
         label: (
@@ -2055,18 +2154,9 @@ export default function StoryRecorder({
                     (contentPassedMap[selectedImageIndex] ?? false));
                 const nextIdx = nextPracticeSceneIndex;
                 const hasNext = nextIdx !== undefined;
-                let status: JSX.Element;
+                let status: JSX.Element | null;
                 if (!prog || prog.attempts === 0) {
-                  status = (
-                    <span className="practice-footer-hint">
-                      <span aria-hidden="true">👀 </span>
-                      <BiLabel
-                        zh="新的部分：先看看生詞，然後開始錄音。"
-                        pinyin="Xīn de bùfen: xiān kànkan shēngcí, ránhòu kāishǐ lùyīn."
-                        en="New scene: read the words first, then start recording."
-                      />
-                    </span>
-                  );
+                  status = null;
                 } else if (ready) {
                   status = (
                     <span className="practice-footer-ready">

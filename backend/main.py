@@ -136,7 +136,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
 
@@ -419,6 +419,18 @@ class AudioRecordRequest(BaseModel):
     imageIndex: Optional[int] = None
     audioUrl: Optional[str] = None
     praatMetrics: Optional[dict] = None
+
+
+class SpeakingProgressRequest(BaseModel):
+    studentId: str
+    topicId: str
+    sceneIndex: int
+    attempts: int = 0
+    bestTone: float = 0
+    bestFluency: float = 0
+    masteryPassed: bool = False
+    contentPassed: bool = False
+    clearedWords: List[str] = []
 
 
 class CustomStoryFrameRequest(BaseModel):
@@ -2973,6 +2985,7 @@ from routers.audio import router as audio_router  # noqa: E402
 from routers.help_requests import router as help_requests_router  # noqa: E402
 from routers.media import router as media_router  # noqa: E402
 from routers.quiz_review import router as quiz_review_router  # noqa: E402
+from routers.speaking_progress import router as speaking_progress_router  # noqa: E402
 from routers.stories import router as stories_router  # noqa: E402
 from routers.students import router as students_router  # noqa: E402
 from routers.submissions import router as submissions_router  # noqa: E402
@@ -2984,6 +2997,7 @@ app.include_router(audio_router)
 app.include_router(help_requests_router)
 app.include_router(media_router)
 app.include_router(quiz_review_router)
+app.include_router(speaking_progress_router)
 app.include_router(stories_router)
 app.include_router(students_router)
 app.include_router(submissions_router)
