@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   canUseDatabase,
   HelpRequest,
@@ -139,13 +139,20 @@ export default function TeacherDashboardPage({
   const [quizAttempts, setQuizAttempts] = useState<VocabQuizAttempt[]>([]);
   const [quizAttemptsError, setQuizAttemptsError] = useState("");
 
-  useEffect(() => {
-    if (activeView !== "analytics" || !canUseDatabase()) return;
+  const loadQuizAttempts = useCallback(async () => {
+    if (!canUseDatabase()) return;
     setQuizAttemptsError("");
-    listVocabQuizAttempts()
-      .then(setQuizAttempts)
-      .catch(() => setQuizAttemptsError("Could not load vocabulary quiz analytics."));
-  }, [activeView]);
+    try {
+      setQuizAttempts(await listVocabQuizAttempts());
+    } catch {
+      setQuizAttemptsError("Could not load vocabulary quiz analytics.");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeView !== "analytics") return;
+    loadQuizAttempts();
+  }, [activeView, loadQuizAttempts]);
 
   const analyzedRecords = records.filter((record) => record.praatMetrics);
   const feedbackReadyRecords = records.filter(
@@ -178,7 +185,7 @@ export default function TeacherDashboardPage({
         onRefreshRecords
           ? async () => {
               setRefreshing(true);
-              await onRefreshRecords();
+              await Promise.all([onRefreshRecords(), loadQuizAttempts()]);
               setRefreshing(false);
             }
           : undefined

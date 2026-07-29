@@ -94,7 +94,6 @@ export default function JourneyBubble({
       ),
     );
 
-  const totalFromTitles = storyIds.reduce((sum, id) => sum + starsFor(id), 0);
   // Pages without a story list can't enumerate ids — fold the backend map
   // onto base ids (best per story) and total that instead.
   const foldedDb: Record<string, number> = {};
@@ -102,8 +101,12 @@ export default function JourneyBubble({
     const base = id.replace(/-(medium|hard)$/, "");
     foldedDb[base] = Math.max(foldedDb[base] ?? 0, stars);
   }
-  const totalFromDb = Object.values(foldedDb).reduce((sum, s) => sum + s, 0);
-  const totalStars = Math.max(totalFromTitles, totalFromDb);
+  // Sum each story's best tier once. This deliberately merges local and
+  // backend values per story instead of taking the maximum of two totals,
+  // which could discard stars earned on different stories.
+  const earnedStoryIds = storyIds.length > 0 ? storyIds : Object.keys(foldedDb);
+  const totalStars = earnedStoryIds.reduce((sum, id) => sum + starsFor(id), 0);
+  const maxStars = storyCount ? storyCount * 3 : undefined;
 
   // Quiz ids for Medium/Hard tiers suffix the base topic id — map a
   // near-miss id back onto the base story so stars/titles resolve.
@@ -130,18 +133,17 @@ export default function JourneyBubble({
 
   // ── Needs-stars state: pulsing quiz call-to-action ──────────────────────
   if (needsStars && targetId && onJumpToStory) {
-    const targetStars = Math.min(starsFor(targetId), PRACTICE_UNLOCK_STARS);
     const targetTitle = titles[targetId] ?? targetId;
     return (
       <button
         type="button"
         className="journey-bubble journey-bubble-locked"
         onClick={() => onJumpToStory(targetId)}
-        aria-label={`做測驗拿星星 — ${targetTitle} (${targetStars}/${PRACTICE_UNLOCK_STARS} stars). Take the quiz to earn stars.`}
+        aria-label={`Take the quiz for ${targetTitle}. ${totalStars} of ${maxStars ?? "available"} stars earned overall.`}
         title={targetTitle}
       >
         <span className="journey-bubble-big">
-          ⭐ {targetStars}/{PRACTICE_UNLOCK_STARS}
+          ⭐ {totalStars}{maxStars ? `/${maxStars}` : ""}
         </span>
         <span className="journey-bubble-caption">
           <BiLabel zh="做測驗" pinyin="Zuò cèyàn" en="Do the quiz" />
@@ -151,7 +153,6 @@ export default function JourneyBubble({
   }
 
   // ── Caught-up / display-only state: progress dial ───────────────────────
-  const maxStars = storyCount ? storyCount * 3 : undefined;
   const progressDeg = maxStars
     ? Math.min(360, Math.round((totalStars / maxStars) * 360))
     : 0;

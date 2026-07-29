@@ -1300,13 +1300,28 @@ export default function TeacherQuizReviewPage({
     // A prior selection must not bypass a later failed validation. This can
     // happen when a teacher re-checks an item after its AI pool changed.
     const checkable = canCheck(storyId, word, kind, poolIndex);
+    // The disabled reason must match reality: a question can be blocked
+    // either because Validate hasn't run yet, or because it ran and flagged
+    // the question suspicious — those need different guidance, not the same
+    // generic "Validate first" for both.
+    const result = findValidation(
+      validationByStory[storyId],
+      word,
+      kind === "distractors" ? "translation" : kind,
+      poolIndex,
+    );
+    const disabledTitle = checkable
+      ? undefined
+      : result
+        ? "Suspicious — fix this question before approving it"
+        : "Validate this question first";
     return (
       <input
         type="checkbox"
         className="tqr-approve-checkbox"
         checked={checked}
         disabled={!checkable}
-        title={checkable ? undefined : "Validate first"}
+        title={disabledTitle}
         aria-label={`Approve ${kind} for ${word}`}
         onChange={() => {
           const story = stories.find((s) => s.id === storyId);
@@ -1450,7 +1465,11 @@ export default function TeacherQuizReviewPage({
         </div>
         <div className="diff-actions tqr-q-actions">
           {approvalCheckbox(spec.storyId, spec.word, spec.kind, spec.poolIndex)}
-          {questionStatusBadge(result)}
+          {/* "distractors" validates against the same "translation" check the
+              word header's 答案檢查 line already shows (see findValidation's
+              kind mapping below) — showing it again here would just repeat
+              the same badge and reason text right above. */}
+          {spec.kind !== "distractors" && questionStatusBadge(result)}
           {editButton(
             {
               storyId: spec.storyId,
@@ -1731,9 +1750,6 @@ export default function TeacherQuizReviewPage({
                     <BiLabel zh={`已標記 ${exclusions.length} 項`} en={`${exclusions.length} marked`} />
                   </span>
                   <span className="tqr-toolbar-spacer" />
-                  <details className="tqr-more-actions">
-                    <summary>More actions</summary>
-                    <div className="tqr-more-actions-menu">
                   {canApproveAll && <button
                     type="button"
                     className="tqr-io"
@@ -1763,8 +1779,6 @@ export default function TeacherQuizReviewPage({
                   <button type="button" className="tqr-io" onClick={() => triggerImport(story.id)}>
                     <BiLabel zh="匯入" en="Import" />
                   </button>
-                    </div>
-                  </details>
                   </div>
                 </div>
               </header>

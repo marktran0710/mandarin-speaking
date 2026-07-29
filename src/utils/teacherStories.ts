@@ -51,8 +51,11 @@ export interface CustomStoryFrame {
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
-  // Medium/Hard tiers of the same scene — same imageUrl/plot, progressively
-  // more complex text. Absent means that tier hasn't been authored yet.
+  // Medium/Hard tiers of the same scene — progressively more complex text,
+  // and optionally their own image. Absent means that tier hasn't been
+  // authored yet.
+  imageUrlMedium?: string;
+  imageUrlHard?: string;
   promptMedium?: string;
   promptHard?: string;
   vocabularyMedium?: string;
@@ -85,6 +88,11 @@ export interface CustomTeacherStory {
   published?: boolean;
   linear?: boolean;
   lessonNumber?: number | null;
+  /** Position within its lesson (1, 2, 3...) for the in-lesson sequential
+   * unlock (5-1 -> 5-2 -> 5-3). Only meaningful alongside lessonNumber; a
+   * lesson with any story missing this leaves the whole lesson unordered
+   * (see groupTopicsByLesson). */
+  lessonSubOrder?: number | null;
   narrativeMode?: NarrativeMode;
   firstFrameIsExample?: boolean;
   /** Teacher quiz review's diff baseline, keyed by tier — see
@@ -128,8 +136,9 @@ export function loadPublishedTeacherTopics(): Topic[] {
 }
 
 /** A story is authored once per scene, at the Easy tier, then optionally
- * gains Medium/Hard variants of the same text fields (same imageUrl/plot).
- * Picking a level just changes which tier of text storyToTopic reads. */
+ * gains Medium/Hard variants of the same plot — its own text and, if the
+ * teacher uploads one, its own image; a tier left blank falls back to Easy's.
+ * Picking a level just changes which tier storyToTopic reads. */
 export type StoryDifficultyLevel = "easy" | "medium" | "hard";
 
 const TIER_SUFFIX: Record<StoryDifficultyLevel, ""  | "Medium" | "Hard"> = {
@@ -139,6 +148,7 @@ const TIER_SUFFIX: Record<StoryDifficultyLevel, ""  | "Medium" | "Hard"> = {
 };
 
 type TieredField =
+  | "imageUrl"
   | "prompt"
   | "vocabulary"
   | "vocabularyPinyin"
@@ -175,6 +185,7 @@ export function storyHasTierContent(
 ): boolean {
   const suffix = TIER_SUFFIX[level];
   const fields: TieredField[] = [
+    "imageUrl",
     "prompt",
     "vocabulary",
     "vocabularyPinyin",
@@ -398,7 +409,9 @@ export function storyToTopic(
     name: story.title,
     description: story.learningGoal,
     skillFocus: "Teacher published activity",
-    images: story.frames.map((frame) => resolveImageUrl(frame.imageUrl)),
+    images: story.frames.map((frame) =>
+      resolveImageUrl(tierText(frame, "imageUrl", difficultyLevel) || ""),
+    ),
     prompts: story.frames.map((frame) => tierText(frame, "prompt", difficultyLevel) || ""),
     vocabulary,
     ...(Object.keys(vocabularyGroups).length > 0 ? { vocabularyGroups } : {}),
@@ -416,6 +429,7 @@ export function storyToTopic(
     ...(Object.keys(listenScripts).length > 0 ? { listenScripts } : {}),
     ...(story.linear ? { linear: true } : {}),
     ...(story.lessonNumber != null ? { lessonNumber: story.lessonNumber } : {}),
+    ...(story.lessonSubOrder != null ? { lessonSubOrder: story.lessonSubOrder } : {}),
     narrativeMode: story.narrativeMode ?? "story",
     ...(story.firstFrameIsExample ? { firstFrameIsExample: true } : {}),
     difficultyLevel,

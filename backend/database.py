@@ -116,6 +116,7 @@ def row_to_custom_story(row: dict) -> dict:
         "published": bool(row["published"]),
         "linear": bool(row["linear"]),
         "lessonNumber": row["lesson_number"],
+        "lessonSubOrder": row.get("lesson_sub_order"),
         "narrativeMode": row["narrative_mode"],
         "firstFrameIsExample": bool(row["first_frame_is_example"]),
         "quizExclusions": row.get("quiz_exclusions") or [],

@@ -57,8 +57,20 @@ export function topicStoryId(topic: Topic): string {
   return topic.sourceStory?.id ?? topic.id;
 }
 
+/** True once every story in a lesson has a lessonSubOrder — the point at
+ * which the in-lesson sequential unlock (5-1 -> 5-2 -> 5-3) applies. A
+ * lesson with even one unordered story stays fully open, exactly as it was
+ * before this feature existed: a teacher assigns order numbers gradually
+ * without ever locking students out mid-migration. */
+export function lessonHasOrderedStories(group: LessonGroup): boolean {
+  return group.topics.length > 0 && group.topics.every((t) => t.lessonSubOrder != null);
+}
+
 /** Groups topics into table-of-contents rows: numbered lessons ascending,
- * then one 其他 group for unassigned topics (omitted when empty). */
+ * then one 其他 group for unassigned topics (omitted when empty). Within a
+ * numbered lesson, topics sort by lessonSubOrder once every topic in it has
+ * one (see lessonHasOrderedStories) — otherwise they keep arrival order,
+ * same as before sub-ordering existed. */
 export function groupTopicsByLesson(topics: Topic[]): LessonGroup[] {
   const numbered = new Map<number, Topic[]>();
   const unassigned: Topic[] = [];
@@ -73,7 +85,15 @@ export function groupTopicsByLesson(topics: Topic[]): LessonGroup[] {
   }
   const groups: LessonGroup[] = [...numbered.entries()]
     .sort(([a], [b]) => a - b)
-    .map(([lessonNumber, groupTopics]) => ({ lessonNumber, topics: groupTopics }));
+    .map(([lessonNumber, groupTopics]) => {
+      const group = { lessonNumber, topics: groupTopics };
+      if (lessonHasOrderedStories(group)) {
+        group.topics = [...group.topics].sort(
+          (a, b) => (a.lessonSubOrder ?? 0) - (b.lessonSubOrder ?? 0),
+        );
+      }
+      return group;
+    });
   if (unassigned.length > 0) {
     groups.push({ lessonNumber: null, topics: unassigned });
   }
@@ -135,4 +155,24 @@ export function isLessonGroupUnlocked(
   // Defensive: numbered groups always precede 其他, so previous is numbered.
   const { done, total } = lessonCompletion(previous, submittedStoryIds, starsFor);
   return total > 0 && done === total;
+}
+
+/** Sequential in-lesson lock (5-1 -> 5-2 -> 5-3), a lighter gate than
+ * isLessonGroupUnlocked's: a story only needs its predecessor SUBMITTED, not
+ * finished to ⭐⭐ — the two are deliberately different rules. Only applies
+ * once every story in the lesson has a lessonSubOrder (see
+ * lessonHasOrderedStories); until then every story in the lesson stays
+ * open, same as before this feature existed. group.topics is assumed
+ * already sorted by lessonSubOrder (groupTopicsByLesson does this). */
+export function isStoryUnlockedInLesson(
+  group: LessonGroup,
+  indexInGroup: number,
+  submittedStoryIds: ReadonlySet<string>,
+): boolean {
+  if (isAdminSession()) return true;
+  if (!lessonHasOrderedStories(group)) return true;
+  if (indexInGroup === 0) return true;
+  const previous = group.topics[indexInGroup - 1];
+  if (!previous) return true;
+  return submittedStoryIds.has(topicStoryId(previous));
 }

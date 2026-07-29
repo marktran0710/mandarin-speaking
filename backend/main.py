@@ -423,6 +423,8 @@ class AudioRecordRequest(BaseModel):
 
 class CustomStoryFrameRequest(BaseModel):
     imageUrl: str
+    imageUrlMedium: Optional[str] = None
+    imageUrlHard: Optional[str] = None
     prompt: str
     vocabulary: str = ""
     vocabularyGroups: Optional[List[dict]] = None
@@ -452,10 +454,11 @@ class CustomStoryFrameRequest(BaseModel):
     # same way vocabularyDistractors is (see vocab_quiz_lookalike / the
     # vocabulary-lookalike PATCH endpoint).
     vocabularyLookalike: Optional[str] = None
-    # Medium/Hard tiers of the same scene — same plot/scene/imageUrl, just
-    # progressively more complex text. Absent/blank means that tier hasn't
-    # been authored yet; the student-facing conversion falls back to the
-    # base (Easy) field above rather than showing blank content.
+    # Medium/Hard tiers of the same scene — same plot, just progressively
+    # more complex text (and optionally its own image via imageUrlMedium/
+    # imageUrlHard above). Absent/blank means that tier hasn't been authored
+    # yet; the student-facing conversion falls back to the base (Easy) field
+    # above rather than showing blank content.
     promptMedium: Optional[str] = None
     promptHard: Optional[str] = None
     vocabularyMedium: Optional[str] = None
@@ -487,6 +490,7 @@ class CustomStoryRequest(BaseModel):
     linear: bool = False
     firstFrameIsExample: bool = False
     lessonNumber: Optional[int] = None
+    lessonSubOrder: Optional[int] = None
     narrativeMode: str = "story"
 
 
@@ -810,14 +814,26 @@ def persist_story_frame_images(story_id: str, frames: list[dict]) -> list[dict]:
 
     stored_frames = []
     for index, frame in enumerate(frames, start=1):
-        image_url = frame.get("imageUrl", "")
-        if image_url.startswith("data:image/"):
-            new_url = save_data_url_image(image_url, story_id, index)
-            # Remove the old uploaded file if it differs from the new one
-            old_url = old_frames[index - 1].get("imageUrl", "") if index - 1 < len(old_frames) else ""
-            if old_url and old_url != new_url and old_url.startswith("/uploads/"):
-                remove_uploaded_file(old_url)
-            frame = {**frame, "imageUrl": new_url}
+        frame = dict(frame)
+        # Easy/Medium/Hard each carry their own image now — every tier's
+        # field is checked independently so replacing one tier's picture
+        # doesn't touch the others' uploaded files.
+        for field, suffix in (
+            ("imageUrl", ""),
+            ("imageUrlMedium", "-medium"),
+            ("imageUrlHard", "-hard"),
+        ):
+            image_url = frame.get(field) or ""
+            if image_url.startswith("data:image/"):
+                new_url = save_data_url_image(image_url, story_id, f"{index}{suffix}")
+                old_url = (
+                    old_frames[index - 1].get(field, "")
+                    if index - 1 < len(old_frames)
+                    else ""
+                )
+                if old_url and old_url != new_url and old_url.startswith("/uploads/"):
+                    remove_uploaded_file(old_url)
+                frame[field] = new_url
         stored_frames.append(frame)
     return stored_frames
 
@@ -863,7 +879,7 @@ def save_data_url_audio(data_url: str, story_id: str, index: int) -> str:
     return f"/uploads/audio/{filename}"
 
 
-def save_data_url_image(data_url: str, story_id: str, index: int) -> str:
+def save_data_url_image(data_url: str, story_id: str, index) -> str:
     header, _, data = data_url.partition(",")
     if not data:
         return data_url

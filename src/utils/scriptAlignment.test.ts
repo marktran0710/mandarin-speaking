@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { scriptMismatchTokens } from "./scriptAlignment";
+import {
+  scoreScriptChunks,
+  scriptMismatchTokens,
+  splitScriptIntoChunks,
+} from "./scriptAlignment";
 
 describe("scriptMismatchTokens", () => {
   it("returns every missing or substituted script segment, without a display limit", () => {
@@ -14,5 +18,83 @@ describe("scriptMismatchTokens", () => {
   it("ignores punctuation and does not flag a script without a transcript", () => {
     expect(scriptMismatchTokens("你好，朋友！", "你好朋友")).toEqual([]);
     expect(scriptMismatchTokens("你好，朋友！", "")).toEqual([]);
+  });
+});
+
+describe("splitScriptIntoChunks", () => {
+  it("splits on Chinese clause punctuation", () => {
+    expect(splitScriptIntoChunks("我先去超市買菜，然後回家做飯，最後和家人一起吃飯。")).toEqual([
+      "我先去超市買菜",
+      "然後回家做飯",
+      "最後和家人一起吃飯",
+    ]);
+  });
+
+  it("returns the whole trimmed script as one chunk when there is no internal punctuation", () => {
+    expect(splitScriptIntoChunks("你好朋友")).toEqual(["你好朋友"]);
+    expect(splitScriptIntoChunks("你好，朋友！")).toEqual(["你好", "朋友"]);
+  });
+
+  it("breaks a long unpunctuated script into focused practice parts", () => {
+    expect(splitScriptIntoChunks("你這個週末要做什麼")).toEqual([
+      "你這個週末",
+      "要做什麼",
+    ]);
+  });
+
+  it("returns an empty array for an empty script", () => {
+    expect(splitScriptIntoChunks("")).toEqual([]);
+    expect(splitScriptIntoChunks(undefined)).toEqual([]);
+  });
+});
+
+describe("scoreScriptChunks", () => {
+  const script = "我先去超市買菜，然後回家做飯，最後和家人一起吃飯。";
+
+  it("attributes passing word_prosody tokens to the right chunk and marks it passed", () => {
+    const wordProsody = [
+      { token: "我先去超市買菜", passed: true },
+      { token: "然後回家做飯", passed: true },
+      { token: "最後和家人一起吃飯", passed: true },
+    ];
+    const result = scoreScriptChunks(script, "我先去超市買菜然後回家做飯最後和家人一起吃飯", wordProsody);
+    expect(result.map((chunk) => chunk.text)).toEqual([
+      "我先去超市買菜",
+      "然後回家做飯",
+      "最後和家人一起吃飯",
+    ]);
+    expect(result.every((chunk) => chunk.passed)).toBe(true);
+    expect(result.every((chunk) => chunk.mismatch === "")).toBe(true);
+  });
+
+  it("marks only the chunk with the failing token as not passed", () => {
+    const wordProsody = [
+      { token: "我先去超市買菜", passed: true },
+      { token: "然後回家做飯", passed: false },
+      { token: "最後和家人一起吃飯", passed: true },
+    ];
+    const result = scoreScriptChunks(script, "我先去超市買菜然後回家做飯最後和家人一起吃飯", wordProsody);
+    expect(result[0].passed).toBe(true);
+    expect(result[1].passed).toBe(false);
+    expect(result[2].passed).toBe(true);
+  });
+
+  it("marks a chunk not passed and reports its mismatch when the learner skipped it entirely", () => {
+    const wordProsody = [
+      { token: "我先去超市買菜", passed: true },
+      { token: "最後和家人一起吃飯", passed: true },
+    ];
+    const result = scoreScriptChunks(script, "我先去超市買菜最後和家人一起吃飯", wordProsody);
+    expect(result[0].passed).toBe(true);
+    expect(result[1].passed).toBe(false);
+    expect(result[1].mismatch).toBe("然後回家做飯");
+    expect(result[2].passed).toBe(true);
+  });
+
+  it("returns a single chunk for an unpunctuated script, matching pre-chunking behavior", () => {
+    const wordProsody = [{ token: "你好朋友", passed: true }];
+    const result = scoreScriptChunks("你好朋友", "你好朋友", wordProsody);
+    expect(result).toHaveLength(1);
+    expect(result[0].passed).toBe(true);
   });
 });

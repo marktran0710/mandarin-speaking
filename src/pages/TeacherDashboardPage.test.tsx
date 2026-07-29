@@ -218,7 +218,7 @@ describe("TeacherDashboardPage", () => {
     await user.type(screen.getAllByLabelText("English translation")[0], "diner");
 
     await user.type(
-      screen.getAllByLabelText("Script (used to compare student voice)")[0],
+      screen.getAllByLabelText("Script")[0],
       "我在餐廳吃飯。",
     );
     await user.click(
@@ -259,7 +259,7 @@ describe("TeacherDashboardPage", () => {
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.type(
-      screen.getAllByLabelText("Script (used to compare student voice)")[0],
+      screen.getAllByLabelText("Script")[0],
       "我想要在餐廳吃飯。",
     );
 

@@ -83,6 +83,18 @@ describe("storyToTopic difficulty tiers", () => {
     expect(topic.vocabulary[0]).toEqual(["你好"]);
   });
 
+  it("serves each tier's own image when authored, falling back to Easy's when not", () => {
+    const storyWithTieredImages: CustomTeacherStory = {
+      ...tieredStory,
+      frames: [{ ...tieredStory.frames[0], imageUrlMedium: "img-0-medium.png" }],
+    };
+
+    expect(storyToTopic(storyWithTieredImages, "easy").images[0]).toBe("img-0.png");
+    expect(storyToTopic(storyWithTieredImages, "medium").images[0]).toBe("img-0-medium.png");
+    // No imageUrlHard authored — Hard falls back to Easy's image, not blank.
+    expect(storyToTopic(storyWithTieredImages, "hard").images[0]).toBe("img-0.png");
+  });
+
   it("storyHasTierContent reports which tiers were actually authored", () => {
     expect(storyHasTierContent(tieredStory, "medium")).toBe(true);
     expect(storyHasTierContent(tieredStory, "hard")).toBe(false);

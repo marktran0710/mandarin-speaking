@@ -13,6 +13,7 @@ import {
 import {
   groupTopicsByLesson,
   isLessonGroupUnlocked,
+  isStoryUnlockedInLesson,
   lessonCompletion,
   lessonTitle,
   topicStoryId,
@@ -67,6 +68,9 @@ export interface Topic {
   listenScripts?: Record<number, string>;
   linear?: boolean;
   lessonNumber?: number | null;
+  /** Position within its lesson (1, 2, 3...) — see CustomTeacherStory's
+   * lessonSubOrder. Drives the in-lesson sequential unlock in lessonGroups.ts. */
+  lessonSubOrder?: number | null;
   narrativeMode?: "story" | "describe" | "listen_retell";
   firstFrameIsExample?: boolean;
   // Which easy/medium/hard tier this Topic was built at, plus a reference to
@@ -233,13 +237,23 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
     );
   };
 
-  const renderTopicCard = (t: Topic) => {
+  const renderTopicCard = (t: Topic, group: LessonGroup, index: number) => {
     const totalScenes = t.images.length;
     const totalWords = Object.values(t.vocabulary).flat().length;
     const previewImage = t.images[0];
+    const unlocked = isStoryUnlockedInLesson(group, index, submittedIds);
+    const subLabel =
+      group.lessonNumber != null && t.lessonSubOrder != null
+        ? `${group.lessonNumber}-${t.lessonSubOrder}`
+        : null;
+    const previous = index > 0 ? group.topics[index - 1] : null;
+    const previousSubLabel =
+      group.lessonNumber != null && previous?.lessonSubOrder != null
+        ? `${group.lessonNumber}-${previous.lessonSubOrder}`
+        : null;
 
     return (
-      <article key={t.id} className="ts-card">
+      <article key={t.id} className={`ts-card${unlocked ? "" : " ts-card-locked"}`}>
         {/* Image strip */}
         <div className="ts-card-image">
           {previewImage ? (
@@ -247,6 +261,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
           ) : (
             <div className="ts-card-image-placeholder">🎬</div>
           )}
+          {subLabel && <span className="ts-card-lesson-badge">{subLabel}</span>}
           {totalScenes > 1 && (
             <span className="ts-card-scene-badge">
               <BiLabel zh={`${totalScenes} 部分`} en={`${totalScenes} scenes`} />
@@ -293,14 +308,28 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
 
         {/* Footer */}
         <div className="ts-card-footer">
-          <button
-            type="button"
-            className="ts-card-btn"
-            onClick={() => onTopicSelect?.(t)}
-          >
-            <BiLabel k="start_this_activity" />
-            <span className="ts-card-btn-arrow">→</span>
-          </button>
+          {unlocked ? (
+            <button
+              type="button"
+              className="ts-card-btn"
+              onClick={() => onTopicSelect?.(t)}
+            >
+              <BiLabel k="start_this_activity" />
+              <span className="ts-card-btn-arrow">→</span>
+            </button>
+          ) : (
+            <span className="ts-card-btn ts-card-btn-locked" aria-disabled="true">
+              🔒{" "}
+              {previousSubLabel ? (
+                <BiLabel
+                  zh={`先完成 ${previousSubLabel}`}
+                  en={`Finish ${previousSubLabel} first`}
+                />
+              ) : (
+                <BiLabel zh="尚未解鎖" en="Not unlocked yet" />
+              )}
+            </span>
+          )}
         </div>
       </article>
     );
@@ -365,7 +394,9 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
           </div>
         </header>
 
-        <div className="ts-grid">{openGroup.topics.map(renderTopicCard)}</div>
+        <div className="ts-grid">
+          {openGroup.topics.map((t, index) => renderTopicCard(t, openGroup, index))}
+        </div>
         </div>
       </div>
     );

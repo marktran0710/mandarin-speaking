@@ -334,6 +334,31 @@
   transform: translateX(3px);
 }
 
+/* A story still waiting on the previous story in its lesson (5-2 before
+   5-1 is submitted) — dimmed and inert, same "not yet" language as a
+   locked lesson tile on the contents screen. */
+.ts-card-locked {
+  opacity: 0.6;
+}
+.ts-card-locked:hover {
+  transform: none;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+  border-color: var(--clay-hairline);
+}
+.ts-card-locked .ts-card-image img {
+  filter: grayscale(0.6);
+}
+
+.ts-card-btn-locked {
+  border-color: var(--clay-hairline);
+  background: var(--clay-surface-soft);
+  color: var(--clay-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  --bi-pinyin-color: var(--clay-muted);
+  --bi-en-color: var(--clay-muted);
+}
+
 /* ── Empty / loading states ── */
 .empty-state {
   max-width: 480px;

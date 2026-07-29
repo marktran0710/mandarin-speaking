@@ -121,6 +121,7 @@ export interface Topic {
   listenScripts?: Record<number, string>;
   linear?: boolean;
   lessonNumber?: number | null;
+  lessonSubOrder?: number | null;
   narrativeMode?: "story" | "describe" | "listen_retell";
   firstFrameIsExample?: boolean;
   difficultyLevel?: StoryDifficultyLevel;

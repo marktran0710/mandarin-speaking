@@ -19,6 +19,7 @@ import {
 import { storyQuizExclusions } from "../../utils/quizExclusions";
 import { buildApprovedMaterial, storyQuizNeedsReview } from "../../utils/quizApprovedMaterial";
 import { exportStoryFile, readStoryImportFile } from "../../utils/storyPortability";
+import { splitScriptIntoChunks } from "../../utils/scriptAlignment";
 import VocabularyTable from "../VocabularyTable";
 import PhraseTable from "../PhraseTable";
 import VocabGroupEditor from "../VocabGroupEditor";
@@ -174,10 +175,11 @@ const STORY_FRAME_GUIDES: StoryFrameGuide[] = [
 // one-line flip to bring back.
 const GRAMMAR_CANVAS_ENABLED = false;
 
-/** Fields that vary per difficulty tier — same scene/plot/imageUrl, just
- * progressively more complex text. Each holds one array per tier, all three
- * kept the same length as `imageUrls` (see updateFrameCount). */
+/** Fields that vary per difficulty tier — same scene/plot, just a
+ * progressively more complex image/text. Each holds one array per tier, all
+ * three kept the same length (see updateFrameCount). */
 type TieredDraftField =
+  | "imageUrls"
   | "prompts"
   | "vocabulary"
   | "vocabularyPinyin"
@@ -201,8 +203,9 @@ const emptyCustomStoryDraft = {
   title: "Taiwan Community Story",
   learningGoal: "Students describe who, where, what happened, and how people solved the problem.",
   lessonNumber: "",
+  lessonSubOrder: "",
   activeLevel: "easy" as StoryDifficultyLevel,
-  imageUrls: ["", "", "", "", "", ""],
+  imageUrls: blankTiers(6),
   prompts: {
     easy: [
       "Introduce the place and the people.",
@@ -233,6 +236,8 @@ const emptyCustomStoryDraft = {
 
 function validateCustomStoryDraft(
   draft: typeof emptyCustomStoryDraft,
+  existingStories: CustomTeacherStory[],
+  editingStoryId: string | null,
 ): CustomStoryValidationErrors {
   const errors: CustomStoryValidationErrors = {};
   const frameErrors: CustomStoryValidationErrors["frames"] = {};
@@ -245,7 +250,7 @@ function validateCustomStoryDraft(
     errors.learningGoal = "Add a learning goal so students know what to practice.";
   }
 
-  draft.imageUrls.forEach((imageUrl, index) => {
+  draft.imageUrls.easy.forEach((imageUrl, index) => {
     const imageMissing = !imageUrl.trim();
 
     if (imageMissing) {
@@ -257,6 +262,22 @@ function validateCustomStoryDraft(
 
   if (Object.keys(frameErrors).length > 0) {
     errors.frames = frameErrors;
+  }
+
+  // Two stories in the same lesson can't claim the same position — the
+  // in-lesson unlock (5-1 -> 5-2) needs a single well-defined order.
+  const lessonNumber = draft.lessonNumber.trim() ? Number(draft.lessonNumber) : null;
+  const lessonSubOrder = draft.lessonSubOrder.trim() ? Number(draft.lessonSubOrder) : null;
+  if (lessonNumber != null && lessonSubOrder != null) {
+    const clash = existingStories.some(
+      (story) =>
+        story.id !== editingStoryId &&
+        story.lessonNumber === lessonNumber &&
+        story.lessonSubOrder === lessonSubOrder,
+    );
+    if (clash) {
+      errors.form = `Another story is already Lesson ${lessonNumber}-${lessonSubOrder}. Pick a different story order.`;
+    }
   }
 
   return errors;
@@ -296,7 +317,7 @@ export default function StoryBuilderSection({
   const [importError, setImportError] = useState("");
   const [importNotice, setImportNotice] = useState("");
   const [lessonFilter, setLessonFilter] = useState<string>("all");
-  const preparedFrameCount = customDraft.imageUrls.filter((imageUrl, index) => {
+  const preparedFrameCount = customDraft.imageUrls.easy.filter((imageUrl, index) => {
     return imageUrl.trim() || customDraft.prompts.easy[index].trim();
   }).length;
 
@@ -318,7 +339,7 @@ export default function StoryBuilderSection({
   const clearNotice = () => setCustomStoryNotice("");
 
   const updateDraftField = (
-    field: "title" | "learningGoal" | "lessonNumber",
+    field: "title" | "learningGoal" | "lessonNumber" | "lessonSubOrder",
     value: string,
   ) => {
     setCustomDraft((draft) => ({ ...draft, [field]: value }));
@@ -339,7 +360,7 @@ export default function StoryBuilderSection({
     const clamped = Math.min(12, Math.max(1, count));
     setCustomDraft((draft) => ({
       ...draft,
-      imageUrls: resizeToCount(draft.imageUrls, clamped, ""),
+      imageUrls: resizeTiers(draft.imageUrls, clamped),
       prompts: resizeTiers(draft.prompts, clamped),
       vocabulary: resizeTiers(draft.vocabulary, clamped),
       vocabularyPinyin: resizeTiers(draft.vocabularyPinyin, clamped),
@@ -363,20 +384,15 @@ export default function StoryBuilderSection({
     }));
   };
 
-  // Text fields are edited one tier at a time (via the level dropdown) —
-  // `imageUrls` is the one frame field shared across all three tiers.
+  // Every tiered field, including images, is edited one tier at a time via
+  // the level dropdown — a blank tier falls back to Easy for students (see
+  // tierText in utils/teacherStories.ts).
   const updateDraftFrame = (
-    field: "imageUrls" | TieredDraftField,
+    field: TieredDraftField,
     index: number,
     value: string,
   ) => {
     setCustomDraft((draft) => {
-      if (field === "imageUrls") {
-        return {
-          ...draft,
-          imageUrls: draft.imageUrls.map((item, i) => (i === index ? value : item)),
-        };
-      }
       const level = draft.activeLevel;
       const tiers = draft[field];
       return {
@@ -599,7 +615,7 @@ export default function StoryBuilderSection({
   };
 
   const handleSaveCustomStory = async () => {
-    const errors = validateCustomStoryDraft(customDraft);
+    const errors = validateCustomStoryDraft(customDraft, customStories, editingStoryId);
     if (hasCustomStoryErrors(errors)) {
       setValidationErrors(errors);
       setCustomStoryNotice("");
@@ -809,7 +825,7 @@ export default function StoryBuilderSection({
           }}
         >
           <div className="teacher-form-grid">
-            <label>
+            <label className="teacher-field-span2">
               Story title
               <input
                 aria-invalid={Boolean(validationErrors.title)}
@@ -832,27 +848,29 @@ export default function StoryBuilderSection({
               />
             </label>
             <label>
-              Narrative type
-              <select
-                value={customDraft.narrativeMode}
-                onChange={(event) => {
-                  const narrativeMode = event.target.value as NarrativeMode;
-                  setCustomDraft((draft) => ({ ...draft, narrativeMode }));
-                  updateFrameCount(frameCountForMode(narrativeMode));
-                }}
-              >
-                <option value="story">Normal mode (story with scenes)</option>
-                <option value="describe">Descriptive (Describe the Picture)</option>
-                <option value="listen_retell">Listen &amp; Retell</option>
-              </select>
+              Story order in lesson
+              <input
+                type="number"
+                min={1}
+                disabled={!customDraft.lessonNumber.trim()}
+                value={customDraft.lessonSubOrder}
+                onChange={(event) => updateDraftField("lessonSubOrder", event.target.value)}
+                placeholder="e.g. 1 for 5-1, 2 for 5-2…"
+              />
             </label>
+            <p className="teacher-form-note">
+              Students must finish this story before the next order number in
+              the same lesson unlocks. Leave blank to keep this story
+              unordered — every story in the lesson needs an order number
+              before locking applies to any of them.
+            </p>
             <label>
               Number of frames
               <input
                 type="number"
                 min={1}
                 max={12}
-                value={customDraft.imageUrls.length}
+                value={customDraft.imageUrls.easy.length}
                 onChange={(event) => updateFrameCount(Number(event.target.value) || 1)}
               />
             </label>
@@ -876,8 +894,8 @@ export default function StoryBuilderSection({
           {customDraft.activeLevel !== "easy" && (
             <p className="teacher-tier-hint">
               Editing the {customDraft.activeLevel === "medium" ? "Medium" : "Hard"} version of each
-              scene's text below — the images and frame count stay shared with Easy. Any scene left
-              blank here falls back to its Easy text for students.
+              scene below — frame count stays shared with Easy. Any image or text left blank here
+              falls back to its Easy version for students.
             </p>
           )}
 
@@ -900,7 +918,7 @@ export default function StoryBuilderSection({
           </label>
 
 
-          {customDraft.narrativeMode === "story" && customDraft.imageUrls.length > 1 && (
+          {customDraft.narrativeMode === "story" && customDraft.imageUrls.easy.length > 1 && (
             <label className="teacher-checkbox-field">
               <input
                 type="checkbox"
@@ -950,10 +968,11 @@ export default function StoryBuilderSection({
           )}
 
           <div className="teacher-frame-editor">
-            {customDraft.imageUrls.map((imageUrl, index) => {
+            {customDraft.imageUrls.easy.map((_, index) => {
               const frameError = validationErrors.frames?.[index];
               const isExampleFrame = index === 0 && customDraft.firstFrameIsExample;
               const level = customDraft.activeLevel;
+              const imageUrl = customDraft.imageUrls[level][index];
 
               return (
               <div
@@ -992,16 +1011,18 @@ export default function StoryBuilderSection({
                 </div>
                 <div className="teacher-frame-fields">
                   <label>
-                    Image URL or uploaded file
+                    {level === "easy"
+                      ? "Image URL or uploaded file"
+                      : `Image URL or uploaded file (optional — falls back to Easy's image)`}
                     <input
-                      aria-invalid={Boolean(frameError?.imageUrl)}
+                      aria-invalid={level === "easy" && Boolean(frameError?.imageUrl)}
                       value={imageUrl}
                       onChange={(event) =>
                         updateDraftFrame("imageUrls", index, event.target.value)
                       }
                       placeholder="Paste an image link for this scene"
                     />
-                    {frameError?.imageUrl && (
+                    {level === "easy" && frameError?.imageUrl && (
                       <span className="teacher-form-error">
                         {frameError.imageUrl}
                       </span>
@@ -1055,7 +1076,7 @@ export default function StoryBuilderSection({
                       <label>
                         {isExampleFrame
                           ? "Example script (shown to students as a model — helps them know how to start)"
-                          : "Script (used to compare student voice)"}
+                          : "Script"}
                         <textarea
                           value={customDraft.suggestedAnswers[level][index] ?? ""}
                           onChange={(event) =>
@@ -1065,6 +1086,24 @@ export default function StoryBuilderSection({
                           placeholder={isExampleFrame ? "Write the model story text students will read before recording their own…" : "Write the sentence students should say. Their voice transcript will be compared with this script."}
                         />
                       </label>
+                      {!isExampleFrame && (() => {
+                        const chunks = splitScriptIntoChunks(
+                          customDraft.suggestedAnswers[level][index],
+                        );
+                        if (chunks.length <= 1) return null;
+                        return (
+                          <p className="script-chunk-preview">
+                            <span className="script-chunk-preview-lead">
+                              Auto-detected parts (edit punctuation above to adjust):
+                            </span>
+                            {chunks.map((chunk, chunkIndex) => (
+                              <span key={chunkIndex} className="script-chunk-preview-chip">
+                                {chunk}
+                              </span>
+                            ))}
+                          </p>
+                        );
+                      })()}
                       <button
                         type="button"
                         className="btn-vocab-autofill"
@@ -1148,7 +1187,7 @@ export default function StoryBuilderSection({
           </div>
 
           <div className="teacher-builder-actions">
-            <p>{preparedFrameCount}/{customDraft.imageUrls.length} frames prepared</p>
+            <p>{preparedFrameCount}/{customDraft.imageUrls.easy.length} frames prepared</p>
             <div className="teacher-builder-buttons">
               {editingStoryId && (
                 <button
@@ -1236,7 +1275,10 @@ export default function StoryBuilderSection({
                     <div>
                       <strong>
                         {story.lessonNumber != null && (
-                          <span className="topic-lesson-badge">Lesson {story.lessonNumber}</span>
+                          <span className="topic-lesson-badge">
+                            Lesson {story.lessonNumber}
+                            {story.lessonSubOrder != null && `-${story.lessonSubOrder}`}
+                          </span>
                         )}
                         {story.title}
                       </strong>
@@ -1329,6 +1371,7 @@ const TIER_BACKEND_FIELD: Record<
   TieredDraftField,
   { easy: keyof CustomStoryFrame; medium: keyof CustomStoryFrame; hard: keyof CustomStoryFrame }
 > = {
+  imageUrls: { easy: "imageUrl", medium: "imageUrlMedium", hard: "imageUrlHard" },
   prompts: { easy: "prompt", medium: "promptMedium", hard: "promptHard" },
   vocabulary: { easy: "vocabulary", medium: "vocabularyMedium", hard: "vocabularyHard" },
   vocabularyPinyin: {
@@ -1362,6 +1405,7 @@ const TIER_BACKEND_FIELD: Record<
 };
 
 const TIERED_DRAFT_FIELDS: TieredDraftField[] = [
+  "imageUrls",
   "prompts",
   "vocabulary",
   "vocabularyPinyin",
@@ -1382,7 +1426,7 @@ function createCustomStory(
     id: existingId || `custom-story-${Date.now()}`,
     title: draft.title.trim() || "Untitled teacher story",
     learningGoal: draft.learningGoal.trim(),
-    frames: draft.imageUrls.map((imageUrl, index) => {
+    frames: draft.imageUrls.easy.map((imageUrl, index) => {
       const frame: CustomStoryFrame = {
         imageUrl: imageUrl.trim(),
         prompt: draft.prompts.easy[index].trim(),
@@ -1423,6 +1467,7 @@ function createCustomStory(
     ...(draft.linear ? { linear: true } : {}),
     ...(draft.firstFrameIsExample ? { firstFrameIsExample: true } : {}),
     ...(draft.lessonNumber.trim() ? { lessonNumber: Number(draft.lessonNumber) } : {}),
+    ...(draft.lessonSubOrder.trim() ? { lessonSubOrder: Number(draft.lessonSubOrder) } : {}),
     narrativeMode: draft.narrativeMode,
   };
 }
@@ -1456,8 +1501,9 @@ function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
     title: story.title,
     learningGoal: story.learningGoal,
     lessonNumber: story.lessonNumber != null ? String(story.lessonNumber) : "",
+    lessonSubOrder: story.lessonSubOrder != null ? String(story.lessonSubOrder) : "",
     activeLevel: "easy",
-    imageUrls: frames.map((frame) => frame?.imageUrl || ""),
+    imageUrls: tiersFor("imageUrls"),
     prompts: tiersFor("prompts"),
     vocabulary: tiersFor("vocabulary"),
     vocabularyGroups: frames.map((frame) => frame?.vocabularyGroups || null),

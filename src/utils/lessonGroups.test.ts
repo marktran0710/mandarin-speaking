@@ -3,7 +3,9 @@ import {
   groupTopicsByLesson,
   isLessonGroupUnlocked,
   isStoryFinished,
+  isStoryUnlockedInLesson,
   lessonCompletion,
+  lessonHasOrderedStories,
   lessonTitle,
   topicStoryId,
 } from "./lessonGroups";
@@ -12,10 +14,16 @@ import type { Topic } from "../components/TopicSelector";
 // No images/vocabulary, so topicHasQuiz is false and these stories are
 // finished on submission alone — the tests that care about the ⭐⭐ half of
 // the rule build quiz-capable topics with quizTopic() instead.
-const topic = (id: string, lessonNumber: number | null, sourceId?: string): Topic =>
+const topic = (
+  id: string,
+  lessonNumber: number | null,
+  sourceId?: string,
+  lessonSubOrder?: number | null,
+): Topic =>
   ({
     id,
     lessonNumber,
+    lessonSubOrder: lessonSubOrder ?? null,
     images: [],
     vocabulary: {},
     ...(sourceId ? { sourceStory: { id: sourceId } } : {}),
@@ -72,6 +80,63 @@ describe("groupTopicsByLesson", () => {
 
   it("returns no groups for no topics", () => {
     expect(groupTopicsByLesson([])).toEqual([]);
+  });
+
+  it("sorts a lesson's topics by lessonSubOrder once every story in it has one", () => {
+    const groups = groupTopicsByLesson([
+      topic("teacher-c", 5, "c", 3),
+      topic("teacher-a", 5, "a", 1),
+      topic("teacher-b", 5, "b", 2),
+    ]);
+    expect(groups[0].topics.map((t) => t.id)).toEqual(["teacher-a", "teacher-b", "teacher-c"]);
+  });
+
+  it("keeps arrival order when any story in the lesson lacks a sub-order", () => {
+    const groups = groupTopicsByLesson([
+      topic("teacher-b", 5, "b", 2),
+      topic("teacher-a", 5, "a"), // no sub-order
+    ]);
+    expect(groups[0].topics.map((t) => t.id)).toEqual(["teacher-b", "teacher-a"]);
+  });
+});
+
+describe("lessonHasOrderedStories", () => {
+  it("is true only once every topic in the group has a lessonSubOrder", () => {
+    const ordered = { lessonNumber: 5, topics: [topic("a", 5, "a", 1), topic("b", 5, "b", 2)] };
+    const partial = { lessonNumber: 5, topics: [topic("a", 5, "a", 1), topic("b", 5, "b")] };
+    const empty = { lessonNumber: 5, topics: [] };
+    expect(lessonHasOrderedStories(ordered)).toBe(true);
+    expect(lessonHasOrderedStories(partial)).toBe(false);
+    expect(lessonHasOrderedStories(empty)).toBe(false);
+  });
+});
+
+describe("isStoryUnlockedInLesson", () => {
+  it("leaves every story open when the lesson isn't fully ordered", () => {
+    const group = { lessonNumber: 5, topics: [topic("a", 5, "a"), topic("b", 5, "b")] };
+    expect(isStoryUnlockedInLesson(group, 0, new Set())).toBe(true);
+    expect(isStoryUnlockedInLesson(group, 1, new Set())).toBe(true);
+  });
+
+  it("always opens the first story in an ordered lesson", () => {
+    const group = groupTopicsByLesson([topic("a", 5, "a", 1), topic("b", 5, "b", 2)])[0];
+    expect(isStoryUnlockedInLesson(group, 0, new Set())).toBe(true);
+  });
+
+  it("needs the previous story submitted — not ⭐⭐, just submitted", () => {
+    const group = groupTopicsByLesson([topic("a", 5, "a", 1), topic("b", 5, "b", 2)])[0];
+    expect(isStoryUnlockedInLesson(group, 1, new Set())).toBe(false);
+    expect(isStoryUnlockedInLesson(group, 1, new Set(["a"]))).toBe(true);
+  });
+
+  it("checks only the immediately preceding story in a 3-story chain", () => {
+    const group = groupTopicsByLesson([
+      topic("a", 5, "a", 1),
+      topic("b", 5, "b", 2),
+      topic("c", 5, "c", 3),
+    ])[0];
+    expect(isStoryUnlockedInLesson(group, 2, new Set(["a"]))).toBe(false);
+    expect(isStoryUnlockedInLesson(group, 2, new Set(["b"]))).toBe(true);
   });
 });
 

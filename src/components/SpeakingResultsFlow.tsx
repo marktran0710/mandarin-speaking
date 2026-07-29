@@ -2,13 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { BiLabel } from "./BiLabel";
 import AppButton from "./AppButton";
 import RecordingPlayback from "./RecordingPlayback";
+import PhrasePracticeDrill from "./PhrasePracticeDrill";
 import WordProsodyCard from "./WordProsodyCard";
 import {
   failedProsodyWords,
   isContentAccepted,
   weakToneGuideItems,
 } from "../utils/storyRecorderFeedback";
-import { scriptMismatchTokens } from "../utils/scriptAlignment";
+import {
+  scoreScriptChunks,
+  scriptMismatchTokens,
+  splitScriptIntoChunks,
+} from "../utils/scriptAlignment";
 import type { PraatMetrics, Topic } from "./StoryRecorder";
 import { toPinyin } from "../utils/pinyin";
 
@@ -90,6 +95,16 @@ export default function SpeakingResultsFlow({
   const vocabCoverage = ai?.vocabulary_coverage;
   const missing = vocabCoverage?.missing ?? [];
   const scriptMismatches = scriptMismatchTokens(modelSentence, praatMetrics.transcription);
+  // Punctuation defines the preferred meaning-chunk boundaries. Long scripts
+  // without punctuation still receive compact fallback chunks so the learner
+  // is never sent back to a whole sentence as their only repair action.
+  const scriptChunks = splitScriptIntoChunks(modelSentence);
+  const isChunked = scriptChunks.length > 1;
+  const chunkScores = isChunked
+    ? scoreScriptChunks(modelSentence, praatMetrics.transcription, praatMetrics.word_prosody)
+    : [];
+  const failedChunks = chunkScores.filter((chunk) => !chunk.passed);
+  const hasChunkMismatch = isChunked && failedChunks.length > 0;
   const usedCount = vocabCoverage?.used?.length ?? 0;
   const vocabTotal = usedCount + missing.length;
   const weakItems = weakToneGuideItems(praatMetrics.word_prosody || []);
@@ -111,21 +126,54 @@ export default function SpeakingResultsFlow({
   );
   const allDrillsCleared =
     practiceWords.length > 0 && remainingDrillWords.length === 0;
-  const wordsToPractice = Array.from(
-    new Set([...scriptMismatches, ...missing, ...practiceWords.map((word) => word.token)]),
+  const hasScriptMismatch = isChunked ? hasChunkMismatch : scriptMismatches.length > 0;
+  const needsPhrasePractice =
+    hasScriptMismatch || ((!accepted || missing.length > 0) && scriptChunks.length > 0);
+  const phrasePracticeItems = needsPhrasePractice
+    ? (isChunked
+      ? (failedChunks.length > 0
+        ? failedChunks.map((chunk) => chunk.text)
+        : (() => {
+          const vocabChunks = scriptChunks.filter((chunk) =>
+            missing.some((word) => chunk.includes(word)),
+          );
+          return vocabChunks.length > 0 ? vocabChunks : scriptChunks;
+        })())
+      : scriptChunks)
+    : [];
+  const [clearedPhrases, setClearedPhrases] = useState<string[]>([]);
+  const remainingPracticePhrases = phrasePracticeItems.filter(
+    (phrase) => !clearedPhrases.includes(phrase),
   );
-  const hasScriptMismatch = scriptMismatches.length > 0;
+  const allPhrasesCleared =
+    phrasePracticeItems.length > 0 && remainingPracticePhrases.length === 0;
+  // Meaning isn't fixed yet: only ever point at the teacher's own script
+  // (mismatched parts + missing vocabulary). word_prosody tokens come from
+  // the ASR transcript of whatever the student actually said, so once the
+  // sentence has drifted from the script those tokens are the student's
+  // wrong words, not something worth drilling. Once content is accepted,
+  // switch to pronunciation polish on the words that were actually said.
+  const wordsToPractice = isChunked
+    ? Array.from(new Set([...failedChunks.map((chunk) => chunk.text), ...missing]))
+    : !accepted || hasScriptMismatch
+      ? Array.from(new Set([...scriptMismatches, ...missing]))
+      : Array.from(new Set(practiceWords.map((word) => word.token)));
   const hasWordsToPractice = wordsToPractice.length > 0;
 
   // The one-verdict ladder: meaning and required vocabulary gate the unlock;
   // pronunciation polish follows only after the learner has said the script.
-  const verdict: "meaning" | "ready" | "vocab" | "pronounce" = !accepted || hasScriptMismatch
+  // A chunked script that has cleared every chunk but still isn't ready adds
+  // one more rung — the chunks are each fine alone, so what's missing is
+  // saying them together smoothly, not more word-level drilling.
+  const verdict: "meaning" | "ready" | "vocab" | "pronounce" | "join" = !accepted || hasScriptMismatch
     ? "meaning"
     : missing.length > 0
       ? "vocab"
-      : ready
-        ? "ready"
-        : "pronounce";
+      : isChunked && !ready
+        ? "join"
+        : ready
+          ? "ready"
+          : "pronounce";
 
   const showCorrective =
     narrativeMode !== "listen_retell" &&
@@ -137,7 +185,8 @@ export default function SpeakingResultsFlow({
   // drilling pronunciation of a sentence that means the wrong thing is
   // wasted effort, so the flow stops at "fix it" and points back to record.
   const hasFix = !accepted || missing.length > 0 || hasScriptMismatch;
-  const hasPractice = accepted && practiceWords.length > 0;
+  const hasPhrasePractice = phrasePracticeItems.length > 0;
+  const hasPractice = hasPhrasePractice || (accepted && !hasScriptMismatch && practiceWords.length > 0);
   const steps: ResultsStep[] = [
     "overview",
     ...(hasFix ? (["fix"] as const) : []),
@@ -162,6 +211,8 @@ export default function SpeakingResultsFlow({
     return first === -1 ? 0 : first;
   });
   const focusWord = practiceWords[focusIndex];
+  const [phraseFocusIndex, setPhraseFocusIndex] = useState(0);
+  const focusPhrase = phrasePracticeItems[phraseFocusIndex];
 
   // After a drill pass, linger briefly so the student sees their ✓ result,
   // then move focus to the next word still waiting.
@@ -188,6 +239,23 @@ export default function SpeakingResultsFlow({
       advanceTimer.current = window.setTimeout(() => {
         setFocusIndex(target);
       }, 1500);
+    }
+  };
+
+  const handlePhrasePass = (phrase: string) => {
+    setClearedPhrases((current) =>
+      current.includes(phrase) ? current : [...current, phrase],
+    );
+    const currentIndex = phrasePracticeItems.indexOf(phrase);
+    const nextIndex = phrasePracticeItems.findIndex(
+      (candidate, index) =>
+        index > currentIndex && !clearedPhrases.includes(candidate),
+    );
+    if (nextIndex !== -1) {
+      advanceTimer.current = window.setTimeout(
+        () => setPhraseFocusIndex(nextIndex),
+        1200,
+      );
     }
   };
 
@@ -242,6 +310,17 @@ export default function SpeakingResultsFlow({
           zh="再錄一次，讓聲調更清楚。"
           pinyin="Zài lù yí cì, ràng shēngdiào gèng qīngchu."
           en="Record again and make your tones clearer."
+        />
+      ),
+    },
+    join: {
+      icon: "🔗",
+      className: "sfc-verdict-join",
+      text: (
+        <BiLabel
+          zh="每個部分都不錯！現在試著把整句連起來，說得更順。"
+          pinyin="Měi ge bùfen dōu búcuò! Xiànzài shìzhe bǎ zhěng jù liánqǐlái, shuō de gèng shùn."
+          en="Every part sounds good! Now try saying the whole sentence smoothly, all connected."
         />
       ),
     },
@@ -319,7 +398,10 @@ export default function SpeakingResultsFlow({
       {hasWordsToPractice && (
         <div className="sfc-fail-preview">
           <span className="sfc-fail-preview-lead">
-            <BiLabel zh="要練的字：" en="Words to practice:" />
+            <BiLabel
+              zh={isChunked ? "要練的部分：" : "要練的字："}
+              en={isChunked ? "Parts to practice:" : "Words to practice:"}
+            />
           </span>
           {wordsToPractice.map((word) => {
             const practiceIndex = practiceWords.findIndex((item) => item.token === word);
@@ -386,6 +468,15 @@ export default function SpeakingResultsFlow({
           <BiLabel zh="看少了的生詞" en="See the missing words" /> →
         </AppButton>
       )}
+      {verdict === "join" && (
+        <AppButton
+          tone="primary"
+          className="sfc-btn-next sfc-step-cta"
+          onClick={onRecordAgain}
+        >
+          🎙️ <BiLabel zh="再錄一次，說順一點" en="Record again, smoother this time" />
+        </AppButton>
+      )}
       {verdict === "pronounce" &&
         (hasPractice ? (
           <AppButton
@@ -393,7 +484,7 @@ export default function SpeakingResultsFlow({
             className="sfc-btn-next sfc-step-cta"
             onClick={() => goToStep("practice")}
           >
-            <BiLabel zh="練習生詞" en="Practice the words" /> →
+            <BiLabel zh="練習生詞" en={hasPhrasePractice ? "Practice the parts" : "Practice the words"} /> →
           </AppButton>
         ) : (
           <AppButton
@@ -452,7 +543,31 @@ export default function SpeakingResultsFlow({
         </section>
       )}
 
-      {hasScriptMismatch && (
+      {hasScriptMismatch && isChunked && (
+        <section className="sfc-result-card sfc-result-card--vocab">
+          <header className="sfc-result-card-header">
+            <span aria-hidden="true">📝</span>
+            <BiLabel zh="跟讀對照（分段）" en="Script check (by part)" />
+          </header>
+          <div className="sfc-result-card-body">
+            <p className="sfc-result-card-lead">
+              <BiLabel zh="先練好還沒過的部分，再說一次整句" en="Practice the parts below, then say the whole sentence again." />
+            </p>
+            <div className="sfc-missing-chips">
+              {chunkScores.map((chunk, index) => (
+                <span
+                  key={`${chunk.text}-${index}`}
+                  className={`vocab-chip sfc-missing-chip${chunk.passed ? " is-cleared" : ""}`}
+                >
+                  {chunk.text} {chunk.passed ? "✓" : "✗"}
+                </span>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {hasScriptMismatch && !isChunked && (
         <section className="sfc-result-card sfc-result-card--vocab">
           <header className="sfc-result-card-header">
             <span aria-hidden="true">📝</span>
@@ -529,7 +644,7 @@ export default function SpeakingResultsFlow({
             className="sfc-btn-next sfc-step-cta"
             onClick={() => goToStep("practice")}
           >
-            <BiLabel zh="練習生詞" en="Practice the words" /> →
+            <BiLabel zh="練習生詞" en={hasPhrasePractice ? "Practice the parts" : "Practice the words"} /> →
           </AppButton>
         )}
       </div>
@@ -537,7 +652,7 @@ export default function SpeakingResultsFlow({
   );
 
   // ── Step body: practice (one word at a time) ──────────────────────────
-  const practiceStep = (
+  const wordPracticeStep = (
     <div className="sfc-step-panel">
       {allDrillsCleared ? (
         <div className="sfc-mastery-banner is-cleared">
@@ -619,6 +734,62 @@ export default function SpeakingResultsFlow({
     </div>
   );
 
+  const phrasePracticeStep = (
+    <div className="sfc-step-panel">
+      {allPhrasesCleared ? (
+        <div className="sfc-mastery-banner is-cleared">
+          <p className="sfc-mastery-lead">
+            Every part has passed. Now say the whole sentence naturally.
+          </p>
+        </div>
+      ) : (
+        <p className="sfc-mastery-lead sfc-practice-lead">
+          Practice one part at a time. The blue line is your pitch; the dashed
+          line is the target shape.
+        </p>
+      )}
+
+      <div className="sfc-practice-chips" aria-label="Phrase practice progress">
+        {phrasePracticeItems.map((phrase, index) => {
+          const cleared = clearedPhrases.includes(phrase);
+          return (
+            <button
+              key={`${phrase}-${index}`}
+              type="button"
+              className={`sfc-mastery-chip sfc-practice-chip ${cleared ? "is-cleared" : "is-pending"}${index === phraseFocusIndex ? " is-current" : ""}`}
+              onClick={() => setPhraseFocusIndex(index)}
+              aria-pressed={index === phraseFocusIndex}
+            >
+              {phrase} {cleared ? "✓" : ""}
+            </button>
+          );
+        })}
+      </div>
+
+      {focusPhrase && !allPhrasesCleared && (
+        <div className="sfc-focus-word sfc-focus-phrase">
+          <PhrasePracticeDrill
+            key={focusPhrase}
+            phrase={focusPhrase}
+            onPass={handlePhrasePass}
+          />
+        </div>
+      )}
+
+      {allPhrasesCleared && (
+        <AppButton
+          tone="primary"
+          className="sfc-btn-next sfc-step-cta"
+          onClick={onRecordAgain}
+        >
+          Record the whole sentence
+        </AppButton>
+      )}
+    </div>
+  );
+
+  const practiceStep = hasPhrasePractice ? phrasePracticeStep : wordPracticeStep;
+
   const stepBody = { overview: overviewStep, fix: fixStep, practice: practiceStep }[
     step
   ];
@@ -667,7 +838,15 @@ export default function SpeakingResultsFlow({
       </div>
 
       <footer className="sfc-footer">
-        {!ready && !masteryPassed && practiceWords.length > 0 ? (
+        {hasPhrasePractice && !allPhrasesCleared ? (
+          <p className="sfc-unlock-note">
+            Complete {remainingPracticePhrases.length} more part{remainingPracticePhrases.length === 1 ? "" : "s"} before recording the whole sentence.
+          </p>
+        ) : hasPhrasePractice && allPhrasesCleared && !ready ? (
+          <p className="sfc-unlock-note">
+            All parts passed. Record the full sentence once more to complete this scene.
+          </p>
+        ) : !ready && !masteryPassed && practiceWords.length > 0 ? (
           <p className="sfc-unlock-note">
             🔒{" "}
             <BiLabel

@@ -292,6 +292,10 @@
   background: var(--jade-soft);
   border: 1.5px solid var(--jade);
 }
+.sfc-verdict-join {
+  background: var(--lavender-soft);
+  border: 1.5px solid var(--lavender);
+}
 
 /* ── Stepper: 結果 → 改句子 → 練習 ──
    Numbered pills across the top of the results column. Steps that don't
@@ -539,6 +543,11 @@
   color: var(--gold-deep);
   border: 1px solid var(--gold);
 }
+.sfc-missing-chip.is-cleared {
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+  border-color: var(--jade);
+}
 
 .sfc-result-card--pronounce {
   border-color: var(--tone1);
@@ -634,6 +643,81 @@
 }
 
 /* ── Footer action bar ── */
+.sfc-focus-phrase {
+  margin-top: 12px;
+}
+.phrase-practice-drill {
+  border: 1px solid var(--tone1);
+  border-radius: var(--clay-radius-md);
+  background: var(--tone1-soft);
+  padding: 14px;
+}
+.phrase-practice-target {
+  margin: 0;
+  color: var(--clay-ink);
+  font-size: 22px;
+  font-weight: 750;
+}
+.phrase-practice-pinyin {
+  margin: 2px 0 0;
+  color: var(--clay-muted);
+  font-size: 13px;
+}
+.phrase-practice-instruction {
+  margin: 8px 0 12px;
+  color: var(--clay-body);
+  font-size: 13px;
+}
+.phrase-practice-result {
+  margin-top: 12px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  padding: 10px;
+}
+.phrase-practice-result.is-passed { border-color: var(--jade); }
+.phrase-practice-result.is-failed { border-color: var(--clay-error); }
+.phrase-practice-verdict {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.phrase-practice-legend.mini-contour-legend { margin: 8px 0; }
+.phrase-practice-word-results {
+  display: grid;
+  gap: 8px;
+}
+.phrase-practice-word {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.75fr) minmax(120px, 2fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft);
+  padding: 7px 9px;
+}
+.phrase-practice-word.is-passed { border-color: var(--jade); }
+.phrase-practice-word.is-failed { border-color: var(--clay-error); }
+.phrase-practice-word strong,
+.phrase-practice-word span,
+.phrase-practice-word small { display: block; }
+.phrase-practice-word span,
+.phrase-practice-word small {
+  color: var(--clay-muted);
+  font-size: 11px;
+}
+.phrase-practice-word .mini-contour-svg {
+  display: block;
+  width: 100%;
+  height: 48px;
+}
+
+@media (max-width: 480px) {
+  .phrase-practice-word { grid-template-columns: 1fr auto; }
+  .phrase-practice-word .mini-contour-svg { grid-column: 1 / -1; }
+}
+
 .sfc-footer {
   flex-shrink: 0;
   margin-top: 12px;

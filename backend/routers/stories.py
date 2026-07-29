@@ -89,9 +89,9 @@ async def create_custom_story(story: CustomStoryRequest):
             """
             INSERT INTO custom_stories (
                 id, title, learning_goal, frames, published, linear,
-                lesson_number, narrative_mode, first_frame_is_example
+                lesson_number, lesson_sub_order, narrative_mode, first_frame_is_example
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 title = EXCLUDED.title,
                 learning_goal = EXCLUDED.learning_goal,
@@ -99,6 +99,7 @@ async def create_custom_story(story: CustomStoryRequest):
                 published = EXCLUDED.published,
                 linear = EXCLUDED.linear,
                 lesson_number = EXCLUDED.lesson_number,
+                lesson_sub_order = EXCLUDED.lesson_sub_order,
                 narrative_mode = EXCLUDED.narrative_mode,
                 first_frame_is_example = EXCLUDED.first_frame_is_example
             """,
@@ -110,6 +111,7 @@ async def create_custom_story(story: CustomStoryRequest):
                 story.published,
                 story.linear,
                 story.lessonNumber,
+                story.lessonSubOrder,
                 story.narrativeMode,
                 story.firstFrameIsExample,
             ),
@@ -131,6 +133,8 @@ async def delete_custom_story(story_id: str):
     if row:
         for frame in row["frames"] or []:
             main.remove_uploaded_file(frame.get("imageUrl", ""))
+            main.remove_uploaded_file(frame.get("imageUrlMedium", ""))
+            main.remove_uploaded_file(frame.get("imageUrlHard", ""))
             main.remove_uploaded_file(frame.get("listenAudioUrl", ""))
     return {"ok": True}
 

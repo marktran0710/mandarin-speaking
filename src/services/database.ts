@@ -78,8 +78,11 @@ export interface CustomStoryFrame {
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
-  // Medium/Hard tiers of the same scene — same imageUrl/plot, progressively
-  // more complex text. Absent means that tier hasn't been authored yet.
+  // Medium/Hard tiers of the same scene — progressively more complex text,
+  // and optionally their own image. Absent means that tier hasn't been
+  // authored yet.
+  imageUrlMedium?: string;
+  imageUrlHard?: string;
   promptMedium?: string;
   promptHard?: string;
   vocabularyMedium?: string;
@@ -111,6 +114,7 @@ export interface StoredCustomStory {
   linear?: boolean;
   firstFrameIsExample?: boolean;
   lessonNumber?: number | null;
+  lessonSubOrder?: number | null;
   narrativeMode?: NarrativeMode;
 }
 

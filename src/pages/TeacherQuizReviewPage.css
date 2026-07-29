@@ -81,7 +81,6 @@
   --bi-pinyin-color: #ffffff;
   --bi-en-color: var(--clay-canvas);
 }
-.tqr-save:disabled { opacity: 0.5; cursor: not-allowed; }
 .tqr-status-ok { color: var(--jade-deep); font-weight: 700; font-size: 13px; }
 .tqr-status-error { color: var(--clay-error-deep); font-weight: 700; font-size: 13px; }
 .tqr-status-progress { color: var(--clay-muted); font-size: 13px; font-weight: 700; }
@@ -99,7 +98,6 @@
   cursor: pointer;
 }
 .tqr-validate:hover { border-color: var(--seal); }
-.tqr-validate:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Approve & Publish is the gate that actually changes what students see —
    the gold/--seal primary, same as the rest of the design system's most
@@ -119,7 +117,6 @@
   --bi-pinyin-color: var(--clay-on-seal);
   --bi-en-color: var(--clay-on-seal);
 }
-.tqr-approve:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .tqr-only-changes {
   display: inline-flex !important;
@@ -399,8 +396,7 @@
   font-weight: 700;
   cursor: pointer;
 }
-.tqr-generate:hover:not(:disabled) { background: var(--seal-soft); }
-.tqr-generate:disabled { opacity: 0.6; cursor: not-allowed; }
+.tqr-generate:hover { background: var(--seal-soft); }
 
 .tqr-generate-spinner {
   display: flex;
@@ -597,38 +593,6 @@
 .tqr-toolbar-spacer {
   flex: 1 1 auto;
 }
-
-.tqr-more-actions { position: relative; }
-.tqr-more-actions > summary {
-  min-height: 28px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 8px;
-  border-radius: var(--clay-radius-sm);
-  color: var(--clay-muted);
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  list-style: none;
-}
-.tqr-more-actions > summary::-webkit-details-marker { display: none; }
-.tqr-more-actions > summary::after { content: "⌄"; margin-left: 5px; }
-.tqr-more-actions[open] > summary { background: var(--clay-surface-soft); color: var(--clay-ink); }
-.tqr-more-actions-menu {
-  position: absolute;
-  right: 0;
-  z-index: 25;
-  min-width: 168px;
-  display: grid;
-  gap: 4px;
-  padding: 8px;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-card);
-  box-shadow: var(--shadow-md);
-}
-.tqr-more-actions-menu .tqr-io,
-.tqr-more-actions-menu .tqr-save { justify-content: flex-start; width: 100%; }
 
 .tqr-generate,
 .tqr-validate,

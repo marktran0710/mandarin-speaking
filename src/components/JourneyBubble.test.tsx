@@ -85,6 +85,30 @@ describe("JourneyBubble", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
+  it("adds best stars across stories instead of choosing the larger data-source total", async () => {
+    window.localStorage.setItem(
+      "vocabQuizStars:student",
+      JSON.stringify({ "s-lesson5": 2 }),
+    );
+    try {
+      render(
+        <JourneyBubble
+          studentName="Minh"
+          studentId="stu-1"
+          storyCount={2}
+          storyTitles={{ "s-lesson5": "Lesson 5", "s-market": "Market" }}
+          onJumpToStory={() => undefined}
+        />,
+      );
+
+      // The mocked backend has 1 star in s-market; local storage has 2 in
+      // s-lesson5. The badge must show their combined 3 of 6, not max(2, 1).
+      expect(await screen.findByText(/⭐ 3\/6/)).toBeInTheDocument();
+    } finally {
+      window.localStorage.removeItem("vocabQuizStars:student");
+    }
+  });
+
   it("folds tier-suffixed stars onto the base story — best across tiers, never the sum", async () => {
     // 2⭐ earned in a Medium-tier session, 1⭐ in the base (easy) session:
     // the story's stars are 2 (best), not 3 (sum) — enough to clear the
@@ -123,7 +147,7 @@ describe("JourneyBubble", () => {
     );
 
     const bubble = await screen.findByRole("button", { name: /我的錢包在哪裡/ });
-    expect(await screen.findByText(/⭐ 0\/2/)).toBeInTheDocument();
+    expect(await screen.findByText(/⭐ 1\/21/)).toBeInTheDocument();
     await userEvent.setup().click(bubble);
     expect(onJump).toHaveBeenCalledWith("s-lesson5");
   });
