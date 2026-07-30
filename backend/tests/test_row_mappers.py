@@ -61,6 +61,14 @@ def test_row_to_story_submission_shape():
     assert result["scenes"] == [{"sceneIndex": 0, "transcription": "你好"}]
     assert result["storyFeedback"] == {"overall": 7}
     assert result["concatenatedAudioUrl"] == "/uploads/story_audio/sub1.wav"
+    assert result["reviewStatus"] == "pending"
+    assert result["teacherNote"] is None
+
+    row["review_status"] = "reviewed"
+    row["teacher_note"] = "Strong scene transitions."
+    reviewed = database.row_to_story_submission(row)
+    assert reviewed["reviewStatus"] == "reviewed"
+    assert reviewed["teacherNote"] == "Strong scene transitions."
 
 
 def test_row_to_vocab_quiz_attempt_shape():
@@ -93,10 +101,12 @@ def test_row_to_audio_record_shape():
         "image_index": 0,
         "audio_url": "/uploads/audio/r1.wav",
         "praat_metrics": {"toneAccuracy": 0.8},
+        "student_id": None,
     }
     result = database.row_to_audio_record(row)
     assert result["praatMetrics"] == {"toneAccuracy": 0.8}
     assert result["topicId"] == "teacher-s1"
+    assert result["studentId"] is None
 
 
 def test_ensure_column_helpers_are_gone():

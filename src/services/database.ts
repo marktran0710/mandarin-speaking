@@ -190,6 +190,8 @@ export interface StorySubmission {
   scenes: SceneSubmission[];
   concatenatedAudioUrl?: string | null;
   storyFeedback?: StoryFeedback | null;
+  reviewStatus: "pending" | "reviewed";
+  teacherNote?: string | null;
 }
 
 export interface HelpRequest {
@@ -720,13 +722,34 @@ export async function listStorySubmissions(storyId?: string): Promise<StorySubmi
   return Array.isArray(data) ? data : [];
 }
 
-export async function createStorySubmission(submission: StorySubmission): Promise<StorySubmission> {
+export async function createStorySubmission(
+  submission: Omit<StorySubmission, "reviewStatus" | "teacherNote">,
+): Promise<StorySubmission> {
   const response = await fetchWithRetry(`${BACKEND_URL}/api/story-submissions`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(submission),
   });
   if (!response.ok) throw new Error("Could not submit story.");
+  return response.json() as Promise<StorySubmission>;
+}
+
+export async function updateSubmissionReview(
+  id: string,
+  status: "pending" | "reviewed",
+  note?: string | null,
+): Promise<StorySubmission> {
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/story-submissions/${encodeURIComponent(id)}/review`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status, note }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error("Could not update story submission review.");
+  }
   return response.json() as Promise<StorySubmission>;
 }
 

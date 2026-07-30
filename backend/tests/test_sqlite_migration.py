@@ -36,7 +36,8 @@ def legacy_db(tmp_path):
             id TEXT PRIMARY KEY, story_id TEXT NOT NULL, story_title TEXT NOT NULL,
             student_name TEXT NOT NULL, submitted_at TEXT NOT NULL, scenes TEXT NOT NULL,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            concatenated_audio_url TEXT, story_feedback TEXT);
+            concatenated_audio_url TEXT, story_feedback TEXT, review_status TEXT DEFAULT 'pending',
+            teacher_note TEXT);
         CREATE TABLE vocab_quiz_attempts (
             id TEXT PRIMARY KEY, story_id TEXT NOT NULL, student_name TEXT NOT NULL,
             completed_at TEXT NOT NULL, total_questions INTEGER NOT NULL,

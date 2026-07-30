@@ -334,7 +334,16 @@ export default function TeacherDashboardPage({
         )}
 
         {activeView === "submissions" && (
-          <TeacherSubmissionsView submissions={submissions} />
+          <TeacherSubmissionsView
+            submissions={submissions}
+            onReviewUpdate={(updated) =>
+              setSubmissions((previous) =>
+                previous.map((submission) =>
+                  submission.id === updated.id ? updated : submission,
+                ),
+              )
+            }
+          />
         )}
 
         {activeView === "recordingsHelp" && (

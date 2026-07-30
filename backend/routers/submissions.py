@@ -1,14 +1,14 @@
 import os
 from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from psycopg.types.json import Jsonb
 
 from database import connect_db, row_to_story_submission
 from audio_concat import concatenate_scene_audio
 from ai_feedback import generate_story_feedback
 import main
-from main import StorySubmissionRequest
+from main import StorySubmissionRequest, SubmissionReviewRequest
 
 router = APIRouter()
 
@@ -26,6 +26,31 @@ async def list_story_submissions(story_id: Optional[str] = None):
                 "SELECT * FROM story_submissions ORDER BY submitted_at DESC"
             ).fetchall()
     return [row_to_story_submission(row) for row in rows]
+
+
+@router.patch("/api/story-submissions/{submission_id}/review")
+async def update_story_submission_review(
+    submission_id: str, review: SubmissionReviewRequest
+):
+    if review.status not in {"pending", "reviewed"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Review status must be pending or reviewed.",
+        )
+
+    with connect_db() as db:
+        updated = db.execute(
+            """
+            UPDATE story_submissions
+            SET review_status = %s, teacher_note = %s
+            WHERE id = %s
+            RETURNING *
+            """,
+            (review.status, review.note, submission_id),
+        ).fetchone()
+        if updated is None:
+            raise HTTPException(status_code=404, detail="Story submission not found")
+    return row_to_story_submission(updated)
 
 
 @router.post("/api/story-submissions")
@@ -124,18 +149,18 @@ async def create_story_submission(submission: StorySubmissionRequest):
         main.logger.error("Story feedback generation failed for %s: %s", submission.id, exc)
 
     with connect_db() as db:
-        db.execute(
-            "UPDATE story_submissions SET concatenated_audio_url = %s, story_feedback = %s WHERE id = %s",
+        updated = db.execute(
+            """
+            UPDATE story_submissions
+            SET concatenated_audio_url = %s, story_feedback = %s
+            WHERE id = %s
+            RETURNING *
+            """,
             (
                 concatenated_audio_url,
                 Jsonb(story_feedback) if story_feedback else None,
                 submission.id,
             ),
-        )
+        ).fetchone()
 
-    return {
-        **submission.model_dump(),
-        "scenes": [s.model_dump() for s in scenes_sorted],
-        "concatenatedAudioUrl": concatenated_audio_url,
-        "storyFeedback": story_feedback,
-    }
+    return row_to_story_submission(updated)

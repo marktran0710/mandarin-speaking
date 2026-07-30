@@ -1016,6 +1016,105 @@
   flex-shrink: 0;
 }
 
+.story-submission-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.submission-review-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--clay-on-accent);
+  white-space: nowrap;
+}
+
+.submission-review-pending {
+  background: var(--gold-deep);
+}
+
+.submission-review-reviewed {
+  background: var(--jade);
+}
+
+.story-submission-review-button,
+.story-submission-note-button {
+  padding: 7px 10px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.story-submission-review-button:hover:not(:disabled),
+.story-submission-note-button:hover {
+  border-color: var(--jade);
+  color: var(--jade-deep);
+}
+
+.story-submission-review-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.story-submission-note-editor {
+  display: grid;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--clay-hairline-soft);
+}
+
+.story-submission-note-editor label {
+  display: grid;
+  gap: 6px;
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.story-submission-note-editor textarea {
+  min-height: 72px;
+  resize: vertical;
+  padding: 9px 12px;
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  font: inherit;
+}
+
+.story-submission-note-editor .story-submission-review-button {
+  justify-self: start;
+}
+
+.story-submission-note {
+  margin: 0;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--clay-hairline-soft);
+  color: var(--clay-body);
+  font-size: 13px;
+}
+
+.story-submission-review-error {
+  margin: 0 0 14px;
+  color: var(--clay-error);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .story-submission-scenes {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -2369,7 +2468,8 @@
   letter-spacing: 0.03em;
 }
 
-.quiz-analytics-filters select {
+.quiz-analytics-filters select,
+.quiz-analytics-filters input {
   min-width: 180px;
   padding: 9px 12px;
   border: 1.5px solid var(--clay-hairline);

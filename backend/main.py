@@ -550,6 +550,11 @@ class StorySubmissionRequest(BaseModel):
     scenes: List[SceneSubmission] = []
 
 
+class SubmissionReviewRequest(BaseModel):
+    status: str
+    note: Optional[str] = None
+
+
 class VocabQuizQuestionResult(BaseModel):
     word: str = Field(..., max_length=200)
     correct: bool

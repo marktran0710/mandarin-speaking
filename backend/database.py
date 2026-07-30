@@ -105,6 +105,8 @@ def row_to_story_submission(row: dict) -> dict:
         "scenes": row["scenes"] or [],
         "concatenatedAudioUrl": row.get("concatenated_audio_url"),
         "storyFeedback": row.get("story_feedback"),
+        "reviewStatus": row.get("review_status") or "pending",
+        "teacherNote": row.get("teacher_note"),
     }
 
 
