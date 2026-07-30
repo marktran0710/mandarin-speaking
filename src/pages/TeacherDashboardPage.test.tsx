@@ -487,7 +487,7 @@ describe("Quiz Analytics tab", () => {
 
   async function openQuizAnalytics(user: ReturnType<typeof userEvent.setup>) {
     await user.click(screen.getByRole("button", { name: /Analytics/ }));
-    // "Quiz" is the default analytics sub-tab, so it's already showing.
+    await user.click(screen.getByRole("tab", { name: /Quiz trends/ }));
   }
 
   it("shows per-student accuracy, time, and repeated-mistake analytics", async () => {
@@ -605,7 +605,7 @@ describe("Recording Analytics tab", () => {
     );
 
     await user.click(screen.getByRole("button", { name: /Analytics/ }));
-    await user.click(screen.getByRole("tab", { name: /Recordings/ }));
+    await user.click(screen.getByRole("tab", { name: /Recording trends/ }));
 
     await screen.findByText("Fluency & tone accuracy over time");
     expect(screen.getByText("78/100")).toBeInTheDocument();
@@ -629,7 +629,7 @@ describe("Recording Analytics tab", () => {
     );
 
     await user.click(screen.getByRole("button", { name: /Analytics/ }));
-    await user.click(screen.getByRole("tab", { name: /Recordings/ }));
+    await user.click(screen.getByRole("tab", { name: /Recording trends/ }));
 
     expect(await screen.findByText("No recordings yet")).toBeInTheDocument();
   });

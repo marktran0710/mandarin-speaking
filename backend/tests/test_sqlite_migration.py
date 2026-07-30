@@ -26,7 +26,7 @@ def legacy_db(tmp_path):
             quiz_exclusions TEXT);
         CREATE TABLE audio_records (
             id TEXT PRIMARY KEY, timestamp TEXT NOT NULL, duration INTEGER NOT NULL,
-            transcription TEXT NOT NULL DEFAULT '', model TEXT NOT NULL, topic_id TEXT,
+            transcription TEXT NOT NULL DEFAULT '', model TEXT NOT NULL, topic_id TEXT, student_id TEXT,
             image_url TEXT, image_index INTEGER, audio_url TEXT, praat_metrics TEXT,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
         CREATE TABLE help_requests (

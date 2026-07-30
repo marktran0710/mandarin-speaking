@@ -29,7 +29,12 @@ Chart.defaults.plugins.legend.labels.boxHeight = 8;
 // Colors are resolved hex for --seal (cinnabar) / --jade / --gold-deep
 // (Chart.js can't read CSS custom properties) — keep in sync with
 // src/index.css. These stay at their light-mode values in dark mode.
-export const QUIZ_MODE_INFO: Record<"speed" | "strikes" | "free", { icon: string; label: string; color: string }> = {
+export type QuizAnalyticsMode = "tier1" | "tier2" | "tier3" | "speed" | "strikes" | "free";
+
+export const QUIZ_MODE_INFO: Record<QuizAnalyticsMode, { icon: string; label: string; color: string }> = {
+  tier1: { icon: "★", label: "Tier 1", color: "#e9a825" },
+  tier2: { icon: "★★", label: "Tier 2", color: "#1c9a5b" },
+  tier3: { icon: "★★★", label: "Tier 3", color: "#0b5fa8" },
   speed: { icon: "⏱️", label: "Speed", color: "#e9a825" },
   strikes: { icon: "❌", label: "3 Strikes", color: "#1c9a5b" },
   free: { icon: "🎯", label: "Free Practice", color: "#8a5a12" },
@@ -81,7 +86,7 @@ export function QuizChartCanvas({
   );
 }
 
-export function ModeAccuracyChart({ data }: { data: Array<{ mode: "speed" | "strikes" | "free"; avg: number; count: number }> }) {
+export function ModeAccuracyChart({ data }: { data: Array<{ mode: QuizAnalyticsMode; avg: number; count: number }> }) {
   const build = useMemo(
     () => (ctx: CanvasRenderingContext2D) =>
       new Chart(ctx, {
@@ -372,7 +377,7 @@ export function RecordingsPerTopicChart({ data }: { data: Array<{ topic: string;
 export function TimeAccuracyScatterChart({
   points,
 }: {
-  points: Array<{ mode: "speed" | "strikes" | "free"; secondsPerQuestion: number; accuracy: number }>;
+  points: Array<{ mode: QuizAnalyticsMode; secondsPerQuestion: number; accuracy: number }>;
 }) {
   const build = useMemo(
     () => (ctx: CanvasRenderingContext2D) =>
@@ -425,7 +430,9 @@ export function TimeAccuracyScatterChart({
   return <QuizChartCanvas build={build} ariaLabel="Scatter chart: time per question versus accuracy" />;
 }
 
-const QUIZ_MODE_ORDER_FOR_SCATTER: Array<"speed" | "strikes" | "free"> = ["speed", "strikes", "free"];
+const QUIZ_MODE_ORDER_FOR_SCATTER: QuizAnalyticsMode[] = [
+  "tier1", "tier2", "tier3", "speed", "strikes", "free",
+];
 
 /** One point per recording, plotted by fluency vs. tone accuracy — reveals
  * whether the two move together (a student weak in one tends to be weak in

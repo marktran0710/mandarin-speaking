@@ -37,6 +37,7 @@ export interface AudioRecord {
   transcription: string;
   model: string;
   topicId?: string;
+  studentId?: string | null;
   imageUrl?: string;
   imageIndex?: number;
   audioUrl?: string;

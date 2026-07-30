@@ -2051,6 +2051,72 @@
   color: var(--gold-deep);
 }
 
+.student-assessment-list,
+.student-profile-list {
+  display: grid;
+  gap: var(--space-xs);
+}
+
+.student-assessment-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.student-assessment-row:hover {
+  border-color: var(--jade);
+  background: var(--jade-soft);
+}
+
+.student-assessment-row span {
+  color: var(--clay-body);
+  font-size: var(--text-sm);
+}
+
+.student-profile-view {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.student-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
+  gap: var(--space-lg);
+}
+
+.student-profile-grid h3 {
+  margin: 0 0 var(--space-xs);
+  color: var(--clay-ink);
+  font-size: var(--text-base);
+}
+
+.student-profile-grid h3:not(:first-child) {
+  margin-top: var(--space-lg);
+}
+
+.student-profile-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--clay-hairline-soft);
+  color: var(--clay-body);
+}
+
+.student-profile-list strong {
+  color: var(--clay-ink);
+}
+
 .insights-list {
   display: flex;
   flex-direction: column;

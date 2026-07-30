@@ -128,7 +128,7 @@
 | 11 | 🟡 | Quiz data | 146 distractor tiếng Anh đồng nghĩa với đáp án (好吃→"tasty", 我→"me", 兩點半→"half past two"…) = 2 đáp án đúng ở tier 2+ | **ĐÃ FIX 23/07** — gỡ qua `scripts/fix-quiz-distractors.mjs`; story MỚI sau này cần chạy lại lượt duyệt ngữ nghĩa |
 | 12 | 🟡 | Teacher Overview | Hàng stat card lệch phải ~95px so với header/panel (margin:auto trong flex column của shell) | **ĐÃ FIX 23/07** — mở rộng rule width:100% cho nhóm class legacy (TeacherDashboardPage.css) |
 | 13 | 🟡 | Teacher Analytics | Hàng stat tile dừng lửng (grid cứng `repeat(4,1fr)` với 3 tile) | **ĐÃ FIX 23/07** — `repeat(auto-fit, minmax(220px,1fr))` |
-| 14 | 🔴 | Teacher Insights | Cả tab trắng: backend `VALID_MODES` không nhận mode tier1/2/3 → 400; kèm panel shrink-centered | **ĐÃ FIX 23/07** — thêm tier modes vào `vocab_quiz_analytics.py` + `.insights-view` vào rule width; Insights render đủ (Star Board/IRT/Hardest Words), verify cả light lẫn dark; backend 416 test pass |
+| 14 | 🔴 | Teacher Insights | The former mode validation omitted tier1/2/3, which left the view blank. | **Fixed 23/07**; this retired view has since been replaced by student-focused analytics. |
 | 15 | ⚪ | Teacher Insights | Class Star Board hiện raw id `custom-story-178…` thay vì tên story | Sau demo |
 | 16 | 🟡 | Teacher Analytics | Chart "Accuracy by quiz mode" chỉ vẽ mode cũ (Speed/Strikes/Free), chưa có cột tier1/2/3 — cùng họ #14 nhưng phía frontend chart | Cần fix hoặc né khi demo |
 | 17 | ⚪ | Alignment sweep | Quét tĩnh toàn bộ: các `margin:auto` còn lại đều trong block context (hợp lệ); Roster hẹp 560px là chủ đích; padding lẻ 11-15px là nội bộ input, không đụng | Đóng 23/07 |

@@ -1,7 +1,14 @@
 import { useState } from "react";
 import type { VocabQuizAttempt } from "../services/database";
 import DashboardStat from "./DashboardStat";
-import { AccuracyTimeChart, ModeAccuracyChart, QUIZ_MODE_INFO, TimeAccuracyScatterChart, WordMissChart } from "./MyStoriesCharts";
+import {
+  AccuracyTimeChart,
+  ModeAccuracyChart,
+  QUIZ_MODE_INFO,
+  TimeAccuracyScatterChart,
+  WordMissChart,
+  type QuizAnalyticsMode,
+} from "./MyStoriesCharts";
 import {
   computeStudentQuizStats,
   computeWordMissStats,
@@ -14,7 +21,9 @@ import {
   type WordMissSeverity,
 } from "../utils/myStoriesUtils";
 
-const QUIZ_MODE_ORDER: Array<"speed" | "strikes" | "free"> = ["speed", "strikes", "free"];
+const QUIZ_MODE_ORDER: QuizAnalyticsMode[] = [
+  "tier1", "tier2", "tier3", "speed", "strikes", "free",
+];
 const DATE_RANGE_OPTIONS: DateRangePreset[] = ["all", "7d", "30d", "90d"];
 
 const WORD_SEVERITY_LABEL: Record<WordMissSeverity, string> = {
@@ -32,7 +41,7 @@ export default function QuizAnalyticsPanel({
 }) {
   const [dateRange, setDateRange] = useState<DateRangePreset>("all");
   const [studentFilter, setStudentFilter] = useState("all");
-  const [modeFilter, setModeFilter] = useState<"all" | "speed" | "strikes" | "free">("all");
+  const [modeFilter, setModeFilter] = useState<"all" | QuizAnalyticsMode>("all");
 
   if (loadError) {
     return (
@@ -125,8 +134,8 @@ export default function QuizAnalyticsPanel({
     // Attempts saved before quiz mode was tracked have no mode — excluded
     // here rather than guessed, since which mode they're plotted as
     // changes what the color-by-mode split actually means.
-    .filter((a): a is typeof a & { mode: "speed" | "strikes" | "free" } =>
-      a.totalQuestions > 0 && a.mode != null,
+    .filter((a): a is typeof a & { mode: QuizAnalyticsMode } =>
+      a.totalQuestions > 0 && QUIZ_MODE_ORDER.includes(a.mode as QuizAnalyticsMode),
     )
     .map((a) => ({
       mode: a.mode,

@@ -53,6 +53,7 @@ interface AudioRecord {
   model: SpeechModel;
   praatMetrics?: any;
   topicId?: string;
+  studentId?: string | null;
   imageUrl?: string;
   imageIndex?: number;
   audioUrl?: string;
@@ -183,8 +184,9 @@ export default function App() {
   }, []);
 
   const addAudioRecord = async (record: AudioRecord): Promise<string | undefined> => {
-    setAudioRecords((prev) => [record, ...prev]);
-    const audioData = serializeAudioRecord(record);
+    const linkedRecord = { ...record, studentId: getStudentId() };
+    setAudioRecords((prev) => [linkedRecord, ...prev]);
+    const audioData = serializeAudioRecord(linkedRecord);
     const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
     localStorage.setItem(
       "audioRecords",
@@ -450,6 +452,7 @@ function serializeAudioRecord(record: AudioRecord): StoredAudioRecord {
     transcription: record.transcription,
     model: record.model,
     topicId: record.topicId,
+    studentId: getStudentId(),
     imageUrl: record.imageUrl,
     imageIndex: record.imageIndex,
     audioUrl: record.audioUrl,

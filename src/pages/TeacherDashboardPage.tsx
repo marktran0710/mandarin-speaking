@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   canUseDatabase,
   HelpRequest,
   listStorySubmissions,
+  listStudents,
   listVocabQuizAttempts,
+  type Student,
   type StorySubmission,
   type VocabQuizAttempt,
 } from "../services/database";
@@ -13,15 +15,18 @@ import StoryBuilderSection from "../components/teacher/StoryBuilderSection";
 import TeacherHelpQueue from "../components/TeacherHelpQueue";
 import TeacherProgressView from "../components/TeacherProgressView";
 import TeacherRosterView from "../components/TeacherRosterView";
-import TeacherInsightsView from "../components/TeacherInsightsView";
 import TeacherRecordingsView from "../components/TeacherRecordingsView";
 import TeacherSubmissionsView from "../components/TeacherSubmissionsView";
 import QuizAnalyticsPanel from "../components/QuizAnalyticsPanel";
 import RecordingAnalyticsPanel from "../components/RecordingAnalyticsPanel";
+import TeacherStarBoard from "../components/TeacherStarBoard";
+import TeacherStudentProfile from "../components/TeacherStudentProfile";
+import TeacherWatchlist from "../components/TeacherWatchlist";
 import DashboardStat from "../components/DashboardStat";
 import TeacherImageBuilderPage from "./TeacherImageBuilderPage";
 import TeacherQuizReviewPage from "./TeacherQuizReviewPage";
 import { formatRequestTime, getAverageMetric } from "../utils/myStoriesUtils";
+import { buildStudentAssessments } from "../utils/studentAssessment";
 // Legacy view internals (panels, tables, builder form) still live in the
 // shared stylesheet; the shell + overview styles are in the two new files.
 import "./MyStoriesPage.css";
@@ -31,7 +36,7 @@ import "./TeacherDashboardPage.css";
 type RecordingsHelpTab = "recordings" | "help";
 type MaterialsTab = "builder" | "imageBuilder" | "quizReview";
 type StudentsTab = "progress" | "roster";
-type AnalyticsTab = "quiz" | "recordings" | "insights";
+type AnalyticsTab = "students" | "quizTrends" | "recordingTrends";
 
 const VIEW_COPY: Record<TeacherView, { eyebrow: string; title: string; description: string }> = {
   overview: {
@@ -122,7 +127,7 @@ export default function TeacherDashboardPage({
     null,
   );
   const [studentsTab, setStudentsTab] = useState<StudentsTab>("progress");
-  const [analyticsTab, setAnalyticsTab] = useState<AnalyticsTab>("quiz");
+  const [analyticsTab, setAnalyticsTab] = useState<AnalyticsTab>("students");
   const [refreshing, setRefreshing] = useState(false);
   const [submissions, setSubmissions] = useState<StorySubmission[]>([]);
 
@@ -138,6 +143,9 @@ export default function TeacherDashboardPage({
 
   const [quizAttempts, setQuizAttempts] = useState<VocabQuizAttempt[]>([]);
   const [quizAttemptsError, setQuizAttemptsError] = useState("");
+  const [students, setStudents] = useState<Student[]>([]);
+  const [studentsError, setStudentsError] = useState("");
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
 
   const loadQuizAttempts = useCallback(async () => {
     if (!canUseDatabase()) return;
@@ -149,10 +157,27 @@ export default function TeacherDashboardPage({
     }
   }, []);
 
+  const loadStudents = useCallback(async () => {
+    if (!canUseDatabase()) return;
+    setStudentsError("");
+    try {
+      setStudents(await listStudents());
+    } catch {
+      setStudentsError("Could not load the student roster for analytics.");
+    }
+  }, []);
+
   useEffect(() => {
     if (activeView !== "analytics") return;
     loadQuizAttempts();
-  }, [activeView, loadQuizAttempts]);
+    loadStudents();
+  }, [activeView, loadQuizAttempts, loadStudents]);
+
+  const assessments = useMemo(
+    () => buildStudentAssessments(students, quizAttempts, records, submissions),
+    [students, quizAttempts, records, submissions],
+  );
+  const selectedAssessment = assessments.find((assessment) => assessment.studentId === selectedStudentId) ?? null;
 
   const analyzedRecords = records.filter((record) => record.praatMetrics);
   const feedbackReadyRecords = records.filter(
@@ -185,7 +210,7 @@ export default function TeacherDashboardPage({
         onRefreshRecords
           ? async () => {
               setRefreshing(true);
-              await Promise.all([onRefreshRecords(), loadQuizAttempts()]);
+              await Promise.all([onRefreshRecords(), loadQuizAttempts(), loadStudents()]);
               setRefreshing(false);
             }
           : undefined
@@ -378,20 +403,68 @@ export default function TeacherDashboardPage({
             <SubTabs
               ariaLabel="Analytics"
               tabs={[
-                { id: "quiz" as const, label: "Quiz", count: quizAttempts.length },
-                { id: "recordings" as const, label: "Recordings", count: feedbackReadyRecords.length },
-                { id: "insights" as const, label: "Insights" },
+                { id: "students" as const, label: "Students", count: assessments.filter((assessment) => assessment.watchlistReasons.length > 0).length },
+                { id: "quizTrends" as const, label: "Quiz trends", count: quizAttempts.length },
+                { id: "recordingTrends" as const, label: "Recording trends", count: feedbackReadyRecords.length },
               ]}
               active={analyticsTab}
               onSelect={setAnalyticsTab}
             />
-            {analyticsTab === "quiz" && (
+            {analyticsTab === "students" && (
+              selectedAssessment ? (
+                <TeacherStudentProfile
+                  assessment={selectedAssessment}
+                  attempts={quizAttempts}
+                  records={records}
+                  onClose={() => setSelectedStudentId(null)}
+                />
+              ) : (
+                <>
+                  {studentsError && <p className="teacher-form-error">{studentsError}</p>}
+                  <TeacherWatchlist assessments={assessments} onSelectStudent={setSelectedStudentId} />
+                  <TeacherStarBoard assessments={assessments} />
+                  <section className="teacher-panel">
+                    <div className="teacher-panel-header">
+                      <div>
+                        <p className="stories-kicker">Class roster</p>
+                        <h2>All students</h2>
+                      </div>
+                      <span className="queue-count">{assessments.length}</span>
+                    </div>
+                    {assessments.length === 0 ? (
+                      <div className="teacher-empty-panel">
+                        <strong>No students in the roster yet</strong>
+                        <p>Add students from the Students section to see their linked assessment history here.</p>
+                      </div>
+                    ) : (
+                      <div className="student-assessment-list">
+                        {assessments.map((assessment) => (
+                          <button
+                            type="button"
+                            className="student-assessment-row"
+                            key={assessment.studentId}
+                            onClick={() => setSelectedStudentId(assessment.studentId)}
+                          >
+                            <strong>{assessment.studentName}</strong>
+                            <span>
+                              {assessment.quiz.accuracyPct === null
+                                ? "No quiz attempts yet"
+                                : `${assessment.quiz.accuracyPct}% quiz accuracy`}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                </>
+              )
+            )}
+            {analyticsTab === "quizTrends" && (
               <QuizAnalyticsPanel attempts={quizAttempts} loadError={quizAttemptsError} />
             )}
-            {analyticsTab === "recordings" && (
+            {analyticsTab === "recordingTrends" && (
               <RecordingAnalyticsPanel records={records} />
             )}
-            {analyticsTab === "insights" && <TeacherInsightsView />}
           </>
         )}
       </div>

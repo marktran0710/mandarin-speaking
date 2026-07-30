@@ -85,6 +85,7 @@ def row_to_audio_record(row: dict) -> dict:
         "transcription": row["transcription"],
         "model": row["model"],
         "topicId": row["topic_id"],
+        "studentId": row["student_id"],
         "imageUrl": row["image_url"],
         "imageIndex": row["image_index"],
         "audioUrl": row["audio_url"],

@@ -90,7 +90,7 @@ export default function RecordingAnalyticsPanel({ records }: { records: AudioRec
   }));
 
   const perTopic = topicIds
-    .map((id) => ({ topic: getTopicLabel(id), count: records.filter((r) => r.topicId === id).length }))
+    .map((id) => ({ topic: getTopicLabel(id), count: filtered.filter((r) => r.topicId === id).length }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
