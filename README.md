@@ -394,12 +394,12 @@ VITE_BACKEND_URL=http://localhost:8001
 ## User Roles
 
 ### Teacher login
-- Default password: `teacher123` (set in backend)
+- Name only — no password. Role separation is UI-only (a local session flag), not backend-authenticated; anyone who navigates to `/teacher.html` and enters a name reaches the dashboard.
 - Access: Dashboard, Image Builder
 - Can create/publish stories, view all student recordings, resolve help requests
 
 ### Student login
-- Default password: `student123`
+- Default password: `123456`, stored per student in the roster
 - Access: Training (speaking practice), My Stories
 - Can practice published stories, raise a hand for help
 

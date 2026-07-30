@@ -13,7 +13,6 @@ import type { AudioRecord } from "./MyStoriesPage";
 import TeacherShell, { type TeacherView } from "../components/teacher/TeacherShell";
 import StoryBuilderSection from "../components/teacher/StoryBuilderSection";
 import TeacherHelpQueue from "../components/TeacherHelpQueue";
-import TeacherProgressView from "../components/TeacherProgressView";
 import TeacherRosterView from "../components/TeacherRosterView";
 import TeacherRecordingsView from "../components/TeacherRecordingsView";
 import TeacherSubmissionsView from "../components/TeacherSubmissionsView";
@@ -35,7 +34,6 @@ import "./TeacherDashboardPage.css";
 /** Sub-tab definitions for the merged sidebar sections. */
 type RecordingsHelpTab = "recordings" | "help";
 type MaterialsTab = "builder" | "imageBuilder" | "quizReview";
-type StudentsTab = "progress" | "roster";
 type AnalyticsTab = "students" | "quizTrends" | "recordingTrends";
 
 const VIEW_COPY: Record<TeacherView, { eyebrow: string; title: string; description: string }> = {
@@ -132,7 +130,6 @@ export default function TeacherDashboardPage({
   const [quizReviewJump, setQuizReviewJump] = useState<{ lessonNumber: number | null; nonce: number } | null>(
     null,
   );
-  const [studentsTab, setStudentsTab] = useState<StudentsTab>("progress");
   const [analyticsTab, setAnalyticsTab] = useState<AnalyticsTab>("students");
   const [refreshing, setRefreshing] = useState(false);
   const [submissions, setSubmissions] = useState<StorySubmission[]>([]);
@@ -399,24 +396,7 @@ export default function TeacherDashboardPage({
           </>
         )}
 
-        {activeView === "students" && (
-          <>
-            <SubTabs
-              ariaLabel="Students"
-              tabs={[
-                { id: "progress" as const, label: "Progress" },
-                { id: "roster" as const, label: "Roster" },
-              ]}
-              active={studentsTab}
-              onSelect={setStudentsTab}
-            />
-            {studentsTab === "progress" ? (
-              <TeacherProgressView records={records} />
-            ) : (
-              <TeacherRosterView />
-            )}
-          </>
-        )}
+        {activeView === "students" && <TeacherRosterView />}
 
         {activeView === "analytics" && (
           <>
