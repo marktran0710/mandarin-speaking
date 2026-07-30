@@ -74,6 +74,32 @@ const BACKEND_URL =
 // discard.
 const MAX_VOCAB_DISTRACTORS_PER_WORD = 8;
 
+/** Zips a scene's vocabulary words with their cached model-voice pitch-shape
+ * curves into the {word: curve} map /api/analyze expects as
+ * scene_reference_curves — words with no clip (never generated, or the
+ * word didn't match the model sentence's text) are simply omitted rather
+ * than sent as an empty curve, so the backend's own per-token fallback to
+ * the synthetic idealized tone-shape pattern stays in charge for them.
+ * Returns null when there's nothing to send (no reference curves cached at
+ * all for this scene), so callers can skip the form field entirely. */
+export function buildSceneReferenceCurves(
+  topic: Pick<Topic, "vocabulary" | "vocabularyReferenceCurves">,
+  sceneIndex: number,
+): Record<string, number[]> | null {
+  const words = topic.vocabulary[sceneIndex] || [];
+  const curves = topic.vocabularyReferenceCurves?.[sceneIndex];
+  if (!curves || curves.length === 0) return null;
+
+  const byWord: Record<string, number[]> = {};
+  words.forEach((word, index) => {
+    const curve = curves[index];
+    if (curve && curve.length > 0) {
+      byWord[word] = curve;
+    }
+  });
+  return Object.keys(byWord).length > 0 ? byWord : null;
+}
+
 export function vocabTooltip(
   pos?: string,
   translation?: string,
@@ -122,6 +148,13 @@ export interface Topic {
   suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
   listenScripts?: Record<number, string>;
+  // Model-voice reference audio for individual vocabulary words (aligned by
+  // index with vocabulary[scene]) — a null entry means that word's clip
+  // couldn't be sliced. vocabularyReferenceCurves is the matching cached
+  // pitch-shape curve sent to /api/analyze as a real-voice scoring target
+  // instead of the synthetic idealized tone-shape pattern.
+  vocabularyAudioUrls?: Record<number, (string | null)[]>;
+  vocabularyReferenceCurves?: Record<number, number[][]>;
   linear?: boolean;
   lessonNumber?: number | null;
   lessonSubOrder?: number | null;
@@ -1343,6 +1376,10 @@ export default function StoryRecorder({
       if (sceneSuggestedAnswer) {
         formData.append("scene_suggested_answer", sceneSuggestedAnswer);
       }
+      const sceneReferenceCurves = buildSceneReferenceCurves(topic, selectedImageIndex);
+      if (sceneReferenceCurves) {
+        formData.append("scene_reference_curves", JSON.stringify(sceneReferenceCurves));
+      }
       formData.append(
         "scene_attempt_number",
         String(attemptHistory.length + 1),
@@ -1923,6 +1960,7 @@ export default function StoryRecorder({
               selectedImageIndex={selectedPracticeScenePosition}
               totalScenes={totalScenes}
               modelSentence={topic.suggestedAnswers?.[selectedImageIndex]}
+              modelAudioUrl={topic.listenAudioUrls?.[selectedImageIndex]}
               narrativeMode={topic.narrativeMode}
               prog={sceneProgress[selectedImageIndex]}
               praatMetrics={praatMetrics}
@@ -2072,7 +2110,16 @@ export default function StoryRecorder({
                             >
                               {translation}
                             </span>
-                            <ScenePracticeWord word={w} pinyin={py} />
+                            <ScenePracticeWord
+                              word={w}
+                              pinyin={py}
+                              audioUrl={
+                                topic.vocabularyAudioUrls?.[selectedImageIndex]?.[wi] ?? undefined
+                              }
+                              referenceCurve={
+                                topic.vocabularyReferenceCurves?.[selectedImageIndex]?.[wi]
+                              }
+                            />
                           </div>
                         );
                       })}

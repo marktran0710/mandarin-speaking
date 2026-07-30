@@ -415,6 +415,7 @@ class AudioRecordRequest(BaseModel):
     transcription: str = ""
     model: str
     topicId: Optional[str] = None
+    studentId: Optional[str] = None
     imageUrl: Optional[str] = None
     imageIndex: Optional[int] = None
     audioUrl: Optional[str] = None
@@ -711,16 +712,17 @@ def save_audio_record(record: AudioRecordRequest):
         db.execute(
             """
             INSERT INTO audio_records (
-                id, timestamp, duration, transcription, model, topic_id,
+                id, timestamp, duration, transcription, model, topic_id, student_id,
                 image_url, image_index, audio_url, praat_metrics
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 timestamp = EXCLUDED.timestamp,
                 duration = EXCLUDED.duration,
                 transcription = EXCLUDED.transcription,
                 model = EXCLUDED.model,
                 topic_id = EXCLUDED.topic_id,
+                student_id = EXCLUDED.student_id,
                 image_url = EXCLUDED.image_url,
                 image_index = EXCLUDED.image_index,
                 audio_url = EXCLUDED.audio_url,
@@ -733,6 +735,7 @@ def save_audio_record(record: AudioRecordRequest):
                 record.transcription,
                 record.model,
                 record.topicId,
+                record.studentId,
                 record.imageUrl,
                 record.imageIndex,
                 record.audioUrl,
@@ -804,6 +807,15 @@ class VocabularySynonymUpdate(BaseModel):
 
 class VocabularySynonymUpdateRequest(BaseModel):
     updates: List[VocabularySynonymUpdate]
+
+
+class GenerateModelVoiceRequest(BaseModel):
+    frameIndex: int
+    tier: str = "easy"
+
+
+class GenerateModelVoiceBulkRequest(BaseModel):
+    tiers: List[str] = ["easy", "medium", "hard"]
 
 
 async def save_uploaded_audio(file: UploadFile, record_id: str) -> str:
@@ -1096,6 +1108,7 @@ async def _do_analyze(
     scene_attempt_number: int = 1,
     verify_word: str = "",
     pinyin_hint: str = "",
+    reference_word_curves: Optional[Dict[str, list]] = None,
 ) -> AnalysisResponse:
     tmp_path = None
     try:
@@ -1145,7 +1158,10 @@ async def _do_analyze(
             transcription_model = transcription_result.model
 
         def _run_praat(path: str, tx: str):
-            return analyze_all(path, tx, pinyin_hint=pinyin_hint)
+            return analyze_all(
+                path, tx, pinyin_hint=pinyin_hint,
+                reference_word_curves=reference_word_curves,
+            )
 
         # Run Praat (CPU-bound, threadpool), AI feedback (I/O-bound), and the
         # optional word-content verification pass all in parallel so checking
@@ -2991,7 +3007,6 @@ from routers.students import router as students_router  # noqa: E402
 from routers.submissions import router as submissions_router  # noqa: E402
 from routers.tones import router as tones_router  # noqa: E402
 from routers.vocab_quiz import router as vocab_quiz_router  # noqa: E402
-from routers.vocab_quiz_analytics import router as vocab_quiz_analytics_router  # noqa: E402
 app.include_router(asr_router)
 app.include_router(audio_router)
 app.include_router(help_requests_router)
@@ -3003,7 +3018,6 @@ app.include_router(students_router)
 app.include_router(submissions_router)
 app.include_router(tones_router)
 app.include_router(vocab_quiz_router)
-app.include_router(vocab_quiz_analytics_router)
 
 
 @app.get("/{frontend_path:path}")

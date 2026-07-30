@@ -24,6 +24,7 @@ from chinese_tones import (
     detect_tone,
     normalize_pitch_contour,
     parse_pinyin_tones,
+    phrase_shape_curves,
     scaled_reference_contour,
 )
 from praat_analyzer import _correct_octave_jumps, estimate_word_prosody
@@ -440,3 +441,58 @@ class TestScaledReferenceContour:
         # pitch_min == pitch_max (e.g. a near-silent or single-frame word)
         contour = scaled_reference_contour([1], 0.0, 0.5, 200.0, 200.0, num_points=10)
         assert len(contour) == 10
+
+    def test_shape_override_is_used_instead_of_synthetic_pattern(self):
+        # A rising shape_override should still rise even for tone 4 (falling)
+        # tones — confirms the override, not the tone list, drives the shape.
+        rising_override = list(np.linspace(0.0, 1.0, 50))
+        contour = scaled_reference_contour(
+            [4], 0.0, 1.0, 150.0, 220.0, num_points=20, shape_override=rising_override
+        )
+        freqs = [f for _, f in contour]
+        assert freqs[-1] > freqs[0]
+
+    def test_shape_override_alone_is_enough_without_tones(self):
+        # No expected tones (e.g. a non-Chinese/neutral token) but a real
+        # reference clip still exists — the override alone should be usable.
+        contour = scaled_reference_contour(
+            [], 0.0, 1.0, 150.0, 220.0, num_points=10, shape_override=[0.2, 0.8, 0.2]
+        )
+        assert len(contour) == 10
+
+
+class TestPhraseTargetCurveOverride:
+    """calculate_phrase_tone_accuracy / calculate_phrase_shape_accuracy /
+    phrase_shape_curves should compare against a real model-voice curve when
+    one is supplied, instead of the synthetic idealized tone-shape pattern."""
+
+    def test_override_curve_changes_the_shape_score(self):
+        contour = _synthetic_contour([0.9, 0.75, 0.6, 0.4, 0.2])  # falling, tone 4
+        # A tone-4-shaped reference should score higher than a deliberately
+        # mismatched flat reference for the same recorded contour.
+        matching_override = list(np.linspace(1.0, 0.0, 100))
+        mismatched_override = [0.5] * 100
+
+        matching_score = calculate_phrase_shape_accuracy(contour, [4], matching_override)
+        mismatched_score = calculate_phrase_shape_accuracy(contour, [4], mismatched_override)
+        assert matching_score > mismatched_score
+
+    def test_phrase_shape_curves_returns_the_override_as_target(self):
+        contour = _synthetic_contour([0.2, 0.5, 0.8])  # rising, tone 2
+        override = list(np.linspace(0.1, 0.9, 100))
+        _, target_curve = phrase_shape_curves(contour, [2], override)
+        assert target_curve == pytest.approx(override, abs=1e-9)
+
+    def test_tone_accuracy_blend_uses_override_for_shape_half(self):
+        contour = _synthetic_contour([0.9, 0.75, 0.6, 0.4, 0.2])  # falling, tone 4
+        without_override = calculate_phrase_tone_accuracy(contour, [4])
+        with_matching_override = calculate_phrase_tone_accuracy(
+            contour, [4], list(np.linspace(1.0, 0.0, 100))
+        )
+        with_mismatched_override = calculate_phrase_tone_accuracy(
+            contour, [4], [0.5] * 100
+        )
+        assert with_matching_override > with_mismatched_override
+        # Sanity: overriding with a curve that matches the synthetic tone-4
+        # pattern about as well should land in the same ballpark.
+        assert abs(with_matching_override - without_override) < 20

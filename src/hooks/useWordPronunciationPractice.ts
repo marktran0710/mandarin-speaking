@@ -39,8 +39,17 @@ export interface WordAnalyzeResult {
  * the characters that could silently disagree (e.g. a teacher's manually
  * corrected vocabulary pinyin, or a polyphonic character read differently
  * out of context).
+ *
+ * `referenceCurve`, when given, is this word's cached model-voice
+ * pitch-shape curve (see reference_voice.py) — sent as this word's
+ * scene_reference_curves entry so the backend scores/charts against that
+ * real recording instead of the synthetic idealized tone-shape pattern.
  */
-export function useWordPronunciationPractice(word: string, pinyin?: string) {
+export function useWordPronunciationPractice(
+  word: string,
+  pinyin?: string,
+  referenceCurve?: number[],
+) {
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState("");
@@ -70,6 +79,12 @@ export function useWordPronunciationPractice(word: string, pinyin?: string) {
       formData.append("transcription", word);
       formData.append("verify_word", word);
       if (pinyin) formData.append("pinyin_hint", pinyin);
+      if (referenceCurve && referenceCurve.length > 0) {
+        formData.append(
+          "scene_reference_curves",
+          JSON.stringify({ [word]: referenceCurve }),
+        );
+      }
       formData.append("ai_provider", "local");
 
       const response = await fetch(`${getBackendUrl()}/api/analyze`, {

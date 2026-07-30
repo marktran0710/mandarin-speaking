@@ -51,6 +51,14 @@ export interface CustomStoryFrame {
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenScript?: string;
+  // Model-voice reference audio, one per word in this tier's own vocabulary
+  // list (unlike vocabularyDistractors/Lookalike/Cloze/Synonym above, these
+  // ARE tiered — see storyToTopic). JSON-encoded array of URLs (a null entry
+  // means that word's clip couldn't be sliced) and, in parallel, an array of
+  // 100-point [0,1] pitch-shape curves the scoring engine sends back to the
+  // backend as a real-voice comparison target — see reference_voice.py.
+  vocabularyAudioUrls?: string;
+  vocabularyReferenceCurves?: string;
   // Medium/Hard tiers of the same scene — progressively more complex text,
   // and optionally their own image. Absent means that tier hasn't been
   // authored yet.
@@ -76,6 +84,10 @@ export interface CustomStoryFrame {
   listenAudioUrlHard?: string;
   listenScriptMedium?: string;
   listenScriptHard?: string;
+  vocabularyAudioUrlsMedium?: string;
+  vocabularyAudioUrlsHard?: string;
+  vocabularyReferenceCurvesMedium?: string;
+  vocabularyReferenceCurvesHard?: string;
 }
 
 export type NarrativeMode = "story" | "describe" | "listen_retell";
@@ -254,6 +266,8 @@ export function storyToTopic(
   const suggestedAnswers: Record<number, string> = {};
   const listenAudioUrls: Record<number, string> = {};
   const listenScripts: Record<number, string> = {};
+  const vocabularyAudioUrls: Record<number, (string | null)[]> = {};
+  const vocabularyReferenceCurves: Record<number, number[][]> = {};
   story.frames.forEach((frame, index) => {
     if (frame.vocabularyGroups && frame.vocabularyGroups.length > 0) {
       vocabularyGroups[index] = frame.vocabularyGroups;
@@ -393,6 +407,40 @@ export function storyToTopic(
     if (frameListenScript && frameListenScript.trim()) {
       listenScripts[index] = frameListenScript.trim();
     }
+    // No Easy fallback here (unlike tierText's fields above): a Medium/Hard
+    // scene has its own word list at different indices, so Easy's audio/
+    // curve pool would misalign silently rather than just being absent.
+    const suffix = TIER_SUFFIX[difficultyLevel];
+    const frameVocabularyAudioUrls = frame[`vocabularyAudioUrls${suffix}` as keyof CustomStoryFrame] as
+      | string
+      | undefined;
+    if (frameVocabularyAudioUrls && frameVocabularyAudioUrls.trim()) {
+      try {
+        const parsed = JSON.parse(frameVocabularyAudioUrls);
+        if (Array.isArray(parsed)) {
+          vocabularyAudioUrls[index] = parsed.map((url) =>
+            typeof url === "string" && url ? resolveImageUrl(url) : null,
+          );
+        }
+      } catch {
+        // Malformed/stale data — treat as absent.
+      }
+    }
+    const frameVocabularyReferenceCurves = frame[
+      `vocabularyReferenceCurves${suffix}` as keyof CustomStoryFrame
+    ] as string | undefined;
+    if (frameVocabularyReferenceCurves && frameVocabularyReferenceCurves.trim()) {
+      try {
+        const parsed = JSON.parse(frameVocabularyReferenceCurves);
+        if (Array.isArray(parsed)) {
+          vocabularyReferenceCurves[index] = parsed.map((curve) =>
+            Array.isArray(curve) ? curve.filter((v): v is number => typeof v === "number") : [],
+          );
+        }
+      } catch {
+        // Malformed/stale data — treat as absent.
+      }
+    }
   });
 
   // Easy keeps the story's original id (no behavior change for existing
@@ -427,6 +475,8 @@ export function storyToTopic(
     ...(Object.keys(suggestedAnswers).length > 0 ? { suggestedAnswers } : {}),
     ...(Object.keys(listenAudioUrls).length > 0 ? { listenAudioUrls } : {}),
     ...(Object.keys(listenScripts).length > 0 ? { listenScripts } : {}),
+    ...(Object.keys(vocabularyAudioUrls).length > 0 ? { vocabularyAudioUrls } : {}),
+    ...(Object.keys(vocabularyReferenceCurves).length > 0 ? { vocabularyReferenceCurves } : {}),
     ...(story.linear ? { linear: true } : {}),
     ...(story.lessonNumber != null ? { lessonNumber: story.lessonNumber } : {}),
     ...(story.lessonSubOrder != null ? { lessonSubOrder: story.lessonSubOrder } : {}),

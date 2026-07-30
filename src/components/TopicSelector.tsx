@@ -66,6 +66,13 @@ export interface Topic {
   suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
   listenScripts?: Record<number, string>;
+  // Model-voice reference audio for individual vocabulary words (aligned by
+  // index with vocabulary[scene]) — a null entry means that word's clip
+  // couldn't be sliced. vocabularyReferenceCurves is the matching cached
+  // pitch-shape curve sent back to /api/analyze as a real-voice scoring
+  // target instead of the synthetic idealized tone-shape pattern.
+  vocabularyAudioUrls?: Record<number, (string | null)[]>;
+  vocabularyReferenceCurves?: Record<number, number[][]>;
   linear?: boolean;
   lessonNumber?: number | null;
   /** Position within its lesson (1, 2, 3...) — see CustomTeacherStory's

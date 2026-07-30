@@ -17,6 +17,21 @@
   box-shadow: 0 14px 32px color-mix(in srgb, var(--clay-ink) 7%, transparent);
 }
 
+.sfc-model-sentence-play {
+  margin-left: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  vertical-align: middle;
+  opacity: 0.85;
+}
+
+.sfc-model-sentence-play:hover {
+  opacity: 1;
+}
+
 /* ── Analyzing state ── */
 .sfc-analyzing {
   align-items: center;
@@ -674,6 +689,13 @@
 .sfc-mastery-chip.is-cleared {
   color: var(--jade-deep);
   border: 1px solid var(--jade);
+}
+/* Scene already passed — these words/parts are optional polish, not a
+   blocker, so they read as an invitation (gold) instead of an error (red). */
+.sfc-mastery-chip.is-bonus {
+  color: var(--gold-deep);
+  border: 1px solid var(--gold);
+  background: var(--gold-soft);
 }
 
 /* ── Footer action bar ── */

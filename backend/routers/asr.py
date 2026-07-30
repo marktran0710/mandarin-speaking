@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 
@@ -63,6 +64,7 @@ async def analyze_speech(
     scene_attempt_number: int = Form(1),
     verify_word: str = Form(""),
     pinyin_hint: str = Form(""),
+    scene_reference_curves: str = Form(""),
     req: Request = None,
 ):
     """
@@ -88,6 +90,13 @@ async def analyze_speech(
     instead of a second, independent pypinyin lookup that could silently
     disagree with it (e.g. a teacher's manually corrected vocabulary pinyin,
     or a polyphonic character pypinyin reads differently out of context).
+
+    scene_reference_curves is an optional JSON object {word: [100 floats]}
+    of cached model-voice pitch-shape curves for this scene's vocabulary
+    (see reference_voice.generate_scene_reference) — a word matching one of
+    these keys is scored/charted against that real recording instead of the
+    synthetic idealized tone-shape pattern. A missing/malformed value is
+    treated as "no reference available" rather than failing the request.
     """
     if not file:
         raise HTTPException(status_code=400, detail="No audio file provided")
@@ -103,11 +112,25 @@ async def analyze_speech(
             detail=f"Audio file too large. Maximum size is {main._MAX_AUDIO_BYTES // (1024 * 1024)} MB.",
         )
 
+    reference_word_curves = None
+    if scene_reference_curves.strip():
+        try:
+            parsed = json.loads(scene_reference_curves)
+            if isinstance(parsed, dict):
+                reference_word_curves = {
+                    str(word): curve
+                    for word, curve in parsed.items()
+                    if isinstance(curve, list) and curve
+                }
+        except (json.JSONDecodeError, TypeError):
+            reference_word_curves = None
+
     try:
         return await asyncio.wait_for(
             main._do_analyze(
                 content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
                 scene_phrases, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
+                reference_word_curves,
             ),
             timeout=main.ANALYZE_TIMEOUT_SECONDS,
         )

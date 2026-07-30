@@ -300,20 +300,33 @@ def scaled_reference_contour(
     pitch_min: float,
     pitch_max: float,
     num_points: int = 20,
+    shape_override: List[float] | None = None,
 ) -> List[Tuple[float, float]]:
-    """Build the idealized reference pitch curve for a word's expected tones,
-    scaled to that word's own time span and pitch range so it can be plotted
-    directly alongside the student's measured contour for visual comparison.
+    """Build the reference pitch curve for a word's expected tones, scaled to
+    that word's own time span and pitch range so it can be plotted directly
+    alongside the student's measured contour for visual comparison.
 
     Scaled to the word's own min/max (not TONE_REFERENCES' absolute Hz bands)
     for the same reason ``normalize_pitch_contour`` is speaker-relative: the
     reference is a *shape* target, not an absolute-pitch target, so the
     overlay stays meaningful across speakers, genders, and mic gain.
+
+    ``shape_override``, when given, is a real model-voice shape curve (see
+    ``praat_analyzer.reference_curve_for_span``) used in place of the
+    synthetic idealized tone-shape pattern — the same override
+    ``phrase_shape_curves`` accepts, so the chart never disagrees with what
+    was actually scored.
     """
-    if not tones or end_time <= start_time:
+    if (not tones and not shape_override) or end_time <= start_time:
         return []
 
-    shape = build_phrase_reference_pattern(tones, num_points=num_points)
+    if shape_override:
+        x = np.linspace(0, 1, len(shape_override))
+        x_new = np.linspace(0, 1, num_points)
+        interpolator = interp1d(x, shape_override, kind="linear", fill_value="extrapolate")
+        shape = np.clip(interpolator(x_new), 0, 1)
+    else:
+        shape = build_phrase_reference_pattern(tones, num_points=num_points)
 
     # TONE_REFERENCES' raw pattern values only occupy a narrow sub-band (e.g.
     # tone 2 is [0.5, 0.85], not [0, 1]) because the scoring math compares
@@ -461,7 +474,9 @@ def calculate_directional_tone_accuracy(
 
 
 def phrase_shape_curves(
-    pitch_contour: List[Tuple[float, float]], tones: List[int]
+    pitch_contour: List[Tuple[float, float]],
+    tones: List[int],
+    target_curve_override: List[float] | None = None,
 ) -> Tuple[List[float], List[float]]:
     """The exact pair of normalized curves ``calculate_phrase_shape_accuracy``
     compares — (user_curve, target_curve), both on the same [0, 1] scale and
@@ -477,66 +492,97 @@ def phrase_shape_curves(
     outlier). Chart-visible similarity and the score can only agree if they
     consume the same normalized data — this function is that single source.
 
+    ``target_curve_override``, when given, is a real model-voice reference
+    curve (see ``praat_analyzer.reference_curve_for_span``) to compare
+    against instead of the synthetic idealized tone-shape pattern. It must
+    already be on ``normalize_pitch_contour``'s fixed 100-point [0, 1] scale
+    (the same scale ``user_pitch`` below is always resampled to), so no
+    further resampling is needed.
+
     Returns ([], []) when the contour or tone list can't produce a score
     (the same inputs for which the scorer returns 0.0).
     """
-    if not pitch_contour or not tones:
+    if not pitch_contour or (not tones and not target_curve_override):
         return [], []
 
     user_pitch = normalize_pitch_contour(pitch_contour)
     if len(user_pitch) == 0:
         return [], []
 
-    ref_pitch = build_phrase_reference_pattern(apply_tone_sandhi(tones), num_points=len(user_pitch))
+    if target_curve_override:
+        ref_pitch = target_curve_override
+    else:
+        ref_pitch = build_phrase_reference_pattern(apply_tone_sandhi(tones), num_points=len(user_pitch))
     return user_pitch.tolist(), np.asarray(ref_pitch).tolist()
 
 
 def calculate_phrase_shape_accuracy(
-    pitch_contour: List[Tuple[float, float]], tones: List[int]
+    pitch_contour: List[Tuple[float, float]],
+    tones: List[int],
+    target_curve_override: List[float] | None = None,
 ) -> float:
-    """Pure shape-similarity score against the idealized reference contour for
-    this tone sequence — correlation + distance, none of
+    """Pure shape-similarity score against the reference contour for this
+    tone sequence — correlation + distance, none of
     ``calculate_phrase_tone_accuracy``'s directional blending.
 
     Used wherever the UI shows a literal shape-overlay chart (the student's
-    pitch drawn against the idealized target curve, e.g. per-word practice
-    cards) — the feedback text there should track that visual comparison
-    directly, not the declination-robust blend tuned for whole-utterance
+    pitch drawn against the target curve, e.g. per-word practice cards) —
+    the feedback text there should track that visual comparison directly,
+    not the declination-robust blend tuned for whole-utterance
     scoring/gating in connected speech.
 
     Built on ``phrase_shape_curves`` so the score and any chart drawn from
-    those curves can never disagree about what was compared.
+    those curves can never disagree about what was compared. See
+    ``phrase_shape_curves`` for ``target_curve_override``.
     """
-    user_curve, target_curve = phrase_shape_curves(pitch_contour, tones)
+    user_curve, target_curve = phrase_shape_curves(pitch_contour, tones, target_curve_override)
     if not user_curve:
         return 0.0
 
     return _shape_match_score(np.asarray(user_curve), np.asarray(target_curve))
 
 
+# Shape-match weight in calculate_phrase_tone_accuracy's blend. Raised from
+# the original 0.30 once the shape comparison could be sourced from a real
+# model-voice recording instead of only a synthetic idealized tone-shape —
+# a real reference is worth trusting more. Kept well short of 1.0 so a
+# learner's own natural pace/declination against the directional check (see
+# calculate_directional_tone_accuracy) still isn't unfairly penalized.
+PHRASE_SHAPE_WEIGHT = 0.50
+PHRASE_DIRECTIONAL_WEIGHT = 0.50
+
+
 def calculate_phrase_tone_accuracy(
-    pitch_contour: List[Tuple[float, float]], tones: List[int]
+    pitch_contour: List[Tuple[float, float]],
+    tones: List[int],
+    target_curve_override: List[float] | None = None,
 ) -> float:
     """Score a pitch contour against the *expected* tone sequence for a word/phrase.
 
     Blends two complementary components:
 
-    • Shape matching (30 %) — correlation + distance against the idealized
-      reference contour; rewards students who nail the full tone shape in
+    • Shape matching (``PHRASE_SHAPE_WEIGHT``) — correlation + distance
+      against the reference contour (a real model-voice recording when
+      ``target_curve_override`` is given, else the idealized synthetic
+      tone-shape pattern); rewards students who nail the full tone shape in
       careful, isolated-word speech.
 
-    • Directional scoring (70 %) — checks only pitch *direction* per syllable
-      (rising / falling / flat / dip).  Robust to the declination, coarticulation
-      and speaking-rate effects that distort tone shapes in natural connected
-      speech, so a learner speaking fluently is not unfairly penalized.
+    • Directional scoring (``PHRASE_DIRECTIONAL_WEIGHT``) — checks only pitch
+      *direction* per syllable (rising / falling / flat / dip). Robust to the
+      declination, coarticulation and speaking-rate effects that distort tone
+      shapes in natural connected speech — including pace differences from
+      the reference recording — so a learner speaking fluently is not
+      unfairly penalized.
     """
-    if not pitch_contour or not tones:
+    if not pitch_contour or (not tones and not target_curve_override):
         return 0.0
 
-    shape_score = calculate_phrase_shape_accuracy(pitch_contour, tones)
+    shape_score = calculate_phrase_shape_accuracy(pitch_contour, tones, target_curve_override)
     directional_score = calculate_directional_tone_accuracy(pitch_contour, tones)
 
-    return float(max(0.0, min(100.0, shape_score * 0.30 + directional_score * 0.70)))
+    return float(max(0.0, min(100.0, (
+        shape_score * PHRASE_SHAPE_WEIGHT + directional_score * PHRASE_DIRECTIONAL_WEIGHT
+    ))))
 
 
 def get_tone_feedback(

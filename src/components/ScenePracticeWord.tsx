@@ -12,9 +12,18 @@ import "./ScenePracticeWord.css";
 export default function ScenePracticeWord({
   word,
   pinyin,
+  audioUrl,
+  referenceCurve,
 }: {
   word: string;
   pinyin?: string;
+  /** Model-voice reference clip for this word (sliced from the scene's
+   * sentence audio — see reference_voice.py) — lets the student hear the
+   * target pronunciation before recording. */
+  audioUrl?: string;
+  /** The cached pitch-shape curve for that same clip, sent back to the
+   * backend as this word's real-voice scoring target. */
+  referenceCurve?: number[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const {
@@ -27,7 +36,7 @@ export default function ScenePracticeWord({
     stopRecording,
     analyzeBlob,
     reset,
-  } = useWordPronunciationPractice(word, pinyin);
+  } = useWordPronunciationPractice(word, pinyin, referenceCurve);
 
   const toggle = () => {
     if (expanded) {
@@ -55,6 +64,17 @@ export default function ScenePracticeWord({
 
   return (
     <>
+      {audioUrl && (
+        <button
+          type="button"
+          className="scene-practice-listen"
+          onClick={() => new Audio(audioUrl).play()}
+          aria-label={`Listen to the model pronunciation of ${word}`}
+          title="Listen to model pronunciation"
+        >
+          🔊
+        </button>
+      )}
       <button
         type="button"
         className={`scene-practice-toggle ${expanded ? "active" : ""}`}

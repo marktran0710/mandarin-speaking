@@ -311,6 +311,9 @@ export default function StoryBuilderSection({
   const [phraseDraftGeneration, setPhraseDraftGeneration] = useState(0);
   const [phraseFillLoadingIndex, setPhraseFillLoadingIndex] = useState<number | null>(null);
   const [phraseFillError, setPhraseFillError] = useState("");
+  const [modelVoiceLoadingIndex, setModelVoiceLoadingIndex] = useState<number | null>(null);
+  const [modelVoiceError, setModelVoiceError] = useState("");
+  const [modelVoiceWordCount, setModelVoiceWordCount] = useState<Record<number, number>>({});
   const [validationErrors, setValidationErrors] =
     useState<CustomStoryValidationErrors>({});
   const [customStoryNotice, setCustomStoryNotice] = useState("");
@@ -562,6 +565,56 @@ export default function StoryBuilderSection({
       );
     } finally {
       setPhraseFillLoadingIndex(null);
+    }
+  };
+
+  // Synthesizes this scene's model sentence via TTS and approximately slices
+  // each vocabulary word's own reference clip out of it (see
+  // reference_voice.py) — the resulting audio becomes both what students
+  // hear before recording and the real-voice standard the scoring engine
+  // grades against. Unlike the AI-assist handlers above, this persists
+  // straight to the saved story (the same direct-write pattern the
+  // vocabulary-distractors/cloze/synonym pool endpoints already use), so it
+  // only works once the story has been saved at least once.
+  const handleGenerateModelVoice = async (index: number) => {
+    if (!editingStoryId) {
+      setModelVoiceError("Save the story once before generating model voice.");
+      return;
+    }
+    const level = customDraft.activeLevel;
+    setModelVoiceError("");
+    setModelVoiceLoadingIndex(index);
+    try {
+      const response = await fetch(
+        `${BACKEND_URL}/api/custom-stories/${editingStoryId}/generate-model-voice`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ frameIndex: index, tier: level }),
+        },
+      );
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Could not generate model voice for this scene.");
+      }
+      const suffix = level === "easy" ? "" : level === "medium" ? "Medium" : "Hard";
+      const result = (await response.json()) as Record<string, string>;
+      updateDraftFrame("listenAudioUrls", index, result[`listenAudioUrl${suffix}`] ?? "");
+      updateDraftFrame("listenScripts", index, result[`listenScript${suffix}`] ?? "");
+      const audioUrls = JSON.parse(result[`vocabularyAudioUrls${suffix}`] ?? "[]") as (
+        | string
+        | null
+      )[];
+      setModelVoiceWordCount((counts) => ({
+        ...counts,
+        [index]: audioUrls.filter(Boolean).length,
+      }));
+    } catch (error) {
+      setModelVoiceError(
+        error instanceof Error ? error.message : "Could not generate model voice for this scene.",
+      );
+    } finally {
+      setModelVoiceLoadingIndex(null);
     }
   };
 
@@ -1135,6 +1188,34 @@ export default function StoryBuilderSection({
                       </button>
                       {phraseFillError && phraseFillLoadingIndex === null && (
                         <span className="teacher-form-error">{phraseFillError}</span>
+                      )}
+                      <button
+                        type="button"
+                        className="btn-vocab-autofill"
+                        disabled={
+                          !customDraft.suggestedAnswers[level][index]?.trim() ||
+                          modelVoiceLoadingIndex === index ||
+                          !editingStoryId
+                        }
+                        title={
+                          !editingStoryId
+                            ? "Save the story once before generating model voice"
+                            : undefined
+                        }
+                        onClick={() => handleGenerateModelVoice(index)}
+                      >
+                        {modelVoiceLoadingIndex === index
+                          ? "Generating model voice…"
+                          : "🔊 Generate model voice (TTS)"}
+                      </button>
+                      {modelVoiceWordCount[index] !== undefined && (
+                        <span className="teacher-form-hint">
+                          Model voice ready — sentence + {modelVoiceWordCount[index]} word clip
+                          {modelVoiceWordCount[index] === 1 ? "" : "s"}.
+                        </span>
+                      )}
+                      {modelVoiceError && modelVoiceLoadingIndex === null && (
+                        <span className="teacher-form-error">{modelVoiceError}</span>
                       )}
                     </>
                   )}

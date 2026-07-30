@@ -1364,6 +1364,12 @@
   line-height: 1.35;
 }
 
+.teacher-form-hint {
+  color: var(--clay-body-muted, var(--clay-body));
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 
 .teacher-form-alert,
 .teacher-form-success {

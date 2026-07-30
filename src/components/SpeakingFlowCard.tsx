@@ -21,6 +21,10 @@ interface SpeakingFlowCardProps {
   selectedImageIndex: number;
   totalScenes: number;
   modelSentence?: string;
+  /** Model-voice reference audio for the whole scene sentence (TTS or a
+   * teacher's own recording) — lets the student hear the target before
+   * recording, the same real voice the scoring engine now grades against. */
+  modelAudioUrl?: string;
   narrativeMode: Topic["narrativeMode"];
   prog?: SceneProgressEntry;
   praatMetrics: PraatMetrics | null;
@@ -65,6 +69,7 @@ export default function SpeakingFlowCard({
   selectedImageIndex,
   totalScenes,
   modelSentence,
+  modelAudioUrl,
   narrativeMode,
   prog,
   praatMetrics,
@@ -195,6 +200,17 @@ export default function SpeakingFlowCard({
             </p>
             <p className="practice-model-sentence-text" lang="zh-Hant">
               {modelSentence}
+              {modelAudioUrl && (
+                <button
+                  type="button"
+                  className="sfc-model-sentence-play"
+                  onClick={() => new Audio(modelAudioUrl).play()}
+                  aria-label="Listen to the model sentence"
+                  title="Listen to the model sentence"
+                >
+                  🔊
+                </button>
+              )}
             </p>
           </div>
         )}

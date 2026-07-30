@@ -115,7 +115,12 @@ def _formants_from_sound(
     return {k: float(np.median(vs)) if vs else 0.0 for k, vs in values.items()}
 
 
-def analyze_all(audio_path: str, transcription: str = "", pinyin_hint: str = "") -> tuple:
+def analyze_all(
+    audio_path: str,
+    transcription: str = "",
+    pinyin_hint: str = "",
+    reference_word_curves: Dict[str, List[float]] | None = None,
+) -> tuple:
     """
     Single-pass analysis: load WAV once, run pitch + formant together,
     then derive all downstream metrics. ~3× faster than calling each
@@ -127,6 +132,10 @@ def analyze_all(audio_path: str, transcription: str = "", pinyin_hint: str = "")
     independent pypinyin lookup on the characters. See
     ``estimate_word_prosody`` for how it's applied.
 
+    ``reference_word_curves``, when given, is passed straight through to
+    ``estimate_word_prosody`` so scene words with a cached model-voice clip
+    are scored/charted against that real recording. See that function.
+
     Returns a tuple matching the order expected by _run_praat in main.py:
     (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
      word_prosody, detected_tone, tone_accuracy, feedback, pause_analysis)
@@ -136,7 +145,10 @@ def analyze_all(audio_path: str, transcription: str = "", pinyin_hint: str = "")
         formants = extract_formants(audio_path)
         speech_rate = calculate_speech_rate(audio_path, transcription)
         pitch_stats = get_pitch_statistics(pitch_contour)
-        word_prosody = estimate_word_prosody(pitch_contour, transcription, pinyin_hint=pinyin_hint)
+        word_prosody = estimate_word_prosody(
+            pitch_contour, transcription, pinyin_hint=pinyin_hint,
+            reference_word_curves=reference_word_curves,
+        )
         pause_analysis = analyze_pauses_and_utterances(audio_path)
         _syllables = sum(1 for c in transcription if "一" <= c <= "鿿")
         fluency_score = analyze_fluency(pitch_contour, speech_rate, pause_analysis, _syllables)
@@ -165,7 +177,10 @@ def analyze_all(audio_path: str, transcription: str = "", pinyin_hint: str = "")
         speech_rate = float(max(1, round(len(pitch_contour) / 9)) / duration)
 
     pitch_stats = get_pitch_statistics(pitch_contour)
-    word_prosody = estimate_word_prosody(pitch_contour, transcription, pinyin_hint=pinyin_hint)
+    word_prosody = estimate_word_prosody(
+        pitch_contour, transcription, pinyin_hint=pinyin_hint,
+        reference_word_curves=reference_word_curves,
+    )
     # Reuse already-loaded sound — avoids a second disk read
     pause_analysis = analyze_pauses_and_utterances(audio_path, _preloaded_sound=sound)
     fluency_score = analyze_fluency(pitch_contour, speech_rate, pause_analysis, chinese_chars)
@@ -577,6 +592,7 @@ def estimate_word_prosody(
     pitch_contour: List[Tuple[float, float]],
     transcription: str = "",
     pinyin_hint: str = "",
+    reference_word_curves: Dict[str, List[float]] | None = None,
 ) -> List[Dict]:
     """
     Estimate per-word prosody from the global pitch contour.
@@ -598,6 +614,15 @@ def estimate_word_prosody(
     actually looking at (e.g. a teacher's manually corrected vocabulary
     pinyin, or a polyphonic character pypinyin reads differently out of
     context). Falls back to the pypinyin lookup when absent or mismatched.
+
+    ``reference_word_curves``: an optional {word: 100-point [0,1] shape
+    curve} map \u2014 the cached model-voice reference generated for this scene
+    (see ``reference_curve_for_span``). A token that exactly matches one of
+    these keys is scored and charted against that real recording instead of
+    the synthetic idealized tone-shape pattern; tokens with no match (e.g.
+    function words never given a model-voice clip) keep the synthetic
+    fallback so the whole scoring path never depends on every token having
+    a reference clip.
     """
     tokens = _prosody_tokens(transcription)
     if not tokens or len(pitch_contour) < 2:
@@ -696,13 +721,21 @@ def estimate_word_prosody(
         # score compares (see phrase_shape_curves) — returned so the frontend
         # chart draws exactly what was scored. Empty when the segment was too
         # short to score, in which case the card falls back to raw Hz.
+        reference_curve = (reference_word_curves or {}).get(token) or None
+
         user_curve: List[float] = []
         target_curve: List[float] = []
         syllable_scores: List[float] = []
         if is_chinese and len(scoring_points) >= 4:
-            tone_score = calculate_phrase_tone_accuracy(scoring_points, expected_tones)
-            shape_score = calculate_phrase_shape_accuracy(scoring_points, expected_tones)
-            user_curve, target_curve = phrase_shape_curves(scoring_points, expected_tones)
+            tone_score = calculate_phrase_tone_accuracy(
+                scoring_points, expected_tones, target_curve_override=reference_curve
+            )
+            shape_score = calculate_phrase_shape_accuracy(
+                scoring_points, expected_tones, target_curve_override=reference_curve
+            )
+            user_curve, target_curve = phrase_shape_curves(
+                scoring_points, expected_tones, target_curve_override=reference_curve
+            )
             syllable_scores = directional_tone_scores(scoring_points, expected_tones)
         elif is_chinese and expected_tones:
             tone_score = 65.0
@@ -742,8 +775,9 @@ def estimate_word_prosody(
             scaled_reference_contour(
                 expected_tones, segment_start, segment_end,
                 float(np.min(frequencies)), float(np.max(frequencies)),
+                shape_override=reference_curve,
             )
-            if is_chinese and expected_tones
+            if is_chinese and (expected_tones or reference_curve)
             else []
         )
 
@@ -757,6 +791,7 @@ def estimate_word_prosody(
                 "reference_contour": reference_contour,
                 "user_curve": [round(v, 3) for v in user_curve],
                 "target_curve": [round(v, 3) for v in target_curve],
+                "reference_source": "real_voice" if reference_curve else "synthetic",
                 "mean_pitch": round(mean_pitch, 2),
                 "pitch_range": round(pitch_range, 2),
                 "start_pitch": round(start_pitch, 2),
@@ -828,6 +863,65 @@ def _snap_to_onset(
     if abs(nearest - proportional_time) <= tolerance:
         return nearest
     return proportional_time
+
+
+def slice_reference_word_span(
+    sentence_text: str,
+    word: str,
+    pitch_contour: List[Tuple[float, float]],
+    search_from: int = 0,
+) -> "Tuple[float, float, int] | None":
+    """Approximate the time span `word` occupies within a TTS-synthesized
+    reference recording of `sentence_text`, for slicing a per-word model-voice
+    clip out of that one sentence recording.
+
+    Character position within the sentence text is used as a proportional
+    time proxy — the same simplification `estimate_word_prosody` uses for a
+    student's own transcription — refined by snapping to the nearest real
+    voicing onset. Returns (start, end, next_search_from) so repeated calls
+    for a scene's word list can search forward past words already matched
+    when a word appears more than once in the sentence. Returns None if the
+    word doesn't appear in the sentence text from `search_from` onward.
+    """
+    char_index = sentence_text.find(word, search_from)
+    if char_index < 0 or not pitch_contour or not word:
+        return None
+
+    total_chars = max(len(sentence_text), 1)
+    start_time = float(pitch_contour[0][0])
+    end_time = float(pitch_contour[-1][0])
+    duration = max(end_time - start_time, 0.01)
+    avg_char_duration = duration / total_chars
+
+    proportional_start = start_time + duration * (char_index / total_chars)
+    proportional_end = start_time + duration * ((char_index + len(word)) / total_chars)
+
+    onset_times = _voicing_onset_times(pitch_contour)
+    snapped_start = _snap_to_onset(proportional_start, onset_times, avg_char_duration)
+    snapped_end = _snap_to_onset(proportional_end, onset_times, avg_char_duration)
+    if snapped_end <= snapped_start:
+        snapped_end = min(end_time, snapped_start + avg_char_duration * len(word))
+
+    return snapped_start, snapped_end, char_index + len(word)
+
+
+def reference_curve_for_span(
+    pitch_contour: List[Tuple[float, float]],
+    start_time: float,
+    end_time: float,
+) -> List[float]:
+    """The normalized [0, 1], 100-point shape curve for the pitch points
+    inside [start_time, end_time] of a reference recording — the same shape
+    `normalize_pitch_contour` produces for a student attempt, cached here so
+    it can later be sent back as a real-voice scoring override (see
+    ``chinese_tones.calculate_phrase_tone_accuracy``'s ``target_curve_override``).
+    """
+    from chinese_tones import normalize_pitch_contour
+
+    points = [(t, f) for t, f in pitch_contour if start_time <= t <= end_time]
+    if len(points) < 2:
+        return []
+    return normalize_pitch_contour(points).tolist()
 
 
 _CONTENT_POS_PREFIXES = frozenset({"n", "v", "a", "t", "s", "i"})
