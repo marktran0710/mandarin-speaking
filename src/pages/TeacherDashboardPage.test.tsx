@@ -97,6 +97,30 @@ describe("TeacherDashboardPage", () => {
     expect(screen.getByTestId("pitch-chart")).toBeInTheDocument();
   });
 
+  it("uses the complete recording count and loads another page of recordings", async () => {
+    const loadMoreRecords = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(
+      <TeacherDashboardPage
+        records={[analyzedRecord]}
+        totalRecordCount={125}
+        hasMoreAudioRecords
+        onDeleteRecord={vi.fn()}
+        onLoadMoreAudioRecords={loadMoreRecords}
+        helpRequests={[]}
+        onLogout={vi.fn()}
+      />,
+    );
+
+    const overview = screen.getByRole("region", { name: "Class overview" });
+    expect(within(overview).getByText("125")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Recordings & Help/ }));
+    await user.click(screen.getByRole("button", { name: "Load more" }));
+
+    expect(loadMoreRecords).toHaveBeenCalledOnce();
+  });
+
   it("toggles dark mode from the shell and persists the choice", async () => {
     const user = userEvent.setup();
     renderDashboard();

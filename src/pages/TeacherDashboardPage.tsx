@@ -103,7 +103,10 @@ function SubTabs<Tab extends string>({
 
 export default function TeacherDashboardPage({
   records,
+  totalRecordCount = records.length,
+  hasMoreAudioRecords = false,
   onDeleteRecord,
+  onLoadMoreAudioRecords,
   helpRequests,
   onResolveHelpRequest,
   onRefreshRecords,
@@ -111,7 +114,10 @@ export default function TeacherDashboardPage({
   onStorySaved,
 }: {
   records: AudioRecord[];
+  totalRecordCount?: number;
+  hasMoreAudioRecords?: boolean;
   onDeleteRecord: (id: string) => void;
+  onLoadMoreAudioRecords?: () => Promise<void>;
   helpRequests: HelpRequest[];
   onResolveHelpRequest?: (id: string) => void;
   onRefreshRecords?: () => Promise<void>;
@@ -238,7 +244,7 @@ export default function TeacherDashboardPage({
             <section className="teacher-stat-grid" aria-label="Class overview">
               <DashboardStat
                 label="Recordings"
-                value={String(records.length)}
+                value={String(totalRecordCount)}
                 note="Total saved student attempts"
               />
               <DashboardStat
@@ -336,14 +342,19 @@ export default function TeacherDashboardPage({
             <SubTabs
               ariaLabel="Recordings and help"
               tabs={[
-                { id: "recordings" as const, label: "Recordings", count: records.length },
+                { id: "recordings" as const, label: "Recordings", count: totalRecordCount },
                 { id: "help" as const, label: "Help requests", count: openHelpRequests.length },
               ]}
               active={recordingsHelpTab}
               onSelect={setRecordingsHelpTab}
             />
             {recordingsHelpTab === "recordings" ? (
-              <TeacherRecordingsView records={records} onDeleteRecord={onDeleteRecord} />
+              <TeacherRecordingsView
+                records={records}
+                hasMoreRecords={hasMoreAudioRecords}
+                onDeleteRecord={onDeleteRecord}
+                onLoadMoreRecords={onLoadMoreAudioRecords}
+              />
             ) : (
               <TeacherHelpQueue
                 helpRequests={helpRequests}

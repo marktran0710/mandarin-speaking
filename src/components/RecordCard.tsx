@@ -15,11 +15,20 @@ export default function RecordCard({
   compact?: boolean;
 }) {
   const savedAudioLabelId = useId();
+  const topicLabel = getTopicLabel(record.topicId);
+
+  const handleDelete = () => {
+    if (!window.confirm(`Delete the ${topicLabel} recording from ${record.timestamp}? This cannot be undone.`)) {
+      return;
+    }
+    onDeleteRecord(record.id);
+  };
+
   return (
     <div className={compact ? "record-summary" : "story-card"}>
       <div className="story-header">
         <div className="story-title-group">
-          <span className="topic-emoji">{getTopicLabel(record.topicId)}</span>
+          <span className="topic-emoji">{topicLabel}</span>
           <div>
             <div className="story-timestamp">{record.timestamp}</div>
             <div className="story-duration">{record.duration}s</div>
@@ -27,7 +36,7 @@ export default function RecordCard({
         </div>
         <button
           className="btn-delete"
-          onClick={() => onDeleteRecord(record.id)}
+          onClick={handleDelete}
           title="刪除這則故事 Delete this story"
         >
           <BiLabel zh="刪除" pinyin="Shānchú" en="Delete" />

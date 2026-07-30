@@ -1,13 +1,30 @@
+import { useState } from "react";
 import RecordCard from "./RecordCard";
 import type { AudioRecord } from "../pages/MyStoriesPage";
 
 export default function TeacherRecordingsView({
   records,
+  hasMoreRecords = false,
   onDeleteRecord,
+  onLoadMoreRecords,
 }: {
   records: AudioRecord[];
+  hasMoreRecords?: boolean;
   onDeleteRecord: (id: string) => void;
+  onLoadMoreRecords?: () => Promise<void>;
 }) {
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const handleLoadMore = async () => {
+    if (!onLoadMoreRecords) return;
+    setLoadingMore(true);
+    try {
+      await onLoadMoreRecords();
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   return (
     <section className="teacher-panel teacher-recordings-panel">
       <div className="teacher-panel-header">
@@ -24,15 +41,27 @@ export default function TeacherRecordingsView({
           <p>Student submissions will appear here after practice sessions.</p>
         </div>
       ) : (
-        <div className="stories-grid teacher-recording-grid">
-          {records.map((record) => (
-            <RecordCard
-              key={record.id}
-              record={record}
-              onDeleteRecord={onDeleteRecord}
-            />
-          ))}
-        </div>
+        <>
+          <div className="stories-grid teacher-recording-grid">
+            {records.map((record) => (
+              <RecordCard
+                key={record.id}
+                record={record}
+                onDeleteRecord={onDeleteRecord}
+              />
+            ))}
+          </div>
+          {hasMoreRecords && onLoadMoreRecords && (
+            <button
+              type="button"
+              className="teacher-refresh-btn"
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+            >
+              {loadingMore ? "Loading..." : "Load more"}
+            </button>
+          )}
+        </>
       )}
     </section>
   );

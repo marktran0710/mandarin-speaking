@@ -8,6 +8,7 @@ import { currentRole, signOut } from "./utils/session";
 import {
   canUseDatabase,
   deleteAudioRecordFromDatabase,
+  getAudioRecordCount,
   HelpRequest,
   listAudioRecords,
   listHelpRequests,
@@ -21,16 +22,23 @@ export default function TeacherApp() {
   // out. Read once on mount, same as `activeRole`.
   const [blockedRole, setBlockedRole] = useState(false);
   const [audioRecords, setAudioRecords] = useState<StoredAudioRecord[]>([]);
+  const [audioRecordCount, setAudioRecordCount] = useState(0);
+  const [audioRecordPageSize] = useState(100);
   const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
 
   const loadSavedAudioRecords = useCallback(async () => {
     if (!canUseDatabase()) return;
     try {
-      setAudioRecords(await listAudioRecords());
+      const [records, total] = await Promise.all([
+        listAudioRecords({ limit: audioRecordPageSize }),
+        getAudioRecordCount(),
+      ]);
+      setAudioRecords(records);
+      setAudioRecordCount(total);
     } catch (error) {
       console.error("Failed to load audio records from database:", error);
     }
-  }, []);
+  }, [audioRecordPageSize]);
 
   useEffect(() => {
     const role = currentRole();
@@ -62,12 +70,27 @@ export default function TeacherApp() {
 
   const deleteAudioRecord = (id: string) => {
     setAudioRecords((prev) => prev.filter((record) => record.id !== id));
+    setAudioRecordCount((count) => Math.max(0, count - 1));
     if (canUseDatabase()) {
       deleteAudioRecordFromDatabase(id).catch((error) => {
         console.error("Failed to delete audio record from database:", error);
+        loadSavedAudioRecords();
       });
     }
   };
+
+  const loadMoreAudioRecords = useCallback(async () => {
+    if (!canUseDatabase() || audioRecords.length >= audioRecordCount) return;
+    try {
+      const records = await listAudioRecords({
+        limit: audioRecordPageSize,
+        skip: audioRecords.length,
+      });
+      setAudioRecords((currentRecords) => [...currentRecords, ...records]);
+    } catch (error) {
+      console.error("Failed to load more audio records from database:", error);
+    }
+  }, [audioRecordCount, audioRecordPageSize, audioRecords.length]);
 
   const handleResolveHelpRequest = (id: string) => {
     const resolvedAt = new Date().toISOString();
@@ -114,7 +137,10 @@ export default function TeacherApp() {
       {activeRole === "teacher" ? (
         <TeacherDashboardPage
           records={audioRecords}
+          totalRecordCount={audioRecordCount}
+          hasMoreAudioRecords={audioRecords.length < audioRecordCount}
           onDeleteRecord={deleteAudioRecord}
+          onLoadMoreAudioRecords={loadMoreAudioRecords}
           helpRequests={helpRequests}
           onResolveHelpRequest={handleResolveHelpRequest}
           onRefreshRecords={loadSavedAudioRecords}

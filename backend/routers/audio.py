@@ -20,6 +20,13 @@ async def list_audio_records(
     return [row_to_audio_record(row) for row in rows]
 
 
+@router.get("/api/audio-records/count")
+async def get_audio_record_count():
+    with connect_db() as db:
+        total = db.execute("SELECT COUNT(*) AS total FROM audio_records").fetchone()["total"]
+    return {"total": total}
+
+
 @router.post("/api/audio-records")
 async def create_audio_record(record: AudioRecordRequest):
     main.save_audio_record(record)

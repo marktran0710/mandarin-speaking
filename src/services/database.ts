@@ -205,14 +205,31 @@ export function canUseDatabase(): boolean {
   return Boolean(BACKEND_URL) && import.meta.env.MODE !== "test";
 }
 
-export async function listAudioRecords(): Promise<StoredAudioRecord[]> {
-  const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records`);
+export async function listAudioRecords(params?: {
+  limit?: number;
+  skip?: number;
+}): Promise<StoredAudioRecord[]> {
+  const searchParams = new URLSearchParams();
+  if (params?.limit !== undefined) searchParams.set("limit", String(params.limit));
+  if (params?.skip !== undefined) searchParams.set("skip", String(params.skip));
+  const query = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records${query}`);
   if (!response.ok) {
     throw new Error("Could not load audio records from the database.");
   }
 
   const records = await response.json();
   return Array.isArray(records) ? records : [];
+}
+
+export async function getAudioRecordCount(): Promise<number> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records/count`);
+  if (!response.ok) {
+    throw new Error("Could not load audio record count from the database.");
+  }
+
+  const data = await response.json() as { total?: unknown };
+  return typeof data.total === "number" ? data.total : 0;
 }
 
 export async function createAudioRecord(
