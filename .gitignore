@@ -15,7 +15,9 @@ __pycache__/
 htmlcov/
 .npm-cache/
 .pnpm-store/
-vite-dev*.log
+vite*.log
+*.tsbuildinfo
+quiz-dump.txt
 backend/*.db
 backend/*.db-*
 backend/*.db.bak*
