@@ -6,6 +6,11 @@ import { scriptMatchRatio } from "../utils/scriptAlignment";
 import type { WordProsody } from "./StoryRecorder";
 import MiniContourChart from "./MiniContourChart";
 import { BiLabel } from "./BiLabel";
+import VoiceFeedbackReliabilityNotice from "./VoiceFeedbackReliabilityNotice";
+import {
+  assessVoiceFeedbackReliability,
+  type VoiceFeedbackReliability,
+} from "../utils/voiceFeedbackReliability";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -49,6 +54,7 @@ export default function PhrasePracticeDrill({
     words: WordProsody[];
     contentMatch: boolean | null;
     passed: boolean;
+    reliability: VoiceFeedbackReliability;
   } | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -101,8 +107,16 @@ export default function PhrasePracticeDrill({
       const passedWordCount = words.filter((word) => word.passed === true).length;
       const wordsOk =
         words.length > 0 && passedWordCount >= Math.ceil(words.length * WORD_PASS_RATIO);
-      const passed = contentMatch !== false && wordsOk;
-      setResult({ words, contentMatch, passed });
+      const reliability = assessVoiceFeedbackReliability({
+        feedbackQuality: data.feedback_quality,
+        contentMatch,
+        wordProsody: words,
+      });
+      const passed =
+        reliability.canCountForProgress &&
+        contentMatch !== false &&
+        wordsOk;
+      setResult({ words, contentMatch, passed, reliability });
       if (passed) onPass(phrase);
     } catch (err) {
       setError(formatBackendError(err, BACKEND_URL || "the configured backend"));
@@ -203,6 +217,11 @@ export default function PhrasePracticeDrill({
       {error && <p className="word-practice-error">{error}</p>}
       {result && !isAnalyzing && (
         <div className={`phrase-practice-result ${result.passed ? "is-passed" : "is-failed"}`}>
+          <VoiceFeedbackReliabilityNotice
+            assessment={result.reliability}
+          />
+          {result.reliability.level !== "retry" && (
+            <>
           <p className="phrase-practice-verdict">
             {result.passed ? (
               <BiLabel
@@ -250,6 +269,8 @@ export default function PhrasePracticeDrill({
               </div>
             ))}
           </div>
+            </>
+          )}
         </div>
       )}
     </section>

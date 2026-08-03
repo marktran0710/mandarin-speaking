@@ -3,6 +3,11 @@ import PraatTimeline from "../components/PraatTimeline";
 import StudentPageHeader from "../components/StudentPageHeader";
 import { convertBlobToWav } from "../utils/audio";
 import { BiLabel, BiText } from "../components/BiLabel";
+import VoiceFeedbackReliabilityNotice from "../components/VoiceFeedbackReliabilityNotice";
+import {
+  assessVoiceFeedbackReliability,
+  type BackendFeedbackQuality,
+} from "../utils/voiceFeedbackReliability";
 import "../components/BiLabel.css";
 import "./VoiceTestPage.css";
 
@@ -24,6 +29,8 @@ interface WordProsody {
   end_pitch?: number;
   contour_shape: string;
   feedback: string;
+  tone_accuracy?: number;
+  judged?: boolean;
 }
 
 interface VoiceMetrics {
@@ -37,6 +44,7 @@ interface VoiceMetrics {
   speech_rate: number;
   fluency_score: number;
   feedback: string;
+  feedback_quality?: BackendFeedbackQuality;
   ai_feedback?: {
     provider: string;
     fluency: { score: number; feedback: string };
@@ -57,6 +65,7 @@ export default function VoiceTestPage() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [selectedAudioName, setSelectedAudioName] = useState("");
   const [liveTranscript, setLiveTranscript] = useState("");
+  const [analysisAttemptCount, setAnalysisAttemptCount] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -234,6 +243,7 @@ export default function VoiceTestPage() {
       }
 
       setMetrics((await response.json()) as VoiceMetrics);
+      setAnalysisAttemptCount((count) => count + 1);
     } catch (err) {
       setError(formatBackendError(err, BACKEND_URL || "the configured backend"));
     } finally {
@@ -259,6 +269,15 @@ export default function VoiceTestPage() {
     : metrics
       ? { zh: "再錄一次", pinyin: "Zài lù yí cì", en: "Record again" }
       : { zh: "開始語音測試", pinyin: "Kāishǐ yǔyīn cèshì", en: "Start voice test" };
+
+  const feedbackReliability = metrics
+    ? assessVoiceFeedbackReliability({
+        feedbackQuality: metrics.feedback_quality,
+        pitchContour: metrics.pitch_contour,
+        wordProsody: metrics.word_prosody,
+        transcription: metrics.transcription,
+      })
+    : null;
 
   return (
     <main className="voice-test-page">
@@ -366,6 +385,14 @@ export default function VoiceTestPage() {
 
       {metrics && (
         <section className="voice-feedback-panel">
+          {feedbackReliability && (
+            <VoiceFeedbackReliabilityNotice
+              assessment={feedbackReliability}
+              attemptCount={analysisAttemptCount}
+            />
+          )}
+          {feedbackReliability?.level !== "retry" && (
+            <>
           <div className="voice-score-grid">
             <ScoreCard
               label={<BiLabel zh="流暢度" pinyin="Liúchàng dù" en="Fluency" />}
@@ -387,6 +414,8 @@ export default function VoiceTestPage() {
             speechRate={metrics.speech_rate}
             wordProsody={metrics.word_prosody || []}
           />
+            </>
+          )}
 
           <ModelExampleCard
             text={metrics.transcription || "今天下雨，所以我帶傘。"}
@@ -420,6 +449,7 @@ export default function VoiceTestPage() {
             )}
           </div>
 
+          {feedbackReliability?.level !== "retry" && (
           <details className="voice-advanced-details">
             <summary>
               <BiLabel zh="進階 Praat 詳細資料" pinyin="Jìnjiē Praat xiángxì zīliào" en="Advanced Praat details" />
@@ -469,8 +499,10 @@ export default function VoiceTestPage() {
           )}
 
           </details>
+          )}
 
-          {metrics.ai_feedback && (
+          {metrics.ai_feedback &&
+            metrics.feedback_quality?.can_score_content !== false && (
             <div className="voice-feedback-card ai-card">
               <div className="ai-card-header">
                 <h2>

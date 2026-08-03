@@ -324,14 +324,6 @@ function mockBackendAnalyze(
   );
 }
 
-async function uploadVoiceAttempt(user: UserEvent, fileName = "story-attempt.wav") {
-  const voiceFile = new File(["RIFF....WAVEfmt "], fileName, {
-    type: "audio/wav",
-  });
-  const input = document.querySelector(".submit-voice-input") as HTMLInputElement;
-  await user.upload(input, voiceFile);
-}
-
 describe("vocabTooltip", () => {
   it("combines part of speech and translation", () => {
     expect(vocabTooltip("N", "restaurant")).toBe("(N) restaurant");

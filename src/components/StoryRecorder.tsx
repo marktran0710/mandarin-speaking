@@ -63,6 +63,7 @@ import StorySessionSidebar, {
   type SidebarSummaryStatus,
 } from "./StorySessionSidebar";
 import StudentHelpPanel from "./StudentHelpPanel";
+import type { BackendFeedbackQuality } from "../utils/voiceFeedbackReliability";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -436,6 +437,7 @@ export interface PraatMetrics {
   pause_analysis?: PauseAnalysis;
   feedback: string;
   ai_feedback?: LanguageFeedback;
+  feedback_quality?: BackendFeedbackQuality;
 }
 
 export interface WordProsody {
@@ -468,6 +470,8 @@ export interface WordProsody {
   // must clear the backend's pass bar). Absent/null for non-Chinese tokens.
   syllables?: WordProsodySyllable[];
   passed?: boolean | null;
+  /** False when the analyzer could not extract enough pitch evidence. */
+  judged?: boolean;
 }
 
 export interface WordProsodySyllable {
@@ -1399,6 +1403,10 @@ export default function StoryRecorder({
       }
 
       const metrics = (await response.json()) as PraatMetrics;
+      const canScorePronunciation =
+        metrics.feedback_quality?.can_score_pronunciation !== false;
+      const canScoreContent =
+        metrics.feedback_quality?.can_score_content !== false;
       // Only real transcripts (backend ASR, or the live WebSpeech text) —
       // never the scene's vocabulary list as a stand-in. That old fallback
       // meant a silent recording got "transcribed" as the exact target
@@ -1428,11 +1436,15 @@ export default function StoryRecorder({
       };
       const nextProgress = {
         attempts: priorProgress.attempts + 1,
-        bestTone: Math.max(priorProgress.bestTone, Math.round(metrics.tone_accuracy)),
-        bestFluency: Math.max(
-          priorProgress.bestFluency,
-          Math.round(metrics.fluency_score),
-        ),
+        bestTone: canScorePronunciation
+          ? Math.max(priorProgress.bestTone, Math.round(metrics.tone_accuracy))
+          : priorProgress.bestTone,
+        bestFluency: canScorePronunciation
+          ? Math.max(
+              priorProgress.bestFluency,
+              Math.round(metrics.fluency_score),
+            )
+          : priorProgress.bestFluency,
       };
       setSceneProgress((prev) => ({
         ...prev,
@@ -1441,8 +1453,10 @@ export default function StoryRecorder({
       // Mastery gate verdict for this full-sentence attempt. A fresh
       // recording re-judges every word, so the per-word drill clearances
       // from the previous attempt reset alongside it.
-      const nextMasteryPassed = prosodyGatePassed(metrics.word_prosody);
-      const nextContentPassed = sceneContentGatePassed(metrics);
+      const nextMasteryPassed =
+        canScorePronunciation && prosodyGatePassed(metrics.word_prosody);
+      const nextContentPassed =
+        canScoreContent && sceneContentGatePassed(metrics);
       setMasteryPassedMap((prev) => ({
         ...prev,
         [selectedImageIndex]: nextMasteryPassed,

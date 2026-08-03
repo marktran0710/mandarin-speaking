@@ -141,4 +141,37 @@ describe("TonePracticePage word content verification", () => {
     expect(requestBody.get("transcription")).toBe("媽");
     expect(requestBody.get("verify_word")).toBe("媽");
   });
+
+  it("does not save or show a pronunciation score when backend quality requires a retry", async () => {
+    stubAnalyzeResponse({
+      feedback_quality: {
+        status: "retry",
+        confidence: 0.1,
+        can_score_pronunciation: false,
+        can_score_content: false,
+        reason_codes: ["insufficient_voiced_audio"],
+      },
+      word_prosody: [
+        {
+          token: "媽",
+          tone_accuracy: 0,
+          judged: false,
+          pitch_contour: [],
+          feedback: "This unsafe feedback must stay hidden.",
+        },
+      ],
+    });
+    const user = userEvent.setup();
+    render(<TonePracticePage />);
+
+    await recordOnce(user);
+
+    expect(
+      await screen.findByText("Retake before trusting this score"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("This unsafe feedback must stay hidden."),
+    ).not.toBeInTheDocument();
+    expect(localStorage.getItem("tonePracticeBestScores")).toBeNull();
+  });
 });

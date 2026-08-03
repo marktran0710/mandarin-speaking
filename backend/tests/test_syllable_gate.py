@@ -80,14 +80,17 @@ def test_syllable_verdict_uses_min_not_mean():
     assert word["passed"] is (min(scores) >= SYLLABLE_PASS_THRESHOLD)
 
 
-def test_short_segment_gets_benefit_of_the_doubt():
+def test_short_segment_is_explicitly_unjudged():
     # Two words share a tiny contour: each word's slice is too short to
-    # judge, so syllables carry the neutral 65 and the word passes.
+    # judge, so it must never receive a fabricated passing score.
     contour = _contour([0.5, 0.5, 0.5], num_points=7, duration=0.1)
     segments = estimate_word_prosody(contour, "在家 很好")
     for word in segments:
         if word["syllables"]:
-            assert word["passed"] is not None
+            assert word["judged"] is False
+            assert word["tone_accuracy"] == 0
+            assert word["passed"] is None
+            assert all(syllable["passed"] is None for syllable in word["syllables"])
 
 
 def test_non_chinese_token_has_no_gate():

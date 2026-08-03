@@ -81,6 +81,96 @@ interface LessonReviewGroup {
   stories: CustomTeacherStory[];
 }
 
+type ReviewIconName =
+  | "accept"
+  | "chevron"
+  | "edit"
+  | "export"
+  | "generate"
+  | "import"
+  | "publish"
+  | "reject"
+  | "restore"
+  | "save"
+  | "trash"
+  | "validate";
+
+function ReviewIcon({ name, size = 18 }: { name: ReviewIconName; size?: number }) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+  const paths: Record<ReviewIconName, ReactNode> = {
+    accept: <path d="m5 12 4 4L19 6" />,
+    chevron: <path d="m8 10 4 4 4-4" />,
+    edit: (
+      <>
+        <path d="M12 20h9" />
+        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
+      </>
+    ),
+    export: (
+      <>
+        <path d="M12 3v12" />
+        <path d="m7 8 5-5 5 5" />
+        <path d="M5 14v5h14v-5" />
+      </>
+    ),
+    generate: (
+      <>
+        <path d="M12 3v4M12 17v4M3 12h4M17 12h4" />
+        <path d="m5.6 5.6 2.8 2.8m7.2 7.2 2.8 2.8m0-12.8-2.8 2.8m-7.2 7.2-2.8 2.8" />
+      </>
+    ),
+    import: (
+      <>
+        <path d="M12 15V3" />
+        <path d="m7 10 5 5 5-5" />
+        <path d="M5 14v5h14v-5" />
+      </>
+    ),
+    publish: (
+      <>
+        <path d="m22 2-7 20-4-9-9-4Z" />
+        <path d="M22 2 11 13" />
+      </>
+    ),
+    reject: <path d="m6 6 12 12M18 6 6 18" />,
+    restore: (
+      <>
+        <path d="M3 12a9 9 0 1 0 3-6.7" />
+        <path d="M3 4v6h6" />
+      </>
+    ),
+    save: (
+      <>
+        <path d="M5 3h12l2 2v16H5Z" />
+        <path d="M8 3v6h8V3M8 21v-7h8v7" />
+      </>
+    ),
+    trash: (
+      <>
+        <path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14" />
+        <path d="M10 11v6M14 11v6" />
+      </>
+    ),
+    validate: (
+      <>
+        <path d="M9 3h6l1 2h3v16H5V5h3Z" />
+        <path d="m8 13 2.5 2.5L16 10" />
+      </>
+    ),
+  };
+  return <svg {...common}>{paths[name]}</svg>;
+}
+
 function lessonKeyFor(lessonNumber: number | null): string {
   return lessonNumber === null ? "other" : String(lessonNumber);
 }
@@ -119,7 +209,8 @@ function diffBadge(status: MaterialDiffStatus | undefined) {
   if (!status || status === "kept") return null;
   return (
     <span className={`tqr-diff-badge tqr-diff-${status}`}>
-      {status === "new" ? "🆕" : "✎"}
+      <span className="tqr-visually-hidden">{status === "new" ? "🆕" : "✎"}</span>
+      <BiLabel zh={status === "new" ? "新增" : "已更改"} en={status === "new" ? "New" : "Changed"} />
     </span>
   );
 }
@@ -500,9 +591,9 @@ const PENDING_KIND_LABELS: Record<GeneratedKind, { zh: string; en: string }> = {
 };
 
 const PENDING_ORIGIN_LABELS: Record<CandidateOrigin, { zh: string; en: string }> = {
-  new: { zh: "🆕 新增", en: "🆕 New" },
-  changed: { zh: "✎ 已更改", en: "✎ Changed" },
-  removed: { zh: "🗑 已移除", en: "🗑 Removed" },
+  new: { zh: "新增", en: "New" },
+  changed: { zh: "已更改", en: "Changed" },
+  removed: { zh: "已移除", en: "Removed" },
 };
 
 function pendingDecisionCopy(origin: CandidateOrigin, decision: "accept" | "reject") {
@@ -577,6 +668,7 @@ function renderDiffLine(
         <span className="tqr-pending-meta">
           <BiLabel zh={PENDING_KIND_LABELS[candidate.kind].zh} en={PENDING_KIND_LABELS[candidate.kind].en} />
           <span className={`diff-tag is-${candidate.origin}`}>
+            {candidate.origin === "new" && <span className="tqr-visually-hidden">🆕 New</span>}
             <BiLabel zh={PENDING_ORIGIN_LABELS[candidate.origin].zh} en={PENDING_ORIGIN_LABELS[candidate.origin].en} />
           </span>
         </span>
@@ -617,6 +709,130 @@ export interface QuizReviewJump {
   /** Distinguishes repeat jumps to the same lesson — the effect keys off
    * this, not lessonNumber, so a second click still re-triggers it. */
   nonce: number;
+}
+
+function ReviewFilterBar({
+  lessonGroups,
+  lessonKey,
+  onLessonChange,
+  levels,
+  level,
+  onLevelChange,
+  stories,
+  storyFilterId,
+  onStoryChange,
+  onlyChanges,
+  onOnlyChangesChange,
+}: {
+  lessonGroups: LessonReviewGroup[];
+  lessonKey: string;
+  onLessonChange: (value: string) => void;
+  levels: StoryDifficultyLevel[];
+  level: StoryDifficultyLevel;
+  onLevelChange: (value: StoryDifficultyLevel) => void;
+  stories: CustomTeacherStory[];
+  storyFilterId: string;
+  onStoryChange: (value: string) => void;
+  onlyChanges: boolean;
+  onOnlyChangesChange: (checked: boolean) => void;
+}) {
+  return (
+    <header className="tqr-header" aria-label="Quiz review controls">
+      <div className="tqr-header-copy">
+        <h1>
+          <BiLabel zh="測驗檢查" en="Quiz Review" />
+        </h1>
+      </div>
+      <div className="tqr-controls">
+        <label>
+          <BiLabel zh="課" en="Lesson" />
+          <select value={lessonKey} onChange={(event) => onLessonChange(event.target.value)}>
+            {lessonGroups.map((group) => (
+              <option key={lessonKeyFor(group.lessonNumber)} value={lessonKeyFor(group.lessonNumber)}>
+                {lessonOptionLabel(group.lessonNumber)}
+              </option>
+            ))}
+          </select>
+        </label>
+        {levels.length > 1 && (
+          <label>
+            <BiLabel zh="難度" en="Level" />
+            <select
+              value={level}
+              onChange={(event) => onLevelChange(event.target.value as StoryDifficultyLevel)}
+            >
+              {levels.map((item) => (
+                <option key={item} value={item}>
+                  {item === "easy" ? "簡單" : item === "medium" ? "中等" : "困難"}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {stories.length > 1 && (
+          <label>
+            <BiLabel zh="故事" en="Story" />
+            <select value={storyFilterId} onChange={(event) => onStoryChange(event.target.value)}>
+              <option value="all">全部故事（批次檢查）</option>
+              {stories.map((story) => (
+                <option key={story.id} value={story.id}>{story.title}</option>
+              ))}
+            </select>
+          </label>
+        )}
+        <label className="tqr-only-changes">
+          <input
+            type="checkbox"
+            checked={onlyChanges}
+            onChange={(event) => onOnlyChangesChange(event.target.checked)}
+          />
+          <BiLabel zh="只顯示新增／已改" en="Only new/changed" />
+        </label>
+      </div>
+    </header>
+  );
+}
+
+function ReviewActionRail({
+  storyTitle,
+  checkedCount,
+  markedCount,
+  changeCount,
+  children,
+}: {
+  storyTitle: string;
+  checkedCount: number;
+  markedCount: number;
+  changeCount: number;
+  children: ReactNode;
+}) {
+  return (
+    <aside className="tqr-action-rail" aria-label={`${storyTitle} review actions`}>
+      <span className="tqr-visually-hidden">{checkedCount} checked</span>
+      <span className="tqr-visually-hidden">{markedCount} marked</span>
+      <div className="tqr-rail-heading">
+        <span className="tqr-rail-label">
+          <BiLabel zh="故事" en="Story" />
+        </span>
+        <h2>{storyTitle}</h2>
+      </div>
+      <dl className="tqr-rail-metrics">
+        <div>
+          <dt><BiLabel zh="已勾選" en="Checked" /></dt>
+          <dd>{checkedCount}</dd>
+        </div>
+        <div>
+          <dt><BiLabel zh="已標記" en="Marked" /></dt>
+          <dd>{markedCount}</dd>
+        </div>
+        <div>
+          <dt><BiLabel zh="新增／已改" en="New / changed" /></dt>
+          <dd>{changeCount}</dd>
+        </div>
+      </dl>
+      <div className="tqr-rail-actions">{children}</div>
+    </aside>
+  );
 }
 
 export default function TeacherQuizReviewPage({
@@ -1289,7 +1505,7 @@ export default function TeacherQuizReviewPage({
         aria-label={`${marked ? "Restore" : "Exclude"} ${kind} for ${word}`}
         onClick={() => onToggle(storyId, index === undefined ? { word, kind } : { word, kind, index })}
       >
-        {marked ? "↩" : "🗑"}
+        <ReviewIcon name={marked ? "restore" : "trash"} size={16} />
       </button>
     );
   };
@@ -1333,6 +1549,7 @@ export default function TeacherQuizReviewPage({
 
   const editButton = (target: EditTarget, current: { distractors: string[]; sentence?: string; synonym?: string }) => (
     <button type="button" className="tqr-edit" onClick={() => onStartEdit(target, current)}>
+      <ReviewIcon name="edit" size={15} />
       <BiLabel zh="編輯" en="Edit" />
     </button>
   );
@@ -1441,15 +1658,15 @@ export default function TeacherQuizReviewPage({
     );
     return (
       <div className="tqr-qrow diff-row row-ctx" key={`${spec.kind}-${spec.poolIndex ?? 0}`}>
-        <span className="gutter" aria-hidden="true">
-          {" "}
+        <span className="gutter tqr-q-select">
+          {approvalCheckbox(spec.storyId, spec.word, spec.kind, spec.poolIndex)}
+        </span>
+        <span className="tqr-qkind">
+          {diffBadge(spec.diffStatus)}
+          <BiLabel zh={spec.kindLabel.zh} en={spec.kindLabel.en} />
+          {spec.poolIndex !== undefined && ` #${spec.poolIndex + 1}`}
         </span>
         <div className="diff-content tqr-qbody">
-          <span className="tqr-qkind">
-            {diffBadge(spec.diffStatus)}
-            <BiLabel zh={spec.kindLabel.zh} en={spec.kindLabel.en} />
-            {spec.poolIndex !== undefined && ` #${spec.poolIndex + 1}`}
-          </span>
           <p className="tqr-qprompt" lang="zh-Hant">
             {spec.promptZh}
             <br />
@@ -1463,13 +1680,10 @@ export default function TeacherQuizReviewPage({
             ))}
           </div>
         </div>
+        <div className="tqr-q-status">
+          {questionStatusBadge(result)}
+        </div>
         <div className="diff-actions tqr-q-actions">
-          {approvalCheckbox(spec.storyId, spec.word, spec.kind, spec.poolIndex)}
-          {/* "distractors" validates against the same "translation" check the
-              word header's 答案檢查 line already shows (see findValidation's
-              kind mapping below) — showing it again here would just repeat
-              the same badge and reason text right above. */}
-          {spec.kind !== "distractors" && questionStatusBadge(result)}
           {editButton(
             {
               storyId: spec.storyId,
@@ -1499,7 +1713,7 @@ export default function TeacherQuizReviewPage({
             title="Accept"
             onClick={() => onDecideCandidate(storyId, index, "accept")}
           >
-            <span aria-hidden="true">✓</span>
+            <ReviewIcon name="accept" size={16} />
           </button>
           <button
             type="button"
@@ -1508,7 +1722,7 @@ export default function TeacherQuizReviewPage({
             title="Reject"
             onClick={() => onDecideCandidate(storyId, index, "reject")}
           >
-            <span aria-hidden="true">×</span>
+            <ReviewIcon name="reject" size={16} />
           </button>
         </div>
       );
@@ -1559,73 +1773,19 @@ export default function TeacherQuizReviewPage({
         className="tqr-file-input"
         data-testid="tqr-import-input"
       />
-      <header className="tqr-header" aria-label="Quiz review controls">
-        <div className="tqr-header-copy">
-          <p className="tqr-kicker">
-            <BiLabel zh="測驗檢查" pinyin="Cèyàn jiǎnchá" en="Quiz review" />
-          </p>
-          <h1>
-            <BiLabel
-              zh="檢查測驗題目和答案"
-              pinyin="Jiǎnchá cèyàn tímù hé dá'àn"
-              en="Verify quiz questions and answers"
-            />
-          </h1>
-          <p className="tqr-lede">
-            <BiText
-              zh="標記不好的題目材料，學生的測驗就不會再出這些題。"
-              pinyin="Biāojì bù hǎo de tímù cáiliào, xuéshēng de cèyàn jiù bú huì zài chū zhèxiē tí."
-              en="Mark bad material and the student quiz will never build questions from it."
-            />
-          </p>
-        </div>
-        <div className="tqr-controls">
-          <label>
-            <BiLabel zh="課" pinyin="Kè" en="Lesson" />
-            <select value={lessonKey} onChange={(e) => setLessonKey(e.target.value)}>
-              {lessonGroups.map((g) => (
-                <option key={lessonKeyFor(g.lessonNumber)} value={lessonKeyFor(g.lessonNumber)}>
-                  {lessonOptionLabel(g.lessonNumber)}
-                </option>
-              ))}
-            </select>
-          </label>
-          {levels.length > 1 && (
-            <label>
-              <BiLabel zh="難度" pinyin="Nándù" en="Level" />
-              <select
-                value={level}
-                onChange={(e) => setLevel(e.target.value as StoryDifficultyLevel)}
-              >
-                {levels.map((l) => (
-                  <option key={l} value={l}>
-                    {l === "easy" ? "簡單" : l === "medium" ? "中等" : "困難"}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-          {currentGroup && currentGroup.stories.length > 1 && (
-            <label>
-              <BiLabel zh="故事" en="Story" />
-              <select value={storyFilterId} onChange={(e) => setStoryFilterId(e.target.value)}>
-                <option value="all">All stories (batch review)</option>
-                {currentGroup.stories.map((story) => (
-                  <option key={story.id} value={story.id}>{story.title}</option>
-                ))}
-              </select>
-            </label>
-          )}
-          <label className="tqr-only-changes">
-            <input
-              type="checkbox"
-              checked={onlyChanges}
-              onChange={(e) => setOnlyChanges(e.target.checked)}
-            />
-            <BiLabel zh="只顯示新增/已改" en="Only new/changed" />
-          </label>
-        </div>
-      </header>
+      <ReviewFilterBar
+        lessonGroups={lessonGroups}
+        lessonKey={lessonKey}
+        onLessonChange={setLessonKey}
+        levels={levels}
+        level={level}
+        onLevelChange={setLevel}
+        stories={currentGroup?.stories ?? []}
+        storyFilterId={storyFilterId}
+        onStoryChange={setStoryFilterId}
+        onlyChanges={onlyChanges}
+        onOnlyChangesChange={setOnlyChanges}
+      />
 
       {!currentGroup && (
         <p className="tqr-empty">
@@ -1684,112 +1844,74 @@ export default function TeacherQuizReviewPage({
 
           return (
             <section className="tqr-story" key={story.id}>
-              <header className="tqr-story-head">
-                <h2 className="tqr-story-title">{story.title}</h2>
-                <div className="tqr-story-actions">
-                  <div className="tqr-toolbar-primary">
-                  {!isGenerating ? <button
-                    type="button"
-                    className="tqr-generate"
-                    title="Create a new draft, or refresh only questions affected by story changes. Students cannot see a draft."
-                    onClick={() => onGenerate(story, topic)}
-                  >
-                    {hasAnyMaterial ? (
-                      <BiLabel zh="🔄 更新題目" en="🔄 Update Questions" />
-                    ) : (
-                      <BiLabel zh="✨ 生成題目" en="✨ Generate Questions" />
-                    )}
-                  </button> : (
-                    <span className="tqr-status-progress">
-                      {generateStatus === "applying" ? <BiLabel zh="套用中…" en="Applying…" /> : <BiLabel zh="生成中…" en="Generating…" />}
-                    </span>
-                  )}
-                  {generateStatus === "error" && (
-                    <span className="tqr-status-error" role="alert">
-                      <BiLabel zh="生成失敗，請稍後再試" en="Generate failed. Try again in a moment" />
-                    </span>
-                  )}
-                  {!isValidating ? <button
-                    type="button"
-                    className="tqr-validate"
-                    title="Validate the current draft for duplicate or unsafe answers before selecting questions to publish."
-                    onClick={() => onValidate(story, topic)}
-                  >
-                    <BiLabel zh="驗證題目" pinyin="Yànzhèng tímù" en="Validate Questions" />
-                  </button> : (
-                    <span className="tqr-status-progress"><BiLabel zh="驗證中…" en="Validating…" /></span>
-                  )}
-                  {validateStatus === "error" && (
-                    <span className="tqr-status-error" role="alert">
-                      <BiLabel zh="檢查失敗" en="Validate failed" />
-                    </span>
-                  )}
-                  {approvedCount > 0 && !isPublishing && <button
-                    type="button"
-                    className="tqr-approve"
-                    title="Publish the checked questions as the version students receive."
-                    onClick={() => onApprove(story, topic)}
-                  >
-                    <BiLabel zh="核准並發佈" pinyin="Hézhǔn bìng fābù" en="Approve & Publish" />
-                  </button>}
-                  {isPublishing && <span className="tqr-status-progress"><BiLabel zh="發佈中…" en="Publishing…" /></span>}
-                  {approveStatus === "approved" && (
-                    <span className="tqr-status-ok">✓ <BiLabel zh="已發佈" en="Published" /></span>
-                  )}
-                  {approveStatus === "error" && (
-                    <span className="tqr-status-error" role="alert">
-                      <BiLabel zh="發佈失敗" en="Publish failed" />
-                    </span>
-                  )}
-                  </div>
-                  <div className="tqr-toolbar-utility">
-                  <span className="tqr-count">
-                    <BiLabel zh={`已勾選 ${approvedCount} 題`} en={`${approvedCount} checked`} />
-                  </span>
-                  <span className="tqr-count">
-                    <BiLabel zh={`已標記 ${exclusions.length} 項`} en={`${exclusions.length} marked`} />
-                  </span>
-                  <span className="tqr-toolbar-spacer" />
-                  {canApproveAll && <button
-                    type="button"
-                    className="tqr-io"
-                    onClick={() => onApproveAll(story)}
-                  >
-                    <BiLabel zh="核准全部（乾淨）" pinyin="Hézhǔn quánbù" en="Approve all clean" />
-                  </button>}
-                  {dirty && !isSavingMarks && <button
-                    type="button"
-                    className="tqr-save"
-                    onClick={() => onSave(story, topic)}
-                  >
-                    <BiLabel zh="儲存標記" pinyin="Chǔcún biāojì" en="Save marks" />
-                  </button>}
-                  {isSavingMarks && <span className="tqr-status-progress"><BiLabel zh="儲存中…" en="Saving…" /></span>}
-                  {status === "saved" && !dirty && (
-                    <span className="tqr-status-ok">✓ <BiLabel zh="已儲存" en="Saved" /></span>
-                  )}
-                  {status === "error" && (
-                    <span className="tqr-status-error" role="alert">
-                      <BiLabel zh="儲存失敗" en="Save failed" />
-                    </span>
-                  )}
-                  <button type="button" className="tqr-io" onClick={() => onExport(story)}>
-                    <BiLabel zh="匯出" en="Export" />
-                  </button>
-                  <button type="button" className="tqr-io" onClick={() => triggerImport(story.id)}>
-                    <BiLabel zh="匯入" en="Import" />
-                  </button>
-                  </div>
-                </div>
-              </header>
-              {importNote && <p className="tqr-import-note">{importNote}</p>}
+              <div className="tqr-workspace">
+                <div className="tqr-review-panel">
+                  <header className="tqr-story-actions">
+                    <div className="tqr-toolbar-primary">
+                      {!isGenerating ? (
+                        <button
+                          type="button"
+                          className="tqr-generate"
+                          title="Create a new draft, or refresh only questions affected by story changes. Students cannot see a draft."
+                          onClick={() => onGenerate(story, topic)}
+                        >
+                          <ReviewIcon name="generate" />
+                          {hasAnyMaterial ? (
+                            <BiLabel zh="更新題目" en="Update Questions" />
+                          ) : (
+                            <BiLabel zh="生成題目" en="Generate Questions" />
+                          )}
+                        </button>
+                      ) : (
+                        <span className="tqr-status-progress" role="status">
+                          {generateStatus === "applying" ? <BiLabel zh="套用中…" en="Applying…" /> : <BiLabel zh="生成中…" en="Generating…" />}
+                        </span>
+                      )}
+                      {!isValidating ? (
+                        <button
+                          type="button"
+                          className="tqr-validate"
+                          title="Validate the current draft for duplicate or unsafe answers before selecting questions to publish."
+                          onClick={() => onValidate(story, topic)}
+                        >
+                          <ReviewIcon name="validate" />
+                          <BiLabel zh="驗證題目" en="Validate Questions" />
+                        </button>
+                      ) : (
+                        <span className="tqr-status-progress" role="status">
+                          <BiLabel zh="驗證中…" en="Validating…" />
+                        </span>
+                      )}
+                      <div className="tqr-toolbar-status" aria-live="polite">
+                        {generateStatus === "error" && (
+                          <span className="tqr-status-error" role="alert">
+                            <BiLabel zh="生成失敗，請稍後再試" en="Generate failed. Try again in a moment" />
+                          </span>
+                        )}
+                        {validateStatus === "error" && (
+                          <span className="tqr-status-error" role="alert">
+                            <BiLabel zh="檢查失敗" en="Validate failed" />
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </header>
+                  {importNote && <p className="tqr-import-note" role="status">{importNote}</p>}
 
-              {generateStatus === "generating" && (
-                <div className="tqr-generate-spinner">
-                  <span className="tqr-spinner" aria-hidden="true" />
-                  <BiLabel zh="正在生成題目…" en="Generating questions…" />
-                </div>
-              )}
+                  {generateStatus === "generating" && (
+                    <div className="tqr-generate-spinner" role="status">
+                      <span className="tqr-spinner" aria-hidden="true" />
+                      <BiLabel zh="正在生成題目…" en="Generating questions…" />
+                    </div>
+                  )}
+
+                  <div className="tqr-table-head" aria-hidden="true">
+                    <span />
+                    <span><BiLabel zh="題型" en="Type" /></span>
+                    <span><BiLabel zh="題目內容／答案" en="Question / answer" /></span>
+                    <span><BiLabel zh="驗證狀態" en="Validation" /></span>
+                    <span><BiLabel zh="操作" en="Actions" /></span>
+                  </div>
 
               {topic.images.map((_, si) => {
                 const words = topic.vocabulary[si] || [];
@@ -1831,7 +1953,7 @@ export default function TeacherQuizReviewPage({
                           key={`${word}-${wi}`}
                         >
                           <header className="tqr-word-head">
-                            <span className="tqr-word-chev" aria-hidden="true">▾</span>
+                            <span className="tqr-word-chev"><ReviewIcon name="chevron" size={15} /></span>
                             <strong lang="zh-Hant">{word}</strong>
                             {pinyin && <span className="tqr-pinyin">{pinyin}</span>}
                             {pos && <span className="tqr-pos">{pos}</span>}
@@ -1863,10 +1985,12 @@ export default function TeacherQuizReviewPage({
                                 <BiLabel zh="編輯答案" en="Edit answer" />
                               </button>
                             )}
-                            <span className="tqr-answer-check">
-                              <BiLabel zh="答案檢查" en="Answer check" />
-                              {questionStatusBadge(translationCheck)}
-                            </span>
+                            {translation && distractors.length === 0 && (
+                              <span className="tqr-answer-check">
+                                <BiLabel zh="答案檢查" en="Answer check" />
+                                {questionStatusBadge(translationCheck)}
+                              </span>
+                            )}
                             {translation && trashButton(story.id, word, "word")}
                             <span className="tqr-word-head-spacer" />
                             {diffBadge(diff?.status)}
@@ -1953,7 +2077,7 @@ export default function TeacherQuizReviewPage({
                     return (
                       <article className="tqr-word-file is-removed-word" key={`removed-${word}`}>
                         <header className="tqr-word-head">
-                          <span className="tqr-word-chev" aria-hidden="true">▾</span>
+                          <span className="tqr-word-chev"><ReviewIcon name="chevron" size={15} /></span>
                           <strong lang="zh-Hant">{word}</strong>
                           <span className="tqr-no-quiz">
                             <BiLabel zh="已從場景移除" en="removed from scene" />
@@ -1967,37 +2091,129 @@ export default function TeacherQuizReviewPage({
                   })}
                 </section>
               )}
-              {pendingCandidates.length > 0 && (
-                <div className="tqr-decision-bar">
-                  <span>
-                    {pendingDecidedCount === pendingCandidates.length ? (
-                      <BiLabel
-                        zh={`已決定全部 ${pendingCandidates.length} 項`}
-                        en={`All ${pendingCandidates.length} changes decided`}
-                      />
-                    ) : (
-                      <BiLabel
-                        zh={`已決定 ${pendingDecidedCount} / ${pendingCandidates.length} 項`}
-                        en={`${pendingDecidedCount} of ${pendingCandidates.length} changes decided`}
-                      />
-                    )}
-                  </span>
-                  <span className="tqr-decision-actions">
-                    {pendingDecidedCount < pendingCandidates.length && <button type="button" className="tqr-io" onClick={() => onAcceptAllPending(story.id)}>
-                      <BiLabel zh="全部接受" en="Accept All" />
-                    </button>}
-                    {canApplyPending && generateStatus !== "applying" && <button
-                      type="button"
-                      className="tqr-approve"
-                      onClick={() => onApplyPendingCandidates(story)}
-                    >
-                      <BiLabel zh={`套用變更（${pendingAcceptedCount}）`} en={`Apply Changes (${pendingAcceptedCount})`} />
-                    </button>
-                    }
-                    {generateStatus === "applying" && <span className="tqr-status-progress"><BiLabel zh="套用中…" en="Applying…" /></span>}
-                  </span>
                 </div>
-              )}
+
+                <ReviewActionRail
+                  storyTitle={story.title}
+                  checkedCount={approvedCount}
+                  markedCount={exclusions.length}
+                  changeCount={pendingCandidates.length}
+                >
+                  <div className="tqr-rail-primary" aria-live="polite">
+                    {approvedCount > 0 && !isPublishing && (
+                      <button
+                        type="button"
+                        className="tqr-approve"
+                        title="Publish the checked questions as the version students receive."
+                        onClick={() => onApprove(story, topic)}
+                      >
+                        <ReviewIcon name="publish" size={20} />
+                        <BiLabel zh="核准並發佈" en="Approve & Publish" />
+                      </button>
+                    )}
+                    {isPublishing && (
+                      <span className="tqr-status-progress" role="status">
+                        <BiLabel zh="發佈中…" en="Publishing…" />
+                      </span>
+                    )}
+                    {approveStatus === "approved" && (
+                      <span className="tqr-status-ok">
+                        <ReviewIcon name="accept" size={16} />
+                        <BiLabel zh="已發佈" en="Published" />
+                      </span>
+                    )}
+                    {approveStatus === "error" && (
+                      <span className="tqr-status-error" role="alert">
+                        <BiLabel zh="發佈失敗" en="Publish failed" />
+                      </span>
+                    )}
+                  </div>
+
+                  {canApproveAll && (
+                    <button type="button" className="tqr-rail-button" onClick={() => onApproveAll(story)}>
+                      <ReviewIcon name="accept" />
+                      <BiLabel zh="核准全部乾淨題目" en="Approve all clean" />
+                    </button>
+                  )}
+
+                  {dirty && !isSavingMarks && (
+                    <button
+                      type="button"
+                      className="tqr-save tqr-rail-button"
+                      onClick={() => onSave(story, topic)}
+                    >
+                      <ReviewIcon name="save" />
+                      <BiLabel zh="儲存標記" en="Save marks" />
+                    </button>
+                  )}
+                  {isSavingMarks && (
+                    <span className="tqr-status-progress" role="status">
+                      <BiLabel zh="儲存中…" en="Saving…" />
+                    </span>
+                  )}
+                  {status === "saved" && !dirty && (
+                    <span className="tqr-status-ok">
+                      <ReviewIcon name="accept" size={16} />
+                      <BiLabel zh="已儲存" en="Saved" />
+                    </span>
+                  )}
+                  {status === "error" && (
+                    <span className="tqr-status-error" role="alert">
+                      <BiLabel zh="儲存失敗" en="Save failed" />
+                    </span>
+                  )}
+
+                  {pendingCandidates.length > 0 && (
+                    <div className="tqr-decision-bar">
+                      <span>
+                        {pendingDecidedCount === pendingCandidates.length ? (
+                          <BiLabel
+                            zh={`已決定全部 ${pendingCandidates.length} 項`}
+                            en={`All ${pendingCandidates.length} changes decided`}
+                          />
+                        ) : (
+                          <BiLabel
+                            zh={`已決定 ${pendingDecidedCount} / ${pendingCandidates.length} 項`}
+                            en={`${pendingDecidedCount} of ${pendingCandidates.length} changes decided`}
+                          />
+                        )}
+                      </span>
+                      <span className="tqr-decision-actions">
+                        {pendingDecidedCount < pendingCandidates.length && (
+                          <button type="button" className="tqr-io" onClick={() => onAcceptAllPending(story.id)}>
+                            <BiLabel zh="全部接受" en="Accept All" />
+                          </button>
+                        )}
+                        {canApplyPending && generateStatus !== "applying" && (
+                          <button
+                            type="button"
+                            className="tqr-approve"
+                            onClick={() => onApplyPendingCandidates(story)}
+                          >
+                            <BiLabel zh={`套用變更（${pendingAcceptedCount}）`} en={`Apply Changes (${pendingAcceptedCount})`} />
+                          </button>
+                        )}
+                        {generateStatus === "applying" && (
+                          <span className="tqr-status-progress" role="status">
+                            <BiLabel zh="套用中…" en="Applying…" />
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="tqr-rail-utilities">
+                    <button type="button" className="tqr-io" onClick={() => onExport(story)}>
+                      <ReviewIcon name="export" />
+                      <BiLabel zh="匯出" en="Export" />
+                    </button>
+                    <button type="button" className="tqr-io" onClick={() => triggerImport(story.id)}>
+                      <ReviewIcon name="import" />
+                      <BiLabel zh="匯入" en="Import" />
+                    </button>
+                  </div>
+                </ReviewActionRail>
+              </div>
             </section>
           );
         })}

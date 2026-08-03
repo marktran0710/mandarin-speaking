@@ -143,7 +143,7 @@
   --text-xl: 28px;
 
   /* Spacing — a fixed scale so margins/padding/gaps stop being re-guessed
-     per component. Named to match the existing --clay-radius-*/--text-*
+     per component. Named to match the existing clay-radius and text token
      t-shirt convention. Pick the nearest step; don't hardcode px unless a
      value is a genuine one-off (e.g. clearing an absolutely-positioned
      sibling), and leave a comment when you do. */

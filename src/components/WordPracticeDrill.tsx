@@ -14,6 +14,11 @@ import {
 import type { WordProsody } from "./StoryRecorder";
 import { BiLabel } from "./BiLabel";
 import MiniContourChart from "./MiniContourChart";
+import VoiceFeedbackReliabilityNotice from "./VoiceFeedbackReliabilityNotice";
+import {
+  assessVoiceFeedbackReliability,
+  type VoiceFeedbackReliability,
+} from "../utils/voiceFeedbackReliability";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -51,6 +56,8 @@ export default function WordPracticeDrill({
   const [latestContentMatch, setLatestContentMatch] = useState<boolean | null>(
     null,
   );
+  const [latestReliability, setLatestReliability] =
+    useState<VoiceFeedbackReliability | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -152,10 +159,21 @@ export default function WordPracticeDrill({
         );
         return;
       }
+      const assessment = assessVoiceFeedbackReliability({
+        feedbackQuality: data.feedback_quality,
+        contentMatch: data.content_match ?? null,
+        wordProsody: data.word_prosody,
+      });
       setLatestContentMatch(data.content_match ?? null);
+      setLatestReliability(assessment);
       setAttempts((prev) => [...prev, segment]);
       onAttempt?.(word.token);
-      if (segment.passed === true && data.content_match !== false) {
+      if (
+        assessment.canCountForProgress &&
+        segment.judged !== false &&
+        segment.passed === true &&
+        data.content_match !== false
+      ) {
         onPass?.(word.token);
       }
     } catch (err) {
@@ -266,6 +284,14 @@ export default function WordPracticeDrill({
             <div
               className={`word-practice-result ${scoreTier(drillScore(latest))}`}
             >
+              {latestReliability && (
+                <VoiceFeedbackReliabilityNotice
+                  assessment={latestReliability}
+                  attemptCount={attempts.length}
+                />
+              )}
+              {latestReliability?.level !== "retry" && (
+                <>
               {latestContentMatch === false && (
                 <p className="word-practice-content-warning">
                   <BiLabel
@@ -336,6 +362,8 @@ export default function WordPracticeDrill({
                 )}
               </div>
               <p>{latest.feedback}</p>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -22,8 +22,6 @@ const topic = {
   },
 };
 
-let activeRecorder: MockMediaRecorder | null = null;
-
 class MockMediaRecorder {
   static isTypeSupported = () => false;
 
@@ -31,10 +29,6 @@ class MockMediaRecorder {
   state = "inactive";
   ondataavailable: ((event: { data: Blob }) => void) | null = null;
   onstop: (() => void | Promise<void>) | null = null;
-
-  constructor() {
-    activeRecorder = this;
-  }
 
   start() {
     this.state = "recording";
@@ -178,7 +172,6 @@ async function uploadVoiceAttempt(user: UserEvent, fileName = "story-attempt.wav
 describe("StoryRecorder speaking practice gates", () => {
   beforeEach(() => {
     localStorage.clear();
-    activeRecorder = null;
     vi.stubGlobal("MediaRecorder", MockMediaRecorder);
     mockBackendAnalyze(buildAnalyzeResponse());
 
@@ -225,6 +218,55 @@ describe("StoryRecorder speaking practice gates", () => {
       `${TEST_BACKEND_URL}/api/analyze`,
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  it("never unlocks mastery when backend marks pronunciation unscorable", async () => {
+    const user = userEvent.setup();
+    const base = buildAnalyzeResponse();
+    mockBackendAnalyze({
+      ...base,
+      tone_accuracy: 99,
+      fluency_score: 99,
+      feedback_quality: {
+        status: "retry",
+        confidence: 0.05,
+        can_score_pronunciation: false,
+        can_score_content: false,
+        reason_codes: ["silence"],
+      },
+      word_prosody: [
+        {
+          ...base.word_prosody[0],
+          judged: false,
+          passed: null,
+          tone_accuracy: 0,
+          shape_accuracy: 0,
+          syllables: [],
+        },
+      ],
+    });
+
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+    await uploadVoiceAttempt(user, "silent-attempt.wav");
+
+    expect(
+      await screen.findByText("Retake before trusting this score"),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Scene 1 complete/i)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Next scene/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps a high-scoring but incomplete script on Fix it and blocks Next scene", async () => {
