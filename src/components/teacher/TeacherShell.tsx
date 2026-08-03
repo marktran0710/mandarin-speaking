@@ -11,7 +11,8 @@ export type TeacherView =
   | "recordingsHelp"
   | "materials"
   | "students"
-  | "analytics";
+  | "analytics"
+  | "practiceDebug";
 
 interface SidebarItem {
   id: TeacherView;
@@ -73,7 +74,10 @@ export default function TeacherShell({
     },
     {
       label: "Data",
-      items: [{ id: "analytics", icon: "📈", label: "Analytics" }],
+      items: [
+        { id: "analytics", icon: "📈", label: "Analytics" },
+        { id: "practiceDebug", icon: "🧪", label: "Practice Debug" },
+      ],
     },
   ];
 

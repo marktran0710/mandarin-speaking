@@ -641,6 +641,44 @@ describe("StoryRecorder student prototype", () => {
     vi.unstubAllGlobals();
   });
 
+  it("defaults to the recommended Groq Whisper API when it is available", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/api/ai-providers")) {
+          return jsonResponse({
+            providers: [{ id: "groq", label: "Groq", available: true }],
+            default: "groq",
+          });
+        }
+        return jsonResponse({});
+      }),
+    );
+
+    const user = userEvent.setup();
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+    await user.click(screen.getByText("Recording options"));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Speech source")).toHaveValue("groq");
+    });
+    expect(
+      screen.getByRole("option", { name: /Groq Whisper.*recommended free API/ }),
+    ).toBeEnabled();
+  });
+
   it("lets a student record their own attempt and receive word-level pronunciation feedback", async () => {
     const user = userEvent.setup();
     const onAddRecord = vi.fn();
@@ -714,10 +752,7 @@ describe("StoryRecorder student prototype", () => {
     await screen.findByRole("region", { name: "Recording results" });
   });
 
-  // BUG: StoryRecorder keeps selectedModel state but the current SpeakingFlowCard
-  // no longer renders the "Speech source" selector, so students cannot choose
-  // ctwhisper for an upload.
-  it.skip("uses Chinese/Taiwanese Whisper when a student submits a voice file", async () => {
+  it("uses Chinese/Taiwanese Whisper when a student submits a voice file", async () => {
     const user = userEvent.setup();
     const onAddRecord = vi.fn();
 
@@ -737,6 +772,7 @@ describe("StoryRecorder student prototype", () => {
     await user.click(screen.getByRole("tab", { name: /Speaking/ }));
     // Uploading with the webspeech default falls back to Groq (webspeech
     // itself can't transcribe a file) — pick ctwhisper explicitly.
+    await user.click(screen.getByText("Recording options"));
     await user.selectOptions(screen.getByLabelText(/Speech source/), "ctwhisper");
 
     const voiceFile = new File(["RIFF....WAVEfmt "], "story-attempt.wav", {
@@ -769,10 +805,7 @@ describe("StoryRecorder student prototype", () => {
     );
   });
 
-  // BUG: StoryRecorder keeps selectedModel state but the current SpeakingFlowCard
-  // no longer renders the "Speech source" selector, so students cannot choose
-  // VibeVoice for an upload.
-  it.skip("transcribes and analyzes a submitted student voice file with VibeVoice", async () => {
+  it("transcribes and analyzes a submitted student voice file with VibeVoice", async () => {
     const user = userEvent.setup();
     const onAddRecord = vi.fn();
 
@@ -1150,6 +1183,34 @@ describe("StoryRecorder student prototype", () => {
     await user.click(screen.getByRole("tab", { name: /Speaking/ }));
 
     expect(screen.getByText("我在餐廳吃飯。")).toBeInTheDocument();
+  });
+
+  it("exposes the teacher's model recording in the Speaking step", async () => {
+    const user = userEvent.setup();
+    const topicWithModelRecording = {
+      ...topic,
+      suggestedAnswers: { 0: "我在市場幫助朋友。" },
+      listenAudioUrls: { 0: "https://example.com/model-scene-1.wav" },
+    };
+
+    render(
+      <StoryRecorder
+        topic={topicWithModelRecording}
+        selectedImage={topicWithModelRecording.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+    expect(
+      screen.getByLabelText("Model recording: 我在市場幫助朋友。"),
+    ).toHaveAttribute(
+      "src",
+      "https://example.com/model-scene-1.wav",
+    );
   });
 });
 

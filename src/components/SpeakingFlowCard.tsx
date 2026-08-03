@@ -8,6 +8,7 @@ import type {
   SpeechModel,
   Topic,
 } from "./StoryRecorder";
+import ModelRecordingPractice from "./ModelRecordingPractice";
 import "./SpeakingFlowCard.css";
 
 interface SceneProgressEntry {
@@ -38,6 +39,8 @@ interface SpeakingFlowCardProps {
   silenceDuration: number;
   submittedAudioName: string;
   selectedModel: SpeechModel;
+  groqAvailable: boolean;
+  onSelectedModelChange: (model: SpeechModel) => void;
   recordingButtonDisabled: boolean;
   onPrimaryRecordingAction: () => void;
   onSubmitVoiceFile: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -83,6 +86,8 @@ export default function SpeakingFlowCard({
   silenceDuration,
   submittedAudioName,
   selectedModel,
+  groqAvailable,
+  onSelectedModelChange,
   recordingButtonDisabled,
   onPrimaryRecordingAction,
   onSubmitVoiceFile,
@@ -193,29 +198,45 @@ export default function SpeakingFlowCard({
         </div>
 
         <div className="sfc-record-main">
-        {modelSentence && (
-          <div className="practice-model-sentence sfc-model-sentence">
-            <p className="block-label practice-model-sentence-label">
-              <BiLabel k="speaking_model_sentence" />
-            </p>
-            <p className="practice-model-sentence-text" lang="zh-Hant">
-              {modelSentence}
-              {modelAudioUrl && (
-                <button
-                  type="button"
-                  className="sfc-model-sentence-play"
-                  onClick={() => new Audio(modelAudioUrl).play()}
-                  aria-label="Listen to the model sentence"
-                  title="Listen to the model sentence"
-                >
-                  🔊
-                </button>
-              )}
-            </p>
-          </div>
-        )}
+        <ModelRecordingPractice
+          sceneIndex={selectedImageIndex}
+          modelSentence={modelSentence}
+          modelAudioUrl={modelAudioUrl}
+        />
 
         <div className="sfc-record-panel">
+            <details className="sfc-recording-options">
+              <summary>Recording options</summary>
+              <label className="sfc-speech-source">
+                <span>Speech source</span>
+                <select
+                  aria-label="Speech source"
+                  value={selectedModel}
+                  disabled={isBusy}
+                  onChange={(event) =>
+                    onSelectedModelChange(event.target.value as SpeechModel)
+                  }
+                >
+                  <option value="groq" disabled={!groqAvailable}>
+                    {groqAvailable
+                      ? "Groq Whisper — recommended free API"
+                      : "Groq Whisper — unavailable (API key required)"}
+                  </option>
+                  <option value="webspeech">Browser Speech — free fallback</option>
+                  <option value="ctwhisper">Chinese/Taiwanese Whisper — local</option>
+                  <option value="vibevoice">VibeVoice — experimental local</option>
+                </select>
+              </label>
+              <p className="sfc-speech-source-note">
+                {selectedModel === "groq"
+                  ? "Recommended: fast, stable Mandarin transcription through the configured free API tier."
+                  : selectedModel === "webspeech"
+                    ? "Uses the browser's live speech service; availability depends on the browser and network."
+                    : selectedModel === "ctwhisper"
+                      ? "Runs the local Chinese/Taiwanese Whisper model; private but slower on CPU."
+                      : "Experimental local model; its first run may take several minutes to load."}
+              </p>
+            </details>
             <div className="sfc-action-intro">
               <span className="sfc-action-step" aria-hidden="true">1</span>
               <div>

@@ -230,6 +230,21 @@ class FeedbackQuality(BaseModel):
     metrics: RecordingQualityMetrics = Field(default_factory=RecordingQualityMetrics)
 
 
+class ProcessingTraceStage(BaseModel):
+    stage: str
+    status: str
+    duration_ms: float = 0.0
+    model: Optional[str] = None
+    provider: Optional[str] = None
+    detail: Optional[str] = None
+    reason_codes: List[str] = Field(default_factory=list)
+
+
+class ProcessingTrace(BaseModel):
+    stages: List[ProcessingTraceStage] = Field(default_factory=list)
+    total_duration_ms: float = 0.0
+
+
 class AnalysisResponse(BaseModel):
     description: str = ""
     transcription: str = ""
@@ -255,6 +270,7 @@ class AnalysisResponse(BaseModel):
     recognized_text: Optional[str] = None
     content_match: Optional[bool] = None
     feedback_quality: FeedbackQuality = Field(default_factory=FeedbackQuality)
+    processing_trace: ProcessingTrace = Field(default_factory=ProcessingTrace)
 
 
 class AsrStatusResponse(BaseModel):
@@ -1146,12 +1162,43 @@ async def _do_analyze(
     reference_word_curves: Optional[Dict[str, list]] = None,
 ) -> AnalysisResponse:
     tmp_path = None
+    trace_started_at = time.perf_counter()
+    trace_entries: list[dict[str, Any]] = []
+
+    def add_trace_stage(
+        stage: str,
+        status: str,
+        started_at: float,
+        *,
+        model: Optional[str] = None,
+        provider: Optional[str] = None,
+        detail: Optional[str] = None,
+        reason_codes: Optional[list[str]] = None,
+    ) -> None:
+        trace_entries.append({
+            "stage": stage,
+            "status": status,
+            "duration_ms": round((time.perf_counter() - started_at) * 1000, 1),
+            "model": model,
+            "provider": provider,
+            "detail": detail,
+            "reason_codes": reason_codes or [],
+        })
+
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
             tmp_file.write(content)
             tmp_path = tmp_file.name
 
+        preflight_started_at = time.perf_counter()
         recording_preflight = assess_recording_quality(content)
+        add_trace_stage(
+            "preflight",
+            recording_preflight.get("status", "review"),
+            preflight_started_at,
+            detail=recording_preflight.get("student_message") or recording_preflight.get("reason"),
+            reason_codes=recording_preflight.get("reason_codes"),
+        )
         transcription_model = ""
         ai_feedback = None
         image_b64, image_mime = await resolve_image_b64(scene_image_url) or (None, "")
@@ -1167,6 +1214,7 @@ async def _do_analyze(
         }
         chosen_provider = (ai_provider or "").strip().lower()
         audio_assessed = False
+        asr_started_at = time.perf_counter()
         if (
             recording_preflight["status"] != "retry"
             and not transcription.strip()
@@ -1187,15 +1235,42 @@ async def _do_analyze(
                     transcription_model = tag
                     ai_feedback = audio_result["feedback"]
                     audio_assessed = True
+                    add_trace_stage(
+                        "asr",
+                        "integrated",
+                        asr_started_at,
+                        model=transcription_model,
+                        provider=chosen_provider,
+                        detail="Transcript and language feedback came from the audio provider.",
+                    )
                 except Exception as exc:
                     logger.warning(f"{chosen_provider} audio assessment failed, falling back: {exc}")
 
         if not transcription.strip() and asr_model.strip():
-            transcription_result = await transcribe_audio_content(
-                content, asr_model.strip(), vocab_hint=scene_vocabulary
+            try:
+                transcription_result = await transcribe_audio_content(
+                    content, asr_model.strip(), vocab_hint=scene_vocabulary
+                )
+                transcription = transcription_result.text
+                transcription_model = transcription_result.model
+                add_trace_stage(
+                    "asr",
+                    "passed" if transcription.strip() else "review",
+                    asr_started_at,
+                    model=transcription_model,
+                    detail="Backend transcription completed." if transcription.strip() else "ASR returned no transcript.",
+                )
+            except Exception as exc:
+                add_trace_stage("asr", "failed", asr_started_at, model=asr_model.strip(), detail=str(exc))
+                raise
+        elif not trace_entries or trace_entries[-1]["stage"] != "asr":
+            add_trace_stage(
+                "asr",
+                "skipped",
+                asr_started_at,
+                model=transcription_model or None,
+                detail="Transcript was supplied by the caller.",
             )
-            transcription = transcription_result.text
-            transcription_model = transcription_result.model
 
         def _run_praat(path: str, tx: str):
             return analyze_all(
@@ -1222,10 +1297,40 @@ async def _do_analyze(
             if verify_word.strip()
             else asyncio.sleep(0, result=(None, None))
         )
+
+        async def run_praat_stage():
+            started_at = time.perf_counter()
+            try:
+                result = await run_in_threadpool(_run_praat, tmp_path, transcription)
+            except Exception as exc:
+                add_trace_stage("praat", "failed", started_at, detail=str(exc))
+                raise
+            add_trace_stage("praat", "passed", started_at, detail="Acoustic analysis completed.")
+            return result
+
+        async def run_feedback_stage():
+            started_at = time.perf_counter()
+            result = await feedback_coro
+            add_trace_stage(
+                "feedback",
+                "skipped" if audio_assessed or recording_preflight["status"] == "retry" else "passed",
+                started_at,
+                provider=ai_provider or "local",
+                detail="Provider feedback completed." if not audio_assessed else "Audio provider feedback already included.",
+            )
+            return result
+
+        async def run_verify_stage():
+            started_at = time.perf_counter()
+            result = await verify_coro
+            if verify_word.strip():
+                add_trace_stage("content_verification", "passed", started_at, detail="Independent word verification completed.")
+            return result
+
         (praat_result, maybe_feedback, (recognized_text, content_match)) = await asyncio.gather(
-            run_in_threadpool(_run_praat, tmp_path, transcription),
-            feedback_coro,
-            verify_coro,
+            run_praat_stage(),
+            run_feedback_stage(),
+            run_verify_stage(),
         )
         if not audio_assessed:
             ai_feedback = maybe_feedback
@@ -1234,12 +1339,20 @@ async def _do_analyze(
          pause_analysis) = praat_result
 
         # No speech → noise from the mic can spuriously match a tone reference
+        quality_started_at = time.perf_counter()
         feedback_quality = finalize_feedback_quality(
             recording_preflight,
             pitch_contour,
             transcription,
             content_match=content_match,
             content_was_verified=bool(verify_word.strip()),
+        )
+        add_trace_stage(
+            "quality_gate",
+            "passed" if feedback_quality["can_score_pronunciation"] else "retry",
+            quality_started_at,
+            detail=feedback_quality.get("student_message") or "Quality gate evaluated.",
+            reason_codes=feedback_quality.get("reason_codes"),
         )
 
         if not feedback_quality["can_score_pronunciation"]:
@@ -1336,6 +1449,10 @@ async def _do_analyze(
             recognized_text=recognized_text,
             content_match=content_match,
             feedback_quality=feedback_quality,
+            processing_trace=ProcessingTrace(
+                stages=[ProcessingTraceStage(**entry) for entry in trace_entries],
+                total_duration_ms=round((time.perf_counter() - trace_started_at) * 1000, 1),
+            ),
         )
     finally:
         if tmp_path and os.path.exists(tmp_path):

@@ -34,6 +34,7 @@ import { isAdminSession } from "../utils/studentSession";
 import { markStoryLevelSubmitted } from "../utils/storyLevelProgress";
 import type { CustomTeacherStory, StoryDifficultyLevel } from "../utils/teacherStories";
 import { convertBlobToWav } from "../utils/audio";
+import { buildPracticeAnalysisFormData } from "../utils/practiceAnalysis";
 import {
   sceneReady,
   sceneContentGatePassed,
@@ -610,6 +611,8 @@ export default function StoryRecorder({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<SpeechModel>("webspeech");
+  const [groqAsrAvailable, setGroqAsrAvailable] = useState(false);
+  const speechModelChosenByStudentRef = useRef(false);
   const [aiProvider, setAiProvider] = useState<string>("");
   const [silenceDuration, setSilenceDuration] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -1087,12 +1090,15 @@ export default function StoryRecorder({
         const groqAvailable = data.providers.some(
           (p: AiProviderOption) => p.id === "groq" && p.available,
         );
+        setGroqAsrAvailable(groqAvailable);
         const defaultProvider = (groqAvailable ? "groq" : data.default) || "";
         setAiProvider((prev) => prev || defaultProvider);
         // Sync speech source: if Groq is the default AI provider, use Groq Whisper
         // for transcription too so ASR and feedback both come from the same engine.
-        if (groqAvailable) {
-          setSelectedModel((prev) => (prev === "webspeech" ? "groq" : prev));
+        // Once the student makes an explicit choice, an async provider refresh
+        // must never overwrite it.
+        if (groqAvailable && !speechModelChosenByStudentRef.current) {
+          setSelectedModel("groq");
         }
       } catch {
         // Backend unreachable — the picker just stays hidden.
@@ -1352,42 +1358,27 @@ export default function StoryRecorder({
     try {
       const backendUrl = getBackendUrl();
       const wavBlob = await convertBlobToWav(audioBlob);
-      const formData = new FormData();
-      formData.append("file", wavBlob, "speech.wav");
       const analysisText = transcription.trim();
-      formData.append("transcription", analysisText);
-      if (asrModel) {
-        formData.append("asr_model", asrModel);
-      }
       // Scene context for smarter feedback
       const sceneVocab = (topic.vocabulary[selectedImageIndex] || []).join(
         ", ",
       );
       const scenePrompt = topic.prompts?.[selectedImageIndex] || topic.name;
-      formData.append("scene_vocabulary", sceneVocab);
-      formData.append("scene_prompt", scenePrompt);
-      if (selectedImage) {
-        formData.append("scene_image_url", selectedImage);
-      }
-      if (aiProvider) {
-        formData.append("ai_provider", aiProvider);
-      }
       const scenePhrases = topic.phrases?.[selectedImageIndex];
-      if (scenePhrases && scenePhrases.length > 0) {
-        formData.append("scene_phrases", scenePhrases.join("; "));
-      }
       const sceneSuggestedAnswer = topic.suggestedAnswers?.[selectedImageIndex];
-      if (sceneSuggestedAnswer) {
-        formData.append("scene_suggested_answer", sceneSuggestedAnswer);
-      }
       const sceneReferenceCurves = buildSceneReferenceCurves(topic, selectedImageIndex);
-      if (sceneReferenceCurves) {
-        formData.append("scene_reference_curves", JSON.stringify(sceneReferenceCurves));
-      }
-      formData.append(
-        "scene_attempt_number",
-        String(attemptHistory.length + 1),
-      );
+      const formData = buildPracticeAnalysisFormData(wavBlob, {
+        transcription: analysisText,
+        asrModel,
+        aiProvider,
+        sceneVocabulary: sceneVocab,
+        scenePrompt,
+        sceneImageUrl: selectedImage,
+        scenePhrases: scenePhrases?.join("; "),
+        sceneSuggestedAnswer,
+        sceneReferenceCurves,
+        sceneAttemptNumber: attemptHistory.length + 1,
+      });
 
       const response = await fetch(`${backendUrl}/api/analyze`, {
         method: "POST",
@@ -1988,6 +1979,11 @@ export default function StoryRecorder({
               silenceDuration={silenceDuration}
               submittedAudioName={submittedAudioName}
               selectedModel={selectedModel}
+              groqAvailable={groqAsrAvailable}
+              onSelectedModelChange={(model) => {
+                speechModelChosenByStudentRef.current = true;
+                setSelectedModel(model);
+              }}
               recordingButtonDisabled={recordingButtonDisabled}
               onPrimaryRecordingAction={handlePrimaryRecordingAction}
               onSubmitVoiceFile={handleSubmitVoiceFile}
