@@ -23,6 +23,8 @@
 .pdebug-recorder-action button:disabled { cursor: wait; opacity: .7; }
 .pdebug-recorder-action .pdebug-upload-button { min-width: 135px; border: 1px solid #9fc2b5; background: #eef8f4; color: #195c45; }
 .pdebug-recorder-action .pdebug-upload-button:hover:not(:disabled) { background: #dff1ea; }
+.pdebug-recorder-action .pdebug-cancel-button { min-width: 92px; border: 1px solid #d9aaa7; background: #fff4f3; color: #913b36; }
+.pdebug-recorder-action .pdebug-cancel-button:hover { background: #ffe8e6; }
 .pdebug-audio-upload-input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
 .pdebug-upload-name { max-width: 230px; overflow: hidden; color: #526b62; text-overflow: ellipsis; white-space: nowrap; }
 .pdebug-recorder-action audio { width: min(100%, 330px); height: 38px; }

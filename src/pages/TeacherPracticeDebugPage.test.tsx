@@ -37,6 +37,18 @@ const runtimeRecord: AudioRecord = {
 };
 
 describe("TeacherPracticeDebugPage", () => {
+  it("defaults to Groq Whisper when the recommended free API is available", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      providers: [{ id: "groq", label: "Groq", available: true }],
+      default: "groq",
+    }), { status: 200, headers: { "Content-Type": "application/json" } })));
+
+    render(<TeacherPracticeDebugPage records={[]} />);
+
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Backend ASR" })).toHaveValue("groq"));
+    expect(screen.getByRole("option", { name: "Groq Whisper — recommended free API" })).toBeEnabled();
+  });
+
   it("is a distinct destination in the teacher sidebar", async () => {
     const user = userEvent.setup();
     render(
@@ -136,7 +148,9 @@ describe("TeacherPracticeDebugPage", () => {
     expect(screen.getByText(/Complete · 820 ms/)).toBeInTheDocument();
     expect(screen.getByLabelText("Recorded debug attempt")).toHaveAttribute("src", "blob:debug-attempt");
     expect(stopTrack).toHaveBeenCalled();
-    const [, request] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const analyzeCall = (fetchMock.mock.calls as unknown as Array<[RequestInfo | URL, RequestInit?]>)
+      .find(([url]) => String(url).includes("/api/analyze"));
+    const [, request] = analyzeCall as unknown as [string, RequestInit];
     const body = request.body as FormData;
     expect(body.get("asr_model")).toBe("ctwhisper");
     expect(body.get("scene_prompt")).toBe("What is happening at the market?");
@@ -196,7 +210,9 @@ describe("TeacherPracticeDebugPage", () => {
       "blob:uploaded-debug-attempt",
     );
 
-    const [, request] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const analyzeCall = (fetchMock.mock.calls as unknown as Array<[RequestInfo | URL, RequestInit?]>)
+      .find(([url]) => String(url).includes("/api/analyze"));
+    const [, request] = analyzeCall as unknown as [string, RequestInit];
     const body = request.body as FormData;
     expect(body.get("asr_model")).toBe("ctwhisper");
     expect(body.get("scene_prompt")).toBe("Describe this uploaded attempt.");

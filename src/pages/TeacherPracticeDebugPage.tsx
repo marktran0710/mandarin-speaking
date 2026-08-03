@@ -74,6 +74,24 @@ interface RecordedRequestContext {
 
 type DebugProcessingState = "idle" | "recording" | "uploading" | "processing" | "complete" | "error";
 type DebugTraceStatus = "pending" | "running" | "passed" | "integrated" | "review" | "retry" | "skipped" | "failed";
+type AnalysisPhase = "idle" | "preparing" | "backend";
+
+const AUDIO_PREPARATION_TIMEOUT_MS = 30_000;
+const BACKEND_ANALYSIS_TIMEOUT_MS = 120_000;
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
 
 interface ProcessingTraceStage {
   stage: string;
@@ -129,8 +147,11 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
   const [selectedTopicId, setSelectedTopicId] = useState(publishedTopics[0]?.id ?? "");
   const [selectedSceneIndex, setSelectedSceneIndex] = useState(0);
   const [asrModel, setAsrModel] = useState<SpeechModel>("ctwhisper");
+  const [groqAvailable, setGroqAvailable] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisPhase, setAnalysisPhase] = useState<AnalysisPhase>("idle");
+  const [analysisElapsed, setAnalysisElapsed] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingError, setRecordingError] = useState("");
   const [recordedRecord, setRecordedRecord] = useState<AudioRecord | null>(null);
@@ -147,6 +168,10 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordedAudioUrlRef = useRef("");
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const asrChoiceTouchedRef = useRef(false);
+  const analysisAbortControllerRef = useRef<AbortController | null>(null);
+  const analysisRunIdRef = useRef(0);
+  const analysisStartedAtRef = useRef(0);
   const [selectedId, setSelectedId] = useState(runtimeRecords[0]?.id ?? "__sample__");
 
   const selectedTopic = publishedTopics.find((topic) => topic.id === selectedTopicId)
@@ -155,11 +180,49 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
 
   useEffect(() => {
     return () => {
+      analysisRunIdRef.current += 1;
+      analysisAbortControllerRef.current?.abort();
       if (durationTimerRef.current) clearInterval(durationTimerRef.current);
       streamRef.current?.getTracks().forEach((track) => track.stop());
       if (recordedAudioUrlRef.current) URL.revokeObjectURL(recordedAudioUrlRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5_000);
+    void (async () => {
+      try {
+        const response = await fetch(`${getBackendUrl()}/api/ai-providers`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) return;
+        const data = await response.json();
+        const available = Array.isArray(data.providers) && data.providers.some(
+          (provider: JsonObject) => provider.id === "groq" && provider.available === true,
+        );
+        setGroqAvailable(available);
+        if (available && !asrChoiceTouchedRef.current) setAsrModel("groq");
+      } catch {
+        // Keep the local CT Whisper fallback when the provider check is unavailable.
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isAnalyzing) return;
+    setAnalysisElapsed(0);
+    const timer = setInterval(() => {
+      setAnalysisElapsed(Math.floor((Date.now() - analysisStartedAtRef.current) / 1000));
+    }, 250);
+    return () => clearInterval(timer);
+  }, [isAnalyzing]);
 
   const stopDurationTimer = () => {
     if (durationTimerRef.current) {
@@ -169,8 +232,11 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
   };
 
   const analyzeRecording = async (rawBlob: Blob, durationOverride?: number) => {
+    const runId = ++analysisRunIdRef.current;
+    analysisStartedAtRef.current = Date.now();
     setIsAnalyzing(true);
-    setProcessingState("processing");
+    setAnalysisPhase("preparing");
+    setProcessingState("uploading");
     setRecordingError("");
     const topic = selectedTopic;
     const sceneIndex = selectedSceneIndex;
@@ -183,9 +249,15 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
       sceneReferenceCurves: topic ? buildSceneReferenceCurves(topic, sceneIndex) : null,
       asrModel,
     };
+    let backendTimer: ReturnType<typeof setTimeout> | undefined;
 
     try {
-      const wavBlob = await convertBlobToWav(rawBlob);
+      const wavBlob = await withTimeout(
+        convertBlobToWav(rawBlob),
+        AUDIO_PREPARATION_TIMEOUT_MS,
+        "This audio file could not be decoded within 30 seconds. Try WAV, MP3, or M4A encoded with a standard codec.",
+      );
+      if (runId !== analysisRunIdRef.current) return;
       const formData = buildPracticeAnalysisFormData(wavBlob, {
         asrModel: context.asrModel,
         sceneVocabulary: context.sceneVocabulary,
@@ -197,11 +269,17 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
         sceneAttemptNumber: 1,
       });
 
+      setAnalysisPhase("backend");
+      setProcessingState("processing");
+      const controller = new AbortController();
+      analysisAbortControllerRef.current = controller;
+      backendTimer = setTimeout(() => controller.abort(), BACKEND_ANALYSIS_TIMEOUT_MS);
       const response = await fetch(`${getBackendUrl()}/api/analyze`, {
         method: "POST",
         body: formData,
-        signal: AbortSignal.timeout(120_000),
+        signal: controller.signal,
       });
+      if (runId !== analysisRunIdRef.current) return;
       if (!response.ok) {
         const body = await readErrorResponse(response);
         throw new Error(body.detail || "Practice analysis failed.");
@@ -237,14 +315,34 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
       setSelectedId("__recorded__");
       setProcessingState("complete");
     } catch (error) {
-      setRecordingError(formatBackendError(error, "the configured backend"));
+      if (runId !== analysisRunIdRef.current) return;
+      const message = error instanceof DOMException && error.name === "AbortError"
+        ? "Backend analysis timed out after 120 seconds. Check the backend log, then retry or choose another ASR source."
+        : formatBackendError(error, "the configured backend");
+      setRecordingError(message);
       setProcessingState("error");
       setProcessingTrace((current) => current.length > 0
         ? current
         : [{ stage: "analysis", status: "failed", detail: "The analysis request failed." }]);
     } finally {
-      setIsAnalyzing(false);
+      if (backendTimer) clearTimeout(backendTimer);
+      if (runId === analysisRunIdRef.current) {
+        analysisAbortControllerRef.current = null;
+        setAnalysisPhase("idle");
+        setIsAnalyzing(false);
+      }
     }
+  };
+
+  const cancelAnalysis = () => {
+    analysisRunIdRef.current += 1;
+    analysisAbortControllerRef.current?.abort();
+    analysisAbortControllerRef.current = null;
+    setAnalysisPhase("idle");
+    setIsAnalyzing(false);
+    setProcessingState("error");
+    setRecordingError("Analysis cancelled. You can choose another ASR source and retry.");
+    setProcessingTrace([{ stage: "analysis", status: "failed", detail: "Cancelled by teacher." }]);
   };
 
   const startRecording = async () => {
@@ -490,10 +588,15 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
               aria-label="Backend ASR"
               value={asrModel}
               disabled={isRecording || isAnalyzing}
-              onChange={(event) => setAsrModel(event.target.value as SpeechModel)}
+              onChange={(event) => {
+                asrChoiceTouchedRef.current = true;
+                setAsrModel(event.target.value as SpeechModel);
+              }}
             >
-              <option value="ctwhisper">Chinese/Taiwanese Whisper</option>
-              <option value="groq">Groq Whisper</option>
+              <option value="groq" disabled={!groqAvailable}>
+                {groqAvailable ? "Groq Whisper — recommended free API" : "Groq Whisper — unavailable"}
+              </option>
+              <option value="ctwhisper">Chinese/Taiwanese Whisper — local fallback</option>
               <option value="vibevoice">VibeVoice</option>
             </select>
           </label>
@@ -505,7 +608,13 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
             disabled={isAnalyzing}
             onClick={isRecording ? stopRecording : startRecording}
           >
-            {isRecording ? `Stop & analyze (${recordingDuration}s)` : isAnalyzing ? "Analyzing recording…" : "Start recording"}
+            {isRecording
+              ? `Stop & analyze (${recordingDuration}s)`
+              : isAnalyzing
+                ? analysisPhase === "preparing"
+                  ? `Preparing audio… ${analysisElapsed}s`
+                  : `Analyzing with ${asrModel === "groq" ? "Groq" : asrModel}… ${analysisElapsed}s`
+                : "Start recording"}
           </button>
           <button
             type="button"
@@ -515,6 +624,11 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
           >
             Upload audio
           </button>
+          {isAnalyzing && (
+            <button type="button" className="pdebug-cancel-button" onClick={cancelAnalysis}>
+              Cancel
+            </button>
+          )}
           <input
             ref={uploadInputRef}
             className="pdebug-audio-upload-input"
@@ -547,7 +661,11 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
                     : "Processing this student attempt"}
               </h3>
             </div>
-            {processingState === "processing" && <span className="pdebug-trace-live">Running</span>}
+            {(processingState === "uploading" || processingState === "processing") && (
+              <span className="pdebug-trace-live">
+                {analysisPhase === "preparing" ? "Preparing audio" : `Backend running · ${analysisElapsed}s`}
+              </span>
+            )}
             {processingState === "complete" && praat.processing_trace && (
               <small>{traceDurationLabel((praat.processing_trace as JsonObject).total_duration_ms as number)}</small>
             )}
