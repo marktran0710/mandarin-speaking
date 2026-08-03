@@ -66,6 +66,29 @@
   min-height: 40px;
 }
 
+.model-recording-no-audio {
+  margin: 0;
+  color: var(--clay-body);
+  font-size: 13px;
+}
+
+.model-recording-speech-button {
+  align-self: flex-start;
+  border: 1.5px solid var(--tone1);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--tone1-deep);
+  padding: 7px 13px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.model-recording-speech-button:hover {
+  background: color-mix(in srgb, var(--tone1-soft) 62%, var(--clay-surface-card));
+}
+
 .model-recording-steps {
   display: flex;
   flex-wrap: wrap;

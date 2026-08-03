@@ -2122,12 +2122,8 @@ export default function StoryRecorder({
                             </span>
                             <ScenePracticeWord
                               word={w}
-                              pinyin={py}
                               audioUrl={
                                 topic.vocabularyAudioUrls?.[selectedImageIndex]?.[wi] ?? undefined
-                              }
-                              referenceCurve={
-                                topic.vocabularyReferenceCurves?.[selectedImageIndex]?.[wi]
                               }
                             />
                           </div>

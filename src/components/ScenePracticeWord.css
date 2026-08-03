@@ -1,29 +1,8 @@
-.scene-practice-listen {
-  min-width: 28px;
-  min-height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  align-self: center;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 1em;
-  line-height: 1;
-  padding: 2px 4px;
-  border-radius: var(--clay-radius-sm);
-  opacity: 0.65;
-  transition: opacity 0.15s, background 0.15s;
-}
-.scene-practice-listen:hover {
-  opacity: 1;
-  background: var(--gold-soft);
+.scene-practice-audio {
+  display: none;
 }
 
-.scene-practice-toggle {
-  /* min-width/height widen the tap target well past the old ~20px box
-     (2px/4px padding around a 1.1em glyph) without blowing out this dense
-     vocab table's row height the way a full 44px square would. */
+.scene-practice-listen {
   min-width: 32px;
   min-height: 32px;
   display: inline-flex;
@@ -32,111 +11,33 @@
   align-self: center;
   border: none;
   background: transparent;
+  color: var(--clay-body);
   cursor: pointer;
-  font-size: 1.1em;
+  font-size: 1em;
   line-height: 1;
   padding: 2px 4px;
   border-radius: var(--clay-radius-sm);
-  opacity: 0.65;
-  transition: opacity 0.15s, background 0.15s;
+  opacity: 0.7;
+  transition: opacity 0.15s, background 0.15s, transform 0.15s;
 }
-.scene-practice-toggle:hover {
+
+.scene-practice-listen:hover,
+.scene-practice-listen:focus-visible {
   opacity: 1;
   background: var(--gold-soft);
 }
-.scene-practice-toggle.active {
+
+.scene-practice-listen:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.scene-practice-listen:active {
+  transform: scale(0.94);
+}
+
+.scene-practice-listen.playing {
   opacity: 1;
+  color: var(--seal);
   background: var(--gold-soft);
-}
-
-.scene-practice-panel {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 4px;
-  padding: 10px 12px;
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-canvas);
-  border: 1px dashed var(--gold);
-}
-
-.scene-practice-controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.scene-practice-upload-label {
-  display: inline-flex;
-  align-items: center;
-}
-.scene-practice-upload-label.disabled {
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.scene-practice-upload-input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.scene-practice-status {
-  font-size: 12px;
-  color: var(--clay-muted);
-}
-
-.scene-practice-error {
-  margin: 0;
-  font-size: 12px;
-  color: var(--clay-error);
-}
-
-.scene-practice-result {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-}
-
-.scene-practice-score {
-  font-size: 1.4em;
-}
-
-.scene-practice-score.excellent { color: var(--jade-deep); }
-.scene-practice-score.good { color: var(--jade); }
-.scene-practice-score.ok { color: var(--gold-deep); }
-.scene-practice-score.low { color: var(--clay-error); }
-
-.scene-practice-feedback {
-  margin: 0;
-  font-size: 13px;
-  color: var(--clay-body);
-}
-
-.scene-practice-recognized {
-  margin: 0;
-  padding: 6px 10px;
-  border-radius: var(--clay-radius-md);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.scene-practice-recognized.match {
-  background: var(--jade-soft);
-  color: var(--jade-deep);
-}
-
-.scene-practice-recognized.mismatch {
-  background: var(--gold-soft);
-  color: var(--gold-deep);
-}
-
-.scene-practice-recognized-note {
-  font-weight: 400;
 }

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TeacherPracticeDebugPage from "./TeacherPracticeDebugPage";
 import TeacherDashboardPage from "./TeacherDashboardPage";
@@ -65,24 +65,6 @@ describe("TeacherPracticeDebugPage", () => {
     render(<TeacherPracticeDebugPage records={[]} />);
     expect(screen.getByText("Transparent sample")).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "Sample attempt (clearly labelled)" })).toBeInTheDocument();
-  });
-
-  it("accepts a pasted analyze response and reports invalid JSON", async () => {
-    const user = userEvent.setup();
-    render(<TeacherPracticeDebugPage records={[]} />);
-    await user.click(screen.getByText("Paste an attempt or /api/analyze response"));
-    const input = screen.getByLabelText("Test case JSON");
-    await user.type(input, "not json");
-    await user.click(screen.getByRole("button", { name: "Inspect JSON" }));
-    expect(screen.getByRole("alert")).toBeInTheDocument();
-    await user.clear(input);
-    fireEvent.change(input, {
-      target: { value: JSON.stringify({ transcription: "測試", tone_accuracy: 88, fluency_score: 77 }) },
-    });
-    await user.click(screen.getByRole("button", { name: "Inspect JSON" }));
-    expect(screen.getAllByText("Pasted test case")).toHaveLength(2);
-    const summary = screen.getByLabelText("Attempt score summary");
-    expect(within(summary).getByText("88%")).toBeInTheDocument();
   });
 
   it("records a live attempt with the same scene context sent by student practice", async () => {
@@ -161,6 +143,81 @@ describe("TeacherPracticeDebugPage", () => {
     expect(body.get("scene_vocabulary")).toBe("市場, 買菜");
     expect(body.get("scene_phrases")).toBe("我在市場; 我要買菜");
     expect(body.get("scene_suggested_answer")).toBe("我在市場買菜。");
+  });
+
+  it("uploads an audio file through the same scene-aware analysis pipeline", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem("teacherCustomStories", JSON.stringify([{
+      id: "upload-debug-story",
+      title: "Uploaded market visit",
+      learningGoal: "Describe the market",
+      published: true,
+      frames: [{
+        imageUrl: "/uploads/market-upload.png",
+        prompt: "Describe this uploaded attempt.",
+        vocabulary: "市場,水果",
+        phrases: "我在市場,我要買水果",
+        suggestedAnswer: "我在市場買水果。",
+      }],
+    }]));
+
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:uploaded-debug-attempt");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      transcription: "我在市場買水果。",
+      tone_accuracy: 86,
+      fluency_score: 81,
+      processing_trace: {
+        stages: [
+          { stage: "preflight", status: "review", duration_ms: 10 },
+          { stage: "asr", status: "passed", duration_ms: 700, model: "ctwhisper" },
+          { stage: "praat", status: "passed", duration_ms: 120 },
+          { stage: "feedback", status: "passed", duration_ms: 250, provider: "local" },
+          { stage: "quality_gate", status: "passed", duration_ms: 2 },
+        ],
+        total_duration_ms: 1082,
+      },
+      feedback_quality: { can_score_pronunciation: true, can_score_content: true },
+      word_prosody: [],
+      ai_feedback: { content_accuracy: { judged: true, accepted: true } },
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TeacherPracticeDebugPage records={[]} />);
+    const audioFile = new File(["uploaded-audio"], "student-attempt.mp3", { type: "audio/mpeg" });
+    await user.upload(screen.getByLabelText("Upload audio file"), audioFile);
+
+    await waitFor(() => expect(screen.getAllByText("Uploaded debug audio")).toHaveLength(2));
+    expect(screen.getByText("student-attempt.mp3")).toBeInTheDocument();
+    expect(screen.getByText("86%")).toBeInTheDocument();
+    expect(screen.getByText("Audio file input")).toBeInTheDocument();
+    expect(screen.getByLabelText("Recorded debug attempt")).toHaveAttribute(
+      "src",
+      "blob:uploaded-debug-attempt",
+    );
+
+    const [, request] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const body = request.body as FormData;
+    expect(body.get("asr_model")).toBe("ctwhisper");
+    expect(body.get("scene_prompt")).toBe("Describe this uploaded attempt.");
+    expect(body.get("scene_vocabulary")).toBe("市場, 水果");
+    expect(body.get("scene_suggested_answer")).toBe("我在市場買水果。");
+  });
+
+  it("shows the failed capture stage and hides stale scores when microphone access fails", async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, "mediaDevices", {
+      configurable: true,
+      value: { getUserMedia: vi.fn(async () => { throw new Error("Microphone permission denied"); }) },
+    });
+
+    render(<TeacherPracticeDebugPage records={[]} />);
+    await user.click(screen.getByRole("button", { name: "Start recording" }));
+
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Microphone permission denied"));
+    expect(screen.getByRole("heading", { name: "Where processing stopped" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Attempt score summary")).not.toBeInTheDocument();
+    expect(screen.getByText("Failed")).toBeInTheDocument();
   });
 
   it("redacts credentials, binaries and signed URL query parameters", () => {

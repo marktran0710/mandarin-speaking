@@ -85,7 +85,11 @@ describe("TeacherQuizReviewPage", () => {
 
     expect(await screen.findByText("知道")).toBeInTheDocument();
     expect(screen.getByText(/曉得/)).toBeInTheDocument();
-    expect(screen.getByText("1 marked")).toBeInTheDocument();
+    expect(screen.getByText((_, element) =>
+      element?.classList.contains("tqr-rail-summary") === true &&
+      element.textContent?.includes("1") === true &&
+      element.textContent?.includes("marked") === true,
+    )).toBeInTheDocument();
 
     // distractors/cloze/synonym no longer have their own trash button (the
     // opt-in checkbox flow governs those); "word" and "lookalike" still do.
@@ -171,6 +175,7 @@ describe("TeacherQuizReviewPage", () => {
 
     render(<TeacherQuizReviewPage />);
     await screen.findByText("知道");
+    await userEvent.setup().click(screen.getByText("More"));
     await userEvent.setup().click(screen.getByRole("button", { name: /Export|匯出/ }));
 
     expect(createObjectURL).toHaveBeenCalledTimes(1);
@@ -187,6 +192,7 @@ describe("TeacherQuizReviewPage", () => {
     const user = userEvent.setup();
     await screen.findByText("知道");
 
+    await user.click(screen.getByText("More"));
     await user.click(screen.getByRole("button", { name: /Import|匯入/ }));
     const input = screen.getByTestId("tqr-import-input") as HTMLInputElement;
     const file = new File(
@@ -205,6 +211,7 @@ describe("TeacherQuizReviewPage", () => {
     const user = userEvent.setup();
     await screen.findByText("知道");
 
+    await user.click(screen.getByText("More"));
     await user.click(screen.getByRole("button", { name: /Import|匯入/ }));
     const input = screen.getByTestId("tqr-import-input") as HTMLInputElement;
     const file = new File(
@@ -222,6 +229,7 @@ describe("TeacherQuizReviewPage", () => {
     const user = userEvent.setup();
     await screen.findByText("知道");
 
+    await user.click(screen.getByText("More"));
     await user.click(screen.getByRole("button", { name: /Import|匯入/ }));
     const input = screen.getByTestId("tqr-import-input") as HTMLInputElement;
     const file = new File(["not json"], "marks.json", { type: "application/json" });
@@ -241,12 +249,12 @@ describe("TeacherQuizReviewPage", () => {
     const user = userEvent.setup();
     await screen.findByText("知道");
 
-    const zhidaoCheckbox = screen.getByRole("checkbox", { name: "Approve synonym for 知道" });
-    expect(zhidaoCheckbox).toBeDisabled();
+    expect(screen.queryByRole("checkbox", { name: "Approve synonym for 知道" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Approve & Publish|核准並發佈/ })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Validate|檢查題目/ }));
     expect(await screen.findByText(/second correct answer/)).toBeInTheDocument();
+    const zhidaoCheckbox = screen.getByRole("checkbox", { name: "Approve synonym for 知道" });
     expect(zhidaoCheckbox).not.toBeDisabled();
     const suspiciousCheckbox = screen
       .getAllByRole("checkbox")
@@ -324,8 +332,9 @@ describe("TeacherQuizReviewPage", () => {
     );
     // An edit invalidates the item — it must be re-Validated before it can
     // be checked again.
-    expect(await screen.findByRole("checkbox", { name: "Approve synonym for 知道" })).toBeDisabled();
-    expect(screen.getByRole("checkbox", { name: "Approve synonym for 知道" })).not.toBeChecked();
+    await waitFor(() =>
+      expect(screen.queryByRole("checkbox", { name: "Approve synonym for 知道" })).not.toBeInTheDocument(),
+    );
   });
   it("lets a teacher replace the correct answer and invalidates the word's review", async () => {
     const { validateQuizMaterial, replaceQuizQuestion } = await import("../services/database");
@@ -429,14 +438,24 @@ describe("Generate / Update Questions", () => {
     ],
   };
 
-  it("shows 'Generate Questions' for a story with no AI material yet, 'Update Questions' once it has some", async () => {
+  it("shows only the action relevant to the current review phase", async () => {
+    const { validateQuizMaterial } = await import("../services/database");
     setStories([storyWithNoMaterial]);
     render(<TeacherQuizReviewPage />);
     expect(await screen.findByRole("button", { name: /Generate Questions/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Validate Questions/ })).not.toBeInTheDocument();
 
     setStories([story]);
     render(<TeacherQuizReviewPage />);
+    const validateButton = await screen.findByRole("button", { name: /Validate Questions/ });
+    expect(screen.queryByRole("button", { name: /Update Questions/ })).not.toBeInTheDocument();
+
+    (validateQuizMaterial as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { word: "知道", kind: "synonym", poolIndex: 0, status: "suspicious", reason: "duplicate answer" },
+    ]);
+    await userEvent.setup().click(validateButton);
     expect(await screen.findByRole("button", { name: /Update Questions/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Validate Questions/ })).not.toBeInTheDocument();
   });
 
   it("generates, reveals a new candidate, and only persists it once accepted and applied", async () => {
@@ -648,5 +667,89 @@ describe("Generate / Update Questions", () => {
 
     await user.click(screen.getByRole("button", { name: /Apply Changes/ }));
     expect(updateVocabularyDistractors).not.toHaveBeenCalled();
+  });
+
+  it("regenerates an under-cap suspicious question once as a replacement, not again as a top-up", async () => {
+    const {
+      generateVocabDistractors,
+      generateVocabCloze,
+      generateVocabSynonym,
+      generateVocabLookalike,
+      replaceQuizQuestion,
+      updateVocabularySynonym,
+      validateQuizMaterial,
+    } = await import("../services/database");
+    const underCapStory: CustomTeacherStory = {
+      ...storyWithNoMaterial,
+      id: "s-under-cap",
+      title: "Under-cap review",
+      frames: [{
+        ...storyWithNoMaterial.frames[0],
+        vocabularySynonym: JSON.stringify([[
+          { synonym: "old match", distractors: ["old miss"] },
+        ]]),
+      }],
+    };
+    (validateQuizMaterial as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { word: "知道", kind: "synonym", poolIndex: 0, status: "suspicious", reason: "duplicate answer" },
+    ]);
+    (generateVocabDistractors as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (generateVocabCloze as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (generateVocabLookalike as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { word: "知道", synonym: "new match", distractors: ["new miss"] },
+    ]);
+
+    setStories([underCapStory]);
+    render(<TeacherQuizReviewPage />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /Validate Questions/ }));
+    await user.click(await screen.findByRole("button", { name: /Update Questions/ }));
+
+    expect(await screen.findAllByText(/new match/)).toHaveLength(1);
+    expect(screen.queryByText(/New distractors/)).not.toBeInTheDocument();
+    expect(generateVocabSynonym).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("button", { name: /Update Questions/ })).not.toBeInTheDocument();
+
+    const row = screen.getByText(/new match/).closest(".tqr-pending-change");
+    await user.click(within(row as HTMLElement).getByRole("button", { name: /Accept$/ }));
+    await user.click(screen.getByRole("button", { name: /Apply Changes/ }));
+
+    expect(updateVocabularySynonym).not.toHaveBeenCalled();
+    expect(replaceQuizQuestion).toHaveBeenCalledWith(
+      "s-under-cap",
+      0,
+      0,
+      "synonym",
+      0,
+      { synonym: "new match", distractors: ["new miss"] },
+    );
+  });
+
+  it("stages a repeated vocabulary word only once across scenes", async () => {
+    const { generateVocabDistractors, generateVocabCloze, generateVocabSynonym, generateVocabLookalike } = await import("../services/database");
+    const repeatedWordStory: CustomTeacherStory = {
+      ...storyWithNoMaterial,
+      id: "s-repeated",
+      frames: [
+        storyWithNoMaterial.frames[0],
+        { ...storyWithNoMaterial.frames[0], imageUrl: "second" },
+      ],
+    };
+    (generateVocabDistractors as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { word: "知道", distractors: ["to see", "to hear"] },
+    ]);
+    (generateVocabCloze as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (generateVocabLookalike as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    setStories([repeatedWordStory]);
+    render(<TeacherQuizReviewPage />);
+    await userEvent.setup().click(await screen.findByRole("button", { name: /Generate Questions/ }));
+
+    expect(await screen.findAllByText(/New distractors/)).toHaveLength(1);
+    expect(generateVocabDistractors).toHaveBeenCalledWith([
+      expect.objectContaining({ word: "知道" }),
+    ]);
   });
 });

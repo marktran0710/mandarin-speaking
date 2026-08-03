@@ -39,10 +39,9 @@ describe("SpeakingFlowCard model recording integration", () => {
 
     expect(screen.getByRole("region", { name: "Record your story" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Listen and repeat model recording" })).toBeInTheDocument();
-    expect(screen.getByLabelText("Model recording: 姐姐在家裡做飯。")).toHaveAttribute(
-      "src",
-      "/uploads/examples/pic1_example.mp3",
-    );
+    expect(screen.getAllByText("請描述這張圖片。")).toHaveLength(2);
+    expect(screen.getByText("The scene sentence is ready to repeat; a teacher recording is not available yet.")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Model recording:/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Practice this model recording/ })).toBeInTheDocument();
   });
 });

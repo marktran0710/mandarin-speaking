@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { AudioRecord } from "./MyStoriesPage";
 import { buildSceneReferenceCurves, type SpeechModel } from "../components/StoryRecorder";
 import { convertBlobToWav } from "../utils/audio";
 import { buildPracticeAnalysisFormData } from "../utils/practiceAnalysis";
 import {
-  parseDebugAttempt,
   redactDebugValue,
   SAMPLE_DEBUG_RECORD,
   type DebugAttemptSource,
@@ -60,7 +59,6 @@ const RUBRICS = [
 function sourceLabel(source: DebugAttemptSource) {
   if (source === "runtime") return "Runtime record";
   if (source === "recorded") return "Live debug recording";
-  if (source === "pasted") return "Pasted test case";
   return "Transparent sample";
 }
 
@@ -97,7 +95,7 @@ const TRACE_STAGE_DEFINITIONS = [
 ] as const;
 
 function traceStatusLabel(status: string) {
-  if (status === "passed" || status === "integrated") return "Complete";
+  if (status === "passed" || status === "integrated" || status === "reliable") return "Complete";
   if (status === "retry" || status === "failed") return status === "retry" ? "Retry" : "Failed";
   if (status === "review") return "Review";
   if (status === "skipped") return "Skipped";
@@ -138,6 +136,8 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
   const [recordedRecord, setRecordedRecord] = useState<AudioRecord | null>(null);
   const [recordedContext, setRecordedContext] = useState<RecordedRequestContext | null>(null);
   const [recordedAudioUrl, setRecordedAudioUrl] = useState("");
+  const [uploadedAudioName, setUploadedAudioName] = useState("");
+  const [inputSource, setInputSource] = useState<"microphone" | "upload">("microphone");
   const [processingState, setProcessingState] = useState<DebugProcessingState>("idle");
   const [processingTrace, setProcessingTrace] = useState<ProcessingTraceStage[]>([]);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -146,10 +146,8 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
   const recordingStartedAtRef = useRef(0);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordedAudioUrlRef = useRef("");
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedId, setSelectedId] = useState(runtimeRecords[0]?.id ?? "__sample__");
-  const [pastedRecord, setPastedRecord] = useState<AudioRecord | null>(null);
-  const [rawJson, setRawJson] = useState("");
-  const [parseError, setParseError] = useState("");
 
   const selectedTopic = publishedTopics.find((topic) => topic.id === selectedTopicId)
     ?? publishedTopics[0];
@@ -170,7 +168,7 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
     }
   };
 
-  const analyzeRecording = async (rawBlob: Blob) => {
+  const analyzeRecording = async (rawBlob: Blob, durationOverride?: number) => {
     setIsAnalyzing(true);
     setProcessingState("processing");
     setRecordingError("");
@@ -214,7 +212,7 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
         ? metrics.processing_trace.stages as ProcessingTraceStage[]
         : [];
       setProcessingTrace(trace);
-      const duration = Math.max(
+      const duration = durationOverride ?? Math.max(
         1,
         Math.floor((Date.now() - recordingStartedAtRef.current) / 1000),
       );
@@ -251,6 +249,8 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
 
   const startRecording = async () => {
     setRecordingError("");
+    setUploadedAudioName("");
+    setInputSource("microphone");
     setProcessingTrace([]);
     setProcessingState("recording");
     try {
@@ -295,19 +295,38 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
     if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
   };
 
+  const uploadAudio = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const looksLikeAudio = file.type.startsWith("audio/")
+      || /\.(wav|wave|webm|mp3|m4a|ogg|aac|flac)$/i.test(file.name);
+    if (!looksLikeAudio) {
+      setRecordingError("Choose an audio file such as WAV, MP3, M4A, OGG, or WebM.");
+      return;
+    }
+
+    setRecordingError("");
+    setUploadedAudioName(file.name);
+    setInputSource("upload");
+    setProcessingTrace([]);
+    setProcessingState("uploading");
+    recordingStartedAtRef.current = Date.now();
+    await analyzeRecording(file);
+  };
+
   const selectedRuntime = runtimeRecords.find((record) => record.id === selectedId);
   const record = selectedId === "__recorded__" && recordedRecord
     ? recordedRecord
-    : selectedId === "__pasted__" && pastedRecord
-    ? pastedRecord
     : selectedRuntime ?? SAMPLE_DEBUG_RECORD;
   const source: DebugAttemptSource = selectedId === "__recorded__" && recordedRecord
     ? "recorded"
-    : selectedId === "__pasted__" && pastedRecord
-    ? "pasted"
     : selectedRuntime
       ? "runtime"
       : "sample";
+  const selectedSourceLabel = source === "recorded" && inputSource === "upload"
+    ? "Uploaded debug audio"
+    : sourceLabel(source);
   const praat = (record.praatMetrics ?? {}) as JsonObject;
   const ai = (praat.ai_feedback ?? {}) as JsonObject;
   const quality = (praat.feedback_quality ?? {}) as JsonObject;
@@ -376,11 +395,12 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
   const storedTrace = Array.isArray((praat.processing_trace as JsonObject | undefined)?.stages)
     ? (praat.processing_trace as JsonObject).stages as ProcessingTraceStage[]
     : [];
-  const activeTrace = processingTrace.length > 0 ? processingTrace : storedTrace;
+  const activeTrace = processingState !== "idle"
+    ? processingTrace
+    : storedTrace;
   const traceByStage = new Map(activeTrace.map((entry) => [entry.stage, entry]));
-  const showProcessingTrace = processingState !== "idle" && (
-    processingState !== "complete" || activeTrace.length > 0
-  );
+  const showProcessingTrace = processingState !== "idle" || activeTrace.length > 0;
+  const outputReady = processingState === "idle" || processingState === "complete";
   const statusForStage = (stageId: string): ProcessingTraceStage => {
     const existing = traceByStage.get(stageId);
     if (existing) return existing;
@@ -402,22 +422,11 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
     return { stage: stageId, status: "pending" };
   };
 
-  const inspectJson = () => {
-    try {
-      const next = parseDebugAttempt(rawJson);
-      setPastedRecord(next);
-      setSelectedId("__pasted__");
-      setParseError("");
-    } catch (error) {
-      setParseError(error instanceof Error ? error.message : "Could not parse this test case.");
-    }
-  };
-
   return (
     <section className="pdebug" aria-label="Practice stage debugger">
       <div className="pdebug-callout">
         <div>
-          <span className={`pdebug-source pdebug-source-${source}`}>{sourceLabel(source)}</span>
+          <span className={`pdebug-source pdebug-source-${source}`}>{selectedSourceLabel}</span>
           <h2>Inspect one student Practice attempt end to end</h2>
           <p>Stored results are shown as runtime truth. Inputs that the app does not persist are explicitly marked—not guessed.</p>
         </div>
@@ -429,8 +438,11 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
                 {item.transcription || item.id} · {item.timestamp}
               </option>
             ))}
-            {recordedRecord && <option value="__recorded__">Live debug recording</option>}
-            {pastedRecord && <option value="__pasted__">Pasted test case</option>}
+            {recordedRecord && (
+              <option value="__recorded__">
+                {inputSource === "upload" ? "Uploaded debug audio" : "Live debug recording"}
+              </option>
+            )}
             <option value="__sample__">Sample attempt (clearly labelled)</option>
           </select>
         </div>
@@ -439,8 +451,8 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
       <section className="pdebug-recorder" aria-labelledby="pdebug-recorder-heading">
         <div className="pdebug-recorder-copy">
           <span>LIVE INPUT</span>
-          <h3 id="pdebug-recorder-heading">Record a student attempt</h3>
-          <p>The microphone audio follows the student recording path: WAV, backend ASR, Praat, then scene-aware feedback.</p>
+          <h3 id="pdebug-recorder-heading">Record or upload a student attempt</h3>
+          <p>Microphone and uploaded audio follow the same student path: WAV, backend ASR, Praat, then scene-aware feedback.</p>
         </div>
         <div className="pdebug-recorder-controls">
           <label>
@@ -495,6 +507,26 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
           >
             {isRecording ? `Stop & analyze (${recordingDuration}s)` : isAnalyzing ? "Analyzing recording…" : "Start recording"}
           </button>
+          <button
+            type="button"
+            className="pdebug-upload-button"
+            disabled={isRecording || isAnalyzing}
+            onClick={() => uploadInputRef.current?.click()}
+          >
+            Upload audio
+          </button>
+          <input
+            ref={uploadInputRef}
+            className="pdebug-audio-upload-input"
+            type="file"
+            accept="audio/*,.wav,.wave,.webm,.mp3,.m4a,.ogg,.aac,.flac"
+            aria-label="Upload audio file"
+            disabled={isRecording || isAnalyzing}
+            onChange={uploadAudio}
+          />
+          {uploadedAudioName && inputSource === "upload" && (
+            <small className="pdebug-upload-name">{uploadedAudioName}</small>
+          )}
           {recordedAudioUrl && !isRecording && (
             <audio controls preload="metadata" src={recordedAudioUrl} aria-label="Recorded debug attempt" />
           )}
@@ -508,7 +540,7 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
             <div>
               <span>PROCESSING TRACE</span>
               <h3 id="pdebug-trace-heading">
-                {processingState === "complete"
+                {(processingState === "complete" || activeTrace.length > 0)
                   ? "How this attempt became the result"
                   : processingState === "error"
                     ? "Where processing stopped"
@@ -522,13 +554,16 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
           </div>
           <ol className="pdebug-trace-list">
             {TRACE_STAGE_DEFINITIONS.map((definition) => {
+              const displayDefinition = definition.id === "capture" && inputSource === "upload"
+                ? { ...definition, label: "Upload", description: "Audio file input" }
+                : definition;
               const entry = statusForStage(definition.id);
               return (
                 <li key={definition.id} data-status={entry.status}>
                   <span className="pdebug-trace-marker" aria-hidden="true" />
                   <div>
-                    <strong>{definition.label}</strong>
-                    <span>{definition.description}</span>
+                    <strong>{displayDefinition.label}</strong>
+                    <span>{displayDefinition.description}</span>
                     {entry.detail && <small>{entry.detail}</small>}
                   </div>
                   <em>
@@ -545,20 +580,6 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
         </section>
       )}
 
-      <details className="pdebug-import">
-        <summary>Paste an attempt or /api/analyze response</summary>
-        <label htmlFor="practice-debug-json">Test case JSON</label>
-        <textarea
-          id="practice-debug-json"
-          value={rawJson}
-          onChange={(event) => setRawJson(event.target.value)}
-          placeholder={'{"transcription":"…","praatMetrics":{"tone_accuracy":75,"fluency_score":68}}'}
-        />
-        <button type="button" onClick={inspectJson}>Inspect JSON</button>
-        {parseError && <p className="pdebug-error" role="alert">{parseError}</p>}
-        <small>Credentials, auth headers, signed URL tokens and binary/base64 fields are redacted before rendering.</small>
-      </details>
-
       <ol className="pdebug-pipeline" aria-label="Practice processing pipeline">
         <li><strong>1 · Browser</strong><span>WAV + scene context</span></li>
         <li><strong>2 · Preflight / ASR</strong><span>audio quality + transcript</span></li>
@@ -567,14 +588,14 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
         <li><strong>5 · Student gates</strong><span>retry, drill or continue</span></li>
       </ol>
 
-      <div className="pdebug-score-grid" aria-label="Attempt score summary">
+      {outputReady && <div className="pdebug-score-grid" aria-label="Attempt score summary">
         <article><span>Tone contour</span><strong>{metric(praat.tone_accuracy, "%")}</strong><small>Praat/tone matcher</small></article>
         <article><span>Fluency</span><strong>{metric(praat.fluency_score, "/100")}</strong><small>CAF + pitch continuity</small></article>
         <article><span>Vocabulary</span><strong>{metric(ai.vocabulary_coverage?.score, "/100")}</strong><small>{ai.provider || "No provider"}</small></article>
         <article><span>Content gate</span><strong>{contentGate}</strong><small>{content.judged === false ? "Placeholder, not a score" : "AI scene comparison"}</small></article>
-      </div>
+      </div>}
 
-      <div className="pdebug-layer-grid">
+      {outputReady && <div className="pdebug-layer-grid">
         <article className="pdebug-layer">
           <header><span>INPUT</span><h3>Browser → backend</h3></header>
           <dl>
@@ -668,7 +689,7 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
             </table>
           )}
         </article>
-      </div>
+      </div>}
 
       <section className="pdebug-rubrics" aria-labelledby="pdebug-rubrics-heading">
         <div>

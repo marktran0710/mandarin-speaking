@@ -1,6 +1,6 @@
 import type { AudioRecord } from "../pages/MyStoriesPage";
 
-export type DebugAttemptSource = "runtime" | "recorded" | "pasted" | "sample";
+export type DebugAttemptSource = "runtime" | "recorded" | "sample";
 
 const SENSITIVE_KEY = /(^|_)(api_?key|authorization|cookie|password|secret|token|credential|signature)($|_)/i;
 const BINARY_KEY = /(audio_?blob|audio_?bytes|image_?b64|base64|file)/i;
@@ -38,35 +38,6 @@ export function redactDebugValue(value: unknown, key = ""): unknown {
     );
   }
   return value;
-}
-
-export function parseDebugAttempt(raw: string): AudioRecord {
-  const parsed = JSON.parse(raw) as unknown;
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Attempt JSON must be an object.");
-  }
-  const candidate = parsed as Record<string, unknown>;
-  const metrics = candidate.praatMetrics ?? candidate.praat_metrics ?? candidate;
-  if (!metrics || typeof metrics !== "object" || Array.isArray(metrics)) {
-    throw new Error("Add a praatMetrics object or paste an /api/analyze response.");
-  }
-  const metricObject = metrics as Record<string, unknown>;
-  if (!("tone_accuracy" in metricObject) && !("fluency_score" in metricObject)) {
-    throw new Error("This does not look like a Practice analysis result.");
-  }
-  return {
-    id: String(candidate.id ?? "pasted-attempt"),
-    timestamp: String(candidate.timestamp ?? new Date().toISOString()),
-    duration: Number(candidate.duration ?? 0),
-    transcription: String(candidate.transcription ?? metricObject.transcription ?? ""),
-    model: String(candidate.model ?? metricObject.transcription_model ?? "unknown"),
-    topicId: typeof candidate.topicId === "string" ? candidate.topicId : undefined,
-    studentId: typeof candidate.studentId === "string" ? candidate.studentId : null,
-    imageUrl: typeof candidate.imageUrl === "string" ? candidate.imageUrl : undefined,
-    imageIndex: typeof candidate.imageIndex === "number" ? candidate.imageIndex : undefined,
-    audioUrl: typeof candidate.audioUrl === "string" ? candidate.audioUrl : undefined,
-    praatMetrics: metricObject,
-  };
 }
 
 export const SAMPLE_DEBUG_RECORD: AudioRecord = {

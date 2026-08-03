@@ -234,13 +234,7 @@ function findValidation(
 /** Three-state status badge for one question: not checked yet (no result),
  * clean, or suspicious with the judge's reason. */
 function questionStatusBadge(result: QuizValidateResultItem | undefined) {
-  if (!result) {
-    return (
-      <span className="tqr-status-badge is-unchecked">
-        <BiLabel zh="尚未檢查" en="Not checked" />
-      </span>
-    );
-  }
+  if (!result) return null;
   if (result.status === "clean") {
     return (
       <span className="tqr-status-badge is-clean">
@@ -378,6 +372,38 @@ interface PendingCandidate {
   oldValue?: PendingCandidateValue;
   poolIndex?: number;
   decision: "pending" | "accept" | "reject";
+}
+
+function normalizedGeneratedText(value: string, caseInsensitive = false): string {
+  const trimmed = value.trim();
+  return caseInsensitive ? trimmed.toLocaleLowerCase() : trimmed;
+}
+
+function freshGeneratedStrings(values: string[], avoid: string[], caseInsensitive = false): string[] {
+  const seen = new Set(avoid.map((value) => normalizedGeneratedText(value, caseInsensitive)).filter(Boolean));
+  const fresh: string[] = [];
+  for (const value of values) {
+    const trimmed = value.trim();
+    const key = normalizedGeneratedText(trimmed, caseInsensitive);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    fresh.push(trimmed);
+  }
+  return fresh;
+}
+
+/** One quiz entry is built per vocabulary word, using its first live
+ * occurrence. Keep generation aligned with that rule and omit any word that
+ * is already being regenerated as a replacement in the same update pass. */
+function canonicalGrowthCandidates<
+  T extends { word: string; frameIndex: number; wordIndex: number },
+>(candidates: T[], blockedWords: Set<string>): T[] {
+  const seenWords = new Set<string>();
+  return candidates.filter((candidate) => {
+    if (blockedWords.has(candidate.word) || seenWords.has(candidate.word)) return false;
+    seenWords.add(candidate.word);
+    return true;
+  });
 }
 
 interface IndexedPendingCandidate {
@@ -526,6 +552,12 @@ function removedCandidatesFromSnapshot(snapshot: MaterialSnapshotEntry[] | null,
  * storyToTopic recomputes with the new material without waiting on a
  * refetch. Pure: returns a new story, doesn't mutate the one passed in. */
 function applyAcceptedCandidatesLocally(story: CustomTeacherStory, accepted: PendingCandidate[]): CustomTeacherStory {
+  const caps: Record<GeneratedKind, number> = {
+    distractors: 8,
+    cloze: 4,
+    synonym: 4,
+    lookalike: 6,
+  };
   let frames = story.frames;
   for (const candidate of accepted) {
     if (candidate.origin !== "new") continue;
@@ -536,10 +568,27 @@ function applyAcceptedCandidatesLocally(story: CustomTeacherStory, accepted: Pen
       while (pool.length <= candidate.wordIndex) pool.push([]);
       if (candidate.kind === "distractors" || candidate.kind === "lookalike") {
         const existing = Array.isArray(pool[candidate.wordIndex]) ? (pool[candidate.wordIndex] as string[]) : [];
-        pool[candidate.wordIndex] = [...existing, ...(candidate.value as string[])];
+        pool[candidate.wordIndex] = [
+          ...existing,
+          ...freshGeneratedStrings(
+            candidate.value as string[],
+            existing,
+            candidate.kind === "distractors",
+          ),
+        ].slice(0, caps[candidate.kind]);
       } else {
-        const existing = Array.isArray(pool[candidate.wordIndex]) ? (pool[candidate.wordIndex] as unknown[]) : [];
-        pool[candidate.wordIndex] = [...existing, candidate.value];
+        const existing = Array.isArray(pool[candidate.wordIndex])
+          ? (pool[candidate.wordIndex] as Array<{ sentence?: string; synonym?: string }>)
+          : [];
+        const key = candidate.kind === "cloze"
+          ? (candidate.value as { sentence: string }).sentence.trim()
+          : (candidate.value as { synonym: string }).synonym.trim();
+        const duplicate = existing.some((item) =>
+          (candidate.kind === "cloze" ? item.sentence : item.synonym)?.trim() === key,
+        );
+        pool[candidate.wordIndex] = duplicate || !key
+          ? existing
+          : [...existing, candidate.value].slice(0, caps[candidate.kind]);
       }
       return { ...frame, [field]: JSON.stringify(pool) };
     });
@@ -808,28 +857,17 @@ function ReviewActionRail({
 }) {
   return (
     <aside className="tqr-action-rail" aria-label={`${storyTitle} review actions`}>
-      <span className="tqr-visually-hidden">{checkedCount} checked</span>
-      <span className="tqr-visually-hidden">{markedCount} marked</span>
-      <div className="tqr-rail-heading">
-        <span className="tqr-rail-label">
-          <BiLabel zh="故事" en="Story" />
-        </span>
-        <h2>{storyTitle}</h2>
-      </div>
-      <dl className="tqr-rail-metrics">
-        <div>
-          <dt><BiLabel zh="已勾選" en="Checked" /></dt>
-          <dd>{checkedCount}</dd>
-        </div>
-        <div>
-          <dt><BiLabel zh="已標記" en="Marked" /></dt>
-          <dd>{markedCount}</dd>
-        </div>
-        <div>
-          <dt><BiLabel zh="新增／已改" en="New / changed" /></dt>
-          <dd>{changeCount}</dd>
-        </div>
-      </dl>
+      <p className="tqr-rail-summary" aria-live="polite">
+        {checkedCount === 0 && markedCount === 0 && changeCount === 0 ? (
+          <BiLabel zh="準備檢查" en="Ready to review" />
+        ) : (
+          <>
+            {checkedCount > 0 && <span><strong>{checkedCount}</strong> <BiLabel zh="已勾選" en="checked" /></span>}
+            {markedCount > 0 && <span><strong>{markedCount}</strong> <BiLabel zh="已標記" en="marked" /></span>}
+            {changeCount > 0 && <span><strong>{changeCount}</strong> <BiLabel zh="待決定" en="to decide" /></span>}
+          </>
+        )}
+      </p>
       <div className="tqr-rail-actions">{children}</div>
     </aside>
   );
@@ -1223,16 +1261,29 @@ export default function TeacherQuizReviewPage({
     setGenerateStatusByStory((prev) => ({ ...prev, [storyId]: "generating" }));
     try {
       const lookalikeTopic = topic as unknown as Parameters<typeof planLookalikeGrowth>[0];
-      const distractorCandidates = planDistractorGrowth(topic);
-      const clozeCandidates = planClozeGrowth(topic);
-      const synonymCandidates = planSynonymGrowth(topic);
-      const lookalikeCandidates = planLookalikeGrowth(lookalikeTopic);
+      const plannedDistractorCandidates = planDistractorGrowth(topic);
+      const plannedClozeCandidates = planClozeGrowth(topic);
+      const plannedSynonymCandidates = planSynonymGrowth(topic);
+      const plannedLookalikeCandidates = planLookalikeGrowth(lookalikeTopic);
       const changedTargets = (validationByStory[storyId] ?? [])
         .map((result) => changedTargetForValidation(topic, result))
         .filter((target): target is ChangedCandidateTarget => target !== null);
       const changedDistractorTargets = changedTargets.filter((target) => target.kind === "distractors");
       const changedClozeTargets = changedTargets.filter((target) => target.kind === "cloze");
       const changedSynonymTargets = changedTargets.filter((target) => target.kind === "synonym");
+      const distractorCandidates = canonicalGrowthCandidates(
+        plannedDistractorCandidates,
+        new Set(changedDistractorTargets.map((target) => target.word)),
+      );
+      const clozeCandidates = canonicalGrowthCandidates(
+        plannedClozeCandidates,
+        new Set(changedClozeTargets.map((target) => target.word)),
+      );
+      const synonymCandidates = canonicalGrowthCandidates(
+        plannedSynonymCandidates,
+        new Set(changedSynonymTargets.map((target) => target.word)),
+      );
+      const lookalikeCandidates = canonicalGrowthCandidates(plannedLookalikeCandidates, new Set());
 
       const toWords = (list: Array<{ word: string; translation: string; context?: string; existing: string[] }>): VocabGrowthWord[] =>
         list.map((c) => ({ word: c.word, translation: c.translation, context: c.context, avoid: c.existing }));
@@ -1280,35 +1331,50 @@ export default function TeacherQuizReviewPage({
       const pending: PendingCandidate[] = [];
       for (const u of buildDistractorPatchUpdates(distractorCandidates, distractorResults)) {
         const c = distractorCandidates.find((x) => x.frameIndex === u.frameIndex && x.wordIndex === u.wordIndex)!;
-        pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "distractors", origin: "new", value: u.distractors, decision: "pending" });
+        const fresh = freshGeneratedStrings(u.distractors, c.existing, true);
+        if (fresh.length > 0) {
+          pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "distractors", origin: "new", value: fresh, decision: "pending" });
+        }
       }
       for (const u of buildClozePatchUpdates(clozeCandidates, clozeResults)) {
         const c = clozeCandidates.find((x) => x.frameIndex === u.frameIndex && x.wordIndex === u.wordIndex)!;
-        pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "cloze", origin: "new", value: u.candidates[0], decision: "pending" });
+        const value = u.candidates[0];
+        if (value && !c.existing.some((existing) => existing.trim() === value.sentence.trim())) {
+          pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "cloze", origin: "new", value, decision: "pending" });
+        }
       }
       for (const u of buildSynonymPatchUpdates(synonymCandidates, synonymResults)) {
         const c = synonymCandidates.find((x) => x.frameIndex === u.frameIndex && x.wordIndex === u.wordIndex)!;
-        pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "synonym", origin: "new", value: u.candidates[0], decision: "pending" });
+        const value = u.candidates[0];
+        if (value && !c.existing.some((existing) => existing.trim() === value.synonym.trim())) {
+          pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "synonym", origin: "new", value, decision: "pending" });
+        }
       }
       for (const u of buildLookalikePatchUpdates(lookalikeCandidates, lookalikeResults)) {
         const c = lookalikeCandidates.find((x) => x.frameIndex === u.frameIndex && x.wordIndex === u.wordIndex)!;
-        pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "lookalike", origin: "new", value: u.lookalikes, decision: "pending" });
+        const fresh = freshGeneratedStrings(u.lookalikes, c.existing);
+        if (fresh.length > 0) {
+          pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "lookalike", origin: "new", value: fresh, decision: "pending" });
+        }
       }
       changedDistractorResults.forEach((item) => {
         if (!item) return;
+        const fresh = freshGeneratedStrings(item.value, item.target.growthWord.avoid, true);
+        if (fresh.length === 0) return;
         pending.push({
           frameIndex: item.target.frameIndex,
           wordIndex: item.target.wordIndex,
           word: item.target.word,
           kind: "distractors",
           origin: "changed",
-          value: item.value,
+          value: fresh,
           oldValue: item.target.currentValue,
           decision: "pending",
         });
       });
       changedClozeResults.forEach((item) => {
         if (!item) return;
+        if (item.target.growthWord.avoid.some((value) => value.trim() === item.value.sentence.trim())) return;
         pending.push({
           frameIndex: item.target.frameIndex,
           wordIndex: item.target.wordIndex,
@@ -1323,6 +1389,7 @@ export default function TeacherQuizReviewPage({
       });
       changedSynonymResults.forEach((item) => {
         if (!item) return;
+        if (item.target.growthWord.avoid.some((value) => value.trim() === item.value.synonym.trim())) return;
         pending.push({
           frameIndex: item.target.frameIndex,
           wordIndex: item.target.wordIndex,
@@ -1526,6 +1593,7 @@ export default function TeacherQuizReviewPage({
       kind === "distractors" ? "translation" : kind,
       poolIndex,
     );
+    if (!result) return null;
     const disabledTitle = checkable
       ? undefined
       : result
@@ -1754,13 +1822,11 @@ export default function TeacherQuizReviewPage({
     ));
 
   const changeChip = (count: number, hasRemoved = false) => (
-    <span className={`tqr-change-chip ${count === 0 ? "is-none" : hasRemoved ? "is-mix" : "is-add"}`}>
-      {count === 0 ? (
-        <BiLabel zh="沒有變更" en="no changes" />
-      ) : (
+    count > 0 ? (
+      <span className={`tqr-change-chip ${hasRemoved ? "is-mix" : "is-add"}`}>
         <BiLabel zh={`${count} 項變更`} en={`${count} ${count === 1 ? "change" : "changes"}`} />
-      )}
-    </span>
+      </span>
+    ) : null
   );
 
   return (
@@ -1841,14 +1907,29 @@ export default function TeacherQuizReviewPage({
           const isSavingMarks = status === "saving";
           const canApproveAll = (validation?.length ?? 0) > 0;
           const canApplyPending = pendingCandidates.length > 0 && pendingDecidedCount === pendingCandidates.length;
+          const hasSuspiciousQuestions = validation?.some((result) => result.status === "suspicious") ?? false;
+          const canGenerate = pendingCandidates.length === 0 && (!hasAnyMaterial || hasSuspiciousQuestions);
+          const canValidate = pendingCandidates.length === 0 && hasAnyMaterial && !hasSuspiciousQuestions;
+          const showActionRail =
+            approvedCount > 0 ||
+            exclusions.length > 0 ||
+            dirty ||
+            pendingCandidates.length > 0 ||
+            canApproveAll ||
+            isPublishing ||
+            isSavingMarks ||
+            approveStatus !== "idle" ||
+            status !== "idle";
+          const renderedWords = new Set<string>();
 
           return (
             <section className="tqr-story" key={story.id}>
-              <div className="tqr-workspace">
+              <div className={`tqr-workspace${showActionRail ? "" : " is-single"}`}>
                 <div className="tqr-review-panel">
                   <header className="tqr-story-actions">
                     <div className="tqr-toolbar-primary">
-                      {!isGenerating ? (
+                      <h2 className="tqr-panel-story-title">{story.title}</h2>
+                      {canGenerate && !isGenerating ? (
                         <button
                           type="button"
                           className="tqr-generate"
@@ -1862,12 +1943,12 @@ export default function TeacherQuizReviewPage({
                             <BiLabel zh="生成題目" en="Generate Questions" />
                           )}
                         </button>
-                      ) : (
+                      ) : isGenerating ? (
                         <span className="tqr-status-progress" role="status">
                           {generateStatus === "applying" ? <BiLabel zh="套用中…" en="Applying…" /> : <BiLabel zh="生成中…" en="Generating…" />}
                         </span>
-                      )}
-                      {!isValidating ? (
+                      ) : null}
+                      {canValidate && !isValidating ? (
                         <button
                           type="button"
                           className="tqr-validate"
@@ -1877,11 +1958,11 @@ export default function TeacherQuizReviewPage({
                           <ReviewIcon name="validate" />
                           <BiLabel zh="驗證題目" en="Validate Questions" />
                         </button>
-                      ) : (
+                      ) : isValidating ? (
                         <span className="tqr-status-progress" role="status">
                           <BiLabel zh="驗證中…" en="Validating…" />
                         </span>
-                      )}
+                      ) : null}
                       <div className="tqr-toolbar-status" aria-live="polite">
                         {generateStatus === "error" && (
                           <span className="tqr-status-error" role="alert">
@@ -1894,6 +1975,19 @@ export default function TeacherQuizReviewPage({
                           </span>
                         )}
                       </div>
+                      <details className="tqr-more-tools tqr-toolbar-more">
+                        <summary><BiLabel zh="更多" en="More" /></summary>
+                        <div className="tqr-rail-utilities">
+                          <button type="button" className="tqr-io" onClick={() => onExport(story)}>
+                            <ReviewIcon name="export" />
+                            <BiLabel zh="匯出" en="Export" />
+                          </button>
+                          <button type="button" className="tqr-io" onClick={() => triggerImport(story.id)}>
+                            <ReviewIcon name="import" />
+                            <BiLabel zh="匯入" en="Import" />
+                          </button>
+                        </div>
+                      </details>
                     </div>
                   </header>
                   {importNote && <p className="tqr-import-note" role="status">{importNote}</p>}
@@ -1914,14 +2008,20 @@ export default function TeacherQuizReviewPage({
                   </div>
 
               {topic.images.map((_, si) => {
-                const words = topic.vocabulary[si] || [];
+                const words = (topic.vocabulary[si] || [])
+                  .map((word, wordIndex) => ({ word, wordIndex }))
+                  .filter(({ word }) => {
+                    if (renderedWords.has(word)) return false;
+                    renderedWords.add(word);
+                    return true;
+                  });
                 if (words.length === 0) return null;
                 return (
                   <section className="tqr-scene" key={si}>
                     <h3 className="tqr-scene-title">
                       <BiLabel zh={`部分 ${si + 1}`} en={`Scene ${si + 1}`} />
                     </h3>
-                    {words.map((word, wi) => {
+                    {words.map(({ word, wordIndex: wi }) => {
                       const wordGone = isExcluded(exclusions, word, "word");
                       const pinyin = topic.vocabularyPinyin?.[si]?.[wi];
                       const pos = topic.vocabularyPos?.[si]?.[wi];
@@ -1985,7 +2085,7 @@ export default function TeacherQuizReviewPage({
                                 <BiLabel zh="編輯答案" en="Edit answer" />
                               </button>
                             )}
-                            {translation && distractors.length === 0 && (
+                            {translation && distractors.length === 0 && translationCheck && (
                               <span className="tqr-answer-check">
                                 <BiLabel zh="答案檢查" en="Answer check" />
                                 {questionStatusBadge(translationCheck)}
@@ -2093,7 +2193,7 @@ export default function TeacherQuizReviewPage({
               )}
                 </div>
 
-                <ReviewActionRail
+                {showActionRail && <ReviewActionRail
                   storyTitle={story.title}
                   checkedCount={approvedCount}
                   markedCount={exclusions.length}
@@ -2202,17 +2302,7 @@ export default function TeacherQuizReviewPage({
                     </div>
                   )}
 
-                  <div className="tqr-rail-utilities">
-                    <button type="button" className="tqr-io" onClick={() => onExport(story)}>
-                      <ReviewIcon name="export" />
-                      <BiLabel zh="匯出" en="Export" />
-                    </button>
-                    <button type="button" className="tqr-io" onClick={() => triggerImport(story.id)}>
-                      <ReviewIcon name="import" />
-                      <BiLabel zh="匯入" en="Import" />
-                    </button>
-                  </div>
-                </ReviewActionRail>
+                </ReviewActionRail>}
               </div>
             </section>
           );

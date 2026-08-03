@@ -114,6 +114,9 @@ const topicWithVocabDetails = {
   vocabularyTranslation: {
     0: ["marketplace", ""],
   },
+  vocabularyAudioUrls: {
+    0: ["/audio/market.wav", null],
+  },
 };
 
 const topicWithQuizVocab = {
@@ -1039,7 +1042,7 @@ describe("StoryRecorder student prototype", () => {
     expect(within(table).getByText("marketplace")).toBeInTheDocument();
   });
 
-  it("lets a student expand a scene vocabulary word to practice its pronunciation", async () => {
+  it("keeps the scene vocabulary row focused on listening instead of a duplicate recorder", async () => {
     const user = userEvent.setup();
     render(
       <StoryRecorder
@@ -1056,27 +1059,13 @@ describe("StoryRecorder student prototype", () => {
     // word, enough to trigger it) to reach the practice-phase vocab table.
     await completeVocabQuiz(user);
 
-    const practiceToggle = screen.getByRole("button", {
-      name: "Practice pronouncing market",
+    const listenButton = screen.getByRole("button", {
+      name: "Listen to the model pronunciation of market",
     });
+    expect(listenButton).toHaveAttribute("title", "Listen to this word");
+    expect(screen.queryByRole("button", { name: /Record market/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Practice pronouncing market/i })).not.toBeInTheDocument();
 
-    // Collapsed by default — no per-word record control for this word yet.
-    expect(
-      screen.queryByRole("button", { name: "Record market to check pronunciation" }),
-    ).not.toBeInTheDocument();
-
-    await user.click(practiceToggle);
-    expect(
-      screen.getByRole("button", { name: "Record market to check pronunciation" }),
-    ).toBeInTheDocument();
-
-    // Toggling again collapses it.
-    await user.click(
-      screen.getByRole("button", { name: "Hide pronunciation practice for market" }),
-    );
-    expect(
-      screen.queryByRole("button", { name: "Record market to check pronunciation" }),
-    ).not.toBeInTheDocument();
   });
 
   it("shows a vocabulary quiz before practice when the story has enough translated words", async () => {
@@ -1182,7 +1171,7 @@ describe("StoryRecorder student prototype", () => {
     await completeVocabQuiz(user);
     await user.click(screen.getByRole("tab", { name: /Speaking/ }));
 
-    expect(screen.getByText("我在餐廳吃飯。")).toBeInTheDocument();
+    expect(screen.getAllByText("我在餐廳吃飯。")).toHaveLength(2);
   });
 
   it("exposes the teacher's model recording in the Speaking step", async () => {

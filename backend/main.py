@@ -1315,7 +1315,9 @@ async def _do_analyze(
                 "feedback",
                 "skipped" if audio_assessed or recording_preflight["status"] == "retry" else "passed",
                 started_at,
-                provider=ai_provider or "local",
+                provider=(result.get("provider") if isinstance(result, dict) else None)
+                or ai_provider
+                or "backend-default",
                 detail="Provider feedback completed." if not audio_assessed else "Audio provider feedback already included.",
             )
             return result
