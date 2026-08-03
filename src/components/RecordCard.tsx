@@ -4,6 +4,8 @@ import { resolveImageUrl } from "../utils/teacherStories";
 import { BiLabel } from "./BiLabel";
 import { getToneName, getTopicLabel, formatContourShape } from "../utils/myStoriesUtils";
 import type { AudioRecord, WordProsody } from "../pages/MyStoriesPage";
+import VoiceFeedbackReliabilityNotice from "./VoiceFeedbackReliabilityNotice";
+import { assessVoiceFeedbackReliability } from "../utils/voiceFeedbackReliability";
 
 export default function RecordCard({
   record,
@@ -16,6 +18,17 @@ export default function RecordCard({
 }) {
   const savedAudioLabelId = useId();
   const topicLabel = getTopicLabel(record.topicId);
+  const feedbackReliability = record.praatMetrics
+    ? assessVoiceFeedbackReliability({
+        feedbackQuality: record.praatMetrics.feedback_quality,
+        contentJudged: Boolean(
+          record.praatMetrics.ai_feedback?.content_accuracy?.judged,
+        ),
+        pitchContour: record.praatMetrics.pitch_contour,
+        wordProsody: record.praatMetrics.word_prosody,
+        transcription: record.transcription,
+      })
+    : null;
 
   const handleDelete = () => {
     if (!window.confirm(`Delete the ${topicLabel} recording from ${record.timestamp}? This cannot be undone.`)) {
@@ -62,6 +75,14 @@ export default function RecordCard({
 
         {record.praatMetrics && (
           <>
+            {feedbackReliability && (
+              <VoiceFeedbackReliabilityNotice
+                assessment={feedbackReliability}
+                compact
+              />
+            )}
+            {feedbackReliability?.level !== "retry" && (
+              <>
             <div className="saved-metrics-summary">
               <div className="metric-item tone">
                 <span className="metric-text">
@@ -120,10 +141,13 @@ export default function RecordCard({
                 </div>
               </div>
             )}
+              </>
+            )}
           </>
         )}
 
-        {record.praatMetrics?.ai_feedback && (
+        {record.praatMetrics?.ai_feedback &&
+          record.praatMetrics.feedback_quality?.can_score_content !== false && (
           <div className="story-ai-summary">
             <strong>
               <BiLabel

@@ -120,6 +120,46 @@ flowchart LR
 | AI language coach | Vocabulary coverage (used / missing), coherence, pronunciation note, improved version |
 | Tone drill | Per-word pitch shape classification (rising / falling / dipping / high-level) |
 
+### Voice-feedback reliability gates
+
+Automated feedback is only allowed to count toward learner progress when the recording contains
+enough acoustic and transcript evidence. The backend runs a deterministic preflight before any
+cloud model, then combines signal quality, voiced pitch, transcription, and target-word checks in
+the `feedback_quality` field returned by `/api/analyze`.
+
+| Status | Meaning | Student experience |
+|---|---|---|
+| `reliable` | Pronunciation and target content have enough independent evidence | Feedback may count toward progress, with the reminder that it remains practice guidance |
+| `review` | Pronunciation is measurable but content or audio provenance is not fully verified | Feedback is shown as an estimate and does not unlock mastery |
+| `retry` | The attempt is too short, quiet, clipped, mismatched, or lacks enough voiced pitch | Scores are withheld and the learner is prompted to record again |
+
+Unjudged words and syllables use `judged: false` and `passed: null`; missing evidence is never
+converted into a neutral or failing pronunciation score. After repeated uncertain attempts, the UI
+directs the learner to ask a teacher for review.
+
+### Validating tone scores
+
+Tone scoring must be validated against a speaker-separated external set labelled by qualified
+human raters before it is used for student-facing release decisions. The benchmark workflow can
+initialize a private manifest, score WAV recordings with the production Praat pipeline, create
+speaker-safe train/dev/test splits, calculate agreement metrics, and enforce minimum release
+thresholds.
+
+```powershell
+cd backend
+python -m scripts.benchmark_tones init --output-dir .\private-data
+python -m scripts.benchmark_tones run `
+  --input .\private-data\external_manifest.csv `
+  --threshold 70 `
+  --output-dir .\private-data\benchmark-run
+python -m scripts.gate_tone_release `
+  --report .\private-data\benchmark-run\external_tone_report.json
+```
+
+Raw recordings, manifests, and generated reports under `backend/private-data/` are ignored by Git.
+See [docs/TONE_BENCHMARK.md](docs/TONE_BENCHMARK.md) for dataset requirements, metrics, default
+release thresholds, and CI usage.
+
 ### Feedback dimensions & the technology behind each
 
 Every recording is scored across several dimensions. Some are **deterministic** acoustic
@@ -377,6 +417,11 @@ FUNASR_MODEL=paraformer-zh
 VIBEVOICE_ASR_MODEL=microsoft/VibeVoice-ASR-HF
 VIBEVOICE_DEVICE=-1                  # -1 = CPU, 0 = first GPU
 
+# Voice-feedback evidence gates (optional defaults)
+FEEDBACK_MIN_DURATION_SECONDS=0.45
+FEEDBACK_MAX_CLIPPING_RATIO=0.08
+FEEDBACK_MIN_PITCH_POINTS=8
+
 # Server
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 DATABASE_URL=postgresql://mandarin:mandarin@127.0.0.1:5432/mandarin
@@ -438,12 +483,17 @@ npx vercel --prod
 .
 ├── backend/
 │   ├── ai_feedback.py        # Gemini / OpenAI / local language feedback
+│   ├── benchmarking/         # External tone evaluation and release-gate logic
 │   ├── chinese_tones.py      # Mandarin tone reference patterns
 │   ├── database.py           # PostgreSQL (psycopg3) helpers
 │   ├── main.py               # FastAPI routes, image generation, parallel analysis
 │   ├── praat_analyzer.py     # Parselmouth acoustic analysis
+│   ├── scripts/benchmark_tones.py
+│   ├── scripts/gate_tone_release.py
 │   ├── Dockerfile
 │   └── requirements.txt
+├── docs/
+│   └── TONE_BENCHMARK.md     # Human-labelled validation protocol
 └── src/
     ├── components/
     │   ├── StoryConceptMap.tsx   # Drag-and-drop word categorization activity

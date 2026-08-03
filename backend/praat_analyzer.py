@@ -561,7 +561,10 @@ def _aggregate_tone_from_words(
     Falls back to the legacy whole-utterance guess when there's no usable
     transcription (e.g. silence, or non-Chinese text).
     """
-    scored = [w for w in word_prosody if w.get("expected_tones")]
+    scored = [
+        w for w in word_prosody
+        if w.get("expected_tones") and w.get("judged", True)
+    ]
     if not scored:
         from chinese_tones import detect_tone
 
@@ -705,8 +708,8 @@ def estimate_word_prosody(
         scoring_points = [p for p in points if p[0] >= onset_threshold] or points
 
         # Need ≥4 pitch points for a reliable tone shape read. Fewer points
-        # (e.g. from a voicing gap at a word boundary) return a neutral 65 so
-        # a single unvoiced frame doesn't collapse the whole word score to 0.
+        # (e.g. from a voicing gap at a word boundary) are unjudged instead
+        # of receiving a fabricated neutral score.
         #
         # tone_score (declination-robust, direction-weighted) drives the
         # numeric tone_accuracy used for aggregation/gating — unchanged here.
@@ -726,7 +729,13 @@ def estimate_word_prosody(
         user_curve: List[float] = []
         target_curve: List[float] = []
         syllable_scores: List[float] = []
-        if is_chinese and len(scoring_points) >= 4:
+        minimum_points = max(4, len(expected_tones) * 4)
+        segment_judged = (
+            is_chinese
+            and bool(expected_tones)
+            and len(scoring_points) >= minimum_points
+        )
+        if segment_judged:
             tone_score = calculate_phrase_tone_accuracy(
                 scoring_points, expected_tones, target_curve_override=reference_curve
             )
@@ -738,10 +747,11 @@ def estimate_word_prosody(
             )
             syllable_scores = directional_tone_scores(scoring_points, expected_tones)
         elif is_chinese and expected_tones:
-            tone_score = 65.0
-            shape_score = 65.0
-            # Too short to judge — same benefit of the doubt as the word score.
-            syllable_scores = [65.0] * len(expected_tones)
+            tone_score = 0.0
+            shape_score = 0.0
+            # Keep shape fields numeric for API compatibility, but mark the
+            # syllables and word unjudged below.
+            syllable_scores = [0.0] * len(expected_tones)
         else:
             tone_score = 0.0
             shape_score = 0.0
@@ -760,12 +770,18 @@ def estimate_word_prosody(
                     "char": token[i],
                     "tone": expected_tones[i],
                     "score": round(score, 1),
-                    "passed": score >= SYLLABLE_PASS_THRESHOLD,
+                    "passed": (
+                        score >= SYLLABLE_PASS_THRESHOLD
+                        if segment_judged
+                        else None
+                    ),
                 }
                 for i, score in enumerate(syllable_scores)
             ]
         word_passed = (
-            all(entry["passed"] for entry in syllables) if syllables else None
+            all(entry["passed"] for entry in syllables)
+            if syllables and segment_judged
+            else None
         )
 
         # Idealized target shape for this word, scaled to its own time span
@@ -798,13 +814,35 @@ def estimate_word_prosody(
                 "end_pitch": round(end_pitch, 2),
                 "contour_shape": contour_shape,
                 "expected_tones": expected_tones,
+                "judged": segment_judged,
+                "confidence": (
+                    round(
+                        min(
+                            1.0,
+                            len(scoring_points) / max(minimum_points * 2, 1),
+                        ),
+                        2,
+                    )
+                    if segment_judged
+                    else 0.0
+                ),
+                "evidence": {
+                    "pitch_points": len(scoring_points),
+                    "minimum_pitch_points": minimum_points,
+                },
                 "tone_accuracy": round(tone_score, 1),
                 "shape_accuracy": round(shape_score, 1),
                 "syllables": syllables,
                 "passed": word_passed,
                 "is_content_word": is_content,
                 "prominence_score": 0.0,  # filled in below after utterance mean is known
-                "feedback": _word_prosody_feedback(contour_shape, pitch_range, expected_tones, shape_score),
+                "feedback": (
+                    _word_prosody_feedback(
+                        contour_shape, pitch_range, expected_tones, shape_score
+                    )
+                    if segment_judged or not expected_tones
+                    else "Not enough voiced pitch to judge this word safely. Record it again."
+                ),
             }
         )
 

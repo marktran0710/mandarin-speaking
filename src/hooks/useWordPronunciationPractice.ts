@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { convertBlobToWav } from "../utils/audio";
+import type { BackendFeedbackQuality } from "../utils/voiceFeedbackReliability";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -11,6 +12,7 @@ export interface WordProsodySegment {
   reference_contour?: Array<[number, number]>;
   tone_accuracy: number;
   feedback: string;
+  judged?: boolean;
 }
 
 export interface WordAnalyzeResult {
@@ -19,6 +21,7 @@ export interface WordAnalyzeResult {
   word_prosody: WordProsodySegment[];
   recognized_text?: string | null;
   content_match?: boolean | null;
+  feedback_quality?: BackendFeedbackQuality;
 }
 
 /**

@@ -140,6 +140,15 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               </li>
             ))}
           </ul>
+
+          <button
+            type="button"
+            className="hero-primary-action"
+            onClick={() => onNavigate("student-login")}
+          >
+            <BiLabel zh="開始學習" pinyin="Kāishǐ xuéxí" en="Start Learning" />
+            <span aria-hidden="true">→</span>
+          </button>
         </div>
 
         <div className="home-hero-visual" aria-label="Story practice preview">
@@ -189,17 +198,6 @@ export default function HomePage({ onNavigate }: HomePageProps) {
           </div>
         </div>
       </section>
-
-      <div className="home-cta">
-        <button
-          type="button"
-          className="hero-primary-action"
-          onClick={() => onNavigate("student-login")}
-        >
-          <BiLabel zh="開始學習" pinyin="Kāishǐ xuéxí" en="Start Learning" />
-          <span aria-hidden="true">→</span>
-        </button>
-      </div>
 
       <section className="how-it-works" aria-label="How it works">
         <p className="how-it-works-kicker">

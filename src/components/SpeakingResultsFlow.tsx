@@ -16,6 +16,8 @@ import {
 } from "../utils/scriptAlignment";
 import type { PraatMetrics, Topic } from "./StoryRecorder";
 import { toPinyin } from "../utils/pinyin";
+import VoiceFeedbackReliabilityNotice from "./VoiceFeedbackReliabilityNotice";
+import { assessVoiceFeedbackReliability } from "../utils/voiceFeedbackReliability";
 
 // Labels for pronunciation_note.details — one line per aspect inside the
 // overview step's 發音回饋 panel.
@@ -112,6 +114,13 @@ export default function SpeakingResultsFlow({
   const corrective = ai?.corrective_feedback;
   const pronunciationNote = ai?.pronunciation_note;
   const meaningJudged = Boolean(contentAccuracy?.judged);
+  const feedbackReliability = assessVoiceFeedbackReliability({
+    feedbackQuality: praatMetrics.feedback_quality,
+    contentJudged: meaningJudged,
+    pitchContour: praatMetrics.pitch_contour,
+    wordProsody: praatMetrics.word_prosody,
+    transcription: praatMetrics.transcription,
+  });
 
   const failedWords = failedProsodyWords(praatMetrics.word_prosody);
   // Practice order: weakest shape first — the word the student most needs
@@ -352,6 +361,11 @@ export default function SpeakingResultsFlow({
         </div>
         {sceneChip}
       </header>
+
+      <VoiceFeedbackReliabilityNotice
+        assessment={feedbackReliability}
+        attemptCount={attempts}
+      />
 
       {(analysisAudioBlob || praatMetrics.transcription || submittedAudioName) && (
         <div className="sfc-results-scene-extras">

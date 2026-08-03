@@ -168,6 +168,7 @@ export function failedProsodyWords(
  * failed the per-syllable verdict. An empty/absent word_prosody passes —
  * the gate only ever blocks on evidence, not on missing data. */
 export function prosodyGatePassed(wordProsody?: WordProsody[]): boolean {
+  if ((wordProsody ?? []).some((item) => item.judged === false)) return false;
   return failedProsodyWords(wordProsody).length === 0;
 }
 

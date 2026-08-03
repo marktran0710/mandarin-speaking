@@ -53,7 +53,9 @@ export interface LessonGroup {
 
 /** The id submission progress is tracked under (markStoryLevelSubmitted
  * keys on the raw teacher-story id, not the tier-suffixed topic id). */
-export function topicStoryId(topic: Topic): string {
+export function topicStoryId(
+  topic: Pick<Topic, "id" | "sourceStory">,
+): string {
   return topic.sourceStory?.id ?? topic.id;
 }
 

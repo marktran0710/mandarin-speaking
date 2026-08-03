@@ -335,3 +335,33 @@
     flex-wrap: wrap;
   }
 }
+
+@media (max-width: 600px) {
+  .tdash-workspace {
+    gap: var(--space-md);
+  }
+
+  .tdash-view-header {
+    padding: var(--space-lg);
+  }
+
+  .tdash-workspace .teacher-stat-card {
+    min-height: 112px;
+    padding: var(--space-md);
+    gap: var(--space-xs);
+  }
+
+  .tdash-subtabs {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  }
+
+  .tdash-subtabs button {
+    min-width: 0;
+    justify-content: center;
+    padding: var(--space-xs);
+    white-space: normal;
+    text-align: center;
+  }
+}

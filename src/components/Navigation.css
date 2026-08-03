@@ -146,6 +146,22 @@
     justify-content: space-between;
   }
 
+  .navbar-menu-student {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .navbar-menu-student > li,
+  .navbar-menu-student .nav-link {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .navbar-menu-teacher {
+    align-self: flex-end;
+  }
+
   .nav-link {
     flex: 1;
     padding: 8px 10px;

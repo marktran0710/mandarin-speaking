@@ -1,0 +1,59 @@
+.voice-reliability-notice {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin: 0.85rem 0;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid #b9d8c2;
+  border-radius: 12px;
+  background: #f1faf3;
+  color: #173f27;
+}
+
+.voice-reliability-notice.is-estimate {
+  border-color: #d9c681;
+  background: #fff9e8;
+  color: #564612;
+}
+
+.voice-reliability-notice.is-retry {
+  border-color: #e3aaa4;
+  background: #fff1ef;
+  color: #6f2620;
+}
+
+.voice-reliability-icon {
+  display: grid;
+  flex: 0 0 1.75rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 75%);
+  font-weight: 800;
+}
+
+.voice-reliability-notice strong {
+  display: block;
+}
+
+.voice-reliability-notice p {
+  margin: 0.25rem 0 0;
+  line-height: 1.45;
+}
+
+.voice-reliability-action,
+.voice-reliability-teacher {
+  font-weight: 600;
+}
+
+.voice-reliability-notice.is-compact {
+  margin: 0.5rem 0;
+  padding: 0.55rem 0.7rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-reliability-notice {
+    scroll-behavior: auto;
+  }
+}
