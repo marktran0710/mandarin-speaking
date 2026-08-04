@@ -158,6 +158,11 @@ export interface SceneSubmission {
   // and speech_rate_verdict for how these are derived.
   choppyPauseCount?: number;
   articulationRate?: number;
+  // The student's own self-rating for this scene's accepted attempt, taken
+  // right after they listened back to it and before they saw the system's
+  // verdict — see SelfEvalStep. Absent when the student skipped the prompt.
+  selfEvalContent?: "good" | "ok" | "bad";
+  selfEvalPronunciation?: "good" | "ok" | "bad";
 }
 
 export interface StoryFeedbackDimension {

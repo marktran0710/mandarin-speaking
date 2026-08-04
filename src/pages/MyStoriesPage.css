@@ -1159,6 +1159,12 @@
   line-height: 1.4;
 }
 
+.sss-self-eval {
+  font-size: 0.8rem;
+  color: var(--clay-muted);
+  margin: 0;
+}
+
 .sss-vocab-row {
   display: flex;
   flex-wrap: wrap;
