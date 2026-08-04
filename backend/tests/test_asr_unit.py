@@ -540,6 +540,68 @@ class TestTranscribeEndpoint:
         assert "database" in body
 
 
+class TestAnalysisProcessingTrace:
+    @pytest.mark.asyncio
+    async def test_do_analyze_returns_ordered_processing_trace(self):
+        import main
+
+        praat_result = (
+            [], {}, 3.0, 72.0, {}, [], 2, 78.0,
+            "Good tone.", {},
+        )
+        quality = {
+            "status": "reliable",
+            "confidence": 1.0,
+            "can_score_pronunciation": True,
+            "can_score_content": True,
+            "reason_codes": [],
+            "student_message": "",
+            "metrics": {},
+        }
+        local_feedback = {
+            "provider": "local",
+            "vocabulary_coverage": {"score": 80, "used": [], "missing": [], "feedback": ""},
+            "coherence": {"score": 70, "feedback": "", "corrections": []},
+            "pronunciation_note": {"score": 80, "feedback": ""},
+            "improved_version": "",
+            "practice_prompt": "",
+        }
+
+        with patch("main.assess_recording_quality", return_value={
+            "status": "reliable",
+            "reason_codes": [],
+            "student_message": "Sound check passed.",
+        }), patch("main.resolve_image_b64", new_callable=AsyncMock, return_value=None), \
+             patch("main.transcribe_audio_content", new_callable=AsyncMock) as transcribe, \
+             patch("main.analyze_all", return_value=praat_result), \
+             patch("main.generate_language_feedback", new_callable=AsyncMock) as feedback, \
+             patch("main.finalize_feedback_quality", return_value=quality), \
+             patch("main.classify_vowel_quality", return_value="Clear vowels"), \
+             patch("main.build_tone_direction", return_value="rising"), \
+             patch("main.caf_metrics.fluency_metrics", return_value={"articulation_rate": 3.0}), \
+             patch("main.caf_metrics.classify_pauses", return_value={"judged": False}), \
+             patch("ai_feedback.fallback_language_feedback", return_value=local_feedback), \
+             patch("ai_feedback.apply_feedback_quality_gate", side_effect=lambda value, *_args, **_kwargs: value):
+            transcribe.return_value = MagicMock(text="我在市場買菜。", model="ctwhisper")
+            feedback.return_value = local_feedback
+            result = await main._do_analyze(
+                b"wav-bytes",
+                "",
+                "ctwhisper",
+                scene_prompt="Describe the market",
+                scene_vocabulary="市場, 買菜",
+            )
+
+        stages = {stage.stage: stage for stage in result.processing_trace.stages}
+        assert [stage.stage for stage in result.processing_trace.stages[:2]] == ["preflight", "asr"]
+        assert stages["preflight"].status == "reliable"
+        assert stages["asr"].status == "passed"
+        assert stages["praat"].status == "passed"
+        assert stages["feedback"].status == "passed"
+        assert stages["quality_gate"].status == "passed"
+        assert result.processing_trace.total_duration_ms >= 0
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # AI Feedback: fallback_language_feedback()
 # ──────────────────────────────────────────────────────────────────────────────

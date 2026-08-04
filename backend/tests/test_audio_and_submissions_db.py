@@ -68,3 +68,28 @@ def test_story_submission_round_trips_with_scenes(client):
 
 def test_story_submissions_filter_by_story_id(client):
     assert client.get("/api/story-submissions", params={"story_id": "nothing"}).json() == []
+
+
+def test_story_submission_round_trips_self_eval(client):
+    submission = {
+        "id": "sub-self-eval",
+        "storyId": "teacher-story-1",
+        "storyTitle": "我的房間",
+        "studentName": "Mai",
+        "submittedAt": "2026-07-26T08:00:00Z",
+        "scenes": [
+            {"sceneIndex": 0, "transcription": "這是我的房間。", "audioUrl": "",
+             "toneAccuracy": 80.0, "fluencyScore": 70.0, "pronScore": 75.0,
+             "selfEvalContent": "good", "selfEvalPronunciation": "ok"},
+            # A scene the student skipped the self-eval prompt for.
+            {"sceneIndex": 1, "transcription": "房間裡有一張床。", "audioUrl": "",
+             "toneAccuracy": 70.0, "fluencyScore": 60.0, "pronScore": 65.0},
+        ],
+    }
+    response = client.post("/api/story-submissions", json=submission)
+    assert response.status_code == 200
+    scenes = sorted(response.json()["scenes"], key=lambda s: s["sceneIndex"])
+    assert scenes[0]["selfEvalContent"] == "good"
+    assert scenes[0]["selfEvalPronunciation"] == "ok"
+    assert scenes[1]["selfEvalContent"] is None
+    assert scenes[1]["selfEvalPronunciation"] is None

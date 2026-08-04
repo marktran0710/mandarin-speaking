@@ -63,6 +63,53 @@
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--clay-surface-card) 70%, white), 0 10px 22px color-mix(in srgb, var(--seal) 9%, transparent);
 }
 
+.sfc-recording-options {
+  width: min(100%, 420px);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  padding: 10px 12px;
+}
+
+.sfc-recording-options summary {
+  color: var(--clay-body);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.sfc-speech-source {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--clay-ink);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.sfc-speech-source select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.sfc-speech-source select:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+.sfc-speech-source-note {
+  margin: 8px 0 0;
+  color: var(--clay-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .sfc-action-intro {
   width: min(100%, 340px);
   display: flex;

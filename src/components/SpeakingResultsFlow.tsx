@@ -4,6 +4,7 @@ import AppButton from "./AppButton";
 import RecordingPlayback from "./RecordingPlayback";
 import PhrasePracticeDrill from "./PhrasePracticeDrill";
 import WordProsodyCard from "./WordProsodyCard";
+import SelfEvalStep from "./SelfEvalStep";
 import {
   failedProsodyWords,
   isContentAccepted,
@@ -14,8 +15,16 @@ import {
   scriptMismatchTokens,
   splitScriptIntoChunks,
 } from "../utils/scriptAlignment";
+import {
+  SELF_EVAL_EMOJI,
+  systemContentLevel,
+  systemPronunciationLevel,
+  type SelfEvalLevel,
+} from "../utils/selfEvalComparison";
 import type { PraatMetrics, Topic } from "./StoryRecorder";
 import { toPinyin } from "../utils/pinyin";
+import VoiceFeedbackReliabilityNotice from "./VoiceFeedbackReliabilityNotice";
+import { assessVoiceFeedbackReliability } from "../utils/voiceFeedbackReliability";
 
 // Labels for pronunciation_note.details — one line per aspect inside the
 // overview step's 發音回饋 panel.
@@ -30,9 +39,10 @@ const PRONUNCIATION_DETAIL_LABELS: Record<
   word_stress: { icon: "💪", zh: "重音", pinyin: "Zhòngyīn", en: "Word Stress" },
 };
 
-type ResultsStep = "overview" | "fix" | "practice";
+type ResultsStep = "selfEval" | "overview" | "fix" | "practice";
 
 const STEP_LABELS: Record<ResultsStep, { zh: string; en: string }> = {
+  selfEval: { zh: "自評", en: "Self-check" },
   overview: { zh: "結果", en: "Results" },
   fix: { zh: "改句子", en: "Fix it" },
   practice: { zh: "練習", en: "Practice" },
@@ -54,6 +64,12 @@ interface SpeakingResultsFlowProps {
   submittedAudioName: string;
   clearedWords: string[];
   onWordDrillPass: (token: string) => void;
+  /** Fired when the student answers the self-eval step (not on skip) — the
+   * caller merges these into the scene's submission snapshot. */
+  onSelfEvalSubmit?: (levels: {
+    content: SelfEvalLevel;
+    pronunciation: SelfEvalLevel;
+  }) => void;
   hasNextScene: boolean;
   onNextScene: () => void;
   onViewSummary: () => void;
@@ -63,6 +79,8 @@ interface SpeakingResultsFlowProps {
 /** The results half of the Speaking step, as a guided mini-flow instead of
  * one dense readout:
  *
+ *   [0] selfEval — student rates their own meaning/pronunciation first,
+ *                  before seeing any system verdict (only on a ready take)
  *   [1] overview — verdict, playback, stats, overall pronunciation notes
  *   [2] fix      — meaning correction + missing vocabulary (only when needed)
  *   [3] practice — one failed word at a time, weakest first, drill in place
@@ -85,6 +103,7 @@ export default function SpeakingResultsFlow({
   submittedAudioName,
   clearedWords,
   onWordDrillPass,
+  onSelfEvalSubmit,
   hasNextScene,
   onNextScene,
   onViewSummary,
@@ -112,6 +131,13 @@ export default function SpeakingResultsFlow({
   const corrective = ai?.corrective_feedback;
   const pronunciationNote = ai?.pronunciation_note;
   const meaningJudged = Boolean(contentAccuracy?.judged);
+  const feedbackReliability = assessVoiceFeedbackReliability({
+    feedbackQuality: praatMetrics.feedback_quality,
+    contentJudged: meaningJudged,
+    pitchContour: praatMetrics.pitch_contour,
+    wordProsody: praatMetrics.word_prosody,
+    transcription: praatMetrics.transcription,
+  });
 
   const failedWords = failedProsodyWords(praatMetrics.word_prosody);
   // Practice order: weakest shape first — the word the student most needs
@@ -187,19 +213,43 @@ export default function SpeakingResultsFlow({
   const hasFix = !accepted || missing.length > 0 || hasScriptMismatch;
   const hasPhrasePractice = phrasePracticeItems.length > 0;
   const hasPractice = hasPhrasePractice || (accepted && !hasScriptMismatch && practiceWords.length > 0);
+  // Self-eval only fires on the attempt that actually completes the scene —
+  // asking on every failed retry would be pure friction with nothing to
+  // compare against yet.
+  const showSelfEval = ready;
   const steps: ResultsStep[] = [
+    ...(showSelfEval ? (["selfEval"] as const) : []),
     "overview",
     ...(hasFix ? (["fix"] as const) : []),
     ...(hasPractice ? (["practice"] as const) : []),
   ];
 
-  const [step, setStep] = useState<ResultsStep>("overview");
+  const [step, setStep] = useState<ResultsStep>(() => steps[0]);
   const [maxVisited, setMaxVisited] = useState(0);
   const goToStep = (target: ResultsStep) => {
     const index = steps.indexOf(target);
     if (index === -1) return;
     setStep(target);
     setMaxVisited((prev) => Math.max(prev, index));
+  };
+
+  // The student's own pick, kept only for this mount (one per analysis) so
+  // the overview step's comparison strip can show it next to the system's
+  // verdict. null until answered; stays null if skipped.
+  const [selfEvalAnswer, setSelfEvalAnswer] = useState<{
+    content: SelfEvalLevel;
+    pronunciation: SelfEvalLevel;
+  } | null>(null);
+  const handleSelfEvalSubmit = (levels: {
+    content: SelfEvalLevel;
+    pronunciation: SelfEvalLevel;
+  }) => {
+    setSelfEvalAnswer(levels);
+    onSelfEvalSubmit?.(levels);
+    goToStep("overview");
+  };
+  const handleSelfEvalSkip = () => {
+    goToStep("overview");
   };
 
   // Focus-mode pointer into practiceWords — starts on the weakest word the
@@ -352,6 +402,50 @@ export default function SpeakingResultsFlow({
         </div>
         {sceneChip}
       </header>
+
+      <VoiceFeedbackReliabilityNotice
+        assessment={feedbackReliability}
+        attemptCount={attempts}
+      />
+
+      {selfEvalAnswer && (
+        <div className="self-eval-compare">
+          <div className="self-eval-compare-row">
+            <span className="self-eval-compare-label">
+              <BiLabel zh="意思" en="Meaning" />
+            </span>
+            <span className="self-eval-compare-side">
+              <BiLabel zh="你" en="You" />{" "}
+              <span className="self-eval-compare-emoji">
+                {SELF_EVAL_EMOJI[selfEvalAnswer.content]}
+              </span>
+            </span>
+            <span className="self-eval-compare-side">
+              <BiLabel zh="系統" en="System" />{" "}
+              <span className="self-eval-compare-emoji">
+                {SELF_EVAL_EMOJI[systemContentLevel(praatMetrics, hasScriptMismatch)]}
+              </span>
+            </span>
+          </div>
+          <div className="self-eval-compare-row">
+            <span className="self-eval-compare-label">
+              <BiLabel zh="發音" en="Pronunciation" />
+            </span>
+            <span className="self-eval-compare-side">
+              <BiLabel zh="你" en="You" />{" "}
+              <span className="self-eval-compare-emoji">
+                {SELF_EVAL_EMOJI[selfEvalAnswer.pronunciation]}
+              </span>
+            </span>
+            <span className="self-eval-compare-side">
+              <BiLabel zh="系統" en="System" />{" "}
+              <span className="self-eval-compare-emoji">
+                {SELF_EVAL_EMOJI[systemPronunciationLevel(praatMetrics)]}
+              </span>
+            </span>
+          </div>
+        </div>
+      )}
 
       {(analysisAudioBlob || praatMetrics.transcription || submittedAudioName) && (
         <div className="sfc-results-scene-extras">
@@ -797,9 +891,16 @@ export default function SpeakingResultsFlow({
 
   const practiceStep = hasPhrasePractice ? phrasePracticeStep : wordPracticeStep;
 
-  const stepBody = { overview: overviewStep, fix: fixStep, practice: practiceStep }[
-    step
-  ];
+  const selfEvalStep = (
+    <SelfEvalStep onSubmit={handleSelfEvalSubmit} onSkip={handleSelfEvalSkip} />
+  );
+
+  const stepBody = {
+    selfEval: selfEvalStep,
+    overview: overviewStep,
+    fix: fixStep,
+    practice: practiceStep,
+  }[step];
 
   return (
     <section

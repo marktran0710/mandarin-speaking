@@ -23,8 +23,10 @@ backend/*.db-*
 backend/*.db.bak*
 backend/pg_dump_*.sql
 backend/uploads/
+backend/private-data/
 backend/uvicorn*.log
 backend/*.zip
 .models/
 .playwright-mcp/
+.playwright-cli/
 .superpowers/

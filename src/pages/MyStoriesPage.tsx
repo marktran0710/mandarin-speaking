@@ -359,7 +359,6 @@ export default function MyStoriesPage({
             ) : activeStoryTopics.map((topic) => {
               const hasQuiz = topicHasQuiz(topic);
               const stars = hasQuiz ? loadBestLocalStars(topic.id) : null;
-              const submitted = submittedIds.has(topicStoryId(topic));
               const finished = isStoryFinished(topic, submittedIds);
               const started = topicWasStarted(topic, activityStoryIds);
               const previewImage = topic.images[0];

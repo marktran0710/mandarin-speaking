@@ -1,168 +1,106 @@
-import { useState, type ChangeEvent } from "react";
-import { useWordPronunciationPractice } from "../hooks/useWordPronunciationPractice";
-import PitchOverlay from "./PitchOverlay";
-import { BiLabel } from "./BiLabel";
-import { scoreTier, scoreTierLabel } from "../utils/scoreLabels";
+import { useEffect, useRef, useState } from "react";
 import "./ScenePracticeWord.css";
 
-/** A small mic toggle on a scene-vocabulary row that expands into an inline
- * record/upload → score → pitch-curve panel for that single word, reusing
- * the same record/analyze flow as the Tone Practice page. Optional —
- * doesn't block moving on to recording the full scene. */
+/**
+ * A single, low-friction action for a scene vocabulary row.
+ *
+ * Word recording used to live here as a second pronunciation workflow. That
+ * duplicated the full-sentence recorder and made the study table noisy. The
+ * Speaking results flow is now the one place where students record and get
+ * feedback; this row only lets them listen to the teacher/model clip.
+ */
 export default function ScenePracticeWord({
   word,
-  pinyin,
   audioUrl,
-  referenceCurve,
 }: {
   word: string;
-  pinyin?: string;
-  /** Model-voice reference clip for this word (sliced from the scene's
-   * sentence audio — see reference_voice.py) — lets the student hear the
-   * target pronunciation before recording. */
+  /** Model-voice clip aligned to this vocabulary word, when available. */
   audioUrl?: string;
-  /** The cached pitch-shape curve for that same clip, sent back to the
-   * backend as this word's real-voice scoring target. */
-  referenceCurve?: number[];
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const {
-    isRecording,
-    isAnalyzing,
-    error,
-    setError,
-    result,
-    startRecording,
-    stopRecording,
-    analyzeBlob,
-    reset,
-  } = useWordPronunciationPractice(word, pinyin, referenceCurve);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const canUseSpeechSynthesis =
+    typeof window !== "undefined" &&
+    "speechSynthesis" in window &&
+    "SpeechSynthesisUtterance" in window;
 
-  const toggle = () => {
-    if (expanded) {
-      reset();
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio && !audio.paused) audio.pause();
+    if (audio) audio.currentTime = 0;
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
     }
-    setExpanded((current) => !current);
-  };
+    setIsPlaying(false);
 
-  const handleUploadFile = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
-    if (!file) return;
+    return () => {
+      if (audio && !audio.paused) audio.pause();
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [audioUrl]);
 
-    if (!file.type.startsWith("audio/") && !/\.(wav|webm|mp3|m4a|ogg|aac|flac)$/i.test(file.name)) {
-      setError(`「${file.name}」不是音訊檔。 "${file.name}" isn't an audio file.`);
+  const togglePlayback = () => {
+    const audio = audioRef.current;
+    if (!audioUrl) {
+      if (!canUseSpeechSynthesis) return;
+      if (isPlaying) {
+        window.speechSynthesis.cancel();
+        setIsPlaying(false);
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(word);
+      utterance.lang = "zh-TW";
+      utterance.onend = () => setIsPlaying(false);
+      utterance.onerror = () => setIsPlaying(false);
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+      setIsPlaying(true);
+      return;
+    }
+    if (!audio) return;
+
+    if (!audio.paused) {
+      audio.pause();
+      audio.currentTime = 0;
+      setIsPlaying(false);
       return;
     }
 
-    setError("");
-    await analyzeBlob(file);
+    audio.currentTime = 0;
+    void audio.play().catch(() => {
+      // Browsers can reject playback when the media URL is unavailable. Keep
+      // the row quiet; the main practice flow still remains usable.
+      setIsPlaying(false);
+    });
   };
-
-  const segment = result?.word_prosody?.[0];
-  const score = segment?.tone_accuracy ?? result?.tone_accuracy;
 
   return (
     <>
       {audioUrl && (
-        <button
-          type="button"
-          className="scene-practice-listen"
-          onClick={() => new Audio(audioUrl).play()}
-          aria-label={`Listen to the model pronunciation of ${word}`}
-          title="Listen to model pronunciation"
-        >
-          🔊
-        </button>
+        <audio
+          ref={audioRef}
+          className="scene-practice-audio"
+          src={audioUrl}
+          preload="metadata"
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={() => setIsPlaying(false)}
+          aria-hidden="true"
+        />
       )}
       <button
         type="button"
-        className={`scene-practice-toggle ${expanded ? "active" : ""}`}
-        onClick={toggle}
-        aria-expanded={expanded}
-        aria-label={
-          expanded
-            ? `Hide pronunciation practice for ${word}`
-            : `Practice pronouncing ${word}`
-        }
-        title={expanded ? "Hide practice" : "Practice this word"}
+        className={`scene-practice-listen${isPlaying ? " playing" : ""}`}
+        onClick={togglePlayback}
+        disabled={!audioUrl && !canUseSpeechSynthesis}
+        aria-label={`${isPlaying ? "Stop" : "Listen to"} the model pronunciation of ${word}`}
+        title="Listen to this word"
       >
-        🎤
+        <span aria-hidden="true">{isPlaying ? "⏸" : "🔊"}</span>
       </button>
-      {expanded && (
-        <div className="scene-practice-panel" role="cell">
-          <div className="scene-practice-controls">
-            <button
-              type="button"
-              className={`btn-mini ${isRecording ? "recording" : ""}`}
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={isAnalyzing}
-              aria-label={
-                isRecording ? `Stop recording ${word}` : `Record ${word} to check pronunciation`
-              }
-            >
-              {isRecording ? (
-                <BiLabel zh="停止" pinyin="Tíngzhǐ" en="Stop" />
-              ) : (
-                <BiLabel zh="錄音" pinyin="Lùyīn" en="Record" />
-              )}
-            </button>
-            <label
-              className={`btn-mini btn-mini-secondary scene-practice-upload-label ${
-                isRecording || isAnalyzing ? "disabled" : ""
-              }`}
-              role="button"
-              tabIndex={isRecording || isAnalyzing ? -1 : 0}
-            >
-              <BiLabel zh="上傳音檔" pinyin="Shàngchuán yīndàng" en="Upload audio" />
-              <input
-                type="file"
-                accept="audio/*,.wav,.webm,.mp3,.m4a,.ogg,.aac,.flac"
-                className="scene-practice-upload-input"
-                onChange={handleUploadFile}
-                disabled={isRecording || isAnalyzing}
-              />
-            </label>
-          </div>
-          {isAnalyzing && (
-            <span className="scene-practice-status">
-              <BiLabel zh="分析中…" pinyin="Fēnxī zhōng…" en="Analyzing…" />
-            </span>
-          )}
-          {error && <p className="scene-practice-error">{error}</p>}
-          {segment && !isAnalyzing && (
-            <div className="scene-practice-result">
-              {result?.recognized_text && (
-                <p
-                  className={`scene-practice-recognized ${
-                    result.content_match === false ? "mismatch" : "match"
-                  }`}
-                >
-                  <BiLabel zh="聽到：" pinyin="Tīngdào:" en="Heard: " />
-                  <strong>{result.recognized_text}</strong>
-                  {result.content_match === false && (
-                    <span className="scene-practice-recognized-note">
-                      <BiLabel
-                        zh={`（跟「${word}」不太一樣，分數可能不準）`}
-                        pinyin={`(gēn “${word}” bú tài yíyàng, fēnshù kěnéng bù zhǔn)`}
-                        en={` (doesn't match "${word}" — score may not be reliable)`}
-                      />
-                    </span>
-                  )}
-                </p>
-              )}
-              <strong className={`scene-practice-score ${scoreTier(score ?? 0)}`}>
-                {scoreTierLabel(scoreTier(score ?? 0)).zh}
-              </strong>
-              <PitchOverlay
-                userContour={segment.pitch_contour}
-                referenceContour={segment.reference_contour || []}
-              />
-              <p className="scene-practice-feedback">{segment.feedback}</p>
-            </div>
-          )}
-        </div>
-      )}
     </>
   );
 }

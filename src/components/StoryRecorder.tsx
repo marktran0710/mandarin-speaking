@@ -34,6 +34,7 @@ import { isAdminSession } from "../utils/studentSession";
 import { markStoryLevelSubmitted } from "../utils/storyLevelProgress";
 import type { CustomTeacherStory, StoryDifficultyLevel } from "../utils/teacherStories";
 import { convertBlobToWav } from "../utils/audio";
+import { buildPracticeAnalysisFormData } from "../utils/practiceAnalysis";
 import {
   sceneReady,
   sceneContentGatePassed,
@@ -63,6 +64,8 @@ import StorySessionSidebar, {
   type SidebarSummaryStatus,
 } from "./StorySessionSidebar";
 import StudentHelpPanel from "./StudentHelpPanel";
+import type { BackendFeedbackQuality } from "../utils/voiceFeedbackReliability";
+import type { SelfEvalLevel } from "../utils/selfEvalComparison";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -436,6 +439,7 @@ export interface PraatMetrics {
   pause_analysis?: PauseAnalysis;
   feedback: string;
   ai_feedback?: LanguageFeedback;
+  feedback_quality?: BackendFeedbackQuality;
 }
 
 export interface WordProsody {
@@ -468,6 +472,8 @@ export interface WordProsody {
   // must clear the backend's pass bar). Absent/null for non-Chinese tokens.
   syllables?: WordProsodySyllable[];
   passed?: boolean | null;
+  /** False when the analyzer could not extract enough pitch evidence. */
+  judged?: boolean;
 }
 
 export interface WordProsodySyllable {
@@ -606,6 +612,8 @@ export default function StoryRecorder({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<SpeechModel>("webspeech");
+  const [groqAsrAvailable, setGroqAsrAvailable] = useState(false);
+  const speechModelChosenByStudentRef = useRef(false);
   const [aiProvider, setAiProvider] = useState<string>("");
   const [silenceDuration, setSilenceDuration] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
@@ -736,6 +744,26 @@ export default function StoryRecorder({
   const [sceneRecordings, setSceneRecordings] = useState<
     Record<number, SceneSubmission>
   >({});
+  // Self-eval only ever fires on the attempt that just became this scene's
+  // saved snapshot (see SpeakingResultsFlow's showSelfEval), so the merge
+  // target always exists by the time the student answers.
+  const handleSelfEvalSubmit = useCallback(
+    (levels: { content: SelfEvalLevel; pronunciation: SelfEvalLevel }) => {
+      setSceneRecordings((prev) => {
+        const existing = prev[selectedImageIndex];
+        if (!existing) return prev;
+        return {
+          ...prev,
+          [selectedImageIndex]: {
+            ...existing,
+            selfEvalContent: levels.content,
+            selfEvalPronunciation: levels.pronunciation,
+          },
+        };
+      });
+    },
+    [selectedImageIndex],
+  );
   const [storySubmitted, setStorySubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [storyFeedbackResult, setStoryFeedbackResult] = useState<{
@@ -1083,12 +1111,15 @@ export default function StoryRecorder({
         const groqAvailable = data.providers.some(
           (p: AiProviderOption) => p.id === "groq" && p.available,
         );
+        setGroqAsrAvailable(groqAvailable);
         const defaultProvider = (groqAvailable ? "groq" : data.default) || "";
         setAiProvider((prev) => prev || defaultProvider);
         // Sync speech source: if Groq is the default AI provider, use Groq Whisper
         // for transcription too so ASR and feedback both come from the same engine.
-        if (groqAvailable) {
-          setSelectedModel((prev) => (prev === "webspeech" ? "groq" : prev));
+        // Once the student makes an explicit choice, an async provider refresh
+        // must never overwrite it.
+        if (groqAvailable && !speechModelChosenByStudentRef.current) {
+          setSelectedModel("groq");
         }
       } catch {
         // Backend unreachable — the picker just stays hidden.
@@ -1348,42 +1379,27 @@ export default function StoryRecorder({
     try {
       const backendUrl = getBackendUrl();
       const wavBlob = await convertBlobToWav(audioBlob);
-      const formData = new FormData();
-      formData.append("file", wavBlob, "speech.wav");
       const analysisText = transcription.trim();
-      formData.append("transcription", analysisText);
-      if (asrModel) {
-        formData.append("asr_model", asrModel);
-      }
       // Scene context for smarter feedback
       const sceneVocab = (topic.vocabulary[selectedImageIndex] || []).join(
         ", ",
       );
       const scenePrompt = topic.prompts?.[selectedImageIndex] || topic.name;
-      formData.append("scene_vocabulary", sceneVocab);
-      formData.append("scene_prompt", scenePrompt);
-      if (selectedImage) {
-        formData.append("scene_image_url", selectedImage);
-      }
-      if (aiProvider) {
-        formData.append("ai_provider", aiProvider);
-      }
       const scenePhrases = topic.phrases?.[selectedImageIndex];
-      if (scenePhrases && scenePhrases.length > 0) {
-        formData.append("scene_phrases", scenePhrases.join("; "));
-      }
       const sceneSuggestedAnswer = topic.suggestedAnswers?.[selectedImageIndex];
-      if (sceneSuggestedAnswer) {
-        formData.append("scene_suggested_answer", sceneSuggestedAnswer);
-      }
       const sceneReferenceCurves = buildSceneReferenceCurves(topic, selectedImageIndex);
-      if (sceneReferenceCurves) {
-        formData.append("scene_reference_curves", JSON.stringify(sceneReferenceCurves));
-      }
-      formData.append(
-        "scene_attempt_number",
-        String(attemptHistory.length + 1),
-      );
+      const formData = buildPracticeAnalysisFormData(wavBlob, {
+        transcription: analysisText,
+        asrModel,
+        aiProvider,
+        sceneVocabulary: sceneVocab,
+        scenePrompt,
+        sceneImageUrl: selectedImage,
+        scenePhrases: scenePhrases?.join("; "),
+        sceneSuggestedAnswer,
+        sceneReferenceCurves,
+        sceneAttemptNumber: attemptHistory.length + 1,
+      });
 
       const response = await fetch(`${backendUrl}/api/analyze`, {
         method: "POST",
@@ -1399,6 +1415,10 @@ export default function StoryRecorder({
       }
 
       const metrics = (await response.json()) as PraatMetrics;
+      const canScorePronunciation =
+        metrics.feedback_quality?.can_score_pronunciation !== false;
+      const canScoreContent =
+        metrics.feedback_quality?.can_score_content !== false;
       // Only real transcripts (backend ASR, or the live WebSpeech text) —
       // never the scene's vocabulary list as a stand-in. That old fallback
       // meant a silent recording got "transcribed" as the exact target
@@ -1428,11 +1448,15 @@ export default function StoryRecorder({
       };
       const nextProgress = {
         attempts: priorProgress.attempts + 1,
-        bestTone: Math.max(priorProgress.bestTone, Math.round(metrics.tone_accuracy)),
-        bestFluency: Math.max(
-          priorProgress.bestFluency,
-          Math.round(metrics.fluency_score),
-        ),
+        bestTone: canScorePronunciation
+          ? Math.max(priorProgress.bestTone, Math.round(metrics.tone_accuracy))
+          : priorProgress.bestTone,
+        bestFluency: canScorePronunciation
+          ? Math.max(
+              priorProgress.bestFluency,
+              Math.round(metrics.fluency_score),
+            )
+          : priorProgress.bestFluency,
       };
       setSceneProgress((prev) => ({
         ...prev,
@@ -1441,8 +1465,10 @@ export default function StoryRecorder({
       // Mastery gate verdict for this full-sentence attempt. A fresh
       // recording re-judges every word, so the per-word drill clearances
       // from the previous attempt reset alongside it.
-      const nextMasteryPassed = prosodyGatePassed(metrics.word_prosody);
-      const nextContentPassed = sceneContentGatePassed(metrics);
+      const nextMasteryPassed =
+        canScorePronunciation && prosodyGatePassed(metrics.word_prosody);
+      const nextContentPassed =
+        canScoreContent && sceneContentGatePassed(metrics);
       setMasteryPassedMap((prev) => ({
         ...prev,
         [selectedImageIndex]: nextMasteryPassed,
@@ -1974,6 +2000,11 @@ export default function StoryRecorder({
               silenceDuration={silenceDuration}
               submittedAudioName={submittedAudioName}
               selectedModel={selectedModel}
+              groqAvailable={groqAsrAvailable}
+              onSelectedModelChange={(model) => {
+                speechModelChosenByStudentRef.current = true;
+                setSelectedModel(model);
+              }}
               recordingButtonDisabled={recordingButtonDisabled}
               onPrimaryRecordingAction={handlePrimaryRecordingAction}
               onSubmitVoiceFile={handleSubmitVoiceFile}
@@ -1985,6 +2016,7 @@ export default function StoryRecorder({
               }
               clearedWords={clearedWordsMap[selectedImageIndex] ?? []}
               onWordDrillPass={handleWordDrillPass}
+              onSelfEvalSubmit={handleSelfEvalSubmit}
               hasNextScene={nextPracticeSceneIndex !== undefined}
               onNextScene={() => {
                 if (nextPracticeSceneIndex !== undefined) {
@@ -2112,12 +2144,8 @@ export default function StoryRecorder({
                             </span>
                             <ScenePracticeWord
                               word={w}
-                              pinyin={py}
                               audioUrl={
                                 topic.vocabularyAudioUrls?.[selectedImageIndex]?.[wi] ?? undefined
-                              }
-                              referenceCurve={
-                                topic.vocabularyReferenceCurves?.[selectedImageIndex]?.[wi]
                               }
                             />
                           </div>

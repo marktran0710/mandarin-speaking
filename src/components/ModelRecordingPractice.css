@@ -1,0 +1,150 @@
+.model-recording-practice {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1.5px solid var(--tone1);
+  border-radius: var(--clay-radius-md);
+  background: var(--tone1-soft);
+  padding: 16px;
+}
+
+.model-recording-scene-target {
+  padding-bottom: 12px;
+  border-bottom: 1px solid color-mix(in srgb, var(--tone1) 45%, transparent);
+}
+
+.model-recording-scene-target p,
+.model-recording-script p {
+  margin: 0;
+}
+
+.model-recording-scene-target > p:not(.block-label) {
+  color: var(--clay-ink);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.model-recording-scene-target small,
+.model-recording-pinyin {
+  color: var(--clay-muted);
+}
+
+.model-recording-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.model-recording-heading > span {
+  font-size: 22px;
+}
+
+.model-recording-heading small {
+  color: var(--clay-body);
+}
+
+.model-recording-hanzi {
+  color: var(--clay-ink);
+  font-size: 20px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.model-recording-pinyin,
+.model-recording-meaning {
+  margin-top: 3px !important;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.model-recording-meaning {
+  color: var(--clay-body);
+}
+
+.model-recording-audio {
+  width: 100%;
+  min-height: 40px;
+}
+
+.model-recording-no-audio {
+  margin: 0;
+  color: var(--clay-body);
+  font-size: 13px;
+}
+
+.model-recording-speech-button {
+  align-self: flex-start;
+  border: 1.5px solid var(--tone1);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--tone1-deep);
+  padding: 7px 13px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.model-recording-speech-button:hover {
+  background: color-mix(in srgb, var(--tone1-soft) 62%, var(--clay-surface-card));
+}
+
+.model-recording-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--clay-body);
+  font-size: 12px;
+}
+
+.model-recording-steps span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  padding: 4px 9px;
+}
+
+.model-recording-steps b {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--tone1);
+  color: var(--clay-on-accent);
+}
+
+.model-recording-practice-toggle {
+  align-self: flex-start;
+  border: 1.5px solid var(--tone1);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--tone1-deep);
+  padding: 7px 13px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.model-recording-practice-toggle:hover {
+  background: color-mix(in srgb, var(--tone1-soft) 62%, var(--clay-surface-card));
+}
+
+.model-recording-passed {
+  margin: 0 0 8px;
+  color: var(--jade-deep);
+  font-weight: 750;
+}
+
+.model-recording-drill .phrase-practice-drill {
+  background: var(--clay-surface-card);
+}
+
+@media (max-width: 480px) {
+  .model-recording-practice-toggle {
+    align-self: stretch;
+  }
+}

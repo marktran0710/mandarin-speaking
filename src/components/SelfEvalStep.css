@@ -1,0 +1,97 @@
+.self-eval-lead {
+  margin: 0;
+  font-size: 15px;
+}
+
+.self-eval-question {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.self-eval-question-legend {
+  padding: 0;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--clay-body);
+}
+
+.self-eval-emoji-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.self-eval-emoji-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  cursor: pointer;
+  font: inherit;
+}
+
+.self-eval-emoji-btn.is-selected {
+  border-color: var(--seal-deep);
+  background: var(--seal-soft);
+}
+
+.self-eval-emoji {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.self-eval-emoji-caption {
+  line-height: 1.1;
+}
+
+.self-eval-skip {
+  background: none;
+  border: none;
+  color: var(--clay-muted);
+  cursor: pointer;
+  font: inherit;
+  text-decoration: underline;
+  padding: 6px 4px;
+}
+
+/* Comparison strip in the overview step — your pick next to the system's
+   own verdict on the same 3-level scale, no explicit right/wrong framing. */
+.self-eval-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.self-eval-compare-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.self-eval-compare-label {
+  color: var(--clay-muted);
+  min-width: 70px;
+}
+
+.self-eval-compare-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.self-eval-compare-emoji {
+  font-size: 18px;
+}

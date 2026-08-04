@@ -60,7 +60,7 @@ export default function Navigation({
           <ToneMark className="navbar-tonemark" size={26} />
         </button>
 
-        <ul className="navbar-menu">
+        <ul className={`navbar-menu navbar-menu-${appVariant}`}>
           {!compact && !activeRole && appVariant === "student" && (
             <>
               <li>

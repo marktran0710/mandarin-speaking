@@ -115,6 +115,10 @@
   --bi-en-color: var(--clay-on-seal);
 }
 
+.home-hero-copy > .hero-primary-action {
+  margin-top: var(--space-lg);
+}
+
 .hero-primary-action:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 0 var(--seal-deep);
@@ -260,13 +264,6 @@
   border-radius: var(--clay-radius-sm);
   background: var(--tone-soft);
   color: var(--tone-deep);
-}
-
-.home-cta {
-  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
-  margin: 0 auto;
-  display: flex;
-  justify-content: center;
 }
 
 .how-it-works {

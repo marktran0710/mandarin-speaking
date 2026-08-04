@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Any, Dict, Literal, Optional, List, Tuple
 import base64
 import io
 import logging
@@ -201,6 +201,50 @@ _vibevoice_load_error = None
 
 
 # Pydantic models
+class RecordingQualityMetrics(BaseModel):
+    duration_seconds: float = Field(default=0.0, ge=0.0)
+    rms: float = Field(default=0.0, ge=0.0)
+    peak: float = Field(default=0.0, ge=0.0)
+    clipping_ratio: float = Field(default=0.0, ge=0.0, le=1.0)
+    voiced_seconds: float = Field(default=0.0, ge=0.0)
+    voiced_ratio: float = Field(default=0.0, ge=0.0, le=1.0)
+    energy_variation: float = Field(default=0.0, ge=0.0)
+    pitch_points: int = Field(default=0, ge=0)
+
+
+class FeedbackQuality(BaseModel):
+    """Evidence gate for student-facing automated feedback.
+
+    ``status`` is one of reliable/review/retry.  A score is only suitable
+    for mastery/progress decisions when its corresponding ``can_score_*``
+    flag is true.  Reason codes are stable API values; ``student_message`` is
+    presentation text and may evolve independently.
+    """
+
+    status: Literal["reliable", "review", "retry"] = "retry"
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
+    can_score_pronunciation: bool = False
+    can_score_content: bool = False
+    reason_codes: List[str] = Field(default_factory=list)
+    student_message: str = ""
+    metrics: RecordingQualityMetrics = Field(default_factory=RecordingQualityMetrics)
+
+
+class ProcessingTraceStage(BaseModel):
+    stage: str
+    status: str
+    duration_ms: float = 0.0
+    model: Optional[str] = None
+    provider: Optional[str] = None
+    detail: Optional[str] = None
+    reason_codes: List[str] = Field(default_factory=list)
+
+
+class ProcessingTrace(BaseModel):
+    stages: List[ProcessingTraceStage] = Field(default_factory=list)
+    total_duration_ms: float = 0.0
+
+
 class AnalysisResponse(BaseModel):
     description: str = ""
     transcription: str = ""
@@ -225,6 +269,8 @@ class AnalysisResponse(BaseModel):
     # was requested (e.g. this wasn't a word-practice attempt).
     recognized_text: Optional[str] = None
     content_match: Optional[bool] = None
+    feedback_quality: FeedbackQuality = Field(default_factory=FeedbackQuality)
+    processing_trace: ProcessingTrace = Field(default_factory=ProcessingTrace)
 
 
 class AsrStatusResponse(BaseModel):
@@ -538,6 +584,11 @@ class SceneSubmission(BaseModel):
     # and caf_metrics.speech_rate_verdict for how these are derived.
     choppyPauseCount: float = 0
     articulationRate: float = 0
+    # The student's own self-rating for this scene's accepted attempt, taken
+    # right after they listened back to it and before seeing the system's
+    # verdict. Absent when the student skipped the prompt.
+    selfEvalContent: Optional[Literal["good", "ok", "bad"]] = None
+    selfEvalPronunciation: Optional[Literal["good", "ok", "bad"]] = None
 
 
 class StorySubmissionRequest(BaseModel):
@@ -1116,11 +1167,43 @@ async def _do_analyze(
     reference_word_curves: Optional[Dict[str, list]] = None,
 ) -> AnalysisResponse:
     tmp_path = None
+    trace_started_at = time.perf_counter()
+    trace_entries: list[dict[str, Any]] = []
+
+    def add_trace_stage(
+        stage: str,
+        status: str,
+        started_at: float,
+        *,
+        model: Optional[str] = None,
+        provider: Optional[str] = None,
+        detail: Optional[str] = None,
+        reason_codes: Optional[list[str]] = None,
+    ) -> None:
+        trace_entries.append({
+            "stage": stage,
+            "status": status,
+            "duration_ms": round((time.perf_counter() - started_at) * 1000, 1),
+            "model": model,
+            "provider": provider,
+            "detail": detail,
+            "reason_codes": reason_codes or [],
+        })
+
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
             tmp_file.write(content)
             tmp_path = tmp_file.name
 
+        preflight_started_at = time.perf_counter()
+        recording_preflight = assess_recording_quality(content)
+        add_trace_stage(
+            "preflight",
+            recording_preflight.get("status", "review"),
+            preflight_started_at,
+            detail=recording_preflight.get("student_message") or recording_preflight.get("reason"),
+            reason_codes=recording_preflight.get("reason_codes"),
+        )
         transcription_model = ""
         ai_feedback = None
         image_b64, image_mime = await resolve_image_b64(scene_image_url) or (None, "")
@@ -1136,7 +1219,12 @@ async def _do_analyze(
         }
         chosen_provider = (ai_provider or "").strip().lower()
         audio_assessed = False
-        if not transcription.strip() and chosen_provider in _audio_assessors:
+        asr_started_at = time.perf_counter()
+        if (
+            recording_preflight["status"] != "retry"
+            and not transcription.strip()
+            and chosen_provider in _audio_assessors
+        ):
             api_key, module, fn_name, tag = _audio_assessors[chosen_provider]
             if api_key:
                 try:
@@ -1152,15 +1240,42 @@ async def _do_analyze(
                     transcription_model = tag
                     ai_feedback = audio_result["feedback"]
                     audio_assessed = True
+                    add_trace_stage(
+                        "asr",
+                        "integrated",
+                        asr_started_at,
+                        model=transcription_model,
+                        provider=chosen_provider,
+                        detail="Transcript and language feedback came from the audio provider.",
+                    )
                 except Exception as exc:
                     logger.warning(f"{chosen_provider} audio assessment failed, falling back: {exc}")
 
         if not transcription.strip() and asr_model.strip():
-            transcription_result = await transcribe_audio_content(
-                content, asr_model.strip(), vocab_hint=scene_vocabulary
+            try:
+                transcription_result = await transcribe_audio_content(
+                    content, asr_model.strip(), vocab_hint=scene_vocabulary
+                )
+                transcription = transcription_result.text
+                transcription_model = transcription_result.model
+                add_trace_stage(
+                    "asr",
+                    "passed" if transcription.strip() else "review",
+                    asr_started_at,
+                    model=transcription_model,
+                    detail="Backend transcription completed." if transcription.strip() else "ASR returned no transcript.",
+                )
+            except Exception as exc:
+                add_trace_stage("asr", "failed", asr_started_at, model=asr_model.strip(), detail=str(exc))
+                raise
+        elif not trace_entries or trace_entries[-1]["stage"] != "asr":
+            add_trace_stage(
+                "asr",
+                "skipped",
+                asr_started_at,
+                model=transcription_model or None,
+                detail="Transcript was supplied by the caller.",
             )
-            transcription = transcription_result.text
-            transcription_model = transcription_result.model
 
         def _run_praat(path: str, tx: str):
             return analyze_all(
@@ -1174,7 +1289,7 @@ async def _do_analyze(
         # of the analysis that was already happening.
         feedback_coro = (
             asyncio.sleep(0)  # no-op placeholder when feedback already done
-            if audio_assessed
+            if audio_assessed or recording_preflight["status"] == "retry"
             else generate_language_feedback(
                 transcription, scene_prompt, scene_vocabulary, provider=ai_provider or None,
                 image_b64=image_b64, image_mime=image_mime,
@@ -1187,10 +1302,42 @@ async def _do_analyze(
             if verify_word.strip()
             else asyncio.sleep(0, result=(None, None))
         )
+
+        async def run_praat_stage():
+            started_at = time.perf_counter()
+            try:
+                result = await run_in_threadpool(_run_praat, tmp_path, transcription)
+            except Exception as exc:
+                add_trace_stage("praat", "failed", started_at, detail=str(exc))
+                raise
+            add_trace_stage("praat", "passed", started_at, detail="Acoustic analysis completed.")
+            return result
+
+        async def run_feedback_stage():
+            started_at = time.perf_counter()
+            result = await feedback_coro
+            add_trace_stage(
+                "feedback",
+                "skipped" if audio_assessed or recording_preflight["status"] == "retry" else "passed",
+                started_at,
+                provider=(result.get("provider") if isinstance(result, dict) else None)
+                or ai_provider
+                or "backend-default",
+                detail="Provider feedback completed." if not audio_assessed else "Audio provider feedback already included.",
+            )
+            return result
+
+        async def run_verify_stage():
+            started_at = time.perf_counter()
+            result = await verify_coro
+            if verify_word.strip():
+                add_trace_stage("content_verification", "passed", started_at, detail="Independent word verification completed.")
+            return result
+
         (praat_result, maybe_feedback, (recognized_text, content_match)) = await asyncio.gather(
-            run_in_threadpool(_run_praat, tmp_path, transcription),
-            feedback_coro,
-            verify_coro,
+            run_praat_stage(),
+            run_feedback_stage(),
+            run_verify_stage(),
         )
         if not audio_assessed:
             ai_feedback = maybe_feedback
@@ -1199,10 +1346,36 @@ async def _do_analyze(
          pause_analysis) = praat_result
 
         # No speech → noise from the mic can spuriously match a tone reference
-        if not transcription.strip():
+        quality_started_at = time.perf_counter()
+        feedback_quality = finalize_feedback_quality(
+            recording_preflight,
+            pitch_contour,
+            transcription,
+            content_match=content_match,
+            content_was_verified=bool(verify_word.strip()),
+        )
+        add_trace_stage(
+            "quality_gate",
+            "passed" if feedback_quality["can_score_pronunciation"] else "retry",
+            quality_started_at,
+            detail=feedback_quality.get("student_message") or "Quality gate evaluated.",
+            reason_codes=feedback_quality.get("reason_codes"),
+        )
+
+        if not feedback_quality["can_score_pronunciation"]:
             tone_accuracy = 0
             detected_tone = 0
             fluency_score = 0.0
+            feedback = feedback_quality["student_message"]
+            for word in word_prosody:
+                word["judged"] = False
+                word["tone_accuracy"] = 0.0
+                word["shape_accuracy"] = 0.0
+                word["passed"] = None
+                word["feedback"] = feedback_quality["student_message"]
+                for syllable in word.get("syllables") or []:
+                    syllable["score"] = 0.0
+                    syllable["passed"] = None
 
         vowel_quality = classify_vowel_quality(formants)
         tone_direction = build_tone_direction(pitch_contour, detected_tone, tone_accuracy)
@@ -1231,7 +1404,10 @@ async def _do_analyze(
         # local CAF feedback now that we have the acoustic numbers: when the
         # provider is local, swap in the full grounded result; for an external
         # provider, only patch its pronunciation_note with the real Praat data.
-        from ai_feedback import fallback_language_feedback as _local_fb
+        from ai_feedback import (
+            apply_feedback_quality_gate as _apply_feedback_quality_gate,
+            fallback_language_feedback as _local_fb,
+        )
         local_fb = _local_fb(
             transcription, scene_prompt, scene_vocabulary,
             praat_tone_accuracy=float(tone_accuracy),
@@ -1250,6 +1426,14 @@ async def _do_analyze(
                 ai_feedback = local_fb
             else:
                 ai_feedback["pronunciation_note"] = local_fb["pronunciation_note"]
+        else:
+            ai_feedback = local_fb
+        ai_feedback = _apply_feedback_quality_gate(
+            ai_feedback,
+            feedback_quality,
+            transcription=transcription,
+            scene_vocabulary=scene_vocabulary,
+        )
         description = build_analysis_description(transcription, transcription_model, word_prosody)
 
         return AnalysisResponse(
@@ -1271,6 +1455,11 @@ async def _do_analyze(
             ai_feedback=ai_feedback,
             recognized_text=recognized_text,
             content_match=content_match,
+            feedback_quality=feedback_quality,
+            processing_trace=ProcessingTrace(
+                stages=[ProcessingTraceStage(**entry) for entry in trace_entries],
+                total_duration_ms=round((time.perf_counter() - trace_started_at) * 1000, 1),
+            ),
         )
     finally:
         if tmp_path and os.path.exists(tmp_path):
@@ -1288,6 +1477,9 @@ _MAX_AUDIO_BYTES = int(os.getenv("MAX_AUDIO_BYTES", str(10 * 1024 * 1024)))  # 1
 # still pass RMS.
 ASR_SILENCE_RMS = float(os.getenv("ASR_SILENCE_RMS", "0.02"))
 ASR_MIN_SPEECH_SECONDS = float(os.getenv("ASR_MIN_SPEECH_SECONDS", "0.4"))
+FEEDBACK_MIN_DURATION_SECONDS = float(os.getenv("FEEDBACK_MIN_DURATION_SECONDS", "0.45"))
+FEEDBACK_MAX_CLIPPING_RATIO = float(os.getenv("FEEDBACK_MAX_CLIPPING_RATIO", "0.08"))
+FEEDBACK_MIN_PITCH_POINTS = int(os.getenv("FEEDBACK_MIN_PITCH_POINTS", "8"))
 
 
 def _decode_wav_mono(audio_content: bytes) -> Tuple[np.ndarray, int]:
@@ -1312,40 +1504,210 @@ def _decode_wav_mono(audio_content: bytes) -> Tuple[np.ndarray, int]:
     return data, sample_rate
 
 
+def assess_recording_quality(audio_content: bytes) -> Dict[str, Any]:
+    """Measure whether a recording contains enough evidence for feedback.
+
+    This is deliberately deterministic and provider-independent.  It runs
+    before cloud AI so silence/noise cannot be turned into a confident
+    transcript by a generative model.  Decode failures require ``review`` rather
+    than rejected because non-WAV uploads may still be valid audio that the
+    provider can decode.
+    """
+    try:
+        data, sample_rate = _decode_wav_mono(audio_content)
+    except Exception as exc:
+        logger.info("Recording-quality preflight could not decode WAV: %s", exc)
+        return {
+            "status": "review",
+            "confidence": 0.25,
+            "can_score_pronunciation": False,
+            "can_score_content": False,
+            "reason_codes": ["audio_format_unverified"],
+            "student_message": (
+                "We could not verify this recording's sound quality. Please record again "
+                "as WAV before using the result for practice decisions."
+            ),
+            "metrics": {},
+        }
+
+    duration = len(data) / sample_rate if sample_rate > 0 else 0.0
+    rms = float(np.sqrt(np.mean(data**2))) if len(data) else 0.0
+    peak = float(np.max(np.abs(data))) if len(data) else 0.0
+    clipping_ratio = float(np.mean(np.abs(data) >= 0.99)) if len(data) else 0.0
+
+    frame = max(1, int(sample_rate * 0.025))
+    hop = max(1, int(sample_rate * 0.010))
+    voiced_seconds = 0.0
+    voiced_ratio = 0.0
+    energy_variation = 0.0
+    if len(data) >= frame and peak > 0:
+        windows = np.lib.stride_tricks.sliding_window_view(data, frame)[::hop]
+        frame_rms = np.sqrt(np.mean(windows**2, axis=1))
+        frame_peak = float(frame_rms.max()) if len(frame_rms) else 0.0
+        if frame_peak > 0:
+            mean_frame_rms = float(np.mean(frame_rms))
+            if mean_frame_rms > 0:
+                energy_variation = float(np.std(frame_rms) / mean_frame_rms)
+            # Require both an absolute speech floor and proximity to the
+            # recording's loudest frame.  The absolute floor stops steady
+            # room hum from declaring its entire duration "voiced".
+            voiced = (
+                (frame_rms >= ASR_SILENCE_RMS * 0.5)
+                & (frame_rms > frame_peak * 10 ** (-30 / 20))
+            )
+            voiced_seconds = float(np.sum(voiced)) * hop / sample_rate
+            voiced_ratio = min(1.0, voiced_seconds / max(duration, 0.001))
+
+    metrics = {
+        "duration_seconds": round(duration, 3),
+        "rms": round(rms, 5),
+        "peak": round(peak, 5),
+        "clipping_ratio": round(clipping_ratio, 5),
+        "voiced_seconds": round(voiced_seconds, 3),
+        "voiced_ratio": round(voiced_ratio, 3),
+        "energy_variation": round(energy_variation, 3),
+        "pitch_points": 0,
+    }
+    reasons: List[str] = []
+    if duration < FEEDBACK_MIN_DURATION_SECONDS:
+        reasons.append("recording_too_short")
+    if rms < ASR_SILENCE_RMS:
+        reasons.append("signal_too_quiet")
+    if voiced_seconds < ASR_MIN_SPEECH_SECONDS:
+        reasons.append("insufficient_speech")
+    if clipping_ratio > FEEDBACK_MAX_CLIPPING_RATIO:
+        reasons.append("audio_clipping")
+
+    if reasons:
+        return {
+            "status": "retry",
+            "confidence": 0.0,
+            "can_score_pronunciation": False,
+            "can_score_content": False,
+            "reason_codes": reasons,
+            "student_message": (
+                "This recording is not clear enough to score safely. Move closer to the "
+                "microphone, speak one complete phrase, and record again."
+            ),
+            "metrics": metrics,
+        }
+
+    # Preflight proves that audible signal exists, not yet that Praat found
+    # enough voiced pitch or that ASR recognized the intended content.
+    signal_confidence = min(
+        0.8,
+        0.35
+        + min(0.25, voiced_seconds / max(ASR_MIN_SPEECH_SECONDS, 0.01) * 0.1)
+        + min(0.2, voiced_ratio * 0.25),
+    )
+    review_reasons = ["awaiting_acoustic_analysis"]
+    # A nearly constant, fully voiced signal is often a calibration tone,
+    # electrical hum, or held vowel rather than a complete practice attempt.
+    # Do not reject it as silence, but never let it become mastery evidence.
+    if voiced_ratio >= 0.85 and energy_variation < 0.03:
+        review_reasons.append("low_signal_variation")
+
+    return {
+        "status": "review",
+        "confidence": round(signal_confidence, 2),
+        "can_score_pronunciation": False,
+        "can_score_content": False,
+        "reason_codes": review_reasons,
+        "student_message": "The recording passed the sound check; analyzing speech evidence now.",
+        "metrics": metrics,
+    }
+
+
+def finalize_feedback_quality(
+    preflight: Dict[str, Any],
+    pitch_contour: List[Tuple[float, float]],
+    transcription: str,
+    *,
+    content_match: Optional[bool] = None,
+    content_was_verified: bool = False,
+) -> Dict[str, Any]:
+    """Combine signal, pitch and transcript evidence into the API quality gate."""
+    quality = {
+        **preflight,
+        "metrics": dict(preflight.get("metrics") or {}),
+        "reason_codes": list(preflight.get("reason_codes") or []),
+    }
+    quality["metrics"]["pitch_points"] = len(pitch_contour)
+
+    if quality.get("status") == "retry":
+        return quality
+
+    reasons = [r for r in quality["reason_codes"] if r != "awaiting_acoustic_analysis"]
+    pitch_ok = len(pitch_contour) >= FEEDBACK_MIN_PITCH_POINTS
+    transcript_ok = bool(transcription.strip())
+    if not pitch_ok:
+        reasons.append("insufficient_voiced_pitch")
+    if not transcript_ok:
+        reasons.append("transcription_unavailable")
+    if content_match is False:
+        reasons.append("target_content_mismatch")
+
+    target_confirmed = not content_was_verified or content_match is True
+    if content_was_verified and content_match is None:
+        reasons.append("target_content_unverified")
+    can_score_pronunciation = pitch_ok and transcript_ok and target_confirmed
+    can_score_content = (
+        transcript_ok
+        and content_was_verified
+        and content_match is True
+    )
+    if transcript_ok and not content_was_verified:
+        reasons.append("content_not_independently_verified")
+    signal_review_required = any(
+        reason in {"audio_format_unverified", "low_signal_variation"}
+        for reason in reasons
+    )
+    if signal_review_required:
+        can_score_content = False
+
+    if not can_score_pronunciation:
+        status = "retry" if not pitch_ok or not transcript_ok else "review"
+        confidence = 0.0 if status == "retry" else 0.4
+        message = (
+            "We could not collect enough clear speech and pitch evidence to score this "
+            "attempt safely. Please record it once more."
+        )
+    else:
+        status = (
+            "reliable"
+            if can_score_content and not signal_review_required
+            else "review"
+        )
+        pitch_confidence = min(1.0, len(pitch_contour) / max(FEEDBACK_MIN_PITCH_POINTS * 4, 1))
+        confidence = round(min(0.95, 0.55 + pitch_confidence * 0.4), 2)
+        message = (
+            "This recording has enough evidence for pronunciation feedback."
+            if status == "reliable"
+            else "Pronunciation can be scored, but the spoken content could not be confirmed."
+        )
+
+    return {
+        **quality,
+        "status": status,
+        "confidence": confidence,
+        "can_score_pronunciation": can_score_pronunciation,
+        "can_score_content": can_score_content,
+        "reason_codes": reasons,
+        "student_message": message,
+    }
+
+
 def _has_speech(audio_content: bytes) -> bool:
     """Two-stage speech check: overall RMS (rejects near-silence), then a
     frame-level voiced-duration estimate (rejects brief pops / steady hum
     that pass RMS). Fails open — any decode problem (non-WAV upload, odd
     encoding) assumes speech, so the gate can only ever *prevent* a
     hallucination, never block a real recording."""
-    try:
-        data, sample_rate = _decode_wav_mono(audio_content)
-        if len(data) == 0:
-            return False
-        rms = float(np.sqrt(np.mean(data**2)))
-        if rms < ASR_SILENCE_RMS:
-            return False
-
-        # Voiced frames = 25ms windows (10ms hop) within 30 dB of the loudest
-        # frame — the same relative criterion as librosa.effects.split's
-        # top_db=30, without needing librosa installed. Vectorized via a
-        # strided window view: a Python per-frame loop costs milliseconds on
-        # a long recording, and this gate runs before every ASR request.
-        frame = max(1, int(sample_rate * 0.025))
-        hop = max(1, int(sample_rate * 0.010))
-        if len(data) < frame:
-            return False
-        windows = np.lib.stride_tricks.sliding_window_view(data, frame)[::hop]
-        frame_rms = np.sqrt(np.mean(windows**2, axis=1))
-        peak = float(frame_rms.max()) if len(frame_rms) else 0.0
-        if peak <= 0.0:
-            return False
-        voiced = frame_rms > peak * 10 ** (-30 / 20)
-        voiced_seconds = float(np.sum(voiced)) * hop / sample_rate
-        return voiced_seconds >= ASR_MIN_SPEECH_SECONDS
-    except Exception as exc:
-        logger.debug("Silence gate could not decode audio, assuming speech: %s", exc)
-        return True
+    quality = assess_recording_quality(audio_content)
+    # Keep the legacy fail-open behavior for formats this WAV-only preflight
+    # cannot decode.  Other failures are explicit evidence that ASR should
+    # not be allowed to hallucinate a transcript.
+    return quality["status"] != "retry"
 
 
 # Stock phrases Whisper-family models emit for silence/noise — video-outro

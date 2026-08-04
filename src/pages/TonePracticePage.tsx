@@ -8,6 +8,8 @@ import {
   useWordPronunciationPractice,
   type WordAnalyzeResult,
 } from "../hooks/useWordPronunciationPractice";
+import VoiceFeedbackReliabilityNotice from "../components/VoiceFeedbackReliabilityNotice";
+import { assessVoiceFeedbackReliability } from "../utils/voiceFeedbackReliability";
 import "./TonePracticePage.css";
 
 interface PracticeWord {
@@ -63,6 +65,7 @@ const FILTERS: Array<{ id: ToneGroup | "all"; label: string }> = [
 interface Attempt {
   score: number;
   at: number;
+  counted: boolean;
 }
 
 const BEST_SCORES_KEY = "tonePracticeBestScores";
@@ -111,7 +114,16 @@ export default function TonePracticePage() {
   useEffect(() => {
     if (!result) return;
     const score = result.word_prosody?.[0]?.tone_accuracy ?? result.tone_accuracy ?? 0;
-    setAttempts((prev) => [...prev, { score, at: Date.now() }]);
+    const assessment = assessVoiceFeedbackReliability({
+      feedbackQuality: result.feedback_quality,
+      contentMatch: result.content_match,
+      wordProsody: result.word_prosody,
+    });
+    setAttempts((prev) => [
+      ...prev,
+      { score, at: Date.now(), counted: assessment.canCountForProgress },
+    ]);
+    if (!assessment.canCountForProgress) return;
     setBestScores((prev) => {
       const next = { ...prev, [selected.id]: Math.max(prev[selected.id] || 0, score) };
       saveBestScores(next);
@@ -327,6 +339,19 @@ function ToneMatchResult({
   previousScore?: number;
 }) {
   const segments = result.word_prosody || [];
+  const assessment = assessVoiceFeedbackReliability({
+    feedbackQuality: result.feedback_quality,
+    contentMatch: result.content_match,
+    wordProsody: segments,
+  });
+
+  if (assessment.level === "retry") {
+    return (
+      <div className="tone-practice-result empty">
+        <VoiceFeedbackReliabilityNotice assessment={assessment} />
+      </div>
+    );
+  }
 
   if (segments.length === 0) {
     return (
@@ -349,6 +374,7 @@ function ToneMatchResult({
 
   return (
     <div className="tone-practice-result">
+      <VoiceFeedbackReliabilityNotice assessment={assessment} />
       {result.content_match === false && (
         <p className="tone-match-content-warning">
           <BiLabel

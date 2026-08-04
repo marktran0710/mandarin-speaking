@@ -50,6 +50,14 @@ describe("prosodyGatePassed", () => {
       prosodyGatePassed([word({ passed: true }), word({ passed: false })]),
     ).toBe(false);
   });
+
+  it("blocks an explicitly unjudged word even when a numeric payload looks passable", () => {
+    expect(
+      prosodyGatePassed([
+        word({ judged: false, passed: null, tone_accuracy: 0 }),
+      ]),
+    ).toBe(false);
+  });
 });
 
 describe("tone/shape arrows", () => {
