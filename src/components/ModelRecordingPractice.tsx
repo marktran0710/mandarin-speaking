@@ -1,9 +1,23 @@
 import { useEffect, useState } from "react";
 import { modelPracticeSampleFor } from "../data/modelPracticeSamples";
 import { toPinyin } from "../utils/pinyin";
+import { convertBlobToWav } from "../utils/audio";
+import { formatBackendError, getBackendUrl } from "../utils/storyRecorderFeedback";
 import { BiLabel } from "./BiLabel";
-import PhrasePracticeDrill from "./PhrasePracticeDrill";
+import PraatTimeline from "./PraatTimeline";
+import type { WordProsody } from "./StoryRecorder";
 import "./ModelRecordingPractice.css";
+
+type PraatVizState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | {
+      status: "ready";
+      audioBlob: Blob;
+      pitchContour: Array<[number, number]>;
+      wordProsody: WordProsody[];
+    };
 
 interface ModelRecordingPracticeProps {
   sceneIndex: number;
@@ -13,16 +27,17 @@ interface ModelRecordingPracticeProps {
 
 /** Listen -> read -> repeat support for the student Speaking stage.
  * Teacher-authored model voice wins when available. Without one, the scene
- * sentence stays authoritative and can use browser speech synthesis; the
- * bundled offline sample is reserved for sessions with no scene sentence. */
+ * sentence stays authoritative and is synthesized by the backend so it can
+ * still play through a normal <audio> tag; the bundled offline sample is
+ * reserved for sessions with no scene sentence. */
 export default function ModelRecordingPractice({
   sceneIndex,
   modelSentence,
   modelAudioUrl,
 }: ModelRecordingPracticeProps) {
-  const [practiceOpen, setPracticeOpen] = useState(false);
-  const [passed, setPassed] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [praatViz, setPraatViz] = useState<PraatVizState>({ status: "idle" });
+  const [ttsAudioUrl, setTtsAudioUrl] = useState("");
+  const [ttsLoading, setTtsLoading] = useState(false);
   const fallback = modelPracticeSampleFor(sceneIndex);
   const sceneSentence = modelSentence?.trim() || "";
   const hasSceneRecording = Boolean(sceneSentence && modelAudioUrl?.trim());
@@ -38,48 +53,102 @@ export default function ModelRecordingPractice({
         audioUrl: modelAudioUrl?.trim() || "",
       }
     : fallback;
-  const canUseSpeechSynthesis =
-    typeof window !== "undefined" &&
-    "speechSynthesis" in window &&
-    "SpeechSynthesisUtterance" in window;
 
+  // A scene sentence with no teacher-recorded audio still needs something
+  // playable through a real <audio> tag (no ad-hoc "speak" button, and the
+  // browser's speechSynthesis voice can't be captured for the Praat compare
+  // above anyway), so the backend synthesizes it once and this plays that.
   useEffect(() => {
-    return () => {
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
-    };
-  }, []);
-
-  const speakSceneSentence = () => {
-    if (!canUseSpeechSynthesis) return;
-    if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
+    if (recording.audioUrl || !sceneSentence) {
+      setTtsAudioUrl("");
+      setTtsLoading(false);
       return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(recording.sentence);
-    utterance.lang = "zh-TW";
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-    setIsSpeaking(true);
+    let cancelled = false;
+    let objectUrl = "";
+    setTtsLoading(true);
+    setTtsAudioUrl("");
+
+    (async () => {
+      try {
+        const response = await fetch(`${getBackendUrl()}/api/tts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: sceneSentence }),
+        });
+        if (!response.ok) throw new Error("Could not generate audio for this sentence.");
+        const blob = await response.blob();
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setTtsAudioUrl(objectUrl);
+      } catch {
+        if (!cancelled) setTtsAudioUrl("");
+      } finally {
+        if (!cancelled) setTtsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [recording.audioUrl, sceneSentence]);
+
+  // The model recording has no pre-computed Praat metrics (unlike a
+  // student's own attempt, which is analyzed the moment it's recorded), so
+  // this fetches whichever audio file is actually playing — teacher
+  // recording, bundled offline sample, or backend-synthesized TTS, the
+  // student doesn't need to know which — and runs it through the shared
+  // /api/analyze pipeline the first time they press play. The audio tag
+  // itself is the trigger, no separate button, and no backend call before
+  // they've chosen to listen.
+  const playableAudioUrl = recording.audioUrl || ttsAudioUrl;
+  const recordingSentence = recording.sentence;
+
+  useEffect(() => {
+    setPraatViz({ status: "idle" });
+  }, [playableAudioUrl]);
+
+  const loadPraatVisualization = async () => {
+    if (praatViz.status === "loading" || praatViz.status === "ready") return;
+    setPraatViz({ status: "loading" });
+    try {
+      const audioResponse = await fetch(playableAudioUrl);
+      if (!audioResponse.ok) throw new Error("Could not load the model recording audio.");
+      const audioBlob = await audioResponse.blob();
+      const wav = await convertBlobToWav(audioBlob);
+      const formData = new FormData();
+      formData.append("file", wav, "model-recording.wav");
+      formData.append("transcription", recordingSentence);
+      formData.append("ai_provider", "local");
+
+      const response = await fetch(`${getBackendUrl()}/api/analyze`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.detail || "Model recording analysis failed.");
+      }
+
+      const data = await response.json();
+      setPraatViz({
+        status: "ready",
+        audioBlob,
+        pitchContour: data.pitch_contour ?? [],
+        wordProsody: data.word_prosody ?? [],
+      });
+    } catch (err) {
+      setPraatViz({
+        status: "error",
+        message: formatBackendError(err, getBackendUrl() || "the configured backend"),
+      });
+    }
   };
 
   return (
     <section className="model-recording-practice" aria-label="Listen and repeat model recording">
-      {sceneSentence && !hasSceneRecording && (
-        <div className="model-recording-scene-target">
-          <p className="block-label">
-            <BiLabel k="speaking_model_sentence" />
-          </p>
-          <p lang="zh-Hant">{sceneSentence}</p>
-          <small>{toPinyin(sceneSentence)}</small>
-        </div>
-      )}
-
       <div className="model-recording-heading">
         <span aria-hidden="true">🎧</span>
         <div>
@@ -108,23 +177,50 @@ export default function ModelRecordingPractice({
         {recording.meaning && <p className="model-recording-meaning">{recording.meaning}</p>}
       </div>
 
-      {recording.audioUrl ? (
-        <audio
-          className="model-recording-audio"
-          controls
-          preload="metadata"
-          src={recording.audioUrl}
-          aria-label={`Model recording: ${recording.sentence}`}
-        />
-      ) : sceneSentence && canUseSpeechSynthesis ? (
-        <button
-          type="button"
-          className="model-recording-speech-button"
-          onClick={speakSceneSentence}
-          aria-pressed={isSpeaking}
-        >
-          {isSpeaking ? "Stop scene sentence" : "Listen to scene sentence"}
-        </button>
+      {playableAudioUrl ? (
+        <>
+          <audio
+            className="model-recording-audio"
+            controls
+            preload="metadata"
+            src={playableAudioUrl}
+            aria-label={`Model recording: ${recording.sentence}`}
+            onPlay={loadPraatVisualization}
+          />
+          {praatViz.status !== "idle" && (
+            <div className="model-recording-praat">
+              {praatViz.status === "loading" && (
+                <p className="model-recording-praat-status">
+                  <BiLabel zh="分析中…" pinyin="Fēnxī zhōng…" en="Analyzing…" />
+                </p>
+              )}
+              {praatViz.status === "error" && (
+                <p className="model-recording-praat-status is-error">{praatViz.message}</p>
+              )}
+              {praatViz.status === "ready" && (
+                <>
+                  <p className="model-recording-praat-caption">
+                    <BiLabel
+                      zh="這是示範錄音，音高曲線就是滿分的樣子。"
+                      pinyin="Zhè shì shìfàn lùyīn, yīngāo qūxiàn jiù shì mǎnfēn de yàngzi."
+                      en="This is the model recording — its pitch curve is what a full-score attempt looks like."
+                    />
+                  </p>
+                  <PraatTimeline
+                    audioBlob={praatViz.audioBlob}
+                    pitchContour={praatViz.pitchContour}
+                    wordProsody={praatViz.wordProsody}
+                    transcription={recording.sentence}
+                  />
+                </>
+              )}
+            </div>
+          )}
+        </>
+      ) : ttsLoading ? (
+        <p className="model-recording-no-audio">
+          <BiLabel zh="正在產生示範發音…" pinyin="Zhèngzài chǎnshēng shìfàn fāyīn…" en="Generating model audio…" />
+        </p>
       ) : (
         <p className="model-recording-no-audio">
           The scene sentence is ready to repeat; a teacher recording is not available yet.
@@ -136,30 +232,6 @@ export default function ModelRecordingPractice({
         <span><b>2</b> Repeat</span>
         <span><b>3</b> Record</span>
       </div>
-
-      <button
-        type="button"
-        className="model-recording-practice-toggle"
-        aria-expanded={practiceOpen}
-        onClick={() => setPracticeOpen((current) => !current)}
-      >
-        {practiceOpen ? (
-          <BiLabel zh="收起跟讀練習" pinyin="Shōuqǐ gēndú liànxí" en="Hide repeat practice" />
-        ) : (
-          <BiLabel zh="跟著示範錄音練習" pinyin="Gēnzhe shìfàn lùyīn liànxí" en="Practice this model recording" />
-        )}
-      </button>
-
-      {practiceOpen && (
-        <div className="model-recording-drill">
-          {passed && (
-            <p className="model-recording-passed" role="status">
-              ✓ <BiLabel zh="示範句已通過" pinyin="Shìfàn jù yǐ tōngguò" en="Model sentence passed" />
-            </p>
-          )}
-          <PhrasePracticeDrill phrase={recording.sentence} onPass={() => setPassed(true)} />
-        </div>
-      )}
     </section>
   );
 }
