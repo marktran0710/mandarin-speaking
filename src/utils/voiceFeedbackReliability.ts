@@ -48,13 +48,22 @@ export function assessVoiceFeedbackReliability(
     backendQuality?.can_score_pronunciation === false ||
     backendQuality?.status === "retry"
   ) {
+    // Prefer the backend's own reason for the gate over the caller's
+    // separately-computed contentMatch: a caller may score content more
+    // leniently than the backend's independent verify_word check (see
+    // PhrasePracticeDrill), so evidence.contentMatch can say "close enough"
+    // while the backend's own gate still failed on content — showing
+    // "too-little-audio" in that case names the wrong problem.
+    const reasonCodes =
+      backendQuality?.reason_codes ?? backendQuality?.reasons ?? [];
+    const isContentMismatch =
+      reasonCodes.includes("target_content_mismatch") ||
+      reasonCodes.includes("target_content_unverified") ||
+      evidence.contentMatch === false;
     return {
       level: "retry",
       canCountForProgress: false,
-      reason:
-        evidence.contentMatch === false
-          ? "content-mismatch"
-          : "too-little-audio",
+      reason: isContentMismatch ? "content-mismatch" : "too-little-audio",
     };
   }
 

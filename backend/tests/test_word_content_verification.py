@@ -63,6 +63,51 @@ class TestVerifyWordTranscription:
         assert match is None
 
     @pytest.mark.asyncio
+    async def test_tolerates_one_wrong_syllable_in_a_longer_phrase(self):
+        """PhrasePracticeDrill sends a whole multi-character phrase as the
+        verify target. A single homophone/ASR slip on one syllable used to
+        fail the entire phrase's content check (exact substring), which then
+        forced can_score_pronunciation=False and showed students a "not
+        enough clear pitch evidence" retry message for what was actually a
+        content-verification ASR slip, not a recording-quality problem."""
+        from main import _verify_word_transcription
+        target = "妳這個週末要做什麼"
+        heard = "妳這個週未要做什麼"  # 末 -> 未, one-character ASR slip
+        with patch("main.transcribe_audio_content", new_callable=AsyncMock) as mock:
+            mock.return_value = MagicMock(text=heard, model="auto:ctwhisper")
+            recognized, match = await _verify_word_transcription(SILENT_WAV, target)
+        assert recognized == heard
+        assert match is True
+
+    @pytest.mark.asyncio
+    async def test_still_rejects_a_mostly_wrong_longer_phrase(self):
+        from main import _verify_word_transcription
+        target = "妳這個週末要做什麼"
+        heard = "完全不一樣的句子內容"
+        with patch("main.transcribe_audio_content", new_callable=AsyncMock) as mock:
+            mock.return_value = MagicMock(text=heard, model="auto:ctwhisper")
+            recognized, match = await _verify_word_transcription(SILENT_WAV, target)
+        assert recognized == heard
+        assert match is False
+
+    @pytest.mark.asyncio
+    async def test_still_requires_an_exact_match_for_short_targets(self):
+        """Below MIN_CONTENT_MATCH_CHARS a character-overlap ratio can't
+        distinguish "said it out of order" from "said the right word" (same
+        reasoning the frontend's scriptMatchRatio gate already applies), so
+        short single-word/character targets keep the strict, order-sensitive
+        exact-substring behavior instead of the longer-phrase ratio match.
+        Both characters of "你好" appear in "好你在家" (reordered), which a
+        bag-of-characters ratio would accept — the exact-substring check
+        correctly still rejects it."""
+        from main import _verify_word_transcription
+        with patch("main.transcribe_audio_content", new_callable=AsyncMock) as mock:
+            mock.return_value = MagicMock(text="好你在家", model="auto:ctwhisper")
+            recognized, match = await _verify_word_transcription(SILENT_WAV, "你好")
+        assert recognized == "好你在家"
+        assert match is False
+
+    @pytest.mark.asyncio
     async def test_prefers_groq_when_key_configured(self, with_groq_key):
         from main import _verify_word_transcription
         with patch("main.transcribe_audio_content", new_callable=AsyncMock) as mock:

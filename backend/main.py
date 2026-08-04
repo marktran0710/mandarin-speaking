@@ -1847,6 +1847,32 @@ async def transcribe_audio_content(
     )
 
 
+
+# Mirrors the frontend's scriptMatchRatio gate (src/utils/scriptAlignment.ts):
+# below this many characters a ratio can't tell "one wrong character" from
+# "totally different" ((n-1)/n < 0.7 fails anyway for n < 4), so short
+# single-word/character targets keep the exact, order-sensitive check.
+CONTENT_MATCH_RATIO = 0.7
+MIN_CONTENT_MATCH_CHARS = 4
+
+
+def _content_overlap_ratio(target: str, recognized: str) -> float:
+    """Bag-of-characters overlap: how much of `target` also appears
+    somewhere in `recognized`, ignoring order. Not full alignment — just
+    enough to stop one misheard syllable from failing an entire longer
+    phrase's content verification."""
+    target_chars = [c for c in target if not c.isspace()]
+    if not target_chars:
+        return 1.0
+    available = collections.Counter(c for c in recognized if not c.isspace())
+    matched = 0
+    for ch in target_chars:
+        if available[ch] > 0:
+            available[ch] -= 1
+            matched += 1
+    return matched / len(target_chars)
+
+
 async def _verify_word_transcription(
     audio_content: bytes, word: str, vocab_hint: str = ""
 ) -> Tuple[Optional[str], Optional[bool]]:
@@ -1858,6 +1884,14 @@ async def _verify_word_transcription(
     word. This runs ASR for real, on the side, purely to catch that mismatch.
     Fails open (None, None) on ASR error so a transcription hiccup never blocks
     the pitch/tone feedback the student came for.
+
+    `word` may be a single vocabulary word/character or, for phrase-practice
+    callers, an entire multi-character phrase — requiring the whole string to
+    appear verbatim was fine for short targets but made phrase verification
+    fail outright whenever the independent ASR pass misheard a single
+    syllable anywhere in a longer phrase (common, not rare). Longer targets
+    use the same tolerant character-overlap ratio the frontend already
+    applies for its own pass/fail verdict, so the two no longer disagree.
 
     Prefers Groq (fast, cloud) over the "auto" chain's default of the local
     ctwhisper model, which is CPU-heavy and — running alongside the Praat
@@ -1875,7 +1909,10 @@ async def _verify_word_transcription(
             # an ASR error; a hard False here silently blocked passing
             # drills from ever clearing their mastery chip.
             return recognized, None
-        return recognized, word.strip() in recognized
+        target = word.strip()
+        if len(target) < MIN_CONTENT_MATCH_CHARS:
+            return recognized, target in recognized
+        return recognized, _content_overlap_ratio(target, recognized) >= CONTENT_MATCH_RATIO
     except Exception as exc:
         logger.warning("Word content verification failed: %s", exc)
         return None, None

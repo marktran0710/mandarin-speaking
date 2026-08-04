@@ -90,4 +90,48 @@ describe("assessVoiceFeedbackReliability", () => {
       canCountForProgress: false,
     });
   });
+
+  it("labels the gate as a content mismatch when the backend's own reason says so, even though the caller's lenient contentMatch passed", () => {
+    // PhrasePracticeDrill: the backend's independent verify_word ASR pass
+    // mismatched content (status can be "review", not "retry", when pitch
+    // and transcript were both fine), while the caller's own more lenient
+    // ratio-based contentMatch says "close enough". Before this fix, the
+    // reason bucket was picked from the caller's contentMatch alone, so this
+    // showed "not enough clear pitch evidence" — the wrong explanation for
+    // a content-verification slip that has nothing to do with pitch.
+    expect(
+      assessVoiceFeedbackReliability({
+        feedbackQuality: {
+          status: "review",
+          can_score_pronunciation: false,
+          can_score_content: false,
+          reason_codes: ["target_content_mismatch"],
+        },
+        contentMatch: true,
+        wordProsody: [scoredWord],
+      }),
+    ).toMatchObject({
+      level: "retry",
+      canCountForProgress: false,
+      reason: "content-mismatch",
+    });
+  });
+
+  it("still labels it too-little-audio when the backend's own reason is a pitch/transcript gap", () => {
+    expect(
+      assessVoiceFeedbackReliability({
+        feedbackQuality: {
+          status: "retry",
+          can_score_pronunciation: false,
+          can_score_content: false,
+          reason_codes: ["insufficient_voiced_pitch"],
+        },
+        contentMatch: true,
+        wordProsody: [scoredWord],
+      }),
+    ).toMatchObject({
+      level: "retry",
+      reason: "too-little-audio",
+    });
+  });
 });
