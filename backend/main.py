@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
-from typing import Any, Dict, Literal, Optional, List, Tuple
+from typing import Any, Callable, Dict, Literal, Optional, List, Tuple
 import base64
 import io
 import logging
@@ -238,6 +238,11 @@ class ProcessingTraceStage(BaseModel):
     provider: Optional[str] = None
     detail: Optional[str] = None
     reason_codes: List[str] = Field(default_factory=list)
+    # What this stage actually received/produced, for the teacher debugger's
+    # per-step input/output cards. Deliberately compact (not the full
+    # response) — just this stage's own contract.
+    input: Optional[Dict[str, Any]] = None
+    output: Optional[Dict[str, Any]] = None
 
 
 class ProcessingTrace(BaseModel):
@@ -1160,6 +1165,7 @@ async def _do_analyze(
     verify_word: str = "",
     pinyin_hint: str = "",
     reference_word_curves: Optional[Dict[str, list]] = None,
+    on_stage: Optional[Callable[[dict], None]] = None,
 ) -> AnalysisResponse:
     tmp_path = None
     trace_started_at = time.perf_counter()
@@ -1174,8 +1180,10 @@ async def _do_analyze(
         provider: Optional[str] = None,
         detail: Optional[str] = None,
         reason_codes: Optional[list[str]] = None,
+        input: Optional[Dict[str, Any]] = None,
+        output: Optional[Dict[str, Any]] = None,
     ) -> None:
-        trace_entries.append({
+        entry = {
             "stage": stage,
             "status": status,
             "duration_ms": round((time.perf_counter() - started_at) * 1000, 1),
@@ -1183,7 +1191,12 @@ async def _do_analyze(
             "provider": provider,
             "detail": detail,
             "reason_codes": reason_codes or [],
-        })
+            "input": input,
+            "output": output,
+        }
+        trace_entries.append(entry)
+        if on_stage is not None:
+            on_stage(entry)
 
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
@@ -1198,6 +1211,8 @@ async def _do_analyze(
             preflight_started_at,
             detail=recording_preflight.get("student_message") or recording_preflight.get("reason"),
             reason_codes=recording_preflight.get("reason_codes"),
+            input={"audio_bytes": len(content)},
+            output=recording_preflight,
         )
         transcription_model = ""
         ai_feedback = None
@@ -1242,6 +1257,8 @@ async def _do_analyze(
                         model=transcription_model,
                         provider=chosen_provider,
                         detail="Transcript and language feedback came from the audio provider.",
+                        input={"audio_provider": chosen_provider, "scene_vocabulary": scene_vocabulary},
+                        output={"transcription": transcription, "model": transcription_model},
                     )
                 except Exception as exc:
                     logger.warning(f"{chosen_provider} audio assessment failed, falling back: {exc}")
@@ -1259,9 +1276,14 @@ async def _do_analyze(
                     asr_started_at,
                     model=transcription_model,
                     detail="Backend transcription completed." if transcription.strip() else "ASR returned no transcript.",
+                    input={"asr_model": asr_model.strip(), "scene_vocabulary": scene_vocabulary},
+                    output={"transcription": transcription, "model": transcription_model},
                 )
             except Exception as exc:
-                add_trace_stage("asr", "failed", asr_started_at, model=asr_model.strip(), detail=str(exc))
+                add_trace_stage(
+                    "asr", "failed", asr_started_at, model=asr_model.strip(), detail=str(exc),
+                    input={"asr_model": asr_model.strip(), "scene_vocabulary": scene_vocabulary},
+                )
                 raise
         elif not trace_entries or trace_entries[-1]["stage"] != "asr":
             add_trace_stage(
@@ -1270,6 +1292,8 @@ async def _do_analyze(
                 asr_started_at,
                 model=transcription_model or None,
                 detail="Transcript was supplied by the caller.",
+                input={"note": "Transcript was supplied by the caller, not transcribed."},
+                output={"transcription": transcription, "model": transcription_model or None},
             )
 
         def _run_praat(path: str, tx: str):
@@ -1298,19 +1322,51 @@ async def _do_analyze(
             else asyncio.sleep(0, result=(None, None))
         )
 
+        praat_input = {
+            "pinyin_hint": pinyin_hint or None,
+            "reference_word_curves_provided": bool(reference_word_curves),
+        }
+
         async def run_praat_stage():
             started_at = time.perf_counter()
             try:
                 result = await run_in_threadpool(_run_praat, tmp_path, transcription)
             except Exception as exc:
-                add_trace_stage("praat", "failed", started_at, detail=str(exc))
+                add_trace_stage("praat", "failed", started_at, detail=str(exc), input=praat_input)
                 raise
-            add_trace_stage("praat", "passed", started_at, detail="Acoustic analysis completed.")
+            (r_pitch_contour, r_formants, r_speech_rate, r_fluency_score, r_pitch_stats,
+             r_word_prosody, r_detected_tone, r_tone_accuracy, _r_feedback,
+             r_pause_analysis) = result
+            add_trace_stage(
+                "praat", "passed", started_at, detail="Acoustic analysis completed.",
+                input=praat_input,
+                output={
+                    "pitch_contour": r_pitch_contour,
+                    "formants": r_formants,
+                    "speech_rate": r_speech_rate,
+                    "fluency_score": r_fluency_score,
+                    "pitch_statistics": r_pitch_stats,
+                    "word_prosody": r_word_prosody,
+                    "detected_tone": r_detected_tone,
+                    "tone_accuracy": r_tone_accuracy,
+                    "pause_analysis": r_pause_analysis,
+                },
+            )
             return result
+
+        feedback_input = {
+            "scene_prompt": scene_prompt or None,
+            "scene_vocabulary": scene_vocabulary or None,
+            "scene_phrases": scene_phrases or None,
+            "scene_suggested_answer": scene_suggested_answer or None,
+            "scene_attempt_number": scene_attempt_number,
+            "image_provided": bool(image_b64),
+        }
 
         async def run_feedback_stage():
             started_at = time.perf_counter()
             result = await feedback_coro
+            output = result if isinstance(result, dict) else (ai_feedback if isinstance(ai_feedback, dict) else None)
             add_trace_stage(
                 "feedback",
                 "skipped" if audio_assessed or recording_preflight["status"] == "retry" else "passed",
@@ -1319,6 +1375,8 @@ async def _do_analyze(
                 or ai_provider
                 or "backend-default",
                 detail="Provider feedback completed." if not audio_assessed else "Audio provider feedback already included.",
+                input=feedback_input,
+                output=output,
             )
             return result
 
@@ -1326,7 +1384,12 @@ async def _do_analyze(
             started_at = time.perf_counter()
             result = await verify_coro
             if verify_word.strip():
-                add_trace_stage("content_verification", "passed", started_at, detail="Independent word verification completed.")
+                add_trace_stage(
+                    "content_verification", "passed", started_at,
+                    detail="Independent word verification completed.",
+                    input={"verify_word": verify_word},
+                    output={"recognized_text": result[0], "content_match": result[1]},
+                )
             return result
 
         (praat_result, maybe_feedback, (recognized_text, content_match)) = await asyncio.gather(
@@ -1355,6 +1418,11 @@ async def _do_analyze(
             quality_started_at,
             detail=feedback_quality.get("student_message") or "Quality gate evaluated.",
             reason_codes=feedback_quality.get("reason_codes"),
+            input={
+                "preflight_status": recording_preflight.get("status"),
+                "content_was_verified": bool(verify_word.strip()),
+            },
+            output=feedback_quality,
         )
 
         if not feedback_quality["can_score_pronunciation"]:

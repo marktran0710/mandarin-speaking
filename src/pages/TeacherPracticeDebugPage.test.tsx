@@ -9,6 +9,26 @@ vi.mock("../utils/audio", () => ({
   convertBlobToWav: vi.fn(async () => new Blob(["wav-audio"], { type: "audio/wav" })),
 }));
 
+/** Builds the newline-delimited SSE body /api/analyze/stream sends: one
+ * "stage" event per completed pipeline step, then a final "result" event. */
+function buildStreamResponse(stages: Array<Record<string, unknown>>, result: Record<string, unknown>) {
+  const lines = [
+    ...stages.map((stage) => `data: ${JSON.stringify({ type: "stage", ...stage })}\n\n`),
+    `data: ${JSON.stringify({ type: "result", result })}\n\n`,
+  ];
+  return new Response(lines.join(""), {
+    status: 200,
+    headers: { "Content-Type": "text/event-stream" },
+  });
+}
+
+function providersResponse() {
+  return new Response(JSON.stringify({ providers: [], default: "" }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 const runtimeRecord: AudioRecord = {
   id: "attempt-real-1",
   timestamp: "2026-08-03T10:00:00Z",
@@ -69,8 +89,12 @@ describe("TeacherPracticeDebugPage", () => {
     expect(screen.getByText("Runtime record")).toBeInTheDocument();
     expect(screen.getByText("74%")).toBeInTheDocument();
     expect(screen.getByText("Drill 1 word")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Praat input / output" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "AI / local CAF input and output" })).toBeInTheDocument();
+    // One canonical stage list drives both the trace timeline and the
+    // per-step input/output cards, so each stage's label appears as a card heading.
+    expect(screen.getAllByRole("heading", { name: "Praat" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("heading", { name: "Feedback" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Input").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Output").length).toBeGreaterThan(0);
   });
 
   it("uses the labelled sample when no analyzed runtime records exist", () => {
@@ -116,24 +140,27 @@ describe("TeacherPracticeDebugPage", () => {
     vi.stubGlobal("MediaRecorder", MockMediaRecorder);
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:debug-attempt");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+    const stages = [
+      { stage: "preflight", status: "review", duration_ms: 12.4, detail: "Sound check passed." },
+      { stage: "asr", status: "passed", duration_ms: 820, model: "ctwhisper" },
+      { stage: "praat", status: "passed", duration_ms: 140, detail: "Acoustic analysis completed." },
+      { stage: "feedback", status: "passed", duration_ms: 310, provider: "local" },
+      { stage: "quality_gate", status: "passed", duration_ms: 2 },
+    ];
+    const result = {
       transcription: "我在市場買菜。",
       tone_accuracy: 83,
       fluency_score: 79,
-      processing_trace: {
-        stages: [
-          { stage: "preflight", status: "review", duration_ms: 12.4, detail: "Sound check passed." },
-          { stage: "asr", status: "passed", duration_ms: 820, model: "ctwhisper" },
-          { stage: "praat", status: "passed", duration_ms: 140, detail: "Acoustic analysis completed." },
-          { stage: "feedback", status: "passed", duration_ms: 310, provider: "local" },
-          { stage: "quality_gate", status: "passed", duration_ms: 2 },
-        ],
-        total_duration_ms: 1284,
-      },
+      processing_trace: { stages, total_duration_ms: 1284 },
       feedback_quality: { can_score_pronunciation: true, can_score_content: true },
       word_prosody: [],
       ai_feedback: { content_accuracy: { judged: true, accepted: true } },
-    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    };
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => (
+      String(url).includes("/api/analyze/stream")
+        ? buildStreamResponse(stages, result)
+        : providersResponse()
+    ));
     vi.stubGlobal("fetch", fetchMock);
 
     render(<TeacherPracticeDebugPage records={[]} />);
@@ -144,7 +171,9 @@ describe("TeacherPracticeDebugPage", () => {
     await waitFor(() => expect(screen.getAllByText("Live debug recording")).toHaveLength(2));
     expect(screen.getByText("83%")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "How this attempt became the result" })).toBeInTheDocument();
-    expect(screen.getByText("ASR")).toBeInTheDocument();
+    // "ASR" now appears both in the trace timeline row and as its matching
+    // per-step card heading below — the two are driven by the same stage list.
+    expect(screen.getAllByText("ASR").length).toBeGreaterThan(1);
     expect(screen.getByText(/Complete · 820 ms/)).toBeInTheDocument();
     expect(screen.getByLabelText("Recorded debug attempt")).toHaveAttribute("src", "blob:debug-attempt");
     expect(stopTrack).toHaveBeenCalled();
@@ -177,24 +206,27 @@ describe("TeacherPracticeDebugPage", () => {
 
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:uploaded-debug-attempt");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+    const stages = [
+      { stage: "preflight", status: "review", duration_ms: 10 },
+      { stage: "asr", status: "passed", duration_ms: 700, model: "ctwhisper" },
+      { stage: "praat", status: "passed", duration_ms: 120 },
+      { stage: "feedback", status: "passed", duration_ms: 250, provider: "local" },
+      { stage: "quality_gate", status: "passed", duration_ms: 2 },
+    ];
+    const result = {
       transcription: "我在市場買水果。",
       tone_accuracy: 86,
       fluency_score: 81,
-      processing_trace: {
-        stages: [
-          { stage: "preflight", status: "review", duration_ms: 10 },
-          { stage: "asr", status: "passed", duration_ms: 700, model: "ctwhisper" },
-          { stage: "praat", status: "passed", duration_ms: 120 },
-          { stage: "feedback", status: "passed", duration_ms: 250, provider: "local" },
-          { stage: "quality_gate", status: "passed", duration_ms: 2 },
-        ],
-        total_duration_ms: 1082,
-      },
+      processing_trace: { stages, total_duration_ms: 1082 },
       feedback_quality: { can_score_pronunciation: true, can_score_content: true },
       word_prosody: [],
       ai_feedback: { content_accuracy: { judged: true, accepted: true } },
-    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    };
+    const fetchMock = vi.fn(async (url: RequestInfo | URL) => (
+      String(url).includes("/api/analyze/stream")
+        ? buildStreamResponse(stages, result)
+        : providersResponse()
+    ));
     vi.stubGlobal("fetch", fetchMock);
 
     render(<TeacherPracticeDebugPage records={[]} />);

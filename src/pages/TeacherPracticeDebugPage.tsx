@@ -1,4 +1,4 @@
-import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { AudioRecord } from "./MyStoriesPage";
 import { buildSceneReferenceCurves, type SpeechModel } from "../components/StoryRecorder";
 import { convertBlobToWav } from "../utils/audio";
@@ -101,16 +101,27 @@ interface ProcessingTraceStage {
   provider?: string | null;
   detail?: string | null;
   reason_codes?: string[];
+  input?: JsonObject | null;
+  output?: JsonObject | null;
 }
 
-const TRACE_STAGE_DEFINITIONS = [
+interface StageDefinition {
+  id: string;
+  label: string;
+  description: string;
+}
+
+// One canonical pipeline that drives both the trace timeline and the
+// per-step input/output cards below it — these ids match the backend's
+// `add_trace_stage` calls exactly, so the two views can never drift apart.
+const TRACE_STAGE_DEFINITIONS: StageDefinition[] = [
   { id: "capture", label: "Record", description: "Microphone input" },
   { id: "preflight", label: "Preflight", description: "Audio quality gate" },
   { id: "asr", label: "ASR", description: "Transcript" },
   { id: "praat", label: "Praat", description: "Acoustic analysis" },
   { id: "feedback", label: "Feedback", description: "AI / local CAF" },
   { id: "quality_gate", label: "Decision", description: "Student next step" },
-] as const;
+];
 
 function traceStatusLabel(status: string) {
   if (status === "passed" || status === "integrated" || status === "reliable") return "Complete";
@@ -141,6 +152,147 @@ function metric(value: unknown, suffix = "") {
     : "Not available";
 }
 
+/** Reads the /api/analyze/stream response line by line and reports each
+ * completed stage the moment it arrives, instead of waiting for the whole
+ * analysis to finish. Falls back to a single JSON read if the runtime
+ * doesn't expose a readable stream body (older browsers, some test doubles). */
+async function consumeAnalysisStream(
+  response: Response,
+  onStage: (stage: ProcessingTraceStage) => void,
+): Promise<JsonObject> {
+  const reader = response.body?.getReader();
+  if (!reader) return response.json();
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result: JsonObject | null = null;
+  let streamError: string | null = null;
+
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (value) buffer += decoder.decode(value, { stream: true });
+    let separatorIndex: number;
+    while ((separatorIndex = buffer.indexOf("\n\n")) !== -1) {
+      const rawEvent = buffer.slice(0, separatorIndex);
+      buffer = buffer.slice(separatorIndex + 2);
+      const dataLine = rawEvent.split("\n").find((line) => line.startsWith("data:"));
+      if (!dataLine) continue;
+      const payload = JSON.parse(dataLine.slice(5).trim());
+      if (payload.type === "stage") {
+        const { type: _type, ...stage } = payload;
+        onStage(stage as ProcessingTraceStage);
+      } else if (payload.type === "result") {
+        result = payload.result;
+      } else if (payload.type === "error") {
+        streamError = payload.detail;
+      }
+    }
+    if (done) break;
+  }
+
+  if (streamError) throw new Error(streamError);
+  if (!result) throw new Error("Analysis stream ended without a result.");
+  return result;
+}
+
+function stageDlContent(
+  id: string,
+  entry: ProcessingTraceStage | undefined,
+  ctx: {
+    record: AudioRecord;
+    praat: JsonObject;
+    ai: JsonObject;
+    words: JsonObject[];
+    contentGate: string;
+    canScorePronunciation: boolean;
+  },
+): Array<[string, string]> {
+  switch (id) {
+    case "capture":
+      return [
+        ["Record ID", ctx.record.id],
+        ["Topic / scene", `${ctx.record.topicId || "Not persisted"} / ${ctx.record.imageIndex ?? "—"}`],
+        ["Audio duration", ctx.record.duration ? `${ctx.record.duration}s` : "Not available"],
+      ];
+    case "preflight":
+      return [
+        ["Status", entry?.output?.status ?? "Not available"],
+        ["Reason codes", (entry?.reason_codes ?? []).join(", ") || "None"],
+      ];
+    case "asr":
+      return [
+        ["Model", entry?.output?.model || ctx.praat.transcription_model || "Not available"],
+        ["Transcript", entry?.output?.transcription || ctx.praat.transcription || "No transcript"],
+      ];
+    case "praat":
+      return [
+        ["Speech rate", typeof ctx.praat.speech_rate === "number" ? `${ctx.praat.speech_rate.toFixed(2)} syl/s` : "Not available"],
+        ["Words judged", String(ctx.words.length)],
+      ];
+    case "feedback":
+      return [
+        ["Provider", entry?.provider || ctx.ai.provider || "Not available"],
+        [
+          "Vocabulary score",
+          typeof ctx.ai.vocabulary_coverage?.score === "number"
+            ? `${Math.round(ctx.ai.vocabulary_coverage.score)}/100`
+            : "Not available",
+        ],
+      ];
+    case "content_verification":
+      return [
+        ["Word", entry?.input?.verify_word ?? "Not available"],
+        [
+          "Match",
+          entry?.output?.content_match === true
+            ? "Yes"
+            : entry?.output?.content_match === false
+              ? "No"
+              : "Not checked",
+        ],
+      ];
+    case "quality_gate":
+      return [
+        ["Pronunciation scoreable", ctx.canScorePronunciation ? "Yes" : "No"],
+        ["Scene meaning", ctx.contentGate],
+      ];
+    default:
+      return [];
+  }
+}
+
+function StageCard({
+  id, label, description, entry, dlItems, children,
+}: {
+  id: string;
+  label: string;
+  description: string;
+  entry?: ProcessingTraceStage;
+  dlItems: Array<[string, string]>;
+  children?: ReactNode;
+}) {
+  const status = entry?.status ?? "pending";
+  return (
+    <article className={`pdebug-layer pdebug-stage-${id}`} data-status={status}>
+      <header>
+        <span>{traceStatusLabel(status).toUpperCase()}</span>
+        <h3>{label}</h3>
+      </header>
+      <p className="pdebug-note">{description}{entry?.detail ? ` — ${entry.detail}` : ""}</p>
+      {dlItems.length > 0 && (
+        <dl>
+          {dlItems.map(([dt, dd]) => (
+            <div key={dt}><dt>{dt}</dt><dd lang="zh-Hant">{dd}</dd></div>
+          ))}
+        </dl>
+      )}
+      <JsonPanel label="Input" value={entry?.input ?? "[not available for this record]"} />
+      <JsonPanel label="Output" value={entry?.output ?? "[not available for this record]"} />
+      {children}
+    </article>
+  );
+}
+
 export default function TeacherPracticeDebugPage({ records }: { records: AudioRecord[] }) {
   const runtimeRecords = useMemo(() => records.filter((record) => record.praatMetrics), [records]);
   const publishedTopics = useMemo(() => loadPublishedTeacherTopics(), []);
@@ -155,7 +307,6 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [recordingError, setRecordingError] = useState("");
   const [recordedRecord, setRecordedRecord] = useState<AudioRecord | null>(null);
-  const [recordedContext, setRecordedContext] = useState<RecordedRequestContext | null>(null);
   const [recordedAudioUrl, setRecordedAudioUrl] = useState("");
   const [uploadedAudioName, setUploadedAudioName] = useState("");
   const [inputSource, setInputSource] = useState<"microphone" | "upload">("microphone");
@@ -231,6 +382,17 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
     }
   };
 
+  const upsertTraceStage = (runId: number, stage: ProcessingTraceStage) => {
+    if (runId !== analysisRunIdRef.current) return;
+    setProcessingTrace((current) => {
+      const index = current.findIndex((existing) => existing.stage === stage.stage);
+      if (index === -1) return [...current, stage];
+      const next = [...current];
+      next[index] = stage;
+      return next;
+    });
+  };
+
   const analyzeRecording = async (rawBlob: Blob, durationOverride?: number) => {
     const runId = ++analysisRunIdRef.current;
     analysisStartedAtRef.current = Date.now();
@@ -274,7 +436,7 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
       const controller = new AbortController();
       analysisAbortControllerRef.current = controller;
       backendTimer = setTimeout(() => controller.abort(), BACKEND_ANALYSIS_TIMEOUT_MS);
-      const response = await fetch(`${getBackendUrl()}/api/analyze`, {
+      const response = await fetch(`${getBackendUrl()}/api/analyze/stream`, {
         method: "POST",
         body: formData,
         signal: controller.signal,
@@ -285,7 +447,8 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
         throw new Error(body.detail || "Practice analysis failed.");
       }
 
-      const metrics = await response.json();
+      const metrics = await consumeAnalysisStream(response, (stage) => upsertTraceStage(runId, stage));
+      if (runId !== analysisRunIdRef.current) return;
       const trace = Array.isArray(metrics.processing_trace?.stages)
         ? metrics.processing_trace.stages as ProcessingTraceStage[]
         : [];
@@ -310,7 +473,6 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
       const nextAudioUrl = URL.createObjectURL(wavBlob);
       recordedAudioUrlRef.current = nextAudioUrl;
       setRecordedAudioUrl(nextAudioUrl);
-      setRecordedContext(context);
       setRecordedRecord(nextRecord);
       setSelectedId("__recorded__");
       setProcessingState("complete");
@@ -440,56 +602,6 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
         ? "Passed"
         : "Needs retry";
 
-  const requestPreview = source === "recorded" && recordedContext ? {
-    endpoint: "/api/analyze",
-    method: "POST multipart/form-data",
-    file: "[WAV recorded in this debug session]",
-    transcription: "",
-    asr_model: recordedContext.asrModel,
-    scene_prompt: recordedContext.scenePrompt,
-    scene_vocabulary: recordedContext.sceneVocabulary,
-    ai_provider: "[backend default]",
-    scene_image_url: recordedContext.sceneImageUrl || "[not provided]",
-    scene_phrases: recordedContext.scenePhrases || "[not provided]",
-    scene_suggested_answer: recordedContext.sceneSuggestedAnswer || "[not provided]",
-    scene_attempt_number: 1,
-    scene_reference_curves: recordedContext.sceneReferenceCurves || "[not provided]",
-  } : {
-    endpoint: "/api/analyze",
-    method: "POST multipart/form-data",
-    file: "[audio bytes are not stored in the debug payload]",
-    transcription: record.transcription || praat.transcription || "",
-    asr_model: record.model || praat.transcription_model || "",
-    scene_prompt: "[not persisted with audio record]",
-    scene_vocabulary: "[not persisted with audio record]",
-    ai_provider: ai.provider || "[not available]",
-    scene_image_url: record.imageUrl || "[not persisted]",
-    scene_phrases: "[not persisted with audio record]",
-    scene_suggested_answer: "[not persisted with audio record]",
-    scene_attempt_number: "[not persisted with audio record]",
-    scene_reference_curves: "[not persisted; large arrays omitted]",
-  };
-  const aiInputPreview = {
-    provider: ai.provider || "unknown / fallback",
-    transcription: record.transcription || praat.transcription || "",
-    scene_prompt: "[not persisted]",
-    scene_vocabulary: "[not persisted]",
-    scene_image: record.imageUrl
-      ? "URL was associated with this record; resolved image bytes are never shown here"
-      : "[not persisted]",
-    acoustic_patch: {
-      tone_accuracy: praat.tone_accuracy,
-      fluency_score: praat.fluency_score,
-      vowel_quality: praat.vowel_quality,
-      pause_analysis: praat.pause_analysis,
-    },
-    instruction_contract: [
-      "Coach beginner Mandarin in Traditional Chinese and return structured JSON.",
-      "Compare transcript with scene vocabulary, phrases and the teacher model answer when available.",
-      "Vision content is accepted at 60 or above; attempts 1–2 receive a hint and attempt 3+ may reveal the answer.",
-    ],
-    note: "This is a reconstruction from stored fields, not a captured provider request.",
-  };
   const storedTrace = Array.isArray((praat.processing_trace as JsonObject | undefined)?.stages)
     ? (praat.processing_trace as JsonObject).stages as ProcessingTraceStage[]
     : [];
@@ -519,6 +631,35 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
     }
     return { stage: stageId, status: "pending" };
   };
+
+  // The optional word-verification stage only ever appears for word-practice
+  // callers (not this scene-based debugger), so it's spliced in only when a
+  // real trace actually contains it — otherwise it would sit forever at
+  // "Waiting" and look broken.
+  const hasVerificationStage = activeTrace.some((entry) => entry.stage === "content_verification");
+  const stageDefinitions = useMemo(() => {
+    if (!hasVerificationStage) return TRACE_STAGE_DEFINITIONS;
+    const gateIndex = TRACE_STAGE_DEFINITIONS.findIndex((definition) => definition.id === "quality_gate");
+    return [
+      ...TRACE_STAGE_DEFINITIONS.slice(0, gateIndex),
+      { id: "content_verification", label: "Verify", description: "Independent word check" },
+      ...TRACE_STAGE_DEFINITIONS.slice(gateIndex),
+    ];
+  }, [hasVerificationStage]);
+
+  const captureEntry: ProcessingTraceStage = (() => {
+    const base = statusForStage("capture");
+    const hasLiveCapture = source === "recorded" || isRecording || processingState !== "idle";
+    return {
+      ...base,
+      input: hasLiveCapture
+        ? { source: inputSource === "upload" ? "Uploaded file" : "Microphone recording", file_name: uploadedAudioName || null }
+        : null,
+      output: hasLiveCapture && (recordedAudioUrl || outputReady)
+        ? { endpoint: "/api/analyze/stream", duration_seconds: recordingDuration || record.duration || null, format: "wav (converted in browser)" }
+        : null,
+    };
+  })();
 
   return (
     <section className="pdebug" aria-label="Practice stage debugger">
@@ -671,11 +812,11 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
             )}
           </div>
           <ol className="pdebug-trace-list">
-            {TRACE_STAGE_DEFINITIONS.map((definition) => {
+            {stageDefinitions.map((definition) => {
               const displayDefinition = definition.id === "capture" && inputSource === "upload"
                 ? { ...definition, label: "Upload", description: "Audio file input" }
                 : definition;
-              const entry = statusForStage(definition.id);
+              const entry = definition.id === "capture" ? captureEntry : statusForStage(definition.id);
               return (
                 <li key={definition.id} data-status={entry.status}>
                   <span className="pdebug-trace-marker" aria-hidden="true" />
@@ -693,18 +834,10 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
             })}
           </ol>
           {processingState === "processing" && activeTrace.length === 0 && (
-            <p className="pdebug-trace-note">The backend returns the measured stage timings when analysis completes.</p>
+            <p className="pdebug-trace-note">Steps below fill in live as the backend completes each one.</p>
           )}
         </section>
       )}
-
-      <ol className="pdebug-pipeline" aria-label="Practice processing pipeline">
-        <li><strong>1 · Browser</strong><span>WAV + scene context</span></li>
-        <li><strong>2 · Preflight / ASR</strong><span>audio quality + transcript</span></li>
-        <li><strong>3 · Praat</strong><span>pitch, tones, pauses, fluency</span></li>
-        <li><strong>4 · AI / local CAF</strong><span>language + content feedback</span></li>
-        <li><strong>5 · Student gates</strong><span>retry, drill or continue</span></li>
-      </ol>
 
       {outputReady && <div className="pdebug-score-grid" aria-label="Attempt score summary">
         <article><span>Tone contour</span><strong>{metric(praat.tone_accuracy, "%")}</strong><small>Praat/tone matcher</small></article>
@@ -713,101 +846,65 @@ export default function TeacherPracticeDebugPage({ records }: { records: AudioRe
         <article><span>Content gate</span><strong>{contentGate}</strong><small>{content.judged === false ? "Placeholder, not a score" : "AI scene comparison"}</small></article>
       </div>}
 
-      {outputReady && <div className="pdebug-layer-grid">
-        <article className="pdebug-layer">
-          <header><span>INPUT</span><h3>Browser → backend</h3></header>
-          <dl>
-            <div><dt>Record ID</dt><dd>{record.id}</dd></div>
-            <div><dt>Topic / scene</dt><dd>{record.topicId || "Not persisted"} / {record.imageIndex ?? "—"}</dd></div>
-            <div><dt>Audio duration</dt><dd>{record.duration ? `${record.duration}s` : "Not available"}</dd></div>
-            <div><dt>Endpoint</dt><dd><code>POST /api/analyze</code></dd></div>
-          </dl>
-          <JsonPanel label="Reconstructed multipart fields" value={requestPreview} />
-        </article>
-
-        <article className="pdebug-layer">
-          <header><span>ASR + SAFETY</span><h3>Can this attempt be judged?</h3></header>
-          <dl>
-            <div><dt>Transcript model</dt><dd>{praat.transcription_model || record.model || "Not available"}</dd></div>
-            <div><dt>Transcript</dt><dd lang="zh-Hant">{praat.transcription || record.transcription || "No transcript"}</dd></div>
-            <div><dt>Quality status</dt><dd>{quality.status || "Not persisted in older result"}</dd></div>
-            <div><dt>Pronunciation scoreable</dt><dd>{canScorePronunciation ? "Yes" : "No — values gated to zero"}</dd></div>
-          </dl>
-          <JsonPanel label="feedback_quality output" value={quality} />
-        </article>
-
-        <article className="pdebug-layer">
-          <header><span>ACOUSTICS</span><h3>Praat input / output</h3></header>
-          <p className="pdebug-note"><strong>Input:</strong> the same WAV plus transcript (and optional pinyin/reference curves). Praat receives no API key and makes no language judgement.</p>
-          <JsonPanel label="Praat input contract" value={{
-            wav_audio: "[same uploaded WAV; bytes are not persisted]",
-            transcription: record.transcription || praat.transcription || "",
-            pinyin_hint: "[not persisted]",
-            reference_word_curves: "[not persisted; optional 100-point normalized curves]",
-            extraction_settings: { time_step_seconds: 0.025, pitch_floor_hz: 75, pitch_ceiling_hz: 500 },
-          }} />
-          <dl>
-            <div><dt>Pitch frames</dt><dd>{Array.isArray(praat.pitch_contour) ? praat.pitch_contour.length : 0}</dd></div>
-            <div><dt>Speech rate</dt><dd>{typeof praat.speech_rate === "number" ? `${praat.speech_rate.toFixed(2)} syl/s` : "Not available"}</dd></div>
-            <div><dt>Words judged</dt><dd>{words.length}</dd></div>
-            <div><dt>Words needing drill</dt><dd>{failedWords.length}</dd></div>
-          </dl>
-          <JsonPanel label="Raw Praat-derived result" value={{
-            pitch_contour: praat.pitch_contour,
-            formants: praat.formants,
-            pitch_statistics: praat.pitch_statistics,
-            pause_analysis: praat.pause_analysis,
-            word_prosody: praat.word_prosody,
-            detected_tone: praat.detected_tone,
-            tone_accuracy: praat.tone_accuracy,
-            fluency_score: praat.fluency_score,
-          }} />
-        </article>
-
-        <article className="pdebug-layer">
-          <header><span>COACHING</span><h3>AI / local CAF input and output</h3></header>
-          <p className="pdebug-note">Provider requests are not logged in audio records. The preview below only shows recoverable fields; the returned feedback is the stored runtime output.</p>
-          <JsonPanel label="Reconstructed AI input" value={aiInputPreview} />
-          <JsonPanel label="Stored AI/local output" value={ai} />
-        </article>
-
-        <article className="pdebug-layer pdebug-layer-wide">
-          <header><span>DECISION</span><h3>What the student sees next</h3></header>
-          <div className="pdebug-decisions">
-            <div data-state={canScorePronunciation ? "pass" : "retry"}>
-              <strong>Recording quality</strong>
-              <span>{canScorePronunciation ? "Scoreable" : "Retry recording"}</span>
-            </div>
-            <div data-state={failedWords.length === 0 ? "pass" : "retry"}>
-              <strong>Pronunciation mastery</strong>
-              <span>{failedWords.length === 0 ? "Passed" : `Drill ${failedWords.length} word${failedWords.length === 1 ? "" : "s"}`}</span>
-            </div>
-            <div data-state={contentGate === "Passed" || contentGate === "Not judged" ? "pass" : "retry"}>
-              <strong>Scene meaning</strong>
-              <span>{contentGate}</span>
-            </div>
-          </div>
-          {failedWords.length > 0 && (
-            <table className="pdebug-word-table">
-              <thead><tr><th>Word</th><th>Tone score</th><th>Weakest syllable</th><th>Verdict</th></tr></thead>
-              <tbody>{failedWords.map((word: JsonObject, index: number) => {
-                const syllables = Array.isArray(word.syllables) ? word.syllables : [];
-                const weakest = syllables.length
-                  ? [...syllables].sort((a, b) => Number(a.score) - Number(b.score))[0]
-                  : null;
-                return (
-                  <tr key={`${word.token}-${index}`}>
-                    <td lang="zh-Hant">{word.token || `Word ${index + 1}`}</td>
-                    <td>{metric(word.tone_accuracy, "%")}</td>
-                    <td>{weakest ? `${weakest.char}: ${metric(weakest.score)}` : "Not available"}</td>
-                    <td>{word.judged === false ? "Unjudged" : "Below 58 minimum"}</td>
-                  </tr>
-                );
-              })}</tbody>
-            </table>
-          )}
-        </article>
-      </div>}
+      <div className="pdebug-layer-grid">
+        {stageDefinitions.map((definition) => {
+          const displayDefinition = definition.id === "capture" && inputSource === "upload"
+            ? { ...definition, label: "Upload" }
+            : definition;
+          const entry = definition.id === "capture" ? captureEntry : statusForStage(definition.id);
+          const dlItems = stageDlContent(definition.id, entry, {
+            record, praat, ai, words, contentGate, canScorePronunciation,
+          });
+          return (
+            <StageCard
+              key={definition.id}
+              id={definition.id}
+              label={displayDefinition.label}
+              description={definition.description}
+              entry={entry}
+              dlItems={dlItems}
+            >
+              {definition.id === "quality_gate" && outputReady && (
+                <>
+                  <div className="pdebug-decisions">
+                    <div data-state={canScorePronunciation ? "pass" : "retry"}>
+                      <strong>Recording quality</strong>
+                      <span>{canScorePronunciation ? "Scoreable" : "Retry recording"}</span>
+                    </div>
+                    <div data-state={failedWords.length === 0 ? "pass" : "retry"}>
+                      <strong>Pronunciation mastery</strong>
+                      <span>{failedWords.length === 0 ? "Passed" : `Drill ${failedWords.length} word${failedWords.length === 1 ? "" : "s"}`}</span>
+                    </div>
+                    <div data-state={contentGate === "Passed" || contentGate === "Not judged" ? "pass" : "retry"}>
+                      <strong>Scene meaning</strong>
+                      <span>{contentGate}</span>
+                    </div>
+                  </div>
+                  {failedWords.length > 0 && (
+                    <table className="pdebug-word-table">
+                      <thead><tr><th>Word</th><th>Tone score</th><th>Weakest syllable</th><th>Verdict</th></tr></thead>
+                      <tbody>{failedWords.map((word: JsonObject, index: number) => {
+                        const syllables = Array.isArray(word.syllables) ? word.syllables : [];
+                        const weakest = syllables.length
+                          ? [...syllables].sort((a, b) => Number(a.score) - Number(b.score))[0]
+                          : null;
+                        return (
+                          <tr key={`${word.token}-${index}`}>
+                            <td lang="zh-Hant">{word.token || `Word ${index + 1}`}</td>
+                            <td>{metric(word.tone_accuracy, "%")}</td>
+                            <td>{weakest ? `${weakest.char}: ${metric(weakest.score)}` : "Not available"}</td>
+                            <td>{word.judged === false ? "Unjudged" : "Below 58 minimum"}</td>
+                          </tr>
+                        );
+                      })}</tbody>
+                    </table>
+                  )}
+                </>
+              )}
+            </StageCard>
+          );
+        })}
+      </div>
 
       <section className="pdebug-rubrics" aria-labelledby="pdebug-rubrics-heading">
         <div>

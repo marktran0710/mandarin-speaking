@@ -2,12 +2,17 @@ import asyncio
 import json
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import StreamingResponse
 
 from ai_feedback import available_providers, default_provider
 import main
 from main import AnalysisResponse, AsrStatusResponse, TranscriptionResponse
 
 router = APIRouter()
+
+
+def _sse_line(payload: dict) -> str:
+    return f"data: {json.dumps(payload)}\n\n"
 
 
 @router.get("/api/asr-status", response_model=AsrStatusResponse)
@@ -144,6 +149,102 @@ async def analyze_speech(
     except Exception as exc:
         main.logger.exception("Error in analyze_speech")
         raise HTTPException(status_code=500, detail=f"Error analyzing speech: {exc}") from exc
+
+
+@router.post("/api/analyze/stream")
+async def analyze_speech_stream(
+    file: UploadFile = File(...),
+    transcription: str = Form(""),
+    asr_model: str = Form(""),
+    scene_prompt: str = Form(""),
+    scene_vocabulary: str = Form(""),
+    ai_provider: str = Form(""),
+    scene_image_url: str = Form(""),
+    scene_phrases: str = Form(""),
+    scene_suggested_answer: str = Form(""),
+    scene_attempt_number: int = Form(1),
+    verify_word: str = Form(""),
+    pinyin_hint: str = Form(""),
+    scene_reference_curves: str = Form(""),
+    req: Request = None,
+):
+    """Debug-only twin of /api/analyze that streams each pipeline stage as it
+    completes, instead of waiting for the whole analysis to finish.
+
+    Used exclusively by the teacher Practice Debugger so it can show live
+    step-by-step progress with per-stage input/output. Students' real
+    practice flow keeps calling /api/analyze unchanged — this endpoint
+    reuses the same `_do_analyze` logic, it just also emits an event the
+    instant each stage's `add_trace_stage` call fires.
+
+    Response is newline-delimited SSE-style `data: {...}\\n\\n` lines:
+    - {"type": "stage", ...ProcessingTraceStage fields} as each stage completes
+    - {"type": "result", "result": <AnalysisResponse>} once, at the end
+    - {"type": "error", "detail": "..."} instead of "result" on failure
+    """
+    if not file:
+        raise HTTPException(status_code=400, detail="No audio file provided")
+
+    if req is not None:
+        client_ip = req.client.host if req.client else "unknown"
+        main._check_rate_limit(f"analyze:{client_ip}", max_requests=30, window_seconds=60)
+
+    content = await file.read()
+    if len(content) > main._MAX_AUDIO_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Audio file too large. Maximum size is {main._MAX_AUDIO_BYTES // (1024 * 1024)} MB.",
+        )
+
+    reference_word_curves = None
+    if scene_reference_curves.strip():
+        try:
+            parsed = json.loads(scene_reference_curves)
+            if isinstance(parsed, dict):
+                reference_word_curves = {
+                    str(word): curve
+                    for word, curve in parsed.items()
+                    if isinstance(curve, list) and curve
+                }
+        except (json.JSONDecodeError, TypeError):
+            reference_word_curves = None
+
+    async def event_generator():
+        queue: "asyncio.Queue[dict]" = asyncio.Queue()
+        loop_started_at = asyncio.get_event_loop().time()
+
+        def on_stage(entry: dict) -> None:
+            queue.put_nowait(entry)
+
+        task = asyncio.create_task(main._do_analyze(
+            content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
+            scene_phrases, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
+            reference_word_curves, on_stage=on_stage,
+        ))
+
+        try:
+            while not task.done():
+                if asyncio.get_event_loop().time() - loop_started_at > main.ANALYZE_TIMEOUT_SECONDS:
+                    task.cancel()
+                    yield _sse_line({"type": "error", "detail": f"Analysis timed out after {main.ANALYZE_TIMEOUT_SECONDS}s. Try a shorter recording."})
+                    return
+                try:
+                    entry = await asyncio.wait_for(queue.get(), timeout=0.1)
+                    yield _sse_line({"type": "stage", **entry})
+                except asyncio.TimeoutError:
+                    continue
+
+            while not queue.empty():
+                entry = queue.get_nowait()
+                yield _sse_line({"type": "stage", **entry})
+
+            result = task.result()
+            yield _sse_line({"type": "result", "result": json.loads(result.model_dump_json())})
+        except Exception as exc:
+            main.logger.exception("Error in analyze_speech_stream")
+            yield _sse_line({"type": "error", "detail": str(exc)})
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @router.post("/api/transcribe", response_model=TranscriptionResponse)

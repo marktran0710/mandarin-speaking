@@ -106,5 +106,49 @@ export const SAMPLE_DEBUG_RECORD: AudioRecord = {
       improved_version: "小明戴著安全帽，在公園裡騎腳踏車。",
       practice_prompt: "Say it again and add 安全帽.",
     },
+    processing_trace: {
+      total_duration_ms: 1840,
+      stages: [
+        {
+          stage: "preflight", status: "reliable", duration_ms: 18,
+          detail: "Sound check passed.", reason_codes: [],
+          input: { audio_bytes: 92_000 },
+          output: { status: "reliable", confidence: 0.95, can_score_pronunciation: true, can_score_content: true },
+        },
+        {
+          stage: "asr", status: "passed", duration_ms: 640, model: "sample-asr",
+          detail: "Backend transcription completed.",
+          input: { asr_model: "sample-asr", scene_vocabulary: "公園, 騎腳踏車, 安全帽" },
+          output: { transcription: "小明在公園裡騎腳踏車。", model: "sample-asr" },
+        },
+        {
+          stage: "praat", status: "passed", duration_ms: 210, detail: "Acoustic analysis completed.",
+          input: { pinyin_hint: null, reference_word_curves_provided: false },
+          output: {
+            pitch_contour: [[0.1, 184], [0.3, 196], [0.5, 178]],
+            formants: { F1: 510, F2: 1480, F3: 2510 },
+            speech_rate: 3.1, fluency_score: 72,
+            pitch_statistics: { mean_frequency: 186, frequency_range: 42 },
+            detected_tone: 3, tone_accuracy: 76,
+          },
+        },
+        {
+          stage: "feedback", status: "passed", duration_ms: 960, provider: "local",
+          detail: "Provider feedback completed.",
+          input: { scene_prompt: "A boy rides a bicycle in the park.", scene_vocabulary: "公園, 騎腳踏車, 安全帽", scene_attempt_number: 1, image_provided: false },
+          output: {
+            provider: "local",
+            vocabulary_coverage: { score: 67, used: ["公園", "騎"], missing: ["安全帽"] },
+            coherence: { score: 58 },
+            content_accuracy: { score: 82, accepted: true, judged: true },
+          },
+        },
+        {
+          stage: "quality_gate", status: "passed", duration_ms: 12, detail: "Quality gate evaluated.",
+          input: { preflight_status: "reliable", content_was_verified: false },
+          output: { status: "ok", can_score_pronunciation: true, can_score_content: true, student_message: "" },
+        },
+      ],
+    },
   },
 };

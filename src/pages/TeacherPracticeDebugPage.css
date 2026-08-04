@@ -54,11 +54,6 @@
 .pdebug-json summary { cursor: pointer; font-weight: 750; }
 .pdebug-note { color: #64766f; }
 .pdebug-error { margin: 0; color: #a62f35; font-weight: 700; }
-.pdebug-pipeline { display: grid; grid-template-columns: repeat(5, 1fr); gap: .55rem; padding: 0; margin: 0; list-style: none; }
-.pdebug-pipeline li { position: relative; display: grid; gap: .18rem; min-height: 72px; padding: .75rem; border-radius: 12px; background: #173f35; color: #fff; }
-.pdebug-pipeline li:not(:last-child)::after { content: "→"; position: absolute; right: -.54rem; top: 26px; z-index: 1; width: 1.05rem; height: 1.05rem; border-radius: 50%; background: #f7b84a; color: #183b32; text-align: center; font-weight: 900; line-height: 1rem; }
-.pdebug-pipeline strong { font-size: .82rem; }
-.pdebug-pipeline span { color: #cce2da; font-size: .72rem; }
 .pdebug-score-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; }
 .pdebug-score-grid article { display: grid; gap: .2rem; padding: 1rem; border: 1px solid #dce5e1; border-radius: 14px; background: var(--surface, #fff); }
 .pdebug-score-grid span, .pdebug-score-grid small { color: #65776f; font-size: .76rem; }
@@ -68,6 +63,10 @@
 .pdebug-layer-wide { grid-column: 1 / -1; }
 .pdebug-layer header { display: flex; align-items: baseline; gap: .65rem; margin-bottom: .8rem; }
 .pdebug-layer header span { color: #2f7b63; font-size: .68rem; font-weight: 900; letter-spacing: .09em; }
+.pdebug-layer[data-status="running"] header span { color: #a3760f; }
+.pdebug-layer[data-status="pending"] header span { color: #8a9a93; }
+.pdebug-layer[data-status="retry"] header span, .pdebug-layer[data-status="failed"] header span { color: #a62f35; }
+.pdebug-layer[data-status="retry"], .pdebug-layer[data-status="failed"] { border-color: #e9b7b7; }
 .pdebug-layer h3 { margin: 0; font-size: 1rem; }
 .pdebug-layer dl { display: grid; gap: .4rem; margin: 0 0 .75rem; }
 .pdebug-layer dl div { display: grid; grid-template-columns: 145px 1fr; gap: .75rem; padding-bottom: .35rem; border-bottom: 1px dashed #e3eae7; }
@@ -105,5 +104,5 @@
 @media (max-width: 900px) { .pdebug-trace-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } .pdebug-trace-list li:nth-child(3)::after, .pdebug-trace-list li:nth-child(6)::after { content: ""; } }
 @media (max-width: 650px) { .pdebug-recorder-controls { grid-template-columns: 1fr; } .pdebug-recorder-action { align-items: stretch; flex-direction: column; } .pdebug-recorder-action button, .pdebug-recorder-action audio { width: 100%; } }
 @media (max-width: 650px) { .pdebug-trace-list { grid-template-columns: 1fr; } .pdebug-trace-list li:not(:last-child)::after { content: "↓"; right: .75rem; top: auto; bottom: -.62rem; } }
-@media (max-width: 900px) { .pdebug-callout { align-items: stretch; flex-direction: column; } .pdebug-pipeline { grid-template-columns: 1fr; } .pdebug-pipeline li:not(:last-child)::after { content: "↓"; right: 1rem; top: auto; bottom: -.55rem; } .pdebug-score-grid { grid-template-columns: repeat(2, 1fr); } .pdebug-rubrics { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .pdebug-callout { align-items: stretch; flex-direction: column; } .pdebug-score-grid { grid-template-columns: repeat(2, 1fr); } .pdebug-rubrics { grid-template-columns: 1fr; } }
 @media (max-width: 650px) { .pdebug-layer-grid, .pdebug-score-grid, .pdebug-rubric-list, .pdebug-decisions { grid-template-columns: 1fr; } .pdebug-layer-wide { grid-column: auto; } .pdebug-layer dl div { grid-template-columns: 1fr; gap: .12rem; } }
