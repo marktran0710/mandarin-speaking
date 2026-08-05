@@ -9,11 +9,12 @@ external test set out of those decisions prevents test-set leakage.
 from __future__ import annotations
 
 import csv
-import math
 import random
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable
+
+from benchmarking.stats import binary_agreement, spearman
 
 
 _TRUE_LABELS = {"1", "true", "pass", "passed", "correct", "yes"}
@@ -160,77 +161,12 @@ def speaker_disjoint_split(
     return result
 
 
-def _safe_divide(numerator: float, denominator: float) -> float | None:
-    return numerator / denominator if denominator else None
-
-
 def _binary_metrics(rows: Iterable[ToneBenchmarkRow], threshold: float) -> dict[str, float | int | None]:
-    true_positive = true_negative = false_positive = false_negative = 0
-    for row in rows:
-        system_pass = row.system_score >= threshold
-        if row.human_label and system_pass:
-            true_positive += 1
-        elif not row.human_label and not system_pass:
-            true_negative += 1
-        elif not row.human_label and system_pass:
-            false_positive += 1
-        else:
-            false_negative += 1
-
-    total = true_positive + true_negative + false_positive + false_negative
-    accuracy = _safe_divide(true_positive + true_negative, total)
-    precision = _safe_divide(true_positive, true_positive + false_positive)
-    recall = _safe_divide(true_positive, true_positive + false_negative)
-    f1 = _safe_divide(2 * true_positive, 2 * true_positive + false_positive + false_negative)
-
-    # Cohen's kappa: agreement beyond the agreement expected from the two
-    # marginal pass/fail rates. It prevents a high accuracy on an imbalanced
-    # corpus from being mistaken for a useful scoring system.
-    human_pass_rate = _safe_divide(true_positive + false_negative, total) or 0.0
-    system_pass_rate = _safe_divide(true_positive + false_positive, total) or 0.0
-    expected_agreement = human_pass_rate * system_pass_rate + (1 - human_pass_rate) * (1 - system_pass_rate)
-    kappa = _safe_divide((accuracy or 0.0) - expected_agreement, 1 - expected_agreement)
-
-    return {
-        "n": total,
-        "true_positive": true_positive,
-        "true_negative": true_negative,
-        "false_positive": false_positive,
-        "false_negative": false_negative,
-        "accuracy": accuracy,
-        "precision": precision,
-        "recall": recall,
-        "f1": f1,
-        "cohen_kappa": kappa,
-    }
-
-
-def _rank(values: list[float]) -> list[float]:
-    """Average ranks for ties, used by Spearman correlation."""
-
-    order = sorted(range(len(values)), key=values.__getitem__)
-    ranks = [0.0] * len(values)
-    start = 0
-    while start < len(order):
-        end = start + 1
-        while end < len(order) and values[order[end]] == values[order[start]]:
-            end += 1
-        average_rank = (start + 1 + end) / 2.0
-        for position in range(start, end):
-            ranks[order[position]] = average_rank
-        start = end
-    return ranks
-
-
-def _pearson(first: list[float], second: list[float]) -> float | None:
-    if len(first) < 2:
-        return None
-    first_mean = sum(first) / len(first)
-    second_mean = sum(second) / len(second)
-    numerator = sum((a - first_mean) * (b - second_mean) for a, b in zip(first, second))
-    first_scale = math.sqrt(sum((a - first_mean) ** 2 for a in first))
-    second_scale = math.sqrt(sum((b - second_mean) ** 2 for b in second))
-    return _safe_divide(numerator, first_scale * second_scale)
+    rows = list(rows)
+    return binary_agreement(
+        [row.system_score >= threshold for row in rows],
+        [row.human_label for row in rows],
+    )
 
 
 def _score_metrics(rows: Iterable[ToneBenchmarkRow]) -> dict[str, float | int | None]:
@@ -241,7 +177,7 @@ def _score_metrics(rows: Iterable[ToneBenchmarkRow]) -> dict[str, float | int | 
     return {
         "n": len(paired),
         "mean_absolute_error": sum(abs(system - human) for system, human in paired) / len(paired),
-        "spearman_correlation": _pearson(_rank(list(system_scores)), _rank(list(human_scores))),
+        "spearman_correlation": spearman(list(system_scores), list(human_scores)),
     }
 
 

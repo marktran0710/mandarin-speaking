@@ -3465,6 +3465,7 @@ async def transcribe_with_vibevoice(audio_content: bytes) -> TranscriptionRespon
 # defined, since each router imports names back from this module) ─────────
 from routers.asr import router as asr_router  # noqa: E402
 from routers.audio import router as audio_router  # noqa: E402
+from routers.benchmark import router as benchmark_router  # noqa: E402
 from routers.help_requests import router as help_requests_router  # noqa: E402
 from routers.media import router as media_router  # noqa: E402
 from routers.quiz_review import router as quiz_review_router  # noqa: E402
@@ -3476,6 +3477,7 @@ from routers.tones import router as tones_router  # noqa: E402
 from routers.vocab_quiz import router as vocab_quiz_router  # noqa: E402
 app.include_router(asr_router)
 app.include_router(audio_router)
+app.include_router(benchmark_router)
 app.include_router(help_requests_router)
 app.include_router(media_router)
 app.include_router(quiz_review_router)
