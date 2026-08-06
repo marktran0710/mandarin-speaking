@@ -17,6 +17,7 @@ from tone_scoring.alignment import SyllableSpan
 from tone_scoring.features import (
     CONTOUR_POINTS,
     FEATURE_NAMES,
+    declination_slope,
     features_to_vector,
     syllable_features,
     utterance_pitch_stats,
@@ -26,6 +27,17 @@ from tone_scoring.features import (
 def ramp(start_hz, end_hz, t0=0.0, t1=0.4, n=20):
     return [
         (t0 + (t1 - t0) * i / (n - 1), start_hz + (end_hz - start_hz) * i / (n - 1))
+        for i in range(n)
+    ]
+
+
+def log_ramp(start_hz, end_hz, t0=0.0, t1=2.0, n=200):
+    """A ramp that is linear in log-F0, which is how declination actually
+    behaves — and what a linear detrend can remove exactly. A ramp linear in
+    Hz curves in log space and would leave a position-dependent residual."""
+    ratio = end_hz / start_hz
+    return [
+        (t0 + (t1 - t0) * i / (n - 1), start_hz * ratio ** (i / (n - 1)))
         for i in range(n)
     ]
 
@@ -64,6 +76,73 @@ class TestSpeakerNormalisation:
         a = features_for(ramp(100.0, 120.0))
         b = features_for(ramp(200.0, 240.0))
         assert a["slope"] == pytest.approx(b["slope"], abs=1e-6)
+
+
+class TestDeclinationDetrending:
+    """Pitch drifts steadily downward across an utterance, which put a *level*
+    tone 1 at -1.52 st of apparent fall on native speakers. Left in, the same
+    correctly-produced tone measures differently depending only on where it
+    sits in the sentence — pure nuisance variance.
+    """
+
+    def test_measures_the_downward_drift_of_an_utterance(self):
+        falling = log_ramp(220.0, 110.0, 0.0, 2.0, n=100)
+        slope, reference = declination_slope(falling)
+        assert slope < 0
+        assert reference == pytest.approx(1.0, abs=0.05)
+
+    def test_a_level_utterance_has_no_drift(self):
+        flat = [(i * 0.02, 180.0) for i in range(100)]
+        slope, _ = declination_slope(flat)
+        assert slope == pytest.approx(0.0, abs=1e-9)
+
+    def test_returns_zero_when_there_is_too_little_data(self):
+        assert declination_slope([(0.0, 100.0)]) == (0.0, 0.0)
+
+    def test_a_level_tone_riding_on_declination_measures_as_level(self):
+        """The whole point: remove the sentence-level drift and a flat tone
+        reads flat, wherever in the utterance it occurs."""
+        drifting = log_ramp(220.0, 110.0, 0.0, 2.0, n=200)
+        slope, reference = declination_slope(drifting)
+        span = SyllableSpan(1.2, 1.5)
+        mean, std = utterance_pitch_stats(drifting, slope, reference)
+
+        contaminated = syllable_features(span, drifting, 1, 3, 6, *utterance_pitch_stats(drifting))
+        corrected = syllable_features(
+            span, drifting, 1, 3, 6, mean, std,
+            declination=slope, time_reference=reference,
+        )
+        assert contaminated["st_slope"] < -1.0        # apparent fall from drift
+        assert corrected["st_slope"] == pytest.approx(0.0, abs=0.2)
+
+    def test_the_same_tone_measures_alike_early_and_late(self):
+        """Nuisance variance removed: position must stop changing the reading."""
+        drifting = log_ramp(220.0, 110.0, 0.0, 2.0, n=200)
+        slope, reference = declination_slope(drifting)
+        mean, std = utterance_pitch_stats(drifting, slope, reference)
+        early = syllable_features(
+            SyllableSpan(0.2, 0.5), drifting, 1, 0, 6, mean, std,
+            declination=slope, time_reference=reference,
+        )
+        late = syllable_features(
+            SyllableSpan(1.5, 1.8), drifting, 1, 5, 6, mean, std,
+            declination=slope, time_reference=reference,
+        )
+        assert early["st_slope"] == pytest.approx(late["st_slope"], abs=0.2)
+
+    def test_detrending_preserves_a_real_rise(self):
+        """Removing drift must not remove the tone itself."""
+        drifting = log_ramp(220.0, 110.0, 0.0, 2.0, n=200)
+        slope, reference = declination_slope(drifting)
+        mean, std = utterance_pitch_stats(drifting, slope, reference)
+        # A syllable that rises against the falling trend stays a rise.
+        rising = drifting[:120] + log_ramp(140.0, 210.0, 1.2, 1.5, n=30) + drifting[150:]
+        rising = sorted(rising)
+        features = syllable_features(
+            SyllableSpan(1.2, 1.5), rising, 2, 3, 6, mean, std,
+            declination=slope, time_reference=reference,
+        )
+        assert features["st_slope"] > 1.0
 
 
 class TestAbsoluteMagnitude:

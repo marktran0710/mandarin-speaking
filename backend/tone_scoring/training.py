@@ -27,6 +27,7 @@ import numpy as np
 from tone_scoring.alignment import get_aligner
 from tone_scoring.features import (
     FEATURE_NAMES,
+    declination_slope,
     features_to_vector,
     syllable_features,
     utterance_pitch_stats,
@@ -109,7 +110,11 @@ def build_samples(
             drop("alignment_mismatch")
             continue
 
-        mean, deviation = utterance_pitch_stats(pitch_contour)
+        # Remove the utterance's declination once, then normalise against the
+        # detrended signal, so a syllable's reading no longer depends on where
+        # in the sentence it happens to fall.
+        drift, time_reference = declination_slope(pitch_contour)
+        mean, deviation = utterance_pitch_stats(pitch_contour, drift, time_reference)
         position = 0
         for word_index, word in enumerate(utterance.words):
             width = len(word.text)
@@ -146,6 +151,8 @@ def build_samples(
                     next_span=spans[position - width + offset + 1]
                     if position - width + offset + 1 < len(spans)
                     else None,
+                    declination=drift,
+                    time_reference=time_reference,
                 )
                 if features is None:
                     vectors = []

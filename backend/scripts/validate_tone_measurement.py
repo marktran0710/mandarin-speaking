@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from benchmarking.ompal_corpus import load_utterances
 from tone_scoring.alignment import get_aligner
-from tone_scoring.features import SEMITONES_PER_LOG
+from tone_scoring.features import SEMITONES_PER_LOG, declination_slope
 
 CORPUS_ROOT = Path(__file__).resolve().parent.parent / "private-data" / "ompal"
 
@@ -48,21 +48,30 @@ EXPECTATION = {
 MIN_T2_T1_SEPARATION = 1.0
 
 
-def _slope_semitones(frames) -> float | None:
-    """Mean-of-first-quarter to mean-of-last-quarter, in semitones."""
+def _detrended(frames, drift: float, reference: float) -> np.ndarray:
+    times = np.asarray([t for t, _ in frames], dtype=float)
+    logs = np.log(np.asarray([f for _, f in frames], dtype=float))
+    return logs - drift * (times - reference)
+
+
+def _slope_semitones(frames, drift: float = 0.0, reference: float = 0.0) -> float | None:
+    """Mean-of-first-quarter to mean-of-last-quarter, in semitones.
+
+    Declination is removed first, so the gate measures what the model measures.
+    """
     if len(frames) < 4:
         return None
-    logs = np.log(np.asarray([f for _, f in frames], dtype=float))
+    logs = _detrended(frames, drift, reference)
     quarter = max(1, len(logs) // 4)
     start = float(np.mean(logs[:quarter]))
     end = float(np.mean(logs[-quarter:]))
     return (end - start) * SEMITONES_PER_LOG
 
 
-def _dip_semitones(frames) -> float | None:
+def _dip_semitones(frames, drift: float = 0.0, reference: float = 0.0) -> float | None:
     if len(frames) < 4:
         return None
-    logs = np.log(np.asarray([f for _, f in frames], dtype=float))
+    logs = _detrended(frames, drift, reference)
     quarter = max(1, len(logs) // 4)
     start = float(np.mean(logs[:quarter]))
     return (start - float(logs.min())) * SEMITONES_PER_LOG
@@ -96,6 +105,7 @@ def measure(aligner_name: str = "energy") -> Dict[int, Dict[str, float]]:
         if len(spans) != len(characters):
             continue
         frames_per_syllable.append(len(pitch_contour) / max(len(characters), 1))
+        drift, reference = declination_slope(pitch_contour)
 
         position = 0
         for word in utterance.words:
@@ -106,8 +116,8 @@ def measure(aligner_name: str = "energy") -> Dict[int, Dict[str, float]]:
                 if tone not in (1, 2, 3, 4):
                     continue
                 frames = [(t, f) for t, f in span.frames(pitch_contour) if f > 0]
-                slope = _slope_semitones(frames)
-                dip = _dip_semitones(frames)
+                slope = _slope_semitones(frames, drift, reference)
+                dip = _dip_semitones(frames, drift, reference)
                 if slope is not None:
                     slopes[tone].append(slope)
                 if dip is not None:

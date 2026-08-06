@@ -69,6 +69,55 @@ FEATURE_NAMES: List[str] = (
 )
 
 
+def declination_slope(pitch_contour: Sequence[Tuple[float, float]]) -> Tuple[float, float]:
+    """Least-squares drift of log-F0 across the utterance, and its time origin.
+
+    Pitch drifts steadily downward over an utterance (declination). Measured on
+    native speakers, that drift put a *level* tone 1 at -1.52 semitones of
+    apparent fall in non-final position and -0.49 in final position -- the tone
+    had not changed, only where it sat in the sentence.
+
+    Left in, this is pure nuisance variance: the same correctly-produced tone 2
+    measures -1.08 early in an utterance and +0.32 at the end, a 1.4 semitone
+    swing that reflects position rather than pronunciation. Removing the trend
+    does not change the gap between two tones (a common offset cancels), but it
+    strips a large source of within-tone variance that a classifier would
+    otherwise have to treat as noise.
+
+    Returns (slope in log-units per second, reference time). Slope is 0.0 when
+    there is too little data or no time spread to fit.
+    """
+    points = [
+        (float(time), math.log(float(freq)))
+        for time, freq in pitch_contour
+        if float(freq) > 0
+    ]
+    if len(points) < 3:
+        return 0.0, 0.0
+    times = np.asarray([t for t, _ in points], dtype=float)
+    logs = np.asarray([v for _, v in points], dtype=float)
+    time_reference = float(times.mean())
+    centered = times - time_reference
+    denominator = float(np.sum(centered**2))
+    if denominator <= 1e-9:
+        return 0.0, time_reference
+    slope = float(np.sum(centered * (logs - logs.mean())) / denominator)
+    return slope, time_reference
+
+
+def _detrended_logs(
+    frames: Sequence[Tuple[float, float]], declination: float, time_reference: float
+) -> np.ndarray:
+    """log-F0 with the utterance's declination removed.
+
+    Only the time-varying part is subtracted, so the speaker's overall pitch
+    level is preserved and the features stay interpretable.
+    """
+    times = np.asarray([t for t, _ in frames], dtype=float)
+    logs = np.log(np.asarray([f for _, f in frames], dtype=float))
+    return logs - declination * (times - time_reference)
+
+
 def _resample(values: Sequence[float], points: int) -> List[float]:
     """Resample a contour to a fixed number of points by linear interpolation."""
     if len(values) == 1:
@@ -78,24 +127,29 @@ def _resample(values: Sequence[float], points: int) -> List[float]:
     return [float(v) for v in np.interp(target, source, values)]
 
 
-def utterance_pitch_stats(pitch_contour: Sequence[Tuple[float, float]]) -> Tuple[float, float]:
+def utterance_pitch_stats(
+    pitch_contour: Sequence[Tuple[float, float]],
+    declination: float = 0.0,
+    time_reference: float = 0.0,
+) -> Tuple[float, float]:
     """Mean and standard deviation of log-F0 across the whole utterance.
 
     The normalisation reference is the utterance rather than a global constant,
     so the features describe movement within this speaker's range on this
-    recording.
+    recording. When a declination slope is supplied the statistics are taken
+    over the detrended signal, so they match the values the syllable features
+    are z-scored against.
     """
-    values = [math.log(float(freq)) for _, freq in pitch_contour if float(freq) > 0]
-    if not values:
+    frames = [
+        (float(time), float(freq)) for time, freq in pitch_contour if float(freq) > 0
+    ]
+    if not frames:
         return 0.0, 1.0
+    values = _detrended_logs(frames, declination, time_reference)
     mean = float(np.mean(values))
     deviation = float(np.std(values))
     # A flat utterance would otherwise divide by zero and produce infinities.
     return mean, deviation if deviation > 1e-6 else 1.0
-
-
-def _z(values: Sequence[float], mean: float, deviation: float) -> List[float]:
-    return [(math.log(v) - mean) / deviation for v in values if v > 0]
 
 
 def syllable_features(
@@ -109,6 +163,8 @@ def syllable_features(
     intensity: Optional[Sequence[Tuple[float, float]]] = None,
     previous_span=None,
     next_span=None,
+    declination: float = 0.0,
+    time_reference: float = 0.0,
 ) -> Optional[Dict[str, float]]:
     """Features for one syllable, or None when it cannot be featurized.
 
@@ -120,7 +176,8 @@ def syllable_features(
     if len(frames) < MIN_FRAMES:
         return None
 
-    z_values = _z([f for _, f in frames], pitch_mean, pitch_std)
+    detrended = _detrended_logs(frames, declination, time_reference)
+    z_values = [(value - pitch_mean) / pitch_std for value in detrended]
     if len(z_values) < MIN_FRAMES:
         return None
 
@@ -160,7 +217,7 @@ def syllable_features(
     # tonal range. Insufficient excursion is the classic L2 tone error, so it
     # has to survive normalisation. Semitones are log ratios, so they stay
     # comparable across voices while preserving how much pitch actually moved.
-    logs = np.log(np.asarray([f for _, f in frames], dtype=float))
+    logs = detrended
     log_quarter = max(1, len(logs) // 4)
     log_start = float(np.mean(logs[:log_quarter]))
     log_end = float(np.mean(logs[-log_quarter:]))
@@ -173,8 +230,10 @@ def syllable_features(
         if log_min_index < len(logs) - 1
         else 0.0
     )
-    utterance_logs = np.log(
-        np.asarray([f for _, f in pitch_contour if f > 0], dtype=float)
+    utterance_logs = _detrended_logs(
+        [(float(t), float(f)) for t, f in pitch_contour if f > 0],
+        declination,
+        time_reference,
     )
     utterance_range = (
         float(utterance_logs.max() - utterance_logs.min()) * SEMITONES_PER_LOG
@@ -200,8 +259,14 @@ def syllable_features(
     # infer it.
     features["is_final"] = 1.0 if index == total - 1 else 0.0
 
-    features["prev_end_z"] = _edge_z(previous_span, pitch_contour, pitch_mean, pitch_std, last=True)
-    features["next_start_z"] = _edge_z(next_span, pitch_contour, pitch_mean, pitch_std, last=False)
+    features["prev_end_z"] = _edge_z(
+        previous_span, pitch_contour, pitch_mean, pitch_std,
+        declination, time_reference, last=True,
+    )
+    features["next_start_z"] = _edge_z(
+        next_span, pitch_contour, pitch_mean, pitch_std,
+        declination, time_reference, last=False,
+    )
 
     features["intensity_mean_z"], features["intensity_slope"] = _intensity_features(
         span, intensity
@@ -212,7 +277,9 @@ def syllable_features(
     return features
 
 
-def _edge_z(span, pitch_contour, mean, deviation, *, last: bool) -> float:
+def _edge_z(
+    span, pitch_contour, mean, deviation, declination=0.0, time_reference=0.0, *, last: bool
+) -> float:
     """Neighbouring syllable's adjacent pitch, for coarticulation context.
 
     A syllable's realisation depends on what precedes it: a tone 2 after a high
@@ -221,10 +288,13 @@ def _edge_z(span, pitch_contour, mean, deviation, *, last: bool) -> float:
     """
     if span is None:
         return 0.0
-    frames = [f for _, f in span.frames(pitch_contour) if f > 0]
+    frames = [(t, f) for t, f in span.frames(pitch_contour) if f > 0]
     if not frames:
         return 0.0
-    values = _z(frames, mean, deviation)
+    values = [
+        (value - mean) / deviation
+        for value in _detrended_logs(frames, declination, time_reference)
+    ]
     if not values:
         return 0.0
     return values[-1] if last else values[0]
