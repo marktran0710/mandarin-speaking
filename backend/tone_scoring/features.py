@@ -35,6 +35,17 @@ MIN_FRAMES = 4
 # Semitones per unit of natural log: 12 / ln(2).
 SEMITONES_PER_LOG = 12.0 / math.log(2.0)
 
+# A syllable-initial consonant perturbs F0 at vowel onset: voiceless obstruents
+# raise it, voiced consonants lower it, and the effect decays over roughly the
+# first 30-50 ms. Those frames carry consonant identity, not tone, so including
+# them adds variance that has nothing to do with how the tone was produced.
+#
+# Expressed as an absolute duration rather than a fraction of the syllable,
+# because the perturbation is a physiological property of the consonant release
+# and does not scale with how long the syllable happens to be. 30 ms is the
+# conservative end of the reported window, which keeps more of the tone.
+ONSET_PERTURBATION_SECONDS = 0.030
+
 FEATURE_NAMES: List[str] = (
     [f"contour_{i}" for i in range(CONTOUR_POINTS)]
     + [
@@ -118,6 +129,27 @@ def _detrended_logs(
     return logs - declination * (times - time_reference)
 
 
+def trim_consonant_onset(
+    frames: Sequence[Tuple[float, float]],
+    window: float = ONSET_PERTURBATION_SECONDS,
+    minimum_frames: int = MIN_FRAMES,
+) -> List[Tuple[float, float]]:
+    """Drop the syllable-initial frames a consonant perturbs.
+
+    Guarded rather than unconditional: a short syllable that cannot spare the
+    window keeps all its frames. Trimming it down to two or three points would
+    trade one noise source for a worse one, and silently returning fewer frames
+    than a tone shape needs is exactly the kind of quiet degradation the
+    unfeaturizable path exists to make visible.
+    """
+    frames = list(frames)
+    if len(frames) <= minimum_frames:
+        return frames
+    onset = frames[0][0]
+    kept = [frame for frame in frames if frame[0] >= onset + window]
+    return kept if len(kept) >= minimum_frames else frames
+
+
 def regression_slope(times: Sequence[float], values: Sequence[float]) -> float:
     """Least-squares slope of ``values`` against ``times``, per unit time.
 
@@ -198,6 +230,8 @@ def syllable_features(
     count 19% of syllables as failures it had never actually judged.
     """
     frames = [(t, f) for t, f in span.frames(pitch_contour) if f > 0]
+    # Consonant perturbation lives in the first few frames and is not tone.
+    frames = trim_consonant_onset(frames)
     if len(frames) < MIN_FRAMES:
         return None
 

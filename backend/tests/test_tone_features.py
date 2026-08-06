@@ -20,6 +20,7 @@ from tone_scoring.features import (
     declination_slope,
     features_to_vector,
     syllable_features,
+    trim_consonant_onset,
     utterance_pitch_stats,
 )
 
@@ -164,9 +165,13 @@ class TestAbsoluteMagnitude:
 
     def test_semitones_are_voice_independent(self):
         """An octave is 12 semitones for any voice, so the same tonal movement
-        gives the same value regardless of the speaker's absolute pitch."""
-        low = features_for(ramp(100.0, 200.0))
-        high = features_for(ramp(200.0, 400.0))
+        gives the same value regardless of the speaker's absolute pitch.
+
+        A long ramp is used so the 30 ms consonant-onset trim removes a
+        negligible slice; on a short syllable the trim legitimately shortens
+        the measured range."""
+        low = features_for(ramp(100.0, 200.0, 0.0, 2.0, n=100))
+        high = features_for(ramp(200.0, 400.0, 0.0, 2.0, n=100))
         assert low["st_range"] == pytest.approx(high["st_range"], abs=1e-6)
         assert low["st_range"] == pytest.approx(12.0, abs=0.5)
 
@@ -182,6 +187,38 @@ class TestAbsoluteMagnitude:
         )
         assert 0.0 < half["st_range_ratio"] < 1.0
         assert half["st_utterance_range"] == pytest.approx(12.0, abs=0.5)
+
+
+class TestConsonantOnsetTrim:
+    """A syllable-initial consonant perturbs F0 at vowel onset -- voiceless
+    obstruents raise it, voiced ones lower it -- decaying over roughly the
+    first 30-50 ms. Those frames carry consonant identity, not tone.
+    """
+
+    def test_drops_the_perturbed_opening_frames(self):
+        frames = [(i * 0.01, 100.0) for i in range(20)]
+        kept = trim_consonant_onset(frames)
+        assert kept[0][0] == pytest.approx(0.03, abs=1e-9)
+        assert len(kept) == 17
+
+    def test_trims_by_absolute_time_not_by_a_fraction(self):
+        """The perturbation is a physiological property of the consonant
+        release, so it does not scale with syllable length: a long syllable
+        must lose the same 30 ms as a short one, not a larger slice."""
+        short = trim_consonant_onset([(i * 0.01, 100.0) for i in range(12)])
+        long = trim_consonant_onset([(i * 0.01, 100.0) for i in range(60)])
+        assert short[0][0] == pytest.approx(long[0][0], abs=1e-9)
+
+    def test_a_short_syllable_keeps_all_its_frames(self):
+        """Trimming a syllable down to two or three points trades one noise
+        source for a worse one."""
+        frames = [(i * 0.01, 100.0) for i in range(4)]
+        assert trim_consonant_onset(frames) == frames
+
+    def test_keeps_everything_when_trimming_would_leave_too_few(self):
+        frames = [(i * 0.01, 100.0) for i in range(6)]
+        kept = trim_consonant_onset(frames, window=0.05)
+        assert kept == frames
 
 
 class TestShape:

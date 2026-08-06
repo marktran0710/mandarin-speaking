@@ -34,6 +34,7 @@ from tone_scoring.features import (
     SEMITONES_PER_LOG,
     declination_slope,
     regression_slope,
+    trim_consonant_onset,
 )
 
 CORPUS_ROOT = Path(__file__).resolve().parent.parent / "private-data" / "ompal"
@@ -160,7 +161,9 @@ def measure(aligner_name: str = "energy") -> Dict[int, Dict[str, float]]:
                 tone = word.expected_tones[offset]
                 if tone not in (1, 2, 3, 4):
                     continue
-                frames = [(t, f) for t, f in span.frames(pitch_contour) if f > 0]
+                frames = trim_consonant_onset(
+                    [(t, f) for t, f in span.frames(pitch_contour) if f > 0]
+                )
                 slope = _slope_semitones(frames, drift, reference)
                 dip = _dip_semitones(frames, drift, reference)
                 if slope is not None:
