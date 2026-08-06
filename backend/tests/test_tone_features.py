@@ -66,6 +66,45 @@ class TestSpeakerNormalisation:
         assert a["slope"] == pytest.approx(b["slope"], abs=1e-6)
 
 
+class TestAbsoluteMagnitude:
+    """Semitone features must preserve how much pitch actually moved.
+
+    The z-scored features are scale-free by construction, so they cannot tell a
+    full tonal excursion from a nearly flat one — but insufficient excursion is
+    the classic L2 tone error, and it is exactly what a teacher marks wrong.
+    """
+
+    def test_a_flat_speaker_is_distinguishable_from_a_full_range_one(self):
+        flat = features_for(ramp(150.0, 155.0))
+        full = features_for(ramp(120.0, 240.0))
+        assert flat["st_range"] < 1.0
+        assert full["st_range"] > 10.0
+        # The z-scored range cannot make this distinction, which is the whole
+        # reason the semitone features exist.
+        assert flat["range"] == pytest.approx(full["range"], abs=0.2)
+
+    def test_semitones_are_voice_independent(self):
+        """An octave is 12 semitones for any voice, so the same tonal movement
+        gives the same value regardless of the speaker's absolute pitch."""
+        low = features_for(ramp(100.0, 200.0))
+        high = features_for(ramp(200.0, 400.0))
+        assert low["st_range"] == pytest.approx(high["st_range"], abs=1e-6)
+        assert low["st_range"] == pytest.approx(12.0, abs=0.5)
+
+    def test_slope_sign_follows_direction(self):
+        assert features_for(ramp(100.0, 200.0))["st_slope"] > 0
+        assert features_for(ramp(200.0, 100.0))["st_slope"] < 0
+
+    def test_range_ratio_relates_the_syllable_to_the_utterance(self):
+        contour = ramp(100.0, 200.0, 0.0, 0.8, n=40)
+        mean, std = utterance_pitch_stats(contour)
+        half = syllable_features(
+            SyllableSpan(0.0, 0.4), contour, 2, 0, 2, mean, std
+        )
+        assert 0.0 < half["st_range_ratio"] < 1.0
+        assert half["st_utterance_range"] == pytest.approx(12.0, abs=0.5)
+
+
 class TestShape:
     def test_a_rise_and_a_fall_have_opposite_slope(self):
         assert features_for(ramp(100.0, 200.0))["slope"] > 0

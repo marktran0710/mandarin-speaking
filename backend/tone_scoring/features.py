@@ -32,6 +32,8 @@ CONTOUR_POINTS = 8
 # Fewer voiced frames than this cannot express a tone shape; the syllable is
 # reported unfeaturizable rather than given fabricated values.
 MIN_FRAMES = 4
+# Semitones per unit of natural log: 12 / ln(2).
+SEMITONES_PER_LOG = 12.0 / math.log(2.0)
 
 FEATURE_NAMES: List[str] = (
     [f"contour_{i}" for i in range(CONTOUR_POINTS)]
@@ -46,6 +48,12 @@ FEATURE_NAMES: List[str] = (
         "max_z",
         "dip_depth",
         "rise_after_dip",
+        "st_range",
+        "st_slope",
+        "st_dip_depth",
+        "st_rise_after_dip",
+        "st_utterance_range",
+        "st_range_ratio",
         "duration",
         "duration_ratio",
         "frame_count",
@@ -143,6 +151,39 @@ def syllable_features(
         float(array[low_index:].max() - array[low_index])
         if low_index < len(array) - 1
         else 0.0
+    )
+
+    # Absolute pitch movement, in semitones. Every feature above is z-scored
+    # within the utterance, which is right for *shape* but destroys *magnitude*:
+    # a learner who barely moves their pitch has that small variation stretched
+    # to unit variance and becomes indistinguishable from a speaker with full
+    # tonal range. Insufficient excursion is the classic L2 tone error, so it
+    # has to survive normalisation. Semitones are log ratios, so they stay
+    # comparable across voices while preserving how much pitch actually moved.
+    logs = np.log(np.asarray([f for _, f in frames], dtype=float))
+    log_quarter = max(1, len(logs) // 4)
+    log_start = float(np.mean(logs[:log_quarter]))
+    log_end = float(np.mean(logs[-log_quarter:]))
+    log_min_index = int(np.argmin(logs))
+    features["st_range"] = float(logs.max() - logs.min()) * SEMITONES_PER_LOG
+    features["st_slope"] = (log_end - log_start) * SEMITONES_PER_LOG
+    features["st_dip_depth"] = (log_start - float(logs[log_min_index])) * SEMITONES_PER_LOG
+    features["st_rise_after_dip"] = (
+        float(logs[log_min_index:].max() - logs[log_min_index]) * SEMITONES_PER_LOG
+        if log_min_index < len(logs) - 1
+        else 0.0
+    )
+    utterance_logs = np.log(
+        np.asarray([f for _, f in pitch_contour if f > 0], dtype=float)
+    )
+    utterance_range = (
+        float(utterance_logs.max() - utterance_logs.min()) * SEMITONES_PER_LOG
+        if len(utterance_logs)
+        else 0.0
+    )
+    features["st_utterance_range"] = utterance_range
+    features["st_range_ratio"] = (
+        features["st_range"] / utterance_range if utterance_range > 1e-6 else 0.0
     )
 
     duration = span.duration
