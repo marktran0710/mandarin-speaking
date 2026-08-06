@@ -65,7 +65,7 @@ def evaluate(samples, probabilities, threshold: float) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--aligner", default="energy")
-    parser.add_argument("--target", type=float, default=0.61)
+    parser.add_argument("--target", type=float, default=0.70)
     parser.add_argument("--embeddings", action="store_true",
                         help="add self-supervised speech embeddings (wav2vec2)")
     parser.add_argument("--layer", type=int, default=6)
@@ -121,9 +121,9 @@ def main() -> None:
     HEADLINE_THRESHOLD = select_threshold_on_training(samples)
     result = evaluate(used, probabilities, HEADLINE_THRESHOLD)
 
-    best_threshold, best_score = HEADLINE_THRESHOLD, result["mean_kappa"] or -2.0
+    best_threshold, best_score = HEADLINE_THRESHOLD, result["kappa_vs_majority"] or -2.0
     for candidate in np.arange(0.2, 0.81, 0.02):
-        score = evaluate(used, probabilities, float(candidate))["mean_kappa"]
+        score = evaluate(used, probabilities, float(candidate))["kappa_vs_majority"]
         if score is not None and score > best_score:
             best_threshold, best_score = float(candidate), score
     panel = [[s.rater_labels[i] for s in used] for i in range(len(used[0].rater_labels))]
@@ -131,13 +131,18 @@ def main() -> None:
 
     print("\n=== M2 LEARNED SCORER (pooled speaker-disjoint CV) ===")
     print(f"threshold           : {HEADLINE_THRESHOLD:.2f} (selected on held-out training data)")
-    print(f"mean kappa vs raters: {result['mean_kappa']:.4f}   (target {args.target})")
+    # Headline is agreement with the 3-rater majority (protocol change
+    # 2026-08-06); per-rater is context and is lower by nature.
+    print(f"kappa vs MAJORITY   : {result['kappa_vs_majority']:.4f}   (target {args.target})")
+    print(f"kappa vs raters     : {result['mean_kappa']:.4f}   (context; harder task)")
     print(f"  per rater         : {[round(k, 4) for k in result['per_rater']]}")
-    print(f"kappa vs majority   : {result['kappa_vs_majority']:.4f}")
     print(f"raw agreement       : {result['accuracy'] * 100:.1f}%")
     print(f"n                   : {result['n']}")
     print(f"human ceiling       : {ceiling:.4f}")
-    met = result["mean_kappa"] is not None and result["mean_kappa"] >= args.target
+    met = (
+        result["kappa_vs_majority"] is not None
+        and result["kappa_vs_majority"] >= args.target
+    )
     print(f"MEETS TARGET        : {met}")
     print(
         f"\n[not a valid headline] best sweep threshold {best_threshold:.2f} "

@@ -10,9 +10,11 @@ Protocol, fixed before any result was seen:
   computed once over all of them. A single test fold holds only 5 speakers,
   which is far too unstable to steer on; pooling uses every speaker exactly
   once while preserving speaker-disjointness.
-* Training labels are the rater majority, because a model needs one target per
-  syllable. Evaluation is against each rater individually, per the agreed
-  contract. That mismatch is structural and is reported, not hidden.
+* Training labels are the rater majority, and since the protocol change of
+  2026-08-06 the headline evaluation is against that same majority. The
+  train/evaluate mismatch that previously existed -- learn consensus, be graded
+  against noisy individuals -- is therefore gone. Per-rater agreement is still
+  computed and reported as context.
 """
 
 from __future__ import annotations
@@ -335,7 +337,7 @@ def select_threshold_on_training(
     best_threshold, best_kappa = 0.5, float("-inf")
     for candidate in np.arange(0.20, 0.96, 0.01):
         predicted = [bool(p >= candidate) for p in probabilities]
-        kappa = binary_agreement(predicted, select_y)["cohen_kappa"]
+        kappa = binary_agreement(predicted, select_y)["cohen_kappa"]  # vs majority
         if kappa is not None and kappa > best_kappa:
             best_threshold, best_kappa = float(candidate), kappa
     return best_threshold

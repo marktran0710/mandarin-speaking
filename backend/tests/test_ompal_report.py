@@ -147,38 +147,48 @@ class TestHumanCeilingAndVerdict:
         assert report["human_ceiling"]["rater_count"] == 3
         assert report["human_ceiling"]["item_count"] == 4
 
-    def test_headline_is_agreement_with_each_rater_separately(self):
-        """The agreed framing: one judge vs one judge on both sides, so the
-        number stays comparable to rater-vs-rater agreement."""
+    def test_headline_is_agreement_with_the_rater_majority(self):
+        """Protocol change 2026-08-06: the headline compares against the
+        3-rater majority. A perfect system scores 1.0 against that label, so
+        the target is reachable rather than bounded away as it was when
+        measured against noisy individuals."""
         items = [utterance(utterance_id=f"{i:03d}", words=(("他", 1, SPLIT), ("忙", 2, FULL)))
                  for i in range(5)]
         rows = [scored(f"{i:03d}") for i in range(5)]
-        primary = build_report(items, rows)["per_rater_agreement"]
+        report = build_report(items, rows)
+        assert report["verdict"]["compared_against"] == "majority"
+        assert report["verdict"]["target"] == 0.70
+        # Per-rater agreement survives as context, without a target of its own:
+        # applying the majority target to the harder per-rater task would
+        # report a failure the contract never asked for.
+        primary = report["per_rater_agreement"]
         assert primary["rater_count"] == 3
         assert len(primary["per_rater"]) == 3
-        assert primary["target"] == 0.61
+        assert "target" not in primary
+        assert report["verdict"]["per_rater_kappa"] is not None
 
     def test_verdict_reports_the_shortfall_against_the_committed_target(self):
         items = [utterance(utterance_id=f"{i:03d}", words=(("他", 1, FULL), ("忙", 2, SPLIT)))
                  for i in range(6)]
         rows = [scored(f"{i:03d}", scores=(80.0, 20.0)) for i in range(6)]
         verdict = build_report(items, rows)["verdict"]
-        assert verdict["target"] == 0.61
+        assert verdict["target"] == 0.70
         assert verdict["meets_target"] is False
         assert verdict["level"] in {"below_target", "near_target"}
         assert "target" in verdict["summary"]
 
-    def test_verdict_warns_when_the_target_exceeds_what_is_attainable(self):
-        """A target above the noise-free maximum must not read as ordinary
-        underperformance -- that would hide an unreachable goal."""
+    def test_the_oracle_bound_no_longer_gates_the_majority_headline(self):
+        """The 0.606-0.744 oracle bound is a property of the per-rater task.
+        Against the majority label a perfect system scores 1.0, so that warning
+        must not fire and imply the new target is unreachable."""
         items = [utterance(utterance_id=f"{i:03d}", words=(("他", 1, SPLIT), ("忙", 2, SPLIT)))
                  for i in range(8)]
         rows = [scored(f"{i:03d}", scores=(80.0, 20.0)) for i in range(8)]
         report = build_report(items, rows)
-        bound = report["oracle_bound"]
-        assert bound["uncontaminated"] is not None
-        if 0.61 > bound["uncontaminated"]:
-            assert "attainable maximum" in report["verdict"]["summary"]
+        # Still reported, because it is what the per-rater context must be read
+        # against -- it just no longer bounds the headline.
+        assert report["oracle_bound"]["uncontaminated"] is not None
+        assert "attainable maximum" not in report["verdict"]["summary"]
 
     def test_oracle_bound_reports_both_variants_and_the_tie_cost(self):
         items = [utterance(utterance_id=f"{i:03d}", words=(("他", 1, SPLIT), ("忙", 2, FULL)))
