@@ -46,6 +46,21 @@ SEMITONES_PER_LOG = 12.0 / math.log(2.0)
 # conservative end of the reported window, which keeps more of the tone.
 ONSET_PERTURBATION_SECONDS = 0.030
 
+# Pitch trackers mis-estimate F0 by an exact octave (12 semitones) when they
+# lock onto a harmonic or subharmonic, and creaky voice produces isolated wild
+# values. Neither is speech, and no downstream step can undo them.
+#
+# The bound is physiological: vocal folds cannot change tension fast enough to
+# move F0 several semitones between adjacent 10 ms frames. 4 semitones is set
+# well above the fastest real speech excursions and well below an octave
+# error, so it catches tracker failures without touching genuine tone
+# movement. It is a property of the larynx, not of this corpus.
+MAX_SEMITONE_JUMP = 4.0
+# Window for the running median a frame is compared against. Odd and small:
+# large enough to be robust to a single bad frame, small enough not to smooth
+# away a real tone contour.
+OUTLIER_MEDIAN_WINDOW = 5
+
 FEATURE_NAMES: List[str] = (
     [f"contour_{i}" for i in range(CONTOUR_POINTS)]
     + [
@@ -127,6 +142,46 @@ def _detrended_logs(
     times = np.asarray([t for t, _ in frames], dtype=float)
     logs = np.log(np.asarray([f for _, f in frames], dtype=float))
     return logs - declination * (times - time_reference)
+
+
+def clean_pitch_contour(
+    pitch_contour: Sequence[Tuple[float, float]],
+    max_jump_semitones: float = MAX_SEMITONE_JUMP,
+    window: int = OUTLIER_MEDIAN_WINDOW,
+) -> List[Tuple[float, float]]:
+    """Drop F0 frames the larynx could not have produced.
+
+    Each frame is compared against a running median of its neighbours; one
+    lying further than ``max_jump_semitones`` from that median is a tracker
+    artefact -- an octave lock or a creak spike -- rather than speech.
+
+    Frames are *dropped*, never replaced with an interpolated value. A
+    fabricated frame would be indistinguishable from a measured one downstream,
+    and this codebase has already been burned once by a placeholder that later
+    read as a real measurement.
+    """
+    frames = [
+        (float(time), float(freq))
+        for time, freq in pitch_contour
+        if float(freq) > 0
+    ]
+    if len(frames) < window:
+        return frames
+
+    logs = np.log(np.asarray([freq for _, freq in frames], dtype=float))
+    half = window // 2
+    kept: List[Tuple[float, float]] = []
+    for index, frame in enumerate(frames):
+        low = max(0, index - half)
+        high = min(len(logs), index + half + 1)
+        neighbourhood = np.concatenate([logs[low:index], logs[index + 1 : high]])
+        if len(neighbourhood) == 0:
+            kept.append(frame)
+            continue
+        deviation = abs(logs[index] - float(np.median(neighbourhood))) * SEMITONES_PER_LOG
+        if deviation <= max_jump_semitones:
+            kept.append(frame)
+    return kept
 
 
 def trim_consonant_onset(

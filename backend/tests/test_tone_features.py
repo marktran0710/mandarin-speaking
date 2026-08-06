@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from tone_scoring.alignment import SyllableSpan
 from tone_scoring.features import (
     CONTOUR_POINTS,
+    clean_pitch_contour,
     FEATURE_NAMES,
     declination_slope,
     features_to_vector,
@@ -187,6 +188,45 @@ class TestAbsoluteMagnitude:
         )
         assert 0.0 < half["st_range_ratio"] < 1.0
         assert half["st_utterance_range"] == pytest.approx(12.0, abs=0.5)
+
+
+class TestPitchOutlierRejection:
+    """Trackers lock onto a harmonic and report F0 an exact octave off, and
+    creaky voice produces isolated wild values. The larynx cannot move F0
+    several semitones between adjacent 10 ms frames, so such frames are not
+    speech and no downstream step can undo them.
+    """
+
+    def test_removes_an_octave_tracking_error(self):
+        frames = [(i * 0.01, 200.0) for i in range(11)]
+        frames[5] = (0.05, 400.0)          # classic octave lock
+        kept = clean_pitch_contour(frames)
+        assert len(kept) == 10
+        assert all(freq == pytest.approx(200.0) for _, freq in kept)
+
+    def test_removes_a_creak_dropout(self):
+        frames = [(i * 0.01, 200.0) for i in range(11)]
+        frames[6] = (0.06, 70.0)
+        assert len(clean_pitch_contour(frames)) == 10
+
+    def test_keeps_a_genuine_tone_contour_intact(self):
+        """A real rise moves far overall but only slightly between adjacent
+        frames, so nothing should be dropped."""
+        frames = [(i * 0.01, 150.0 * (1.5 ** (i / 20))) for i in range(21)]
+        assert len(clean_pitch_contour(frames)) == 21
+
+    def test_drops_rather_than_interpolates(self):
+        """A fabricated frame is indistinguishable from a measured one
+        downstream; this codebase has already been burned by a placeholder
+        that later read as a real measurement."""
+        frames = [(i * 0.01, 200.0) for i in range(11)]
+        frames[5] = (0.05, 400.0)
+        kept = clean_pitch_contour(frames)
+        assert all(abs(t - 0.05) > 1e-9 for t, _ in kept)
+
+    def test_leaves_a_very_short_contour_alone(self):
+        frames = [(0.0, 200.0), (0.01, 400.0)]
+        assert clean_pitch_contour(frames) == frames
 
 
 class TestConsonantOnsetTrim:
