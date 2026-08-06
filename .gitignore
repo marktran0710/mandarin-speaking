@@ -30,3 +30,4 @@ backend/*.zip
 .playwright-mcp/
 .playwright-cli/
 .superpowers/
+backend/models/
