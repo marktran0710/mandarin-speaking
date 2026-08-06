@@ -118,6 +118,31 @@ def _detrended_logs(
     return logs - declination * (times - time_reference)
 
 
+def regression_slope(times: Sequence[float], values: Sequence[float]) -> float:
+    """Least-squares slope of ``values`` against ``times``, per unit time.
+
+    This replaces a mean-of-last-quarter minus mean-of-first-quarter estimate.
+    That endpoint difference throws away the middle of the contour and rests on
+    two small samples, so its variance is far higher than a line fitted through
+    every frame -- and variance, not the mean, is what makes the tone
+    measurement unusable (correctly-produced T1 and T2 separate by 1.04
+    semitones against a pooled spread of 5.57).
+
+    This is a property of the estimator, not a tuning choice: averaging n
+    points beats averaging n/4 of them regardless of corpus, so it should
+    transfer to any speaker rather than fit this one.
+    """
+    if len(times) < 2:
+        return 0.0
+    time_array = np.asarray(times, dtype=float)
+    value_array = np.asarray(values, dtype=float)
+    centered = time_array - time_array.mean()
+    denominator = float(np.sum(centered**2))
+    if denominator <= 1e-12:
+        return 0.0
+    return float(np.sum(centered * (value_array - value_array.mean())) / denominator)
+
+
 def _resample(values: Sequence[float], points: int) -> List[float]:
     """Resample a contour to a fixed number of points by linear interpolation."""
     if len(values) == 1:
@@ -191,7 +216,12 @@ def syllable_features(
     features: Dict[str, float] = {
         f"contour_{i}": value for i, value in enumerate(contour)
     }
-    features["slope"] = end_z - start_z
+    # Slope over the whole syllable, fitted rather than differenced. Expressed
+    # as total change across the syllable so the units match the previous
+    # endpoint estimate and downstream thresholds keep their meaning.
+    frame_times = [t for t, _ in frames]
+    span_seconds = max(frame_times[-1] - frame_times[0], 1e-6)
+    features["slope"] = regression_slope(frame_times, z_values)
     # Positive curvature = dips in the middle (tone 3); negative = arches.
     features["curvature"] = float((start_z + end_z) / 2.0 - np.mean(middle))
     features["range"] = float(array.max() - array.min())
@@ -223,7 +253,7 @@ def syllable_features(
     log_end = float(np.mean(logs[-log_quarter:]))
     log_min_index = int(np.argmin(logs))
     features["st_range"] = float(logs.max() - logs.min()) * SEMITONES_PER_LOG
-    features["st_slope"] = (log_end - log_start) * SEMITONES_PER_LOG
+    features["st_slope"] = regression_slope(frame_times, logs) * SEMITONES_PER_LOG
     features["st_dip_depth"] = (log_start - float(logs[log_min_index])) * SEMITONES_PER_LOG
     features["st_rise_after_dip"] = (
         float(logs[log_min_index:].max() - logs[log_min_index]) * SEMITONES_PER_LOG

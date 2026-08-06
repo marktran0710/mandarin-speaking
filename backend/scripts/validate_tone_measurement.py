@@ -30,7 +30,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from benchmarking.ompal_corpus import load_utterances
 from tone_scoring.alignment import get_aligner
-from tone_scoring.features import SEMITONES_PER_LOG, declination_slope
+from tone_scoring.features import (
+    SEMITONES_PER_LOG,
+    declination_slope,
+    regression_slope,
+)
 
 CORPUS_ROOT = Path(__file__).resolve().parent.parent / "private-data" / "ompal"
 
@@ -75,10 +79,9 @@ def _slope_semitones(frames, drift: float = 0.0, reference: float = 0.0) -> floa
     if len(frames) < 4:
         return None
     logs = _detrended(frames, drift, reference)
-    quarter = max(1, len(logs) // 4)
-    start = float(np.mean(logs[:quarter]))
-    end = float(np.mean(logs[-quarter:]))
-    return (end - start) * SEMITONES_PER_LOG
+    # Same estimator the features use, or the gate would not be testing them.
+    times = [t for t, _ in frames]
+    return regression_slope(times, logs) * SEMITONES_PER_LOG
 
 
 def _dip_semitones(frames, drift: float = 0.0, reference: float = 0.0) -> float | None:
