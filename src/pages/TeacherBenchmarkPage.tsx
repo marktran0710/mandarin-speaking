@@ -259,20 +259,46 @@ export default function TeacherBenchmarkPage() {
             <h3>{verdict.summary}</h3>
             <div className="tbench-verdict-bars">
               <div>
-                <span>Our system vs teachers</span>
+                <span>Our system vs one teacher</span>
                 <div className="tbench-bar">
                   <i style={{ width: `${kappaWidth(verdict.system_kappa)}%` }} />
                 </div>
                 <strong>κ {decimal(verdict.system_kappa)}</strong>
               </div>
               <div>
-                <span>Teachers vs each other (ceiling)</span>
+                <span>Target</span>
+                <div className="tbench-bar is-target">
+                  <i style={{ width: `${kappaWidth(verdict.target)}%` }} />
+                </div>
+                <strong>κ {decimal(verdict.target)}</strong>
+              </div>
+              <div>
+                <span>Teachers vs each other</span>
                 <div className="tbench-bar is-ceiling">
                   <i style={{ width: `${kappaWidth(verdict.human_ceiling_kappa)}%` }} />
                 </div>
                 <strong>κ {decimal(verdict.human_ceiling_kappa)}</strong>
               </div>
+              <div>
+                <span>Best a perfect system could do</span>
+                <div className="tbench-bar is-oracle">
+                  <i style={{ width: `${kappaWidth(verdict.attainable_max_high)}%` }} />
+                </div>
+                <strong>
+                  κ {decimal(verdict.attainable_max_low, 2)}–{decimal(verdict.attainable_max_high, 2)}
+                </strong>
+              </div>
             </div>
+            {/* Per-rater spread matters: the headline is their mean, and a wide
+                spread means the system suits some teachers far better than others. */}
+            {report.per_rater_agreement?.per_rater?.length > 0 && (
+              <p className="tbench-muted tbench-perrater">
+                Per rater:{" "}
+                {(report.per_rater_agreement.per_rater as JsonObject[])
+                  .map((r) => `rater ${r.rater} κ ${decimal(r.cohen_kappa)}`)
+                  .join(" · ")}
+              </p>
+            )}
           </section>
 
           <div className="tbench-metrics">
@@ -281,8 +307,16 @@ export default function TeacherBenchmarkPage() {
               value={String(protocol?.rated_word_count ?? 0)}
               hint={`${protocol?.recording_count ?? 0} utterances · ${protocol?.speaker_count ?? 0} speakers`}
             />
-            <MetricCard label="Agreement" value={percentage(overall?.accuracy)} hint="System vs teacher majority" />
-            <MetricCard label="F1" value={percentage(overall?.f1)} hint="On correctly-pronounced words" />
+            <MetricCard
+              label="Raw agreement"
+              value={percentage(overall?.accuracy)}
+              hint="Gameable — a pass-everything scorer scores ~87%"
+            />
+            <MetricCard
+              label="κ vs majority"
+              value={decimal(overall?.cohen_kappa)}
+              hint="Context only — easier target than one rater"
+            />
             <MetricCard
               label="Rater unanimity"
               value={percentage(ceiling?.unanimous_rate)}

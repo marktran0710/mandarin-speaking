@@ -19,13 +19,29 @@ function statusBody(overrides: Record<string, unknown> = {}) {
 function reportBody(overrides: Record<string, unknown> = {}) {
   return {
     verdict: {
-      system_kappa: 0.58,
-      human_ceiling_kappa: 0.62,
-      ratio: 0.935,
-      level: "at_human_level",
+      system_kappa: 0.019,
+      target: 0.61,
+      meets_target: false,
+      human_ceiling_kappa: 0.494,
+      attainable_max_low: 0.602,
+      attainable_max_high: 0.742,
+      level: "below_target",
       summary:
-        "The system agrees with the teacher panel (kappa 0.58) about as well as the teachers agree with each other (kappa 0.62).",
+        "The system agrees with an individual teacher at kappa 0.019, short of the 0.61 target by 0.591.",
     },
+    per_rater_agreement: {
+      n: 9308,
+      rater_count: 3,
+      mean_cohen_kappa: 0.019,
+      target: 0.61,
+      meets_target: false,
+      per_rater: [
+        { rater: 1, cohen_kappa: 0.0194, accuracy: 0.559 },
+        { rater: 2, cohen_kappa: 0.0158, accuracy: 0.562 },
+        { rater: 3, cohen_kappa: 0.0207, accuracy: 0.560 },
+      ],
+    },
+    oracle_bound: { contaminated: 0.742, uncontaminated: 0.602, dropped_for_ties: 1266 },
     benchmark_protocol: {
       threshold: 58, production_threshold: 58, recording_count: 1850,
       speaker_count: 49, rated_word_count: 9400,
@@ -54,7 +70,7 @@ function reportBody(overrides: Record<string, unknown> = {}) {
       mean_absolute_error: null,
       note: "Not applicable: OMPAL rates utterances on a 1-5 rubric…",
     },
-    exclusions: { neutral_tone: 820, alignment_mismatch: 12 },
+    exclusions: { neutral_tone: 820, alignment_mismatch: 12, unjudged_by_analyzer: 3558 },
     release_gate: {
       checks: [
         { name: "accuracy", passed: true, actual: 0.88, operator: ">=", threshold: 0.85, applicable: true, detail: "" },
@@ -121,7 +137,7 @@ describe("TeacherBenchmarkPage", () => {
     expect(screen.getByText(/3 unscorable/)).toBeInTheDocument();
   });
 
-  it("leads with the system-vs-human-ceiling verdict", async () => {
+  it("leads with the verdict against the committed target", async () => {
     vi.stubGlobal("fetch", mockFetch({
       status: statusBody({
         corpus: { downloaded: true, wav_count: 1850, citation: "OMPAL … CC BY 4.0." },
@@ -132,10 +148,40 @@ describe("TeacherBenchmarkPage", () => {
     }));
     render(<TeacherBenchmarkPage />);
     await waitFor(() =>
-      expect(screen.getByText(/about as well as the teachers agree with each other/)).toBeInTheDocument(),
+      expect(screen.getByText(/short of the 0.61 target/)).toBeInTheDocument(),
     );
-    expect(screen.getByText("Teachers vs each other (ceiling)")).toBeInTheDocument();
-    expect(screen.getByText("κ 0.620")).toBeInTheDocument();
+    expect(screen.getByText("Our system vs one teacher")).toBeInTheDocument();
+    expect(screen.getByText("Target")).toBeInTheDocument();
+    expect(screen.getByText("Teachers vs each other")).toBeInTheDocument();
+    // The attainable maximum must stay visible so the target is always read
+    // against what a perfect system could actually reach.
+    expect(screen.getByText("Best a perfect system could do")).toBeInTheDocument();
+    expect(screen.getByText(/0.60.*0.74/)).toBeInTheDocument();
+  });
+
+  it("shows the per-rater spread behind the averaged headline", async () => {
+    vi.stubGlobal("fetch", mockFetch({
+      status: statusBody({
+        corpus: { downloaded: true, wav_count: 1850, citation: "c" },
+        has_results: true,
+      }),
+      report: reportBody(),
+    }));
+    render(<TeacherBenchmarkPage />);
+    await waitFor(() => expect(screen.getByText(/rater 1/)).toBeInTheDocument());
+    expect(screen.getByText(/rater 3/)).toBeInTheDocument();
+  });
+
+  it("labels raw agreement as gameable so it is not read as success", async () => {
+    vi.stubGlobal("fetch", mockFetch({
+      status: statusBody({
+        corpus: { downloaded: true, wav_count: 1850, citation: "c" },
+        has_results: true,
+      }),
+      report: reportBody(),
+    }));
+    render(<TeacherBenchmarkPage />);
+    await waitFor(() => expect(screen.getByText(/Gameable/)).toBeInTheDocument());
   });
 
   it("breaks agreement down per tone so a weak tone cannot hide", async () => {
@@ -188,7 +234,7 @@ describe("TeacherBenchmarkPage", () => {
     }));
     render(<TeacherBenchmarkPage />);
     await waitFor(() => expect(screen.getByText(/French-L1 learners/)).toBeInTheDocument());
-    expect(screen.getByText(/neutral tone \(820\)/)).toBeInTheDocument();
+    expect(screen.getByText(/unjudged by analyzer \(3558\)/)).toBeInTheDocument();
   });
 
   it("reports a failed run instead of leaving the page blank", async () => {

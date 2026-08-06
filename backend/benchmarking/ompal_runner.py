@@ -89,10 +89,16 @@ def is_running() -> bool:
 
 
 def flatten_characters(word_prosody: Sequence[dict]) -> list[dict[str, Any]]:
-    """Reduce the analyzer's word output to a flat per-character score list.
+    """Reduce the analyzer's word output to a flat per-character record list.
 
     OMPAL rates its own word units, which never coincide with jieba's
     tokenization, so characters are the only common ground between the two.
+
+    ``judged`` carries the analyzer's own refusal to score: it sets
+    ``passed=None`` when a segment had too few pitch frames to read a tone
+    shape, and fills ``score`` with a placeholder 0.0. Treating that
+    placeholder as a real failing score blames the system for syllables it
+    explicitly declined to judge, so the flag must survive into the report.
     """
     characters: list[dict[str, Any]] = []
     for word in word_prosody or []:
@@ -100,9 +106,11 @@ def flatten_characters(word_prosody: Sequence[dict]) -> list[dict[str, Any]]:
             character = str(syllable.get("char") or "")
             if not character:
                 continue
-            characters.append(
-                {"char": character, "score": float(syllable.get("score") or 0.0)}
-            )
+            characters.append({
+                "char": character,
+                "score": float(syllable.get("score") or 0.0),
+                "judged": syllable.get("passed") is not None,
+            })
     return characters
 
 

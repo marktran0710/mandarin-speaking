@@ -39,13 +39,19 @@
 .tbench-verdict.is-unknown { border-left-color: #8a9a93; background: #f6f8f7; }
 .tbench-verdict-kicker { margin: 0; color: #2f7b63; font-size: .68rem; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
 .tbench-verdict h3 { margin: .35rem 0 1rem; font-size: 1.05rem; line-height: 1.5; max-width: 72ch; }
-.tbench-verdict-bars { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.tbench-verdict-bars { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.tbench-perrater { margin: .9rem 0 0; }
 .tbench-verdict-bars > div { display: grid; gap: .3rem; }
 .tbench-verdict-bars span { color: #5c6f68; font-size: .78rem; }
 .tbench-verdict-bars strong { font-size: .95rem; }
 .tbench-bar { height: 10px; border-radius: 999px; background: #e3ebe8; overflow: hidden; }
 .tbench-bar i { display: block; height: 100%; background: #2f9b73; }
 .tbench-bar.is-ceiling i { background: #7d93b8; }
+.tbench-bar.is-target i { background: #d7a02e; }
+.tbench-bar.is-oracle i { background: #9a8ab8; }
+.tbench-verdict.is-meets_target { border-left-color: #2f9b73; background: #f2fbf7; }
+.tbench-verdict.is-near_target { border-left-color: #d7a02e; background: #fffaef; }
+.tbench-verdict.is-below_target { border-left-color: #bf4f4f; background: #fff6f5; }
 
 .tbench-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; }
 .tbench-metric {

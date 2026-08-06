@@ -57,14 +57,32 @@ def fake_analyzer(scores=(80.0, 50.0, 90.0), text="他很忙", tone_accuracy=73.
 class TestFlattenCharacters:
     def test_flattens_syllables_across_words(self):
         word_prosody = [
-            {"syllables": [{"char": "他", "score": 80}, {"char": "們", "score": 40}]},
-            {"syllables": [{"char": "忙", "score": 90}]},
+            {"syllables": [
+                {"char": "他", "score": 80, "passed": True},
+                {"char": "們", "score": 40, "passed": False},
+            ]},
+            {"syllables": [{"char": "忙", "score": 90, "passed": True}]},
         ]
         assert flatten_characters(word_prosody) == [
-            {"char": "他", "score": 80.0},
-            {"char": "們", "score": 40.0},
-            {"char": "忙", "score": 90.0},
+            {"char": "他", "score": 80.0, "judged": True},
+            {"char": "們", "score": 40.0, "judged": True},
+            {"char": "忙", "score": 90.0, "judged": True},
         ]
+
+    def test_marks_a_syllable_the_analyzer_declined_to_judge(self):
+        """The analyzer sets passed=None with a placeholder score of 0.0 when a
+        segment had too few pitch frames. Scoring that 0.0 as a real failure
+        blames the system for a judgement it explicitly withheld."""
+        word_prosody = [{"syllables": [{"char": "他", "score": 0.0, "passed": None}]}]
+        assert flatten_characters(word_prosody) == [
+            {"char": "他", "score": 0.0, "judged": False}
+        ]
+
+    def test_a_genuine_zero_score_is_still_judged(self):
+        """A real 0.0 from a scored segment must not be confused with the
+        placeholder — only passed=None means unjudged."""
+        word_prosody = [{"syllables": [{"char": "他", "score": 0.0, "passed": False}]}]
+        assert flatten_characters(word_prosody)[0]["judged"] is True
 
     def test_returns_empty_when_no_syllables_were_produced(self):
         assert flatten_characters([{"token": "abc", "syllables": []}]) == []

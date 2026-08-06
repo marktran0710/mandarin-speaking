@@ -11,11 +11,15 @@ from benchmarking.ompal_corpus import OmpalUtterance, OmpalWord
 from benchmarking.ompal_report import PRODUCTION_THRESHOLD, build_report
 
 
+FULL = (True, True, True)      # a unanimous 3-rater panel
+SPLIT = (False, True, True)    # raters disagree, majority passes
+
+
 def utterance(
     utterance_id="00200101",
     speaker_id="SPEAKER02001",
     is_native=False,
-    words=(("他", 1, (True,)), ("忙", 2, (True,))),
+    words=(("他", 1, FULL), ("忙", 2, FULL)),
     accuracy=(4.0,),
     fluency=(4.0,),
 ):
@@ -42,6 +46,7 @@ def scored(
     fluency=70.0,
     error=None,
     chars="他忙",
+    judged=True,
 ):
     return {
         "utterance_id": utterance_id,
@@ -50,7 +55,8 @@ def scored(
         "system_tone_accuracy": tone_accuracy,
         "system_fluency": fluency,
         "characters": [
-            {"char": char, "score": score} for char, score in zip(chars, scores)
+            {"char": char, "score": score, "judged": judged}
+            for char, score in zip(chars, scores)
         ],
         "error": error,
     }
@@ -77,7 +83,7 @@ class TestExclusions:
     def test_excludes_and_counts_neutral_tone_words(self):
         """Our scorer has no T1-T4 shape for neutral tone, so those words
         cannot be fairly judged and must be reported as excluded, not hidden."""
-        items = [utterance(words=(("他", 1, (True,)), ("們", 5, (True,))))]
+        items = [utterance(words=(("他", 1, FULL), ("們", 5, FULL)))]
         rows = [scored(chars="他們")]
         report = build_report(items, rows)
         assert report["exclusions"]["neutral_tone"] == 1
@@ -87,6 +93,40 @@ class TestExclusions:
         report = build_report([utterance()], [scored(error="unreadable wav")])
         assert report["exclusions"]["analyzer_error"] == 1
         assert report["pass_fail_agreement"] == {"n": 0}
+
+    def test_excludes_syllables_the_analyzer_declined_to_judge(self):
+        """The analyzer writes a placeholder 0.0 with passed=None when a
+        segment had too few pitch frames. Scoring that as a failure blamed the
+        system for ~19% of syllables it never actually judged -- and teachers
+        passed 86% of them, so it was pure injected noise."""
+        report = build_report([utterance()], [scored(scores=(0.0, 0.0), judged=False)])
+        assert report["exclusions"]["unjudged_by_analyzer"] == 2
+        assert report["per_rater_agreement"]["n"] == 0
+
+    def test_a_judged_zero_score_still_counts_as_a_failure(self):
+        """Only the placeholder is excluded; a genuinely measured 0.0 is a
+        real failing score and must still be held against the system."""
+        report = build_report([utterance()], [scored(scores=(0.0, 0.0), judged=True)])
+        assert "unjudged_by_analyzer" not in report["exclusions"]
+        assert report["per_rater_agreement"]["n"] == 2
+
+    def test_rejects_legacy_records_that_predate_the_judged_flag(self):
+        """Without the flag, placeholder zeros are indistinguishable from real
+        failures, so such a record cannot be interpreted safely at all."""
+        legacy = scored()
+        for entry in legacy["characters"]:
+            del entry["judged"]
+        report = build_report([utterance()], [legacy])
+        assert report["exclusions"]["legacy_record_without_judged_flag"] == 1
+        assert report["per_rater_agreement"]["n"] == 0
+
+    def test_excludes_words_without_a_full_rater_panel(self):
+        """Averaging kappa over differently-sized panels is not a single
+        interpretable quantity, so partial panels are dropped and counted."""
+        items = [utterance(words=(("他", 1, (True,)), ("忙", 2, FULL)))]
+        report = build_report(items, [scored()])
+        assert report["exclusions"]["incomplete_rater_panel"] == 1
+        assert report["per_rater_agreement"]["n"] == 1
 
     def test_excludes_and_counts_alignment_mismatches(self):
         """A misalignment would shift every label, so the utterance is dropped
@@ -98,62 +138,55 @@ class TestExclusions:
 
 
 class TestHumanCeilingAndVerdict:
-    def test_reports_the_ceiling_from_learner_rater_panels(self):
+    def test_reports_the_ceiling_from_rater_panels(self):
         items = [
-            utterance(
-                utterance_id="001",
-                words=(("他", 1, (True, True, False)), ("忙", 2, (True, True, True))),
-            ),
-            utterance(
-                utterance_id="002",
-                words=(("他", 1, (False, False, False)), ("忙", 2, (True, False, True))),
-            ),
+            utterance(utterance_id="001", words=(("他", 1, SPLIT), ("忙", 2, FULL))),
+            utterance(utterance_id="002", words=(("他", 1, FULL), ("忙", 2, SPLIT))),
         ]
-        rows = [scored("001"), scored("002")]
-        report = build_report(items, rows)
+        report = build_report(items, [scored("001"), scored("002")])
         assert report["human_ceiling"]["rater_count"] == 3
         assert report["human_ceiling"]["item_count"] == 4
 
-    def test_verdict_compares_system_against_the_ceiling(self):
-        """Raters mostly agree (one dissent on 他), giving a positive ceiling;
-        the system tracks them, so a real ratio can be formed."""
-        items = [
-            utterance(
-                utterance_id=f"{index:03d}",
-                words=(("他", 1, (True, True, False)), ("忙", 2, (False, False, False))),
-            )
-            for index in range(6)
-        ]
-        rows = [scored(f"{index:03d}", scores=(80.0, 20.0)) for index in range(6)]
-        report = build_report(items, rows)
-        verdict = report["verdict"]
-        assert verdict["human_ceiling_kappa"] > 0
-        assert verdict["ratio"] is not None
-        assert verdict["level"] in {"at_human_level", "approaching_human", "below_human"}
-        assert "kappa" in verdict["summary"]
+    def test_headline_is_agreement_with_each_rater_separately(self):
+        """The agreed framing: one judge vs one judge on both sides, so the
+        number stays comparable to rater-vs-rater agreement."""
+        items = [utterance(utterance_id=f"{i:03d}", words=(("他", 1, SPLIT), ("忙", 2, FULL)))
+                 for i in range(5)]
+        rows = [scored(f"{i:03d}") for i in range(5)]
+        primary = build_report(items, rows)["per_rater_agreement"]
+        assert primary["rater_count"] == 3
+        assert len(primary["per_rater"]) == 3
+        assert primary["target"] == 0.61
 
-    def test_a_non_positive_ceiling_is_reported_as_measured_not_missing(self):
-        """Systematically opposed raters produce a negative ceiling. That is a
-        finding about the panel, not a tooling failure, and saying "could not
-        be computed" would blame the tool for what the data actually shows."""
-        items = [
-            utterance(
-                utterance_id=f"{index:03d}",
-                words=(("他", 1, (True, True, False)), ("忙", 2, (False, False, True))),
-            )
-            for index in range(6)
-        ]
-        rows = [scored(f"{index:03d}", scores=(80.0, 20.0)) for index in range(6)]
+    def test_verdict_reports_the_shortfall_against_the_committed_target(self):
+        items = [utterance(utterance_id=f"{i:03d}", words=(("他", 1, FULL), ("忙", 2, SPLIT)))
+                 for i in range(6)]
+        rows = [scored(f"{i:03d}", scores=(80.0, 20.0)) for i in range(6)]
         verdict = build_report(items, rows)["verdict"]
-        assert verdict["level"] == "no_reliable_ceiling"
-        assert verdict["human_ceiling_kappa"] < 0
-        assert verdict["ratio"] is None
-        assert "did not agree with each other beyond chance" in verdict["summary"]
+        assert verdict["target"] == 0.61
+        assert verdict["meets_target"] is False
+        assert verdict["level"] in {"below_target", "near_target"}
+        assert "target" in verdict["summary"]
 
-    def test_verdict_is_unknown_when_the_ceiling_cannot_be_computed(self):
-        """A single-rater panel has no inter-rater agreement to measure."""
-        report = build_report([utterance()], [scored()])
-        assert report["verdict"]["level"] == "unknown"
+    def test_verdict_warns_when_the_target_exceeds_what_is_attainable(self):
+        """A target above the noise-free maximum must not read as ordinary
+        underperformance -- that would hide an unreachable goal."""
+        items = [utterance(utterance_id=f"{i:03d}", words=(("他", 1, SPLIT), ("忙", 2, SPLIT)))
+                 for i in range(8)]
+        rows = [scored(f"{i:03d}", scores=(80.0, 20.0)) for i in range(8)]
+        report = build_report(items, rows)
+        bound = report["oracle_bound"]
+        assert bound["uncontaminated"] is not None
+        if 0.61 > bound["uncontaminated"]:
+            assert "attainable maximum" in report["verdict"]["summary"]
+
+    def test_oracle_bound_reports_both_variants_and_the_tie_cost(self):
+        items = [utterance(utterance_id=f"{i:03d}", words=(("他", 1, SPLIT), ("忙", 2, FULL)))
+                 for i in range(6)]
+        rows = [scored(f"{i:03d}") for i in range(6)]
+        bound = build_report(items, rows)["oracle_bound"]
+        assert bound["contaminated"] is not None
+        assert bound["dropped_for_ties"] is not None
 
 
 class TestPopulationSplit:

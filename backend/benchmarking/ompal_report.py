@@ -26,6 +26,11 @@ from benchmarking.tone_release_gate import evaluate_tone_release_gate
 
 PRODUCTION_THRESHOLD = 58.0
 
+# The agreed evaluation contract (see the M0 protocol). Frozen deliberately:
+# changing any of these silently would make results across runs incomparable.
+RATER_PANEL_SIZE = 3
+TARGET_KAPPA = 0.61  # Landis-Koch "substantial agreement"
+
 POPULATION_CAVEAT = (
     "OMPAL speakers are French-L1 learners reading prompted sentences. These "
     "results validate the tone scorer itself; they do not directly predict "
@@ -43,8 +48,14 @@ def _judgement_rows(
     utterances: Sequence[OmpalUtterance],
     scored_rows: Iterable[dict[str, Any]],
     threshold: float,
+    panel_size: int = RATER_PANEL_SIZE,
 ) -> tuple[list[dict[str, Any]], dict[str, int], list[list[bool]]]:
-    """Pair every rated word with the system's verdict at ``threshold``."""
+    """Pair every rated word with the system's verdict at ``threshold``.
+
+    Restricted to words carrying a full ``panel_size`` rater panel. Mixing
+    panel sizes would make the per-rater agreement mean an average over
+    different-sized panels, which is not a single interpretable quantity.
+    """
     by_id = {utterance.utterance_id: utterance for utterance in utterances}
     rows: list[dict[str, Any]] = []
     exclusions = Counter()
@@ -59,18 +70,39 @@ def _judgement_rows(
             exclusions["analyzer_error"] += 1
             continue
 
+        entries = scored.get("characters") or []
+        # A record predating the judged flag cannot be interpreted safely: its
+        # placeholder zeros are indistinguishable from real failing scores.
+        legacy = any("judged" not in entry for entry in entries)
         characters = [
             (str(entry.get("char") or ""), float(entry.get("score") or 0.0) >= threshold)
-            for entry in scored.get("characters") or []
+            for entry in entries
         ]
+        judged_flags = [bool(entry.get("judged", True)) for entry in entries]
         verdicts = align_system_characters(utterance.words, characters)
         if verdicts is None:
             exclusions["alignment_mismatch"] += 1
             continue
+        if legacy:
+            exclusions["legacy_record_without_judged_flag"] += 1
+            continue
 
+        position = 0
         for word, system_passed in zip(utterance.words, verdicts):
+            span = slice(position, position + len(word.text))
+            word_judged = all(judged_flags[span])
+            position += len(word.text)
+
             if word.has_neutral_tone:
                 exclusions["neutral_tone"] += 1
+                continue
+            if not word_judged:
+                # The analyzer withheld a verdict here; counting it as a
+                # failure would penalise the system for declining to guess.
+                exclusions["unjudged_by_analyzer"] += 1
+                continue
+            if len(word.rater_tone_labels) != panel_size:
+                exclusions["incomplete_rater_panel"] += 1
                 continue
             teacher = majority_label(word.rater_tone_labels)
             if teacher is None:
@@ -88,8 +120,7 @@ def _judgement_rows(
                 "teacher_passed": teacher,
                 "rater_labels": list(word.rater_tone_labels),
             })
-            if not utterance.is_native:
-                rater_panels.append(word.rater_tone_labels)
+            rater_panels.append(word.rater_tone_labels)
 
     return rows, dict(exclusions), _panel_matrix(rater_panels)
 
@@ -109,6 +140,87 @@ def _panel_matrix(panels: Sequence[tuple[bool, ...]]) -> list[list[bool]]:
         return []
     usable = [panel for panel in panels if len(panel) == modal_size]
     return [[panel[index] for panel in usable] for index in range(modal_size)]
+
+
+def per_rater_agreement(rows: Sequence[dict[str, Any]]) -> dict[str, Any]:
+    """The headline: system agreement with each rater separately, then averaged.
+
+    This is the framing chosen for the target. Scoring against a rater panel's
+    majority is an easier task, because averaging cancels individual rater
+    noise, so a majority-based figure must never be compared against a
+    rater-vs-rater ceiling. Measuring against each individual keeps both sides
+    of the comparison "one judge vs one judge".
+    """
+    if not rows:
+        return {"n": 0, "mean_cohen_kappa": None, "per_rater": [], "meets_target": False}
+    panel = len(rows[0]["rater_labels"])
+    system = [row["system_passed"] for row in rows]
+    per_rater = []
+    for index in range(panel):
+        result = binary_agreement(system, [row["rater_labels"][index] for row in rows])
+        per_rater.append({
+            "rater": index + 1,
+            "cohen_kappa": result["cohen_kappa"],
+            "accuracy": result["accuracy"],
+        })
+    kappas = [entry["cohen_kappa"] for entry in per_rater if entry["cohen_kappa"] is not None]
+    mean_kappa = sum(kappas) / len(kappas) if kappas else None
+    return {
+        "n": len(rows),
+        "rater_count": panel,
+        "mean_cohen_kappa": mean_kappa,
+        "per_rater": per_rater,
+        "target": TARGET_KAPPA,
+        "meets_target": mean_kappa is not None and mean_kappa >= TARGET_KAPPA,
+    }
+
+
+def oracle_bound(panel: Sequence[Sequence[bool]]) -> dict[str, Any]:
+    """How well a *perfect* system could agree with an individual rater.
+
+    The rater-vs-rater ceiling is not an upper bound for a machine: two noisy
+    judges agreeing at 0.49 is consistent with a noise-free judge agreeing far
+    better with either of them. This measures that directly by treating the
+    rater majority as a perfect system.
+
+    ``contaminated`` is optimistic because each rater helps define the majority
+    it is scored against. ``uncontaminated`` removes that by using only the
+    other raters, but is undefined when they disagree, so it drops those items
+    and is therefore optimistic in a different way. The true bound lies
+    between them, and both are reported rather than picking one.
+    """
+    rows = [list(rater) for rater in panel]
+    if len(rows) < 2 or not rows[0]:
+        return {"contaminated": None, "uncontaminated": None, "dropped_for_ties": None}
+    count = len(rows[0])
+    majority = [sum(rater[i] for rater in rows) * 2 > len(rows) for i in range(count)]
+    contaminated = [
+        value
+        for rater in rows
+        if (value := binary_agreement(majority, rater)["cohen_kappa"]) is not None
+    ]
+
+    clean: list[float] = []
+    dropped = 0
+    for index, rater in enumerate(rows):
+        others = [other for position, other in enumerate(rows) if position != index]
+        predicted, actual = [], []
+        for i in range(count):
+            values = {other[i] for other in others}
+            if len(values) != 1:
+                continue
+            predicted.append(values.pop())
+            actual.append(rater[i])
+        dropped = count - len(actual)
+        value = binary_agreement(predicted, actual)["cohen_kappa"] if actual else None
+        if value is not None:
+            clean.append(value)
+
+    return {
+        "contaminated": sum(contaminated) / len(contaminated) if contaminated else None,
+        "uncontaminated": sum(clean) / len(clean) if clean else None,
+        "dropped_for_ties": dropped,
+    }
 
 
 def _subset(rows: Sequence[dict[str, Any]], native: bool) -> list[dict[str, Any]]:
@@ -180,6 +292,8 @@ def build_report(
     ceiling = rater_agreement_summary(panel)
     overall = _agreement(rows) if rows else {"n": 0}
     sentence = _sentence_correlations(utterances, scored_rows)
+    primary = per_rater_agreement(rows)
+    bound = oracle_bound(panel)
 
     disagreements = [
         {
@@ -224,7 +338,12 @@ def build_report(
                 "picked here would be test-set leakage."
             ),
         },
+        # The agreed headline: system vs each rater individually.
+        "per_rater_agreement": primary,
+        # Context only. Scoring against the majority is an easier task, so this
+        # must never be quoted against a rater-vs-rater ceiling.
         "pass_fail_agreement": overall,
+        "oracle_bound": bound,
         "by_expected_tone": by_tone,
         "by_population": {
             "learners": _agreement(learners) if learners else {"n": 0},
@@ -239,79 +358,68 @@ def build_report(
             "truncated": len(disagreements) > audit_limit,
         },
     }
-    report["verdict"] = _build_verdict(overall, ceiling)
+    report["verdict"] = _build_verdict(primary, ceiling, bound)
     report["release_gate"] = _build_gate(report)
     return report
 
 
 def _build_verdict(
-    overall: dict[str, Any], ceiling: dict[str, Any]
+    primary: dict[str, Any],
+    ceiling: dict[str, Any],
+    bound: dict[str, Any],
 ) -> dict[str, Any]:
-    """Compare the system's agreement against the human ceiling.
+    """Judge the headline kappa against the agreed target and what is attainable.
 
-    This is the only number that answers "is the system good", because a kappa
-    means nothing without knowing how well the experts agreed with each other.
+    Three numbers are needed to read a kappa honestly, so all three are carried
+    here: the target that was committed to, how well the raters agreed with
+    each other, and how well a perfect system could possibly do. Reporting the
+    target alone would hide the case where the target sits above the attainable
+    maximum -- which is a real risk for this corpus.
     """
-    system_kappa = overall.get("cohen_kappa")
-    ceiling_kappa = ceiling.get("mean_pairwise_cohen_kappa")
-    if system_kappa is None or ceiling_kappa is None:
-        return {
-            "system_kappa": system_kappa,
-            "human_ceiling_kappa": ceiling_kappa,
-            "ratio": None,
-            "level": "unknown",
-            "summary": "Not enough data to compare the system against the human ceiling.",
-        }
+    system_kappa = primary.get("mean_cohen_kappa")
+    ceiling_kappa = ceiling.get("fleiss_kappa")
+    low = bound.get("uncontaminated")
+    high = bound.get("contaminated")
 
-    # A non-positive ceiling is a measured result, not a missing one: the
-    # raters agreed no better than chance. Reporting it as "could not be
-    # computed" would blame the tooling for what the data actually says, and
-    # a ratio against it would be meaningless.
-    if ceiling_kappa <= 0:
-        return {
-            "system_kappa": system_kappa,
-            "human_ceiling_kappa": ceiling_kappa,
-            "ratio": None,
-            "level": "no_reliable_ceiling",
-            "summary": (
-                f"The teacher panel did not agree with each other beyond chance "
-                f"(kappa {ceiling_kappa:.2f}), so there is no meaningful human "
-                f"ceiling to compare the system's kappa ({system_kappa:.2f}) against."
-            ),
-        }
-
-    ratio = system_kappa / ceiling_kappa
-    if ratio >= 0.9:
-        level = "at_human_level"
-    elif ratio >= 0.7:
-        level = "approaching_human"
-    else:
-        level = "below_human"
-
-    summaries = {
-        "at_human_level": (
-            f"The system agrees with the teacher panel (kappa {system_kappa:.2f}) "
-            f"about as well as the teachers agree with each other "
-            f"(kappa {ceiling_kappa:.2f})."
-        ),
-        "approaching_human": (
-            f"The system agrees with the teacher panel (kappa {system_kappa:.2f}), "
-            f"below but within reach of how well the teachers agree with each "
-            f"other (kappa {ceiling_kappa:.2f})."
-        ),
-        "below_human": (
-            f"The system agrees with the teacher panel (kappa {system_kappa:.2f}), "
-            f"clearly below how well the teachers agree with each other "
-            f"(kappa {ceiling_kappa:.2f})."
-        ),
-    }
-    return {
+    verdict: dict[str, Any] = {
         "system_kappa": system_kappa,
+        "target": TARGET_KAPPA,
+        "meets_target": bool(primary.get("meets_target")),
         "human_ceiling_kappa": ceiling_kappa,
-        "ratio": ratio,
-        "level": level,
-        "summary": summaries[level],
+        "attainable_max_low": low,
+        "attainable_max_high": high,
     }
+
+    if system_kappa is None:
+        verdict["level"] = "unknown"
+        verdict["summary"] = "Not enough judged data to measure agreement."
+        return verdict
+
+    if primary.get("meets_target"):
+        verdict["level"] = "meets_target"
+        verdict["summary"] = (
+            f"The system agrees with an individual teacher at kappa "
+            f"{system_kappa:.3f}, meeting the {TARGET_KAPPA:g} target."
+        )
+        return verdict
+
+    gap = TARGET_KAPPA - system_kappa
+    verdict["level"] = "near_target" if gap <= 0.1 else "below_target"
+    summary = (
+        f"The system agrees with an individual teacher at kappa "
+        f"{system_kappa:.3f}, short of the {TARGET_KAPPA:g} target by {gap:.3f}."
+    )
+    # State plainly when the committed target sits at or above what a perfect
+    # system could reach, rather than letting it read as ordinary underperformance.
+    if low is not None and TARGET_KAPPA > low:
+        limit = f"{low:.2f}" if high is None else f"{low:.2f}-{high:.2f}"
+        summary += (
+            f" Note: a perfect system scores only about {limit} against an "
+            f"individual rater here, so the target sits at or above the "
+            f"attainable maximum."
+        )
+    verdict["summary"] = summary
+    return verdict
 
 
 def _build_gate(report: dict[str, Any]) -> dict[str, Any]:
