@@ -35,9 +35,19 @@ def _load_sound(audio_path: str):
         ) from exc
 
 
+# Praat's own default step for a 75 Hz floor is 0.75 / 75 = 10 ms. The previous
+# 25 ms yielded only ~6-7 voiced frames per Mandarin syllable, which is too few
+# to read a tone contour: the quarter-means used for start and end pitch
+# collapsed to a single frame each, so a measured "slope" was one noisy frame
+# minus another. On native speakers -- who produce tones correctly by
+# definition -- that made rising tone 2 measure at +0.11 st, indistinguishable
+# from level tone 1 at +0.02 st. See scripts/validate_tone_measurement.py.
+PITCH_TIME_STEP = 0.010
+
+
 def _pitch_contour_from_sound(
     sound,
-    time_step: float = 0.025,
+    time_step: float = PITCH_TIME_STEP,
     pitch_floor: float = 75,
     pitch_ceiling: float = 500,
 ) -> List[Tuple[float, float]]:
@@ -199,7 +209,7 @@ def analyze_all(
 
 def extract_pitch(
     audio_path: str,
-    time_step: float = 0.025,
+    time_step: float = PITCH_TIME_STEP,
     pitch_floor: float = 75,
     pitch_ceiling: float = 500,
 ) -> List[Tuple[float, float]]:
