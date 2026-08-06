@@ -4,6 +4,7 @@ Praat acoustic analysis helpers powered by Parselmouth.
 Parselmouth embeds Praat's analysis routines in Python, so the API can extract
 pitch and formant features without shelling out to the Praat desktop app.
 """
+import os
 import re
 import wave
 from typing import Dict, List, Tuple
@@ -180,6 +181,7 @@ def analyze_all(
     word_prosody = estimate_word_prosody(
         pitch_contour, transcription, pinyin_hint=pinyin_hint,
         reference_word_curves=reference_word_curves,
+        intensity=_intensity_contour_from_sound(sound),
     )
     # Reuse already-loaded sound — avoids a second disk read
     pause_analysis = analyze_pauses_and_utterances(audio_path, _preloaded_sound=sound)
@@ -207,6 +209,27 @@ def extract_pitch(
 
     sound = _load_sound(audio_path)
     return _pitch_contour_from_sound(sound, time_step, pitch_floor, pitch_ceiling)
+
+
+def _intensity_contour_from_sound(sound) -> List[Tuple[float, float]]:
+    """Frame-wise intensity (dB) used to locate syllable nuclei.
+
+    Syllable nuclei are intensity peaks, so the valleys between them mark
+    boundaries — the only cue available when two syllables run together with
+    no break in voicing. Failure is non-fatal: alignment then falls back to
+    voicing gaps alone rather than losing the whole analysis.
+    """
+    try:
+        intensity = sound.to_intensity()
+        values = intensity.values[0]
+        times = [float(intensity.xs()[i]) for i in range(len(values))]
+        return [
+            (time, float(value))
+            for time, value in zip(times, values)
+            if np.isfinite(value)
+        ]
+    except Exception:
+        return []
 
 
 def extract_formants(
@@ -591,11 +614,50 @@ def _aggregate_tone_from_words(
 SYLLABLE_PASS_THRESHOLD = 58.0
 
 
+def _aligner():
+    """The configured syllable aligner.
+
+    Selected by TONE_ALIGNER so the OMPAL benchmark can measure the old
+    proportional split against the new one without a code change, which is
+    what makes the improvement attributable rather than merely asserted.
+    """
+    from tone_scoring.alignment import get_aligner
+
+    return get_aligner(os.getenv("TONE_ALIGNER", "energy"))
+
+
+def _windows_for_spans(
+    points: List[Tuple[float, float]], spans
+) -> List[Tuple[int, int]] | None:
+    """Convert syllable time spans into index ranges over ``points``.
+
+    Returns None if any syllable ends up with no frames, so the caller falls
+    back to the equal split rather than scoring a tone against nothing.
+    """
+    windows: List[Tuple[int, int]] = []
+    for span in spans:
+        start = next(
+            (i for i, (time, _) in enumerate(points) if time >= span.start), None
+        )
+        if start is None:
+            return None
+        end = start
+        for index in range(start, len(points)):
+            if points[index][0] > span.end:
+                break
+            end = index + 1
+        if end <= start:
+            return None
+        windows.append((start, end))
+    return windows
+
+
 def estimate_word_prosody(
     pitch_contour: List[Tuple[float, float]],
     transcription: str = "",
     pinyin_hint: str = "",
     reference_word_curves: Dict[str, List[float]] | None = None,
+    intensity: List[Tuple[float, float]] | None = None,
 ) -> List[Dict]:
     """
     Estimate per-word prosody from the global pitch contour.
@@ -657,17 +719,33 @@ def estimate_word_prosody(
     onset_times = _voicing_onset_times(pitch_contour)
     segments: List[Dict] = []
 
+    # Syllable boundaries come from the configured aligner. The transcript is
+    # known, so the syllable count is an exact constraint rather than a guess;
+    # word spans are then just runs of those syllables. The old proportional
+    # split is still reachable by configuration so it can act as the ablation
+    # control (see tone_scoring.alignment).
+    syllable_spans = _aligner().align(pitch_contour, total_chars, intensity)
+    use_spans = len(syllable_spans) == total_chars
+
     cursor = start_time
+    consumed = 0
     for index, token in enumerate(tokens):
-        weight = max(len(token), 1) / total_chars
+        token_chars = max(len(token), 1)
+        weight = token_chars / total_chars
         segment_start = cursor
-        proportional_end = segment_start + duration * weight
-        if index == len(tokens) - 1:
+        if use_spans:
+            span_slice = syllable_spans[consumed : consumed + token_chars]
+            segment_start = span_slice[0].start if span_slice else cursor
+            segment_end = span_slice[-1].end if span_slice else end_time
+        elif index == len(tokens) - 1:
             segment_end = end_time
         else:
             segment_end = _snap_to_onset(
-                proportional_end, onset_times, avg_syllable_duration
+                segment_start + duration * weight,
+                onset_times,
+                avg_syllable_duration,
             )
+        consumed += token_chars
         cursor = segment_end
 
         points = [
@@ -745,7 +823,17 @@ def estimate_word_prosody(
             user_curve, target_curve = phrase_shape_curves(
                 scoring_points, expected_tones, target_curve_override=reference_curve
             )
-            syllable_scores = directional_tone_scores(scoring_points, expected_tones)
+            # Hand the scorer this word's real per-syllable boundaries so each
+            # tone template is matched against its own audio, instead of an
+            # equal share of the word's frames.
+            windows = None
+            if use_spans:
+                spans = syllable_spans[consumed - token_chars : consumed]
+                if len(spans) == len(expected_tones):
+                    windows = _windows_for_spans(scoring_points, spans)
+            syllable_scores = directional_tone_scores(
+                scoring_points, expected_tones, syllable_windows=windows
+            )
         elif is_chinese and expected_tones:
             tone_score = 0.0
             shape_score = 0.0

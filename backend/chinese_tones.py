@@ -376,7 +376,9 @@ def _smooth_for_directional_scoring(pitch: np.ndarray, kernel_size: int = 5) -> 
 
 
 def directional_tone_scores(
-    pitch_contour: List[Tuple[float, float]], tones: List[int]
+    pitch_contour: List[Tuple[float, float]],
+    tones: List[int],
+    syllable_windows: List[Tuple[int, int]] | None = None,
 ) -> List[float]:
     """Per-syllable directional tone scores, one entry per tone in ``tones``.
 
@@ -385,6 +387,14 @@ def directional_tone_scores(
     failed (e.g. the per-word pass gate in word prosody) can read each
     syllable window's own score instead of a whole-word average that lets a
     good second syllable hide a wrong-direction first one.
+
+    ``syllable_windows`` gives explicit (start, end) index ranges into
+    ``pitch_contour`` for each tone. Without it the contour is split into
+    equal-length pieces, which assumes every syllable occupies the same amount
+    of time — real Mandarin syllable durations vary by 2-3x, so that lands the
+    tone template on the wrong stretch of audio. Callers that have real
+    boundaries (see ``tone_scoring.alignment``) should pass them; the equal
+    split remains only as the fallback for callers that do not.
 
     Returns [] when the contour or tone list can't be scored.
     """
@@ -397,11 +407,15 @@ def directional_tone_scores(
     tones_s = apply_tone_sandhi(tones)
     n = len(tones_s)
     syl_len = max(1, len(user_pitch) // n)
+    windows = syllable_windows if syllable_windows and len(syllable_windows) == n else None
 
     scores: List[float] = []
     for i, tone in enumerate(tones_s):
-        start_idx = i * syl_len
-        end_idx = start_idx + syl_len if i < n - 1 else len(user_pitch)
+        if windows is not None:
+            start_idx, end_idx = windows[i]
+        else:
+            start_idx = i * syl_len
+            end_idx = start_idx + syl_len if i < n - 1 else len(user_pitch)
         seg = user_pitch[start_idx:end_idx]
 
         if len(seg) < 4:
