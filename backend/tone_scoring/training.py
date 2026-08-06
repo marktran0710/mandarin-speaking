@@ -18,7 +18,7 @@ Protocol, fixed before any result was seen:
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -48,6 +48,8 @@ class SyllableSample:
     features: List[float]
     rater_labels: Tuple[bool, ...]
     fold: Optional[int]
+    # Pooled self-supervised speech embedding, empty when not extracted.
+    embedding: List[float] = field(default_factory=list)
 
     @property
     def majority(self) -> bool:
@@ -76,6 +78,7 @@ def build_samples(
     fold_map: Dict[str, int],
     aligner_name: str = "energy",
     panel_size: int = 3,
+    embedder=None,
 ) -> Tuple[List[SyllableSample], Dict[str, int]]:
     """Featurize every rated syllable that can be measured.
 
@@ -114,6 +117,15 @@ def build_samples(
         # detrended signal, so a syllable's reading no longer depends on where
         # in the sentence it happens to fall.
         drift, time_reference = declination_slope(pitch_contour)
+        embed_times = embed_vectors = None
+        if embedder is not None:
+            try:
+                embed_times, embed_vectors = embedder.frame_embeddings(
+                    str(utterance.wav_path)
+                )
+            except Exception:
+                drop("embedding_failed")
+                continue
         mean, deviation = utterance_pitch_stats(pitch_contour, drift, time_reference)
         position = 0
         for word_index, word in enumerate(utterance.words):
@@ -162,6 +174,22 @@ def build_samples(
                 drop("unfeaturizable")
                 continue
 
+            # Deliberately a distinct name: reusing `vectors` here would
+            # overwrite the DSP feature vectors built above and silently store
+            # embeddings in the `features` column instead.
+            pooled: List[float] = []
+            if embed_vectors is not None:
+                from tone_scoring.embeddings import pool_span
+
+                embed_parts = [
+                    pool_span(embed_times, embed_vectors, span.start, span.end)
+                    for span in word_spans
+                ]
+                if any(part is None for part in embed_parts):
+                    drop("embedding_span_empty")
+                    continue
+                pooled = [float(v) for v in np.mean(embed_parts, axis=0)]
+
             samples.append(
                 SyllableSample(
                     utterance_id=utterance.utterance_id,
@@ -172,9 +200,31 @@ def build_samples(
                     features=[float(v) for v in np.mean(vectors, axis=0)],
                     rater_labels=tuple(word.rater_tone_labels),
                     fold=fold_map.get(utterance.utterance_id),
+                    embedding=pooled,
                 )
             )
     return samples, excluded
+
+
+def reduce_embeddings(
+    samples: Sequence["SyllableSample"], components: int = 96, seed: int = 0
+):
+    """Compress raw embedding columns with PCA, fitted on training folds only.
+
+    A pooled wav2vec2 syllable is 2,304 dimensions against ~9,800 samples with
+    ~20% irreducible label noise -- fitting that directly would memorise the
+    training speakers, which is the failure the speaker-disjoint folds exist to
+    expose. PCA is fitted only on samples outside the evaluated fold, so the
+    reduction never sees the data it is judged on.
+    """
+    from sklearn.decomposition import PCA
+
+    fit_rows = [s for s in samples if s.fold is None] or list(samples)
+    matrix = np.asarray([s.embedding for s in fit_rows], dtype=float)
+    n_components = min(components, matrix.shape[0], matrix.shape[1])
+    pca = PCA(n_components=n_components, random_state=seed)
+    pca.fit(matrix)
+    return pca
 
 
 def _make_model(seed: int = 0):

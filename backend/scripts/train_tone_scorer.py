@@ -66,6 +66,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--aligner", default="energy")
     parser.add_argument("--target", type=float, default=0.61)
+    parser.add_argument("--embeddings", action="store_true",
+                        help="add self-supervised speech embeddings (wav2vec2)")
+    parser.add_argument("--layer", type=int, default=6)
+    parser.add_argument("--components", type=int, default=96)
     args = parser.parse_args()
 
     print("loading corpus…")
@@ -73,12 +77,37 @@ def main() -> None:
     fold_map = load_fold_map(CORPUS_ROOT)
     print(f"  {len(utterances)} utterances, {len(fold_map)} in published test folds")
 
+    embedder = None
+    if args.embeddings:
+        from tone_scoring.embeddings import SyllableEmbedder
+
+        embedder = SyllableEmbedder(
+            layer=args.layer,
+            cache_dir=Path(__file__).resolve().parent.parent
+            / "private-data" / "w2v-cache",
+        )
+        print(f"speech embeddings: {embedder.model_name} layer {args.layer}")
+
     print(f"featurizing with aligner={args.aligner} (this reads every wav)…")
     samples, excluded = build_samples(
-        utterances, analyzer_bundle, fold_map, aligner_name=args.aligner
+        utterances, analyzer_bundle, fold_map,
+        aligner_name=args.aligner, embedder=embedder,
     )
     print(f"  {len(samples)} rated syllables usable")
     print(f"  excluded: {excluded}")
+
+    if args.embeddings and samples and samples[0].embedding:
+        # PCA is fitted on samples outside every evaluated fold, so the
+        # reduction never sees the data it is judged on.
+        from tone_scoring.training import reduce_embeddings
+
+        pca = reduce_embeddings(samples, components=args.components)
+        raw = np.asarray([s.embedding for s in samples], dtype=float)
+        reduced = pca.transform(raw)
+        for sample, extra in zip(samples, reduced):
+            sample.features = sample.features + [float(v) for v in extra]
+        print(f"  embeddings {raw.shape[1]} dims -> PCA {reduced.shape[1]} "
+              f"(explained variance {pca.explained_variance_ratio_.sum():.2f})")
 
     print("cross-validating over OMPAL's speaker-disjoint folds…")
     used, probabilities = cross_validated_predictions(samples)

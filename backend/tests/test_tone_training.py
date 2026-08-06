@@ -107,6 +107,31 @@ class TestBuildSamples:
         )
         assert excluded["no_pitch"] == 1
 
+    def test_embeddings_do_not_overwrite_the_dsp_features(self):
+        """Regression: an earlier version reused the same local name for the
+        embedding parts and the DSP feature vectors, silently storing
+        embeddings in the `features` column. Both must survive, at their own
+        widths, or every DSP-based result becomes quietly wrong."""
+
+        class FakeEmbedder:
+            def frame_embeddings(self, _path):
+                times = np.arange(0, 60) * 0.02
+                vectors = np.tile(np.arange(8, dtype=float), (60, 1))
+                return times, vectors
+
+        samples, _ = build_samples(
+            [utterance()], fake_bundle, {"001": 1}, embedder=FakeEmbedder()
+        )
+        assert samples, "expected samples"
+        for sample in samples:
+            assert len(sample.features) == len(FEATURE_NAMES)
+            assert len(sample.embedding) == 8 * 3  # 3 pooled sections
+            assert sample.features != sample.embedding
+
+    def test_samples_carry_no_embedding_when_none_is_requested(self):
+        samples, _ = build_samples([utterance()], fake_bundle, {})
+        assert all(sample.embedding == [] for sample in samples)
+
     def test_majority_label_follows_the_rater_panel(self):
         items = [utterance(labels=(False, True, True))]
         samples, _ = build_samples(items, fake_bundle, {})
