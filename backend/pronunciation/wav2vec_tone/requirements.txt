@@ -1,0 +1,14 @@
+# Phase 1: frozen Mandarin wav2vec2 -> 4-way tone classifier.
+#
+# All of these are already present in the backend environment, so an install is
+# usually unnecessary. Listed so the module can stand on its own.
+#
+# No GPU is required: the encoder runs in inference only and nothing is
+# fine-tuned in Phase 1.
+
+torch>=2.3
+transformers>=4.51
+scikit-learn>=1.4
+numpy>=1.26
+soundfile>=0.12
+joblib>=1.3
