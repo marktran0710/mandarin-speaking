@@ -47,21 +47,30 @@ def breakdown(rows, key, title: str) -> list[str]:
     return lines
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--review", default=str(REVIEW_CSV))
-    args = parser.parse_args()
+def paths_for(round_number: int):
+    suffix = "" if round_number == 1 else f"_round{round_number}"
+    return (
+        ITEMS_CSV if not suffix
+        else ITEMS_CSV.with_name(ITEMS_CSV.stem + suffix + ".csv"),
+        REVIEW_CSV if not suffix
+        else REVIEW_CSV.with_name(REVIEW_CSV.stem + suffix + ".csv"),
+    )
 
-    review_path = Path(args.review)
+
+def load_round(round_number: int, required: bool = True):
+    """Join one round of judgments to its item metadata; [] if not done yet."""
+    items_path, review_path = paths_for(round_number)
     if not review_path.exists():
-        sys.exit(
-            f"No judgments at {review_path}.\n"
-            "Run prepare_human_review, then serve_review, do the listening, "
-            "and save the downloaded CSV to that path."
-        )
-
+        if required:
+            sys.exit(
+                f"No judgments at {review_path}.\n"
+                f"Run prepare_human_review --round {round_number}, then "
+                f"serve_review --round {round_number}, do the listening, and "
+                f"save the downloaded CSV to that path."
+            )
+        return [], []
     items = {row["review_id"]: row
-             for row in csv.DictReader(ITEMS_CSV.open(encoding="utf-8"))}
+             for row in csv.DictReader(items_path.open(encoding="utf-8"))}
     rows = []
     unknown = []
     for judgment in csv.DictReader(review_path.open(encoding="utf-8")):
@@ -73,19 +82,71 @@ def main() -> None:
         if verdict not in JUDGMENTS:
             unknown.append(f"{judgment['review_id']}:{verdict}")
             continue
-        rows.append({**item, **judgment, "human_boundary_judgment": verdict})
+        rows.append({**item, **judgment, "human_boundary_judgment": verdict,
+                     "review_round": str(round_number)})
+    return rows, unknown
 
-    if not rows:
-        sys.exit("No usable judgments found.")
 
+def auto_good_block(rows):
+    """The decision this whole exercise exists to make."""
+    good = [r for r in rows if r["alignment_status"] == "good"]
+    if not good:
+        return []
+    counts = Counter(r["human_boundary_judgment"] for r in good)
+    total = len(good)
+    good_rate = counts.get("GOOD", 0) / total
+    wrong_rate = counts.get("WRONG", 0) / total
+    lines = [
+        "",
+        "=" * 74,
+        "COMBINED: automatic `good` segments only, across all reviews",
+        "=" * 74,
+        f"  auto-good total reviewed : {total}",
+        f"  human GOOD               : {counts.get('GOOD', 0)}",
+        f"  human QUESTIONABLE       : {counts.get('QUESTIONABLE', 0)}",
+        f"  human WRONG              : {counts.get('WRONG', 0)}",
+        f"  human GOOD rate          : {good_rate * 100:.1f}%",
+        f"  human WRONG rate         : {wrong_rate * 100:.1f}%",
+        "  by review round:",
+    ]
+    by_round = defaultdict(Counter)
+    for row in good:
+        by_round[row.get("review_round", "?")][row["human_boundary_judgment"]] += 1
+    for round_number in sorted(by_round):
+        counter = by_round[round_number]
+        subtotal = sum(counter.values())
+        lines.append(
+            f"    round {round_number}: n={subtotal}  "
+            f"GOOD {counter.get('GOOD', 0)} "
+            f"({counter.get('GOOD', 0) / subtotal * 100:.0f}%)  "
+            f"QUEST {counter.get('QUESTIONABLE', 0)}  "
+            f"WRONG {counter.get('WRONG', 0)}"
+        )
+
+    # Threshold fixed before any round-2 data was seen.
+    if good_rate >= 0.95 and wrong_rate <= 0.02:
+        verdict = ("ADOPT alignment_status == 'good' as the acceptance rule "
+                   "for full-corpus benchmark extraction.")
+    elif good_rate >= 0.90:
+        verdict = ("BORDERLINE -- above 90% but short of the agreed 95%. "
+                   "Adjust alignment before scaling.")
+    else:
+        verdict = "DO NOT SCALE on this rule -- adjust alignment first."
+    lines += ["",
+              "  Decision rule (fixed in advance: >=95% GOOD, very low WRONG):",
+              f"  -> {verdict}"]
+    return lines
+
+
+def analyse(rows, unknown, label):
     counts = Counter(r["human_boundary_judgment"] for r in rows)
     total = len(rows)
 
     lines = [
         "=" * 74,
-        "HUMAN AUDITORY REVIEW OF FORCED ALIGNMENT",
+        f"HUMAN AUDITORY REVIEW OF FORCED ALIGNMENT -- {label}",
         "=" * 74,
-        f"Total reviewed: {total} of {len(items)} prepared",
+        f"Total reviewed: {total}",
     ]
     for verdict in JUDGMENTS:
         count = counts.get(verdict, 0)
@@ -135,8 +196,6 @@ def main() -> None:
         "  Nothing is adjusted on the strength of this. alignment_status is",
         "  left exactly as the aligner produced it.",
     ]
-    print("\n".join(lines))
-
     summary = {
         "total_reviewed": total,
         "judgments": {j: counts.get(j, 0) for j in JUDGMENTS},
@@ -159,8 +218,46 @@ def main() -> None:
         "proxy_misses": missed,
         "exact_agreement": same,
     }
+    return "\n".join(lines), summary
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--round", type=int, default=1)
+    parser.add_argument("--combine", action="store_true",
+                        help="report each available round, then auto-good combined")
+    args = parser.parse_args()
+
+    all_rows, reports, summaries = [], [], {}
+    rounds = (1, 2, 3) if args.combine else (args.round,)
+    for number in rounds:
+        rows, unknown = load_round(number, required=not args.combine)
+        if not rows:
+            continue
+        text, summary = analyse(rows, unknown, f"round {number}")
+        reports.append(text)
+        summaries[f"round_{number}"] = summary
+        all_rows.extend(rows)
+
+    if not all_rows:
+        sys.exit("No usable judgments found.")
+    print("\n\n".join(reports))
+
+    combined = auto_good_block(all_rows)
+    if combined:
+        print("\n".join(combined))
+        good = [r for r in all_rows if r["alignment_status"] == "good"]
+        counter = Counter(r["human_boundary_judgment"] for r in good)
+        summaries["auto_good_combined"] = {
+            "total": len(good),
+            "judgments": {j: counter.get(j, 0) for j in JUDGMENTS},
+            "good_rate": counter.get("GOOD", 0) / len(good),
+            "wrong_rate": counter.get("WRONG", 0) / len(good),
+        }
+
     path = DATA_DIR / "ompal_alignment_human_review_summary.json"
-    path.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
+    path.write_text(json.dumps(summaries, indent=2, ensure_ascii=False),
+                    encoding="utf-8")
     print(f"\nsummary: {path}")
 
 

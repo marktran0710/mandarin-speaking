@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>OMPAL alignment — listening review</title>
+<style>
+ :root { --bg:#12100e; --card:#1c1917; --ink:#f5f0e8; --dim:#a8a29e;
+          --gold:#c9a227; --good:#4ade80; --warn:#fbbf24; --bad:#f87171; }
+ * { box-sizing:border-box; }
+ body { margin:0; background:var(--bg); color:var(--ink);
+        font:15px/1.5 system-ui,-apple-system,"Noto Sans TC",sans-serif; }
+ .wrap { max-width:760px; margin:0 auto; padding:24px 20px 80px; }
+ h1 { font-size:17px; font-weight:600; margin:0 0 4px; }
+ .sub { color:var(--dim); font-size:13px; margin-bottom:20px; }
+ .bar { position:sticky; top:0; background:var(--bg); padding:12px 0;
+         border-bottom:1px solid #2c2825; z-index:10; }
+ .track { height:5px; background:#2c2825; border-radius:3px; overflow:hidden; }
+ .fill { height:100%; background:var(--gold); width:0%; transition:width .2s; }
+ .card { background:var(--card); border:1px solid #2c2825; border-radius:12px;
+          padding:22px; margin:16px 0; }
+ .hz { font-size:64px; line-height:1; font-family:"Noto Sans TC",serif; }
+ .meta { color:var(--dim); font-size:13px; margin-top:6px; }
+ .row { display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+ button { font:inherit; padding:9px 16px; border-radius:8px; cursor:pointer;
+           border:1px solid #3f3a35; background:#262220; color:var(--ink); }
+ button:hover { border-color:var(--gold); }
+ .judge button { flex:1; min-width:130px; font-weight:600; }
+ .judge { display:flex; gap:10px; margin-top:16px; }
+ .g.on { background:var(--good); color:#06240f; border-color:var(--good); }
+ .q.on { background:var(--warn); color:#2b1d00; border-color:var(--warn); }
+ .w.on { background:var(--bad);  color:#2b0606; border-color:var(--bad); }
+ input[type=text] { width:100%; margin-top:10px; padding:9px; border-radius:8px;
+                     border:1px solid #3f3a35; background:#171412; color:var(--ink); }
+ .tag { font-size:11px; padding:2px 8px; border-radius:99px;
+         border:1px solid #3f3a35; color:var(--dim); }
+ .done { border-color:var(--gold); }
+ .kbd { font-size:12px; color:var(--dim); margin-top:10px; }
+ .export { position:fixed; bottom:0; left:0; right:0; background:var(--card);
+            border-top:1px solid #2c2825; padding:12px; text-align:center; }
+ .export button { background:var(--gold); color:#231a00; font-weight:700;
+                   border-color:var(--gold); padding:11px 26px; }
+ @media (prefers-color-scheme: light) {
+   :root { --bg:#faf7f2; --card:#fff; --ink:#1c1917; --dim:#6b6560; }
+   .card, .bar, .export { border-color:#e7e0d6; }
+   button { background:#f2ede5; border-color:#ddd5c8; }
+   input[type=text] { background:#fff; border-color:#ddd5c8; }
+ }
+</style></head><body><div class="wrap">
+<h1>OMPAL forced-alignment — listening review</h1>
+<div class="sub">Judge <b>only</b> whether the clip contains the intended syllable.
+Not whether the learner's tone was right — that label is deliberately hidden.</div>
+<div class="bar"><div class="track"><div class="fill" id="fill"></div></div>
+<div class="meta" id="prog">0 judged</div></div>
+<div id="list"></div>
+</div>
+<div class="export"><button onclick="save()">Download judgments CSV</button>
+<span class="meta" id="status" style="margin-left:12px"></span></div>
+<script>
+const ITEMS = [
+{review_id: "R001", token_id: "00204229_08", segment_path: "alignment_pilot_segments/00204229_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02042/00204229.wav", speaker_id: "02042", utterance_id: "00204229", word: "短", expected_pinyin: "duǎn", expected_tone: "3", start_seconds: "3.5479", end_seconds: "3.7884", duration_seconds: "0.2405", alignment_score: "0.9792", alignment_status: "good", flag_reason: ""},
+{review_id: "R002", token_id: "00202826_02", segment_path: "alignment_pilot_segments/00202826_02.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02028/00202826.wav", speaker_id: "02028", utterance_id: "00202826", word: "年", expected_pinyin: "nián", expected_tone: "2", start_seconds: "2.0252", end_seconds: "2.2057", duration_seconds: "0.1805", alignment_score: "0.9100", alignment_status: "good", flag_reason: ""},
+{review_id: "R003", token_id: "00200314_03", segment_path: "alignment_pilot_segments/00200314_03.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02003/00200314.wav", speaker_id: "02003", utterance_id: "00200314", word: "名", expected_pinyin: "míng", expected_tone: "2", start_seconds: "2.0467", end_seconds: "2.2674", duration_seconds: "0.2207", alignment_score: "0.8866", alignment_status: "good", flag_reason: ""},
+{review_id: "R004", token_id: "00200217_01", segment_path: "alignment_pilot_segments/00200217_01.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02002/00200217.wav", speaker_id: "02002", utterance_id: "00200217", word: "四", expected_pinyin: "sì", expected_tone: "4", start_seconds: "1.0665", end_seconds: "1.2073", duration_seconds: "0.1409", alignment_score: "0.8703", alignment_status: "good", flag_reason: ""},
+{review_id: "R005", token_id: "00201520_08", segment_path: "alignment_pilot_segments/00201520_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02015/00201520.wav", speaker_id: "02015", utterance_id: "00201520", word: "兩", expected_pinyin: "liǎng", expected_tone: "3", start_seconds: "6.5637", end_seconds: "6.8238", duration_seconds: "0.2601", alignment_score: "0.9429", alignment_status: "good", flag_reason: ""},
+{review_id: "R006", token_id: "00201514_04", segment_path: "alignment_pilot_segments/00201514_04.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02015/00201514.wav", speaker_id: "02015", utterance_id: "00201514", word: "字", expected_pinyin: "zì", expected_tone: "4", start_seconds: "2.5286", end_seconds: "2.6490", duration_seconds: "0.1204", alignment_score: "0.9910", alignment_status: "good", flag_reason: ""},
+{review_id: "R007", token_id: "00200914_01", segment_path: "alignment_pilot_segments/00200914_01.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02009/00200914.wav", speaker_id: "02009", utterance_id: "00200914", word: "貓", expected_pinyin: "māo", expected_tone: "1", start_seconds: "0.6837", end_seconds: "0.8647", duration_seconds: "0.1810", alignment_score: "0.9803", alignment_status: "good", flag_reason: ""},
+{review_id: "R008", token_id: "00202901_03", segment_path: "alignment_pilot_segments/00202901_03.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav", speaker_id: "02029", utterance_id: "00202901", word: "曆", expected_pinyin: "lì", expected_tone: "4", start_seconds: "2.5693", end_seconds: "2.6898", duration_seconds: "0.1204", alignment_score: "0.9817", alignment_status: "good", flag_reason: ""},
+{review_id: "R009", token_id: "00203326_07", segment_path: "alignment_pilot_segments/00203326_07.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02033/00203326.wav", speaker_id: "02033", utterance_id: "00203326", word: "餐", expected_pinyin: "cān", expected_tone: "1", start_seconds: "4.0132", end_seconds: "4.2941", duration_seconds: "0.2809", alignment_score: "0.9861", alignment_status: "good", flag_reason: ""},
+{review_id: "R010", token_id: "00201620_06", segment_path: "alignment_pilot_segments/00201620_06.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02016/00201620.wav", speaker_id: "02016", utterance_id: "00201620", word: "桌", expected_pinyin: "zhuō", expected_tone: "1", start_seconds: "2.5251", end_seconds: "2.6653", duration_seconds: "0.1403", alignment_score: "0.8134", alignment_status: "good", flag_reason: ""},
+{review_id: "R011", token_id: "00202114_08", segment_path: "alignment_pilot_segments/00202114_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02021/00202114.wav", speaker_id: "02021", utterance_id: "00202114", word: "花", expected_pinyin: "huā", expected_tone: "1", start_seconds: "3.9170", end_seconds: "4.0175", duration_seconds: "0.1004", alignment_score: "0.9649", alignment_status: "good", flag_reason: ""},
+{review_id: "R012", token_id: "00202426_05", segment_path: "alignment_pilot_segments/00202426_05.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02024/00202426.wav", speaker_id: "02024", utterance_id: "00202426", word: "搬", expected_pinyin: "bān", expected_tone: "1", start_seconds: "4.0093", end_seconds: "4.2900", duration_seconds: "0.2807", alignment_score: "0.9560", alignment_status: "good", flag_reason: ""},
+{review_id: "R013", token_id: "00202901_10", segment_path: "alignment_pilot_segments/00202901_10.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav", speaker_id: "02029", utterance_id: "00202901", word: "節", expected_pinyin: "jié", expected_tone: "2", start_seconds: "5.0182", end_seconds: "5.1788", duration_seconds: "0.1606", alignment_score: "0.9740", alignment_status: "good", flag_reason: ""},
+{review_id: "R014", token_id: "00200620_06", segment_path: "alignment_pilot_segments/00200620_06.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02006/00200620.wav", speaker_id: "02006", utterance_id: "00200620", word: "桌", expected_pinyin: "zhuō", expected_tone: "1", start_seconds: "2.6442", end_seconds: "2.8045", duration_seconds: "0.1603", alignment_score: "0.9144", alignment_status: "good", flag_reason: ""},
+{review_id: "R015", token_id: "00200814_00", segment_path: "alignment_pilot_segments/00200814_00.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02008/00200814.wav", speaker_id: "02008", utterance_id: "00200814", word: "小", expected_pinyin: "xiǎo", expected_tone: "3", start_seconds: "0.4621", end_seconds: "0.7232", duration_seconds: "0.2612", alignment_score: "0.9972", alignment_status: "good", flag_reason: ""},
+{review_id: "R016", token_id: "00203113_03", segment_path: "alignment_pilot_segments/00203113_03.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203113.wav", speaker_id: "02031", utterance_id: "00203113", word: "熱", expected_pinyin: "rè", expected_tone: "4", start_seconds: "0.9052", end_seconds: "1.0057", duration_seconds: "0.1006", alignment_score: "0.4424", alignment_status: "good", flag_reason: ""},
+{review_id: "R017", token_id: "00200520_15", segment_path: "alignment_pilot_segments/00200520_15.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02005/00200520.wav", speaker_id: "02005", utterance_id: "00200520", word: "床", expected_pinyin: "chuáng", expected_tone: "2", start_seconds: "6.7547", end_seconds: "7.1155", duration_seconds: "0.3608", alignment_score: "0.9053", alignment_status: "good", flag_reason: ""},
+{review_id: "R018", token_id: "00201020_01", segment_path: "alignment_pilot_segments/00201020_01.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02010/00201020.wav", speaker_id: "02010", utterance_id: "00201020", word: "邊", expected_pinyin: "biān", expected_tone: "1", start_seconds: "1.1210", end_seconds: "1.4012", duration_seconds: "0.2802", alignment_score: "0.9921", alignment_status: "good", flag_reason: ""},
+{review_id: "R019", token_id: "00203220_06", segment_path: "alignment_pilot_segments/00203220_06.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02032/00203220.wav", speaker_id: "02032", utterance_id: "00203220", word: "福", expected_pinyin: "fú", expected_tone: "2", start_seconds: "2.0149", end_seconds: "2.1157", duration_seconds: "0.1007", alignment_score: "0.9931", alignment_status: "good", flag_reason: ""},
+{review_id: "R020", token_id: "00201920_06", segment_path: "alignment_pilot_segments/00201920_06.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02019/00201920.wav", speaker_id: "02019", utterance_id: "00201920", word: "桌", expected_pinyin: "zhuō", expected_tone: "1", start_seconds: "3.8640", end_seconds: "4.0442", duration_seconds: "0.1802", alignment_score: "0.8161", alignment_status: "good", flag_reason: ""},
+{review_id: "R021", token_id: "00203429_02", segment_path: "alignment_pilot_segments/00203429_02.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02034/00203429.wav", speaker_id: "02034", utterance_id: "00203429", word: "用", expected_pinyin: "yòng", expected_tone: "4", start_seconds: "0.7418", end_seconds: "0.9022", duration_seconds: "0.1604", alignment_score: "0.9805", alignment_status: "good", flag_reason: ""},
+{review_id: "R022", token_id: "00203829_08", segment_path: "alignment_pilot_segments/00203829_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02038/00203829.wav", speaker_id: "02038", utterance_id: "00203829", word: "短", expected_pinyin: "duǎn", expected_tone: "3", start_seconds: "7.4534", end_seconds: "7.6337", duration_seconds: "0.1803", alignment_score: "0.9588", alignment_status: "good", flag_reason: ""},
+{review_id: "R023", token_id: "00204526_04", segment_path: "alignment_pilot_segments/00204526_04.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02045/00204526.wav", speaker_id: "02045", utterance_id: "00204526", word: "飯", expected_pinyin: "fàn", expected_tone: "4", start_seconds: "1.3855", end_seconds: "1.6265", duration_seconds: "0.2410", alignment_score: "0.9968", alignment_status: "good", flag_reason: ""},
+{review_id: "R024", token_id: "00201314_01", segment_path: "alignment_pilot_segments/00201314_01.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02013/00201314.wav", speaker_id: "02013", utterance_id: "00201314", word: "貓", expected_pinyin: "māo", expected_tone: "1", start_seconds: "0.6644", end_seconds: "0.8054", duration_seconds: "0.1409", alignment_score: "0.9877", alignment_status: "good", flag_reason: ""},
+{review_id: "R025", token_id: "00203711_07", segment_path: "alignment_pilot_segments/00203711_07.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02037/00203711.wav", speaker_id: "02037", utterance_id: "00203711", word: "字", expected_pinyin: "zì", expected_tone: "4", start_seconds: "1.8689", end_seconds: "1.9694", duration_seconds: "0.1005", alignment_score: "0.9852", alignment_status: "good", flag_reason: ""},
+{review_id: "R026", token_id: "00204011_01", segment_path: "alignment_pilot_segments/00204011_01.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02040/00204011.wav", speaker_id: "02040", utterance_id: "00204011", word: "一", expected_pinyin: "yī", expected_tone: "1", start_seconds: "0.3418", end_seconds: "0.4021", duration_seconds: "0.0603", alignment_score: "0.4903", alignment_status: "good", flag_reason: ""},
+{review_id: "R027", token_id: "00202328_05", segment_path: "alignment_pilot_segments/00202328_05.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02023/00202328.wav", speaker_id: "02023", utterance_id: "00202328", word: "變", expected_pinyin: "biàn", expected_tone: "4", start_seconds: "4.3344", end_seconds: "4.5552", duration_seconds: "0.2207", alignment_score: "0.9833", alignment_status: "good", flag_reason: ""},
+{review_id: "R028", token_id: "00201220_13", segment_path: "alignment_pilot_segments/00201220_13.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02012/00201220.wav", speaker_id: "02012", utterance_id: "00201220", word: "一", expected_pinyin: "yī", expected_tone: "1", start_seconds: "9.8567", end_seconds: "9.9368", duration_seconds: "0.0801", alignment_score: "0.5093", alignment_status: "good", flag_reason: ""},
+{review_id: "R029", token_id: "00203511_10", segment_path: "alignment_pilot_segments/00203511_10.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02035/00203511.wav", speaker_id: "02035", utterance_id: "00203511", word: "福", expected_pinyin: "fú", expected_tone: "2", start_seconds: "5.6767", end_seconds: "5.7770", duration_seconds: "0.1003", alignment_score: "0.9881", alignment_status: "good", flag_reason: ""},
+{review_id: "R030", token_id: "00202320_08", segment_path: "alignment_pilot_segments/00202320_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02023/00202320.wav", speaker_id: "02023", utterance_id: "00202320", word: "話", expected_pinyin: "huà", expected_tone: "4", start_seconds: "4.4582", end_seconds: "4.5988", duration_seconds: "0.1406", alignment_score: "0.9952", alignment_status: "good", flag_reason: ""},
+{review_id: "R031", token_id: "00203126_00", segment_path: "alignment_pilot_segments/00203126_00.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203126.wav", speaker_id: "02031", utterance_id: "00203126", word: "就", expected_pinyin: "jiù", expected_tone: "4", start_seconds: "1.4060", end_seconds: "1.5466", duration_seconds: "0.1406", alignment_score: "0.8172", alignment_status: "good", flag_reason: ""},
+{review_id: "R032", token_id: "00201220_15", segment_path: "alignment_pilot_segments/00201220_15.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02012/00201220.wav", speaker_id: "02012", utterance_id: "00201220", word: "床", expected_pinyin: "chuáng", expected_tone: "2", start_seconds: "10.4778", end_seconds: "10.9986", duration_seconds: "0.5209", alignment_score: "0.9327", alignment_status: "good", flag_reason: ""},
+{review_id: "R033", token_id: "00204229_02", segment_path: "alignment_pilot_segments/00204229_02.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02042/00204229.wav", speaker_id: "02042", utterance_id: "00204229", word: "用", expected_pinyin: "yòng", expected_tone: "4", start_seconds: "1.6838", end_seconds: "1.8842", duration_seconds: "0.2004", alignment_score: "0.9913", alignment_status: "good", flag_reason: ""},
+{review_id: "R034", token_id: "00203711_08", segment_path: "alignment_pilot_segments/00203711_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02037/00203711.wav", speaker_id: "02037", utterance_id: "00203711", word: "表", expected_pinyin: "biǎo", expected_tone: "3", start_seconds: "2.6124", end_seconds: "2.8335", duration_seconds: "0.2211", alignment_score: "0.8323", alignment_status: "good", flag_reason: ""},
+{review_id: "R035", token_id: "00200720_03", segment_path: "alignment_pilot_segments/00200720_03.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02007/00200720.wav", speaker_id: "02007", utterance_id: "00200720", word: "一", expected_pinyin: "yī", expected_tone: "1", start_seconds: "1.9241", end_seconds: "2.0043", duration_seconds: "0.0802", alignment_score: "0.4918", alignment_status: "good", flag_reason: ""},
+{review_id: "R036", token_id: "00202120_08", segment_path: "alignment_pilot_segments/00202120_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02021/00202120.wav", speaker_id: "02021", utterance_id: "00202120", word: "兩", expected_pinyin: "liǎng", expected_tone: "3", start_seconds: "3.6453", end_seconds: "3.9457", duration_seconds: "0.3004", alignment_score: "0.5066", alignment_status: "good", flag_reason: ""},
+{review_id: "R037", token_id: "00203011_06", segment_path: "alignment_pilot_segments/00203011_06.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02030/00203011.wav", speaker_id: "02030", utterance_id: "00203011", word: "福", expected_pinyin: "fú", expected_tone: "2", start_seconds: "3.3890", end_seconds: "3.5294", duration_seconds: "0.1404", alignment_score: "0.9403", alignment_status: "good", flag_reason: ""},
+{review_id: "R038", token_id: "00203929_05", segment_path: "alignment_pilot_segments/00203929_05.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02039/00203929.wav", speaker_id: "02039", utterance_id: "00203929", word: "發", expected_pinyin: "fā", expected_tone: "1", start_seconds: "3.5872", end_seconds: "3.7074", duration_seconds: "0.1202", alignment_score: "0.9951", alignment_status: "good", flag_reason: ""},
+{review_id: "R039", token_id: "00201914_08", segment_path: "alignment_pilot_segments/00201914_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02019/00201914.wav", speaker_id: "02019", utterance_id: "00201914", word: "花", expected_pinyin: "huā", expected_tone: "1", start_seconds: "4.4126", end_seconds: "4.5530", duration_seconds: "0.1404", alignment_score: "0.9655", alignment_status: "good", flag_reason: ""},
+{review_id: "R040", token_id: "00202711_08", segment_path: "alignment_pilot_segments/00202711_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02027/00202711.wav", speaker_id: "02027", utterance_id: "00202711", word: "表", expected_pinyin: "biǎo", expected_tone: "3", start_seconds: "6.1944", end_seconds: "6.4350", duration_seconds: "0.2406", alignment_score: "0.9874", alignment_status: "good", flag_reason: ""},
+{review_id: "R041", token_id: "00202518_10", segment_path: "alignment_pilot_segments/00202518_10.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02025/00202518.wav", speaker_id: "02025", utterance_id: "00202518", word: "服", expected_pinyin: "fú", expected_tone: "2", start_seconds: "4.7988", end_seconds: "4.9394", duration_seconds: "0.1406", alignment_score: "0.9416", alignment_status: "good", flag_reason: ""},
+{review_id: "R042", token_id: "00201820_05", segment_path: "alignment_pilot_segments/00201820_05.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02018/00201820.wav", speaker_id: "02018", utterance_id: "00201820", word: "小", expected_pinyin: "xiǎo", expected_tone: "3", start_seconds: "2.9639", end_seconds: "3.3043", duration_seconds: "0.3404", alignment_score: "0.9783", alignment_status: "good", flag_reason: ""},
+{review_id: "R043", token_id: "00204126_02", segment_path: "alignment_pilot_segments/00204126_02.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02041/00204126.wav", speaker_id: "02041", utterance_id: "00204126", word: "年", expected_pinyin: "nián", expected_tone: "2", start_seconds: "1.7057", end_seconds: "1.9064", duration_seconds: "0.2007", alignment_score: "0.9887", alignment_status: "good", flag_reason: ""},
+{review_id: "R044", token_id: "00203229_07", segment_path: "alignment_pilot_segments/00203229_07.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02032/00203229.wav", speaker_id: "02032", utterance_id: "00203229", word: "條", expected_pinyin: "tiáo", expected_tone: "2", start_seconds: "2.8512", end_seconds: "3.0520", duration_seconds: "0.2008", alignment_score: "0.9145", alignment_status: "good", flag_reason: ""},
+{review_id: "R045", token_id: "00203829_03", segment_path: "alignment_pilot_segments/00203829_03.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02038/00203829.wav", speaker_id: "02038", utterance_id: "00203829", word: "手", expected_pinyin: "shǒu", expected_tone: "3", start_seconds: "4.3879", end_seconds: "4.5482", duration_seconds: "0.1603", alignment_score: "0.9886", alignment_status: "good", flag_reason: ""},
+{review_id: "R046", token_id: "00204426_09", segment_path: "alignment_pilot_segments/00204426_09.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02044/00204426.wav", speaker_id: "02044", utterance_id: "00204426", word: "裡", expected_pinyin: "lǐ", expected_tone: "3", start_seconds: "5.1168", end_seconds: "5.2171", duration_seconds: "0.1003", alignment_score: "0.9416", alignment_status: "good", flag_reason: ""},
+{review_id: "R047", token_id: "00202526_08", segment_path: "alignment_pilot_segments/00202526_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02025/00202526.wav", speaker_id: "02025", utterance_id: "00202526", word: "館", expected_pinyin: "guǎn", expected_tone: "3", start_seconds: "2.9738", end_seconds: "3.1949", duration_seconds: "0.2210", alignment_score: "0.9888", alignment_status: "good", flag_reason: ""},
+{review_id: "R048", token_id: "00202220_01", segment_path: "alignment_pilot_segments/00202220_01.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02022/00202220.wav", speaker_id: "02022", utterance_id: "00202220", word: "邊", expected_pinyin: "biān", expected_tone: "1", start_seconds: "0.6410", end_seconds: "0.9616", duration_seconds: "0.3205", alignment_score: "0.7277", alignment_status: "good", flag_reason: ""},
+{review_id: "R049", token_id: "00200120_00", segment_path: "alignment_pilot_segments/00200120_00.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02001/00200120.wav", speaker_id: "02001", utterance_id: "00200120", word: "裡", expected_pinyin: "lǐ", expected_tone: "3", start_seconds: "0.7405", end_seconds: "0.8406", duration_seconds: "0.1001", alignment_score: "0.9862", alignment_status: "good", flag_reason: ""},
+{review_id: "R050", token_id: "00204526_03", segment_path: "alignment_pilot_segments/00204526_03.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02045/00204526.wav", speaker_id: "02045", utterance_id: "00204526", word: "夜", expected_pinyin: "yè", expected_tone: "4", start_seconds: "1.1647", end_seconds: "1.2651", duration_seconds: "0.1004", alignment_score: "0.9960", alignment_status: "good", flag_reason: ""},
+{review_id: "R051", token_id: "00202629_08", segment_path: "alignment_pilot_segments/00202629_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02026/00202629.wav", speaker_id: "02026", utterance_id: "00202629", word: "短", expected_pinyin: "duǎn", expected_tone: "3", start_seconds: "10.6982", end_seconds: "10.9787", duration_seconds: "0.2805", alignment_score: "0.9856", alignment_status: "good", flag_reason: ""},
+{review_id: "R052", token_id: "00203026_03", segment_path: "alignment_pilot_segments/00203026_03.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02030/00203026.wav", speaker_id: "02030", utterance_id: "00203026", word: "夜", expected_pinyin: "yè", expected_tone: "4", start_seconds: "0.7421", end_seconds: "0.8423", duration_seconds: "0.1003", alignment_score: "0.7343", alignment_status: "good", flag_reason: ""},
+{review_id: "R053", token_id: "00201420_00", segment_path: "alignment_pilot_segments/00201420_00.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02014/00201420.wav", speaker_id: "02014", utterance_id: "00201420", word: "裡", expected_pinyin: "lǐ", expected_tone: "3", start_seconds: "0.9019", end_seconds: "1.0022", duration_seconds: "0.1002", alignment_score: "0.9115", alignment_status: "good", flag_reason: ""},
+{review_id: "R054", token_id: "00204426_00", segment_path: "alignment_pilot_segments/00204426_00.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02044/00204426.wav", speaker_id: "02044", utterance_id: "00204426", word: "就", expected_pinyin: "jiù", expected_tone: "4", start_seconds: "0.8227", end_seconds: "0.9832", duration_seconds: "0.1605", alignment_score: "0.5183", alignment_status: "good", flag_reason: ""},
+{review_id: "R055", token_id: "00203626_08", segment_path: "alignment_pilot_segments/00203626_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02036/00203626.wav", speaker_id: "02036", utterance_id: "00203626", word: "館", expected_pinyin: "guǎn", expected_tone: "3", start_seconds: "6.2755", end_seconds: "6.4559", duration_seconds: "0.1804", alignment_score: "0.9672", alignment_status: "good", flag_reason: ""},
+{review_id: "R056", token_id: "00204126_03", segment_path: "alignment_pilot_segments/00204126_03.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02041/00204126.wav", speaker_id: "02041", utterance_id: "00204126", word: "夜", expected_pinyin: "yè", expected_tone: "4", start_seconds: "1.9666", end_seconds: "2.0468", duration_seconds: "0.0803", alignment_score: "0.9948", alignment_status: "good", flag_reason: ""},
+{review_id: "R057", token_id: "00202014_03", segment_path: "alignment_pilot_segments/00202014_03.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02020/00202014.wav", speaker_id: "02020", utterance_id: "00202014", word: "名", expected_pinyin: "míng", expected_tone: "2", start_seconds: "0.8257", end_seconds: "1.0069", duration_seconds: "0.1812", alignment_score: "0.8876", alignment_status: "good", flag_reason: ""},
+{review_id: "R058", token_id: "00201514_06", segment_path: "alignment_pilot_segments/00201514_06.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02015/00201514.wav", speaker_id: "02015", utterance_id: "00201514", word: "是", expected_pinyin: "shì", expected_tone: "4", start_seconds: "3.5922", end_seconds: "3.7327", duration_seconds: "0.1405", alignment_score: "0.9260", alignment_status: "good", flag_reason: ""},
+{review_id: "R059", token_id: "00203929_03", segment_path: "alignment_pilot_segments/00203929_03.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02039/00203929.wav", speaker_id: "02039", utterance_id: "00203929", word: "手", expected_pinyin: "shǒu", expected_tone: "3", start_seconds: "1.9840", end_seconds: "2.2244", duration_seconds: "0.2405", alignment_score: "0.9699", alignment_status: "good", flag_reason: ""},
+{review_id: "R060", token_id: "00203529_07", segment_path: "alignment_pilot_segments/00203529_07.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02035/00203529.wav", speaker_id: "02035", utterance_id: "00203529", word: "條", expected_pinyin: "tiáo", expected_tone: "2", start_seconds: "4.1459", end_seconds: "4.4864", duration_seconds: "0.3405", alignment_score: "0.7665", alignment_status: "good", flag_reason: ""},
+{review_id: "R061", token_id: "00202829_07", segment_path: "alignment_pilot_segments/00202829_07.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02028/00202829.wav", speaker_id: "02028", utterance_id: "00202829", word: "條", expected_pinyin: "tiáo", expected_tone: "2", start_seconds: "2.9053", end_seconds: "3.2660", duration_seconds: "0.3607", alignment_score: "0.8708", alignment_status: "good", flag_reason: ""},
+{review_id: "R062", token_id: "00202901_01", segment_path: "alignment_pilot_segments/00202901_01.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav", speaker_id: "02029", utterance_id: "00202901", word: "國", expected_pinyin: "guó", expected_tone: "2", start_seconds: "1.0237", end_seconds: "1.1642", duration_seconds: "0.1405", alignment_score: "0.9929", alignment_status: "good", flag_reason: ""},
+{review_id: "R063", token_id: "00204311_06", segment_path: "alignment_pilot_segments/00204311_06.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02043/00204311.wav", speaker_id: "02043", utterance_id: "00204311", word: "福", expected_pinyin: "fú", expected_tone: "2", start_seconds: "1.5877", end_seconds: "1.7284", duration_seconds: "0.1407", alignment_score: "0.9883", alignment_status: "good", flag_reason: ""},
+{review_id: "R064", token_id: "00204311_11", segment_path: "alignment_pilot_segments/00204311_11.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02043/00204311.wav", speaker_id: "02043", utterance_id: "00204311", word: "到", expected_pinyin: "dào", expected_tone: "4", start_seconds: "3.5574", end_seconds: "3.7985", duration_seconds: "0.2412", alignment_score: "0.9715", alignment_status: "good", flag_reason: ""},
+{review_id: "R065", token_id: "00201814_00", segment_path: "alignment_pilot_segments/00201814_00.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02018/00201814.wav", speaker_id: "02018", utterance_id: "00201814", word: "小", expected_pinyin: "xiǎo", expected_tone: "3", start_seconds: "0.3614", end_seconds: "0.6225", duration_seconds: "0.2610", alignment_score: "0.8757", alignment_status: "good", flag_reason: ""},
+{review_id: "R066", token_id: "00203611_08", segment_path: "alignment_pilot_segments/00203611_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02036/00203611.wav", speaker_id: "02036", utterance_id: "00203611", word: "表", expected_pinyin: "biǎo", expected_tone: "3", start_seconds: "7.3512", end_seconds: "7.7719", duration_seconds: "0.4206", alignment_score: "0.4170", alignment_status: "good", flag_reason: ""},
+{review_id: "R067", token_id: "00200620_01", segment_path: "alignment_pilot_segments/00200620_01.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02006/00200620.wav", speaker_id: "02006", utterance_id: "00200620", word: "邊", expected_pinyin: "biān", expected_tone: "1", start_seconds: "0.7412", end_seconds: "1.0817", duration_seconds: "0.3405", alignment_score: "0.9880", alignment_status: "good", flag_reason: ""},
+{review_id: "R068", token_id: "00200217_03", segment_path: "alignment_pilot_segments/00200217_03.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02002/00200217.wav", speaker_id: "02002", utterance_id: "00200217", word: "房", expected_pinyin: "fáng", expected_tone: "2", start_seconds: "2.3744", end_seconds: "2.6159", duration_seconds: "0.2415", alignment_score: "0.9428", alignment_status: "good", flag_reason: ""},
+{review_id: "R069", token_id: "00201117_03", segment_path: "alignment_pilot_segments/00201117_03.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02011/00201117.wav", speaker_id: "02011", utterance_id: "00201117", word: "房", expected_pinyin: "fáng", expected_tone: "2", start_seconds: "2.0327", end_seconds: "2.3346", duration_seconds: "0.3019", alignment_score: "0.7510", alignment_status: "good", flag_reason: ""},
+{review_id: "R070", token_id: "00201314_08", segment_path: "alignment_pilot_segments/00201314_08.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02013/00201314.wav", speaker_id: "02013", utterance_id: "00201314", word: "花", expected_pinyin: "huā", expected_tone: "1", start_seconds: "2.4362", end_seconds: "2.5973", duration_seconds: "0.1611", alignment_score: "0.9982", alignment_status: "good", flag_reason: ""},
+{review_id: "R071", token_id: "00204611_11", segment_path: "alignment_pilot_segments/00204611_11.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02046/00204611.wav", speaker_id: "02046", utterance_id: "00204611", word: "到", expected_pinyin: "dào", expected_tone: "4", start_seconds: "4.0971", end_seconds: "4.3180", duration_seconds: "0.2209", alignment_score: "0.9969", alignment_status: "good", flag_reason: ""},
+{review_id: "R072", token_id: "00200414_01", segment_path: "alignment_pilot_segments/00200414_01.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02004/00200414.wav", speaker_id: "02004", utterance_id: "00200414", word: "貓", expected_pinyin: "māo", expected_tone: "1", start_seconds: "0.7840", end_seconds: "1.0253", duration_seconds: "0.2412", alignment_score: "0.9188", alignment_status: "good", flag_reason: ""}
+];
+const KEY = "ompal_align_review";
+let votes = JSON.parse(localStorage.getItem(KEY) || "{}");
+
+function esc(s) { return String(s).replace(/"/g, '""'); }
+
+function progress() {
+  const n = Object.keys(votes).filter(k => votes[k] && votes[k].j).length;
+  document.getElementById("prog").textContent = n + " of " + ITEMS.length + " judged";
+  document.getElementById("fill").style.width = (100 * n / ITEMS.length) + "%";
+}
+
+function vote(id, j) {
+  votes[id] = Object.assign({}, votes[id], { j: j });
+  localStorage.setItem(KEY, JSON.stringify(votes));
+  const card = document.getElementById("c_" + id);
+  card.classList.add("done");
+  ["g","q","w"].forEach(c => card.querySelector("." + c).classList.remove("on"));
+  card.querySelector("." + {GOOD:"g", QUESTIONABLE:"q", WRONG:"w"}[j]).classList.add("on");
+  progress();
+}
+
+function note(id, v) {
+  votes[id] = Object.assign({}, votes[id], { n: v });
+  localStorage.setItem(KEY, JSON.stringify(votes));
+}
+
+function play(sel) { const a = document.querySelector(sel); a.currentTime = 0; a.play(); }
+
+function save() {
+  let out = "review_id,token_id,human_boundary_judgment,human_note\n";
+  ITEMS.forEach(it => {
+    const v = votes[it.review_id] || {};
+    if (!v.j) return;
+    out += `${it.review_id},${it.token_id},${v.j},"${esc(v.n || "")}"\n`;
+  });
+  const blob = new Blob([out], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "ompal_alignment_human_review.csv";
+  a.click();
+  document.getElementById("status").textContent =
+    "saved — put it in data/ then run analyze_human_review.py";
+}
+
+document.getElementById("list").innerHTML = ITEMS.map((it, i) => `
+ <div class="card" id="c_${it.review_id}">
+  <div class="row">
+   <div><div class="hz">${it.word}</div>
+    <div class="meta">${it.expected_pinyin} &nbsp;·&nbsp; tone ${it.expected_tone}</div></div>
+   <div style="flex:1">
+    <div class="row">
+     <button onclick="play('#s_${it.review_id}')">▶ segment</button>
+     <button onclick="play('#u_${it.review_id}')">▶ full utterance</button>
+     <span class="tag">${it.alignment_status}${it.flag_reason ? " · " + it.flag_reason : ""}</span>
+    </div>
+    <div class="meta">${it.review_id} &nbsp;·&nbsp; spk ${it.speaker_id} &nbsp;·&nbsp;
+     ${it.duration_seconds}s &nbsp;·&nbsp; ${it.start_seconds}–${it.end_seconds}s
+     &nbsp;·&nbsp; score ${it.alignment_score}</div>
+   </div>
+  </div>
+  <audio id="s_${it.review_id}" src="${it.segment_path}" preload="none"></audio>
+  <audio id="u_${it.review_id}" src="${it.utterance_path}" preload="none"></audio>
+  <div class="judge">
+   <button class="g" onclick="vote('${it.review_id}','GOOD')">GOOD</button>
+   <button class="q" onclick="vote('${it.review_id}','QUESTIONABLE')">QUESTIONABLE</button>
+   <button class="w" onclick="vote('${it.review_id}','WRONG')">WRONG</button>
+  </div>
+  <input type="text" placeholder="optional note"
+     oninput="note('${it.review_id}', this.value)">
+  <div class="kbd">keys: <b>a</b> play segment · <b>s</b> play utterance ·
+   <b>1</b> good · <b>2</b> questionable · <b>3</b> wrong</div>
+ </div>`).join("");
+
+// Restore any judgments from a previous sitting.
+ITEMS.forEach(it => {
+  const v = votes[it.review_id];
+  if (!v) return;
+  if (v.j) vote(it.review_id, v.j);
+  if (v.n) document.querySelector("#c_" + it.review_id + " input").value = v.n;
+});
+progress();
+
+// Keyboard driving: whichever card is nearest the middle of the screen.
+function current() {
+  let best = null, dist = 1e9;
+  ITEMS.forEach(it => {
+    const r = document.getElementById("c_" + it.review_id).getBoundingClientRect();
+    const d = Math.abs(r.top + r.height / 2 - innerHeight / 2);
+    if (d < dist) { dist = d; best = it; }
+  });
+  return best;
+}
+addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  const it = current(); if (!it) return;
+  if (e.key === "a") play("#s_" + it.review_id);
+  if (e.key === "s") play("#u_" + it.review_id);
+  if (e.key === "1") vote(it.review_id, "GOOD");
+  if (e.key === "2") vote(it.review_id, "QUESTIONABLE");
+  if (e.key === "3") vote(it.review_id, "WRONG");
+});
+</script></body></html>

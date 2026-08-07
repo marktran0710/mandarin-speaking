@@ -35,6 +35,62 @@ REVIEW_HTML = DATA_DIR / "review.html"
 MUST_INCLUDE = ("是", "四", "字", "一", "去", "花")
 PER_MUST_INCLUDE = 3
 
+# Round 2 validates one rule: is `alignment_status == "good"` safe to accept?
+# So it draws only from good, and spreads hard -- a sample concentrated on a
+# few frequent characters would measure those characters, not the rule.
+DURATION_BINS = ((0.0, 0.12), (0.12, 0.16), (0.16, 0.21), (0.21, 0.28), (0.28, 9.9))
+
+
+def duration_bin(row) -> str:
+    value = float(row["duration_seconds"])
+    for low, high in DURATION_BINS:
+        if low <= value < high:
+            return f"{low:.2f}-{high:.2f}" if high < 9 else f">={low:.2f}"
+    return "?"
+
+
+def select_balanced(rows, wanted: int, seed: int, statuses, exclude, max_per_word: int):
+    """Greedy spread over tone, hidden label, duration, speaker and word.
+
+    Each pick is whichever candidate is currently most under-represented, in
+    that priority order. The word cap is a hard limit rather than a preference:
+    花 alone has 34 auto-good tokens and would otherwise dominate.
+    """
+    pool = [
+        r for r in rows
+        if r["segment_path"] and r["start_seconds"]
+        and r["alignment_status"] in statuses
+        and (r["utterance_id"], r["token_index"]) not in exclude
+    ]
+    rng = np.random.default_rng(seed)
+    rng.shuffle(pool)
+
+    chosen, used_word = [], Counter()
+    tones, labels, bins, speakers = Counter(), Counter(), Counter(), Counter()
+
+    while len(chosen) < wanted:
+        candidates = [r for r in pool if used_word[r["word"]] < max_per_word]
+        if not candidates:
+            break
+        candidates.sort(key=lambda r: (
+            tones[r["expected_tone"]],
+            labels[r["majority_tone_correct"]],
+            bins[duration_bin(r)],
+            speakers[r["speaker_id"]],
+            used_word[r["word"]],
+        ))
+        pick = candidates[0]
+        pool.remove(pick)
+        chosen.append(pick)
+        tones[pick["expected_tone"]] += 1
+        labels[pick["majority_tone_correct"]] += 1
+        bins[duration_bin(pick)] += 1
+        speakers[pick["speaker_id"]] += 1
+        used_word[pick["word"]] += 1
+
+    rng.shuffle(chosen)
+    return chosen
+
 
 def utterance_relative(utterance_id: str) -> str:
     """From data/ up to backend/, then into the read-only corpus."""
@@ -322,11 +378,36 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--count", type=int, default=46)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--round", type=int, default=1)
+    parser.add_argument("--statuses", default="good,questionable,failed")
+    parser.add_argument("--max-per-word", type=int, default=4)
+    parser.add_argument("--exclude", action="append", default=[],
+                        help="items CSV whose tokens must not reappear")
     args = parser.parse_args()
 
     rows = list(csv.DictReader(PILOT_CSV.open(encoding="utf-8")))
-    chosen = select(rows, args.count, args.seed)
+    exclude = set()
+    for path in args.exclude:
+        for row in csv.DictReader(Path(path).open(encoding="utf-8")):
+            exclude.add((row["utterance_id"], row["token_index"]))
+
+    if args.round == 1:
+        chosen = select(rows, args.count, args.seed)
+    else:
+        chosen = select_balanced(
+            rows, args.count, args.seed,
+            set(args.statuses.split(",")), exclude, args.max_per_word,
+        )
     items = build_items(chosen)
+
+    suffix = "" if args.round == 1 else f"_round{args.round}"
+    items_csv = ITEMS_CSV if not suffix else ITEMS_CSV.with_name(
+        ITEMS_CSV.stem + suffix + ".csv")
+    review_html = REVIEW_HTML if not suffix else REVIEW_HTML.with_name(
+        f"review_round{args.round}.html")
+    globals()["ITEMS_CSV"], globals()["REVIEW_HTML"] = items_csv, review_html
+    if exclude:
+        print(f"excluded {len(exclude)} already-reviewed tokens")
 
     with ITEMS_CSV.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(items[0].keys()))
@@ -340,9 +421,12 @@ def main() -> None:
     print(f"  speakers   : {len({i['speaker_id'] for i in items})}")
     print(f"  hidden human label balance (not shown in UI): "
           f"{dict(Counter(i['majority_tone_correct'] for i in items))}")
-    flagged = Counter(i["word"] for i in items if i["word"] in MUST_INCLUDE)
-    print(f"  flagged characters included: "
-          + ", ".join(f"{c}={flagged.get(c, 0)}" for c in MUST_INCLUDE))
+    words = Counter(i["word"] for i in items)
+    print(f"  distinct words: {len(words)}, most frequent: "
+          + ", ".join(f"{w}x{c}" for w, c in words.most_common(4)))
+    print(f"  duration bins: "
+          + ", ".join(f"{b}={c}" for b, c in sorted(
+              Counter(duration_bin(i) for i in items).items())))
     print(f"\nitems csv : {ITEMS_CSV}")
     print(f"page      : {REVIEW_HTML}")
     print("\nStart the reviewer with:")
