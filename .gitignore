@@ -36,3 +36,4 @@ backend/private-data/
 # Pilot audio segments: derived from private-data/ompal, regenerable
 backend/pronunciation/wav2vec_tone/data/alignment_pilot_segments/
 backend/pronunciation/wav2vec_tone/data/padding_trial_segments/
+backend/pronunciation/wav2vec_tone/data/binary_trial_segments/

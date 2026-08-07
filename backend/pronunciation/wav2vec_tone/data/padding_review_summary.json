@@ -1,0 +1,115 @@
+{
+  "trials_prepared": 176,
+  "trials_judged": 176,
+  "unjudged": [],
+  "by_padding": {
+    "0": {
+      "GOOD": 39,
+      "QUESTIONABLE": 3,
+      "WRONG": 2
+    },
+    "20": {
+      "GOOD": 41,
+      "WRONG": 1,
+      "QUESTIONABLE": 2
+    },
+    "40": {
+      "GOOD": 42,
+      "QUESTIONABLE": 2
+    },
+    "60": {
+      "GOOD": 40,
+      "QUESTIONABLE": 3,
+      "WRONG": 1
+    }
+  },
+  "by_original": {
+    "GOOD": {
+      "0": {
+        "GOOD": 15,
+        "WRONG": 1,
+        "QUESTIONABLE": 2
+      },
+      "20": {
+        "GOOD": 16,
+        "QUESTIONABLE": 2
+      },
+      "40": {
+        "GOOD": 17,
+        "QUESTIONABLE": 1
+      },
+      "60": {
+        "WRONG": 1,
+        "GOOD": 16,
+        "QUESTIONABLE": 1
+      }
+    },
+    "QUESTIONABLE": {
+      "0": {
+        "GOOD": 19,
+        "QUESTIONABLE": 1,
+        "WRONG": 1
+      },
+      "20": {
+        "GOOD": 20,
+        "WRONG": 1
+      },
+      "40": {
+        "GOOD": 20,
+        "QUESTIONABLE": 1
+      },
+      "60": {
+        "GOOD": 19,
+        "QUESTIONABLE": 2
+      }
+    },
+    "WRONG": {
+      "0": {
+        "GOOD": 5
+      },
+      "20": {
+        "GOOD": 5
+      },
+      "40": {
+        "GOOD": 5
+      },
+      "60": {
+        "GOOD": 5
+      }
+    }
+  },
+  "transitions": {
+    "0": {
+      "QUESTIONABLE->GOOD": 19,
+      "QUESTIONABLE->WRONG": 1,
+      "WRONG->GOOD": 5,
+      "GOOD->QUESTIONABLE": 2,
+      "GOOD->WRONG": 1
+    },
+    "20": {
+      "QUESTIONABLE->GOOD": 20,
+      "QUESTIONABLE->WRONG": 1,
+      "WRONG->GOOD": 5,
+      "GOOD->QUESTIONABLE": 2,
+      "GOOD->WRONG": 0
+    },
+    "40": {
+      "QUESTIONABLE->GOOD": 20,
+      "QUESTIONABLE->WRONG": 0,
+      "WRONG->GOOD": 5,
+      "GOOD->QUESTIONABLE": 1,
+      "GOOD->WRONG": 0
+    },
+    "60": {
+      "QUESTIONABLE->GOOD": 19,
+      "QUESTIONABLE->WRONG": 0,
+      "WRONG->GOOD": 5,
+      "GOOD->QUESTIONABLE": 1,
+      "GOOD->WRONG": 1
+    }
+  },
+  "self_consistency_0ms": {
+    "agree": 16,
+    "n": 44
+  }
+}
