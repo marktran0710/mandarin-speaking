@@ -61,7 +61,8 @@ TRAJECTORY_POINTS = (("f0_start", 0.0), ("f0_25", 0.25), ("f0_50", 0.50),
                      ("f0_75", 0.75), ("f0_end", 1.0))
 
 FEATURE_NAMES = (
-    "duration_seconds", "mean_f0_hz", "min_f0_hz", "max_f0_hz", "f0_range_hz",
+    "duration_seconds", "mean_f0_hz", "median_f0_hz", "min_f0_hz", "max_f0_hz",
+    "f0_range_hz",
     "f0_start", "f0_25", "f0_50", "f0_75", "f0_end",
     "slope_start_to_mid", "slope_mid_to_end", "voiced_proportion",
 )
@@ -150,6 +151,10 @@ def extract_one(audio: np.ndarray) -> dict:
     voiced_f0 = frequencies[voiced]
 
     features["mean_f0_hz"] = float(np.mean(voiced_f0))
+    # The reference for per-syllable semitone normalisation. Median rather
+    # than mean because a single octave-error frame moves the mean and
+    # would shift every relative feature derived from it.
+    features["median_f0_hz"] = float(np.median(voiced_f0))
     features["min_f0_hz"] = float(np.min(voiced_f0))
     features["max_f0_hz"] = float(np.max(voiced_f0))
     features["f0_range_hz"] = features["max_f0_hz"] - features["min_f0_hz"]

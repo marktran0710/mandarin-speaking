@@ -1,0 +1,475 @@
+{
+  "cv_accuracy_mean": 0.4538256222029041,
+  "cv_accuracy_sd": 0.05926847192623616,
+  "cv_macro_f1_mean": 0.4363399740753725,
+  "cv_macro_f1_sd": 0.057872814922474924,
+  "pooled_accuracy": 0.4539249146757679,
+  "per_tone_f1": {
+    "T1": 0.3529411764705882,
+    "T2": 0.42048517520215634,
+    "T3": 0.4560570071258907,
+    "T4": 0.5225505443234837
+  },
+  "per_tone": {
+    "T1": {
+      "precision": 0.2864321608040201,
+      "recall": 0.4596774193548387,
+      "f1": 0.3529411764705882,
+      "support": 124
+    },
+    "T2": {
+      "precision": 0.430939226519337,
+      "recall": 0.4105263157894737,
+      "f1": 0.42048517520215634,
+      "support": 190
+    },
+    "T3": {
+      "precision": 0.384,
+      "recall": 0.5614035087719298,
+      "f1": 0.4560570071258907,
+      "support": 171
+    },
+    "T4": {
+      "precision": 0.6746987951807228,
+      "recall": 0.4263959390862944,
+      "f1": 0.5225505443234837,
+      "support": 394
+    }
+  },
+  "confusion_matrix": [
+    [
+      57,
+      28,
+      6,
+      33
+    ],
+    [
+      39,
+      78,
+      52,
+      21
+    ],
+    [
+      17,
+      31,
+      96,
+      27
+    ],
+    [
+      86,
+      44,
+      96,
+      168
+    ]
+  ],
+  "confusion_axis": [
+    "T1",
+    "T2",
+    "T3",
+    "T4"
+  ],
+  "chance_accuracy": 0.25,
+  "majority_accuracy": 0.4482366325369738,
+  "majority_tone": 4,
+  "speaker_overlap_violations": 0,
+  "syllable_overlap_rate_mean": 0.9354175630544799,
+  "syllable_overlap_rate_per_fold": [
+    0.9611111111111111,
+    0.9144385026737968,
+    0.9583333333333334,
+    0.9294117647058824,
+    0.9137931034482759
+  ],
+  "top_confusions": [
+    {
+      "true": "T4",
+      "predicted": "T3",
+      "count": 96
+    },
+    {
+      "true": "T4",
+      "predicted": "T1",
+      "count": 86
+    },
+    {
+      "true": "T2",
+      "predicted": "T3",
+      "count": 52
+    },
+    {
+      "true": "T4",
+      "predicted": "T2",
+      "count": 44
+    },
+    {
+      "true": "T2",
+      "predicted": "T1",
+      "count": 39
+    }
+  ],
+  "splitter": "StratifiedGroupKFold",
+  "encoder": "praat/parselmouth",
+  "folds": [
+    {
+      "fold": 1,
+      "n_train": 699,
+      "n_test": 180,
+      "train_speakers": 18,
+      "test_speakers": 6,
+      "speaker_overlap": 0,
+      "accuracy": 0.46111111111111114,
+      "macro_f1": 0.4319920271721624,
+      "per_tone": {
+        "1": {
+          "precision": 0.2,
+          "recall": 0.38095238095238093,
+          "f1": 0.2622950819672132,
+          "support": 21
+        },
+        "2": {
+          "precision": 0.4,
+          "recall": 0.43243243243243246,
+          "f1": 0.4155844155844156,
+          "support": 37
+        },
+        "3": {
+          "precision": 0.46153846153846156,
+          "recall": 0.5625,
+          "f1": 0.5070422535211268,
+          "support": 32
+        },
+        "4": {
+          "precision": 0.6721311475409836,
+          "recall": 0.45555555555555555,
+          "f1": 0.5430463576158939,
+          "support": 90
+        }
+      },
+      "confusion": [
+        [
+          8,
+          7,
+          1,
+          5
+        ],
+        [
+          7,
+          16,
+          6,
+          8
+        ],
+        [
+          1,
+          6,
+          18,
+          7
+        ],
+        [
+          24,
+          11,
+          14,
+          41
+        ]
+      ],
+      "syllable_overlap_rate": 0.9611111111111111,
+      "held_out_speakers": [
+        "SSB0011",
+        "SSB0012",
+        "SSB0122",
+        "SSB0145",
+        "SSB0200",
+        "SSB0338"
+      ]
+    },
+    {
+      "fold": 2,
+      "n_train": 692,
+      "n_test": 187,
+      "train_speakers": 20,
+      "test_speakers": 4,
+      "speaker_overlap": 0,
+      "accuracy": 0.47058823529411764,
+      "macro_f1": 0.4652068352328804,
+      "per_tone": {
+        "1": {
+          "precision": 0.3611111111111111,
+          "recall": 0.52,
+          "f1": 0.42622950819672134,
+          "support": 25
+        },
+        "2": {
+          "precision": 0.5714285714285714,
+          "recall": 0.4,
+          "f1": 0.47058823529411764,
+          "support": 40
+        },
+        "3": {
+          "precision": 0.3875,
+          "recall": 0.7560975609756098,
+          "f1": 0.5123966942148761,
+          "support": 41
+        },
+        "4": {
+          "precision": 0.6511627906976745,
+          "recall": 0.345679012345679,
+          "f1": 0.45161290322580644,
+          "support": 81
+        }
+      },
+      "confusion": [
+        [
+          13,
+          4,
+          1,
+          7
+        ],
+        [
+          8,
+          16,
+          12,
+          4
+        ],
+        [
+          3,
+          3,
+          31,
+          4
+        ],
+        [
+          12,
+          5,
+          36,
+          28
+        ]
+      ],
+      "syllable_overlap_rate": 0.9144385026737968,
+      "held_out_speakers": [
+        "SSB0016",
+        "SSB0267",
+        "SSB0307",
+        "SSB0323"
+      ]
+    },
+    {
+      "fold": 3,
+      "n_train": 711,
+      "n_test": 168,
+      "train_speakers": 20,
+      "test_speakers": 4,
+      "speaker_overlap": 0,
+      "accuracy": 0.42857142857142855,
+      "macro_f1": 0.4188193309360358,
+      "per_tone": {
+        "1": {
+          "precision": 0.3541666666666667,
+          "recall": 0.6071428571428571,
+          "f1": 0.4473684210526316,
+          "support": 28
+        },
+        "2": {
+          "precision": 0.3235294117647059,
+          "recall": 0.3055555555555556,
+          "f1": 0.31428571428571433,
+          "support": 36
+        },
+        "3": {
+          "precision": 0.3333333333333333,
+          "recall": 0.5925925925925926,
+          "f1": 0.4266666666666667,
+          "support": 27
+        },
+        "4": {
+          "precision": 0.7368421052631579,
+          "recall": 0.36363636363636365,
+          "f1": 0.48695652173913045,
+          "support": 77
+        }
+      },
+      "confusion": [
+        [
+          17,
+          5,
+          3,
+          3
+        ],
+        [
+          9,
+          11,
+          13,
+          3
+        ],
+        [
+          3,
+          4,
+          16,
+          4
+        ],
+        [
+          19,
+          14,
+          16,
+          28
+        ]
+      ],
+      "syllable_overlap_rate": 0.9583333333333334,
+      "held_out_speakers": [
+        "SSB0038",
+        "SSB0073",
+        "SSB0241",
+        "SSB0309"
+      ]
+    },
+    {
+      "fold": 4,
+      "n_train": 709,
+      "n_test": 170,
+      "train_speakers": 20,
+      "test_speakers": 4,
+      "speaker_overlap": 0,
+      "accuracy": 0.5352941176470588,
+      "macro_f1": 0.5109861828370801,
+      "per_tone": {
+        "1": {
+          "precision": 0.3235294117647059,
+          "recall": 0.44,
+          "f1": 0.3728813559322034,
+          "support": 25
+        },
+        "2": {
+          "precision": 0.38461538461538464,
+          "recall": 0.5714285714285714,
+          "f1": 0.4597701149425288,
+          "support": 35
+        },
+        "3": {
+          "precision": 0.625,
+          "recall": 0.5,
+          "f1": 0.5555555555555556,
+          "support": 40
+        },
+        "4": {
+          "precision": 0.7692307692307693,
+          "recall": 0.5714285714285714,
+          "f1": 0.6557377049180327,
+          "support": 70
+        }
+      },
+      "confusion": [
+        [
+          11,
+          9,
+          0,
+          5
+        ],
+        [
+          8,
+          20,
+          4,
+          3
+        ],
+        [
+          3,
+          13,
+          20,
+          4
+        ],
+        [
+          12,
+          10,
+          8,
+          40
+        ]
+      ],
+      "syllable_overlap_rate": 0.9294117647058824,
+      "held_out_speakers": [
+        "SSB0043",
+        "SSB0261",
+        "SSB0273",
+        "SSB0316"
+      ]
+    },
+    {
+      "fold": 5,
+      "n_train": 705,
+      "n_test": 174,
+      "train_speakers": 18,
+      "test_speakers": 6,
+      "speaker_overlap": 0,
+      "accuracy": 0.3735632183908046,
+      "macro_f1": 0.35469549419870383,
+      "per_tone": {
+        "1": {
+          "precision": 0.1951219512195122,
+          "recall": 0.32,
+          "f1": 0.24242424242424243,
+          "support": 25
+        },
+        "2": {
+          "precision": 0.5555555555555556,
+          "recall": 0.35714285714285715,
+          "f1": 0.43478260869565216,
+          "support": 42
+        },
+        "3": {
+          "precision": 0.21568627450980393,
+          "recall": 0.3548387096774194,
+          "f1": 0.2682926829268293,
+          "support": 31
+        },
+        "4": {
+          "precision": 0.5636363636363636,
+          "recall": 0.40789473684210525,
+          "f1": 0.4732824427480916,
+          "support": 76
+        }
+      },
+      "confusion": [
+        [
+          8,
+          3,
+          1,
+          13
+        ],
+        [
+          7,
+          15,
+          17,
+          3
+        ],
+        [
+          7,
+          5,
+          11,
+          8
+        ],
+        [
+          19,
+          4,
+          22,
+          31
+        ]
+      ],
+      "syllable_overlap_rate": 0.9137931034482759,
+      "held_out_speakers": [
+        "SSB0005",
+        "SSB0057",
+        "SSB0287",
+        "SSB0288",
+        "SSB0339",
+        "SSB0341"
+      ]
+    }
+  ],
+  "feature_names": [
+    "rel_f0_start",
+    "rel_f0_25",
+    "rel_f0_50",
+    "rel_f0_75",
+    "rel_f0_end",
+    "f0_range_st",
+    "slope_start_to_mid",
+    "slope_mid_to_end",
+    "duration_seconds",
+    "voiced_proportion"
+  ]
+}

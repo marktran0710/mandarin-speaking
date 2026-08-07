@@ -126,7 +126,8 @@ def syllable_overlap_rate(bases, train_index, test_index) -> float:
     return float(np.mean([base in seen for base in test_bases.tolist()]))
 
 
-def run(cache_path: Path, n_splits: int, seed: int, save_models: bool) -> dict:
+def run(cache_path: Path, n_splits: int, seed: int, save_models: bool,
+        make_model=build_classifier, title: str = "frozen wav2vec2") -> dict:
     stored = np.load(cache_path, allow_pickle=True)
     embeddings = stored["embeddings"]
     tones = stored["tones"]
@@ -136,7 +137,7 @@ def run(cache_path: Path, n_splits: int, seed: int, save_models: bool) -> dict:
     durations = stored["durations"]
 
     print("=" * 72)
-    print("BASELINE: frozen wav2vec2 mean-pooled -> logistic regression")
+    print(f"BASELINE: {title} -> logistic regression")
     print("=" * 72)
     print(f"\ncache      : {cache_path.name}")
     print(f"encoder    : {stored['model_name']}  (pooling: {stored['pooling']})")
@@ -165,7 +166,7 @@ def run(cache_path: Path, n_splits: int, seed: int, save_models: bool) -> dict:
             overlap_violations += 1
             raise RuntimeError(f"fold {number}: {error}") from error
 
-        model = build_classifier(seed)
+        model = make_model(seed)
         model.fit(embeddings[train_index], tones[train_index])
         models.append(model)
 
