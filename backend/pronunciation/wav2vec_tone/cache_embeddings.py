@@ -37,13 +37,56 @@ from pronunciation.wav2vec_tone.extract_embeddings import (
 )
 from pronunciation.wav2vec_tone.prepare_dataset import DATASET_ID, KEEP_TONES
 
-DEFAULT_OUT = Path(__file__).resolve().parent / "data" / "embeddings_frozen_meanpool.npz"
-EXPECTED_DIMENSION = 768
+DATA_DIR = Path(__file__).resolve().parent / "data"
+DEFAULT_OUT = DATA_DIR / "embeddings_frozen_meanpool.npz"
+HIDDEN_WIDTH = 768
 SHORT_THRESHOLDS = (0.15, 0.20, 0.25)
 
 
-def extract_all(metadata_path: Path, model_name: str, limit: int | None = None) -> dict:
+def mean_pool(hidden: np.ndarray) -> np.ndarray:
+    """One vector per clip: the average of every frame.
+
+    Order-free by construction -- a rise and a fall with the same frames in
+    reverse produce the identical vector.
+    """
+    return hidden.mean(axis=0).astype(np.float32)
+
+
+def temporal3_pool(hidden: np.ndarray) -> np.ndarray:
+    """Mean-pool start, middle and end separately, then concatenate.
+
+    Tone is a pitch trajectory, and mean-pooling discards the ordering that
+    defines it. Three ordered regions restore the coarsest possible shape
+    information: a rise now differs from a fall because the start and end
+    blocks swap, which a single average cannot represent.
+
+    Three regions rather than more because the median clip is only 9 frames --
+    finer slicing would leave regions of one frame, whose mean is just that
+    frame and therefore noisy.
+    """
+    frames = hidden
+    # array_split already balances uneven counts (5 frames -> 2/2/1), so the
+    # only real edge case is a clip with fewer frames than regions. Repeating
+    # frames keeps all three regions non-empty; it adds no information, but a
+    # zero or NaN region would poison the vector.
+    if len(frames) < 3:
+        frames = np.repeat(frames, int(np.ceil(3 / max(len(frames), 1))), axis=0)
+    parts = np.array_split(frames, 3, axis=0)
+    return np.concatenate([part.mean(axis=0) for part in parts]).astype(np.float32)
+
+
+# name -> (pooling function, embedding width, default cache filename)
+POOLERS = {
+    "mean": (mean_pool, HIDDEN_WIDTH, "embeddings_frozen_meanpool.npz"),
+    "temporal3": (temporal3_pool, HIDDEN_WIDTH * 3, "embeddings_frozen_temporal3.npz"),
+}
+
+
+def extract_all(metadata_path: Path, model_name: str, pooling: str = "mean",
+                limit: int | None = None) -> dict:
     from datasets import Audio, load_dataset
+
+    pool, width, _ = POOLERS[pooling]
 
     rows = list(csv.DictReader(metadata_path.open(encoding="utf-8")))
     if limit:
@@ -75,7 +118,7 @@ def extract_all(metadata_path: Path, model_name: str, limit: int | None = None) 
     encoder = FrozenWav2Vec2(model_name)
     print(encoder.describe())
 
-    print("[4] embedding…")
+    print(f"[4] embedding (pooling: {pooling}, expected width {width})…")
     kept: dict[str, list] = {
         key: [] for key in
         ("embedding", "speaker_id", "pinyin", "syllable_base", "tone",
@@ -97,7 +140,7 @@ def extract_all(metadata_path: Path, model_name: str, limit: int | None = None) 
             with encoder._torch.no_grad():
                 hidden = encoder.model(**inputs).last_hidden_state[0].numpy()
 
-            kept["embedding"].append(hidden.mean(axis=0).astype(np.float32))
+            kept["embedding"].append(pool(hidden))
             kept["frames"].append(int(hidden.shape[0]))
             kept["speaker_id"].append(row["speaker_id"])
             kept["pinyin"].append(row["pinyin"])
@@ -135,6 +178,8 @@ def extract_all(metadata_path: Path, model_name: str, limit: int | None = None) 
         "utt_ids": np.asarray(kept["utt_id"], dtype=object),
         "frames": np.asarray(kept["frames"], dtype=int),
         "model_name": encoder.model_name,
+        "pooling": pooling,
+        "expected_width": width,
         "failures": failures,
         "requested": len(rows),
     }
@@ -147,9 +192,10 @@ def verify(cache: dict, expected_total: int, expected_speakers: int) -> list[str
 
     if len(embeddings) != expected_total:
         problems.append(f"expected {expected_total} samples, cached {len(embeddings)}")
-    if embeddings.shape[1] != EXPECTED_DIMENSION:
+    expected_width = cache["expected_width"]
+    if embeddings.shape[1] != expected_width:
         problems.append(
-            f"embedding dimension is {embeddings.shape[1]}, expected {EXPECTED_DIMENSION}"
+            f"embedding dimension is {embeddings.shape[1]}, expected {expected_width}"
         )
     if int(np.isnan(embeddings).any(axis=1).sum()):
         problems.append(f"{int(np.isnan(embeddings).any(axis=1).sum())} NaN embeddings")
@@ -272,7 +318,7 @@ def save(cache: dict, path: Path) -> Path:
         # Provenance: which encoder produced these, and how they were pooled.
         # Without it a later cache with different settings is indistinguishable.
         model_name=np.asarray(cache["model_name"]),
-        pooling=np.asarray("mean"),
+        pooling=np.asarray(cache["pooling"]),
         sample_rate=np.asarray(TARGET_SAMPLE_RATE),
     )
     return path
@@ -281,15 +327,17 @@ def save(cache: dict, path: Path) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--metadata", default=str(DEFAULT_METADATA))
-    parser.add_argument("--out", default=str(DEFAULT_OUT))
+    parser.add_argument("--pooling", choices=sorted(POOLERS), default="mean")
+    parser.add_argument("--out", help="defaults to the cache name for --pooling")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--limit", type=int, help="first N records only (debugging)")
     parser.add_argument("--expect-total", type=int, default=879)
     parser.add_argument("--expect-speakers", type=int, default=24)
     args = parser.parse_args()
 
-    cache = extract_all(Path(args.metadata), args.model, args.limit)
-    path = save(cache, Path(args.out))
+    out = Path(args.out) if args.out else DATA_DIR / POOLERS[args.pooling][2]
+    cache = extract_all(Path(args.metadata), args.model, args.pooling, args.limit)
+    path = save(cache, out)
     problems = (
         [] if args.limit
         else verify(cache, args.expect_total, args.expect_speakers)

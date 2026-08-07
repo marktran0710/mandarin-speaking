@@ -329,6 +329,55 @@ def summarise(result: dict) -> tuple[str, dict]:
     return "\n".join(lines), summary
 
 
+def compare_with(summary: dict, previous_path: Path) -> str:
+    """Report deltas against an earlier run, refusing to compare unlike folds.
+
+    A pooling change is only attributable if everything else held still. If the
+    folds differ, the two accuracies were measured on different test sets and
+    subtracting them would produce a number that looks like an effect but is
+    partly a resampling difference.
+    """
+    previous = json.loads(previous_path.read_text(encoding="utf-8"))
+    lines = ["", "=" * 72, f"COMPARISON vs {previous_path.name}", "=" * 72]
+
+    now_folds = [f["held_out_speakers"] for f in summary["folds"]]
+    was_folds = [f["held_out_speakers"] for f in previous["folds"]]
+    identical = now_folds == was_folds
+    lines.append(
+        f"identical folds / speaker grouping: {identical}"
+        + ("" if identical else "   -- DELTAS ARE NOT ATTRIBUTABLE TO POOLING")
+    )
+
+    def delta(label, new, old, scale=1.0, unit=""):
+        return (f"  {label:<14} {new * scale:>7.3f}{unit}  vs {old * scale:>7.3f}{unit}"
+                f"   delta {(new - old) * scale:+7.3f}{unit}")
+
+    lines += [
+        "",
+        delta("accuracy", summary["cv_accuracy_mean"],
+              previous["cv_accuracy_mean"], 100, "%"),
+        delta("macro F1", summary["cv_macro_f1_mean"], previous["cv_macro_f1_mean"]),
+    ]
+    for tone in KEEP_TONES:
+        key = f"T{tone}"
+        lines.append(delta(f"{key} F1", summary["per_tone_f1"][key],
+                           previous["per_tone_f1"][key]))
+
+    axis = [f"T{t}" for t in KEEP_TONES]
+    now_matrix = np.asarray(summary["confusion_matrix"])
+    was_matrix = np.asarray(previous["confusion_matrix"])
+    lines += ["", "  confusion cells of interest:"]
+    for true_tone, predicted_tone in ((2, 3), (3, 2)):
+        row, column = axis.index(f"T{true_tone}"), axis.index(f"T{predicted_tone}")
+        lines.append(
+            f"    T{true_tone} -> T{predicted_tone}: {now_matrix[row, column]:>4}"
+            f"  vs {was_matrix[row, column]:>4}"
+            f"   delta {now_matrix[row, column] - was_matrix[row, column]:+d}"
+        )
+    lines.append("=" * 72)
+    return "\n".join(lines)
+
+
 def save_predictions(result: dict, path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="", encoding="utf-8") as handle:
@@ -352,6 +401,9 @@ def save_predictions(result: dict, path: Path) -> Path:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cache", default=str(DEFAULT_CACHE))
+    parser.add_argument("--tag", default="baseline",
+                        help="suffix for output files, so runs do not overwrite")
+    parser.add_argument("--compare", help="summary JSON of a previous run")
     parser.add_argument("--folds", type=int, default=N_SPLITS)
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--no-save-models", action="store_true")
@@ -360,9 +412,12 @@ def main() -> None:
     result = run(Path(args.cache), args.folds, args.seed, not args.no_save_models)
     report, summary = summarise(result)
     print(report)
+    if args.compare:
+        print(compare_with(summary, Path(args.compare)))
 
-    predictions = save_predictions(result, DATA_DIR / "oof_predictions_baseline.csv")
-    summary_path = DATA_DIR / "baseline_summary.json"
+    predictions = save_predictions(
+        result, DATA_DIR / f"oof_predictions_{args.tag}.csv")
+    summary_path = DATA_DIR / f"{args.tag}_summary.json"
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     print(f"\nout-of-fold predictions : {predictions}")
@@ -372,7 +427,7 @@ def main() -> None:
         import joblib
 
         MODELS_DIR.mkdir(parents=True, exist_ok=True)
-        model_path = MODELS_DIR / "baseline_fold_models.joblib"
+        model_path = MODELS_DIR / f"{args.tag}_fold_models.joblib"
         joblib.dump(
             {
                 "models": result["models"],
