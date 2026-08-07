@@ -38,3 +38,4 @@ backend/pronunciation/wav2vec_tone/data/alignment_pilot_segments/
 backend/pronunciation/wav2vec_tone/data/padding_trial_segments/
 backend/pronunciation/wav2vec_tone/data/binary_trial_segments/
 backend/pronunciation/wav2vec_tone/data/binpad_trial_segments/
+backend/pronunciation/wav2vec_tone/data/confirm_trial_segments/
