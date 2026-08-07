@@ -59,6 +59,31 @@ class FrozenWav2Vec2:
             parameter.requires_grad = False
         self._torch = torch
 
+        self.total_parameters = sum(p.numel() for p in self.model.parameters())
+        self.trainable_parameters = sum(
+            p.numel() for p in self.model.parameters() if p.requires_grad
+        )
+        # Asserted, not just reported: a single unfrozen parameter would mean
+        # the encoder drifts during any later experiment, and every embedding
+        # extracted before that point would silently stop matching.
+        if self.trainable_parameters != 0:
+            raise RuntimeError(
+                f"{self.trainable_parameters} wav2vec2 parameters are still "
+                f"trainable; Phase 1 requires the encoder fully frozen."
+            )
+
+    def describe(self) -> str:
+        lines = [
+            f"model: {self.model_name}",
+            f"  total parameters    : {self.total_parameters:,}",
+            f"  trainable parameters: {self.trainable_parameters:,}"
+            f"   (frozen: {self.trainable_parameters == 0})",
+            f"  input normalized by feature extractor: "
+            f"{getattr(self.processor, 'do_normalize', 'unknown')}",
+            f"  target sample rate   : {TARGET_SAMPLE_RATE} Hz mono",
+        ]
+        return "\n".join(lines)
+
     def embed(self, audio_path: str | Path) -> np.ndarray:
         """One mean-pooled embedding for the whole file.
 
@@ -100,7 +125,7 @@ def load_audio_16k_mono(audio_path: str | Path) -> np.ndarray:
 
 def extract(
     samples, model_name: str = DEFAULT_MODEL, verbose: bool = True
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Return (embeddings, tones, speaker_ids) for every readable sample.
 
     A file that cannot be read is reported and skipped rather than filled with
@@ -109,14 +134,20 @@ def extract(
     """
     encoder = FrozenWav2Vec2(model_name)
     if verbose:
-        print(f"model: {encoder.model_name} (frozen)")
+        print(encoder.describe())
 
-    vectors, tones, speakers, failures = [], [], [], []
+    vectors, tones, speakers, paths, pinyins, failures = [], [], [], [], [], []
     for index, sample in enumerate(samples, start=1):
         try:
-            vectors.append(encoder.embed(sample.audio_path))
+            vector = encoder.embed(sample.audio_path)
+            if verbose and not vectors:
+                print(f"  embedding shape for one file: {vector.shape}"
+                      f"  ({sample.audio_path.name})")
+            vectors.append(vector)
             tones.append(sample.tone)
             speakers.append(sample.speaker_id)
+            paths.append(str(sample.audio_path))
+            pinyins.append(sample.pinyin)
         except Exception as error:  # noqa: BLE001 - collected and reported
             failures.append(f"{sample.audio_path}: {error}")
         if verbose and index % 50 == 0:
@@ -134,7 +165,29 @@ def extract(
         np.vstack(vectors),
         np.asarray(tones, dtype=int),
         np.asarray(speakers, dtype=object),
+        np.asarray(paths, dtype=object),
+        np.asarray(pinyins, dtype=object),
     )
+
+
+def save_embeddings(path, embeddings, tones, speakers, paths, pinyin) -> Path:
+    """Cache everything needed to rerun classifier experiments without audio.
+
+    Paths and pinyin travel with the vectors so a surprising prediction can be
+    traced back to the exact clip that produced it. Re-running wav2vec2 is the
+    expensive step; nothing here should require it twice.
+    """
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(
+        output,
+        embeddings=embeddings,
+        tones=tones,
+        speakers=speakers,
+        audio_paths=paths,
+        pinyin=pinyin,
+    )
+    return output
 
 
 def main() -> None:
@@ -142,18 +195,37 @@ def main() -> None:
     parser.add_argument("--csv", required=True, help="dataset CSV")
     parser.add_argument("--out", required=True, help="output .npz")
     parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument(
+        "--split-output", action="store_true",
+        help="also write <out>_train.npz and <out>_test.npz, split by speaker",
+    )
+    parser.add_argument("--test-ratio", type=float, default=0.25)
+    parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
 
     samples = load_dataset(args.csv)
     print(describe(samples))
 
-    embeddings, tones, speakers = extract(samples, args.model)
-    output = Path(args.out)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(
-        output, embeddings=embeddings, tones=tones, speakers=speakers
-    )
+    embeddings, tones, speakers, paths, pinyin = extract(samples, args.model)
+    output = save_embeddings(args.out, embeddings, tones, speakers, paths, pinyin)
     print(f"saved {embeddings.shape} to {output}")
+    print(f"  arrays: embeddings, tones, speakers, audio_paths, pinyin")
+
+    if args.split_output:
+        from pronunciation.wav2vec_tone.train_classifier import speaker_split_mask
+
+        stem = output.with_suffix("")
+        test_mask, held_out = speaker_split_mask(
+            speakers, args.test_ratio, args.seed
+        )
+        for name, mask in (("train", ~test_mask), ("test", test_mask)):
+            written = save_embeddings(
+                f"{stem}_{name}.npz",
+                embeddings[mask], tones[mask], speakers[mask],
+                paths[mask], pinyin[mask],
+            )
+            print(f"  {name}: {int(mask.sum())} samples -> {written}")
+        print(f"  held-out speakers: {', '.join(held_out)}")
 
 
 if __name__ == "__main__":

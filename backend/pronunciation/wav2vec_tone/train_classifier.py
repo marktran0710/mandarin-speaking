@@ -29,15 +29,25 @@ TONE_LABELS = list(VALID_TONES)
 
 
 def load_embeddings(path: str | Path):
+    """Load a cached embedding file.
+
+    Accepts caches written before audio_paths/pinyin were stored, so older
+    runs stay usable.
+    """
     stored = np.load(Path(path), allow_pickle=True)
     return stored["embeddings"], stored["tones"], stored["speakers"]
 
 
-def split_by_speaker(embeddings, tones, speakers, test_ratio=0.25, seed=0):
-    """Hold out whole speakers, mirroring dataset.speaker_independent_split.
+def load_embeddings_full(path: str | Path) -> dict:
+    stored = np.load(Path(path), allow_pickle=True)
+    return {key: stored[key] for key in stored.files}
 
-    Kept here so a saved .npz can be split without re-reading the CSV, using
-    the same rule: no speaker may appear on both sides.
+
+def speaker_split_mask(speakers, test_ratio=0.25, seed=0):
+    """Boolean mask marking the held-out speakers, plus their ids.
+
+    Whole speakers move together. Shared by extraction and training so the two
+    can never disagree about which speakers are held out.
     """
     import random
 
@@ -45,17 +55,44 @@ def split_by_speaker(embeddings, tones, speakers, test_ratio=0.25, seed=0):
     if len(unique) < 2:
         raise ValueError(
             f"speaker-independent split needs at least 2 speakers, found "
-            f"{len(unique)}"
+            f"{len(unique)}. A split within one speaker measures voice "
+            f"familiarity, not tone recognition."
         )
+    if not 0.0 < test_ratio < 1.0:
+        raise ValueError("test_ratio must be between 0 and 1")
+
     random.Random(seed).shuffle(unique)
     count = max(1, min(len(unique) - 1, round(len(unique) * test_ratio)))
     held_out = set(unique[:count])
+    mask = np.asarray([str(s) in held_out for s in speakers], dtype=bool)
+    return mask, sorted(held_out)
 
-    mask = np.asarray([str(s) in held_out for s in speakers])
+
+def assert_no_speaker_overlap(train_speakers, test_speakers) -> int:
+    """Fail loudly if any speaker appears on both sides.
+
+    This is the assertion the whole evaluation rests on. A classifier that
+    heard a speaker in training can recognise that voice rather than the tone,
+    so an overlap does not degrade the reported accuracy -- it invalidates it,
+    while still producing a number that looks good. Returns the overlap count
+    (always 0) so callers can report it.
+    """
+    overlap = {str(s) for s in train_speakers} & {str(s) for s in test_speakers}
+    assert not overlap, (
+        f"SPEAKER LEAK: {len(overlap)} speaker(s) appear in both train and "
+        f"test: {sorted(overlap)[:10]}. The evaluation would be invalid."
+    )
+    return 0
+
+
+def split_by_speaker(embeddings, tones, speakers, test_ratio=0.25, seed=0):
+    """Hold out whole speakers, then assert the split really is disjoint."""
+    mask, held_out = speaker_split_mask(speakers, test_ratio, seed)
+    assert_no_speaker_overlap(speakers[~mask], speakers[mask])
     return (
         embeddings[~mask], tones[~mask],
         embeddings[mask], tones[mask],
-        sorted(held_out),
+        held_out,
     )
 
 
