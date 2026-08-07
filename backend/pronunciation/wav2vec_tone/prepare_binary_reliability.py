@@ -273,7 +273,11 @@ def main() -> None:
     print("\n  python -m pronunciation.wav2vec_tone.serve_review --round binary")
 
 
-def render(items) -> str:
+def render(items, storage_key: str = "ompal_binary_review",
+           download_name: str = "ompal_binary_human_review.csv",
+           heading: str = "Does this segment support tone analysis?") -> str:
+    """The page. Storage key and download name are parameters so two binary
+    reviews cannot overwrite each other's saved progress in the browser."""
     payload = ",\n".join(
         "{" + ", ".join(
             f'{k}: "{html.escape(str(item[k]), quote=True)}"'
@@ -284,7 +288,7 @@ def render(items) -> str:
     )
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
-<title>Segment usability — binary review</title>
+<title>{heading}</title>
 <style>
  :root {{ --bg:#12100e; --card:#1c1917; --ink:#f5f0e8; --dim:#a8a29e;
           --gold:#c9a227; --ok:#4ade80; --no:#f87171; }}
@@ -324,7 +328,7 @@ def render(items) -> str:
    button {{ background:#f2ede5; border-color:#ddd5c8; }}
  }}
 </style></head><body><div class="wrap">
-<h1>Does this segment support tone analysis?</h1>
+<h1>{heading}</h1>
 <div class="crit">
  <b>ACCEPT</b> — the intended syllable is there, and the voiced part that tone
  analysis needs is sufficiently complete. A little extra silence or neighbouring
@@ -344,7 +348,7 @@ def render(items) -> str:
 const ITEMS = [
 {payload}
 ];
-const KEY = "ompal_binary_review";
+const KEY = "{storage_key}";
 let votes = JSON.parse(localStorage.getItem(KEY) || "{{}}");
 function esc(s) {{ return String(s).replace(/"/g, '""'); }}
 function progress() {{
@@ -380,7 +384,7 @@ function save() {{
   const blob = new Blob([out], {{ type: "text/csv;charset=utf-8" }});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "ompal_binary_human_review.csv";
+  a.download = "{download_name}";
   a.click();
   document.getElementById("status").textContent = "saved — put it in data/";
 }}
