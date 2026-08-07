@@ -35,6 +35,25 @@ SYLLABLE_PATTERN = re.compile(r"^([a-zA-Zü:v]+)([1-5])$")
 KEEP_TONES = (1, 2, 3, 4)
 
 
+def normalise_base(base: str) -> str:
+    """Fold the three spellings of ü onto one, ASCII-safe form.
+
+    In pinyin `v` is a keyboard stand-in for ü, not the vowel u -- 綠 lv4 and
+    路 lu4 are different syllables. Folding v onto u would merge them, which
+    would understate the syllable count and, worse, let a syllable-overlap
+    check believe two distinct syllables are the same one.
+
+    ü and u: are the other two spellings of the same vowel; all three settle on
+    `v` so the value stays ASCII (the Windows console here is cp950 and cannot
+    print ü).
+    """
+    return (
+        base.lower()
+        .replace("u:", "v")
+        .replace("ü", "v")
+    )
+
+
 def parse_syllable(word_pinyin: str) -> Tuple[str, int] | None:
     """Return (base, tone) for a single-syllable pinyin string, else None.
 
@@ -47,8 +66,7 @@ def parse_syllable(word_pinyin: str) -> Tuple[str, int] | None:
     match = SYLLABLE_PATTERN.match(tokens[0])
     if not match:
         return None
-    base, tone = match.group(1).lower().replace("v", "u").replace(":", ""), int(match.group(2))
-    return base, tone
+    return normalise_base(match.group(1)), int(match.group(2))
 
 
 def classify(word_pinyin: str) -> Tuple[str, Tuple[str, int] | None]:

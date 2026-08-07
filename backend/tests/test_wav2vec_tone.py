@@ -23,6 +23,7 @@ from pronunciation.wav2vec_tone.extract_embeddings import (
     TARGET_SAMPLE_RATE,
     load_audio_16k_mono,
 )
+from pronunciation.wav2vec_tone.prepare_dataset import classify, parse_syllable
 from pronunciation.wav2vec_tone.train_classifier import (
     assert_no_speaker_overlap,
     build_classifier,
@@ -37,6 +38,42 @@ def write_csv(tmp_path, rows, header=("audio_path", "speaker_id", "pinyin", "ton
         writer.writerow(header)
         writer.writerows(rows)
     return path
+
+
+class TestSyllableParsing:
+    """Filtering decides what the classifier ever sees, so a wrong verdict here
+    is invisible downstream -- the dataset simply looks smaller or cleaner than
+    it is."""
+
+    @pytest.mark.parametrize("pinyin,expected", [
+        ("ma1", ("ma", 1)), ("shi4", ("shi", 4)), ("hao3", ("hao", 3)),
+    ])
+    def test_keeps_single_syllables(self, pinyin, expected):
+        assert parse_syllable(pinyin) == expected
+
+    @pytest.mark.parametrize("pinyin", ["ke1 xue2", "fa1 zhan3", "wo3 men5"])
+    def test_rejects_multi_syllables(self, pinyin):
+        assert classify(pinyin)[0] == "multi_syllable"
+
+    def test_neutral_tone_is_excluded_separately_from_invalid(self):
+        """Two different reasons, reported as two different numbers."""
+        assert classify("ma5")[0] == "neutral_tone"
+        assert classify("xyz")[0] == "invalid"
+        assert classify("")[0] == "invalid"
+
+    def test_lu_and_lv_stay_distinct(self):
+        """`v` spells ü, not u: 綠 lv4 and 路 lu4 are different syllables.
+
+        Folding v onto u would merge them, understating the syllable count and
+        letting a syllable-overlap check believe two syllables are one.
+        """
+        assert parse_syllable("lv4")[0] == "lv"
+        assert parse_syllable("lu4")[0] == "lu"
+        assert parse_syllable("nv3")[0] != parse_syllable("nu3")[0]
+
+    def test_all_three_umlaut_spellings_agree(self):
+        assert parse_syllable("lv4")[0] == parse_syllable("lu:4")[0] == "lv"
+        assert parse_syllable("lü4")[0] == "lv"
 
 
 class TestDatasetLoading:
