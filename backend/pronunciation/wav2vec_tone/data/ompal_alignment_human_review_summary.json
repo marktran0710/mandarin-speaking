@@ -1,0 +1,177 @@
+{
+  "round_2": {
+    "total_reviewed": 71,
+    "judgments": {
+      "GOOD": 45,
+      "QUESTIONABLE": 21,
+      "WRONG": 5
+    },
+    "by_alignment_status": {
+      "good": {
+        "GOOD": 45,
+        "WRONG": 5,
+        "QUESTIONABLE": 21
+      }
+    },
+    "by_word": {
+      "一": {
+        "QUESTIONABLE": 2,
+        "GOOD": 1
+      },
+      "兩": {
+        "WRONG": 1,
+        "QUESTIONABLE": 1
+      },
+      "到": {
+        "GOOD": 2
+      },
+      "名": {
+        "GOOD": 2
+      },
+      "四": {
+        "GOOD": 1
+      },
+      "國": {
+        "QUESTIONABLE": 1
+      },
+      "夜": {
+        "GOOD": 3
+      },
+      "字": {
+        "GOOD": 2
+      },
+      "小": {
+        "GOOD": 2,
+        "QUESTIONABLE": 1
+      },
+      "就": {
+        "QUESTIONABLE": 1,
+        "GOOD": 1
+      },
+      "年": {
+        "GOOD": 1,
+        "QUESTIONABLE": 1
+      },
+      "床": {
+        "GOOD": 1,
+        "QUESTIONABLE": 1
+      },
+      "房": {
+        "GOOD": 2
+      },
+      "手": {
+        "GOOD": 2
+      },
+      "搬": {
+        "GOOD": 1
+      },
+      "是": {
+        "GOOD": 1
+      },
+      "曆": {
+        "QUESTIONABLE": 1
+      },
+      "服": {
+        "GOOD": 1
+      },
+      "桌": {
+        "GOOD": 3
+      },
+      "條": {
+        "QUESTIONABLE": 1,
+        "GOOD": 2
+      },
+      "熱": {
+        "GOOD": 1
+      },
+      "用": {
+        "GOOD": 1,
+        "WRONG": 1
+      },
+      "發": {
+        "QUESTIONABLE": 1
+      },
+      "短": {
+        "GOOD": 3
+      },
+      "福": {
+        "QUESTIONABLE": 2,
+        "GOOD": 2
+      },
+      "節": {
+        "QUESTIONABLE": 1
+      },
+      "花": {
+        "GOOD": 3
+      },
+      "表": {
+        "WRONG": 1,
+        "GOOD": 2
+      },
+      "裡": {
+        "QUESTIONABLE": 2,
+        "GOOD": 1
+      },
+      "話": {
+        "GOOD": 1
+      },
+      "變": {
+        "QUESTIONABLE": 1
+      },
+      "貓": {
+        "QUESTIONABLE": 2
+      },
+      "邊": {
+        "QUESTIONABLE": 2,
+        "GOOD": 1
+      },
+      "飯": {
+        "WRONG": 1
+      },
+      "餐": {
+        "WRONG": 1
+      },
+      "館": {
+        "GOOD": 2
+      }
+    },
+    "by_tone": {
+      "1": {
+        "QUESTIONABLE": 7,
+        "WRONG": 1,
+        "GOOD": 9
+      },
+      "2": {
+        "GOOD": 11,
+        "QUESTIONABLE": 7
+      },
+      "3": {
+        "GOOD": 12,
+        "WRONG": 2,
+        "QUESTIONABLE": 4
+      },
+      "4": {
+        "GOOD": 13,
+        "QUESTIONABLE": 3,
+        "WRONG": 2
+      }
+    },
+    "proxy_false_alarms": 0,
+    "proxy_misses": 5,
+    "exact_agreement": 45
+  },
+  "auto_good": {
+    "rounds_included": [
+      "2"
+    ],
+    "is_combined": false,
+    "total": 71,
+    "judgments": {
+      "GOOD": 45,
+      "QUESTIONABLE": 21,
+      "WRONG": 5
+    },
+    "good_rate": 0.6338028169014085,
+    "wrong_rate": 0.07042253521126761
+  }
+}

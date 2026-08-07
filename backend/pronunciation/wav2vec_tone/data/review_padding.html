@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Padding diagnostic — blind review</title>
+<style>
+ :root { --bg:#12100e; --card:#1c1917; --ink:#f5f0e8; --dim:#a8a29e;
+          --gold:#c9a227; --good:#4ade80; --warn:#fbbf24; --bad:#f87171; }
+ * { box-sizing:border-box; }
+ body { margin:0; background:var(--bg); color:var(--ink);
+        font:15px/1.5 system-ui,-apple-system,"Noto Sans TC",sans-serif; }
+ .wrap { max-width:720px; margin:0 auto; padding:24px 20px 90px; }
+ h1 { font-size:17px; font-weight:600; margin:0 0 4px; }
+ .sub { color:var(--dim); font-size:13px; margin-bottom:20px; }
+ .bar { position:sticky; top:0; background:var(--bg); padding:12px 0;
+         border-bottom:1px solid #2c2825; z-index:10; }
+ .track { height:5px; background:#2c2825; border-radius:3px; overflow:hidden; }
+ .fill { height:100%; background:var(--gold); width:0%; transition:width .2s; }
+ .card { background:var(--card); border:1px solid #2c2825; border-radius:12px;
+          padding:20px; margin:14px 0; }
+ .hz { font-size:56px; line-height:1; font-family:"Noto Sans TC",serif; }
+ .meta { color:var(--dim); font-size:13px; margin-top:6px; }
+ .row { display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
+ button { font:inherit; padding:9px 16px; border-radius:8px; cursor:pointer;
+           border:1px solid #3f3a35; background:#262220; color:var(--ink); }
+ button:hover { border-color:var(--gold); }
+ .judge { display:flex; gap:10px; margin-top:14px; }
+ .judge button { flex:1; min-width:120px; font-weight:600; }
+ .g.on { background:var(--good); color:#06240f; border-color:var(--good); }
+ .q.on { background:var(--warn); color:#2b1d00; border-color:var(--warn); }
+ .w.on { background:var(--bad);  color:#2b0606; border-color:var(--bad); }
+ .done { border-color:var(--gold); }
+ .kbd { font-size:12px; color:var(--dim); margin-top:8px; }
+ .export { position:fixed; bottom:0; left:0; right:0; background:var(--card);
+            border-top:1px solid #2c2825; padding:12px; text-align:center; }
+ .export button { background:var(--gold); color:#231a00; font-weight:700;
+                   border-color:var(--gold); padding:11px 26px; }
+ @media (prefers-color-scheme: light) {
+   :root { --bg:#faf7f2; --card:#fff; --ink:#1c1917; --dim:#6b6560; }
+   .card, .bar, .export { border-color:#e7e0d6; }
+   button { background:#f2ede5; border-color:#ddd5c8; }
+ }
+</style></head><body><div class="wrap">
+<h1>Padding diagnostic — blind</h1>
+<div class="sub">Same question as before: does the clip contain the intended
+syllable, cleanly? You will hear each token several times in versions that
+differ only in how much surrounding audio is included — which version is which
+is hidden, and so is every earlier judgment. Judge each clip on its own.</div>
+<div class="bar"><div class="track"><div class="fill" id="fill"></div></div>
+<div class="meta" id="prog">0 judged</div></div>
+<div id="list"></div></div>
+<div class="export"><button onclick="save()">Download judgments CSV</button>
+<span class="meta" id="status" style="margin-left:12px"></span></div>
+<script>
+const ITEMS = [
+{trial_id: "P001", word: "年", expected_pinyin: "nián", segment_path: "padding_trial_segments/P001.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02041/00204126.wav"},
+{trial_id: "P002", word: "條", expected_pinyin: "tiáo", segment_path: "padding_trial_segments/P002.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02035/00203529.wav"},
+{trial_id: "P003", word: "貓", expected_pinyin: "māo", segment_path: "padding_trial_segments/P003.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02013/00201314.wav"},
+{trial_id: "P004", word: "裡", expected_pinyin: "lǐ", segment_path: "padding_trial_segments/P004.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02044/00204426.wav"},
+{trial_id: "P005", word: "貓", expected_pinyin: "māo", segment_path: "padding_trial_segments/P005.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02009/00200914.wav"},
+{trial_id: "P006", word: "發", expected_pinyin: "fā", segment_path: "padding_trial_segments/P006.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02039/00203929.wav"},
+{trial_id: "P007", word: "夜", expected_pinyin: "yè", segment_path: "padding_trial_segments/P007.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02030/00203026.wav"},
+{trial_id: "P008", word: "字", expected_pinyin: "zì", segment_path: "padding_trial_segments/P008.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02015/00201514.wav"},
+{trial_id: "P009", word: "表", expected_pinyin: "biǎo", segment_path: "padding_trial_segments/P009.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02037/00203711.wav"},
+{trial_id: "P010", word: "熱", expected_pinyin: "rè", segment_path: "padding_trial_segments/P010.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203113.wav"},
+{trial_id: "P011", word: "名", expected_pinyin: "míng", segment_path: "padding_trial_segments/P011.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02003/00200314.wav"},
+{trial_id: "P012", word: "短", expected_pinyin: "duǎn", segment_path: "padding_trial_segments/P012.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02038/00203829.wav"},
+{trial_id: "P013", word: "兩", expected_pinyin: "liǎng", segment_path: "padding_trial_segments/P013.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02015/00201520.wav"},
+{trial_id: "P014", word: "小", expected_pinyin: "xiǎo", segment_path: "padding_trial_segments/P014.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02018/00201820.wav"},
+{trial_id: "P015", word: "話", expected_pinyin: "huà", segment_path: "padding_trial_segments/P015.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02023/00202320.wav"},
+{trial_id: "P016", word: "館", expected_pinyin: "guǎn", segment_path: "padding_trial_segments/P016.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02025/00202526.wav"},
+{trial_id: "P017", word: "一", expected_pinyin: "yī", segment_path: "padding_trial_segments/P017.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02007/00200720.wav"},
+{trial_id: "P018", word: "條", expected_pinyin: "tiáo", segment_path: "padding_trial_segments/P018.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02032/00203229.wav"},
+{trial_id: "P019", word: "用", expected_pinyin: "yòng", segment_path: "padding_trial_segments/P019.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02042/00204229.wav"},
+{trial_id: "P020", word: "裡", expected_pinyin: "lǐ", segment_path: "padding_trial_segments/P020.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02014/00201420.wav"},
+{trial_id: "P021", word: "飯", expected_pinyin: "fàn", segment_path: "padding_trial_segments/P021.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02045/00204526.wav"},
+{trial_id: "P022", word: "年", expected_pinyin: "nián", segment_path: "padding_trial_segments/P022.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02028/00202826.wav"},
+{trial_id: "P023", word: "餐", expected_pinyin: "cān", segment_path: "padding_trial_segments/P023.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02033/00203326.wav"},
+{trial_id: "P024", word: "兩", expected_pinyin: "liǎng", segment_path: "padding_trial_segments/P024.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02021/00202120.wav"},
+{trial_id: "P025", word: "變", expected_pinyin: "biàn", segment_path: "padding_trial_segments/P025.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02023/00202328.wav"},
+{trial_id: "P026", word: "到", expected_pinyin: "dào", segment_path: "padding_trial_segments/P026.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02043/00204311.wav"},
+{trial_id: "P027", word: "福", expected_pinyin: "fú", segment_path: "padding_trial_segments/P027.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02035/00203511.wav"},
+{trial_id: "P028", word: "一", expected_pinyin: "yī", segment_path: "padding_trial_segments/P028.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02012/00201220.wav"},
+{trial_id: "P029", word: "搬", expected_pinyin: "bān", segment_path: "padding_trial_segments/P029.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02024/00202426.wav"},
+{trial_id: "P030", word: "邊", expected_pinyin: "biān", segment_path: "padding_trial_segments/P030.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02006/00200620.wav"},
+{trial_id: "P031", word: "邊", expected_pinyin: "biān", segment_path: "padding_trial_segments/P031.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02010/00201020.wav"},
+{trial_id: "P032", word: "節", expected_pinyin: "jié", segment_path: "padding_trial_segments/P032.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav"},
+{trial_id: "P033", word: "福", expected_pinyin: "fú", segment_path: "padding_trial_segments/P033.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02032/00203220.wav"},
+{trial_id: "P034", word: "花", expected_pinyin: "huā", segment_path: "padding_trial_segments/P034.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02019/00201914.wav"},
+{trial_id: "P035", word: "服", expected_pinyin: "fú", segment_path: "padding_trial_segments/P035.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02025/00202518.wav"},
+{trial_id: "P036", word: "裡", expected_pinyin: "lǐ", segment_path: "padding_trial_segments/P036.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02001/00200120.wav"},
+{trial_id: "P037", word: "邊", expected_pinyin: "biān", segment_path: "padding_trial_segments/P037.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02022/00202220.wav"},
+{trial_id: "P038", word: "手", expected_pinyin: "shǒu", segment_path: "padding_trial_segments/P038.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02038/00203829.wav"},
+{trial_id: "P039", word: "國", expected_pinyin: "guó", segment_path: "padding_trial_segments/P039.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav"},
+{trial_id: "P040", word: "曆", expected_pinyin: "lì", segment_path: "padding_trial_segments/P040.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav"},
+{trial_id: "P041", word: "一", expected_pinyin: "yī", segment_path: "padding_trial_segments/P041.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02040/00204011.wav"},
+{trial_id: "P042", word: "福", expected_pinyin: "fú", segment_path: "padding_trial_segments/P042.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02030/00203011.wav"},
+{trial_id: "P043", word: "就", expected_pinyin: "jiù", segment_path: "padding_trial_segments/P043.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203126.wav"},
+{trial_id: "P044", word: "床", expected_pinyin: "chuáng", segment_path: "padding_trial_segments/P044.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02012/00201220.wav"},
+{trial_id: "P045", word: "年", expected_pinyin: "nián", segment_path: "padding_trial_segments/P045.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02041/00204126.wav"},
+{trial_id: "P046", word: "條", expected_pinyin: "tiáo", segment_path: "padding_trial_segments/P046.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02035/00203529.wav"},
+{trial_id: "P047", word: "貓", expected_pinyin: "māo", segment_path: "padding_trial_segments/P047.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02013/00201314.wav"},
+{trial_id: "P048", word: "裡", expected_pinyin: "lǐ", segment_path: "padding_trial_segments/P048.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02044/00204426.wav"},
+{trial_id: "P049", word: "貓", expected_pinyin: "māo", segment_path: "padding_trial_segments/P049.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02009/00200914.wav"},
+{trial_id: "P050", word: "發", expected_pinyin: "fā", segment_path: "padding_trial_segments/P050.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02039/00203929.wav"},
+{trial_id: "P051", word: "夜", expected_pinyin: "yè", segment_path: "padding_trial_segments/P051.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02030/00203026.wav"},
+{trial_id: "P052", word: "字", expected_pinyin: "zì", segment_path: "padding_trial_segments/P052.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02015/00201514.wav"},
+{trial_id: "P053", word: "表", expected_pinyin: "biǎo", segment_path: "padding_trial_segments/P053.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02037/00203711.wav"},
+{trial_id: "P054", word: "熱", expected_pinyin: "rè", segment_path: "padding_trial_segments/P054.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203113.wav"},
+{trial_id: "P055", word: "名", expected_pinyin: "míng", segment_path: "padding_trial_segments/P055.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02003/00200314.wav"},
+{trial_id: "P056", word: "短", expected_pinyin: "duǎn", segment_path: "padding_trial_segments/P056.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02038/00203829.wav"},
+{trial_id: "P057", word: "兩", expected_pinyin: "liǎng", segment_path: "padding_trial_segments/P057.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02015/00201520.wav"},
+{trial_id: "P058", word: "小", expected_pinyin: "xiǎo", segment_path: "padding_trial_segments/P058.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02018/00201820.wav"},
+{trial_id: "P059", word: "話", expected_pinyin: "huà", segment_path: "padding_trial_segments/P059.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02023/00202320.wav"},
+{trial_id: "P060", word: "館", expected_pinyin: "guǎn", segment_path: "padding_trial_segments/P060.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02025/00202526.wav"},
+{trial_id: "P061", word: "一", expected_pinyin: "yī", segment_path: "padding_trial_segments/P061.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02007/00200720.wav"},
+{trial_id: "P062", word: "條", expected_pinyin: "tiáo", segment_path: "padding_trial_segments/P062.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02032/00203229.wav"},
+{trial_id: "P063", word: "用", expected_pinyin: "yòng", segment_path: "padding_trial_segments/P063.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02042/00204229.wav"},
+{trial_id: "P064", word: "裡", expected_pinyin: "lǐ", segment_path: "padding_trial_segments/P064.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02014/00201420.wav"},
+{trial_id: "P065", word: "飯", expected_pinyin: "fàn", segment_path: "padding_trial_segments/P065.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02045/00204526.wav"},
+{trial_id: "P066", word: "年", expected_pinyin: "nián", segment_path: "padding_trial_segments/P066.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02028/00202826.wav"},
+{trial_id: "P067", word: "餐", expected_pinyin: "cān", segment_path: "padding_trial_segments/P067.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02033/00203326.wav"},
+{trial_id: "P068", word: "兩", expected_pinyin: "liǎng", segment_path: "padding_trial_segments/P068.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02021/00202120.wav"},
+{trial_id: "P069", word: "變", expected_pinyin: "biàn", segment_path: "padding_trial_segments/P069.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02023/00202328.wav"},
+{trial_id: "P070", word: "到", expected_pinyin: "dào", segment_path: "padding_trial_segments/P070.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02043/00204311.wav"},
+{trial_id: "P071", word: "福", expected_pinyin: "fú", segment_path: "padding_trial_segments/P071.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02035/00203511.wav"},
+{trial_id: "P072", word: "一", expected_pinyin: "yī", segment_path: "padding_trial_segments/P072.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02012/00201220.wav"},
+{trial_id: "P073", word: "搬", expected_pinyin: "bān", segment_path: "padding_trial_segments/P073.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02024/00202426.wav"},
+{trial_id: "P074", word: "邊", expected_pinyin: "biān", segment_path: "padding_trial_segments/P074.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02006/00200620.wav"},
+{trial_id: "P075", word: "邊", expected_pinyin: "biān", segment_path: "padding_trial_segments/P075.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02010/00201020.wav"},
+{trial_id: "P076", word: "節", expected_pinyin: "jié", segment_path: "padding_trial_segments/P076.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav"},
+{trial_id: "P077", word: "福", expected_pinyin: "fú", segment_path: "padding_trial_segments/P077.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02032/00203220.wav"},
+{trial_id: "P078", word: "花", expected_pinyin: "huā", segment_path: "padding_trial_segments/P078.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02019/00201914.wav"},
+{trial_id: "P079", word: "服", expected_pinyin: "fú", segment_path: "padding_trial_segments/P079.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02025/00202518.wav"},
+{trial_id: "P080", word: "裡", expected_pinyin: "lǐ", segment_path: "padding_trial_segments/P080.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02001/00200120.wav"},
+{trial_id: "P081", word: "邊", expected_pinyin: "biān", segment_path: "padding_trial_segments/P081.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02022/00202220.wav"},
+{trial_id: "P082", word: "手", expected_pinyin: "shǒu", segment_path: "padding_trial_segments/P082.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02038/00203829.wav"},
+{trial_id: "P083", word: "國", expected_pinyin: "guó", segment_path: "padding_trial_segments/P083.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav"},
+{trial_id: "P084", word: "曆", expected_pinyin: "lì", segment_path: "padding_trial_segments/P084.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav"},
+{trial_id: "P085", word: "一", expected_pinyin: "yī", segment_path: "padding_trial_segments/P085.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02040/00204011.wav"},
+{trial_id: "P086", word: "福", expected_pinyin: "fú", segment_path: "padding_trial_segments/P086.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02030/00203011.wav"},
+{trial_id: "P087", word: "就", expected_pinyin: "jiù", segment_path: "padding_trial_segments/P087.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203126.wav"},
+{trial_id: "P088", word: "床", expected_pinyin: "chuáng", segment_path: "padding_trial_segments/P088.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02012/00201220.wav"},
+{trial_id: "P089", word: "年", expected_pinyin: "nián", segment_path: "padding_trial_segments/P089.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02041/00204126.wav"},
+{trial_id: "P090", word: "條", expected_pinyin: "tiáo", segment_path: "padding_trial_segments/P090.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02035/00203529.wav"},
+{trial_id: "P091", word: "貓", expected_pinyin: "māo", segment_path: "padding_trial_segments/P091.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02013/00201314.wav"},
+{trial_id: "P092", word: "裡", expected_pinyin: "lǐ", segment_path: "padding_trial_segments/P092.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02044/00204426.wav"},
+{trial_id: "P093", word: "貓", expected_pinyin: "māo", segment_path: "padding_trial_segments/P093.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02009/00200914.wav"},
+{trial_id: "P094", word: "發", expected_pinyin: "fā", segment_path: "padding_trial_segments/P094.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02039/00203929.wav"},
+{trial_id: "P095", word: "夜", expected_pinyin: "yè", segment_path: "padding_trial_segments/P095.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02030/00203026.wav"},
+{trial_id: "P096", word: "字", expected_pinyin: "zì", segment_path: "padding_trial_segments/P096.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02015/00201514.wav"},
+{trial_id: "P097", word: "表", expected_pinyin: "biǎo", segment_path: "padding_trial_segments/P097.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02037/00203711.wav"},
+{trial_id: "P098", word: "熱", expected_pinyin: "rè", segment_path: "padding_trial_segments/P098.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203113.wav"},
+{trial_id: "P099", word: "名", expected_pinyin: "míng", segment_path: "padding_trial_segments/P099.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02003/00200314.wav"},
+{trial_id: "P100", word: "短", expected_pinyin: "duǎn", segment_path: "padding_trial_segments/P100.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02038/00203829.wav"},
+{trial_id: "P101", word: "兩", expected_pinyin: "liǎng", segment_path: "padding_trial_segments/P101.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02015/00201520.wav"},
+{trial_id: "P102", word: "小", expected_pinyin: "xiǎo", segment_path: "padding_trial_segments/P102.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02018/00201820.wav"},
+{trial_id: "P103", word: "話", expected_pinyin: "huà", segment_path: "padding_trial_segments/P103.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02023/00202320.wav"},
+{trial_id: "P104", word: "館", expected_pinyin: "guǎn", segment_path: "padding_trial_segments/P104.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02025/00202526.wav"},
+{trial_id: "P105", word: "一", expected_pinyin: "yī", segment_path: "padding_trial_segments/P105.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02007/00200720.wav"},
+{trial_id: "P106", word: "條", expected_pinyin: "tiáo", segment_path: "padding_trial_segments/P106.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02032/00203229.wav"},
+{trial_id: "P107", word: "用", expected_pinyin: "yòng", segment_path: "padding_trial_segments/P107.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02042/00204229.wav"},
+{trial_id: "P108", word: "裡", expected_pinyin: "lǐ", segment_path: "padding_trial_segments/P108.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02014/00201420.wav"},
+{trial_id: "P109", word: "飯", expected_pinyin: "fàn", segment_path: "padding_trial_segments/P109.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02045/00204526.wav"},
+{trial_id: "P110", word: "年", expected_pinyin: "nián", segment_path: "padding_trial_segments/P110.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02028/00202826.wav"},
+{trial_id: "P111", word: "餐", expected_pinyin: "cān", segment_path: "padding_trial_segments/P111.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02033/00203326.wav"},
+{trial_id: "P112", word: "兩", expected_pinyin: "liǎng", segment_path: "padding_trial_segments/P112.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02021/00202120.wav"},
+{trial_id: "P113", word: "變", expected_pinyin: "biàn", segment_path: "padding_trial_segments/P113.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02023/00202328.wav"},
+{trial_id: "P114", word: "到", expected_pinyin: "dào", segment_path: "padding_trial_segments/P114.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02043/00204311.wav"},
+{trial_id: "P115", word: "福", expected_pinyin: "fú", segment_path: "padding_trial_segments/P115.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02035/00203511.wav"},
+{trial_id: "P116", word: "一", expected_pinyin: "yī", segment_path: "padding_trial_segments/P116.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02012/00201220.wav"},
+{trial_id: "P117", word: "搬", expected_pinyin: "bān", segment_path: "padding_trial_segments/P117.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02024/00202426.wav"},
+{trial_id: "P118", word: "邊", expected_pinyin: "biān", segment_path: "padding_trial_segments/P118.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02006/00200620.wav"},
+{trial_id: "P119", word: "邊", expected_pinyin: "biān", segment_path: "padding_trial_segments/P119.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02010/00201020.wav"},
+{trial_id: "P120", word: "節", expected_pinyin: "jié", segment_path: "padding_trial_segments/P120.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav"},
+{trial_id: "P121", word: "福", expected_pinyin: "fú", segment_path: "padding_trial_segments/P121.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02032/00203220.wav"},
+{trial_id: "P122", word: "花", expected_pinyin: "huā", segment_path: "padding_trial_segments/P122.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02019/00201914.wav"},
+{trial_id: "P123", word: "服", expected_pinyin: "fú", segment_path: "padding_trial_segments/P123.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02025/00202518.wav"},
+{trial_id: "P124", word: "裡", expected_pinyin: "lǐ", segment_path: "padding_trial_segments/P124.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02001/00200120.wav"},
+{trial_id: "P125", word: "邊", expected_pinyin: "biān", segment_path: "padding_trial_segments/P125.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02022/00202220.wav"},
+{trial_id: "P126", word: "手", expected_pinyin: "shǒu", segment_path: "padding_trial_segments/P126.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02038/00203829.wav"},
+{trial_id: "P127", word: "國", expected_pinyin: "guó", segment_path: "padding_trial_segments/P127.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav"},
+{trial_id: "P128", word: "曆", expected_pinyin: "lì", segment_path: "padding_trial_segments/P128.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav"},
+{trial_id: "P129", word: "一", expected_pinyin: "yī", segment_path: "padding_trial_segments/P129.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02040/00204011.wav"},
+{trial_id: "P130", word: "福", expected_pinyin: "fú", segment_path: "padding_trial_segments/P130.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02030/00203011.wav"},
+{trial_id: "P131", word: "就", expected_pinyin: "jiù", segment_path: "padding_trial_segments/P131.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203126.wav"},
+{trial_id: "P132", word: "床", expected_pinyin: "chuáng", segment_path: "padding_trial_segments/P132.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02012/00201220.wav"},
+{trial_id: "P133", word: "年", expected_pinyin: "nián", segment_path: "padding_trial_segments/P133.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02041/00204126.wav"},
+{trial_id: "P134", word: "條", expected_pinyin: "tiáo", segment_path: "padding_trial_segments/P134.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02035/00203529.wav"},
+{trial_id: "P135", word: "貓", expected_pinyin: "māo", segment_path: "padding_trial_segments/P135.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02013/00201314.wav"},
+{trial_id: "P136", word: "裡", expected_pinyin: "lǐ", segment_path: "padding_trial_segments/P136.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02044/00204426.wav"},
+{trial_id: "P137", word: "貓", expected_pinyin: "māo", segment_path: "padding_trial_segments/P137.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02009/00200914.wav"},
+{trial_id: "P138", word: "發", expected_pinyin: "fā", segment_path: "padding_trial_segments/P138.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02039/00203929.wav"},
+{trial_id: "P139", word: "夜", expected_pinyin: "yè", segment_path: "padding_trial_segments/P139.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02030/00203026.wav"},
+{trial_id: "P140", word: "字", expected_pinyin: "zì", segment_path: "padding_trial_segments/P140.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02015/00201514.wav"},
+{trial_id: "P141", word: "表", expected_pinyin: "biǎo", segment_path: "padding_trial_segments/P141.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02037/00203711.wav"},
+{trial_id: "P142", word: "熱", expected_pinyin: "rè", segment_path: "padding_trial_segments/P142.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203113.wav"},
+{trial_id: "P143", word: "名", expected_pinyin: "míng", segment_path: "padding_trial_segments/P143.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02003/00200314.wav"},
+{trial_id: "P144", word: "短", expected_pinyin: "duǎn", segment_path: "padding_trial_segments/P144.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02038/00203829.wav"},
+{trial_id: "P145", word: "兩", expected_pinyin: "liǎng", segment_path: "padding_trial_segments/P145.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02015/00201520.wav"},
+{trial_id: "P146", word: "小", expected_pinyin: "xiǎo", segment_path: "padding_trial_segments/P146.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02018/00201820.wav"},
+{trial_id: "P147", word: "話", expected_pinyin: "huà", segment_path: "padding_trial_segments/P147.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02023/00202320.wav"},
+{trial_id: "P148", word: "館", expected_pinyin: "guǎn", segment_path: "padding_trial_segments/P148.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02025/00202526.wav"},
+{trial_id: "P149", word: "一", expected_pinyin: "yī", segment_path: "padding_trial_segments/P149.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02007/00200720.wav"},
+{trial_id: "P150", word: "條", expected_pinyin: "tiáo", segment_path: "padding_trial_segments/P150.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02032/00203229.wav"},
+{trial_id: "P151", word: "用", expected_pinyin: "yòng", segment_path: "padding_trial_segments/P151.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02042/00204229.wav"},
+{trial_id: "P152", word: "裡", expected_pinyin: "lǐ", segment_path: "padding_trial_segments/P152.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02014/00201420.wav"},
+{trial_id: "P153", word: "飯", expected_pinyin: "fàn", segment_path: "padding_trial_segments/P153.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02045/00204526.wav"},
+{trial_id: "P154", word: "年", expected_pinyin: "nián", segment_path: "padding_trial_segments/P154.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02028/00202826.wav"},
+{trial_id: "P155", word: "餐", expected_pinyin: "cān", segment_path: "padding_trial_segments/P155.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02033/00203326.wav"},
+{trial_id: "P156", word: "兩", expected_pinyin: "liǎng", segment_path: "padding_trial_segments/P156.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02021/00202120.wav"},
+{trial_id: "P157", word: "變", expected_pinyin: "biàn", segment_path: "padding_trial_segments/P157.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02023/00202328.wav"},
+{trial_id: "P158", word: "到", expected_pinyin: "dào", segment_path: "padding_trial_segments/P158.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02043/00204311.wav"},
+{trial_id: "P159", word: "福", expected_pinyin: "fú", segment_path: "padding_trial_segments/P159.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02035/00203511.wav"},
+{trial_id: "P160", word: "一", expected_pinyin: "yī", segment_path: "padding_trial_segments/P160.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02012/00201220.wav"},
+{trial_id: "P161", word: "搬", expected_pinyin: "bān", segment_path: "padding_trial_segments/P161.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02024/00202426.wav"},
+{trial_id: "P162", word: "邊", expected_pinyin: "biān", segment_path: "padding_trial_segments/P162.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02006/00200620.wav"},
+{trial_id: "P163", word: "邊", expected_pinyin: "biān", segment_path: "padding_trial_segments/P163.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02010/00201020.wav"},
+{trial_id: "P164", word: "節", expected_pinyin: "jié", segment_path: "padding_trial_segments/P164.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav"},
+{trial_id: "P165", word: "福", expected_pinyin: "fú", segment_path: "padding_trial_segments/P165.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02032/00203220.wav"},
+{trial_id: "P166", word: "花", expected_pinyin: "huā", segment_path: "padding_trial_segments/P166.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02019/00201914.wav"},
+{trial_id: "P167", word: "服", expected_pinyin: "fú", segment_path: "padding_trial_segments/P167.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02025/00202518.wav"},
+{trial_id: "P168", word: "裡", expected_pinyin: "lǐ", segment_path: "padding_trial_segments/P168.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02001/00200120.wav"},
+{trial_id: "P169", word: "邊", expected_pinyin: "biān", segment_path: "padding_trial_segments/P169.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02022/00202220.wav"},
+{trial_id: "P170", word: "手", expected_pinyin: "shǒu", segment_path: "padding_trial_segments/P170.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02038/00203829.wav"},
+{trial_id: "P171", word: "國", expected_pinyin: "guó", segment_path: "padding_trial_segments/P171.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav"},
+{trial_id: "P172", word: "曆", expected_pinyin: "lì", segment_path: "padding_trial_segments/P172.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav"},
+{trial_id: "P173", word: "一", expected_pinyin: "yī", segment_path: "padding_trial_segments/P173.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02040/00204011.wav"},
+{trial_id: "P174", word: "福", expected_pinyin: "fú", segment_path: "padding_trial_segments/P174.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02030/00203011.wav"},
+{trial_id: "P175", word: "就", expected_pinyin: "jiù", segment_path: "padding_trial_segments/P175.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203126.wav"},
+{trial_id: "P176", word: "床", expected_pinyin: "chuáng", segment_path: "padding_trial_segments/P176.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02012/00201220.wav"}
+];
+const KEY = "ompal_padding_review";
+let votes = JSON.parse(localStorage.getItem(KEY) || "{}");
+function esc(s) { return String(s).replace(/"/g, '""'); }
+function progress() {
+  const n = Object.keys(votes).filter(k => votes[k] && votes[k].j).length;
+  document.getElementById("prog").textContent = n + " of " + ITEMS.length + " judged";
+  document.getElementById("fill").style.width = (100 * n / ITEMS.length) + "%";
+}
+function vote(id, j) {
+  votes[id] = Object.assign({}, votes[id], { j: j });
+  localStorage.setItem(KEY, JSON.stringify(votes));
+  const card = document.getElementById("c_" + id);
+  card.classList.add("done");
+  ["g","q","w"].forEach(c => card.querySelector("." + c).classList.remove("on"));
+  card.querySelector("." + {GOOD:"g", QUESTIONABLE:"q", WRONG:"w"}[j]).classList.add("on");
+  progress();
+}
+function note(id, v) {
+  votes[id] = Object.assign({}, votes[id], { n: v });
+  localStorage.setItem(KEY, JSON.stringify(votes));
+}
+function play(sel) { const a = document.querySelector(sel); a.currentTime = 0; a.play(); }
+function save() {
+  const skipped = ITEMS.filter(it => !(votes[it.trial_id] || {}).j);
+  if (skipped.length && !confirm(
+      skipped.length + " trial(s) have no judgment and will be MISSING:\n\n" +
+      skipped.map(s => s.trial_id).join(", ") + "\n\nDownload anyway?")) return;
+  let out = "trial_id,human_boundary_judgment,human_note\n";
+  ITEMS.forEach(it => {
+    const v = votes[it.trial_id] || {};
+    if (!v.j) return;
+    out += `${it.trial_id},${v.j},"${esc(v.n || "")}"\n`;
+  });
+  const blob = new Blob([out], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "ompal_padding_human_review.csv";
+  a.click();
+  document.getElementById("status").textContent = "saved — put it in data/";
+}
+document.getElementById("list").innerHTML = ITEMS.map(it => `
+ <div class="card" id="c_${it.trial_id}">
+  <div class="row">
+   <div><div class="hz">${it.word}</div>
+    <div class="meta">${it.expected_pinyin}</div></div>
+   <div style="flex:1">
+    <div class="row">
+     <button onclick="play('#s_${it.trial_id}')">▶ clip</button>
+     <button onclick="play('#u_${it.trial_id}')">▶ full utterance</button>
+    </div>
+    <div class="meta">${it.trial_id}</div>
+   </div>
+  </div>
+  <audio id="s_${it.trial_id}" src="${it.segment_path}" preload="none"></audio>
+  <audio id="u_${it.trial_id}" src="${it.utterance_path}" preload="none"></audio>
+  <div class="judge">
+   <button class="g" onclick="vote('${it.trial_id}','GOOD')">GOOD</button>
+   <button class="q" onclick="vote('${it.trial_id}','QUESTIONABLE')">QUESTIONABLE</button>
+   <button class="w" onclick="vote('${it.trial_id}','WRONG')">WRONG</button>
+  </div>
+  <input type="text" placeholder="optional note" style="width:100%;margin-top:10px;
+    padding:9px;border-radius:8px;border:1px solid #3f3a35;background:#171412;
+    color:inherit" oninput="note('${it.trial_id}', this.value)">
+  <div class="kbd">a = clip · s = utterance · 1 good · 2 questionable · 3 wrong</div>
+ </div>`).join("");
+ITEMS.forEach(it => {
+  const v = votes[it.trial_id];
+  if (!v) return;
+  if (v.j) vote(it.trial_id, v.j);
+  if (v.n) document.querySelector("#c_" + it.trial_id + " input").value = v.n;
+});
+progress();
+function current() {
+  let best = null, dist = 1e9;
+  ITEMS.forEach(it => {
+    const r = document.getElementById("c_" + it.trial_id).getBoundingClientRect();
+    const d = Math.abs(r.top + r.height / 2 - innerHeight / 2);
+    if (d < dist) { dist = d; best = it; }
+  });
+  return best;
+}
+addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  const it = current(); if (!it) return;
+  if (e.key === "a") play("#s_" + it.trial_id);
+  if (e.key === "s") play("#u_" + it.trial_id);
+  if (e.key === "1") vote(it.trial_id, "GOOD");
+  if (e.key === "2") vote(it.trial_id, "QUESTIONABLE");
+  if (e.key === "3") vote(it.trial_id, "WRONG");
+});
+</script></body></html>

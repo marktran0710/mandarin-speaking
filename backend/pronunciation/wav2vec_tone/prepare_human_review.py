@@ -298,6 +298,13 @@ function note(id, v) {{
 function play(sel) {{ const a = document.querySelector(sel); a.currentTime = 0; a.play(); }}
 
 function save() {{
+  // Warn about anything not judged. The export skips them, so an unfinished
+  // set exports cleanly and the shortfall only surfaces much later.
+  const skipped = ITEMS.filter(it => !(votes[it.review_id] || {{}}).j);
+  if (skipped.length && !confirm(
+      skipped.length + " item(s) have no judgment and will be MISSING from " +
+      "the CSV:\\n\\n" + skipped.map(s => s.review_id).join(", ") +
+      "\\n\\nDownload anyway?")) return;
   let out = "review_id,token_id,human_boundary_judgment,human_note\\n";
   ITEMS.forEach(it => {{
     const v = votes[it.review_id] || {{}};

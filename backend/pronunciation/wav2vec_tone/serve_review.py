@@ -25,12 +25,15 @@ PAGE = "pronunciation/wav2vec_tone/data/review.html"
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8777)
-    parser.add_argument("--round", type=int, default=1)
+    parser.add_argument("--round", default="1",
+                        help="1, 2, ... or 'padding'")
     parser.add_argument("--no-open", action="store_true")
     args = parser.parse_args()
 
-    page = PAGE if args.round == 1 else PAGE.replace(
-        "review.html", f"review_round{args.round}.html")
+    name = ("review.html" if args.round == "1"
+            else "review_padding.html" if args.round == "padding"
+            else f"review_round{args.round}.html")
+    page = PAGE.replace("review.html", name)
     if not (BACKEND / page).exists():
         sys.exit(f"{page} not found — run prepare_human_review --round "
                  f"{args.round} first.")
@@ -44,9 +47,12 @@ def main() -> None:
         print("\nJudge ALIGNMENT only: does the clip contain the intended syllable?")
         print("Keys: a = segment, s = full utterance, 1/2/3 = good/questionable/wrong.")
         print("Progress autosaves in the browser; click Download when finished,")
-        suffix = "" if args.round == 1 else f"_round{args.round}"
-        print(f"then put the CSV at "
-              f"data/ompal_alignment_human_review{suffix}.csv")
+        target = ("data/ompal_padding_human_review.csv"
+                  if args.round == "padding"
+                  else "data/ompal_alignment_human_review"
+                       + ("" if args.round == "1" else f"_round{args.round}")
+                       + ".csv")
+        print(f"then put the CSV at {target}")
         print("\nCtrl+C to stop.")
         if not args.no_open:
             webbrowser.open(url)

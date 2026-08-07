@@ -58,7 +58,13 @@ def paths_for(round_number: int):
 
 
 def load_round(round_number: int, required: bool = True):
-    """Join one round of judgments to its item metadata; [] if not done yet."""
+    """Join one round of judgments to its item metadata; [] if not done yet.
+
+    Also reports items that were prepared but never judged. The review page
+    only exports rows that carry a verdict, so an unjudged item disappears
+    silently -- the totals still look tidy, just smaller than what was
+    prepared.
+    """
     items_path, review_path = paths_for(round_number)
     if not review_path.exists():
         if required:
@@ -84,6 +90,19 @@ def load_round(round_number: int, required: bool = True):
             continue
         rows.append({**item, **judgment, "human_boundary_judgment": verdict,
                      "review_round": str(round_number)})
+
+    judged = {r["review_id"] for r in rows}
+    unjudged = sorted(set(items) - judged)
+    if unjudged:
+        print(f"NOTE round {round_number}: {len(items)} items prepared, "
+              f"{len(rows)} judged. Not judged: {', '.join(unjudged)}")
+        for review_id in unjudged:
+            item = items[review_id]
+            print(f"      {review_id}  {item['word']} ({item['expected_pinyin']}) "
+                  f"spk {item['speaker_id']} {item['utterance_id']} "
+                  f"status={item['alignment_status']}")
+        print("      Left as missing. A judgment that was never made is not "
+              "recoverable, and guessing it would corrupt the rate.")
     return rows, unknown
 
 
@@ -96,10 +115,16 @@ def auto_good_block(rows):
     total = len(good)
     good_rate = counts.get("GOOD", 0) / total
     wrong_rate = counts.get("WRONG", 0) / total
+    present = sorted({r.get("review_round", "?") for r in good})
+    # Only call it combined when more than one round is actually present.
+    # Labelling a single round "combined" would overstate the evidence behind
+    # a scaling decision.
+    scope = (f"rounds {', '.join(present)} pooled" if len(present) > 1
+             else f"round {present[0]} ONLY")
     lines = [
         "",
         "=" * 74,
-        "COMBINED: automatic `good` segments only, across all reviews",
+        f"Automatic `good` segments only -- {scope}",
         "=" * 74,
         f"  auto-good total reviewed : {total}",
         f"  human GOOD               : {counts.get('GOOD', 0)}",
@@ -243,12 +268,23 @@ def main() -> None:
         sys.exit("No usable judgments found.")
     print("\n\n".join(reports))
 
+    if args.combine:
+        missing = [n for n in rounds if not paths_for(n)[1].exists()
+                   and paths_for(n)[0].exists()]
+        if missing:
+            print(f"\nNOTE: --combine requested but round(s) "
+                  f"{', '.join(map(str, missing))} have no judgments file. "
+                  f"Results below cover only the rounds that do.")
+
     combined = auto_good_block(all_rows)
     if combined:
         print("\n".join(combined))
         good = [r for r in all_rows if r["alignment_status"] == "good"]
         counter = Counter(r["human_boundary_judgment"] for r in good)
-        summaries["auto_good_combined"] = {
+        rounds_present = sorted({r.get("review_round", "?") for r in good})
+        summaries["auto_good"] = {
+            "rounds_included": rounds_present,
+            "is_combined": len(rounds_present) > 1,
             "total": len(good),
             "judgments": {j: counter.get(j, 0) for j in JUDGMENTS},
             "good_rate": counter.get("GOOD", 0) / len(good),
