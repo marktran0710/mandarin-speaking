@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Failure-mode audit</title>
+<style>
+ :root { --bg:#12100e; --card:#1c1917; --ink:#f5f0e8; --dim:#a8a29e;
+          --gold:#c9a227; --ok:#4ade80; --no:#f87171; }
+ * { box-sizing:border-box; }
+ body { margin:0; background:var(--bg); color:var(--ink);
+        font:15px/1.5 system-ui,-apple-system,"Noto Sans TC",sans-serif; }
+ .wrap { max-width:760px; margin:0 auto; padding:24px 20px 90px; }
+ h1 { font-size:17px; font-weight:600; margin:0 0 8px; }
+ .crit { background:var(--card); border:1px solid #2c2825; border-radius:10px;
+          padding:14px 16px; font-size:13px; color:var(--dim); margin-bottom:18px; }
+ .crit b { color:var(--ink); }
+ .crit div { margin:3px 0; }
+ .bar { position:sticky; top:0; background:var(--bg); padding:12px 0;
+         border-bottom:1px solid #2c2825; z-index:10; }
+ .track { height:5px; background:#2c2825; border-radius:3px; overflow:hidden; }
+ .fill { height:100%; background:var(--gold); width:0%; transition:width .2s; }
+ .card { background:var(--card); border:1px solid #2c2825; border-radius:12px;
+          padding:20px; margin:14px 0; }
+ .hz { font-size:56px; line-height:1; font-family:"Noto Sans TC",serif; }
+ .meta { color:var(--dim); font-size:13px; margin-top:6px; }
+ .row { display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
+ button { font:inherit; padding:9px 16px; border-radius:8px; cursor:pointer;
+           border:1px solid #3f3a35; background:#262220; color:var(--ink); }
+ button:hover { border-color:var(--gold); }
+ .judge { display:flex; gap:10px; margin-top:14px; }
+ .judge button { flex:1; font-weight:600; padding:12px; }
+ .a.on { background:var(--ok); color:#06240f; border-color:var(--ok); }
+ .r.on { background:var(--no); color:#2b0606; border-color:var(--no); }
+ .reasons { display:none; flex-wrap:wrap; gap:8px; margin-top:12px;
+             padding-top:12px; border-top:1px dashed #3f3a35; }
+ .reasons.show { display:flex; }
+ .rsn { font-size:13px; padding:7px 12px; }
+ .rsn.on { background:var(--gold); color:#231a00; border-color:var(--gold);
+            font-weight:700; }
+ .need { color:var(--no); font-size:12px; margin-top:8px; display:none; }
+ .need.show { display:block; }
+ .done { border-color:var(--gold); }
+ .kbd { font-size:12px; color:var(--dim); margin-top:8px; }
+ input[type=text] { width:100%; margin-top:10px; padding:9px; border-radius:8px;
+                     border:1px solid #3f3a35; background:#171412; color:inherit; }
+ .export { position:fixed; bottom:0; left:0; right:0; background:var(--card);
+            border-top:1px solid #2c2825; padding:12px; text-align:center; }
+ .export button { background:var(--gold); color:#231a00; font-weight:700;
+                   border-color:var(--gold); padding:11px 26px; }
+ @media (prefers-color-scheme: light) {
+   :root { --bg:#faf7f2; --card:#fff; --ink:#1c1917; --dim:#6b6560; }
+   .card,.bar,.export,.crit { border-color:#e7e0d6; background:#fff; }
+   button { background:#f2ede5; border-color:#ddd5c8; }
+   input[type=text] { background:#fff; border-color:#ddd5c8; }
+ }
+</style></head><body><div class="wrap">
+<h1>Failure-mode audit</h1>
+<div class="crit">
+ First: <b>is this token usable for tone analysis?</b> Same criterion as before —
+ the intended syllable is there and its voiced part is sufficiently complete.
+ <br><br>
+ If you REJECT, pick the <b>one</b> reason that mattered most:
+ <br>
+ <div><b>WRONG_TOKEN</b> — The segment is mostly a different syllable</div><div><b>TRUNCATED_ONSET</b> — The start of the intended syllable is materially cut</div><div><b>TRUNCATED_RHYME</b> — The vowel/voiced part tone analysis needs is cut</div><div><b>ADJACENT_SPEECH</b> — Too much neighbouring speech contaminates it</div><div><b>TOO_SHORT_OR_INCOMPLETE</b> — Token is present but too incomplete to analyse</div><div><b>LOW_AUDIO_QUALITY</b> — Noise, clipping or audibility prevents reliable use</div><div><b>OTHER</b> — Something else — please note it</div>
+ <br>
+ <b>Do not</b> reject for tidiness. Only when the clip is genuinely unsafe for
+ an acoustic tone measurement.
+</div>
+<div class="bar"><div class="track"><div class="fill" id="fill"></div></div>
+<div class="meta" id="prog">0 judged</div></div>
+<div id="list"></div></div>
+<div class="export"><button onclick="save()">Download judgments CSV</button>
+<span class="meta" id="status" style="margin-left:12px"></span></div>
+<script>
+const ITEMS = [
+{trial_id: "A001", word: "貓", expected_pinyin: "māo", segment_path: "audit_trial_segments/A001.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02011/00201114.wav"},
+{trial_id: "A002", word: "機", expected_pinyin: "jī", segment_path: "audit_trial_segments/A002.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02028/00202829.wav"},
+{trial_id: "A003", word: "字", expected_pinyin: "zì", segment_path: "audit_trial_segments/A003.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02007/00200714.wav"},
+{trial_id: "A004", word: "一", expected_pinyin: "yī", segment_path: "audit_trial_segments/A004.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02007/00200720.wav"},
+{trial_id: "A005", word: "國", expected_pinyin: "guó", segment_path: "audit_trial_segments/A005.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202901.wav"},
+{trial_id: "A006", word: "裡", expected_pinyin: "lǐ", segment_path: "audit_trial_segments/A006.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02044/00204426.wav"},
+{trial_id: "A007", word: "花", expected_pinyin: "huā", segment_path: "audit_trial_segments/A007.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02008/00200814.wav"},
+{trial_id: "A008", word: "手", expected_pinyin: "shǒu", segment_path: "audit_trial_segments/A008.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02038/00203829.wav"},
+{trial_id: "A009", word: "條", expected_pinyin: "tiáo", segment_path: "audit_trial_segments/A009.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02042/00204229.wav"},
+{trial_id: "A010", word: "發", expected_pinyin: "fā", segment_path: "audit_trial_segments/A010.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02032/00203229.wav"},
+{trial_id: "A011", word: "熱", expected_pinyin: "rè", segment_path: "audit_trial_segments/A011.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203113.wav"},
+{trial_id: "A012", word: "裡", expected_pinyin: "lǐ", segment_path: "audit_trial_segments/A012.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02001/00200120.wav"},
+{trial_id: "A013", word: "手", expected_pinyin: "shǒu", segment_path: "audit_trial_segments/A013.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02026/00202629.wav"},
+{trial_id: "A014", word: "熱", expected_pinyin: "rè", segment_path: "audit_trial_segments/A014.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203113.wav"},
+{trial_id: "A015", word: "夜", expected_pinyin: "yè", segment_path: "audit_trial_segments/A015.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02030/00203026.wav"},
+{trial_id: "A016", word: "裡", expected_pinyin: "lǐ", segment_path: "audit_trial_segments/A016.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02014/00201420.wav"},
+{trial_id: "A017", word: "名", expected_pinyin: "míng", segment_path: "audit_trial_segments/A017.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02006/00200614.wav"},
+{trial_id: "A018", word: "福", expected_pinyin: "fú", segment_path: "audit_trial_segments/A018.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02032/00203220.wav"},
+{trial_id: "A019", word: "一", expected_pinyin: "yī", segment_path: "audit_trial_segments/A019.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02012/00201220.wav"},
+{trial_id: "A020", word: "夜", expected_pinyin: "yè", segment_path: "audit_trial_segments/A020.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02044/00204426.wav"},
+{trial_id: "A021", word: "一", expected_pinyin: "yī", segment_path: "audit_trial_segments/A021.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02002/00200220.wav"},
+{trial_id: "A022", word: "夜", expected_pinyin: "yè", segment_path: "audit_trial_segments/A022.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203126.wav"},
+{trial_id: "A023", word: "福", expected_pinyin: "fú", segment_path: "audit_trial_segments/A023.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02035/00203511.wav"},
+{trial_id: "A024", word: "小", expected_pinyin: "xiǎo", segment_path: "audit_trial_segments/A024.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02020/00202014.wav"},
+{trial_id: "A025", word: "也", expected_pinyin: "yě", segment_path: "audit_trial_segments/A025.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02023/00202328.wav"},
+{trial_id: "A026", word: "福", expected_pinyin: "fú", segment_path: "audit_trial_segments/A026.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02040/00204011.wav"},
+{trial_id: "A027", word: "福", expected_pinyin: "fú", segment_path: "audit_trial_segments/A027.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02043/00204311.wav"},
+{trial_id: "A028", word: "拜", expected_pinyin: "bài", segment_path: "audit_trial_segments/A028.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02023/00202328.wav"},
+{trial_id: "A029", word: "裡", expected_pinyin: "lǐ", segment_path: "audit_trial_segments/A029.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02013/00201320.wav"},
+{trial_id: "A030", word: "字", expected_pinyin: "zì", segment_path: "audit_trial_segments/A030.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02009/00200914.wav"},
+{trial_id: "A031", word: "福", expected_pinyin: "fú", segment_path: "audit_trial_segments/A031.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02030/00203011.wav"},
+{trial_id: "A032", word: "福", expected_pinyin: "fú", segment_path: "audit_trial_segments/A032.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02030/00203011.wav"},
+{trial_id: "A033", word: "屋", expected_pinyin: "wū", segment_path: "audit_trial_segments/A033.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02029/00202909.wav"},
+{trial_id: "A034", word: "裡", expected_pinyin: "lǐ", segment_path: "audit_trial_segments/A034.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02020/00202020.wav"},
+{trial_id: "A035", word: "花", expected_pinyin: "huā", segment_path: "audit_trial_segments/A035.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02014/00201414.wav"},
+{trial_id: "A036", word: "月", expected_pinyin: "yuè", segment_path: "audit_trial_segments/A036.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02025/00202518.wav"},
+{trial_id: "A037", word: "名", expected_pinyin: "míng", segment_path: "audit_trial_segments/A037.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02003/00200314.wav"},
+{trial_id: "A038", word: "就", expected_pinyin: "jiù", segment_path: "audit_trial_segments/A038.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02031/00203126.wav"},
+{trial_id: "A039", word: "一", expected_pinyin: "yī", segment_path: "audit_trial_segments/A039.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02040/00204011.wav"},
+{trial_id: "A040", word: "小", expected_pinyin: "xiǎo", segment_path: "audit_trial_segments/A040.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02019/00201920.wav"},
+{trial_id: "A041", word: "邊", expected_pinyin: "biān", segment_path: "audit_trial_segments/A041.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02022/00202220.wav"},
+{trial_id: "A042", word: "桌", expected_pinyin: "zhuō", segment_path: "audit_trial_segments/A042.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02005/00200520.wav"},
+{trial_id: "A043", word: "館", expected_pinyin: "guǎn", segment_path: "audit_trial_segments/A043.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02026/00202626.wav"},
+{trial_id: "A044", word: "一", expected_pinyin: "yī", segment_path: "audit_trial_segments/A044.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02009/00200920.wav"},
+{trial_id: "A045", word: "年", expected_pinyin: "nián", segment_path: "audit_trial_segments/A045.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02041/00204126.wav"},
+{trial_id: "A046", word: "服", expected_pinyin: "fú", segment_path: "audit_trial_segments/A046.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02025/00202518.wav"},
+{trial_id: "A047", word: "裡", expected_pinyin: "lǐ", segment_path: "audit_trial_segments/A047.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02010/00201020.wav"},
+{trial_id: "A048", word: "貓", expected_pinyin: "māo", segment_path: "audit_trial_segments/A048.wav", utterance_path: "../../../private-data/ompal/wav/SPEAKER02008/00200814.wav"}
+];
+const KEY = "ompal_audit_review";
+let votes = JSON.parse(localStorage.getItem(KEY) || "{}");
+function esc(s) { return String(s).replace(/"/g, '""'); }
+function complete(v) {
+  if (!v || !v.j) return false;
+  if (v.j === "ACCEPT") return true;
+  if (!v.r) return false;
+  return v.r !== "OTHER" || (v.n || "").trim().length > 0;
+}
+function progress() {
+  const n = ITEMS.filter(it => complete(votes[it.trial_id])).length;
+  document.getElementById("prog").textContent = n + " of " + ITEMS.length + " complete";
+  document.getElementById("fill").style.width = (100 * n / ITEMS.length) + "%";
+}
+function paint(id) {
+  const v = votes[id] || {}, card = document.getElementById("c_" + id);
+  ["a","r"].forEach(c => card.querySelector("." + c).classList.remove("on"));
+  if (v.j) card.querySelector("." + (v.j === "ACCEPT" ? "a" : "r")).classList.add("on");
+  card.querySelector(".reasons").classList.toggle("show", v.j === "REJECT");
+  card.querySelectorAll(".rsn").forEach(b =>
+    b.classList.toggle("on", v.j === "REJECT" && b.dataset.r === v.r));
+  // A REJECT without a reason, or OTHER without a note, is incomplete and the
+  // export will skip it — say so at the point of entry, not at download.
+  card.querySelector(".need").classList.toggle("show", !!v.j && !complete(v));
+  card.classList.toggle("done", complete(v));
+  progress();
+}
+function vote(id, j) {
+  votes[id] = Object.assign({}, votes[id], { j: j });
+  if (j === "ACCEPT") { delete votes[id].r; }
+  localStorage.setItem(KEY, JSON.stringify(votes)); paint(id);
+}
+function reason(id, r) {
+  votes[id] = Object.assign({}, votes[id], { r: r });
+  localStorage.setItem(KEY, JSON.stringify(votes)); paint(id);
+}
+function note(id, v) {
+  votes[id] = Object.assign({}, votes[id], { n: v });
+  localStorage.setItem(KEY, JSON.stringify(votes)); paint(id);
+}
+function play(sel) { const a = document.querySelector(sel); a.currentTime = 0; a.play(); }
+function save() {
+  const bad = ITEMS.filter(it => !complete(votes[it.trial_id]));
+  if (bad.length && !confirm(
+      bad.length + " trial(s) are incomplete (no verdict, REJECT without a " +
+      "reason, or OTHER without a note) and will be MISSING:\n\n" +
+      bad.map(b => b.trial_id).join(", ") + "\n\nDownload anyway?")) return;
+  let out = "trial_id,human_usability_judgment,failure_reason,human_note\n";
+  ITEMS.forEach(it => {
+    const v = votes[it.trial_id] || {};
+    if (!complete(v)) return;
+    out += `${it.trial_id},${v.j},${v.r || ""},"${esc(v.n || "")}"\n`;
+  });
+  const blob = new Blob([out], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "ompal_audit_human_review.csv"; a.click();
+  document.getElementById("status").textContent = "saved — put it in data/";
+}
+document.getElementById("list").innerHTML = ITEMS.map(it => `
+ <div class="card" id="c_${it.trial_id}">
+  <div class="row">
+   <div><div class="hz">${it.word}</div>
+    <div class="meta">${it.expected_pinyin}</div></div>
+   <div style="flex:1">
+    <div class="row">
+     <button onclick="play('#s_${it.trial_id}')">▶ clip</button>
+     <button onclick="play('#u_${it.trial_id}')">▶ full utterance</button>
+    </div>
+    <div class="meta">${it.trial_id}</div>
+   </div>
+  </div>
+  <audio id="s_${it.trial_id}" src="${it.segment_path}" preload="none"></audio>
+  <audio id="u_${it.trial_id}" src="${it.utterance_path}" preload="none"></audio>
+  <div class="judge">
+   <button class="a" onclick="vote('${it.trial_id}','ACCEPT')">ACCEPT</button>
+   <button class="r" onclick="vote('${it.trial_id}','REJECT')">REJECT</button>
+  </div>
+  <div class="reasons"><button class="rsn" data-r="WRONG_TOKEN" title="The segment is mostly a different syllable">Wrong Token</button><button class="rsn" data-r="TRUNCATED_ONSET" title="The start of the intended syllable is materially cut">Truncated Onset</button><button class="rsn" data-r="TRUNCATED_RHYME" title="The vowel/voiced part tone analysis needs is cut">Truncated Rhyme</button><button class="rsn" data-r="ADJACENT_SPEECH" title="Too much neighbouring speech contaminates it">Adjacent Speech</button><button class="rsn" data-r="TOO_SHORT_OR_INCOMPLETE" title="Token is present but too incomplete to analyse">Too Short Or Incomplete</button><button class="rsn" data-r="LOW_AUDIO_QUALITY" title="Noise, clipping or audibility prevents reliable use">Low Audio Quality</button><button class="rsn" data-r="OTHER" title="Something else — please note it">Other</button></div>
+  <div class="need">Incomplete — a REJECT needs one reason (and OTHER needs a note).</div>
+  <input type="text" placeholder="note (required for OTHER)"
+     oninput="note('${it.trial_id}', this.value)">
+  <div class="kbd">a = clip · s = utterance · 1 accept · 2 reject</div>
+ </div>`).join("");
+document.querySelectorAll(".card").forEach(card => {
+  const id = card.id.slice(2);
+  card.querySelectorAll(".rsn").forEach(b =>
+    b.addEventListener("click", () => reason(id, b.dataset.r)));
+});
+ITEMS.forEach(it => {
+  const v = votes[it.trial_id];
+  if (!v) return;
+  if (v.n) document.querySelector("#c_" + it.trial_id + " input").value = v.n;
+  paint(it.trial_id);
+});
+progress();
+function current() {
+  let best = null, dist = 1e9;
+  ITEMS.forEach(it => {
+    const r = document.getElementById("c_" + it.trial_id).getBoundingClientRect();
+    const d = Math.abs(r.top + r.height / 2 - innerHeight / 2);
+    if (d < dist) { dist = d; best = it; }
+  });
+  return best;
+}
+addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT") return;
+  const it = current(); if (!it) return;
+  if (e.key === "a") play("#s_" + it.trial_id);
+  if (e.key === "s") play("#u_" + it.trial_id);
+  if (e.key === "1") vote(it.trial_id, "ACCEPT");
+  if (e.key === "2") vote(it.trial_id, "REJECT");
+});
+</script></body></html>

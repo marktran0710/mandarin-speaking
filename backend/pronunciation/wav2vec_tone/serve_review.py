@@ -35,6 +35,7 @@ def main() -> None:
             else "review_binary.html" if args.round == "binary"
             else "review_binpad.html" if args.round == "binpad"
             else "review_confirm.html" if args.round == "confirm"
+            else "review_audit.html" if args.round == "audit"
             else f"review_round{args.round}.html")
     page = PAGE.replace("review.html", name)
     if not (BACKEND / page).exists():
@@ -50,7 +51,9 @@ def main() -> None:
         print("\nJudge ALIGNMENT only: does the clip contain the intended syllable?")
         print("Keys: a = segment, s = full utterance, 1/2/3 = good/questionable/wrong.")
         print("Progress autosaves in the browser; click Download when finished,")
-        target = ("data/ompal_confirm_human_review.csv"
+        target = ("data/ompal_audit_human_review.csv"
+                  if args.round == "audit"
+                  else "data/ompal_confirm_human_review.csv"
                   if args.round == "confirm"
                   else "data/ompal_binpad_human_review.csv"
                   if args.round == "binpad"
