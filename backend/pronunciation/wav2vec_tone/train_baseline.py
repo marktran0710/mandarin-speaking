@@ -135,6 +135,9 @@ def run(cache_path: Path, n_splits: int, seed: int, save_models: bool,
     bases = stored["syllable_bases"]
     pinyin = stored["pinyin"]
     durations = stored["durations"]
+    # Carried through to the predictions file so runs can be joined on a
+    # stable key rather than on row position.
+    indices = stored["dataset_indices"]
 
     print("=" * 72)
     print(f"BASELINE: {title} -> logistic regression")
@@ -222,7 +225,8 @@ def run(cache_path: Path, n_splits: int, seed: int, save_models: bool,
 
     return {
         "tones": tones, "speakers": speakers, "bases": bases, "pinyin": pinyin,
-        "durations": durations, "predicted": predicted_tone,
+        "durations": durations, "dataset_indices": indices,
+        "predicted": predicted_tone,
         "probabilities": probabilities, "folds": fold_reports,
         "splitter": splitter_name, "overlap_violations": overlap_violations,
         "models": models if save_models else [],
@@ -384,12 +388,14 @@ def save_predictions(result: dict, path: Path) -> Path:
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
         writer.writerow([
+            "dataset_index",
             "speaker_id", "pinyin", "syllable_base", "true_tone", "predicted_tone",
             "probability_t1", "probability_t2", "probability_t3", "probability_t4",
             "duration_seconds",
         ])
         for index in range(len(result["tones"])):
             writer.writerow([
+                int(result["dataset_indices"][index]),
                 result["speakers"][index], result["pinyin"][index],
                 result["bases"][index], int(result["tones"][index]),
                 int(result["predicted"][index]),
