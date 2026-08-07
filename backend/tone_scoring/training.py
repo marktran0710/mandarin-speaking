@@ -29,7 +29,7 @@ import numpy as np
 from tone_scoring.alignment import get_aligner
 from tone_scoring.features import (
     FEATURE_NAMES,
-    declination_slope,
+    declination_slope_from_spans,
     features_to_vector,
     syllable_features,
     utterance_pitch_stats,
@@ -118,7 +118,7 @@ def build_samples(
         # Remove the utterance's declination once, then normalise against the
         # detrended signal, so a syllable's reading no longer depends on where
         # in the sentence it happens to fall.
-        drift, time_reference = declination_slope(pitch_contour)
+        drift, time_reference = declination_slope_from_spans(pitch_contour, spans)
         embed_times = embed_vectors = None
         if embedder is not None:
             try:

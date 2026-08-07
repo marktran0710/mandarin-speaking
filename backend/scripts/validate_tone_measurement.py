@@ -32,7 +32,7 @@ from benchmarking.ompal_corpus import load_utterances
 from tone_scoring.alignment import get_aligner
 from tone_scoring.features import (
     SEMITONES_PER_LOG,
-    declination_slope,
+    declination_slope_from_spans,
     regression_slope,
     trim_consonant_onset,
 )
@@ -147,7 +147,7 @@ def measure(aligner_name: str = "energy") -> Dict[int, Dict[str, float]]:
         if len(spans) != len(characters):
             continue
         frames_per_syllable.append(len(pitch_contour) / max(len(characters), 1))
-        drift, reference = declination_slope(pitch_contour)
+        drift, reference = declination_slope_from_spans(pitch_contour, spans)
 
         total = len(characters)
         position = 0

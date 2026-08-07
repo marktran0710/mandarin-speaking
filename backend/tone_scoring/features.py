@@ -95,6 +95,53 @@ FEATURE_NAMES: List[str] = (
 )
 
 
+def declination_slope_from_spans(
+    pitch_contour: Sequence[Tuple[float, float]], spans: Sequence
+) -> Tuple[float, float]:
+    """Declination fitted on one point per syllable, not on every frame.
+
+    Fitting over all frames lets the tones themselves bias the drift estimate:
+    an utterance carrying many falling tones pulls the fitted line steeper than
+    the speaker's actual declination, and the correction then misses everywhere
+    else. Measured after linear whole-frame detrending, a *level* tone still
+    read -1.6 to -7.7 semitones/sec depending on where it sat, and the gap
+    between level and falling collapsed from 10.5 to 1.0 mid-utterance -- which
+    is precisely the T1/T4 confusion the classifier probe exposed.
+
+    Collapsing each syllable to its mean log-F0 first removes tone-internal
+    movement from the fit, leaving the across-syllable trend that declination
+    actually is. Physically motivated, and independent of any corpus.
+
+    Falls back to the whole-frame fit when there are too few syllables to fit a
+    line through.
+    """
+    points: List[Tuple[float, float]] = []
+    for span in spans:
+        frames = [
+            (float(time), float(freq))
+            for time, freq in span.frames(pitch_contour)
+            if float(freq) > 0
+        ]
+        if not frames:
+            continue
+        times = [time for time, _ in frames]
+        logs = np.log(np.asarray([freq for _, freq in frames], dtype=float))
+        points.append((float(np.mean(times)), float(np.mean(logs))))
+
+    if len(points) < 3:
+        return declination_slope(pitch_contour)
+
+    times = np.asarray([time for time, _ in points], dtype=float)
+    logs = np.asarray([value for _, value in points], dtype=float)
+    reference = float(times.mean())
+    centered = times - reference
+    denominator = float(np.sum(centered**2))
+    if denominator <= 1e-9:
+        return declination_slope(pitch_contour)
+    slope = float(np.sum(centered * (logs - logs.mean())) / denominator)
+    return slope, reference
+
+
 def declination_slope(pitch_contour: Sequence[Tuple[float, float]]) -> Tuple[float, float]:
     """Least-squares drift of log-F0 across the utterance, and its time origin.
 
