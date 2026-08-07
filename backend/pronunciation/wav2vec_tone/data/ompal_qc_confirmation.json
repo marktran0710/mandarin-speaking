@@ -1,0 +1,155 @@
+{
+  "prepared": 110,
+  "judged": 110,
+  "unique_tokens": 100,
+  "accept": 81,
+  "reject": 19,
+  "primary": {
+    "auc": 0.6744639376218323,
+    "ci": [
+      0.5360461338531515,
+      0.8083170890188434
+    ],
+    "direction": "higher->usable",
+    "coverage": 100,
+    "accept": {
+      "n": 81,
+      "median": 2.1535,
+      "q1": 0.3967,
+      "q3": 4.5233
+    },
+    "reject": {
+      "n": 19,
+      "median": 0.6061,
+      "q1": -2.2492,
+      "q3": 2.3763
+    }
+  },
+  "secondary": {
+    "auc": 0.6718648473034438,
+    "ci": [
+      0.5315139701104613,
+      0.8031189083820662
+    ],
+    "direction": "higher->usable",
+    "coverage": 100,
+    "accept": {
+      "n": 81,
+      "median": 29.1778,
+      "q1": 26.1219,
+      "q3": 31.5597
+    },
+    "reject": {
+      "n": 19,
+      "median": 26.1138,
+      "q1": 22.43985,
+      "q3": 29.278750000000002
+    }
+  },
+  "baselines": {
+    "alignment_score": {
+      "auc": 0.6189083820662769,
+      "ci": [
+        0.4801819363222872,
+        0.7504954515919428
+      ],
+      "direction": "higher->usable",
+      "coverage": 100,
+      "accept": {
+        "n": 81,
+        "median": 0.9544,
+        "q1": 0.8233,
+        "q3": 0.9885
+      },
+      "reject": {
+        "n": 19,
+        "median": 0.8878,
+        "q1": 0.7155,
+        "q3": 0.9821
+      }
+    },
+    "duration_seconds": {
+      "auc": 0.7270955165692008,
+      "ci": [
+        0.6140350877192983,
+        0.8323586744639376
+      ],
+      "direction": "higher->usable",
+      "coverage": 100,
+      "accept": {
+        "n": 81,
+        "median": 0.2005,
+        "q1": 0.1407,
+        "q3": 0.2606
+      },
+      "reject": {
+        "n": 19,
+        "median": 0.1406,
+        "q1": 0.1003,
+        "q3": 0.1607
+      }
+    },
+    "voiced_proportion": {
+      "auc": 0.543859649122807,
+      "ci": [
+        0.39048895386614685,
+        0.6978557504873294
+      ],
+      "direction": "higher->usable",
+      "coverage": 100,
+      "accept": {
+        "n": 81,
+        "median": 0.818,
+        "q1": 0.641,
+        "q3": 1.0
+      },
+      "reject": {
+        "n": 19,
+        "median": 0.789,
+        "q1": 0.5195,
+        "q3": 1.0
+      }
+    }
+  },
+  "frozen_threshold": 3.1043,
+  "rule": {
+    "retained": 33,
+    "retention": 0.33,
+    "kept_accept": 30,
+    "kept_reject": 3,
+    "dropped_accept": 51,
+    "dropped_reject": 16,
+    "precision": 0.9090909090909091,
+    "wilson_ci": [
+      0.7642705646564897,
+      0.968596628950737
+    ]
+  },
+  "strata_auc": {
+    "onset=aspirated_obstruent": 0.9166666666666666,
+    "onset=fricative": 0.6811594202898551,
+    "onset=sonorant_or_zero": 0.6103896103896104,
+    "onset=unaspirated_obstruent": 0.7916666666666666,
+    "tone=1": 0.7818181818181819,
+    "tone=2": 0.47619047619047616,
+    "tone=3": 0.5652173913043478,
+    "tone=4": 0.8,
+    "duration=short": 0.9166666666666666,
+    "duration=mid": 0.6393939393939394,
+    "duration=long": 0.17142857142857143
+  },
+  "onset_median_spread_db": 3.0247,
+  "duplicate_pairs": 10,
+  "duplicate_agreement": 0.9,
+  "signal_checks": {
+    "1. AUC >= 0.75": false,
+    "2. direction matches development": true,
+    "3. duplicate agreement >= 90%": true,
+    "4. not explained by one stratum": true
+  },
+  "rule_checks": {
+    "5. retained ACCEPT >= 95%": false,
+    "6. retention >= 50%": false
+  },
+  "conclusion": "C. SIGNAL NOT CONFIRMED — stop acoustic-QC engineering."
+}

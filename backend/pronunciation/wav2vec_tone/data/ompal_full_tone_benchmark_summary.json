@@ -1,0 +1,58 @@
+{
+  "manifest_version": "1.0",
+  "code_commit": "743f0d0",
+  "aligner": "torchaudio MMS_FA CTC forced alignment (with_star=True)",
+  "boundary_policy": "original_0ms",
+  "flow": {
+    "tokens_total": 20671,
+    "tokens_audio_matched": 13261,
+    "tokens_moe_verified": 8759,
+    "tokens_eligible": 2176,
+    "alignment_attempted": 2176,
+    "alignment_successful": 2176,
+    "segment_extracted": 2176
+  },
+  "exclusions": {
+    "ambiguous_polyphonic_pronunciation": 4502,
+    "rated_token_segmentally_undetermined": 1394,
+    "annotation_audio_id_mismatch": 7410,
+    "alignment_failure": 0
+  },
+  "overlap_notes": [
+    "annotation_audio_id_mismatch and ambiguous_polyphonic_pronunciation are OVERLAPPING: a token can be both, and the mismatch count is taken first so ambiguity is only counted among tokens that do have audio.",
+    "rated_token_segmentally_undetermined and alignment_failure are mutually exclusive with each other and with the two above."
+  ],
+  "utterance_failures": [],
+  "learner": {
+    "tokens": 2068,
+    "speakers": 45,
+    "utterances": 349,
+    "lexical_items": 59,
+    "by_tone": {
+      "1": 553,
+      "2": 468,
+      "3": 272,
+      "4": 775,
+      "5": 0
+    },
+    "correct": 1717,
+    "incorrect": 351,
+    "duration": {
+      "min": 0.0400625,
+      "p10": 0.080775,
+      "p25": 0.1205,
+      "median": 0.17093750000000002,
+      "p75": 0.220812,
+      "p90": 0.2805,
+      "max": 0.98175
+    }
+  },
+  "lexical_confound": {
+    "items_both_outcomes": 56,
+    "tokens_covered": 2000,
+    "coverage_rate": 0.9671179883945842,
+    "lexical_only_accuracy": 0.8254352030947776,
+    "lexical_only_recall_incorrect": 0.03133903133903134
+  },
+  "known_limitation": "No automatic QC rule validated; fresh blinded human usability of original-boundary segments was 81/100. Descriptors are metadata only and must not be used as a cleanliness claim."
+}
