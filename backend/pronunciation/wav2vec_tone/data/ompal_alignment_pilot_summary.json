@@ -1,0 +1,28 @@
+{
+  "pilot_utterances": 80,
+  "utterances_aligned": 80,
+  "speakers": 45,
+  "rated_tokens_attempted": 571,
+  "tokens_aligned": 546,
+  "success_rate": 0.9562171628721541,
+  "status_counts": {
+    "good": 450,
+    "failed": 25,
+    "questionable": 96
+  },
+  "note_counts": {
+    "no_voiced_nucleus": 25,
+    "low_alignment_score": 48,
+    "weak_voicing": 46,
+    "low_alignment_score|weak_voicing": 2
+  },
+  "duration": {
+    "min": 0.0601,
+    "median": 0.1803,
+    "mean": 0.18813772893772893,
+    "max": 0.7414
+  },
+  "utterance_failures": [],
+  "aligner": "torchaudio MMS_FA CTC forced alignment",
+  "pronunciation_source": "Taiwan MoE dictionary (moedict.tw), romanized"
+}

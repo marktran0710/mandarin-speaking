@@ -31,3 +31,7 @@ backend/*.zip
 .playwright-cli/
 .superpowers/
 backend/models/
+backend/private-data/
+
+# Pilot audio segments: derived from private-data/ompal, regenerable
+backend/pronunciation/wav2vec_tone/data/alignment_pilot_segments/

@@ -1,0 +1,17 @@
+{
+  "method": "praat_intensity_voicing_independent_of_aligner",
+  "auditory_verification": false,
+  "n": 24,
+  "verdicts": {
+    "correct": 18,
+    "questionable": 2,
+    "wrong": 4
+  },
+  "tones": [
+    "1",
+    "2",
+    "3",
+    "4"
+  ],
+  "speakers": 7
+}
