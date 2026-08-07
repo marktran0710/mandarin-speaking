@@ -126,11 +126,20 @@ def extract_one(audio: np.ndarray) -> dict:
     flags = []
 
     sound = parselmouth.Sound(audio.astype(np.float64), TARGET_SAMPLE_RATE)
-    pitch = sound.to_pitch(
-        time_step=PITCH_TIME_STEP,
-        pitch_floor=PITCH_FLOOR_HZ,
-        pitch_ceiling=PITCH_CEILING_HZ,
-    )
+    try:
+        pitch = sound.to_pitch(
+            time_step=PITCH_TIME_STEP,
+            pitch_floor=PITCH_FLOOR_HZ,
+            pitch_ceiling=PITCH_CEILING_HZ,
+        )
+    except Exception:  # noqa: BLE001 - parselmouth raises PraatError
+        # Praat needs at least three pitch periods, i.e. 3/floor seconds (~40 ms
+        # at a 60 Hz floor). Shorter clips get no F0 at all rather than an F0
+        # measured with a raised floor, which would silently mean something
+        # different from every other row.
+        flags.append("too_short_for_pitch")
+        features["flags"] = "|".join(flags)
+        return features
     frequencies = pitch.selected_array["frequency"]
     times = np.asarray(pitch.xs(), dtype=float)
     voiced = np.isfinite(frequencies) & (frequencies > 0)
