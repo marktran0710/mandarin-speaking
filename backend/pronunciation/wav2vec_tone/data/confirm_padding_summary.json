@@ -1,0 +1,34 @@
+{
+  "trials_prepared": 144,
+  "trials_judged": 144,
+  "unjudged": [],
+  "by_padding": {
+    "0": {
+      "REJECT": 16,
+      "ACCEPT": 56
+    },
+    "20": {
+      "ACCEPT": 60,
+      "REJECT": 12
+    }
+  },
+  "paired": {
+    "tokens": 72,
+    "both_accept": 55,
+    "accept_to_reject": 1,
+    "reject_to_accept": 5,
+    "both_reject": 11,
+    "mcnemar_exact_p": 0.21875,
+    "absolute_accept_difference": 0.05555555555555558,
+    "relative_reject_reduction": 0.2500000000000001
+  },
+  "decision": {
+    "1. 20 ms ACCEPT rate > 0 ms": true,
+    "2. REJECT->ACCEPT > ACCEPT->REJECT": true,
+    "3. damage <= 2% of tokens": true,
+    "4. 20 ms ACCEPT >= 90%": false,
+    "5. direction consistent across strata": true
+  },
+  "adopt_20ms": false,
+  "note_40ms": "failed its pre-registered test; remains rejected"
+}
