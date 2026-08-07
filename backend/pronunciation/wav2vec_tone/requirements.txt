@@ -10,5 +10,6 @@ torch>=2.3
 transformers>=4.51
 scikit-learn>=1.4
 numpy>=1.26
+datasets>=3.0        # data preparation only
 soundfile>=0.12
 joblib>=1.3
