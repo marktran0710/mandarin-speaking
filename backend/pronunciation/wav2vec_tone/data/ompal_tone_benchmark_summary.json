@@ -1,0 +1,91 @@
+{
+  "total_rated_tokens": 20671,
+  "usable_tokens": 8759,
+  "learner_speakers": 65,
+  "native_speakers": 3,
+  "tone_correct": 7549,
+  "tone_incorrect": 1210,
+  "by_expected_tone": {
+    "1": [
+      1854,
+      276
+    ],
+    "2": [
+      1787,
+      281
+    ],
+    "3": [
+      1382,
+      233
+    ],
+    "4": [
+      2526,
+      420
+    ],
+    "5": [
+      0,
+      0
+    ]
+  },
+  "ambiguous_tokens": 7202,
+  "missing_audio_tokens": 7410,
+  "lexical_items": 161,
+  "items_both_outcomes": 155,
+  "samples_covered_by_both": 8003,
+  "moe_status_counts": {
+    "verified_tone_only": 2350,
+    "ambiguous_polyphone": 7202,
+    "verified": 11119
+  },
+  "integrity": {
+    "audio_files": 1850,
+    "annotation_keys": 1850,
+    "matched": 1194,
+    "keys_without_audio": 656,
+    "audio_without_keys": 656
+  },
+  "integrity_keys_without_audio_speakers": [
+    "02047",
+    "02048",
+    "02049",
+    "02050",
+    "02051",
+    "02052",
+    "02053",
+    "02054",
+    "02055",
+    "02056",
+    "02057",
+    "02058",
+    "02059",
+    "02060",
+    "02061",
+    "02062",
+    "02063",
+    "02064",
+    "02065",
+    "02066"
+  ],
+  "integrity_audio_without_keys_speakers": [
+    "02017",
+    "02023",
+    "02024",
+    "02026",
+    "02027",
+    "02028",
+    "02029",
+    "02031",
+    "02033",
+    "02036",
+    "02037",
+    "02038",
+    "02039",
+    "02040",
+    "02041",
+    "02042",
+    "02043",
+    "02044",
+    "02045",
+    "02046"
+  ]
+}
