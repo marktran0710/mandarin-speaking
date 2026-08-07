@@ -26,7 +26,20 @@ from typing import Dict, List, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from pronunciation.wav2vec_tone import schema
+
 DATASET_ID = "MariyaMegre/chinese-audio-dataset"
+CORPUS_NAME = "aishell3-derived"
+
+# This corpus is Mainland Mandarin read speech in Simplified Chinese, and its
+# pinyin ships with the corpus rather than being verified against any
+# dictionary. Recorded per row rather than assumed, because the eventual
+# target variety is Taiwan Mandarin and the two disagree on the lexical tone
+# of many common words. See schema.assert_label_usable.
+CORPUS_VARIETY = schema.MAINLAND
+CORPUS_SCRIPT = schema.SIMPLIFIED
+CORPUS_LABEL_SOURCE = schema.SOURCE_CORPUS
+CORPUS_SPEECH_TYPE = schema.NATIVE
 DEFAULT_OUT = Path(__file__).resolve().parent / "data" / "filtered_tone_metadata.csv"
 
 # A pinyin syllable: letters (with u:/v/ü for lü, nü) followed by one tone digit.
@@ -123,9 +136,15 @@ def prepare(dataset_id: str = DATASET_ID, limit: int | None = None) -> Tuple[Lis
             "audio": (audio or {}).get("path") or "",
             "dataset_index": index,
             "utt_id": utterances[index],
+            "corpus": CORPUS_NAME,
             "speaker_id": speakers[index],
+            "speaker_variety": CORPUS_VARIETY,
+            "speech_type": CORPUS_SPEECH_TYPE,
             "word": words[index],
+            "word_script": CORPUS_SCRIPT,
             "pinyin": str(pinyins[index]).strip(),
+            "pinyin_variety": CORPUS_VARIETY,
+            "pinyin_source": CORPUS_LABEL_SOURCE,
             "syllable_base": base,
             "tone": tone,
         })
@@ -162,6 +181,9 @@ def summarise(rows: List[Dict], excluded: Dict[str, int], original: int, path: P
         "",
         f"Saved metadata path: {path}",
         "",
+        "--- variety / orthography coverage ---",
+        schema.describe_coverage(rows),
+        "",
         "--- distribution ---",
     ]
     for tone in KEEP_TONES:
@@ -189,10 +211,7 @@ def save(rows: List[Dict], path: Path) -> Path:
     import csv
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    fields = [
-        "audio", "dataset_index", "utt_id", "speaker_id",
-        "word", "pinyin", "syllable_base", "tone",
-    ]
+    fields = list(schema.SAMPLE_FIELDS)
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
