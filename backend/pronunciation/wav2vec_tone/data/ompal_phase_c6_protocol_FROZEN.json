@@ -1,0 +1,53 @@
+{
+  "phase": "C6",
+  "trajectory_extraction": {
+    "pitch_floor": 60.0,
+    "pitch_ceiling": 500.0,
+    "time_step": 0.005,
+    "points": 20,
+    "time_axis": "normalised across the voiced span",
+    "units": "semitones, 12*log2(F0)"
+  },
+  "normalisation": "R2_trajectory_N2",
+  "missing_f0_handling": "interior gaps interpolated between voiced values; edge gaps hold the nearest voiced value; token declared unavailable only below 3 voiced frames; unavailable rows kept and median-imputed inside each fold",
+  "candidates": [
+    "R0_summary",
+    "R1_trajectory_N1",
+    "R2_trajectory_N2",
+    "R3_trajectory_plus_summary"
+  ],
+  "cv_design": {
+    "scheme": "GroupKFold",
+    "group": "speaker_id",
+    "folds": 5,
+    "scope": "TRAIN only"
+  },
+  "c_grid": [
+    0.01,
+    0.1,
+    1.0,
+    10.0
+  ],
+  "class_weight": "balanced",
+  "selected_representation": "R2_trajectory_N2",
+  "selected_C": 0.1,
+  "train_cv": {
+    "pr_auc": 0.2918354120064344,
+    "roc_auc": 0.6366085239369631,
+    "balanced_accuracy": 0.6030311852207799,
+    "incorrect_f1": 0.3397790055248619
+  },
+  "seed": 0,
+  "software": {
+    "python": "3.12.0",
+    "numpy": "2.4.3",
+    "scikit_learn": "1.8.0"
+  },
+  "test_lock": {
+    "trajectories": false,
+    "features": false,
+    "predictions": false,
+    "metrics": false
+  },
+  "sha256": "1afe6c5b1da4dece98304e09ba769137d5e7fdc4b9463a293f7f7d51535a4a76"
+}
