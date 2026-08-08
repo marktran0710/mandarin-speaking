@@ -117,6 +117,10 @@ def main() -> None:
     # --- assemble preflight audio -----------------------------------------
     rows = [r for r in csv.DictReader(MANIFEST_SPLIT.open(encoding="utf-8"))
             if r["split"] == "native_reference"]
+    # Same test lock every other manifest reader carries. The filter above
+    # already excludes test rows; this asserts it rather than assuming it.
+    if any(r["split"] == "test" for r in rows):
+        sys.exit("TEST LOCK VIOLATION")
     by_tone = defaultdict(list)
     for row in rows:
         by_tone[row["expected_tone"]].append(row)
@@ -315,7 +319,14 @@ def main() -> None:
                                 "IS_PREFLIGHT=YES; none may enter "
                                 "fresh_validation_trials.csv"),
         "software": {"python": platform.python_version(), "numpy": np.__version__},
-        "ompal_test": {"predictions": False, "scores": False, "metrics": False},
+        # Measured, not asserted: a hardcoded literal here would claim the seal
+        # without checking it. The authority is verify_ompal_test_seal.py.
+        "ompal_test": {
+            "test_rows_loaded": 0,
+            "test_rows_in_feature_cache": int(sum(
+                np.asarray(np.load(CACHE, allow_pickle=True)["split"]) == "test")),
+            "verified_by": "verify_ompal_test_seal.py",
+        },
     }
     (PREFLIGHT / "preflight_summary.json").write_text(
         json.dumps(summary, indent=2, ensure_ascii=False, default=float),

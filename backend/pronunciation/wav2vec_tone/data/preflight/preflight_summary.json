@@ -110,7 +110,7 @@
       "audio_captured": "YES",
       "trajectory_available": "YES",
       "technical_failure_reason": "",
-      "processing_latency_ms": "1314.8",
+      "processing_latency_ms": "1203.7",
       "r2_raw_score": "0.418525",
       "system_decision": "RETRY",
       "decision_reason": "tone_not_enabled",
@@ -125,7 +125,7 @@
       "audio_captured": "YES",
       "trajectory_available": "YES",
       "technical_failure_reason": "",
-      "processing_latency_ms": "13.5",
+      "processing_latency_ms": "11.8",
       "r2_raw_score": "0.411781",
       "system_decision": "PASS",
       "decision_reason": "score_below_threshold",
@@ -140,7 +140,7 @@
       "audio_captured": "YES",
       "trajectory_available": "YES",
       "technical_failure_reason": "",
-      "processing_latency_ms": "12.7",
+      "processing_latency_ms": "12.1",
       "r2_raw_score": "0.514316",
       "system_decision": "RETRY",
       "decision_reason": "score_above_threshold",
@@ -155,7 +155,7 @@
       "audio_captured": "YES",
       "trajectory_available": "YES",
       "technical_failure_reason": "",
-      "processing_latency_ms": "11.6",
+      "processing_latency_ms": "11.7",
       "r2_raw_score": "0.408159",
       "system_decision": "PASS",
       "decision_reason": "score_below_threshold",
@@ -180,9 +180,9 @@
   ],
   "latency_ms": {
     "n": 5,
-    "median": 12.700599967502058,
-    "min": 1.2957999715581536,
-    "max": 1314.7855999413878
+    "median": 11.83500001206994,
+    "min": 1.3300999999046326,
+    "max": 1203.6689000669867
   },
   "preflight_isolation": "all artefacts under data/preflight/ and marked IS_PREFLIGHT=YES; none may enter fresh_validation_trials.csv",
   "software": {
@@ -190,8 +190,8 @@
     "numpy": "2.4.3"
   },
   "ompal_test": {
-    "predictions": false,
-    "scores": false,
-    "metrics": false
+    "test_rows_loaded": 0,
+    "test_rows_in_feature_cache": 0,
+    "verified_by": "verify_ompal_test_seal.py"
   }
 }
