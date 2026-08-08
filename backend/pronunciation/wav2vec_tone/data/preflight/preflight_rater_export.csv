@@ -1,0 +1,6 @@
+rating_trial_id,traditional_character,expected_pinyin,expected_tone,audio_path,accept_yes_no,confidence_1_5,perceived_tone,comment
+R0001,貓,māo,1,benchmark_token_segments\00100114_01.wav,,,,
+R0002,人,rén,2,benchmark_token_segments\00100114_03.wav,,,,
+R0003,狗,gǒu,3,benchmark_token_segments\00100114_00.wav,,,,
+R0004,飯,fàn,4,benchmark_token_segments\00100114_04.wav,,,,
+R0005,人,rén,2,preflight\PREFLIGHT_silence.wav,,,,

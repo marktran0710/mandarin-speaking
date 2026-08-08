@@ -1,0 +1,6 @@
+preflight_trial_id,kind,expected_tone,audio_path,audio_captured,trajectory_available,technical_failure_reason,processing_latency_ms,r2_raw_score,system_decision,decision_reason,learner_message,IS_PREFLIGHT
+PF01,native_reference_preflight,1,benchmark_token_segments\00100114_01.wav,YES,YES,,1314.8,0.418525,RETRY,tone_not_enabled,I'm not confident enough to confirm this attempt. Please try once more.,YES
+PF02,native_reference_preflight,2,benchmark_token_segments\00100114_03.wav,YES,YES,,13.5,0.411781,PASS,score_below_threshold,Your tone sounds acceptable. You can continue.,YES
+PF03,native_reference_preflight,3,benchmark_token_segments\00100114_00.wav,YES,YES,,12.7,0.514316,RETRY,score_above_threshold,I'm not confident enough to confirm this attempt. Please try once more.,YES
+PF04,native_reference_preflight,4,benchmark_token_segments\00100114_04.wav,YES,YES,,11.6,0.408159,PASS,score_below_threshold,Your tone sounds acceptable. You can continue.,YES
+PF05,forced_trajectory_failure,2,preflight\PREFLIGHT_silence.wav,YES,NO,insufficient_voiced_frames,1.3,,RETRY,trajectory_unavailable,I'm not confident enough to confirm this attempt. Please try once more.,YES
