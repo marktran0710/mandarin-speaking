@@ -1,0 +1,327 @@
+{
+  "phase": "C2",
+  "amendment_reason": "near-chance Dev performance across all three systems; diagnose task/label/signal before any reformulation",
+  "test_lock": {
+    "test_features": false,
+    "test_embeddings": false,
+    "test_predictions": false,
+    "test_metrics": false,
+    "test_error_analysis": false
+  },
+  "label_provenance": {
+    "source_file": "non-native_scores-detail.json",
+    "field_used": "words[i].tone",
+    "sibling_fields_not_used": [
+      "phoneme_consonant",
+      "phoneme_vowel"
+    ],
+    "transformation": "three rater strings '1'/'0' -> majority (>=2 of 3) -> majority_tone_correct -> Correct/Incorrect",
+    "combination_counts": {
+      "tone=1,cons=1,vowel=1": 1419,
+      "tone=1,cons=1,vowel=0": 14,
+      "tone=1,cons=0,vowel=1": 15,
+      "tone=1,cons=0,vowel=0": 2,
+      "tone=0,cons=1,vowel=1": 282,
+      "tone=0,cons=1,vowel=0": 4,
+      "tone=0,cons=0,vowel=1": 2,
+      "tone=0,cons=0,vowel=0": 8
+    },
+    "incorrect_total": 296,
+    "isolated_tone_error": 282,
+    "isolated_tone_error_pct": 95.27027027027027,
+    "whole_token_failure": 8,
+    "whole_token_failure_pct": 2.7027027027027026,
+    "any_segmental_co_error": 14,
+    "any_segmental_co_error_pct": 4.72972972972973,
+    "is_tone_correctness_label": "YES (with a small documented contamination)"
+  },
+  "score_distributions_model_b": {
+    "train": {
+      "correct": {
+        "n": 1183,
+        "mean": 0.1673779852017276,
+        "median": 0.16573484362614563,
+        "iqr": [
+          0.15784404528500884,
+          0.17094651881523665
+        ]
+      },
+      "incorrect": {
+        "n": 241,
+        "mean": 0.17830620441739256,
+        "median": 0.1685960812478236,
+        "iqr": [
+          0.15750480383716653,
+          0.1767426186540637
+        ]
+      },
+      "cohens_d": 0.3493423300446896,
+      "overlap_coefficient": 0.8517868980684173,
+      "auc": 0.5648362170864565
+    },
+    "dev": {
+      "correct": {
+        "n": 267,
+        "mean": 0.1670432952825278,
+        "median": 0.16337773745177717,
+        "iqr": [
+          0.15713743290864507,
+          0.16962714468296128
+        ]
+      },
+      "incorrect": {
+        "n": 55,
+        "mean": 0.17564021200135843,
+        "median": 0.16782852742356216,
+        "iqr": [
+          0.15598951085152485,
+          0.17231113787695834
+        ]
+      },
+      "cohens_d": 0.2519092428862781,
+      "overlap_coefficient": 0.743003064351379,
+      "auc": 0.5480422199523323
+    }
+  },
+  "within_tone_separability_model_b": {
+    "T1": {
+      "train": {
+        "n": 384,
+        "n_incorrect": 65,
+        "prevalence": 0.16927083333333334,
+        "roc_auc": 0.5362912949119846,
+        "pr_auc": 0.2837818032129547,
+        "cohens_d": 0.49802777227885237
+      },
+      "dev": {
+        "n": 82,
+        "n_incorrect": 11,
+        "prevalence": 0.13414634146341464,
+        "roc_auc": 0.3546734955185659,
+        "pr_auc": 0.11455618469980612,
+        "cohens_d": -0.25258952422039904
+      }
+    },
+    "T2": {
+      "train": {
+        "n": 320,
+        "n_incorrect": 52,
+        "prevalence": 0.1625,
+        "roc_auc": 0.43595723306544204,
+        "pr_auc": 0.1525606547716565,
+        "cohens_d": -0.030285567213007243
+      },
+      "dev": {
+        "n": 74,
+        "n_incorrect": 10,
+        "prevalence": 0.13513513513513514,
+        "roc_auc": 0.3546875,
+        "pr_auc": 0.1147291967718706,
+        "cohens_d": -0.4237899515633352
+      }
+    },
+    "T3": {
+      "train": {
+        "n": 192,
+        "n_incorrect": 35,
+        "prevalence": 0.18229166666666666,
+        "roc_auc": 0.6105550500454959,
+        "pr_auc": 0.2750957618180499,
+        "cohens_d": 0.16880092120741502
+      },
+      "dev": {
+        "n": 40,
+        "n_incorrect": 10,
+        "prevalence": 0.25,
+        "roc_auc": 0.54,
+        "pr_auc": 0.286562487471408,
+        "cohens_d": -0.004480685826497955
+      }
+    },
+    "T4": {
+      "train": {
+        "n": 528,
+        "n_incorrect": 89,
+        "prevalence": 0.16856060606060605,
+        "roc_auc": 0.6877479460469402,
+        "pr_auc": 0.3705263118803049,
+        "cohens_d": 0.6596788966110203
+      },
+      "dev": {
+        "n": 126,
+        "n_incorrect": 24,
+        "prevalence": 0.19047619047619047,
+        "roc_auc": 0.6866830065359477,
+        "pr_auc": 0.3815070437251286,
+        "cohens_d": 0.6038004228113033
+      }
+    }
+  },
+  "praat_univariate": [
+    {
+      "feature": "rel_f0_start",
+      "train_auc": 0.46202003655419804,
+      "train_d": -0.0602609710880503,
+      "dev_auc": 0.44811987560079164,
+      "dev_d": -0.22190563168479097,
+      "train_direction": "lower->incorrect",
+      "dev_direction": "lower->incorrect",
+      "replicates": true
+    },
+    {
+      "feature": "rel_f0_25",
+      "train_auc": 0.4566734163007455,
+      "train_d": -0.1110812638558097,
+      "dev_auc": 0.4233107152954481,
+      "dev_d": -0.3104045276848509,
+      "train_direction": "lower->incorrect",
+      "dev_direction": "lower->incorrect",
+      "replicates": true
+    },
+    {
+      "feature": "rel_f0_50",
+      "train_auc": 0.46320880637650824,
+      "train_d": -0.09855529299969784,
+      "dev_auc": 0.4683700876448968,
+      "dev_d": -0.29657479684747373,
+      "train_direction": "lower->incorrect",
+      "dev_direction": "lower->incorrect",
+      "replicates": true
+    },
+    {
+      "feature": "rel_f0_75",
+      "train_auc": 0.5426592041498873,
+      "train_d": 0.03905326646849576,
+      "dev_auc": 0.5728724908114221,
+      "dev_d": 0.17136974911804465,
+      "train_direction": "higher->incorrect",
+      "dev_direction": "higher->incorrect",
+      "replicates": true
+    },
+    {
+      "feature": "rel_f0_end",
+      "train_auc": 0.5415652325590213,
+      "train_d": 0.18732108335687278,
+      "dev_auc": 0.5719536330223353,
+      "dev_d": 0.2505530232491297,
+      "train_direction": "higher->incorrect",
+      "dev_direction": "higher->incorrect",
+      "replicates": true
+    },
+    {
+      "feature": "f0_range_st",
+      "train_auc": 0.5459619745334031,
+      "train_d": 0.16458340946498545,
+      "dev_auc": 0.42295730845349166,
+      "dev_d": -0.15788714423602945,
+      "train_direction": "higher->incorrect",
+      "dev_direction": "lower->incorrect",
+      "replicates": false
+    },
+    {
+      "feature": "slope_start_to_mid",
+      "train_auc": 0.5179168657429527,
+      "train_d": 0.04561420525042732,
+      "dev_auc": 0.5590896239751202,
+      "dev_d": 0.13931649918303157,
+      "train_direction": "higher->incorrect",
+      "dev_direction": "higher->incorrect",
+      "replicates": true
+    },
+    {
+      "feature": "slope_mid_to_end",
+      "train_auc": 0.5393204104384228,
+      "train_d": 0.124946526366162,
+      "dev_auc": 0.5824851569126378,
+      "dev_d": 0.40876620444981043,
+      "train_direction": "higher->incorrect",
+      "dev_direction": "higher->incorrect",
+      "replicates": true
+    },
+    {
+      "feature": "duration_seconds",
+      "train_auc": 0.5022711090377864,
+      "train_d": 0.04922981063744683,
+      "dev_auc": 0.4870616275110657,
+      "dev_d": -0.03994974843314687,
+      "train_direction": "higher->incorrect",
+      "dev_direction": "lower->incorrect",
+      "replicates": false
+    },
+    {
+      "feature": "voiced_proportion",
+      "train_auc": 0.51919795221843,
+      "train_d": 0.07467509142888204,
+      "dev_auc": 0.509469696969697,
+      "dev_d": 0.009827809219097487,
+      "train_direction": "higher->incorrect",
+      "dev_direction": "higher->incorrect",
+      "replicates": false
+    }
+  ],
+  "wav2vec2_layer_probe": {
+    "early_L1": {
+      "layer_index": 1,
+      "dev_pr_auc": 0.1670036209926252,
+      "dev_roc_auc": 0.5007831120190671
+    },
+    "middle_L6": {
+      "layer_index": 6,
+      "dev_pr_auc": 0.22493691759693757,
+      "dev_roc_auc": 0.4868913857677903
+    },
+    "final_L12": {
+      "layer_index": 12,
+      "dev_pr_auc": 0.18256599414630137,
+      "dev_roc_auc": 0.4881171263193735
+    }
+  },
+  "model_inputs": {
+    "MODEL_A": {
+      "checkpoint": "TencentGameMate/chinese-wav2vec2-base",
+      "pretraining": "Mandarin (Chinese) self-supervised, adult native speech",
+      "layer": "final hidden state (layer 12)",
+      "pooling": "mean or temporal-3",
+      "dimension": "768 (mean) / 2304 (temporal-3)",
+      "expected_tone_encoding": "one-hot, 4 dims, concatenated",
+      "frozen": true
+    },
+    "MODEL_B": {
+      "features": [
+        "rel_f0_start",
+        "rel_f0_25",
+        "rel_f0_50",
+        "rel_f0_75",
+        "rel_f0_end",
+        "f0_range_st",
+        "slope_start_to_mid",
+        "slope_mid_to_end",
+        "duration_seconds",
+        "voiced_proportion"
+      ],
+      "groups": {
+        "f0_tone_shape": [
+          "rel_f0_start",
+          "rel_f0_25",
+          "rel_f0_50",
+          "rel_f0_75",
+          "rel_f0_end",
+          "f0_range_st",
+          "slope_start_to_mid",
+          "slope_mid_to_end"
+        ],
+        "duration": [
+          "duration_seconds"
+        ],
+        "voicing": [
+          "voiced_proportion"
+        ],
+        "intensity": [],
+        "segment_audio_quality": [],
+        "other": []
+      },
+      "normalisation": "per-syllable semitones vs the token's own median F0"
+    },
+    "MODEL_C": "MODEL_A representation concatenated with MODEL_B vector"
+  }
+}
