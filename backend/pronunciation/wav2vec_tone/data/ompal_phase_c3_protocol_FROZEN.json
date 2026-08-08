@@ -1,0 +1,193 @@
+{
+  "phase": "C3",
+  "split_id": "ompal_speaker_split_v1",
+  "candidate_models": {
+    "P0": "Praat + expected-tone one-hot (additive; reproduces Phase C)",
+    "P1": "Praat + tone dummies + Praat x tone interactions, reference-coded on T1 (primary)",
+    "P2": "four independent per-tone logistic models (secondary)"
+  },
+  "cv_design": {
+    "scheme": "GroupKFold",
+    "group": "speaker_id",
+    "n_folds": 5,
+    "scope": "TRAIN only",
+    "token_level_random_cv": false
+  },
+  "preprocessing_order": [
+    "median impute (fold-train statistics)",
+    "standardise continuous Praat features (fold-train statistics)",
+    "build tone dummies (never standardised)",
+    "build interactions from already-scaled base features"
+  ],
+  "metrics": {
+    "primary": "PR-AUC for Incorrect",
+    "secondary": [
+      "ROC-AUC",
+      "balanced accuracy",
+      "macro F1",
+      "Incorrect precision/recall/F1"
+    ],
+    "accuracy": "descriptive only"
+  },
+  "c_grid": [
+    0.01,
+    0.1,
+    1.0,
+    10.0
+  ],
+  "class_weight_options": [
+    "None",
+    "balanced"
+  ],
+  "feature_design": {
+    "praat_features": [
+      "rel_f0_start",
+      "rel_f0_25",
+      "rel_f0_50",
+      "rel_f0_75",
+      "rel_f0_end",
+      "f0_range_st",
+      "slope_start_to_mid",
+      "slope_mid_to_end",
+      "duration_seconds",
+      "voiced_proportion"
+    ],
+    "reference_tone": "1",
+    "p1_columns": 43
+  },
+  "selected_model": {
+    "model": "P1",
+    "class_weight": "balanced",
+    "C": 10.0
+  },
+  "selected_train_cv_metrics": {
+    "pr_auc_incorrect": 0.2495480430165665,
+    "roc_auc": 0.5857918015594364,
+    "balanced_accuracy": 0.5658393633178185,
+    "incorrect_f1": 0.2998661311914324,
+    "fold_pr_auc_mean": 0.24968246602088406,
+    "fold_pr_auc_sd": 0.10682925901459414
+  },
+  "train_prevalence_floor": 0.16924157303370788,
+  "per_formulation_best": {
+    "P0": {
+      "class_weight": "balanced",
+      "C": 0.01,
+      "pr_auc_incorrect": 0.17479451631200088,
+      "roc_auc": 0.4627029529678748,
+      "balanced_accuracy": 0.5142439749844793
+    },
+    "P1": {
+      "class_weight": "balanced",
+      "C": 10.0,
+      "pr_auc_incorrect": 0.2495480430165665,
+      "roc_auc": 0.5857918015594364,
+      "balanced_accuracy": 0.5658393633178185
+    },
+    "P2": {
+      "class_weight": "balanced",
+      "C": 0.01,
+      "pr_auc_incorrect": 0.27136439984710015,
+      "roc_auc": 0.6092043927983921,
+      "balanced_accuracy": 0.5961547230299226
+    }
+  },
+  "p2_support": {
+    "T1": {
+      "n": 384,
+      "n_incorrect": 65,
+      "n_speakers": 32,
+      "status": "ok"
+    },
+    "T2": {
+      "n": 320,
+      "n_incorrect": 52,
+      "n_speakers": 32,
+      "status": "ok"
+    },
+    "T3": {
+      "n": 192,
+      "n_incorrect": 35,
+      "n_speakers": 32,
+      "status": "ok"
+    },
+    "T4": {
+      "n": 528,
+      "n_incorrect": 89,
+      "n_speakers": 32,
+      "status": "ok"
+    }
+  },
+  "per_tone_train_oof": {
+    "T1": {
+      "n": 384,
+      "n_incorrect": 65,
+      "pr_auc": 0.2880675733334781,
+      "roc_auc": 0.5990595611285265,
+      "balanced_accuracy": 0.5701953219194599
+    },
+    "T2": {
+      "n": 320,
+      "n_incorrect": 52,
+      "pr_auc": 0.17038942155358633,
+      "roc_auc": 0.47513633754305395,
+      "balanced_accuracy": 0.4756027554535017
+    },
+    "T3": {
+      "n": 192,
+      "n_incorrect": 35,
+      "pr_auc": 0.2537651586630481,
+      "roc_auc": 0.6536851683348499,
+      "balanced_accuracy": 0.6565059144676979
+    },
+    "T4": {
+      "n": 528,
+      "n_incorrect": 89,
+      "pr_auc": 0.29763638071018017,
+      "roc_auc": 0.5887230938547773,
+      "balanced_accuracy": 0.5797650431266157
+    }
+  },
+  "tone_specific_coefficients": {
+    "slope_mid_to_end": {
+      "T1_reference": -0.4861655949250674,
+      "T2_effective": -0.3016021606684683,
+      "T2_interaction": 0.1845634342565991,
+      "T3_effective": 1.3840406748820937,
+      "T3_interaction": 1.870206269807161,
+      "T4_effective": -0.2454941693558562,
+      "T4_interaction": 0.2406714255692112
+    },
+    "rel_f0_75": {
+      "T1_reference": -0.7882622178167602,
+      "T2_effective": 0.14636839636828336,
+      "T2_interaction": 0.9346306141850436,
+      "T3_effective": 1.1649183344353689,
+      "T3_interaction": 1.953180552252129,
+      "T4_effective": -0.7542270331706282,
+      "T4_interaction": 0.03403518464613198
+    },
+    "rel_f0_end": {
+      "T1_reference": 0.9490674989542568,
+      "T2_effective": 0.10344579506762142,
+      "T2_interaction": -0.8456217038866354,
+      "T3_effective": -2.000879124116478,
+      "T3_interaction": -2.9499466230707347,
+      "T4_effective": 1.3905308332849893,
+      "T4_interaction": 0.4414633343307324
+    }
+  },
+  "random_seed": 0,
+  "software": {
+    "python": "3.12.0",
+    "numpy": "2.4.3",
+    "scikit_learn": "1.8.0"
+  },
+  "test_lock": {
+    "features": false,
+    "predictions": false,
+    "metrics": false,
+    "error_analysis": false
+  },
+  "sha256": "6971a0f462d66039f59d79bb633d87b276d7362af3e78ee84ff7052e984c889b"
+}

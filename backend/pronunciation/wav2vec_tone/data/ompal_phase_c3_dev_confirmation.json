@@ -1,0 +1,53 @@
+{
+  "model": {
+    "model": "P1",
+    "class_weight": "balanced",
+    "C": 10.0
+  },
+  "overall": {
+    "pr_auc_incorrect": 0.3845911555040915,
+    "roc_auc": 0.725638406537283,
+    "balanced_accuracy": 0.6723867892407218,
+    "macro_f1": 0.6123661697658931,
+    "incorrect_precision": 0.3177570093457944,
+    "incorrect_recall": 0.6181818181818182,
+    "incorrect_f1": 0.41975308641975306,
+    "accuracy": 0.7080745341614907,
+    "false_rejection_rate": 0.27340823970037453,
+    "false_acceptance_rate": 0.38181818181818183,
+    "brier": 0.21141458270304733,
+    "prevalence": 0.17080745341614906
+  },
+  "per_tone": {
+    "T1": {
+      "n": 82,
+      "n_incorrect": 11,
+      "pr_auc": 0.18991549087177817,
+      "roc_auc": 0.5992317541613316,
+      "balanced_accuracy": 0.6216389244558258
+    },
+    "T2": {
+      "n": 74,
+      "n_incorrect": 10,
+      "pr_auc": 0.26132979857159067,
+      "roc_auc": 0.7171875,
+      "balanced_accuracy": 0.5625
+    },
+    "T3": {
+      "n": 40,
+      "n_incorrect": 10,
+      "pr_auc": 0.5040637845090861,
+      "roc_auc": 0.7366666666666667,
+      "balanced_accuracy": 0.7
+    },
+    "T4": {
+      "n": 126,
+      "n_incorrect": 24,
+      "pr_auc": 0.5335318588796687,
+      "roc_auc": 0.7769607843137255,
+      "balanced_accuracy": 0.7316176470588236
+    }
+  },
+  "opened_once": true,
+  "note": "Dev evaluated once after Train-CV freezing; no retuning after."
+}
