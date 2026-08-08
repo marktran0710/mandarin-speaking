@@ -35,11 +35,17 @@ RESULT_KEYS = ("auc", "kappa", "precision", "recall", "accuracy", "coverage",
                "f1", "brier", "balanced", "pr_auc", "roc", "n_pass", "t_pass")
 
 findings: list[tuple[bool, str, str]] = []
+QUIET = False
+
+
+def say(text: str) -> None:
+    if not QUIET:
+        print(text)
 
 
 def check(ok: bool, name: str, detail: str = "") -> bool:
     findings.append((bool(ok), name, detail))
-    print(f"  [{'PASS' if ok else 'FAIL'}] {name}" + (f"  — {detail}" if detail else ""))
+    say(f"  [{'PASS' if ok else 'FAIL'}] {name}" + (f"  — {detail}" if detail else ""))
     return bool(ok)
 
 
@@ -78,8 +84,16 @@ def guard_is_live(path: Path) -> tuple[bool, str]:
     return False, f"no live guard ({dead} dead)" if dead else "no guard"
 
 
-def main() -> None:
-    print("OMPAL Test seal verification (Phase D1)\n")
+def run(write: bool = True, quiet: bool = False) -> dict:
+    """Verify the seal. Returns the summary; writes it only when asked.
+
+    The gate checker imports this with write=False, so that reporting the seal
+    can never itself modify a file.
+    """
+    global QUIET
+    QUIET = quiet
+    findings.clear()
+    say("OMPAL Test seal verification\n")
 
     # 1 — the split still exists ------------------------------------------------
     rows = list(csv.DictReader(MANIFEST_SPLIT.open(encoding="utf-8")))
@@ -95,7 +109,7 @@ def main() -> None:
         try:
             store = np.load(cache_path, allow_pickle=True)
         except Exception as exc:                      # unreadable is not a leak
-            print(f"    (skipped {cache_path.name}: {exc})")
+            say(f"    (skipped {cache_path.name}: {exc})")
             continue
         if "split" in store.files and "test" in set(np.asarray(store["split"]).tolist()):
             leaked.append(cache_path.name)
@@ -132,8 +146,8 @@ def main() -> None:
             # looks like protection to anyone auditing by eye, so name it.
             dead_code.append(f"{module.name} ({detail})")
     if dead_code:
-        print(f"    note: vestigial dead guard(s), live guard still present — "
-              f"{'; '.join(dead_code)}")
+        say(f"    note: vestigial dead guard(s), live guard still present — "
+            f"{'; '.join(dead_code)}")
     check(not weak, "every manifest reader has an executable test-lock guard",
           "; ".join(weak) if weak else f"{len(readers)} modules")
 
@@ -143,7 +157,7 @@ def main() -> None:
           "fresh-validation analysis never reads the OMPAL manifest")
 
     failed = [name for ok, name, _ in findings if not ok]
-    (DATA / "ompal_test_seal_verification.json").write_text(json.dumps({
+    summary = {
         "phase": "D1",
         "test_split": {"tokens": counts["test"], "speakers": len(test_speakers)},
         "checks": [{"check": n, "pass": ok, "detail": d} for ok, n, d in findings],
@@ -151,12 +165,22 @@ def main() -> None:
         "vestigial_dead_guards": dead_code,
         "n_failed": len(failed),
         "sealed": not failed,
-    }, indent=2), encoding="utf-8")
+    }
+    if write:
+        (DATA / "ompal_test_seal_verification.json").write_text(
+            json.dumps(summary, indent=2), encoding="utf-8")
 
-    print(f"\n{len(findings) - len(failed)}/{len(findings)} checks passed")
-    if failed:
-        sys.exit("OMPAL TEST SEAL NOT VERIFIED: " + "; ".join(failed))
-    print("OMPAL Test is sealed.")
+    say(f"\n{len(findings) - len(failed)}/{len(findings)} checks passed")
+    if not failed:
+        say("OMPAL Test is sealed.")
+    return summary
+
+
+def main() -> None:
+    summary = run(write=True)
+    if not summary["sealed"]:
+        sys.exit("OMPAL TEST SEAL NOT VERIFIED: " + "; ".join(
+            c["check"] for c in summary["checks"] if not c["pass"]))
 
 
 if __name__ == "__main__":

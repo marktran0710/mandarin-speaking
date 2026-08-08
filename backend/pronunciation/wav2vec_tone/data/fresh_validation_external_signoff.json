@@ -1,0 +1,131 @@
+{
+  "_note": "STATUS RECORD ONLY. Nothing here is a confirmation until a named person supplies one. Every unknown value stays PENDING. Do not fill a field in to make a gate pass; the gate checker reads this file and never writes it.",
+  "phase": "D2",
+  "system_version": "OMPAL_R2_PASS_v1",
+  "system_sha256": "8101bcaf8c92e1e33feda00c236e10943a09e7146d09ead6de673af43b287436",
+
+  "teacher_item_review_status": "PENDING",
+  "hua_context_status": "PENDING",
+  "dian_context_status": "PENDING",
+  "t3_rule_status": "PENDING",
+  "ethics_status": "PENDING",
+  "consent_status": "PENDING",
+  "rater_status": "PENDING",
+  "pilot_status": "PENDING",
+  "study_start_ready": "NO",
+
+  "teacher_item_review": {
+    "_allowed_status": ["PENDING", "RETURNED_INCOMPLETE", "APPROVED", "REPLACE_REQUESTED"],
+    "status": "PENDING",
+    "completed_sheet": "data/fresh_validation_item_teacher_review_TEMPLATE.csv",
+    "n_items_expected": 16,
+    "n_items_approved": 0,
+    "items_marked_replace": [],
+    "reviewer_id": null,
+    "review_date": null
+  },
+
+  "lexical_context_decisions": {
+    "_note": "An approved context change must be versioned into the item manifest BEFORE recruitment, and must not change the acoustic target tone being validated.",
+    "_allowed_status": ["PENDING", "ISOLATED_CHARACTER", "CONTEXT_APPROVED"],
+    "hua": {
+      "item_id": "I14",
+      "status": "PENDING",
+      "display_prompt": null,
+      "target_character": "話",
+      "target_syllable": null,
+      "target_syllable_position": null,
+      "expected_pinyin": "huà",
+      "expected_tone": 4,
+      "decided_by": null,
+      "decision_date": null
+    },
+    "dian": {
+      "item_id": "I16",
+      "status": "PENDING",
+      "display_prompt": null,
+      "target_character": "電",
+      "target_syllable": null,
+      "target_syllable_position": null,
+      "expected_pinyin": "diàn",
+      "expected_tone": 4,
+      "decided_by": null,
+      "decision_date": null
+    }
+  },
+
+  "t3_rule": {
+    "_allowed_status": ["PENDING", "APPROVED", "AMENDED", "REJECTED"],
+    "status": "PENDING",
+    "candidate_wording": "A naturally produced low/half-third realization may be considered acceptable when appropriate to the elicitation context and need not exhibit a canonical full dipping contour.",
+    "approved_wording_verbatim": null,
+    "approved_by": null,
+    "approval_date": null,
+    "_gate": "Formal rating cannot begin while status is PENDING."
+  },
+
+  "ethics_and_consent": {
+    "_allowed_status": ["PENDING", "CONFIRMED", "NOT_REQUIRED"],
+    "_note": "No ethics approval is claimed. Only the relevant institution or responsible researcher may resolve these.",
+    "ethics_determination": "PENDING",
+    "ethics_reference_number": null,
+    "consent_form_approved": "PENDING",
+    "audio_recording_consent_confirmed": "PENDING",
+    "data_storage_confirmed": "PENDING",
+    "retention_policy_confirmed": "PENDING",
+    "withdrawal_policy_confirmed": "PENDING",
+    "recruitment_wording_confirmed": "PENDING",
+    "participant_compensation_confirmed": "PENDING",
+    "researcher_contact_confirmed": "PENDING"
+  },
+
+  "raters": {
+    "_allowed_status": ["PENDING", "CONFIRMED"],
+    "_note": "Formal inter-rater reliability is NOT computed during training. It belongs to the completed validation dataset.",
+    "minimum_required": 2,
+    "rater_1_confirmed": "PENDING",
+    "rater_2_confirmed": "PENDING",
+    "rater_training_complete": "PENDING",
+    "rater_blinding_verified": "PENDING",
+    "t3_rule_acknowledged": "PENDING",
+    "rating_interface_tested": "PENDING",
+    "rater_ids": []
+  },
+
+  "pilot": {
+    "_allowed_status": ["PENDING", "COMPLETE"],
+    "_note": "PILOT_ONLY participants never enter the validation analysis.",
+    "status": "PENDING",
+    "participants": [],
+    "checks": {
+      "recording_capture_works": "PENDING",
+      "session_manageable_16_items": "PENDING",
+      "pass_wording_understood": "PENDING",
+      "retry_wording_understood": "PENDING",
+      "first_and_retry_attempts_logged": "PENDING",
+      "trajectory_processing_works": "PENDING",
+      "technical_failure_yields_retry": "PENDING",
+      "latency_logging_works": "PENDING",
+      "usability_questionnaire_works": "PENDING",
+      "rater_export_works": "PENDING",
+      "item_order_applied_correctly": "PENDING",
+      "data_storage_works": "PENDING"
+    },
+    "corrections_applied": [],
+    "system_version_impact": "NONE"
+  },
+
+  "frozen_item_manifest": {
+    "_note": "Created ONLY after teacher sign-off exists. Absent by design at this stage.",
+    "path": "data/fresh_validation_items_FROZEN.csv",
+    "exists": false,
+    "sha256": null
+  },
+
+  "recruitment": {
+    "target_completed_participants": 30,
+    "acceptable_range": [25, 40],
+    "formally_powered": false,
+    "_note": "Interim validation outcomes may not influence where recruitment stops."
+  }
+}
