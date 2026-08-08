@@ -1,0 +1,170 @@
+{
+  "protocol_version": "ompal_model_protocol_v1",
+  "split_id": "ompal_speaker_split_v1",
+  "split_sha256": "853aa9d0a2c3a449900f8797f8aabd780b7505d0cdbacce250b131058a532468",
+  "phase": "C complete; D (sealed Test) next",
+  "seed": 0,
+  "expected_tone_policy": "B: acoustic features + one-hot expected-tone encoding",
+  "praat_feature_set": [
+    "rel_f0_start",
+    "rel_f0_25",
+    "rel_f0_50",
+    "rel_f0_75",
+    "rel_f0_end",
+    "f0_range_st",
+    "slope_start_to_mid",
+    "slope_mid_to_end",
+    "duration_seconds",
+    "voiced_proportion"
+  ],
+  "search_grid": {
+    "pooling": [
+      "mean",
+      "temporal3"
+    ],
+    "class_weight": [
+      "None",
+      "balanced"
+    ],
+    "C": [
+      0.01,
+      0.1,
+      1.0,
+      10.0
+    ]
+  },
+  "selection_metric": "Dev PR-AUC for the Incorrect class",
+  "threshold_rule": "maximise Incorrect F1 on Dev; frozen before Test",
+  "selected_model": {
+    "model": "MODEL_B_praat",
+    "pooling": "n/a",
+    "class_weight": "None",
+    "C": 0.01,
+    "threshold": 0.1665
+  },
+  "selected_dev_metrics": {
+    "pr_auc_incorrect": 0.22075028534212868,
+    "roc_auc": 0.5480422199523323,
+    "balanced_accuracy": 0.5905345590738849,
+    "macro_f1": 0.520504009163803,
+    "incorrect_precision": 0.2302158273381295,
+    "incorrect_recall": 0.5818181818181818,
+    "incorrect_f1": 0.32989690721649484,
+    "accuracy": 0.5962732919254659,
+    "false_rejection_rate": 0.40074906367041196,
+    "false_acceptance_rate": 0.4181818181818182
+  },
+  "per_model_best": {
+    "MODEL_A_wav2vec2": {
+      "pooling": "mean",
+      "class_weight": "balanced",
+      "C": 10.0,
+      "pr_auc_incorrect": 0.19727132777890583,
+      "roc_auc": 0.5276132107592781,
+      "balanced_accuracy": 0.5613210759278175,
+      "incorrect_f1": 0.31386861313868614,
+      "false_rejection_rate": 0.6591760299625468,
+      "false_acceptance_rate": 0.21818181818181814
+    },
+    "MODEL_B_praat": {
+      "pooling": "n/a",
+      "class_weight": "None",
+      "C": 0.01,
+      "pr_auc_incorrect": 0.22075028534212868,
+      "roc_auc": 0.5480422199523323,
+      "balanced_accuracy": 0.5905345590738849,
+      "incorrect_f1": 0.32989690721649484,
+      "false_rejection_rate": 0.40074906367041196,
+      "false_acceptance_rate": 0.4181818181818182
+    },
+    "MODEL_C_fusion": {
+      "pooling": "mean",
+      "class_weight": "None",
+      "C": 10.0,
+      "pr_auc_incorrect": 0.19475961790416896,
+      "roc_auc": 0.51699012597889,
+      "balanced_accuracy": 0.5615594143684031,
+      "incorrect_f1": 0.31715210355987056,
+      "false_rejection_rate": 0.7677902621722846,
+      "false_acceptance_rate": 0.10909090909090913
+    }
+  },
+  "calibration": {
+    "brier": 0.14037022465268956,
+    "brier_baseline_prevalence": 0.14163226727363915,
+    "bins": [
+      {
+        "mean_predicted": 0.14676585419396235,
+        "observed": 0.12195121951219512
+      },
+      {
+        "mean_predicted": 0.15507128832033887,
+        "observed": 0.275
+      },
+      {
+        "mean_predicted": 0.15905882445709074,
+        "observed": 0.125
+      },
+      {
+        "mean_predicted": 0.16222254135211536,
+        "observed": 0.025
+      },
+      {
+        "mean_predicted": 0.1661025100350536,
+        "observed": 0.125
+      },
+      {
+        "mean_predicted": 0.16892045700520958,
+        "observed": 0.2
+      },
+      {
+        "mean_predicted": 0.1728034303834996,
+        "observed": 0.25
+      },
+      {
+        "mean_predicted": 0.2164929125957284,
+        "observed": 0.24390243902439024
+      }
+    ],
+    "mean_predicted_probability": 0.16851171273450197,
+    "observed_prevalence": 0.17080745341614906
+  },
+  "uncertainty": {
+    "error_margin_median": 0.006100624993139403,
+    "correct_margin_median": 0.007260078198630074,
+    "bands": [
+      {
+        "margin": 0.05,
+        "pct_dev_in_band": 97.51552795031056,
+        "pct_of_errors_captured": 95.38461538461539,
+        "accuracy_outside_band": 0.25
+      },
+      {
+        "margin": 0.1,
+        "pct_dev_in_band": 98.75776397515527,
+        "pct_of_errors_captured": 98.46153846153847,
+        "accuracy_outside_band": 0.5
+      },
+      {
+        "margin": 0.15,
+        "pct_dev_in_band": 98.75776397515527,
+        "pct_of_errors_captured": 98.46153846153847,
+        "accuracy_outside_band": 0.5
+      },
+      {
+        "margin": 0.2,
+        "pct_dev_in_band": 98.75776397515527,
+        "pct_of_errors_captured": 98.46153846153847,
+        "accuracy_outside_band": 0.5
+      }
+    ]
+  },
+  "test_procedure": {
+    "predictions_generated_in_phase_C": false,
+    "features_extracted_for_test": false,
+    "uncertainty_method": "speaker-cluster bootstrap: resample the 7 Test speakers with replacement 2000 times, recompute every metric within each resample, report 2.5/97.5 percentiles. Tokens are clustered within speakers, so token-level bootstrap would understate the interval.",
+    "run_once": true,
+    "no_refit_or_retune_after_test": true
+  },
+  "frozen_note": "Model, hyperparameters and threshold are frozen. Test is evaluated once and must not inform any further modelling choice."
+}
