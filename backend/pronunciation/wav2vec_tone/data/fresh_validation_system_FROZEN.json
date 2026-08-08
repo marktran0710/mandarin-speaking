@@ -1,0 +1,79 @@
+{
+  "system_version": "OMPAL_R2_PASS_v1",
+  "what_this_version_is": "the exact learner-facing system the fresh human study validates; any change creates a new version requiring a new independent validation set",
+  "representation": {
+    "name": "R2",
+    "points": 20,
+    "normalisation": "median-centred semitone F0 trajectory",
+    "time_axis": "normalised across the voiced span",
+    "pitch_floor_hz": 60.0,
+    "pitch_ceiling_hz": 500.0,
+    "pitch_time_step_s": 0.005,
+    "expected_tone_encoding": "reference-coded dummies + trajectory x tone interactions"
+  },
+  "classifier": {
+    "family": "L2 logistic regression",
+    "C": 0.1,
+    "class_weight": "balanced"
+  },
+  "decision_policy": {
+    "name": "POLICY_B_tone_gated",
+    "t_pass": 0.42274,
+    "enabled_pass_tones": [
+      "T2",
+      "T3",
+      "T4"
+    ],
+    "t1_rule": "T1 always RETRY (automatic PASS disabled)",
+    "trajectory_unavailable_rule": "always RETRY, never PASS",
+    "outputs": [
+      "PASS",
+      "RETRY"
+    ],
+    "forbidden_outputs": [
+      "INCORRECT",
+      "WRONG",
+      "WRONG TONE",
+      "produced-tone diagnosis e.g. T2 instead of T3"
+    ],
+    "retry_semantics": "insufficient evidence to confirm; NOT a claim that the production was wrong",
+    "score_semantics": "internal ranking variable; not a probability, never shown to the learner as a percentage or score"
+  },
+  "hashes": {
+    "c8_policy_sha256": "cc4aa4ef797f752bb995ab70836d8f86c8fe9ac3d123013b1e1e22c306d5ed61",
+    "c6_representation_sha256": "1afe6c5b1da4dece98304e09ba769137d5e7fdc4b9463a293f7f7d51535a4a76",
+    "c8_model_hash": "cd911b6e67b28c41a3b524a5c540009f8ec09242a59fd7ef3a6f158aa44d4dee"
+  },
+  "development_evidence": {
+    "train_pass_precision": 0.9192307692307692,
+    "train_pass_precision_ci": [
+      0.86110842985843,
+      0.9661052706858327
+    ],
+    "train_coverage": 0.18258426966292135,
+    "train_pass_n": 260,
+    "dev_confirmation_note": "Dev is not independent; the R2 representation was already inspected on Dev in Phase C6"
+  },
+  "modification_lock": {
+    "validation_labels_may_not_change": [
+      "R2 representation",
+      "C",
+      "class_weight",
+      "t_pass",
+      "enabled tones",
+      "trajectory processing",
+      "feature normalisation"
+    ],
+    "consequence_of_change": "new system version + new independent validation set"
+  },
+  "ompal_test": {
+    "status": "SEALED",
+    "predictions": false,
+    "scores": false,
+    "metrics": false
+  },
+  "software": {
+    "python": "3.12.0"
+  },
+  "sha256": "8101bcaf8c92e1e33feda00c236e10943a09e7146d09ead6de673af43b287436"
+}
