@@ -1,0 +1,641 @@
+{
+  "targets": {
+    "0.900": {
+      "t_pass": 0.42274,
+      "enabled_tones": "1234",
+      "n": 1424,
+      "n_pass": 284,
+      "n_retry": 1140,
+      "coverage": 0.199438202247191,
+      "pass_precision": 0.9014084507042254,
+      "true_pass": 256,
+      "false_pass": 28,
+      "false_pass_rate": 0.09859154929577464,
+      "incorrect_tokens_passed": 28,
+      "speakers_any_pass": 31,
+      "speakers_5plus_pass": 22,
+      "speakers_zero_pass": 1,
+      "T1_pass": 24,
+      "T1_precision": 0.7083333333333334,
+      "T1_false_pass": 7,
+      "T2_pass": 75,
+      "T2_precision": 0.9066666666666666,
+      "T2_false_pass": 7,
+      "T3_pass": 49,
+      "T3_precision": 0.8979591836734694,
+      "T3_false_pass": 5,
+      "T4_pass": 136,
+      "T4_precision": 0.9338235294117647,
+      "T4_false_pass": 9,
+      "ci": [
+        0.8227399507793274,
+        0.9615384615384616
+      ]
+    },
+    "0.925": null,
+    "0.950": null,
+    "0.975": null
+  },
+  "policy_a": {
+    "t_pass": 0.42274,
+    "enabled_tones": "1234",
+    "n": 1424,
+    "n_pass": 284,
+    "n_retry": 1140,
+    "coverage": 0.199438202247191,
+    "pass_precision": 0.9014084507042254,
+    "true_pass": 256,
+    "false_pass": 28,
+    "false_pass_rate": 0.09859154929577464,
+    "incorrect_tokens_passed": 28,
+    "speakers_any_pass": 31,
+    "speakers_5plus_pass": 22,
+    "speakers_zero_pass": 1,
+    "T1_pass": 24,
+    "T1_precision": 0.7083333333333334,
+    "T1_false_pass": 7,
+    "T2_pass": 75,
+    "T2_precision": 0.9066666666666666,
+    "T2_false_pass": 7,
+    "T3_pass": 49,
+    "T3_precision": 0.8979591836734694,
+    "T3_false_pass": 5,
+    "T4_pass": 136,
+    "T4_precision": 0.9338235294117647,
+    "T4_false_pass": 9,
+    "ci": [
+      0.8227399507793274,
+      0.9615384615384616
+    ]
+  },
+  "policy_b": {
+    "t_pass": 0.42274,
+    "enabled_tones": "234",
+    "n": 1424,
+    "n_pass": 260,
+    "n_retry": 1164,
+    "coverage": 0.18258426966292135,
+    "pass_precision": 0.9192307692307692,
+    "true_pass": 239,
+    "false_pass": 21,
+    "false_pass_rate": 0.08076923076923077,
+    "incorrect_tokens_passed": 21,
+    "speakers_any_pass": 31,
+    "speakers_5plus_pass": 19,
+    "speakers_zero_pass": 1,
+    "ci": [
+      0.86110842985843,
+      0.9661052706858327
+    ],
+    "policy_name": "POLICY_B_tone_gated"
+  },
+  "tone_gate": {
+    "T1": {
+      "n_pass": 24,
+      "precision": 0.7083333333333334,
+      "false_pass": 7,
+      "eligible": false
+    },
+    "T2": {
+      "n_pass": 75,
+      "precision": 0.9066666666666666,
+      "false_pass": 7,
+      "eligible": true
+    },
+    "T3": {
+      "n_pass": 49,
+      "precision": 0.8979591836734694,
+      "false_pass": 5,
+      "eligible": true
+    },
+    "T4": {
+      "n_pass": 136,
+      "precision": 0.9338235294117647,
+      "false_pass": 9,
+      "eligible": true
+    }
+  },
+  "chosen": {
+    "t_pass": 0.42274,
+    "enabled_tones": "234",
+    "n": 1424,
+    "n_pass": 260,
+    "n_retry": 1164,
+    "coverage": 0.18258426966292135,
+    "pass_precision": 0.9192307692307692,
+    "true_pass": 239,
+    "false_pass": 21,
+    "false_pass_rate": 0.08076923076923077,
+    "incorrect_tokens_passed": 21,
+    "speakers_any_pass": 31,
+    "speakers_5plus_pass": 19,
+    "speakers_zero_pass": 1,
+    "ci": [
+      0.86110842985843,
+      0.9661052706858327
+    ],
+    "policy_name": "POLICY_B_tone_gated"
+  },
+  "per_speaker": {
+    "02002": {
+      "n": 17,
+      "true_correct_rate": 0.8235294117647058,
+      "n_pass": 5,
+      "pass_coverage": 0.29411764705882354,
+      "pass_precision": 1.0
+    },
+    "02003": {
+      "n": 17,
+      "true_correct_rate": 0.9411764705882353,
+      "n_pass": 5,
+      "pass_coverage": 0.29411764705882354,
+      "pass_precision": 0.8
+    },
+    "02005": {
+      "n": 17,
+      "true_correct_rate": 0.6470588235294118,
+      "n_pass": 2,
+      "pass_coverage": 0.11764705882352941,
+      "pass_precision": 1.0
+    },
+    "02006": {
+      "n": 17,
+      "true_correct_rate": 0.47058823529411764,
+      "n_pass": 1,
+      "pass_coverage": 0.058823529411764705,
+      "pass_precision": 0.0
+    },
+    "02007": {
+      "n": 17,
+      "true_correct_rate": 0.9411764705882353,
+      "n_pass": 3,
+      "pass_coverage": 0.17647058823529413,
+      "pass_precision": 1.0
+    },
+    "02009": {
+      "n": 17,
+      "true_correct_rate": 1.0,
+      "n_pass": 1,
+      "pass_coverage": 0.058823529411764705,
+      "pass_precision": 1.0
+    },
+    "02010": {
+      "n": 17,
+      "true_correct_rate": 0.9411764705882353,
+      "n_pass": 3,
+      "pass_coverage": 0.17647058823529413,
+      "pass_precision": 1.0
+    },
+    "02011": {
+      "n": 17,
+      "true_correct_rate": 0.9411764705882353,
+      "n_pass": 4,
+      "pass_coverage": 0.23529411764705882,
+      "pass_precision": 1.0
+    },
+    "02012": {
+      "n": 17,
+      "true_correct_rate": 1.0,
+      "n_pass": 3,
+      "pass_coverage": 0.17647058823529413,
+      "pass_precision": 1.0
+    },
+    "02013": {
+      "n": 17,
+      "true_correct_rate": 0.5882352941176471,
+      "n_pass": 4,
+      "pass_coverage": 0.23529411764705882,
+      "pass_precision": 0.75
+    },
+    "02016": {
+      "n": 17,
+      "true_correct_rate": 0.8823529411764706,
+      "n_pass": 5,
+      "pass_coverage": 0.29411764705882354,
+      "pass_precision": 1.0
+    },
+    "02018": {
+      "n": 17,
+      "true_correct_rate": 0.6470588235294118,
+      "n_pass": 3,
+      "pass_coverage": 0.17647058823529413,
+      "pass_precision": 1.0
+    },
+    "02019": {
+      "n": 17,
+      "true_correct_rate": 0.6470588235294118,
+      "n_pass": 0,
+      "pass_coverage": 0.0,
+      "pass_precision": null
+    },
+    "02020": {
+      "n": 17,
+      "true_correct_rate": 0.9411764705882353,
+      "n_pass": 3,
+      "pass_coverage": 0.17647058823529413,
+      "pass_precision": 1.0
+    },
+    "02021": {
+      "n": 17,
+      "true_correct_rate": 0.5882352941176471,
+      "n_pass": 3,
+      "pass_coverage": 0.17647058823529413,
+      "pass_precision": 1.0
+    },
+    "02022": {
+      "n": 17,
+      "true_correct_rate": 1.0,
+      "n_pass": 2,
+      "pass_coverage": 0.11764705882352941,
+      "pass_precision": 1.0
+    },
+    "02024": {
+      "n": 72,
+      "true_correct_rate": 1.0,
+      "n_pass": 25,
+      "pass_coverage": 0.3472222222222222,
+      "pass_precision": 1.0
+    },
+    "02028": {
+      "n": 72,
+      "true_correct_rate": 0.7222222222222222,
+      "n_pass": 10,
+      "pass_coverage": 0.1388888888888889,
+      "pass_precision": 0.9
+    },
+    "02029": {
+      "n": 72,
+      "true_correct_rate": 0.9722222222222222,
+      "n_pass": 18,
+      "pass_coverage": 0.25,
+      "pass_precision": 1.0
+    },
+    "02030": {
+      "n": 72,
+      "true_correct_rate": 0.7777777777777778,
+      "n_pass": 12,
+      "pass_coverage": 0.16666666666666666,
+      "pass_precision": 0.8333333333333334
+    },
+    "02031": {
+      "n": 72,
+      "true_correct_rate": 0.9166666666666666,
+      "n_pass": 6,
+      "pass_coverage": 0.08333333333333333,
+      "pass_precision": 1.0
+    },
+    "02033": {
+      "n": 72,
+      "true_correct_rate": 1.0,
+      "n_pass": 19,
+      "pass_coverage": 0.2638888888888889,
+      "pass_precision": 1.0
+    },
+    "02034": {
+      "n": 72,
+      "true_correct_rate": 0.9861111111111112,
+      "n_pass": 14,
+      "pass_coverage": 0.19444444444444445,
+      "pass_precision": 1.0
+    },
+    "02035": {
+      "n": 72,
+      "true_correct_rate": 0.8333333333333334,
+      "n_pass": 20,
+      "pass_coverage": 0.2777777777777778,
+      "pass_precision": 1.0
+    },
+    "02038": {
+      "n": 72,
+      "true_correct_rate": 0.8611111111111112,
+      "n_pass": 13,
+      "pass_coverage": 0.18055555555555555,
+      "pass_precision": 1.0
+    },
+    "02039": {
+      "n": 72,
+      "true_correct_rate": 0.4305555555555556,
+      "n_pass": 18,
+      "pass_coverage": 0.25,
+      "pass_precision": 0.6666666666666666
+    },
+    "02041": {
+      "n": 72,
+      "true_correct_rate": 0.9166666666666666,
+      "n_pass": 7,
+      "pass_coverage": 0.09722222222222222,
+      "pass_precision": 1.0
+    },
+    "02042": {
+      "n": 72,
+      "true_correct_rate": 0.8055555555555556,
+      "n_pass": 17,
+      "pass_coverage": 0.2361111111111111,
+      "pass_precision": 0.9411764705882353
+    },
+    "02043": {
+      "n": 72,
+      "true_correct_rate": 0.8055555555555556,
+      "n_pass": 7,
+      "pass_coverage": 0.09722222222222222,
+      "pass_precision": 0.8571428571428571
+    },
+    "02044": {
+      "n": 72,
+      "true_correct_rate": 0.8333333333333334,
+      "n_pass": 14,
+      "pass_coverage": 0.19444444444444445,
+      "pass_precision": 0.8571428571428571
+    },
+    "02045": {
+      "n": 72,
+      "true_correct_rate": 0.6944444444444444,
+      "n_pass": 5,
+      "pass_coverage": 0.06944444444444445,
+      "pass_precision": 0.2
+    },
+    "02046": {
+      "n": 72,
+      "true_correct_rate": 0.8055555555555556,
+      "n_pass": 8,
+      "pass_coverage": 0.1111111111111111,
+      "pass_precision": 0.875
+    }
+  },
+  "false_pass_audit": [
+    {
+      "token_id": "00200317_03",
+      "speaker_id": "02003",
+      "expected_tone": "2",
+      "trajectory_available": true,
+      "score": 0.403144231287069,
+      "distance_from_threshold": 0.019595768712931005
+    },
+    {
+      "token_id": "00200620_05",
+      "speaker_id": "02006",
+      "expected_tone": "3",
+      "trajectory_available": true,
+      "score": 0.3023221161020266,
+      "distance_from_threshold": 0.12041788389797342
+    },
+    {
+      "token_id": "00201320_05",
+      "speaker_id": "02013",
+      "expected_tone": "3",
+      "trajectory_available": true,
+      "score": 0.35645156486968016,
+      "distance_from_threshold": 0.06628843513031984
+    },
+    {
+      "token_id": "00202829_07",
+      "speaker_id": "02028",
+      "expected_tone": "2",
+      "trajectory_available": true,
+      "score": 0.40989046871285995,
+      "distance_from_threshold": 0.012849531287140059
+    },
+    {
+      "token_id": "00203008_02",
+      "speaker_id": "02030",
+      "expected_tone": "4",
+      "trajectory_available": true,
+      "score": 0.3773999284255489,
+      "distance_from_threshold": 0.04534007157445108
+    },
+    {
+      "token_id": "00203009_11",
+      "speaker_id": "02030",
+      "expected_tone": "4",
+      "trajectory_available": true,
+      "score": 0.23391656680451747,
+      "distance_from_threshold": 0.18882343319548253
+    },
+    {
+      "token_id": "00203901_03",
+      "speaker_id": "02039",
+      "expected_tone": "4",
+      "trajectory_available": true,
+      "score": 0.39609355891112624,
+      "distance_from_threshold": 0.026646441088873762
+    },
+    {
+      "token_id": "00203911_08",
+      "speaker_id": "02039",
+      "expected_tone": "3",
+      "trajectory_available": true,
+      "score": 0.39763191143356147,
+      "distance_from_threshold": 0.025108088566438536
+    },
+    {
+      "token_id": "00203913_08",
+      "speaker_id": "02039",
+      "expected_tone": "2",
+      "trajectory_available": true,
+      "score": 0.11267612803611739,
+      "distance_from_threshold": 0.31006387196388263
+    },
+    {
+      "token_id": "00203918_01",
+      "speaker_id": "02039",
+      "expected_tone": "4",
+      "trajectory_available": true,
+      "score": 0.17137282414438837,
+      "distance_from_threshold": 0.25136717585561164
+    },
+    {
+      "token_id": "00203924_01",
+      "speaker_id": "02039",
+      "expected_tone": "4",
+      "trajectory_available": true,
+      "score": 0.0072317179570076775,
+      "distance_from_threshold": 0.41550828204299234
+    },
+    {
+      "token_id": "00203929_08",
+      "speaker_id": "02039",
+      "expected_tone": "3",
+      "trajectory_available": true,
+      "score": 0.1327661608690001,
+      "distance_from_threshold": 0.28997383913099994
+    },
+    {
+      "token_id": "00204213_08",
+      "speaker_id": "02042",
+      "expected_tone": "2",
+      "trajectory_available": true,
+      "score": 0.34984636104881045,
+      "distance_from_threshold": 0.07289363895118955
+    },
+    {
+      "token_id": "00204311_06",
+      "speaker_id": "02043",
+      "expected_tone": "2",
+      "trajectory_available": true,
+      "score": 0.40632514863699076,
+      "distance_from_threshold": 0.016414851363009242
+    },
+    {
+      "token_id": "00204411_07",
+      "speaker_id": "02044",
+      "expected_tone": "4",
+      "trajectory_available": true,
+      "score": 0.26326900022341004,
+      "distance_from_threshold": 0.15947099977658996
+    },
+    {
+      "token_id": "00204428_07",
+      "speaker_id": "02044",
+      "expected_tone": "3",
+      "trajectory_available": true,
+      "score": 0.3944400247131302,
+      "distance_from_threshold": 0.028299975286869783
+    },
+    {
+      "token_id": "00204501_10",
+      "speaker_id": "02045",
+      "expected_tone": "2",
+      "trajectory_available": true,
+      "score": 0.048639036113743844,
+      "distance_from_threshold": 0.37410096388625613
+    },
+    {
+      "token_id": "00204509_11",
+      "speaker_id": "02045",
+      "expected_tone": "4",
+      "trajectory_available": true,
+      "score": 0.11114710087079656,
+      "distance_from_threshold": 0.31159289912920346
+    },
+    {
+      "token_id": "00204511_11",
+      "speaker_id": "02045",
+      "expected_tone": "4",
+      "trajectory_available": true,
+      "score": 0.1677446528463972,
+      "distance_from_threshold": 0.25499534715360284
+    },
+    {
+      "token_id": "00204526_04",
+      "speaker_id": "02045",
+      "expected_tone": "4",
+      "trajectory_available": true,
+      "score": 0.308070703647178,
+      "distance_from_threshold": 0.11466929635282203
+    },
+    {
+      "token_id": "00204620_06",
+      "speaker_id": "02046",
+      "expected_tone": "2",
+      "trajectory_available": true,
+      "score": 0.412359528989112,
+      "distance_from_threshold": 0.010380471010888015
+    }
+  ],
+  "dev": {
+    "label": "development confirmation (Dev already inspected in C6)",
+    "overall": {
+      "t_pass": 0.42274,
+      "enabled_tones": "234",
+      "n": 322,
+      "n_pass": 75,
+      "n_retry": 247,
+      "coverage": 0.2329192546583851,
+      "pass_precision": 0.9733333333333334,
+      "true_pass": 73,
+      "false_pass": 2,
+      "false_pass_rate": 0.02666666666666667,
+      "incorrect_tokens_passed": 2,
+      "speakers_any_pass": 6,
+      "speakers_5plus_pass": 4,
+      "speakers_zero_pass": 0
+    },
+    "per_tone": {
+      "T1": {
+        "t_pass": 0.42274,
+        "enabled_tones": "234",
+        "n": 82,
+        "n_pass": 0,
+        "n_retry": 82,
+        "coverage": 0.0,
+        "pass_precision": NaN,
+        "true_pass": 0,
+        "false_pass": 0,
+        "false_pass_rate": NaN,
+        "incorrect_tokens_passed": 0,
+        "speakers_any_pass": 0,
+        "speakers_5plus_pass": 0,
+        "speakers_zero_pass": 6
+      },
+      "T2": {
+        "t_pass": 0.42274,
+        "enabled_tones": "234",
+        "n": 74,
+        "n_pass": 15,
+        "n_retry": 59,
+        "coverage": 0.20270270270270271,
+        "pass_precision": 1.0,
+        "true_pass": 15,
+        "false_pass": 0,
+        "false_pass_rate": 0.0,
+        "incorrect_tokens_passed": 0,
+        "speakers_any_pass": 5,
+        "speakers_5plus_pass": 0,
+        "speakers_zero_pass": 1
+      },
+      "T3": {
+        "t_pass": 0.42274,
+        "enabled_tones": "234",
+        "n": 40,
+        "n_pass": 11,
+        "n_retry": 29,
+        "coverage": 0.275,
+        "pass_precision": 1.0,
+        "true_pass": 11,
+        "false_pass": 0,
+        "false_pass_rate": 0.0,
+        "incorrect_tokens_passed": 0,
+        "speakers_any_pass": 5,
+        "speakers_5plus_pass": 0,
+        "speakers_zero_pass": 1
+      },
+      "T4": {
+        "t_pass": 0.42274,
+        "enabled_tones": "234",
+        "n": 126,
+        "n_pass": 49,
+        "n_retry": 77,
+        "coverage": 0.3888888888888889,
+        "pass_precision": 0.9591836734693877,
+        "true_pass": 47,
+        "false_pass": 2,
+        "false_pass_rate": 0.04081632653061224,
+        "incorrect_tokens_passed": 2,
+        "speakers_any_pass": 5,
+        "speakers_5plus_pass": 4,
+        "speakers_zero_pass": 1
+      }
+    },
+    "ci": [
+      0.9298245614035088,
+      1.0
+    ],
+    "opened_once": true
+  },
+  "leakage_audit": {
+    "folds": 5,
+    "leaked_speakers": 0
+  },
+  "admission": {
+    "min_precision": 0.9,
+    "min_pass": 100,
+    "min_speakers": 20
+  },
+  "test_lock": {
+    "trajectories": false,
+    "features": false,
+    "scores": false,
+    "decisions": false,
+    "metrics": false
+  }
+}
