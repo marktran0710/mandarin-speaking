@@ -114,3 +114,95 @@ Split `ompal_speaker_split_v1` is frozen. SHA-256 of the sorted speaker→split 
 
 Do not regenerate this split because model results are disappointing.
 The Test set must not influence any modelling decision.
+
+---
+
+# Final split verification
+
+Decision: **A. SPLIT READY TO FREEZE** · 0 assertion failure(s) of 25
+
+## Class distribution
+
+| | Train | Dev | Test |
+|---|---|---|---|
+| Correct | 1183 | 267 | 267 |
+| Incorrect | 241 | 55 | 55 |
+| Incorrect % | 16.9% | 17.1% | 17.1% |
+| deviation from 17.0% | -0.0 pts | +0.1 pts | +0.1 pts |
+
+## Tone x correctness
+
+### Train
+
+| tone | Correct | Incorrect |
+|---|---|---|
+| T1 | 319 | 65 |
+| T2 | 268 | 52 |
+| T3 | 157 | 35 |
+| T4 | 439 | 89 |
+
+### Dev
+
+| tone | Correct | Incorrect |
+|---|---|---|
+| T1 | 71 | 11 |
+| T2 | 64 | 10 |
+| T3 | 30 | 10 |
+| T4 | 102 | 24 |
+
+### Test
+
+| tone | Correct | Incorrect |
+|---|---|---|
+| T1 | 74 | 13 |
+| T2 | 65 | 9 |
+| T3 | 33 | 7 |
+| T4 | 95 | 26 |
+
+Sparse cells (reported, not engineered away):
+
+- test T2 Incorrect = 9
+- test T3 Incorrect = 7
+
+## Speaker difficulty
+
+| split | min | Q1 | median | Q3 | max | mean |
+|---|---|---|---|---|---|---|
+| train | 0.0% | 5.9% | 15.3% | 28.5% | 56.9% | 17.6% |
+| dev | 2.8% | 11.9% | 15.1% | 21.1% | 31.9% | 16.5% |
+| test | 2.8% | 10.2% | 15.3% | 20.6% | 36.1% | 16.5% |
+
+**Dev speakers**: 02004 (11.8%), 02014 (17.6%), 02023 (2.8%), 02027 (22.2%), 02036 (12.5%), 02040 (31.9%)
+
+**Test speakers**: 02001 (5.9%), 02008 (23.5%), 02015 (17.6%), 02025 (2.8%), 02026 (36.1%), 02032 (14.5%), 02037 (15.3%)
+
+## Assertions
+
+- PASS · total Correct == 1717 — 1717
+- PASS · total Incorrect == 351 — 351
+- PASS · dev Incorrect >= 40 — 55
+- PASS · test Incorrect >= 40 — 55
+- PASS · train ∩ dev == empty — []
+- PASS · train ∩ test == empty — []
+- PASS · dev ∩ test == empty — []
+- PASS · 45 unique learner speakers assigned once — 45 unique / 45 total
+- PASS · 2068 learner tokens assigned once — 2068
+- PASS · no duplicate token IDs — 0 duplicated
+- PASS · no duplicate rows — 0 duplicated
+- PASS · no token ID in two splits
+- PASS · no utterance straddles splits — 0 straddling
+- PASS · no utterance maps to two speakers
+- PASS · every learner row has a split label — 0 missing
+- PASS · derived paths match row speaker/token — 0 mismatched
+- PASS · all token segment files exist — 0 missing
+- PASS · native tokens == 108 — 108
+- PASS · all native rows marked native_reference
+- PASS · no native row in a learner split
+- PASS · no learner row marked native_reference
+- PASS · native speakers disjoint from learner speakers — ['01001', '01002', '01003']
+- PASS · learner class counts exclude natives — 2068
+- PASS · assignment on disk matches recorded SHA-256 — 853aa9d0a2c3a449 vs 853aa9d0a2c3a449
+- PASS · speaker CSV agrees with manifest assignment — 0 disagreements
+
+SHA-256 of sorted speaker→split mapping: `853aa9d0a2c3a449900f8797f8aabd780b7505d0cdbacce250b131058a532468`
+

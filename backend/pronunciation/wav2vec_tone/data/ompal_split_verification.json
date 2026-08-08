@@ -1,0 +1,675 @@
+{
+  "split_id": "ompal_speaker_split_v1",
+  "decision": "A. SPLIT READY TO FREEZE",
+  "class_distribution": {
+    "train": {
+      "n_tokens": 1424,
+      "correct": 1183,
+      "incorrect": 241,
+      "incorrect_rate": 0.16924157303370788,
+      "delta_vs_global": -0.0004876339295416532
+    },
+    "dev": {
+      "n_tokens": 322,
+      "correct": 267,
+      "incorrect": 55,
+      "incorrect_rate": 0.17080745341614906,
+      "delta_vs_global": 0.0010782464528995284
+    },
+    "test": {
+      "n_tokens": 322,
+      "correct": 267,
+      "incorrect": 55,
+      "incorrect_rate": 0.17080745341614906,
+      "delta_vs_global": 0.0010782464528995284
+    }
+  },
+  "global_incorrect_rate": 0.16972920696324953,
+  "tone_tables": {
+    "train": {
+      "1": {
+        "correct": 319,
+        "incorrect": 65,
+        "total": 384
+      },
+      "2": {
+        "correct": 268,
+        "incorrect": 52,
+        "total": 320
+      },
+      "3": {
+        "correct": 157,
+        "incorrect": 35,
+        "total": 192
+      },
+      "4": {
+        "correct": 439,
+        "incorrect": 89,
+        "total": 528
+      }
+    },
+    "dev": {
+      "1": {
+        "correct": 71,
+        "incorrect": 11,
+        "total": 82
+      },
+      "2": {
+        "correct": 64,
+        "incorrect": 10,
+        "total": 74
+      },
+      "3": {
+        "correct": 30,
+        "incorrect": 10,
+        "total": 40
+      },
+      "4": {
+        "correct": 102,
+        "incorrect": 24,
+        "total": 126
+      }
+    },
+    "test": {
+      "1": {
+        "correct": 74,
+        "incorrect": 13,
+        "total": 87
+      },
+      "2": {
+        "correct": 65,
+        "incorrect": 9,
+        "total": 74
+      },
+      "3": {
+        "correct": 33,
+        "incorrect": 7,
+        "total": 40
+      },
+      "4": {
+        "correct": 95,
+        "incorrect": 26,
+        "total": 121
+      }
+    }
+  },
+  "sparse_cells": [
+    "test T2 Incorrect = 9",
+    "test T3 Incorrect = 7"
+  ],
+  "speaker_difficulty": {
+    "train": {
+      "min": 0.0,
+      "q1": 0.058823529411764705,
+      "median": 0.1527777777777778,
+      "q3": 0.2847222222222222,
+      "max": 0.5694444444444444,
+      "mean": 0.1762152777777778
+    },
+    "dev": {
+      "min": 0.027777777777777776,
+      "q1": 0.11948529411764705,
+      "median": 0.15073529411764708,
+      "q3": 0.2107843137254902,
+      "max": 0.3194444444444444,
+      "mean": 0.164760348583878
+    },
+    "test": {
+      "min": 0.027777777777777776,
+      "q1": 0.10213903743315508,
+      "median": 0.1527777777777778,
+      "q3": 0.20588235294117646,
+      "max": 0.3611111111111111,
+      "mean": 0.16538706391647567
+    }
+  },
+  "difficulty_concentration": {
+    "dev": {
+      "below_corpus_q1": 1,
+      "above_corpus_q3": 1,
+      "n_speakers": 6
+    },
+    "test": {
+      "below_corpus_q1": 1,
+      "above_corpus_q3": 1,
+      "n_speakers": 7
+    }
+  },
+  "corpus_speaker_rate_quartiles": {
+    "q1": 0.058823529411764705,
+    "q3": 0.23529411764705882
+  },
+  "speaker_profiles": {
+    "02001": {
+      "split": "test",
+      "n_tokens": 17,
+      "n_correct": 16,
+      "n_incorrect": 1,
+      "incorrect_rate": 0.058823529411764705
+    },
+    "02002": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 14,
+      "n_incorrect": 3,
+      "incorrect_rate": 0.17647058823529413
+    },
+    "02003": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 16,
+      "n_incorrect": 1,
+      "incorrect_rate": 0.058823529411764705
+    },
+    "02004": {
+      "split": "dev",
+      "n_tokens": 17,
+      "n_correct": 15,
+      "n_incorrect": 2,
+      "incorrect_rate": 0.11764705882352941
+    },
+    "02005": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 11,
+      "n_incorrect": 6,
+      "incorrect_rate": 0.35294117647058826
+    },
+    "02006": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 8,
+      "n_incorrect": 9,
+      "incorrect_rate": 0.5294117647058824
+    },
+    "02007": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 16,
+      "n_incorrect": 1,
+      "incorrect_rate": 0.058823529411764705
+    },
+    "02008": {
+      "split": "test",
+      "n_tokens": 17,
+      "n_correct": 13,
+      "n_incorrect": 4,
+      "incorrect_rate": 0.23529411764705882
+    },
+    "02009": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 17,
+      "n_incorrect": 0,
+      "incorrect_rate": 0.0
+    },
+    "02010": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 16,
+      "n_incorrect": 1,
+      "incorrect_rate": 0.058823529411764705
+    },
+    "02011": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 16,
+      "n_incorrect": 1,
+      "incorrect_rate": 0.058823529411764705
+    },
+    "02012": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 17,
+      "n_incorrect": 0,
+      "incorrect_rate": 0.0
+    },
+    "02013": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 10,
+      "n_incorrect": 7,
+      "incorrect_rate": 0.4117647058823529
+    },
+    "02014": {
+      "split": "dev",
+      "n_tokens": 17,
+      "n_correct": 14,
+      "n_incorrect": 3,
+      "incorrect_rate": 0.17647058823529413
+    },
+    "02015": {
+      "split": "test",
+      "n_tokens": 17,
+      "n_correct": 14,
+      "n_incorrect": 3,
+      "incorrect_rate": 0.17647058823529413
+    },
+    "02016": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 15,
+      "n_incorrect": 2,
+      "incorrect_rate": 0.11764705882352941
+    },
+    "02018": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 11,
+      "n_incorrect": 6,
+      "incorrect_rate": 0.35294117647058826
+    },
+    "02019": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 11,
+      "n_incorrect": 6,
+      "incorrect_rate": 0.35294117647058826
+    },
+    "02020": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 16,
+      "n_incorrect": 1,
+      "incorrect_rate": 0.058823529411764705
+    },
+    "02021": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 10,
+      "n_incorrect": 7,
+      "incorrect_rate": 0.4117647058823529
+    },
+    "02022": {
+      "split": "train",
+      "n_tokens": 17,
+      "n_correct": 17,
+      "n_incorrect": 0,
+      "incorrect_rate": 0.0
+    },
+    "02023": {
+      "split": "dev",
+      "n_tokens": 72,
+      "n_correct": 70,
+      "n_incorrect": 2,
+      "incorrect_rate": 0.027777777777777776
+    },
+    "02024": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 72,
+      "n_incorrect": 0,
+      "incorrect_rate": 0.0
+    },
+    "02025": {
+      "split": "test",
+      "n_tokens": 72,
+      "n_correct": 70,
+      "n_incorrect": 2,
+      "incorrect_rate": 0.027777777777777776
+    },
+    "02026": {
+      "split": "test",
+      "n_tokens": 72,
+      "n_correct": 46,
+      "n_incorrect": 26,
+      "incorrect_rate": 0.3611111111111111
+    },
+    "02027": {
+      "split": "dev",
+      "n_tokens": 72,
+      "n_correct": 56,
+      "n_incorrect": 16,
+      "incorrect_rate": 0.2222222222222222
+    },
+    "02028": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 52,
+      "n_incorrect": 20,
+      "incorrect_rate": 0.2777777777777778
+    },
+    "02029": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 70,
+      "n_incorrect": 2,
+      "incorrect_rate": 0.027777777777777776
+    },
+    "02030": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 56,
+      "n_incorrect": 16,
+      "incorrect_rate": 0.2222222222222222
+    },
+    "02031": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 66,
+      "n_incorrect": 6,
+      "incorrect_rate": 0.08333333333333333
+    },
+    "02032": {
+      "split": "test",
+      "n_tokens": 55,
+      "n_correct": 47,
+      "n_incorrect": 8,
+      "incorrect_rate": 0.14545454545454545
+    },
+    "02033": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 72,
+      "n_incorrect": 0,
+      "incorrect_rate": 0.0
+    },
+    "02034": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 71,
+      "n_incorrect": 1,
+      "incorrect_rate": 0.013888888888888888
+    },
+    "02035": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 60,
+      "n_incorrect": 12,
+      "incorrect_rate": 0.16666666666666666
+    },
+    "02036": {
+      "split": "dev",
+      "n_tokens": 72,
+      "n_correct": 63,
+      "n_incorrect": 9,
+      "incorrect_rate": 0.125
+    },
+    "02037": {
+      "split": "test",
+      "n_tokens": 72,
+      "n_correct": 61,
+      "n_incorrect": 11,
+      "incorrect_rate": 0.1527777777777778
+    },
+    "02038": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 62,
+      "n_incorrect": 10,
+      "incorrect_rate": 0.1388888888888889
+    },
+    "02039": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 31,
+      "n_incorrect": 41,
+      "incorrect_rate": 0.5694444444444444
+    },
+    "02040": {
+      "split": "dev",
+      "n_tokens": 72,
+      "n_correct": 49,
+      "n_incorrect": 23,
+      "incorrect_rate": 0.3194444444444444
+    },
+    "02041": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 66,
+      "n_incorrect": 6,
+      "incorrect_rate": 0.08333333333333333
+    },
+    "02042": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 58,
+      "n_incorrect": 14,
+      "incorrect_rate": 0.19444444444444445
+    },
+    "02043": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 58,
+      "n_incorrect": 14,
+      "incorrect_rate": 0.19444444444444445
+    },
+    "02044": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 60,
+      "n_incorrect": 12,
+      "incorrect_rate": 0.16666666666666666
+    },
+    "02045": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 50,
+      "n_incorrect": 22,
+      "incorrect_rate": 0.3055555555555556
+    },
+    "02046": {
+      "split": "train",
+      "n_tokens": 72,
+      "n_correct": 58,
+      "n_incorrect": 14,
+      "incorrect_rate": 0.19444444444444445
+    }
+  },
+  "lexical_coverage": {
+    "train": {
+      "n_characters": 59,
+      "n_syllables": 53
+    },
+    "dev": {
+      "n_characters": 59,
+      "n_syllables": 53,
+      "characters_unseen_in_train": [],
+      "syllables_unseen_in_train": [],
+      "tokens_unseen_character": 0,
+      "pct_tokens_unseen_character": 0.0,
+      "tokens_unseen_syllable": 0,
+      "pct_tokens_unseen_syllable": 0.0,
+      "single_class_characters": 25,
+      "single_class_syllables": 21
+    },
+    "test": {
+      "n_characters": 59,
+      "n_syllables": 53,
+      "characters_unseen_in_train": [],
+      "syllables_unseen_in_train": [],
+      "tokens_unseen_character": 0,
+      "pct_tokens_unseen_character": 0.0,
+      "tokens_unseen_syllable": 0,
+      "pct_tokens_unseen_syllable": 0.0,
+      "single_class_characters": 23,
+      "single_class_syllables": 19
+    }
+  },
+  "assertions": [
+    {
+      "name": "total Correct == 1717",
+      "pass": true,
+      "detail": "1717"
+    },
+    {
+      "name": "total Incorrect == 351",
+      "pass": true,
+      "detail": "351"
+    },
+    {
+      "name": "dev Incorrect >= 40",
+      "pass": true,
+      "detail": "55"
+    },
+    {
+      "name": "test Incorrect >= 40",
+      "pass": true,
+      "detail": "55"
+    },
+    {
+      "name": "train ∩ dev == empty",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "name": "train ∩ test == empty",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "name": "dev ∩ test == empty",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "name": "45 unique learner speakers assigned once",
+      "pass": true,
+      "detail": "45 unique / 45 total"
+    },
+    {
+      "name": "2068 learner tokens assigned once",
+      "pass": true,
+      "detail": "2068"
+    },
+    {
+      "name": "no duplicate token IDs",
+      "pass": true,
+      "detail": "0 duplicated"
+    },
+    {
+      "name": "no duplicate rows",
+      "pass": true,
+      "detail": "0 duplicated"
+    },
+    {
+      "name": "no token ID in two splits",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no utterance straddles splits",
+      "pass": true,
+      "detail": "0 straddling"
+    },
+    {
+      "name": "no utterance maps to two speakers",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "every learner row has a split label",
+      "pass": true,
+      "detail": "0 missing"
+    },
+    {
+      "name": "derived paths match row speaker/token",
+      "pass": true,
+      "detail": "0 mismatched"
+    },
+    {
+      "name": "all token segment files exist",
+      "pass": true,
+      "detail": "0 missing"
+    },
+    {
+      "name": "native tokens == 108",
+      "pass": true,
+      "detail": "108"
+    },
+    {
+      "name": "all native rows marked native_reference",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no native row in a learner split",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no learner row marked native_reference",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "native speakers disjoint from learner speakers",
+      "pass": true,
+      "detail": "['01001', '01002', '01003']"
+    },
+    {
+      "name": "learner class counts exclude natives",
+      "pass": true,
+      "detail": "2068"
+    },
+    {
+      "name": "assignment on disk matches recorded SHA-256",
+      "pass": true,
+      "detail": "853aa9d0a2c3a449 vs 853aa9d0a2c3a449"
+    },
+    {
+      "name": "speaker CSV agrees with manifest assignment",
+      "pass": true,
+      "detail": "0 disagreements"
+    }
+  ],
+  "assertion_failures": 0,
+  "sha256": "853aa9d0a2c3a449900f8797f8aabd780b7505d0cdbacce250b131058a532468",
+  "seed": 20260808,
+  "algorithm": "random restarts + pairwise/relocation hill-climbing, whole speakers",
+  "objective_score": 1.1236752778641568,
+  "speakers": {
+    "train": [
+      "02002",
+      "02003",
+      "02005",
+      "02006",
+      "02007",
+      "02009",
+      "02010",
+      "02011",
+      "02012",
+      "02013",
+      "02016",
+      "02018",
+      "02019",
+      "02020",
+      "02021",
+      "02022",
+      "02024",
+      "02028",
+      "02029",
+      "02030",
+      "02031",
+      "02033",
+      "02034",
+      "02035",
+      "02038",
+      "02039",
+      "02041",
+      "02042",
+      "02043",
+      "02044",
+      "02045",
+      "02046"
+    ],
+    "dev": [
+      "02004",
+      "02014",
+      "02023",
+      "02027",
+      "02036",
+      "02040"
+    ],
+    "test": [
+      "02001",
+      "02008",
+      "02015",
+      "02025",
+      "02026",
+      "02032",
+      "02037"
+    ]
+  },
+  "native_reference_tokens": 108
+}
