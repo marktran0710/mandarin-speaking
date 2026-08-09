@@ -471,6 +471,10 @@ class AudioRecordRequest(BaseModel):
     imageIndex: Optional[int] = None
     audioUrl: Optional[str] = None
     praatMetrics: Optional[dict] = None
+    analysisVersion: Optional[str] = None
+    analysisSchemaVersion: Optional[str] = None
+    modelVersion: Optional[str] = None
+    comparisonGroupId: Optional[str] = None
 
 
 class SpeakingProgressRequest(BaseModel):
@@ -764,6 +768,15 @@ async def health_check():
 
 
 def save_audio_record(record: AudioRecordRequest):
+    metrics = dict(record.praatMetrics or {})
+    if record.analysisVersion:
+        metrics.setdefault("analysis_version", record.analysisVersion)
+    if record.analysisSchemaVersion:
+        metrics.setdefault("analysis_schema_version", record.analysisSchemaVersion)
+    if record.modelVersion:
+        metrics.setdefault("model_version", record.modelVersion)
+    if record.comparisonGroupId:
+        metrics.setdefault("comparison_group_id", record.comparisonGroupId)
     with connect_db() as db:
         db.execute(
             """
@@ -795,7 +808,7 @@ def save_audio_record(record: AudioRecordRequest):
                 record.imageUrl,
                 record.imageIndex,
                 record.audioUrl,
-                Jsonb(record.praatMetrics),
+                Jsonb(metrics),
             ),
         )
 
@@ -3464,6 +3477,7 @@ async def transcribe_with_vibevoice(audio_content: bytes) -> TranscriptionRespon
 # ── Routers (imported here, after all shared models/helpers above are
 # defined, since each router imports names back from this module) ─────────
 from routers.asr import router as asr_router  # noqa: E402
+from routers.analysis_v2 import router as analysis_v2_router  # noqa: E402
 from routers.audio import router as audio_router  # noqa: E402
 from routers.benchmark import router as benchmark_router  # noqa: E402
 from routers.help_requests import router as help_requests_router  # noqa: E402
@@ -3476,6 +3490,7 @@ from routers.submissions import router as submissions_router  # noqa: E402
 from routers.tones import router as tones_router  # noqa: E402
 from routers.vocab_quiz import router as vocab_quiz_router  # noqa: E402
 app.include_router(asr_router)
+app.include_router(analysis_v2_router)
 app.include_router(audio_router)
 app.include_router(benchmark_router)
 app.include_router(help_requests_router)
