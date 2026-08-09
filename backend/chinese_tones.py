@@ -222,6 +222,28 @@ _TONE_MARK_TONES = {
 }
 
 
+def syllable_parts(word: str) -> List[Tuple[str, str]]:
+    """Split each character of ``word`` into its (initial, final) pinyin parts.
+
+    e.g. "在家" -> [("z", "ai"), ("j", "ia")]. The initial is "" for a
+    zero-initial syllable (啊 -> ("", "a")). Finals come back toneless, and ü
+    is spelled "v" the way pypinyin writes it.
+
+    Used by the vowel readout to know which vowel the character is *supposed*
+    to carry, and to recognise the syllabic -i of zhi/chi/shi/ri/zi/ci/si —
+    which is written "i" but is not the vowel /i/, so it must never be judged
+    against one.
+    """
+    initials = pinyin(word, style=Style.INITIALS, strict=True)
+    finals = pinyin(word, style=Style.FINALS, strict=True)
+    parts: List[Tuple[str, str]] = []
+    for index in range(len(finals)):
+        initial = initials[index][0] if index < len(initials) else ""
+        final = finals[index][0] if index < len(finals) else ""
+        parts.append((initial, final))
+    return parts
+
+
 def parse_pinyin_tones(pinyin_text: str) -> List[int]:
     """Parse the tone (1-4, 5 = neutral) of each syllable in a space-separated,
     tone-marked pinyin string, e.g. "jiě jie" -> [3, 5].
@@ -380,7 +402,41 @@ def directional_tone_scores(
     tones: List[int],
     syllable_windows: List[Tuple[int, int]] | None = None,
 ) -> List[float]:
-    """Per-syllable directional tone scores, one entry per tone in ``tones``.
+    """Per-syllable directional tone scores — the legacy scoring entry point.
+
+    Behaviour is unchanged and must stay unchanged: this is the score the
+    progression gate runs on (see praat_analyzer.SYLLABLE_PASS_THRESHOLD).
+    Callers that also need to know *how* each score was produced should use
+    ``directional_tone_scores_with_provenance`` instead; this wrapper exists
+    so the legacy signature and output stay byte-identical.
+    """
+    return directional_tone_scores_with_provenance(
+        pitch_contour, tones, syllable_windows
+    )[0]
+
+
+def directional_tone_scores_with_provenance(
+    pitch_contour: List[Tuple[float, float]],
+    tones: List[int],
+    syllable_windows: List[Tuple[int, int]] | None = None,
+) -> Tuple[List[float], List[str]]:
+    """Scores plus, for each one, whether it was measured or filled in.
+
+    Two of the values this function can return are not measurements:
+
+    * ``constant_short_segment`` — the segment held too few pitch frames to
+      judge, so a flat 65 is returned "to give benefit of the doubt".
+    * ``neutral_not_measured``   — neutral tone has no fixed contour target
+      at all, so a flat 75 is returned. Nothing about the learner was
+      measured; the name says so rather than implying a weak measurement.
+
+    Both constants sit above the legacy pass bar of 58, which means a syllable
+    nobody could measure currently reads as a pass. That behaviour is left
+    alone here because progression depends on it, but the provenance label
+    lets the diagnostic layer refuse to treat either constant as evidence.
+    See tone_decision.decide_tone.
+
+    Returns ``(scores, provenance)``, both the same length as ``tones``.
 
     This is ``calculate_directional_tone_accuracy``'s scoring loop exposed
     before the final mean, so callers that need to know *which* syllable
@@ -396,11 +452,11 @@ def directional_tone_scores(
     boundaries (see ``tone_scoring.alignment``) should pass them; the equal
     split remains only as the fallback for callers that do not.
 
-    Returns [] when the contour or tone list can't be scored.
+    Returns ([], []) when the contour or tone list can't be scored.
     """
     user_pitch = normalize_pitch_contour(pitch_contour)
     if len(user_pitch) == 0 or not tones:
-        return []
+        return [], []
 
     user_pitch = _smooth_for_directional_scoring(user_pitch)
 
@@ -410,6 +466,7 @@ def directional_tone_scores(
     windows = syllable_windows if syllable_windows and len(syllable_windows) == n else None
 
     scores: List[float] = []
+    provenance: List[str] = []
     for i, tone in enumerate(tones_s):
         if windows is not None:
             start_idx, end_idx = windows[i]
@@ -419,7 +476,11 @@ def directional_tone_scores(
         seg = user_pitch[start_idx:end_idx]
 
         if len(seg) < 4:
+            # NOT a measurement. Kept because the legacy pass gate depends on
+            # it (65 > 58, so an unmeasurable syllable currently passes), and
+            # labelled so the diagnostic layer can refuse to use it.
             scores.append(65.0)  # too short to judge; give benefit of the doubt
+            provenance.append("constant_short_segment")
             continue
 
         q = max(1, len(seg) // 4)  # quarter-length for regional means
@@ -434,17 +495,20 @@ def directional_tone_scores(
             # Flat: low intra-syllable variance.
             # variance=0 → 100, variance≥0.12 → 0
             score = max(0.0, 1.0 - variance / 0.12) * 100.0
+            provenance.append("measured")
 
         elif tone == 2:
             # Rising: end-region above start-region.
             # rise=+0.5 → 100, rise=0 → 50, rise=-0.5 → 0
             rise = e_mean - s_mean
             score = max(0.0, min(1.0, (rise + 0.5) / 1.0)) * 100.0
+            provenance.append("measured")
 
         elif tone == 4:
             # Falling: start-region above end-region.
             fall = s_mean - e_mean
             score = max(0.0, min(1.0, (fall + 0.5) / 1.0)) * 100.0
+            provenance.append("measured")
 
         elif tone == 3:
             # Dip: midpoint below the average of start and end regions.
@@ -452,14 +516,18 @@ def directional_tone_scores(
             avg_endpoints = (s_mean + e_mean) / 2.0
             dip_depth = avg_endpoints - mid_min
             score = max(0.0, min(1.0, (dip_depth + 0.25) / 0.55)) * 100.0
+            provenance.append("measured")
 
         else:
             # Neutral tone 5: short and light; no fixed pitch shape to grade.
+            # Also NOT a measurement — there is no neutral-tone evaluator, so
+            # this constant says nothing about how the learner spoke.
             score = 75.0
+            provenance.append("neutral_not_measured")
 
         scores.append(score)
 
-    return scores
+    return scores, provenance
 
 
 def calculate_directional_tone_accuracy(

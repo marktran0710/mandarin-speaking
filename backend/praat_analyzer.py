@@ -109,10 +109,16 @@ def _formants_from_sound(
     sound,
     max_formant: float = 5500,
     num_formants: int = 5,
+    time_step: float = 0.025,
 ) -> Dict[str, float]:
-    """Return median F1-F3 using Parselmouth's native time grid (avoids 360 Python calls)."""
+    """Return median F1-F3 using Parselmouth's native time grid (avoids 360 Python calls).
+
+    ``time_step`` is exposed so a caller measuring a single syllable's vowel —
+    a slice tens of milliseconds long — can ask for a finer grid; the default
+    is tuned for whole-utterance analysis where 25 ms is plenty.
+    """
     formant = sound.to_formant_burg(
-        time_step=0.025,
+        time_step=time_step,
         max_number_of_formants=num_formants,
         maximum_formant=max_formant,
     )
@@ -192,6 +198,7 @@ def analyze_all(
         pitch_contour, transcription, pinyin_hint=pinyin_hint,
         reference_word_curves=reference_word_curves,
         intensity=_intensity_contour_from_sound(sound),
+        sound=sound,
     )
     # Reuse already-loaded sound — avoids a second disk read
     pause_analysis = analyze_pauses_and_utterances(audio_path, _preloaded_sound=sound)
@@ -662,12 +669,240 @@ def _windows_for_spans(
     return windows
 
 
+# The vowel reading is taken from the middle of the syllable, not all of it.
+# The edges carry the initial's formant transitions and the release into the
+# next syllable, both of which pull F1/F2 away from the vowel the student
+# actually held — measuring them would report the consonant as if it were the
+# vowel.
+_NUCLEUS_WINDOW = 0.6
+# Below this the nucleus is too short to give the formant tracker anything to
+# work with, so the syllable reports no formants rather than a noisy guess.
+_MIN_NUCLEUS_SECONDS = 0.045
+
+
+def _nucleus_formants(sound, start: float, end: float) -> Dict[str, float]:
+    """Median F1/F2/F3 across the steady middle of one syllable's audio."""
+    total = float(sound.get_total_duration())
+    start = max(0.0, min(float(start), total))
+    end = max(0.0, min(float(end), total))
+    span = end - start
+    if span <= 0:
+        return {"F1": 0.0, "F2": 0.0, "F3": 0.0}
+    margin = span * (1.0 - _NUCLEUS_WINDOW) / 2.0
+    nucleus_start = start + margin
+    nucleus_end = end - margin
+    if nucleus_end - nucleus_start < _MIN_NUCLEUS_SECONDS:
+        return {"F1": 0.0, "F2": 0.0, "F3": 0.0}
+    try:
+        slice_sound = sound.extract_part(
+            from_time=nucleus_start, to_time=nucleus_end, preserve_times=True
+        )
+        return _formants_from_sound(slice_sound, time_step=0.01)
+    except Exception:
+        # A slice Praat refuses (too short for the analysis window, all
+        # silence) is missing data, not a reason to fail the whole analysis.
+        return {"F1": 0.0, "F2": 0.0, "F3": 0.0}
+
+
+def _syllable_vowels(sound, spans, tokens: List[str]) -> List[Dict]:
+    """Measure every aligned syllable's vowel from its own slice of the audio.
+
+    Returns one record per aligned syllable, in the same order as ``spans``.
+    Two passes: measure everything first, because the articulatory reading is
+    expressed relative to this recording's own centre and that centre is not
+    known until every syllable has been measured.
+
+    No record carries a right/wrong verdict — see ``vowel_analysis`` for why
+    a short utterance cannot support one honestly.
+    """
+    from chinese_tones import syllable_parts, word_tones
+    from vowel_analysis import (
+        NOT_APPLICABLE,
+        NO_FORMANTS,
+        expected_vowel,
+        is_plausible,
+        vowel_zone,
+    )
+
+    records: List[Dict] = []
+    for token in tokens:
+        token_chars = max(len(token), 1)
+        is_chinese = bool(re.search(r"[一-鿿]", token))
+        parts = syllable_parts(token) if is_chinese else []
+        # Dictionary tone, not the sandhi-adjusted one: neutral is a property
+        # of the word, and sandhi never creates or removes it.
+        tones = word_tones(token) if is_chinese else []
+        for offset in range(token_chars):
+            initial, final = parts[offset] if offset < len(parts) else ("", "")
+            neutral = offset < len(tones) and tones[offset] == 5
+            vowel, zone, ceiling = expected_vowel(initial, final, neutral=neutral)
+            records.append(
+                {
+                    "expected_vowel": vowel,
+                    "expected_zone": zone,
+                    "final": final or None,
+                    "ceiling": ceiling,
+                    "f1": 0.0,
+                    "f2": 0.0,
+                }
+            )
+
+    for index, record in enumerate(records):
+        if record["ceiling"] == NOT_APPLICABLE or index >= len(spans):
+            continue
+        span = spans[index]
+        formants = _nucleus_formants(sound, span.start, span.end)
+        f1 = round(float(formants.get("F1", 0.0)), 1)
+        f2 = round(float(formants.get("F2", 0.0)), 1)
+        # Discard tracker failures here, before they reach the speaker
+        # reference below — one 1754 Hz "F1" would otherwise both be shown as
+        # fact and skew every other syllable's relative reading.
+        if is_plausible(f1, f2):
+            record["f1"] = f1
+            record["f2"] = f2
+
+    # This recording's own vowel centre — the yardstick every per-syllable
+    # reading is expressed against, so the description holds for any voice.
+    measured = [(r["f1"], r["f2"]) for r in records if r["f1"] > 0 and r["f2"] > 0]
+    reference = (
+        (
+            float(np.median([f1 for f1, _ in measured])),
+            float(np.median([f2 for _, f2 in measured])),
+        )
+        if measured
+        else None
+    )
+
+    results: List[Dict] = []
+    for record in records:
+        f1, f2 = record["f1"], record["f2"]
+        status = record["ceiling"]
+        if status != NOT_APPLICABLE and (f1 <= 0 or f2 <= 0):
+            status = NO_FORMANTS
+        results.append(
+            {
+                "expected_vowel": record["expected_vowel"],
+                "expected_zone": record["expected_zone"],
+                "final": record["final"],
+                "f1": f1,
+                "f2": f2,
+                "measured_zone": (
+                    vowel_zone(f1, f2, reference)
+                    if status != NOT_APPLICABLE
+                    else None
+                ),
+                "vowel_status": status,
+            }
+        )
+    return results
+
+
+def _contextual_tone_plan(
+    tokens: List[str], hint_tones: List[int] | None, transcription: str = ""
+):
+    """Accepted surface tones for every Chinese character in the utterance.
+
+    Isolated behind a try/except because this is a diagnostic add-on: if the
+    contextual layer ever raises, the legacy scoring and progression path must
+    still return a result. A missing plan degrades the diagnostics to
+    "unknown", never the student's score.
+    """
+    try:
+        from tone_context import plan_for_tokens
+
+        # The raw transcript carries the punctuation that segmentation drops,
+        # and third-tone sandhi must not cross it.
+        return plan_for_tokens(tokens, hint_tones, text=transcription)
+    except Exception:  # pragma: no cover - defensive, diagnostics are optional
+        return []
+
+
+def _word_diagnostic_status(syllables: List[Dict]) -> str | None:
+    """Roll a word's syllable diagnoses up. None when nothing was diagnosed."""
+    from tone_decision import DiagnosticStatus, aggregate_word
+
+    statuses = [
+        DiagnosticStatus(entry["diagnostic_status"])
+        for entry in syllables
+        if entry.get("diagnostic_status")
+    ]
+    if not statuses:
+        return None
+    return aggregate_word(statuses).value
+
+
+def _diagnose_syllable(
+    scoring_points: List[Tuple[float, float]],
+    window: Tuple[int, int] | None,
+    expected: "object",
+    qc_kwargs: Dict,
+) -> Dict:
+    """Score one syllable against each tone it is *allowed* to be, then decide.
+
+    Scoring per syllable rather than per word is exact here: each window's
+    score in ``directional_tone_scores`` depends only on that window's frames
+    and its own tone, so calling it one syllable at a time gives the same
+    number it would inside the full list. That is what lets a syllable with
+    two acceptable realizations (這個's 個 as T4 or neutral) be measured
+    against both, and credited with the better match — matching *any* accepted
+    realization is not a tone error.
+    """
+    from chinese_tones import directional_tone_scores_with_provenance
+    from tone_decision import (
+        PROVENANCE_NONE,
+        QcEvidence,
+        decide_tone,
+    )
+
+    best_score: float | None = None
+    best_tone: int | None = None
+    best_provenance = PROVENANCE_NONE
+
+    for tone in expected.accepted_surface_tones:
+        scores, provenance = directional_tone_scores_with_provenance(
+            scoring_points, [tone], [window] if window is not None else None
+        )
+        if not scores:
+            continue
+        score, source = scores[0], provenance[0]
+        # Prefer a real measurement over a placeholder constant even when the
+        # constant is numerically higher — 75 for neutral is not evidence.
+        better = (
+            best_score is None
+            or (source == "measured" and best_provenance != "measured")
+            or (source == best_provenance and score > (best_score or 0.0))
+        )
+        if better:
+            best_score, best_tone, best_provenance = score, tone, source
+
+    diagnosis = decide_tone(
+        best_score,
+        best_provenance,
+        QcEvidence(**qc_kwargs),
+        matched_surface_tone=best_tone,
+        measurable_by_contour=expected.measurable_by_contour,
+    )
+    result = diagnosis.as_dict()
+    result.update(
+        {
+            "underlying_tone": expected.underlying_tone,
+            "accepted_surface_tones": list(expected.accepted_surface_tones),
+            "tone_realization": expected.realization,
+            "context_rule": expected.rule,
+            "token_index": expected.token_index,
+            "boundary_before": expected.boundary_before,
+        }
+    )
+    return result
+
+
 def estimate_word_prosody(
     pitch_contour: List[Tuple[float, float]],
     transcription: str = "",
     pinyin_hint: str = "",
     reference_word_curves: Dict[str, List[float]] | None = None,
     intensity: List[Tuple[float, float]] | None = None,
+    sound=None,
 ) -> List[Dict]:
     """
     Estimate per-word prosody from the global pitch contour.
@@ -698,6 +933,13 @@ def estimate_word_prosody(
     function words never given a model-voice clip) keep the synthetic
     fallback so the whole scoring path never depends on every token having
     a reference clip.
+
+    ``sound``: the already-loaded Parselmouth Sound for this recording. When
+    given (and the aligner produced one span per syllable), each syllable also
+    carries a real F1/F2 reading measured from its own audio — see
+    ``_syllable_vowels`` for what that reading is and is not allowed to claim.
+    Omitted, every syllable reports ``vowel_status: "not_measured"``, which is
+    what the no-Parselmouth fallback path and the existing callers get.
     """
     tokens = _prosody_tokens(transcription)
     if not tokens or len(pitch_contour) < 2:
@@ -736,6 +978,25 @@ def estimate_word_prosody(
     # control (see tone_scoring.alignment).
     syllable_spans = _aligner().align(pitch_contour, total_chars, intensity)
     use_spans = len(syllable_spans) == total_chars
+
+    # The vowel readout rides on the same syllable boundaries the tone scores
+    # use. Without audio, or without one span per syllable, there is nothing
+    # real to measure and every syllable says so rather than guessing.
+    vowel_records: List[Dict] | None = (
+        _syllable_vowels(sound, syllable_spans, tokens)
+        if sound is not None and use_spans
+        else None
+    )
+
+    # Contextual tone plan for the WHOLE utterance. Built here rather than per
+    # token because third-tone sandhi crosses word boundaries — 很好 is two
+    # jieba tokens, so the per-token `apply_tone_sandhi` below never sees the
+    # T3+T3 pair and scores 很 against a full dipping template it should not
+    # have. This plan is diagnostic-only; the legacy `expected_tones` computed
+    # inside the loop is untouched, so progression cannot shift.
+    tone_plan = _contextual_tone_plan(
+        tokens, hint_tones if use_hint else None, transcription
+    )
 
     cursor = start_time
     consumed = 0
@@ -817,6 +1078,7 @@ def estimate_word_prosody(
         user_curve: List[float] = []
         target_curve: List[float] = []
         syllable_scores: List[float] = []
+        windows: List[Tuple[int, int]] | None = None
         minimum_points = max(4, len(expected_tones) * 4)
         segment_judged = (
             is_chinese
@@ -836,7 +1098,6 @@ def estimate_word_prosody(
             # Hand the scorer this word's real per-syllable boundaries so each
             # tone template is matched against its own audio, instead of an
             # equal share of the word's frames.
-            windows = None
             if use_spans:
                 spans = syllable_spans[consumed - token_chars : consumed]
                 if len(spans) == len(expected_tones):
@@ -876,6 +1137,57 @@ def estimate_word_prosody(
                 }
                 for i, score in enumerate(syllable_scores)
             ]
+            # The vowel reading is a measurement shown next to the tone, not a
+            # second score. It never touches `passed`: the mastery gate stays
+            # a tone gate.
+            for i, entry in enumerate(syllables):
+                record = None
+                if vowel_records is not None:
+                    global_index = consumed - token_chars + i
+                    if 0 <= global_index < len(vowel_records):
+                        record = vowel_records[global_index]
+                entry.update(record or {"vowel_status": "not_measured"})
+
+            # ── Diagnostic layer, strictly parallel to the legacy verdict ──
+            # `score` and `passed` above are what progression runs on and are
+            # not touched here. These fields answer a different question:
+            # given the tone this syllable is *allowed* to surface as in this
+            # context, and given whether the measurement can be trusted at
+            # all, what can honestly be said? A weak contour match with thin
+            # pitch evidence becomes UNCERTAIN, not a learner error.
+            for i, entry in enumerate(syllables):
+                global_index = consumed - token_chars + i
+                if global_index >= len(tone_plan):
+                    continue
+                window = (
+                    windows[i] if windows is not None and i < len(windows) else None
+                )
+                entry.update(
+                    _diagnose_syllable(
+                        scoring_points,
+                        window,
+                        tone_plan[global_index],
+                        {
+                            "can_score_pronunciation": True,
+                            "judged": segment_judged,
+                            "pitch_points": len(scoring_points),
+                            "minimum_pitch_points": minimum_points,
+                        },
+                    )
+                )
+                # Legacy verdict kept alongside, explicitly labelled, so the
+                # frontend and the research export can tell the two apart and
+                # nobody has to guess which number drove the unlock.
+                entry["legacy"] = {
+                    "passed": entry.get("passed"),
+                    "score": entry.get("score"),
+                    "threshold": SYLLABLE_PASS_THRESHOLD,
+                }
+        # Word diagnostic: one uncertain syllable must not condemn the word.
+        # Independent of `word_passed` below, which stays the legacy MIN rule
+        # that progression reads.
+        word_diagnostic = _word_diagnostic_status(syllables)
+
         word_passed = (
             all(entry["passed"] for entry in syllables)
             if syllables and segment_judged
@@ -932,6 +1244,7 @@ def estimate_word_prosody(
                 "shape_accuracy": round(shape_score, 1),
                 "syllables": syllables,
                 "passed": word_passed,
+                "diagnostic_status": word_diagnostic,
                 "is_content_word": is_content,
                 "prominence_score": 0.0,  # filled in below after utterance mean is known
                 "feedback": (
