@@ -98,15 +98,6 @@ export default function Navigation({
               <li>
                 <button
                   type="button"
-                  className={`nav-link ${currentPage === "tone-practice" ? "active" : ""}`}
-                  onClick={() => onNavigate("tone-practice")}
-                >
-                  <BiLabel zh="聲調練習" pinyin="Shēngdiào liànxí" en="Tone practice" />
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
                   className={`nav-link ${currentPage === "student-stories" ? "active" : ""}`}
                   onClick={() => onNavigate("student-stories")}
                 >

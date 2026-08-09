@@ -8,7 +8,6 @@ export type Page =
   | "teacher-login"
   | "student-practice"
   | "student-stories"
-  | "tone-practice"
   | "voice-test"
   | "image-narration"
   | "listen-retell";

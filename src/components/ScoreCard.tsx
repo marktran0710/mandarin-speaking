@@ -5,9 +5,9 @@ import "./ScoreCard.css";
 /** Small labeled score tile shared by ImageNarrationPage and
  * ListenRetellPage's result grids — was defined twice, byte-identical
  * except for a page-specific class prefix. The score number is tinted by
- * the same excellent/good/ok/low tier scale TonePracticePage uses, so a
- * raw percentage doesn't read as flat, uncolored text here while every
- * other score display in the app tells you at a glance how you did. */
+ * the same excellent/good/ok/low tier scale used across the app's score
+ * displays, so a raw percentage doesn't read as flat, uncolored text here
+ * while every other score display tells you at a glance how you did. */
 export default function ScoreCard({
   label,
   score,

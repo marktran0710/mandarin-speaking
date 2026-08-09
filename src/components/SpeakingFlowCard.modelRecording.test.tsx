@@ -1,9 +1,15 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import SpeakingFlowCard from "./SpeakingFlowCard";
 
 describe("SpeakingFlowCard model recording integration", () => {
-  it("puts a playable listen-and-repeat model inside the student record stage", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("puts a playable listen-and-repeat model inside the student record stage", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("backend unreachable")));
+
     render(
       <SpeakingFlowCard
         selectedImage="/sample-scenes/market.svg"
@@ -23,6 +29,7 @@ describe("SpeakingFlowCard model recording integration", () => {
         submittedAudioName=""
         selectedModel="webspeech"
         groqAvailable={false}
+        openaiAvailable={false}
         onSelectedModelChange={vi.fn()}
         recordingButtonDisabled={false}
         onPrimaryRecordingAction={vi.fn()}
@@ -39,9 +46,10 @@ describe("SpeakingFlowCard model recording integration", () => {
 
     expect(screen.getByRole("region", { name: "Record your story" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Listen and repeat model recording" })).toBeInTheDocument();
-    expect(screen.getAllByText("請描述這張圖片。")).toHaveLength(2);
-    expect(screen.getByText("The scene sentence is ready to repeat; a teacher recording is not available yet.")).toBeInTheDocument();
+    expect(screen.getAllByText("請描述這張圖片。")).toHaveLength(1);
+    expect(
+      await screen.findByText("The scene sentence is ready to repeat; a teacher recording is not available yet."),
+    ).toBeInTheDocument();
     expect(screen.queryByLabelText(/Model recording:/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Practice this model recording/ })).toBeInTheDocument();
   });
 });

@@ -15,6 +15,7 @@ export interface PracticeAnalysisRequestContext {
   sceneReferenceCurves?: Record<string, number[]> | null;
   verifyWord?: string;
   pinyinHint?: string;
+  analysisDetail?: string;
 }
 
 export function buildPracticeAnalysisFormData(
@@ -38,6 +39,7 @@ export function buildPracticeAnalysisFormData(
   appendIfPresent("scene_suggested_answer", context.sceneSuggestedAnswer);
   appendIfPresent("verify_word", context.verifyWord);
   appendIfPresent("pinyin_hint", context.pinyinHint);
+  appendIfPresent("alignment_detail", context.analysisDetail);
 
   if (context.sceneAttemptNumber !== undefined) {
     formData.append("scene_attempt_number", String(context.sceneAttemptNumber));

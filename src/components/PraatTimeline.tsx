@@ -20,6 +20,12 @@ interface PraatTimelineProps {
   pitchContour: Array<[number, number]>;
   wordProsody?: WordProsody[];
   transcription?: string;
+  /** Set to false when this pitch line IS the target shape (e.g. the model
+   * recording's own timeline) — drawing a second dashed reference line over
+   * a curve that already equals the target is always redundant there.
+   * Defaults to true for usages that compare a student's attempt against a
+   * target (StoryRecorder, word/phrase drills). */
+  showReferenceOverlay?: boolean;
 }
 
 interface WaveformState {
@@ -42,6 +48,7 @@ export default function PraatTimeline({
   pitchContour,
   wordProsody = [],
   transcription = "",
+  showReferenceOverlay = true,
 }: PraatTimelineProps) {
   const [waveform, setWaveform] = useState<WaveformState | null>(null);
   const [decodeFailed, setDecodeFailed] = useState(false);
@@ -140,8 +147,11 @@ export default function PraatTimeline({
   // tone's shape diverges from the ideal — the same comparison as the
   // per-character mini charts, but across the whole sentence.
   const referencePaths = useMemo(
-    () => buildReferencePaths(words, timelineDuration, pitchRange.min, pitchRange.max),
-    [words, timelineDuration, pitchRange],
+    () =>
+      showReferenceOverlay
+        ? buildReferencePaths(words, timelineDuration, pitchRange.min, pitchRange.max)
+        : [],
+    [showReferenceOverlay, words, timelineDuration, pitchRange],
   );
 
   return (

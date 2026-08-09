@@ -71,3 +71,52 @@ describe("tone/shape arrows", () => {
     expect(shapeArrow("unknown-shape")).toBe("~");
   });
 });
+
+describe("prosodyGatePassed is unaffected by the diagnostic layer", () => {
+  // The four-state diagnosis exists for display and research. It must not
+  // move anyone's lesson unlock, so the gate has to read exactly the same
+  // fields it always did — `passed` and `judged` — and ignore the rest.
+  it("ignores diagnostic_status entirely", () => {
+    const failing = word({
+      passed: false,
+      diagnostic_status: "CORRECT",
+    } as Partial<WordProsody>);
+    expect(prosodyGatePassed([failing])).toBe(false);
+
+    const passing = word({
+      passed: true,
+      diagnostic_status: "INCORRECT",
+    } as Partial<WordProsody>);
+    expect(prosodyGatePassed([passing])).toBe(true);
+  });
+
+  it("still blocks on unjudged words regardless of their diagnosis", () => {
+    const unjudged = word({
+      passed: null,
+      judged: false,
+      diagnostic_status: "CORRECT",
+    } as Partial<WordProsody>);
+    expect(prosodyGatePassed([unjudged])).toBe(false);
+  });
+
+  it("produces identical results with and without the new fields", () => {
+    const bare = [word({ passed: true }), word({ passed: true, index: 1 })];
+    const enriched = bare.map((item) => ({
+      ...item,
+      diagnostic_status: "UNCERTAIN" as const,
+      syllables: [
+        {
+          char: "在",
+          tone: 4,
+          score: 53,
+          passed: true,
+          diagnostic_status: "UNCERTAIN" as const,
+          contour_match_score: 53,
+          legacy: { passed: true, score: 53, threshold: 58 },
+        },
+      ],
+    }));
+    expect(prosodyGatePassed(enriched)).toBe(prosodyGatePassed(bare));
+    expect(failedProsodyWords(enriched).length).toBe(failedProsodyWords(bare).length);
+  });
+});

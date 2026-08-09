@@ -3,7 +3,6 @@ import HomePage from "./pages/HomePage";
 import CreateStoryPage from "./pages/CreateStoryPage";
 import MyStoriesPage from "./pages/MyStoriesPage";
 import VoiceTestPage from "./pages/VoiceTestPage";
-import TonePracticePage from "./pages/TonePracticePage";
 import ImageNarrationPage from "./pages/ImageNarrationPage";
 import ListenRetellPage from "./pages/ListenRetellPage";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -12,7 +11,16 @@ import StudentLoginPage from "./pages/StudentLoginPage";
 import Navigation from "./components/Navigation";
 import JourneyBubble from "./components/JourneyBubble";
 import WrongMode from "./components/WrongMode";
-import { getStudentName, getStudentId } from "./utils/studentSession";
+import {
+  getStudentName,
+  getStudentId,
+  getLastVisitedPage,
+  saveLastVisitedPage,
+  clearLastVisitedPage,
+  getLastPracticeTarget,
+  saveLastPracticeTarget,
+  clearLastPracticeTarget,
+} from "./utils/studentSession";
 import { currentRole, signOut } from "./utils/session";
 import {
   canUseDatabase,
@@ -57,6 +65,10 @@ interface AudioRecord {
   imageUrl?: string;
   imageIndex?: number;
   audioUrl?: string;
+  analysisVersion?: "stable_v1" | "phoneme_tone_v2";
+  analysisSchemaVersion?: string;
+  modelVersion?: string;
+  comparisonGroupId?: string;
 }
 
 interface PracticeTarget {
@@ -66,6 +78,22 @@ interface PracticeTarget {
    * target story) even when the student is already on the practice page
    * or jumps to the same story twice. */
   seq?: number;
+}
+
+// Sections worth restoring on reload. Excludes "home" and "student-login" —
+// if a logged-in student's stored page were ever one of those (shouldn't
+// happen, but storage can be stale or edited) landing back on the marketing
+// page instead of practice would look like the app forgot they were signed in.
+const RESTORABLE_STUDENT_PAGES: readonly Page[] = [
+  "student-practice",
+  "student-stories",
+  "voice-test",
+  "image-narration",
+  "listen-retell",
+];
+
+function isRestorableStudentPage(page: string | null): page is Page {
+  return RESTORABLE_STUDENT_PAGES.includes(page as Page);
 }
 
 export default function App() {
@@ -135,11 +163,51 @@ export default function App() {
     }
     if (role === "student") {
       setActiveRole("student");
-      setCurrentPage(directVoiceTestPath ? "voice-test" : "student-practice");
+      if (directVoiceTestPath) {
+        setCurrentPage("voice-test");
+      } else {
+        const lastPage = getLastVisitedPage();
+        const restoredPage = isRestorableStudentPage(lastPage)
+          ? lastPage
+          : "student-practice";
+        setCurrentPage(restoredPage);
+        // Only worth restoring for the page it actually feeds — a saved
+        // target would otherwise silently jump the student straight back
+        // into that story the next time they land on student-practice.
+        if (restoredPage === "student-practice") {
+          const lastTarget = getLastPracticeTarget();
+          if (lastTarget) {
+            setPracticeTarget({
+              topicId: lastTarget.topicId,
+              imageIndex: lastTarget.imageIndex,
+            });
+          }
+        }
+      }
     }
 
     loadSavedAudioRecords();
   }, []);
+
+  // Remembers the section a student is on so a reload (or reopening the
+  // browser later — this is signed in via localStorage, not a per-tab
+  // session) lands them back there instead of always bouncing to practice.
+  useEffect(() => {
+    if (activeRole !== "student") return;
+    saveLastVisitedPage(currentPage);
+  }, [activeRole, currentPage]);
+
+  // Remembers which story (and scene) was open on the practice page, so
+  // that restore above lands on the actual session instead of the browse
+  // view. `null` is saved deliberately too, once the student backs out.
+  useEffect(() => {
+    if (activeRole !== "student") return;
+    saveLastPracticeTarget(
+      practiceTarget
+        ? { topicId: practiceTarget.topicId, imageIndex: practiceTarget.imageIndex }
+        : null,
+    );
+  }, [activeRole, practiceTarget]);
 
   const refreshPublishedTopics = useCallback(async () => {
     if (!canUseDatabase()) {
@@ -224,6 +292,10 @@ export default function App() {
   const handleLogout = () => {
     setActiveRole(null);
     setPracticeTarget(null);
+    // Must run before signOut() clears the session — the scope key they
+    // read to find this student's stored state comes from that session.
+    clearLastVisitedPage();
+    clearLastPracticeTarget();
     // Clears the whole session, not just the role — the old code removed
     // `activeRole` and left `studentSession` behind forever, which meant a
     // "logged out" browser still carried a student identity.
@@ -383,9 +455,6 @@ export default function App() {
           publishedTopics={storyTopics}
         />
       )}
-      {currentPage === "tone-practice" && activeRole === "student" && (
-        <TonePracticePage />
-      )}
       {currentPage === "voice-test" && activeRole === "student" && (
         <VoiceTestPage />
       )}
@@ -455,7 +524,11 @@ function serializeAudioRecord(record: AudioRecord): StoredAudioRecord {
     studentId: getStudentId(),
     imageUrl: record.imageUrl,
     imageIndex: record.imageIndex,
-    audioUrl: record.audioUrl,
+      audioUrl: record.audioUrl,
+      analysisVersion: record.analysisVersion ?? record.praatMetrics?.analysis_version ?? "stable_v1",
+      analysisSchemaVersion: record.analysisSchemaVersion ?? record.praatMetrics?.analysis_schema_version,
+      modelVersion: record.modelVersion ?? record.praatMetrics?.model_version,
+      comparisonGroupId: record.comparisonGroupId,
     praatMetrics: record.praatMetrics,
   };
 }

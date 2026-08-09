@@ -683,6 +683,47 @@ describe("StoryRecorder student prototype", () => {
     ).toBeEnabled();
   });
 
+  it("offers OpenAI Whisper as a speech source, enabled only when its API key is configured", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/api/ai-providers")) {
+          return jsonResponse({
+            providers: [
+              { id: "groq", label: "Groq", available: false },
+              { id: "openai", label: "ChatGPT (OpenAI)", available: true },
+            ],
+            default: "local",
+          });
+        }
+        return jsonResponse({});
+      }),
+    );
+
+    const user = userEvent.setup();
+    render(
+      <StoryRecorder
+        topic={topic}
+        selectedImage={topic.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+    await user.click(screen.getByText("Recording options"));
+
+    await waitFor(() => {
+      expect(screen.getByRole("option", { name: /OpenAI Whisper — cloud API/ })).toBeEnabled();
+    });
+    expect(
+      screen.getByRole("option", { name: /Groq Whisper.*unavailable/ }),
+    ).toBeDisabled();
+  });
+
   it("lets a student record their own attempt and receive word-level pronunciation feedback", async () => {
     const user = userEvent.setup();
     const onAddRecord = vi.fn();
@@ -1172,7 +1213,7 @@ describe("StoryRecorder student prototype", () => {
     await completeVocabQuiz(user);
     await user.click(screen.getByRole("tab", { name: /Speaking/ }));
 
-    expect(screen.getAllByText("我在餐廳吃飯。")).toHaveLength(2);
+    expect(screen.getAllByText("我在餐廳吃飯。")).toHaveLength(1);
   });
 
   it("exposes the teacher's model recording in the Speaking step", async () => {

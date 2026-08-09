@@ -188,14 +188,18 @@ export default function TeacherDashboardPage({
     loadStudents();
   }, [activeView, loadQuizAttempts, loadStudents]);
 
+  const stableRecords = useMemo(
+    () => records.filter((record) => (record.praatMetrics?.analysis_version ?? "stable_v1") === "stable_v1"),
+    [records],
+  );
   const assessments = useMemo(
-    () => buildStudentAssessments(students, quizAttempts, records, submissions),
-    [students, quizAttempts, records, submissions],
+    () => buildStudentAssessments(students, quizAttempts, stableRecords, submissions),
+    [students, quizAttempts, stableRecords, submissions],
   );
   const selectedAssessment = assessments.find((assessment) => assessment.studentId === selectedStudentId) ?? null;
 
-  const analyzedRecords = records.filter((record) => record.praatMetrics);
-  const feedbackReadyRecords = records.filter(
+  const analyzedRecords = stableRecords.filter((record) => record.praatMetrics);
+  const feedbackReadyRecords = stableRecords.filter(
     (record) => record.praatMetrics?.ai_feedback,
   );
   const averageFluency = getAverageMetric(analyzedRecords, "fluency_score");
@@ -427,7 +431,7 @@ export default function TeacherDashboardPage({
                 <TeacherStudentProfile
                   assessment={selectedAssessment}
                   attempts={quizAttempts}
-                  records={records}
+                  records={stableRecords}
                   onClose={() => setSelectedStudentId(null)}
                 />
               ) : (

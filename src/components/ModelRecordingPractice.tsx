@@ -211,6 +211,7 @@ export default function ModelRecordingPractice({
                     pitchContour={praatViz.pitchContour}
                     wordProsody={praatViz.wordProsody}
                     transcription={recording.sentence}
+                    showReferenceOverlay={false}
                   />
                 </>
               )}

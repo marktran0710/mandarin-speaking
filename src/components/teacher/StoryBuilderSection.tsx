@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   canUseDatabase,
   createCustomStory as saveCustomStoryToDatabase,
@@ -20,6 +20,7 @@ import { storyQuizExclusions } from "../../utils/quizExclusions";
 import { buildApprovedMaterial, storyQuizNeedsReview } from "../../utils/quizApprovedMaterial";
 import { exportStoryFile, readStoryImportFile } from "../../utils/storyPortability";
 import { splitScriptIntoChunks } from "../../utils/scriptAlignment";
+import { convertBlobToWav } from "../../utils/audio";
 import VocabularyTable from "../VocabularyTable";
 import PhraseTable from "../PhraseTable";
 import VocabGroupEditor from "../VocabGroupEditor";
@@ -314,6 +315,15 @@ export default function StoryBuilderSection({
   const [modelVoiceLoadingIndex, setModelVoiceLoadingIndex] = useState<number | null>(null);
   const [modelVoiceError, setModelVoiceError] = useState("");
   const [modelVoiceWordCount, setModelVoiceWordCount] = useState<Record<number, number>>({});
+  // Frame index currently being recorded via the mic (null when idle) — a
+  // teacher's own reading of the listening passage, as an alternative to
+  // uploading a file or falling back to TTS.
+  const [recordingFrameIndex, setRecordingFrameIndex] = useState<number | null>(null);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [validationErrors, setValidationErrors] =
     useState<CustomStoryValidationErrors>({});
   const [customStoryNotice, setCustomStoryNotice] = useState("");
@@ -446,7 +456,7 @@ export default function StoryBuilderSection({
     reader.readAsDataURL(file);
   };
 
-  const handleUploadFrameAudio = (index: number, file?: File) => {
+  const handleUploadFrameAudio = async (index: number, file?: File) => {
     if (!file) {
       return;
     }
@@ -457,14 +467,123 @@ export default function StoryBuilderSection({
       return;
     }
 
+    // Converted to WAV up front (same as a student's own recordings) so the
+    // backend can extract a real pitch reference curve from it regardless of
+    // what format the teacher uploaded.
+    let wavBlob: Blob;
+    try {
+      wavBlob = await convertBlobToWav(file);
+    } catch {
+      setValidationErrors((errors) => ({
+        ...errors,
+        form: "Could not read that audio file. Try a different file.",
+      }));
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
         updateDraftFrame("listenAudioUrls", index, reader.result);
       }
     };
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(wavBlob);
   };
+
+  const stopFrameRecordingTracks = () => {
+    recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+    recordingStreamRef.current = null;
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+  };
+
+  const handleStartFrameRecording = async (index: number) => {
+    setValidationErrors((errors) => ({ ...errors, form: undefined }));
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordingStreamRef.current = stream;
+      recordingChunksRef.current = [];
+
+      const preferredType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+      const recorder = new MediaRecorder(
+        stream,
+        preferredType ? { mimeType: preferredType } : undefined,
+      );
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordingChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        stopFrameRecordingTracks();
+        const blob = new Blob(recordingChunksRef.current, {
+          type: recorder.mimeType || "audio/webm",
+        });
+        const file = new File([blob], "recording.webm", { type: blob.type });
+        const error = getAudioUploadError(file);
+        if (error) {
+          setValidationErrors((errors) => ({ ...errors, form: error }));
+          return;
+        }
+
+        // Converted to WAV up front (same as a student's own recordings) so
+        // the backend can extract a real pitch reference curve from it.
+        let wavBlob: Blob;
+        try {
+          wavBlob = await convertBlobToWav(blob);
+        } catch {
+          setValidationErrors((errors) => ({
+            ...errors,
+            form: "Could not process that recording. Please try recording again.",
+          }));
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === "string") {
+            updateDraftFrame("listenAudioUrls", index, reader.result);
+          }
+        };
+        reader.readAsDataURL(wavBlob);
+      };
+
+      recorder.start();
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingSeconds((seconds) => seconds + 1);
+      }, 1000);
+      setRecordingFrameIndex(index);
+    } catch (err) {
+      setValidationErrors((errors) => ({
+        ...errors,
+        form:
+          err instanceof Error
+            ? err.message
+            : "Could not access the microphone.",
+      }));
+      stopFrameRecordingTracks();
+    }
+  };
+
+  const handleStopFrameRecording = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    setRecordingFrameIndex(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      stopFrameRecordingTracks();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleFillVocabFromSentence = async (index: number) => {
     const level = customDraft.activeLevel;
@@ -1241,6 +1360,24 @@ export default function StoryBuilderSection({
                           }
                         />
                       </label>
+                      {recordingFrameIndex === index ? (
+                        <button
+                          type="button"
+                          className="btn-vocab-autofill"
+                          onClick={handleStopFrameRecording}
+                        >
+                          ⏹ Stop recording ({recordingSeconds}s)
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn-vocab-autofill"
+                          disabled={recordingFrameIndex !== null}
+                          onClick={() => handleStartFrameRecording(index)}
+                        >
+                          🎙️ Record my own voice
+                        </button>
+                      )}
                       <label>
                         Listening script (read aloud by text-to-speech if no audio is uploaded — not shown to students)
                         <textarea

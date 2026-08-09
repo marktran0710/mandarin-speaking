@@ -1,30 +1,14 @@
 .model-recording-practice {
   display: flex;
   flex-direction: column;
+  align-self: stretch;
   gap: 12px;
-  border: 1.5px solid var(--tone1);
-  border-radius: var(--clay-radius-md);
-  background: var(--tone1-soft);
-  padding: 16px;
 }
 
-.model-recording-scene-target {
-  padding-bottom: 12px;
-  border-bottom: 1px solid color-mix(in srgb, var(--tone1) 45%, transparent);
-}
-
-.model-recording-scene-target p,
 .model-recording-script p {
   margin: 0;
 }
 
-.model-recording-scene-target > p:not(.block-label) {
-  color: var(--clay-ink);
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.model-recording-scene-target small,
 .model-recording-pinyin {
   color: var(--clay-muted);
 }
@@ -72,23 +56,6 @@
   font-size: 13px;
 }
 
-.model-recording-speech-button {
-  align-self: flex-start;
-  border: 1.5px solid var(--tone1);
-  border-radius: var(--clay-radius-pill);
-  background: var(--clay-surface-card);
-  color: var(--tone1-deep);
-  padding: 7px 13px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 750;
-  cursor: pointer;
-}
-
-.model-recording-speech-button:hover {
-  background: color-mix(in srgb, var(--tone1-soft) 62%, var(--clay-surface-card));
-}
-
 .model-recording-steps {
   display: flex;
   flex-wrap: wrap;
@@ -116,35 +83,24 @@
   color: var(--clay-on-accent);
 }
 
-.model-recording-practice-toggle {
-  align-self: flex-start;
-  border: 1.5px solid var(--tone1);
-  border-radius: var(--clay-radius-pill);
-  background: var(--clay-surface-card);
-  color: var(--tone1-deep);
-  padding: 7px 13px;
-  font: inherit;
+.model-recording-praat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.model-recording-praat-status {
+  margin: 0;
+  color: var(--clay-body);
   font-size: 13px;
-  font-weight: 750;
-  cursor: pointer;
 }
 
-.model-recording-practice-toggle:hover {
-  background: color-mix(in srgb, var(--tone1-soft) 62%, var(--clay-surface-card));
+.model-recording-praat-status.is-error {
+  color: var(--clay-error);
 }
 
-.model-recording-passed {
-  margin: 0 0 8px;
-  color: var(--jade-deep);
-  font-weight: 750;
-}
-
-.model-recording-drill .phrase-practice-drill {
-  background: var(--clay-surface-card);
-}
-
-@media (max-width: 480px) {
-  .model-recording-practice-toggle {
-    align-self: stretch;
-  }
+.model-recording-praat-caption {
+  margin: 0;
+  color: var(--clay-muted);
+  font-size: 12px;
 }

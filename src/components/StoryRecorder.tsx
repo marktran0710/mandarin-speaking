@@ -30,7 +30,12 @@ import StoryVocabQuiz, { type VocabQuizSummary } from "./StoryVocabQuiz";
 import { topicQuizEntries } from "../utils/topicQuiz";
 import { type JourneyStop, type JourneyStopStatus } from "./JourneyPath";
 import { toPinyin } from "../utils/pinyin";
-import { isAdminSession } from "../utils/studentSession";
+import { getStudentScopeKey, isAdminSession } from "../utils/studentSession";
+import {
+  getAnalysisVersion,
+  saveAnalysisVersion,
+  type AnalysisVersion,
+} from "../utils/analysisVersion";
 import { markStoryLevelSubmitted } from "../utils/storyLevelProgress";
 import type { CustomTeacherStory, StoryDifficultyLevel } from "../utils/teacherStories";
 import { convertBlobToWav } from "../utils/audio";
@@ -59,6 +64,7 @@ import StorySummarySection, {
   type JourneyStopBase,
 } from "./StorySummarySection";
 import SpeakingFlowCard from "./SpeakingFlowCard";
+import type { ComparisonResult } from "./SpeakingResultsFlow";
 import StorySessionSidebar, {
   type SidebarPhase,
   type SidebarSummaryStatus,
@@ -112,7 +118,7 @@ export function vocabTooltip(
   return undefined;
 }
 
-export type SpeechModel = "webspeech" | "ctwhisper" | "groq" | "vibevoice";
+export type SpeechModel = "webspeech" | "ctwhisper" | "groq" | "vibevoice" | "openai";
 
 export interface AiProviderOption {
   id: string;
@@ -439,6 +445,36 @@ export interface PraatMetrics {
   feedback: string;
   ai_feedback?: LanguageFeedback;
   feedback_quality?: BackendFeedbackQuality;
+  /** Sentence roll-up of the four-state tone diagnosis. `controls_progression`
+   * is always false in this release — the lesson gate reads word_prosody[].passed. */
+  tone_diagnostics?: {
+    counts: { correct: number; uncertain: number; incorrect: number; invalid_audio: number };
+    diagnostic_status: DiagnosticStatus;
+    recommended_action: "record_again" | "targeted_practice" | "none";
+    recording_reason_codes?: string[];
+    controls_progression?: boolean;
+  };
+  analysis_version?: AnalysisVersion;
+  analysis_schema_version?: string;
+  model_version?: string;
+  comparison_group_id?: string;
+  experimental?: boolean;
+  progression_eligible?: boolean;
+  neutral_tone_status?: string;
+  character_prosody?: Array<{
+    char_index: number;
+    char: string;
+    pinyin: string;
+    expected_tone: number | null;
+    detected_tone: number | null;
+    tone_status: string;
+    tone_probabilities: Record<string, number | null>;
+    tone_confidence: number;
+    start_time: number;
+    end_time: number;
+    alignment_confidence: number;
+    phones: Array<{ phone: string; start_time: number; end_time: number }>;
+  }>;
 }
 
 export interface WordProsody {
@@ -471,15 +507,87 @@ export interface WordProsody {
   // must clear the backend's pass bar). Absent/null for non-Chinese tokens.
   syllables?: WordProsodySyllable[];
   passed?: boolean | null;
+  /** Word roll-up of the diagnostic layer. Independent of `passed`. */
+  diagnostic_status?: DiagnosticStatus;
   /** False when the analyzer could not extract enough pitch evidence. */
   judged?: boolean;
 }
 
+/** How the mouth was shaped, read relative to this same recording's own
+ * average — never against a fixed table, so it means the same thing for an
+ * adult and a child. */
+export interface VowelZone {
+  height: "high" | "mid" | "low";
+  backness: "front" | "central" | "back";
+}
+
+export type VowelStatus =
+  /** No audio reached the analyzer (word drills, the no-Praat fallback). */
+  | "not_measured"
+  /** Nothing to point at: the apical -i of 吃/知/是, or rhotic 兒. */
+  | "not_applicable"
+  /** Audio was there, but the nucleus was too short or unvoiced to measure. */
+  | "no_formants"
+  /** Measured — but the final glides (好, 在, 飯), so it is a nucleus reading. */
+  | "nucleus_only"
+  /** Measured on a steady single vowel. */
+  | "measured";
+
+/** Four-state tone diagnosis. Replaces ✓/✗ for *display and research*; it
+ * does NOT drive lesson progression — that still runs on `passed` below. */
+export type DiagnosticStatus =
+  | "CORRECT"
+  | "UNCERTAIN"
+  | "INCORRECT"
+  | "INVALID_AUDIO";
+
+/** How the score attached to a syllable was produced. Two of these are
+ * placeholder constants from the legacy scorer, not measurements. */
+export type ScoreProvenance =
+  | "measured"
+  /** Legacy 65 placeholder: the segment held too few pitch frames to judge. */
+  | "constant_short_segment"
+  /** Legacy 75 placeholder: neutral tone has no contour target, so nothing
+   * about the learner's production was measured at all. Distinct from an
+   * uncertain measurement, and worded differently in the UI. */
+  | "neutral_not_measured"
+  | "not_scored";
+
 export interface WordProsodySyllable {
   char: string;
+  /** Expected tone from the dictionary + legacy per-token sandhi. This is a
+   * target, never a detected class — nothing in the pipeline predicts tones. */
   tone: number;
+  /** Legacy heuristic contour-match score, 0-100. Not a probability. */
   score: number;
   passed: boolean;
+
+  // ── Diagnostic layer (parallel to the legacy verdict above) ──────────
+  diagnostic_status?: DiagnosticStatus;
+  diagnostic_reason?: string;
+  /** Contour match against the contextually accepted tone. Null when nothing
+   * could be measured. Never a confidence or probability. */
+  contour_match_score?: number | null;
+  matched_surface_tone?: number | null;
+  score_provenance?: ScoreProvenance;
+  underlying_tone?: number;
+  accepted_surface_tones?: number[];
+  tone_realization?: string;
+  context_rule?: string | null;
+  /** The legacy verdict, kept explicitly labelled so the two never blur. */
+  legacy?: { passed: boolean | null; score: number | null; threshold: number };
+  /** The vowel this character should carry, from its pinyin final. */
+  expected_vowel?: string | null;
+  expected_zone?: VowelZone | null;
+  final?: string | null;
+  /** Measured formants for this syllable's own audio, in Hz. */
+  f1?: number;
+  f2?: number;
+  measured_zone?: VowelZone | null;
+  /** There is deliberately no vowel pass/fail here. A short utterance cannot
+   * support one honestly — see backend/vowel_analysis.py. Tone is the only
+   * thing scored, and the only thing that gates progression. */
+  vowel_status?: VowelStatus;
 }
 
 interface LanguageFeedback {
@@ -560,6 +668,10 @@ export interface NewAudioRecord {
   imageUrl: string;
   imageIndex: number;
   praatMetrics: PraatMetrics;
+  analysisVersion?: AnalysisVersion;
+  analysisSchemaVersion?: string;
+  modelVersion?: string;
+  comparisonGroupId?: string;
 }
 
 interface StoryRecorderProps {
@@ -612,10 +724,56 @@ export default function StoryRecorder({
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<SpeechModel>("webspeech");
   const [groqAsrAvailable, setGroqAsrAvailable] = useState(false);
+  const [openaiAsrAvailable, setOpenaiAsrAvailable] = useState(false);
   const speechModelChosenByStudentRef = useRef(false);
   const [aiProvider, setAiProvider] = useState<string>("");
+  const studentScope = studentId ?? getStudentScopeKey();
+  const [analysisVersion, setAnalysisVersion] = useState<AnalysisVersion>(() =>
+    getAnalysisVersion(studentScope),
+  );
+  const [experimentalAvailable, setExperimentalAvailable] = useState(false);
+  const [experimentalStatus, setExperimentalStatus] = useState("checking");
+  const [comparisonMap, setComparisonMap] = useState<Record<number, ComparisonResult | null>>({});
   const [silenceDuration, setSilenceDuration] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    setAnalysisVersion(getAnalysisVersion(studentScope));
+    fetch(`${getBackendUrl()}/api/analysis-v2/health`)
+      .then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (cancelled) return;
+        const ready = response.ok && payload?.ready === true;
+        setExperimentalAvailable(ready);
+        setExperimentalStatus(ready ? String(payload?.kpi_gate?.release_status || payload?.kpi_gate?.status || "experimental") : "unavailable");
+        if (!ready && analysisVersion === "phoneme_tone_v2") {
+          setAnalysisVersion("stable_v1");
+          saveAnalysisVersion("stable_v1", studentScope);
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setExperimentalAvailable(false);
+        setExperimentalStatus("unavailable");
+        if (analysisVersion === "phoneme_tone_v2") {
+          setAnalysisVersion("stable_v1");
+          saveAnalysisVersion("stable_v1", studentScope);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [studentScope]);
+
+  const handleAnalysisVersionChange = useCallback(
+    (version: AnalysisVersion) => {
+      if (version === "phoneme_tone_v2" && !experimentalAvailable) return;
+      setAnalysisVersion(version);
+      saveAnalysisVersion(version, studentScope);
+    },
+    [experimentalAvailable, studentScope],
+  );
 
   // Per-scene result maps — keyed by image index so switching scenes restores
   // the last analysis result for that scene instead of showing a blank state.
@@ -1090,7 +1248,11 @@ export default function StoryRecorder({
         const groqAvailable = data.providers.some(
           (p: AiProviderOption) => p.id === "groq" && p.available,
         );
+        const openaiAvailable = data.providers.some(
+          (p: AiProviderOption) => p.id === "openai" && p.available,
+        );
         setGroqAsrAvailable(groqAvailable);
+        setOpenaiAsrAvailable(openaiAvailable);
         const defaultProvider = (groqAvailable ? "groq" : data.default) || "";
         setAiProvider((prev) => prev || defaultProvider);
         // Sync speech source: if Groq is the default AI provider, use Groq Whisper
@@ -1353,6 +1515,7 @@ export default function StoryRecorder({
     transcription: string,
     asrModel = "",
     recordModel: SpeechModel = selectedModel,
+    version: AnalysisVersion = analysisVersion,
   ) => {
     setIsAnalyzing(true);
     try {
@@ -1378,9 +1541,11 @@ export default function StoryRecorder({
         sceneSuggestedAnswer,
         sceneReferenceCurves,
         sceneAttemptNumber: attemptHistory.length + 1,
+        analysisDetail: version === "phoneme_tone_v2" ? "phoneme" : undefined,
       });
 
-      const response = await fetch(`${backendUrl}/api/analyze`, {
+      const endpoint = version === "phoneme_tone_v2" ? "/api/analyze/v2" : "/api/analyze";
+      const response = await fetch(`${backendUrl}${endpoint}`, {
         method: "POST",
         body: formData,
         signal: AbortSignal.timeout(120_000),
@@ -1394,6 +1559,8 @@ export default function StoryRecorder({
       }
 
       const metrics = (await response.json()) as PraatMetrics;
+      metrics.analysis_version = metrics.analysis_version ?? version;
+      metrics.progression_eligible = version === "stable_v1";
       const canScorePronunciation =
         metrics.feedback_quality?.can_score_pronunciation !== false;
       const canScoreContent =
@@ -1412,6 +1579,25 @@ export default function StoryRecorder({
       }
       setPraatMetrics(metrics);
       setAnalysisAudioBlob(wavBlob);
+      if (version === "phoneme_tone_v2") {
+        // V2 is analytics-only until the KPI gate and teacher validation pass.
+        await Promise.resolve(onAddRecord({
+          id: `audio-${Date.now()}`,
+          audioBlob: wavBlob,
+          timestamp: new Date().toLocaleString(),
+          duration: Math.max(1, Math.floor((Date.now() - recordingStartRef.current) / 1000)),
+          transcription: finalTranscription,
+          model: recordModel,
+          topicId: topic.id,
+          imageUrl: selectedImage,
+          imageIndex: selectedImageIndex,
+          praatMetrics: metrics,
+          analysisVersion: version,
+          analysisSchemaVersion: metrics.analysis_schema_version,
+          modelVersion: metrics.model_version,
+        }));
+        return;
+      }
       setAttemptHistory((prev) => [
         ...prev,
         {
@@ -1478,6 +1664,9 @@ export default function StoryRecorder({
         imageUrl: selectedImage,
         imageIndex: selectedImageIndex,
         praatMetrics: metrics,
+        analysisVersion: version,
+        analysisSchemaVersion: metrics.analysis_schema_version,
+        modelVersion: metrics.model_version,
       });
 
       // Save best snapshot for this scene (overwrite if better vocab score)
@@ -1526,6 +1715,66 @@ export default function StoryRecorder({
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const compareCurrentRecording = async () => {
+    if (!analysisAudioBlob) return;
+    const comparisonGroupId = `compare-${Date.now()}`;
+    const wavBlob = await convertBlobToWav(analysisAudioBlob);
+    const analysisText = (praatMetrics?.transcription || currentTranscriptRef.current || "").trim();
+    const sceneVocab = (topic.vocabulary[selectedImageIndex] || []).join(", ");
+    const scenePrompt = topic.prompts?.[selectedImageIndex] || topic.name;
+    const scenePhrases = topic.phrases?.[selectedImageIndex];
+    const sceneSuggestedAnswer = topic.suggestedAnswers?.[selectedImageIndex];
+    const sceneReferenceCurves = buildSceneReferenceCurves(topic, selectedImageIndex);
+    const run = async (version: AnalysisVersion): Promise<PraatMetrics> => {
+      const formData = buildPracticeAnalysisFormData(wavBlob, {
+        transcription: analysisText,
+        aiProvider,
+        sceneVocabulary: sceneVocab,
+        scenePrompt,
+        sceneImageUrl: selectedImage,
+        scenePhrases: scenePhrases?.join("; "),
+        sceneSuggestedAnswer,
+        sceneReferenceCurves,
+        sceneAttemptNumber: attemptHistory.length + 1,
+        analysisDetail: version === "phoneme_tone_v2" ? "phoneme" : undefined,
+      });
+      const started = performance.now();
+      const response = await fetch(`${getBackendUrl()}${version === "stable_v1" ? "/api/analyze" : "/api/analyze/v2"}`, {
+        method: "POST",
+        body: formData,
+        signal: AbortSignal.timeout(120_000),
+      });
+      if (!response.ok) {
+        const detail = await readErrorResponse(response);
+        throw new Error(detail.detail || "Analysis failed");
+      }
+      const metrics = (await response.json()) as PraatMetrics;
+      metrics.analysis_version = metrics.analysis_version ?? version;
+      metrics.progression_eligible = version === "stable_v1";
+      metrics.comparison_group_id = comparisonGroupId;
+      return { ...metrics, _latencyMs: Math.round(performance.now() - started) } as PraatMetrics & { _latencyMs: number };
+    };
+    setExperimentalStatus("comparing");
+    const started = performance.now();
+    const settled = await Promise.allSettled([
+      run("stable_v1"),
+      run("phoneme_tone_v2"),
+    ]);
+    const toRun = (version: AnalysisVersion, result: PromiseSettledResult<PraatMetrics>) =>
+      result.status === "fulfilled"
+        ? { version, schemaVersion: result.value.analysis_schema_version || (version === "stable_v1" ? "stable.v1" : "analysis_v2.character_phone.v1"), status: "success" as const, latencyMs: (result.value as PraatMetrics & { _latencyMs?: number })._latencyMs || Math.round(performance.now() - started), result: result.value }
+        : { version, schemaVersion: version === "stable_v1" ? "stable.v1" : "analysis_v2.character_phone.v1", status: "failed" as const, latencyMs: Math.round(performance.now() - started), result: null, error: result.reason instanceof Error ? result.reason.message : String(result.reason) };
+    setComparisonMap((prev) => ({
+      ...prev,
+      [selectedImageIndex]: {
+        audioAttemptId: `audio-${Date.now()}`,
+        comparisonGroupId,
+        runs: { stable_v1: toRun("stable_v1", settled[0]), phoneme_tone_v2: toRun("phoneme_tone_v2", settled[1]) },
+      },
+    }));
+    setExperimentalStatus(experimentalAvailable ? "NEEDS_DATA" : "unavailable");
   };
 
   const handleSubmitVoiceFile = async (
@@ -1980,6 +2229,7 @@ export default function StoryRecorder({
               submittedAudioName={submittedAudioName}
               selectedModel={selectedModel}
               groqAvailable={groqAsrAvailable}
+              openaiAvailable={openaiAsrAvailable}
               onSelectedModelChange={(model) => {
                 speechModelChosenByStudentRef.current = true;
                 setSelectedModel(model);
@@ -2002,6 +2252,12 @@ export default function StoryRecorder({
                 }
               }}
               onViewSummary={() => setPhase("summary")}
+              analysisVersion={analysisVersion}
+              experimentalAvailable={experimentalAvailable}
+              experimentalStatus={experimentalStatus}
+              onAnalysisVersionChange={handleAnalysisVersionChange}
+              comparison={comparisonMap[selectedImageIndex]}
+              onCompare={compareCurrentRecording}
             />
           ) : (
           <div className="practice-workspace">

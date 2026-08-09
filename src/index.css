@@ -180,21 +180,27 @@
   --shadow-md: 0 10px 26px rgba(32, 29, 41, 0.1);
   --shadow-lg: 0 22px 52px rgba(32, 29, 41, 0.14);
 
-  /* Type — display keeps the brush-like serif but heavier, so it still
-     reads distinctive rather than "generic bold sans app" */
-  /* Curvy, learner-friendly display type: Quicksand rounds the Latin glyphs;
-     LXGW WenKai TC renders Chinese in a flowing Kai (楷書) style. Quicksand is
-     listed first so Latin uses it and CJK falls through to the Kai face. */
-  --font-display: "Quicksand", "LXGW WenKai TC", "Noto Serif TC", "Songti TC", "Iowan Old Style", Georgia, serif;
+  /* Type — only the families index.html/teacher.html actually fetch may lead a
+     stack. Anything after the first entry is an OS fallback for machines still
+     loading, not a design choice; if you add a family here, add it to BOTH
+     html entries or it will silently never render.
+
+     Display: LXGW WenKai TC carries Chinese AND Latin, so 慢慢中文 and
+     "Mandarin, little by little" are written by the same brush. An earlier
+     pairing put geometric-rounded Quicksand in front for Latin, which shared
+     nothing with a Kai face but roundness and read as two unrelated voices. */
+  --font-display: "LXGW WenKai TC", "Noto Serif TC", "Songti TC", "Iowan Old Style", Georgia, serif;
+  /* Body/UI — Noto Sans TC's own Latin is the companion, so no second Latin
+     family is needed. Its CJK keeps strokes open at small sizes, which matters
+     while a learner is reading mid-exercise. */
   --font-sans:
-    "Inter", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Segoe UI",
+    "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Segoe UI",
     -apple-system, BlinkMacSystemFont, sans-serif;
-  /* Student-facing copy favours the highly legible CJK face first.  It keeps
-     strokes open at small sizes and avoids a decorative font becoming harder
-     to read during a speaking exercise. */
-  --font-student: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Inter", "Segoe UI", sans-serif;
+  --font-student: var(--font-sans);
+  /* Genuine tabular/code data only — not pinyin. No mono family is fetched, so
+     this always resolves to a system face; keep it off anything typographic. */
   --font-mono:
-    "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas,
+    ui-monospace, "SFMono-Regular", Menlo, Consolas,
     "Liberation Mono", monospace;
 }
 

@@ -55,6 +55,10 @@ export interface StoredAudioRecord {
   imageIndex?: number;
   audioUrl?: string;
   praatMetrics?: any;
+  analysisVersion?: "stable_v1" | "phoneme_tone_v2";
+  analysisSchemaVersion?: string;
+  modelVersion?: string;
+  comparisonGroupId?: string;
 }
 
 export interface StoredSpeakingProgress {

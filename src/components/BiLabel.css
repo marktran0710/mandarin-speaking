@@ -35,18 +35,21 @@ p > .bi-label {
    muted color and near-identical size on purpose — they're both secondary
    detail under the Chinese headline, and giving pinyin its own accent
    color (the old treatment) signaled it as more important than the
-   translation for no real reason, which read as busy/unbalanced. Only the
-   font family still tells them apart (mono for the phonetic reading, sans
-   for the translation). Read through --bi-pinyin-color/--bi-en-color so a
+   translation for no real reason, which read as busy/unbalanced. Pinyin is
+   still set apart from the English line, now by letter-spacing rather than
+   by font family: it used to ask for --font-mono, but no mono family is ever
+   downloaded, so in practice every pinyin line in the app rendered in
+   Consolas beside a brush Kai display face. Wider tracking is the standard
+   phonetic-transcription cue and keeps the two lines distinguishable within
+   one type voice. Read through --bi-pinyin-color/--bi-en-color so a
    container with a solid colored or dark background (buttons, badges, the
    nav's dark "Log out" pill) can switch both to a light tint in one line
    instead of overriding each span. */
 .bi-pinyin {
-  font-family: var(--font-mono);
   font-size: 0.62em;
   font-weight: 500;
   color: var(--bi-pinyin-color, var(--clay-muted));
-  letter-spacing: 0.01em;
+  letter-spacing: 0.06em;
 }
 
 /* Buttons stay to two lines (Chinese + English) — a third pinyin line was
@@ -80,11 +83,12 @@ a.nav-link .bi-pinyin {
   line-height: 1.6;
 }
 
+/* Same tracking-instead-of-mono treatment as .bi-pinyin above. */
 .bi-text-pinyin {
-  font-family: var(--font-mono);
   font-size: 0.78em;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--bi-pinyin-color, var(--seal-deep));
+  letter-spacing: 0.05em;
   line-height: 1.3;
 }
 

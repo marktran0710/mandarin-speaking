@@ -2,6 +2,9 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { BiLabel } from "./BiLabel";
 import AppButton from "./AppButton";
 import SpeakingResultsFlow from "./SpeakingResultsFlow";
+import AnalysisVersionSelector from "./AnalysisVersionSelector";
+import type { AnalysisVersion } from "../utils/analysisVersion";
+import type { ComparisonResult } from "./SpeakingResultsFlow";
 import { sceneReady } from "../utils/storyRecorderFeedback";
 import type {
   PraatMetrics,
@@ -40,6 +43,7 @@ interface SpeakingFlowCardProps {
   submittedAudioName: string;
   selectedModel: SpeechModel;
   groqAvailable: boolean;
+  openaiAvailable: boolean;
   onSelectedModelChange: (model: SpeechModel) => void;
   recordingButtonDisabled: boolean;
   onPrimaryRecordingAction: () => void;
@@ -56,6 +60,12 @@ interface SpeakingFlowCardProps {
   hasNextScene: boolean;
   onNextScene: () => void;
   onViewSummary: () => void;
+  analysisVersion?: AnalysisVersion;
+  experimentalAvailable?: boolean;
+  experimentalStatus?: string;
+  onAnalysisVersionChange?: (version: AnalysisVersion) => void;
+  comparison?: ComparisonResult | null;
+  onCompare?: () => void;
 }
 
 /** The Speaking step as a two-screen app flow inside one fixed-height card:
@@ -87,6 +97,7 @@ export default function SpeakingFlowCard({
   submittedAudioName,
   selectedModel,
   groqAvailable,
+  openaiAvailable,
   onSelectedModelChange,
   recordingButtonDisabled,
   onPrimaryRecordingAction,
@@ -98,6 +109,12 @@ export default function SpeakingFlowCard({
   hasNextScene,
   onNextScene,
   onViewSummary,
+  analysisVersion = "stable_v1",
+  experimentalAvailable = true,
+  experimentalStatus,
+  onAnalysisVersionChange,
+  comparison,
+  onCompare,
 }: SpeakingFlowCardProps) {
   const [screen, setScreen] = useState<"record" | "results">("record");
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -126,7 +143,7 @@ export default function SpeakingFlowCard({
   // recording) gates progression alongside the score/attempts unlock — the
   // attempts escape hatch never bypasses failing words.
   const ready =
-    (prog ? sceneReady(prog) : false) && masteryPassed && contentPassed;
+    analysisVersion === "stable_v1" && (prog ? sceneReady(prog) : false) && masteryPassed && contentPassed;
 
   const sceneChip = (
     <span className="sfc-scene-chip">
@@ -198,13 +215,15 @@ export default function SpeakingFlowCard({
         </div>
 
         <div className="sfc-record-main">
-        <ModelRecordingPractice
-          sceneIndex={selectedImageIndex}
-          modelSentence={modelSentence}
-          modelAudioUrl={modelAudioUrl}
-        />
-
         <div className="sfc-record-panel">
+            <ModelRecordingPractice
+              sceneIndex={selectedImageIndex}
+              modelSentence={modelSentence}
+              modelAudioUrl={modelAudioUrl}
+            />
+
+            <div className="sfc-record-divider" aria-hidden="true" />
+
             <details className="sfc-recording-options">
               <summary>Recording options</summary>
               <label className="sfc-speech-source">
@@ -222,6 +241,11 @@ export default function SpeakingFlowCard({
                       ? "Groq Whisper — recommended free API"
                       : "Groq Whisper — unavailable (API key required)"}
                   </option>
+                  <option value="openai" disabled={!openaiAvailable}>
+                    {openaiAvailable
+                      ? "OpenAI Whisper — cloud API"
+                      : "OpenAI Whisper — unavailable (API key required)"}
+                  </option>
                   <option value="webspeech">Browser Speech — free fallback</option>
                   <option value="ctwhisper">Chinese/Taiwanese Whisper — local</option>
                   <option value="vibevoice">VibeVoice — experimental local</option>
@@ -230,15 +254,25 @@ export default function SpeakingFlowCard({
               <p className="sfc-speech-source-note">
                 {selectedModel === "groq"
                   ? "Recommended: fast, stable Mandarin transcription through the configured free API tier."
-                  : selectedModel === "webspeech"
-                    ? "Uses the browser's live speech service; availability depends on the browser and network."
-                    : selectedModel === "ctwhisper"
-                      ? "Runs the local Chinese/Taiwanese Whisper model; private but slower on CPU."
-                      : "Experimental local model; its first run may take several minutes to load."}
+                  : selectedModel === "openai"
+                    ? "Uses OpenAI's Whisper API; requires a configured key and is a paid cloud service."
+                    : selectedModel === "webspeech"
+                      ? "Uses the browser's live speech service; availability depends on the browser and network."
+                      : selectedModel === "ctwhisper"
+                        ? "Runs the local Chinese/Taiwanese Whisper model; private but slower on CPU."
+                        : "Experimental local model; its first run may take several minutes to load."}
               </p>
             </details>
+            {onAnalysisVersionChange && (
+              <AnalysisVersionSelector
+                value={analysisVersion}
+                onChange={onAnalysisVersionChange}
+                experimentalAvailable={experimentalAvailable}
+                experimentalStatus={experimentalStatus}
+                disabled={isBusy}
+              />
+            )}
             <div className="sfc-action-intro">
-              <span className="sfc-action-step" aria-hidden="true">1</span>
               <div>
                 <p className="sfc-action-title"><BiLabel k="speaking" /></p>
                 <p className="sfc-action-note"><BiLabel k="record" /></p>
@@ -331,6 +365,9 @@ export default function SpeakingFlowCard({
       onNextScene={onNextScene}
       onViewSummary={onViewSummary}
       onRecordAgain={() => setScreen("record")}
+      analysisVersion={analysisVersion}
+      comparison={comparison}
+      onCompare={onCompare}
     />
   );
 }

@@ -42,3 +42,81 @@ export function getStudentId(): string | undefined {
 export function getStudentScopeKey(): string {
   return getStudentId() ?? getStudentName().toLowerCase().trim();
 }
+
+const LAST_PAGE_KEY_PREFIX = "studentLastPage:";
+
+/** Which section a student had open, so a reload lands them back where
+ * they were instead of bouncing to the practice tab. Scoped per-student
+ * (like the progress mirrors above) so a shared device doesn't hand the
+ * next student whoever was signed in before them left off. */
+export function getLastVisitedPage(): string | null {
+  try {
+    return localStorage.getItem(`${LAST_PAGE_KEY_PREFIX}${getStudentScopeKey()}`);
+  } catch {
+    return null;
+  }
+}
+
+export function saveLastVisitedPage(page: string) {
+  try {
+    localStorage.setItem(`${LAST_PAGE_KEY_PREFIX}${getStudentScopeKey()}`, page);
+  } catch {
+    /* storage unavailable — page just won't be remembered */
+  }
+}
+
+export function clearLastVisitedPage() {
+  try {
+    localStorage.removeItem(`${LAST_PAGE_KEY_PREFIX}${getStudentScopeKey()}`);
+  } catch {
+    /* noop */
+  }
+}
+
+const LAST_PRACTICE_TARGET_KEY_PREFIX = "studentLastPracticeTarget:";
+
+export interface LastPracticeTarget {
+  topicId: string;
+  imageIndex: number;
+}
+
+/** Which story (and scene) a student had open on the practice page — the
+ * page-level restore above only gets them back to the practice *tab*;
+ * without this they'd land on the browse/table-of-contents view instead
+ * of the story they were mid-session on. */
+export function getLastPracticeTarget(): LastPracticeTarget | null {
+  try {
+    const raw = localStorage.getItem(`${LAST_PRACTICE_TARGET_KEY_PREFIX}${getStudentScopeKey()}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.topicId !== "string" || !parsed.topicId) return null;
+    const imageIndex = typeof parsed.imageIndex === "number" ? parsed.imageIndex : 0;
+    return { topicId: parsed.topicId, imageIndex };
+  } catch {
+    return null;
+  }
+}
+
+/** Pass `null` to record that the student explicitly backed out to the
+ * browse view, so a reload doesn't drop them back into the story they
+ * just left. */
+export function saveLastPracticeTarget(target: LastPracticeTarget | null) {
+  try {
+    const key = `${LAST_PRACTICE_TARGET_KEY_PREFIX}${getStudentScopeKey()}`;
+    if (target) {
+      localStorage.setItem(key, JSON.stringify(target));
+    } else {
+      localStorage.removeItem(key);
+    }
+  } catch {
+    /* storage unavailable — session just won't be remembered */
+  }
+}
+
+export function clearLastPracticeTarget() {
+  try {
+    localStorage.removeItem(`${LAST_PRACTICE_TARGET_KEY_PREFIX}${getStudentScopeKey()}`);
+  } catch {
+    /* noop */
+  }
+}

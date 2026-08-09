@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import "./HomePage.css";
 import { Page } from "../types/page";
 import { BiLabel, BiText } from "../components/BiLabel";
+import ToneStroke from "../components/ToneStroke";
 import "../components/BiLabel.css";
 
 interface HomePageProps {
@@ -15,41 +16,19 @@ const HERO_TITLE_CHARS: Array<{ char: string; tone: 1 | 2 | 3 | 4 }> = [
   { char: "文", tone: 2 },
 ];
 
-const TONE_ROTATION = ["tone-1", "tone-2", "tone-3", "tone-4"] as const;
+const SKILLS: Array<{ zh: string; pinyin: string; en: string }> = [
+  { zh: "發音", pinyin: "Fāyīn", en: "Pronunciation" },
+  { zh: "生詞", pinyin: "Shēngcí", en: "Vocabulary" },
+  { zh: "應用", pinyin: "Yìngyòng", en: "Practical use" },
+];
 
-const VERTICAL_TITLE_SKILLS: Array<{
-  zh: string;
-  pinyin: string;
-  en: string;
-  chars: Array<{ char: string; tone: 1 | 2 | 3 | 4 }>;
-}> = [
-  {
-    zh: "發音",
-    pinyin: "Fāyīn",
-    en: "Pronunciation",
-    chars: [
-      { char: "發", tone: 1 },
-      { char: "音", tone: 1 },
-    ],
-  },
-  {
-    zh: "生詞",
-    pinyin: "Shēngcí",
-    en: "Vocabulary",
-    chars: [
-      { char: "生", tone: 1 },
-      { char: "詞", tone: 2 },
-    ],
-  },
-  {
-    zh: "應用",
-    pinyin: "Yìngyòng",
-    en: "Practical use",
-    chars: [
-      { char: "應", tone: 4 },
-      { char: "用", tone: 4 },
-    ],
-  },
+/* Three scenes from a story, stacked as overlapping prints. Each carries its
+   own class because the layering — position, rotation, depth — is what makes
+   the pile read as "one story, several moments" rather than a gallery row. */
+const STORY_SCENES = [
+  { file: "street-conversation.png", className: "image-one" },
+  { file: "missing-cat-card.png", className: "image-two" },
+  { file: "campus-chat.png", className: "image-three" },
 ];
 
 const STATS: Array<{ zh: string; pinyin: string; en: string }> = [
@@ -117,7 +96,16 @@ export default function HomePage({ onNavigate }: HomePageProps) {
                   style={{ "--i": i } as CSSProperties}
                   aria-hidden="true"
                 >
-                  {char}
+                  {/* Each character wears its own tone contour: 慢 慢 中 文
+                      is 4·4·1·2, so the row reads ＼ ＼ ￣ ／ — the name of
+                      the app spelling out what the app teaches. */}
+                  <ToneStroke
+                    tone={tone}
+                    className="hero-char-tone"
+                    animated
+                    delay={i * 0.09}
+                  />
+                  <span className="hero-char-glyph">{char}</span>
                 </span>
               ))}
             </span>
@@ -126,49 +114,31 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               <span className="hero-title-en">Mandarin, little by little</span>
             </span>
           </h1>
+
           <p className="hero-subtitle">
             <BiText k="build_better_chinese_stories_with_pictur" />
           </p>
 
           <ul className="hero-stats" aria-label="At a glance">
-            {STATS.map((stat, i) => (
-              <li
-                key={stat.en}
-                className={`hero-stat-chip ${TONE_ROTATION[i % TONE_ROTATION.length]}`}
-              >
+            {STATS.map((stat) => (
+              <li key={stat.en} className="hero-stat-chip">
                 <BiLabel zh={stat.zh} pinyin={stat.pinyin} en={stat.en} />
               </li>
             ))}
           </ul>
-
-          <button
-            type="button"
-            className="hero-primary-action"
-            onClick={() => onNavigate("student-login")}
-          >
-            <BiLabel zh="開始學習" pinyin="Kāishǐ xuéxí" en="Start Learning" />
-            <span aria-hidden="true">→</span>
-          </button>
         </div>
 
         <div className="home-hero-visual" aria-label="Story practice preview">
           <div className="story-preview-stage">
             <div className="story-preview-scenes" aria-hidden="true">
-              <img
-                src={`${import.meta.env.BASE_URL}sample-scenes/street-conversation.png`}
-                alt=""
-                className="story-preview-image image-one"
-              />
-              <img
-                src={`${import.meta.env.BASE_URL}sample-scenes/missing-cat-card.png`}
-                alt=""
-                className="story-preview-image image-two"
-              />
-              <img
-                src={`${import.meta.env.BASE_URL}sample-scenes/campus-chat.png`}
-                alt=""
-                className="story-preview-image image-three"
-              />
+              {STORY_SCENES.map(({ file, className }) => (
+                <img
+                  key={className}
+                  src={`${import.meta.env.BASE_URL}sample-scenes/${file}`}
+                  alt=""
+                  className={`story-preview-image ${className}`}
+                />
+              ))}
             </div>
 
             <div
@@ -176,16 +146,16 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               lang="zh-Hant"
               aria-label="發音 Pronunciation, 生詞 Vocabulary, 應用 Practical use"
             >
-              {VERTICAL_TITLE_SKILLS.map((skill, gi) => (
+              {SKILLS.map((skill, gi) => (
                 <div
                   className="vertical-title-group"
                   key={skill.en}
                   title={`${skill.pinyin} · ${skill.en}`}
                 >
-                  {skill.chars.map(({ char, tone }, i) => (
+                  {[...skill.zh].map((char, i) => (
                     <span
                       key={char}
-                      className={`vertical-title-char tone-${tone}`}
+                      className="vertical-title-char"
                       style={{ "--i": gi * 2 + i } as CSSProperties}
                       aria-hidden="true"
                     >
@@ -197,18 +167,27 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             </div>
           </div>
         </div>
+
+        <button
+          type="button"
+          className="hero-primary-action"
+          onClick={() => onNavigate("student-login")}
+        >
+          <BiLabel zh="開始學習" pinyin="Kāishǐ xuéxí" en="Start Learning" />
+          <span aria-hidden="true">→</span>
+        </button>
       </section>
 
       <section className="how-it-works" aria-label="How it works">
         <p className="how-it-works-kicker">
-          <BiLabel zh="三步開始" pinyin="Sān bù kāishǐ" en="Three-step flow" />
+          <span lang="zh-Hant">三步開始</span>
+          <span className="how-it-works-kicker-meta">
+            Sān bù kāishǐ · Three steps
+          </span>
         </p>
         <ol className="how-it-works-grid">
           {HOW_IT_WORKS.map((step, i) => (
-            <li
-              key={step.en}
-              className={`how-it-works-tile ${TONE_ROTATION[i % TONE_ROTATION.length]}`}
-            >
+            <li key={step.en} className="how-it-works-tile">
               <span className="how-it-works-num" aria-hidden="true">
                 {String(i + 1).padStart(2, "0")}
               </span>

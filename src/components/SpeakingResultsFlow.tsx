@@ -4,6 +4,7 @@ import AppButton from "./AppButton";
 import RecordingPlayback from "./RecordingPlayback";
 import PhrasePracticeDrill from "./PhrasePracticeDrill";
 import WordProsodyCard from "./WordProsodyCard";
+import PronunciationBreakdown from "./PronunciationBreakdown";
 import {
   failedProsodyWords,
   isContentAccepted,
@@ -18,6 +19,22 @@ import type { PraatMetrics, Topic } from "./StoryRecorder";
 import { toPinyin } from "../utils/pinyin";
 import VoiceFeedbackReliabilityNotice from "./VoiceFeedbackReliabilityNotice";
 import { assessVoiceFeedbackReliability } from "../utils/voiceFeedbackReliability";
+import type { AnalysisVersion } from "../utils/analysisVersion";
+
+export interface AnalysisRun {
+  version: AnalysisVersion;
+  schemaVersion: string;
+  status: "success" | "failed";
+  latencyMs: number;
+  result: PraatMetrics | null;
+  error?: string;
+}
+
+export interface ComparisonResult {
+  audioAttemptId: string;
+  comparisonGroupId?: string;
+  runs: Partial<Record<AnalysisVersion, AnalysisRun>>;
+}
 
 // Labels for pronunciation_note.details — one line per aspect inside the
 // overview step's 發音回饋 panel.
@@ -60,6 +77,9 @@ interface SpeakingResultsFlowProps {
   onNextScene: () => void;
   onViewSummary: () => void;
   onRecordAgain: () => void;
+  analysisVersion?: AnalysisVersion;
+  comparison?: ComparisonResult | null;
+  onCompare?: () => void;
 }
 
 /** The results half of the Speaking step, as a guided mini-flow instead of
@@ -91,6 +111,9 @@ export default function SpeakingResultsFlow({
   onNextScene,
   onViewSummary,
   onRecordAgain,
+  analysisVersion = "stable_v1",
+  comparison,
+  onCompare,
 }: SpeakingResultsFlowProps) {
   const ai = praatMetrics.ai_feedback;
   const accepted = isContentAccepted(praatMetrics);
@@ -380,6 +403,53 @@ export default function SpeakingResultsFlow({
             <p className="submitted-audio-name">✓ {submittedAudioName}</p>
           )}
         </div>
+      )}
+
+      {/* Shown for every attempt, passed or failed. The per-syllable analysis
+          used to surface only inside the practice step and only for failed
+          words, so a student who read the sentence well saw no breakdown at
+          all — the app looked like it hadn't listened. */}
+      <PronunciationBreakdown words={praatMetrics.word_prosody || []} />
+
+      {analysisVersion === "phoneme_tone_v2" && (
+        <section className="experimental-analysis-panel" aria-label="Experimental analysis">
+          <div className="experimental-analysis-heading">
+            <strong>Experimental V2</strong><span className="analysis-version-badge">Character + phoneme + T1–T5</span>
+          </div>
+          <p>This result is for evaluation only and does not change progression or mastery.</p>
+          {praatMetrics.character_prosody?.length ? (
+            <div className="experimental-character-grid">
+              {praatMetrics.character_prosody.map((item) => (
+                <div className="experimental-character-card" key={`${item.char_index}-${item.char}`}>
+                  <strong>{item.char}</strong><span>{item.pinyin}</span>
+                  <small>Expected T{item.expected_tone ?? "?"} · Detected {item.detected_tone ? `T${item.detected_tone}` : item.tone_status}</small>
+                </div>
+              ))}
+            </div>
+          ) : <p>Character alignment is not available for this attempt.</p>}
+        </section>
+      )}
+
+      {analysisAudioBlob && onCompare && (
+        <AppButton tone="secondary" className="analysis-compare-button" onClick={onCompare}>
+          Compare Stable vs Experimental
+        </AppButton>
+      )}
+
+      {comparison && (
+        <section className="analysis-compare-panel" aria-label="Stable and experimental comparison">
+          <h3>Comparison</h3>
+          <div className="analysis-compare-grid">
+            {(["stable_v1", "phoneme_tone_v2"] as AnalysisVersion[]).map((version) => {
+              const run = comparison.runs[version];
+              return <div className="analysis-compare-card" key={version}>
+                <strong>{version === "stable_v1" ? "Stable V1 — Current" : "Experimental V2"}</strong>
+                <span>{run?.status ?? "not run"} · {run?.latencyMs ?? 0} ms</span>
+                {run?.error ? <small>{run.error}</small> : run?.result?.character_prosody ? <small>{run.result.character_prosody.length} characters aligned</small> : <small>Current tone and prosody result</small>}
+              </div>;
+            })}
+          </div>
+        </section>
       )}
 
       {vocabTotal > 0 && (

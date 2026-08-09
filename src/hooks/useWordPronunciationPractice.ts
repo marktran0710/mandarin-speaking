@@ -32,8 +32,8 @@ export interface WordAnalyzeResult {
  * `verify_word` so the backend runs a real, independent ASR pass alongside
  * the tone scoring to confirm the recording actually contains that word.
  *
- * Shared by TonePracticePage (general word-bank practice) and the inline
- * per-word practice affordance on a story scene's vocabulary table.
+ * Used by the inline per-word practice affordance on a story scene's
+ * vocabulary table.
  *
  * `pinyin`, when given, is that word's own tone-marked pinyin as actually
  * displayed to the student/teacher (space-separated per syllable, e.g.

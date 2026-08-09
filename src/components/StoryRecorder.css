@@ -2506,6 +2506,11 @@
   border-bottom: 1.5px solid var(--clay-hairline);
   background: var(--clay-surface-soft);
   overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scene-step-tabs::-webkit-scrollbar {
+  display: none;
 }
 .scene-step-tab {
   display: flex;
@@ -2576,10 +2581,6 @@
 .btn-scene-step-continue:active {
   transform: translateY(4px);
   box-shadow: 0 1px 0 var(--seal-deep);
-}
-
-@media (max-width: 640px) {
-  .scene-step-tabs { overflow-x: auto; }
 }
 
 /* A scene rail (~1/2.7 of the width, roughly double the area of the

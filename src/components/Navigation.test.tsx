@@ -27,9 +27,6 @@ describe("Navigation student links", () => {
     await user.click(screen.getByRole("button", { name: /Practice/ }));
     expect(onNavigate).toHaveBeenCalledWith("student-practice");
 
-    await user.click(screen.getByRole("button", { name: /Tone practice/ }));
-    expect(onNavigate).toHaveBeenCalledWith("tone-practice");
-
     await user.click(screen.getByRole("button", { name: /My Profile/ }));
     expect(onNavigate).toHaveBeenCalledWith("student-stories");
   });

@@ -63,6 +63,11 @@
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--clay-surface-card) 70%, white), 0 10px 22px color-mix(in srgb, var(--seal) 9%, transparent);
 }
 
+.sfc-record-divider {
+  align-self: stretch;
+  border-top: 1px solid color-mix(in srgb, var(--clay-hairline) 70%, transparent);
+}
+
 .sfc-recording-options {
   width: min(100%, 420px);
   border: 1px solid var(--clay-hairline);
@@ -116,19 +121,6 @@
   align-items: center;
   gap: 10px;
   padding-bottom: 4px;
-}
-
-.sfc-action-step {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--seal);
-  color: var(--clay-on-seal);
-  font-size: 13px;
-  font-weight: 800;
 }
 
 .sfc-action-title,
@@ -861,3 +853,252 @@
     flex-wrap: wrap;
   }
 }
+.analysis-version-selector {
+  margin: 0.75rem 0;
+  padding: 0.7rem;
+  border: 1px solid rgba(86, 99, 126, 0.2);
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.9);
+}
+.analysis-version-selector legend { padding: 0 0.35rem; font-size: 0.78rem; font-weight: 700; color: #526078; }
+.analysis-version-options { display: flex; gap: 0.45rem; flex-wrap: wrap; }
+.analysis-version-button { border: 1px solid #cbd5e1; border-radius: 999px; padding: 0.45rem 0.75rem; background: white; color: #334155; cursor: pointer; font: inherit; }
+.analysis-version-button.selected { border-color: #2563eb; background: #eff6ff; color: #1d4ed8; }
+.analysis-version-button.experimental { border-style: dashed; }
+.analysis-version-button:disabled { opacity: 0.55; cursor: not-allowed; }
+.analysis-version-badge { margin-left: 0.35rem; border-radius: 999px; padding: 0.1rem 0.35rem; font-size: 0.68rem; background: #fef3c7; color: #92400e; }
+.analysis-version-note { margin: 0.45rem 0 0; font-size: 0.78rem; color: #64748b; }
+.experimental-analysis-panel, .analysis-compare-panel { margin-top: 0.9rem; padding: 0.85rem; border-radius: 14px; border: 1px solid #f3d28b; background: #fffbeb; }
+.experimental-analysis-heading { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+.experimental-analysis-panel > p { margin: 0.35rem 0; color: #6b7280; font-size: 0.82rem; }
+.experimental-character-grid, .analysis-compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem; }
+.experimental-character-card, .analysis-compare-card { padding: 0.55rem; border-radius: 10px; background: rgba(255,255,255,0.8); border: 1px solid rgba(180, 140, 55, 0.22); display: grid; gap: 0.18rem; }
+.experimental-character-card strong { font-size: 1.2rem; }
+.experimental-character-card span, .experimental-character-card small, .analysis-compare-card span, .analysis-compare-card small { color: #64748b; font-size: 0.74rem; }
+.analysis-compare-button { margin-top: 0.65rem; }
+.analysis-compare-panel h3 { margin: 0 0 0.55rem; font-size: 0.95rem; }
+@media (max-width: 600px) { .analysis-version-options { flex-direction: column; } .analysis-version-button { width: 100%; text-align: left; } }
+
+/* ── Pronunciation breakdown ──────────────────────────────────────────────
+   One row per character, shown on every attempt. The two data columns make
+   two different kinds of claim and are styled to look different: tone is a
+   score with a pass/fail colour, the vowel column is a plain measurement
+   with no verdict colouring at all. */
+.pronunciation-breakdown {
+  margin: 1rem 0;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.pb-heading { margin: 0 0 0.6rem; }
+
+/* Wide content scrolls inside its own box so the page body never does. */
+.pb-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.pb-table th,
+.pb-table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--clay-hairline-soft);
+}
+
+.pb-table thead th {
+  font-size: 0.78rem;
+  color: var(--clay-muted);
+  border-bottom: 1px solid var(--clay-hairline);
+  white-space: nowrap;
+}
+
+.pb-table tbody tr:last-child th,
+.pb-table tbody tr:last-child td { border-bottom: none; }
+
+.pb-char-cell { white-space: nowrap; }
+
+.pb-char {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--clay-ink);
+  line-height: 1.2;
+}
+
+.pb-char-pinyin {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--clay-muted);
+}
+
+.pb-tone-cell {
+  white-space: nowrap;
+}
+
+/* The tint marks the tone verdict only — see the component for why it must
+   not spread across the row. */
+.pb-tone-failed { background: var(--clay-error-soft); }
+
+.pb-tone-target {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  margin-right: 0.4rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--clay-body);
+}
+
+.pb-tone-target small { font-size: 0.7rem; color: var(--clay-muted); }
+
+.pb-tone-score { margin-right: 0.3rem; }
+
+.pb-tone-verdict.is-pass { color: var(--jade-deep); font-weight: 800; }
+.pb-tone-verdict.is-fail { color: var(--clay-error-deep); font-weight: 800; }
+
+/* No pass/fail palette here on purpose — this column is measured, not
+   graded, and colouring it green/red would turn it into a verdict it cannot
+   support. */
+.pb-vowel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  color: var(--clay-body);
+}
+
+.pb-vowel--none {
+  color: var(--clay-muted);
+  cursor: help;
+}
+
+.pb-vowel-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+
+.pb-vowel-label {
+  font-size: 0.72rem;
+  color: var(--clay-muted);
+}
+
+.pb-vowel-line em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--clay-ink);
+}
+
+.pb-vowel-zone { font-size: 0.84rem; }
+
+.pb-vowel-glide {
+  font-size: 0.8rem;
+  color: var(--clay-muted);
+  text-decoration: none;
+  cursor: help;
+}
+
+.pb-vowel-en,
+.pb-vowel-formants {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--clay-muted);
+}
+
+.pb-footnote {
+  margin: 0.7rem 0 0;
+  font-size: 0.74rem;
+  color: var(--clay-muted);
+}
+
+@media (max-width: 600px) {
+  .pronunciation-breakdown { padding: 0.7rem 0.6rem; }
+  .pb-table { font-size: 0.8rem; }
+  .pb-table th, .pb-table td { padding: 0.4rem 0.4rem; }
+}
+
+/* Word grouping. Each tbody is one jieba word, headed by that word's own
+   tone verdict — the same unit the practice list drills, so the two views
+   never disagree about what "passed" means. */
+.pb-group + .pb-group .pb-group-header { border-top: 1px solid var(--clay-hairline); }
+
+.pb-group-header {
+  padding-top: 0.55rem;
+  padding-bottom: 0.2rem;
+  border-bottom: none;
+  white-space: nowrap;
+}
+
+.pb-group-token {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--clay-ink);
+  margin-right: 0.35rem;
+}
+
+.pb-group-pinyin {
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--clay-muted);
+  margin-right: 0.45rem;
+}
+
+.pb-group-score { margin-right: 0.3rem; font-size: 0.82rem; }
+.pb-group-verdict.is-pass { color: var(--jade-deep); font-weight: 800; }
+.pb-group-verdict.is-fail { color: var(--clay-error-deep); font-weight: 800; }
+
+/* Characters sit under their word. */
+.pb-group .pb-char-cell { padding-left: 1.1rem; }
+
+/* Four-state tone verdict. Only INCORRECT gets the error palette — an
+   uncertain reading must never look like a mistake, which is the whole
+   reason the states exist. */
+.pb-tone-verdict {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.pb-tone-mark { font-weight: 800; }
+
+.pb-tone-verdict.is-pass { color: var(--jade-deep); font-weight: 700; }
+.pb-tone-verdict.is-fail { color: var(--clay-error-deep); font-weight: 700; }
+.pb-tone-verdict.is-uncertain { color: var(--clay-muted); font-weight: 600; }
+.pb-tone-verdict.is-retry { color: var(--gold-deep); font-weight: 600; }
+
+.pb-group-verdict.is-uncertain { color: var(--clay-muted); font-weight: 700; }
+.pb-group-verdict.is-retry { color: var(--gold-deep); font-weight: 700; }
+
+.pb-tone-reason,
+.pb-tone-rule,
+.pb-tone-debug {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--clay-muted);
+  white-space: normal;
+}
+
+.pb-tone-rule { font-style: italic; }
+
+.pb-tone-debug {
+  margin-top: 0.2rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.64rem;
+}
+
+/* The tone cell now stacks a verdict, a reason and an optional rule, so it
+   can no longer be a single nowrap line. */
+.pb-tone-cell { white-space: normal; min-width: 11rem; }
+
+/* Neutral tone is not scored at all — neither a pass, nor a doubt about the
+   learner. It gets its own muted treatment rather than the uncertain one. */
+.pb-tone-verdict.is-not-measured { color: var(--clay-muted); font-weight: 500; }

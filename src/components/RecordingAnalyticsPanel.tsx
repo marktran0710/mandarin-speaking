@@ -18,6 +18,7 @@ const DATE_RANGE_OPTIONS: DateRangePreset[] = ["all", "7d", "30d", "90d"];
 export default function RecordingAnalyticsPanel({ records }: { records: AudioRecord[] }) {
   const [dateRange, setDateRange] = useState<DateRangePreset>("all");
   const [topicFilter, setTopicFilter] = useState("all");
+  const [versionFilter, setVersionFilter] = useState<"stable_v1" | "phoneme_tone_v2" | "all">("stable_v1");
 
   if (records.length === 0) {
     return (
@@ -36,11 +37,14 @@ export default function RecordingAnalyticsPanel({ records }: { records: AudioRec
     );
   }
 
+  const versionFiltered = versionFilter === "all"
+    ? records
+    : records.filter((record) => (record.praatMetrics?.analysis_version ?? "stable_v1") === versionFilter);
   const topicIds = Array.from(
-    new Set(records.map((r) => r.topicId).filter((id): id is string => Boolean(id))),
+    new Set(versionFiltered.map((r) => r.topicId).filter((id): id is string => Boolean(id))),
   );
 
-  const dateFiltered = filterByDateRange(records, (r) => r.timestamp, dateRange);
+  const dateFiltered = filterByDateRange(versionFiltered, (r) => r.timestamp, dateRange);
   const filtered = topicFilter === "all" ? dateFiltered : dateFiltered.filter((r) => r.topicId === topicFilter);
   const withMetrics = filtered.filter((r) => r.praatMetrics);
   const withAiFeedback = filtered.filter((r) => r.praatMetrics?.ai_feedback);
@@ -121,6 +125,14 @@ export default function RecordingAnalyticsPanel({ records }: { records: AudioRec
               {topicIds.map((id) => (
                 <option key={id} value={id}>{getTopicLabel(id)}</option>
               ))}
+            </select>
+          </label>
+          <label>
+            Analysis version
+            <select value={versionFilter} onChange={(e) => setVersionFilter(e.target.value as typeof versionFilter)}>
+              <option value="stable_v1">Stable V1 — official</option>
+              <option value="phoneme_tone_v2">Experimental V2 — analytics</option>
+              <option value="all">All versions</option>
             </select>
           </label>
         </div>

@@ -6,14 +6,21 @@
   <link rel="icon" type="image/png" href="/logo.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>慢慢中文 · Mandarin, little by little</title>
-  <!-- Display type: LXGW WenKai TC is a Kai/楷書-style Chinese face with
-       natural, curved strokes that's especially legible for learners;
-       Quicksand supplies matching rounded Latin glyphs. -->
+  <!-- Two families, and both are actually downloaded here — a font named in a
+       CSS stack but missing from this link silently falls back to whatever the
+       OS happens to have (on Windows that meant body copy in Microsoft JhengHei
+       and every pinyin line in Consolas).
+       LXGW WenKai TC is a Kai/楷書 face with natural curved strokes, especially
+       legible for learners; it carries BOTH the Chinese and the Latin display
+       line so headings speak in one hand. Noto Sans TC takes body/UI text and
+       covers the full pinyin diacritic range (ā á ǎ à).
+       Only 400/700 exist for WenKai — never set a weight the link doesn't
+       fetch, or the browser synthesizes a smeared fake bold. -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
     rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Quicksand:wght@500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"
   />
 </head>
 
