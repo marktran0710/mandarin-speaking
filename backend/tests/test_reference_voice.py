@@ -15,7 +15,8 @@ import soundfile as sf
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from reference_voice import generate_scene_reference
+from reference_voice import extract_scene_reference_from_audio, generate_scene_reference
+from tts_service import write_wav
 
 
 def _synthetic_rising_tone_pcm(duration=1.6, sample_rate=24000):
@@ -89,6 +90,50 @@ def test_word_positions_are_in_reading_order(mocked_tts):
     # Two occurrences of the same word should resolve to two distinct clips,
     # not the same one twice (search_from must advance between matches).
     assert words[0]["audio_url"] != words[1]["audio_url"]
+
+
+def test_extract_from_existing_audio(tmp_path):
+    """A teacher's uploaded/recorded WAV (no TTS involved at all) should
+    yield the same kind of per-word curves as the TTS path — this is what
+    lets a real recording become the scoring target, not just a synthesized
+    one."""
+    pcm, sample_rate = _synthetic_rising_tone_pcm()
+    sentence_path = tmp_path / "teacher-recording.wav"
+    write_wav(str(sentence_path), pcm, sample_rate)
+
+    words = extract_scene_reference_from_audio(
+        story_id="story-4",
+        frame_index=1,
+        sentence_text="我想喝水",
+        words=["我", "喝水", "不在"],
+        sentence_audio_path=str(sentence_path),
+        audio_dir=str(tmp_path),
+    )
+
+    assert [w["word"] for w in words] == ["我", "喝水", "不在"]
+    for w in words[:2]:
+        assert w["audio_url"] is not None
+        assert len(w["curve"]) == 100
+        filename = w["audio_url"].rsplit("/", 1)[-1]
+        assert (tmp_path / filename).exists()
+    assert words[2]["audio_url"] is None
+    assert words[2]["curve"] == []
+
+
+def test_extract_from_existing_audio_blank_sentence_raises(tmp_path):
+    pcm, sample_rate = _synthetic_rising_tone_pcm()
+    sentence_path = tmp_path / "teacher-recording.wav"
+    write_wav(str(sentence_path), pcm, sample_rate)
+
+    with pytest.raises(ValueError):
+        extract_scene_reference_from_audio(
+            story_id="story-5",
+            frame_index=0,
+            sentence_text="   ",
+            words=[],
+            sentence_audio_path=str(sentence_path),
+            audio_dir=str(tmp_path),
+        )
 
 
 def test_blank_sentence_raises(mocked_tts):

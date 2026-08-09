@@ -58,6 +58,7 @@ from ai_feedback import (
     generate_language_feedback,
     GROQ_FEEDBACK_MODEL,
 )
+from reference_voice import extract_scene_reference_from_audio
 from pypinyin import lazy_pinyin, Style
 import taiwan_pinyin; taiwan_pinyin.apply()
 
@@ -275,6 +276,11 @@ class AnalysisResponse(BaseModel):
     recognized_text: Optional[str] = None
     content_match: Optional[bool] = None
     feedback_quality: FeedbackQuality = Field(default_factory=FeedbackQuality)
+    #: Sentence-level roll-up of the four-state tone diagnosis, plus the
+    #: reason codes behind it. Diagnostic only: `controls_progression` is
+    #: False and the lesson gate still runs on word_prosody[].passed.
+    #: Per-syllable detail lives in word_prosody[].syllables[].
+    tone_diagnostics: dict = Field(default_factory=dict)
     processing_trace: ProcessingTrace = Field(default_factory=ProcessingTrace)
 
 
@@ -887,6 +893,11 @@ class GenerateModelVoiceBulkRequest(BaseModel):
     tiers: List[str] = ["easy", "medium", "hard"]
 
 
+class TTSRequest(BaseModel):
+    text: str
+    voice: str = ""
+
+
 async def save_uploaded_audio(file: UploadFile, record_id: str) -> str:
     extension = extension_from_upload(file.filename, file.content_type, default=".wav")
     filename = f"{safe_file_stem(record_id)}{extension}"
@@ -931,6 +942,11 @@ def persist_story_frame_images(story_id: str, frames: list[dict]) -> list[dict]:
     return stored_frames
 
 
+# Field-name suffix per difficulty tier, matching routers/stories.py's
+# _TIER_SUFFIX convention (listenAudioUrl/listenAudioUrlMedium/listenAudioUrlHard).
+_AUDIO_TIER_SUFFIXES = ("", "Medium", "Hard")
+
+
 def persist_story_frame_audio(story_id: str, frames: list[dict]) -> list[dict]:
     # Load existing frames so we can delete replaced audio files
     with connect_db() as db:
@@ -941,15 +957,85 @@ def persist_story_frame_audio(story_id: str, frames: list[dict]) -> list[dict]:
 
     stored_frames = []
     for index, frame in enumerate(frames, start=1):
-        audio_url = frame.get("listenAudioUrl") or ""
-        if audio_url.startswith("data:audio/"):
-            new_url = save_data_url_audio(audio_url, story_id, index)
-            old_url = old_frames[index - 1].get("listenAudioUrl", "") if index - 1 < len(old_frames) else ""
+        frame = dict(frame)
+        old_frame = old_frames[index - 1] if index - 1 < len(old_frames) else {}
+        for suffix in _AUDIO_TIER_SUFFIXES:
+            field = f"listenAudioUrl{suffix}"
+            audio_url = frame.get(field) or ""
+            if not audio_url.startswith("data:audio/"):
+                continue
+
+            new_url = save_data_url_audio(audio_url, story_id, f"{index}{suffix.lower()}")
+            old_url = old_frame.get(field, "") or ""
             if old_url and old_url != new_url and old_url.startswith("/uploads/"):
                 remove_uploaded_file(old_url)
-            frame = {**frame, "listenAudioUrl": new_url}
+            frame[field] = new_url
+
+            if new_url != old_url:
+                _refresh_scene_reference_curves(
+                    story_id, index - 1, frame, old_frame, suffix, new_url
+                )
         stored_frames.append(frame)
     return stored_frames
+
+
+def _refresh_scene_reference_curves(
+    story_id: str, frame_index: int, frame: dict, old_frame: dict, suffix: str, audio_url: str
+) -> None:
+    """Re-derives a scene's per-word target pitch curves from its real model
+    recording whenever a teacher uploads or re-records one, so the "target
+    shape" a student practices against always reflects the actual final
+    model audio (teacher voice or TTS) rather than going stale after a
+    manual upload that bypasses the TTS generation endpoint.
+
+    Best-effort: a scene with no suggested-answer/listen-script text, or an
+    audio file the pitch tracker can't read, just keeps whatever reference
+    curves (if any) it already had — it doesn't block saving the story.
+    """
+    sentence_text = (
+        frame.get(f"listenScript{suffix}") or frame.get(f"suggestedAnswer{suffix}") or ""
+    ).strip()
+    if not sentence_text:
+        return
+
+    vocab_text = frame.get(f"vocabulary{suffix}") or ""
+    words = [word.strip() for word in vocab_text.split(",") if word.strip()]
+    if not words:
+        return
+
+    relative_path = audio_url.removeprefix("/uploads/").replace("/", os.sep)
+    audio_path = os.path.abspath(os.path.join(UPLOAD_DIR, relative_path))
+    if not os.path.exists(audio_path):
+        return
+
+    try:
+        word_results = extract_scene_reference_from_audio(
+            story_id=story_id,
+            frame_index=frame_index,
+            sentence_text=sentence_text,
+            words=words,
+            sentence_audio_path=audio_path,
+            audio_dir=STORY_AUDIO_UPLOAD_DIR,
+        )
+    except Exception:
+        logger.warning(
+            "Reference-curve extraction failed for story=%s frame=%s tier=%s",
+            story_id, frame_index, suffix or "easy", exc_info=True,
+        )
+        return
+
+    try:
+        old_word_urls = json.loads(old_frame.get(f"vocabularyAudioUrls{suffix}") or "[]")
+    except (json.JSONDecodeError, TypeError):
+        old_word_urls = []
+    for old_word_url in old_word_urls:
+        if isinstance(old_word_url, str):
+            remove_uploaded_file(old_word_url)
+
+    frame[f"vocabularyAudioUrls{suffix}"] = json.dumps(
+        [w["audio_url"] for w in word_results], ensure_ascii=False
+    )
+    frame[f"vocabularyReferenceCurves{suffix}"] = json.dumps([w["curve"] for w in word_results])
 
 
 def save_data_url_audio(data_url: str, story_id: str, index: int) -> str:
@@ -1106,26 +1192,81 @@ async def resolve_image_b64(image_ref: str) -> Optional[Tuple[str, str]]:
 ANALYZE_TIMEOUT_SECONDS = int(os.getenv("ANALYZE_TIMEOUT_SECONDS", "120"))
 
 
+def apply_recording_qc_to_diagnostics(word_prosody: list, feedback_quality: dict) -> dict:
+    """Gate every syllable diagnosis on recording quality, then summarize.
+
+    QC answers "can this measurement be trusted?" and nothing else — it is
+    never blended into a score. When the answer is no, each syllable's verdict
+    is replaced by INVALID_AUDIO with the recording's own reason codes
+    attached, because "record that again" is the honest response and "you said
+    it wrong" is not.
+
+    Mutates ``word_prosody`` in place (it is the same list going out on the
+    response) and returns the sentence-level summary. The legacy ``passed``
+    fields are left exactly as the analyzer produced them.
+    """
+    from tone_decision import DiagnosticStatus, QcEvidence, summarize_sentence
+
+    quality = feedback_quality or {}
+    evidence = QcEvidence(
+        can_score_pronunciation=quality.get("can_score_pronunciation", True) is not False,
+        reason_codes=tuple(quality.get("reason_codes") or ()),
+    )
+    recording_unusable = evidence.unusable_recording
+
+    statuses = []
+    for word in word_prosody or []:
+        for syllable in word.get("syllables") or []:
+            if "diagnostic_status" not in syllable:
+                continue
+            if recording_unusable:
+                syllable["diagnostic_status"] = DiagnosticStatus.INVALID_AUDIO.value
+                syllable["diagnostic_reason"] = "recording_quality_unusable"
+                syllable["contour_match_score"] = None
+            statuses.append(DiagnosticStatus(syllable["diagnostic_status"]))
+        if recording_unusable and word.get("diagnostic_status"):
+            word["diagnostic_status"] = DiagnosticStatus.INVALID_AUDIO.value
+
+    summary = summarize_sentence(statuses)
+    summary["recording_reason_codes"] = list(evidence.reason_codes)
+    # Progression is untouched by any of the above and says so explicitly, so
+    # nobody reading the payload has to infer which field drove the unlock.
+    # TODO(calibration): whether UNCERTAIN should be allowed through the
+    # progression gate must be decided from human-rater agreement data, not by
+    # loosening it to raise pass rates.
+    summary["controls_progression"] = False
+    return summary
+
+
+VOWEL_ZONE_LABELS = {
+    ("high", "front"): "High front vowel — mouth nearly closed, tongue forward (like 你 nǐ)",
+    ("high", "back"): "High back vowel — mouth nearly closed, lips rounded (like 書 shū)",
+    ("mid", "front"): "Mid front vowel — tongue mid-high, forward (like 姐 jiě)",
+    ("mid", "central"): "Mid central vowel — tongue in centre (like 的 de)",
+    ("mid", "back"): "Mid back vowel — tongue mid, lips rounded (like 我 wǒ)",
+    ("low", "central"): "Open vowel — mouth wide open, jaw dropped (like 啊 ā / 媽 mā)",
+}
+
+
 def classify_vowel_quality(formants: dict) -> str:
-    """Translate F1/F2 Hz into a plain-language vowel quality label."""
-    f1 = formants.get("F1", 0)
-    f2 = formants.get("F2", 0)
-    if f1 <= 0 or f2 <= 0:
+    """Translate the utterance's median F1/F2 into a plain-language label.
+
+    Delegates the actual F1/F2 → articulatory-zone decision to
+    ``vowel_analysis.vowel_zone``, which is the same function the per-syllable
+    vowel readout uses. Sharing it is the point: a sentence-level label that
+    disagreed with the per-character readout sitting right below it would be a
+    bug the student can see.
+
+    Note this is the *whole recording's* median, so it describes an average
+    mouth position across every vowel said — useful as one line of context for
+    the AI feedback, and no substitute for the per-syllable readout.
+    """
+    from vowel_analysis import vowel_zone
+
+    zone = vowel_zone(formants.get("F1", 0), formants.get("F2", 0))
+    if not zone:
         return ""
-    # High vowel: low F1 (closed mouth)
-    if f1 < 400:
-        if f2 > 2000:
-            return "High front vowel — mouth nearly closed, tongue forward (like 你 nǐ)"
-        return "High back vowel — mouth nearly closed, lips rounded (like 書 shū)"
-    # Mid vowel
-    if f1 < 650:
-        if f2 > 1800:
-            return "Mid front vowel — tongue mid-high, forward (like 姐 jiě)"
-        if f2 > 1200:
-            return "Mid central vowel — tongue in centre (like 的 de)"
-        return "Mid back vowel — tongue mid, lips rounded (like 我 wǒ)"
-    # Low vowel: high F1 (open mouth)
-    return "Open vowel — mouth wide open, jaw dropped (like 啊 ā / 媽 mā)"
+    return VOWEL_ZONE_LABELS.get((zone["height"], zone["backness"]), "")
 
 
 def build_tone_direction(
@@ -1512,6 +1653,15 @@ async def _do_analyze(
         )
         description = build_analysis_description(transcription, transcription_model, word_prosody)
 
+        # Recording-level QC is a gate on the *diagnostic* layer: when the
+        # recording itself cannot support a judgement, no per-syllable verdict
+        # may stand, however the contour happened to score. This deliberately
+        # does not touch word_prosody[].passed — progression keeps running on
+        # the legacy path exactly as before this patch.
+        tone_diagnostics = apply_recording_qc_to_diagnostics(
+            word_prosody, feedback_quality
+        )
+
         return AnalysisResponse(
             description=description,
             transcription=transcription,
@@ -1532,6 +1682,7 @@ async def _do_analyze(
             recognized_text=recognized_text,
             content_match=content_match,
             feedback_quality=feedback_quality,
+            tone_diagnostics=tone_diagnostics,
             processing_trace=ProcessingTrace(
                 stages=[ProcessingTraceStage(**entry) for entry in trace_entries],
                 total_duration_ms=round((time.perf_counter() - trace_started_at) * 1000, 1),
@@ -3488,6 +3639,7 @@ from routers.stories import router as stories_router  # noqa: E402
 from routers.students import router as students_router  # noqa: E402
 from routers.submissions import router as submissions_router  # noqa: E402
 from routers.tones import router as tones_router  # noqa: E402
+from routers.tts import router as tts_router  # noqa: E402
 from routers.vocab_quiz import router as vocab_quiz_router  # noqa: E402
 app.include_router(asr_router)
 app.include_router(analysis_v2_router)
@@ -3500,6 +3652,7 @@ app.include_router(speaking_progress_router)
 app.include_router(stories_router)
 app.include_router(students_router)
 app.include_router(submissions_router)
+app.include_router(tts_router)
 app.include_router(tones_router)
 app.include_router(vocab_quiz_router)
 
