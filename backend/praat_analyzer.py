@@ -891,6 +891,7 @@ def _diagnose_syllable(
             "context_rule": expected.rule,
             "token_index": expected.token_index,
             "boundary_before": expected.boundary_before,
+            "boundary_after": expected.boundary_after,
         }
     )
     return result

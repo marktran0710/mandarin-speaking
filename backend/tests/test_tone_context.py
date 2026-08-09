@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from tone_context import (
     FULL_THIRD,
+    han_break_flags,
     HALF_THIRD,
     RULE_BU,
     RULE_NEUTRAL_OPTIONAL,
@@ -204,3 +205,121 @@ def test_empty_and_mismatched_input_is_survivable():
     assert plan_expected_tones([], []) == []
     assert plan_expected_tones(["你"], [3, 3]) == []
     assert plan_for_tokens(["hello", "123"]) == []
+
+
+# ── Prosodic boundaries: sandhi is phrase-internal ───────────────────────
+
+
+@pytest.mark.parametrize("mark", ["，", "。", "？", "！", "；", ",", ".", "?", "!", ";"])
+def test_third_tone_sandhi_never_crosses_strong_punctuation(mark):
+    """好 + [pause] + 你 is not a T3 pair.
+
+    Sandhi applies inside a phrase, not across a pause. This regressed once
+    already: `caf_metrics.segment_words` splits the transcript on punctuation
+    and then flattens the pieces, so by the time tokens reach the planner the
+    boundary is gone. The planner reads it off the raw transcript instead.
+    """
+    text = f"你好{mark}我好"
+    from praat_analyzer import _prosody_tokens
+
+    plan = plan_for_tokens(_prosody_tokens(text), text=text)
+    assert [item.char for item in plan] == ["你", "好", "我", "好"]
+
+    # 你好: a genuine pair, so 你 rises.
+    assert plan[0].accepted_surface_tones == (2,)
+    assert plan[1].accepted_surface_tones == (3,), "好 is phrase-final"
+    assert plan[1].boundary_after is True
+
+    # 我好: a fresh phrase after the break, and its own pair.
+    assert plan[2].accepted_surface_tones == (2,)
+    assert plan[3].accepted_surface_tones == (3,)
+
+
+def test_without_punctuation_the_same_characters_form_one_chain():
+    """The control for the test above: remove the boundary and the four T3s
+    do become a single run, which is treated as ambiguous rather than forced
+    into one grouping."""
+    text = "你好我好"
+    from praat_analyzer import _prosody_tokens
+
+    plan = plan_for_tokens(_prosody_tokens(text), text=text)
+    assert [tuple(p.accepted_surface_tones) for p in plan] == [
+        (2, 3),
+        (2, 3),
+        (2, 3),
+        (3,),
+    ]
+    assert plan[0].rule == RULE_T3_CHAIN
+
+
+def test_a_third_tone_before_a_pause_keeps_its_full_dip():
+    """好，我… — 好 is phrase-final, so it is not the half third it would be
+    if the T4 after the comma were in the same phrase."""
+    text = "好，去"
+    from praat_analyzer import _prosody_tokens
+
+    plan = plan_for_tokens(_prosody_tokens(text), text=text)
+    assert plan[0].realization == FULL_THIRD
+    assert plan[0].boundary_after is True
+
+    plan = plan_for_tokens(_prosody_tokens("好去"), text="好去")
+    assert plan[0].realization == HALF_THIRD
+
+
+def test_whitespace_alone_does_not_block_sandhi():
+    """A space is not a pause. 你 好 is still one phrase."""
+    text = "你 好"
+    from praat_analyzer import _prosody_tokens
+
+    plan = plan_for_tokens(_prosody_tokens(text), text=text)
+    assert plan[0].accepted_surface_tones == (2,)
+
+
+def test_han_break_flags_reads_the_raw_transcript():
+    assert han_break_flags("你好，我") == [False, True, False]
+    assert han_break_flags("你好我") == [False, False, False]
+    assert han_break_flags("") == []
+
+
+# ── 一 / 不 across token boundaries ──────────────────────────────────────
+# The T3 bug was caused by rules running per jieba token. These check the
+# same class of failure cannot happen for 一 and 不, whichever way the
+# segmenter happens to cut them.
+
+
+@pytest.mark.parametrize(
+    "text,expected_first,rule",
+    [
+        ("一天", (4,), RULE_YI),   # yì tiān — before T1
+        ("一個", (2,), RULE_YI),   # yí ge  — 個's dictionary tone is T4 here
+        ("一次", (2,), RULE_YI),   # yí cì  — before T4
+        ("不是", (2,), RULE_BU),   # bú shì
+        ("不去", (2,), RULE_BU),   # bú qù — pypinyin returns bù for this one
+        ("不好", (4,), RULE_BU),   # bù hǎo
+    ],
+)
+def test_yi_and_bu_are_planned_over_the_whole_utterance(text, expected_first, rule):
+    from praat_analyzer import _prosody_tokens
+
+    tokens = _prosody_tokens(text)
+    plan = plan_for_tokens(tokens, text=text)
+    assert plan[0].accepted_surface_tones == expected_first, (text, tokens)
+    assert plan[0].rule == rule
+    # The citation tone is still on the record.
+    assert plan[0].underlying_tone == (1 if text.startswith("一") else 4)
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["一 次", "不 去", "他不去", "買一次"],
+)
+def test_yi_and_bu_survive_however_the_segmenter_cuts_them(text):
+    """Whatever jieba does with the surrounding words, the syllable after 一/不
+    is still visible to the rule, because planning runs over the whole
+    utterance rather than one token at a time."""
+    from praat_analyzer import _prosody_tokens
+
+    plan = plan_for_tokens(_prosody_tokens(text), text=text)
+    target = next(item for item in plan if item.char in ("一", "不"))
+    assert target.rule in (RULE_YI, RULE_BU)
+    assert target.accepted_surface_tones == (2,), text
