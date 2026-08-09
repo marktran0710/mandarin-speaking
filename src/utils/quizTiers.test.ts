@@ -45,6 +45,12 @@ describe("attemptEarnsStar", () => {
     expect(attemptEarnsStar("tier3", 21)).toBeNull();
   });
 
+  it("preserves the pass ratio when a leak-free session has fewer distinct concepts", () => {
+    expect(attemptEarnsStar("tier1", 4, 5)).toBe(1);
+    expect(attemptEarnsStar("tier1", 3, 5)).toBeNull();
+    expect(attemptEarnsStar("tier2", 5, 5)).toBe(2);
+  });
+
   it("returns null for non-tier modes (speed, strikes, weak_words, null)", () => {
     expect(attemptEarnsStar("speed", 20)).toBeNull();
     expect(attemptEarnsStar("strikes", 20)).toBeNull();
@@ -126,6 +132,10 @@ describe("nextStarGap", () => {
 
   it("returns null for non-tier modes", () => {
     expect(nextStarGap("weak_words", 3)).toBeNull();
+  });
+
+  it("uses the scaled threshold for a reduced session", () => {
+    expect(nextStarGap("tier1", 3, 5)).toBe(1);
   });
 });
 

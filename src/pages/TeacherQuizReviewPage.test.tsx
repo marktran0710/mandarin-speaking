@@ -497,6 +497,36 @@ describe("Generate / Update Questions", () => {
     ]);
   });
 
+  it("safety-filters duplicate and answer-leaking values when Generate Questions is clicked", async () => {
+    const {
+      generateVocabDistractors,
+      generateVocabCloze,
+      generateVocabSynonym,
+      generateVocabLookalike,
+      updateVocabularyDistractors,
+    } = await import("../services/database");
+    (generateVocabDistractors as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { word: "知道", distractors: ["to know", "to see", "To see"] },
+    ]);
+    (generateVocabCloze as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (generateVocabLookalike as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+    setStories([storyWithNoMaterial]);
+    render(<TeacherQuizReviewPage />);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole("button", { name: /Generate Questions/ }));
+
+    expect(await screen.findByText(/2 duplicate or answer-leaking generated values were removed/)).toBeInTheDocument();
+    await screen.findByText(/New distractors/);
+    await user.click(screen.getByRole("button", { name: /Accept$/ }));
+    await user.click(screen.getByRole("button", { name: /Apply Changes/ }));
+
+    expect(updateVocabularyDistractors).toHaveBeenCalledWith("s3", [
+      { frameIndex: 0, wordIndex: 0, distractors: ["to see"] },
+    ]);
+  });
+
   it("shows an error when question generation fails", async () => {
     const { generateVocabCloze } = await import("../services/database");
     (generateVocabCloze as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error("rate limited"));

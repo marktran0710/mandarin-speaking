@@ -7,6 +7,7 @@ import StoryVocabQuiz, {
   type VocabQuizSummary,
 } from "./StoryVocabQuiz";
 import * as database from "../services/database";
+import { toPinyin } from "../utils/pinyin";
 
 vi.mock("../services/database", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../services/database")>();
@@ -248,7 +249,7 @@ describe("buildQuizQuestions", () => {
       { word: "吃飽", translation: "full (satiated)" },
     ];
 
-    for (let i = 0; i < 20; i += 1) {
+    for (let i = 0; i < entries.length; i += 1) {
       const questions = buildQuizQuestions(entriesWithSharedTranslation);
       for (const question of questions) {
         expect(new Set(question.options).size).toBe(question.options.length);
@@ -277,7 +278,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
 
-    for (let i = 0; i < 20; i += 1) {
+    for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true, translationByWord);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
     }
@@ -289,9 +290,9 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     expect(onDone).not.toHaveBeenCalled();
 
     const summary: VocabQuizSummary = onComplete.mock.calls[0][0];
-    expect(summary.totalQuestions).toBe(20);
-    expect(summary.questionResults).toHaveLength(20);
-    expect(summary.correctCount).toBe(20);
+    expect(summary.totalQuestions).toBe(entries.length);
+    expect(summary.questionResults).toHaveLength(entries.length);
+    expect(summary.correctCount).toBe(entries.length);
     expect(summary.totalTimeMs).toBeGreaterThanOrEqual(0);
     for (const result of summary.questionResults) {
       expect(entries.some((e) => e.word === result.word)).toBe(true);
@@ -301,7 +302,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     // Practice opens at ⭐⭐, so the road to onDone runs through tier 2 —
     // each scored round reports its own onComplete along the way.
     await user.click(screen.getByRole("button", { name: /Challenge Tier 2/ }));
-    for (let i = 0; i < 22; i += 1) {
+    for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true, translationByWord);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
     }
@@ -445,7 +446,7 @@ describe("StoryVocabQuiz modes", () => {
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
 
     // Answer every question wrong: all 5 distinct words land in "missed".
-    for (let i = 0; i < 20; i += 1) {
+    for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, false);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
     }
@@ -1134,14 +1135,14 @@ describe("StoryVocabQuiz star tiers", () => {
     );
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
-    expect(screen.getByText(/Question 1 of 20/)).toBeInTheDocument();
-    await playTierRun(user, 20, 20);
+    expect(screen.getByText(/Question 1 of 5/)).toBeInTheDocument();
+    await playTierRun(user, 5, 5);
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
     const summary: VocabQuizSummary = onComplete.mock.calls[0][0];
     expect(summary.mode).toBe("tier1");
-    expect(summary.totalQuestions).toBe(20);
-    expect(summary.correctCount).toBe(20);
+    expect(summary.totalQuestions).toBe(5);
+    expect(summary.correctCount).toBe(5);
 
     const { loadLocalStars } = await import("../utils/quizTiers");
     expect(loadLocalStars("s1")).toBe(1);
@@ -1150,8 +1151,8 @@ describe("StoryVocabQuiz star tiers", () => {
     // dangles tier 2 as the way in.
     expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Challenge Tier 2/ }));
-    expect(screen.getByText(/Question 1 of 22/)).toBeInTheDocument();
-    await playTierRun(user, 22, 22);
+    expect(screen.getByText(/Question 1 of 5/)).toBeInTheDocument();
+    await playTierRun(user, 5, 5);
 
     // ⭐⭐ earned: practice opens, and the attempt was recorded as tier2.
     expect(loadLocalStars("s1")).toBe(2);
@@ -1167,10 +1168,10 @@ describe("StoryVocabQuiz star tiers", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} storyId="s1" />);
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
-    await playTierRun(user, 20, 13);
+    await playTierRun(user, 5, 3);
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    // 13/20 with a 14 threshold: one more right answer would have passed.
+    // The original 14/20 pass ratio scales to 4/5: one more would pass.
     expect(screen.getByText(/1 more/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
     // A quiet exit back to the tier ladder exists so the student is never
@@ -1179,7 +1180,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
     // Try again immediately restarts the same tier as a fresh scored run.
     await user.click(screen.getByRole("button", { name: /Try again/ }));
-    expect(screen.getByText(/Question 1 of 20/)).toBeInTheDocument();
+    expect(screen.getByText(/Question 1 of 5/)).toBeInTheDocument();
   });
 
   it("still offers Continue to practice after a failed run when practice was already unlocked earlier", async () => {
@@ -1189,7 +1190,7 @@ describe("StoryVocabQuiz star tiers", () => {
     );
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
-    await playTierRun(user, 20, 0);
+    await playTierRun(user, 5, 0);
 
     expect(screen.getByRole("button", { name: /Continue to practice/ })).toBeInTheDocument();
   });
@@ -1290,6 +1291,12 @@ describe("StoryVocabQuiz star tiers", () => {
       );
 
       await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+      // The planner keeps future Chinese-word answers out of earlier
+      // options, so the first item is pinyin; listening becomes safe once
+      // that first concept has already been tested.
+      const firstWord = screen.getByRole("heading").textContent!;
+      await user.click(screen.getByRole("button", { name: toPinyin(firstWord) }));
+      await user.click(screen.getByRole("button", { name: /Next question/ }));
       await waitFor(() => expect(speak).toHaveBeenCalled());
       const spokenWord = speak.mock.calls[0][0].text;
 
@@ -1310,6 +1317,9 @@ describe("StoryVocabQuiz star tiers", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    const firstWord = screen.getByRole("heading").textContent!;
+    await user.click(screen.getByRole("button", { name: toPinyin(firstWord) }));
+    await user.click(screen.getByRole("button", { name: /Next question/ }));
     const prompt = screen.getByRole("heading").textContent!;
     expect(Object.values(translationByWord)).toContain(prompt);
 

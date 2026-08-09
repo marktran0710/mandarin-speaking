@@ -36,9 +36,10 @@ const QUIZ_ANSWERS: Record<string, { translation: string; pinyin?: string }> = {
  * synthesis), each identified here by its options group's aria-label. */
 async function passTierRun(user: UserEvent, questionCount: number) {
   for (let i = 0; i < questionCount; i += 1) {
-    const optionsGroup = screen.getByRole("group", {
+    const optionsGroup = screen.queryByRole("group", {
       name: /What does|How do you read|Which word means/,
     });
+    if (!optionsGroup) break;
     const label = optionsGroup.getAttribute("aria-label")!;
     let correct: string;
     let match = label.match(/^What does (.+) mean\?$/);

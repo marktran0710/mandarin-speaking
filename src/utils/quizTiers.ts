@@ -33,24 +33,34 @@ export function tierConfigFromMode(mode: string | null | undefined): TierConfig 
   return null;
 }
 
+/** Preserve a tier's pass ratio when a leak-free planner has fewer distinct
+ * concepts than the tier's nominal question count. */
+export function effectiveTierPassCount(config: TierConfig, totalQuestions: number): number {
+  if (totalQuestions >= config.questionCount) return config.passCount;
+  if (totalQuestions <= 0) return config.passCount;
+  return Math.max(1, Math.ceil((config.passCount / config.questionCount) * totalQuestions));
+}
+
 /** The star (tier number) a finished attempt earns, or null if it failed
  * its tier's threshold or wasn't a tier run at all. */
 export function attemptEarnsStar(
   mode: string | null | undefined,
   correctCount: number,
+  totalQuestions?: number,
 ): QuizTier | null {
   const config = tierConfigFromMode(mode);
   if (!config) return null;
-  return correctCount >= config.passCount ? config.tier : null;
+  const passCount = effectiveTierPassCount(config, totalQuestions ?? config.questionCount);
+  return correctCount >= passCount ? config.tier : null;
 }
 
 /** Highest star earned across an attempt history (0 = none yet). */
 export function starsFromAttempts(
-  attempts: Array<{ mode?: string | null; correctCount: number }>,
+  attempts: Array<{ mode?: string | null; correctCount: number; totalQuestions?: number }>,
 ): 0 | QuizTier {
   let stars: 0 | QuizTier = 0;
   for (const attempt of attempts) {
-    const earned = attemptEarnsStar(attempt.mode, attempt.correctCount);
+    const earned = attemptEarnsStar(attempt.mode, attempt.correctCount, attempt.totalQuestions);
     if (earned !== null && earned > stars) stars = earned;
   }
   return stars;
@@ -60,11 +70,16 @@ export function starsFromAttempts(
  * gets an entry, 0 included) — powers the teacher star board and the story
  * list's earned-star badges. */
 export function starsByStory(
-  attempts: Array<{ storyId: string; mode?: string | null; correctCount: number }>,
+  attempts: Array<{
+    storyId: string;
+    mode?: string | null;
+    correctCount: number;
+    totalQuestions?: number;
+  }>,
 ): Record<string, 0 | QuizTier> {
   const byStory: Record<string, 0 | QuizTier> = {};
   for (const attempt of attempts) {
-    const earned = attemptEarnsStar(attempt.mode, attempt.correctCount);
+    const earned = attemptEarnsStar(attempt.mode, attempt.correctCount, attempt.totalQuestions);
     const current = byStory[attempt.storyId] ?? 0;
     byStory[attempt.storyId] = earned !== null && earned > current ? earned : current;
   }
@@ -94,10 +109,12 @@ export function practiceUnlocked(stars: number): boolean {
 export function nextStarGap(
   mode: string | null | undefined,
   correctCount: number,
+  totalQuestions?: number,
 ): number | null {
   const config = tierConfigFromMode(mode);
   if (!config) return null;
-  return Math.max(0, config.passCount - correctCount);
+  const passCount = effectiveTierPassCount(config, totalQuestions ?? config.questionCount);
+  return Math.max(0, passCount - correctCount);
 }
 
 // ── localStorage mirror ────────────────────────────────────────────────

@@ -5,6 +5,7 @@ import { toneTrapVariants } from "../utils/toneTraps";
 import {
   TIER_CONFIGS,
   attemptEarnsStar,
+  effectiveTierPassCount,
   isTierUnlocked,
   loadLocalStars,
   nextStarGap,
@@ -16,6 +17,12 @@ import {
   type TierConfig,
   type TierMode,
 } from "../utils/quizTiers";
+import {
+  normalizeQuizExposure,
+  planQuizSession,
+  type QuizQuestionBuildContext,
+  type QuizQuestionKind,
+} from "../utils/quizSessionPlanner";
 import {
   canUseDatabase,
   getVocabQuizWeakWords,
@@ -213,6 +220,13 @@ function normalizeReading(entry: VocabQuizEntry): string {
   return (entry.pinyin || toPinyin(entry.word)).trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+function isForbiddenFutureAnswer(
+  value: string,
+  forbiddenAnswers: ReadonlySet<string>,
+): boolean {
+  return forbiddenAnswers.has(normalizeQuizExposure(value));
+}
+
 /** Dedupes a story's vocabulary (by word, across every scene) down to the
  * entries that have a translation filled in — a question can't be asked
  * about a word the teacher hasn't glossed. When `suggestedAnswers` is given
@@ -283,13 +297,18 @@ function buildTranslationQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
   useAiDistractors = true,
+  forbiddenAnswers: ReadonlySet<string> = new Set(),
 ): VocabQuizTranslationQuestion {
   // Tracked in normalized form so "Restaurant." can never slip in beside
   // "restaurant" as a disguised second correct answer.
   const usedTranslations = new Set([normalizeAnswer(entry.translation)]);
 
   const aiPool = useAiDistractors
-    ? (entry.aiDistractors ?? []).filter((d) => !usedTranslations.has(normalizeAnswer(d)))
+    ? (entry.aiDistractors ?? []).filter(
+        (d) =>
+          !usedTranslations.has(normalizeAnswer(d)) &&
+          !isForbiddenFutureAnswer(d, forbiddenAnswers),
+      )
     : [];
   const aiDistractors = shuffle(aiPool).slice(0, OPTION_COUNT - 1);
   aiDistractors.forEach((d) => usedTranslations.add(normalizeAnswer(d)));
@@ -298,7 +317,10 @@ function buildTranslationQuestion(
     new Set(
       allEntries
         .filter(
-          (e) => e.word !== entry.word && !usedTranslations.has(normalizeAnswer(e.translation)),
+          (e) =>
+            e.word !== entry.word &&
+            !usedTranslations.has(normalizeAnswer(e.translation)) &&
+            !isForbiddenFutureAnswer(e.translation, forbiddenAnswers),
         )
         .map((e) => e.translation),
     ),
@@ -309,7 +331,11 @@ function buildTranslationQuestion(
   );
   realDistractors.forEach((d) => usedTranslations.add(normalizeAnswer(d)));
 
-  const fillerPool = FILLER_DISTRACTORS.filter((word) => !usedTranslations.has(normalizeAnswer(word)));
+  const fillerPool = FILLER_DISTRACTORS.filter(
+    (word) =>
+      !usedTranslations.has(normalizeAnswer(word)) &&
+      !isForbiddenFutureAnswer(word, forbiddenAnswers),
+  );
   const fillerDistractors = shuffle(fillerPool).slice(
     0,
     OPTION_COUNT - 1 - aiDistractors.length - realDistractors.length,
@@ -339,11 +365,14 @@ function buildTranslationQuestion(
 function buildClozeQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
+  forbiddenAnswers: ReadonlySet<string> = new Set(),
 ): VocabQuizClozeQuestion {
   const candidate = shuffle(entry.aiCloze!)[0];
   const usedWords = new Set([entry.word]);
 
-  const aiWordPool = candidate.distractors.filter((d) => !usedWords.has(d));
+  const aiWordPool = candidate.distractors.filter(
+    (d) => !usedWords.has(d) && !isForbiddenFutureAnswer(d, forbiddenAnswers),
+  );
   const aiWordDistractors = shuffle(aiWordPool).slice(0, OPTION_COUNT - 1);
   aiWordDistractors.forEach((d) => usedWords.add(d));
 
@@ -354,6 +383,7 @@ function buildClozeQuestion(
           (e) =>
             e.word !== entry.word &&
             !usedWords.has(e.word) &&
+            !isForbiddenFutureAnswer(e.word, forbiddenAnswers) &&
             // A story word meaning the same thing (高興/開心 both "happy")
             // would fit the blank just as well — a second correct answer.
             normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation),
@@ -392,6 +422,7 @@ function buildPinyinQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
   toneTraps: "primary" | "pad" = "pad",
+  forbiddenAnswers: ReadonlySet<string> = new Set(),
 ): VocabQuizPinyinQuestion {
   const correctPinyin = entry.pinyin || toPinyin(entry.word);
   const usedPinyin = new Set([correctPinyin]);
@@ -401,10 +432,14 @@ function buildPinyinQuestion(
       allEntries
         .filter((e) => e.word !== entry.word)
         .map((e) => e.pinyin || toPinyin(e.word))
-        .filter((p) => p && !usedPinyin.has(p)),
+        .filter(
+          (p) => p && !usedPinyin.has(p) && !isForbiddenFutureAnswer(p, forbiddenAnswers),
+        ),
     ),
   );
-  const trapPool = toneTrapVariants(correctPinyin).filter((p) => !usedPinyin.has(p));
+  const trapPool = toneTrapVariants(correctPinyin).filter(
+    (p) => !usedPinyin.has(p) && !isForbiddenFutureAnswer(p, forbiddenAnswers),
+  );
 
   const distractors: string[] = [];
   const pools = toneTraps === "primary" ? [trapPool, otherWordPool] : [otherWordPool, trapPool];
@@ -437,11 +472,14 @@ function buildReverseQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
   useLookalikes = false,
+  forbiddenAnswers: ReadonlySet<string> = new Set(),
 ): VocabQuizReverseQuestion {
   const usedWords = new Set([entry.word]);
 
   const lookalikePool = useLookalikes
-    ? (entry.aiLookalike ?? []).filter((l) => !usedWords.has(l))
+    ? (entry.aiLookalike ?? []).filter(
+        (l) => !usedWords.has(l) && !isForbiddenFutureAnswer(l, forbiddenAnswers),
+      )
     : [];
   const lookalikeDistractors = shuffle(lookalikePool).slice(0, OPTION_COUNT - 1);
   lookalikeDistractors.forEach((l) => usedWords.add(l));
@@ -453,6 +491,7 @@ function buildReverseQuestion(
           (e) =>
             !usedWords.has(e.word) &&
             e.word !== entry.word &&
+            !isForbiddenFutureAnswer(e.word, forbiddenAnswers) &&
             normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation),
         )
         .map((e) => e.word),
@@ -485,6 +524,7 @@ function buildListeningQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
   useLookalikes = false,
+  forbiddenAnswers: ReadonlySet<string> = new Set(),
 ): VocabQuizListeningQuestion {
   const reading = normalizeReading(entry);
   const usedWords = new Set([entry.word]);
@@ -493,6 +533,7 @@ function buildListeningQuestion(
     ? (entry.aiLookalike ?? []).filter(
         (l) =>
           !usedWords.has(l) &&
+          !isForbiddenFutureAnswer(l, forbiddenAnswers) &&
           toPinyin(l).trim().toLowerCase().replace(/\s+/g, " ") !== reading,
       )
     : [];
@@ -506,6 +547,7 @@ function buildListeningQuestion(
           (e) =>
             !usedWords.has(e.word) &&
             e.word !== entry.word &&
+            !isForbiddenFutureAnswer(e.word, forbiddenAnswers) &&
             normalizeReading(e) !== reading &&
             normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation),
         )
@@ -537,6 +579,7 @@ const FILLER_POS = ["N", "V", "ADJ", "ADV", "MW", "PREP", "CONJ", "PRON"];
 function buildPosQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
+  forbiddenAnswers: ReadonlySet<string> = new Set(),
 ): VocabQuizPosQuestion {
   const correctPos = entry.pos!;
   const usedPos = new Set([correctPos]);
@@ -544,14 +587,22 @@ function buildPosQuestion(
   const realPosPool = Array.from(
     new Set(
       allEntries
-        .filter((e) => e.word !== entry.word && e.pos && !usedPos.has(e.pos))
+        .filter(
+          (e) =>
+            e.word !== entry.word &&
+            e.pos &&
+            !usedPos.has(e.pos) &&
+            !isForbiddenFutureAnswer(e.pos, forbiddenAnswers),
+        )
         .map((e) => e.pos!),
     ),
   );
   const realDistractors = shuffle(realPosPool).slice(0, OPTION_COUNT - 1);
   realDistractors.forEach((p) => usedPos.add(p));
 
-  const fillerPool = FILLER_POS.filter((p) => !usedPos.has(p));
+  const fillerPool = FILLER_POS.filter(
+    (p) => !usedPos.has(p) && !isForbiddenFutureAnswer(p, forbiddenAnswers),
+  );
   const fillerDistractors = shuffle(fillerPool).slice(
     0,
     OPTION_COUNT - 1 - realDistractors.length,
@@ -575,11 +626,14 @@ function buildPosQuestion(
 function buildSynonymQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
+  forbiddenAnswers: ReadonlySet<string> = new Set(),
 ): VocabQuizSynonymQuestion {
   const candidate = shuffle(entry.aiSynonym!)[0];
   const usedWords = new Set([entry.word, candidate.synonym]);
 
-  const aiWordPool = candidate.distractors.filter((d) => !usedWords.has(d));
+  const aiWordPool = candidate.distractors.filter(
+    (d) => !usedWords.has(d) && !isForbiddenFutureAnswer(d, forbiddenAnswers),
+  );
   const aiWordDistractors = shuffle(aiWordPool).slice(0, OPTION_COUNT - 1);
   aiWordDistractors.forEach((d) => usedWords.add(d));
 
@@ -590,6 +644,7 @@ function buildSynonymQuestion(
           (e) =>
             e.word !== entry.word &&
             !usedWords.has(e.word) &&
+            !isForbiddenFutureAnswer(e.word, forbiddenAnswers) &&
             // A story word sharing the target's translation is itself a
             // synonym — a second correct "means the same" answer.
             normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation),
@@ -620,14 +675,7 @@ function buildSynonymQuestion(
 // mixes its own kinds: tier 1 keeps to the direct forms, tiers 2-3 add the
 // harder shapes, and the legacy weights power the free/weak-words rounds.
 // Translation stays dominant throughout, appropriate for A1-A2 learners.
-type QuestionKind =
-  | "translation"
-  | "cloze"
-  | "pinyin"
-  | "pos"
-  | "synonym"
-  | "reverse"
-  | "listening";
+type QuestionKind = QuizQuestionKind;
 
 // Order matters beyond weighting: availability is checked in list order, so
 // tests can force "the last available kind" deterministically.
@@ -676,6 +724,7 @@ function isKindAvailable(
   kind: QuestionKind,
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
+  mode: VocabQuizMode,
 ): boolean {
   switch (kind) {
     case "translation":
@@ -685,9 +734,16 @@ function isKindAvailable(
       // English key word) would produce a question whose answer is empty.
       return Boolean(entry.pinyin || toPinyin(entry.word));
     case "reverse":
-      return allEntries.length >= 2;
+      return (
+        allEntries.length >= 2 ||
+        (tierConfigFromMode(mode)?.tier === 3 && Boolean(entry.aiLookalike?.length))
+      );
     case "listening":
-      return allEntries.length >= 2 && canUseSpeechSynthesis();
+      return (
+        canUseSpeechSynthesis() &&
+        (allEntries.length >= 2 ||
+          (tierConfigFromMode(mode)?.tier === 3 && Boolean(entry.aiLookalike?.length)))
+      );
     case "cloze":
       return Boolean(entry.aiCloze?.length);
     case "pos":
@@ -701,11 +757,15 @@ function pickQuestionKind(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
   mode: VocabQuizMode,
-): QuestionKind {
+  excludedKinds: ReadonlySet<QuestionKind> = new Set(),
+): QuestionKind | null {
   const weights = tierConfigFromMode(mode)
     ? TIER_KIND_WEIGHTS[mode as TierMode]
     : LEGACY_KIND_WEIGHTS;
-  const available = weights.filter(([kind]) => isKindAvailable(kind, entry, allEntries));
+  const available = weights.filter(
+    ([kind]) => !excludedKinds.has(kind) && isKindAvailable(kind, entry, allEntries, mode),
+  );
+  if (available.length === 0) return null;
 
   const total = available.reduce((sum, [, weight]) => sum + weight, 0);
   let roll = Math.random() * total;
@@ -724,27 +784,48 @@ export function buildQuizQuestion(
   entry: VocabQuizEntry,
   allEntries: VocabQuizEntry[],
   mode: VocabQuizMode,
-): VocabQuizQuestion {
+): VocabQuizQuestion;
+export function buildQuizQuestion(
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+  mode: VocabQuizMode,
+  context: QuizQuestionBuildContext,
+): VocabQuizQuestion | null;
+export function buildQuizQuestion(
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+  mode: VocabQuizMode,
+  context?: QuizQuestionBuildContext,
+): VocabQuizQuestion | null {
+  const questionEntries = context?.distractorEntries ?? allEntries;
+  const forbiddenAnswers = context?.forbiddenAnswers ?? new Set<string>();
   const tier = tierConfigFromMode(mode)?.tier ?? null;
-  switch (pickQuestionKind(entry, allEntries, mode)) {
+  const kind = pickQuestionKind(entry, questionEntries, mode, context?.excludedKinds);
+  if (!kind) return null;
+  switch (kind) {
     case "cloze":
-      return buildClozeQuestion(entry, allEntries);
+      return buildClozeQuestion(entry, questionEntries, forbiddenAnswers);
     case "pinyin":
       // Tone traps lead from tier 2 up; tier 1 and legacy modes keep the
       // easy other-words readings first (traps only pad small stories).
-      return buildPinyinQuestion(entry, allEntries, tier !== null && tier >= 2 ? "primary" : "pad");
+      return buildPinyinQuestion(
+        entry,
+        questionEntries,
+        tier !== null && tier >= 2 ? "primary" : "pad",
+        forbiddenAnswers,
+      );
     case "pos":
-      return buildPosQuestion(entry, allEntries);
+      return buildPosQuestion(entry, questionEntries, forbiddenAnswers);
     case "synonym":
-      return buildSynonymQuestion(entry, allEntries);
+      return buildSynonymQuestion(entry, questionEntries, forbiddenAnswers);
     case "reverse":
       // Look-alike traps are tier 3's signature difficulty bump.
-      return buildReverseQuestion(entry, allEntries, tier === 3);
+      return buildReverseQuestion(entry, questionEntries, tier === 3, forbiddenAnswers);
     case "listening":
-      return buildListeningQuestion(entry, allEntries, tier === 3);
+      return buildListeningQuestion(entry, questionEntries, tier === 3, forbiddenAnswers);
     default:
       // Tier 1 keeps its translation options easy — no AI near-miss traps.
-      return buildTranslationQuestion(entry, allEntries, tier !== 1);
+      return buildTranslationQuestion(entry, questionEntries, tier !== 1, forbiddenAnswers);
   }
 }
 
@@ -825,13 +906,15 @@ function QuizScoreTrack({
   correct,
   answered,
   config,
+  totalQuestions,
 }: {
   correct: number;
   answered: number;
   config: TierConfig;
+  totalQuestions: number;
 }) {
-  const max = config.questionCount;
-  const pass = config.passCount;
+  const max = totalQuestions;
+  const pass = effectiveTierPassCount(config, totalQuestions);
   // Best score this run can still finish on: every unanswered question
   // going right. Once that falls under the threshold the star is out of
   // reach for this attempt.
@@ -952,9 +1035,9 @@ export default function StoryVocabQuiz({
   // round to exactly that many questions (a tier's configured count, a
   // missed-words retry = exactly that many missed words).
   const [questionLimit, setQuestionLimit] = useState<number | null>(null);
+  const [requestedQuestionCount, setRequestedQuestionCount] = useState(0);
 
   const [questions, setQuestions] = useState<VocabQuizQuestion[]>([]);
-  const bagRef = useRef<VocabQuizEntry[]>([]);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [results, setResults] = useState<VocabQuizQuestionResult[]>([]);
@@ -1015,11 +1098,6 @@ export default function StoryVocabQuiz({
 
   // Draws the next entry from an endlessly-reshuffled "bag" — every entry is
   // asked once before any repeats, rather than pure random-with-replacement.
-  const drawFromBag = (pool: VocabQuizEntry[]): VocabQuizEntry => {
-    if (bagRef.current.length === 0) bagRef.current = shuffle(pool);
-    return bagRef.current.shift()!;
-  };
-
   // Guards against finishing twice: the countdown ticker can fire several
   // times before React re-renders and tears the interval down (e.g. several
   // ticks land past the total-time cap in the same batch), and without this
@@ -1034,7 +1112,7 @@ export default function StoryVocabQuiz({
       // A passing tier run earns its star on the spot — recorded locally
       // (and implicitly on the backend via the attempt the caller saves in
       // onComplete, which starsFromAttempts re-derives next visit).
-      const earned = attemptEarnsStar(mode, correctCount);
+      const earned = attemptEarnsStar(mode, correctCount, finalResults.length);
       if (earned !== null) {
         if (storyId) recordLocalStars(storyId, earned);
         setStars((current) => (earned > current ? earned : current));
@@ -1088,12 +1166,7 @@ export default function StoryVocabQuiz({
       return;
     }
     questionStartRef.current = Date.now();
-    const nextIndex = index + 1;
-    if (!questions[nextIndex]) {
-      const nextQuestion = buildQuizQuestion(drawFromBag(roundEntries), roundEntries, mode!);
-      setQuestions((qs) => [...qs, nextQuestion]);
-    }
-    setIndex(nextIndex);
+    setIndex(index + 1);
   };
 
   // The overall time cap for timed tiers (tier 3's 150s) — no per-question
@@ -1144,13 +1217,21 @@ export default function StoryVocabQuiz({
     setMode(picked);
     setScreen("quiz");
     setRoundEntries(entriesForRound);
-    setQuestionLimit(limit);
     setIndex(0);
     setSelected(null);
     setResults([]);
     setTimeLeftMs(tierConfigFromMode(picked)?.timeLimitMs ?? 0);
-    bagRef.current = shuffle(entriesForRound);
-    setQuestions([buildQuizQuestion(bagRef.current.shift()!, entriesForRound, picked)]);
+    const requestedCount = limit ?? entriesForRound.length;
+    const plan = planQuizSession(
+      shuffle(entriesForRound),
+      picked,
+      requestedCount,
+      (entry, planMode, context) =>
+        buildQuizQuestion(entry, entriesForRound, planMode, context),
+    );
+    setQuestions(plan.questions);
+    setQuestionLimit(plan.questions.length);
+    setRequestedQuestionCount(requestedCount);
     quizStartRef.current = Date.now();
     questionStartRef.current = Date.now();
     finishedRef.current = false;
@@ -1333,8 +1414,8 @@ export default function StoryVocabQuiz({
     // more right answers it needed. Retry-round (missed-words drill)
     // summaries stay plain.
     const tierConfig = !isRetryRound ? tierConfigFromMode(mode) : null;
-    const passed = tierConfig !== null && correctCount >= tierConfig.passCount;
-    const gap = tierConfig !== null ? nextStarGap(mode, correctCount)! : null;
+    const passed = attemptEarnsStar(mode, correctCount, results.length) !== null;
+    const gap = tierConfig !== null ? nextStarGap(mode, correctCount, results.length)! : null;
     const nextTierCard =
       tierConfig && passed && tierConfig.tier < 3
         ? TIER_CARDS.find((c) => TIER_CONFIGS[c.mode].tier === tierConfig.tier + 1)!
@@ -1565,11 +1646,21 @@ export default function StoryVocabQuiz({
             <BiLabel zh={`第 ${index + 1} 題`} pinyin={`Dì ${index + 1} tí`} en={`Question ${index + 1}`} />
           )}
         </p>
+        {questionLimit !== null && requestedQuestionCount > questionLimit && index === 0 && (
+          <p className="vocab-quiz-unique-note">
+            <BiLabel
+              zh={`這一輪有 ${questionLimit} 題不重複的題目。`}
+              pinyin={`Zhè yì lún yǒu ${questionLimit} tí bù chóngfù de tímù.`}
+              en={`${questionLimit} unique questions are available for this round.`}
+            />
+          </p>
+        )}
         {!isRetryRound && tierConfigFromMode(mode) && (
           <QuizScoreTrack
             correct={results.filter((r) => r.correct).length}
             answered={results.length}
             config={tierConfigFromMode(mode)!}
+            totalQuestions={questionLimit ?? tierConfigFromMode(mode)!.questionCount}
           />
         )}
         {timeLimitMs !== null && (

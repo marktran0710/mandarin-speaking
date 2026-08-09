@@ -57,6 +57,7 @@ import {
   type MaterialSnapshotEntry,
 } from "../utils/quizMaterialDiff";
 import { buildApprovedMaterial, buildApprovedMaterialFromApprovals } from "../utils/quizApprovedMaterial";
+import { protectGeneratedQuizMaterial } from "../utils/quizGenerationGate";
 import {
   isApproved,
   storyPendingApprovals,
@@ -898,6 +899,7 @@ export default function TeacherQuizReviewPage({
   const [editStatus, setEditStatus] = useState<"idle" | "saving" | "error">("idle");
   const [pendingCandidatesByStory, setPendingCandidatesByStory] = useState<Record<string, PendingCandidate[]>>({});
   const [revealedCountByStory, setRevealedCountByStory] = useState<Record<string, number>>({});
+  const [generationGateNoteByStory, setGenerationGateNoteByStory] = useState<Record<string, string>>({});
   const [generateStatusByStory, setGenerateStatusByStory] = useState<
     Record<string, "idle" | "generating" | "revealing" | "applying" | "error">
   >({});
@@ -1258,6 +1260,7 @@ export default function TeacherQuizReviewPage({
    * words still qualify). */
   const onGenerate = async (story: CustomTeacherStory, topic: ReturnType<typeof storyToTopic>) => {
     const storyId = story.id;
+    setGenerationGateNoteByStory((prev) => ({ ...prev, [storyId]: "" }));
     setGenerateStatusByStory((prev) => ({ ...prev, [storyId]: "generating" }));
     try {
       const lookalikeTopic = topic as unknown as Parameters<typeof planLookalikeGrowth>[0];
@@ -1289,10 +1292,10 @@ export default function TeacherQuizReviewPage({
         list.map((c) => ({ word: c.word, translation: c.translation, context: c.context, avoid: c.existing }));
 
       const [
-        distractorResults,
-        clozeResults,
-        synonymResults,
-        lookalikeResults,
+        rawDistractorResults,
+        rawClozeResults,
+        rawSynonymResults,
+        rawLookalikeResults,
         changedDistractorResults,
         changedClozeResults,
         changedSynonymResults,
@@ -1327,6 +1330,31 @@ export default function TeacherQuizReviewPage({
           }),
         ),
       ]);
+
+      const vocabulary = topic.images.flatMap((_, frameIndex) =>
+        (topic.vocabulary[frameIndex] ?? []).map((word, wordIndex) => ({
+          word,
+          translation: topic.vocabularyTranslation?.[frameIndex]?.[wordIndex] ?? "",
+        })),
+      );
+      const protectedMaterial = protectGeneratedQuizMaterial(vocabulary, {
+        distractors: rawDistractorResults,
+        cloze: rawClozeResults,
+        synonym: rawSynonymResults,
+        lookalike: rawLookalikeResults,
+      });
+      const {
+        distractors: distractorResults,
+        cloze: clozeResults,
+        synonym: synonymResults,
+        lookalike: lookalikeResults,
+      } = protectedMaterial;
+      if (protectedMaterial.removedCount > 0) {
+        setGenerationGateNoteByStory((prev) => ({
+          ...prev,
+          [storyId]: `${protectedMaterial.removedCount} duplicate or answer-leaking generated value${protectedMaterial.removedCount === 1 ? " was" : "s were"} removed before review.`,
+        }));
+      }
 
       const pending: PendingCandidate[] = [];
       for (const u of buildDistractorPatchUpdates(distractorCandidates, distractorResults)) {
@@ -1991,6 +2019,11 @@ export default function TeacherQuizReviewPage({
                     </div>
                   </header>
                   {importNote && <p className="tqr-import-note" role="status">{importNote}</p>}
+                  {generationGateNoteByStory[story.id] && (
+                    <p className="tqr-import-note" role="status">
+                      {generationGateNoteByStory[story.id]}
+                    </p>
+                  )}
 
                   {generateStatus === "generating" && (
                     <div className="tqr-generate-spinner" role="status">
