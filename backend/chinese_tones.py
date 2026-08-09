@@ -468,66 +468,139 @@ def directional_tone_scores_with_provenance(
     scores: List[float] = []
     provenance: List[str] = []
     for i, tone in enumerate(tones_s):
-        if windows is not None:
-            start_idx, end_idx = windows[i]
-        else:
-            start_idx = i * syl_len
-            end_idx = start_idx + syl_len if i < n - 1 else len(user_pitch)
-        seg = user_pitch[start_idx:end_idx]
-
-        if len(seg) < 4:
-            # NOT a measurement. Kept because the legacy pass gate depends on
-            # it (65 > 58, so an unmeasurable syllable currently passes), and
-            # labelled so the diagnostic layer can refuse to use it.
-            scores.append(65.0)  # too short to judge; give benefit of the doubt
-            provenance.append("constant_short_segment")
-            continue
-
-        q = max(1, len(seg) // 4)  # quarter-length for regional means
-
-        s_mean = float(np.mean(seg[:q]))         # start-region mean
-        e_mean = float(np.mean(seg[-q:]))        # end-region mean
-        mid_seg = seg[q: len(seg) - q]           # middle 50 %
-        mid_min = float(np.min(mid_seg)) if len(mid_seg) else float(np.min(seg))
-        variance = float(np.var(seg))
-
-        if tone == 1:
-            # Flat: low intra-syllable variance.
-            # variance=0 → 100, variance≥0.12 → 0
-            score = max(0.0, 1.0 - variance / 0.12) * 100.0
-            provenance.append("measured")
-
-        elif tone == 2:
-            # Rising: end-region above start-region.
-            # rise=+0.5 → 100, rise=0 → 50, rise=-0.5 → 0
-            rise = e_mean - s_mean
-            score = max(0.0, min(1.0, (rise + 0.5) / 1.0)) * 100.0
-            provenance.append("measured")
-
-        elif tone == 4:
-            # Falling: start-region above end-region.
-            fall = s_mean - e_mean
-            score = max(0.0, min(1.0, (fall + 0.5) / 1.0)) * 100.0
-            provenance.append("measured")
-
-        elif tone == 3:
-            # Dip: midpoint below the average of start and end regions.
-            # dip_depth=+0.4 (deep V) → 100, dip_depth=0 (flat) → 45, negative → low
-            avg_endpoints = (s_mean + e_mean) / 2.0
-            dip_depth = avg_endpoints - mid_min
-            score = max(0.0, min(1.0, (dip_depth + 0.25) / 0.55)) * 100.0
-            provenance.append("measured")
-
-        else:
-            # Neutral tone 5: short and light; no fixed pitch shape to grade.
-            # Also NOT a measurement — there is no neutral-tone evaluator, so
-            # this constant says nothing about how the learner spoke.
-            score = 75.0
-            provenance.append("neutral_not_measured")
-
+        seg = user_pitch[slice(*_window_for(i, n, syl_len, len(user_pitch), windows))]
+        score, source = _score_segment(seg, tone)
         scores.append(score)
+        provenance.append(source)
 
     return scores, provenance
+
+
+def contextual_tone_scores(
+    pitch_contour: List[Tuple[float, float]],
+    accepted_tones: List[Tuple[int, ...]],
+    syllable_windows: List[Tuple[int, int]] | None = None,
+) -> List[Tuple[float, int, str]]:
+    """Score each syllable against every tone it is *allowed* to surface as.
+
+    ``accepted_tones`` gives one tuple of candidate tones per syllable, as
+    produced by ``tone_context.plan_expected_tones``. A syllable with two
+    acceptable realizations (這個's 個 as T4 or neutral) is credited with
+    whichever matches better — realizing any accepted form is not an error.
+
+    Deliberately does NOT apply ``apply_tone_sandhi``: the contextual layer has
+    already decided what the surface targets are, and running the legacy rule
+    over them again would rewrite those decisions.
+
+    Returns ``[(score, matched_tone, provenance), ...]``. A real measurement is
+    preferred over a placeholder constant even when the constant is
+    numerically higher, since 75 for neutral tone is not evidence of anything.
+
+    Windowing is shared with the legacy scorer via ``_window_for`` so the two
+    always look at the same audio.
+    """
+    user_pitch = normalize_pitch_contour(pitch_contour)
+    if len(user_pitch) == 0 or not accepted_tones:
+        return []
+
+    user_pitch = _smooth_for_directional_scoring(user_pitch)
+    n = len(accepted_tones)
+    syl_len = max(1, len(user_pitch) // n)
+    windows = (
+        syllable_windows
+        if syllable_windows and len(syllable_windows) == n
+        else None
+    )
+
+    results: List[Tuple[float, int, str]] = []
+    for i, candidates in enumerate(accepted_tones):
+        seg = user_pitch[slice(*_window_for(i, n, syl_len, len(user_pitch), windows))]
+        best: Tuple[float, int, str] | None = None
+        for tone in candidates or ():
+            score, source = _score_segment(seg, tone)
+            if best is None:
+                best = (score, tone, source)
+                continue
+            measured_now = source == "measured"
+            measured_best = best[2] == "measured"
+            if (measured_now and not measured_best) or (
+                measured_now == measured_best and score > best[0]
+            ):
+                best = (score, tone, source)
+        results.append(best if best is not None else (0.0, 0, "not_scored"))
+    return results
+
+
+def _window_for(
+    index: int,
+    count: int,
+    syl_len: int,
+    total: int,
+    windows: List[Tuple[int, int]] | None,
+) -> Tuple[int, int]:
+    """The (start, end) frame range one syllable is scored over.
+
+    Extracted so the contextual scorer below splits the contour *exactly* the
+    way the legacy one does. Getting this subtly wrong is not hypothetical: an
+    earlier version scored one syllable at a time by passing a single-element
+    tone list, which made the equal-split fallback treat the whole word as one
+    syllable and hand every syllable in it the same score.
+    """
+    if windows is not None:
+        return windows[index]
+    start = index * syl_len
+    end = start + syl_len if index < count - 1 else total
+    return start, end
+
+
+def _score_segment(seg: np.ndarray, tone: int) -> Tuple[float, str]:
+    """Directional score for one syllable, with where the number came from.
+
+    The single implementation behind both the legacy scorer and the contextual
+    one, so the two can never drift apart.
+    """
+
+    if len(seg) < 4:
+        # NOT a measurement. Kept because the legacy pass gate depends on it
+        # (65 > 58, so an unmeasurable syllable currently passes), and
+        # labelled so the diagnostic layer can refuse to use it.
+        return 65.0, "constant_short_segment"  # too short to judge
+
+    q = max(1, len(seg) // 4)  # quarter-length for regional means
+
+    s_mean = float(np.mean(seg[:q]))         # start-region mean
+    e_mean = float(np.mean(seg[-q:]))        # end-region mean
+    mid_seg = seg[q: len(seg) - q]           # middle 50 %
+    mid_min = float(np.min(mid_seg)) if len(mid_seg) else float(np.min(seg))
+    variance = float(np.var(seg))
+
+    if tone == 1:
+        # Flat: low intra-syllable variance.
+        # variance=0 → 100, variance≥0.12 → 0
+        return max(0.0, 1.0 - variance / 0.12) * 100.0, "measured"
+
+    if tone == 2:
+        # Rising: end-region above start-region.
+        # rise=+0.5 → 100, rise=0 → 50, rise=-0.5 → 0
+        rise = e_mean - s_mean
+        return max(0.0, min(1.0, (rise + 0.5) / 1.0)) * 100.0, "measured"
+
+    if tone == 4:
+        # Falling: start-region above end-region.
+        fall = s_mean - e_mean
+        return max(0.0, min(1.0, (fall + 0.5) / 1.0)) * 100.0, "measured"
+
+    if tone == 3:
+        # Dip: midpoint below the average of start and end regions.
+        # dip_depth=+0.4 (deep V) → 100, dip_depth=0 (flat) → 45, negative → low
+        avg_endpoints = (s_mean + e_mean) / 2.0
+        dip_depth = avg_endpoints - mid_min
+        return max(0.0, min(1.0, (dip_depth + 0.25) / 0.55)) * 100.0, "measured"
+
+    # Neutral tone 5: short and light; no fixed pitch shape to grade. NOT a
+    # measurement — there is no neutral-tone evaluator, so this constant says
+    # nothing about how the learner spoke.
+    return 75.0, "neutral_not_measured"
 
 
 def calculate_directional_tone_accuracy(
