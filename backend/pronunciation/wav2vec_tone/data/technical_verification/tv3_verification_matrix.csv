@@ -1,0 +1,66 @@
+test_id,category,input,expected_behaviour,observed_behaviour,result,severity,notes
+TV3_001,artifact identity,fitted_model_sha256 is unchanged from TV2,0dcee1d87c69c5b2586fa961,0dcee1d87c69c5b2586fa961,PASS,,
+TV3_002,artifact identity,frozen system configuration hash unchanged,8101bcaf8c92e1e3,8101bcaf8c92e1e3,PASS,,
+TV3_003,feature schema,feature schema hash unchanged,c3a204cdb96c7531,c3a204cdb96c7531,PASS,,
+TV3_004,artifact identity,trajectory configuration hash unchanged,20 points / 60-500 Hz / 5 ms,20 points / 60.0-500.0 Hz / 0.005 s,PASS,,
+TV3_005,policy,threshold and tone gate unchanged,"t_pass 0.42274, tones 2/3/4","t_pass 0.42274, tones ['2', '3', '4']",PASS,,
+TV3_006,artifact identity,policy hash unchanged,cc4aa4ef797f752b,cc4aa4ef797f752b,PASS,,
+TV3_007,study audio contract,both implementations declare the same spec,STUDY_PCM16K_v1,STUDY_PCM16K_v1,PASS,,
+TV3_008,study audio contract,TypeScript and Python conversions agree on every vector,max |delta| <= 1e-12,max |delta| = 1.110e-16 (from_48k),PASS,,"browser and backend cannot drift: one spec, two checked implementations"
+TV3_009,study audio contract,quantised PCM is byte-identical across languages,0 differing samples,0 differing,PASS,,
+TV3_010,study audio contract,conversion preserves duration (no header relabelling),< 0.1 ms drift,worst 0.0000 ms,PASS,,capturing 48 kHz and relabelling the bytes 16 kHz would show here as a 3x duration error
+TV3_011,study audio contract,the frame count really changes on conversion,9600 in -> 3200 out at 0.1 s,4800 -> 1600,PASS,,
+TV3_012,study audio contract,the study WAV declares 16 kHz mono,16000,16000,PASS,,
+TV3_013,study audio contract,16 kHz capture passes through unfiltered (identity rule),only 16-bit quantisation error,max |delta| = 2.40e-05,PASS,,no second resampling stage for on-contract capture
+TV3_014,study audio contract,the backend performs no second resampling,resampled == False under strict_native,"source 16000 Hz, resampled False, profile strict_native",PASS,,
+TV3_015,study audio contract,fixture set covers all four tones and failures,T1-T4 + silence + very short + technical failure,"7 fixtures: ['synthetic_contour', 'synthetic_contour', 'synthetic_contour', 'synthetic_contour', 'trajectory_failure', 'very_short', 'technical_failure']",PASS,,
+TV3_016,study audio contract,every fixture is marked PREFLIGHT_ONLY,all marked,7/7,PASS,,these are technical fixtures and may never enter human-validation analysis
+TV3_017,study audio contract,every fixture carries the study PCM spec,STUDY_PCM16K_v1,{'STUDY_PCM16K_v1'},PASS,,
+TV3_018,study audio contract,the study path preserves token duration,< 0.5 ms,worst 0.0000 ms,PASS,,
+TV3_019,study audio contract,no catastrophic trajectory distortion,< 3 ST,worst 0.5465 ST,PASS,,identity is not required; gross ingest damage is what this detects
+TV3_020,ingest sensitivity,study ingest verdict agreement against a hypothetical 16 kHz capture,measured and reported,11/12 verdicts agree; worst score delta 0.06477; flipped: ['REF_00100114_04'],DIAGNOSTIC,INFO,"the round trip upsamples a 16 kHz token to 48 kHz to simulate capture, which real 48 kHz capture would not do; residual flips land on short-voiced-span tokens, the TV2 mechanism"
+TV3_021,short-token stability,80 ms tokens: study ingest preserves the verdict,0 decision changes,"0/6 changed, worst delta 0.00000",PASS,,no new duration threshold was added; this only measures whether the ingest path is stable at short durations
+TV3_022,short-token stability,100 ms tokens: study ingest preserves the verdict,0 decision changes,"0/6 changed, worst delta 0.00000",PASS,,no new duration threshold was added; this only measures whether the ingest path is stable at short durations
+TV3_023,short-token stability,150 ms tokens: study ingest preserves the verdict,0 decision changes,"0/4 changed, worst delta 0.00001",PASS,,no new duration threshold was added; this only measures whether the ingest path is stable at short durations
+TV3_024,short-token stability,200 ms tokens: study ingest preserves the verdict,0 decision changes,"0/2 changed, worst delta 0.00000",PASS,,no new duration threshold was added; this only measures whether the ingest path is stable at short durations
+TV3_025,API integration,the canonical route is mounted and healthy,200 with the TV2 fitted hash,200 / 0dcee1d87c69c5b2,PASS,,
+TV3_026,API integration,every response carries exactly the allowed fields,"{decision, message, technical_retry}",0 deviating: [],PASS,,
+TV3_027,API integration,every decision is PASS or RETRY,PASS/RETRY only,0 deviating,PASS,,
+TV3_028,privacy,every message is one of the three frozen strings,3 allowed strings,0 deviating: [],PASS,,
+TV3_029,privacy,no response contains a forbidden term,clean,clean,PASS,,
+TV3_030,privacy,no digit appears in any response,no digits,clean,PASS,,
+TV3_031,policy,T1 can never PASS through the complete browser/API stack,0 PASS,0 of 2 T1 cases passed,PASS,,"verified end to end, not only at the policy function"
+TV3_032,fail-safe,a forced trajectory failure returns RETRY through the whole stack,RETRY,RETRY,PASS,,
+TV3_033,fail-safe,"trajectory failure reads as technical, not as an error","technical_retry true, neutral message",technical_retry=False,PASS,,
+TV3_034,fail-safe,0 unsafe PASS across every degraded input,0,0 of 9: [],PASS,,
+TV3_035,legacy-route isolation,study mode is active for this run,enabled,True,PASS,,
+TV3_036,legacy-route isolation,every legacy pronunciation route is disabled in study mode,503 for all,"{'/api/analyze': 503, '/api/analyze/stream': 503, '/api/benchmark/ompal/status': 503}",PASS,,OPTION A: the legacy engine is unavailable rather than rewired
+TV3_037,legacy-route isolation,the block response carries no tone judgement,no score or detected tone,clean,PASS,,
+TV3_038,legacy-route isolation,exactly one pronunciation engine is reachable,one canonical route family,"['/api/pronunciation/tone-attempt', '/api/pronunciation/tone-attempt/health']",PASS,,
+TV3_039,artifact identity,all startup integrity checks pass,8 checks,8/8,PASS,,
+TV3_040,artifact identity,tampered fitted model hash refuses service,ContractViolation,refused,PASS,,
+TV3_041,artifact identity,tampered feature schema hash refuses service,ContractViolation,refused,PASS,,
+TV3_042,artifact identity,tampered policy hash refuses service,ContractViolation,refused,PASS,,
+TV3_043,API integration,health endpoint reports the contract versions,OMPAL_R2_PASS_v1 / OMPAL_R2_PASS_v1.1 / OMPAL_AUDIO_CONTRACT_v1,OMPAL_AUDIO_CONTRACT_v1,PASS,,
+TV3_044,metamorphic,lossless_wav_rewrite: within pre-registered tolerance,<= 1e-09 ST / 1e-09,"worst 0.000000 ST, 0.000000 score",PASS,,
+TV3_045,metamorphic,lossless_wav_rewrite: decision preserved,identical,6/6,PASS,,
+TV3_046,metamorphic,amplitude_x0.8: within pre-registered tolerance,<= 0.05 ST / 0.01,"worst 0.000000 ST, 0.000000 score",PASS,,
+TV3_047,metamorphic,amplitude_x0.8: decision preserved,identical,6/6,PASS,,
+TV3_048,metamorphic,amplitude_x1.2: within pre-registered tolerance,<= 0.05 ST / 0.01,"worst 0.000000 ST, 0.000000 score",PASS,,
+TV3_049,metamorphic,amplitude_x1.2: decision preserved,identical,6/6,PASS,,
+TV3_050,metamorphic,study_capture_roundtrip: within pre-registered tolerance,<= 1.5 ST / 0.1,"worst 0.000119 ST, 0.000006 score",PASS,,
+TV3_051,metamorphic,study_capture_roundtrip: decision preserved,identical,6/6,PASS,,
+TV3_052,restart,restarted application loads the identical fitted hash,0dcee1d87c69c5b2,0dcee1d87c69c5b2,PASS,,
+TV3_053,restart,0 decision disagreement across a backend restart,0,0,PASS,,
+TV3_054,stress,300 API requests complete,"0 HTTP failures, 0 exceptions","0 HTTP failures, 0 exceptions",PASS,,
+TV3_055,stress,no decision instability under API load,0,0,PASS,,
+TV3_056,stress,fitted model hash unchanged after the stress run,0dcee1d87c69c5b2,0dcee1d87c69c5b2,PASS,,
+TV3_057,stress,"latency reported, not used as a pass criterion",reported,"median 12.7 ms, p95 29.8 ms",PASS,,"in-process API request latency over a pre-recorded WAV on disk; excludes microphone capture, browser conversion and network transfer, so it is NOT an end-user latency estimate"
+TV3_058,frozen-scientific equivalence,train: 1424 tokens reproduce after TV3 changes,max |delta| <= 1e-12,max |delta| = 3.331e-16,PASS,,
+TV3_059,frozen-scientific equivalence,train: 0 PASS/RETRY disagreements,0,0,PASS,,
+TV3_060,frozen-scientific equivalence,dev: 322 tokens reproduce after TV3 changes,max |delta| <= 1e-12,max |delta| = 2.220e-16,PASS,,
+TV3_061,frozen-scientific equivalence,dev: 0 PASS/RETRY disagreements,0,0,PASS,,
+TV3_062,frozen-scientific equivalence,the persisted bundle file is unchanged,frozen_inference_bundle.npz,b5c21089a6c85eb7,PASS,,
+TV3_063,artifact identity,independent seal verifier reports SEALED,exit 0,exit 0,PASS,,
+TV3_064,artifact identity,no Test row in the feature cache,0,0,PASS,,
+TV3_065,artifact identity,TV3 fixtures and reference set exclude Test,0 overlap,0,PASS,,

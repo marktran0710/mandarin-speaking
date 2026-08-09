@@ -1,0 +1,107 @@
+test_id,category,input,expected_behaviour,observed_behaviour,result,severity,notes
+TV2_001,frozen-scientific equivalence,"source sample rate measured from the corpus, not assumed",single observed rate,[16000] Hz across 314 utterances,PASS,,"no file was missing; the rate is measured, not taken from the manifest"
+TV2_002,frozen-scientific equivalence,manifest sample_rate column agrees with the measured source rate,16000 everywhere,['16000'],PASS,,
+TV2_003,silence/boundary contract,token boundary policy is single-valued,original_0ms,['original_0ms'],PASS,,"tokens are cut exactly at forced-alignment boundaries, no padding"
+TV2_004,silence/boundary contract,one aligner produced every token,torchaudio MMS_FA,['torchaudio MMS_FA CTC forced alignment (with_star=True)'],PASS,,
+TV2_005,frozen-scientific equivalence,"training loader resamples with resample_poly, not linear interpolation",scipy.signal.resample_poly present in the R2-lineage loader,True,PASS,,"extract_embeddings.load_audio_16k_mono uses np.interp but feeds the wav2vec path, not the R2/Praat path"
+TV2_006,frozen-scientific equivalence,train: persisted bundle reproduces refit scores (1424 tokens),max |delta| <= 1e-12,max |delta| = 3.331e-16,PASS,,
+TV2_007,frozen-scientific equivalence,train: 0 PASS/RETRY disagreements,0,0,PASS,,
+TV2_008,frozen-scientific equivalence,persisted coefficients equal the refit coefficients,max |delta| <= 1e-12,"coef 0.000e+00, intercept 0.000e+00",PASS,,
+TV2_009,frozen-scientific equivalence,dev: persisted bundle reproduces refit scores (322 tokens),max |delta| <= 1e-12,max |delta| = 2.220e-16,PASS,,
+TV2_010,frozen-scientific equivalence,dev: 0 PASS/RETRY disagreements,0,0,PASS,,
+TV2_011,frozen-scientific equivalence,feature column names and order are identical to the frozen design,83 columns,"83 columns, first mismatch: none",PASS,,
+TV2_012,artifact identity,fitted_model_sha256 differs from model_config_sha256,two distinct hashes,fitted 0dcee1d87c69c5b2 / config cd911b6e67b28c41,PASS,,"the config hash covers only {C, class_weight, points} and is retained under its honest name"
+TV2_013,artifact identity,fitted hash recomputes from the persisted bundle,0dcee1d87c69c5b2,0dcee1d87c69c5b2,PASS,,
+TV2_014,artifact identity,every bound quantity changes the fitted hash,5/5 perturbations move the hash,5/5 moved (all moved),PASS,,
+TV2_015,artifact identity,changing t_pass changes the fitted hash,hash moves,moved,PASS,,
+TV2_016,artifact identity,bundle npz content hash recorded and matching,b5c21089a6c85eb7,b5c21089a6c85eb7,PASS,,
+TV2_017,artifact identity,deployment version is distinct from the scientific version,OMPAL_R2_PASS_v1 vs OMPAL_R2_PASS_v1.1,OMPAL_R2_PASS_v1 / OMPAL_R2_PASS_v1.1,PASS,,the frozen scientific artefact was not overwritten
+TV2_018,artifact identity,all startup integrity checks pass on a clean bundle,8 checks,8/8 pass,PASS,,
+TV2_019,artifact identity,tampered fitted hash makes startup fail closed,ContractViolation raised,refused,PASS,,
+TV2_020,artifact identity,tampered system hash makes startup fail closed,ContractViolation raised,refused,PASS,,
+TV2_021,artifact identity,tampered policy hash makes startup fail closed,ContractViolation raised,refused,PASS,,
+TV2_022,artifact identity,tampered feature schema hash makes startup fail closed,ContractViolation raised,refused,PASS,,
+TV2_023,artifact identity,tampered bundle npz hash makes startup fail closed,ContractViolation raised,refused,PASS,,
+TV2_024,feature schema,a reordered feature schema makes startup fail closed,ContractViolation raised,refused,PASS,,
+TV2_025,policy,the serving path imports the frozen decision function,"decide() imported, not reimplemented",import present,PASS,,
+TV2_026,policy,no executable threshold comparison exists outside the frozen policy,0 independent comparisons in the serving module,0 found: [],PASS,,AST scan for Compare nodes referencing t_pass; the only comparison lives in the imported frozen decide()
+TV2_027,policy,the HTTP layer contains no scientific logic,"no threshold, score or model reference",clean,PASS,,
+TV2_028,policy,derivation pass_mask() still agrees with serving decide(),0 disagreements,0 disagreements,PASS,,
+TV2_029,policy,the bundle carries the exact frozen threshold,0.42274,0.42274,PASS,,
+TV2_030,sample-rate handling,"TV-F1 root cause fixed: the declared rate is read, not discarded",every off-rate input reports its true source rate,36/36 detected,PASS,,the defect was sf.read's rate being thrown away at every call site
+TV2_031,sample-rate handling,strict profile refuses every non-native rate,all >= 16 kHz resampled inputs refused,24/24 refused with sample_rate_not_native,PASS,,the frozen model was fitted only on natively-16 kHz audio
+TV2_032,sample-rate handling,sources below 16 kHz are refused in both profiles,all 12 8 kHz cases refused,12/12 refused with sample_rate_below_contract,PASS,,upsampling cannot restore the band the model was fitted on
+TV2_033,sample-rate handling,native 16 kHz input is untouched by the rate gate,"0 refusals, 0 resampling","0 refused, 0 resampled",PASS,,the strict profile costs nothing for contract-compliant capture
+TV2_034,sample-rate handling,permissive-profile residual instability is measured and disclosed,"reported, not absorbed",2/24 verdicts differ after canonicalisation; worst score delta 0.064919,DIAGNOSTIC,INFO,resampling is not lossless for short tokens; a 100 ms token with an 11-frame voiced span moved 0.408 -> 0.473 and crossed t_pass. Same voiced-span mechanism as TV-F2.
+TV2_035,silence/boundary contract,contract bound is derived from the frozen training distribution,"token duration envelope measured, not invented",60-982 ms,PASS,,"Train/Dev tokens carry up to 300 ms of leading unvoiced material, so leading silence cannot be the discriminator"
+TV2_036,silence/boundary contract,padded audio never turns a RETRY into a PASS,0 upgrades to PASS,0 upgrades,PASS,,padding remains outside the contract; the requirement is that it cannot manufacture a confirmation
+TV2_037,silence/boundary contract,residual padding sensitivity is measured and bounded,"reported, bounded by contract enforcement",1/12 decisions differ under out-of-contract padding,DIAGNOSTIC,INFO,not required to hold: padded audio violates the segmentation contract and must be produced by the aligner instead
+TV2_038,silence/boundary contract,the aligner needs process isolation to run safely,documented operational constraint,torch segfaults (0xC0000005) when loaded after scipy/sklearn/parselmouth; the child runs with KMP_DUPLICATE_LIB_OK=TRUE,DIAGNOSTIC,INFO,"segmentation must be a separate process or worker in deployment, not an in-request import"
+TV2_039,silence/boundary contract,deployment segmentation reproduces the frozen manifest boundaries,< 10 ms from the recorded span,"00100114_00: start delta 0.0 ms, end delta 0.0 ms",PASS,,"same aligner, same romanisation, same original_0ms rounding"
+TV2_040,silence/boundary contract,30 ms token is refused by the duration envelope,"RETRY, not scored",RETRY (token_duration_out_of_contract),PASS,,
+TV2_041,silence/boundary contract,oversized token is refused by the duration envelope,"RETRY, not scored",RETRY (token_duration_out_of_contract),PASS,,
+TV2_042,expected-tone validation,documented valid tone labels are accepted,all normalise to the frozen internal label,"{'1': '1', '2': '2', '3': '3', '4': '4'}",PASS,,
+TV2_043,expected-tone validation,every invalid expected tone is rejected before feature construction,0 accepted,0 leaked: [],PASS,,TV-F3 fix: an int no longer reaches design() and is no longer scored through the T1 reference branch
+TV2_044,expected-tone validation,invalid expected tone 2 yields a safe RETRY,RETRY / invalid_expected_tone,RETRY / invalid_expected_tone,PASS,,
+TV2_045,expected-tone validation,invalid expected tone None yields a safe RETRY,RETRY / invalid_expected_tone,RETRY / invalid_expected_tone,PASS,,
+TV2_046,expected-tone validation,invalid expected tone '5' yields a safe RETRY,RETRY / invalid_expected_tone,RETRY / invalid_expected_tone,PASS,,
+TV2_047,expected-tone validation,invalid expected tone 2.0 yields a safe RETRY,RETRY / invalid_expected_tone,RETRY / invalid_expected_tone,PASS,,
+TV2_048,expected-tone validation,validation changes no valid input's score,max |delta| == 0,max |delta| = 0.000e+00,PASS,,'T2' and '2' route to the identical frozen label
+TV2_049,legacy-route isolation,"routers/tones.py returns reference data only, no judgement",no scoring or verdict,clean,PASS,,two GET endpoints serving static reference contours
+TV2_050,legacy-route isolation,no second engine emits a learner-facing pronunciation verdict,no competing judgement path,"praat_analyzer.py emits tone_accuracy=True, detected_tone=True, mismatch_diagnosis=True",FAIL,BLOCKING,praat_analyzer.py is the live story-recording analyser; it is a separate product surface but it does emit the semantics the frozen policy forbids
+TV2_051,legacy-route isolation,the frozen tone-confirmation router is NOT mounted in main.py,not exposed,not mounted,PASS,,mounting is the act that exposes the system; it stays unmounted until the human-validation gate clears
+TV2_052,legacy-route isolation,frozen inference callers are enumerated,known caller set,"deployment_api.py, deployment_inference.py, verify_deployment_inference.py",DIAGNOSTIC,INFO,
+TV2_053,audio decoding,"the frontend recording format is documented, not assumed",read from the frontend source,MediaRecorder mimeType audio/webm,PASS,,
+TV2_054,audio decoding,the backend can decode the format the browser actually produces,WebM decodable by the ingest layer,libsndfile formats include WEBM: False; ffmpeg on PATH: False,FAIL,BLOCKING,without a WebM decoder the production upload cannot reach the model
+TV2_055,audio decoding,Ogg/Opus 48 kHz decodes and is canonicalised to 16 kHz,all fixtures scored at 16 kHz,4/4 resampled from 48 kHz,PASS,,
+TV2_056,audio decoding,lossy browser-style encoding preserves the verdict (permissive profile),0 decision changes,0/4 changed,PASS,,Opus is lossy; this bounds the codec's effect on the decision
+TV2_057,audio decoding,the strict profile refuses browser-rate uploads outright,sample_rate_not_native for every 48 kHz fixture,4/4 refused,PASS,,the study client must capture natively at 16 kHz; this is the measurable consequence of that requirement
+TV2_058,API integration,every API response exposes only status and message,"{status, message}",0 deviating: [],PASS,,
+TV2_059,API integration,every API response status is PASS or RETRY,PASS/RETRY only,0 deviating: [],PASS,,
+TV2_060,API integration,"failures return an ordinary RETRY, not an HTTP error",200 for every case,0 non-200: [],PASS,,a 4xx/5xx would tell the learner a technical failure occurred
+TV2_061,privacy,no API response contains a forbidden term,clean,clean,PASS,,
+TV2_062,privacy,no digit appears in any API response,no digits,clean,PASS,,
+TV2_063,logging,the research log retains the internal score server-side,raw_score present in the server log,raw_score=None,PASS,,the score exists for analysis but never crosses the HTTP boundary
+TV2_064,logging,the research log carries every required field,14 fields,missing: none,PASS,,
+TV2_065,silence/boundary contract,amplitude_x0.8: within pre-registered tolerance,<= 0.05 ST / 0.01 score,"worst 0.000000 ST, 0.000000 score",PASS,,
+TV2_066,silence/boundary contract,amplitude_x0.8: decision preserved,identical decisions,6/6,PASS,,
+TV2_067,silence/boundary contract,amplitude_x1.2: within pre-registered tolerance,<= 0.05 ST / 0.01 score,"worst 0.000000 ST, 0.000000 score",PASS,,
+TV2_068,silence/boundary contract,amplitude_x1.2: decision preserved,identical decisions,6/6,PASS,,
+TV2_069,silence/boundary contract,lossless_wav_rewrite: within pre-registered tolerance,<= 1e-09 ST / 1e-09 score,"worst 0.000000 ST, 0.000000 score",PASS,,
+TV2_070,silence/boundary contract,lossless_wav_rewrite: decision preserved,identical decisions,6/6,PASS,,
+TV2_071,sample-rate handling,resample_44100_roundtrip: within pre-registered tolerance,<= 1.0 ST / 0.05 score,"worst 0.006194 ST, 0.000183 score",PASS,,
+TV2_072,sample-rate handling,resample_44100_roundtrip: decision preserved,identical decisions,6/6,PASS,,
+TV2_073,sample-rate handling,resample_48000_roundtrip: within pre-registered tolerance,<= 1.0 ST / 0.05 score,"worst 0.000271 ST, 0.000013 score",PASS,,
+TV2_074,sample-rate handling,resample_48000_roundtrip: decision preserved,identical decisions,6/6,PASS,,
+TV2_075,silence/boundary contract,opus_48k_browser_style: within pre-registered tolerance,<= 3.0 ST / 0.15 score,"worst 0.385122 ST, 0.020802 score",PASS,,
+TV2_076,silence/boundary contract,opus_48k_browser_style: decision preserved,identical decisions,6/6,PASS,,
+TV2_077,fail-safe,0 malformed or unprocessable inputs produce PASS,0 unsafe PASS,0 unsafe: [],PASS,,
+TV2_078,fail-safe,digital silence resolves to RETRY,RETRY,RETRY (insufficient_voiced_frames),PASS,,
+TV2_079,fail-safe,empty audio resolves to RETRY,RETRY,RETRY (empty_audio),PASS,,
+TV2_080,fail-safe,10 ms audio resolves to RETRY,RETRY,RETRY (token_duration_out_of_contract),PASS,,
+TV2_081,fail-safe,white noise resolves to RETRY,RETRY,RETRY (insufficient_voiced_frames),PASS,,
+TV2_082,fail-safe,NaN samples resolves to RETRY,RETRY,RETRY (insufficient_voiced_frames),PASS,,
+TV2_083,fail-safe,Inf samples resolves to RETRY,RETRY,RETRY (insufficient_voiced_frames),PASS,,
+TV2_084,fail-safe,corrupted file resolves to RETRY,RETRY,RETRY (unreadable_audio),PASS,,
+TV2_085,fail-safe,unsupported file resolves to RETRY,RETRY,RETRY (unreadable_audio),PASS,,
+TV2_086,fail-safe,missing file resolves to RETRY,RETRY,RETRY (unreadable_audio),PASS,,
+TV2_087,fail-safe,invalid tone (int) resolves to RETRY,RETRY,RETRY (invalid_expected_tone),PASS,,
+TV2_088,fail-safe,invalid tone (None) resolves to RETRY,RETRY,RETRY (invalid_expected_tone),PASS,,
+TV2_089,fail-safe,invalid tone (unknown) resolves to RETRY,RETRY,RETRY (invalid_expected_tone),PASS,,
+TV2_090,fail-safe,oversized token resolves to RETRY,RETRY,RETRY (token_duration_out_of_contract),PASS,,
+TV2_091,fail-safe,every failure code is from the declared vocabulary,all codes declared,clean,PASS,,
+TV2_092,privacy,failure paths emit only the two frozen learner messages,"{PASS_MESSAGE, RETRY_MESSAGE}",1 distinct,PASS,,
+TV2_093,determinism,serving score identical across 10 calls,max |delta| == 0,0.000e+00,PASS,,
+TV2_094,determinism,verdict identical across 10 calls,0 changes,0,PASS,,
+TV2_095,determinism,failure code identical across 10 calls,0 changes,0,PASS,,
+TV2_096,restart,restarted process loads the identical fitted model hash,0dcee1d87c69c5b2,0dcee1d87c69c5b2,PASS,,
+TV2_097,restart,scores survive a process restart exactly,max |delta| == 0,0.000e+00,PASS,,
+TV2_098,restart,a restart cannot change a learner decision,0 changes,0,PASS,,
+TV2_099,stress,300 serving calls complete without a crash,0 crashes,0,PASS,,
+TV2_100,stress,no decision instability under load,0 changed,0,PASS,,
+TV2_101,stress,fitted model hash unchanged after the stress run,0dcee1d87c69c5b2,0dcee1d87c69c5b2,PASS,,
+TV2_102,artifact identity,independent seal verifier reports SEALED,exit 0,exit 0,PASS,,
+TV2_103,artifact identity,no Test row in the feature cache,0,0,PASS,,
+TV2_104,artifact identity,TV2 reference set contains no Test token,0 overlap,0,PASS,,
+TV2_105,artifact identity,the inference bundle contains no Test material,no test reference,clean,PASS,,bundle stores coefficients and Train-derived statistics only
+TV2_106,artifact identity,deployment golden set bound to deployment identity,entries carry version + fitted hash + contract,12 entries,PASS,,

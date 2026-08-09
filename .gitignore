@@ -44,3 +44,12 @@ backend/pronunciation/wav2vec_tone/data/qc_trial_segments/
 backend/pronunciation/wav2vec_tone/data/benchmark_token_segments/
 backend/pronunciation/wav2vec_tone/data/dev_features_train_dev.npz
 backend/pronunciation/wav2vec_tone/data/phase_c6_trajectories.npz
+
+# Technical-verification and self-pilot working audio. All of it is regenerated
+# by the verifiers, and the WAV fixtures are large and not review-worthy; the
+# matrices, summaries, golden references and the fitted bundle ARE committed.
+backend/pronunciation/wav2vec_tone/data/technical_verification/scratch_audio/
+backend/pronunciation/wav2vec_tone/data/technical_verification/tv2_scratch/
+backend/pronunciation/wav2vec_tone/data/technical_verification/tv3_browser_fixtures/
+backend/pronunciation/wav2vec_tone/data/self_pilot/harness_scratch/
+backend/pronunciation/wav2vec_tone/data/self_pilot/audio/

@@ -18,12 +18,12 @@
     {
       "check": "no artefact reports a metric on the test split",
       "pass": true,
-      "detail": "38 artefacts scanned"
+      "detail": "39 artefacts scanned"
     },
     {
       "check": "every manifest reader has an executable test-lock guard",
       "pass": true,
-      "detail": "11 modules"
+      "detail": "15 modules"
     },
     {
       "check": "fresh-validation analysis never reads the OMPAL manifest",
@@ -32,6 +32,7 @@
     }
   ],
   "manifest_readers": [
+    "deployment_inference.py",
     "design_split.py",
     "develop_models.py",
     "phase_c2_diagnostics.py",
@@ -42,6 +43,9 @@
     "phase_c7_r2_selective_policy.py",
     "phase_c8_confirmation_policy.py",
     "preflight_fresh_validation.py",
+    "verify_deployment_inference.py",
+    "verify_frozen_system.py",
+    "verify_human_exposure_path.py",
     "verify_split.py"
   ],
   "vestigial_dead_guards": [

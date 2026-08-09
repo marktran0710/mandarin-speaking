@@ -1,0 +1,33 @@
+test_id,category,input,expected_behaviour,observed_behaviour,result,severity,notes
+SP001,namespace,self-pilot directory exists and is separate from validation,data/self_pilot/,pronunciation\wav2vec_tone\data\self_pilot,PASS,,
+SP002,namespace,16 prompts load and are marked unapproved,"16 items, teacher_approved=False","16 items, approved=False",PASS,,using them as technical prompts is not item approval
+SP003,namespace,"prompts cover all four tones, four per tone",4 x T1-T4,"{'1': 4, '2': 4, '3': 4, '4': 4}",PASS,,
+SP004,namespace,self-pilot route is mounted in study mode,200 with 16 items,16 items,PASS,,
+SP005,namespace,the API states the data is not validation material,explicit notice present,"Self-pilot data may never be used for accuracy, ",PASS,,
+SP006,namespace,Run C challenge plan is fixed in advance,6 planned probes,6 returned,PASS,,prevents improvised manipulations during the run
+SP007,t1 gate,every T1 probe returns RETRY,RETRY x3,"['RETRY', 'RETRY', 'RETRY'], internal scores [0.4625, 0.4625, 0.4625]",PASS,,
+SP008,t1 gate,a T1 whose internal score is BELOW t_pass still returns RETRY,RETRY despite a passing score,00100114_01 scored 0.418525 (<= 0.42274) and returned RETRY,PASS,,only the T1 gate can refuse this; the threshold alone would have passed it
+SP009,failure path,silence resolves safely,"RETRY (or refused), never PASS",HTTP 200 RETRY (insufficient_voiced_frames),PASS,,
+SP010,failure path,empty recording resolves safely,"RETRY (or refused), never PASS",HTTP 200 RETRY (unreadable_audio),PASS,,
+SP011,failure path,very short recording resolves safely,"RETRY (or refused), never PASS",HTTP 200 RETRY (token_duration_out_of_contract),PASS,,
+SP012,failure path,stopped too early resolves safely,"RETRY (or refused), never PASS",HTTP 200 RETRY (token_duration_out_of_contract),PASS,,
+SP013,failure path,invalid expected tone resolves safely,"RETRY (or refused), never PASS",HTTP 200 RETRY (invalid_expected_tone),PASS,,
+SP014,failure path,missing expected tone resolves safely,"RETRY (or refused), never PASS",HTTP 200 RETRY (invalid_expected_tone),PASS,,
+SP015,failure path,microphone permission denied (empty capture) resolves safely,"RETRY (or refused), never PASS",HTTP 200 RETRY (unreadable_audio),PASS,,
+SP016,failure path,corrupted payload resolves safely,"RETRY (or refused), never PASS",HTTP 200 RETRY (unreadable_audio),PASS,,
+SP017,failure path,0 unsafe PASS across every failure case,0,0,PASS,,
+SP018,determinism,identical input gives an identical verdict 5 times,1 distinct decision,['PASS'],PASS,,
+SP019,determinism,identical input gives an identical internal score,max |delta| == 0,0.000e+00,PASS,,
+SP020,logging,each attempt appends a new row rather than replacing one,+2 rows,17 -> 19,PASS,,
+SP021,logging,repeat attempts receive distinct trial ids,two different uids,SP0018 vs SP0019,PASS,,
+SP022,logging,stored audio filenames are unique per trial,no duplicates,"19 files, 19 unique",PASS,,
+SP023,logging,every stored audio file is marked PILOT_ONLY,all prefixed,19/19,PASS,,
+SP024,logging,every logged row carries both pilot flags,PILOT_ONLY=YES and RESEARCHER_SELF_TEST=YES,19/19,PASS,,
+SP025,logging,the trial schema carries every field section 4 requires,10 fields,missing: none,PASS,,
+SP026,metric guard,a summary containing PASS precision is refused,ValidityMetricRefused raised,refused,PASS,,
+SP027,metric guard,every forbidden statistic family is rejected,6 of 6 rejected,6 of 6,PASS,,
+SP028,metric guard,the real exporter output passes the guard,no forbidden key,clean,PASS,,
+SP029,metric guard,the exporter marks the data ineligible for validation,eligible_for_human_validation_analysis == False,False,PASS,,
+SP030,isolation,no fresh-validation artefact changed during the harness,0 changed,0 changed: none,PASS,,
+SP031,isolation,the frozen items file is still absent (not fabricated),fresh_validation_items_FROZEN.csv ABSENT,ABSENT,PASS,,creating it would fabricate a teacher approval that does not exist
+SP032,runs,"Runs A, B and C are not simulated by this harness",0 researcher rows written by the harness,0 researcher-run rows present,PASS,,synthesised audio is not a researcher production; writing it as one would fabricate the self-pilot

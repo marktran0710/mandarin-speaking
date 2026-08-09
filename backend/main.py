@@ -3488,6 +3488,18 @@ app.include_router(submissions_router)
 app.include_router(tones_router)
 app.include_router(vocab_quiz_router)
 
+# Study mode (OMPAL_STUDY_MODE=1) leaves exactly one pronunciation engine
+# reachable: it blocks the legacy /api/analyze judgement routes and mounts the
+# frozen tone-confirmation route. Unset, this only registers a middleware that
+# never fires, so ordinary application behaviour is unchanged.
+import study_mode  # noqa: E402
+
+STUDY_MODE_ACTIVE = study_mode.install(app)
+if STUDY_MODE_ACTIVE:
+    logger.warning(
+        "OMPAL study mode ACTIVE: legacy pronunciation routes disabled; "
+        "canonical route mounted at /api/pronunciation/tone-attempt")
+
 
 @app.get("/{frontend_path:path}")
 async def serve_frontend(frontend_path: str):

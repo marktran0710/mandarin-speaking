@@ -1,0 +1,7 @@
+system_version,system_sha256,timestamp,item_id,expected_tone,trajectory_available,raw_score,decision,failure_reason,processing_latency_ms,learner_message
+OMPAL_R2_PASS_v1,8101bcaf8c92e1e33feda00c236e10943a09e7146d09ead6de673af43b287436,2026-08-09T13:15:40,REF_00100114_01,1,YES,0.418525,RETRY,,6.9,I'm not confident enough to confirm this attempt. Please try once more.
+OMPAL_R2_PASS_v1,8101bcaf8c92e1e33feda00c236e10943a09e7146d09ead6de673af43b287436,2026-08-09T13:15:40,REF_00100114_07,1,YES,0.476227,RETRY,,1.3,I'm not confident enough to confirm this attempt. Please try once more.
+OMPAL_R2_PASS_v1,8101bcaf8c92e1e33feda00c236e10943a09e7146d09ead6de673af43b287436,2026-08-09T13:15:40,REF_00100114_08,1,YES,0.482722,RETRY,,1.6,I'm not confident enough to confirm this attempt. Please try once more.
+OMPAL_R2_PASS_v1,8101bcaf8c92e1e33feda00c236e10943a09e7146d09ead6de673af43b287436,2026-08-09T13:15:40,REF_00100114_03,2,YES,0.411781,PASS,,2.8,Your tone sounds acceptable. You can continue.
+OMPAL_R2_PASS_v1,8101bcaf8c92e1e33feda00c236e10943a09e7146d09ead6de673af43b287436,2026-08-09T13:15:40,REF_00100117_03,2,YES,0.451898,RETRY,,2.8,I'm not confident enough to confirm this attempt. Please try once more.
+OMPAL_R2_PASS_v1,8101bcaf8c92e1e33feda00c236e10943a09e7146d09ead6de673af43b287436,2026-08-09T13:15:40,REF_00100120_15,2,YES,0.313140,PASS,,3.2,Your tone sounds acceptable. You can continue.

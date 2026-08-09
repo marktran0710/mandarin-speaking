@@ -1,0 +1,83 @@
+{
+  "_note": "SELF-PILOT ONLY. The researcher is not an independent validation criterion. Nothing here is accuracy, PASS precision, sensitivity, specificity, human-system agreement or kappa, and none of these rows may enter the fresh human validation, its PASS-precision denominator, or any inter-rater analysis.",
+  "phase": "SELF_PILOT",
+  "generated_at_utc": "2026-08-09T10:14:55+00:00",
+  "PILOT_ONLY": true,
+  "RESEARCHER_SELF_TEST": true,
+  "is_validation_data": false,
+  "eligible_for_human_validation_analysis": false,
+  "system": {
+    "scientific_version": "OMPAL_R2_PASS_v1",
+    "deployment_version": "OMPAL_R2_PASS_v1.1",
+    "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+    "fitted_model_sha256": "0dcee1d87c69c5b2586fa9612b142a6ac5ef48cd37cd06dfac984a5d463c586c"
+  },
+  "totals": {
+    "total_recordings": 19,
+    "per_run": {
+      "T_technical": 19
+    },
+    "run_A_natural": 0,
+    "run_B_repeat": 0,
+    "run_C_challenge": 0,
+    "technical_cases": 19
+  },
+  "processing": {
+    "trajectory_available_yes": 11,
+    "trajectory_available_no": 8,
+    "processing_successes": 11,
+    "technical_failures": {
+      "insufficient_voiced_frames": 1,
+      "unreadable_audio": 3,
+      "token_duration_out_of_contract": 2,
+      "invalid_expected_tone": 2
+    }
+  },
+  "decision_counts_descriptive_only": {
+    "PASS": 7,
+    "RETRY": 12,
+    "_warning": "descriptive workflow counts; NOT accuracy and NOT PASS precision"
+  },
+  "safety": {
+    "t1_gate_violations": 0,
+    "t1_gate_violation_ids": [],
+    "unsafe_pass_count": 0,
+    "unsafe_pass_ids": []
+  },
+  "latency_ms": {
+    "n": 19,
+    "median": 3.25,
+    "p95": 6.623999999999991,
+    "scope": "server-side inference latency logged per trial; excludes capture and network, so not an end-user estimate"
+  },
+  "repeat_workflow_observation": {
+    "items_with_two_or_more_attempts": 0,
+    "items_where_verdict_was_identical": 0,
+    "items_where_verdict_differed": 0,
+    "_warning": "a workflow observation about repeat recordings; it is NOT reliability, NOT agreement and NOT accuracy"
+  },
+  "challenge_observations": {
+    "planned": 6,
+    "recorded": 0,
+    "by_challenge_type": {},
+    "decisions": {},
+    "_warning": "diagnostic probes; the manipulations are NOT verified Mandarin tone errors and no accuracy may be derived"
+  },
+  "item_coverage": {
+    "items_defined": 16,
+    "items_attempted": 3,
+    "teacher_approved": false,
+    "_note": "items remain unapproved; the self-pilot does not advance the D2 item-approval gate"
+  },
+  "protected_artefacts_untouched": {
+    "fresh_validation_trials.csv": "ABSENT",
+    "fresh_validation_participants_TEMPLATE.csv": "b2c723a50e02a9f8397f03b8d4103753fffe8f11e602be2e9ae834fcb70bd7f4",
+    "fresh_validation_collection_tracker_TEMPLATE.csv": "ddf2874a0712ad908ee9c311335c3d39856f0f7e7387932cbeadeffe5c30731f",
+    "fresh_validation_external_signoff.json": "6273dda6173f8dd9d8e6e4615c3e028003bc609dde7d6534455b0e1e362a7602",
+    "fresh_validation_items_FROZEN.csv": "ABSENT"
+  },
+  "software": {
+    "python": "3.12.0",
+    "numpy": "2.4.3"
+  }
+}

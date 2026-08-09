@@ -1,0 +1,172 @@
+{
+  "phase": "TV3",
+  "title": "final human-exposure technical closure",
+  "scientific_version": "OMPAL_R2_PASS_v1",
+  "deployment_version": "OMPAL_R2_PASS_v1.1",
+  "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+  "pcm_spec_version": "STUDY_PCM16K_v1",
+  "fitted_model_sha256": "0dcee1d87c69c5b2586fa9612b142a6ac5ef48cd37cd06dfac984a5d463c586c",
+  "feature_schema_sha256": "c3a204cdb96c753110b8585a6a283e06a76bc14a0c105980b7bd48b1d8687aa5",
+  "started_at": "2026-08-09T14:22:25",
+  "finished_at": "2026-08-09T14:22:54",
+  "scope_statement": "Deployment engineering only. Establishes that the frozen decision function is served correctly through one controlled browser path. Does NOT establish that the system assesses Mandarin learners accurately.",
+  "human_validation_status": "POSTPONED; no participant recruited",
+  "cross_language_check": {
+    "available": true,
+    "max_delta": 1.1102230246251565e-16,
+    "cases": [
+      "identity_16k",
+      "from_48k",
+      "from_44100",
+      "short_80ms_48k"
+    ]
+  },
+  "browser_vs_reference": {
+    "n": 12,
+    "worst_trajectory_delta_st": 0.5465368347310289,
+    "worst_score_delta": 0.06477381458765907,
+    "decision_changes": 1
+  },
+  "short_token_cases": 18,
+  "end_to_end_cases": 19,
+  "metamorphic_worst": {
+    "lossless_wav_rewrite": 0.0,
+    "amplitude_x0.8": 8.841169574225205e-09,
+    "amplitude_x1.2": 1.0960874874399451e-08,
+    "study_capture_roundtrip": 0.00011874262256128532
+  },
+  "e2e_tolerances_preregistered": {
+    "lossless_wav_rewrite": {
+      "trajectory_st": 1e-09,
+      "score": 1e-09
+    },
+    "amplitude_x0.8": {
+      "trajectory_st": 0.05,
+      "score": 0.01
+    },
+    "amplitude_x1.2": {
+      "trajectory_st": 0.05,
+      "score": 0.01
+    },
+    "study_capture_roundtrip": {
+      "trajectory_st": 1.5,
+      "score": 0.1
+    }
+  },
+  "scientific_equivalence": {
+    "train": {
+      "n": 1424,
+      "max_score_delta": 3.3306690738754696e-16,
+      "decision_disagreements": 0
+    },
+    "dev": {
+      "n": 322,
+      "max_score_delta": 2.220446049250313e-16,
+      "decision_disagreements": 0
+    }
+  },
+  "runtime": {
+    "requests": 300,
+    "seconds": 4.463735800003633,
+    "http_failures": 0,
+    "exceptions": 0,
+    "decision_instability": 0,
+    "median_ms": 12.685549969319254,
+    "iqr_ms": [
+      10.167074942728505,
+      18.129825009964406
+    ],
+    "p95_ms": 29.77019500103779,
+    "latency_scope": "in-process API request latency over a pre-recorded WAV on disk; excludes microphone capture, browser conversion and network transfer, so it is NOT an end-user latency estimate"
+  },
+  "frontend_tests_passed": true,
+  "frontend_test_count": 24,
+  "counts": {
+    "total": 65,
+    "passed": 64,
+    "failed": 0,
+    "diagnostic": 1
+  },
+  "ompal_test": {
+    "predictions": false,
+    "scores": false,
+    "metrics": false,
+    "cache_contamination": false,
+    "sealed": true,
+    "seal_verified_by": "verify_ompal_test_seal.py"
+  },
+  "golden_reference_entries": 12,
+  "software": {
+    "python": "3.12.0",
+    "numpy": "2.4.3"
+  },
+  "acceptance_criteria": [
+    {
+      "criterion": "one canonical pronunciation engine active in the study build",
+      "met": true
+    },
+    {
+      "criterion": "browser recording reaches the model successfully",
+      "met": true
+    },
+    {
+      "criterion": "validated 16 kHz PCM/WAV contract enforced",
+      "met": true
+    },
+    {
+      "criterion": "legacy learner-facing diagnostic path disabled",
+      "met": true
+    },
+    {
+      "criterion": "fitted-model integrity checked on startup",
+      "met": true
+    },
+    {
+      "criterion": "0 unsafe PASS",
+      "met": true
+    },
+    {
+      "criterion": "0 identical-input decision nondeterminism",
+      "met": true
+    },
+    {
+      "criterion": "T1 gate verified end to end",
+      "met": true
+    },
+    {
+      "criterion": "trajectory failure verified end to end",
+      "met": true
+    },
+    {
+      "criterion": "frontend exposes no forbidden model fields",
+      "met": true
+    },
+    {
+      "criterion": "API stress test passes",
+      "met": true
+    },
+    {
+      "criterion": "scientific Train/Dev equivalence remains exact",
+      "met": true
+    },
+    {
+      "criterion": "OMPAL Test remains sealed",
+      "met": true
+    },
+    {
+      "criterion": "short-token ingest stability measured",
+      "met": true
+    }
+  ],
+  "acceptance_criteria_unmet": [],
+  "findings_requiring_disclosure": [
+    {
+      "test_id": "TV3_020",
+      "category": "ingest sensitivity",
+      "finding": "study ingest verdict agreement against a hypothetical 16 kHz capture",
+      "observed": "11/12 verdicts agree; worst score delta 0.06477; flipped: ['REF_00100114_04']",
+      "notes": "the round trip upsamples a 16 kHz token to 48 kHz to simulate capture, which real 48 kHz capture would not do; residual flips land on short-voiced-span tokens, the TV2 mechanism"
+    }
+  ],
+  "tv3_result": "TECHNICAL WORK COMPLETE"
+}

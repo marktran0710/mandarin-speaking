@@ -1,0 +1,128 @@
+test_id,category,input,expected_behaviour,observed_behaviour,result,severity,notes
+TV001,artifact integrity,fresh_validation_system_FROZEN.json self-hash,sha256 == 8101bcaf8c92e1e3,recomputed 8101bcaf8c92e1e3,PASS,,
+TV002,artifact integrity,system hash matches the expected published prefix,8101bcaf8c92e1e3,8101bcaf8c92e1e3,PASS,,
+TV003,artifact integrity,ompal_phase_c8_policy_FROZEN.json self-hash,sha256 == cc4aa4ef797f752b,recomputed cc4aa4ef797f752b,PASS,,
+TV004,artifact integrity,C8 policy hash matches the value recorded in the system file,cc4aa4ef797f752b,cc4aa4ef797f752b,PASS,,
+TV005,artifact integrity,ompal_phase_c6_protocol_FROZEN.json self-hash,sha256 == 1afe6c5b1da4dece,recomputed 1afe6c5b1da4dece,PASS,,
+TV006,artifact integrity,C6 representation hash matches the system file,1afe6c5b1da4dece,1afe6c5b1da4dece,PASS,,
+TV007,artifact integrity,C8 model hash reproduces from the frozen config triple,cd911b6e67b28c41,cd911b6e67b28c41,PASS,,"hash covers {C, class_weight, points} only -- see TV finding on artefact binding"
+TV008,artifact integrity,trajectory configuration matches the frozen representation,points=20 floor=60.0 ceiling=500.0 step=0.005,points=20 floor=60.0 ceiling=500.0 step=0.005,PASS,,
+TV009,artifact integrity,classifier constants match the frozen classifier block,C=0.1 class_weight=balanced,C=0.1 class_weight=balanced,PASS,,
+TV010,artifact integrity,t_pass agrees between the system file and the C8 policy,0.42274,0.42274,PASS,,
+TV011,artifact integrity,enabled PASS tones agree between the two frozen artefacts,234,234,PASS,,
+TV012,artifact integrity,training inputs are hashable and stable within the run,six content hashes computed,403aec041f64c330,PASS,,these hashes are recorded in golden_reference.json to bind future runs
+TV013,artifact integrity,train split shape matches the frozen C8 record,1424 rows / 32 speakers,1424 rows / 32 speakers,PASS,,
+TV014,artifact integrity,technical reference set contains no Test token,0 overlap,0 overlapping tokens,PASS,,reference set is drawn from native_reference only
+TV015,determinism,fit-once serving reproduces fit_predict bit-for-bit,max |delta| == 0,max |delta| = 0.000e+00,PASS,,authorises the fit-once wrapper used for the rest of this suite
+TV016,determinism,seed does not influence the frozen solver (lbfgs),max |delta| == 0 between seed 0 and seed 20260808,max |delta| = 0.000e+00,PASS,,confirms the D0 preflight seed 20260808 scores identically to the C8 seed 0
+TV017,policy,T1 never returns PASS across a 1006-point score sweep,{RETRY},['RETRY'],PASS,,
+TV018,policy,trajectory unavailable returns RETRY for every expected tone,RETRY/trajectory_unavailable x4,"{'1': 'RETRY', '2': 'RETRY', '3': 'RETRY', '4': 'RETRY'}",PASS,,
+TV019,policy,NaN score with trajectory marked available still never PASSes,{RETRY},['RETRY'],PASS,,"NaN <= t_pass is False in IEEE 754, so the rule fails safe"
+TV020,policy,T2/T3/T4 with score satisfying the frozen PASS rule return PASS,PASS for all 600 admissible scores,600/600 PASS,PASS,,
+TV021,policy,T2/T3/T4 with score outside the frozen PASS rule return RETRY,RETRY for all 600 inadmissible scores,600/600 RETRY,PASS,,
+TV022,policy,only PASS and RETRY are ever emitted,"{PASS, RETRY}","['PASS', 'RETRY']",PASS,,
+TV023,policy,scalar decide() and vectorised pass_mask() agree on 4000 cases,0 disagreements,0 disagreements,PASS,,the derivation code and the serving code implement one rule
+TV024,threshold,comparison operator at the threshold identified,"documented, not assumed",score <= t_pass -> PASS,PASS,,"source of truth: pass_mask() uses scores <= t_pass; a score is P(incorrect), so LOW scores PASS"
+TV025,threshold,one ULP below t_pass -> PASS,PASS,PASS,PASS,,score=np.float64(0.42273999999999995)
+TV026,threshold,exactly t_pass -> PASS,PASS,PASS,PASS,,score=0.42274
+TV027,threshold,one ULP above t_pass -> RETRY,RETRY,RETRY,PASS,,score=np.float64(0.42274000000000006)
+TV028,threshold,0.422730 (literal below) -> PASS,PASS,PASS,PASS,,score=0.42273
+TV029,threshold,0.422740 (literal at) -> PASS,PASS,PASS,PASS,,score=0.42274
+TV030,threshold,0.422750 (literal above) -> RETRY,RETRY,RETRY,PASS,,score=0.42275
+TV031,threshold,0.4227 (the abbreviated value) -> PASS,PASS,PASS,PASS,,score=0.4227
+TV032,threshold,one ULP separates the last PASS from the first RETRY,no ambiguous interval,ULP = 1.110e-16,PASS,,
+TV033,threshold,t_pass parses to an identical IEEE double in both artefacts,bitwise identical,0.42274 vs 0.42274,PASS,,
+TV034,threshold,the abbreviated 0.4227 is NOT the frozen threshold,frozen value is 0.42274,0.4227 != 0.42274,PASS,,documentation that quotes 0.4227 is rounded; the implementation uses 0.42274
+TV035,determinism,F0 trajectory identical across 20 runs,max |delta| == 0,max |delta| = 0.000e+00,PASS,,
+TV036,determinism,R2 raw score identical across 20 runs,max |delta| == 0,max |delta| = 0.000e+00,PASS,,
+TV037,determinism,PASS/RETRY verdict identical across 20 runs,0 changes,0 changes,PASS,,
+TV038,determinism,failure code identical across 20 runs,0 changes,0 changes,PASS,,
+TV039,determinism,restarted process reports the same frozen system hash,8101bcaf8c92e1e3,8101bcaf8c92e1e3,PASS,,
+TV040,determinism,restarted process fits identical model coefficients,bce84b07cc594bb5,bce84b07cc594bb5,PASS,,
+TV041,determinism,scores survive a process restart within tolerance,max |delta| == 0,max |delta| = 0.000e+00,PASS,,
+TV042,determinism,a server restart cannot change a learner decision,0 decision changes,0 changes,PASS,,
+TV043,trajectory,every reference trajectory has exactly 20 points,20 points,{20},PASS,,
+TV044,trajectory,every trajectory value is finite,all finite,11/11 clean,PASS,,
+TV045,trajectory,median-centred contour is centred on zero,|median| < 1e-12,worst |median| = 7.105e-15,PASS,,
+TV046,trajectory,independent re-derivation reproduces the module trajectory,max |delta| == 0,max |delta| = 0.000e+00,PASS,,"semitone conversion 12*log2(Hz), time-normalised over the voiced span"
+TV047,trajectory,sample grid is monotonically increasing over the voiced span,strictly increasing,span = 110.0 ms,PASS,,
+TV048,trajectory,no raw-Hz value leaked into the semitone contour,max |centred semitone| < 24,max = 3.04 ST,PASS,,a leaked Hz value would appear as a 60-500 magnitude in a +/-24 ST field
+TV049,dimensionality,fitted design matrix has the frozen column count,83 columns,83 columns,PASS,,20 trajectory + 3 reference-coded tone dummies + 60 interactions
+TV050,dimensionality,fitted coefficient vector matches the design width,83,83,PASS,,
+TV051,dimensionality,the named column list is the same width,83 names,83 names,PASS,,
+TV052,dimensionality,every design column matches its name and formula,0 mismatched columns,0 mismatched,PASS,,"checked per tone for all 83 columns, by position and by name"
+TV053,tone routing,T1 activates no dummy (it is the reference level),"[0, 0, 0]","[0.0, 0.0, 0.0]",PASS,,
+TV054,tone routing,T2 activates exactly the T2 dummy column,"[1.0, 0.0, 0.0]","[1.0, 0.0, 0.0]",PASS,,detects a shifted tone index
+TV055,tone routing,T3 activates exactly the T3 dummy column,"[0.0, 1.0, 0.0]","[0.0, 1.0, 0.0]",PASS,,detects a shifted tone index
+TV056,tone routing,T4 activates exactly the T4 dummy column,"[0.0, 0.0, 1.0]","[0.0, 0.0, 1.0]",PASS,,detects a shifted tone index
+TV057,tone routing,exactly the matching trajectory-x-tone block is populated,one active interaction block per non-reference tone,"{'1': [], '2': ['2'], '3': ['3'], '4': ['4']}",PASS,,
+TV058,tone routing,expected tone actually changes the score for fixed audio,4 distinct scores,"T1=0.4185, T2=0.4276, T3=0.7066, T4=0.6845",PASS,,software routing test only -- NOT a pronunciation result
+TV059,input validation,integer expected-tone is rejected rather than routed to the T1 branch,rejected or raised,"accepted; dummies = [0.0, 0.0, 0.0]",FAIL,MEDIUM,"design() compares tone labels as strings, so an int label activates no dummy and is scored as if it were T1. The policy layer still refuses PASS because int 2 is not in the enabled string set (TV060), so it fails safe today -- but nothing enforces that coupling"
+TV060,fail-safe,integer expected-tone cannot produce PASS through the policy,RETRY,RETRY,PASS,,
+TV061,audio robustness,no malformed or unprocessable input ever yields PASS,0 unsafe PASS,0 unsafe PASS ([]),PASS,,
+TV062,audio robustness,every exception path still resolves to a decision,0 unresolved,0 unresolved,PASS,,
+TV063,audio robustness,digital_silence resolves to RETRY,RETRY,RETRY (insufficient_voiced_frames),PASS,,
+TV064,audio robustness,empty_audio resolves to RETRY,RETRY,RETRY (too_short_for_pitch),PASS,,
+TV065,audio robustness,very_short_10ms resolves to RETRY,RETRY,RETRY (too_short_for_pitch),PASS,,
+TV066,audio robustness,corrupted_file resolves to RETRY,RETRY,RETRY (unreadable_input),PASS,,
+TV067,audio robustness,unsupported_file resolves to RETRY,RETRY,RETRY (unreadable_input),PASS,,
+TV068,audio robustness,missing_file resolves to RETRY,RETRY,RETRY (unreadable_input),PASS,,
+TV069,audio robustness,nan_samples resolves to RETRY,RETRY,RETRY (insufficient_voiced_frames),PASS,,
+TV070,audio robustness,inf_samples resolves to RETRY,RETRY,RETRY (insufficient_voiced_frames),PASS,,
+TV071,audio robustness,white_noise_unvoiced resolves to RETRY,RETRY,RETRY (insufficient_voiced_frames),PASS,,
+TV072,audio robustness,stereo input is refused rather than mis-parsed,"RETRY, not PASS",RETRY (multichannel_input),PASS,,
+TV073,input validation,non-16 kHz input is rejected or resampled before pitch extraction,the same speech at 8/44.1/48 kHz is refused or scored identically,"3/3 rates silently produce a different score (16 kHz baseline 0.418525; 8000Hz=0.443864, 44100Hz=0.415709, 48000Hz=0.656886)",FAIL,HIGH,"trajectory_from_segment hardcodes SAMPLE_RATE=16000 and every call site discards the rate returned by sf.read, so the declared rate is never checked against the frozen 16 kHz assumption"
+TV074,metamorphic,amplitude_x0.8: contour within pre-registered tolerance,<= 0.05 ST,worst 0.000000 ST,PASS,,worst score delta 0.000000 (tolerance 0.01)
+TV075,metamorphic,amplitude_x0.8: PASS/RETRY decision preserved,identical decisions,6/6 preserved,PASS,,
+TV076,metamorphic,amplitude_x1.2: contour within pre-registered tolerance,<= 0.05 ST,worst 0.000000 ST,PASS,,worst score delta 0.000000 (tolerance 0.01)
+TV077,metamorphic,amplitude_x1.2: PASS/RETRY decision preserved,identical decisions,6/6 preserved,PASS,,
+TV078,metamorphic,leading_silence_100ms: contour within pre-registered tolerance,<= 0.25 ST,worst 14.529286 ST,FAIL,HIGH,worst score delta 0.490876 (tolerance 0.05)
+TV079,metamorphic,leading_silence_100ms: PASS/RETRY decision preserved,identical decisions,5/6 preserved,FAIL,HIGH,
+TV080,metamorphic,trailing_silence_100ms: contour within pre-registered tolerance,<= 0.25 ST,worst 1.168805 ST,FAIL,HIGH,worst score delta 0.080445 (tolerance 0.05)
+TV081,metamorphic,trailing_silence_100ms: PASS/RETRY decision preserved,identical decisions,6/6 preserved,PASS,,
+TV082,metamorphic,lossless_wav_rewrite: contour within pre-registered tolerance,<= 1e-09 ST,worst 0.000000 ST,PASS,,worst score delta 0.000000 (tolerance 1e-09)
+TV083,metamorphic,lossless_wav_rewrite: PASS/RETRY decision preserved,identical decisions,6/6 preserved,PASS,,
+TV084,metamorphic,padding with an unchanged voiced span leaves the contour intact,<= 0.05 ST when the span does not move,3/12 cases kept their span; worst delta 0.006527 ST,PASS,,isolates the mechanism: padding itself is harmless
+TV085,metamorphic,every large padding deviation is accompanied by a span change,no large deviation with a stable span,9/12 cases changed span (worst delta 14.529 ST); largest stable-span delta 0.006527 ST,PASS,,"the sensitivity is fully attributable to voiced-span redetection, not to an arithmetic error in the trajectory code"
+TV086,metamorphic,silence padding makes the pitch tracker report extra voiced frames,documented mechanism,"9/9 span changes came from added voiced frames (e.g. 23->29 frames, first F0 189->354 Hz)",DIAGNOSTIC,INFO,
+TV087,trajectory,synthetic level contour: pipeline numerically stable,20 finite points,"20 points, net 0.00 ST",PASS,,diagnostic: synthetic buzz is not a human production
+TV088,trajectory,synthetic rising contour: pipeline numerically stable,20 finite points,"20 points, net 6.26 ST",PASS,,diagnostic: synthetic buzz is not a human production
+TV089,trajectory,synthetic dipping contour: pipeline numerically stable,20 finite points,"20 points, net 2.62 ST",PASS,,diagnostic: synthetic buzz is not a human production
+TV090,trajectory,synthetic falling contour: pipeline numerically stable,20 finite points,"20 points, net -9.38 ST",PASS,,diagnostic: synthetic buzz is not a human production
+TV091,trajectory,synthetic rising/level/falling map to the expected contour sign,"rising > 0, level ~ 0, falling < 0","level=+0.00, rising=+6.26, dipping=+2.62, falling=-9.38",PASS,,transformation sanity only; says nothing about learner accuracy
+TV092,fail-safe,sub-30 ms audio is refused with a named reason,"(None, too_short_for_pitch)","(None, too_short_for_pitch)",PASS,,
+TV093,fail-safe,insufficient voiced frames is refused with a named reason,"(None, insufficient_voiced_frames)","(None, insufficient_voiced_frames)",PASS,,
+TV094,fail-safe,NaN-filled audio never yields a usable trajectory,None,insufficient_voiced_frames,PASS,,
+TV095,fail-safe,Inf-filled audio never yields a usable trajectory,None,insufficient_voiced_frames,PASS,,
+TV096,fail-safe,invalid expected tone None cannot PASS,RETRY,RETRY,PASS,,
+TV097,fail-safe,invalid expected tone '' cannot PASS,RETRY,RETRY,PASS,,
+TV098,fail-safe,invalid expected tone '5' cannot PASS,RETRY,RETRY,PASS,,
+TV099,fail-safe,invalid expected tone '0' cannot PASS,RETRY,RETRY,PASS,,
+TV100,fail-safe,invalid expected tone 'T2' cannot PASS,RETRY,RETRY,PASS,,
+TV101,fail-safe,invalid expected tone 2 cannot PASS,RETRY,RETRY,PASS,,
+TV102,fail-safe,invalid expected tone 2.0 cannot PASS,RETRY,RETRY,PASS,,
+TV103,fail-safe,invalid expected tone '  2  ' cannot PASS,RETRY,RETRY,PASS,,
+TV104,fail-safe,missing expected tone with no trajectory is RETRY,RETRY/trajectory_unavailable,RETRY/trajectory_unavailable,PASS,,
+TV105,fail-safe,a tampered threshold breaks the frozen self-hash,hash mismatch detected,detected,PASS,,in-memory tamper only; the file on disk is untouched
+TV106,fail-safe,the frozen file on disk is still byte-identical after tamper test,8101bcaf8c92e1e3,8101bcaf8c92e1e3,PASS,,
+TV107,fail-safe,an all-NaN trajectory reaching the scorer cannot PASS,RETRY or hard failure,score=0.494891 -> RETRY,PASS,,"the median imputer replaces NaN, so the guard must live upstream -- infer() rejects non-finite contours before scoring"
+TV108,logging,every required research-log field is present,10 fields,missing: none,PASS,,
+TV109,logging,internal raw score is retained in the research log,present for scored trials,6/6 rows carry a score,PASS,,
+TV110,privacy,technical inference requires no participant-identifying field,no identifying field in the log schema,none,PASS,,
+TV111,privacy,learner-facing output is one of exactly two frozen messages,"{PASS_MESSAGE, RETRY_MESSAGE}",2 distinct message(s),PASS,,
+TV112,privacy,no forbidden term appears in a learner-facing message,no forbidden term,clean,PASS,,
+TV113,privacy,no digit reaches a learner-facing message,no digits,clean,PASS,,
+TV114,privacy,no forbidden verdict label is emitted,"['PASS', 'RETRY']","['PASS', 'RETRY']",PASS,,
+TV115,privacy,learner-facing message surfaces are enumerated,every producer of a learner message is known,"preflight_fresh_validation.py, verify_frozen_system.py",PASS,,OMPAL_R2_PASS_v1 has no HTTP route and no UI binding yet; the only learner-facing strings are these two constants
+TV116,runtime,technical reference batch completes without hard failure,0 hard failures,"0 hard failures, 11 scored, 1 safe RETRY",PASS,,
+TV117,runtime,"latency is reported, not used as a pass criterion",reported,"median 2.3 ms, p95 6.0 ms, cold start 1.2 s",PASS,,"pre-extracted single-token audio already on disk; this is NOT an end-user latency estimate -- it excludes capture, upload, forced alignment and token segmentation"
+TV118,stress,500 calls complete without a crash,0 crashes,0 crashes,PASS,,
+TV119,stress,no decision instability under repeated load,0 changed decisions,0 changed,PASS,,
+TV120,stress,no file-handle or resource error,0 resource errors,0,PASS,,
+TV121,stress,model is not silently reloaded during the run,bce84b07cc594bb5,bce84b07cc594bb5,PASS,,
+TV122,stress,frozen system hash is unchanged after the stress run,8101bcaf8c92e1e3,8101bcaf8c92e1e3,PASS,,
+TV123,stress,python heap growth over the stress run is bounded,< 32 MB,0.02 MB,PASS,,
+TV124,artifact integrity,independent OMPAL Test seal verifier reports SEALED,exit 0,exit 0,PASS,,authority: verify_ompal_test_seal.py
+TV125,artifact integrity,no Test-split row is present in the feature cache,0 rows,0 rows,PASS,,
+TV126,artifact integrity,"Test split still exists in the manifest (sealed, not deleted)",322 test rows defined,322 test rows,PASS,,
+TV127,artifact integrity,golden regression fixture written and self-consistent,"12 entries, no Test material","12 entries, 4 PASS",PASS,,

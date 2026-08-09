@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>TV3 study ingest harness</title>
+    <style>
+      body { font: 14px/1.5 ui-monospace, monospace; margin: 24px; max-width: 900px; }
+      h1 { font-size: 16px; }
+      pre { background: #f4f4f4; padding: 12px; overflow-x: auto; }
+      .pass { color: #0a6b2d; }
+      .fail { color: #a11; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <h1>TV3 — study ingest harness (technical fixtures only)</h1>
+    <p>
+      Runs the real <code>src/study/pcm16k.ts</code> conversion in this browser
+      against synthetic contours, then posts each result to the canonical
+      tone-attempt route. No microphone and no participant data is involved;
+      every fixture is PREFLIGHT_ONLY.
+    </p>
+    <div id="status">running…</div>
+    <pre id="results">…</pre>
+    <script type="module">
+      import { buildStudyWav, resampleTo16k, toPcm16, STUDY_PCM_SPEC_VERSION }
+        from "/src/study/pcm16k.ts";
+
+      // Port is overridable so the harness never has to displace a backend the
+      // developer already has running on the default port.
+      const PORT = new URLSearchParams(location.search).get("port") || "8010";
+      const API = `http://localhost:${PORT}/api/pronunciation/tone-attempt`;
+      const CAPTURE_RATE = 48000;
+
+      // The same idealised contours the Python verifier synthesises.
+      function contour(shape, seconds, rate) {
+        const n = Math.round(seconds * rate);
+        const out = new Float64Array(n);
+        let phase = 0;
+        for (let i = 0; i < n; i += 1) {
+          const u = n === 1 ? 0 : i / (n - 1);
+          let f0;
+          if (shape === "T1") f0 = 210.0;
+          else if (shape === "T2") f0 = 160.0 * Math.pow(2, u * 0.55);
+          else if (shape === "T3")
+            f0 = 180.0 * Math.pow(2, -0.45 * Math.sin(Math.PI * u) + 0.2 * u);
+          else f0 = 265.0 * Math.pow(2, -u * 0.85);
+          phase += (2 * Math.PI * f0) / rate;
+          let wave = 0;
+          for (const k of [1, 2, 3, 4]) wave += (1 / k) * Math.sin(k * phase);
+          const envelope = Math.min(1, Math.min(u, 1 - u) * 24);
+          out[i] = 0.3 * wave * envelope;
+        }
+        return out;
+      }
+
+      async function post(blob, tone) {
+        const form = new FormData();
+        form.append("audio", blob, "attempt.wav");
+        form.append("expected_tone", tone);
+        form.append("item_id", "TV3_BROWSER");
+        form.append("capture_sample_rate", String(CAPTURE_RATE));
+        form.append("pcm_spec_version", STUDY_PCM_SPEC_VERSION);
+        const response = await fetch(API, { method: "POST", body: form });
+        return { status: response.status, body: await response.json() };
+      }
+
+      const results = {
+        user_agent: navigator.userAgent,
+        pcm_spec_version: STUDY_PCM_SPEC_VERSION,
+        audio_context_sample_rate: null,
+        conversion_vectors: [],
+        attempts: [],
+      };
+
+      try {
+        // What rate would a real capture run at on this machine/browser?
+        const probe = new (window.AudioContext || window.webkitAudioContext)();
+        results.audio_context_sample_rate = probe.sampleRate;
+        await probe.close();
+      } catch (error) {
+        results.audio_context_sample_rate = `unavailable: ${error}`;
+      }
+
+      // Cross-engine vectors: identical inputs to the Python/Node checks.
+      for (const spec of [
+        { name: "identity_16k", rate: 16000, frequency: 200, seconds: 0.05 },
+        { name: "from_48k", rate: 48000, frequency: 200, seconds: 0.05 },
+        { name: "from_44100", rate: 44100, frequency: 220, seconds: 0.05 },
+        { name: "short_80ms_48k", rate: 48000, frequency: 180, seconds: 0.08 },
+      ]) {
+        const n = Math.round(spec.seconds * spec.rate);
+        const input = new Float64Array(n);
+        for (let i = 0; i < n; i += 1) {
+          input[i] = 0.3 * Math.sin((2 * Math.PI * spec.frequency * i) / spec.rate);
+        }
+        const converted = resampleTo16k(input, spec.rate);
+        const pcm = toPcm16(converted);
+        let checksum = 0;
+        for (const value of pcm) checksum = (checksum * 31 + value) | 0;
+        results.conversion_vectors.push({
+          name: spec.name,
+          source_rate: spec.rate,
+          input_frames: n,
+          output_frames: converted.length,
+          pcm_checksum: checksum,
+          first_eight: Array.from(converted.slice(0, 8)),
+        });
+      }
+
+      // Full browser -> API -> model, one per tone plus a forced failure.
+      const fixtures = [
+        ["T1", contour("T1", 0.25, CAPTURE_RATE)],
+        ["T2", contour("T2", 0.25, CAPTURE_RATE)],
+        ["T3", contour("T3", 0.25, CAPTURE_RATE)],
+        ["T4", contour("T4", 0.25, CAPTURE_RATE)],
+        ["T2", new Float64Array(Math.round(0.25 * CAPTURE_RATE))], // silence
+      ];
+      for (let index = 0; index < fixtures.length; index += 1) {
+        const [tone, samples] = fixtures[index];
+        const { blob, metadata } = buildStudyWav(samples, CAPTURE_RATE);
+        const response = await post(blob, tone);
+        results.attempts.push({
+          fixture: index === 4 ? "silence" : `contour_${tone}`,
+          expected_tone: tone,
+          capture_sample_rate: metadata.capture_sample_rate,
+          output_sample_rate: metadata.output_sample_rate,
+          input_frames: metadata.input_frames,
+          output_frames: metadata.output_frames,
+          input_duration_ms: metadata.input_duration_ms,
+          output_duration_ms: metadata.output_duration_ms,
+          blob_bytes: blob.size,
+          http_status: response.status,
+          response_keys: Object.keys(response.body).sort(),
+          decision: response.body.decision,
+          message: response.body.message,
+          technical_retry: response.body.technical_retry,
+        });
+      }
+
+      // Invalid tone must be a uniform technical RETRY, never a 422.
+      const { blob: goodBlob } = buildStudyWav(contour("T2", 0.25, CAPTURE_RATE), CAPTURE_RATE);
+      const invalid = await post(goodBlob, "banana");
+      results.invalid_tone = {
+        http_status: invalid.status,
+        decision: invalid.body.decision,
+        technical_retry: invalid.body.technical_retry,
+        response_keys: Object.keys(invalid.body).sort(),
+      };
+
+      document.getElementById("status").textContent = "done";
+      document.getElementById("results").textContent = JSON.stringify(results, null, 2);
+      window.__TV3_RESULTS__ = results;
+      const marker = document.createElement("div");
+      marker.id = "tv3-complete";
+      document.body.appendChild(marker);
+    </script>
+  </body>
+</html>

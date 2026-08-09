@@ -1,0 +1,86 @@
+[
+  {
+    "name": "tone_T1",
+    "kind": "synthetic_contour",
+    "expected_tone": "T1",
+    "file": "PREFLIGHT_ONLY_tone_T1.wav",
+    "capture_sample_rate": 48000,
+    "output_sample_rate": 16000,
+    "output_duration_ms": 250.0,
+    "pcm_spec_version": "STUDY_PCM16K_v1",
+    "IS_PREFLIGHT_ONLY": "YES",
+    "note": "never eligible for human-validation analysis"
+  },
+  {
+    "name": "tone_T2",
+    "kind": "synthetic_contour",
+    "expected_tone": "T2",
+    "file": "PREFLIGHT_ONLY_tone_T2.wav",
+    "capture_sample_rate": 48000,
+    "output_sample_rate": 16000,
+    "output_duration_ms": 250.0,
+    "pcm_spec_version": "STUDY_PCM16K_v1",
+    "IS_PREFLIGHT_ONLY": "YES",
+    "note": "never eligible for human-validation analysis"
+  },
+  {
+    "name": "tone_T3",
+    "kind": "synthetic_contour",
+    "expected_tone": "T3",
+    "file": "PREFLIGHT_ONLY_tone_T3.wav",
+    "capture_sample_rate": 48000,
+    "output_sample_rate": 16000,
+    "output_duration_ms": 250.0,
+    "pcm_spec_version": "STUDY_PCM16K_v1",
+    "IS_PREFLIGHT_ONLY": "YES",
+    "note": "never eligible for human-validation analysis"
+  },
+  {
+    "name": "tone_T4",
+    "kind": "synthetic_contour",
+    "expected_tone": "T4",
+    "file": "PREFLIGHT_ONLY_tone_T4.wav",
+    "capture_sample_rate": 48000,
+    "output_sample_rate": 16000,
+    "output_duration_ms": 250.0,
+    "pcm_spec_version": "STUDY_PCM16K_v1",
+    "IS_PREFLIGHT_ONLY": "YES",
+    "note": "never eligible for human-validation analysis"
+  },
+  {
+    "name": "silence",
+    "kind": "trajectory_failure",
+    "expected_tone": "T2",
+    "file": "PREFLIGHT_ONLY_silence.wav",
+    "capture_sample_rate": 48000,
+    "output_sample_rate": 16000,
+    "output_duration_ms": 250.0,
+    "pcm_spec_version": "STUDY_PCM16K_v1",
+    "IS_PREFLIGHT_ONLY": "YES",
+    "note": "never eligible for human-validation analysis"
+  },
+  {
+    "name": "very_short_speech",
+    "kind": "very_short",
+    "expected_tone": "T2",
+    "file": "PREFLIGHT_ONLY_very_short_speech.wav",
+    "capture_sample_rate": 48000,
+    "output_sample_rate": 16000,
+    "output_duration_ms": 20.0,
+    "pcm_spec_version": "STUDY_PCM16K_v1",
+    "IS_PREFLIGHT_ONLY": "YES",
+    "note": "never eligible for human-validation analysis"
+  },
+  {
+    "name": "noise_only",
+    "kind": "technical_failure",
+    "expected_tone": "T2",
+    "file": "PREFLIGHT_ONLY_noise_only.wav",
+    "capture_sample_rate": 48000,
+    "output_sample_rate": 16000,
+    "output_duration_ms": 300.0,
+    "pcm_spec_version": "STUDY_PCM16K_v1",
+    "IS_PREFLIGHT_ONLY": "YES",
+    "note": "never eligible for human-validation analysis"
+  }
+]

@@ -1,0 +1,16 @@
+case,decision,failure_code,trajectory_available,learner_message,raw_score
+valid token,RETRY,ok,True,I'm not confident enough to confirm this attempt. Please try once more.,0.41852527678881296
+digital silence,RETRY,insufficient_voiced_frames,False,I'm not confident enough to confirm this attempt. Please try once more.,
+empty audio,RETRY,empty_audio,False,I'm not confident enough to confirm this attempt. Please try once more.,
+10 ms audio,RETRY,token_duration_out_of_contract,False,I'm not confident enough to confirm this attempt. Please try once more.,
+white noise,RETRY,insufficient_voiced_frames,False,I'm not confident enough to confirm this attempt. Please try once more.,
+NaN samples,RETRY,insufficient_voiced_frames,False,I'm not confident enough to confirm this attempt. Please try once more.,
+Inf samples,RETRY,insufficient_voiced_frames,False,I'm not confident enough to confirm this attempt. Please try once more.,
+stereo input,RETRY,ok,True,I'm not confident enough to confirm this attempt. Please try once more.,0.41852527678881296
+corrupted file,RETRY,unreadable_audio,False,I'm not confident enough to confirm this attempt. Please try once more.,
+unsupported file,RETRY,unreadable_audio,False,I'm not confident enough to confirm this attempt. Please try once more.,
+missing file,RETRY,unreadable_audio,False,I'm not confident enough to confirm this attempt. Please try once more.,
+invalid tone (int),RETRY,invalid_expected_tone,False,I'm not confident enough to confirm this attempt. Please try once more.,
+invalid tone (None),RETRY,invalid_expected_tone,False,I'm not confident enough to confirm this attempt. Please try once more.,
+invalid tone (unknown),RETRY,invalid_expected_tone,False,I'm not confident enough to confirm this attempt. Please try once more.,
+oversized token,RETRY,token_duration_out_of_contract,False,I'm not confident enough to confirm this attempt. Please try once more.,

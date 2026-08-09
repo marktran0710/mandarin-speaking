@@ -1,0 +1,265 @@
+{
+  "_note": "TV3 deployment regression fixture, bound to the full serving path. Non-Test, non-validation material only. Expected values describe what the hardened path does today; they are not pronunciation correctness labels.",
+  "scientific_version": "OMPAL_R2_PASS_v1",
+  "deployment_version": "OMPAL_R2_PASS_v1.1",
+  "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+  "pcm_spec_version": "STUDY_PCM16K_v1",
+  "fitted_model_sha256": "0dcee1d87c69c5b2586fa9612b142a6ac5ef48cd37cd06dfac984a5d463c586c",
+  "feature_schema_sha256": "c3a204cdb96c753110b8585a6a283e06a76bc14a0c105980b7bd48b1d8687aa5",
+  "t_pass": 0.42274,
+  "contains_ompal_test_material": false,
+  "entries": [
+    {
+      "audio_reference_id": "REF_00100114_01",
+      "token_id": "00100114_01",
+      "audio_path": "benchmark_token_segments/00100114_01.wav",
+      "split": "native_reference",
+      "expected_tone": "1",
+      "input_metadata": {
+        "sample_rate": 16000,
+        "channels": 1,
+        "container": "WAV",
+        "encoding": "PCM_16"
+      },
+      "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+      "pcm_spec_version": "STUDY_PCM16K_v1",
+      "expected_trajectory_sha256": "b153bef339a01c183bcd63608ec3ee21796178b21ff5ce39bdc5dccf3437bf15",
+      "expected_trajectory_tolerance_st": 1e-09,
+      "expected_raw_score": 0.418525276789,
+      "expected_raw_score_tolerance": 1e-09,
+      "expected_decision": "RETRY",
+      "expected_failure_code": "ok"
+    },
+    {
+      "audio_reference_id": "REF_00100114_07",
+      "token_id": "00100114_07",
+      "audio_path": "benchmark_token_segments/00100114_07.wav",
+      "split": "native_reference",
+      "expected_tone": "1",
+      "input_metadata": {
+        "sample_rate": 16000,
+        "channels": 1,
+        "container": "WAV",
+        "encoding": "PCM_16"
+      },
+      "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+      "pcm_spec_version": "STUDY_PCM16K_v1",
+      "expected_trajectory_sha256": "3269e4e59e92133a8d555b81242a7acbe13972d76c7ce6d9a500840625f50479",
+      "expected_trajectory_tolerance_st": 1e-09,
+      "expected_raw_score": 0.476226795107,
+      "expected_raw_score_tolerance": 1e-09,
+      "expected_decision": "RETRY",
+      "expected_failure_code": "ok"
+    },
+    {
+      "audio_reference_id": "REF_00100114_08",
+      "token_id": "00100114_08",
+      "audio_path": "benchmark_token_segments/00100114_08.wav",
+      "split": "native_reference",
+      "expected_tone": "1",
+      "input_metadata": {
+        "sample_rate": 16000,
+        "channels": 1,
+        "container": "WAV",
+        "encoding": "PCM_16"
+      },
+      "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+      "pcm_spec_version": "STUDY_PCM16K_v1",
+      "expected_trajectory_sha256": "52676791a7d768de06d35d91ac821b6ea57e2601025aeb8a7a67953459506988",
+      "expected_trajectory_tolerance_st": 1e-09,
+      "expected_raw_score": 0.48272170002,
+      "expected_raw_score_tolerance": 1e-09,
+      "expected_decision": "RETRY",
+      "expected_failure_code": "ok"
+    },
+    {
+      "audio_reference_id": "REF_00100114_03",
+      "token_id": "00100114_03",
+      "audio_path": "benchmark_token_segments/00100114_03.wav",
+      "split": "native_reference",
+      "expected_tone": "2",
+      "input_metadata": {
+        "sample_rate": 16000,
+        "channels": 1,
+        "container": "WAV",
+        "encoding": "PCM_16"
+      },
+      "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+      "pcm_spec_version": "STUDY_PCM16K_v1",
+      "expected_trajectory_sha256": "dce0fa34bdbcd7863e963d571a4d943985958bb4be380881d3b997435953fc10",
+      "expected_trajectory_tolerance_st": 1e-09,
+      "expected_raw_score": 0.41178095996,
+      "expected_raw_score_tolerance": 1e-09,
+      "expected_decision": "PASS",
+      "expected_failure_code": "ok"
+    },
+    {
+      "audio_reference_id": "REF_00100117_03",
+      "token_id": "00100117_03",
+      "audio_path": "benchmark_token_segments/00100117_03.wav",
+      "split": "native_reference",
+      "expected_tone": "2",
+      "input_metadata": {
+        "sample_rate": 16000,
+        "channels": 1,
+        "container": "WAV",
+        "encoding": "PCM_16"
+      },
+      "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+      "pcm_spec_version": "STUDY_PCM16K_v1",
+      "expected_trajectory_sha256": "7087dea46f4261419bcbfb4275a3147f116ca0c82168bfb60fe35a8f86430c46",
+      "expected_trajectory_tolerance_st": 1e-09,
+      "expected_raw_score": 0.451898320242,
+      "expected_raw_score_tolerance": 1e-09,
+      "expected_decision": "RETRY",
+      "expected_failure_code": "ok"
+    },
+    {
+      "audio_reference_id": "REF_00100120_15",
+      "token_id": "00100120_15",
+      "audio_path": "benchmark_token_segments/00100120_15.wav",
+      "split": "native_reference",
+      "expected_tone": "2",
+      "input_metadata": {
+        "sample_rate": 16000,
+        "channels": 1,
+        "container": "WAV",
+        "encoding": "PCM_16"
+      },
+      "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+      "pcm_spec_version": "STUDY_PCM16K_v1",
+      "expected_trajectory_sha256": "468ca9c76ff084134ca8f157391b50f9b02180423dcb3d1b62998fe13b516721",
+      "expected_trajectory_tolerance_st": 1e-09,
+      "expected_raw_score": 0.313139831478,
+      "expected_raw_score_tolerance": 1e-09,
+      "expected_decision": "PASS",
+      "expected_failure_code": "ok"
+    },
+    {
+      "audio_reference_id": "REF_00100114_00",
+      "token_id": "00100114_00",
+      "audio_path": "benchmark_token_segments/00100114_00.wav",
+      "split": "native_reference",
+      "expected_tone": "3",
+      "input_metadata": {
+        "sample_rate": 16000,
+        "channels": 1,
+        "container": "WAV",
+        "encoding": "PCM_16"
+      },
+      "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+      "pcm_spec_version": "STUDY_PCM16K_v1",
+      "expected_trajectory_sha256": "892ea587f80d762c54ed80d9230cc229b7abe82f80c89947ac89ac14156c7aca",
+      "expected_trajectory_tolerance_st": 1e-09,
+      "expected_raw_score": 0.514316449404,
+      "expected_raw_score_tolerance": 1e-09,
+      "expected_decision": "RETRY",
+      "expected_failure_code": "ok"
+    },
+    {
+      "audio_reference_id": "REF_00100120_00",
+      "token_id": "00100120_00",
+      "audio_path": "benchmark_token_segments/00100120_00.wav",
+      "split": "native_reference",
+      "expected_tone": "3",
+      "input_metadata": {
+        "sample_rate": 16000,
+        "channels": 1,
+        "container": "WAV",
+        "encoding": "PCM_16"
+      },
+      "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+      "pcm_spec_version": "STUDY_PCM16K_v1",
+      "expected_trajectory_sha256": "2f915acd307a08a71f21d744774c48636b716b86da54c689eaa6313858ac6173",
+      "expected_trajectory_tolerance_st": 1e-09,
+      "expected_raw_score": 0.550283066782,
+      "expected_raw_score_tolerance": 1e-09,
+      "expected_decision": "RETRY",
+      "expected_failure_code": "ok"
+    },
+    {
+      "audio_reference_id": "REF_00100120_05",
+      "token_id": "00100120_05",
+      "audio_path": "benchmark_token_segments/00100120_05.wav",
+      "split": "native_reference",
+      "expected_tone": "3",
+      "input_metadata": {
+        "sample_rate": 16000,
+        "channels": 1,
+        "container": "WAV",
+        "encoding": "PCM_16"
+      },
+      "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+      "pcm_spec_version": "STUDY_PCM16K_v1",
+      "expected_trajectory_sha256": "5bb4d59b0cd484137f7e7b5f7d9b2f69a1b6a0b3c479366f162bf34729b75a32",
+      "expected_trajectory_tolerance_st": 1e-09,
+      "expected_raw_score": 0.349485199736,
+      "expected_raw_score_tolerance": 1e-09,
+      "expected_decision": "PASS",
+      "expected_failure_code": "ok"
+    },
+    {
+      "audio_reference_id": "REF_00100114_04",
+      "token_id": "00100114_04",
+      "audio_path": "benchmark_token_segments/00100114_04.wav",
+      "split": "native_reference",
+      "expected_tone": "4",
+      "input_metadata": {
+        "sample_rate": 16000,
+        "channels": 1,
+        "container": "WAV",
+        "encoding": "PCM_16"
+      },
+      "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+      "pcm_spec_version": "STUDY_PCM16K_v1",
+      "expected_trajectory_sha256": "f8d50a96b58ca416fe395c25e116a86462aab6610deae5829bb77e208e82be5f",
+      "expected_trajectory_tolerance_st": 1e-09,
+      "expected_raw_score": 0.408159273463,
+      "expected_raw_score_tolerance": 1e-09,
+      "expected_decision": "PASS",
+      "expected_failure_code": "ok"
+    },
+    {
+      "audio_reference_id": "REF_00100114_06",
+      "token_id": "00100114_06",
+      "audio_path": "benchmark_token_segments/00100114_06.wav",
+      "split": "native_reference",
+      "expected_tone": "4",
+      "input_metadata": {
+        "sample_rate": 16000,
+        "channels": 1,
+        "container": "WAV",
+        "encoding": "PCM_16"
+      },
+      "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+      "pcm_spec_version": "STUDY_PCM16K_v1",
+      "expected_trajectory_sha256": "5877ab8019e32ca2455a9d414ef4b9d3ba79f2706925b9d1c64b453f9ad81c4c",
+      "expected_trajectory_tolerance_st": 1e-09,
+      "expected_raw_score": 0.474720883529,
+      "expected_raw_score_tolerance": 1e-09,
+      "expected_decision": "RETRY",
+      "expected_failure_code": "ok"
+    },
+    {
+      "audio_reference_id": "REF_00100117_01",
+      "token_id": "00100117_01",
+      "audio_path": "benchmark_token_segments/00100117_01.wav",
+      "split": "native_reference",
+      "expected_tone": "4",
+      "input_metadata": {
+        "sample_rate": 16000,
+        "channels": 1,
+        "container": "WAV",
+        "encoding": "PCM_16"
+      },
+      "audio_contract_version": "OMPAL_AUDIO_CONTRACT_v1",
+      "pcm_spec_version": "STUDY_PCM16K_v1",
+      "expected_trajectory_sha256": null,
+      "expected_trajectory_tolerance_st": 1e-09,
+      "expected_raw_score": null,
+      "expected_raw_score_tolerance": 1e-09,
+      "expected_decision": "RETRY",
+      "expected_failure_code": "insufficient_voiced_frames"
+    }
+  ]
+}
