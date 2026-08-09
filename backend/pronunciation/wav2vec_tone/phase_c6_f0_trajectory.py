@@ -40,6 +40,12 @@ AUDIT_JSON = DATA_DIR / "ompal_phase_c6_trajectory_audit.json"
 PROTOCOL = DATA_DIR / "ompal_phase_c6_protocol_FROZEN.json"
 
 N_POINTS = 20                 # frozen for this phase; no search over point counts
+# ``trajectory_from_segment`` applies 12*log2(Hz) before returning.  The
+# persisted phase_c6_trajectories.npz cache therefore stores semitones, never
+# Hz.  Consumers must centre these values directly and must not apply log2 a
+# second time.
+TRAJECTORY_CACHE_SCHEMA_VERSION = "phase_c6_f0_trajectory.v1"
+TRAJECTORY_CACHE_UNIT = "semitones_re_1hz"
 TONES = ("1", "2", "3", "4")
 REFERENCE_TONE = "1"
 C_GRID = (0.01, 0.1, 1.0, 10.0)
@@ -84,6 +90,9 @@ def trajectory_from_segment(audio) -> tuple[np.ndarray | None, str]:
         return None, "insufficient_voiced_frames"
 
     voiced_times, voiced_values = times[voiced], frequencies[voiced]
+    # This conversion is intentionally the sole Hz -> semitone conversion in
+    # the Phase C6 representation.  Cached trajectories retain these values
+    # in semitones; downstream models only centre/impute/scale them.
     semitones = 12.0 * np.log2(voiced_values)
     # Normalised time runs across the VOICED span, so the contour is the tone
     # rather than the surrounding silence.

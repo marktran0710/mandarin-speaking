@@ -1,0 +1,741 @@
+{
+  "corpus_flow": {
+    "rated_tokens": 20671,
+    "audio_annotation_matched": 13261,
+    "moe_verified": 8759,
+    "alignment_eligible": 2176,
+    "alignment_attempted": 2176,
+    "alignment_successful": 2176,
+    "segment_extracted": 2176
+  },
+  "hierarchical_exclusions": {
+    "rated_to_matched": {
+      "annotation_audio_id_mismatch": 7410
+    },
+    "matched_to_moe_verified": {
+      "ambiguous_or_unverified_pronunciation": 4502
+    },
+    "moe_verified_to_eligible": {
+      "token_pronunciation_segmentally_undetermined": 1394,
+      "utterance_dropped_sibling_token_undetermined": 5189
+    },
+    "moe_verified_to_eligible_total": 6583
+  },
+  "raw_exclusion_flags": {
+    "token_pronunciation_segmentally_undetermined": 1394,
+    "utterance_dropped_sibling_token_undetermined": 5189
+  },
+  "flag_overlap_note": "Within the moe_verified -> eligible stage each token carries at most one reason, so primary and raw counts coincide. Across stages the earlier reasons are hierarchical: a token without audio is never tested for pronunciation ambiguity.",
+  "utterance_outcomes": {
+    "dropped_undetermined_sibling": 825,
+    "eligible": 369,
+    "no_matching_audio": 656
+  },
+  "alignment_results": {
+    "attempted": 2176,
+    "successful": 2176,
+    "failed": 0,
+    "technical_success_rate": 1.0,
+    "boundary_accuracy_note": "Technical success only. Independent blinded human review put usable original-boundary segments at 81/100 (blinded, original boundaries)."
+  },
+  "segment_extraction_results": {
+    "extracted": 2176,
+    "failed": 0
+  },
+  "speaker_statistics": {
+    "learner_speakers": 45,
+    "native_speakers": 3,
+    "tokens_per_learner_speaker": {
+      "min": 17,
+      "median": 72.0,
+      "max": 72
+    },
+    "correct_rate_by_speaker": {
+      "min": 0.4305555555555556,
+      "median": 0.8472222222222222,
+      "max": 1.0,
+      "iqr": [
+        0.7647058823529411,
+        0.9411764705882353
+      ]
+    }
+  },
+  "label_statistics": {
+    "correct": 1717,
+    "incorrect": 351,
+    "majority_baseline": 0.8302707930367504
+  },
+  "tone_statistics": {
+    "T1": {
+      "n": 553,
+      "incorrect": 89
+    },
+    "T2": {
+      "n": 468,
+      "incorrect": 71
+    },
+    "T3": {
+      "n": 272,
+      "incorrect": 52
+    },
+    "T4": {
+      "n": 775,
+      "incorrect": 139
+    },
+    "T5": {
+      "n": 0,
+      "incorrect": 0
+    }
+  },
+  "lexical_statistics": {
+    "characters": {
+      "n_groups": 59,
+      "only_correct": 3,
+      "only_incorrect": 0,
+      "both": 56,
+      "tokens_per_group": {
+        "min": 21,
+        "median": 24.0,
+        "max": 138
+      },
+      "correctness_rate": {
+        "min": 0.48936170212765956,
+        "median": 0.8333333333333334,
+        "max": 1.0
+      },
+      "tokens_in_both_groups": 2000
+    },
+    "syllable_bases": {
+      "n_groups": 53,
+      "only_correct": 1,
+      "only_incorrect": 0,
+      "both": 52,
+      "tokens_per_group": {
+        "min": 21,
+        "median": 24.0,
+        "max": 138
+      },
+      "correctness_rate": {
+        "min": 0.5217391304347826,
+        "median": 0.8333333333333334,
+        "max": 1.0
+      },
+      "tokens_in_both_groups": 2044
+    }
+  },
+  "confound_diagnostics": {
+    "n_tokens": 2068,
+    "class_balance": {
+      "correct": 1717,
+      "incorrect": 351,
+      "majority_baseline": 0.8302707930367504
+    },
+    "character": {
+      "n_groups": 59,
+      "only_correct": 3,
+      "only_incorrect": 0,
+      "both": 56,
+      "tokens_per_group": {
+        "min": 21,
+        "median": 24.0,
+        "max": 138
+      },
+      "correctness_rate": {
+        "min": 0.48936170212765956,
+        "median": 0.8333333333333334,
+        "max": 1.0
+      },
+      "tokens_in_both_groups": 2000
+    },
+    "syllable_base": {
+      "n_groups": 53,
+      "only_correct": 1,
+      "only_incorrect": 0,
+      "both": 52,
+      "tokens_per_group": {
+        "min": 21,
+        "median": 24.0,
+        "max": 138
+      },
+      "correctness_rate": {
+        "min": 0.5217391304347826,
+        "median": 0.8333333333333334,
+        "max": 1.0
+      },
+      "tokens_in_both_groups": 2044
+    },
+    "expected_tone": {
+      "n_groups": 4,
+      "only_correct": 0,
+      "only_incorrect": 0,
+      "both": 4,
+      "tokens_per_group": {
+        "min": 272,
+        "median": 510.5,
+        "max": 775
+      },
+      "correctness_rate": {
+        "min": 0.8088235294117647,
+        "median": 0.8298524178965175,
+        "max": 0.8482905982905983
+      },
+      "tokens_in_both_groups": 2068
+    },
+    "speaker": {
+      "n_groups": 45,
+      "only_correct": 5,
+      "only_incorrect": 0,
+      "both": 40,
+      "tokens_per_group": {
+        "min": 17,
+        "median": 72.0,
+        "max": 72
+      },
+      "correctness_rate": {
+        "min": 0.4305555555555556,
+        "median": 0.8472222222222222,
+        "max": 1.0
+      },
+      "tokens_in_both_groups": 1873
+    },
+    "utterance": {
+      "n_groups": 349,
+      "only_correct": 162,
+      "only_incorrect": 4,
+      "both": 183,
+      "tokens_per_group": {
+        "min": 2,
+        "median": 6.0,
+        "max": 10
+      },
+      "correctness_rate": {
+        "min": 0.0,
+        "median": 0.8571428571428571,
+        "max": 1.0
+      },
+      "tokens_in_both_groups": 1161
+    },
+    "baselines_speaker_disjoint": {
+      "majority_class": {
+        "accuracy": 0.8302707930367504,
+        "recall_incorrect": 0.0
+      },
+      "expected_tone_only": {
+        "accuracy": 0.8302707930367504,
+        "recall_incorrect": 0.0
+      },
+      "character_only": {
+        "accuracy": 0.8254352030947776,
+        "recall_incorrect": 0.03133903133903134
+      },
+      "syllable_only": {
+        "accuracy": 0.8283365570599613,
+        "recall_incorrect": 0.0
+      }
+    },
+    "speaker_baseline_note": "A speaker-only predictor is undefined under speaker-disjoint evaluation because the test speaker is unseen; it collapses to the majority class. The in-sample figure below is leaky and is an upper bound only.",
+    "speaker_only_in_sample_leaky": 0.8355899419729207,
+    "speaker_correct_rate": {
+      "min": 0.4305555555555556,
+      "median": 0.8472222222222222,
+      "max": 1.0,
+      "iqr": [
+        0.7647058823529411,
+        0.9411764705882353
+      ]
+    }
+  },
+  "provenance": {
+    "dataset_version": "ompal-tone-benchmark-1.0",
+    "pipeline_version": "align-mmsfa-star-0ms-1.0",
+    "aligner": "torchaudio MMS_FA CTC forced alignment (with_star=True)",
+    "boundary_policy": "original_0ms",
+    "code_commit": "743f0d0",
+    "target_pronunciation_source": "moe_dict (moedict.tw), Taiwan Mandarin"
+  },
+  "frozen_preprocessing_decisions": [
+    "existing CTC forced aligner, unchanged",
+    "original 0 ms boundaries, no padding",
+    "no RMS, SNR, duration or alignment-score filtering",
+    "no QC classifier",
+    "unresolved audio/annotation id mismatches not remapped",
+    "ambiguous polyphonic pronunciations not guessed"
+  ],
+  "known_limitations": [
+    "Blinded human usability of original boundaries: 81/100 (blinded, original boundaries). Roughly one token in five is expected imperfect and the manifest cannot identify which.",
+    "No neutral-tone tokens: every neutral-capable character is tone-ambiguous under MoE and was excluded.",
+    "5,189 MoE-verified tokens were lost as collateral of the whole-utterance eligibility rule, not because of anything wrong with those tokens.",
+    "Acoustic descriptors are metadata; no QC rule was validated."
+  ],
+  "validation_failures": [],
+  "release_gate": {
+    "status": "NEEDS_DATA",
+    "release_status": "EXPERIMENTAL",
+    "passed": false,
+    "missing_metrics": [
+      "model_version",
+      "schema_version",
+      "sealed_test_set",
+      "speaker_count",
+      "character_alignment_success",
+      "human_usable_boundaries",
+      "phone_boundary_within_30ms",
+      "phone_gold_count",
+      "phone_f1",
+      "phone_group_min_f1",
+      "tone_accuracy",
+      "tone_macro_f1",
+      "detection_coverage",
+      "unknown_rate",
+      "correct_balanced_accuracy",
+      "correct_sensitivity",
+      "correct_specificity",
+      "audio_qc_auc",
+      "audio_qc_retention",
+      "audio_qc_unusable_recall",
+      "audio_qc_reviewed_count",
+      "audio_qc_unusable_count",
+      "high_confidence_precision",
+      "calibration_ece",
+      "speaker_min_balanced_accuracy",
+      "t1_precision",
+      "t1_recall",
+      "t1_f1",
+      "t1_test_support",
+      "t2_precision",
+      "t2_recall",
+      "t2_f1",
+      "t2_test_support",
+      "t3_precision",
+      "t3_recall",
+      "t3_f1",
+      "t3_test_support",
+      "t4_precision",
+      "t4_recall",
+      "t4_f1",
+      "t4_test_support",
+      "t5_precision",
+      "t5_recall",
+      "t5_f1",
+      "t5_test_support",
+      "speaker_leakage"
+    ],
+    "failed_metrics": [],
+    "checks": [
+      {
+        "name": "model_version",
+        "passed": false,
+        "actual": null,
+        "operator": "=",
+        "threshold": 1.0,
+        "required": true,
+        "detail": "frozen model provenance is missing"
+      },
+      {
+        "name": "schema_version",
+        "passed": false,
+        "actual": null,
+        "operator": "=",
+        "threshold": 1.0,
+        "required": true,
+        "detail": "frozen schema provenance is missing"
+      },
+      {
+        "name": "sealed_test_set",
+        "passed": false,
+        "actual": null,
+        "operator": "=",
+        "threshold": 1.0,
+        "required": true,
+        "detail": "sealed test set marker is missing"
+      },
+      {
+        "name": "speaker_count",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 40,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "character_alignment_success",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.95,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "human_usable_boundaries",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.9,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "phone_boundary_within_30ms",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "phone_gold_count",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 300,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "phone_f1",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "phone_group_min_f1",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "tone_accuracy",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "tone_macro_f1",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "detection_coverage",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "unknown_rate",
+        "passed": false,
+        "actual": null,
+        "operator": "<=",
+        "threshold": 0.2,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "correct_balanced_accuracy",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "correct_sensitivity",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "correct_specificity",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "audio_qc_auc",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "audio_qc_retention",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "audio_qc_unusable_recall",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "audio_qc_reviewed_count",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 300,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "audio_qc_unusable_count",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 100,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "high_confidence_precision",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.92,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "calibration_ece",
+        "passed": false,
+        "actual": null,
+        "operator": "<=",
+        "threshold": 0.1,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "speaker_min_balanced_accuracy",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.7,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t1_precision",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t1_recall",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t1_f1",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t1_test_support",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 50,
+        "required": true,
+        "detail": ""
+      },
+      {
+        "name": "t2_precision",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t2_recall",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t2_f1",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t2_test_support",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 50,
+        "required": true,
+        "detail": ""
+      },
+      {
+        "name": "t3_precision",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t3_recall",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t3_f1",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t3_test_support",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 50,
+        "required": true,
+        "detail": ""
+      },
+      {
+        "name": "t4_precision",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t4_recall",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t4_f1",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t4_test_support",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 50,
+        "required": true,
+        "detail": ""
+      },
+      {
+        "name": "t5_precision",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t5_recall",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t5_f1",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 0.8,
+        "required": true,
+        "detail": "required metric is missing"
+      },
+      {
+        "name": "t5_test_support",
+        "passed": false,
+        "actual": null,
+        "operator": ">=",
+        "threshold": 50,
+        "required": true,
+        "detail": "T5 requires learner test support"
+      },
+      {
+        "name": "speaker_leakage",
+        "passed": false,
+        "actual": null,
+        "operator": "<=",
+        "threshold": 0,
+        "required": true,
+        "detail": "speaker-disjoint split required"
+      }
+    ]
+  }
+}

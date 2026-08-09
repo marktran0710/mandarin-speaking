@@ -1,0 +1,24 @@
+{
+  "analysis_version": "phoneme_tone_v2",
+  "analysis_schema_version": "analysis_v2.character_phone.v2",
+  "candidate_count": 1,
+  "success_count": 0,
+  "failure_count": 1,
+  "gold_status": "not_gold",
+  "release_eligible": false,
+  "review_required": true,
+  "note": "Preannotations are model suggestions; replace with human gold labels before KPI gating.",
+  "results": [
+    {
+      "audio_path": "S1_Sarah Wright.m4a",
+      "source_audio": "backend\\private-data\\ntu_speech_bank_wav\\S1_Sarah Wright.wav",
+      "status": "failed",
+      "gold_status": "not_gold",
+      "latency_ms": 45049.8,
+      "error_type": "TimeoutError",
+      "error": "",
+      "rows": []
+    }
+  ],
+  "rows": []
+}

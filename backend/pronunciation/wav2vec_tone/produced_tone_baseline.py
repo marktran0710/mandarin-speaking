@@ -41,24 +41,46 @@ TONES = ("1", "2", "3", "4")
 FOLDS = 5
 SEED = 0
 DEFAULT_C = 1.0
+TRAJECTORY_CACHE_SCHEMA_VERSION = "phase_c6_f0_trajectory.v1"
+TRAJECTORY_CACHE_UNIT = "semitones_re_1hz"
+PITCH_REGISTER_UNIT = "semitones_re_1hz"
 
 
 def normalise_trajectory(trajectory: np.ndarray) -> np.ndarray:
-    """Convert F0 to a per-token, median-centred semitone trajectory.
+    """Median-centre a per-token semitone trajectory.
 
     Per-token centring removes speaker pitch register without using speaker
     identity.  All-unvoiced rows stay missing; median imputation is fit inside
     each training fold by :func:`make_estimator`.
+
+    ``phase_c6_trajectories.npz`` is already in ``semitones_re_1hz``.  This
+    function must never call ``log2``: doing so is a double conversion that
+    non-linearly warps the F0 contour.
     """
-    with np.errstate(divide="ignore", invalid="ignore"):
-        semitones = 12.0 * np.log2(np.where(trajectory > 0, trajectory, np.nan))
     # Entirely unvoiced tokens remain missing and are imputed in a fold-local
     # pipeline.  Suppress NumPy's descriptive warning without replacing their
     # missing acoustic evidence with a synthetic contour.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
-        median = np.nanmedian(semitones, axis=1, keepdims=True)
-    return semitones - median
+        median = np.nanmedian(trajectory, axis=1, keepdims=True)
+    return np.asarray(trajectory, dtype=float) - median
+
+
+def contour_and_register(trajectory: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Return centred contour plus a valid per-token pitch-register feature.
+
+    The register is the token median in the same semitone unit as the cache.
+    It is derived from the current audio only, not speaker identity, labels,
+    character, or prompt.  Fold-local imputation/scaling in :func:`make_estimator`
+    handles unvoiced rows.  Keeping it separate preserves contour shape while
+    allowing a model to test whether absolute register is useful on unseen
+    speakers rather than assuming it is an identity feature.
+    """
+    values = np.asarray(trajectory, dtype=float)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        register = np.nanmedian(values, axis=1, keepdims=True)
+    return normalise_trajectory(values), register
 
 
 def make_estimator(C: float = DEFAULT_C):
@@ -128,9 +150,11 @@ def load_train_only(
 
     # The 10-vector is an acoustic-only summary; neither the prompt nor any
     # identity column appears in it.  Keep it alongside the relative contour.
-    contours = normalise_trajectory(all_trajectories[train][keep])
+    contours, register = contour_and_register(all_trajectories[train][keep])
     summaries = np.asarray(cache["praat"][train][keep], dtype=float)
-    features = np.hstack([contours, summaries])
+    # The 20 centred points carry shape; one absolute semitone register keeps
+    # legitimate acoustic variation available without reintroducing speaker ID.
+    features = np.hstack([contours, register, summaries])
     return (features, labels[keep], cache["speaker"].astype(str)[train][keep], ids[keep])
 
 
@@ -195,7 +219,14 @@ def evaluate_oof(
             "partition": "frozen OMPAL Train rows only; Dev/Test never used",
             "label": "expected_tone only where human tone_correctness=1",
             "cv": f"GroupKFold({folds}) by speaker_id",
-            "feature_set": "median-centred 20-point F0 trajectory plus 10 acoustic Praat measurements",
+            "feature_set": (
+                "20-point median-centred semitone F0 contour + one per-token "
+                "median pitch-register feature (semitones re 1 Hz) + 10 acoustic "
+                "Praat measurements"
+            ),
+            "trajectory_cache_schema": TRAJECTORY_CACHE_SCHEMA_VERSION,
+            "trajectory_cache_unit": TRAJECTORY_CACHE_UNIT,
+            "pitch_register_unit": PITCH_REGISTER_UNIT,
             "forbidden_features": [
                 "expected_tone/prompt", "character", "pinyin", "word_script",
                 "speaker_id", "token_id", "utterance_id", "embeddings",

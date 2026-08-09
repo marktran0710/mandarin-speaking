@@ -1,0 +1,176 @@
+{
+  "protocol": {
+    "partition": "frozen OMPAL Train rows only; Dev/Test not opened",
+    "cv": "GroupKFold(5) by speaker_id",
+    "model": "same fold-local LogisticRegression baseline, C=1.0",
+    "comparison": "pre-specified acoustic representation ablation",
+    "not_phone_alignment": true,
+    "needs_phone_gold_for_boundary_claim": true
+  },
+  "nucleus_cache_schema": "voiced_nucleus_proxy.v1",
+  "nucleus_cache_metadata": {
+    "fallback": "full voiced span when intensity/run evidence is insufficient",
+    "forbidden_inputs": [
+      "expected_tone",
+      "pinyin",
+      "character",
+      "word_script",
+      "tone_correctness",
+      "speaker_id",
+      "utterance_id",
+      "Dev",
+      "Test"
+    ],
+    "not_phone_alignment": true,
+    "not_vowel_boundary_gold": true,
+    "pitch": {
+      "ceiling_hz": 500.0,
+      "floor_hz": 60.0,
+      "time_step_seconds": 0.005
+    },
+    "points": 12,
+    "schema_version": "voiced_nucleus_proxy.v1",
+    "selection": "longest contiguous voiced run at/above token voiced-intensity 35th percentile",
+    "source_partition": "train_only",
+    "unit": "semitones_re_1hz"
+  },
+  "nucleus_status_counts": {
+    "energy_proxy_insufficient_full_voiced": 178,
+    "energy_voiced_nucleus_proxy": 684,
+    "insufficient_voiced_frames": 97,
+    "intensity_unavailable_full_voiced": 213,
+    "pitch_unavailable": 11
+  },
+  "n_tokens": 1183,
+  "n_speakers": 32,
+  "metrics": {
+    "full_voiced_contour_register_praat": {
+      "accuracy": 0.4437869822485207,
+      "macro_f1": 0.41892884346058923,
+      "per_tone": {
+        "T1": {
+          "precision": 0.41644562334217505,
+          "recall": 0.49216300940438873,
+          "f1": 0.4511494252873563,
+          "support": 319
+        },
+        "T2": {
+          "precision": 0.43373493975903615,
+          "recall": 0.40298507462686567,
+          "f1": 0.41779497098646035,
+          "support": 268
+        },
+        "T3": {
+          "precision": 0.23696682464454977,
+          "recall": 0.3184713375796178,
+          "f1": 0.2717391304347826,
+          "support": 157
+        },
+        "T4": {
+          "precision": 0.6069364161849711,
+          "recall": 0.4783599088838269,
+          "f1": 0.535031847133758,
+          "support": 439
+        }
+      },
+      "confusion_matrix": [
+        [
+          157,
+          49,
+          41,
+          72
+        ],
+        [
+          69,
+          108,
+          57,
+          34
+        ],
+        [
+          25,
+          52,
+          50,
+          30
+        ],
+        [
+          126,
+          40,
+          63,
+          210
+        ]
+      ],
+      "confusion_matrix_labels": [
+        "T1",
+        "T2",
+        "T3",
+        "T4"
+      ]
+    },
+    "plus_energy_voiced_nucleus_proxy": {
+      "accuracy": 0.45815722738799664,
+      "macro_f1": 0.4345947926916074,
+      "per_tone": {
+        "T1": {
+          "precision": 0.42455242966751916,
+          "recall": 0.5203761755485894,
+          "f1": 0.4676056338028169,
+          "support": 319
+        },
+        "T2": {
+          "precision": 0.4491525423728814,
+          "recall": 0.39552238805970147,
+          "f1": 0.42063492063492064,
+          "support": 268
+        },
+        "T3": {
+          "precision": 0.2641509433962264,
+          "recall": 0.35668789808917195,
+          "f1": 0.3035230352303523,
+          "support": 157
+        },
+        "T4": {
+          "precision": 0.622093023255814,
+          "recall": 0.4874715261958998,
+          "f1": 0.5466155810983397,
+          "support": 439
+        }
+      },
+      "confusion_matrix": [
+        [
+          166,
+          46,
+          39,
+          68
+        ],
+        [
+          77,
+          106,
+          54,
+          31
+        ],
+        [
+          26,
+          44,
+          56,
+          31
+        ],
+        [
+          122,
+          40,
+          63,
+          214
+        ]
+      ],
+      "confusion_matrix_labels": [
+        "T1",
+        "T2",
+        "T3",
+        "T4"
+      ]
+    }
+  },
+  "delta_proxy_minus_baseline": {
+    "accuracy": 0.014370245139475935,
+    "macro_f1": 0.01566594923101816
+  }
+}

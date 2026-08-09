@@ -68,13 +68,27 @@ def test_every_syllable_is_diagnosed(syllables):
         assert syllable["accepted_surface_tones"]
 
 
-def test_the_third_tone_run_accepts_its_sandhi_realizations(syllables):
-    """友美妳 is three T3s in a row. 友 must never be marked wrong for being
-    produced as a rising tone — that is the correct realization here."""
-    for char in ("友", "美"):
-        entry = by_char(syllables, char)
-        assert entry["underlying_tone"] == 3
-        assert 2 in entry["accepted_surface_tones"], char
+def test_the_comma_splits_the_third_tone_run(syllables):
+    """友美，| 妳 — three T3s on paper, but not one chain.
+
+    Sandhi is phrase-internal, so the comma cuts the run in two: 友美 is a
+    clean T3+T3 pair (友 → rising), and 妳 starts a fresh phrase. An earlier
+    version grouped all three because segmentation discarded the punctuation,
+    which loosened 友 to "either T2 or T3" — a weaker and wronger target.
+    """
+    you, mei, ni = (by_char(syllables, c) for c in ("友", "美", "妳"))
+
+    assert you["underlying_tone"] == 3
+    assert you["accepted_surface_tones"] == [2], "友 is the first of a clean pair"
+    assert you["context_rule"] == "T3_T3"
+    assert you["tone_realization"] == "third_tone_sandhi"
+
+    assert mei["accepted_surface_tones"] == [3], "美 is phrase-final before the comma"
+    assert mei["boundary_after"] is True
+    assert mei["tone_realization"] == "full_third"
+
+    assert ni["accepted_surface_tones"] == [3], "妳 opens a new phrase"
+    assert ni["context_rule"] is None, "no sandhi reaches across the comma"
 
 
 def test_ni_before_a_fourth_tone_is_half_third(syllables):

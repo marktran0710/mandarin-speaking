@@ -1,0 +1,12 @@
+audio_path,extension,bytes,sha256,decode_status,sample_rate_hz,channels,frames,duration_ms,subtype,peak_abs,rms_dbfs,silence_ratio,clipping_ratio,qc_status,duplicate_paths,qc_reasons
+S1_Raymond Chen.wav,.wav,8228282,fa1418094511b75a0c4a5e2e05a2754836985559f8e83d14efba52287beea235,decoded,16000,1,4114091,257130.688,PCM_16,0.575348,-29.836,0.019693,0.0,technical_pass,[],
+S1_Sarah Wright.wav,.wav,5329672,2f0a10217eb1ecbfc4bfdcdbdcadbaa4ca299d016ba14c9a26154c2d10e6b579,decoded,16000,1,2664789,166549.312,PCM_16,1.0,-16.593,0.003081,0.001312,technical_pass,[],
+S2_Erik Larson.wav,.wav,10790328,09996786ab63a573400883162348c6554c87a53e9cab1a35651d767b2c390f27,decoded,16000,1,5395115,337194.688,PCM_16,1.0,-15.785,0.007372,0.00119,technical_pass,[],
+S2_Moegan Short.wav,.wav,8411236,674361774872e37268cdc4f58d3c393e009a88bf65e7a87323e86b92d8a12149,decoded,16000,1,4205568,262848.0,PCM_16,0.636017,-29.665,0.017678,0.0,technical_pass,[],
+S3_Autumn peper.wav,.wav,4834702,b8b9df775a20f4fa7d55c4b392b77c4cac8a78735d9d2b4dea5db9543343e8fa,decoded,16000,1,2417301,151081.312,PCM_16,0.254333,-33.144,0.024706,0.0,technical_pass,[],
+S3_Boone Law.wav,.wav,12485344,60bd9e5b280891f0c22a3ea3bd3c43983c006e2b7cba1021c56dee73ad2d7832,decoded,16000,1,6242624,390164.0,PCM_16,0.870087,-27.827,0.018739,0.0,technical_pass,[],
+S4_Jacob Katz.wav,.wav,6403512,cc828c67105db4d9ad757e5d3c23dcb1ba95ed92504e1d7e2f9174ed005198ae,decoded,16000,1,3201707,200106.688,PCM_16,0.895905,-23.05,0.017975,0.0,technical_pass,[],
+S4_Samantha Thurman.wav,.wav,8960790,05ae73f68215efb6fd1b36acb4c3282adb2c0880581c8e30b49b112df9a781d0,decoded,16000,1,4480341,280021.312,PCM_16,1.0,-24.759,0.006413,0.000179,technical_pass,[],
+S5_Mona Strodtman.wav,.wav,14711568,5353de097f9c10d7d0e68c33687ab28c9c65d3689be1dea12843d5e842d256cd,decoded,16000,1,7355733,459733.312,PCM_16,0.638275,-25.849,0.014625,0.0,technical_pass,[],
+S7_Cassadra Chor.wav,.wav,11604752,4493b46db3c6359099dca1ac05b8d4b5b46d192f97d003d10ce1a0ec45d0e9f9,decoded,16000,1,5802325,362645.312,PCM_16,0.479797,-29.94,0.009745,0.0,technical_pass,[],
+S8_Caroline Ringquist.wav,.wav,14321098,a62fd4fdfb017d1d1161bb599c22a455365231f6f79a195e3db8126a9b5384f3,decoded,16000,1,7160491,447530.688,PCM_16,1.0,-23.745,0.004031,1e-06,technical_pass,[],

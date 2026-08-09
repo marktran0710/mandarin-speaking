@@ -1,0 +1,54 @@
+{
+  "corpus": "NTU Speech Corpus for L2 Mandarin",
+  "status": "proposed_not_gold",
+  "purpose": "Conservative candidate list for human T5 annotation. These entries must not be counted as T5 benchmark support until an annotator verifies the audio token and its prosodic realization.",
+  "source": "User-supplied beginner and intermediate transcripts",
+  "policy": {
+    "expected_tone": "leave blank until reviewed",
+    "unknown_is_distinct": true,
+    "audio_alignment_required": true,
+    "minimum_review": "one trained annotator plus adjudication for disputed tokens"
+  },
+  "candidates": {
+    "beginner": [
+      {"surface": "他們", "character": "們", "pinyin": "men", "occurrence": 2, "class": "pronoun_suffix", "confidence": "high", "note": "Common neutral-tone suffix in learner Mandarin; verify duration and pitch."},
+      {"surface": "爸爸", "character": "爸", "pinyin": "ba", "occurrence": 2, "class": "reduplicated_noun", "confidence": "moderate", "note": "Second syllable is commonly neutral in kinship reduplication; not deterministic."},
+      {"surface": "媽媽", "character": "媽", "pinyin": "ma", "occurrence": 2, "class": "reduplicated_noun", "confidence": "moderate", "note": "Second syllable is commonly neutral in kinship reduplication; not deterministic."},
+      {"surface": "哥哥", "character": "哥", "pinyin": "ge", "occurrence": 2, "class": "reduplicated_noun", "confidence": "moderate", "note": "Second syllable is commonly neutral in kinship reduplication; verify audio."},
+      {"surface": "一個", "character": "個", "pinyin": "ge", "occurrence": 2, "class": "classifier", "confidence": "high", "note": "Classifier ge is normally neutral after a numeral in this context."},
+      {"surface": "大夫", "character": "夫", "pinyin": "fu", "class": "lexical_neutral_candidate", "confidence": "moderate", "note": "The profession word dàifu is conventionally transcribed with neutral fu; verify speaker realization."},
+      {"surface": "胖子", "character": "子", "pinyin": "zi", "class": "nominal_suffix", "confidence": "high", "note": "Nominal suffix zi is a strong neutral-tone candidate."},
+      {"surface": "名字", "character": "字", "pinyin": "zi", "class": "nominal_suffix", "confidence": "high", "note": "In míngzi, final zi is commonly neutral."},
+      {"surface": "呢", "character": "呢", "pinyin": "ne", "class": "sentence_particle", "confidence": "high", "note": "Sentence-final particle; annotate only when the audio token is present."},
+      {"surface": "四個", "character": "個", "pinyin": "ge", "class": "classifier", "confidence": "high", "note": "Classifier ge after numeral."},
+      {"surface": "裡邊", "character": "邊", "pinyin": "bian", "class": "locative_suffix", "confidence": "moderate", "note": "Final bian is frequently neutral in lǐbian; verify against audio."},
+      {"surface": "椅子", "character": "子", "pinyin": "zi", "class": "nominal_suffix", "confidence": "high", "note": "Final zi is commonly neutral in yǐzi."}
+    ],
+    "intermediate": [
+      {"surface": "早上", "character": "上", "pinyin": "shang", "class": "time_expression_suffix", "confidence": "moderate", "note": "Final shang is commonly neutral in zǎoshang; verify learner production."},
+      {"surface": "了", "character": "了", "pinyin": "le", "occurrence": 12, "class": "aspect_particle", "confidence": "high", "note": "Aspect/completion particle; occurrences must be aligned individually."},
+      {"surface": "個", "character": "個", "pinyin": "ge", "occurrence": 4, "class": "classifier", "confidence": "high", "note": "Classifier ge in 半個多月, 一個空座位, 這個時候, 每個人."},
+      {"surface": "名字", "character": "字", "pinyin": "zi", "class": "nominal_suffix", "confidence": "high", "note": "Final zi is commonly neutral in míngzi."},
+      {"surface": "的", "character": "的", "pinyin": "de", "occurrence": 8, "class": "structural_particle", "confidence": "high", "note": "Structural particle; retain each token as a separate candidate."},
+      {"surface": "怎麼", "character": "麼", "pinyin": "me", "occurrence": 3, "class": "interrogative_suffix", "confidence": "high", "note": "Interrogative suffix me is normally neutral."},
+      {"surface": "洗洗", "character": "洗", "pinyin": "xi", "class": "verb_reduplication", "confidence": "moderate", "note": "Second reduplicated verb syllable is often neutral; verify timing and pitch."},
+      {"surface": "坐著", "character": "著", "pinyin": "zhe", "class": "aspect_particle", "confidence": "high", "note": "Progressive particle zhe in 坐著; candidate is the character 著, not 裡."},
+      {"surface": "極了", "character": "了", "pinyin": "le", "class": "sentence_particle", "confidence": "high", "note": "Sentence-final degree particle."},
+      {"surface": "時候", "character": "候", "pinyin": "hou", "class": "lexical_neutral_candidate", "confidence": "moderate", "note": "Final hou is commonly neutral in shíhou."},
+      {"surface": "嗎", "character": "嗎", "pinyin": "ma", "class": "question_particle", "confidence": "high", "note": "Question particle ma."},
+      {"surface": "同學們", "character": "們", "pinyin": "men", "class": "pronoun_suffix", "confidence": "high", "note": "Plural suffix men."},
+      {"surface": "招呼", "character": "呼", "pinyin": "hu", "class": "lexical_neutral_candidate", "confidence": "moderate", "note": "Final hu is commonly neutral in zhāohu."},
+      {"surface": "什麼", "character": "麼", "pinyin": "me", "class": "interrogative_suffix", "confidence": "high", "note": "Interrogative suffix me."},
+      {"surface": "胡子", "character": "子", "pinyin": "zi", "class": "nominal_suffix", "confidence": "high", "note": "Final zi is commonly neutral in húzi."},
+      {"surface": "襪子", "character": "子", "pinyin": "zi", "class": "nominal_suffix", "confidence": "high", "note": "Final zi is commonly neutral in wàzi."},
+      {"surface": "一下子", "character": "子", "pinyin": "zi", "class": "nominal_suffix", "confidence": "high", "note": "Final zi in yíxiàzi is commonly neutral."},
+      {"surface": "窗戶", "character": "戶", "pinyin": "hu", "class": "lexical_neutral_candidate", "confidence": "moderate", "note": "Final hu is often neutral in chuānghu; verify audio."},
+      {"surface": "呢", "character": "呢", "pinyin": "ne", "class": "sentence_particle", "confidence": "high", "note": "Sentence-final particle in 天還沒亮呢."}
+    ]
+  },
+  "exclusions": [
+    "Do not label all reduplicated nouns as T5; speakers may retain lexical tone.",
+    "Do not use transcript-only candidates as sealed-test support.",
+    "Do not replace absent or uncertain audio with Unknown or T5 automatically."
+  ]
+}

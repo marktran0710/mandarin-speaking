@@ -8,8 +8,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pronunciation.wav2vec_tone.produced_tone_baseline import (  # noqa: E402
     TONES,
+    contour_and_register,
     evaluate_oof,
     load_train_only,
+    normalise_trajectory,
 )
 
 
@@ -35,7 +37,8 @@ def test_load_train_only_uses_human_correct_rows_and_never_returns_prompt_as_fea
 
     features, labels, speakers, ids = load_train_only(manifest, cache, trajectories)
 
-    assert features.shape == (1, 3)  # two contour values + one acoustic summary
+    # two centred contour values + one pitch register + one acoustic summary
+    assert features.shape == (1, 4)
     assert labels.tolist() == ["1"]
     assert speakers.tolist() == ["s1"]
     assert ids.tolist() == ["a"]
@@ -61,3 +64,20 @@ def test_oof_is_speaker_disjoint_and_returns_all_tone_probabilities():
         set().union(*(set(other["held_out_speakers"]) for other in report["folds"] if other != fold))
     ) for fold in report["folds"])
     assert set(report["rows"][0]) >= {"probability_T1", "probability_T2", "probability_T3", "probability_T4"}
+
+
+def test_phase_c6_semitones_are_centered_without_a_second_log_transform():
+    # Phase C6 caches 12*log2(Hz), so 84/96 are already semitones.  A second
+    # log would produce about +/-1 rather than the correct +/-6 contour shape.
+    semitone_cache = np.asarray([[84.0, 96.0], [np.nan, np.nan]])
+    centred = normalise_trajectory(semitone_cache)
+
+    assert np.allclose(centred[0], [-6.0, 6.0])
+    assert np.isnan(centred[1]).all()
+
+
+def test_contour_and_register_keep_shape_and_audio_derived_register_separate():
+    contour, register = contour_and_register(np.asarray([[80.0, 84.0, 88.0]]))
+
+    assert np.allclose(contour, [[-4.0, 0.0, 4.0]])
+    assert np.allclose(register, [[84.0]])
