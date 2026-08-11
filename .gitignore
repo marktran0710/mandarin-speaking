@@ -30,6 +30,15 @@ backend/*.zip
 .playwright-mcp/
 .playwright-cli/
 .superpowers/
+.codex/
+output/
+
+# Research exports and external benchmark media are reproducible/private
+# artifacts, not application runtime or source. Keep final paper deliverables
+# outside these working directories when they need to be versioned.
+backend/reports/
+backend/benchmarking/results/
+backend/benchmarking/external/
 backend/models/
 backend/private-data/
 
