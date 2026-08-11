@@ -74,8 +74,16 @@ export default function StoryOverviewSection({
                   aria-label="Key vocabulary"
                 >
                   {sceneWords.map((word, i) => {
+                    // Teacher-authored legacy topics may use an English
+                    // vocabulary key and store its pinyin separately. That
+                    // compatibility value is only used for non-Chinese keys;
+                    // Chinese text always comes from the canonical backend
+                    // resolver through toPinyin().
                     const py =
-                      topic.vocabularyPinyin?.[si]?.[i] || toPinyin(word);
+                      toPinyin(word) ||
+                      (!/[\u4e00-\u9fff]/u.test(word)
+                        ? topic.vocabularyPinyin?.[si]?.[i] || ""
+                        : "");
                     const pos = topic.vocabularyPos?.[si]?.[i];
                     const translation =
                       topic.vocabularyTranslation?.[si]?.[i];

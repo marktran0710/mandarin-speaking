@@ -15,7 +15,11 @@ import soundfile as sf
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from reference_voice import extract_scene_reference_from_audio, generate_scene_reference
+from reference_voice import (
+    extract_scene_reference_from_audio,
+    generate_scene_reference,
+    synthesize_best_reference_audio,
+)
 from tts_service import write_wav
 
 
@@ -147,3 +151,28 @@ def test_blank_sentence_raises(mocked_tts):
                 audio_dir=str(mocked_tts),
             )
         )
+
+
+def test_best_reference_skips_a_failed_voice(tmp_path):
+    pcm, sample_rate = _synthetic_rising_tone_pcm()
+    analysis = [None] * 8
+    analysis[3] = 91.0
+    analysis[5] = [{"syllables": [{"passed": True}]}]
+    analysis[7] = 82.0
+
+    with patch(
+        "reference_voice.synthesize_sentence_mp3",
+        new_callable=AsyncMock,
+        side_effect=[RuntimeError("temporary voice failure"), b"working-mp3"],
+    ), patch("reference_voice.decode_mp3_to_pcm", return_value=(pcm, sample_rate)), patch(
+        "reference_voice.analyze_all", return_value=analysis
+    ):
+        result = asyncio.run(
+            synthesize_best_reference_audio(
+                "妳這個週末要做什麼？",
+                voices=("voice-that-fails", "voice-that-works"),
+            )
+        )
+
+    assert result["voice"] == "voice-that-works"
+    assert result["syllable_pass_ratio"] == 1.0

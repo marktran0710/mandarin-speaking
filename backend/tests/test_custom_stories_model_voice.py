@@ -60,6 +60,8 @@ def test_generate_model_voice_persists_sentence_and_word_fields(client, mocked_t
         body = response.json()
         assert body["tier"] == "easy"
         assert body["listenAudioUrl"].startswith("/uploads/story_audio/")
+        assert body["listenAudioSource"] == "tts"
+        assert json.loads(body["sentenceReferenceCurves"])
         assert body["listenScript"] == "我想喝咖啡。"
         audio_urls = json.loads(body["vocabularyAudioUrls"])
         curves = json.loads(body["vocabularyReferenceCurves"])
@@ -72,7 +74,9 @@ def test_generate_model_voice_persists_sentence_and_word_fields(client, mocked_t
         )
         frame = fetched["frames"][0]
         assert frame["listenAudioUrl"] == body["listenAudioUrl"]
+        assert frame["listenAudioSource"] == "tts"
         assert json.loads(frame["vocabularyAudioUrls"]) == audio_urls
+        assert json.loads(frame["sentenceReferenceCurves"])
     finally:
         client.delete(f"/api/custom-stories/{story_id}")
 

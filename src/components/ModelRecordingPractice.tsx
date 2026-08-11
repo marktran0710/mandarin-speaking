@@ -3,6 +3,10 @@ import { modelPracticeSampleFor } from "../data/modelPracticeSamples";
 import { toPinyin } from "../utils/pinyin";
 import { convertBlobToWav } from "../utils/audio";
 import { formatBackendError, getBackendUrl } from "../utils/storyRecorderFeedback";
+import {
+  assessReferenceAudio,
+  type ReferenceAudioAssessment,
+} from "../utils/referenceAudioQuality";
 import { BiLabel } from "./BiLabel";
 import PraatTimeline from "./PraatTimeline";
 import type { WordProsody } from "./StoryRecorder";
@@ -17,6 +21,7 @@ type PraatVizState =
       audioBlob: Blob;
       pitchContour: Array<[number, number]>;
       wordProsody: WordProsody[];
+      referenceAssessment: ReferenceAudioAssessment;
     };
 
 interface ModelRecordingPracticeProps {
@@ -38,6 +43,8 @@ export default function ModelRecordingPractice({
   const [praatViz, setPraatViz] = useState<PraatVizState>({ status: "idle" });
   const [ttsAudioUrl, setTtsAudioUrl] = useState("");
   const [ttsLoading, setTtsLoading] = useState(false);
+  const [ttsError, setTtsError] = useState("");
+  const [usingAiFallback, setUsingAiFallback] = useState(false);
   const fallback = modelPracticeSampleFor(sceneIndex);
   const sceneSentence = modelSentence?.trim() || "";
   const hasSceneRecording = Boolean(sceneSentence && modelAudioUrl?.trim());
@@ -54,14 +61,21 @@ export default function ModelRecordingPractice({
       }
     : fallback;
 
+  // Do not carry a previous scene's fallback decision into the next sentence.
+  useEffect(() => {
+    setUsingAiFallback(false);
+    setTtsError("");
+  }, [sceneSentence, modelAudioUrl]);
+
   // A scene sentence with no teacher-recorded audio still needs something
   // playable through a real <audio> tag (no ad-hoc "speak" button, and the
   // browser's speechSynthesis voice can't be captured for the Praat compare
   // above anyway), so the backend synthesizes it once and this plays that.
   useEffect(() => {
-    if (recording.audioUrl || !sceneSentence) {
+    if (!sceneSentence || (recording.audioUrl && !usingAiFallback)) {
       setTtsAudioUrl("");
       setTtsLoading(false);
+      setTtsError("");
       return;
     }
 
@@ -69,6 +83,7 @@ export default function ModelRecordingPractice({
     let objectUrl = "";
     setTtsLoading(true);
     setTtsAudioUrl("");
+    setTtsError("");
 
     (async () => {
       try {
@@ -83,7 +98,10 @@ export default function ModelRecordingPractice({
         objectUrl = URL.createObjectURL(blob);
         setTtsAudioUrl(objectUrl);
       } catch {
-        if (!cancelled) setTtsAudioUrl("");
+        if (!cancelled) {
+          setTtsAudioUrl("");
+          setTtsError("AI reference audio could not be generated. Check the backend connection.");
+        }
       } finally {
         if (!cancelled) setTtsLoading(false);
       }
@@ -93,7 +111,7 @@ export default function ModelRecordingPractice({
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [recording.audioUrl, sceneSentence]);
+  }, [recording.audioUrl, sceneSentence, usingAiFallback]);
 
   // The model recording has no pre-computed Praat metrics (unlike a
   // student's own attempt, which is analyzed the moment it's recorded), so
@@ -103,8 +121,16 @@ export default function ModelRecordingPractice({
   // /api/analyze pipeline the first time they press play. The audio tag
   // itself is the trigger, no separate button, and no backend call before
   // they've chosen to listen.
-  const playableAudioUrl = recording.audioUrl || ttsAudioUrl;
+  const playableAudioUrl = usingAiFallback
+    ? ttsAudioUrl
+    : recording.audioUrl || ttsAudioUrl;
   const recordingSentence = recording.sentence;
+
+  const referenceSource = !sceneSentence
+    ? "offline"
+    : usingAiFallback || !hasSceneRecording
+      ? "ai"
+      : "scene";
 
   useEffect(() => {
     setPraatViz({ status: "idle" });
@@ -133,11 +159,32 @@ export default function ModelRecordingPractice({
       }
 
       const data = await response.json();
+      const referenceAssessment = assessReferenceAudio({
+        pitchContour: data.pitch_contour ?? [],
+        wordProsody: data.word_prosody ?? [],
+        feedbackQuality: data.feedback_quality,
+      });
+
+      // A model upload that cannot support word-level pitch evidence must not
+      // remain the only model a learner can imitate. Generate a sentence-
+      // matched AI reference instead. This only affects playback guidance;
+      // it never changes the student's scoring target or creates a pass.
+      if (
+        hasSceneRecording &&
+        !usingAiFallback &&
+        referenceAssessment.quality === "limited"
+      ) {
+        setUsingAiFallback(true);
+        setPraatViz({ status: "idle" });
+        return;
+      }
+
       setPraatViz({
         status: "ready",
         audioBlob,
         pitchContour: data.pitch_contour ?? [],
         wordProsody: data.word_prosody ?? [],
+        referenceAssessment,
       });
     } catch (err) {
       setPraatViz({
@@ -153,9 +200,9 @@ export default function ModelRecordingPractice({
         <span aria-hidden="true">🎧</span>
         <div>
           <p className="block-label">
-            {hasSceneRecording ? (
+            {referenceSource === "scene" ? (
               <BiLabel zh="本課示範錄音" pinyin="Běn kè shìfàn lùyīn" en="Scene model recording" />
-            ) : sceneSentence ? (
+            ) : referenceSource === "ai" ? (
               <BiLabel zh="本課句子練習" pinyin="Běn kè jùzi liànxí" en="Scene sentence practice" />
             ) : (
               <BiLabel zh="暖身示範錄音" pinyin="Nuǎnshēn shìfàn lùyīn" en="Warm-up model recording" />
@@ -176,6 +223,26 @@ export default function ModelRecordingPractice({
         <p className="model-recording-pinyin">{recording.pinyin}</p>
         {recording.meaning && <p className="model-recording-meaning">{recording.meaning}</p>}
       </div>
+
+      {referenceSource === "ai" && !usingAiFallback && (
+        <p className="model-recording-reference-status is-ai" role="status">
+          No teacher recording is required for this scene. The system generates
+          an AI reference from the exact target sentence and checks its pitch
+          evidence when you press play.
+        </p>
+      )}
+      {usingAiFallback && (
+        <p className="model-recording-reference-status is-fallback" role="status">
+          The uploaded model audio was not clear enough for pitch practice, so
+          the system switched to an AI-generated reference for this sentence.
+        </p>
+      )}
+      {referenceSource === "offline" && (
+        <p className="model-recording-reference-status is-limited" role="status">
+          This is a warm-up sample, not the current scene sentence. Use the
+          scene text and tone guide as the target.
+        </p>
+      )}
 
       {playableAudioUrl ? (
         <>
@@ -203,7 +270,7 @@ export default function ModelRecordingPractice({
                     <BiLabel
                       zh="這是示範錄音，音高曲線就是滿分的樣子。"
                       pinyin="Zhè shì shìfàn lùyīn, yīngāo qūxiàn jiù shì mǎnfēn de yàngzi."
-                      en="This is the model recording — its pitch curve is what a full-score attempt looks like."
+                      en="This is a reference recording, not a guaranteed 100/100 result. Copy its rhythm and pitch shape, then your own recording is scored separately."
                     />
                   </p>
                   <PraatTimeline
@@ -213,7 +280,28 @@ export default function ModelRecordingPractice({
                     transcription={recording.sentence}
                     showReferenceOverlay={false}
                   />
-                </>
+                  <p className="model-recording-reference-note">
+                    Reference only — this audio is not automatically 100/100. Your own
+                    recording is scored separately against the scene target.
+                  </p>
+                  <div
+                    className={`model-recording-reference-status is-${praatViz.referenceAssessment.quality}`}
+                    role="status"
+                  >
+                    <strong>
+                      {praatViz.referenceAssessment.quality === "usable"
+                        ? "Reference checked"
+                        : "Reference needs caution"}
+                    </strong>
+                    <span>{praatViz.referenceAssessment.message}</span>
+                    {praatViz.referenceAssessment.quality === "usable" && (
+                      <span>
+                        Copy the phrase rhythm and tone movement. Your own
+                        recording is still scored independently.
+                      </span>
+                    )}
+                  </div>
+                  </>
               )}
             </div>
           )}
@@ -224,7 +312,8 @@ export default function ModelRecordingPractice({
         </p>
       ) : (
         <p className="model-recording-no-audio">
-          The scene sentence is ready to repeat; a teacher recording is not available yet.
+          {ttsError ||
+            "The scene sentence is ready to repeat; AI reference audio is not available yet."}
         </p>
       )}
 

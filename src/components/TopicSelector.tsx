@@ -65,6 +65,7 @@ export interface Topic {
   vocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
   suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
+  listenAudioSources?: Record<number, "teacher" | "tts">;
   listenScripts?: Record<number, string>;
   // Model-voice reference audio for individual vocabulary words (aligned by
   // index with vocabulary[scene]) — a null entry means that word's clip
@@ -73,6 +74,7 @@ export interface Topic {
   // target instead of the synthetic idealized tone-shape pattern.
   vocabularyAudioUrls?: Record<number, (string | null)[]>;
   vocabularyReferenceCurves?: Record<number, number[][]>;
+  sentenceReferenceCurves?: Record<number, Record<string, number[]>>;
   linear?: boolean;
   lessonNumber?: number | null;
   /** Position within its lesson (1, 2, 3...) — see CustomTeacherStory's

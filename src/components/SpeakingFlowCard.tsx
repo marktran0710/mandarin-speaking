@@ -2,9 +2,6 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { BiLabel } from "./BiLabel";
 import AppButton from "./AppButton";
 import SpeakingResultsFlow from "./SpeakingResultsFlow";
-import AnalysisVersionSelector from "./AnalysisVersionSelector";
-import type { AnalysisVersion } from "../utils/analysisVersion";
-import type { ComparisonResult } from "./SpeakingResultsFlow";
 import { sceneReady } from "../utils/storyRecorderFeedback";
 import type {
   PraatMetrics,
@@ -69,12 +66,6 @@ interface SpeakingFlowCardProps {
    * never blocks a pilot student's progression. Defaults to false: no
    * behavior change until an operator turns the pilot flag on. */
   sceneReadyOverride?: boolean;
-  analysisVersion?: AnalysisVersion;
-  experimentalAvailable?: boolean;
-  experimentalStatus?: string;
-  onAnalysisVersionChange?: (version: AnalysisVersion) => void;
-  comparison?: ComparisonResult | null;
-  onCompare?: () => void;
 }
 
 /** The Speaking step as a two-screen app flow inside one fixed-height card:
@@ -119,12 +110,6 @@ export default function SpeakingFlowCard({
   onNextScene,
   onViewSummary,
   sceneReadyOverride = false,
-  analysisVersion = "stable_v1",
-  experimentalAvailable = true,
-  experimentalStatus,
-  onAnalysisVersionChange,
-  comparison,
-  onCompare,
 }: SpeakingFlowCardProps) {
   const [screen, setScreen] = useState<"record" | "results">("record");
   const uploadInputRef = useRef<HTMLInputElement>(null);
@@ -153,7 +138,6 @@ export default function SpeakingFlowCard({
   // recording) gates progression alongside the score/attempts unlock — the
   // attempts escape hatch never bypasses failing words.
   const ready =
-    analysisVersion === "stable_v1" &&
     (sceneReadyOverride || (prog ? sceneReady(prog) : false)) &&
     masteryPassed &&
     contentPassed;
@@ -276,15 +260,6 @@ export default function SpeakingFlowCard({
                         : "Experimental local model; its first run may take several minutes to load."}
               </p>
             </details>
-            {onAnalysisVersionChange && (
-              <AnalysisVersionSelector
-                value={analysisVersion}
-                onChange={onAnalysisVersionChange}
-                experimentalAvailable={experimentalAvailable}
-                experimentalStatus={experimentalStatus}
-                disabled={isBusy}
-              />
-            )}
             <div className="sfc-action-intro">
               <div>
                 <p className="sfc-action-title"><BiLabel k="speaking" /></p>
@@ -379,9 +354,6 @@ export default function SpeakingFlowCard({
       onViewSummary={onViewSummary}
       onRecordAgain={() => setScreen("record")}
       assistiveFeedback={praatMetrics?.assistive_feedback ?? null}
-      analysisVersion={analysisVersion}
-      comparison={comparison}
-      onCompare={onCompare}
     />
   );
 }

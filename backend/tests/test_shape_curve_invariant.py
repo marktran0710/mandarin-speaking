@@ -10,9 +10,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from chinese_tones import (
     _shape_match_score,
     calculate_phrase_shape_accuracy,
+    normalize_pitch_contour,
     phrase_shape_curves,
 )
-from praat_analyzer import estimate_word_prosody
+from praat_analyzer import _reference_curve_for_token, estimate_word_prosody
 
 
 def _contour(values, duration=0.8):
@@ -74,3 +75,33 @@ class TestEstimateWordProsodyCurves:
         segments = estimate_word_prosody(RISING, "hello")
         assert segments[0]["user_curve"] == []
         assert segments[0]["target_curve"] == []
+
+    def test_phrase_reference_curve_is_split_for_jieba_subtokens(self):
+        curve = list(range(100))
+        first = _reference_curve_for_token("做", {"做什麼": curve})
+        second = _reference_curve_for_token("什麼", {"做什麼": curve})
+
+        assert len(first) == len(second) == 100
+        assert first[0] == 0
+        assert first[-1] == 32
+        assert second[0] == 33
+        assert second[-1] == 99
+
+    def test_real_reference_drives_syllable_scores_and_verdict(self):
+        # A rising recording is intentionally wrong for the canonical T4+T1
+        # reading of 在家. With a teacher/TTS contour, however, the scorer must
+        # use that real target consistently for both syllables instead of
+        # mixing a high phrase-shape score with a synthetic per-syllable fail.
+        contour = _contour(np.linspace(180.0, 300.0, 60))
+        reference = normalize_pitch_contour(contour).tolist()
+
+        segments = estimate_word_prosody(
+            contour,
+            "\u5728\u5bb6",
+            reference_word_curves={"\u5728\u5bb6": reference},
+        )
+
+        syllables = segments[0]["syllables"]
+        assert all(syllable["passed"] is True for syllable in syllables)
+        assert all(syllable["score_provenance"] == "reference_shape" for syllable in syllables)
+        assert segments[0]["passed"] is True

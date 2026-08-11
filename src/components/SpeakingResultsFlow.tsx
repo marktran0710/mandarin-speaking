@@ -14,6 +14,7 @@ import {
   scoreScriptChunks,
   scriptMismatchTokens,
   splitScriptIntoChunks,
+  splitTeacherScriptIntoPhrases,
 } from "../utils/scriptAlignment";
 import type { PraatMetrics, Topic } from "./StoryRecorder";
 import { toPinyin } from "../utils/pinyin";
@@ -21,11 +22,11 @@ import VoiceFeedbackReliabilityNotice, {
   AssistiveFeedbackNotice,
 } from "./VoiceFeedbackReliabilityNotice";
 import { assessVoiceFeedbackReliability } from "../utils/voiceFeedbackReliability";
-import type { AnalysisVersion } from "../utils/analysisVersion";
 import { worstState, type AssistiveFeedbackSyllable } from "../utils/assistiveFeedback";
 import { shouldOfferRetry } from "../utils/retryPolicy";
+import type { AnalysisVersion } from "../utils/analysisVersion";
 
-export interface AnalysisRun {
+interface AnalysisRun {
   version: AnalysisVersion;
   schemaVersion: string;
   status: "success" | "failed";
@@ -34,7 +35,7 @@ export interface AnalysisRun {
   error?: string;
 }
 
-export interface ComparisonResult {
+interface ComparisonResult {
   audioAttemptId: string;
   comparisonGroupId?: string;
   runs: Partial<Record<AnalysisVersion, AnalysisRun>>;
@@ -90,11 +91,8 @@ interface SpeakingResultsFlowProps {
   assistiveRetriesUsed?: number;
   analysisVersion?: AnalysisVersion;
   comparison?: ComparisonResult | null;
-  /** Accepted but no longer used: the "Compare Stable vs Experimental" button
-   * that called it has been removed. Nothing else populates `comparison`
-   * either, so that panel is currently unreachable — see the note in
-   * StoryRecorder.compareCurrentRecording before deleting the chain. */
-  onCompare?: () => void;
+  /** Retained as an optional compatibility shape for previously stored
+   * analysis records; the student flow no longer populates or renders it. */
 }
 
 /** The results half of the Speaking step, as a guided mini-flow instead of
@@ -140,15 +138,16 @@ export default function SpeakingResultsFlow({
   // without punctuation still receive compact fallback chunks so the learner
   // is never sent back to a whole sentence as their only repair action.
   const scriptChunks = splitScriptIntoChunks(modelSentence);
+  const teacherPhraseChunks = splitTeacherScriptIntoPhrases(modelSentence);
   const isChunked = scriptChunks.length > 1;
   const chunkScores = isChunked
     ? scoreScriptChunks(modelSentence, praatMetrics.transcription, praatMetrics.word_prosody)
     : [];
   const failedChunks = chunkScores.filter((chunk) => !chunk.passed);
-  const hasChunkMismatch = isChunked && failedChunks.length > 0;
   const usedCount = vocabCoverage?.used?.length ?? 0;
   const vocabTotal = usedCount + missing.length;
   const weakItems = weakToneGuideItems(praatMetrics.word_prosody || []);
+  const pronunciationMastery = praatMetrics.pronunciation_mastery;
   const contentAccuracy = ai?.content_accuracy;
   const corrective = ai?.corrective_feedback;
   const pronunciationNote = ai?.pronunciation_note;
@@ -162,6 +161,16 @@ export default function SpeakingResultsFlow({
   });
 
   const failedWords = failedProsodyWords(praatMetrics.word_prosody);
+  // The backend's content verdict is authoritative for accepted Taiwan
+  // Mandarin variants such as 你/妳. The local character LCS is still useful
+  // as a fallback, but it must not turn an accepted homophone into a whole
+  // sentence-sized practice part.
+  const contentMatchVerified = praatMetrics.content_match === true;
+  const contentMismatchChunks = contentMatchVerified
+    ? []
+    : failedChunks.filter((chunk) => chunk.mismatch.length > 0);
+  const hasChunkMismatch = isChunked && contentMismatchChunks.length > 0;
+  const effectiveScriptMismatches = contentMatchVerified ? [] : scriptMismatches;
   // Practice order: weakest shape first — the word the student most needs
   // is the first one the focus view lands on.
   const practiceWords = [...failedWords].sort(
@@ -174,13 +183,15 @@ export default function SpeakingResultsFlow({
   );
   const allDrillsCleared =
     practiceWords.length > 0 && remainingDrillWords.length === 0;
-  const hasScriptMismatch = isChunked ? hasChunkMismatch : scriptMismatches.length > 0;
+  const hasScriptMismatch = isChunked
+    ? hasChunkMismatch
+    : effectiveScriptMismatches.length > 0;
   const needsPhrasePractice =
     hasScriptMismatch || ((!accepted || missing.length > 0) && scriptChunks.length > 0);
   const phrasePracticeItems = needsPhrasePractice
     ? (isChunked
-      ? (failedChunks.length > 0
-        ? failedChunks.map((chunk) => chunk.text)
+      ? (contentMismatchChunks.length > 0
+        ? contentMismatchChunks.map((chunk) => chunk.text)
         : (() => {
           const vocabChunks = scriptChunks.filter((chunk) =>
             missing.some((word) => chunk.includes(word)),
@@ -202,9 +213,11 @@ export default function SpeakingResultsFlow({
   // wrong words, not something worth drilling. Once content is accepted,
   // switch to pronunciation polish on the words that were actually said.
   const wordsToPractice = isChunked
-    ? Array.from(new Set([...failedChunks.map((chunk) => chunk.text), ...missing]))
+    ? hasScriptMismatch
+      ? Array.from(new Set([...contentMismatchChunks.map((chunk) => chunk.text), ...missing]))
+      : Array.from(new Set([...practiceWords.map((word) => word.token), ...missing]))
     : !accepted || hasScriptMismatch
-      ? Array.from(new Set([...scriptMismatches, ...missing]))
+      ? Array.from(new Set([...effectiveScriptMismatches, ...missing]))
       : Array.from(new Set(practiceWords.map((word) => word.token)));
   const hasWordsToPractice = wordsToPractice.length > 0;
 
@@ -405,6 +418,54 @@ export default function SpeakingResultsFlow({
         assessment={feedbackReliability}
         attemptCount={attempts}
       />
+      {pronunciationMastery && (
+        <div
+          className={`sfc-mastery-banner${pronunciationMastery.status === "passed" ? " is-cleared" : ""}`}
+          role="status"
+          aria-label="Pronunciation mastery status"
+        >
+          <p className="sfc-mastery-lead">
+            {pronunciationMastery.status === "passed"
+              ? "✓ Pronunciation passed"
+              : pronunciationMastery.status === "not_judged"
+                ? "Pronunciation not judged yet"
+                : "Pronunciation needs practice"}
+          </p>
+          {typeof pronunciationMastery.passed_syllables === "number" &&
+            typeof pronunciationMastery.total_syllables === "number" && (
+              <small>
+                {pronunciationMastery.passed_syllables}/
+                {pronunciationMastery.total_syllables} measured syllables passed
+              </small>
+            )}
+          {pronunciationMastery.message && <p>{pronunciationMastery.message}</p>}
+        </div>
+      )}
+      {(pronunciationMastery || practiceWords.length > 0) && (
+        <section className="sfc-next-action-card" aria-label="Next practice action">
+          <div>
+            <p className="sfc-next-action-kicker">Next action</p>
+            <h2>
+              {pronunciationMastery?.status === "passed"
+                ? "You have cleared the measured tones"
+                : pronunciationMastery?.status === "not_judged"
+                  ? "Record again in a quieter voice"
+                  : practiceWords.length > 0
+                    ? `Practice ${practiceWords.length} word${practiceWords.length === 1 ? "" : "s"}`
+                    : "Make one more clear recording"}
+            </h2>
+          </div>
+          <p>
+            {pronunciationMastery?.status === "passed"
+              ? "Neutral tones are shown separately; they are not treated as pronunciation failures."
+              : pronunciationMastery?.status === "not_judged"
+                ? "The system did not have enough reliable pitch evidence. This is an audio-quality result, not a wrong-tone verdict."
+                : practiceWords.length > 0
+                  ? "Start with the highlighted word, then record the complete sentence again."
+                  : "Keep the microphone close and say the full target at a steady pace."}
+          </p>
+        </section>
+      )}
       {assistiveFeedback && assistiveFeedback.length > 0 && (() => {
         const rolledUpState = worstState(assistiveFeedback);
         return rolledUpState ? <AssistiveFeedbackNotice state={rolledUpState} /> : null;
@@ -431,6 +492,9 @@ export default function SpeakingResultsFlow({
           all — the app looked like it hadn't listened. */}
       <PronunciationBreakdown
         words={praatMetrics.word_prosody || []}
+        targetText={modelSentence}
+        transcription={praatMetrics.transcription}
+        teacherPhrases={teacherPhraseChunks}
         assistiveFeedback={assistiveFeedback}
       />
 

@@ -104,3 +104,37 @@
   color: var(--clay-muted);
   font-size: 12px;
 }
+
+.model-recording-reference-note {
+  margin: 0;
+  color: var(--clay-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.model-recording-reference-status {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  border-radius: var(--clay-radius-sm);
+  padding: 9px 11px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.model-recording-reference-status strong {
+  font-size: 13px;
+}
+
+.model-recording-reference-status.is-ai,
+.model-recording-reference-status.is-usable {
+  background: color-mix(in srgb, var(--tone1) 10%, var(--clay-surface-card));
+  color: var(--clay-body);
+}
+
+.model-recording-reference-status.is-fallback,
+.model-recording-reference-status.is-limited {
+  background: color-mix(in srgb, var(--clay-warning, #b7791f) 12%, var(--clay-surface-card));
+  color: var(--clay-body);
+}

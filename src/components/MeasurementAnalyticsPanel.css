@@ -1,0 +1,9 @@
+.measurement-dashboard { display: grid; gap: var(--space-md); }
+.measurement-panel { width: 100%; }
+.measurement-panel-intro { margin: 0; color: var(--clay-body); line-height: 1.55; }
+.measurement-event-list { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+.measurement-event-list span { padding: 8px 10px; border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-md); color: var(--clay-muted); font-size: var(--text-sm); }
+.measurement-event-list strong { color: var(--clay-ink); }
+.measurement-table { width: 100%; border-collapse: collapse; }
+.measurement-table th, .measurement-table td { padding: 10px 12px; border-bottom: 1px solid var(--clay-hairline-soft); text-align: left; }
+.measurement-table th { color: var(--clay-muted); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .06em; }

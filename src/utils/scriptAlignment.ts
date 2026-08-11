@@ -147,6 +147,21 @@ export function splitScriptIntoChunks(script: string | undefined): string[] {
   return pieces.length === 1 ? splitLongUnpunctuatedChunk(pieces[0]) : [trimmed];
 }
 
+/**
+ * Teacher-authored phrase boundaries only. Unlike `splitScriptIntoChunks`,
+ * this never invents five-character chunks for an unpunctuated sentence. The
+ * pronunciation breakdown uses this version so a teacher's phrase remains a
+ * phrase instead of becoming a row of arbitrary mini-sentences.
+ */
+export function splitTeacherScriptIntoPhrases(script: string | undefined): string[] {
+  const trimmed = (script ?? "").trim();
+  if (!trimmed) return [];
+  return trimmed
+    .split(CHUNK_BOUNDARY)
+    .map((piece) => piece.trim())
+    .filter(Boolean);
+}
+
 /** Minimal shape scoreScriptChunks needs from a word_prosody entry — kept
  * local (rather than importing StoryRecorder's WordProsody type) to avoid a
  * dependency cycle; any WordProsody[] satisfies this structurally. */
@@ -181,8 +196,9 @@ export function scoreScriptChunks<T extends ProsodyToken>(
   script: string | undefined,
   transcript: string | undefined,
   wordProsody: T[] | undefined,
+  explicitChunks?: string[],
 ): ScriptChunkScore<T>[] {
-  const chunks = splitScriptIntoChunks(script);
+  const chunks = explicitChunks?.length ? explicitChunks : splitScriptIntoChunks(script);
   if (chunks.length === 0) return [];
 
   const { expected, matched, spokenIndex } = alignChars(script, transcript);

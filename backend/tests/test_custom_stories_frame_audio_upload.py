@@ -62,6 +62,7 @@ def _make_story(story_id: str, audio_field: str, audio_url: str) -> dict:
         "listenScriptMedium": "我想在咖啡廳享受一杯咖啡。",
     }
     frame[audio_field] = audio_url
+    frame["listenAudioSource"] = "teacher"
     return {
         "id": story_id,
         "title": "Frame Audio Upload Test",
@@ -81,6 +82,7 @@ def test_uploaded_audio_persists_and_derives_reference_curves(client, isolated_u
         frame = response.json()["frames"][0]
 
         assert frame["listenAudioUrl"].startswith("/uploads/audio/")
+        assert frame["listenAudioSource"] == "teacher"
         relative = frame["listenAudioUrl"].removeprefix("/uploads/")
         assert (isolated_uploads / relative).exists()
 
@@ -88,6 +90,8 @@ def test_uploaded_audio_persists_and_derives_reference_curves(client, isolated_u
         # from persist_story_frame_audio's own extraction, straight off the
         # uploaded recording.
         curves = json.loads(frame["vocabularyReferenceCurves"])
+        sentence_curves = json.loads(frame["sentenceReferenceCurves"])
+        assert sentence_curves
         audio_urls = json.loads(frame["vocabularyAudioUrls"])
         assert len(curves) == 2  # 咖啡, 喝 — both appear in the sentence
         assert len(audio_urls) == 2

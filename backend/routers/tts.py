@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 
 from main import TTSRequest
-from tts_service import DEFAULT_ZH_VOICE, synthesize_sentence_mp3
+from reference_voice import synthesize_best_reference_audio
+from tts_service import synthesize_sentence_mp3
 
 router = APIRouter()
 
@@ -20,7 +21,15 @@ async def synthesize_tts(request: TTSRequest):
     if not text:
         raise HTTPException(status_code=400, detail="text is required")
     try:
-        mp3_bytes = await synthesize_sentence_mp3(text, voice=request.voice or DEFAULT_ZH_VOICE)
+        if request.voice:
+            mp3_bytes = await synthesize_sentence_mp3(text, voice=request.voice)
+        else:
+            # The default student-facing TTS now evaluates all configured
+            # Taiwan voices and returns the candidate with the strongest
+            # syllable coverage, so the audio heard during practice is the
+            # best available model rather than an arbitrary first voice.
+            best = await synthesize_best_reference_audio(text)
+            mp3_bytes = best["mp3_bytes"]
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     return Response(content=mp3_bytes, media_type="audio/mpeg")

@@ -4,6 +4,7 @@ import {
   scriptMatchRatio,
   scriptMismatchTokens,
   splitScriptIntoChunks,
+  splitTeacherScriptIntoPhrases,
 } from "./scriptAlignment";
 
 describe("scriptMismatchTokens", () => {
@@ -126,5 +127,23 @@ describe("scoreScriptChunks", () => {
     const result = scoreScriptChunks("你好朋友", "你好朋友", wordProsody);
     expect(result).toHaveLength(1);
     expect(result[0].passed).toBe(true);
+  });
+
+  it("keeps an unpunctuated teacher sentence as one phrase", () => {
+    expect(splitTeacherScriptIntoPhrases("abcdefghij")).toEqual(["abcdefghij"]);
+  });
+
+  it("allows explicit teacher phrase boundaries without inventing smaller chunks", () => {
+    const result = scoreScriptChunks(
+      "abcdefghij",
+      "abcdefghij",
+      [
+        { token: "abcde", passed: true },
+        { token: "fghij", passed: true },
+      ],
+      ["abcde", "fghij"],
+    );
+    expect(result.map((chunk) => chunk.text)).toEqual(["abcde", "fghij"]);
+    expect(result.every((chunk) => chunk.passed)).toBe(true);
   });
 });

@@ -1,25 +1,47 @@
-import { toPinyin } from "./pinyin";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { primePinyin, toPinyin } from "./pinyin";
 
-describe("toPinyin Taiwan Mandarin overrides", () => {
-  it("keeps full tone on both syllables for common kinship reduplications", () => {
-    // pinyin-pro's default (Mainland-leaning) dictionary lightens the second
-    // syllable of these to a neutral tone; Taiwan Mandarin keeps it full —
-    // and the backend derives a word's scored target shape directly from
-    // this displayed pinyin, so a wrong override here silently mis-scores
-    // pronunciation practice for these words.
-    expect(toPinyin("姐姐")).toBe("jiě jiě");
-    expect(toPinyin("哥哥")).toBe("gē gē");
-    expect(toPinyin("弟弟")).toBe("dì dì");
-    expect(toPinyin("妹妹")).toBe("mèi mèi");
+const canonicalValues: Record<string, string> = {
+  "姐姐": "jiě jiě",
+  "哥哥": "gē gē",
+  "弟弟": "dì dì",
+  "妹妹": "mèi mèi",
+  "謝謝": "xiè xiè",
+  "妳": "nǐ",
+  "妳這個週末要做什麼": "nǐ zhè gè zhōu mò yào zuò shén me",
+  "聽音樂": "tīng yīn yuè",
+  "什麼": "shén me",
+};
+
+describe("canonical Taiwan Mandarin pinyin", () => {
+  beforeAll(async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: string, init?: RequestInit) => {
+        const body = JSON.parse(String(init?.body ?? "{}")) as { texts?: string[] };
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            items: (body.texts ?? []).map((text) => ({
+              text,
+              pinyin: canonicalValues[text] ?? "",
+            })),
+          }),
+        };
+      }),
+    );
+    await primePinyin(Object.keys(canonicalValues));
   });
 
-  it("keeps the existing 謝謝 override working", () => {
-    expect(toPinyin("謝謝")).toBe("xiè xiè");
+  afterAll(() => {
+    vi.unstubAllGlobals();
   });
 
-  it("reads 妳 as nǐ, not pinyin-pro's default misreading of nǎi", () => {
-    expect(toPinyin("妳")).toBe("nǐ");
-    expect(toPinyin("妳這個週末要做什麼")).toBe("nǐ zhè gè zhōu mò yào zuò shén mó");
+  it("uses the backend value for common Taiwan readings", () => {
+    for (const [text, expected] of Object.entries(canonicalValues)) {
+      expect(toPinyin(text)).toBe(expected);
+    }
   });
 
   it("returns empty string for non-Chinese input", () => {

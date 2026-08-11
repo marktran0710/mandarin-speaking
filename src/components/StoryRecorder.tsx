@@ -30,17 +30,14 @@ import StoryVocabQuiz, { type VocabQuizSummary } from "./StoryVocabQuiz";
 import { topicQuizEntries } from "../utils/topicQuiz";
 import { type JourneyStop, type JourneyStopStatus } from "./JourneyPath";
 import { toPinyin } from "../utils/pinyin";
-import { getStudentId, getStudentScopeKey, isAdminSession } from "../utils/studentSession";
+import { getStudentId, isAdminSession } from "../utils/studentSession";
 import type { AssistiveFeedbackSyllable } from "../utils/assistiveFeedback";
 import { resolvePilotContext } from "../utils/pilotSession";
-import {
-  getAnalysisVersion,
-  saveAnalysisVersion,
-  type AnalysisVersion,
-} from "../utils/analysisVersion";
+import type { AnalysisVersion } from "../utils/analysisVersion";
 import { markStoryLevelSubmitted } from "../utils/storyLevelProgress";
 import type { CustomTeacherStory, StoryDifficultyLevel } from "../utils/teacherStories";
 import { convertBlobToWav } from "../utils/audio";
+import { createMeasurementEvent, recordMeasurementEvent } from "../utils/measurement";
 import { buildPracticeAnalysisFormData } from "../utils/practiceAnalysis";
 import {
   sceneReady,
@@ -66,7 +63,6 @@ import StorySummarySection, {
   type JourneyStopBase,
 } from "./StorySummarySection";
 import SpeakingFlowCard from "./SpeakingFlowCard";
-import type { ComparisonResult } from "./SpeakingResultsFlow";
 import StorySessionSidebar, {
   type SidebarPhase,
   type SidebarSummaryStatus,
@@ -84,29 +80,29 @@ const BACKEND_URL =
 // discard.
 const MAX_VOCAB_DISTRACTORS_PER_WORD = 8;
 
-/** Zips a scene's vocabulary words with their cached model-voice pitch-shape
- * curves into the {word: curve} map /api/analyze expects as
- * scene_reference_curves — words with no clip (never generated, or the
- * word didn't match the model sentence's text) are simply omitted rather
- * than sent as an empty curve, so the backend's own per-token fallback to
- * the synthetic idealized tone-shape pattern stays in charge for them.
+/** Combines cached sentence-token and vocabulary pitch-shape curves into the
+ * {word: curve} map /api/analyze expects as scene_reference_curves. Tokens
+ * without a usable teacher/TTS curve are omitted, so the backend can keep its
+ * synthetic idealized tone-shape fallback only where real evidence is absent.
  * Returns null when there's nothing to send (no reference curves cached at
  * all for this scene), so callers can skip the form field entirely. */
 export function buildSceneReferenceCurves(
-  topic: Pick<Topic, "vocabulary" | "vocabularyReferenceCurves">,
+  topic: Pick<Topic, "vocabulary" | "vocabularyReferenceCurves" | "sentenceReferenceCurves">,
   sceneIndex: number,
 ): Record<string, number[]> | null {
+  const byWord: Record<string, number[]> = {
+    ...(topic.sentenceReferenceCurves?.[sceneIndex] || {}),
+  };
   const words = topic.vocabulary[sceneIndex] || [];
   const curves = topic.vocabularyReferenceCurves?.[sceneIndex];
-  if (!curves || curves.length === 0) return null;
-
-  const byWord: Record<string, number[]> = {};
-  words.forEach((word, index) => {
-    const curve = curves[index];
-    if (curve && curve.length > 0) {
-      byWord[word] = curve;
-    }
-  });
+  if (curves && curves.length > 0) {
+    words.forEach((word, index) => {
+      const curve = curves[index];
+      if (curve && curve.length > 0 && !byWord[word]) {
+        byWord[word] = curve;
+      }
+    });
+  }
   return Object.keys(byWord).length > 0 ? byWord : null;
 }
 
@@ -157,6 +153,7 @@ export interface Topic {
   vocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
   suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
+  listenAudioSources?: Record<number, "teacher" | "tts">;
   listenScripts?: Record<number, string>;
   // Model-voice reference audio for individual vocabulary words (aligned by
   // index with vocabulary[scene]) — a null entry means that word's clip
@@ -165,6 +162,7 @@ export interface Topic {
   // instead of the synthetic idealized tone-shape pattern.
   vocabularyAudioUrls?: Record<number, (string | null)[]>;
   vocabularyReferenceCurves?: Record<number, number[][]>;
+  sentenceReferenceCurves?: Record<number, Record<string, number[]>>;
   linear?: boolean;
   lessonNumber?: number | null;
   lessonSubOrder?: number | null;
@@ -459,6 +457,14 @@ export interface PraatMetrics {
     recording_reason_codes?: string[];
     controls_progression?: boolean;
   };
+  pronunciation_mastery?: {
+    passed?: boolean;
+    status?: "passed" | "needs_practice" | "not_judged";
+    passed_syllables?: number;
+    total_syllables?: number;
+    failed_words?: string[];
+    message?: string;
+  };
   analysis_version?: AnalysisVersion;
   analysis_schema_version?: string;
   model_version?: string;
@@ -563,6 +569,8 @@ export type ScoreProvenance =
    * about the learner's production was measured at all. Distinct from an
    * uncertain measurement, and worded differently in the UI. */
   | "neutral_not_measured"
+  /** Shape score compared against the teacher/model reference curve. */
+  | "reference_shape"
   | "not_scored";
 
 export interface WordProsodySyllable {
@@ -572,7 +580,8 @@ export interface WordProsodySyllable {
   tone: number;
   /** Legacy heuristic contour-match score, 0-100. Not a probability. */
   score: number;
-  passed: boolean;
+  /** Null when the analyzer did not have enough evidence to judge it. */
+  passed: boolean | null;
 
   // ── Diagnostic layer (parallel to the legacy verdict above) ──────────
   diagnostic_status?: DiagnosticStatus;
@@ -743,67 +752,16 @@ export default function StoryRecorder({
   const [openaiAsrAvailable, setOpenaiAsrAvailable] = useState(false);
   const speechModelChosenByStudentRef = useRef(false);
   const [aiProvider, setAiProvider] = useState<string>("");
-  const studentScope = studentId ?? getStudentScopeKey();
   // Admin backdoor (name "admin" at login): every gate in the session reads
-  // as passed. Computed here (not just at its original use-site further
-  // down) because the pilot Stable/Experimental hiding below needs it too.
+  // as passed. Computed here so all progression gates share the same policy.
   const isAdmin = isAdminSession();
-  // PART 1 of the small-teacher-validated-pilot architecture: pilot students
-  // see only "Speaking Practice" -- the Stable V1/Experimental V2 selector
-  // stays hidden and forced to stable_v1 for them, with the SAME admin
-  // backdoor already used for progression gates as the one way to reach the
-  // hidden dev/debug view. Not derived from role/backend state -- purely the
-  // `?pilot=1` query flag `resolvePilotContext` already reads for research
-  // logging, so this can never diverge from what the identity plumbing sees.
+  // Pilot context remains available for the study-specific progression rules.
   const isPilotSession = resolvePilotContext().studyPhase === "pilot";
-  const showAnalysisVersionSelector = isAdmin || !isPilotSession;
-  const [analysisVersion, setAnalysisVersion] = useState<AnalysisVersion>(() =>
-    showAnalysisVersionSelector ? getAnalysisVersion(studentScope) : "stable_v1",
-  );
-  const [experimentalAvailable, setExperimentalAvailable] = useState(false);
-  const [experimentalStatus, setExperimentalStatus] = useState("checking");
-  const [comparisonMap, setComparisonMap] = useState<Record<number, ComparisonResult | null>>({});
+  // Stable V1 is the only student-facing analysis path. It is the
+  // teacher-validated implementation and remains explicit in request metadata.
+  const analysisVersion: AnalysisVersion = "stable_v1";
   const [silenceDuration, setSilenceDuration] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
-
-  useEffect(() => {
-    let cancelled = false;
-    setAnalysisVersion(showAnalysisVersionSelector ? getAnalysisVersion(studentScope) : "stable_v1");
-    if (!showAnalysisVersionSelector) return;
-    fetch(`${getBackendUrl()}/api/analysis-v2/health`)
-      .then(async (response) => {
-        const payload = await response.json().catch(() => ({}));
-        if (cancelled) return;
-        const ready = response.ok && payload?.ready === true;
-        setExperimentalAvailable(ready);
-        setExperimentalStatus(ready ? String(payload?.kpi_gate?.release_status || payload?.kpi_gate?.status || "experimental") : "unavailable");
-        if (!ready && analysisVersion === "phoneme_tone_v2") {
-          setAnalysisVersion("stable_v1");
-          saveAnalysisVersion("stable_v1", studentScope);
-        }
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setExperimentalAvailable(false);
-        setExperimentalStatus("unavailable");
-        if (analysisVersion === "phoneme_tone_v2") {
-          setAnalysisVersion("stable_v1");
-          saveAnalysisVersion("stable_v1", studentScope);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [studentScope]);
-
-  const handleAnalysisVersionChange = useCallback(
-    (version: AnalysisVersion) => {
-      if (version === "phoneme_tone_v2" && !experimentalAvailable) return;
-      setAnalysisVersion(version);
-      saveAnalysisVersion(version, studentScope);
-    },
-    [experimentalAvailable, studentScope],
-  );
 
   // Per-scene result maps — keyed by image index so switching scenes restores
   // the last analysis result for that scene instead of showing a blank state.
@@ -1642,6 +1600,20 @@ export default function StoryRecorder({
       }
       setPraatMetrics(metrics);
       setAnalysisAudioBlob(wavBlob);
+      recordMeasurementEvent(createMeasurementEvent("analysis_completed", {
+        studentId: studentId ?? getStudentId(),
+        sessionId: pilotContext.sessionId,
+        attemptId: attemptIdForRequest,
+        topicId: topic.id,
+        sceneIndex: selectedImageIndex,
+        properties: {
+          analysisVersion: version,
+          toneAccuracy: Math.round(metrics.tone_accuracy),
+          fluencyScore: Math.round(metrics.fluency_score),
+          masteryPassed: metrics.pronunciation_mastery?.passed ?? null,
+          feedbackQuality: metrics.feedback_quality?.status ?? null,
+        },
+      }));
       if (version === "phoneme_tone_v2") {
         // V2 is analytics-only until the KPI gate and teacher validation pass.
         await Promise.resolve(onAddRecord({
@@ -1713,7 +1685,9 @@ export default function StoryRecorder({
       const pilotAssistiveFeedbackActive = isPilotSession && Boolean(metrics.assistive_feedback);
       const nextMasteryPassed =
         pilotAssistiveFeedbackActive ||
-        (canScorePronunciation && prosodyGatePassed(metrics.word_prosody));
+        (canScorePronunciation &&
+          (metrics.pronunciation_mastery?.passed ??
+            prosodyGatePassed(metrics.word_prosody)));
       const nextContentPassed =
         canScoreContent && sceneContentGatePassed(metrics);
       setMasteryPassedMap((prev) => ({
@@ -1805,71 +1779,6 @@ export default function StoryRecorder({
     } finally {
       setIsAnalyzing(false);
     }
-  };
-
-  const compareCurrentRecording = async () => {
-    if (!analysisAudioBlob) return;
-    const comparisonGroupId = `compare-${Date.now()}`;
-    const wavBlob = await convertBlobToWav(analysisAudioBlob);
-    const analysisText = (praatMetrics?.transcription || currentTranscriptRef.current || "").trim();
-    const sceneVocab = (topic.vocabulary[selectedImageIndex] || []).join(", ");
-    const scenePrompt = topic.prompts?.[selectedImageIndex] || topic.name;
-    const scenePhrases = topic.phrases?.[selectedImageIndex];
-    const sceneSuggestedAnswer = topic.suggestedAnswers?.[selectedImageIndex];
-    const sceneTargetText =
-      topic.listenScripts?.[selectedImageIndex]?.trim() ||
-      sceneSuggestedAnswer?.trim() ||
-      "";
-    const sceneReferenceCurves = buildSceneReferenceCurves(topic, selectedImageIndex);
-    const run = async (version: AnalysisVersion): Promise<PraatMetrics> => {
-      const formData = buildPracticeAnalysisFormData(wavBlob, {
-        transcription: analysisText,
-        aiProvider,
-        sceneVocabulary: sceneVocab,
-        scenePrompt,
-        sceneImageUrl: selectedImage,
-        scenePhrases: scenePhrases?.join("; "),
-        sceneSuggestedAnswer,
-        sceneTargetText,
-        sceneReferenceCurves,
-        sceneAttemptNumber: attemptHistory.length + 1,
-        analysisDetail: version === "phoneme_tone_v2" ? "phoneme" : undefined,
-      });
-      const started = performance.now();
-      const response = await fetch(`${getBackendUrl()}${version === "stable_v1" ? "/api/analyze" : "/api/analyze/v2"}`, {
-        method: "POST",
-        body: formData,
-        signal: AbortSignal.timeout(120_000),
-      });
-      if (!response.ok) {
-        const detail = await readErrorResponse(response);
-        throw new Error(detail.detail || "Analysis failed");
-      }
-      const metrics = (await response.json()) as PraatMetrics;
-      metrics.analysis_version = metrics.analysis_version ?? version;
-      metrics.progression_eligible = version === "stable_v1";
-      metrics.comparison_group_id = comparisonGroupId;
-      return { ...metrics, _latencyMs: Math.round(performance.now() - started) } as PraatMetrics & { _latencyMs: number };
-    };
-    setExperimentalStatus("comparing");
-    const started = performance.now();
-    const settled = await Promise.allSettled([
-      run("stable_v1"),
-      run("phoneme_tone_v2"),
-    ]);
-    const toRun = (version: AnalysisVersion, result: PromiseSettledResult<PraatMetrics>) =>
-      result.status === "fulfilled"
-        ? { version, schemaVersion: result.value.analysis_schema_version || (version === "stable_v1" ? "stable.v1" : "analysis_v2.character_phone.v1"), status: "success" as const, latencyMs: (result.value as PraatMetrics & { _latencyMs?: number })._latencyMs || Math.round(performance.now() - started), result: result.value }
-        : { version, schemaVersion: version === "stable_v1" ? "stable.v1" : "analysis_v2.character_phone.v1", status: "failed" as const, latencyMs: Math.round(performance.now() - started), result: null, error: result.reason instanceof Error ? result.reason.message : String(result.reason) };
-    setComparisonMap((prev) => ({
-      ...prev,
-      [selectedImageIndex]: {
-        audioAttemptId: `audio-${Date.now()}`,
-        comparisonGroupId,
-        runs: { stable_v1: toRun("stable_v1", settled[0]), phoneme_tone_v2: toRun("phoneme_tone_v2", settled[1]) },
-      },
-    }));
-    setExperimentalStatus(experimentalAvailable ? "NEEDS_DATA" : "unavailable");
   };
 
   const handleSubmitVoiceFile = async (
@@ -2308,7 +2217,10 @@ export default function StoryRecorder({
               selectedImage={selectedImage}
               selectedImageIndex={selectedPracticeScenePosition}
               totalScenes={totalScenes}
-              modelSentence={topic.suggestedAnswers?.[selectedImageIndex]}
+              modelSentence={
+                topic.listenScripts?.[selectedImageIndex] ||
+                topic.suggestedAnswers?.[selectedImageIndex]
+              }
               modelAudioUrl={topic.listenAudioUrls?.[selectedImageIndex]}
               narrativeMode={topic.narrativeMode}
               prog={sceneProgress[selectedImageIndex]}
@@ -2350,12 +2262,6 @@ export default function StoryRecorder({
                 }
               }}
               onViewSummary={() => setPhase("summary")}
-              analysisVersion={analysisVersion}
-              experimentalAvailable={experimentalAvailable}
-              experimentalStatus={experimentalStatus}
-              onAnalysisVersionChange={showAnalysisVersionSelector ? handleAnalysisVersionChange : undefined}
-              comparison={comparisonMap[selectedImageIndex]}
-              onCompare={compareCurrentRecording}
             />
           ) : (
           <div className="practice-workspace">
@@ -2420,9 +2326,16 @@ export default function StoryRecorder({
                         } else if (praatMetrics?.transcription) {
                           used = praatMetrics.transcription.includes(w);
                         }
+                        // Preserve legacy English-key topics, while never
+                        // allowing their stored pinyin to override the
+                        // canonical backend reading for Chinese text.
                         const py =
-                          topic.vocabularyPinyin?.[selectedImageIndex]?.[wi] ||
-                          toPinyin(w);
+                          toPinyin(w) ||
+                          (!/[\u4e00-\u9fff]/u.test(w)
+                            ? topic.vocabularyPinyin?.[selectedImageIndex]?.[
+                                wi
+                              ] || ""
+                            : "");
                         const pos =
                           topic.vocabularyPos?.[selectedImageIndex]?.[wi];
                         const translation =

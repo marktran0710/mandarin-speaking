@@ -14,9 +14,11 @@ describe("ModelRecordingPractice", () => {
     render(<ModelRecordingPractice sceneIndex={0} modelSentence="請描述這張圖片。" />);
 
     expect(screen.getAllByText("請描述這張圖片。")).toHaveLength(1);
-    expect(screen.getAllByText("qǐng miáo shù zhè zhāng tú piàn 。").length).toBeGreaterThan(0);
+    // Pinyin is now loaded from the backend's canonical cache by App; this
+    // isolated component test intentionally runs with the backend unavailable.
+    expect(document.querySelector(".model-recording-pinyin")).toHaveTextContent("");
     expect(
-      await screen.findByText("The scene sentence is ready to repeat; a teacher recording is not available yet."),
+      await screen.findByText("AI reference audio could not be generated. Check the backend connection."),
     ).toBeInTheDocument();
     expect(screen.queryByText("姐姐在家裡做飯。")).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Model recording:/)).not.toBeInTheDocument();
@@ -79,8 +81,18 @@ describe("ModelRecordingPractice", () => {
               pitch_contour: [
                 [0, 200],
                 [0.2, 210],
+                [0.4, 220],
               ],
-              word_prosody: [],
+              word_prosody: [
+                {
+                  pitch_contour: [
+                    [0, 200],
+                    [0.2, 210],
+                    [0.4, 220],
+                  ],
+                  tone_accuracy: 80,
+                },
+              ],
             }),
           };
         }
@@ -97,6 +109,79 @@ describe("ModelRecordingPractice", () => {
     expect(
       await screen.findByRole("img", { name: /Praat style waveform/ }),
     ).toBeInTheDocument();
+  });
+
+  it("switches from an unmeasurable model upload to a sentence-matched AI reference", async () => {
+    const aiAudio = new Blob(["fake-ai-mp3"], { type: "audio/mpeg" });
+    let analysisCalls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes("/api/tts")) {
+          return { ok: true, blob: async () => aiAudio };
+        }
+        if (url.includes("/api/analyze")) {
+          analysisCalls += 1;
+          return {
+            ok: true,
+            status: 200,
+            json: async () =>
+              analysisCalls === 1
+                ? {
+                    pitch_contour: [],
+                    word_prosody: [],
+                    feedback_quality: {
+                      status: "retry",
+                      can_score_pronunciation: false,
+                    },
+                  }
+                : {
+                    pitch_contour: [
+                      [0, 180],
+                      [0.2, 210],
+                    ],
+                    word_prosody: [
+                      {
+                        pitch_contour: [
+                          [0, 180],
+                          [0.2, 210],
+                        ],
+                        tone_accuracy: 82,
+                      },
+                    ],
+                  },
+          };
+        }
+        return {
+          ok: true,
+          blob: async () => new Blob(["teacher-audio"], { type: "audio/wav" }),
+        };
+      }),
+    );
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:ai-reference");
+
+    render(
+      <ModelRecordingPractice
+        sceneIndex={0}
+        modelSentence="我要去市場。"
+        modelAudioUrl="/uploads/story_audio/unclear.wav"
+      />,
+    );
+
+    screen.getByLabelText("Model recording: 我要去市場。").dispatchEvent(new Event("play"));
+
+    expect(
+      await screen.findByText(/switched to an AI-generated reference/i),
+    ).toBeInTheDocument();
+    const fallbackAudio = await screen.findByLabelText("Model recording: 我要去市場。");
+    expect(fallbackAudio).toHaveAttribute("src", "blob:ai-reference");
+
+    fallbackAudio.dispatchEvent(new Event("play"));
+    expect(
+      await screen.findByText(/Reference checked/i),
+    ).toBeInTheDocument();
+    expect(analysisCalls).toBe(2);
   });
 
   it("keeps the offline sample when there is no scene sentence at all", () => {
@@ -123,7 +208,15 @@ describe("ModelRecordingPractice", () => {
                 [0, 200],
                 [0.2, 210],
               ],
-              word_prosody: [],
+              word_prosody: [
+                {
+                  pitch_contour: [
+                    [0, 200],
+                    [0.2, 210],
+                  ],
+                  tone_accuracy: 80,
+                },
+              ],
             }),
           };
         }
@@ -158,7 +251,7 @@ describe("ModelRecordingPractice", () => {
       await screen.findByRole("img", { name: /Praat style waveform/ }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/its pitch curve is what a full-score attempt looks like/),
+      screen.getByText(/reference recording, not a guaranteed 100\/100 result/),
     ).toBeInTheDocument();
   });
 });

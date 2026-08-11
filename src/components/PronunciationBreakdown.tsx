@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { toneArrow } from "../utils/storyRecorderFeedback";
-import { toPinyin, toPinyinSyllables } from "../utils/pinyin";
+import { useEffect, useMemo, useState } from "react";
+import { isProsodyHardFailure, toneArrow } from "../utils/storyRecorderFeedback";
+import { primePinyin, toPinyin, toPinyinSyllables } from "../utils/pinyin";
+import { scoreScriptChunks, splitTeacherScriptIntoPhrases } from "../utils/scriptAlignment";
 import {
   ASSISTIVE_MESSAGE,
   matchAssistiveRecord,
@@ -57,6 +58,14 @@ interface BreakdownGroup {
   token: string;
   pinyin: string;
   rows: BreakdownRow[];
+}
+
+interface PhraseBreakdownGroup {
+  key: string;
+  text: string;
+  words: BreakdownGroup[];
+  passed: boolean | null;
+  uncertain: boolean;
 }
 
 const HEIGHT_LABEL: Record<VowelZone["height"], { zh: string; en: string }> = {
@@ -218,6 +227,42 @@ function referenceEvidenceAccepted(word?: WordProsody): boolean {
   );
 }
 
+/** A placeholder verdict is deliberately not phrase-level uncertainty. It
+ * means this particular syllable was not measurable (neutral tone, too short,
+ * or no score), not that every measured syllable in the phrase is doubtful. */
+function hasMeasuredToneEvidence(word: WordProsody): boolean {
+  return (word.syllables ?? []).some(
+    (syllable) =>
+      syllable.passed !== null &&
+      syllable.passed !== undefined &&
+      syllable.score_provenance !== "neutral_not_measured" &&
+      syllable.score_provenance !== "constant_short_segment" &&
+      syllable.score_provenance !== "not_scored",
+  );
+}
+
+function phraseStatus(
+  phraseWordRecords: WordProsody[],
+): Pick<PhraseBreakdownGroup, "passed" | "uncertain"> {
+  const hasHardFailure = phraseWordRecords.some(isProsodyHardFailure);
+  const hasMeasuredEvidence = phraseWordRecords.some(hasMeasuredToneEvidence);
+  // Neutral and unjudged syllables are not failures, and they must not
+  // downgrade a phrase whose other syllables have already passed. A phrase
+  // is only "not enough evidence" when it has no measured tone evidence at
+  // all and no actual hard failure to show the learner.
+  return {
+    passed: phraseWordRecords.length === 0
+      ? null
+      : hasHardFailure
+        ? false
+        : hasMeasuredEvidence
+          ? true
+          : null,
+    uncertain:
+      phraseWordRecords.length > 0 && !hasHardFailure && !hasMeasuredEvidence,
+  };
+}
+
 function statusLabel(
   syllable: WordProsodySyllable,
   referenceAccepted = false,
@@ -231,6 +276,9 @@ function statusLabel(
   // Backends predating the diagnostic layer send no status. Fall back to the
   // legacy verdict rather than inventing one — a missing field must never
   // silently become "correct".
+  if (syllable.passed === null || syllable.passed === undefined) {
+    return TONE_STATUS.UNCERTAIN;
+  }
   return syllable.passed
     ? TONE_STATUS.CORRECT
     : { ...TONE_STATUS.INCORRECT, zh: "沒過", en: "Did not pass" };
@@ -258,6 +306,77 @@ function breakdownGroups(words: WordProsody[]): BreakdownGroup[] {
     });
   }
   return groups;
+}
+
+/** Group the existing word rows under teacher-authored phrase boundaries.
+ * The acoustic rows remain word/character rows; this only changes their visual
+ * hierarchy and the phrase-level content summary. */
+function breakdownPhraseGroups(
+  groups: BreakdownGroup[],
+  targetText?: string,
+  transcription?: string,
+  teacherPhrases?: string[],
+): PhraseBreakdownGroup[] {
+  const phrases = (teacherPhrases?.length
+    ? teacherPhrases
+    : splitTeacherScriptIntoPhrases(targetText)
+  ).filter(Boolean);
+  if (phrases.length <= 1) {
+    const status = phraseStatus(
+      groups.flatMap((group) => group.rows.map((row) => row.word)),
+    );
+    return [{
+      key: "phrase-0",
+      text: phrases[0] ?? "",
+      words: groups,
+      ...status,
+    }];
+  }
+
+  const words = groups.map((group) => group.rows[0]?.word).filter(Boolean);
+  const scores = scoreScriptChunks(targetText, transcription, words, phrases);
+  const phraseWords = phrases.map<BreakdownGroup[]>(() => []);
+  const phraseIndexByWord = new Map<WordProsody, number>();
+  scores.forEach((score, phraseIndex) => {
+    score.tokens.forEach((word) => phraseIndexByWord.set(word, phraseIndex));
+  });
+
+  // If the transcript is unavailable, the scorer cannot align token text to a
+  // phrase. Keep rows visible by assigning them in target order instead of
+  // dumping every word into the first phrase.
+  let fallbackPhraseIndex = 0;
+  let fallbackChars = 0;
+  const phraseCharCounts = phrases.map((phrase) => Array.from(phrase).filter((char) => /[\p{L}\p{N}]/u.test(char)).length);
+  groups.forEach((group) => {
+    const word = group.rows[0]?.word;
+    let phraseIndex = word ? phraseIndexByWord.get(word) : undefined;
+    if (phraseIndex === undefined) {
+      const wordChars = Array.from(group.token).filter((char) => /[\p{L}\p{N}]/u.test(char)).length;
+      while (
+        fallbackPhraseIndex < phrases.length - 1 &&
+        fallbackChars >= phraseCharCounts[fallbackPhraseIndex]
+      ) {
+        fallbackChars -= phraseCharCounts[fallbackPhraseIndex];
+        fallbackPhraseIndex += 1;
+      }
+      phraseIndex = fallbackPhraseIndex;
+      fallbackChars += wordChars;
+    }
+    phraseWords[Math.min(phraseIndex, phrases.length - 1)].push(group);
+  });
+
+  return phrases.map((text, index) => {
+    const phraseWordRecords = phraseWords[index]
+      .flatMap((group) => group.rows.map((row) => row.word))
+      .filter(Boolean);
+    const status = phraseStatus(phraseWordRecords);
+    return {
+      key: `phrase-${index}-${text}`,
+      text,
+      words: phraseWords[index],
+      ...status,
+    };
+  });
 }
 
 function countByBucket(groups: BreakdownGroup[]): Record<string, number> {
@@ -424,10 +543,20 @@ function RowDetail({
 
 export default function PronunciationBreakdown({
   words,
+  targetText,
+  transcription,
+  teacherPhrases,
   debug = false,
   assistiveFeedback = null,
 }: {
   words: WordProsody[];
+  /** Teacher's full scene sentence, used only to establish phrase context. */
+  targetText?: string;
+  /** Student transcript, used to assign word rows to teacher phrases. */
+  transcription?: string;
+  /** Explicit teacher phrase boundaries. If omitted, punctuation in targetText
+   * is used and an unpunctuated sentence remains one phrase. */
+  teacherPhrases?: string[];
   /** Research/teacher mode: reveals the raw contour-match number, its
    * provenance, and the legacy progression gate. Off for learners. */
   debug?: boolean;
@@ -440,8 +569,43 @@ export default function PronunciationBreakdown({
   assistiveFeedback?: AssistiveFeedbackSyllable[] | null;
 }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
-  const groups = breakdownGroups(words);
+  const pinyinTokens = useMemo(
+    () => [...new Set(
+      words
+        .map((word) => word.token.trim())
+        .filter((token) => /[\u3400-\u9fff]/u.test(token)),
+    )],
+    [words],
+  );
+  const pinyinQuery = pinyinTokens.join("\u0000");
+  const [pinyinRevision, setPinyinRevision] = useState(0);
+  useEffect(() => {
+    let active = true;
+    if (pinyinTokens.length > 0) {
+      void primePinyin(pinyinTokens)
+        .then(() => {
+          if (active) setPinyinRevision((revision) => revision + 1);
+        })
+        .catch(() => {
+          // The breakdown remains useful without pinyin when the backend is
+          // temporarily unavailable. The next analysis retries this query.
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [pinyinQuery]);
+  const groups = useMemo(
+    () => breakdownGroups(words),
+    [words, pinyinRevision],
+  );
   if (groups.length === 0) return null;
+  const phraseGroups = breakdownPhraseGroups(
+    groups,
+    targetText,
+    transcription,
+    teacherPhrases,
+  );
   let flatIndex = -1;
 
   const counts = countByBucket(groups);
@@ -482,7 +646,27 @@ export default function PronunciationBreakdown({
       </ul>
 
       <div className="pb-groups">
-        {groups.map((group) => (
+        {phraseGroups.map((phrase) => (
+          <section
+            className={`pb-phrase-group${phrase.text ? "" : " is-unstructured"}`}
+            key={phrase.key}
+          >
+            {phrase.text && (
+              <div className="pb-phrase-header">
+                <span className="pb-phrase-label" lang="zh-Hant">{phrase.text}</span>
+                <span className="pb-phrase-note">
+                  {phrase.uncertain
+                    ? "not enough evidence"
+                    : phrase.passed === true
+                      ? "phrase ready"
+                      : phrase.passed === false
+                        ? "needs practice"
+                        : "word detail"}
+                </span>
+              </div>
+            )}
+            <div className="pb-phrase-words">
+            {phrase.words.map((group) => (
           <div className="pb-group" key={group.key}>
             <p className="pb-group-header">
               <span className="pb-group-token" lang="zh-Hant">
@@ -562,6 +746,9 @@ export default function PronunciationBreakdown({
               })}
             </ul>
           </div>
+        ))}
+            </div>
+          </section>
         ))}
       </div>
 

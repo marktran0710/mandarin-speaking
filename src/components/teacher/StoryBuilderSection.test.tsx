@@ -73,6 +73,25 @@ describe("StoryBuilderSection – updating a saved story", () => {
 
     await waitFor(() => expect(saveToDatabase).toHaveBeenCalledTimes(1));
   });
+
+  it("shows teacher reference upload for speaking materials", async () => {
+    const base = storyWithFrames(1);
+    const story: CustomTeacherStory = {
+      ...base,
+      narrativeMode: "describe",
+      frames: [{
+        ...base.frames[0],
+        suggestedAnswer: "友美，妳這個週末要做什麼？",
+      }],
+    };
+    storiesOnServer = [story];
+    window.localStorage.setItem(CUSTOM_STORY_STORAGE_KEY, JSON.stringify([story]));
+
+    render(<StoryBuilderSection />);
+    await userEvent.setup().click(await screen.findByRole("button", { name: /^edit$/i }));
+
+    expect(await screen.findByText(/Upload teacher reference audio/i)).toBeInTheDocument();
+  });
 });
 
 describe("StoryBuilderSection – quiz needs review badge", () => {

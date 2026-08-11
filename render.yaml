@@ -11,7 +11,7 @@ services:
     rootDir: backend
     dockerfilePath: ./Dockerfile
     plan: free
-    healthCheckPath: /health
+    healthCheckPath: /health/ready
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -23,3 +23,8 @@ services:
         value: gpt-4o-mini
       - key: GEMINI_FEEDBACK_MODEL
         value: gemini-2.0-flash
+      # Set this to a persistent mounted path when the hosting plan provides
+      # a disk. Without it, PostgreSQL rows survive but uploaded audio/images
+      # do not survive a container replacement.
+      - key: UPLOAD_DIR
+        value: /data/uploads

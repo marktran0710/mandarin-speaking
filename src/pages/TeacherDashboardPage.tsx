@@ -5,6 +5,7 @@ import {
   listStorySubmissions,
   listStudents,
   listVocabQuizAttempts,
+  listMeasurementEvents,
   type Student,
   type StorySubmission,
   type VocabQuizAttempt,
@@ -26,6 +27,8 @@ import TeacherImageBuilderPage from "./TeacherImageBuilderPage";
 import TeacherQuizReviewPage from "./TeacherQuizReviewPage";
 import TeacherPracticeDebugPage from "./TeacherPracticeDebugPage";
 import TeacherBenchmarkPage from "./TeacherBenchmarkPage";
+import MeasurementAnalyticsPanel from "../components/MeasurementAnalyticsPanel";
+import { readMeasurementEvents, type MeasurementEvent } from "../utils/measurement";
 import { formatRequestTime, getAverageMetric } from "../utils/myStoriesUtils";
 import { buildStudentAssessments } from "../utils/studentAssessment";
 // Legacy view internals (panels, tables, builder form) still live in the
@@ -36,7 +39,7 @@ import "./TeacherDashboardPage.css";
 /** Sub-tab definitions for the merged sidebar sections. */
 type RecordingsHelpTab = "recordings" | "help";
 type MaterialsTab = "builder" | "imageBuilder" | "quizReview";
-type AnalyticsTab = "students" | "quizTrends" | "recordingTrends";
+type AnalyticsTab = "students" | "quizTrends" | "recordingTrends" | "measurement";
 
 const VIEW_COPY: Record<TeacherView, { eyebrow: string; title: string; description: string }> = {
   overview: {
@@ -161,6 +164,16 @@ export default function TeacherDashboardPage({
   const [students, setStudents] = useState<Student[]>([]);
   const [studentsError, setStudentsError] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [serverMeasurementEvents, setServerMeasurementEvents] = useState<MeasurementEvent[]>([]);
+  const measurementEvents = useMemo(
+    () => serverMeasurementEvents.length > 0 ? serverMeasurementEvents : readMeasurementEvents(),
+    [serverMeasurementEvents, records, activeView],
+  );
+
+  useEffect(() => {
+    if (!canUseDatabase()) return;
+    listMeasurementEvents().then(setServerMeasurementEvents).catch(() => {});
+  }, [records.length]);
 
   const loadQuizAttempts = useCallback(async () => {
     if (!canUseDatabase()) return;
@@ -422,6 +435,7 @@ export default function TeacherDashboardPage({
                 { id: "students" as const, label: "Students", count: assessments.filter((assessment) => assessment.watchlistReasons.length > 0).length },
                 { id: "quizTrends" as const, label: "Quiz trends", count: quizAttempts.length },
                 { id: "recordingTrends" as const, label: "Recording trends", count: feedbackReadyRecords.length },
+                { id: "measurement" as const, label: "Measurement", count: measurementEvents.length },
               ]}
               active={analyticsTab}
               onSelect={setAnalyticsTab}
@@ -480,6 +494,9 @@ export default function TeacherDashboardPage({
             )}
             {analyticsTab === "recordingTrends" && (
               <RecordingAnalyticsPanel records={records} />
+            )}
+            {analyticsTab === "measurement" && (
+              <MeasurementAnalyticsPanel records={records} events={measurementEvents} />
             )}
           </>
         )}

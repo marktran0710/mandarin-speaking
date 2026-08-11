@@ -190,6 +190,7 @@ type TieredDraftField =
   | "phrasesTranslation"
   | "suggestedAnswers"
   | "listenAudioUrls"
+  | "listenAudioSources"
   | "listenScripts";
 
 function blankTiers(count: number): Record<StoryDifficultyLevel, string[]> {
@@ -229,6 +230,7 @@ const emptyCustomStoryDraft = {
   phrasesTranslation: blankTiers(6),
   suggestedAnswers: blankTiers(6),
   listenAudioUrls: blankTiers(6),
+  listenAudioSources: blankTiers(6),
   listenScripts: blankTiers(6),
   linear: false,
   firstFrameIsExample: false,
@@ -417,7 +419,11 @@ export default function StoryBuilderSection({
       };
     });
     setValidationErrors((errors) =>
-      clearFrameError(errors, index, field),
+      clearFrameError(
+        errors,
+        index,
+        field === "listenAudioSources" ? "listenAudioUrls" : field,
+      ),
     );
     clearNotice();
   };
@@ -485,6 +491,17 @@ export default function StoryBuilderSection({
     reader.onload = () => {
       if (typeof reader.result === "string") {
         updateDraftFrame("listenAudioUrls", index, reader.result);
+        updateDraftFrame("listenAudioSources", index, "teacher");
+        // Speaking materials use the suggested answer as the pronunciation
+        // target. Keep the target alongside the uploaded reference so a
+        // previously used listen/retell script cannot be analysed by mistake.
+        if (customDraft.narrativeMode !== "listen_retell") {
+          updateDraftFrame(
+            "listenScripts",
+            index,
+            customDraft.suggestedAnswers[customDraft.activeLevel][index] ?? "",
+          );
+        }
       }
     };
     reader.readAsDataURL(wavBlob);
@@ -719,6 +736,7 @@ export default function StoryBuilderSection({
       const suffix = level === "easy" ? "" : level === "medium" ? "Medium" : "Hard";
       const result = (await response.json()) as Record<string, string>;
       updateDraftFrame("listenAudioUrls", index, result[`listenAudioUrl${suffix}`] ?? "");
+      updateDraftFrame("listenAudioSources", index, "tts");
       updateDraftFrame("listenScripts", index, result[`listenScript${suffix}`] ?? "");
       const audioUrls = JSON.parse(result[`vocabularyAudioUrls${suffix}`] ?? "[]") as (
         | string
@@ -1336,6 +1354,22 @@ export default function StoryBuilderSection({
                       {modelVoiceError && modelVoiceLoadingIndex === null && (
                         <span className="teacher-form-error">{modelVoiceError}</span>
                       )}
+                      <label className="teacher-file-upload">
+                        Upload teacher reference audio (optional)
+                        <input
+                          type="file"
+                          accept="audio/mpeg,audio/wav,audio/webm,audio/ogg"
+                          onChange={(event) =>
+                            handleUploadFrameAudio(index, event.target.files?.[0])
+                          }
+                        />
+                      </label>
+                      {customDraft.listenAudioSources[level][index] === "teacher" &&
+                        customDraft.listenAudioUrls[level][index]?.trim() && (
+                          <span className="teacher-form-hint">
+                            Teacher reference ready — student scoring will use this recording.
+                          </span>
+                        )}
                     </>
                   )}
                   {customDraft.narrativeMode === "listen_retell" && (
@@ -1619,6 +1653,11 @@ const TIER_BACKEND_FIELD: Record<
     medium: "listenAudioUrlMedium",
     hard: "listenAudioUrlHard",
   },
+  listenAudioSources: {
+    easy: "listenAudioSource",
+    medium: "listenAudioSourceMedium",
+    hard: "listenAudioSourceHard",
+  },
   listenScripts: { easy: "listenScript", medium: "listenScriptMedium", hard: "listenScriptHard" },
 };
 
@@ -1633,6 +1672,7 @@ const TIERED_DRAFT_FIELDS: TieredDraftField[] = [
   "phrasesTranslation",
   "suggestedAnswers",
   "listenAudioUrls",
+  "listenAudioSources",
   "listenScripts",
 ];
 
@@ -1678,6 +1718,8 @@ function createCustomStory(
         frame.suggestedAnswer = draft.suggestedAnswers.easy[index].trim();
       if (draft.listenAudioUrls.easy[index]?.trim())
         frame.listenAudioUrl = draft.listenAudioUrls.easy[index].trim();
+      if (draft.listenAudioSources.easy[index]?.trim())
+        frame.listenAudioSource = draft.listenAudioSources.easy[index] as "teacher" | "tts";
       if (draft.listenScripts.easy[index]?.trim())
         frame.listenScript = draft.listenScripts.easy[index].trim();
       return frame;
@@ -1733,6 +1775,7 @@ function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
     vocabularyDistractors: frames.map((frame) => frame?.vocabularyDistractors || ""),
     suggestedAnswers: tiersFor("suggestedAnswers"),
     listenAudioUrls: tiersFor("listenAudioUrls"),
+    listenAudioSources: tiersFor("listenAudioSources"),
     listenScripts: tiersFor("listenScripts"),
     linear: story.linear ?? false,
     firstFrameIsExample: story.firstFrameIsExample ?? false,

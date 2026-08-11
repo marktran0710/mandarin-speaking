@@ -45,8 +45,21 @@ def test_report_calculates_pass_fail_metrics_by_tone_and_audit_rows():
         "accuracy": 0.5,
         "precision": 0.5,
         "recall": 0.5,
+        # Recall's counterpart on the negative class: of the 2 items the human
+        # marked incorrect, 1 was also failed by the system.
+        "specificity": 0.5,
+        "balanced_accuracy": 0.5,
         "f1": 0.5,
         "cohen_kappa": 0.0,
+        "matthews_correlation": 0.0,
+        # Each rate carries the denominator it was divided by, so it can never
+        # be quoted against the wrong base.
+        "false_acceptance_count": 1,
+        "false_acceptance_rate": 0.5,
+        "false_acceptance_denominator": 2,
+        "false_rejection_count": 1,
+        "false_rejection_rate": 0.5,
+        "false_rejection_denominator": 2,
     }
     assert report["by_expected_tone"]["1"]["accuracy"] == 1.0
     assert report["by_expected_tone"]["2"]["accuracy"] == 0.0

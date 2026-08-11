@@ -831,70 +831,73 @@ def _word_diagnostic_status(syllables: List[Dict]) -> str | None:
     return aggregate_word(statuses).value
 
 
-def _diagnose_syllable(
+def _diagnose_token(
     scoring_points: List[Tuple[float, float]],
-    window: Tuple[int, int] | None,
-    expected: "object",
+    windows: List[Tuple[int, int]] | None,
+    expected: List["object"],
     qc_kwargs: Dict,
-) -> Dict:
-    """Score one syllable against each tone it is *allowed* to be, then decide.
+    score_overrides: List[float] | None = None,
+    provenance_overrides: List[str] | None = None,
+) -> List[Dict]:
+    """Diagnose every syllable of one word against its contextual targets.
 
-    Scoring per syllable rather than per word is exact here: each window's
-    score in ``directional_tone_scores`` depends only on that window's frames
-    and its own tone, so calling it one syllable at a time gives the same
-    number it would inside the full list. That is what lets a syllable with
-    two acceptable realizations (這個's 個 as T4 or neutral) be measured
-    against both, and credited with the better match — matching *any* accepted
-    realization is not a tone error.
+    Scored a whole token at a time, not syllable by syllable, because the
+    scorer's equal-split fallback derives each syllable's frame range from how
+    many syllables it was given. Handing it one syllable at a time made that
+    fallback treat the entire word as a single syllable, so every syllable in
+    the word came back with the same score — 這 and 個 both reading 100 was
+    how that surfaced.
     """
-    from chinese_tones import directional_tone_scores_with_provenance
-    from tone_decision import (
-        PROVENANCE_NONE,
-        QcEvidence,
-        decide_tone,
+    from chinese_tones import contextual_tone_scores
+    from tone_decision import PROVENANCE_NONE, QcEvidence, decide_tone
+
+    evidence = QcEvidence(**qc_kwargs)
+    scored = contextual_tone_scores(
+        scoring_points,
+        [tuple(item.accepted_surface_tones) for item in expected],
+        windows,
     )
 
-    best_score: float | None = None
-    best_tone: int | None = None
-    best_provenance = PROVENANCE_NONE
+    results: List[Dict] = []
+    for index, item in enumerate(expected):
+        if score_overrides and index < len(score_overrides):
+            score = score_overrides[index]
+            provenance = (
+                provenance_overrides[index]
+                if provenance_overrides and index < len(provenance_overrides)
+                else "reference_shape"
+            )
+            matched_tone = (
+                item.accepted_surface_tones[0]
+                if item.accepted_surface_tones
+                else None
+            )
+        elif index < len(scored):
+            score, matched_tone, provenance = scored[index]
+        else:
+            score, matched_tone, provenance = None, None, PROVENANCE_NONE
 
-    for tone in expected.accepted_surface_tones:
-        scores, provenance = directional_tone_scores_with_provenance(
-            scoring_points, [tone], [window] if window is not None else None
+        diagnosis = decide_tone(
+            score,
+            provenance,
+            evidence,
+            matched_surface_tone=matched_tone,
+            measurable_by_contour=item.measurable_by_contour,
         )
-        if not scores:
-            continue
-        score, source = scores[0], provenance[0]
-        # Prefer a real measurement over a placeholder constant even when the
-        # constant is numerically higher — 75 for neutral is not evidence.
-        better = (
-            best_score is None
-            or (source == "measured" and best_provenance != "measured")
-            or (source == best_provenance and score > (best_score or 0.0))
+        record = diagnosis.as_dict()
+        record.update(
+            {
+                "underlying_tone": item.underlying_tone,
+                "accepted_surface_tones": list(item.accepted_surface_tones),
+                "tone_realization": item.realization,
+                "context_rule": item.rule,
+                "token_index": item.token_index,
+                "boundary_before": item.boundary_before,
+                "boundary_after": item.boundary_after,
+            }
         )
-        if better:
-            best_score, best_tone, best_provenance = score, tone, source
-
-    diagnosis = decide_tone(
-        best_score,
-        best_provenance,
-        QcEvidence(**qc_kwargs),
-        matched_surface_tone=best_tone,
-        measurable_by_contour=expected.measurable_by_contour,
-    )
-    result = diagnosis.as_dict()
-    result.update(
-        {
-            "underlying_tone": expected.underlying_tone,
-            "accepted_surface_tones": list(expected.accepted_surface_tones),
-            "tone_realization": expected.realization,
-            "context_rule": expected.rule,
-            "token_index": expected.token_index,
-            "boundary_before": expected.boundary_before,
-            "boundary_after": expected.boundary_after,
-        }
-    )
-    return result
+        results.append(record)
+    return results
 
 
 def estimate_word_prosody(
@@ -953,6 +956,7 @@ def estimate_word_prosody(
         directional_tone_scores,
         parse_pinyin_tones,
         phrase_shape_curves,
+        reference_syllable_scores,
         scaled_reference_contour,
         word_tones,
     )
@@ -1074,11 +1078,12 @@ def estimate_word_prosody(
         # score compares (see phrase_shape_curves) — returned so the frontend
         # chart draws exactly what was scored. Empty when the segment was too
         # short to score, in which case the card falls back to raw Hz.
-        reference_curve = (reference_word_curves or {}).get(token) or None
+        reference_curve = _reference_curve_for_token(token, reference_word_curves)
 
         user_curve: List[float] = []
         target_curve: List[float] = []
         syllable_scores: List[float] = []
+        syllable_score_provenance: List[str] = []
         windows: List[Tuple[int, int]] | None = None
         minimum_points = max(4, len(expected_tones) * 4)
         segment_judged = (
@@ -1103,9 +1108,17 @@ def estimate_word_prosody(
                 spans = syllable_spans[consumed - token_chars : consumed]
                 if len(spans) == len(expected_tones):
                     windows = _windows_for_spans(scoring_points, spans)
-            syllable_scores = directional_tone_scores(
-                scoring_points, expected_tones, syllable_windows=windows
-            )
+            if reference_curve:
+                syllable_scores, syllable_score_provenance = reference_syllable_scores(
+                    scoring_points,
+                    expected_tones,
+                    reference_curve,
+                    syllable_windows=windows,
+                )
+            else:
+                syllable_scores = directional_tone_scores(
+                    scoring_points, expected_tones, syllable_windows=windows
+                )
         elif is_chinese and expected_tones:
             tone_score = 0.0
             shape_score = 0.0
@@ -1156,26 +1169,31 @@ def estimate_word_prosody(
             # context, and given whether the measurement can be trusted at
             # all, what can honestly be said? A weak contour match with thin
             # pitch evidence becomes UNCERTAIN, not a learner error.
+            plan_slice = tone_plan[consumed - token_chars : consumed]
+            diagnoses = (
+                _diagnose_token(
+                    scoring_points,
+                    windows,
+                    plan_slice,
+                    {
+                        "can_score_pronunciation": True,
+                        "judged": segment_judged,
+                        "pitch_points": len(scoring_points),
+                        "minimum_pitch_points": minimum_points,
+                    },
+                    score_overrides=(
+                        syllable_scores if reference_curve else None
+                    ),
+                    provenance_overrides=(
+                        syllable_score_provenance if reference_curve else None
+                    ),
+                )
+                if len(plan_slice) == len(syllables)
+                else []
+            )
             for i, entry in enumerate(syllables):
-                global_index = consumed - token_chars + i
-                if global_index >= len(tone_plan):
-                    continue
-                window = (
-                    windows[i] if windows is not None and i < len(windows) else None
-                )
-                entry.update(
-                    _diagnose_syllable(
-                        scoring_points,
-                        window,
-                        tone_plan[global_index],
-                        {
-                            "can_score_pronunciation": True,
-                            "judged": segment_judged,
-                            "pitch_points": len(scoring_points),
-                            "minimum_pitch_points": minimum_points,
-                        },
-                    )
-                )
+                if i < len(diagnoses):
+                    entry.update(diagnoses[i])
                 # Legacy verdict kept alongside, explicitly labelled, so the
                 # frontend and the research export can tell the two apart and
                 # nobody has to guess which number drove the unlock.
@@ -1450,6 +1468,54 @@ def _prosody_tokens(transcription: str) -> List[str]:
         return capped
 
     return re.findall(r"[A-Za-z0-9']+", text)[:40]
+
+
+def _reference_curve_for_token(
+    token: str,
+    reference_word_curves: Dict[str, List[float]] | None,
+) -> List[float] | None:
+    """Resolve a cached model curve for the scorer's token.
+
+    Teacher vocabulary is intentionally phrase-sized (for example ``做什麼``),
+    while jieba may split the same sentence into ``做`` and ``什麼``. The old
+    exact-key lookup silently dropped both sub-tokens and fell back to a
+    synthetic tone contour. Split a containing reference curve by its Hanzi
+    character offsets so the reference and the scorer use the same units.
+    """
+    if not token or not reference_word_curves:
+        return None
+
+    exact = reference_word_curves.get(token)
+    if isinstance(exact, list) and exact:
+        return exact
+
+    candidates = [
+        (source, curve)
+        for source, curve in reference_word_curves.items()
+        if isinstance(source, str)
+        and token in source
+        and isinstance(curve, list)
+        and curve
+        and len(source) > len(token)
+    ]
+    if not candidates:
+        return None
+
+    source, curve = min(candidates, key=lambda item: len(item[0]))
+    offset = source.find(token)
+    start = round(offset / len(source) * len(curve))
+    end = round((offset + len(token)) / len(source) * len(curve))
+    start = max(0, min(start, len(curve) - 1))
+    end = max(start + 1, min(end, len(curve)))
+    segment = curve[start:end]
+    if len(segment) == 100:
+        return segment
+    # phrase_shape_curves compares fixed-length normalized arrays. Preserve
+    # the sub-phrase shape while putting it back on that shared 100-point
+    # contract after splitting a longer teacher phrase.
+    positions = np.linspace(0.0, 1.0, len(segment))
+    target_positions = np.linspace(0.0, 1.0, 100)
+    return np.interp(target_positions, positions, np.asarray(segment, dtype=float)).tolist()
 
 
 def _contour_shape(frequencies: np.ndarray, slope: float, pitch_range: float) -> str:

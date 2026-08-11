@@ -132,6 +132,58 @@ def test_verified_target_can_be_reliable():
     assert quality["can_score_content"] is True
 
 
+def test_sentence_content_match_tolerates_common_asr_name_confusion():
+    from main import _scene_content_match
+
+    target = "友美，妳這個週末要做什麼？"
+    recognized = "遊妹,你這個週末要做什麼?"
+
+    assert _scene_content_match(target, recognized) is True
+
+
+def test_sentence_content_match_rejects_an_omitted_required_name():
+    from main import _scene_content_match
+
+    target = "友美，妳這個週末要做什麼？"
+    recognized = "你這個週末要做什麼?"
+
+    assert _scene_content_match(target, recognized) is False
+
+
+def test_content_mismatch_keeps_pronunciation_feedback_but_blocks_content_pass():
+    from main import finalize_feedback_quality
+
+    preflight = {
+        "status": "review",
+        "confidence": 0.7,
+        "can_score_pronunciation": False,
+        "can_score_content": False,
+        "reason_codes": [],
+        "metrics": {},
+    }
+    pitch = [(index * 0.02, 200.0 + index) for index in range(20)]
+    quality = finalize_feedback_quality(
+        preflight,
+        pitch,
+        "你這個週末要做什麼?",
+        content_match=False,
+        content_was_verified=True,
+    )
+
+    assert quality["can_score_pronunciation"] is True
+    assert quality["can_score_content"] is False
+    assert quality["status"] == "review"
+    assert "target_content_mismatch" in quality["reason_codes"]
+
+
+def test_sentence_content_match_rejects_unrelated_answer():
+    from main import _scene_content_match
+
+    target = "友美，妳這個週末要做什麼？"
+
+    assert _scene_content_match(target, "我今天在學校吃飯。") is False
+
+
 def test_sustained_tone_never_becomes_reliable_mastery_evidence():
     from main import assess_recording_quality, finalize_feedback_quality
 

@@ -48,7 +48,7 @@ describe("SpeakingFlowCard model recording integration", () => {
     expect(screen.getByRole("region", { name: "Listen and repeat model recording" })).toBeInTheDocument();
     expect(screen.getAllByText("請描述這張圖片。")).toHaveLength(1);
     expect(
-      await screen.findByText("The scene sentence is ready to repeat; a teacher recording is not available yet."),
+      await screen.findByText("AI reference audio could not be generated. Check the backend connection."),
     ).toBeInTheDocument();
     expect(screen.queryByLabelText(/Model recording:/)).not.toBeInTheDocument();
   });

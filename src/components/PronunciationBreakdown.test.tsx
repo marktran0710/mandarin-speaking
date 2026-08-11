@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PronunciationBreakdown from "./PronunciationBreakdown";
 import type { WordProsody } from "./StoryRecorder";
@@ -113,6 +113,27 @@ describe("PronunciationBreakdown", () => {
     expect(groups[0].querySelector(".pb-group-token")!.textContent).toBe("你媽");
     expect(groups[1].querySelector(".pb-group-token")!.textContent).toBe("這個");
     expect(groups[0].querySelectorAll(".pb-row")).toHaveLength(2);
+  });
+
+  it("uses teacher phrases as the outer groups while keeping words inside", () => {
+    const { container } = render(
+      <PronunciationBreakdown
+        words={[
+          word({ token: "alpha", index: 0, syllables: passingWord.syllables }),
+          word({ token: "beta", index: 1, syllables: passingWord.syllables }),
+        ]}
+        targetText="alpha，beta"
+        transcription="alpha beta"
+        teacherPhrases={["alpha", "beta"]}
+      />,
+    );
+
+    const phrases = container.querySelectorAll(".pb-phrase-group");
+    expect(phrases).toHaveLength(2);
+    expect(phrases[0].querySelector(".pb-phrase-label")?.textContent).toBe("alpha");
+    expect(phrases[1].querySelector(".pb-phrase-label")?.textContent).toBe("beta");
+    expect(phrases[0].querySelectorAll(".pb-group")).toHaveLength(1);
+    expect(phrases[1].querySelectorAll(".pb-group")).toHaveLength(1);
   });
 
   it("counts the result in one summary line", () => {
@@ -396,6 +417,94 @@ describe("PronunciationBreakdown", () => {
     const row = container.querySelector(".pb-row")!;
     expect(row.classList.contains("pb-row-failed")).toBe(false);
     expect(row.querySelector(".is-fail")).toBeNull();
+  });
+
+  it("does not downgrade a passing phrase because one tone is neutral or unjudged", () => {
+    const phrase = "\u59b3\u9019\u500b\u9031\u672b\u8981\u505a\u4ec0\u9ebc";
+    const measured = word({
+      token: "\u9019\u500b",
+      index: 1,
+      judged: true,
+      passed: true,
+      diagnostic_status: "CORRECT",
+      syllables: [
+        { char: "\u9019", tone: 4, score: 90, passed: true, diagnostic_status: "CORRECT" },
+        { char: "\u500b", tone: 4, score: 90, passed: true, diagnostic_status: "CORRECT" },
+      ],
+    });
+    const neutral = word({
+      token: "\u9ebc",
+      index: 2,
+      judged: true,
+      passed: true,
+      diagnostic_status: "UNCERTAIN",
+      syllables: [{
+        char: "\u9ebc",
+        tone: 5,
+        score: 75,
+        passed: true,
+        diagnostic_status: "UNCERTAIN",
+        score_provenance: "neutral_not_measured",
+      }],
+    });
+    const unjudged = word({
+      token: "\u59b3",
+      index: 0,
+      judged: false,
+      passed: null,
+      syllables: [{
+        char: "\u59b3",
+        tone: 3,
+        score: 0,
+        passed: null,
+        diagnostic_status: "UNCERTAIN",
+        score_provenance: "not_scored",
+      }],
+    });
+
+    render(
+      <PronunciationBreakdown
+        words={[unjudged, measured, neutral]}
+        targetText={phrase}
+        transcription={phrase}
+      />,
+    );
+
+    expect(screen.getByText("phrase ready")).toBeInTheDocument();
+    expect(screen.queryByText("not enough evidence")).toBeNull();
+  });
+
+  it("loads pinyin for the exact analyzed word tokens", async () => {
+    const token = "\u6e2c\u8a66\u5b57";
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ items: [{ text: token, pinyin: "ce4 shi4 zi4" }] }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { container } = render(
+      <PronunciationBreakdown
+        words={[word({
+          token,
+          syllables: [
+            { char: "\u6e2c", tone: 4, score: 90, passed: true },
+            { char: "\u8a66", tone: 4, score: 90, passed: true },
+            { char: "\u5b57", tone: 4, score: 90, passed: true },
+          ],
+        })]}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(container.querySelector(".pb-group-pinyin")?.textContent).toBe(
+        "ce4 shi4 zi4",
+      );
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/pinyin"),
+      expect.objectContaining({ method: "POST" }),
+    );
+    vi.unstubAllGlobals();
   });
 
   it("states plainly that the vowel column is a measurement, not a score", () => {

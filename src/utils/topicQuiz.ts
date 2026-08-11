@@ -6,6 +6,7 @@
 
 import { collectQuizEntries, type VocabQuizEntry } from "../components/StoryVocabQuiz";
 import { applyExclusionsToWord, storyQuizExclusions } from "./quizExclusions";
+import { toPinyin } from "./pinyin";
 import type { CustomTeacherStory } from "./teacherStories";
 
 /** Just the story fields the quiz is built from. Structural on purpose:
@@ -65,7 +66,16 @@ export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
       translations.push(topic.vocabularyTranslation?.[si]?.[i]);
       suggestedAnswers.push(sceneSuggestedAnswer);
       aiDistractors.push(filtered.aiDistractors);
-      pinyins.push(topic.vocabularyPinyin?.[si]?.[i]);
+      // Chinese readings are resolved from the backend cache. Keep the old
+      // field only for legacy topics whose key is an English gloss rather
+      // than Chinese text, where it is the only available display value.
+      const canonicalPinyin = toPinyin(word);
+      pinyins.push(
+        canonicalPinyin ||
+          (!/[\u4e00-\u9fff]/u.test(word)
+            ? topic.vocabularyPinyin?.[si]?.[i]
+            : undefined),
+      );
       aiCloze.push(filtered.aiCloze);
       partsOfSpeech.push(topic.vocabularyPos?.[si]?.[i]);
       aiSynonyms.push(filtered.aiSynonyms);

@@ -14,6 +14,12 @@ mandarin_stories.db
 *.sqlite3
 uploads/
 
+# Research/private corpus and derived reports must never be copied into a
+# production image. They are local evaluation inputs, not application data.
+private-data/
+benchmarking/
+reports/
+
 # Tests and dev-only tooling are not needed in the runtime image.
 tests/
 requirements-dev.txt

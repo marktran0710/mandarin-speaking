@@ -50,6 +50,7 @@ export interface CustomStoryFrame {
   vocabularyLookalike?: string;
   suggestedAnswer?: string;
   listenAudioUrl?: string;
+  listenAudioSource?: "teacher" | "tts";
   listenScript?: string;
   // Model-voice reference audio, one per word in this tier's own vocabulary
   // list (unlike vocabularyDistractors/Lookalike/Cloze/Synonym above, these
@@ -59,6 +60,7 @@ export interface CustomStoryFrame {
   // backend as a real-voice comparison target — see reference_voice.py.
   vocabularyAudioUrls?: string;
   vocabularyReferenceCurves?: string;
+  sentenceReferenceCurves?: string;
   // Medium/Hard tiers of the same scene — progressively more complex text,
   // and optionally their own image. Absent means that tier hasn't been
   // authored yet.
@@ -82,12 +84,16 @@ export interface CustomStoryFrame {
   suggestedAnswerHard?: string;
   listenAudioUrlMedium?: string;
   listenAudioUrlHard?: string;
+  listenAudioSourceMedium?: "teacher" | "tts";
+  listenAudioSourceHard?: "teacher" | "tts";
   listenScriptMedium?: string;
   listenScriptHard?: string;
   vocabularyAudioUrlsMedium?: string;
   vocabularyAudioUrlsHard?: string;
   vocabularyReferenceCurvesMedium?: string;
   vocabularyReferenceCurvesHard?: string;
+  sentenceReferenceCurvesMedium?: string;
+  sentenceReferenceCurvesHard?: string;
 }
 
 export type NarrativeMode = "story" | "describe" | "listen_retell";
@@ -265,9 +271,11 @@ export function storyToTopic(
   const vocabularySynonym: Record<number, Array<{ synonym: string; distractors: string[] }[]>> = {};
   const suggestedAnswers: Record<number, string> = {};
   const listenAudioUrls: Record<number, string> = {};
+  const listenAudioSources: Record<number, "teacher" | "tts"> = {};
   const listenScripts: Record<number, string> = {};
   const vocabularyAudioUrls: Record<number, (string | null)[]> = {};
   const vocabularyReferenceCurves: Record<number, number[][]> = {};
+  const sentenceReferenceCurves: Record<number, Record<string, number[]>> = {};
   story.frames.forEach((frame, index) => {
     if (frame.vocabularyGroups && frame.vocabularyGroups.length > 0) {
       vocabularyGroups[index] = frame.vocabularyGroups;
@@ -396,12 +404,19 @@ export function storyToTopic(
       vocabularySynonym[index] = words.map((word) => approvedByWord.get(word)?.synonym ?? []);
     }
     const frameSuggestedAnswer = tierText(frame, "suggestedAnswer", difficultyLevel);
+    const suffix = TIER_SUFFIX[difficultyLevel];
     if (frameSuggestedAnswer && frameSuggestedAnswer.trim()) {
       suggestedAnswers[index] = frameSuggestedAnswer.trim();
     }
     const frameListenAudioUrl = tierText(frame, "listenAudioUrl", difficultyLevel);
     if (frameListenAudioUrl && frameListenAudioUrl.trim()) {
       listenAudioUrls[index] = resolveImageUrl(frameListenAudioUrl.trim());
+    }
+    const frameListenAudioSource = frame[
+      `listenAudioSource${suffix}` as keyof CustomStoryFrame
+    ] as "teacher" | "tts" | undefined;
+    if (frameListenAudioSource === "teacher" || frameListenAudioSource === "tts") {
+      listenAudioSources[index] = frameListenAudioSource;
     }
     const frameListenScript = tierText(frame, "listenScript", difficultyLevel);
     if (frameListenScript && frameListenScript.trim()) {
@@ -410,7 +425,6 @@ export function storyToTopic(
     // No Easy fallback here (unlike tierText's fields above): a Medium/Hard
     // scene has its own word list at different indices, so Easy's audio/
     // curve pool would misalign silently rather than just being absent.
-    const suffix = TIER_SUFFIX[difficultyLevel];
     const frameVocabularyAudioUrls = frame[`vocabularyAudioUrls${suffix}` as keyof CustomStoryFrame] as
       | string
       | undefined;
@@ -436,6 +450,28 @@ export function storyToTopic(
           vocabularyReferenceCurves[index] = parsed.map((curve) =>
             Array.isArray(curve) ? curve.filter((v): v is number => typeof v === "number") : [],
           );
+        }
+      } catch {
+        // Malformed/stale data — treat as absent.
+      }
+    }
+    const frameSentenceReferenceCurves = frame[
+      `sentenceReferenceCurves${suffix}` as keyof CustomStoryFrame
+    ] as string | undefined;
+    if (frameSentenceReferenceCurves && frameSentenceReferenceCurves.trim()) {
+      try {
+        const parsed = JSON.parse(frameSentenceReferenceCurves);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          const safeCurves: Record<string, number[]> = {};
+          Object.entries(parsed).forEach(([token, curve]) => {
+            if (Array.isArray(curve)) {
+              const numbers = curve.filter((v): v is number => typeof v === "number");
+              if (numbers.length > 0) safeCurves[token] = numbers;
+            }
+          });
+          if (Object.keys(safeCurves).length > 0) {
+            sentenceReferenceCurves[index] = safeCurves;
+          }
         }
       } catch {
         // Malformed/stale data — treat as absent.
@@ -474,9 +510,11 @@ export function storyToTopic(
     ...(Object.keys(vocabularySynonym).length > 0 ? { vocabularySynonym } : {}),
     ...(Object.keys(suggestedAnswers).length > 0 ? { suggestedAnswers } : {}),
     ...(Object.keys(listenAudioUrls).length > 0 ? { listenAudioUrls } : {}),
+    ...(Object.keys(listenAudioSources).length > 0 ? { listenAudioSources } : {}),
     ...(Object.keys(listenScripts).length > 0 ? { listenScripts } : {}),
     ...(Object.keys(vocabularyAudioUrls).length > 0 ? { vocabularyAudioUrls } : {}),
     ...(Object.keys(vocabularyReferenceCurves).length > 0 ? { vocabularyReferenceCurves } : {}),
+    ...(Object.keys(sentenceReferenceCurves).length > 0 ? { sentenceReferenceCurves } : {}),
     ...(story.linear ? { linear: true } : {}),
     ...(story.lessonNumber != null ? { lessonNumber: story.lessonNumber } : {}),
     ...(story.lessonSubOrder != null ? { lessonSubOrder: story.lessonSubOrder } : {}),

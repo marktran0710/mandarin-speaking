@@ -13,6 +13,20 @@ from pypinyin import load_phrases_dict
 
 def apply():
     load_phrases_dict({
+        # Context-sensitive Taiwan Mandarin readings shared by every backend
+        # consumer (analysis, feedback, quiz generation, and the pinyin API).
+        "妳": [["nǐ"]],
+        "音樂": [["yīn"], ["yuè"]],
+        "聽音樂": [["tīng"], ["yīn"], ["yuè"]],
+        "什麼": [["shén"], ["me"]],
+        "做什麼": [["zuò"], ["shén"], ["me"]],
+        "是什麼": [["shì"], ["shén"], ["me"]],
+        "有什麼": [["yǒu"], ["shén"], ["me"]],
+        "要什麼": [["yào"], ["shén"], ["me"]],
+        "怎麼": [["zěn"], ["me"]],
+        "怎麼樣": [["zěn"], ["me"], ["yàng"]],
+        "什麼意思": [["shén"], ["me"], ["yì"], ["si"]],
+
         # ── Different base reading ────────────────────────────────────────
         "垃圾": [["lè"], ["sè"]],
 

@@ -4,8 +4,7 @@ from typing import Dict, List
 
 import httpx
 from dotenv import load_dotenv
-from pypinyin import lazy_pinyin, Style
-import taiwan_pinyin; taiwan_pinyin.apply()
+from pinyin_service import canonical_pinyin_tone3
 
 import caf_metrics
 
@@ -50,7 +49,7 @@ def default_provider() -> str:
 
 def _to_pinyin(text: str) -> str:
     """Convert Chinese text to tone-marked pinyin string for phonetic comparison."""
-    return " ".join(lazy_pinyin(text, style=Style.TONE3))
+    return canonical_pinyin_tone3(text)
 
 
 def _word_matches_phonetically(vocab_word: str, transcription: str) -> bool:

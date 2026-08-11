@@ -58,9 +58,11 @@ from ai_feedback import (
     generate_language_feedback,
     GROQ_FEEDBACK_MODEL,
 )
-from reference_voice import extract_scene_reference_from_audio
-from pypinyin import lazy_pinyin, Style
-import taiwan_pinyin; taiwan_pinyin.apply()
+from reference_voice import (
+    extract_scene_reference_curves,
+    extract_scene_reference_from_audio,
+)
+from pinyin_service import canonical_pinyin, canonical_pinyin_tone3
 
 # Load backend/.env first, then root .env.local for local full-stack runs.
 load_dotenv()
@@ -281,6 +283,10 @@ class AnalysisResponse(BaseModel):
     #: False and the lesson gate still runs on word_prosody[].passed.
     #: Per-syllable detail lives in word_prosody[].syllables[].
     tone_diagnostics: dict = Field(default_factory=dict)
+    #: Backend-authoritative pronunciation gate used by the student UI. This
+    #: is separate from the numeric tone score so a learner can see exactly
+    #: whether every judged syllable cleared the current evidence threshold.
+    pronunciation_mastery: dict = Field(default_factory=dict)
     #: Optional ACCEPT/UNCERTAIN/NEEDS_PRACTICE assistive layer (Candidate F1
     #: risk signal + Candidate E2 diagnostic, combined per the frozen
     #: `feedback_policy_protocol.json` rule). `None` unless
@@ -523,7 +529,11 @@ class CustomStoryFrameRequest(BaseModel):
     phrasesTranslation: Optional[str] = None
     suggestedAnswer: Optional[str] = None
     listenAudioUrl: Optional[str] = None
+    listenAudioSource: Optional[str] = None
     listenScript: Optional[str] = None
+    vocabularyAudioUrls: Optional[str] = None
+    vocabularyReferenceCurves: Optional[str] = None
+    sentenceReferenceCurves: Optional[str] = None
     vocabularyDistractors: Optional[str] = None
     # JSON-encoded array of arrays (one entry per word, aligned with the
     # comma-split `vocabulary` above) — each word's entry is a list of
@@ -563,8 +573,16 @@ class CustomStoryFrameRequest(BaseModel):
     suggestedAnswerHard: Optional[str] = None
     listenAudioUrlMedium: Optional[str] = None
     listenAudioUrlHard: Optional[str] = None
+    listenAudioSourceMedium: Optional[str] = None
+    listenAudioSourceHard: Optional[str] = None
     listenScriptMedium: Optional[str] = None
     listenScriptHard: Optional[str] = None
+    vocabularyAudioUrlsMedium: Optional[str] = None
+    vocabularyAudioUrlsHard: Optional[str] = None
+    vocabularyReferenceCurvesMedium: Optional[str] = None
+    vocabularyReferenceCurvesHard: Optional[str] = None
+    sentenceReferenceCurvesMedium: Optional[str] = None
+    sentenceReferenceCurvesHard: Optional[str] = None
 
 
 class CustomStoryRequest(BaseModel):
@@ -770,7 +788,12 @@ class Student(BaseModel):
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint with database connectivity status."""
+    """Liveness endpoint with explicit database and upload-storage status.
+
+    Keep this endpoint HTTP-200 so dashboards can inspect a degraded service;
+    deployment platforms should use ``/health/ready`` when they need a strict
+    readiness signal.
+    """
     db_ok = False
     try:
         with connect_db() as db:
@@ -778,11 +801,31 @@ async def health_check():
         db_ok = True
     except Exception as exc:
         logger.error("Health check DB failure: %s", exc)
+    storage_ok = False
+    try:
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        probe_path = os.path.join(UPLOAD_DIR, f".write-probe-{os.getpid()}")
+        with open(probe_path, "wb") as probe:
+            probe.write(b"ok")
+        os.unlink(probe_path)
+        storage_ok = True
+    except OSError as exc:
+        logger.error("Health check upload-storage failure: %s", exc)
     return {
-        "status": "ok" if db_ok else "degraded",
+        "status": "ok" if db_ok and storage_ok else "degraded",
         "service": "Speaking App Backend",
         "database": "ok" if db_ok else "error",
+        "storage": "ok" if storage_ok else "error",
     }
+
+
+@app.get("/health/ready")
+async def readiness_check():
+    """Strict readiness probe used by deployment platforms."""
+    result = await health_check()
+    if result["status"] != "ok":
+        raise HTTPException(status_code=503, detail=result)
+    return result
 
 
 def save_audio_record(record: AudioRecordRequest):
@@ -924,8 +967,18 @@ async def save_uploaded_audio(file: UploadFile, record_id: str) -> str:
     filename = f"{safe_file_stem(record_id)}{extension}"
     path = os.path.join(AUDIO_UPLOAD_DIR, filename)
     content = await file.read()
-    with open(path, "wb") as output:
+    if len(content) > _MAX_AUDIO_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Audio file too large. Maximum size is {_MAX_AUDIO_BYTES} bytes.",
+        )
+    # Write beside the target and replace atomically. A failed/interrupted
+    # upload must never leave a truncated file under a URL already persisted
+    # in audio_records.
+    temp_path = f"{path}.tmp-{os.getpid()}"
+    with open(temp_path, "wb") as output:
         output.write(content)
+    os.replace(temp_path, path)
     return f"/uploads/audio/{filename}"
 
 
@@ -1021,8 +1074,6 @@ def _refresh_scene_reference_curves(
 
     vocab_text = frame.get(f"vocabulary{suffix}") or ""
     words = [word.strip() for word in vocab_text.split(",") if word.strip()]
-    if not words:
-        return
 
     relative_path = audio_url.removeprefix("/uploads/").replace("/", os.sep)
     audio_path = os.path.abspath(os.path.join(UPLOAD_DIR, relative_path))
@@ -1030,14 +1081,19 @@ def _refresh_scene_reference_curves(
         return
 
     try:
-        word_results = extract_scene_reference_from_audio(
-            story_id=story_id,
-            frame_index=frame_index,
-            sentence_text=sentence_text,
-            words=words,
-            sentence_audio_path=audio_path,
-            audio_dir=STORY_AUDIO_UPLOAD_DIR,
+        word_results = (
+            extract_scene_reference_from_audio(
+                story_id=story_id,
+                frame_index=frame_index,
+                sentence_text=sentence_text,
+                words=words,
+                sentence_audio_path=audio_path,
+                audio_dir=STORY_AUDIO_UPLOAD_DIR,
+            )
+            if words
+            else []
         )
+        sentence_curves = extract_scene_reference_curves(audio_path, sentence_text)
     except Exception:
         logger.warning(
             "Reference-curve extraction failed for story=%s frame=%s tier=%s",
@@ -1057,6 +1113,9 @@ def _refresh_scene_reference_curves(
         [w["audio_url"] for w in word_results], ensure_ascii=False
     )
     frame[f"vocabularyReferenceCurves{suffix}"] = json.dumps([w["curve"] for w in word_results])
+    frame[f"sentenceReferenceCurves{suffix}"] = json.dumps(
+        sentence_curves, ensure_ascii=False
+    )
 
 
 def save_data_url_audio(data_url: str, story_id: str, index: int) -> str:
@@ -1257,6 +1316,97 @@ def apply_recording_qc_to_diagnostics(word_prosody: list, feedback_quality: dict
     # loosening it to raise pass rates.
     summary["controls_progression"] = False
     return summary
+
+
+def build_pronunciation_mastery(
+    word_prosody: list,
+    feedback_quality: dict,
+    *,
+    content_match: Optional[bool] = None,
+    missing_target_units: Optional[list[str]] = None,
+) -> dict:
+    """Return one explicit, evidence-gated pronunciation verdict.
+
+    The percentage is useful for progress history, but it cannot by itself
+    answer the learner's practical question: "Did I pass this sentence?"
+    This gate requires a passing verdict for every syllable that has enough
+    pitch evidence to be judged. Short/unvoiced syllables are reported as
+    unjudged instead of being turned into a false pronunciation fail, while a
+    recording with no measurable syllables remains ``not_judged``.
+    """
+    quality = feedback_quality or {}
+    missing_units = [unit for unit in (missing_target_units or []) if unit]
+    if quality.get("can_score_pronunciation") is False:
+        return {
+            "passed": False,
+            "status": "not_judged",
+            "passed_syllables": 0,
+            "total_syllables": 0,
+            "failed_words": [],
+            "content_match": content_match,
+            "missing_target_units": missing_units,
+            "message": quality.get("student_message") or "Record again so the system can measure your tones.",
+        }
+
+    syllables = [
+        syllable
+        for word in word_prosody or []
+        for syllable in word.get("syllables") or []
+    ]
+    judged_syllables = [
+        syllable for syllable in syllables if syllable.get("passed") is not None
+    ]
+    failed_words = [
+        word.get("token", "")
+        for word in word_prosody or []
+        if word.get("passed") is False
+        or any(syllable.get("passed") is False for syllable in word.get("syllables") or [])
+    ]
+    failed_words = [word for word in failed_words if word]
+
+    if not judged_syllables:
+        return {
+            "passed": False,
+            "status": "not_judged",
+            "passed_syllables": 0,
+            "total_syllables": 0,
+            "failed_words": failed_words,
+            "content_match": content_match,
+            "missing_target_units": missing_units,
+            "message": "Not enough measured tone evidence yet. Record the whole sentence again.",
+        }
+
+    passed_count = sum(syllable.get("passed") is True for syllable in judged_syllables)
+    if content_match is False:
+        failed_words.extend(unit for unit in missing_units if unit not in failed_words)
+    passed = (
+        passed_count == len(judged_syllables)
+        and not failed_words
+        and content_match is not False
+    )
+    if content_match is False:
+        missing_text = "".join(missing_units)
+        content_message = "Say the complete target sentence before this attempt can pass."
+        if missing_text:
+            content_message += f" Missing: {missing_text}."
+    else:
+        content_message = ""
+    return {
+        "passed": passed,
+        "status": "passed" if passed else "needs_practice",
+        "passed_syllables": passed_count,
+        "total_syllables": len(judged_syllables),
+        "failed_words": failed_words,
+        "content_match": content_match,
+        "missing_target_units": missing_units,
+        "message": (
+            "All measured tones passed. You can continue."
+            if passed
+            else content_message
+            if content_message
+            else f"Practise {len(failed_words) or 1} highlighted word(s), then record the whole sentence again."
+        ),
+    }
 
 
 VOWEL_ZONE_LABELS = {
@@ -1484,9 +1634,31 @@ async def _do_analyze(
                 output={"transcription": transcription, "model": transcription_model or None},
             )
 
+        sentence_target = scene_target_text.strip() or scene_suggested_answer.strip()
+        scene_content_match = None
+        if sentence_target and not verify_word.strip() and transcription.strip():
+            scene_content_match = _scene_content_match(sentence_target, transcription)
+
+        # Use the known scene sentence for acoustic scoring only when the ASR
+        # confirmed that the learner actually said that sentence. This keeps
+        # word/tone alignment complete for a correct attempt while avoiding a
+        # fabricated score for missing words in an incomplete attempt.
+        if sentence_target and scene_content_match is True:
+            scoring_transcription = sentence_target
+            scoring_pinyin_hint = pinyin_hint.strip() or canonical_pinyin(sentence_target)
+            scoring_source = "scene_target"
+        else:
+            scoring_transcription = transcription
+            scoring_pinyin_hint = (
+                pinyin_hint.strip()
+                if pinyin_hint.strip() and not sentence_target
+                else canonical_pinyin(transcription)
+            )
+            scoring_source = "asr_transcript"
+
         def _run_praat(path: str, tx: str):
             return analyze_all(
-                path, tx, pinyin_hint=pinyin_hint,
+                path, tx, pinyin_hint=scoring_pinyin_hint,
                 reference_word_curves=reference_word_curves,
             )
 
@@ -1509,18 +1681,19 @@ async def _do_analyze(
             if verify_word.strip()
             else asyncio.sleep(0, result=(None, None))
         )
-        sentence_target = scene_target_text.strip() or scene_suggested_answer.strip()
         sentence_content_verified = bool(asr_model.strip() or transcription_model.strip())
 
         praat_input = {
-            "pinyin_hint": pinyin_hint or None,
+            "pinyin_hint": scoring_pinyin_hint or None,
+            "scoring_text": scoring_transcription,
+            "scoring_source": scoring_source,
             "reference_word_curves_provided": bool(reference_word_curves),
         }
 
         async def run_praat_stage():
             started_at = time.perf_counter()
             try:
-                result = await run_in_threadpool(_run_praat, tmp_path, transcription)
+                result = await run_in_threadpool(_run_praat, tmp_path, scoring_transcription)
             except Exception as exc:
                 add_trace_stage("praat", "failed", started_at, detail=str(exc), input=praat_input)
                 raise
@@ -1590,7 +1763,7 @@ async def _do_analyze(
         if not audio_assessed:
             ai_feedback = maybe_feedback
         if sentence_target and not verify_word.strip():
-            content_match = _scene_content_match(sentence_target, transcription)
+            content_match = scene_content_match
             recognized_text = transcription or None
             verification_started_at = time.perf_counter()
             add_trace_stage(
@@ -1655,12 +1828,20 @@ async def _do_analyze(
         # articulation rate (syllables/sec, pauses excluded) for speed
         # feedback. Merged into pause_analysis so the frontend can pick these
         # up the same way it already reads pause_count/longest_pause.
-        character_count = sum(1 for ch in transcription if "一" <= ch <= "鿿")
+        character_count = sum(1 for ch in scoring_transcription if "一" <= ch <= "鿿")
         fluency_for_response = caf_metrics.fluency_metrics(
             speech_rate, pause_analysis, character_count
         )
+        # The teacher's listen script is the authoritative phrase-break source;
+        # fall back to the suggested answer only for older scenes that have no
+        # dedicated listen script.
+        pause_reference_text = (
+            scene_target_text.strip()
+            or scene_suggested_answer.strip()
+            or transcription
+        )
         pause_judgment = caf_metrics.classify_pauses(
-            scene_suggested_answer.strip() or transcription, pause_analysis, word_prosody
+            pause_reference_text, pause_analysis, word_prosody
         )
         pause_analysis = {
             **pause_analysis,
@@ -1703,7 +1884,7 @@ async def _do_analyze(
             transcription=transcription,
             scene_vocabulary=scene_vocabulary,
         )
-        description = build_analysis_description(transcription, transcription_model, word_prosody)
+        description = build_analysis_description(scoring_transcription, transcription_model, word_prosody)
 
         # Recording-level QC is a gate on the *diagnostic* layer: when the
         # recording itself cannot support a judgement, no per-syllable verdict
@@ -1712,6 +1893,16 @@ async def _do_analyze(
         # the legacy path exactly as before this patch.
         tone_diagnostics = apply_recording_qc_to_diagnostics(
             word_prosody, feedback_quality
+        )
+        pronunciation_mastery = build_pronunciation_mastery(
+            word_prosody,
+            feedback_quality,
+            content_match=content_match,
+            missing_target_units=(
+                _missing_scene_content_units(sentence_target, transcription)
+                if content_match is False
+                else []
+            ),
         )
 
         # Additive assistive-feedback layer (Candidate F1 + Candidate E2,
@@ -1723,7 +1914,7 @@ async def _do_analyze(
             from assistive_feedback.pipeline import RequestIdentity, compute_assistive_feedback
 
             assistive_feedback_result = compute_assistive_feedback(
-                pitch_contour, transcription, pinyin_hint, tmp_path,
+                pitch_contour, scoring_transcription, scoring_pinyin_hint, tmp_path,
                 identity=RequestIdentity(
                     participant_id=participant_id, item_id=item_id, session_id=session_id,
                     attempt_id=attempt_id, attempt_number=attempt_number,
@@ -1754,6 +1945,7 @@ async def _do_analyze(
             content_match=content_match,
             feedback_quality=feedback_quality,
             tone_diagnostics=tone_diagnostics,
+            pronunciation_mastery=pronunciation_mastery,
             assistive_feedback=assistive_feedback_result,
             processing_trace=ProcessingTrace(
                 stages=[ProcessingTraceStage(**entry) for entry in trace_entries],
@@ -1946,10 +2138,18 @@ def finalize_feedback_quality(
     if content_match is False:
         reasons.append("target_content_mismatch")
 
-    target_confirmed = not content_was_verified or content_match is True
+    # A content mismatch must block the content pass, but it should not erase
+    # useful acoustic feedback for the words that were actually spoken. An
+    # unknown verification result still blocks pronunciation scoring because
+    # there is no safe target-to-audio mapping yet.
+    target_available_for_pronunciation = (
+        not content_was_verified or content_match is not None
+    )
     if content_was_verified and content_match is None:
         reasons.append("target_content_unverified")
-    can_score_pronunciation = pitch_ok and transcript_ok and target_confirmed
+    can_score_pronunciation = (
+        pitch_ok and transcript_ok and target_available_for_pronunciation
+    )
     can_score_content = (
         transcript_ok
         and content_was_verified
@@ -2121,34 +2321,59 @@ def _normalized_scene_content_units(value: str) -> list[str]:
     return [char for char in normalized if char.isalnum()]
 
 
+def _content_unit_key(unit: str) -> str:
+    """Return a tone-insensitive key for one ASR-comparable character."""
+    if not unit:
+        return ""
+    if unit.isascii():
+        return unit.casefold()
+    try:
+        reading = canonical_pinyin_tone3(unit).strip().split()
+        if reading:
+            syllable = reading[0]
+            return syllable[:-1] if syllable[-1:] in "12345" else syllable
+    except Exception:
+        pass
+    return unit
+
+
+def _content_units_equivalent(target: str, recognized: str) -> bool:
+    return bool(target) and _content_unit_key(target) == _content_unit_key(recognized)
+
+
+def _missing_scene_content_units(target: str, recognized: str) -> list[str]:
+    """List target units not represented by the ASR result, in target order."""
+    target_units = _normalized_scene_content_units(target)
+    recognized_units = _normalized_scene_content_units(recognized)
+    available = collections.Counter(_content_unit_key(unit) for unit in recognized_units)
+    missing: list[str] = []
+    for unit in target_units:
+        key = _content_unit_key(unit)
+        if available[key] > 0:
+            available[key] -= 1
+        else:
+            missing.append(unit)
+    return missing
+
+
 def _scene_content_match(target: str, recognized: str) -> Optional[bool]:
-    """Verify a sentence while tolerating one common ASR name confusion."""
+    """Verify a sentence while tolerating homophone ASR substitutions.
+
+    Matching is positional and length-preserving. This prevents an omitted
+    name or phrase from passing merely because most of the remaining sentence
+    overlaps, while still allowing substitutions such as 友/遊 and 妳/你.
+    """
     target_units = _normalized_scene_content_units(target)
     recognized_units = _normalized_scene_content_units(recognized)
     if not target_units or not recognized_units:
         return None
 
-    target_length = len(target_units)
-    recognized_length = len(recognized_units)
-    lower = target_length * (1 - SCENE_CONTENT_LENGTH_TOLERANCE)
-    upper = target_length * (1 + SCENE_CONTENT_LENGTH_TOLERANCE)
-    if recognized_length < lower or recognized_length > upper:
+    if len(target_units) != len(recognized_units):
         return False
-
-    # Keep the order of the sentence meaningful. This is still tolerant of
-    # substitutions, but a reordered or unrelated answer cannot pass merely
-    # because it happens to contain the same characters.
-    lcs = [0] * (recognized_length + 1)
-    for target_unit in target_units:
-        diagonal = 0
-        for index, recognized_unit in enumerate(recognized_units, start=1):
-            previous = lcs[index]
-            if target_unit == recognized_unit:
-                lcs[index] = diagonal + 1
-            else:
-                lcs[index] = max(lcs[index], lcs[index - 1])
-            diagonal = previous
-    return lcs[-1] / target_length >= SCENE_CONTENT_MATCH_RATIO
+    return all(
+        _content_units_equivalent(target_unit, recognized_unit)
+        for target_unit, recognized_unit in zip(target_units, recognized_units)
+    )
 
 
 async def _verify_word_transcription(
@@ -3270,7 +3495,7 @@ def correct_homophones(text: str, vocab_hint: str) -> str:
     vocab_words.sort(key=len, reverse=True)
     pinyin_to_vocab: dict[str, str] = {}
     for word in vocab_words:
-        py = " ".join(lazy_pinyin(word, style=Style.TONE3))
+        py = canonical_pinyin_tone3(word)
         pinyin_to_vocab[py] = word
 
     if not pinyin_to_vocab:
@@ -3285,7 +3510,7 @@ def correct_homophones(text: str, vocab_hint: str) -> str:
         replaced = False
         for length in range(min(max_len, len(chars) - i), 0, -1):
             segment = "".join(chars[i : i + length])
-            py = " ".join(lazy_pinyin(segment, style=Style.TONE3))
+            py = canonical_pinyin_tone3(segment)
             if py in pinyin_to_vocab and segment != pinyin_to_vocab[py]:
                 result.append(pinyin_to_vocab[py])
                 i += length
@@ -3747,6 +3972,8 @@ from routers.audio import router as audio_router  # noqa: E402
 from routers.benchmark import router as benchmark_router  # noqa: E402
 from routers.help_requests import router as help_requests_router  # noqa: E402
 from routers.media import router as media_router  # noqa: E402
+from routers.measurement import router as measurement_router  # noqa: E402
+from routers.pinyin import router as pinyin_router  # noqa: E402
 from routers.quiz_review import router as quiz_review_router  # noqa: E402
 from routers.speaking_progress import router as speaking_progress_router  # noqa: E402
 from routers.stories import router as stories_router  # noqa: E402
@@ -3762,6 +3989,8 @@ app.include_router(audio_router)
 app.include_router(benchmark_router)
 app.include_router(help_requests_router)
 app.include_router(media_router)
+app.include_router(measurement_router)
+app.include_router(pinyin_router)
 app.include_router(quiz_review_router)
 app.include_router(speaking_progress_router)
 app.include_router(stories_router)

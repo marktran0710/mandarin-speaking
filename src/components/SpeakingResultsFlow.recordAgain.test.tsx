@@ -121,4 +121,21 @@ describe("SpeakingResultsFlow record-again", () => {
     // The unlock rules are unchanged — only the escape hatch was added.
     expect(document.querySelector(".sfc-footer-actions .sfc-btn-next")).toBeNull();
   });
+
+  it("does not turn an accepted 你/妳 variant into a whole practice part", () => {
+    const phrase = "\u59b3\u9019\u500b\u9031\u672b\u8981\u505a\u4ec0\u9ebc";
+    renderFlow({
+      modelSentence: phrase,
+      ready: true,
+      masteryPassed: true,
+      praatMetrics: metrics({
+        transcription: "\u4f60\u9019\u500b\u9031\u672b\u8981\u505a\u4ec0\u9ebc",
+        content_match: true,
+        word_prosody: [],
+      }),
+    });
+
+    expect(screen.queryByText("Parts to practice:")).toBeNull();
+    expect(screen.queryByText("Words to practice:")).toBeNull();
+  });
 });

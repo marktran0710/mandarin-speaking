@@ -174,9 +174,14 @@ export function failedProsodyWords(
  * It intentionally keeps old payloads working while making the newer
  * diagnostic/reference evidence authoritative when it is present. */
 export function isProsodyHardFailure(item: WordProsody): boolean {
-  if (item.judged === false || item.diagnostic_status === "INVALID_AUDIO") {
+  // `judged: false` means the analyzer did not have enough reliable pitch
+  // evidence. It is not a pronunciation failure. The backend represents the
+  // corresponding syllable verdict as null, and the UI must preserve that
+  // distinction instead of sending an unmeasured word to practice.
+  if (item.diagnostic_status === "INVALID_AUDIO") {
     return true;
   }
+  if (item.judged === false) return false;
   if (item.reference_source === "real_voice") {
     return (
       typeof item.shape_accuracy !== "number" ||

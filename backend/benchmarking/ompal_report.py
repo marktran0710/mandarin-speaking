@@ -20,8 +20,9 @@ from benchmarking.ompal_corpus import (
     CORPUS_CITATION,
     OmpalUtterance,
     align_system_characters,
+    join_summary,
 )
-from benchmarking.stats import binary_agreement, spearman
+from benchmarking.stats import binary_agreement, pearson, spearman
 from benchmarking.tone_release_gate import evaluate_tone_release_gate
 
 PRODUCTION_THRESHOLD = 58.0
@@ -30,6 +31,8 @@ PRODUCTION_THRESHOLD = 58.0
 # changing any of these silently would make results across runs incomparable.
 RATER_PANEL_SIZE = 3
 TARGET_KAPPA = 0.70
+#: Marker for criteria OMPAL annotates but the analyzer cannot assess.
+UNSUPPORTED = "unsupported"
 
 # Protocol change, 2026-08-06, recorded rather than absorbed: the headline was
 # agreement with each rater *individually*, which turned out to be bounded away
@@ -287,11 +290,72 @@ def _sentence_correlations(
             result[name] = {
                 "n": len(values),
                 "spearman_correlation": spearman(list(system_scores), list(teacher_scores)),
+                # Secondary only: the two scales are not linearly comparable,
+                # so rank correlation is the primary figure.
+                "pearson_correlation": pearson(list(system_scores), list(teacher_scores)),
+                "mean_human_rating": sum(teacher_scores) / len(teacher_scores),
+                "mean_system_score": sum(system_scores) / len(system_scores),
+                "human_scale": "OMPAL 1-5 rubric",
+                "system_scale": "0-100",
             }
         else:
             result[name] = {"n": 0, "spearman_correlation": None}
+    # OMPAL rates prosody 1-5, but nothing in the analyzer produces a prosody
+    # score: the pipeline emits tone accuracy, fluency and per-word prosody
+    # shape, none of which is the same construct. Reported as unsupported
+    # rather than substituted with the nearest-looking number.
+    result["prosody"] = {
+        "n": 0,
+        "status": UNSUPPORTED,
+        "human_label_count": sum(
+            1 for utterance in utterances if utterance.rater_prosody
+        ),
+        "reason": (
+            "No system output corresponds to OMPAL's sentence-level prosody "
+            "rating. Substituting tone accuracy or fluency would compare two "
+            "different constructs."
+        ),
+    }
     result["spearman_correlation"] = result["accuracy"]["spearman_correlation"]
     return result
+
+
+def _segmental_support(utterances: Sequence[OmpalUtterance]) -> dict[str, Any]:
+    """State how many human consonant/vowel labels exist, and why none is used.
+
+    The corpus rates three word-level criteria; the analyzer scores one. These
+    entries exist so the count of unused human labels is visible in the report
+    instead of the criteria simply being absent, which would read as though
+    OMPAL had not annotated them.
+    """
+    consonant = sum(
+        1 for u in utterances for w in u.words if w.rater_consonant_labels
+    )
+    vowel = sum(1 for u in utterances for w in u.words if w.rater_vowel_labels)
+    return {
+        "consonant": {
+            "status": UNSUPPORTED,
+            "human_label_count": consonant,
+            "system_output": None,
+            "reason": (
+                "No consonant classifier exists. The pipeline has no "
+                "phoneme-level forced alignment and no goodness-of-pronunciation "
+                "measure, so there is nothing to compare these labels against."
+            ),
+        },
+        "vowel": {
+            "status": UNSUPPORTED,
+            "human_label_count": vowel,
+            "system_output": "F1/F2 per syllable (diagnostic measurement only)",
+            "reason": (
+                "Formants are measured per syllable but deliberately produce no "
+                "correct/incorrect verdict: a short utterance does not contain "
+                "enough distinct vowels to normalise a speaker reliably. "
+                "Thresholding them here purely to obtain a number would "
+                "manufacture the very verdict the analyzer declines to make."
+            ),
+        },
+    }
 
 
 def build_report(
@@ -374,6 +438,10 @@ def build_report(
         },
         "human_ceiling": ceiling,
         "score_agreement": sentence,
+        # Criteria OMPAL rates that the system cannot produce. Carried in the
+        # report so "not measured" is never mistaken for "measured and fine".
+        "segmental_support": _segmental_support(utterances),
+        "join_provenance": join_summary(utterances),
         "exclusions": exclusions,
         "audit": {
             "disagreement_count": len(disagreements),

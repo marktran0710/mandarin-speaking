@@ -66,10 +66,21 @@ async def analyze_speech(
     scene_image_url: str = Form(""),
     scene_phrases: str = Form(""),
     scene_suggested_answer: str = Form(""),
+    scene_target_text: str = Form(""),
     scene_attempt_number: int = Form(1),
     verify_word: str = Form(""),
     pinyin_hint: str = Form(""),
     scene_reference_curves: str = Form(""),
+    # Pre-pilot research-logging identity -- all optional, all additive; a
+    # caller sending none of these (every caller today) behaves exactly as
+    # before. See `benchmarking/results/pilot_readiness.md`.
+    participant_id: str = Form(""),
+    item_id: str = Form(""),
+    session_id: str = Form(""),
+    attempt_id: str = Form(""),
+    attempt_number: int = Form(1),
+    attempt_type: str = Form("WHOLE_SENTENCE_INITIAL"),
+    study_phase: str = Form(""),
     req: Request = None,
 ):
     """
@@ -135,7 +146,10 @@ async def analyze_speech(
             main._do_analyze(
                 content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
                 scene_phrases, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
-                reference_word_curves,
+                reference_word_curves, scene_target_text,
+                participant_id=participant_id, item_id=item_id, session_id=session_id,
+                attempt_id=attempt_id, attempt_number=attempt_number, attempt_type=attempt_type,
+                study_phase=study_phase,
             ),
             timeout=main.ANALYZE_TIMEOUT_SECONDS,
         )
@@ -162,6 +176,7 @@ async def analyze_speech_stream(
     scene_image_url: str = Form(""),
     scene_phrases: str = Form(""),
     scene_suggested_answer: str = Form(""),
+    scene_target_text: str = Form(""),
     scene_attempt_number: int = Form(1),
     verify_word: str = Form(""),
     pinyin_hint: str = Form(""),
@@ -219,7 +234,7 @@ async def analyze_speech_stream(
         task = asyncio.create_task(main._do_analyze(
             content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
             scene_phrases, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
-            reference_word_curves, on_stage=on_stage,
+            reference_word_curves, scene_target_text, on_stage=on_stage,
         ))
 
         try:

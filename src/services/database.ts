@@ -1,3 +1,5 @@
+import type { MeasurementEvent } from "../utils/measurement";
+
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
   (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
@@ -213,6 +215,23 @@ export interface HelpRequest {
 
 export function canUseDatabase(): boolean {
   return Boolean(BACKEND_URL) && import.meta.env.MODE !== "test";
+}
+
+export async function persistMeasurementEvent(event: MeasurementEvent): Promise<void> {
+  if (!canUseDatabase()) return;
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/measurement-events`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(event),
+  }, 1);
+  if (!response.ok) throw new Error("Could not persist measurement event.");
+}
+
+export async function listMeasurementEvents(): Promise<MeasurementEvent[]> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/measurement-events`);
+  if (!response.ok) throw new Error("Could not load measurement events.");
+  const data = await response.json();
+  return Array.isArray(data) ? data as MeasurementEvent[] : [];
 }
 
 export async function listAudioRecords(params?: {

@@ -44,6 +44,7 @@ import {
 } from "./utils/lessonGroups";
 import { loadSubmittedStoryIds } from "./utils/storyLevelProgress";
 import { topicHasQuiz } from "./utils/topicQuiz";
+import { primePinyin } from "./utils/pinyin";
 import type { Page } from "./types/page";
 import type { SpeechModel } from "./components/StoryRecorder";
 
@@ -100,6 +101,21 @@ function isRestorableStudentPage(page: string | null): page is Page {
   return RESTORABLE_STUDENT_PAGES.includes(page as Page);
 }
 
+function collectPinyinTexts(topics: readonly Topic[]): string[] {
+  const texts: string[] = [];
+  for (const topic of topics) {
+    texts.push(...(topic.prompts ?? []));
+    for (const scene of Object.values(topic.vocabulary)) texts.push(...scene);
+    for (const scene of Object.values(topic.phrases ?? {})) texts.push(...scene);
+    for (const group of Object.values(topic.vocabularyGroups ?? {})) {
+      for (const vocabGroup of group) texts.push(...vocabGroup.words);
+    }
+    texts.push(...Object.values(topic.suggestedAnswers ?? {}));
+    texts.push(...Object.values(topic.listenScripts ?? {}));
+  }
+  return texts;
+}
+
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
   const [activeRole, setActiveRole] = useState<"student" | null>(null);
@@ -114,6 +130,7 @@ export default function App() {
   const [publishedTopics, setPublishedTopics] = useState<Topic[]>(
     () => loadPublishedTeacherTopics(),
   );
+  const [, setPinyinRevision] = useState(0);
   const storyTopics = useMemo(
     () => publishedTopics.filter((t) => (t.narrativeMode ?? "story") === "story"),
     [publishedTopics],
@@ -126,6 +143,21 @@ export default function App() {
     () => publishedTopics.filter((t) => t.narrativeMode === "listen_retell"),
     [publishedTopics],
   );
+
+  useEffect(() => {
+    let active = true;
+    void primePinyin(collectPinyinTexts(publishedTopics))
+      .then(() => {
+        if (active) setPinyinRevision((revision) => revision + 1);
+      })
+      .catch(() => {
+        // toPinyin keeps an offline fallback so the practice UI remains usable
+        // when the backend is temporarily unavailable.
+      });
+    return () => {
+      active = false;
+    };
+  }, [publishedTopics]);
 
   const loadSavedAudioRecords = useCallback(async () => {
     if (canUseDatabase()) {

@@ -104,6 +104,9 @@ class TestParsePinyinTones:
     def test_single_syllable_word(self):
         assert parse_pinyin_tones("shuì") == [4]
 
+    def test_parses_numeric_tone_numbers(self):
+        assert parse_pinyin_tones("ni3 zhe4 ge4 shen2 me5") == [3, 4, 4, 2, 5]
+
 
 class TestEstimateWordProsodyPinyinHint:
     """estimate_word_prosody should prefer a caller-supplied pinyin hint over

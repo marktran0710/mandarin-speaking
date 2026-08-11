@@ -7,7 +7,6 @@ import StoryVocabQuiz, {
   type VocabQuizSummary,
 } from "./StoryVocabQuiz";
 import * as database from "../services/database";
-import { toPinyin } from "../utils/pinyin";
 
 vi.mock("../services/database", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../services/database")>();
@@ -559,7 +558,7 @@ describe("StoryVocabQuiz AI badge + cloze questions", () => {
 
   it("never asks a cloze question for a word with no cached AI cloze candidates, even when the random roll would allow it", async () => {
     const user = userEvent.setup();
-    const entries = [{ word: "一", translation: "one" }];
+    const entries = [{ word: "一", translation: "one", pinyin: "yī" }];
     const randomSpy = vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
     try {
       // The weak-words engine keeps the legacy question mix (no tier
@@ -876,8 +875,8 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
       render(
         <StoryVocabQuiz
           entries={[
-            { word: "他", translation: "he" },
-            { word: "她", translation: "she" },
+            { word: "他", translation: "he", pinyin: "tā" },
+            { word: "她", translation: "she", pinyin: "tā" },
           ]}
           onDone={vi.fn()}
           storyId="s1"
@@ -1082,11 +1081,11 @@ describe("StoryVocabQuiz stable question chrome", () => {
 
 describe("StoryVocabQuiz star tiers", () => {
   const entries = [
-    { word: "一", translation: "one" },
-    { word: "二", translation: "two" },
-    { word: "三", translation: "three" },
-    { word: "四", translation: "four" },
-    { word: "五", translation: "five" },
+    { word: "一", translation: "one", pinyin: "yī" },
+    { word: "二", translation: "two", pinyin: "èr" },
+    { word: "三", translation: "three", pinyin: "sān" },
+    { word: "四", translation: "four", pinyin: "sì" },
+    { word: "五", translation: "five", pinyin: "wǔ" },
   ];
   const translationByWord = Object.fromEntries(entries.map((e) => [e.word, e.translation]));
 
@@ -1282,8 +1281,8 @@ describe("StoryVocabQuiz star tiers", () => {
       render(
         <StoryVocabQuiz
           entries={[
-            { word: "喝茶", translation: "drink tea" },
-            { word: "餐廳", translation: "restaurant" },
+            { word: "喝茶", translation: "drink tea", pinyin: "hē chá" },
+            { word: "餐廳", translation: "restaurant", pinyin: "cān tīng" },
           ]}
           onDone={vi.fn()}
           storyId="s1"
@@ -1295,7 +1294,8 @@ describe("StoryVocabQuiz star tiers", () => {
       // options, so the first item is pinyin; listening becomes safe once
       // that first concept has already been tested.
       const firstWord = screen.getByRole("heading").textContent!;
-      await user.click(screen.getByRole("button", { name: toPinyin(firstWord) }));
+      const firstPinyin = firstWord === "喝茶" ? "hē chá" : "cān tīng";
+      await user.click(screen.getByRole("button", { name: firstPinyin }));
       await user.click(screen.getByRole("button", { name: /Next question/ }));
       await waitFor(() => expect(speak).toHaveBeenCalled());
       const spokenWord = speak.mock.calls[0][0].text;
@@ -1318,7 +1318,11 @@ describe("StoryVocabQuiz star tiers", () => {
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
     const firstWord = screen.getByRole("heading").textContent!;
-    await user.click(screen.getByRole("button", { name: toPinyin(firstWord) }));
+    await user.click(
+      screen.getByRole("button", {
+        name: entries.find((entry) => entry.word === firstWord)!.pinyin,
+      }),
+    );
     await user.click(screen.getByRole("button", { name: /Next question/ }));
     const prompt = screen.getByRole("heading").textContent!;
     expect(Object.values(translationByWord)).toContain(prompt);

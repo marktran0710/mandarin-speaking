@@ -1,8 +1,6 @@
 from typing import Dict, List, Tuple
 
 import numpy as np
-from pypinyin import Style, pinyin
-import taiwan_pinyin; taiwan_pinyin.apply()
 from scipy.interpolate import interp1d
 from scipy.ndimage import median_filter
 from scipy.spatial.distance import euclidean
@@ -205,9 +203,11 @@ def word_tones(word: str) -> List[int]:
     Uses pypinyin's dictionary, so this is the *expected* tone from the
     written word — independent of what the student actually said.
     """
+    from pinyin_service import canonical_pinyin_tone3
+
     tones: List[int] = []
-    for syllable in pinyin(word, style=Style.TONE3, neutral_tone_with_five=True):
-        digits = "".join(c for c in syllable[0] if c.isdigit())
+    for syllable in canonical_pinyin_tone3(word).split():
+        digits = "".join(c for c in syllable if c.isdigit())
         tones.append(int(digits) if digits else 5)
     return tones
 
@@ -234,19 +234,18 @@ def syllable_parts(word: str) -> List[Tuple[str, str]]:
     which is written "i" but is not the vowel /i/, so it must never be judged
     against one.
     """
-    initials = pinyin(word, style=Style.INITIALS, strict=True)
-    finals = pinyin(word, style=Style.FINALS, strict=True)
-    parts: List[Tuple[str, str]] = []
-    for index in range(len(finals)):
-        initial = initials[index][0] if index < len(initials) else ""
-        final = finals[index][0] if index < len(finals) else ""
-        parts.append((initial, final))
-    return parts
+    from pinyin_service import canonical_syllable_parts
+
+    return canonical_syllable_parts(word)
 
 
 def parse_pinyin_tones(pinyin_text: str) -> List[int]:
-    """Parse the tone (1-4, 5 = neutral) of each syllable in a space-separated,
-    tone-marked pinyin string, e.g. "jiě jie" -> [3, 5].
+    """Parse one tone (1-4, 5 = neutral) per space-separated syllable.
+
+    Both tone-marked pinyin (``jiě jie``) and numeric pinyin
+    (``jie3 jie5``) are accepted. Supporting both formats matters because the
+    frontend displays tone marks while a number of upload/API clients send
+    tone-number pinyin.
 
     This exists so a word's *displayed* pinyin — whether pypinyin's own guess
     or a teacher's manually corrected ``vocabularyPinyin`` — can be used
@@ -254,8 +253,8 @@ def parse_pinyin_tones(pinyin_text: str) -> List[int]:
     independent pypinyin lookup on the character that could silently
     disagree with what the student is actually looking at.
 
-    Returns one entry per whitespace-separated syllable; a syllable with no
-    tone-mark character is treated as neutral (5). Returns [] for blank input.
+    A syllable with no tone mark or trailing tone digit is treated as neutral
+    (5). Returns [] for blank input.
     """
     syllables = pinyin_text.strip().split()
     tones: List[int] = []
@@ -265,6 +264,12 @@ def parse_pinyin_tones(pinyin_text: str) -> List[int]:
             if ch in _TONE_MARK_TONES:
                 tone = _TONE_MARK_TONES[ch]
                 break
+        else:
+            # Accept canonical tone-number pinyin such as ``ni3`` and ``me5``.
+            # Only a final digit is meaningful; arbitrary digits elsewhere in
+            # an input token must not change the target tone.
+            if syllable and syllable[-1] in "12345":
+                tone = int(syllable[-1])
         tones.append(tone)
     return tones
 
@@ -472,6 +477,93 @@ def directional_tone_scores_with_provenance(
         score, source = _score_segment(seg, tone)
         scores.append(score)
         provenance.append(source)
+
+    return scores, provenance
+
+
+def reference_syllable_scores(
+    pitch_contour: List[Tuple[float, float]],
+    tones: List[int],
+    reference_curve: List[float] | None,
+    syllable_windows: List[Tuple[int, int]] | None = None,
+) -> Tuple[List[float], List[str]]:
+    """Score each syllable against a real reference contour.
+
+    ``reference_curve`` is a normalized curve for the whole word/phrase. The
+    old per-syllable scorer compared each window only with the canonical tone
+    template, even when the word-level shape scorer had a teacher/TTS curve.
+    That made one recording receive a high real-voice shape score and a low
+    synthetic syllable score at the same time.
+
+    The student contour is normalized to the same fixed-length contract as
+    the reference, then both curves are sliced using the actual syllable
+    windows. Tone 5 remains explicitly unmeasured because neutral tone has no
+    fixed contour target. A too-short window keeps the existing benefit-of-
+    the-doubt value, but is labelled as non-measurement by provenance.
+    """
+    if not pitch_contour or not tones or not reference_curve:
+        return [], []
+
+    user_pitch = normalize_pitch_contour(pitch_contour)
+    if len(user_pitch) == 0:
+        return [], []
+
+    reference = np.asarray(reference_curve, dtype=float)
+    if reference.size < 2 or not np.all(np.isfinite(reference)):
+        return [], []
+
+    # Cached curves normally already contain 100 points, but accepting any
+    # finite length keeps old stories and hand-authored fixtures compatible.
+    reference_positions = np.linspace(0.0, 1.0, reference.size)
+    fixed_positions = np.linspace(0.0, 1.0, len(user_pitch))
+    reference = np.interp(fixed_positions, reference_positions, reference)
+
+    n = len(tones)
+    raw_total = len(pitch_contour)
+    raw_syllable_length = max(1, raw_total // n)
+    windows = (
+        syllable_windows
+        if syllable_windows and len(syllable_windows) == n
+        else None
+    )
+
+    scores: List[float] = []
+    provenance: List[str] = []
+    for index, tone in enumerate(apply_tone_sandhi(tones)):
+        if tone == 5:
+            scores.append(75.0)
+            provenance.append("neutral_not_measured")
+            continue
+
+        raw_start, raw_end = _window_for(
+            index, n, raw_syllable_length, raw_total, windows
+        )
+        normalized_start = int(round(raw_start / max(raw_total, 1) * len(user_pitch)))
+        normalized_end = int(round(raw_end / max(raw_total, 1) * len(user_pitch)))
+        normalized_start = max(0, min(normalized_start, len(user_pitch) - 1))
+        normalized_end = max(normalized_start + 1, min(normalized_end, len(user_pitch)))
+        user_segment = user_pitch[normalized_start:normalized_end]
+        reference_segment = reference[normalized_start:normalized_end]
+
+        if len(user_segment) < 4 or len(reference_segment) < 4:
+            scores.append(65.0)
+            provenance.append("constant_short_segment")
+            continue
+
+        # Compare at a small fixed resolution so syllables with different
+        # durations contribute equally while retaining the reference shape.
+        segment_positions = np.linspace(0.0, 1.0, len(user_segment))
+        compare_positions = np.linspace(0.0, 1.0, 32)
+        user_resampled = np.interp(compare_positions, segment_positions, user_segment)
+        reference_resampled = np.interp(
+            compare_positions,
+            np.linspace(0.0, 1.0, len(reference_segment)),
+            reference_segment,
+        )
+        scores.append(
+            float(_shape_match_score(user_resampled, reference_resampled))
+        )
+        provenance.append("reference_shape")
 
     return scores, provenance
 
@@ -733,7 +825,18 @@ def calculate_phrase_tone_accuracy(
         return 0.0
 
     shape_score = calculate_phrase_shape_accuracy(pitch_contour, tones, target_curve_override)
-    directional_score = calculate_directional_tone_accuracy(pitch_contour, tones)
+    if target_curve_override:
+        # Once a real teacher/TTS contour exists, the directional half must
+        # not silently fall back to canonical synthetic tone templates. Use
+        # the same reference-aware syllable comparison that the per-syllable
+        # breakdown uses. This keeps word score, breakdown, and mastery on one
+        # evidence source.
+        reference_scores, _ = reference_syllable_scores(
+            pitch_contour, tones, target_curve_override
+        )
+        directional_score = float(np.mean(reference_scores)) if reference_scores else 0.0
+    else:
+        directional_score = calculate_directional_tone_accuracy(pitch_contour, tones)
 
     return float(max(0.0, min(100.0, (
         shape_score * PHRASE_SHAPE_WEIGHT + directional_score * PHRASE_DIRECTIONAL_WEIGHT

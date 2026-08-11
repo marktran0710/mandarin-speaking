@@ -512,12 +512,16 @@ async def generate_model_voice(story_id: str, request: GenerateModelVoiceRequest
 
         updates = {
             _tier_field("listenAudioUrl", tier): result["sentence_audio_url"],
+            _tier_field("listenAudioSource", tier): "tts",
             _tier_field("listenScript", tier): result["sentence_script"],
             _tier_field("vocabularyAudioUrls", tier): json.dumps(
                 [w["audio_url"] for w in result["words"]], ensure_ascii=False
             ),
             _tier_field("vocabularyReferenceCurves", tier): json.dumps(
                 [w["curve"] for w in result["words"]]
+            ),
+            _tier_field("sentenceReferenceCurves", tier): json.dumps(
+                result["sentence_reference_curves"], ensure_ascii=False
             ),
         }
         for field, value in updates.items():

@@ -68,16 +68,27 @@ def _health_kpi_gate() -> dict[str, Any]:
 
 
 def _pinyin_syllables(text: str, pinyin_hint: str = "") -> list[str]:
+    # An explicit teacher/reference hint is part of the analysis contract
+    # (including neutral-tone 5); generated readings still come from the
+    # canonical backend service below.
     raw = pinyin_hint.strip() or ""
     if raw:
         return [part for part in re.split(r"[\s,]+", raw) if part]
-    try:
-        from pypinyin import Style, lazy_pinyin
 
-        values = list(lazy_pinyin(text, style=Style.TONE3, neutral_tone_with_five=True))
-        return [value for char, value in zip(text, values) if not char.isspace() and char not in "，。！？,.!?、"]
+    try:
+        from pinyin_service import canonical_pinyin_tone3
+
+        values = canonical_pinyin_tone3(text).split()
+        if values:
+            return [
+                value
+                for char, value in zip(text, values)
+                if not char.isspace() and char not in "，。！？,.!?、"
+            ]
     except Exception:
-        return list(text)
+        pass
+
+    return list(text)
 
 
 def _tone_number(pinyin: str) -> int | None:

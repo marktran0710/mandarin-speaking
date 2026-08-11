@@ -1,0 +1,64 @@
+{
+  "seed": 20260810,
+  "ratios": {
+    "development": 0.6,
+    "validation": 0.2,
+    "final_test": 0.2
+  },
+  "final_test_locked": true,
+  "final_test_policy": "No candidate model may use final_test labels for training, threshold selection, feature selection, or model selection. It is read only once, at the end, to report a number that was never optimised against.",
+  "speakers": {
+    "development": [
+      "SPEAKER02014",
+      "SPEAKER02030",
+      "SPEAKER02033",
+      "SPEAKER02044",
+      "SPEAKER02042",
+      "SPEAKER02003",
+      "SPEAKER02035",
+      "SPEAKER02013",
+      "SPEAKER02005",
+      "SPEAKER02006",
+      "SPEAKER02041",
+      "SPEAKER02012",
+      "SPEAKER02046",
+      "SPEAKER02015",
+      "SPEAKER02009",
+      "SPEAKER02032",
+      "SPEAKER02028",
+      "SPEAKER02024",
+      "SPEAKER02034",
+      "SPEAKER02011",
+      "SPEAKER02036",
+      "SPEAKER02029",
+      "SPEAKER02040",
+      "SPEAKER02016",
+      "SPEAKER02019",
+      "SPEAKER02020",
+      "SPEAKER02017",
+      "SPEAKER02022"
+    ],
+    "validation": [
+      "SPEAKER02010",
+      "SPEAKER02002",
+      "SPEAKER02026",
+      "SPEAKER02018",
+      "SPEAKER02025",
+      "SPEAKER02008",
+      "SPEAKER02038",
+      "SPEAKER02043",
+      "SPEAKER02007"
+    ],
+    "final_test": [
+      "SPEAKER02027",
+      "SPEAKER02039",
+      "SPEAKER02037",
+      "SPEAKER02045",
+      "SPEAKER02031",
+      "SPEAKER02001",
+      "SPEAKER02023",
+      "SPEAKER02004",
+      "SPEAKER02021"
+    ]
+  }
+}

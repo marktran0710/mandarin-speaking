@@ -1,0 +1,344 @@
+[
+  {
+    "context": "T1",
+    "character": "他",
+    "underlying_tone": 1,
+    "accepted_surface_tones": [
+      1
+    ],
+    "realization": "canonical",
+    "context_rule": null,
+    "e2_group": "T1",
+    "input": {
+      "f1_probability": 0.6489,
+      "e2_score": 20.0
+    },
+    "expected_state": "ACCEPT",
+    "actual_state": "ACCEPT",
+    "student_facing_label": "NO_ISSUE_DETECTED",
+    "student_facing_message": "No pronunciation issue was detected."
+  },
+  {
+    "context": "T1",
+    "character": "他",
+    "underlying_tone": 1,
+    "accepted_surface_tones": [
+      1
+    ],
+    "realization": "canonical",
+    "context_rule": null,
+    "e2_group": "T1",
+    "input": {
+      "f1_probability": 0.4773,
+      "e2_score": 20.0
+    },
+    "expected_state": "UNCERTAIN",
+    "actual_state": "UNCERTAIN",
+    "student_facing_label": "NO_AUTOMATIC_JUDGMENT",
+    "student_facing_message": "The system is not confident enough to judge this tone automatically."
+  },
+  {
+    "context": "T1",
+    "character": "他",
+    "underlying_tone": 1,
+    "accepted_surface_tones": [
+      1
+    ],
+    "realization": "canonical",
+    "context_rule": null,
+    "e2_group": "T1",
+    "input": {
+      "f1_probability": 0.3057,
+      "e2_score": 0.0
+    },
+    "expected_state": "NEEDS_PRACTICE",
+    "actual_state": "NEEDS_PRACTICE",
+    "student_facing_label": "CHECK_THIS_TONE",
+    "student_facing_message": "This tone may be worth checking."
+  },
+  {
+    "context": "T2",
+    "character": "麻",
+    "underlying_tone": 2,
+    "accepted_surface_tones": [
+      2
+    ],
+    "realization": "canonical",
+    "context_rule": null,
+    "e2_group": "T2",
+    "input": {
+      "f1_probability": 0.6489,
+      "e2_score": 21.67
+    },
+    "expected_state": "ACCEPT",
+    "actual_state": "ACCEPT",
+    "student_facing_label": "NO_ISSUE_DETECTED",
+    "student_facing_message": "No pronunciation issue was detected."
+  },
+  {
+    "context": "T2",
+    "character": "麻",
+    "underlying_tone": 2,
+    "accepted_surface_tones": [
+      2
+    ],
+    "realization": "canonical",
+    "context_rule": null,
+    "e2_group": "T2",
+    "input": {
+      "f1_probability": 0.4773,
+      "e2_score": 21.67
+    },
+    "expected_state": "UNCERTAIN",
+    "actual_state": "UNCERTAIN",
+    "student_facing_label": "NO_AUTOMATIC_JUDGMENT",
+    "student_facing_message": "The system is not confident enough to judge this tone automatically."
+  },
+  {
+    "context": "T2",
+    "character": "麻",
+    "underlying_tone": 2,
+    "accepted_surface_tones": [
+      2
+    ],
+    "realization": "canonical",
+    "context_rule": null,
+    "e2_group": "T2",
+    "input": {
+      "f1_probability": 0.3057,
+      "e2_score": 0.0
+    },
+    "expected_state": "NEEDS_PRACTICE",
+    "actual_state": "NEEDS_PRACTICE",
+    "student_facing_label": "CHECK_THIS_TONE",
+    "student_facing_message": "This tone may be worth checking."
+  },
+  {
+    "context": "T3_full_third",
+    "character": "馬",
+    "underlying_tone": 3,
+    "accepted_surface_tones": [
+      3
+    ],
+    "realization": "full_third",
+    "context_rule": null,
+    "e2_group": "A_full_third",
+    "input": {
+      "f1_probability": 0.6489,
+      "e2_score": 20.0
+    },
+    "expected_state": "ACCEPT",
+    "actual_state": "ACCEPT",
+    "student_facing_label": "NO_ISSUE_DETECTED",
+    "student_facing_message": "No pronunciation issue was detected."
+  },
+  {
+    "context": "T3_full_third",
+    "character": "馬",
+    "underlying_tone": 3,
+    "accepted_surface_tones": [
+      3
+    ],
+    "realization": "full_third",
+    "context_rule": null,
+    "e2_group": "A_full_third",
+    "input": {
+      "f1_probability": 0.4773,
+      "e2_score": 20.0
+    },
+    "expected_state": "UNCERTAIN",
+    "actual_state": "UNCERTAIN",
+    "student_facing_label": "NO_AUTOMATIC_JUDGMENT",
+    "student_facing_message": "The system is not confident enough to judge this tone automatically."
+  },
+  {
+    "context": "T3_full_third",
+    "character": "馬",
+    "underlying_tone": 3,
+    "accepted_surface_tones": [
+      3
+    ],
+    "realization": "full_third",
+    "context_rule": null,
+    "e2_group": "A_full_third",
+    "input": {
+      "f1_probability": 0.3057,
+      "e2_score": 0.0
+    },
+    "expected_state": "NEEDS_PRACTICE",
+    "actual_state": "NEEDS_PRACTICE",
+    "student_facing_label": "CHECK_THIS_TONE",
+    "student_facing_message": "This tone may be worth checking."
+  },
+  {
+    "context": "T3_half_third",
+    "character": "馬",
+    "underlying_tone": 3,
+    "accepted_surface_tones": [
+      3
+    ],
+    "realization": "half_third",
+    "context_rule": null,
+    "e2_group": "B_half_third",
+    "input": {
+      "f1_probability": 0.6489,
+      "e2_score": 40.0
+    },
+    "expected_state": "ACCEPT",
+    "actual_state": "ACCEPT",
+    "student_facing_label": "NO_ISSUE_DETECTED",
+    "student_facing_message": "No pronunciation issue was detected."
+  },
+  {
+    "context": "T3_half_third",
+    "character": "馬",
+    "underlying_tone": 3,
+    "accepted_surface_tones": [
+      3
+    ],
+    "realization": "half_third",
+    "context_rule": null,
+    "e2_group": "B_half_third",
+    "input": {
+      "f1_probability": 0.4773,
+      "e2_score": 40.0
+    },
+    "expected_state": "UNCERTAIN",
+    "actual_state": "UNCERTAIN",
+    "student_facing_label": "NO_AUTOMATIC_JUDGMENT",
+    "student_facing_message": "The system is not confident enough to judge this tone automatically."
+  },
+  {
+    "context": "T3_half_third",
+    "character": "馬",
+    "underlying_tone": 3,
+    "accepted_surface_tones": [
+      3
+    ],
+    "realization": "half_third",
+    "context_rule": null,
+    "e2_group": "B_half_third",
+    "input": {
+      "f1_probability": 0.3057,
+      "e2_score": 15.0
+    },
+    "expected_state": "NEEDS_PRACTICE",
+    "actual_state": "NEEDS_PRACTICE",
+    "student_facing_label": "CHECK_THIS_TONE",
+    "student_facing_message": "This tone may be worth checking."
+  },
+  {
+    "context": "T3_to_T2_sandhi",
+    "character": "馬",
+    "underlying_tone": 3,
+    "accepted_surface_tones": [
+      2
+    ],
+    "realization": "third_tone_sandhi",
+    "context_rule": "T3_T3",
+    "e2_group": "C_t3_t3_to_t2",
+    "input": {
+      "f1_probability": 0.6489,
+      "e2_score": 27.96
+    },
+    "expected_state": "ACCEPT",
+    "actual_state": "ACCEPT",
+    "student_facing_label": "NO_ISSUE_DETECTED",
+    "student_facing_message": "No pronunciation issue was detected."
+  },
+  {
+    "context": "T3_to_T2_sandhi",
+    "character": "馬",
+    "underlying_tone": 3,
+    "accepted_surface_tones": [
+      2
+    ],
+    "realization": "third_tone_sandhi",
+    "context_rule": "T3_T3",
+    "e2_group": "C_t3_t3_to_t2",
+    "input": {
+      "f1_probability": 0.4773,
+      "e2_score": 27.96
+    },
+    "expected_state": "UNCERTAIN",
+    "actual_state": "UNCERTAIN",
+    "student_facing_label": "NO_AUTOMATIC_JUDGMENT",
+    "student_facing_message": "The system is not confident enough to judge this tone automatically."
+  },
+  {
+    "context": "T3_to_T2_sandhi",
+    "character": "馬",
+    "underlying_tone": 3,
+    "accepted_surface_tones": [
+      2
+    ],
+    "realization": "third_tone_sandhi",
+    "context_rule": "T3_T3",
+    "e2_group": "C_t3_t3_to_t2",
+    "input": {
+      "f1_probability": 0.3057,
+      "e2_score": 2.96
+    },
+    "expected_state": "NEEDS_PRACTICE",
+    "actual_state": "NEEDS_PRACTICE",
+    "student_facing_label": "CHECK_THIS_TONE",
+    "student_facing_message": "This tone may be worth checking."
+  },
+  {
+    "context": "T4",
+    "character": "罵",
+    "underlying_tone": 4,
+    "accepted_surface_tones": [
+      4
+    ],
+    "realization": "canonical",
+    "context_rule": null,
+    "e2_group": "T4",
+    "input": {
+      "f1_probability": 0.6489,
+      "e2_score": 48.56
+    },
+    "expected_state": "ACCEPT",
+    "actual_state": "ACCEPT",
+    "student_facing_label": "NO_ISSUE_DETECTED",
+    "student_facing_message": "No pronunciation issue was detected."
+  },
+  {
+    "context": "T4",
+    "character": "罵",
+    "underlying_tone": 4,
+    "accepted_surface_tones": [
+      4
+    ],
+    "realization": "canonical",
+    "context_rule": null,
+    "e2_group": "T4",
+    "input": {
+      "f1_probability": 0.4773,
+      "e2_score": 48.56
+    },
+    "expected_state": "UNCERTAIN",
+    "actual_state": "UNCERTAIN",
+    "student_facing_label": "NO_AUTOMATIC_JUDGMENT",
+    "student_facing_message": "The system is not confident enough to judge this tone automatically."
+  },
+  {
+    "context": "T4",
+    "character": "罵",
+    "underlying_tone": 4,
+    "accepted_surface_tones": [
+      4
+    ],
+    "realization": "canonical",
+    "context_rule": null,
+    "e2_group": "T4",
+    "input": {
+      "f1_probability": 0.3057,
+      "e2_score": 23.56
+    },
+    "expected_state": "NEEDS_PRACTICE",
+    "actual_state": "NEEDS_PRACTICE",
+    "student_facing_label": "CHECK_THIS_TONE",
+    "student_facing_message": "This tone may be worth checking."
+  }
+]
