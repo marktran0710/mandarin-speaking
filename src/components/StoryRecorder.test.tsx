@@ -905,6 +905,150 @@ describe("StoryRecorder student prototype", () => {
     );
   });
 
+  describe("pilot progression policy overrides legacy passed=false (PARTS 2/3)", () => {
+    afterEach(() => {
+      window.history.pushState({}, "", "/");
+    });
+
+    async function uploadAndAnalyze(user: UserEvent) {
+      await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+      await user.click(screen.getByText("Recording options"));
+      const voiceFile = new File(["RIFF....WAVEfmt "], "attempt.wav", { type: "audio/wav" });
+      const input = document.querySelector(".submit-voice-input") as HTMLInputElement;
+      await user.upload(input, voiceFile);
+      await screen.findByText(/story-attempt|Student tells the market story/);
+    }
+
+    it("blocks progression on a legacy fail when assistive feedback is NOT active (unchanged default behavior)", async () => {
+      // Default buildAnalyzeResponse() has one word with passed:false and no
+      // assistive_feedback -- legacy gating applies exactly as before this task.
+      mockBackendAnalyze(buildAnalyzeResponse());
+      const user = userEvent.setup();
+      const { container } = render(
+        <StoryRecorder
+          topic={topic}
+          selectedImage={topic.images[0]}
+          selectedImageIndex={0}
+          onImageSelect={vi.fn()}
+          onImageChange={vi.fn()}
+          onAddRecord={vi.fn()}
+        />,
+      );
+      await uploadAndAnalyze(user);
+      await waitFor(() => {
+        expect(container.querySelector(".sfc-unlock-note")).toBeInTheDocument();
+      });
+      expect(screen.queryByRole("button", { name: /Next scene/ })).not.toBeInTheDocument();
+    });
+
+    it("does not block progression on a legacy fail for a pilot session with active assistive feedback", async () => {
+      window.history.pushState({}, "", "/?pilot=1");
+      mockBackendAnalyze(
+        buildAnalyzeResponse({
+          assistive_feedback: [
+            {
+              syllable_index: 0,
+              character: "A",
+              expected_underlying_tone: 2,
+              accepted_surface_tones: [2],
+              context_rule: null,
+              realization: "plain",
+              assistive_state: "NEEDS_PRACTICE",
+              assistive_state_label: "CHECK_THIS_TONE",
+              assistive_message: "This tone may be worth checking.",
+              e2_diagnostic_category: "T2",
+              explanation: { e2_provenance: "measured", e2_matched_tone: 2, boundary_before: false, boundary_after: false },
+            },
+          ],
+        }),
+      );
+      const user = userEvent.setup();
+      const { container } = render(
+        <StoryRecorder
+          topic={topic}
+          selectedImage={topic.images[0]}
+          selectedImageIndex={0}
+          onImageSelect={vi.fn()}
+          onImageChange={vi.fn()}
+          onAddRecord={vi.fn()}
+        />,
+      );
+      await uploadAndAnalyze(user);
+      // The legacy lock note must be gone even though word "A" still has
+      // passed:false in word_prosody -- PART 3's non-interference rule.
+      await waitFor(() => {
+        expect(container.querySelector(".sfc-unlock-note")).not.toBeInTheDocument();
+      });
+      expect(await screen.findByRole("button", { name: /Next scene/ })).toBeInTheDocument();
+      // The bounded, optional one-retry offer (never a hard gate) is still shown.
+      expect(container.querySelector(".sfc-assistive-retry-hint")).toBeInTheDocument();
+    });
+  });
+
+  describe("pilot mode hides the Stable/Experimental selector (PART 1)", () => {
+    afterEach(() => {
+      window.history.pushState({}, "", "/");
+    });
+
+    it("shows the analysis-version selector by default (non-pilot, ordinary use)", async () => {
+      const user = userEvent.setup();
+      render(
+        <StoryRecorder
+          topic={topic}
+          selectedImage={topic.images[0]}
+          selectedImageIndex={0}
+          onImageSelect={vi.fn()}
+          onImageChange={vi.fn()}
+          onAddRecord={vi.fn()}
+        />,
+      );
+      await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+      await user.click(screen.getByText("Recording options"));
+      expect(screen.getByRole("group", { name: "Analysis version" })).toBeInTheDocument();
+    });
+
+    it("hides the analysis-version selector for a pilot student session", async () => {
+      window.history.pushState({}, "", "/?pilot=1");
+      const user = userEvent.setup();
+      render(
+        <StoryRecorder
+          topic={topic}
+          selectedImage={topic.images[0]}
+          selectedImageIndex={0}
+          onImageSelect={vi.fn()}
+          onImageChange={vi.fn()}
+          onAddRecord={vi.fn()}
+        />,
+      );
+      await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+      await user.click(screen.getByText("Recording options"));
+      expect(screen.queryByRole("group", { name: "Analysis version" })).not.toBeInTheDocument();
+      expect(screen.queryByText(/Experimental V2/)).not.toBeInTheDocument();
+    });
+
+    it("still shows the analysis-version selector for the admin backdoor even in pilot mode", async () => {
+      window.history.pushState({}, "", "/?pilot=1");
+      localStorage.setItem(
+        "session",
+        JSON.stringify({ role: "student", name: "admin", signedInAt: new Date().toISOString() }),
+      );
+      const user = userEvent.setup();
+      render(
+        <StoryRecorder
+          topic={topic}
+          selectedImage={topic.images[0]}
+          selectedImageIndex={0}
+          onImageSelect={vi.fn()}
+          onImageChange={vi.fn()}
+          onAddRecord={vi.fn()}
+        />,
+      );
+      await user.click(screen.getByRole("tab", { name: /Speaking/ }));
+      await user.click(screen.getByText("Recording options"));
+      expect(screen.getByRole("group", { name: "Analysis version" })).toBeInTheDocument();
+    });
+  });
+
   it("shows the sorting challenge when enableSorting is true and allows skipping it", async () => {
     const onAddRecord = vi.fn();
     const user = userEvent.setup();

@@ -281,6 +281,14 @@ class AnalysisResponse(BaseModel):
     #: False and the lesson gate still runs on word_prosody[].passed.
     #: Per-syllable detail lives in word_prosody[].syllables[].
     tone_diagnostics: dict = Field(default_factory=dict)
+    #: Optional ACCEPT/UNCERTAIN/NEEDS_PRACTICE assistive layer (Candidate F1
+    #: risk signal + Candidate E2 diagnostic, combined per the frozen
+    #: `feedback_policy_protocol.json` rule). `None` unless
+    #: `ENABLE_ASSISTIVE_FEEDBACK=1` is set AND the layer could compute a
+    #: result for this utterance -- additive and diagnostic only, exactly
+    #: like `tone_diagnostics`: does not touch `word_prosody[].passed` or
+    #: any progression gate. See `assistive_feedback/pipeline.py`.
+    assistive_feedback: Optional[List[dict]] = None
     processing_trace: ProcessingTrace = Field(default_factory=ProcessingTrace)
 
 
@@ -481,6 +489,10 @@ class AudioRecordRequest(BaseModel):
     analysisSchemaVersion: Optional[str] = None
     modelVersion: Optional[str] = None
     comparisonGroupId: Optional[str] = None
+    sessionId: Optional[str] = None
+    attemptId: Optional[str] = None
+    attemptNumber: Optional[int] = None
+    attemptType: Optional[str] = None
 
 
 class SpeakingProgressRequest(BaseModel):
@@ -788,9 +800,10 @@ def save_audio_record(record: AudioRecordRequest):
             """
             INSERT INTO audio_records (
                 id, timestamp, duration, transcription, model, topic_id, student_id,
-                image_url, image_index, audio_url, praat_metrics
+                image_url, image_index, audio_url, praat_metrics,
+                session_id, attempt_id, attempt_number, attempt_type
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 timestamp = EXCLUDED.timestamp,
                 duration = EXCLUDED.duration,
@@ -801,7 +814,11 @@ def save_audio_record(record: AudioRecordRequest):
                 image_url = EXCLUDED.image_url,
                 image_index = EXCLUDED.image_index,
                 audio_url = EXCLUDED.audio_url,
-                praat_metrics = EXCLUDED.praat_metrics
+                praat_metrics = EXCLUDED.praat_metrics,
+                session_id = EXCLUDED.session_id,
+                attempt_id = EXCLUDED.attempt_id,
+                attempt_number = EXCLUDED.attempt_number,
+                attempt_type = EXCLUDED.attempt_type
             """,
             (
                 record.id,
@@ -815,6 +832,10 @@ def save_audio_record(record: AudioRecordRequest):
                 record.imageIndex,
                 record.audioUrl,
                 Jsonb(metrics),
+                record.sessionId,
+                record.attemptId,
+                record.attemptNumber,
+                record.attemptType,
             ),
         )
 
@@ -1319,7 +1340,20 @@ async def _do_analyze(
     verify_word: str = "",
     pinyin_hint: str = "",
     reference_word_curves: Optional[Dict[str, list]] = None,
+    scene_target_text: str = "",
     on_stage: Optional[Callable[[dict], None]] = None,
+    # Pre-pilot research-logging identity (all optional, all additive --
+    # see `benchmarking/results/pilot_readiness.md`). Reuses the caller's
+    # OWN existing identifiers (student id, (topic, scene) composite item
+    # key); this function never derives or validates them, it only relays
+    # them to the assistive-feedback layer.
+    participant_id: str = "",
+    item_id: str = "",
+    session_id: str = "",
+    attempt_id: str = "",
+    attempt_number: int = 1,
+    attempt_type: str = "WHOLE_SENTENCE_INITIAL",
+    study_phase: str = "",
 ) -> AnalysisResponse:
     tmp_path = None
     trace_started_at = time.perf_counter()
@@ -1475,6 +1509,8 @@ async def _do_analyze(
             if verify_word.strip()
             else asyncio.sleep(0, result=(None, None))
         )
+        sentence_target = scene_target_text.strip() or scene_suggested_answer.strip()
+        sentence_content_verified = bool(asr_model.strip() or transcription_model.strip())
 
         praat_input = {
             "pinyin_hint": pinyin_hint or None,
@@ -1553,6 +1589,22 @@ async def _do_analyze(
         )
         if not audio_assessed:
             ai_feedback = maybe_feedback
+        if sentence_target and not verify_word.strip():
+            content_match = _scene_content_match(sentence_target, transcription)
+            recognized_text = transcription or None
+            verification_started_at = time.perf_counter()
+            add_trace_stage(
+                "content_verification",
+                "passed" if content_match is True else "review",
+                verification_started_at,
+                detail="Independent sentence ASR was compared with the scene target.",
+                input={"target_text": sentence_target},
+                output={
+                    "recognized_text": recognized_text,
+                    "content_match": content_match,
+                    "asr_model": transcription_model or asr_model or None,
+                },
+            )
         (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
          word_prosody, detected_tone, tone_accuracy, feedback,
          pause_analysis) = praat_result
@@ -1564,7 +1616,7 @@ async def _do_analyze(
             pitch_contour,
             transcription,
             content_match=content_match,
-            content_was_verified=bool(verify_word.strip()),
+            content_was_verified=bool(verify_word.strip()) or sentence_content_verified,
         )
         add_trace_stage(
             "quality_gate",
@@ -1574,7 +1626,7 @@ async def _do_analyze(
             reason_codes=feedback_quality.get("reason_codes"),
             input={
                 "preflight_status": recording_preflight.get("status"),
-                "content_was_verified": bool(verify_word.strip()),
+                "content_was_verified": bool(verify_word.strip()) or sentence_content_verified,
             },
             output=feedback_quality,
         )
@@ -1662,6 +1714,25 @@ async def _do_analyze(
             word_prosody, feedback_quality
         )
 
+        # Additive assistive-feedback layer (Candidate F1 + Candidate E2,
+        # frozen). Isolated behind its own try/except and its own env-var
+        # gate (default off) for the same reason `_contextual_tone_plan` is:
+        # a failure here must degrade to `None`, never break the response
+        # or touch word_prosody[].passed.
+        try:
+            from assistive_feedback.pipeline import RequestIdentity, compute_assistive_feedback
+
+            assistive_feedback_result = compute_assistive_feedback(
+                pitch_contour, transcription, pinyin_hint, tmp_path,
+                identity=RequestIdentity(
+                    participant_id=participant_id, item_id=item_id, session_id=session_id,
+                    attempt_id=attempt_id, attempt_number=attempt_number,
+                    attempt_type=attempt_type, study_phase=study_phase,
+                ) if participant_id else None,
+            )
+        except Exception:  # pragma: no cover - defensive, diagnostics are optional
+            assistive_feedback_result = None
+
         return AnalysisResponse(
             description=description,
             transcription=transcription,
@@ -1683,6 +1754,7 @@ async def _do_analyze(
             content_match=content_match,
             feedback_quality=feedback_quality,
             tone_diagnostics=tone_diagnostics,
+            assistive_feedback=assistive_feedback_result,
             processing_trace=ProcessingTrace(
                 stages=[ProcessingTraceStage(**entry) for entry in trace_entries],
                 total_duration_ms=round((time.perf_counter() - trace_started_at) * 1000, 1),
@@ -2035,6 +2107,48 @@ def _content_overlap_ratio(target: str, recognized: str) -> float:
             available[ch] -= 1
             matched += 1
     return matched / len(target_chars)
+
+
+SCENE_CONTENT_MATCH_RATIO = float(os.getenv("SCENE_CONTENT_MATCH_RATIO", "0.70"))
+SCENE_CONTENT_LENGTH_TOLERANCE = float(
+    os.getenv("SCENE_CONTENT_LENGTH_TOLERANCE", "0.35")
+)
+
+
+def _normalized_scene_content_units(value: str) -> list[str]:
+    """Return comparable sentence units while ignoring script/punctuation noise."""
+    normalized = convert_to_traditional_chinese(value or "")
+    return [char for char in normalized if char.isalnum()]
+
+
+def _scene_content_match(target: str, recognized: str) -> Optional[bool]:
+    """Verify a sentence while tolerating one common ASR name confusion."""
+    target_units = _normalized_scene_content_units(target)
+    recognized_units = _normalized_scene_content_units(recognized)
+    if not target_units or not recognized_units:
+        return None
+
+    target_length = len(target_units)
+    recognized_length = len(recognized_units)
+    lower = target_length * (1 - SCENE_CONTENT_LENGTH_TOLERANCE)
+    upper = target_length * (1 + SCENE_CONTENT_LENGTH_TOLERANCE)
+    if recognized_length < lower or recognized_length > upper:
+        return False
+
+    # Keep the order of the sentence meaningful. This is still tolerant of
+    # substitutions, but a reordered or unrelated answer cannot pass merely
+    # because it happens to contain the same characters.
+    lcs = [0] * (recognized_length + 1)
+    for target_unit in target_units:
+        diagonal = 0
+        for index, recognized_unit in enumerate(recognized_units, start=1):
+            previous = lcs[index]
+            if target_unit == recognized_unit:
+                lcs[index] = diagonal + 1
+            else:
+                lcs[index] = max(lcs[index], lcs[index - 1])
+            diagonal = previous
+    return lcs[-1] / target_length >= SCENE_CONTENT_MATCH_RATIO
 
 
 async def _verify_word_transcription(
@@ -3638,6 +3752,7 @@ from routers.speaking_progress import router as speaking_progress_router  # noqa
 from routers.stories import router as stories_router  # noqa: E402
 from routers.students import router as students_router  # noqa: E402
 from routers.submissions import router as submissions_router  # noqa: E402
+from routers.teacher_review import router as teacher_review_router  # noqa: E402
 from routers.tones import router as tones_router  # noqa: E402
 from routers.tts import router as tts_router  # noqa: E402
 from routers.vocab_quiz import router as vocab_quiz_router  # noqa: E402
@@ -3652,6 +3767,7 @@ app.include_router(speaking_progress_router)
 app.include_router(stories_router)
 app.include_router(students_router)
 app.include_router(submissions_router)
+app.include_router(teacher_review_router)
 app.include_router(tts_router)
 app.include_router(tones_router)
 app.include_router(vocab_quiz_router)

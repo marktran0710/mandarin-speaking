@@ -30,7 +30,9 @@ import StoryVocabQuiz, { type VocabQuizSummary } from "./StoryVocabQuiz";
 import { topicQuizEntries } from "../utils/topicQuiz";
 import { type JourneyStop, type JourneyStopStatus } from "./JourneyPath";
 import { toPinyin } from "../utils/pinyin";
-import { getStudentScopeKey, isAdminSession } from "../utils/studentSession";
+import { getStudentId, getStudentScopeKey, isAdminSession } from "../utils/studentSession";
+import type { AssistiveFeedbackSyllable } from "../utils/assistiveFeedback";
+import { resolvePilotContext } from "../utils/pilotSession";
 import {
   getAnalysisVersion,
   saveAnalysisVersion,
@@ -445,8 +447,11 @@ export interface PraatMetrics {
   feedback: string;
   ai_feedback?: LanguageFeedback;
   feedback_quality?: BackendFeedbackQuality;
-  /** Sentence roll-up of the four-state tone diagnosis. `controls_progression`
-   * is always false in this release — the lesson gate reads word_prosody[].passed. */
+  /** Transcript from the independent ASR/content check, when requested. */
+  recognized_text?: string | null;
+  /** Whether the detected transcript matched the scene's target text. */
+  content_match?: boolean | null;
+  /** Sentence roll-up of the four-state tone diagnosis. */
   tone_diagnostics?: {
     counts: { correct: number; uncertain: number; incorrect: number; invalid_audio: number };
     diagnostic_status: DiagnosticStatus;
@@ -475,6 +480,11 @@ export interface PraatMetrics {
     alignment_confidence: number;
     phones: Array<{ phone: string; start_time: number; end_time: number }>;
   }>;
+  /** Additive ACCEPT/UNCERTAIN/NEEDS_PRACTICE layer; absent/null unless the
+   * backend has assistive feedback enabled for this request (globally off
+   * by default, or pilot-scoped via `study_phase`). See
+   * `src/utils/assistiveFeedback.ts`. */
+  assistive_feedback?: AssistiveFeedbackSyllable[] | null;
 }
 
 export interface WordProsody {
@@ -484,6 +494,8 @@ export interface WordProsody {
   end_time: number;
   pitch_contour: Array<[number, number]>;
   reference_contour?: Array<[number, number]>;
+  /** Whether this word was scored against a real teacher/model-voice curve. */
+  reference_source?: "real_voice" | "synthetic";
   // The exact normalized [0,1] curves the backend's shape score compared
   // (user vs idealized target) — drawn by MiniContourChart so the chart
   // can never disagree with the score. Empty/absent when the segment was
@@ -672,6 +684,10 @@ export interface NewAudioRecord {
   analysisSchemaVersion?: string;
   modelVersion?: string;
   comparisonGroupId?: string;
+  sessionId?: string;
+  attemptId?: string;
+  attemptNumber?: number;
+  attemptType?: "WHOLE_SENTENCE_INITIAL" | "FOCUSED_RETRY" | "WHOLE_SENTENCE_FINAL";
 }
 
 interface StoryRecorderProps {
@@ -728,8 +744,21 @@ export default function StoryRecorder({
   const speechModelChosenByStudentRef = useRef(false);
   const [aiProvider, setAiProvider] = useState<string>("");
   const studentScope = studentId ?? getStudentScopeKey();
+  // Admin backdoor (name "admin" at login): every gate in the session reads
+  // as passed. Computed here (not just at its original use-site further
+  // down) because the pilot Stable/Experimental hiding below needs it too.
+  const isAdmin = isAdminSession();
+  // PART 1 of the small-teacher-validated-pilot architecture: pilot students
+  // see only "Speaking Practice" -- the Stable V1/Experimental V2 selector
+  // stays hidden and forced to stable_v1 for them, with the SAME admin
+  // backdoor already used for progression gates as the one way to reach the
+  // hidden dev/debug view. Not derived from role/backend state -- purely the
+  // `?pilot=1` query flag `resolvePilotContext` already reads for research
+  // logging, so this can never diverge from what the identity plumbing sees.
+  const isPilotSession = resolvePilotContext().studyPhase === "pilot";
+  const showAnalysisVersionSelector = isAdmin || !isPilotSession;
   const [analysisVersion, setAnalysisVersion] = useState<AnalysisVersion>(() =>
-    getAnalysisVersion(studentScope),
+    showAnalysisVersionSelector ? getAnalysisVersion(studentScope) : "stable_v1",
   );
   const [experimentalAvailable, setExperimentalAvailable] = useState(false);
   const [experimentalStatus, setExperimentalStatus] = useState("checking");
@@ -739,7 +768,8 @@ export default function StoryRecorder({
 
   useEffect(() => {
     let cancelled = false;
-    setAnalysisVersion(getAnalysisVersion(studentScope));
+    setAnalysisVersion(showAnalysisVersionSelector ? getAnalysisVersion(studentScope) : "stable_v1");
+    if (!showAnalysisVersionSelector) return;
     fetch(`${getBackendUrl()}/api/analysis-v2/health`)
       .then(async (response) => {
         const payload = await response.json().catch(() => ({}));
@@ -843,6 +873,14 @@ export default function StoryRecorder({
   const [masteryPassedMap, setMasteryPassedMap] = useState<
     Record<number, boolean>
   >({});
+  // PART 3: mirrors masteryPassedMap's pilot override, but for `sceneReady`'s
+  // separate bestTone/bestFluency/attempts>=4 gate -- forcing masteryPassed
+  // alone would still leave a pilot student stuck behind that legacy score
+  // threshold. Stays false (no behavior change) until an operator turns on
+  // the pilot assistive-feedback flag server-side.
+  const [pilotSceneReadyOverrideMap, setPilotSceneReadyOverrideMap] = useState<
+    Record<number, boolean>
+  >({});
   // A high tone/fluency score alone must not unlock a scene when the learner
   // said a different sentence or skipped required words.
   const [contentPassedMap, setContentPassedMap] = useState<
@@ -922,10 +960,10 @@ export default function StoryRecorder({
   const [vocabQuizCompleted, setVocabQuizCompleted] = useState(
     () => loadCompletedVocabQuizzes()[topic.id] === true,
   );
-  // Admin backdoor (name "admin" at login): every gate in the session
-  // reads as passed — quiz-before-speaking here, per-scene mastery below
+  // isAdmin is computed earlier (near studentScope) — the pilot
+  // Stable/Experimental hiding needs it before this point too. Same
+  // backdoor gates quiz-before-speaking here and per-scene mastery below
   // (sceneReady's own bypass lives in storyRecorderFeedback).
-  const isAdmin = isAdminSession();
   const speakingLocked = hasVocabQuiz && !vocabQuizCompleted && !isAdmin;
 
   const handleVocabQuizDone = () => {
@@ -1500,7 +1538,7 @@ export default function StoryRecorder({
         addTranscription(transcript);
         currentTranscriptRef.current = transcript;
       }
-      await analyzeSpeechAudio(wavBlob, transcript);
+      await analyzeSpeechAudio(wavBlob, transcript, selectedModel);
     } catch (err) {
       setError(
         formatBackendError(err, BACKEND_URL || "the configured backend"),
@@ -1529,7 +1567,24 @@ export default function StoryRecorder({
       const scenePrompt = topic.prompts?.[selectedImageIndex] || topic.name;
       const scenePhrases = topic.phrases?.[selectedImageIndex];
       const sceneSuggestedAnswer = topic.suggestedAnswers?.[selectedImageIndex];
+      const sceneTargetText =
+        topic.listenScripts?.[selectedImageIndex]?.trim() ||
+        sceneSuggestedAnswer?.trim() ||
+        "";
       const sceneReferenceCurves = buildSceneReferenceCurves(topic, selectedImageIndex);
+      // Pre-pilot research-logging identity (STEPs 2-6 of
+      // `pilot_readiness.md`): reuses the EXISTING student id and the
+      // EXISTING (topic, scene) composite item key this app already keys
+      // `speaking_progress`/`audio_records` by -- no new identity system.
+      // `attemptType` is a simple, non-heuristic default (attempt 1 =
+      // initial, later attempts = final) -- see the report's known-limitation
+      // note on why this does not yet auto-detect a focused-retry-specific
+      // recording (that distinct recording flow doesn't exist in the UI yet).
+      const attemptNumberForRequest = attemptHistory.length + 1;
+      const pilotContext = resolvePilotContext();
+      const attemptIdForRequest = `attempt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const attemptTypeForRequest: "WHOLE_SENTENCE_INITIAL" | "WHOLE_SENTENCE_FINAL" =
+        attemptNumberForRequest === 1 ? "WHOLE_SENTENCE_INITIAL" : "WHOLE_SENTENCE_FINAL";
       const formData = buildPracticeAnalysisFormData(wavBlob, {
         transcription: analysisText,
         asrModel,
@@ -1539,9 +1594,17 @@ export default function StoryRecorder({
         sceneImageUrl: selectedImage,
         scenePhrases: scenePhrases?.join("; "),
         sceneSuggestedAnswer,
+        sceneTargetText,
         sceneReferenceCurves,
-        sceneAttemptNumber: attemptHistory.length + 1,
+        sceneAttemptNumber: attemptNumberForRequest,
         analysisDetail: version === "phoneme_tone_v2" ? "phoneme" : undefined,
+        participantId: getStudentId(),
+        itemId: `${topic.id}:${selectedImageIndex}`,
+        sessionId: pilotContext.sessionId,
+        attemptId: attemptIdForRequest,
+        attemptNumber: attemptNumberForRequest,
+        attemptType: attemptTypeForRequest,
+        studyPhase: pilotContext.studyPhase,
       });
 
       const endpoint = version === "phoneme_tone_v2" ? "/api/analyze/v2" : "/api/analyze";
@@ -1595,6 +1658,10 @@ export default function StoryRecorder({
           analysisVersion: version,
           analysisSchemaVersion: metrics.analysis_schema_version,
           modelVersion: metrics.model_version,
+          sessionId: pilotContext.sessionId,
+          attemptId: attemptIdForRequest,
+          attemptNumber: attemptNumberForRequest,
+          attemptType: attemptTypeForRequest,
         }));
         return;
       }
@@ -1630,13 +1697,32 @@ export default function StoryRecorder({
       // Mastery gate verdict for this full-sentence attempt. A fresh
       // recording re-judges every word, so the per-word drill clearances
       // from the previous attempt reset alongside it.
+      //
+      // PART 3 of the small-teacher-validated-pilot architecture: for a
+      // pilot session where the backend actually computed the assistive
+      // layer (`metrics.assistive_feedback` non-null -- only true once an
+      // operator has set `ENABLE_ASSISTIVE_FEEDBACK_PILOT_OVERRIDE=1`
+      // server-side, per `assistive_feedback/pipeline.py`'s two-gate
+      // design), the legacy `word_prosody[].passed` verdict must never
+      // block progression -- NO_ISSUE_DETECTED/NO_AUTOMATIC_JUDGMENT/
+      // CHECK_THIS_TONE all eventually continue (the bounded one-retry
+      // flow lives in SpeakingResultsFlow via `src/utils/retryPolicy.ts`).
+      // Until that env flag is set, `assistive_feedback` stays null and
+      // this expression is identical to before this task -- dormant by
+      // construction, matching the "do not enable pilot globally" limit.
+      const pilotAssistiveFeedbackActive = isPilotSession && Boolean(metrics.assistive_feedback);
       const nextMasteryPassed =
-        canScorePronunciation && prosodyGatePassed(metrics.word_prosody);
+        pilotAssistiveFeedbackActive ||
+        (canScorePronunciation && prosodyGatePassed(metrics.word_prosody));
       const nextContentPassed =
         canScoreContent && sceneContentGatePassed(metrics);
       setMasteryPassedMap((prev) => ({
         ...prev,
         [selectedImageIndex]: nextMasteryPassed,
+      }));
+      setPilotSceneReadyOverrideMap((prev) => ({
+        ...prev,
+        [selectedImageIndex]: pilotAssistiveFeedbackActive,
       }));
       setContentPassedMap((prev) => ({
         ...prev,
@@ -1667,6 +1753,10 @@ export default function StoryRecorder({
         analysisVersion: version,
         analysisSchemaVersion: metrics.analysis_schema_version,
         modelVersion: metrics.model_version,
+        sessionId: pilotContext.sessionId,
+        attemptId: attemptIdForRequest,
+        attemptNumber: attemptNumberForRequest,
+        attemptType: attemptTypeForRequest,
       });
 
       // Save best snapshot for this scene (overwrite if better vocab score)
@@ -1726,6 +1816,10 @@ export default function StoryRecorder({
     const scenePrompt = topic.prompts?.[selectedImageIndex] || topic.name;
     const scenePhrases = topic.phrases?.[selectedImageIndex];
     const sceneSuggestedAnswer = topic.suggestedAnswers?.[selectedImageIndex];
+    const sceneTargetText =
+      topic.listenScripts?.[selectedImageIndex]?.trim() ||
+      sceneSuggestedAnswer?.trim() ||
+      "";
     const sceneReferenceCurves = buildSceneReferenceCurves(topic, selectedImageIndex);
     const run = async (version: AnalysisVersion): Promise<PraatMetrics> => {
       const formData = buildPracticeAnalysisFormData(wavBlob, {
@@ -1736,6 +1830,7 @@ export default function StoryRecorder({
         sceneImageUrl: selectedImage,
         scenePhrases: scenePhrases?.join("; "),
         sceneSuggestedAnswer,
+        sceneTargetText,
         sceneReferenceCurves,
         sceneAttemptNumber: attemptHistory.length + 1,
         analysisDetail: version === "phoneme_tone_v2" ? "phoneme" : undefined,
@@ -2243,6 +2338,9 @@ export default function StoryRecorder({
               contentPassed={
                 isAdmin || (contentPassedMap[selectedImageIndex] ?? false)
               }
+              sceneReadyOverride={
+                isAdmin || (pilotSceneReadyOverrideMap[selectedImageIndex] ?? false)
+              }
               clearedWords={clearedWordsMap[selectedImageIndex] ?? []}
               onWordDrillPass={handleWordDrillPass}
               hasNextScene={nextPracticeSceneIndex !== undefined}
@@ -2255,7 +2353,7 @@ export default function StoryRecorder({
               analysisVersion={analysisVersion}
               experimentalAvailable={experimentalAvailable}
               experimentalStatus={experimentalStatus}
-              onAnalysisVersionChange={handleAnalysisVersionChange}
+              onAnalysisVersionChange={showAnalysisVersionSelector ? handleAnalysisVersionChange : undefined}
               comparison={comparisonMap[selectedImageIndex]}
               onCompare={compareCurrentRecording}
             />

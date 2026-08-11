@@ -59,6 +59,10 @@ export interface StoredAudioRecord {
   analysisSchemaVersion?: string;
   modelVersion?: string;
   comparisonGroupId?: string;
+  sessionId?: string;
+  attemptId?: string;
+  attemptNumber?: number;
+  attemptType?: "WHOLE_SENTENCE_INITIAL" | "FOCUSED_RETRY" | "WHOLE_SENTENCE_FINAL";
 }
 
 export interface StoredSpeakingProgress {

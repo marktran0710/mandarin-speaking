@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import PronunciationBreakdown from "./PronunciationBreakdown";
 import type { WordProsody } from "./StoryRecorder";
 
 /**
- * The panel exists to answer "did the app even listen?" — so the tests that
- * matter are about what it shows when nothing is wrong, and about keeping the
- * vowel column from reading as a score it isn't.
+ * The panel answers "did the app even listen?" — so the tests that matter are
+ * about what it shows when nothing is wrong, about keeping the vowel column
+ * from reading as a score it isn't, and about the collapsed row staying
+ * scannable while the detail stays reachable.
  */
 
 function word(overrides: Partial<WordProsody>): WordProsody {
@@ -28,12 +30,17 @@ function word(overrides: Partial<WordProsody>): WordProsody {
 
 const passingWord = word({
   passed: true,
+  diagnostic_status: "CORRECT",
   syllables: [
     {
       char: "你",
       tone: 3,
       score: 88,
       passed: true,
+      diagnostic_status: "CORRECT",
+      diagnostic_reason: "contour_matches_expected_tone",
+      contour_match_score: 88,
+      score_provenance: "measured",
       expected_vowel: "i",
       expected_zone: { height: "high", backness: "front" },
       final: "i",
@@ -47,6 +54,10 @@ const passingWord = word({
       tone: 1,
       score: 91,
       passed: true,
+      diagnostic_status: "CORRECT",
+      diagnostic_reason: "contour_matches_expected_tone",
+      contour_match_score: 91,
+      score_provenance: "measured",
       expected_vowel: "a",
       expected_zone: { height: "low", backness: "central" },
       final: "a",
@@ -58,31 +69,27 @@ const passingWord = word({
   ],
 });
 
-describe("PronunciationBreakdown", () => {
-  /** Character rows only — skips the header row and the per-word group rows. */
-  function characterRows() {
-    return screen
-      .getAllByRole("row")
-      .filter((row) => row.querySelector(".pb-char-cell"));
-  }
+/** Every character row is a button; the legend items are not. */
+function characterRows() {
+  return screen
+    .getAllByRole("button")
+    .filter((node) => node.classList.contains("pb-row"));
+}
 
+describe("PronunciationBreakdown", () => {
   it("shows every character even when the whole attempt passed", () => {
-    // The regression this whole panel was built for: the old flow only ever
-    // rendered the breakdown for *failed* words, inside a later step, so a
-    // student who read the sentence well saw no analysis at all.
+    // The regression this panel was built for: the old flow only rendered a
+    // breakdown for *failed* words, inside a later step, so a student who read
+    // the sentence well saw no analysis at all.
     render(<PronunciationBreakdown words={[passingWord]} />);
 
     const rows = characterRows();
     expect(rows).toHaveLength(2);
     expect(within(rows[0]).getByText("你")).toBeInTheDocument();
     expect(within(rows[1]).getByText("媽")).toBeInTheDocument();
-    // The raw contour number is deliberately absent from the learner view.
-    expect(within(rows[0]).queryByText("88%")).toBeNull();
   });
 
   it("groups the characters under the word they belong to", () => {
-    // Phrases are the unit the practice list already drills, so the readout
-    // is grouped the same way rather than as a flat run of characters.
     const { container } = render(
       <PronunciationBreakdown
         words={[
@@ -91,10 +98,10 @@ describe("PronunciationBreakdown", () => {
             token: "這個",
             index: 1,
             passed: false,
-            shape_accuracy: 56,
+            diagnostic_status: "UNCERTAIN",
             syllables: [
-              { char: "這", tone: 4, score: 94, passed: true, vowel_status: "no_formants" },
-              { char: "個", tone: 4, score: 56, passed: false, vowel_status: "no_formants" },
+              { char: "這", tone: 4, score: 94, passed: true, diagnostic_status: "CORRECT" },
+              { char: "個", tone: 4, score: 56, passed: false, diagnostic_status: "UNCERTAIN" },
             ],
           }),
         ]}
@@ -105,20 +112,43 @@ describe("PronunciationBreakdown", () => {
     expect(groups).toHaveLength(2);
     expect(groups[0].querySelector(".pb-group-token")!.textContent).toBe("你媽");
     expect(groups[1].querySelector(".pb-group-token")!.textContent).toBe("這個");
-    // Each group carries the whole word's own verdict — the same one that
-    // decides whether the word lands in the practice list.
-    expect(groups[1].querySelector(".pb-group-verdict")!.textContent).toBe("✗");
-    // No word-level percentage: the word score is a whole-word shape read and
-    // the syllable scores are directional, so printing both invited the
-    // reader to compare two numbers that legitimately disagree.
-    expect(groups[1].querySelector(".pb-group-score")).toBeNull();
-    expect(groups[0].querySelectorAll(".pb-char-cell")).toHaveLength(2);
+    expect(groups[0].querySelectorAll(".pb-row")).toHaveLength(2);
   });
 
-  it("shows △ for an uncertain syllable and never a red error", () => {
-    // The bug that started this: a contour match of 53 against the correct
-    // tone was rendered as ✗ on a red field. Low match means the system could
-    // not tell, not that the learner was wrong.
+  it("counts the result in one summary line", () => {
+    const { container } = render(
+      <PronunciationBreakdown
+        words={[
+          word({
+            token: "什麼要",
+            syllables: [
+              { char: "什", tone: 2, score: 37, passed: false, diagnostic_status: "INCORRECT" },
+              {
+                char: "麼",
+                tone: 5,
+                score: 75,
+                passed: true,
+                diagnostic_status: "UNCERTAIN",
+                score_provenance: "neutral_not_measured",
+              },
+              { char: "要", tone: 4, score: 51, passed: false, diagnostic_status: "UNCERTAIN" },
+            ],
+          }),
+        ]}
+      />,
+    );
+
+    const summary = container.querySelector(".pb-summary")!.textContent!;
+    expect(summary).toContain("1個要練");
+    expect(summary).toContain("1個聽不太出來");
+    // Neutral tone is counted apart from uncertainty — nobody measured it, so
+    // folding it into "not clear" would imply doubt about the learner.
+    expect(summary).toContain("1個輕聲不計");
+    expect(summary).not.toContain("個對了");
+  });
+
+  it("keeps the collapsed row short and puts the explanation behind a tap", async () => {
+    const user = userEvent.setup();
     const uncertain = word({
       passed: false,
       diagnostic_status: "UNCERTAIN",
@@ -135,84 +165,29 @@ describe("PronunciationBreakdown", () => {
     });
     const { container } = render(<PronunciationBreakdown words={[uncertain]} />);
 
-    const toneCell = container.querySelector(".pb-tone-cell")!;
-    expect(toneCell.querySelector(".pb-tone-mark")!.textContent).toBe("△");
-    expect(toneCell.textContent).not.toContain("✗");
-    expect(container.querySelector(".pb-tone-failed")).toBeNull();
-    expect(toneCell.textContent).toContain("聽不太出來");
+    const row = characterRows()[0];
+    expect(row.getAttribute("aria-expanded")).toBe("false");
+    // The long bilingual status label used to sit on every row; it now lives
+    // in the legend and the detail.
+    expect(row.textContent).not.toContain("調型有點接近");
+    expect(container.querySelector(".pb-detail")).toBeNull();
+
+    await user.click(row);
+
+    expect(row.getAttribute("aria-expanded")).toBe("true");
+    const detail = container.querySelector(".pb-detail")!;
+    expect(detail.textContent).toContain("聽不太出來");
+    expect(detail.textContent).toContain("調型有點接近");
+
+    await user.click(row);
+    expect(container.querySelector(".pb-detail")).toBeNull();
   });
 
-  it("only paints the error field for a confident INCORRECT", () => {
-    const incorrect = word({
-      passed: false,
-      diagnostic_status: "INCORRECT",
-      syllables: [
-        {
-          ...passingWord.syllables![0],
-          score: 20,
-          passed: false,
-          diagnostic_status: "INCORRECT",
-          diagnostic_reason: "contour_contradicts_expected_tone",
-          contour_match_score: 20,
-        },
-      ],
-    });
-    const { container } = render(<PronunciationBreakdown words={[incorrect]} />);
-    const toneCell = container.querySelector(".pb-tone-cell")!;
-    expect(toneCell.querySelector(".pb-tone-mark")!.textContent).toBe("✗");
-    expect(container.querySelector(".pb-tone-failed")).not.toBeNull();
-  });
-
-  it("asks for a new recording rather than blaming the learner", () => {
-    const invalid = word({
-      diagnostic_status: "INVALID_AUDIO",
-      syllables: [
-        {
-          ...passingWord.syllables![0],
-          passed: false,
-          diagnostic_status: "INVALID_AUDIO",
-          diagnostic_reason: "recording_quality_unusable",
-          contour_match_score: null,
-        },
-      ],
-    });
-    const { container } = render(<PronunciationBreakdown words={[invalid]} />);
-    const toneCell = container.querySelector(".pb-tone-cell")!;
-    expect(toneCell.querySelector(".pb-tone-mark")!.textContent).toBe("↻");
-    expect(container.querySelector(".pb-tone-failed")).toBeNull();
-  });
-
-  it("hides the raw contour number from learners and shows it in debug", () => {
-    // 53 is a heuristic contour match, not a probability and not a score out
-    // of 100. Putting it in front of a learner invites exactly that reading.
-    const item = word({
-      syllables: [
-        {
-          ...passingWord.syllables![0],
-          score: 53,
-          passed: false,
-          diagnostic_status: "UNCERTAIN",
-          diagnostic_reason: "contour_match_inconclusive",
-          contour_match_score: 53,
-          score_provenance: "measured",
-          legacy: { passed: false, score: 53, threshold: 58 },
-        },
-      ],
-    });
-
-    const learner = render(<PronunciationBreakdown words={[item]} />);
-    expect(learner.container.textContent).not.toMatch(/53/);
-    expect(learner.container.textContent).not.toMatch(/confidence|probability/i);
-    learner.unmount();
-
-    const debug = render(<PronunciationBreakdown words={[item]} debug />);
-    expect(debug.container.textContent).toMatch(/Contour match: 53\/100/);
-    expect(debug.container.textContent).toMatch(/legacy gate: FAIL/);
-  });
-
-  it("explains the contextual tone rule that changed the target", () => {
+  it("explains the tone rule that changed the target, on demand", async () => {
+    const user = userEvent.setup();
     const sandhi = word({
       token: "很好",
+      diagnostic_status: "CORRECT",
       syllables: [
         {
           char: "很",
@@ -227,43 +202,100 @@ describe("PronunciationBreakdown", () => {
         },
       ],
     });
-    render(<PronunciationBreakdown words={[sandhi]} />);
-    expect(screen.getByText(/三聲變調/)).toBeInTheDocument();
+    const { container } = render(<PronunciationBreakdown words={[sandhi]} />);
+
+    await user.click(characterRows()[0]);
+    expect(container.querySelector(".pb-detail-rule")!.textContent).toContain(
+      "三聲變調",
+    );
   });
 
-  it("marks a failed syllable on the tone column only", () => {
-    const failing = word({
+  it("marks an uncertain syllable without the error field", () => {
+    // The bug that started this: a contour match of 53 against the correct
+    // tone was rendered as ✗ on a red field. Low match means the system could
+    // not tell, not that the learner was wrong.
+    const uncertain = word({
       passed: false,
+      diagnostic_status: "UNCERTAIN",
+      syllables: [
+        { ...passingWord.syllables![0], passed: false, diagnostic_status: "UNCERTAIN" },
+      ],
+    });
+    render(<PronunciationBreakdown words={[uncertain]} />);
+
+    const row = characterRows()[0];
+    expect(row.querySelector(".pb-tone-mark")!.textContent).toBe("△");
+    expect(row.classList.contains("pb-row-failed")).toBe(false);
+  });
+
+  it("only paints the error field for a confident INCORRECT", () => {
+    const incorrect = word({
+      passed: false,
+      diagnostic_status: "INCORRECT",
+      syllables: [
+        { ...passingWord.syllables![0], passed: false, diagnostic_status: "INCORRECT" },
+      ],
+    });
+    render(<PronunciationBreakdown words={[incorrect]} />);
+
+    const row = characterRows()[0];
+    expect(row.querySelector(".pb-tone-mark")!.textContent).toBe("✗");
+    expect(row.classList.contains("pb-row-failed")).toBe(true);
+  });
+
+  it("asks for a new recording rather than blaming the learner", () => {
+    const invalid = word({
+      diagnostic_status: "INVALID_AUDIO",
       syllables: [
         {
           ...passingWord.syllables![0],
-          score: 31,
           passed: false,
+          diagnostic_status: "INVALID_AUDIO",
+          contour_match_score: null,
         },
-        passingWord.syllables![1],
       ],
     });
-    const { container } = render(<PronunciationBreakdown words={[failing]} />);
+    render(<PronunciationBreakdown words={[invalid]} />);
 
-    const rows = characterRows();
-    expect(within(rows[0]).getByText("✗")).toBeInTheDocument();
-    expect(within(rows[1]).getByText("✓")).toBeInTheDocument();
-
-    // The failed tint stays inside the tone cell. Tinting the whole row would
-    // drag the vowel column into a verdict it explicitly does not make.
-    expect(rows[0].className).not.toContain("failed");
-    expect(rows[0].querySelector(".pb-tone-cell.pb-tone-failed")).not.toBeNull();
-    expect(rows[0].querySelector(".pb-vowel-cell.pb-tone-failed")).toBeNull();
-
-    // And the vowel column carries no verdict marks of its own.
-    expect(container.querySelectorAll(".pb-vowel .is-fail")).toHaveLength(0);
-    expect(container.querySelectorAll(".pb-vowel .is-pass")).toHaveLength(0);
+    const row = characterRows()[0];
+    expect(row.querySelector(".pb-tone-mark")!.textContent).toBe("↻");
+    expect(row.classList.contains("pb-row-failed")).toBe(false);
   });
 
-  it("never turns an unmeasurable vowel into a verdict", () => {
+  it("says neutral tone was not scored, rather than calling it uncertain", async () => {
+    const user = userEvent.setup();
+    const neutral = word({
+      token: "什麼",
+      diagnostic_status: "UNCERTAIN",
+      syllables: [
+        {
+          char: "麼",
+          tone: 5,
+          score: 75,
+          passed: true,
+          diagnostic_status: "UNCERTAIN",
+          diagnostic_reason: "neutral_tone_has_no_contour_target",
+          contour_match_score: null,
+          score_provenance: "neutral_not_measured",
+          underlying_tone: 5,
+          accepted_surface_tones: [5],
+        },
+      ],
+    });
+    const { container } = render(<PronunciationBreakdown words={[neutral]} />);
+
+    await user.click(characterRows()[0]);
+    const detail = container.querySelector(".pb-detail")!;
+    expect(detail.textContent).toContain("不另外評分");
+    expect(detail.textContent).toContain("Neutral tone");
+    expect(detail.textContent).not.toContain("聽不太出來");
+    expect(container.textContent).not.toContain("75");
+  });
+
+  it("never turns an unmeasurable vowel into a verdict", async () => {
     // 吃 holds the apical -i, which is not the vowel /i/ and has no target to
-    // measure against. A blank here must read as "not measured", never as
-    // "wrong" — a dash with the reason attached, and no tick or cross.
+    // measure against. A blank must read as "not measured", never as "wrong".
+    const user = userEvent.setup();
     const chifan = word({
       token: "吃飯",
       syllables: [
@@ -272,6 +304,7 @@ describe("PronunciationBreakdown", () => {
           tone: 1,
           score: 80,
           passed: true,
+          diagnostic_status: "CORRECT",
           expected_vowel: null,
           expected_zone: null,
           measured_zone: null,
@@ -282,6 +315,7 @@ describe("PronunciationBreakdown", () => {
           tone: 4,
           score: 75,
           passed: true,
+          diagnostic_status: "CORRECT",
           expected_vowel: "a",
           expected_zone: { height: "low", backness: "central" },
           final: "an",
@@ -298,13 +332,70 @@ describe("PronunciationBreakdown", () => {
     expect(dash.textContent).toBe("—");
     expect(dash.getAttribute("title")).toMatch(/沒有單獨的母音/);
 
-    // A gliding final still reports its measurement, and says so — as a
-    // marker rather than a sentence, since most finals glide and repeating it
-    // down the column drowns out the readings themselves.
-    const glide = container.querySelector(".pb-vowel-glide")!;
-    expect(glide.textContent).toBe("~");
-    expect(glide.getAttribute("title")).toMatch(/只量中間/);
-    expect(screen.getByText(/mouth open/)).toBeInTheDocument();
+    // The gliding final shows its reading compactly, with the caveat as a
+    // marker rather than a sentence repeated down the column.
+    const rows = characterRows();
+    expect(rows[1].textContent).toContain("嘴型 大・中");
+    expect(rows[1].querySelector(".pb-vowel-glide")!.getAttribute("title")).toMatch(
+      /只量中間/,
+    );
+
+    await user.click(rows[1]);
+    expect(container.querySelector(".pb-detail")!.textContent).toContain(
+      "mouth open",
+    );
+  });
+
+  it("hides the raw contour number from learners and shows it in debug", async () => {
+    // 53 is a heuristic contour match, not a probability and not a score out
+    // of 100. Putting it in front of a learner invites exactly that reading.
+    const user = userEvent.setup();
+    const item = word({
+      diagnostic_status: "UNCERTAIN",
+      syllables: [
+        {
+          ...passingWord.syllables![0],
+          score: 53,
+          passed: false,
+          diagnostic_status: "UNCERTAIN",
+          diagnostic_reason: "contour_match_inconclusive",
+          contour_match_score: 53,
+          score_provenance: "measured",
+          legacy: { passed: false, score: 53, threshold: 58 },
+        },
+      ],
+    });
+
+    const learner = render(<PronunciationBreakdown words={[item]} />);
+    await user.click(learner.container.querySelector(".pb-row") as HTMLElement);
+    expect(learner.container.textContent).not.toMatch(/53/);
+    expect(learner.container.textContent).not.toMatch(/confidence|probability/i);
+    learner.unmount();
+
+    const debug = render(<PronunciationBreakdown words={[item]} debug />);
+    await user.click(debug.container.querySelector(".pb-row") as HTMLElement);
+    expect(debug.container.textContent).toMatch(/Contour match: 53\/100/);
+    expect(debug.container.textContent).toMatch(/legacy gate: FAIL/);
+  });
+
+  it("uses a passing real reference curve consistently with the progression gate", () => {
+    const referenceWord = word({
+      reference_source: "real_voice",
+      shape_accuracy: 84,
+      passed: false,
+      syllables: [
+        {
+          ...passingWord.syllables![0],
+          passed: false,
+          diagnostic_status: "INCORRECT",
+        },
+      ],
+    });
+
+    const { container } = render(<PronunciationBreakdown words={[referenceWord]} />);
+    const row = container.querySelector(".pb-row")!;
+    expect(row.classList.contains("pb-row-failed")).toBe(false);
+    expect(row.querySelector(".is-fail")).toBeNull();
   });
 
   it("states plainly that the vowel column is a measurement, not a score", () => {

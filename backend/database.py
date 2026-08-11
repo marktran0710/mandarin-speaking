@@ -91,6 +91,10 @@ def row_to_audio_record(row: dict) -> dict:
         "audioUrl": row["audio_url"],
         # JSONB: psycopg already parsed this.
         "praatMetrics": row["praat_metrics"],
+        "sessionId": row.get("session_id"),
+        "attemptId": row.get("attempt_id"),
+        "attemptNumber": row.get("attempt_number"),
+        "attemptType": row.get("attempt_type"),
     }
 
 

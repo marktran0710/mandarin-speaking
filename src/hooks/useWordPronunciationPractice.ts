@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { convertBlobToWav } from "../utils/audio";
+import type { AssistiveFeedbackSyllable } from "../utils/assistiveFeedback";
 import type { BackendFeedbackQuality } from "../utils/voiceFeedbackReliability";
 
 const BACKEND_URL =
@@ -22,6 +23,10 @@ export interface WordAnalyzeResult {
   recognized_text?: string | null;
   content_match?: boolean | null;
   feedback_quality?: BackendFeedbackQuality;
+  /** Additive ACCEPT/UNCERTAIN/NEEDS_PRACTICE layer; absent/null unless the
+   * backend has the assistive-feedback flag enabled. See
+   * `src/utils/assistiveFeedback.ts`. */
+  assistive_feedback?: AssistiveFeedbackSyllable[] | null;
 }
 
 /**

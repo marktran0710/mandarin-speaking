@@ -1,63 +1,106 @@
 import type { VoiceFeedbackReliability } from "../utils/voiceFeedbackReliability";
+import {
+  ASSISTIVE_MESSAGE,
+  type AssistiveState,
+} from "../utils/assistiveFeedback";
 import "./VoiceFeedbackReliabilityNotice.css";
 
+/**
+ * Shown only when the recording itself is unusable.
+ *
+ * This used to announce all three reliability levels, including "Recording
+ * evidence looks usable" and "Feedback is an estimate". Both described how
+ * much the *measurement* could be trusted — interesting to us, useless to a
+ * student, who cannot act on either one. They were two paragraphs of English
+ * sitting above the actual results on every single attempt.
+ *
+ * What survives is the one level a learner can do something about: the
+ * recording failed, so move closer to the mic and say it again. The
+ * assessment itself is untouched — `assessVoiceFeedbackReliability` still
+ * feeds `canCountForProgress` in the practice drills, and several screens
+ * still hide their scores on `level === "retry"`. This is display only.
+ */
 export default function VoiceFeedbackReliabilityNotice({
   assessment,
-  attemptCount = 1,
   compact = false,
 }: {
   assessment: VoiceFeedbackReliability;
+  /** Kept for call-site compatibility; no longer read. */
   attemptCount?: number;
   compact?: boolean;
 }) {
-  const copy = {
-    reliable: {
-      icon: "✓",
-      title: "Recording evidence looks usable",
-      detail:
-        "Pitch was measurable and the spoken content was checked. Use the feedback as a practice guide, not as a perfect judgment.",
-    },
-    estimate: {
-      icon: "≈",
-      title: "Feedback is an estimate",
-      detail:
-        "Pitch was measurable, but the words were not independently confirmed. Compare with the model recording before changing how you pronounce it.",
-    },
-    retry: {
-      icon: "↻",
-      title: "Retake before trusting this score",
-      detail:
-        assessment.reason === "content-mismatch"
-          ? "The recording did not match the target closely enough. The score above may not be reliable and should not count."
-          : "There was not enough clear pitch evidence to judge this recording safely.",
-    },
-  }[assessment.level];
+  if (assessment.level !== "retry") return null;
+
+  const detail =
+    assessment.reason === "content-mismatch"
+      ? "The recording did not match the target closely enough. The score above may not be reliable and should not count."
+      : "There was not enough clear pitch evidence to judge this recording safely.";
 
   return (
     <aside
-      className={`voice-reliability-notice is-${assessment.level}${compact ? " is-compact" : ""}`}
-      role={assessment.level === "retry" ? "alert" : "status"}
+      className={`voice-reliability-notice is-retry${compact ? " is-compact" : ""}`}
+      role="alert"
       aria-live="polite"
       data-feedback-reliability={assessment.level}
     >
       <span className="voice-reliability-icon" aria-hidden="true">
-        {copy.icon}
+        ↻
       </span>
       <div>
-        <strong>{copy.title}</strong>
-        {!compact && <p>{copy.detail}</p>}
-        {assessment.level === "retry" && !compact && (
+        <strong>Retake before trusting this score</strong>
+        {!compact && <p>{detail}</p>}
+        {!compact && (
           <p className="voice-reliability-action">
             Move 10–20 cm from the microphone, find a quieter spot, and say the
             target once at a natural pace.
           </p>
         )}
-        {assessment.level !== "reliable" && attemptCount >= 2 && !compact && (
-          <p className="voice-reliability-teacher">
-            Still getting conflicting feedback? Ask a teacher to review the
-            recording before drilling this correction.
-          </p>
-        )}
+      </div>
+    </aside>
+  );
+}
+
+/**
+ * The three-state ACCEPT/UNCERTAIN/NEEDS_PRACTICE assistive-feedback notice
+ * -- a DIFFERENT concept from the reliability notice above (this component
+ * is about recording-quality QC; this one is about a per-syllable tone
+ * judgment). Additive: only rendered when the caller has an
+ * `assistive_feedback` record to show, which only exists when the backend's
+ * `ENABLE_ASSISTIVE_FEEDBACK` flag is on. `NO_ISSUE_DETECTED` renders
+ * nothing by default (no notice needed for "carry on") unless the caller
+ * explicitly opts into showing brief positive acknowledgement.
+ *
+ * Never claims "wrong"/"failed"/"incorrect" -- see
+ * `benchmarking/results/assistive_feedback_design.md` STEP 5.
+ */
+export function AssistiveFeedbackNotice({
+  state,
+  showOnAccept = false,
+  compact = false,
+}: {
+  state: AssistiveState;
+  /** Show a low-key acknowledgement for NO_ISSUE_DETECTED too; off by
+   * default since STEP 4 only asks for this optionally. */
+  showOnAccept?: boolean;
+  compact?: boolean;
+}) {
+  if (state === "ACCEPT" && !showOnAccept) return null;
+
+  const tone = state === "NEEDS_PRACTICE" ? "check" : state === "UNCERTAIN" ? "uncertain" : "accept";
+  const icon = state === "NEEDS_PRACTICE" ? "◎" : state === "UNCERTAIN" ? "?" : "✓";
+
+  return (
+    <aside
+      className={`voice-reliability-notice is-assistive is-${tone}${compact ? " is-compact" : ""}`}
+      role="status"
+      aria-live="polite"
+      data-assistive-state={state}
+    >
+      <span className="voice-reliability-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <div>
+        <p>{ASSISTIVE_MESSAGE[state]}</p>
       </div>
     </aside>
   );

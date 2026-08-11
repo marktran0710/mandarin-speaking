@@ -1,5 +1,11 @@
+import { useState } from "react";
 import { toneArrow } from "../utils/storyRecorderFeedback";
 import { toPinyin, toPinyinSyllables } from "../utils/pinyin";
+import {
+  ASSISTIVE_MESSAGE,
+  matchAssistiveRecord,
+  type AssistiveFeedbackSyllable,
+} from "../utils/assistiveFeedback";
 import { BiLabel } from "./BiLabel";
 import type {
   DiagnosticStatus,
@@ -11,32 +17,30 @@ import type {
 /**
  * Character-by-character readout of what the recording actually measured.
  *
- * This exists because the per-syllable analysis was already being computed and
- * then shown to almost nobody: it only surfaced inside the practice step, only
- * for words that had failed, and only one word at a time. A student who read
- * the sentence well saw no breakdown at all, which reads as "the app didn't
- * listen".
+ * Built in three tiers, because the first version showed everything at once
+ * and an eleven-character sentence turned into six lines of text per
+ * character — technically complete, unreadable in practice:
  *
- * Two columns, two different kinds of claim, and the difference is the whole
- * point:
+ *   1. a count summary, so the shape of the result lands in one glance;
+ *   2. one legend explaining ✓ △ ✗ ↻ once, instead of repeating a bilingual
+ *      label on every row;
+ *   3. one line per character, with the reason, the sandhi rule and the vowel
+ *      measurement behind a tap.
+ *
+ * Two columns, two different kinds of claim, and the difference is the point:
  *
  *  - 聲調 is a *four-state diagnosis*: CORRECT / UNCERTAIN / INCORRECT /
  *    INVALID_AUDIO. It replaced a ✓/✗ read straight off a heuristic contour
  *    score, which made "the pitch tracker had nothing to work with" look
  *    identical to "you said the wrong tone". Only INCORRECT is an accusation.
- *    Note this display does NOT drive lesson progression — that still runs on
- *    the legacy `passed` field, unchanged, and is shown only in debug mode.
- *  - 母音 is a *measurement*. Formants are read from each syllable's own slice
- *    of audio and described relative to this recording's own average — never
- *    against a fixed table, which would misjudge any voice smaller than an
- *    adult's. There is deliberately no right/wrong on it: a beginner sentence
- *    does not contain enough distinct vowels to normalise a speaker reliably,
- *    and a confident wrong verdict is worse than none. See
- *    backend/vowel_analysis.py for the full reasoning.
+ *    This display does NOT drive lesson progression — that still runs on the
+ *    legacy `passed` field, shown only in debug mode.
+ *  - 母音 is a *measurement*, never a score. Formants are read from each
+ *    syllable's own audio and described relative to this recording's own
+ *    average, so the reading holds for any voice. See backend/vowel_analysis.py.
  *
  * Initial consonants (b/p, zh/ch/sh …) are absent because nothing in the
- * pipeline aligns them acoustically. An earlier experimental panel printed
- * them from evenly-divided timings; that was removed rather than shown.
+ * pipeline aligns them acoustically.
  */
 
 interface BreakdownRow {
@@ -44,6 +48,7 @@ interface BreakdownRow {
   char: string;
   pinyin: string;
   syllable: WordProsodySyllable;
+  word: WordProsody;
 }
 
 interface BreakdownGroup {
@@ -51,10 +56,6 @@ interface BreakdownGroup {
   /** The word jieba segmented, e.g. 這個 — the unit practice already uses. */
   token: string;
   pinyin: string;
-  /** Legacy whole-word verdict; null when the analyzer could not judge it. */
-  passed?: boolean | null;
-  /** Word-level four-state diagnosis, independent of `passed`. */
-  diagnostic?: DiagnosticStatus;
   rows: BreakdownRow[];
 }
 
@@ -68,6 +69,18 @@ const BACKNESS_LABEL: Record<VowelZone["backness"], { zh: string; en: string }> 
   front: { zh: "舌頭前", en: "tongue front" },
   central: { zh: "舌頭中", en: "tongue centre" },
   back: { zh: "舌頭後", en: "tongue back" },
+};
+
+/** One-word forms for the collapsed row, where the full phrase would not fit. */
+const HEIGHT_SHORT: Record<VowelZone["height"], string> = {
+  high: "小",
+  mid: "中",
+  low: "大",
+};
+const BACKNESS_SHORT: Record<VowelZone["backness"], string> = {
+  front: "前",
+  central: "中",
+  back: "後",
 };
 
 /** Why a row has no vowel reading. Shown as the dash's tooltip so the blank is
@@ -87,12 +100,6 @@ const NO_VOWEL_REASON: Record<string, { zh: string; en: string }> = {
   },
 };
 
-/** The four tone states, as a learner should read them.
- *
- * The old display collapsed everything into ✓/✗ off a single heuristic
- * score, so "the pitch tracker had nothing to work with" and "you said the
- * wrong tone" looked identical — both red. These four say which one it is,
- * and only one of them is an accusation. */
 const TONE_STATUS: Record<
   DiagnosticStatus,
   { mark: string; zh: string; en: string; tone: string }
@@ -104,9 +111,9 @@ const TONE_STATUS: Record<
     en: "Not clear enough to judge",
     tone: "uncertain",
   },
-  // "Likely" is load-bearing. The thresholds behind this state are
-  // engineering defaults that no human rater has validated, so the wording
-  // must claim strong evidence of a mismatch — not an established error.
+  // "Likely" is load-bearing. The thresholds behind this state are engineering
+  // defaults that no human rater has validated, so the wording must claim
+  // strong evidence of a mismatch — not an established error.
   INCORRECT: {
     mark: "✗",
     zh: "聲調可能不一樣",
@@ -121,8 +128,17 @@ const TONE_STATUS: Record<
   },
 };
 
-/** Why the system could not decide, in words a beginner can act on. Keyed by
- * the backend's stable reason codes. */
+/** Neutral tone is not an uncertain measurement — it is not a measurement at
+ * all, because neutral tone has no contour target. Saying "not clear enough"
+ * would imply the learner's production was borderline; it was never looked at.
+ * The backend status stays UNCERTAIN for schema compatibility. */
+const NEUTRAL_LABEL = {
+  mark: "–",
+  zh: "輕聲，不另外評分",
+  en: "Neutral tone — not separately scored",
+  tone: "not-measured",
+};
+
 const REASON_TEXT: Record<string, { zh: string; en: string }> = {
   neutral_tone_has_no_contour_target: {
     zh: "輕聲沒有固定的調型，所以不打分",
@@ -144,6 +160,14 @@ const REASON_TEXT: Record<string, { zh: string; en: string }> = {
     zh: "調型有點接近，但不夠清楚",
     en: "The pitch movement was close but not clear",
   },
+  contour_matches_expected_tone: {
+    zh: "調型跟目標一樣",
+    en: "The pitch moved the way this tone should",
+  },
+  contour_contradicts_expected_tone: {
+    zh: "調型跟目標相反",
+    en: "The pitch moved the opposite way from this tone",
+  },
   recording_quality_unusable: {
     zh: "這次錄音沒辦法分析",
     en: "This recording could not be analysed",
@@ -153,13 +177,13 @@ const REASON_TEXT: Record<string, { zh: string; en: string }> = {
 /** Human-readable label for a contextual tone rule, so a learner sees *why*
  * the target is not simply the dictionary tone. */
 const RULE_TEXT: Record<string, { zh: string; en: string }> = {
-  T3_T3: { zh: "三聲變調", en: "third-tone sandhi" },
+  T3_T3: { zh: "三聲變調：前面那個念二聲", en: "third-tone sandhi: the first one becomes a rising tone" },
   T3_CHAIN_AMBIGUOUS_GROUPING: {
     zh: "連續三聲，兩種說法都可以",
     en: "third-tone run — either reading is accepted",
   },
-  YI_SANDHI: { zh: "一 的變調", en: "一 tone change" },
-  BU_SANDHI: { zh: "不 的變調", en: "不 tone change" },
+  YI_SANDHI: { zh: "一 的變調", en: "一 changes tone here" },
+  BU_SANDHI: { zh: "不 的變調", en: "不 changes tone here" },
   CONTEXTUAL_NEUTRAL_ALLOWED: {
     zh: "這裡念輕聲也可以",
     en: "neutral tone also accepted here",
@@ -167,8 +191,49 @@ const RULE_TEXT: Record<string, { zh: string; en: string }> = {
   NEUTRAL_LEXICAL: { zh: "輕聲", en: "neutral tone" },
 };
 
+/** Buckets for the summary line. Neutral is counted apart from UNCERTAIN so
+ * the numbers do not imply doubt about syllables nobody measured. */
+const SUMMARY_BUCKETS = [
+  { key: "correct", zh: "個對了", en: "correct" },
+  { key: "uncertain", zh: "個聽不太出來", en: "not clear" },
+  { key: "incorrect", zh: "個要練", en: "to practise" },
+  { key: "invalid", zh: "個要再錄", en: "to re-record" },
+  { key: "neutral", zh: "個輕聲不計", en: "neutral, not scored" },
+] as const;
+
 function zoneText(zone: VowelZone, key: "zh" | "en"): string {
   return `${HEIGHT_LABEL[zone.height][key]}・${BACKNESS_LABEL[zone.backness][key]}`;
+}
+
+function isNeutral(syllable: WordProsodySyllable): boolean {
+  return syllable.score_provenance === "neutral_not_measured";
+}
+
+function referenceEvidenceAccepted(word?: WordProsody): boolean {
+  return Boolean(
+    word?.reference_source === "real_voice" &&
+      word.judged !== false &&
+      typeof word.shape_accuracy === "number" &&
+      word.shape_accuracy >= 58,
+  );
+}
+
+function statusLabel(
+  syllable: WordProsodySyllable,
+  referenceAccepted = false,
+) {
+  if (isNeutral(syllable)) return NEUTRAL_LABEL;
+  const status =
+    referenceAccepted && syllable.diagnostic_status === "INCORRECT"
+      ? "CORRECT"
+      : syllable.diagnostic_status;
+  if (status) return TONE_STATUS[status];
+  // Backends predating the diagnostic layer send no status. Fall back to the
+  // legacy verdict rather than inventing one — a missing field must never
+  // silently become "correct".
+  return syllable.passed
+    ? TONE_STATUS.CORRECT
+    : { ...TONE_STATUS.INCORRECT, zh: "沒過", en: "Did not pass" };
 }
 
 function breakdownGroups(words: WordProsody[]): BreakdownGroup[] {
@@ -183,105 +248,167 @@ function breakdownGroups(words: WordProsody[]): BreakdownGroup[] {
       key: `${word.index}-${word.token}`,
       token: word.token,
       pinyin: toPinyin(word.token),
-      // Verdict only, deliberately no word-level percentage. The word score
-      // is a whole-word shape similarity while the syllable scores below are
-      // directional reads, so the two numbers legitimately disagree — 週末
-      // scored 35 % sitting above 週 100 % and 末 69 % just looked broken.
-      // The tick is safe to show because it *is* the min-rule over exactly
-      // the syllables printed underneath it.
-      passed: word.passed,
-      diagnostic: word.diagnostic_status,
       rows: syllables.map((syllable, index) => ({
         key: `${word.index}-${index}-${syllable.char}`,
         char: syllable.char,
         pinyin: pinyin[index] ?? "",
         syllable,
+        word,
       })),
     });
   }
   return groups;
 }
 
-function ToneCell({
+function countByBucket(groups: BreakdownGroup[]): Record<string, number> {
+  const counts: Record<string, number> = {
+    correct: 0,
+    uncertain: 0,
+    incorrect: 0,
+    invalid: 0,
+    neutral: 0,
+  };
+  for (const group of groups) {
+    for (const { syllable, word } of group.rows) {
+      if (isNeutral(syllable)) {
+        counts.neutral += 1;
+        continue;
+      }
+      const status = statusLabel(syllable, referenceEvidenceAccepted(word));
+      switch (status.tone) {
+        case "pass":
+          counts.correct += 1;
+          break;
+        case "fail":
+          counts.incorrect += 1;
+          break;
+        case "retry":
+          counts.invalid += 1;
+          break;
+        case "uncertain":
+          counts.uncertain += 1;
+          break;
+        default:
+          // No diagnosis: fall back to the legacy verdict so the summary still
+          // adds up to the number of rows shown.
+          if (syllable.passed) counts.correct += 1;
+          else counts.incorrect += 1;
+      }
+    }
+  }
+  return counts;
+}
+
+/** The measured mouth shape, shortened to fit one line. */
+function VowelChip({ syllable }: { syllable: WordProsodySyllable }) {
+  const zone = syllable.measured_zone;
+  if (!zone) {
+    const status = syllable.vowel_status ?? "not_measured";
+    const reason = NO_VOWEL_REASON[status] ?? NO_VOWEL_REASON.not_measured;
+    return (
+      <span className="pb-vowel--none" title={`${reason.zh} — ${reason.en}`}>
+        —
+      </span>
+    );
+  }
+  return (
+    <span className="pb-vowel-chip" lang="zh-Hant">
+      嘴型 {HEIGHT_SHORT[zone.height]}・{BACKNESS_SHORT[zone.backness]}
+      {syllable.vowel_status === "nucleus_only" && (
+        <abbr
+          className="pb-vowel-glide"
+          title="這個韻母會滑動，只量中間 — this final glides, so only its middle was measured"
+        >
+          ~
+        </abbr>
+      )}
+    </span>
+  );
+}
+
+function RowDetail({
   syllable,
+  referenceAccepted = false,
   debug,
+  assistiveRecord = null,
 }: {
   syllable: WordProsodySyllable;
+  referenceAccepted?: boolean;
   debug: boolean;
+  /** Additive ACCEPT/UNCERTAIN/NEEDS_PRACTICE record for this syllable, if
+   * any -- see `PronunciationBreakdown`'s own prop doc. */
+  assistiveRecord?: AssistiveFeedbackSyllable | null;
 }) {
-  // Backends predating this patch send no diagnosis. Rather than inventing
-  // one, fall back to the legacy verdict and say plainly that it is the old
-  // pass/fail — a missing field must not silently become "correct".
-  const status = syllable.diagnostic_status;
-  // A neutral-tone syllable is not an uncertain measurement — it is not a
-  // measurement at all, because neutral tone has no contour target. Saying
-  // "not clear enough to judge" would imply the learner's production was
-  // borderline. It wasn't looked at. The status stays UNCERTAIN for schema
-  // compatibility; only the wording differs.
-  const notMeasured = syllable.score_provenance === "neutral_not_measured";
-  const label = notMeasured
-    ? {
-        mark: "–",
-        zh: "輕聲，不另外評分",
-        en: "Neutral tone — not separately scored",
-        tone: "not-measured",
-      }
-    : status
-      ? TONE_STATUS[status]
-      : null;
+  const label = statusLabel(syllable, referenceAccepted);
   const reason =
-    !notMeasured && syllable.diagnostic_reason
+    !referenceAccepted && !isNeutral(syllable) && syllable.diagnostic_reason
       ? REASON_TEXT[syllable.diagnostic_reason]
       : undefined;
   const rule = syllable.context_rule ? RULE_TEXT[syllable.context_rule] : undefined;
-
-  // Only a confident error gets the red field. An △ must never read as a
-  // mistake — that conflation is the entire bug this replaced.
-  const failed = status
-    ? status === "INCORRECT"
-    : syllable.passed === false;
+  const zone = syllable.measured_zone;
 
   return (
-    <td className={`pb-tone-cell${failed ? " pb-tone-failed" : ""}`}>
-      <span className="pb-tone-target">
-        {toneArrow(syllable.tone)}
-        <small>T{syllable.tone}</small>
-      </span>
-
-      {label ? (
-        <span className={`pb-tone-verdict is-${label.tone}`}>
-          <span className="pb-tone-mark" aria-hidden="true">
-            {label.mark}
-          </span>
-          <BiLabel zh={label.zh} en={label.en} />
-        </span>
-      ) : (
-        <span
-          className={`pb-tone-verdict ${syllable.passed ? "is-pass" : "is-fail"}`}
-        >
-          {syllable.passed ? "✓" : "✗"}
-        </span>
-      )}
-
+    <div className="pb-detail">
+      <p className={`pb-detail-status is-${label.tone}`}>
+        <span aria-hidden="true">{label.mark}</span>{" "}
+        <BiLabel zh={label.zh} en={label.en} />
+      </p>
       {reason && (
-        <small className="pb-tone-reason">
+        <p className="pb-detail-line">
           <BiLabel zh={reason.zh} en={reason.en} />
-        </small>
+        </p>
       )}
       {rule && (
-        <small className="pb-tone-rule">
+        <p className="pb-detail-line pb-detail-rule">
           <BiLabel zh={rule.zh} en={rule.en} />
-        </small>
+        </p>
+      )}
+      {assistiveRecord && assistiveRecord.assistive_state !== "ACCEPT" && (
+        <p className="pb-detail-line pb-detail-assistive" data-assistive-state={assistiveRecord.assistive_state}>
+          {ASSISTIVE_MESSAGE[assistiveRecord.assistive_state]}
+        </p>
+      )}
+
+      {zone && (
+        <div className="pb-detail-vowel">
+          {syllable.expected_vowel && (
+            <p className="pb-detail-line">
+              <span className="pb-detail-label" lang="zh-Hant">
+                要說
+              </span>{" "}
+              <em>{syllable.expected_vowel === "v" ? "ü" : syllable.expected_vowel}</em>{" "}
+              {syllable.expected_zone && (
+                <span lang="zh-Hant">{zoneText(syllable.expected_zone, "zh")}</span>
+              )}
+            </p>
+          )}
+          <p className="pb-detail-line">
+            <span className="pb-detail-label" lang="zh-Hant">
+              你說
+            </span>{" "}
+            <span lang="zh-Hant">{zoneText(zone, "zh")}</span>
+            <small lang="en">
+              {" "}
+              — {zoneText(zone, "en")}
+              {(syllable.f1 ?? 0) > 0 && (
+                <>
+                  {" "}
+                  · F1 {Math.round(syllable.f1 ?? 0)} · F2{" "}
+                  {Math.round(syllable.f2 ?? 0)} Hz
+                </>
+              )}
+            </small>
+          </p>
+        </div>
       )}
 
       {/* Research/debug only. The raw number is a heuristic contour match, not
           a probability and not a pronunciation score out of 100 — showing it
-          to a learner invites exactly that misreading, so it stays behind the
-          debug flag together with the legacy gate it feeds. */}
+          to a learner invites exactly that misreading. */}
       {debug && (
-        <small className="pb-tone-debug">
-          Contour match: {syllable.contour_match_score ?? "—"}/100 ·{" "}
-          provenance: {syllable.score_provenance ?? "unknown"} · legacy gate:{" "}
+        <p className="pb-detail-debug">
+          Contour match: {syllable.contour_match_score ?? "—"}/100 · provenance:{" "}
+          {syllable.score_provenance ?? "unknown"} · legacy gate:{" "}
           {syllable.legacy?.passed === true
             ? "PASS"
             : syllable.legacy?.passed === false
@@ -289,156 +416,153 @@ function ToneCell({
               : "n/a"}{" "}
           ({syllable.legacy?.score ?? syllable.score} vs{" "}
           {syllable.legacy?.threshold ?? 58})
-        </small>
+        </p>
       )}
-    </td>
-  );
-}
-
-function VowelCell({ syllable }: { syllable: WordProsodySyllable }) {
-  const status = syllable.vowel_status ?? "not_measured";
-  const zone = syllable.measured_zone;
-
-  if (!zone) {
-    const reason = NO_VOWEL_REASON[status] ?? NO_VOWEL_REASON.not_measured;
-    return (
-      <span className="pb-vowel pb-vowel--none" title={`${reason.zh} — ${reason.en}`}>
-        —
-      </span>
-    );
-  }
-
-  // The glide caveat applies to most finals, so it rides as a marker on the
-  // row rather than a sentence repeated down the whole column; the footnote
-  // carries the full explanation once.
-  const glides = status === "nucleus_only";
-
-  return (
-    <span className="pb-vowel">
-      {syllable.expected_vowel && (
-        <span className="pb-vowel-line">
-          <span className="pb-vowel-label" lang="zh-Hant">
-            要說
-          </span>
-          <em>{syllable.expected_vowel === "v" ? "ü" : syllable.expected_vowel}</em>
-          {syllable.expected_zone && (
-            <span className="pb-vowel-zone" lang="zh-Hant">
-              {zoneText(syllable.expected_zone, "zh")}
-            </span>
-          )}
-        </span>
-      )}
-      <span className="pb-vowel-line">
-        <span className="pb-vowel-label" lang="zh-Hant">
-          你說
-        </span>
-        <span className="pb-vowel-zone" lang="zh-Hant">
-          {zoneText(zone, "zh")}
-        </span>
-        {glides && (
-          <abbr
-            className="pb-vowel-glide"
-            title="這個韻母會滑動，只量中間 — this final glides, so only its middle was measured"
-          >
-            ~
-          </abbr>
-        )}
-      </span>
-      <small className="pb-vowel-en" lang="en">
-        You said: {zoneText(zone, "en")}
-        {(syllable.f1 ?? 0) > 0 && (
-          <> · F1 {Math.round(syllable.f1 ?? 0)} · F2 {Math.round(syllable.f2 ?? 0)} Hz</>
-        )}
-      </small>
-    </span>
+    </div>
   );
 }
 
 export default function PronunciationBreakdown({
   words,
   debug = false,
+  assistiveFeedback = null,
 }: {
   words: WordProsody[];
   /** Research/teacher mode: reveals the raw contour-match number, its
    * provenance, and the legacy progression gate. Off for learners. */
   debug?: boolean;
+  /** Additive ACCEPT/UNCERTAIN/NEEDS_PRACTICE layer, matched to rows by
+   * position (one record per Han character, same order this component
+   * already flattens `words` into) with a character sanity check -- see
+   * `matchAssistiveRecord`. `null`/absent unless the backend has the
+   * assistive-feedback flag enabled; every row simply shows nothing extra
+   * in that case. */
+  assistiveFeedback?: AssistiveFeedbackSyllable[] | null;
 }) {
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const groups = breakdownGroups(words);
   if (groups.length === 0) return null;
+  let flatIndex = -1;
+
+  const counts = countByBucket(groups);
+  const summary = SUMMARY_BUCKETS.filter((bucket) => counts[bucket.key] > 0);
 
   return (
     <section className="pronunciation-breakdown" aria-label="Pronunciation breakdown">
-      <p className="block-label pb-heading">
-        <BiLabel zh="發音分析" pinyin="Fāyīn fēnxī" en="Pronunciation breakdown" />
-      </p>
+      <div className="pb-head">
+        <p className="block-label pb-heading">
+          <BiLabel zh="發音分析" pinyin="Fāyīn fēnxī" en="Pronunciation breakdown" />
+        </p>
+        {summary.length > 0 && (
+          <p className="pb-summary">
+            {summary.map((bucket, index) => (
+              <span key={bucket.key} className={`pb-summary-item is-${bucket.key}`}>
+                {index > 0 && <span aria-hidden="true"> · </span>}
+                <strong>{counts[bucket.key]}</strong>
+                <span lang="zh-Hant">{bucket.zh}</span>
+                <small lang="en">{bucket.en}</small>
+              </span>
+            ))}
+          </p>
+        )}
+      </div>
 
-      <div className="pb-scroll">
-        <table className="pb-table">
-          <thead>
-            <tr>
-              <th scope="col">
-                <BiLabel zh="字" en="Character" />
-              </th>
-              <th scope="col">
-                <BiLabel zh="聲調" pinyin="Shēngdiào" en="Tone" />
-              </th>
-              <th scope="col">
-                <BiLabel zh="母音" pinyin="Mǔyīn" en="Vowel" />
-              </th>
-            </tr>
-          </thead>
-          {/* One tbody per word, so the table reads as the phrases the
-              student actually practises (這個, 週末) rather than a flat run of
-              characters. The group header carries the word's own verdict —
-              the same one that drives the practice list. */}
-          {groups.map((group) => (
-            <tbody key={group.key} className="pb-group">
-              <tr className="pb-group-row">
-                <th scope="colgroup" colSpan={3} className="pb-group-header">
-                  <span className="pb-group-token" lang="zh-Hant">
-                    {group.token}
-                  </span>
-                  {group.pinyin && (
-                    <span className="pb-group-pinyin">{group.pinyin}</span>
-                  )}
-                  {group.diagnostic ? (
-                    <span
-                      className={`pb-group-verdict is-${TONE_STATUS[group.diagnostic].tone}`}
-                      title={TONE_STATUS[group.diagnostic].en}
+      {/* The legend replaces a bilingual status label on every single row. */}
+      <ul className="pb-legend">
+        {(["CORRECT", "UNCERTAIN", "INCORRECT", "INVALID_AUDIO"] as const).map(
+          (status) => (
+            <li key={status} className={`pb-legend-item is-${TONE_STATUS[status].tone}`}>
+              <span className="pb-mark" aria-hidden="true">
+                {TONE_STATUS[status].mark}
+              </span>
+              <BiLabel zh={TONE_STATUS[status].zh} en={TONE_STATUS[status].en} />
+            </li>
+          ),
+        )}
+      </ul>
+
+      <div className="pb-groups">
+        {groups.map((group) => (
+          <div className="pb-group" key={group.key}>
+            <p className="pb-group-header">
+              <span className="pb-group-token" lang="zh-Hant">
+                {group.token}
+              </span>
+              {group.pinyin && (
+                <span className="pb-group-pinyin">{group.pinyin}</span>
+              )}
+            </p>
+
+            <ul className="pb-rows">
+              {group.rows.map(({ key, char, pinyin, syllable, word }) => {
+                flatIndex += 1;
+                const assistiveRecord = matchAssistiveRecord(assistiveFeedback, flatIndex, char);
+                const referenceAccepted = referenceEvidenceAccepted(word);
+                const label = statusLabel(syllable, referenceAccepted);
+                // Only a confident error gets the red field. An △ must never
+                // read as a mistake — that conflation is the bug this replaced.
+                const failed = label.tone === "fail";
+                const open = openKey === key;
+
+                return (
+                  <li key={key} className="pb-row-item">
+                    <button
+                      type="button"
+                      className={`pb-row${failed ? " pb-row-failed" : ""}${open ? " is-open" : ""}`}
+                      aria-expanded={open}
+                      onClick={() => setOpenKey(open ? null : key)}
                     >
-                      {TONE_STATUS[group.diagnostic].mark}
-                    </span>
-                  ) : (
-                    group.passed != null && (
-                      <span
-                        className={`pb-group-verdict ${group.passed ? "is-pass" : "is-fail"}`}
-                      >
-                        {group.passed ? "✓" : "✗"}
+                      <span className="pb-char-cell">
+                        <span className="pb-char" lang="zh-Hant">
+                          {char}
+                        </span>
+                        {pinyin && <span className="pb-char-pinyin">{pinyin}</span>}
                       </span>
-                    )
-                  )}
-                </th>
-              </tr>
-              {group.rows.map(({ key, char, pinyin, syllable }) => (
-              <tr key={key}>
-                <th scope="row" className="pb-char-cell">
-                  <span className="pb-char" lang="zh-Hant">
-                    {char}
-                  </span>
-                  {pinyin && <span className="pb-char-pinyin">{pinyin}</span>}
-                </th>
-                {/* Only the tone cell carries the failed tint. Tinting the
-                    whole row would drag the vowel column into a verdict it
-                    does not make. */}
-                <ToneCell syllable={syllable} debug={debug} />
-                <td className="pb-vowel-cell">
-                  <VowelCell syllable={syllable} />
-                </td>
-              </tr>
-              ))}
-            </tbody>
-          ))}
-        </table>
+
+                      <span className="pb-tone-cell">
+                        <span className="pb-tone-target" aria-hidden="true">
+                          {toneArrow(syllable.tone)}
+                        </span>
+                        <small>T{syllable.tone}</small>
+                        <span
+                          className={`pb-mark pb-tone-mark is-${label.tone}`}
+                          title={`${label.zh} — ${label.en}`}
+                        >
+                          {label.mark}
+                        </span>
+                        {assistiveRecord && assistiveRecord.assistive_state === "NEEDS_PRACTICE" && (
+                          <span
+                            className="pb-assistive-badge"
+                            aria-hidden="true"
+                            title={ASSISTIVE_MESSAGE[assistiveRecord.assistive_state]}
+                          >
+                            ◎
+                          </span>
+                        )}
+                      </span>
+
+                      <span className="pb-vowel-cell">
+                        <VowelChip syllable={syllable} />
+                      </span>
+
+                      <span className="pb-chevron" aria-hidden="true">
+                        ›
+                      </span>
+                    </button>
+                    {open && (
+                      <RowDetail
+                        syllable={syllable}
+                        referenceAccepted={referenceAccepted}
+                        debug={debug}
+                        assistiveRecord={assistiveRecord}
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </div>
 
       <p className="pb-footnote">

@@ -129,6 +129,8 @@ export function sceneReady(prog: {
  * isn't grounded in the actual measured pitch data. */
 /** Pronunciation feedback only matters once the sentence's meaning is accepted. */
 export function isContentAccepted(praatMetrics: PraatMetrics): boolean {
+  if (praatMetrics.content_match === false) return false;
+  if (praatMetrics.content_match === true) return true;
   const contentAccuracy = praatMetrics.ai_feedback?.content_accuracy;
   if (!contentAccuracy?.feedback) return true;
   return contentAccuracy.accepted !== false;
@@ -138,6 +140,10 @@ export function isContentAccepted(praatMetrics: PraatMetrics): boolean {
  * and includes every vocabulary item the evaluator expects. Pronunciation is
  * intentionally checked separately by the prosody gate. */
 export function sceneContentGatePassed(praatMetrics: PraatMetrics): boolean {
+  // Whole-sentence practice now has an independent ASR verdict. It is more
+  // authoritative than the optional language-feedback vocabulary heuristic.
+  if (praatMetrics.content_match === false) return false;
+  if (praatMetrics.content_match === true) return true;
   if (!isContentAccepted(praatMetrics)) return false;
   return (praatMetrics.ai_feedback?.vocabulary_coverage?.missing?.length ?? 0) === 0;
 }
@@ -161,15 +167,32 @@ export function averageWordProsodyAccuracy(
 export function failedProsodyWords(
   wordProsody?: WordProsody[],
 ): WordProsody[] {
-  return (wordProsody ?? []).filter((item) => item.passed === false);
+  return (wordProsody ?? []).filter(isProsodyHardFailure);
+}
+
+/** One pronunciation verdict shared by progression, practice ordering and UI.
+ * It intentionally keeps old payloads working while making the newer
+ * diagnostic/reference evidence authoritative when it is present. */
+export function isProsodyHardFailure(item: WordProsody): boolean {
+  if (item.judged === false || item.diagnostic_status === "INVALID_AUDIO") {
+    return true;
+  }
+  if (item.reference_source === "real_voice") {
+    return (
+      typeof item.shape_accuracy !== "number" ||
+      item.shape_accuracy < 58
+    );
+  }
+  if (item.diagnostic_status === "UNCERTAIN") return false;
+  if (item.diagnostic_status === "INCORRECT") return true;
+  return item.passed === false;
 }
 
 /** The pronunciation mastery gate: a recording clears it when no word
  * failed the per-syllable verdict. An empty/absent word_prosody passes —
  * the gate only ever blocks on evidence, not on missing data. */
 export function prosodyGatePassed(wordProsody?: WordProsody[]): boolean {
-  if ((wordProsody ?? []).some((item) => item.judged === false)) return false;
-  return failedProsodyWords(wordProsody).length === 0;
+  return !(wordProsody ?? []).some(isProsodyHardFailure);
 }
 
 /** Compact arrow for a tone number (target shapes shown next to what the

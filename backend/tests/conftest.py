@@ -77,6 +77,7 @@ TRUNCATED_TABLES = (
     "speaking_progress",
     "story_submissions",
     "students",
+    "teacher_pronunciation_ratings",
     "vocab_quiz_attempts",
 )
 

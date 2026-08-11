@@ -60,6 +60,15 @@ interface SpeakingFlowCardProps {
   hasNextScene: boolean;
   onNextScene: () => void;
   onViewSummary: () => void;
+  /** PART 3 of the small-teacher-validated-pilot architecture: when true,
+   * bypasses `sceneReady`'s legacy bestTone/bestFluency/attempts>=4 gate for
+   * THIS attempt — set only for a pilot session where the backend actually
+   * computed the assistive-feedback layer (see StoryRecorder's
+   * `pilotAssistiveFeedbackActive`). `masteryPassed` gets the same
+   * per-attempt override upstream, so together they mean legacy scoring
+   * never blocks a pilot student's progression. Defaults to false: no
+   * behavior change until an operator turns the pilot flag on. */
+  sceneReadyOverride?: boolean;
   analysisVersion?: AnalysisVersion;
   experimentalAvailable?: boolean;
   experimentalStatus?: string;
@@ -109,6 +118,7 @@ export default function SpeakingFlowCard({
   hasNextScene,
   onNextScene,
   onViewSummary,
+  sceneReadyOverride = false,
   analysisVersion = "stable_v1",
   experimentalAvailable = true,
   experimentalStatus,
@@ -143,7 +153,10 @@ export default function SpeakingFlowCard({
   // recording) gates progression alongside the score/attempts unlock — the
   // attempts escape hatch never bypasses failing words.
   const ready =
-    analysisVersion === "stable_v1" && (prog ? sceneReady(prog) : false) && masteryPassed && contentPassed;
+    analysisVersion === "stable_v1" &&
+    (sceneReadyOverride || (prog ? sceneReady(prog) : false)) &&
+    masteryPassed &&
+    contentPassed;
 
   const sceneChip = (
     <span className="sfc-scene-chip">
@@ -365,6 +378,7 @@ export default function SpeakingFlowCard({
       onNextScene={onNextScene}
       onViewSummary={onViewSummary}
       onRecordAgain={() => setScreen("record")}
+      assistiveFeedback={praatMetrics?.assistive_feedback ?? null}
       analysisVersion={analysisVersion}
       comparison={comparison}
       onCompare={onCompare}

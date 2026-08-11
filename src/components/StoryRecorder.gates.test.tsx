@@ -395,11 +395,13 @@ describe("StoryRecorder speaking practice gates", () => {
     expect(screen.queryByText("Pronunciation detail should be gated.")).not.toBeInTheDocument();
   });
 
-  // BUG: StoryRecorder still has selectedModel state, but no rendered
-  // speech-source selector reaches students in the current SpeakingFlowCard.
-  // Without that control, a mid-session webspeech -> groq switch cannot be
-  // exercised by a user-facing test.
-  it.fails("preserves scene and attempt state across a mid-session speech model switch", async () => {
+  // Was marked `it.fails` with a comment blaming a missing speech-source
+  // selector. That diagnosis was wrong: the selector renders fine. What the
+  // test could not reach was the "Record again" button, which only existed
+  // once the scene had already unlocked — so after one attempt there was no
+  // way back to the recorder. Fixing that dead end in SpeakingResultsFlow's
+  // footer is what let this pass; see SpeakingResultsFlow.recordAgain.test.tsx.
+  it("preserves scene and attempt state across a mid-session speech model switch", async () => {
     const user = userEvent.setup();
 
     render(

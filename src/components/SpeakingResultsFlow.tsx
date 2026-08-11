@@ -17,9 +17,13 @@ import {
 } from "../utils/scriptAlignment";
 import type { PraatMetrics, Topic } from "./StoryRecorder";
 import { toPinyin } from "../utils/pinyin";
-import VoiceFeedbackReliabilityNotice from "./VoiceFeedbackReliabilityNotice";
+import VoiceFeedbackReliabilityNotice, {
+  AssistiveFeedbackNotice,
+} from "./VoiceFeedbackReliabilityNotice";
 import { assessVoiceFeedbackReliability } from "../utils/voiceFeedbackReliability";
 import type { AnalysisVersion } from "../utils/analysisVersion";
+import { worstState, type AssistiveFeedbackSyllable } from "../utils/assistiveFeedback";
+import { shouldOfferRetry } from "../utils/retryPolicy";
 
 export interface AnalysisRun {
   version: AnalysisVersion;
@@ -77,8 +81,19 @@ interface SpeakingResultsFlowProps {
   onNextScene: () => void;
   onViewSummary: () => void;
   onRecordAgain: () => void;
+  /** Additive ACCEPT/UNCERTAIN/NEEDS_PRACTICE layer; absent/null unless the
+   * backend has the assistive-feedback flag enabled. Never gates `ready` or
+   * `onNextScene`/`onViewSummary` -- see `src/utils/retryPolicy.ts`. */
+  assistiveFeedback?: AssistiveFeedbackSyllable[] | null;
+  /** How many focused retries this attempt has already used; caller-owned
+   * (this component has no attempt-scoped state of its own). Defaults to 0. */
+  assistiveRetriesUsed?: number;
   analysisVersion?: AnalysisVersion;
   comparison?: ComparisonResult | null;
+  /** Accepted but no longer used: the "Compare Stable vs Experimental" button
+   * that called it has been removed. Nothing else populates `comparison`
+   * either, so that panel is currently unreachable — see the note in
+   * StoryRecorder.compareCurrentRecording before deleting the chain. */
   onCompare?: () => void;
 }
 
@@ -111,9 +126,10 @@ export default function SpeakingResultsFlow({
   onNextScene,
   onViewSummary,
   onRecordAgain,
+  assistiveFeedback = null,
+  assistiveRetriesUsed = 0,
   analysisVersion = "stable_v1",
   comparison,
-  onCompare,
 }: SpeakingResultsFlowProps) {
   const ai = praatMetrics.ai_feedback;
   const accepted = isContentAccepted(praatMetrics);
@@ -389,6 +405,10 @@ export default function SpeakingResultsFlow({
         assessment={feedbackReliability}
         attemptCount={attempts}
       />
+      {assistiveFeedback && assistiveFeedback.length > 0 && (() => {
+        const rolledUpState = worstState(assistiveFeedback);
+        return rolledUpState ? <AssistiveFeedbackNotice state={rolledUpState} /> : null;
+      })()}
 
       {(analysisAudioBlob || praatMetrics.transcription || submittedAudioName) && (
         <div className="sfc-results-scene-extras">
@@ -409,7 +429,10 @@ export default function SpeakingResultsFlow({
           used to surface only inside the practice step and only for failed
           words, so a student who read the sentence well saw no breakdown at
           all — the app looked like it hadn't listened. */}
-      <PronunciationBreakdown words={praatMetrics.word_prosody || []} />
+      <PronunciationBreakdown
+        words={praatMetrics.word_prosody || []}
+        assistiveFeedback={assistiveFeedback}
+      />
 
       {analysisVersion === "phoneme_tone_v2" && (
         <section className="experimental-analysis-panel" aria-label="Experimental analysis">
@@ -428,12 +451,6 @@ export default function SpeakingResultsFlow({
             </div>
           ) : <p>Character alignment is not available for this attempt.</p>}
         </section>
-      )}
-
-      {analysisAudioBlob && onCompare && (
-        <AppButton tone="secondary" className="analysis-compare-button" onClick={onCompare}>
-          Compare Stable vs Experimental
-        </AppButton>
       )}
 
       {comparison && (
@@ -966,30 +983,48 @@ export default function SpeakingResultsFlow({
             />
           </p>
         ) : null}
-        {ready && (
+        {/* Recording again is always available. It used to sit inside the
+            `ready` branch along with the forward actions, which meant that
+            before the scene unlocked the footer was a 🔒 note and nothing
+            else — while that same note told the student to "re-record the
+            whole sentence". Re-recording is not progression: the mastery gate
+            still decides what unlocks, and it is untouched. */}
+        {/* STEP 3's bounded retry offer: at most one, only for a syllable
+            actually flagged CHECK_THIS_TONE, and always optional -- the
+            "Record again" button above/below is already unconditionally
+            available regardless, so declining costs nothing. */}
+        {assistiveFeedback && shouldOfferRetry(worstState(assistiveFeedback), assistiveRetriesUsed) && (
+          <p className="sfc-assistive-retry-hint">
+            <BiLabel
+              zh="想再試一次這個音嗎？"
+              pinyin="Xiǎng zài shì yí cì zhège yīn ma?"
+              en="Want to try that tone once more? Totally optional."
+            />
+          </p>
+        )}
         <div className="sfc-footer-actions">
           <AppButton tone="subtle" className="sfc-btn-again" onClick={onRecordAgain}>
             🎙️ <BiLabel zh="再錄一次" pinyin="Zài lù yí cì" en="Record again" />
           </AppButton>
-          {hasNextScene ? (
-            <AppButton
-              tone="secondary"
-              className="sfc-btn-next"
-              onClick={onNextScene}
-            >
-              <BiLabel k="next_scene" /> →
-            </AppButton>
-          ) : (
-            <AppButton
-              tone="secondary"
-              className="sfc-btn-next"
-              onClick={onViewSummary}
-            >
-              <BiLabel zh="查看總結" pinyin="Chákàn zǒngjié" en="View summary" /> →
-            </AppButton>
-          )}
+          {ready &&
+            (hasNextScene ? (
+              <AppButton
+                tone="secondary"
+                className="sfc-btn-next"
+                onClick={onNextScene}
+              >
+                <BiLabel k="next_scene" /> →
+              </AppButton>
+            ) : (
+              <AppButton
+                tone="secondary"
+                className="sfc-btn-next"
+                onClick={onViewSummary}
+              >
+                <BiLabel zh="查看總結" pinyin="Chákàn zǒngjié" en="View summary" /> →
+              </AppButton>
+            ))}
         </div>
-        )}
       </footer>
     </section>
   );

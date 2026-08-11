@@ -69,6 +69,10 @@ interface AudioRecord {
   analysisSchemaVersion?: string;
   modelVersion?: string;
   comparisonGroupId?: string;
+  sessionId?: string;
+  attemptId?: string;
+  attemptNumber?: number;
+  attemptType?: "WHOLE_SENTENCE_INITIAL" | "FOCUSED_RETRY" | "WHOLE_SENTENCE_FINAL";
 }
 
 interface PracticeTarget {
@@ -529,6 +533,10 @@ function serializeAudioRecord(record: AudioRecord): StoredAudioRecord {
       analysisSchemaVersion: record.analysisSchemaVersion ?? record.praatMetrics?.analysis_schema_version,
       modelVersion: record.modelVersion ?? record.praatMetrics?.model_version,
       comparisonGroupId: record.comparisonGroupId,
+      sessionId: record.sessionId,
+      attemptId: record.attemptId,
+      attemptNumber: record.attemptNumber,
+      attemptType: record.attemptType,
     praatMetrics: record.praatMetrics,
   };
 }

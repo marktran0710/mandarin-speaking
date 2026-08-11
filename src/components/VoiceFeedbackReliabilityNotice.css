@@ -1,23 +1,14 @@
+/* Only the retry level renders now — the "usable" and "estimate" notices were
+   removed because a learner cannot act on either. The base rule therefore
+   carries the retry palette directly. */
 .voice-reliability-notice {
   display: flex;
   gap: 0.75rem;
   align-items: flex-start;
   margin: 0.85rem 0;
   padding: 0.8rem 0.95rem;
-  border: 1px solid #b9d8c2;
+  border: 1px solid #e3aaa4;
   border-radius: 12px;
-  background: #f1faf3;
-  color: #173f27;
-}
-
-.voice-reliability-notice.is-estimate {
-  border-color: #d9c681;
-  background: #fff9e8;
-  color: #564612;
-}
-
-.voice-reliability-notice.is-retry {
-  border-color: #e3aaa4;
   background: #fff1ef;
   color: #6f2620;
 }
@@ -42,8 +33,7 @@
   line-height: 1.45;
 }
 
-.voice-reliability-action,
-.voice-reliability-teacher {
+.voice-reliability-action {
   font-weight: 600;
 }
 
@@ -56,4 +46,27 @@
   .voice-reliability-notice {
     scroll-behavior: auto;
   }
+}
+
+/* Assistive-feedback states (ACCEPT/UNCERTAIN/NEEDS_PRACTICE) -- a
+   different concept from the recording-quality retry notice above, so
+   they get their own, non-alarming palette rather than inheriting the
+   retry rule's red. */
+.voice-reliability-notice.is-assistive.is-check {
+  border-color: color-mix(in srgb, var(--clay-warning, #ffa726) 55%, transparent);
+  background: color-mix(in srgb, var(--clay-warning, #ffa726) 14%, transparent);
+  color: var(--clay-warning-deep, #7a4a00);
+}
+
+.voice-reliability-notice.is-assistive.is-uncertain {
+  border-color: color-mix(in srgb, currentColor 25%, transparent);
+  background: color-mix(in srgb, currentColor 6%, transparent);
+  color: inherit;
+  opacity: 0.85;
+}
+
+.voice-reliability-notice.is-assistive.is-accept {
+  border-color: color-mix(in srgb, var(--clay-success, #1c9a5b) 45%, transparent);
+  background: color-mix(in srgb, var(--clay-success, #1c9a5b) 12%, transparent);
+  color: var(--clay-success, #1c9a5b);
 }

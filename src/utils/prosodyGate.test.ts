@@ -35,6 +35,21 @@ describe("failedProsodyWords", () => {
   it("handles absent word_prosody", () => {
     expect(failedProsodyWords(undefined)).toEqual([]);
   });
+
+  it("uses the same hard-failure policy as progression", () => {
+    expect(
+      failedProsodyWords([
+        word({ index: 1, passed: false, diagnostic_status: "UNCERTAIN" }),
+        word({
+          index: 2,
+          passed: false,
+          reference_source: "real_voice",
+          shape_accuracy: 84,
+        }),
+        word({ index: 3, passed: false, diagnostic_status: "INCORRECT" }),
+      ]).map((item) => item.index),
+    ).toEqual([3]);
+  });
 });
 
 describe("prosodyGatePassed", () => {
@@ -72,22 +87,22 @@ describe("tone/shape arrows", () => {
   });
 });
 
-describe("prosodyGatePassed is unaffected by the diagnostic layer", () => {
+describe("prosodyGatePassed uses diagnostic and reference evidence", () => {
   // The four-state diagnosis exists for display and research. It must not
   // move anyone's lesson unlock, so the gate has to read exactly the same
   // fields it always did — `passed` and `judged` — and ignore the rest.
-  it("ignores diagnostic_status entirely", () => {
+  it("does not block an uncertain verdict but blocks a firm error", () => {
     const failing = word({
       passed: false,
-      diagnostic_status: "CORRECT",
+      diagnostic_status: "UNCERTAIN",
     } as Partial<WordProsody>);
-    expect(prosodyGatePassed([failing])).toBe(false);
+    expect(prosodyGatePassed([failing])).toBe(true);
 
     const passing = word({
       passed: true,
       diagnostic_status: "INCORRECT",
     } as Partial<WordProsody>);
-    expect(prosodyGatePassed([passing])).toBe(true);
+    expect(prosodyGatePassed([passing])).toBe(false);
   });
 
   it("still blocks on unjudged words regardless of their diagnosis", () => {
@@ -97,6 +112,19 @@ describe("prosodyGatePassed is unaffected by the diagnostic layer", () => {
       diagnostic_status: "CORRECT",
     } as Partial<WordProsody>);
     expect(prosodyGatePassed([unjudged])).toBe(false);
+  });
+
+  it("uses a real reference curve instead of a conflicting synthetic verdict", () => {
+    expect(
+      prosodyGatePassed([
+        word({ passed: false, reference_source: "real_voice", shape_accuracy: 82 }),
+      ]),
+    ).toBe(true);
+    expect(
+      prosodyGatePassed([
+        word({ passed: true, reference_source: "real_voice", shape_accuracy: 42 }),
+      ]),
+    ).toBe(false);
   });
 
   it("produces identical results with and without the new fields", () => {
