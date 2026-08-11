@@ -3,6 +3,7 @@ import { BiLabel } from "./BiLabel";
 import AppButton from "./AppButton";
 import SpeakingResultsFlow from "./SpeakingResultsFlow";
 import { sceneReady } from "../utils/storyRecorderFeedback";
+import type { SelfEvalLevel } from "../utils/selfEvalComparison";
 import type {
   PraatMetrics,
   SpeechModel,
@@ -53,6 +54,10 @@ interface SpeakingFlowCardProps {
    * back to a pass — drives the words-first-then-sentence checklist. */
   clearedWords: string[];
   onWordDrillPass: (token: string) => void;
+  onSelfEvalSubmit?: (levels: {
+    content: SelfEvalLevel;
+    pronunciation: SelfEvalLevel;
+  }) => void;
   hasNextScene: boolean;
   onNextScene: () => void;
   onViewSummary: () => void;
@@ -95,6 +100,7 @@ export default function SpeakingFlowCard({
   contentPassed,
   clearedWords,
   onWordDrillPass,
+  onSelfEvalSubmit,
   hasNextScene,
   onNextScene,
   onViewSummary,
@@ -327,6 +333,7 @@ export default function SpeakingFlowCard({
       submittedAudioName={submittedAudioName}
       clearedWords={clearedWords}
       onWordDrillPass={onWordDrillPass}
+      onSelfEvalSubmit={onSelfEvalSubmit}
       hasNextScene={hasNextScene}
       onNextScene={onNextScene}
       onViewSummary={onViewSummary}

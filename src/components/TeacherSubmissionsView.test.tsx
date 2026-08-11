@@ -79,6 +79,21 @@ describe("TeacherSubmissionsView", () => {
     expect(onReviewUpdate).toHaveBeenCalledWith(reviewedSubmission);
   });
 
+  it("shows the student's self-eval next to the scene score, only for scenes that have it", async () => {
+    const withSelfEval: StorySubmission = {
+      ...submissions[0],
+      scenes: [
+        { ...submissions[0].scenes[0], selfEvalContent: "good", selfEvalPronunciation: "ok" },
+        { ...submissions[0].scenes[0], sceneIndex: 1 },
+      ],
+    };
+
+    render(<TeacherSubmissionsView submissions={[withSelfEval]} onReviewUpdate={vi.fn()} />);
+
+    expect(screen.getByText(/Self-eval:.*meaning.*pronunciation/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Self-eval:/)).toHaveLength(1);
+  });
+
   it("narrows the list with search and student filters", async () => {
     const user = userEvent.setup();
 

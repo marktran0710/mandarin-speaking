@@ -4,6 +4,7 @@ import {
   type StorySubmission,
 } from "../services/database";
 import { resolveImageUrl } from "../utils/teacherStories";
+import { SELF_EVAL_EMOJI } from "../utils/selfEvalComparison";
 import StoryFeedbackCard from "./StoryFeedbackCard";
 
 type SubmissionSort = "needs-review" | "newest" | "oldest";
@@ -224,6 +225,21 @@ export default function TeacherSubmissionsView({
                             Vocab {scene.vocabScore}% · Tone {scene.toneAccuracy}% · Prosody {scene.pronScore}%
                           </span>
                         </div>
+                        {(scene.selfEvalContent || scene.selfEvalPronunciation) && (
+                          <p
+                            className="sss-self-eval"
+                            title="Student's own rating, given before they saw this scene's results"
+                          >
+                            Self-eval:
+                            {scene.selfEvalContent && (
+                              <> {SELF_EVAL_EMOJI[scene.selfEvalContent]} meaning</>
+                            )}
+                            {scene.selfEvalContent && scene.selfEvalPronunciation && " ·"}
+                            {scene.selfEvalPronunciation && (
+                              <> {SELF_EVAL_EMOJI[scene.selfEvalPronunciation]} pronunciation</>
+                            )}
+                          </p>
+                        )}
                         {scene.transcription && (
                           <p className="sss-transcription" lang="zh-TW">"{scene.transcription}"</p>
                         )}
