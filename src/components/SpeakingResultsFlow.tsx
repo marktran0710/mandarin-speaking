@@ -42,18 +42,50 @@ interface ComparisonResult {
   runs: Partial<Record<AnalysisVersion, AnalysisRun>>;
 }
 
-// Labels for pronunciation_note.details — one line per aspect inside the
-// overview step's 發音回饋 panel.
-const PRONUNCIATION_DETAIL_LABELS: Record<
-  string,
-  { icon: string; zh: string; pinyin: string; en: string }
-> = {
-  tone: { icon: "🎵", zh: "聲調", pinyin: "Shēngdiào", en: "Tone" },
-  rhythm_pace: { icon: "⏱️", zh: "節奏和速度", pinyin: "Jiézòu hé sùdù", en: "Rhythm & Pace" },
-  pausing: { icon: "⏸️", zh: "停頓", pinyin: "Tíngdùn", en: "Pausing" },
-  vowel_quality: { icon: "👄", zh: "母音", pinyin: "Mǔyīn", en: "Vowel Quality" },
-  word_stress: { icon: "💪", zh: "重音", pinyin: "Zhòngyīn", en: "Word Stress" },
-};
+function AudioCompare({ modelAudioUrl, modelSentence, analysisAudioBlob }: {
+  modelAudioUrl?: string;
+  modelSentence?: string;
+  analysisAudioBlob: Blob | null;
+}) {
+  return (
+    <div className="sfc-audio-compare" aria-label="Listen and compare">
+      <ReferenceAudioCard audioUrl={modelAudioUrl} sentence={modelSentence} />
+      {analysisAudioBlob ? (
+        <RecordingPlayback blob={analysisAudioBlob} />
+      ) : (
+        <div className="sfc-recording-unavailable" role="status">
+          <BiLabel zh="暫無你的錄音" en="Your recording unavailable" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProgressSnapshot({
+  attempts,
+  mastery,
+  practicePartCount,
+}: {
+  attempts: number;
+  mastery: PraatMetrics["pronunciation_mastery"];
+  practicePartCount: number;
+}) {
+  const passed = mastery?.passed_syllables;
+  const total = mastery?.total_syllables;
+  return (
+    <section className="sfc-progress-snapshot" aria-label="Practice progress">
+      <div className="sfc-progress-snapshot-heading">
+        <strong>學習進度 / Progress</strong>
+        <span>本次 / Current</span>
+      </div>
+      <div className="sfc-progress-snapshot-grid">
+        <div><strong>{attempts}</strong><span>次數 / Attempts</span></div>
+        <div><strong>{typeof passed === "number" && typeof total === "number" ? `${passed}/${total}` : "—"}</strong><span>音節 / Syllables</span></div>
+        <div><strong>{practicePartCount}</strong><span>待練 / To practise</span></div>
+      </div>
+    </section>
+  );
+}
 
 type ResultsStep = "overview" | "fix" | "practice";
 
@@ -77,7 +109,6 @@ interface SpeakingResultsFlowProps {
   masteryPassed: boolean;
   praatMetrics: PraatMetrics;
   analysisAudioBlob: Blob | null;
-  submittedAudioName: string;
   clearedWords: string[];
   onWordDrillPass: (token: string) => void;
   hasNextScene: boolean;
@@ -120,7 +151,6 @@ export default function SpeakingResultsFlow({
   masteryPassed,
   praatMetrics,
   analysisAudioBlob,
-  submittedAudioName,
   clearedWords,
   onWordDrillPass,
   hasNextScene,
@@ -153,7 +183,6 @@ export default function SpeakingResultsFlow({
   const pronunciationMastery = praatMetrics.pronunciation_mastery;
   const contentAccuracy = ai?.content_accuracy;
   const corrective = ai?.corrective_feedback;
-  const pronunciationNote = ai?.pronunciation_note;
   const meaningJudged = Boolean(contentAccuracy?.judged);
   const feedbackReliability = assessVoiceFeedbackReliability({
     feedbackQuality: praatMetrics.feedback_quality,
@@ -328,7 +357,8 @@ export default function SpeakingResultsFlow({
     }
   };
 
-  const sceneChip = (
+  /* scene label intentionally omitted from results to avoid repeating sidebar context. */
+  const unusedSceneChip = (
     <span className="sfc-scene-chip">
       <BiLabel
         zh={`部分 ${selectedImageIndex + 1}/${totalScenes}`}
@@ -341,6 +371,7 @@ export default function SpeakingResultsFlow({
       )}
     </span>
   );
+  void unusedSceneChip;
 
   const verdictContent = {
     meaning: {
@@ -419,7 +450,6 @@ export default function SpeakingResultsFlow({
             <p className="sfc-verdict-text">{verdictContent.text}</p>
           )}
         </div>
-        {sceneChip}
       </header>
 
       <VoiceFeedbackReliabilityNotice
@@ -449,65 +479,24 @@ export default function SpeakingResultsFlow({
           {pronunciationMastery.message && <p>{pronunciationMastery.message}</p>}
         </div>
       )}
-      {(pronunciationMastery || practiceWords.length > 0) && (
-        <section className="sfc-next-action-card" aria-label="Next practice action">
-          <div>
-            <p className="sfc-next-action-kicker">下一步 / Next action</p>
-            <h2>
-              {pronunciationMastery?.status === "passed"
-                ? "聲調已通過 / Measured tones cleared"
-                : pronunciationMastery?.status === "not_judged"
-                  ? "請安靜環境再錄 / Record again in a quiet place"
-              : practicePartCount > 0
-                  ? `練習 ${practicePartCount} 個部分 / Practice ${practicePartCount} part${practicePartCount === 1 ? "" : "s"}`
-                    : "再清楚錄一次 / Make one more clear recording"}
-            </h2>
-          </div>
-          <p>
-            {pronunciationMastery?.status === "passed"
-              ? "輕聲會分開顯示，不算發音錯誤。 / Neutral tones are separate, not pronunciation failures."
-              : pronunciationMastery?.status === "not_judged"
-                ? "音高證據不足，這是錄音品質提示，不是聲調錯誤。 / Not enough pitch evidence; this is an audio-quality result, not a wrong-tone verdict."
-                : practicePartCount > 0
-                  ? "先練標記部分，再錄整句。 / Start with the highlighted parts, then record the full sentence."
-                  : "靠近麥克風，穩定說完整句子。 / Stay close to the microphone and say the full target steadily."}
-          </p>
-        </section>
-      )}
+      <ProgressSnapshot
+        attempts={attempts}
+        mastery={pronunciationMastery}
+        practicePartCount={practicePartCount}
+      />
       {assistiveFeedback && assistiveFeedback.length > 0 && (() => {
         const rolledUpState = worstState(assistiveFeedback);
         return rolledUpState ? <AssistiveFeedbackNotice state={rolledUpState} /> : null;
       })()}
 
-      {(modelAudioUrl || analysisAudioBlob || praatMetrics.transcription || submittedAudioName) && (
+      {praatMetrics.transcription && (
         <div className="sfc-results-scene-extras">
-          <div className="sfc-audio-compare" aria-label="Listen and compare">
-            <ReferenceAudioCard audioUrl={modelAudioUrl} sentence={modelSentence} />
-            {analysisAudioBlob && <RecordingPlayback blob={analysisAudioBlob} />}
-          </div>
-          {praatMetrics.transcription && (
-            <p className="sfc-transcript">
-              <BiLabel k="you_said" />{" "}
-              <em lang="zh-TW">{praatMetrics.transcription}</em>
-            </p>
-          )}
-          {submittedAudioName && (
-            <p className="submitted-audio-name">✓ {submittedAudioName}</p>
-          )}
+          <details className="sfc-transcript-details">
+            <summary><BiLabel zh="你說的是" en="What you said" /></summary>
+            <p className="sfc-transcript"><em lang="zh-TW">{praatMetrics.transcription}</em></p>
+          </details>
         </div>
       )}
-
-      {/* Shown for every attempt, passed or failed. The per-syllable analysis
-          used to surface only inside the practice step and only for failed
-          words, so a student who read the sentence well saw no breakdown at
-          all — the app looked like it hadn't listened. */}
-      <PronunciationBreakdown
-        words={praatMetrics.word_prosody || []}
-        targetText={modelSentence}
-        transcription={praatMetrics.transcription}
-        teacherPhrases={teacherPhraseChunks}
-        assistiveFeedback={assistiveFeedback}
-      />
 
       {analysisVersion === "phoneme_tone_v2" && (
         <section className="experimental-analysis-panel" aria-label="Experimental analysis">
@@ -585,29 +574,6 @@ export default function SpeakingResultsFlow({
               </button>
             );
           })}
-        </div>
-      )}
-
-      {accepted && pronunciationNote?.details && pronunciationNote.details.length > 0 && (
-        <div className="sfc-overview-details">
-          <p className="block-label sfc-scene-detail-heading">
-            <BiLabel zh="發音回饋" pinyin="Fāyīn huíkuì" en="Pronunciation Feedback" />
-          </p>
-          <div className="sfc-scene-detail-list">
-            {pronunciationNote.details.map((d) => {
-              const meta = PRONUNCIATION_DETAIL_LABELS[d.key];
-              if (!meta) return null;
-              return (
-                <div key={d.key} className="sfc-scene-detail-item">
-                  <p className="sfc-scene-detail-label">
-                    <span aria-hidden="true">{meta.icon}</span>{" "}
-                    <BiLabel zh={meta.zh} pinyin={meta.pinyin} en={meta.en} />
-                  </p>
-                  <p className="sfc-scene-detail-text">{d.text}</p>
-                </div>
-              );
-            })}
-          </div>
         </div>
       )}
 
@@ -991,6 +957,37 @@ export default function SpeakingResultsFlow({
           <div className="practice-scene-image">
             <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} />
           </div>
+          <AudioCompare
+            modelAudioUrl={modelAudioUrl}
+            modelSentence={modelSentence}
+            analysisAudioBlob={analysisAudioBlob}
+          />
+          <details
+            className="sfc-left-feedback"
+            open={practicePartCount > 0 && pronunciationMastery?.status !== "passed"}
+          >
+            <summary className="sfc-left-feedback-summary">
+              <BiLabel zh="發音分析" en="Pronunciation feedback" />
+              <span>
+                <BiLabel
+                  zh={practicePartCount > 0
+                    ? `還有 ${practicePartCount} 個部分要練習`
+                    : "已通過評量音調"}
+                  en={practicePartCount > 0
+                    ? `${practicePartCount} part${practicePartCount === 1 ? "" : "s"} to practise`
+                    : "Measured tones cleared"}
+                />
+              </span>
+            </summary>
+            <PronunciationBreakdown
+              words={praatMetrics.word_prosody || []}
+              targetText={modelSentence}
+              transcription={praatMetrics.transcription}
+              teacherPhrases={teacherPhraseChunks}
+              assistiveFeedback={assistiveFeedback}
+              compact
+            />
+          </details>
         </div>
 
         <div className="sfc-results-main">
