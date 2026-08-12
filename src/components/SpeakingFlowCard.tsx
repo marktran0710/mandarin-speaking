@@ -143,7 +143,7 @@ export default function SpeakingFlowCard({
     contentPassed;
 
   const sceneChip = (
-    <span className="sfc-scene-chip">
+    <span className="sfc-attempt-only">
       <BiLabel
         zh={`部分 ${selectedImageIndex + 1}/${totalScenes}`}
         en={`Scene ${selectedImageIndex + 1} of ${totalScenes}`}
@@ -202,7 +202,7 @@ export default function SpeakingFlowCard({
   // ── Screen 1: record ──────────────────────────────────────────────────
   if (screen === "record" || !praatMetrics) {
     return (
-      <section className="speaking-flow-card sfc-screen" aria-label="Record your story">
+      <section className="speaking-flow-card sfc-screen sfc-record" aria-label="Record your story">
         <div className="practice-workspace">
         <div className="practice-scene-col">
           <div className="practice-scene-image">
@@ -260,12 +260,6 @@ export default function SpeakingFlowCard({
                         : "Experimental local model; its first run may take several minutes to load."}
               </p>
             </details>
-            <div className="sfc-action-intro">
-              <div>
-                <p className="sfc-action-title"><BiLabel k="speaking" /></p>
-                <p className="sfc-action-note"><BiLabel k="record" /></p>
-              </div>
-            </div>
             <AppButton
               tone={isRecording ? "danger" : "primary"}
               size="lg"
@@ -340,6 +334,7 @@ export default function SpeakingFlowCard({
       selectedImageIndex={selectedImageIndex}
       totalScenes={totalScenes}
       modelSentence={modelSentence}
+      modelAudioUrl={modelAudioUrl}
       narrativeMode={narrativeMode}
       attempts={attempts}
       ready={ready}

@@ -1,0 +1,10 @@
+.reference-audio-card { min-width: 0; padding: 12px 14px; border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-md); background: var(--clay-surface-soft); }
+.reference-audio-card-heading { display: flex; align-items: center; gap: 9px; }
+.reference-audio-card-icon { display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 auto; border-radius: 50%; color: var(--seal-deep); background: var(--seal-soft); font-size: 14px; }
+.reference-audio-card-title, .reference-audio-card-hint, .reference-audio-card-sentence, .reference-audio-card-unavailable { margin: 0; }
+.reference-audio-card-title { font-weight: 750; color: var(--clay-ink); }
+.reference-audio-card-hint { color: var(--clay-muted); font-size: 11px; }
+.reference-audio-card-sentence { margin-top: 9px; color: var(--clay-ink); font-size: 15px; font-weight: 700; }
+.reference-audio-card-player { display: block; width: 100%; min-height: 38px; margin-top: 9px; }
+.reference-audio-card-unavailable { margin-top: 9px; color: var(--clay-muted); font-size: 12px; }
+@media (max-width: 480px) { .reference-audio-card { padding: 10px 11px; } .reference-audio-card-sentence { font-size: 14px; } }

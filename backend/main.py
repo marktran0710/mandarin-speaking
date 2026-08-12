@@ -1336,6 +1336,9 @@ def build_pronunciation_mastery(
     """
     quality = feedback_quality or {}
     missing_units = [unit for unit in (missing_target_units or []) if unit]
+    # Keep missing content as one learner-facing phrase instead of exposing
+    # every missing character as a separate practice item.
+    missing_parts = ["".join(missing_units)] if missing_units else []
     if quality.get("can_score_pronunciation") is False:
         return {
             "passed": False,
@@ -1343,6 +1346,7 @@ def build_pronunciation_mastery(
             "passed_syllables": 0,
             "total_syllables": 0,
             "failed_words": [],
+            "practice_parts": missing_parts,
             "content_match": content_match,
             "missing_target_units": missing_units,
             "message": quality.get("student_message") or "Record again so the system can measure your tones.",
@@ -1371,17 +1375,17 @@ def build_pronunciation_mastery(
             "passed_syllables": 0,
             "total_syllables": 0,
             "failed_words": failed_words,
+            "practice_parts": list(dict.fromkeys([*failed_words, *missing_parts])),
             "content_match": content_match,
             "missing_target_units": missing_units,
             "message": "Not enough measured tone evidence yet. Record the whole sentence again.",
         }
 
     passed_count = sum(syllable.get("passed") is True for syllable in judged_syllables)
-    if content_match is False:
-        failed_words.extend(unit for unit in missing_units if unit not in failed_words)
+    pronunciation_failed_words = list(failed_words)
     passed = (
         passed_count == len(judged_syllables)
-        and not failed_words
+        and not pronunciation_failed_words
         and content_match is not False
     )
     if content_match is False:
@@ -1396,7 +1400,8 @@ def build_pronunciation_mastery(
         "status": "passed" if passed else "needs_practice",
         "passed_syllables": passed_count,
         "total_syllables": len(judged_syllables),
-        "failed_words": failed_words,
+        "failed_words": pronunciation_failed_words,
+        "practice_parts": list(dict.fromkeys([*pronunciation_failed_words, *missing_parts])),
         "content_match": content_match,
         "missing_target_units": missing_units,
         "message": (
@@ -1404,7 +1409,7 @@ def build_pronunciation_mastery(
             if passed
             else content_message
             if content_message
-            else f"Practise {len(failed_words) or 1} highlighted word(s), then record the whole sentence again."
+            else f"Practise {len(pronunciation_failed_words) or len(missing_parts) or 1} highlighted part(s), then record the whole sentence again."
         ),
     }
 

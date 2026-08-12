@@ -463,6 +463,8 @@ export interface PraatMetrics {
     passed_syllables?: number;
     total_syllables?: number;
     failed_words?: string[];
+    missing_target_units?: string[];
+    practice_parts?: string[];
     message?: string;
   };
   analysis_version?: AnalysisVersion;
@@ -2264,7 +2266,7 @@ export default function StoryRecorder({
               onViewSummary={() => setPhase("summary")}
             />
           ) : (
-          <div className="practice-workspace">
+          <div className={`practice-workspace${scenePracticeStep === "study" ? " practice-workspace-study" : ""}`}>
             {/* Scene reference rail — ~1/5–1/4 of the width, big enough to
                 actually read the scene (including any speech-bubble text),
                 shared as-is with Speaking so the ratio never drifts

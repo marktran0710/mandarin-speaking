@@ -12,6 +12,7 @@
 }
 .story-session-main {
   min-width: 0;
+  width: 100%;
 }
 /* Inside the session shell every phase must start flush at the grid top,
    level with the sidebar card's top edge — Overview and the vocab quiz
@@ -2598,8 +2599,8 @@
   display: grid;
   /* Image 35% / content 65% — the ratio the sidebar redesign settled on,
      shared by Study and Speaking so steps never reflow the page. */
-  grid-template-columns: minmax(200px, 35fr) minmax(0, 65fr);
-  gap: 24px;
+  grid-template-columns: minmax(280px, 42fr) minmax(0, 58fr);
+  gap: 20px;
   /* Stretch, not start: both columns always span the same height, so
      whichever side has less content never reads as a broken half-row. The
      scene rail below is a bounded panel for the same reason — its full
@@ -2627,7 +2628,7 @@
   aspect-ratio: 4 / 3;
   border-radius: var(--clay-radius-md);
   overflow: hidden;
-  border: 1.5px solid var(--clay-hairline);
+  border: 0;
   background: var(--clay-surface-soft);
 }
 .practice-scene-image img {
@@ -2635,6 +2636,13 @@
   height: 100%;
   display: block;
   object-fit: contain;
+}
+.practice-stage > .practice-workspace:not(:has(.sfc-results)) .practice-scene-col {
+  position: sticky;
+  top: 16px;
+}
+.practice-stage > .practice-workspace:not(:has(.sfc-results)) .practice-scene-image {
+  min-height: 220px;
 }
 .practice-scene-chip {
   display: inline-flex;
@@ -2646,6 +2654,9 @@
   border-radius: var(--clay-radius-pill);
   padding: 4px 12px;
 }
+.practice-scene-chip {
+  display: none;
+}
 
 .practice-scene-main {
   display: flex;
@@ -2654,12 +2665,57 @@
   min-width: 0;
 }
 
+/* Study is image-led: let the scene occupy the full stage width so the
+   illustration remains the first visual anchor instead of leaving a short
+   card with unused space beside a tall vocabulary panel. */
+.practice-workspace-study {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+.practice-workspace-study .practice-scene-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+}
+.practice-workspace-study .practice-scene-image {
+  aspect-ratio: 16 / 7;
+  min-height: 240px;
+  max-height: 360px;
+}
+.practice-workspace-study .practice-scene-chip {
+  justify-self: end;
+  white-space: nowrap;
+}
+.practice-workspace-study .practice-scene-main {
+  width: 100%;
+}
+
 @media (max-width: 768px) {
   .practice-workspace {
     grid-template-columns: 1fr;
   }
+  .practice-stage > .practice-workspace:not(:has(.sfc-results)) .practice-scene-col {
+    position: static;
+  }
+  .practice-stage > .practice-workspace:not(:has(.sfc-results)) .practice-scene-image {
+    min-height: 0;
+  }
   .practice-scene-image {
     aspect-ratio: 16 / 9;
+  }
+  .practice-workspace-study .practice-scene-col {
+    grid-template-columns: 1fr;
+  }
+  .practice-workspace-study .practice-scene-image {
+    min-height: 0;
+    max-height: none;
+    aspect-ratio: 4 / 3;
+  }
+  .practice-workspace-study .practice-scene-chip {
+    justify-self: start;
   }
 }
 

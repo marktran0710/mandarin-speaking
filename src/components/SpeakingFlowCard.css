@@ -115,43 +115,6 @@
   line-height: 1.45;
 }
 
-.sfc-action-intro {
-  width: min(100%, 340px);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding-bottom: 4px;
-}
-
-.sfc-action-title,
-.sfc-action-note {
-  margin: 0;
-}
-
-.sfc-action-title {
-  color: var(--clay-ink);
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.sfc-action-note {
-  color: var(--clay-muted);
-  font-size: 11px;
-  line-height: 1.2;
-}
-
-.sfc-action-title .bi-label,
-.sfc-action-note .bi-label {
-  align-items: flex-start;
-}
-
-.sfc-action-title .bi-pinyin,
-.sfc-action-title .bi-en,
-.sfc-action-note .bi-zh,
-.sfc-action-note .bi-pinyin {
-  display: none;
-}
-
 /* Record screen's content column: center vertically against the scene
    rail, so a short control stack (model sentence + record button) sits
    level with the image instead of hugging the top with a hole below it —
@@ -164,6 +127,30 @@
   gap: 16px;
   min-width: 0;
 }
+.sfc-record .practice-workspace {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+.sfc-record .practice-scene-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  padding: 10px;
+}
+.sfc-record .practice-scene-image {
+  aspect-ratio: 16 / 7;
+  min-height: 230px;
+  max-height: 340px;
+}
+.sfc-record .sfc-record-main { width: 100%; }
+.sfc-record .practice-scene-image,
+.sfc-results .practice-scene-image { border: 0; }
+.sfc-attempt-only {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+}
+.sfc-attempt-only > .bi-label { display: none; }
 
 .sfc-scene-chip {
   display: inline-flex;
@@ -254,7 +241,6 @@
     padding: 20px 16px;
   }
 
-  .sfc-action-intro,
   .sfc-record-btn {
     max-width: none;
   }
@@ -301,6 +287,45 @@
   gap: 10px;
   margin-top: 10px;
 }
+.sfc-audio-compare {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.sfc-audio-compare .recording-playback {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--jade-soft);
+}
+.sfc-audio-compare .recording-playback-label { margin: 0; font-weight: 750; }
+.sfc-audio-compare .recording-playback-audio { display: block; width: 100%; min-height: 38px; margin-top: 9px; }
+.sfc-results .practice-workspace {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.sfc-results .practice-scene-col {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 10px;
+}
+.sfc-results .practice-scene-image {
+  aspect-ratio: 16 / 7;
+  max-height: 96px;
+}
+.sfc-results .practice-scene-col::after {
+  content: "Scene context / 場景";
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: left;
+}
+.sfc-results-main { width: 100%; }
 .sfc-results-main {
   display: flex;
   flex-direction: column;
@@ -852,6 +877,15 @@
   .sfc-verdict-lead {
     flex-wrap: wrap;
   }
+}
+@media (max-width: 768px) {
+  .sfc-audio-compare { grid-template-columns: 1fr; }
+  .sfc-results .practice-workspace { grid-template-columns: 1fr; gap: 10px; }
+  .sfc-results .practice-scene-col {
+    grid-template-columns: minmax(110px, 150px) minmax(0, 1fr);
+    gap: 9px;
+  }
+  .sfc-results .practice-scene-image { max-height: 76px; }
 }
 .experimental-analysis-panel, .analysis-compare-panel { margin-top: 0.9rem; padding: 0.85rem; border-radius: 14px; border: 1px solid #f3d28b; background: #fffbeb; }
 .experimental-analysis-heading { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { BiLabel } from "./BiLabel";
 import AppButton from "./AppButton";
 import RecordingPlayback from "./RecordingPlayback";
+import ReferenceAudioCard from "./ReferenceAudioCard";
 import PhrasePracticeDrill from "./PhrasePracticeDrill";
 import WordProsodyCard from "./WordProsodyCard";
 import PronunciationBreakdown from "./PronunciationBreakdown";
@@ -67,6 +68,7 @@ interface SpeakingResultsFlowProps {
   selectedImageIndex: number;
   totalScenes: number;
   modelSentence?: string;
+  modelAudioUrl?: string;
   narrativeMode: Topic["narrativeMode"];
   attempts: number;
   /** Scene unlocked: score/attempts plus content and pronunciation gates. */
@@ -111,6 +113,7 @@ export default function SpeakingResultsFlow({
   selectedImageIndex,
   totalScenes,
   modelSentence,
+  modelAudioUrl,
   narrativeMode,
   attempts,
   ready,
@@ -212,14 +215,19 @@ export default function SpeakingResultsFlow({
   // sentence has drifted from the script those tokens are the student's
   // wrong words, not something worth drilling. Once content is accepted,
   // switch to pronunciation polish on the words that were actually said.
-  const wordsToPractice = isChunked
-    ? hasScriptMismatch
-      ? Array.from(new Set([...contentMismatchChunks.map((chunk) => chunk.text), ...missing]))
-      : Array.from(new Set([...practiceWords.map((word) => word.token), ...missing]))
-    : !accepted || hasScriptMismatch
-      ? Array.from(new Set([...effectiveScriptMismatches, ...missing]))
-      : Array.from(new Set(practiceWords.map((word) => word.token)));
+  // The backend pronunciation mastery payload is the single source of truth
+  // for the compact practice list shown to the learner. Local alignment is
+  // still used for navigation, but never creates a competing list.
+  const wordsToPractice = Array.from(
+    new Set(
+      pronunciationMastery?.practice_parts ?? [
+        ...(pronunciationMastery?.failed_words ?? []),
+        ...(pronunciationMastery?.missing_target_units ?? []),
+      ],
+    ),
+  );
   const hasWordsToPractice = wordsToPractice.length > 0;
+  const practicePartCount = wordsToPractice.length;
 
   // The one-verdict ladder: meaning and required vocabulary gate the unlock;
   // pronunciation polish follows only after the learner has said the script.
@@ -428,14 +436,14 @@ export default function SpeakingResultsFlow({
             {pronunciationMastery.status === "passed"
               ? "✓ Pronunciation passed"
               : pronunciationMastery.status === "not_judged"
-                ? "Pronunciation not judged yet"
-                : "Pronunciation needs practice"}
+                ? "尚未判定 / Not judged yet"
+                : "發音需要練習 / Needs practice"}
           </p>
           {typeof pronunciationMastery.passed_syllables === "number" &&
             typeof pronunciationMastery.total_syllables === "number" && (
               <small>
                 {pronunciationMastery.passed_syllables}/
-                {pronunciationMastery.total_syllables} measured syllables passed
+                {pronunciationMastery.total_syllables} syllables passed / 個音節通過
               </small>
             )}
           {pronunciationMastery.message && <p>{pronunciationMastery.message}</p>}
@@ -444,25 +452,25 @@ export default function SpeakingResultsFlow({
       {(pronunciationMastery || practiceWords.length > 0) && (
         <section className="sfc-next-action-card" aria-label="Next practice action">
           <div>
-            <p className="sfc-next-action-kicker">Next action</p>
+            <p className="sfc-next-action-kicker">下一步 / Next action</p>
             <h2>
               {pronunciationMastery?.status === "passed"
-                ? "You have cleared the measured tones"
+                ? "聲調已通過 / Measured tones cleared"
                 : pronunciationMastery?.status === "not_judged"
-                  ? "Record again in a quieter voice"
-                  : practiceWords.length > 0
-                    ? `Practice ${practiceWords.length} word${practiceWords.length === 1 ? "" : "s"}`
-                    : "Make one more clear recording"}
+                  ? "請安靜環境再錄 / Record again in a quiet place"
+              : practicePartCount > 0
+                  ? `練習 ${practicePartCount} 個部分 / Practice ${practicePartCount} part${practicePartCount === 1 ? "" : "s"}`
+                    : "再清楚錄一次 / Make one more clear recording"}
             </h2>
           </div>
           <p>
             {pronunciationMastery?.status === "passed"
-              ? "Neutral tones are shown separately; they are not treated as pronunciation failures."
+              ? "輕聲會分開顯示，不算發音錯誤。 / Neutral tones are separate, not pronunciation failures."
               : pronunciationMastery?.status === "not_judged"
-                ? "The system did not have enough reliable pitch evidence. This is an audio-quality result, not a wrong-tone verdict."
-                : practiceWords.length > 0
-                  ? "Start with the highlighted word, then record the complete sentence again."
-                  : "Keep the microphone close and say the full target at a steady pace."}
+                ? "音高證據不足，這是錄音品質提示，不是聲調錯誤。 / Not enough pitch evidence; this is an audio-quality result, not a wrong-tone verdict."
+                : practicePartCount > 0
+                  ? "先練標記部分，再錄整句。 / Start with the highlighted parts, then record the full sentence."
+                  : "靠近麥克風，穩定說完整句子。 / Stay close to the microphone and say the full target steadily."}
           </p>
         </section>
       )}
@@ -471,9 +479,12 @@ export default function SpeakingResultsFlow({
         return rolledUpState ? <AssistiveFeedbackNotice state={rolledUpState} /> : null;
       })()}
 
-      {(analysisAudioBlob || praatMetrics.transcription || submittedAudioName) && (
+      {(modelAudioUrl || analysisAudioBlob || praatMetrics.transcription || submittedAudioName) && (
         <div className="sfc-results-scene-extras">
-          {analysisAudioBlob && <RecordingPlayback blob={analysisAudioBlob} />}
+          <div className="sfc-audio-compare" aria-label="Listen and compare">
+            <ReferenceAudioCard audioUrl={modelAudioUrl} sentence={modelSentence} />
+            {analysisAudioBlob && <RecordingPlayback blob={analysisAudioBlob} />}
+          </div>
           {praatMetrics.transcription && (
             <p className="sfc-transcript">
               <BiLabel k="you_said" />{" "}
@@ -549,8 +560,9 @@ export default function SpeakingResultsFlow({
         <div className="sfc-fail-preview">
           <span className="sfc-fail-preview-lead">
             <BiLabel
-              zh={isChunked ? "要練的部分：" : "要練的字："}
-              en={isChunked ? "Parts to practice:" : "Words to practice:"}
+              zh="要練的部分"
+              pinyin="Yào liàn de bùfèn"
+              en="Parts to practice"
             />
           </span>
           {wordsToPractice.map((word) => {
