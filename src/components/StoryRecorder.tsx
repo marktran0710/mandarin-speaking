@@ -621,6 +621,11 @@ interface LanguageFeedback {
     used: string[];
     missing: string[];
     feedback: string;
+    // `false` when the backend could not verify sentence content and
+    // therefore did NOT do a real word-presence check — used/missing in
+    // that case are placeholders (all target words dumped into
+    // `missing`). Consumers must fall back to their own transcript check.
+    judged?: boolean;
   };
   coherence: {
     score: number;
@@ -1851,6 +1856,27 @@ export default function StoryRecorder({
   const selectedVocabulary = topic.vocabulary[selectedImageIndex] || [];
   const recordingButtonDisabled = isTranscribing || isAnalyzing;
 
+  // When the backend's AI vocabulary_coverage is not a real judgment
+  // (`judged: false` — for instance the scene-level content match went
+  // unverified, so the backend dumped every target word into `missing`),
+  // fall back to a plain substring check against the ASR transcript.
+  // That matches what "did the student say this word" reduces to when a
+  // transcript is on hand, and prevents an entire vocab list from turning
+  // ✗ after reload just because sentence-level content verification did
+  // not complete — see backend/ai_feedback.py:106+ for how the
+  // judged:false branch overwrites used/missing.
+  const effectiveVocabCoverage = (() => {
+    const rawVC = praatMetrics?.ai_feedback?.vocabulary_coverage;
+    if (rawVC && rawVC.judged !== false) return rawVC;
+    const transcript = praatMetrics?.transcription?.trim();
+    if (!transcript || selectedVocabulary.length === 0) return rawVC ?? null;
+    return {
+      ...(rawVC ?? {}),
+      used: selectedVocabulary.filter((w) => transcript.includes(w)),
+      missing: selectedVocabulary.filter((w) => !transcript.includes(w)),
+    };
+  })();
+
   const handlePrimaryRecordingAction = () => {
     if (isRecording) {
       stopRecording();
@@ -2336,9 +2362,11 @@ export default function StoryRecorder({
                       aria-label="Scene vocabulary"
                     >
                       {selectedVocabulary.map((w, wi) => {
-                        // Prefer backend phonetic-match result; fall back to character search
-                        const aiVC =
-                          praatMetrics?.ai_feedback?.vocabulary_coverage;
+                        // Prefer backend phonetic-match result; fall back to
+                        // character search. `effectiveVocabCoverage` already
+                        // substitutes a transcript-based used/missing when the
+                        // backend's judgment was flagged unreliable.
+                        const aiVC = effectiveVocabCoverage;
                         let used: boolean | null = null;
                         if (aiVC) {
                           if (aiVC.used?.includes(w)) used = true;
@@ -2417,11 +2445,10 @@ export default function StoryRecorder({
                         );
                       })}
                     </div>
-                    {praatMetrics?.ai_feedback?.vocabulary_coverage && (
+                    {effectiveVocabCoverage && (
                       <p className="vocab-coverage-line">
                         {(() => {
-                          const vc =
-                            praatMetrics.ai_feedback!.vocabulary_coverage!;
+                          const vc = effectiveVocabCoverage;
                           const usedList = vc.used ?? [];
                           const missedList = vc.missing ?? [];
                           if (missedList.length === 0)
