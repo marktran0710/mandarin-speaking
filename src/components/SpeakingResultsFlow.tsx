@@ -293,6 +293,27 @@ export default function SpeakingResultsFlow({
 
   const [step, setStep] = useState<ResultsStep>("overview");
   const [maxVisited, setMaxVisited] = useState(0);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const feedbackTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const closeFeedbackModal = () => {
+    setFeedbackModalOpen(false);
+    feedbackTriggerRef.current?.focus();
+  };
+
+  useEffect(() => {
+    if (!feedbackModalOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeFeedbackModal();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [feedbackModalOpen]);
   const goToStep = (target: ResultsStep) => {
     const index = steps.indexOf(target);
     if (index === -1) return;
@@ -962,11 +983,16 @@ export default function SpeakingResultsFlow({
             modelSentence={modelSentence}
             analysisAudioBlob={analysisAudioBlob}
           />
-          <details
-            className="sfc-left-feedback"
-            open={practicePartCount > 0 && pronunciationMastery?.status !== "passed"}
-          >
-            <summary className="sfc-left-feedback-summary">
+          <div className="sfc-left-feedback">
+            <button
+              ref={feedbackTriggerRef}
+              type="button"
+              className="sfc-left-feedback-summary"
+              aria-haspopup="dialog"
+              aria-expanded={feedbackModalOpen}
+              aria-controls="sfc-feedback-modal"
+              onClick={() => setFeedbackModalOpen(true)}
+            >
               <BiLabel zh="發音分析" en="Pronunciation feedback" />
               <span>
                 <BiLabel
@@ -978,16 +1004,8 @@ export default function SpeakingResultsFlow({
                     : "Measured tones cleared"}
                 />
               </span>
-            </summary>
-            <PronunciationBreakdown
-              words={praatMetrics.word_prosody || []}
-              targetText={modelSentence}
-              transcription={praatMetrics.transcription}
-              teacherPhrases={teacherPhraseChunks}
-              assistiveFeedback={assistiveFeedback}
-              compact
-            />
-          </details>
+            </button>
+          </div>
         </div>
 
         <div className="sfc-results-main">
@@ -1017,6 +1035,48 @@ export default function SpeakingResultsFlow({
           {stepBody}
         </div>
       </div>
+
+      {feedbackModalOpen && (
+        <div
+          className="sfc-feedback-modal-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeFeedbackModal();
+          }}
+        >
+          <section
+            id="sfc-feedback-modal"
+            className="sfc-feedback-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sfc-feedback-modal-title"
+          >
+            <header className="sfc-feedback-modal-header">
+              <div id="sfc-feedback-modal-title">
+                <BiLabel zh="發音分析" en="Pronunciation feedback" />
+              </div>
+              <button
+                type="button"
+                className="sfc-feedback-modal-close"
+                aria-label="Close pronunciation feedback"
+                onClick={closeFeedbackModal}
+              >
+                ×
+              </button>
+            </header>
+            <div className="sfc-feedback-modal-body">
+              <PronunciationBreakdown
+                words={praatMetrics.word_prosody || []}
+                targetText={modelSentence}
+                transcription={praatMetrics.transcription}
+                teacherPhrases={teacherPhraseChunks}
+                assistiveFeedback={assistiveFeedback}
+                compact
+              />
+            </div>
+          </section>
+        </div>
+      )}
 
       <footer className="sfc-footer">
         {hasPhrasePractice && !allPhrasesCleared ? (

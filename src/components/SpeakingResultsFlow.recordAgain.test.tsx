@@ -137,4 +137,25 @@ describe("SpeakingResultsFlow record-again", () => {
     expect(screen.queryByText("Parts to practice:")).toBeNull();
     expect(screen.queryByText("Words to practice:")).toBeNull();
   });
+
+  it("keeps pronunciation feedback collapsed and opens it in a modal", async () => {
+    const user = userEvent.setup();
+    renderFlow({ ready: false });
+
+    const trigger = screen.getByRole("button", {
+      name: /Pronunciation feedback/i,
+    });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.querySelector(".sfc-left-feedback .pronunciation-breakdown")).toBeNull();
+
+    await user.click(trigger);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toHaveTextContent("Pronunciation feedback");
+    expect(document.querySelector(".sfc-left-feedback .pronunciation-breakdown")).toBeNull();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
 });

@@ -315,8 +315,8 @@
 .sfc-audio-compare .recording-playback-label { margin: 0; font-weight: 750; }
 .sfc-audio-compare .recording-playback-audio { display: block; width: 100%; min-height: 38px; margin-top: 9px; }
 .sfc-results .practice-workspace {
-  grid-template-columns: minmax(300px, 46fr) minmax(0, 54fr);
-  gap: 18px;
+  grid-template-columns: minmax(300px, 45fr) minmax(0, 55fr);
+  gap: 16px;
   align-items: stretch;
 }
 .sfc-results .practice-scene-col {
@@ -399,14 +399,19 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  width: 100%;
   min-height: 48px;
   padding: 10px 12px;
   box-sizing: border-box;
+  border: 0;
+  background: transparent;
   cursor: pointer;
   color: var(--clay-ink);
+  font: inherit;
   font-size: 0.8rem;
   font-weight: 750;
-  list-style: none;
+  text-align: left;
+  appearance: none;
 }
 .sfc-left-feedback-summary::before {
   content: "";
@@ -418,23 +423,17 @@
   pointer-events: none;
   opacity: 0;
 }
-.sfc-left-feedback:not([open]) .sfc-left-feedback-summary::before {
+.sfc-left-feedback-summary::before {
   animation: sfc-feedback-click-ring 2.1s ease-out infinite;
 }
-.sfc-left-feedback-summary::-webkit-details-marker { display: none; }
 .sfc-left-feedback-summary > * { position: relative; z-index: 1; }
 .sfc-left-feedback-summary::after {
   position: relative;
   z-index: 1;
-  content: "›";
+  content: "↗";
   color: var(--clay-muted);
   font-size: 1.1rem;
   line-height: 1;
-  transform: rotate(0deg);
-  transition: transform 160ms ease;
-}
-.sfc-left-feedback[open] .sfc-left-feedback-summary::after {
-  transform: rotate(90deg);
 }
 .sfc-left-feedback-summary > span {
   margin-left: auto;
@@ -443,10 +442,10 @@
   font-weight: 650;
   text-align: right;
 }
-.sfc-left-feedback:not([open]) .sfc-left-feedback-summary {
+.sfc-left-feedback-summary {
   animation: sfc-feedback-attention 2.2s ease-in-out infinite;
 }
-.sfc-left-feedback:not([open]) .sfc-left-feedback-summary::after {
+.sfc-left-feedback-summary::after {
   animation: sfc-feedback-arrow 1.3s ease-in-out infinite;
 }
 @keyframes sfc-feedback-attention {
@@ -462,8 +461,8 @@
   }
 }
 @keyframes sfc-feedback-arrow {
-  0%, 100% { transform: rotate(0deg) translateX(0); }
-  50% { transform: rotate(90deg) translateX(2px); }
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(3px); }
 }
 @keyframes sfc-feedback-click-ring {
   0% {
@@ -483,21 +482,75 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .sfc-left-feedback:not([open]) .sfc-left-feedback-summary,
-  .sfc-left-feedback:not([open]) .sfc-left-feedback-summary::after,
-  .sfc-left-feedback:not([open]) .sfc-left-feedback-summary::before {
+  .sfc-left-feedback-summary,
+  .sfc-left-feedback-summary::after,
+  .sfc-left-feedback-summary::before {
     animation: none;
   }
 }
-.sfc-left-feedback .pronunciation-breakdown {
+.sfc-feedback-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: clamp(14px, 3vw, 28px);
+  box-sizing: border-box;
+  background: color-mix(in srgb, var(--clay-ink) 46%, transparent);
+}
+.sfc-feedback-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(720px, 100%);
+  max-height: min(84vh, 760px);
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  box-shadow: 0 24px 60px color-mix(in srgb, var(--clay-ink) 28%, transparent);
+}
+.sfc-feedback-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 auto;
+  padding: 13px 15px;
+  border-bottom: 1px solid var(--clay-hairline);
+  background: var(--clay-surface-soft);
+}
+.sfc-feedback-modal-header > div { min-width: 0; }
+.sfc-feedback-modal-close {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--clay-hairline);
+  border-radius: 50%;
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.sfc-feedback-modal-close:hover,
+.sfc-feedback-modal-close:focus-visible {
+  border-color: var(--seal);
+  color: var(--seal);
+}
+.sfc-feedback-modal-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 12px 14px 16px;
+}
+.sfc-feedback-modal-body .pronunciation-breakdown {
   width: 100%;
   margin: 0;
-  padding: 0 10px 10px;
-  border: 0;
-  border-top: 1px solid var(--clay-hairline);
-  border-radius: 0;
-  background: transparent;
-  }
+  box-sizing: border-box;
+}
 .sfc-results-main { width: 100%; }
 .sfc-results-main {
   display: flex;
@@ -526,7 +579,10 @@
 .sfc-results .sfc-results-scene-extras,
 .sfc-results .pronunciation-breakdown { margin-left: 0; margin-right: 0; }
 .sfc-results .sfc-step-panel { gap: 10px; }
-.sfc-results .sfc-step-panel > .sfc-progress-snapshot { margin-top: auto; }
+/* Keep progress in the same reading flow as the verdict and feedback. The
+   previous auto margin pushed it to the bottom of the grid row, creating a
+   large unexplained void when the result copy was short. */
+.sfc-results .sfc-step-panel > .sfc-progress-snapshot { margin-top: 0; }
 .sfc-results-main > .sfc-progress-snapshot { margin-top: 0; }
 .sfc-results .sfc-step-cta {
   align-self: stretch;
