@@ -26,7 +26,6 @@ describe("SpeakingFlowCard model recording integration", () => {
         isAnalyzing={false}
         recordingDuration={0}
         silenceDuration={0}
-        submittedAudioName=""
         selectedModel="webspeech"
         groqAvailable={false}
         openaiAvailable={false}

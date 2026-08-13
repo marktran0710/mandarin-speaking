@@ -435,7 +435,7 @@ export default function TeacherDashboardPage({
                 { id: "students" as const, label: "Students", count: assessments.filter((assessment) => assessment.watchlistReasons.length > 0).length },
                 { id: "quizTrends" as const, label: "Quiz trends", count: quizAttempts.length },
                 { id: "recordingTrends" as const, label: "Recording trends", count: feedbackReadyRecords.length },
-                { id: "measurement" as const, label: "Measurement", count: measurementEvents.length },
+                { id: "measurement" as const, label: "IRT / Measurement", count: measurementEvents.length },
               ]}
               active={analyticsTab}
               onSelect={setAnalyticsTab}

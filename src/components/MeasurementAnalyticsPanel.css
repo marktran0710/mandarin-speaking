@@ -7,3 +7,12 @@
 .measurement-table { width: 100%; border-collapse: collapse; }
 .measurement-table th, .measurement-table td { padding: 10px 12px; border-bottom: 1px solid var(--clay-hairline-soft); text-align: left; }
 .measurement-table th { color: var(--clay-muted); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .06em; }
+.irt-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 14px 0; }
+.irt-summary-grid div { display: grid; gap: 3px; padding: 12px; border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-md); background: var(--clay-surface-soft); }
+.irt-summary-grid strong { font-size: 1.35rem; color: var(--clay-ink); }
+.irt-summary-grid span { color: var(--clay-muted); font-size: var(--text-xs); }
+.irt-status { display: inline-flex; padding: 4px 7px; border-radius: 999px; font-size: 11px; font-weight: 750; }
+.irt-status.is-pass { color: var(--jade-deep); background: var(--jade-soft); }
+.irt-status.is-warning { color: var(--gold-deep); background: var(--seal-soft); }
+.irt-status.is-insufficient_data { color: var(--clay-muted); background: var(--clay-surface-soft); }
+@media (max-width: 720px) { .irt-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .irt-table { display: block; overflow-x: auto; } }

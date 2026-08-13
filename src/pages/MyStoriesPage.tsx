@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   canUseDatabase,
   HelpRequest,
+  listAudioRecords,
   listStorySubmissions,
   listVocabQuizAttempts,
   type StorySubmission,
@@ -25,7 +26,7 @@ import {
   topicStoryId,
   type LessonGroup,
 } from "../utils/lessonGroups";
-import { loadBestLocalStars } from "../utils/quizTiers";
+import { loadBestLocalStars, starsByStory } from "../utils/quizTiers";
 import { loadSubmittedStoryIds } from "../utils/storyLevelProgress";
 import { topicHasQuiz } from "../utils/topicQuiz";
 import type { Topic } from "../components/TopicSelector";
@@ -110,9 +111,11 @@ export default function MyStoriesPage({
   onBrowsePractice,
 }: MyStoriesPageProps) {
   const [mySubmissions, setMySubmissions] = useState<StorySubmission[]>([]);
+  const [persistedRecords, setPersistedRecords] = useState<AudioRecord[]>([]);
   const [quizAttemptStoryIds, setQuizAttemptStoryIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const [serverStarsByStory, setServerStarsByStory] = useState<Record<string, 0 | 1 | 2 | 3>>({});
   const [profileTab, setProfileTab] = useState<ProfileTab>("lesson");
 
   useEffect(() => {
@@ -120,17 +123,26 @@ export default function MyStoriesPage({
     let cancelled = false;
     const studentId = getStudentId();
     const studentName = getStudentName();
-    void Promise.all([
-      listStorySubmissions(),
+    void Promise.allSettled([
+      listStorySubmissions(undefined, { studentId, studentName }),
       listVocabQuizAttempts(undefined, { studentId, studentName }),
+      listAudioRecords({ limit: 1000, studentId }),
     ])
-      .then(([subs, quizAttempts]) => {
+      .then(([subsResult, quizResult, audioResult]) => {
         if (cancelled) return;
-        const mine = subs
+        if (subsResult.status === "fulfilled") {
+          const mine = subsResult.value
           .filter((s) => (studentId ? s.studentId === studentId : s.studentName === studentName))
           .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
-        setMySubmissions(mine);
-        setQuizAttemptStoryIds(new Set(quizAttempts.map((attempt) => attempt.storyId)));
+          setMySubmissions(mine);
+        }
+        if (quizResult.status === "fulfilled") {
+          setQuizAttemptStoryIds(new Set(quizResult.value.map((attempt) => attempt.storyId)));
+          setServerStarsByStory(starsByStory(quizResult.value));
+        }
+        if (audioResult.status === "fulfilled") {
+          setPersistedRecords(audioResult.value as AudioRecord[]);
+        }
       })
       .catch(() => {
         // Silently skip — the overview above is still fully usable.
@@ -141,28 +153,43 @@ export default function MyStoriesPage({
   }, []);
 
   const studentTopics = publishedTopics ?? getStudentTopics();
-  const analyzedRecords = records.filter((record) => record.praatMetrics);
+  const recordsById = new Map<string, AudioRecord>();
+  for (const record of [...records, ...persistedRecords]) recordsById.set(record.id, record);
+  const allRecords = Array.from(recordsById.values());
+  const analyzedRecords = allRecords.filter((record) => record.praatMetrics);
   const averageFluency = getAverageMetric(analyzedRecords, "fluency_score");
   const averageToneAccuracy = getAverageMetric(analyzedRecords, "tone_accuracy");
 
-  const submittedIds = loadSubmittedStoryIds();
+  const submittedIds = new Set([
+    ...loadSubmittedStoryIds(),
+    ...mySubmissions.map((submission) => submission.storyId),
+  ]);
+  const starsForTopic = (topic: Topic): 0 | 1 | 2 | 3 => {
+    const suffixes = ["", "-medium", "-hard"];
+    const serverBest = suffixes.reduce<0 | 1 | 2 | 3>((best, suffix) => {
+      const value = serverStarsByStory[`${topic.id}${suffix}`] ?? 0;
+      return value > best ? value : best;
+    }, 0);
+    const localBest = loadBestLocalStars(topic.id);
+    return Math.max(localBest, serverBest) as 0 | 1 | 2 | 3;
+  };
   const groups = groupTopicsByLesson(studentTopics);
   const numberedGroups = groups.filter((group) => group.lessonNumber !== null);
 
   const quizTopics = studentTopics.filter((topic) => topicHasQuiz(topic));
   const totalStars = quizTopics.reduce(
-    (sum, topic) => sum + loadBestLocalStars(topic.id),
+    (sum, topic) => sum + starsForTopic(topic),
     0,
   );
   const maxStars = quizTopics.length * 3;
 
   const activityStoryIds = new Set<string>([
     ...submittedIds,
-    ...records.map((record) => record.topicId).filter((id): id is string => Boolean(id)),
+    ...allRecords.map((record) => record.topicId).filter((id): id is string => Boolean(id)),
     ...mySubmissions.map((submission) => submission.storyId),
     ...quizAttemptStoryIds,
     ...quizTopics
-      .filter((topic) => loadBestLocalStars(topic.id) > 0)
+      .filter((topic) => starsForTopic(topic) > 0)
       .map((topic) => topic.id),
   ]);
   const activeStoryTopics = studentTopics.filter((topic) =>
@@ -170,7 +197,7 @@ export default function MyStoriesPage({
   );
 
   const lessonsDone = numberedGroups.filter((group) => {
-    const { done, total } = lessonCompletion(group, submittedIds);
+    const { done, total } = lessonCompletion(group, submittedIds, starsForTopic);
     return total > 0 && done === total;
   }).length;
   const lessonsTotal = numberedGroups.length;
@@ -271,12 +298,12 @@ export default function MyStoriesPage({
         {profileTab === "lesson" ? (
           <div className="profile-lesson-list">
             {groups.map((group, index) => {
-              const unlocked = isLessonGroupUnlocked(groups, index, submittedIds);
-              const { done, total } = lessonCompletion(group, submittedIds);
+              const unlocked = isLessonGroupUnlocked(groups, index, submittedIds, starsForTopic);
+              const { done, total } = lessonCompletion(group, submittedIds, starsForTopic);
               const finished = total > 0 && done === total;
               const groupQuizTopics = group.topics.filter((topic) => topicHasQuiz(topic));
               const groupStars = groupQuizTopics.reduce(
-                (sum, topic) => sum + loadBestLocalStars(topic.id),
+                (sum, topic) => sum + starsForTopic(topic),
                 0,
               );
               const title =
@@ -358,8 +385,8 @@ export default function MyStoriesPage({
               </p>
             ) : activeStoryTopics.map((topic) => {
               const hasQuiz = topicHasQuiz(topic);
-              const stars = hasQuiz ? loadBestLocalStars(topic.id) : null;
-              const finished = isStoryFinished(topic, submittedIds);
+              const stars = hasQuiz ? starsForTopic(topic) : null;
+              const finished = isStoryFinished(topic, submittedIds, starsForTopic);
               const started = topicWasStarted(topic, activityStoryIds);
               const previewImage = topic.images[0];
 

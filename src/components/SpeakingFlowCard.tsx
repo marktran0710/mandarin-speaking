@@ -37,7 +37,6 @@ interface SpeakingFlowCardProps {
   isAnalyzing: boolean;
   recordingDuration: number;
   silenceDuration: number;
-  submittedAudioName: string;
   selectedModel: SpeechModel;
   groqAvailable: boolean;
   openaiAvailable: boolean;
@@ -94,7 +93,6 @@ export default function SpeakingFlowCard({
   isAnalyzing,
   recordingDuration,
   silenceDuration,
-  submittedAudioName,
   selectedModel,
   groqAvailable,
   openaiAvailable,
@@ -313,9 +311,6 @@ export default function SpeakingFlowCard({
                 tabIndex={-1}
               />
             </div>
-            {submittedAudioName && (
-              <p className="submitted-audio-name">✓ {submittedAudioName}</p>
-            )}
             {error && <p className="sfc-error">{error}</p>}
           </div>
         </div>
@@ -341,7 +336,6 @@ export default function SpeakingFlowCard({
       masteryPassed={masteryPassed}
       praatMetrics={praatMetrics}
       analysisAudioBlob={analysisAudioBlob}
-      submittedAudioName={submittedAudioName}
       clearedWords={clearedWords}
       onWordDrillPass={onWordDrillPass}
       hasNextScene={hasNextScene}

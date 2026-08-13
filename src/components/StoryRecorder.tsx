@@ -11,6 +11,7 @@ import {
   createStorySubmission,
   createVocabQuizAttempt,
   listSpeakingProgress,
+  listVocabQuizAttempts,
   saveSpeakingProgress,
   updateVocabularyCloze,
   updateVocabularyDistractors,
@@ -894,7 +895,6 @@ export default function StoryRecorder({
     },
     [selectedImageIndex, clearedWordsMap, persistSpeakingProgress],
   );
-  const [submittedAudioName, setSubmittedAudioName] = useState("");
   // Completed scene snapshots for story submission
   const [sceneRecordings, setSceneRecordings] = useState<
     Record<number, SceneSubmission>
@@ -1163,6 +1163,27 @@ export default function StoryRecorder({
     );
   }, [topic.id, topic.images, enableSorting, enableOverview, hasVocabQuiz, isAdmin]);
 
+  // The local flag is an offline/UI fast path. On reload, recover the same
+  // gate from the canonical quiz-attempt history so a completed quiz does not
+  // reappear just because this browser lost its local mirror.
+  useEffect(() => {
+    if (!studentId || !canUseDatabase() || !hasVocabQuiz) return;
+    let cancelled = false;
+    void listVocabQuizAttempts(topic.id, { studentId, studentName })
+      .then((attempts) => {
+        if (cancelled || attempts.length === 0) return;
+        setVocabQuizCompleted(true);
+        markVocabQuizCompleted(topic.id);
+        setPhase((current) => (current === "vocabquiz" ? "practice" : current));
+      })
+      .catch(() => {
+        // Keep the local mirror as the offline fallback.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [studentId, studentName, topic.id, hasVocabQuiz]);
+
   // Restore whatever speaking-practice progress this student already has for
   // this story, so reloading or leaving mid-scene doesn't reset attempts,
   // best scores, or the mastery/content gates back to zero. Skipped for
@@ -1290,7 +1311,6 @@ export default function StoryRecorder({
       setError(null);
       setPraatMetrics(null);
       setAnalysisAudioBlob(null);
-      setSubmittedAudioName("");
       currentTranscriptRef.current = "";
       recordingStartRef.current = Date.now();
       setRecordingDuration(0);
@@ -1803,7 +1823,6 @@ export default function StoryRecorder({
     setError(null);
     setPraatMetrics(null);
     setAnalysisAudioBlob(null);
-    setSubmittedAudioName(file.name);
     currentTranscriptRef.current = "";
     recordingStartRef.current = Date.now();
     setRecordingDuration(0);
@@ -2235,7 +2254,6 @@ export default function StoryRecorder({
               isAnalyzing={isAnalyzing}
               recordingDuration={recordingDuration}
               silenceDuration={silenceDuration}
-              submittedAudioName={submittedAudioName}
               selectedModel={selectedModel}
               groqAvailable={groqAsrAvailable}
               openaiAvailable={openaiAsrAvailable}

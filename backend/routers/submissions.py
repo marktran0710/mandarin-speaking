@@ -14,17 +14,28 @@ router = APIRouter()
 
 
 @router.get("/api/story-submissions")
-async def list_story_submissions(story_id: Optional[str] = None):
+async def list_story_submissions(
+    story_id: Optional[str] = None,
+    student_id: Optional[str] = None,
+    student_name: Optional[str] = None,
+):
+    conditions = []
+    params: list[object] = []
+    if story_id:
+        conditions.append("story_id = %s")
+        params.append(story_id)
+    if student_id:
+        conditions.append("student_id = %s")
+        params.append(student_id)
+    elif student_name:
+        conditions.append("student_name = %s")
+        params.append(student_name)
+    where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
     with connect_db() as db:
-        if story_id:
-            rows = db.execute(
-                "SELECT * FROM story_submissions WHERE story_id = %s ORDER BY submitted_at DESC",
-                (story_id,),
-            ).fetchall()
-        else:
-            rows = db.execute(
-                "SELECT * FROM story_submissions ORDER BY submitted_at DESC"
-            ).fetchall()
+        rows = db.execute(
+            f"SELECT * FROM story_submissions{where} ORDER BY submitted_at DESC",
+            params,
+        ).fetchall()
     return [row_to_story_submission(row) for row in rows]
 
 

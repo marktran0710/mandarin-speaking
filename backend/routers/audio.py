@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 
 from database import connect_db, row_to_audio_record
@@ -11,12 +13,17 @@ router = APIRouter()
 async def list_audio_records(
     limit: int = Query(default=200, ge=1, le=1000),
     skip: int = Query(default=0, ge=0),
+    student_id: Optional[str] = Query(default=None),
 ):
+    query = "SELECT * FROM audio_records"
+    params: list[object] = []
+    if student_id:
+        query += " WHERE student_id = %s"
+        params.append(student_id)
+    query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
+    params.extend([limit, skip])
     with connect_db() as db:
-        rows = db.execute(
-            "SELECT * FROM audio_records ORDER BY created_at DESC LIMIT %s OFFSET %s",
-            (limit, skip),
-        ).fetchall()
+        rows = db.execute(query, params).fetchall()
     return [row_to_audio_record(row) for row in rows]
 
 
@@ -44,6 +51,7 @@ async def upload_audio_record(
         raise HTTPException(status_code=400, detail="Invalid audio record JSON") from exc
 
     audio_record.audioUrl = await main.save_uploaded_audio(file, audio_record.id)
+    audio_record.audioName = audio_record.audioUrl.rsplit("/", 1)[-1]
     main.save_audio_record(audio_record)
     return audio_record
 

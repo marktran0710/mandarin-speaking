@@ -33,6 +33,12 @@ export default function MeasurementAnalyticsPanel({
       .filter((response): response is IrtResponse => response !== null);
     return calibrateItems([...new Map(items.map((item) => [item.itemId, item])).values()], responses);
   }, [records]);
+  const irtStudents = useMemo(() => new Set(records.map((record) => record.studentId).filter(Boolean)).size, [records]);
+  const calibrationSummary = useMemo(() => ({
+    insufficient: calibration.filter((item) => item.n < 30).length,
+    warning: calibration.filter((item) => item.n >= 30 && item.flags.length > 0).length,
+    pass: calibration.filter((item) => item.usable).length,
+  }), [calibration]);
 
   return (
     <div className="measurement-dashboard" aria-label="Learning measurement dashboard">
@@ -49,7 +55,7 @@ export default function MeasurementAnalyticsPanel({
             <p className="stories-kicker">Instrumented learning data</p>
             <h2>Measurement health</h2>
           </div>
-          <span className="queue-count">v1</span>
+          <span className="queue-count">{irtStudents} students</span>
         </div>
         <p className="measurement-panel-intro">Separate learning outcomes from ASR/audio failures before making a teaching decision.</p>
         {eventCounts.length === 0 ? (
@@ -68,12 +74,23 @@ export default function MeasurementAnalyticsPanel({
             <h2>IRT readiness</h2>
           </div>
         </div>
+        {calibration.length > 0 && (
+          <div className="irt-summary-grid" aria-label="IRT readiness summary">
+            <div><strong>{calibration.length}</strong><span>Items</span></div>
+            <div><strong>{calibration.reduce((sum, item) => sum + item.n, 0)}</strong><span>Responses</span></div>
+            <div><strong>{calibrationSummary.pass}</strong><span>Pass</span></div>
+            <div><strong>{calibrationSummary.insufficient}</strong><span>Insufficient data</span></div>
+          </div>
+        )}
         {calibration.length === 0 ? (
           <p className="teacher-empty-panel">No item-linked responses yet. Add an itemId to practice records to begin calibration.</p>
         ) : (
-          <table className="measurement-table">
-            <thead><tr><th>Item</th><th>Responses</th><th>Difficulty</th><th>Status</th></tr></thead>
-            <tbody>{calibration.map((item) => <tr key={item.itemId}><td>{item.itemId}</td><td>{item.n}</td><td>{item.difficulty}</td><td>{item.usable ? "Calibrated" : item.flags.join(", ")}</td></tr>)}</tbody>
+          <table className="measurement-table irt-table">
+            <thead><tr><th>Item</th><th>Responses</th><th>Difficulty</th><th>Correct</th><th>Status</th></tr></thead>
+            <tbody>{calibration.map((item) => {
+              const status = item.n < 30 ? "insufficient_data" : item.usable ? "pass" : "warning";
+              return <tr key={item.itemId}><td>{item.itemId}</td><td>{item.n}</td><td>{item.difficulty}</td><td>{Math.round(item.proportionCorrect * 100)}%</td><td><span className={`irt-status is-${status}`}>{status === "insufficient_data" ? "Insufficient data" : status === "pass" ? "Pass" : item.flags.join(", ")}</span></td></tr>;
+            })}</tbody>
           </table>
         )}
       </section>

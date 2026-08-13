@@ -56,6 +56,7 @@ export interface StoredAudioRecord {
   imageUrl?: string;
   imageIndex?: number;
   audioUrl?: string;
+  audioName?: string;
   praatMetrics?: any;
   analysisVersion?: "stable_v1" | "phoneme_tone_v2";
   analysisSchemaVersion?: string;
@@ -237,10 +238,12 @@ export async function listMeasurementEvents(): Promise<MeasurementEvent[]> {
 export async function listAudioRecords(params?: {
   limit?: number;
   skip?: number;
+  studentId?: string;
 }): Promise<StoredAudioRecord[]> {
   const searchParams = new URLSearchParams();
   if (params?.limit !== undefined) searchParams.set("limit", String(params.limit));
   if (params?.skip !== undefined) searchParams.set("skip", String(params.skip));
+  if (params?.studentId) searchParams.set("student_id", params.studentId);
   const query = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
   const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records${query}`);
   if (!response.ok) {
@@ -739,10 +742,16 @@ export async function createHelpRequest(request: HelpRequest) {
   return response.json() as Promise<HelpRequest>;
 }
 
-export async function listStorySubmissions(storyId?: string): Promise<StorySubmission[]> {
-  const url = storyId
-    ? `${BACKEND_URL}/api/story-submissions?story_id=${encodeURIComponent(storyId)}`
-    : `${BACKEND_URL}/api/story-submissions`;
+export async function listStorySubmissions(
+  storyId?: string,
+  student?: { studentId?: string; studentName?: string },
+): Promise<StorySubmission[]> {
+  const params = new URLSearchParams();
+  if (storyId) params.set("story_id", storyId);
+  if (student?.studentId) params.set("student_id", student.studentId);
+  else if (student?.studentName) params.set("student_name", student.studentName);
+  const query = params.toString();
+  const url = query ? `${BACKEND_URL}/api/story-submissions?${query}` : `${BACKEND_URL}/api/story-submissions`;
   const response = await fetchWithRetry(url);
   if (!response.ok) throw new Error("Could not load story submissions.");
   const data = await response.json();

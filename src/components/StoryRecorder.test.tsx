@@ -841,7 +841,7 @@ describe("StoryRecorder student prototype", () => {
     const requestBody = analyzeCall?.[1]?.body as FormData;
     expect(requestBody.get("transcription")).toBe("");
     expect(requestBody.get("asr_model")).toBe("ctwhisper");
-    expect(await screen.findByText(/story-attempt\.wav/)).toBeInTheDocument();
+    expect(screen.queryByText(/story-attempt\.wav/)).not.toBeInTheDocument();
     expect(onAddRecord).toHaveBeenCalledWith(
       expect.objectContaining({
         transcription: "Student tells the market story",
@@ -893,7 +893,7 @@ describe("StoryRecorder student prototype", () => {
     const requestBody = analyzeCall?.[1]?.body as FormData;
     expect(requestBody.get("transcription")).toBe("");
     expect(requestBody.get("asr_model")).toBe("vibevoice");
-    expect(await screen.findByText(/story-attempt\.wav/)).toBeInTheDocument();
+    expect(screen.queryByText(/story-attempt\.wav/)).not.toBeInTheDocument();
     expect(
       (await screen.findAllByText("Student tells the market story")).length,
     ).toBeGreaterThan(0);

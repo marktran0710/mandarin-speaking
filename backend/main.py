@@ -490,6 +490,7 @@ class AudioRecordRequest(BaseModel):
     imageUrl: Optional[str] = None
     imageIndex: Optional[int] = None
     audioUrl: Optional[str] = None
+    audioName: Optional[str] = None
     praatMetrics: Optional[dict] = None
     analysisVersion: Optional[str] = None
     analysisSchemaVersion: Optional[str] = None
@@ -843,10 +844,10 @@ def save_audio_record(record: AudioRecordRequest):
             """
             INSERT INTO audio_records (
                 id, timestamp, duration, transcription, model, topic_id, student_id,
-                image_url, image_index, audio_url, praat_metrics,
+                image_url, image_index, audio_url, audio_name, praat_metrics,
                 session_id, attempt_id, attempt_number, attempt_type
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 timestamp = EXCLUDED.timestamp,
                 duration = EXCLUDED.duration,
@@ -857,6 +858,7 @@ def save_audio_record(record: AudioRecordRequest):
                 image_url = EXCLUDED.image_url,
                 image_index = EXCLUDED.image_index,
                 audio_url = EXCLUDED.audio_url,
+                audio_name = EXCLUDED.audio_name,
                 praat_metrics = EXCLUDED.praat_metrics,
                 session_id = EXCLUDED.session_id,
                 attempt_id = EXCLUDED.attempt_id,
@@ -874,6 +876,7 @@ def save_audio_record(record: AudioRecordRequest):
                 record.imageUrl,
                 record.imageIndex,
                 record.audioUrl,
+                record.audioName,
                 Jsonb(metrics),
                 record.sessionId,
                 record.attemptId,

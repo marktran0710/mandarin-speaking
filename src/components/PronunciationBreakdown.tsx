@@ -8,6 +8,7 @@ import {
   type AssistiveFeedbackSyllable,
 } from "../utils/assistiveFeedback";
 import { BiLabel } from "./BiLabel";
+import MiniContourChart from "./MiniContourChart";
 import type {
   DiagnosticStatus,
   VowelZone,
@@ -447,11 +448,13 @@ function VowelChip({ syllable }: { syllable: WordProsodySyllable }) {
 
 function RowDetail({
   syllable,
+  word,
   referenceAccepted = false,
   debug,
   assistiveRecord = null,
 }: {
   syllable: WordProsodySyllable;
+  word: WordProsody;
   referenceAccepted?: boolean;
   debug: boolean;
   /** Additive ACCEPT/UNCERTAIN/NEEDS_PRACTICE record for this syllable, if
@@ -468,6 +471,16 @@ function RowDetail({
 
   return (
     <div className="pb-detail">
+      {(word.pitch_contour?.length || word.user_curve?.length) && (
+        <div className="pb-detail-contour" aria-label={`${word.token} tone visualization`}>
+          <MiniContourChart
+            actual={word.pitch_contour}
+            reference={word.reference_contour}
+            userCurve={word.user_curve}
+            targetCurve={word.target_curve}
+          />
+        </div>
+      )}
       <p className={`pb-detail-status is-${label.tone}`}>
         <span aria-hidden="true">{label.mark}</span>{" "}
         <BiLabel zh={label.zh} en={label.en} />
@@ -547,6 +560,7 @@ export default function PronunciationBreakdown({
   transcription,
   teacherPhrases,
   debug = false,
+  compact = false,
   assistiveFeedback = null,
 }: {
   words: WordProsody[];
@@ -560,6 +574,10 @@ export default function PronunciationBreakdown({
   /** Research/teacher mode: reveals the raw contour-match number, its
    * provenance, and the legacy progression gate. Off for learners. */
   debug?: boolean;
+  /** Results screen mode: keep actionable rows visible and place passed rows
+   * behind one disclosure control. The standalone breakdown remains complete
+   * by default. */
+  compact?: boolean;
   /** Additive ACCEPT/UNCERTAIN/NEEDS_PRACTICE layer, matched to rows by
    * position (one record per Han character, same order this component
    * already flattens `words` into) with a character sanity check -- see
@@ -569,6 +587,7 @@ export default function PronunciationBreakdown({
   assistiveFeedback?: AssistiveFeedbackSyllable[] | null;
 }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [showAllRows, setShowAllRows] = useState(false);
   const pinyinTokens = useMemo(
     () => [...new Set(
       words
@@ -610,6 +629,19 @@ export default function PronunciationBreakdown({
 
   const counts = countByBucket(groups);
   const summary = SUMMARY_BUCKETS.filter((bucket) => counts[bucket.key] > 0);
+  const hasActionableRows = groups.some((group) =>
+    group.rows.some(({ syllable, word }) => {
+      const label = statusLabel(syllable, referenceEvidenceAccepted(word));
+      return label.tone === "fail" || label.tone === "uncertain" || label.tone === "retry";
+    }),
+  );
+  const compactRowsHidden = compact && hasActionableRows && !showAllRows;
+  const hiddenRowsCount = compactRowsHidden
+    ? groups.reduce((total, group) => total + group.rows.filter(({ syllable, word }) => {
+        const label = statusLabel(syllable, referenceEvidenceAccepted(word));
+        return label.tone === "pass" || label.tone === "not-measured";
+      }).length, 0)
+    : 0;
 
   return (
     <section className="pronunciation-breakdown" aria-label="Pronunciation breakdown">
@@ -645,12 +677,25 @@ export default function PronunciationBreakdown({
         )}
       </ul>
 
+      {compact && hasActionableRows && hiddenRowsCount > 0 && (
+        <button
+          type="button"
+          className="pb-compact-toggle"
+          aria-expanded={showAllRows}
+          onClick={() => setShowAllRows((open) => !open)}
+        >
+          {showAllRows
+            ? <BiLabel zh="只看需要練習的部分" en="Show only parts to practise" />
+            : <BiLabel zh={`顯示全部發音 (${hiddenRowsCount} 個已通過)`} en={`Show all pronunciation rows (${hiddenRowsCount} passed)`} />}
+        </button>
+      )}
+
       <div className="pb-groups">
         {phraseGroups.map((phrase) => (
           <section
             className={`pb-phrase-group${phrase.text ? "" : " is-unstructured"}`}
             key={phrase.key}
-          >
+            >
             {phrase.text && (
               <div className="pb-phrase-header">
                 <span className="pb-phrase-label" lang="zh-Hant">{phrase.text}</span>
@@ -666,7 +711,14 @@ export default function PronunciationBreakdown({
               </div>
             )}
             <div className="pb-phrase-words">
-            {phrase.words.map((group) => (
+            {phrase.words.map((group) => {
+              const visibleRows = group.rows.filter(({ syllable, word }) => {
+                if (!compactRowsHidden) return true;
+                const label = statusLabel(syllable, referenceEvidenceAccepted(word));
+                return label.tone === "fail" || label.tone === "uncertain" || label.tone === "retry";
+              });
+              if (compactRowsHidden && visibleRows.length === 0) return null;
+              return (
           <div className="pb-group" key={group.key}>
             <p className="pb-group-header">
               <span className="pb-group-token" lang="zh-Hant">
@@ -679,10 +731,14 @@ export default function PronunciationBreakdown({
 
             <ul className="pb-rows">
               {group.rows.map(({ key, char, pinyin, syllable, word }) => {
-                flatIndex += 1;
+                const rowIndex = flatIndex + 1;
+                flatIndex = rowIndex;
                 const assistiveRecord = matchAssistiveRecord(assistiveFeedback, flatIndex, char);
                 const referenceAccepted = referenceEvidenceAccepted(word);
                 const label = statusLabel(syllable, referenceAccepted);
+                const visible = !compactRowsHidden ||
+                  label.tone === "fail" || label.tone === "uncertain" || label.tone === "retry";
+                if (!visible) return null;
                 // Only a confident error gets the red field. An △ must never
                 // read as a mistake — that conflation is the bug this replaced.
                 const failed = label.tone === "fail";
@@ -736,6 +792,7 @@ export default function PronunciationBreakdown({
                     {open && (
                       <RowDetail
                         syllable={syllable}
+                        word={word}
                         referenceAccepted={referenceAccepted}
                         debug={debug}
                         assistiveRecord={assistiveRecord}
@@ -746,8 +803,17 @@ export default function PronunciationBreakdown({
               })}
             </ul>
           </div>
-        ))}
+              );
+            })}
             </div>
+            {compactRowsHidden && !phrase.words.some((group) =>
+              group.rows.some(({ syllable, word }) => {
+                const label = statusLabel(syllable, referenceEvidenceAccepted(word));
+                return label.tone === "fail" || label.tone === "uncertain" || label.tone === "retry";
+              }),
+            ) && (
+              <p className="pb-phrase-collapsed-note">All measured tones passed.</p>
+            )}
           </section>
         ))}
       </div>

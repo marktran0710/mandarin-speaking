@@ -72,7 +72,6 @@ function renderFlow(overrides: Record<string, unknown> = {}) {
       masteryPassed={false}
       praatMetrics={metrics()}
       analysisAudioBlob={null}
-      submittedAudioName=""
       clearedWords={[]}
       onWordDrillPass={vi.fn()}
       hasNextScene

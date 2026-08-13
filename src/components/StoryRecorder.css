@@ -333,14 +333,6 @@
   display: none;
 }
 
-.submitted-audio-name {
-  color: var(--clay-muted);
-  font-size: 13px;
-  font-weight: 650;
-  margin: 0;
-  text-align: center;
-}
-
 /* Analysis loading card */
 .analysis-loading-card {
   margin: 18px 0 0;

@@ -66,6 +66,7 @@ interface AudioRecord {
   imageUrl?: string;
   imageIndex?: number;
   audioUrl?: string;
+  audioName?: string;
   analysisVersion?: "stable_v1" | "phoneme_tone_v2";
   analysisSchemaVersion?: string;
   modelVersion?: string;
@@ -162,7 +163,25 @@ export default function App() {
   const loadSavedAudioRecords = useCallback(async () => {
     if (canUseDatabase()) {
       try {
-        const recordsData = await listAudioRecords();
+        const serverRecords = await listAudioRecords({
+          limit: 1000,
+          studentId: getStudentId(),
+        });
+        let localRecords: StoredAudioRecord[] = [];
+        try {
+          const parsed = JSON.parse(localStorage.getItem("audioRecords") || "[]");
+          if (Array.isArray(parsed)) {
+            const studentId = getStudentId();
+            localRecords = parsed.filter(
+              (record: StoredAudioRecord) => !studentId || record.studentId === studentId,
+            );
+          }
+        } catch {
+          localRecords = [];
+        }
+        const byId = new Map<string, StoredAudioRecord>();
+        for (const record of [...localRecords, ...serverRecords]) byId.set(record.id, record);
+        const recordsData = Array.from(byId.values());
         setAudioRecords(recordsFromStored(recordsData));
         localStorage.setItem("audioRecords", JSON.stringify(recordsData));
         return;
@@ -301,11 +320,18 @@ export default function App() {
       try {
         const savedRecord = await createAudioRecord(audioData, record.audioBlob);
         if (savedRecord?.audioUrl) {
-          updateStoredAudioRecord(record.id, savedRecord.audioUrl);
+          updateStoredAudioRecord(record.id, {
+            audioUrl: savedRecord.audioUrl,
+            audioName: savedRecord.audioName,
+          });
           setAudioRecords((currentRecords) =>
             currentRecords.map((currentRecord) =>
               currentRecord.id === record.id
-                ? { ...currentRecord, audioUrl: savedRecord.audioUrl }
+                ? {
+                    ...currentRecord,
+                    audioUrl: savedRecord.audioUrl,
+                    audioName: savedRecord.audioName,
+                  }
                 : currentRecord,
             ),
           );
@@ -560,15 +586,16 @@ function serializeAudioRecord(record: AudioRecord): StoredAudioRecord {
     studentId: getStudentId(),
     imageUrl: record.imageUrl,
     imageIndex: record.imageIndex,
-      audioUrl: record.audioUrl,
-      analysisVersion: record.analysisVersion ?? record.praatMetrics?.analysis_version ?? "stable_v1",
-      analysisSchemaVersion: record.analysisSchemaVersion ?? record.praatMetrics?.analysis_schema_version,
-      modelVersion: record.modelVersion ?? record.praatMetrics?.model_version,
-      comparisonGroupId: record.comparisonGroupId,
-      sessionId: record.sessionId,
-      attemptId: record.attemptId,
-      attemptNumber: record.attemptNumber,
-      attemptType: record.attemptType,
+    audioUrl: record.audioUrl,
+    audioName: record.audioName,
+    analysisVersion: record.analysisVersion ?? record.praatMetrics?.analysis_version ?? "stable_v1",
+    analysisSchemaVersion: record.analysisSchemaVersion ?? record.praatMetrics?.analysis_schema_version,
+    modelVersion: record.modelVersion ?? record.praatMetrics?.model_version,
+    comparisonGroupId: record.comparisonGroupId,
+    sessionId: record.sessionId,
+    attemptId: record.attemptId,
+    attemptNumber: record.attemptNumber,
+    attemptType: record.attemptType,
     praatMetrics: record.praatMetrics,
   };
 }
@@ -581,10 +608,13 @@ function recordsFromStored(recordsData: StoredAudioRecord[]): AudioRecord[] {
   }));
 }
 
-function updateStoredAudioRecord(id: string, audioUrl: string) {
+function updateStoredAudioRecord(
+  id: string,
+  media: Pick<StoredAudioRecord, "audioUrl" | "audioName">,
+) {
   const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
   const updated = stored.map((record: StoredAudioRecord) =>
-    record.id === id ? { ...record, audioUrl } : record,
+    record.id === id ? { ...record, ...media } : record,
   );
   localStorage.setItem("audioRecords", JSON.stringify(updated));
 }
