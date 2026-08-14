@@ -1321,6 +1321,15 @@ def apply_recording_qc_to_diagnostics(word_prosody: list, feedback_quality: dict
     return summary
 
 
+# Sentence-level gate: a recording passes when at least this fraction of
+# its judged syllables passed. Engineering default, chosen to match the
+# "students should be able to move on with occasional per-syllable
+# imperfections" UX; not a calibrated cutoff.
+SENTENCE_SYLLABLE_PASS_RATIO = float(
+    os.getenv("SENTENCE_SYLLABLE_PASS_RATIO", "0.80")
+)
+
+
 def build_pronunciation_mastery(
     word_prosody: list,
     feedback_quality: dict,
@@ -1386,9 +1395,14 @@ def build_pronunciation_mastery(
 
     passed_count = sum(syllable.get("passed") is True for syllable in judged_syllables)
     pronunciation_failed_words = list(failed_words)
+    # Sentence-level pass rate: 80% of judged syllables suffices. Below that
+    # the whole recording fails; above, the recording passes but the failed
+    # words still surface in `failed_words` / `practice_parts` so a student
+    # can optionally drill them without being forced to re-record the
+    # entire sentence to move on.
+    pass_rate = passed_count / len(judged_syllables)
     passed = (
-        passed_count == len(judged_syllables)
-        and not pronunciation_failed_words
+        pass_rate >= SENTENCE_SYLLABLE_PASS_RATIO
         and content_match is not False
     )
     if content_match is False:
@@ -1407,14 +1421,48 @@ def build_pronunciation_mastery(
         "practice_parts": list(dict.fromkeys([*pronunciation_failed_words, *missing_parts])),
         "content_match": content_match,
         "missing_target_units": missing_units,
-        "message": (
-            "All measured tones passed. You can continue."
-            if passed
-            else content_message
-            if content_message
-            else f"Practise {len(pronunciation_failed_words) or len(missing_parts) or 1} highlighted part(s), then record the whole sentence again."
+        "message": _mastery_message(
+            passed=passed,
+            passed_count=passed_count,
+            total=len(judged_syllables),
+            failed_words=pronunciation_failed_words,
+            missing_parts=missing_parts,
+            content_message=content_message,
         ),
     }
+
+
+def _mastery_message(
+    *,
+    passed: bool,
+    passed_count: int,
+    total: int,
+    failed_words: list,
+    missing_parts: list,
+    content_message: str,
+) -> str:
+    """Sentence-level mastery message.
+
+    The 80% sentence-pass rule means a recording can pass while still
+    having failed words the student may want to drill. Say so explicitly —
+    "you can continue, and here is what to practise if you want" — rather
+    than the old strict "all measured tones passed" copy, which would read
+    as false to a learner staring at ✗ chips beside their words."""
+    if passed:
+        if failed_words:
+            return (
+                f"Passed ({passed_count}/{total} syllables). "
+                f"Practise {len(failed_words)} word(s) to sharpen your tones, "
+                "or continue to the next scene."
+            )
+        return f"Passed ({passed_count}/{total} syllables). You can continue."
+    if content_message:
+        return content_message
+    highlighted = len(failed_words) or len(missing_parts) or 1
+    return (
+        f"Practise {highlighted} highlighted part(s), then record the "
+        "whole sentence again."
+    )
 
 
 VOWEL_ZONE_LABELS = {

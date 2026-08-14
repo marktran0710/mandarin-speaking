@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { isProsodyHardFailure, toneArrow } from "../utils/storyRecorderFeedback";
+import { toneArrow } from "../utils/storyRecorderFeedback";
 import { primePinyin, toPinyin, toPinyinSyllables } from "../utils/pinyin";
 import { scoreScriptChunks, splitTeacherScriptIntoPhrases } from "../utils/scriptAlignment";
 import {
@@ -242,10 +242,29 @@ function hasMeasuredToneEvidence(word: WordProsody): boolean {
   );
 }
 
+/** Display-only "hard failure" — stricter than the progression gate on
+ * purpose. The progression gate treats every non-CORRECT verdict as a fail
+ * (see storyRecorderFeedback.isProsodyHardFailure), which is right for
+ * unlocking but wrong for the visual "phrase ready" chip: a phrase whose
+ * measured syllables all passed and whose only UNCERTAIN word is a
+ * neutral-tone placeholder should still look green in the breakdown.
+ * Only firm negative evidence (INCORRECT) or an unusable recording
+ * (INVALID_AUDIO) downgrades the display chip. */
+function isDisplayFailure(word: WordProsody): boolean {
+  if (word.diagnostic_status === "INVALID_AUDIO") return true;
+  if (word.diagnostic_status === "INCORRECT") return true;
+  if (word.judged === false) return false;
+  if (word.diagnostic_status === "UNCERTAIN") return false;
+  if (word.diagnostic_status === "CORRECT") return false;
+  // No diagnosis was produced (legacy payload) — fall back to `passed`
+  // (matches the progression gate's own fallback for that case).
+  return word.passed === false;
+}
+
 function phraseStatus(
   phraseWordRecords: WordProsody[],
 ): Pick<PhraseBreakdownGroup, "passed" | "uncertain"> {
-  const hasHardFailure = phraseWordRecords.some(isProsodyHardFailure);
+  const hasHardFailure = phraseWordRecords.some(isDisplayFailure);
   const hasMeasuredEvidence = phraseWordRecords.some(hasMeasuredToneEvidence);
   // Neutral and unjudged syllables are not failures, and they must not
   // downgrade a phrase whose other syllables have already passed. A phrase
@@ -727,7 +746,70 @@ export default function PronunciationBreakdown({
               {group.pinyin && (
                 <span className="pb-group-pinyin">{group.pinyin}</span>
               )}
+              {(() => {
+                // Surface the shape/direction split behind the verdict so
+                // a learner (and any reviewer) can see exactly why a
+                // strong shape came back UNCERTAIN, or why a good
+                // direction did not rescue a poor shape. Absent on legacy
+                // payloads without the refactor's fields — rendered only
+                // when both component scores are present.
+                const wordRecord = group.rows[0]?.word;
+                if (
+                  typeof wordRecord?.shape_score !== "number" ||
+                  typeof wordRecord?.direction_score !== "number"
+                ) {
+                  return null;
+                }
+                const display = typeof wordRecord.display_score === "number"
+                  ? Math.round(wordRecord.display_score)
+                  : null;
+                return (
+                  <span className="pb-group-scores" title="shape · direction · overall">
+                    <small>
+                      shape {Math.round(wordRecord.shape_score)}
+                      {" · "}
+                      dir {Math.round(wordRecord.direction_score)}
+                      {display !== null && (
+                        <>
+                          {" · "}
+                          overall {display}
+                        </>
+                      )}
+                    </small>
+                  </span>
+                );
+              })()}
             </p>
+            {(() => {
+              // A learner-facing note for the two most common
+              // disagreement cases the refactor introduced. The generic
+              // ✓/△/✗ chip does not tell the learner WHY a strong-looking
+              // contour came back UNCERTAIN; a one-line reason does.
+              // Absent when there is no disagreement to explain.
+              const wordRecord = group.rows[0]?.word;
+              const reason = wordRecord?.reason;
+              if (reason === "shape_direction_disagreement") {
+                return (
+                  <p className="pb-group-note">
+                    <BiLabel
+                      zh="整體的音高走向很接近，但一小段的方向不夠清楚。再錄一次試試看。"
+                      en="Your overall pitch shape is close to the expected tone, but the pitch movement is not clear enough in part of the syllable. Try once more."
+                    />
+                  </p>
+                );
+              }
+              if (reason === "weak_shape") {
+                return (
+                  <p className="pb-group-note">
+                    <BiLabel
+                      zh="音高的整體形狀還不夠像目標聲調。慢慢多練幾次。"
+                      en="The overall pitch shape is not quite matching the target tone yet. Practise it slowly a few more times."
+                    />
+                  </p>
+                );
+              }
+              return null;
+            })()}
 
             <ul className="pb-rows">
               {group.rows.map(({ key, char, pinyin, syllable, word }) => {

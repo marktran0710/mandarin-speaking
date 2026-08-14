@@ -522,13 +522,29 @@ export interface WordProsody {
   // Pure shape-similarity score (the one the chart visualizes), as opposed
   // to tone_accuracy's direction-weighted blend used for aggregation.
   shape_accuracy?: number;
-  // Per-syllable directional scores + verdicts. The word-level scores
-  // average across syllables, which lets a clean syllable hide a
-  // wrong-direction one — `passed` is the MIN-rule verdict (every syllable
-  // must clear the backend's pass bar). Absent/null for non-Chinese tokens.
+  /** Word-level pitch-shape similarity, separated from direction so
+   * consumers can see disagreement. Present on any judged word after the
+   * tone-verdict refactor. */
+  shape_score?: number | null;
+  /** Word-level directional-fit score (start/end regional means). */
+  direction_score?: number | null;
+  /** 70/30 shape-weighted composite. Kept only for progress-history
+   * display; not a verdict input. */
+  display_score?: number;
+  /** Canonical word verdict; equal to `diagnostic_status`, mirrored under
+   * a clearer name for the refactor's payload. */
+  verdict?: DiagnosticStatus;
+  /** Reason code for the verdict (strong_shape_supported,
+   * shape_direction_disagreement, weak_shape, strong_negative_evidence,
+   * insufficient_pitch_frames, invalid_audio, no_contour_measurement). */
+  reason?: string;
+  // Per-syllable directional scores + verdicts. `passed` at both syllable
+  // and word level now follows the diagnostic verdict (verdict==CORRECT),
+  // not a raw score threshold — placeholder syllables (short segments,
+  // neutral tone) can no longer produce passed=True.
   syllables?: WordProsodySyllable[];
   passed?: boolean | null;
-  /** Word roll-up of the diagnostic layer. Independent of `passed`. */
+  /** Word roll-up of the diagnostic layer — same value as `verdict`. */
   diagnostic_status?: DiagnosticStatus;
   /** False when the analyzer could not extract enough pitch evidence. */
   judged?: boolean;
@@ -1565,7 +1581,15 @@ export default function StoryRecorder({
       // initial, later attempts = final) -- see the report's known-limitation
       // note on why this does not yet auto-detect a focused-retry-specific
       // recording (that distinct recording flow doesn't exist in the UI yet).
-      const attemptNumberForRequest = attemptHistory.length + 1;
+      // Use the persisted cumulative attempts (sceneProgress from
+      // speaking_progress DB) as the source of truth — attemptHistory is
+      // only ever a single-entry restore on reload, so falling back to
+      // its length would reset every scene's attempt numbering to 1 on
+      // every page load and make backend analytics misidentify follow-up
+      // recordings as fresh attempts.
+      const priorAttemptCount =
+        sceneProgress[selectedImageIndex]?.attempts ?? attemptHistory.length;
+      const attemptNumberForRequest = priorAttemptCount + 1;
       const pilotContext = resolvePilotContext();
       const attemptIdForRequest = `attempt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const attemptTypeForRequest: "WHOLE_SENTENCE_INITIAL" | "WHOLE_SENTENCE_FINAL" =

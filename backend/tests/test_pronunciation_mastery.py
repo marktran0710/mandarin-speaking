@@ -19,7 +19,7 @@ def _word(token, scores, *, judged=True):
     }
 
 
-def test_mastery_passes_only_when_every_measured_syllable_passes():
+def test_mastery_passes_when_every_measured_syllable_passes():
     result = build_pronunciation_mastery(
         [_word("妳" , [80]), _word("做什麼", [72, 76])],
         {"can_score_pronunciation": True},
@@ -32,7 +32,43 @@ def test_mastery_passes_only_when_every_measured_syllable_passes():
     assert result["failed_words"] == []
 
 
+def test_mastery_passes_at_or_above_the_eighty_percent_pass_rate():
+    """A recording clears the sentence-level pronunciation gate when at
+    least 80% of judged syllables passed — students no longer have to hit
+    every syllable to move on, but the failed word still surfaces in
+    `failed_words` / `practice_parts` so they can drill it if they want."""
+    # 8 pass out of 10 = 80% exactly — clears the gate.
+    scores = [80] * 8 + [42, 40]
+    result = build_pronunciation_mastery(
+        [_word("十字", scores)],
+        {"can_score_pronunciation": True},
+    )
+    assert result["passed"] is True
+    assert result["status"] == "passed"
+    assert result["passed_syllables"] == 8
+    assert result["total_syllables"] == 10
+    # Failed word is still surfaced so the student can optionally practise it.
+    assert "十字" in result["failed_words"]
+    assert "十字" in result["practice_parts"]
+
+
+def test_mastery_fails_below_the_eighty_percent_pass_rate():
+    """Anything under 80% syllables passing counts as needs-practice."""
+    # 7/10 = 70% — under the bar.
+    scores = [80] * 7 + [42] * 3
+    result = build_pronunciation_mastery(
+        [_word("十字", scores)],
+        {"can_score_pronunciation": True},
+    )
+    assert result["passed"] is False
+    assert result["status"] == "needs_practice"
+    assert result["passed_syllables"] == 7
+    assert result["total_syllables"] == 10
+
+
 def test_mastery_identifies_the_word_that_needs_practice():
+    """A short sentence where 2/3 syllables pass = 66.7% — under the bar,
+    so the gate blocks and the failed word is surfaced for practice."""
     result = build_pronunciation_mastery(
         [_word("妳", [80]), _word("什麼", [42, 76])],
         {"can_score_pronunciation": True},

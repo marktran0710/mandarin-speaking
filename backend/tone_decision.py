@@ -86,6 +86,27 @@ _CONSTANT_PROVENANCE = frozenset(
 TONE_CONFIRM_THRESHOLD = float(os.getenv("TONE_CONFIRM_THRESHOLD", "58.0"))
 TONE_ERROR_THRESHOLD = float(os.getenv("TONE_ERROR_THRESHOLD", "45.0"))
 
+# ── Word-level shape/direction verdict thresholds ────────────────────────
+# ENGINEERING DEFAULTS, not calibrated cutoffs. The refactor makes shape the
+# primary evidence and direction a consistency check; these constants control
+# where "strong enough" and "poor enough" begin. Keep them named so a future
+# reader can grep for them and a calibration pass can move them from one place.
+#
+# Read as: shape >= SHAPE_STRONG is enough to confirm the tone when direction
+# is at least DIRECTION_SUPPORT. Shape below SHAPE_WEAK combined with direction
+# at or below DIRECTION_BAD is the only combination that produces INCORRECT —
+# either component alone must resolve to UNCERTAIN, never a verdict.
+SHAPE_STRONG = float(os.getenv("TONE_SHAPE_STRONG", "80.0"))
+SHAPE_WEAK = float(os.getenv("TONE_SHAPE_WEAK", "60.0"))
+DIRECTION_SUPPORT = float(os.getenv("TONE_DIRECTION_SUPPORT", "60.0"))
+DIRECTION_BAD = float(os.getenv("TONE_DIRECTION_BAD", "45.0"))
+
+# Weight for the display composite score. Not a verdict input — kept only so
+# a single number can be shown to learners for progress history. Shape leads
+# because it is the primary evidence in the decision hierarchy.
+DISPLAY_SHAPE_WEIGHT = 0.70
+DISPLAY_DIRECTION_WEIGHT = 0.30
+
 #: Recording-level QC reasons that make any tone judgement meaningless.
 #: Sourced from main._assess_recording_quality; kept as a set here so the
 #: mapping from reason code to "unusable" is stated once.
@@ -238,6 +259,134 @@ def decide_tone(
             DiagnosticStatus.INCORRECT, "contour_contradicts_expected_tone", score
         )
     return build(DiagnosticStatus.UNCERTAIN, "contour_match_inconclusive", score)
+
+
+@dataclass(frozen=True)
+class WordToneDiagnosis:
+    """Word-level verdict from separate shape and direction evidence.
+
+    Kept structurally close to :class:`ToneDiagnosis` so the two can share
+    downstream code, but the fields differ: shape and direction are surfaced
+    as their own numbers, and ``display_score`` is a shape-weighted composite
+    for progress history only — it is **not** the input to the verdict.
+    """
+
+    status: DiagnosticStatus
+    reason: str
+    shape_score: Optional[float]
+    direction_score: Optional[float]
+    display_score: float
+    shape_strong_threshold: float = SHAPE_STRONG
+    shape_weak_threshold: float = SHAPE_WEAK
+    direction_support_threshold: float = DIRECTION_SUPPORT
+    direction_bad_threshold: float = DIRECTION_BAD
+
+    def as_dict(self) -> dict:
+        return {
+            "verdict": self.status.value,
+            "reason": self.reason,
+            "shape_score": self.shape_score,
+            "direction_score": self.direction_score,
+            "display_score": self.display_score,
+            "shape_strong_threshold": self.shape_strong_threshold,
+            "shape_weak_threshold": self.shape_weak_threshold,
+            "direction_support_threshold": self.direction_support_threshold,
+            "direction_bad_threshold": self.direction_bad_threshold,
+            # Same guard as ToneDiagnosis: these are engineering starting
+            # points, never calibrated cutoffs. Flip only after human-rater
+            # calibration.
+            "threshold_validated": False,
+        }
+
+
+def _display_composite(shape_score: Optional[float], direction_score: Optional[float]) -> float:
+    """The shape-weighted display composite. Never the verdict input.
+
+    Missing components are treated as 0 for the display number so a payload
+    always carries one; the verdict path handles missing evidence via QC.
+    """
+    shape = float(shape_score) if shape_score is not None else 0.0
+    direction = float(direction_score) if direction_score is not None else 0.0
+    return round(DISPLAY_SHAPE_WEIGHT * shape + DISPLAY_DIRECTION_WEIGHT * direction, 2)
+
+
+def decide_word_tone(
+    shape_score: Optional[float],
+    direction_score: Optional[float],
+    qc: QcEvidence,
+) -> WordToneDiagnosis:
+    """Word-level verdict from shape + direction evidence.
+
+    Decision hierarchy (order matters — "can we trust it?" before "what does
+    it say?"):
+
+    1. Unusable recording                              → INVALID_AUDIO
+    2. Thin pitch evidence / measurement not judged    → UNCERTAIN
+    3. Strong shape AND supporting direction           → CORRECT
+    4. Strong shape XOR weak direction                 → UNCERTAIN
+       (shape/direction disagreement — the contour visibly matches the
+        target but the coarse directional heuristic doesn't agree; the
+        learner is told the pitch movement was not clear enough, never
+        that the tone was wrong)
+    5. Weak shape (SHAPE_WEAK ≤ shape < SHAPE_STRONG)  → UNCERTAIN
+       (direction never rescues a middling shape)
+    6. Shape < SHAPE_WEAK AND direction ≤ DIRECTION_BAD → INCORRECT
+       (both signals point away from the expected tone — the only combination
+        this scorer can honestly call an error)
+    7. Anything else                                   → UNCERTAIN
+
+    ``display_score`` is a 70/30 shape-weighted composite kept for progress
+    history and never used as a verdict input. QC never adjusts the score;
+    poor measurement removes the system's right to an opinion, it does not
+    lower the learner's numbers.
+    """
+    display = _display_composite(shape_score, direction_score)
+
+    def build(status: DiagnosticStatus, reason: str) -> WordToneDiagnosis:
+        return WordToneDiagnosis(
+            status=status,
+            reason=reason,
+            shape_score=shape_score,
+            direction_score=direction_score,
+            display_score=display,
+        )
+
+    # 1. Recording itself unusable — never call the learner wrong for that.
+    if qc.unusable_recording:
+        return build(DiagnosticStatus.INVALID_AUDIO, "invalid_audio")
+
+    # 2. Measurement too thin (short segment, low voiced-pitch density, or
+    #    unjudged for another reason). No verdict is honest here.
+    if qc.thin_evidence:
+        return build(DiagnosticStatus.UNCERTAIN, "insufficient_pitch_frames")
+
+    # Both components must be present to reach the acoustic branches.
+    if shape_score is None or direction_score is None:
+        return build(DiagnosticStatus.UNCERTAIN, "no_contour_measurement")
+
+    shape = float(shape_score)
+    direction = float(direction_score)
+
+    # 3-4. Strong shape branch: shape is the primary evidence.
+    if shape >= SHAPE_STRONG:
+        if direction >= DIRECTION_SUPPORT:
+            return build(DiagnosticStatus.CORRECT, "strong_shape_supported")
+        return build(DiagnosticStatus.UNCERTAIN, "shape_direction_disagreement")
+
+    # 5. Middle band — shape is neither strong nor clearly poor. Direction
+    #    alone cannot rescue this, by design; a weak shape stays UNCERTAIN
+    #    regardless of how well the pitch moved in the right direction.
+    if shape >= SHAPE_WEAK:
+        return build(DiagnosticStatus.UNCERTAIN, "weak_shape")
+
+    # 6. Poor shape: only combined with a matching directional failure does
+    #    the scorer commit to INCORRECT. The <= for DIRECTION_BAD mirrors the
+    #    inclusive semantics the legacy scorer used for its own error bar.
+    if direction <= DIRECTION_BAD:
+        return build(DiagnosticStatus.INCORRECT, "strong_negative_evidence")
+
+    # 7. Weak shape + inconclusive direction — unable to call it either way.
+    return build(DiagnosticStatus.UNCERTAIN, "weak_shape")
 
 
 def aggregate_word(statuses: Sequence[DiagnosticStatus]) -> DiagnosticStatus:

@@ -37,41 +37,72 @@ describe("failedProsodyWords", () => {
   });
 
   it("uses the same hard-failure policy as progression", () => {
+    // After the tone-verdict refactor, UNCERTAIN blocks progression too:
+    // the diagnostic status IS the canonical gate, and CORRECT is the only
+    // value that clears it. INCORRECT and UNCERTAIN both count as failures;
+    // a word with diagnostic_status="CORRECT" clears it regardless of what
+    // the legacy `passed` field says.
     expect(
       failedProsodyWords([
         word({ index: 1, passed: false, diagnostic_status: "UNCERTAIN" }),
         word({
           index: 2,
           passed: false,
+          diagnostic_status: "CORRECT",
           reference_source: "real_voice",
           shape_accuracy: 84,
         }),
         word({ index: 3, passed: false, diagnostic_status: "INCORRECT" }),
       ]).map((item) => item.index),
-    ).toEqual([3]);
+    ).toEqual([1, 3]);
   });
 });
 
 describe("prosodyGatePassed", () => {
-  it("passes when no word failed — including unjudged and legacy words", () => {
-    expect(prosodyGatePassed([word({ passed: true }), word({ passed: null })])).toBe(true);
+  const withSyllables = (passStates: (boolean | null)[]) =>
+    word({
+      passed: passStates.every(Boolean) ? true : false,
+      syllables: passStates.map((state, index) => ({
+        char: `s${index}`,
+        tone: 1,
+        score: state === true ? 80 : state === false ? 42 : 0,
+        passed: state,
+      })),
+    });
+
+  it("passes when no syllable failed — including empty and legacy payloads", () => {
+    expect(prosodyGatePassed([withSyllables([true, true])])).toBe(true);
     expect(prosodyGatePassed([word({})])).toBe(true);
     expect(prosodyGatePassed([])).toBe(true);
     expect(prosodyGatePassed(undefined)).toBe(true);
   });
 
-  it("blocks when any word failed", () => {
-    expect(
-      prosodyGatePassed([word({ passed: true }), word({ passed: false })]),
-    ).toBe(false);
+  it("clears the gate at or above the 80% syllable pass rate", () => {
+    // 8/10 = 80% — exactly at the bar; passes.
+    const eightyPercent = withSyllables([...Array(8).fill(true), false, false]);
+    expect(prosodyGatePassed([eightyPercent])).toBe(true);
   });
 
-  it("blocks an explicitly unjudged word even when a numeric payload looks passable", () => {
+  it("blocks below the 80% syllable pass rate", () => {
+    // 7/10 = 70%; below the bar.
+    const seventyPercent = withSyllables([
+      ...Array(7).fill(true),
+      false,
+      false,
+      false,
+    ]);
+    expect(prosodyGatePassed([seventyPercent])).toBe(false);
+  });
+
+  it("stays out of the way when nothing was judged", () => {
+    // No judged syllables — no evidence to pass or fail on. Falls back to
+    // the any-hard-failure rule; an unjudged word contributes nothing, so
+    // the gate stays open.
     expect(
       prosodyGatePassed([
         word({ judged: false, passed: null, tone_accuracy: 0 }),
       ]),
-    ).toBe(false);
+    ).toBe(true);
   });
 });
 
@@ -87,64 +118,52 @@ describe("tone/shape arrows", () => {
   });
 });
 
-describe("prosodyGatePassed uses diagnostic and reference evidence", () => {
-  // The four-state diagnosis exists for display and research. It must not
-  // move anyone's lesson unlock, so the gate has to read exactly the same
-  // fields it always did — `passed` and `judged` — and ignore the rest.
-  it("does not block an uncertain verdict but blocks a firm error", () => {
-    const failing = word({
+describe("prosodyGatePassed reads the canonical diagnostic verdict", () => {
+  // After the tone-verdict refactor, the diagnostic status IS the canonical
+  // pronunciation gate. CORRECT is the only value that clears it; UNCERTAIN
+  // and INCORRECT both block. This test file pins the new invariants —
+  // together with the backend rule that `passed` follows `verdict==CORRECT`,
+  // it closes the placeholder-auto-pass loophole end-to-end.
+  it("blocks BOTH an uncertain and an incorrect verdict", () => {
+    const uncertain = word({
       passed: false,
       diagnostic_status: "UNCERTAIN",
     } as Partial<WordProsody>);
-    expect(prosodyGatePassed([failing])).toBe(true);
+    expect(prosodyGatePassed([uncertain])).toBe(false);
 
-    const passing = word({
-      passed: true,
+    const incorrect = word({
+      passed: false,
       diagnostic_status: "INCORRECT",
     } as Partial<WordProsody>);
-    expect(prosodyGatePassed([passing])).toBe(false);
+    expect(prosodyGatePassed([incorrect])).toBe(false);
   });
 
-  it("still blocks on unjudged words regardless of their diagnosis", () => {
+  it("clears a CORRECT verdict even when the legacy passed flag disagrees", () => {
+    // The refactor makes the diagnostic status authoritative — a legacy
+    // `passed: false` field must not veto a CORRECT diagnosis.
+    const passing = word({
+      passed: false,
+      diagnostic_status: "CORRECT",
+    } as Partial<WordProsody>);
+    expect(prosodyGatePassed([passing])).toBe(true);
+  });
+
+  it("keeps unjudged words out of the gate — nothing to fail on", () => {
+    // A word the analyzer did not have enough pitch to judge stays silent:
+    // it is neither a fail nor a pass. Progression falls back to the
+    // backend's own mastery gate, which is more strict about "not_judged".
     const unjudged = word({
       passed: null,
       judged: false,
-      diagnostic_status: "CORRECT",
+      diagnostic_status: "UNCERTAIN",
     } as Partial<WordProsody>);
-    expect(prosodyGatePassed([unjudged])).toBe(false);
+    expect(prosodyGatePassed([unjudged])).toBe(true);
   });
 
-  it("uses a real reference curve instead of a conflicting synthetic verdict", () => {
-    expect(
-      prosodyGatePassed([
-        word({ passed: false, reference_source: "real_voice", shape_accuracy: 82 }),
-      ]),
-    ).toBe(true);
-    expect(
-      prosodyGatePassed([
-        word({ passed: true, reference_source: "real_voice", shape_accuracy: 42 }),
-      ]),
-    ).toBe(false);
-  });
-
-  it("produces identical results with and without the new fields", () => {
-    const bare = [word({ passed: true }), word({ passed: true, index: 1 })];
-    const enriched = bare.map((item) => ({
-      ...item,
-      diagnostic_status: "UNCERTAIN" as const,
-      syllables: [
-        {
-          char: "在",
-          tone: 4,
-          score: 53,
-          passed: true,
-          diagnostic_status: "UNCERTAIN" as const,
-          contour_match_score: 53,
-          legacy: { passed: true, score: 53, threshold: 58 },
-        },
-      ],
-    }));
-    expect(prosodyGatePassed(enriched)).toBe(prosodyGatePassed(bare));
-    expect(failedProsodyWords(enriched).length).toBe(failedProsodyWords(bare).length);
+  it("falls back to legacy passed when no diagnostic status is present", () => {
+    // Older payloads (from before the diagnostic layer existed, or from a
+    // code path that still writes only the legacy fields) must still work.
+    expect(prosodyGatePassed([word({ passed: true })])).toBe(true);
+    expect(prosodyGatePassed([word({ passed: false })])).toBe(false);
   });
 });

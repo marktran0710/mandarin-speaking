@@ -122,29 +122,48 @@ def test_legacy_threshold_is_unchanged():
     assert SYLLABLE_PASS_THRESHOLD == 58.0
 
 
-def test_legacy_pass_fields_survive_beside_the_diagnosis(syllables):
-    """The gate the app actually unlocks lessons with still runs on `score`
-    and `passed`, computed exactly as before. If this drifts, students' unlock
-    state moves — which this patch is explicitly not allowed to do."""
+def test_legacy_score_and_threshold_still_travel_with_the_syllable(syllables):
+    """After the verdict refactor, `passed` follows the canonical verdict
+    rather than the raw score bar — but the raw score and the legacy
+    threshold-only verdict must still ride alongside so research exports
+    and A/B ablation can see what the old gate would have said."""
     for syllable in syllables:
         assert isinstance(syllable["score"], float)
-        assert syllable["passed"] == (syllable["score"] >= SYLLABLE_PASS_THRESHOLD)
-        assert syllable["legacy"]["passed"] == syllable["passed"]
         assert syllable["legacy"]["threshold"] == 58.0
+        assert syllable["legacy"]["passed"] == (
+            syllable["score"] >= SYLLABLE_PASS_THRESHOLD
+        )
 
 
-def test_the_diagnosis_does_not_write_back_into_the_legacy_verdict(syllables):
-    """Belt and braces: an UNCERTAIN syllable may still be a legacy fail, and
-    that is deliberate. The two live side by side without touching."""
-    disagreements = [
+def test_canonical_passed_follows_the_verdict_not_the_raw_threshold(syllables):
+    """The refactor's central invariant, verified end-to-end: `passed` is
+    True IFF the diagnostic verdict is CORRECT. A syllable scored above 58
+    can still fail if the diagnostic path called it UNCERTAIN (e.g. a
+    neutral-tone placeholder), and — by symmetry — no placeholder score
+    can ever produce passed=True."""
+    for syllable in syllables:
+        canonical = syllable["diagnostic_status"] == "CORRECT"
+        assert syllable["passed"] is canonical, syllable
+
+
+def test_placeholder_syllables_never_pass_under_the_new_gate(syllables):
+    """Direct assertion of the bug the refactor closes: neutral-tone and
+    short-segment placeholders — which the legacy gate silently passed
+    because their constants (75, 65) sit above the 58 bar — must now
+    resolve to passed=False via the UNCERTAIN verdict."""
+    placeholders = [
         s
         for s in syllables
-        if s["diagnostic_status"] != "INCORRECT" and s["passed"] is False
+        if s["diagnostic_status"] == "UNCERTAIN"
+        and s.get("diagnostic_reason")
+        in {"neutral_tone_has_no_contour_target", "segment_too_short_to_measure"}
     ]
-    assert disagreements, (
-        "expected at least one syllable the legacy gate fails but the "
-        "diagnostic layer declines to call an error — that gap is the point"
+    assert placeholders, (
+        "expected at least one placeholder syllable in this recording "
+        "(the neutral-tone 麼 is one)"
     )
+    for syllable in placeholders:
+        assert syllable["passed"] is False, syllable
 
 
 # ── Decision replay of the real recording's scores ───────────────────────

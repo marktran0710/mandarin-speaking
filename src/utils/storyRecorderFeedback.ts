@@ -171,33 +171,58 @@ export function failedProsodyWords(
 }
 
 /** One pronunciation verdict shared by progression, practice ordering and UI.
- * It intentionally keeps old payloads working while making the newer
- * diagnostic/reference evidence authoritative when it is present. */
+ *
+ * After the tone-verdict refactor, this is a straight reading of the
+ * canonical diagnostic status: only CORRECT clears the gate; UNCERTAIN
+ * and INCORRECT both fail. The refactor's UNCERTAIN != CORRECT invariant
+ * lives here — a word the backend was not confident enough to call
+ * CORRECT must not silently unlock progression.
+ *
+ * `judged: false` (or an absent verdict) is preserved as "nothing to gate
+ * on" — nothing to fail either, because the backend intentionally leaves
+ * those words unscored rather than guessing. */
 export function isProsodyHardFailure(item: WordProsody): boolean {
-  // `judged: false` means the analyzer did not have enough reliable pitch
-  // evidence. It is not a pronunciation failure. The backend represents the
-  // corresponding syllable verdict as null, and the UI must preserve that
-  // distinction instead of sending an unmeasured word to practice.
   if (item.diagnostic_status === "INVALID_AUDIO") {
     return true;
   }
   if (item.judged === false) return false;
-  if (item.reference_source === "real_voice") {
-    return (
-      typeof item.shape_accuracy !== "number" ||
-      item.shape_accuracy < 58
-    );
-  }
-  if (item.diagnostic_status === "UNCERTAIN") return false;
   if (item.diagnostic_status === "INCORRECT") return true;
+  if (item.diagnostic_status === "UNCERTAIN") return true;
+  if (item.diagnostic_status === "CORRECT") return false;
+  // No diagnostic status was produced (older payload). Fall back to the
+  // raw pass flag for backwards compatibility.
   return item.passed === false;
 }
 
-/** The pronunciation mastery gate: a recording clears it when no word
- * failed the per-syllable verdict. An empty/absent word_prosody passes —
- * the gate only ever blocks on evidence, not on missing data. */
+/** Fraction of judged syllables that must pass for a sentence to clear
+ * the pronunciation gate. Mirrors backend main.SENTENCE_SYLLABLE_PASS_RATIO
+ * so the fallback path (used when the backend didn't send a
+ * pronunciation_mastery block) agrees with the authoritative gate. Keep
+ * the two values in step — a drift here means the frontend fallback
+ * unlocks scenes the backend would still block, or vice versa. */
+export const SENTENCE_SYLLABLE_PASS_RATIO = 0.80;
+
+/** The pronunciation mastery gate: a recording clears it when at least
+ * SENTENCE_SYLLABLE_PASS_RATIO of its judged syllables passed (verdict
+ * == CORRECT). Individual failed words still surface for optional
+ * drilling — the gate lets a student move on with occasional
+ * per-syllable slips, it does not hide them.
+ *
+ * An empty/absent word_prosody passes — the gate only ever blocks on
+ * evidence, not on missing data. */
 export function prosodyGatePassed(wordProsody?: WordProsody[]): boolean {
-  return !(wordProsody ?? []).some(isProsodyHardFailure);
+  const words = wordProsody ?? [];
+  const judgedSyllables = words
+    .flatMap((word) => word.syllables ?? [])
+    .filter((syllable) => syllable.passed !== null && syllable.passed !== undefined);
+  if (judgedSyllables.length === 0) {
+    // No per-syllable evidence to count. Fall back to the old
+    // any-hard-failure rule so payloads without a syllables[] array (or
+    // with only unjudged syllables) still behave predictably.
+    return !words.some(isProsodyHardFailure);
+  }
+  const passedCount = judgedSyllables.filter((syllable) => syllable.passed === true).length;
+  return passedCount / judgedSyllables.length >= SENTENCE_SYLLABLE_PASS_RATIO;
 }
 
 /** Compact arrow for a tone number (target shapes shown next to what the

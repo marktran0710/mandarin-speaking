@@ -951,6 +951,7 @@ def estimate_word_prosody(
 
     from chinese_tones import (
         apply_tone_sandhi,
+        calculate_directional_tone_accuracy,
         calculate_phrase_shape_accuracy,
         calculate_phrase_tone_accuracy,
         directional_tone_scores,
@@ -959,6 +960,12 @@ def estimate_word_prosody(
         reference_syllable_scores,
         scaled_reference_contour,
         word_tones,
+    )
+    from tone_decision import (
+        DiagnosticStatus,
+        QcEvidence,
+        aggregate_word,
+        decide_word_tone,
     )
 
     hint_tones = parse_pinyin_tones(pinyin_hint) if pinyin_hint else []
@@ -1091,6 +1098,12 @@ def estimate_word_prosody(
             and bool(expected_tones)
             and len(scoring_points) >= minimum_points
         )
+        # `direction_score` is measured separately from `shape_score` so
+        # the word-level verdict can require BOTH (via decide_word_tone) —
+        # the old 50/50 blend collapsed them into one number that let a
+        # weak directional heuristic veto a visibly-correct shape, and vice
+        # versa. Keep them apart end-to-end.
+        direction_score = 0.0
         if segment_judged:
             tone_score = calculate_phrase_tone_accuracy(
                 scoring_points, expected_tones, target_curve_override=reference_curve
@@ -1115,9 +1128,20 @@ def estimate_word_prosody(
                     reference_curve,
                     syllable_windows=windows,
                 )
+                # With a real reference curve, syllable scores ARE the
+                # reference-shape read; treat their mean as the word's
+                # direction-of-fit signal so the two verdict inputs both
+                # exist without introducing a second directional measure
+                # against a synthetic template.
+                direction_score = (
+                    float(np.mean(syllable_scores)) if syllable_scores else 0.0
+                )
             else:
                 syllable_scores = directional_tone_scores(
                     scoring_points, expected_tones, syllable_windows=windows
+                )
+                direction_score = calculate_directional_tone_accuracy(
+                    scoring_points, expected_tones
                 )
         elif is_chinese and expected_tones:
             tone_score = 0.0
@@ -1136,6 +1160,11 @@ def estimate_word_prosody(
         # pass gate is the *minimum* syllable score, not the mean. One entry
         # per character; empty for non-Chinese tokens. `passed` is None for
         # non-Chinese tokens (nothing to gate on).
+        # Per-syllable breakdown. `passed` is filled in below from the
+        # diagnostic verdict (passed = verdict == CORRECT) so the legacy
+        # placeholder auto-pass (constant 65/75 clearing the 58 bar) can no
+        # longer produce True. `legacy_passed` (below) preserves the old
+        # threshold-only verdict for research/backwards compat.
         syllables: List[Dict] = []
         if is_chinese and syllable_scores and len(expected_tones) == len(token):
             syllables = [
@@ -1143,11 +1172,9 @@ def estimate_word_prosody(
                     "char": token[i],
                     "tone": expected_tones[i],
                     "score": round(score, 1),
-                    "passed": (
-                        score >= SYLLABLE_PASS_THRESHOLD
-                        if segment_judged
-                        else None
-                    ),
+                    # Filled in by the diagnostic wiring below. None when the
+                    # segment could not be judged at all.
+                    "passed": None,
                 }
                 for i, score in enumerate(syllable_scores)
             ]
@@ -1192,26 +1219,151 @@ def estimate_word_prosody(
                 else []
             )
             for i, entry in enumerate(syllables):
-                if i < len(diagnoses):
-                    entry.update(diagnoses[i])
-                # Legacy verdict kept alongside, explicitly labelled, so the
-                # frontend and the research export can tell the two apart and
-                # nobody has to guess which number drove the unlock.
+                # Preserve the legacy raw-threshold verdict alongside the
+                # canonical one, so research exports and A/B ablation can
+                # still see what the old gate would have said without any
+                # consumer having to re-derive it.
+                score = entry.get("score")
                 entry["legacy"] = {
-                    "passed": entry.get("passed"),
-                    "score": entry.get("score"),
+                    "passed": (
+                        bool(score >= SYLLABLE_PASS_THRESHOLD)
+                        if score is not None and segment_judged
+                        else None
+                    ),
+                    "score": score,
                     "threshold": SYLLABLE_PASS_THRESHOLD,
                 }
-        # Word diagnostic: one uncertain syllable must not condemn the word.
-        # Independent of `word_passed` below, which stays the legacy MIN rule
-        # that progression reads.
-        word_diagnostic = _word_diagnostic_status(syllables)
-
-        word_passed = (
-            all(entry["passed"] for entry in syllables)
-            if syllables and segment_judged
-            else None
+                if i < len(diagnoses):
+                    entry.update(diagnoses[i])
+                # The canonical per-syllable pass gate is now the diagnostic
+                # verdict: only CORRECT is a pass. UNCERTAIN and INCORRECT
+                # both fail, which closes the placeholder-auto-pass loophole
+                # (constant_short_segment=65 and neutral_not_measured=75
+                # correctly resolve to UNCERTAIN in decide_tone, so passed
+                # can never come back True on evidence that wasn't measured).
+                #
+                # `segment_judged=False` keeps `passed=None` — "nothing to
+                # gate on" is not a failure, and downstream mastery counts
+                # only judged syllables anyway.
+                diagnostic_status = entry.get("diagnostic_status")
+                if not segment_judged:
+                    entry["passed"] = None
+                elif diagnostic_status:
+                    entry["passed"] = diagnostic_status == DiagnosticStatus.CORRECT.value
+                else:
+                    entry["passed"] = entry["legacy"]["passed"]
+        # Word verdict: worst of (word-level shape+direction decision,
+        # syllable roll-up). The word-level decision catches disagreement
+        # between shape and direction as UNCERTAIN; the syllable roll-up
+        # keeps the min-rule safety net so one wrong syllable still fails
+        # the word even if the overall shape+direction happen to agree.
+        word_qc = QcEvidence(
+            can_score_pronunciation=True,
+            judged=segment_judged,
+            pitch_points=len(scoring_points),
+            minimum_pitch_points=minimum_points,
         )
+        word_decision = decide_word_tone(
+            shape_score=shape_score if segment_judged else None,
+            direction_score=direction_score if segment_judged else None,
+            qc=word_qc,
+        )
+        syllable_statuses = [
+            DiagnosticStatus(entry["diagnostic_status"])
+            for entry in syllables
+            if entry.get("diagnostic_status")
+        ]
+        syllable_rollup = (
+            aggregate_word(syllable_statuses) if syllable_statuses else None
+        )
+        # Word-level and syllable-level evidence combine two ways:
+        #
+        # * word-level shape+direction can promote a word to CORRECT when
+        #   the per-syllable directional single-score falls into the
+        #   45-58 UNCERTAIN band on every syllable — that band is common in
+        #   connected speech (the coarse quarter-mean heuristic dips) and
+        #   the whole-word shape/direction match is stronger evidence than
+        #   per-syllable ambiguity;
+        # * syllable-level CORRECT can promote a word whose whole-word
+        #   shape barely missed SHAPE_STRONG (weak_shape reason);
+        # * neither promotion is allowed to overrule an INCORRECT syllable
+        #   (the min-rule safety net stays intact), a placeholder-driven
+        #   UNCERTAIN (short segment / neutral tone — no measurement to
+        #   promote from), or a shape/direction disagreement (the whole
+        #   point of the refactor's word-level check).
+        placeholder_provenances = {
+            "constant_short_segment",
+            "neutral_not_measured",
+            "not_scored",
+        }
+        has_placeholder_uncertain = any(
+            entry.get("diagnostic_status") == DiagnosticStatus.UNCERTAIN.value
+            and entry.get("score_provenance") in placeholder_provenances
+            for entry in syllables
+        )
+        has_incorrect_syllable = any(
+            entry.get("diagnostic_status") == DiagnosticStatus.INCORRECT.value
+            for entry in syllables
+        )
+        has_invalid_syllable = any(
+            entry.get("diagnostic_status") == DiagnosticStatus.INVALID_AUDIO.value
+            for entry in syllables
+        )
+        if word_decision.status is DiagnosticStatus.INVALID_AUDIO or has_invalid_syllable:
+            final_word_status = DiagnosticStatus.INVALID_AUDIO
+        elif has_incorrect_syllable:
+            # The min-rule safety net: one syllable moving the wrong way
+            # fails the word even if the whole-word shape happens to look OK.
+            final_word_status = DiagnosticStatus.INCORRECT
+        elif (
+            word_decision.status is DiagnosticStatus.UNCERTAIN
+            and word_decision.reason == "shape_direction_disagreement"
+        ):
+            # Shape/direction disagreement at the word level — the refactor's
+            # central invariant. Never CORRECT.
+            final_word_status = DiagnosticStatus.UNCERTAIN
+        elif word_decision.status is DiagnosticStatus.CORRECT and not has_placeholder_uncertain:
+            # Word-level shape+direction both cleared their thresholds AND
+            # no syllable's UNCERTAIN comes from a placeholder that would
+            # need to be re-recorded. Trust the word-level evidence.
+            final_word_status = DiagnosticStatus.CORRECT
+        elif syllable_rollup is DiagnosticStatus.CORRECT:
+            # Every measurable syllable was clearly correct even if the
+            # whole-word shape barely missed strong. Trust per-syllable.
+            final_word_status = DiagnosticStatus.CORRECT
+        elif syllable_rollup is not None:
+            final_word_status = syllable_rollup
+        else:
+            final_word_status = word_decision.status
+        word_diagnostic = final_word_status.value
+
+        # When the word verdict is CORRECT via whole-word evidence but the
+        # per-syllable coarse-heuristic diagnosis landed in UNCERTAIN, the
+        # syllables' `passed` field must follow the word — otherwise the
+        # sentence-level 80% pass-rate gate (main.build_pronunciation_mastery)
+        # counts zero passing syllables and blocks a recording the word
+        # verdict has already promoted. `diagnostic_status` stays honest
+        # (△ still shown) — the two are allowed to disagree, but `passed`
+        # is a GATE flag while `diagnostic_status` is a per-syllable
+        # DIAGNOSIS. Placeholder syllables are exempt: their UNCERTAIN
+        # comes from having no measurement, not from ambiguous evidence,
+        # and they must not silently pass.
+        if final_word_status is DiagnosticStatus.CORRECT and segment_judged:
+            for entry in syllables:
+                if entry.get("score_provenance") in placeholder_provenances:
+                    continue
+                if entry.get("passed") is not True:
+                    entry["passed"] = True
+
+        # `passed` is now derived from the canonical verdict, not a raw
+        # score threshold. Only CORRECT is a pass; UNCERTAIN blocks unlock
+        # (per the refactor's UNCERTAIN != CORRECT invariant).
+        # `segment_judged=False` (non-Chinese token, or too little pitch to
+        # judge this word) stays None — "nothing to gate on" is not a fail.
+        if not segment_judged:
+            word_passed = None
+        else:
+            word_passed = final_word_status == DiagnosticStatus.CORRECT
 
         # Idealized target shape for this word, scaled to its own time span
         # and pitch range so the frontend can overlay "your pitch" against
@@ -1261,6 +1413,18 @@ def estimate_word_prosody(
                 },
                 "tone_accuracy": round(tone_score, 1),
                 "shape_accuracy": round(shape_score, 1),
+                # Refactor: shape and direction surfaced as their own
+                # numbers so consumers can see disagreement rather than
+                # inheriting a blended score; display_score is the
+                # shape-weighted composite (70/30) shown to learners in
+                # progress history and is intentionally not a verdict input.
+                "shape_score": round(shape_score, 1) if segment_judged else None,
+                "direction_score": (
+                    round(direction_score, 1) if segment_judged else None
+                ),
+                "display_score": word_decision.display_score,
+                "verdict": word_diagnostic,
+                "reason": word_decision.reason,
                 "syllables": syllables,
                 "passed": word_passed,
                 "diagnostic_status": word_diagnostic,
