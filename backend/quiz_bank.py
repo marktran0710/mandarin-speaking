@@ -215,7 +215,29 @@ def assemble_candidates(
                 entry.word,
                 entry.pos,
                 _pick_wrong_options(
-                    entry.pos, [], [p for p in ("N", "V", "ADJ", "ADV") if p != entry.pos], rng
+                    entry.pos,
+                    [],
+                    [
+                        p
+                        for p in (
+                            "N",
+                            "V",
+                            "Adj",
+                            "Adv",
+                            "MW",
+                            "Prep",
+                            "Conj",
+                            "Pron",
+                            "Quant",
+                            "Time",
+                            "Loc",
+                            "Vaux",
+                            "Particle",
+                            "Phrase",
+                        )
+                        if p != entry.pos
+                    ],
+                    rng,
                 ),
             )
 

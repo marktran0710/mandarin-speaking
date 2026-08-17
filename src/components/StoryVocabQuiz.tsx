@@ -571,7 +571,22 @@ function buildListeningQuestion(
 // Fallback pool when a story doesn't have enough distinct teacher-authored
 // parts of speech to draw real distractors from — mirrors FILLER_DISTRACTORS
 // above, just for POS tags instead of English words.
-const FILLER_POS = ["N", "V", "ADJ", "ADV", "MW", "PREP", "CONJ", "PRON"];
+const FILLER_POS = [
+  "N",
+  "V",
+  "Adj",
+  "Adv",
+  "MW",
+  "Prep",
+  "Conj",
+  "Pron",
+  "Quant",
+  "Time",
+  "Loc",
+  "Vaux",
+  "Particle",
+  "Phrase",
+];
 
 /** Builds a "what part of speech is this?" question — only called when
  * `entry.pos` is set (see buildQuizQuestion). Distractors: other story

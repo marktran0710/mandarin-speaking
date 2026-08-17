@@ -1,7 +1,23 @@
 import { useState } from "react";
 import { buildVocabRows, type VocabRow } from "../utils/myStoriesUtils";
 
-const VOCAB_POS_OPTIONS = ["N", "V", "Adj", "Adv", "MW", "Particle", "Phrase", "Other"];
+const VOCAB_POS_OPTIONS = [
+  "N",
+  "V",
+  "Adj",
+  "Adv",
+  "MW",
+  "Prep",
+  "Conj",
+  "Pron",
+  "Quant",
+  "Time",
+  "Loc",
+  "Vaux",
+  "Particle",
+  "Phrase",
+  "Other",
+];
 
 export default function VocabularyTable({
   vocabulary,

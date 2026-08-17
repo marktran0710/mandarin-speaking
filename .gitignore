@@ -22,6 +22,7 @@ backend/*.db
 backend/*.db-*
 backend/*.db.bak*
 backend/pg_dump_*.sql
+backend/backup_before_vocab_pos_fix.sql
 backend/uploads/
 backend/private-data/
 backend/uvicorn*.log
