@@ -12,6 +12,8 @@ import type {
 import ModelRecordingPractice from "./ModelRecordingPractice";
 import "./SpeakingFlowCard.css";
 
+const MAX_RECORDING_SECONDS = 30;
+
 interface SceneProgressEntry {
   attempts: number;
   bestTone: number;
@@ -101,7 +103,6 @@ export default function SpeakingFlowCard({
   isTranscribing,
   isAnalyzing,
   recordingDuration,
-  silenceDuration,
   selectedModel,
   groqAvailable,
   openaiAvailable,
@@ -296,16 +297,9 @@ export default function SpeakingFlowCard({
             </AppButton>
             {isRecording && (
               <div className="practice-timer" aria-live="polite">
-                <span>{recordingDuration}s</span>
-                {selectedModel === "webspeech" && (
-                  <span className="practice-silence">
-                    <BiLabel
-                      zh={`靜音 ${silenceDuration}s / 7s`}
-                      pinyin={`Jìngyīn ${silenceDuration}s / 7s`}
-                      en={`silence ${silenceDuration}s / 7s`}
-                    />
-                  </span>
-                )}
+                <span className="practice-timer-value">
+                  {recordingDuration} / {MAX_RECORDING_SECONDS}s
+                </span>
               </div>
             )}
 

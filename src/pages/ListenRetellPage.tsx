@@ -6,6 +6,7 @@ import StudentIcon from "../components/StudentIcon";
 import StudentPageHeader from "../components/StudentPageHeader";
 import ScoreCard from "../components/ScoreCard";
 import StudentAnalysisGate from "../components/StudentAnalysisGate";
+import StudentAudioActionPanel from "../components/StudentAudioActionPanel";
 import {
   averageWordProsodyAccuracy,
   getBackendUrl,
@@ -39,6 +40,8 @@ const SAMPLE_SCENES: ListenScene[] = [
     vocabulary: ["公園", "下雨", "雨傘", "跑步", "孩子"],
   },
 ];
+
+const MAX_RECORDING_SECONDS = 30;
 
 export default function ListenRetellPage({ publishedTopics }: ListenRetellPageProps) {
   const scenes = useMemo(() => buildSceneOptions(publishedTopics), [publishedTopics]);
@@ -155,7 +158,12 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
 
       startTimeRef.current = Date.now();
       durationTimerRef.current = setInterval(() => {
-        setRecordingDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
+        const elapsed = Math.min(
+          MAX_RECORDING_SECONDS,
+          Math.floor((Date.now() - startTimeRef.current) / 1000),
+        );
+        setRecordingDuration(elapsed);
+        if (elapsed >= MAX_RECORDING_SECONDS) stopRecording();
       }, 250);
 
       recorder.start();
@@ -341,7 +349,27 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
           </div>
         </div>
 
-        <div className="lr-record-panel">
+        <StudentAudioActionPanel
+          className="lr-record-panel"
+          primaryIcon={result ? "retry" : "record"}
+          primaryLabel={isRecording ? "Stop and evaluate" : result ? "Record again" : "Start retelling"}
+          uploadLabel="Upload audio"
+          accept="audio/*,.wav,.wave,.webm,.mp3,.m4a,.ogg,.aac,.flac"
+          onPrimaryAction={isRecording ? stopRecording : startRecording}
+          onFileChange={handleImportAudio}
+          isRecording={isRecording}
+          isAnalyzing={isAnalyzing}
+          hasPendingAudio={Boolean(pendingAudio && !result)}
+          pendingAudioName={pendingAudioName}
+          audioUrl={audioUrl}
+          onAnalyze={pendingAudio && !result ? () => void submitRetell() : undefined}
+          status={!hasListened ? "Listen to the passage at least once before you retell it." : isRecording ? `Recording · ${recordingDuration} / ${MAX_RECORDING_SECONDS}s` : isAnalyzing ? "Comparing your retelling with the passage..." : "Ready"}
+          error={error}
+          previewClassName="lr-audio-preview"
+          uploadDisabled={!hasListened}
+          primaryDisabled={!hasListened}
+        />
+        {false && <div className="lr-record-panel lr-record-panel-legacy">
           <button
             type="button"
             className={`btn student-action-record ${isRecording ? "btn-danger" : "btn-primary"}`}
@@ -397,7 +425,7 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
           {pendingAudioName && <p className="lr-audio-name">{pendingAudioName}</p>}
           {audioUrl && <audio controls src={audioUrl} className="lr-audio-preview" />}
           {error && <p className="lr-error">{error}</p>}
-        </div>
+        </div>}
       </section>
 
       {result && (

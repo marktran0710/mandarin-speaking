@@ -10,7 +10,7 @@ import {
   canUseDatabase,
   createStorySubmission,
   createVocabQuizAttempt,
-  listLatestAudioRecordsByScene,
+  listAudioRecords,
   listSpeakingProgress,
   listVocabQuizAttempts,
   saveSpeakingProgress,
@@ -20,6 +20,7 @@ import {
   updateVocabularySynonym,
   type HelpRequest,
   type SceneSubmission,
+  type StoredAudioRecord,
   type StoredSpeakingProgress,
   type StoryFeedback,
   type VocabularyClozeUpdate,
@@ -77,6 +78,8 @@ import StorySessionSidebar, {
 import StudentHelpPanel from "./StudentHelpPanel";
 import type { BackendFeedbackQuality } from "../utils/voiceFeedbackReliability";
 import type { SelfEvalLevel } from "../utils/selfEvalComparison";
+
+const MAX_RECORDING_SECONDS = 30;
 
 // Mirrors the backend's MAX_VOCAB_DISTRACTORS_PER_WORD cap — checked
 // client-side so a story where every word already has a full pool skips the
@@ -726,6 +729,143 @@ export interface NewAudioRecord {
   attemptType?: "WHOLE_SENTENCE_INITIAL" | "FOCUSED_RETRY" | "WHOLE_SENTENCE_FINAL";
 }
 
+/** Builds the legacy restore fallback for progress rows written before
+ * `latestResult` existed. */
+export function sceneSubmissionFromAudioRecord(
+  record: StoredAudioRecord,
+): SceneSubmission | null {
+  if (record.imageIndex === undefined) return null;
+  const metrics = record.praatMetrics as PraatMetrics | undefined;
+  const coverage = metrics?.ai_feedback?.vocabulary_coverage;
+  return {
+    sceneIndex: record.imageIndex,
+    imageUrl: record.imageUrl ?? "",
+    transcription: record.transcription ?? metrics?.transcription ?? "",
+    vocabUsed: coverage?.used ?? [],
+    vocabMissing: coverage?.missing ?? [],
+    vocabScore: coverage?.score ?? 0,
+    toneAccuracy: Math.round(metrics?.tone_accuracy ?? 0),
+    pronScore: averageWordProsodyAccuracy(metrics?.word_prosody) ?? 0,
+    fluencyScore: Math.round(metrics?.fluency_score ?? 0),
+    audioUrl: record.audioUrl,
+    pauseCount: metrics?.pause_analysis?.pause_count ?? 0,
+    longestPause: metrics?.pause_analysis?.longest_pause ?? 0,
+    utteranceCount: metrics?.pause_analysis?.utterance_count ?? 0,
+    choppyPauseCount: metrics?.pause_analysis?.choppy_pause_count ?? 0,
+    articulationRate: metrics?.pause_analysis?.articulation_rate ?? 0,
+  };
+}
+
+export function attemptHistoryFromAudioRecords(
+  records: StoredAudioRecord[],
+): Record<number, Array<{ tone: number; fluency: number; attempt: number }>> {
+  const grouped = new Map<number, StoredAudioRecord[]>();
+  // The list endpoint is newest-first. Present history in recording order.
+  [...records].reverse().forEach((record) => {
+    if (record.imageIndex === undefined || !record.praatMetrics) return;
+    const history = grouped.get(record.imageIndex) ?? [];
+    history.push(record);
+    grouped.set(record.imageIndex, history);
+  });
+  return Object.fromEntries(
+    [...grouped.entries()].map(([sceneIndex, history]) => [
+      sceneIndex,
+      history.map((record, index) => {
+        const metrics = record.praatMetrics as PraatMetrics;
+        return {
+          tone: Math.round(metrics.tone_accuracy ?? 0),
+          fluency: Math.round(metrics.fluency_score ?? 0),
+          attempt: record.attemptNumber ?? index + 1,
+        };
+      }),
+    ]),
+  );
+}
+
+const AUDIO_RECORDS_CACHE_KEY = "audioRecords";
+const SPEAKING_PROGRESS_CACHE_PREFIX = "speakingProgress:";
+
+function speakingProgressCacheKey(studentId: string, topicId: string): string {
+  return `${SPEAKING_PROGRESS_CACHE_PREFIX}${studentId}:${topicId}`;
+}
+
+function readLocalSpeakingProgress(
+  studentId: string,
+  topicId: string,
+): StoredSpeakingProgress[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(speakingProgressCacheKey(studentId, topicId));
+    const rows = raw ? JSON.parse(raw) : [];
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalSpeakingProgress(progress: StoredSpeakingProgress): void {
+  if (typeof window === "undefined") return;
+  try {
+    const rows = readLocalSpeakingProgress(progress.studentId, progress.topicId);
+    const next = rows.filter((row) => row.sceneIndex !== progress.sceneIndex);
+    window.localStorage.setItem(
+      speakingProgressCacheKey(progress.studentId, progress.topicId),
+      JSON.stringify([...next, progress]),
+    );
+  } catch {
+    // localStorage can be unavailable or full; the server remains the source
+    // of truth whenever it is reachable.
+  }
+}
+
+function readLocalAudioRecords(
+  studentId: string,
+  topicId: string,
+): StoredAudioRecord[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const rows = JSON.parse(window.localStorage.getItem(AUDIO_RECORDS_CACHE_KEY) || "[]");
+    if (!Array.isArray(rows)) return [];
+    return rows.filter(
+      (row: StoredAudioRecord) =>
+        row.studentId === studentId && row.topicId === topicId,
+    );
+  } catch {
+    return [];
+  }
+}
+
+function mergeAudioRecords(
+  localRows: StoredAudioRecord[],
+  serverRows: StoredAudioRecord[],
+): StoredAudioRecord[] {
+  const byId = new Map<string, StoredAudioRecord>();
+  [...localRows, ...serverRows].forEach((row) => byId.set(row.id, row));
+  return [...byId.values()].sort(
+    (left, right) =>
+      new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime(),
+  );
+}
+
+function mergeSpeakingProgress(
+  localRows: StoredSpeakingProgress[],
+  serverRows: StoredSpeakingProgress[],
+): StoredSpeakingProgress[] {
+  const byScene = new Map<number, StoredSpeakingProgress>();
+  localRows.forEach((row) => byScene.set(row.sceneIndex, row));
+  serverRows.forEach((row) => {
+    const local = byScene.get(row.sceneIndex);
+    byScene.set(row.sceneIndex, {
+      ...(local || {}),
+      ...row,
+      // A server row written before migration 0016 has no snapshot. Keep the
+      // locally persisted snapshot until the next successful server save.
+      latestResult: row.latestResult ?? local?.latestResult ?? null,
+    });
+  });
+  return [...byScene.values()];
+}
+
 interface StoryRecorderProps {
   topic: Topic;
   selectedImage: string;
@@ -887,13 +1027,13 @@ export default function StoryRecorder({
   // (admin/guest) since there's no id to key the row on.
   const persistSpeakingProgress = useCallback(
     (sceneIndex: number, fields: Partial<StoredSpeakingProgress>) => {
-      if (!studentId || !canUseDatabase()) return;
+      if (!studentId) return;
       const prog = sceneProgress[sceneIndex] ?? {
         attempts: 0,
         bestTone: 0,
         bestFluency: 0,
       };
-      saveSpeakingProgress({
+      const progress: StoredSpeakingProgress = {
         studentId,
         topicId: topic.id,
         sceneIndex,
@@ -904,7 +1044,10 @@ export default function StoryRecorder({
         contentPassed: contentPassedMap[sceneIndex] ?? false,
         clearedWords: clearedWordsMap[sceneIndex] ?? [],
         ...fields,
-      }).catch((err) => {
+      };
+      writeLocalSpeakingProgress(progress);
+      if (!canUseDatabase()) return;
+      saveSpeakingProgress(progress).catch((err) => {
         console.error("Failed to save speaking progress:", err);
       });
     },
@@ -936,20 +1079,19 @@ export default function StoryRecorder({
   // target always exists by the time the student answers.
   const handleSelfEvalSubmit = useCallback(
     (levels: { content: SelfEvalLevel; pronunciation: SelfEvalLevel }) => {
-      setSceneRecordings((prev) => {
-        const existing = prev[selectedImageIndex];
-        if (!existing) return prev;
-        return {
-          ...prev,
-          [selectedImageIndex]: {
-            ...existing,
-            selfEvalContent: levels.content,
-            selfEvalPronunciation: levels.pronunciation,
-          },
-        };
-      });
+      const existing = sceneRecordings[selectedImageIndex];
+      if (!existing) return;
+      const latestResult: SceneSubmission = {
+        ...existing,
+        selfEvalContent: levels.content,
+        selfEvalPronunciation: levels.pronunciation,
+      };
+      setSceneRecordings((prev) => ({ ...prev, [selectedImageIndex]: latestResult }));
+      // Best-effort, just like aggregate progress: the learner can continue
+      // offline and the self-check is retained when persistence is available.
+      persistSpeakingProgress(selectedImageIndex, { latestResult });
     },
-    [selectedImageIndex],
+    [selectedImageIndex, sceneRecordings, persistSpeakingProgress],
   );
   const [storySubmitted, setStorySubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -1260,11 +1402,20 @@ export default function StoryRecorder({
   // best scores, or the mastery/content gates back to zero. Skipped for
   // admin/guest sessions — there's no studentId to look progress up by.
   useEffect(() => {
-    if (!studentId || !canUseDatabase()) return;
+    if (!studentId) return;
     let cancelled = false;
     (async () => {
       try {
-        const rows = await listSpeakingProgress(studentId, topic.id);
+        const localRows = readLocalSpeakingProgress(studentId, topic.id);
+        let serverRows: StoredSpeakingProgress[] = [];
+        if (canUseDatabase()) {
+          try {
+            serverRows = await listSpeakingProgress(studentId, topic.id);
+          } catch (err) {
+            console.error("Failed to load speaking progress from database:", err);
+          }
+        }
+        const rows = mergeSpeakingProgress(localRows, serverRows);
         if (cancelled) return;
         setSceneProgress((prev) => {
           const next = { ...prev };
@@ -1298,6 +1449,13 @@ export default function StoryRecorder({
           });
           return next;
         });
+        setSceneRecordings((prev) => {
+          const next = { ...prev };
+          rows.forEach((row) => {
+            if (row.latestResult) next[row.sceneIndex] = row.latestResult;
+          });
+          return next;
+        });
       } catch (err) {
         console.error("Failed to load speaking progress:", err);
       }
@@ -1307,23 +1465,42 @@ export default function StoryRecorder({
     };
   }, [studentId, topic.id]);
 
-  // Restore the newest full practice result (feedback, transcription, the
-  // recording itself) for every scene in this story, not just the aggregate
-  // counters above. `praatMetricsMap`/`attemptHistoryMap` otherwise only ever
-  // get filled in by a recording made in *this* session — a reload or
-  // returning to the story later showed a blank result for every scene even
-  // though the student had already practiced it.
+  // Restore every persisted attempt for the current story. The newest attempt
+  // remains the active feedback/audio result, while the full history powers
+  // the retry trend. Legacy progress rows without `latestResult` get a
+  // submission snapshot reconstructed from that newest audio row.
   useEffect(() => {
-    if (!studentId || !canUseDatabase()) return;
+    if (!studentId) return;
     let cancelled = false;
     (async () => {
       try {
-        const rows = await listLatestAudioRecordsByScene(studentId, topic.id);
+        const localRows = readLocalAudioRecords(studentId, topic.id);
+        let serverRows: StoredAudioRecord[] = [];
+        if (canUseDatabase()) {
+          try {
+            serverRows = await listAudioRecords({
+              studentId,
+              topicId: topic.id,
+              limit: 1000,
+            });
+          } catch (err) {
+            console.error("Failed to load audio records from database:", err);
+          }
+        }
+        const rows = mergeAudioRecords(localRows, serverRows);
         if (cancelled || rows.length === 0) return;
+
+        const latestRowsByScene = new Map<number, StoredAudioRecord>();
+        rows.forEach((row) => {
+          if (row.imageIndex !== undefined && !latestRowsByScene.has(row.imageIndex)) {
+            latestRowsByScene.set(row.imageIndex, row);
+          }
+        });
+        const latestRows = [...latestRowsByScene.values()];
 
         setPraatMetricsMap((prev) => {
           const next = { ...prev };
-          rows.forEach((row) => {
+          latestRows.forEach((row) => {
             if (row.imageIndex === undefined || next[row.imageIndex]) return;
             if (row.praatMetrics) next[row.imageIndex] = row.praatMetrics as PraatMetrics;
           });
@@ -1331,17 +1508,20 @@ export default function StoryRecorder({
         });
         setAttemptHistoryMap((prev) => {
           const next = { ...prev };
-          rows.forEach((row) => {
-            if (row.imageIndex === undefined || next[row.imageIndex]?.length) return;
-            const metrics = row.praatMetrics as PraatMetrics | undefined;
-            if (!metrics) return;
-            next[row.imageIndex] = [
-              {
-                tone: Math.round(metrics.tone_accuracy ?? 0),
-                fluency: Math.round(metrics.fluency_score ?? 0),
-                attempt: row.attemptNumber ?? 1,
-              },
-            ];
+          const restoredHistory = attemptHistoryFromAudioRecords(rows);
+          Object.entries(restoredHistory).forEach(([sceneIndex, history]) => {
+            const numericSceneIndex = Number(sceneIndex);
+            if (next[numericSceneIndex]?.length) return;
+            next[numericSceneIndex] = history;
+          });
+          return next;
+        });
+        setSceneRecordings((prev) => {
+          const next = { ...prev };
+          latestRows.forEach((row) => {
+            if (row.imageIndex === undefined || next[row.imageIndex]) return;
+            const fallback = sceneSubmissionFromAudioRecord(row);
+            if (fallback) next[row.imageIndex] = fallback;
           });
           return next;
         });
@@ -1351,7 +1531,7 @@ export default function StoryRecorder({
         // without audio playback for that scene (same fallback the results
         // view already has for "no recording available").
         await Promise.all(
-          rows.map(async (row) => {
+          latestRows.map(async (row) => {
             if (row.imageIndex === undefined || !row.audioUrl) return;
             try {
               const url = row.audioUrl.startsWith("/uploads/")
@@ -1370,7 +1550,7 @@ export default function StoryRecorder({
           }),
         );
       } catch (err) {
-        console.error("Failed to load the latest practice results:", err);
+        console.error("Failed to load persisted practice results:", err);
       }
     })();
     return () => {
@@ -1475,9 +1655,12 @@ export default function StoryRecorder({
       }
 
       durationIntervalRef.current = setInterval(() => {
-        setRecordingDuration(
+        const elapsed = Math.min(
+          MAX_RECORDING_SECONDS,
           Math.floor((Date.now() - recordingStartRef.current) / 1000),
         );
+        setRecordingDuration(elapsed);
+        if (elapsed >= MAX_RECORDING_SECONDS) stopRecording();
       }, 250);
     } catch (err) {
       setError(
@@ -1881,13 +2064,6 @@ export default function StoryRecorder({
         [selectedImageIndex]: nextContentPassed,
       }));
       setClearedWordsMap((prev) => ({ ...prev, [selectedImageIndex]: [] }));
-      persistSpeakingProgress(selectedImageIndex, {
-        ...nextProgress,
-        masteryPassed: nextMasteryPassed,
-        contentPassed: nextContentPassed,
-        clearedWords: [],
-      });
-
       const recordResult = onAddRecord({
         id: `audio-${Date.now()}`,
         audioBlob: wavBlob,
@@ -1930,12 +2106,26 @@ export default function StoryRecorder({
         choppyPauseCount: metrics.pause_analysis?.choppy_pause_count ?? 0,
         articulationRate: metrics.pause_analysis?.articulation_rate ?? 0,
       };
+      const existingSnapshot = sceneRecordings[selectedImageIndex];
+      const latestResult = !existingSnapshot || newSnap.vocabScore >= existingSnapshot.vocabScore
+        ? newSnap
+        : existingSnapshot;
       setSceneRecordings((prev) => {
         const existing = prev[selectedImageIndex];
         if (!existing || newSnap.vocabScore >= existing.vocabScore) {
           return { ...prev, [selectedImageIndex]: newSnap };
         }
         return prev;
+      });
+      // Store the same accepted snapshot that story submission uses. This is
+      // intentionally best-effort: a network failure must not block analysis
+      // or turn an offline practice attempt into an error state.
+      persistSpeakingProgress(selectedImageIndex, {
+        ...nextProgress,
+        masteryPassed: nextMasteryPassed,
+        contentPassed: nextContentPassed,
+        clearedWords: [],
+        latestResult,
       });
 
       // Patch in the backend audio URL once the upload resolves
@@ -1948,6 +2138,13 @@ export default function StoryRecorder({
             ...prev,
             [selectedImageIndex]: { ...snap, audioUrl: savedAudioUrl },
           };
+        });
+        persistSpeakingProgress(selectedImageIndex, {
+          ...nextProgress,
+          masteryPassed: nextMasteryPassed,
+          contentPassed: nextContentPassed,
+          clearedWords: [],
+          latestResult: { ...latestResult, audioUrl: savedAudioUrl },
         });
       }
     } catch (err) {
@@ -2136,15 +2333,12 @@ export default function StoryRecorder({
       : []),
     { key: "practice", label: <BiLabel k="speaking" />, icon: "🎙️" },
   ] as const;
+  void PHASES;
 
-  const phaseOrder = PHASES.map((p) => p.key);
   // "summary" isn't a phase-nav tab (it's only reachable after finishing
   // every scene) — treat it as past the last tab so the nav bar shows
   // every real phase as done rather than falling back to "upcoming".
-  const currentPhaseIdx =
-    phase === "summary"
-      ? phaseOrder.length
-      : phaseOrder.indexOf(phase as (typeof phaseOrder)[number]);
+  // The visible sidebar uses the simplified three-state flow below.
 
   // Shared scene-stop data for the journey path — rendered both in the
   // practice header (jump between scenes) and in the end-of-journey summary
@@ -2192,19 +2386,34 @@ export default function StoryRecorder({
   };
 
   // ── Sidebar data: vertical phase list + scene journey + summary node ──
-  const sidebarPhases: SidebarPhase[] = PHASES.map((p, i) => {
-    const status =
-      i < currentPhaseIdx ? "done" : i === currentPhaseIdx ? "active" : "upcoming";
-    return {
-      key: p.key,
-      label: p.label,
-      icon: p.icon,
-      status,
-      // Same jump-back rule as the old horizontal stepper: only completed
-      // phases are clickable.
-      onClick: status === "done" ? () => setPhase(p.key) : undefined,
-    };
-  });
+  // Keep implementation phases private. Students only need one short journey
+  // to understand: prepare, speak, then feedback.
+  const sidebarPhases: SidebarPhase[] = [
+    {
+      key: "prepare",
+      label: <><span>Prepare</span><span className="student-visually-hidden">Overview</span></>,
+      icon: "1",
+      status: phase === "overview" || phase === "sorting" || phase === "vocabquiz" ? "active" : "done",
+      onClick: enableOverview
+        ? () => setPhase("overview")
+        : phase !== "overview" && phase !== "sorting" && phase !== "vocabquiz"
+          ? () => setPhase(enableSorting ? "sorting" : "practice")
+          : undefined,
+    },
+    {
+      key: "speak",
+      label: "Speak",
+      icon: "2",
+      status: phase === "practice" ? "active" : phase === "summary" ? "done" : "upcoming",
+      onClick: phase === "summary" ? () => setPhase("practice") : undefined,
+    },
+    {
+      key: "feedback",
+      label: "Feedback",
+      icon: "3",
+      status: phase === "summary" ? "active" : "upcoming",
+    },
+  ];
 
   const practiceReachable = phase === "practice" || phase === "summary";
   const hasExampleFrame =

@@ -172,6 +172,7 @@ def row_to_speaking_progress(row: dict) -> dict:
         "masteryPassed": row["mastery_passed"],
         "contentPassed": row["content_passed"],
         "clearedWords": row["cleared_words"] or [],
+        "latestResult": row.get("latest_result"),
         "updatedAt": row["updated_at"],
     }
 

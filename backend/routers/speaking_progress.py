@@ -25,8 +25,9 @@ async def upsert_speaking_progress(progress: SpeakingProgressRequest):
             """
             INSERT INTO speaking_progress
                 (id, student_id, topic_id, scene_index, attempts, best_tone,
-                 best_fluency, mastery_passed, content_passed, cleared_words)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 best_fluency, mastery_passed, content_passed, cleared_words,
+                 latest_result)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 attempts = EXCLUDED.attempts,
                 best_tone = EXCLUDED.best_tone,
@@ -34,6 +35,7 @@ async def upsert_speaking_progress(progress: SpeakingProgressRequest):
                 mastery_passed = EXCLUDED.mastery_passed,
                 content_passed = EXCLUDED.content_passed,
                 cleared_words = EXCLUDED.cleared_words,
+                latest_result = EXCLUDED.latest_result,
                 updated_at = to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS')
             """,
             (
@@ -47,6 +49,7 @@ async def upsert_speaking_progress(progress: SpeakingProgressRequest):
                 progress.masteryPassed,
                 progress.contentPassed,
                 Jsonb(progress.clearedWords),
+                Jsonb(progress.latestResult) if progress.latestResult is not None else None,
             ),
         )
     return progress

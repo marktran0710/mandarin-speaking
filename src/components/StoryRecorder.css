@@ -3052,12 +3052,20 @@
 .practice-timer {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
-  font-size: 14px;
+  width: fit-content;
+  min-width: 82px;
+  margin: -2px auto 0;
+  padding: 6px 12px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-soft);
+  font-size: 13px;
   font-weight: 700;
   color: var(--clay-error);
 }
-.practice-silence { font-size: 12px; color: var(--clay-muted); font-weight: 500; }
+.practice-timer-value { font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .btn-practice-upload {
   font-size: 13px;

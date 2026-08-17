@@ -1,5 +1,5 @@
 /* Dedicated student-login refresh; the teacher portal retains LoginPage.css alone. */
-.login-page.student { padding-top: var(--space-lg); background: var(--clay-canvas); }
+.login-page.student { padding-top: var(--space-lg); background: var(--clay-surface-card); }
 .login-page.student .login-back { min-height: 36px; border-radius: 9px; box-shadow: none; }
 .login-page.student .login-card { padding: var(--space-lg); border-radius: 14px; box-shadow: 0 4px 16px color-mix(in srgb, var(--clay-ink) 5%, transparent); }
 .login-page.student .login-card h1 { font-size: 28px; }

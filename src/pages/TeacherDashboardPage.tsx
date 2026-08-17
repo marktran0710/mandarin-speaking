@@ -25,8 +25,6 @@ import TeacherWatchlist from "../components/TeacherWatchlist";
 import DashboardStat from "../components/DashboardStat";
 import TeacherImageBuilderPage from "./TeacherImageBuilderPage";
 import TeacherQuizReviewPage from "./TeacherQuizReviewPage";
-import TeacherPracticeDebugPage from "./TeacherPracticeDebugPage";
-import TeacherBenchmarkPage from "./TeacherBenchmarkPage";
 import MeasurementAnalyticsPanel from "../components/MeasurementAnalyticsPanel";
 import { readMeasurementEvents, type MeasurementEvent } from "../utils/measurement";
 import { formatRequestTime, getAverageMetric } from "../utils/myStoriesUtils";
@@ -71,16 +69,6 @@ const VIEW_COPY: Record<TeacherView, { eyebrow: string; title: string; descripti
     eyebrow: "Spot patterns early",
     title: "Learning Insights",
     description: "Use class trends to decide what to revisit next.",
-  },
-  practiceDebug: {
-    eyebrow: "Inspect the scoring pipeline",
-    title: "Practice Stage Debugger",
-    description: "Trace one student attempt through ASR, Praat, AI feedback, rubrics, and progression gates.",
-  },
-  benchmark: {
-    eyebrow: "Validate against expert ratings",
-    title: "External Benchmark",
-    description: "Measure our tone scoring against the OMPAL expert-rated corpus, and against how well those experts agree with each other.",
   },
 };
 
@@ -501,8 +489,6 @@ export default function TeacherDashboardPage({
           </>
         )}
 
-        {activeView === "practiceDebug" && <TeacherPracticeDebugPage records={records} />}
-        {activeView === "benchmark" && <TeacherBenchmarkPage />}
       </div>
     </TeacherShell>
   );

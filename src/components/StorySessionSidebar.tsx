@@ -20,7 +20,7 @@ interface StorySessionSidebarProps {
   topicName: string;
   onExit?: () => void;
   phases: SidebarPhase[];
-  /** Scene stops rendered as a vertical journey nested under the Practice
+  /** Scene stops rendered as a vertical journey nested under the Speak
    * phase node. Empty/omitted hides the journey (e.g. before practice). */
   journeyStops?: JourneyStop[];
   summaryStatus: SidebarSummaryStatus;
@@ -42,7 +42,7 @@ function PhaseMarker({ status }: { status: SidebarPhaseStatus }) {
 /** Left rail for a story practice session: exit + story name up top, the
  * phase list running vertically (done phases clickable, same jump-back rule
  * as the old horizontal stepper), the scene journey threaded under the
- * Practice node, and the raise-hand panel docked at the bottom. Replaces
+ * Speak node, and the raise-hand panel docked at the bottom. Replaces
  * the stacked story-nav-panel + horizontal JourneyPath + help strip. */
 export default function StorySessionSidebar({
   topicName,
@@ -90,9 +90,9 @@ export default function StorySessionSidebar({
               </span>
             </>
           );
-          const isPractice = p.key === "practice";
+          const isSpeak = p.key === "speak";
           const node =
-            p.status === "done" && p.onClick ? (
+            (p.status === "done" || p.key === "prepare") && p.onClick ? (
               <button
                 key={p.key}
                 type="button"
@@ -106,7 +106,7 @@ export default function StorySessionSidebar({
                 {inner}
               </div>
             );
-          if (!isPractice || !journeyStops || journeyStops.length === 0) {
+          if (!isSpeak || !journeyStops || journeyStops.length === 0) {
             return node;
           }
           // The scene journey belongs to the Practice phase — nest it right

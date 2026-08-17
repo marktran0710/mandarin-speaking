@@ -28,6 +28,7 @@ JSONB_COLUMNS = [
     ("vocab_quiz_attempts", "question_results"),
     ("audio_records", "praat_metrics"),
     ("speaking_progress", "cleared_words"),
+    ("speaking_progress", "latest_result"),
 ]
 
 BOOLEAN_COLUMNS = [

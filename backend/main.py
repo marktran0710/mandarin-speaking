@@ -529,6 +529,9 @@ class SpeakingProgressRequest(BaseModel):
     masteryPassed: bool = False
     contentPassed: bool = False
     clearedWords: List[str] = []
+    # The latest accepted per-scene submission snapshot. Kept nullable so
+    # rows written before this field was introduced remain fully compatible.
+    latestResult: Optional[Dict[str, Any]] = None
 
 
 class CustomStoryFrameRequest(BaseModel):

@@ -14,13 +14,20 @@ async def list_audio_records(
     limit: int = Query(default=200, ge=1, le=1000),
     skip: int = Query(default=0, ge=0),
     student_id: Optional[str] = Query(default=None),
+    topic_id: Optional[str] = Query(default=None),
 ):
     query = "SELECT * FROM audio_records"
     params: list[object] = []
+    filters: list[str] = []
     if student_id:
-        query += " WHERE student_id = %s"
+        filters.append("student_id = %s")
         params.append(student_id)
-    query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
+    if topic_id:
+        filters.append("topic_id = %s")
+        params.append(topic_id)
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+    query += " ORDER BY created_at DESC, id DESC LIMIT %s OFFSET %s"
     params.extend([limit, skip])
     with connect_db() as db:
         rows = db.execute(query, params).fetchall()
@@ -40,7 +47,7 @@ async def list_latest_audio_records_by_scene(
         SELECT DISTINCT ON (image_index) *
         FROM audio_records
         WHERE student_id = %s AND topic_id = %s
-        ORDER BY image_index, created_at DESC
+        ORDER BY image_index, created_at DESC, id DESC
     """
     with connect_db() as db:
         rows = db.execute(query, (student_id, topic_id)).fetchall()

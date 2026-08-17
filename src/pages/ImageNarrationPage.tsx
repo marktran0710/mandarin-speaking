@@ -6,6 +6,7 @@ import StudentIcon from "../components/StudentIcon";
 import StudentPageHeader from "../components/StudentPageHeader";
 import ScoreCard from "../components/ScoreCard";
 import StudentAnalysisGate from "../components/StudentAnalysisGate";
+import StudentAudioActionPanel from "../components/StudentAudioActionPanel";
 import {
   averageWordProsodyAccuracy,
   getBackendUrl,
@@ -35,6 +36,8 @@ const SAMPLE_SCENES: Array<{ image: string; prompt: string; vocabulary: string[]
     vocabulary: ["市場", "水果", "老闆", "買", "便宜"],
   },
 ];
+
+const MAX_RECORDING_SECONDS = 30;
 
 export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPageProps) {
   const scenes = useMemo(() => buildSceneOptions(publishedTopics), [publishedTopics]);
@@ -119,7 +122,12 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
 
       startTimeRef.current = Date.now();
       durationTimerRef.current = setInterval(() => {
-        setRecordingDuration(Math.floor((Date.now() - startTimeRef.current) / 1000));
+        const elapsed = Math.min(
+          MAX_RECORDING_SECONDS,
+          Math.floor((Date.now() - startTimeRef.current) / 1000),
+        );
+        setRecordingDuration(elapsed);
+        if (elapsed >= MAX_RECORDING_SECONDS) stopRecording();
       }, 250);
 
       recorder.start();
@@ -308,7 +316,25 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
           </label>
         </div>
 
-        <div className="narration-record-panel">
+        <StudentAudioActionPanel
+          className="narration-record-panel"
+          primaryIcon={result ? "retry" : "record"}
+          primaryLabel={isRecording ? "Stop and evaluate" : result ? "Record again" : "Start describing"}
+          uploadLabel="Upload audio"
+          accept="audio/*,.wav,.wave,.webm,.mp3,.m4a,.ogg,.aac,.flac"
+          onPrimaryAction={isRecording ? stopRecording : startRecording}
+          onFileChange={handleImportAudio}
+          isRecording={isRecording}
+          isAnalyzing={isAnalyzing}
+          hasPendingAudio={Boolean(pendingAudio && !result)}
+          pendingAudioName={pendingAudioName}
+          audioUrl={audioUrl}
+          onAnalyze={pendingAudio && !result ? () => void submitNarration() : undefined}
+          status={isRecording ? `Recording · ${recordingDuration} / ${MAX_RECORDING_SECONDS}s` : isAnalyzing ? "Comparing your description with the image..." : "Ready"}
+          error={error}
+          previewClassName="narration-audio-preview"
+        />
+        {false && <div className="narration-record-panel narration-record-panel-legacy">
           <button
             type="button"
             className={`btn student-action-record ${isRecording ? "btn-danger" : "btn-primary"}`}
@@ -355,7 +381,7 @@ export default function ImageNarrationPage({ publishedTopics }: ImageNarrationPa
           {pendingAudioName && <p className="narration-audio-name">{pendingAudioName}</p>}
           {audioUrl && <audio controls src={audioUrl} className="narration-audio-preview" />}
           {error && <p className="narration-error">{error}</p>}
-        </div>
+        </div>}
       </section>
 
       {result && (

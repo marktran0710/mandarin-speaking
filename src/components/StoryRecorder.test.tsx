@@ -16,6 +16,8 @@ import StoryRecorder, {
   planLookalikeGrowth,
   buildLookalikePatchUpdates,
   practiceSceneIndicesFor,
+  attemptHistoryFromAudioRecords,
+  sceneSubmissionFromAudioRecord,
 } from "./StoryRecorder";
 
 // Every quiz-eligible word across this file's topic fixtures, with the data
@@ -343,6 +345,37 @@ describe("vocabTooltip", () => {
 
   it("returns undefined when both are missing", () => {
     expect(vocabTooltip(undefined, undefined)).toBeUndefined();
+  });
+});
+
+describe("persisted speaking-result restoration", () => {
+  it("restores every persisted attempt for each scene in chronological order", () => {
+    const history = attemptHistoryFromAudioRecords([
+      { id: "newest", timestamp: "3", duration: 1, transcription: "", model: "", imageIndex: 0, attemptNumber: 3, praatMetrics: { tone_accuracy: 90, fluency_score: 80 } },
+      { id: "other-scene", timestamp: "2", duration: 1, transcription: "", model: "", imageIndex: 1, praatMetrics: { tone_accuracy: 60, fluency_score: 50 } },
+      { id: "oldest", timestamp: "1", duration: 1, transcription: "", model: "", imageIndex: 0, attemptNumber: 1, praatMetrics: { tone_accuracy: 70, fluency_score: 65 } },
+    ]);
+
+    expect(history[0]).toEqual([
+      { tone: 70, fluency: 65, attempt: 1 },
+      { tone: 90, fluency: 80, attempt: 3 },
+    ]);
+    expect(history[1]).toEqual([{ tone: 60, fluency: 50, attempt: 1 }]);
+  });
+
+  it("rebuilds a legacy scene snapshot from the latest audio record", () => {
+    expect(sceneSubmissionFromAudioRecord({
+      id: "latest", timestamp: "1", duration: 1, transcription: "Saved transcript", model: "",
+      imageIndex: 0, imageUrl: "scene.png", audioUrl: "/uploads/latest.wav",
+      praatMetrics: {
+        tone_accuracy: 82, fluency_score: 71,
+        word_prosody: [{ token: "word", index: 0, start_time: 0, end_time: 1, pitch_contour: [], mean_pitch: 0, pitch_range: 0, start_pitch: 0, end_pitch: 0, contour_shape: "", feedback: "", tone_accuracy: 75 }],
+        ai_feedback: { vocabulary_coverage: { score: 100, used: ["word"], missing: [], feedback: "" } },
+      },
+    })).toMatchObject({
+      sceneIndex: 0, transcription: "Saved transcript", vocabScore: 100,
+      toneAccuracy: 82, fluencyScore: 71, audioUrl: "/uploads/latest.wav",
+    });
   });
 });
 

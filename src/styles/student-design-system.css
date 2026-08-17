@@ -461,12 +461,12 @@
   border-radius: var(--student-radius-md);
 }
 
-/* Login belongs to the student journey but is intentionally calmer than the
-   practice workspace: one card, one CTA, one clear next step. */
+/* Login belongs to the student journey but stays flat and quiet: one card,
+   one CTA, one clear next step, with no decorative background treatment. */
 .student-app .login-page.student .login-shell {
   min-height: calc(100vh - var(--navbar-height));
   padding: var(--space-2xl) var(--content-gutter);
-  background: linear-gradient(180deg, var(--student-surface-muted), var(--student-canvas));
+  background: transparent;
 }
 
 .student-app .login-page.student .login-card {

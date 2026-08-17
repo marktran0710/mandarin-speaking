@@ -1,0 +1,57 @@
+.student-audio-action-panel .student-audio-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.student-audio-action-panel .student-action-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.student-audio-action-panel .student-audio-status,
+.student-audio-action-panel .student-audio-ready,
+.student-audio-action-panel .student-audio-name,
+.student-audio-action-panel .student-audio-error {
+  margin: 0.7rem 0 0;
+}
+
+.student-audio-action-panel .student-audio-status {
+  align-self: center;
+  width: 100%;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.student-audio-action-panel .student-audio-ready {
+  color: var(--student-green, #4c785d);
+  font-weight: 700;
+}
+
+.student-audio-action-panel .student-audio-name {
+  color: var(--student-muted, #7b7469);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+
+.student-audio-action-panel .student-audio-error { color: #a44434; }
+
+/* Legacy controls stay non-rendered while the shared audio panel owns the
+ * interaction path. */
+.narration-record-panel-legacy,
+.lr-record-panel-legacy,
+.voice-test-controls-legacy,
+.voice-step-row-legacy,
+.voice-audio-ready { display: none !important; }
+
+@media (max-width: 620px) {
+  .student-audio-action-panel .student-audio-actions > * {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}

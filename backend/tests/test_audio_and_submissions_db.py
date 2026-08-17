@@ -37,6 +37,25 @@ def test_delete_audio_record(client):
     assert [r for r in client.get("/api/audio-records").json() if r["id"] == "rec-1"] == []
 
 
+def test_audio_records_can_be_filtered_by_student_and_topic(client):
+    client.post("/api/audio-records", json={**AUDIO_RECORD, "studentId": "student-1"})
+    client.post(
+        "/api/audio-records",
+        json={**AUDIO_RECORD, "id": "rec-other-topic", "studentId": "student-1", "topicId": "other-topic"},
+    )
+    client.post(
+        "/api/audio-records",
+        json={**AUDIO_RECORD, "id": "rec-other-student", "studentId": "student-2"},
+    )
+
+    records = client.get(
+        "/api/audio-records",
+        params={"student_id": "student-1", "topic_id": "teacher-story-1"},
+    ).json()
+
+    assert [record["id"] for record in records] == ["rec-1"]
+
+
 def test_story_submission_round_trips_with_scenes(client):
     submission = {
         "id": "sub-1",

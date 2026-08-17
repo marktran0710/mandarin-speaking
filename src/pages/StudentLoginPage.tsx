@@ -1,7 +1,6 @@
 import { FormEvent, useState } from "react";
 import { BiLabel, BiText } from "../components/BiLabel";
 import ToneMark from "../components/ToneMark";
-import ToneField from "../components/ToneField";
 import "../components/BiLabel.css";
 import "./LoginPage.css";
 import "./StudentLoginPage.css";
@@ -120,7 +119,6 @@ export default function StudentLoginPage({
 
   return (
     <main className="login-page student">
-      <ToneField variant="student" />
       <section className="login-shell">
         <button type="button" className="login-back" onClick={onBack}>
           <BiLabel k="back_to_portals" />

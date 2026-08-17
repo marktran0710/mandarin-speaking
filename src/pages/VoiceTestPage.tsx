@@ -1,6 +1,7 @@
 import { type ChangeEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import PraatTimeline from "../components/PraatTimeline";
 import StudentPageHeader from "../components/StudentPageHeader";
+import StudentAudioActionPanel from "../components/StudentAudioActionPanel";
 import { convertBlobToWav } from "../utils/audio";
 import { BiLabel, BiText } from "../components/BiLabel";
 import StudentIcon from "../components/StudentIcon";
@@ -360,7 +361,7 @@ export default function VoiceTestPage() {
         wordProsody: metrics.word_prosody,
         transcription: metrics.transcription,
       })
-    : null;
+      : null;
 
   return (
     <main className="voice-test-page">
@@ -402,7 +403,22 @@ export default function VoiceTestPage() {
       </section>
 
       <section className="voice-test-workspace">
-        <div className="voice-step-row" aria-label="Voice test steps">
+        <StudentAudioActionPanel
+          className="voice-test-controls"
+          primaryIcon={metrics ? "retry" : "record"}
+          primaryLabel={primaryLabel.en}
+          uploadLabel="Import WAV file"
+          accept=".wav,audio/wav,audio/wave,audio/x-wav,audio/vnd.wave"
+          onPrimaryAction={isRecording ? stopRecording : startRecording}
+          onFileChange={handleImportWav}
+          isRecording={isRecording}
+          isAnalyzing={isAnalyzing}
+          hasPendingAudio={Boolean(pendingAudio && !metrics)}
+          onAnalyze={pendingAudio && !metrics ? () => void analyzeAudio() : undefined}
+          status={isRecording ? `${recordingDuration}s recorded` : isAnalyzing ? "Running voice analysis..." : "One recording is enough."}
+          readyMessage={null}
+        />
+        <div className="voice-step-row voice-step-row-legacy" aria-label="Voice test steps">
           <span>
             <BiLabel zh="1. 說話或上傳" pinyin="1. Shuōhuà huò shàngchuán" en="1. Speak or upload" />
           </span>
@@ -414,7 +430,7 @@ export default function VoiceTestPage() {
           </span>
         </div>
 
-        <div className="voice-test-controls">
+        {false && <div className="voice-test-controls voice-test-controls-legacy">
           <button
             type="button"
             className={`btn student-action-record ${isRecording ? "btn-danger" : "btn-primary"}`}
@@ -444,7 +460,7 @@ export default function VoiceTestPage() {
               <StudentIcon name="analyze" size={18} /> <span>Analyze this audio</span>
             </button>
           )}
-        </div>
+        </div>}
 
         {audioUrl && (
           <div className="voice-audio-preview">

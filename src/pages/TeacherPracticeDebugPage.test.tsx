@@ -69,8 +69,7 @@ describe("TeacherPracticeDebugPage", () => {
     expect(screen.getByRole("option", { name: "Groq Whisper — recommended free API" })).toBeEnabled();
   });
 
-  it("is a distinct destination in the teacher sidebar", async () => {
-    const user = userEvent.setup();
+  it("is no longer exposed in the teacher sidebar", () => {
     render(
       <TeacherDashboardPage
         records={[runtimeRecord]}
@@ -79,9 +78,7 @@ describe("TeacherPracticeDebugPage", () => {
         onLogout={vi.fn()}
       />,
     );
-    await user.click(screen.getByRole("button", { name: /Practice Debug/ }));
-    expect(screen.getByRole("heading", { name: "Practice Stage Debugger" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Practice stage debugger" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Practice Debug/ })).not.toBeInTheDocument();
   });
 
   it("shows a runtime attempt and each processing layer", () => {

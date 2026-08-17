@@ -78,6 +78,7 @@ export interface StoredSpeakingProgress {
   masteryPassed: boolean;
   contentPassed: boolean;
   clearedWords: string[];
+  latestResult?: SceneSubmission | null;
 }
 
 export interface CustomStoryFrame {
@@ -245,11 +246,13 @@ export async function listAudioRecords(params?: {
   limit?: number;
   skip?: number;
   studentId?: string;
+  topicId?: string;
 }): Promise<StoredAudioRecord[]> {
   const searchParams = new URLSearchParams();
   if (params?.limit !== undefined) searchParams.set("limit", String(params.limit));
   if (params?.skip !== undefined) searchParams.set("skip", String(params.skip));
   if (params?.studentId) searchParams.set("student_id", params.studentId);
+  if (params?.topicId) searchParams.set("topic_id", params.topicId);
   const query = searchParams.size > 0 ? `?${searchParams.toString()}` : "";
   const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records${query}`);
   if (!response.ok) {

@@ -75,3 +75,29 @@ def test_speaking_progress_scoped_by_student_and_topic(client):
     assert len(rows) == 1
     assert rows[0]["studentId"] == "student-1"
     assert rows[0]["topicId"] == "teacher-story-1"
+
+
+def test_speaking_progress_round_trips_latest_result(client):
+    latest_result = {
+        "sceneIndex": 0,
+        "imageUrl": "/uploads/images/a.png",
+        "transcription": "A saved scene",
+        "vocabUsed": ["market"],
+        "vocabMissing": [],
+        "vocabScore": 100,
+        "toneAccuracy": 82,
+        "pronScore": 76,
+        "fluencyScore": 70,
+        "audioUrl": "/uploads/audio.wav",
+        "selfEvalContent": "good",
+        "selfEvalPronunciation": "ok",
+    }
+    assert client.put(
+        "/api/speaking-progress", json={**PROGRESS, "latestResult": latest_result}
+    ).status_code == 200
+
+    rows = client.get(
+        "/api/speaking-progress",
+        params={"student_id": "student-1", "topic_id": "teacher-story-1"},
+    ).json()
+    assert rows[0]["latestResult"] == latest_result

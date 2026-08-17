@@ -245,7 +245,7 @@
 
 .sfc-record-actions > .practice-timer {
   grid-column: 1 / -1;
-  width: 100%;
+  justify-self: center;
 }
 
 .sfc-pending-upload {
