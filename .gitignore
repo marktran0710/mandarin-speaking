@@ -37,6 +37,7 @@ output/
 *.doc
 *.docx
 *.png
+tmp_pdf_l6/
 
 # Research exports and external benchmark media are reproducible/private
 # artifacts, not application runtime or source. Keep final paper deliverables
