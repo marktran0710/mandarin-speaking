@@ -65,7 +65,7 @@ flowchart TD
 flowchart LR
     Browser["Browser\nReact + Vite\nport 5173"]
 
-    subgraph Backend["FastAPI  –  port 8001"]
+    subgraph Backend["FastAPI  –  port 8000"]
         direction TB
         API["/api/analyze\nPraat + AI feedback"]
         ASR["/api/transcribe\nASR models"]
@@ -325,6 +325,75 @@ backend, and importing sends the story through the same save path as creating on
 
 ## Quick Start
 
+### Shared Lab PC / Laptop modes
+
+The recommended setup uses the Lab PC as the central server and the Laptop as a
+frontend client. Both machines use the same code from GitHub, but only the Lab PC
+owns the shared PostgreSQL database and uploaded audio/images.
+
+Prerequisites on both machines:
+
+- Clone or pull this repository.
+- Install Node dependencies with `npm install` (or `npm ci`).
+- Make sure Tailscale is connected.
+- The Laptop must be able to reach the Lab backend at
+  `http://100.67.229.122:8000`.
+
+#### Lab PC: central server
+
+Run this on the Lab PC (`D:\hautran\Lab\mandarin-speaking`):
+
+```powershell
+.\start.ps1 -Mode Lab -AllowedClientIps 100.104.12.33
+```
+
+This starts PostgreSQL, the FastAPI backend on port `8000`, and the frontend.
+The PostgreSQL container keeps using `127.0.0.1:5432`; Tailscale Serve exposes
+the database separately on `100.67.229.122:15432` when a remote database
+connection is needed.
+
+#### Laptop: frontend client
+
+Run this on the Laptop (`E:\MyFolder\Lab\mandarin-speaking`):
+
+```powershell
+.\start.ps1 -Mode Laptop
+```
+
+This starts only Vite and points it at the Lab backend. It does not start a
+local PostgreSQL container or a second backend. Open the URL printed by Vite,
+usually one of:
+
+```text
+http://localhost:5173
+http://100.104.12.33:5173
+```
+
+If port `5173` is busy, Vite chooses the next free port. Use that actual port
+in the browser.
+
+#### Standalone development copy
+
+To run a machine completely independently, use:
+
+```powershell
+.\start.ps1 -Mode Standalone
+```
+
+This runs a local PostgreSQL, backend, and frontend with an independent Docker
+volume and local uploads. Its data is not shared with the Lab PC.
+
+#### Important data-safety rule
+
+Never run `docker compose down -v` unless you intentionally want to delete the
+local PostgreSQL volume. Use `docker compose down` to stop containers while
+preserving data.
+
+The startup script configures the frontend's `VITE_BACKEND_URL` and the Lab
+backend's `CORS_ORIGINS` for the selected mode. These are per-machine/process
+environment variables; they are not synchronized through GitHub. Do not commit
+real API keys or local `.env` files.
+
 ### Database
 
 The backend uses PostgreSQL 17, run locally through Docker Compose:
@@ -371,12 +440,12 @@ other database (a managed one included). Dumps are `.gitignore`d.
 ```powershell
 cd backend
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8001
+uvicorn main:app --reload --port 8000
 ```
 
 Health check:
 ```powershell
-curl http://localhost:8001/health
+curl http://localhost:8000/health
 ```
 
 ### 2. Frontend
@@ -392,7 +461,7 @@ Open **http://127.0.0.1:5173**
 
 ```powershell
 docker build -t mandarin-speaking-backend ./backend
-docker run -d --name mandarin-api -p 8001:8001 mandarin-speaking-backend
+docker run -d --name mandarin-api -p 8000:8000 mandarin-speaking-backend
 ```
 
 ---
@@ -431,7 +500,7 @@ UPLOAD_DIR=./uploads
 Create `.env.local` in the project root (frontend):
 
 ```env
-VITE_BACKEND_URL=http://localhost:8001
+VITE_BACKEND_URL=http://localhost:8000
 ```
 
 ---
@@ -553,7 +622,7 @@ npx vercel --prod
 
 ## Troubleshooting
 
-**`ERR_CONNECTION_REFUSED` on backend** — start the backend and verify `VITE_BACKEND_URL=http://localhost:8001` in `.env.local`.
+**`ERR_CONNECTION_REFUSED` on backend** — start the Lab backend and verify `VITE_BACKEND_URL=http://100.67.229.122:8000` on the Laptop, or `http://localhost:8000` for a local frontend.
 
 **AI feedback shows `provider: local`** — no Gemini or OpenAI key configured; add one to `backend/.env` and restart.
 
