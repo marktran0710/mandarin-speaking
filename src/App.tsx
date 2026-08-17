@@ -475,7 +475,13 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-    <div className="app-container">
+    <div
+      className={`app-container${
+        activeRole === "student" || currentPage === "home" || currentPage === "student-login"
+          ? " student-app"
+          : ""
+      }`}
+    >
       <Navigation
         currentPage={currentPage}
         activeRole={activeRole}
