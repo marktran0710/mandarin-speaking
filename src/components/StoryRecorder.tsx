@@ -70,6 +70,7 @@ import StorySessionSidebar, {
 } from "./StorySessionSidebar";
 import StudentHelpPanel from "./StudentHelpPanel";
 import type { BackendFeedbackQuality } from "../utils/voiceFeedbackReliability";
+import type { SelfEvalLevel } from "../utils/selfEvalComparison";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
@@ -920,6 +921,26 @@ export default function StoryRecorder({
   const [sceneRecordings, setSceneRecordings] = useState<
     Record<number, SceneSubmission>
   >({});
+  // Self-eval only ever fires on the attempt that just became this scene's
+  // saved snapshot (see SpeakingResultsFlow's showSelfEval), so the merge
+  // target always exists by the time the student answers.
+  const handleSelfEvalSubmit = useCallback(
+    (levels: { content: SelfEvalLevel; pronunciation: SelfEvalLevel }) => {
+      setSceneRecordings((prev) => {
+        const existing = prev[selectedImageIndex];
+        if (!existing) return prev;
+        return {
+          ...prev,
+          [selectedImageIndex]: {
+            ...existing,
+            selfEvalContent: levels.content,
+            selfEvalPronunciation: levels.pronunciation,
+          },
+        };
+      });
+    },
+    [selectedImageIndex],
+  );
   const [storySubmitted, setStorySubmitted] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [storyFeedbackResult, setStoryFeedbackResult] = useState<{
@@ -2327,6 +2348,7 @@ export default function StoryRecorder({
               }
               clearedWords={clearedWordsMap[selectedImageIndex] ?? []}
               onWordDrillPass={handleWordDrillPass}
+              onSelfEvalSubmit={handleSelfEvalSubmit}
               hasNextScene={nextPracticeSceneIndex !== undefined}
               onNextScene={() => {
                 if (nextPracticeSceneIndex !== undefined) {

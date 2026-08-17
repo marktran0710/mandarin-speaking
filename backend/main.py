@@ -597,6 +597,7 @@ class CustomStoryRequest(BaseModel):
     lessonNumber: Optional[int] = None
     lessonSubOrder: Optional[int] = None
     narrativeMode: str = "story"
+    rubricScores: Optional[Dict[str, Any]] = None
 
 
 class HelpRequest(BaseModel):
@@ -630,6 +631,11 @@ class SceneSubmission(BaseModel):
     # and caf_metrics.speech_rate_verdict for how these are derived.
     choppyPauseCount: float = 0
     articulationRate: float = 0
+    # The student's own self-rating for this scene's accepted attempt, taken
+    # right after they listened back to it and before seeing the system's
+    # verdict. Absent when the student skipped the prompt.
+    selfEvalContent: Optional[Literal["good", "ok", "bad"]] = None
+    selfEvalPronunciation: Optional[Literal["good", "ok", "bad"]] = None
 
 
 class StorySubmissionRequest(BaseModel):
