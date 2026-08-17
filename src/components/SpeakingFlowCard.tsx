@@ -284,24 +284,23 @@ export default function SpeakingFlowCard({
               onClick={onPrimaryRecordingAction}
               disabled={recordingButtonDisabled || Boolean(pendingUploadName)}
               className={`sfc-record-btn${isRecording ? " is-recording" : ""}`}
+              aria-label={isRecording ? "Stop Recording" : undefined}
               aria-pressed={isRecording}
             >
               <span className="sfc-record-icon" aria-hidden="true">
                 {isRecording ? "■" : "●"}
               </span>
               {isRecording ? (
-                <BiLabel k="stop_recording" />
+                <>
+                  <BiLabel k="stop_recording" />
+                  <span className="sfc-record-btn-timer" aria-live="polite">
+                    {recordingDuration} / {MAX_RECORDING_SECONDS}s
+                  </span>
+                </>
               ) : (
                 <BiLabel k="record" />
               )}
             </AppButton>
-            {isRecording && (
-              <div className="practice-timer" aria-live="polite">
-                <span className="practice-timer-value">
-                  {recordingDuration} / {MAX_RECORDING_SECONDS}s
-                </span>
-              </div>
-            )}
 
             <div className="sfc-secondary-actions">
               <AppButton

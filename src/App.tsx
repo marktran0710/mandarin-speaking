@@ -510,7 +510,6 @@ export default function App() {
       {currentPage === "student-login" && (
         <StudentLoginPage
           onLogin={handleLogin}
-          onBack={() => setCurrentPage("home")}
         />
       )}
       {currentPage === "student-practice" && activeRole === "student" && (

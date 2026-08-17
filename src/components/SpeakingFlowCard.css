@@ -201,6 +201,7 @@
    width:100% would otherwise stretch it across the whole (now wider)
    card. */
 .sfc-record-btn {
+  position: relative;
   width: 100%;
   max-width: none;
   min-height: 64px;
@@ -230,6 +231,28 @@
 
 .sfc-record-btn.is-recording {
   animation: sfc-recording-pulse 1.2s ease-in-out infinite;
+  padding-right: 94px;
+}
+
+.sfc-record-btn-timer {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--clay-on-seal) 42%, transparent);
+  border-radius: var(--clay-radius-pill);
+  background: color-mix(in srgb, var(--clay-on-seal) 14%, transparent);
+  color: var(--clay-on-seal);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateY(-50%);
 }
 
 @keyframes sfc-recording-pulse {
@@ -241,11 +264,6 @@
   display: flex;
   align-items: stretch;
   width: 100%;
-}
-
-.sfc-record-actions > .practice-timer {
-  grid-column: 1 / -1;
-  justify-self: center;
 }
 
 .sfc-pending-upload {
@@ -352,6 +370,17 @@
   .sfc-record-icon {
     width: 20px;
     height: 20px;
+  }
+
+  .sfc-record-btn.is-recording {
+    padding-right: 82px;
+  }
+
+  .sfc-record-btn-timer {
+    right: 10px;
+    min-width: 52px;
+    padding-inline: 6px;
+    font-size: 11px;
   }
 }
 

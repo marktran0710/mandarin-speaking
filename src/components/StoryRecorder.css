@@ -2188,16 +2188,40 @@
 
 /* Vocab scene groups */
 .overview-vocab-scene {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 14px 0;
+  border-top: 1px solid var(--clay-hairline-soft);
 }
 .overview-vocab-scene:last-child {
-  margin-bottom: 0;
+  padding-bottom: 0;
+}
+.overview-vocab-scene-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding-top: 5px;
+}
+.overview-vocab-scene-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  background: var(--gold-soft);
+  color: var(--gold-deep);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
 }
 .overview-vocab-scene-label {
-  font-size: 10px;
+  display: block;
+  padding-top: 2px;
+  font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -2207,27 +2231,32 @@
 /* Vocab table (read-only, student-facing) */
 .overview-vocab-table {
   display: grid;
-  gap: 4px;
-  border: 1.5px solid var(--gold);
-  border-radius: var(--clay-radius-md);
-  background: var(--gold-soft);
-  padding: 6px;
+  gap: 2px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: 12px;
+  background: var(--clay-surface-soft);
+  padding: 4px;
 }
 
 .overview-vocab-row {
   display: grid;
-  grid-template-columns: 1.1fr 1.1fr 0.7fr 1.4fr;
-  gap: 10px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.1fr) minmax(64px, 0.65fr) minmax(0, 1.55fr);
+  gap: 12px;
   align-items: baseline;
-  padding: 5px 8px;
-  border-radius: var(--clay-radius-sm);
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 8px;
   background: var(--clay-surface-card);
+}
+.overview-vocab-row:nth-child(even) {
+  background: color-mix(in srgb, var(--clay-surface-card) 74%, var(--gold-soft));
 }
 
 .overview-vocab-cell {
   font-size: 14px;
   line-height: 1.3;
-  overflow-wrap: anywhere;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .overview-vocab-hanzi {
@@ -2246,6 +2275,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  white-space: nowrap;
   color: var(--clay-muted);
 }
 
@@ -2381,6 +2411,36 @@
   .overview-hero { padding: 28px 16px 24px; }
   .overview-scenes-strip { gap: 10px; }
   .overview-scene-thumb { width: 130px; }
+  .overview-vocab-scene {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px 0;
+  }
+  .overview-vocab-scene-header {
+    align-items: center;
+    padding-top: 0;
+  }
+  .overview-vocab-table {
+    border: 0;
+    padding: 0;
+    background: transparent;
+  }
+  .overview-vocab-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "hanzi pos"
+      "pinyin meaning";
+    gap: 3px 12px;
+    align-items: center;
+    padding: 9px 10px;
+  }
+  .overview-vocab-hanzi { grid-area: hanzi; }
+  .overview-vocab-pinyin { grid-area: pinyin; }
+  .overview-vocab-pos { grid-area: pos; }
+  .overview-vocab-meaning {
+    grid-area: meaning;
+    text-align: right;
+  }
 }
 
 /* ══════════════════════════════════════════════════════
@@ -3048,24 +3108,6 @@
   box-shadow: none;
   transform: none;
 }
-
-.practice-timer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: fit-content;
-  min-width: 82px;
-  margin: -2px auto 0;
-  padding: 6px 12px;
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-pill);
-  background: var(--clay-surface-soft);
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--clay-error);
-}
-.practice-timer-value { font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .btn-practice-upload {
   font-size: 13px;

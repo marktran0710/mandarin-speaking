@@ -6,7 +6,7 @@ import StudentLoginPage from "./StudentLoginPage";
 describe("StudentLoginPage behavior", () => {
   it("shows a validation message without credentials", async () => {
     const user = userEvent.setup();
-    render(<StudentLoginPage onLogin={vi.fn()} onBack={vi.fn()} />);
+    render(<StudentLoginPage onLogin={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: /Enter Student Mode/ }));
     expect(screen.getByRole("alert")).toHaveTextContent("Please enter a name and password.");
@@ -15,7 +15,7 @@ describe("StudentLoginPage behavior", () => {
   it("rejects a wrong offline password and accepts the shared demo password", async () => {
     const user = userEvent.setup();
     const onLogin = vi.fn();
-    render(<StudentLoginPage onLogin={onLogin} onBack={vi.fn()} />);
+    render(<StudentLoginPage onLogin={onLogin} />);
 
     await user.type(screen.getByLabelText(/Student name/), "Minh");
     await user.type(screen.getByLabelText(/Password/), "wrong");

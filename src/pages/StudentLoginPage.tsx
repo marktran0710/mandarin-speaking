@@ -40,10 +40,8 @@ const DEFAULT_PASSWORD = "123456";
  * to the shared default so offline demos still work. */
 export default function StudentLoginPage({
   onLogin,
-  onBack,
 }: {
   onLogin: () => void;
-  onBack: () => void;
 }) {
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -120,10 +118,6 @@ export default function StudentLoginPage({
   return (
     <main className="login-page student">
       <section className="login-shell">
-        <button type="button" className="login-back" onClick={onBack}>
-          <BiLabel k="back_to_portals" />
-        </button>
-
         <div className="login-card">
           <ToneMark className="login-tonemark" size={96} animated />
           <p className="login-kicker">

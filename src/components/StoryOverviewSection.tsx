@@ -65,9 +65,14 @@ export default function StoryOverviewSection({
             if (sceneWords.length === 0) return null;
             return (
               <div key={si} className="overview-vocab-scene">
-                <span className="overview-vocab-scene-label">
+                <div className="overview-vocab-scene-header">
+                  <span className="overview-vocab-scene-index" aria-hidden="true">
+                    {String(si + 1).padStart(2, "0")}
+                  </span>
+                  <span className="overview-vocab-scene-label">
                   <BiLabel zh={`部分 ${si + 1}`} pinyin={`Bùfen ${si + 1}`} en={`Scene ${si + 1}`} />
-                </span>
+                  </span>
+                </div>
                 <div
                   className="overview-vocab-table"
                   role="table"
