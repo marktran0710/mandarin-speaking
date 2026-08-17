@@ -208,13 +208,13 @@ export default function ModelRecordingPractice({
               <BiLabel zh="暖身示範錄音" pinyin="Nuǎnshēn shìfàn lùyīn" en="Warm-up model recording" />
             )}
           </p>
-          <small>
+          <p className="model-recording-instruction">
             <BiLabel
               zh="先聽，再跟著說，最後錄下自己的聲音。"
               pinyin="Xiān tīng, zài gēnzhe shuō, zuìhòu lùxià zìjǐ de shēngyīn."
               en="Listen first, repeat, then record yourself."
             />
-          </small>
+          </p>
         </div>
       </div>
 
@@ -280,10 +280,6 @@ export default function ModelRecordingPractice({
                     transcription={recording.sentence}
                     showReferenceOverlay={false}
                   />
-                  <p className="model-recording-reference-note">
-                    Reference only — this audio is not automatically 100/100. Your own
-                    recording is scored separately against the scene target.
-                  </p>
                   <div
                     className={`model-recording-reference-status is-${praatViz.referenceAssessment.quality}`}
                     role="status"

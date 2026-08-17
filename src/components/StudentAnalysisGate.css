@@ -1,0 +1,42 @@
+.student-analysis-gate {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  border: 1px solid var(--clay-error);
+  border-radius: 12px;
+  background: var(--clay-error-soft);
+  color: var(--clay-ink);
+}
+
+.student-analysis-gate-icon {
+  display: grid;
+  flex: 0 0 28px;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--clay-error);
+  color: var(--clay-on-accent);
+  font-weight: 900;
+}
+
+.student-analysis-gate strong,
+.student-analysis-gate p {
+  display: block;
+  margin: 0;
+}
+
+.student-analysis-gate strong {
+  font-size: 0.95rem;
+}
+
+.student-analysis-gate p {
+  margin-top: 5px;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.student-analysis-gate-action {
+  color: var(--clay-body);
+}

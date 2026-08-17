@@ -4,7 +4,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!(teacher|admin)\\.html$).*)",
       "destination": "/index.html"
     }
   ]

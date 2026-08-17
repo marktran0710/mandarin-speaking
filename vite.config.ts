@@ -9,6 +9,10 @@ export default defineConfig({
   server: {
     port: 5173,
     open: true,
+    // The student app is opened through the machine's Tailscale hostname
+    // during remote QA. Keep the allowlist explicit instead of disabling
+    // Vite's host check globally.
+    allowedHosts: ["desktop-9417om5.tail7fe66e.ts.net"],
   },
   build: {
     rollupOptions: {
@@ -17,6 +21,8 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, "index.html"),
         teacher: resolve(__dirname, "teacher.html"),
+        admin: resolve(__dirname, "admin.html"),
+        demo: resolve(__dirname, "instructor-demo.html"),
       },
     },
   },

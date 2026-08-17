@@ -10,6 +10,7 @@ import {
   canUseDatabase,
   createStorySubmission,
   createVocabQuizAttempt,
+  listLatestAudioRecordsByScene,
   listSpeakingProgress,
   listVocabQuizAttempts,
   saveSpeakingProgress,
@@ -31,7 +32,12 @@ import StoryVocabQuiz, { type VocabQuizSummary } from "./StoryVocabQuiz";
 import { topicQuizEntries } from "../utils/topicQuiz";
 import { type JourneyStop, type JourneyStopStatus } from "./JourneyPath";
 import { toPinyin } from "../utils/pinyin";
-import { getStudentId, isAdminSession } from "../utils/studentSession";
+import {
+  getLastScenePhase,
+  getStudentId,
+  isAdminSession,
+  saveLastScenePhase,
+} from "../utils/studentSession";
 import type { AssistiveFeedbackSyllable } from "../utils/assistiveFeedback";
 import { resolvePilotContext } from "../utils/pilotSession";
 import type { AnalysisVersion } from "../utils/analysisVersion";
@@ -71,10 +77,6 @@ import StorySessionSidebar, {
 import StudentHelpPanel from "./StudentHelpPanel";
 import type { BackendFeedbackQuality } from "../utils/voiceFeedbackReliability";
 import type { SelfEvalLevel } from "../utils/selfEvalComparison";
-
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
 
 // Mirrors the backend's MAX_VOCAB_DISTRACTORS_PER_WORD cap — checked
 // client-side so a story where every word already has a full pool skips the
@@ -532,8 +534,8 @@ export interface WordProsody {
   /** 70/30 shape-weighted composite. Kept only for progress-history
    * display; not a verdict input. */
   display_score?: number;
-  /** Canonical word verdict; equal to `diagnostic_status`, mirrored under
-   * a clearer name for the refactor's payload. */
+  /** Canonical word verdict; equal to `diagnostic_status`, mirrored under a
+   * clearer name for the refactor's payload. */
   verdict?: DiagnosticStatus;
   /** Reason code for the verdict (strong_shape_supported,
    * shape_direction_disagreement, weak_shape, strong_negative_evidence,
@@ -771,6 +773,8 @@ export default function StoryRecorder({
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [pendingVoiceFile, setPendingVoiceFile] = useState<File | null>(null);
+  const [pendingVoiceFileUrl, setPendingVoiceFileUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<SpeechModel>("webspeech");
   const [groqAsrAvailable, setGroqAsrAvailable] = useState(false);
@@ -787,6 +791,12 @@ export default function StoryRecorder({
   const analysisVersion: AnalysisVersion = "stable_v1";
   const [silenceDuration, setSilenceDuration] = useState(0);
   const [recordingDuration, setRecordingDuration] = useState(0);
+
+  useEffect(() => {
+    return () => {
+      if (pendingVoiceFileUrl) URL.revokeObjectURL(pendingVoiceFileUrl);
+    };
+  }, [pendingVoiceFileUrl]);
 
   // Per-scene result maps — keyed by image index so switching scenes restores
   // the last analysis result for that scene instead of showing a blank state.
@@ -1028,7 +1038,7 @@ export default function StoryRecorder({
     const candidates = planDistractorGrowth(topic);
     if (candidates.length === 0) return;
 
-    const response = await fetch(`${BACKEND_URL}/api/vocab-quiz-distractors`, {
+    const response = await fetch(`${getBackendUrl()}/api/vocab-quiz-distractors`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1057,7 +1067,7 @@ export default function StoryRecorder({
     const candidates = planLookalikeGrowth(topic);
     if (candidates.length === 0) return;
 
-    const response = await fetch(`${BACKEND_URL}/api/vocab-quiz-lookalike`, {
+    const response = await fetch(`${getBackendUrl()}/api/vocab-quiz-lookalike`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1086,7 +1096,7 @@ export default function StoryRecorder({
     const candidates = planClozeGrowth(topic);
     if (candidates.length === 0) return;
 
-    const response = await fetch(`${BACKEND_URL}/api/vocab-quiz-cloze`, {
+    const response = await fetch(`${getBackendUrl()}/api/vocab-quiz-cloze`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1115,7 +1125,7 @@ export default function StoryRecorder({
     const candidates = planSynonymGrowth(topic);
     if (candidates.length === 0) return;
 
-    const response = await fetch(`${BACKEND_URL}/api/vocab-quiz-synonym`, {
+    const response = await fetch(`${getBackendUrl()}/api/vocab-quiz-synonym`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -1194,16 +1204,35 @@ export default function StoryRecorder({
     const completed = loadCompletedVocabQuizzes()[topic.id] === true;
     setVocabQuizCompleted(completed);
     const stillLocked = hasVocabQuiz && !completed && !isAdmin;
-    setPhase(
+    const defaultPhase = enableOverview
+      ? "overview"
+      : enableSorting
+        ? "sorting"
+        : stillLocked
+          ? "vocabquiz"
+          : "practice";
+    // Resume the step a student was on before a reload, instead of always
+    // reopening on the overview screen — but never resume into a phase the
+    // current gates would now block (e.g. the quiz got reset elsewhere).
+    const reachablePhases = (
       enableOverview
-        ? "overview"
+        ? ["overview", "sorting", "vocabquiz", "practice", "summary"]
         : enableSorting
-          ? "sorting"
-          : stillLocked
-            ? "vocabquiz"
-            : "practice",
+          ? ["sorting", "vocabquiz", "practice", "summary"]
+          : ["vocabquiz", "practice", "summary"]
+    ) as typeof defaultPhase[];
+    const blockedPhases = stillLocked ? new Set(["practice", "summary"]) : new Set<string>();
+    const resumed = getLastScenePhase(topic.id);
+    setPhase(
+      resumed && reachablePhases.includes(resumed as typeof defaultPhase) && !blockedPhases.has(resumed)
+        ? (resumed as typeof defaultPhase)
+        : defaultPhase,
     );
   }, [topic.id, topic.images, enableSorting, enableOverview, hasVocabQuiz, isAdmin]);
+
+  useEffect(() => {
+    saveLastScenePhase(topic.id, phase);
+  }, [topic.id, phase]);
 
   // The local flag is an offline/UI fast path. On reload, recover the same
   // gate from the canonical quiz-attempt history so a completed quiz does not
@@ -1271,6 +1300,77 @@ export default function StoryRecorder({
         });
       } catch (err) {
         console.error("Failed to load speaking progress:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [studentId, topic.id]);
+
+  // Restore the newest full practice result (feedback, transcription, the
+  // recording itself) for every scene in this story, not just the aggregate
+  // counters above. `praatMetricsMap`/`attemptHistoryMap` otherwise only ever
+  // get filled in by a recording made in *this* session — a reload or
+  // returning to the story later showed a blank result for every scene even
+  // though the student had already practiced it.
+  useEffect(() => {
+    if (!studentId || !canUseDatabase()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await listLatestAudioRecordsByScene(studentId, topic.id);
+        if (cancelled || rows.length === 0) return;
+
+        setPraatMetricsMap((prev) => {
+          const next = { ...prev };
+          rows.forEach((row) => {
+            if (row.imageIndex === undefined || next[row.imageIndex]) return;
+            if (row.praatMetrics) next[row.imageIndex] = row.praatMetrics as PraatMetrics;
+          });
+          return next;
+        });
+        setAttemptHistoryMap((prev) => {
+          const next = { ...prev };
+          rows.forEach((row) => {
+            if (row.imageIndex === undefined || next[row.imageIndex]?.length) return;
+            const metrics = row.praatMetrics as PraatMetrics | undefined;
+            if (!metrics) return;
+            next[row.imageIndex] = [
+              {
+                tone: Math.round(metrics.tone_accuracy ?? 0),
+                fluency: Math.round(metrics.fluency_score ?? 0),
+                attempt: row.attemptNumber ?? 1,
+              },
+            ];
+          });
+          return next;
+        });
+
+        // The recording itself is fetched best-effort — a missing/failed
+        // fetch still leaves the restored feedback and scores usable, just
+        // without audio playback for that scene (same fallback the results
+        // view already has for "no recording available").
+        await Promise.all(
+          rows.map(async (row) => {
+            if (row.imageIndex === undefined || !row.audioUrl) return;
+            try {
+              const url = row.audioUrl.startsWith("/uploads/")
+                ? `${getBackendUrl()}${row.audioUrl}`
+                : row.audioUrl;
+              const res = await fetch(url);
+              if (!res.ok || cancelled) return;
+              const blob = await res.blob();
+              if (cancelled) return;
+              setAnalysisAudioBlobMap((prev) =>
+                prev[row.imageIndex!] ? prev : { ...prev, [row.imageIndex!]: blob },
+              );
+            } catch {
+              // Playback unavailable for this scene — feedback data still restored above.
+            }
+          }),
+        );
+      } catch (err) {
+        console.error("Failed to load the latest practice results:", err);
       }
     })();
     return () => {
@@ -1353,6 +1453,8 @@ export default function StoryRecorder({
       setError(null);
       setPraatMetrics(null);
       setAnalysisAudioBlob(null);
+      setPendingVoiceFile(null);
+      setPendingVoiceFileUrl("");
       currentTranscriptRef.current = "";
       recordingStartRef.current = Date.now();
       setRecordingDuration(0);
@@ -1534,8 +1636,9 @@ export default function StoryRecorder({
 
   const transcribeAudio = async (audioBlob: Blob) => {
     setIsTranscribing(true);
+    let backendUrl = "the configured backend";
     try {
-      const backendUrl = getBackendUrl();
+      backendUrl = getBackendUrl();
       const wavBlob = await convertBlobToWav(audioBlob);
       const formData = new FormData();
       formData.append("file", wavBlob, "speech.wav");
@@ -1565,7 +1668,7 @@ export default function StoryRecorder({
       await analyzeSpeechAudio(wavBlob, transcript, selectedModel);
     } catch (err) {
       setError(
-        formatBackendError(err, BACKEND_URL || "the configured backend"),
+        formatBackendError(err, backendUrl),
       );
     } finally {
       setIsTranscribing(false);
@@ -1580,8 +1683,9 @@ export default function StoryRecorder({
     version: AnalysisVersion = analysisVersion,
   ) => {
     setIsAnalyzing(true);
+    let backendUrl = "the configured backend";
     try {
-      const backendUrl = getBackendUrl();
+      backendUrl = getBackendUrl();
       const wavBlob = await convertBlobToWav(audioBlob);
       const analysisText = transcription.trim();
       // Scene context for smarter feedback
@@ -1848,7 +1952,7 @@ export default function StoryRecorder({
       }
     } catch (err) {
       setError(
-        formatBackendError(err, BACKEND_URL || "the configured backend"),
+        formatBackendError(err, backendUrl),
       );
     } finally {
       setIsAnalyzing(false);
@@ -1875,12 +1979,26 @@ export default function StoryRecorder({
     setError(null);
     setPraatMetrics(null);
     setAnalysisAudioBlob(null);
+    setPendingVoiceFile(file);
+    setPendingVoiceFileUrl(URL.createObjectURL(file));
     currentTranscriptRef.current = "";
     recordingStartRef.current = Date.now();
     setRecordingDuration(0);
+  };
 
+  const analyzePendingVoiceFile = async () => {
+    if (!pendingVoiceFile) return;
+    const file = pendingVoiceFile;
+    setPendingVoiceFile(null);
+    setPendingVoiceFileUrl("");
     const uploadModel = selectedModel === "webspeech" ? "groq" : selectedModel;
     await analyzeSpeechAudio(file, "", uploadModel, uploadModel);
+  };
+
+  const clearPendingVoiceFile = () => {
+    setPendingVoiceFile(null);
+    setPendingVoiceFileUrl("");
+    setError(null);
   };
 
   const addTranscription = (
@@ -2337,6 +2455,10 @@ export default function StoryRecorder({
               recordingButtonDisabled={recordingButtonDisabled}
               onPrimaryRecordingAction={handlePrimaryRecordingAction}
               onSubmitVoiceFile={handleSubmitVoiceFile}
+              pendingUploadName={pendingVoiceFile?.name}
+              pendingUploadUrl={pendingVoiceFileUrl}
+              onAnalyzePendingUpload={() => void analyzePendingVoiceFile()}
+              onClearPendingUpload={clearPendingVoiceFile}
               masteryPassed={
                 isAdmin || (masteryPassedMap[selectedImageIndex] ?? false)
               }

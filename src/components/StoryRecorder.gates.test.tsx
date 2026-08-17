@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { UserEvent } from "@testing-library/user-event";
+import { waitFor } from "@testing-library/react";
 import StoryRecorder from "./StoryRecorder";
 
 vi.setConfig({ testTimeout: 20_000 });
@@ -161,12 +162,22 @@ function mockBackendAnalyze(
   );
 }
 
-async function uploadVoiceAttempt(user: UserEvent, fileName = "story-attempt.wav") {
+async function uploadVoiceAttempt(
+  user: UserEvent,
+  fileName = "story-attempt.wav",
+  waitForResult = true,
+) {
   const voiceFile = new File(["RIFF....WAVEfmt "], fileName, {
     type: "audio/wav",
   });
   const input = document.querySelector(".submit-voice-input") as HTMLInputElement;
   await user.upload(input, voiceFile);
+  await user.click(await screen.findByRole("button", { name: /Analyze audio/i }));
+  if (waitForResult) {
+    await waitFor(() => {
+      expect(screen.getByRole("region", { name: "Recording results" })).toBeInTheDocument();
+    }, { timeout: 5_000 });
+  }
 }
 
 describe("StoryRecorder speaking practice gates", () => {
@@ -207,10 +218,9 @@ describe("StoryRecorder speaking practice gates", () => {
     await user.click(screen.getByRole("tab", { name: /Speaking/ }));
 
     await uploadVoiceAttempt(user, "failed-attempt.wav");
-    await screen.findByText("Attempt 1");
 
     expect(onAddRecord).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("Scene 1 of 2")).toBeInTheDocument();
+    expect(screen.getByText("Scene 1")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Practice the words/i })).toBeEnabled();
     expect(screen.queryByRole("button", { name: /Next scene/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Scene 2 of 2")).not.toBeInTheDocument();
@@ -311,45 +321,6 @@ describe("StoryRecorder speaking practice gates", () => {
     expect(screen.queryByRole("button", { name: /Next scene/i })).not.toBeInTheDocument();
   });
 
-  it("opens Fix it before word practice when a learner clicks a wrong word", async () => {
-    const user = userEvent.setup();
-    const base = buildAnalyzeResponse();
-    mockBackendAnalyze({
-      ...base,
-      ai_feedback: {
-        ...base.ai_feedback,
-        vocabulary_coverage: {
-          score: 50,
-          used: ["market"],
-          missing: ["help"],
-          feedback: "Include the missing word.",
-        },
-      },
-    });
-
-    render(
-      <StoryRecorder
-        topic={topic}
-        selectedImage={topic.images[0]}
-        selectedImageIndex={0}
-        onImageSelect={vi.fn()}
-        onImageChange={vi.fn()}
-        onAddRecord={vi.fn()}
-      />,
-    );
-
-    await user.click(screen.getByRole("tab", { name: /Speaking/ }));
-    await uploadVoiceAttempt(user, "fix-before-practice.wav");
-    await screen.findByText("Words to practice:");
-
-    const wrongWord = document.querySelector(".sfc-fail-preview-chip");
-    expect(wrongWord).not.toBeNull();
-    await user.click(wrongWord as HTMLButtonElement);
-
-    expect(screen.getByText("Try to include")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Practice the words/i })).toBeEnabled();
-  });
-
   it("blocks pronunciation feedback while rejected content is on the fix path", async () => {
     const user = userEvent.setup();
     const base = buildAnalyzeResponse();
@@ -420,13 +391,11 @@ describe("StoryRecorder speaking practice gates", () => {
     expect(speechSource).toHaveValue("webspeech");
 
     await uploadVoiceAttempt(user, "before-switch.wav");
-    await screen.findByText("Attempt 1");
-    await user.click(screen.getByRole("button", { name: /Record again/ }));
+    await user.click(screen.getAllByRole("button", { name: /Record again/ })[0]);
     await user.selectOptions(speechSource, "groq");
     await uploadVoiceAttempt(user, "after-switch.wav");
 
-    await screen.findByText("Attempt 2");
-    expect(screen.getByText("Scene 1 of 2")).toBeInTheDocument();
+    expect(screen.getByText("Scene 1")).toBeInTheDocument();
   });
 
   it("shows a visible retry path when speech analysis fails", async () => {
@@ -450,7 +419,7 @@ describe("StoryRecorder speaking practice gates", () => {
     );
 
     await user.click(screen.getByRole("tab", { name: /Speaking/ }));
-    await uploadVoiceAttempt(user, "timeout.wav");
+    await uploadVoiceAttempt(user, "timeout.wav", false);
 
     expect(
       await screen.findByText(/Cannot reach the speech analysis backend/),

@@ -175,6 +175,30 @@
   line-height: 1;
 }
 
+.hero-demo-action {
+  display: none;
+  
+  grid-column: 1 / -1;
+  justify-self: center;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 56px;
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.hero-demo-action:hover {
+  border-color: var(--seal);
+  background: var(--seal-soft);
+}
+
 /* ── Story preview stage ──────────────────────────────────────────────── */
 
 .home-hero-visual {
@@ -626,4 +650,26 @@
     top: var(--space-sm);
     font-size: 15px;
   }
+}
+
+/* Student refresh: compact paper surfaces aligned with the instructor demo. */
+.home-page { background: var(--clay-canvas); padding-bottom: var(--space-2xl); }
+.home-hero { padding-top: var(--space-xl); gap: var(--space-lg) var(--space-xl); }
+.hero-title-zh { font-size: clamp(42px, 5vw, 56px); }
+.hero-subtitle { margin-top: var(--space-sm); line-height: 1.6; }
+.hero-stats { margin-top: var(--space-md); }
+.hero-stat-chip, .vertical-title { border-radius: 10px; background: var(--clay-surface-card); box-shadow: none; }
+.hero-primary-action { min-height: 44px; padding: var(--space-xs) var(--space-lg); border: 1px solid var(--seal-deep); border-radius: 10px; box-shadow: 0 3px 0 var(--seal-deep); }
+.hero-primary-action:hover { transform: translateY(-1px); box-shadow: 0 4px 0 var(--seal-deep); }
+.hero-primary-action:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--seal-deep); }
+.story-preview-stage { min-height: 360px; border-radius: 16px; background: var(--clay-surface-card); box-shadow: 0 4px 16px color-mix(in srgb, var(--clay-ink) 5%, transparent); }
+.story-preview-stage::before { border-style: solid; border-color: color-mix(in srgb, var(--seal) 20%, var(--clay-hairline)); }
+.story-preview-image { border-width: 4px; box-shadow: 0 3px 10px color-mix(in srgb, var(--clay-ink) 10%, transparent); }
+.how-it-works { margin-top: var(--space-lg); padding-top: var(--space-lg); }
+.how-it-works-grid { gap: var(--space-md); }
+
+@media (max-width: 600px) {
+  .home-hero { padding-top: var(--space-lg); gap: var(--space-lg); }
+  .hero-title-zh { font-size: clamp(40px, 12vw, 52px); }
+  .story-preview-stage { min-height: 292px; border-radius: 12px; }
 }

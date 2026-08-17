@@ -36,8 +36,8 @@ async def create_student(request: StudentCreateRequest):
 
         student_id = str(uuid.uuid4())
         created = db.execute(
-            "INSERT INTO students (id, name) VALUES (%s, %s) RETURNING *",
-            (student_id, name),
+            "INSERT INTO students (id, name, password) VALUES (%s, %s, %s) RETURNING *",
+            (student_id, name, request.password),
         ).fetchone()
     return row_to_student(created)
 

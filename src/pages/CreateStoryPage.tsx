@@ -59,6 +59,34 @@ export default function CreateStoryPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTopic, pendingTopic]);
 
+  // `selectedTopic` is only otherwise set once, when the student opens a
+  // story. If a teacher republishes that same story (same id, new script)
+  // while the session stays open, `publishedTopics` refreshes from the
+  // backend but this state never re-read it — the student kept practicing
+  // whatever vocabulary/scenes were loaded at open time. Re-sync by id
+  // whenever the backend-sourced topic list changes.
+  //
+  // `publishedTopics` gets a new array (and new Topic objects) on every
+  // refresh even when nothing actually changed (e.g. the tab regaining
+  // focus after a file-upload dialog closes) — `loadPublishedTeacherTopics`
+  // re-parses from storage rather than returning a cached reference. Compare
+  // by content, not by reference: replacing `selectedTopic` with an
+  // unchanged-but-new object still changes `topic.images` identity downstream
+  // in StoryRecorder, which resets the practice phase back to the overview
+  // step — a real regression, not just a wasted render.
+  useEffect(() => {
+    if (!publishedTopics || !selectedTopic) return;
+    const fresh = publishedTopics.find((topic) => topic.id === selectedTopic.id);
+    if (!fresh || fresh === selectedTopic) return;
+    if (JSON.stringify(fresh) === JSON.stringify(selectedTopic)) return;
+    setSelectedTopic(fresh);
+    setSelectedImageIndex((index) => {
+      const clamped = Math.min(index, Math.max(fresh.images.length - 1, 0));
+      setSelectedImage(fresh.images[clamped] || "");
+      return clamped;
+    });
+  }, [publishedTopics, selectedTopic]);
+
   const openTopicAtLevel = (topic: Topic) => {
     setSelectedTopic(topic);
     setSelectedImage(topic.images[0]);

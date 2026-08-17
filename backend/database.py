@@ -131,6 +131,7 @@ def row_to_custom_story(row: dict) -> dict:
         "quizMaterialSnapshot": row.get("quiz_material_snapshot"),
         "quizApprovedSnapshot": row.get("quiz_approved_snapshot"),
         "quizPendingApprovals": row.get("quiz_pending_approvals"),
+        "rubricScores": row.get("rubric_scores"),
     }
 
 
@@ -181,3 +182,6 @@ def row_to_student(row: dict) -> dict:
         "name": row["name"],
         "createdAt": row["created_at"],
     }
+
+def row_to_teacher(row: dict) -> dict:
+    return {"id": row["id"], "name": row["name"], "createdAt": row["created_at"], "status": row["status"]}

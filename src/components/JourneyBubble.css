@@ -6,17 +6,17 @@
   right: 18px;
   bottom: 18px;
   z-index: 30;
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 3px;
   background: var(--clay-surface-card);
-  border: 3px solid var(--clay-hairline);
-  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--clay-hairline);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--clay-ink) 12%, transparent);
   font-family: inherit;
   text-align: center;
   padding: 0;
@@ -52,7 +52,7 @@
 }
 .journey-bubble-locked:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-lg), 0 6px 14px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--gold-deep) 18%, transparent);
 }
 .journey-bubble-locked:focus-visible {
   outline: 3px solid var(--seal);
@@ -77,13 +77,14 @@
 
 /* ── Caught-up state: quiet progress dial (conic ring) ── */
 .journey-bubble-dial.has-ring {
-  border: none;
+  border: 0;
+  overflow: hidden;
 }
 .journey-bubble-dial.has-ring::before {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: 50%;
+  border-radius: inherit;
   background: conic-gradient(
     var(--jade) 0 var(--jb-progress, 0deg),
     var(--clay-surface-strong) var(--jb-progress, 0deg) 360deg
@@ -93,7 +94,7 @@
   content: "";
   position: absolute;
   inset: 5px;
-  border-radius: 50%;
+  border-radius: 10px;
   background: var(--clay-surface-card);
 }
 .journey-bubble-dial > * {
@@ -103,8 +104,8 @@
 
 @media (max-width: 640px) {
   .journey-bubble {
-    width: 66px;
-    height: 66px;
+    width: 64px;
+    height: 64px;
     right: 12px;
     bottom: 12px;
   }

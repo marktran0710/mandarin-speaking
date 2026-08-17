@@ -1,8 +1,9 @@
-import { type ChangeEvent, type ReactNode, useRef, useState } from "react";
+import { type ChangeEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import PraatTimeline from "../components/PraatTimeline";
 import StudentPageHeader from "../components/StudentPageHeader";
 import { convertBlobToWav } from "../utils/audio";
 import { BiLabel, BiText } from "../components/BiLabel";
+import StudentIcon from "../components/StudentIcon";
 import VoiceFeedbackReliabilityNotice from "../components/VoiceFeedbackReliabilityNotice";
 import {
   assessVoiceFeedbackReliability,
@@ -63,6 +64,9 @@ export default function VoiceTestPage() {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [audioUrl, setAudioUrl] = useState("");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [pendingAudio, setPendingAudio] = useState<Blob | null>(null);
+  const [pendingAudioName, setPendingAudioName] = useState("");
+  const [pendingTranscription, setPendingTranscription] = useState("");
   const [selectedAudioName, setSelectedAudioName] = useState("");
   const [liveTranscript, setLiveTranscript] = useState("");
   const [analysisAttemptCount, setAnalysisAttemptCount] = useState(0);
@@ -74,12 +78,43 @@ export default function VoiceTestPage() {
   const transcriptRef = useRef("");
   const startTimeRef = useRef(0);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(true);
+  const preparationIdRef = useRef(0);
+  const audioUrlRef = useRef("");
+  const analysisControllerRef = useRef<AbortController | null>(null);
+
+  const clearAudioPreview = () => {
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL?.(audioUrlRef.current);
+      audioUrlRef.current = "";
+    }
+    setAudioUrl("");
+  };
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+    preparationIdRef.current += 1;
+    analysisControllerRef.current?.abort();
+    recognitionRef.current?.abort?.();
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+    if (audioUrlRef.current) URL.revokeObjectURL?.(audioUrlRef.current);
+  }, []);
 
   const startRecording = async () => {
+    const recordingId = ++preparationIdRef.current;
+    analysisControllerRef.current?.abort();
+    analysisControllerRef.current = null;
     setError("");
     setMetrics(null);
-    setAudioUrl("");
+    clearAudioPreview();
     setAudioBlob(null);
+    setPendingAudio(null);
+    setPendingAudioName("");
+    setPendingTranscription("");
     setSelectedAudioName("");
     setLiveTranscript("");
     transcriptRef.current = "";
@@ -112,7 +147,8 @@ export default function VoiceTestPage() {
           type: recorder.mimeType || "audio/webm",
         });
         stopTracks();
-        await analyzeAudio(
+        if (recordingId !== preparationIdRef.current) return;
+        await prepareAudio(
           rawBlob,
           "voice-test.wav",
           true,
@@ -167,8 +203,15 @@ export default function VoiceTestPage() {
     setError("");
     setMetrics(null);
     setRecordingDuration(0);
+    preparationIdRef.current += 1;
+    analysisControllerRef.current?.abort();
+    analysisControllerRef.current = null;
+    clearAudioPreview();
+    setPendingAudio(null);
+    setPendingAudioName("");
+    setPendingTranscription("");
     setSelectedAudioName(file.name);
-    await analyzeAudio(file, normalizeWavFileName(file.name), false);
+    await prepareAudio(file, normalizeWavFileName(file.name), false);
   };
 
   const startSpeechRecognition = () => {
@@ -214,29 +257,55 @@ export default function VoiceTestPage() {
     recognition.start();
   };
 
-  const analyzeAudio = async (
+  const prepareAudio = async (
     rawBlob: Blob,
     fileName = "voice-test.wav",
     shouldConvertToWav = true,
     transcription = "",
   ) => {
-    setIsAnalyzing(true);
+    const preparationId = ++preparationIdRef.current;
     try {
       const wavBlob = shouldConvertToWav ? await convertBlobToWav(rawBlob) : rawBlob;
       const normalizedWavBlob = ensureWavBlob(wavBlob);
+      if (!mountedRef.current || preparationId !== preparationIdRef.current) return;
+      clearAudioPreview();
+      const nextAudioUrl = URL.createObjectURL(normalizedWavBlob);
+      audioUrlRef.current = nextAudioUrl;
       setAudioBlob(normalizedWavBlob);
-      setAudioUrl(URL.createObjectURL(normalizedWavBlob));
+      setAudioUrl(nextAudioUrl);
+      setPendingAudio(normalizedWavBlob);
+      setPendingAudioName(fileName);
+      setPendingTranscription(transcription);
+      setMetrics(null);
+      setError("");
+    } catch (err) {
+      if (mountedRef.current && preparationId === preparationIdRef.current) {
+        setError(formatBackendError(err, BACKEND_URL || "the configured backend"));
+      }
+    }
+  };
+
+  const analyzeAudio = async () => {
+    if (!pendingAudio) return;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 120_000);
+    analysisControllerRef.current?.abort();
+    analysisControllerRef.current = controller;
+    setIsAnalyzing(true);
+    setMetrics(null);
+    try {
 
       const formData = new FormData();
-      formData.append("file", normalizedWavBlob, fileName);
-      formData.append("transcription", transcription);
-      if (!transcription.trim()) {
+      formData.append("file", pendingAudio, pendingAudioName || "voice-test.wav");
+      formData.append("transcription", pendingTranscription);
+      if (!pendingTranscription.trim()) {
         formData.append("asr_model", VOICE_TEST_ASR_MODEL);
       }
 
       const response = await fetch(`${getBackendUrl()}/api/analyze`, {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -244,12 +313,24 @@ export default function VoiceTestPage() {
         throw new Error(errorData.detail || "語音分析失敗。 Voice analysis failed.");
       }
 
-      setMetrics((await response.json()) as VoiceMetrics);
-      setAnalysisAttemptCount((count) => count + 1);
+      const nextMetrics = (await response.json()) as VoiceMetrics;
+      if (mountedRef.current && analysisControllerRef.current === controller) {
+        setMetrics(nextMetrics);
+        setAnalysisAttemptCount((count) => count + 1);
+      }
     } catch (err) {
+      if (controller.signal.aborted && analysisControllerRef.current !== controller) return;
+      if (controller.signal.aborted) {
+        setError("Analysis took too long. Please try the recording again.");
+        return;
+      }
       setError(formatBackendError(err, BACKEND_URL || "the configured backend"));
     } finally {
-      setIsAnalyzing(false);
+      window.clearTimeout(timeoutId);
+      if (analysisControllerRef.current === controller) {
+        analysisControllerRef.current = null;
+        if (mountedRef.current) setIsAnalyzing(false);
+      }
     }
   };
 
@@ -336,17 +417,19 @@ export default function VoiceTestPage() {
         <div className="voice-test-controls">
           <button
             type="button"
-            className={`btn ${isRecording ? "btn-danger" : "btn-primary"}`}
+            className={`btn student-action-record ${isRecording ? "btn-danger" : "btn-primary"}`}
             onClick={isRecording ? stopRecording : startRecording}
             disabled={isAnalyzing}
           >
+            <StudentIcon name={isRecording ? "stop" : metrics ? "retry" : "record"} size={19} />
             <BiLabel zh={primaryLabel.zh} pinyin={primaryLabel.pinyin} en={primaryLabel.en} />
           </button>
           <label
-            className={`btn btn-secondary voice-file-label ${
+            className={`btn btn-secondary student-action-upload voice-file-label ${
               isRecording || isAnalyzing ? "disabled" : ""
             }`}
           >
+            <StudentIcon name="upload" size={18} />
             <BiLabel zh="匯入 WAV 檔案" pinyin="Huìrù WAV dǎng'àn" en="Import WAV file" />
             <input
               className="voice-file-input"
@@ -356,6 +439,11 @@ export default function VoiceTestPage() {
               disabled={isRecording || isAnalyzing}
             />
           </label>
+          {pendingAudio && !metrics && !isAnalyzing && (
+            <button type="button" className="btn student-action-analyze btn-secondary" onClick={() => void analyzeAudio()}>
+              <StudentIcon name="analyze" size={18} /> <span>Analyze this audio</span>
+            </button>
+          )}
         </div>
 
         {audioUrl && (
@@ -366,6 +454,12 @@ export default function VoiceTestPage() {
             {selectedAudioName && <strong>{selectedAudioName}</strong>}
             <audio controls src={audioUrl} aria-labelledby="voice-audio-preview-label" />
           </div>
+        )}
+
+        {pendingAudio && !metrics && !isAnalyzing && (
+          <p className="voice-audio-ready">
+            <span>Audio ready — review it, then analyze</span>
+          </p>
         )}
 
         {liveTranscript && (
@@ -419,10 +513,12 @@ export default function VoiceTestPage() {
             </>
           )}
 
-          <ModelExampleCard
-            text={metrics.transcription || "今天下雨，所以我帶傘。"}
-            focusWord={getToneFocusItems(metrics.word_prosody || [])[0]?.token}
-          />
+          {metrics.transcription && (
+            <ModelExampleCard
+              text={metrics.transcription}
+              focusWord={getToneFocusItems(metrics.word_prosody || [])[0]?.token}
+            />
+          )}
 
           <div className="voice-feedback-card">
             <h2>
@@ -503,7 +599,8 @@ export default function VoiceTestPage() {
           </details>
           )}
 
-          {metrics.ai_feedback &&
+          {metrics.transcription &&
+            metrics.ai_feedback &&
             metrics.feedback_quality?.can_score_content !== false && (
             <div className="voice-feedback-card ai-card">
               <div className="ai-card-header">

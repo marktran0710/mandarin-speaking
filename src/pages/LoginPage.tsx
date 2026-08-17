@@ -4,7 +4,7 @@ import ToneMark from "../components/ToneMark";
 import ToneField from "../components/ToneField";
 import "../components/BiLabel.css";
 import "./LoginPage.css";
-import { canUseDatabase, createStudent, listStudents, type Student } from "../services/database";
+import { canUseDatabase, createStudent, listStudents, loginTeacher, type Student } from "../services/database";
 import { signIn } from "../utils/session";
 
 export type LoginRole = "student" | "teacher";
@@ -24,6 +24,7 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
   const defaultName = isStudent ? "Student Demo" : "Teacher Demo";
   const [name, setName] = useState(defaultName);
   const [error, setError] = useState(false);
+  const [password, setPassword] = useState("123456");
 
   // Student roster — a stable id per student instead of a free-typed name,
   // so per-student practice data (quiz attempts, tone scores) can actually
@@ -58,6 +59,17 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
     const trimmed = name.trim();
     if (!trimmed) {
       setError(true);
+      return;
+    }
+
+    if (!isStudent) {
+      try {
+        const teacher = await loginTeacher(trimmed, password);
+        signIn("teacher", teacher.name, teacher.id);
+        onLogin(role);
+      } catch {
+        setError(true);
+      }
       return;
     }
 
@@ -161,6 +173,13 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
                   aria-invalid={error || undefined}
                   aria-describedby={error ? "login-name-error" : undefined}
                 />
+              </label>
+            )}
+
+            {!isStudent && (
+              <label>
+                <BiLabel zh="撖Ⅳ" pinyin="M穫m?" en="Teacher password" />
+                <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
               </label>
             )}
 

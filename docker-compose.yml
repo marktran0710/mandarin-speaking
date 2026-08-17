@@ -15,7 +15,7 @@ services:
       # same on every machine regardless of the host locale.
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - mandarin_pgdata:/var/lib/postgresql/data
       # Scripts in this directory run once, on first initialisation of an

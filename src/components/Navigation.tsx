@@ -3,6 +3,7 @@ import { Page } from "../types/page";
 import { LoginRole } from "../pages/LoginPage";
 import { BiLabel } from "./BiLabel";
 import ToneMark from "./ToneMark";
+import StudentIcon from "./StudentIcon";
 import useColorMode from "../hooks/useColorMode";
 import "./BiLabel.css";
 
@@ -69,6 +70,7 @@ export default function Navigation({
                   className={`nav-link ${currentPage === "home" ? "active" : ""}`}
                   onClick={() => onNavigate("home")}
                 >
+                  {appVariant === "student" && <span className="nav-link-icon"><StudentIcon name="home" /></span>}
                   <BiLabel k="portals" />
                 </button>
               </li>
@@ -78,6 +80,7 @@ export default function Navigation({
                   className={`nav-link ${currentPage === "student-login" ? "active" : ""}`}
                   onClick={() => onNavigate("student-login")}
                 >
+                  {appVariant === "student" && <span className="nav-link-icon"><StudentIcon name="voice" /></span>}
                   <BiLabel k="student_login" />
                 </button>
               </li>
@@ -92,6 +95,7 @@ export default function Navigation({
                   className={`nav-link ${currentPage === "student-practice" ? "active" : ""}`}
                   onClick={() => onNavigate("student-practice")}
                 >
+                  <span className="nav-link-icon"><StudentIcon name="image" /></span>
                   <BiLabel k="training" />
                 </button>
               </li>
@@ -101,6 +105,7 @@ export default function Navigation({
                   className={`nav-link ${currentPage === "student-stories" ? "active" : ""}`}
                   onClick={() => onNavigate("student-stories")}
                 >
+                  <span className="nav-link-icon"><StudentIcon name="stories" /></span>
                   <BiLabel zh="我的成績" pinyin="Wǒ de chéngjì" en="My Profile" />
                 </button>
               </li>
@@ -111,6 +116,7 @@ export default function Navigation({
                     className={`nav-link ${currentPage === "image-narration" ? "active" : ""}`}
                     onClick={() => onNavigate("image-narration")}
                   >
+                    <span className="nav-link-icon"><StudentIcon name="image" /></span>
                     <BiLabel zh="看圖說話" pinyin="Kàn tú shuō huà" en="Picture talk" />
                   </button>
                 </li>
@@ -122,6 +128,7 @@ export default function Navigation({
                     className={`nav-link ${currentPage === "listen-retell" ? "active" : ""}`}
                     onClick={() => onNavigate("listen-retell")}
                   >
+                    <span className="nav-link-icon"><StudentIcon name="listen" /></span>
                     <BiLabel zh="聽故事" pinyin="Tīng gùshì" en="Listen & retell" />
                   </button>
                 </li>
@@ -137,10 +144,11 @@ export default function Navigation({
               aria-pressed={colorMode === "dark"}
               title={colorMode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             >
+              {appVariant === "student" && <span className="nav-link-icon"><StudentIcon name={colorMode === "dark" ? "sun" : "moon"} /></span>}
               {colorMode === "dark" ? (
-                <BiLabel zh="☀️ 亮色" pinyin="Liàngsè" en="Light" />
+                <BiLabel zh="亮色" pinyin="Liàngsè" en="Light" />
               ) : (
-                <BiLabel zh="🌙 深色" pinyin="Shēnsè" en="Dark" />
+                <BiLabel zh="深色" pinyin="Shēnsè" en="Dark" />
               )}
             </button>
           </li>
@@ -148,6 +156,7 @@ export default function Navigation({
           {activeRole && (
             <li>
               <button type="button" className="nav-link logout" onClick={onLogout}>
+                {appVariant === "student" && <span className="nav-link-icon"><StudentIcon name="logout" /></span>}
                 <BiLabel k="log_out" />
               </button>
             </li>

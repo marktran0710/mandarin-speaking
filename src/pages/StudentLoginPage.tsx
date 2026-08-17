@@ -4,6 +4,7 @@ import ToneMark from "../components/ToneMark";
 import ToneField from "../components/ToneField";
 import "../components/BiLabel.css";
 import "./LoginPage.css";
+import "./StudentLoginPage.css";
 import { canUseDatabase, createStudent, loginStudent } from "../services/database";
 import { signIn } from "../utils/session";
 
@@ -166,9 +167,10 @@ export default function StudentLoginPage({
           </ol>
 
           <form className="login-form" onSubmit={handleSubmit}>
-            <label>
+            <label htmlFor="student-name">
               <BiLabel zh="學生名字" pinyin="Xuéshēng míngzi" en="Student name" />
               <input
+                id="student-name"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder="打上你的名字 · Enter your name"
@@ -176,10 +178,11 @@ export default function StudentLoginPage({
               />
             </label>
 
-            <label>
+            <label htmlFor="student-password">
               <BiLabel zh="密碼" pinyin="Mìmǎ" en="Password" />
               <div className="login-password-field">
                 <input
+                  id="student-password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}

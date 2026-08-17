@@ -50,11 +50,13 @@
    the image column) — the button and helper elements inside stay a
    moderate, centered size on their own. */
 .sfc-record-panel {
+  --sfc-model-content-indent: 44px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 16px;
   width: 100%;
+  box-sizing: border-box;
   margin: 0 auto;
   background: linear-gradient(145deg, var(--clay-surface-card), color-mix(in srgb, var(--seal-soft) 32%, var(--clay-surface-card)));
   border: 1px solid var(--clay-hairline);
@@ -63,17 +65,33 @@
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--clay-surface-card) 70%, white), 0 10px 22px color-mix(in srgb, var(--seal) 9%, transparent);
 }
 
-.sfc-record-divider {
-  align-self: stretch;
-  border-top: 1px solid color-mix(in srgb, var(--clay-hairline) 70%, transparent);
-}
-
 .sfc-recording-options {
-  width: min(100%, 420px);
+  order: 3;
+  width: calc(100% - var(--sfc-model-content-indent));
+  box-sizing: border-box;
+  margin-inline: var(--sfc-model-content-indent) 0;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
   padding: 10px 12px;
+}
+
+/* Recording settings are secondary; the two actions are the primary choice
+   and intentionally share one row with equal visual weight. */
+.sfc-record-actions {
+  order: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 10px;
+  width: calc(100% - var(--sfc-model-content-indent));
+  box-sizing: border-box;
+  margin-inline: var(--sfc-model-content-indent) 0;
+}
+
+.sfc-record-actions > .sfc-record-btn,
+.sfc-record-actions > .sfc-secondary-actions {
+  min-width: 0;
 }
 
 .sfc-recording-options summary {
@@ -143,6 +161,15 @@
   max-height: 340px;
 }
 .sfc-record .sfc-record-main { width: 100%; }
+.sfc-record .model-recording-practice,
+.sfc-record .model-recording-heading,
+.sfc-record .model-recording-script,
+.sfc-record .model-recording-audio,
+.sfc-record .model-recording-reference-status,
+.sfc-record .model-recording-steps {
+  width: 100%;
+  box-sizing: border-box;
+}
 .sfc-record .practice-scene-image,
 .sfc-results .practice-scene-image { border: 0; }
 .sfc-attempt-only {
@@ -175,14 +202,14 @@
    card. */
 .sfc-record-btn {
   width: 100%;
-  max-width: 340px;
-  min-height: 68px;
+  max-width: none;
+  min-height: 64px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   font-size: 16px;
-  padding: 14px 32px;
+  padding: 12px 14px;
   border-radius: 14px;
   box-shadow: 0 9px 18px color-mix(in srgb, var(--seal) 30%, transparent);
 }
@@ -212,12 +239,76 @@
 
 .sfc-secondary-actions {
   display: flex;
-  justify-content: center;
+  align-items: stretch;
   width: 100%;
 }
 
+.sfc-record-actions > .practice-timer {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+.sfc-pending-upload {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--gold);
+  border-radius: 10px;
+  background: var(--gold-soft);
+}
+
+.sfc-pending-upload-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.sfc-pending-upload-copy strong {
+  color: var(--clay-ink);
+  font-size: 0.9rem;
+}
+
+.sfc-pending-upload-copy span {
+  overflow: hidden;
+  color: var(--clay-body);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sfc-pending-upload audio {
+  width: 100%;
+}
+
+.sfc-pending-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.sfc-clear-upload {
+  border: 0;
+  background: transparent;
+  color: var(--clay-body);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 7px 4px;
+}
+
+.sfc-clear-upload:hover {
+  color: var(--clay-ink);
+  text-decoration: underline;
+}
+
 .sfc-upload-btn {
-  min-width: 132px;
+  width: 100%;
+  min-width: 0;
+  min-height: 64px;
+  padding: 12px 14px;
+  border-color: var(--clay-hairline);
+  box-shadow: none;
 }
 
 .sfc-upload-btn:hover:not(:disabled) {
@@ -225,6 +316,7 @@
 }
 
 .sfc-error {
+  order: 4;
   max-width: 320px;
   text-align: center;
   margin: 18px 0 0;
@@ -241,8 +333,31 @@
     padding: 20px 16px;
   }
 
-  .sfc-record-btn {
-    max-width: none;
+  .sfc-record-actions {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .sfc-record-btn,
+  .sfc-upload-btn {
+    min-height: 58px;
+    padding: 10px 8px;
+    font-size: 14px;
+  }
+
+  .sfc-upload-btn .bi-label {
+    font-size: 0.78em;
+  }
+
+  .sfc-record-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .sfc-record-panel {
+    --sfc-model-content-indent: 35px;
   }
 }
 
@@ -491,7 +606,7 @@
 .sfc-feedback-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 1100;
   display: grid;
   place-items: center;
   padding: clamp(14px, 3vw, 28px);
@@ -501,8 +616,8 @@
 .sfc-feedback-modal {
   display: flex;
   flex-direction: column;
-  width: min(720px, 100%);
-  max-height: min(84vh, 760px);
+  width: min(820px, 100%);
+  max-height: min(90vh, 860px);
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--clay-hairline);
@@ -544,12 +659,190 @@
 .sfc-feedback-modal-body {
   min-height: 0;
   overflow: auto;
-  padding: 12px 14px 16px;
+  padding: 14px 16px 22px;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+  background: var(--clay-surface-card);
 }
 .sfc-feedback-modal-body .pronunciation-breakdown {
   width: 100%;
   margin: 0;
+  padding: 0;
   box-sizing: border-box;
+  border: 0;
+  background: transparent;
+}
+.sfc-feedback-modal-body .pb-head {
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+.sfc-feedback-modal-body .pb-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.sfc-feedback-modal-body .pb-summary-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 4px 8px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--clay-body);
+  font-size: 0.75rem;
+}
+.sfc-feedback-modal-body .pb-summary-item::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--clay-muted-soft);
+}
+.sfc-feedback-modal-body .pb-summary-item.is-correct::before { background: var(--jade); }
+.sfc-feedback-modal-body .pb-summary-item.is-correct strong { color: var(--jade-deep); }
+.sfc-feedback-modal-body .pb-summary-item.is-uncertain::before { background: var(--tone1); }
+.sfc-feedback-modal-body .pb-summary-item.is-uncertain strong { color: var(--tone1-deep); }
+.sfc-feedback-modal-body .pb-summary-item.is-incorrect::before { background: var(--clay-error); }
+.sfc-feedback-modal-body .pb-summary-item.is-incorrect strong { color: var(--clay-error-deep); }
+.sfc-feedback-modal-body .pb-summary-item.is-invalid::before { background: var(--gold); }
+.sfc-feedback-modal-body .pb-summary-item.is-invalid strong { color: var(--gold-deep); }
+.sfc-feedback-modal-body .pb-summary-item.is-neutral strong { color: var(--clay-muted); }
+.sfc-feedback-modal .sfc-feedback-modal-body .pb-legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  max-height: none;
+  overflow: visible;
+  margin: 12px 0;
+  padding: 0;
+  background: transparent;
+}
+.sfc-feedback-modal-body .pb-legend-item {
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--clay-hairline);
+  border-left: 3px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  color: var(--clay-body);
+}
+.sfc-feedback-modal-body .pb-legend-item.is-pass {
+  border-left-color: var(--jade);
+}
+.sfc-feedback-modal-body .pb-legend-item.is-pass .pb-mark {
+  color: var(--jade-deep);
+}
+.sfc-feedback-modal-body .pb-legend-item.is-uncertain {
+  border-left-color: var(--tone1);
+}
+.sfc-feedback-modal-body .pb-legend-item.is-uncertain .pb-mark {
+  color: var(--tone1-deep);
+}
+.sfc-feedback-modal-body .pb-legend-item.is-fail {
+  border-left-color: var(--clay-error);
+}
+.sfc-feedback-modal-body .pb-legend-item.is-fail .pb-mark {
+  color: var(--clay-error-deep);
+}
+.sfc-feedback-modal-body .pb-legend-item.is-retry {
+  border-left-color: var(--gold);
+}
+.sfc-feedback-modal-body .pb-legend-item.is-retry .pb-mark {
+  color: var(--gold-deep);
+}
+.sfc-feedback-modal-body .pb-phrase-group {
+  border-left: 4px solid var(--clay-hairline);
+  background: var(--clay-surface-card);
+}
+.sfc-feedback-modal-body .pb-phrase-group.has-fail {
+  border-left-color: var(--clay-error);
+}
+.sfc-feedback-modal .sfc-feedback-modal-body {
+  --pb-grid-columns: minmax(6rem, 1.15fr) minmax(5rem, 0.95fr) minmax(0, 1.25fr) 1rem;
+}
+.sfc-feedback-modal .sfc-feedback-modal-body .pb-row {
+  grid-template-columns: var(--pb-grid-columns);
+  border-left: 3px solid transparent;
+}
+.sfc-feedback-modal .sfc-feedback-modal-body .pb-char-cell,
+.sfc-feedback-modal .sfc-feedback-modal-body .pb-tone-cell,
+.sfc-feedback-modal .sfc-feedback-modal-body .pb-vowel-cell {
+  min-width: 0;
+}
+.sfc-feedback-modal-body .pb-row.pb-row-pass {
+  border-left-color: var(--jade);
+  background: var(--clay-surface-card);
+}
+.sfc-feedback-modal-body .pb-row.pb-row-uncertain {
+  border-left-color: var(--tone1);
+  background: var(--clay-surface-card);
+}
+.sfc-feedback-modal-body .pb-row.pb-row-fail {
+  border-left: 4px solid var(--clay-error);
+  background: color-mix(in srgb, var(--clay-error-soft) 20%, var(--clay-surface-card));
+}
+.sfc-feedback-modal-body .pb-row.pb-row-retry {
+  border-left-color: var(--gold);
+  background: var(--clay-surface-card);
+}
+.sfc-feedback-modal-body .pb-row.pb-row-not-measured {
+  border-left-color: var(--clay-hairline);
+  background: var(--clay-surface-card);
+}
+.sfc-feedback-modal-body .pb-detail {
+  border-left-color: var(--clay-hairline);
+  background: var(--clay-surface-card);
+}
+.sfc-feedback-modal-body .pb-detail-contour {
+  border: 1px solid var(--clay-hairline);
+  background: var(--clay-surface-soft);
+}
+.sfc-feedback-modal-body .pb-detail-contour .mini-contour-svg {
+  width: 100%;
+  height: clamp(72px, 10vw, 108px);
+  max-height: 108px;
+}
+.sfc-feedback-modal-body .pb-footnote {
+  padding: 9px 10px;
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft);
+}
+@media (max-width: 600px) {
+  .sfc-feedback-modal-backdrop {
+    place-items: start center;
+    padding: 8px;
+  }
+  .sfc-feedback-modal {
+    width: 100%;
+    max-height: calc(100dvh - 16px);
+    border-radius: var(--clay-radius-md);
+  }
+  .sfc-feedback-modal-header {
+    padding: 11px 12px;
+  }
+  .sfc-feedback-modal-body {
+    padding: 10px 9px 18px;
+  }
+  .sfc-feedback-modal .sfc-feedback-modal-body {
+    --pb-grid-columns: minmax(4.6rem, 1.15fr) minmax(4.2rem, 0.95fr) minmax(0, 1fr) 0.85rem;
+  }
+  .sfc-feedback-modal-body .pb-legend {
+    grid-template-columns: 1fr;
+  }
+  .sfc-feedback-modal-body .pb-head {
+    display: block;
+  }
+  .sfc-feedback-modal-body .pb-detail-contour .mini-contour-svg {
+    height: 82px;
+  }
+  .sfc-feedback-modal-body .pb-summary {
+    margin-top: 8px;
+  }
 }
 .sfc-results-main { width: 100%; }
 .sfc-results-main {
@@ -584,12 +877,16 @@
    large unexplained void when the result copy was short. */
 .sfc-results .sfc-step-panel > .sfc-progress-snapshot { margin-top: 0; }
 .sfc-results-main > .sfc-progress-snapshot { margin-top: 0; }
+/* The step panel flex-grows to match the (usually taller) scene column on
+   its left. Without this, a short verdict left the CTA button sitting near
+   the top with a dangling empty gap below it instead of the two columns
+   ending flush together. */
 .sfc-results .sfc-step-cta {
   align-self: stretch;
   width: 100%;
   min-height: 46px;
   justify-content: center;
-  margin-top: 2px;
+  margin-top: auto;
 }
 .sfc-results .sfc-verdict,
 .sfc-results .sfc-mastery-banner,
@@ -771,22 +1068,6 @@
   color: var(--clay-ink);
 }
 
-/* Overview's read-only preview of the words waiting in the practice step —
-   the same chip look as the practice list, but here each chip is a jump
-   link into that word's focus view. */
-.sfc-fail-preview {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.sfc-fail-preview-lead {
-  font-size: 13px;
-  font-weight: 650;
-  color: var(--clay-muted);
-  margin-right: 2px;
-}
-.sfc-fail-preview-chip,
 .sfc-practice-chip {
   font: inherit;
   font-size: 14px;
@@ -1005,6 +1286,23 @@
 .sfc-mastery-chip.is-cleared {
   color: var(--jade-deep);
   border: 1px solid var(--jade);
+}
+.sfc-mastery-chip.is-unavailable {
+  color: var(--clay-muted);
+  border: 1px dashed var(--clay-border);
+  background: var(--clay-surface-soft);
+}
+.sfc-practice-unavailable {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 1px dashed var(--clay-border);
+  border-radius: var(--clay-radius-md);
+  color: var(--clay-muted);
+  background: var(--clay-surface-soft);
+}
+.sfc-practice-unavailable strong {
+  color: var(--clay-ink);
 }
 /* Scene already passed — these words/parts are optional polish, not a
    blocker, so they read as an invitation (gold) instead of an error (red). */

@@ -8,8 +8,10 @@ import {
   type StorySubmission,
 } from "../services/database";
 import { BiLabel, BiText } from "../components/BiLabel";
+import StudentIcon from "../components/StudentIcon";
 import "../components/BiLabel.css";
 import "./MyStoriesPage.css";
+import "./MyStoriesStudent.css";
 import StudentHelpCard from "../components/StudentHelpCard";
 import MyStoryFeedbackHistory from "../components/MyStoryFeedbackHistory";
 import {
@@ -222,16 +224,18 @@ export default function MyStoriesPage({
 
       <section className="profile-stats" aria-label="Overall progress">
         <div className="profile-stat-card">
+          <span className="profile-stat-icon" aria-hidden="true"><StudentIcon name="star" /></span>
           <span className="profile-stat-label">
             <BiLabel zh="總星星" pinyin="Zǒng xīngxīng" en="Total stars" />
           </span>
           <strong className="profile-stat-value profile-stat-stars">
             {totalStars}
-            <span className="profile-stat-max"> / {maxStars}</span> ⭐
+            <span className="profile-stat-max"> / {maxStars}</span>
           </strong>
         </div>
 
         <div className="profile-stat-card">
+          <span className="profile-stat-icon" aria-hidden="true"><StudentIcon name="check" /></span>
           <span className="profile-stat-label">
             <BiLabel zh="課程完成" pinyin="Kèchéng wánchéng" en="Lessons complete" />
           </span>
@@ -251,6 +255,7 @@ export default function MyStoriesPage({
         </div>
 
         <div className="profile-stat-card">
+          <span className="profile-stat-icon" aria-hidden="true"><StudentIcon name="voice" /></span>
           <span className="profile-stat-label">
             <BiLabel zh="發音表現" pinyin="Fāyīn biǎoxiàn" en="Tone accuracy (avg)" />
           </span>
@@ -260,6 +265,7 @@ export default function MyStoriesPage({
         </div>
 
         <div className="profile-stat-card">
+          <span className="profile-stat-icon" aria-hidden="true"><StudentIcon name="chart" /></span>
           <span className="profile-stat-label">
             <BiLabel zh="說得順不順" pinyin="Shuō de shùn bu shùn" en="Fluency (avg)" />
           </span>

@@ -12,7 +12,7 @@
 import { readSession } from "./session";
 
 function studentSession() {
-  const session = readSession();
+  const session = readSession("student");
   return session?.role === "student" ? session : null;
 }
 
@@ -118,5 +118,27 @@ export function clearLastPracticeTarget() {
     localStorage.removeItem(`${LAST_PRACTICE_TARGET_KEY_PREFIX}${getStudentScopeKey()}`);
   } catch {
     /* noop */
+  }
+}
+
+const LAST_SCENE_PHASE_KEY_PREFIX = "studentLastScenePhase:";
+
+/** Which learning phase (overview/vocab quiz/practice/summary) a student was
+ * on within a specific story, so a reload resumes there instead of always
+ * reopening on the overview screen — the topic-level restore above only
+ * gets them back to the right story, not the right step inside it. */
+export function getLastScenePhase(topicId: string): string | null {
+  try {
+    return localStorage.getItem(`${LAST_SCENE_PHASE_KEY_PREFIX}${getStudentScopeKey()}:${topicId}`);
+  } catch {
+    return null;
+  }
+}
+
+export function saveLastScenePhase(topicId: string, phase: string) {
+  try {
+    localStorage.setItem(`${LAST_SCENE_PHASE_KEY_PREFIX}${getStudentScopeKey()}:${topicId}`, phase);
+  } catch {
+    /* storage unavailable — phase just won't be remembered */
   }
 }

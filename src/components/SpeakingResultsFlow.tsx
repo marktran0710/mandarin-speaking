@@ -24,7 +24,7 @@ import {
   systemPronunciationLevel,
   type SelfEvalLevel,
 } from "../utils/selfEvalComparison";
-import type { PraatMetrics, Topic } from "./StoryRecorder";
+import type { PraatMetrics, Topic, WordProsody } from "./StoryRecorder";
 import { toPinyin } from "../utils/pinyin";
 import VoiceFeedbackReliabilityNotice, {
   AssistiveFeedbackNotice,
@@ -47,6 +47,49 @@ interface ComparisonResult {
   audioAttemptId: string;
   comparisonGroupId?: string;
   runs: Partial<Record<AnalysisVersion, AnalysisRun>>;
+}
+
+interface PracticeTarget {
+  /** Stable identity for the word-level record or an unmatched backend part. */
+  key: string;
+  label: string;
+  word: WordProsody | null;
+}
+
+function practiceWordKey(word: WordProsody): string {
+  return `word:${word.index}`;
+}
+
+/**
+ * Join the backend's learner-facing practice parts to the exact word-level
+ * records that contain the contour, tone and feedback. The old implementation
+ * used an index into a separately filtered/sorted list; when a backend part
+ * was uncertain or otherwise filtered out, the index stayed at zero and the
+ * first word was shown instead.
+ */
+function buildPracticeTargets(
+  parts: string[],
+  words: WordProsody[],
+): PracticeTarget[] {
+  const usedWordKeys = new Set<string>();
+
+  return parts.map((rawPart, partIndex) => {
+    const label = rawPart.trim();
+    const word = words.find((candidate) => {
+      const key = practiceWordKey(candidate);
+      return candidate.token === label && !usedWordKeys.has(key);
+    });
+
+    if (word) {
+      const key = practiceWordKey(word);
+      usedWordKeys.add(key);
+      return { key, label, word };
+    }
+
+    // Keep an unmatched backend part visible, but never silently replace it
+    // with another word's result.
+    return { key: `part:${partIndex}:${label}`, label, word: null };
+  });
 }
 
 function AudioCompare({ modelAudioUrl, modelSentence, analysisAudioBlob }: {
@@ -117,6 +160,12 @@ interface SpeakingResultsFlowProps {
   masteryPassed: boolean;
   praatMetrics: PraatMetrics;
   analysisAudioBlob: Blob | null;
+  /** Optional: set when this attempt was submitted as a named audio file
+   * rather than recorded live. No current caller passes this — kept
+   * optional (not reintroduced as required) since StoryRecorder no longer
+   * threads it through; the JSX guard below already handles it being
+   * undefined. */
+  submittedAudioName?: string;
   clearedWords: string[];
   onWordDrillPass: (token: string) => void;
   /** Fired when the student answers the self-eval step (not on skip) — the
@@ -167,6 +216,7 @@ export default function SpeakingResultsFlow({
   masteryPassed,
   praatMetrics,
   analysisAudioBlob,
+  submittedAudioName,
   clearedWords,
   onWordDrillPass,
   onSelfEvalSubmit,
@@ -222,16 +272,11 @@ export default function SpeakingResultsFlow({
   const effectiveScriptMismatches = contentMatchVerified ? [] : scriptMismatches;
   // Practice order: weakest shape first — the word the student most needs
   // is the first one the focus view lands on.
-  const practiceWords = [...failedWords].sort(
+  const legacyPracticeWords = [...failedWords].sort(
     (a, b) =>
       (a.shape_accuracy ?? a.tone_accuracy ?? 0) -
       (b.shape_accuracy ?? b.tone_accuracy ?? 0),
   );
-  const remainingDrillWords = practiceWords.filter(
-    (word) => !clearedWords.includes(word.token),
-  );
-  const allDrillsCleared =
-    practiceWords.length > 0 && remainingDrillWords.length === 0;
   const hasScriptMismatch = isChunked
     ? hasChunkMismatch
     : effectiveScriptMismatches.length > 0;
@@ -264,16 +309,27 @@ export default function SpeakingResultsFlow({
   // The backend pronunciation mastery payload is the single source of truth
   // for the compact practice list shown to the learner. Local alignment is
   // still used for navigation, but never creates a competing list.
-  const wordsToPractice = Array.from(
-    new Set(
-      pronunciationMastery?.practice_parts ?? [
-        ...(pronunciationMastery?.failed_words ?? []),
-        ...(pronunciationMastery?.missing_target_units ?? []),
-      ],
-    ),
+  const practicePartLabels = pronunciationMastery
+    ? pronunciationMastery.practice_parts ?? Array.from(
+      new Set([
+        ...(pronunciationMastery.failed_words ?? []),
+        ...(pronunciationMastery.missing_target_units ?? []),
+      ]),
+    )
+    : legacyPracticeWords.map((word) => word.token);
+  const practiceTargets = buildPracticeTargets(
+    practicePartLabels,
+    praatMetrics.word_prosody ?? [],
   );
-  const hasWordsToPractice = wordsToPractice.length > 0;
-  const practicePartCount = wordsToPractice.length;
+  const practicePartCount = practiceTargets.length;
+  const remainingDrillTargets = practiceTargets.filter(
+    (target) => !target.word || !clearedWords.includes(target.word.token),
+  );
+  const allDrillsCleared =
+    practiceTargets.length > 0 &&
+    practiceTargets.every(
+      (target) => Boolean(target.word) && clearedWords.includes(target.word!.token),
+    );
 
   // The one-verdict ladder: meaning and required vocabulary gate the unlock;
   // pronunciation polish follows only after the learner has said the script.
@@ -301,7 +357,7 @@ export default function SpeakingResultsFlow({
   // wasted effort, so the flow stops at "fix it" and points back to record.
   const hasFix = !accepted || missing.length > 0 || hasScriptMismatch;
   const hasPhrasePractice = phrasePracticeItems.length > 0;
-  const hasPractice = hasPhrasePractice || (accepted && !hasScriptMismatch && practiceWords.length > 0);
+  const hasPractice = hasPhrasePractice || (accepted && !hasScriptMismatch && practiceTargets.length > 0);
   // Self-eval only fires on the attempt that actually completes the scene —
   // asking on every failed retry would be pure friction with nothing to
   // compare against yet.
@@ -362,15 +418,25 @@ export default function SpeakingResultsFlow({
     goToStep("overview");
   };
 
-  // Focus-mode pointer into practiceWords — starts on the weakest word the
-  // student hasn't already drilled back to a pass.
-  const [focusIndex, setFocusIndex] = useState(() => {
-    const first = practiceWords.findIndex(
-      (word) => !clearedWords.includes(word.token),
+  // Focus mode starts on the first unresolved backend practice target.
+  const [focusKey, setFocusKey] = useState<string | null>(() => {
+    const first = practiceTargets.find(
+      (target) => target.word && !clearedWords.includes(target.word.token),
     );
-    return first === -1 ? 0 : first;
+    return first?.key ?? practiceTargets[0]?.key ?? null;
   });
-  const focusWord = practiceWords[focusIndex];
+  const focusTarget = practiceTargets.find((target) => target.key === focusKey);
+  const focusWord = focusTarget?.word ?? null;
+  useEffect(() => {
+    if (focusKey && practiceTargets.some((target) => target.key === focusKey)) {
+      return;
+    }
+    const first = practiceTargets.find(
+      (target) => target.word && !clearedWords.includes(target.word.token),
+    );
+    const nextKey = first?.key ?? practiceTargets[0]?.key ?? null;
+    if (nextKey !== focusKey) setFocusKey(nextKey);
+  }, [clearedWords, focusKey, practiceTargets]);
   const [phraseFocusIndex, setPhraseFocusIndex] = useState(0);
   const focusPhrase = phrasePracticeItems[phraseFocusIndex];
 
@@ -388,16 +454,22 @@ export default function SpeakingResultsFlow({
   const handleDrillPass = (token: string) => {
     onWordDrillPass(token);
     const clearedNow = new Set([...clearedWords, token]);
-    const after = practiceWords.findIndex(
-      (word, index) => index > focusIndex && !clearedNow.has(word.token),
+    const currentIndex = focusTarget
+      ? practiceTargets.findIndex((target) => target.key === focusTarget.key)
+      : -1;
+    const after = practiceTargets.findIndex(
+      (target, index) =>
+        index > currentIndex &&
+        target.word !== null &&
+        !clearedNow.has(target.word.token),
     );
-    const fallback = practiceWords.findIndex(
-      (word) => !clearedNow.has(word.token),
+    const fallback = practiceTargets.findIndex(
+      (target) => target.word !== null && !clearedNow.has(target.word.token),
     );
     const target = after !== -1 ? after : fallback;
-    if (target !== -1 && target !== focusIndex) {
+    if (target !== -1 && practiceTargets[target].key !== focusKey) {
       advanceTimer.current = window.setTimeout(() => {
-        setFocusIndex(target);
+        setFocusKey(practiceTargets[target].key);
       }, 1500);
     }
   };
@@ -661,38 +733,6 @@ export default function SpeakingResultsFlow({
         </p>
       )}
 
-      {hasWordsToPractice && (
-        <div className="sfc-fail-preview">
-          <span className="sfc-fail-preview-lead">
-            <BiLabel
-              zh="要練的部分"
-              pinyin="Yào liàn de bùfèn"
-              en="Parts to practice"
-            />
-          </span>
-          {wordsToPractice.map((word) => {
-            const practiceIndex = practiceWords.findIndex((item) => item.token === word);
-            const cleared = practiceIndex >= 0 && clearedWords.includes(word);
-            return (
-              <button
-                key={word}
-                type="button"
-                className={`sfc-mastery-chip sfc-fail-preview-chip ${cleared ? "is-cleared" : "is-pending"}`}
-                onClick={() => {
-                  if (practiceIndex >= 0) setFocusIndex(practiceIndex);
-                  // When the sentence itself still needs fixing, keep the
-                  // learner in the intended order: Fix it first, then drill
-                  // pronunciation in Step 3.
-                  goToStep(hasFix ? "fix" : "practice");
-                }}
-              >
-                {word} {cleared ? "✓" : "✗"}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {/* Forward CTA — where the verdict points, one obvious next action. */}
       {verdict === "meaning" && hasFix && (
         <AppButton
@@ -921,47 +961,65 @@ export default function SpeakingResultsFlow({
       )}
 
       <div className="sfc-practice-chips">
-        {practiceWords.map((word, index) => {
-          const cleared = clearedWords.includes(word.token);
+        {practiceTargets.map((target) => {
+          const cleared = Boolean(
+            target.word && clearedWords.includes(target.word.token),
+          );
+          const current = target.key === focusKey;
           return (
             <button
-              key={`${word.token}-${word.index}`}
+              key={target.key}
               type="button"
-              className={`sfc-mastery-chip sfc-practice-chip ${cleared ? "is-cleared" : "is-pending"}${index === focusIndex ? " is-current" : ""}`}
-              onClick={() => setFocusIndex(index)}
-              aria-pressed={index === focusIndex}
+              className={`sfc-mastery-chip sfc-practice-chip ${cleared ? "is-cleared" : "is-pending"}${target.word ? "" : " is-unavailable"}${current ? " is-current" : ""}`}
+              onClick={() => setFocusKey(target.key)}
+              aria-pressed={current}
             >
               <span className="sfc-practice-chip-word">
-                {word.token} {cleared ? "✓" : "✗"}
+                {target.label} {cleared ? "✓" : target.word ? "✗" : "—"}
               </span>
-              <span className="sfc-practice-chip-pinyin">
-                {toPinyin(word.token)}
-              </span>
+              {target.word ? (
+                <span className="sfc-practice-chip-pinyin">
+                  {toPinyin(target.word.token)}
+                </span>
+              ) : (
+                <span className="sfc-practice-chip-pinyin">
+                  No word-level result
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      {focusWord && (
+      {focusTarget && (
         <>
-          <div
-            className="sfc-pronounce-legend mini-contour-legend"
-            aria-hidden="true"
-          >
+          {focusWord && (
+            <div
+              className="sfc-pronounce-legend mini-contour-legend"
+              aria-hidden="true"
+            >
             <span className="mini-contour-legend-actual">
               <BiLabel zh="你的音高" en="Your pitch" />
             </span>
             <span className="mini-contour-legend-reference">
               <BiLabel zh="目標形狀" en="Target shape" />
             </span>
-          </div>
+            </div>
+          )}
           <div className="sfc-focus-word">
-            <WordProsodyCard
-              key={`${focusWord.token}-${focusWord.index}`}
-              item={focusWord}
-              onDrillPass={handleDrillPass}
-              drillDefaultOpen
-            />
+            {focusWord ? (
+              <WordProsodyCard
+                key={focusTarget?.key}
+                item={focusWord}
+                onDrillPass={handleDrillPass}
+                drillDefaultOpen
+              />
+            ) : (
+              <div className="sfc-practice-unavailable" role="status">
+                <strong>No word-level result / 暫無單字分析</strong>
+                <span>{focusTarget?.label}</span>
+              </div>
+            )}
           </div>
         </>
       )}
@@ -1173,7 +1231,6 @@ export default function SpeakingResultsFlow({
                 transcription={praatMetrics.transcription}
                 teacherPhrases={teacherPhraseChunks}
                 assistiveFeedback={assistiveFeedback}
-                compact
               />
             </div>
           </section>
@@ -1199,13 +1256,13 @@ export default function SpeakingResultsFlow({
               en="All parts passed. Record the full sentence once more to complete this scene."
             />
           </p>
-        ) : !ready && !masteryPassed && practiceWords.length > 0 ? (
+        ) : !ready && !masteryPassed && practiceTargets.length > 0 ? (
           <p className="sfc-unlock-note">
             🔒{" "}
             <BiLabel
-              zh={`每個字都要 ✓ 才能過關 — 還有 ${remainingDrillWords.length > 0 ? `${remainingDrillWords.length} 個字要練` : "整句要再錄一次"}`}
-              pinyin={`Měi ge zì dōu yào ✓ cáinéng guòguān — hái yǒu ${remainingDrillWords.length > 0 ? `${remainingDrillWords.length} ge zì yào liàn` : "zhěng jù yào zài lù yí cì"}`}
-              en={`Every word needs a ✓ to pass — ${remainingDrillWords.length > 0 ? `${remainingDrillWords.length} word${remainingDrillWords.length > 1 ? "s" : ""} left to practice` : "re-record the whole sentence"}`}
+              zh={`每個字都要 ✓ 才能過關 — 還有 ${remainingDrillTargets.length > 0 ? `${remainingDrillTargets.length} 個部分要練` : "整句要再錄一次"}`}
+              pinyin={`Měi ge zì dōu yào ✓ cáinéng guòguān — hái yǒu ${remainingDrillTargets.length > 0 ? `${remainingDrillTargets.length} ge bùfèn yào liàn` : "zhěng jù yào zài lù yí cì"}`}
+              en={`Every practice part needs a ✓ — ${remainingDrillTargets.length > 0 ? `${remainingDrillTargets.length} part${remainingDrillTargets.length > 1 ? "s" : ""} left to practice` : "re-record the whole sentence"}`}
             />
           </p>
         ) : !ready ? (

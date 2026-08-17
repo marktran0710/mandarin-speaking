@@ -26,6 +26,7 @@ import {
 } from "../utils/storyLevelProgress";
 import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
+import StudentIcon from "./StudentIcon";
 import "./BiLabel.css";
 
 export interface VocabGroup {
@@ -173,7 +174,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
     return (
       <div className="topic-selector">
         <div className="empty-state">
-          <div className="empty-icon">⏳</div>
+          <div className="empty-icon"><StudentIcon name="spark" size={28} /></div>
           <h2><BiLabel k="loading_activities" /></h2>
         </div>
       </div>
@@ -190,7 +191,7 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
           </div>
         </section>
         <div className="empty-state">
-          <div className="empty-icon">📚</div>
+          <div className="empty-icon"><StudentIcon name="stories" size={28} /></div>
           <h2><BiLabel k="no_activities_yet" /></h2>
           <p><BiText k="your_teacher_will_create_and_publish_spe" /></p>
         </div>

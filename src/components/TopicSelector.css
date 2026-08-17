@@ -2,10 +2,7 @@
 .topic-selector {
   min-height: calc(100vh - var(--navbar-height));
   padding: var(--space-lg) 0 var(--space-3xl);
-  background:
-    radial-gradient(circle at 88% 4%, color-mix(in srgb, var(--tone1-soft) 62%, transparent), transparent 24rem),
-    radial-gradient(circle at 8% 34%, color-mix(in srgb, var(--seal-soft) 54%, transparent), transparent 22rem),
-    var(--clay-canvas);
+  background: color-mix(in srgb, var(--clay-canvas) 94%, white);
 }
 
 /* ── Hero ── */
@@ -20,9 +17,10 @@
 
 .ts-hero-copy {
   padding: var(--space-lg) var(--space-xl);
-  background: linear-gradient(135deg, var(--tone1-soft) 0%, var(--clay-surface-card) 60%);
+  background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-xl);
+  border-radius: 16px;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--clay-ink) 5%, transparent);
 }
 
 .ts-hero-copy h1 {
@@ -47,7 +45,8 @@
   padding: var(--space-md);
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-xl);
+  border-radius: 16px;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--clay-ink) 5%, transparent);
   align-content: center;
 }
 
@@ -57,8 +56,9 @@
   gap: var(--space-sm);
   align-items: center;
   padding: var(--space-xs) var(--space-sm);
-  background: var(--clay-canvas);
-  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: 12px;
   font-size: 13px;
   font-weight: 600;
   color: var(--clay-ink);
@@ -69,9 +69,9 @@
 
 /* clay-muted (BiLabel's default .bi-en color) lands at ~4.0-4.2:1 on these
    pastel tints — just under 4.5:1 — so darken it via --bi-en-color. */
-.ts-step:nth-child(1) { background: var(--seal-soft); --bi-en-color: var(--clay-body); }
-.ts-step:nth-child(2) { background: var(--jade-soft); --bi-en-color: var(--clay-body); }
-.ts-step:nth-child(3) { background: var(--gold-soft); --bi-en-color: var(--clay-body); }
+.ts-step:nth-child(1),
+.ts-step:nth-child(2),
+.ts-step:nth-child(3) { background: var(--clay-surface-soft); --bi-en-color: var(--clay-body); }
 
 /* Ring-style step markers matching the practice screen's journey-stop-ring
    (a solid colored disc with its own contrasting border), so the "how this
@@ -148,16 +148,16 @@
   flex-direction: column;
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-xl);
+  border-radius: 16px;
   overflow: hidden;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--clay-ink) 6%, transparent);
 }
 
 .ts-card:hover {
-  border-color: color-mix(in srgb, var(--tone1) 70%, var(--clay-hairline));
-  transform: translateY(-5px);
-  box-shadow: 0 18px 34px color-mix(in srgb, var(--tone1) 19%, transparent);
+  border-color: color-mix(in srgb, var(--gold) 58%, var(--clay-hairline));
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--clay-ink) 10%, transparent);
 }
 
 /* Image area */
@@ -301,28 +301,29 @@
   justify-content: center;
   gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--tone1-deep);
+  border: 1px solid var(--gold);
   border-radius: 12px;
   /* --tone1 only gets white text to ~3:1 — --tone1-deep clears 4.5:1. */
-  background: var(--tone1-deep);
-  box-shadow: 0 5px 12px color-mix(in srgb, var(--tone1) 24%, transparent);
-  color: var(--clay-on-accent);
+  background: var(--gold);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--gold-deep) 14%, transparent);
+  color: var(--clay-ink);
   font-size: 14px;
   font-weight: 650;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.12s ease;
-  --bi-pinyin-color: var(--tone1-soft);
-  --bi-en-color: rgba(255, 255, 255, 0.8);
+  --bi-pinyin-color: var(--gold-deep);
+  --bi-en-color: var(--gold-deep);
 }
 
 .ts-card-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 16px color-mix(in srgb, var(--tone1) 31%, transparent);
+  background: color-mix(in srgb, var(--gold) 86%, var(--gold-deep));
+  box-shadow: 0 7px 14px color-mix(in srgb, var(--gold-deep) 18%, transparent);
 }
 
 .ts-card-btn:active {
   transform: translateY(1px);
-  box-shadow: 0 3px 8px color-mix(in srgb, var(--tone1) 21%, transparent);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--gold-deep) 16%, transparent);
 }
 
 .ts-card-btn-arrow {
@@ -435,9 +436,9 @@
   margin-bottom: 26px;
   padding: clamp(20px, 3vw, 30px);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-xl);
-  background: linear-gradient(120deg, color-mix(in srgb, var(--clay-surface-card) 92%, transparent), color-mix(in srgb, var(--tone1-soft) 62%, var(--clay-surface-card)));
-  box-shadow: 0 16px 38px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+  border-radius: 16px;
+  background: var(--clay-surface-card);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--clay-ink) 6%, transparent);
 }
 
 .ts-toc-title {
@@ -475,11 +476,11 @@
   width: 34px;
   height: 44px;
   border-radius: 5px;
-  background: linear-gradient(160deg, var(--seal) 0%, var(--seal-deep) 100%);
+  background: var(--gold);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--clay-on-seal);
+  color: var(--clay-ink);
   font-size: 11px;
   font-weight: 800;
   writing-mode: vertical-rl;
@@ -546,8 +547,8 @@
   gap: 18px;
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--clay-ink) 7%, transparent);
+  border-radius: 16px;
+  box-shadow: 0 5px 15px color-mix(in srgb, var(--clay-ink) 5%, transparent);
   padding: 18px 22px;
   cursor: pointer;
   transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
@@ -556,7 +557,7 @@
 .ts-lesson-card:hover {
   transform: translateY(-3px);
   border-color: color-mix(in srgb, var(--seal) 45%, var(--clay-hairline));
-  box-shadow: 0 14px 28px color-mix(in srgb, var(--clay-ink) 11%, transparent);
+  box-shadow: 0 9px 20px color-mix(in srgb, var(--clay-ink) 9%, transparent);
 }
 .ts-lesson-card:focus-visible {
   outline: 3px solid var(--seal);
@@ -564,8 +565,8 @@
 }
 .ts-lesson.is-now .ts-lesson-card {
   border-color: color-mix(in srgb, var(--gold) 68%, var(--clay-hairline));
-  background: linear-gradient(120deg, var(--clay-surface-card), var(--gold-soft));
-  box-shadow: 0 12px 26px color-mix(in srgb, var(--gold) 18%, transparent);
+  background: color-mix(in srgb, var(--clay-surface-card) 88%, var(--gold-soft));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--gold) 14%, transparent);
 }
 .ts-lesson.is-done .ts-lesson-card:hover {
   border-color: var(--jade);
@@ -609,12 +610,12 @@
    on white. The fourth slot moved off --gold to celadon when the brand
    became gold — two gold tiles in a four-tile rotation read as one color. */
 .ts-tile-seal {
-  background: linear-gradient(150deg, var(--clay-primary), var(--seal));
+  background: var(--seal);
   color: var(--clay-on-seal);
 }
-.ts-tile-jade { background: linear-gradient(150deg, #34c37f, var(--jade)); }
-.ts-tile-tone1 { background: linear-gradient(150deg, #5eb6ff, var(--tone1)); }
-.ts-tile-celadon { background: linear-gradient(150deg, var(--lavender), var(--lavender-deep)); }
+.ts-tile-jade { background: var(--jade); }
+.ts-tile-tone1 { background: var(--tone1); }
+.ts-tile-celadon { background: var(--lavender-deep); }
 .ts-tile-other { background: var(--clay-surface-strong); color: var(--gold-deep); }
 .ts-tile-locked { background: var(--clay-hairline); color: var(--clay-muted); }
 
@@ -714,9 +715,9 @@
   gap: 18px;
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-xl);
-  background: linear-gradient(120deg, var(--clay-surface-card), color-mix(in srgb, var(--tone1-soft) 48%, var(--clay-surface-card)));
-  box-shadow: 0 14px 30px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+  border-radius: 16px;
+  background: var(--clay-surface-card);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--clay-ink) 6%, transparent);
   padding: 20px 24px;
   margin-bottom: 24px;
 }

@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { convertBlobToWav } from "../utils/audio";
 import type { AssistiveFeedbackSyllable } from "../utils/assistiveFeedback";
 import type { BackendFeedbackQuality } from "../utils/voiceFeedbackReliability";
-
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+import {
+  formatBackendError,
+  getBackendUrl,
+} from "../utils/storyRecorderFeedback";
 
 export interface WordProsodySegment {
   token: string;
@@ -80,7 +80,9 @@ export function useWordPronunciationPractice(
 
   const analyzeBlob = async (rawBlob: Blob): Promise<WordAnalyzeResult | null> => {
     setIsAnalyzing(true);
+    let backendUrl = "the configured backend";
     try {
+      backendUrl = getBackendUrl();
       const wavBlob = await convertBlobToWav(rawBlob);
       const formData = new FormData();
       formData.append("file", wavBlob, "word-practice.wav");
@@ -95,7 +97,7 @@ export function useWordPronunciationPractice(
       }
       formData.append("ai_provider", "local");
 
-      const response = await fetch(`${getBackendUrl()}/api/analyze`, {
+      const response = await fetch(`${backendUrl}/api/analyze`, {
         method: "POST",
         body: formData,
       });
@@ -109,7 +111,7 @@ export function useWordPronunciationPractice(
       setResult(data);
       return data;
     } catch (err) {
-      setError(formatBackendError(err));
+      setError(formatBackendError(err, backendUrl));
       return null;
     } finally {
       setIsAnalyzing(false);
@@ -172,20 +174,4 @@ export function useWordPronunciationPractice(
     analyzeBlob,
     reset,
   };
-}
-
-function getBackendUrl(): string {
-  if (BACKEND_URL) {
-    return BACKEND_URL;
-  }
-  throw new Error("Word practice needs a deployed backend. Set VITE_BACKEND_URL.");
-}
-
-function formatBackendError(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error);
-  const networkFailures = ["Failed to fetch", "NetworkError", "Load failed"];
-  if (networkFailures.some((failure) => message.includes(failure))) {
-    return `Cannot reach the speech analysis backend${BACKEND_URL ? ` at ${BACKEND_URL}` : ""}. Start the backend and try again.`;
-  }
-  return message || "Something went wrong analyzing that recording.";
 }

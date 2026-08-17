@@ -12,10 +12,6 @@ import {
   type VoiceFeedbackReliability,
 } from "../utils/voiceFeedbackReliability";
 
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
-
 // A single ASR slip on one character of a multi-character phrase shouldn't
 // fail the whole phrase — only flag content when a large share of it wasn't
 // recognized at all. More forgiving than WORD_PASS_RATIO because ASR noise
@@ -68,7 +64,9 @@ export default function PhrasePracticeDrill({
   const analyze = async (audio: Blob) => {
     setIsAnalyzing(true);
     setError("");
+    let backendUrl = "the configured backend";
     try {
+      backendUrl = getBackendUrl();
       const wav = await convertBlobToWav(audio);
       const formData = new FormData();
       formData.append("file", wav, "phrase-practice.wav");
@@ -77,7 +75,7 @@ export default function PhrasePracticeDrill({
       formData.append("scene_vocabulary", phrase);
       formData.append("ai_provider", "local");
 
-      const response = await fetch(`${getBackendUrl()}/api/analyze`, {
+      const response = await fetch(`${backendUrl}/api/analyze`, {
         method: "POST",
         body: formData,
       });
@@ -119,7 +117,7 @@ export default function PhrasePracticeDrill({
       setResult({ words, contentMatch, passed, reliability });
       if (passed) onPass(phrase);
     } catch (err) {
-      setError(formatBackendError(err, BACKEND_URL || "the configured backend"));
+      setError(formatBackendError(err, backendUrl));
     } finally {
       setIsAnalyzing(false);
     }

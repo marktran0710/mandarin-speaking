@@ -115,6 +115,22 @@ def get_cors_origins() -> list[str]:
         "http://localhost:3000",
     ]
 
+
+def get_cors_origin_regex() -> str | None:
+    """Allow the local pilot UI to use the computer as a LAN server.
+
+    A production deployment should set CORS_ORIGINS explicitly. The fallback
+    only accepts HTTP origins on loopback/private IPv4 ranges and the local
+    development ports used by this project.
+    """
+    if os.getenv("CORS_ORIGINS"):
+        return None
+    return (
+        r"^https?://(?:localhost|127\.0\.0\.1|10(?:\.\d{1,3}){3}|"
+        r"192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])"
+        r"(?:\.\d{1,3}){2}):(?:3000|5173|5174|5175|5176|9000)$"
+    )
+
 # ── In-memory rate limiter ─────────────────────────────────────────────────
 # Keyed by (route, client_ip). Tracks request timestamps in a deque.
 _rate_limits: dict[str, collections.deque] = {}
@@ -138,6 +154,7 @@ def _check_rate_limit(key: str, max_requests: int, window_seconds: int) -> None:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
+    allow_origin_regex=get_cors_origin_regex(),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
@@ -674,6 +691,7 @@ class VocabQuizAttemptRequest(BaseModel):
 
 class StudentCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
+    password: str = Field(default="123456", min_length=1, max_length=100)
 
 
 class QuizExclusion(BaseModel):
@@ -791,6 +809,18 @@ class Student(BaseModel):
     id: str
     name: str
     createdAt: str
+
+class TeacherCreateRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    password: str = Field(default="123456", min_length=1, max_length=100)
+
+class TeacherLoginRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    password: str = Field(..., min_length=1, max_length=100)
+
+class TeacherUpdateRequest(BaseModel):
+    password: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    status: Optional[str] = Field(default=None, pattern="^(active|inactive)$")
 
 
 @app.get("/health")
@@ -1406,6 +1436,10 @@ def build_pronunciation_mastery(
     # words still surface in `failed_words` / `practice_parts` so a student
     # can optionally drill them without being forced to re-record the
     # entire sentence to move on.
+    #
+    # Kept as a named constant so a calibration pass can move it in one
+    # place; matches the pattern used by SYLLABLE_PASS_THRESHOLD and the
+    # word-level shape/direction thresholds in tone_decision.
     pass_rate = passed_count / len(judged_syllables)
     passed = (
         pass_rate >= SENTENCE_SYLLABLE_PASS_RATIO
@@ -4040,6 +4074,7 @@ from routers.quiz_review import router as quiz_review_router  # noqa: E402
 from routers.speaking_progress import router as speaking_progress_router  # noqa: E402
 from routers.stories import router as stories_router  # noqa: E402
 from routers.students import router as students_router  # noqa: E402
+from routers.teachers import router as teachers_router  # noqa: E402
 from routers.submissions import router as submissions_router  # noqa: E402
 from routers.teacher_review import router as teacher_review_router  # noqa: E402
 from routers.tones import router as tones_router  # noqa: E402
@@ -4057,6 +4092,7 @@ app.include_router(quiz_review_router)
 app.include_router(speaking_progress_router)
 app.include_router(stories_router)
 app.include_router(students_router)
+app.include_router(teachers_router)
 app.include_router(submissions_router)
 app.include_router(teacher_review_router)
 app.include_router(tts_router)

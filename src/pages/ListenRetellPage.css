@@ -146,6 +146,28 @@
 .lr-audio-preview {
   width: 100%;
 }
+.lr-upload-btn {
+  position: relative;
+  justify-content: center;
+  width: 100%;
+  cursor: pointer;
+}
+.lr-upload-btn input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.lr-audio-name {
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--clay-body);
+  font-size: 0.8rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .lr-error {
   color: var(--clay-error);
   font-size: 0.85rem;
@@ -219,4 +241,140 @@
 .lr-detail-card.practice {
   background: var(--gold-soft);
   border-color: var(--gold);
+}
+
+/* Student practice refresh: compact paper surfaces and clear amber actions. */
+.listen-retell-page {
+  padding: 20px 0 48px;
+  color: var(--clay-ink);
+  font-family: var(--font-student);
+}
+
+.listen-retell-page .student-page-header {
+  margin-bottom: 18px;
+}
+
+.lr-scene-picker {
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.lr-scene-thumb {
+  border-width: 1px;
+  border-radius: 10px;
+  padding: 5px;
+  background: var(--clay-surface-soft);
+  box-shadow: none;
+}
+
+.lr-scene-thumb.active {
+  border-color: var(--seal-deep);
+  box-shadow: inset 0 0 0 1px var(--seal);
+}
+
+.lr-workspace {
+  gap: 16px;
+}
+
+.lr-image-panel,
+.lr-record-panel,
+.lr-detail-card {
+  min-width: 0;
+  border-radius: 12px;
+  background: var(--clay-surface-soft);
+  box-shadow: 0 1px 2px rgba(42, 35, 24, 0.05);
+}
+
+.lr-record-panel {
+  align-self: start;
+}
+
+.lr-image-panel,
+.lr-record-panel {
+  padding: 14px;
+}
+
+.lr-image {
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.lr-play-btn {
+  border: 1px solid var(--seal-deep);
+  border-radius: 8px;
+  background: var(--seal);
+  color: var(--clay-on-seal);
+  box-shadow: none;
+}
+
+.lr-play-btn:hover {
+  background: var(--seal);
+  box-shadow: 0 1px 2px rgba(42, 35, 24, 0.12);
+}
+
+.lr-vocab-chip {
+  padding: 3px 9px;
+  border: 1px solid var(--gold);
+  background: var(--gold-soft);
+}
+
+.listen-retell-page .lr-record-panel .btn {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--seal-deep);
+  border-radius: 8px;
+  background: var(--seal);
+  box-shadow: none;
+  color: var(--clay-on-seal);
+}
+
+.listen-retell-page .lr-record-panel .btn-danger {
+  border-color: var(--clay-error-deep);
+  background: var(--clay-error);
+  color: var(--clay-on-accent);
+}
+
+.listen-retell-page .lr-record-panel .btn:hover:not(:disabled) {
+  transform: none;
+  box-shadow: 0 1px 2px rgba(42, 35, 24, 0.12);
+}
+
+.lr-result {
+  margin-top: 20px;
+  gap: 12px;
+}
+
+.lr-transcript-card,
+.lr-content-accuracy {
+  border-radius: 12px;
+}
+
+.lr-detail-card {
+  padding: 12px 14px;
+}
+
+.listen-retell-page button:focus-visible {
+  outline: 3px solid var(--seal);
+  outline-offset: 2px;
+}
+
+@media (max-width: 420px) {
+  .listen-retell-page {
+    width: min(calc(100% - 24px), var(--content-max));
+    padding-top: 16px;
+  }
+
+  .lr-scene-picker {
+    justify-content: flex-start;
+  }
+
+  .lr-scene-thumb {
+    max-width: calc(50% - 4px);
+  }
+
+  .lr-scene-thumb img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 3 / 2;
+  }
 }

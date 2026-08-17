@@ -136,6 +136,42 @@ describe("PronunciationBreakdown", () => {
     expect(phrases[1].querySelectorAll(".pb-group")).toHaveLength(1);
   });
 
+  it("only marks a phrase group red when it contains a confident X", () => {
+    const { container } = render(
+      <PronunciationBreakdown
+        words={[
+          word({
+            token: "alpha",
+            index: 0,
+            passed: false,
+            diagnostic_status: "INCORRECT",
+            syllables: [
+              { char: "a", tone: 4, score: 20, passed: false, diagnostic_status: "INCORRECT" },
+            ],
+          }),
+          word({
+            token: "beta",
+            index: 1,
+            passed: false,
+            diagnostic_status: "UNCERTAIN",
+            syllables: [
+              { char: "b", tone: 3, score: 50, passed: false, diagnostic_status: "UNCERTAIN" },
+            ],
+          }),
+        ]}
+        targetText="alpha beta"
+        transcription="alpha beta"
+        teacherPhrases={["alpha", "beta"]}
+      />,
+    );
+
+    const phrases = container.querySelectorAll(".pb-phrase-group");
+    expect(phrases).toHaveLength(2);
+    expect(phrases[0].classList.contains("has-fail")).toBe(true);
+    expect(phrases[0].classList.contains("is-needs-practice")).toBe(true);
+    expect(phrases[1].classList.contains("has-fail")).toBe(false);
+  });
+
   it("counts the result in one summary line", () => {
     const { container } = render(
       <PronunciationBreakdown

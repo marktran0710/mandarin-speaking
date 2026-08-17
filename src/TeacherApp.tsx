@@ -41,7 +41,7 @@ export default function TeacherApp() {
   }, [audioRecordPageSize]);
 
   useEffect(() => {
-    const role = currentRole();
+    const role = currentRole("teacher");
     if (role === "student") {
       setBlockedRole(true);
       return;
@@ -119,7 +119,7 @@ export default function TeacherApp() {
 
   const handleLogout = () => {
     setActiveRole(null);
-    signOut();
+    signOut("teacher");
   };
 
   if (blockedRole) {

@@ -45,6 +45,10 @@ interface SpeakingFlowCardProps {
   recordingButtonDisabled: boolean;
   onPrimaryRecordingAction: () => void;
   onSubmitVoiceFile: (event: ChangeEvent<HTMLInputElement>) => void;
+  pendingUploadName?: string;
+  pendingUploadUrl?: string;
+  onAnalyzePendingUpload?: () => void;
+  onClearPendingUpload?: () => void;
   /** Pronunciation mastery gate: true once a full-sentence recording had
    * every word clear the per-syllable pass verdict. */
   masteryPassed: boolean;
@@ -105,6 +109,10 @@ export default function SpeakingFlowCard({
   recordingButtonDisabled,
   onPrimaryRecordingAction,
   onSubmitVoiceFile,
+  pendingUploadName,
+  pendingUploadUrl,
+  onAnalyzePendingUpload = () => undefined,
+  onClearPendingUpload = () => undefined,
   masteryPassed,
   contentPassed,
   clearedWords,
@@ -122,11 +130,17 @@ export default function SpeakingFlowCard({
   // fresh metrics) — not merely "metrics exist", which would trap the
   // student on the results screen after choosing to record again.
   const wasBusy = useRef(false);
+  const lastMetricsRef = useRef<PraatMetrics | null>(praatMetrics);
   useEffect(() => {
-    if (wasBusy.current && !isBusy && praatMetrics) {
-      setScreen("results");
+    if (isBusy) {
+      wasBusy.current = true;
     }
-    wasBusy.current = isBusy;
+    const hasFreshMetrics = Boolean(praatMetrics && praatMetrics !== lastMetricsRef.current);
+    if (!isBusy && praatMetrics && (wasBusy.current || hasFreshMetrics)) {
+      setScreen("results");
+      wasBusy.current = false;
+    }
+    lastMetricsRef.current = praatMetrics;
   }, [isBusy, praatMetrics]);
 
   // Switching scenes shows that scene's last result if it has one (praatMetrics
@@ -223,8 +237,6 @@ export default function SpeakingFlowCard({
               modelAudioUrl={modelAudioUrl}
             />
 
-            <div className="sfc-record-divider" aria-hidden="true" />
-
             <details className="sfc-recording-options">
               <summary>Recording options</summary>
               <label className="sfc-speech-source">
@@ -264,11 +276,12 @@ export default function SpeakingFlowCard({
                         : "Experimental local model; its first run may take several minutes to load."}
               </p>
             </details>
+            <div className="sfc-record-actions" aria-label="Recording actions">
             <AppButton
               tone={isRecording ? "danger" : "primary"}
               size="lg"
               onClick={onPrimaryRecordingAction}
-              disabled={recordingButtonDisabled}
+              disabled={recordingButtonDisabled || Boolean(pendingUploadName)}
               className={`sfc-record-btn${isRecording ? " is-recording" : ""}`}
               aria-pressed={isRecording}
             >
@@ -302,7 +315,7 @@ export default function SpeakingFlowCard({
                 size="sm"
                 className="sfc-upload-btn"
                 onClick={() => uploadInputRef.current?.click()}
-                disabled={isBusy}
+                disabled={isBusy || Boolean(pendingUploadName)}
               >
                 <span aria-hidden="true">↥</span>
                 <BiLabel k="upload_audio" />
@@ -316,6 +329,24 @@ export default function SpeakingFlowCard({
                 disabled={isBusy}
                 tabIndex={-1}
               />
+            </div>
+            {pendingUploadName && pendingUploadUrl && (
+              <div className="sfc-pending-upload" aria-label="Audio ready for analysis">
+                <div className="sfc-pending-upload-copy">
+                  <strong>Audio ready</strong>
+                  <span>{pendingUploadName}</span>
+                </div>
+                <audio controls src={pendingUploadUrl} />
+                <div className="sfc-pending-upload-actions">
+                  <AppButton tone="primary" size="sm" onClick={onAnalyzePendingUpload}>
+                    Analyze audio
+                  </AppButton>
+                  <button type="button" className="sfc-clear-upload" onClick={onClearPendingUpload}>
+                    Remove
+                  </button>
+                </div>
+              </div>
+            )}
             </div>
             {error && <p className="sfc-error">{error}</p>}
           </div>

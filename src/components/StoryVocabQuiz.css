@@ -8,6 +8,13 @@
   padding: 32px 20px;
   text-align: center;
 }
+/* The tier-choice screen (mode-select) is short and otherwise hugs the top
+   of the page, same issue as the level picker — center it in the available
+   height instead of leaving a bare run of empty space below the cards. */
+.vocab-quiz-mode-select {
+  min-height: calc(100vh - var(--navbar-height));
+  justify-content: center;
+}
 
 /* A persistent row above the question itself — Back (if given) and, in
    Free mode only, Finish — so "I want to stop" is always on screen and

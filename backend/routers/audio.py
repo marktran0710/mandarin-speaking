@@ -27,6 +27,26 @@ async def list_audio_records(
     return [row_to_audio_record(row) for row in rows]
 
 
+@router.get("/api/audio-records/latest-by-scene")
+async def list_latest_audio_records_by_scene(
+    student_id: str = Query(...),
+    topic_id: str = Query(...),
+):
+    """One row per scene (image_index): whichever attempt is newest, so a
+    student reopening a story sees the practice result they left off with
+    instead of a blank slate — `audio_records` itself is an append-only log
+    of every attempt with no such "latest" concept on its own."""
+    query = """
+        SELECT DISTINCT ON (image_index) *
+        FROM audio_records
+        WHERE student_id = %s AND topic_id = %s
+        ORDER BY image_index, created_at DESC
+    """
+    with connect_db() as db:
+        rows = db.execute(query, (student_id, topic_id)).fetchall()
+    return [row_to_audio_record(row) for row in rows]
+
+
 @router.get("/api/audio-records/count")
 async def get_audio_record_count():
     with connect_db() as db:

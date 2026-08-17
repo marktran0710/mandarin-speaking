@@ -113,6 +113,7 @@ export interface CustomTeacherStory {
   lessonSubOrder?: number | null;
   narrativeMode?: NarrativeMode;
   firstFrameIsExample?: boolean;
+  rubricScores?: Record<string, unknown> | null;
   /** Teacher quiz review's diff baseline, keyed by tier — see
    * utils/quizMaterialDiff.ts. Opaque here to avoid a dependency cycle
    * (quizMaterialDiff already imports StoryDifficultyLevel from this file). */

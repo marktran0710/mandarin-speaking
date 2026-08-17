@@ -183,7 +183,7 @@ export default function App() {
         for (const record of [...localRecords, ...serverRecords]) byId.set(record.id, record);
         const recordsData = Array.from(byId.values());
         setAudioRecords(recordsFromStored(recordsData));
-        localStorage.setItem("audioRecords", JSON.stringify(recordsData));
+        writeAudioRecordsCache(recordsData);
         return;
       } catch (error) {
         console.error("Failed to load audio records from database:", error);
@@ -208,7 +208,7 @@ export default function App() {
     const directVoiceTestPath =
       window.location.pathname === "/analyze" ||
       window.location.pathname === "/voice-test";
-    const role = currentRole();
+    const role = currentRole("student");
     if (role === "teacher") {
       // Teacher signed in on this device — the student site is closed to
       // them until they sign out. Covers the /analyze and /voice-test deep
@@ -280,6 +280,24 @@ export default function App() {
     refreshPublishedTopics();
   }, []);
 
+  // `publishedTopics` otherwise only loads once per page load, so a script a
+  // teacher republishes after that never reaches an already-open tab until
+  // the student reloads. Re-pull from the backend whenever the tab regains
+  // focus (teacher and student are separate SPA instances/tabs, so this is
+  // the only signal available without a push channel).
+  useEffect(() => {
+    if (activeRole !== "student") return;
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") refreshPublishedTopics();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", refreshPublishedTopics);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", refreshPublishedTopics);
+    };
+  }, [activeRole, refreshPublishedTopics]);
+
   useEffect(() => {
     const loadSavedHelpRequests = async () => {
       if (canUseDatabase()) {
@@ -311,10 +329,7 @@ export default function App() {
     setAudioRecords((prev) => [linkedRecord, ...prev]);
     const audioData = serializeAudioRecord(linkedRecord);
     const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
-    localStorage.setItem(
-      "audioRecords",
-      JSON.stringify([audioData, ...stored]),
-    );
+    writeAudioRecordsCache([audioData, ...stored]);
 
     if (canUseDatabase()) {
       try {
@@ -361,7 +376,7 @@ export default function App() {
     // Clears the whole session, not just the role — the old code removed
     // `activeRole` and left `studentSession` behind forever, which meant a
     // "logged out" browser still carried a student identity.
-    signOut();
+    signOut("student");
     setCurrentPage("home");
   };
 
@@ -606,6 +621,31 @@ function serializeAudioRecord(record: AudioRecord): StoredAudioRecord {
   };
 }
 
+/** localStorage is only an offline cache; the backend remains canonical. */
+function writeAudioRecordsCache(records: StoredAudioRecord[]) {
+  const candidates: StoredAudioRecord[][] = [
+    records,
+    records.slice(0, 100),
+    records.slice(0, 30),
+    records.slice(0, 10).map(({ praatMetrics: _praatMetrics, ...record }) => record),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      localStorage.setItem("audioRecords", JSON.stringify(candidate));
+      return;
+    } catch {
+      // Try a smaller cache below. Never let a quota error break the app.
+    }
+  }
+
+  try {
+    localStorage.removeItem("audioRecords");
+  } catch {
+    // Storage-disabled/private browsing environments can reject this too.
+  }
+}
+
 function recordsFromStored(recordsData: StoredAudioRecord[]): AudioRecord[] {
   return recordsData.map((data) => ({
     ...data,
@@ -622,5 +662,5 @@ function updateStoredAudioRecord(
   const updated = stored.map((record: StoredAudioRecord) =>
     record.id === id ? { ...record, ...media } : record,
   );
-  localStorage.setItem("audioRecords", JSON.stringify(updated));
+  writeAudioRecordsCache(updated);
 }

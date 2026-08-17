@@ -20,10 +20,6 @@ import {
   type VoiceFeedbackReliability,
 } from "../utils/voiceFeedbackReliability";
 
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
-
 /** Lets a student drill just this one character/word in place, right where its
  * sentence feedback appeared — record it alone as many times as they like and
  * see the chart update, instead of having to re-record the whole sentence to
@@ -133,7 +129,9 @@ export default function WordPracticeDrill({
 
   const analyzeAttempt = async (rawBlob: Blob) => {
     setIsAnalyzing(true);
+    let backendUrl = "the configured backend";
     try {
+      backendUrl = getBackendUrl();
       const wavBlob = await convertBlobToWav(rawBlob);
       const formData = new FormData();
       formData.append("file", wavBlob, "word-practice.wav");
@@ -141,7 +139,7 @@ export default function WordPracticeDrill({
       formData.append("verify_word", word.token);
       formData.append("ai_provider", "local");
 
-      const response = await fetch(`${getBackendUrl()}/api/analyze`, {
+      const response = await fetch(`${backendUrl}/api/analyze`, {
         method: "POST",
         body: formData,
       });
@@ -178,7 +176,7 @@ export default function WordPracticeDrill({
       }
     } catch (err) {
       setError(
-        formatBackendError(err, BACKEND_URL || "the configured backend"),
+        formatBackendError(err, backendUrl),
       );
     } finally {
       setIsAnalyzing(false);

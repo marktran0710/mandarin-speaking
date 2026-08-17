@@ -69,6 +69,19 @@
   color: var(--student-body);
 }
 
+.student-app .nav-link-icon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: var(--student-muted);
+  line-height: 1;
+}
+
+.student-app .nav-link.active .nav-link-icon,
+.student-app .nav-link:hover .nav-link-icon {
+  color: var(--student-primary-strong);
+}
+
 .student-app .nav-link.active,
 .student-app .navbar-menu-student .nav-link.active {
   background: var(--student-primary-soft);
@@ -123,12 +136,32 @@
 }
 
 .student-app .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
   min-height: var(--student-control-height);
   border-radius: var(--student-radius-sm);
   border-width: 1px;
   font-weight: 700;
   letter-spacing: 0;
   box-shadow: none;
+}
+
+.student-app .narration-upload-btn,
+.student-app .lr-upload-btn,
+.student-app .lr-play-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.student-app .btn > svg,
+.student-app .narration-upload-btn > svg,
+.student-app .lr-upload-btn > svg,
+.student-app .lr-play-btn > svg {
+  flex: 0 0 auto;
 }
 
 .student-app .btn-primary,
@@ -249,6 +282,17 @@
   color: var(--student-ink);
 }
 
+.student-app .empty-icon {
+  display: grid;
+  place-items: center;
+  color: var(--student-primary-strong);
+  font-size: 0;
+}
+
+.student-app .empty-icon svg {
+  display: block;
+}
+
 .student-app .story-recorder .card,
 .student-app .story-recorder .practice-card,
 .student-app .topic-selector .topic-card {
@@ -295,6 +339,31 @@
   gap: var(--space-sm);
 }
 
+.student-app .narration-record-panel > .student-action-record,
+.student-app .narration-record-panel > .student-action-upload,
+.student-app .lr-record-panel > .student-action-record,
+.student-app .lr-record-panel > .student-action-upload {
+  flex: 1 1 calc(50% - var(--space-xs));
+  min-width: 0;
+  min-height: 74px;
+  flex-direction: column;
+  border-style: dashed;
+}
+
+.student-app .narration-record-panel > .student-action-analyze,
+.student-app .lr-record-panel > .student-action-analyze {
+  flex: 1 0 100%;
+  min-height: var(--student-control-height);
+  flex-direction: row;
+  border-style: solid;
+}
+
+.student-app .voice-test-controls .student-action-record,
+.student-app .voice-test-controls .student-action-upload,
+.student-app .voice-test-controls .student-action-analyze {
+  min-height: 60px;
+}
+
 .student-app .narration-scene-thumb,
 .student-app .lr-scene-thumb {
   border: 1px solid var(--student-line);
@@ -314,6 +383,41 @@
 .student-app .profile-chip {
   border: 1px solid var(--student-warning);
   border-radius: var(--clay-radius-pill);
+  background: var(--student-warning-soft);
+  color: var(--gold-deep);
+}
+
+.student-app .profile-stat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.student-app .profile-stat-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-bottom: var(--space-xs);
+  border: 1px solid color-mix(in srgb, var(--student-primary) 44%, var(--student-line));
+  border-radius: var(--student-radius-sm);
+  background: var(--student-primary-soft);
+  color: var(--student-primary-strong);
+}
+
+.student-app .profile-stat-card:nth-child(2) .profile-stat-icon {
+  border-color: color-mix(in srgb, var(--student-success) 44%, var(--student-line));
+  background: var(--student-success-soft);
+  color: var(--student-success-strong);
+}
+
+.student-app .profile-stat-card:nth-child(3) .profile-stat-icon {
+  border-color: color-mix(in srgb, var(--student-info) 44%, var(--student-line));
+  background: var(--student-info-soft);
+  color: var(--student-info);
+}
+
+.student-app .profile-stat-card:nth-child(4) .profile-stat-icon {
+  border-color: color-mix(in srgb, var(--student-warning) 44%, var(--student-line));
   background: var(--student-warning-soft);
   color: var(--gold-deep);
 }
@@ -384,6 +488,12 @@
 @media (max-width: 760px) {
   .student-app .navbar-container {
     padding: var(--space-sm) 0;
+  }
+
+  .student-app .navbar-menu-student .nav-link {
+    min-height: 58px;
+    gap: 3px;
+    flex-direction: column;
   }
 
   .student-app .narration-page,

@@ -153,6 +153,9 @@ describe("SpeakingResultsFlow record-again", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByRole("dialog")).toHaveTextContent("Pronunciation feedback");
     expect(document.querySelector(".sfc-left-feedback .pronunciation-breakdown")).toBeNull();
+    expect(document.querySelectorAll(".sfc-feedback-modal-body .pb-row")).toHaveLength(2);
+    expect(document.querySelector(".sfc-feedback-modal-body .pb-row.pb-row-pass")).not.toBeNull();
+    expect(document.querySelector(".sfc-feedback-modal-body .pb-row.pb-row-fail")).not.toBeNull();
 
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).toBeNull();

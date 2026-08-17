@@ -1,71 +1,52 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { currentRole, readSession, signIn, signOut } from "./session";
 
-describe("session", () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
+describe("independent role sessions", () => {
+  beforeEach(() => localStorage.clear());
 
-  it("round-trips a signed-in student, roster id included", () => {
+  it("round-trips a student session", () => {
     signIn("student", "Minh", "stu-7");
-
-    expect(readSession()).toMatchObject({
-      role: "student",
-      name: "Minh",
-      id: "stu-7",
-    });
-    expect(currentRole()).toBe("student");
+    expect(readSession("student")).toMatchObject({ role: "student", name: "Minh", id: "stu-7" });
+    expect(currentRole("student")).toBe("student");
   });
 
-  it("holds exactly one session — signing in as teacher replaces the student", () => {
-    // The whole point of the single key: two roles can't coexist, so the
-    // guards can't be handed a browser that is somehow both.
+  it("keeps teacher and student sessions active at the same time", () => {
     signIn("student", "Minh", "stu-7");
-    signIn("teacher", "Hau");
-
-    expect(currentRole()).toBe("teacher");
-    expect(readSession()?.name).toBe("Hau");
-    expect(readSession()?.id).toBeUndefined();
+    signIn("teacher", "Hau", "teacher-1");
+    expect(readSession("student")?.name).toBe("Minh");
+    expect(readSession("teacher")?.name).toBe("Hau");
+    expect(currentRole("student")).toBe("student");
+    expect(currentRole("teacher")).toBe("teacher");
   });
 
-  it("sweeps the pre-single-key storage on sign-in and sign-out", () => {
-    // A leftover activeRole/studentSession pair must not outlive the change
-    // and get read by anything that hasn't been migrated.
-    localStorage.setItem("activeRole", "teacher");
-    localStorage.setItem("studentSession", JSON.stringify({ name: "Old" }));
-    localStorage.setItem("teacherSession", JSON.stringify({ name: "Old" }));
-
+  it("clears only the requested role on sign out", () => {
     signIn("student", "Minh");
-
-    expect(localStorage.getItem("activeRole")).toBeNull();
-    expect(localStorage.getItem("studentSession")).toBeNull();
-    expect(localStorage.getItem("teacherSession")).toBeNull();
+    signIn("teacher", "Hau");
+    signOut("teacher");
+    expect(readSession("teacher")).toBeNull();
+    expect(readSession("student")?.name).toBe("Minh");
   });
 
-  it("ignores legacy keys entirely — they no longer grant a session", () => {
+  it("ignores legacy keys", () => {
     localStorage.setItem("activeRole", "student");
-    localStorage.setItem("studentSession", JSON.stringify({ name: "Minh" }));
-
-    expect(readSession()).toBeNull();
-    expect(currentRole()).toBeNull();
+    localStorage.setItem("studentSession", JSON.stringify({ name: "Old" }));
+    expect(readSession("student")).toBeNull();
   });
 
-  it("signs out completely", () => {
+  it("clears both sessions when signing out without a role", () => {
+    signIn("student", "Minh");
     signIn("teacher", "Hau");
     signOut();
-
-    expect(readSession()).toBeNull();
-    expect(currentRole()).toBeNull();
+    expect(readSession("student")).toBeNull();
+    expect(readSession("teacher")).toBeNull();
   });
 
-  it("treats malformed or incomplete storage as signed out", () => {
-    localStorage.setItem("session", "{not json");
-    expect(readSession()).toBeNull();
+  it("detects the opposite role when an app has no own session", () => {
+    signIn("teacher", "Hau");
+    expect(currentRole("student")).toBe("teacher");
 
-    localStorage.setItem("session", JSON.stringify({ role: "wizard", name: "X" }));
-    expect(readSession()).toBeNull();
-
-    localStorage.setItem("session", JSON.stringify({ role: "student", name: "   " }));
-    expect(readSession()).toBeNull();
+    signOut("teacher");
+    signIn("student", "Minh");
+    expect(currentRole("teacher")).toBe("student");
   });
 });

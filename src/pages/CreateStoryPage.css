@@ -1,13 +1,13 @@
 /* ── Page shell ── */
 .create-story-page {
   min-height: calc(100vh - var(--navbar-height));
-  background: var(--clay-canvas);
+  background: color-mix(in srgb, var(--clay-canvas) 94%, white);
 }
 
 /* ── Help banner strip ── */
 .csp-help-strip {
   padding: var(--space-xs) 0;
-  background: var(--clay-surface-card);
+  background: color-mix(in srgb, var(--clay-surface-card) 96%, var(--gold-soft));
   border-bottom: 1px solid var(--clay-hairline);
   position: sticky;
   top: 0;
@@ -36,7 +36,7 @@
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  border-radius: var(--clay-radius-pill);
+  border-radius: 12px;
   background: var(--gold-soft);
   color: var(--gold-deep);
   font-size: 18px;
@@ -66,7 +66,7 @@
 .student-help-panel input {
   min-width: 0;
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
+  border-radius: 12px;
   background: var(--clay-canvas);
   color: var(--clay-ink);
   font: inherit;
@@ -77,21 +77,21 @@
 .student-help-panel button {
   min-height: 44px;
   padding: 0 var(--space-sm);
-  border: none;
-  border-radius: var(--clay-radius-md);
-  background: var(--seal);
-  color: var(--clay-on-seal);
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+  background: var(--gold);
+  color: var(--clay-ink);
   cursor: pointer;
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
-  --bi-pinyin-color: var(--clay-on-seal);
-  --bi-en-color: var(--clay-on-seal);
+  --bi-pinyin-color: var(--gold-deep);
+  --bi-en-color: var(--gold-deep);
 }
 
 .student-help-panel button:hover:not(:disabled) {
-  background: var(--seal-deep);
-  box-shadow: var(--shadow-sm);
+  background: color-mix(in srgb, var(--gold) 86%, var(--gold-deep));
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--gold-deep) 16%, transparent);
 }
 
 .student-help-panel button:disabled {

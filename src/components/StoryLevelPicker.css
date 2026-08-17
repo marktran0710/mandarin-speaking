@@ -259,3 +259,29 @@
     transform: translateX(-50%);
   }
 }
+
+/* Keep the level choice screen on the same clean paper surface as the demo. */
+.story-level-picker::before {
+  background: none;
+}
+
+.story-level-picker {
+  max-width: 760px;
+}
+
+.slp-back {
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.slp-card {
+  border: 1px solid var(--clay-hairline);
+  border-radius: 14px;
+  background: var(--clay-surface-card);
+  box-shadow: 0 4px 0 var(--clay-hairline-soft);
+}
+
+.slp-card:hover:not(:disabled) {
+  border-color: var(--clay-primary);
+  box-shadow: 0 5px 0 var(--clay-primary);
+}

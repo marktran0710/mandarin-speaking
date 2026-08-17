@@ -1,14 +1,18 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import type { Topic } from "../components/TopicSelector";
 import { convertBlobToWav } from "../utils/audio";
 import { BiLabel } from "../components/BiLabel";
+import StudentIcon from "../components/StudentIcon";
 import StudentPageHeader from "../components/StudentPageHeader";
 import ScoreCard from "../components/ScoreCard";
+import StudentAnalysisGate from "../components/StudentAnalysisGate";
 import {
   averageWordProsodyAccuracy,
   getBackendUrl,
   prosodyFeedbackLines,
   readErrorResponse,
+  getAnalysisVisibility,
+  isUsableScore,
   type AnalysisResult,
 } from "../utils/narrationAnalysis";
 import "../components/BiLabel.css";
@@ -39,13 +43,16 @@ const SAMPLE_SCENES: ListenScene[] = [
 export default function ListenRetellPage({ publishedTopics }: ListenRetellPageProps) {
   const scenes = useMemo(() => buildSceneOptions(publishedTopics), [publishedTopics]);
   const [sceneIndex, setSceneIndex] = useState(0);
-  const scene = scenes[sceneIndex];
+  const activeSceneIndex = Math.min(sceneIndex, Math.max(0, scenes.length - 1));
+  const scene = scenes[activeSceneIndex] ?? SAMPLE_SCENES[0];
 
   const [hasListened, setHasListened] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [audioUrl, setAudioUrl] = useState("");
+  const [pendingAudio, setPendingAudio] = useState<Blob | null>(null);
+  const [pendingAudioName, setPendingAudioName] = useState("");
   const [error, setError] = useState("");
   const [result, setResult] = useState<AnalysisResult | null>(null);
 
@@ -55,13 +62,47 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
   const chunksRef = useRef<Blob[]>([]);
   const startTimeRef = useRef(0);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mountedRef = useRef(true);
+  const preparationIdRef = useRef(0);
+  const audioUrlRef = useRef("");
+  const analysisControllerRef = useRef<AbortController | null>(null);
+
+  const clearAudioPreview = () => {
+    if (audioUrlRef.current) {
+      URL.revokeObjectURL?.(audioUrlRef.current);
+      audioUrlRef.current = "";
+    }
+    setAudioUrl("");
+  };
+
+  useEffect(() => () => {
+    mountedRef.current = false;
+    preparationIdRef.current += 1;
+    analysisControllerRef.current?.abort();
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    window.speechSynthesis?.cancel();
+    if (durationTimerRef.current) clearInterval(durationTimerRef.current);
+    if (audioUrlRef.current) URL.revokeObjectURL?.(audioUrlRef.current);
+  }, []);
 
   const selectScene = (index: number) => {
+    preparationIdRef.current += 1;
+    analysisControllerRef.current?.abort();
+    analysisControllerRef.current = null;
+    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+    setIsRecording(false);
+    clearDurationTimer();
     setSceneIndex(index);
     setHasListened(false);
+    setIsAnalyzing(false);
     setResult(null);
     setError("");
-    setAudioUrl("");
+    clearAudioPreview();
+    setPendingAudio(null);
+    setPendingAudioName("");
     window.speechSynthesis?.cancel();
   };
 
@@ -82,9 +123,14 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
   };
 
   const startRecording = async () => {
+    const recordingId = ++preparationIdRef.current;
+    analysisControllerRef.current?.abort();
+    analysisControllerRef.current = null;
     setError("");
     setResult(null);
-    setAudioUrl("");
+    clearAudioPreview();
+    setPendingAudio(null);
+    setPendingAudioName("");
     setRecordingDuration(0);
 
     try {
@@ -103,7 +149,8 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
       recorder.onstop = async () => {
         const rawBlob = new Blob(chunksRef.current, { type: recorder.mimeType || "audio/webm" });
         stopTracks();
-        await submitRetell(rawBlob);
+        if (recordingId !== preparationIdRef.current) return;
+        await prepareRetell(rawBlob, "retell.wav");
       };
 
       startTimeRef.current = Date.now();
@@ -128,24 +175,49 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
     clearDurationTimer();
   };
 
-  const submitRetell = async (rawBlob: Blob) => {
-    setIsAnalyzing(true);
+  const prepareRetell = async (rawBlob: Blob, fileName: string) => {
+    const preparationId = ++preparationIdRef.current;
     try {
       const wavBlob = await convertBlobToWav(rawBlob);
-      setAudioUrl(URL.createObjectURL(wavBlob));
+      if (!mountedRef.current || preparationId !== preparationIdRef.current) return;
+      clearAudioPreview();
+      const nextAudioUrl = URL.createObjectURL(wavBlob);
+      audioUrlRef.current = nextAudioUrl;
+      setPendingAudio(wavBlob);
+      setPendingAudioName(fileName);
+      setAudioUrl(nextAudioUrl);
+      setResult(null);
+      setError("");
+    } catch (err) {
+      if (mountedRef.current && preparationId === preparationIdRef.current) {
+        setError(err instanceof Error ? err.message : "Could not prepare the audio.");
+      }
+    }
+  };
 
+  const submitRetell = async () => {
+    if (!pendingAudio) return;
+    const submittedScene = scene;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 120_000);
+    analysisControllerRef.current?.abort();
+    analysisControllerRef.current = controller;
+    setIsAnalyzing(true);
+    setResult(null);
+    try {
       const formData = new FormData();
-      formData.append("file", wavBlob, "retell.wav");
+      formData.append("file", pendingAudio, pendingAudioName || "retell.wav");
       formData.append("transcription", "");
       formData.append("asr_model", "ctwhisper");
       // The script (not the picture) is the source of truth for grading a retell.
-      formData.append("scene_prompt", scene.script);
-      formData.append("scene_vocabulary", scene.vocabulary.join(", "));
+      formData.append("scene_prompt", submittedScene.script);
+      formData.append("scene_target_text", submittedScene.script);
+      formData.append("scene_vocabulary", submittedScene.vocabulary.join(", "));
 
       const response = await fetch(`${getBackendUrl()}/api/analyze`, {
         method: "POST",
         body: formData,
-        signal: AbortSignal.timeout(120_000),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -153,12 +225,41 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
         throw new Error(errorData.detail || "分析失敗。 Analysis failed.");
       }
 
-      setResult((await response.json()) as AnalysisResult);
+      const nextResult = (await response.json()) as AnalysisResult;
+      if (mountedRef.current && analysisControllerRef.current === controller) {
+        setResult(nextResult);
+      }
     } catch (err) {
+      if (controller.signal.aborted && analysisControllerRef.current !== controller) return;
+      if (controller.signal.aborted) {
+        setError("Analysis took too long. Please try the recording again.");
+        return;
+      }
       setError(err instanceof Error ? err.message : "無法分析錄音。 Could not analyze the recording.");
     } finally {
-      setIsAnalyzing(false);
+      window.clearTimeout(timeoutId);
+      if (analysisControllerRef.current === controller) {
+        analysisControllerRef.current = null;
+        if (mountedRef.current) setIsAnalyzing(false);
+      }
     }
+  };
+
+  const handleImportAudio = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("audio/") && !/\.(wav|wave|webm|mp3|m4a|ogg|aac|flac)$/i.test(file.name)) {
+      setError("Please choose an audio file.");
+      return;
+    }
+    setResult(null);
+    setError("");
+    preparationIdRef.current += 1;
+    clearAudioPreview();
+    setPendingAudio(null);
+    setPendingAudioName("");
+    void prepareRetell(file, file.name);
   };
 
   const clearDurationTimer = () => {
@@ -174,7 +275,9 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
   };
 
   const ai = result?.ai_feedback;
-  const contentAccuracy = ai?.content_accuracy;
+  const visibility = getAnalysisVisibility(result);
+  const rawContentAccuracy = ai?.content_accuracy;
+  const contentAccuracy = visibility.showContentDetails ? rawContentAccuracy : undefined;
   const prosodyScore = averageWordProsodyAccuracy(result?.word_prosody);
   const prosodyLines = prosodyFeedbackLines(result?.word_prosody);
 
@@ -195,7 +298,7 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
           <button
             key={option.image + index}
             type="button"
-            className={`lr-scene-thumb ${index === sceneIndex ? "active" : ""}`}
+            className={`lr-scene-thumb ${index === activeSceneIndex ? "active" : ""}`}
             onClick={() => selectScene(index)}
           >
             <img src={option.image} alt={`Scene ${index + 1}`} />
@@ -213,7 +316,8 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
             <audio ref={listenAudioRef} src={scene.audioUrl} preload="none" />
           )}
           <button type="button" className="lr-play-btn" onClick={playScript}>
-            🔊 {hasListened ? (
+            <StudentIcon name="play" size={18} />
+            {hasListened ? (
               <BiLabel zh="再聽一次" pinyin="Zài tīng yí cì" en="Play again" />
             ) : (
               <BiLabel zh="聽" pinyin="Tīng" en="Listen" />
@@ -240,10 +344,11 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
         <div className="lr-record-panel">
           <button
             type="button"
-            className={`btn ${isRecording ? "btn-danger" : "btn-primary"}`}
+            className={`btn student-action-record ${isRecording ? "btn-danger" : "btn-primary"}`}
             onClick={isRecording ? stopRecording : startRecording}
             disabled={isAnalyzing || !hasListened}
           >
+            <StudentIcon name={isRecording ? "stop" : result ? "retry" : "record"} size={19} />
             {isRecording ? (
               <BiLabel zh="停止，評分" pinyin="Tíngzhǐ, píngfēn" en="Stop and evaluate" />
             ) : result ? (
@@ -252,6 +357,20 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
               <BiLabel zh="開始說" pinyin="Kāishǐ shuō" en="Start retelling" />
             )}
           </button>
+          <label className="lr-upload-btn student-action-upload btn btn-secondary">
+            <StudentIcon name="upload" size={18} /> <span>Upload audio</span>
+            <input
+              type="file"
+              accept="audio/*,.wav,.wave,.webm,.mp3,.m4a,.ogg,.aac,.flac"
+              onChange={handleImportAudio}
+              disabled={isRecording || isAnalyzing || !hasListened}
+            />
+          </label>
+          {pendingAudio && !result && !isAnalyzing && (
+            <button type="button" className="btn student-action-analyze btn-secondary" onClick={() => void submitRetell()}>
+              <StudentIcon name="analyze" size={18} /> <span>Analyze this audio</span>
+            </button>
+          )}
           {!hasListened && (
             <p className="lr-status">
               <BiLabel
@@ -270,6 +389,12 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
               <BiLabel zh="準備好了" pinyin="Zhǔnbèi hǎo le" en="Ready" />
             )}
           </p>
+          {pendingAudio && !result && !isAnalyzing && (
+            <p className="lr-status lr-ready-status">
+              <span>Audio ready — review it, then analyze</span>
+            </p>
+          )}
+          {pendingAudioName && <p className="lr-audio-name">{pendingAudioName}</p>}
           {audioUrl && <audio controls src={audioUrl} className="lr-audio-preview" />}
           {error && <p className="lr-error">{error}</p>}
         </div>
@@ -277,6 +402,7 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
 
       {result && (
         <section className="lr-result">
+          {visibility.needsRetry && <StudentAnalysisGate result={result} />}
           <div className="lr-transcript-card">
             <span><BiLabel k="you_said" /></span>
             <p lang="zh-TW">
@@ -286,18 +412,20 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
             </p>
           </div>
 
-          <div className="mini-score-grid">
-            {ai?.vocabulary_coverage && (
+          {!visibility.needsRetry && <div className="mini-score-grid">
+            {visibility.showVocabulary && ai?.vocabulary_coverage && (
               <ScoreCard label={<BiLabel zh="詞彙" pinyin="Cíhuì" en="Vocabulary" />} score={ai.vocabulary_coverage.score} />
             )}
-            {prosodyScore !== null && (
+            {visibility.showPronunciation && prosodyScore !== null && (
               <ScoreCard label={<BiLabel k="character_by_character_prosody" />} score={prosodyScore} />
             )}
-            <ScoreCard label={<BiLabel zh="聲調準確度" pinyin="Shēngdiào zhǔnquè dù" en="Tone accuracy" />} score={Math.round(result.tone_accuracy)} />
+            {visibility.showPronunciation && isUsableScore(result.tone_accuracy) && (
+              <ScoreCard label={<BiLabel zh="聲調準確度" pinyin="Shēngdiào zhǔnquè dù" en="Tone accuracy" />} score={Math.round(result.tone_accuracy)} />
+            )}
             {contentAccuracy && (
               <ScoreCard label={<BiLabel zh="內容準確度" pinyin="Nèiróng zhǔnquè dù" en="Content accuracy" />} score={contentAccuracy.score} highlight />
             )}
-          </div>
+          </div>}
 
           {contentAccuracy && (
             <div className="lr-content-accuracy">
@@ -318,19 +446,19 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
             </div>
           )}
 
-          {ai?.vocabulary_coverage && (
+          {visibility.showVocabulary && ai?.vocabulary_coverage && (
             <div className="lr-detail-card">
               <h3><BiLabel zh="詞彙" pinyin="Cíhuì" en="Vocabulary" /></h3>
               <p>{ai.vocabulary_coverage.feedback}</p>
             </div>
           )}
-          {ai?.coherence && (
+          {visibility.showCoherence && ai?.coherence && (
             <div className="lr-detail-card">
               <h3><BiLabel zh="順暢度" pinyin="Shùnchàng dù" en="Coherence" /></h3>
               <p>{ai.coherence.feedback}</p>
             </div>
           )}
-          {prosodyLines.length > 0 && (
+          {visibility.showPronunciation && prosodyLines.length > 0 && (
             <div className="lr-detail-card">
               <h3><BiLabel k="character_by_character_prosody" /></h3>
               {prosodyLines.map(({ token, feedback }) => (
@@ -340,7 +468,7 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
               ))}
             </div>
           )}
-          {ai?.practice_prompt && (
+          {visibility.showPracticePrompt && ai?.practice_prompt && (
             <div className="lr-detail-card practice">
               <h3><BiLabel zh="下一步練習" pinyin="Xià yí bù liànxí" en="Practice next" /></h3>
               <p>{ai.practice_prompt}</p>

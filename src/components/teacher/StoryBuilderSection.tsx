@@ -816,6 +816,7 @@ export default function StoryBuilderSection({
     const savedStory: CustomTeacherStory = {
       ...createCustomStory(customDraft, editingStoryId),
       published: existingStory?.published ?? false,
+      rubricScores: existingStory?.rubricScores ?? null,
     };
 
     // Persist to the backend first. It writes any uploaded data-URL images to
@@ -1592,7 +1593,26 @@ export default function StoryBuilderSection({
                       </details>
                     </div>
                   </div>
-                  <p>{story.learningGoal}</p>
+                <p>{story.learningGoal}</p>
+                {story.rubricScores && (
+                  <section className="teacher-material-rubric" aria-label="Material rubric score">
+                    <h4>Rubric evaluation</h4>
+                    {(["easy", "medium", "hard"] as const).map((level) => {
+                      const score = story.rubricScores?.[level] as Record<string, unknown> | undefined;
+                      return <div key={level} className="teacher-material-rubric-level">
+                        <strong>{level[0].toUpperCase() + level.slice(1)}</strong>
+                        <div className="teacher-material-rubric-grid">
+                          {(["focus", "narrative", "plot", "wordChoice", "conventions"] as const).map((key) => {
+                            const label = key === "wordChoice" ? "Word choice" : key === "conventions" ? "Conventions" : key === "narrative" ? "Narrative elements" : key === "plot" ? "Five-stage plot" : "Focus";
+                            return <span key={key}><b>{label}</b> {String(score?.[key] ?? "-")}/10</span>;
+                          })}
+                        </div>
+                        <p className="teacher-material-rubric-total">Total: {String(score?.total ?? "-")}/50</p>
+                      </div>;
+                    })}
+                    <a href="https://doi.org/10.1080/09588221.2025.2561608" target="_blank" rel="noreferrer">Research rubric reference</a>
+                  </section>
+                )}
                   <div className="custom-story-frame-strip">
                     {story.frames.map((frame, index) => (
                       <div className="custom-story-mini-frame" key={index}>

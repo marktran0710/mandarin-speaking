@@ -21,6 +21,7 @@ export interface Session {
   signedInAt: string;
 }
 
+const SESSION_KEYS: Record<Role, string> = { student: "studentSession", teacher: "teacherSession" };
 const SESSION_KEY = "session";
 
 /** Pre-single-key storage. Swept on every write rather than migrated: the
@@ -41,9 +42,11 @@ function isRole(value: unknown): value is Role {
 /** The current session, or null when nobody is signed in. Returns null for
  * malformed storage too — a session that can't be parsed is one nobody is
  * in, which is the safe reading for a value that gates access. */
-export function readSession(): Session | null {
+export function readSession(role?: Role): Session | null {
   try {
-    const raw = localStorage.getItem(SESSION_KEY);
+    const raw = role
+      ? localStorage.getItem(SESSION_KEYS[role])
+      : localStorage.getItem(SESSION_KEY) ?? localStorage.getItem(SESSION_KEYS.student) ?? localStorage.getItem(SESSION_KEYS.teacher);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!isRole(parsed?.role)) return null;
@@ -63,9 +66,20 @@ export function readSession(): Session | null {
   }
 }
 
-/** The signed-in role, or null. The one comparison each app's guard makes. */
-export function currentRole(): Role | null {
-  return readSession()?.role ?? null;
+/**
+ * The role visible to an app guard, or null.
+ *
+ * Each app passes its own role here. If that role has a session, it wins so
+ * the two app entry points remain independently testable while both legacy
+ * role keys exist. If it does not, the opposite role is returned so a
+ * teacher session still blocks the student app (and vice versa).
+ */
+export function currentRole(role?: Role): Role | null {
+  if (!role) return readSession()?.role ?? null;
+  const ownSession = readSession(role);
+  if (ownSession) return ownSession.role;
+  const oppositeRole: Role = role === "student" ? "teacher" : "student";
+  return readSession(oppositeRole)?.role ?? null;
 }
 
 /** Replaces whatever was there — there is only ever one session. */
@@ -76,12 +90,17 @@ export function signIn(role: Role, name: string, id?: string): Session {
     id,
     signedInAt: new Date().toISOString(),
   };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  clearLegacyKeys();
+  localStorage.setItem(SESSION_KEYS[role], JSON.stringify(session));
+  localStorage.removeItem(SESSION_KEY);
   return session;
 }
 
-export function signOut() {
-  localStorage.removeItem(SESSION_KEY);
-  clearLegacyKeys();
+export function signOut(role?: Role) {
+  if (role) localStorage.removeItem(SESSION_KEYS[role]);
+  else {
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SESSION_KEYS.student);
+    localStorage.removeItem(SESSION_KEYS.teacher);
+    clearLegacyKeys();
+  }
 }

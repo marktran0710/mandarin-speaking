@@ -4,7 +4,7 @@
   z-index: 1000;
   background: color-mix(in srgb, var(--clay-surface-card) 92%, transparent);
   border-bottom: 1px solid var(--clay-hairline);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--clay-ink) 6%, transparent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--clay-ink) 5%, transparent);
   backdrop-filter: blur(18px);
 }
 
@@ -22,7 +22,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  gap: 24px;
+  gap: 16px;
 }
 
 .navbar-logo {
@@ -78,9 +78,9 @@
      items had no background or border at all, so the active item looked
      like a totally different kind of element (a colored badge) sitting
      next to bare, unstyled text instead of a same-shaped sibling. */
-  background: color-mix(in srgb, var(--clay-surface-soft) 72%, transparent);
+  background: transparent;
   color: var(--clay-body);
-  border: 1.5px solid var(--clay-hairline);
+  border: 1px solid transparent;
   /* A full pill radius (999px) rounds a short, roughly-square box — this
      item's content is a 3-line BiLabel stack (zh/pinyin/en), not a single
      wide line — into an oval/blob shape. A moderate radius keeps it a
@@ -100,17 +100,29 @@
   border-color: var(--clay-hairline);
   color: var(--clay-ink);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--clay-ink) 6%, transparent);
 }
 
 .nav-link.active {
-  background: linear-gradient(135deg, var(--seal-soft), color-mix(in srgb, var(--seal-soft) 55%, var(--clay-surface-card)));
+  background: var(--seal-soft);
   border-color: color-mix(in srgb, var(--seal) 65%, var(--clay-hairline));
   color: var(--clay-ink);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--seal) 18%, transparent), 0 4px 12px color-mix(in srgb, var(--seal) 12%, transparent);
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--seal) 10%, transparent);
   /* clay-muted (BiLabel's default .bi-en color) lands at ~4.0-4.4:1 on this
      pastel pill — just under the 4.5:1 floor — so darken it here. */
   --bi-en-color: var(--clay-body);
+}
+
+/* The student shell follows the instructor demo's warm amber cue without
+   changing the teacher app's shared navigation treatment. */
+.navbar-menu-student .nav-link.active {
+  background: var(--gold-soft);
+  border-color: color-mix(in srgb, var(--gold) 62%, var(--clay-hairline));
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--gold) 14%, transparent);
+}
+
+.navbar-menu-student .nav-link:hover {
+  border-color: color-mix(in srgb, var(--gold) 34%, var(--clay-hairline));
 }
 
 .nav-link:active {
@@ -165,5 +177,11 @@
   .nav-link {
     flex: 1;
     padding: 8px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar-menu-student {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

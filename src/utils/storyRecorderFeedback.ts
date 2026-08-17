@@ -5,13 +5,34 @@ import type {
 } from "../components/StoryRecorder";
 import { isAdminSession } from "./studentSession";
 
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+function localBackendUrl(): string {
+  if (import.meta.env.MODE === "test") return "http://127.0.0.1:8000";
+  if (typeof window === "undefined") return "http://127.0.0.1:8000";
+
+  // In local development the app may be opened through localhost, 127.0.0.1,
+  // a LAN address, or a private-network hostname. Using a fixed loopback URL
+  // makes the browser call the *student device* when the frontend is served
+  // from another machine. Keep the backend on the same host as the page.
+  const pageHostname = window.location.hostname || "127.0.0.1";
+  // Some browsers resolve localhost to ::1 first. The FastAPI dev server is
+  // intentionally reachable on IPv4 as well, so keep local development on a
+  // stable IPv4 loopback address. LAN/private-network hosts remain dynamic.
+  const hostname =
+    pageHostname === "localhost" || pageHostname === "::1"
+      ? "127.0.0.1"
+      : pageHostname;
+  return `http://${hostname}:8000`;
+}
+
+const CONFIGURED_BACKEND_URL = import.meta.env.VITE_BACKEND_URL?.trim() || "";
 
 export function getBackendUrl(): string {
-  if (BACKEND_URL) {
-    return BACKEND_URL;
+  if (CONFIGURED_BACKEND_URL) {
+    return CONFIGURED_BACKEND_URL;
+  }
+
+  if (import.meta.env.DEV) {
+    return localBackendUrl();
   }
 
   throw new Error(
@@ -173,10 +194,10 @@ export function failedProsodyWords(
 /** One pronunciation verdict shared by progression, practice ordering and UI.
  *
  * After the tone-verdict refactor, this is a straight reading of the
- * canonical diagnostic status: only CORRECT clears the gate; UNCERTAIN
- * and INCORRECT both fail. The refactor's UNCERTAIN != CORRECT invariant
- * lives here — a word the backend was not confident enough to call
- * CORRECT must not silently unlock progression.
+ * canonical diagnostic status: only CORRECT clears the gate; UNCERTAIN and
+ * INCORRECT both fail. The refactor's UNCERTAIN != CORRECT invariant lives
+ * here — a word the backend was not confident enough to call CORRECT must
+ * not silently unlock progression.
  *
  * `judged: false` (or an absent verdict) is preserved as "nothing to gate
  * on" — nothing to fail either, because the backend intentionally leaves
@@ -189,16 +210,17 @@ export function isProsodyHardFailure(item: WordProsody): boolean {
   if (item.diagnostic_status === "INCORRECT") return true;
   if (item.diagnostic_status === "UNCERTAIN") return true;
   if (item.diagnostic_status === "CORRECT") return false;
-  // No diagnostic status was produced (older payload). Fall back to the
-  // raw pass flag for backwards compatibility.
+  // No diagnostic status was produced (older payload, or a code path that
+  // still relies on the legacy `passed`). Fall back to the raw pass flag
+  // for backwards compatibility.
   return item.passed === false;
 }
 
 /** Fraction of judged syllables that must pass for a sentence to clear
  * the pronunciation gate. Mirrors backend main.SENTENCE_SYLLABLE_PASS_RATIO
  * so the fallback path (used when the backend didn't send a
- * pronunciation_mastery block) agrees with the authoritative gate. Keep
- * the two values in step — a drift here means the frontend fallback
+ * pronunciation_mastery block) agrees with the authoritative gate.
+ * Keep the two values in step — a drift here means the frontend fallback
  * unlocks scenes the backend would still block, or vice versa. */
 export const SENTENCE_SYLLABLE_PASS_RATIO = 0.80;
 

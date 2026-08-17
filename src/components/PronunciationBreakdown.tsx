@@ -711,8 +711,15 @@ export default function PronunciationBreakdown({
 
       <div className="pb-groups">
         {phraseGroups.map((phrase) => (
+          (() => {
+            const hasFail = phrase.words.some((group) =>
+              group.rows.some(({ syllable, word }) =>
+                statusLabel(syllable, referenceEvidenceAccepted(word)).tone === "fail",
+              ),
+            );
+            return (
           <section
-            className={`pb-phrase-group${phrase.text ? "" : " is-unstructured"}`}
+            className={`pb-phrase-group${phrase.text ? "" : " is-unstructured"}${phrase.uncertain ? " is-uncertain" : phrase.passed === true ? " is-passed" : phrase.passed === false ? " is-needs-practice" : ""}${hasFail ? " has-fail" : ""}`}
             key={phrase.key}
             >
             {phrase.text && (
@@ -747,12 +754,12 @@ export default function PronunciationBreakdown({
                 <span className="pb-group-pinyin">{group.pinyin}</span>
               )}
               {(() => {
-                // Surface the shape/direction split behind the verdict so
-                // a learner (and any reviewer) can see exactly why a
-                // strong shape came back UNCERTAIN, or why a good
-                // direction did not rescue a poor shape. Absent on legacy
-                // payloads without the refactor's fields — rendered only
-                // when both component scores are present.
+                // Surface the shape/direction split behind the verdict so a
+                // learner (and any reviewer) can see exactly why a strong
+                // shape came back UNCERTAIN, or why a good direction did
+                // not rescue a poor shape. Absent on legacy payloads
+                // without the refactor's fields — rendered only when both
+                // component scores are present.
                 const wordRecord = group.rows[0]?.word;
                 if (
                   typeof wordRecord?.shape_score !== "number" ||
@@ -781,11 +788,11 @@ export default function PronunciationBreakdown({
               })()}
             </p>
             {(() => {
-              // A learner-facing note for the two most common
-              // disagreement cases the refactor introduced. The generic
-              // ✓/△/✗ chip does not tell the learner WHY a strong-looking
-              // contour came back UNCERTAIN; a one-line reason does.
-              // Absent when there is no disagreement to explain.
+              // A learner-facing note for the two most common disagreement
+              // cases the refactor introduced. The generic ✓/△/✗ chip does
+              // not tell the learner WHY a strong-looking contour came back
+              // UNCERTAIN; a one-line reason does. Absent when there is no
+              // disagreement to explain.
               const wordRecord = group.rows[0]?.word;
               const reason = wordRecord?.reason;
               if (reason === "shape_direction_disagreement") {
@@ -830,7 +837,7 @@ export default function PronunciationBreakdown({
                   <li key={key} className="pb-row-item">
                     <button
                       type="button"
-                      className={`pb-row${failed ? " pb-row-failed" : ""}${open ? " is-open" : ""}`}
+                      className={`pb-row pb-row-${label.tone}${failed ? " pb-row-failed" : ""}${open ? " is-open" : ""}`}
                       aria-expanded={open}
                       onClick={() => setOpenKey(open ? null : key)}
                     >
@@ -896,7 +903,9 @@ export default function PronunciationBreakdown({
             ) && (
               <p className="pb-phrase-collapsed-note">All measured tones passed.</p>
             )}
-          </section>
+            </section>
+            );
+          })()
         ))}
       </div>
 

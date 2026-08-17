@@ -28,7 +28,8 @@ export default function AdminApp() {
   };
   useEffect(() => { void refresh(); }, []);
   const accounts = useMemo<Account[]>(() => [...teachers.map((x) => ({ id: x.id, name: x.name, role: "Teacher" as const, status: x.status === "active" ? "Active" as const : "Inactive" as const })), ...students.map((x) => ({ id: x.id, name: x.name, role: "Student" as const, status: "Active" as const }))], [students, teachers]);
-  const filtered = accounts.filter((x) => x.name.toLowerCase().includes(query.toLowerCase()));
+  const sectionRole = activeNav === "Teachers" ? "Teacher" : activeNav === "Students" ? "Student" : null;
+  const filtered = accounts.filter((x) => x.name.toLowerCase().includes(query.toLowerCase()) && (!sectionRole || x.role === sectionRole));
   const login = (event: React.FormEvent) => { event.preventDefault(); if (password === "admin123") { localStorage.setItem(ADMIN_KEY, "true"); setAuthenticated(true); } };
   const addAccount = async (event: React.FormEvent) => { event.preventDefault(); if (!newName.trim()) return; try { if (activeNav === "Teachers") { const created = await createTeacher(newName.trim(), newPassword); setTeachers((x) => [...x, created]); } else { const created = await createStudent(newName.trim(), newPassword); setStudents((x) => [...x, created]); } setNewName(""); } catch { setError("Could not create account."); } };
   if (!authenticated) return <main className="admin-login"><h1>Account Control Center</h1><p>Administrator access.</p><form onSubmit={login}><label>Admin password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus /></label><button>Enter admin console</button><small>Basic password: admin123</small></form></main>;

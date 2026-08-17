@@ -137,6 +137,7 @@ export interface StoredCustomStory {
   published?: boolean;
   linear?: boolean;
   firstFrameIsExample?: boolean;
+  rubricScores?: Record<string, unknown> | null;
   lessonNumber?: number | null;
   lessonSubOrder?: number | null;
   narrativeMode?: NarrativeMode;
@@ -253,6 +254,25 @@ export async function listAudioRecords(params?: {
   const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records${query}`);
   if (!response.ok) {
     throw new Error("Could not load audio records from the database.");
+  }
+
+  const records = await response.json();
+  return Array.isArray(records) ? records : [];
+}
+
+/** One record per scene (image index) — whichever attempt is newest — so a
+ * student reopening a story can resume from the practice result they left
+ * off with instead of a blank slate. */
+export async function listLatestAudioRecordsByScene(
+  studentId: string,
+  topicId: string,
+): Promise<StoredAudioRecord[]> {
+  const searchParams = new URLSearchParams({ student_id: studentId, topic_id: topicId });
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/audio-records/latest-by-scene?${searchParams.toString()}`,
+  );
+  if (!response.ok) {
+    throw new Error("Could not load the latest practice results from the database.");
   }
 
   const records = await response.json();
@@ -918,11 +938,11 @@ export async function loginStudent(params: {
   return response.json() as Promise<Student>;
 }
 
-export async function createStudent(name: string): Promise<Student> {
+export async function createStudent(name: string, password = "123456"): Promise<Student> {
   const response = await fetchWithRetry(`${BACKEND_URL}/api/students`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name, password }),
   });
   if (!response.ok) throw new Error("Could not add the student to the roster.");
   return response.json() as Promise<Student>;
@@ -934,4 +954,36 @@ export async function deleteStudent(id: string): Promise<void> {
     { method: "DELETE" },
   );
   if (!response.ok) throw new Error("Could not remove the student from the roster.");
+}
+
+export interface Teacher { id: string; name: string; createdAt: string; status: "active" | "inactive"; }
+
+export async function listTeachers(): Promise<Teacher[]> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/teachers`);
+  if (!response.ok) throw new Error("Could not load teacher accounts.");
+  const data = await response.json();
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createTeacher(name: string, password = "123456"): Promise<Teacher> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/teachers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, password }) });
+  if (!response.ok) throw new Error(response.status === 409 ? "Teacher already exists." : "Could not create teacher account.");
+  return response.json() as Promise<Teacher>;
+}
+
+export async function loginTeacher(name: string, password: string): Promise<Teacher> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/teachers/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, password }) });
+  if (!response.ok) throw new Error(response.status === 403 ? "Teacher account is inactive." : "Wrong teacher name or password.");
+  return response.json() as Promise<Teacher>;
+}
+
+export async function updateTeacher(id: string, update: { password?: string; status?: "active" | "inactive" }): Promise<Teacher> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/teachers/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(update) });
+  if (!response.ok) throw new Error("Could not update teacher account.");
+  return response.json() as Promise<Teacher>;
+}
+
+export async function deleteTeacher(id: string): Promise<void> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/teachers/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!response.ok) throw new Error("Could not delete teacher account.");
 }

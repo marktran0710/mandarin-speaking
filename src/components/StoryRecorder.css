@@ -3273,4 +3273,151 @@
   transform: translateY(-1px);
 }
 
+/* Student refresh: keep the learning flow intact while bringing the practice
+   workspace closer to the calm, editorial language used by the instructor
+   demo. These overrides are intentionally scoped to the student recorder. */
+.story-recorder {
+  padding-top: 28px;
+  padding-bottom: 64px;
+  gap: 24px;
+}
+
+.story-overview {
+  max-width: none;
+  padding: 0 0 18px;
+  gap: 24px;
+}
+
+.overview-hero {
+  padding: 34px 32px 28px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: 16px;
+  background: var(--clay-surface-card);
+  box-shadow: 0 4px 16px rgba(67, 53, 31, 0.04);
+}
+
+.overview-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+}
+
+.lesson-number-badge {
+  border-radius: 10px;
+  background: var(--clay-primary);
+  color: var(--clay-on-seal);
+}
+
+.overview-meta > span {
+  border: 1px solid var(--clay-hairline);
+  border-radius: 10px;
+  color: var(--clay-body);
+  background: var(--clay-surface-soft);
+}
+
+.overview-vocab-table {
+  border: 1px solid var(--clay-hairline);
+  border-radius: 12px;
+  background: var(--clay-surface-soft);
+  padding: 6px;
+}
+
+.overview-vocab-row {
+  border-bottom: 1px solid var(--clay-hairline-soft);
+  border-radius: 8px;
+}
+
+.overview-vocab-row:last-child {
+  border-bottom: 0;
+}
+
+.overview-choice-card {
+  border: 1px solid var(--clay-hairline);
+  border-radius: 14px;
+  box-shadow: 0 4px 0 var(--clay-hairline-soft);
+  padding: 20px 18px;
+}
+
+.overview-choice-card:hover:not(:disabled) {
+  border-color: var(--clay-primary);
+  box-shadow: 0 5px 0 var(--clay-primary);
+}
+
+.practice-stage > .practice-workspace,
+.practice-content,
+.example-frame-panel,
+.recording-status-card {
+  border-color: var(--clay-hairline);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(67, 53, 31, 0.04);
+}
+
+.practice-stage > .practice-workspace {
+  background: var(--clay-surface-card);
+}
+
+.practice-scene-image {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.practice-footer {
+  border-top-color: var(--clay-hairline);
+}
+
+.btn-scene-step-continue,
+.scene-next-btn {
+  border-radius: 10px;
+  box-shadow: 0 3px 0 var(--seal-deep);
+}
+
+@media (max-width: 900px) {
+  .story-recorder {
+    padding-top: 18px;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  /* The desktop vocabulary table has room for status, Hanzi, pinyin, part of
+     speech, meaning, and audio. On a phone, keep those same fields readable
+     by stacking the text inside a compact two-column row instead of allowing
+     pinyin and English to break into one character per line. */
+  .scene-vocab-row-practice {
+    grid-template-columns: 18px minmax(0, 1fr) 28px;
+    grid-template-areas:
+      "status hanzi mic"
+      "status pinyin mic"
+      "status pos mic"
+      "status meaning mic";
+    gap: 2px 8px;
+    align-items: center;
+    padding: 8px 10px;
+  }
+
+  .scene-vocab-row-practice .scene-vocab-status { grid-area: status; }
+  .scene-vocab-row-practice .scene-vocab-hanzi { grid-area: hanzi; }
+  .scene-vocab-row-practice .scene-vocab-pinyin { grid-area: pinyin; }
+  .scene-vocab-row-practice .scene-vocab-pos { grid-area: pos; }
+  .scene-vocab-row-practice .scene-vocab-meaning { grid-area: meaning; }
+
+  .scene-vocab-row-practice button,
+  .scene-vocab-row-practice [aria-label*="pronunciation"] {
+    grid-area: mic;
+    justify-self: end;
+  }
+
+  .scene-vocab-row-practice .scene-vocab-pinyin,
+  .scene-vocab-row-practice .scene-vocab-pos,
+  .scene-vocab-row-practice .scene-vocab-meaning {
+    min-width: 0;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .scene-vocab-row-practice .scene-vocab-pos {
+    font-size: 10px;
+  }
+}
+
 

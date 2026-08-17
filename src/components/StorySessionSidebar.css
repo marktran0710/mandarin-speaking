@@ -260,3 +260,36 @@ button.ssb-phase:hover {
     box-shadow: var(--shadow-sm);
   }
 }
+
+/* Student refresh: a quieter rail with the same thin-line, warm-paper
+   treatment as the instructor demo. */
+.story-session-sidebar {
+  border: 1px solid var(--clay-hairline);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(67, 53, 31, 0.04);
+  padding: 18px 16px;
+}
+
+.ssb-topline {
+  padding-bottom: 14px;
+}
+
+.ssb-phase {
+  border-radius: 10px;
+}
+
+button.ssb-phase:hover {
+  background: var(--clay-surface-soft);
+}
+
+.ssb-phase-active {
+  background: var(--seal-soft);
+}
+
+.ssb-phase-active .ssb-phase-caption {
+  color: var(--clay-ink);
+}
+
+.ssb-help {
+  padding-top: 16px;
+}
