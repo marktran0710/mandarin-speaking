@@ -140,14 +140,31 @@
    of student mode, so logging in already feels like the game the student
    is about to play. The teacher variant keeps its plain professional
    look — this block only ever targets .login-page.student. ── */
+.login-page.student {
+  /* Read by both .login-card's own max-width and .login-back's matching
+     left offset below, so the two can never drift out of sync again. */
+  --login-card-max-width: 500px;
+}
+
 .login-page.student .login-card {
-  max-width: 500px;
+  max-width: var(--login-card-max-width);
   margin: 0 auto;
   border: 1px solid var(--clay-hairline);
   box-shadow: 0 22px 48px color-mix(in srgb, var(--seal) 18%, transparent);
 }
 
 .login-page.student .login-back {
+  /* .login-card above is centered narrower than .login-shell (500px in a
+     560px shell), which insets its left edge ~30px from .login-shell's own
+     edge. .login-back previously stayed flush with .login-shell, landing
+     to the left of the card instead of flush with it. Shifting .login-back
+     by the same half-of-the-gap keeps the two aligned at any shell width,
+     without a hardcoded 30px that would silently drift if either width
+     value changes. max() guards against a negative margin if the shell
+     ever renders narrower than the card's own max-width (small viewports),
+     where the card's own max-width no longer binds and the two are already
+     flush at 0. */
+  margin-left: max(0px, calc((100% - var(--login-card-max-width)) / 2));
   background: color-mix(in srgb, var(--clay-surface-card) 88%, transparent);
   box-shadow: var(--shadow-sm);
 }

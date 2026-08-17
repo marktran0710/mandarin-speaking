@@ -1,0 +1,790 @@
+[
+  {
+    "utterance_id": "00100101",
+    "speaker_id": "SPEAKER01001",
+    "is_native": true,
+    "text": "他們都很忙",
+    "wav_file": "wav/00100101.wav",
+    "words": [
+      {
+        "text": "他",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "們",
+        "expected_tones": [
+          5
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "都",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "很",
+        "expected_tones": [
+          3
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "忙",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00100102",
+    "speaker_id": "SPEAKER01001",
+    "is_native": true,
+    "text": "我家有四口人",
+    "wav_file": "wav/00100102.wav",
+    "words": [
+      {
+        "text": "我",
+        "expected_tones": [
+          3
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "家",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "有",
+        "expected_tones": [
+          3
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "四",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "口",
+        "expected_tones": [
+          3
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "人",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00100105",
+    "speaker_id": "SPEAKER01001",
+    "is_native": true,
+    "text": "和一隻大花貓",
+    "wav_file": "wav/00100105.wav",
+    "words": [
+      {
+        "text": "和",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "一",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "隻",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "大",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "花",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "貓",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00100108",
+    "speaker_id": "SPEAKER01001",
+    "is_native": true,
+    "text": "他們都非常忙",
+    "wav_file": "wav/00100108.wav",
+    "words": [
+      {
+        "text": "他",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "們",
+        "expected_tones": [
+          5
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "都",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "非",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "常",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "忙",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00200105",
+    "speaker_id": "SPEAKER02001",
+    "is_native": false,
+    "text": "和一隻大花貓",
+    "wav_file": "wav/00200105.wav",
+    "words": [
+      {
+        "text": "和",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "一",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "隻",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "大",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "花",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "貓",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00200117",
+    "speaker_id": "SPEAKER02001",
+    "is_native": false,
+    "text": "有四個房間",
+    "wav_file": "wav/00200117.wav",
+    "words": [
+      {
+        "text": "有",
+        "expected_tones": [
+          3
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "四",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "個",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "房",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "間",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00200208",
+    "speaker_id": "SPEAKER02002",
+    "is_native": false,
+    "text": "他們都非常忙",
+    "wav_file": "wav/00200208.wav",
+    "words": [
+      {
+        "text": "他",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "們",
+        "expected_tones": [
+          5
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "都",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "非",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "常",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "忙",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00200305",
+    "speaker_id": "SPEAKER02003",
+    "is_native": false,
+    "text": "和一隻大花貓",
+    "wav_file": "wav/00200305.wav",
+    "words": [
+      {
+        "text": "和",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "一",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "隻",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "大",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "花",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "貓",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00200402",
+    "speaker_id": "SPEAKER02004",
+    "is_native": false,
+    "text": "我家有四口人",
+    "wav_file": "wav/00200402.wav",
+    "words": [
+      {
+        "text": "我",
+        "expected_tones": [
+          3
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "家",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "有",
+        "expected_tones": [
+          3
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "四",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "口",
+        "expected_tones": [
+          3
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "人",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00200405",
+    "speaker_id": "SPEAKER02004",
+    "is_native": false,
+    "text": "和一隻大花貓",
+    "wav_file": "wav/00200405.wav",
+    "words": [
+      {
+        "text": "和",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "一",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "隻",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "大",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "花",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "貓",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00200108",
+    "speaker_id": "SPEAKER02001",
+    "is_native": false,
+    "text": "他們都非常忙",
+    "wav_file": "wav/00200108.wav",
+    "words": [
+      {
+        "text": "他",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "們",
+        "expected_tones": [
+          5
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "都",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "非",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "常",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "incorrect"
+      },
+      {
+        "text": "忙",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00200205",
+    "speaker_id": "SPEAKER02002",
+    "is_native": false,
+    "text": "和一隻大花貓",
+    "wav_file": "wav/00200205.wav",
+    "words": [
+      {
+        "text": "和",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "一",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "incorrect"
+      },
+      {
+        "text": "隻",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "大",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "花",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "貓",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00200217",
+    "speaker_id": "SPEAKER02002",
+    "is_native": false,
+    "text": "有四個房間",
+    "wav_file": "wav/00200217.wav",
+    "words": [
+      {
+        "text": "有",
+        "expected_tones": [
+          3
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "四",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "incorrect"
+      },
+      {
+        "text": "個",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "房",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "間",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00200505",
+    "speaker_id": "SPEAKER02005",
+    "is_native": false,
+    "text": "和一隻大花貓",
+    "wav_file": "wav/00200505.wav",
+    "words": [
+      {
+        "text": "和",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "一",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "隻",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "incorrect"
+      },
+      {
+        "text": "大",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "花",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "貓",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00200517",
+    "speaker_id": "SPEAKER02005",
+    "is_native": false,
+    "text": "有四個房間",
+    "wav_file": "wav/00200517.wav",
+    "words": [
+      {
+        "text": "有",
+        "expected_tones": [
+          3
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "四",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "個",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "房",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "incorrect"
+      },
+      {
+        "text": "間",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      }
+    ]
+  },
+  {
+    "utterance_id": "00200805",
+    "speaker_id": "SPEAKER02008",
+    "is_native": false,
+    "text": "和一隻大花貓",
+    "wav_file": "wav/00200805.wav",
+    "words": [
+      {
+        "text": "和",
+        "expected_tones": [
+          2
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "一",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "隻",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "大",
+        "expected_tones": [
+          4
+        ],
+        "consensus": "correct"
+      },
+      {
+        "text": "花",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "incorrect"
+      },
+      {
+        "text": "貓",
+        "expected_tones": [
+          1
+        ],
+        "consensus": "correct"
+      }
+    ]
+  }
+]

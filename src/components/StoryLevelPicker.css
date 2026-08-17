@@ -1,38 +1,97 @@
+/* Centered vertically, like the record screen's short control stack — a
+   three-card choice grid this short otherwise hugs the top of the page and
+   leaves a large empty run underneath it. Narrow column, same pattern as
+   .login-page: override --content-max locally rather than hardcoding a
+   page-specific width (see the shared token in index.css). */
 .story-level-picker {
-  max-width: 720px;
+  --content-max: 720px;
+  position: relative;
+  max-width: var(--content-max);
   margin: 0 auto;
   padding: var(--space-lg) var(--space-md) var(--space-3xl);
+  min-height: calc(100vh - var(--navbar-height));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Ambient depth behind the header — one soft glow, not a second competing
+   accent, so the screen doesn't read as flat paper the way a plain card
+   grid on cream does elsewhere in the app. Purely decorative. */
+.story-level-picker::before {
+  content: "";
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  width: 640px;
+  height: 420px;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--tone1-soft) 70%, transparent) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.slp-back,
+.slp-title,
+.slp-subtitle,
+.slp-grid {
+  position: relative;
+  z-index: 1;
 }
 
 .slp-back {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2xs);
-  padding: var(--space-xs) var(--space-2xs);
-  background: none;
-  border: none;
+  width: fit-content;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  box-shadow: var(--shadow-sm);
   color: var(--clay-body);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .slp-back:hover {
   color: var(--clay-ink);
+  border-color: var(--tone1);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.slp-back:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.slp-back-arrow {
+  font-size: 15px;
+  line-height: 1;
 }
 
 .slp-title {
+  font-family: var(--font-display);
   color: var(--clay-ink);
-  font-weight: 600;
-  font-size: clamp(24px, 3.6vw, 34px);
-  line-height: 1.15;
-  margin: var(--space-sm) 0 var(--space-2xs);
+  font-weight: 700;
+  font-size: clamp(26px, 4vw, 38px);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  margin: var(--space-md) 0 var(--space-2xs);
 }
 
 .slp-subtitle {
   color: var(--clay-body);
   font-size: 14px;
-  margin: 0 0 var(--space-lg);
+  margin: 0 0 var(--space-xl);
 }
 
 .slp-grid {
@@ -42,6 +101,7 @@
 }
 
 .slp-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -55,10 +115,41 @@
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
+/* The vine: a short connector growing out of the LEFT side of every card
+   after the first, reading left-to-right as the same path the icons
+   already promise (🌱 → 🌿 → 🌳). Driven entirely by this card's own
+   :disabled state — the path arriving at an unlocked card must already
+   have been walked, so no cross-card lookup is needed. Hidden once the
+   grid stacks to one column (below), where "next to" no longer means
+   anything. */
+.slp-card:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: calc(-1 * var(--space-sm) - 1px);
+  width: calc(var(--space-sm) + 2px);
+  height: 3px;
+  transform: translateY(-50%);
+  background: var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+}
+
+.slp-card:not(:disabled):not(:first-child)::before {
+  background: var(--tone1-deep);
+}
+
+.slp-card:disabled:not(:first-child)::before {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--clay-hairline) 0 5px,
+    transparent 5px 9px
+  );
+}
+
 .slp-card:hover:not(:disabled) {
   border-color: var(--tone1);
   transform: translateY(-3px);
-  box-shadow: 0 8px 0 var(--tone1-deep);
+  box-shadow: 0 9px 0 var(--tone1-deep);
 }
 
 .slp-card:active:not(:disabled) {
@@ -74,7 +165,18 @@
 }
 
 .slp-card-icon {
+  position: relative;
   font-size: 32px;
+}
+
+/* Locked cards keep their real growth-stage icon (dimmed by the card's own
+   opacity above) instead of swapping to a generic padlock — this small
+   badge adds "not yet" without hiding what's waiting. */
+.slp-card-lock {
+  position: absolute;
+  right: -8px;
+  bottom: -4px;
+  font-size: 15px;
 }
 
 .slp-card-locked-note {
@@ -83,4 +185,77 @@
   font-weight: 600;
   color: var(--clay-muted);
   text-align: center;
+}
+
+/* ── Motion: same entrance idiom as the rest of the app (HomePage.css) —
+   a short staggered rise-in, then one restrained idle loop. Never removes
+   motion in the name of "clean"; see feedback-keep-ambient-motion. ── */
+@media (prefers-reduced-motion: no-preference) {
+  .slp-back,
+  .slp-title,
+  .slp-subtitle {
+    animation: slpRiseIn 480ms cubic-bezier(0.22, 0.75, 0.2, 1) both;
+  }
+
+  .slp-title {
+    animation-delay: 60ms;
+  }
+
+  .slp-subtitle {
+    animation-delay: 110ms;
+  }
+
+  .slp-card {
+    animation: slpRiseIn 480ms cubic-bezier(0.22, 0.75, 0.2, 1) both;
+    animation-delay: calc(160ms + var(--i, 0) * 90ms);
+  }
+
+  /* A gentle sway on every unlocked card's icon — signals "alive" and
+     "tap me" without a scripted single-target callout, so it still reads
+     right no matter which tier happens to be the frontier. */
+  .slp-card:not(:disabled) .slp-card-icon {
+    animation: slpIconSway 3.4s ease-in-out infinite;
+    animation-delay: calc(700ms + var(--i, 0) * 90ms);
+  }
+}
+
+@keyframes slpRiseIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slpIconSway {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-6deg) translateY(-2px);
+  }
+}
+
+@media (max-width: 560px) {
+  .story-level-picker {
+    padding: var(--space-md) var(--space-sm) var(--space-2xl);
+  }
+
+  .slp-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* A horizontal vine stops meaning anything once cards stack — swap to a
+     short vertical tick between them instead of hiding the device outright. */
+  .slp-card:not(:first-child)::before {
+    top: calc(-1 * var(--space-sm) - 1px);
+    left: 50%;
+    width: 3px;
+    height: calc(var(--space-sm) + 2px);
+    transform: translateX(-50%);
+  }
 }

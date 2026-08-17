@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { storyHasTierContent, type CustomTeacherStory, type StoryDifficultyLevel } from "../utils/teacherStories";
 import { isStoryLevelUnlocked } from "../utils/storyLevelProgress";
 import { BiLabel, BiText } from "./BiLabel";
@@ -31,7 +32,8 @@ export default function StoryLevelPicker({ story, onSelectLevel, onBack }: Story
   return (
     <section className="story-level-picker" aria-label="Choose a difficulty level">
       <button type="button" className="slp-back" onClick={onBack} aria-label="Back to topics">
-        ← <BiLabel k="back_to_topics" />
+        <span className="slp-back-arrow" aria-hidden="true">←</span>
+        <BiLabel k="back_to_topics" />
       </button>
       <h1 className="slp-title">{story.title}</h1>
       <p className="slp-subtitle">
@@ -52,8 +54,21 @@ export default function StoryLevelPicker({ story, onSelectLevel, onBack }: Story
               className="slp-card"
               disabled={!unlocked}
               onClick={() => onSelectLevel(level)}
+              style={{ "--i": levels.indexOf(level) } as CSSProperties}
             >
-              <span className="slp-card-icon">{unlocked ? copy.icon : "🔒"}</span>
+              {/* The locked state still shows this level's own growth-stage
+                  icon (dimmed, under a lock badge) instead of swapping to a
+                  generic 🔒 — it previews what's waiting rather than just
+                  saying "no", the same sprout→sapling→tree promise the
+                  unlocked cards make good on. */}
+              <span className="slp-card-icon">
+                {copy.icon}
+                {!unlocked && (
+                  <span className="slp-card-lock" aria-hidden="true">
+                    🔒
+                  </span>
+                )}
+              </span>
               <strong>
                 <BiLabel zh={copy.zh} pinyin={copy.pinyin} en={copy.en} />
               </strong>
