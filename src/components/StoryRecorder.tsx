@@ -456,6 +456,7 @@ export interface PraatMetrics {
   recognized_text?: string | null;
   /** Whether the detected transcript matched the scene's target text. */
   content_match?: boolean | null;
+  content_diff?: ContentDiffSegment[];
   /** Sentence roll-up of the four-state tone diagnosis. */
   tone_diagnostics?: {
     counts: { correct: number; uncertain: number; incorrect: number; invalid_audio: number };
@@ -755,6 +756,12 @@ export function sceneSubmissionFromAudioRecord(
     articulationRate: metrics?.pause_analysis?.articulation_rate ?? 0,
   };
 }
+
+export type ContentDiffSegment = {
+  type: "match" | "replace" | "missing" | "extra";
+  target: string;
+  heard: string;
+};
 
 export function attemptHistoryFromAudioRecords(
   records: StoredAudioRecord[],
@@ -2050,7 +2057,8 @@ export default function StoryRecorder({
           (metrics.pronunciation_mastery?.passed ??
             prosodyGatePassed(metrics.word_prosody)));
       const nextContentPassed =
-        canScoreContent && sceneContentGatePassed(metrics);
+        canScoreContent &&
+        sceneContentGatePassed(metrics, Boolean(sceneTargetText?.trim()));
       setMasteryPassedMap((prev) => ({
         ...prev,
         [selectedImageIndex]: nextMasteryPassed,

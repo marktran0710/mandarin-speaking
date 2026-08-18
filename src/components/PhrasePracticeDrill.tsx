@@ -2,8 +2,8 @@ import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { convertBlobToWav } from "../utils/audio";
 import { formatBackendError, getBackendUrl } from "../utils/storyRecorderFeedback";
 import { toPinyin } from "../utils/pinyin";
-import { scriptMatchRatio } from "../utils/scriptAlignment";
-import type { WordProsody } from "./StoryRecorder";
+import type { ContentDiffSegment, WordProsody } from "./StoryRecorder";
+import ContentDiffDisplay from "./ContentDiffDisplay";
 import MiniContourChart from "./MiniContourChart";
 import { BiLabel } from "./BiLabel";
 import VoiceFeedbackReliabilityNotice from "./VoiceFeedbackReliabilityNotice";
@@ -12,14 +12,6 @@ import {
   type VoiceFeedbackReliability,
 } from "../utils/voiceFeedbackReliability";
 
-// A single ASR slip on one character of a multi-character phrase shouldn't
-// fail the whole phrase — only flag content when a large share of it wasn't
-// recognized at all. More forgiving than WORD_PASS_RATIO because ASR noise
-// is noisier than genuine mispronunciation.
-const CONTENT_MATCH_RATIO = 0.7;
-// Smallest n where a single wrong character still clears CONTENT_MATCH_RATIO:
-// (n-1)/n >= 0.7  =>  n >= 1/(1-0.7) = 3.33, rounded up.
-const MIN_CONTENT_MATCH_CHARS = 4;
 // A 7-9 character phrase spoken as connected, natural speech will often have
 // one weaker syllable — requiring every single word to individually pass its
 // tone bar (the old rule) isn't realistic. Math.ceil keeps short phrases (2-3
@@ -49,6 +41,8 @@ export default function PhrasePracticeDrill({
   const [result, setResult] = useState<{
     words: WordProsody[];
     contentMatch: boolean | null;
+    recognizedText: string | null;
+    contentDiff: ContentDiffSegment[];
     passed: boolean;
     reliability: VoiceFeedbackReliability;
   } | null>(null);
@@ -86,22 +80,11 @@ export default function PhrasePracticeDrill({
 
       const data = await response.json();
       const words: WordProsody[] = data.word_prosody ?? [];
-      // `recognized_text` is only present when the backend's independent ASR
-      // pass actually ran; treat its absence as "unverifiable" (fail open),
-      // the same contract the backend uses for its own content_match.
-      const recognizedText: string | null | undefined = data.recognized_text;
-      // Below MIN_CONTENT_MATCH_CHARS, a single ASR slip already breaches
-      // CONTENT_MATCH_RATIO no matter what — (n-1)/n < 0.7 for n < 4 — so the
-      // ratio can't tell "one wrong character" from "totally different", the
-      // exact case that broke on 2-character proper nouns like "友美". Below
-      // that length, skip content-match and trust the per-word tone/shape
-      // pass alone, same as WordPracticeDrill does for single characters.
-      const contentGateApplies = [...phrase].length >= MIN_CONTENT_MATCH_CHARS;
-      const matchRatio =
-        contentGateApplies && typeof recognizedText === "string"
-          ? scriptMatchRatio(phrase, recognizedText)
-          : null;
-      const contentMatch = matchRatio === null ? null : matchRatio >= CONTENT_MATCH_RATIO;
+      // The backend's independent ASR result is authoritative. Missing ASR
+      // evidence is unverified and cannot clear this drill.
+      const recognizedText: string | null = data.recognized_text ?? null;
+      const contentMatch: boolean | null = data.content_match ?? null;
+      const contentDiff: ContentDiffSegment[] = data.content_diff ?? [];
       const passedWordCount = words.filter((word) => word.passed === true).length;
       const wordsOk =
         words.length > 0 && passedWordCount >= Math.ceil(words.length * WORD_PASS_RATIO);
@@ -112,9 +95,9 @@ export default function PhrasePracticeDrill({
       });
       const passed =
         reliability.canCountForProgress &&
-        contentMatch !== false &&
+        contentMatch === true &&
         wordsOk;
-      setResult({ words, contentMatch, passed, reliability });
+      setResult({ words, contentMatch, recognizedText, contentDiff, passed, reliability });
       if (passed) onPass(phrase);
     } catch (err) {
       setError(formatBackendError(err, backendUrl));
@@ -218,6 +201,14 @@ export default function PhrasePracticeDrill({
           <VoiceFeedbackReliabilityNotice
             assessment={result.reliability}
           />
+          {result.contentMatch !== true && (
+            <ContentDiffDisplay
+              target={phrase}
+              heard={result.recognizedText}
+              diff={result.contentDiff}
+              contentMatch={result.contentMatch}
+            />
+          )}
           {result.reliability.level !== "retry" && (
             <>
           <p className="phrase-practice-verdict">
@@ -242,6 +233,11 @@ export default function PhrasePracticeDrill({
                 pinyin="Lùyīn tīng qǐlái hé zhè bùfen bú tài yíyàng, hái bù néng suàn guòguān."
                 en="This recording doesn't sound close enough to the target phrase yet."
               />
+            </p>
+          )}
+          {result.contentMatch !== true && (
+            <p className="word-practice-content-warning">
+              Tone results below are reference-only until the target phrase is verified.
             </p>
           )}
           <div className="phrase-practice-word-results">

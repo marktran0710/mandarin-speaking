@@ -4,6 +4,7 @@ import AppButton from "./AppButton";
 import RecordingPlayback from "./RecordingPlayback";
 import ReferenceAudioCard from "./ReferenceAudioCard";
 import PhrasePracticeDrill from "./PhrasePracticeDrill";
+import ContentDiffDisplay from "./ContentDiffDisplay";
 import WordProsodyCard from "./WordProsodyCard";
 import PronunciationBreakdown from "./PronunciationBreakdown";
 import SelfEvalStep from "./SelfEvalStep";
@@ -230,18 +231,25 @@ export default function SpeakingResultsFlow({
   comparison,
 }: SpeakingResultsFlowProps) {
   const ai = praatMetrics.ai_feedback;
-  const accepted = isContentAccepted(praatMetrics);
+  const targetScript = modelSentence ?? "";
+  const hasTargetScript = Boolean(targetScript.trim());
+  const accepted = isContentAccepted(praatMetrics, hasTargetScript);
   const vocabCoverage = ai?.vocabulary_coverage;
   const missing = vocabCoverage?.missing ?? [];
-  const scriptMismatches = scriptMismatchTokens(modelSentence, praatMetrics.transcription);
+  const recognizedText =
+    praatMetrics.recognized_text ??
+    (hasTargetScript && praatMetrics.content_match === null
+      ? ""
+      : praatMetrics.transcription ?? "");
+  const scriptMismatches = scriptMismatchTokens(targetScript, recognizedText);
   // Punctuation defines the preferred meaning-chunk boundaries. Long scripts
   // without punctuation still receive compact fallback chunks so the learner
   // is never sent back to a whole sentence as their only repair action.
-  const scriptChunks = splitScriptIntoChunks(modelSentence);
-  const teacherPhraseChunks = splitTeacherScriptIntoPhrases(modelSentence);
+  const scriptChunks = splitScriptIntoChunks(targetScript);
+  const teacherPhraseChunks = splitTeacherScriptIntoPhrases(targetScript);
   const isChunked = scriptChunks.length > 1;
   const chunkScores = isChunked
-    ? scoreScriptChunks(modelSentence, praatMetrics.transcription, praatMetrics.word_prosody)
+    ? scoreScriptChunks(targetScript, recognizedText, praatMetrics.word_prosody)
     : [];
   const failedChunks = chunkScores.filter((chunk) => !chunk.passed);
   const usedCount = vocabCoverage?.used?.length ?? 0;
@@ -256,7 +264,7 @@ export default function SpeakingResultsFlow({
     contentJudged: meaningJudged,
     pitchContour: praatMetrics.pitch_contour,
     wordProsody: praatMetrics.word_prosody,
-    transcription: praatMetrics.transcription,
+    transcription: recognizedText,
   });
 
   const failedWords = failedProsodyWords(praatMetrics.word_prosody);
@@ -265,6 +273,7 @@ export default function SpeakingResultsFlow({
   // as a fallback, but it must not turn an accepted homophone into a whole
   // sentence-sized practice part.
   const contentMatchVerified = praatMetrics.content_match === true;
+  const contentNeedsRetry = hasTargetScript && !contentMatchVerified;
   const contentMismatchChunks = contentMatchVerified
     ? []
     : failedChunks.filter((chunk) => chunk.mismatch.length > 0);
@@ -277,9 +286,9 @@ export default function SpeakingResultsFlow({
       (a.shape_accuracy ?? a.tone_accuracy ?? 0) -
       (b.shape_accuracy ?? b.tone_accuracy ?? 0),
   );
-  const hasScriptMismatch = isChunked
+  const hasScriptMismatch = contentNeedsRetry || (isChunked
     ? hasChunkMismatch
-    : effectiveScriptMismatches.length > 0;
+    : effectiveScriptMismatches.length > 0);
   const needsPhrasePractice =
     hasScriptMismatch || ((!accepted || missing.length > 0) && scriptChunks.length > 0);
   const phrasePracticeItems = needsPhrasePractice
@@ -590,6 +599,14 @@ export default function SpeakingResultsFlow({
         assessment={feedbackReliability}
         attemptCount={attempts}
       />
+      {hasTargetScript && contentNeedsRetry && (
+        <ContentDiffDisplay
+          target={targetScript}
+          heard={recognizedText || null}
+          diff={praatMetrics.content_diff}
+          contentMatch={praatMetrics.content_match}
+        />
+      )}
       {pronunciationMastery && (
         <div
           className={`sfc-mastery-banner${pronunciationMastery.status === "passed" ? " is-cleared" : ""}`}
@@ -597,7 +614,9 @@ export default function SpeakingResultsFlow({
           aria-label="Pronunciation mastery status"
         >
           <p className="sfc-mastery-lead">
-            {pronunciationMastery.status === "passed"
+            {contentNeedsRetry
+              ? "Content not verified — record the script again"
+              : pronunciationMastery.status === "passed"
               ? "✓ Pronunciation passed"
               : pronunciationMastery.status === "not_judged"
                 ? "尚未判定 / Not judged yet"
@@ -611,6 +630,7 @@ export default function SpeakingResultsFlow({
               </small>
             )}
           {pronunciationMastery.message && <p>{pronunciationMastery.message}</p>}
+          {contentNeedsRetry && <small>Tone measurements are reference-only until the script matches.</small>}
         </div>
       )}
 
@@ -653,13 +673,13 @@ export default function SpeakingResultsFlow({
         </div>
       )}
 
-      {(analysisAudioBlob || praatMetrics.transcription || submittedAudioName) && (
+      {(analysisAudioBlob || recognizedText || submittedAudioName) && (
         <div className="sfc-results-scene-extras">
           {analysisAudioBlob && <RecordingPlayback blob={analysisAudioBlob} />}
-          {praatMetrics.transcription && (
+          {recognizedText && (
             <p className="sfc-transcript">
               <BiLabel k="you_said" />{" "}
-              <em lang="zh-TW">{praatMetrics.transcription}</em>
+              <em lang="zh-TW">{recognizedText}</em>
             </p>
           )}
           {submittedAudioName && (
@@ -677,11 +697,11 @@ export default function SpeakingResultsFlow({
         return rolledUpState ? <AssistiveFeedbackNotice state={rolledUpState} /> : null;
       })()}
 
-      {praatMetrics.transcription && (
+      {recognizedText && (
         <div className="sfc-results-scene-extras">
           <details className="sfc-transcript-details">
             <summary><BiLabel zh="你說的是" en="What you said" /></summary>
-            <p className="sfc-transcript"><em lang="zh-TW">{praatMetrics.transcription}</em></p>
+            <p className="sfc-transcript"><em lang="zh-TW">{recognizedText}</em></p>
           </details>
         </div>
       )}
@@ -837,6 +857,12 @@ export default function SpeakingResultsFlow({
             <p className="sfc-result-card-lead">
               <BiLabel zh="先練好還沒過的部分，再說一次整句" en="Practice the parts below, then say the whole sentence again." />
             </p>
+            <ContentDiffDisplay
+              target={targetScript}
+              heard={recognizedText || null}
+              diff={praatMetrics.content_diff}
+              contentMatch={praatMetrics.content_match}
+            />
             <div className="sfc-missing-chips">
               {chunkScores.map((chunk, index) => (
                 <span
@@ -861,6 +887,12 @@ export default function SpeakingResultsFlow({
             <p className="sfc-result-card-lead">
               <BiLabel zh="這些字和範例句不同，請再說一次" en="These parts differ from the model sentence. Say them again." />
             </p>
+            <ContentDiffDisplay
+              target={targetScript}
+              heard={recognizedText || null}
+              diff={praatMetrics.content_diff}
+              contentMatch={praatMetrics.content_match}
+            />
             <div className="sfc-missing-chips">
               {scriptMismatches.map((word) => (
                 <span key={word} className="vocab-chip sfc-missing-chip">
@@ -1227,8 +1259,8 @@ export default function SpeakingResultsFlow({
             <div className="sfc-feedback-modal-body">
               <PronunciationBreakdown
                 words={praatMetrics.word_prosody || []}
-                targetText={modelSentence}
-                transcription={praatMetrics.transcription}
+                targetText={targetScript}
+                transcription={recognizedText}
                 teacherPhrases={teacherPhraseChunks}
                 assistiveFeedback={assistiveFeedback}
               />

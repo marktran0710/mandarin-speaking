@@ -360,6 +360,7 @@ async def analyze_speech_v2(
     scene_image_url: str = Form(""),
     scene_phrases: str = Form(""),
     scene_suggested_answer: str = Form(""),
+    scene_target_text: str = Form(""),
     scene_attempt_number: int = Form(1),
     verify_word: str = Form(""),
     pinyin_hint: str = Form(""),
@@ -390,7 +391,8 @@ async def analyze_speech_v2(
         stable = await asyncio.wait_for(
             app_main._do_analyze(content, transcription, asr_model, scene_prompt, scene_vocabulary,
                              ai_provider, scene_image_url, scene_phrases, scene_suggested_answer,
-                             scene_attempt_number, verify_word, pinyin_hint, reference_word_curves),
+                             scene_attempt_number, verify_word, pinyin_hint, reference_word_curves,
+                             scene_target_text),
             timeout=app_main.ANALYZE_TIMEOUT_SECONDS,
         )
         payload = stable.model_dump() if hasattr(stable, "model_dump") else stable.dict()

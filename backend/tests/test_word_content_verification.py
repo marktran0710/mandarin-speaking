@@ -20,12 +20,22 @@ from fixtures import SILENT_WAV
 class TestVerifyWordTranscription:
 
     @pytest.mark.asyncio
-    async def test_match_when_word_present_in_recognized_text(self):
+    async def test_extra_text_does_not_match_a_word_target(self):
         from main import _verify_word_transcription
         with patch("main.transcribe_audio_content", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="你好嗎", model="auto:ctwhisper")
             recognized, match = await _verify_word_transcription(SILENT_WAV, "你好")
         assert recognized == "你好嗎"
+        assert match is False
+
+    @pytest.mark.asyncio
+    @pytest.mark.asyncio
+    async def test_exact_word_alignment_matches(self):
+        from main import _verify_word_transcription
+        with patch("main.transcribe_audio_content", new_callable=AsyncMock) as mock:
+            mock.return_value = MagicMock(text="abc", model="auto:ctwhisper")
+            recognized, match = await _verify_word_transcription(SILENT_WAV, "abc")
+        assert recognized == "abc"
         assert match is True
 
     @pytest.mark.asyncio
@@ -63,7 +73,7 @@ class TestVerifyWordTranscription:
         assert match is None
 
     @pytest.mark.asyncio
-    async def test_tolerates_one_wrong_syllable_in_a_longer_phrase(self):
+    async def test_rejects_one_wrong_syllable_in_a_longer_phrase(self):
         """PhrasePracticeDrill sends a whole multi-character phrase as the
         verify target. A single homophone/ASR slip on one syllable used to
         fail the entire phrase's content check (exact substring), which then
@@ -77,7 +87,7 @@ class TestVerifyWordTranscription:
             mock.return_value = MagicMock(text=heard, model="auto:ctwhisper")
             recognized, match = await _verify_word_transcription(SILENT_WAV, target)
         assert recognized == heard
-        assert match is True
+        assert match is False
 
     @pytest.mark.asyncio
     async def test_still_rejects_a_mostly_wrong_longer_phrase(self):

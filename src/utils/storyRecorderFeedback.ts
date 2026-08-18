@@ -149,7 +149,11 @@ export function sceneReady(prog: {
  * word_prosody — as opposed to the AI's generic pronunciation_note.score, which
  * isn't grounded in the actual measured pitch data. */
 /** Pronunciation feedback only matters once the sentence's meaning is accepted. */
-export function isContentAccepted(praatMetrics: PraatMetrics): boolean {
+export function isContentAccepted(
+  praatMetrics: PraatMetrics,
+  requireVerifiedMatch = false,
+): boolean {
+  if (requireVerifiedMatch) return praatMetrics.content_match === true;
   if (praatMetrics.content_match === false) return false;
   if (praatMetrics.content_match === true) return true;
   const contentAccuracy = praatMetrics.ai_feedback?.content_accuracy;
@@ -160,12 +164,16 @@ export function isContentAccepted(praatMetrics: PraatMetrics): boolean {
 /** A scene can only unlock when the learner's sentence has the right meaning
  * and includes every vocabulary item the evaluator expects. Pronunciation is
  * intentionally checked separately by the prosody gate. */
-export function sceneContentGatePassed(praatMetrics: PraatMetrics): boolean {
+export function sceneContentGatePassed(
+  praatMetrics: PraatMetrics,
+  requireVerifiedMatch = false,
+): boolean {
+  if (requireVerifiedMatch) return praatMetrics.content_match === true;
   // Whole-sentence practice now has an independent ASR verdict. It is more
   // authoritative than the optional language-feedback vocabulary heuristic.
   if (praatMetrics.content_match === false) return false;
   if (praatMetrics.content_match === true) return true;
-  if (!isContentAccepted(praatMetrics)) return false;
+  if (!isContentAccepted(praatMetrics, requireVerifiedMatch)) return false;
   return (praatMetrics.ai_feedback?.vocabulary_coverage?.missing?.length ?? 0) === 0;
 }
 

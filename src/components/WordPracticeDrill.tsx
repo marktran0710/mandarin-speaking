@@ -11,7 +11,8 @@ import {
   getBackendUrl,
   toneArrow,
 } from "../utils/storyRecorderFeedback";
-import type { WordProsody } from "./StoryRecorder";
+import type { ContentDiffSegment, WordProsody } from "./StoryRecorder";
+import ContentDiffDisplay from "./ContentDiffDisplay";
 import { BiLabel } from "./BiLabel";
 import MiniContourChart from "./MiniContourChart";
 import VoiceFeedbackReliabilityNotice from "./VoiceFeedbackReliabilityNotice";
@@ -54,6 +55,8 @@ export default function WordPracticeDrill({
   );
   const [latestReliability, setLatestReliability] =
     useState<VoiceFeedbackReliability | null>(null);
+  const [latestRecognizedText, setLatestRecognizedText] = useState<string | null>(null);
+  const [latestContentDiff, setLatestContentDiff] = useState<ContentDiffSegment[]>([]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -163,6 +166,8 @@ export default function WordPracticeDrill({
         wordProsody: data.word_prosody,
       });
       setLatestContentMatch(data.content_match ?? null);
+      setLatestRecognizedText(data.recognized_text ?? null);
+      setLatestContentDiff(data.content_diff ?? []);
       setLatestReliability(assessment);
       setAttempts((prev) => [...prev, segment]);
       onAttempt?.(word.token);
@@ -170,7 +175,7 @@ export default function WordPracticeDrill({
         assessment.canCountForProgress &&
         segment.judged !== false &&
         segment.passed === true &&
-        data.content_match !== false
+        data.content_match === true
       ) {
         onPass?.(word.token);
       }
@@ -288,6 +293,14 @@ export default function WordPracticeDrill({
                   attemptCount={attempts.length}
                 />
               )}
+              {latestContentMatch !== true && (
+                <ContentDiffDisplay
+                  target={word.token}
+                  heard={latestRecognizedText}
+                  diff={latestContentDiff}
+                  contentMatch={latestContentMatch}
+                />
+              )}
               {latestReliability?.level !== "retry" && (
                 <>
               {latestContentMatch === false && (
@@ -301,6 +314,11 @@ export default function WordPracticeDrill({
               {/* Which character actually failed, and by how much — without
                   this the verdict chip below is a ✗ with no address, and the
                   min-rule note above has nothing to point at. */}
+              {latestContentMatch !== true && (
+                <p className="word-practice-content-warning">
+                  Tone result below is reference-only until the target word is verified.
+                </p>
+              )}
               {(latest.syllables?.length ?? 0) > 0 && (
                 <div
                   className="word-syllable-row"
@@ -346,11 +364,11 @@ export default function WordPracticeDrill({
                     rejected it (didn't sound like this word) never fires
                     onPass, so showing "✓ 過關" there contradicts the chip
                     staying ✗ — count it as try-again instead. */}
-                {latest.passed === true && latestContentMatch !== false && (
+                {latest.passed === true && latestContentMatch === true && (
                   <span className="word-practice-pass-chip">✓ 過關 Passed</span>
                 )}
                 {(latest.passed === false ||
-                  (latest.passed === true && latestContentMatch === false)) && (
+                  (latest.passed === true && latestContentMatch !== true)) && (
                   <span className="word-practice-fail-chip">✗ 再試一次 Try again</span>
                 )}
                 {typeof trend === "number" && trend !== 0 && (

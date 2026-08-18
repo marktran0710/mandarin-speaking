@@ -270,6 +270,12 @@ class ProcessingTrace(BaseModel):
     total_duration_ms: float = 0.0
 
 
+class ContentDiffSegment(BaseModel):
+    type: Literal["match", "replace", "missing", "extra"]
+    target: str = ""
+    heard: str = ""
+
+
 class AnalysisResponse(BaseModel):
     description: str = ""
     transcription: str = ""
@@ -294,6 +300,7 @@ class AnalysisResponse(BaseModel):
     # was requested (e.g. this wasn't a word-practice attempt).
     recognized_text: Optional[str] = None
     content_match: Optional[bool] = None
+    content_diff: List[ContentDiffSegment] = Field(default_factory=list)
     feedback_quality: FeedbackQuality = Field(default_factory=FeedbackQuality)
     #: Sentence-level roll-up of the four-state tone diagnosis, plus the
     #: reason codes behind it. Diagnostic only: `controls_progression` is
@@ -1374,6 +1381,7 @@ def build_pronunciation_mastery(
     feedback_quality: dict,
     *,
     content_match: Optional[bool] = None,
+    content_check_requested: bool = False,
     missing_target_units: Optional[list[str]] = None,
 ) -> dict:
     """Return one explicit, evidence-gated pronunciation verdict.
@@ -1447,12 +1455,15 @@ def build_pronunciation_mastery(
     passed = (
         pass_rate >= SENTENCE_SYLLABLE_PASS_RATIO
         and content_match is not False
+        and (not content_check_requested or content_match is True)
     )
     if content_match is False:
         missing_text = "".join(missing_units)
         content_message = "Say the complete target sentence before this attempt can pass."
         if missing_text:
             content_message += f" Missing: {missing_text}."
+    elif content_check_requested and content_match is None:
+        content_message = "We couldn't verify what was said. Record the target again."
     else:
         content_message = ""
     return {
@@ -1734,8 +1745,14 @@ async def _do_analyze(
             )
 
         sentence_target = scene_target_text.strip() or scene_suggested_answer.strip()
+        sentence_content_verified = bool(asr_model.strip() or transcription_model.strip())
         scene_content_match = None
-        if sentence_target and not verify_word.strip() and transcription.strip():
+        if (
+            sentence_target
+            and not verify_word.strip()
+            and transcription.strip()
+            and sentence_content_verified
+        ):
             scene_content_match = _scene_content_match(sentence_target, transcription)
 
         # Use the known scene sentence for acoustic scoring only when the ASR
@@ -1780,8 +1797,6 @@ async def _do_analyze(
             if verify_word.strip()
             else asyncio.sleep(0, result=(None, None))
         )
-        sentence_content_verified = bool(asr_model.strip() or transcription_model.strip())
-
         praat_input = {
             "pinyin_hint": scoring_pinyin_hint or None,
             "scoring_text": scoring_transcription,
@@ -1863,7 +1878,7 @@ async def _do_analyze(
             ai_feedback = maybe_feedback
         if sentence_target and not verify_word.strip():
             content_match = scene_content_match
-            recognized_text = transcription or None
+            recognized_text = (transcription or None) if sentence_content_verified else None
             verification_started_at = time.perf_counter()
             add_trace_stage(
                 "content_verification",
@@ -1877,6 +1892,13 @@ async def _do_analyze(
                     "asr_model": transcription_model or asr_model or None,
                 },
             )
+        content_target = verify_word.strip() or sentence_target
+        recognized_for_diff = (
+            recognized_text
+            if verify_word.strip()
+            else (transcription if sentence_content_verified else "")
+        )
+        content_diff = _scene_content_diff(content_target, recognized_for_diff or "")
         (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
          word_prosody, detected_tone, tone_accuracy, feedback,
          pause_analysis) = praat_result
@@ -1997,8 +2019,9 @@ async def _do_analyze(
             word_prosody,
             feedback_quality,
             content_match=content_match,
+            content_check_requested=bool(content_target),
             missing_target_units=(
-                _missing_scene_content_units(sentence_target, transcription)
+                _missing_scene_content_units(content_target, recognized_for_diff or "")
                 if content_match is False
                 else []
             ),
@@ -2042,6 +2065,7 @@ async def _do_analyze(
             ai_feedback=ai_feedback,
             recognized_text=recognized_text,
             content_match=content_match,
+            content_diff=content_diff,
             feedback_quality=feedback_quality,
             tone_diagnostics=tone_diagnostics,
             pronunciation_mastery=pronunciation_mastery,
@@ -2383,37 +2407,6 @@ async def transcribe_audio_content(
 
 
 
-# Mirrors the frontend's scriptMatchRatio gate (src/utils/scriptAlignment.ts):
-# below this many characters a ratio can't tell "one wrong character" from
-# "totally different" ((n-1)/n < 0.7 fails anyway for n < 4), so short
-# single-word/character targets keep the exact, order-sensitive check.
-CONTENT_MATCH_RATIO = 0.7
-MIN_CONTENT_MATCH_CHARS = 4
-
-
-def _content_overlap_ratio(target: str, recognized: str) -> float:
-    """Bag-of-characters overlap: how much of `target` also appears
-    somewhere in `recognized`, ignoring order. Not full alignment — just
-    enough to stop one misheard syllable from failing an entire longer
-    phrase's content verification."""
-    target_chars = [c for c in target if not c.isspace()]
-    if not target_chars:
-        return 1.0
-    available = collections.Counter(c for c in recognized if not c.isspace())
-    matched = 0
-    for ch in target_chars:
-        if available[ch] > 0:
-            available[ch] -= 1
-            matched += 1
-    return matched / len(target_chars)
-
-
-SCENE_CONTENT_MATCH_RATIO = float(os.getenv("SCENE_CONTENT_MATCH_RATIO", "0.70"))
-SCENE_CONTENT_LENGTH_TOLERANCE = float(
-    os.getenv("SCENE_CONTENT_LENGTH_TOLERANCE", "0.35")
-)
-
-
 def _normalized_scene_content_units(value: str) -> list[str]:
     """Return comparable sentence units while ignoring script/punctuation noise."""
     normalized = convert_to_traditional_chinese(value or "")
@@ -2441,18 +2434,73 @@ def _content_units_equivalent(target: str, recognized: str) -> bool:
 
 
 def _missing_scene_content_units(target: str, recognized: str) -> list[str]:
-    """List target units not represented by the ASR result, in target order."""
+    """List target units in missing/replaced alignment spans, in target order."""
+    return [
+        segment["target"]
+        for segment in _align_scene_content(target, recognized)
+        if segment["type"] in {"missing", "replace"} and segment["target"]
+    ]
+
+
+def _align_scene_content(target: str, recognized: str) -> list[dict[str, str]]:
+    """Align target and ASR units while treating pinyin homophones as matches."""
     target_units = _normalized_scene_content_units(target)
     recognized_units = _normalized_scene_content_units(recognized)
-    available = collections.Counter(_content_unit_key(unit) for unit in recognized_units)
-    missing: list[str] = []
-    for unit in target_units:
-        key = _content_unit_key(unit)
-        if available[key] > 0:
-            available[key] -= 1
+    rows = len(target_units)
+    cols = len(recognized_units)
+    if not target_units or not recognized_units:
+        return []
+
+    costs = [[0] * (cols + 1) for _ in range(rows + 1)]
+    for row in range(1, rows + 1):
+        costs[row][0] = row
+    for col in range(1, cols + 1):
+        costs[0][col] = col
+    for row in range(1, rows + 1):
+        for col in range(1, cols + 1):
+            diagonal = costs[row - 1][col - 1] + (
+                0 if _content_units_equivalent(target_units[row - 1], recognized_units[col - 1]) else 1
+            )
+            costs[row][col] = min(diagonal, costs[row - 1][col] + 1, costs[row][col - 1] + 1)
+
+    operations: list[dict[str, str]] = []
+    row, col = rows, cols
+    while row or col:
+        if row and col:
+            equivalent = _content_units_equivalent(target_units[row - 1], recognized_units[col - 1])
+            diagonal = costs[row - 1][col - 1] + (0 if equivalent else 1)
+            if costs[row][col] == diagonal:
+                operations.append({
+                    "type": "match" if equivalent else "replace",
+                    "target": target_units[row - 1],
+                    "heard": recognized_units[col - 1],
+                })
+                row -= 1
+                col -= 1
+                continue
+        if row and costs[row][col] == costs[row - 1][col] + 1:
+            operations.append({"type": "missing", "target": target_units[row - 1], "heard": ""})
+            row -= 1
+            continue
+        operations.append({"type": "extra", "target": "", "heard": recognized_units[col - 1]})
+        col -= 1
+
+    operations.reverse()
+    grouped: list[dict[str, str]] = []
+    for operation in operations:
+        if grouped and grouped[-1]["type"] == operation["type"]:
+            grouped[-1]["target"] += operation["target"]
+            grouped[-1]["heard"] += operation["heard"]
         else:
-            missing.append(unit)
-    return missing
+            grouped.append(dict(operation))
+    return grouped
+
+
+def _scene_content_diff(target: str, recognized: str) -> list[dict[str, str]]:
+    """Return display-ready contiguous spans, or no fake diff for empty ASR."""
+    if not _normalized_scene_content_units(target) or not _normalized_scene_content_units(recognized):
+        return []
+    return _align_scene_content(target, recognized)
 
 
 def _scene_content_match(target: str, recognized: str) -> Optional[bool]:
@@ -2467,12 +2515,7 @@ def _scene_content_match(target: str, recognized: str) -> Optional[bool]:
     if not target_units or not recognized_units:
         return None
 
-    if len(target_units) != len(recognized_units):
-        return False
-    return all(
-        _content_units_equivalent(target_unit, recognized_unit)
-        for target_unit, recognized_unit in zip(target_units, recognized_units)
-    )
+    return all(segment["type"] == "match" for segment in _align_scene_content(target, recognized))
 
 
 async def _verify_word_transcription(
@@ -2511,10 +2554,7 @@ async def _verify_word_transcription(
             # an ASR error; a hard False here silently blocked passing
             # drills from ever clearing their mastery chip.
             return recognized, None
-        target = word.strip()
-        if len(target) < MIN_CONTENT_MATCH_CHARS:
-            return recognized, target in recognized
-        return recognized, _content_overlap_ratio(target, recognized) >= CONTENT_MATCH_RATIO
+        return recognized, _scene_content_match(word, recognized)
     except Exception as exc:
         logger.warning("Word content verification failed: %s", exc)
         return None, None
