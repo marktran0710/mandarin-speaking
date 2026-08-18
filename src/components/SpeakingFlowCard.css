@@ -431,19 +431,6 @@
   gap: 10px;
   margin-top: 10px;
 }
-.sfc-transcript-details {
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  padding: 9px 12px;
-  background: var(--clay-surface-soft);
-}
-.sfc-transcript-details summary {
-  cursor: pointer;
-  color: var(--clay-body);
-  font-size: 12px;
-  font-weight: 750;
-}
-.sfc-transcript-details .sfc-transcript { margin: 8px 0 0; }
 .sfc-audio-compare {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

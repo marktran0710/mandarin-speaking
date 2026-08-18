@@ -622,13 +622,6 @@ export default function SpeakingResultsFlow({
                 ? "尚未判定 / Not judged yet"
                 : "發音需要練習 / Needs practice"}
           </p>
-          {typeof pronunciationMastery.passed_syllables === "number" &&
-            typeof pronunciationMastery.total_syllables === "number" && (
-              <small>
-                {pronunciationMastery.passed_syllables}/
-                {pronunciationMastery.total_syllables} syllables passed / 個音節通過
-              </small>
-            )}
           {pronunciationMastery.message && <p>{pronunciationMastery.message}</p>}
           {contentNeedsRetry && <small>Tone measurements are reference-only until the script matches.</small>}
         </div>
@@ -696,15 +689,6 @@ export default function SpeakingResultsFlow({
         const rolledUpState = worstState(assistiveFeedback);
         return rolledUpState ? <AssistiveFeedbackNotice state={rolledUpState} /> : null;
       })()}
-
-      {recognizedText && (
-        <div className="sfc-results-scene-extras">
-          <details className="sfc-transcript-details">
-            <summary><BiLabel zh="你說的是" en="What you said" /></summary>
-            <p className="sfc-transcript"><em lang="zh-TW">{recognizedText}</em></p>
-          </details>
-        </div>
-      )}
 
       {analysisVersion === "phoneme_tone_v2" && (
         <section className="experimental-analysis-panel" aria-label="Experimental analysis">
