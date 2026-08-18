@@ -545,7 +545,7 @@
 .voice-test-workspace,
 .voice-test-controls,
 .voice-feedback-panel {
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
   box-shadow: 0 1px 2px rgba(42, 35, 24, 0.05);
 }
@@ -593,7 +593,7 @@
 .voice-test-page .voice-file-label .btn {
   min-width: 0;
   border: 1px solid var(--seal-deep);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: var(--seal);
   box-shadow: none;
   color: var(--clay-on-seal);
@@ -615,12 +615,12 @@
 .voice-score-card,
 .voice-feedback-card {
   border: 1px solid var(--clay-hairline);
-  border-radius: 10px;
+  border-radius: var(--clay-radius-md);
   background: var(--clay-surface-card);
 }
 
 .voice-live-transcript {
-  border-radius: 10px;
+  border-radius: var(--clay-radius-md);
   border-color: var(--gold);
   background: var(--gold-soft);
 }
@@ -631,12 +631,12 @@
 .voice-script-token,
 .voice-word-card,
 .feedback-block {
-  border-radius: 10px;
+  border-radius: var(--clay-radius-md);
 }
 
 .voice-model-example-actions button {
   border: 1px solid var(--seal-deep);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: var(--seal);
   box-shadow: none;
   color: var(--clay-on-seal);

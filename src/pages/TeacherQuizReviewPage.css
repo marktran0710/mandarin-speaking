@@ -79,7 +79,7 @@
   height: 40px;
   padding: 0 34px 0 12px;
   border: 1px solid var(--tqr-border);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-card);
   color: var(--clay-ink);
   font: inherit;
@@ -203,7 +203,7 @@
   min-height: 40px;
   padding: 5px 13px;
   border: 1px solid var(--tqr-border);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-card);
   color: var(--clay-body);
   font: inherit;
@@ -615,7 +615,7 @@
   place-items: center;
   padding: 0;
   border: 1px solid var(--tqr-border);
-  border-radius: 7px;
+  border-radius: var(--clay-radius-sm);
   background: #fff;
   color: var(--clay-muted);
   cursor: pointer;
@@ -753,7 +753,7 @@
   min-height: 40px;
   padding: 7px 10px;
   border: 1px solid var(--tqr-border);
-  border-radius: 7px;
+  border-radius: var(--clay-radius-sm);
   background: #fff;
   color: var(--clay-ink);
   font: inherit;
@@ -1007,7 +1007,7 @@
   gap: 8px;
   padding: 10px;
   border: 1px solid color-mix(in srgb, var(--gold) 38%, var(--tqr-border));
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: color-mix(in srgb, var(--gold-soft) 36%, #fff);
   color: var(--clay-body);
   font-size: 11px;
@@ -1068,7 +1068,7 @@
   justify-content: center;
   padding: 0 9px;
   border: 1px solid var(--tqr-border);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
 }
 
 .tqr-toolbar-more .tqr-rail-utilities {
@@ -1079,7 +1079,7 @@
   min-width: 188px;
   padding: 8px;
   border: 1px solid var(--tqr-border);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-card);
   box-shadow: 0 8px 24px rgb(42 35 24 / 12%);
 }

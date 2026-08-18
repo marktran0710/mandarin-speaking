@@ -265,7 +265,7 @@ button.ssb-phase:hover {
    treatment as the instructor demo. */
 .story-session-sidebar {
   border: 1px solid var(--clay-hairline);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-lg);
   box-shadow: 0 4px 16px rgba(67, 53, 31, 0.04);
   padding: 18px 16px;
 }
@@ -275,7 +275,7 @@ button.ssb-phase:hover {
 }
 
 .ssb-phase {
-  border-radius: 10px;
+  border-radius: var(--clay-radius-sm);
 }
 
 button.ssb-phase:hover {

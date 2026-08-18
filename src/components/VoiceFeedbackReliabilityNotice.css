@@ -8,7 +8,7 @@
   margin: 0.85rem 0;
   padding: 0.8rem 0.95rem;
   border: 1px solid #e3aaa4;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   background: #fff1ef;
   color: #6f2620;
 }
@@ -53,9 +53,9 @@
    they get their own, non-alarming palette rather than inheriting the
    retry rule's red. */
 .voice-reliability-notice.is-assistive.is-check {
-  border-color: color-mix(in srgb, var(--clay-warning, #ffa726) 55%, transparent);
-  background: color-mix(in srgb, var(--clay-warning, #ffa726) 14%, transparent);
-  color: var(--clay-warning-deep, #7a4a00);
+  border-color: color-mix(in srgb, var(--clay-warning) 55%, transparent);
+  background: color-mix(in srgb, var(--clay-warning) 14%, transparent);
+  color: var(--gold-deep);
 }
 
 .voice-reliability-notice.is-assistive.is-uncertain {
@@ -66,7 +66,7 @@
 }
 
 .voice-reliability-notice.is-assistive.is-accept {
-  border-color: color-mix(in srgb, var(--clay-success, #1c9a5b) 45%, transparent);
-  background: color-mix(in srgb, var(--clay-success, #1c9a5b) 12%, transparent);
-  color: var(--clay-success, #1c9a5b);
+  border-color: color-mix(in srgb, var(--clay-success) 45%, transparent);
+  background: color-mix(in srgb, var(--clay-success) 12%, transparent);
+  color: var(--clay-success);
 }

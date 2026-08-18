@@ -261,7 +261,7 @@
 
 .lr-scene-thumb {
   border-width: 1px;
-  border-radius: 10px;
+  border-radius: var(--clay-radius-sm);
   padding: 5px;
   background: var(--clay-surface-soft);
   box-shadow: none;
@@ -280,7 +280,7 @@
 .lr-record-panel,
 .lr-detail-card {
   min-width: 0;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
   box-shadow: 0 1px 2px rgba(42, 35, 24, 0.05);
 }
@@ -295,13 +295,13 @@
 }
 
 .lr-image {
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   margin-bottom: 10px;
 }
 
 .lr-play-btn {
   border: 1px solid var(--seal-deep);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: var(--seal);
   color: var(--clay-on-seal);
   box-shadow: none;
@@ -322,7 +322,7 @@
   width: 100%;
   min-width: 0;
   border: 1px solid var(--seal-deep);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: var(--seal);
   box-shadow: none;
   color: var(--clay-on-seal);
@@ -346,7 +346,7 @@
 
 .lr-transcript-card,
 .lr-content-accuracy {
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
 }
 
 .lr-detail-card {

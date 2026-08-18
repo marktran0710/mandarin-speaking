@@ -270,13 +270,13 @@
 }
 
 .slp-back {
-  border-radius: 10px;
+  border-radius: var(--clay-radius-sm);
   box-shadow: none;
 }
 
 .slp-card {
   border: 1px solid var(--clay-hairline);
-  border-radius: 14px;
+  border-radius: var(--clay-radius-md);
   background: var(--clay-surface-card);
   box-shadow: 0 4px 0 var(--clay-hairline-soft);
 }

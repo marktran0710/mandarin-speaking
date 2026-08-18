@@ -307,7 +307,7 @@
 .login-page.student .login-submit {
   width: 100%;
   border: 1px solid var(--seal-deep);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   /* Gold fill, so every label layer flips to ink (see --clay-on-seal). */
   background: var(--seal);
   color: var(--clay-on-seal);

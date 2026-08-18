@@ -507,7 +507,7 @@
   min-height: 36px;
   padding: 0 16px;
   border: 1px solid var(--seal-deep);
-  border-radius: 11px;
+  border-radius: var(--clay-radius-md);
   background: var(--seal);
   box-shadow: 0 5px 12px color-mix(in srgb, var(--seal) 24%, transparent);
   color: var(--clay-on-seal);
@@ -1828,7 +1828,7 @@
   margin-top: 0.85rem;
   padding: 0.8rem 0.9rem;
   border: 1px solid rgba(73, 99, 87, 0.18);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   background: rgba(246, 242, 231, 0.72);
 }
 

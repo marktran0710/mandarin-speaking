@@ -19,7 +19,7 @@
   padding: var(--space-lg) var(--space-xl);
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-lg);
   box-shadow: 0 6px 18px color-mix(in srgb, var(--clay-ink) 5%, transparent);
 }
 
@@ -45,7 +45,7 @@
   padding: var(--space-md);
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-lg);
   box-shadow: 0 6px 18px color-mix(in srgb, var(--clay-ink) 5%, transparent);
   align-content: center;
 }
@@ -58,7 +58,7 @@
   padding: var(--space-xs) var(--space-sm);
   background: var(--clay-surface-soft);
   border: 1px solid var(--clay-hairline-soft);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   font-size: 13px;
   font-weight: 600;
   color: var(--clay-ink);
@@ -148,7 +148,7 @@
   flex-direction: column;
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-md);
   overflow: hidden;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
   box-shadow: 0 6px 18px color-mix(in srgb, var(--clay-ink) 6%, transparent);
@@ -302,7 +302,7 @@
   gap: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--gold);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   /* --tone1 only gets white text to ~3:1 — --tone1-deep clears 4.5:1. */
   background: var(--gold);
   box-shadow: 0 4px 10px color-mix(in srgb, var(--gold-deep) 14%, transparent);
@@ -436,7 +436,7 @@
   margin-bottom: 26px;
   padding: clamp(20px, 3vw, 30px);
   border: 1px solid var(--clay-hairline);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
   box-shadow: 0 6px 18px color-mix(in srgb, var(--clay-ink) 6%, transparent);
 }
@@ -467,7 +467,7 @@
   gap: 10px;
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: 14px;
+  border-radius: var(--clay-radius-md);
   padding: 10px 14px;
   box-shadow: 0 8px 20px color-mix(in srgb, var(--clay-ink) 8%, transparent);
 }
@@ -547,7 +547,7 @@
   gap: 18px;
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-md);
   box-shadow: 0 5px 15px color-mix(in srgb, var(--clay-ink) 5%, transparent);
   padding: 18px 22px;
   cursor: pointer;
@@ -715,7 +715,7 @@
   gap: 18px;
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
   box-shadow: 0 6px 18px color-mix(in srgb, var(--clay-ink) 6%, transparent);
   padding: 20px 24px;

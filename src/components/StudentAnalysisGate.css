@@ -4,7 +4,7 @@
   align-items: flex-start;
   padding: 14px 16px;
   border: 1px solid var(--clay-error);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   background: var(--clay-error-soft);
   color: var(--clay-ink);
 }

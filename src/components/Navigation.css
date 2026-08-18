@@ -42,7 +42,7 @@
 .logo-icon {
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  border-radius: var(--clay-radius-sm);
   object-fit: contain;
   box-shadow: 0 3px 10px color-mix(in srgb, var(--seal) 24%, transparent);
 }
@@ -85,7 +85,7 @@
      item's content is a 3-line BiLabel stack (zh/pinyin/en), not a single
      wide line — into an oval/blob shape. A moderate radius keeps it a
      clean rounded tag instead. */
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;

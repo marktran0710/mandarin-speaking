@@ -8,7 +8,7 @@
   z-index: 30;
   width: 72px;
   height: 72px;
-  border-radius: 14px;
+  border-radius: var(--clay-radius-md);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -94,7 +94,7 @@
   content: "";
   position: absolute;
   inset: 5px;
-  border-radius: 10px;
+  border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-card);
 }
 .journey-bubble-dial > * {

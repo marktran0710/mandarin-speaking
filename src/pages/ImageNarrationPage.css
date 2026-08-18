@@ -258,7 +258,7 @@
 
 .narration-scene-thumb {
   border-width: 1px;
-  border-radius: 10px;
+  border-radius: var(--clay-radius-sm);
   padding: 5px;
   background: var(--clay-surface-soft);
   box-shadow: none;
@@ -277,7 +277,7 @@
 .narration-record-panel,
 .narration-detail-card {
   min-width: 0;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
   box-shadow: 0 1px 2px rgba(42, 35, 24, 0.05);
 }
@@ -292,7 +292,7 @@
 }
 
 .narration-image {
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   margin-bottom: 10px;
 }
 
@@ -303,7 +303,7 @@
 }
 
 .narration-custom-vocab input {
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-card);
 }
 
@@ -311,7 +311,7 @@
   width: 100%;
   min-width: 0;
   border: 1px solid var(--seal-deep);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: var(--seal);
   box-shadow: none;
   color: var(--clay-on-seal);
@@ -335,7 +335,7 @@
 
 .narration-transcript-card,
 .narration-content-accuracy {
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
 }
 
 .narration-detail-card {

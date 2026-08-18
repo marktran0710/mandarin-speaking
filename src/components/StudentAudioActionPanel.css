@@ -29,12 +29,12 @@
 }
 
 .student-audio-action-panel .student-audio-ready {
-  color: var(--student-green, #4c785d);
+  color: var(--jade-deep);
   font-weight: 700;
 }
 
 .student-audio-action-panel .student-audio-name {
-  color: var(--student-muted, #7b7469);
+  color: var(--clay-muted);
   font-size: 0.86rem;
   overflow-wrap: anywhere;
 }

@@ -11,7 +11,7 @@
 .irt-summary-grid div { display: grid; gap: 3px; padding: 12px; border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-md); background: var(--clay-surface-soft); }
 .irt-summary-grid strong { font-size: 1.35rem; color: var(--clay-ink); }
 .irt-summary-grid span { color: var(--clay-muted); font-size: var(--text-xs); }
-.irt-status { display: inline-flex; padding: 4px 7px; border-radius: 999px; font-size: 11px; font-weight: 750; }
+.irt-status { display: inline-flex; padding: 4px 7px; border-radius: var(--clay-radius-pill); font-size: 11px; font-weight: 750; }
 .irt-status.is-pass { color: var(--jade-deep); background: var(--jade-soft); }
 .irt-status.is-warning { color: var(--gold-deep); background: var(--seal-soft); }
 .irt-status.is-insufficient_data { color: var(--clay-muted); background: var(--clay-surface-soft); }

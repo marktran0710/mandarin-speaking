@@ -318,12 +318,6 @@
   margin: 0;
 }
 
-.controls {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
 .submit-voice-label.disabled {
   cursor: not-allowed;
   opacity: 0.5;
@@ -2211,7 +2205,7 @@
   flex: 0 0 30px;
   width: 30px;
   height: 30px;
-  border-radius: 10px;
+  border-radius: var(--clay-radius-sm);
   background: var(--gold-soft);
   color: var(--gold-deep);
   font-size: 11px;
@@ -2233,7 +2227,7 @@
   display: grid;
   gap: 2px;
   border: 1px solid var(--clay-hairline);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
   padding: 4px;
 }
@@ -2245,7 +2239,7 @@
   align-items: baseline;
   min-height: 40px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-card);
 }
 .overview-vocab-row:nth-child(even) {
@@ -3306,13 +3300,13 @@
 .ui-button.btn-scene-step-continue {
   min-width: 184px;
   padding: 10px 16px;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   box-shadow: 0 5px 12px color-mix(in srgb, var(--seal) 30%, transparent);
 }
 
 .ui-button.scene-next-btn {
   padding: 10px 16px;
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   border: 1px solid var(--jade-deep);
   background: var(--jade-deep);
   box-shadow: 0 5px 12px color-mix(in srgb, var(--jade) 30%, transparent);
@@ -3341,7 +3335,7 @@
 .overview-hero {
   padding: 34px 32px 28px;
   border: 1px solid var(--clay-hairline);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
   box-shadow: 0 4px 16px rgba(67, 53, 31, 0.04);
 }
@@ -3353,28 +3347,28 @@
 }
 
 .lesson-number-badge {
-  border-radius: 10px;
+  border-radius: var(--clay-radius-sm);
   background: var(--clay-primary);
   color: var(--clay-on-seal);
 }
 
 .overview-meta > span {
   border: 1px solid var(--clay-hairline);
-  border-radius: 10px;
+  border-radius: var(--clay-radius-sm);
   color: var(--clay-body);
   background: var(--clay-surface-soft);
 }
 
 .overview-vocab-table {
   border: 1px solid var(--clay-hairline);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
   padding: 6px;
 }
 
 .overview-vocab-row {
   border-bottom: 1px solid var(--clay-hairline-soft);
-  border-radius: 8px;
+  border-radius: var(--clay-radius-sm);
 }
 
 .overview-vocab-row:last-child {
@@ -3383,7 +3377,7 @@
 
 .overview-choice-card {
   border: 1px solid var(--clay-hairline);
-  border-radius: 14px;
+  border-radius: var(--clay-radius-md);
   box-shadow: 0 4px 0 var(--clay-hairline-soft);
   padding: 20px 18px;
 }
@@ -3398,7 +3392,7 @@
 .example-frame-panel,
 .recording-status-card {
   border-color: var(--clay-hairline);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-lg);
   box-shadow: 0 4px 16px rgba(67, 53, 31, 0.04);
 }
 
@@ -3407,7 +3401,7 @@
 }
 
 .practice-scene-image {
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   overflow: hidden;
 }
 

@@ -15,7 +15,7 @@
   gap: 8px;
   padding: 10px 16px;
   border: 1px solid var(--ui-button-border);
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   background: var(--ui-button-bg);
   color: var(--ui-button-color);
   box-shadow: 0 5px 12px var(--ui-button-shadow);

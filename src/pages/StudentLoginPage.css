@@ -1,11 +1,11 @@
 /* Dedicated student-login refresh; the teacher portal retains LoginPage.css alone. */
 .login-page.student { padding-top: var(--space-lg); background: var(--clay-surface-card); }
-.login-page.student .login-card { padding: var(--space-lg); border-radius: 14px; box-shadow: 0 4px 16px color-mix(in srgb, var(--clay-ink) 5%, transparent); }
+.login-page.student .login-card { padding: var(--space-lg); border-radius: var(--clay-radius-md); box-shadow: 0 4px 16px color-mix(in srgb, var(--clay-ink) 5%, transparent); }
 .login-page.student .login-card h1 { font-size: 28px; }
 .login-page.student .login-description { margin-bottom: var(--space-md); }
 .login-page.student .login-form input,
-.login-page.student .login-form select { min-height: 44px; border-radius: 9px; background: var(--clay-surface-card); }
-.login-page.student .login-submit { min-height: 44px; border-radius: 9px; box-shadow: 0 3px 0 var(--seal-deep); }
+.login-page.student .login-form select { min-height: 44px; border-radius: var(--clay-radius-sm); background: var(--clay-surface-card); }
+.login-page.student .login-submit { min-height: 44px; border-radius: var(--clay-radius-pill); box-shadow: 0 3px 0 var(--seal-deep); }
 .login-page.student .login-submit:hover { box-shadow: 0 4px 0 var(--seal-deep); }
 .login-page.student .login-submit:active { box-shadow: 0 1px 0 var(--seal-deep); }
 
