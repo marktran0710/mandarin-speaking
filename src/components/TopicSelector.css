@@ -475,15 +475,11 @@
 .ts-book-cover {
   width: 34px;
   height: 44px;
+  flex-shrink: 0;
   border-radius: 5px;
-  background: var(--gold);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--clay-ink);
-  font-size: 11px;
-  font-weight: 800;
-  writing-mode: vertical-rl;
+  border: 1px solid var(--clay-hairline);
+  object-fit: cover;
+  box-shadow: var(--shadow-sm);
 }
 
 .ts-book-name {
@@ -498,6 +494,65 @@
   font-size: 10.5px;
 }
 
+/* ── Lesson table of contents: the same tone-contour journey path used
+   inside a practice session (JourneyPath, vertical orientation), scaled up
+   for a primary page instead of a sidebar strip. Position on the path plus
+   the current stop's glow carry the "you're here" / "not reached yet"
+   meaning, so locked rows need only a 🔒 badge, not a repeated sentence. ── */
+.ts-lesson-journey {
+  margin-bottom: 8px;
+}
+.ts-lesson-journey .journey-stop-ring {
+  width: 64px;
+  height: 64px;
+  border-width: 3px;
+}
+.ts-lesson-journey .journey-stop-current .journey-stop-ring {
+  width: 72px;
+  height: 72px;
+}
+.ts-lesson-journey .journey-connector {
+  width: 40px;
+  height: 26px;
+  margin-left: 15px; /* centers under the 64px ring */
+}
+.ts-lesson-journey .journey-stop {
+  padding: 10px 14px;
+  border-radius: var(--clay-radius-md);
+  border: 1px solid transparent;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+.ts-lesson-journey .journey-stop:not(:disabled):hover {
+  background: var(--clay-surface-soft);
+  transform: translateX(2px);
+}
+.ts-lesson-journey .journey-stop-current {
+  background: color-mix(in srgb, var(--clay-surface-card) 88%, var(--gold-soft));
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--clay-hairline));
+}
+.ts-journey-label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.ts-journey-title {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--clay-ink);
+}
+.journey-stop:disabled .ts-journey-title { color: var(--clay-muted); }
+
+/* ── Accordion body: a lesson's story cards, dropped in place under its
+   own journey stop instead of navigating to a separate screen. ── */
+.ts-lesson-expanded {
+  padding: 4px 4px 4px 82px; /* aligns under the 64px ring + its gap */
+  margin: 4px 0 2px;
+}
+@media (max-width: 720px) {
+  .ts-lesson-expanded { padding-left: 4px; }
+}
+
 /* ── The spine: node + connector per lesson row. The connector's color is
    the state of ITS OWN row (done = jade, current = gold, else hairline),
    so the filled part of the line reads as "how far I've come". ── */
@@ -505,39 +560,6 @@
   position: relative;
   padding-left: 30px;
   margin-bottom: 18px;
-}
-
-.ts-lesson::before {
-  content: "";
-  position: absolute;
-  left: 9px;
-  top: 40px;
-  bottom: -18px;
-  width: 4px;
-  border-radius: 2px;
-  background: var(--clay-hairline);
-}
-
-.ts-lesson.is-done::before { background: var(--jade); }
-.ts-lesson.is-now::before { background: var(--gold); }
-.ts-lesson.ts-lesson-last::before { display: none; }
-
-.ts-lesson::after {
-  content: "";
-  position: absolute;
-  left: 2px;
-  top: 32px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 4px solid var(--clay-canvas);
-  background: var(--clay-hairline);
-}
-
-.ts-lesson.is-done::after { background: var(--jade); }
-.ts-lesson.is-now::after {
-  background: var(--gold);
-  box-shadow: 0 0 0 4px var(--gold-soft);
 }
 
 /* ── Lesson card ── */
@@ -563,23 +585,6 @@
   outline: 3px solid var(--seal);
   outline-offset: 2px;
 }
-.ts-lesson.is-now .ts-lesson-card {
-  border-color: color-mix(in srgb, var(--gold) 68%, var(--clay-hairline));
-  background: color-mix(in srgb, var(--clay-surface-card) 88%, var(--gold-soft));
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--gold) 14%, transparent);
-}
-.ts-lesson.is-done .ts-lesson-card:hover {
-  border-color: var(--jade);
-  box-shadow: 0 5px 0 var(--jade-soft);
-}
-.ts-lesson.is-locked .ts-lesson-card {
-  cursor: not-allowed;
-  background: var(--clay-surface-soft);
-  box-shadow: none;
-  opacity: 0.75;
-}
-.ts-lesson.is-locked .ts-lesson-card:hover { transform: none; }
-.ts-lesson.is-locked .ts-lesson-title { color: var(--clay-muted); }
 
 .ts-num-tile {
   flex-shrink: 0;
@@ -595,29 +600,12 @@
   color: var(--clay-on-accent);
 }
 
-.ts-num-tile-label {
-  font-size: 10px;
-  opacity: 0.85;
-  letter-spacing: 0.08em;
-}
-
 .ts-num-tile-n {
   font-size: 26px;
   line-height: 1;
 }
 
-/* The brand tile is gold, so it takes the dark label; the other three stay
-   on white. The fourth slot moved off --gold to celadon when the brand
-   became gold — two gold tiles in a four-tile rotation read as one color. */
-.ts-tile-seal {
-  background: var(--seal);
-  color: var(--clay-on-seal);
-}
-.ts-tile-jade { background: var(--jade); }
-.ts-tile-tone1 { background: var(--tone1); }
-.ts-tile-celadon { background: var(--lavender-deep); }
 .ts-tile-other { background: var(--clay-surface-strong); color: var(--gold-deep); }
-.ts-tile-locked { background: var(--clay-hairline); color: var(--clay-muted); }
 
 .ts-lesson-main {
   flex: 1;
@@ -641,24 +629,6 @@
   gap: 8px;
 }
 
-.ts-story-dots {
-  display: flex;
-  gap: 5px;
-}
-
-.ts-story-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--clay-surface-card);
-  border: 2px solid var(--clay-hairline);
-}
-
-.ts-story-dot.is-done {
-  background: var(--jade);
-  border-color: var(--jade);
-}
-
 .ts-side-chip {
   font-size: 12px;
   font-weight: 800;
@@ -666,18 +636,9 @@
   border-radius: var(--clay-radius-pill);
 }
 
-.ts-chip-done { background: var(--jade-soft); color: var(--jade-deep); }
-.ts-chip-now { background: var(--gold-soft); color: var(--gold-deep); }
-.ts-chip-lock {
-  background: transparent;
-  color: var(--clay-muted);
-  border: 1.5px dashed var(--clay-hairline);
-}
 .ts-chip-open { background: var(--clay-surface-soft); color: var(--clay-muted); }
 
-/* 其他 sits outside the book, detached from the spine. */
 .ts-other-block { margin-top: 30px; }
-.ts-other-block .ts-lesson::after { display: none; }
 
 .ts-other-label {
   font-size: 12px;
@@ -686,63 +647,6 @@
   text-transform: uppercase;
   color: var(--clay-muted);
   margin: 0 0 10px 30px;
-}
-
-/* ── Lesson detail screen ── */
-.ts-crumb {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--clay-muted);
-  background: transparent;
-  border: 1.5px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-pill);
-  padding: 8px 16px;
-  cursor: pointer;
-  margin-bottom: 20px;
-}
-
-.ts-crumb:hover {
-  background: var(--clay-surface-soft);
-  color: var(--clay-ink);
-}
-
-.ts-detail-head {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  background: var(--clay-surface-card);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  background: var(--clay-surface-card);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--clay-ink) 6%, transparent);
-  padding: 20px 24px;
-  margin-bottom: 24px;
-}
-
-.ts-detail-head .ts-num-tile {
-  width: 72px;
-  height: 72px;
-}
-
-.ts-detail-title h2 {
-  font-size: 24px;
-  color: var(--clay-ink);
-  margin: 0;
-}
-
-.ts-detail-title .ts-lesson-sub { margin-top: 3px; }
-
-.ts-detail-progress {
-  margin-left: auto;
-  text-align: right;
-}
-
-.ts-detail-progress .ts-story-dots {
-  justify-content: flex-end;
-  margin-bottom: 6px;
 }
 
 /* ── Per-story 🌱🌿🌳 tier track on the cards ── */

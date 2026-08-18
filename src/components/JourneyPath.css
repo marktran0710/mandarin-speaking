@@ -184,6 +184,9 @@
   flex: 1;
   min-width: 0;
 }
+.journey-stop-expanded {
+  width: 100%;
+}
 @media (prefers-reduced-motion: no-preference) {
   .journey-path-vertical .journey-stop-current .journey-stop-ring {
     animation: journey-current-pulse-sm 2.4s ease-in-out infinite;
