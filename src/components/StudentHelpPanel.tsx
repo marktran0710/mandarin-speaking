@@ -10,9 +10,16 @@ import { getStudentName } from "../utils/studentSession";
 export default function StudentHelpPanel({
   helpRequests,
   onRaiseHand,
+  compact = false,
 }: {
   helpRequests: HelpRequest[];
   onRaiseHand?: (message: string) => void;
+  /** Sidebar context: the icon + button already say "this raises a hand" —
+   * drop the full explanatory sentence (and its pinyin line) down to a
+   * short label, since it's visible on every screen of a practice session,
+   * not just the first time. The topic-browser banner has room and keeps
+   * the full prompt. */
+  compact?: boolean;
 }) {
   const [message, setMessage] = useState("我的故事需要協助。");
   const studentName = getStudentName();
@@ -29,14 +36,20 @@ export default function StudentHelpPanel({
         </span>
         <div>
           {activeRequest ? (
-            <>
-              <strong>
-                <BiLabel k="teacher_has_your_help_request" />
-              </strong>
-              <p>
-                <BiText k="stay_on_your_task_your_teacher_can_see_t" />
-              </p>
-            </>
+            compact ? (
+              <p><BiLabel zh="老師已看到" en="Teacher notified" /></p>
+            ) : (
+              <>
+                <strong>
+                  <BiLabel k="teacher_has_your_help_request" />
+                </strong>
+                <p>
+                  <BiText k="stay_on_your_task_your_teacher_can_see_t" />
+                </p>
+              </>
+            )
+          ) : compact ? (
+            <p><BiLabel zh="需要幫忙？" en="Need help?" /></p>
           ) : (
             <p>
               <BiText k="need_teacher_help_prompt" />

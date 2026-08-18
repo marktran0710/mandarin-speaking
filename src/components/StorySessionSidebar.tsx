@@ -1,6 +1,5 @@
 import { useState, type ReactNode } from "react";
 import JourneyPath, { type JourneyStop } from "./JourneyPath";
-import { BiLabel } from "./BiLabel";
 import "./StorySessionSidebar.css";
 
 export type SidebarPhaseStatus = "done" | "active" | "upcoming";
@@ -30,36 +29,44 @@ interface StorySessionSidebarProps {
   helpPanel?: ReactNode;
 }
 
-function PhaseMarker({ status }: { status: SidebarPhaseStatus }) {
-  return (
-    <span className={`ssb-phase-marker ssb-phase-marker-${status}`}>
-      {status === "done" && "✓"}
-      {status === "active" && <span className="ssb-phase-marker-dot" />}
-    </span>
-  );
-}
-
 /** Left rail for a story practice session: exit + story name up top, the
- * phase list running vertically (done phases clickable, same jump-back rule
- * as the old horizontal stepper), the scene journey threaded under the
- * Speak node, and the raise-hand panel docked at the bottom. Replaces
- * the stacked story-nav-panel + horizontal JourneyPath + help strip. */
+ * phase progression threaded on the same tone-contour journey path used for
+ * lessons (目錄) and for scenes — one visual language for "progress along a
+ * sequence" at every level of the app, rather than a plain numbered list.
+ * The scene journey nests under the Speak stop via JourneyPath's `expanded`
+ * slot; the raise-hand panel docks at the bottom. */
 export default function StorySessionSidebar({
   topicName,
   onExit,
   phases,
   journeyStops,
-  summaryStatus,
-  onOpenSummary,
   helpPanel,
 }: StorySessionSidebarProps) {
   // Mobile-only: the help panel folds behind a floating button. Desktop CSS
   // ignores this flag and always shows the panel.
   const [helpOpen, setHelpOpen] = useState(false);
 
-  const summaryLabel = (
-    <BiLabel zh="總結" pinyin="Zǒngjié" en="Summary" />
-  );
+  const phaseStops: JourneyStop[] = phases.map((p) => ({
+    key: p.key,
+    status: p.status === "active" ? "current" : p.status,
+    label: p.label,
+    fallbackLabel: p.icon,
+    onClick: p.onClick,
+    disabled: !p.onClick,
+    expanded:
+      p.key === "speak" && journeyStops && journeyStops.length > 0 ? (
+        <div className="ssb-journey">
+          <JourneyPath stops={journeyStops} orientation="vertical" />
+        </div>
+      ) : undefined,
+  }));
+
+  // summaryStatus/onOpenSummary stay in the props contract (StoryRecorder
+  // still computes and passes them) but aren't rendered here — the Summary
+  // node was force-hidden site-wide (see the .ssb-summary rule this replaced,
+  // commit eb6e88f, an undocumented same-day "fix" not a deliberate design
+  // call) and this redesign preserves that shipped behavior rather than
+  // guess at re-enabling something that may have been hiding a real bug.
 
   return (
     <aside className="story-session-sidebar" aria-label="Story progress">
@@ -78,88 +85,7 @@ export default function StorySessionSidebar({
       </div>
 
       <nav className="ssb-phases" aria-label="Progress">
-        {phases.map((p) => {
-          const inner = (
-            <>
-              <PhaseMarker status={p.status} />
-              <span className="ssb-phase-caption">
-                <span className="ssb-phase-icon" aria-hidden="true">
-                  {p.icon}
-                </span>
-                {p.label}
-              </span>
-            </>
-          );
-          const isSpeak = p.key === "speak";
-          const node =
-            (p.status === "done" || p.key === "prepare") && p.onClick ? (
-              <button
-                key={p.key}
-                type="button"
-                className={`ssb-phase ssb-phase-${p.status}`}
-                onClick={p.onClick}
-              >
-                {inner}
-              </button>
-            ) : (
-              <div key={p.key} className={`ssb-phase ssb-phase-${p.status}`}>
-                {inner}
-              </div>
-            );
-          if (!isSpeak || !journeyStops || journeyStops.length === 0) {
-            return node;
-          }
-          // The scene journey belongs to the Practice phase — nest it right
-          // under that node so the hierarchy reads phase → scenes.
-          return (
-            <div className="ssb-practice-group" key={p.key}>
-              {node}
-              <div className="ssb-journey">
-                <JourneyPath stops={journeyStops} orientation="vertical" />
-              </div>
-            </div>
-          );
-        })}
-
-        {summaryStatus === "available" && onOpenSummary ? (
-          <button
-            type="button"
-            className="ssb-phase ssb-phase-done ssb-summary"
-            onClick={onOpenSummary}
-          >
-            <PhaseMarker status="done" />
-            <span className="ssb-phase-caption">
-              <span className="ssb-phase-icon" aria-hidden="true">🏁</span>
-              {summaryLabel}
-            </span>
-          </button>
-        ) : (
-          <div
-            className={`ssb-phase ssb-summary ${
-              summaryStatus === "active"
-                ? "ssb-phase-active"
-                : summaryStatus === "done"
-                  ? "ssb-phase-done"
-                  : "ssb-phase-upcoming"
-            }`}
-          >
-            <PhaseMarker
-              status={
-                summaryStatus === "active"
-                  ? "active"
-                  : summaryStatus === "done"
-                    ? "done"
-                    : "upcoming"
-              }
-            />
-            <span className="ssb-phase-caption">
-              <span className="ssb-phase-icon" aria-hidden="true">
-                {summaryStatus === "locked" ? "🔒" : "🏁"}
-              </span>
-              {summaryLabel}
-            </span>
-          </div>
-        )}
+        <JourneyPath stops={phaseStops} orientation="vertical" />
       </nav>
 
       {helpPanel && (

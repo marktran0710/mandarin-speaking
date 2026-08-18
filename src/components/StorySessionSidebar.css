@@ -33,90 +33,36 @@
   min-width: 0;
 }
 
-/* ── Vertical phase list ── */
+/* ── Phase progression — same tone-contour JourneyPath used for lessons
+   (目錄) and scenes, so "progress along a sequence" reads identically at
+   every level of the app instead of a plain numbered 1/2/3 list. The scene
+   journey nests under the Speak stop via JourneyPath's `expanded` slot. ── */
 .ssb-phases {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  margin: 0;
 }
-.ssb-phase {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 6px;
-  border: none;
-  border-radius: var(--clay-radius-md);
-  background: none;
-  font-family: inherit;
-  text-align: left;
-  width: 100%;
-}
-button.ssb-phase {
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-button.ssb-phase:hover {
-  background: var(--clay-surface-soft);
+.ssb-phases > .journey-path-vertical {
+  padding: 0;
+  gap: 0;
 }
 
-.ssb-phase-marker {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  font-size: 12px;
-  font-weight: 700;
-  background: var(--clay-surface-card);
-  border: 2px solid var(--clay-hairline);
-  color: var(--clay-muted);
-}
-.ssb-phase-marker-done {
-  background: var(--jade);
-  border-color: var(--jade);
-  color: #fff;
-}
-.ssb-phase-marker-active {
-  border-color: var(--seal);
-  box-shadow: 0 0 0 3px var(--seal-soft);
-}
-.ssb-phase-marker-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--seal);
-}
-
-.ssb-phase-caption {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--clay-muted);
-  min-width: 0;
-}
-.ssb-phase-icon { font-size: 14px; }
-.ssb-phase-done .ssb-phase-caption { color: var(--clay-ink); }
-.ssb-phase-active .ssb-phase-caption {
-  color: var(--seal-deep);
-  font-weight: 700;
-}
-.ssb-phase-upcoming .ssb-phase-caption { color: var(--clay-muted); }
-
-/* ── Scene journey nested under the Practice phase ── */
-.ssb-practice-group {
-  display: flex;
-  flex-direction: column;
-}
+/* Nested scene sub-journey reads as one level down from the phase rings
+   above it — smaller rings, indented under the phase ring column. */
 .ssb-journey {
-  /* Indent the journey under the phase marker column so the vertical
-     thread lines up with the phase markers above it. */
-  padding-left: 12px;
-  margin-left: 17px;
+  padding: 4px 0 4px 14px;
+  margin-left: 20px;
   border-left: 1px dashed var(--clay-hairline);
+}
+.ssb-journey .journey-stop-ring {
+  width: 30px;
+  height: 30px;
+  border-width: 2px;
+}
+.ssb-journey .journey-stop-current .journey-stop-ring {
+  width: 34px;
+  height: 34px;
+}
+.ssb-journey .journey-stop-label {
+  font-size: 11px;
 }
 
 /* ── Help panel docked at the bottom ── */
@@ -127,7 +73,7 @@ button.ssb-phase:hover {
 }
 /* Sidebar variant of the shared .student-help-panel markup: stacked, not
    the topic-browser's two-column banner grid. */
-.ssb-help .student-help-panel {
+.story-session-sidebar .ssb-help .student-help-panel {
   width: auto;
   margin: 0;
   display: flex;
@@ -168,27 +114,10 @@ button.ssb-phase:hover {
   .ssb-topline {
     padding-bottom: 8px;
   }
-  .ssb-phases {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px;
-  }
-  .ssb-phase {
-    width: auto;
-    padding: 5px 8px;
-  }
-  .ssb-phase-caption { font-size: 12px; }
-  .ssb-practice-group {
-    flex-direction: row;
-    align-items: center;
-    flex: 1 1 100%;
-    /* Hard caps: without these the group's auto minimum tracks the
-       journey's full row of stops and pushes past the sidebar edge,
-       giving the whole page a horizontal scrollbar on phones. */
-    min-width: 0;
-    max-width: 100%;
-  }
+  /* The phase path (small rings, one line each) stays vertical here — it's
+     already compact enough not to need the horizontal-strip treatment the
+     old taller design used. Only the nested scene journey below flips to a
+     horizontal scroll strip. */
   /* The journey flips back to a horizontal row that scrolls inside this
      box — the scroll container is the flex item itself (min-width: 0
      guarantees it shrinks), with the path laid out at max-content inside. */
@@ -274,22 +203,6 @@ button.ssb-phase:hover {
   padding-bottom: 14px;
 }
 
-.ssb-phase {
-  border-radius: var(--clay-radius-sm);
-}
-
-button.ssb-phase:hover {
-  background: var(--clay-surface-soft);
-}
-
-.ssb-phase-active {
-  background: var(--seal-soft);
-}
-
-.ssb-phase-active .ssb-phase-caption {
-  color: var(--clay-ink);
-}
-
 .ssb-help {
   padding-top: 16px;
 }
@@ -304,5 +217,3 @@ button.ssb-phase:hover {
   white-space: nowrap;
   border: 0;
 }
-
-.story-session-sidebar .ssb-summary { display: none !important; }
