@@ -167,7 +167,7 @@ def clean_questions(frame: dict, story_id: str, frame_number: int) -> bool:
     if not words:
         return False
     changed = False
-    question_keys = ("vocabularyCloze", "vocabularySynonym", "vocabularyLookalike", "vocabularyDistractors")
+    question_keys = ("vocabularyCloze", "vocabularySynonym", "vocabularyDistractors")
     for key in question_keys:
         original = parse_json_array(frame.get(key))
         normalized = normalize_outer_length(original, len(words))

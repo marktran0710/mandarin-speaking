@@ -469,25 +469,6 @@ export async function generateVocabSynonym(
   return results;
 }
 
-export async function generateVocabLookalike(
-  words: VocabGrowthWord[],
-): Promise<Array<{ word: string; lookalikes: string[] }>> {
-  const response = await fetchWithRetry(
-    `${BACKEND_URL}/api/vocab-quiz-lookalike`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ words }),
-    },
-    3,
-    REQUEST_TIMEOUT_MS,
-    VOCAB_GENERATION_RETRY_STATUSES,
-  );
-  if (!response.ok) throw new Error("Could not generate new look-alike traps.");
-  const { results } = (await response.json()) as { results: Array<{ word: string; lookalikes: string[] }> };
-  return results;
-}
-
 export interface VocabularyDistractorUpdate {
   frameIndex: number;
   wordIndex: number;
@@ -513,32 +494,6 @@ export async function updateVocabularyDistractors(
 
   if (!response.ok) {
     throw new Error("Could not update vocabulary distractors for the story.");
-  }
-}
-
-export interface VocabularyLookalikeUpdate {
-  frameIndex: number;
-  wordIndex: number;
-  lookalikes: string[];
-}
-
-// Tops up a story's persisted per-word look-alike pool (the tier-3 quiz's
-// face-confusion traps), mirroring updateVocabularyDistractors above.
-export async function updateVocabularyLookalike(
-  storyId: string,
-  updates: VocabularyLookalikeUpdate[],
-): Promise<void> {
-  const response = await fetchWithRetry(
-    `${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/vocabulary-lookalike`,
-    {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ updates }),
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error("Could not update vocabulary look-alikes for the story.");
   }
 }
 
@@ -587,7 +542,6 @@ export interface QuizValidateWord {
   distractors: string[];
   cloze: Array<{ sentence: string; distractors: string[] }>;
   synonym: Array<{ synonym: string; distractors: string[] }>;
-  lookalike: string[];
 }
 
 export interface QuizValidateResultItem {

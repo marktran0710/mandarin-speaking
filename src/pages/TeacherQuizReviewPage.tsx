@@ -7,7 +7,6 @@ import {
   canUseDatabase,
   generateVocabCloze,
   generateVocabDistractors,
-  generateVocabLookalike,
   generateVocabSynonym,
   listCustomStories,
   replaceQuizQuestion,
@@ -15,7 +14,6 @@ import {
   updateQuizExclusions,
   updateVocabularyCloze,
   updateVocabularyDistractors,
-  updateVocabularyLookalike,
   updateVocabularySynonym,
   validateQuizMaterial,
   type VocabGrowthWord,
@@ -24,11 +22,9 @@ import {
 import {
   buildClozePatchUpdates,
   buildDistractorPatchUpdates,
-  buildLookalikePatchUpdates,
   buildSynonymPatchUpdates,
   planClozeGrowth,
   planDistractorGrowth,
-  planLookalikeGrowth,
   planSynonymGrowth,
 } from "../components/StoryRecorder";
 import {
@@ -343,10 +339,8 @@ function invalidateApprovedWord(story: CustomTeacherStory, word: string): Custom
   return { ...story, quizApprovedSnapshot: snapshot };
 }
 
-/** Kind of a freshly-generated candidate awaiting accept/reject — a
- * superset of QuizApprovalKind since lookalike has no approve-checkbox of
- * its own but is still something Generate/Update Questions can produce. */
-type GeneratedKind = "distractors" | "cloze" | "synonym" | "lookalike";
+/** Kind of a freshly-generated candidate awaiting accept/reject. */
+type GeneratedKind = "distractors" | "cloze" | "synonym";
 type CandidateOrigin = "new" | "changed" | "removed";
 type PendingCandidateValue =
   | string[]
@@ -357,7 +351,6 @@ const GENERATED_POOL_FIELD: Record<GeneratedKind, keyof CustomStoryFrame> = {
   distractors: "vocabularyDistractors",
   cloze: "vocabularyCloze",
   synonym: "vocabularySynonym",
-  lookalike: "vocabularyLookalike",
 };
 
 interface PendingCandidate {
@@ -366,8 +359,8 @@ interface PendingCandidate {
   word: string;
   kind: GeneratedKind;
   origin: CandidateOrigin;
-  // distractors/lookalike: the whole new batch to append (matches how the
-  // merge endpoints below already top up a pool). cloze/synonym: one new
+  // distractors: the whole new batch to append (matches how the merge
+  // endpoints below already top up a pool). cloze/synonym: one new
   // candidate (the generation endpoint only ever returns one at a time).
   value: PendingCandidateValue;
   oldValue?: PendingCandidateValue;
@@ -557,7 +550,6 @@ function applyAcceptedCandidatesLocally(story: CustomTeacherStory, accepted: Pen
     distractors: 8,
     cloze: 4,
     synonym: 4,
-    lookalike: 6,
   };
   let frames = story.frames;
   for (const candidate of accepted) {
@@ -567,7 +559,7 @@ function applyAcceptedCandidatesLocally(story: CustomTeacherStory, accepted: Pen
       const field = GENERATED_POOL_FIELD[candidate.kind];
       const pool: unknown[] = JSON.parse((frame[field] as string | undefined) || "[]");
       while (pool.length <= candidate.wordIndex) pool.push([]);
-      if (candidate.kind === "distractors" || candidate.kind === "lookalike") {
+      if (candidate.kind === "distractors") {
         const existing = Array.isArray(pool[candidate.wordIndex]) ? (pool[candidate.wordIndex] as string[]) : [];
         pool[candidate.wordIndex] = [
           ...existing,
@@ -600,7 +592,7 @@ function applyAcceptedCandidatesLocally(story: CustomTeacherStory, accepted: Pen
 function isChangedCandidate(
   candidate: PendingCandidate,
 ): candidate is PendingCandidate & { kind: QuizApprovalKind; value: ReplaceValue } {
-  return candidate.origin === "changed" && candidate.kind !== "lookalike";
+  return candidate.origin === "changed";
 }
 
 function applyChangedCandidatesLocally(story: CustomTeacherStory, accepted: PendingCandidate[]): CustomTeacherStory {
@@ -637,7 +629,6 @@ const PENDING_KIND_LABELS: Record<GeneratedKind, { zh: string; en: string }> = {
   distractors: { zh: "干擾選項", en: "Distractors" },
   cloze: { zh: "填空", en: "Cloze" },
   synonym: { zh: "同義詞", en: "Synonym" },
-  lookalike: { zh: "形近字", en: "Look-alikes" },
 };
 
 const PENDING_ORIGIN_LABELS: Record<CandidateOrigin, { zh: string; en: string }> = {
@@ -660,15 +651,11 @@ function pendingDecisionCopy(origin: CandidateOrigin, decision: "accept" | "reje
 /** Formats one pending candidate value for a diff-style line, preserving the
  * existing prompt/options content while allowing old/new/removed rendering. */
 function renderPendingValue(candidate: PendingCandidate, value: PendingCandidateValue) {
-  if (candidate.kind === "distractors" || candidate.kind === "lookalike") {
+  if (candidate.kind === "distractors") {
     const items = value as string[];
     return (
       <>
-        {candidate.kind === "distractors" ? (
-          <BiLabel zh="新增干擾選項：" en="New distractors: " />
-        ) : (
-          <BiLabel zh="新增形近字：" en="New look-alikes: " />
-        )}
+        <BiLabel zh="新增干擾選項：" en="New distractors: " />
         {items.join("、")}
       </>
     );
@@ -1263,11 +1250,9 @@ export default function TeacherQuizReviewPage({
     setGenerationGateNoteByStory((prev) => ({ ...prev, [storyId]: "" }));
     setGenerateStatusByStory((prev) => ({ ...prev, [storyId]: "generating" }));
     try {
-      const lookalikeTopic = topic as unknown as Parameters<typeof planLookalikeGrowth>[0];
       const plannedDistractorCandidates = planDistractorGrowth(topic);
       const plannedClozeCandidates = planClozeGrowth(topic);
       const plannedSynonymCandidates = planSynonymGrowth(topic);
-      const plannedLookalikeCandidates = planLookalikeGrowth(lookalikeTopic);
       const changedTargets = (validationByStory[storyId] ?? [])
         .map((result) => changedTargetForValidation(topic, result))
         .filter((target): target is ChangedCandidateTarget => target !== null);
@@ -1286,8 +1271,6 @@ export default function TeacherQuizReviewPage({
         plannedSynonymCandidates,
         new Set(changedSynonymTargets.map((target) => target.word)),
       );
-      const lookalikeCandidates = canonicalGrowthCandidates(plannedLookalikeCandidates, new Set());
-
       const toWords = (list: Array<{ word: string; translation: string; context?: string; existing: string[] }>): VocabGrowthWord[] =>
         list.map((c) => ({ word: c.word, translation: c.translation, context: c.context, avoid: c.existing }));
 
@@ -1295,7 +1278,6 @@ export default function TeacherQuizReviewPage({
         rawDistractorResults,
         rawClozeResults,
         rawSynonymResults,
-        rawLookalikeResults,
         changedDistractorResults,
         changedClozeResults,
         changedSynonymResults,
@@ -1303,7 +1285,6 @@ export default function TeacherQuizReviewPage({
         distractorCandidates.length ? generateVocabDistractors(toWords(distractorCandidates)) : Promise.resolve([]),
         clozeCandidates.length ? generateVocabCloze(toWords(clozeCandidates)) : Promise.resolve([]),
         synonymCandidates.length ? generateVocabSynonym(toWords(synonymCandidates)) : Promise.resolve([]),
-        lookalikeCandidates.length ? generateVocabLookalike(toWords(lookalikeCandidates)) : Promise.resolve([]),
         Promise.all(
           changedDistractorTargets.map(async (target) => {
             const results = await generateVocabDistractors([target.growthWord]);
@@ -1341,13 +1322,11 @@ export default function TeacherQuizReviewPage({
         distractors: rawDistractorResults,
         cloze: rawClozeResults,
         synonym: rawSynonymResults,
-        lookalike: rawLookalikeResults,
       });
       const {
         distractors: distractorResults,
         cloze: clozeResults,
         synonym: synonymResults,
-        lookalike: lookalikeResults,
       } = protectedMaterial;
       if (protectedMaterial.removedCount > 0) {
         setGenerationGateNoteByStory((prev) => ({
@@ -1376,13 +1355,6 @@ export default function TeacherQuizReviewPage({
         const value = u.candidates[0];
         if (value && !c.existing.some((existing) => existing.trim() === value.synonym.trim())) {
           pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "synonym", origin: "new", value, decision: "pending" });
-        }
-      }
-      for (const u of buildLookalikePatchUpdates(lookalikeCandidates, lookalikeResults)) {
-        const c = lookalikeCandidates.find((x) => x.frameIndex === u.frameIndex && x.wordIndex === u.wordIndex)!;
-        const fresh = freshGeneratedStrings(u.lookalikes, c.existing);
-        if (fresh.length > 0) {
-          pending.push({ frameIndex: u.frameIndex, wordIndex: u.wordIndex, word: c.word, kind: "lookalike", origin: "new", value: fresh, decision: "pending" });
         }
       }
       changedDistractorResults.forEach((item) => {
@@ -1503,16 +1475,12 @@ export default function TeacherQuizReviewPage({
       const synonymUpdates = acceptedNew
         .filter((c) => c.kind === "synonym")
         .map((c) => ({ frameIndex: c.frameIndex, wordIndex: c.wordIndex, candidates: [c.value as { synonym: string; distractors: string[] }] }));
-      const lookalikeUpdates = acceptedNew
-        .filter((c) => c.kind === "lookalike")
-        .map((c) => ({ frameIndex: c.frameIndex, wordIndex: c.wordIndex, lookalikes: c.value as string[] }));
 
       await Promise.all([
         Promise.all([
           distractorUpdates.length ? updateVocabularyDistractors(storyId, distractorUpdates) : Promise.resolve(),
           clozeUpdates.length ? updateVocabularyCloze(storyId, clozeUpdates) : Promise.resolve(),
           synonymUpdates.length ? updateVocabularySynonym(storyId, synonymUpdates) : Promise.resolve(),
-          lookalikeUpdates.length ? updateVocabularyLookalike(storyId, lookalikeUpdates) : Promise.resolve(),
         ]),
         Promise.all(
           acceptedChanged.map((candidate) =>
@@ -1925,7 +1893,7 @@ export default function TeacherQuizReviewPage({
             }))
             .filter(({ word, entries }) => entries.length > 0 && !liveWords.has(word));
           const hasAnyMaterial = buildApprovedMaterial(topic, []).some(
-            (e) => e.distractors.length || e.cloze.length || e.synonym.length || e.lookalike.length,
+            (e) => e.distractors.length || e.cloze.length || e.synonym.length,
           );
           const pendingDecidedCount = pendingCandidates.filter((c) => c.decision !== "pending").length;
           const pendingAcceptedCount = pendingCandidates.filter((c) => c.decision === "accept").length;
@@ -2064,12 +2032,6 @@ export default function TeacherQuizReviewPage({
                       const distractors = topic.vocabularyDistractors?.[si]?.[wi] ?? [];
                       const cloze = topic.vocabularyCloze?.[si]?.[wi] ?? [];
                       const synonyms = topic.vocabularySynonym?.[si]?.[wi] ?? [];
-                      // Topic (from TopicSelector.tsx) doesn't declare vocabularyLookalike —
-                      // only StoryRecorder.tsx's own Topic type does (a known drift, see
-                      // topicQuiz.ts) — but storyToTopic always sets it at runtime.
-                      const lookalikes =
-                        (topic as unknown as { vocabularyLookalike?: Record<number, string[][]> })
-                          .vocabularyLookalike?.[si]?.[wi] ?? [];
                       const diff = diffWord(word, { distractors, cloze, synonym: synonyms }, snapshot);
                       const wordPending = (pendingByWord.get(word) ?? []).filter(
                         ({ candidate, index }) => candidate.origin !== "removed" && index < revealedCount,
@@ -2178,17 +2140,6 @@ export default function TeacherQuizReviewPage({
                                   editValue: { synonym: s.synonym, distractors: s.distractors },
                                   diffStatus: diff?.synonymStatus[syi],
                                 }),
-                              )}
-                              {lookalikes.length > 0 && (
-                                <div className="tqr-pool">
-                                  <span className="tqr-pool-label">
-                                    <BiLabel zh="形近字誘答" en="Look-alike traps" />
-                                    {trashButton(story.id, word, "lookalike")}
-                                  </span>
-                                  <span className="tqr-pool-items" lang="zh-Hant">
-                                    {lookalikes.join(" · ")}
-                                  </span>
-                                </div>
                               )}
                               {pendingCandidateRows(story.id, wordPending)}
                             </div>

@@ -15,18 +15,12 @@ describe("protectGeneratedQuizMaterial", () => {
       ],
       cloze: [],
       synonym: [],
-      lookalike: [
-        { word: "知道", lookalikes: ["一起", "智到", "智到"] },
-      ],
     });
 
     expect(protectedBatch.distractors).toEqual([
       { word: "知道", distractors: ["to see"] },
     ]);
-    expect(protectedBatch.lookalike).toEqual([
-      { word: "知道", lookalikes: ["智到"] },
-    ]);
-    expect(protectedBatch.removedCount).toBe(5);
+    expect(protectedBatch.removedCount).toBe(3);
   });
 
   it("drops a cloze prompt that reveals another vocabulary answer", () => {
@@ -40,7 +34,6 @@ describe("protectGeneratedQuizMaterial", () => {
         },
       ],
       synonym: [],
-      lookalike: [],
     });
 
     expect(protectedBatch.cloze).toEqual([]);
@@ -59,7 +52,6 @@ describe("protectGeneratedQuizMaterial", () => {
           { word: "他們", sentence: "他們很忙。", distractors: ["我們"] },
         ],
         synonym: [],
-        lookalike: [],
       },
     );
 
@@ -74,7 +66,6 @@ describe("protectGeneratedQuizMaterial", () => {
         { word: "知道", synonym: "曉得", distractors: ["今天", "忘記", "忘記"] },
         { word: "一起", synonym: "曉得", distractors: ["分開"] },
       ],
-      lookalike: [],
     });
 
     expect(protectedBatch.synonym).toEqual([

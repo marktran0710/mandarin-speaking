@@ -1,4 +1,4 @@
-"""The four quiz-pool PATCH endpoints grow per-word pools over time. Under
+"""The three quiz-pool PATCH endpoints grow per-word pools over time. Under
 SQLite each call rewrote the entire 34 KB frames blob, so two concurrent
 PATCHes on different frames could lose one another's write. jsonb_set
 updates only the touched path."""
@@ -67,12 +67,14 @@ def test_patching_one_frame_leaves_the_other_untouched(client):
         json={"updates": [{"frameIndex": 1, "wordIndex": 0, "distractors": ["椅子"]}]},
     )
     client.patch(
-        "/api/custom-stories/pool-story/vocabulary-lookalike",
-        json={"updates": [{"frameIndex": 0, "wordIndex": 0, "lookalikes": ["房閒"]}]},
+        "/api/custom-stories/pool-story/vocabulary-synonym",
+        json={"updates": [{"frameIndex": 0, "wordIndex": 0, "candidates": [
+            {"synonym": "臥室", "distractors": ["廚房"]}
+        ]}]},
     )
     frames = _frames(client)
     assert json.loads(frames[1]["vocabularyDistractors"])[0] == ["椅子"]
-    assert json.loads(frames[0]["vocabularyLookalike"])[0] == ["房閒"]
+    assert json.loads(frames[0]["vocabularySynonym"])[0][0]["synonym"] == "臥室"
     assert frames[0]["prompt"] == "這是我的房間。"
     assert frames[1]["prompt"] == "房間裡有一張床。"
 

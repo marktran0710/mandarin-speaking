@@ -12,11 +12,7 @@ import {
   type CustomTeacherStory,
   type StoryDifficultyLevel,
 } from "../utils/teacherStories";
-import type { Topic as BaseTopic } from "./TopicSelector";
-
-// StoryRecorder widens the shared Topic with the per-word look-alike pool
-// (its own props interface, not exported) — mirror that here.
-type Topic = BaseTopic & { vocabularyLookalike?: Record<number, string[][]> };
+import type { Topic } from "./TopicSelector";
 
 // vitest runs under node, but the app tsconfig has no node types — declare
 // the one process field the dump gate reads.
@@ -41,7 +37,6 @@ function entriesForTopic(topic: Topic): VocabQuizEntry[] {
   const aiCloze: Array<Array<{ sentence: string; distractors: string[] }> | undefined> = [];
   const partsOfSpeech: Array<string | undefined> = [];
   const aiSynonyms: Array<Array<{ synonym: string; distractors: string[] }> | undefined> = [];
-  const aiLookalikes: Array<string[] | undefined> = [];
   topic.images.forEach((_, si) => {
     const sceneSuggestedAnswer = topic.suggestedAnswers?.[si];
     (topic.vocabulary[si] || []).forEach((word, i) => {
@@ -53,7 +48,6 @@ function entriesForTopic(topic: Topic): VocabQuizEntry[] {
       aiCloze.push(topic.vocabularyCloze?.[si]?.[i]);
       partsOfSpeech.push(topic.vocabularyPos?.[si]?.[i]);
       aiSynonyms.push(topic.vocabularySynonym?.[si]?.[i]);
-      aiLookalikes.push(topic.vocabularyLookalike?.[si]?.[i]);
     });
   });
   return collectQuizEntries(
@@ -65,7 +59,6 @@ function entriesForTopic(topic: Topic): VocabQuizEntry[] {
     aiCloze,
     partsOfSpeech,
     aiSynonyms,
-    aiLookalikes,
   );
 }
 

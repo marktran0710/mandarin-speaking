@@ -14,7 +14,6 @@ import type { AudioRecord } from "./MyStoriesPage";
 import TeacherShell, { type TeacherView } from "../components/teacher/TeacherShell";
 import StoryBuilderSection from "../components/teacher/StoryBuilderSection";
 import TeacherHelpQueue from "../components/TeacherHelpQueue";
-import TeacherRosterView from "../components/TeacherRosterView";
 import TeacherRecordingsView from "../components/TeacherRecordingsView";
 import TeacherSubmissionsView from "../components/TeacherSubmissionsView";
 import QuizAnalyticsPanel from "../components/QuizAnalyticsPanel";
@@ -26,7 +25,7 @@ import DashboardStat from "../components/DashboardStat";
 import TeacherImageBuilderPage from "./TeacherImageBuilderPage";
 import TeacherQuizReviewPage from "./TeacherQuizReviewPage";
 import MeasurementAnalyticsPanel from "../components/MeasurementAnalyticsPanel";
-import { readMeasurementEvents, type MeasurementEvent } from "../utils/measurement";
+import type { MeasurementEvent } from "../utils/measurement";
 import { formatRequestTime, getAverageMetric } from "../utils/myStoriesUtils";
 import { buildStudentAssessments } from "../utils/studentAssessment";
 // Legacy view internals (panels, tables, builder form) still live in the
@@ -59,11 +58,6 @@ const VIEW_COPY: Record<TeacherView, { eyebrow: string; title: string; descripti
     eyebrow: "Plan the next lesson",
     title: "Teaching Materials",
     description: "Build stories, prepare images, and check quiz material before publishing.",
-  },
-  students: {
-    eyebrow: "Know your class",
-    title: "Students",
-    description: "Follow progress and keep your class list up to date.",
   },
   analytics: {
     eyebrow: "Spot patterns early",
@@ -152,15 +146,11 @@ export default function TeacherDashboardPage({
   const [students, setStudents] = useState<Student[]>([]);
   const [studentsError, setStudentsError] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [serverMeasurementEvents, setServerMeasurementEvents] = useState<MeasurementEvent[]>([]);
-  const measurementEvents = useMemo(
-    () => serverMeasurementEvents.length > 0 ? serverMeasurementEvents : readMeasurementEvents(),
-    [serverMeasurementEvents, records, activeView],
-  );
+  const [measurementEvents, setMeasurementEvents] = useState<MeasurementEvent[]>([]);
 
   useEffect(() => {
     if (!canUseDatabase()) return;
-    listMeasurementEvents().then(setServerMeasurementEvents).catch(() => {});
+    listMeasurementEvents().then(setMeasurementEvents).catch(() => {});
   }, [records.length]);
 
   const loadQuizAttempts = useCallback(async () => {
@@ -413,8 +403,6 @@ export default function TeacherDashboardPage({
           </>
         )}
 
-        {activeView === "students" && <TeacherRosterView />}
-
         {activeView === "analytics" && (
           <>
             <SubTabs
@@ -452,7 +440,7 @@ export default function TeacherDashboardPage({
                     {assessments.length === 0 ? (
                       <div className="teacher-empty-panel">
                         <strong>No students in the roster yet</strong>
-                        <p>Add students from the Students section to see their linked assessment history here.</p>
+                        <p>Once students are added to the database, their assessment history will show up here.</p>
                       </div>
                     ) : (
                       <div className="student-assessment-list">

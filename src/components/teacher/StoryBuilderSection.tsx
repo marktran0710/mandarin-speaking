@@ -309,14 +309,9 @@ export default function StoryBuilderSection({
   const [vocabDraftGeneration, setVocabDraftGeneration] = useState(0);
   const [vocabFillLoadingIndex, setVocabFillLoadingIndex] = useState<number | null>(null);
   const [vocabFillError, setVocabFillError] = useState("");
-  const [distractorGenLoadingIndex, setDistractorGenLoadingIndex] = useState<number | null>(null);
-  const [distractorGenError, setDistractorGenError] = useState("");
   const [phraseDraftGeneration, setPhraseDraftGeneration] = useState(0);
   const [phraseFillLoadingIndex, setPhraseFillLoadingIndex] = useState<number | null>(null);
   const [phraseFillError, setPhraseFillError] = useState("");
-  const [modelVoiceLoadingIndex, setModelVoiceLoadingIndex] = useState<number | null>(null);
-  const [modelVoiceError, setModelVoiceError] = useState("");
-  const [modelVoiceWordCount, setModelVoiceWordCount] = useState<Record<number, number>>({});
   // Frame index currently being recorded via the mic (null when idle) — a
   // teacher's own reading of the listening passage, as an alternative to
   // uploading a file or falling back to TTS.
@@ -701,106 +696,6 @@ export default function StoryBuilderSection({
       );
     } finally {
       setPhraseFillLoadingIndex(null);
-    }
-  };
-
-  // Synthesizes this scene's model sentence via TTS and approximately slices
-  // each vocabulary word's own reference clip out of it (see
-  // reference_voice.py) — the resulting audio becomes both what students
-  // hear before recording and the real-voice standard the scoring engine
-  // grades against. Unlike the AI-assist handlers above, this persists
-  // straight to the saved story (the same direct-write pattern the
-  // vocabulary-distractors/cloze/synonym pool endpoints already use), so it
-  // only works once the story has been saved at least once.
-  const handleGenerateModelVoice = async (index: number) => {
-    if (!editingStoryId) {
-      setModelVoiceError("Save the story once before generating model voice.");
-      return;
-    }
-    const level = customDraft.activeLevel;
-    setModelVoiceError("");
-    setModelVoiceLoadingIndex(index);
-    try {
-      const response = await fetch(
-        `${BACKEND_URL}/api/custom-stories/${editingStoryId}/generate-model-voice`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ frameIndex: index, tier: level }),
-        },
-      );
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || "Could not generate model voice for this scene.");
-      }
-      const suffix = level === "easy" ? "" : level === "medium" ? "Medium" : "Hard";
-      const result = (await response.json()) as Record<string, string>;
-      updateDraftFrame("listenAudioUrls", index, result[`listenAudioUrl${suffix}`] ?? "");
-      updateDraftFrame("listenAudioSources", index, "tts");
-      updateDraftFrame("listenScripts", index, result[`listenScript${suffix}`] ?? "");
-      const audioUrls = JSON.parse(result[`vocabularyAudioUrls${suffix}`] ?? "[]") as (
-        | string
-        | null
-      )[];
-      setModelVoiceWordCount((counts) => ({
-        ...counts,
-        [index]: audioUrls.filter(Boolean).length,
-      }));
-    } catch (error) {
-      setModelVoiceError(
-        error instanceof Error ? error.message : "Could not generate model voice for this scene.",
-      );
-    } finally {
-      setModelVoiceLoadingIndex(null);
-    }
-  };
-
-  // Generates AI distractors for a scene's vocab quiz once, when the teacher
-  // has words + translations ready — cached in the draft (and persisted with
-  // the story on save) rather than regenerated per student attempt.
-  const handleGenerateQuizDistractors = async (index: number) => {
-    const level = customDraft.activeLevel;
-    const rows = buildVocabRows(
-      customDraft.vocabulary[level][index] ?? "",
-      customDraft.vocabularyPinyin[level][index] ?? "",
-      customDraft.vocabularyPos[level][index] ?? "",
-      customDraft.vocabularyTranslation[level][index] ?? "",
-    ).filter((row) => row.word.trim() && row.translation.trim());
-    if (rows.length === 0) return;
-
-    const context = customDraft.suggestedAnswers[level][index]?.trim() || undefined;
-    setDistractorGenError("");
-    setDistractorGenLoadingIndex(index);
-    try {
-      const response = await fetch(`${BACKEND_URL}/api/vocab-quiz-distractors`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          words: rows.map((row) => ({ word: row.word, translation: row.translation, context })),
-        }),
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.detail || "Could not generate quiz distractors for these words.");
-      }
-      const { results } = (await response.json()) as {
-        results: { word: string; distractors: string[] }[];
-      };
-      const byWord = new Map(results.map((r) => [r.word, r.distractors]));
-      const aligned = rows.map((row) => byWord.get(row.word) ?? []);
-
-      setCustomDraft((draft) => ({
-        ...draft,
-        vocabularyDistractors: draft.vocabularyDistractors.map((v, i) =>
-          i === index ? JSON.stringify(aligned) : v,
-        ),
-      }));
-    } catch (error) {
-      setDistractorGenError(
-        error instanceof Error ? error.message : "Could not generate quiz distractors for these words.",
-      );
-    } finally {
-      setDistractorGenLoadingIndex(null);
     }
   };
 
@@ -1237,25 +1132,6 @@ export default function StoryBuilderSection({
                     vocabularyTranslation={customDraft.vocabularyTranslation[level][index] ?? ""}
                     onChangeColumn={(field, value) => updateDraftFrame(field, index, value)}
                   />
-                  <button
-                    type="button"
-                    className="btn-vocab-autofill"
-                    disabled={
-                      !customDraft.vocabulary[level][index]?.trim() ||
-                      !customDraft.vocabularyTranslation[level][index]?.trim() ||
-                      distractorGenLoadingIndex === index
-                    }
-                    onClick={() => handleGenerateQuizDistractors(index)}
-                  >
-                    {distractorGenLoadingIndex === index
-                      ? "Generating…"
-                      : customDraft.vocabularyDistractors[index]?.trim()
-                        ? "🤖 Regenerate quiz distractors"
-                        : "🤖 Generate quiz distractors"}
-                  </button>
-                  {distractorGenError && distractorGenLoadingIndex === null && (
-                    <span className="teacher-form-error">{distractorGenError}</span>
-                  )}
                   <PhraseTable
                     key={`${phraseDraftGeneration}-phrases-${index}-${level}`}
                     phrases={customDraft.phrases[level][index] ?? ""}
@@ -1295,65 +1171,39 @@ export default function StoryBuilderSection({
                           </p>
                         );
                       })()}
-                      <button
-                        type="button"
-                        className="btn-vocab-autofill"
-                        disabled={
-                          !customDraft.suggestedAnswers[level][index]?.trim() ||
-                          vocabFillLoadingIndex === index
-                        }
-                        onClick={() => handleFillVocabFromSentence(index)}
-                      >
-                        {vocabFillLoadingIndex === index
-                          ? "Filling…"
-                          : "✨ Fill vocabulary table from this sentence"}
-                      </button>
+                      <div className="teacher-sentence-tools">
+                        <button
+                          type="button"
+                          className="btn-vocab-autofill-sm"
+                          disabled={
+                            !customDraft.suggestedAnswers[level][index]?.trim() ||
+                            vocabFillLoadingIndex === index
+                          }
+                          title="Fill the vocabulary table from this sentence"
+                          onClick={() => handleFillVocabFromSentence(index)}
+                        >
+                          {vocabFillLoadingIndex === index ? "Filling…" : "✨ Fill vocab"}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-vocab-autofill-sm"
+                          disabled={
+                            !customDraft.suggestedAnswers[level][index]?.trim() ||
+                            phraseFillLoadingIndex === index
+                          }
+                          title={`Generate ${PHRASE_COUNT_BY_LEVEL[customDraft.activeLevel]} phrase${PHRASE_COUNT_BY_LEVEL[customDraft.activeLevel] > 1 ? "s" : ""} from this sentence`}
+                          onClick={() => handleFillPhrasesFromSentence(index)}
+                        >
+                          {phraseFillLoadingIndex === index
+                            ? "Generating…"
+                            : `✨ +${PHRASE_COUNT_BY_LEVEL[customDraft.activeLevel]} phrase${PHRASE_COUNT_BY_LEVEL[customDraft.activeLevel] > 1 ? "s" : ""}`}
+                        </button>
+                      </div>
                       {vocabFillError && vocabFillLoadingIndex === null && (
                         <span className="teacher-form-error">{vocabFillError}</span>
                       )}
-                      <button
-                        type="button"
-                        className="btn-vocab-autofill"
-                        disabled={
-                          !customDraft.suggestedAnswers[level][index]?.trim() ||
-                          phraseFillLoadingIndex === index
-                        }
-                        onClick={() => handleFillPhrasesFromSentence(index)}
-                      >
-                        {phraseFillLoadingIndex === index
-                          ? "Generating…"
-                          : `✨ Generate ${PHRASE_COUNT_BY_LEVEL[customDraft.activeLevel]} phrase${PHRASE_COUNT_BY_LEVEL[customDraft.activeLevel] > 1 ? "s" : ""} from this sentence`}
-                      </button>
                       {phraseFillError && phraseFillLoadingIndex === null && (
                         <span className="teacher-form-error">{phraseFillError}</span>
-                      )}
-                      <button
-                        type="button"
-                        className="btn-vocab-autofill"
-                        disabled={
-                          !customDraft.suggestedAnswers[level][index]?.trim() ||
-                          modelVoiceLoadingIndex === index ||
-                          !editingStoryId
-                        }
-                        title={
-                          !editingStoryId
-                            ? "Save the story once before generating model voice"
-                            : undefined
-                        }
-                        onClick={() => handleGenerateModelVoice(index)}
-                      >
-                        {modelVoiceLoadingIndex === index
-                          ? "Generating model voice…"
-                          : "🔊 Generate model voice (TTS)"}
-                      </button>
-                      {modelVoiceWordCount[index] !== undefined && (
-                        <span className="teacher-form-hint">
-                          Model voice ready — sentence + {modelVoiceWordCount[index]} word clip
-                          {modelVoiceWordCount[index] === 1 ? "" : "s"}.
-                        </span>
-                      )}
-                      {modelVoiceError && modelVoiceLoadingIndex === null && (
-                        <span className="teacher-form-error">{modelVoiceError}</span>
                       )}
                       <label className="teacher-file-upload">
                         Upload teacher reference audio (optional)

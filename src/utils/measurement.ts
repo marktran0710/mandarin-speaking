@@ -82,16 +82,6 @@ export function recordMeasurementEvent(event: MeasurementEvent): void {
   void persistMeasurementEvent(event).catch(() => {});
 }
 
-export function readMeasurementEvents(): MeasurementEvent[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const stored = JSON.parse(window.localStorage.getItem(MEASUREMENT_STORAGE_KEY) ?? "[]");
-    return Array.isArray(stored) ? stored as MeasurementEvent[] : [];
-  } catch {
-    return [];
-  }
-}
-
 export function summarizeMeasurements(
   records: Array<{ praatMetrics?: { tone_accuracy?: number; fluency_score?: number; pronunciation_mastery?: { passed?: boolean; status?: string }; feedback_quality?: { status?: string } } }>,
 ): MeasurementSummary {

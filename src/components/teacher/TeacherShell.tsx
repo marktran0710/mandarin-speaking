@@ -10,7 +10,6 @@ export type TeacherView =
   | "submissions"
   | "recordingsHelp"
   | "materials"
-  | "students"
   | "analytics";
 
 interface SidebarItem {
@@ -66,10 +65,7 @@ export default function TeacherShell({
     },
     {
       label: "Teaching",
-      items: [
-        { id: "materials", icon: "📚", label: "Materials" },
-        { id: "students", icon: "🧑‍🎓", label: "Students" },
-      ],
+      items: [{ id: "materials", icon: "📚", label: "Materials" }],
     },
     {
       label: "Data",

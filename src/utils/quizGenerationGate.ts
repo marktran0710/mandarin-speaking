@@ -25,16 +25,10 @@ export interface GeneratedSynonymResult {
   distractors: string[];
 }
 
-export interface GeneratedLookalikeResult {
-  word: string;
-  lookalikes: string[];
-}
-
 export interface GeneratedQuizMaterial {
   distractors: GeneratedDistractorResult[];
   cloze: GeneratedClozeResult[];
   synonym: GeneratedSynonymResult[];
-  lookalike: GeneratedLookalikeResult[];
 }
 
 export interface ProtectedGeneratedQuizMaterial extends GeneratedQuizMaterial {
@@ -168,20 +162,5 @@ export function protectGeneratedQuizMaterial(
     else removedCount += 1;
   }
 
-  const lookalike: GeneratedLookalikeResult[] = [];
-  const seenLookalikeWords = new Set<string>();
-  for (const result of generated.lookalike) {
-    const word = normalizeQuizExposure(result.word);
-    if (!wordAnswers.has(word) || seenLookalikeWords.has(word)) {
-      removedCount += 1;
-      continue;
-    }
-    seenLookalikeWords.add(word);
-    const safe = uniqueValues(result.lookalikes, chineseAnswers);
-    removedCount += result.lookalikes.length - safe.length;
-    if (safe.length) lookalike.push({ ...result, lookalikes: safe });
-    else removedCount += 1;
-  }
-
-  return { distractors, cloze, synonym, lookalike, removedCount };
+  return { distractors, cloze, synonym, removedCount };
 }

@@ -10,8 +10,7 @@ import { toPinyin } from "./pinyin";
 import type { CustomTeacherStory } from "./teacherStories";
 
 /** Just the story fields the quiz is built from. Structural on purpose:
- * TopicSelector and StoryRecorder each declare their own `Topic` and the
- * two have drifted (only one declares vocabularyLookalike), so naming
+ * TopicSelector and StoryRecorder each declare their own `Topic`, so naming
  * either of them here would reject the other. */
 export interface QuizSourceTopic {
   images: string[];
@@ -23,7 +22,6 @@ export interface QuizSourceTopic {
   vocabularyCloze?: Record<number, Array<{ sentence: string; distractors: string[] }[]>>;
   vocabularyPos?: Record<number, string[]>;
   vocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
-  vocabularyLookalike?: Record<number, string[][]>;
   /** Present on teacher-authored topics (see teacherStories.ts's
    * storyToTopic) — carries quizExclusions so a teacher's Quiz Review marks
    * actually take effect here instead of only being saved and ignored. */
@@ -46,7 +44,6 @@ export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
   const aiCloze: Array<Array<{ sentence: string; distractors: string[] }> | undefined> = [];
   const partsOfSpeech: Array<string | undefined> = [];
   const aiSynonyms: Array<Array<{ synonym: string; distractors: string[] }> | undefined> = [];
-  const aiLookalikes: Array<string[] | undefined> = [];
   const exclusions = topic.sourceStory ? storyQuizExclusions(topic.sourceStory) : [];
   topic.images.forEach((_, si) => {
     const sceneSuggestedAnswer = topic.suggestedAnswers?.[si];
@@ -57,7 +54,6 @@ export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
           aiDistractors: topic.vocabularyDistractors?.[si]?.[i],
           aiCloze: topic.vocabularyCloze?.[si]?.[i],
           aiSynonyms: topic.vocabularySynonym?.[si]?.[i],
-          aiLookalikes: topic.vocabularyLookalike?.[si]?.[i],
         },
         exclusions,
       );
@@ -79,7 +75,6 @@ export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
       aiCloze.push(filtered.aiCloze);
       partsOfSpeech.push(topic.vocabularyPos?.[si]?.[i]);
       aiSynonyms.push(filtered.aiSynonyms);
-      aiLookalikes.push(filtered.aiLookalikes);
     });
   });
   return collectQuizEntries(
@@ -91,7 +86,6 @@ export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
     aiCloze,
     partsOfSpeech,
     aiSynonyms,
-    aiLookalikes,
   );
 }
 

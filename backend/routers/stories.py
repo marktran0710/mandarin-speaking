@@ -14,7 +14,6 @@ from main import (
     QuizQuestionReplaceRequest,
     VocabularyClozeUpdateRequest,
     VocabularyDistractorsUpdateRequest,
-    VocabularyLookalikeUpdateRequest,
     VocabularySynonymUpdateRequest,
 )
 from reference_voice import generate_scene_reference
@@ -196,50 +195,6 @@ async def update_vocabulary_distractors(
             _write_frame_field(
                 db, story_id, update.frameIndex, "vocabularyDistractors",
                 frame["vocabularyDistractors"],
-            )
-    return {"ok": True}
-
-
-@router.patch("/api/custom-stories/{story_id}/vocabulary-lookalike")
-async def update_vocabulary_lookalike(
-    story_id: str, request: VocabularyLookalikeUpdateRequest
-):
-    """
-    Tops up a story's per-word look-alike pool (the tier-3 quiz's
-    face-confusion traps), mirroring update_vocabulary_distractors above —
-    merges new characters into the existing list per word, deduping and
-    capping at MAX_VOCAB_LOOKALIKE_PER_WORD.
-    """
-    with connect_db() as db:
-        frames = _load_frames(db, story_id)
-        for update in request.updates:
-            if update.frameIndex < 0 or update.frameIndex >= len(frames):
-                continue
-            if update.wordIndex < 0:
-                continue
-            frame = frames[update.frameIndex]
-            pool = _existing_pool(frame, "vocabularyLookalike")
-            while len(pool) <= update.wordIndex:
-                pool.append([])
-
-            existing = pool[update.wordIndex]
-            seen = {c.strip() for c in existing}
-            merged = list(existing)
-            for lookalike in update.lookalikes:
-                lookalike = lookalike.strip()
-                if (
-                    not lookalike
-                    or lookalike in seen
-                    or len(merged) >= main.MAX_VOCAB_LOOKALIKE_PER_WORD
-                ):
-                    continue
-                seen.add(lookalike)
-                merged.append(lookalike)
-            pool[update.wordIndex] = merged
-            frame["vocabularyLookalike"] = json.dumps(pool, ensure_ascii=False)
-            _write_frame_field(
-                db, story_id, update.frameIndex, "vocabularyLookalike",
-                frame["vocabularyLookalike"],
             )
     return {"ok": True}
 

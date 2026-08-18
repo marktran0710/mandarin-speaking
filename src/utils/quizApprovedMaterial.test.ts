@@ -20,7 +20,6 @@ function topic(): QuizSourceTopic {
       1: [[{ sentence: "他不知道這件事。", distractors: ["認識"] }]],
     },
     vocabularySynonym: { 0: [[{ synonym: "曉得", distractors: ["不懂"] }], []], 1: [[]] },
-    vocabularyLookalike: { 0: [["知到"], []], 1: [["duplicate-lookalike"]] },
   };
 }
 
@@ -46,11 +45,6 @@ describe("buildApprovedMaterial", () => {
     expect(zhidao.cloze).toEqual([]);
     expect(zhidao.distractors).toEqual(["to see", "to hear"]);
   });
-
-  it("includes lookalike pools alongside the other AI pools", () => {
-    const entries = buildApprovedMaterial(topic(), []);
-    expect(entries.find((e) => e.word === "知道")!.lookalike).toEqual(["知到"]);
-  });
 });
 
 describe("published wrong-option cap", () => {
@@ -75,7 +69,7 @@ describe("storyApprovedSnapshot", () => {
 
   it("returns the stored entries for an approved tier, including an empty approved list", () => {
     expect(storyApprovedSnapshot({ quizApprovedSnapshot: { easy: [] } }, "easy")).toEqual([]);
-    const entries = [{ word: "知道", distractors: [], cloze: [], synonym: [], lookalike: [] }];
+    const entries = [{ word: "知道", distractors: [], cloze: [], synonym: [] }];
     expect(storyApprovedSnapshot({ quizApprovedSnapshot: { easy: entries } }, "easy")).toEqual(entries);
   });
 });
@@ -110,24 +104,14 @@ describe("buildApprovedMaterialFromApprovals", () => {
     );
     expect(entries.map((e) => e.word)).toEqual(["知道"]);
   });
-
-  it("lookalike still follows the exclude/trash toggle, not a checkbox", () => {
-    const withLookalike = buildApprovedMaterialFromApprovals(topic(), [], []);
-    expect(withLookalike.find((e) => e.word === "知道")!.lookalike).toEqual(["知到"]);
-
-    const excluded = buildApprovedMaterialFromApprovals(topic(), [], [
-      { word: "知道", kind: "lookalike" },
-    ]);
-    expect(excluded.find((e) => e.word === "知道")!.lookalike).toEqual([]);
-  });
 });
 
 describe("storyQuizNeedsReview", () => {
   const withAi: ApprovedMaterialEntry[] = [
-    { word: "知道", translation: "to know", distractors: ["a", "b", "c"], cloze: [], synonym: [], lookalike: [] },
+    { word: "知道", translation: "to know", distractors: ["a", "b", "c"], cloze: [], synonym: [] },
   ];
   const noAi: ApprovedMaterialEntry[] = [
-    { word: "知道", translation: "to know", distractors: [], cloze: [], synonym: [], lookalike: [] },
+    { word: "知道", translation: "to know", distractors: [], cloze: [], synonym: [] },
   ];
 
   it("false when the story has no AI material at all — nothing to review", () => {

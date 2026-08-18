@@ -44,16 +44,12 @@ export interface CustomStoryFrame {
   // is a list of AI-generated {synonym, distractors} candidates, grown the
   // same way vocabularyCloze is.
   vocabularySynonym?: string;
-  // JSON-encoded array of arrays (one entry per word) — each word's entry
-  // is a list of AI-generated visually-confusable words (喝/渴), grown the
-  // same way vocabularyDistractors is.
-  vocabularyLookalike?: string;
   suggestedAnswer?: string;
   listenAudioUrl?: string;
   listenAudioSource?: "teacher" | "tts";
   listenScript?: string;
   // Model-voice reference audio, one per word in this tier's own vocabulary
-  // list (unlike vocabularyDistractors/Lookalike/Cloze/Synonym above, these
+  // list (unlike vocabularyDistractors/Cloze/Synonym above, these
   // ARE tiered — see storyToTopic). JSON-encoded array of URLs (a null entry
   // means that word's clip couldn't be sliced) and, in parallel, an array of
   // 100-point [0,1] pitch-shape curves the scoring engine sends back to the
@@ -267,7 +263,6 @@ export function storyToTopic(
   const vocabularyPos: Record<number, string[]> = {};
   const vocabularyTranslation: Record<number, string[]> = {};
   const vocabularyDistractors: Record<number, string[][]> = {};
-  const vocabularyLookalike: Record<number, string[][]> = {};
   const vocabularyCloze: Record<number, Array<{ sentence: string; distractors: string[] }[]>> = {};
   const vocabularySynonym: Record<number, Array<{ synonym: string; distractors: string[] }[]>> = {};
   const suggestedAnswers: Record<number, string> = {};
@@ -312,7 +307,7 @@ export function storyToTopic(
         .split(",")
         .map((t) => t.trim());
     }
-    // The per-word AI arrays below (distractors/lookalike/cloze/synonym)
+    // The per-word AI arrays below (distractors/cloze/synonym)
     // exist only for the Easy word list — they're index-aligned to
     // frame.vocabulary. When this tier authored its OWN vocabulary, that
     // alignment is meaningless: word[i] would inherit a different word's
@@ -333,20 +328,6 @@ export function storyToTopic(
           const parsed = JSON.parse(frame.vocabularyDistractors);
           if (Array.isArray(parsed)) {
             vocabularyDistractors[index] = parsed.map((row) =>
-              Array.isArray(row) ? row.filter((d): d is string => typeof d === "string") : [],
-            );
-          }
-        } catch {
-          // Malformed/stale data — treat as absent rather than breaking the quiz.
-        }
-      }
-      // Same "not tiered, AI-grown rather than authored" story as
-      // vocabularyDistractors above.
-      if (tierUsesEasyVocabulary && frame.vocabularyLookalike && frame.vocabularyLookalike.trim()) {
-        try {
-          const parsed = JSON.parse(frame.vocabularyLookalike);
-          if (Array.isArray(parsed)) {
-            vocabularyLookalike[index] = parsed.map((row) =>
               Array.isArray(row) ? row.filter((d): d is string => typeof d === "string") : [],
             );
           }
@@ -400,7 +381,6 @@ export function storyToTopic(
       // pools, same as a story that's never had any generated at all.
       const words = vocabulary[index] || [];
       vocabularyDistractors[index] = words.map((word) => approvedByWord.get(word)?.distractors ?? []);
-      vocabularyLookalike[index] = words.map((word) => approvedByWord.get(word)?.lookalike ?? []);
       vocabularyCloze[index] = words.map((word) => approvedByWord.get(word)?.cloze ?? []);
       vocabularySynonym[index] = words.map((word) => approvedByWord.get(word)?.synonym ?? []);
     }
@@ -506,7 +486,6 @@ export function storyToTopic(
     ...(Object.keys(vocabularyPos).length > 0 ? { vocabularyPos } : {}),
     ...(Object.keys(vocabularyTranslation).length > 0 ? { vocabularyTranslation } : {}),
     ...(Object.keys(vocabularyDistractors).length > 0 ? { vocabularyDistractors } : {}),
-    ...(Object.keys(vocabularyLookalike).length > 0 ? { vocabularyLookalike } : {}),
     ...(Object.keys(vocabularyCloze).length > 0 ? { vocabularyCloze } : {}),
     ...(Object.keys(vocabularySynonym).length > 0 ? { vocabularySynonym } : {}),
     ...(Object.keys(suggestedAnswers).length > 0 ? { suggestedAnswers } : {}),

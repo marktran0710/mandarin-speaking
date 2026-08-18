@@ -45,7 +45,7 @@ class TestQuizExclusions:
 
     def test_put_replaces_wholesale(self, story_client):
         first = [{"word": "喝", "kind": "word"}]
-        second = [{"word": "茶", "kind": "lookalike"}]
+        second = [{"word": "茶", "kind": "distractors"}]
         story_client.put(
             "/api/custom-stories/story-quiz-x/quiz-exclusions",
             json={"exclusions": first},

@@ -18,7 +18,6 @@ export interface ApprovedMaterialEntry {
   distractors: string[];
   cloze: Array<{ sentence: string; distractors: string[] }>;
   synonym: Array<{ synonym: string; distractors: string[] }>;
-  lookalike: string[];
 }
 
 export type ApprovedSnapshot = ApprovedMaterialEntry[];
@@ -56,7 +55,7 @@ export function storyQuizNeedsReview(
   level: StoryDifficultyLevel,
 ): boolean {
   const hasAnyAiMaterial = liveEntries.some(
-    (e) => e.distractors.length || e.cloze.length || e.synonym.length || e.lookalike.length,
+    (e) => e.distractors.length || e.cloze.length || e.synonym.length,
   );
   if (!hasAnyAiMaterial) return false; // nothing AI-generated exists yet to review
   const approved = storyApprovedSnapshot(story, level);
@@ -87,7 +86,6 @@ export function buildApprovedMaterial(
           aiDistractors: topic.vocabularyDistractors?.[si]?.[wi],
           aiCloze: topic.vocabularyCloze?.[si]?.[wi],
           aiSynonyms: topic.vocabularySynonym?.[si]?.[wi],
-          aiLookalikes: topic.vocabularyLookalike?.[si]?.[wi],
         },
         exclusions,
       );
@@ -104,7 +102,6 @@ export function buildApprovedMaterial(
           ...candidate,
           distractors: candidate.distractors.slice(0, MAX_PUBLISHED_WRONG_OPTIONS),
         })),
-        lookalike: filtered.aiLookalikes ?? [],
       });
     });
   });
@@ -114,10 +111,7 @@ export function buildApprovedMaterial(
 /** Builds what "Approve & Publish" actually sends once Quiz Review moved to
  * opt-in checkboxes: a distractors/cloze/synonym item only makes it in if
  * the teacher explicitly checked it (allowlist, gated on having survived a
- * Validate pass first — see TeacherQuizReviewPage). lookalike has no
- * checkbox of its own (it's a plain word-confusion list, not a question
- * with a right/wrong answer to validate) — it keeps using the older
- * exclude/trash mechanism, same as a whole-word drop. */
+ * Validate pass first — see TeacherQuizReviewPage). */
 export function buildApprovedMaterialFromApprovals(
   topic: QuizSourceTopic,
   approvals: QuizApprovalMark[],
@@ -150,9 +144,6 @@ export function buildApprovedMaterialFromApprovals(
             ...candidate,
             distractors: candidate.distractors.slice(0, MAX_PUBLISHED_WRONG_OPTIONS),
           })),
-        lookalike: isExcluded(exclusions, word, "lookalike")
-          ? []
-          : topic.vocabularyLookalike?.[si]?.[wi] ?? [],
       });
     });
   });

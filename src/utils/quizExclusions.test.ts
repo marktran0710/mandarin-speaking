@@ -15,7 +15,6 @@ const material = {
     { sentence: "我____一家咖啡廳。", distractors: ["認識"] },
   ],
   aiSynonyms: [{ synonym: "曉得", distractors: ["不懂"] }],
-  aiLookalikes: ["知到"],
 };
 
 describe("quizExclusions", () => {
@@ -50,15 +49,12 @@ describe("quizExclusions", () => {
     expect(next.aiSynonyms).toEqual([]);
     // Untouched pools survive.
     expect(next.aiDistractors).toEqual(material.aiDistractors);
-    expect(next.aiLookalikes).toEqual(material.aiLookalikes);
   });
 
-  it("lookalike/distractor exclusions empty their pools", () => {
+  it("distractor exclusions empty their pool", () => {
     const next = applyExclusionsToWord("知道", material, [
-      { word: "知道", kind: "lookalike" },
       { word: "知道", kind: "distractors" },
     ])!;
-    expect(next.aiLookalikes).toEqual([]);
     expect(next.aiDistractors).toEqual([]);
     expect(next.aiCloze).toHaveLength(2);
   });

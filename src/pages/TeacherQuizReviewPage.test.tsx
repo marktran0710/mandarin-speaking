@@ -60,11 +60,9 @@ vi.mock("../services/database", async (importOriginal) => {
     generateVocabDistractors: vi.fn(async () => []),
     generateVocabCloze: vi.fn(async () => []),
     generateVocabSynonym: vi.fn(async () => []),
-    generateVocabLookalike: vi.fn(async () => []),
     updateVocabularyDistractors: vi.fn(async () => {}),
     updateVocabularyCloze: vi.fn(async () => {}),
     updateVocabularySynonym: vi.fn(async () => {}),
-    updateVocabularyLookalike: vi.fn(async () => {}),
   };
 });
 
@@ -92,7 +90,7 @@ describe("TeacherQuizReviewPage", () => {
     )).toBeInTheDocument();
 
     // distractors/cloze/synonym no longer have their own trash button (the
-    // opt-in checkbox flow governs those); "word" and "lookalike" still do.
+    // opt-in checkbox flow governs those); "word" still does.
     await userEvent
       .setup()
       .click(screen.getByRole("button", { name: "Exclude word for 一起" }));
@@ -390,7 +388,6 @@ describe("Generate / Update Questions", () => {
         vocabulary: "alpha",
         vocabularyTranslation: "first letter",
         vocabularyDistractors: JSON.stringify([["d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8"]]),
-        vocabularyLookalike: JSON.stringify([["l1", "l2", "l3", "l4", "l5", "l6"]]),
         vocabularyCloze: JSON.stringify([
           [
             { sentence: "alpha cloze one", distractors: ["c1"] },
@@ -463,7 +460,6 @@ describe("Generate / Update Questions", () => {
       generateVocabDistractors,
       generateVocabCloze,
       generateVocabSynonym,
-      generateVocabLookalike,
       updateVocabularyDistractors,
     } = await import("../services/database");
     (generateVocabDistractors as ReturnType<typeof vi.fn>).mockResolvedValue([
@@ -471,7 +467,6 @@ describe("Generate / Update Questions", () => {
     ]);
     (generateVocabCloze as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    (generateVocabLookalike as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
     setStories([storyWithNoMaterial]);
     render(<TeacherQuizReviewPage />);
@@ -502,7 +497,6 @@ describe("Generate / Update Questions", () => {
       generateVocabDistractors,
       generateVocabCloze,
       generateVocabSynonym,
-      generateVocabLookalike,
       updateVocabularyDistractors,
     } = await import("../services/database");
     (generateVocabDistractors as ReturnType<typeof vi.fn>).mockResolvedValue([
@@ -510,7 +504,6 @@ describe("Generate / Update Questions", () => {
     ]);
     (generateVocabCloze as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    (generateVocabLookalike as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
     setStories([storyWithNoMaterial]);
     render(<TeacherQuizReviewPage />);
@@ -653,12 +646,12 @@ describe("Generate / Update Questions", () => {
   });
 
   it("Accept All decides every still-pending candidate at once", async () => {
-    const { generateVocabDistractors, generateVocabLookalike } = await import("../services/database");
+    const { generateVocabDistractors, generateVocabCloze } = await import("../services/database");
     (generateVocabDistractors as ReturnType<typeof vi.fn>).mockResolvedValue([
       { word: "知道", distractors: ["to see", "to hear", "to say"] },
     ]);
-    (generateVocabLookalike as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { word: "知道", lookalikes: ["知到"] },
+    (generateVocabCloze as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { word: "知道", sentence: "我不知道。", distractors: ["認識"] },
     ]);
 
     setStories([storyWithNoMaterial]);
@@ -667,7 +660,7 @@ describe("Generate / Update Questions", () => {
     await screen.findByText("知道");
     await user.click(screen.getByRole("button", { name: /Generate Questions/ }));
     await screen.findByText(/New distractors/);
-    await screen.findByText(/New look-alikes/);
+    await screen.findByText("我不＿＿＿。");
 
     await user.click(screen.getByRole("button", { name: /Accept All/ }));
 
@@ -677,13 +670,12 @@ describe("Generate / Update Questions", () => {
   });
 
   it("a rejected candidate is discarded, not persisted, when Apply runs", async () => {
-    const { generateVocabDistractors, generateVocabCloze, generateVocabSynonym, generateVocabLookalike, updateVocabularyDistractors } = await import("../services/database");
+    const { generateVocabDistractors, generateVocabCloze, generateVocabSynonym, updateVocabularyDistractors } = await import("../services/database");
     (generateVocabDistractors as ReturnType<typeof vi.fn>).mockResolvedValue([
       { word: "知道", distractors: ["to see", "to hear", "to say"] },
     ]);
     (generateVocabCloze as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    (generateVocabLookalike as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
     setStories([storyWithNoMaterial]);
     render(<TeacherQuizReviewPage />);
@@ -704,7 +696,6 @@ describe("Generate / Update Questions", () => {
       generateVocabDistractors,
       generateVocabCloze,
       generateVocabSynonym,
-      generateVocabLookalike,
       replaceQuizQuestion,
       updateVocabularySynonym,
       validateQuizMaterial,
@@ -725,7 +716,6 @@ describe("Generate / Update Questions", () => {
     ]);
     (generateVocabDistractors as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (generateVocabCloze as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    (generateVocabLookalike as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([
       { word: "知道", synonym: "new match", distractors: ["new miss"] },
     ]);
@@ -757,7 +747,7 @@ describe("Generate / Update Questions", () => {
   });
 
   it("stages a repeated vocabulary word only once across scenes", async () => {
-    const { generateVocabDistractors, generateVocabCloze, generateVocabSynonym, generateVocabLookalike } = await import("../services/database");
+    const { generateVocabDistractors, generateVocabCloze, generateVocabSynonym } = await import("../services/database");
     const repeatedWordStory: CustomTeacherStory = {
       ...storyWithNoMaterial,
       id: "s-repeated",
@@ -771,7 +761,6 @@ describe("Generate / Update Questions", () => {
     ]);
     (generateVocabCloze as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     (generateVocabSynonym as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-    (generateVocabLookalike as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
     setStories([repeatedWordStory]);
     render(<TeacherQuizReviewPage />);

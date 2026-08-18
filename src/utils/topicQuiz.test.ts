@@ -21,7 +21,6 @@ function makeTopic(quizExclusions: QuizExclusion[]): QuizSourceTopic {
     vocabularySynonym: {
       0: [[{ synonym: "曉得", distractors: ["不懂"] }], []],
     },
-    vocabularyLookalike: { 0: [["知到"], []] },
     // Cast: quizExclusions is read off sourceStory structurally by
     // storyQuizExclusions, so a minimal stub is enough here.
     sourceStory: { quizExclusions } as unknown as QuizSourceTopic["sourceStory"],

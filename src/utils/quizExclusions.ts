@@ -2,14 +2,13 @@ import type { CustomTeacherStory } from "./teacherStories";
 
 /** Teacher-marked bad quiz material (see TeacherQuizReviewPage): a whole
  * word, one candidate of a per-word AI pool (cloze/synonym with index), or
- * a word's whole lookalike/distractor pool. Stored per story on the
- * backend (custom_stories.quiz_exclusions) and applied when the quiz
- * builds its entry pool, so excluded material never becomes a question. */
+ * a word's whole distractor pool. Stored per story on the backend
+ * (custom_stories.quiz_exclusions) and applied when the quiz builds its
+ * entry pool, so excluded material never becomes a question. */
 export type QuizExclusionKind =
   | "word"
   | "cloze"
   | "synonym"
-  | "lookalike"
   | "distractors";
 
 export interface QuizExclusion {
@@ -63,7 +62,6 @@ export interface WordQuizMaterial {
   aiCloze?: Array<{ sentence: string; distractors: string[] }>;
   pos?: string;
   aiSynonyms?: Array<{ synonym: string; distractors: string[] }>;
-  aiLookalikes?: string[];
 }
 
 export interface QuizMarksExportFile {
@@ -149,9 +147,6 @@ export function applyExclusionsToWord(
     next.aiSynonyms = material.aiSynonyms.filter(
       (_s, i) => !isExcluded(exclusions, word, "synonym", i),
     );
-  }
-  if (material.aiLookalikes && isExcluded(exclusions, word, "lookalike")) {
-    next.aiLookalikes = [];
   }
   if (material.aiDistractors && isExcluded(exclusions, word, "distractors")) {
     next.aiDistractors = [];

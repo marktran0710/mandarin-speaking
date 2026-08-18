@@ -141,7 +141,6 @@ describe("StoryBuilderSection – quiz needs review badge", () => {
             distractors: ["a", "b", "c"],
             cloze: [],
             synonym: [],
-            lookalike: [],
           },
         ],
       },
