@@ -24,8 +24,8 @@ OPENAI_API_KEY = clean_api_key(os.getenv("OPENAI_API_KEY") or os.getenv("VITE_OP
 GEMINI_API_KEY = clean_api_key(os.getenv("GEMINI_API_KEY") or os.getenv("VITE_GEMINI_API_KEY"))
 GROQ_API_KEY = clean_api_key(os.getenv("GROQ_API_KEY") or os.getenv("VITE_GROQ_API_KEY"))
 OPENAI_FEEDBACK_MODEL = os.getenv("OPENAI_FEEDBACK_MODEL", "gpt-4o-mini")
-GEMINI_FEEDBACK_MODEL = os.getenv("GEMINI_FEEDBACK_MODEL", "gemini-2.0-flash")
-GROQ_FEEDBACK_MODEL = os.getenv("GROQ_FEEDBACK_MODEL", "llama-3.3-70b-versatile")
+GEMINI_FEEDBACK_MODEL = os.getenv("GEMINI_FEEDBACK_MODEL", "gemini-3.6-flash")
+GROQ_FEEDBACK_MODEL = os.getenv("GROQ_FEEDBACK_MODEL", "openai/gpt-oss-120b")
 AI_FEEDBACK_PROVIDER = os.getenv("AI_FEEDBACK_PROVIDER", "local").lower()
 
 
@@ -834,6 +834,12 @@ async def assess_audio_with_gemini(
         "generationConfig": {
             "temperature": 0.2,
             "responseMimeType": "application/json",
+            # gemini-3.6-flash "thinks" by default (1000+ hidden tokens on a
+            # trivial extraction in testing), which risks tripping the
+            # 20-30s timeouts below for latency-sensitive feedback calls
+            # that don't need deep reasoning. Disabled, not just given a
+            # longer timeout, since the extra thinking buys nothing here.
+            "thinkingConfig": {"thinkingBudget": 0},
         },
     }
 
@@ -1044,6 +1050,12 @@ async def _feedback_with_gemini(
         "generationConfig": {
             "temperature": 0.2,
             "responseMimeType": "application/json",
+            # gemini-3.6-flash "thinks" by default (1000+ hidden tokens on a
+            # trivial extraction in testing), which risks tripping the
+            # 20-30s timeouts below for latency-sensitive feedback calls
+            # that don't need deep reasoning. Disabled, not just given a
+            # longer timeout, since the extra thinking buys nothing here.
+            "thinkingConfig": {"thinkingBudget": 0},
         },
     }
 
@@ -1653,6 +1665,12 @@ async def _story_feedback_with_gemini(
         "generationConfig": {
             "temperature": 0.2,
             "responseMimeType": "application/json",
+            # gemini-3.6-flash "thinks" by default (1000+ hidden tokens on a
+            # trivial extraction in testing), which risks tripping the
+            # 20-30s timeouts below for latency-sensitive feedback calls
+            # that don't need deep reasoning. Disabled, not just given a
+            # longer timeout, since the extra thinking buys nothing here.
+            "thinkingConfig": {"thinkingBudget": 0},
         },
     }
 

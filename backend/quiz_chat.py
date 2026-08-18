@@ -12,8 +12,8 @@ import os
 
 import httpx
 
-GROQ_MODEL = os.getenv("GROQ_FEEDBACK_MODEL", "llama-3.3-70b-versatile")
-GEMINI_MODEL = os.getenv("GEMINI_FEEDBACK_MODEL", "gemini-2.0-flash")
+GROQ_MODEL = os.getenv("GROQ_FEEDBACK_MODEL", "openai/gpt-oss-120b")
+GEMINI_MODEL = os.getenv("GEMINI_FEEDBACK_MODEL", "gemini-3.6-flash")
 
 # Groq's free tier throttles on tokens-per-minute; two in flight plus
 # Retry-After backoff clears a story-sized batch without tripping it.
@@ -44,7 +44,13 @@ async def _gemini(system: str, user: str, api_key: str) -> str:
     async with httpx.AsyncClient(timeout=90) as client:
         response = await client.post(
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={api_key}",
-            json={"contents": [{"parts": [{"text": f"{system}\n\n{user}"}]}]},
+            json={
+                "contents": [{"parts": [{"text": f"{system}\n\n{user}"}]}],
+                # See ai_feedback.py's identical note: gemini-3.6-flash
+                # thinks by default, which is pure overhead for a JSON-only
+                # validation call.
+                "generationConfig": {"thinkingConfig": {"thinkingBudget": 0}},
+            },
         )
     response.raise_for_status()
     return response.json()["candidates"][0]["content"]["parts"][0]["text"]
