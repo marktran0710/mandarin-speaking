@@ -448,7 +448,13 @@
 .sfc-results .practice-workspace {
   grid-template-columns: minmax(300px, 45fr) minmax(0, 55fr);
   gap: 16px;
-  align-items: stretch;
+  /* Was `stretch`: with a results column that's usually much taller
+     (verdict + banner + progress + stepper), stretching the scene column
+     to match left a large empty void below its actual content (image +
+     audio compare + feedback button). Sizing each column to its own
+     content is what the mobile breakpoint already did — this just brings
+     desktop in line with it. */
+  align-items: start;
 }
 .sfc-results .practice-scene-col {
   display: flex;
@@ -456,8 +462,6 @@
   gap: 12px;
   width: 100%;
   min-height: 0;
-  align-self: stretch;
-  height: 100%;
   padding: 10px;
   justify-content: flex-start;
   position: static;
@@ -871,7 +875,7 @@
 }
 .sfc-results .practice-scene-col,
 .sfc-results-main > * { box-sizing: border-box; }
-.sfc-results .practice-scene-col,
+.sfc-results .practice-scene-col { min-height: 0; }
 .sfc-results-main {
   align-self: stretch;
   min-height: 0;
