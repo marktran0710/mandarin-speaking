@@ -3501,18 +3501,12 @@
 }
 
 .content-diff-empty,
-.content-diff-unverified,
 .content-diff-hint {
   color: var(--clay-muted);
 }
 
-.content-diff-unverified {
-  margin: var(--space-sm) 0;
-  padding: var(--space-sm);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-soft);
-}
+.content-diff-hint-match { color: var(--jade-deep); }
+.content-diff-hint-unverified { color: var(--gold-deep); }
 
 .content-diff-hint {
   margin: var(--space-2xs) 0 0;

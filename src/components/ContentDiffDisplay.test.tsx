@@ -32,4 +32,36 @@ describe("ContentDiffDisplay", () => {
     ).toBeInTheDocument();
     expect(container.querySelector("strong")).toBeNull();
   });
+
+  it("renders the same target/heard shape (no shorter layout) when content matched", () => {
+    // Regression guard: this case used to not render at all, which meant
+    // the results card changed height between a correct attempt and a
+    // wrong/unverified one.
+    const { container } = render(
+      <ContentDiffDisplay target="abc" heard="abc" contentMatch={true} />,
+    );
+
+    expect(screen.getByText("Matches the script.", { exact: false })).toBeInTheDocument();
+    expect(container.querySelectorAll(".content-diff-line")).toHaveLength(2);
+    expect(container.querySelector("strong")).toBeNull();
+  });
+
+  it("keeps the same two-line-plus-status structure across matched, mismatched, and unverified", () => {
+    const cases = [
+      { contentMatch: true, heard: "abc" },
+      { contentMatch: false, heard: "axc" },
+      { contentMatch: null, heard: null },
+    ] as const;
+
+    const lineCounts = cases.map(({ contentMatch, heard }) => {
+      const { container, unmount } = render(
+        <ContentDiffDisplay target="abc" heard={heard} contentMatch={contentMatch} />,
+      );
+      const count = container.querySelectorAll(".content-diff-line, .content-diff-hint").length;
+      unmount();
+      return count;
+    });
+
+    expect(lineCounts).toEqual([3, 3, 3]);
+  });
 });

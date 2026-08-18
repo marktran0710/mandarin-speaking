@@ -599,7 +599,7 @@ export default function SpeakingResultsFlow({
         assessment={feedbackReliability}
         attemptCount={attempts}
       />
-      {hasTargetScript && contentNeedsRetry && (
+      {hasTargetScript && (
         <ContentDiffDisplay
           target={targetScript}
           heard={recognizedText || null}
