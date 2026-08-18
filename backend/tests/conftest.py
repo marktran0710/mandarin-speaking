@@ -79,6 +79,7 @@ TRUNCATED_TABLES = (
     "students",
     "teacher_pronunciation_ratings",
     "vocab_quiz_attempts",
+    "vocab_quiz_irt_cache",
 )
 
 

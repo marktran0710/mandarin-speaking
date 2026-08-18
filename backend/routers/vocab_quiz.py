@@ -1,8 +1,12 @@
+from collections import defaultdict
+from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from psycopg.types.json import Jsonb
 
+from analytics.joint_time import fit_joint_mode
+from analytics.weak_words import WordOccurrence, score_weak_words
 from database import connect_db, row_to_vocab_quiz_attempt
 import main
 from main import (
@@ -14,8 +18,6 @@ from main import (
     VocabDistractorResponse,
     VocabFromSentenceRequest,
     VocabFromSentenceResponse,
-    VocabLookalikeRequest,
-    VocabLookalikeResponse,
     VocabQuizAttemptRequest,
     VocabSynonymRequest,
     VocabSynonymResponse,
@@ -48,6 +50,81 @@ async def list_vocab_quiz_attempts(
     return [row_to_vocab_quiz_attempt(row) for row in rows]
 
 
+def _vocab_quiz_item_key(story_id: str, word: str) -> str:
+    return f"{story_id}:{word}"
+
+
+def _load_vocab_quiz_irt_cache(db) -> Optional[dict]:
+    row = db.execute(
+        "SELECT student_ability, item_difficulty, student_speed, item_time_intensity "
+        "FROM vocab_quiz_irt_cache WHERE id = 1"
+    ).fetchone()
+    return dict(row) if row else None
+
+
+def refit_vocab_quiz_irt_cache() -> None:
+    """Refits the ability/difficulty/speed/time-intensity model over every
+    vocab-quiz attempt ever recorded (all students, all stories, all
+    modes pooled — see analytics/joint_time.py for why pooling modes is a
+    simplification, not a design decision) and caches the result.
+
+    Runs as a background task after an attempt is written, so a student's
+    own quiz submission never waits on a full model refit; the next
+    weak-words read picks up the new fit. Deliberately a full refit every
+    time rather than an incremental update — simplest correct thing for a
+    single-class dataset size; revisit if this ever gets slow.
+    """
+    with connect_db() as db:
+        rows = db.execute(
+            "SELECT story_id, student_id, student_name, question_results FROM vocab_quiz_attempts"
+        ).fetchall()
+
+        responses = []
+        for row in rows:
+            student_key = row["student_id"] or row["student_name"]
+            if not student_key:
+                continue
+            for result in row["question_results"] or []:
+                word = result.get("word")
+                if word is None:
+                    continue
+                responses.append((
+                    student_key,
+                    _vocab_quiz_item_key(row["story_id"], word),
+                    bool(result.get("correct")),
+                    float(result.get("timeMs") or 0),
+                ))
+
+        if not responses:
+            return
+
+        fit = fit_joint_mode("all", responses)
+
+        db.execute(
+            """
+            INSERT INTO vocab_quiz_irt_cache
+                (id, student_ability, item_difficulty, student_speed, item_time_intensity,
+                 n_responses, fitted_at)
+            VALUES (1, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                student_ability = EXCLUDED.student_ability,
+                item_difficulty = EXCLUDED.item_difficulty,
+                student_speed = EXCLUDED.student_speed,
+                item_time_intensity = EXCLUDED.item_time_intensity,
+                n_responses = EXCLUDED.n_responses,
+                fitted_at = EXCLUDED.fitted_at
+            """,
+            (
+                Jsonb(fit.student_ability),
+                Jsonb(fit.item_difficulty),
+                Jsonb(fit.student_speed),
+                Jsonb(fit.item_time_intensity),
+                fit.n_responses,
+                datetime.now(timezone.utc).isoformat(),
+            ),
+        )
+
+
 @router.get("/api/vocab-quiz-attempts/weak-words")
 async def get_weak_words(
     story_id: str,
@@ -55,15 +132,20 @@ async def get_weak_words(
     student_name: Optional[str] = None,
 ):
     """
-    Words in this story whose most recent answer (across every past attempt,
-    any mode) was wrong — lets the quiz mode-select screen offer a
-    persistent "practice what you still get wrong" round instead of only
-    the same-session retry. A word answered wrong once but right in a later
-    attempt is not weak; ordering is by completed_at desc across attempts,
-    and by result order (last occurrence wins) within an attempt.
+    Words in this story that still need review for this student, ranked by
+    a score combining four signals: this student's overall ability vs. the
+    word's own difficulty (from the cached joint IRT fit), their recency-
+    weighted accuracy on the word across every past attempt (not just the
+    latest), and whether their correct answers on it run slower than their
+    own norm. A word wrong on the most recent attempt is always included —
+    that floor never regresses versus the old "wrong last time" behavior;
+    the model can additionally surface a word that was answered *correctly*
+    last time but looks fragile on the combined signal. See
+    analytics/weak_words.py for the scoring itself.
     """
     if not student_id and not student_name:
         raise HTTPException(status_code=400, detail="Provide student_id or student_name.")
+    student_key = student_id or student_name
 
     query = "SELECT question_results FROM vocab_quiz_attempts WHERE story_id = %s"
     params: list = [story_id]
@@ -73,25 +155,58 @@ async def get_weak_words(
     else:
         query += " AND student_name = %s"
         params.append(student_name)
-    query += " ORDER BY completed_at DESC"
+    query += " ORDER BY completed_at ASC"
 
     with connect_db() as db:
         rows = db.execute(query, params).fetchall()
 
-    resolved: dict[str, bool] = {}
-    for row in rows:
-        results = row["question_results"] or []
-        for result in reversed(results):
-            word = result.get("word")
-            if word is None or word in resolved:
-                continue
-            resolved[word] = bool(result.get("correct"))
+        occurrences_by_word: dict = defaultdict(list)
+        for row in rows:
+            for result in row["question_results"] or []:
+                word = result.get("word")
+                if word is None:
+                    continue
+                occurrences_by_word[word].append(
+                    WordOccurrence(
+                        correct=bool(result.get("correct")),
+                        time_ms=int(result.get("timeMs") or 0),
+                    )
+                )
 
-    return {"words": [word for word, correct in resolved.items() if not correct]}
+        if not occurrences_by_word:
+            return {"words": []}
+
+        fit = _load_vocab_quiz_irt_cache(db)
+
+    if fit is None:
+        # No model fit yet (e.g. this is the very first attempt ever
+        # recorded) — fall back to the original, simpler "wrong on the
+        # most recent attempt" rule rather than block on a fit.
+        weak = [word for word, occs in occurrences_by_word.items() if not occs[-1].correct]
+        return {"words": weak}
+
+    difficulty_by_word = {
+        word: fit["item_difficulty"].get(_vocab_quiz_item_key(story_id, word), 0.0)
+        for word in occurrences_by_word
+    }
+    time_intensity_by_word = {
+        word: fit["item_time_intensity"].get(_vocab_quiz_item_key(story_id, word), 0.0)
+        for word in occurrences_by_word
+    }
+    ability = fit["student_ability"].get(student_key, 0.0)
+    speed = fit["student_speed"].get(student_key, 0.0)
+
+    scores = score_weak_words(
+        occurrences_by_word, ability, speed, difficulty_by_word, time_intensity_by_word
+    )
+    weak = [s.word for s in sorted(scores, key=lambda s: s.weak_score, reverse=True) if s.weak]
+    return {"words": weak}
 
 
 @router.post("/api/vocab-quiz-attempts")
-async def create_vocab_quiz_attempt(attempt: VocabQuizAttemptRequest):
+async def create_vocab_quiz_attempt(
+    attempt: VocabQuizAttemptRequest, background_tasks: BackgroundTasks
+):
     with connect_db() as db:
         db.execute(
             """
@@ -123,6 +238,7 @@ async def create_vocab_quiz_attempt(attempt: VocabQuizAttemptRequest):
                 Jsonb([r.model_dump() for r in attempt.questionResults]),
             ),
         )
+    background_tasks.add_task(refit_vocab_quiz_irt_cache)
     return attempt.model_dump()
 
 
@@ -301,49 +417,6 @@ async def vocab_quiz_cloze(request: VocabClozeRequest, req: Request):
     raise HTTPException(
         status_code=502,
         detail="Could not generate cloze questions for these words.",
-    ) from last_error
-
-
-@router.post("/api/vocab-quiz-lookalike", response_model=VocabLookalikeResponse)
-async def vocab_quiz_lookalike(request: VocabLookalikeRequest, req: Request):
-    """
-    Generate visually-confusable Traditional Chinese words (喝/渴, 買/賣) for
-    each of a story's vocabulary words — the tier-3 quiz's face-confusion
-    traps, mixed into reverse/listening question options. Same generate-once,
-    cache-per-story flow as the distractor/cloze/synonym endpoints above.
-    """
-    client_ip = req.client.host if req.client else "unknown"
-    main._check_rate_limit(f"vocab-quiz-lookalike:{client_ip}", max_requests=10, window_seconds=60)
-
-    words = [w for w in request.words if w.word.strip() and w.translation.strip()]
-    if not words:
-        raise HTTPException(status_code=400, detail="Provide at least one word with a translation.")
-
-    engines = [
-        ("groq", main.GROQ_API_KEY, main.generate_vocab_lookalike_with_groq),
-        ("gemini", main.GEMINI_API_KEY, main.generate_vocab_lookalike_with_gemini),
-    ]
-    if not any(key for _, key, _ in engines):
-        raise HTTPException(
-            status_code=503,
-            detail="AI look-alike generation requires GROQ_API_KEY or GEMINI_API_KEY to be configured on the backend.",
-        )
-
-    last_error: Exception | None = None
-    for name, key, generate in engines:
-        if not key:
-            continue
-        try:
-            results = await generate(words)
-        except Exception as exc:
-            main.logger.warning("%s look-alike generation failed, trying next engine: %s", name, exc)
-            last_error = exc
-            continue
-        return VocabLookalikeResponse(results=results)
-
-    raise HTTPException(
-        status_code=502,
-        detail="Could not generate look-alike traps for these words.",
     ) from last_error
 
 
