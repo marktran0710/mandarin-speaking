@@ -246,7 +246,7 @@ describe("TeacherDashboardPage", () => {
       "我在餐廳吃飯。",
     );
     await user.click(
-      screen.getAllByRole("button", { name: "✨ Fill vocabulary table from this sentence" })[0],
+      screen.getAllByRole("button", { name: "✨ Fill vocab" })[0],
     );
 
     await waitFor(() => {
@@ -266,7 +266,7 @@ describe("TeacherDashboardPage", () => {
     await user.click(screen.getByRole("button", { name: /Materials/ }));
 
     expect(
-      screen.getAllByRole("button", { name: "✨ Fill vocabulary table from this sentence" })[0],
+      screen.getAllByRole("button", { name: "✨ Fill vocab" })[0],
     ).toBeDisabled();
   });
 
@@ -289,7 +289,7 @@ describe("TeacherDashboardPage", () => {
 
     // Easy tier (the default) asks for 1 phrase.
     const generateButton = screen.getAllByRole("button", {
-      name: "✨ Generate 1 phrase from this sentence",
+      name: "✨ +1 phrase",
     })[0];
     await user.click(generateButton);
 
@@ -313,7 +313,7 @@ describe("TeacherDashboardPage", () => {
     await user.click(screen.getByRole("button", { name: /Materials/ }));
 
     expect(
-      screen.getAllByRole("button", { name: "✨ Generate 1 phrase from this sentence" })[0],
+      screen.getAllByRole("button", { name: "✨ +1 phrase" })[0],
     ).toBeDisabled();
   });
 

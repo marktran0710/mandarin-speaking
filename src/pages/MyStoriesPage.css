@@ -3001,6 +3001,37 @@
   cursor: not-allowed;
 }
 
+/* Sentence-level AI assists (fill vocab / generate phrases) sit right next
+   to the script textarea they act on — small pill buttons rather than
+   full-sentence labels, since the icon + short verb is enough once you
+   know what they do, and the title attribute covers first-time hover. */
+.teacher-sentence-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: -6px;
+}
+
+.btn-vocab-autofill-sm {
+  border: 1px dashed var(--jade);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--jade-deep);
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 4px 11px;
+}
+
+.btn-vocab-autofill-sm:hover:not(:disabled) {
+  background: var(--jade-soft);
+}
+
+.btn-vocab-autofill-sm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Read-only preview of how the Script field auto-splits into practice
    chunks on clause punctuation — lets a teacher "review" boundaries just by
    seeing them, then adjust by editing the script's own punctuation. */
