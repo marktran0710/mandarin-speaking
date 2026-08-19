@@ -1,5 +1,6 @@
 import uuid
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
+import auth
 from database import connect_db, row_to_teacher
 from main import TeacherCreateRequest, TeacherLoginRequest, TeacherUpdateRequest
 
@@ -21,13 +22,20 @@ async def create_teacher(request: TeacherCreateRequest):
     return row_to_teacher(row)
 
 @router.post("/api/teachers/login")
-async def login_teacher(request: TeacherLoginRequest):
+async def login_teacher(request: TeacherLoginRequest, response: Response):
     with connect_db() as db:
         row = db.execute("SELECT * FROM teachers WHERE lower(name) = lower(%s)", (request.name.strip(),)).fetchone()
     if row is None: raise HTTPException(status_code=404, detail="Teacher not found")
     if row["status"] != "active": raise HTTPException(status_code=403, detail="Teacher account is inactive")
     if request.password != row["password"]: raise HTTPException(status_code=401, detail="Wrong password")
+    token = auth.issue_token("teacher", row["id"])
+    auth.set_session_cookie(response, token)
     return row_to_teacher(row)
+
+@router.post("/api/teachers/logout")
+async def logout_teacher(response: Response):
+    auth.clear_session_cookie(response)
+    return {"loggedOut": True}
 
 @router.patch("/api/teachers/{teacher_id}")
 async def update_teacher(teacher_id: str, request: TeacherUpdateRequest):

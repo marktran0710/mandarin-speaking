@@ -1,7 +1,8 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 
+import auth
 from database import connect_db, row_to_student
 from main import StudentCreateRequest, StudentLoginRequest
 
@@ -43,12 +44,14 @@ async def create_student(request: StudentCreateRequest):
 
 
 @router.post("/api/students/login")
-async def login_student(request: StudentLoginRequest):
+async def login_student(request: StudentLoginRequest, response: Response):
     """Password check for the student login page (default 123456).
 
-    A classroom friction gate, not real auth: plaintext comparison, no
-    tokens — success just hands back the roster record the frontend
-    stores in its localStorage session, same as before passwords existed.
+    Still a classroom friction gate, not a hardened login (plaintext
+    comparison, default password) — but success now also issues a signed
+    JWT as an httpOnly session cookie, and every other student-scoped
+    endpoint verifies that cookie instead of trusting a client-supplied
+    student id.
     """
     if not (request.studentId or (request.name and request.name.strip())):
         raise HTTPException(status_code=400, detail="Provide a student id or name.")
@@ -68,7 +71,16 @@ async def login_student(request: StudentLoginRequest):
         raise HTTPException(status_code=404, detail="Student not found")
     if request.password != (row.get("password") or "123456"):
         raise HTTPException(status_code=401, detail="Wrong password")
+
+    token = auth.issue_token("student", row["id"])
+    auth.set_session_cookie(response, token)
     return row_to_student(row)
+
+
+@router.post("/api/students/logout")
+async def logout_student(response: Response):
+    auth.clear_session_cookie(response)
+    return {"loggedOut": True}
 
 
 @router.delete("/api/students/{student_id}")
