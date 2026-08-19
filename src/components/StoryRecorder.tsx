@@ -479,7 +479,7 @@ export interface WordProsody {
    * clearer name for the refactor's payload. */
   verdict?: DiagnosticStatus;
   /** Reason code for the verdict (strong_shape_supported,
-   * shape_direction_disagreement, weak_shape, strong_negative_evidence,
+   * strong_shape_direction_overridden, weak_shape, strong_negative_evidence,
    * insufficient_pitch_frames, invalid_audio, no_contour_measurement). */
   reason?: string;
   // Per-syllable directional scores + verdicts. `passed` at both syllable
@@ -1962,8 +1962,7 @@ export default function StoryRecorder({
           (metrics.pronunciation_mastery?.passed ??
             prosodyGatePassed(metrics.word_prosody)));
       const nextContentPassed =
-        canScoreContent &&
-        sceneContentGatePassed(metrics, Boolean(sceneTargetText?.trim()));
+        canScoreContent && sceneContentGatePassed(metrics);
       setMasteryPassedMap((prev) => ({
         ...prev,
         [selectedImageIndex]: nextMasteryPassed,

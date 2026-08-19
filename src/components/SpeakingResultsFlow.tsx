@@ -233,7 +233,7 @@ export default function SpeakingResultsFlow({
   const ai = praatMetrics.ai_feedback;
   const targetScript = modelSentence ?? "";
   const hasTargetScript = Boolean(targetScript.trim());
-  const accepted = isContentAccepted(praatMetrics, hasTargetScript);
+  const accepted = isContentAccepted(praatMetrics);
   const vocabCoverage = ai?.vocabulary_coverage;
   const missing = vocabCoverage?.missing ?? [];
   const recognizedText =

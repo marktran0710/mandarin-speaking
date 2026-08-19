@@ -22,11 +22,14 @@ const WORD_PASS_RATIO = 0.8;
  *
  * The target text is deliberately sent as the analysis transcription: this
  * gives Praat the target tones for every character. `verify_word` still asks
- * the backend to run an independent ASR pass (returned as `recognized_text`)
- * so a learner cannot clear a chunk by making arbitrary sounds with a similar
- * pitch contour — but the match against that transcript is scored by
- * character-alignment ratio here, not the backend's own exact-substring
- * `content_match` flag, which fails the whole phrase on a single ASR slip.
+ * the backend to run an independent ASR pass (returned as `recognized_text`
+ * and `content_match`) so a learner cannot clear a chunk by making arbitrary
+ * sounds with a similar pitch contour. `content_match` is authoritative when
+ * the backend was able to compute it (true/false), but a null/unverified
+ * result (the check errored, timed out, or ran without a configured model)
+ * fails open rather than blocking a pass — matching the backend's own stated
+ * intent that a verification hiccup should never cost the student their
+ * pronunciation feedback.
  */
 export default function PhrasePracticeDrill({
   phrase,
@@ -95,7 +98,7 @@ export default function PhrasePracticeDrill({
       });
       const passed =
         reliability.canCountForProgress &&
-        contentMatch === true &&
+        contentMatch !== false &&
         wordsOk;
       setResult({ words, contentMatch, recognizedText, contentDiff, passed, reliability });
       if (passed) onPass(phrase);

@@ -788,23 +788,16 @@ export default function PronunciationBreakdown({
               })()}
             </p>
             {(() => {
-              // A learner-facing note for the two most common disagreement
-              // cases the refactor introduced. The generic ✓/△/✗ chip does
-              // not tell the learner WHY a strong-looking contour came back
-              // UNCERTAIN; a one-line reason does. Absent when there is no
-              // disagreement to explain.
+              // A learner-facing note for the most common disagreement case
+              // the refactor introduced. The generic ✓/△/✗ chip does not
+              // tell the learner WHY a contour came back UNCERTAIN; a
+              // one-line reason does. Absent when there is no disagreement
+              // to explain. (A strong shape match with a disagreeing
+              // direction no longer lands here at all — decide_word_tone
+              // resolves that straight to CORRECT as
+              // strong_shape_direction_overridden.)
               const wordRecord = group.rows[0]?.word;
               const reason = wordRecord?.reason;
-              if (reason === "shape_direction_disagreement") {
-                return (
-                  <p className="pb-group-note">
-                    <BiLabel
-                      zh="整體的音高走向很接近，但一小段的方向不夠清楚。再錄一次試試看。"
-                      en="Your overall pitch shape is close to the expected tone, but the pitch movement is not clear enough in part of the syllable. Try once more."
-                    />
-                  </p>
-                );
-              }
               if (reason === "weak_shape") {
                 return (
                   <p className="pb-group-note">

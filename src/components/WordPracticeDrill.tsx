@@ -175,7 +175,7 @@ export default function WordPracticeDrill({
         assessment.canCountForProgress &&
         segment.judged !== false &&
         segment.passed === true &&
-        data.content_match === true
+        data.content_match !== false
       ) {
         onPass?.(word.token);
       }
@@ -364,11 +364,11 @@ export default function WordPracticeDrill({
                     rejected it (didn't sound like this word) never fires
                     onPass, so showing "✓ 過關" there contradicts the chip
                     staying ✗ — count it as try-again instead. */}
-                {latest.passed === true && latestContentMatch === true && (
+                {latest.passed === true && latestContentMatch !== false && (
                   <span className="word-practice-pass-chip">✓ 過關 Passed</span>
                 )}
                 {(latest.passed === false ||
-                  (latest.passed === true && latestContentMatch !== true)) && (
+                  (latest.passed === true && latestContentMatch === false)) && (
                   <span className="word-practice-fail-chip">✗ 再試一次 Try again</span>
                 )}
                 {typeof trend === "number" && trend !== 0 && (
