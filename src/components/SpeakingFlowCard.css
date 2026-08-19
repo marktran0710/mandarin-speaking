@@ -1459,11 +1459,11 @@
 }
 .experimental-analysis-panel, .analysis-compare-panel { margin-top: 0.9rem; padding: 0.85rem; border-radius: var(--clay-radius-md); border: 1px solid #f3d28b; background: #fffbeb; }
 .experimental-analysis-heading { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
-.experimental-analysis-panel > p { margin: 0.35rem 0; color: #6b7280; font-size: 0.82rem; }
+.experimental-analysis-panel > p { margin: 0.35rem 0; color: var(--clay-muted); font-size: 0.82rem; }
 .experimental-character-grid, .analysis-compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem; }
 .experimental-character-card, .analysis-compare-card { padding: 0.55rem; border-radius: var(--clay-radius-sm); background: rgba(255,255,255,0.8); border: 1px solid rgba(180, 140, 55, 0.22); display: grid; gap: 0.18rem; }
 .experimental-character-card strong { font-size: 1.2rem; }
-.experimental-character-card span, .experimental-character-card small, .analysis-compare-card span, .analysis-compare-card small { color: #64748b; font-size: 0.74rem; }
+.experimental-character-card span, .experimental-character-card small, .analysis-compare-card span, .analysis-compare-card small { color: var(--clay-muted); font-size: 0.74rem; }
 .analysis-compare-button { margin-top: 0.65rem; }
 .analysis-compare-panel h3 { margin: 0 0 0.55rem; font-size: 0.95rem; }
 

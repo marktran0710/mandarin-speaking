@@ -125,7 +125,7 @@
   margin-left: auto;
   padding: var(--space-2xs) var(--space-sm);
   border-radius: var(--clay-radius-pill);
-  background: var(--clay-surface-soft, #fff6ea);
+  background: var(--clay-surface-soft, #fdf7e8);
   color: var(--clay-muted);
   font-size: 12px;
   font-weight: 600;

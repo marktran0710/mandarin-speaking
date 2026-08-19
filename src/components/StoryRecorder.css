@@ -97,10 +97,10 @@
   font-weight: 650;
 }
 
-.student-flow-board .flow-step:nth-child(1) span { background: var(--accent-indigo); }
-.student-flow-board .flow-step:nth-child(2) span { background: var(--accent-amber); }
-.student-flow-board .flow-step:nth-child(3) span { background: var(--accent-violet); }
-.student-flow-board .flow-step:nth-child(4) span { background: var(--accent-rose); }
+.student-flow-board .flow-step:nth-child(1) span { background: var(--seal); }
+.student-flow-board .flow-step:nth-child(2) span { background: var(--jade); }
+.student-flow-board .flow-step:nth-child(3) span { background: var(--seal-deep); }
+.student-flow-board .flow-step:nth-child(4) span { background: var(--gold); }
 
 .flow-step strong {
   color: var(--clay-ink);
@@ -150,7 +150,7 @@
 .challenge-meta span {
   padding: 7px 10px;
   border-radius: var(--clay-radius-pill);
-  background: var(--clay-mint);
+  background: var(--jade-soft);
   color: var(--clay-ink);
   font-size: 12px;
   font-weight: 600;
@@ -220,7 +220,7 @@
 }
 
 .recording-vocabulary span {
-  background: var(--clay-mint);
+  background: var(--jade-soft);
   color: var(--clay-ink);
 }
 
@@ -544,7 +544,7 @@
 .tone-focus-token span {
   padding: 5px 9px;
   border-radius: var(--clay-radius-pill);
-  background: var(--clay-mint);
+  background: var(--jade-soft);
   color: var(--clay-ink);
   font-size: 12px;
   font-weight: 800;
@@ -732,7 +732,7 @@
 .word-prosody-shape-pill {
   padding: 5px 8px;
   border-radius: var(--clay-radius-pill);
-  background: var(--clay-mint);
+  background: var(--jade-soft);
   color: var(--clay-ink);
   font-size: 11px;
   font-weight: 650;
@@ -1388,7 +1388,7 @@
 .feedback-section {
   padding: 18px;
   margin-bottom: 22px;
-  background: var(--clay-mint);
+  background: var(--jade-soft);
 }
 
 .feedback-section h3,

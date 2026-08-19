@@ -101,27 +101,6 @@
   --diff-del-text: #8c0f37;
   --diff-del-border: #c0154b;
 
-  /* Role accents used across Home / Topic selector */
-  --accent-indigo: var(--seal);
-  --accent-indigo-soft: var(--seal-soft);
-  --accent-amber: var(--jade);
-  --accent-amber-soft: var(--jade-soft);
-  --accent-violet: var(--seal-deep);
-  --accent-violet-soft: var(--seal-soft);
-  --accent-rose: var(--gold);
-  --accent-rose-soft: var(--gold-soft);
-  --accent-sky: var(--tone1-deep);
-  --accent-sky-soft: var(--tone1-soft);
-
-  /* Legacy aliases kept for existing components */
-  --clay-pink: var(--seal-soft);
-  --clay-teal: var(--jade);
-  --clay-lavender: var(--tone1-soft);
-  --clay-peach: var(--gold-soft);
-  --clay-ochre: var(--gold-soft);
-  --clay-mint: var(--jade-soft);
-  --clay-coral: var(--seal);
-
   /* Radius — bigger and bouncier than before */
   --clay-radius-sm: 8px;
   --clay-radius-md: 14px;

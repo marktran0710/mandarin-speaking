@@ -50,7 +50,7 @@
   margin-right: 8px;
   padding: 3px 9px;
   border-radius: var(--clay-radius-pill);
-  background: var(--accent-indigo);
+  background: var(--seal);
   /* Gold badge, so every label layer is ink rather than white (white on this
      gold is 2.1:1). BiLabel's own pinyin/en defaults are tuned for light
      surfaces and would be nearly invisible here, hence the overrides. */
@@ -589,7 +589,7 @@
   min-height: 56px;
   padding: 0 18px;
   border-radius: var(--clay-radius-md);
-  background: var(--clay-lavender);
+  background: var(--tone1-soft);
   color: var(--clay-ink);
   font-size: 18px;
   font-weight: 800;
@@ -674,7 +674,7 @@
   min-height: 32px;
   padding: 4px 8px;
   border-radius: var(--clay-radius-md);
-  background: var(--clay-lavender);
+  background: var(--tone1-soft);
   color: var(--clay-ink);
   font-size: 12px;
   font-weight: 800;
@@ -742,13 +742,13 @@
   background: var(--clay-canvas);
   padding: 10px;
   border-radius: var(--clay-radius-md);
-  border-left: 4px solid var(--clay-teal);
+  border-left: 4px solid var(--jade);
 }
 
 .transcription-box strong {
   display: block;
   margin-bottom: 8px;
-  color: var(--clay-teal);
+  color: var(--jade);
   font-size: 14px;
 }
 
@@ -2058,7 +2058,7 @@
   min-width: 72px;
   padding: 8px 10px;
   border-radius: var(--clay-radius-pill);
-  background: var(--clay-mint);
+  background: var(--jade-soft);
   color: var(--clay-ink);
   font-size: 13px;
   font-weight: 900;

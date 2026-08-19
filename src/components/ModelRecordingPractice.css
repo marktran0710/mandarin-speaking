@@ -142,7 +142,7 @@
 
 .model-recording-reference-status.is-fallback,
 .model-recording-reference-status.is-limited {
-  background: color-mix(in srgb, var(--clay-warning, #b7791f) 10%, var(--clay-surface-card));
+  background: color-mix(in srgb, var(--clay-warning, #ffa726) 10%, var(--clay-surface-card));
 }
 
 .model-recording-audio {
