@@ -553,12 +553,11 @@
   .ts-lesson-expanded { padding-left: 4px; }
 }
 
-/* ── The spine: node + connector per lesson row. The connector's color is
-   the state of ITS OWN row (done = jade, current = gold, else hairline),
-   so the filled part of the line reads as "how far I've come". ── */
+/* ── The "other" card sits below the numbered journey, not chained into it
+   (no connector line), so its left edge matches .journey-stop's own 14px
+   inset directly instead of reserving space for a spine it doesn't draw. ── */
 .ts-lesson {
   position: relative;
-  padding-left: 30px;
   margin-bottom: 18px;
 }
 
@@ -571,7 +570,7 @@
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   box-shadow: 0 5px 15px color-mix(in srgb, var(--clay-ink) 5%, transparent);
-  padding: 18px 22px;
+  padding: 18px 22px 18px 14px;
   cursor: pointer;
   transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
 }
@@ -646,7 +645,7 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--clay-muted);
-  margin: 0 0 10px 30px;
+  margin: 0 0 10px 14px;
 }
 
 /* ── Per-story 🌱🌿🌳 tier track on the cards ── */

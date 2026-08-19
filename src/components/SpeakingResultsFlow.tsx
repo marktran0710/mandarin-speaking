@@ -666,9 +666,14 @@ export default function SpeakingResultsFlow({
         </div>
       )}
 
-      {(analysisAudioBlob || recognizedText || submittedAudioName) && (
+      {/* The recording itself already plays from the persistent AudioCompare
+          card in the scene column (see practice-scene-col above) — showing
+          it a second time here just duplicated the same native <audio>
+          element on screen. This block now only carries the extras that
+          aren't shown there: the recognized transcript and submitted file
+          name. */}
+      {(recognizedText || submittedAudioName) && (
         <div className="sfc-results-scene-extras">
-          {analysisAudioBlob && <RecordingPlayback blob={analysisAudioBlob} />}
           {recognizedText && (
             <p className="sfc-transcript">
               <BiLabel k="you_said" />{" "}

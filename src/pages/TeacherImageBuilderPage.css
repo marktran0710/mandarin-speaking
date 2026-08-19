@@ -26,6 +26,7 @@
 .teacher-image-hero h1 {
   margin: 0 0 10px;
   color: var(--clay-ink);
+  font-family: var(--font-display);
   font-size: clamp(30px, 4vw, 44px);
   line-height: 1.12;
   text-align: left;

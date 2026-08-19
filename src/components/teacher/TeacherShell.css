@@ -95,6 +95,15 @@
 .tshell-sidebar {
   width: 232px;
   flex-shrink: 0;
+  /* "fixed light sidebar" per the file header - stays in view while a tall
+     view (e.g. Analytics) scrolls past it, matching .tshell-topbar's own
+     sticky top. Its own overflow-y is a safety net for a future nav list
+     taller than the viewport; today's short list never triggers it. */
+  position: sticky;
+  top: 62px;
+  align-self: flex-start;
+  max-height: calc(100vh - 62px);
+  overflow-y: auto;
   padding: var(--space-lg) var(--space-sm);
   display: flex;
   flex-direction: column;
