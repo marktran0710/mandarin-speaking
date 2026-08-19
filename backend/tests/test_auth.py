@@ -25,7 +25,7 @@ def test_issue_then_decode_round_trips_role_and_id():
 
 def test_issue_rejects_unknown_role():
     with pytest.raises(ValueError):
-        auth.issue_token("admin", "abc-123")
+        auth.issue_token("principal", "abc-123")
 
 
 def test_issue_rejects_empty_subject_id():
@@ -103,4 +103,28 @@ def test_require_student_accepts_a_student_identity():
 def test_require_teacher_rejects_a_student_identity():
     with pytest.raises(HTTPException) as exc_info:
         auth.require_teacher(identity=auth.Identity(role="student", id="s-1"))
+    assert exc_info.value.status_code == 403
+
+
+def test_require_admin_accepts_an_admin_identity():
+    identity = auth.Identity(role="admin", id="admin")
+    assert auth.require_admin(identity=identity) is identity
+
+
+def test_require_admin_rejects_a_teacher_identity():
+    with pytest.raises(HTTPException) as exc_info:
+        auth.require_admin(identity=auth.Identity(role="teacher", id="t-1"))
+    assert exc_info.value.status_code == 403
+
+
+def test_require_teacher_or_admin_accepts_either_role():
+    teacher = auth.Identity(role="teacher", id="t-1")
+    admin = auth.Identity(role="admin", id="admin")
+    assert auth.require_teacher_or_admin(identity=teacher) is teacher
+    assert auth.require_teacher_or_admin(identity=admin) is admin
+
+
+def test_require_teacher_or_admin_rejects_a_student_identity():
+    with pytest.raises(HTTPException) as exc_info:
+        auth.require_teacher_or_admin(identity=auth.Identity(role="student", id="s-1"))
     assert exc_info.value.status_code == 403

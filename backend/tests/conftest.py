@@ -118,3 +118,29 @@ def client():
     import main
     with TestClient(main.app) as c:
         yield c
+
+
+@pytest.fixture()
+def logged_in_student(client):
+    """A logged-in student: (client, student). The client's cookie jar
+    carries its session, so requests through it act as this student -
+    used by any test that needs to write/read student-scoped data."""
+    student = client.post("/api/students", json={"name": "Test Student"}).json()
+    client.post(
+        "/api/students/login",
+        json={"studentId": student["id"], "password": "123456"},
+    )
+    return client, student
+
+
+@pytest.fixture()
+def logged_in_teacher(client):
+    """A logged-in teacher: (client, teacher)."""
+    teacher = client.post(
+        "/api/teachers", json={"name": "Test Teacher", "password": "teach123"}
+    ).json()
+    client.post(
+        "/api/teachers/login",
+        json={"name": "Test Teacher", "password": "teach123"},
+    )
+    return client, teacher

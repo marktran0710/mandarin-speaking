@@ -1,24 +1,32 @@
 from psycopg.types.json import Jsonb
 
+import auth
 from database import connect_db, row_to_speaking_progress
 from main import SpeakingProgressRequest
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 router = APIRouter()
 
 
 @router.get("/api/speaking-progress")
-async def list_speaking_progress(student_id: str, topic_id: str):
+async def list_speaking_progress(
+    topic_id: str,
+    identity: auth.Identity = Depends(auth.require_student),
+):
     with connect_db() as db:
         rows = db.execute(
             "SELECT * FROM speaking_progress WHERE student_id = %s AND topic_id = %s",
-            (student_id, topic_id),
+            (identity.id, topic_id),
         ).fetchall()
     return [row_to_speaking_progress(row) for row in rows]
 
 
 @router.put("/api/speaking-progress")
-async def upsert_speaking_progress(progress: SpeakingProgressRequest):
+async def upsert_speaking_progress(
+    progress: SpeakingProgressRequest,
+    identity: auth.Identity = Depends(auth.require_student),
+):
+    progress.studentId = identity.id
     row_id = f"{progress.studentId}:{progress.topicId}:{progress.sceneIndex}"
     with connect_db() as db:
         db.execute(

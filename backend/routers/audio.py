@@ -1,7 +1,8 @@
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
+import auth
 from database import connect_db, row_to_audio_record
 import main
 from main import AudioRecordRequest
@@ -15,7 +16,15 @@ async def list_audio_records(
     skip: int = Query(default=0, ge=0),
     student_id: Optional[str] = Query(default=None),
     topic_id: Optional[str] = Query(default=None),
+    identity: auth.Identity = Depends(auth.get_current_identity),
 ):
+    # A student can only ever browse their own records - a client-supplied
+    # student_id is ignored for that role. Teachers/admin keep the filter
+    # (or none, to browse everyone) since that's the whole point of the
+    # teacher dashboard's "all recent records" view.
+    if identity.role == "student":
+        student_id = identity.id
+
     query = "SELECT * FROM audio_records"
     params: list[object] = []
     filters: list[str] = []
@@ -36,13 +45,19 @@ async def list_audio_records(
 
 @router.get("/api/audio-records/latest-by-scene")
 async def list_latest_audio_records_by_scene(
-    student_id: str = Query(...),
     topic_id: str = Query(...),
+    student_id: Optional[str] = Query(default=None),
+    identity: auth.Identity = Depends(auth.get_current_identity),
 ):
     """One row per scene (image_index): whichever attempt is newest, so a
     student reopening a story sees the practice result they left off with
     instead of a blank slate — `audio_records` itself is an append-only log
     of every attempt with no such "latest" concept on its own."""
+    if identity.role == "student":
+        student_id = identity.id
+    elif not student_id:
+        raise HTTPException(status_code=400, detail="Provide student_id.")
+
     query = """
         SELECT DISTINCT ON (image_index) *
         FROM audio_records
@@ -55,14 +70,20 @@ async def list_latest_audio_records_by_scene(
 
 
 @router.get("/api/audio-records/count")
-async def get_audio_record_count():
+async def get_audio_record_count(
+    identity: auth.Identity = Depends(auth.require_teacher_or_admin),
+):
     with connect_db() as db:
         total = db.execute("SELECT COUNT(*) AS total FROM audio_records").fetchone()["total"]
     return {"total": total}
 
 
 @router.post("/api/audio-records")
-async def create_audio_record(record: AudioRecordRequest):
+async def create_audio_record(
+    record: AudioRecordRequest,
+    identity: auth.Identity = Depends(auth.require_student),
+):
+    record.studentId = identity.id
     main.save_audio_record(record)
     return record
 
@@ -71,12 +92,14 @@ async def create_audio_record(record: AudioRecordRequest):
 async def upload_audio_record(
     record: str = Form(...),
     file: UploadFile = File(...),
+    identity: auth.Identity = Depends(auth.require_student),
 ):
     try:
         audio_record = AudioRecordRequest.model_validate_json(record)
     except Exception as exc:
         raise HTTPException(status_code=400, detail="Invalid audio record JSON") from exc
 
+    audio_record.studentId = identity.id
     audio_record.audioUrl = await main.save_uploaded_audio(file, audio_record.id)
     audio_record.audioName = audio_record.audioUrl.rsplit("/", 1)[-1]
     main.save_audio_record(audio_record)
@@ -84,7 +107,10 @@ async def upload_audio_record(
 
 
 @router.delete("/api/audio-records/{record_id}")
-async def delete_audio_record(record_id: str):
+async def delete_audio_record(
+    record_id: str,
+    identity: auth.Identity = Depends(auth.require_teacher_or_admin),
+):
     with connect_db() as db:
         row = db.execute(
             "DELETE FROM audio_records WHERE id = %s RETURNING audio_url",

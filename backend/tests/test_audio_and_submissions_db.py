@@ -1,5 +1,6 @@
 """Audio records and story submissions round-tripping through PostgreSQL,
 including the JSONB praat_metrics / scenes / story_feedback columns."""
+import contextlib
 
 AUDIO_RECORD = {
     "id": "rec-1",
@@ -15,15 +16,18 @@ AUDIO_RECORD = {
 }
 
 
-def test_audio_record_round_trips_with_praat_metrics(client):
+def test_audio_record_round_trips_with_praat_metrics(logged_in_student):
+    client, student = logged_in_student
     assert client.post("/api/audio-records", json=AUDIO_RECORD).status_code == 200
     records = client.get("/api/audio-records").json()
     saved = next(r for r in records if r["id"] == "rec-1")
+    assert saved["studentId"] == student["id"]
     assert saved["transcription"] == "這是我的房間。"
     assert saved["praatMetrics"] == {"toneAccuracy": 0.82, "pauseCount": 3}
 
 
-def test_audio_record_resave_updates_in_place(client):
+def test_audio_record_resave_updates_in_place(logged_in_student):
+    client, _ = logged_in_student
     client.post("/api/audio-records", json=AUDIO_RECORD)
     client.post("/api/audio-records", json={**AUDIO_RECORD, "transcription": "改過了"})
     matching = [r for r in client.get("/api/audio-records").json() if r["id"] == "rec-1"]
@@ -31,27 +35,58 @@ def test_audio_record_resave_updates_in_place(client):
     assert matching[0]["transcription"] == "改過了"
 
 
-def test_delete_audio_record(client):
-    client.post("/api/audio-records", json=AUDIO_RECORD)
-    assert client.delete("/api/audio-records/rec-1").json() == {"ok": True}
-    assert [r for r in client.get("/api/audio-records").json() if r["id"] == "rec-1"] == []
+def test_delete_audio_record(logged_in_student, logged_in_teacher):
+    student_client, _ = logged_in_student
+    teacher_client, _ = logged_in_teacher
+    student_client.post("/api/audio-records", json=AUDIO_RECORD)
+    assert teacher_client.delete("/api/audio-records/rec-1").json() == {"ok": True}
+    assert [r for r in student_client.get("/api/audio-records").json() if r["id"] == "rec-1"] == []
 
 
-def test_audio_records_can_be_filtered_by_student_and_topic(client):
-    client.post("/api/audio-records", json={**AUDIO_RECORD, "studentId": "student-1"})
-    client.post(
-        "/api/audio-records",
-        json={**AUDIO_RECORD, "id": "rec-other-topic", "studentId": "student-1", "topicId": "other-topic"},
-    )
-    client.post(
-        "/api/audio-records",
-        json={**AUDIO_RECORD, "id": "rec-other-student", "studentId": "student-2"},
-    )
+def _login_new_client(stack, name, role, password="123456"):
+    """A fresh TestClient (own cookie jar), entered via the ExitStack the
+    caller owns, logged in as a brand-new student or teacher - so two
+    identities can act independently within one test."""
+    from fastapi.testclient import TestClient
+    import main
 
-    records = client.get(
-        "/api/audio-records",
-        params={"student_id": "student-1", "topic_id": "teacher-story-1"},
-    ).json()
+    new_client = stack.enter_context(TestClient(main.app))
+    if role == "student":
+        created = new_client.post("/api/students", json={"name": name}).json()
+        new_client.post(
+            "/api/students/login",
+            json={"studentId": created["id"], "password": password},
+        )
+    else:
+        created = new_client.post(
+            "/api/teachers", json={"name": name, "password": password}
+        ).json()
+        new_client.post(
+            "/api/teachers/login", json={"name": name, "password": password}
+        )
+    return new_client, created
+
+
+def test_audio_records_can_be_filtered_by_student_and_topic():
+    with contextlib.ExitStack() as stack:
+        student1_client, student1 = _login_new_client(stack, "Student One", "student")
+        student2_client, _ = _login_new_client(stack, "Student Two", "student")
+        teacher_client, _ = _login_new_client(stack, "Reviewer", "teacher", password="teach123")
+
+        student1_client.post("/api/audio-records", json=AUDIO_RECORD)
+        student1_client.post(
+            "/api/audio-records",
+            json={**AUDIO_RECORD, "id": "rec-other-topic", "topicId": "other-topic"},
+        )
+        student2_client.post(
+            "/api/audio-records",
+            json={**AUDIO_RECORD, "id": "rec-other-student"},
+        )
+
+        records = teacher_client.get(
+            "/api/audio-records",
+            params={"student_id": student1["id"], "topic_id": "teacher-story-1"},
+        ).json()
 
     assert [record["id"] for record in records] == ["rec-1"]
 

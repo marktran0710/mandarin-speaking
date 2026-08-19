@@ -128,7 +128,7 @@ def test_teacher_rating_is_never_prefilled_from_machine_values(client):
     exactly as submitted -- proving no server-side code path derives or
     overrides a rubric score from `assistive_state`/`e2_diagnostic_category`/
     F1/legacy `passed`."""
-    assert client.post("/api/audio-records", json=AUDIO_RECORD).status_code == 200
+    assert client.post("/api/pilot/audio-records", json=AUDIO_RECORD).status_code == 200
 
     response = client.post(
         "/api/teacher-review/ratings/stage1",
@@ -185,7 +185,7 @@ def test_attempt_id_links_research_log_audio_record_and_teacher_rating(client, t
     )
 
     audio_record = {**AUDIO_RECORD, "id": "rec-join-1", "attemptId": attempt_id}
-    assert client.post("/api/audio-records", json=audio_record).status_code == 200
+    assert client.post("/api/pilot/audio-records", json=audio_record).status_code == 200
     assert client.post(
         "/api/teacher-review/ratings/stage1",
         json={

@@ -45,7 +45,7 @@ JWT_ALGORITHM = "HS256"
 # something students should be re-prompted for mid-lesson.
 TOKEN_TTL_SECONDS = int(os.getenv("JWT_TOKEN_TTL_SECONDS", str(30 * 24 * 3600)))
 COOKIE_NAME = "session_token"
-VALID_ROLES = ("student", "teacher")
+VALID_ROLES = ("student", "teacher", "admin")
 
 
 @dataclass(frozen=True)
@@ -120,5 +120,18 @@ def _require_role(role: str):
     return _dependency
 
 
+def _require_any_role(*roles: str):
+    def _dependency(identity: Identity = Depends(get_current_identity)) -> Identity:
+        if identity.role not in roles:
+            raise HTTPException(status_code=403, detail="Not authorized for this action.")
+        return identity
+
+    return _dependency
+
+
 require_student = _require_role("student")
 require_teacher = _require_role("teacher")
+require_admin = _require_role("admin")
+# Teacher dashboards and the admin console both browse across every
+# student's data - the same "list everything" endpoints serve both.
+require_teacher_or_admin = _require_any_role("teacher", "admin")

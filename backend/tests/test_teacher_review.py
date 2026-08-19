@@ -64,7 +64,7 @@ AUDIO_RECORD = {
 
 def _seed_audio_record(client, overrides=None):
     payload = {**AUDIO_RECORD, **(overrides or {})}
-    response = client.post("/api/audio-records", json=payload)
+    response = client.post("/api/pilot/audio-records", json=payload)
     assert response.status_code == 200
     return payload
 
