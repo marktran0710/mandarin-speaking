@@ -67,3 +67,21 @@ Keep orchestration details brief. Communicate what is being done, important find
 Before changing anything in the tone-scoring/verdict path — `backend/tone_decision.py` (thresholds: `TONE_CONFIRM_THRESHOLD`, `TONE_ERROR_THRESHOLD`, `SHAPE_STRONG`, `SHAPE_WEAK`, `DIRECTION_SUPPORT`, `DIRECTION_BAD`, `PHRASE_RESCUE_SHAPE_STRONG`, `PHRASE_RESCUE_DIRECTION_SUPPORT`), `backend/chinese_tones.py` (shape/direction heuristics), `backend/praat_analyzer.py` (`_combine_word_verdict`, `_apply_phrase_rescue`, syllable/word promotion logic), or the sentence-level pass gate (`SENTENCE_SYLLABLE_PASS_RATIO`, `build_pronunciation_mastery` in `main.py`) — explain the concrete before/after impact to the user (real numbers, ideally a real sentence) and get explicit confirmation before implementing. Do not ship a threshold or verdict-logic change silently, even a "small" one.
 
 These thresholds directly decide whether a real student's recording is graded ✓/△/✗ and are explicitly unvalidated against human raters (the code's own comments call them "ENGINEERING DEFAULTS, not calibrated cutoffs"). A change here shifts grading leniency/strictness across every student in both directions, and the test suite cannot catch "this is now too lenient/strict" on its own since tests just encode whatever the new thresholds produce.
+
+## Commit before context runs low
+
+Any coding agent working in this repo — Claude Code, Codex, or another
+tool — should commit meaningful, verified, working progress to git before
+its own context/token budget gets close to running out (roughly the last
+5% of budget), rather than saving one large commit for the very end of a
+session. Do this incrementally: commit a logical chunk of work as soon as
+it is stable and tested, instead of accumulating everything and hoping
+there is enough budget left at the end to commit it all at once.
+
+Losing uncommitted work when a session ends abruptly, gets compacted, or a
+subagent runs out of budget is expensive to redo — the agent (or the next
+one that picks up the session) has to re-derive context and redo work that
+was already correct. Only commit code that is actually in a working,
+verified state (tests passing, no half-finished edits) — this rule is
+about not *delaying* commits of good work, not about committing broken
+work just to beat a deadline.
