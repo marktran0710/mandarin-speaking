@@ -2,10 +2,18 @@
 import os
 import sys
 import pytest
+from dotenv import load_dotenv
 from unittest.mock import AsyncMock, MagicMock, patch
 
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+# Must run before TEST_DATABASE_URL's os.getenv below - conftest.py is always
+# collected before any test module (and before database.py's own
+# load_dotenv() would otherwise run), so without this a .env override is
+# silently ignored and the hardcoded default port wins instead.
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env.local"))
 
 from fixtures import SILENT_WAV, SHORT_WAV, LONG_WAV  # noqa: F401
 
