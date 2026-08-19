@@ -146,6 +146,166 @@ def test_word_promotion_propagates_passed_to_measured_uncertain_syllables():
             assert syllable["passed"] is True, syllable
 
 
+def test_reason_reflects_incorrect_syllable_override_not_stale_word_decision():
+    """Bug: a word can clear SHAPE_STRONG/DIRECTION_SUPPORT at the whole-word
+    level — decide_word_tone calls that CORRECT with reason
+    "strong_shape_supported" — while a syllable independently measures as
+    INCORRECT (contour actively contradicts the expected tone), without the
+    whole-word evidence being strong enough to clear the *stricter*
+    PHRASE_RESCUE bar that would override that syllable (see
+    test_exceptionally_strong_word_shape_overrides_an_incorrect_syllable for
+    that case). The min-rule safety net correctly drops the word's *verdict*
+    to INCORRECT here, but `reason` was left as the pre-override
+    "strong_shape_supported" — text that reads as justification for a
+    CORRECT verdict, directly contradicting the INCORRECT verdict sitting
+    next to it in the same payload. `reason` must describe whichever status
+    actually won, not the word-level decision that got overridden."""
+    from praat_analyzer import _combine_word_verdict
+    from tone_decision import DiagnosticStatus, WordToneDiagnosis
+
+    word_decision = WordToneDiagnosis(
+        status=DiagnosticStatus.CORRECT,
+        reason="strong_shape_supported",
+        shape_score=72.0,
+        direction_score=61.0,
+        display_score=68.7,
+    )
+    syllables = [
+        {"diagnostic_status": "CORRECT"},
+        {"diagnostic_status": "INCORRECT"},
+    ]
+
+    final_status, reason = _combine_word_verdict(word_decision, syllables)
+
+    assert final_status is DiagnosticStatus.INCORRECT
+    assert reason != "strong_shape_supported"
+    assert "incorrect" in reason
+
+
+def test_exceptionally_strong_word_shape_overrides_an_incorrect_syllable():
+    """The 週末 case from a live session: shape=93/direction=94 at the
+    whole-word level (well above SHAPE_STRONG=70/DIRECTION_SUPPORT=60), but
+    末 independently measures INCORRECT — and the word still reads "Likely
+    tone mismatch" despite the strong aggregate, because the ordinary
+    min-rule does not care how strong the word-level evidence is.
+
+    This is the same evidentiary bar `_apply_phrase_rescue` already uses for
+    exactly this class of claim (overriding an individually-measured
+    INCORRECT syllable), just applied without requiring the phrase to span a
+    jieba word boundary — 週末 is already a single token, so there is
+    nothing to merge across. When the whole-word evidence clears the
+    stricter PHRASE_RESCUE_SHAPE_STRONG/PHRASE_RESCUE_DIRECTION_SUPPORT bar,
+    the override applies here too, and must be as transparent as the phrase
+    rescue is: the syllable's own diagnostic fields flip to CORRECT with a
+    named reason and evidence, not just a silently-flipped `passed`."""
+    from praat_analyzer import _combine_word_verdict
+    from tone_decision import DiagnosticStatus, PHRASE_RESCUE_DIRECTION_SUPPORT, PHRASE_RESCUE_SHAPE_STRONG, WordToneDiagnosis
+
+    assert 93.0 >= PHRASE_RESCUE_SHAPE_STRONG
+    assert 94.0 >= PHRASE_RESCUE_DIRECTION_SUPPORT
+
+    word_decision = WordToneDiagnosis(
+        status=DiagnosticStatus.CORRECT,
+        reason="strong_shape_supported",
+        shape_score=93.0,
+        direction_score=94.0,
+        display_score=93.3,
+    )
+    syllables = [
+        {"char": "週", "diagnostic_status": "CORRECT", "passed": True},
+        {"char": "末", "diagnostic_status": "INCORRECT", "passed": False},
+    ]
+
+    final_status, reason = _combine_word_verdict(word_decision, syllables)
+
+    assert final_status is DiagnosticStatus.CORRECT
+    assert "overrides" in reason
+
+    mo = syllables[1]
+    assert mo["diagnostic_status"] == "CORRECT"
+    assert mo["passed"] is True
+    assert mo["word_rescue"]["promoted_from"] == "INCORRECT"
+    assert mo["word_rescue"]["shape_score"] == 93.0
+    assert mo["word_rescue"]["direction_score"] == 94.0
+
+
+def test_exceptionally_strong_shape_alone_does_not_override_incorrect_syllable():
+    """The override needs BOTH shape and direction to clear the stricter
+    bar — a very high shape score with weak direction must not be enough,
+    same asymmetric-safety philosophy as the phrase rescue."""
+    from praat_analyzer import _combine_word_verdict
+    from tone_decision import DiagnosticStatus, PHRASE_RESCUE_SHAPE_STRONG, WordToneDiagnosis
+
+    word_decision = WordToneDiagnosis(
+        status=DiagnosticStatus.CORRECT,
+        reason="strong_shape_direction_overridden",
+        shape_score=max(95.0, PHRASE_RESCUE_SHAPE_STRONG + 5),
+        direction_score=10.0,
+        display_score=68.5,
+    )
+    syllables = [
+        {"diagnostic_status": "CORRECT"},
+        {"diagnostic_status": "INCORRECT"},
+    ]
+
+    final_status, reason = _combine_word_verdict(word_decision, syllables)
+
+    assert final_status is DiagnosticStatus.INCORRECT
+    assert syllables[1]["diagnostic_status"] == "INCORRECT"
+    assert "word_rescue" not in syllables[1]
+
+
+def test_reason_unchanged_when_no_override_happens():
+    """Regression guard: when the min-rule/promotion logic doesn't override
+    the word-level decision, `reason` must still be the original
+    decide_word_tone reason — the fix only touches the divergent case."""
+    from praat_analyzer import _combine_word_verdict
+    from tone_decision import DiagnosticStatus, WordToneDiagnosis
+
+    word_decision = WordToneDiagnosis(
+        status=DiagnosticStatus.CORRECT,
+        reason="strong_shape_supported",
+        shape_score=93.0,
+        direction_score=94.0,
+        display_score=93.3,
+    )
+    syllables = [
+        {"diagnostic_status": "CORRECT"},
+        {"diagnostic_status": "CORRECT"},
+    ]
+
+    final_status, reason = _combine_word_verdict(word_decision, syllables)
+
+    assert final_status is DiagnosticStatus.CORRECT
+    assert reason == "strong_shape_supported"
+
+
+def test_reason_reflects_syllable_rollup_promotion_to_correct():
+    """The reverse direction: word_decision lands UNCERTAIN (e.g. shape/
+    direction disagreement) but every syllable independently measured
+    CORRECT, so the combiner promotes the word to CORRECT. The reason must
+    describe that promotion, not the original UNCERTAIN reasoning."""
+    from praat_analyzer import _combine_word_verdict
+    from tone_decision import DiagnosticStatus, WordToneDiagnosis
+
+    word_decision = WordToneDiagnosis(
+        status=DiagnosticStatus.UNCERTAIN,
+        reason="shape_direction_disagreement",
+        shape_score=82.0,
+        direction_score=40.0,
+        display_score=69.4,
+    )
+    syllables = [
+        {"diagnostic_status": "CORRECT"},
+        {"diagnostic_status": "CORRECT"},
+    ]
+
+    final_status, reason = _combine_word_verdict(word_decision, syllables)
+
+    assert final_status is DiagnosticStatus.CORRECT
+    assert reason != "shape_direction_disagreement"
+
+
 def test_strong_word_shape_promotes_per_syllable_uncertain_to_correct():
     """The reverse of the min-rule promotion: when the whole-word shape and
     direction both clear their thresholds, per-syllable directional scores
@@ -163,7 +323,8 @@ def test_strong_word_shape_promotes_per_syllable_uncertain_to_correct():
     from tone_decision import DiagnosticStatus, QcEvidence, decide_word_tone
 
     # Sanity: shape 86 + direction 79 is CORRECT at the word level under
-    # decide_word_tone (SHAPE_STRONG=80, DIRECTION_SUPPORT=60).
+    # decide_word_tone (comfortably above SHAPE_STRONG and DIRECTION_SUPPORT
+    # regardless of which calibration pass is currently in effect).
     good_qc = QcEvidence(judged=True, pitch_points=40, minimum_pitch_points=8)
     assert (
         decide_word_tone(shape_score=86.0, direction_score=79.0, qc=good_qc).status

@@ -1393,7 +1393,23 @@ def build_pronunciation_mastery(
             "message": "Not enough measured tone evidence yet. Record the whole sentence again.",
         }
 
-    passed_count = sum(syllable.get("passed") is True for syllable in judged_syllables)
+    def _syllable_gate_passed(syllable: dict) -> bool:
+        # The sentence gate counts UNCERTAIN ("not clear enough to judge")
+        # as a pass — it is a measurement gap, not evidence of a mistake.
+        # Only INCORRECT (a likely tone mismatch) or INVALID_AUDIO (an
+        # unusable recording) should cost the student the sentence pass.
+        # `syllable["passed"]` collapses UNCERTAIN and INCORRECT into the
+        # same False, so this reads the diagnostic verdict directly where
+        # it's present; payloads without one (legacy) fall back to the raw
+        # pass flag.
+        status = syllable.get("diagnostic_status")
+        if status in ("INCORRECT", "INVALID_AUDIO"):
+            return False
+        if status is not None:
+            return True
+        return syllable.get("passed") is True
+
+    passed_count = sum(_syllable_gate_passed(syllable) for syllable in judged_syllables)
     pronunciation_failed_words = list(failed_words)
     # Sentence-level pass rate: 80% of judged syllables suffices. Below that
     # the whole recording fails; above, the recording passes but the failed
@@ -1405,11 +1421,14 @@ def build_pronunciation_mastery(
     # place; matches the pattern used by SYLLABLE_PASS_THRESHOLD and the
     # word-level shape/direction thresholds in tone_decision.
     pass_rate = passed_count / len(judged_syllables)
-    passed = (
-        pass_rate >= SENTENCE_SYLLABLE_PASS_RATIO
-        and content_match is not False
-        and (not content_check_requested or content_match is True)
-    )
+    # content_match is not False (not "is True"): a null/unverified result
+    # (the independent ASR check errored, timed out, or ran without a
+    # configured model) fails open rather than blocking the pass — a
+    # verification hiccup should never cost the student their pronunciation
+    # pass. Only an explicit mismatch (False) blocks it. See the matching
+    # fix in storyRecorderFeedback.ts's isContentAccepted/
+    # sceneContentGatePassed — this function had the same bug.
+    passed = pass_rate >= SENTENCE_SYLLABLE_PASS_RATIO and content_match is not False
     if content_match is False:
         missing_text = "".join(missing_units)
         content_message = "Say the complete target sentence before this attempt can pass."
@@ -1708,14 +1727,16 @@ async def _do_analyze(
         ):
             scene_content_match = _scene_content_match(sentence_target, transcription)
 
-        # Use the known scene sentence for acoustic scoring only when the ASR
-        # confirmed that the learner actually said that sentence. This keeps
-        # word/tone alignment complete for a correct attempt while avoiding a
-        # fabricated score for missing words in an incomplete attempt.
-        if sentence_target and scene_content_match is True:
+        # Use the known scene sentence for acoustic scoring unless the ASR
+        # content check came back with a confirmed mismatch. See
+        # _acoustic_scoring_source's docstring for why an unverified (None)
+        # result must not fall back to the raw ASR transcript the same way a
+        # real mismatch does — that used to silently cut the measured
+        # syllable count for a correctly-spoken attempt.
+        scoring_source = _acoustic_scoring_source(sentence_target, scene_content_match)
+        if scoring_source == "scene_target":
             scoring_transcription = sentence_target
             scoring_pinyin_hint = pinyin_hint.strip() or canonical_pinyin(sentence_target)
-            scoring_source = "scene_target"
         else:
             scoring_transcription = transcription
             scoring_pinyin_hint = (
@@ -1723,12 +1744,17 @@ async def _do_analyze(
                 if pinyin_hint.strip() and not sentence_target
                 else canonical_pinyin(transcription)
             )
-            scoring_source = "asr_transcript"
+
+        # Scene vocabulary phrases arrive "; "-joined (see StoryRecorder.tsx)
+        # since a scene can teach more than one multi-word phrase (e.g.
+        # "這個週末; 做什麼"); split back out for the phrase-context rescue.
+        target_phrases = [p.strip() for p in scene_phrases.split(";") if p.strip()]
 
         def _run_praat(path: str, tx: str):
             return analyze_all(
                 path, tx, pinyin_hint=scoring_pinyin_hint,
                 reference_word_curves=reference_word_curves,
+                target_phrases=target_phrases,
             )
 
         # Run Praat (CPU-bound, threadpool), AI feedback (I/O-bound), and the
@@ -1755,6 +1781,7 @@ async def _do_analyze(
             "scoring_text": scoring_transcription,
             "scoring_source": scoring_source,
             "reference_word_curves_provided": bool(reference_word_curves),
+            "target_phrases": target_phrases or None,
         }
 
         async def run_praat_stage():
@@ -2469,6 +2496,30 @@ def _scene_content_match(target: str, recognized: str) -> Optional[bool]:
         return None
 
     return all(segment["type"] == "match" for segment in _align_scene_content(target, recognized))
+
+
+def _acoustic_scoring_source(
+    sentence_target: str, scene_content_match: Optional[bool]
+) -> str:
+    """Which transcript to run pitch/tone scoring against for this sentence.
+
+    ``scene_content_match is False`` is real negative evidence (the ASR
+    content check actually disagreed with the target) — scoring against the
+    known-correct sentence in that case would fabricate a score for words the
+    learner may not have said, so the raw ASR transcript is used instead.
+    ``None`` is not that: it means the check never ran or couldn't confirm
+    anything (verify_word drill in progress, empty transcript, ASR/model
+    hiccup) — an unrelated verification gap, not evidence the learner got it
+    wrong. Falling back to the ASR transcript in that case silently truncates
+    scoring to whatever (possibly partial or mis-heard) text the ASR
+    produced, which can measure far fewer syllables than the sentence
+    actually has. Only a confirmed mismatch should give up the known-correct
+    target; an unverified result fails open, same as the content_match gates
+    in storyRecorderFeedback.ts and build_pronunciation_mastery.
+    """
+    if sentence_target and scene_content_match is not False:
+        return "scene_target"
+    return "asr_transcript"
 
 
 async def _verify_word_transcription(

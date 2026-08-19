@@ -126,9 +126,16 @@ def test_the_constants_are_labelled_at_source():
 
 
 def test_a_middling_score_is_uncertain_not_incorrect():
-    """The original complaint. 53 against the expected tone means the system
-    is unsure, not that the learner was wrong."""
-    for score in (46.0, 50.0, 53.0, 55.0, 57.0):
+    """The original complaint. A score between the error and confirm bars
+    means the system is unsure, not that the learner was wrong. Generated
+    relative to the two threshold constants so this stays correct across
+    calibration passes rather than pinning to the original 45-58 band."""
+    midpoint = (TONE_ERROR_THRESHOLD + TONE_CONFIRM_THRESHOLD) / 2
+    for score in (
+        TONE_ERROR_THRESHOLD + 0.1,
+        midpoint,
+        TONE_CONFIRM_THRESHOLD - 0.1,
+    ):
         assert status(score) is DiagnosticStatus.UNCERTAIN, score
 
 
@@ -159,8 +166,10 @@ def test_thresholds_are_configurable_per_call():
         decide_tone(53.0, PROVENANCE_MEASURED, GOOD_QC, confirm_threshold=50.0).status
         is DiagnosticStatus.CORRECT
     )
+    # 42 sits below the module's default confirm bar, so raising the error
+    # override to 60 is what decides this one, not the confirm default.
     assert (
-        decide_tone(53.0, PROVENANCE_MEASURED, GOOD_QC, error_threshold=60.0).status
+        decide_tone(42.0, PROVENANCE_MEASURED, GOOD_QC, error_threshold=60.0).status
         is DiagnosticStatus.INCORRECT
     )
 

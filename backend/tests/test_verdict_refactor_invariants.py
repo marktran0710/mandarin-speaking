@@ -50,11 +50,12 @@ GOOD_QC = QcEvidence(
 def test_strong_shape_is_never_incorrect_regardless_of_directional_veto():
     """A shape score that strongly matches the expected tone cannot be
     called an error just because a coarse start/end directional heuristic
-    disagrees. UNCERTAIN is the honest label for that disagreement.
+    disagrees — shape is trusted as the primary evidence (see
+    strong_shape_direction_overridden in decide_word_tone).
 
     Sweeps direction from 0 to just below DIRECTION_BAD to prove every
-    variant of "coarse directional heuristic disagrees" resolves to
-    UNCERTAIN and never INCORRECT."""
+    variant of "coarse directional heuristic disagrees" never resolves to
+    INCORRECT."""
     for direction in np.arange(0.0, DIRECTION_BAD + 0.01, 5.0):
         result = decide_word_tone(
             shape_score=95.0, direction_score=float(direction), qc=GOOD_QC

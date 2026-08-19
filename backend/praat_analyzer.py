@@ -137,6 +137,7 @@ def analyze_all(
     transcription: str = "",
     pinyin_hint: str = "",
     reference_word_curves: Dict[str, List[float]] | None = None,
+    target_phrases: List[str] | None = None,
 ) -> tuple:
     """
     Single-pass analysis: load WAV once, run pitch + formant together,
@@ -153,6 +154,10 @@ def analyze_all(
     ``estimate_word_prosody`` so scene words with a cached model-voice clip
     are scored/charted against that real recording. See that function.
 
+    ``target_phrases``, when given, is passed straight through to
+    ``estimate_word_prosody`` for the phrase-context rescue — see
+    ``_apply_phrase_rescue``.
+
     Returns a tuple matching the order expected by _run_praat in main.py:
     (pitch_contour, formants, speech_rate, fluency_score, pitch_stats,
      word_prosody, detected_tone, tone_accuracy, feedback, pause_analysis)
@@ -165,6 +170,7 @@ def analyze_all(
         word_prosody = estimate_word_prosody(
             pitch_contour, transcription, pinyin_hint=pinyin_hint,
             reference_word_curves=reference_word_curves,
+            target_phrases=target_phrases,
         )
         pause_analysis = analyze_pauses_and_utterances(audio_path)
         _syllables = sum(1 for c in transcription if "一" <= c <= "鿿")
@@ -199,6 +205,7 @@ def analyze_all(
         reference_word_curves=reference_word_curves,
         intensity=_intensity_contour_from_sound(sound),
         sound=sound,
+        target_phrases=target_phrases,
     )
     # Reuse already-loaded sound — avoids a second disk read
     pause_analysis = analyze_pauses_and_utterances(audio_path, _preloaded_sound=sound)
@@ -900,6 +907,118 @@ def _diagnose_token(
     return results
 
 
+# Syllable diagnoses whose UNCERTAIN comes from having no real measurement
+# (short segment / neutral tone / not scored) rather than ambiguous evidence
+# — these must never be treated as evidence for a promotion, and must never
+# silently inherit a word-level pass. Shared by `_combine_word_verdict` and
+# the passed-propagation step right after it in `estimate_word_prosody`.
+_PLACEHOLDER_SCORE_PROVENANCES = {
+    "constant_short_segment",
+    "neutral_not_measured",
+    "not_scored",
+}
+
+
+def _combine_word_verdict(word_decision, syllables: list) -> tuple:
+    """Combine the word-level shape+direction verdict with per-syllable
+    diagnoses into the word's final status and a reason that always
+    describes THAT final status.
+
+    ``word_decision.reason`` explains the word-level shape/direction
+    decision alone (e.g. "strong_shape_supported"). When the min-rule
+    safety net or a syllable-rollup promotion below overrides that
+    decision, the original reason becomes actively misleading — a word can
+    end up INCORRECT while still carrying "strong_shape_supported", which
+    reads as justification for a CORRECT verdict. This resolves the reason
+    to match whichever status actually wins.
+
+    Ordinarily the min-rule is absolute: one INCORRECT syllable fails the
+    word no matter how strong the whole-word shape/direction look, because a
+    genuine tone error usually shows up in both readings. But when the
+    whole-word evidence clears PHRASE_RESCUE_SHAPE_STRONG /
+    PHRASE_RESCUE_DIRECTION_SUPPORT — the same stricter bar
+    `_apply_phrase_rescue` requires to override an individually-measured
+    INCORRECT syllable across a word boundary — that evidence is strong
+    enough to make the same claim within a single word (e.g. 週末 measured
+    shape=93/direction=94 while 末 alone read INCORRECT). This mutates the
+    overridden syllable(s) in place — flipping `diagnostic_status`/`passed`
+    and attaching a `word_rescue` evidence dict — so the row is never left
+    showing "Likely tone mismatch" for a syllable now counted as passed.
+    """
+    from tone_decision import (
+        DiagnosticStatus,
+        PHRASE_RESCUE_DIRECTION_SUPPORT,
+        PHRASE_RESCUE_SHAPE_STRONG,
+        aggregate_word,
+    )
+
+    has_placeholder_uncertain = any(
+        entry.get("diagnostic_status") == DiagnosticStatus.UNCERTAIN.value
+        and entry.get("score_provenance") in _PLACEHOLDER_SCORE_PROVENANCES
+        for entry in syllables
+    )
+    has_incorrect_syllable = any(
+        entry.get("diagnostic_status") == DiagnosticStatus.INCORRECT.value
+        for entry in syllables
+    )
+    has_invalid_syllable = any(
+        entry.get("diagnostic_status") == DiagnosticStatus.INVALID_AUDIO.value
+        for entry in syllables
+    )
+    syllable_statuses = [
+        DiagnosticStatus(entry["diagnostic_status"])
+        for entry in syllables
+        if entry.get("diagnostic_status")
+    ]
+    syllable_rollup = aggregate_word(syllable_statuses) if syllable_statuses else None
+
+    overrides_incorrect_syllable = (
+        has_incorrect_syllable
+        and word_decision.status is DiagnosticStatus.CORRECT
+        and (word_decision.shape_score or 0) >= PHRASE_RESCUE_SHAPE_STRONG
+        and (word_decision.direction_score or 0) >= PHRASE_RESCUE_DIRECTION_SUPPORT
+    )
+
+    if word_decision.status is DiagnosticStatus.INVALID_AUDIO or has_invalid_syllable:
+        final_status = DiagnosticStatus.INVALID_AUDIO
+    elif has_incorrect_syllable and not overrides_incorrect_syllable:
+        final_status = DiagnosticStatus.INCORRECT
+    elif word_decision.status is DiagnosticStatus.CORRECT and not has_placeholder_uncertain:
+        final_status = DiagnosticStatus.CORRECT
+    elif syllable_rollup is DiagnosticStatus.CORRECT:
+        final_status = DiagnosticStatus.CORRECT
+    elif syllable_rollup is not None:
+        final_status = syllable_rollup
+    else:
+        final_status = word_decision.status
+
+    if final_status is DiagnosticStatus.CORRECT and overrides_incorrect_syllable:
+        for entry in syllables:
+            if entry.get("diagnostic_status") != DiagnosticStatus.INCORRECT.value:
+                continue
+            entry["word_rescue"] = {
+                "shape_score": word_decision.shape_score,
+                "direction_score": word_decision.direction_score,
+                "promoted_from": "INCORRECT",
+            }
+            entry["diagnostic_status"] = DiagnosticStatus.CORRECT.value
+            entry["diagnostic_reason"] = "word_shape_direction_overrides_syllable"
+            entry["passed"] = True
+        reason = "exceptionally_strong_shape_overrides_incorrect_syllable"
+    elif final_status is word_decision.status:
+        reason = word_decision.reason
+    elif final_status is DiagnosticStatus.INCORRECT:
+        reason = "incorrect_syllable_overrides_word_shape"
+    elif final_status is DiagnosticStatus.INVALID_AUDIO:
+        reason = "invalid_syllable_overrides_word_shape"
+    elif final_status is DiagnosticStatus.CORRECT:
+        reason = "syllable_rollup_promoted_to_correct"
+    else:
+        reason = f"syllable_rollup_{final_status.value.lower()}"
+
+    return final_status, reason
+
+
 def estimate_word_prosody(
     pitch_contour: List[Tuple[float, float]],
     transcription: str = "",
@@ -907,6 +1026,7 @@ def estimate_word_prosody(
     reference_word_curves: Dict[str, List[float]] | None = None,
     intensity: List[Tuple[float, float]] | None = None,
     sound=None,
+    target_phrases: List[str] | None = None,
 ) -> List[Dict]:
     """
     Estimate per-word prosody from the global pitch contour.
@@ -944,6 +1064,11 @@ def estimate_word_prosody(
     ``_syllable_vowels`` for what that reading is and is not allowed to claim.
     Omitted, every syllable reports ``vowel_status: "not_measured"``, which is
     what the no-Parselmouth fallback path and the existing callers get.
+
+    ``target_phrases``: optional teacher-designated phrases for this scene
+    (e.g. ``["這個週末"]``). When one spans more than one jieba word, see
+    ``_apply_phrase_rescue`` — a syllable/word that measured INCORRECT on its
+    own can be promoted if the combined phrase span clears a stricter bar.
     """
     tokens = _prosody_tokens(transcription)
     if not tokens or len(pitch_contour) < 2:
@@ -964,7 +1089,6 @@ def estimate_word_prosody(
     from tone_decision import (
         DiagnosticStatus,
         QcEvidence,
-        aggregate_word,
         decide_word_tone,
     )
 
@@ -1268,14 +1392,6 @@ def estimate_word_prosody(
             direction_score=direction_score if segment_judged else None,
             qc=word_qc,
         )
-        syllable_statuses = [
-            DiagnosticStatus(entry["diagnostic_status"])
-            for entry in syllables
-            if entry.get("diagnostic_status")
-        ]
-        syllable_rollup = (
-            aggregate_word(syllable_statuses) if syllable_statuses else None
-        )
         # Word-level and syllable-level evidence combine two ways:
         #
         # * word-level shape+direction can promote a word to CORRECT when
@@ -1287,54 +1403,20 @@ def estimate_word_prosody(
         # * syllable-level CORRECT can promote a word whose whole-word
         #   shape barely missed SHAPE_STRONG (weak_shape reason);
         # * neither promotion is allowed to overrule an INCORRECT syllable
-        #   (the min-rule safety net stays intact), a placeholder-driven
+        #   (the min-rule safety net stays intact) or a placeholder-driven
         #   UNCERTAIN (short segment / neutral tone — no measurement to
-        #   promote from), or a shape/direction disagreement (the whole
-        #   point of the refactor's word-level check).
-        placeholder_provenances = {
-            "constant_short_segment",
-            "neutral_not_measured",
-            "not_scored",
-        }
-        has_placeholder_uncertain = any(
-            entry.get("diagnostic_status") == DiagnosticStatus.UNCERTAIN.value
-            and entry.get("score_provenance") in placeholder_provenances
-            for entry in syllables
-        )
-        has_incorrect_syllable = any(
-            entry.get("diagnostic_status") == DiagnosticStatus.INCORRECT.value
-            for entry in syllables
-        )
-        has_invalid_syllable = any(
-            entry.get("diagnostic_status") == DiagnosticStatus.INVALID_AUDIO.value
-            for entry in syllables
-        )
-        if word_decision.status is DiagnosticStatus.INVALID_AUDIO or has_invalid_syllable:
-            final_word_status = DiagnosticStatus.INVALID_AUDIO
-        elif has_incorrect_syllable:
-            # The min-rule safety net: one syllable moving the wrong way
-            # fails the word even if the whole-word shape happens to look OK.
-            final_word_status = DiagnosticStatus.INCORRECT
-        elif (
-            word_decision.status is DiagnosticStatus.UNCERTAIN
-            and word_decision.reason == "shape_direction_disagreement"
-        ):
-            # Shape/direction disagreement at the word level — the refactor's
-            # central invariant. Never CORRECT.
-            final_word_status = DiagnosticStatus.UNCERTAIN
-        elif word_decision.status is DiagnosticStatus.CORRECT and not has_placeholder_uncertain:
-            # Word-level shape+direction both cleared their thresholds AND
-            # no syllable's UNCERTAIN comes from a placeholder that would
-            # need to be re-recorded. Trust the word-level evidence.
-            final_word_status = DiagnosticStatus.CORRECT
-        elif syllable_rollup is DiagnosticStatus.CORRECT:
-            # Every measurable syllable was clearly correct even if the
-            # whole-word shape barely missed strong. Trust per-syllable.
-            final_word_status = DiagnosticStatus.CORRECT
-        elif syllable_rollup is not None:
-            final_word_status = syllable_rollup
-        else:
-            final_word_status = word_decision.status
+        #   promote from). A strong shape match with a disagreeing direction
+        #   is no longer held back either — decide_word_tone itself now
+        #   resolves that case straight to CORRECT (see
+        #   strong_shape_direction_overridden), so there is nothing left for
+        #   this combining step to override.
+        #
+        # `_combine_word_verdict` also resolves `reason` to match whichever
+        # status wins here — otherwise an override (e.g. the min-rule
+        # dropping a word to INCORRECT) leaves the pre-override
+        # decide_word_tone reason ("strong_shape_supported") attached to an
+        # INCORRECT verdict, reading as justification for the opposite call.
+        final_word_status, word_reason = _combine_word_verdict(word_decision, syllables)
         word_diagnostic = final_word_status.value
 
         # When the word verdict is CORRECT via whole-word evidence but the
@@ -1350,7 +1432,7 @@ def estimate_word_prosody(
         # and they must not silently pass.
         if final_word_status is DiagnosticStatus.CORRECT and segment_judged:
             for entry in syllables:
-                if entry.get("score_provenance") in placeholder_provenances:
+                if entry.get("score_provenance") in _PLACEHOLDER_SCORE_PROVENANCES:
                     continue
                 if entry.get("passed") is not True:
                     entry["passed"] = True
@@ -1424,7 +1506,7 @@ def estimate_word_prosody(
                 ),
                 "display_score": word_decision.display_score,
                 "verdict": word_diagnostic,
-                "reason": word_decision.reason,
+                "reason": word_reason,
                 "syllables": syllables,
                 "passed": word_passed,
                 "diagnostic_status": word_diagnostic,
@@ -1449,7 +1531,154 @@ def estimate_word_prosody(
                 (seg["mean_pitch"] - utterance_mean) / utterance_mean, 3
             )
 
+    _apply_phrase_rescue(segments, target_phrases)
+
     return segments
+
+
+def _clean_target_phrases(raw: List[str] | None) -> List[str]:
+    """Normalize a caller-supplied phrase list into distinct, meaningful
+    entries: strip whitespace, drop empties/dupes, and drop anything with no
+    Hanzi (nothing for the tone scorer to re-check)."""
+    if not raw:
+        return []
+    cleaned: List[str] = []
+    seen = set()
+    for phrase in raw:
+        text = (phrase or "").strip()
+        if not text or text in seen or not re.search(r"[一-鿿]", text):
+            continue
+        seen.add(text)
+        cleaned.append(text)
+    return cleaned
+
+
+def _find_contiguous_token_run(
+    tokens: List[str], phrase: str
+) -> Tuple[int, int] | None:
+    """First contiguous run of ``tokens`` whose concatenation equals
+    ``phrase``, as a ``(start, end)`` half-open range — or ``None``."""
+    for start in range(len(tokens)):
+        joined = ""
+        for end in range(start, len(tokens)):
+            joined += tokens[end]
+            if joined == phrase:
+                return start, end + 1
+            if len(joined) >= len(phrase):
+                break
+    return None
+
+
+def _apply_phrase_rescue(
+    segments: List[Dict], target_phrases: List[str] | None
+) -> None:
+    """Re-score a designated target phrase (e.g. teacher vocabulary "這個
+    週末") as one combined span when jieba split it into separate words that
+    were scored — and one of them failed — independently.
+
+    Word-boundary slicing can cut a syllable's pitch window at a point that
+    distorts its measured contour (coarticulation from the neighboring word,
+    an alignment snap that lands slightly wrong) even when the syllable was
+    actually produced correctly. Re-scoring the combined span the teacher
+    actually taught as one unit gives that syllable a second, wider-context
+    reading.
+
+    This is a rescue, never a downgrade: it only ever moves a syllable/word
+    toward CORRECT, and only when the combined-phrase evidence clears
+    PHRASE_RESCUE_SHAPE_STRONG / PHRASE_RESCUE_DIRECTION_SUPPORT — bars
+    stricter than the normal per-word promotion, because overriding an
+    individually-measured INCORRECT syllable (which the ordinary min-rule
+    never allows) is a stronger claim than a normal promotion. Placeholder
+    syllables (neutral tone / too short to measure) and any run touching
+    INVALID_AUDIO are exempt, mirroring the same exemptions
+    `_combine_word_verdict` applies at the word level. Mutates `segments` in
+    place; returns nothing.
+    """
+    phrases = _clean_target_phrases(target_phrases)
+    if not phrases or len(segments) < 2:
+        return
+
+    from chinese_tones import calculate_directional_tone_accuracy, calculate_phrase_shape_accuracy
+    from tone_decision import (
+        DiagnosticStatus,
+        PHRASE_RESCUE_DIRECTION_SUPPORT,
+        PHRASE_RESCUE_SHAPE_STRONG,
+        aggregate_word,
+    )
+
+    tokens = [seg["token"] for seg in segments]
+    for phrase in phrases:
+        run = _find_contiguous_token_run(tokens, phrase)
+        if run is None:
+            continue
+        start, end = run
+        if end - start < 2:
+            continue  # already a single jieba token; nothing to merge
+
+        run_segments = segments[start:end]
+        run_syllables = [
+            syllable
+            for seg in run_segments
+            for syllable in seg.get("syllables") or []
+        ]
+        if not run_syllables:
+            continue
+        if any(
+            s.get("diagnostic_status") == DiagnosticStatus.INVALID_AUDIO.value
+            for s in run_syllables
+        ):
+            continue  # wider context cannot fix an unusable recording
+        if all(
+            s.get("diagnostic_status") == DiagnosticStatus.CORRECT.value
+            for s in run_syllables
+        ):
+            continue  # nothing to rescue
+
+        merged_contour = [
+            point for seg in run_segments for point in seg.get("pitch_contour") or []
+        ]
+        merged_tones = [s["tone"] for s in run_syllables]
+        if len(merged_contour) < 4:
+            continue
+
+        shape = calculate_phrase_shape_accuracy(merged_contour, merged_tones)
+        direction = calculate_directional_tone_accuracy(merged_contour, merged_tones)
+        if shape < PHRASE_RESCUE_SHAPE_STRONG or direction < PHRASE_RESCUE_DIRECTION_SUPPORT:
+            continue
+
+        evidence = {
+            "phrase": phrase,
+            "shape_score": round(shape, 1),
+            "direction_score": round(direction, 1),
+        }
+        for syllable in run_syllables:
+            if syllable.get("score_provenance") in _PLACEHOLDER_SCORE_PROVENANCES:
+                continue
+            if syllable.get("diagnostic_status") == DiagnosticStatus.CORRECT.value:
+                continue
+            syllable["phrase_rescue"] = {
+                **evidence,
+                "promoted_from": syllable.get("diagnostic_status"),
+            }
+            syllable["diagnostic_status"] = DiagnosticStatus.CORRECT.value
+            syllable["diagnostic_reason"] = "phrase_context_rescued"
+            syllable["passed"] = True
+
+        for seg in run_segments:
+            seg_syllables = seg.get("syllables") or []
+            if not seg_syllables:
+                continue
+            seg_status = aggregate_word(
+                [DiagnosticStatus(s["diagnostic_status"]) for s in seg_syllables]
+            )
+            if (
+                seg_status is DiagnosticStatus.CORRECT
+                and seg.get("verdict") != DiagnosticStatus.CORRECT.value
+            ):
+                seg["verdict"] = DiagnosticStatus.CORRECT.value
+                seg["diagnostic_status"] = DiagnosticStatus.CORRECT.value
+                seg["reason"] = "phrase_context_rescued"
+                seg["passed"] = True
 
 
 def _voicing_onset_times(

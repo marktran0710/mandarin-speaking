@@ -73,17 +73,22 @@ _CONSTANT_PROVENANCE = frozenset(
 # teacher judgements collected in the validation study; until then they are
 # starting points chosen for the reasons below, not findings.
 #
-# CONFIRM: set to the legacy pass bar so that everything the diagnostic path
-# calls CORRECT is also a legacy pass. That keeps the new display from ever
-# being more generous than the gate students are actually measured by.
+# CONFIRM: calibrated down from the original 58 (the legacy pass bar) to
+# shrink the UNCERTAIN band and surface more CORRECT verdicts — the original
+# 13-point band between ERROR (45) and CONFIRM produced "not clear enough to
+# judge" on syllables whose contour, in practice, was a reasonable match. The
+# canonical gate (`praat_analyzer` syllable ``passed``) already runs on
+# `diagnostic_status`, not the legacy score threshold, so lowering this no
+# longer needs to stay pinned to 58 — see `SYLLABLE_PASS_THRESHOLD` for the
+# now-informational legacy bar this used to mirror.
 #
 # ERROR: set below the score a *completely flat* contour earns, which is 50
 # for T2/T4 (rise/fall of zero) and 45 for T3 (no dip) under the formulas in
 # chinese_tones.directional_tone_scores. Below this line the pitch did not
 # merely fail to move enough — it moved against the target. That is the
 # weakest claim the current scorer can support for "this is an error", and it
-# deliberately leaves a wide UNCERTAIN band rather than guessing.
-TONE_CONFIRM_THRESHOLD = float(os.getenv("TONE_CONFIRM_THRESHOLD", "58.0"))
+# deliberately leaves an UNCERTAIN band rather than guessing.
+TONE_CONFIRM_THRESHOLD = float(os.getenv("TONE_CONFIRM_THRESHOLD", "50.0"))
 TONE_ERROR_THRESHOLD = float(os.getenv("TONE_ERROR_THRESHOLD", "45.0"))
 
 # ── Word-level shape/direction verdict thresholds ────────────────────────
@@ -96,10 +101,32 @@ TONE_ERROR_THRESHOLD = float(os.getenv("TONE_ERROR_THRESHOLD", "45.0"))
 # is at least DIRECTION_SUPPORT. Shape below SHAPE_WEAK combined with direction
 # at or below DIRECTION_BAD is the only combination that produces INCORRECT —
 # either component alone must resolve to UNCERTAIN, never a verdict.
-SHAPE_STRONG = float(os.getenv("TONE_SHAPE_STRONG", "80.0"))
+#
+# SHAPE_STRONG calibrated down from 80 to 70 alongside TONE_CONFIRM_THRESHOLD,
+# same rationale: shrink the word-level "weak_shape" UNCERTAIN band so a
+# genuinely close shape match resolves to CORRECT instead of "not clear
+# enough to judge".
+SHAPE_STRONG = float(os.getenv("TONE_SHAPE_STRONG", "70.0"))
 SHAPE_WEAK = float(os.getenv("TONE_SHAPE_WEAK", "60.0"))
 DIRECTION_SUPPORT = float(os.getenv("TONE_DIRECTION_SUPPORT", "60.0"))
 DIRECTION_BAD = float(os.getenv("TONE_DIRECTION_BAD", "45.0"))
+
+# ── Phrase-context rescue thresholds ─────────────────────────────────────
+# A teacher-designated target phrase (e.g. "這個週末") sometimes spans more
+# than one jieba word. Each word is still scored independently — but a
+# syllable right at that internal word boundary can be measured on a
+# distorted coarticulation window purely from where jieba cut the sentence,
+# not from anything the learner did. `praat_analyzer._apply_phrase_rescue`
+# re-scores the phrase as one combined span and, when the combined evidence
+# clears THESE bars, can promote even a syllable/word that measured
+# INCORRECT on its own — something an ordinary word-level promotion never
+# does (the per-syllable min-rule always wins there). Overriding an
+# individually-measured INCORRECT syllable is a stronger claim than a normal
+# promotion, so it must clear a higher bar to earn that extra trust — these
+# constants must stay >= SHAPE_STRONG / DIRECTION_SUPPORT, never reuse or
+# fall below them.
+PHRASE_RESCUE_SHAPE_STRONG = float(os.getenv("TONE_PHRASE_RESCUE_SHAPE_STRONG", "78.0"))
+PHRASE_RESCUE_DIRECTION_SUPPORT = float(os.getenv("TONE_PHRASE_RESCUE_DIRECTION_SUPPORT", "65.0"))
 
 # Weight for the display composite score. Not a verdict input — kept only so
 # a single number can be shown to learners for progress history. Shape leads
@@ -367,11 +394,18 @@ def decide_word_tone(
     shape = float(shape_score)
     direction = float(direction_score)
 
-    # 3-4. Strong shape branch: shape is the primary evidence.
+    # 3-4. Strong shape branch: shape is the primary evidence, direction is a
+    # consistency check rather than veto power. A syllable whose overall
+    # pitch contour clearly matches the target (shape >= SHAPE_STRONG) is
+    # trusted even when the coarse quarter-mean direction heuristic
+    # disagrees — a genuine tone error would also show up as a poor shape
+    # match, so a strong shape match with weak direction is read as the
+    # directional heuristic's own known blind spot in connected speech, not
+    # as ambiguous evidence about the learner.
     if shape >= SHAPE_STRONG:
         if direction >= DIRECTION_SUPPORT:
             return build(DiagnosticStatus.CORRECT, "strong_shape_supported")
-        return build(DiagnosticStatus.UNCERTAIN, "shape_direction_disagreement")
+        return build(DiagnosticStatus.CORRECT, "strong_shape_direction_overridden")
 
     # 5. Middle band — shape is neither strong nor clearly poor. Direction
     #    alone cannot rescue this, by design; a weak shape stays UNCERTAIN

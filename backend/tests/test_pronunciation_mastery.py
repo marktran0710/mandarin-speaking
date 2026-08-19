@@ -115,6 +115,64 @@ def test_mastery_ignores_a_word_without_measured_pitch_evidence():
     assert result["total_syllables"] == 1
 
 
+def test_uncertain_syllables_do_not_count_against_the_sentence_gate():
+    """UNCERTAIN ("not clear enough to judge") is not negative evidence —
+    only INCORRECT (a likely tone mismatch) or INVALID_AUDIO (unusable
+    recording) should count against the 80% sentence gate. Regression test:
+    audio that used to pass started failing once the per-syllable diagnostic
+    verdict collapsed UNCERTAIN and INCORRECT into the same passed=False,
+    making an unmeasurable syllable indistinguishable from an actual tone
+    mismatch at the sentence-gate level."""
+    word = {
+        "token": "友美",
+        "judged": True,
+        "passed": False,
+        "syllables": [
+            {"char": "友", "passed": True, "diagnostic_status": "CORRECT"},
+            {"char": "美", "passed": False, "diagnostic_status": "UNCERTAIN"},
+        ],
+    }
+    result = build_pronunciation_mastery([word], {"can_score_pronunciation": True})
+
+    assert result["passed"] is True
+    assert result["status"] == "passed"
+    assert result["passed_syllables"] == 2
+    assert result["total_syllables"] == 2
+    # Still surfaced as optional practice even though the sentence passed.
+    assert "友美" in result["failed_words"]
+
+
+def test_incorrect_syllables_still_fail_the_sentence_gate():
+    word = {
+        "token": "妳",
+        "judged": True,
+        "passed": False,
+        "syllables": [
+            {"char": "妳", "passed": False, "diagnostic_status": "INCORRECT"},
+        ],
+    }
+    result = build_pronunciation_mastery([word], {"can_score_pronunciation": True})
+
+    assert result["passed"] is False
+    assert result["status"] == "needs_practice"
+    assert result["passed_syllables"] == 0
+
+
+def test_invalid_audio_syllables_still_fail_the_sentence_gate():
+    word = {
+        "token": "妳",
+        "judged": True,
+        "passed": False,
+        "syllables": [
+            {"char": "妳", "passed": False, "diagnostic_status": "INVALID_AUDIO"},
+        ],
+    }
+    result = build_pronunciation_mastery([word], {"can_score_pronunciation": True})
+
+    assert result["passed"] is False
+    assert result["status"] == "needs_practice"
+
+
 def test_mastery_cannot_pass_when_required_scene_content_is_missing():
     result = build_pronunciation_mastery(
         [_word("你這個週末要做什麼", [80] * 9)],

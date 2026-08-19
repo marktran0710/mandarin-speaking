@@ -61,18 +61,19 @@ def test_case_a_shape_high_direction_high_is_correct():
     assert result.reason == "strong_shape_supported"
 
 
-# ── Case B: shape high, direction low → UNCERTAIN (not INCORRECT) ─────────
+# ── Case B: shape high, direction low → CORRECT, never INCORRECT ─────────
 
 
-def test_case_b_shape_high_direction_low_is_uncertain():
-    """The whole point of the refactor: a contour that visibly matches the
-    expected tone must not be marked INCORRECT because a coarse directional
-    heuristic disagrees. UNCERTAIN, and the learner is told the pitch
-    movement was not clear enough."""
+def test_case_b_shape_high_direction_low_is_correct():
+    """Shape is the primary evidence; direction is a consistency check, not
+    veto power. A contour that visibly matches the expected tone must not be
+    marked INCORRECT — or held to UNCERTAIN — just because a coarse
+    directional heuristic disagrees. A genuine tone error would also show up
+    as a poor shape match, so strong shape wins."""
     result = decide_word_tone(shape_score=89.0, direction_score=42.0, qc=GOOD_QC)
-    assert result.status is DiagnosticStatus.UNCERTAIN
+    assert result.status is DiagnosticStatus.CORRECT
     assert result.status is not DiagnosticStatus.INCORRECT
-    assert result.reason == "shape_direction_disagreement"
+    assert result.reason == "strong_shape_direction_overridden"
 
 
 # ── Case C: shape low, direction high → UNCERTAIN (not CORRECT) ──────────
@@ -179,8 +180,11 @@ def test_shape_below_weak_and_direction_at_bad_bar_is_incorrect():
 
 def test_shape_in_middle_band_is_always_uncertain():
     """SHAPE_WEAK <= shape < SHAPE_STRONG — the shape evidence is neither
-    strong enough to confirm nor weak enough to condemn."""
-    for shape in (SHAPE_WEAK, 65.0, 70.0, 75.0, SHAPE_STRONG - 0.1):
+    strong enough to confirm nor weak enough to condemn. Generated relative
+    to the two threshold constants so this stays correct across calibration
+    passes rather than pinning to values from the original 60-80 band."""
+    midpoint = (SHAPE_WEAK + SHAPE_STRONG) / 2
+    for shape in (SHAPE_WEAK, midpoint, SHAPE_STRONG - 0.1):
         for direction in (0.0, 30.0, 60.0, 90.0):
             result = decide_word_tone(
                 shape_score=shape, direction_score=direction, qc=GOOD_QC
@@ -228,7 +232,7 @@ def test_verdict_payload_exposes_shape_direction_display_and_reason():
     assert payload["shape_score"] == 89.0
     assert payload["direction_score"] == 42.0
     assert payload["display_score"] == pytest.approx(0.70 * 89.0 + 0.30 * 42.0)
-    assert payload["verdict"] == "UNCERTAIN"
-    assert payload["reason"] == "shape_direction_disagreement"
+    assert payload["verdict"] == "CORRECT"
+    assert payload["reason"] == "strong_shape_direction_overridden"
     # Reason codes must never claim these engineering thresholds are validated.
     assert payload["threshold_validated"] is False

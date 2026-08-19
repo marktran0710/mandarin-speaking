@@ -45,8 +45,12 @@ def _contour(num_points=260, duration=3.2):
 
 
 @pytest.fixture(scope="module")
-def syllables():
-    segments = estimate_word_prosody(_contour(), SENTENCE)
+def segments():
+    return estimate_word_prosody(_contour(), SENTENCE)
+
+
+@pytest.fixture(scope="module")
+def syllables(segments):
     return [s for segment in segments for s in segment.get("syllables", [])]
 
 
@@ -135,15 +139,28 @@ def test_legacy_score_and_threshold_still_travel_with_the_syllable(syllables):
         )
 
 
-def test_canonical_passed_follows_the_verdict_not_the_raw_threshold(syllables):
+def test_canonical_passed_follows_the_verdict_not_the_raw_threshold(segments):
     """The refactor's central invariant, verified end-to-end: `passed` is
-    True IFF the diagnostic verdict is CORRECT. A syllable scored above 58
-    can still fail if the diagnostic path called it UNCERTAIN (e.g. a
-    neutral-tone placeholder), and — by symmetry — no placeholder score
-    can ever produce passed=True."""
-    for syllable in syllables:
-        canonical = syllable["diagnostic_status"] == "CORRECT"
-        assert syllable["passed"] is canonical, syllable
+    True IFF the diagnostic verdict is CORRECT — OR the syllable's word
+    verdict was itself promoted to CORRECT by combined shape+direction
+    evidence (e.g. strong_shape_direction_overridden), which is allowed to
+    carry non-placeholder syllables along with it (see the promotion loop
+    in estimate_word_prosody). Placeholder syllables (neutral tone / too
+    short to measure) are exempt from that promotion and must still follow
+    their own diagnostic verdict.
+    """
+    placeholder_provenances = {"constant_short_segment", "neutral_not_measured"}
+    for segment in segments:
+        word_promoted = segment.get("passed") is True
+        for syllable in segment.get("syllables", []):
+            canonical = syllable["diagnostic_status"] == "CORRECT"
+            if (
+                word_promoted
+                and syllable.get("score_provenance") not in placeholder_provenances
+            ):
+                assert syllable["passed"] is True, syllable
+            else:
+                assert syllable["passed"] is canonical, syllable
 
 
 def test_placeholder_syllables_never_pass_under_the_new_gate(syllables):
@@ -203,8 +220,13 @@ def _replay():
 @pytest.mark.parametrize("char", ["友", "美", "妳", "個", "要"])
 def test_the_originally_misreported_syllables_are_no_longer_errors(char):
     """The core complaint: every one of these was shown as ✗ purely because a
-    heuristic score sat between 50 and 57."""
-    assert _replay()[char] is DiagnosticStatus.UNCERTAIN
+    heuristic score sat between 50 and 57.
+
+    A later calibration pass (2026-08-19) lowered TONE_CONFIRM_THRESHOLD from
+    58 to 50 specifically to shrink the "not clear enough to judge" band, so
+    these scores (50-56) now clear the confirm bar outright instead of
+    landing in UNCERTAIN — the intended outcome, not a regression."""
+    assert _replay()[char] is DiagnosticStatus.CORRECT
 
 
 @pytest.mark.parametrize("char", ["這", "週", "末", "做"])
@@ -231,13 +253,15 @@ def test_the_neutral_syllable_is_not_a_free_pass():
     assert _replay()["麼"] is DiagnosticStatus.UNCERTAIN
 
 
-def test_the_sentence_is_mostly_uncertainty_not_error():
-    """The headline result: what used to read as six pronunciation failures is
-    one candidate error and a lot of "could not tell"."""
+def test_the_sentence_is_mostly_correct_not_uncertain():
+    """The headline result after the 2026-08-19 calibration pass: what used to
+    read as six pronunciation failures, then six "could not tell"s, is now one
+    candidate error and a single genuine unmeasured syllable (麼, neutral
+    tone). 友/美/妳/個/要 all clear the lowered confirm bar."""
     summary = summarize_sentence(list(_replay().values()))
     assert summary["counts"]["incorrect"] == 1
-    assert summary["counts"]["uncertain"] == 6
-    assert summary["counts"]["correct"] == 4
+    assert summary["counts"]["uncertain"] == 1
+    assert summary["counts"]["correct"] == 9
     # And a single error asks the learner to drill that syllable, not to
     # re-record the whole sentence.
     assert summary["recommended_action"] == "targeted_practice"
