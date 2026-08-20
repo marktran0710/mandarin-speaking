@@ -384,6 +384,9 @@ Seeding is explicit and idempotent. Run it after the backend is healthy:
 docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_grammar_lesson
 docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_listen_retell_lesson
 docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_vv_kan_lesson
+
+# Optional local demo accounts: Student Demo / Teacher Demo, password 123456
+docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_demo_accounts
 ```
 
 Existing lessons are not overwritten. Use `--overwrite` only when intentionally

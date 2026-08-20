@@ -18,6 +18,7 @@ async def create_teacher(
     identity: auth.Identity = Depends(auth.require_admin),
 ):
     name = request.name.strip()
+    auth.validate_password_policy(request.password)
     with connect_db() as db:
         if db.execute("SELECT 1 FROM teachers WHERE lower(name) = lower(%s)", (name,)).fetchone():
             raise HTTPException(status_code=409, detail="Teacher already exists.")
@@ -60,6 +61,7 @@ async def update_teacher(
 ):
     updates, params = [], []
     if request.password is not None:
+        auth.validate_password_policy(request.password)
         updates.extend(["password = %s", "password_reset_required = false"])
         params.append(auth.hash_password(request.password))
     if request.status is not None: updates.append("status = %s"); params.append(request.status)

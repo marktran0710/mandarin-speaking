@@ -742,11 +742,11 @@ class VocabQuizAttemptRequest(BaseModel):
 
 class StudentCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    password: str = Field(..., min_length=8, max_length=100)
+    password: str = Field(..., min_length=6, max_length=100)
 
 
 class StudentPasswordResetRequest(BaseModel):
-    password: str = Field(..., min_length=8, max_length=100)
+    password: str = Field(..., min_length=6, max_length=100)
 
 
 class QuizExclusion(BaseModel):
@@ -862,14 +862,14 @@ class Student(BaseModel):
 
 class TeacherCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    password: str = Field(..., min_length=8, max_length=100)
+    password: str = Field(..., min_length=6, max_length=100)
 
 class TeacherLoginRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     password: str = Field(..., min_length=1, max_length=100)
 
 class TeacherUpdateRequest(BaseModel):
-    password: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    password: Optional[str] = Field(default=None, min_length=6, max_length=100)
     status: Optional[str] = Field(default=None, pattern="^(active|inactive)$")
 
 

@@ -28,6 +28,7 @@ async def create_student(
     name = request.name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="Provide a student name.")
+    auth.validate_password_policy(request.password)
 
     with connect_db() as db:
         existing = db.execute(
@@ -97,6 +98,7 @@ async def reset_student_password(
     request: StudentPasswordResetRequest,
     identity: auth.Identity = Depends(auth.require_teacher_or_admin),
 ):
+    auth.validate_password_policy(request.password)
     with connect_db() as db:
         row = db.execute(
             "UPDATE students SET password = %s, password_reset_required = false WHERE id = %s RETURNING *",

@@ -73,6 +73,19 @@ def hash_password(password: str) -> str:
     ).decode("ascii")
 
 
+def validate_password_policy(password: str) -> None:
+    """Validate account passwords; allow the local-only demo password."""
+    production = os.getenv("APP_ENV", "development").lower() == "production"
+    minimum = 8 if production else 6
+    if len(password) < minimum:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Password must be at least {minimum} characters.",
+        )
+    if production and hmac.compare_digest(password, "123456"):
+        raise HTTPException(status_code=400, detail="Choose a non-default production password.")
+
+
 def _is_bcrypt_hash(stored_password: str) -> bool:
     return stored_password.startswith(_BCRYPT_PREFIXES)
 
