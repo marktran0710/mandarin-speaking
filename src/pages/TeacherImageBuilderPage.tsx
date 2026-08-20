@@ -4,7 +4,7 @@ import "./TeacherImageBuilderPage.css";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+  (import.meta.env.DEV && typeof window !== "undefined" ? window.location.origin : "");
 const CUSTOM_STORY_STORAGE_KEY = "teacherCustomStories";
 
 interface GeneratedFrame {

@@ -2,7 +2,7 @@ import type { CustomStoryFrame, CustomTeacherStory } from "./teacherStories";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+  (import.meta.env.DEV && typeof window !== "undefined" ? window.location.origin : "");
 
 const EXPORT_FORMAT = "enjoyable-mandarin-story";
 const EXPORT_VERSION = 1;

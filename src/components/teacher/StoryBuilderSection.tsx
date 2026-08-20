@@ -42,7 +42,7 @@ import {
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+  (import.meta.env.DEV && typeof window !== "undefined" ? window.location.origin : "");
 
 // How many phrases to ask the AI for per difficulty tier — a harder tier's
 // suggested-answer sentence is longer/more complex, so it naturally yields

@@ -4,7 +4,7 @@ import { storyApprovedSnapshot } from "./quizApprovedMaterial";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+  (import.meta.env.DEV && typeof window !== "undefined" ? window.location.origin : "");
 
 /** Resolve a relative /uploads/... URL to an absolute backend URL. */
 export function resolveImageUrl(url: string): string {

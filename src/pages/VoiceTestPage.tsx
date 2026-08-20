@@ -15,7 +15,7 @@ import "./VoiceTestPage.css";
 
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+  (import.meta.env.DEV && typeof window !== "undefined" ? window.location.origin : "");
 const VOICE_TEST_ASR_MODEL = import.meta.env.VITE_VOICE_TEST_ASR_MODEL || "ctwhisper";
 
 interface WordProsody {
