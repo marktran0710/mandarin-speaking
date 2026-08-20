@@ -325,128 +325,79 @@ backend, and importing sends the story through the same save path as creating on
 
 ## Quick Start
 
-### Shared Lab PC / Laptop modes
+### Independent device development
 
-The recommended setup uses the Lab PC as the central server and the Laptop as a
-frontend client. Both machines use the same code from GitHub, but only the Lab PC
-owns the shared PostgreSQL database and uploaded audio/images.
+Every device runs the same Docker stack independently. There is no Lab/Laptop/
+Standalone mode and no device-to-device backend connection. Each device owns
+its own PostgreSQL database, uploads, login accounts, model cache, and Docker
+volumes.
 
-This is the shared-classroom workflow. `start.ps1 -Mode Laptop` intentionally
-connects to the Lab backend and does **not** create an independent local
-database.
-
-Prerequisites on both machines:
-
-- Clone or pull this repository.
-- Install Node dependencies with `npm install` (or `npm ci`).
-- Make sure Tailscale is connected.
-- The Laptop must be able to reach the Lab backend at
-  `http://100.67.229.122:8000`.
-
-#### Lab PC: central server
-
-Run this on the Lab PC (`D:\hautran\Lab\mandarin-speaking`):
+Install Docker Desktop with Docker Compose, clone or pull the repository on each
+device, and create a local backend environment file:
 
 ```powershell
-.\start.ps1 -Mode Lab -AllowedClientIps 100.104.12.33
+Copy-Item backend/.env.example backend/.env
 ```
 
-This starts PostgreSQL, the FastAPI backend on port `8000`, and the frontend.
-The PostgreSQL container keeps using `127.0.0.1:5432`; Tailscale Serve exposes
-the database separately on `100.67.229.122:15432` when a remote database
-connection is needed.
-
-#### Laptop: frontend client
-
-Run this on the Laptop (`E:\MyFolder\Lab\mandarin-speaking`):
-
-```powershell
-.\start.ps1 -Mode Laptop
-```
-
-This starts only Vite and points it at the Lab backend. It does not start a
-local PostgreSQL container or a second backend. Open the URL printed by Vite,
-usually one of:
-
-```text
-http://localhost:5173
-http://100.104.12.33:5173
-```
-
-If port `5173` is busy, Vite chooses the next free port. Use that actual port
-in the browser.
-
-#### Standalone development copy
-
-To run a machine completely independently, use:
-
-```powershell
-.\start.ps1 -Mode Standalone
-```
-
-This runs a local PostgreSQL, backend, and frontend with an independent Docker
-volume and local uploads. Its data is not shared with the Lab PC.
-
-#### Fully containerized independent development
-
-Use this workflow when a device must run and test the project independently of
-the Lab PC. It starts PostgreSQL, the FastAPI backend, and Vite in Docker.
+Use a separate `backend/.env` on each device and never commit real API keys.
 The source folders are mounted into the containers, so backend and frontend
 changes reload during development. The database, uploads, model cache, and
 Node dependencies use separate Docker volumes.
 
-For **two independent devices**, clone/pull the repository on both devices and
-run this same workflow on each device. Each device then has its own database,
-uploads, login accounts, and Docker volumes; neither device calls the other.
-Use a separate `backend/.env` on each device and never copy a real `.env` into
-Git. Do not use `start.ps1 -Mode Laptop` for this setup.
-
-Install Docker Desktop with Docker Compose, then run from the repository root:
+Run from the repository root:
 
 ```powershell
-Copy-Item backend/.env.example backend/.env
-docker compose -f docker-compose.laptop.yml config --quiet
-docker compose -f docker-compose.laptop.yml up -d --build
-docker compose -f docker-compose.laptop.yml ps
+.\start.ps1
 ```
 
-Alembic migrations run automatically before the backend starts. Open
-`http://127.0.0.1:5177` after the backend is healthy. The backend diagnostics
-endpoint is `http://127.0.0.1:8001/health/ready`.
-
-Seed the optional teaching lessons explicitly:
+For background mode:
 
 ```powershell
-docker compose -f docker-compose.laptop.yml exec backend python -m scripts.seed_grammar_lesson
-docker compose -f docker-compose.laptop.yml exec backend python -m scripts.seed_listen_retell_lesson
-docker compose -f docker-compose.laptop.yml exec backend python -m scripts.seed_vv_kan_lesson
+.\start.ps1 -Detached
 ```
 
-Useful development commands:
+`start.ps1` builds the images, starts PostgreSQL, applies Alembic migrations,
+and starts the backend and Vite frontend. Open `http://127.0.0.1:5177`; the
+backend diagnostics endpoint is `http://127.0.0.1:8001/health/ready`.
+
+The source folders are mounted into the containers, so backend and frontend
+changes reload during development. The database, uploads, model cache, and
+Node dependencies use separate Docker volumes.
+
+For manual Compose commands or troubleshooting, see
+[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md).
+
+#### Seed teaching lessons
+
+Seed the optional teaching lessons explicitly after the backend is healthy:
 
 ```powershell
+docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_grammar_lesson
+docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_listen_retell_lesson
+docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_vv_kan_lesson
+```
+
+#### Useful commands
+
+```powershell
+# Start without rebuilding existing images
+.\start.ps1 -NoBuild -Detached
+
 # Follow backend and frontend logs
-docker compose -f docker-compose.laptop.yml logs -f backend frontend
+docker compose -f docker-compose.dev.yml logs -f backend frontend
 
 # Run frontend tests inside the container
-docker compose -f docker-compose.laptop.yml exec frontend npm test -- --run
-
-# Rebuild after dependency or Dockerfile changes
-docker compose -f docker-compose.laptop.yml up -d --build
+docker compose -f docker-compose.dev.yml exec frontend npm test -- --run
 
 # Stop containers while preserving local data
-docker compose -f docker-compose.laptop.yml down
+docker compose -f docker-compose.dev.yml down
+
+# Delete this device's database, uploads, model cache, and Node dependencies
+.\start.ps1 -ResetData -Detached
 ```
 
-To intentionally reset the laptop environment, including its PostgreSQL
-database, uploads, model cache, and frontend dependencies, run:
-
-```powershell
-docker compose -f docker-compose.laptop.yml down -v
-```
-
-For the full setup notes and troubleshooting, see
-[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md).
+Use `-ResetData` only when intentionally resetting that device. This is the
+only destructive start option.
 
 #### Important data-safety rule
 
@@ -454,10 +405,8 @@ Never run `docker compose down -v` unless you intentionally want to delete the
 local PostgreSQL volume. Use `docker compose down` to stop containers while
 preserving data.
 
-The startup script configures the frontend's `VITE_BACKEND_URL` and the Lab
-backend's `CORS_ORIGINS` for the selected mode. These are per-machine/process
-environment variables; they are not synchronized through GitHub. Do not commit
-real API keys or local `.env` files.
+All configuration is local to the device and is not synchronized through
+GitHub. Do not commit real API keys or local `.env` files.
 
 ### Database
 

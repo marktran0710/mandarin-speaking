@@ -6,9 +6,8 @@ Scope: source code, build/test state, generated artifacts, database/storage path
 ## Executive decision
 
 The two-device development workflow is safe when each device runs
-`docker-compose.laptop.yml` with its own `.env` and Docker volumes. The shared
-`start.ps1 -Mode Laptop` workflow remains intentionally separate and should not
-be used when device databases must be independent.
+`start.ps1`/`docker-compose.dev.yml` with its own `.env` and Docker volumes.
+There is no shared-device mode; each device owns its own database and uploads.
 
 One stale root prototype, `demo.html`, had no build input or repository
 references and was removed. Research, migration, seed, runtime, and authored

@@ -26,8 +26,8 @@ shared with anyone else.
 Validate the Compose file, then build and start the stack:
 
 ```powershell
-docker compose -f docker-compose.laptop.yml config --quiet
-docker compose -f docker-compose.laptop.yml up --build
+docker compose -f docker-compose.dev.yml config --quiet
+docker compose -f docker-compose.dev.yml up --build
 ```
 
 The app is available at `http://127.0.0.1:5177`. The backend is available for
@@ -40,8 +40,8 @@ fails, the backend stays unhealthy instead of serving against a partial schema.
 To run in the background:
 
 ```powershell
-docker compose -f docker-compose.laptop.yml up -d --build
-docker compose -f docker-compose.laptop.yml logs -f backend frontend
+docker compose -f docker-compose.dev.yml up -d --build
+docker compose -f docker-compose.dev.yml logs -f backend frontend
 ```
 
 ## Seed teaching data
@@ -49,9 +49,9 @@ docker compose -f docker-compose.laptop.yml logs -f backend frontend
 Seeding is explicit and idempotent; it never runs automatically during startup:
 
 ```powershell
-docker compose -f docker-compose.laptop.yml exec backend python -m scripts.seed_grammar_lesson
-docker compose -f docker-compose.laptop.yml exec backend python -m scripts.seed_listen_retell_lesson
-docker compose -f docker-compose.laptop.yml exec backend python -m scripts.seed_vv_kan_lesson
+docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_grammar_lesson
+docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_listen_retell_lesson
+docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_vv_kan_lesson
 ```
 
 Use `--overwrite` only when intentionally replacing the authored content for a
@@ -63,21 +63,21 @@ stories, students, recordings, or uploads.
 Normal stop preserves the laptop database and uploads:
 
 ```powershell
-docker compose -f docker-compose.laptop.yml down
+docker compose -f docker-compose.dev.yml down
 ```
 
 Restart after pulling code:
 
 ```powershell
 git pull --ff-only
-docker compose -f docker-compose.laptop.yml up -d --build
+docker compose -f docker-compose.dev.yml up -d --build
 ```
 
 To deliberately erase this laptop's database, uploads, and cached frontend
 dependencies:
 
 ```powershell
-docker compose -f docker-compose.laptop.yml down -v
+docker compose -f docker-compose.dev.yml down -v
 ```
 
 Never use `down -v` against a database containing work you want to keep.
@@ -87,7 +87,7 @@ Never use `down -v` against a database containing work you want to keep.
 The frontend tests can run in the frontend container:
 
 ```powershell
-docker compose -f docker-compose.laptop.yml exec frontend npm test -- --run
+docker compose -f docker-compose.dev.yml exec frontend npm test -- --run
 ```
 
 The backend container has the runtime dependencies and source mount. For the

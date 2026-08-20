@@ -1,4 +1,4 @@
-name: mandarin-speaking-laptop
+name: mandarin-speaking-dev
 
 services:
   db:
@@ -9,7 +9,7 @@ services:
       POSTGRES_DB: mandarin
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     volumes:
-      - laptop_pgdata:/var/lib/postgresql/data
+      - dev_pgdata:/var/lib/postgresql/data
       - ./backend/db_init:/docker-entrypoint-initdb.d:ro
     networks:
       - data
@@ -35,9 +35,9 @@ services:
       CORS_ORIGINS: http://localhost:5177,http://127.0.0.1:5177
     volumes:
       - ./backend:/app
-      - laptop_backend_data:/data
+      - dev_backend_data:/data
     ports:
-      - "127.0.0.1:${LAPTOP_BACKEND_PORT:-8001}:8000"
+      - "127.0.0.1:${DEV_BACKEND_PORT:-8001}:8000"
     networks:
       - app
       - data
@@ -74,9 +74,9 @@ services:
       CHOKIDAR_USEPOLLING: "true"
     volumes:
       - .:/app
-      - laptop_node_modules:/app/node_modules
+      - dev_node_modules:/app/node_modules
     ports:
-      - "127.0.0.1:${LAPTOP_FRONTEND_PORT:-5177}:5173"
+      - "127.0.0.1:${DEV_FRONTEND_PORT:-5177}:5173"
     networks:
       - app
     depends_on:
@@ -90,9 +90,9 @@ services:
         exec npm run dev -- --host 0.0.0.0 --port 5173
 
 volumes:
-  laptop_pgdata:
-  laptop_backend_data:
-  laptop_node_modules:
+  dev_pgdata:
+  dev_backend_data:
+  dev_node_modules:
 
 networks:
   app:
