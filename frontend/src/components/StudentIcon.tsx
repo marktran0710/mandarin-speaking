@@ -19,7 +19,10 @@ export type StudentIconName =
   | "feedback"
   | "retry"
   | "check"
-  | "spark";
+  | "spark"
+  | "seedling"
+  | "sprout"
+  | "tree";
 
 interface StudentIconProps extends Omit<SVGProps<SVGSVGElement>, "name"> {
   name: StudentIconName;
@@ -86,5 +89,11 @@ export default function StudentIcon({ name, size = 18, ...props }: StudentIconPr
       return <svg {...common}><path d="m5 12 4 4L19 6" /></svg>;
     case "spark":
       return <svg {...common}><path d="m12 3 1.2 5.8L19 10l-5.8 1.2L12 17l-1.2-5.8L5 10l5.8-1.2Z" /><path d="m19 16 .5 2.5L22 19l-2.5.5L19 22l-.5-2.5L16 19l2.5-.5Z" /></svg>;
+    case "seedling":
+      return <svg {...common}><path d="M12 21V11" /><path d="M12 13c-4.5 0-7-2.3-7-6 4.6 0 7 2.1 7 6Z" /><path d="M12 11c0-3.8 2.4-6 7-6 0 3.7-2.5 6-7 6Z" /></svg>;
+    case "sprout":
+      return <svg {...common}><path d="M12 21V8" /><path d="M12 12C7 12 4 9.4 4 5c5.2 0 8 2.5 8 7Z" /><path d="M12 9c0-4.1 2.7-6 8-6 0 4.5-2.8 6.5-8 6.5Z" /><path d="M8 21h8" /></svg>;
+    case "tree":
+      return <svg {...common}><path d="M12 21V11" /><path d="M8 21h8" /><path d="M12 4c-1.8-2.4-5.5-1.1-5.1 1.8-3.5.3-4 5.1-.7 6.2-1.1 3.2 3.2 5.4 5.8 3.3 2.6 2.1 6.9-.1 5.8-3.3 3.3-1.1 2.8-5.9-.7-6.2C17.5 2.9 13.8 1.6 12 4Z" /></svg>;
   }
 }

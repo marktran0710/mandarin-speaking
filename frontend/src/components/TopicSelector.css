@@ -648,23 +648,30 @@
   margin: 0 0 10px 14px;
 }
 
-/* ── Per-story 🌱🌿🌳 tier track on the cards ── */
+/* ── Per-story difficulty track. In student mode each tier is a direct
+   action, so the learner no longer needs a separate difficulty page. ── */
 .ts-tier-track {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   margin-top: 10px;
   padding-top: 10px;
   border-top: 1.5px dashed var(--clay-hairline-soft);
 }
 
 .ts-tier-cell {
-  width: 26px;
-  height: 26px;
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 5px 6px;
   border-radius: var(--clay-radius-sm);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  gap: 1px;
+  color: var(--clay-body);
+  font: inherit;
+  text-align: center;
 }
 
 .ts-tier-done { background: var(--jade-soft); }
@@ -672,11 +679,55 @@
   background: var(--clay-surface-soft);
   border: 1.5px solid var(--clay-hairline);
 }
+.ts-tier-track-interactive .ts-tier-open,
+.ts-tier-track-interactive .ts-tier-done {
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+
+.ts-tier-track-interactive .ts-tier-open:hover,
+.ts-tier-track-interactive .ts-tier-done:hover {
+  border-color: var(--gold);
+  box-shadow: 0 3px 8px color-mix(in srgb, var(--gold) 18%, transparent);
+  transform: translateY(-1px);
+}
+
+.ts-tier-track-interactive .ts-tier-cell:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--jade) 72%, white);
+  outline-offset: 2px;
+}
+
+.ts-tier-cell .bi-label {
+  gap: 0;
+  line-height: 1.05;
+}
+
+.ts-tier-cell .bi-zh {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ts-tier-cell .bi-en {
+  font-size: 9px;
+  color: var(--clay-muted);
+}
+
 .ts-tier-lock {
   background: var(--clay-surface-soft);
   border: 1.5px solid var(--clay-hairline);
   opacity: 0.45;
   filter: grayscale(1);
+}
+
+.ts-tier-track-interactive .ts-tier-lock {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-tier-track-interactive .ts-tier-cell {
+    transition: none;
+  }
 }
 
 @media (max-width: 560px) {

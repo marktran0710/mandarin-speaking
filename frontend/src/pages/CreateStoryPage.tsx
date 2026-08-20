@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import TopicSelector from "../components/TopicSelector";
 import StoryRecorder, { type NewAudioRecord } from "../components/StoryRecorder";
-import StoryLevelPicker from "../components/StoryLevelPicker";
 import StudentHelpPanel from "../components/StudentHelpPanel";
 import { HelpRequest } from "../services/database";
-import { loadPublishedTeacherTopics, storyHasTierContent, storyToTopic } from "../utils/teacherStories";
+import { loadPublishedTeacherTopics, storyToTopic } from "../utils/teacherStories";
 import type { Topic } from "../components/TopicSelector";
 import { getStudentId, getStudentName } from "../utils/studentSession";
 import "./CreateStoryPage.css";
@@ -47,17 +46,11 @@ export default function CreateStoryPage({
   );
   const [selectedImageIndex, setSelectedImageIndex] =
     useState<number>(safeInitialIndex);
-  // Set while a story with authored Medium/Hard tiers is chosen but before a
-  // level has been picked — shows StoryLevelPicker instead of jumping
-  // straight into StoryRecorder. Stories with no Medium/Hard content skip
-  // this step entirely (nothing to choose between).
-  const [pendingTopic, setPendingTopic] = useState<Topic | null>(null);
-
   useEffect(() => {
-    onSessionActiveChange?.(Boolean(selectedTopic) || Boolean(pendingTopic));
+    onSessionActiveChange?.(Boolean(selectedTopic));
     return () => onSessionActiveChange?.(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTopic, pendingTopic]);
+  }, [selectedTopic]);
 
   // `selectedTopic` is only otherwise set once, when the student opens a
   // story. If a teacher republishes that same story (same id, new script)
@@ -94,19 +87,16 @@ export default function CreateStoryPage({
   };
 
   const handleTopicSelect = (topic: Topic) => {
-    const story = topic.sourceStory;
-    const hasTiers =
-      story && (storyHasTierContent(story, "medium") || storyHasTierContent(story, "hard"));
-    if (hasTiers) {
-      setPendingTopic(topic);
-      return;
-    }
     openTopicAtLevel(topic);
+  };
+
+  const handleLevelSelect = (topic: Topic, level: Parameters<typeof storyToTopic>[1]) => {
+    if (!topic.sourceStory) return;
+    openTopicAtLevel(storyToTopic(topic.sourceStory, level, "approved"));
   };
 
   const handleBack = () => {
     setSelectedTopic(null);
-    setPendingTopic(null);
     setSelectedImage("");
     setSelectedImageIndex(0);
   };
@@ -114,10 +104,8 @@ export default function CreateStoryPage({
   return (
     <div className="create-story-page">
       {/* Outside a session the raise-hand panel is a banner strip; during a
-          session (level picker included) it lives at the bottom of the story
-          sidebar instead (see StorySessionSidebar via StoryRecorder's
-          helpRequests prop). */}
-      {!selectedTopic && !pendingTopic && (
+          session it lives at the bottom of the story sidebar instead. */}
+      {!selectedTopic && (
         <div className="csp-help-strip">
           <StudentHelpPanel
             helpRequests={helpRequests}
@@ -125,18 +113,8 @@ export default function CreateStoryPage({
           />
         </div>
       )}
-      {pendingTopic && pendingTopic.sourceStory ? (
-        <StoryLevelPicker
-          story={pendingTopic.sourceStory}
-          onBack={() => setPendingTopic(null)}
-          onSelectLevel={(level) => {
-            const story = pendingTopic.sourceStory!;
-            openTopicAtLevel(storyToTopic(story, level, "approved"));
-            setPendingTopic(null);
-          }}
-        />
-      ) : !selectedTopic ? (
-        <TopicSelector onTopicSelect={handleTopicSelect} />
+      {!selectedTopic ? (
+        <TopicSelector onTopicSelect={handleTopicSelect} onLevelSelect={handleLevelSelect} />
       ) : (
         <div className="csp-recorder-body">
           <StoryRecorder

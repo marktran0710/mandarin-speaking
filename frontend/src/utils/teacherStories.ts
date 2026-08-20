@@ -192,7 +192,7 @@ function tierText(
 }
 
 /** Whether a story has any teacher-authored content for Medium/Hard beyond
- * the Easy fields — lets the student-facing level picker hide tiers that
+ * the Easy fields — lets the student-facing tier controls hide tiers that
  * would just silently fall back to Easy text. */
 export function storyHasTierContent(
   story: CustomTeacherStory,

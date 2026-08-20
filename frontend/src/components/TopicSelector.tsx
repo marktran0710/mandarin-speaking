@@ -26,7 +26,7 @@ import {
 } from "../utils/storyLevelProgress";
 import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
-import StudentIcon from "./StudentIcon";
+import StudentIcon, { type StudentIconName } from "./StudentIcon";
 import "./BiLabel.css";
 
 export interface VocabGroup {
@@ -84,15 +84,17 @@ export interface Topic {
   narrativeMode?: "story" | "describe" | "listen_retell";
   firstFrameIsExample?: boolean;
   // Which easy/medium/hard tier this Topic was built at, plus a reference to
-  // the raw multi-tier story it came from — lets a level picker re-derive a
-  // Topic at a different tier, and lets progress tracking know what to mark
-  // as done on submit. Absent for topics that aren't teacher-authored.
+  // the raw multi-tier story it came from — lets the inline tier controls
+  // re-derive a Topic at a different tier, and lets progress tracking know
+  // what to mark as done on submit. Absent for topics that aren't
+  // teacher-authored.
   difficultyLevel?: StoryDifficultyLevel;
   sourceStory?: CustomTeacherStory;
 }
 
 interface TopicSelectorProps {
   onTopicSelect?: (topic: Topic) => void;
+  onLevelSelect?: (topic: Topic, level: StoryDifficultyLevel) => void;
 }
 
 export const TOPICS: Topic[] = [];
@@ -114,13 +116,19 @@ export function getTopicVocabulary(topic: Topic, imageIndex: number): string[] {
   return topic.vocabulary[imageIndex] || [];
 }
 
-const LEVEL_ICONS: Record<StoryDifficultyLevel, string> = {
-  easy: "🌱",
-  medium: "🌿",
-  hard: "🌳",
+const LEVEL_ICONS: Record<StoryDifficultyLevel, StudentIconName> = {
+  easy: "seedling",
+  medium: "sprout",
+  hard: "tree",
 };
 
-export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
+const LEVEL_COPY: Record<StoryDifficultyLevel, { zh: string; pinyin: string; en: string }> = {
+  easy: { zh: "簡單", pinyin: "Jiǎndān", en: "Easy" },
+  medium: { zh: "中等", pinyin: "Zhōngděng", en: "Medium" },
+  hard: { zh: "困難", pinyin: "Kùnnán", en: "Hard" },
+};
+
+export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSelectorProps) {
   const [topics, setTopics] = useState<Topic[]>(() =>
     loadPublishedTeacherTopics().filter(isStoryModeTopic),
   );
@@ -211,17 +219,44 @@ export default function TopicSelector({ onTopicSelect }: TopicSelectorProps) {
       (level) => level === "easy" || storyHasTierContent(story, level),
     );
     return (
-      <div className="ts-tier-track" aria-label="Difficulty levels">
+      <div
+        className={`ts-tier-track${onLevelSelect ? " ts-tier-track-interactive" : ""}`}
+        aria-label="Difficulty levels"
+      >
         {levels.map((level) => {
           const state = submittedLevels[level]
             ? "done"
             : isStoryLevelUnlocked(story.id, level)
               ? "open"
               : "lock";
+          const copy = LEVEL_COPY[level];
+          const content = (
+            <>
+              <StudentIcon name={LEVEL_ICONS[level]} size={20} />
+              <BiLabel zh={copy.zh} pinyin={copy.pinyin} en={copy.en} />
+            </>
+          );
+          if (!onLevelSelect) {
+            return (
+              <span key={level} className={`ts-tier-cell ts-tier-${state}`}>
+                {content}
+              </span>
+            );
+          }
           return (
-            <span key={level} className={`ts-tier-cell ts-tier-${state}`}>
-              {LEVEL_ICONS[level]}
-            </span>
+            <button
+              key={level}
+              type="button"
+              className={`ts-tier-cell ts-tier-${state}`}
+              disabled={state === "lock"}
+              aria-label={`${copy.en} difficulty${state === "done" ? ", completed" : state === "lock" ? ", locked" : ""}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onLevelSelect(t, level);
+              }}
+            >
+              {content}
+            </button>
           );
         })}
       </div>
