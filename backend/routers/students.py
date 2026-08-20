@@ -23,7 +23,7 @@ async def list_students(
 @router.post("/api/students")
 async def create_student(
     request: StudentCreateRequest,
-    identity: auth.Identity = Depends(auth.require_teacher_or_admin),
+    identity: auth.Identity = Depends(auth.require_admin),
 ):
     name = request.name.strip()
     if not name:
@@ -96,7 +96,7 @@ async def login_student(
 async def reset_student_password(
     student_id: str,
     request: StudentPasswordResetRequest,
-    identity: auth.Identity = Depends(auth.require_teacher_or_admin),
+    identity: auth.Identity = Depends(auth.require_admin),
 ):
     auth.validate_password_policy(request.password)
     with connect_db() as db:
@@ -118,7 +118,7 @@ async def logout_student(response: Response):
 @router.delete("/api/students/{student_id}")
 async def delete_student(
     student_id: str,
-    identity: auth.Identity = Depends(auth.require_teacher_or_admin),
+    identity: auth.Identity = Depends(auth.require_admin),
 ):
     with connect_db() as db:
         row = db.execute(

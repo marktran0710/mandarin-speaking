@@ -22,8 +22,8 @@ function EyeIcon({ open }: { open: boolean }) {
   );
 }
 
-/** Dedicated student sign-in. Student accounts are provisioned by a teacher
- * or admin; the public student portal never creates roster accounts. */
+/** Dedicated student sign-in. Student accounts are provisioned by an admin;
+ * the public student portal never creates roster accounts. */
 export default function StudentLoginPage({
   onLogin,
 }: {

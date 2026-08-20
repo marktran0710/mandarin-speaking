@@ -140,11 +140,21 @@ def anonymous_client(use_test_database):
 
 
 @pytest.fixture()
-def logged_in_student(client):
+def admin_client(client):
+    """The shared test client with an admin session for provisioning tests."""
+    import auth
+
+    client.cookies.set(auth.COOKIE_NAME, auth.issue_token("admin", "admin"))
+    return client
+
+
+@pytest.fixture()
+def logged_in_student(admin_client):
     """A logged-in student: (client, student). The client's cookie jar
     carries its session, so requests through it act as this student -
     used by any test that needs to write/read student-scoped data."""
     password = "student-password"
+    client = admin_client
     student = client.post(
         "/api/students", json={"name": "Test Student", "password": password}
     ).json()

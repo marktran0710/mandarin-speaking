@@ -16,6 +16,7 @@ htmlcov/
 .npm-cache/
 .pnpm-store/
 vite*.log
+\.vite/
 *.tsbuildinfo
 quiz-dump.txt
 backend/*.db

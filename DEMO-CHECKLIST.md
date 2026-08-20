@@ -21,7 +21,7 @@
 **Kịch bản A — phần dẫn (Hậu điều khiển, ~10-12 phút):**
 
 1. Mở app student (`index.html` dev server) — màn `home` → `student-login`
-2. Login profile student (⚠️ từ 23/07 chiều: chọn tên từ roster + **mật khẩu, default 123456** — 7896029; tài khoản **admin** mở sẵn mọi gate f60af98, tiện làm backup khi demo kẹt gate) → về shell student, journey bubble hiện trạng thái sao
+2. Login profile student (chọn tên từ roster + mật khẩu admin cấp; tài khoản demo local dùng **123456**) → về shell student, journey bubble hiện trạng thái sao
 3. Mở **student-stories** — mục lục Book 1: chỉ vào lesson mở/khóa, 其他 cuối danh sách
 4. Chọn story demo → làm **quiz tier 1** (20 câu, đạt ≥14 → ⭐)
 5. Làm **quiz tier 2** (22 câu, đạt ≥18 → ⭐⭐) → gate practice mở
@@ -44,10 +44,10 @@
 ## Phase 1 — Verify xương sống (backend thật) — ngày 1-2
 
 - [x] 1.1 FE + backend cùng chạy; console không error của app — ✓ 23/07 (2 lỗi console là của Chrome extension)
-- [x] 1.2 Login student profile OK (tạo mới qua「+ 其他人」); journey bubble hiện 0/2 做測驗 pulse đúng — ✓ 23/07
+- [x] 1.2 Login student profile OK (tài khoản do admin provision); journey bubble hiện 0/2 做測驗 pulse đúng — ✓ 23/07
 - [x] 1.3 Mục lục Book 1: Lesson 5 mở, Lesson 6/7 khóa 先完成第5課 đúng — ✓ 23/07 (⚠️ nhóm 其他 không xuất hiện — chưa rõ do không có story unassigned hay bug, xem bug #2)
 - [x] 1.4 Quiz tier 1: đủ 20 câu (nghĩa xuôi/ngược + pinyin), mỗi câu 1 đáp án đúng; 20/20 → ⭐ hiện ngay — ✓ 23/07
-- [x] 1.4b **Audit quiz toàn diện** (23/07 chiều): test vĩnh viễn `StoryVocabQuiz.audit.test.tsx` sinh ~7.5k câu từ vocab thật cả 7 story × 3 tier, check invariant 1-đáp-án-đúng; + lượt duyệt ngữ nghĩa toàn bộ 397 entry. Tìm & fix 3 bug 🔴 + 146 distractor 🟡 (sổ bug #8-11). Fixture refresh: `Invoke-WebRequest http://127.0.0.1:8000/api/custom-stories -OutFile src/components/__fixtures__/custom-stories.json`
+- [x] 1.4b **Audit quiz toàn diện** (23/07 chiều): test vĩnh viễn `StoryVocabQuiz.audit.test.tsx` sinh ~7.5k câu từ vocab thật cả 7 story × 3 tier, check invariant 1-đáp-án-đúng; + lượt duyệt ngữ nghĩa toàn bộ 397 entry. Tìm & fix 3 bug 🔴 + 146 distractor 🟡 (sổ bug #8-11). Fixture refresh: `Invoke-WebRequest http://127.0.0.1:8000/api/custom-stories -OutFile frontend/src/components/__fixtures__/custom-stories.json`
 - [x] 1.5 Quiz tier 2: 22 câu (thêm dạng nghe + tone-mark); 22/22 → ⭐⭐; gate Speaking mở đúng lúc, có nút 繼續練習 — ✓ 23/07
 - [x] 1.6 Study step: bảng生詞 theo scene + 練習短語 + ảnh đúng story — ✓ 23/07
 - [x] 1.7 Speaking: upload audio → transcribe → Praat → feedback, không kẹt (~10s/câu trên máy này) — ✓ 23/07

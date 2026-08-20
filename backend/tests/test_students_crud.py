@@ -2,7 +2,8 @@
 COLLATE NOCASE and Postgres has to get from lower()."""
 
 
-def test_create_and_list_students(client):
+def test_create_and_list_students(admin_client):
+    client = admin_client
     client.post("/api/students", json={"name": "Mai", "password": "mai-password"})
     client.post("/api/students", json={"name": "an", "password": "an-password"})
     client.post("/api/students", json={"name": "Bảo", "password": "bao-password"})
@@ -11,18 +12,29 @@ def test_create_and_list_students(client):
     assert names == ["an", "Bảo", "Mai"]
 
 
-def test_create_is_idempotent_case_insensitively(client):
+def test_create_student_requires_admin(logged_in_teacher):
+    teacher_client, _ = logged_in_teacher
+    response = teacher_client.post(
+        "/api/students", json={"name": "Teacher Cannot Create", "password": "password"}
+    )
+    assert response.status_code == 403
+
+
+def test_create_is_idempotent_case_insensitively(admin_client):
+    client = admin_client
     first = client.post("/api/students", json={"name": "Mai", "password": "mai-password"}).json()
     second = client.post("/api/students", json={"name": "MAI", "password": "mai-password"}).json()
     assert first["id"] == second["id"]
     assert len(client.get("/api/students").json()) == 1
 
 
-def test_blank_name_is_rejected(client):
+def test_blank_name_is_rejected(admin_client):
+    client = admin_client
     assert client.post("/api/students", json={"name": "   ", "password": "long-password"}).status_code == 400
 
 
-def test_login_by_name_is_case_insensitive(client):
+def test_login_by_name_is_case_insensitive(admin_client):
+    client = admin_client
     created = client.post("/api/students", json={"name": "Mai", "password": "mai-password"}).json()
     response = client.post(
         "/api/students/login", json={"name": "mai", "password": "mai-password"}
@@ -31,7 +43,8 @@ def test_login_by_name_is_case_insensitive(client):
     assert response.json()["id"] == created["id"]
 
 
-def test_login_with_wrong_password_is_401(client):
+def test_login_with_wrong_password_is_401(admin_client):
+    client = admin_client
     client.post("/api/students", json={"name": "Mai", "password": "mai-password"})
     response = client.post(
         "/api/students/login", json={"name": "Mai", "password": "nope"}
@@ -39,30 +52,30 @@ def test_login_with_wrong_password_is_401(client):
     assert response.status_code == 401
 
 
-def test_login_for_unknown_student_is_404(client):
+def test_login_for_unknown_student_is_404(admin_client):
+    client = admin_client
     response = client.post(
         "/api/students/login", json={"name": "Ghost", "password": "123456"}
     )
     assert response.status_code == 404
 
 
-def test_delete_student(client, logged_in_teacher):
-    teacher_client, _ = logged_in_teacher
-    created = client.post("/api/students", json={"name": "Mai", "password": "mai-password"}).json()
-    assert teacher_client.delete(f"/api/students/{created['id']}").json()["deleted"] is True
-    assert client.get("/api/students").json() == []
+def test_delete_student(admin_client):
+    created = admin_client.post("/api/students", json={"name": "Mai", "password": "mai-password"}).json()
+    assert admin_client.delete(f"/api/students/{created['id']}").json()["deleted"] is True
+    assert admin_client.get("/api/students").json() == []
 
 
-def test_delete_student_requires_login(client):
-    created = client.post("/api/students", json={"name": "Mai", "password": "mai-password"}).json()
+def test_delete_student_requires_login(admin_client):
+    created = admin_client.post("/api/students", json={"name": "Mai", "password": "mai-password"}).json()
     from fastapi.testclient import TestClient
     import main
     with TestClient(main.app) as anonymous:
         assert anonymous.delete(f"/api/students/{created['id']}").status_code == 401
 
 
-def test_help_requests_sort_open_first(client):
-    student_client = client
+def test_help_requests_sort_open_first(admin_client):
+    student_client = admin_client
     student = student_client.post(
         "/api/students", json={"name": "Help Student", "password": "help-password"}
     ).json()

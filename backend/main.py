@@ -88,7 +88,9 @@ load_dotenv()
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env.local"))
 
 app = FastAPI(title="Speaking App Backend", version="1.0.0")
-FRONTEND_DIST = Path(__file__).resolve().parent.parent / "dist"
+FRONTEND_DIST = Path(
+    os.getenv("FRONTEND_DIST", str(Path(__file__).resolve().parent.parent / "frontend" / "dist"))
+)
 REMOTE_MEDIA_ALLOWED_HOSTS = {
     host.strip().lower()
     for host in os.getenv("REMOTE_MEDIA_ALLOWED_HOSTS", "").split(",")

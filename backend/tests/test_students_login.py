@@ -15,12 +15,12 @@ import auth
 
 
 @pytest.fixture()
-def roster_client(client):
+def roster_client(admin_client):
     """Client with one seeded student, returned as (client, student)."""
-    created = client.post(
+    created = admin_client.post(
         "/api/students", json={"name": "Minh", "password": "minh-password"}
     ).json()
-    return client, created
+    return admin_client, created
 
 
 class TestStudentLogin:

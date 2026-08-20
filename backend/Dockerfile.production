@@ -2,9 +2,9 @@
 # as FastAPI. This keeps the httpOnly session cookie same-origin.
 FROM node:22-alpine AS frontend-build
 WORKDIR /frontend
-COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
-COPY . .
+COPY frontend/ .
 RUN npm run build
 
 FROM python:3.11-slim
@@ -13,6 +13,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    FRONTEND_DIST=/dist \
     UPLOAD_DIR=/data/uploads
 
 WORKDIR /app

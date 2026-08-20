@@ -8,18 +8,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import urllib.request
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 UPLOADS = ROOT / "backend" / "uploads" / "images" / "lesson-6-8"
 SPEECH_UPLOADS = ROOT / "backend" / "uploads" / "images" / "lesson-6-8-bubble"
 FULL_UPLOADS = ROOT / "backend" / "uploads" / "images" / "lesson-6-8-full"
 FULL_V2_UPLOADS = ROOT / "backend" / "uploads" / "images" / "lesson-6-8-full-v2"
 FULL_V3_UPLOADS = ROOT / "backend" / "uploads" / "images" / "lesson-6-8-full-v3"
 FULL_V3_FINAL_UPLOADS = ROOT / "backend" / "uploads" / "images" / "lesson-6-8-full-v3-final"
-API = "http://127.0.0.1:8000/api/custom-stories"
+API = os.getenv("SEED_API_URL", "http://127.0.0.1:8001/api/custom-stories")
 GEN = Path(r"C:\Users\Administrator\.codex\generated_images\01a009d9-ed47-7fd3-a7ed-b26c2ee4aff9")
 
 SHEETS = {

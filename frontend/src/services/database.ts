@@ -866,7 +866,7 @@ export async function resolveHelpRequest(id: string) {
 }
 
 // ── Student roster ─────────────────────────────────────────────────────
-// A stable id per student, curated by a teacher, instead of the free-typed
+// A stable id per student, curated by an admin, instead of the free-typed
 // name string every attempt used to carry (collision- and typo-prone, and
 // no real join key for per-student analysis).
 export interface Student {
@@ -882,12 +882,7 @@ export async function listStudents(): Promise<Student[]> {
   return Array.isArray(data) ? data : [];
 }
 
-/** Password check for the student login page (default 123456). Throws with
- * `notFound` (no student with that name — may just be new) kept distinct
- * from `wrongCredentials` (that name exists, password didn't match), so a
- * caller can let a brand-new name join on the default password without
- * also letting a wrong guess at an *existing* name slip through as a
- * "new" signup. */
+/** Password check for a student account provisioned by an admin. */
 export async function loginStudent(params: {
   studentId?: string;
   name?: string;

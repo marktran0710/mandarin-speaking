@@ -4,7 +4,7 @@ import ToneMark from "../components/ToneMark";
 import ToneField from "../components/ToneField";
 import "../components/BiLabel.css";
 import "./LoginPage.css";
-import { canUseDatabase, createStudent, listStudents, loginTeacher, type Student } from "../services/database";
+import { canUseDatabase, listStudents, loginStudent, loginTeacher, type Student } from "../services/database";
 import { signIn } from "../utils/session";
 
 export type LoginRole = "student" | "teacher";
@@ -17,8 +17,6 @@ interface LoginPageProps {
   onBack?: () => void;
 }
 
-const NEW_STUDENT_VALUE = "__new__";
-
 export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
   const isStudent = role === "student";
   const defaultName = isStudent ? "Student Demo" : "Teacher Demo";
@@ -30,7 +28,7 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
   // so per-student practice data (quiz attempts, tone scores) can actually
   // be joined and analyzed. Teacher login stays free-text (out of scope).
   const [roster, setRoster] = useState<Student[]>([]);
-  const [selectedId, setSelectedId] = useState<string>(NEW_STUDENT_VALUE);
+  const [selectedId, setSelectedId] = useState<string>("");
   const [rosterError, setRosterError] = useState(false);
   // The roster loads asynchronously, after the free-text input has already
   // rendered — if a student starts typing before it resolves, the roster
@@ -73,25 +71,17 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
       return;
     }
 
-    let studentId: string | undefined;
-    if (usingRoster) {
-      if (selectedId !== NEW_STUDENT_VALUE) {
-        studentId = selectedId;
-      } else {
-        // New name, not yet on the roster — add it so it gets a stable id
-        // going forward. A save failure shouldn't block sign-in; the
-        // student just falls back to name-only for this session.
-        try {
-          const created = await createStudent(trimmed, password);
-          studentId = created.id;
-        } catch {
-          /* fall back to name-only below */
-        }
-      }
+    try {
+      const student = await loginStudent(
+        selectedId && usingRoster
+          ? { studentId: selectedId, password }
+          : { name: trimmed, password },
+      );
+      signIn("student", student.name, student.id);
+      onLogin(role);
+    } catch {
+      setError(true);
     }
-
-    signIn(role, trimmed, studentId);
-    onLogin(role);
   };
 
   return (
@@ -115,19 +105,19 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
           <p className="login-description">
             <BiText
               zh={isStudent
-                ? "從名單選你的名字，或加入新名字再開始練習。"
+                ? "從名單選你的名字，使用管理員提供的密碼開始練習。"
                 : "使用預設帳號或輸入教師姓名查看學習進度。"}
               pinyin={isStudent
-                ? "Cóng míngdān xuǎn nǐ de míngzi, huò jiārù xīn míngzi zài kāishǐ liànxí."
+                ? "Cóng míngdān xuǎn nǐ de míngzi, shǐyòng guǎnlǐyuán tígōng de mìmǎ kāishǐ liànxí."
                 : "Shǐyòng yùshè zhànghào huò shūrù jiàoshī xìngmíng chákàn xuéxí jìndù."}
               en={isStudent
-                ? "Pick your name from the list, or add yourself to begin practicing."
+                ? "Pick your name from the list and use the password provided by your admin."
                 : "Use the default profile or enter a teacher name to review progress."}
             />
           </p>
 
           <form className="login-form" onSubmit={handleSubmit}>
-            {usingRoster && roster.length > 0 && selectedId !== NEW_STUDENT_VALUE && (
+            {usingRoster && roster.length > 0 && (
               <label>
                 <BiLabel zh="學生名字" pinyin="Xuéshēng míngzi" en="Student name" />
                 <select
@@ -136,12 +126,8 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
                     const next = event.target.value;
                     setNameTouched(true);
                     setSelectedId(next);
-                    if (next !== NEW_STUDENT_VALUE) {
-                      const match = roster.find((s) => s.id === next);
-                      setName(match?.name ?? "");
-                    } else {
-                      setName("");
-                    }
+                    const match = roster.find((s) => s.id === next);
+                    setName(match?.name ?? "");
                   }}
                 >
                   {roster.map((student) => (
@@ -149,14 +135,11 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
                       {student.name}
                     </option>
                   ))}
-                  <option value={NEW_STUDENT_VALUE}>
-                    {isStudent ? "+ 其他人 · Someone new" : "+ Someone new"}
-                  </option>
                 </select>
               </label>
             )}
 
-            {(!usingRoster || roster.length === 0 || selectedId === NEW_STUDENT_VALUE) && (
+            {(!usingRoster || roster.length === 0) && (
               <label>
                 <BiLabel
                   zh={isStudent ? "學生名字" : "教師姓名"}
@@ -176,12 +159,14 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
               </label>
             )}
 
-            {!isStudent && (
-              <label>
-                <BiLabel zh="撖Ⅳ" pinyin="M穫m?" en="Teacher password" />
-                <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
-              </label>
-            )}
+            <label>
+              <BiLabel
+                zh={isStudent ? "密碼" : "撖Ⅳ"}
+                pinyin={isStudent ? "Mìmǎ" : "M穫m?"}
+                en={isStudent ? "Student password" : "Teacher password"}
+              />
+              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />
+            </label>
 
             {error && (
               <p className="login-error" id="login-name-error" role="alert">

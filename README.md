@@ -241,7 +241,7 @@ flowchart TD
     SUB -->|"Medium submitted → unlocks 🌳 Hard"| L
 ```
 
-### 1. Vocabulary quiz — the star ladder (`src/utils/quizTiers.ts`)
+### 1. Vocabulary quiz — the star ladder (`frontend/src/utils/quizTiers.ts`)
 
 | Tier | Questions | Must answer right | Time limit | Character |
 |---|---|---|---|---|
@@ -276,7 +276,7 @@ clears the bar — an average can't hide one wrong-direction tone.
   recording passes every word; the old 4-attempts escape hatch no longer bypasses
   failing words.
 
-### 3. Story difficulty tiers — Easy → Medium → Hard (`src/utils/storyLevelProgress.ts`)
+### 3. Story difficulty tiers — Easy → Medium → Hard (`frontend/src/utils/storyLevelProgress.ts`)
 
 Each teacher story is authored at three language tiers of the **same plot**. 🌱 Easy is
 always open; 🌿 Medium unlocks when Easy has been **submitted**; 🌳 Hard unlocks when
@@ -381,13 +381,14 @@ The readiness response should report HTTP `200`, `database: "ok"`, and
 Seeding is explicit and idempotent. Run it after the backend is healthy:
 
 ```powershell
-docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_grammar_lesson
-docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_listen_retell_lesson
-docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_vv_kan_lesson
-
-# Optional local demo accounts: Student Demo / Teacher Demo, password 123456
-docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_demo_accounts
+# Teaching data + Student Demo + Teacher Demo in one idempotent command
+docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_dev
 ```
+
+Local demo accounts use password `123456`. The seed never changes an existing
+account password. For a deliberate lesson replacement, add `--overwrite`.
+The image-heavy Lessons 6–8 script remains a separate specialist seed:
+`python -m scripts.seed_lessons_6_8`.
 
 Existing lessons are not overwritten. Use `--overwrite` only when intentionally
 replacing authored content.
@@ -456,9 +457,10 @@ Start with `backend/.env.example`. Docker overrides the database and storage
 paths inside the Compose network. Keep `backend/.env` local and never commit
 secrets.
 
-Student accounts are provisioned by a teacher/admin with an individual password.
-Legacy `123456` accounts are disabled by migration `0019` until reset from the
-teacher/admin workflow. Production serves frontend and backend from one origin;
+Student and teacher accounts are provisioned by an admin with an individual
+password. Local demo accounts are the only documented use of `123456`.
+Production rejects that default and requires a password of at least 8 characters.
+Production serves frontend and backend from one origin;
 do not deploy the old separate GitHub Pages/Vercel frontend configuration.
 
 ## Project Structure
@@ -472,32 +474,20 @@ do not deploy the old separate GitHub Pages/Vercel frontend configuration.
 │   ├── database.py           # PostgreSQL (psycopg3) helpers
 │   ├── main.py               # FastAPI routes, image generation, parallel analysis
 │   ├── praat_analyzer.py     # Parselmouth acoustic analysis
+│   ├── scripts/seed_dev.py   # Shared local lesson + demo-account seed
 │   ├── scripts/benchmark_tones.py
 │   ├── scripts/gate_tone_release.py
 │   ├── Dockerfile
 │   └── requirements.txt
+├── frontend/
+│   ├── src/                   # React pages, components, services and tests
+│   ├── public/                # Static frontend assets
+│   ├── package.json           # Frontend-only Node workspace
+│   ├── vite.config.ts
+│   └── Dockerfile.frontend.dev
 ├── docs/
 │   └── TONE_BENCHMARK.md     # Human-labelled validation protocol
-└── src/
-    ├── components/
-    │   ├── StoryConceptMap.tsx   # Drag-and-drop word categorization activity
-    │   ├── StoryConceptMap.css
-    │   ├── StoryRecorder.tsx     # Main recording + analysis panel
-    │   ├── StoryRecorder.css
-    │   ├── PraatTimeline.tsx
-    │   └── Navigation.tsx
-    ├── pages/
-    │   ├── HomePage.tsx
-    │   ├── CreateStoryPage.tsx
-    │   ├── MyStoriesPage.tsx     # Student history + Teacher dashboard
-    │   ├── LoginPage.tsx
-    │   └── TeacherImageBuilderPage.tsx
-    ├── utils/
-    │   └── teacherStories.ts     # Custom story helpers, VocabGroup types
-    ├── database.ts               # Frontend API client
-    ├── TopicSelector.tsx
-    ├── App.tsx
-    └── main.tsx
+└── docker-compose.dev.yml      # Independent local stack
 ```
 
 ---
