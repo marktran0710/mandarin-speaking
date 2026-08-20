@@ -34,7 +34,8 @@ COPY . .
 # Fail the build (not a live request) if any heavy dependency can't import —
 # this surfaces missing-library problems here instead of "sometimes at runtime".
 # It also warms jieba's prefix dictionary so the first request isn't slow.
-RUN python -c "import main; import jieba; jieba.initialize(); print('import + jieba OK')"
+RUN JWT_SECRET_KEY=build-only-local-import-secret-please-override \
+    python -c "import main; import jieba; jieba.initialize(); print('import + jieba OK')"
 
 # Run as a non-root user and give it ownership of the data directory.
 RUN useradd --create-home --uid 10001 appuser \

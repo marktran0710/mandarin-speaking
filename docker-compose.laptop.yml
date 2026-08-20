@@ -1,0 +1,99 @@
+name: mandarin-speaking-laptop
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: mandarin
+      POSTGRES_PASSWORD: mandarin
+      POSTGRES_DB: mandarin
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - laptop_pgdata:/var/lib/postgresql/data
+      - ./backend/db_init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mandarin -d mandarin"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://mandarin:mandarin@db:5432/mandarin
+      TEST_DATABASE_URL: postgresql://mandarin:mandarin@db:5432/mandarin_test
+      UPLOAD_DIR: /data/uploads
+      LOG_DIR: /data/logs
+      HF_HOME: /data/models/huggingface
+      MODELSCOPE_CACHE: /data/models/modelscope
+      CORS_ORIGINS: http://localhost:5177,http://127.0.0.1:5177
+    volumes:
+      - ./backend:/app
+      - laptop_backend_data:/data
+    ports:
+      - "127.0.0.1:${LAPTOP_BACKEND_PORT:-8001}:8000"
+    networks:
+      - app
+      - data
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - >-
+        python -m alembic upgrade head &&
+        exec python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          response = urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=4);
+          raise SystemExit(0 if response.status == 200 else 1)
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 12
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend.dev
+    environment:
+      BACKEND_PROXY_TARGET: http://backend:8000
+      VITE_OPEN_BROWSER: "false"
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - .:/app
+      - laptop_node_modules:/app/node_modules
+    ports:
+      - "127.0.0.1:${LAPTOP_FRONTEND_PORT:-5177}:5173"
+    networks:
+      - app
+    depends_on:
+      backend:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - >-
+        if [ ! -x node_modules/.bin/vite ]; then npm ci; fi &&
+        exec npm run dev -- --host 0.0.0.0 --port 5173
+
+volumes:
+  laptop_pgdata:
+  laptop_backend_data:
+  laptop_node_modules:
+
+networks:
+  app:
+  data:

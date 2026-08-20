@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    open: true,
+    open: process.env.VITE_OPEN_BROWSER !== "false",
     // The student app is opened through the machine's Tailscale hostname
     // during remote QA. Keep the allowlist explicit instead of disabling
     // Vite's host check globally.

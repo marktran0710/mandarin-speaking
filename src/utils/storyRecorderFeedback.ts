@@ -9,19 +9,10 @@ function localBackendUrl(): string {
   if (import.meta.env.MODE === "test") return "http://127.0.0.1:8000";
   if (typeof window === "undefined") return "http://127.0.0.1:8000";
 
-  // In local development the app may be opened through localhost, 127.0.0.1,
-  // a LAN address, or a private-network hostname. Using a fixed loopback URL
-  // makes the browser call the *student device* when the frontend is served
-  // from another machine. Keep the backend on the same host as the page.
-  const pageHostname = window.location.hostname || "127.0.0.1";
-  // Some browsers resolve localhost to ::1 first. The FastAPI dev server is
-  // intentionally reachable on IPv4 as well, so keep local development on a
-  // stable IPv4 loopback address. LAN/private-network hosts remain dynamic.
-  const hostname =
-    pageHostname === "localhost" || pageHostname === "::1"
-      ? "127.0.0.1"
-      : pageHostname;
-  return `http://${hostname}:8000`;
+  // Keep development requests on the page's own origin so Vite can proxy
+  // /api and /uploads to the backend. This preserves the httpOnly session
+  // cookie and also works when the frontend is running inside Docker.
+  return window.location.origin;
 }
 
 const CONFIGURED_BACKEND_URL = import.meta.env.VITE_BACKEND_URL?.trim() || "";

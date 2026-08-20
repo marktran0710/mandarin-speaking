@@ -383,6 +383,20 @@ To run a machine completely independently, use:
 This runs a local PostgreSQL, backend, and frontend with an independent Docker
 volume and local uploads. Its data is not shared with the Lab PC.
 
+#### Fully containerized laptop development
+
+For a reproducible laptop stack with backend/frontend source mounts, automatic
+Alembic migration, and isolated database/uploads volumes, see
+[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md). The short version is:
+
+```powershell
+Copy-Item backend/.env.example backend/.env
+docker compose -f docker-compose.laptop.yml up -d --build
+```
+
+Open `http://127.0.0.1:5177`. Seed lessons explicitly after the backend is
+healthy; they are never loaded automatically during startup.
+
 #### Important data-safety rule
 
 Never run `docker compose down -v` unless you intentionally want to delete the
