@@ -1,10 +1,16 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from psycopg.errors import UniqueViolation
 
 import auth
 from database import connect_db, row_to_student
-from main import StudentCreateRequest, StudentLoginRequest, StudentPasswordResetRequest
+from main import (
+    StudentCreateRequest,
+    StudentLoginRequest,
+    StudentPasswordResetRequest,
+    StudentUpdateRequest,
+)
 
 router = APIRouter()
 
@@ -42,10 +48,13 @@ async def create_student(
             return row_to_student(existing)
 
         student_id = str(uuid.uuid4())
-        created = db.execute(
-            "INSERT INTO students (id, name, password) VALUES (%s, %s, %s) RETURNING *",
-            (student_id, name, auth.hash_password(request.password)),
-        ).fetchone()
+        try:
+            created = db.execute(
+                "INSERT INTO students (id, name, password) VALUES (%s, %s, %s) RETURNING *",
+                (student_id, name, auth.hash_password(request.password)),
+            ).fetchone()
+        except UniqueViolation as exc:
+            raise HTTPException(status_code=409, detail="Student already exists.") from exc
     return row_to_student(created)
 
 
@@ -74,6 +83,8 @@ async def login_student(
 
     if row is None:
         raise HTTPException(status_code=404, detail="Student not found")
+    if row.get("status") != "active":
+        raise HTTPException(status_code=403, detail="Student account is inactive")
     if row.get("password_reset_required"):
         raise HTTPException(status_code=403, detail="Student password reset required")
 
@@ -104,6 +115,49 @@ async def reset_student_password(
             "UPDATE students SET password = %s, password_reset_required = false WHERE id = %s RETURNING *",
             (auth.hash_password(request.password), student_id),
         ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return row_to_student(row)
+
+
+@router.patch("/api/students/{student_id}")
+async def update_student(
+    student_id: str,
+    request: StudentUpdateRequest,
+    identity: auth.Identity = Depends(auth.require_admin),
+):
+    updates, params = [], []
+    if request.name is not None:
+        name = request.name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Provide a student name.")
+        with connect_db() as db:
+            duplicate = db.execute(
+                "SELECT 1 FROM students WHERE lower(name) = lower(%s) AND id <> %s",
+                (name, student_id),
+            ).fetchone()
+        if duplicate is not None:
+            raise HTTPException(status_code=409, detail="Student already exists.")
+        updates.append("name = %s")
+        params.append(name)
+    if request.password is not None:
+        auth.validate_password_policy(request.password)
+        updates.extend(["password = %s", "password_reset_required = false"])
+        params.append(auth.hash_password(request.password))
+    if request.status is not None:
+        updates.append("status = %s")
+        params.append(request.status)
+    if not updates:
+        raise HTTPException(status_code=400, detail="No student changes supplied.")
+    params.append(student_id)
+    try:
+        with connect_db() as db:
+            row = db.execute(
+                f"UPDATE students SET {', '.join(updates)} WHERE id = %s RETURNING *",
+                tuple(params),
+            ).fetchone()
+    except UniqueViolation as exc:
+        raise HTTPException(status_code=409, detail="Student already exists.") from exc
     if row is None:
         raise HTTPException(status_code=404, detail="Student not found")
     return row_to_student(row)

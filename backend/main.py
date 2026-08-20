@@ -751,6 +751,12 @@ class StudentPasswordResetRequest(BaseModel):
     password: str = Field(..., min_length=6, max_length=100)
 
 
+class StudentUpdateRequest(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    password: Optional[str] = Field(default=None, min_length=6, max_length=100)
+    status: Optional[str] = Field(default=None, pattern="^(active|inactive)$")
+
+
 class QuizExclusion(BaseModel):
     """One piece of quiz material the teacher marked bad (see the teacher
     quiz-review page): a whole word ("word") or one candidate of a per-word
@@ -871,6 +877,7 @@ class TeacherLoginRequest(BaseModel):
     password: str = Field(..., min_length=1, max_length=100)
 
 class TeacherUpdateRequest(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
     password: Optional[str] = Field(default=None, min_length=6, max_length=100)
     status: Optional[str] = Field(default=None, pattern="^(active|inactive)$")
 

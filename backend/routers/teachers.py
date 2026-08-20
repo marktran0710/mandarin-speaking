@@ -1,5 +1,6 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from psycopg.errors import UniqueViolation
 import auth
 from database import connect_db, row_to_teacher
 from main import TeacherCreateRequest, TeacherLoginRequest, TeacherUpdateRequest
@@ -22,7 +23,10 @@ async def create_teacher(
     with connect_db() as db:
         if db.execute("SELECT 1 FROM teachers WHERE lower(name) = lower(%s)", (name,)).fetchone():
             raise HTTPException(status_code=409, detail="Teacher already exists.")
-        row = db.execute("INSERT INTO teachers (id, name, password) VALUES (%s, %s, %s) RETURNING *", (str(uuid.uuid4()), name, auth.hash_password(request.password))).fetchone()
+        try:
+            row = db.execute("INSERT INTO teachers (id, name, password) VALUES (%s, %s, %s) RETURNING *", (str(uuid.uuid4()), name, auth.hash_password(request.password))).fetchone()
+        except UniqueViolation as exc:
+            raise HTTPException(status_code=409, detail="Teacher already exists.") from exc
     return row_to_teacher(row)
 
 @router.post("/api/teachers/login")
@@ -60,6 +64,19 @@ async def update_teacher(
     identity: auth.Identity = Depends(auth.require_admin),
 ):
     updates, params = [], []
+    if request.name is not None:
+        name = request.name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Provide a teacher name.")
+        with connect_db() as db:
+            duplicate = db.execute(
+                "SELECT 1 FROM teachers WHERE lower(name) = lower(%s) AND id <> %s",
+                (name, teacher_id),
+            ).fetchone()
+        if duplicate is not None:
+            raise HTTPException(status_code=409, detail="Teacher already exists.")
+        updates.append("name = %s")
+        params.append(name)
     if request.password is not None:
         auth.validate_password_policy(request.password)
         updates.extend(["password = %s", "password_reset_required = false"])
@@ -67,8 +84,11 @@ async def update_teacher(
     if request.status is not None: updates.append("status = %s"); params.append(request.status)
     if not updates: raise HTTPException(status_code=400, detail="No teacher changes supplied.")
     params.append(teacher_id)
-    with connect_db() as db:
-        row = db.execute(f"UPDATE teachers SET {', '.join(updates)} WHERE id = %s RETURNING *", tuple(params)).fetchone()
+    try:
+        with connect_db() as db:
+            row = db.execute(f"UPDATE teachers SET {', '.join(updates)} WHERE id = %s RETURNING *", tuple(params)).fetchone()
+    except UniqueViolation as exc:
+        raise HTTPException(status_code=409, detail="Teacher already exists.") from exc
     if row is None: raise HTTPException(status_code=404, detail="Teacher not found")
     return row_to_teacher(row)
 

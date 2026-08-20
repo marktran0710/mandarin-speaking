@@ -885,6 +885,7 @@ export interface Student {
   id: string;
   name: string;
   createdAt: string;
+  status: "active" | "inactive";
 }
 
 export async function listStudents(): Promise<Student[]> {
@@ -937,6 +938,23 @@ export async function deleteStudent(id: string): Promise<void> {
   if (!response.ok) throw new Error("Could not remove the student from the roster.");
 }
 
+export async function updateStudent(
+  id: string,
+  update: { name?: string; password?: string; status?: "active" | "inactive" },
+): Promise<Student> {
+  const response = await fetchWithRetry(
+    `${BACKEND_URL}/api/students/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update),
+    },
+  );
+  if (response.status === 409) throw new Error("Student already exists.");
+  if (!response.ok) throw new Error("Could not update student account.");
+  return response.json() as Promise<Student>;
+}
+
 export interface Teacher { id: string; name: string; createdAt: string; status: "active" | "inactive"; }
 
 export async function listTeachers(): Promise<Teacher[]> {
@@ -962,8 +980,9 @@ export async function logoutTeacher(): Promise<void> {
   await fetchWithRetry(`${BACKEND_URL}/api/teachers/logout`, { method: "POST" });
 }
 
-export async function updateTeacher(id: string, update: { password?: string; status?: "active" | "inactive" }): Promise<Teacher> {
+export async function updateTeacher(id: string, update: { name?: string; password?: string; status?: "active" | "inactive" }): Promise<Teacher> {
   const response = await fetchWithRetry(`${BACKEND_URL}/api/teachers/${encodeURIComponent(id)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(update) });
+  if (response.status === 409) throw new Error("Teacher already exists.");
   if (!response.ok) throw new Error("Could not update teacher account.");
   return response.json() as Promise<Teacher>;
 }

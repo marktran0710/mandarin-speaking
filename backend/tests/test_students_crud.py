@@ -66,6 +66,47 @@ def test_delete_student(admin_client):
     assert admin_client.get("/api/students").json() == []
 
 
+def test_update_student_name_status_and_password(admin_client):
+    client = admin_client
+    created = client.post(
+        "/api/students", json={"name": "Mai", "password": "mai-password"}
+    ).json()
+
+    updated = client.patch(
+        f"/api/students/{created['id']}",
+        json={"name": "Mai Updated", "status": "inactive", "password": "new-password"},
+    )
+    assert updated.status_code == 200
+    assert updated.json()["name"] == "Mai Updated"
+    assert updated.json()["status"] == "inactive"
+    assert client.post(
+        "/api/students/login", json={"name": "Mai Updated", "password": "new-password"}
+    ).status_code == 403
+
+
+def test_update_student_requires_admin(admin_client, logged_in_teacher):
+    student = admin_client.post(
+        "/api/students", json={"name": "Protected Student", "password": "student-password"}
+    ).json()
+    teacher_client, _ = logged_in_teacher
+    assert teacher_client.patch(
+        f"/api/students/{student['id']}", json={"status": "inactive"}
+    ).status_code == 403
+
+
+def test_update_student_rejects_duplicate_name(admin_client):
+    first = admin_client.post(
+        "/api/students", json={"name": "First Student", "password": "first-password"}
+    ).json()
+    second = admin_client.post(
+        "/api/students", json={"name": "Second Student", "password": "second-password"}
+    ).json()
+    response = admin_client.patch(
+        f"/api/students/{first['id']}", json={"name": second["name"]}
+    )
+    assert response.status_code == 409
+
+
 def test_delete_student_requires_login(admin_client):
     created = admin_client.post("/api/students", json={"name": "Mai", "password": "mai-password"}).json()
     from fastapi.testclient import TestClient

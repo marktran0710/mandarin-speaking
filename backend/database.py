@@ -198,6 +198,7 @@ def row_to_student(row: dict) -> dict:
         "id": row["id"],
         "name": row["name"],
         "createdAt": row["created_at"],
+        "status": row.get("status") or "active",
     }
 
 def row_to_teacher(row: dict) -> dict:

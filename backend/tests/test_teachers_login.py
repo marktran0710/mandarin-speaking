@@ -67,7 +67,7 @@ class TestTeacherRosterManagement:
     def test_create_requires_admin(self, client, logged_in_teacher):
         teacher_client, _ = logged_in_teacher
         response = teacher_client.post(
-            "/api/teachers", json={"name": "New Teacher", "password": "pw"}
+            "/api/teachers", json={"name": "New Teacher", "password": "new-teacher-password"}
         )
         assert response.status_code == 403
 
@@ -77,7 +77,7 @@ class TestTeacherRosterManagement:
         monkeypatch.setattr(admin_module, "ADMIN_PASSWORD", "test-admin-pw")
         client.post("/api/admin/login", json={"password": "test-admin-pw"})
         response = client.post(
-            "/api/teachers", json={"name": "New Teacher", "password": "pw"}
+            "/api/teachers", json={"name": "New Teacher", "password": "new-teacher-password"}
         )
         assert response.status_code == 200
 
@@ -90,7 +90,7 @@ class TestTeacherRosterManagement:
         with TestClient(main.app) as admin_client:
             admin_client.post("/api/admin/login", json={"password": "test-admin-pw"})
             teacher = admin_client.post(
-                "/api/teachers", json={"name": "Target Teacher", "password": "pw"}
+                "/api/teachers", json={"name": "Target Teacher", "password": "teacher-password"}
             ).json()
 
         teacher_client, _ = logged_in_teacher
@@ -98,3 +98,38 @@ class TestTeacherRosterManagement:
             f"/api/teachers/{teacher['id']}", json={"status": "inactive"}
         ).status_code == 403
         assert teacher_client.delete(f"/api/teachers/{teacher['id']}").status_code == 403
+
+    def test_admin_can_rename_and_suspend_teacher(self, client, monkeypatch):
+        import routers.admin as admin_module
+
+        monkeypatch.setattr(admin_module, "ADMIN_PASSWORD", "test-admin-pw")
+        client.post("/api/admin/login", json={"password": "test-admin-pw"})
+        teacher = client.post(
+            "/api/teachers", json={"name": "Target Teacher", "password": "teacher-password"}
+        ).json()
+        updated = client.patch(
+            f"/api/teachers/{teacher['id']}",
+            json={"name": "Renamed Teacher", "status": "inactive"},
+        )
+        assert updated.status_code == 200
+        assert updated.json()["name"] == "Renamed Teacher"
+        assert updated.json()["status"] == "inactive"
+        assert client.post(
+            "/api/teachers/login", json={"name": "Renamed Teacher", "password": "teacher-password"}
+        ).status_code == 403
+
+    def test_admin_cannot_rename_teacher_to_a_duplicate(self, client, monkeypatch):
+        import routers.admin as admin_module
+
+        monkeypatch.setattr(admin_module, "ADMIN_PASSWORD", "test-admin-pw")
+        client.post("/api/admin/login", json={"password": "test-admin-pw"})
+        first = client.post(
+            "/api/teachers", json={"name": "First Teacher", "password": "first-password"}
+        ).json()
+        second = client.post(
+            "/api/teachers", json={"name": "Second Teacher", "password": "second-password"}
+        ).json()
+        response = client.patch(
+            f"/api/teachers/{first['id']}", json={"name": second["name"]}
+        )
+        assert response.status_code == 409

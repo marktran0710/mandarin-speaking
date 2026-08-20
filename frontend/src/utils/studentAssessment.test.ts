@@ -3,7 +3,7 @@ import type { Student, VocabQuizAttempt } from "../services/database";
 import { buildStudentAssessments } from "./studentAssessment";
 
 const NOW = new Date("2026-07-30T12:00:00Z");
-const student: Student = { id: "student-1", name: "Mai", createdAt: "2026-07-30T08:00:00Z" };
+const student: Student = { id: "student-1", name: "Mai", createdAt: "2026-07-30T08:00:00Z", status: "active" };
 
 function attempt(overrides: Partial<VocabQuizAttempt> = {}): VocabQuizAttempt {
   return {

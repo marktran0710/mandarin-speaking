@@ -233,12 +233,12 @@ def _validate_identity(identity: Identity) -> Identity:
         from database import connect_db
 
         table = "students" if identity.role == "student" else "teachers"
-        select = "1" if identity.role == "student" else "status"
+        select = "status"
         with connect_db() as db:
             row = db.execute(
                 f"SELECT {select} FROM {table} WHERE id = %s", (identity.id,)
             ).fetchone()
-        if row is None or (identity.role == "teacher" and row.get("status") != "active"):
+        if row is None or row.get("status") != "active":
             raise HTTPException(status_code=401, detail="Account is no longer active.")
     return identity
 
