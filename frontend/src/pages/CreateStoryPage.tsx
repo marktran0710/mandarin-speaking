@@ -82,6 +82,12 @@ export default function CreateStoryPage({
   }, [publishedTopics, selectedTopic]);
 
   const openTopicAtLevel = (topic: Topic, options?: TopicStartOptions) => {
+    // The topic list can be long, so the click often happens near its bottom.
+    // A newly opened activity is a new page-level task; start the student at
+    // its header instead of preserving the catalogue's scroll position.
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
     setSelectedTopic(topic);
     setStartAtQuiz(Boolean(options?.startAtQuiz));
     setSelectedImage(topic.images[0]);
