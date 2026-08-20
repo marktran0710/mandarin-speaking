@@ -24,10 +24,15 @@ needs to be configured or started on the Tailscale side itself.
 
 This is idempotent for the database (`docker compose up -d db` is a no-op if
 already running) and opens two new PowerShell windows: one running the
-backend (`uvicorn main:app --host 0.0.0.0 --reload --port 8000`), one running
-the frontend (`npm run dev -- --host 0.0.0.0`). Closing those windows (or
-Ctrl+C inside them) stops each half; there's no background service to manage
+backend (`uvicorn main:app --host 0.0.0.0 --port 8000`), one running the
+frontend (`npm run dev -- --host 0.0.0.0`). Closing those windows (or Ctrl+C
+inside them) stops each half; there's no background service to manage
 separately.
+
+`--reload` is off by default now (2026-08-20) - it's for active development,
+not a live classroom session, since a hot-reload mid-request can drop a
+student's in-flight recording. Pass `-Reload` to `start.ps1` when you're
+actually iterating on backend code while it runs.
 
 If you only need to confirm it's alive:
 

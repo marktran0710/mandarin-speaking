@@ -11,6 +11,10 @@ Modes:
 
   .\start.ps1 -Mode Lab -AllowedClientIps 100.104.12.33
       Add a Tailscale client IP when the frontend is opened by its Tailscale IP.
+
+  .\start.ps1 -Mode Lab -Reload
+      Auto-restart the backend on code changes while you edit it. Leave
+      this off for a live classroom session - see the -Reload param note.
 #>
 
 param(
@@ -22,7 +26,13 @@ param(
 
   # Origins used when a browser opens the frontend through Tailscale instead
   # of localhost. The default matches the current Laptop Tailscale IP.
-  [string[]]$AllowedClientIps = @('100.104.12.33')
+  [string[]]$AllowedClientIps = @('100.104.12.33'),
+
+  # Off by default: --reload is for active development (editing code while
+  # the server runs), not a live classroom session - it adds file-watching
+  # overhead and a hot-reload mid-request can drop a student's in-flight
+  # recording. Pass -Reload when you're actually iterating on backend code.
+  [switch]$Reload
 )
 
 $ErrorActionPreference = 'Stop'
@@ -113,7 +123,8 @@ Write-Host 'Starting PostgreSQL (docker compose)...' -ForegroundColor Cyan
 docker compose up -d db
 
 $corsOriginsValue = (Get-CorsOrigins) -join ','
-$backendCommand = "`$env:CORS_ORIGINS='$corsOriginsValue'; Set-Location '$root\backend'; python -m uvicorn main:app --host 0.0.0.0 --reload --port 8000"
+$reloadFlag = if ($Reload) { '--reload ' } else { '' }
+$backendCommand = "`$env:CORS_ORIGINS='$corsOriginsValue'; Set-Location '$root\backend'; python -m uvicorn main:app --host 0.0.0.0 ${reloadFlag}--port 8000"
 
 Write-Host 'Starting backend (port 8000)...' -ForegroundColor Cyan
 Start-PowerShellWindow -Command $backendCommand
