@@ -1,0 +1,180 @@
+.student-workspace {
+  min-height: calc(100vh - var(--navbar-height));
+  padding: clamp(28px, 5vw, 64px) 0 var(--space-3xl);
+  background: var(--clay-canvas);
+  color: var(--clay-ink);
+}
+
+.student-workspace-header,
+.student-workspace-tabs,
+.student-workspace-content {
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
+  margin-inline: auto;
+}
+
+.student-workspace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: var(--space-xl);
+  margin-bottom: var(--space-xl);
+}
+
+.student-workspace-kicker {
+  margin: 0 0 var(--space-xs);
+  color: var(--gold-deep);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.student-workspace-header h1 {
+  margin: 0;
+  color: var(--clay-ink);
+  font-family: var(--font-display);
+  font-size: clamp(34px, 5vw, 58px);
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+
+.student-workspace-intro {
+  margin: var(--space-sm) 0 0;
+  color: var(--clay-muted);
+  font-size: var(--text-md);
+}
+
+.student-workspace-mark {
+  display: flex;
+  align-items: center;
+  gap: -2px;
+  color: color-mix(in srgb, var(--gold) 72%, var(--clay-ink));
+  font-family: var(--font-display);
+  font-size: clamp(56px, 9vw, 110px);
+  line-height: .65;
+  opacity: .22;
+  transform: rotate(-8deg);
+}
+
+.student-workspace-mark span + span {
+  margin-left: -18px;
+  transform: translateY(17px);
+}
+
+.student-workspace-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+  margin-bottom: clamp(28px, 4vw, 52px);
+}
+
+.student-workspace-tab {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 112px;
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  color: var(--clay-body);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--clay-hairline) 62%, transparent);
+  transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.student-workspace-tab:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--gold) 52%, var(--clay-hairline));
+  box-shadow: 0 7px 0 color-mix(in srgb, var(--gold-soft) 80%, transparent);
+}
+
+.student-workspace-tab.active {
+  border-color: color-mix(in srgb, var(--jade) 58%, var(--clay-hairline));
+  background: color-mix(in srgb, var(--jade-soft) 32%, var(--clay-surface-card));
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--jade-soft) 82%, transparent);
+  color: var(--clay-ink);
+}
+
+.student-workspace-tab-icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: 50%;
+  background: var(--clay-surface-soft);
+  color: var(--jade-deep);
+}
+
+.student-workspace-tab-copy {
+  min-width: 0;
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+.student-workspace-tab-arrow {
+  color: var(--gold-deep);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.student-workspace-content {
+  min-width: 0;
+}
+
+.student-workspace.is-practicing {
+  padding-top: 0;
+}
+
+.student-workspace.is-practicing .student-workspace-content {
+  width: 100%;
+}
+
+@media (max-width: 820px) {
+  .student-workspace-header {
+    align-items: start;
+  }
+
+  .student-workspace-mark {
+    font-size: 64px;
+  }
+
+  .student-workspace-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .student-workspace-tab {
+    min-height: 82px;
+  }
+}
+
+@media (max-width: 520px) {
+  .student-workspace {
+    padding-top: var(--space-lg);
+  }
+
+  .student-workspace-header {
+    display: block;
+  }
+
+  .student-workspace-mark {
+    display: none;
+  }
+
+  .student-workspace-tab {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    padding-inline: var(--space-md);
+  }
+
+  .student-workspace-tab-icon {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-workspace-tab {
+    transition: none;
+  }
+}

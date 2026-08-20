@@ -6,6 +6,7 @@ export type Page =
   | "home"
   | "student-login"
   | "teacher-login"
+  | "student-workspace"
   | "student-practice"
   | "student-stories"
   | "voice-test"

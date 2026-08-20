@@ -22,8 +22,7 @@ interface NavigationProps {
    * variant links to the other: the two modes are deliberately reachable
    * only by typing their own URL (see WrongMode). */
   appVariant?: "student" | "teacher";
-  /** Whether the class has any published picture-talk story. The section is
-   * hidden rather than shown empty when the class has no such content. */
+  /** Kept for call-site compatibility; picture talk now lives in the student workspace. */
   hasDescribeStories?: boolean;
 }
 
@@ -34,7 +33,6 @@ export default function Navigation({
   onLogout,
   compact = false,
   appVariant = "student",
-  hasDescribeStories = false,
 }: NavigationProps) {
   const [colorMode, toggleColorMode] = useColorMode();
   const isStudent = activeRole === "student";
@@ -83,40 +81,16 @@ export default function Navigation({
           )}
 
           {!compact && isStudent && (
-            <>
-              <li>
-                <button
-                  type="button"
-                  className={`nav-link ${currentPage === "student-practice" ? "active" : ""}`}
-                  onClick={() => onNavigate("student-practice")}
-                >
-                  <span className="nav-link-icon"><StudentIcon name="image" /></span>
-                  <BiLabel k="training" />
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  className={`nav-link ${currentPage === "student-stories" ? "active" : ""}`}
-                  onClick={() => onNavigate("student-stories")}
-                >
-                  <span className="nav-link-icon"><StudentIcon name="stories" /></span>
-                  <BiLabel zh="我的成績" pinyin="Wǒ de chéngjì" en="My Profile" />
-                </button>
-              </li>
-              {hasDescribeStories && (
-                <li>
-                  <button
-                    type="button"
-                    className={`nav-link ${currentPage === "image-narration" ? "active" : ""}`}
-                    onClick={() => onNavigate("image-narration")}
-                  >
-                    <span className="nav-link-icon"><StudentIcon name="image" /></span>
-                    <BiLabel zh="看圖說話" pinyin="Kàn tú shuō huà" en="Picture talk" />
-                  </button>
-                </li>
-              )}
-            </>
+            <li>
+              <button
+                type="button"
+                className={`nav-link ${currentPage === "student-workspace" || currentPage === "student-practice" || currentPage === "student-stories" || currentPage === "image-narration" ? "active" : ""}`}
+                onClick={() => onNavigate("student-workspace")}
+              >
+                <span className="nav-link-icon"><StudentIcon name="home" /></span>
+                <BiLabel zh="我的學習" pinyin="Wǒ de xuéxí" en="My learning" />
+              </button>
+            </li>
           )}
 
           <li>

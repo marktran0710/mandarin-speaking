@@ -4,6 +4,9 @@ import CreateStoryPage from "./pages/CreateStoryPage";
 import MyStoriesPage from "./pages/MyStoriesPage";
 import VoiceTestPage from "./pages/VoiceTestPage";
 import ImageNarrationPage from "./pages/ImageNarrationPage";
+import StudentWorkspacePage, {
+  type StudentWorkspaceView,
+} from "./pages/StudentWorkspacePage";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 import StudentLoginPage from "./pages/StudentLoginPage";
@@ -90,6 +93,7 @@ interface PracticeTarget {
 // happen, but storage can be stale or edited) landing back on the marketing
 // page instead of practice would look like the app forgot they were signed in.
 const RESTORABLE_STUDENT_PAGES: readonly Page[] = [
+  "student-workspace",
   "student-practice",
   "student-stories",
   "voice-test",
@@ -118,6 +122,8 @@ function collectPinyinTexts(topics: readonly Topic[]): string[] {
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
   const [activeRole, setActiveRole] = useState<"student" | null>(null);
+  const [studentWorkspaceView, setStudentWorkspaceView] =
+    useState<StudentWorkspaceView>("practice");
   const [isInPracticeSession, setIsInPracticeSession] = useState(false);
   const [audioRecords, setAudioRecords] = useState<AudioRecord[]>([]);
   const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
@@ -207,11 +213,20 @@ export default function App() {
         const restoredPage = isRestorableStudentPage(lastPage)
           ? lastPage
           : "student-practice";
-        setCurrentPage(restoredPage);
+        const restoredWorkspaceView: StudentWorkspaceView =
+          restoredPage === "student-stories"
+            ? "progress"
+            : restoredPage === "image-narration"
+              ? "picture-talk"
+              : "practice";
+        setStudentWorkspaceView(restoredWorkspaceView);
+        setCurrentPage(
+          restoredPage === "voice-test" ? "voice-test" : "student-workspace",
+        );
         // Only worth restoring for the page it actually feeds — a saved
         // target would otherwise silently jump the student straight back
         // into that story the next time they land on student-practice.
-        if (restoredPage === "student-practice") {
+        if (restoredWorkspaceView === "practice") {
           const lastTarget = getLastPracticeTarget();
           if (lastTarget) {
             setPracticeTarget({
@@ -231,8 +246,16 @@ export default function App() {
   // session) lands them back there instead of always bouncing to practice.
   useEffect(() => {
     if (activeRole !== "student") return;
-    saveLastVisitedPage(currentPage);
-  }, [activeRole, currentPage]);
+    const pageToSave: Page =
+      currentPage !== "student-workspace"
+        ? currentPage
+        : studentWorkspaceView === "progress"
+          ? "student-stories"
+          : studentWorkspaceView === "picture-talk"
+            ? "image-narration"
+            : "student-practice";
+    saveLastVisitedPage(pageToSave);
+  }, [activeRole, currentPage, studentWorkspaceView]);
 
   // Remembers which story (and scene) was open on the practice page, so
   // that restore above lands on the actual session instead of the browse
@@ -345,7 +368,8 @@ export default function App() {
     // StudentLoginPage has already written the session (it owns the name and
     // roster id); this only reacts to it.
     setActiveRole("student");
-    setCurrentPage("student-practice");
+    setStudentWorkspaceView("practice");
+    setCurrentPage("student-workspace");
   };
 
   const handleLogout = () => {
@@ -368,7 +392,8 @@ export default function App() {
 
   const handlePracticeImage = (topicId: string, imageIndex: number) => {
     setPracticeTarget({ topicId, imageIndex, seq: Date.now() });
-    setCurrentPage("student-practice");
+    setStudentWorkspaceView("practice");
+    setCurrentPage("student-workspace");
   };
 
   // My Profile's lesson/story rows link back to the lesson list to practice
@@ -376,7 +401,8 @@ export default function App() {
   // CreateStoryPage renders the table-of-contents browse view.
   const handleBrowsePractice = () => {
     setPracticeTarget(null);
-    setCurrentPage("student-practice");
+    setStudentWorkspaceView("practice");
+    setCurrentPage("student-workspace");
   };
 
   // The floating star bubble's jump target — quiz story ids may carry a
@@ -478,15 +504,38 @@ export default function App() {
       <Navigation
         currentPage={currentPage}
         activeRole={activeRole}
-        onNavigate={setCurrentPage}
+        onNavigate={(page) => {
+          if (page === "student-workspace") {
+            setStudentWorkspaceView("practice");
+          }
+          setCurrentPage(page);
+        }}
         onLogout={handleLogout}
-        compact={currentPage === "student-practice" && isInPracticeSession}
-        hasDescribeStories={describeTopics.length > 0}
+        compact={activeRole === "student" && isInPracticeSession}
       />
       {currentPage === "home" && <HomePage onNavigate={setCurrentPage} />}
       {currentPage === "student-login" && (
         <StudentLoginPage
           onLogin={handleLogin}
+        />
+      )}
+      {currentPage === "student-workspace" && activeRole === "student" && (
+        <StudentWorkspacePage
+          view={studentWorkspaceView}
+          onViewChange={(nextView) => {
+            setStudentWorkspaceView(nextView);
+            if (nextView !== "practice") setPracticeTarget(null);
+          }}
+          onAddRecord={addAudioRecord}
+          initialTopicId={practiceTarget?.topicId}
+          initialImageIndex={practiceTarget?.imageIndex}
+          helpRequests={helpRequests}
+          onRaiseHand={handleRaiseHand}
+          storyTopics={storyTopics}
+          describeTopics={describeTopics}
+          audioRecords={audioRecords}
+          onSessionActiveChange={setIsInPracticeSession}
+          isInPracticeSession={isInPracticeSession}
         />
       )}
       {currentPage === "student-practice" && activeRole === "student" && (
@@ -530,7 +579,7 @@ export default function App() {
           // surface, not a gate, and an inert dial reads as broken when
           // the teacher walks through the app (which is what admin is for).
           targetIds={bubbleTargetIds}
-          refreshToken={`${currentPage}:${isInPracticeSession}`}
+          refreshToken={`${currentPage}:${studentWorkspaceView}:${isInPracticeSession}`}
           onJumpToStory={handleJumpToStory}
         />
       )}

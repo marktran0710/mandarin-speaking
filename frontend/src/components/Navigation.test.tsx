@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Navigation from "./Navigation";
 
-/** The navbar is the only directed edge into most student pages, so these
- * tests pin the student-facing sections that remain available. */
+/** Student mode now has one shell entry point; the shell owns the internal
+ * practice/progress/picture-talk tabs. */
 function renderStudentNav(props: Partial<Parameters<typeof Navigation>[0]> = {}) {
   const onNavigate = vi.fn();
   render(
@@ -19,35 +19,18 @@ function renderStudentNav(props: Partial<Parameters<typeof Navigation>[0]> = {})
 }
 
 describe("Navigation student links", () => {
-  it("always links the three core student sections", async () => {
+  it("links the single student workspace", async () => {
     const user = userEvent.setup();
     const onNavigate = renderStudentNav();
 
-    await user.click(screen.getByRole("button", { name: /Practice/ }));
-    expect(onNavigate).toHaveBeenCalledWith("student-practice");
-
-    await user.click(screen.getByRole("button", { name: /My Profile/ }));
-    expect(onNavigate).toHaveBeenCalledWith("student-stories");
+    await user.click(screen.getByRole("button", { name: /My learning/ }));
+    expect(onNavigate).toHaveBeenCalledWith("student-workspace");
   });
 
-  it("links picture-talk once the class has a describe story", async () => {
-    const user = userEvent.setup();
-    const onNavigate = renderStudentNav({ hasDescribeStories: true });
-
-    await user.click(screen.getByRole("button", { name: /Picture talk/ }));
-    expect(onNavigate).toHaveBeenCalledWith("image-narration");
-  });
-
-  it("hides picture talk when no describe story is published", () => {
-    renderStudentNav();
-
-    expect(screen.queryByRole("button", { name: /Picture talk/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Listen & retell/ })).not.toBeInTheDocument();
-  });
-
-  it("never exposes Listen & retell, even when that content exists", () => {
+  it("keeps picture talk and Listen & retell out of the global navbar", () => {
     renderStudentNav({ hasDescribeStories: true });
 
+    expect(screen.queryByRole("button", { name: /Picture talk/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Listen & retell/ })).not.toBeInTheDocument();
   });
 
@@ -57,7 +40,7 @@ describe("Navigation student links", () => {
       hasDescribeStories: true,
     });
 
-    expect(screen.queryByRole("button", { name: /Practice/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /My learning/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Picture talk/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Listen & retell/ })).not.toBeInTheDocument();
   });

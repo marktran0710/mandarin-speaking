@@ -36,4 +36,8 @@
 .admin-irt-detail h3 { margin-bottom:8px; }
 .admin-irt-history { list-style:none; padding:0; margin:0; display:grid; gap:8px; }
 .admin-irt-history li { display:grid; grid-template-columns:1.5fr 1fr .7fr; gap:10px; padding:10px; border-top:1px solid #e5e9e8; font-size:13px; }
+.admin-header { align-items: center; }
+.admin-refresh { flex: 0 0 auto; border: 1px solid #138d78; background: #fff; color: #138d78; border-radius: 3px; padding: 11px 15px; font: 600 14px inherit; cursor: pointer; }
+.admin-refresh:hover:not(:disabled) { background: #eef8f4; }
+.admin-refresh:disabled { cursor: wait; opacity: .65; }
 @media(max-width:620px){.admin-irt-detail-grid{grid-template-columns:repeat(2,1fr)}.admin-irt-history li{grid-template-columns:1fr}.admin-irt-table .account-row{grid-template-columns:1.3fr .7fr .8fr}.admin-irt-table .account-row>span:nth-child(n+4){display:none}}
