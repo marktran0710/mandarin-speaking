@@ -1,8 +1,17 @@
 import type { MeasurementEvent } from "../utils/measurement";
 
+// In dev, default to the page's own origin (not a fixed 127.0.0.1:8000) so
+// every request here is same-origin - vite.config.ts proxies /api and
+// /uploads to the real backend. A cross-port fetch is cross-origin, and
+// Chrome silently drops the httpOnly session cookie (backend/auth.py) on
+// those even with correct CORS/SameSite=Lax headers - confirmed via manual
+// browser testing, not a hypothetical. VITE_BACKEND_URL still overrides
+// this for deployments that genuinely need a different backend host (e.g.
+// production, or a LAN backend) - those just don't get the cookie-based
+// session to work without their own same-origin proxy in front of both.
 const BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV ? "http://127.0.0.1:8000" : "");
+  (import.meta.env.DEV && typeof window !== "undefined" ? window.location.origin : "");
 
 const REQUEST_TIMEOUT_MS = 15_000;
 const VOCAB_GENERATION_RETRY_STATUSES = [429, 500, 502, 503, 504];

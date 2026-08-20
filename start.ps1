@@ -89,7 +89,12 @@ if ($Mode -eq 'Laptop') {
   }
 
   Write-Host 'Starting frontend only; local PostgreSQL and backend are intentionally not started.' -ForegroundColor Yellow
-  $frontendCommand = "`$env:VITE_BACKEND_URL='$LabBackendUrl'; Set-Location '$root'; npm run dev -- --host 0.0.0.0"
+  # BACKEND_PROXY_TARGET (not VITE_BACKEND_URL) - the browser must only ever
+  # talk to this laptop's own Vite server (see vite.config.ts's proxy). If
+  # the browser called the Lab backend directly cross-origin, Chrome silently
+  # drops the httpOnly session cookie (backend/auth.py) even with correct
+  # CORS/SameSite=Lax headers - confirmed by hand, not a hypothetical.
+  $frontendCommand = "`$env:BACKEND_PROXY_TARGET='$LabBackendUrl'; Set-Location '$root'; npm run dev -- --host 0.0.0.0"
   Start-PowerShellWindow -Command $frontendCommand
 
   Write-Host ''
@@ -114,7 +119,12 @@ Write-Host 'Starting backend (port 8000)...' -ForegroundColor Cyan
 Start-PowerShellWindow -Command $backendCommand
 
 Write-Host 'Starting frontend (port 5173)...' -ForegroundColor Cyan
-$frontendCommand = "`$env:VITE_BACKEND_URL='http://127.0.0.1:8000'; Set-Location '$root'; npm run dev -- --host 0.0.0.0"
+# No VITE_BACKEND_URL here on purpose - the frontend defaults to its own
+# origin and vite.config.ts's dev proxy (default target 127.0.0.1:8000,
+# matching the backend started above) forwards /api and /uploads to it.
+# Keeping the browser same-origin is what makes the httpOnly session cookie
+# (backend/auth.py) actually get attached - see the Laptop-mode note above.
+$frontendCommand = "Set-Location '$root'; npm run dev -- --host 0.0.0.0"
 Start-PowerShellWindow -Command $frontendCommand
 
 Write-Host ''

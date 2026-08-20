@@ -13,6 +13,18 @@ export default defineConfig({
     // during remote QA. Keep the allowlist explicit instead of disabling
     // Vite's host check globally.
     allowedHosts: ["desktop-9417om5.tail7fe66e.ts.net"],
+    // Proxying /api and /uploads makes the browser see frontend+backend as
+    // one origin, so the httpOnly session cookie (backend/auth.py) is sent
+    // on every request - a plain cross-port fetch is cross-origin, and
+    // Chrome silently refuses to attach the cookie to those (confirmed via
+    // manual testing: same-origin fetch worked, cross-port fetch got 401
+    // on every identity-gated route even with correct CORS/SameSite=Lax
+    // headers). Override the target with BACKEND_PROXY_TARGET for a
+    // non-default backend port.
+    proxy: {
+      "/api": process.env.BACKEND_PROXY_TARGET || "http://127.0.0.1:8000",
+      "/uploads": process.env.BACKEND_PROXY_TARGET || "http://127.0.0.1:8000",
+    },
   },
   build: {
     rollupOptions: {
