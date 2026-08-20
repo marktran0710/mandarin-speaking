@@ -8,13 +8,10 @@ role-scoped `require_student`/`require_teacher` wrappers) decode and verify
 it, so a router can know who is actually calling instead of who the request
 merely claims to be.
 
-The cross-device "Laptop mode" case (frontend and backend on different
-Tailscale hosts) works too, but only because the browser is never allowed to
-call this backend cross-origin in the first place - vite.config.ts proxies
-/api and /uploads through the frontend's own dev server, which forwards to
-the real backend host server-side. A browser that DOES call this backend
-directly cross-origin will silently lose the cookie (Chrome drops it even
-with correct CORS/SameSite=Lax headers) - always go through the proxy.
+The development frontend proxies /api and /uploads through its own origin so
+the browser keeps the httpOnly cookie. A browser that calls this backend
+directly from another origin can lose the cookie because of browser
+cross-origin cookie rules; use the same-origin proxy in development.
 """
 from __future__ import annotations
 
@@ -173,8 +170,8 @@ def set_session_cookie(response: Response, token: str) -> None:
         max_age=TOKEN_TTL_SECONDS,
         httponly=True,
         samesite="lax",
-        # Plain HTTP over LAN/Tailscale today - Secure would silently drop
-        # the cookie. Set COOKIE_SECURE=true once this runs behind HTTPS.
+        # Plain HTTP is used only for local development. Set COOKIE_SECURE=true
+        # when the production service runs behind HTTPS.
         secure=os.getenv("COOKIE_SECURE", "false").lower() == "true",
         path="/",
     )

@@ -9,13 +9,11 @@ export default defineConfig({
   server: {
     port: 5173,
     open: process.env.VITE_OPEN_BROWSER !== "false",
-    // The student app is opened through the machine's Tailscale hostname
-    // during remote QA. Keep the allowlist explicit instead of disabling
+    // Keep the local development host allowlist explicit instead of disabling
     // Vite's host check globally.
     allowedHosts: [
       "localhost",
       "127.0.0.1",
-      "desktop-9417om5.tail7fe66e.ts.net",
     ],
     // Proxying /api and /uploads makes the browser see frontend+backend as
     // one origin, so the httpOnly session cookie (backend/auth.py) is sent
