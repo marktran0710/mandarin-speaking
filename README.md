@@ -385,17 +385,58 @@ volume and local uploads. Its data is not shared with the Lab PC.
 
 #### Fully containerized laptop development
 
-For a reproducible laptop stack with backend/frontend source mounts, automatic
-Alembic migration, and isolated database/uploads volumes, see
-[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md). The short version is:
+Use this workflow when the laptop must run and test the project independently
+of the Lab PC. It starts PostgreSQL, the FastAPI backend, and Vite in Docker.
+The source folders are mounted into the containers, so backend and frontend
+changes reload during development. The database, uploads, model cache, and
+Node dependencies use separate Docker volumes.
+
+Install Docker Desktop with Docker Compose, then run from the repository root:
 
 ```powershell
 Copy-Item backend/.env.example backend/.env
+docker compose -f docker-compose.laptop.yml config --quiet
 docker compose -f docker-compose.laptop.yml up -d --build
+docker compose -f docker-compose.laptop.yml ps
 ```
 
-Open `http://127.0.0.1:5177`. Seed lessons explicitly after the backend is
-healthy; they are never loaded automatically during startup.
+Alembic migrations run automatically before the backend starts. Open
+`http://127.0.0.1:5177` after the backend is healthy. The backend diagnostics
+endpoint is `http://127.0.0.1:8001/health/ready`.
+
+Seed the optional teaching lessons explicitly:
+
+```powershell
+docker compose -f docker-compose.laptop.yml exec backend python -m scripts.seed_grammar_lesson
+docker compose -f docker-compose.laptop.yml exec backend python -m scripts.seed_listen_retell_lesson
+docker compose -f docker-compose.laptop.yml exec backend python -m scripts.seed_vv_kan_lesson
+```
+
+Useful development commands:
+
+```powershell
+# Follow backend and frontend logs
+docker compose -f docker-compose.laptop.yml logs -f backend frontend
+
+# Run frontend tests inside the container
+docker compose -f docker-compose.laptop.yml exec frontend npm test -- --run
+
+# Rebuild after dependency or Dockerfile changes
+docker compose -f docker-compose.laptop.yml up -d --build
+
+# Stop containers while preserving local data
+docker compose -f docker-compose.laptop.yml down
+```
+
+To intentionally reset the laptop environment, including its PostgreSQL
+database, uploads, model cache, and frontend dependencies, run:
+
+```powershell
+docker compose -f docker-compose.laptop.yml down -v
+```
+
+For the full setup notes and troubleshooting, see
+[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md).
 
 #### Important data-safety rule
 
