@@ -225,6 +225,23 @@ describe("PronunciationBreakdown", () => {
     expect(container.querySelector(".pb-head-score")!.textContent).toContain("1/1");
   });
 
+  it("treats legacy T5 rows as neutral when provenance is missing", () => {
+    const { container } = render(
+      <PronunciationBreakdown
+        words={[word({
+          token: "嗎",
+          syllables: [
+            { char: "嗎", tone: 5, score: 75, passed: null, diagnostic_status: "UNCERTAIN" },
+          ],
+        })]}
+      />,
+    );
+
+    expect(container.querySelector(".pb-summary")).toBeNull();
+    expect(container.querySelector(".pb-head-meta")!.textContent).toContain("1輕聲不計");
+    expect(container.querySelector(".pb-tone-mark")!.textContent).toBe("–");
+  });
+
   it("keeps the collapsed row short and puts the explanation behind a tap", async () => {
     const user = userEvent.setup();
     const uncertain = word({

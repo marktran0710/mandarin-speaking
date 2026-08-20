@@ -215,10 +215,13 @@ function zoneText(zone: VowelZone, key: "zh" | "en"): string {
 }
 
 function isNeutral(syllable: WordProsodySyllable): boolean {
-  return syllable.score_provenance === "neutral_not_measured";
+  // New analyses carry explicit provenance. The tone fallback keeps older
+  // saved results correct when they have T5 but no provenance field.
+  return syllable.score_provenance === "neutral_not_measured" || syllable.tone === 5;
 }
 
 function isNotScored(syllable: WordProsodySyllable): boolean {
+  if (isNeutral(syllable)) return false;
   return (
     syllable.passed === null ||
     syllable.passed === undefined ||
@@ -242,11 +245,10 @@ function referenceEvidenceAccepted(word?: WordProsody): boolean {
 function hasMeasuredToneEvidence(word: WordProsody): boolean {
   return (word.syllables ?? []).some(
     (syllable) =>
+      !isNeutral(syllable) &&
+      !isNotScored(syllable) &&
       syllable.passed !== null &&
-      syllable.passed !== undefined &&
-      syllable.score_provenance !== "neutral_not_measured" &&
-      syllable.score_provenance !== "constant_short_segment" &&
-      syllable.score_provenance !== "not_scored",
+      syllable.passed !== undefined,
   );
 }
 
