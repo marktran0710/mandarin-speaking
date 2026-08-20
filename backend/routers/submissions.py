@@ -1,9 +1,10 @@
 import os
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from psycopg.types.json import Jsonb
 
+import auth
 from database import connect_db, row_to_story_submission
 from audio_concat import concatenate_scene_audio
 from ai_feedback import generate_story_feedback
@@ -18,7 +19,11 @@ async def list_story_submissions(
     story_id: Optional[str] = None,
     student_id: Optional[str] = None,
     student_name: Optional[str] = None,
+    identity: auth.Identity = Depends(auth.get_current_identity),
 ):
+    if identity.role == "student":
+        student_id, student_name = identity.id, None
+
     conditions = []
     params: list[object] = []
     if story_id:
@@ -41,7 +46,9 @@ async def list_story_submissions(
 
 @router.patch("/api/story-submissions/{submission_id}/review")
 async def update_story_submission_review(
-    submission_id: str, review: SubmissionReviewRequest
+    submission_id: str,
+    review: SubmissionReviewRequest,
+    identity: auth.Identity = Depends(auth.require_teacher_or_admin),
 ):
     if review.status not in {"pending", "reviewed"}:
         raise HTTPException(
@@ -65,7 +72,11 @@ async def update_story_submission_review(
 
 
 @router.post("/api/story-submissions")
-async def create_story_submission(submission: StorySubmissionRequest):
+async def create_story_submission(
+    submission: StorySubmissionRequest,
+    identity: auth.Identity = Depends(auth.require_student),
+):
+    submission.studentId = identity.id
     scenes_sorted = sorted(submission.scenes, key=lambda s: s.sceneIndex)
 
     with connect_db() as db:

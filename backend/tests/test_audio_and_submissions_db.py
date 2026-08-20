@@ -2,6 +2,8 @@
 including the JSONB praat_metrics / scenes / story_feedback columns."""
 import contextlib
 
+from conftest import login_new_client
+
 AUDIO_RECORD = {
     "id": "rec-1",
     "timestamp": "2026-07-26T08:00:00Z",
@@ -43,35 +45,11 @@ def test_delete_audio_record(logged_in_student, logged_in_teacher):
     assert [r for r in student_client.get("/api/audio-records").json() if r["id"] == "rec-1"] == []
 
 
-def _login_new_client(stack, name, role, password="123456"):
-    """A fresh TestClient (own cookie jar), entered via the ExitStack the
-    caller owns, logged in as a brand-new student or teacher - so two
-    identities can act independently within one test."""
-    from fastapi.testclient import TestClient
-    import main
-
-    new_client = stack.enter_context(TestClient(main.app))
-    if role == "student":
-        created = new_client.post("/api/students", json={"name": name}).json()
-        new_client.post(
-            "/api/students/login",
-            json={"studentId": created["id"], "password": password},
-        )
-    else:
-        created = new_client.post(
-            "/api/teachers", json={"name": name, "password": password}
-        ).json()
-        new_client.post(
-            "/api/teachers/login", json={"name": name, "password": password}
-        )
-    return new_client, created
-
-
 def test_audio_records_can_be_filtered_by_student_and_topic():
     with contextlib.ExitStack() as stack:
-        student1_client, student1 = _login_new_client(stack, "Student One", "student")
-        student2_client, _ = _login_new_client(stack, "Student Two", "student")
-        teacher_client, _ = _login_new_client(stack, "Reviewer", "teacher", password="teach123")
+        student1_client, student1 = login_new_client(stack, "Student One", "student")
+        student2_client, _ = login_new_client(stack, "Student Two", "student")
+        teacher_client, _ = login_new_client(stack, "Reviewer", "teacher", password="teach123")
 
         student1_client.post("/api/audio-records", json=AUDIO_RECORD)
         student1_client.post(
@@ -91,7 +69,8 @@ def test_audio_records_can_be_filtered_by_student_and_topic():
     assert [record["id"] for record in records] == ["rec-1"]
 
 
-def test_story_submission_round_trips_with_scenes(client):
+def test_story_submission_round_trips_with_scenes(logged_in_student):
+    client, student = logged_in_student
     submission = {
         "id": "sub-1",
         "storyId": "teacher-story-1",
@@ -112,6 +91,7 @@ def test_story_submission_round_trips_with_scenes(client):
     response = client.post("/api/story-submissions", json=submission)
     assert response.status_code == 200
     # Scenes are stored sorted by sceneIndex regardless of submitted order.
+    assert response.json()["studentId"] == student["id"]
     assert [s["sceneIndex"] for s in response.json()["scenes"]] == [0, 1]
 
     listed = client.get("/api/story-submissions", params={"story_id": "teacher-story-1"}).json()
@@ -120,11 +100,17 @@ def test_story_submission_round_trips_with_scenes(client):
     assert saved["scenes"][0]["transcription"] == "這是我的房間。"
 
 
-def test_story_submissions_filter_by_story_id(client):
+def test_story_submissions_filter_by_story_id(logged_in_teacher):
+    client, _ = logged_in_teacher
     assert client.get("/api/story-submissions", params={"story_id": "nothing"}).json() == []
 
 
-def test_story_submission_round_trips_self_eval(client):
+def test_story_submissions_requires_login(client):
+    assert client.get("/api/story-submissions").status_code == 401
+
+
+def test_story_submission_round_trips_self_eval(logged_in_student):
+    client, _ = logged_in_student
     submission = {
         "id": "sub-self-eval",
         "storyId": "teacher-story-1",

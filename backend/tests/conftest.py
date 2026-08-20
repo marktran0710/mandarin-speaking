@@ -144,3 +144,28 @@ def logged_in_teacher(client):
         json={"name": "Test Teacher", "password": "teach123"},
     )
     return client, teacher
+
+
+def login_new_client(stack, name, role, password="123456"):
+    """A fresh TestClient (its own cookie jar), entered via an ExitStack
+    the caller owns, logged in as a brand-new student or teacher - lets a
+    test act as several independent identities at once. Returns
+    (client, created_row)."""
+    from fastapi.testclient import TestClient
+    import main
+
+    new_client = stack.enter_context(TestClient(main.app))
+    if role == "student":
+        created = new_client.post("/api/students", json={"name": name}).json()
+        new_client.post(
+            "/api/students/login",
+            json={"studentId": created["id"], "password": password},
+        )
+    else:
+        created = new_client.post(
+            "/api/teachers", json={"name": name, "password": password}
+        ).json()
+        new_client.post(
+            "/api/teachers/login", json={"name": name, "password": password}
+        )
+    return new_client, created

@@ -2,9 +2,10 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from psycopg.types.json import Jsonb
 
+import auth
 from analytics.joint_time import fit_joint_mode
 from analytics.weak_words import WordOccurrence, score_weak_words
 from database import connect_db, row_to_vocab_quiz_attempt
@@ -31,7 +32,11 @@ async def list_vocab_quiz_attempts(
     story_id: Optional[str] = None,
     student_name: Optional[str] = None,
     student_id: Optional[str] = None,
+    identity: auth.Identity = Depends(auth.get_current_identity),
 ):
+    if identity.role == "student":
+        student_id, student_name = identity.id, None
+
     query = "SELECT * FROM vocab_quiz_attempts WHERE 1=1"
     params: list = []
     if story_id:
@@ -128,8 +133,7 @@ def refit_vocab_quiz_irt_cache() -> None:
 @router.get("/api/vocab-quiz-attempts/weak-words")
 async def get_weak_words(
     story_id: str,
-    student_id: Optional[str] = None,
-    student_name: Optional[str] = None,
+    identity: auth.Identity = Depends(auth.require_student),
 ):
     """
     Words in this story that still need review for this student, ranked by
@@ -143,19 +147,13 @@ async def get_weak_words(
     last time but looks fragile on the combined signal. See
     analytics/weak_words.py for the scoring itself.
     """
-    if not student_id and not student_name:
-        raise HTTPException(status_code=400, detail="Provide student_id or student_name.")
-    student_key = student_id or student_name
+    student_key = identity.id
 
-    query = "SELECT question_results FROM vocab_quiz_attempts WHERE story_id = %s"
-    params: list = [story_id]
-    if student_id:
-        query += " AND student_id = %s"
-        params.append(student_id)
-    else:
-        query += " AND student_name = %s"
-        params.append(student_name)
-    query += " ORDER BY completed_at ASC"
+    query = (
+        "SELECT question_results FROM vocab_quiz_attempts "
+        "WHERE story_id = %s AND student_id = %s ORDER BY completed_at ASC"
+    )
+    params: list = [story_id, identity.id]
 
     with connect_db() as db:
         rows = db.execute(query, params).fetchall()
@@ -205,8 +203,11 @@ async def get_weak_words(
 
 @router.post("/api/vocab-quiz-attempts")
 async def create_vocab_quiz_attempt(
-    attempt: VocabQuizAttemptRequest, background_tasks: BackgroundTasks
+    attempt: VocabQuizAttemptRequest,
+    background_tasks: BackgroundTasks,
+    identity: auth.Identity = Depends(auth.require_student),
 ):
+    attempt.studentId = identity.id
     with connect_db() as db:
         db.execute(
             """
