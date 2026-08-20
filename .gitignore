@@ -42,6 +42,11 @@ output/
 *.png
 tmp_pdf_l6/
 
+# These teaching images are part of the reproducible material seed.
+!backend/scripts/data/
+!backend/scripts/data/assets/
+!backend/scripts/data/assets/**
+
 # Research exports and external benchmark media are reproducible/private
 # artifacts, not application runtime or source. Keep final paper deliverables
 # outside these working directories when they need to be versioned.

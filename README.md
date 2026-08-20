@@ -385,10 +385,12 @@ Seeding is explicit and idempotent. Run it after the backend is healthy:
 docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_dev
 ```
 
-The repository now contains the recovered 18-material fixture. Local demo
-accounts use password `123456`. The seed never changes existing materials or
-account passwords by default. For a deliberate fixture/material replacement,
-add `--overwrite`.
+The repository now contains the recovered 18-material fixture and its 162
+referenced teaching images. The seed restores those images into the Docker
+upload volume as well as inserting the database rows. Local demo accounts use
+password `123456`. The seed never changes existing materials or account
+passwords by default. For a deliberate fixture/material replacement, add
+`--overwrite`.
 The image-heavy Lessons 6–8 script remains a separate specialist seed:
 `python -m scripts.seed_lessons_6_8`.
 
@@ -480,6 +482,7 @@ do not deploy the old separate GitHub Pages/Vercel frontend configuration.
 │   ├── main.py               # FastAPI routes, image generation, parallel analysis
 │   ├── praat_analyzer.py     # Parselmouth acoustic analysis
 │   ├── scripts/seed_dev.py   # Shared local lesson + demo-account seed
+│   ├── scripts/data/assets/  # Versioned teaching images restored by the seed
 │   ├── scripts/benchmark_tones.py
 │   ├── scripts/gate_tone_release.py
 │   ├── Dockerfile

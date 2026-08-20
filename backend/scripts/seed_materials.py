@@ -8,8 +8,10 @@ version committed in the fixture.
 from __future__ import annotations
 
 import argparse
+import filecmp
 import json
 import os
+import shutil
 from pathlib import Path
 
 from psycopg.types.json import Jsonb
@@ -18,6 +20,7 @@ from database import connect_db
 
 
 FIXTURE = Path(__file__).resolve().parent / "data" / "custom_stories.json"
+ASSET_ROOT = Path(__file__).resolve().parent / "data" / "assets"
 JSON_COLUMNS = {
     "frames",
     "quiz_exclusions",
@@ -53,6 +56,28 @@ def _values(material: dict) -> tuple[object, ...]:
     )
 
 
+def _restore_assets() -> tuple[int, int]:
+    """Restore versioned material images into the runtime upload directory."""
+    upload_root = Path(os.getenv("UPLOAD_DIR", str(Path(__file__).resolve().parents[1] / "uploads")))
+    restored = 0
+    skipped = 0
+    if not ASSET_ROOT.exists():
+        return restored, skipped
+
+    for source in ASSET_ROOT.rglob("*"):
+        if not source.is_file():
+            continue
+        relative = source.relative_to(ASSET_ROOT)
+        target = upload_root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() and filecmp.cmp(source, target, shallow=False):
+            skipped += 1
+            continue
+        shutil.copy2(source, target)
+        restored += 1
+    return restored, skipped
+
+
 def main() -> None:
     if os.getenv("APP_ENV", "development").lower() == "production":
         raise SystemExit("Development materials seed is disabled in production.")
@@ -65,6 +90,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     materials = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    restored_assets, skipped_assets = _restore_assets()
     columns_sql = ", ".join(COLUMNS)
     placeholders = ", ".join(["%s"] * len(COLUMNS))
     updates = ", ".join(f"{column} = EXCLUDED.{column}" for column in COLUMNS if column != "id")
@@ -86,7 +112,11 @@ def main() -> None:
             )
             inserted += 1
 
-    print(f"Materials seed complete: inserted_or_updated={inserted}, skipped={skipped}")
+    print(
+        "Materials seed complete: "
+        f"inserted_or_updated={inserted}, skipped={skipped}; "
+        f"assets_restored={restored_assets}, assets_already_present={skipped_assets}"
+    )
 
 
 if __name__ == "__main__":

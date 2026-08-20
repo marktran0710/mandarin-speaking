@@ -60,13 +60,12 @@ docker compose -f docker-compose.dev.yml logs -f backend frontend
 Seeding is explicit and idempotent; it never runs automatically during startup:
 
 ```powershell
-docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_grammar_lesson
-docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_listen_retell_lesson
-docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_vv_kan_lesson
+docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_dev
 ```
 
-Use `--overwrite` only when intentionally replacing the authored content for a
-lesson. The seed scripts create published lessons without replacing unrelated
+This restores the versioned materials and teaching images, creates the standard
+lesson data, and creates the local demo accounts. Use `--overwrite` only when
+intentionally replacing authored content. The seed does not replace unrelated
 stories, students, recordings, or uploads.
 
 ## Stop, restart, and reset
