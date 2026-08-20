@@ -3375,6 +3375,125 @@
   border-bottom: 0;
 }
 
+/* Compact vocabulary index: keep every word visible while letting scene
+   groups share the row on wide screens. This shortens the overview without
+   turning the read-only vocabulary into a hidden accordion. */
+.overview-vocab-block {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.overview-vocab-block > h2 {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+}
+
+.overview-vocab-scene {
+  display: block;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.overview-vocab-scene:last-child {
+  padding-bottom: 10px;
+}
+
+.overview-vocab-scene-header {
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 8px;
+}
+
+.overview-vocab-scene-index {
+  flex-basis: 26px;
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
+}
+
+.overview-vocab-scene-label {
+  padding-top: 0;
+  font-size: 11px;
+}
+
+.overview-vocab-table {
+  gap: 1px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  padding: 3px;
+}
+
+.overview-vocab-row {
+  grid-template-columns: minmax(42px, 0.8fr) minmax(0, 1.2fr) minmax(48px, 0.55fr) minmax(0, 1.45fr);
+  gap: 8px;
+  min-height: 32px;
+  padding: 5px 7px;
+}
+
+.overview-vocab-cell {
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.overview-vocab-pinyin {
+  font-size: 11px;
+}
+
+.overview-vocab-pos {
+  font-size: 10px;
+}
+
+@media (max-width: 760px) {
+  .overview-vocab-block {
+    display: block;
+  }
+
+  .overview-vocab-block > h2 {
+    margin-bottom: 8px;
+  }
+
+  .overview-vocab-scene {
+    padding: 10px 0;
+    border: 0;
+    border-top: 1px solid var(--clay-hairline-soft);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .overview-vocab-scene:last-child {
+    padding-bottom: 0;
+  }
+
+  .overview-vocab-table {
+    border: 0;
+    padding: 0;
+    background: transparent;
+  }
+
+  .overview-vocab-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "hanzi pos"
+      "pinyin meaning";
+    gap: 3px 10px;
+    min-height: 0;
+    padding: 7px 8px;
+  }
+
+  .overview-vocab-hanzi { grid-area: hanzi; }
+  .overview-vocab-pinyin { grid-area: pinyin; }
+  .overview-vocab-pos { grid-area: pos; }
+  .overview-vocab-meaning {
+    grid-area: meaning;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+}
+
 .overview-choice-card {
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
