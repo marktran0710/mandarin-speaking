@@ -357,7 +357,7 @@ PostgreSQL, runs Alembic migrations, and starts the backend and Vite frontend.
 .\start.ps1 -Detached
 ```
 
-For foreground logs instead, use `.start.ps1`. The first frontend request can
+For foreground logs instead, use `.\start.ps1`. The first frontend request can
 take a few seconds while Vite compiles the development bundle.
 
 #### Step 4 — Confirm containers and migration
@@ -431,123 +431,17 @@ preserving data.
 All configuration is local to the device and is not synchronized through
 GitHub. Do not commit real API keys or local `.env` files.
 
-### Database and migrations
+### Advanced operations
 
-The development stack runs PostgreSQL 17 in the `db` service. The backend runs
-`alembic upgrade head` automatically before Uvicorn starts. To inspect or
-manually reapply migrations:
+Migration, reset, testing, and troubleshooting details are kept in
+[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md). The Docker workflow above is the
+supported path for a clean checkout.
 
-```powershell
-docker compose -f docker-compose.dev.yml exec backend python -m alembic current
-docker compose -f docker-compose.dev.yml exec backend python -m alembic upgrade head
-```
+### Environment variables
 
-Schema changes are Alembic migrations in `backend/migrations/versions/`; the
-app no longer creates or alters tables at startup. Tests use a separate
-`mandarin_test` database and truncate every table between tests.
-
-The pre-migration SQLite file (`backend/mandarin_stories.db`) is kept on disk,
-but it is a snapshot of the day of the migration, not a live backup — the app
-has not written to it since. To re-import it:
-
-```bash
-cd backend && python -m scripts.migrate_sqlite_to_postgres
-```
-
-#### Backups
-
-Everything lives in this device's `mandarin-speaking-dev_dev_pgdata` Docker
-volume, so `docker compose ... down -v` or a lost machine takes the local
-materials with it. Dump the whole database before anything risky. For the
-current Docker stack, run the backup helper inside the PostgreSQL container or
-use the repository's backup script with a reachable PostgreSQL URL; do not
-assume the database is exposed on the host by default.
-
-```powershell
-docker compose -f docker-compose.dev.yml exec -T db pg_dump -U mandarin -d mandarin --clean --if-exists --no-owner --no-privileges > backend/pg_dump_mandarin.sql
-
-# Restore only into an empty database unless you intentionally overwrite rows.
-Get-Content backend/pg_dump_mandarin.sql -Raw | docker compose -f docker-compose.dev.yml exec -T db psql -U mandarin -d mandarin --set ON_ERROR_STOP=1
-```
-
-The dump files are `.gitignore`d. The development Compose stack intentionally
-does not publish PostgreSQL to a host port; use `docker compose -f
-docker-compose.dev.yml exec db ...` when a direct `pg_dump`/`psql` operation is
-needed.
-
-### Manual development (optional)
-
-The Docker workflow above is the canonical way to run this repository. The
-following host-native commands are only for contributors who intentionally
-install all backend dependencies locally.
-
-#### 1. Backend (Python 3.10+)
-
-```powershell
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
-
-Health check:
-```powershell
-curl http://localhost:8000/health
-```
-
-#### 2. Frontend
-
-```powershell
-npm install
-npm run dev -- --host 0.0.0.0 --port 5173
-```
-
-Open **http://127.0.0.1:5173**
-
-#### 3. Backend-only Docker image
-
-```powershell
-docker build -t mandarin-speaking-backend ./backend
-docker run -d --name mandarin-api -p 8000:8000 mandarin-speaking-backend
-```
-
----
-
-## Environment Variables
-
-Create `backend/.env`:
-
-```env
-# AI language feedback
-GEMINI_API_KEY=your_gemini_key
-OPENAI_API_KEY=your_openai_key
-AI_FEEDBACK_PROVIDER=gemini          # gemini | openai | local
-GEMINI_FEEDBACK_MODEL=gemini-2.0-flash
-OPENAI_FEEDBACK_MODEL=gpt-4o-mini
-
-# Image generation (for "Generate Six Picture Cues")
-# Uses DALL-E 3 if OPENAI_API_KEY set, otherwise Pollinations.ai (free)
-
-# Local ASR (optional)
-FUNASR_MODEL=paraformer-zh
-VIBEVOICE_ASR_MODEL=microsoft/VibeVoice-ASR-HF
-VIBEVOICE_DEVICE=-1                  # -1 = CPU, 0 = first GPU
-
-# Voice-feedback evidence gates (optional defaults)
-FEEDBACK_MIN_DURATION_SECONDS=0.45
-FEEDBACK_MAX_CLIPPING_RATIO=0.08
-FEEDBACK_MIN_PITCH_POINTS=8
-
-# Server
-CORS_ORIGINS=http://localhost:5177,http://127.0.0.1:5177
-# docker-compose.dev.yml overrides this to the internal db service.
-DATABASE_URL=postgresql://mandarin:mandarin@db:5432/mandarin
-UPLOAD_DIR=./uploads
-```
-
-In Docker development, do not set `VITE_BACKEND_URL`; Vite proxies `/api` and
-`/uploads` to the backend so browser requests remain same-origin.
-
----
+Start with `backend/.env.example`. Docker overrides the database and storage
+paths inside the Compose network. Keep `backend/.env` local and never commit
+secrets.
 
 ## User Roles
 
@@ -666,18 +560,10 @@ npx vercel --prod
 
 ## Troubleshooting
 
-**`ERR_CONNECTION_REFUSED` on backend** — run `docker compose -f
-docker-compose.dev.yml ps`, wait for the backend to become `healthy`, then
-check `http://127.0.0.1:8001/health/ready`. If the stack is not running, use
-`.\start.ps1 -Detached`.
-
-**AI feedback shows `provider: local`** — no Gemini or OpenAI key configured; add one to `backend/.env` and restart.
-
-**Images not showing in teacher materials** — relative `/uploads/` paths must be resolved through the backend URL. The app handles this automatically via `resolveImageUrl()`.
-
-**Concept map check shows no feedback** — the teacher must assign words to categories in the Materials form before publishing. Without an answer key, Check only counts placed words.
-
-**Student recordings not visible in teacher dashboard** — click **↺ Refresh recordings** in the dashboard header to re-fetch the latest records from the database.
+If the backend is unavailable, run `docker compose -f docker-compose.dev.yml ps`
+and wait for `backend` to become `healthy`. Then check
+`http://127.0.0.1:8001/health/ready`. For other setup issues, see
+[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md).
 
 ---
 
