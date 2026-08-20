@@ -256,6 +256,14 @@ export default function SpeakingResultsFlow({
   const vocabTotal = usedCount + missing.length;
   const weakItems = weakToneGuideItems(praatMetrics.word_prosody || []);
   const pronunciationMastery = praatMetrics.pronunciation_mastery;
+  const masteryCounts = pronunciationMastery &&
+    typeof pronunciationMastery.passed_syllables === "number" &&
+    typeof pronunciationMastery.total_syllables === "number"
+    ? {
+        passed: pronunciationMastery.passed_syllables,
+        total: pronunciationMastery.total_syllables,
+      }
+    : undefined;
   const contentAccuracy = ai?.content_accuracy;
   const corrective = ai?.corrective_feedback;
   const meaningJudged = Boolean(contentAccuracy?.judged);
@@ -1252,6 +1260,7 @@ export default function SpeakingResultsFlow({
                 transcription={recognizedText}
                 teacherPhrases={teacherPhraseChunks}
                 assistiveFeedback={assistiveFeedback}
+                masteryCounts={masteryCounts}
               />
             </div>
           </section>

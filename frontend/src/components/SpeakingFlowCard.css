@@ -732,6 +732,8 @@
 .sfc-feedback-modal-body .pb-summary-item.is-invalid::before { background: var(--gold); }
 .sfc-feedback-modal-body .pb-summary-item.is-invalid strong { color: var(--gold-deep); }
 .sfc-feedback-modal-body .pb-summary-item.is-neutral strong { color: var(--clay-muted); }
+.sfc-feedback-modal-body .pb-summary-item.is-not_scored strong,
+.sfc-feedback-modal-body .pb-summary-progress strong { color: var(--clay-muted); }
 .sfc-feedback-modal .sfc-feedback-modal-body .pb-legend {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1516,6 +1518,17 @@
 .pb-summary-item small { display: none; }
 .pb-summary-item.is-correct strong { color: var(--jade-deep); }
 .pb-summary-item.is-incorrect strong { color: var(--clay-error-deep); }
+.pb-summary-item.is-not_scored strong,
+.pb-summary-progress strong { color: var(--clay-muted); }
+.pb-summary-progress {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  margin-left: 0.35rem;
+  padding-left: 0.55rem;
+  border-left: 1px solid var(--clay-hairline);
+  color: var(--clay-muted);
+}
 
 /* Stated once here instead of on every row. */
 .pb-legend {

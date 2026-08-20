@@ -2,6 +2,10 @@
 
 import os
 import sys
+import io
+import math
+import struct
+import wave
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -9,6 +13,23 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.dirname(__file__))
 
 from fixtures import SILENT_WAV, SPEECH_WAV
+
+
+def _short_single_syllable_wav() -> bytes:
+    sample_rate = 16_000
+    tone_samples = int(0.33 * sample_rate)
+    silence_samples = int(0.33 * sample_rate)
+    samples = [
+        int(32767 * 0.3 * math.sin(2 * math.pi * 220 * index / sample_rate))
+        for index in range(tone_samples)
+    ] + [0] * silence_samples
+    output = io.BytesIO()
+    with wave.open(output, "wb") as wav_file:
+        wav_file.setnchannels(1)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(sample_rate)
+        wav_file.writeframes(struct.pack(f"<{len(samples)}h", *samples))
+    return output.getvalue()
 
 
 def test_silence_is_retry_and_cannot_be_scored():
@@ -92,6 +113,17 @@ def test_audible_signal_needs_post_analysis_before_it_can_be_scored():
     assert quality["can_score_pronunciation"] is False
     assert "awaiting_acoustic_analysis" in quality["reason_codes"]
     assert "low_signal_variation" in quality["reason_codes"]
+
+
+def test_single_syllable_target_uses_a_shorter_voiced_floor():
+    from main import assess_recording_quality
+
+    audio = _short_single_syllable_wav()
+    generic = assess_recording_quality(audio)
+    single_syllable = assess_recording_quality(audio, expected_syllable_count=1)
+
+    assert "insufficient_speech" in generic["reason_codes"]
+    assert "insufficient_speech" not in single_syllable["reason_codes"]
 
 
 def test_open_story_audio_is_review_only_without_independent_content_check():

@@ -204,6 +204,25 @@ describe("PronunciationBreakdown", () => {
     expect(summary).not.toContain("個對了");
   });
 
+  it("separates unjudged rows and shows the backend progression count", () => {
+    const { container } = render(
+      <PronunciationBreakdown
+        words={[word({
+          syllables: [
+            { char: "你", tone: 3, score: 0, passed: null, diagnostic_status: "UNCERTAIN", score_provenance: "not_scored" },
+            { char: "好", tone: 3, score: 88, passed: true, diagnostic_status: "CORRECT" },
+          ],
+        })]}
+        masteryCounts={{ passed: 1, total: 1 }}
+      />,
+    );
+
+    const summary = container.querySelector(".pb-summary")!.textContent!;
+    expect(summary).toContain("1個未計入");
+    expect(summary).not.toContain("1個聽不太出來");
+    expect(summary).toContain("1/1個計入過關");
+  });
+
   it("keeps the collapsed row short and puts the explanation behind a tap", async () => {
     const user = userEvent.setup();
     const uncertain = word({

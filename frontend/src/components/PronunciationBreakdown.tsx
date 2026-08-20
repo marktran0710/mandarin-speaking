@@ -209,6 +209,7 @@ const SUMMARY_BUCKETS = [
   { key: "incorrect", zh: "個要練", en: "to practise" },
   { key: "invalid", zh: "個要再錄", en: "to re-record" },
   { key: "neutral", zh: "個輕聲不計", en: "neutral, not scored" },
+  { key: "not_scored", zh: "個未計入", en: "not counted" },
 ] as const;
 
 function zoneText(zone: VowelZone, key: "zh" | "en"): string {
@@ -217,6 +218,15 @@ function zoneText(zone: VowelZone, key: "zh" | "en"): string {
 
 function isNeutral(syllable: WordProsodySyllable): boolean {
   return syllable.score_provenance === "neutral_not_measured";
+}
+
+function isNotScored(syllable: WordProsodySyllable): boolean {
+  return (
+    syllable.passed === null ||
+    syllable.passed === undefined ||
+    syllable.score_provenance === "not_scored" ||
+    syllable.score_provenance === "constant_short_segment"
+  );
 }
 
 function referenceEvidenceAccepted(word?: WordProsody): boolean {
@@ -406,11 +416,16 @@ function countByBucket(groups: BreakdownGroup[]): Record<string, number> {
     incorrect: 0,
     invalid: 0,
     neutral: 0,
+    not_scored: 0,
   };
   for (const group of groups) {
     for (const { syllable, word } of group.rows) {
       if (isNeutral(syllable)) {
         counts.neutral += 1;
+        continue;
+      }
+      if (isNotScored(syllable)) {
+        counts.not_scored += 1;
         continue;
       }
       const status = statusLabel(syllable, referenceEvidenceAccepted(word));
@@ -581,6 +596,7 @@ export default function PronunciationBreakdown({
   debug = false,
   compact = false,
   assistiveFeedback = null,
+  masteryCounts,
 }: {
   words: WordProsody[];
   /** Teacher's full scene sentence, used only to establish phrase context. */
@@ -597,6 +613,9 @@ export default function PronunciationBreakdown({
    * behind one disclosure control. The standalone breakdown remains complete
    * by default. */
   compact?: boolean;
+  /** Backend-authoritative sentence-gate count, shown beside diagnostic rows
+   * so strict diagnosis and progression are never mistaken for one number. */
+  masteryCounts?: { passed: number; total: number };
   /** Additive ACCEPT/UNCERTAIN/NEEDS_PRACTICE layer, matched to rows by
    * position (one record per Han character, same order this component
    * already flattens `words` into) with a character sanity check -- see
@@ -678,6 +697,16 @@ export default function PronunciationBreakdown({
                 <small lang="en">{bucket.en}</small>
               </span>
             ))}
+            {masteryCounts && masteryCounts.total > 0 && (
+              <span
+                className="pb-summary-progress"
+                title="Backend count used for sentence progression"
+              >
+                <strong>{masteryCounts.passed}/{masteryCounts.total}</strong>
+                <span lang="zh-Hant">個計入過關</span>
+                <small lang="en">counted for progress</small>
+              </span>
+            )}
           </p>
         )}
       </div>

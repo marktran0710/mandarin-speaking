@@ -1645,11 +1645,11 @@ def _mastery_message(
     if passed:
         if failed_words:
             return (
-                f"Passed ({passed_count}/{total} syllables). "
+                f"Passed ({passed_count}/{total} syllables counted for progress). "
                 f"Practise {len(failed_words)} word(s) to sharpen your tones, "
                 "or continue to the next scene."
             )
-        return f"Passed ({passed_count}/{total} syllables). You can continue."
+        return f"Passed ({passed_count}/{total} syllables counted for progress). You can continue."
     if content_message:
         return content_message
     highlighted = len(failed_words) or len(missing_parts) or 1
@@ -1792,7 +1792,11 @@ async def _do_analyze(
             tmp_path = tmp_file.name
 
         preflight_started_at = time.perf_counter()
-        recording_preflight = assess_recording_quality(content)
+        quality_target = verify_word.strip() or scene_target_text.strip() or scene_suggested_answer.strip()
+        recording_preflight = assess_recording_quality(
+            content,
+            expected_syllable_count=_target_syllable_count(quality_target),
+        )
         add_trace_stage(
             "preflight",
             recording_preflight.get("status", "review"),
@@ -2266,7 +2270,23 @@ def _decode_wav_mono(audio_content: bytes) -> Tuple[np.ndarray, int]:
     return data, sample_rate
 
 
-def assess_recording_quality(audio_content: bytes) -> Dict[str, Any]:
+def _target_syllable_count(text: str) -> Optional[int]:
+    """Return a conservative target-unit count for recording preflight."""
+    normalized = (text or "").strip()
+    if not normalized:
+        return None
+    han_count = sum(1 for char in normalized if "\u3400" <= char <= "\u9fff")
+    if han_count:
+        return han_count
+    units = [unit for unit in normalized.split() if unit]
+    return len(units) or None
+
+
+def assess_recording_quality(
+    audio_content: bytes,
+    *,
+    expected_syllable_count: Optional[int] = None,
+) -> Dict[str, Any]:
     """Measure whether a recording contains enough evidence for feedback.
 
     This is deliberately deterministic and provider-independent.  It runs
@@ -2330,12 +2350,21 @@ def assess_recording_quality(audio_content: bytes) -> Dict[str, Any]:
         "energy_variation": round(energy_variation, 3),
         "pitch_points": 0,
     }
+    # A one-syllable target can be a perfectly valid short utterance. The
+    # generic 0.4s floor rejected the supplied 好 recording even though it
+    # contained 0.329s of voiced audio inside a 0.656s clip. Keep the stricter
+    # floor for phrases, but allow a single target syllable down to 0.25s.
+    minimum_voiced_seconds = (
+        min(ASR_MIN_SPEECH_SECONDS, 0.25)
+        if expected_syllable_count == 1
+        else ASR_MIN_SPEECH_SECONDS
+    )
     reasons: List[str] = []
     if duration < FEEDBACK_MIN_DURATION_SECONDS:
         reasons.append("recording_too_short")
     if rms < ASR_SILENCE_RMS:
         reasons.append("signal_too_quiet")
-    if voiced_seconds < ASR_MIN_SPEECH_SECONDS:
+    if voiced_seconds < minimum_voiced_seconds:
         reasons.append("insufficient_speech")
     if clipping_ratio > FEEDBACK_MAX_CLIPPING_RATIO:
         reasons.append("audio_clipping")
@@ -2359,7 +2388,7 @@ def assess_recording_quality(audio_content: bytes) -> Dict[str, Any]:
     signal_confidence = min(
         0.8,
         0.35
-        + min(0.25, voiced_seconds / max(ASR_MIN_SPEECH_SECONDS, 0.01) * 0.1)
+        + min(0.25, voiced_seconds / max(minimum_voiced_seconds, 0.01) * 0.1)
         + min(0.2, voiced_ratio * 0.25),
     )
     review_reasons = ["awaiting_acoustic_analysis"]
