@@ -24,7 +24,7 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
   const defaultName = isStudent ? "Student Demo" : "Teacher Demo";
   const [name, setName] = useState(defaultName);
   const [error, setError] = useState(false);
-  const [password, setPassword] = useState("123456");
+  const [password, setPassword] = useState("");
 
   // Student roster — a stable id per student instead of a free-typed name,
   // so per-student practice data (quiz attempts, tone scores) can actually

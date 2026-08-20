@@ -43,7 +43,7 @@ export default function AdminApp() {
   const [error, setError] = useState("");
   const [loginError, setLoginError] = useState("");
   const [newName, setNewName] = useState("");
-  const [newPassword, setNewPassword] = useState("123456");
+  const [newPassword, setNewPassword] = useState("");
 
   const refresh = async () => {
     if (!canUseDatabase()) {
@@ -112,6 +112,10 @@ export default function AdminApp() {
   const addAccount = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!newName.trim()) return;
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
     try {
       if (activeNav === "Teachers") {
         const created = await createTeacher(newName.trim(), newPassword);
