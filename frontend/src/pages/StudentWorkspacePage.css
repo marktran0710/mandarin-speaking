@@ -40,7 +40,9 @@
 }
 
 .student-workspace-header-copy {
+  flex: 1 1 680px;
   min-width: 0;
+  max-width: 900px;
 }
 
 .student-workspace-kicker {
@@ -64,9 +66,9 @@
 .student-workspace-title-meta {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-xs) var(--space-md);
-  margin: var(--space-xs) 0 0;
+  align-items: center;
+  gap: var(--space-sm) var(--space-lg);
+  margin: var(--space-sm) 0 0;
   color: var(--clay-body);
 }
 
@@ -77,14 +79,63 @@
   line-height: 1.2;
 }
 
-.student-workspace-welcome {
-  color: var(--clay-body);
-  font-size: clamp(18px, 2.2vw, 27px);
+.student-workspace-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: min(100%, 360px);
+  padding: 7px 14px 7px 8px;
+  border: 1px solid color-mix(in srgb, var(--gold) 46%, var(--clay-hairline));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--clay-surface-card) 88%, var(--gold-soft));
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--gold-soft) 76%, transparent);
+}
+
+.student-workspace-identity-avatar {
+  display: grid;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--jade) 40%, var(--clay-hairline));
+  border-radius: 50%;
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.student-workspace-identity-copy {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+  line-height: 1.1;
+}
+
+.student-workspace-identity-label {
+  overflow: hidden;
+  color: var(--clay-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.student-workspace-identity-name {
+  overflow: hidden;
+  color: var(--clay-ink);
+  font-size: var(--text-sm);
+  font-weight: 800;
   line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .student-workspace-intro {
-  margin: var(--space-md) 0 0;
+  max-width: 620px;
+  margin: var(--space-lg) 0 0;
   color: var(--clay-muted);
   font-size: var(--text-md);
   line-height: 1.55;
@@ -262,12 +313,12 @@
   }
 
   .student-workspace-title-meta {
-    display: block;
+    align-items: flex-start;
+    gap: var(--space-xs);
   }
 
-  .student-workspace-welcome {
-    display: block;
-    margin-top: 2px;
+  .student-workspace-identity {
+    max-width: 100%;
   }
 }
 
