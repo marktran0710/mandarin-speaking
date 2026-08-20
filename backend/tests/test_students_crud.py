@@ -46,10 +46,16 @@ def test_login_for_unknown_student_is_404(client):
     assert response.status_code == 404
 
 
-def test_delete_student(client):
+def test_delete_student(client, logged_in_teacher):
+    teacher_client, _ = logged_in_teacher
     created = client.post("/api/students", json={"name": "Mai"}).json()
-    assert client.delete(f"/api/students/{created['id']}").json()["deleted"] is True
+    assert teacher_client.delete(f"/api/students/{created['id']}").json()["deleted"] is True
     assert client.get("/api/students").json() == []
+
+
+def test_delete_student_requires_login(client):
+    created = client.post("/api/students", json={"name": "Mai"}).json()
+    assert client.delete(f"/api/students/{created['id']}").status_code == 401
 
 
 def test_help_requests_sort_open_first(client):

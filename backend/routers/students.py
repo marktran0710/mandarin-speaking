@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 
 import auth
 from database import connect_db, row_to_student
@@ -84,7 +84,10 @@ async def logout_student(response: Response):
 
 
 @router.delete("/api/students/{student_id}")
-async def delete_student(student_id: str):
+async def delete_student(
+    student_id: str,
+    identity: auth.Identity = Depends(auth.require_teacher_or_admin),
+):
     with connect_db() as db:
         row = db.execute(
             "DELETE FROM students WHERE id = %s RETURNING id", (student_id,)

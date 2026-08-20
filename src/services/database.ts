@@ -19,7 +19,11 @@ async function fetchWithRetry(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetch(input, { ...init, signal: controller.signal });
+      const response = await fetch(input, {
+        credentials: "include",
+        ...init,
+        signal: controller.signal,
+      });
       clearTimeout(timer);
       if (retryOnStatus.includes(response.status) && attempt < maxAttempts) {
         await new Promise((r) => setTimeout(r, 300 * 2 ** (attempt - 1)));
@@ -943,4 +947,17 @@ export async function updateTeacher(id: string, update: { password?: string; sta
 export async function deleteTeacher(id: string): Promise<void> {
   const response = await fetchWithRetry(`${BACKEND_URL}/api/teachers/${encodeURIComponent(id)}`, { method: "DELETE" });
   if (!response.ok) throw new Error("Could not delete teacher account.");
+}
+
+export async function loginAdmin(password: string): Promise<void> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) throw new Error(response.status === 503 ? "Admin login is not configured." : "Wrong admin password.");
+}
+
+export async function logoutAdmin(): Promise<void> {
+  await fetchWithRetry(`${BACKEND_URL}/api/admin/logout`, { method: "POST" });
 }

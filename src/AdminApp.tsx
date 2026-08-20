@@ -7,6 +7,8 @@ import {
   listStudents,
   listTeachers,
   listVocabQuizAttempts,
+  loginAdmin,
+  logoutAdmin,
   type Student,
   type Teacher,
   type VocabQuizAttempt,
@@ -39,6 +41,7 @@ export default function AdminApp() {
   const [audioRecords, setAudioRecords] = useState<AudioRecord[]>([]);
   const [query, setQuery] = useState("");
   const [error, setError] = useState("");
+  const [loginError, setLoginError] = useState("");
   const [newName, setNewName] = useState("");
   const [newPassword, setNewPassword] = useState("123456");
 
@@ -95,11 +98,15 @@ export default function AdminApp() {
     (account) => account.name.toLowerCase().includes(query.toLowerCase()) && (!sectionRole || account.role === sectionRole),
   );
 
-  const login = (event: React.FormEvent) => {
+  const login = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (password === "admin123") {
+    setLoginError("");
+    try {
+      await loginAdmin(password);
       localStorage.setItem(ADMIN_KEY, "true");
       setAuthenticated(true);
+    } catch (err) {
+      setLoginError(err instanceof Error ? err.message : "Could not log in.");
     }
   };
   const addAccount = async (event: React.FormEvent) => {
@@ -120,11 +127,11 @@ export default function AdminApp() {
   };
 
   if (!authenticated) {
-    return <main className="admin-login"><h1>Account Control Center</h1><p>Administrator access.</p><form onSubmit={login}><label>Admin password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoFocus /></label><button>Enter admin console</button><small>Basic password: admin123</small></form></main>;
+    return <main className="admin-login"><h1>Account Control Center</h1><p>Administrator access.</p><form onSubmit={login}><label>Admin password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoFocus /></label><button>Enter admin console</button>{loginError && <small className="admin-error">{loginError}</small>}</form></main>;
   }
 
   const heading = activeNav === "IRT / Student analytics" ? "IRT / Student analytics" : activeNav === "Practice Debug" ? "Practice Stage Debugger" : activeNav === "Benchmark" ? "External Benchmark" : "Account Control Center";
   const description = activeNav === "IRT / Student analytics" ? "Track student ability, response quality and calibration readiness." : activeNav === "Practice Debug" ? "Trace student attempts through the scoring pipeline." : activeNav === "Benchmark" ? "Validate tone scoring against the expert-rated corpus." : "Manage real teacher and student accounts.";
 
-  return <div className="admin-shell"><aside className="admin-sidebar"><div className="admin-brand"><span>華</span><strong>中文學習</strong></div><nav>{NAV_ITEMS.map((item) => <button className={activeNav === item ? "active" : ""} key={item} onClick={() => setActiveNav(item)}>{item}</button>)}</nav><button className="admin-user" onClick={() => { localStorage.removeItem(ADMIN_KEY); setAuthenticated(false); }}>AD <span>Admin User<br /><small>Sign out</small></span></button></aside><main className="admin-main"><header><h1>{heading}</h1><p>{description}</p></header>{error && <p className="admin-error">{error}</p>}{activeNav === "Practice Debug" ? <TeacherPracticeDebugPage records={audioRecords} /> : activeNav === "Benchmark" ? <TeacherBenchmarkPage /> : activeNav === "IRT / Student analytics" ? <AdminIrtStudentPanel students={students} attempts={quizAttempts} /> : <><section className="admin-metrics"><div><span>Teachers</span><strong>{teachers.length}</strong></div><div><span>Students</span><strong>{students.length}</strong></div><div><span>Quiz responses</span><strong>{quizAttempts.reduce((count, attempt) => count + (attempt.questionResults?.length ?? 0), 0)}</strong></div></section><div className="admin-toolbar"><input placeholder="Search by name" value={query} onChange={(event) => setQuery(event.target.value)} /></div>{(activeNav === "Teachers" || activeNav === "Students") && <form className="add-student" onSubmit={addAccount}><input placeholder={`${activeNav === "Teachers" ? "Teacher" : "Student"} name`} value={newName} onChange={(event) => setNewName(event.target.value)} /><input type="password" placeholder="Password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /><button className="primary">Create account</button></form>}<section className="account-table"><div className="table-head"><span>Name</span><span>Role</span><span>Status</span></div>{filtered.map((account) => <div className="account-row" key={account.id}><span><b>{account.name}</b></span><span>{account.role}</span><span>{account.status}</span></div>)}</section></>}</main></div>;
+  return <div className="admin-shell"><aside className="admin-sidebar"><div className="admin-brand"><span>華</span><strong>中文學習</strong></div><nav>{NAV_ITEMS.map((item) => <button className={activeNav === item ? "active" : ""} key={item} onClick={() => setActiveNav(item)}>{item}</button>)}</nav><button className="admin-user" onClick={() => { void logoutAdmin(); localStorage.removeItem(ADMIN_KEY); setAuthenticated(false); }}>AD <span>Admin User<br /><small>Sign out</small></span></button></aside><main className="admin-main"><header><h1>{heading}</h1><p>{description}</p></header>{error && <p className="admin-error">{error}</p>}{activeNav === "Practice Debug" ? <TeacherPracticeDebugPage records={audioRecords} /> : activeNav === "Benchmark" ? <TeacherBenchmarkPage /> : activeNav === "IRT / Student analytics" ? <AdminIrtStudentPanel students={students} attempts={quizAttempts} /> : <><section className="admin-metrics"><div><span>Teachers</span><strong>{teachers.length}</strong></div><div><span>Students</span><strong>{students.length}</strong></div><div><span>Quiz responses</span><strong>{quizAttempts.reduce((count, attempt) => count + (attempt.questionResults?.length ?? 0), 0)}</strong></div></section><div className="admin-toolbar"><input placeholder="Search by name" value={query} onChange={(event) => setQuery(event.target.value)} /></div>{(activeNav === "Teachers" || activeNav === "Students") && <form className="add-student" onSubmit={addAccount}><input placeholder={`${activeNav === "Teachers" ? "Teacher" : "Student"} name`} value={newName} onChange={(event) => setNewName(event.target.value)} /><input type="password" placeholder="Password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} /><button className="primary">Create account</button></form>}<section className="account-table"><div className="table-head"><span>Name</span><span>Role</span><span>Status</span></div>{filtered.map((account) => <div className="account-row" key={account.id}><span><b>{account.name}</b></span><span>{account.role}</span><span>{account.status}</span></div>)}</section></>}</main></div>;
 }

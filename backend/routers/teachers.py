@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response
 import auth
 from database import connect_db, row_to_teacher
 from main import TeacherCreateRequest, TeacherLoginRequest, TeacherUpdateRequest
@@ -7,13 +7,16 @@ from main import TeacherCreateRequest, TeacherLoginRequest, TeacherUpdateRequest
 router = APIRouter()
 
 @router.get("/api/teachers")
-async def list_teachers():
+async def list_teachers(identity: auth.Identity = Depends(auth.require_teacher_or_admin)):
     with connect_db() as db:
         rows = db.execute("SELECT * FROM teachers ORDER BY lower(name)").fetchall()
     return [row_to_teacher(row) for row in rows]
 
 @router.post("/api/teachers")
-async def create_teacher(request: TeacherCreateRequest):
+async def create_teacher(
+    request: TeacherCreateRequest,
+    identity: auth.Identity = Depends(auth.require_admin),
+):
     name = request.name.strip()
     with connect_db() as db:
         if db.execute("SELECT 1 FROM teachers WHERE lower(name) = lower(%s)", (name,)).fetchone():
@@ -38,7 +41,11 @@ async def logout_teacher(response: Response):
     return {"loggedOut": True}
 
 @router.patch("/api/teachers/{teacher_id}")
-async def update_teacher(teacher_id: str, request: TeacherUpdateRequest):
+async def update_teacher(
+    teacher_id: str,
+    request: TeacherUpdateRequest,
+    identity: auth.Identity = Depends(auth.require_admin),
+):
     updates, params = [], []
     if request.password is not None: updates.append("password = %s"); params.append(request.password)
     if request.status is not None: updates.append("status = %s"); params.append(request.status)
@@ -50,7 +57,10 @@ async def update_teacher(teacher_id: str, request: TeacherUpdateRequest):
     return row_to_teacher(row)
 
 @router.delete("/api/teachers/{teacher_id}")
-async def delete_teacher(teacher_id: str):
+async def delete_teacher(
+    teacher_id: str,
+    identity: auth.Identity = Depends(auth.require_admin),
+):
     with connect_db() as db:
         row = db.execute("DELETE FROM teachers WHERE id = %s RETURNING id", (teacher_id,)).fetchone()
     if row is None: raise HTTPException(status_code=404, detail="Teacher not found")

@@ -8,10 +8,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.dirname(__file__))
 
 import auth
+from conftest import _insert_teacher_row
 
 
 def _create_teacher(client, name="Ms. Lin", password="teach123"):
-    return client.post("/api/teachers", json={"name": name, "password": password}).json()
+    # POST /api/teachers now requires an admin identity - login tests need
+    # a teacher to already exist, so insert directly instead.
+    return _insert_teacher_row(name, password)
 
 
 class TestTeacherLogin:
@@ -47,3 +50,51 @@ class TestTeacherLogin:
         assert client.cookies.get(auth.COOKIE_NAME) is not None
         client.post("/api/teachers/logout")
         assert client.cookies.get(auth.COOKIE_NAME) is None
+
+
+class TestTeacherRosterManagement:
+    """Account management (list/create/update/delete) - unlike login/logout,
+    these require an already-authenticated caller, not just a roster
+    lookup."""
+
+    def test_list_requires_a_teacher_or_admin_identity(self, client):
+        assert client.get("/api/teachers").status_code == 401
+
+    def test_list_is_visible_to_a_logged_in_teacher(self, client, logged_in_teacher):
+        teacher_client, _ = logged_in_teacher
+        assert teacher_client.get("/api/teachers").status_code == 200
+
+    def test_create_requires_admin(self, client, logged_in_teacher):
+        teacher_client, _ = logged_in_teacher
+        response = teacher_client.post(
+            "/api/teachers", json={"name": "New Teacher", "password": "pw"}
+        )
+        assert response.status_code == 403
+
+    def test_create_is_allowed_for_admin(self, client, monkeypatch):
+        import routers.admin as admin_module
+
+        monkeypatch.setattr(admin_module, "ADMIN_PASSWORD", "test-admin-pw")
+        client.post("/api/admin/login", json={"password": "test-admin-pw"})
+        response = client.post(
+            "/api/teachers", json={"name": "New Teacher", "password": "pw"}
+        )
+        assert response.status_code == 200
+
+    def test_update_and_delete_require_admin(self, logged_in_teacher, monkeypatch):
+        import routers.admin as admin_module
+        from fastapi.testclient import TestClient
+        import main
+
+        monkeypatch.setattr(admin_module, "ADMIN_PASSWORD", "test-admin-pw")
+        with TestClient(main.app) as admin_client:
+            admin_client.post("/api/admin/login", json={"password": "test-admin-pw"})
+            teacher = admin_client.post(
+                "/api/teachers", json={"name": "Target Teacher", "password": "pw"}
+            ).json()
+
+        teacher_client, _ = logged_in_teacher
+        assert teacher_client.patch(
+            f"/api/teachers/{teacher['id']}", json={"status": "inactive"}
+        ).status_code == 403
+        assert teacher_client.delete(f"/api/teachers/{teacher['id']}").status_code == 403

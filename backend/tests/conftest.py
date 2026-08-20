@@ -133,12 +133,27 @@ def logged_in_student(client):
     return client, student
 
 
+def _insert_teacher_row(name: str, password: str) -> dict:
+    """Creates a teacher row directly in the DB, bypassing POST
+    /api/teachers (which now requires an admin identity) - test setup
+    needs a teacher to exist before it can log in as one, same problem
+    a real admin-only signup flow has for its own tests."""
+    import uuid
+
+    import database
+
+    with database.connect_db() as db:
+        row = db.execute(
+            "INSERT INTO teachers (id, name, password) VALUES (%s, %s, %s) RETURNING *",
+            (str(uuid.uuid4()), name, password),
+        ).fetchone()
+    return database.row_to_teacher(row)
+
+
 @pytest.fixture()
-def logged_in_teacher(client):
+def logged_in_teacher(client, use_test_database):
     """A logged-in teacher: (client, teacher)."""
-    teacher = client.post(
-        "/api/teachers", json={"name": "Test Teacher", "password": "teach123"}
-    ).json()
+    teacher = _insert_teacher_row("Test Teacher", "teach123")
     client.post(
         "/api/teachers/login",
         json={"name": "Test Teacher", "password": "teach123"},
@@ -162,9 +177,7 @@ def login_new_client(stack, name, role, password="123456"):
             json={"studentId": created["id"], "password": password},
         )
     else:
-        created = new_client.post(
-            "/api/teachers", json={"name": name, "password": password}
-        ).json()
+        created = _insert_teacher_row(name, password)
         new_client.post(
             "/api/teachers/login", json={"name": name, "password": password}
         )
