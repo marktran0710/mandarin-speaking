@@ -27,9 +27,6 @@ export default function StoryOverviewSection({
   return (
     <section className="story-overview">
       <div className="overview-hero">
-        <p className="eyebrow">
-          <BiLabel k="story_challenge" />
-        </p>
         {topic.lessonNumber != null && (
           <span className="lesson-number-badge">
             <BiLabel

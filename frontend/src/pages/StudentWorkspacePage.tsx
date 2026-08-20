@@ -117,9 +117,6 @@ export default function StudentWorkspacePage({
       {!practiceStarted && (
         <header className="student-workspace-header">
           <div className="student-workspace-header-copy">
-            <p className="student-workspace-kicker">
-              <BiLabel zh="學生模式" pinyin="Xuéshēng móshì" en="Student mode" />
-            </p>
             <h1>
               <span lang="zh-Hant">我的學習</span>
             </h1>
