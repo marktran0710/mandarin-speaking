@@ -24,6 +24,9 @@ import {
   loadSubmittedLevels,
   loadSubmittedStoryIds,
 } from "../utils/storyLevelProgress";
+import { topicHasQuiz } from "../utils/topicQuiz";
+import { loadCompletedVocabQuizzes } from "../utils/vocabQuizStorage";
+import { isAdminSession } from "../utils/studentSession";
 import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
 import StudentIcon, { type StudentIconName } from "./StudentIcon";
@@ -93,8 +96,16 @@ export interface Topic {
 }
 
 interface TopicSelectorProps {
-  onTopicSelect?: (topic: Topic) => void;
-  onLevelSelect?: (topic: Topic, level: StoryDifficultyLevel) => void;
+  onTopicSelect?: (topic: Topic, options?: TopicStartOptions) => void;
+  onLevelSelect?: (
+    topic: Topic,
+    level: StoryDifficultyLevel,
+    options?: TopicStartOptions,
+  ) => void;
+}
+
+export interface TopicStartOptions {
+  startAtQuiz?: boolean;
 }
 
 export const TOPICS: Topic[] = [];
@@ -229,6 +240,11 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
             : isStoryLevelUnlocked(story.id, level)
               ? "open"
               : "lock";
+          const tierTopic = storyToTopic(story, level, "approved");
+          const needsQuiz =
+            topicHasQuiz(tierTopic) &&
+            !isAdminSession() &&
+            loadCompletedVocabQuizzes()[tierTopic.id] !== true;
           const copy = LEVEL_COPY[level];
           const content = (
             <>
@@ -249,10 +265,10 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               type="button"
               className={`ts-tier-cell ts-tier-${state}`}
               disabled={state === "lock"}
-              aria-label={`${copy.en} difficulty${state === "done" ? ", completed" : state === "lock" ? ", locked" : ""}`}
+              aria-label={`${copy.en} difficulty${state === "done" ? ", completed" : state === "lock" ? ", locked" : needsQuiz ? ", vocabulary quiz required" : ""}`}
               onClick={(event) => {
                 event.stopPropagation();
-                onLevelSelect(t, level);
+                onLevelSelect(t, level, needsQuiz ? { startAtQuiz: true } : undefined);
               }}
             >
               {content}
@@ -277,6 +293,10 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
       group.lessonNumber != null && previous?.lessonSubOrder != null
         ? `${group.lessonNumber}-${previous.lessonSubOrder}`
         : null;
+    const needsQuiz =
+      topicHasQuiz(t) &&
+      !isAdminSession() &&
+      loadCompletedVocabQuizzes()[t.id] !== true;
 
     return (
       <article key={t.id} className={`ts-card${unlocked ? "" : " ts-card-locked"}`}>
@@ -337,10 +357,16 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
           {unlocked ? (
             <button
               type="button"
-              className="ts-card-btn"
-              onClick={() => onTopicSelect?.(t)}
+              className={`ts-card-btn${needsQuiz ? " ts-card-btn-quiz" : ""}`}
+              onClick={() =>
+                onTopicSelect?.(t, needsQuiz ? { startAtQuiz: true } : undefined)
+              }
             >
-              <BiLabel k="start_this_activity" />
+              {needsQuiz ? (
+                <BiLabel zh="先做測驗" pinyin="Xiān zuò cèyàn" en="Take quiz first" />
+              ) : (
+                <BiLabel k="start_this_activity" />
+              )}
               <span className="ts-card-btn-arrow">→</span>
             </button>
           ) : (

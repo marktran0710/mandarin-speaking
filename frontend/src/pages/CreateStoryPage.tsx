@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import TopicSelector from "../components/TopicSelector";
+import TopicSelector, { type TopicStartOptions } from "../components/TopicSelector";
 import StoryRecorder, { type NewAudioRecord } from "../components/StoryRecorder";
 import StudentHelpPanel from "../components/StudentHelpPanel";
 import { HelpRequest } from "../services/database";
@@ -46,6 +46,7 @@ export default function CreateStoryPage({
   );
   const [selectedImageIndex, setSelectedImageIndex] =
     useState<number>(safeInitialIndex);
+  const [startAtQuiz, setStartAtQuiz] = useState(false);
   useEffect(() => {
     onSessionActiveChange?.(Boolean(selectedTopic));
     return () => onSessionActiveChange?.(false);
@@ -80,23 +81,29 @@ export default function CreateStoryPage({
     });
   }, [publishedTopics, selectedTopic]);
 
-  const openTopicAtLevel = (topic: Topic) => {
+  const openTopicAtLevel = (topic: Topic, options?: TopicStartOptions) => {
     setSelectedTopic(topic);
+    setStartAtQuiz(Boolean(options?.startAtQuiz));
     setSelectedImage(topic.images[0]);
     setSelectedImageIndex(0);
   };
 
-  const handleTopicSelect = (topic: Topic) => {
-    openTopicAtLevel(topic);
+  const handleTopicSelect = (topic: Topic, options?: TopicStartOptions) => {
+    openTopicAtLevel(topic, options);
   };
 
-  const handleLevelSelect = (topic: Topic, level: Parameters<typeof storyToTopic>[1]) => {
+  const handleLevelSelect = (
+    topic: Topic,
+    level: Parameters<typeof storyToTopic>[1],
+    options?: TopicStartOptions,
+  ) => {
     if (!topic.sourceStory) return;
-    openTopicAtLevel(storyToTopic(topic.sourceStory, level, "approved"));
+    openTopicAtLevel(storyToTopic(topic.sourceStory, level, "approved"), options);
   };
 
   const handleBack = () => {
     setSelectedTopic(null);
+    setStartAtQuiz(false);
     setSelectedImage("");
     setSelectedImageIndex(0);
   };
@@ -126,6 +133,7 @@ export default function CreateStoryPage({
             onAddRecord={onAddRecord}
             enableSorting={false}
             enableOverview={true}
+            startAtQuiz={startAtQuiz}
             studentName={getStudentName()}
             studentId={getStudentId()}
             onExit={handleBack}

@@ -335,6 +335,13 @@
   transform: translateX(3px);
 }
 
+.ts-card-btn-quiz {
+  background: var(--clay-surface-soft);
+  border-color: var(--gold-deep);
+  color: var(--gold-deep);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--gold-deep) 10%, transparent);
+}
+
 /* A story still waiting on the previous story in its lesson (5-2 before
    5-1 is submitted) — dimmed and inert, same "not yet" language as a
    locked lesson tile on the contents screen. */

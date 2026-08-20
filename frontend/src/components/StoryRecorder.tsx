@@ -823,6 +823,10 @@ interface StoryRecorderProps {
    * `enableSorting` so production can restore student-facing orientation
    * without reintroducing the picture-ordering minigame. */
   enableOverview?: boolean;
+  /** Open directly on the vocabulary quiz when the topic-list CTA is gated
+   * by an unfinished quiz. Once the quiz is complete the normal overview is
+   * used again. */
+  startAtQuiz?: boolean;
   studentName?: string;
   /** Roster-assigned id (see LoginPage), when the student signed in via the
    * roster picker rather than a name typed before the roster existed —
@@ -848,6 +852,7 @@ export default function StoryRecorder({
   onAddRecord,
   enableSorting = false,
   enableOverview = false,
+  startAtQuiz = false,
   studentName = "Student",
   studentId,
   onExit,
@@ -1206,13 +1211,15 @@ export default function StoryRecorder({
   const [phase, setPhase] = useState<
     "overview" | "sorting" | "vocabquiz" | "practice" | "summary"
   >(
-    enableOverview
-      ? "overview"
-      : enableSorting
-        ? "sorting"
-        : speakingLocked
-          ? "vocabquiz"
-          : "practice",
+    startAtQuiz && hasVocabQuiz && !isAdmin
+      ? "vocabquiz"
+      : enableOverview
+        ? "overview"
+        : enableSorting
+          ? "sorting"
+          : speakingLocked
+            ? "vocabquiz"
+            : "practice",
   );
   // Within the "practice" phase, each scene walks its own study → speaking
   // sub-steps (skipping the study step if this scene has neither vocabulary
@@ -1258,13 +1265,16 @@ export default function StoryRecorder({
     const completed = loadCompletedVocabQuizzes()[topic.id] === true;
     setVocabQuizCompleted(completed);
     const stillLocked = hasVocabQuiz && !completed && !isAdmin;
-    const defaultPhase = enableOverview
-      ? "overview"
-      : enableSorting
-        ? "sorting"
-        : stillLocked
-          ? "vocabquiz"
-          : "practice";
+    const defaultPhase =
+      startAtQuiz && hasVocabQuiz && !isAdmin
+        ? "vocabquiz"
+        : enableOverview
+          ? "overview"
+          : enableSorting
+            ? "sorting"
+            : stillLocked
+              ? "vocabquiz"
+              : "practice";
     // Resume the step a student was on before a reload, instead of always
     // reopening on the overview screen — but never resume into a phase the
     // current gates would now block (e.g. the quiz got reset elsewhere).
@@ -1276,13 +1286,21 @@ export default function StoryRecorder({
           : ["vocabquiz", "practice", "summary"]
     ) as typeof defaultPhase[];
     const blockedPhases = stillLocked ? new Set(["practice", "summary"]) : new Set<string>();
-    const resumed = getLastScenePhase(topic.id);
+    const resumed = startAtQuiz ? null : getLastScenePhase(topic.id);
     setPhase(
       resumed && reachablePhases.includes(resumed as typeof defaultPhase) && !blockedPhases.has(resumed)
         ? (resumed as typeof defaultPhase)
         : defaultPhase,
     );
-  }, [topic.id, topic.images, enableSorting, enableOverview, hasVocabQuiz, isAdmin]);
+  }, [
+    topic.id,
+    topic.images,
+    enableSorting,
+    enableOverview,
+    hasVocabQuiz,
+    isAdmin,
+    startAtQuiz,
+  ]);
 
   useEffect(() => {
     saveLastScenePhase(topic.id, phase);
