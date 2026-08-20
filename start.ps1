@@ -124,7 +124,7 @@ docker compose up -d db
 
 $corsOriginsValue = (Get-CorsOrigins) -join ','
 $reloadFlag = if ($Reload) { '--reload ' } else { '' }
-$backendCommand = "`$env:CORS_ORIGINS='$corsOriginsValue'; Set-Location '$root\backend'; python -m uvicorn main:app --host 0.0.0.0 ${reloadFlag}--port 8000"
+$backendCommand = "`$env:CORS_ORIGINS='$corsOriginsValue'; Set-Location '$root\backend'; while (`$true) { python -m uvicorn main:app --host 0.0.0.0 ${reloadFlag}--port 8000; `$exitCode = `$LASTEXITCODE; if (`$exitCode -eq 0) { break }; Write-Warning `"Backend exited unexpectedly with code `$exitCode. Restarting in 3 seconds...`"; Start-Sleep -Seconds 3 }"
 
 Write-Host 'Starting backend (port 8000)...' -ForegroundColor Cyan
 Start-PowerShellWindow -Command $backendCommand
