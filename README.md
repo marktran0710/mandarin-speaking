@@ -335,7 +335,8 @@ and Docker volumes.
 Student and teacher login are separate entry points: students use
 `http://127.0.0.1:5177/`, while teachers use
 `http://127.0.0.1:5177/teacher.html`. The Student app does not show the
-Listen & Retell section.
+Listen & Retell section. Both roles can stay signed in and work at the same
+time; signing out one role does not sign out the other.
 
 #### Step 1 — Install prerequisites
 

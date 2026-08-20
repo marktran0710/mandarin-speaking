@@ -16,6 +16,13 @@ const BACKEND_URL =
 const REQUEST_TIMEOUT_MS = 15_000;
 const VOCAB_GENERATION_RETRY_STATUSES = [429, 500, 502, 503, 504];
 
+function clientRoleHeader(): "student" | "teacher" | "admin" {
+  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+  if (pathname.endsWith("/teacher.html")) return "teacher";
+  if (pathname.endsWith("/admin.html")) return "admin";
+  return "student";
+}
+
 async function fetchWithRetry(
   input: RequestInfo | URL,
   init?: RequestInit,
@@ -31,6 +38,11 @@ async function fetchWithRetry(
       const response = await fetch(input, {
         credentials: "include",
         ...init,
+        headers: (() => {
+          const headers = new Headers(init?.headers);
+          headers.set("X-Client-Role", clientRoleHeader());
+          return headers;
+        })(),
         signal: controller.signal,
       });
       clearTimeout(timer);
@@ -903,6 +915,10 @@ export async function loginStudent(params: {
   return response.json() as Promise<Student>;
 }
 
+export async function logoutStudent(): Promise<void> {
+  await fetchWithRetry(`${BACKEND_URL}/api/students/logout`, { method: "POST" });
+}
+
 export async function createStudent(name: string, password: string): Promise<Student> {
   const response = await fetchWithRetry(`${BACKEND_URL}/api/students`, {
     method: "POST",
@@ -940,6 +956,10 @@ export async function loginTeacher(name: string, password: string): Promise<Teac
   const response = await fetchWithRetry(`${BACKEND_URL}/api/teachers/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, password }) });
   if (!response.ok) throw new Error(response.status === 403 ? "Teacher account is inactive." : "Wrong teacher name or password.");
   return response.json() as Promise<Teacher>;
+}
+
+export async function logoutTeacher(): Promise<void> {
+  await fetchWithRetry(`${BACKEND_URL}/api/teachers/logout`, { method: "POST" });
 }
 
 export async function updateTeacher(id: string, update: { password?: string; status?: "active" | "inactive" }): Promise<Teacher> {

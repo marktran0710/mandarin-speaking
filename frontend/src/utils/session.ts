@@ -7,8 +7,8 @@
 // one silently reassigned the other's role. "Which role am I" had two
 // sources of truth that could disagree.
 //
-// One key, with the role inside it, makes "only one mode at a time" true by
-// construction instead of a rule each app has to remember to check.
+// Each role keeps its own browser session so a teacher can monitor the class
+// while a student remains signed in on the same device/browser.
 
 export type Role = "student" | "teacher";
 
@@ -67,19 +67,12 @@ export function readSession(role?: Role): Session | null {
 }
 
 /**
- * The role visible to an app guard, or null.
- *
- * Each app passes its own role here. If that role has a session, it wins so
- * the two app entry points remain independently testable while both legacy
- * role keys exist. If it does not, the opposite role is returned so a
- * teacher session still blocks the student app (and vice versa).
+ * The role visible to an app, or null. An app only owns its own role session;
+ * the other app's session must not block it.
  */
 export function currentRole(role?: Role): Role | null {
   if (!role) return readSession()?.role ?? null;
-  const ownSession = readSession(role);
-  if (ownSession) return ownSession.role;
-  const oppositeRole: Role = role === "student" ? "teacher" : "student";
-  return readSession(oppositeRole)?.role ?? null;
+  return readSession(role)?.role ?? null;
 }
 
 /** Replaces whatever was there — there is only ever one session. */

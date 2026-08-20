@@ -3,7 +3,6 @@ import TeacherDashboardPage from "./pages/TeacherDashboardPage";
 import LoginPage from "./pages/LoginPage";
 import Navigation from "./components/Navigation";
 import ErrorBoundary from "./components/ErrorBoundary";
-import WrongMode from "./components/WrongMode";
 import { currentRole, signOut } from "./utils/session";
 import {
   canUseDatabase,
@@ -12,15 +11,13 @@ import {
   HelpRequest,
   listAudioRecords,
   listHelpRequests,
+  logoutTeacher,
   resolveHelpRequest,
   StoredAudioRecord,
 } from "./services/database";
 
 export default function TeacherApp() {
   const [activeRole, setActiveRole] = useState<"teacher" | null>(null);
-  // A student session reaching the teacher site — blocked until they sign
-  // out. Read once on mount, same as `activeRole`.
-  const [blockedRole, setBlockedRole] = useState(false);
   const [audioRecords, setAudioRecords] = useState<StoredAudioRecord[]>([]);
   const [audioRecordCount, setAudioRecordCount] = useState(0);
   const [audioRecordPageSize] = useState(100);
@@ -42,10 +39,6 @@ export default function TeacherApp() {
 
   useEffect(() => {
     const role = currentRole("teacher");
-    if (role === "student") {
-      setBlockedRole(true);
-      return;
-    }
     if (role === "teacher") {
       setActiveRole("teacher");
     }
@@ -120,15 +113,11 @@ export default function TeacherApp() {
   const handleLogout = () => {
     setActiveRole(null);
     signOut("teacher");
+    void logoutTeacher().catch(() => {
+      // Local role state is already cleared; the student app has its own
+      // independent session cookie.
+    });
   };
-
-  if (blockedRole) {
-    return (
-      <ErrorBoundary>
-        <WrongMode expected="teacher" />
-      </ErrorBoundary>
-    );
-  }
 
   // Logged-in teachers get the admin shell (its sidebar is the only nav);
   // the top Navigation bar only remains on the login screen.

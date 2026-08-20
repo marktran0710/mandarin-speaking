@@ -38,11 +38,11 @@ async def login_admin(
     if not hmac.compare_digest(request.password, ADMIN_PASSWORD):
         raise HTTPException(status_code=401, detail="Wrong password")
     token = auth.issue_token("admin", ADMIN_SUBJECT_ID)
-    auth.set_session_cookie(response, token)
+    auth.set_session_cookie(response, token, "admin")
     return {"role": "admin"}
 
 
 @router.post("/logout")
 async def logout_admin(response: Response):
-    auth.clear_session_cookie(response)
+    auth.clear_session_cookie(response, "admin")
     return {"loggedOut": True}

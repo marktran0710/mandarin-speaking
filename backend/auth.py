@@ -9,9 +9,10 @@ it, so a router can know who is actually calling instead of who the request
 merely claims to be.
 
 The development frontend proxies /api and /uploads through its own origin so
-the browser keeps the httpOnly cookie. A browser that calls this backend
-directly from another origin can lose the cookie because of browser
-cross-origin cookie rules; use the same-origin proxy in development.
+the browser keeps the httpOnly cookies. Student, teacher, and admin cookies
+are role-specific, allowing separate app tabs to stay signed in at once. A
+browser that calls this backend directly from another origin can lose cookies
+because of browser cross-origin rules; use the same-origin proxy in development.
 """
 from __future__ import annotations
 
@@ -49,7 +50,16 @@ JWT_ALGORITHM = "HS256"
 # 30 days by default - the classroom login is a once-per-session action, not
 # something students should be re-prompted for mid-lesson.
 TOKEN_TTL_SECONDS = int(os.getenv("JWT_TOKEN_TTL_SECONDS", str(30 * 24 * 3600)))
+# Keep the old cookie as a compatibility fallback for clients that have not
+# yet sent an app-role header. New logins also receive a role-specific cookie,
+# so teacher and student sessions can coexist in one browser.
 COOKIE_NAME = "session_token"
+ROLE_COOKIE_NAMES = {
+    "student": "student_session_token",
+    "teacher": "teacher_session_token",
+    "admin": "admin_session_token",
+}
+CLIENT_ROLE_HEADER = "X-Client-Role"
 VALID_ROLES = ("student", "teacher", "admin")
 _login_attempts: dict[str, collections.deque[float]] = {}
 _login_attempts_lock = threading.Lock()
@@ -176,9 +186,10 @@ def decode_token(token: str) -> Identity:
     return Identity(role=role, id=subject_id)
 
 
-def set_session_cookie(response: Response, token: str) -> None:
+def set_session_cookie(response: Response, token: str, role: str | None = None) -> None:
+    cookie_name = ROLE_COOKIE_NAMES.get(role, COOKIE_NAME)
     response.set_cookie(
-        key=COOKIE_NAME,
+        key=cookie_name,
         value=token,
         max_age=TOKEN_TTL_SECONDS,
         httponly=True,
@@ -188,19 +199,34 @@ def set_session_cookie(response: Response, token: str) -> None:
         secure=os.getenv("COOKIE_SECURE", "false").lower() == "true",
         path="/",
     )
+    # Keep legacy API clients working while the browser frontends migrate to
+    # role-specific cookies. Frontend requests select the correct cookie with
+    # X-Client-Role, so this compatibility cookie no longer causes session
+    # replacement between teacher and student tabs.
+    if role:
+        response.set_cookie(
+            key=COOKIE_NAME,
+            value=token,
+            max_age=TOKEN_TTL_SECONDS,
+            httponly=True,
+            samesite="lax",
+            secure=os.getenv("COOKIE_SECURE", "false").lower() == "true",
+            path="/",
+        )
 
 
-def clear_session_cookie(response: Response) -> None:
+def clear_session_cookie(response: Response, role: str | None = None) -> None:
+    if role in ROLE_COOKIE_NAMES:
+        response.delete_cookie(key=ROLE_COOKIE_NAMES[role], path="/")
+    else:
+        for cookie_name in ROLE_COOKIE_NAMES.values():
+            response.delete_cookie(key=cookie_name, path="/")
+    # Clear the compatibility cookie as well. Role-specific cookies remain
+    # intact when a teacher or student signs out of only their own app.
     response.delete_cookie(key=COOKIE_NAME, path="/")
 
 
-def get_current_identity(
-    session_token: Optional[str] = Cookie(default=None),
-) -> Identity:
-    """Base dependency: decode the session cookie into an Identity, or 401."""
-    if not session_token:
-        raise HTTPException(status_code=401, detail="Not logged in.")
-    identity = decode_token(session_token)
+def _validate_identity(identity: Identity) -> Identity:
     if identity.role in ("student", "teacher"):
         # Sessions must stop working when the roster account is deleted or
         # disabled; a long-lived JWT alone is not sufficient revocation.
@@ -217,8 +243,69 @@ def get_current_identity(
     return identity
 
 
+def _decode_cookie(token: str | None) -> Identity | None:
+    if not token:
+        return None
+    return decode_token(token)
+
+
+def _role_identity(
+    role: str,
+    role_token: str | None,
+    legacy_token: str | None,
+) -> Identity:
+    identity = _decode_cookie(role_token)
+    if identity is None:
+        identity = _decode_cookie(legacy_token)
+    if identity is None:
+        raise HTTPException(status_code=401, detail="Not logged in.")
+    return _validate_identity(identity)
+
+
+def get_current_identity(
+    request: Request = None,
+    session_token: Optional[str] = Cookie(default=None),
+    student_session_token: Optional[str] = Cookie(default=None),
+    teacher_session_token: Optional[str] = Cookie(default=None),
+    admin_session_token: Optional[str] = Cookie(default=None),
+) -> Identity:
+    """Decode the session selected by the frontend app, or 401.
+
+    Requests from the separate student/teacher/admin entries identify their
+    app with X-Client-Role. Direct media requests do not need that header and
+    fall back to any available role cookie.
+    """
+    requested_role = request.headers.get(CLIENT_ROLE_HEADER) if request else None
+    role_tokens = {
+        "student": student_session_token,
+        "teacher": teacher_session_token,
+        "admin": admin_session_token,
+    }
+    token = role_tokens.get(requested_role or "")
+    if token is None and requested_role not in role_tokens:
+        for candidate in ("admin", "teacher", "student"):
+            token = role_tokens[candidate]
+            if token:
+                break
+    identity = _decode_cookie(token)
+    if identity is None and session_token:
+        legacy_identity = _decode_cookie(session_token)
+        if requested_role in role_tokens and legacy_identity.role != requested_role:
+            legacy_identity = None
+        identity = legacy_identity
+    if identity is None:
+        raise HTTPException(status_code=401, detail="Not logged in.")
+    return _validate_identity(identity)
+
+
 def _require_role(role: str):
-    def _dependency(identity: Identity = Depends(get_current_identity)) -> Identity:
+    def _role_dependency(
+        role_token: Optional[str] = Cookie(default=None, alias=ROLE_COOKIE_NAMES[role]),
+        session_token: Optional[str] = Cookie(default=None),
+    ) -> Identity:
+        return _role_identity(role, role_token, session_token)
+
+    def _dependency(identity: Identity = Depends(_role_dependency)) -> Identity:
         if identity.role != role:
             raise HTTPException(status_code=403, detail=f"{role.capitalize()} account required.")
         return identity

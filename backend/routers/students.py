@@ -88,7 +88,7 @@ async def login_student(
             )
 
     token = auth.issue_token("student", row["id"])
-    auth.set_session_cookie(response, token)
+    auth.set_session_cookie(response, token, "student")
     return row_to_student(row)
 
 
@@ -111,7 +111,7 @@ async def reset_student_password(
 
 @router.post("/api/students/logout")
 async def logout_student(response: Response):
-    auth.clear_session_cookie(response)
+    auth.clear_session_cookie(response, "student")
     return {"loggedOut": True}
 
 

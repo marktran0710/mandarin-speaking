@@ -41,12 +41,12 @@ describe("independent role sessions", () => {
     expect(readSession("teacher")).toBeNull();
   });
 
-  it("detects the opposite role when an app has no own session", () => {
+  it("does not treat the opposite role as this app's session", () => {
     signIn("teacher", "Hau");
-    expect(currentRole("student")).toBe("teacher");
+    expect(currentRole("student")).toBeNull();
 
     signOut("teacher");
     signIn("student", "Minh");
-    expect(currentRole("teacher")).toBe("student");
+    expect(currentRole("teacher")).toBeNull();
   });
 });

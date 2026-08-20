@@ -45,12 +45,12 @@ async def login_teacher(
         with connect_db() as db:
             db.execute("UPDATE teachers SET password = %s WHERE id = %s", (replacement_hash, row["id"]))
     token = auth.issue_token("teacher", row["id"])
-    auth.set_session_cookie(response, token)
+    auth.set_session_cookie(response, token, "teacher")
     return row_to_teacher(row)
 
 @router.post("/api/teachers/logout")
 async def logout_teacher(response: Response):
-    auth.clear_session_cookie(response)
+    auth.clear_session_cookie(response, "teacher")
     return {"loggedOut": True}
 
 @router.patch("/api/teachers/{teacher_id}")

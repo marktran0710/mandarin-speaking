@@ -9,7 +9,6 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import StudentLoginPage from "./pages/StudentLoginPage";
 import Navigation from "./components/Navigation";
 import JourneyBubble from "./components/JourneyBubble";
-import WrongMode from "./components/WrongMode";
 import {
   getStudentName,
   getStudentId,
@@ -29,6 +28,7 @@ import {
   listAudioRecords,
   listCustomStories,
   listHelpRequests,
+  logoutStudent,
   StoredAudioRecord,
 } from "./services/database";
 import {
@@ -118,10 +118,6 @@ function collectPinyinTexts(topics: readonly Topic[]): string[] {
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>("home");
   const [activeRole, setActiveRole] = useState<"student" | null>(null);
-  // A teacher session reaching the student site. Read once on mount, like
-  // `activeRole` below — the session only changes through a sign-in or a
-  // sign-out, and both of those reload or re-render this component anyway.
-  const [blockedRole, setBlockedRole] = useState(false);
   const [isInPracticeSession, setIsInPracticeSession] = useState(false);
   const [audioRecords, setAudioRecords] = useState<AudioRecord[]>([]);
   const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
@@ -202,13 +198,6 @@ export default function App() {
       window.location.pathname === "/analyze" ||
       window.location.pathname === "/voice-test";
     const role = currentRole("student");
-    if (role === "teacher") {
-      // Teacher signed in on this device — the student site is closed to
-      // them until they sign out. Covers the /analyze and /voice-test deep
-      // links too, since those route through here.
-      setBlockedRole(true);
-      return;
-    }
     if (role === "student") {
       setActiveRole("student");
       if (directVoiceTestPath) {
@@ -370,6 +359,10 @@ export default function App() {
     // `activeRole` and left `studentSession` behind forever, which meant a
     // "logged out" browser still carried a student identity.
     signOut("student");
+    void logoutStudent().catch(() => {
+      // Local role state is already cleared; an expired backend cookie will
+      // be rejected on the next request and does not affect the teacher app.
+    });
     setCurrentPage("home");
   };
 
@@ -472,14 +465,6 @@ export default function App() {
         });
     }
   };
-
-  if (blockedRole) {
-    return (
-      <ErrorBoundary>
-        <WrongMode expected="student" />
-      </ErrorBoundary>
-    );
-  }
 
   return (
     <ErrorBoundary>
