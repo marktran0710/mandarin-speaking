@@ -11,10 +11,11 @@ login accounts. No device-to-device network connection is required.
 
 ## First setup
 
-Install Docker Desktop with Compose, then create the backend environment file:
+Install Docker Desktop with Compose, clone/pull the repository, then create the
+backend environment file from the repository root:
 
 ```powershell
-Copy-Item backend/.env.example backend/.env
+if (-not (Test-Path backend/.env)) { Copy-Item backend/.env.example backend/.env }
 ```
 
 For this local-only stack, the example values are usable. Replace
@@ -23,11 +24,11 @@ shared with anyone else.
 
 ## Start
 
-Validate the Compose file, then build and start the stack:
+Validate the Compose file, then build and start the stack. The wrapper performs
+both checks automatically and also verifies that `backend/.env` exists:
 
 ```powershell
-docker compose -f docker-compose.dev.yml config --quiet
-docker compose -f docker-compose.dev.yml up --build
+.\start.ps1 -Detached
 ```
 
 The app is available at `http://127.0.0.1:5177`. The backend is available for
@@ -36,6 +37,16 @@ Vite proxy so login cookies remain same-origin.
 
 The backend runs `alembic upgrade head` before Uvicorn starts. If a migration
 fails, the backend stays unhealthy instead of serving against a partial schema.
+
+Verify the containers and migration:
+
+```powershell
+docker compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml exec backend python -m alembic current
+```
+
+The expected migration is `0017 (head)` and the backend readiness endpoint
+should return HTTP 200 with `database: "ok"` and `storage: "ok"`.
 
 To run in the background:
 

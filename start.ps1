@@ -20,12 +20,22 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $composeFile = Join-Path $PSScriptRoot 'docker-compose.dev.yml'
+$envFile = Join-Path $PSScriptRoot 'backend/.env'
 
 if (-not (Test-Path -LiteralPath $composeFile -PathType Leaf)) {
   throw "Compose file not found: $composeFile"
 }
+if (-not (Test-Path -LiteralPath $envFile -PathType Leaf)) {
+  throw "Missing backend/.env. Create it first with: Copy-Item backend/.env.example backend/.env"
+}
 
 $composeArgs = @('-f', $composeFile)
+
+Write-Host 'Validating Docker Compose configuration...' -ForegroundColor Cyan
+& docker compose @composeArgs config --quiet
+if ($LASTEXITCODE -ne 0) {
+  exit $LASTEXITCODE
+}
 
 if ($ResetData) {
   Write-Warning 'ResetData will delete this device''s PostgreSQL database, uploads, model cache, and Node dependencies.'

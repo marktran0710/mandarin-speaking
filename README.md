@@ -327,49 +327,58 @@ backend, and importing sends the story through the same save path as creating on
 
 ### Independent device development
 
-Every device runs the same Docker stack independently. There is no Lab/Laptop/
-Standalone mode and no device-to-device backend connection. Each device owns
-its own PostgreSQL database, uploads, login accounts, model cache, and Docker
-volumes.
+Every device runs the same Docker stack independently. There is no
+Lab/Laptop/Standalone mode and no device-to-device backend connection. Each
+device owns its own PostgreSQL database, uploads, login accounts, model cache,
+and Docker volumes.
 
-Install Docker Desktop with Docker Compose, clone or pull the repository on each
-device, and create a local backend environment file:
+#### Step 1 — Install prerequisites
 
-```powershell
-Copy-Item backend/.env.example backend/.env
-```
+Install Docker Desktop with Docker Compose, then clone or pull this repository
+on the device. Run all commands below from the repository root.
 
-Use a separate `backend/.env` on each device and never commit real API keys.
-The source folders are mounted into the containers, so backend and frontend
-changes reload during development. The database, uploads, model cache, and
-Node dependencies use separate Docker volumes.
+#### Step 2 — Create the local environment file
 
-Run from the repository root:
+Run this once per device:
 
 ```powershell
-.\start.ps1
+if (-not (Test-Path backend/.env)) { Copy-Item backend/.env.example backend/.env }
 ```
 
-For background mode:
+Keep a separate `backend/.env` on each device. Set a real local
+`JWT_SECRET_KEY` and `ADMIN_PASSWORD`; never commit API keys or `.env` files.
+
+#### Step 3 — Validate and start the stack
+
+The start script validates Compose, builds the backend/frontend images, starts
+PostgreSQL, runs Alembic migrations, and starts the backend and Vite frontend.
 
 ```powershell
 .\start.ps1 -Detached
 ```
 
-`start.ps1` builds the images, starts PostgreSQL, applies Alembic migrations,
-and starts the backend and Vite frontend. Open `http://127.0.0.1:5177`; the
-backend diagnostics endpoint is `http://127.0.0.1:8001/health/ready`.
+For foreground logs instead, use `.start.ps1`. The first frontend request can
+take a few seconds while Vite compiles the development bundle.
 
-The source folders are mounted into the containers, so backend and frontend
-changes reload during development. The database, uploads, model cache, and
-Node dependencies use separate Docker volumes.
+#### Step 4 — Confirm containers and migration
 
-For manual Compose commands or troubleshooting, see
-[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md).
+```powershell
+docker compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml exec backend python -m alembic current
+```
 
-#### Seed teaching lessons
+Expected results are backend/database `healthy` and migration `0017 (head)`.
+Also check:
 
-Seed the optional teaching lessons explicitly after the backend is healthy:
+- Frontend: `http://127.0.0.1:5177`
+- Backend readiness: `http://127.0.0.1:8001/health/ready`
+
+The readiness response should report HTTP `200`, `database: "ok"`, and
+`storage: "ok"`.
+
+#### Step 5 — Seed teaching data
+
+Seeding is explicit and idempotent. Run it after the backend is healthy:
 
 ```powershell
 docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_grammar_lesson
@@ -377,27 +386,41 @@ docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_lis
 docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_vv_kan_lesson
 ```
 
-#### Useful commands
+Existing lessons are not overwritten. Use `--overwrite` only when intentionally
+replacing authored content.
+
+#### Step 6 — Develop and test
+
+Backend and frontend source folders are mounted into Docker, so edits reload.
+Useful commands:
 
 ```powershell
-# Start without rebuilding existing images
-.\start.ps1 -NoBuild -Detached
-
 # Follow backend and frontend logs
 docker compose -f docker-compose.dev.yml logs -f backend frontend
 
-# Run frontend tests inside the container
+# Run frontend tests inside the frontend container
 docker compose -f docker-compose.dev.yml exec frontend npm test -- --run
 
-# Stop containers while preserving local data
-docker compose -f docker-compose.dev.yml down
+# Rebuild after changing dependencies or Dockerfiles
+.\start.ps1 -Detached
+```
 
-# Delete this device's database, uploads, model cache, and Node dependencies
+#### Step 7 — Stop or reset one device
+
+Stop while preserving database/uploads:
+
+```powershell
+docker compose -f docker-compose.dev.yml down
+```
+
+Reset this device completely, including its database, uploads, model cache, and
+Node dependencies:
+
+```powershell
 .\start.ps1 -ResetData -Detached
 ```
 
-Use `-ResetData` only when intentionally resetting that device. This is the
-only destructive start option.
+Use `-ResetData` only when intentionally resetting that device.
 
 #### Important data-safety rule
 
@@ -408,21 +431,20 @@ preserving data.
 All configuration is local to the device and is not synchronized through
 GitHub. Do not commit real API keys or local `.env` files.
 
-### Database
+### Database and migrations
 
-The backend uses PostgreSQL 17, run locally through Docker Compose:
+The development stack runs PostgreSQL 17 in the `db` service. The backend runs
+`alembic upgrade head` automatically before Uvicorn starts. To inspect or
+manually reapply migrations:
 
-```bash
-docker compose up -d db          # start (data lives in the mandarin_pgdata volume)
-cd backend && python -m alembic upgrade head   # apply schema migrations
+```powershell
+docker compose -f docker-compose.dev.yml exec backend python -m alembic current
+docker compose -f docker-compose.dev.yml exec backend python -m alembic upgrade head
 ```
 
-The connection string comes from `DATABASE_URL` (default
-`postgresql://mandarin:mandarin@127.0.0.1:5432/mandarin`). Tests run against a
-separate `mandarin_test` database and truncate every table between tests.
-
-Schema changes are Alembic migrations in `backend/migrations/versions/` — the
-app no longer creates or alters tables at startup.
+Schema changes are Alembic migrations in `backend/migrations/versions/`; the
+app no longer creates or alters tables at startup. Tests use a separate
+`mandarin_test` database and truncate every table between tests.
 
 The pre-migration SQLite file (`backend/mandarin_stories.db`) is kept on disk,
 but it is a snapshot of the day of the migration, not a live backup — the app
@@ -434,22 +456,32 @@ cd backend && python -m scripts.migrate_sqlite_to_postgres
 
 #### Backups
 
-Everything lives in the `mandarin_pgdata` Docker volume, so `docker compose
-down -v` or a lost machine takes the teacher's materials with it. Dump the
-whole database before anything risky:
+Everything lives in this device's `mandarin-speaking-dev_dev_pgdata` Docker
+volume, so `docker compose ... down -v` or a lost machine takes the local
+materials with it. Dump the whole database before anything risky. For the
+current Docker stack, run the backup helper inside the PostgreSQL container or
+use the repository's backup script with a reachable PostgreSQL URL; do not
+assume the database is exposed on the host by default.
 
-```bash
-cd backend
-python -m scripts.backup_db                        # -> pg_dump_mandarin_<timestamp>.sql
-python -m scripts.backup_db --restore <file>       # restore into an empty database
-python -m scripts.backup_db --restore <file> --yes # ... or over one that has rows
+```powershell
+docker compose -f docker-compose.dev.yml exec -T db pg_dump -U mandarin -d mandarin --clean --if-exists --no-owner --no-privileges > backend/pg_dump_mandarin.sql
+
+# Restore only into an empty database unless you intentionally overwrite rows.
+Get-Content backend/pg_dump_mandarin.sql -Raw | docker compose -f docker-compose.dev.yml exec -T db psql -U mandarin -d mandarin --set ON_ERROR_STOP=1
 ```
 
-Windows has no `pg_dump` on PATH, so the script runs the PostgreSQL 17 client
-tools inside the `mandarin-postgres` container; pass `--url` to point it at any
-other database (a managed one included). Dumps are `.gitignore`d.
+The dump files are `.gitignore`d. The development Compose stack intentionally
+does not publish PostgreSQL to a host port; use `docker compose -f
+docker-compose.dev.yml exec db ...` when a direct `pg_dump`/`psql` operation is
+needed.
 
-### 1. Backend (Python 3.10+)
+### Manual development (optional)
+
+The Docker workflow above is the canonical way to run this repository. The
+following host-native commands are only for contributors who intentionally
+install all backend dependencies locally.
+
+#### 1. Backend (Python 3.10+)
 
 ```powershell
 cd backend
@@ -462,7 +494,7 @@ Health check:
 curl http://localhost:8000/health
 ```
 
-### 2. Frontend
+#### 2. Frontend
 
 ```powershell
 npm install
@@ -471,7 +503,7 @@ npm run dev -- --host 0.0.0.0 --port 5173
 
 Open **http://127.0.0.1:5173**
 
-### 3. Docker (alternative for backend)
+#### 3. Backend-only Docker image
 
 ```powershell
 docker build -t mandarin-speaking-backend ./backend
@@ -506,16 +538,14 @@ FEEDBACK_MAX_CLIPPING_RATIO=0.08
 FEEDBACK_MIN_PITCH_POINTS=8
 
 # Server
-CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-DATABASE_URL=postgresql://mandarin:mandarin@127.0.0.1:5432/mandarin
+CORS_ORIGINS=http://localhost:5177,http://127.0.0.1:5177
+# docker-compose.dev.yml overrides this to the internal db service.
+DATABASE_URL=postgresql://mandarin:mandarin@db:5432/mandarin
 UPLOAD_DIR=./uploads
 ```
 
-Create `.env.local` in the project root (frontend):
-
-```env
-VITE_BACKEND_URL=http://localhost:8000
-```
+In Docker development, do not set `VITE_BACKEND_URL`; Vite proxies `/api` and
+`/uploads` to the backend so browser requests remain same-origin.
 
 ---
 
@@ -636,7 +666,10 @@ npx vercel --prod
 
 ## Troubleshooting
 
-**`ERR_CONNECTION_REFUSED` on backend** — start the Lab backend and verify `VITE_BACKEND_URL=http://100.67.229.122:8000` on the Laptop, or `http://localhost:8000` for a local frontend.
+**`ERR_CONNECTION_REFUSED` on backend** — run `docker compose -f
+docker-compose.dev.yml ps`, wait for the backend to become `healthy`, then
+check `http://127.0.0.1:8001/health/ready`. If the stack is not running, use
+`.\start.ps1 -Detached`.
 
 **AI feedback shows `provider: local`** — no Gemini or OpenAI key configured; add one to `backend/.env` and restart.
 
