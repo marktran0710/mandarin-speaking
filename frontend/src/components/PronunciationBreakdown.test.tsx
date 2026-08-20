@@ -220,7 +220,7 @@ describe("PronunciationBreakdown", () => {
     const summary = container.querySelector(".pb-summary")!.textContent!;
     expect(summary).toContain("1個未計入");
     expect(summary).not.toContain("1個聽不太出來");
-    expect(summary).toContain("1/1個計入過關");
+    expect(container.querySelector(".pb-head-score")!.textContent).toContain("1/1");
   });
 
   it("keeps the collapsed row short and puts the explanation behind a tap", async () => {

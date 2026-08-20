@@ -667,6 +667,14 @@ export default function PronunciationBreakdown({
 
   const counts = countByBucket(groups);
   const summary = SUMMARY_BUCKETS.filter((bucket) => counts[bucket.key] > 0);
+  const summaryAriaLabel = summary
+    .map((bucket) => `${counts[bucket.key]} ${bucket.en}`)
+    .join(", ");
+  const displayedSyllableCount = groups.reduce(
+    (total, group) => total + group.rows.length,
+    0,
+  );
+  const excludedSyllableCount = counts.neutral + counts.not_scored;
   const hasActionableRows = groups.some((group) =>
     group.rows.some(({ syllable, word }) => {
       const label = statusLabel(syllable, referenceEvidenceAccepted(word));
@@ -684,30 +692,55 @@ export default function PronunciationBreakdown({
   return (
     <section className="pronunciation-breakdown" aria-label="Pronunciation breakdown">
       <div className="pb-head">
-        <p className="block-label pb-heading">
-          <BiLabel zh="發音分析" pinyin="Fāyīn fēnxī" en="Pronunciation breakdown" />
-        </p>
+        <div className="pb-head-top">
+          <div className="pb-head-copy">
+            <p className="block-label pb-heading">
+              <BiLabel zh="發音分析" pinyin="Fāyīn fēnxī" en="Pronunciation breakdown" />
+            </p>
+            <p className="pb-head-meta">
+              <strong>{displayedSyllableCount}</strong>
+              <span>音節顯示 / syllables shown</span>
+              {excludedSyllableCount > 0 && (
+                <>
+                  <span className="pb-head-meta-divider" aria-hidden="true">·</span>
+                  <strong>{excludedSyllableCount}</strong>
+                  <span>不計入 / excluded</span>
+                </>
+              )}
+            </p>
+          </div>
+          {masteryCounts && masteryCounts.total > 0 && (
+            <div
+              className="pb-head-score"
+              role="status"
+              aria-atomic="true"
+              aria-label={`${masteryCounts.passed} of ${masteryCounts.total} syllables counted for progress`}
+            >
+              <span className="pb-head-score-label">本次進度 / Progress</span>
+              <strong>{masteryCounts.passed}<span>/{masteryCounts.total}</span></strong>
+              <small>計入過關 / counted</small>
+            </div>
+          )}
+        </div>
         {summary.length > 0 && (
-          <p className="pb-summary">
-            {summary.map((bucket, index) => (
-              <span key={bucket.key} className={`pb-summary-item is-${bucket.key}`}>
-                {index > 0 && <span aria-hidden="true"> · </span>}
-                <strong>{counts[bucket.key]}</strong>
-                <span lang="zh-Hant">{bucket.zh}</span>
-                <small lang="en">{bucket.en}</small>
-              </span>
-            ))}
-            {masteryCounts && masteryCounts.total > 0 && (
-              <span
-                className="pb-summary-progress"
-                title="Backend count used for sentence progression"
-              >
-                <strong>{masteryCounts.passed}/{masteryCounts.total}</strong>
-                <span lang="zh-Hant">個計入過關</span>
-                <small lang="en">counted for progress</small>
-              </span>
-            )}
-          </p>
+          <div
+            className="pb-summary-row"
+            role="status"
+            aria-atomic="true"
+            aria-label={`${displayedSyllableCount} syllable detail rows: ${summaryAriaLabel}`}
+          >
+            <span className="pb-summary-label">細項 / Detail</span>
+            <div className="pb-summary">
+              {summary.map((bucket) => (
+                <span key={bucket.key} className={`pb-summary-item is-${bucket.key}`}>
+                  <span className="pb-summary-dot" aria-hidden="true" />
+                  <strong>{counts[bucket.key]}</strong>
+                  <span lang="zh-Hant">{bucket.zh}</span>
+                  <small lang="en">{bucket.en}</small>
+                </span>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
