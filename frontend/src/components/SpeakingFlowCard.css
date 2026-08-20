@@ -746,10 +746,6 @@
 .sfc-feedback-modal-body .pb-summary-item.is-incorrect strong { color: var(--clay-error-deep); }
 .sfc-feedback-modal-body .pb-summary-item.is-invalid .pb-summary-dot { background: var(--gold); }
 .sfc-feedback-modal-body .pb-summary-item.is-invalid strong { color: var(--gold-deep); }
-.sfc-feedback-modal-body .pb-summary-item.is-neutral .pb-summary-dot,
-.sfc-feedback-modal-body .pb-summary-item.is-not_scored .pb-summary-dot { background: var(--clay-muted-soft); }
-.sfc-feedback-modal-body .pb-summary-item.is-neutral strong { color: var(--clay-muted); }
-.sfc-feedback-modal-body .pb-summary-item.is-not_scored strong { color: var(--clay-muted); }
 .sfc-feedback-modal .sfc-feedback-modal-body .pb-legend {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1633,7 +1629,6 @@
 .pb-summary-item.is-invalid .pb-summary-dot { background: var(--gold); }
 .pb-summary-item.is-correct strong { color: var(--jade-deep); }
 .pb-summary-item.is-incorrect strong { color: var(--clay-error-deep); }
-.pb-summary-item.is-not_scored strong { color: var(--clay-muted); }
 /* Counts stay Chinese-only: the legend right below carries the English, and
    repeating it here pushed the line onto two rows. */
 .pb-summary-item small { display: none; }

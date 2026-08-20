@@ -198,9 +198,9 @@ describe("PronunciationBreakdown", () => {
     const summary = container.querySelector(".pb-summary")!.textContent!;
     expect(summary).toContain("1個要練");
     expect(summary).toContain("1個聽不太出來");
-    // Neutral tone is counted apart from uncertainty — nobody measured it, so
-    // folding it into "not clear" would imply doubt about the learner.
-    expect(summary).toContain("1個輕聲不計");
+    // Neutral tone remains accounting metadata, not a fifth learner-facing verdict.
+    expect(summary).not.toContain("輕聲不計");
+    expect(container.querySelector(".pb-head-meta")!.textContent).toContain("1輕聲不計");
     expect(summary).not.toContain("個對了");
   });
 
@@ -218,8 +218,10 @@ describe("PronunciationBreakdown", () => {
     );
 
     const summary = container.querySelector(".pb-summary")!.textContent!;
-    expect(summary).toContain("1個未計入");
+    expect(summary).toContain("1個要再錄");
     expect(summary).not.toContain("1個聽不太出來");
+    expect(container.querySelector(".pb-head-meta")!.textContent).toContain("1未計入");
+    expect(container.querySelectorAll(".pb-tone-mark")[0].textContent).toBe("↻");
     expect(container.querySelector(".pb-head-score")!.textContent).toContain("1/1");
   });
 

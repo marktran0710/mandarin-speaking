@@ -201,15 +201,13 @@ const RULE_TEXT: Record<string, { zh: string; en: string }> = {
   NEUTRAL_LEXICAL: { zh: "輕聲", en: "neutral tone" },
 };
 
-/** Buckets for the summary line. Neutral is counted apart from UNCERTAIN so
- * the numbers do not imply doubt about syllables nobody measured. */
+/** The learner-facing summary has four verdicts. Neutral and unscored rows
+ * stay in the accounting metadata so they do not look like tone judgments. */
 const SUMMARY_BUCKETS = [
   { key: "correct", zh: "個對了", en: "correct" },
   { key: "uncertain", zh: "個聽不太出來", en: "not clear" },
   { key: "incorrect", zh: "個要練", en: "to practise" },
   { key: "invalid", zh: "個要再錄", en: "to re-record" },
-  { key: "neutral", zh: "個輕聲不計", en: "neutral, not scored" },
-  { key: "not_scored", zh: "個未計入", en: "not counted" },
 ] as const;
 
 function zoneText(zone: VowelZone, key: "zh" | "en"): string {
@@ -298,6 +296,10 @@ function statusLabel(
   referenceAccepted = false,
 ) {
   if (isNeutral(syllable)) return NEUTRAL_LABEL;
+  // Keep the learner-facing vocabulary to the four verdicts: a syllable
+  // without a usable measurement is actionable as "record again", rather
+  // than being presented as a fifth grading category.
+  if (isNotScored(syllable)) return TONE_STATUS.INVALID_AUDIO;
   const status =
     referenceAccepted && syllable.diagnostic_status === "INCORRECT"
       ? "CORRECT"
@@ -426,6 +428,7 @@ function countByBucket(groups: BreakdownGroup[]): Record<string, number> {
       }
       if (isNotScored(syllable)) {
         counts.not_scored += 1;
+        counts.invalid += 1;
         continue;
       }
       const status = statusLabel(syllable, referenceEvidenceAccepted(word));
@@ -674,7 +677,6 @@ export default function PronunciationBreakdown({
     (total, group) => total + group.rows.length,
     0,
   );
-  const excludedSyllableCount = counts.neutral + counts.not_scored;
   const hasActionableRows = groups.some((group) =>
     group.rows.some(({ syllable, word }) => {
       const label = statusLabel(syllable, referenceEvidenceAccepted(word));
@@ -700,11 +702,18 @@ export default function PronunciationBreakdown({
             <p className="pb-head-meta">
               <strong>{displayedSyllableCount}</strong>
               <span>音節顯示 / syllables shown</span>
-              {excludedSyllableCount > 0 && (
+              {counts.neutral > 0 && (
                 <>
                   <span className="pb-head-meta-divider" aria-hidden="true">·</span>
-                  <strong>{excludedSyllableCount}</strong>
-                  <span>不計入 / excluded</span>
+                  <strong>{counts.neutral}</strong>
+                  <span>輕聲不計 / neutral excluded</span>
+                </>
+              )}
+              {counts.not_scored > 0 && (
+                <>
+                  <span className="pb-head-meta-divider" aria-hidden="true">·</span>
+                  <strong>{counts.not_scored}</strong>
+                  <span>未計入 / not counted</span>
                 </>
               )}
             </p>
