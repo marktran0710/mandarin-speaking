@@ -29,6 +29,14 @@ describe("scriptMismatchTokens", () => {
   it("keeps a different character as a real script mismatch", () => {
     expect(scriptMismatchTokens("友美妳這個週末要做什麼", "友美她這個週末要做什麼")).toEqual(["妳"]);
   });
+
+  it("treats Mandarin pronoun variants 他, 她, 它, 牠 and 祂 as the same spoken syllable", () => {
+    const target = "他喜歡他的貓";
+    expect(scriptMismatchTokens(target, "她喜歡她的貓")).toEqual([]);
+    expect(scriptMismatchTokens(target, "它喜歡它的貓")).toEqual([]);
+    expect(scriptMismatchTokens(target, "牠喜歡牠的貓")).toEqual([]);
+    expect(scriptMismatchTokens(target, "祂喜歡祂的貓")).toEqual([]);
+  });
 });
 
 describe("scriptMatchRatio", () => {

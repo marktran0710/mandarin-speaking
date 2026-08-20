@@ -15,6 +15,10 @@ function alignableChars(text: string | undefined): string[] {
  */
 const SCRIPT_COMPARE_EQUIVALENTS: Record<string, string> = {
   妳: "你",
+  她: "他",
+  它: "他",
+  牠: "他",
+  祂: "他",
 };
 
 function scriptComparisonKey(char: string): string {
