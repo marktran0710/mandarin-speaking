@@ -367,7 +367,7 @@ docker compose -f docker-compose.dev.yml ps
 docker compose -f docker-compose.dev.yml exec backend python -m alembic current
 ```
 
-Expected results are backend/database `healthy` and migration `0017 (head)`.
+Expected results are backend/database `healthy` and migration `0019 (head)`.
 Also check:
 
 - Frontend: `http://127.0.0.1:5177`
@@ -431,6 +431,16 @@ preserving data.
 All configuration is local to the device and is not synchronized through
 GitHub. Do not commit real API keys or local `.env` files.
 
+### Public deployment
+
+`render.yaml` uses a single-origin production image, PostgreSQL, HTTPS cookies,
+and a persistent `/data` disk for uploads. Configure the unsynchronised
+`JWT_SECRET_KEY` and `ADMIN_PASSWORD` secrets in Render before deploying.
+The production image requires `APP_ENV=production`, `COOKIE_SECURE=true`, and
+does not allow anonymous roster creation, lesson writes, analytics, AI calls,
+or media downloads. The blueprint uses a paid persistent-disk web service and
+`basic-256mb` PostgreSQL; increase the web plan after a 50-user load test.
+
 ### Advanced operations
 
 Migration, reset, testing, and troubleshooting details are kept in
@@ -443,46 +453,10 @@ Start with `backend/.env.example`. Docker overrides the database and storage
 paths inside the Compose network. Keep `backend/.env` local and never commit
 secrets.
 
-## User Roles
-
-### Teacher login
-- Name only — no password. Role separation is UI-only (a local session flag), not backend-authenticated; anyone who navigates to `/teacher.html` and enters a name reaches the dashboard.
-- Access: Dashboard, Image Builder
-- Can create/publish stories, view all student recordings, resolve help requests
-
-### Student login
-- Default password: `123456`, stored per student in the roster
-- Access: Training (speaking practice), My Stories
-- Can practice published stories, raise a hand for help
-
----
-
-## Deployment
-
-### Backend on Render
-
-1. Push to GitHub.
-2. In Render, create a new Web Service from the repository — point to `backend/Dockerfile`.
-3. Set environment variables including:
-   ```
-   CORS_ORIGINS=https://your-frontend-domain.com
-   GEMINI_API_KEY=...
-   ```
-
-### Frontend on Vercel / GitHub Pages
-
-Set before building:
-```env
-VITE_BACKEND_URL=https://your-backend-domain.onrender.com
-```
-
-Then:
-```powershell
-npm run build
-npx vercel --prod
-```
-
----
+Student accounts are provisioned by a teacher/admin with an individual password.
+Legacy `123456` accounts are disabled by migration `0019` until reset from the
+teacher/admin workflow. Production serves frontend and backend from one origin;
+do not deploy the old separate GitHub Pages/Vercel frontend configuration.
 
 ## Project Structure
 

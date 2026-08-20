@@ -1,11 +1,12 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 
 from main import TTSRequest
 from reference_voice import synthesize_best_reference_audio
 from tts_service import synthesize_sentence_mp3
+import auth
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 
 
 @router.post("/api/tts")

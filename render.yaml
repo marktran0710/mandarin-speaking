@@ -1,6 +1,6 @@
 databases:
   - name: mandarin-postgres
-    plan: free
+    plan: basic-256mb
     databaseName: mandarin
     user: mandarin
 
@@ -8,17 +8,26 @@ services:
   - type: web
     name: mandarin-speaking-backend
     env: docker
-    rootDir: backend
-    dockerfilePath: ./Dockerfile
-    plan: free
+    dockerfilePath: ./backend/Dockerfile.production
+    plan: starter
     healthCheckPath: /health/ready
+    disk:
+      name: mandarin-speaking-data
+      mountPath: /data
+      sizeGB: 10
     envVars:
       - key: DATABASE_URL
         fromDatabase:
           name: mandarin-postgres
           property: connectionString
-      - key: CORS_ORIGINS
-        value: http://localhost:5173,http://127.0.0.1:5173,https://marktran0710.github.io
+      - key: APP_ENV
+        value: production
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
       - key: OPENAI_FEEDBACK_MODEL
         value: gpt-4o-mini
       - key: GEMINI_FEEDBACK_MODEL
@@ -28,3 +37,13 @@ services:
       # do not survive a container replacement.
       - key: UPLOAD_DIR
         value: /data/uploads
+      - key: REMOTE_MEDIA_ALLOWED_HOSTS
+        value: oaidalleapiprodscus.blob.core.windows.net,pollinations.ai,image.pollinations.ai
+      - key: DB_POOL_MIN
+        value: "2"
+      - key: DB_POOL_MAX
+        value: "10"
+      - key: ANALYZE_CONCURRENCY_LIMIT
+        value: "1"
+      - key: ANALYZE_QUEUE_LIMIT
+        value: "16"

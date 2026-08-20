@@ -11,12 +11,13 @@ unauthenticated `POST /api/audio-records` behavior, kept only for that
 harness; real classroom traffic goes through the authenticated endpoint in
 `routers/audio.py` instead.
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+import auth
 import main
 from main import AudioRecordRequest
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(auth.require_teacher_or_admin)])
 
 
 @router.post("/api/pilot/audio-records")

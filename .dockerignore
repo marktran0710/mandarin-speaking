@@ -17,7 +17,6 @@ coverage/
 stories/
 tmp_pdf_l6/
 output/
-backend/
 docs/
 scripts/
 *.md
@@ -32,5 +31,4 @@ backend/venv/
 backend/uploads/
 backend/logs/
 backend/private-data/
-backend/benchmarking/
 backend/reports/

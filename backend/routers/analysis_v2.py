@@ -14,11 +14,12 @@ import os
 import re
 from typing import Any
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 
 from chinese_tones import detect_tone
+import auth
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 
 
 def _main_module():
@@ -388,12 +389,17 @@ async def analyze_speech_v2(
         except (json.JSONDecodeError, TypeError):
             reference_word_curves = None
     try:
+        async def run_bounded_analysis():
+            async with app_main.acquire_analysis_slot():
+                return await app_main._do_analyze(
+                    content, transcription, asr_model, scene_prompt, scene_vocabulary,
+                    ai_provider, scene_image_url, scene_phrases, scene_suggested_answer,
+                    scene_attempt_number, verify_word, pinyin_hint, reference_word_curves,
+                    scene_target_text,
+                )
+
         stable = await asyncio.wait_for(
-            app_main._do_analyze(content, transcription, asr_model, scene_prompt, scene_vocabulary,
-                             ai_provider, scene_image_url, scene_phrases, scene_suggested_answer,
-                             scene_attempt_number, verify_word, pinyin_hint, reference_word_curves,
-                             scene_target_text),
-            timeout=app_main.ANALYZE_TIMEOUT_SECONDS,
+            run_bounded_analysis(), timeout=app_main.ANALYZE_TIMEOUT_SECONDS
         )
         payload = stable.model_dump() if hasattr(stable, "model_dump") else stable.dict()
         payload.update({

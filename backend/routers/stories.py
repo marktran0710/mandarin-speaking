@@ -1,10 +1,11 @@
 import json
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from psycopg.types.json import Jsonb
 
 from database import connect_db, row_to_custom_story
 import main
+import auth
 from main import (
     CustomStoryRequest,
     GenerateModelVoiceBulkRequest,
@@ -18,7 +19,9 @@ from main import (
 )
 from reference_voice import generate_scene_reference
 
-router = APIRouter()
+# Students may read lesson content after login; story writes and generated
+# media are restricted by auth.require_story_access to teacher/admin accounts.
+router = APIRouter(dependencies=[Depends(auth.require_story_access)])
 
 # Field-name suffix per difficulty tier, matching the existing
 # suggestedAnswer/suggestedAnswerMedium/suggestedAnswerHard convention.
@@ -75,10 +78,12 @@ def _existing_pool(frame: dict, field: str) -> list:
 async def list_custom_stories(
     limit: int = Query(default=100, ge=1, le=500),
     skip: int = Query(default=0, ge=0),
+    identity: auth.Identity = Depends(auth.get_current_identity),
 ):
+    visibility = "WHERE published = TRUE" if identity.role == "student" else ""
     with connect_db() as db:
         rows = db.execute(
-            "SELECT * FROM custom_stories ORDER BY created_at DESC LIMIT %s OFFSET %s",
+            f"SELECT * FROM custom_stories {visibility} ORDER BY created_at DESC LIMIT %s OFFSET %s",
             (limit, skip),
         ).fetchall()
     return [row_to_custom_story(row) for row in rows]

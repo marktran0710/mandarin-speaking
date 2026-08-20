@@ -17,7 +17,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -26,9 +26,14 @@ from pronunciation.wav2vec_tone.deployment_inference import (  # noqa: E402
     SCIENTIFIC_VERSION, ContractViolation, get_bundle, infer_tone_attempt,
     learner_response, validate_expected_tone,
 )
+import auth
 
 logger = logging.getLogger("ompal.tone_attempt")
-router = APIRouter(prefix="/api/pronunciation", tags=["tone-confirmation"])
+router = APIRouter(
+    prefix="/api/pronunciation",
+    tags=["tone-confirmation"],
+    dependencies=[Depends(auth.get_current_identity)],
+)
 
 TECHNICAL_MESSAGE = "The recording could not be processed. Please record again."
 

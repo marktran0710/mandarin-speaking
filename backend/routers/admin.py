@@ -6,8 +6,9 @@ student/teacher login pattern in auth.py. There is a single shared admin
 account (no admin roster/table), so the JWT subject is a fixed constant.
 """
 import os
+import hmac
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel
 
 import auth
@@ -25,10 +26,16 @@ class AdminLoginRequest(BaseModel):
 
 
 @router.post("/login")
-async def login_admin(request: AdminLoginRequest, response: Response):
+async def login_admin(
+    request: AdminLoginRequest,
+    response: Response,
+    http_request: Request,
+):
+    client_ip = http_request.client.host if http_request.client else "unknown"
+    auth.check_login_rate_limit(f"admin:{client_ip}")
     if not ADMIN_PASSWORD:
         raise HTTPException(status_code=503, detail="Admin login is not configured.")
-    if request.password != ADMIN_PASSWORD:
+    if not hmac.compare_digest(request.password, ADMIN_PASSWORD):
         raise HTTPException(status_code=401, detail="Wrong password")
     token = auth.issue_token("admin", ADMIN_SUBJECT_ID)
     auth.set_session_cookie(response, token)

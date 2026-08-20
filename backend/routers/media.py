@@ -1,13 +1,17 @@
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
+import auth
 import main
 from main import StoryImageGenerationRequest, StoryImageGenerationResponse
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 
 
 @router.get("/api/inline-media")
-async def inline_media(url: str = Query(..., max_length=2000)):
+async def inline_media(
+    url: str = Query(..., max_length=2000),
+    identity: auth.Identity = Depends(auth.require_teacher_or_admin),
+):
     """Resolve an image/audio reference (local /uploads/... path or a remote
     http(s) URL, e.g. a DALL-E/Pollinations.ai-hosted story image) to a
     base64 data URL. Used by story export so the browser never has to
@@ -21,7 +25,11 @@ async def inline_media(url: str = Query(..., max_length=2000)):
 
 
 @router.post("/api/generate-story-images", response_model=StoryImageGenerationResponse)
-async def generate_story_images(request: StoryImageGenerationRequest, req: Request):
+async def generate_story_images(
+    request: StoryImageGenerationRequest,
+    req: Request,
+    identity: auth.Identity = Depends(auth.require_teacher_or_admin),
+):
     """
     Generate a six-image story sequence plan from a classroom situation.
     Gemini creates the scene plan when configured; deterministic local fallback

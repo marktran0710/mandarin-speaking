@@ -1,14 +1,15 @@
 import asyncio
 import json
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import StreamingResponse
 
 from ai_feedback import available_providers, default_provider
+import auth
 import main
 from main import AnalysisResponse, AsrStatusResponse, TranscriptionResponse
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 
 
 def _sse_line(payload: dict) -> str:
@@ -146,7 +147,7 @@ async def analyze_speech(
         # main.analyze_semaphore. Acquired inside the timeout so a long
         # queue wait counts against ANALYZE_TIMEOUT_SECONDS same as
         # processing time, instead of being able to wait forever.
-        async with main.analyze_semaphore:
+        async with main.acquire_analysis_slot():
             return await main._do_analyze(
                 content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
                 scene_phrases, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
@@ -238,7 +239,7 @@ async def analyze_speech_stream(
 
         async def _run_analysis():
             # Same concurrency cap as /api/analyze - see main.analyze_semaphore.
-            async with main.analyze_semaphore:
+            async with main.acquire_analysis_slot():
                 return await main._do_analyze(
                     content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
                     scene_phrases, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
@@ -287,7 +288,13 @@ async def transcribe_speech(
 
     try:
         content = await file.read()
-        result = await main.transcribe_audio_content(content, model, vocab_hint=vocab_hint)
+        async def run_bounded_transcription():
+            async with main.acquire_analysis_slot():
+                return await main.transcribe_audio_content(content, model, vocab_hint=vocab_hint)
+
+        result = await asyncio.wait_for(
+            run_bounded_transcription(), timeout=main.ANALYZE_TIMEOUT_SECONDS
+        )
         if vocab_hint.strip():
             result.text = main.correct_homophones(result.text, vocab_hint)
         return result

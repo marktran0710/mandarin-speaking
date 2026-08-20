@@ -4,7 +4,7 @@ import ToneMark from "../components/ToneMark";
 import "../components/BiLabel.css";
 import "./LoginPage.css";
 import "./StudentLoginPage.css";
-import { canUseDatabase, createStudent, loginStudent } from "../services/database";
+import { loginStudent } from "../services/database";
 import { signIn } from "../utils/session";
 
 function EyeIcon({ open }: { open: boolean }) {
@@ -22,22 +22,8 @@ function EyeIcon({ open }: { open: boolean }) {
   );
 }
 
-const DEFAULT_PASSWORD = "123456";
-
-/** Dedicated student sign-in: type your name and password (default 123456
- * for every student, teacher-resettable in the backend). The teacher page
- * keeps the old passwordless LoginPage.
- *
- * Deliberately no roster picker — showing every classmate's name on a
- * public login screen isn't something a student needs to see to sign
- * in themselves. A name that isn't on the roster yet still joins on the
- * shared default password, same as before; the backend just tells a
- * genuinely new name (404) apart from an existing name with the wrong
- * password (401) so the latter can't slide through as a "new" signup.
- *
- * A classroom friction gate, not real auth — verification happens against
- * the roster's plaintext password column; without a backend it falls back
- * to the shared default so offline demos still work. */
+/** Dedicated student sign-in. Student accounts are provisioned by a teacher
+ * or admin; the public student portal never creates roster accounts. */
 export default function StudentLoginPage({
   onLogin,
 }: {
@@ -64,40 +50,14 @@ export default function StudentLoginPage({
       return;
     }
 
-    // The admin demo backdoor stays off the roster — checking it locally
-    // avoids creating an "admin" student the teacher would see.
-    const isAdminName = trimmed.toLowerCase() === "admin";
-    if (isAdminName || !canUseDatabase()) {
-      if (password !== DEFAULT_PASSWORD) {
-        setError("password");
-        return;
-      }
-      startSession(trimmed);
-      return;
-    }
-
     setBusy(true);
     setError(null);
     try {
       const student = await loginStudent({ name: trimmed, password });
       startSession(student.name, student.id);
     } catch (err) {
-      const flags = err as { notFound?: boolean; wrongCredentials?: boolean };
-      if (flags.notFound) {
-        // No student with this name yet — joins on the shared default
-        // password, checked before the record is created so a typo'd
-        // password doesn't add a stray student.
-        if (password !== DEFAULT_PASSWORD) {
-          setError("password");
-        } else {
-          try {
-            const created = await createStudent(trimmed);
-            startSession(created.name, created.id);
-          } catch {
-            setError("server");
-          }
-        }
-      } else if (flags.wrongCredentials) {
+      const flags = err as { wrongCredentials?: boolean };
+      if (flags.wrongCredentials) {
         setError("password");
       } else {
         setError("server");
@@ -178,7 +138,7 @@ export default function StudentLoginPage({
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="預設 123456 · Default 123456"
+                  placeholder="輸入教師提供的密碼 · Enter your password"
                   autoComplete="current-password"
                   aria-invalid={error === "password" || undefined}
                 />

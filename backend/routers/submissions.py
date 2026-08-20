@@ -80,6 +80,15 @@ async def create_story_submission(
     scenes_sorted = sorted(submission.scenes, key=lambda s: s.sceneIndex)
 
     with connect_db() as db:
+        existing = db.execute(
+            "SELECT student_id FROM story_submissions WHERE id = %s",
+            (submission.id,),
+        ).fetchone()
+        if existing is not None and existing.get("student_id") != identity.id:
+            raise HTTPException(
+                status_code=409,
+                detail="Submission already belongs to another student.",
+            )
         db.execute(
             """
             INSERT INTO story_submissions

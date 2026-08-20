@@ -12,9 +12,20 @@ describe("StudentLoginPage behavior", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Please enter a name and password.");
   });
 
-  it("rejects a wrong offline password and accepts the shared demo password", async () => {
+  it("rejects a wrong password and accepts a provisioned student account", async () => {
     const user = userEvent.setup();
     const onLogin = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn()
+        .mockResolvedValueOnce(new Response("{}", { status: 401 }))
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({ id: "student-1", name: "Minh", createdAt: "now" }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          ),
+        ),
+    );
     render(<StudentLoginPage onLogin={onLogin} />);
 
     await user.type(screen.getByLabelText(/Student name/), "Minh");
@@ -24,7 +35,7 @@ describe("StudentLoginPage behavior", () => {
     expect(onLogin).not.toHaveBeenCalled();
 
     await user.clear(screen.getByLabelText(/Password/));
-    await user.type(screen.getByLabelText(/Password/), "123456");
+    await user.type(screen.getByLabelText(/Password/), "correct-password");
     await user.click(screen.getByRole("button", { name: /Enter Student Mode/ }));
     expect(onLogin).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem("studentSession")).toContain("Minh");

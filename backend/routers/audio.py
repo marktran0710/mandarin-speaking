@@ -84,7 +84,7 @@ async def create_audio_record(
     identity: auth.Identity = Depends(auth.require_student),
 ):
     record.studentId = identity.id
-    main.save_audio_record(record)
+    main.save_audio_record(record, owner_id=identity.id)
     return record
 
 
@@ -100,9 +100,16 @@ async def upload_audio_record(
         raise HTTPException(status_code=400, detail="Invalid audio record JSON") from exc
 
     audio_record.studentId = identity.id
-    audio_record.audioUrl = await main.save_uploaded_audio(file, audio_record.id)
+    with connect_db() as db:
+        existing = db.execute(
+            "SELECT student_id FROM audio_records WHERE id = %s",
+            (audio_record.id,),
+        ).fetchone()
+    if existing is not None and existing.get("student_id") != identity.id:
+        raise HTTPException(status_code=409, detail="Audio record already belongs to another student.")
+    audio_record.audioUrl = await main.save_uploaded_audio(file, audio_record.id, identity.id)
     audio_record.audioName = audio_record.audioUrl.rsplit("/", 1)[-1]
-    main.save_audio_record(audio_record)
+    main.save_audio_record(audio_record, owner_id=identity.id)
     return audio_record
 
 

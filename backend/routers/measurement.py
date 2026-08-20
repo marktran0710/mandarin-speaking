@@ -1,10 +1,11 @@
 from typing import Any, Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field
 
 from database import connect_db
+import auth
 
 router = APIRouter()
 
@@ -38,7 +39,12 @@ def _row_to_event(row: dict) -> dict:
 
 
 @router.post("/api/measurement-events", status_code=202)
-async def record_measurement_event(event: MeasurementEventRequest):
+async def record_measurement_event(
+    event: MeasurementEventRequest,
+    identity: auth.Identity = Depends(auth.require_student),
+):
+    # Never trust a client-supplied student id for analytics attribution.
+    event.studentId = identity.id
     with connect_db() as db:
         db.execute(
             """
@@ -58,7 +64,10 @@ async def record_measurement_event(event: MeasurementEventRequest):
 
 
 @router.get("/api/measurement-events")
-async def list_measurement_events(limit: int = Query(default=2000, ge=1, le=10000)):
+async def list_measurement_events(
+    limit: int = Query(default=2000, ge=1, le=10000),
+    identity: auth.Identity = Depends(auth.require_teacher_or_admin),
+):
     with connect_db() as db:
         rows = db.execute(
             "SELECT * FROM learning_measurement_events ORDER BY occurred_at DESC LIMIT %s",

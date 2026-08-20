@@ -82,7 +82,7 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
         // going forward. A save failure shouldn't block sign-in; the
         // student just falls back to name-only for this session.
         try {
-          const created = await createStudent(trimmed);
+          const created = await createStudent(trimmed, password);
           studentId = created.id;
         } catch {
           /* fall back to name-only below */

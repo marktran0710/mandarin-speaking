@@ -36,12 +36,17 @@ import uuid
 from typing import Any, Literal, Optional
 
 import psycopg.errors
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, model_validator
 
 from database import connect_db
+import auth
 
-router = APIRouter(prefix="/api/teacher-review", tags=["teacher-review"])
+router = APIRouter(
+    prefix="/api/teacher-review",
+    tags=["teacher-review"],
+    dependencies=[Depends(auth.require_teacher_or_admin)],
+)
 
 RatingStage = Literal["stage_1_blind", "stage_2_feedback_review"]
 FeedbackAppropriateness = Literal["APPROPRIATE", "PARTIALLY_APPROPRIATE", "INAPPROPRIATE"]

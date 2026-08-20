@@ -73,11 +73,20 @@ class TestResolveMediaB64:
         browser, which is what would otherwise be blocked by CORS."""
         import main
         import httpx
+        import socket
+
+        monkeypatch.setattr(main, "REMOTE_MEDIA_ALLOWED_HOSTS", {"third-party.example"})
+        monkeypatch.setattr(
+            socket,
+            "getaddrinfo",
+            lambda *args, **kwargs: [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))],
+        )
 
         class FakeResponse:
             status_code = 200
             headers = {"content-type": "audio/mpeg"}
-            content = b"fake-remote-bytes"
+            async def aiter_bytes(self):
+                yield b"fake-remote-bytes"
 
         class FakeAsyncClient:
             def __init__(self, *args, **kwargs):
@@ -89,9 +98,18 @@ class TestResolveMediaB64:
             async def __aexit__(self, *exc):
                 return False
 
-            async def get(self, url):
+            def stream(self, method, url):
                 assert url == "https://third-party.example/audio.mp3"
-                return FakeResponse()
+                response = FakeResponse()
+
+                class StreamContext:
+                    async def __aenter__(self):
+                        return response
+
+                    async def __aexit__(self, *exc):
+                        return False
+
+                return StreamContext()
 
         monkeypatch.setattr(httpx, "AsyncClient", FakeAsyncClient)
 

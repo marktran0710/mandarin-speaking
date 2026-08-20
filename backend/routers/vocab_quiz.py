@@ -6,6 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from psycopg.types.json import Jsonb
 
 import auth
+import threading
 from analytics.joint_time import fit_joint_mode
 from analytics.weak_words import WordOccurrence, score_weak_words
 from database import connect_db, row_to_vocab_quiz_attempt
@@ -24,7 +25,10 @@ from main import (
     VocabSynonymResponse,
 )
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
+_irt_refit_lock = threading.Lock()
+_irt_refit_pending = False
+_irt_refit_dirty = False
 
 
 @router.get("/api/vocab-quiz-attempts")
@@ -130,6 +134,32 @@ def refit_vocab_quiz_irt_cache() -> None:
         )
 
 
+def _coalesced_irt_refit() -> None:
+    """Run one refit at a time and fold concurrent submissions together."""
+    global _irt_refit_pending, _irt_refit_dirty
+    while True:
+        with _irt_refit_lock:
+            _irt_refit_dirty = False
+        try:
+            refit_vocab_quiz_irt_cache()
+        finally:
+            with _irt_refit_lock:
+                if not _irt_refit_dirty:
+                    _irt_refit_pending = False
+                    return
+
+
+def schedule_irt_refit(background_tasks: BackgroundTasks) -> None:
+    """Schedule a bounded/coalesced cache refresh after a quiz write."""
+    global _irt_refit_pending, _irt_refit_dirty
+    with _irt_refit_lock:
+        _irt_refit_dirty = True
+        if _irt_refit_pending:
+            return
+        _irt_refit_pending = True
+    background_tasks.add_task(_coalesced_irt_refit)
+
+
 @router.get("/api/vocab-quiz-attempts/weak-words")
 async def get_weak_words(
     story_id: str,
@@ -209,6 +239,15 @@ async def create_vocab_quiz_attempt(
 ):
     attempt.studentId = identity.id
     with connect_db() as db:
+        existing = db.execute(
+            "SELECT student_id FROM vocab_quiz_attempts WHERE id = %s",
+            (attempt.id,),
+        ).fetchone()
+        if existing is not None and existing.get("student_id") != identity.id:
+            raise HTTPException(
+                status_code=409,
+                detail="Quiz attempt already belongs to another student.",
+            )
         db.execute(
             """
             INSERT INTO vocab_quiz_attempts
@@ -239,7 +278,7 @@ async def create_vocab_quiz_attempt(
                 Jsonb([r.model_dump() for r in attempt.questionResults]),
             ),
         )
-    background_tasks.add_task(refit_vocab_quiz_irt_cache)
+    schedule_irt_refit(background_tasks)
     return attempt.model_dump()
 
 

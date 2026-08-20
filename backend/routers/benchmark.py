@@ -8,14 +8,16 @@ which keeps the pass threshold adjustable without re-running any audio.
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+
+import auth
 
 from benchmarking import ompal_runner
 from benchmarking.ompal_corpus import corpus_status, load_utterances
 from benchmarking.ompal_report import PRODUCTION_THRESHOLD, build_report
 from praat_analyzer import analyze_all
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(auth.require_teacher_or_admin)])
 
 _PRIVATE_ROOT = Path(
     os.getenv("BENCHMARK_DATA_DIR", Path(__file__).resolve().parent.parent / "private-data")

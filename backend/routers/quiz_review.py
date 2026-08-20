@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from psycopg.types.json import Jsonb
 
 import main
+import auth
 from main import (
     QuizApproveRequest,
     QuizValidateRequest,
@@ -13,7 +14,7 @@ from quiz_bank import candidates_for_review, translation_integrity_candidates
 from quiz_chat import make_chat
 from quiz_pipeline import validate_candidates
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(auth.require_teacher_or_admin)])
 
 # The pipeline's internal Candidate.kind for a distractor pool is
 # "translation" (it shares the translation question's solver/judge prompts) —

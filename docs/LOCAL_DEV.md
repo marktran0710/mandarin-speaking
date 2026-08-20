@@ -45,7 +45,7 @@ docker compose -f docker-compose.dev.yml ps
 docker compose -f docker-compose.dev.yml exec backend python -m alembic current
 ```
 
-The expected migration is `0017 (head)` and the backend readiness endpoint
+The expected migration is `0019 (head)` and the backend readiness endpoint
 should return HTTP 200 with `database: "ok"` and `storage: "ok"`.
 
 To run in the background:

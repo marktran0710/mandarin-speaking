@@ -1,16 +1,17 @@
-from fastapi import FastAPI, UploadFile, HTTPException
+from fastapi import Depends, FastAPI, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 from typing import Any, Callable, Dict, Literal, Optional, List, Tuple
 import base64
 import io
+import ipaddress
 import logging
 import logging.handlers
 import mimetypes
 import os
 import tempfile
+import secrets
 import time
 import collections
 import httpx
@@ -20,9 +21,12 @@ import asyncio
 import numpy as np
 import threading
 import datetime
-from urllib.parse import quote, unquote_to_bytes
+import socket
+from contextlib import asynccontextmanager
+from urllib.parse import quote, unquote_to_bytes, urlparse
 from pathlib import Path
 from starlette.concurrency import run_in_threadpool
+import auth
 
 # ── Structured logging ─────────────────────────────────────────────────────
 # File handler alongside the console one - a PowerShell window's scrollback
@@ -85,6 +89,11 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env.local"))
 
 app = FastAPI(title="Speaking App Backend", version="1.0.0")
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "dist"
+REMOTE_MEDIA_ALLOWED_HOSTS = {
+    host.strip().lower()
+    for host in os.getenv("REMOTE_MEDIA_ALLOWED_HOSTS", "").split(",")
+    if host.strip()
+}
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", os.path.join(os.path.dirname(__file__), "uploads"))
 AUDIO_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "audio")
 IMAGE_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "images")
@@ -92,11 +101,58 @@ STORY_AUDIO_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "story_audio")
 os.makedirs(AUDIO_UPLOAD_DIR, exist_ok=True)
 os.makedirs(IMAGE_UPLOAD_DIR, exist_ok=True)
 os.makedirs(STORY_AUDIO_UPLOAD_DIR, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+@app.get("/uploads/{relative_path:path}")
+async def serve_upload(
+    relative_path: str,
+    identity: auth.Identity = Depends(auth.get_current_identity),
+):
+    """Serve uploaded media only to an authenticated session."""
+    upload_root = Path(UPLOAD_DIR).resolve()
+    requested = (upload_root / unquote_to_bytes(relative_path).decode("utf-8")).resolve()
+    if requested != upload_root and upload_root not in requested.parents:
+        raise HTTPException(status_code=404, detail="Media not found.")
+    if not requested.is_file():
+        raise HTTPException(status_code=404, detail="Media not found.")
+    if identity.role == "student":
+        stored_url = f"/uploads/{relative_path.replace(os.sep, '/')}"
+        with connect_db() as db:
+            owns_audio = db.execute(
+                "SELECT 1 FROM audio_records WHERE student_id = %s AND audio_url = %s LIMIT 1",
+                (identity.id, stored_url),
+            ).fetchone()
+            owns_story_audio = db.execute(
+                "SELECT 1 FROM story_submissions WHERE student_id = %s AND concatenated_audio_url = %s LIMIT 1",
+                (identity.id, stored_url),
+            ).fetchone()
+            is_published_lesson_media = db.execute(
+                "SELECT 1 FROM custom_stories WHERE published = TRUE AND frames::text LIKE %s LIMIT 1",
+                (f"%{stored_url}%",),
+            ).fetchone()
+        if not owns_audio and not owns_story_audio and not is_published_lesson_media:
+            raise HTTPException(status_code=403, detail="Media access is not allowed.")
+    media_type, _ = mimetypes.guess_type(str(requested))
+    return FileResponse(requested, media_type=media_type or "application/octet-stream")
+
+
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "same-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), geolocation=(), payment=()")
+    return response
 
 
 @app.on_event("startup")
 async def startup_event():
+    if os.getenv("APP_ENV", "development").lower() == "production":
+        if os.getenv("COOKIE_SECURE", "false").lower() != "true":
+            raise RuntimeError("COOKIE_SECURE=true is required in production.")
+        if not os.getenv("ADMIN_PASSWORD", ""):
+            raise RuntimeError("ADMIN_PASSWORD must be configured in production.")
+        if not Path(UPLOAD_DIR).is_absolute() or not str(Path(UPLOAD_DIR)).startswith("/data"):
+            raise RuntimeError("Production uploads must live on the persistent /data volume.")
     init_db()
 
 
@@ -686,7 +742,11 @@ class VocabQuizAttemptRequest(BaseModel):
 
 class StudentCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    password: str = Field(default="123456", min_length=1, max_length=100)
+    password: str = Field(..., min_length=8, max_length=100)
+
+
+class StudentPasswordResetRequest(BaseModel):
+    password: str = Field(..., min_length=8, max_length=100)
 
 
 class QuizExclusion(BaseModel):
@@ -802,7 +862,7 @@ class Student(BaseModel):
 
 class TeacherCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    password: str = Field(default="123456", min_length=1, max_length=100)
+    password: str = Field(..., min_length=8, max_length=100)
 
 class TeacherLoginRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
@@ -855,7 +915,7 @@ async def readiness_check():
     return result
 
 
-def save_audio_record(record: AudioRecordRequest):
+def save_audio_record(record: AudioRecordRequest, owner_id: Optional[str] = None):
     metrics = dict(record.praatMetrics or {})
     if record.analysisVersion:
         metrics.setdefault("analysis_version", record.analysisVersion)
@@ -866,6 +926,13 @@ def save_audio_record(record: AudioRecordRequest):
     if record.comparisonGroupId:
         metrics.setdefault("comparison_group_id", record.comparisonGroupId)
     with connect_db() as db:
+        if owner_id is not None:
+            existing = db.execute(
+                "SELECT student_id FROM audio_records WHERE id = %s",
+                (record.id,),
+            ).fetchone()
+            if existing is not None and existing.get("student_id") != owner_id:
+                raise HTTPException(status_code=409, detail="Audio record already belongs to another student.")
         db.execute(
             """
             INSERT INTO audio_records (
@@ -978,9 +1045,10 @@ class TTSRequest(BaseModel):
     voice: str = ""
 
 
-async def save_uploaded_audio(file: UploadFile, record_id: str) -> str:
+async def save_uploaded_audio(file: UploadFile, record_id: str, owner_id: str = "") -> str:
     extension = extension_from_upload(file.filename, file.content_type, default=".wav")
-    filename = f"{safe_file_stem(record_id)}{extension}"
+    owner_stem = safe_file_stem(owner_id) if owner_id else "legacy"
+    filename = f"{owner_stem}-{safe_file_stem(record_id)}{extension}"
     path = os.path.join(AUDIO_UPLOAD_DIR, filename)
     content = await file.read()
     if len(content) > _MAX_AUDIO_BYTES:
@@ -991,7 +1059,7 @@ async def save_uploaded_audio(file: UploadFile, record_id: str) -> str:
     # Write beside the target and replace atomically. A failed/interrupted
     # upload must never leave a truncated file under a URL already persisted
     # in audio_records.
-    temp_path = f"{path}.tmp-{os.getpid()}"
+    temp_path = f"{path}.tmp-{secrets.token_hex(8)}"
     with open(temp_path, "wb") as output:
         output.write(content)
     os.replace(temp_path, path)
@@ -1245,30 +1313,66 @@ async def resolve_media_b64(ref: str) -> Optional[Tuple[str, str]]:
     if ref.startswith("data:"):
         header, _, data = ref.partition(",")
         mime = header.removeprefix("data:").split(";")[0] or "application/octet-stream"
+        if len(data) > 7 * 1024 * 1024 or mime.lower() == "image/svg+xml":
+            return None
         return data, mime
 
     if ref.startswith("/uploads/"):
         relative_path = ref.removeprefix("/uploads/").replace("/", os.sep)
-        path = os.path.abspath(os.path.join(UPLOAD_DIR, relative_path))
-        upload_root = os.path.abspath(UPLOAD_DIR)
-        if not path.startswith(upload_root) or not os.path.exists(path):
+        upload_root = Path(UPLOAD_DIR).resolve()
+        path = (upload_root / relative_path).resolve()
+        try:
+            path.relative_to(upload_root)
+        except ValueError:
+            return None
+        if not path.is_file():
             return None
         mime = (
-            _IMAGE_MIME_BY_EXT.get(os.path.splitext(path)[1].lower())
-            or mimetypes.guess_type(path)[0]
+            _IMAGE_MIME_BY_EXT.get(path.suffix.lower())
+            or mimetypes.guess_type(str(path))[0]
             or "application/octet-stream"
         )
-        with open(path, "rb") as fh:
+        if mime == "image/svg+xml":
+            return None
+        with path.open("rb") as fh:
             return base64.b64encode(fh.read()).decode(), mime
 
     if ref.startswith("http://") or ref.startswith("https://"):
+        parsed = urlparse(ref)
+        if not parsed.hostname or parsed.username or parsed.password:
+            return None
+        if parsed.hostname.lower() not in REMOTE_MEDIA_ALLOWED_HOSTS:
+            return None
+        if parsed.port not in (None, 80, 443):
+            return None
         try:
-            async with httpx.AsyncClient(timeout=10) as client:
-                response = await client.get(ref)
-            if response.status_code != 200:
+            addresses = await asyncio.to_thread(
+                socket.getaddrinfo,
+                parsed.hostname,
+                parsed.port or (443 if parsed.scheme == "https" else 80),
+                type=socket.SOCK_STREAM,
+            )
+            if not addresses or any(
+                not ipaddress.ip_address(address[4][0]).is_global
+                for address in addresses
+            ):
                 return None
+            async with httpx.AsyncClient(timeout=10, follow_redirects=False) as client:
+                async with client.stream("GET", ref) as response:
+                    if response.status_code != 200:
+                        return None
+                    content_length = int(response.headers.get("content-length", "0") or 0)
+                    if content_length > 5 * 1024 * 1024:
+                        return None
+                    chunks: list[bytes] = []
+                    total = 0
+                    async for chunk in response.aiter_bytes():
+                        total += len(chunk)
+                        if total > 5 * 1024 * 1024:
+                            return None
+                        chunks.append(chunk)
             mime = response.headers.get("content-type", "application/octet-stream").split(";")[0]
-            return base64.b64encode(response.content).decode(), mime
+            return base64.b64encode(b"".join(chunks)).decode(), mime
         except Exception:
             return None
 
@@ -1298,6 +1402,35 @@ ANALYZE_TIMEOUT_SECONDS = int(os.getenv("ANALYZE_TIMEOUT_SECONDS", "120"))
 # any one request (including its queue wait) can take.
 ANALYZE_CONCURRENCY_LIMIT = int(os.getenv("ANALYZE_CONCURRENCY_LIMIT", "4"))
 analyze_semaphore = asyncio.Semaphore(ANALYZE_CONCURRENCY_LIMIT)
+ANALYZE_QUEUE_LIMIT = int(os.getenv("ANALYZE_QUEUE_LIMIT", "16"))
+_analysis_admission_lock = asyncio.Lock()
+_analysis_waiters = 0
+
+
+@asynccontextmanager
+async def acquire_analysis_slot():
+    """Admit a bounded number of CPU/ASR requests across all analysis routes."""
+    global _analysis_waiters
+    async with _analysis_admission_lock:
+        if _analysis_waiters >= ANALYZE_QUEUE_LIMIT:
+            raise HTTPException(
+                status_code=503,
+                detail="Analysis capacity is temporarily full. Please retry shortly.",
+                headers={"Retry-After": "5"},
+            )
+        _analysis_waiters += 1
+
+    counted_as_waiter = True
+    try:
+        async with analyze_semaphore:
+            async with _analysis_admission_lock:
+                _analysis_waiters -= 1
+            counted_as_waiter = False
+            yield
+    finally:
+        if counted_as_waiter:
+            async with _analysis_admission_lock:
+                _analysis_waiters -= 1
 
 
 def apply_recording_qc_to_diagnostics(word_prosody: list, feedback_quality: dict) -> dict:

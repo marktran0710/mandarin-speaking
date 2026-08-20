@@ -113,9 +113,28 @@ def clean_database(use_test_database):
 # ── FastAPI test client ────────────────────────────────────────────────────
 
 @pytest.fixture()
-def client():
+def client(use_test_database):
     from fastapi.testclient import TestClient
     import main
+    import uuid
+    with TestClient(main.app) as c:
+        # Normal API tests operate as an authenticated staff member now that
+        # roster/content endpoints are no longer anonymous. Tests that verify
+        # the public boundary should use anonymous_client instead.
+        staff_name = f"__test_staff__{uuid.uuid4()}"
+        _insert_teacher_row(staff_name, "test-staff-password")
+        c.post(
+            "/api/teachers/login",
+            json={"name": staff_name, "password": "test-staff-password"},
+        )
+        yield c
+
+
+@pytest.fixture()
+def anonymous_client(use_test_database):
+    from fastapi.testclient import TestClient
+    import main
+
     with TestClient(main.app) as c:
         yield c
 
@@ -125,10 +144,13 @@ def logged_in_student(client):
     """A logged-in student: (client, student). The client's cookie jar
     carries its session, so requests through it act as this student -
     used by any test that needs to write/read student-scoped data."""
-    student = client.post("/api/students", json={"name": "Test Student"}).json()
+    password = "student-password"
+    student = client.post(
+        "/api/students", json={"name": "Test Student", "password": password}
+    ).json()
     client.post(
         "/api/students/login",
-        json={"studentId": student["id"], "password": "123456"},
+        json={"studentId": student["id"], "password": password},
     )
     return client, student
 
@@ -143,9 +165,11 @@ def _insert_teacher_row(name: str, password: str) -> dict:
     import database
 
     with database.connect_db() as db:
+        import auth
+
         row = db.execute(
             "INSERT INTO teachers (id, name, password) VALUES (%s, %s, %s) RETURNING *",
-            (str(uuid.uuid4()), name, password),
+            (str(uuid.uuid4()), name, auth.hash_password(password)),
         ).fetchone()
     return database.row_to_teacher(row)
 
@@ -171,7 +195,15 @@ def login_new_client(stack, name, role, password="123456"):
 
     new_client = stack.enter_context(TestClient(main.app))
     if role == "student":
-        created = new_client.post("/api/students", json={"name": name}).json()
+        import uuid
+        import auth
+        import database
+
+        with database.connect_db() as db:
+            created = db.execute(
+                "INSERT INTO students (id, name, password) VALUES (%s, %s, %s) RETURNING *",
+                (str(uuid.uuid4()), name, auth.hash_password(password)),
+            ).fetchone()
         new_client.post(
             "/api/students/login",
             json={"studentId": created["id"], "password": password},

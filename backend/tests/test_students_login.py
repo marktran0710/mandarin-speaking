@@ -1,9 +1,7 @@
-"""Student login endpoint: password check against the roster (default 123456).
+"""Student login endpoint: password check against the provisioned roster.
 
-Still a classroom friction gate (plaintext comparison, default password) —
-but success now also issues a signed session cookie, verified here alongside
-the pre-existing behavior. Runs against the isolated test database so the
-dev roster is never touched.
+Success issues a signed session cookie. Runs against the isolated test
+database so the dev roster is never touched.
 """
 import os
 import sys
@@ -19,17 +17,19 @@ import auth
 @pytest.fixture()
 def roster_client(client):
     """Client with one seeded student, returned as (client, student)."""
-    created = client.post("/api/students", json={"name": "Minh"}).json()
+    created = client.post(
+        "/api/students", json={"name": "Minh", "password": "minh-password"}
+    ).json()
     return client, created
 
 
 class TestStudentLogin:
 
-    def test_default_password_logs_in_by_id(self, roster_client):
+    def test_provisioned_password_logs_in_by_id(self, roster_client):
         client, student = roster_client
         response = client.post(
             "/api/students/login",
-            json={"studentId": student["id"], "password": "123456"},
+            json={"studentId": student["id"], "password": "minh-password"},
         )
         assert response.status_code == 200
         assert response.json()["id"] == student["id"]
@@ -39,7 +39,7 @@ class TestStudentLogin:
         client, student = roster_client
         response = client.post(
             "/api/students/login",
-            json={"name": "  minh ", "password": "123456"},
+            json={"name": "  minh ", "password": "minh-password"},
         )
         assert response.status_code == 200
         assert response.json()["id"] == student["id"]
@@ -56,14 +56,14 @@ class TestStudentLogin:
         client, _ = roster_client
         response = client.post(
             "/api/students/login",
-            json={"name": "Nobody", "password": "123456"},
+            json={"name": "Nobody", "password": "minh-password"},
         )
         assert response.status_code == 404
 
     def test_missing_identity_is_400(self, roster_client):
         client, _ = roster_client
         response = client.post(
-            "/api/students/login", json={"password": "123456"}
+            "/api/students/login", json={"password": "minh-password"}
         )
         assert response.status_code == 400
 
@@ -71,7 +71,7 @@ class TestStudentLogin:
         client, student = roster_client
         response = client.post(
             "/api/students/login",
-            json={"studentId": student["id"], "password": "123456"},
+            json={"studentId": student["id"], "password": "minh-password"},
         )
         token = response.cookies.get(auth.COOKIE_NAME)
         assert token is not None
@@ -91,7 +91,7 @@ class TestStudentLogin:
         client, student = roster_client
         client.post(
             "/api/students/login",
-            json={"studentId": student["id"], "password": "123456"},
+            json={"studentId": student["id"], "password": "minh-password"},
         )
         assert client.cookies.get(auth.COOKIE_NAME) is not None
         client.post("/api/students/logout")

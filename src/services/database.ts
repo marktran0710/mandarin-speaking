@@ -908,7 +908,7 @@ export async function loginStudent(params: {
   return response.json() as Promise<Student>;
 }
 
-export async function createStudent(name: string, password = "123456"): Promise<Student> {
+export async function createStudent(name: string, password: string): Promise<Student> {
   const response = await fetchWithRetry(`${BACKEND_URL}/api/students`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -935,7 +935,7 @@ export async function listTeachers(): Promise<Teacher[]> {
   return Array.isArray(data) ? data : [];
 }
 
-export async function createTeacher(name: string, password = "123456"): Promise<Teacher> {
+export async function createTeacher(name: string, password: string): Promise<Teacher> {
   const response = await fetchWithRetry(`${BACKEND_URL}/api/teachers`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, password }) });
   if (!response.ok) throw new Error(response.status === 409 ? "Teacher already exists." : "Could not create teacher account.");
   return response.json() as Promise<Teacher>;
