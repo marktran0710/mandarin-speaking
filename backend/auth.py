@@ -8,10 +8,13 @@ role-scoped `require_student`/`require_teacher` wrappers) decode and verify
 it, so a router can know who is actually calling instead of who the request
 merely claims to be.
 
-Not designed for the cross-device "Laptop mode" case (frontend and backend
-on different Tailscale hosts) - that needs either HTTPS (for
-`SameSite=None; Secure`) or a header-based token instead of a cookie. Scoped
-out for now; see the classroom capacity/JWT design discussion.
+The cross-device "Laptop mode" case (frontend and backend on different
+Tailscale hosts) works too, but only because the browser is never allowed to
+call this backend cross-origin in the first place - vite.config.ts proxies
+/api and /uploads through the frontend's own dev server, which forwards to
+the real backend host server-side. A browser that DOES call this backend
+directly cross-origin will silently lose the cookie (Chrome drops it even
+with correct CORS/SameSite=Lax headers) - always go through the proxy.
 """
 from __future__ import annotations
 
