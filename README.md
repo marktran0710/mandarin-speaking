@@ -381,14 +381,19 @@ The readiness response should report HTTP `200`, `database: "ok"`, and
 Seeding is explicit and idempotent. Run it after the backend is healthy:
 
 ```powershell
-# Teaching data + Student Demo + Teacher Demo in one idempotent command
+# Packaged materials + teaching data + demo accounts in one idempotent command
 docker compose -f docker-compose.dev.yml exec backend python -m scripts.seed_dev
 ```
 
-Local demo accounts use password `123456`. The seed never changes an existing
-account password. For a deliberate lesson replacement, add `--overwrite`.
+The repository now contains the recovered 18-material fixture. Local demo
+accounts use password `123456`. The seed never changes existing materials or
+account passwords by default. For a deliberate fixture/material replacement,
+add `--overwrite`.
 The image-heavy Lessons 6–8 script remains a separate specialist seed:
 `python -m scripts.seed_lessons_6_8`.
+
+No new Alembic migration is required for this recovery: the database schema is
+already at `0019 (head)`; materials are versioned application seed data.
 
 Existing lessons are not overwritten. Use `--overwrite` only when intentionally
 replacing authored content.

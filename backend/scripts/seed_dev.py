@@ -13,6 +13,7 @@ import sys
 
 
 LESSON_MODULES = (
+    "scripts.seed_materials",
     "scripts.seed_grammar_lesson",
     "scripts.seed_listen_retell_lesson",
     "scripts.seed_vv_kan_lesson",
