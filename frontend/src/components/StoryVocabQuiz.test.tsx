@@ -783,6 +783,14 @@ describe("StoryVocabQuiz weak-words mode", () => {
     );
 
     const weakWordsButton = await screen.findByRole("button", { name: /Weak words \(2\)/ });
+    expect(
+      within(weakWordsButton).getByText(
+        "Personalized from your ability, accuracy, difficulty, and answer speed.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(weakWordsButton).queryByText("Only quizzes the words you got wrong last time."),
+    ).not.toBeInTheDocument();
     await user.click(weakWordsButton);
 
     for (let i = 0; i < 2; i += 1) {

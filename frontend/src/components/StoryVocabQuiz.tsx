@@ -988,8 +988,8 @@ export default function StoryVocabQuiz({
   onDone: () => void;
   onBack?: () => void;
   onComplete?: (summary: VocabQuizSummary) => void;
-  // All three optional and only used to fetch the persistent weak-words
-  // list (see getVocabQuizWeakWords) and this story's earned stars —
+  // All three optional and only used to fetch the persistent, ability-based
+  // weak-words list (see getVocabQuizWeakWords) and this story's earned stars —
   // omitting storyId/student identity just means the weak-words card never
   // appears and stars only come from this device's localStorage.
   storyId?: string;
@@ -1342,9 +1342,9 @@ export default function StoryVocabQuiz({
               </strong>
               <p>
                 <BiLabel
-                  zh="只考你上次答錯的字。"
-                  pinyin="Zhǐ kǎo nǐ shàng cì dá cuò de zì."
-                  en="Only quizzes the words you got wrong last time."
+                  zh="依照你的程度和表現，挑出值得再練習的詞。"
+                  pinyin="Yīzhào nǐ de chéngdù hé biǎoxiàn, tiāochū zhíde zài liànxí de cí."
+                  en="Personalized from your ability, accuracy, difficulty, and answer speed."
                 />
               </p>
             </button>

@@ -2,11 +2,11 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 24px;
+  gap: clamp(18px, 3vw, 28px);
   width: min(100%, 1060px);
   max-width: 1060px;
   margin: 0 auto;
-  padding: 28px 24px 44px;
+  padding: clamp(22px, 4vw, 42px) 24px 48px;
   text-align: center;
 }
 /* The tier-choice screen is a full selection surface: keep the back action
@@ -18,6 +18,7 @@
 
 .vocab-quiz-mode-select > .btn-vocab-quiz-back {
   align-self: flex-start;
+  min-height: 44px;
 }
 
 /* A persistent row above the question itself — Back (if given) and, in
@@ -370,20 +371,43 @@
 
 /* ── Mode select ── */
 .vocab-quiz-mode-title {
-  font-size: clamp(1.9rem, 4vw, 2.7rem);
+  max-width: 15ch;
+  font-size: clamp(2.05rem, 5vw, 3.25rem);
   line-height: 1.12;
   color: var(--clay-ink);
   margin: 0;
+  text-wrap: balance;
 }
 
 .vocab-quiz-mode-select .vocab-quiz-header {
-  width: min(100%, 720px);
+  position: relative;
+  isolation: isolate;
+  width: min(100%, 820px);
   margin: 0 auto;
-  padding: 24px 28px 22px;
-  border: 1px solid var(--clay-hairline);
+  gap: 6px;
+  padding: clamp(22px, 4vw, 30px) clamp(18px, 5vw, 52px) 24px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--clay-hairline));
   border-radius: 24px;
   background: linear-gradient(135deg, var(--clay-surface-card), var(--gold-soft));
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+}
+
+.vocab-quiz-mode-select .vocab-quiz-header::before {
+  content: "";
+  position: absolute;
+  inset: -30% -8% auto 48%;
+  z-index: -1;
+  height: 180%;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--gold) 18%, transparent);
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+
+.vocab-quiz-mode-select .vocab-quiz-header > * {
+  position: relative;
+  z-index: 1;
 }
 
 .vocab-quiz-mode-select .eyebrow {
@@ -403,6 +427,7 @@
 .vocab-quiz-mode-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
   gap: 16px;
   width: 100%;
 }
@@ -414,12 +439,12 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 10px;
+  gap: 12px;
   background: var(--clay-surface-card);
   border: 1.5px solid var(--clay-hairline);
   border-radius: 20px;
-  min-height: 206px;
-  padding: 22px 18px 20px;
+  min-height: 218px;
+  padding: 20px 18px 18px;
   cursor: pointer;
   box-shadow: 0 5px 0 var(--clay-hairline);
   transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
@@ -432,15 +457,36 @@
   box-shadow: 0 2px 0 var(--clay-hairline);
 }
 .vocab-quiz-mode-card strong { font-size: 16px; color: var(--clay-ink); }
-.vocab-quiz-mode-card p { margin: 0; font-size: 13px; color: var(--clay-body); line-height: 1.5; }
+.vocab-quiz-mode-card > strong,
+.vocab-quiz-mode-card > p {
+  width: 100%;
+}
+.vocab-quiz-mode-card p {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 60px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--clay-body);
+  line-height: 1.5;
+}
+.vocab-quiz-mode-review p,
+.vocab-quiz-mode-weak_words p {
+  justify-content: flex-start;
+  text-align: left;
+}
 .vocab-quiz-mode-icon {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
+  width: 52px;
+  height: 52px;
+  border: 1px solid color-mix(in srgb, var(--gold) 34%, transparent);
+  border-radius: 16px;
   color: var(--gold-deep);
   background: var(--gold-soft);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 55%, transparent);
 }
 .vocab-quiz-mode-icon svg { stroke-width: 1.9; }
 
@@ -523,7 +569,7 @@
   }
 
   .vocab-quiz-mode-card {
-    min-height: 190px;
+    min-height: 198px;
   }
 }
 
@@ -536,6 +582,11 @@
   .vocab-quiz-mode-select .vocab-quiz-header {
     padding: 20px 16px 18px;
     border-radius: 20px;
+  }
+
+  .vocab-quiz-mode-title {
+    max-width: none;
+    font-size: clamp(1.8rem, 7vw, 2.6rem);
   }
 
   .vocab-quiz-mode-grid {
@@ -565,6 +616,7 @@
 
   .vocab-quiz-mode-card p {
     grid-column: 2;
+    min-height: 0;
   }
 }
 

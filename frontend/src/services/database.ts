@@ -845,9 +845,10 @@ export async function listVocabQuizAttempts(
   return Array.isArray(data) ? data : [];
 }
 
-// Words in a story whose most recent quiz answer (any past attempt, any
-// mode) was wrong — powers the persistent "weak words" quiz mode, distinct
-// from the same-session-only missed-words retry inside StoryVocabQuiz.
+// Words in a story that still need review for this student, ranked by the
+// backend's ability-aware model (student ability, word difficulty, recency-
+// weighted accuracy, and response speed). This is distinct from the
+// same-session-only missed-words retry inside StoryVocabQuiz.
 export async function getVocabQuizWeakWords(
   storyId: string,
   student: { studentId?: string; studentName?: string },
