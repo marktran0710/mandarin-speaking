@@ -1537,16 +1537,46 @@ def build_pronunciation_mastery(
         for word in word_prosody or []
         for syllable in word.get("syllables") or []
     ]
-    judged_syllables = [
-        syllable for syllable in syllables if syllable.get("passed") is not None
-    ]
-    failed_words = [
-        word.get("token", "")
-        for word in word_prosody or []
-        if word.get("passed") is False
-        or any(syllable.get("passed") is False for syllable in word.get("syllables") or [])
-    ]
-    failed_words = [word for word in failed_words if word]
+
+    def _is_counted_syllable(syllable: dict) -> bool:
+        # Neutral tones and placeholder measurements have no reliable fixed
+        # contour target. They remain visible in the diagnostic breakdown, but
+        # must not affect the sentence-level numerator or denominator.
+        if syllable.get("score_provenance") in {
+            "neutral_not_measured",
+            "not_scored",
+            "constant_short_segment",
+        }:
+            return False
+        return syllable.get("passed") is not None
+
+    def _syllable_gate_passed(syllable: dict) -> bool:
+        # UNCERTAIN is a measurement gap, not evidence of a tone mistake.
+        # Only INCORRECT or INVALID_AUDIO costs the sentence pass. Neutral and
+        # other placeholder syllables never reach this function because they
+        # are excluded by _is_counted_syllable above.
+        status = syllable.get("diagnostic_status")
+        if status in ("INCORRECT", "INVALID_AUDIO"):
+            return False
+        if status is not None:
+            return True
+        return syllable.get("passed") is True
+
+    judged_syllables = [syllable for syllable in syllables if _is_counted_syllable(syllable)]
+    failed_words = []
+    for word in word_prosody or []:
+        word_syllables = word.get("syllables") or []
+        if word_syllables:
+            has_failure = any(
+                _is_counted_syllable(syllable) and not _syllable_gate_passed(syllable)
+                for syllable in word_syllables
+            )
+        else:
+            # Preserve the legacy word-level fallback for payloads that do not
+            # contain per-syllable rows.
+            has_failure = word.get("passed") is False
+        if has_failure and word.get("token"):
+            failed_words.append(word["token"])
 
     if not judged_syllables:
         return {
@@ -1560,22 +1590,6 @@ def build_pronunciation_mastery(
             "missing_target_units": missing_units,
             "message": "Not enough measured tone evidence yet. Record the whole sentence again.",
         }
-
-    def _syllable_gate_passed(syllable: dict) -> bool:
-        # The sentence gate counts UNCERTAIN ("not clear enough to judge")
-        # as a pass — it is a measurement gap, not evidence of a mistake.
-        # Only INCORRECT (a likely tone mismatch) or INVALID_AUDIO (an
-        # unusable recording) should cost the student the sentence pass.
-        # `syllable["passed"]` collapses UNCERTAIN and INCORRECT into the
-        # same False, so this reads the diagnostic verdict directly where
-        # it's present; payloads without one (legacy) fall back to the raw
-        # pass flag.
-        status = syllable.get("diagnostic_status")
-        if status in ("INCORRECT", "INVALID_AUDIO"):
-            return False
-        if status is not None:
-            return True
-        return syllable.get("passed") is True
 
     passed_count = sum(_syllable_gate_passed(syllable) for syllable in judged_syllables)
     pronunciation_failed_words = list(failed_words)

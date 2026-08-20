@@ -142,6 +142,30 @@ def test_uncertain_syllables_do_not_count_against_the_sentence_gate():
     assert "友美" in result["failed_words"]
 
 
+def test_neutral_syllables_are_visible_but_excluded_from_mastery_counts():
+    word = {
+        "token": "嗎",
+        "passed": False,
+        "syllables": [
+            {"char": "嗎", "passed": False, "diagnostic_status": "UNCERTAIN", "score_provenance": "neutral_not_measured"},
+        ],
+    }
+    measured = {
+        "token": "好",
+        "passed": True,
+        "syllables": [
+            {"char": "好", "passed": True, "diagnostic_status": "CORRECT", "score_provenance": "measured"},
+        ],
+    }
+
+    result = build_pronunciation_mastery([word, measured], {"can_score_pronunciation": True})
+
+    assert result["passed"] is True
+    assert result["passed_syllables"] == 1
+    assert result["total_syllables"] == 1
+    assert result["failed_words"] == []
+
+
 def test_incorrect_syllables_still_fail_the_sentence_gate():
     word = {
         "token": "妳",
