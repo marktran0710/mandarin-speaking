@@ -121,7 +121,12 @@ def test_falls_back_to_gemini_when_groq_fails(client, with_groq_key, with_gemini
     groq_error.text = "quota exceeded"
     gemini_success = _mock_gemini_response(WORDS_PAYLOAD)
 
-    with patch("httpx.AsyncClient") as mock_client_cls:
+    # Single attempt only - this test is about cross-provider fallback, not
+    # the per-provider retry _post_with_retry already covers on its own
+    # (test_post_with_retry.py). Without this, the 429 itself gets retried
+    # internally and consumes gemini_success as a (wrongly-shaped) Groq retry
+    # response before the code ever reaches the real Gemini call.
+    with patch("main._ASR_PROVIDER_MAX_ATTEMPTS", 1), patch("httpx.AsyncClient") as mock_client_cls:
         mock_client_cls.return_value = _patched_client(groq_error, gemini_success)
         response = client.post(
             "/api/vocab-from-sentence", json={"sentence": "我在餐廳吃飯。"}

@@ -2732,7 +2732,7 @@ async def extract_vocab_from_sentence_with_groq(sentence: str) -> List[VocabWord
     }
 
     async with httpx.AsyncClient(timeout=20) as client:
-        response = await client.post(
+        response = await _post_with_retry(client,
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
             json=payload,
@@ -2751,7 +2751,7 @@ async def extract_vocab_from_sentence_with_gemini(sentence: str) -> List[VocabWo
     payload = {"contents": [{"parts": [{"text": _vocab_from_sentence_prompt(sentence)}]}]}
 
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(
+        response = await _post_with_retry(client,
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_FEEDBACK_MODEL}:generateContent?key={GEMINI_API_KEY}",
             json=payload,
         )
@@ -2832,7 +2832,7 @@ async def extract_phrases_from_sentence_with_groq(
     }
 
     async with httpx.AsyncClient(timeout=20) as client:
-        response = await client.post(
+        response = await _post_with_retry(client,
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
             json=payload,
@@ -2853,7 +2853,7 @@ async def extract_phrases_from_sentence_with_gemini(
     payload = {"contents": [{"parts": [{"text": _phrases_from_sentence_prompt(sentence, count)}]}]}
 
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(
+        response = await _post_with_retry(client,
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_FEEDBACK_MODEL}:generateContent?key={GEMINI_API_KEY}",
             json=payload,
         )
@@ -2953,7 +2953,7 @@ async def generate_vocab_distractors_with_groq(
     }
 
     async with httpx.AsyncClient(timeout=20) as client:
-        response = await client.post(
+        response = await _post_with_retry(client,
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
             json=payload,
@@ -2974,7 +2974,7 @@ async def generate_vocab_distractors_with_gemini(
     payload = {"contents": [{"parts": [{"text": _vocab_distractors_prompt(words)}]}]}
 
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(
+        response = await _post_with_retry(client,
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_FEEDBACK_MODEL}:generateContent?key={GEMINI_API_KEY}",
             json=payload,
         )
@@ -3082,7 +3082,7 @@ async def generate_vocab_cloze_with_groq(
     }
 
     async with httpx.AsyncClient(timeout=20) as client:
-        response = await client.post(
+        response = await _post_with_retry(client,
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
             json=payload,
@@ -3103,7 +3103,7 @@ async def generate_vocab_cloze_with_gemini(
     payload = {"contents": [{"parts": [{"text": _vocab_cloze_prompt(words)}]}]}
 
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(
+        response = await _post_with_retry(client,
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_FEEDBACK_MODEL}:generateContent?key={GEMINI_API_KEY}",
             json=payload,
         )
@@ -3208,7 +3208,7 @@ async def generate_vocab_synonym_with_groq(
     }
 
     async with httpx.AsyncClient(timeout=20) as client:
-        response = await client.post(
+        response = await _post_with_retry(client,
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
             json=payload,
@@ -3229,7 +3229,7 @@ async def generate_vocab_synonym_with_gemini(
     payload = {"contents": [{"parts": [{"text": _vocab_synonym_prompt(words)}]}]}
 
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(
+        response = await _post_with_retry(client,
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_FEEDBACK_MODEL}:generateContent?key={GEMINI_API_KEY}",
             json=payload,
         )
@@ -3293,7 +3293,7 @@ Rules:
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
     async with httpx.AsyncClient(timeout=30) as client:
-        response = await client.post(
+        response = await _post_with_retry(client,
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_FEEDBACK_MODEL}:generateContent?key={GEMINI_API_KEY}",
             json=payload,
         )
@@ -3395,7 +3395,8 @@ async def generate_real_image(image_prompt: str, seed: int) -> str:
                 "response_format": "url",
             }
             async with httpx.AsyncClient(timeout=45) as client:
-                resp = await client.post(
+                resp = await _post_with_retry(
+                    client,
                     "https://api.openai.com/v1/images/generations",
                     headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
                     json=payload,
@@ -3575,6 +3576,35 @@ def correct_homophones(text: str, vocab_hint: str) -> str:
     return "".join(result)
 
 
+# A classroom of ~50 students hitting the same cloud ASR provider around the
+# same moment makes a rate-limit blip (429) or a dropped connection common,
+# not exceptional. A cheap retry here is much better than immediately
+# burning that provider's slot in transcribe_with_auto_fallback's chain over
+# one transient failure - not every caller even uses "auto" fallback.
+_ASR_RETRY_STATUSES = frozenset({429, 500, 502, 503, 504})
+_ASR_PROVIDER_MAX_ATTEMPTS = int(os.getenv("ASR_PROVIDER_MAX_ATTEMPTS", "3"))
+
+
+async def _post_with_retry(client: httpx.AsyncClient, url: str, **kwargs) -> httpx.Response:
+    """POST with short exponential backoff on timeouts/network errors and
+    on retryable (429/5xx) status codes. Non-retryable status codes (4xx
+    other than 429) are returned immediately on the first attempt, same as
+    a plain `await client.post(...)` - callers keep their existing
+    `if response.status_code != 200: raise ...` handling unchanged."""
+    response: Optional[httpx.Response] = None
+    for attempt in range(1, _ASR_PROVIDER_MAX_ATTEMPTS + 1):
+        try:
+            response = await client.post(url, **kwargs)
+        except (httpx.TimeoutException, httpx.NetworkError):
+            if attempt == _ASR_PROVIDER_MAX_ATTEMPTS:
+                raise
+        else:
+            if response.status_code not in _ASR_RETRY_STATUSES or attempt == _ASR_PROVIDER_MAX_ATTEMPTS:
+                return response
+        await asyncio.sleep(0.5 * 2 ** (attempt - 1))
+    return response
+
+
 async def transcribe_with_openai(audio_content: bytes, vocab_hint: str = "") -> TranscriptionResponse:
     """Transcribe using OpenAI Whisper API."""
     async with httpx.AsyncClient() as client:
@@ -3584,7 +3614,8 @@ async def transcribe_with_openai(audio_content: bytes, vocab_hint: str = "") -> 
             # Whisper uses the prompt to bias recognition toward these words/phrases.
             data["prompt"] = vocab_hint.strip()
 
-        response = await client.post(
+        response = await _post_with_retry(
+            client,
             "https://api.openai.com/v1/audio/transcriptions",
             headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
             files=files,
@@ -3611,7 +3642,8 @@ async def transcribe_with_groq(audio_content: bytes, vocab_hint: str = "") -> Tr
         if vocab_hint.strip():
             data["prompt"] = vocab_hint.strip()
 
-        response = await client.post(
+        response = await _post_with_retry(
+            client,
             "https://api.groq.com/openai/v1/audio/transcriptions",
             headers={"Authorization": f"Bearer {GROQ_API_KEY}"},
             files=files,
@@ -3659,7 +3691,7 @@ async def transcribe_with_gemini(audio_content: bytes, vocab_hint: str = "") -> 
             ]
         }
 
-        response = await client.post(
+        response = await _post_with_retry(client,
             f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_FEEDBACK_MODEL}:generateContent?key={GEMINI_API_KEY}",
             json=payload,
         )
