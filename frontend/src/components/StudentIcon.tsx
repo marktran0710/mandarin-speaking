@@ -9,6 +9,7 @@ export type StudentIconName =
   | "sun"
   | "moon"
   | "logout"
+  | "lock"
   | "star"
   | "chart"
   | "record"
@@ -67,6 +68,8 @@ export default function StudentIcon({ name, size = 18, ...props }: StudentIconPr
       return <svg {...common}><path d="M20 15.2A8.4 8.4 0 0 1 8.8 4a8.8 8.8 0 1 0 11.2 11.2Z" /></svg>;
     case "logout":
       return <svg {...common}><path d="M10 4H5v16h5M14 8l4 4-4 4M8 12h10" /></svg>;
+    case "lock":
+      return <svg {...common}><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>;
     case "star":
       return <svg {...common}><path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z" /></svg>;
     case "chart":
