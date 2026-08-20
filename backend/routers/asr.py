@@ -141,18 +141,23 @@ async def analyze_speech(
         except (json.JSONDecodeError, TypeError):
             reference_word_curves = None
 
-    try:
-        return await asyncio.wait_for(
-            main._do_analyze(
+    async def _run_analysis():
+        # Bounds how many of these run their CPU-bound stages at once - see
+        # main.analyze_semaphore. Acquired inside the timeout so a long
+        # queue wait counts against ANALYZE_TIMEOUT_SECONDS same as
+        # processing time, instead of being able to wait forever.
+        async with main.analyze_semaphore:
+            return await main._do_analyze(
                 content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
                 scene_phrases, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
                 reference_word_curves, scene_target_text,
                 participant_id=participant_id, item_id=item_id, session_id=session_id,
                 attempt_id=attempt_id, attempt_number=attempt_number, attempt_type=attempt_type,
                 study_phase=study_phase,
-            ),
-            timeout=main.ANALYZE_TIMEOUT_SECONDS,
-        )
+            )
+
+    try:
+        return await asyncio.wait_for(_run_analysis(), timeout=main.ANALYZE_TIMEOUT_SECONDS)
     except asyncio.TimeoutError:
         raise HTTPException(
             status_code=504,
@@ -231,11 +236,16 @@ async def analyze_speech_stream(
         def on_stage(entry: dict) -> None:
             queue.put_nowait(entry)
 
-        task = asyncio.create_task(main._do_analyze(
-            content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
-            scene_phrases, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
-            reference_word_curves, scene_target_text, on_stage=on_stage,
-        ))
+        async def _run_analysis():
+            # Same concurrency cap as /api/analyze - see main.analyze_semaphore.
+            async with main.analyze_semaphore:
+                return await main._do_analyze(
+                    content, transcription, asr_model, scene_prompt, scene_vocabulary, ai_provider, scene_image_url,
+                    scene_phrases, scene_suggested_answer, scene_attempt_number, verify_word, pinyin_hint,
+                    reference_word_curves, scene_target_text, on_stage=on_stage,
+                )
+
+        task = asyncio.create_task(_run_analysis())
 
         try:
             while not task.done():
