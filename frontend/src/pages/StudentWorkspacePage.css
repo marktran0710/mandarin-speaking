@@ -1,8 +1,27 @@
 .student-workspace {
-  min-height: calc(100vh - var(--navbar-height));
-  padding: clamp(28px, 5vw, 64px) 0 var(--space-3xl);
-  background: var(--clay-canvas);
+  min-height: calc(100dvh - var(--navbar-height));
+  padding: clamp(32px, 5vw, 68px) 0 var(--space-3xl);
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 93% 7%, color-mix(in srgb, var(--gold-soft) 64%, transparent), transparent 22rem),
+    radial-gradient(circle at 4% 78%, color-mix(in srgb, var(--jade-soft) 30%, transparent), transparent 20rem),
+    var(--clay-canvas);
   color: var(--clay-ink);
+}
+
+.student-workspace::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 0 74%, color-mix(in srgb, var(--gold-soft) 18%, transparent) 74% 75%, transparent 75%);
+  opacity: .5;
+}
+
+.student-workspace > * {
+  position: relative;
+  z-index: 1;
 }
 
 .student-workspace-header,
@@ -15,9 +34,13 @@
 .student-workspace-header {
   display: flex;
   justify-content: space-between;
-  align-items: end;
+  align-items: flex-start;
   gap: var(--space-xl);
-  margin-bottom: var(--space-xl);
+  margin-bottom: clamp(24px, 4vw, 36px);
+}
+
+.student-workspace-header-copy {
+  min-width: 0;
 }
 
 .student-workspace-kicker {
@@ -25,21 +48,46 @@
   color: var(--gold-deep);
   font-size: var(--text-sm);
   font-weight: 700;
+  letter-spacing: .02em;
 }
 
 .student-workspace-header h1 {
   margin: 0;
   color: var(--clay-ink);
   font-family: var(--font-display);
-  font-size: clamp(34px, 5vw, 58px);
+  font-size: clamp(42px, 5.6vw, 68px);
   font-weight: 700;
-  letter-spacing: .02em;
+  letter-spacing: .01em;
+  line-height: 1.05;
+}
+
+.student-workspace-title-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-xs) var(--space-md);
+  margin: var(--space-xs) 0 0;
+  color: var(--clay-body);
+}
+
+.student-workspace-pinyin {
+  color: var(--seal-deep);
+  font-size: clamp(20px, 2.5vw, 30px);
+  letter-spacing: .06em;
+  line-height: 1.2;
+}
+
+.student-workspace-welcome {
+  color: var(--clay-body);
+  font-size: clamp(18px, 2.2vw, 27px);
+  line-height: 1.25;
 }
 
 .student-workspace-intro {
-  margin: var(--space-sm) 0 0;
+  margin: var(--space-md) 0 0;
   color: var(--clay-muted);
   font-size: var(--text-md);
+  line-height: 1.55;
 }
 
 .student-workspace-mark {
@@ -52,6 +100,7 @@
   line-height: .65;
   opacity: .22;
   transform: rotate(-8deg);
+  user-select: none;
 }
 
 .student-workspace-mark span + span {
@@ -61,9 +110,10 @@
 
 .student-workspace-tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: var(--space-md);
-  margin-bottom: clamp(28px, 4vw, 52px);
+  max-width: 860px;
+  margin-bottom: clamp(28px, 4vw, 44px);
 }
 
 .student-workspace-tab {
@@ -71,8 +121,8 @@
   grid-template-columns: 52px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-sm);
-  min-height: 112px;
-  padding: var(--space-md) var(--space-lg);
+  min-height: 108px;
+  padding: var(--space-md) var(--space-lg) var(--space-md) var(--space-md);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-card);
@@ -80,6 +130,7 @@
   text-align: left;
   cursor: pointer;
   box-shadow: 0 5px 0 color-mix(in srgb, var(--clay-hairline) 62%, transparent);
+  touch-action: manipulation;
   transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
 }
 
@@ -92,8 +143,22 @@
 .student-workspace-tab.active {
   border-color: color-mix(in srgb, var(--jade) 58%, var(--clay-hairline));
   background: color-mix(in srgb, var(--jade-soft) 32%, var(--clay-surface-card));
-  box-shadow: 0 5px 0 color-mix(in srgb, var(--jade-soft) 82%, transparent);
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--jade-soft) 82%, transparent), inset 4px 0 0 var(--jade);
   color: var(--clay-ink);
+}
+
+.student-workspace-tab:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--jade) 72%, white);
+  outline-offset: 3px;
+}
+
+.student-workspace-tab:active {
+  transform: translateY(2px);
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--clay-hairline) 62%, transparent);
+}
+
+.student-workspace-tab.active:active {
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--jade-soft) 82%, transparent), inset 4px 0 0 var(--jade);
 }
 
 .student-workspace-tab-icon {
@@ -113,6 +178,11 @@
   font-weight: 700;
 }
 
+.student-workspace-tab-copy .bi-label {
+  align-items: flex-start;
+  text-align: left;
+}
+
 .student-workspace-tab-arrow {
   color: var(--gold-deep);
   font-size: 24px;
@@ -121,6 +191,24 @@
 
 .student-workspace-content {
   min-width: 0;
+}
+
+/* The workspace already provides the page-level title and orientation. Keep
+   Progress focused on its numbers and lesson rows instead of repeating the
+   same title inside the nested legacy overview component. */
+.student-workspace-content > .my-stories-page {
+  min-height: auto;
+  padding: 0 0 var(--space-2xl);
+  background: transparent;
+}
+
+.student-workspace-content > .my-stories-page .stories-header {
+  display: none;
+}
+
+.student-workspace-content > .my-stories-page .profile-stats,
+.student-workspace-content > .my-stories-page .profile-overview {
+  max-width: var(--content-max);
 }
 
 .student-workspace.is-practicing {
@@ -141,7 +229,7 @@
   }
 
   .student-workspace-tabs {
-    grid-template-columns: 1fr;
+    max-width: 100%;
   }
 
   .student-workspace-tab {
@@ -151,6 +239,7 @@
 
 @media (max-width: 520px) {
   .student-workspace {
+    min-height: calc(100dvh - var(--navbar-height));
     padding-top: var(--space-lg);
   }
 
@@ -171,10 +260,22 @@
     width: 44px;
     height: 44px;
   }
+
+  .student-workspace-title-meta {
+    display: block;
+  }
+
+  .student-workspace-welcome {
+    display: block;
+    margin-top: 2px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .student-workspace-tab {
+  .student-workspace-tab,
+  .student-workspace-tab:hover,
+  .student-workspace-tab:active {
     transition: none;
+    transform: none;
   }
 }

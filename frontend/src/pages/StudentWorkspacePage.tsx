@@ -116,13 +116,17 @@ export default function StudentWorkspacePage({
     <main className={`student-workspace ${practiceStarted ? "is-practicing" : ""}`}>
       {!practiceStarted && (
         <header className="student-workspace-header">
-          <div>
+          <div className="student-workspace-header-copy">
             <p className="student-workspace-kicker">
               <BiLabel zh="學生模式" pinyin="Xuéshēng móshì" en="Student mode" />
             </p>
             <h1>
-              <BiLabel zh="我的學習" pinyin="Wǒ de xuéxí" en={`Welcome, ${getStudentName()}`} />
+              <span lang="zh-Hant">我的學習</span>
             </h1>
+            <p className="student-workspace-title-meta">
+              <span className="student-workspace-pinyin">Wǒ de xuéxí</span>
+              <span className="student-workspace-welcome">Welcome, {getStudentName()}</span>
+            </p>
             <p className="student-workspace-intro">
               <BiText
                 zh="選一個方向，慢慢練習。"
@@ -139,13 +143,19 @@ export default function StudentWorkspacePage({
       )}
 
       {!practiceStarted && (
-        <nav className="student-workspace-tabs" aria-label="Student learning areas" role="tablist">
+        <nav
+          className={`student-workspace-tabs student-workspace-tabs-count-${availableViews.length}`}
+          aria-label="Student learning areas"
+          role="tablist"
+        >
           {availableViews.map((item) => (
             <button
               key={item.id}
+              id={`student-workspace-tab-${item.id}`}
               type="button"
               role="tab"
               aria-selected={view === item.id}
+              aria-controls="student-workspace-panel"
               className={`student-workspace-tab ${view === item.id ? "active" : ""}`}
               onClick={() => selectView(item.id)}
             >
@@ -159,7 +169,14 @@ export default function StudentWorkspacePage({
         </nav>
       )}
 
-      <section className="student-workspace-content" aria-live="polite">
+      <section
+        id="student-workspace-panel"
+        className="student-workspace-content"
+        role="tabpanel"
+        tabIndex={-1}
+        aria-labelledby={`student-workspace-tab-${view}`}
+        aria-live="polite"
+      >
         {renderView()}
       </section>
     </main>
