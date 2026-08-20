@@ -6,6 +6,21 @@ function alignableChars(text: string | undefined): string[] {
   return Array.from((text ?? "").normalize("NFKC")).filter((char) => /[\p{L}\p{N}]/u.test(char));
 }
 
+/**
+ * Mandarin has a small number of orthographic variants that are pronounced
+ * identically in a learner's recording. They should not break transcript
+ * alignment, but the original characters must remain available for the UI.
+ * Keep this list deliberately narrow: characters with the same pronunciation
+ * but different meaning (for example 她/他) are still meaningful mismatches.
+ */
+const SCRIPT_COMPARE_EQUIVALENTS: Record<string, string> = {
+  妳: "你",
+};
+
+function scriptComparisonKey(char: string): string {
+  return SCRIPT_COMPARE_EQUIVALENTS[char] ?? char;
+}
+
 interface CharAlignment {
   expected: string[];
   spoken: string[];
@@ -24,6 +39,8 @@ interface CharAlignment {
 function alignChars(expectedText: string | undefined, spokenText: string | undefined): CharAlignment {
   const expected = alignableChars(expectedText);
   const spoken = alignableChars(spokenText);
+  const expectedKeys = expected.map(scriptComparisonKey);
+  const spokenKeys = spoken.map(scriptComparisonKey);
   const matched = new Array<boolean>(expected.length).fill(false);
   const spokenIndex = new Array<number | null>(expected.length).fill(null);
 
@@ -37,7 +54,7 @@ function alignChars(expectedText: string | undefined, spokenText: string | undef
   const at = (row: number, column: number) => row * width + column;
   for (let row = 1; row <= expected.length; row += 1) {
     for (let column = 1; column <= spoken.length; column += 1) {
-      table[at(row, column)] = expected[row - 1] === spoken[column - 1]
+      table[at(row, column)] = expectedKeys[row - 1] === spokenKeys[column - 1]
         ? table[at(row - 1, column - 1)] + 1
         : Math.max(table[at(row - 1, column)], table[at(row, column - 1)]);
     }
@@ -46,7 +63,7 @@ function alignChars(expectedText: string | undefined, spokenText: string | undef
   let row = expected.length;
   let column = spoken.length;
   while (row > 0 && column > 0) {
-    if (expected[row - 1] === spoken[column - 1]) {
+    if (expectedKeys[row - 1] === spokenKeys[column - 1]) {
       matched[row - 1] = true;
       spokenIndex[row - 1] = column - 1;
       row -= 1;

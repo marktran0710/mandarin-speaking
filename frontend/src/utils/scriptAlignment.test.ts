@@ -21,11 +21,23 @@ describe("scriptMismatchTokens", () => {
     expect(scriptMismatchTokens("你好，朋友！", "你好朋友")).toEqual([]);
     expect(scriptMismatchTokens("你好，朋友！", "")).toEqual([]);
   });
+
+  it("treats 妳 and 你 as the same spoken character without changing the target text", () => {
+    expect(scriptMismatchTokens("友美妳這個週末要做什麼", "友美你這個週末要做什麼")).toEqual([]);
+  });
+
+  it("keeps a different character as a real script mismatch", () => {
+    expect(scriptMismatchTokens("友美妳這個週末要做什麼", "友美她這個週末要做什麼")).toEqual(["妳"]);
+  });
 });
 
 describe("scriptMatchRatio", () => {
   it("returns 1 for a perfect match", () => {
     expect(scriptMatchRatio("你這個週末要做什麼", "你這個週末要做什麼")).toBe(1);
+  });
+
+  it("returns 1 when ASR uses the homophone variant 你 for target 妳", () => {
+    expect(scriptMatchRatio("友美妳這個週末要做什麼", "友美你這個週末要做什麼")).toBe(1);
   });
 
   it("tolerates a single mismatched character in a longer phrase", () => {
@@ -127,6 +139,17 @@ describe("scoreScriptChunks", () => {
     const result = scoreScriptChunks("你好朋友", "你好朋友", wordProsody);
     expect(result).toHaveLength(1);
     expect(result[0].passed).toBe(true);
+  });
+
+  it("keeps chunk and word attribution aligned when 妳 is transcribed as 你", () => {
+    const result = scoreScriptChunks(
+      "友美妳這個週末要做什麼",
+      "友美你這個週末要做什麼",
+      [{ token: "友美你這個週末", passed: true }, { token: "要做什麼", passed: true }],
+      ["友美妳這個週末", "要做什麼"],
+    );
+    expect(result.every((chunk) => chunk.passed)).toBe(true);
+    expect(result.every((chunk) => chunk.mismatch === "")).toBe(true);
   });
 
   it("keeps an unpunctuated teacher sentence as one phrase", () => {
