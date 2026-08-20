@@ -4,15 +4,22 @@
    screens, with the help panel folding behind a floating button. */
 
 .story-session-sidebar {
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 14px;
+  width: 100%;
+  min-width: 0;
   background: var(--clay-surface-card);
-  border: 1.5px solid var(--clay-hairline);
+  border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
-  padding: 16px 14px;
+  box-shadow: 0 4px 16px rgba(67, 53, 31, 0.04);
+  padding: 18px 16px;
   position: sticky;
-  top: calc(var(--navbar-height) + 12px);
+  /* The recorder grid already starts below the sticky navbar. Reusing the
+     navbar height here double-offsets the rail and misaligns it with the
+     workspace on first render. Keep only the local shell gutter. */
+  top: 12px;
   max-height: calc(100vh - var(--navbar-height) - 24px);
   overflow-y: auto;
   scrollbar-width: thin;
@@ -39,18 +46,29 @@
    journey nests under the Speak stop via JourneyPath's `expanded` slot. ── */
 .ssb-phases {
   margin: 0;
+  min-width: 0;
 }
 .ssb-phases > .journey-path-vertical {
+  width: 100%;
   padding: 0;
   gap: 0;
+}
+.ssb-phases > .journey-path-vertical > .journey-item {
+  width: 100%;
 }
 
 /* Nested scene sub-journey reads as one level down from the phase rings
    above it — smaller rings, indented under the phase ring column. */
 .ssb-journey {
-  padding: 4px 0 4px 14px;
-  margin-left: 20px;
+  box-sizing: border-box;
+  width: calc(100% - 20px);
+  min-width: 0;
+  padding: 6px 0 6px 14px;
+  margin: 2px 0 2px 20px;
   border-left: 1px dashed var(--clay-hairline);
+}
+.ssb-journey .journey-path-vertical {
+  width: 100%;
 }
 .ssb-journey .journey-stop-ring {
   width: 30px;
@@ -74,7 +92,9 @@
 /* Sidebar variant of the shared .student-help-panel markup: stacked, not
    the topic-browser's two-column banner grid. */
 .story-session-sidebar .ssb-help .student-help-panel {
+  box-sizing: border-box;
   width: auto;
+  min-width: 0;
   margin: 0;
   display: flex;
   flex-direction: column;
@@ -85,6 +105,8 @@
   gap: 6px;
 }
 .ssb-help .student-help-panel input {
+  box-sizing: border-box;
+  width: 100%;
   font-size: 12px;
 }
 .ssb-help .student-help-panel button {
@@ -122,9 +144,10 @@
      box — the scroll container is the flex item itself (min-width: 0
      guarantees it shrinks), with the path laid out at max-content inside. */
   .ssb-journey {
+    width: calc(100% - 4px);
     border-left: none;
-    margin-left: 0;
-    padding-left: 4px;
+    margin: 2px 0;
+    padding: 4px 0;
     flex: 1;
     min-width: 0;
     overflow-x: auto;
@@ -140,6 +163,7 @@
   .ssb-journey .journey-path-vertical .journey-item {
     flex-direction: row;
     align-items: center;
+    width: auto;
   }
   .ssb-journey .journey-path-vertical .journey-connector { display: none; }
   .ssb-journey .journey-path-vertical .journey-stop {
@@ -188,23 +212,6 @@
     cursor: pointer;
     box-shadow: var(--shadow-sm);
   }
-}
-
-/* Student refresh: a quieter rail with the same thin-line, warm-paper
-   treatment as the instructor demo. */
-.story-session-sidebar {
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  box-shadow: 0 4px 16px rgba(67, 53, 31, 0.04);
-  padding: 18px 16px;
-}
-
-.ssb-topline {
-  padding-bottom: 14px;
-}
-
-.ssb-help {
-  padding-top: 16px;
 }
 .student-visually-hidden {
   position: absolute;
