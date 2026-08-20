@@ -331,6 +331,10 @@ The recommended setup uses the Lab PC as the central server and the Laptop as a
 frontend client. Both machines use the same code from GitHub, but only the Lab PC
 owns the shared PostgreSQL database and uploaded audio/images.
 
+This is the shared-classroom workflow. `start.ps1 -Mode Laptop` intentionally
+connects to the Lab backend and does **not** create an independent local
+database.
+
 Prerequisites on both machines:
 
 - Clone or pull this repository.
@@ -383,13 +387,19 @@ To run a machine completely independently, use:
 This runs a local PostgreSQL, backend, and frontend with an independent Docker
 volume and local uploads. Its data is not shared with the Lab PC.
 
-#### Fully containerized laptop development
+#### Fully containerized independent development
 
-Use this workflow when the laptop must run and test the project independently
-of the Lab PC. It starts PostgreSQL, the FastAPI backend, and Vite in Docker.
+Use this workflow when a device must run and test the project independently of
+the Lab PC. It starts PostgreSQL, the FastAPI backend, and Vite in Docker.
 The source folders are mounted into the containers, so backend and frontend
 changes reload during development. The database, uploads, model cache, and
 Node dependencies use separate Docker volumes.
+
+For **two independent devices**, clone/pull the repository on both devices and
+run this same workflow on each device. Each device then has its own database,
+uploads, login accounts, and Docker volumes; neither device calls the other.
+Use a separate `backend/.env` on each device and never copy a real `.env` into
+Git. Do not use `start.ps1 -Mode Laptop` for this setup.
 
 Install Docker Desktop with Docker Compose, then run from the repository root:
 

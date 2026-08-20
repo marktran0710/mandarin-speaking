@@ -1,9 +1,13 @@
-# Independent laptop development
+# Independent device development
 
 This workflow runs a completely separate PostgreSQL database and upload volume
-on the laptop. The backend and frontend run in Docker with source mounts, so
+on one device. The backend and frontend run in Docker with source mounts, so
 editing the repository still gives Vite and Uvicorn hot reloads. It does not
 connect to the Lab machine or use the Lab database.
+
+For two independent devices, repeat this setup separately on both devices.
+Each device uses its own clone, `.env`, Docker volumes, database, uploads, and
+login accounts. No device-to-device network connection is required.
 
 ## First setup
 

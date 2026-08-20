@@ -1,11 +1,18 @@
 # Repository audit and pilot-readiness report
 
-Audit date: 2026-08-11  
+Audit date: 2026-08-20
 Scope: source code, build/test state, generated artifacts, database/storage path, and deployment configuration.
 
 ## Executive decision
 
-No file was deleted. The working tree already contains substantial changes and research artifacts from earlier phases, so deletion without an explicit approval would be unsafe.
+The two-device development workflow is safe when each device runs
+`docker-compose.laptop.yml` with its own `.env` and Docker volumes. The shared
+`start.ps1 -Mode Laptop` workflow remains intentionally separate and should not
+be used when device databases must be independent.
+
+One stale root prototype, `demo.html`, had no build input or repository
+references and was removed. Research, migration, seed, runtime, and authored
+lesson files were retained.
 
 The application can store pilot records in PostgreSQL when migrations have run, but it is not yet a complete production data-retention system until the deployment provides persistent object/file storage for uploaded audio and images. PostgreSQL persistence and uploaded-media persistence are separate concerns.
 
@@ -38,7 +45,8 @@ The application can store pilot records in PostgreSQL when migrations have run, 
 
 | Path/pattern | Why it is likely non-runtime | Recommendation |
 |---|---|---|
-| `backend/benchmarking/` | Evaluation scripts, datasets, and result tables; no application router imports this directory | Keep the canonical scripts/results needed for the paper; archive duplicate/stale runs after confirming provenance |
+| `backend/benchmarking/` | Evaluation scripts, datasets, and result tables; `backend/main.py` imports `routers/benchmark.py`, which uses `benchmarking` at runtime, and the test suite imports research modules | Keep. Archive duplicate/stale runs only after confirming provenance and updating the benchmark/test references |
+| `demo.html` | Initial static prototype; not a Vite input and no source/docs references | Removed after repository-reference audit |
 | `backend/benchmarking/results/*STALE*` | Filename explicitly marks superseded snapshots | Candidate for deletion after confirming no report links to it |
 | `backend/reports/` | Generated annotations, KPI reports, and audit outputs | Archive as research evidence; do not ship/deploy |
 | `output/` | Generated WAVs, DOCX/XLSX, previews, and inspection files | Keep final deliverables; delete/regenerate scratch audio and inspection files after approval |
