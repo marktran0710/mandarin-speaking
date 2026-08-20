@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, Literal, Optional, List, Tuple
 import base64
 import io
 import logging
+import logging.handlers
 import mimetypes
 import os
 import tempfile
@@ -24,11 +25,24 @@ from pathlib import Path
 from starlette.concurrency import run_in_threadpool
 
 # ── Structured logging ─────────────────────────────────────────────────────
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+# File handler alongside the console one - a PowerShell window's scrollback
+# is gone the moment it closes or scrolls past its buffer, so a crash or an
+# overnight incident during an unattended classroom session had nothing to
+# review after the fact. 10MB x 5 backups keeps this bounded without a
+# separate log-rotation job.
+_LOG_DIR = Path(os.getenv("LOG_DIR", Path(__file__).parent / "logs"))
+_LOG_DIR.mkdir(parents=True, exist_ok=True)
+_log_formatter = logging.Formatter(
+    fmt="%(asctime)s %(levelname)s %(name)s %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%S",
 )
+_log_file_handler = logging.handlers.RotatingFileHandler(
+    _LOG_DIR / "app.log", maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8",
+)
+_log_file_handler.setFormatter(_log_formatter)
+_log_console_handler = logging.StreamHandler()
+_log_console_handler.setFormatter(_log_formatter)
+logging.basicConfig(level=logging.INFO, handlers=[_log_console_handler, _log_file_handler])
 logger = logging.getLogger("speaking_app")
 from database import (
     close_db,

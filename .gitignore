@@ -26,6 +26,7 @@ backend/backup_before_vocab_pos_fix.sql
 backend/uploads/
 backend/private-data/
 backend/uvicorn*.log
+backend/logs/
 backend/*.zip
 .models/
 .playwright-mcp/
