@@ -2,9 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import Navigation from "./Navigation";
 
-/** The navbar is the only directed edge into most student pages, so a page
- * with a render branch but no link here is unreachable (that is how
- * image-narration and listen-retell went dead). These tests pin the edges. */
+/** The navbar is the only directed edge into most student pages, so these
+ * tests pin the student-facing sections that remain available. */
 function renderStudentNav(props: Partial<Parameters<typeof Navigation>[0]> = {}) {
   const onNavigate = vi.fn();
   render(
@@ -39,18 +38,16 @@ describe("Navigation student links", () => {
     expect(onNavigate).toHaveBeenCalledWith("image-narration");
   });
 
-  it("links listen-and-retell once the class has a listen_retell story", async () => {
-    const user = userEvent.setup();
-    const onNavigate = renderStudentNav({ hasListenRetellStories: true });
-
-    await user.click(screen.getByRole("button", { name: /Listen & retell/ }));
-    expect(onNavigate).toHaveBeenCalledWith("listen-retell");
-  });
-
-  it("hides both extra sections when no story of that mode is published", () => {
+  it("hides picture talk when no describe story is published", () => {
     renderStudentNav();
 
     expect(screen.queryByRole("button", { name: /Picture talk/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Listen & retell/ })).not.toBeInTheDocument();
+  });
+
+  it("never exposes Listen & retell, even when that content exists", () => {
+    renderStudentNav({ hasDescribeStories: true });
+
     expect(screen.queryByRole("button", { name: /Listen & retell/ })).not.toBeInTheDocument();
   });
 
@@ -58,7 +55,6 @@ describe("Navigation student links", () => {
     renderStudentNav({
       compact: true,
       hasDescribeStories: true,
-      hasListenRetellStories: true,
     });
 
     expect(screen.queryByRole("button", { name: /Practice/ })).not.toBeInTheDocument();

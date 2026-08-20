@@ -4,7 +4,6 @@ import CreateStoryPage from "./pages/CreateStoryPage";
 import MyStoriesPage from "./pages/MyStoriesPage";
 import VoiceTestPage from "./pages/VoiceTestPage";
 import ImageNarrationPage from "./pages/ImageNarrationPage";
-import ListenRetellPage from "./pages/ListenRetellPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 
 import StudentLoginPage from "./pages/StudentLoginPage";
@@ -95,7 +94,6 @@ const RESTORABLE_STUDENT_PAGES: readonly Page[] = [
   "student-stories",
   "voice-test",
   "image-narration",
-  "listen-retell",
 ];
 
 function isRestorableStudentPage(page: string | null): page is Page {
@@ -140,11 +138,6 @@ export default function App() {
     () => publishedTopics.filter((t) => t.narrativeMode === "describe"),
     [publishedTopics],
   );
-  const listenRetellTopics = useMemo(
-    () => publishedTopics.filter((t) => t.narrativeMode === "listen_retell"),
-    [publishedTopics],
-  );
-
   useEffect(() => {
     let active = true;
     void primePinyin(collectPinyinTexts(publishedTopics))
@@ -504,7 +497,6 @@ export default function App() {
         onLogout={handleLogout}
         compact={currentPage === "student-practice" && isInPracticeSession}
         hasDescribeStories={describeTopics.length > 0}
-        hasListenRetellStories={listenRetellTopics.length > 0}
       />
       {currentPage === "home" && <HomePage onNavigate={setCurrentPage} />}
       {currentPage === "student-login" && (
@@ -542,9 +534,6 @@ export default function App() {
       )}
       {currentPage === "image-narration" && activeRole === "student" && (
         <ImageNarrationPage publishedTopics={describeTopics} />
-      )}
-      {currentPage === "listen-retell" && activeRole === "student" && (
-        <ListenRetellPage publishedTopics={listenRetellTopics} />
       )}
       {showJourneyBubble && (
         <JourneyBubble

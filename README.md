@@ -332,6 +332,11 @@ Lab/Laptop/Standalone mode and no device-to-device backend connection. Each
 device owns its own PostgreSQL database, uploads, login accounts, model cache,
 and Docker volumes.
 
+Student and teacher login are separate entry points: students use
+`http://127.0.0.1:5177/`, while teachers use
+`http://127.0.0.1:5177/teacher.html`. The Student app does not show the
+Listen & Retell section.
+
 #### Step 1 — Install prerequisites
 
 Install Docker Desktop with Docker Compose, then clone or pull this repository

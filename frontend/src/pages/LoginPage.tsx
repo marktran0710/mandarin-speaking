@@ -161,8 +161,8 @@ export default function LoginPage({ role, onLogin, onBack }: LoginPageProps) {
 
             <label>
               <BiLabel
-                zh={isStudent ? "密碼" : "撖Ⅳ"}
-                pinyin={isStudent ? "Mìmǎ" : "M穫m?"}
+                zh="密碼"
+                pinyin="Mìmǎ"
                 en={isStudent ? "Student password" : "Teacher password"}
               />
               <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" />

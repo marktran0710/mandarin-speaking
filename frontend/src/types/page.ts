@@ -9,5 +9,4 @@ export type Page =
   | "student-practice"
   | "student-stories"
   | "voice-test"
-  | "image-narration"
-  | "listen-retell";
+  | "image-narration";

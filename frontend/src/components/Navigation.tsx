@@ -22,13 +22,9 @@ interface NavigationProps {
    * variant links to the other: the two modes are deliberately reachable
    * only by typing their own URL (see WrongMode). */
   appVariant?: "student" | "teacher";
-  /** Whether the class has any published story in the matching narrative
-   * mode. These two sections are hidden rather than shown empty, since most
-   * classes only publish plain "story" mode — but they must be linked once
-   * content exists, or a teacher's describe / listen_retell stories have no
-   * student-facing entry point at all (they were unreachable until now). */
+  /** Whether the class has any published picture-talk story. The section is
+   * hidden rather than shown empty when the class has no such content. */
   hasDescribeStories?: boolean;
-  hasListenRetellStories?: boolean;
 }
 
 export default function Navigation({
@@ -39,7 +35,6 @@ export default function Navigation({
   compact = false,
   appVariant = "student",
   hasDescribeStories = false,
-  hasListenRetellStories = false,
 }: NavigationProps) {
   const [colorMode, toggleColorMode] = useColorMode();
   const isStudent = activeRole === "student";
@@ -118,18 +113,6 @@ export default function Navigation({
                   >
                     <span className="nav-link-icon"><StudentIcon name="image" /></span>
                     <BiLabel zh="看圖說話" pinyin="Kàn tú shuō huà" en="Picture talk" />
-                  </button>
-                </li>
-              )}
-              {hasListenRetellStories && (
-                <li>
-                  <button
-                    type="button"
-                    className={`nav-link ${currentPage === "listen-retell" ? "active" : ""}`}
-                    onClick={() => onNavigate("listen-retell")}
-                  >
-                    <span className="nav-link-icon"><StudentIcon name="listen" /></span>
-                    <BiLabel zh="聽故事" pinyin="Tīng gùshì" en="Listen & retell" />
                   </button>
                 </li>
               )}
