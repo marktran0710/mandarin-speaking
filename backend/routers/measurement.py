@@ -1,6 +1,7 @@
 from typing import Any, Optional
 
 from fastapi import APIRouter, Query
+from psycopg.types.json import Jsonb
 from pydantic import BaseModel, Field
 
 from database import connect_db
@@ -51,7 +52,7 @@ async def record_measurement_event(event: MeasurementEventRequest):
             (event.eventId, event.schemaVersion, event.name, event.occurredAt,
              event.studentId, event.classId, event.sessionId, event.attemptId,
              event.topicId, event.sceneIndex, event.questionId, event.condition,
-             event.properties),
+             Jsonb(event.properties)),
         )
     return {"eventId": event.eventId, "stored": True}
 
