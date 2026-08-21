@@ -15,10 +15,12 @@ import {
 } from "../utils/storyRecorderFeedback";
 import {
   scoreScriptChunks,
+  scriptAlignmentText,
   scriptMismatchTokens,
   splitScriptIntoChunks,
   splitTeacherScriptIntoPhrases,
 } from "../utils/scriptAlignment";
+import { primePinyin } from "../utils/pinyin";
 import {
   SELF_EVAL_EMOJI,
   systemContentLevel,
@@ -241,6 +243,26 @@ export default function SpeakingResultsFlow({
     (hasTargetScript && praatMetrics.content_match === null
       ? ""
       : praatMetrics.transcription ?? "");
+  const alignmentPinyinQuery = [
+    scriptAlignmentText(targetScript),
+    scriptAlignmentText(recognizedText),
+  ].join("\u0000");
+  const [, setAlignmentPinyinRevision] = useState(0);
+  useEffect(() => {
+    let active = true;
+    const texts = alignmentPinyinQuery.split("\u0000").filter(Boolean);
+    if (texts.length === 0) return undefined;
+    void primePinyin(texts)
+      .then(() => {
+        if (active) setAlignmentPinyinRevision((revision) => revision + 1);
+      })
+      .catch(() => {
+        // Character-level fallbacks keep results usable while pinyin is offline.
+      });
+    return () => {
+      active = false;
+    };
+  }, [alignmentPinyinQuery]);
   const scriptMismatches = scriptMismatchTokens(targetScript, recognizedText);
   // Punctuation defines the preferred meaning-chunk boundaries. Long scripts
   // without punctuation still receive compact fallback chunks so the learner

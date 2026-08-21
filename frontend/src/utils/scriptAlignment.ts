@@ -1,3 +1,5 @@
+import { toPinyinSyllables } from "./pinyin";
+
 /**
  * Filters a string down to the characters we align on — letters and digits
  * only. Punctuation is ignored because ASR output is inconsistent about it.
@@ -7,14 +9,23 @@ function alignableChars(text: string | undefined): string[] {
 }
 
 /**
- * Mandarin has a small number of orthographic variants that are pronounced
- * identically in a learner's recording. They should not break transcript
- * alignment, but the original characters must remain available for the UI.
- * Keep this list deliberately narrow: characters with the same pronunciation
- * but different meaning (for example 她/他) are still meaningful mismatches.
+ * Return the exact text that must be sent to the pinyin resolver. Keeping the
+ * punctuation-free form here makes pinyin syllables line up one-to-one with
+ * the character stream used by the LCS alignment.
+ */
+export function scriptAlignmentText(text: string | undefined): string {
+  return alignableChars(text).join("");
+}
+
+/**
+ * Fallbacks for the few orthographic variants we can resolve without the
+ * backend pinyin cache. The normal path compares canonical pinyin + tone;
+ * this map only keeps offline alignment useful while that cache is warming.
  */
 const SCRIPT_COMPARE_EQUIVALENTS: Record<string, string> = {
+  // Taiwan feminine second-person pronoun.
   妳: "你",
+  // Mandarin third-person pronoun variants.
   她: "他",
   它: "他",
   牠: "他",
@@ -23,6 +34,14 @@ const SCRIPT_COMPARE_EQUIVALENTS: Record<string, string> = {
 
 function scriptComparisonKey(char: string): string {
   return SCRIPT_COMPARE_EQUIVALENTS[char] ?? char;
+}
+
+function comparisonKeys(text: string | undefined, chars: string[]): string[] {
+  const pinyinSyllables = toPinyinSyllables(scriptAlignmentText(text));
+  if (pinyinSyllables.length === chars.length && pinyinSyllables.every(Boolean)) {
+    return pinyinSyllables.map((syllable) => syllable.normalize("NFKC").toLowerCase());
+  }
+  return chars.map(scriptComparisonKey);
 }
 
 interface CharAlignment {
@@ -43,8 +62,8 @@ interface CharAlignment {
 function alignChars(expectedText: string | undefined, spokenText: string | undefined): CharAlignment {
   const expected = alignableChars(expectedText);
   const spoken = alignableChars(spokenText);
-  const expectedKeys = expected.map(scriptComparisonKey);
-  const spokenKeys = spoken.map(scriptComparisonKey);
+  const expectedKeys = comparisonKeys(expectedText, expected);
+  const spokenKeys = comparisonKeys(spokenText, spoken);
   const matched = new Array<boolean>(expected.length).fill(false);
   const spokenIndex = new Array<number | null>(expected.length).fill(null);
 

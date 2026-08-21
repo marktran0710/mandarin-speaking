@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { primePinyin } from "./pinyin";
 import {
   scoreScriptChunks,
   scriptMatchRatio,
@@ -6,6 +7,34 @@ import {
   splitScriptIntoChunks,
   splitTeacherScriptIntoPhrases,
 } from "./scriptAlignment";
+
+beforeAll(async () => {
+  const pinyinValues: Record<string, string> = {
+    "他在家做作業": "tā zài jiā zuò zuò yè",
+    "他再家作作業": "tā zài jiā zuò zuò yè",
+  };
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (_input: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}")) as { texts?: string[] };
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          items: (body.texts ?? []).map((text) => ({
+            text,
+            pinyin: pinyinValues[text] ?? "",
+          })),
+        }),
+      };
+    }),
+  );
+  await primePinyin(["他在家做作業", "他再家作作業"]);
+});
+
+afterAll(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("scriptMismatchTokens", () => {
   it("returns every missing or substituted script segment, without a display limit", () => {
@@ -36,6 +65,11 @@ describe("scriptMismatchTokens", () => {
     expect(scriptMismatchTokens(target, "它喜歡它的貓")).toEqual([]);
     expect(scriptMismatchTokens(target, "牠喜歡牠的貓")).toEqual([]);
     expect(scriptMismatchTokens(target, "祂喜歡祂的貓")).toEqual([]);
+  });
+
+  it("uses canonical pinyin and tone for general homophones beyond the fallback map", () => {
+    expect(scriptMismatchTokens("他在家做作業", "他再家作作業")).toEqual([]);
+    expect(scriptMatchRatio("他在家做作業", "他再家作作業")).toBe(1);
   });
 });
 

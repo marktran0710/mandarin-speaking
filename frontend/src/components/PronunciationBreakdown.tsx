@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { toneArrow } from "../utils/storyRecorderFeedback";
 import { primePinyin, toPinyin, toPinyinSyllables } from "../utils/pinyin";
-import { scoreScriptChunks, splitTeacherScriptIntoPhrases } from "../utils/scriptAlignment";
+import {
+  scoreScriptChunks,
+  scriptAlignmentText,
+  splitTeacherScriptIntoPhrases,
+} from "../utils/scriptAlignment";
 import {
   ASSISTIVE_MESSAGE,
   matchAssistiveRecord,
@@ -632,12 +636,14 @@ export default function PronunciationBreakdown({
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [showAllRows, setShowAllRows] = useState(false);
   const pinyinTokens = useMemo(
-    () => [...new Set(
-      words
+    () => [...new Set([
+      ...words
         .map((word) => word.token.trim())
         .filter((token) => /[\u3400-\u9fff]/u.test(token)),
-    )],
-    [words],
+      scriptAlignmentText(targetText),
+      scriptAlignmentText(transcription),
+    ].filter(Boolean))],
+    [targetText, transcription, words],
   );
   const pinyinQuery = pinyinTokens.join("\u0000");
   const [pinyinRevision, setPinyinRevision] = useState(0);
