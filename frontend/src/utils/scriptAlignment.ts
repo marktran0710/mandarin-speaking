@@ -102,6 +102,24 @@ function alignChars(expectedText: string | undefined, spokenText: string | undef
 }
 
 /**
+ * Return a spoken-character stream with every pinyin-matched character
+ * replaced by the teacher's target character. This is display-only: the raw
+ * transcript remains available for the separate "You said" line, while
+ * pronunciation rows can consistently show the script the learner was meant
+ * to say.
+ */
+export function scriptDisplayChars(script: string | undefined, transcript: string | undefined): string[] {
+  const { expected, spoken, matched, spokenIndex } = alignChars(script, transcript);
+  const expectedBySpokenIndex = new Map<number, string>();
+  expected.forEach((char, index) => {
+    if (matched[index] && spokenIndex[index] !== null) {
+      expectedBySpokenIndex.set(spokenIndex[index]!, char);
+    }
+  });
+  return spoken.map((char, index) => expectedBySpokenIndex.get(index) ?? char);
+}
+
+/**
  * Returns every part of the model script that was not aligned with the
  * learner's transcript. We compare the complete utterance, not just a small
  * vocabulary list, so a learner can see every missing or substituted part of

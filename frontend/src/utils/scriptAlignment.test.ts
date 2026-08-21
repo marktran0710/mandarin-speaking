@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { primePinyin } from "./pinyin";
 import {
   scoreScriptChunks,
+  scriptDisplayChars,
   scriptMatchRatio,
   scriptMismatchTokens,
   splitScriptIntoChunks,
@@ -70,6 +71,7 @@ describe("scriptMismatchTokens", () => {
   it("uses canonical pinyin and tone for general homophones beyond the fallback map", () => {
     expect(scriptMismatchTokens("他在家做作業", "他再家作作業")).toEqual([]);
     expect(scriptMatchRatio("他在家做作業", "他再家作作業")).toBe(1);
+    expect(scriptDisplayChars("他在家做作業", "他再家作作業").join("")).toBe("他在家做作業");
   });
 });
 

@@ -39,7 +39,13 @@ export default function ContentDiffDisplay({
     return (
       <span className="content-diff-line-text" lang="zh-TW">
         {segments.map((segment, index) => {
-          const text = segment[side];
+          // Once the backend confirms a pinyin-equivalent match, the teacher
+          // script is the canonical learner-facing text. Keep raw ASR text
+          // for mismatches, but do not make a correct 妳→你 pronunciation
+          // look like the learner said the wrong character.
+          const text = side === "heard" && contentMatch === true && segment.type === "match"
+            ? segment.target
+            : segment[side];
           if (!text) return null;
           const highlight = segment.type !== "match";
           return highlight ? (

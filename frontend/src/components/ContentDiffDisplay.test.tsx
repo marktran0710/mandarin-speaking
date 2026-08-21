@@ -46,6 +46,23 @@ describe("ContentDiffDisplay", () => {
     expect(container.querySelector("strong")).toBeNull();
   });
 
+  it("shows the target character when ASR used a pinyin-equivalent character", () => {
+    const { container } = render(
+      <ContentDiffDisplay
+        target="友美妳這個週末要做什麼"
+        heard="友美你這個週末要做什麼"
+        contentMatch={true}
+        diff={[
+          { type: "match", target: "友美妳這個週末要做什麼", heard: "友美你這個週末要做什麼" },
+        ]}
+      />,
+    );
+
+    const heardLine = container.querySelectorAll(".content-diff-line")[1];
+    expect(heardLine.textContent).toContain("友美妳這個週末要做什麼");
+    expect(heardLine.textContent).not.toContain("友美你這個週末要做什麼");
+  });
+
   it("keeps the same two-line-plus-status structure across matched, mismatched, and unverified", () => {
     const cases = [
       { contentMatch: true, heard: "abc" },

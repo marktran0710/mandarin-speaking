@@ -4,6 +4,7 @@ import { primePinyin, toPinyin, toPinyinSyllables } from "../utils/pinyin";
 import {
   scoreScriptChunks,
   scriptAlignmentText,
+  scriptDisplayChars,
   splitTeacherScriptIntoPhrases,
 } from "../utils/scriptAlignment";
 import {
@@ -346,6 +347,38 @@ function breakdownGroups(words: WordProsody[]): BreakdownGroup[] {
   return groups;
 }
 
+/** Keep acoustic verdicts from the ASR stream, but render matched syllables
+ * with the teacher's script character. For example, a correct pronunciation
+ * of target 妳 that ASR transcribes as 你 still appears as 妳 in the detailed
+ * rows instead of looking like the learner said the wrong character. */
+function displayWordsForScript(
+  words: WordProsody[],
+  targetText?: string,
+  transcription?: string,
+): WordProsody[] {
+  if (!targetText?.trim() || !transcription?.trim()) return words;
+  const displayChars = scriptDisplayChars(targetText, transcription);
+  let spokenCursor = 0;
+
+  return words.map((word) => {
+    const tokenChars = Array.from(scriptAlignmentText(word.token));
+    const replacements = displayChars.slice(spokenCursor, spokenCursor + tokenChars.length);
+    spokenCursor += tokenChars.length;
+    if (replacements.length === 0 || !tokenChars.some((char, index) => replacements[index] && replacements[index] !== char)) {
+      return word;
+    }
+
+    return {
+      ...word,
+      token: replacements.join(""),
+      syllables: word.syllables?.map((syllable, index) => ({
+        ...syllable,
+        char: replacements[index] ?? syllable.char,
+      })),
+    };
+  });
+}
+
 /** Group the existing word rows under teacher-authored phrase boundaries.
  * The acoustic rows remain word/character rows; this only changes their visual
  * hierarchy and the phrase-level content summary. */
@@ -635,18 +668,22 @@ export default function PronunciationBreakdown({
 }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [showAllRows, setShowAllRows] = useState(false);
+  const [pinyinRevision, setPinyinRevision] = useState(0);
+  const displayWords = useMemo(
+    () => displayWordsForScript(words, targetText, transcription),
+    [words, targetText, transcription, pinyinRevision],
+  );
   const pinyinTokens = useMemo(
     () => [...new Set([
-      ...words
+      ...displayWords
         .map((word) => word.token.trim())
         .filter((token) => /[\u3400-\u9fff]/u.test(token)),
       scriptAlignmentText(targetText),
       scriptAlignmentText(transcription),
     ].filter(Boolean))],
-    [targetText, transcription, words],
+    [displayWords, targetText, transcription],
   );
   const pinyinQuery = pinyinTokens.join("\u0000");
-  const [pinyinRevision, setPinyinRevision] = useState(0);
   useEffect(() => {
     let active = true;
     if (pinyinTokens.length > 0) {
@@ -664,8 +701,8 @@ export default function PronunciationBreakdown({
     };
   }, [pinyinQuery]);
   const groups = useMemo(
-    () => breakdownGroups(words),
-    [words, pinyinRevision],
+    () => breakdownGroups(displayWords),
+    [displayWords, pinyinRevision],
   );
   if (groups.length === 0) return null;
   const phraseGroups = breakdownPhraseGroups(

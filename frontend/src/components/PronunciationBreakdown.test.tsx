@@ -89,6 +89,23 @@ describe("PronunciationBreakdown", () => {
     expect(within(rows[1]).getByText("媽")).toBeInTheDocument();
   });
 
+  it("renders the target character when ASR uses a homophone", () => {
+    const { container } = render(
+      <PronunciationBreakdown
+        words={[word({
+          token: "她",
+          syllables: [{ char: "她", tone: 1, score: 88, passed: true, diagnostic_status: "CORRECT" }],
+        })]}
+        targetText="他"
+        transcription="她"
+      />,
+    );
+
+    expect(container.querySelector(".pb-group-token")?.textContent).toBe("他");
+    expect(within(characterRows()[0]).getByText("他")).toBeInTheDocument();
+    expect(within(characterRows()[0]).queryByText("她")).not.toBeInTheDocument();
+  });
+
   it("groups the characters under the word they belong to", () => {
     const { container } = render(
       <PronunciationBreakdown
