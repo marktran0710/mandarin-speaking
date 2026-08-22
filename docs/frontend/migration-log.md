@@ -19,6 +19,8 @@
 - Added domain API adapters and moved the student composition root to the
   learning adapter without changing backend endpoints.
 - Added shared primitive tests: 6 targeted tests pass.
+- Added the first feature entry point and centralized workspace feature flag;
+  legacy and migrated workspace implementations can now coexist cleanly.
 
 ## Next migration slices
 

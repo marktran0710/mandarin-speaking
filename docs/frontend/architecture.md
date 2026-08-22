@@ -21,8 +21,9 @@ pages/        thin route-level compositions
 
 The first migration keeps the existing page contracts and puts the new learner
 workspace shell around the existing `CreateStoryPage`, `MyStoriesPage` and
-`ImageNarrationPage`. Legacy rendering remains available through the feature
-flag until the browser flow and regression tests are stable.
+`ImageNarrationPage`. The feature entry is `features/student-workspace`; legacy
+rendering remains available through the centralized `app/featureFlags.ts` flag
+until the browser flow and regression tests are stable.
 
 ## Data ownership
 

@@ -4,12 +4,13 @@ import ImageNarrationPage from "./ImageNarrationPage";
 import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
 import StudentIcon, { type StudentIconName } from "../components/StudentIcon";
 import { BiLabel, BiText } from "../components/BiLabel";
-import type { HelpRequest } from "../services/database";
+import type { HelpRequest } from "../shared/api/learningApi";
 import type { NewAudioRecord } from "../components/StoryRecorder";
 import type { Topic } from "../components/TopicSelector";
 import { getStudentName } from "../utils/studentSession";
 import type { WorkspaceView } from "../types/studentWorkspace";
-import StudentWorkspaceShell from "../components/student-workspace/StudentWorkspaceShell";
+import { StudentWorkspaceShell } from "../features/student-workspace";
+import { studentWorkspaceShellEnabled } from "../app/featureFlags";
 import "../components/BiLabel.css";
 import "./StudentWorkspacePage.css";
 
@@ -200,10 +201,8 @@ function LegacyStudentWorkspacePage({
   );
 }
 
-const USE_REFACTORED_WORKSPACE = import.meta.env.VITE_STUDENT_WORKSPACE_SHELL !== "legacy";
-
 export default function StudentWorkspacePage(props: StudentWorkspacePageProps) {
-  if (USE_REFACTORED_WORKSPACE) {
+  if (studentWorkspaceShellEnabled) {
     return <StudentWorkspaceShell {...props} />;
   }
   return <LegacyStudentWorkspacePage {...props} />;
