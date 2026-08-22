@@ -3,6 +3,11 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 
+const extraAllowedHosts = (process.env.VITE_ALLOWED_HOSTS || "")
+  .split(",")
+  .map((host) => host.trim())
+  .filter(Boolean);
+
 export default defineConfig({
   base: process.env.VITE_BASE_PATH || "/",
   plugins: [react()],
@@ -14,6 +19,7 @@ export default defineConfig({
     allowedHosts: [
       "localhost",
       "127.0.0.1",
+      ...extraAllowedHosts,
     ],
     // Proxying /api and /uploads makes the browser see frontend+backend as
     // one origin, so the httpOnly session cookie (backend/auth.py) is sent

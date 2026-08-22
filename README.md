@@ -425,6 +425,34 @@ docker compose -f docker-compose.dev.yml exec frontend npm run test:integration
 .\start.ps1 -Detached
 ```
 
+#### Step 6.1 — Temporary public demo with Tailscale Funnel
+
+Use this only for a demo or a short classroom test. The current Docker stack
+already serves the frontend on `127.0.0.1:5177` and Vite proxies `/api` to the
+backend, so this workflow does not need a separate Nginx container.
+
+Install Tailscale, sign in, and run from the repository root:
+
+```powershell
+.\scripts\start-demo-funnel.ps1
+```
+
+The script checks the local stack, starts it if needed, and prints a temporary
+public HTTPS URL such as `https://your-device.<tailnet>.ts.net`. Anyone with
+the URL can reach the demo; they do not need Tailscale installed. Tailscale
+Funnel provides the HTTPS certificate, but the URL remains tied to the
+Tailscale device/tailnet and Funnel has non-configurable bandwidth limits, so
+do not use this as the production deployment for a 50-user class.
+
+Stop public access when the demo ends:
+
+```powershell
+.\scripts\start-demo-funnel.ps1 -Stop
+```
+
+See the [Tailscale Funnel documentation](https://tailscale.com/kb/1223/funnel)
+for tailnet approval and current service limitations.
+
 #### Step 7 — Stop or reset one device
 
 Stop while preserving database/uploads:
