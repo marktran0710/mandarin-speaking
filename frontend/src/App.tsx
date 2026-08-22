@@ -105,6 +105,60 @@ function isRestorableStudentPage(page: string | null): page is Page {
   return RESTORABLE_STUDENT_PAGES.includes(page as Page);
 }
 
+interface StudentAppBootstrapState {
+  activeRole: "student" | null;
+  currentPage: Page;
+  studentWorkspaceView: StudentWorkspaceView;
+  practiceTarget: PracticeTarget | null;
+}
+
+/**
+ * Reads the synchronous browser session before the first React commit. This
+ * keeps a returning student from briefly seeing HomePage before the effect
+ * that used to restore their workspace could run.
+ */
+export function getStudentAppBootstrapState(): StudentAppBootstrapState {
+  const defaultState: StudentAppBootstrapState = {
+    activeRole: null,
+    currentPage: "home",
+    studentWorkspaceView: "practice",
+    practiceTarget: null,
+  };
+
+  if (currentRole("student") !== "student") return defaultState;
+
+  // The diagnostic routes intentionally win over the remembered page, but
+  // still require the student session checked above.
+  if (
+    window.location.pathname === "/analyze" ||
+    window.location.pathname === "/voice-test"
+  ) {
+    return { ...defaultState, activeRole: "student", currentPage: "voice-test" };
+  }
+
+  const lastPage = getLastVisitedPage();
+  const restoredPage = isRestorableStudentPage(lastPage)
+    ? lastPage
+    : "student-practice";
+  const studentWorkspaceView: StudentWorkspaceView =
+    restoredPage === "student-stories"
+      ? "progress"
+      : restoredPage === "image-narration"
+        ? "picture-talk"
+        : "practice";
+  const lastTarget =
+    studentWorkspaceView === "practice" ? getLastPracticeTarget() : null;
+
+  return {
+    activeRole: "student",
+    currentPage: restoredPage === "voice-test" ? "voice-test" : "student-workspace",
+    studentWorkspaceView,
+    practiceTarget: lastTarget
+      ? { topicId: lastTarget.topicId, imageIndex: lastTarget.imageIndex }
+      : null,
+  };
+}
+
 function collectPinyinTexts(topics: readonly Topic[]): string[] {
   const texts: string[] = [];
   for (const topic of topics) {
@@ -121,14 +175,17 @@ function collectPinyinTexts(topics: readonly Topic[]): string[] {
 }
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>("home");
-  const [activeRole, setActiveRole] = useState<"student" | null>(null);
+  const [bootstrapState] = useState(getStudentAppBootstrapState);
+  const [currentPage, setCurrentPage] = useState<Page>(bootstrapState.currentPage);
+  const [activeRole, setActiveRole] = useState<"student" | null>(bootstrapState.activeRole);
   const [studentWorkspaceView, setStudentWorkspaceView] =
-    useState<StudentWorkspaceView>("practice");
+    useState<StudentWorkspaceView>(bootstrapState.studentWorkspaceView);
   const [isInPracticeSession, setIsInPracticeSession] = useState(false);
   const [audioRecords, setAudioRecords] = useState<AudioRecord[]>([]);
   const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
-  const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(null);
+  const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(
+    bootstrapState.practiceTarget,
+  );
   const [publishedTopics, setPublishedTopics] = useState<Topic[]>(
     () => loadPublishedTeacherTopics(),
   );
@@ -196,49 +253,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Deliberately URL-only: the voice test is a diagnostic tool (raw pitch
-    // contours, Praat plots) for the teacher and for debugging, not a
-    // student learning section, so it gets no navbar link. Reaching it
-    // still requires an existing student session — the paths below only
-    // choose the landing page for a student who is already logged in.
-    const directVoiceTestPath =
-      window.location.pathname === "/analyze" ||
-      window.location.pathname === "/voice-test";
-    const role = currentRole("student");
-    if (role === "student") {
-      setActiveRole("student");
-      if (directVoiceTestPath) {
-        setCurrentPage("voice-test");
-      } else {
-        const lastPage = getLastVisitedPage();
-        const restoredPage = isRestorableStudentPage(lastPage)
-          ? lastPage
-          : "student-practice";
-        const restoredWorkspaceView: StudentWorkspaceView =
-          restoredPage === "student-stories"
-            ? "progress"
-            : restoredPage === "image-narration"
-              ? "picture-talk"
-              : "practice";
-        setStudentWorkspaceView(restoredWorkspaceView);
-        setCurrentPage(
-          restoredPage === "voice-test" ? "voice-test" : "student-workspace",
-        );
-        // Only worth restoring for the page it actually feeds — a saved
-        // target would otherwise silently jump the student straight back
-        // into that story the next time they land on student-practice.
-        if (restoredWorkspaceView === "practice") {
-          const lastTarget = getLastPracticeTarget();
-          if (lastTarget) {
-            setPracticeTarget({
-              topicId: lastTarget.topicId,
-              imageIndex: lastTarget.imageIndex,
-            });
-          }
-        }
-      }
-    }
-
     loadSavedAudioRecords();
   }, []);
 
