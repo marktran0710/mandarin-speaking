@@ -33,7 +33,7 @@ import {
   listHelpRequests,
   logoutStudent,
   StoredAudioRecord,
-} from "./services/database";
+} from "./shared/api/learningApi";
 import {
   loadPublishedTeacherTopics,
   saveCustomStories,
@@ -82,6 +82,7 @@ interface AudioRecord {
 interface PracticeTarget {
   topicId: string;
   imageIndex: number;
+  startAtQuiz?: boolean;
   /** Bumped on every jump so CreateStoryPage remounts (and opens the
    * target story) even when the student is already on the practice page
    * or jumps to the same story twice. */
@@ -396,6 +397,17 @@ export default function App() {
     setCurrentPage("student-workspace");
   };
 
+  const handleStartActivity = (topicId: string, startAtQuiz: boolean) => {
+    setPracticeTarget({
+      topicId,
+      imageIndex: 0,
+      startAtQuiz,
+      seq: Date.now(),
+    });
+    setStudentWorkspaceView("practice");
+    setCurrentPage("student-workspace");
+  };
+
   // My Profile's lesson/story rows link back to the lesson list to practice
   // rather than jumping into a specific prompt — clears any stale target so
   // CreateStoryPage renders the table-of-contents browse view.
@@ -529,6 +541,8 @@ export default function App() {
           onAddRecord={addAudioRecord}
           initialTopicId={practiceTarget?.topicId}
           initialImageIndex={practiceTarget?.imageIndex}
+          initialStartAtQuiz={practiceTarget?.startAtQuiz}
+          initialTargetKey={practiceTarget?.seq}
           helpRequests={helpRequests}
           onRaiseHand={handleRaiseHand}
           storyTopics={storyTopics}
@@ -536,6 +550,7 @@ export default function App() {
           audioRecords={audioRecords}
           onSessionActiveChange={setIsInPracticeSession}
           isInPracticeSession={isInPracticeSession}
+          onStartActivity={handleStartActivity}
         />
       )}
       {currentPage === "student-practice" && activeRole === "student" && (
@@ -548,6 +563,7 @@ export default function App() {
           onAddRecord={addAudioRecord}
           initialTopicId={practiceTarget?.topicId}
           initialImageIndex={practiceTarget?.imageIndex}
+          initialStartAtQuiz={practiceTarget?.startAtQuiz}
           helpRequests={helpRequests}
           onRaiseHand={handleRaiseHand}
           publishedTopics={storyTopics}

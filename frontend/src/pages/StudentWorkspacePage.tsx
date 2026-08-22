@@ -4,21 +4,26 @@ import ImageNarrationPage from "./ImageNarrationPage";
 import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
 import StudentIcon, { type StudentIconName } from "../components/StudentIcon";
 import { BiLabel, BiText } from "../components/BiLabel";
-import type { HelpRequest } from "../services/database";
+import type { HelpRequest } from "../shared/api/learningApi";
 import type { NewAudioRecord } from "../components/StoryRecorder";
 import type { Topic } from "../components/TopicSelector";
 import { getStudentName } from "../utils/studentSession";
+import type { WorkspaceView } from "../types/studentWorkspace";
+import { StudentWorkspaceShell } from "../features/student-workspace";
+import { studentWorkspaceShellEnabled } from "../app/featureFlags";
 import "../components/BiLabel.css";
 import "./StudentWorkspacePage.css";
 
-export type StudentWorkspaceView = "practice" | "progress" | "picture-talk";
+export type StudentWorkspaceView = WorkspaceView;
 
-interface StudentWorkspacePageProps {
+export interface StudentWorkspacePageProps {
   view: StudentWorkspaceView;
   onViewChange: (view: StudentWorkspaceView) => void;
   onAddRecord: (record: NewAudioRecord) => void;
   initialTopicId?: string;
   initialImageIndex?: number;
+  initialStartAtQuiz?: boolean;
+  initialTargetKey?: number;
   helpRequests: HelpRequest[];
   onRaiseHand: (message: string) => void;
   storyTopics: Topic[];
@@ -26,6 +31,7 @@ interface StudentWorkspacePageProps {
   audioRecords: AudioRecord[];
   onSessionActiveChange: (active: boolean) => void;
   isInPracticeSession: boolean;
+  onStartActivity?: (topicId: string, startAtQuiz: boolean) => void;
 }
 
 const WORKSPACE_VIEWS: Array<{
@@ -50,7 +56,7 @@ const WORKSPACE_VIEWS: Array<{
   },
 ];
 
-export default function StudentWorkspacePage({
+function LegacyStudentWorkspacePage({
   view,
   onViewChange,
   onAddRecord,
@@ -193,4 +199,11 @@ export default function StudentWorkspacePage({
       </section>
     </main>
   );
+}
+
+export default function StudentWorkspacePage(props: StudentWorkspacePageProps) {
+  if (studentWorkspaceShellEnabled) {
+    return <StudentWorkspaceShell {...props} />;
+  }
+  return <LegacyStudentWorkspacePage {...props} />;
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import TopicSelector, { type TopicStartOptions } from "../components/TopicSelector";
 import StoryRecorder, { type NewAudioRecord } from "../components/StoryRecorder";
-import StudentHelpPanel from "../components/StudentHelpPanel";
 import { HelpRequest } from "../services/database";
 import { loadPublishedTeacherTopics, storyToTopic } from "../utils/teacherStories";
 import type { Topic } from "../components/TopicSelector";
@@ -13,6 +12,7 @@ interface CreateStoryPageProps {
   onAddRecord: (record: NewAudioRecord) => void;
   initialTopicId?: string;
   initialImageIndex?: number;
+  initialStartAtQuiz?: boolean;
   helpRequests?: HelpRequest[];
   onRaiseHand?: (message: string) => void;
   publishedTopics?: Topic[];
@@ -27,6 +27,7 @@ export default function CreateStoryPage({
   onAddRecord,
   initialTopicId,
   initialImageIndex = 0,
+  initialStartAtQuiz = false,
   helpRequests = [],
   onRaiseHand,
   publishedTopics,
@@ -46,12 +47,30 @@ export default function CreateStoryPage({
   );
   const [selectedImageIndex, setSelectedImageIndex] =
     useState<number>(safeInitialIndex);
-  const [startAtQuiz, setStartAtQuiz] = useState(false);
+  const [startAtQuiz, setStartAtQuiz] = useState(initialStartAtQuiz);
   useEffect(() => {
     onSessionActiveChange?.(Boolean(selectedTopic));
     return () => onSessionActiveChange?.(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTopic]);
+
+  useEffect(() => {
+    // A workspace CTA can open a story while the learner is halfway down the
+    // dashboard. Treat that as a new page-level task and place the story
+    // header at the top before the recorder mounts.
+    if (!initialTopicId || typeof window === "undefined") return;
+    const resetScroll = () => window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    resetScroll();
+    // The activity replaces a much shorter overview with a tall recorder.
+    // Run once after layout so browser scroll anchoring cannot restore the
+    // old dashboard position while the new activity settles.
+    const frame = window.requestAnimationFrame(resetScroll);
+    const timer = window.setTimeout(resetScroll, 40);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [initialTopicId, initialImageIndex, initialStartAtQuiz]);
 
   // `selectedTopic` is only otherwise set once, when the student opens a
   // story. If a teacher republishes that same story (same id, new script)
@@ -116,16 +135,6 @@ export default function CreateStoryPage({
 
   return (
     <div className="create-story-page">
-      {/* Outside a session the raise-hand panel is a banner strip; during a
-          session it lives at the bottom of the story sidebar instead. */}
-      {!selectedTopic && (
-        <div className="csp-help-strip">
-          <StudentHelpPanel
-            helpRequests={helpRequests}
-            onRaiseHand={onRaiseHand}
-          />
-        </div>
-      )}
       {!selectedTopic ? (
         <TopicSelector onTopicSelect={handleTopicSelect} onLevelSelect={handleLevelSelect} />
       ) : (

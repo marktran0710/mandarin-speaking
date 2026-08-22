@@ -5,6 +5,7 @@ import TeacherDashboardPage from "./TeacherDashboardPage";
 import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
 import * as db from "../services/database";
 import type { VocabQuizAttempt } from "../services/database";
+import { loadPublishedTeacherTopics } from "../utils/teacherStories";
 
 const analyzedRecord = {
   id: "record-1",
@@ -20,6 +21,22 @@ const analyzedRecord = {
       [0, 180],
       [0.2, 195],
       [0.4, 188],
+    ],
+    word_prosody: [
+      {
+        token: "冒",
+        index: 0,
+        pitch_contour: [
+          [0, 180],
+          [0.2, 195],
+        ],
+        tone_accuracy: 86,
+        judged: true,
+        mean_pitch: 188,
+        pitch_range: 15,
+        contour_shape: "rising",
+        feedback: "The tone is clear.",
+      },
     ],
     detected_tone: 2,
     tone_accuracy: 86,
@@ -434,7 +451,7 @@ describe("TeacherDashboardPage", () => {
     await user.click(screen.getByRole("tab", { name: /Quiz Review/ }));
 
     expect(
-      await screen.findByRole("heading", { name: /Verify quiz questions and answers/ }),
+      await screen.findByRole("heading", { name: /Quiz Review/ }),
     ).toBeInTheDocument();
   });
 
@@ -458,13 +475,21 @@ describe("TeacherDashboardPage", () => {
 
     unmount();
 
+    const publishedTopics = loadPublishedTeacherTopics();
+    const publishedTopic = publishedTopics.find(
+      (topic) => topic.name === "Adventure Story",
+    );
+    expect(publishedTopic).toBeDefined();
+
     // Now show the student view with the published story
     render(
       <MyStoriesPage
         records={[{
           ...analyzedRecord,
           imageUrl: "https://example.com/adventure-1.jpg",
+          topicId: publishedTopic!.id,
         }]}
+        publishedTopics={publishedTopics}
       />,
     );
 

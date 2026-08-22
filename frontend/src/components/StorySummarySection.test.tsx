@@ -119,7 +119,7 @@ describe("StorySummarySection student submission flow", () => {
     expect(screen.getByText("Tones are clear.")).toBeInTheDocument();
     expect(document.querySelector("audio")).toHaveAttribute(
       "src",
-      "http://127.0.0.1:8000/uploads/story_audio/complete.wav",
+      "http://localhost:3000/uploads/story_audio/complete.wav",
     );
   });
 });
