@@ -1,0 +1,72 @@
+.ui-card {
+  background: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.ui-card-soft { background: var(--clay-surface-soft); }
+.ui-card-accent { border-color: var(--jade); }
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 9px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  color: var(--clay-body);
+  background: var(--clay-surface-soft);
+  font-size: var(--text-xs);
+  line-height: 1.2;
+}
+
+.ui-badge-jade { color: var(--jade-deep); border-color: var(--jade); background: var(--jade-soft); }
+.ui-badge-amber { color: var(--gold-deep); border-color: var(--gold); background: var(--gold-soft); }
+.ui-badge-error { color: var(--clay-error-deep); border-color: var(--clay-error); background: var(--clay-error-soft); }
+
+.ui-tabs { display: flex; gap: var(--space-2xs); border-bottom: 1px solid var(--clay-hairline); }
+.ui-tab {
+  border: 0;
+  border-bottom: 3px solid transparent;
+  padding: var(--space-sm) var(--space-md);
+  color: var(--clay-muted);
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.ui-tab:hover:not(:disabled), .ui-tab.is-active { color: var(--clay-ink); border-bottom-color: var(--jade); }
+.ui-tab:disabled { cursor: not-allowed; opacity: .55; }
+
+.ui-state-panel { display: flex; gap: var(--space-sm); align-items: flex-start; padding: var(--space-lg); border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-md); background: var(--clay-surface-soft); }
+.ui-state-panel-icon { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 32px; border-radius: 50%; color: var(--jade-deep); background: var(--jade-soft); font-weight: 700; }
+.ui-state-panel h2 { color: var(--clay-ink); font-size: var(--text-md); }
+.ui-state-panel p { margin-top: var(--space-2xs); color: var(--clay-muted); font-size: var(--text-sm); }
+.ui-state-panel-error .ui-state-panel-icon { color: var(--clay-error-deep); background: var(--clay-error-soft); }
+.ui-state-panel-action { margin-top: var(--space-sm); }
+
+.ui-modal-backdrop { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: var(--space-lg); background: rgb(42 35 24 / 48%); }
+.ui-modal { width: min(100%, 560px); max-height: min(720px, calc(100dvh - 48px)); overflow: auto; border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-lg); background: var(--clay-surface-card); box-shadow: var(--shadow-lg); }
+.ui-modal-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); padding: var(--space-md) var(--space-lg); border-bottom: 1px solid var(--clay-hairline); }
+.ui-modal-header h2 { color: var(--clay-ink); font-size: var(--text-lg); }
+.ui-modal-close { width: 32px; height: 32px; border: 1px solid var(--clay-hairline); border-radius: 50%; color: var(--clay-body); background: var(--clay-surface-soft); font-size: 20px; cursor: pointer; }
+.ui-modal-body { padding: var(--space-lg); }
+
+.ui-table-wrap { max-width: 100%; overflow-x: auto; border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-md); }
+.ui-table { width: 100%; min-width: 520px; border-collapse: collapse; color: var(--clay-body); background: var(--clay-surface-card); font-size: var(--text-sm); }
+.ui-table th, .ui-table td { padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--clay-hairline-soft); text-align: left; vertical-align: top; }
+.ui-table th { color: var(--clay-ink); background: var(--clay-surface-soft); font-weight: 700; }
+.ui-table tr:last-child td { border-bottom: 0; }
+
+.ui-tab:focus-visible, .ui-modal-close:focus-visible, .ui-table-wrap:focus-visible { outline: 3px solid var(--tone1); outline-offset: 2px; }
+
+@media (max-width: 560px) {
+  .ui-tabs { overflow-x: auto; }
+  .ui-tab { flex: 0 0 auto; padding-inline: var(--space-sm); }
+  .ui-modal-backdrop { padding: var(--space-sm); }
+  .ui-modal-body { padding: var(--space-md); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-tab { transition: none; }
+}

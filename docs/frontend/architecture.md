@@ -32,3 +32,12 @@ flag until the browser flow and regression tests are stable.
 - Backend reads/writes remain in `services/database.ts` until domain adapters are
   extracted in a later phase.
 
+## Shared foundation status
+
+- `shared/ui` now owns the first reusable primitives: action button, card, badge,
+  tabs, progress bar, modal, data table and empty/loading/error state panel.
+- `shared/api` provides thin learning, quiz, story and account boundaries. They
+  currently delegate to `services/database.ts`, so endpoint contracts and local
+  fallbacks do not change during migration.
+- New feature code should import from these boundaries; the legacy service is
+  retained until each domain has browser coverage and can be moved safely.

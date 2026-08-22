@@ -33,7 +33,7 @@ import {
   listHelpRequests,
   logoutStudent,
   StoredAudioRecord,
-} from "./services/database";
+} from "./shared/api/learningApi";
 import {
   loadPublishedTeacherTopics,
   saveCustomStories,

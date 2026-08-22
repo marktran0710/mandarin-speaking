@@ -15,6 +15,10 @@
 - Fixed workspace-to-activity scroll anchoring so the activity starts at
   `scrollY=0`.
 - Browser-verified at 1440×1000 and 390×844 with no horizontal overflow.
+- Added shared UI primitives with keyboard/focus and responsive layering rules.
+- Added domain API adapters and moved the student composition root to the
+  learning adapter without changing backend endpoints.
+- Added shared primitive tests: 6 targeted tests pass.
 
 ## Next migration slices
 
@@ -23,4 +27,3 @@
 3. Move teacher quiz review into feature-owned modules.
 4. Move admin account/content sections into feature-owned modules.
 5. Remove legacy paths only after browser and regression checks pass.
-
