@@ -6,15 +6,9 @@ equal share of the pitch frames. Real Mandarin syllable durations vary by 2-3x,
 so those boundaries land in the wrong place and the tone template is then
 compared against the wrong stretch of audio.
 
-The OMPAL benchmark showed the signature of exactly that failure: tone 1 (level,
-and therefore robust to being cut in the wrong place) scored AUC 0.59 while the
-contour tones T2/T3/T4 sat at ~0.51, even though the human raters agreed
-equally well on all four tones. If the task were intrinsically harder for
-contour tones the human ceiling would dip too. It does not.
-
-Both implementations are kept: ``ProportionalAligner`` reproduces the old
-behaviour so it can serve as the control in an ablation, and ``EnergyAligner``
-is the replacement. Neither is assumed better — the benchmark decides.
+Both implementations are kept: ``ProportionalAligner`` preserves the legacy
+behaviour, while ``EnergyAligner`` uses the available intensity contour to
+place boundaries more faithfully. The active strategy is selected by config.
 """
 
 from __future__ import annotations
@@ -335,7 +329,7 @@ ALIGNERS = {
 
 
 def get_aligner(name: str) -> SyllableAligner:
-    """Look up an aligner by name, so the benchmark can A/B them by config."""
+    """Look up an aligner by name from the supported runtime strategies."""
     try:
         return ALIGNERS[name]()
     except KeyError:

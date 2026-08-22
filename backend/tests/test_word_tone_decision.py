@@ -147,7 +147,7 @@ def test_display_score_survives_none_inputs_without_crashing():
 def test_shape_exactly_at_strong_with_supporting_direction_is_correct():
     """Boundary: shape == SHAPE_STRONG (80) with direction at DIRECTION_SUPPORT
     (60) must be inclusive — otherwise a two-decimal round-down flips CORRECT
-    into UNCERTAIN. Off-by-one there is what the OMPAL rerun would notice."""
+    into UNCERTAIN."""
     result = decide_word_tone(
         shape_score=SHAPE_STRONG, direction_score=DIRECTION_SUPPORT, qc=GOOD_QC
     )

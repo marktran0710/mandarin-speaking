@@ -95,4 +95,4 @@ def test_v2_routes_are_separate_from_stable_analyze_route():
     assert "/api/analyze" in paths
     assert "/api/analyze/v2" in paths
     assert "/api/analyze/stream" in paths
-    assert "/api/benchmark/kpi-gate" in paths
+    assert not any(path.startswith("/api/benchmark") for path in paths)

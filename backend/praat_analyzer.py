@@ -641,9 +641,8 @@ SYLLABLE_PASS_THRESHOLD = 58.0
 def _aligner():
     """The configured syllable aligner.
 
-    Selected by TONE_ALIGNER so the OMPAL benchmark can measure the old
-    proportional split against the new one without a code change, which is
-    what makes the improvement attributable rather than merely asserted.
+    Selected by TONE_ALIGNER so deployments can choose the supported
+    syllable-alignment strategy without changing the analyzer code.
     """
     from tone_scoring.alignment import get_aligner
 

@@ -1779,11 +1779,8 @@ async def _do_analyze(
     reference_word_curves: Optional[Dict[str, list]] = None,
     scene_target_text: str = "",
     on_stage: Optional[Callable[[dict], None]] = None,
-    # Pre-pilot research-logging identity (all optional, all additive --
-    # see `benchmarking/results/pilot_readiness.md`). Reuses the caller's
-    # OWN existing identifiers (student id, (topic, scene) composite item
-    # key); this function never derives or validates them, it only relays
-    # them to the assistive-feedback layer.
+    # Optional attempt identity fields are retained for backward-compatible
+    # clients; they do not enable a separate research or scoring path.
     participant_id: str = "",
     item_id: str = "",
     session_id: str = "",
@@ -2216,24 +2213,10 @@ async def _do_analyze(
             ),
         )
 
-        # Additive assistive-feedback layer (Candidate F1 + Candidate E2,
-        # frozen). Isolated behind its own try/except and its own env-var
-        # gate (default off) for the same reason `_contextual_tone_plan` is:
-        # a failure here must degrade to `None`, never break the response
-        # or touch word_prosody[].passed.
-        try:
-            from assistive_feedback.pipeline import RequestIdentity, compute_assistive_feedback
-
-            assistive_feedback_result = compute_assistive_feedback(
-                pitch_contour, scoring_transcription, scoring_pinyin_hint, tmp_path,
-                identity=RequestIdentity(
-                    participant_id=participant_id, item_id=item_id, session_id=session_id,
-                    attempt_id=attempt_id, attempt_number=attempt_number,
-                    attempt_type=attempt_type, study_phase=study_phase,
-                ) if participant_id else None,
-            )
-        except Exception:  # pragma: no cover - defensive, diagnostics are optional
-            assistive_feedback_result = None
+        # The optional research feedback layer is intentionally absent from
+        # the classroom build. Keep the response field for compatibility with
+        # older clients, but never compute or persist research-only data.
+        assistive_feedback_result = None
 
         return AnalysisResponse(
             description=description,
@@ -4263,7 +4246,6 @@ from routers.admin import router as admin_router  # noqa: E402
 from routers.asr import router as asr_router  # noqa: E402
 from routers.analysis_v2 import router as analysis_v2_router  # noqa: E402
 from routers.audio import router as audio_router  # noqa: E402
-from routers.benchmark import router as benchmark_router  # noqa: E402
 from routers.help_requests import router as help_requests_router  # noqa: E402
 from routers.media import router as media_router  # noqa: E402
 from routers.measurement import router as measurement_router  # noqa: E402
@@ -4283,7 +4265,6 @@ app.include_router(admin_router)
 app.include_router(asr_router)
 app.include_router(analysis_v2_router)
 app.include_router(audio_router)
-app.include_router(benchmark_router)
 app.include_router(help_requests_router)
 app.include_router(media_router)
 app.include_router(measurement_router)
@@ -4299,19 +4280,6 @@ app.include_router(teacher_review_router)
 app.include_router(tts_router)
 app.include_router(tones_router)
 app.include_router(vocab_quiz_router)
-
-# Study mode (OMPAL_STUDY_MODE=1) leaves exactly one pronunciation engine
-# reachable: it blocks the legacy /api/analyze judgement routes and mounts the
-# frozen tone-confirmation route. Unset, this only registers a middleware that
-# never fires, so ordinary application behaviour is unchanged.
-import study_mode  # noqa: E402
-
-STUDY_MODE_ACTIVE = study_mode.install(app)
-if STUDY_MODE_ACTIVE:
-    logger.warning(
-        "OMPAL study mode ACTIVE: legacy pronunciation routes disabled; "
-        "canonical route mounted at /api/pronunciation/tone-attempt")
-
 
 @app.get("/{frontend_path:path}")
 async def serve_frontend(frontend_path: str):

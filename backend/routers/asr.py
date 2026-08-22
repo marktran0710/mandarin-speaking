@@ -72,9 +72,8 @@ async def analyze_speech(
     verify_word: str = Form(""),
     pinyin_hint: str = Form(""),
     scene_reference_curves: str = Form(""),
-    # Pre-pilot research-logging identity -- all optional, all additive; a
-    # caller sending none of these (every caller today) behaves exactly as
-    # before. See `benchmarking/results/pilot_readiness.md`.
+    # Optional attempt identity fields are accepted for backward compatibility
+    # and do not change the normal transcription path.
     participant_id: str = Form(""),
     item_id: str = Form(""),
     session_id: str = Form(""),

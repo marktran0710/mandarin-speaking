@@ -3,8 +3,7 @@
 Alignment is the foundation of every downstream tone feature: if a boundary
 lands in the wrong place, the tone template is compared against the wrong
 audio. These tests use synthetic contours with known boundaries so a
-regression is caught here rather than surfacing as an unexplained drop in
-benchmark agreement.
+regression is caught close to the alignment code.
 """
 import os
 import sys
@@ -158,6 +157,6 @@ class TestRegistry:
 
     def test_rejects_an_unknown_name_instead_of_silently_defaulting(self):
         """A typo in config must fail loudly, not quietly score everything with
-        the wrong aligner and invalidate a benchmark run."""
+        the wrong aligner and silently change scoring behaviour."""
         with pytest.raises(ValueError, match="Unknown aligner"):
             get_aligner("nope")
