@@ -104,6 +104,9 @@ export interface StoredSpeakingProgress {
   contentPassed: boolean;
   clearedWords: string[];
   latestResult?: SceneSubmission | null;
+  baseStoryId?: string;
+  difficultyLevel?: "easy" | "medium" | "hard";
+  promptId?: string;
 }
 
 export interface CustomStoryFrame {
@@ -201,6 +204,9 @@ export interface SceneSubmission {
   // verdict — see SelfEvalStep. Absent when the student skipped the prompt.
   selfEvalContent?: "good" | "ok" | "bad";
   selfEvalPronunciation?: "good" | "ok" | "bad";
+  baseStoryId?: string;
+  difficultyLevel?: "easy" | "medium" | "hard";
+  promptId?: string;
 }
 
 export interface StoryFeedbackDimension {
@@ -658,17 +664,18 @@ export async function replaceQuizQuestion(
   storyId: string,
   frameIndex: number,
   wordIndex: number,
-  kind: "translation" | "distractors" | "cloze" | "synonym",
+  kind: "translation" | "distractors" | "cloze" | "synonym" | "pinyin",
   poolIndex: number | undefined,
   value: string | string[] | { sentence: string; distractors: string[] } | { synonym: string; distractors: string[] },
   translationField?: "vocabularyTranslation" | "vocabularyTranslationMedium" | "vocabularyTranslationHard",
+  pinyinField?: "vocabularyPinyin" | "vocabularyPinyinMedium" | "vocabularyPinyinHard",
 ): Promise<void> {
   const response = await fetchWithRetry(
     `${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/quiz-question`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ frameIndex, wordIndex, kind, poolIndex, value, translationField }),
+      body: JSON.stringify({ frameIndex, wordIndex, kind, poolIndex, value, translationField, pinyinField }),
     },
   );
   if (!response.ok) {
@@ -808,11 +815,23 @@ export interface VocabQuizAttempt {
   // tier1/2/3 are the star-tier runs (see quizTiers.ts); speed/strikes are
   // legacy modes kept for old rows.
   mode?: "tier1" | "tier2" | "tier3" | "speed" | "strikes" | "free" | "weak_words";
+  baseStoryId?: string;
+  level?: "easy" | "medium" | "hard";
   completedAt: string;
   totalQuestions: number;
   correctCount: number;
   totalTimeMs: number;
-  questionResults: Array<{ word: string; correct: boolean; timeMs: number }>;
+  questionResults: Array<{
+    word: string;
+    correct: boolean;
+    timeMs: number;
+    itemId?: string;
+    conceptId?: string;
+    questionKind?: string;
+    level?: "easy" | "medium" | "hard";
+    baseStoryId?: string;
+    itemVersion?: string;
+  }>;
 }
 
 export async function createVocabQuizAttempt(

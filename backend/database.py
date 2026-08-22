@@ -163,6 +163,8 @@ def row_to_help_request(row: dict) -> dict:
 
 
 def row_to_vocab_quiz_attempt(row: dict) -> dict:
+    question_results = row["question_results"] or []
+    first_result = question_results[0] if question_results else {}
     return {
         "id": row["id"],
         "storyId": row["story_id"],
@@ -173,7 +175,11 @@ def row_to_vocab_quiz_attempt(row: dict) -> dict:
         "totalQuestions": row["total_questions"],
         "correctCount": row["correct_count"],
         "totalTimeMs": row["total_time_ms"],
-        "questionResults": row["question_results"] or [],
+        "questionResults": question_results,
+        # Attempt-level fields are derived from the first new-format item;
+        # legacy rows simply omit them.
+        **({"baseStoryId": first_result["baseStoryId"]} if first_result.get("baseStoryId") else {}),
+        **({"level": first_result["level"]} if first_result.get("level") else {}),
     }
 
 

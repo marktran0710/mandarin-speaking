@@ -45,6 +45,20 @@ const baseProps = {
 };
 
 describe("SpeakingResultsFlow — self-eval step", () => {
+  it("renders pronunciation feedback above the page shell", () => {
+    render(<SpeakingResultsFlow {...baseProps} ready={false} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /Pronunciation feedback/ }),
+    );
+
+    const dialog = screen.getByRole("dialog", {
+      name: /Pronunciation feedback/,
+    });
+    expect(document.body.contains(dialog)).toBe(true);
+    expect(dialog.closest(".speaking-flow-card")).toBeNull();
+  });
+
   it("shows the self-eval step first on a ready attempt, then reveals the comparison after submitting", () => {
     const onSelfEvalSubmit = vi.fn();
     render(

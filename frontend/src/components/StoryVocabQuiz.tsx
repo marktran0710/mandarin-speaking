@@ -44,6 +44,8 @@ export interface VocabQuizSynonymCandidate {
 export interface VocabQuizEntry {
   word: string;
   translation: string;
+  /** Question types a teacher has removed for this word in Quiz Review. */
+  disabledQuestionKinds?: ReadonlyArray<"pinyin" | "reverse">;
   // Teacher-authored pinyin for this word, if any — falls back to a computed
   // reading (see the Review screen) when absent.
   pinyin?: string;
@@ -154,6 +156,30 @@ export interface VocabQuizQuestionResult {
   word: string;
   correct: boolean;
   timeMs: number;
+  /** Stable identity fields are optional so old attempts remain readable. */
+  itemId?: string;
+  conceptId?: string;
+  questionKind?: QuizQuestionKind;
+  level?: "easy" | "medium" | "hard";
+  baseStoryId?: string;
+  itemVersion?: string;
+}
+
+/** Normalized concept identity shared by all question types and story levels. */
+export function quizConceptId(word: string): string {
+  return word.normalize("NFKC").trim().replace(/\s+/g, " ");
+}
+
+/** Stable across option shuffles and question rerenders. */
+export function quizItemId(
+  baseStoryId: string,
+  word: string,
+  questionKind: QuizQuestionKind,
+  itemVersion = "v1",
+): string {
+  return [baseStoryId, quizConceptId(word), questionKind, itemVersion]
+    .map((part) => encodeURIComponent(part))
+    .join(":");
 }
 
 export interface VocabQuizSummary {
@@ -241,6 +267,7 @@ export function collectQuizEntries(
   aiCloze?: Array<VocabQuizClozeCandidate[] | undefined>,
   partsOfSpeech?: Array<string | undefined>,
   aiSynonym?: Array<VocabQuizSynonymCandidate[] | undefined>,
+  disabledQuestionKinds?: Array<ReadonlyArray<"pinyin" | "reverse"> | undefined>,
 ): VocabQuizEntry[] {
   const seen = new Set<string>();
   const entries: VocabQuizEntry[] = [];
@@ -253,21 +280,37 @@ export function collectQuizEntries(
     const distractors = aiDistractors?.[i];
     const pinyin = pinyins?.[i]?.trim();
     const pos = partsOfSpeech?.[i]?.trim();
+    const safeDistractors = (values: string[] | undefined, extraForbidden: string[] = []) => {
+      const forbidden = new Set([word, ...extraForbidden].map(normalizeAnswer));
+      return (values ?? []).filter(
+        (value) => typeof value === "string" && value.trim() && !forbidden.has(normalizeAnswer(value)),
+      );
+    };
+    const safeAiDistractors = safeDistractors(distractors);
     // A candidate is only usable once it actually has a distractor and its
     // sentence contains the word EXACTLY once — belt-and-suspenders on top
     // of the backend's own validation. A sentence using the word twice
     // ("有啊！他們有…") would leak the answer right next to the blank, since
     // buildClozeQuestion only blanks the first occurrence.
     const cloze = (aiCloze?.[i] ?? []).filter(
-      (c) => c.distractors.length > 0 && c.sentence.split(word).length === 2,
-    );
+      (c) => c.sentence.split(word).length === 2,
+    ).map((c) => ({
+      ...c,
+      distractors: safeDistractors(c.distractors),
+    })).filter((c) => c.distractors.length > 0).slice(0, 1);
     const synonym = (aiSynonym?.[i] ?? []).filter(
-      (c) => c.distractors.length > 0 && c.synonym !== word,
-    );
+      (c) => normalizeAnswer(c.synonym) !== normalizeAnswer(word),
+    ).map((c) => ({
+      ...c,
+      distractors: safeDistractors(c.distractors, [c.synonym]),
+    })).filter((c) => c.distractors.length > 0).slice(0, 1);
     entries.push({
       word,
       translation,
-      ...(distractors?.length ? { aiDistractors: distractors } : {}),
+      ...(disabledQuestionKinds?.[i]?.length
+        ? { disabledQuestionKinds: disabledQuestionKinds[i] }
+        : {}),
+      ...(safeAiDistractors.length ? { aiDistractors: safeAiDistractors } : {}),
       ...(pinyin ? { pinyin } : {}),
       ...(pos ? { pos } : {}),
       ...(cloze.length ? { aiCloze: cloze } : {}),
@@ -349,9 +392,11 @@ function buildTranslationQuestion(
   };
 }
 
-/** Builds one fill-in-the-blank question from a randomly-picked cached AI
- * cloze candidate for `entry` (only called when at least one exists — see
- * buildQuizQuestion). Wrong-word options are drawn the same tiered way as
+/** Builds one fill-in-the-blank question from the first cached AI cloze
+ * candidate for `entry` (only called when at least one exists — see
+ * buildQuizQuestion). One candidate is intentionally retained per entry so a
+ * student sees the same reviewed prompt instead of a rotating draft. Wrong-
+ * word options are drawn the same tiered way as
  * buildTranslationQuestion's distractors: the candidate's own AI-generated
  * words first, then other story words, since there's no Chinese-word
  * equivalent of FILLER_DISTRACTORS to pad out the rest with. */
@@ -360,7 +405,7 @@ function buildClozeQuestion(
   allEntries: VocabQuizEntry[],
   forbiddenAnswers: ReadonlySet<string> = new Set(),
 ): VocabQuizClozeQuestion {
-  const candidate = shuffle(entry.aiCloze!)[0];
+  const candidate = entry.aiCloze![0];
   const usedWords = new Set([entry.word]);
 
   const aiWordPool = candidate.distractors.filter(
@@ -596,9 +641,11 @@ function buildPosQuestion(
   };
 }
 
-/** Builds a "which word means the same?" question from a randomly-picked
- * cached AI synonym candidate for `entry` (only called when at least one
- * exists — see buildQuizQuestion). Mirrors buildClozeQuestion's tiered
+/** Builds a "which word means the same?" question from the first cached AI
+ * synonym candidate for `entry` (only called when at least one exists — see
+ * buildQuizQuestion). One candidate is intentionally retained per entry so a
+ * student sees the same reviewed prompt instead of a rotating draft. Mirrors
+ * buildClozeQuestion's tiered
  * wrong-option sourcing: the candidate's own AI-generated distractors
  * first, then other story words. */
 function buildSynonymQuestion(
@@ -606,7 +653,7 @@ function buildSynonymQuestion(
   allEntries: VocabQuizEntry[],
   forbiddenAnswers: ReadonlySet<string> = new Set(),
 ): VocabQuizSynonymQuestion {
-  const candidate = shuffle(entry.aiSynonym!)[0];
+  const candidate = entry.aiSynonym![0];
   const usedWords = new Set([entry.word, candidate.synonym]);
 
   const aiWordPool = candidate.distractors.filter(
@@ -733,7 +780,10 @@ function pickQuestionKind(
     ? TIER_KIND_WEIGHTS[mode as TierMode]
     : LEGACY_KIND_WEIGHTS;
   const available = weights.filter(
-    ([kind]) => !excludedKinds.has(kind) && isKindAvailable(kind, entry, allEntries),
+    ([kind]) =>
+      !excludedKinds.has(kind) &&
+      !entry.disabledQuestionKinds?.includes(kind as "pinyin" | "reverse") &&
+      isKindAvailable(kind, entry, allEntries),
   );
   if (available.length === 0) return null;
 
@@ -980,6 +1030,8 @@ export default function StoryVocabQuiz({
   onBack,
   onComplete,
   storyId,
+  baseStoryId,
+  level = "easy",
   studentId,
   studentName,
   alreadyCompleted,
@@ -993,6 +1045,9 @@ export default function StoryVocabQuiz({
   // omitting storyId/student identity just means the weak-words card never
   // appears and stars only come from this device's localStorage.
   storyId?: string;
+  /** Canonical story identity without a Medium/Hard topic suffix. */
+  baseStoryId?: string;
+  level?: "easy" | "medium" | "hard";
   studentId?: string;
   studentName?: string;
   // True when this student already unlocked practice for this story in a
@@ -1106,7 +1161,21 @@ export default function StoryVocabQuiz({
     setSelected(chosen);
     setResults([
       ...results,
-      { word: question.word, correct, timeMs: Date.now() - questionStartRef.current },
+      {
+        word: question.word,
+        correct,
+        timeMs: Date.now() - questionStartRef.current,
+        itemId: quizItemId(
+          baseStoryId ?? storyId ?? "unknown-story",
+          question.word,
+          question.kind,
+        ),
+        conceptId: quizConceptId(question.word),
+        questionKind: question.kind,
+        level,
+        baseStoryId: baseStoryId ?? storyId,
+        itemVersion: "v1",
+      },
     ]);
   };
 

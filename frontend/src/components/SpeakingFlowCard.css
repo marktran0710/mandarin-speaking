@@ -626,10 +626,15 @@
 .sfc-feedback-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1100;
+  /* This is rendered at document.body level so it remains above the sticky
+     student navbar and any animated result-screen stacking context. */
+  z-index: 2000;
   display: grid;
   place-items: center;
-  padding: clamp(14px, 3vw, 28px);
+  padding: max(clamp(14px, 3vw, 28px), env(safe-area-inset-top))
+    max(clamp(14px, 3vw, 28px), env(safe-area-inset-right))
+    max(clamp(14px, 3vw, 28px), env(safe-area-inset-bottom))
+    max(clamp(14px, 3vw, 28px), env(safe-area-inset-left));
   box-sizing: border-box;
   background: color-mix(in srgb, var(--clay-ink) 46%, transparent);
 }

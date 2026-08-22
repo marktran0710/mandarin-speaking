@@ -67,6 +67,17 @@ export interface Topic {
   // of {synonym, distractors} options, grown the same way vocabularyCloze
   // is. Optional, same graceful fallback as above.
   vocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
+  /** Canonical Easy/base vocabulary source used by the quiz across all
+   * difficulty views. Story display fields above may remain tier-specific,
+   * but quiz concepts must not be split into separate Medium/Hard pools. */
+  quizVocabulary?: Record<number, string[]>;
+  quizVocabularyPinyin?: Record<number, string[]>;
+  quizVocabularyPos?: Record<number, string[]>;
+  quizVocabularyTranslation?: Record<number, string[]>;
+  quizVocabularyDistractors?: Record<number, string[][]>;
+  quizVocabularyCloze?: Record<number, Array<{ sentence: string; distractors: string[] }[]>>;
+  quizVocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
+  quizSuggestedAnswers?: Record<number, string>;
   suggestedAnswers?: Record<number, string>;
   listenAudioUrls?: Record<number, string>;
   listenAudioSources?: Record<number, "teacher" | "tts">;

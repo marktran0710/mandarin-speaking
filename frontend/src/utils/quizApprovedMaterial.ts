@@ -94,11 +94,14 @@ export function buildApprovedMaterial(
         word,
         translation: filtered.translation,
         distractors: (filtered.aiDistractors ?? []).slice(0, MAX_PUBLISHED_WRONG_OPTIONS),
-        cloze: (filtered.aiCloze ?? []).map((candidate) => ({
+        // One reviewed prompt per generated question type keeps the student
+        // quiz predictable. Extra candidates remain available in the teacher
+        // draft/source data, but are not published or rotated at runtime.
+        cloze: (filtered.aiCloze ?? []).slice(0, 1).map((candidate) => ({
           ...candidate,
           distractors: candidate.distractors.slice(0, MAX_PUBLISHED_WRONG_OPTIONS),
         })),
-        synonym: (filtered.aiSynonyms ?? []).map((candidate) => ({
+        synonym: (filtered.aiSynonyms ?? []).slice(0, 1).map((candidate) => ({
           ...candidate,
           distractors: candidate.distractors.slice(0, MAX_PUBLISHED_WRONG_OPTIONS),
         })),
@@ -134,12 +137,14 @@ export function buildApprovedMaterialFromApprovals(
           : [],
         cloze: cloze
           .filter((_, ci) => isApproved(approvals, word, "cloze", ci))
+          .slice(0, 1)
           .map((candidate) => ({
             ...candidate,
             distractors: candidate.distractors.slice(0, MAX_PUBLISHED_WRONG_OPTIONS),
           })),
         synonym: synonym
           .filter((_, syi) => isApproved(approvals, word, "synonym", syi))
+          .slice(0, 1)
           .map((candidate) => ({
             ...candidate,
             distractors: candidate.distractors.slice(0, MAX_PUBLISHED_WRONG_OPTIONS),

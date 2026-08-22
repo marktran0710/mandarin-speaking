@@ -9,7 +9,9 @@ export type QuizExclusionKind =
   | "word"
   | "cloze"
   | "synonym"
-  | "distractors";
+  | "distractors"
+  | "pinyin"
+  | "reverse";
 
 export interface QuizExclusion {
   word: string;

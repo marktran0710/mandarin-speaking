@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { topicQuizEntries, type QuizSourceTopic } from "./topicQuiz";
+import { auditTopicQuizMaterial, topicQuizEntries, type QuizSourceTopic } from "./topicQuiz";
 import type { QuizExclusion } from "./quizExclusions";
 
 function makeTopic(quizExclusions: QuizExclusion[]): QuizSourceTopic {
@@ -51,5 +51,48 @@ describe("topicQuizEntries exclusions", () => {
     expect(entry.aiCloze).toHaveLength(1);
     expect(entry.aiCloze?.[0].sentence).toBe("他不知道這件事。");
     expect(entry.aiSynonym ?? []).toHaveLength(0);
+  });
+
+  it("tracks built-in pinyin and reverse exclusions separately", () => {
+    const entries = topicQuizEntries(
+      makeTopic([
+        { word: "知道", kind: "pinyin" },
+        { word: "知道", kind: "reverse" },
+      ]),
+    );
+    const entry = entries.find((candidate) => candidate.word === "知道")!;
+    expect(entry.disabledQuestionKinds).toEqual(["pinyin", "reverse"]);
+  });
+});
+
+describe("canonical quiz vocabulary", () => {
+  it("prefers the shared Easy/base pool over tier display vocabulary", () => {
+    const entries = topicQuizEntries({
+      images: ["scene-1.png"],
+      vocabulary: { 0: ["知道", "一起"] },
+      vocabularyTranslation: { 0: ["wrong", "wrong"] },
+      suggestedAnswers: { 0: "我知道，我們一起去。" },
+      quizVocabulary: { 0: ["知道"] },
+      quizVocabularyTranslation: { 0: ["to know"] },
+      quizSuggestedAnswers: { 0: "我知道。" },
+    });
+
+    expect(entries.map((entry) => entry.word)).toEqual(["知道"]);
+    expect(entries[0].translation).toBe("to know");
+  });
+
+  it("audits answer leakage and misaligned candidate material", () => {
+    const issues = auditTopicQuizMaterial({
+      images: ["scene-1.png"],
+      vocabulary: { 0: ["知道"] },
+      vocabularyTranslation: { 0: ["to know"] },
+      vocabularyDistractors: { 0: [["to know"]] },
+      vocabularyCloze: { 0: [[{ sentence: "我不知道。", distractors: ["知道"] }]] },
+      vocabularySynonym: { 0: [[{ synonym: "知道", distractors: ["不懂"] }]] },
+    });
+
+    expect(issues.map((issue) => issue.field)).toEqual(
+      expect.arrayContaining(["distractors", "cloze", "synonym"]),
+    );
   });
 });

@@ -74,6 +74,8 @@ describe("storyToTopic difficulty tiers", () => {
     expect(topic.prompts?.[0]).toBe("你今天好嗎？");
     expect(topic.vocabulary[0]).toEqual(["你好", "今天"]);
     expect(topic.suggestedAnswers?.[0]).toBe("我今天很好。");
+    expect(topic.quizVocabulary?.[0]).toEqual(["你好"]);
+    expect(topic.quizVocabularyTranslation?.[0]).toBeUndefined();
   });
 
   it("falls back to Easy text when a tier hasn't been authored for that frame", () => {
@@ -145,6 +147,42 @@ describe("storyToTopic serving mode", () => {
     };
     const topic = storyToTopic(approvedStory, "easy", "approved");
     expect(topic.vocabularyDistractors?.[0]?.[0]).toEqual(["to see", "to hear", "to say"]);
+  });
+
+  it("uses the Easy approved snapshot for Medium quiz material by canonical word", () => {
+    const mediumStory: CustomTeacherStory = {
+      ...story,
+      frames: [{
+        ...story.frames[0],
+        vocabulary: "知道",
+        vocabularyMedium: "知道, 一起",
+        vocabularyTranslation: "to know",
+        vocabularyTranslationMedium: "to know, together",
+        vocabularyDistractors: JSON.stringify([["live wrong"]]),
+      }],
+      quizApprovedSnapshot: {
+        easy: [{
+          word: "知道",
+          translation: "to know",
+          distractors: ["to see", "to hear"],
+          cloze: [],
+          synonym: [],
+        }],
+        medium: [{
+          word: "知道",
+          translation: "wrong medium translation",
+          distractors: ["wrong medium distractor"],
+          cloze: [],
+          synonym: [],
+        }],
+      },
+    };
+    const topic = storyToTopic(mediumStory, "medium", "approved");
+
+    expect(topic.vocabulary?.[0]).toEqual(["知道", "一起"]);
+    expect(topic.quizVocabulary?.[0]).toEqual(["知道"]);
+    expect(topic.quizVocabularyTranslation?.[0]).toEqual(["to know"]);
+    expect(topic.quizVocabularyDistractors?.[0]).toEqual([["to see", "to hear"]]);
   });
 
   it("'approved' never leaks live material for a word missing from the snapshot", () => {

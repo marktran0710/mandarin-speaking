@@ -162,6 +162,23 @@ const TIER_SUFFIX: Record<StoryDifficultyLevel, ""  | "Medium" | "Hard"> = {
   hard: "Hard",
 };
 
+function splitCsvField(value?: string): string[] {
+  return (value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseJsonArray(value?: string): unknown[] | null {
+  if (!value || !value.trim()) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 type TieredField =
   | "imageUrl"
   | "prompt"
@@ -245,6 +262,18 @@ export function storyToTopic(
         return map;
       }, new Map<string, (typeof approvedSnapshotEntries)[number]>())
     : null;
+  // Quiz identity is based on the Easy/base vocabulary even when the
+  // displayed story uses a tier-specific word list. This keeps the same
+  // concept connected across levels and prevents Medium/Hard arrays from
+  // inheriting AI material by stale word index.
+  const quizApprovedSnapshotEntries =
+    source === "approved" ? storyApprovedSnapshot(story, "easy") : null;
+  const quizApprovedByWord = quizApprovedSnapshotEntries
+    ? quizApprovedSnapshotEntries.reduce((map, e) => {
+        if (!map.has(e.word)) map.set(e.word, e);
+        return map;
+      }, new Map<string, (typeof quizApprovedSnapshotEntries)[number]>())
+    : null;
   const vocabulary = story.frames.reduce<Record<number, string[]>>(
     (allWords, frame, index) => ({
       ...allWords,
@@ -266,6 +295,14 @@ export function storyToTopic(
   const vocabularyCloze: Record<number, Array<{ sentence: string; distractors: string[] }[]>> = {};
   const vocabularySynonym: Record<number, Array<{ synonym: string; distractors: string[] }[]>> = {};
   const suggestedAnswers: Record<number, string> = {};
+  const quizVocabulary: Record<number, string[]> = {};
+  const quizVocabularyPinyin: Record<number, string[]> = {};
+  const quizVocabularyPos: Record<number, string[]> = {};
+  const quizVocabularyTranslation: Record<number, string[]> = {};
+  const quizVocabularyDistractors: Record<number, string[][]> = {};
+  const quizVocabularyCloze: Record<number, Array<{ sentence: string; distractors: string[] }[]>> = {};
+  const quizVocabularySynonym: Record<number, Array<{ synonym: string; distractors: string[] }[]>> = {};
+  const quizSuggestedAnswers: Record<number, string> = {};
   const listenAudioUrls: Record<number, string> = {};
   const listenAudioSources: Record<number, "teacher" | "tts"> = {};
   const listenScripts: Record<number, string> = {};
@@ -273,6 +310,73 @@ export function storyToTopic(
   const vocabularyReferenceCurves: Record<number, number[][]> = {};
   const sentenceReferenceCurves: Record<number, Record<string, number[]>> = {};
   story.frames.forEach((frame, index) => {
+    const baseWords = splitCsvField(frame.vocabulary);
+    quizVocabulary[index] = baseWords;
+    const basePinyin = splitCsvField(frame.vocabularyPinyin).map((p) => numericToToneMarked(p));
+    const basePos = splitCsvField(frame.vocabularyPos);
+    const baseTranslations = splitCsvField(frame.vocabularyTranslation);
+    if (basePinyin.length > 0) quizVocabularyPinyin[index] = basePinyin;
+    if (basePos.length > 0) quizVocabularyPos[index] = basePos;
+    const approvedTranslations = baseWords.map((word, wordIndex) =>
+      (source === "approved" ? quizApprovedByWord?.get(word)?.translation?.trim() : undefined) ||
+      baseTranslations[wordIndex] ||
+      "",
+    );
+    if (approvedTranslations.some(Boolean)) {
+      quizVocabularyTranslation[index] = approvedTranslations;
+    }
+    const baseSuggestedAnswer = frame.suggestedAnswer?.trim();
+    if (baseSuggestedAnswer) quizSuggestedAnswers[index] = baseSuggestedAnswer;
+
+    if (source === "approved") {
+      quizVocabularyDistractors[index] = baseWords.map(
+        (word) => quizApprovedByWord?.get(word)?.distractors ?? [],
+      );
+      quizVocabularyCloze[index] = baseWords.map(
+        (word) => quizApprovedByWord?.get(word)?.cloze ?? [],
+      );
+      quizVocabularySynonym[index] = baseWords.map(
+        (word) => quizApprovedByWord?.get(word)?.synonym ?? [],
+      );
+    } else {
+      const rawDistractors = parseJsonArray(frame.vocabularyDistractors);
+      if (rawDistractors) {
+        quizVocabularyDistractors[index] = rawDistractors.map((row) =>
+          Array.isArray(row)
+            ? row.filter((item): item is string => typeof item === "string")
+            : [],
+        );
+      }
+      const rawCloze = parseJsonArray(frame.vocabularyCloze);
+      if (rawCloze) {
+        quizVocabularyCloze[index] = rawCloze.map((row) =>
+          Array.isArray(row)
+            ? row.filter(
+                (item): item is { sentence: string; distractors: string[] } =>
+                  Boolean(item) &&
+                  typeof item === "object" &&
+                  typeof (item as { sentence?: unknown }).sentence === "string" &&
+                  Array.isArray((item as { distractors?: unknown }).distractors),
+              )
+            : [],
+        );
+      }
+      const rawSynonym = parseJsonArray(frame.vocabularySynonym);
+      if (rawSynonym) {
+        quizVocabularySynonym[index] = rawSynonym.map((row) =>
+          Array.isArray(row)
+            ? row.filter(
+                (item): item is { synonym: string; distractors: string[] } =>
+                  Boolean(item) &&
+                  typeof item === "object" &&
+                  typeof (item as { synonym?: unknown }).synonym === "string" &&
+                  Array.isArray((item as { distractors?: unknown }).distractors),
+              )
+            : [],
+        );
+      }
+    }
+
     if (frame.vocabularyGroups && frame.vocabularyGroups.length > 0) {
       vocabularyGroups[index] = frame.vocabularyGroups;
     }
@@ -479,6 +583,14 @@ export function storyToTopic(
     ),
     prompts: story.frames.map((frame) => tierText(frame, "prompt", difficultyLevel) || ""),
     vocabulary,
+    quizVocabulary,
+    ...(Object.keys(quizVocabularyPinyin).length > 0 ? { quizVocabularyPinyin } : {}),
+    ...(Object.keys(quizVocabularyPos).length > 0 ? { quizVocabularyPos } : {}),
+    ...(Object.keys(quizVocabularyTranslation).length > 0 ? { quizVocabularyTranslation } : {}),
+    ...(Object.keys(quizVocabularyDistractors).length > 0 ? { quizVocabularyDistractors } : {}),
+    ...(Object.keys(quizVocabularyCloze).length > 0 ? { quizVocabularyCloze } : {}),
+    ...(Object.keys(quizVocabularySynonym).length > 0 ? { quizVocabularySynonym } : {}),
+    ...(Object.keys(quizSuggestedAnswers).length > 0 ? { quizSuggestedAnswers } : {}),
     ...(Object.keys(vocabularyGroups).length > 0 ? { vocabularyGroups } : {}),
     ...(Object.keys(phrases).length > 0 ? { phrases } : {}),
     ...(Object.keys(phrasesTranslation).length > 0 ? { phrasesTranslation } : {}),

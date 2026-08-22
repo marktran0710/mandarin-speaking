@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import { BiLabel } from "./BiLabel";
 import AppButton from "./AppButton";
@@ -1247,47 +1248,49 @@ export default function SpeakingResultsFlow({
         </div>
       </div>
 
-      {feedbackModalOpen && (
-        <div
-          className="sfc-feedback-modal-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closeFeedbackModal();
-          }}
-        >
-          <section
-            id="sfc-feedback-modal"
-            className="sfc-feedback-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="sfc-feedback-modal-title"
+      {feedbackModalOpen &&
+        createPortal(
+          <div
+            className="sfc-feedback-modal-backdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) closeFeedbackModal();
+            }}
           >
-            <header className="sfc-feedback-modal-header">
-              <div id="sfc-feedback-modal-title">
-                <BiLabel zh="發音分析" en="Pronunciation feedback" />
+            <section
+              id="sfc-feedback-modal"
+              className="sfc-feedback-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="sfc-feedback-modal-title"
+            >
+              <header className="sfc-feedback-modal-header">
+                <div id="sfc-feedback-modal-title">
+                  <BiLabel zh="發音分析" en="Pronunciation feedback" />
+                </div>
+                <button
+                  type="button"
+                  className="sfc-feedback-modal-close"
+                  aria-label="Close pronunciation feedback"
+                  onClick={closeFeedbackModal}
+                >
+                  ×
+                </button>
+              </header>
+              <div className="sfc-feedback-modal-body">
+                <PronunciationBreakdown
+                  words={praatMetrics.word_prosody || []}
+                  targetText={targetScript}
+                  transcription={recognizedText}
+                  teacherPhrases={teacherPhraseChunks}
+                  assistiveFeedback={assistiveFeedback}
+                  masteryCounts={masteryCounts}
+                />
               </div>
-              <button
-                type="button"
-                className="sfc-feedback-modal-close"
-                aria-label="Close pronunciation feedback"
-                onClick={closeFeedbackModal}
-              >
-                ×
-              </button>
-            </header>
-            <div className="sfc-feedback-modal-body">
-              <PronunciationBreakdown
-                words={praatMetrics.word_prosody || []}
-                targetText={targetScript}
-                transcription={recognizedText}
-                teacherPhrases={teacherPhraseChunks}
-                assistiveFeedback={assistiveFeedback}
-                masteryCounts={masteryCounts}
-              />
-            </div>
-          </section>
-        </div>
-      )}
+            </section>
+          </div>,
+          document.body,
+        )}
 
       <footer className="sfc-footer">
         {hasPhrasePractice && !allPhrasesCleared ? (

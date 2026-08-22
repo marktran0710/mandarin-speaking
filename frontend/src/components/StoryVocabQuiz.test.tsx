@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import StoryVocabQuiz, {
   buildQuizQuestions,
   collectQuizEntries,
+  quizConceptId,
+  quizItemId,
   type VocabQuizSummary,
 } from "./StoryVocabQuiz";
 import * as database from "../services/database";
@@ -132,6 +134,30 @@ describe("collectQuizEntries", () => {
       { word: "吃", translation: "to eat" },
     ]);
   });
+
+  it("keeps one usable cloze and synonym candidate per word", () => {
+    const entries = collectQuizEntries(
+      ["知道"],
+      ["to know"],
+      undefined,
+      undefined,
+      ["zhīdào"],
+      [[
+        { sentence: "我知道了。", distractors: ["不知道"] },
+        { sentence: "他知道答案。", distractors: ["不懂"] },
+      ]],
+      undefined,
+      [[
+        { synonym: "曉得", distractors: ["不懂"] },
+        { synonym: "明白", distractors: ["糊塗"] },
+      ]],
+    );
+
+    expect(entries[0].aiCloze).toHaveLength(1);
+    expect(entries[0].aiCloze?.[0].sentence).toBe("我知道了。");
+    expect(entries[0].aiSynonym).toHaveLength(1);
+    expect(entries[0].aiSynonym?.[0].synonym).toBe("曉得");
+  });
 });
 
 describe("buildQuizQuestions", () => {
@@ -254,6 +280,17 @@ describe("buildQuizQuestions", () => {
         expect(new Set(question.options).size).toBe(question.options.length);
       }
     }
+  });
+});
+
+describe("quiz item identity", () => {
+  it("is stable when answer options are shuffled", () => {
+    const first = quizItemId("story-1", " 錢包 ", "translation");
+    const second = quizItemId("story-1", "錢包", "translation");
+
+    expect(quizConceptId(" 錢包 ")).toBe("錢包");
+    expect(first).toBe(second);
+    expect(first).not.toContain("restaurant");
   });
 });
 

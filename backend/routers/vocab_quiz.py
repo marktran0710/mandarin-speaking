@@ -63,6 +63,12 @@ def _vocab_quiz_item_key(story_id: str, word: str) -> str:
     return f"{story_id}:{word}"
 
 
+def _stored_quiz_item_key(story_id: str, result: dict, word: str) -> str:
+    """Prefer the stable client identity, with a safe legacy fallback."""
+    item_id = result.get("itemId")
+    return item_id.strip() if isinstance(item_id, str) and item_id.strip() else _vocab_quiz_item_key(story_id, word)
+
+
 def _load_vocab_quiz_irt_cache(db) -> Optional[dict]:
     row = db.execute(
         "SELECT student_ability, item_difficulty, student_speed, item_time_intensity "
@@ -99,7 +105,7 @@ def refit_vocab_quiz_irt_cache() -> None:
                     continue
                 responses.append((
                     student_key,
-                    _vocab_quiz_item_key(row["story_id"], word),
+                    _stored_quiz_item_key(row["story_id"], result, word),
                     bool(result.get("correct")),
                     float(result.get("timeMs") or 0),
                 ))
@@ -189,11 +195,13 @@ async def get_weak_words(
         rows = db.execute(query, params).fetchall()
 
         occurrences_by_word: dict = defaultdict(list)
+        item_keys_by_word: dict = defaultdict(set)
         for row in rows:
             for result in row["question_results"] or []:
                 word = result.get("word")
                 if word is None:
                     continue
+                item_keys_by_word[word].add(_stored_quiz_item_key(story_id, result, word))
                 occurrences_by_word[word].append(
                     WordOccurrence(
                         correct=bool(result.get("correct")),
@@ -213,12 +221,16 @@ async def get_weak_words(
         weak = [word for word, occs in occurrences_by_word.items() if not occs[-1].correct]
         return {"words": weak}
 
+    def mean_fitted_value(values: dict, keys: set[str]) -> float:
+        fitted = [float(values[key]) for key in keys if key in values]
+        return sum(fitted) / len(fitted) if fitted else 0.0
+
     difficulty_by_word = {
-        word: fit["item_difficulty"].get(_vocab_quiz_item_key(story_id, word), 0.0)
+        word: mean_fitted_value(fit["item_difficulty"], item_keys_by_word[word])
         for word in occurrences_by_word
     }
     time_intensity_by_word = {
-        word: fit["item_time_intensity"].get(_vocab_quiz_item_key(story_id, word), 0.0)
+        word: mean_fitted_value(fit["item_time_intensity"], item_keys_by_word[word])
         for word in occurrences_by_word
     }
     ability = fit["student_ability"].get(student_key, 0.0)
@@ -275,11 +287,11 @@ async def create_vocab_quiz_attempt(
                 attempt.totalQuestions,
                 attempt.correctCount,
                 attempt.totalTimeMs,
-                Jsonb([r.model_dump() for r in attempt.questionResults]),
+                Jsonb([r.model_dump(exclude_none=True) for r in attempt.questionResults]),
             ),
         )
     schedule_irt_refit(background_tasks)
-    return attempt.model_dump()
+    return attempt.model_dump(exclude_none=True)
 
 
 @router.post("/api/vocab-from-sentence", response_model=VocabFromSentenceResponse)

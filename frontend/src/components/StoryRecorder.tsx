@@ -438,6 +438,13 @@ export interface PraatMetrics {
    * by default, or pilot-scoped via `study_phase`). See
    * `src/utils/assistiveFeedback.ts`. */
   assistive_feedback?: AssistiveFeedbackSyllable[] | null;
+  /** Additive join key for future quiz-item → speaking analysis links. */
+  learning_context?: {
+    baseStoryId: string;
+    difficultyLevel: "easy" | "medium" | "hard";
+    sceneIndex: number;
+    promptId: string;
+  };
 }
 
 export interface WordProsody {
@@ -992,8 +999,20 @@ export default function StoryRecorder({
         masteryPassed: masteryPassedMap[sceneIndex] ?? false,
         contentPassed: contentPassedMap[sceneIndex] ?? false,
         clearedWords: clearedWordsMap[sceneIndex] ?? [],
+        baseStoryId: topic.sourceStory?.id ?? topic.id,
+        difficultyLevel: topic.difficultyLevel ?? "easy",
+        promptId: `${topic.sourceStory?.id ?? topic.id}:scene:${sceneIndex}`,
         ...fields,
       };
+      if (progress.latestResult) {
+        progress.latestResult = {
+          ...progress.latestResult,
+          baseStoryId: progress.baseStoryId,
+          difficultyLevel: progress.difficultyLevel,
+          sceneIndex,
+          promptId: progress.promptId,
+        };
+      }
       writeLocalSpeakingProgress(progress);
       if (!canUseDatabase()) return;
       saveSpeakingProgress(progress).catch((err) => {
@@ -1007,6 +1026,8 @@ export default function StoryRecorder({
       masteryPassedMap,
       contentPassedMap,
       clearedWordsMap,
+      topic.sourceStory?.id,
+      topic.difficultyLevel,
     ],
   );
   const handleWordDrillPass = useCallback(
@@ -1091,6 +1112,8 @@ export default function StoryRecorder({
       totalQuestions: summary.totalQuestions,
       correctCount: summary.correctCount,
       totalTimeMs: summary.totalTimeMs,
+      baseStoryId: topic.sourceStory?.id ?? topic.id,
+      level: topic.difficultyLevel ?? "easy",
       questionResults: summary.questionResults,
     }).catch((error) => {
       console.warn("Failed to save vocabulary quiz attempt:", error);
@@ -1873,6 +1896,18 @@ export default function StoryRecorder({
       const metrics = (await response.json()) as PraatMetrics;
       metrics.analysis_version = metrics.analysis_version ?? version;
       metrics.progression_eligible = version === "stable_v1";
+      const learningContext = {
+        baseStoryId: topic.sourceStory?.id ?? topic.id,
+        difficultyLevel: topic.difficultyLevel ?? "easy",
+        sceneIndex: selectedImageIndex,
+        promptId: `${topic.sourceStory?.id ?? topic.id}:scene:${selectedImageIndex}`,
+      } as const;
+      // Keep the scoring object untouched. This additive copy is only the
+      // persisted analytics context used to join speaking with quiz concepts.
+      const persistedMetrics: PraatMetrics = {
+        ...metrics,
+        learning_context: learningContext,
+      };
       const canScorePronunciation =
         metrics.feedback_quality?.can_score_pronunciation !== false;
       const canScoreContent =
@@ -1889,7 +1924,7 @@ export default function StoryRecorder({
         currentTranscriptRef.current = finalTranscription;
         addTranscription(finalTranscription, recordModel);
       }
-      setPraatMetrics(metrics);
+      setPraatMetrics(persistedMetrics);
       setAnalysisAudioBlob(wavBlob);
       recordMeasurementEvent(createMeasurementEvent("analysis_completed", {
         studentId: studentId ?? getStudentId(),
@@ -1903,6 +1938,9 @@ export default function StoryRecorder({
           fluencyScore: Math.round(metrics.fluency_score),
           masteryPassed: metrics.pronunciation_mastery?.passed ?? null,
           feedbackQuality: metrics.feedback_quality?.status ?? null,
+          baseStoryId: learningContext.baseStoryId,
+          difficultyLevel: learningContext.difficultyLevel,
+          promptId: learningContext.promptId,
         },
       }));
       if (version === "phoneme_tone_v2") {
@@ -1917,7 +1955,7 @@ export default function StoryRecorder({
           topicId: topic.id,
           imageUrl: selectedImage,
           imageIndex: selectedImageIndex,
-          praatMetrics: metrics,
+          praatMetrics: persistedMetrics,
           analysisVersion: version,
           analysisSchemaVersion: metrics.analysis_schema_version,
           modelVersion: metrics.model_version,
@@ -2007,7 +2045,7 @@ export default function StoryRecorder({
         topicId: topic.id,
         imageUrl: selectedImage,
         imageIndex: selectedImageIndex,
-        praatMetrics: metrics,
+        praatMetrics: persistedMetrics,
         analysisVersion: version,
         analysisSchemaVersion: metrics.analysis_schema_version,
         modelVersion: metrics.model_version,
@@ -2442,6 +2480,8 @@ export default function StoryRecorder({
           onDone={handleVocabQuizDone}
           onComplete={handleVocabQuizComplete}
           storyId={topic.id}
+          baseStoryId={topic.sourceStory?.id ?? topic.id}
+          level={topic.difficultyLevel ?? "easy"}
           studentId={studentId}
           studentName={studentName}
           alreadyCompleted={vocabQuizCompleted}

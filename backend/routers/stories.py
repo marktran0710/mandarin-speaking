@@ -288,6 +288,16 @@ async def replace_quiz_question(story_id: str, request: QuizQuestionReplaceReque
                 (words[request.wordIndex], story_id),
             )
             return {"ok": True, "approvedSnapshotsInvalidated": True}
+        if request.kind == "pinyin":
+            if not isinstance(request.value, str) or not request.value.strip():
+                raise HTTPException(status_code=422, detail="pinyin value must be a non-empty string.")
+            field = request.pinyinField or "vocabularyPinyin"
+            pinyins = [item.strip() for item in str(frame.get(field) or "").split(",")]
+            while len(pinyins) <= request.wordIndex:
+                pinyins.append("")
+            pinyins[request.wordIndex] = request.value.strip()
+            _write_frame_field(db, story_id, request.frameIndex, field, ", ".join(pinyins))
+            return {"ok": True}
         field = {
             "distractors": "vocabularyDistractors",
             "cloze": "vocabularyCloze",

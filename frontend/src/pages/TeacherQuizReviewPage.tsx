@@ -62,6 +62,7 @@ import {
   type QuizApprovalMark,
 } from "../utils/quizPendingApprovals";
 import { lessonTitle } from "../utils/lessonGroups";
+import { toPinyin } from "../utils/pinyin";
 
 /** Teacher quiz review: every piece of material the vocab quiz can build
  * questions from, per lesson and difficulty tier, with a 🗑 toggle to mark
@@ -80,6 +81,7 @@ interface LessonReviewGroup {
 
 type ReviewIconName =
   | "accept"
+  | "add"
   | "chevron"
   | "edit"
   | "export"
@@ -106,6 +108,7 @@ function ReviewIcon({ name, size = 18 }: { name: ReviewIconName; size?: number }
   };
   const paths: Record<ReviewIconName, ReactNode> = {
     accept: <path d="m5 12 4 4L19 6" />,
+    add: <path d="M12 5v14M5 12h14" />,
     chevron: <path d="m8 10 4 4 4-4" />,
     edit: (
       <>
@@ -259,16 +262,32 @@ interface EditTarget {
   frameIndex: number;
   wordIndex: number;
   word: string;
-  kind: QuizApprovalKind | "translation";
+  kind: QuizApprovalKind | "translation" | "pinyin";
   poolIndex?: number;
   translationField?: TranslationField;
+  pinyinField?: PinyinField;
 }
 
 type EditDraft =
   | { kind: "translation"; translation: string }
   | { kind: "distractors"; distractors: string; correctAnswer?: string }
   | { kind: "cloze"; sentence: string; distractors: string }
+  | { kind: "synonym"; synonym: string; distractors: string }
+  | { kind: "pinyin"; pinyin: string };
+
+type AddQuestionKind = "distractors" | "cloze" | "synonym";
+type AddQuestionDraft =
+  | { kind: "distractors"; distractors: string }
+  | { kind: "cloze"; sentence: string; distractors: string }
   | { kind: "synonym"; synonym: string; distractors: string };
+
+interface AddQuestionTarget {
+  storyId: string;
+  frameIndex: number;
+  wordIndex: number;
+  word: string;
+  availableKinds: AddQuestionKind[];
+}
 
 function pendingKeyFor(storyId: string, level: StoryDifficultyLevel): string {
   return `${storyId}:${level}`;
@@ -291,14 +310,16 @@ const POOL_FIELD: Record<QuizApprovalKind, keyof CustomStoryFrame> = {
  * so storyToTopic recomputes with the new content without waiting on a
  * refetch. Pure: returns a new frame, doesn't mutate the one passed in. */
 type TranslationField = "vocabularyTranslation" | "vocabularyTranslationMedium" | "vocabularyTranslationHard";
+type PinyinField = "vocabularyPinyin" | "vocabularyPinyinMedium" | "vocabularyPinyinHard";
 
 function applyLocalEdit(
   frame: CustomStoryFrame,
-  kind: QuizApprovalKind | "translation",
+  kind: QuizApprovalKind | "translation" | "pinyin",
   wordIndex: number,
   poolIndex: number | undefined,
   value: ReplaceValue,
   translationField?: TranslationField,
+  pinyinField?: PinyinField,
 ): CustomStoryFrame {
   if (kind === "translation") {
     const field = translationField ?? "vocabularyTranslation";
@@ -306,6 +327,13 @@ function applyLocalEdit(
     while (translations.length <= wordIndex) translations.push("");
     translations[wordIndex] = value as string;
     return { ...frame, [field]: translations.join(", ") };
+  }
+  if (kind === "pinyin") {
+    const field = pinyinField ?? "vocabularyPinyin";
+    const pinyins = String(frame[field] ?? "").split(",").map((item) => item.trim());
+    while (pinyins.length <= wordIndex) pinyins.push("");
+    pinyins[wordIndex] = value as string;
+    return { ...frame, [field]: pinyins.join(", ") };
   }
   const field = POOL_FIELD[kind];
   const pool: unknown[] = JSON.parse((frame[field] as string | undefined) || "[]");
@@ -341,6 +369,7 @@ function invalidateApprovedWord(story: CustomTeacherStory, word: string): Custom
 
 /** Kind of a freshly-generated candidate awaiting accept/reject. */
 type GeneratedKind = "distractors" | "cloze" | "synonym";
+type BuiltInQuestionKind = "pinyin" | "reverse";
 type CandidateOrigin = "new" | "changed" | "removed";
 type PendingCandidateValue =
   | string[]
@@ -407,6 +436,45 @@ interface IndexedPendingCandidate {
 
 type ReviewTopic = ReturnType<typeof storyToTopic>;
 type ChangedKind = Exclude<QuizValidateResultItem["kind"], "translation">;
+
+interface BuiltInReviewWord {
+  word: string;
+  translation: string;
+  pinyin: string;
+}
+
+function pinyinFieldForLevel(frame: CustomStoryFrame, level: StoryDifficultyLevel): PinyinField {
+  if (level === "medium" && frame.vocabularyPinyinMedium?.trim()) return "vocabularyPinyinMedium";
+  if (level === "hard" && frame.vocabularyPinyinHard?.trim()) return "vocabularyPinyinHard";
+  return "vocabularyPinyin";
+}
+
+/** The two non-AI question types shown in Quiz Review are built from the same
+ * deterministic source as the student quiz: pinyin and reverse translation.
+ * Keep one first-seen row per word so duplicate scene entries do not create
+ * duplicate previews. */
+function builtInReviewWords(topic: ReviewTopic): BuiltInReviewWord[] {
+  const seen = new Set<string>();
+  const words: BuiltInReviewWord[] = [];
+  topic.images.forEach((_, si) => {
+    (topic.vocabulary[si] || []).forEach((word, wi) => {
+      if (seen.has(word)) return;
+      const translation = topic.vocabularyTranslation?.[si]?.[wi]?.trim();
+      if (!translation) return;
+      seen.add(word);
+      words.push({
+        word,
+        translation,
+        pinyin: topic.vocabularyPinyin?.[si]?.[wi]?.trim() || toPinyin(word),
+      });
+    });
+  });
+  return words;
+}
+
+function reviewOptions(correct: string, alternatives: string[]): string[] {
+  return Array.from(new Set([correct, ...alternatives.filter(Boolean)])).slice(0, 4);
+}
 
 interface ChangedCandidateTarget {
   frameIndex: number;
@@ -548,8 +616,8 @@ function removedCandidatesFromSnapshot(snapshot: MaterialSnapshotEntry[] | null,
 function applyAcceptedCandidatesLocally(story: CustomTeacherStory, accepted: PendingCandidate[]): CustomTeacherStory {
   const caps: Record<GeneratedKind, number> = {
     distractors: 8,
-    cloze: 4,
-    synonym: 4,
+    cloze: 1,
+    synonym: 1,
   };
   let frames = story.frames;
   for (const candidate of accepted) {
@@ -758,8 +826,6 @@ function ReviewFilterBar({
   stories,
   storyFilterId,
   onStoryChange,
-  onlyChanges,
-  onOnlyChangesChange,
 }: {
   lessonGroups: LessonReviewGroup[];
   lessonKey: string;
@@ -770,8 +836,6 @@ function ReviewFilterBar({
   stories: CustomTeacherStory[];
   storyFilterId: string;
   onStoryChange: (value: string) => void;
-  onlyChanges: boolean;
-  onOnlyChangesChange: (checked: boolean) => void;
 }) {
   return (
     <header className="tqr-header" aria-label="Quiz review controls">
@@ -817,14 +881,6 @@ function ReviewFilterBar({
             </select>
           </label>
         )}
-        <label className="tqr-only-changes">
-          <input
-            type="checkbox"
-            checked={onlyChanges}
-            onChange={(event) => onOnlyChangesChange(event.target.checked)}
-          />
-          <BiLabel zh="只顯示新增／已改" en="Only new/changed" />
-        </label>
       </div>
     </header>
   );
@@ -870,7 +926,6 @@ export default function TeacherQuizReviewPage({
   const [lessonKey, setLessonKey] = useState<string>("");
   const [storyFilterId, setStoryFilterId] = useState<string>("all");
   const [level, setLevel] = useState<StoryDifficultyLevel>("easy");
-  const [onlyChanges, setOnlyChanges] = useState(false);
   const [exclusionsByStory, setExclusionsByStory] = useState<Record<string, QuizExclusion[]>>({});
   const [dirtyByStory, setDirtyByStory] = useState<Record<string, boolean>>({});
   const [statusByStory, setStatusByStory] = useState<Record<string, SaveStatus>>({});
@@ -884,6 +939,9 @@ export default function TeacherQuizReviewPage({
   const [editTarget, setEditTarget] = useState<EditTarget | null>(null);
   const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
   const [editStatus, setEditStatus] = useState<"idle" | "saving" | "error">("idle");
+  const [addQuestionTarget, setAddQuestionTarget] = useState<AddQuestionTarget | null>(null);
+  const [addQuestionDraft, setAddQuestionDraft] = useState<AddQuestionDraft | null>(null);
+  const [addQuestionStatus, setAddQuestionStatus] = useState<"idle" | "saving" | "error">("idle");
   const [pendingCandidatesByStory, setPendingCandidatesByStory] = useState<Record<string, PendingCandidate[]>>({});
   const [revealedCountByStory, setRevealedCountByStory] = useState<Record<string, number>>({});
   const [generationGateNoteByStory, setGenerationGateNoteByStory] = useState<Record<string, string>>({});
@@ -1112,7 +1170,7 @@ export default function TeacherQuizReviewPage({
 
   const onStartEdit = (
     target: EditTarget,
-    current: { distractors: string[]; sentence?: string; synonym?: string; correctAnswer?: string },
+    current: { distractors: string[]; sentence?: string; synonym?: string; correctAnswer?: string; pinyin?: string },
   ) => {
     setEditTarget(target);
     setEditStatus("idle");
@@ -1124,6 +1182,8 @@ export default function TeacherQuizReviewPage({
         sentence: current.sentence ?? "",
         distractors: current.distractors.join(", "),
       });
+    } else if (target.kind === "pinyin") {
+      setEditDraft({ kind: "pinyin", pinyin: current.pinyin ?? "" });
     } else {
       setEditDraft({
         kind: "synonym",
@@ -1145,6 +1205,88 @@ export default function TeacherQuizReviewPage({
     setEditStatus("idle");
   };
 
+  const addDraftForKind = (kind: AddQuestionKind): AddQuestionDraft =>
+    kind === "distractors"
+      ? { kind, distractors: "" }
+      : kind === "cloze"
+      ? { kind, sentence: "", distractors: "" }
+      : { kind, synonym: "", distractors: "" };
+
+  const onStartAddQuestion = (target: AddQuestionTarget) => {
+    const kind = target.availableKinds[0];
+    if (!kind) return;
+    setAddQuestionTarget(target);
+    setAddQuestionDraft(addDraftForKind(kind));
+    setAddQuestionStatus("idle");
+  };
+
+  const onCancelAddQuestion = () => {
+    setAddQuestionTarget(null);
+    setAddQuestionDraft(null);
+    setAddQuestionStatus("idle");
+  };
+
+  const onSaveAddQuestion = async () => {
+    if (!addQuestionTarget || !addQuestionDraft) return;
+    setAddQuestionStatus("saving");
+    const { storyId, frameIndex, wordIndex, word } = addQuestionTarget;
+    const distractors = addQuestionDraft.distractors
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (distractors.length === 0) {
+      setAddQuestionStatus("error");
+      return;
+    }
+
+    let value: ReplaceValue;
+    try {
+      if (addQuestionDraft.kind === "distractors") {
+        value = distractors;
+        await updateVocabularyDistractors(storyId, [{ frameIndex, wordIndex, distractors }]);
+      } else if (addQuestionDraft.kind === "cloze") {
+        const sentence = addQuestionDraft.sentence.trim();
+        if (!sentence || sentence.split(word).length !== 2) {
+          setAddQuestionStatus("error");
+          return;
+        }
+        const candidate = { sentence, distractors };
+        value = candidate;
+        await updateVocabularyCloze(storyId, [{ frameIndex, wordIndex, candidates: [candidate] }]);
+      } else {
+        const synonym = addQuestionDraft.synonym.trim();
+        if (!synonym || synonym === word) {
+          setAddQuestionStatus("error");
+          return;
+        }
+        const candidate = { synonym, distractors };
+        value = candidate;
+        await updateVocabularySynonym(storyId, [{ frameIndex, wordIndex, candidates: [candidate] }]);
+      }
+
+      setStories((prev) =>
+        prev.map((story) =>
+          story.id !== storyId
+            ? story
+            : {
+                ...story,
+                frames: story.frames.map((frame, index) =>
+                  index === frameIndex
+                    ? applyLocalEdit(frame, addQuestionDraft.kind, wordIndex, 0, value)
+                    : frame,
+                ),
+              },
+        ),
+      );
+      setValidationByStory((prev) => ({ ...prev, [storyId]: [] }));
+      setAddQuestionTarget(null);
+      setAddQuestionDraft(null);
+      setAddQuestionStatus("idle");
+    } catch {
+      setAddQuestionStatus("error");
+    }
+  };
+
   const onSaveEdit = async () => {
     if (!editTarget || !editDraft) return;
     setEditStatus("saving");
@@ -1154,6 +1296,8 @@ export default function TeacherQuizReviewPage({
     const value: ReplaceValue =
       editDraft.kind === "translation"
         ? editDraft.translation.trim()
+        : editDraft.kind === "pinyin"
+        ? editDraft.pinyin.trim()
         : editDraft.kind === "distractors"
         ? distractors
         : editDraft.kind === "cloze"
@@ -1174,6 +1318,17 @@ export default function TeacherQuizReviewPage({
           value,
           editTarget.translationField,
         );
+      } else if (editTarget.kind === "pinyin") {
+        await replaceQuizQuestion(
+          editTarget.storyId,
+          editTarget.frameIndex,
+          editTarget.wordIndex,
+          "pinyin",
+          undefined,
+          value,
+          undefined,
+          editTarget.pinyinField,
+        );
       } else {
         await replaceQuizQuestion(
           editTarget.storyId,
@@ -1193,7 +1348,15 @@ export default function TeacherQuizReviewPage({
                 frames: s.frames.map((frame, fi) =>
                   fi === editTarget.frameIndex
                     ? (() => {
-                        const edited = applyLocalEdit(frame, editTarget.kind, editTarget.wordIndex, editTarget.poolIndex, value, editTarget.translationField);
+                        const edited = applyLocalEdit(
+                          frame,
+                          editTarget.kind,
+                          editTarget.wordIndex,
+                          editTarget.poolIndex,
+                          value,
+                          editTarget.translationField,
+                          editTarget.pinyinField,
+                        );
                         return editTarget.kind === "distractors" && editDraft.kind === "distractors" && editDraft.correctAnswer !== undefined
                           ? applyLocalEdit(edited, "translation", editTarget.wordIndex, undefined, editDraft.correctAnswer.trim(), editTarget.translationField)
                           : edited;
@@ -1213,14 +1376,16 @@ export default function TeacherQuizReviewPage({
       setValidationByStory((prev) => ({
         ...prev,
         [editTarget.storyId]: (prev[editTarget.storyId] ?? []).filter((r) =>
-          editTarget.kind === "translation"
+          editTarget.kind === "translation" || editTarget.kind === "pinyin"
             ? r.word !== editTarget.word
             : !(r.word === editTarget.word && r.kind === editTarget.kind && (r.poolIndex ?? undefined) === editTarget.poolIndex),
         ),
       }));
       const key = pendingKeyFor(editTarget.storyId, level);
       const current = pendingApprovalsByKey[key] ?? [];
-      const next = editTarget.kind === "translation"
+      const next = editTarget.kind === "pinyin"
+        ? current
+        : editTarget.kind === "translation"
         ? current.filter((approval) => approval.word !== editTarget.word)
         : isApproved(current, editTarget.word, editTarget.kind, editTarget.poolIndex)
           ? toggleApproval(current, { word: editTarget.word, kind: editTarget.kind, index: editTarget.poolIndex })
@@ -1660,7 +1825,17 @@ export default function TeacherQuizReviewPage({
             />
           </label>
         )}
-        {editDraft.kind !== "translation" && <label>
+        {editDraft.kind === "pinyin" && (
+          <label>
+            <BiLabel zh="拼音" en="Pinyin" />
+            <input
+              type="text"
+              value={editDraft.pinyin}
+              onChange={(e) => setEditDraft({ kind: "pinyin", pinyin: e.target.value })}
+            />
+          </label>
+        )}
+        {editDraft.kind !== "translation" && editDraft.kind !== "pinyin" && <label>
           <BiLabel zh="錯誤選項（逗號分隔）" en="Wrong options (comma-separated)" />
           <input
             type="text"
@@ -1748,6 +1923,7 @@ export default function TeacherQuizReviewPage({
           {questionStatusBadge(result)}
         </div>
         <div className="diff-actions tqr-q-actions">
+          {questionDeleteButton(spec.storyId, spec.word, spec.kind, spec.poolIndex)}
           {editButton(
             {
               storyId: spec.storyId,
@@ -1765,6 +1941,201 @@ export default function TeacherQuizReviewPage({
       </div>
     );
   };
+
+  const addQuestionForm = () => {
+    if (!addQuestionTarget || !addQuestionDraft) return null;
+    return (
+      <div className="tqr-add-form" aria-label="Add quiz question">
+        <div className="tqr-add-form-heading">
+          <ReviewIcon name="add" size={16} />
+          <BiLabel zh="新增題目" en="Add question" />
+        </div>
+        <label>
+          <BiLabel zh="題型" en="Question type" />
+          <select
+            value={addQuestionDraft.kind}
+            onChange={(event) => setAddQuestionDraft(addDraftForKind(event.target.value as AddQuestionKind))}
+          >
+            {addQuestionTarget.availableKinds.map((kind) => (
+              <option key={kind} value={kind}>
+                {kind === "distractors" ? "翻譯 Translation" : kind === "cloze" ? "填空 Cloze" : "同義詞 Synonym"}
+              </option>
+            ))}
+          </select>
+        </label>
+        {addQuestionDraft.kind === "cloze" && (
+          <label>
+            <BiLabel zh="句子（必須包含目標詞）" en="Sentence (must include the word)" />
+            <input
+              type="text"
+              lang="zh-Hant"
+              value={addQuestionDraft.sentence}
+              onChange={(event) => setAddQuestionDraft({ ...addQuestionDraft, sentence: event.target.value })}
+            />
+          </label>
+        )}
+        {addQuestionDraft.kind === "synonym" && (
+          <label>
+            <BiLabel zh="同義詞" en="Synonym" />
+            <input
+              type="text"
+              lang="zh-Hant"
+              value={addQuestionDraft.synonym}
+              onChange={(event) => setAddQuestionDraft({ ...addQuestionDraft, synonym: event.target.value })}
+            />
+          </label>
+        )}
+        <label>
+          <BiLabel zh="錯誤選項（逗號分隔）" en="Wrong options (comma-separated)" />
+          <input
+            type="text"
+            value={addQuestionDraft.distractors}
+            onChange={(event) => setAddQuestionDraft({ ...addQuestionDraft, distractors: event.target.value })}
+          />
+        </label>
+        <div className="tqr-edit-actions">
+          <button type="button" className="tqr-io" onClick={onCancelAddQuestion}>
+            <BiLabel zh="取消" en="Cancel" />
+          </button>
+          {addQuestionStatus !== "saving" ? (
+            <button type="button" className="tqr-save" onClick={onSaveAddQuestion}>
+              <ReviewIcon name="add" size={15} />
+              <BiLabel zh="新增題目" en="Add question" />
+            </button>
+          ) : (
+            <span className="tqr-status-progress"><BiLabel zh="新增中…" en="Adding…" /></span>
+          )}
+        </div>
+        {addQuestionStatus === "error" && (
+          <span className="tqr-status-error" role="alert">
+            <BiLabel zh="請填寫完整題目內容與錯誤選項" en="Complete the question and add at least one wrong option" />
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  const onStartPinyinEdit = (target: EditTarget, pinyin: string) => {
+    setEditTarget(target);
+    setEditDraft({ kind: "pinyin", pinyin });
+    setEditStatus("idle");
+  };
+
+  const questionDeleteButton = (
+    storyId: string,
+    word: string,
+    kind: QuizApprovalKind | BuiltInQuestionKind,
+    index?: number,
+  ) => {
+    const exclusions = exclusionsByStory[storyId] ?? [];
+    const exclusionKind: QuizExclusionKind = kind === "distractors" ? "distractors" : kind;
+    const marked = isExcluded(exclusions, word, exclusionKind, index);
+    const questionName = kind === "distractors" ? "translation" : kind;
+    const exclusion = index === undefined
+      ? { word, kind: exclusionKind }
+      : { word, kind: exclusionKind, index };
+
+    return (
+      <button
+        type="button"
+        className={`tqr-trash tqr-question-delete${marked ? " is-marked" : ""}`}
+        aria-pressed={marked}
+        aria-label={`${marked ? "Restore" : "Delete"} ${questionName} question for ${word}`}
+        title={`${marked ? "Restore" : "Delete"} this ${questionName} question`}
+        onClick={() => {
+          if (!marked && typeof window !== "undefined") {
+            const confirmed = window.confirm(
+              `Delete this ${questionName} question for ${word}? You can restore it before saving.`,
+            );
+            if (!confirmed) return;
+          }
+          onToggle(storyId, exclusion);
+        }}
+      >
+        <ReviewIcon name={marked ? "restore" : "trash"} size={16} />
+      </button>
+    );
+  };
+
+  /** Renders a deterministic question preview. Built-in questions use the
+   * same row actions as generated questions: teachers can edit their source
+   * value or exclude/restore the question before saving. */
+  const builtInQuestionRow = (spec: {
+    key: string;
+    storyId: string;
+    frameIndex: number;
+    wordIndex: number;
+    word: string;
+    kind: BuiltInQuestionKind;
+    kindLabel: { zh: string; en: string };
+    promptZh: string;
+    promptEn: string;
+    options: string[];
+    pinyin?: string;
+    pinyinField?: PinyinField;
+    translation?: string;
+    translationField?: TranslationField;
+  }) => (
+    <div className="tqr-qrow diff-row row-ctx" key={spec.key}>
+      <span className="gutter tqr-q-select" aria-hidden="true" />
+      <span className="tqr-qkind">
+        <BiLabel zh={spec.kindLabel.zh} en={spec.kindLabel.en} />
+      </span>
+      <div className="diff-content tqr-qbody">
+        <p className="tqr-qprompt" lang="zh-Hant">
+          {spec.promptZh}
+          <br />
+          <span className="tqr-qprompt-en">{spec.promptEn}</span>
+        </p>
+        <div className="tqr-qoptions">
+          {spec.options.map((opt, i) => (
+            <span key={i} className={`tqr-opt${i === 0 ? " is-correct" : ""}`}>
+              {i === 0 ? "✓ " : "· "}{opt}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="tqr-q-status" aria-hidden="true" />
+      <div className="diff-actions tqr-q-actions">
+        {questionDeleteButton(spec.storyId, spec.word, spec.kind)}
+        <button
+          type="button"
+          className="tqr-edit"
+          onClick={() => {
+            if (spec.kind === "pinyin") {
+              onStartPinyinEdit(
+                {
+                  storyId: spec.storyId,
+                  frameIndex: spec.frameIndex,
+                  wordIndex: spec.wordIndex,
+                  word: spec.word,
+                  kind: "pinyin",
+                  pinyinField: spec.pinyinField,
+                },
+                spec.pinyin ?? "",
+              );
+            } else {
+              onStartTranslationEdit(
+                {
+                  storyId: spec.storyId,
+                  frameIndex: spec.frameIndex,
+                  wordIndex: spec.wordIndex,
+                  word: spec.word,
+                  kind: "translation",
+                  translationField: spec.translationField,
+                },
+                spec.translation ?? "",
+              );
+            }
+          }}
+        >
+          <ReviewIcon name="edit" size={15} />
+          <BiLabel zh="編輯" en="Edit" />
+        </button>
+      </div>
+      {spec.kind === "pinyin" && isEditing({ word: spec.word, kind: "pinyin" }, spec.storyId) && editForm()}
+    </div>
+  );
 
   const pendingDecisionActions = (storyId: string, candidate: PendingCandidate, index: number) => {
     if (candidate.decision === "pending") {
@@ -1845,8 +2216,6 @@ export default function TeacherQuizReviewPage({
         stories={currentGroup?.stories ?? []}
         storyFilterId={storyFilterId}
         onStoryChange={setStoryFilterId}
-        onlyChanges={onlyChanges}
-        onOnlyChangesChange={setOnlyChanges}
       />
 
       {!currentGroup && (
@@ -1917,6 +2286,8 @@ export default function TeacherQuizReviewPage({
             approveStatus !== "idle" ||
             status !== "idle";
           const renderedWords = new Set<string>();
+          const builtInWords = builtInReviewWords(topic);
+          const builtInByWord = new Map(builtInWords.map((entry) => [entry.word, entry]));
 
           return (
             <section className="tqr-story" key={story.id}>
@@ -1944,21 +2315,6 @@ export default function TeacherQuizReviewPage({
                           {generateStatus === "applying" ? <BiLabel zh="套用中…" en="Applying…" /> : <BiLabel zh="生成中…" en="Generating…" />}
                         </span>
                       ) : null}
-                      {canValidate && !isValidating ? (
-                        <button
-                          type="button"
-                          className="tqr-validate"
-                          title="Validate the current draft for duplicate or unsafe answers before selecting questions to publish."
-                          onClick={() => onValidate(story, topic)}
-                        >
-                          <ReviewIcon name="validate" />
-                          <BiLabel zh="驗證題目" en="Validate Questions" />
-                        </button>
-                      ) : isValidating ? (
-                        <span className="tqr-status-progress" role="status">
-                          <BiLabel zh="驗證中…" en="Validating…" />
-                        </span>
-                      ) : null}
                       <div className="tqr-toolbar-status" aria-live="polite">
                         {generateStatus === "error" && (
                           <span className="tqr-status-error" role="alert">
@@ -1974,6 +2330,22 @@ export default function TeacherQuizReviewPage({
                       <details className="tqr-more-tools tqr-toolbar-more">
                         <summary><BiLabel zh="更多" en="More" /></summary>
                         <div className="tqr-rail-utilities">
+                          {canValidate && !isValidating && (
+                            <button
+                              type="button"
+                              className="tqr-io"
+                              title="Validate the current draft for duplicate or unsafe answers before selecting questions to publish."
+                              onClick={() => onValidate(story, topic)}
+                            >
+                              <ReviewIcon name="validate" />
+                              <BiLabel zh="驗證題目" en="Validate Questions" />
+                            </button>
+                          )}
+                          {isValidating && (
+                            <span className="tqr-status-progress" role="status">
+                              <BiLabel zh="驗證中…" en="Validating…" />
+                            </span>
+                          )}
                           <button type="button" className="tqr-io" onClick={() => onExport(story)}>
                             <ReviewIcon name="export" />
                             <BiLabel zh="匯出" en="Export" />
@@ -2030,18 +2402,38 @@ export default function TeacherQuizReviewPage({
                       const translationField = translationFieldForLevel(story.frames[si], level);
                       const translationCheck = findValidation(validationByStory[story.id], word, "translation");
                       const distractors = topic.vocabularyDistractors?.[si]?.[wi] ?? [];
-                      const cloze = topic.vocabularyCloze?.[si]?.[wi] ?? [];
-                      const synonyms = topic.vocabularySynonym?.[si]?.[wi] ?? [];
+                      const cloze = (topic.vocabularyCloze?.[si]?.[wi] ?? []).slice(0, 1);
+                      const synonyms = (topic.vocabularySynonym?.[si]?.[wi] ?? []).slice(0, 1);
+                      const availableAddKinds: AddQuestionKind[] = [
+                        ...(distractors.length === 0 ? ["distractors" as const] : []),
+                        ...(cloze.length === 0 ? ["cloze" as const] : []),
+                        ...(synonyms.length === 0 ? ["synonym" as const] : []),
+                      ];
+                      const builtIn = builtInByWord.get(word);
+                      const pinyinOptions = builtIn
+                        ? reviewOptions(
+                            builtIn.pinyin,
+                            builtInWords
+                              .filter((entry) => entry.word !== word && entry.pinyin !== builtIn.pinyin)
+                              .map((entry) => entry.pinyin),
+                          )
+                        : [];
+                      const reverseOptions = builtIn
+                        ? reviewOptions(
+                            builtIn.word,
+                            builtInWords
+                              .filter(
+                                (entry) =>
+                                  entry.word !== word &&
+                                  entry.translation.toLowerCase() !== builtIn.translation.toLowerCase(),
+                              )
+                              .map((entry) => entry.word),
+                          )
+                        : [];
                       const diff = diffWord(word, { distractors, cloze, synonym: synonyms }, snapshot);
                       const wordPending = (pendingByWord.get(word) ?? []).filter(
                         ({ candidate, index }) => candidate.origin !== "removed" && index < revealedCount,
                       );
-                      const wordPendingTotal = (pendingByWord.get(word) ?? []).filter(
-                        ({ candidate }) => candidate.origin !== "removed",
-                      ).length;
-
-                      if (onlyChanges && diff && diff.status === "kept" && wordPendingTotal === 0) return null;
-
                       return (
                         <article
                           className={`tqr-word-file${wordGone ? " is-word-gone" : ""}`}
@@ -2086,12 +2478,35 @@ export default function TeacherQuizReviewPage({
                                 {questionStatusBadge(translationCheck)}
                               </span>
                             )}
+                            {translation && !wordGone && availableAddKinds.length > 0 && (
+                              <button
+                                type="button"
+                                className="tqr-add-question"
+                                aria-label={`Add question for ${word}`}
+                                onClick={() =>
+                                  onStartAddQuestion({
+                                    storyId: story.id,
+                                    frameIndex: si,
+                                    wordIndex: wi,
+                                    word,
+                                    availableKinds: availableAddKinds,
+                                  })
+                                }
+                              >
+                                <ReviewIcon name="add" size={15} />
+                                <BiLabel zh="新增題目" en="Add question" />
+                              </button>
+                            )}
                             {translation && trashButton(story.id, word, "word")}
                             <span className="tqr-word-head-spacer" />
                             {diffBadge(diff?.status)}
                             {changeChip(wordPending.length)}
                           </header>
                           {isEditing({ word, kind: "translation" }, story.id) && editForm()}
+                          {addQuestionTarget?.storyId === story.id &&
+                            addQuestionTarget.frameIndex === si &&
+                            addQuestionTarget.wordIndex === wi &&
+                            addQuestionForm()}
                           {!wordGone && translation && (
                             <div className="tqr-pools">
                               {distractors.length > 0 &&
@@ -2141,6 +2556,36 @@ export default function TeacherQuizReviewPage({
                                   diffStatus: diff?.synonymStatus[syi],
                                 }),
                               )}
+                              {pinyinOptions.length > 1 &&
+                                builtInQuestionRow({
+                                  key: "pinyin",
+                                  storyId: story.id,
+                                  frameIndex: si,
+                                  wordIndex: wi,
+                                  word,
+                                  kind: "pinyin",
+                                  kindLabel: { zh: "拼音", en: "Pinyin" },
+                                  promptZh: `「${word}」的拼音是什麼？`,
+                                  promptEn: `What is the pinyin for "${word}"?`,
+                                  options: pinyinOptions,
+                                  pinyin: builtIn?.pinyin,
+                                  pinyinField: pinyinFieldForLevel(story.frames[si], level),
+                                })}
+                              {reverseOptions.length > 1 &&
+                                builtInQuestionRow({
+                                  key: "reverse",
+                                  storyId: story.id,
+                                  frameIndex: si,
+                                  wordIndex: wi,
+                                  word,
+                                  kind: "reverse",
+                                  kindLabel: { zh: "反向翻譯", en: "Reverse translation" },
+                                  promptZh: `哪一個詞是「${builtIn?.translation ?? translation}」？`,
+                                  promptEn: `Which word means "${builtIn?.translation ?? translation}"?`,
+                                  options: reverseOptions,
+                                  translation: builtIn?.translation ?? translation,
+                                  translationField,
+                                })}
                               {pendingCandidateRows(story.id, wordPending)}
                             </div>
                           )}

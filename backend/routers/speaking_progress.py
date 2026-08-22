@@ -28,6 +28,16 @@ async def upsert_speaking_progress(
 ):
     progress.studentId = identity.id
     row_id = f"{progress.studentId}:{progress.topicId}:{progress.sceneIndex}"
+    latest_result = dict(progress.latestResult) if progress.latestResult is not None else None
+    if progress.baseStoryId or progress.difficultyLevel or progress.promptId:
+        latest_result = latest_result or {}
+        if progress.baseStoryId:
+            latest_result["baseStoryId"] = progress.baseStoryId
+        if progress.difficultyLevel:
+            latest_result["difficultyLevel"] = progress.difficultyLevel
+        latest_result["sceneIndex"] = progress.sceneIndex
+        if progress.promptId:
+            latest_result["promptId"] = progress.promptId
     with connect_db() as db:
         db.execute(
             """
@@ -57,7 +67,7 @@ async def upsert_speaking_progress(
                 progress.masteryPassed,
                 progress.contentPassed,
                 Jsonb(progress.clearedWords),
-                Jsonb(progress.latestResult) if progress.latestResult is not None else None,
+                Jsonb(latest_result) if latest_result is not None else None,
             ),
         )
     return progress

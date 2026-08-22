@@ -89,8 +89,8 @@ describe("TeacherQuizReviewPage", () => {
       element.textContent?.includes("marked") === true,
     )).toBeInTheDocument();
 
-    // distractors/cloze/synonym no longer have their own trash button (the
-    // opt-in checkbox flow governs those); "word" still does.
+    // Word and individual AI-question marks use separate controls. The
+    // existing synonym mark is preserved while a word mark is added.
     await userEvent
       .setup()
       .click(screen.getByRole("button", { name: "Exclude word for 一起" }));
@@ -105,6 +105,120 @@ describe("TeacherQuizReviewPage", () => {
       ],
       expectedSnapshot,
     );
+  });
+
+  it("confirms and marks one AI question for deletion without marking another", async () => {
+    const { updateQuizExclusions } = await import("../services/database");
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const user = userEvent.setup();
+    render(<TeacherQuizReviewPage />);
+
+    await screen.findByText("知道");
+    const deleteZhidao = screen.getByRole("button", {
+      name: "Delete synonym question for 知道",
+    });
+    const deleteYiQi = screen.getByRole("button", {
+      name: "Restore synonym question for 一起",
+    });
+
+    await user.click(deleteZhidao);
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      "Delete this synonym question for 知道? You can restore it before saving.",
+    );
+    expect(deleteZhidao).toHaveAttribute("aria-pressed", "true");
+    expect(deleteYiQi).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(screen.getByRole("button", { name: /Save marks|儲存標記/ }));
+    expect(updateQuizExclusions).toHaveBeenCalledWith(
+      "s1",
+      expect.arrayContaining([
+        { word: "一起", kind: "synonym", index: 0 },
+        { word: "知道", kind: "synonym", index: 0 },
+      ]),
+      expect.anything(),
+    );
+
+    confirmSpy.mockRestore();
+  });
+
+  it("shows one cloze/synonym row and the built-in pinyin/reverse previews per word", async () => {
+    setStories([
+      {
+        ...story,
+        frames: [
+          {
+            ...story.frames[0],
+            vocabularyCloze: JSON.stringify([
+              [
+                { sentence: "我知道了。", distractors: ["不知道"] },
+                { sentence: "他知道答案。", distractors: ["不懂"] },
+              ],
+              [],
+            ]),
+            vocabularySynonym: JSON.stringify([
+              [
+                { synonym: "曉得", distractors: ["不懂"] },
+                { synonym: "明白", distractors: ["糊塗"] },
+              ],
+              [{ synonym: "共同", distractors: ["分開"] }],
+            ]),
+          },
+        ],
+      },
+    ]);
+    const { container } = render(<TeacherQuizReviewPage />);
+    await screen.findByText("測試故事");
+
+    const kinds = Array.from(container.querySelectorAll(".tqr-qkind"))
+      .map((element) => element.textContent ?? "");
+    expect(kinds.filter((kind) => kind.includes("Cloze"))).toHaveLength(1);
+    expect(kinds.filter((kind) => kind.includes("Synonym"))).toHaveLength(2);
+    expect(kinds.filter((kind) => kind.includes("Pinyin"))).toHaveLength(2);
+    expect(kinds.filter((kind) => kind.includes("Reverse translation"))).toHaveLength(2);
+    expect(screen.queryByText("Built-in")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Delete pinyin question/ })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /Delete reverse question/ })).toHaveLength(2);
+    expect(screen.getAllByRole("button", { name: /編輯.*Edit/ }).length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("can exclude a built-in question without affecting the other built-in type", async () => {
+    setStories([story]);
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const user = userEvent.setup();
+    render(<TeacherQuizReviewPage />);
+    await screen.findByText("測試故事");
+
+    await user.click(screen.getByRole("button", { name: "Delete pinyin question for 知道" }));
+
+    expect(screen.getByRole("button", { name: "Restore pinyin question for 知道" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete reverse question for 知道" })).toBeInTheDocument();
+    confirmSpy.mockRestore();
+  });
+
+  it("adds a missing cloze question from the word toolbar", async () => {
+    const { updateVocabularyCloze } = await import("../services/database");
+    const user = userEvent.setup();
+    render(<TeacherQuizReviewPage />);
+    await screen.findByText("測試故事");
+
+    await user.click(screen.getByRole("button", { name: "Add question for 知道" }));
+    await user.selectOptions(screen.getByLabelText(/Question type/), "cloze");
+    await user.type(screen.getByLabelText(/must include the word/), "我知道答案。");
+    await user.type(screen.getByLabelText(/Wrong options/), "不懂");
+    expect(screen.getByLabelText(/must include the word/)).toHaveValue("我知道答案。");
+    expect(screen.getByLabelText(/Wrong options/)).toHaveValue("不懂");
+
+    const addForm = document.querySelector(".tqr-add-form");
+    expect(addForm).not.toBeNull();
+    await user.click(within(addForm as HTMLElement).getByRole("button", { name: /Add question/ }));
+
+    await waitFor(() =>
+      expect(updateVocabularyCloze).toHaveBeenCalledWith("s1", [
+        { frameIndex: 0, wordIndex: 0, candidates: [{ sentence: "我知道答案。", distractors: ["不懂"] }] },
+      ]),
+    );
+    expect(screen.getByText("我＿＿＿答案。")).toBeInTheDocument();
   });
 
   it("groups stories by lesson and only shows the selected lesson's story", async () => {

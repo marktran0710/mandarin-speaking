@@ -10,7 +10,10 @@
   --tqr-word-band: #fff5d9;
   --tqr-row-hover: #fcfaf5;
   --tqr-radius: 10px;
-  --tqr-row-columns: 38px 106px minmax(250px, 1fr) 132px 78px;
+  /* Keep the destructive and edit actions readable as two full controls.
+     The previous 78px rail forced both buttons to shrink and wrap into the
+     cramped two-button stack shown on narrow teacher screens. */
+  --tqr-row-columns: 38px 106px minmax(250px, 1fr) 132px 150px;
   width: 100%;
   padding: 0 0 64px;
   color: var(--clay-ink);
@@ -585,8 +588,9 @@
   min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 8px;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
   border-left: 1px solid var(--tqr-border-soft);
 }
 
@@ -597,6 +601,20 @@
   min-height: 36px;
 }
 
+.tqr-question-delete {
+  flex: 0 0 44px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.tqr-q-actions > .tqr-edit {
+  flex: 0 0 auto;
+  min-width: 76px;
+  min-height: 44px;
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+
 .tqr-edit {
   padding: 4px 8px;
   font-size: 11px;
@@ -605,6 +623,28 @@
 .tqr-edit-answer {
   min-height: 32px;
   margin-left: 2px;
+}
+
+.tqr-add-question {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 4px 9px;
+  border: 1px solid color-mix(in srgb, var(--jade) 55%, var(--tqr-border));
+  border-radius: var(--clay-radius-sm);
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tqr-add-question:hover {
+  border-color: var(--jade-deep);
+  background: color-mix(in srgb, var(--jade-soft) 78%, #fff);
 }
 
 .tqr-trash,
@@ -713,6 +753,52 @@
 }
 
 .tqr-edit-form input[type="text"] {
+  width: 100%;
+  min-height: 40px;
+  padding: 7px 10px;
+  border: 1px solid var(--tqr-border);
+  border-radius: var(--clay-radius-sm);
+  background: #fff;
+  color: var(--clay-ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.tqr-add-form {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--tqr-border);
+  background: color-mix(in srgb, var(--jade-soft) 28%, var(--tqr-surface-muted));
+}
+
+.tqr-add-form-heading {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--jade-deep);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.tqr-add-form label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--clay-body);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.tqr-add-form label > .bi-label {
+  align-items: flex-start;
+}
+
+.tqr-add-form input[type="text"],
+.tqr-add-form select {
   width: 100%;
   min-height: 40px;
   padding: 7px 10px;
@@ -1303,6 +1389,11 @@
     padding-left: 10px;
   }
 
+  .tqr-q-actions {
+    gap: 8px;
+    padding-right: 10px;
+  }
+
   .tqr-edit,
   .tqr-trash,
   .tqr-icon-btn {
@@ -1311,6 +1402,10 @@
   }
 
   .tqr-edit-form {
+    grid-template-columns: 1fr;
+  }
+
+  .tqr-add-form {
     grid-template-columns: 1fr;
   }
 

@@ -587,6 +587,11 @@ class SpeakingProgressRequest(BaseModel):
     # The latest accepted per-scene submission snapshot. Kept nullable so
     # rows written before this field was introduced remain fully compatible.
     latestResult: Optional[Dict[str, Any]] = None
+    # Additive story/prompt identity. The existing latest_result JSONB stores
+    # these fields, so no speaking-progress table migration is required.
+    baseStoryId: Optional[str] = Field(default=None, max_length=128)
+    difficultyLevel: Optional[Literal["easy", "medium", "hard"]] = None
+    promptId: Optional[str] = Field(default=None, max_length=200)
 
 
 class CustomStoryFrameRequest(BaseModel):
@@ -727,6 +732,14 @@ class VocabQuizQuestionResult(BaseModel):
     word: str = Field(..., max_length=200)
     correct: bool
     timeMs: int = Field(..., ge=0)
+    # Optional item identity metadata. Legacy rows only have word/correct/timeMs
+    # and continue to be accepted by the same JSONB endpoint.
+    itemId: Optional[str] = Field(default=None, max_length=256)
+    conceptId: Optional[str] = Field(default=None, max_length=200)
+    questionKind: Optional[str] = Field(default=None, max_length=40)
+    level: Optional[Literal["easy", "medium", "hard"]] = None
+    baseStoryId: Optional[str] = Field(default=None, max_length=128)
+    itemVersion: Optional[str] = Field(default=None, max_length=40)
 
 
 class VocabQuizAttemptRequest(BaseModel):
@@ -735,6 +748,8 @@ class VocabQuizAttemptRequest(BaseModel):
     studentName: str = Field(default="Student", max_length=100)
     studentId: Optional[str] = Field(default=None, max_length=128)
     mode: Optional[str] = None
+    baseStoryId: Optional[str] = Field(default=None, max_length=128)
+    level: Optional[Literal["easy", "medium", "hard"]] = None
     completedAt: str
     totalQuestions: int = Field(..., ge=1)
     correctCount: int = Field(..., ge=0)
@@ -761,9 +776,10 @@ class QuizExclusion(BaseModel):
     """One piece of quiz material the teacher marked bad (see the teacher
     quiz-review page): a whole word ("word") or one candidate of a per-word
     AI pool ("cloze"/"synonym" with its pool index, or the whole
-    "distractors" pool)."""
+    "distractors" pool), or one deterministic question type ("pinyin" /
+    "reverse")."""
     word: str = Field(..., min_length=1, max_length=50)
-    kind: str = Field(..., pattern="^(word|cloze|synonym|distractors)$")
+    kind: str = Field(..., pattern="^(word|cloze|synonym|distractors|pinyin|reverse)$")
     index: Optional[int] = Field(default=None, ge=0)
 
 
@@ -841,7 +857,7 @@ class QuizQuestionReplaceRequest(BaseModel):
     shows it as one row)."""
     frameIndex: int = Field(..., ge=0)
     wordIndex: int = Field(..., ge=0)
-    kind: str = Field(..., pattern="^(translation|distractors|cloze|synonym)$")
+    kind: str = Field(..., pattern="^(translation|distractors|cloze|synonym|pinyin)$")
     poolIndex: Optional[int] = Field(default=None, ge=0)
     # Translation edits change the teacher-authored correct answer.  The
     # field is explicit because Medium/Hard can own a separate translation
@@ -849,6 +865,13 @@ class QuizQuestionReplaceRequest(BaseModel):
     translationField: Optional[str] = Field(
         default=None,
         pattern="^(vocabularyTranslation|vocabularyTranslationMedium|vocabularyTranslationHard)$",
+    )
+    # Pinyin edits follow the selected difficulty tier when that tier has
+    # its own authored reading; otherwise the base vocabularyPinyin field is
+    # used by the stories router.
+    pinyinField: Optional[str] = Field(
+        default=None,
+        pattern="^(vocabularyPinyin|vocabularyPinyinMedium|vocabularyPinyinHard)$",
     )
     # distractors: List[str]; cloze: {sentence, distractors}; synonym: {synonym, distractors}
     # — a plain Any because the shape depends on `kind`; the handler validates it.

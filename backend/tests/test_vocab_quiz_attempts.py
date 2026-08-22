@@ -10,12 +10,24 @@ def test_create_and_list_vocab_quiz_attempt(logged_in_student):
         "id": "test-attempt-1",
         "storyId": "test-story-1",
         "studentName": "Test Student",
+        "baseStoryId": "test-story-1",
+        "level": "medium",
         "completedAt": "2026-07-08T00:00:00.000Z",
         "totalQuestions": 3,
         "correctCount": 2,
         "totalTimeMs": 15000,
         "questionResults": [
-            {"word": "餐廳", "correct": True, "timeMs": 4000},
+            {
+                "word": "餐廳",
+                "correct": True,
+                "timeMs": 4000,
+                "itemId": "test-story-1:%E9%A4%90%E5%BB%B3:translation:v1",
+                "conceptId": "餐廳",
+                "questionKind": "translation",
+                "level": "medium",
+                "baseStoryId": "test-story-1",
+                "itemVersion": "v1",
+            },
             {"word": "吃", "correct": True, "timeMs": 5000},
             {"word": "喝", "correct": False, "timeMs": 6000},
         ],
@@ -38,6 +50,8 @@ def test_create_and_list_vocab_quiz_attempt(logged_in_student):
     assert attempts[0]["studentName"] == "Test Student"
     assert attempts[0]["totalTimeMs"] == 15000
     assert attempts[0]["questionResults"] == attempt["questionResults"]
+    assert attempts[0]["baseStoryId"] == "test-story-1"
+    assert attempts[0]["level"] == "medium"
 
 
 def test_list_is_scoped_to_the_logged_in_student(logged_in_student):

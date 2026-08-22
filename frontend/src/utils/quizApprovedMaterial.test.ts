@@ -45,6 +45,24 @@ describe("buildApprovedMaterial", () => {
     expect(zhidao.cloze).toEqual([]);
     expect(zhidao.distractors).toEqual(["to see", "to hear"]);
   });
+
+  it("publishes only the first cloze and synonym candidate per word", () => {
+    const draft = topic();
+    draft.vocabularyCloze![0][0] = [
+      { sentence: "我知道了。", distractors: ["不知道"] },
+      { sentence: "他知道答案。", distractors: ["不懂"] },
+    ];
+    draft.vocabularySynonym![0][0] = [
+      { synonym: "曉得", distractors: ["不懂"] },
+      { synonym: "明白", distractors: ["糊塗"] },
+    ];
+
+    const entry = buildApprovedMaterial(draft, [])[0];
+    expect(entry.cloze).toHaveLength(1);
+    expect(entry.cloze[0].sentence).toBe("我知道了。");
+    expect(entry.synonym).toHaveLength(1);
+    expect(entry.synonym[0].synonym).toBe("曉得");
+  });
 });
 
 describe("published wrong-option cap", () => {
@@ -86,6 +104,28 @@ describe("buildApprovedMaterialFromApprovals", () => {
     expect(zhidao.distractors).toEqual(["to see", "to hear"]);
     expect(zhidao.cloze).toHaveLength(1);
     expect(zhidao.synonym).toEqual([]);
+  });
+
+  it("keeps one candidate even when multiple candidates are checked", () => {
+    const draft = topic();
+    draft.vocabularyCloze![0][0] = [
+      { sentence: "我知道了。", distractors: ["不知道"] },
+      { sentence: "他知道答案。", distractors: ["不懂"] },
+    ];
+    draft.vocabularySynonym![0][0] = [
+      { synonym: "曉得", distractors: ["不懂"] },
+      { synonym: "明白", distractors: ["糊塗"] },
+    ];
+    const approvals: QuizApprovalMark[] = [
+      { word: "知道", kind: "cloze", index: 0 },
+      { word: "知道", kind: "cloze", index: 1 },
+      { word: "知道", kind: "synonym", index: 0 },
+      { word: "知道", kind: "synonym", index: 1 },
+    ];
+
+    const entry = buildApprovedMaterialFromApprovals(draft, approvals, [])[0];
+    expect(entry.cloze).toHaveLength(1);
+    expect(entry.synonym).toHaveLength(1);
   });
 
   it("a word with nothing checked at all still gets an entry, just empty", () => {
