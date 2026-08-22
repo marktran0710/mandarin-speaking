@@ -48,6 +48,7 @@ describe("student integration flows", () => {
     expect(screen.getByRole("heading", { name: /我的學習/ })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Practice/ })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Progress/ })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Ask teacher for help" })).not.toBeInTheDocument();
     expect(screen.queryByText("Start practice")).not.toBeInTheDocument();
     expect(screen.queryByText("開始練習")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Start activity/ })).not.toBeInTheDocument();

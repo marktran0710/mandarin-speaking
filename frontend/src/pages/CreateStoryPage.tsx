@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import TopicSelector, { type TopicStartOptions } from "../components/TopicSelector";
 import StoryRecorder, { type NewAudioRecord } from "../components/StoryRecorder";
-import StudentHelpPanel from "../components/StudentHelpPanel";
 import { HelpRequest } from "../services/database";
 import { loadPublishedTeacherTopics, storyToTopic } from "../utils/teacherStories";
 import type { Topic } from "../components/TopicSelector";
@@ -136,16 +135,6 @@ export default function CreateStoryPage({
 
   return (
     <div className="create-story-page">
-      {/* Outside a session the raise-hand panel is a banner strip; during a
-          session it lives at the bottom of the story sidebar instead. */}
-      {!selectedTopic && (
-        <div className="csp-help-strip">
-          <StudentHelpPanel
-            helpRequests={helpRequests}
-            onRaiseHand={onRaiseHand}
-          />
-        </div>
-      )}
       {!selectedTopic ? (
         <TopicSelector onTopicSelect={handleTopicSelect} onLevelSelect={handleLevelSelect} />
       ) : (

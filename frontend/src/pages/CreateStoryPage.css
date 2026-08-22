@@ -4,16 +4,7 @@
   background: color-mix(in srgb, var(--clay-canvas) 94%, white);
 }
 
-/* ── Help banner strip ── */
-.csp-help-strip {
-  padding: var(--space-xs) 0;
-  background: color-mix(in srgb, var(--clay-surface-card) 96%, var(--gold-soft));
-  border-bottom: 1px solid var(--clay-hairline);
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
-
+/* ── Shared help panel ── */
 .student-help-panel {
   width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
