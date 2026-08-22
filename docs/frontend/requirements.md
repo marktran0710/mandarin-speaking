@@ -10,9 +10,10 @@ truth for accounts, stories, quiz material and pronunciation analysis.
 
 - Preserve the current ivory/paper/ink visual identity and bilingual copy style.
 - Keep Practice, Progress and Picture talk as the visible workspace areas.
-- Show current progress, today's goal, quiz vocabulary count and continuation
-  status without inventing server-side results.
-- Show an explicit quiz gate before speaking practice.
+- Keep the workspace landing surface compact: show one quick-start band and
+  leave detailed progress, vocabulary and continuation data to their existing
+  Practice/Progress destinations instead of repeating them above the page.
+- Show one explicit quiz gate before speaking practice.
 - If a quiz is required, `Take quiz to begin` opens the existing vocabulary quiz.
 - If the quiz is complete, `Start activity` opens the existing story overview.
 - Starting from a scrolled workspace must reset the activity to the top.
@@ -24,4 +25,3 @@ truth for accounts, stories, quiz material and pronunciation analysis.
 - No backend endpoint or database schema changes.
 - No pronunciation threshold, verdict or tone-scoring changes.
 - No new server-state dependency until the API modules are split and measured.
-

@@ -2,18 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import LearningOverview, { QuizGateStatus } from "./LearningOverview";
-import type { LearningSummary, WorkspaceTopicSummary } from "../../types/studentWorkspace";
-
-const summary: LearningSummary = {
-  lessonProgress: 50,
-  wordsToPractice: 5,
-  todayGoal: { completed: 2, total: 3 },
-  continueTarget: {
-    storyId: "story-1",
-    label: "週末去喝下午茶",
-    progress: 40,
-  },
-};
+import type { WorkspaceTopicSummary } from "../../types/studentWorkspace";
 
 const topicSummary: WorkspaceTopicSummary = {
   topic: {
@@ -29,8 +18,6 @@ const topicSummary: WorkspaceTopicSummary = {
     quizId: "story-1",
     reason: "Finish the vocabulary quiz before speaking practice.",
   },
-  quizWordCount: 5,
-  recordedSceneCount: 1,
 };
 
 describe("LearningOverview", () => {
@@ -38,17 +25,9 @@ describe("LearningOverview", () => {
     const user = userEvent.setup();
     const onStartActivity = vi.fn();
 
-    render(
-      <LearningOverview
-        summary={summary}
-        topicSummary={topicSummary}
-        onStartActivity={onStartActivity}
-        onOpenProgress={vi.fn()}
-        onOpenPractice={vi.fn()}
-      />,
-    );
+    render(<LearningOverview topicSummary={topicSummary} onStartActivity={onStartActivity} />);
 
-    expect(screen.getAllByText("Quiz required first")).toHaveLength(2);
+    expect(screen.getAllByText("Quiz required first")).toHaveLength(1);
     expect(screen.getByRole("button", { name: /Take quiz to begin/ })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Take quiz to begin/ }));
     expect(onStartActivity).toHaveBeenCalledOnce();

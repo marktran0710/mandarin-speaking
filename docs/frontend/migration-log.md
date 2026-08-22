@@ -10,8 +10,9 @@
 - Added the feature-flagged learner workspace shell and overview components.
 - Reused the existing topic selector, story recorder, progress and picture-talk
   flows.
-- Added keyboard tab navigation, quiz gate status, continue-learning summary,
-  vocabulary preview and progress snapshot.
+- Added keyboard tab navigation and a compact quick-start band with the quiz
+  gate. Removed the new progress, continuation and vocabulary cards because
+  those details already exist in the Practice/Progress destinations.
 - Fixed workspace-to-activity scroll anchoring so the activity starts at
   `scrollY=0`.
 - Browser-verified at 1440×1000 and 390×844 with no horizontal overflow.
@@ -24,8 +25,7 @@
 
 ## Next migration slices
 
-1. Extract shared UI primitives and API adapters without changing contracts.
-2. Split the student practice flow behind the same shell boundary.
-3. Move teacher quiz review into feature-owned modules.
-4. Move admin account/content sections into feature-owned modules.
-5. Remove legacy paths only after browser and regression checks pass.
+1. Split the student practice flow behind the same shell boundary.
+2. Move teacher quiz review into feature-owned modules.
+3. Move admin account/content sections into feature-owned modules.
+4. Remove legacy paths only after browser and regression checks pass.

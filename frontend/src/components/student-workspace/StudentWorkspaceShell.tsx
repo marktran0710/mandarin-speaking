@@ -5,14 +5,13 @@ import MyStoriesPage from "../../pages/MyStoriesPage";
 import { getStudentName } from "../../utils/studentSession";
 import { isAdminSession } from "../../utils/studentSession";
 import { loadCompletedVocabQuizzes } from "../../utils/vocabQuizStorage";
-import { loadSubmittedStoryIds } from "../../utils/storyLevelProgress";
-import { topicHasQuiz, topicQuizEntries } from "../../utils/topicQuiz";
+import { topicHasQuiz } from "../../utils/topicQuiz";
 import type { StudentWorkspacePageProps } from "../../pages/StudentWorkspacePage";
 import type { StudentWorkspaceView } from "../../pages/StudentWorkspacePage";
 import StudentWorkspaceHeader from "./StudentWorkspaceHeader";
 import WorkspaceAreaTabs from "./WorkspaceAreaTabs";
 import LearningOverview from "./LearningOverview";
-import type { LearningSummary, QuizGateState, WorkspaceTopicSummary } from "../../types/studentWorkspace";
+import type { QuizGateState, WorkspaceTopicSummary } from "../../types/studentWorkspace";
 import "../../components/BiLabel.css";
 import "../../pages/StudentWorkspacePage.css";
 import "./StudentWorkspaceV2.css";
@@ -62,30 +61,11 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
   );
   const activeTopic = storyTopics.find((topic) => topic.id === initialTopicId) ?? storyTopics[0];
   const topicSummary: WorkspaceTopicSummary | undefined = activeTopic
-    ? {
+      ? {
         topic: activeTopic,
         quizGate: buildGate(activeTopic),
-        quizWordCount: topicQuizEntries(activeTopic).length,
-        recordedSceneCount: audioRecords.filter((record) => record.topicId === activeTopic.id).length,
       }
     : undefined;
-  const submittedIds = loadSubmittedStoryIds();
-  const completedActivities = storyTopics.filter((topic) => submittedIds.has(topic.id)).length;
-  const today = new Date().toISOString().slice(0, 10);
-  const todayRecords = audioRecords.filter((record) => record.timestamp.slice(0, 10) === today).length;
-  const summary: LearningSummary = {
-    lessonProgress: storyTopics.length ? (completedActivities / storyTopics.length) * 100 : 0,
-    wordsToPractice: topicSummary?.quizWordCount ?? 0,
-    todayGoal: { completed: Math.min(todayRecords, 3), total: 3 },
-    continueTarget: topicSummary && topicSummary.recordedSceneCount > 0
-      ? {
-          storyId: topicSummary.topic.id,
-          label: topicSummary.topic.name,
-          progress: Math.min(100, (topicSummary.recordedSceneCount / Math.max(1, topicSummary.topic.images.length)) * 100),
-        }
-      : undefined,
-    quizGate: topicSummary?.quizGate,
-  };
 
   const selectView = (nextView: StudentWorkspaceView) => {
     if (nextView === view) return;
@@ -140,11 +120,8 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
       )}
       {!practiceStarted && (
         <LearningOverview
-          summary={summary}
           topicSummary={topicSummary}
           onStartActivity={startActivity}
-          onOpenProgress={() => selectView("progress")}
-          onOpenPractice={() => selectView("practice")}
         />
       )}
       <section

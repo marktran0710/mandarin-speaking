@@ -3,12 +3,7 @@ export { default as StudentWorkspaceShell } from "../../components/student-works
 export { default as StudentWorkspaceHeader } from "../../components/student-workspace/StudentWorkspaceHeader";
 export { default as WorkspaceAreaTabs } from "../../components/student-workspace/WorkspaceAreaTabs";
 export { default as LearningOverview } from "../../components/student-workspace/LearningOverview";
-export {
-  ContinueLearningCard,
-  ProgressSnapshot,
-  QuizGateStatus,
-  VocabularyPreview,
-} from "../../components/student-workspace/LearningOverview";
+export { QuizGateStatus } from "../../components/student-workspace/LearningOverview";
 export type {
   ContinuePracticeTarget,
   LearningSummary,

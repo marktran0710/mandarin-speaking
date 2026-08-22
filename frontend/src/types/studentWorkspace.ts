@@ -35,6 +35,4 @@ export interface SessionIdentity {
 export interface WorkspaceTopicSummary {
   topic: Topic;
   quizGate: QuizGateState;
-  quizWordCount: number;
-  recordedSceneCount: number;
 }
