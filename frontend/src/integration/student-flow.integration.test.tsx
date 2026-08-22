@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import StudentWorkspaceShell from "../components/student-workspace/StudentWorkspaceShell";
 import StudentLoginPage from "../pages/StudentLoginPage";
 import App from "../App";
-import { markVocabQuizCompleted } from "../utils/vocabQuizStorage";
 import { currentRole, signIn, signOut } from "../utils/session";
 import type { Topic } from "../components/TopicSelector";
 
@@ -43,44 +42,15 @@ describe("student integration flows", () => {
     signIn("student", "Integration Student", "student-integration");
   });
 
-  it("requires the vocabulary quiz before allowing speaking practice", async () => {
-    const user = userEvent.setup();
-    const onStartActivity = vi.fn();
+  it("removes the duplicate quick-start block while keeping the learner workspace", () => {
+    render(<StudentWorkspaceShell {...workspaceProps} />);
 
-    render(
-      <StudentWorkspaceShell
-        {...workspaceProps}
-        onStartActivity={onStartActivity}
-      />,
-    );
-
-    expect(screen.getByText("Quiz required first")).toBeInTheDocument();
-    const startButton = screen.getByRole("button", { name: /Take quiz to begin/ });
-    expect(startButton).toBeEnabled();
-
-    await user.click(startButton);
-
-    expect(onStartActivity).toHaveBeenCalledOnce();
-    expect(onStartActivity).toHaveBeenCalledWith(topic.id, true);
-  });
-
-  it("opens speaking practice only after the quiz is completed", async () => {
-    const user = userEvent.setup();
-    const onStartActivity = vi.fn();
-    markVocabQuizCompleted(topic.id);
-
-    render(
-      <StudentWorkspaceShell
-        {...workspaceProps}
-        initialTopicId={topic.id}
-        onStartActivity={onStartActivity}
-      />,
-    );
-
-    expect(screen.getByText("Quiz complete")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Start activity/ }));
-
-    expect(onStartActivity).toHaveBeenCalledWith(topic.id, false);
+    expect(screen.getByRole("heading", { name: /我的學習/ })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Practice/ })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Progress/ })).toBeInTheDocument();
+    expect(screen.queryByText("Start practice")).not.toBeInTheDocument();
+    expect(screen.queryByText("開始練習")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Start activity/ })).not.toBeInTheDocument();
   });
 
   it("creates a student session from the dedicated login form", async () => {

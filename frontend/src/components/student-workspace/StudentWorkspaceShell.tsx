@@ -3,15 +3,10 @@ import CreateStoryPage from "../../pages/CreateStoryPage";
 import ImageNarrationPage from "../../pages/ImageNarrationPage";
 import MyStoriesPage from "../../pages/MyStoriesPage";
 import { getStudentName } from "../../utils/studentSession";
-import { isAdminSession } from "../../utils/studentSession";
-import { loadCompletedVocabQuizzes } from "../../utils/vocabQuizStorage";
-import { topicHasQuiz } from "../../utils/topicQuiz";
 import type { StudentWorkspacePageProps } from "../../pages/StudentWorkspacePage";
 import type { StudentWorkspaceView } from "../../pages/StudentWorkspacePage";
 import StudentWorkspaceHeader from "./StudentWorkspaceHeader";
 import WorkspaceAreaTabs from "./WorkspaceAreaTabs";
-import LearningOverview from "./LearningOverview";
-import type { QuizGateState, WorkspaceTopicSummary } from "../../types/studentWorkspace";
 import "../../components/BiLabel.css";
 import "../../pages/StudentWorkspacePage.css";
 import "./StudentWorkspaceV2.css";
@@ -21,17 +16,6 @@ const WORKSPACE_VIEWS = [
   { id: "progress" as const, icon: "chart" as const, label: { zh: "我的學習", pinyin: "Wǒ de xuéxí", en: "Progress" } },
   { id: "picture-talk" as const, icon: "image" as const, label: { zh: "看圖說話", pinyin: "Kàn tú shuō huà", en: "Picture talk" } },
 ];
-
-function buildGate(topic: StudentWorkspacePageProps["storyTopics"][number] | undefined): QuizGateState {
-  if (!topic) return { status: "unavailable", reason: "No activities are available yet." };
-  if (!topicHasQuiz(topic)) return { status: "completed" };
-  if (isAdminSession() || loadCompletedVocabQuizzes()[topic.id] === true) return { status: "completed" };
-  return {
-    status: "required",
-    quizId: topic.id,
-    reason: "Finish the vocabulary quiz before speaking practice.",
-  };
-}
 
 export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) {
   const {
@@ -49,7 +33,6 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     audioRecords,
     onSessionActiveChange,
     isInPracticeSession,
-    onStartActivity,
   } = props;
   const [practiceStarted, setPracticeStarted] = useState(isInPracticeSession);
 
@@ -59,26 +42,10 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     () => WORKSPACE_VIEWS.filter((item) => item.id !== "picture-talk" || describeTopics.length > 0),
     [describeTopics.length],
   );
-  const activeTopic = storyTopics.find((topic) => topic.id === initialTopicId) ?? storyTopics[0];
-  const topicSummary: WorkspaceTopicSummary | undefined = activeTopic
-      ? {
-        topic: activeTopic,
-        quizGate: buildGate(activeTopic),
-      }
-    : undefined;
 
   const selectView = (nextView: StudentWorkspaceView) => {
     if (nextView === view) return;
     onViewChange(nextView);
-  };
-
-  const startActivity = () => {
-    const gate = topicSummary?.quizGate;
-    if (activeTopic && onStartActivity) {
-      onStartActivity(activeTopic.id, gate?.status === "required");
-      return;
-    }
-    selectView("practice");
   };
 
   const renderView = () => {
@@ -117,12 +84,6 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
       {!practiceStarted && <StudentWorkspaceHeader username={getStudentName()} />}
       {!practiceStarted && (
         <WorkspaceAreaTabs views={availableViews} activeView={view} onChange={selectView} />
-      )}
-      {!practiceStarted && (
-        <LearningOverview
-          topicSummary={topicSummary}
-          onStartActivity={startActivity}
-        />
       )}
       <section
         id="student-workspace-panel"

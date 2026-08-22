@@ -10,9 +10,8 @@
 - Added the feature-flagged learner workspace shell and overview components.
 - Reused the existing topic selector, story recorder, progress and picture-talk
   flows.
-- Added keyboard tab navigation and a compact quick-start band with the quiz
-  gate. Removed the new progress, continuation and vocabulary cards because
-  those details already exist in the Practice/Progress destinations.
+- Added keyboard tab navigation while keeping the existing Practice/Progress
+  destinations as the single place for activity selection and quiz gating.
 - Fixed workspace-to-activity scroll anchoring so the activity starts at
   `scrollY=0`.
 - Browser-verified at 1440×1000 and 390×844 with no horizontal overflow.
