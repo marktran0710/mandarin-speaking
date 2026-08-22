@@ -53,7 +53,11 @@
   padding-top: 4px;
 }
 
-.student-workspace-heading { display: grid; gap: 7px; }
+.student-workspace-heading {
+  display: grid;
+  gap: 7px;
+  text-align: left;
+}
 
 .student-workspace-kicker {
   margin: 0 0 var(--space-xs);
@@ -71,6 +75,7 @@
   font-weight: 700;
   letter-spacing: .01em;
   line-height: 1.05;
+  text-align: left;
 }
 
 .student-workspace-title-meta {
