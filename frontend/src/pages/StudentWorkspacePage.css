@@ -32,17 +32,16 @@
 }
 
 .student-workspace-header {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: clamp(32px, 8vw, 120px);
-  min-height: 232px;
-  margin-bottom: clamp(28px, 4vw, 44px);
-  padding: clamp(24px, 3.5vw, 42px) clamp(24px, 4vw, 48px) clamp(26px, 3.5vw, 40px);
-  border: 1px solid color-mix(in srgb, var(--gold) 28%, var(--clay-hairline));
-  border-radius: 24px;
-  background: color-mix(in srgb, var(--clay-surface-card) 76%, transparent);
-  box-shadow: 0 8px 0 color-mix(in srgb, var(--gold-soft) 48%, transparent);
+  gap: clamp(32px, 10vw, 160px);
+  min-height: 204px;
+  margin-bottom: clamp(24px, 3.5vw, 36px);
+  padding: clamp(20px, 3vw, 32px) clamp(4px, 1vw, 12px) clamp(24px, 3vw, 34px);
+  border-bottom: 1px solid color-mix(in srgb, var(--gold) 34%, var(--clay-hairline));
+  background: color-mix(in srgb, var(--clay-canvas) 86%, transparent);
 }
 
 .student-workspace-header-copy {
@@ -50,8 +49,8 @@
   flex: 1 1 680px;
   flex-direction: column;
   min-width: 0;
-  max-width: 760px;
-  padding-top: 2px;
+  max-width: 680px;
+  padding-top: 4px;
 }
 
 .student-workspace-heading { display: grid; gap: 7px; }
@@ -92,12 +91,13 @@
 
 .student-workspace-header-side {
   display: flex;
-  flex: 0 0 min(100%, 330px);
+  flex: 0 0 min(100%, 300px);
   flex-direction: column;
   align-items: flex-end;
   justify-content: space-between;
   align-self: stretch;
   min-width: 0;
+  padding-top: 4px;
 }
 
 .student-workspace-identity {
@@ -106,11 +106,11 @@
   gap: 10px;
   min-width: 0;
   width: min(100%, 270px);
-  padding: 11px 15px 11px 10px;
+  padding: 10px 14px 10px 9px;
   border: 1px solid color-mix(in srgb, var(--jade) 42%, var(--gold));
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--jade-soft) 22%, var(--clay-surface-card));
-  box-shadow: 0 4px 0 color-mix(in srgb, var(--jade-soft) 72%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--jade-soft) 18%, var(--clay-surface-card));
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--jade-soft) 68%, transparent);
 }
 
 .student-workspace-identity-avatar {
@@ -156,7 +156,7 @@
 
 .student-workspace-intro {
   max-width: 560px;
-  margin: auto 0 0;
+  margin: 22px 0 0;
   color: var(--clay-muted);
   font-size: var(--text-sm);
   line-height: 1.55;
@@ -173,6 +173,7 @@
   opacity: .22;
   transform: rotate(-8deg);
   user-select: none;
+  pointer-events: none;
 }
 
 .student-workspace-mark span + span {
@@ -295,6 +296,7 @@
   .student-workspace-header {
     gap: 22px;
     min-height: 0;
+    padding-inline: 0;
   }
 
   .student-workspace-header-side { align-items: flex-start; gap: 24px; }
@@ -320,11 +322,13 @@
 
   .student-workspace-header {
     display: block;
-    padding: 22px 20px 24px;
-    border-radius: 18px;
+    padding: 20px 0 24px;
   }
 
-  .student-workspace-header-side { width: 100%; }
+  .student-workspace-header-side {
+    width: 100%;
+    padding-top: 22px;
+  }
   .student-workspace-identity { width: 100%; max-width: none; }
 
   .student-workspace-mark {
