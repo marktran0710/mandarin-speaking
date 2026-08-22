@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:integration": "vitest run src/integration",
     "test:watch": "vitest"
   },
   "dependencies": {

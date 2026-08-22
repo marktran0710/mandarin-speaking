@@ -418,6 +418,9 @@ docker compose -f docker-compose.dev.yml logs -f backend frontend
 # Run frontend tests inside the frontend container
 docker compose -f docker-compose.dev.yml exec frontend npm test -- --run
 
+# Run the frontend integration flows only
+docker compose -f docker-compose.dev.yml exec frontend npm run test:integration
+
 # Rebuild after changing dependencies or Dockerfiles
 .\start.ps1 -Detached
 ```
