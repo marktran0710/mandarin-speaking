@@ -11,7 +11,7 @@ import translations from "../i18n/translations.json";
  * present it renders as a small romanization line between the Chinese and
  * English text, for learners who can't read the characters yet.
  */
-type BiLabelProps =
+export type BiLabelProps =
   | { k: string; zh?: never; en?: never; pinyin?: never; block?: boolean }
   | { k?: never; zh: string; en: string; pinyin?: string; block?: boolean };
 
