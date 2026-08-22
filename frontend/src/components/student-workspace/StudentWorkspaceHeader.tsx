@@ -41,8 +41,7 @@ export default function StudentWorkspaceHeader({ username }: StudentWorkspaceHea
           </span>
         </div>
         <div className="student-workspace-mark" aria-hidden="true">
-          <span>慢</span>
-          <span>慢</span>
+          <span lang="zh-Hant">慢慢中文</span>
         </div>
       </div>
     </header>

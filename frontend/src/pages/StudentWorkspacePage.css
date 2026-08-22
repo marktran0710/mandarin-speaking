@@ -170,20 +170,16 @@
 .student-workspace-mark {
   display: flex;
   align-items: center;
-  gap: -2px;
+  justify-content: flex-end;
   color: color-mix(in srgb, var(--gold) 72%, var(--clay-ink));
   font-family: var(--font-display);
-  font-size: clamp(56px, 9vw, 110px);
-  line-height: .65;
+  font-size: clamp(34px, 5vw, 68px);
+  letter-spacing: .08em;
+  line-height: .9;
   opacity: .22;
   transform: rotate(-8deg);
   user-select: none;
   pointer-events: none;
-}
-
-.student-workspace-mark span + span {
-  margin-left: -18px;
-  transform: translateY(17px);
 }
 
 .student-workspace-tabs {
