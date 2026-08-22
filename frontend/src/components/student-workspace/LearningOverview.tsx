@@ -1,6 +1,8 @@
 import StudentIcon from "../StudentIcon";
 import { BiLabel, BiText } from "../BiLabel";
 import type { LearningSummary, QuizGateState, WorkspaceTopicSummary } from "../../types/studentWorkspace";
+import ActionButton from "../../shared/ui/ActionButton";
+import ProgressBar from "../../shared/ui/ProgressBar";
 
 interface LearningOverviewProps {
   summary: LearningSummary;
@@ -66,9 +68,7 @@ export function ProgressSnapshot({ summary }: { summary: LearningSummary }) {
         <strong>{progressLabel(summary.lessonProgress)}</strong>
         <span>activity progress</span>
       </div>
-      <div className="workspace-progress-track" aria-label={`${progressLabel(summary.lessonProgress)} activity progress`}>
-        <span style={{ width: `${Math.max(0, Math.min(100, summary.lessonProgress))}%` }} />
-      </div>
+      <ProgressBar value={summary.lessonProgress} label={`${progressLabel(summary.lessonProgress)} activity progress`} />
       <dl className="workspace-metric-list">
         <div>
           <dt>Today</dt>
@@ -104,17 +104,15 @@ export function ContinueLearningCard({ summary, onContinue }: { summary: Learnin
             <span aria-hidden="true">·</span>
             <span>Keep going slowly</span>
           </div>
-          <div className="workspace-progress-track workspace-progress-track-amber">
-            <span style={{ width: `${Math.max(0, Math.min(100, target.progress))}%` }} />
-          </div>
+          <ProgressBar value={target.progress} tone="amber" label={`${progressLabel(target.progress)} recorded`} />
         </>
       ) : (
         <p className="workspace-empty-copy">Start one activity and it will appear here for your next visit.</p>
       )}
-      <button type="button" className="workspace-secondary-action" onClick={onContinue}>
+      <ActionButton type="button" variant="secondary" onClick={onContinue}>
         {target ? "Continue activity" : "Browse activities"}
         <span aria-hidden="true">→</span>
-      </button>
+      </ActionButton>
     </section>
   );
 }
@@ -165,15 +163,15 @@ export default function LearningOverview({
         </div>
         <div className="workspace-overview-cta">
           <QuizGateStatus gate={gate} />
-          <button
+          <ActionButton
             type="button"
-            className="workspace-primary-action"
+            variant="primary"
             onClick={onStartActivity}
             disabled={!topicSummary}
           >
             <span>{startLabel}</span>
             <span aria-hidden="true">→</span>
-          </button>
+          </ActionButton>
         </div>
       </div>
       <div className="workspace-overview-grid">
