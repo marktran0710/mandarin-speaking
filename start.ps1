@@ -2,9 +2,11 @@
 Starts the same independent Docker development stack on every device.
 
 Usage:
-  .\start.ps1              Build and run in the foreground.
-  .\start.ps1 -Detached    Build and run in the background.
-  .\start.ps1 -NoBuild     Start existing images without rebuilding.
+  .\start.ps1              Run in the foreground, reusing existing images.
+  .\start.ps1 -Detached    Run in the background, reusing existing images.
+  .\start.ps1 -Build       Rebuild backend/frontend images before starting.
+  .\start.ps1 -NoBuild     Compatibility switch; start without rebuilding (the default).
+  .\start.ps1 -PruneDangling  Remove only this project's dangling images before starting.
   .\start.ps1 -ResetData   Delete this device's Docker volumes, then start fresh.
 
 There is deliberately no Lab/Laptop/Standalone mode. Each device owns its
@@ -14,7 +16,9 @@ own PostgreSQL database, uploads, model cache, and frontend dependencies.
 [CmdletBinding()]
 param(
   [switch]$Detached,
+  [switch]$Build,
   [switch]$NoBuild,
+  [switch]$PruneDangling,
   [switch]$ResetData
 )
 
@@ -27,6 +31,9 @@ if (-not (Test-Path -LiteralPath $composeFile -PathType Leaf)) {
 }
 if (-not (Test-Path -LiteralPath $envFile -PathType Leaf)) {
   throw "Missing backend/.env. Create it first with: Copy-Item backend/.env.example backend/.env"
+}
+if ($Build -and $NoBuild) {
+  throw 'Build and NoBuild cannot be used together. Omit NoBuild or use it alone for compatibility.'
 }
 
 $composeArgs = @('-f', $composeFile)
@@ -45,8 +52,16 @@ if ($ResetData) {
   }
 }
 
+if ($PruneDangling) {
+  Write-Host 'Removing dangling images for mandarin-speaking-dev only...' -ForegroundColor Yellow
+  & docker image prune --force --filter 'label=com.docker.compose.project=mandarin-speaking-dev'
+  if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+  }
+}
+
 $upArgs = @('up')
-if (-not $NoBuild) {
+if ($Build) {
   $upArgs += '--build'
 }
 if ($Detached) {

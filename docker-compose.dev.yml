@@ -3,6 +3,7 @@ name: mandarin-speaking-dev
 services:
   db:
     image: postgres:17-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: mandarin
       POSTGRES_PASSWORD: mandarin
@@ -23,6 +24,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    restart: unless-stopped
     env_file:
       - ./backend/.env
     environment:
@@ -68,6 +70,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.frontend.dev
+    restart: unless-stopped
     environment:
       BACKEND_PROXY_TARGET: http://backend:8000
       VITE_ALLOWED_HOSTS: ${VITE_ALLOWED_HOSTS:-}

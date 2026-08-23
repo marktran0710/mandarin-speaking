@@ -333,8 +333,9 @@ Keep a separate `backend/.env` on each device. Set a real local
 
 #### Step 3 — Validate and start the stack
 
-The start script validates Compose, builds the backend/frontend images, starts
-PostgreSQL, runs Alembic migrations, and starts the backend and Vite frontend.
+The start script validates Compose, reuses existing backend/frontend images, starts
+PostgreSQL, runs Alembic migrations, and starts the backend and Vite frontend. On a
+new checkout, Docker Compose builds any missing images automatically.
 
 ```powershell
 .\start.ps1 -Detached
@@ -398,9 +399,17 @@ docker compose -f docker-compose.dev.yml exec frontend npm test -- --run
 # Run the frontend integration flows only
 docker compose -f docker-compose.dev.yml exec frontend npm run test:integration
 
-# Rebuild after changing dependencies or Dockerfiles
-.\start.ps1 -Detached
+# Rebuild only after changing dependencies or Dockerfiles
+.\start.ps1 -Build -Detached
+
+# Optional: remove dangling images labelled for this project only.
+# This never removes images, containers, or volumes from another project.
+.\start.ps1 -PruneDangling -Detached
 ```
+
+`-NoBuild` remains accepted for scripts that already use it, but reusing existing
+images is now the default. The development source folders are bind-mounted, so normal
+backend and frontend code edits hot reload without rebuilding.
 
 #### Step 6.1 — Temporary public demo with Tailscale Funnel
 
