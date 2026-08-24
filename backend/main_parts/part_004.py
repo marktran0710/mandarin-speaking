@@ -157,6 +157,17 @@ def build_pronunciation_mastery(
                 _is_counted_syllable(syllable) and not _syllable_gate_passed(syllable)
                 for syllable in word_syllables
             )
+            # A measured UNCERTAIN syllable is not evidence of a mistake and
+            # therefore must not lower the sentence pass rate. It is still a
+            # useful optional practice signal, though: surface its word so the
+            # learner can choose to repeat it. Placeholder UNCERTAIN rows such
+            # as neutral tones remain excluded by _is_counted_syllable().
+            has_optional_uncertain = any(
+                _is_counted_syllable(syllable)
+                and syllable.get("diagnostic_status") == "UNCERTAIN"
+                for syllable in word_syllables
+            )
+            has_failure = has_failure or has_optional_uncertain
         else:
             # Preserve the legacy word-level fallback for payloads that do not
             # contain per-syllable rows.
