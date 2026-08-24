@@ -144,7 +144,17 @@ def admin_client(client):
     """The shared test client with an admin session for provisioning tests."""
     import auth
 
-    client.cookies.set(auth.COOKIE_NAME, auth.issue_token("admin", "admin"))
+    # ``client`` starts logged in as a staff teacher. Clear that session before
+    # promoting this fixture to admin so httpx does not retain duplicate
+    # compatibility cookies with the same name.
+    client.cookies.clear()
+    client.headers.pop(auth.CLIENT_ROLE_HEADER, None)
+    client.cookies.set(
+        auth.COOKIE_NAME,
+        auth.issue_token("admin", "admin"),
+        domain="testserver.local",
+        path="/",
+    )
     return client
 
 
@@ -162,6 +172,11 @@ def logged_in_student(admin_client):
         "/api/students/login",
         json={"studentId": student["id"], "password": password},
     )
+    # admin_client intentionally starts with an admin cookie for provisioning.
+    # Select the newly-created student session explicitly so the compatibility
+    # cookie cannot make student-scoped requests resolve as admin.
+    import auth
+    client.headers[auth.CLIENT_ROLE_HEADER] = "student"
     return client, student
 
 
@@ -185,14 +200,20 @@ def _insert_teacher_row(name: str, password: str) -> dict:
 
 
 @pytest.fixture()
-def logged_in_teacher(client, use_test_database):
+def logged_in_teacher(use_test_database):
     """A logged-in teacher: (client, teacher)."""
+    import auth
+    from fastapi.testclient import TestClient
+    import main
+
     teacher = _insert_teacher_row("Test Teacher", "teach123")
-    client.post(
-        "/api/teachers/login",
-        json={"name": "Test Teacher", "password": "teach123"},
-    )
-    return client, teacher
+    with TestClient(main.app) as client:
+        client.post(
+            "/api/teachers/login",
+            json={"name": "Test Teacher", "password": "teach123"},
+        )
+        client.headers[auth.CLIENT_ROLE_HEADER] = "teacher"
+        yield client, teacher
 
 
 def login_new_client(stack, name, role, password="123456"):

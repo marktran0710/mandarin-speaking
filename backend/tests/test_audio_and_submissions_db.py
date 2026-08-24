@@ -105,8 +105,8 @@ def test_story_submissions_filter_by_story_id(logged_in_teacher):
     assert client.get("/api/story-submissions", params={"story_id": "nothing"}).json() == []
 
 
-def test_story_submissions_requires_login(client):
-    assert client.get("/api/story-submissions").status_code == 401
+def test_story_submissions_requires_login(anonymous_client):
+    assert anonymous_client.get("/api/story-submissions").status_code == 401
 
 
 def test_story_submission_round_trips_self_eval(logged_in_student):

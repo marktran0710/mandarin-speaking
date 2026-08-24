@@ -57,8 +57,8 @@ class TestTeacherRosterManagement:
     these require an already-authenticated caller, not just a roster
     lookup."""
 
-    def test_list_requires_a_teacher_or_admin_identity(self, client):
-        assert client.get("/api/teachers").status_code == 401
+    def test_list_requires_a_teacher_or_admin_identity(self, anonymous_client):
+        assert anonymous_client.get("/api/teachers").status_code == 401
 
     def test_list_is_visible_to_a_logged_in_teacher(self, client, logged_in_teacher):
         teacher_client, _ = logged_in_teacher

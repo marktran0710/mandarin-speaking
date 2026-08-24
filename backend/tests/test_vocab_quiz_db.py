@@ -74,8 +74,8 @@ def test_weak_words_uses_the_most_recent_answer(logged_in_student):
     assert weak["words"] == ["桌子"]
 
 
-def test_weak_words_requires_login(client):
-    response = client.get("/api/vocab-quiz-attempts/weak-words", params={
+def test_weak_words_requires_login(anonymous_client):
+    response = anonymous_client.get("/api/vocab-quiz-attempts/weak-words", params={
         "story_id": "teacher-story-1"})
     assert response.status_code == 401
 

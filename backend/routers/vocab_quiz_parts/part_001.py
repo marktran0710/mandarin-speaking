@@ -291,7 +291,11 @@ async def create_vocab_quiz_attempt(
             ),
         )
     schedule_irt_refit(background_tasks)
-    return attempt.model_dump(exclude_none=True)
+    payload = attempt.model_dump(exclude_none=True)
+    # Keep the nullable field present for clients that use the response as a
+    # round-trip representation of an attempt without a selected mode.
+    payload.setdefault("mode", attempt.mode)
+    return payload
 
 
 @router.post("/api/vocab-from-sentence", response_model=VocabFromSentenceResponse)

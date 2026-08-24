@@ -88,8 +88,8 @@ def test_speaking_progress_cannot_be_written_for_another_student(logged_in_stude
     assert rows[0]["studentId"] == student["id"]
 
 
-def test_speaking_progress_requires_login(client):
-    response = client.get(
+def test_speaking_progress_requires_login(anonymous_client):
+    response = anonymous_client.get(
         "/api/speaking-progress", params={"topic_id": "teacher-story-1"}
     )
     assert response.status_code == 401
