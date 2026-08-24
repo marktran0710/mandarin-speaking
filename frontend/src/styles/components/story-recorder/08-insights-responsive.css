@@ -1,0 +1,328 @@
+.practice-model-picker select:focus {
+  outline: none;
+  border-color: var(--seal);
+  box-shadow: 0 0 0 3px var(--seal-soft);
+}
+.practice-model-label {
+  display: block;
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--clay-body);
+}
+
+/* Responsive */
+
+/* ── Attempt progress trend ── */
+.attempt-trend {
+  background: var(--clay-surface-soft);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.attempt-trend-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clay-body);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 10px;
+}
+.attempt-trend-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 48px;
+  margin-bottom: 8px;
+}
+.attempt-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  max-width: 32px;
+}
+.attempt-bar-fill {
+  width: 100%;
+  min-height: 4px;
+  background: var(--clay-hairline);
+  border-radius: 3px;
+  transition: height 0.3s ease;
+}
+.attempt-bar.current .attempt-bar-fill { background: var(--jade-deep); }
+.attempt-bar span {
+  font-size: 10px;
+  color: var(--clay-muted);
+  font-weight: 600;
+}
+.attempt-trend-delta {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+.attempt-trend-delta.positive { color: var(--jade); }
+.attempt-trend-delta.negative { color: var(--clay-error); }
+
+/* ── Tone direction card ── */
+.tone-direction-card {
+  background: var(--jade-soft);
+  border: 1.5px solid var(--jade);
+  border-radius: var(--clay-radius-md);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.tone-direction-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--jade-deep);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+/* ── AI feedback improvements ── */
+.provider-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--clay-body);
+  background: var(--clay-hairline-soft);
+  padding: 3px 8px;
+  border-radius: var(--clay-radius-pill);
+}
+.ai-example.next-practice {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+}
+
+/* ── Next-scene / view-summary action (practice footer + summary) ── */
+.scene-next-btn {
+  flex-shrink: 0;
+  padding: 10px 20px;
+  background: var(--jade);
+  color: var(--clay-on-accent);
+  border: 2px solid var(--jade-deep);
+  border-radius: var(--clay-radius-pill);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 0 var(--jade-deep);
+  transition: transform 0.1s, box-shadow 0.1s;
+  /* BiLabel's .bi-en/.bi-pinyin default to --clay-muted (dark gray) —
+     unreadable on this solid green fill without a light override. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
+}
+.scene-next-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--jade-deep);
+}
+.scene-next-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--jade-deep);
+}
+
+/* Practice-stage CTAs now use AppButton. These layout hooks stay only for
+   width and wrapping, so their interaction states cannot drift from the
+   rest of the application. */
+.ui-button.btn-scene-step-continue {
+  min-width: 184px;
+  padding: 10px 16px;
+  border-radius: var(--clay-radius-md);
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--seal) 30%, transparent);
+}
+
+.ui-button.scene-next-btn {
+  padding: 10px 16px;
+  border-radius: var(--clay-radius-md);
+  border: 1px solid var(--jade-deep);
+  background: var(--jade-deep);
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--jade) 30%, transparent);
+}
+
+.ui-button.btn-scene-step-continue:hover:not(:disabled),
+.ui-button.scene-next-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* Student refresh: keep the learning flow intact while bringing the practice
+   workspace closer to the calm, editorial language used by the instructor
+   demo. These overrides are intentionally scoped to the student recorder. */
+.story-recorder {
+  padding-top: 28px;
+  padding-bottom: 64px;
+  gap: 24px;
+}
+
+.story-overview {
+  max-width: none;
+  padding: 0 0 18px;
+  gap: 24px;
+}
+
+.overview-hero {
+  padding: 34px 32px 28px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  box-shadow: 0 4px 16px rgba(67, 53, 31, 0.04);
+}
+
+.overview-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+}
+
+.lesson-number-badge {
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-primary);
+  color: var(--clay-on-seal);
+}
+
+.overview-meta > span {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  color: var(--clay-body);
+  background: var(--clay-surface-soft);
+}
+
+.overview-choice-card {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  box-shadow: 0 4px 0 var(--clay-hairline-soft);
+  padding: 20px 18px;
+}
+
+.overview-choice-card:hover:not(:disabled) {
+  border-color: var(--clay-primary);
+  box-shadow: 0 5px 0 var(--clay-primary);
+}
+
+.practice-stage > .practice-workspace,
+.practice-content,
+.example-frame-panel,
+.recording-status-card {
+  border-color: var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  box-shadow: 0 4px 16px rgba(67, 53, 31, 0.04);
+}
+
+.practice-stage > .practice-workspace {
+  background: var(--clay-surface-card);
+}
+
+.practice-scene-image {
+  border-radius: var(--clay-radius-md);
+  overflow: hidden;
+}
+
+.practice-footer {
+  border-top-color: var(--clay-hairline);
+}
+
+.btn-scene-step-continue,
+.scene-next-btn {
+  border-radius: 10px;
+  box-shadow: 0 3px 0 var(--seal-deep);
+}
+
+@media (max-width: 900px) {
+  .story-recorder {
+    padding-top: 18px;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  /* The desktop vocabulary table has room for status, Hanzi, pinyin, part of
+     speech, meaning, and audio. On a phone, keep those same fields readable
+     by stacking the text inside a compact two-column row instead of allowing
+     pinyin and English to break into one character per line. */
+  .scene-vocab-row-practice {
+    grid-template-columns: 18px minmax(0, 1fr) 28px;
+    grid-template-areas:
+      "status hanzi mic"
+      "status pinyin mic"
+      "status pos mic"
+      "status meaning mic";
+    gap: 2px 8px;
+    align-items: center;
+    padding: 8px 10px;
+  }
+
+  .scene-vocab-row-practice .scene-vocab-status { grid-area: status; }
+  .scene-vocab-row-practice .scene-vocab-hanzi { grid-area: hanzi; }
+  .scene-vocab-row-practice .scene-vocab-pinyin { grid-area: pinyin; }
+  .scene-vocab-row-practice .scene-vocab-pos { grid-area: pos; }
+  .scene-vocab-row-practice .scene-vocab-meaning { grid-area: meaning; }
+
+  .scene-vocab-row-practice button,
+  .scene-vocab-row-practice [aria-label*="pronunciation"] {
+    grid-area: mic;
+    justify-self: end;
+  }
+
+  .scene-vocab-row-practice .scene-vocab-pinyin,
+  .scene-vocab-row-practice .scene-vocab-pos,
+  .scene-vocab-row-practice .scene-vocab-meaning {
+    min-width: 0;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .scene-vocab-row-practice .scene-vocab-pos {
+    font-size: 10px;
+  }
+}
+
+
+.content-diff {
+  display: grid;
+  gap: var(--space-xs);
+  margin: var(--space-sm) 0;
+  padding: var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.content-diff-line {
+  display: flex;
+  gap: var(--space-xs);
+  margin: 0;
+  line-height: 1.7;
+}
+
+.content-diff-label {
+  flex: 0 0 5.2rem;
+  color: var(--clay-muted);
+  font-size: var(--text-base);
+}
+
+.content-diff-line-text {
+  letter-spacing: 0.04em;
+}
+
+.content-diff-highlight {
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: var(--clay-error);
+  color: var(--clay-error-deep);
+}
+
+.content-diff-empty,
+.content-diff-hint {
+  color: var(--clay-muted);
+}
+
+.content-diff-hint-match { color: var(--jade-deep); }
+.content-diff-hint-unverified { color: var(--gold-deep); }
+
+.content-diff-hint {
+  margin: var(--space-2xs) 0 0;
+  font-size: var(--text-sm);
+}
+

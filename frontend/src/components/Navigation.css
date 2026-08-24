@@ -4,7 +4,7 @@
   z-index: 1000;
   background: color-mix(in srgb, var(--clay-surface-card) 92%, transparent);
   border-bottom: 1px solid var(--clay-hairline);
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--clay-ink) 5%, transparent);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--clay-ink) 4%, transparent);
   backdrop-filter: blur(18px);
 }
 
@@ -21,7 +21,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
+  padding: 8px 0;
   gap: 16px;
 }
 
@@ -70,8 +70,8 @@
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  min-height: 40px;
-  padding: 8px 13px;
+  min-height: 44px;
+  padding: 6px 12px;
   /* Every nav item is the same "chip" at rest — a filled, bordered rounded
      box — so the row reads as one consistent set of buttons. Only .active
      swaps the fill/border/text to the accent palette; before this, inactive
@@ -85,7 +85,7 @@
      item's content is a 3-line BiLabel stack (zh/pinyin/en), not a single
      wide line — into an oval/blob shape. A moderate radius keeps it a
      clean rounded tag instead. */
-  border-radius: var(--clay-radius-md);
+  border-radius: var(--clay-radius-sm);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -95,30 +95,45 @@
   --bi-en-color: var(--clay-body);
 }
 
+.nav-link .bi-en {
+  font-size: 12px;
+}
+
 .nav-link:hover {
-  background: var(--clay-surface-strong);
-  border-color: var(--clay-hairline);
+  background: color-mix(in srgb, var(--clay-surface-strong) 64%, transparent);
+  border-color: transparent;
   color: var(--clay-ink);
   transform: translateY(-1px);
   box-shadow: 0 3px 8px color-mix(in srgb, var(--clay-ink) 6%, transparent);
 }
 
 .nav-link.active {
-  background: var(--seal-soft);
-  border-color: color-mix(in srgb, var(--seal) 65%, var(--clay-hairline));
+  position: relative;
+  background: transparent;
+  border-color: transparent;
   color: var(--clay-ink);
-  box-shadow: 0 3px 8px color-mix(in srgb, var(--seal) 10%, transparent);
+  box-shadow: none;
   /* clay-muted (BiLabel's default .bi-en color) lands at ~4.0-4.4:1 on this
      pastel pill — just under the 4.5:1 floor — so darken it here. */
   --bi-en-color: var(--clay-body);
 }
 
+.nav-link.active::after {
+  position: absolute;
+  right: 12px;
+  bottom: -9px;
+  left: 12px;
+  height: 3px;
+  background: var(--seal);
+  content: "";
+}
+
 /* The student shell follows the instructor demo's warm amber cue without
    changing the teacher app's shared navigation treatment. */
 .navbar-menu-student .nav-link.active {
-  background: var(--gold-soft);
-  border-color: color-mix(in srgb, var(--gold) 62%, var(--clay-hairline));
-  box-shadow: 0 3px 8px color-mix(in srgb, var(--gold) 14%, transparent);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .navbar-menu-student .nav-link:hover {
@@ -141,6 +156,12 @@
   --bi-en-color: rgba(255, 255, 255, 0.75);
 }
 
+.nav-link:focus-visible,
+.navbar-logo:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--seal) 58%, transparent);
+  outline-offset: 3px;
+}
+
 .nav-link.logout:hover {
   background: var(--seal-deep);
   border-color: var(--seal-deep);
@@ -150,8 +171,8 @@
   .navbar-container {
     flex-direction: column;
     align-items: stretch;
-    padding: 12px 0;
-    gap: 12px;
+    padding: 8px 0;
+    gap: 8px;
   }
 
   .navbar-menu {
@@ -177,6 +198,10 @@
   .nav-link {
     flex: 1;
     padding: 8px 10px;
+  }
+
+  .nav-link.active::after {
+    bottom: -8px;
   }
 }
 

@@ -1,4 +1,4 @@
-import translations from "../i18n/translations.json";
+import translations from "../i18n/translations";
 
 /**
  * Bilingual label: Traditional Chinese primary, English subtitle.

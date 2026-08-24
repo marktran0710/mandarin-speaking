@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { canUseDatabase, createCustomStory, listCustomStories } from "../services/database";
 import { loadBestLocalStars } from "../utils/quizTiers";
 import {
-  type CustomTeacherStory,
   type StoryDifficultyLevel,
   loadCustomStories,
   loadPublishedTeacherTopics,
@@ -31,93 +30,8 @@ import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
 import StudentIcon, { type StudentIconName } from "./StudentIcon";
 import "./BiLabel.css";
-
-export interface VocabGroup {
-  name: string;
-  words: string[];
-}
-
-export interface Topic {
-  id: string;
-  name: string;
-  description: string;
-  skillFocus: string;
-  images: string[];
-  prompts?: string[];
-  vocabulary: Record<number, string[]>;
-  vocabularyGroups?: Record<number, VocabGroup[]>;
-  // Handy, easy-to-learn-and-reuse phrases for this scene (replaces the old
-  // single whole-story "grammar pattern" note) — same word/translation shape
-  // as vocabulary, aligned by index.
-  phrases?: Record<number, string[]>;
-  phrasesTranslation?: Record<number, string[]>;
-  vocabularyPinyin?: Record<number, string[]>;
-  vocabularyPos?: Record<number, string[]>;
-  vocabularyTranslation?: Record<number, string[]>;
-  // AI-generated wrong-but-plausible translations per word (aligned by
-  // index with vocabulary[scene]), used as the vocab quiz's multiple-choice
-  // distractors instead of unrelated filler words. Optional — older stories
-  // without generated distractors still get a quiz via the old fallback.
-  vocabularyDistractors?: Record<number, string[][]>;
-  // AI-generated fill-in-the-blank (cloze) candidates per word — each word's
-  // entry is a list of {sentence, distractors} options, grown the same way
-  // vocabularyDistractors is. Optional, same graceful fallback as above.
-  vocabularyCloze?: Record<number, Array<{ sentence: string; distractors: string[] }[]>>;
-  // AI-generated synonym candidates per word — each word's entry is a list
-  // of {synonym, distractors} options, grown the same way vocabularyCloze
-  // is. Optional, same graceful fallback as above.
-  vocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
-  /** Canonical Easy/base vocabulary source used by the quiz across all
-   * difficulty views. Story display fields above may remain tier-specific,
-   * but quiz concepts must not be split into separate Medium/Hard pools. */
-  quizVocabulary?: Record<number, string[]>;
-  quizVocabularyPinyin?: Record<number, string[]>;
-  quizVocabularyPos?: Record<number, string[]>;
-  quizVocabularyTranslation?: Record<number, string[]>;
-  quizVocabularyDistractors?: Record<number, string[][]>;
-  quizVocabularyCloze?: Record<number, Array<{ sentence: string; distractors: string[] }[]>>;
-  quizVocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
-  quizSuggestedAnswers?: Record<number, string>;
-  suggestedAnswers?: Record<number, string>;
-  listenAudioUrls?: Record<number, string>;
-  listenAudioSources?: Record<number, "teacher" | "tts">;
-  listenScripts?: Record<number, string>;
-  // Model-voice reference audio for individual vocabulary words (aligned by
-  // index with vocabulary[scene]) — a null entry means that word's clip
-  // couldn't be sliced. vocabularyReferenceCurves is the matching cached
-  // pitch-shape curve sent back to /api/analyze as a real-voice scoring
-  // target instead of the synthetic idealized tone-shape pattern.
-  vocabularyAudioUrls?: Record<number, (string | null)[]>;
-  vocabularyReferenceCurves?: Record<number, number[][]>;
-  sentenceReferenceCurves?: Record<number, Record<string, number[]>>;
-  linear?: boolean;
-  lessonNumber?: number | null;
-  /** Position within its lesson (1, 2, 3...) — see CustomTeacherStory's
-   * lessonSubOrder. Drives the in-lesson sequential unlock in lessonGroups.ts. */
-  lessonSubOrder?: number | null;
-  narrativeMode?: "story" | "describe" | "listen_retell";
-  firstFrameIsExample?: boolean;
-  // Which easy/medium/hard tier this Topic was built at, plus a reference to
-  // the raw multi-tier story it came from — lets the inline tier controls
-  // re-derive a Topic at a different tier, and lets progress tracking know
-  // what to mark as done on submit. Absent for topics that aren't
-  // teacher-authored.
-  difficultyLevel?: StoryDifficultyLevel;
-  sourceStory?: CustomTeacherStory;
-}
-
-interface TopicSelectorProps {
-  onTopicSelect?: (topic: Topic, options?: TopicStartOptions) => void;
-  onLevelSelect?: (
-    topic: Topic,
-    level: StoryDifficultyLevel,
-    options?: TopicStartOptions,
-  ) => void;
-}
-
-export interface TopicStartOptions {
-  startAtQuiz?: boolean;
-}
+import type { Topic, TopicSelectorProps } from "./topic-selector/types";
+export type { Topic, TopicStartOptions, VocabGroup } from "./topic-selector/types";
 
 export const TOPICS: Topic[] = [];
 

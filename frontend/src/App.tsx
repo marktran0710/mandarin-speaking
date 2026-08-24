@@ -11,18 +11,16 @@ import ErrorBoundary from "./components/ErrorBoundary";
 
 import StudentLoginPage from "./pages/StudentLoginPage";
 import Navigation from "./components/Navigation";
-import JourneyBubble from "./components/JourneyBubble";
+import AppJourneyBubble from "./components/AppJourneyBubble";
 import {
   getStudentName,
   getStudentId,
-  getLastVisitedPage,
   saveLastVisitedPage,
   clearLastVisitedPage,
-  getLastPracticeTarget,
   saveLastPracticeTarget,
   clearLastPracticeTarget,
 } from "./utils/studentSession";
-import { currentRole, signOut } from "./utils/session";
+import { signOut } from "./utils/session";
 import {
   canUseDatabase,
   createAudioRecord,
@@ -34,145 +32,33 @@ import {
   logoutStudent,
   StoredAudioRecord,
 } from "./shared/api/learningApi";
+import { getStudentAppBootstrapState, collectPinyinTexts } from "./config/appNavigation";
+import type { AudioRecord, PracticeTarget } from "./app/appTypes";
+import {
+  recordsFromStored,
+  serializeAudioRecord,
+  updateStoredAudioRecord,
+  writeAudioRecordsCache,
+} from "./helpers/audioRecords";
+import {
+  loadLocalHelpRequests,
+  saveHelpRequestsLocally,
+  upsertHelpRequest,
+} from "./helpers/helpRequests";
 import {
   loadPublishedTeacherTopics,
   saveCustomStories,
 } from "./utils/teacherStories";
 import type { Topic } from "./components/TopicSelector";
-import {
-  groupTopicsByLesson,
-  isLessonGroupUnlocked,
-  lessonCompletion,
-} from "./utils/lessonGroups";
-import { loadSubmittedStoryIds } from "./utils/storyLevelProgress";
 import { topicHasQuiz } from "./utils/topicQuiz";
 import { primePinyin } from "./utils/pinyin";
 import type { Page } from "./types/page";
-import type { SpeechModel } from "./components/StoryRecorder";
+import { getJourneyBubbleTargetIds } from "./helpers/journeyBubble";
 
 export type { Page };
 
-interface AudioRecord {
-  id: string;
-  audioBlob: Blob;
-  timestamp: string;
-  duration: number;
-  transcription: string;
-  // Was its own stale "openai" | "gemini" | ... | "funasr" union, drifted
-  // from StoryRecorder's actual SpeechModel options (only ever masked
-  // because CreateStoryPage's onAddRecord prop was typed `any`).
-  model: SpeechModel;
-  praatMetrics?: any;
-  topicId?: string;
-  studentId?: string | null;
-  imageUrl?: string;
-  imageIndex?: number;
-  audioUrl?: string;
-  audioName?: string;
-  analysisVersion?: "stable_v1" | "phoneme_tone_v2";
-  analysisSchemaVersion?: string;
-  modelVersion?: string;
-  comparisonGroupId?: string;
-  sessionId?: string;
-  attemptId?: string;
-  attemptNumber?: number;
-  attemptType?: "WHOLE_SENTENCE_INITIAL" | "FOCUSED_RETRY" | "WHOLE_SENTENCE_FINAL";
-}
-
-interface PracticeTarget {
-  topicId: string;
-  imageIndex: number;
-  startAtQuiz?: boolean;
-  /** Bumped on every jump so CreateStoryPage remounts (and opens the
-   * target story) even when the student is already on the practice page
-   * or jumps to the same story twice. */
-  seq?: number;
-}
-
-// Sections worth restoring on reload. Excludes "home" and "student-login" —
-// if a logged-in student's stored page were ever one of those (shouldn't
-// happen, but storage can be stale or edited) landing back on the marketing
-// page instead of practice would look like the app forgot they were signed in.
-const RESTORABLE_STUDENT_PAGES: readonly Page[] = [
-  "student-workspace",
-  "student-practice",
-  "student-stories",
-  "voice-test",
-  "image-narration",
-];
-
-function isRestorableStudentPage(page: string | null): page is Page {
-  return RESTORABLE_STUDENT_PAGES.includes(page as Page);
-}
-
-interface StudentAppBootstrapState {
-  activeRole: "student" | null;
-  currentPage: Page;
-  studentWorkspaceView: StudentWorkspaceView;
-  practiceTarget: PracticeTarget | null;
-}
-
-/**
- * Reads the synchronous browser session before the first React commit. This
- * keeps a returning student from briefly seeing HomePage before the effect
- * that used to restore their workspace could run.
- */
-export function getStudentAppBootstrapState(): StudentAppBootstrapState {
-  const defaultState: StudentAppBootstrapState = {
-    activeRole: null,
-    currentPage: "home",
-    studentWorkspaceView: "practice",
-    practiceTarget: null,
-  };
-
-  if (currentRole("student") !== "student") return defaultState;
-
-  // The diagnostic routes intentionally win over the remembered page, but
-  // still require the student session checked above.
-  if (
-    window.location.pathname === "/analyze" ||
-    window.location.pathname === "/voice-test"
-  ) {
-    return { ...defaultState, activeRole: "student", currentPage: "voice-test" };
-  }
-
-  const lastPage = getLastVisitedPage();
-  const restoredPage = isRestorableStudentPage(lastPage)
-    ? lastPage
-    : "student-practice";
-  const studentWorkspaceView: StudentWorkspaceView =
-    restoredPage === "student-stories"
-      ? "progress"
-      : restoredPage === "image-narration"
-        ? "picture-talk"
-        : "practice";
-  const lastTarget =
-    studentWorkspaceView === "practice" ? getLastPracticeTarget() : null;
-
-  return {
-    activeRole: "student",
-    currentPage: restoredPage === "voice-test" ? "voice-test" : "student-workspace",
-    studentWorkspaceView,
-    practiceTarget: lastTarget
-      ? { topicId: lastTarget.topicId, imageIndex: lastTarget.imageIndex }
-      : null,
-  };
-}
-
-function collectPinyinTexts(topics: readonly Topic[]): string[] {
-  const texts: string[] = [];
-  for (const topic of topics) {
-    texts.push(...(topic.prompts ?? []));
-    for (const scene of Object.values(topic.vocabulary)) texts.push(...scene);
-    for (const scene of Object.values(topic.phrases ?? {})) texts.push(...scene);
-    for (const group of Object.values(topic.vocabularyGroups ?? {})) {
-      for (const vocabGroup of group) texts.push(...vocabGroup.words);
-    }
-    texts.push(...Object.values(topic.suggestedAnswers ?? {}));
-    texts.push(...Object.values(topic.listenScripts ?? {}));
-  }
-  return texts;
-}
+export type { AudioRecord, PracticeTarget };
+export { getStudentAppBootstrapState } from "./config/appNavigation";
 
 export default function App() {
   const [bootstrapState] = useState(getStudentAppBootstrapState);
@@ -454,29 +340,7 @@ export default function App() {
     [quizStoryTopics],
   );
 
-  // The bubble's jump candidates: the newest unlocked lesson — the TOC's
-  // "you are here" row (first unlocked numbered lesson still holding
-  // unsubmitted stories) — narrowed to its quiz-capable stories. Groups
-  // are built from ALL story topics so the sequential lock matches the
-  // TOC exactly; only the candidate list is quiz-filtered. Recomputed per
-  // render on purpose: submission state lives in localStorage and changes
-  // as stories are finished.
-  const bubbleTargetIds = (() => {
-    const groups = groupTopicsByLesson(storyTopics);
-    const submittedIds = loadSubmittedStoryIds();
-    const nowGroup = groups.find(
-      (group, index) =>
-        group.lessonNumber !== null &&
-        isLessonGroupUnlocked(groups, index, submittedIds) &&
-        lessonCompletion(group, submittedIds).done < group.topics.length,
-    );
-    if (!nowGroup) return undefined;
-    const quizIds = new Set(quizStoryTopics.map((t) => t.id));
-    // Empty is a real answer here (this lesson has no quiz-capable
-    // stories), not "unknown scope" — only a missing group falls back to
-    // undefined, so the bubble never pulses for a story outside this lesson.
-    return nowGroup.topics.map((t) => t.id).filter((id) => quizIds.has(id));
-  })();
+  const bubbleTargetIds = getJourneyBubbleTargetIds(storyTopics, quizStoryTopics);
 
   // One bubble across every logged-in student page (it mounts here, not
   // per-page) — hidden only while a practice session is active, where its
@@ -599,120 +463,17 @@ export default function App() {
       {currentPage === "image-narration" && activeRole === "student" && (
         <ImageNarrationPage publishedTopics={describeTopics} />
       )}
-      {showJourneyBubble && (
-        <JourneyBubble
-          studentName={getStudentName()}
-          studentId={getStudentId()}
-          storyCount={quizStoryTopics.length}
-          storyTitles={storyTitles}
-          // Admin gets the same bubble as a student — the pulse is a demo
-          // surface, not a gate, and an inert dial reads as broken when
-          // the teacher walks through the app (which is what admin is for).
-          targetIds={bubbleTargetIds}
-          refreshToken={`${currentPage}:${studentWorkspaceView}:${isInPracticeSession}`}
-          onJumpToStory={handleJumpToStory}
-        />
-      )}
+      <AppJourneyBubble
+        visible={showJourneyBubble}
+        studentName={getStudentName()}
+        studentId={getStudentId()}
+        storyCount={quizStoryTopics.length}
+        storyTitles={storyTitles}
+        targetIds={bubbleTargetIds}
+        refreshToken={`${currentPage}:${studentWorkspaceView}:${isInPracticeSession}`}
+        onJumpToStory={handleJumpToStory}
+      />
     </div>
     </ErrorBoundary>
   );
-}
-
-function loadLocalHelpRequests(): HelpRequest[] {
-  try {
-    const requests = JSON.parse(localStorage.getItem("helpRequests") || "[]");
-    return Array.isArray(requests) ? requests : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveHelpRequestsLocally(requests: HelpRequest[]): HelpRequest[] {
-  localStorage.setItem("helpRequests", JSON.stringify(requests));
-  return requests;
-}
-
-function upsertHelpRequest(
-  requests: HelpRequest[],
-  nextRequest: HelpRequest,
-): HelpRequest[] {
-  const existingIndex = requests.findIndex(
-    (request) => request.id === nextRequest.id,
-  );
-  if (existingIndex === -1) {
-    return [nextRequest, ...requests];
-  }
-
-  return requests.map((request, index) =>
-    index === existingIndex ? nextRequest : request,
-  );
-}
-
-function serializeAudioRecord(record: AudioRecord): StoredAudioRecord {
-  return {
-    id: record.id,
-    timestamp: record.timestamp,
-    duration: record.duration,
-    transcription: record.transcription,
-    model: record.model,
-    topicId: record.topicId,
-    studentId: getStudentId(),
-    imageUrl: record.imageUrl,
-    imageIndex: record.imageIndex,
-    audioUrl: record.audioUrl,
-    audioName: record.audioName,
-    analysisVersion: record.analysisVersion ?? record.praatMetrics?.analysis_version ?? "stable_v1",
-    analysisSchemaVersion: record.analysisSchemaVersion ?? record.praatMetrics?.analysis_schema_version,
-    modelVersion: record.modelVersion ?? record.praatMetrics?.model_version,
-    comparisonGroupId: record.comparisonGroupId,
-    sessionId: record.sessionId,
-    attemptId: record.attemptId,
-    attemptNumber: record.attemptNumber,
-    attemptType: record.attemptType,
-    praatMetrics: record.praatMetrics,
-  };
-}
-
-/** localStorage is only an offline cache; the backend remains canonical. */
-function writeAudioRecordsCache(records: StoredAudioRecord[]) {
-  const candidates: StoredAudioRecord[][] = [
-    records,
-    records.slice(0, 100),
-    records.slice(0, 30),
-    records.slice(0, 10).map(({ praatMetrics: _praatMetrics, ...record }) => record),
-  ];
-
-  for (const candidate of candidates) {
-    try {
-      localStorage.setItem("audioRecords", JSON.stringify(candidate));
-      return;
-    } catch {
-      // Try a smaller cache below. Never let a quota error break the app.
-    }
-  }
-
-  try {
-    localStorage.removeItem("audioRecords");
-  } catch {
-    // Storage-disabled/private browsing environments can reject this too.
-  }
-}
-
-function recordsFromStored(recordsData: StoredAudioRecord[]): AudioRecord[] {
-  return recordsData.map((data) => ({
-    ...data,
-    audioBlob: new Blob([], { type: "audio/webm" }),
-    model: data.model as AudioRecord["model"],
-  }));
-}
-
-function updateStoredAudioRecord(
-  id: string,
-  media: Pick<StoredAudioRecord, "audioUrl" | "audioName">,
-) {
-  const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
-  const updated = stored.map((record: StoredAudioRecord) =>
-    record.id === id ? { ...record, ...media } : record,
-  );
-  writeAudioRecordsCache(updated);
 }

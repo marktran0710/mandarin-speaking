@@ -1,0 +1,107 @@
+.student-app .narration-content-accuracy,
+.student-app .lr-content-accuracy {
+  border-radius: var(--student-radius-lg);
+  border-color: var(--student-primary);
+  background: var(--student-primary-soft);
+}
+
+/* Voice analysis is information-dense, so the same system is quieter here:
+   white surfaces, one accent rail, and semantic status colors only. */
+.student-app .voice-test-hero,
+.student-app .voice-test-workspace,
+.student-app .voice-feedback-panel {
+  border-radius: var(--student-radius-lg);
+  border-color: var(--student-line);
+}
+
+.student-app .voice-test-hero {
+  background: var(--student-surface-muted);
+}
+
+.student-app .voice-test-status,
+.student-app .voice-audio-preview,
+.student-app .voice-live-transcript,
+.student-app .voice-test-loading,
+.student-app .voice-test-error,
+.student-app .voice-score-card,
+.student-app .voice-feedback-card,
+.student-app .voice-student-feedback-card,
+.student-app .voice-model-example,
+.student-app .voice-advanced-details {
+  border-radius: var(--student-radius-md);
+}
+
+/* Login belongs to the student journey but stays flat and quiet: one card,
+   one CTA, one clear next step, with no decorative background treatment. */
+.student-app .login-page.student .login-shell {
+  min-height: calc(100vh - var(--navbar-height));
+  padding: var(--space-2xl) var(--content-gutter);
+  background: transparent;
+}
+
+.student-app .login-page.student .login-card {
+  border: 1px solid var(--student-line);
+  border-radius: var(--student-radius-xl);
+  background: var(--student-surface);
+  box-shadow: var(--student-shadow-card);
+}
+
+.student-app .login-page.student .login-submit {
+  min-height: 48px;
+  border-radius: var(--student-radius-sm);
+  background: var(--student-primary);
+  border-color: var(--student-primary-strong);
+  color: var(--student-on-primary);
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .student-app .navbar-container {
+    padding: var(--space-sm) 0;
+  }
+
+  .student-app .navbar-menu-student .nav-link {
+    min-height: 58px;
+    gap: 3px;
+    flex-direction: column;
+  }
+
+  .student-app .narration-page,
+  .student-app .listen-retell-page,
+  .student-app .voice-test-page {
+    width: min(100% - var(--space-lg), var(--student-content-width));
+    padding-top: var(--space-lg);
+    padding-bottom: var(--space-2xl);
+  }
+
+  .student-app .student-page-header {
+    width: 100%;
+  }
+
+  .student-app .voice-test-hero,
+  .student-app .voice-test-workspace,
+  .student-app .voice-feedback-panel {
+    padding: var(--space-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .student-app .student-page-header h1,
+  .student-app .stories-header h1 {
+    font-size: 27px;
+  }
+
+  .student-app .narration-image-panel,
+  .student-app .narration-record-panel,
+  .student-app .lr-image-panel,
+  .student-app .lr-record-panel {
+    padding: var(--space-sm);
+    border-radius: var(--student-radius-md);
+  }
+
+  .student-app .login-page.student .login-shell {
+    padding: var(--space-xl) var(--space-sm);
+  }
+}
+
+

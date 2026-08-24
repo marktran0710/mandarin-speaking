@@ -1,0 +1,432 @@
+
+@media (max-width: 768px) {
+  .practice-workspace {
+    grid-template-columns: 1fr;
+  }
+  .practice-stage > .practice-workspace:not(:has(.sfc-results)) .practice-scene-col {
+    position: static;
+  }
+  .practice-stage > .practice-workspace:not(:has(.sfc-results)) .practice-scene-image {
+    min-height: 0;
+  }
+  .practice-scene-image {
+    aspect-ratio: 16 / 9;
+  }
+  .practice-workspace-study .practice-scene-col {
+    grid-template-columns: 1fr;
+  }
+  .practice-workspace-study .practice-scene-image {
+    min-height: 0;
+    max-height: none;
+    aspect-ratio: 4 / 3;
+  }
+  .practice-workspace-study .practice-scene-chip {
+    justify-self: start;
+  }
+}
+
+/* Study tab — one neutral outer card (icon + title + instruction), holding
+   the vocabulary table and/or phrases list as their own colored sub-cards
+   below it (gold for vocabulary, celadon for phrases — phrases moved off
+   --seal when the brand became gold, which would have made the two
+   sub-cards the same color), instead
+   of two separate tabs each repeating the same header shape. */
+.practice-study-ref {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--clay-surface-card);
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  padding: 18px;
+}
+.practice-study-block {
+  margin-top: 0;
+}
+
+/* Icon + title + one-line instruction, now living inside the step's own
+   colored card (practice-vocab-ref / practice-phrases-hint) instead of a
+   separate guide panel disconnected from the content it explains. */
+.practice-content-header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+.practice-content-header > span {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+.practice-content-header h3 {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--clay-ink);
+  margin: 0 0 4px;
+}
+.practice-content-header p {
+  font-size: 13px;
+  color: var(--clay-body);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Footer action bar — same shape as SpeakingFlowCard's results footer, so
+   Vocabulary, Phrases and Speaking all end the same way. Carries the
+   scene's readiness status on the left (start hint / complete / gap),
+   replacing the banners that used to stack above the practice stage. */
+.practice-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--clay-hairline);
+  padding-top: 14px;
+}
+.practice-footer-status {
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.practice-footer-hint {
+  color: var(--gold-deep);
+}
+.practice-footer-ready {
+  color: var(--jade-deep);
+  font-weight: 700;
+}
+.practice-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+@media (max-width: 640px) {
+  .practice-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .practice-footer-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}
+
+/* Example view footer — the way back from the 🎯 teacher-model stop. */
+.example-frame-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--clay-hairline);
+}
+
+.practice-phrases-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--lavender-soft);
+  border: 1.5px solid var(--lavender);
+  border-radius: var(--clay-radius-md);
+  padding: 10px 14px;
+  margin-top: 10px;
+}
+.practice-phrases-label {
+  color: var(--lavender-deep);
+}
+.practice-phrases-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+}
+.practice-phrase-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.practice-phrase-text {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--seal-deep);
+}
+.practice-phrase-translation {
+  font-size: 14px;
+  color: var(--clay-body);
+}
+
+/* Always-visible model sentence during the Speaking step — a script to read
+   along and practice saying. */
+.practice-model-sentence {
+  background: var(--jade-soft);
+  border: 1.5px solid var(--jade);
+  border-radius: var(--clay-radius-md);
+  padding: 14px 16px;
+  margin-top: 16px;
+}
+.practice-model-sentence-label {
+  color: var(--jade-deep);
+  margin-bottom: 6px;
+}
+.practice-model-sentence-text {
+  font-size: 18px;
+  font-weight: 650;
+  color: var(--jade-deep);
+  line-height: 1.5;
+}
+
+/* Vocab reference */
+.practice-vocab-ref {
+  background: var(--gold-soft);
+  border: 1.5px solid var(--gold);
+  border-radius: var(--clay-radius-md);
+  padding: 14px 16px;
+}
+.practice-vocab-heading {
+  color: var(--gold-deep);
+  margin-bottom: 10px;
+}
+.vocab-chip {
+  background: var(--clay-surface-card);
+  border: 1.5px solid var(--gold);
+  border-radius: var(--clay-radius-sm);
+  padding: 5px 11px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--clay-ink);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+/* Scene vocabulary table (student-facing, read-only, with used/missing status) */
+.scene-vocab-table {
+  display: grid;
+  gap: 4px;
+  border: 1.5px solid var(--gold);
+  border-radius: var(--clay-radius-md);
+  background: var(--gold-soft);
+  padding: 6px;
+}
+
+.scene-vocab-row {
+  display: grid;
+  /* minmax(0, …) so long cells wrap inside their track instead of
+     inflating the row's min-content width past narrow viewports. */
+  grid-template-columns: auto minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 0.7fr) minmax(0, 1.4fr);
+  gap: 10px;
+  align-items: baseline;
+  padding: 5px 8px;
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+/* One extra trailing column for the per-word practice mic toggle, used only
+   on the scene vocabulary table shown during active recording practice. */
+.scene-vocab-row-practice {
+  grid-template-columns: auto minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 0.7fr) minmax(0, 1.4fr) auto;
+}
+
+.scene-vocab-status {
+  font-size: 0.95em;
+  font-weight: 900;
+  width: 1em;
+  text-align: center;
+}
+
+.scene-vocab-cell {
+  font-size: 14px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.scene-vocab-hanzi {
+  font-weight: 700;
+  color: var(--gold-deep);
+}
+
+.scene-vocab-pinyin {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--clay-muted);
+}
+
+.scene-vocab-pos {
+  font-size: 0.8em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--clay-muted);
+}
+
+.scene-vocab-meaning {
+  color: var(--clay-body);
+}
+
+.scene-vocab-row.scene-vocab-used {
+  background: var(--jade-soft);
+  border: 1px solid var(--jade);
+}
+.scene-vocab-row.scene-vocab-used .scene-vocab-status {
+  color: var(--jade-deep);
+}
+
+.scene-vocab-row.scene-vocab-missed {
+  background: var(--clay-error-soft);
+  border: 1px solid var(--clay-error);
+}
+.scene-vocab-row.scene-vocab-missed .scene-vocab-status {
+  color: var(--clay-error);
+}
+
+.vocab-check-hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 10px;
+  color: var(--gold-deep);
+  margin-left: 4px;
+}
+.vocab-coverage-line {
+  margin-top: 10px;
+  font-size: 0.85rem;
+  color: var(--clay-ink);
+  font-style: italic;
+}
+
+/* Recording playback */
+.recording-playback {
+  background: var(--clay-hairline-soft);
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+.recording-playback-label {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--clay-body);
+  margin-bottom: 8px;
+}
+.recording-playback-audio {
+  width: 100%;
+  height: 36px;
+}
+
+/* Record area */
+/* Tactile "game piece" button: a solid bottom lip instead of a blurred
+   drop shadow, so the main action of the whole app reads as a pressable
+   game button. Hover lifts it a touch; pressing sinks it into its lip. */
+.btn-practice-record {
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--clay-radius-md);
+  border: 2px solid var(--seal-deep);
+  background: var(--seal);
+  color: var(--clay-on-seal);
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  letter-spacing: 0.02em;
+  box-shadow: 0 5px 0 var(--seal-deep);
+  /* BiLabel's default sublabel colors are dark-on-light — unreadable on
+     this accent fill. */
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
+}
+.btn-practice-record:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 0 var(--seal-deep);
+}
+.btn-practice-record:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--seal-deep);
+}
+.btn-practice-record.is-recording {
+  background: var(--clay-error);
+  border-color: var(--clay-error-deep);
+  animation: pulse-record 1.2s ease-in-out infinite;
+}
+@keyframes pulse-record {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(166, 52, 43, 0.4); }
+  50%       { box-shadow: 0 0 0 10px rgba(166, 52, 43, 0); }
+}
+.btn-practice-record:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-practice-upload {
+  font-size: 13px;
+  color: var(--clay-body);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.btn-practice-upload.disabled { opacity: 0.4; cursor: not-allowed; }
+
+.practice-guide-qs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.practice-guide-q {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--clay-surface-soft);
+  border-radius: var(--clay-radius-sm);
+  padding: 10px 12px;
+}
+.guide-q-zh {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--seal);
+  white-space: nowrap;
+  min-width: 58px;
+}
+.guide-q-en {
+  font-size: 12px;
+  color: var(--clay-body);
+}
+
+.practice-chips-group { display: flex; flex-direction: column; gap: 8px; }
+.practice-chips-group > p {
+  color: var(--clay-muted);
+  margin: 0;
+}
+.practice-chips-group > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.practice-chip {
+  background: var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-sm);
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--clay-ink);
+}
+
+.practice-model-picker summary {
+  font-size: 11px;
+  color: var(--clay-muted);
+  cursor: pointer;
+  font-weight: 600;
+}
+.practice-model-picker select {
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px 10px;
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  font-size: 12px;
+  color: var(--clay-ink);
+  background: var(--clay-surface-card);
+}
+

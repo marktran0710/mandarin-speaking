@@ -1,0 +1,433 @@
+
+.teacher-view-tabs button:hover {
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+}
+
+.teacher-view-tabs button.active {
+  background: var(--jade-deep);
+  color: var(--clay-on-accent);
+}
+
+.teacher-view-tabs strong {
+  min-width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  font-size: 11px;
+}
+
+.teacher-view-tabs button.active strong {
+  /* White-tint overlay on this tab's own accent fill (not a surface color),
+     so it can't be a --clay-* token — translucent white reads as a
+     highlight on top of whatever accent color the active tab uses. */
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--clay-on-accent);
+}
+
+.teacher-view-tabs button:hover strong {
+  background: var(--clay-surface-soft);
+}
+
+.teacher-stat-grid {
+  margin-bottom: 22px;
+  display: grid;
+  /* auto-fit, not a fixed 4 — the analytics views show 3 stats and a fixed
+     4-column template leaves a dangling empty cell (the row stopped ~290px
+     short of the panels below it). Four stats still lay out as 4 columns. */
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.teacher-stat-card {
+  min-height: 118px;
+  padding: 18px;
+  display: grid;
+  align-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+}
+
+.teacher-stat-card strong {
+  font-family: var(--font-mono);
+  color: var(--clay-ink);
+  font-size: 34px;
+  line-height: 1;
+}
+
+.teacher-stat-card p {
+  color: var(--clay-body);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.teacher-dashboard-grid {
+  margin-bottom: 22px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+  gap: 18px;
+}
+
+.teacher-content-builder {
+  margin-bottom: 22px;
+}
+
+.teacher-panel {
+  padding: 18px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-xl);
+  background: var(--clay-surface-card);
+}
+
+.teacher-builder-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.custom-story-form {
+  display: grid;
+  gap: 16px;
+}
+
+.teacher-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  /* "start" keeps every label/input at its own natural height — with the
+     grid default (stretch), a short field sharing a row with a taller one
+     (e.g. one carrying a hint paragraph) got stretched tall too, and since
+     an input is one of that label's own auto rows, the input itself ended
+     up rendered as an oversized box instead of the field next to it. */
+  align-items: start;
+}
+
+.teacher-field-span2 {
+  grid-column: 1 / -1;
+}
+
+.custom-story-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--clay-ink);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.teacher-checkbox-field {
+  display: flex !important;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.teacher-checkbox-field input[type="checkbox"] {
+  width: auto;
+}
+
+.custom-story-form input,
+.custom-story-form select,
+.custom-story-form textarea {
+  width: 100%;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  color: var(--clay-ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 11px 12px;
+  resize: vertical;
+}
+
+.custom-story-form input:focus,
+.custom-story-form select:focus,
+.custom-story-form textarea:focus {
+  border-color: var(--jade);
+  box-shadow: 0 0 0 3px var(--jade-soft);
+  outline: none;
+}
+
+.custom-story-form input[aria-invalid="true"],
+.custom-story-form textarea[aria-invalid="true"] {
+  border-color: var(--clay-error);
+  background: var(--clay-error-soft);
+}
+
+.teacher-form-error {
+  color: var(--clay-error);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.teacher-form-hint {
+  color: var(--clay-body-muted, var(--clay-body));
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+
+.teacher-form-alert,
+.teacher-form-success {
+  padding: 12px 14px;
+  border-radius: var(--clay-radius-md);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.teacher-form-alert {
+  border: 1px solid var(--clay-error);
+  background: var(--clay-error-soft);
+  color: var(--clay-error);
+}
+
+.teacher-form-success {
+  border: 1px solid var(--jade);
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.quiz-review-nudge-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  margin-top: 8px;
+  border: 1px solid var(--seal);
+  border-radius: var(--clay-radius-md);
+  background: var(--seal-soft);
+  color: var(--clay-on-seal);
+  font-size: 13px;
+  font-weight: 700;
+}
+.quiz-review-nudge-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.quiz-review-nudge-go {
+  border: none;
+  border-radius: var(--clay-radius-pill);
+  background: var(--seal);
+  color: var(--clay-on-seal);
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.quiz-review-nudge-dismiss {
+  border: none;
+  background: transparent;
+  color: var(--clay-on-seal);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 6px;
+  opacity: 0.7;
+}
+.quiz-review-nudge-dismiss:hover { opacity: 1; }
+
+.teacher-file-upload {
+  padding: 11px 12px;
+  border: 1px dashed var(--jade);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+}
+
+.teacher-file-upload input {
+  margin-top: 7px;
+  padding: 8px;
+  background: var(--clay-canvas);
+  cursor: pointer;
+}
+
+.teacher-frame-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.teacher-frame-card {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+}
+
+.teacher-frame-card.has-error {
+  border-color: var(--clay-error);
+  background: var(--clay-error-soft);
+}
+
+.teacher-frame-card.is-example-frame {
+  border-color: var(--gold);
+  border-width: 2px;
+  background: var(--gold-soft);
+}
+
+.teacher-example-badge {
+  grid-column: 1 / -1;
+  background: var(--gold);
+  color: var(--clay-on-seal);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 5px 10px;
+  border-radius: var(--clay-radius-sm);
+  margin-bottom: 4px;
+}
+
+.teacher-frame-image-preview {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border-radius: var(--clay-radius-md);
+  background: var(--jade-soft);
+  color: var(--clay-ink);
+  font-size: 13px;
+  font-weight: 900;
+  cursor: text;
+  border: 2px dashed transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.teacher-frame-image-preview:hover {
+  border-color: var(--clay-hairline);
+}
+
+.teacher-frame-image-preview:focus {
+  outline: none;
+  border-color: var(--jade);
+  background: var(--jade-soft);
+}
+
+.teacher-frame-paste-hint {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--clay-muted);
+}
+
+.teacher-tier-hint,
+.teacher-form-note {
+  padding: 10px 14px;
+  border-radius: var(--clay-radius-md);
+  border: 1px dashed var(--clay-hairline);
+  background: var(--clay-surface-soft);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--clay-muted);
+}
+
+.teacher-tier-hint {
+  margin: -8px 0 4px;
+}
+
+/* Same dashed note box as .teacher-tier-hint above — one visual language for
+   every inline guidance note in this form, instead of some being plain text
+   and others boxed. Spans the full field grid so it reads as its own row
+   rather than lopsiding whichever column it was nested in. */
+.teacher-form-note {
+  grid-column: 1 / -1;
+}
+
+.teacher-frame-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.teacher-frame-guide-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.teacher-frame-fields {
+  display: grid;
+  gap: 10px;
+}
+
+.teacher-builder-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.teacher-builder-actions p {
+  color: var(--clay-muted);
+  font-size: 13px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.teacher-builder-buttons,
+.custom-story-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-save-custom-story {
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid var(--jade-deep);
+  border-radius: var(--clay-radius-md);
+  background: var(--jade-deep);
+  color: var(--clay-on-accent);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.btn-save-custom-story:hover {
+  background: var(--jade-deep);
+  filter: brightness(0.88);
+}
+
+.custom-story-library {
+  padding: 16px;
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-soft);
+}
+
+.custom-story-library-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.custom-story-library h3 {
+  color: var(--clay-ink);
+  font-size: 18px;
+  margin: 0 auto 0 0;
+}
+
+.custom-story-lesson-filter {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 8px 10px;
+  min-height: 32px;
+}
+

@@ -1,0 +1,30 @@
+
+.btn-vocab-autofill-sm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Read-only preview of how the Script field auto-splits into practice
+   chunks on clause punctuation — lets a teacher "review" boundaries just by
+   seeing them, then adjust by editing the script's own punctuation. */
+.script-chunk-preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: -4px 0 0;
+  font-size: 12px;
+}
+.script-chunk-preview-lead {
+  color: var(--clay-muted);
+  font-weight: 700;
+}
+.script-chunk-preview-chip {
+  border: 1px solid var(--lavender);
+  background: var(--lavender-soft);
+  color: var(--lavender-deep);
+  border-radius: var(--clay-radius-sm);
+  padding: 2px 8px;
+  font-weight: 600;
+}
+

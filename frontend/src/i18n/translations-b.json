@@ -1,0 +1,242 @@
+{
+  "how_to_fix": {
+    "en": "How to fix",
+    "zh": "如何修正"
+  },
+  "how_to_reach_100": {
+    "en": "How to reach 100%",
+    "zh": "怎麼拿到 100%",
+    "pinyin": "Zěnme nádào 100%"
+  },
+  "image_builder": {
+    "en": "Image Builder",
+    "zh": "做圖片"
+  },
+  "isolate_problem_characters_from_the_tone": {
+    "en": "Isolate problem characters from the Tone Drill panel and repeat them 5× before recording the full sentence.",
+    "zh": "先在聲調練習找出有問題的字，多念 5 次，再錄完整句子。",
+    "pinyin": "Xiān zài shēngdiào liànxí zhǎochū yǒu wèntí de zì, duō niàn wǔ cì, zài lù wánzhěng jùzi."
+  },
+  "keep_pitch_high_and_completely_flat_thro": {
+    "en": "Keep pitch high and completely flat throughout.",
+    "zh": "保持音高高，一直不要變。",
+    "pinyin": "Bǎochí yīngāo gāo, yìzhí bú yào biàn."
+  },
+  "keep_practicing_try_to_make_the_tone_sha": {
+    "en": "Keep practicing — try to make the tone shapes clearer.",
+    "zh": "繼續練習 — 試著讓聲調形狀更清楚。",
+    "pinyin": "Jìxù liànxí — shìzhe ràng shēngdiào xíngzhuàng gèng qīngchu."
+  },
+  "key_vocabulary": {
+    "en": "Key Vocabulary",
+    "zh": "這課的生詞",
+    "pinyin": "Zhè kè de shēngcí"
+  },
+  "let_s_go": {
+    "en": "Let's Go!",
+    "zh": "開始！"
+  },
+  "listening_to_your_voice": {
+    "en": "Listening to your voice…",
+    "zh": "正在聽你的聲音…",
+    "pinyin": "Zhèngzài tīng nǐ de shēngyīn…"
+  },
+  "loading_activities": {
+    "en": "Loading activities…",
+    "zh": "正在載入活動…",
+    "pinyin": "Zhèngzài zàirù huódòng…"
+  },
+  "log_out": {
+    "en": "Log out",
+    "zh": "離開",
+    "pinyin": "Líkāi"
+  },
+  "mandarin_speaking_practice": {
+    "en": "Mandarin speaking practice",
+    "zh": "中文口說練習",
+    "pinyin": "Zhōngwén kǒushuō liànxí"
+  },
+  "mandarin_story_coach": {
+    "en": "Mandarin Story Coach",
+    "zh": "普通話故事老師",
+    "pinyin": "Pǔtōnghuà gùshì lǎoshī"
+  },
+  "match_key_words_to_each_story_scene": {
+    "en": "Answer a few quick questions about the story's key words",
+    "zh": "先認識故事裡的幾個生詞",
+    "pinyin": "Xiān rènshi gùshì lǐ de jǐ ge shēngcí"
+  },
+  "monitor_student_recordings_inspect_speec": {
+    "en": "Monitor student recordings, inspect speech metrics, and support narrative development.",
+    "zh": "看看學生的錄音和學習情況。",
+    "pinyin": "Kànkan xuéshēng de lùyīn hé xuéxí qíngkuàng."
+  },
+  "need_teacher_help": {
+    "en": "Need teacher help?",
+    "zh": "要老師幫忙嗎？",
+    "pinyin": "Yào lǎoshī bāngmáng ma?"
+  },
+  "need_teacher_help_prompt": {
+    "en": "Need help? Raise your hand here and your teacher will see it.",
+    "zh": "要老師幫忙嗎？在這裡舉手，老師會看到。",
+    "pinyin": "Yào lǎoshī bāngmáng ma? Zài zhèlǐ jǔshǒu, lǎoshī huì kàndào."
+  },
+  "needs_a_clear_pitch_contour_and_transcri": {
+    "en": "Needs a clear pitch contour and transcript. Try one complete sentence, or use Chinese/Taiwanese Whisper.",
+    "zh": "需要清楚的音高曲線和文字稿。試著說一個完整句子，或用中文／台語 Whisper。",
+    "pinyin": "Xūyào qīngchu de yīngāo qǔxiàn hé wénzìgǎo. Shìzhe shuō yí ge wánzhěng jùzi, huò yòng Zhōngwén/Táiyǔ Whisper."
+  },
+  "next_scene": {
+    "en": "Next scene",
+    "zh": "下一個部分",
+    "pinyin": "Xià yí ge bùfen"
+  },
+  "next_try": {
+    "en": "Next try",
+    "zh": "下次再試",
+    "pinyin": "Xiàcì zài shì"
+  },
+  "no_activities_yet": {
+    "en": "No Activities Yet",
+    "zh": "目前還沒有活動",
+    "pinyin": "Mùqián hái méiyǒu huódòng"
+  },
+  "no_character_feedback_yet": {
+    "en": "No character feedback yet",
+    "zh": "還沒有逐字回饋",
+    "pinyin": "Hái méiyǒu zhúzì huíkuì"
+  },
+  "no_long_pauses_smooth_delivery": {
+    "en": "No long pauses — smooth delivery",
+    "zh": "沒有長停頓 — 說得很順",
+    "pinyin": "Méiyǒu cháng tíngdùn — shuō de hěn shùn"
+  },
+  "now_work_on_pronunciation_record_again_a": {
+    "en": "Now work on pronunciation — record again and focus on the tones.",
+    "zh": "現在練習發音 — 再錄一次，注意聲調。↑",
+    "pinyin": "Xiànzài liànxí fāyīn — zài lù yí cì, zhùyì shēngdiào."
+  },
+  "overview": {
+    "en": "Overview",
+    "zh": "先看看",
+    "pinyin": "Xiān kànkan"
+  },
+  "pauses": {
+    "en": "Pauses",
+    "zh": "停頓",
+    "pinyin": "Tíngdùn"
+  },
+  "picture_bank": {
+    "en": "Picture Bank",
+    "zh": "圖片",
+    "pinyin": "Túpiàn"
+  },
+  "pitch_movement_estimated_for_each_mandar": {
+    "en": "Pitch movement estimated for each Mandarin character.",
+    "zh": "這是每個普通話字的音高變化。",
+    "pinyin": "Zhè shì měi ge Pǔtōnghuà zì de yīngāo biànhuà."
+  },
+  "plan_the_story": {
+    "en": "Plan the story",
+    "zh": "想故事",
+    "pinyin": "Xiǎng gùshì"
+  },
+  "please_enter_a_name": {
+    "en": "Please enter a name.",
+    "zh": "請打上名字。",
+    "pinyin": "Qǐng dǎshàng míngzi."
+  },
+  "portals": {
+    "en": "Home",
+    "zh": "首頁",
+    "pinyin": "Shǒuyè"
+  },
+  "practice_again_you_haven_t_used_all_the_": {
+    "en": "Practice again — you haven't used all the scene words yet",
+    "zh": "再練習一次 — 你還沒使用所有部分的生詞"
+  },
+  "pronunciation": {
+    "en": "Pronunciation",
+    "zh": "發音"
+  },
+  "put_it_back_into_the_full_sentence_and_r": {
+    "en": "Put it back into the full sentence and record again.",
+    "zh": "放回完整句子並再次錄音。"
+  },
+  "put_the_story_in_order": {
+    "en": "Put the Story in Order",
+    "zh": "把故事排好順序",
+    "pinyin": "Bǎ gùshì pái hǎo shùnxù"
+  },
+  "put_the_story_pictures_in_the_right_orde": {
+    "en": "Put the story pictures in the right order",
+    "zh": "把故事圖片排成正確順序"
+  },
+  "raise_hand": {
+    "en": "Raise hand",
+    "zh": "舉手",
+    "pinyin": "Jǔshǒu"
+  },
+  "raise_your_hand_from_here_and_your_teach": {
+    "en": "Raise your hand here and your teacher will see it.",
+    "zh": "在這裡舉手，老師會看到。",
+    "pinyin": "Zài zhèlǐ jǔshǒu, lǎoshī huì kàndào."
+  },
+  "record": {
+    "en": "Record",
+    "zh": "🎙 錄音",
+    "pinyin": "Lùyīn"
+  },
+  "record_mandarin_speech": {
+    "en": "Record Mandarin speech",
+    "zh": "錄下你的中文",
+    "pinyin": "Lù xià nǐ de Zhōngwén"
+  },
+  "record_your_mandarin_story_out_loud": {
+    "en": "Record your Mandarin story out loud",
+    "zh": "看圖說中文，錄下你的聲音",
+    "pinyin": "Kàn tú shuō Zhōngwén, lù xià nǐ de shēngyīn"
+  },
+  "record_your_story": {
+    "en": "Record Your Story",
+    "zh": "錄你的故事",
+    "pinyin": "Lù nǐ de gùshì"
+  },
+  "recording_options": {
+    "en": "Recording options",
+    "zh": "怎麼錄音",
+    "pinyin": "Zěnme lùyīn"
+  },
+  "repeat_3": {
+    "en": "Repeat 3×:",
+    "zh": "重複 3 次："
+  },
+  "reset": {
+    "en": "Reset",
+    "zh": "重設",
+    "pinyin": "Chóngshè"
+  },
+  "review_pronunciation_and_language_feedba": {
+    "en": "Review pronunciation and language feedback",
+    "zh": "看看可以怎麼說得更好",
+    "pinyin": "Kànkan kěyǐ zěnme shuō de gèng hǎo"
+  },
+  "same_as_last_try": {
+    "en": "→ Same as last try",
+    "zh": "→ 跟上次一樣",
+    "pinyin": "→ gēn shàngcì yíyàng"
+  },
+  "say": {
+    "en": "Say",
+    "zh": "單獨說"
+  },
+  "scene_vocabulary": {
+    "en": "Scene vocabulary",
+    "zh": "部分生詞",
+    "pinyin": "Bùfen shēngcí"
+  },
+  "start_practicing_title": {
+    "en": "Let's Get Started!",
+    "zh": "讓我們開始吧！"
+  }
+}

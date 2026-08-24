@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc -p tsconfig.app.json && vite build",
+    "typecheck:all": "tsc --noEmit --noUnusedLocals false --noUnusedParameters false",
+    "check:lines": "node scripts/check-lines.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:integration": "vitest run src/integration",

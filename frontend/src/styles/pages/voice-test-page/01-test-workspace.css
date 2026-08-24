@@ -1,0 +1,432 @@
+.voice-test-page {
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
+  margin: 0 auto;
+  padding: 24px 0 72px;
+}
+
+.voice-test-hero,
+.voice-test-workspace,
+.voice-test-controls,
+.voice-feedback-panel {
+  background: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+}
+
+.voice-test-hero {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.voice-test-hero h1,
+.voice-test-hero p,
+.voice-test-hero .eyebrow {
+  text-align: left;
+}
+
+/* .eyebrow is a bare shared class (index.css/StoryRecorder.css) with no
+   color of its own here — pin it explicitly instead of relying on
+   whichever other file's rule happens to load first. */
+.voice-test-hero .eyebrow {
+  color: var(--seal-deep);
+}
+
+.voice-test-hero h1 {
+  color: var(--clay-ink);
+  font-size: clamp(30px, 4vw, 40px);
+  line-height: 1.12;
+  margin: 0 0 8px;
+}
+
+.voice-test-hero p {
+  color: var(--clay-body);
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.voice-test-status {
+  min-width: 170px;
+  padding: 14px 16px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.voice-test-status span {
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.voice-test-status strong {
+  color: var(--clay-ink);
+  font-size: 22px;
+}
+
+.voice-test-workspace {
+  padding: 16px;
+  display: grid;
+  gap: 16px;
+}
+
+.voice-step-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.voice-step-row span {
+  padding: 7px 11px;
+  border-radius: var(--clay-radius-pill);
+  background: var(--seal-soft);
+  color: var(--seal-deep);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.voice-test-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.voice-file-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voice-file-label.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.voice-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.voice-audio-preview {
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.voice-audio-preview span,
+.voice-live-transcript span {
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.voice-audio-preview strong {
+  color: var(--clay-ink);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.voice-audio-preview audio {
+  width: 100%;
+}
+
+.voice-live-transcript {
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  border-radius: var(--clay-radius-md);
+  background: var(--seal-soft);
+  border: 1px solid var(--seal);
+}
+
+.voice-live-transcript p {
+  color: var(--clay-ink);
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.voice-test-loading,
+.voice-test-error {
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  border-radius: var(--clay-radius-lg);
+  font-weight: 600;
+}
+
+.voice-test-loading {
+  color: var(--seal-deep);
+  background: var(--seal-soft);
+}
+
+.voice-test-error {
+  color: var(--clay-error);
+  background: var(--clay-error-soft);
+  border-left: 4px solid var(--clay-error);
+}
+
+.voice-feedback-panel {
+  margin-top: 22px;
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+}
+
+.voice-score-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.voice-score-card,
+.voice-feedback-card {
+  padding: 16px;
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-soft);
+}
+
+.voice-score-card span {
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.voice-score-card strong {
+  display: block;
+  color: var(--clay-ink);
+  font-family: var(--font-mono);
+  font-size: 28px;
+  margin-top: 8px;
+}
+
+.voice-student-feedback {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.voice-student-feedback-card {
+  padding: 16px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+}
+
+.voice-student-feedback-card.good {
+  background: var(--jade-soft);
+}
+
+.voice-student-feedback-card.fix {
+  background: var(--gold-soft);
+}
+
+.voice-student-feedback-card.next {
+  background: var(--seal-soft);
+}
+
+.voice-student-feedback-card span,
+.voice-student-feedback-card strong {
+  display: block;
+}
+
+.voice-student-feedback-card span {
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.voice-student-feedback-card strong {
+  color: var(--clay-ink);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.voice-model-example {
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 18px;
+  align-items: center;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+}
+
+.voice-model-example span {
+  color: var(--seal);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.voice-model-example h2 {
+  color: var(--clay-ink);
+  font-size: 22px;
+  margin: 4px 0 8px;
+}
+
+.voice-model-example p {
+  color: var(--clay-ink);
+  font-size: 20px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.voice-model-example-actions {
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+}
+
+.voice-model-example-actions em {
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.voice-model-example-actions button {
+  border: 0;
+  border-radius: var(--clay-radius-md);
+  background: var(--seal);
+  color: var(--clay-on-seal);
+  cursor: pointer;
+  font-weight: 800;
+  padding: 10px 14px;
+  transition: background-color 0.2s ease;
+  /* BiLabel's .bi-en/.bi-pinyin default to --clay-muted (dark gray) —
+     unreadable on this solid violet fill without a light override. */
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
+}
+
+.voice-model-example-actions button:hover {
+  background: var(--seal-deep);
+}
+
+.voice-advanced-details {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+}
+
+.voice-advanced-details summary {
+  cursor: pointer;
+  padding: 16px;
+  color: var(--clay-ink);
+  font-weight: 900;
+}
+
+.voice-advanced-details[open] summary {
+  border-bottom: 1px solid var(--clay-hairline);
+}
+
+.voice-advanced-details .voice-feedback-card {
+  margin: 12px;
+}
+
+.voice-feedback-card h2 {
+  color: var(--clay-ink);
+  font-size: 22px;
+  margin: 0 0 10px;
+}
+
+.voice-feedback-card p {
+  color: var(--clay-body);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.voice-result-description {
+  margin-bottom: 10px !important;
+  color: var(--clay-body) !important;
+}
+
+.voice-transcript-text {
+  color: var(--clay-ink) !important;
+  font-size: 20px !important;
+  line-height: 1.7 !important;
+}
+
+.voice-script-level {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.voice-script-token {
+  min-width: 58px;
+  padding: 9px 10px;
+  display: grid;
+  gap: 3px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+}
+
+.voice-script-token strong {
+  color: var(--clay-ink);
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.voice-script-token em,
+.voice-script-token small {
+  color: var(--clay-muted);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 650;
+}
+
+.voice-script-token small {
+  font-family: var(--font-mono);
+}
+
+.voice-script-empty {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px dashed var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  color: var(--clay-muted);
+  font-size: 13px;
+}
+
+.voice-model-note {
+  display: block;
+  margin-top: 8px;
+  color: var(--clay-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.voice-praat-visual-card {
+  padding: 0;
+  overflow: hidden;
+  background: var(--clay-surface-card);
+}
+
+.voice-praat-visual-card > h2 {
+  padding: 16px 16px 0;
+}
+

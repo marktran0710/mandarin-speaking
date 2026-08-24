@@ -111,3 +111,22 @@
 @media (prefers-reduced-motion: reduce) {
   .workspace-primary-action { transition: none; }
 }
+
+/* Keep the optional overview lightweight when it appears below the rail. */
+.student-workspace-v2 .student-workspace-header { margin-bottom: clamp(30px, 4vw, 48px); }
+.student-workspace-v2 .student-workspace-tabs { margin-bottom: clamp(32px, 5vw, 56px); }
+
+.workspace-quick-start {
+  padding: 18px 0;
+  border: 0;
+  border-top: 1px solid var(--clay-hairline);
+  border-bottom: 1px solid var(--clay-hairline);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.workspace-section-kicker,
+.workspace-gate { font-size: 14px; }
+.workspace-gate strong,
+.workspace-gate small { font-size: 14px; line-height: 1.4; }

@@ -1,0 +1,431 @@
+/* ── Session shell: sidebar rail + main workspace. The sidebar itself is
+   styled in StorySessionSidebar.css; this grid is what keeps the main
+   column stable while phases/scenes change. ── */
+.story-recorder {
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
+  margin: 0 auto;
+  padding: 24px 0 72px;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.story-session-main {
+  min-width: 0;
+  width: 100%;
+}
+/* Inside the session shell every phase must start flush at the grid top,
+   level with the sidebar card's top edge — Overview and the vocab quiz
+   carry their own generous top padding from their pre-sidebar life, which
+   left the main column visibly lower than the sidebar. Their bottom/side
+   padding stays; only the top offset goes. */
+.story-session-main .story-overview {
+  padding-top: 0;
+}
+.story-session-main .story-vocab-quiz {
+  padding-top: 0;
+}
+@media (max-width: 900px) {
+  .story-recorder {
+    /* minmax(0, …), not bare 1fr — 1fr's auto minimum lets wide inner
+       content (the 5-column vocab table) win over the viewport and give
+       the whole page a horizontal scrollbar on phones. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+}
+
+.btn-story-exit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: var(--clay-surface-soft);
+  color: var(--clay-ink);
+  border: 1px solid var(--clay-hairline);
+  border-radius: 50%;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.btn-story-exit:hover {
+  border-color: var(--seal);
+  background: var(--clay-surface-card);
+  box-shadow: var(--shadow-sm);
+}
+.student-flow-board {
+  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.flow-step {
+  min-height: 78px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  column-gap: 10px;
+  align-content: start;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+}
+
+.flow-step {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.flow-step:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.flow-step span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  grid-row: span 2;
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-strong);
+  color: var(--clay-on-accent);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.student-flow-board .flow-step:nth-child(1) span { background: var(--seal); }
+.student-flow-board .flow-step:nth-child(2) span { background: var(--jade); }
+.student-flow-board .flow-step:nth-child(3) span { background: var(--seal-deep); }
+.student-flow-board .flow-step:nth-child(4) span { background: var(--gold); }
+
+.flow-step strong {
+  color: var(--clay-ink);
+  font-size: 16px;
+}
+
+.flow-step p {
+  color: var(--clay-muted);
+  font-size: 12px;
+  line-height: 1.35;
+  margin: 3px 0 0;
+}
+
+.flow-step.active {
+  border-color: var(--clay-primary);
+  background: var(--jade-soft);
+}
+
+.flow-step.active span,
+.flow-step.completed span {
+  background: var(--clay-primary);
+  color: var(--clay-on-seal);
+}
+
+.eyebrow {
+  color: var(--seal-deep);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  margin: 0 0 10px;
+  text-transform: uppercase;
+}
+
+.recording-status-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+}
+
+.challenge-meta {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.challenge-meta span {
+  padding: 7px 10px;
+  border-radius: var(--clay-radius-pill);
+  background: var(--jade-soft);
+  color: var(--clay-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.recording-status-card {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--clay-surface-card);
+}
+
+.recording-status-card span {
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.recording-status-card strong {
+  color: var(--clay-ink);
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1.15;
+  margin: 8px 0;
+}
+
+.recording-status-card p {
+  color: var(--clay-body);
+  font-size: 13px;
+  margin: 0;
+}
+
+.prompt-thumbnails {
+  padding: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.task-card {
+  background: var(--jade-soft);
+  border: 1px solid var(--jade);
+}
+
+.task-card p {
+  color: var(--clay-body);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.recording-vocabulary,
+.readiness-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recording-vocabulary span,
+.readiness-list span {
+  padding: 7px 10px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.recording-vocabulary span {
+  background: var(--jade-soft);
+  color: var(--clay-ink);
+}
+
+.readiness-list span {
+  background: var(--gold-soft);
+  color: var(--gold-deep);
+}
+
+.concept-chip-panel,
+.concept-practice-text {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: var(--clay-radius-lg);
+}
+
+.concept-chip-panel {
+  display: grid;
+  gap: 14px;
+  background: var(--clay-surface-soft);
+}
+
+.concept-chip-group {
+  display: grid;
+  gap: 8px;
+}
+
+.concept-chip-group span,
+.concept-practice-text span {
+  color: var(--seal-deep);
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.concept-chip-group div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.concept-chip-group button {
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.concept-chip-group button:hover:not(:disabled) {
+  border-color: var(--clay-primary);
+  color: var(--clay-primary-active);
+}
+
+.concept-chip-group button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.concept-practice-text {
+  display: grid;
+  gap: 7px;
+  background: var(--jade-soft);
+  border: 1px solid var(--jade);
+}
+
+.concept-practice-text p {
+  color: var(--clay-ink);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.recording-action-copy span {
+  color: var(--seal-deep);
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.recording-action-copy h2 {
+  color: var(--clay-ink);
+  font-size: 26px;
+  margin: 4px 0 6px;
+}
+
+.recording-action-copy p {
+  color: var(--clay-body);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.submit-voice-label.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.submit-voice-input {
+  display: none;
+}
+
+/* Analysis loading card */
+.analysis-loading-card {
+  margin: 18px 0 0;
+  padding: 20px 20px 16px;
+  background: var(--seal-soft);
+  border: 1.5px solid var(--seal);
+  border-radius: var(--clay-radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  animation: fadeIn 0.3s ease;
+}
+.analysis-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--seal-soft);
+  border-top-color: var(--seal);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.analysis-loading-text {
+  text-align: center;
+}
+.analysis-loading-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--seal-deep);
+  margin: 0 0 3px;
+}
+.analysis-loading-sub {
+  font-size: 0.82rem;
+  color: var(--seal-deep);
+  margin: 0;
+}
+.analysis-loading-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+}
+.loading-step {
+  padding: 3px 10px;
+  border-radius: var(--clay-radius-lg);
+  background: var(--seal-soft);
+  /* --seal is the bright gold: 1.8:1 on its own soft tint. Text on any
+     gold tint uses the -deep shade. */
+  color: var(--seal-deep);
+  font-weight: 600;
+  transition: all 0.3s;
+}
+.loading-step.active {
+  background: var(--seal);
+  color: var(--clay-on-seal);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.loading-step.done {
+  background: var(--jade);
+  color: var(--clay-on-accent);
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+.loading-step-arrow {
+  color: var(--seal);
+  font-weight: 700;
+}
+
+/* ── Shared block-label token ── */
+/* Every section heading inside a practice/analysis block uses this. */
+.block-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+/* Responsive — match practice-workspace breakpoint */
+@media (max-width: 768px) {
+  .student-flow-board {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.analysis-heading {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+

@@ -1,0 +1,435 @@
+.sfc-mastery-chip.is-pending {
+  color: var(--clay-error-deep);
+  border: 1px solid var(--clay-error);
+}
+.sfc-mastery-chip.is-cleared {
+  color: var(--jade-deep);
+  border: 1px solid var(--jade);
+}
+.sfc-mastery-chip.is-unavailable {
+  color: var(--clay-muted);
+  border: 1px dashed var(--clay-hairline);
+  background: var(--clay-surface-soft);
+}
+.sfc-practice-unavailable {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 1px dashed var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  color: var(--clay-muted);
+  background: var(--clay-surface-soft);
+}
+.sfc-practice-unavailable strong {
+  color: var(--clay-ink);
+}
+/* Scene already passed — these words/parts are optional polish, not a
+   blocker, so they read as an invitation (gold) instead of an error (red). */
+.sfc-mastery-chip.is-bonus {
+  color: var(--gold-deep);
+  border: 1px solid var(--gold);
+  background: var(--gold-soft);
+}
+
+/* ── Footer action bar ── */
+.sfc-focus-phrase {
+  margin-top: 12px;
+}
+.phrase-practice-drill {
+  border: 1px solid var(--tone1);
+  border-radius: var(--clay-radius-md);
+  background: var(--tone1-soft);
+  padding: 14px;
+}
+.phrase-practice-target {
+  margin: 0;
+  color: var(--clay-ink);
+  font-size: 22px;
+  font-weight: 750;
+}
+.phrase-practice-pinyin {
+  margin: 2px 0 0;
+  color: var(--clay-muted);
+  font-size: 13px;
+}
+.phrase-practice-instruction {
+  margin: 8px 0 12px;
+  color: var(--clay-body);
+  font-size: 13px;
+}
+.phrase-practice-result {
+  margin-top: 12px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  padding: 10px;
+}
+.phrase-practice-result.is-passed { border-color: var(--jade); }
+.phrase-practice-result.is-failed { border-color: var(--clay-error); }
+.phrase-practice-verdict {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.phrase-practice-legend.mini-contour-legend { margin: 8px 0; }
+.phrase-practice-word-results {
+  display: grid;
+  gap: 8px;
+}
+.phrase-practice-word {
+  display: grid;
+  grid-template-columns: minmax(70px, 0.75fr) minmax(120px, 2fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft);
+  padding: 7px 9px;
+}
+.phrase-practice-word.is-passed { border-color: var(--jade); }
+.phrase-practice-word.is-failed { border-color: var(--clay-error); }
+.phrase-practice-word strong,
+.phrase-practice-word span,
+.phrase-practice-word small { display: block; }
+.phrase-practice-word span,
+.phrase-practice-word small {
+  color: var(--clay-muted);
+  font-size: 11px;
+}
+.phrase-practice-word .mini-contour-svg {
+  display: block;
+  width: 100%;
+  height: 48px;
+}
+
+@media (max-width: 480px) {
+  .phrase-practice-word { grid-template-columns: 1fr auto; }
+  .phrase-practice-word .mini-contour-svg { grid-column: 1 / -1; }
+}
+
+.sfc-footer {
+  flex-shrink: 0;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--clay-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.sfc-unlock-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--clay-muted);
+}
+.sfc-footer-actions {
+  display: flex;
+  gap: 10px;
+  margin-left: auto;
+}
+.sfc-btn-again {
+  white-space: nowrap;
+}
+.sfc-btn-next {
+  white-space: nowrap;
+}
+
+/* Same breakpoint the rest of the app stacks at. The verdict header packs
+   an icon, text, and the scene chip into one row — fine on a laptop-width
+   card, cramped on a phone-width one, so let it wrap instead of squeezing
+   everything down illegibly small. */
+@media (max-width: 768px) {
+  .sfc-verdict {
+    flex-wrap: wrap;
+  }
+  .sfc-verdict-lead {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 768px) {
+  .sfc-audio-compare { grid-template-columns: 1fr; }
+  .sfc-results .practice-workspace { grid-template-columns: 1fr; gap: 10px; }
+  .sfc-results .practice-scene-col { position: static; min-height: 0; height: auto; align-self: auto; justify-content: flex-start; }
+  .sfc-results .sfc-results-main { height: auto; min-height: 0; }
+  .sfc-results .sfc-step-panel { flex: 0 1 auto; }
+  .sfc-results .practice-scene-image { min-height: 0; height: auto; aspect-ratio: 16 / 9; flex: 0 0 auto; }
+  .sfc-results .practice-scene-image img { object-fit: contain; min-width: 0; min-height: 0; }
+}
+.experimental-analysis-panel, .analysis-compare-panel { margin-top: 0.9rem; padding: 0.85rem; border-radius: var(--clay-radius-md); border: 1px solid #f3d28b; background: #fffbeb; }
+.experimental-analysis-heading { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+.experimental-analysis-panel > p { margin: 0.35rem 0; color: var(--clay-muted); font-size: 0.82rem; }
+.experimental-character-grid, .analysis-compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem; }
+.experimental-character-card, .analysis-compare-card { padding: 0.55rem; border-radius: var(--clay-radius-sm); background: rgba(255,255,255,0.8); border: 1px solid rgba(180, 140, 55, 0.22); display: grid; gap: 0.18rem; }
+.experimental-character-card strong { font-size: 1.2rem; }
+.experimental-character-card span, .experimental-character-card small, .analysis-compare-card span, .analysis-compare-card small { color: var(--clay-muted); font-size: 0.74rem; }
+.analysis-compare-button { margin-top: 0.65rem; }
+.analysis-compare-panel h3 { margin: 0 0 0.55rem; font-size: 0.95rem; }
+
+/* ── Pronunciation breakdown ──────────────────────────────────────────────
+   Rewritten as a compact list rather than a wide table. The previous version
+   stacked a bilingual status label, a reason line, a sandhi line and a
+   two-line vowel readout inside every row, which made an eleven-character
+   sentence about six screens tall. Everything still exists — it now lives in
+   the row's expanded detail. */
+.pronunciation-breakdown {
+  margin: 1rem 0;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+.pronunciation-breakdown .pb-legend { max-height: 32px; overflow: hidden; }
+.pronunciation-breakdown .pb-phrase-group { margin-bottom: 8px; }
+.pronunciation-breakdown .pb-phrase-header { min-height: 34px; align-items: center; }
+.pronunciation-breakdown .pb-row { min-height: 44px; }
+.pronunciation-breakdown .pb-chevron { width: 1.2rem; color: var(--tone1-deep); font-size: 1rem; font-weight: 750; text-align: right; }
+.pb-detail-contour { margin: 0 0 0.55rem; padding: 0.35rem 0.45rem; border-radius: var(--clay-radius-sm); background: var(--clay-surface-soft); }
+.pb-detail-contour .mini-contour { min-height: 54px; }
+.pronunciation-breakdown .pb-head { align-items: center; gap: 10px; }
+.pronunciation-breakdown .pb-summary { margin: 0; }
+.pronunciation-breakdown .pb-legend-item .bi-pinyin { display: none; }
+.pronunciation-breakdown .pb-phrase-words { display: grid; gap: 6px; }
+.pronunciation-breakdown .pb-group { border: 1px solid var(--clay-hairline-soft); border-radius: var(--clay-radius-sm); overflow: hidden; background: var(--clay-surface-soft); }
+.pronunciation-breakdown .pb-group-header { min-height: 30px; padding: 5px 9px; margin: 0; display: flex; align-items: baseline; gap: 8px; }
+.pronunciation-breakdown .pb-group .pb-rows { background: var(--clay-surface-card); }
+
+.pb-head {
+  display: grid;
+  gap: 0.7rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+}
+
+.pb-heading { margin: 0; }
+
+.pb-head-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.pb-head-copy { min-width: 0; }
+
+.pb-head-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.35rem;
+  margin: 0.35rem 0 0;
+  color: var(--clay-muted);
+  font-size: 0.7rem;
+}
+
+.pb-head-meta strong,
+.pb-head-score strong,
+.pb-summary-item strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.pb-head-meta-divider { color: var(--clay-hairline); }
+
+.pb-head-score {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  column-gap: 0.45rem;
+  min-width: 132px;
+  padding: 0.45rem 0.65rem;
+  border-left: 3px solid var(--jade);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft);
+}
+
+.pb-head-score-label {
+  grid-column: 1 / -1;
+  color: var(--clay-muted);
+  font-size: 0.65rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pb-head-score strong {
+  color: var(--jade-deep);
+  font-size: 1.1rem;
+  line-height: 1.1;
+}
+
+.pb-head-score strong span { color: var(--clay-muted); font-weight: 600; }
+.pb-head-score small { color: var(--clay-muted); font-size: 0.66rem; }
+
+.pb-summary-row {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.pb-summary-label {
+  color: var(--clay-muted);
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pb-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--clay-body);
+}
+
+.pb-summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 28px;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-soft);
+  white-space: nowrap;
+}
+
+.pb-summary-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--clay-muted-soft);
+}
+
+.pb-summary-item.is-correct .pb-summary-dot { background: var(--jade); }
+.pb-summary-item.is-uncertain .pb-summary-dot { background: var(--tone1); }
+.pb-summary-item.is-incorrect .pb-summary-dot { background: var(--clay-error); }
+.pb-summary-item.is-invalid .pb-summary-dot { background: var(--gold); }
+.pb-summary-item.is-correct strong { color: var(--jade-deep); }
+.pb-summary-item.is-incorrect strong { color: var(--clay-error-deep); }
+/* Counts stay Chinese-only: the legend right below carries the English, and
+   repeating it here pushed the line onto two rows. */
+.pb-summary-item small { display: none; }
+
+/* Stated once here instead of on every row. */
+.pb-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+  margin: 0.6rem 0 0.5rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  list-style: none;
+  font-size: 0.72rem;
+  color: var(--clay-muted);
+}
+
+.pb-legend-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.pb-legend-item small {
+  margin-left: 0.25rem;
+  color: var(--clay-muted-soft);
+}
+
+.pb-mark { font-weight: 800; }
+.pb-mark.is-pass { color: var(--jade-deep); }
+.pb-mark.is-fail { color: var(--clay-error-deep); }
+.pb-mark.is-uncertain { color: var(--clay-muted); }
+.pb-mark.is-retry { color: var(--gold-deep); }
+.pb-mark.is-not-measured { color: var(--clay-muted-soft); }
+
+.pb-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.sfc-next-action-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, .9fr);
+  gap: var(--space-md);
+  align-items: center;
+  margin: var(--space-md) 0;
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--clay-hairline);
+  border-left: 4px solid var(--jade);
+  border-radius: var(--clay-radius-lg);
+  background: linear-gradient(135deg, var(--clay-surface-soft), var(--clay-surface-card));
+}
+.sfc-next-action-kicker { margin: 0 0 4px; color: var(--jade-deep); font-size: var(--text-xs); font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.sfc-next-action-card h2 { margin: 0; color: var(--clay-ink); font-size: var(--text-lg); }
+.sfc-next-action-card p:last-child { margin: 0; color: var(--clay-body); line-height: 1.55; }
+.sfc-results .sfc-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  margin-left: calc(-1 * clamp(16px, 2.2vw, 24px));
+  margin-right: calc(-1 * clamp(16px, 2.2vw, 24px));
+  margin-bottom: calc(-1 * clamp(16px, 2.2vw, 24px));
+  padding: 12px clamp(16px, 2.2vw, 24px);
+  background: color-mix(in srgb, var(--clay-surface-card) 96%, transparent);
+  box-shadow: 0 -8px 18px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+  backdrop-filter: blur(8px);
+}
+@media (max-width: 680px) {
+  .sfc-next-action-card { grid-template-columns: 1fr; }
+}
+
+/* Teacher phrase boundaries are the outer reading units. Word groups remain
+   inside them so the learner gets useful detail without a wall of characters. */
+.pb-phrase-group {
+  padding: 0.35rem 0.45rem 0.45rem;
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+}
+
+.pb-phrase-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.15rem 0.15rem 0.35rem;
+  border-bottom: 1px solid var(--clay-hairline-soft);
+}
+
+.pb-phrase-label {
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: var(--clay-ink);
+}
+
+.pb-phrase-note {
+  font-size: 0.68rem;
+  color: var(--clay-muted);
+  white-space: nowrap;
+}
+
+.pb-phrase-words {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.pb-phrase-group.is-unstructured {
+  padding-top: 0;
+  border: 0;
+  background: transparent;
+}
+
+.pb-group-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0.15rem;
+}
+
