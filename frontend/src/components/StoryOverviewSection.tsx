@@ -1,13 +1,11 @@
 import { BiLabel, BiText } from "./BiLabel";
 import { SkillFocusLabel } from "./TopicSelector";
-import { toPinyin } from "../utils/pinyin";
 import type { Topic } from "./StoryRecorder";
 
 interface StoryOverviewSectionProps {
   topic: Topic;
   hasVocabQuiz: boolean;
   speakingLocked: boolean;
-  allVocabulary: string[];
   enableSorting: boolean;
   /** Orientation choices hand control back to the parent's phase machine —
    * "vocabulary quiz" always goes to "vocabquiz"; "speaking practice" goes to
@@ -20,7 +18,6 @@ export default function StoryOverviewSection({
   topic,
   hasVocabQuiz,
   speakingLocked,
-  allVocabulary,
   enableSorting,
   onSelectPhase,
 }: StoryOverviewSectionProps) {
@@ -51,83 +48,6 @@ export default function StoryOverviewSection({
           </div>
         )}
       </div>
-
-      {allVocabulary.length > 0 && (
-        <div className="overview-vocab-block">
-          <h2>
-            <BiLabel k="key_vocabulary" />
-          </h2>
-          {topic.images.map((_, si) => {
-            const sceneWords = topic.vocabulary[si] || [];
-            if (sceneWords.length === 0) return null;
-            return (
-              <div key={si} className="overview-vocab-scene">
-                <div className="overview-vocab-scene-header">
-                  <span className="overview-vocab-scene-index" aria-hidden="true">
-                    {String(si + 1).padStart(2, "0")}
-                  </span>
-                  <span className="overview-vocab-scene-label">
-                  <BiLabel zh={`部分 ${si + 1}`} pinyin={`Bùfen ${si + 1}`} en={`Scene ${si + 1}`} />
-                  </span>
-                </div>
-                <div
-                  className="overview-vocab-table"
-                  role="table"
-                  aria-label="Key vocabulary"
-                >
-                  {sceneWords.map((word, i) => {
-                    // Teacher-authored legacy topics may use an English
-                    // vocabulary key and store its pinyin separately. That
-                    // compatibility value is only used for non-Chinese keys;
-                    // Chinese text always comes from the canonical backend
-                    // resolver through toPinyin().
-                    const py =
-                      toPinyin(word) ||
-                      (!/[\u4e00-\u9fff]/u.test(word)
-                        ? topic.vocabularyPinyin?.[si]?.[i] || ""
-                        : "");
-                    const pos = topic.vocabularyPos?.[si]?.[i];
-                    const translation =
-                      topic.vocabularyTranslation?.[si]?.[i];
-                    return (
-                      <div
-                        className="overview-vocab-row"
-                        role="row"
-                        key={`${word}-${i}`}
-                      >
-                        <span
-                          className="overview-vocab-cell overview-vocab-hanzi"
-                          role="cell"
-                        >
-                          {word}
-                        </span>
-                        <span
-                          className="overview-vocab-cell overview-vocab-pinyin"
-                          role="cell"
-                        >
-                          {py}
-                        </span>
-                        <span
-                          className="overview-vocab-cell overview-vocab-pos"
-                          role="cell"
-                        >
-                          {pos}
-                        </span>
-                        <span
-                          className="overview-vocab-cell overview-vocab-meaning"
-                          role="cell"
-                        >
-                          {translation}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
       <div className="overview-steps-block">
         <h2>

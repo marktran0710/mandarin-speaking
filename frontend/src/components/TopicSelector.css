@@ -437,27 +437,33 @@
 
 .ts-toc-head {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 26px;
-  padding: clamp(20px, 3vw, 30px);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  background: var(--clay-surface-card);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--clay-ink) 6%, transparent);
+  min-height: 86px;
+  margin-bottom: 18px;
+  padding: 12px clamp(18px, 3vw, 28px);
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--clay-hairline));
+  border-radius: 18px;
+  background:
+    linear-gradient(104deg, color-mix(in srgb, var(--clay-surface-card) 94%, white), color-mix(in srgb, var(--gold-soft) 24%, var(--clay-surface-card)));
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--gold-soft) 70%, transparent);
 }
 
 .ts-toc-title {
-  font-size: clamp(30px, 4vw, 38px);
-  letter-spacing: 0.04em;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: clamp(26px, 3.2vw, 34px);
+  letter-spacing: 0.025em;
   color: var(--clay-ink);
-  margin: 4px 0 0;
+  margin: 0;
 }
 
 .ts-toc-title .ts-lesson-sub {
-  font-size: 14px;
-  margin-left: 10px;
+  font-size: 13px;
+  letter-spacing: .08em;
+  margin-left: 0;
 }
 
 .ts-lesson-sub {
@@ -472,11 +478,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--clay-surface-card);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  padding: 10px 14px;
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+  min-width: 198px;
+  background: color-mix(in srgb, var(--clay-surface-card) 88%, white);
+  border: 1px solid color-mix(in srgb, var(--gold) 38%, var(--clay-hairline));
+  border-radius: 13px;
+  padding: 6px 10px;
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--gold-soft) 62%, transparent);
 }
 
 .ts-book-cover {
@@ -741,6 +748,16 @@
   .ts-toc-head {
     flex-direction: column;
     align-items: flex-start;
+    gap: 18px;
+  }
+  .ts-toc-title {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .ts-book-chip {
+    width: 100%;
+    min-width: 0;
   }
   .ts-lesson-card {
     flex-wrap: wrap;

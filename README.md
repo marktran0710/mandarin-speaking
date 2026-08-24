@@ -411,6 +411,16 @@ docker compose -f docker-compose.dev.yml exec frontend npm run test:integration
 images is now the default. The development source folders are bind-mounted, so normal
 backend and frontend code edits hot reload without rebuilding.
 
+To watch only the frontend and backend logs in the terminal while the stack runs in
+detached mode:
+
+```powershell
+.\scripts\logs-dev.ps1
+```
+
+Press `Ctrl+C` to stop watching; it does not stop the containers. Development backend
+logs are also written to `/data/logs/app.log` inside the persistent backend data volume.
+
 #### Step 6.1 — Temporary public demo with Tailscale Funnel
 
 Use this only for a demo or a short classroom test. The current Docker stack
@@ -470,6 +480,10 @@ GitHub. Do not commit real API keys or local `.env` files.
 `render.yaml` uses a single-origin production image, PostgreSQL, HTTPS cookies,
 and a persistent `/data` disk for uploads. Configure the unsynchronised
 `JWT_SECRET_KEY` and `ADMIN_PASSWORD` secrets in Render before deploying.
+Production application, Uvicorn error, and HTTP access logs are written to
+`/data/logs/app.log` with five 10 MB rotated backups. The `/data` disk must
+remain persistent if those file logs need to survive a container replacement;
+the hosting provider's own log viewer remains useful for live monitoring.
 The production image requires `APP_ENV=production`, `COOKIE_SECURE=true`, and
 does not allow anonymous roster creation, lesson writes, analytics, AI calls,
 or media downloads. The blueprint uses a paid persistent-disk web service and

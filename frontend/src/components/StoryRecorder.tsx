@@ -2275,10 +2275,6 @@ export default function StoryRecorder({
     }
   }, [sceneRecordings, topic, studentName]);
 
-  const allVocabulary = topic.images.flatMap(
-    (_, si) => topic.vocabulary[si] || [],
-  );
-
   const PHASES = [
     { key: "overview", label: <BiLabel k="overview" />, icon: "📖" },
     ...(enableSorting
@@ -2460,7 +2456,6 @@ export default function StoryRecorder({
           topic={topic}
           hasVocabQuiz={hasVocabQuiz}
           speakingLocked={speakingLocked}
-          allVocabulary={allVocabulary}
           enableSorting={enableSorting}
           onSelectPhase={setPhase}
         />

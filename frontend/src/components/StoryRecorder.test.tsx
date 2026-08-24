@@ -1196,7 +1196,7 @@ describe("StoryRecorder student prototype", () => {
     }
   });
 
-  it("shows the key vocabulary overview as a read-only table with pos/translation", () => {
+  it("keeps the overview focused on the challenge actions without a vocabulary table or popup", () => {
     render(
       <StoryRecorder
         topic={topicWithVocabDetails}
@@ -1210,11 +1210,9 @@ describe("StoryRecorder student prototype", () => {
       />,
     );
 
-    const table = screen.getByRole("table", { name: "Key vocabulary" });
-    expect(within(table).getByText("market")).toBeInTheDocument();
-    expect(within(table).getByText("shìchǎng")).toBeInTheDocument();
-    expect(within(table).getByText("N")).toBeInTheDocument();
-    expect(within(table).getByText("marketplace")).toBeInTheDocument();
+    expect(screen.queryByRole("table", { name: "Key vocabulary" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Flashcards/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Your Challenge/i })).toBeInTheDocument();
   });
 
   it("keeps the scene vocabulary row focused on listening instead of a duplicate recorder", async () => {
