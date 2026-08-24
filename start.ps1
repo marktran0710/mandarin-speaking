@@ -60,6 +60,45 @@ if ($PruneDangling) {
   }
 }
 
+function Show-ServicePorts {
+  param(
+    [Parameter(Mandatory = $true)]
+    [object]$ComposeConfig
+  )
+
+  Write-Host ''
+  Write-Host 'Development service ports:' -ForegroundColor Cyan
+  foreach ($serviceName in @('frontend', 'backend', 'db')) {
+    $service = $ComposeConfig.services.PSObject.Properties[$serviceName].Value
+    $ports = @($service.ports)
+
+    if ($ports.Count -eq 0) {
+      Write-Host "  $serviceName : 5432 (Docker internal only; no host port published)" -ForegroundColor Yellow
+      continue
+    }
+
+    foreach ($port in $ports) {
+      $hostIp = if ($port.host_ip) { $port.host_ip } else { '0.0.0.0' }
+      $published = $port.published
+      $target = $port.target
+      $url = switch ($serviceName) {
+        'frontend' { "http://$hostIp`:$published" }
+        'backend' { "http://$hostIp`:$published/health/ready" }
+        default { "${hostIp}:$published" }
+      }
+      Write-Host "  $serviceName : $url  ($hostIp`:$published -> container`:$target)" -ForegroundColor Green
+    }
+  }
+  Write-Host ''
+}
+
+$composeConfigJson = & docker compose @composeArgs config --format json
+if ($LASTEXITCODE -ne 0) {
+  exit $LASTEXITCODE
+}
+$composeConfig = $composeConfigJson | ConvertFrom-Json
+Show-ServicePorts -ComposeConfig $composeConfig
+
 $upArgs = @('up')
 if ($Build) {
   $upArgs += '--build'
@@ -76,7 +115,6 @@ if ($LASTEXITCODE -ne 0) {
 
 if ($Detached) {
   Write-Host ''
-  Write-Host 'App:     http://127.0.0.1:5177' -ForegroundColor Green
-  Write-Host 'Backend: http://127.0.0.1:8001/health/ready' -ForegroundColor Green
+  Write-Host 'Stack started in detached mode.' -ForegroundColor Green
   Write-Host 'Logs:    docker compose -f docker-compose.dev.yml logs -f backend frontend' -ForegroundColor Green
 }
