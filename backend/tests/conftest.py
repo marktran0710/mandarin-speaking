@@ -15,6 +15,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", "..", ".env.local"))
 
+# Tests must be runnable in a clean checkout where the developer-only
+# backend/.env file is absent.  This key is intentionally scoped to pytest;
+# production imports still fail fast when JWT_SECRET_KEY is not configured.
+if len(os.getenv("JWT_SECRET_KEY", "")) < 16:
+    os.environ["JWT_SECRET_KEY"] = "pytest-only-jwt-secret-not-for-production-7f3a"
+
 from fixtures import SILENT_WAV, SHORT_WAV, LONG_WAV  # noqa: F401
 
 
