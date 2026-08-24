@@ -62,6 +62,12 @@ Do not run huge unrelated test suites unless warranted by the change.
 
 Keep orchestration details brief. Communicate what is being done, important findings, what changed, validation performed, and remaining risks. Do not expose private chain-of-thought. For HARD work, it is acceptable to say briefly that the task is being decomposed into smaller implementation units.
 
+## Git branch naming
+
+Do not use `codex/` as a branch-name prefix in this repository. Branch names
+must be descriptive without that prefix, for example
+`backend-refactor-500-lines`.
+
 ## Tone-evaluation code: warn before editing
 
 Before changing anything in the tone-scoring/verdict path — `backend/tone_decision.py` (thresholds: `TONE_CONFIRM_THRESHOLD`, `TONE_ERROR_THRESHOLD`, `SHAPE_STRONG`, `SHAPE_WEAK`, `DIRECTION_SUPPORT`, `DIRECTION_BAD`, `PHRASE_RESCUE_SHAPE_STRONG`, `PHRASE_RESCUE_DIRECTION_SUPPORT`), `backend/chinese_tones.py` (shape/direction heuristics), `backend/praat_analyzer.py` (`_combine_word_verdict`, `_apply_phrase_rescue`, syllable/word promotion logic), or the sentence-level pass gate (`SENTENCE_SYLLABLE_PASS_RATIO`, `build_pronunciation_mastery` in `main.py`) — explain the concrete before/after impact to the user (real numbers, ideally a real sentence) and get explicit confirmation before implementing. Do not ship a threshold or verdict-logic change silently, even a "small" one.
