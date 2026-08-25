@@ -747,3 +747,40 @@
     transition: none;
   }
 }
+
+/* Flexible phrase panel: grid items should hug their own content instead of
+   stretching the shorter panel to the height of vocabulary. A long phrase
+   list gets its own scroll area, so the footer and the neighboring card stay
+   usable without creating a very tall, uneven row. */
+.practice-study-ref {
+  align-items: start;
+}
+
+.practice-study-block {
+  align-self: start;
+}
+
+.practice-phrases-hint-full {
+  min-width: 0;
+  max-height: min(34rem, 55vh);
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.practice-phrases-hint-full .practice-phrases-list {
+  min-width: 0;
+}
+
+.practice-phrase-row,
+.practice-phrase-text,
+.practice-phrase-translation {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .practice-phrases-hint-full {
+    max-height: none;
+    overflow: visible;
+  }
+}
