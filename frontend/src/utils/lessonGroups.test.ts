@@ -114,10 +114,11 @@ describe("lessonHasOrderedStories", () => {
 });
 
 describe("isStoryUnlockedInLesson", () => {
-  it("leaves every story open when the lesson isn't fully ordered", () => {
+  it("still locks the next story when legacy order metadata is incomplete", () => {
     const group = { lessonNumber: 5, topics: [topic("a", 5, "a"), topic("b", 5, "b")] };
     expect(isStoryUnlockedInLesson(group, 0, new Set())).toBe(true);
-    expect(isStoryUnlockedInLesson(group, 1, new Set())).toBe(true);
+    expect(isStoryUnlockedInLesson(group, 1, new Set())).toBe(false);
+    expect(isStoryUnlockedInLesson(group, 1, new Set(["a"]))).toBe(true);
   });
 
   it("always opens the first story in an ordered lesson", () => {

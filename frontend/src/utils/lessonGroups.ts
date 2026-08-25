@@ -160,18 +160,16 @@ export function isLessonGroupUnlocked(
 
 /** Sequential in-lesson lock (5-1 -> 5-2 -> 5-3), a lighter gate than
  * isLessonGroupUnlocked's: a story only needs its predecessor SUBMITTED, not
- * finished to ⭐⭐ — the two are deliberately different rules. Only applies
- * once every story in the lesson has a lessonSubOrder (see
- * lessonHasOrderedStories); until then every story in the lesson stays
- * open, same as before this feature existed. group.topics is assumed
- * already sorted by lessonSubOrder (groupTopicsByLesson does this). */
+ * finished to ⭐⭐⭐. The visible group order is the source of truth, so an
+ * incomplete/legacy lessonSubOrder field cannot accidentally bypass the
+ * 5-1 -> 5-2 sequence. */
 export function isStoryUnlockedInLesson(
   group: LessonGroup,
   indexInGroup: number,
   submittedStoryIds: ReadonlySet<string>,
 ): boolean {
   if (isAdminSession()) return true;
-  if (!lessonHasOrderedStories(group)) return true;
+  if (group.lessonNumber === null) return true;
   if (indexInGroup === 0) return true;
   const previous = group.topics[indexInGroup - 1];
   if (!previous) return true;
