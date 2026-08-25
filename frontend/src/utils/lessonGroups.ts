@@ -59,20 +59,18 @@ export function topicStoryId(
   return topic.sourceStory?.id ?? topic.id;
 }
 
-/** True once every story in a lesson has a lessonSubOrder — the point at
- * which the in-lesson sequential unlock (5-1 -> 5-2 -> 5-3) applies. A
- * lesson with even one unordered story stays fully open, exactly as it was
- * before this feature existed: a teacher assigns order numbers gradually
- * without ever locking students out mid-migration. */
+/** True when every story in a lesson carries a lessonSubOrder. This remains
+ * useful to callers that need to inspect metadata completeness; the actual
+ * in-lesson unlock no longer depends on this being true. */
 export function lessonHasOrderedStories(group: LessonGroup): boolean {
   return group.topics.length > 0 && group.topics.every((t) => t.lessonSubOrder != null);
 }
 
 /** Groups topics into table-of-contents rows: numbered lessons ascending,
  * then one 其他 group for unassigned topics (omitted when empty). Within a
- * numbered lesson, topics sort by lessonSubOrder once every topic in it has
- * one (see lessonHasOrderedStories) — otherwise they keep arrival order,
- * same as before sub-ordering existed. */
+ * numbered lesson, ordered stories sort by lessonSubOrder. Legacy stories
+ * without that field stay after the ordered chain so an API response cannot
+ * place 5-2 before 5-1. */
 export function groupTopicsByLesson(topics: Topic[]): LessonGroup[] {
   const numbered = new Map<number, Topic[]>();
   const unassigned: Topic[] = [];
@@ -89,9 +87,11 @@ export function groupTopicsByLesson(topics: Topic[]): LessonGroup[] {
     .sort(([a], [b]) => a - b)
     .map(([lessonNumber, groupTopics]) => {
       const group = { lessonNumber, topics: groupTopics };
-      if (lessonHasOrderedStories(group)) {
+      if (group.topics.some((topic) => topic.lessonSubOrder != null)) {
         group.topics = [...group.topics].sort(
-          (a, b) => (a.lessonSubOrder ?? 0) - (b.lessonSubOrder ?? 0),
+          (a, b) =>
+            (a.lessonSubOrder ?? Number.POSITIVE_INFINITY) -
+            (b.lessonSubOrder ?? Number.POSITIVE_INFINITY),
         );
       }
       return group;

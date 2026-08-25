@@ -93,12 +93,17 @@ describe("groupTopicsByLesson", () => {
     expect(groups[0].topics.map((t) => t.id)).toEqual(["teacher-a", "teacher-b", "teacher-c"]);
   });
 
-  it("keeps arrival order when any story in the lesson lacks a sub-order", () => {
+  it("keeps ordered stories ahead of legacy stories without a sub-order", () => {
     const groups = groupTopicsByLesson([
+      topic("teacher-legacy", 5, "legacy"), // no sub-order
       topic("teacher-b", 5, "b", 2),
-      topic("teacher-a", 5, "a"), // no sub-order
+      topic("teacher-a", 5, "a", 1),
     ]);
-    expect(groups[0].topics.map((t) => t.id)).toEqual(["teacher-b", "teacher-a"]);
+    expect(groups[0].topics.map((t) => t.id)).toEqual([
+      "teacher-a",
+      "teacher-b",
+      "teacher-legacy",
+    ]);
   });
 });
 
