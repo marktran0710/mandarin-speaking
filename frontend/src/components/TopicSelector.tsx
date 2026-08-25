@@ -63,7 +63,7 @@ const LEVEL_COPY: Record<StoryDifficultyLevel, { zh: string; pinyin: string; en:
   hard: { zh: "困難", pinyin: "Kùnnán", en: "Hard" },
 };
 
-export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSelectorProps) {
+export default function TopicSelector({ onLevelSelect }: TopicSelectorProps) {
   const [topics, setTopics] = useState<Topic[]>(() =>
     loadPublishedTeacherTopics().filter(isStoryModeTopic),
   );
@@ -146,7 +146,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
   // The per-story 🌱🌿🌳 tier track: which difficulty levels this story
   // offers, and for each whether it's been submitted, is open, or still
   // locked behind the previous tier. Only teacher stories carry tiers.
-  const renderTierTrack = (t: Topic) => {
+  const renderTierTrack = (t: Topic, activityUnlocked: boolean) => {
     const story = t.sourceStory;
     if (!story) return null;
     const submittedLevels = loadSubmittedLevels(story.id);
@@ -159,7 +159,9 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
         aria-label="Difficulty levels"
       >
         {levels.map((level) => {
-          const state = submittedLevels[level]
+          const state = !activityUnlocked
+            ? "lock"
+            : submittedLevels[level]
             ? "done"
             : isStoryLevelUnlocked(story.id, level)
               ? "open"
@@ -189,7 +191,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               type="button"
               className={`ts-tier-cell ts-tier-${state}`}
               disabled={state === "lock"}
-              aria-label={`${copy.en} difficulty${state === "done" ? ", completed" : state === "lock" ? ", locked" : needsQuiz ? ", vocabulary quiz required" : ""}`}
+              aria-label={`${copy.en} difficulty${state === "done" ? ", completed" : state === "lock" ? activityUnlocked ? ", locked" : ", locked until the previous activity is completed" : needsQuiz ? ", vocabulary quiz required" : ""}`}
               onClick={(event) => {
                 event.stopPropagation();
                 onLevelSelect(t, level, needsQuiz ? { startAtQuiz: true } : undefined);
@@ -212,31 +214,6 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
       group.lessonNumber != null && t.lessonSubOrder != null
         ? `${group.lessonNumber}-${t.lessonSubOrder}`
         : null;
-    const previous = index > 0 ? group.topics[index - 1] : null;
-    const previousSubLabel =
-      group.lessonNumber != null && previous?.lessonSubOrder != null
-        ? `${group.lessonNumber}-${previous.lessonSubOrder}`
-        : null;
-    const story = t.sourceStory;
-    const submittedLevels = story ? loadSubmittedLevels(story.id) : {};
-    const availableLevels = story
-      ? (["easy", "medium", "hard"] as const).filter(
-          (level) => level === "easy" || storyHasTierContent(story, level),
-        )
-      : ([t.difficultyLevel ?? "easy"] as StoryDifficultyLevel[]);
-    // The card CTA always names and opens the next unsubmitted difficulty.
-    // When all available levels are done it remains a deliberate review path
-    // for the most advanced level, never an ambiguous jump back to Easy.
-    const activeLevel =
-      availableLevels.find(
-        (level) => !submittedLevels[level] && (!story || isStoryLevelUnlocked(story.id, level)),
-      ) ?? availableLevels[availableLevels.length - 1];
-    const activeTopic = story ? storyToTopic(story, activeLevel, "approved") : t;
-    const activeLevelDone = Boolean(submittedLevels[activeLevel]);
-    const needsQuiz =
-      topicHasQuiz(activeTopic) &&
-      !isAdminSession() &&
-      !practiceUnlocked(loadLocalStars(activeTopic.id));
 
     return (
       <article key={t.id} className={`ts-card${unlocked ? "" : " ts-card-locked"}`}>
@@ -289,45 +266,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
             )}
           </div>
 
-          {renderTierTrack(t)}
-        </div>
-
-        {/* Footer */}
-        <div className="ts-card-footer">
-          {unlocked ? (
-            needsQuiz ? null : (
-              <button
-                type="button"
-                className="ts-card-btn"
-                onClick={() => {
-                  if (story && onLevelSelect) {
-                    onLevelSelect(t, activeLevel);
-                    return;
-                  }
-                  onTopicSelect?.(activeTopic);
-                }}
-              >
-                <BiLabel
-                  zh={activeLevelDone ? `複習 ${LEVEL_COPY[activeLevel].zh} 口說練習` : `開始 ${LEVEL_COPY[activeLevel].zh} 口說練習`}
-                  pinyin={activeLevelDone ? `Fùxí ${LEVEL_COPY[activeLevel].pinyin} kǒushuō liànxí` : `Kāishǐ ${LEVEL_COPY[activeLevel].pinyin} kǒushuō liànxí`}
-                  en={`${activeLevelDone ? "Review" : "Start"} ${LEVEL_COPY[activeLevel].en} speaking practice`}
-                />
-                <span className="ts-card-btn-arrow">→</span>
-              </button>
-            )
-          ) : (
-            <span className="ts-card-btn ts-card-btn-locked" aria-disabled="true">
-              🔒{" "}
-              {previousSubLabel ? (
-                <BiLabel
-                  zh={`先完成 ${previousSubLabel}`}
-                  en={`Finish ${previousSubLabel} first`}
-                />
-              ) : (
-                <BiLabel zh="尚未解鎖" en="Not unlocked yet" />
-              )}
-            </span>
-          )}
+          {renderTierTrack(t, unlocked)}
         </div>
       </article>
     );

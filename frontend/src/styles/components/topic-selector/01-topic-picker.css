@@ -136,6 +136,7 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-md);
+  align-items: start;
 }
 
 /* ── Individual topic card — one consistent pastel for the whole grid,
@@ -223,7 +224,6 @@
 
 /* Body */
 .ts-card-body {
-  flex: 1;
   padding: var(--space-md) var(--space-md) var(--space-sm);
   display: flex;
   flex-direction: column;
@@ -276,7 +276,6 @@
   --bi-en-color: var(--clay-body);
   font-size: 12px;
   font-weight: 500;
-  margin-top: auto;
   padding-top: var(--space-2xs);
 }
 
@@ -287,59 +286,6 @@
 }
 .ts-card-stars:not(:empty) {
   color: var(--gold-deep);
-}
-
-/* Footer / CTA */
-.ts-card-footer {
-  padding: 0 var(--space-md) var(--space-md);
-}
-
-.ts-card-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--gold);
-  border-radius: var(--clay-radius-md);
-  /* --tone1 only gets white text to ~3:1 — --tone1-deep clears 4.5:1. */
-  background: var(--gold);
-  box-shadow: 0 4px 10px color-mix(in srgb, var(--gold-deep) 14%, transparent);
-  color: var(--clay-ink);
-  font-size: 14px;
-  font-weight: 650;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.12s ease;
-  --bi-pinyin-color: var(--gold-deep);
-  --bi-en-color: var(--gold-deep);
-}
-
-.ts-card-btn:hover {
-  transform: translateY(-1px);
-  background: color-mix(in srgb, var(--gold) 86%, var(--gold-deep));
-  box-shadow: 0 7px 14px color-mix(in srgb, var(--gold-deep) 18%, transparent);
-}
-
-.ts-card-btn:active {
-  transform: translateY(1px);
-  box-shadow: 0 2px 6px color-mix(in srgb, var(--gold-deep) 16%, transparent);
-}
-
-.ts-card-btn-arrow {
-  font-size: 16px;
-  transition: transform 0.15s ease;
-}
-
-.ts-card-btn:hover .ts-card-btn-arrow {
-  transform: translateX(3px);
-}
-
-.ts-card-btn-quiz {
-  background: var(--clay-surface-soft);
-  border-color: var(--gold-deep);
-  color: var(--gold-deep);
-  box-shadow: 0 4px 10px color-mix(in srgb, var(--gold-deep) 10%, transparent);
 }
 
 /* A story still waiting on the previous story in its lesson (5-2 before
@@ -355,16 +301,6 @@
 }
 .ts-card-locked .ts-card-image img {
   filter: grayscale(0.6);
-}
-
-.ts-card-btn-locked {
-  border-color: var(--clay-hairline);
-  background: var(--clay-surface-soft);
-  color: var(--clay-muted);
-  box-shadow: none;
-  cursor: not-allowed;
-  --bi-pinyin-color: var(--clay-muted);
-  --bi-en-color: var(--clay-muted);
 }
 
 /* ── Empty / loading states ── */
