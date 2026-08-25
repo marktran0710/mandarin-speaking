@@ -46,6 +46,19 @@ export default function StorySessionSidebar({
   // ignores this flag and always shows the panel.
   const [helpOpen, setHelpOpen] = useState(false);
 
+  // Scene practice is sequential: a student may revisit completed scenes, but
+  // the next scene stays locked until the previous one has a result. This is
+  // intentionally independent of the pronunciation pass/fail verdict.
+  const orderedJourneyStops = journeyStops?.map((stop, index, stops) => {
+    const previousStop = index > 0 ? stops[index - 1] : undefined;
+    const waitingForPrevious =
+      stop.status === "upcoming" && previousStop?.status !== "done";
+    return {
+      ...stop,
+      disabled: Boolean(stop.disabled || waitingForPrevious),
+    };
+  });
+
   const phaseStops: JourneyStop[] = phases.map((p) => ({
     key: p.key,
     status: p.status === "active" ? "current" : p.status,
@@ -54,9 +67,9 @@ export default function StorySessionSidebar({
     onClick: p.onClick,
     disabled: !p.onClick,
     expanded:
-      p.key === "speak" && journeyStops && journeyStops.length > 0 ? (
+      p.key === "speak" && orderedJourneyStops && orderedJourneyStops.length > 0 ? (
         <div className="ssb-journey">
-          <JourneyPath stops={journeyStops} orientation="vertical" />
+          <JourneyPath stops={orderedJourneyStops} orientation="vertical" />
         </div>
       ) : undefined,
   }));
