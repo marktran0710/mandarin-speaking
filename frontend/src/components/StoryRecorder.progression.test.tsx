@@ -19,7 +19,7 @@ import {
 describe("StoryRecorder student prototype", () => {
   beforeEach(resetStoryRecorderTestEnvironment);
   afterEach(cleanupStoryRecorderTestEnvironment);
-  describe("pilot progression policy overrides legacy passed=false (PARTS 2/3)", () => {
+  describe("recording-based progression", () => {
     afterEach(() => {
       window.history.pushState({}, "", "/");
     });
@@ -34,9 +34,7 @@ describe("StoryRecorder student prototype", () => {
       await screen.findByRole("region", { name: "Recording results" });
     }
 
-    it("blocks progression on a legacy fail when assistive feedback is NOT active (unchanged default behavior)", async () => {
-      // Default buildAnalyzeResponse() has one word with passed:false and no
-      // assistive_feedback -- legacy gating applies exactly as before this task.
+    it("allows progression after a legacy fail while keeping its feedback visible", async () => {
       mockBackendAnalyze(buildAnalyzeResponse());
       const user = userEvent.setup();
       const { container } = render(
@@ -50,10 +48,8 @@ describe("StoryRecorder student prototype", () => {
         />,
       );
       await uploadAndAnalyze(user);
-      await waitFor(() => {
-        expect(container.querySelector(".sfc-unlock-note")).toBeInTheDocument();
-      });
-      expect(screen.queryByRole("button", { name: /Next scene/ })).not.toBeInTheDocument();
+      expect(container.querySelector(".sfc-unlock-note")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Next scene/ })).toBeEnabled();
     });
 
     it("does not block progression on a legacy fail for a pilot session with active assistive feedback", async () => {

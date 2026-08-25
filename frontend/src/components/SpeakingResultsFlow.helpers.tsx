@@ -160,6 +160,8 @@ export interface SpeakingResultsFlowProps {
   attempts: number;
   /** Scene unlocked: score/attempts plus content and pronunciation gates. */
   ready: boolean;
+  /** A completed analysis lets the student continue while keeping feedback visible. */
+  canContinue?: boolean;
   /** Pronunciation gate only; used for the word-drill guidance. */
   masteryPassed: boolean;
   praatMetrics: PraatMetrics;

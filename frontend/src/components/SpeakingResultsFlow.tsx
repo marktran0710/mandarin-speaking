@@ -15,7 +15,7 @@ import SpeakingResultsFlowShell from "./SpeakingResultsFlow.Shell";
 
 export default function SpeakingResultsFlow({
   selectedImage, selectedImageIndex, modelSentence, modelAudioUrl, narrativeMode,
-  attempts, ready, masteryPassed, praatMetrics, analysisAudioBlob, submittedAudioName,
+  attempts, ready, canContinue = ready, masteryPassed, praatMetrics, analysisAudioBlob, submittedAudioName,
   clearedWords, onWordDrillPass, onSelfEvalSubmit, hasNextScene, onNextScene,
   onViewSummary, onRecordAgain, assistiveFeedback = null, assistiveRetriesUsed = 0,
   analysisVersion = "stable_v1", comparison,
@@ -145,5 +145,5 @@ export default function SpeakingResultsFlow({
     practice: <SpeakingResultsPracticeStep {...{ hasPhrasePractice, allDrillsCleared, practiceTargets, clearedWords, focusKey, setFocusKey, focusTarget, focusWord, onDrillPass: handleDrillPass, allPhrasesCleared, phrasePracticeItems, clearedPhrases, phraseFocusIndex, setPhraseFocusIndex, focusPhrase, onPhrasePass: handlePhrasePass, onRecordAgain }} />,
   }[step];
 
-  return <SpeakingResultsFlowShell {...{ selectedImage, selectedImageIndex, modelAudioUrl, modelSentence, analysisAudioBlob, practicePartCount, feedbackTriggerRef, feedbackModalOpen, onOpenFeedback: () => setFeedbackModalOpen(true), steps, step, maxVisited, setStep, stepBody, onCloseFeedback: closeFeedbackModal, praatMetrics, targetScript, recognizedText, teacherPhraseChunks, assistiveFeedback, masteryCounts, hasPhrasePractice, allPhrasesCleared, remainingPracticePhrases, ready, masteryPassed, practiceTargets, remainingDrillTargets, attempts, assistiveRetriesUsed, onRecordAgain, hasNextScene, onNextScene, onViewSummary }} />;
+  return <SpeakingResultsFlowShell {...{ selectedImage, selectedImageIndex, modelAudioUrl, modelSentence, analysisAudioBlob, practicePartCount, feedbackTriggerRef, feedbackModalOpen, onOpenFeedback: () => setFeedbackModalOpen(true), steps, step, maxVisited, setStep, stepBody, onCloseFeedback: closeFeedbackModal, praatMetrics, targetScript, recognizedText, teacherPhraseChunks, assistiveFeedback, masteryCounts, hasPhrasePractice, allPhrasesCleared, remainingPracticePhrases, ready, canContinue, masteryPassed, practiceTargets, remainingDrillTargets, attempts, assistiveRetriesUsed, onRecordAgain, hasNextScene, onNextScene, onViewSummary }} />;
 }

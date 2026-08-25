@@ -27,9 +27,9 @@ describe("StoryRecorder submission progression metadata", () => {
     );
   });
 
-  it("does not mark a level complete from an incomplete recording gate", () => {
+  it("requires an analyzed recording for every practice scene before marking a level complete", () => {
     expect(runtimeSource).toContain(
-      '_t=qe>0&&W.every(e=>!!M[e]&&(k||(B[e]??!1)&&(q[e]??!1)))',
+      '_t=qe>0&&W.every(e=>!!M[e])',
     );
   });
 });

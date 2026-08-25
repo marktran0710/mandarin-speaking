@@ -200,7 +200,7 @@ describe("StoryRecorder speaking practice gates", () => {
     vi.unstubAllGlobals();
   });
 
-  it("keeps a failing prosody result in the word-practice flow", async () => {
+  it("keeps a failing prosody result visible and lets the student continue", async () => {
     const user = userEvent.setup();
     const onAddRecord = vi.fn();
 
@@ -222,8 +222,8 @@ describe("StoryRecorder speaking practice gates", () => {
     expect(onAddRecord).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Scene 1")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Practice the words/i })).toBeEnabled();
-    expect(screen.queryByRole("button", { name: /Next scene/i })).not.toBeInTheDocument();
-    expect(screen.queryByText("Scene 2 of 2")).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /Next scene/i }));
+    expect(onAddRecord).toHaveBeenCalledTimes(1);
     expect(globalThis.fetch).toHaveBeenCalledWith(
       `${TEST_BACKEND_URL}/api/analyze`,
       expect.objectContaining({ method: "POST" }),
@@ -273,13 +273,10 @@ describe("StoryRecorder speaking practice gates", () => {
     expect(
       await screen.findByText("Retake before trusting this score"),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/Scene 1 complete/i)).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: /Next scene/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Next scene/i })).toBeEnabled();
   });
 
-  it("keeps a high-scoring but incomplete script on Fix it and blocks Next scene", async () => {
+  it("keeps a high-scoring but incomplete script on Fix it without blocking Next scene", async () => {
     const user = userEvent.setup();
     const base = buildAnalyzeResponse();
     mockBackendAnalyze({
@@ -317,8 +314,7 @@ describe("StoryRecorder speaking practice gates", () => {
     await uploadVoiceAttempt(user, "incomplete-script.wav");
 
     expect(await screen.findByRole("button", { name: /See the missing words/i })).toBeEnabled();
-    expect(screen.queryByText(/Scene 1 complete/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Next scene/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Next scene/i })).toBeEnabled();
   });
 
   it("blocks pronunciation feedback while rejected content is on the fix path", async () => {

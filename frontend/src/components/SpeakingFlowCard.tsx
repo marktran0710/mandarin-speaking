@@ -153,13 +153,13 @@ export default function SpeakingFlowCard({
   }, [selectedImageIndex]);
 
   const attempts = prog?.attempts ?? 0;
-  // Mastery (every word passed its per-syllable verdict on a full-sentence
-  // recording) gates progression alongside the score/attempts unlock — the
-  // attempts escape hatch never bypasses failing words.
+  // Keep the verdict-driven results presentation intact. Continuing is
+  // separate: one completed analysis is enough to move on.
   const ready =
     (sceneReadyOverride || (prog ? sceneReady(prog) : false)) &&
     masteryPassed &&
     contentPassed;
+  const canContinue = Boolean(praatMetrics);
 
   const sceneChip = (
     <span className="sfc-attempt-only">
@@ -363,6 +363,7 @@ export default function SpeakingFlowCard({
       narrativeMode={narrativeMode}
       attempts={attempts}
       ready={ready}
+      canContinue={canContinue}
       masteryPassed={masteryPassed}
       praatMetrics={praatMetrics}
       analysisAudioBlob={analysisAudioBlob}
