@@ -22,8 +22,6 @@ interface NavigationProps {
    * variant links to the other: the two modes are deliberately reachable
    * only by typing their own URL (see WrongMode). */
   appVariant?: "student" | "teacher";
-  /** Kept for call-site compatibility; picture talk now lives in the student workspace. */
-  hasDescribeStories?: boolean;
 }
 
 export default function Navigation({
@@ -84,7 +82,7 @@ export default function Navigation({
             <li>
               <button
                 type="button"
-                className={`nav-link ${currentPage === "student-workspace" || currentPage === "student-practice" || currentPage === "student-stories" || currentPage === "image-narration" ? "active" : ""}`}
+                className={`nav-link ${currentPage === "student-workspace" || currentPage === "student-practice" || currentPage === "student-stories" ? "active" : ""}`}
                 onClick={() => onNavigate("student-workspace")}
               >
                 <span className="nav-link-icon"><StudentIcon name="home" /></span>

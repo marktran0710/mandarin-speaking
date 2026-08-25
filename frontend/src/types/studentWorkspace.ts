@@ -1,6 +1,6 @@
 import type { Topic } from "../components/TopicSelector";
 
-export type WorkspaceView = "practice" | "progress" | "picture-talk";
+export type WorkspaceView = "practice" | "progress";
 
 export type QuizGateState =
   | { status: "completed"; score?: number }

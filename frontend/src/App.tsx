@@ -3,7 +3,6 @@ import HomePage from "./pages/HomePage";
 import CreateStoryPage from "./pages/CreateStoryPage";
 import MyStoriesPage from "./pages/MyStoriesPage";
 import VoiceTestPage from "./pages/VoiceTestPage";
-import ImageNarrationPage from "./pages/ImageNarrationPage";
 import StudentWorkspacePage, {
   type StudentWorkspaceView,
 } from "./pages/StudentWorkspacePage";
@@ -80,10 +79,6 @@ export default function App() {
     () => publishedTopics.filter((t) => (t.narrativeMode ?? "story") === "story"),
     [publishedTopics],
   );
-  const describeTopics = useMemo(
-    () => publishedTopics.filter((t) => t.narrativeMode === "describe"),
-    [publishedTopics],
-  );
   useEffect(() => {
     let active = true;
     void primePinyin(collectPinyinTexts(publishedTopics))
@@ -152,9 +147,7 @@ export default function App() {
         ? currentPage
         : studentWorkspaceView === "progress"
           ? "student-stories"
-          : studentWorkspaceView === "picture-talk"
-            ? "image-narration"
-            : "student-practice";
+          : "student-practice";
     saveLastVisitedPage(pageToSave);
   }, [activeRole, currentPage, studentWorkspaceView]);
 
@@ -424,7 +417,6 @@ export default function App() {
           helpRequests={helpRequests}
           onRaiseHand={handleRaiseHand}
           storyTopics={storyTopics}
-          describeTopics={describeTopics}
           audioRecords={audioRecords}
           onSessionActiveChange={setIsInPracticeSession}
           isInPracticeSession={isInPracticeSession}
@@ -459,9 +451,6 @@ export default function App() {
       )}
       {currentPage === "voice-test" && activeRole === "student" && (
         <VoiceTestPage />
-      )}
-      {currentPage === "image-narration" && activeRole === "student" && (
-        <ImageNarrationPage publishedTopics={describeTopics} />
       )}
       <AppJourneyBubble
         visible={showJourneyBubble}

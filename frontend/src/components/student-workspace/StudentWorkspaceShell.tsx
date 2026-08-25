@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import CreateStoryPage from "../../pages/CreateStoryPage";
-import ImageNarrationPage from "../../pages/ImageNarrationPage";
 import MyStoriesPage from "../../pages/MyStoriesPage";
 import { getStudentName } from "../../utils/studentSession";
 import type { StudentWorkspacePageProps } from "../../pages/StudentWorkspacePage";
@@ -14,7 +13,6 @@ import "./StudentWorkspaceV2.css";
 const WORKSPACE_VIEWS = [
   { id: "practice" as const, icon: "image" as const, label: { zh: "課程", pinyin: "Kèchéng", en: "Practice" } },
   { id: "progress" as const, icon: "chart" as const, label: { zh: "我的學習", pinyin: "Wǒ de xuéxí", en: "Progress" } },
-  { id: "picture-talk" as const, icon: "image" as const, label: { zh: "看圖說話", pinyin: "Kàn tú shuō huà", en: "Picture talk" } },
 ];
 
 export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) {
@@ -29,7 +27,6 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     helpRequests,
     onRaiseHand,
     storyTopics,
-    describeTopics,
     audioRecords,
     onSessionActiveChange,
     isInPracticeSession,
@@ -37,11 +34,6 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
   const [practiceStarted, setPracticeStarted] = useState(isInPracticeSession);
 
   useEffect(() => setPracticeStarted(isInPracticeSession), [isInPracticeSession]);
-
-  const availableViews = useMemo(
-    () => WORKSPACE_VIEWS.filter((item) => item.id !== "picture-talk" || describeTopics.length > 0),
-    [describeTopics.length],
-  );
 
   const selectView = (nextView: StudentWorkspaceView) => {
     if (nextView === view) return;
@@ -60,7 +52,6 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
         />
       );
     }
-    if (view === "picture-talk") return <ImageNarrationPage publishedTopics={describeTopics} />;
     return (
       <CreateStoryPage
         key={initialTopicId ? `${initialTopicId}:${initialImageIndex ?? 0}:${initialStartAtQuiz ? "quiz" : "practice"}:${initialTargetKey ?? 0}` : "browse"}
@@ -83,7 +74,7 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     <main className={`student-workspace student-workspace-v2 ${practiceStarted ? "is-practicing" : ""}`}>
       {!practiceStarted && <StudentWorkspaceHeader username={getStudentName()} />}
       {!practiceStarted && (
-        <WorkspaceAreaTabs views={availableViews} activeView={view} onChange={selectView} />
+        <WorkspaceAreaTabs views={WORKSPACE_VIEWS} activeView={view} onChange={selectView} />
       )}
       <section
         id="student-workspace-panel"

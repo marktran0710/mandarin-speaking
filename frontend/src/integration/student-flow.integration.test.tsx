@@ -27,7 +27,6 @@ const workspaceProps = {
   helpRequests: [],
   onRaiseHand: vi.fn(),
   storyTopics: [topic],
-  describeTopics: [],
   audioRecords: [],
   onSessionActiveChange: vi.fn(),
   isInPracticeSession: false,

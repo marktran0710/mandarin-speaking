@@ -12,7 +12,6 @@ const RESTORABLE_STUDENT_PAGES: readonly Page[] = [
   "student-practice",
   "student-stories",
   "voice-test",
-  "image-narration",
 ];
 
 function isRestorableStudentPage(page: string | null): page is Page {
@@ -38,9 +37,7 @@ export function getStudentAppBootstrapState(): StudentAppBootstrapState {
   const studentWorkspaceView =
     restoredPage === "student-stories"
       ? "progress"
-      : restoredPage === "image-narration"
-        ? "picture-talk"
-        : "practice";
+      : "practice";
   const lastTarget = studentWorkspaceView === "practice" ? readTarget() : null;
 
   return {

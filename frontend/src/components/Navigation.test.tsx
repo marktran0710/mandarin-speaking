@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import Navigation from "./Navigation";
 
 /** Student mode now has one shell entry point; the shell owns the internal
- * practice/progress/picture-talk tabs. */
+ * practice/progress tabs. */
 function renderStudentNav(props: Partial<Parameters<typeof Navigation>[0]> = {}) {
   const onNavigate = vi.fn();
   render(
@@ -27,22 +27,10 @@ describe("Navigation student links", () => {
     expect(onNavigate).toHaveBeenCalledWith("student-workspace");
   });
 
-  it("keeps picture talk and Listen & retell out of the global navbar", () => {
-    renderStudentNav({ hasDescribeStories: true });
-
-    expect(screen.queryByRole("button", { name: /Picture talk/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Listen & retell/ })).not.toBeInTheDocument();
-  });
-
   it("hides every section tab in compact (mid-practice) mode", () => {
-    renderStudentNav({
-      compact: true,
-      hasDescribeStories: true,
-    });
+    renderStudentNav({ compact: true });
 
     expect(screen.queryByRole("button", { name: /My learning/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Picture talk/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Listen & retell/ })).not.toBeInTheDocument();
   });
 });
 
