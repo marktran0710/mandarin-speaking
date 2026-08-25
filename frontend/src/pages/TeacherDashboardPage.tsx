@@ -11,7 +11,7 @@ import {
   type VocabQuizAttempt,
 } from "../services/database";
 import type { AudioRecord } from "./MyStoriesPage";
-import TeacherShell, { type TeacherView } from "../components/teacher/TeacherShell";
+import ManagementShell from "../components/management/ManagementShell";
 import StoryBuilderSection from "../components/teacher/StoryBuilderSection";
 import TeacherHelpQueue from "../components/TeacherHelpQueue";
 import TeacherRecordingsView from "../components/TeacherRecordingsView";
@@ -37,6 +37,7 @@ import "./TeacherDashboardPage.css";
 type RecordingsHelpTab = "recordings" | "help";
 type MaterialsTab = "builder" | "imageBuilder" | "quizReview";
 type AnalyticsTab = "students" | "quizTrends" | "recordingTrends" | "measurement";
+type TeacherView = "overview" | "submissions" | "recordingsHelp" | "materials" | "analytics";
 
 const VIEW_COPY: Record<TeacherView, { eyebrow: string; title: string; description: string }> = {
   overview: {
@@ -210,9 +211,10 @@ export default function TeacherDashboardPage({
   };
 
   return (
-    <TeacherShell
-      activeView={activeView}
-      onSelectView={setActiveView}
+      <ManagementShell
+        role="teacher"
+        activeView={activeView}
+        onSelectView={(view) => setActiveView(view as TeacherView)}
       submissionCount={submissions.length}
       openHelpCount={openHelpRequests.length}
       refreshing={refreshing}
@@ -478,6 +480,6 @@ export default function TeacherDashboardPage({
         )}
 
       </div>
-    </TeacherShell>
+      </ManagementShell>
   );
 }

@@ -16,8 +16,10 @@ import {
   StoredAudioRecord,
 } from "./services/database";
 
-export default function TeacherApp() {
-  const [activeRole, setActiveRole] = useState<"teacher" | null>(null);
+export default function TeacherApp({ embedded = false, onExit }: { embedded?: boolean; onExit?: () => void } = {}) {
+  const [activeRole, setActiveRole] = useState<"teacher" | null>(() =>
+    embedded && currentRole("teacher") === "teacher" ? "teacher" : null,
+  );
   const [audioRecords, setAudioRecords] = useState<StoredAudioRecord[]>([]);
   const [audioRecordCount, setAudioRecordCount] = useState(0);
   const [audioRecordPageSize] = useState(100);
@@ -117,7 +119,10 @@ export default function TeacherApp() {
       // Local role state is already cleared; the student app has its own
       // independent session cookie.
     });
+    onExit?.();
   };
+
+  if (embedded && activeRole !== "teacher") return null;
 
   // Logged-in teachers get the admin shell (its sidebar is the only nav);
   // the top Navigation bar only remains on the login screen.
