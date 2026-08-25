@@ -396,14 +396,15 @@
 }
 
 .story-learning-modal {
-  width: min(960px, calc(100vw - 32px));
-  max-height: calc(100vh - 32px);
+  width: min(1080px, calc(100vw - 32px));
+  max-height: min(760px, calc(100vh - 32px));
   animation: story-learning-modal-rise-in 180ms ease-out;
 }
 
 .story-learning-content {
-  max-height: calc(100vh - 32px);
-  overflow: auto;
+  box-sizing: border-box;
+  max-height: min(760px, calc(100vh - 32px));
+  overflow: hidden;
 }
 
 .story-learning-content-header-actions {
@@ -473,12 +474,78 @@
   background: transparent;
 }
 
+.story-learning-content-description {
+  margin: 6px 0 0;
+  color: var(--clay-muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.story-learning-content-description strong {
+  color: var(--jade-deep);
+}
+
 .story-learning-content-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   flex-shrink: 0;
+}
+
+.story-learning-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px;
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-md);
+  background: rgb(255 255 255 / 70%);
+}
+
+.story-learning-tabs {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.story-learning-tabs button {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: var(--clay-radius-sm);
+  background: transparent;
+  color: var(--clay-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.story-learning-tabs button:hover,
+.story-learning-tabs button.is-active {
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.story-learning-tabs button:focus-visible {
+  outline: 2px solid var(--jade);
+  outline-offset: 2px;
+}
+
+.story-learning-toolbar-hint {
+  padding: 0 8px;
+  color: var(--clay-muted);
+  font-size: 11px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.story-learning-editor {
+  min-height: 0;
+  overflow: auto;
+  padding: 1px 3px 3px 1px;
 }
 
 .story-learning-content-grid {
@@ -502,6 +569,18 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
+}
+
+.story-learning-table-heading > div {
+  display: grid;
+  gap: 3px;
+}
+
+.story-learning-table-heading strong {
+  color: var(--clay-muted);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .story-learning-table-heading span {

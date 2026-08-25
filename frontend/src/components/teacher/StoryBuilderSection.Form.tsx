@@ -60,6 +60,7 @@ function StoryLearningContent({
   closeButtonRef,
 }) {
   const level = draft.activeLevel;
+  const [activePanel, setActivePanel] = useState("vocabulary");
   const vocabulary = draft.storyVocabulary[level];
   const phrases = draft.storyPhrases[level];
   const phraseCount = PHRASE_COUNT_BY_LEVEL[level];
@@ -67,38 +68,43 @@ function StoryLearningContent({
   return <div className="story-learning-content" aria-labelledby="story-learning-content-title">
     <div className="story-learning-content-header">
       <div>
-        <p className="stories-kicker">Shared learning content</p>
-        <h3 id="story-learning-content-title">Vocabulary & phrases for the whole story</h3>
-        <p className="teacher-form-note">These lists are shared across every scene in the {level} version. Add them once here instead of repeating them scene by scene.</p>
+        <h3 id="story-learning-content-title">Story-wide learning content</h3>
+        <p className="story-learning-content-description">Shared across every scene in the <strong>{level}</strong> version.</p>
       </div>
       <div className="story-learning-content-header-actions">
         <div className="story-learning-content-actions">
           <button type="button" className="btn-vocab-autofill-sm" disabled={!hasScripts || storyVocabFillLoading} onClick={onFillStoryVocab}>
             {storyVocabFillLoading ? "Filling…" : "✨ Fill vocab from story scripts"}
           </button>
-          <button type="button" className="btn-vocab-autofill-sm" disabled={!hasScripts || storyPhraseFillLoading} onClick={onFillStoryPhrases}>
+          <button type="button" className="btn-vocab-autofill-sm" disabled={!hasScripts || storyPhraseFillLoading} onClick={() => { setActivePanel("phrases"); onFillStoryPhrases(); }}>
             {storyPhraseFillLoading ? "Generating…" : `✨ +${phraseCount} phrase${phraseCount > 1 ? "s" : ""}`}
           </button>
         </div>
         <button ref={closeButtonRef} type="button" className="story-learning-close-btn" aria-label="Close learning content" onClick={onClose}>×</button>
       </div>
     </div>
+    <div className="story-learning-toolbar">
+      <div className="story-learning-tabs" role="tablist" aria-label="Learning content type">
+        <button type="button" role="tab" aria-selected={activePanel === "vocabulary"} className={activePanel === "vocabulary" ? "is-active" : ""} onClick={() => setActivePanel("vocabulary")}>Vocabulary</button>
+        <button type="button" role="tab" aria-selected={activePanel === "phrases"} className={activePanel === "phrases" ? "is-active" : ""} onClick={() => setActivePanel("phrases")}>Reusable phrases</button>
+      </div>
+      <span className="story-learning-toolbar-hint">Choose a list to edit</span>
+    </div>
     {storyVocabFillError && <p className="teacher-form-error" role="alert">{storyVocabFillError}</p>}
     {storyPhraseFillError && <p className="teacher-form-error" role="alert">{storyPhraseFillError}</p>}
-    <div className="story-learning-content-grid">
-      <div className="story-learning-table-block">
-        <div className="story-learning-table-heading"><h4>Vocabulary</h4><span>One row per word</span></div>
+    <div className="story-learning-editor">
+      {activePanel === "vocabulary" ? <div className="story-learning-table-block" role="tabpanel">
+        <div className="story-learning-table-heading"><div><h4>Vocabulary</h4><span>Add one word per row</span></div><strong>4 fields per word</strong></div>
         <VocabularyTable key={`${storyVocabDraftGeneration}-${level}`} vocabulary={vocabulary.vocabulary}
           vocabularyPinyin={vocabulary.vocabularyPinyin} vocabularyPos={vocabulary.vocabularyPos}
           vocabularyTranslation={vocabulary.vocabularyTranslation}
           onChangeColumn={onUpdateStoryVocabulary} />
-      </div>
-      <div className="story-learning-table-block">
-        <div className="story-learning-table-heading"><h4>Reusable phrases</h4><span>One row per phrase</span></div>
+      </div> : <div className="story-learning-table-block" role="tabpanel">
+        <div className="story-learning-table-heading"><div><h4>Reusable phrases</h4><span>Add one reusable phrase per row</span></div><strong>2 fields per phrase</strong></div>
         <PhraseTable key={`${storyPhraseDraftGeneration}-${level}`} phrases={phrases.phrases}
           phrasesTranslation={phrases.phrasesTranslation}
           onChangeColumn={onUpdateStoryPhrases} />
-      </div>
+      </div>}
     </div>
   </div>;
 }

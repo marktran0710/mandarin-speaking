@@ -175,6 +175,10 @@
     justify-content: space-between;
   }
 
+  .story-learning-content-header-actions .story-learning-content-actions {
+    flex: 1 1 auto;
+  }
+
   .story-learning-content-actions {
     justify-content: flex-start;
   }
@@ -186,12 +190,25 @@
 
   .story-learning-modal {
     width: 100%;
-    max-height: 94vh;
+    max-height: min(88dvh, 760px);
   }
 
   .story-learning-content {
-    max-height: 94vh;
+    max-height: min(88dvh, 760px);
     border-radius: var(--clay-radius-xl) var(--clay-radius-xl) 0 0;
+  }
+
+  .story-learning-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .story-learning-tabs button {
+    flex: 1 1 0;
+  }
+
+  .story-learning-toolbar-hint {
+    display: none;
   }
 
   .story-learning-content-actions {
@@ -203,16 +220,42 @@
     min-height: 40px;
   }
 
-  /* The vocab table's 5 proportional columns get too cramped for their
-     input/select fields on a phone screen — scroll horizontally instead
-     of squeezing every field unusably narrow. */
-  .vocab-table {
-    overflow-x: auto;
+  .vocab-table-header {
+    display: none;
   }
 
-  .vocab-table-header,
   .vocab-table-row {
-    min-width: 560px;
+    display: block;
+    padding: 10px;
+    border: 1px solid var(--clay-hairline-soft);
+    border-radius: var(--clay-radius-md);
+    background: var(--clay-surface-soft);
+  }
+
+  .vocab-table-fields,
+  .phrase-table .vocab-table-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .vocab-table-field {
+    gap: 4px;
+  }
+
+  .vocab-table-field > span {
+    display: block;
+    color: var(--clay-muted);
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .vocab-table-remove {
+    display: block;
+    width: 100%;
+    height: 36px;
+    margin-top: 8px;
   }
 }
 
@@ -377,9 +420,17 @@
 .vocab-table-header,
 .vocab-table-row {
   display: grid;
-  grid-template-columns: 1.1fr 1.1fr 0.9fr 1.3fr auto;
+  grid-template-columns: minmax(0, 1fr) 40px;
   gap: 8px;
   align-items: center;
+}
+
+.vocab-table-header-fields,
+.vocab-table-fields {
+  display: grid;
+  grid-template-columns: 1.1fr 1.1fr 0.9fr 1.3fr;
+  gap: 8px;
+  min-width: 0;
 }
 
 .vocab-table-header span {
@@ -390,8 +441,19 @@
   letter-spacing: 0.03em;
 }
 
+.vocab-table-field {
+  display: grid;
+  min-width: 0;
+}
+
+.vocab-table-field > span {
+  display: none;
+}
+
 .vocab-table-row input,
 .vocab-table-row select {
+  width: 100%;
+  min-width: 0;
   padding: 8px 9px;
   font-size: 13px;
 }
@@ -430,7 +492,12 @@
    5-track grid-template rather than leaving two tracks unused. */
 .phrase-table .vocab-table-header,
 .phrase-table .vocab-table-row {
-  grid-template-columns: 1.3fr 1.3fr auto;
+  grid-template-columns: minmax(0, 1fr) 40px;
+}
+
+.phrase-table .vocab-table-header-fields,
+.phrase-table .vocab-table-fields {
+  grid-template-columns: 1.3fr 1.3fr;
 }
 
 .btn-vocab-autofill {
