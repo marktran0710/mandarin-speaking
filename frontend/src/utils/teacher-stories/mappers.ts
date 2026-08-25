@@ -30,11 +30,21 @@ export function storyToTopic(
       }, new Map<string, (typeof approvedSnapshotEntries)[number]>())
     : null;
   // Quiz identity is based on the Easy/base vocabulary even when the
-  // displayed story uses a tier-specific word list. This keeps the same
-  // concept connected across levels and prevents Medium/Hard arrays from
-  // inheriting AI material by stale word index.
+  // displayed story uses a tier-specific word list. When a tier's approved
+  // snapshot only contains those base words (the verified question export
+  // does), use that tier's reviewed pools so Medium/Hard do not silently
+  // fall back to Easy's contexts. If a teacher-authored tier has a different
+  // vocabulary, fall back to Easy rather than shifting material by index.
+  const baseQuizWords = new Set(
+    story.frames.flatMap((frame) => splitCsvField(frame.vocabulary)),
+  );
   const quizApprovedSnapshotEntries =
-    source === "approved" ? storyApprovedSnapshot(story, "easy") : null;
+    source === "approved"
+      ? approvedSnapshotEntries !== null &&
+        approvedSnapshotEntries.every((entry) => baseQuizWords.has(entry.word))
+        ? approvedSnapshotEntries
+        : storyApprovedSnapshot(story, "easy")
+      : null;
   const quizApprovedByWord = quizApprovedSnapshotEntries
     ? quizApprovedSnapshotEntries.reduce((map, e) => {
         if (!map.has(e.word)) map.set(e.word, e);
