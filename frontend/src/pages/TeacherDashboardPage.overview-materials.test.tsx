@@ -263,7 +263,7 @@ describe("TeacherDashboardPage", () => {
       "我在餐廳吃飯。",
     );
     await user.click(
-      screen.getAllByRole("button", { name: "✨ Fill vocab" })[0],
+      screen.getByRole("button", { name: "✨ Fill vocab from story scripts" }),
     );
 
     await waitFor(() => {
@@ -283,7 +283,7 @@ describe("TeacherDashboardPage", () => {
     await user.click(screen.getByRole("button", { name: /Materials/ }));
 
     expect(
-      screen.getAllByRole("button", { name: "✨ Fill vocab" })[0],
+      screen.getByRole("button", { name: "✨ Fill vocab from story scripts" }),
     ).toBeDisabled();
   });
 

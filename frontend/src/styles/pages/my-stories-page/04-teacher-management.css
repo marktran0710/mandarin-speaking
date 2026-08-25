@@ -333,6 +333,72 @@
   margin: -8px 0 4px;
 }
 
+.story-learning-content {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--jade);
+  border-radius: var(--clay-radius-lg);
+  background: linear-gradient(135deg, var(--jade-soft), var(--clay-surface-card) 48%);
+}
+
+.story-learning-content-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.story-learning-content-header h3,
+.story-learning-table-heading h4 {
+  margin: 0;
+  color: var(--clay-ink);
+}
+
+.story-learning-content-header .teacher-form-note {
+  margin: 8px 0 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.story-learning-content-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.story-learning-content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
+  gap: 14px;
+}
+
+.story-learning-table-block {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+}
+
+.story-learning-table-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.story-learning-table-heading span {
+  color: var(--clay-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
 /* Same dashed note box as .teacher-tier-hint above — one visual language for
    every inline guidance note in this form, instead of some being plain text
    and others boxed. Spans the full field grid so it reads as its own row
@@ -430,4 +496,3 @@
   padding: 8px 10px;
   min-height: 32px;
 }
-

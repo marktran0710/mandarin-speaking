@@ -152,6 +152,18 @@
     grid-template-columns: 1fr;
   }
 
+  .story-learning-content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .story-learning-content-header {
+    flex-direction: column;
+  }
+
+  .story-learning-content-actions {
+    justify-content: flex-start;
+  }
+
   /* The vocab table's 5 proportional columns get too cramped for their
      input/select fields on a phone screen — scroll horizontally instead
      of squeezing every field unusably narrow. */
@@ -429,4 +441,3 @@
 .btn-vocab-autofill-sm:hover:not(:disabled) {
   background: var(--jade-soft);
 }
-

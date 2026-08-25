@@ -1,6 +1,13 @@
 // @ts-nocheck
 import React from "react";
-import type { CustomStoryFrame, CustomTeacherStory, StoryDifficultyLevel, VocabGroup } from "../../utils/teacherStories";
+import type {
+  CustomStoryFrame,
+  CustomTeacherStory,
+  StoryDifficultyLevel,
+  StoryPhrasesByLevel,
+  StoryVocabularyByLevel,
+  VocabGroup,
+} from "../../utils/teacherStories";
 import { frameCountForMode } from "../../utils/myStoriesUtils";
 
 export const BACKEND_URL =
@@ -163,11 +170,28 @@ export function blankTiers(count: number): Record<StoryDifficultyLevel, string[]
   };
 }
 
+export function blankStoryVocabulary(): StoryVocabularyByLevel {
+  const blank = () => ({
+    vocabulary: "",
+    vocabularyPinyin: "",
+    vocabularyPos: "",
+    vocabularyTranslation: "",
+  });
+  return { easy: blank(), medium: blank(), hard: blank() };
+}
+
+export function blankStoryPhrases(): StoryPhrasesByLevel {
+  const blank = () => ({ phrases: "", phrasesTranslation: "" });
+  return { easy: blank(), medium: blank(), hard: blank() };
+}
+
 export const emptyCustomStoryDraft = {
   title: "Taiwan Community Story",
   lessonNumber: "",
   lessonSubOrder: "",
   activeLevel: "easy" as StoryDifficultyLevel,
+  storyVocabulary: blankStoryVocabulary(),
+  storyPhrases: blankStoryPhrases(),
   imageUrls: blankTiers(6),
   prompts: {
     easy: [

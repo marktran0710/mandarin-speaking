@@ -1,6 +1,9 @@
 // @ts-nocheck
 import React from "react";
 import StoryBuilderFrameEditor from "./StoryBuilderSection.FrameEditor";
+import VocabularyTable from "../VocabularyTable";
+import PhraseTable from "../PhraseTable";
+import { PHRASE_COUNT_BY_LEVEL } from "./StoryBuilderSection.helpers";
 
 function StoryDetailsFields({ draft, errors, onUpdateField, onUpdateFrameCount, onSetDraft }) {
   return <>
@@ -32,6 +35,60 @@ function StoryStatusMessages({ errors, notice, savedReviewBanner, onGoToQuizRevi
   </>;
 }
 
+function StoryLearningContent({
+  draft,
+  onUpdateStoryVocabulary,
+  onUpdateStoryPhrases,
+  onFillStoryVocab,
+  onFillStoryPhrases,
+  storyVocabDraftGeneration,
+  storyPhraseDraftGeneration,
+  storyVocabFillLoading,
+  storyPhraseFillLoading,
+  storyVocabFillError,
+  storyPhraseFillError,
+}) {
+  const level = draft.activeLevel;
+  const vocabulary = draft.storyVocabulary[level];
+  const phrases = draft.storyPhrases[level];
+  const phraseCount = PHRASE_COUNT_BY_LEVEL[level];
+  const hasScripts = draft.suggestedAnswers[level].some((script) => script.trim());
+  return <section className="story-learning-content" aria-labelledby="story-learning-content-title">
+    <div className="story-learning-content-header">
+      <div>
+        <p className="stories-kicker">Shared learning content</p>
+        <h3 id="story-learning-content-title">Vocabulary & phrases for the whole story</h3>
+        <p className="teacher-form-note">These lists are shared across every scene in the {level} version. Add them once here instead of repeating them scene by scene.</p>
+      </div>
+      <div className="story-learning-content-actions">
+        <button type="button" className="btn-vocab-autofill-sm" disabled={!hasScripts || storyVocabFillLoading} onClick={onFillStoryVocab}>
+          {storyVocabFillLoading ? "Filling…" : "✨ Fill vocab from story scripts"}
+        </button>
+        <button type="button" className="btn-vocab-autofill-sm" disabled={!hasScripts || storyPhraseFillLoading} onClick={onFillStoryPhrases}>
+          {storyPhraseFillLoading ? "Generating…" : `✨ +${phraseCount} phrase${phraseCount > 1 ? "s" : ""}`}
+        </button>
+      </div>
+    </div>
+    {storyVocabFillError && <p className="teacher-form-error" role="alert">{storyVocabFillError}</p>}
+    {storyPhraseFillError && <p className="teacher-form-error" role="alert">{storyPhraseFillError}</p>}
+    <div className="story-learning-content-grid">
+      <div className="story-learning-table-block">
+        <div className="story-learning-table-heading"><h4>Vocabulary</h4><span>One row per word</span></div>
+        <VocabularyTable key={`${storyVocabDraftGeneration}-${level}`} vocabulary={vocabulary.vocabulary}
+          vocabularyPinyin={vocabulary.vocabularyPinyin} vocabularyPos={vocabulary.vocabularyPos}
+          vocabularyTranslation={vocabulary.vocabularyTranslation}
+          onChangeColumn={onUpdateStoryVocabulary} />
+      </div>
+      <div className="story-learning-table-block">
+        <div className="story-learning-table-heading"><h4>Reusable phrases</h4><span>One row per phrase</span></div>
+        <PhraseTable key={`${storyPhraseDraftGeneration}-${level}`} phrases={phrases.phrases}
+          phrasesTranslation={phrases.phrasesTranslation}
+          onChangeColumn={onUpdateStoryPhrases} />
+      </div>
+    </div>
+  </section>;
+}
+
 function StoryFormActionGroup({ preparedFrameCount, frameCount, editingStoryId, onCancel }) {
   return <div className="teacher-builder-actions"><p>{preparedFrameCount}/{frameCount} frames prepared</p><div className="teacher-builder-buttons">
     {editingStoryId && <button type="button" className="btn-cancel-custom-story" onClick={onCancel}>Cancel edit</button>}
@@ -45,6 +102,7 @@ export default function StoryBuilderForm(props) {
   return <form className="custom-story-form" onSubmit={(event) => { event.preventDefault(); onSave(); }}>
     <StoryDetailsFields draft={draft} errors={validationErrors} onUpdateField={onUpdateField} onUpdateFrameCount={onUpdateFrameCount} onSetDraft={onSetDraft} />
     <StoryStatusMessages errors={validationErrors} notice={customStoryNotice} savedReviewBanner={savedReviewBanner} onGoToQuizReview={onGoToQuizReview} onDismissReview={onDismissReview} />
+    <StoryLearningContent {...props} />
     <StoryBuilderFrameEditor {...props} />
     <StoryFormActionGroup preparedFrameCount={preparedFrameCount} frameCount={draft.imageUrls.easy.length} editingStoryId={editingStoryId} onCancel={onCancel} />
   </form>;

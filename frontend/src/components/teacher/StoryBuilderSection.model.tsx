@@ -1,6 +1,13 @@
 // @ts-nocheck
-import type { CustomStoryFrame, CustomTeacherStory, StoryDifficultyLevel } from "../../utils/teacherStories";
-import { emptyCustomStoryDraft } from "./StoryBuilderSection.helpers";
+import type {
+  CustomStoryFrame,
+  CustomTeacherStory,
+  StoryDifficultyLevel,
+  StoryPhrasesByLevel,
+  StoryVocabularyByLevel,
+} from "../../utils/teacherStories";
+import { buildPhraseRows, buildVocabRows } from "../../utils/myStoriesUtils";
+import { blankStoryPhrases, blankStoryVocabulary, emptyCustomStoryDraft } from "./StoryBuilderSection.helpers";
 
 const TIER_BACKEND_FIELD: Record<
   TieredDraftField,
@@ -106,6 +113,8 @@ export function createCustomStory(
         frame.listenScript = draft.listenScripts.easy[index].trim();
       return frame;
     }),
+    storyVocabulary: draft.storyVocabulary,
+    storyPhrases: draft.storyPhrases,
     ...(draft.lessonNumber.trim() ? { lessonNumber: Number(draft.lessonNumber) } : {}),
     ...(draft.lessonSubOrder.trim() ? { lessonSubOrder: Number(draft.lessonSubOrder) } : {}),
   };
@@ -117,6 +126,77 @@ export function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStory
   // fall back to the mode default if the story somehow has no frames at all.
   const frameCount = story.frames.length || 6;
   const frames = Array.from({ length: frameCount }, (_, index) => story.frames[index]);
+
+  const aggregateVocabulary = (): StoryVocabularyByLevel => {
+    const result = blankStoryVocabulary();
+    (['easy', 'medium', 'hard'] as const).forEach((level) => {
+      const seen = new Set<string>();
+      const rows = frames.flatMap((frame) => {
+        const suffix = level === 'easy' ? '' : level[0].toUpperCase() + level.slice(1);
+        return buildVocabRows(
+          (frame?.[`vocabulary${suffix}`] as string | undefined) || '',
+          (frame?.[`vocabularyPinyin${suffix}`] as string | undefined) || '',
+          (frame?.[`vocabularyPos${suffix}`] as string | undefined) || '',
+          (frame?.[`vocabularyTranslation${suffix}`] as string | undefined) || '',
+        );
+      }).filter((row) => {
+        const key = row.word.trim();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      result[level] = {
+        vocabulary: rows.map((row) => row.word).join(', '),
+        vocabularyPinyin: rows.map((row) => row.pinyin).join(', '),
+        vocabularyPos: rows.map((row) => row.pos).join(', '),
+        vocabularyTranslation: rows.map((row) => row.translation).join(', '),
+      };
+    });
+    return result;
+  };
+
+  const aggregatePhrases = (): StoryPhrasesByLevel => {
+    const result = blankStoryPhrases();
+    (['easy', 'medium', 'hard'] as const).forEach((level) => {
+      const seen = new Set<string>();
+      const rows = frames.flatMap((frame) => {
+        const suffix = level === 'easy' ? '' : level[0].toUpperCase() + level.slice(1);
+        return buildPhraseRows(
+          (frame?.[`phrases${suffix}`] as string | undefined) || '',
+          (frame?.[`phrasesTranslation${suffix}`] as string | undefined) || '',
+        );
+      }).filter((row) => {
+        const key = row.phrase.trim();
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      result[level] = {
+        phrases: rows.map((row) => row.phrase).join(', '),
+        phrasesTranslation: rows.map((row) => row.translation).join(', '),
+      };
+    });
+    return result;
+  };
+
+  const aggregatedVocabulary = aggregateVocabulary();
+  const storyVocabulary = story.storyVocabulary
+    ? (Object.fromEntries(
+        (['easy', 'medium', 'hard'] as const).map((level) => [
+          level,
+          { ...aggregatedVocabulary[level], ...(story.storyVocabulary?.[level] || {}) },
+        ]),
+      ) as StoryVocabularyByLevel)
+    : aggregatedVocabulary;
+  const aggregatedPhrases = aggregatePhrases();
+  const storyPhrases = story.storyPhrases
+    ? (Object.fromEntries(
+        (['easy', 'medium', 'hard'] as const).map((level) => [
+          level,
+          { ...aggregatedPhrases[level], ...(story.storyPhrases?.[level] || {}) },
+        ]),
+      ) as StoryPhrasesByLevel)
+    : aggregatedPhrases;
 
   const tiersFor = (field: TieredDraftField): Record<StoryDifficultyLevel, string[]> => {
     const backendFields = TIER_BACKEND_FIELD[field];
@@ -140,6 +220,8 @@ export function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStory
     lessonNumber: story.lessonNumber != null ? String(story.lessonNumber) : "",
     lessonSubOrder: story.lessonSubOrder != null ? String(story.lessonSubOrder) : "",
     activeLevel: "easy",
+    storyVocabulary,
+    storyPhrases,
     imageUrls: tiersFor("imageUrls"),
     prompts: tiersFor("prompts"),
     vocabulary: tiersFor("vocabulary"),

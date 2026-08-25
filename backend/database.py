@@ -136,6 +136,8 @@ def row_to_custom_story(row: dict) -> dict:
         "id": row["id"],
         "title": row["title"],
         "frames": row["frames"] or [],
+        "storyVocabulary": row.get("story_vocabulary"),
+        "storyPhrases": row.get("story_phrases"),
         "published": bool(row["published"]),
         "lessonNumber": row["lesson_number"],
         "lessonSubOrder": row.get("lesson_sub_order"),

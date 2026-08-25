@@ -3,6 +3,24 @@ export interface VocabGroup {
   words: string[];
 }
 
+export type StoryDifficultyLevel = "easy" | "medium" | "hard";
+
+/** Learning content shared by every scene in a story tier. */
+export interface StoryVocabulary {
+  vocabulary: string;
+  vocabularyPinyin: string;
+  vocabularyPos: string;
+  vocabularyTranslation: string;
+}
+
+export interface StoryPhrases {
+  phrases: string;
+  phrasesTranslation: string;
+}
+
+export type StoryVocabularyByLevel = Record<StoryDifficultyLevel, StoryVocabulary>;
+export type StoryPhrasesByLevel = Record<StoryDifficultyLevel, StoryPhrases>;
+
 export interface CustomStoryFrame {
   imageUrl: string;
   prompt: string;
@@ -81,6 +99,10 @@ export interface CustomTeacherStory {
   id: string;
   title: string;
   frames: CustomStoryFrame[];
+  /** Canonical story-wide vocabulary, keyed by difficulty tier. */
+  storyVocabulary?: StoryVocabularyByLevel;
+  /** Canonical story-wide reusable phrases, keyed by difficulty tier. */
+  storyPhrases?: StoryPhrasesByLevel;
   published?: boolean;
   lessonNumber?: number | null;
   /** Position within its lesson (1, 2, 3...) for the in-lesson sequential
@@ -101,6 +123,3 @@ export interface CustomTeacherStory {
    * utils/quizPendingApprovals.ts. Not yet published; survives a reload. */
   quizPendingApprovals?: Record<string, unknown>;
 }
-
-export type StoryDifficultyLevel = "easy" | "medium" | "hard";
-

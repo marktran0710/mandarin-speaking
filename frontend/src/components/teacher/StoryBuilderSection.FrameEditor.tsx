@@ -2,10 +2,7 @@
 import React from "react";
 import { resolveImageUrl } from "../../utils/teacherStories";
 import { splitScriptIntoChunks } from "../../utils/scriptAlignment";
-import VocabularyTable from "../VocabularyTable";
-import PhraseTable from "../PhraseTable";
-import VocabGroupEditor from "../VocabGroupEditor";
-import { GRAMMAR_CANVAS_ENABLED, PHRASE_COUNT_BY_LEVEL, STORY_FRAME_GUIDES } from "./StoryBuilderSection.helpers";
+import { STORY_FRAME_GUIDES } from "./StoryBuilderSection.helpers";
 
 function FramePreview({ draft, index, imageUrl, onPaste }) {
   const guide = STORY_FRAME_GUIDES[index];
@@ -25,26 +22,9 @@ function FramePreview({ draft, index, imageUrl, onPaste }) {
   </div>;
 }
 
-function SentenceActionGroup({ draft, index, vocabFillLoadingIndex, phraseFillLoadingIndex, onFillVocab, onFillPhrases }) {
-  const count = PHRASE_COUNT_BY_LEVEL[draft.activeLevel];
-  const hasSentence = Boolean(draft.suggestedAnswers[draft.activeLevel][index]?.trim());
-  return <div className="teacher-sentence-tools">
-    <button type="button" className="btn-vocab-autofill-sm" disabled={!hasSentence || vocabFillLoadingIndex === index}
-      title="Fill the vocabulary table from this sentence" onClick={() => onFillVocab(index)}>
-      {vocabFillLoadingIndex === index ? "Filling…" : "✨ Fill vocab"}
-    </button>
-    <button type="button" className="btn-vocab-autofill-sm" disabled={!hasSentence || phraseFillLoadingIndex === index}
-      title={`Generate ${count} phrase${count > 1 ? "s" : ""} from this sentence`} onClick={() => onFillPhrases(index)}>
-      {phraseFillLoadingIndex === index ? "Generating…" : `✨ +${count} phrase${count > 1 ? "s" : ""}`}
-    </button>
-  </div>;
-}
-
 function StoryFrameFields(props) {
-  const { draft, index, level, frameError, isExampleFrame, updateDraftFrame, updateDraftGroups,
-    onUploadImage, onUploadAudio, onFillVocab, onFillPhrases, vocabDraftGeneration,
-    phraseDraftGeneration, vocabFillLoadingIndex, phraseFillLoadingIndex, vocabFillError,
-    phraseFillError, recordingFrameIndex, recordingSeconds, onStartRecording, onStopRecording } = props;
+  const { draft, index, level, frameError, updateDraftFrame,
+    onUploadImage, onUploadAudio, recordingFrameIndex, recordingSeconds, onStartRecording, onStopRecording } = props;
   const imageUrl = draft.imageUrls[level][index];
   const chunks = splitScriptIntoChunks(draft.suggestedAnswers[level][index]);
   return <div className="teacher-frame-fields">
@@ -56,26 +36,17 @@ function StoryFrameFields(props) {
     <label className="teacher-file-upload">Upload from computer
       <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={(event) => onUploadImage(index, event.target.files?.[0])} />
     </label>
-    <VocabularyTable key={`${vocabDraftGeneration}-${index}-${level}`} vocabulary={draft.vocabulary[level][index] ?? ""}
-      vocabularyPinyin={draft.vocabularyPinyin[level][index] ?? ""} vocabularyPos={draft.vocabularyPos[level][index] ?? ""}
-      vocabularyTranslation={draft.vocabularyTranslation[level][index] ?? ""} onChangeColumn={(field, value) => updateDraftFrame(field, index, value)} />
-    <PhraseTable key={`${phraseDraftGeneration}-phrases-${index}-${level}`} phrases={draft.phrases[level][index] ?? ""}
-      phrasesTranslation={draft.phrasesTranslation[level][index] ?? ""} onChangeColumn={(field, value) => updateDraftFrame(field, index, value)} />
     <>
       <label>Script
         <textarea value={draft.suggestedAnswers[level][index] ?? ""} onChange={(event) => updateDraftFrame("suggestedAnswers", index, event.target.value)}
           rows={2} placeholder="Write the sentence students should say. Their voice transcript will be compared with this script." />
       </label>
       {chunks.length > 1 && <p className="script-chunk-preview"><span className="script-chunk-preview-lead">Auto-detected parts (edit punctuation above to adjust):</span>{chunks.map((chunk, chunkIndex) => <span key={chunkIndex} className="script-chunk-preview-chip">{chunk}</span>)}</p>}
-      <SentenceActionGroup draft={draft} index={index} vocabFillLoadingIndex={vocabFillLoadingIndex} phraseFillLoadingIndex={phraseFillLoadingIndex} onFillVocab={onFillVocab} onFillPhrases={onFillPhrases} />
-      {vocabFillError && vocabFillLoadingIndex === null && <span className="teacher-form-error">{vocabFillError}</span>}
-      {phraseFillError && phraseFillLoadingIndex === null && <span className="teacher-form-error">{phraseFillError}</span>}
       <label className="teacher-file-upload">Upload teacher reference audio (optional)
         <input type="file" accept="audio/mpeg,audio/wav,audio/webm,audio/ogg" onChange={(event) => onUploadAudio(index, event.target.files?.[0])} />
       </label>
       {draft.listenAudioSources[level][index] === "teacher" && draft.listenAudioUrls[level][index]?.trim() && <span className="teacher-form-hint">Teacher reference ready — student scoring will use this recording.</span>}
     </>
-    {GRAMMAR_CANVAS_ENABLED && <VocabGroupEditor vocabulary={draft.vocabulary[level][index]} groups={draft.vocabularyGroups[index]} onChange={(groups) => updateDraftGroups(index, groups)} />}
   </div>;
 }
 

@@ -28,6 +28,8 @@ JSON_COLUMNS = {
     "quiz_approved_snapshot",
     "quiz_pending_approvals",
     "rubric_scores",
+    "story_vocabulary",
+    "story_phrases",
 }
 COLUMNS = (
     "id",
@@ -42,11 +44,13 @@ COLUMNS = (
     "quiz_pending_approvals",
     "lesson_sub_order",
     "rubric_scores",
+    "story_vocabulary",
+    "story_phrases",
 )
 
 def _values(material: dict) -> tuple[object, ...]:
     return tuple(
-        Jsonb(material[column]) if column in JSON_COLUMNS and material[column] is not None else material[column]
+        Jsonb(material[column]) if column in JSON_COLUMNS and material.get(column) is not None else material.get(column)
         for column in COLUMNS
     )
 

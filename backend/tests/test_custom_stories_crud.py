@@ -13,6 +13,20 @@ STORY = {
         {"imageUrl": "", "prompt": "這是我的房間。", "vocabulary": "房間, 桌子"},
         {"imageUrl": "", "prompt": "房間裡有一張床。", "vocabulary": "床"},
     ],
+    "storyVocabulary": {
+        "easy": {
+            "vocabulary": "房間, 桌子, 床",
+            "vocabularyPinyin": "fángjiān, zhuōzi, chuáng",
+            "vocabularyPos": "N, N, N",
+            "vocabularyTranslation": "room, table, bed",
+        }
+    },
+    "storyPhrases": {
+        "easy": {
+            "phrases": "在房間裡",
+            "phrasesTranslation": "in the room",
+        }
+    },
     "published": True,
     "lessonNumber": 5,
 }
@@ -28,7 +42,26 @@ def test_create_then_list_round_trips(client):
     assert saved["lessonNumber"] == 5
     assert len(saved["frames"]) == 2
     assert saved["frames"][1]["prompt"] == "房間裡有一張床。"
+    assert saved["storyVocabulary"] == STORY["storyVocabulary"]
+    assert saved["storyPhrases"] == STORY["storyPhrases"]
     assert saved["quizExclusions"] == []
+
+
+def test_create_without_story_learning_content_keeps_legacy_shape(client):
+    legacy_story = {
+        key: value
+        for key, value in STORY.items()
+        if key not in {"storyVocabulary", "storyPhrases"}
+    }
+    legacy_story["id"] = "legacy-story"
+
+    assert client.post("/api/custom-stories", json=legacy_story).status_code == 200
+    saved = next(
+        story for story in client.get("/api/custom-stories").json()
+        if story["id"] == "legacy-story"
+    )
+    assert saved["storyVocabulary"] is None
+    assert saved["storyPhrases"] is None
 
 
 def test_resave_preserves_quiz_exclusions(client):

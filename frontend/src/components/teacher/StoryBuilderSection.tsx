@@ -7,44 +7,26 @@ import {
   listCustomStories,
 } from "../../services/database";
 import {
-  type CustomStoryFrame,
   CustomTeacherStory,
   type StoryDifficultyLevel,
   VocabGroup,
   loadCustomStories,
-  resolveImageUrl,
   saveCustomStories,
-  storyToTopic,
 } from "../../utils/teacherStories";
 import { storyQuizExclusions } from "../../utils/quizExclusions";
 import { buildApprovedMaterial, storyQuizNeedsReview } from "../../utils/quizApprovedMaterial";
 import { exportStoryFile, readStoryImportFile } from "../../utils/storyPortability";
-import { splitScriptIntoChunks } from "../../utils/scriptAlignment";
-import { convertBlobToWav } from "../../utils/audio";
-import VocabularyTable from "../VocabularyTable";
-import PhraseTable from "../PhraseTable";
-import VocabGroupEditor from "../VocabGroupEditor";
 import {
-  buildPhraseRows,
-  buildVocabRows,
   clearFrameError,
-  frameCountForMode,
   getAudioUploadError,
   getImageUploadError,
   hasCustomStoryErrors,
-  mergePhraseSuggestions,
-  mergeVocabSuggestions,
   resizeToCount,
-  type PhraseSuggestion,
-  type VocabWordSuggestion,
 } from "../../utils/myStoriesUtils";
 
 import {
   BACKEND_URL,
   GRAMMAR_CANVAS_ENABLED,
-  PHRASE_COUNT_BY_LEVEL,
-  STORY_FRAME_GUIDES,
-  blankTiers,
   emptyCustomStoryDraft,
   type CustomStoryValidationErrors,
   type TieredDraftField,
@@ -81,6 +63,12 @@ export default function StoryBuilderSection({
   const [phraseDraftGeneration, setPhraseDraftGeneration] = useState(0);
   const [phraseFillLoadingIndex, setPhraseFillLoadingIndex] = useState<number | null>(null);
   const [phraseFillError, setPhraseFillError] = useState("");
+  const [storyVocabDraftGeneration, setStoryVocabDraftGeneration] = useState(0);
+  const [storyPhraseDraftGeneration, setStoryPhraseDraftGeneration] = useState(0);
+  const [storyVocabFillLoading, setStoryVocabFillLoading] = useState(false);
+  const [storyPhraseFillLoading, setStoryPhraseFillLoading] = useState(false);
+  const [storyVocabFillError, setStoryVocabFillError] = useState("");
+  const [storyPhraseFillError, setStoryPhraseFillError] = useState("");
   // Frame index currently being recorded via the mic (null when idle) — a
   // teacher's own reading of the listening passage, as an alternative to
   // uploading a file or falling back to TTS.
@@ -188,6 +176,36 @@ export default function StoryBuilderSection({
     clearNotice();
   };
 
+  const updateStoryVocabulary = (field: string, value: string) => {
+    setCustomDraft((draft) => ({
+      ...draft,
+      storyVocabulary: {
+        ...draft.storyVocabulary,
+        [draft.activeLevel]: {
+          ...draft.storyVocabulary[draft.activeLevel],
+          [field]: value,
+        },
+      },
+    }));
+    setStoryVocabFillError("");
+    clearNotice();
+  };
+
+  const updateStoryPhrases = (field: string, value: string) => {
+    setCustomDraft((draft) => ({
+      ...draft,
+      storyPhrases: {
+        ...draft.storyPhrases,
+        [draft.activeLevel]: {
+          ...draft.storyPhrases[draft.activeLevel],
+          [field]: value,
+        },
+      },
+    }));
+    setStoryPhraseFillError("");
+    clearNotice();
+  };
+
   const {
     handlePasteFrameImage,
     handleUploadFrameImage,
@@ -196,6 +214,8 @@ export default function StoryBuilderSection({
     handleStopFrameRecording,
     handleFillVocabFromSentence,
     handleFillPhrasesFromSentence,
+    handleFillStoryVocab,
+    handleFillStoryPhrases,
   } = useStoryBuilderFrameActions({
     customDraft,
     updateDraftFrame,
@@ -207,6 +227,12 @@ export default function StoryBuilderSection({
     setVocabFillLoadingIndex,
     setPhraseFillError,
     setPhraseFillLoadingIndex,
+    setStoryVocabDraftGeneration,
+    setStoryPhraseDraftGeneration,
+    setStoryVocabFillError,
+    setStoryVocabFillLoading,
+    setStoryPhraseFillError,
+    setStoryPhraseFillLoading,
     setRecordingFrameIndex,
     setRecordingSeconds,
   });
@@ -435,6 +461,16 @@ export default function StoryBuilderSection({
           onUploadAudio={handleUploadFrameAudio}
           onFillVocab={handleFillVocabFromSentence}
           onFillPhrases={handleFillPhrasesFromSentence}
+          onUpdateStoryVocabulary={updateStoryVocabulary}
+          onUpdateStoryPhrases={updateStoryPhrases}
+          onFillStoryVocab={handleFillStoryVocab}
+          onFillStoryPhrases={handleFillStoryPhrases}
+          storyVocabDraftGeneration={storyVocabDraftGeneration}
+          storyPhraseDraftGeneration={storyPhraseDraftGeneration}
+          storyVocabFillLoading={storyVocabFillLoading}
+          storyPhraseFillLoading={storyPhraseFillLoading}
+          storyVocabFillError={storyVocabFillError}
+          storyPhraseFillError={storyPhraseFillError}
           vocabDraftGeneration={vocabDraftGeneration}
           phraseDraftGeneration={phraseDraftGeneration}
           vocabFillLoadingIndex={vocabFillLoadingIndex}

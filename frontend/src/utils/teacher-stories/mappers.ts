@@ -331,6 +331,46 @@ export function storyToTopic(
     }
   });
 
+  // New stories keep learning content at story scope. Put that shared pool
+  // into the quiz's single logical scene so the existing quiz pipeline can
+  // stay scene-aware without making teachers repeat rows six times.
+  const storyVocabulary = story.storyVocabulary?.[difficultyLevel];
+  const storyPhrases = story.storyPhrases?.[difficultyLevel];
+  if (storyVocabulary) {
+    const words = splitCsvField(storyVocabulary.vocabulary);
+    const pinyins = splitCsvField(storyVocabulary.vocabularyPinyin).map((p) => numericToToneMarked(p));
+    const positions = splitCsvField(storyVocabulary.vocabularyPos);
+    const translations = splitCsvField(storyVocabulary.vocabularyTranslation);
+    vocabulary[0] = words;
+    quizVocabulary[0] = words;
+    if (pinyins.length > 0) {
+      vocabularyPinyin[0] = pinyins;
+      quizVocabularyPinyin[0] = pinyins;
+    }
+    if (positions.length > 0) {
+      vocabularyPos[0] = positions;
+      quizVocabularyPos[0] = positions;
+    }
+    if (translations.length > 0) {
+      vocabularyTranslation[0] = translations;
+      quizVocabularyTranslation[0] = words.map((word, index) =>
+        (source === "approved" ? quizApprovedByWord?.get(word)?.translation?.trim() : undefined) ||
+        translations[index] || "",
+      );
+    }
+    if (source === "approved") {
+      quizVocabularyDistractors[0] = words.map((word) => quizApprovedByWord?.get(word)?.distractors ?? []);
+      quizVocabularyCloze[0] = words.map((word) => quizApprovedByWord?.get(word)?.cloze ?? []);
+      quizVocabularySynonym[0] = words.map((word) => quizApprovedByWord?.get(word)?.synonym ?? []);
+    }
+  }
+  if (storyPhrases) {
+    const storyPhraseList = splitCsvField(storyPhrases.phrases);
+    const storyPhraseTranslations = splitCsvField(storyPhrases.phrasesTranslation);
+    if (storyPhraseList.length > 0) phrases[0] = storyPhraseList;
+    if (storyPhraseTranslations.length > 0) phrasesTranslation[0] = storyPhraseTranslations;
+  }
+
   // Easy keeps the story's original id (no behavior change for existing
   // single-tier stories); Medium/Hard get their own id so vocab-quiz
   // completion, scene recordings, and submissions track independently per

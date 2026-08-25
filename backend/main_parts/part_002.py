@@ -179,6 +179,12 @@ class CustomStoryRequest(BaseModel):
     id: str
     title: str
     frames: List[CustomStoryFrameRequest]
+    # Canonical vocabulary and reusable phrases for the complete story,
+    # keyed by difficulty tier (easy/medium/hard). These remain optional so
+    # stories authored before story-level learning content was introduced
+    # can still be read and re-saved unchanged.
+    storyVocabulary: Optional[Dict[str, Dict[str, str]]] = None
+    storyPhrases: Optional[Dict[str, Dict[str, str]]] = None
     published: bool = False
     lessonNumber: Optional[int] = None
     lessonSubOrder: Optional[int] = None
