@@ -160,8 +160,47 @@
     flex-direction: column;
   }
 
+  .story-learning-launcher {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .story-learning-open-btn {
+    width: 100%;
+  }
+
+  .story-learning-content-header-actions {
+    align-items: stretch;
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .story-learning-content-actions {
     justify-content: flex-start;
+  }
+
+  .story-learning-modal-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .story-learning-modal {
+    width: 100%;
+    max-height: 94vh;
+  }
+
+  .story-learning-content {
+    max-height: 94vh;
+    border-radius: var(--clay-radius-xl) var(--clay-radius-xl) 0 0;
+  }
+
+  .story-learning-content-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .story-learning-content-actions .btn-vocab-autofill-sm {
+    min-height: 40px;
   }
 
   /* The vocab table's 5 proportional columns get too cramped for their

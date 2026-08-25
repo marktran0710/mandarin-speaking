@@ -194,8 +194,10 @@ describe("TeacherDashboardPage", () => {
         `https://example.com/rain-scene-${index + 1}.jpg`,
       );
     }
+    await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
     await user.click(screen.getAllByRole("button", { name: "+ Add word" })[0]);
     await user.type(screen.getAllByLabelText("Chinese word")[0], "下雨");
+    await user.click(screen.getByRole("button", { name: "Close learning content" }));
 
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
 
@@ -221,11 +223,13 @@ describe("TeacherDashboardPage", () => {
       );
     }
 
+    await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
     await user.click(screen.getAllByRole("button", { name: "+ Add word" })[0]);
     await user.type(screen.getAllByLabelText("Chinese word")[0], "餐廳");
     await user.type(screen.getAllByLabelText("Pinyin")[0], "cāntīng");
     await user.selectOptions(screen.getAllByLabelText("Part of speech")[0], "N");
     await user.type(screen.getAllByLabelText("English translation")[0], "restaurant");
+    await user.click(screen.getByRole("button", { name: "Close learning content" }));
 
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
 
@@ -254,14 +258,14 @@ describe("TeacherDashboardPage", () => {
 
     // Teacher already typed one word in by hand, with its own translation —
     // autofill must fill the blank pinyin cell but leave "diner" untouched.
-    await user.click(screen.getAllByRole("button", { name: "+ Add word" })[0]);
-    await user.type(screen.getAllByLabelText("Chinese word")[0], "餐廳");
-    await user.type(screen.getAllByLabelText("English translation")[0], "diner");
-
     await user.type(
       screen.getAllByLabelText("Script")[0],
       "我在餐廳吃飯。",
     );
+    await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
+    await user.click(screen.getAllByRole("button", { name: "+ Add word" })[0]);
+    await user.type(screen.getAllByLabelText("Chinese word")[0], "餐廳");
+    await user.type(screen.getAllByLabelText("English translation")[0], "diner");
     await user.click(
       screen.getByRole("button", { name: "✨ Fill vocab from story scripts" }),
     );
@@ -281,6 +285,7 @@ describe("TeacherDashboardPage", () => {
     renderDashboard();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
 
     expect(
       screen.getByRole("button", { name: "✨ Fill vocab from story scripts" }),
@@ -303,6 +308,7 @@ describe("TeacherDashboardPage", () => {
       screen.getAllByLabelText("Script")[0],
       "我想要在餐廳吃飯。",
     );
+    await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
 
     // Easy tier (the default) asks for 1 phrase.
     const generateButton = screen.getAllByRole("button", {
@@ -328,6 +334,7 @@ describe("TeacherDashboardPage", () => {
     renderDashboard();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
 
     expect(
       screen.getAllByRole("button", { name: "✨ +1 phrase" })[0],

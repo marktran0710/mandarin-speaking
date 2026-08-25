@@ -1,11 +1,11 @@
 // @ts-nocheck
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import StoryBuilderFrameEditor from "./StoryBuilderSection.FrameEditor";
 import VocabularyTable from "../VocabularyTable";
 import PhraseTable from "../PhraseTable";
 import { PHRASE_COUNT_BY_LEVEL } from "./StoryBuilderSection.helpers";
 
-function StoryDetailsFields({ draft, errors, onUpdateField, onUpdateFrameCount, onSetDraft }) {
+function StoryDetailsFields({ draft, errors, onUpdateField, onUpdateFrameCount, onSetDraft, onOpenLearningContent, learningContentTriggerRef }) {
   return <>
     <div className="teacher-form-grid">
       <label className="teacher-field-span2">Story title
@@ -21,6 +21,15 @@ function StoryDetailsFields({ draft, errors, onUpdateField, onUpdateFrameCount, 
       </select></label>
     </div>
     {draft.activeLevel !== "easy" && <p className="teacher-tier-hint">Editing the {draft.activeLevel === "medium" ? "Medium" : "Hard"} version of each scene below — frame count stays shared with Easy. Any image or text left blank here falls back to its Easy version for students.</p>}
+    <div className="story-learning-launcher">
+      <div>
+        <strong>Story-wide vocabulary & phrases</strong>
+        <span>Shared across every scene in the selected level</span>
+      </div>
+      <button ref={learningContentTriggerRef} type="button" className="story-learning-open-btn" onClick={onOpenLearningContent}>
+        Edit learning content <span aria-hidden="true">↗</span>
+      </button>
+    </div>
   </>;
 }
 
@@ -47,26 +56,31 @@ function StoryLearningContent({
   storyPhraseFillLoading,
   storyVocabFillError,
   storyPhraseFillError,
+  onClose,
+  closeButtonRef,
 }) {
   const level = draft.activeLevel;
   const vocabulary = draft.storyVocabulary[level];
   const phrases = draft.storyPhrases[level];
   const phraseCount = PHRASE_COUNT_BY_LEVEL[level];
   const hasScripts = draft.suggestedAnswers[level].some((script) => script.trim());
-  return <section className="story-learning-content" aria-labelledby="story-learning-content-title">
+  return <div className="story-learning-content" aria-labelledby="story-learning-content-title">
     <div className="story-learning-content-header">
       <div>
         <p className="stories-kicker">Shared learning content</p>
         <h3 id="story-learning-content-title">Vocabulary & phrases for the whole story</h3>
         <p className="teacher-form-note">These lists are shared across every scene in the {level} version. Add them once here instead of repeating them scene by scene.</p>
       </div>
-      <div className="story-learning-content-actions">
-        <button type="button" className="btn-vocab-autofill-sm" disabled={!hasScripts || storyVocabFillLoading} onClick={onFillStoryVocab}>
-          {storyVocabFillLoading ? "Filling…" : "✨ Fill vocab from story scripts"}
-        </button>
-        <button type="button" className="btn-vocab-autofill-sm" disabled={!hasScripts || storyPhraseFillLoading} onClick={onFillStoryPhrases}>
-          {storyPhraseFillLoading ? "Generating…" : `✨ +${phraseCount} phrase${phraseCount > 1 ? "s" : ""}`}
-        </button>
+      <div className="story-learning-content-header-actions">
+        <div className="story-learning-content-actions">
+          <button type="button" className="btn-vocab-autofill-sm" disabled={!hasScripts || storyVocabFillLoading} onClick={onFillStoryVocab}>
+            {storyVocabFillLoading ? "Filling…" : "✨ Fill vocab from story scripts"}
+          </button>
+          <button type="button" className="btn-vocab-autofill-sm" disabled={!hasScripts || storyPhraseFillLoading} onClick={onFillStoryPhrases}>
+            {storyPhraseFillLoading ? "Generating…" : `✨ +${phraseCount} phrase${phraseCount > 1 ? "s" : ""}`}
+          </button>
+        </div>
+        <button ref={closeButtonRef} type="button" className="story-learning-close-btn" aria-label="Close learning content" onClick={onClose}>×</button>
       </div>
     </div>
     {storyVocabFillError && <p className="teacher-form-error" role="alert">{storyVocabFillError}</p>}
@@ -86,7 +100,7 @@ function StoryLearningContent({
           onChangeColumn={onUpdateStoryPhrases} />
       </div>
     </div>
-  </section>;
+  </div>;
 }
 
 function StoryFormActionGroup({ preparedFrameCount, frameCount, editingStoryId, onCancel }) {
@@ -99,11 +113,58 @@ function StoryFormActionGroup({ preparedFrameCount, frameCount, editingStoryId, 
 export default function StoryBuilderForm(props) {
   const { draft, validationErrors, customStoryNotice, savedReviewBanner, preparedFrameCount, editingStoryId,
     onSave, onUpdateField, onUpdateFrameCount, onSetDraft, onGoToQuizReview, onDismissReview, onCancel } = props;
+  const [learningContentOpen, setLearningContentOpen] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const learningContentTriggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!learningContentOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const dialog = document.querySelector<HTMLElement>("[data-story-learning-dialog]");
+    const getFocusable = () => dialog
+      ? Array.from(dialog.querySelectorAll<HTMLElement>("button, input, select, textarea, [tabindex]:not([tabindex='-1'])"))
+      : [];
+    closeButtonRef.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setLearningContentOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = getFocusable();
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previouslyFocused?.focus?.();
+    };
+  }, [learningContentOpen]);
+
+  const closeLearningContent = () => {
+    setLearningContentOpen(false);
+    requestAnimationFrame(() => learningContentTriggerRef.current?.focus());
+  };
+
   return <form className="custom-story-form" onSubmit={(event) => { event.preventDefault(); onSave(); }}>
-    <StoryDetailsFields draft={draft} errors={validationErrors} onUpdateField={onUpdateField} onUpdateFrameCount={onUpdateFrameCount} onSetDraft={onSetDraft} />
+    <StoryDetailsFields draft={draft} errors={validationErrors} onUpdateField={onUpdateField} onUpdateFrameCount={onUpdateFrameCount} onSetDraft={onSetDraft} onOpenLearningContent={() => setLearningContentOpen(true)} learningContentTriggerRef={learningContentTriggerRef} />
     <StoryStatusMessages errors={validationErrors} notice={customStoryNotice} savedReviewBanner={savedReviewBanner} onGoToQuizReview={onGoToQuizReview} onDismissReview={onDismissReview} />
-    <StoryLearningContent {...props} />
     <StoryBuilderFrameEditor {...props} />
     <StoryFormActionGroup preparedFrameCount={preparedFrameCount} frameCount={draft.imageUrls.easy.length} editingStoryId={editingStoryId} onCancel={onCancel} />
+    {learningContentOpen && <div className="story-learning-modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) closeLearningContent(); }}>
+      <div className="story-learning-modal" data-story-learning-dialog role="dialog" aria-modal="true" aria-labelledby="story-learning-content-title" onMouseDown={(event) => event.stopPropagation()}>
+        <StoryLearningContent {...props} onClose={closeLearningContent} closeButtonRef={closeButtonRef} />
+      </div>
+    </div>}
   </form>;
 }
