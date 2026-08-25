@@ -295,33 +295,26 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
         {/* Footer */}
         <div className="ts-card-footer">
           {unlocked ? (
-            <button
-              type="button"
-              className={`ts-card-btn${needsQuiz ? " ts-card-btn-quiz" : ""}`}
-              onClick={() => {
-                const options = needsQuiz ? { startAtQuiz: true } : undefined;
-                if (story && onLevelSelect) {
-                  onLevelSelect(t, activeLevel, options);
-                  return;
-                }
-                onTopicSelect?.(activeTopic, options);
-              }}
-            >
-              {needsQuiz ? (
-                <BiLabel
-                  zh={`完成 ${LEVEL_COPY[activeLevel].zh} 詞彙測驗`}
-                  pinyin={`Wánchéng ${LEVEL_COPY[activeLevel].pinyin} cíhuì cèyàn`}
-                  en={`Complete ${LEVEL_COPY[activeLevel].en} vocabulary quiz`}
-                />
-              ) : (
+            needsQuiz ? null : (
+              <button
+                type="button"
+                className="ts-card-btn"
+                onClick={() => {
+                  if (story && onLevelSelect) {
+                    onLevelSelect(t, activeLevel);
+                    return;
+                  }
+                  onTopicSelect?.(activeTopic);
+                }}
+              >
                 <BiLabel
                   zh={activeLevelDone ? `複習 ${LEVEL_COPY[activeLevel].zh} 口說練習` : `開始 ${LEVEL_COPY[activeLevel].zh} 口說練習`}
                   pinyin={activeLevelDone ? `Fùxí ${LEVEL_COPY[activeLevel].pinyin} kǒushuō liànxí` : `Kāishǐ ${LEVEL_COPY[activeLevel].pinyin} kǒushuō liànxí`}
                   en={`${activeLevelDone ? "Review" : "Start"} ${LEVEL_COPY[activeLevel].en} speaking practice`}
                 />
-              )}
-              <span className="ts-card-btn-arrow">→</span>
-            </button>
+                <span className="ts-card-btn-arrow">→</span>
+              </button>
+            )
           ) : (
             <span className="ts-card-btn ts-card-btn-locked" aria-disabled="true">
               🔒{" "}
