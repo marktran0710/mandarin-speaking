@@ -326,3 +326,424 @@
   font-size: var(--text-sm);
 }
 
+/* ────────────────────────────────────────────────────────────────────────
+   Student story practice — focused lesson workspace
+
+   The study step used to read as a tall stack of tinted cards. This version
+   treats it as one calm lesson surface: a compact step rail, a bounded
+   visual, then two reference panels that can be scanned side by side. The
+   selectors are scoped to the study workspace so the recording, feedback,
+   quiz and teacher-facing views keep their existing behavior.
+   ──────────────────────────────────────────────────────────────────────── */
+.story-session-main {
+  min-width: 0;
+}
+
+.practice-stage {
+  border: 1px solid color-mix(in srgb, var(--clay-primary) 20%, var(--clay-hairline));
+  border-radius: 24px;
+  background: var(--clay-surface-card);
+  box-shadow: 0 18px 45px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+}
+
+.scene-step-tabs {
+  min-height: 62px;
+  padding: 0 24px;
+  gap: 28px;
+  background: var(--clay-surface-card);
+  border-bottom: 1px solid var(--clay-hairline);
+}
+
+.scene-step-tab {
+  position: relative;
+  min-height: 62px;
+  margin: 0;
+  padding: 12px 0 10px;
+  gap: 9px;
+  color: var(--clay-muted);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+.scene-step-tab::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.45;
+}
+
+.scene-step-tab.active::before,
+.scene-step-tab.scene-step-done::before {
+  border-color: var(--clay-primary);
+  background: var(--clay-primary);
+  opacity: 1;
+}
+
+.scene-step-tab.active {
+  color: var(--clay-ink);
+  border-color: var(--clay-primary);
+}
+
+.scene-step-tab.scene-step-done {
+  color: var(--clay-primary-active);
+  border-color: transparent;
+}
+
+.scene-step-check {
+  display: none;
+}
+
+.practice-stage > .practice-workspace {
+  padding: 24px;
+  gap: 22px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.practice-workspace-study {
+  gap: 22px;
+}
+
+.practice-workspace-study .practice-scene-col {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--clay-surface-soft);
+}
+
+.practice-workspace-study .practice-scene-image {
+  aspect-ratio: 16 / 8.4;
+  min-height: 0;
+  max-height: 390px;
+  border-radius: 18px;
+  background: var(--clay-surface-soft);
+}
+
+.practice-workspace-study .practice-scene-image img {
+  object-fit: cover;
+}
+
+.practice-workspace-study .practice-scene-chip {
+  display: inline-flex;
+  position: absolute;
+  z-index: 1;
+  left: 16px;
+  bottom: 16px;
+  justify-self: auto;
+  padding: 7px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  background: rgba(23, 52, 45, 0.78);
+  color: #fffdf7;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(8px);
+}
+
+.practice-study-ref {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
+  gap: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.practice-content-header {
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 13px;
+  margin: 0;
+  padding: 2px 2px 4px;
+}
+
+.practice-content-header > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+  font-size: 0;
+  font-weight: 800;
+}
+
+.practice-content-header > span::before {
+  content: "01";
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.practice-content-header h3 {
+  margin-bottom: 2px;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+
+.practice-content-header p {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--clay-muted);
+}
+
+.practice-study-block {
+  min-width: 0;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: 18px;
+  background: var(--clay-surface-card);
+  box-shadow: 0 7px 20px color-mix(in srgb, var(--clay-ink) 5%, transparent);
+}
+
+.practice-vocab-ref {
+  background: color-mix(in srgb, var(--jade-soft) 45%, var(--clay-surface-card));
+  border-color: color-mix(in srgb, var(--jade) 42%, var(--clay-hairline));
+}
+
+.practice-phrases-hint-full {
+  background: color-mix(in srgb, var(--gold-soft) 32%, var(--clay-surface-card));
+  border-color: color-mix(in srgb, var(--gold) 46%, var(--clay-hairline));
+}
+
+.practice-study-block .block-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: var(--clay-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.practice-vocab-heading {
+  color: var(--jade-deep) !important;
+}
+
+.practice-phrases-label {
+  color: var(--gold-deep) !important;
+}
+
+.scene-vocab-table-practice {
+  gap: 6px;
+}
+
+.scene-vocab-row-practice {
+  grid-template-columns: 18px minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.55fr) minmax(0, 1.2fr) 34px;
+  gap: 8px;
+  min-height: 49px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.scene-vocab-row-practice:hover {
+  border-color: color-mix(in srgb, var(--jade) 42%, var(--clay-hairline));
+}
+
+.scene-vocab-cell {
+  min-width: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.scene-vocab-hanzi {
+  color: var(--clay-ink);
+  font-size: 15px;
+}
+
+.scene-vocab-pinyin {
+  color: var(--clay-body);
+  font-size: 12px;
+}
+
+.scene-vocab-pos {
+  color: var(--clay-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.scene-vocab-meaning {
+  font-size: 12px;
+}
+
+.scene-practice-listen {
+  width: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--jade) 45%, var(--clay-hairline));
+  border-radius: 50%;
+  background: var(--clay-surface-card);
+  color: var(--jade-deep);
+  font-size: 0;
+  opacity: 1;
+}
+
+.scene-practice-listen::before {
+  content: "";
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid currentColor;
+}
+
+.scene-practice-listen.playing::before {
+  width: 8px;
+  height: 10px;
+  margin-left: 0;
+  border: 0;
+  background: linear-gradient(90deg, currentColor 0 35%, transparent 35% 65%, currentColor 65% 100%);
+}
+
+.practice-phrases-list {
+  gap: 0;
+  margin: 0;
+}
+
+.practice-phrase-row {
+  gap: 5px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--clay-hairline);
+}
+
+.practice-phrase-row:first-child {
+  padding-top: 2px;
+}
+
+.practice-phrase-row:last-child {
+  padding-bottom: 2px;
+  border-bottom: 0;
+}
+
+.practice-phrase-text {
+  color: var(--clay-ink);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.practice-phrase-translation {
+  color: var(--clay-body);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.practice-footer {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+  padding-top: 18px;
+  border-top: 1px solid var(--clay-hairline);
+}
+
+.practice-footer-status {
+  font-size: 12px;
+  color: var(--clay-muted);
+}
+
+.ui-button.btn-scene-step-continue {
+  min-width: 190px;
+  min-height: 44px;
+  border-radius: 12px;
+  background: var(--clay-primary);
+  box-shadow: 0 7px 16px color-mix(in srgb, var(--clay-primary) 24%, transparent);
+}
+
+.ui-button.btn-scene-step-continue:hover:not(:disabled) {
+  box-shadow: 0 9px 18px color-mix(in srgb, var(--clay-primary) 30%, transparent);
+}
+
+@media (max-width: 720px) {
+  .practice-stage {
+    border-radius: 18px;
+  }
+
+  .scene-step-tabs {
+    min-height: 56px;
+    padding: 0 16px;
+    gap: 20px;
+  }
+
+  .scene-step-tab {
+    min-height: 56px;
+    font-size: 12px;
+  }
+
+  .practice-stage > .practice-workspace {
+    padding: 16px;
+    gap: 18px;
+  }
+
+  .practice-workspace-study .practice-scene-image {
+    aspect-ratio: 16 / 10;
+  }
+
+  .practice-study-ref {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .practice-content-header,
+  .practice-footer {
+    grid-column: auto;
+  }
+
+  .practice-study-block {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 560px) {
+  .practice-workspace-study .practice-scene-chip {
+    left: 12px;
+    bottom: 12px;
+  }
+
+  .scene-vocab-row-practice {
+    grid-template-columns: 16px minmax(0, 1fr) 32px;
+    grid-template-areas:
+      "status hanzi mic"
+      "status pinyin mic"
+      "status pos mic"
+      "status meaning mic";
+    gap: 3px 8px;
+    padding: 9px 8px;
+  }
+
+  .scene-vocab-row-practice .scene-vocab-status { grid-area: status; }
+  .scene-vocab-row-practice .scene-vocab-hanzi { grid-area: hanzi; }
+  .scene-vocab-row-practice .scene-vocab-pinyin { grid-area: pinyin; }
+  .scene-vocab-row-practice .scene-vocab-pos { grid-area: pos; }
+  .scene-vocab-row-practice .scene-vocab-meaning { grid-area: meaning; }
+  .scene-vocab-row-practice button { grid-area: mic; justify-self: end; }
+
+  .practice-footer-actions {
+    width: 100%;
+  }
+
+  .ui-button.btn-scene-step-continue {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-step-tab,
+  .scene-vocab-row-practice,
+  .scene-practice-listen,
+  .ui-button.btn-scene-step-continue {
+    transition: none;
+  }
+}
