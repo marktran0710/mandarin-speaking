@@ -47,12 +47,6 @@ type ReplaceValue =
   | { sentence: string; distractors: string[] }
   | { synonym: string; distractors: string[] };
 
-const POOL_FIELD: Record<QuizApprovalKind, keyof CustomStoryFrame> = {
-  distractors: "vocabularyDistractors",
-  cloze: "vocabularyCloze",
-  synonym: "vocabularySynonym",
-};
-
 /** Applies a replace-in-place edit to a frame's local copy, mirroring what
  * routers/stories.py's replace_quiz_question just wrote to the database —
  * so storyToTopic recomputes with the new content without waiting on a

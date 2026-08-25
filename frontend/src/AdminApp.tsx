@@ -21,6 +21,7 @@ import AdminIrtStudentPanel from "./components/AdminIrtStudentPanel";
 import type { AudioRecord } from "./pages/MyStoriesPage";
 import TeacherPracticeDebugPage from "./pages/TeacherPracticeDebugPage";
 import ManagementShell from "./components/management/ManagementShell";
+import { isDevelopmentRuntime, isTestRuntime } from "./config/runtimeEnv";
 import "./admin.css";
 
 type Role = "Teacher" | "Student";
@@ -31,7 +32,7 @@ const ADMIN_KEY = "adminConsoleSession";
 const NAV_ITEMS = ["Admin Home", "Teachers", "Students", "IRT / Student analytics", "Practice Debug"] as const;
 
 function initialPassword() {
-  return import.meta.env.DEV ? "123456" : "";
+  return isTestRuntime() || isDevelopmentRuntime() ? "123456" : "";
 }
 
 export default function AdminApp({ embedded = false, onExit }: { embedded?: boolean; onExit?: () => void } = {}) {
@@ -54,7 +55,7 @@ export default function AdminApp({ embedded = false, onExit }: { embedded?: bool
   const [editPassword, setEditPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState("");
-  const minimumPasswordLength = import.meta.env.DEV ? 6 : 8;
+  const minimumPasswordLength = isDevelopmentRuntime() ? 6 : 8;
 
   const refresh = async () => {
     if (!canUseDatabase()) {

@@ -1,13 +1,17 @@
 import type { MeasurementEvent } from "../../utils/measurement";
+import { getBackendUrl, isTestRuntime } from "../../config/runtimeEnv";
 
-export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV && typeof window !== "undefined" ? window.location.origin : "");
+export const BACKEND_URL = getBackendUrl();
 export const REQUEST_TIMEOUT_MS = 15_000;
 export const VOCAB_GENERATION_RETRY_STATUSES = [429, 500, 502, 503, 504];
 
 function clientRoleHeader(): "student" | "teacher" | "admin" {
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
-  if (pathname.endsWith("/teacher.html")) return "teacher";
   if (pathname.endsWith("/admin.html")) return "admin";
+  if (pathname.endsWith("/teacher.html") || pathname.startsWith("/manage")) {
+    if (typeof window !== "undefined" && window.localStorage.getItem("adminConsoleSession") === "true") return "admin";
+    return "teacher";
+  }
   return "student";
 }
 
@@ -32,7 +36,7 @@ export async function fetchWithRetry(input: RequestInfo | URL, init?: RequestIni
   throw lastError;
 }
 
-export function canUseDatabase(): boolean { return Boolean(BACKEND_URL) && import.meta.env.MODE !== "test"; }
+export function canUseDatabase(): boolean { return Boolean(BACKEND_URL) && !isTestRuntime(); }
 export async function persistMeasurementEvent(event: MeasurementEvent): Promise<void> {
   if (!canUseDatabase()) return;
   const response = await fetchWithRetry(`${BACKEND_URL}/api/measurement-events`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(event) }, 1);

@@ -6,11 +6,12 @@ import { convertBlobToWav } from "../utils/audio";
 import { ensureWavBlob, formatBackendError, normalizeWavFileName, readErrorResponse } from "./voice-test/helpers";
 import VoiceTestResults from "./voice-test/VoiceTestResults";
 import type { VoiceMetrics } from "./voice-test/types";
+import { getBackendUrl as getRuntimeBackendUrl, getVoiceTestAsrModel } from "../config/runtimeEnv";
 import "../components/BiLabel.css";
 import "./VoiceTestPage.css";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || (import.meta.env.DEV && typeof window !== "undefined" ? window.location.origin : "");
-const VOICE_TEST_ASR_MODEL = import.meta.env.VITE_VOICE_TEST_ASR_MODEL || "ctwhisper";
+const BACKEND_URL = getRuntimeBackendUrl();
+const VOICE_TEST_ASR_MODEL = getVoiceTestAsrModel();
 
 export default function VoiceTestPage() {
   const [isRecording, setIsRecording] = useState(false);

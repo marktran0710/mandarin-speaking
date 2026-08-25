@@ -53,8 +53,8 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
 }
 
 export default function ManagementApp({ initialRole }: { initialRole?: ManagementRole } = {}) {
-  const [role, setRole] = useState<ManagementRole | null>(() => initialRole ?? readRole());
-  const [loginRole, setLoginRole] = useState<ManagementRole>(initialRole ?? "teacher");
+  const [role, setRole] = useState<ManagementRole | null>(() => readRole());
+  const [loginRole, setLoginRole] = useState<ManagementRole>(() => initialRole ?? readRole() ?? "teacher");
 
   useEffect(() => {
     if (!role) setRole(readRole());

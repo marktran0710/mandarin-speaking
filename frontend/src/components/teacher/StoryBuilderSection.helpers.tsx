@@ -9,10 +9,9 @@ import type {
   VocabGroup,
 } from "../../utils/teacherStories";
 import { frameCountForMode } from "../../utils/myStoriesUtils";
+import { getBackendUrl } from "../../config/runtimeEnv";
 
-export const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV && typeof window !== "undefined" ? window.location.origin : "");
+export const BACKEND_URL = getBackendUrl();
 
 // How many phrases to ask the AI for per difficulty tier — a harder tier's
 // suggested-answer sentence is longer/more complex, so it naturally yields

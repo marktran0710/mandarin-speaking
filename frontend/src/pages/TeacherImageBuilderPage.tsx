@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
 import { canUseDatabase, createCustomStory } from "../services/database";
+import { getBackendUrl as getRuntimeBackendUrl } from "../config/runtimeEnv";
 import "./TeacherImageBuilderPage.css";
 
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV && typeof window !== "undefined" ? window.location.origin : "");
+const BACKEND_URL = getRuntimeBackendUrl();
 const CUSTOM_STORY_STORAGE_KEY = "teacherCustomStories";
 
 interface GeneratedFrame {

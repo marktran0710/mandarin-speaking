@@ -143,7 +143,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               {STORY_SCENES.map(({ file, className }) => (
                 <img
                   key={className}
-                  src={`${import.meta.env.BASE_URL}sample-scenes/${file}`}
+                  src={`/sample-scenes/${file}`}
                   alt=""
                   className={`story-preview-image ${className}`}
                 />

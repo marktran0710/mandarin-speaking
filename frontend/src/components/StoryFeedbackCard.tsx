@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import Chart from "chart.js/auto";
 import { BiLabel } from "./BiLabel";
 import type { SceneSubmission, StoryFeedback, StoryFeedbackDimension } from "../services/database";
+import { getBackendUrl } from "../config/runtimeEnv";
 import "./StoryFeedbackCard.css";
 
 // Resolved hex values for the app's "Tone Colors" tokens — Chart.js draws to
@@ -20,9 +21,7 @@ const COLOR = {
   error: "#c0154b",
 };
 
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV && typeof window !== "undefined" ? window.location.origin : "");
+const BACKEND_URL = getBackendUrl();
 
 function resolveAudioUrl(url: string): string {
   if (!url) return url;

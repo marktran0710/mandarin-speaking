@@ -149,7 +149,7 @@ export default function TeacherApp({ embedded = false, onExit }: { embedded?: bo
             // destination is the teacher app root — a no-op here made the
             // logo look broken.
             onNavigate={() => {
-              window.location.href = `${import.meta.env.BASE_URL}teacher.html`;
+              window.location.href = "/teacher.html";
             }}
             onLogout={handleLogout}
             appVariant="teacher"
