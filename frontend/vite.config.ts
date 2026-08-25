@@ -36,13 +36,12 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      // Two entry points so `npm run build` emits both dist/index.html
-      // (student app) and dist/teacher.html (teacher app) from one Vite project.
+      // Keep the legacy student/teacher/admin entries available while the
+      // Next.js route shell is being migrated and verified.
       input: {
         main: resolve(__dirname, "index.html"),
         teacher: resolve(__dirname, "teacher.html"),
         admin: resolve(__dirname, "admin.html"),
-        demo: resolve(__dirname, "instructor-demo.html"),
       },
     },
   },

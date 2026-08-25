@@ -179,17 +179,6 @@ export default function HomePage({ onNavigate }: HomePageProps) {
 
       </section>
 
-      <button
-        type="button"
-        className="hero-demo-action"
-        onClick={() => {
-          window.location.href = `${import.meta.env.BASE_URL}instructor-demo.html`;
-        }}
-      >
-        <span>Instructor Demo</span>
-        <span aria-hidden="true">↗</span>
-      </button>
-
       <section className="how-it-works" aria-label="How it works">
         <p className="how-it-works-kicker">
           <span lang="zh-Hant">三步開始</span>

@@ -187,30 +187,6 @@
   line-height: 1;
 }
 
-.hero-demo-action {
-  display: none;
-  
-  grid-column: 1 / -1;
-  justify-self: center;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-xs);
-  min-height: 56px;
-  padding: var(--space-sm) var(--space-lg);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-pill);
-  background: var(--clay-surface-card);
-  color: var(--clay-ink);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.hero-demo-action:hover {
-  border-color: var(--seal);
-  background: var(--seal-soft);
-}
-
 /* ── Story preview stage ──────────────────────────────────────────────── */
 
 .home-hero-visual {
