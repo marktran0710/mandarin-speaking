@@ -785,10 +785,9 @@
   }
 }
 
-/* Final image-frame polish: keep story illustrations fully visible and give
-   the image a deliberate frame at every viewport size. The previous wide,
-   cover-cropped frame could cut off characters or speech bubbles when a
-   story asset used a taller aspect ratio. */
+/* Final image-frame polish: make the story illustration feel like a deliberate
+   visual card while keeping its footprint predictable beside the practice
+   content. Study uses the taller frame; Speaking keeps its own contain rules. */
 .practice-workspace-study .practice-scene-col {
   box-sizing: border-box;
   padding: 8px;
@@ -801,9 +800,9 @@
 .practice-workspace-study .practice-scene-image,
 .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image {
   box-sizing: border-box;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 6 / 5;
   min-height: 0;
-  max-height: min(520px, 64vh);
+  max-height: min(680px, calc(100vh - 220px));
   border: 1px solid var(--clay-hairline-soft);
   border-radius: 16px;
   background: color-mix(in srgb, var(--clay-surface-soft) 82%, var(--clay-surface-card));
@@ -811,7 +810,7 @@
 }
 
 .practice-workspace-study .practice-scene-image img {
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
 }
 

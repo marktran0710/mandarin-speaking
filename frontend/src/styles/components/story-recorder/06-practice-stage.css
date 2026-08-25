@@ -352,9 +352,10 @@
   align-items: center;
   gap: 10px;
   background: var(--clay-surface-soft);
-  border: 1.5px solid var(--clay-hairline-soft);
-  border-radius: var(--clay-radius-md);
-  padding: 12px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: calc(var(--clay-radius-lg) + 2px);
+  padding: 10px;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--clay-ink) 8%, transparent);
   /* The card hugs its image + chip — without this, the default grid-item
      stretch drags the tinted card down the full height of the (much
      taller) content column beside it. */
@@ -364,16 +365,18 @@
   display: block;
   width: 100%;
   aspect-ratio: 4 / 3;
-  border-radius: var(--clay-radius-md);
+  border-radius: var(--clay-radius-lg);
   overflow: hidden;
-  border: 0;
-  background: var(--clay-surface-soft);
+  border: 1px solid var(--clay-hairline-soft);
+  background: var(--clay-surface-card);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, white 60%, transparent);
 }
 .practice-scene-image img {
   width: 100%;
   height: 100%;
   display: block;
   object-fit: contain;
+  object-position: center;
 }
 .practice-stage > .practice-workspace:not(:has(.sfc-results)) .practice-scene-col {
   position: sticky;
@@ -419,9 +422,12 @@
   padding: 10px 12px;
 }
 .practice-workspace-study .practice-scene-image {
-  aspect-ratio: 16 / 7;
+  aspect-ratio: 6 / 5;
   min-height: 240px;
-  max-height: 360px;
+  max-height: 560px;
+}
+.practice-workspace-study .practice-scene-image img {
+  object-fit: cover;
 }
 .practice-workspace-study .practice-scene-chip {
   justify-self: end;
@@ -430,4 +436,3 @@
 .practice-workspace-study .practice-scene-main {
   width: 100%;
 }
-
