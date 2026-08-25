@@ -88,7 +88,30 @@ from pinyin_service import canonical_pinyin, canonical_pinyin_tone3
 load_dotenv()
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env.local"))
 
-app = FastAPI(title="Speaking App Backend", version="1.0.0")
+OPENAPI_TAGS = [
+    {
+        "name": "admin",
+        "description": "Administration endpoints for managing application data and settings.",
+    },
+    {
+        "name": "teacher-review",
+        "description": "Teacher-only endpoints for reviewing student work and feedback.",
+    },
+]
+
+app = FastAPI(
+    title="Mandarin Speaking Practice API",
+    version="1.0.0",
+    description=(
+        "Backend API for the Mandarin Speaking Practice application. "
+        "It supports learning content, speech analysis, audio submissions, "
+        "and teacher review workflows."
+    ),
+    openapi_tags=OPENAPI_TAGS,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+)
 FRONTEND_DIST = settings.frontend_dist
 REMOTE_MEDIA_ALLOWED_HOSTS = settings.remote_media_allowed_hosts
 UPLOAD_DIR = settings.upload_dir
