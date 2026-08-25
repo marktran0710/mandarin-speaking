@@ -18,11 +18,6 @@ function StoryDetailsFields({ draft, errors, onUpdateField, onUpdateFrameCount, 
       </select></label>
     </div>
     {draft.activeLevel !== "easy" && <p className="teacher-tier-hint">Editing the {draft.activeLevel === "medium" ? "Medium" : "Hard"} version of each scene below — frame count stays shared with Easy. Any image or text left blank here falls back to its Easy version for students.</p>}
-    <label>Learning goal
-      <textarea aria-invalid={Boolean(errors.learningGoal)} value={draft.learningGoal} onChange={(event) => onUpdateField("learningGoal", event.target.value)} rows={3} placeholder="What should students practice in this story?" />
-      {errors.learningGoal && <span className="teacher-form-error">{errors.learningGoal}</span>}
-    </label>
-    {draft.narrativeMode === "story" && draft.imageUrls.easy.length > 1 && <label className="teacher-checkbox-field"><input type="checkbox" checked={draft.firstFrameIsExample} onChange={(event) => onSetDraft((current) => ({ ...current, firstFrameIsExample: event.target.checked }))} />First frame is a teacher model example — students see it before recording (frame 1 becomes a read-only demo)</label>}
   </>;
 }
 

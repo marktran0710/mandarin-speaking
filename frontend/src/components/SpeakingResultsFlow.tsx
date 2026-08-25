@@ -14,7 +14,7 @@ import SpeakingResultsPracticeStep from "./SpeakingResultsFlow.PracticeStep";
 import SpeakingResultsFlowShell from "./SpeakingResultsFlow.Shell";
 
 export default function SpeakingResultsFlow({
-  selectedImage, selectedImageIndex, modelSentence, modelAudioUrl, narrativeMode,
+  selectedImage, selectedImageIndex, modelSentence, modelAudioUrl,
   attempts, ready, canContinue = ready, masteryPassed, praatMetrics, analysisAudioBlob, submittedAudioName,
   clearedWords, onWordDrillPass, onSelfEvalSubmit, hasNextScene, onNextScene,
   onViewSummary, onRecordAgain, assistiveFeedback = null, assistiveRetriesUsed = 0,
@@ -74,7 +74,7 @@ export default function SpeakingResultsFlow({
   const remainingDrillTargets = practiceTargets.filter((target) => !target.word || !clearedWords.includes(target.word.token));
   const allDrillsCleared = practiceTargets.length > 0 && practiceTargets.every((target) => Boolean(target.word) && clearedWords.includes(target.word!.token));
   const verdict: "meaning" | "ready" | "vocab" | "pronounce" | "join" = !accepted || hasScriptMismatch ? "meaning" : missing.length > 0 ? "vocab" : isChunked && !ready ? "join" : ready ? "ready" : "pronounce";
-  const showCorrective = narrativeMode !== "listen_retell" && !(accepted && missing.length === 0) && corrective && (corrective.errors.length > 0 || corrective.hint || corrective.correct_version);
+  const showCorrective = !(accepted && missing.length === 0) && corrective && (corrective.errors.length > 0 || corrective.hint || corrective.correct_version);
   const hasFix = !accepted || missing.length > 0 || hasScriptMismatch;
   const hasPhrasePractice = phrasePracticeItems.length > 0;
   const hasPractice = hasPhrasePractice || (accepted && !hasScriptMismatch && practiceTargets.length > 0);

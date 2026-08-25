@@ -343,7 +343,7 @@ export function storyToTopic(
   return {
     id: topicId,
     name: story.title,
-    description: story.learningGoal,
+    description: "Teacher published activity",
     skillFocus: "Teacher published activity",
     images: story.frames.map((frame) =>
       resolveImageUrl(tierText(frame, "imageUrl", difficultyLevel) || ""),
@@ -374,11 +374,8 @@ export function storyToTopic(
     ...(Object.keys(vocabularyAudioUrls).length > 0 ? { vocabularyAudioUrls } : {}),
     ...(Object.keys(vocabularyReferenceCurves).length > 0 ? { vocabularyReferenceCurves } : {}),
     ...(Object.keys(sentenceReferenceCurves).length > 0 ? { sentenceReferenceCurves } : {}),
-    ...(story.linear ? { linear: true } : {}),
     ...(story.lessonNumber != null ? { lessonNumber: story.lessonNumber } : {}),
     ...(story.lessonSubOrder != null ? { lessonSubOrder: story.lessonSubOrder } : {}),
-    narrativeMode: story.narrativeMode ?? "story",
-    ...(story.firstFrameIsExample ? { firstFrameIsExample: true } : {}),
     difficultyLevel,
     sourceStory: story,
   };

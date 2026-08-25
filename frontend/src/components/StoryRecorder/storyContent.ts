@@ -47,11 +47,8 @@ export interface Topic {
   vocabularyAudioUrls?: Record<number, (string | null)[]>;
   vocabularyReferenceCurves?: Record<number, number[][]>;
   sentenceReferenceCurves?: Record<number, Record<string, number[]>>;
-  linear?: boolean;
   lessonNumber?: number | null;
   lessonSubOrder?: number | null;
-  narrativeMode?: "story" | "describe" | "listen_retell";
-  firstFrameIsExample?: boolean;
   difficultyLevel?: StoryDifficultyLevel;
   sourceStory?: CustomTeacherStory;
 }

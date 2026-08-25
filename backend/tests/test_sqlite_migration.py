@@ -116,10 +116,10 @@ def test_integer_flags_become_booleans(legacy_db):
     migrate_all(legacy_db)
     with connect_db() as db:
         row = db.execute(
-            "SELECT published, linear FROM custom_stories WHERE id = %s", ("s1",)
+            "SELECT published FROM custom_stories WHERE id = %s", ("s1",)
         ).fetchone()
     assert row["published"] is True
-    assert row["linear"] is False
+    assert row["published"] is True
 
 
 def test_migration_is_rerunnable(legacy_db):

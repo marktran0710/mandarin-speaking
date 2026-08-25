@@ -24,9 +24,7 @@ def _make_story(story_id):
     return {
         "id": story_id,
         "title": "Model Voice Test",
-        "learningGoal": "Check model-voice generation persists",
         "frames": [frame],
-        "narrativeMode": "describe",
     }
 
 

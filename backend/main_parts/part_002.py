@@ -178,14 +178,10 @@ class CustomStoryFrameRequest(BaseModel):
 class CustomStoryRequest(BaseModel):
     id: str
     title: str
-    learningGoal: str
     frames: List[CustomStoryFrameRequest]
     published: bool = False
-    linear: bool = False
-    firstFrameIsExample: bool = False
     lessonNumber: Optional[int] = None
     lessonSubOrder: Optional[int] = None
-    narrativeMode: str = "story"
     rubricScores: Optional[Dict[str, Any]] = None
 
 

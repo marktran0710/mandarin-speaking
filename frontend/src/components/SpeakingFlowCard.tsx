@@ -7,7 +7,6 @@ import type { SelfEvalLevel } from "../utils/selfEvalComparison";
 import type {
   PraatMetrics,
   SpeechModel,
-  Topic,
 } from "./StoryRecorder";
 import ModelRecordingPractice from "./ModelRecordingPractice";
 import "./SpeakingFlowCard.css";
@@ -29,7 +28,6 @@ interface SpeakingFlowCardProps {
    * teacher's own recording) — lets the student hear the target before
    * recording, the same real voice the scoring engine now grades against. */
   modelAudioUrl?: string;
-  narrativeMode: Topic["narrativeMode"];
   prog?: SceneProgressEntry;
   praatMetrics: PraatMetrics | null;
   analysisAudioBlob: Blob | null;
@@ -93,7 +91,6 @@ export default function SpeakingFlowCard({
   totalScenes,
   modelSentence,
   modelAudioUrl,
-  narrativeMode,
   prog,
   praatMetrics,
   analysisAudioBlob,
@@ -360,7 +357,6 @@ export default function SpeakingFlowCard({
       totalScenes={totalScenes}
       modelSentence={modelSentence}
       modelAudioUrl={modelAudioUrl}
-      narrativeMode={narrativeMode}
       attempts={attempts}
       ready={ready}
       canContinue={canContinue}

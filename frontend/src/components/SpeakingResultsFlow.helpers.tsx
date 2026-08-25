@@ -156,7 +156,6 @@ export interface SpeakingResultsFlowProps {
   totalScenes: number;
   modelSentence?: string;
   modelAudioUrl?: string;
-  narrativeMode: Topic["narrativeMode"];
   attempts: number;
   /** Scene unlocked: score/attempts plus content and pronunciation gates. */
   ready: boolean;

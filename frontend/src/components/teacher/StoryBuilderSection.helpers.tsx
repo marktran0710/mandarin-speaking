@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React from "react";
-import type { CustomStoryFrame, CustomTeacherStory, NarrativeMode, StoryDifficultyLevel, VocabGroup } from "../../utils/teacherStories";
+import type { CustomStoryFrame, CustomTeacherStory, StoryDifficultyLevel, VocabGroup } from "../../utils/teacherStories";
 import { frameCountForMode } from "../../utils/myStoriesUtils";
 
 export const BACKEND_URL =
@@ -18,7 +18,6 @@ export const PHRASE_COUNT_BY_LEVEL: Record<StoryDifficultyLevel, number> = {
 
 export interface CustomStoryValidationErrors {
   title?: string;
-  learningGoal?: string;
   form?: string;
   frames?: Record<number, { imageUrl?: string; prompt?: string }>;
 }
@@ -166,7 +165,6 @@ export function blankTiers(count: number): Record<StoryDifficultyLevel, string[]
 
 export const emptyCustomStoryDraft = {
   title: "Taiwan Community Story",
-  learningGoal: "Students describe who, where, what happened, and how people solved the problem.",
   lessonNumber: "",
   lessonSubOrder: "",
   activeLevel: "easy" as StoryDifficultyLevel,
@@ -195,9 +193,6 @@ export const emptyCustomStoryDraft = {
   listenAudioUrls: blankTiers(6),
   listenAudioSources: blankTiers(6),
   listenScripts: blankTiers(6),
-  linear: false,
-  firstFrameIsExample: false,
-  narrativeMode: "story" as NarrativeMode,
 };
 
 export function validateCustomStoryDraft(
@@ -210,10 +205,6 @@ export function validateCustomStoryDraft(
 
   if (!draft.title.trim()) {
     errors.title = "Add a story title for students.";
-  }
-
-  if (!draft.learningGoal.trim()) {
-    errors.learningGoal = "Add a learning goal so students know what to practice.";
   }
 
   draft.imageUrls.easy.forEach((imageUrl, index) => {

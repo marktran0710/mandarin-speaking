@@ -6,7 +6,6 @@ describe("storyToTopic", () => {
     const story: CustomTeacherStory = {
       id: "story-1",
       title: "Restaurant Story",
-      learningGoal: "Order food",
       frames: [
         {
           imageUrl: "",
@@ -29,7 +28,6 @@ describe("storyToTopic", () => {
     const story: CustomTeacherStory = {
       id: "story-2",
       title: "No POS Story",
-      learningGoal: "Goal",
       frames: [
         { imageUrl: "", prompt: "Describe the picture.", vocabulary: "餐廳" },
       ],
@@ -46,7 +44,6 @@ describe("storyToTopic difficulty tiers", () => {
   const tieredStory: CustomTeacherStory = {
     id: "story-3",
     title: "Tiered Story",
-    learningGoal: "Practice tiers",
     frames: [
       {
         imageUrl: "img-0.png",
@@ -107,7 +104,6 @@ describe("storyToTopic serving mode", () => {
   const story: CustomTeacherStory = {
     id: "story-4",
     title: "Approval Gated Story",
-    learningGoal: "Goal",
     frames: [
       {
         imageUrl: "",

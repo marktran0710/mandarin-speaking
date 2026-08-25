@@ -85,13 +85,11 @@ export function useStoryBuilderFrameActions(deps) {
         // Speaking materials use the suggested answer as the pronunciation
         // target. Keep the target alongside the uploaded reference so a
         // previously used listen/retell script cannot be analysed by mistake.
-        if (customDraft.narrativeMode !== "listen_retell") {
-          updateDraftFrame(
-            "listenScripts",
-            index,
-            customDraft.suggestedAnswers[customDraft.activeLevel][index] ?? "",
-          );
-        }
+        updateDraftFrame(
+          "listenScripts",
+          index,
+          customDraft.suggestedAnswers[customDraft.activeLevel][index] ?? "",
+        );
       }
     };
     reader.readAsDataURL(wavBlob);

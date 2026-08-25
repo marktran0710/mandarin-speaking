@@ -44,7 +44,6 @@ def story_client(client):
     story = {
         "id": "story-review-x",
         "title": "測試故事",
-        "learningGoal": "goal",
         "frames": [{"imageUrl": "u", "prompt": "p", "vocabulary": "知道"}],
         "published": True,
     }

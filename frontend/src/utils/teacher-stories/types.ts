@@ -77,23 +77,17 @@ export interface CustomStoryFrame {
   sentenceReferenceCurvesHard?: string;
 }
 
-export type NarrativeMode = "story" | "describe" | "listen_retell";
-
 export interface CustomTeacherStory {
   id: string;
   title: string;
-  learningGoal: string;
   frames: CustomStoryFrame[];
   published?: boolean;
-  linear?: boolean;
   lessonNumber?: number | null;
   /** Position within its lesson (1, 2, 3...) for the in-lesson sequential
    * unlock (5-1 -> 5-2 -> 5-3). Only meaningful alongside lessonNumber; a
    * lesson with any story missing this leaves the whole lesson unordered
    * (see groupTopicsByLesson). */
   lessonSubOrder?: number | null;
-  narrativeMode?: NarrativeMode;
-  firstFrameIsExample?: boolean;
   rubricScores?: Record<string, unknown> | null;
   /** Teacher quiz review's diff baseline, keyed by tier — see
    * utils/quizMaterialDiff.ts. Opaque here to avoid a dependency cycle
@@ -109,5 +103,4 @@ export interface CustomTeacherStory {
 }
 
 export type StoryDifficultyLevel = "easy" | "medium" | "hard";
-
 

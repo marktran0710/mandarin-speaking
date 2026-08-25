@@ -8,7 +8,7 @@ five picture prompts (drink, MRT, jacket, bicycle, music) that students
 fill in themselves — kept here as five practice scenes.
 
 Run this after `python -m alembic upgrade head` has created the
-custom_stories table (published/linear/lesson_number columns included).
+custom_stories table (published/lesson_number columns included).
 
 Usage:
     python seed_vv_kan_lesson.py [--overwrite]
@@ -30,10 +30,6 @@ GRAMMAR_PATTERN_BASE = "VV看 — 我覺得...很...，你要不要 VV看？ (tr
 STORY = {
     "id": STORY_ID,
     "title": "VV看 — 大家來推薦",
-    "learning_goal": (
-        "Students use the reduplicated-verb pattern V+V+看 to recommend "
-        "something to a friend, e.g. 我覺得這種巧克力很好吃，你要不要吃吃看？"
-    ),
     "level": "Beginner speaking",
     "lesson_number": 5,
     "frames": [
@@ -123,7 +119,6 @@ STORY = {
         },
     ],
     "published": 1,
-    "linear": 1,
 }
 
 
@@ -141,23 +136,19 @@ def main():
         db.execute(
             """
             INSERT INTO custom_stories
-                (id, title, learning_goal, frames, published, linear, lesson_number)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                (id, title, frames, published, lesson_number)
+            VALUES (%s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 title = EXCLUDED.title,
-                learning_goal = EXCLUDED.learning_goal,
                 frames = EXCLUDED.frames,
                 published = EXCLUDED.published,
-                linear = EXCLUDED.linear,
                 lesson_number = EXCLUDED.lesson_number
             """,
             (
                 STORY["id"],
                 STORY["title"],
-                STORY["learning_goal"],
                 Jsonb(STORY["frames"]),
                 bool(STORY["published"]),
-                bool(STORY["linear"]),
                 STORY["lesson_number"],
             ),
         )

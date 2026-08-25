@@ -16,7 +16,6 @@ describe("SpeakingFlowCard model recording integration", () => {
         selectedImageIndex={0}
         totalScenes={1}
         modelSentence="請描述這張圖片。"
-        narrativeMode="story"
         praatMetrics={null}
         analysisAudioBlob={null}
         error={null}

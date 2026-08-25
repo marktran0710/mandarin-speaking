@@ -1,6 +1,5 @@
 // @ts-nocheck
 import type { CustomStoryFrame, CustomTeacherStory, StoryDifficultyLevel } from "../../utils/teacherStories";
-import { frameCountForMode } from "../../utils/myStoriesUtils";
 import { emptyCustomStoryDraft } from "./StoryBuilderSection.helpers";
 
 const TIER_BACKEND_FIELD: Record<
@@ -67,7 +66,6 @@ export function createCustomStory(
   return {
     id: existingId || `custom-story-${Date.now()}`,
     title: draft.title.trim() || "Untitled teacher story",
-    learningGoal: draft.learningGoal.trim(),
     frames: draft.imageUrls.easy.map((imageUrl, index) => {
       const frame: CustomStoryFrame = {
         imageUrl: imageUrl.trim(),
@@ -108,20 +106,16 @@ export function createCustomStory(
         frame.listenScript = draft.listenScripts.easy[index].trim();
       return frame;
     }),
-    ...(draft.linear ? { linear: true } : {}),
-    ...(draft.firstFrameIsExample ? { firstFrameIsExample: true } : {}),
     ...(draft.lessonNumber.trim() ? { lessonNumber: Number(draft.lessonNumber) } : {}),
     ...(draft.lessonSubOrder.trim() ? { lessonSubOrder: Number(draft.lessonSubOrder) } : {}),
-    narrativeMode: draft.narrativeMode,
   };
 }
 
 export function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStoryDraft {
-  const narrativeMode = story.narrativeMode ?? "story";
   // Preserve the story's actual saved frame count — it may have been
   // changed away from the mode's default via "Number of frames" — and only
   // fall back to the mode default if the story somehow has no frames at all.
-  const frameCount = story.frames.length || frameCountForMode(narrativeMode);
+  const frameCount = story.frames.length || 6;
   const frames = Array.from({ length: frameCount }, (_, index) => story.frames[index]);
 
   const tiersFor = (field: TieredDraftField): Record<StoryDifficultyLevel, string[]> => {
@@ -143,7 +137,6 @@ export function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStory
 
   return {
     title: story.title,
-    learningGoal: story.learningGoal,
     lessonNumber: story.lessonNumber != null ? String(story.lessonNumber) : "",
     lessonSubOrder: story.lessonSubOrder != null ? String(story.lessonSubOrder) : "",
     activeLevel: "easy",
@@ -161,8 +154,5 @@ export function storyToDraft(story: CustomTeacherStory): typeof emptyCustomStory
     listenAudioUrls: tiersFor("listenAudioUrls"),
     listenAudioSources: tiersFor("listenAudioSources"),
     listenScripts: tiersFor("listenScripts"),
-    linear: story.linear ?? false,
-    firstFrameIsExample: story.firstFrameIsExample ?? false,
-    narrativeMode: story.narrativeMode ?? "story",
   };
 }

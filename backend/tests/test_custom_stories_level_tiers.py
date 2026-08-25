@@ -26,7 +26,6 @@ def test_medium_and_hard_tier_fields_round_trip(client):
     story = {
         "id": "test-level-tiers-story",
         "title": "Level Tiers Test",
-        "learningGoal": "Check easy/medium/hard tiers persist",
         "level": "Beginner speaking",
         "frames": [
             {
@@ -41,7 +40,6 @@ def test_medium_and_hard_tier_fields_round_trip(client):
                 "suggestedAnswerHard": "我今天過得很不錯。",
             }
         ],
-        "narrativeMode": "describe",
     }
 
     post_response = client.post("/api/custom-stories", json=story)
@@ -72,7 +70,6 @@ def test_each_tier_gets_its_own_uploaded_image(client, isolated_uploads):
     story = {
         "id": "test-tiered-images-story",
         "title": "Tiered Images Test",
-        "learningGoal": "Check each tier keeps its own image",
         "frames": [
             {
                 "imageUrl": _PNG_DATA_URL,
@@ -82,7 +79,6 @@ def test_each_tier_gets_its_own_uploaded_image(client, isolated_uploads):
                 "vocabulary": "你好",
             }
         ],
-        "narrativeMode": "describe",
     }
 
     post_response = client.post("/api/custom-stories", json=story)

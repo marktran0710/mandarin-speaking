@@ -32,14 +32,10 @@ JSON_COLUMNS = {
 COLUMNS = (
     "id",
     "title",
-    "learning_goal",
     "frames",
     "published",
     "created_at",
-    "linear",
     "lesson_number",
-    "narrative_mode",
-    "first_frame_is_example",
     "quiz_exclusions",
     "quiz_material_snapshot",
     "quiz_approved_snapshot",
@@ -48,25 +44,7 @@ COLUMNS = (
     "rubric_scores",
 )
 
-# New story fixtures deliberately contain only teaching material metadata.  Keep
-# these values here because ``learning_goal`` is NOT NULL and the seed writes
-# the server-defaulted fields explicitly for stable overwrite behavior.
-MATERIAL_DEFAULTS = {
-    "learning_goal": "Practice Mandarin speaking through guided story prompts.",
-    "created_at": "2026-08-25 00:00:00",
-    "linear": False,
-    "narrative_mode": "story",
-    "first_frame_is_example": False,
-    "quiz_exclusions": None,
-    "quiz_material_snapshot": None,
-    "quiz_approved_snapshot": None,
-    "quiz_pending_approvals": None,
-    "rubric_scores": None,
-}
-
-
 def _values(material: dict) -> tuple[object, ...]:
-    material = {**MATERIAL_DEFAULTS, **material}
     return tuple(
         Jsonb(material[column]) if column in JSON_COLUMNS and material[column] is not None else material[column]
         for column in COLUMNS

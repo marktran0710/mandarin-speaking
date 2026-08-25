@@ -17,10 +17,8 @@ def _make_story(story_id, vocabulary_cloze=None):
     return {
         "id": story_id,
         "title": "Cloze Test",
-        "learningGoal": "Check cloze candidates persist and grow",
         "level": "Beginner speaking",
         "frames": [frame],
-        "narrativeMode": "describe",
     }
 
 

@@ -1,15 +1,10 @@
 import type { VocabQuizAttempt } from "../services/database";
-import { loadPublishedTeacherTopics, type NarrativeMode } from "./teacherStories";
+import { loadPublishedTeacherTopics } from "./teacherStories";
 import type { AudioRecord } from "../pages/MyStoriesPage";
 import type { CustomStoryValidationErrors } from "../components/teacher/StoryBuilderSection";
 
 export function getStudentTopics() {
   return loadPublishedTeacherTopics();
-}
-
-/** Normal-mode stories are a 6-scene story; Describe/Listen & Retell are single-frame activities. */
-export function frameCountForMode(mode: NarrativeMode): number {
-  return mode === "story" ? 6 : 1;
 }
 
 export function resizeToCount<T>(items: T[], count: number, fill: T): T[] {
@@ -181,21 +176,9 @@ export function summarizeWordMissTrends(stats: WordMissStats[], shownCount: numb
   return `${topSentence} ${spreadSentence}${coverageNote}`;
 }
 
-export function narrativeModeLabel(mode?: NarrativeMode): string {
-  switch (mode) {
-    case "describe":
-      return "Descriptive";
-    case "listen_retell":
-      return "Listen & Retell";
-    default:
-      return "Normal mode";
-  }
-}
-
 export function hasCustomStoryErrors(errors: CustomStoryValidationErrors): boolean {
   return Boolean(
     errors.title ||
-      errors.learningGoal ||
       errors.form ||
       Object.keys(errors.frames ?? {}).length > 0,
   );

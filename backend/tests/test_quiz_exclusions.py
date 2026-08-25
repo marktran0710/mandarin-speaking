@@ -15,7 +15,6 @@ def story_client(client):
     story = {
         "id": "story-quiz-x",
         "title": "測試故事",
-        "learningGoal": "goal",
         "frames": [{"imageUrl": "u", "prompt": "p", "vocabulary": "喝,茶"}],
         "published": True,
     }

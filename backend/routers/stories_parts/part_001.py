@@ -103,34 +103,25 @@ async def create_custom_story(story: CustomStoryRequest):
         db.execute(
             """
             INSERT INTO custom_stories (
-                id, title, learning_goal, frames, published, linear,
-                lesson_number, lesson_sub_order, narrative_mode, first_frame_is_example
-                , rubric_scores
+                id, title, frames, published,
+                lesson_number, lesson_sub_order, rubric_scores
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 title = EXCLUDED.title,
-                learning_goal = EXCLUDED.learning_goal,
                 frames = EXCLUDED.frames,
                 published = EXCLUDED.published,
-                linear = EXCLUDED.linear,
                 lesson_number = EXCLUDED.lesson_number,
                 lesson_sub_order = EXCLUDED.lesson_sub_order,
-                narrative_mode = EXCLUDED.narrative_mode,
-                first_frame_is_example = EXCLUDED.first_frame_is_example
-                , rubric_scores = EXCLUDED.rubric_scores
+                rubric_scores = EXCLUDED.rubric_scores
             """,
             (
                 story.id,
                 story.title,
-                story.learningGoal,
                 Jsonb(stored_frames),
                 story.published,
-                story.linear,
                 story.lessonNumber,
                 story.lessonSubOrder,
-                story.narrativeMode,
-                story.firstFrameIsExample,
                 Jsonb(story.rubricScores) if story.rubricScores is not None else None,
             ),
         )

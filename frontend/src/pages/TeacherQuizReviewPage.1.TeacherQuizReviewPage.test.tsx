@@ -8,7 +8,6 @@ import { storyToTopic, type CustomTeacherStory } from "../utils/teacherStories";
 const story = {
   id: "s1",
   title: "測試故事",
-  learningGoal: "goal",
   published: true,
   lessonNumber: 5,
   frames: [
@@ -30,7 +29,6 @@ const story = {
 const storyLesson7: CustomTeacherStory = {
   id: "s2",
   title: "第二個故事",
-  learningGoal: "goal",
   published: true,
   lessonNumber: 7,
   frames: [

@@ -75,10 +75,7 @@ export default function App() {
     () => loadPublishedTeacherTopics(),
   );
   const [, setPinyinRevision] = useState(0);
-  const storyTopics = useMemo(
-    () => publishedTopics.filter((t) => (t.narrativeMode ?? "story") === "story"),
-    [publishedTopics],
-  );
+  const storyTopics = publishedTopics;
   useEffect(() => {
     let active = true;
     void primePinyin(collectPinyinTexts(publishedTopics))

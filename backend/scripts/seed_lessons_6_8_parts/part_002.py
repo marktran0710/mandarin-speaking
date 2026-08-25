@@ -7,10 +7,9 @@ def stories() -> list[dict]:
             slug = f"modern-chinese-l{lesson}-{'dialogue-1' if key == 'd1' else 'dialogue-2' if key == 'd2' else 'reading'}"
             image_key = f"l{lesson}{key}"
             result.append({"id": slug, "title": f"第{lesson}課 {title}",
-                           "learningGoal": "Modern Chinese Book 1：依課文圖片練習中文口說。",
-                           "frames": frame_payload(image_key, lines), "published": True, "linear": True,
-                           "firstFrameIsExample": False, "lessonNumber": lesson, "lessonSubOrder": order,
-                           "narrativeMode": "story", "rubricScores": RUBRIC})
+                           "frames": frame_payload(image_key, lines), "published": True,
+                           "lessonNumber": lesson, "lessonSubOrder": order,
+                           "rubricScores": RUBRIC})
     return result
 
 def seed() -> None:

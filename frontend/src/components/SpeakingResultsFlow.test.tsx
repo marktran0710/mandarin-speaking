@@ -30,7 +30,6 @@ const baseProps = {
   selectedImageIndex: 0,
   totalScenes: 1,
   modelSentence: "你好嗎",
-  narrativeMode: "story" as const,
   attempts: 1,
   masteryPassed: true,
   praatMetrics: metrics(),

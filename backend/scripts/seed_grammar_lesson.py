@@ -21,7 +21,6 @@ STORY_ID = "lesson-ni-zuo-shenme"
 STORY = {
     "id": STORY_ID,
     "title": "你做什麼？",
-    "learning_goal": "Students use the pattern S + Vaux + V(O) to say what they want to do, e.g. 我要喝茶。",
     "level": "Beginner speaking",
     "frames": [
         {
@@ -54,18 +53,16 @@ def main():
         db.execute(
             """
             INSERT INTO custom_stories
-                (id, title, learning_goal, frames, published)
-            VALUES (%s, %s, %s, %s, %s)
+                (id, title, frames, published)
+            VALUES (%s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 title = EXCLUDED.title,
-                learning_goal = EXCLUDED.learning_goal,
                 frames = EXCLUDED.frames,
                 published = EXCLUDED.published
             """,
             (
                 STORY["id"],
                 STORY["title"],
-                STORY["learning_goal"],
                 Jsonb(STORY["frames"]),
                 bool(STORY["published"]),
             ),

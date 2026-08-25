@@ -8,7 +8,7 @@ import VocabGroupEditor from "../VocabGroupEditor";
 import { GRAMMAR_CANVAS_ENABLED, PHRASE_COUNT_BY_LEVEL, STORY_FRAME_GUIDES } from "./StoryBuilderSection.helpers";
 
 function FramePreview({ draft, index, imageUrl, onPaste }) {
-  const guide = draft.narrativeMode === "story" ? STORY_FRAME_GUIDES[index] : null;
+  const guide = STORY_FRAME_GUIDES[index];
   return <div className="teacher-frame-image-preview" tabIndex={0} role="button"
     aria-label={`Paste an image for frame ${index + 1}`} onPaste={onPaste}
     title="Click here, then paste (Ctrl+V) an image from your clipboard">
@@ -61,12 +61,12 @@ function StoryFrameFields(props) {
       vocabularyTranslation={draft.vocabularyTranslation[level][index] ?? ""} onChangeColumn={(field, value) => updateDraftFrame(field, index, value)} />
     <PhraseTable key={`${phraseDraftGeneration}-phrases-${index}-${level}`} phrases={draft.phrases[level][index] ?? ""}
       phrasesTranslation={draft.phrasesTranslation[level][index] ?? ""} onChangeColumn={(field, value) => updateDraftFrame(field, index, value)} />
-    {draft.narrativeMode !== "listen_retell" ? <>
-      <label>{isExampleFrame ? "Example script (shown to students as a model — helps them know how to start)" : "Script"}
+    <>
+      <label>Script
         <textarea value={draft.suggestedAnswers[level][index] ?? ""} onChange={(event) => updateDraftFrame("suggestedAnswers", index, event.target.value)}
-          rows={isExampleFrame ? 4 : 2} placeholder={isExampleFrame ? "Write the model story text students will read before recording their own…" : "Write the sentence students should say. Their voice transcript will be compared with this script."} />
+          rows={2} placeholder="Write the sentence students should say. Their voice transcript will be compared with this script." />
       </label>
-      {!isExampleFrame && chunks.length > 1 && <p className="script-chunk-preview"><span className="script-chunk-preview-lead">Auto-detected parts (edit punctuation above to adjust):</span>{chunks.map((chunk, chunkIndex) => <span key={chunkIndex} className="script-chunk-preview-chip">{chunk}</span>)}</p>}
+      {chunks.length > 1 && <p className="script-chunk-preview"><span className="script-chunk-preview-lead">Auto-detected parts (edit punctuation above to adjust):</span>{chunks.map((chunk, chunkIndex) => <span key={chunkIndex} className="script-chunk-preview-chip">{chunk}</span>)}</p>}
       <SentenceActionGroup draft={draft} index={index} vocabFillLoadingIndex={vocabFillLoadingIndex} phraseFillLoadingIndex={phraseFillLoadingIndex} onFillVocab={onFillVocab} onFillPhrases={onFillPhrases} />
       {vocabFillError && vocabFillLoadingIndex === null && <span className="teacher-form-error">{vocabFillError}</span>}
       {phraseFillError && phraseFillLoadingIndex === null && <span className="teacher-form-error">{phraseFillError}</span>}
@@ -74,18 +74,7 @@ function StoryFrameFields(props) {
         <input type="file" accept="audio/mpeg,audio/wav,audio/webm,audio/ogg" onChange={(event) => onUploadAudio(index, event.target.files?.[0])} />
       </label>
       {draft.listenAudioSources[level][index] === "teacher" && draft.listenAudioUrls[level][index]?.trim() && <span className="teacher-form-hint">Teacher reference ready — student scoring will use this recording.</span>}
-    </> : <>
-      <label>Listening audio for "Listen & Retell" (optional)
-        <input value={draft.listenAudioUrls[level][index] ?? ""} onChange={(event) => updateDraftFrame("listenAudioUrls", index, event.target.value)} placeholder="https://... or upload below" />
-      </label>
-      <label className="teacher-file-upload">Upload audio from computer
-        <input type="file" accept="audio/mpeg,audio/wav,audio/webm,audio/ogg" onChange={(event) => onUploadAudio(index, event.target.files?.[0])} />
-      </label>
-      {recordingFrameIndex === index ? <button type="button" className="btn-vocab-autofill" onClick={onStopRecording}>⏹ Stop recording ({recordingSeconds}s)</button> : <button type="button" className="btn-vocab-autofill" disabled={recordingFrameIndex !== null} onClick={() => onStartRecording(index)}>🎙️ Record my own voice</button>}
-      <label>Listening script (read aloud by text-to-speech if no audio is uploaded — not shown to students)
-        <textarea value={draft.listenScripts[level][index] ?? ""} onChange={(event) => updateDraftFrame("listenScripts", index, event.target.value)} rows={4} placeholder="The passage students should listen to before retelling the story" />
-      </label>
-    </>}
+    </>
     {GRAMMAR_CANVAS_ENABLED && <VocabGroupEditor vocabulary={draft.vocabulary[level][index]} groups={draft.vocabularyGroups[index]} onChange={(groups) => updateDraftGroups(index, groups)} />}
   </div>;
 }
@@ -95,10 +84,9 @@ export default function StoryBuilderFrameEditor(props) {
   const level = draft.activeLevel;
   return <div className="teacher-frame-editor">{draft.imageUrls.easy.map((_, index) => {
     const frameError = validationErrors.frames?.[index];
-    const isExampleFrame = index === 0 && draft.firstFrameIsExample;
+    const isExampleFrame = false;
     const imageUrl = draft.imageUrls[level][index];
     return <div className={`teacher-frame-card ${frameError ? "has-error" : ""}${isExampleFrame ? " is-example-frame" : ""}`} key={index}>
-      {isExampleFrame && <div className="teacher-example-badge">🎯 Teacher Model Example — students watch this before recording</div>}
       <FramePreview draft={draft} index={index} imageUrl={imageUrl} onPaste={(event) => onPasteImage(index, event)} />
       <StoryFrameFields {...props} index={index} level={level} frameError={frameError} isExampleFrame={isExampleFrame} />
     </div>;

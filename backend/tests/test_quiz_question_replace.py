@@ -16,7 +16,6 @@ def story_client(client):
     story = {
         "id": "story-replace-x",
         "title": "測試故事",
-        "learningGoal": "goal",
         "frames": [
             {
                 "imageUrl": "u",

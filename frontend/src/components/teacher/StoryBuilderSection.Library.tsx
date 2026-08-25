@@ -1,7 +1,6 @@
 // @ts-nocheck
 import React from "react";
 import { resolveImageUrl, storyToTopic } from "../../utils/teacherStories";
-import { narrativeModeLabel } from "../../utils/myStoriesUtils";
 import { storyQuizExclusions } from "../../utils/quizExclusions";
 import { buildApprovedMaterial, storyQuizNeedsReview } from "../../utils/quizApprovedMaterial";
 
@@ -35,9 +34,9 @@ function StoryLibraryItem({ story, ...actions }) {
   return <article className="custom-story-item"><div className="custom-story-item-header"><div><strong>
     {story.lessonNumber != null && <span className="topic-lesson-badge">Lesson {story.lessonNumber}{story.lessonSubOrder != null && `-${story.lessonSubOrder}`}</span>}{story.title}
   </strong>{quizNeedsReview && <span className="quiz-needs-review-badge" title="Quiz material has changed since it was last approved — check Quiz Review before students see it.">⚙️ Quiz needs review</span>}
-  <span>{story.published ? "Published" : "Draft"}{" - "}{narrativeModeLabel(story.narrativeMode)}</span></div>
+  <span>{story.published ? "Published" : "Draft"}</span></div>
   <StoryItemActionGroup story={story} {...actions} /></div>
-  <p>{story.learningGoal}</p>{story.rubricScores && <StoryRubric rubricScores={story.rubricScores} />}
+  {story.rubricScores && <StoryRubric rubricScores={story.rubricScores} />}
   <div className="custom-story-frame-strip">{story.frames.map((frame, index) => <div className="custom-story-mini-frame" key={index}>
     {frame.imageUrl ? <img src={resolveImageUrl(frame.imageUrl)} alt={`${story.title} frame ${index + 1}`} /> : <span>{index + 1}</span>}
   </div>)}</div>

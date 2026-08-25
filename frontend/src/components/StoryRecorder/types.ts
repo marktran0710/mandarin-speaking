@@ -281,15 +281,9 @@ export interface TranscriptionItem {
   model: SpeechModel;
 }
 
-/** Returns only the image frames a student is expected to record. A first
- * teacher-model frame is deliberately excluded from completion and submit
- * gates, while remaining available as a reference in the session sidebar. */
-export function practiceSceneIndicesFor(
-  topic: Pick<Topic, "images" | "firstFrameIsExample">,
-): number[] {
-  return topic.images
-    .map((_, index) => index)
-    .filter((index) => !(topic.firstFrameIsExample && index === 0));
+/** Returns every image frame as a student practice target. */
+export function practiceSceneIndicesFor(topic: Pick<Topic, "images">): number[] {
+  return topic.images.map((_, index) => index);
 }
 
 /** Shape a freshly recorded scene attempt is handed up in via

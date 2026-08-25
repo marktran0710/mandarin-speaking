@@ -8,7 +8,6 @@ import { storyToTopic, type CustomTeacherStory } from "../utils/teacherStories";
 const story = {
   id: "s1",
   title: "測試故事",
-  learningGoal: "goal",
   published: true,
   lessonNumber: 5,
   frames: [
@@ -30,7 +29,6 @@ const story = {
 const storyLesson7: CustomTeacherStory = {
   id: "s2",
   title: "第二個故事",
-  learningGoal: "goal",
   published: true,
   lessonNumber: 7,
   frames: [
@@ -80,7 +78,6 @@ describe("Generate / Update Questions", () => {
   const storyWithNoMaterial: CustomTeacherStory = {
     id: "s3",
     title: "全新故事",
-    learningGoal: "goal",
     published: true,
     lessonNumber: 9,
     frames: [
@@ -96,7 +93,6 @@ describe("Generate / Update Questions", () => {
   const storyWithFullSynonymMaterial: CustomTeacherStory = {
     id: "s4",
     title: "Changed review",
-    learningGoal: "goal",
     published: true,
     lessonNumber: 10,
     frames: [
@@ -129,7 +125,6 @@ describe("Generate / Update Questions", () => {
   const storyWithDroppedSnapshot: CustomTeacherStory = {
     id: "s5",
     title: "Removed review",
-    learningGoal: "goal",
     published: true,
     lessonNumber: 11,
     quizMaterialSnapshot: {

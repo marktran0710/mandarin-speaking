@@ -6,12 +6,10 @@ updates only the touched path."""
 STORY = {
     "id": "pool-story",
     "title": "我的房間",
-    "learningGoal": "g",
     "frames": [
         {"imageUrl": "", "prompt": "這是我的房間。", "vocabulary": "房間, 桌子"},
         {"imageUrl": "", "prompt": "房間裡有一張床。", "vocabulary": "床"},
     ],
-    "narrativeMode": "story",
 }
 
 

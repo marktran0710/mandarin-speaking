@@ -17,7 +17,6 @@ const topic: Topic = {
   vocabularyPinyin: { 0: ["hǎo"] },
   vocabularyTranslation: { 0: ["good"] },
   suggestedAnswers: { 0: "好。" },
-  narrativeMode: "story",
 };
 
 const workspaceProps = {

@@ -2,7 +2,6 @@
   {
     "id": "custom-story-1785065694751",
     "title": "Taiwan Community Story",
-    "learning_goal": "Students describe who, where, what happened, and how people solved the problem.",
     "frames": [
       {
         "prompt": "Introduce the place and the people.",
@@ -287,10 +286,7 @@
     ],
     "published": true,
     "created_at": "2026-07-26 11:34:54",
-    "linear": false,
     "lesson_number": null,
-    "narrative_mode": "story",
-    "first_frame_is_example": false,
     "quiz_exclusions": null,
     "quiz_material_snapshot": null,
     "quiz_approved_snapshot": null,
@@ -793,7 +789,6 @@
   {
     "id": "custom-story-1785204635939",
     "title": "週末去打網球吧！",
-    "learning_goal": "Students describe who, where, what happened, and how people solved the problem.",
     "frames": [
       {
         "prompt": "Introduce the place and the people.",
@@ -1078,10 +1073,7 @@
     ],
     "published": true,
     "created_at": "2026-07-28 02:10:36",
-    "linear": false,
     "lesson_number": 6,
-    "narrative_mode": "story",
-    "first_frame_is_example": false,
     "quiz_exclusions": null,
     "quiz_material_snapshot": null,
     "quiz_approved_snapshot": null,
@@ -1092,7 +1084,6 @@
   {
     "id": "custom-story-1785205277637",
     "title": "怎麼到飯店去？",
-    "learning_goal": "Students describe who, where, what happened, and how people solved the problem.",
     "frames": [
       {
         "prompt": "Introduce the place and the people.",
@@ -1417,10 +1408,7 @@
     ],
     "published": false,
     "created_at": "2026-07-28 02:21:17",
-    "linear": false,
     "lesson_number": 7,
-    "narrative_mode": "story",
-    "first_frame_is_example": false,
     "quiz_exclusions": null,
     "quiz_material_snapshot": null,
     "quiz_approved_snapshot": null,
@@ -1923,7 +1911,6 @@
   {
     "id": "lesson-ni-zuo-shenme",
     "title": "你做什麼？",
-    "learning_goal": "Students use the pattern S + Vaux + V(O) to say what they want to do, e.g. 我要喝茶。",
     "frames": [
       {
         "prompt": "你做什麼？",
@@ -1969,10 +1956,7 @@
     ],
     "published": true,
     "created_at": "2026-08-20 07:06:21",
-    "linear": false,
     "lesson_number": null,
-    "narrative_mode": "story",
-    "first_frame_is_example": false,
     "quiz_exclusions": null,
     "quiz_material_snapshot": null,
     "quiz_approved_snapshot": null,
@@ -1983,7 +1967,6 @@
   {
     "id": "lesson-vv-kan",
     "title": "VV看 — 大家來推薦",
-    "learning_goal": "Students use the reduplicated-verb pattern V+V+看 to recommend something to a friend, e.g. 我覺得這種巧克力很好吃，你要不要吃吃看？",
     "frames": [
       {
         "prompt": "看圖，老師示範：「我覺得這種巧克力很好吃，你要不要吃吃看？」(Model example: I think this chocolate is delicious, do you want to try it?)",
@@ -2174,10 +2157,7 @@
     ],
     "published": true,
     "created_at": "2026-08-20 07:06:22",
-    "linear": true,
     "lesson_number": 5,
-    "narrative_mode": "story",
-    "first_frame_is_example": false,
     "quiz_exclusions": null,
     "quiz_material_snapshot": null,
     "quiz_approved_snapshot": null,
@@ -2188,7 +2168,6 @@
   {
     "id": "lesson-wo-de-fangjian",
     "title": "我的房間",
-    "learning_goal": "Students listen to a short description of a room, then retell it in their own words from the picture.",
     "frames": [
       {
         "prompt": "聽完錄音後，用自己的話描述這個房間。",
@@ -2199,10 +2178,7 @@
     ],
     "published": true,
     "created_at": "2026-08-20 07:06:22",
-    "linear": false,
     "lesson_number": null,
-    "narrative_mode": "listen_retell",
-    "first_frame_is_example": false,
     "quiz_exclusions": null,
     "quiz_material_snapshot": null,
     "quiz_approved_snapshot": null,

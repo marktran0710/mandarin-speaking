@@ -19,13 +19,12 @@ import {
 describe("StoryRecorder student prototype", () => {
   beforeEach(resetStoryRecorderTestEnvironment);
   afterEach(cleanupStoryRecorderTestEnvironment);
-  it("does not count a teacher model frame as a required student scene", () => {
+  it("treats every story frame as a required student scene", () => {
     expect(
       practiceSceneIndicesFor({
         images: ["teacher-example.png", "scene-one.png", "scene-two.png"],
-        firstFrameIsExample: true,
       }),
-    ).toEqual([1, 2]);
+    ).toEqual([0, 1, 2]);
 
     expect(
       practiceSceneIndicesFor({

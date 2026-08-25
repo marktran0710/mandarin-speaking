@@ -155,18 +155,21 @@ def update_fixture(source: Path, fixture: Path) -> None:
             f"csv_only={sorted(set(replacements) - fixture_target_ids)}"
         )
 
-    # Only teaching content comes from the locked CSV. Preserve existing
-    # backend metadata while intentionally dropping CSV-only compatibility
-    # fields; seed_materials supplies their stable defaults when needed.
-    updated = [
-        {
-            **{key: value for key, value in material.items() if key not in OMITTED_FIXTURE_FIELDS},
-            **replacements[material["id"]],
+    # Only teaching content comes from the locked CSV. Preserve the remaining
+    # backend metadata while dropping the four retired story fields everywhere.
+    updated = []
+    for material in materials:
+        if not isinstance(material, dict):
+            updated.append(material)
+            continue
+        current = {
+            key: value
+            for key, value in material.items()
+            if key not in OMITTED_FIXTURE_FIELDS
         }
-        if material["id"] in replacements
-        else material
-        for material in materials
-    ]
+        if material["id"] in replacements:
+            current.update(replacements[material["id"]])
+        updated.append(current)
     fixture.write_text(json.dumps(updated, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 

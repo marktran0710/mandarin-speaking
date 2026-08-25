@@ -62,8 +62,7 @@ def main():
 
     columns = _story_columns()
     required = {
-        "id", "title", "learning_goal", "frames", "published",
-        "linear", "lesson_number", "narrative_mode", "first_frame_is_example",
+        "id", "title", "frames", "published", "lesson_number", "lesson_sub_order",
     }
     missing = required - columns
     if missing:
@@ -93,29 +92,22 @@ def main():
             db.execute(
                 """
                 INSERT INTO custom_stories
-                    (id, title, learning_goal, frames, published, linear,
-                     lesson_number, narrative_mode, first_frame_is_example)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    (id, title, frames, published, lesson_number, lesson_sub_order)
+                VALUES (%s, %s, %s, %s, %s, %s)
                 ON CONFLICT (id) DO UPDATE SET
                     title = EXCLUDED.title,
-                    learning_goal = EXCLUDED.learning_goal,
                     frames = EXCLUDED.frames,
                     published = EXCLUDED.published,
-                    linear = EXCLUDED.linear,
                     lesson_number = EXCLUDED.lesson_number,
-                    narrative_mode = EXCLUDED.narrative_mode,
-                    first_frame_is_example = EXCLUDED.first_frame_is_example
+                    lesson_sub_order = EXCLUDED.lesson_sub_order
                 """,
                 (
                     story["id"],
                     story["title"],
-                    story["learning_goal"],
                     Jsonb(frames),
                     bool(story.get("published", False)),
-                    bool(story.get("linear", False)),
                     story.get("lesson_number"),
-                    story.get("narrative_mode", "story"),
-                    bool(story.get("first_frame_is_example", False)),
+                    story.get("lesson_sub_order"),
                 ),
             )
             inserted += 1

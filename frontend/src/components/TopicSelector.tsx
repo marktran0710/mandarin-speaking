@@ -40,10 +40,8 @@ export type { Topic, TopicStartOptions, VocabGroup } from "./topic-selector/type
 
 export const TOPICS: Topic[] = [];
 
-/** Only "story" mode topics belong in the normal training flow — "describe" and
- * "listen_retell" topics have their own dedicated pages. */
-function isStoryModeTopic(topic: Topic): boolean {
-  return (topic.narrativeMode ?? "story") === "story";
+function isStoryModeTopic(_topic: Topic): boolean {
+  return true;
 }
 
 export function SkillFocusLabel({ skillFocus }: { skillFocus: string }) {

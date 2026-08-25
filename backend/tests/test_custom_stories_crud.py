@@ -9,16 +9,12 @@ teacher's story list. ON CONFLICT DO UPDATE only touches listed columns.
 STORY = {
     "id": "crud-story-1",
     "title": "我的房間",
-    "learningGoal": "describe a room",
     "frames": [
         {"imageUrl": "", "prompt": "這是我的房間。", "vocabulary": "房間, 桌子"},
         {"imageUrl": "", "prompt": "房間裡有一張床。", "vocabulary": "床"},
     ],
     "published": True,
-    "linear": True,
     "lessonNumber": 5,
-    "narrativeMode": "story",
-    "firstFrameIsExample": False,
 }
 
 
@@ -29,9 +25,7 @@ def test_create_then_list_round_trips(client):
     saved = next(s for s in stories if s["id"] == "crud-story-1")
     assert saved["title"] == "我的房間"
     assert saved["published"] is True
-    assert saved["linear"] is True
     assert saved["lessonNumber"] == 5
-    assert saved["firstFrameIsExample"] is False
     assert len(saved["frames"]) == 2
     assert saved["frames"][1]["prompt"] == "房間裡有一張床。"
     assert saved["quizExclusions"] == []

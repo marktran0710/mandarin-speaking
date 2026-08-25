@@ -14,7 +14,6 @@ function storyWithFrames(count: number): CustomTeacherStory {
   return {
     id: "custom-story-test",
     title: "Taiwan Community Story",
-    learningGoal: "Students describe who, where, and what happened.",
     frames: Array.from({ length: count }, (_, index) => ({
       imageUrl: `/uploads/images/frame-${index + 1}.png`,
       // Frames past the 6th carry no prompt — exactly what the saved stories
@@ -22,7 +21,6 @@ function storyWithFrames(count: number): CustomTeacherStory {
       prompt: index < 6 ? `Prompt ${index + 1}` : "",
       vocabulary: "媽, 友美",
     })),
-    narrativeMode: "story",
   };
 }
 
@@ -78,7 +76,6 @@ describe("StoryBuilderSection – updating a saved story", () => {
     const base = storyWithFrames(1);
     const story: CustomTeacherStory = {
       ...base,
-      narrativeMode: "describe",
       frames: [{
         ...base.frames[0],
         suggestedAnswer: "友美，妳這個週末要做什麼？",
@@ -107,7 +104,6 @@ describe("StoryBuilderSection – quiz needs review badge", () => {
     return {
       id: "custom-story-quiz-badge",
       title: "Badge Story",
-      learningGoal: "goal",
       published: true,
       frames: [
         {
@@ -157,7 +153,6 @@ describe("StoryBuilderSection – quiz needs review badge", () => {
     const story: CustomTeacherStory = {
       id: "custom-story-no-ai",
       title: "No AI Story",
-      learningGoal: "goal",
       published: true,
       frames: [{ imageUrl: "", prompt: "p", vocabulary: "知道", vocabularyTranslation: "to know" }],
     };

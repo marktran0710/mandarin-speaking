@@ -6,7 +6,6 @@ def test_phrases_and_translation_round_trip(client):
     story = {
         "id": "test-phrases-fields-story",
         "title": "Phrases Fields Test",
-        "learningGoal": "Check phrases persist",
         "level": "Beginner speaking",
         "frames": [
             {
@@ -17,7 +16,6 @@ def test_phrases_and_translation_round_trip(client):
                 "phrasesTranslation": "I want to eat, This is a restaurant",
             }
         ],
-        "narrativeMode": "describe",
     }
 
     post_response = client.post("/api/custom-stories", json=story)

@@ -9,7 +9,6 @@ import {
 import {
   type CustomStoryFrame,
   CustomTeacherStory,
-  NarrativeMode,
   type StoryDifficultyLevel,
   VocabGroup,
   loadCustomStories,
@@ -35,7 +34,6 @@ import {
   hasCustomStoryErrors,
   mergePhraseSuggestions,
   mergeVocabSuggestions,
-  narrativeModeLabel,
   resizeToCount,
   type PhraseSuggestion,
   type VocabWordSuggestion,
@@ -116,7 +114,7 @@ export default function StoryBuilderSection({
   const clearNotice = () => setCustomStoryNotice("");
 
   const updateDraftField = (
-    field: "title" | "learningGoal" | "lessonNumber" | "lessonSubOrder",
+    field: "title" | "lessonNumber" | "lessonSubOrder",
     value: string,
   ) => {
     setCustomDraft((draft) => ({ ...draft, [field]: value }));
