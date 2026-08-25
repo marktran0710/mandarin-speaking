@@ -369,16 +369,46 @@
 .sfc-next-action-card h2 { margin: 0; color: var(--clay-ink); font-size: var(--text-lg); }
 .sfc-next-action-card p:last-child { margin: 0; color: var(--clay-body); line-height: 1.55; }
 .sfc-results .sfc-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: 4;
+  /* The result card is a flowing document section. A sticky footer used to
+     sit on top of the last feedback rows and became especially jarring when
+     the pronunciation modal opened over it. Keep the actions in normal flow
+     so the card grows before the footer is reached. */
+  position: static;
+  z-index: auto;
   margin-left: calc(-1 * clamp(16px, 2.2vw, 24px));
   margin-right: calc(-1 * clamp(16px, 2.2vw, 24px));
   margin-bottom: calc(-1 * clamp(16px, 2.2vw, 24px));
   padding: 12px clamp(16px, 2.2vw, 24px);
-  background: color-mix(in srgb, var(--clay-surface-card) 96%, transparent);
-  box-shadow: 0 -8px 18px color-mix(in srgb, var(--clay-ink) 8%, transparent);
-  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--clay-hairline);
+  background: var(--clay-surface-card);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.sfc-feedback-modal-backdrop {
+  animation: sfc-feedback-modal-fade-in 160ms ease-out both;
+}
+
+.sfc-feedback-modal {
+  transform-origin: center center;
+  animation: sfc-feedback-modal-pop-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes sfc-feedback-modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes sfc-feedback-modal-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sfc-feedback-modal-backdrop,
+  .sfc-feedback-modal {
+    animation: none;
+  }
 }
 @media (max-width: 680px) {
   .sfc-next-action-card { grid-template-columns: 1fr; }
@@ -432,4 +462,3 @@
   gap: 0.4rem;
   margin: 0.35rem 0 0.15rem;
 }
-

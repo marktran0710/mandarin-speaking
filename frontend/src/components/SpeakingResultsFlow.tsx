@@ -88,10 +88,20 @@ export default function SpeakingResultsFlow({
   useEffect(() => {
     if (!feedbackModalOpen) return;
     const previousOverflow = document.body.style.overflow;
+    const previousPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    // Hiding the page scrollbar for the modal otherwise widens the results
+    // column by ~15px and makes the footer/buttons jump sideways underneath
+    // the backdrop. Reserve that exact width while the modal is open.
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
     document.body.style.overflow = "hidden";
     const handleKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") closeFeedbackModal(); };
     document.addEventListener("keydown", handleKeyDown);
-    return () => { document.removeEventListener("keydown", handleKeyDown); document.body.style.overflow = previousOverflow; };
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPaddingRight;
+    };
   }, [feedbackModalOpen]);
   const goToStep = (target: ResultsStep) => {
     const index = steps.indexOf(target);
