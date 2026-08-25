@@ -400,6 +400,8 @@
   gap: 22px;
   background: transparent;
   box-shadow: none;
+  transition: none;
+  animation: none;
 }
 
 .practice-workspace-study {
@@ -785,16 +787,16 @@
   }
 }
 
-/* Final image-frame polish: make the story illustration feel like a deliberate
-   visual card while keeping its footprint predictable beside the practice
-   content. Study uses the taller frame; Speaking keeps its own contain rules. */
+/* Final image-frame polish: let the illustration sit directly on the page.
+   The image is the visual surface; the wrapper must not add a second empty
+   card, decorative lift, or motion behind it. */
 .practice-workspace-study .practice-scene-col {
   box-sizing: border-box;
-  padding: 8px;
-  border: 1px solid var(--clay-hairline);
-  border-radius: 22px;
-  background: var(--clay-surface-card);
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--clay-ink) 7%, transparent);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .practice-workspace-study .practice-scene-image,
@@ -803,27 +805,32 @@
   aspect-ratio: 6 / 5;
   min-height: 0;
   max-height: min(680px, calc(100vh - 220px));
-  border: 1px solid var(--clay-hairline-soft);
-  border-radius: 16px;
-  background: color-mix(in srgb, var(--clay-surface-soft) 82%, var(--clay-surface-card));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--clay-surface-card) 52%, transparent);
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  box-shadow: none;
+  transition: none;
+  animation: none;
 }
 
 .practice-workspace-study .practice-scene-image img {
   object-fit: cover;
   object-position: center;
+  transform: none;
+  transition: none;
+  animation: none;
 }
 
 @media (max-width: 720px) {
   .practice-workspace-study .practice-scene-col {
-    padding: 6px;
-    border-radius: 18px;
+    padding: 0;
+    border-radius: 0;
   }
 
   .practice-workspace-study .practice-scene-image,
   .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image {
     aspect-ratio: 4 / 3;
     max-height: none;
-    border-radius: 14px;
+    border-radius: 12px;
   }
 }
