@@ -9,7 +9,40 @@ import "./styles/management-login.css";
 type ManagementRole = "teacher" | "admin";
 const ADMIN_KEY = "adminConsoleSession";
 
+export type ManagementSection = "stories" | "quiz-review" | "submissions" | "support" | "accounts" | "analytics" | "practice-debug";
+
+const SECTION_CONFIG: Record<ManagementSection, {
+  requiredRole: ManagementRole | "either";
+  teacherView?: "submissions" | "recordingsHelp" | "materials" | "analytics";
+  teacherRecordingsHelpTab?: "recordings" | "help";
+  teacherMaterialsTab?: "builder" | "quizReview";
+  adminNav?: "Admin Home" | "IRT / Student analytics" | "Practice Debug";
+}> = {
+  stories: { requiredRole: "teacher", teacherView: "materials", teacherMaterialsTab: "builder" },
+  "quiz-review": { requiredRole: "teacher", teacherView: "materials", teacherMaterialsTab: "quizReview" },
+  submissions: { requiredRole: "teacher", teacherView: "submissions" },
+  support: { requiredRole: "teacher", teacherView: "recordingsHelp", teacherRecordingsHelpTab: "help" },
+  accounts: { requiredRole: "admin", adminNav: "Admin Home" },
+  analytics: { requiredRole: "either", teacherView: "analytics", adminNav: "IRT / Student analytics" },
+  "practice-debug": { requiredRole: "admin", adminNav: "Practice Debug" },
+};
+
+function AccessDenied({ role }: { role: ManagementRole }) {
+  return (
+    <main className="management-access-denied">
+      <div className="management-login-card">
+        <span className="management-login-mark">!</span>
+        <p className="management-login-kicker">Permission required</p>
+        <h1>Access denied</h1>
+        <p>This area is not available to the {role} role.</p>
+        <a href="/manage">Return to management portal</a>
+      </div>
+    </main>
+  );
+}
+
 function readRole(): ManagementRole | null {
+  if (typeof window === "undefined") return null;
   if (currentRole("teacher") === "teacher") return "teacher";
   if (localStorage.getItem(ADMIN_KEY) === "true") return "admin";
   return null;
@@ -52,16 +85,28 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
   );
 }
 
-export default function ManagementApp({ initialRole }: { initialRole?: ManagementRole } = {}) {
-  const [role, setRole] = useState<ManagementRole | null>(() => readRole());
-  const [loginRole, setLoginRole] = useState<ManagementRole>(() => initialRole ?? readRole() ?? "teacher");
+export default function ManagementApp({ initialRole, initialSection }: { initialRole?: ManagementRole; initialSection?: ManagementSection } = {}) {
+  const sectionConfig = initialSection ? SECTION_CONFIG[initialSection] : undefined;
+  const [role, setRole] = useState<ManagementRole | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const [loginRole, setLoginRole] = useState<ManagementRole>(() => {
+    if (sectionConfig?.requiredRole === "teacher" || sectionConfig?.requiredRole === "admin") return sectionConfig.requiredRole;
+    return initialRole ?? "teacher";
+  });
 
   useEffect(() => {
-    if (!role) setRole(readRole());
-  }, [role]);
+    setRole(readRole());
+    setHydrated(true);
+  }, []);
 
-  if (role === "teacher") return <TeacherApp embedded onExit={() => setRole(null)} />;
-  if (role === "admin") return <AdminApp embedded onExit={() => setRole(null)} />;
+  if (!hydrated) return <main className="management-loading">Loading management portal…</main>;
+
+  if (role && sectionConfig && sectionConfig.requiredRole !== "either" && sectionConfig.requiredRole !== role) {
+    return <AccessDenied role={role} />;
+  }
+
+  if (role === "teacher") return <TeacherApp embedded onExit={() => setRole(null)} initialView={sectionConfig?.teacherView} initialRecordingsHelpTab={sectionConfig?.teacherRecordingsHelpTab} initialMaterialsTab={sectionConfig?.teacherMaterialsTab} />;
+  if (role === "admin") return <AdminApp embedded onExit={() => setRole(null)} initialNav={sectionConfig?.adminNav} />;
 
   if (loginRole === "teacher") {
     return (

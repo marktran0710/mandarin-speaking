@@ -51,13 +51,21 @@ export async function proxyBackendRequest(request: NextRequest, pathname: string
     ? undefined
     : await request.arrayBuffer();
 
-  const upstream = await fetch(target, {
-    method: request.method,
-    headers: forwardHeaders(request),
-    body,
-    redirect: "manual",
-    cache: "no-store",
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(target, {
+      method: request.method,
+      headers: forwardHeaders(request),
+      body,
+      redirect: "manual",
+      cache: "no-store",
+    });
+  } catch {
+    return Response.json(
+      { detail: "Backend is unavailable. Check BACKEND_INTERNAL_URL or the backend service status." },
+      { status: 502 },
+    );
+  }
 
   return new Response(upstream.body, {
     status: upstream.status,

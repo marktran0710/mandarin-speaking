@@ -37,7 +37,7 @@ import "./TeacherDashboardPage.css";
 type RecordingsHelpTab = "recordings" | "help";
 type MaterialsTab = "builder" | "imageBuilder" | "quizReview";
 type AnalyticsTab = "students" | "quizTrends" | "recordingTrends" | "measurement";
-type TeacherView = "overview" | "submissions" | "recordingsHelp" | "materials" | "analytics";
+export type TeacherView = "overview" | "submissions" | "recordingsHelp" | "materials" | "analytics";
 
 const VIEW_COPY: Record<TeacherView, { eyebrow: string; title: string; description: string }> = {
   overview: {
@@ -108,6 +108,9 @@ export default function TeacherDashboardPage({
   onRefreshRecords,
   onLogout,
   onStorySaved,
+  initialView = "overview",
+  initialRecordingsHelpTab = "recordings",
+  initialMaterialsTab = "builder",
 }: {
   records: AudioRecord[];
   totalRecordCount?: number;
@@ -119,10 +122,13 @@ export default function TeacherDashboardPage({
   onRefreshRecords?: () => Promise<void>;
   onLogout: () => void;
   onStorySaved?: () => void;
+  initialView?: TeacherView;
+  initialRecordingsHelpTab?: RecordingsHelpTab;
+  initialMaterialsTab?: MaterialsTab;
 }) {
-  const [activeView, setActiveView] = useState<TeacherView>("overview");
-  const [recordingsHelpTab, setRecordingsHelpTab] = useState<RecordingsHelpTab>("recordings");
-  const [materialsTab, setMaterialsTab] = useState<MaterialsTab>("builder");
+  const [activeView, setActiveView] = useState<TeacherView>(initialView);
+  const [recordingsHelpTab, setRecordingsHelpTab] = useState<RecordingsHelpTab>(initialRecordingsHelpTab);
+  const [materialsTab, setMaterialsTab] = useState<MaterialsTab>(initialMaterialsTab);
   // A nonce (not just the lesson number) so clicking "Go to Quiz Review"
   // twice for the same lesson still re-triggers the jump on the second click.
   const [quizReviewJump, setQuizReviewJump] = useState<{ lessonNumber: number | null; nonce: number } | null>(

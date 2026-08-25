@@ -1,4 +1,5 @@
 .management-login-stage { min-height: 100vh; background: #fbfaf7; }
+.management-loading { display: grid; min-height: 100vh; place-items: center; color: #52605d; background: #fbfaf7; font-weight: 700; }
 .management-login-switcher { position: fixed; top: 18px; right: 22px; z-index: 5; display: flex; gap: 4px; padding: 4px; border: 1px solid #dfe8e1; border-radius: 999px; background: rgb(255 255 255 / 88%); box-shadow: 0 8px 22px rgb(23 55 47 / 8%); }
 .management-login-switcher button { min-width: 76px; min-height: 32px; padding: 0 12px; border: 0; border-radius: 999px; color: #52605d; background: transparent; font: 700 12px inherit; cursor: pointer; }
 .management-login-switcher button.active { color: #075840; background: #e5f5eb; }
@@ -15,4 +16,8 @@
 .management-login-card form button:hover:not(:disabled) { background: #075840; }
 .management-login-card form button:disabled { cursor: wait; opacity: .6; }
 .management-login-error { color: #b44f42; }
+.management-access-denied { display: grid; place-items: center; min-height: 100vh; padding: 28px; background: radial-gradient(circle at 50% 0%, #fff1df 0, #fbfaf7 48%); color: #17372f; }
+.management-access-denied .management-login-card { text-align: center; }
+.management-access-denied .management-login-mark { margin: 0 auto; color: #7b4f16; background: #f6d79d; }
+.management-access-denied a { display: inline-flex; min-height: 42px; align-items: center; justify-content: center; padding: 0 16px; border-radius: 10px; color: #fff; background: #11795d; font-weight: 800; text-decoration: none; }
 @media (max-width: 560px) { .management-login-switcher { top: 12px; right: 12px; } }

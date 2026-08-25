@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 import AdminApp from "./AdminApp";
-import TeacherShell from "./components/teacher/TeacherShell";
+import ManagementShell from "./components/management/ManagementShell";
 
 vi.mock("./pages/TeacherPracticeDebugPage", () => ({
   default: () => <p>Practice debug content</p>,
@@ -25,7 +25,8 @@ describe("admin-only diagnostic navigation", () => {
 
   it("does not render diagnostic entries in the teacher navigation", () => {
     render(
-      <TeacherShell
+      <ManagementShell
+        role="teacher"
         activeView="overview"
         onSelectView={() => undefined}
         submissionCount={0}
@@ -33,7 +34,7 @@ describe("admin-only diagnostic navigation", () => {
         onLogout={() => undefined}
       >
         <p>Teacher content</p>
-      </TeacherShell>,
+      </ManagementShell>,
     );
 
     expect(screen.queryByRole("button", { name: "Practice Debug" })).not.toBeInTheDocument();

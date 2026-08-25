@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  agentRules: false,
   pageExtensions: ["page.tsx", "page.ts", "route.ts", "route.tsx"],
   typescript: {
     tsconfigPath: "tsconfig.next.json",

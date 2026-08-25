@@ -35,7 +35,7 @@ export default function Navigation({
   const [colorMode, toggleColorMode] = useColorMode();
   const isStudent = activeRole === "student";
   // The teacher app renders this bar only on its login screen (once logged
-  // in, TeacherShell's own topbar takes over), so the teacher logo has just
+  // in, ManagementShell's own topbar takes over), so the teacher logo has just
   // one target — there is no in-app dashboard page to route to.
   const logoTarget: Page = appVariant === "teacher" ? "teacher-login" : "home";
 

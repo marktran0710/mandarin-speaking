@@ -30,15 +30,16 @@ type Account = { id: string; name: string; role: Role; status: AccountStatus; cr
 
 const ADMIN_KEY = "adminConsoleSession";
 const NAV_ITEMS = ["Admin Home", "Teachers", "Students", "IRT / Student analytics", "Practice Debug"] as const;
+export type AdminNav = typeof NAV_ITEMS[number];
 
 function initialPassword() {
   return isTestRuntime() || isDevelopmentRuntime() ? "123456" : "";
 }
 
-export default function AdminApp({ embedded = false, onExit }: { embedded?: boolean; onExit?: () => void } = {}) {
+export default function AdminApp({ embedded = false, onExit, initialNav = "Admin Home" }: { embedded?: boolean; onExit?: () => void; initialNav?: AdminNav } = {}) {
   const [authenticated, setAuthenticated] = useState(() => localStorage.getItem(ADMIN_KEY) === "true");
   const [password, setPassword] = useState("");
-  const [activeNav, setActiveNav] = useState<(typeof NAV_ITEMS)[number]>("Admin Home");
+  const [activeNav, setActiveNav] = useState<AdminNav>(initialNav);
   const [students, setStudents] = useState<Student[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [quizAttempts, setQuizAttempts] = useState<VocabQuizAttempt[]>([]);
