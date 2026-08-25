@@ -18,6 +18,13 @@ describe("StoryRecorder submission progression metadata", () => {
     expect(runtimeSource).toContain(
       'ge={baseStoryId:t.sourceStory?.id??t.id,difficultyLevel:t.difficultyLevel??"easy",sceneIndex:r',
     );
+    expect(runtimeSource).toContain(
+      'function Er(t,e){if(t.imageIndex===void 0)return null;const u=t.praatMetrics,r=u?.ai_feedback?.vocabulary_coverage;return{baseStoryId:t.baseStoryId??e?.sourceStory?.id??e?.id,difficultyLevel:t.difficultyLevel??e?.difficultyLevel??"easy"',
+    );
+    expect(runtimeSource).toContain('F=Er(f,t);');
+    expect(runtimeSource).toContain(
+      'Object.values(M).sort((s,a)=>s.sceneIndex-a.sceneIndex).map(s=>({...s,baseStoryId:t.sourceStory?.id??t.id,difficultyLevel:t.difficultyLevel??"easy"}))',
+    );
   });
 
   it("does not mark a level complete from an incomplete recording gate", () => {

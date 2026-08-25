@@ -78,11 +78,13 @@ def test_story_submission_round_trips_with_scenes(logged_in_student):
         "studentName": "Mai",
         "submittedAt": "2026-07-26T08:00:00Z",
         "scenes": [
-            {"sceneIndex": 1, "transcription": "房間裡有一張床。", "audioUrl": "",
+            {"sceneIndex": 1, "baseStoryId": "story-family-1", "difficultyLevel": "easy",
+             "transcription": "房間裡有一張床。", "audioUrl": "",
              "toneAccuracy": 70.0, "fluencyScore": 60.0, "pronScore": 65.0,
              "pauseCount": 2, "longestPause": 900, "utteranceCount": 2,
              "choppyPauseCount": 0, "articulationRate": 3.1},
-            {"sceneIndex": 0, "transcription": "這是我的房間。", "audioUrl": "",
+            {"sceneIndex": 0, "baseStoryId": "story-family-1", "difficultyLevel": "easy",
+             "transcription": "這是我的房間。", "audioUrl": "",
              "toneAccuracy": 80.0, "fluencyScore": 70.0, "pronScore": 75.0,
              "pauseCount": 1, "longestPause": 400, "utteranceCount": 1,
              "choppyPauseCount": 0, "articulationRate": 3.4},
@@ -93,11 +95,15 @@ def test_story_submission_round_trips_with_scenes(logged_in_student):
     # Scenes are stored sorted by sceneIndex regardless of submitted order.
     assert response.json()["studentId"] == student["id"]
     assert [s["sceneIndex"] for s in response.json()["scenes"]] == [0, 1]
+    assert response.json()["scenes"][0]["baseStoryId"] == "story-family-1"
+    assert response.json()["scenes"][0]["difficultyLevel"] == "easy"
 
     listed = client.get("/api/story-submissions", params={"story_id": "teacher-story-1"}).json()
     saved = next(s for s in listed if s["id"] == "sub-1")
     assert [s["sceneIndex"] for s in saved["scenes"]] == [0, 1]
     assert saved["scenes"][0]["transcription"] == "這是我的房間。"
+    assert saved["scenes"][0]["baseStoryId"] == "story-family-1"
+    assert saved["scenes"][0]["difficultyLevel"] == "easy"
 
 
 def test_story_submissions_filter_by_story_id(logged_in_teacher):

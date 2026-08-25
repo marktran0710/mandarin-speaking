@@ -200,6 +200,11 @@ class HelpRequest(BaseModel):
 
 class SceneSubmission(BaseModel):
     sceneIndex: int
+    # Canonical story/tier identity is stored with every scene so a returned
+    # submission can rehydrate difficulty progression after a reload. Older
+    # submissions intentionally remain valid without these optional fields.
+    baseStoryId: Optional[str] = Field(default=None, max_length=128)
+    difficultyLevel: Optional[Literal["easy", "medium", "hard"]] = None
     imageUrl: str = ""
     transcription: str = ""
     vocabUsed: List[str] = []
