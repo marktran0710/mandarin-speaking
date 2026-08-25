@@ -79,6 +79,10 @@ export function useQuizSession({
       .then((attempts) => {
         if (!cancelled) {
           const derived = starsFromAttempts(attempts);
+          // Keep the local mirror in sync with the database-derived result,
+          // so the picker and recorder agree after a learner returns on this
+          // device (including after completing a quiz elsewhere).
+          if (derived !== 0) recordLocalStars(storyId, derived);
           setStars((current) => derived > current ? derived : current);
         }
       })

@@ -14,7 +14,7 @@ import "./JourneyBubble.css";
  *
  * Two states:
  * - Needs stars (some story below PRACTICE_UNLOCK_STARS): gold, pulsing,
- *   showing that story's ⭐ x/2 — a real button that jumps straight into
+ *   showing that story's ⭐ x/3 — a real button that jumps straight into
  *   the story so the student can take its quiz. The near-miss story from
  *   pickStripMessage wins the target slot; otherwise the first story (in
  *   lesson order) still short of the gate.

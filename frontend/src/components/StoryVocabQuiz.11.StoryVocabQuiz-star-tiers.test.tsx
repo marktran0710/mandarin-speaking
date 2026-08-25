@@ -113,7 +113,21 @@ describe("StoryVocabQuiz star tiers", () => {
     expect(screen.getByRole("button", { name: /Tier 3/ })).toBeDisabled();
   });
 
-  it("passing tier 1 earns the star and dangles tier 2, but only a tier-2 pass unlocks practice", async () => {
+  it("mirrors a database-derived three-star result locally for the next activity view", async () => {
+    vi.mocked(database.listVocabQuizAttempts).mockResolvedValueOnce([
+      { mode: "tier1", correctCount: 20, totalQuestions: 20 },
+      { mode: "tier2", correctCount: 22, totalQuestions: 22 },
+      { mode: "tier3", correctCount: 25, totalQuestions: 25 },
+    ] as any);
+
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
+
+    const { loadLocalStars } = await import("../utils/quizTiers");
+    await waitFor(() => expect(loadLocalStars("s1")).toBe(3));
+    expect(screen.getByRole("button", { name: /Tier 3/ })).toBeEnabled();
+  });
+
+  it("keeps practice locked until the learner earns all three stars", async () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();
     const onDone = vi.fn();
@@ -141,12 +155,19 @@ describe("StoryVocabQuiz star tiers", () => {
     expect(screen.getByText(/Question 1 of 5/)).toBeInTheDocument();
     await playTierRun(user, 5, 5);
 
-    // ⭐⭐ earned: practice opens, and the attempt was recorded as tier2.
+    // ⭐⭐ earned: tier 3 becomes the final gate; practice stays locked.
     expect(loadLocalStars("s1")).toBe(2);
     expect(onComplete).toHaveBeenCalledTimes(2);
     expect(onComplete.mock.calls[1][0].mode).toBe("tier2");
+    expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Challenge Tier 3/ }));
+    await playTierRun(user, 5, 5);
+
+    expect(loadLocalStars("s1")).toBe(3);
+    expect(onComplete).toHaveBeenCalledTimes(3);
+    expect(onComplete.mock.calls[2][0].mode).toBe("tier3");
     expect(screen.getByRole("button", { name: /Continue to practice/ })).toBeInTheDocument();
-    // A 42-question UI walk legitimately outlasts the 5s default timeout.
+    // A 67-question UI walk legitimately outlasts the 5s default timeout.
   }, 20_000);
 
   it("failing tier 1 near the threshold shows the near-miss gap and a Try again button, without unlocking practice", async () => {
@@ -170,7 +191,7 @@ describe("StoryVocabQuiz star tiers", () => {
     expect(screen.getByText(/Question 1 of 5/)).toBeInTheDocument();
   });
 
-  it("still offers Continue to practice after a failed run when practice was already unlocked earlier", async () => {
+  it("does not let a legacy completion flag bypass the three-star requirement", async () => {
     const user = userEvent.setup();
     render(
       <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" alreadyCompleted />,
@@ -179,7 +200,7 @@ describe("StoryVocabQuiz star tiers", () => {
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
     await playTierRun(user, 5, 0);
 
-    expect(screen.getByRole("button", { name: /Continue to practice/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
   });
 
   it("tier 3 runs against a 150-second overall countdown and ends at the cap", async () => {

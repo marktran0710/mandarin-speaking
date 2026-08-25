@@ -201,10 +201,10 @@ flowchart TD
     subgraph Q["1 · Vocabulary quiz — star ladder"]
         direction LR
         T1["⭐ Tier 1\n20 questions · pass 14"] --> T2["⭐⭐ Tier 2\n22 questions · pass 18"]
-        T2 -.optional.-> T3["⭐⭐⭐ Tier 3\n25 questions · 150s · traps"]
+        T2 --> T3["⭐⭐⭐ Tier 3\n25 questions · 150s · traps"]
     end
 
-    T2 -->|"⭐⭐ earned"| SP
+    T3 -->|"⭐⭐⭐ earned"| SP
 
     subgraph SP["2 · Speaking practice — mastery gate"]
         direction TB
@@ -230,15 +230,14 @@ flowchart TD
   (`isTierUnlocked`).
 - Passing a tier earns its star **permanently** — a later failed run never demotes it
   (`recordLocalStars` only ever raises).
-- **⭐⭐ is the gate into speaking practice** (`PRACTICE_UNLOCK_STARS = 2`): the results
-  screen only shows *Continue to practice* at two stars; below that it shows a lock note
-  plus *Try again* / *Challenge next tier*. Tier 3 is an optional extra challenge.
+- **⭐⭐⭐ is the gate into speaking practice** (`PRACTICE_UNLOCK_STARS = 3`): the results
+  screen only shows *Continue to practice* after all three stars; below that it shows a
+  lock note plus *Try again* / *Challenge next tier*.
 - Stars are **derived, not stored**: computed from the `vocab_quiz_attempts` history
   (`mode = tier1/2/3`, `starsFromAttempts`), so they follow the student across devices;
   a localStorage mirror (`vocabQuizStars`) gives an instant first paint and covers
   offline/no-database mode.
-- Backward compatibility: students who unlocked practice under an older, looser rule
-  keep their unlock (`alreadyCompleted`).
+- Legacy two-star completion flags do not bypass the current three-star requirement.
 
 ### 2. Speaking practice — the pronunciation mastery gate
 

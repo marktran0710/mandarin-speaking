@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import type { UserEvent } from "@testing-library/user-event";
 import { toPinyin } from "../utils/pinyin";
 
-// Unlocking practice now means walking a 42-question star ladder (see
+// Unlocking practice now means walking a 67-question star ladder (see
 // completeVocabQuiz below) — integration tests in this file legitimately
 // outlast the 5s default.
 vi.setConfig({ testTimeout: 20_000 });
@@ -22,9 +22,9 @@ import StoryRecorder, {
 // needed to answer any tier-1 question kind correctly — the vocab quiz now
 // gates practice on actually passing tier 1 (14/20 right), so the helper
 // below must genuinely know the answers rather than losing on purpose.
-const QUIZ_ANSWERS: Record<string, { translation: string; pinyin?: string }> = {
-  market: { translation: "marketplace", pinyin: "shìchǎng" },
-  help: { translation: "to help" },
+const QUIZ_ANSWERS: Record<string, { translation: string; pinyin?: string; pos?: string }> = {
+  market: { translation: "marketplace", pinyin: "shìchǎng", pos: "N" },
+  help: { translation: "to help", pos: "V" },
   friend: { translation: "friend" },
   餐廳: { translation: "restaurant" },
   吃: { translation: "to eat" },
@@ -47,6 +47,8 @@ async function passTierRun(user: UserEvent, questionCount: number) {
       correct = QUIZ_ANSWERS[match[1]].translation;
     } else if ((match = label.match(/^How do you read (.+)\?$/))) {
       correct = QUIZ_ANSWERS[match[1]]?.pinyin ?? toPinyin(match[1]);
+    } else if ((match = label.match(/^What part of speech is (.+)\?$/))) {
+      correct = QUIZ_ANSWERS[match[1]]?.pos!;
     } else {
       const translation = label.match(/^Which word means (.+)\?$/)![1];
       correct = Object.keys(QUIZ_ANSWERS).find(
@@ -62,10 +64,9 @@ async function passTierRun(user: UserEvent, questionCount: number) {
   }
 }
 
-/** Climbs the star ladder far enough to open practice (⭐⭐: pass tier 1,
- * then the tier-2 challenge straight off its summary), if the tier-select
- * screen is showing, then continues past the results screen. Required to
- * advance past a first-time (locked-practice) quiz. */
+/** Climbs the complete ladder (⭐⭐⭐: pass tiers 1, 2, then 3), if the
+ * tier-select screen is showing, then continues past the results screen.
+ * Required to advance past a first-time locked-practice quiz. */
 async function completeVocabQuiz(user: UserEvent) {
   const tierButton = screen.queryByRole("button", { name: /Tier 1/ });
   if (!tierButton) return;
@@ -74,6 +75,9 @@ async function completeVocabQuiz(user: UserEvent) {
 
   await user.click(await screen.findByRole("button", { name: /Challenge Tier 2/ }));
   await passTierRun(user, 22);
+
+  await user.click(await screen.findByRole("button", { name: /Challenge Tier 3/ }));
+  await passTierRun(user, 25);
 
   const continueButton = await screen.findByRole("button", { name: /Continue to practice/ });
   await user.click(continueButton);

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { canUseDatabase, createCustomStory, listCustomStories } from "../services/database";
-import { loadBestLocalStars } from "../utils/quizTiers";
+import { loadBestLocalStars, loadLocalStars, practiceUnlocked } from "../utils/quizTiers";
 import {
   type StoryDifficultyLevel,
   loadCustomStories,
@@ -24,7 +24,6 @@ import {
   loadSubmittedStoryIds,
 } from "../utils/storyLevelProgress";
 import { topicHasQuiz } from "../utils/topicQuiz";
-import { loadCompletedVocabQuizzes } from "../utils/vocabQuizStorage";
 import { isAdminSession } from "../utils/studentSession";
 import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
@@ -169,7 +168,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
           const needsQuiz =
             topicHasQuiz(tierTopic) &&
             !isAdminSession() &&
-            loadCompletedVocabQuizzes()[tierTopic.id] !== true;
+            !practiceUnlocked(loadLocalStars(tierTopic.id));
           const copy = LEVEL_COPY[level];
           const content = (
             <>
@@ -218,10 +217,26 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
       group.lessonNumber != null && previous?.lessonSubOrder != null
         ? `${group.lessonNumber}-${previous.lessonSubOrder}`
         : null;
+    const story = t.sourceStory;
+    const submittedLevels = story ? loadSubmittedLevels(story.id) : {};
+    const availableLevels = story
+      ? (["easy", "medium", "hard"] as const).filter(
+          (level) => level === "easy" || storyHasTierContent(story, level),
+        )
+      : ([t.difficultyLevel ?? "easy"] as StoryDifficultyLevel[]);
+    // The card CTA always names and opens the next unsubmitted difficulty.
+    // When all available levels are done it remains a deliberate review path
+    // for the most advanced level, never an ambiguous jump back to Easy.
+    const activeLevel =
+      availableLevels.find(
+        (level) => !submittedLevels[level] && (!story || isStoryLevelUnlocked(story.id, level)),
+      ) ?? availableLevels[availableLevels.length - 1];
+    const activeTopic = story ? storyToTopic(story, activeLevel, "approved") : t;
+    const activeLevelDone = Boolean(submittedLevels[activeLevel]);
     const needsQuiz =
-      topicHasQuiz(t) &&
+      topicHasQuiz(activeTopic) &&
       !isAdminSession() &&
-      loadCompletedVocabQuizzes()[t.id] !== true;
+      !practiceUnlocked(loadLocalStars(activeTopic.id));
 
     return (
       <article key={t.id} className={`ts-card${unlocked ? "" : " ts-card-locked"}`}>
@@ -283,14 +298,27 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
             <button
               type="button"
               className={`ts-card-btn${needsQuiz ? " ts-card-btn-quiz" : ""}`}
-              onClick={() =>
-                onTopicSelect?.(t, needsQuiz ? { startAtQuiz: true } : undefined)
-              }
+              onClick={() => {
+                const options = needsQuiz ? { startAtQuiz: true } : undefined;
+                if (story && onLevelSelect) {
+                  onLevelSelect(t, activeLevel, options);
+                  return;
+                }
+                onTopicSelect?.(activeTopic, options);
+              }}
             >
               {needsQuiz ? (
-                <BiLabel zh="先做測驗" pinyin="Xiān zuò cèyàn" en="Take quiz first" />
+                <BiLabel
+                  zh={`完成 ${LEVEL_COPY[activeLevel].zh} 詞彙測驗`}
+                  pinyin={`Wánchéng ${LEVEL_COPY[activeLevel].pinyin} cíhuì cèyàn`}
+                  en={`Complete ${LEVEL_COPY[activeLevel].en} vocabulary quiz`}
+                />
               ) : (
-                <BiLabel k="start_this_activity" />
+                <BiLabel
+                  zh={activeLevelDone ? `複習 ${LEVEL_COPY[activeLevel].zh} 口說練習` : `開始 ${LEVEL_COPY[activeLevel].zh} 口說練習`}
+                  pinyin={activeLevelDone ? `Fùxí ${LEVEL_COPY[activeLevel].pinyin} kǒushuō liànxí` : `Kāishǐ ${LEVEL_COPY[activeLevel].pinyin} kǒushuō liànxí`}
+                  en={`${activeLevelDone ? "Review" : "Start"} ${LEVEL_COPY[activeLevel].en} speaking practice`}
+                />
               )}
               <span className="ts-card-btn-arrow">→</span>
             </button>

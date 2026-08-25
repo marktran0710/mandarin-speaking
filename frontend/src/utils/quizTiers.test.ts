@@ -112,10 +112,10 @@ describe("starsByStory", () => {
 });
 
 describe("practiceUnlocked", () => {
-  it("opens speaking practice at two stars, not one", () => {
+  it("opens speaking practice only after all three stars", () => {
     expect(practiceUnlocked(0)).toBe(false);
     expect(practiceUnlocked(1)).toBe(false);
-    expect(practiceUnlocked(2)).toBe(true);
+    expect(practiceUnlocked(2)).toBe(false);
     expect(practiceUnlocked(3)).toBe(true);
   });
 });

@@ -93,9 +93,10 @@ export function isTierUnlocked(tier: QuizTier, stars: number): boolean {
   return stars >= tier - 1;
 }
 
-// Speaking practice unlocks at ⭐⭐, not ⭐: tier 1 is the warm-up, tier 2's
-// pass is the gate into the story, and tier 3 stays an optional challenge.
-export const PRACTICE_UNLOCK_STARS = 2;
+// Speaking practice opens only after the complete ⭐ / ⭐⭐ / ⭐⭐⭐ ladder.
+// Tier 1 and Tier 2 prepare the learner; Tier 3 confirms the vocabulary
+// check is fully complete before the story's speaking work becomes available.
+export const PRACTICE_UNLOCK_STARS = 3;
 
 /** Whether this many stars opens the story's speaking practice. */
 export function practiceUnlocked(stars: number): boolean {

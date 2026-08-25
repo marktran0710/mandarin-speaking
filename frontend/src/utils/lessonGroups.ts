@@ -110,8 +110,7 @@ export type StarsForTopic = (topic: Topic) => number;
 const localStarsForTopic: StarsForTopic = (topic) => loadBestLocalStars(topic.id);
 
 /** A story is finished when it's been submitted (at any tier) AND its quiz
- * ladder reached ⭐⭐ — tier 1 and tier 2 both passed, since tier 2 can't be
- * attempted until tier 1 is earned. Stories that run no quiz at all (no
+ * ladder reached ⭐⭐⭐ — all three tiers passed. Stories that run no quiz at all (no
  * glossed vocabulary — see topicHasQuiz) are finished on submission alone;
  * requiring stars they can never earn would wall off the rest of the book. */
 export function isStoryFinished(
@@ -140,7 +139,7 @@ export function lessonCompletion(
 /** Sequential lesson lock, following the lessons that actually exist (a
  * published 5→7→9 chain locks 7 behind 5, not behind a nonexistent 6):
  * the first numbered lesson is always open, each later one opens once
- * EVERY story in the previous lesson is finished (submitted + ⭐⭐, see
+ * EVERY story in the previous lesson is finished (submitted + ⭐⭐⭐, see
  * isStoryFinished), and the 其他 group is always open. */
 export function isLessonGroupUnlocked(
   groups: LessonGroup[],
