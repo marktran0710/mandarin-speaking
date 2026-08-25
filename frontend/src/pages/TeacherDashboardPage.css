@@ -8,6 +8,18 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+  min-width: 0;
+}
+
+.tdash-workspace > *,
+.tdash-workspace .teacher-panel,
+.tdash-workspace .teacher-content-builder,
+.tdash-workspace .teacher-submissions-panel,
+.tdash-workspace .teacher-recordings-panel,
+.tdash-workspace .teacher-quiz-analytics-panel,
+.tdash-workspace .teacher-recording-analytics-panel,
+.tdash-workspace .insights-view {
+  min-width: 0;
 }
 
 /* Legacy view panels keep their own horizontal margin:auto centering from
@@ -127,6 +139,7 @@
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-soft);
+  max-width: 100%;
 }
 
 .tdash-subtabs button {
@@ -262,6 +275,7 @@
   gap: var(--space-sm);
   padding: var(--space-sm) 0;
   border-bottom: 1px solid var(--clay-hairline-soft);
+  min-width: 0;
 }
 
 .tdash-overview-list li:last-child {
@@ -270,8 +284,10 @@
 
 .tdash-overview-list strong {
   color: var(--clay-ink);
+  min-width: 0;
+  max-width: 32%;
   font-size: var(--text-base);
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .tdash-overview-detail {
@@ -285,6 +301,7 @@
 }
 
 .tdash-overview-meta {
+  flex: 0 1 auto;
   color: var(--clay-muted);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
@@ -335,6 +352,10 @@
   .tdash-overview-list li {
     flex-wrap: wrap;
   }
+
+  .tdash-workspace .teacher-builder-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 600px) {
@@ -354,15 +375,48 @@
 
   .tdash-subtabs {
     width: 100%;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+    display: flex;
+    align-items: stretch;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+
+  .tdash-subtabs::-webkit-scrollbar {
+    display: none;
   }
 
   .tdash-subtabs button {
-    min-width: 0;
+    flex: 0 0 auto;
+    min-width: 92px;
     justify-content: center;
-    padding: var(--space-xs);
-    white-space: normal;
+    padding: var(--space-xs) 8px;
+    white-space: nowrap;
     text-align: center;
+  }
+
+  .tdash-workspace .teacher-panel-header {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .tdash-workspace .teacher-panel-header > div:first-child {
+    min-width: 0;
+    flex: 1 1 200px;
+  }
+
+  .tdash-workspace .queue-count {
+    flex: 0 0 auto;
+  }
+
+  .tdash-overview-list strong {
+    max-width: none;
+    flex: 0 1 auto;
+  }
+
+  .tdash-overview-meta {
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
