@@ -77,7 +77,7 @@ describe("storyLevelProgress", () => {
     expect(mergeSubmittedStoryLevels(submissions, { studentId: "student-1", studentName: "Ada" })).toBe(false);
   });
 
-  it("uses the tier-suffixed topic id only when legacy submissions lack scene context", () => {
+  it("does not guess medium or hard from an ambiguous legacy topic id", () => {
     const submission = {
       id: "legacy-submission",
       storyId: "teacher-story-7-hard",
@@ -86,6 +86,7 @@ describe("storyLevelProgress", () => {
     } as StorySubmission;
 
     mergeSubmittedStoryLevels([submission], { studentName: "Student" });
-    expect(loadSubmittedLevels("story-7")).toEqual({ hard: true });
+    expect(loadSubmittedLevels("story-7")).toEqual({});
+    expect(loadSubmittedLevels("story-7-hard")).toEqual({});
   });
 });

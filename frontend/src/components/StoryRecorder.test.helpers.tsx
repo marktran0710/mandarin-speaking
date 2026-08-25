@@ -37,7 +37,7 @@ const QUIZ_ANSWERS: Record<string, { translation: string; pinyin?: string; pos?:
 async function passTierRun(user: UserEvent, questionCount: number) {
   for (let i = 0; i < questionCount; i += 1) {
     const optionsGroup = screen.queryByRole("group", {
-      name: /What does|How do you read|Which word means/,
+      name: /What does|What part of speech|How do you read|Which word means/,
     });
     if (!optionsGroup) break;
     const label = optionsGroup.getAttribute("aria-label")!;

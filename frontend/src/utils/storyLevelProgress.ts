@@ -19,14 +19,16 @@ function isDifficultyLevel(value: unknown): value is StoryDifficultyLevel {
   return typeof value === "string" && DIFFICULTY_LEVELS.includes(value as StoryDifficultyLevel);
 }
 
-/** Older submissions did not include scene learning_context. Use their topic
- * id only as a fallback; current submissions always prefer the recorded
- * baseStoryId/difficultyLevel from their scenes. */
+/** Older submissions did not include scene learning_context. Easy can still
+ * be recovered from its topic id, but a `-medium`/`-hard` suffix is
+ * intentionally treated as ambiguous: a perfectly valid source story may
+ * itself end with that word. Current submissions always persist canonical
+ * baseStoryId/difficultyLevel on every scene. */
 function inferSubmittedTier(storyId: string): { storyId: string; level: StoryDifficultyLevel } | null {
   const topicId = storyId.startsWith("teacher-") ? storyId.slice("teacher-".length) : storyId;
   if (!topicId) return null;
   const suffix = topicId.match(/^(.*)-(medium|hard)$/);
-  if (suffix?.[1]) return { storyId: suffix[1], level: suffix[2] as StoryDifficultyLevel };
+  if (suffix?.[1]) return null;
   return { storyId: topicId, level: "easy" };
 }
 
