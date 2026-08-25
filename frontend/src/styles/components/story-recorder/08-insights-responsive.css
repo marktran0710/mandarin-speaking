@@ -400,8 +400,6 @@
   gap: 22px;
   background: transparent;
   box-shadow: none;
-  transition: none;
-  animation: none;
 }
 
 .practice-workspace-study {
@@ -797,6 +795,8 @@
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  transition: none;
+  animation: none;
 }
 
 .practice-workspace-study .practice-scene-image,
