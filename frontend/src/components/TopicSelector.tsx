@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { canUseDatabase, createCustomStory, listCustomStories } from "../services/database";
+import {
+  canUseDatabase,
+  createCustomStory,
+  listCustomStories,
+  listStorySubmissions,
+} from "../services/database";
 import { loadBestLocalStars, loadLocalStars, practiceUnlocked } from "../utils/quizTiers";
 import {
   type StoryDifficultyLevel,
@@ -22,9 +27,10 @@ import {
   isStoryLevelUnlocked,
   loadSubmittedLevels,
   loadSubmittedStoryIds,
+  mergeSubmittedStoryLevels,
 } from "../utils/storyLevelProgress";
 import { topicHasQuiz } from "../utils/topicQuiz";
-import { isAdminSession } from "../utils/studentSession";
+import { getStudentId, getStudentName, isAdminSession } from "../utils/studentSession";
 import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
 import StudentIcon, { type StudentIconName } from "./StudentIcon";
@@ -74,6 +80,17 @@ export default function TopicSelector({ onLevelSelect }: TopicSelectorProps) {
 
   useEffect(() => {
     if (!canUseDatabase()) return;
+    let cancelled = false;
+    const studentId = getStudentId();
+    const studentName = getStudentName();
+    const submissions = listStorySubmissions(undefined, { studentId, studentName }).catch(() => null);
+    const hydrateSubmittedLevels = async () => {
+      const serverSubmissions = await submissions;
+      if (!cancelled && serverSubmissions) {
+        mergeSubmittedStoryLevels(serverSubmissions, { studentId, studentName });
+      }
+    };
+
     listCustomStories()
       .then(async (dbStories) => {
         const localStories = loadCustomStories();
@@ -87,6 +104,8 @@ export default function TopicSelector({ onLevelSelect }: TopicSelectorProps) {
             .filter((s) => s.published)
             .map((s) => storyToTopic(s as any, "easy", "approved"))
             .filter(isStoryModeTopic);
+          await hydrateSubmittedLevels();
+          if (cancelled) return;
           setTopics(published);
           return;
         }
@@ -97,10 +116,15 @@ export default function TopicSelector({ onLevelSelect }: TopicSelectorProps) {
           .filter((s) => s.published)
           .map((s) => storyToTopic(s as any, "easy", "approved"))
           .filter(isStoryModeTopic);
+        await hydrateSubmittedLevels();
+        if (cancelled) return;
         setTopics(published);
       })
       .catch((err) => console.error("Failed to load topics from backend:", err))
       .finally(() => setLoading(false));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) {
