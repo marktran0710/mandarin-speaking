@@ -109,7 +109,7 @@ export default function ManagementShell({
 
       <div className="management-body">
         {drawerOpen && <div className="management-backdrop" aria-hidden="true" onClick={() => setDrawerOpen(false)} />}
-        <nav className={`management-sidebar${drawerOpen ? " is-open" : ""}`} aria-label={`${role} management tools`}>
+        <nav className={`management-sidebar${drawerOpen ? " is-open" : ""}`} aria-label={role === "teacher" ? "Teacher tools" : "Admin tools"}>
           {items.map((item) => {
             const showGroup = item.group !== currentGroup;
             currentGroup = item.group;

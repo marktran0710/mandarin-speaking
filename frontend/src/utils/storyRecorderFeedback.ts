@@ -16,7 +16,7 @@ function localBackendUrl(): string {
   return window.location.origin;
 }
 
-const CONFIGURED_BACKEND_URL = getRuntimeBackendUrl().trim();
+const CONFIGURED_BACKEND_URL = isTestRuntime() ? "" : getRuntimeBackendUrl().trim();
 
 export function getBackendUrl(): string {
   if (CONFIGURED_BACKEND_URL) {

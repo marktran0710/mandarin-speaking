@@ -17,7 +17,7 @@ export function getVoiceTestAsrModel(): string {
 }
 
 export function isTestRuntime(): boolean {
-  return viteEnv.MODE === "test" || (typeof process !== "undefined" && process.env.NODE_ENV === "test");
+  return viteEnv.MODE === "test" || (typeof process !== "undefined" && (process.env.NODE_ENV === "test" || process.env.VITEST === "true"));
 }
 
 export function isDevelopmentRuntime(): boolean {
