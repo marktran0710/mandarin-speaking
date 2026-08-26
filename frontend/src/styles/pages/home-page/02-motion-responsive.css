@@ -67,38 +67,6 @@
   }
 }
 
-/* Each print keeps its own resting rotation in every keyframe — drop it and
-   the photo snaps flat the moment the loop starts. */
-@keyframes previewFloatOne {
-  0%,
-  100% {
-    transform: rotate(-4deg) translateY(0);
-  }
-  50% {
-    transform: rotate(-2deg) translateY(-8px);
-  }
-}
-
-@keyframes previewFloatTwo {
-  0%,
-  100% {
-    transform: rotate(5deg) translateY(0);
-  }
-  50% {
-    transform: rotate(3deg) translateY(9px);
-  }
-}
-
-@keyframes previewFloatThree {
-  0%,
-  100% {
-    transform: rotate(-2deg) translateY(0);
-  }
-  50% {
-    transform: rotate(-4deg) translateY(-7px);
-  }
-}
-
 /* ── Responsive ───────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
@@ -172,7 +140,7 @@
 .hero-primary-action { min-height: 44px; padding: var(--space-xs) var(--space-lg); border: 1px solid var(--seal-deep); border-radius: var(--clay-radius-pill); box-shadow: 0 3px 0 var(--seal-deep); }
 .hero-primary-action:hover { transform: translateY(-1px); box-shadow: 0 4px 0 var(--seal-deep); }
 .hero-primary-action:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--seal-deep); }
-.story-preview-stage { min-height: 520px; border-radius: var(--clay-radius-lg); background: var(--clay-surface-card); box-shadow: 0 14px 28px color-mix(in srgb, var(--clay-ink) 10%, transparent); }
+.story-preview-stage { min-height: 0; height: 420px; border-radius: var(--clay-radius-lg); background: var(--clay-surface-card); box-shadow: 0 14px 28px color-mix(in srgb, var(--clay-ink) 10%, transparent); }
 .story-preview-stage::before { border-style: solid; border-color: color-mix(in srgb, var(--seal) 20%, var(--clay-hairline)); }
 .story-preview-image { border-width: 4px; box-shadow: 0 3px 10px color-mix(in srgb, var(--clay-ink) 10%, transparent); }
 .how-it-works { margin-top: var(--space-lg); padding-top: var(--space-lg); }
@@ -181,7 +149,7 @@
 @media (max-width: 600px) {
   .home-hero { padding-top: var(--space-lg); gap: var(--space-lg); }
   .hero-title-zh { font-size: clamp(40px, 12vw, 52px); }
-  .story-preview-stage { min-height: 290px; border-radius: var(--clay-radius-md); }
+  .story-preview-stage { min-height: 0; height: 290px; border-radius: var(--clay-radius-md); }
 }
 
 @media (prefers-reduced-motion: reduce) {
