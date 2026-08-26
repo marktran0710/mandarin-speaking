@@ -29,7 +29,7 @@ const STORY_SCENES = [
   { file: "street-conversation.png", className: "image-one" },
   { file: "missing-cat-card.png", className: "image-two" },
   { file: "campus-chat.png", className: "image-three" },
-  { file: "park.svg", className: "image-four" },
+  { file: "afternoon-tea-material.png", className: "image-four" },
 ];
 
 const STATS: Array<{ zh: string; pinyin: string; en: string }> = [

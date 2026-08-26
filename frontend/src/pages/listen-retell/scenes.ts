@@ -9,10 +9,10 @@ export interface ListenScene {
 
 const SAMPLE_SCENES: ListenScene[] = [
   {
-    image: "/sample-scenes/park.svg",
-    script: "公園裡下雨了，小朋友們撐著雨傘跑來跑去，找地方躲雨，玩得很開心。",
+    image: "/sample-scenes/market.svg",
+    script: "市場裡有很多新鮮水果，老闆熱情地招呼客人，大家一起挑選喜歡的水果。",
     audioUrl: "",
-    vocabulary: ["公園", "下雨", "雨傘", "跑步", "孩子"],
+    vocabulary: ["市場", "水果", "老闆", "客人", "挑選"],
   },
 ];
 
