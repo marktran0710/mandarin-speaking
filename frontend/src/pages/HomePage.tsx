@@ -22,13 +22,14 @@ const SKILLS: Array<{ zh: string; pinyin: string; en: string }> = [
   { zh: "應用", pinyin: "Yìngyòng", en: "Practical use" },
 ];
 
-/* Three scenes from a story, stacked as overlapping prints. Each carries its
-   own class because the layering — position, rotation, depth — is what makes
-   the pile read as "one story, several moments" rather than a gallery row. */
+/* Four compact scenes keep the preview visual without asking one image to fill
+   a large hero frame. The grid is intentionally data-driven so every card
+   shares the same sizing and crop behavior. */
 const STORY_SCENES = [
   { file: "street-conversation.png", className: "image-one" },
   { file: "missing-cat-card.png", className: "image-two" },
   { file: "campus-chat.png", className: "image-three" },
+  { file: "park.svg", className: "image-four" },
 ];
 
 const STATS: Array<{ zh: string; pinyin: string; en: string }> = [

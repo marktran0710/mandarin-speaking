@@ -196,7 +196,7 @@
 .story-preview-stage {
   position: relative;
   min-height: 0;
-  height: 420px;
+  height: clamp(290px, 38vw, 480px);
   border-radius: var(--clay-radius-xl);
   border: 1px solid var(--clay-hairline);
   background: var(--clay-surface-card);
@@ -211,14 +211,13 @@
   pointer-events: none;
 }
 
-/* Inset one step deeper than the dashed frame, so a rotated print crosses the
-   dashed line — which looks deliberate — instead of being sliced flat against
-   the stage's own edge, which looks like a clipping bug. */
+/* Four equal tiles keep the collage compact and stop the supplied artwork from
+   being stretched into one oversized hero image. */
 .story-preview-scenes {
   position: absolute;
   inset: 22px;
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 14px;
 }
@@ -234,28 +233,54 @@
   border: 4px solid var(--clay-surface-card);
   border-radius: var(--clay-radius-md);
   box-shadow: 0 6px 16px color-mix(in srgb, var(--clay-ink) 12%, transparent);
-  transition: none;
-  animation: none;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  animation: previewCardIn 520ms cubic-bezier(0.22, 0.75, 0.2, 1) both;
 }
 
-/* Keep the three-thumbnail story composition, but use a compact editorial grid
-   so the stage is filled without stretching or layering the supplied artwork. */
+@keyframes previewCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Keep every scene at the same visual weight; a small stagger adds polish
+   without moving the layout after it has entered. */
 .story-preview-image.image-one {
   grid-column: 1;
-  grid-row: 1 / 3;
+  grid-row: 1;
   transform: none;
+  animation-delay: 60ms;
 }
 
 .story-preview-image.image-two {
-  grid-column: 2;
-  grid-row: 1;
+  grid-column: 1;
+  grid-row: 2;
   transform: none;
+  animation-delay: 140ms;
 }
 
 .story-preview-image.image-three {
   grid-column: 2;
+  grid-row: 1;
+  transform: none;
+  animation-delay: 220ms;
+}
+
+.story-preview-image.image-four {
+  grid-column: 2;
   grid-row: 2;
   transform: none;
+  animation-delay: 300ms;
+}
+
+.story-preview-image:hover {
+  transform: scale(1.015);
+  box-shadow: 0 9px 20px color-mix(in srgb, var(--clay-ink) 15%, transparent);
 }
 
 .vertical-title {
