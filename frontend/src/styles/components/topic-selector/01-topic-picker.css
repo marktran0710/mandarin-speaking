@@ -279,6 +279,29 @@
   padding-top: var(--space-2xs);
 }
 
+.ts-card-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 44px;
+  margin-top: var(--space-xs);
+  padding: 8px 12px;
+  border: 1px solid var(--jade);
+  border-radius: var(--clay-radius-sm);
+  color: var(--jade-deep);
+  background: var(--jade-soft);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+}
+.ts-card-open:hover:not(:disabled) { border-color: var(--jade-deep); background: color-mix(in srgb, var(--jade-soft) 72%, white); }
+.ts-card-open:focus-visible { outline: 3px solid color-mix(in srgb, var(--jade) 45%, transparent); outline-offset: 2px; }
+.ts-card-open:disabled { cursor: not-allowed; opacity: .55; }
+
 /* Earned quiz stars for the story — unearned slots stay visible as hollow
    stars so "something left to win here" reads at a glance. */
 .ts-card-stars {

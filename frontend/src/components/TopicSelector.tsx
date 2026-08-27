@@ -67,7 +67,7 @@ const LEVEL_COPY: Record<StoryDifficultyLevel, { zh: string; pinyin: string; en:
   hard: { zh: "困難", pinyin: "Kùnnán", en: "Hard" },
 };
 
-export default function TopicSelector({ onLevelSelect }: TopicSelectorProps) {
+export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSelectorProps) {
   const [topics, setTopics] = useState<Topic[]>(() =>
     loadPublishedTeacherTopics().filter(isStoryModeTopic),
   );
@@ -232,6 +232,7 @@ export default function TopicSelector({ onLevelSelect }: TopicSelectorProps) {
     const totalWords = Object.values(t.vocabulary).flat().length;
     const previewImage = t.images[0];
     const unlocked = isStoryUnlockedInLesson(group, index, submittedIds);
+    const hasQuiz = topicHasQuiz(t);
     const subLabel =
       group.lessonNumber != null && t.lessonSubOrder != null
         ? `${group.lessonNumber}-${t.lessonSubOrder}`
@@ -287,6 +288,22 @@ export default function TopicSelector({ onLevelSelect }: TopicSelectorProps) {
               </span>
             )}
           </div>
+
+          {onTopicSelect && (
+            <button
+              type="button"
+              className="ts-card-open"
+              disabled={!unlocked}
+              onClick={() => onTopicSelect(t, hasQuiz ? { startAtQuiz: true } : undefined)}
+            >
+              <BiLabel
+                zh={hasQuiz ? "開始生詞測驗" : "開始故事"}
+                pinyin={hasQuiz ? "Kāishǐ shēngcí cèyàn" : "Kāishǐ gùshì"}
+                en={hasQuiz ? "Start vocabulary quiz" : "Start story"}
+              />
+              <span aria-hidden="true">→</span>
+            </button>
+          )}
 
           {renderTierTrack(t, unlocked)}
         </div>
