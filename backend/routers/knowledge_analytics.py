@@ -29,6 +29,7 @@ router = APIRouter(
 
 MODEL_VERSION = "knowledge-pilot-v1"
 MIN_PREDICTIONS_FOR_WINNER = 10
+MODEL_SELECTION_TIE_MARGIN = 0.01
 
 
 def _attempt_row_to_dict(row: Any) -> dict[str, Any]:
@@ -38,6 +39,7 @@ def _attempt_row_to_dict(row: Any) -> dict[str, Any]:
         "storyId": row.get("story_id"),
         "studentId": row.get("student_id"),
         "studentName": row.get("student_name"),
+        "mode": row.get("mode"),
         "completedAt": row.get("completed_at"),
         "questionResults": row.get("question_results") or [],
     }
@@ -47,7 +49,7 @@ def _load_attempts(
     student_id: Optional[str], story_id: Optional[str], level: Optional[str]
 ) -> tuple[list[dict[str, Any]], dict[str, str]]:
     query = (
-        "SELECT id, story_id, student_id, student_name, completed_at, question_results "
+        "SELECT id, story_id, student_id, student_name, mode, completed_at, question_results "
         "FROM vocab_quiz_attempts WHERE 1=1"
     )
     params: list[Any] = []
@@ -92,6 +94,8 @@ def _quality(normalized: Any) -> dict[str, int]:
         "legacyConceptResponses": counters["legacy_word_fallback"],
         "skippedResponses": max(0, items_seen - eligible),
         "duplicateResponses": counters.get("duplicate_responses", 0),
+        "attemptsWithoutId": counters.get("attempts_without_id", 0),
+        "invalidTimestampAttempts": counters.get("invalid_timestamp", 0),
         "skillCount": skill_count,
     }
 
@@ -99,10 +103,18 @@ def _quality(normalized: Any) -> dict[str, int]:
 def _evaluation(result: dict[str, Any]) -> dict[str, Any]:
     metrics = result["metrics"]
     prediction_count = int(metrics.get("n") or 0)
+    positive_count = int(metrics.get("positive_count") or 0)
+    negative_count = int(metrics.get("negative_count") or 0)
     return {
-        "status": "ready" if prediction_count >= MIN_PREDICTIONS_FOR_WINNER else "insufficient_data",
+        "status": (
+            "ready"
+            if prediction_count >= MIN_PREDICTIONS_FOR_WINNER and positive_count > 0 and negative_count > 0
+            else "insufficient_data"
+        ),
         "responseCount": int(result.get("train_n", 0)) + prediction_count,
         "predictionCount": prediction_count,
+        "positiveCount": positive_count,
+        "negativeCount": negative_count,
         "logLoss": metrics.get("log_loss"),
         "brierScore": metrics.get("brier"),
         "calibrationError": metrics.get("calibration_error"),
@@ -183,6 +195,11 @@ def _build_model_result(
         "model": model,
         "modelVersion": MODEL_VERSION,
         "parameters": evaluation_result.get("parameters", {}),
+        "masteryInterpretation": (
+            "predicted_correct_probability"
+            if model == "pfa"
+            else "latent_mastery_probability"
+        ),
         "scope": scope,
         "dataQuality": quality,
         "students": [
@@ -200,7 +217,9 @@ def _winner(pfa: dict[str, Any], bkt: dict[str, Any]) -> Optional[str]:
     pfa_loss, bkt_loss = pfa_eval["logLoss"], bkt_eval["logLoss"]
     if pfa_loss is None or bkt_loss is None:
         return None
-    return "pfa" if pfa_loss <= bkt_loss else "bkt"
+    if abs(pfa_loss - bkt_loss) < MODEL_SELECTION_TIE_MARGIN:
+        return "pfa"
+    return "pfa" if pfa_loss < bkt_loss else "bkt"
 
 
 def _compute_knowledge_state(

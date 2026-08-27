@@ -93,6 +93,7 @@ def normalize_vocab_attempts(attempts: Iterable[Any]) -> NormalizationResult:
     """
     counters = {
         "attempts_seen": 0, "attempts_without_student": 0, "attempts_without_results": 0,
+        "attempts_without_id": 0,
         "items_seen": 0, "records_emitted": 0, "duplicate_responses": 0, "skipped_missing_concept": 0,
         "skipped_invalid_correct": 0, "legacy_word_fallback": 0, "invalid_timestamp": 0,
     }
@@ -106,7 +107,13 @@ def normalize_vocab_attempts(attempts: Iterable[Any]) -> NormalizationResult:
         if student_id is None:
             counters["attempts_without_student"] += 1
             continue
-        attempt_id = _normalise_text(_field(attempt, "id")) or f"legacy-attempt-{attempt_position}"
+        attempt_id = _normalise_text(_field(attempt, "id"))
+        if attempt_id is None:
+            # Do not fingerprint an id-less attempt from its contents: two
+            # legitimate retries can have identical answers. Without a stable
+            # identity we keep both observations and report the limitation.
+            counters["attempts_without_id"] += 1
+            attempt_id = f"legacy-attempt-{attempt_position}"
         raw_time = _field(attempt, "completedAt", _field(attempt, "completed_at"))
         occurred_at = _parse_time(raw_time)
         if raw_time is not None and occurred_at is None:
@@ -417,10 +424,20 @@ def evaluate_prequential(
         outcomes.append(record.correct)
         tracer.update(record)
     if not outcomes:
-        metrics = {"n": 0, "log_loss": None, "brier": None, "calibration_error": None, "auc": None}
+        metrics = {
+            "n": 0,
+            "positive_count": 0,
+            "negative_count": 0,
+            "log_loss": None,
+            "brier": None,
+            "calibration_error": None,
+            "auc": None,
+        }
     else:
         metrics = {
             "n": len(outcomes),
+            "positive_count": sum(outcomes),
+            "negative_count": len(outcomes) - sum(outcomes),
             "log_loss": -sum((log(probability) if outcome else log(1.0 - probability)) for probability, outcome in zip(predictions, outcomes)) / len(outcomes),
             "brier": sum((probability - float(outcome)) ** 2 for probability, outcome in zip(predictions, outcomes)) / len(outcomes),
             "calibration_error": _calibration_error(outcomes, predictions, calibration_bins),

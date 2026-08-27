@@ -23,6 +23,8 @@ export interface KnowledgeEvaluation {
   status: "ready" | "insufficient_data";
   responseCount: number;
   predictionCount: number;
+  positiveCount: number;
+  negativeCount: number;
   logLoss: number | null;
   brierScore: number | null;
   calibrationError: number | null;
@@ -36,6 +38,8 @@ export interface KnowledgeDataQuality {
   legacyConceptResponses: number;
   skippedResponses: number;
   duplicateResponses: number;
+  attemptsWithoutId: number;
+  invalidTimestampAttempts: number;
   skillCount: number;
 }
 
@@ -43,6 +47,7 @@ export interface KnowledgeModelResult {
   model: "pfa" | "bkt";
   modelVersion: string;
   parameters?: Record<string, number>;
+  masteryInterpretation: "predicted_correct_probability" | "latent_mastery_probability";
   scope: { studentId: string | null; storyId: string | null; level: string | null };
   dataQuality: KnowledgeDataQuality;
   students: KnowledgeStudentState[];

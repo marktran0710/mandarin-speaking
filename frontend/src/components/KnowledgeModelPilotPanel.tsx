@@ -14,6 +14,12 @@ function modelLabel(model: "pfa" | "bkt"): string {
   return model === "pfa" ? "PFA" : "BKT";
 }
 
+function masteryLabel(result: KnowledgeModelResult): string {
+  return result.masteryInterpretation === "latent_mastery_probability"
+    ? "Latent mastery"
+    : "Predicted correctness";
+}
+
 function ModelCard({ result }: { result: KnowledgeModelResult }) {
   const evaluation = result.evaluation;
   return (
@@ -32,7 +38,7 @@ function ModelCard({ result }: { result: KnowledgeModelResult }) {
         <div><span>Brier</span><strong>{formatMetric(evaluation.brierScore)}</strong></div>
         <div><span>Calibration</span><strong>{formatMetric(evaluation.calibrationError)}</strong></div>
       </div>
-      <p>{evaluation.predictionCount} sequential predictions from {evaluation.responseCount} eligible responses.</p>
+      <p>{evaluation.predictionCount} sequential predictions from {evaluation.responseCount} eligible responses. {masteryLabel(result)} is shown per skill.</p>
     </article>
   );
 }
@@ -89,7 +95,7 @@ export default function KnowledgeModelPilotPanel() {
           </div>
           {topSkills.length > 0 && (
             <div className="knowledge-skill-table-wrap">
-              <h3>Lowest current PFA mastery</h3>
+              <h3>Lowest current PFA predicted correctness</h3>
               <table className="measurement-table knowledge-skill-table">
                 <thead><tr><th>Student</th><th>Word</th><th>Mastery</th><th>Exposure</th><th>Confidence</th></tr></thead>
                 <tbody>{topSkills.map((skill) => (
