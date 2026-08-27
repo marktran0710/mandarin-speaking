@@ -195,7 +195,7 @@
   inset: 0;
   /* This is rendered at document.body level so it remains above the sticky
      student navbar and any animated result-screen stacking context. */
-  z-index: 2000;
+  z-index: var(--z-modal, 1000);
   display: grid;
   place-items: center;
   padding: max(clamp(14px, 3vw, 28px), env(safe-area-inset-top))
@@ -232,8 +232,8 @@
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 1px solid var(--clay-hairline);
   border-radius: 50%;
@@ -243,6 +243,7 @@
   line-height: 1;
   cursor: pointer;
 }
+.sfc-feedback-modal-close:focus-visible { outline: 3px solid var(--seal); outline-offset: 3px; }
 .sfc-feedback-modal-close:hover,
 .sfc-feedback-modal-close:focus-visible {
   border-color: var(--seal);
@@ -453,4 +454,3 @@
     margin-top: 8px;
   }
 }
-

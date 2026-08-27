@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { BiLabel } from "./BiLabel";
 import AppButton from "./AppButton";
+import Icon from "../shared/ui/Icon";
 import PhrasePracticeDrill from "./PhrasePracticeDrill";
 import WordProsodyCard from "./WordProsodyCard";
 import { toPinyin } from "../utils/pinyin";
@@ -45,7 +46,7 @@ function WordPractice({ allDrillsCleared, practiceTargets, clearedWords, focusKe
       })}
     </div>
     {focusTarget && <><PitchLegend visible={Boolean(focusWord)} /><div className="sfc-focus-word">{focusWord ? <WordProsodyCard key={focusTarget.key} item={focusWord} onDrillPass={onDrillPass} drillDefaultOpen /> : <div className="sfc-practice-unavailable" role="status"><strong>No word-level result / 暫無單字分析</strong><span>{focusTarget.label}</span></div>}</div></>}
-    {allDrillsCleared && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={onRecordAgain}>🎙️ <BiLabel zh="再錄整句" en="Record the whole sentence" /></AppButton>}
+    {allDrillsCleared && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={onRecordAgain}><Icon name="microphone" size={17} /> <BiLabel zh="再錄整句" en="Record the whole sentence" /></AppButton>}
   </div>;
 }
 
@@ -59,7 +60,7 @@ function PhrasePractice({ allPhrasesCleared, phrasePracticeItems, clearedPhrases
       })}
     </div>
     {focusPhrase && !allPhrasesCleared && <><PitchLegend visible /><div className="sfc-focus-word sfc-focus-phrase"><PhrasePracticeDrill key={focusPhrase} phrase={focusPhrase} onPass={onPhrasePass} /></div></>}
-    {allPhrasesCleared && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={onRecordAgain}>🎙️ <BiLabel zh="再錄整句" pinyin="Zài lù zhěng jù" en="Record the whole sentence" /></AppButton>}
+    {allPhrasesCleared && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={onRecordAgain}><Icon name="microphone" size={17} /> <BiLabel zh="再錄整句" pinyin="Zài lù zhěng jù" en="Record the whole sentence" /></AppButton>}
   </div>;
 }
 

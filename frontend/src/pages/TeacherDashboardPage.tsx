@@ -12,6 +12,7 @@ import {
 } from "../services/database";
 import type { AudioRecord } from "./MyStoriesPage";
 import ManagementShell from "../components/management/ManagementShell";
+import Icon from "../shared/ui/Icon";
 import StoryBuilderSection from "../components/teacher/StoryBuilderSection";
 import TeacherHelpQueue from "../components/TeacherHelpQueue";
 import TeacherRecordingsView from "../components/TeacherRecordingsView";
@@ -279,7 +280,7 @@ export default function TeacherDashboardPage({
             <div className="tdash-overview-grid">
               <section className="teacher-panel tdash-overview-panel" aria-label="Latest submissions">
                 <div className="tdash-overview-panel-header">
-                  <h2>📥 Latest submissions</h2>
+                  <h2><Icon name="inbox" size={18} /> Latest submissions</h2>
                   <button type="button" onClick={() => setActiveView("submissions")}>
                     View all →
                   </button>
@@ -308,7 +309,7 @@ export default function TeacherDashboardPage({
 
               <section className="teacher-panel tdash-overview-panel" aria-label="Help queue">
                 <div className="tdash-overview-panel-header">
-                  <h2>✋ Help queue</h2>
+                  <h2><Icon name="help" size={18} /> Help queue</h2>
                   <button type="button" onClick={openHelpQueue}>
                     Open →
                   </button>

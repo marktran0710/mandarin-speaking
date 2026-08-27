@@ -422,12 +422,12 @@
   padding: 10px 12px;
 }
 .practice-workspace-study .practice-scene-image {
-  aspect-ratio: 6 / 5;
-  min-height: 240px;
+  aspect-ratio: 4 / 3;
+  min-height: 220px;
   max-height: 560px;
 }
 .practice-workspace-study .practice-scene-image img {
-  object-fit: cover;
+  object-fit: contain;
 }
 .practice-workspace-study .practice-scene-chip {
   justify-self: end;

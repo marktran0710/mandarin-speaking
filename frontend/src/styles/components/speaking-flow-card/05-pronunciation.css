@@ -201,7 +201,7 @@
   .sfc-results .sfc-results-main { height: auto; min-height: 0; }
   .sfc-results .sfc-results-main { align-self: auto; }
   .sfc-results .sfc-step-panel { flex: 0 1 auto; }
-  .sfc-results .practice-scene-image { aspect-ratio: 16 / 9; }
+  .sfc-results .practice-scene-image { aspect-ratio: 4 / 3; }
   .sfc-results .sfc-footer {
     margin-left: -16px;
     margin-right: -16px;
@@ -221,4 +221,3 @@
   .pb-head-score { justify-self: stretch; grid-template-columns: auto auto 1fr; }
   .pb-head-score small { justify-self: end; }
 }
-

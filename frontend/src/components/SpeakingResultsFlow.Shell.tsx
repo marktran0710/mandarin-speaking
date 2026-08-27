@@ -6,6 +6,7 @@ import PronunciationBreakdown from "./PronunciationBreakdown";
 import { AudioCompare, STEP_LABELS } from "./SpeakingResultsFlow.helpers";
 import { shouldOfferRetry } from "../utils/retryPolicy";
 import { worstState } from "../utils/assistiveFeedback";
+import Icon from "../shared/ui/Icon";
 
 export default function SpeakingResultsFlowShell({
   selectedImage,
@@ -15,6 +16,8 @@ export default function SpeakingResultsFlowShell({
   analysisAudioBlob,
   practicePartCount,
   feedbackTriggerRef,
+  feedbackModalRef,
+  feedbackModalCloseRef,
   feedbackModalOpen,
   onOpenFeedback,
   steps,
@@ -74,8 +77,8 @@ export default function SpeakingResultsFlowShell({
 
     {feedbackModalOpen && createPortal(
       <div className="sfc-feedback-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCloseFeedback(); }}>
-        <section id="sfc-feedback-modal" className="sfc-feedback-modal" role="dialog" aria-modal="true" aria-labelledby="sfc-feedback-modal-title">
-          <header className="sfc-feedback-modal-header"><div id="sfc-feedback-modal-title"><BiLabel zh="發音分析" en="Pronunciation feedback" /></div><button type="button" className="sfc-feedback-modal-close" aria-label="Close pronunciation feedback" onClick={onCloseFeedback}>×</button></header>
+        <section ref={feedbackModalRef} id="sfc-feedback-modal" className="sfc-feedback-modal" role="dialog" aria-modal="true" aria-labelledby="sfc-feedback-modal-title" tabIndex={-1}>
+          <header className="sfc-feedback-modal-header"><div id="sfc-feedback-modal-title"><BiLabel zh="發音分析" en="Pronunciation feedback" /></div><button ref={feedbackModalCloseRef} type="button" className="sfc-feedback-modal-close" aria-label="Close pronunciation feedback" onClick={onCloseFeedback}>×</button></header>
           <div className="sfc-feedback-modal-body"><PronunciationBreakdown words={praatMetrics.word_prosody || []} targetText={targetScript} transcription={recognizedText} teacherPhrases={teacherPhraseChunks} assistiveFeedback={assistiveFeedback} masteryCounts={masteryCounts} /></div>
         </section>
       </div>,
@@ -94,7 +97,7 @@ function ResultsFooter({ hasPhrasePractice, allPhrasesCleared, remainingPractice
           : !ready ? <p className="sfc-unlock-note">💡 <BiLabel zh={`目前 ${attempts} 次練習；分數回饋僅供參考，你可以直接繼續。`} pinyin={`Mùqián ${attempts} cì liànxí; fēnshù huíkuì jǐn gōng cānkǎo, nǐ kěyǐ zhíjiē jìxù.`} en={`${attempts} attempt${attempts === 1 ? "" : "s"} recorded. Scores are feedback only; you can continue now.`} /></p> : null}
     {assistiveFeedback && shouldOfferRetry(worstState(assistiveFeedback), assistiveRetriesUsed) && <p className="sfc-assistive-retry-hint"><BiLabel zh="想再試一次這個音嗎？" pinyin="Xiǎng zài shì yí cì zhège yīn ma?" en="Want to try that tone once more? Totally optional." /></p>}
     <div className="sfc-footer-actions">
-      <AppButton tone="subtle" className="sfc-btn-again" onClick={onRecordAgain}>🎙️ <BiLabel zh="再錄一次" pinyin="Zài lù yí cì" en="Record again" /></AppButton>
+      <AppButton tone="subtle" className="sfc-btn-again" onClick={onRecordAgain}><Icon name="microphone" size={17} /> <BiLabel zh="再錄一次" pinyin="Zài lù yí cì" en="Record again" /></AppButton>
       {canContinue && (hasNextScene ? <AppButton tone="secondary" className="sfc-btn-next" onClick={onNextScene}><BiLabel k="next_scene" /> →</AppButton> : <AppButton tone="secondary" className="sfc-btn-next" onClick={onViewSummary}><BiLabel zh="查看總結" pinyin="Chákàn zǒngjié" en="View summary" /> →</AppButton>)}
     </div>
   </footer>;

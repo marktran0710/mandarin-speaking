@@ -8,6 +8,8 @@ export { default as DataTable } from "./DataTable";
 export type { DataTableColumn, DataTableProps } from "./DataTable";
 export { default as Modal } from "./Modal";
 export type { ModalProps } from "./Modal";
+export { default as Icon } from "./Icon";
+export type { UiIconName } from "./Icon";
 export { default as ProgressBar } from "./ProgressBar";
 export { default as StatePanel } from "./StatePanel";
 export type { StatePanelKind, StatePanelProps } from "./StatePanel";

@@ -87,7 +87,7 @@ export function AssistiveFeedbackNotice({
   if (state === "ACCEPT" && !showOnAccept) return null;
 
   const tone = state === "NEEDS_PRACTICE" ? "check" : state === "UNCERTAIN" ? "uncertain" : "accept";
-  const icon = state === "NEEDS_PRACTICE" ? "◎" : state === "UNCERTAIN" ? "?" : "✓";
+  const icon = state === "NEEDS_PRACTICE" ? "!" : state === "UNCERTAIN" ? "?" : "✓";
 
   return (
     <aside

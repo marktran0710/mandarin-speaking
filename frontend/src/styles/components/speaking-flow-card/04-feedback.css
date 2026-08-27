@@ -153,7 +153,7 @@
   .sfc-results .practice-scene-col { position: static; min-height: 0; height: auto; align-self: auto; justify-content: flex-start; }
   .sfc-results .sfc-results-main { height: auto; min-height: 0; }
   .sfc-results .sfc-step-panel { flex: 0 1 auto; }
-  .sfc-results .practice-scene-image { min-height: 0; height: auto; aspect-ratio: 16 / 9; flex: 0 0 auto; }
+  .sfc-results .practice-scene-image { min-height: 0; height: auto; aspect-ratio: 4 / 3; flex: 0 0 auto; }
   .sfc-results .practice-scene-image img { object-fit: contain; min-width: 0; min-height: 0; }
 }
 .experimental-analysis-panel, .analysis-compare-panel { margin-top: 0.9rem; padding: 0.85rem; border-radius: var(--clay-radius-md); border: 1px solid #f3d28b; background: #fffbeb; }

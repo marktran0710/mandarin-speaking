@@ -5,7 +5,7 @@
   gap: 12px;
   min-width: 0;
   align-items: stretch;
-  height: 100%;
+  height: auto;
 }
 .sfc-results .practice-scene-col,
 .sfc-results-main > * { box-sizing: border-box; }
@@ -15,7 +15,7 @@
   min-height: 0;
 }
 .sfc-results .sfc-step-panel {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-height: 0;
   width: 100%;
 }
@@ -40,7 +40,7 @@
   width: 100%;
   min-height: 46px;
   justify-content: center;
-  margin-top: auto;
+  margin-top: 0;
 }
 .sfc-results .sfc-verdict,
 .sfc-results .sfc-mastery-banner,
@@ -433,4 +433,3 @@
   white-space: nowrap;
   background: var(--clay-surface-card);
 }
-

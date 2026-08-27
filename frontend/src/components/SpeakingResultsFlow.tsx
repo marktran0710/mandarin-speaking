@@ -84,7 +84,11 @@ export default function SpeakingResultsFlow({
   const [maxVisited, setMaxVisited] = useState(0);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const feedbackTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const feedbackModalRef = useRef<HTMLElement | null>(null);
+  const feedbackModalCloseRef = useRef<HTMLButtonElement | null>(null);
   const closeFeedbackModal = () => { setFeedbackModalOpen(false); feedbackTriggerRef.current?.focus(); };
+  const closeFeedbackModalRef = useRef(closeFeedbackModal);
+  closeFeedbackModalRef.current = closeFeedbackModal;
   useEffect(() => {
     if (!feedbackModalOpen) return;
     const previousOverflow = document.body.style.overflow;
@@ -95,9 +99,36 @@ export default function SpeakingResultsFlow({
     // the backdrop. Reserve that exact width while the modal is open.
     if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
     document.body.style.overflow = "hidden";
-    const handleKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") closeFeedbackModal(); };
+    const focusTimer = window.setTimeout(() => feedbackModalCloseRef.current?.focus(), 0);
+    const getFocusable = () => Array.from(feedbackModalRef.current?.querySelectorAll<HTMLElement>(
+      'a[href], area[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    ) ?? []);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeFeedbackModalRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = getFocusable();
+      if (focusable.length === 0) {
+        event.preventDefault();
+        feedbackModalRef.current?.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
     document.addEventListener("keydown", handleKeyDown);
     return () => {
+      window.clearTimeout(focusTimer);
       document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = previousOverflow;
       document.body.style.paddingRight = previousPaddingRight;
@@ -155,5 +186,5 @@ export default function SpeakingResultsFlow({
     practice: <SpeakingResultsPracticeStep {...{ hasPhrasePractice, allDrillsCleared, practiceTargets, clearedWords, focusKey, setFocusKey, focusTarget, focusWord, onDrillPass: handleDrillPass, allPhrasesCleared, phrasePracticeItems, clearedPhrases, phraseFocusIndex, setPhraseFocusIndex, focusPhrase, onPhrasePass: handlePhrasePass, onRecordAgain }} />,
   }[step];
 
-  return <SpeakingResultsFlowShell {...{ selectedImage, selectedImageIndex, modelAudioUrl, modelSentence, analysisAudioBlob, practicePartCount, feedbackTriggerRef, feedbackModalOpen, onOpenFeedback: () => setFeedbackModalOpen(true), steps, step, maxVisited, setStep, stepBody, onCloseFeedback: closeFeedbackModal, praatMetrics, targetScript, recognizedText, teacherPhraseChunks, assistiveFeedback, masteryCounts, hasPhrasePractice, allPhrasesCleared, remainingPracticePhrases, ready, canContinue, masteryPassed, practiceTargets, remainingDrillTargets, attempts, assistiveRetriesUsed, onRecordAgain, hasNextScene, onNextScene, onViewSummary }} />;
+  return <SpeakingResultsFlowShell {...{ selectedImage, selectedImageIndex, modelAudioUrl, modelSentence, analysisAudioBlob, practicePartCount, feedbackTriggerRef, feedbackModalRef, feedbackModalCloseRef, feedbackModalOpen, onOpenFeedback: () => setFeedbackModalOpen(true), steps, step, maxVisited, setStep, stepBody, onCloseFeedback: closeFeedbackModal, praatMetrics, targetScript, recognizedText, teacherPhraseChunks, assistiveFeedback, masteryCounts, hasPhrasePractice, allPhrasesCleared, remainingPracticePhrases, ready, canContinue, masteryPassed, practiceTargets, remainingDrillTargets, attempts, assistiveRetriesUsed, onRecordAgain, hasNextScene, onNextScene, onViewSummary }} />;
 }

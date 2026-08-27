@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { BiLabel } from "./BiLabel";
 import AppButton from "./AppButton";
+import Icon from "../shared/ui/Icon";
 import ContentDiffDisplay from "./ContentDiffDisplay";
 import VoiceFeedbackReliabilityNotice, {
   AssistiveFeedbackNotice,
@@ -138,8 +139,8 @@ export default function SpeakingResultsOverviewStep({
 
       {verdict === "meaning" && hasFix && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("fix")}><BiLabel zh="看怎麼改" en="See how to fix it" /> →</AppButton>}
       {verdict === "vocab" && hasFix && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("fix")}><BiLabel zh="看少了的生詞" en="See the missing words" /> →</AppButton>}
-      {verdict === "join" && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={onRecordAgain}>🎙️ <BiLabel zh="再錄一次，說順一點" en="Record again, smoother this time" /></AppButton>}
-      {verdict === "pronounce" && (hasPractice ? <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("practice")}><BiLabel zh="練習生詞" en={hasPhrasePractice ? "Practice the parts" : "Practice the words"} /> →</AppButton> : <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={onRecordAgain}>🎙️ <BiLabel zh="再錄一次" en="Record again" /></AppButton>)}
+      {verdict === "join" && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={onRecordAgain}><Icon name="microphone" size={17} /> <BiLabel zh="再錄一次，說順一點" en="Record again, smoother this time" /></AppButton>}
+      {verdict === "pronounce" && (hasPractice ? <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("practice")}><BiLabel zh="練習生詞" en={hasPhrasePractice ? "Practice the parts" : "Practice the words"} /> →</AppButton> : <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={onRecordAgain}><Icon name="microphone" size={17} /> <BiLabel zh="再錄一次" en="Record again" /></AppButton>)}
     </div>
   );
 }

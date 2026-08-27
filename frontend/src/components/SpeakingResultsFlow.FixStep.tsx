@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { BiLabel } from "./BiLabel";
 import AppButton from "./AppButton";
+import Icon from "../shared/ui/Icon";
 import ContentDiffDisplay from "./ContentDiffDisplay";
 
 export default function SpeakingResultsFixStep({
@@ -73,7 +74,7 @@ export default function SpeakingResultsFixStep({
       )}
 
       <div className="sfc-step-cta-row">
-        {!hasPractice && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={onRecordAgain}>🎙️ <BiLabel zh="再錄一次" en="Record again" /></AppButton>}
+        {!hasPractice && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={onRecordAgain}><Icon name="microphone" size={17} /> <BiLabel zh="再錄一次" en="Record again" /></AppButton>}
         {hasPractice && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("practice")}><BiLabel zh="練習生詞" en={hasPhrasePractice ? "Practice the parts" : "Practice the words"} /> →</AppButton>}
       </div>
     </div>

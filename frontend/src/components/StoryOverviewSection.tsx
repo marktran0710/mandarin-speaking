@@ -1,4 +1,5 @@
 import { BiLabel, BiText } from "./BiLabel";
+import Icon from "../shared/ui/Icon";
 import { SkillFocusLabel } from "./TopicSelector";
 import type { Topic } from "./StoryRecorder";
 
@@ -83,7 +84,7 @@ export default function StoryOverviewSection({
             disabled={speakingLocked}
             onClick={() => onSelectPhase(enableSorting ? "sorting" : "practice")}
           >
-            <span className="overview-choice-icon">🎙️</span>
+            <span className="overview-choice-icon"><Icon name="microphone" size={20} /></span>
             <strong>
               <BiLabel k="speaking_practice" />
             </strong>
