@@ -294,9 +294,26 @@
   text-align: left;
   cursor: pointer;
 }
-.ts-card-open:hover:not(:disabled) { border-color: var(--jade-deep); background: color-mix(in srgb, var(--jade-soft) 72%, white); }
+.ts-card-open:hover { border-color: var(--jade-deep); background: color-mix(in srgb, var(--jade-soft) 72%, white); }
 .ts-card-open:focus-visible { outline: 3px solid color-mix(in srgb, var(--jade) 45%, transparent); outline-offset: 2px; }
-.ts-card-open:disabled { cursor: not-allowed; opacity: .55; }
+
+/* Takes .ts-card-open's slot when the story is locked, so a locked card
+   says why instead of just disabling a button with no explanation — the
+   in-lesson lock only needs the previous story SUBMITTED, which can leave
+   a card locked right next to a 3-star quiz result on the story before it. */
+.ts-card-locked-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  margin-top: var(--space-xs);
+  padding: 8px 12px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  color: var(--clay-muted);
+  background: var(--clay-surface-soft);
+  font-size: 13px;
+}
 
 /* Earned quiz stars for the story — unearned slots stay visible as hollow
    stars so "something left to win here" reads at a glance. */

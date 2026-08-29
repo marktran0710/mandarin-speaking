@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import HomePage from "./pages/HomePage";
-import CreateStoryPage from "./pages/CreateStoryPage";
-import MyStoriesPage from "./pages/MyStoriesPage";
 import VoiceTestPage from "./pages/VoiceTestPage";
 import StudentWorkspacePage, {
   type StudentWorkspaceView,
@@ -308,15 +306,6 @@ export default function App() {
     setCurrentPage("student-workspace");
   };
 
-  // My Profile's lesson/story rows link back to the lesson list to practice
-  // rather than jumping into a specific prompt — clears any stale target so
-  // CreateStoryPage renders the table-of-contents browse view.
-  const handleBrowsePractice = () => {
-    setPracticeTarget(null);
-    setStudentWorkspaceView("practice");
-    setCurrentPage("student-workspace");
-  };
-
   // The floating star bubble's jump target — quiz story ids may carry a
   // Medium/Hard tier suffix on the base topic id.
   const handleJumpToStory = (storyId: string) => {
@@ -467,32 +456,18 @@ export default function App() {
           onLogout={handleLogout}
         />
       )}
-      {currentPage === "student-practice" && activeRole === "student" && studentDataReady && (
-        <CreateStoryPage
-          key={
-            practiceTarget
-              ? `${practiceTarget.topicId}:${practiceTarget.seq ?? 0}`
-              : "browse"
-          }
-          onAddRecord={addAudioRecord}
-          initialTopicId={practiceTarget?.topicId}
-          initialImageIndex={practiceTarget?.imageIndex}
-          initialStartAtQuiz={practiceTarget?.startAtQuiz}
-          helpRequests={helpRequests}
-          onRaiseHand={handleRaiseHand}
-          publishedTopics={storyTopics}
-          onSessionActiveChange={setIsInPracticeSession}
-        />
-      )}
-      {currentPage === "student-stories" && activeRole === "student" && studentDataReady && (
-        <MyStoriesPage
-          records={audioRecords}
-          onBrowsePractice={handleBrowsePractice}
-          helpRequests={helpRequests}
-          onRaiseHand={handleRaiseHand}
-          publishedTopics={storyTopics}
-        />
-      )}
+      {/* currentPage is never actually set to "student-practice" or
+          "student-stories" during a live session — every navigation
+          handler (handleStartActivity, handleJumpToStory) routes through
+          "student-workspace" plus a
+          studentWorkspaceView, and the boot-time restore in
+          appNavigation.ts translates a saved "student-stories"/
+          "student-practice" value into "student-workspace" too. These two
+          Page values now exist only as the on-disk encoding
+          saveLastVisitedPage uses to remember which workspace view (see
+          below) — the standalone CreateStoryPage/MyStoriesPage renders
+          that used to live here, from before StudentWorkspaceShell
+          existed, could never be reached and were removed. */}
       {currentPage === "voice-test" && activeRole === "student" && studentDataReady && (
         <VoiceTestPage />
       )}

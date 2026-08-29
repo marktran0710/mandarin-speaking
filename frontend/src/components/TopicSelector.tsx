@@ -247,6 +247,13 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
       group.lessonNumber != null && t.lessonSubOrder != null
         ? `${group.lessonNumber}-${t.lessonSubOrder}`
         : null;
+    // isStoryUnlockedInLesson only needs the previous story SUBMITTED, not
+    // 3-starred — a card can sit locked right next to a 3-star quiz result
+    // on the story before it, which reads as broken with no explanation.
+    // The lesson row already tells the student why IT is locked
+    // ("先完成第 X 課"); a story card had no equivalent, so a click on Easy
+    // or Medium here did nothing and looked like a dead button.
+    const previousTopic = !unlocked ? group.topics[index - 1] : undefined;
 
     return (
       <article key={t.id} className={`ts-card${unlocked ? "" : " ts-card-locked"}`}>
@@ -299,11 +306,10 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
             )}
           </div>
 
-          {onTopicSelect && (
+          {onTopicSelect && unlocked && (
             <button
               type="button"
               className="ts-card-open"
-              disabled={!unlocked}
               onClick={() => onTopicSelect(t, hasQuiz ? { startAtQuiz: true } : undefined)}
             >
               <BiLabel
@@ -313,6 +319,16 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               />
               <span aria-hidden="true">→</span>
             </button>
+          )}
+
+          {onTopicSelect && !unlocked && (
+            <p className="ts-card-locked-note">
+              <StudentIcon name="lock" size={14} />
+              <BiLabel
+                zh={previousTopic ? `先交 ${previousTopic.name}` : "先完成上一個故事"}
+                en={previousTopic ? `Submit "${previousTopic.name}" first` : "Finish the previous story first"}
+              />
+            </p>
           )}
 
           {/* The primary button above opens this card at Easy, so Easy is a
