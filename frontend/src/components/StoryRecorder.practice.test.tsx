@@ -151,9 +151,9 @@ describe("StoryRecorder student prototype", () => {
     expect(screen.getByRole("region", { name: "Vocabulary quiz" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
 
-    // Backing out (via the completed "Overview" step in the phase nav)
-    // still leaves Speaking locked — only finishing unlocks it.
-    await user.click(screen.getByRole("button", { name: /Overview/ }));
+    // Backing out (the quiz's own "← Back to activities" button) still
+    // leaves Speaking locked — only finishing unlocks it.
+    await user.click(screen.getByRole("button", { name: /Back to activities/ }));
     expect(screen.getByRole("button", { name: /Speaking Practice/ })).toBeDisabled();
 
     // Finish the quiz for real this time. The overview section was
@@ -184,15 +184,13 @@ describe("StoryRecorder student prototype", () => {
     );
     expect(screen.getByRole("table", { name: "Scene vocabulary" })).toBeInTheDocument();
 
-    // Stepping back to Overview confirms the unlock persisted, and
-    // re-entering the quiz voluntarily still has no skip button — the
-    // "Overview" phase-nav step remains the only way out.
-    await user.click(screen.getByRole("button", { name: /Overview/ }));
-    expect(screen.getByRole("button", { name: /Speaking Practice/ })).toBeEnabled();
-
-    await user.click(screen.getByRole("button", { name: /Vocabulary Quiz/ }));
-    expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Overview/ })).toBeInTheDocument();
+    // This used to go on to click back to the choice screen via the phase
+    // nav's "Overview" step, re-enter the quiz, and re-check both the
+    // unlock and the missing skip button there. That step was removed (the
+    // whole Prepare/Speak/Feedback stepper was, at the user's request), and
+    // nothing replaced its "return to the choice screen from mid-practice"
+    // capability — this is a real, product-level regression, not just a
+    // test gap, flagged to the user rather than silently dropped here.
   });
 
   it("disables the vocabulary quiz choice when a story has no translated words", () => {
