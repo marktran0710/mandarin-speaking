@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { BiLabel } from "./BiLabel";
 import AppButton from "./AppButton";
-import Icon from "../shared/ui/Icon";
+import StudentIcon from "./StudentIcon";
 import ContentDiffDisplay from "./ContentDiffDisplay";
 import VoiceFeedbackReliabilityNotice, {
   AssistiveFeedbackNotice,
@@ -44,8 +44,11 @@ export default function SpeakingResultsOverviewStep({
         className={`sfc-verdict ${verdictContent.className}${verdictContent.text ? "" : " sfc-verdict--compact"}`}
       >
         <div className="sfc-verdict-lead">
+          {/* Was a raw emoji (🧭📝🎯🔗🎉). The rest of this screen draws its
+              icons from the app's own stroke set, so the verdict now does
+              too — one icon language instead of two. */}
           <span className="sfc-verdict-icon" aria-hidden="true">
-            {verdictContent.icon}
+            <StudentIcon name={verdictContent.icon} size={22} />
           </span>
           {verdictContent.text && (
             <p className="sfc-verdict-text">{verdictContent.text}</p>
@@ -135,8 +138,14 @@ export default function SpeakingResultsOverviewStep({
 
       {verdict === "meaning" && hasFix && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("fix")}><BiLabel zh="看怎麼改" en="See how to fix it" /> →</AppButton>}
       {verdict === "vocab" && hasFix && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("fix")}><BiLabel zh="看少了的生詞" en="See the missing words" /> →</AppButton>}
-      {verdict === "join" && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={onRecordAgain}><Icon name="microphone" size={17} /> <BiLabel zh="再錄一次，說順一點" en="Record again, smoother this time" /></AppButton>}
-      {verdict === "pronounce" && (hasPractice ? <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("practice")}><BiLabel zh="練習生詞" en={hasPhrasePractice ? "Practice the parts" : "Practice the words"} /> →</AppButton> : <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={onRecordAgain}><Icon name="microphone" size={17} /> <BiLabel zh="再錄一次" en="Record again" /></AppButton>)}
+      {/* The "join" and practice-less "pronounce" verdicts used to end in
+          their own record-again button. The footer already carries
+          "再錄一次 Record again" — same label, same microphone icon, same
+          onRecordAgain — so those were a second control for one job, and the
+          advice they carried ("say it more smoothly", "make your tones
+          clearer") is already the verdict text directly above. Only CTAs
+          that lead somewhere the footer cannot reach remain here. */}
+      {verdict === "pronounce" && hasPractice && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("practice")}><BiLabel zh="練習生詞" en={hasPhrasePractice ? "Practice the parts" : "Practice the words"} /> →</AppButton>}
     </div>
   );
 }

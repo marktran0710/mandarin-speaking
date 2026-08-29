@@ -92,6 +92,59 @@
 
 .student-sidebar-item-copy { min-width: 0; }
 
+/* Progress card — the rail's replacement for the floating star bubble.
+   Display only: the "jump into the story that still needs a quiz" nudge the
+   bubble also carried is already on every lesson card as its own
+   "開始生詞測驗 Start vocabulary quiz" button, so repeating it here would be
+   a second control for one job. */
+.student-sidebar-progress {
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.student-sidebar-progress-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin: 0;
+  color: var(--seal-deep);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.student-sidebar-progress-value {
+  margin: var(--space-2xs) 0 var(--space-xs);
+  color: var(--clay-ink);
+  font-size: var(--text-xl);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.student-sidebar-progress-value span {
+  color: var(--clay-muted);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.student-sidebar-progress-track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--clay-hairline);
+}
+
+.student-sidebar-progress-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--seal);
+}
+
 .student-sidebar-footer {
   display: flex;
   flex-direction: column;

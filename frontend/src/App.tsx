@@ -360,7 +360,13 @@ export default function App() {
     studentDataReady &&
     currentPage !== "home" &&
     currentPage !== "student-login" &&
-    !isInPracticeSession;
+    !isInPracticeSession &&
+    // The workspace rail now carries the star tally in its own progress
+    // card, and every lesson card already has its own "開始生詞測驗 Start
+    // vocabulary quiz" button — the floating bubble was a third copy of
+    // both, parked over the bottom-right corner where it overlapped page
+    // content. It stays only on routes that render no rail.
+    currentPage !== "student-workspace";
 
   const handleRaiseHand = (message: string) => {
     const studentName = getStudentName();

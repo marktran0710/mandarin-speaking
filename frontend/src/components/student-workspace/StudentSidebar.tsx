@@ -12,6 +12,12 @@ interface StudentSidebarProps {
   onChange: (view: WorkspaceView) => void;
   studentName: string;
   onLogout: () => void;
+  /** Quiz stars earned across every story that has a quiz, and the
+   * ceiling (3 per story). Rendered as the rail's progress card, which
+   * replaced the floating star bubble that used to sit over the
+   * bottom-right corner of every page. */
+  totalStars: number;
+  maxStars: number;
 }
 
 /** The student shell's single navigation surface.
@@ -32,6 +38,8 @@ export default function StudentSidebar({
   onChange,
   studentName,
   onLogout,
+  totalStars,
+  maxStars,
 }: StudentSidebarProps) {
   const [colorMode, toggleColorMode] = useColorMode();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -112,6 +120,29 @@ export default function StudentSidebar({
             );
           })}
         </nav>
+
+        {maxStars > 0 && (
+          <div className="student-sidebar-progress">
+            <p className="student-sidebar-progress-label">
+              <StudentIcon name="star" size={15} />
+              <BiLabel zh="星星" pinyin="Xīngxing" en="Stars" />
+            </p>
+            <p className="student-sidebar-progress-value">
+              {totalStars}
+              <span> / {maxStars}</span>
+            </p>
+            <div
+              className="student-sidebar-progress-track"
+              role="progressbar"
+              aria-valuenow={totalStars}
+              aria-valuemin={0}
+              aria-valuemax={maxStars}
+              aria-label="Quiz stars earned"
+            >
+              <span style={{ width: `${Math.round((totalStars / maxStars) * 100)}%` }} />
+            </div>
+          </div>
+        )}
 
         <div className="student-sidebar-footer">
           <div className="student-sidebar-identity">

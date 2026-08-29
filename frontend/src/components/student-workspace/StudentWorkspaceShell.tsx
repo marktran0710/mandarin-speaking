@@ -5,6 +5,8 @@ import { getStudentName } from "../../utils/studentSession";
 import type { StudentWorkspacePageProps } from "../../pages/StudentWorkspacePage";
 import type { StudentWorkspaceView } from "../../pages/StudentWorkspacePage";
 import StudentSidebar from "./StudentSidebar";
+import { loadBestLocalStars } from "../../utils/quizTiers";
+import { topicHasQuiz } from "../../utils/topicQuiz";
 import "../../components/BiLabel.css";
 import "../../pages/StudentWorkspacePage.css";
 import "./StudentWorkspaceV2.css";
@@ -72,6 +74,15 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
 
   const activeLabel = WORKSPACE_VIEWS.find((item) => item.id === view)?.label;
 
+  // Same source and shape MyStoriesPage's "總星星 Total stars" card uses, so
+  // the rail and that card can never disagree.
+  const quizTopics = (storyTopics ?? []).filter((topic) => topicHasQuiz(topic));
+  const totalStars = quizTopics.reduce(
+    (sum, topic) => sum + loadBestLocalStars(topic.id),
+    0,
+  );
+  const maxStars = quizTopics.length * 3;
+
   return (
     <main className={`student-workspace student-workspace-v2 ${practiceStarted ? "is-practicing" : ""}`}>
       {/* The rail stands down during a practice session: StoryRecorder brings
@@ -84,6 +95,8 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
           onChange={selectView}
           studentName={getStudentName()}
           onLogout={onLogout}
+          totalStars={totalStars}
+          maxStars={maxStars}
         />
       )}
       <section
