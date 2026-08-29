@@ -1,14 +1,15 @@
 import type { SVGProps } from "react";
 
 export type UiIconName =
-  | "analytics" | "arrow-right" | "book" | "check" | "close" | "dashboard" | "debug" | "help"
-  | "image" | "inbox" | "library" | "menu" | "microphone" | "moon" | "refresh" | "sun" | "users";
+  | "analytics" | "arrow-right" | "book" | "check" | "chevron-down" | "close" | "dashboard" | "debug"
+  | "help" | "image" | "inbox" | "library" | "menu" | "microphone" | "moon" | "refresh" | "sun" | "users";
 
 const paths: Record<UiIconName, string[]> = {
   analytics: ["M4 19V5", "M4 19h16", "m4-5 4-3 3 2 5-6"],
   "arrow-right": ["M5 12h14", "m13 6 6 6-6 6"],
   book: ["M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z", "M4 5.5v16", "M8 7h8"],
   check: ["m5 13 4 4L19 7"],
+  "chevron-down": ["m6 9 6 6 6-6"],
   close: ["m6 6 12 12", "m18 6-12 12"],
   dashboard: ["M4 4h6v6H4z", "M14 4h6v6h-6z", "M4 14h6v6H4z", "M14 14h6v6h-6z"],
   debug: ["M9 3h6", "M12 3v3", "M7 8h10", "M6 12h12", "M8 19h8", "M5 9 3 7", "M19 9l2-2"],

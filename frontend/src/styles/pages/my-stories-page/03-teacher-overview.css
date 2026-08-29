@@ -106,58 +106,137 @@
   gap: 16px;
 }
 
-.story-submission-card {
+/* Header filter: the student <select> now lives inside the panel header
+   next to the count pill, replacing what used to be its own bordered
+   filter panel above the list — one control doesn't need its own box. */
+.story-submission-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.story-submission-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clay-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.story-submission-filter select {
+  padding: 7px 10px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  font: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 600;
+}
+
+/* Each submission is one scannable row by default — who, what, how it went,
+   when, and the one action a teacher takes most (mark reviewed). Everything
+   else (notes, scene-by-scene detail, whole-story feedback) sits behind
+   the Details toggle so the list reads like a list, not a stack of cards. */
+.story-submission-row-wrap {
   border: 1.5px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
   overflow: hidden;
 }
 
-.story-submission-header {
+.story-submission-row {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 16px 20px;
-  background: var(--clay-surface-soft);
-  border-bottom: 1px solid var(--clay-hairline);
+  flex-wrap: wrap;
+  align-items: center;
   gap: 12px;
+  padding: 12px 16px;
 }
 
-.story-submission-header > div:first-child {
+.story-submission-row-primary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
   min-width: 0;
+  flex: 1 1 220px;
 }
 
-.story-submission-student {
-  font-size: 0.78rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--jade-deep);
-  margin: 0 0 2px;
-}
-
-.story-submission-title {
-  font-size: 1rem;
-  font-weight: 700;
+.story-submission-row-primary strong {
   color: var(--clay-ink);
-  margin: 0;
-  overflow-wrap: break-word;
+  font-size: 0.95rem;
 }
 
-.story-submission-date {
+.story-submission-row-story {
+  color: var(--clay-muted);
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.story-submission-row-score {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--clay-body);
+  flex-shrink: 0;
+}
+
+.story-submission-row-date {
+  font-size: 0.78rem;
   color: var(--clay-muted);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-.story-submission-review-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+.story-submission-toggle {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--clay-radius-sm);
+  background: none;
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.story-submission-toggle:hover {
+  border-color: var(--clay-hairline);
+  color: var(--jade-deep);
+}
+
+.story-submission-toggle svg {
+  transition: transform 0.15s ease;
+}
+
+.story-submission-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.story-submission-detail {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--clay-hairline-soft);
+}
+
+.story-submission-note-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.story-submission-note-row .story-submission-note-button {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .submission-review-badge {
@@ -207,8 +286,7 @@
 .story-submission-note-editor {
   display: grid;
   gap: 10px;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--clay-hairline-soft);
+  padding: 12px 0;
 }
 
 .story-submission-note-editor label {
@@ -238,10 +316,11 @@
 
 .story-submission-note {
   margin: 0;
-  padding: 12px 18px;
-  border-bottom: 1px solid var(--clay-hairline-soft);
+  padding: 0;
   color: var(--clay-body);
   font-size: 13px;
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .story-submission-review-error {
@@ -255,6 +334,10 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 0;
+  margin-top: 14px;
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-md);
+  overflow: hidden;
 }
 
 .story-submission-scene {
