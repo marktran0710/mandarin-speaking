@@ -1,8 +1,7 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useState, type ReactNode } from "react";
 import JourneyPath, { type JourneyStop } from "./JourneyPath";
 import StudentIcon from "./StudentIcon";
-import { SESSION_RAIL_SLOT_ID } from "./student-workspace/StudentSidebar";
+import { BiLabel } from "./BiLabel";
 import "./StorySessionSidebar.css";
 
 export type SidebarSummaryStatus = "locked" | "available" | "active" | "done";
@@ -10,50 +9,42 @@ export type SidebarSummaryStatus = "locked" | "available" | "active" | "done";
 interface StorySessionSidebarProps {
   topicName: string;
   onExit?: () => void;
-  /** Scene stops for the current story, shown as a vertical journey once
+  /** Scene stops for the current story, shown as a horizontal strip once
    * practice has started. Empty/omitted hides it (e.g. on the Prepare
    * screen, before there is anything to navigate between). */
   journeyStops?: JourneyStop[];
   summaryStatus: SidebarSummaryStatus;
   onOpenSummary?: () => void;
-  /** Rendered pinned to the sidebar's bottom (the raise-hand panel). On
-   * narrow screens it collapses behind a floating help button. */
+  /** Dropped into a popover behind the raise-hand toggle at the strip's
+   * end. */
   helpPanel?: ReactNode;
 }
 
-/** Left rail for a story practice session: exit + story name up top, the
- * scene list (once practice has started) on the same tone-contour journey
- * path used for lessons (目錄), and the raise-hand panel docked at the
- * bottom.
+/** Header strip above a story practice session's content: exit + story name,
+ * the scene list (once practice has started) as a horizontal strip, and the
+ * raise-hand panel behind a toggle at the end.
  *
- * Used to also show a Prepare/Speak/Feedback stepper above the scene list —
- * three large rings on a curved connector, the same decorative-journey
- * treatment the lesson list (目錄) dropped for image rows the same day, for
- * the same reason: it read as decoration carrying little information.
- * Removed at the user's request rather than simplified, since unlike the
- * lesson list there was no simpler stand-in judged worth building for it. */
+ * This used to be a left rail — first its own, then (once student mode
+ * settled on a single global rail) portaled into that rail's middle. Moved
+ * out of the rail entirely at the user's request: the global rail
+ * (StudentSidebar — brand, 課程/我的學習, the star card, account block) now
+ * stays exactly as-is on every student screen, session included, rather
+ * than lending its middle to whatever story is running. This strip is
+ * where the session-specific navigation that used to live there now goes
+ * instead.
+ *
+ * Before that it briefly showed a Prepare/Speak/Feedback stepper above the
+ * scene list — three large rings on a curved connector, the same
+ * decorative-journey treatment the lesson list (目錄) dropped for image rows
+ * the same day, for the same reason: it read as decoration carrying little
+ * information. Removed at the user's request rather than simplified. */
 export default function StorySessionSidebar({
   topicName,
   onExit,
   journeyStops,
   helpPanel,
 }: StorySessionSidebarProps) {
-  // Mobile-only: the help panel folds behind a floating button. Desktop CSS
-  // ignores this flag and always shows the panel.
   const [helpOpen, setHelpOpen] = useState(false);
-
-  // Student mode keeps ONE left rail. When the workspace shell is on screen
-  // it offers a slot inside that rail, and this content moves into it, so a
-  // practice session never opens a second rail beside the first. Outside the
-  // shell (a route that renders StoryRecorder on its own) the slot is absent
-  // and this still renders as its own <aside>, unchanged.
-  // The shell renders the slot unconditionally and before this component
-  // mounts, so a single mount lookup is enough — no re-checking, and no
-  // dependence on a later render happening to land.
-  const [slot, setSlot] = useState<HTMLElement | null>(null);
-  useEffect(() => {
-    setSlot(document.getElementById(SESSION_RAIL_SLOT_ID));
-  }, []);
 
   // Scene practice is sequential: a student may revisit completed scenes, but
   // the next scene stays locked until the previous one has a result. This is
@@ -75,8 +66,8 @@ export default function StorySessionSidebar({
   // call) and this redesign preserves that shipped behavior rather than
   // guess at re-enabling something that may have been hiding a real bug.
 
-  const body = (
-    <>
+  return (
+    <div className="story-session-topbar">
       <div className="ssb-topline">
         {onExit && (
           <button
@@ -98,10 +89,7 @@ export default function StorySessionSidebar({
       )}
 
       {helpPanel && (
-        <>
-          <div className={`ssb-help${helpOpen ? " ssb-help-open" : ""}`}>
-            {helpPanel}
-          </div>
+        <div className="ssb-help-anchor">
           <button
             type="button"
             className="ssb-help-toggle"
@@ -109,17 +97,11 @@ export default function StorySessionSidebar({
             onClick={() => setHelpOpen((open) => !open)}
           >
             <StudentIcon name={helpOpen ? "close" : "user"} size={18} />
+            <BiLabel zh="舉手" pinyin="Jǔshǒu" en="Raise hand" />
           </button>
-        </>
+          {helpOpen && <div className="ssb-help">{helpPanel}</div>}
+        </div>
       )}
-    </>
-  );
-
-  if (slot) return createPortal(body, slot);
-
-  return (
-    <aside className="story-session-sidebar" aria-label="Story progress">
-      {body}
-    </aside>
+    </div>
   );
 }

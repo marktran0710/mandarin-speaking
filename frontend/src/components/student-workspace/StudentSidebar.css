@@ -145,38 +145,6 @@
   background: var(--seal);
 }
 
-/* Slot the running story fills (StorySessionSidebar portals into it). It
-   takes the space the section switch would have used, and scrolls on its
-   own when a long scene list outgrows the rail. */
-/* The slot is always in the DOM so the session's portal can never miss it;
-   it only takes space once the session has filled it. */
-.student-sidebar-session:empty { display: none; }
-
-.student-sidebar-session {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-/* Inside the rail the session content is already framed by the rail, so it
-   drops the card chrome it uses when standing alone. */
-.student-sidebar-session .ssb-topline {
-  padding: 0 var(--space-xs);
-  border: 0;
-}
-
-.student-sidebar-session .ssb-help {
-  margin-top: auto;
-}
-
-/* The floating help toggle belongs to the old mobile-drawer layout; inside
-   the rail the panel is always visible, so the toggle has nothing to do. */
-.student-sidebar-session .ssb-help-toggle { display: none; }
-
 .student-sidebar-footer {
   display: flex;
   flex-direction: column;

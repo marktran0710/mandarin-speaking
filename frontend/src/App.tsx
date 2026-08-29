@@ -399,8 +399,10 @@ export default function App() {
       {/* The student workspace carries its own left rail (StudentSidebar),
           which already holds the section switch, identity, dark mode and
           log out — rendering this top bar as well would put those same
-          actions on screen twice. During a practice session the rail stands
-          down, so this bar comes back (compact) as the only chrome. */}
+          actions on screen twice. The rail stays fixed through a practice
+          session too (the running story's own navigation lives in a header
+          strip above its content, not here and not in the rail), so this
+          top bar is simply never shown on this route, session or not. */}
       {!(activeRole === "student" && currentPage === "student-workspace") && (
         <Navigation
           currentPage={currentPage}

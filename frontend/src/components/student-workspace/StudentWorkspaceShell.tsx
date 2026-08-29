@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import CreateStoryPage from "../../pages/CreateStoryPage";
 import MyStoriesPage from "../../pages/MyStoriesPage";
 import { getStudentName } from "../../utils/studentSession";
@@ -30,13 +29,8 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     storyTopics,
     audioRecords,
     onSessionActiveChange,
-    isInPracticeSession,
     onLogout,
   } = props;
-  const [practiceStarted, setPracticeStarted] = useState(isInPracticeSession);
-
-  useEffect(() => setPracticeStarted(isInPracticeSession), [isInPracticeSession]);
-
   const selectView = (nextView: StudentWorkspaceView) => {
     if (nextView === view) return;
     onViewChange(nextView);
@@ -64,10 +58,7 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
         helpRequests={helpRequests}
         onRaiseHand={onRaiseHand}
         publishedTopics={storyTopics}
-        onSessionActiveChange={(active) => {
-          setPracticeStarted(active);
-          onSessionActiveChange(active);
-        }}
+        onSessionActiveChange={onSessionActiveChange}
       />
     );
   };
@@ -84,10 +75,10 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
   const maxStars = quizTopics.length * 3;
 
   return (
-    <main className={`student-workspace student-workspace-v2 ${practiceStarted ? "is-practicing" : ""}`}>
-      {/* One rail for all of student mode. It stays mounted through a
-          practice session and lends its middle to the story, rather than
-          unmounting so StoryRecorder can open a second rail beside it. */}
+    <main className="student-workspace student-workspace-v2">
+      {/* One rail for all of student mode, fixed on every screen including
+          mid-session — the running story's own navigation lives in a header
+          strip above its content instead (StorySessionSidebar.tsx). */}
       <StudentSidebar
         views={WORKSPACE_VIEWS}
         activeView={view}
@@ -96,7 +87,6 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
         onLogout={onLogout}
         totalStars={totalStars}
         maxStars={maxStars}
-        sessionActive={practiceStarted}
       />
       <section
         id="student-workspace-panel"

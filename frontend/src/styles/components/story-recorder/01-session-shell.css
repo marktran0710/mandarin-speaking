@@ -1,22 +1,14 @@
-/* ── Session shell: sidebar rail + main workspace. The sidebar itself is
-   styled in StorySessionSidebar.css; this grid is what keeps the main
-   column stable while phases/scenes change. ── */
+/* ── Session shell: a single content column, StorySessionSidebar's top bar
+   (.story-session-topbar) stacked above .story-session-main. This used to
+   be a two-column grid (a left rail beside this column) — the rail is gone
+   for good now, not just hidden: the global left rail (StudentSidebar)
+   stays fixed on every student screen instead of lending its middle to
+   whatever story is running, so there is nothing left to reserve a column
+   for here. ── */
 .story-recorder {
   width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
   padding: 24px 0 72px;
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
-}
-
-/* Inside the workspace shell the session rail is portaled into the shell's
-   own sidebar, so no <aside> is rendered here and the 240px column it was
-   reserved for would sit empty. Collapse to a single column in that case;
-   standalone routes that still render the aside keep the two-column grid. */
-.story-recorder:not(:has(> .story-session-sidebar)) {
-  grid-template-columns: minmax(0, 1fr);
 }
 .story-session-main {
   min-width: 0;
@@ -33,16 +25,6 @@
 .story-session-main .story-vocab-quiz {
   padding-top: 0;
 }
-@media (max-width: 900px) {
-  .story-recorder {
-    /* minmax(0, …), not bare 1fr — 1fr's auto minimum lets wide inner
-       content (the 5-column vocab table) win over the viewport and give
-       the whole page a horizontal scrollbar on phones. */
-    grid-template-columns: minmax(0, 1fr);
-    gap: 14px;
-  }
-}
-
 .btn-story-exit {
   display: inline-flex;
   align-items: center;
