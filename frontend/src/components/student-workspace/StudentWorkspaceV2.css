@@ -15,6 +15,25 @@
      reservation only ever pushed the 100vh-tall rail 68px down the page
      and dropped its "離開 Log out" button below the fold. */
   padding-top: 0;
+  /* Was full viewport width with the rail glued to the browser's own left
+     edge — on a wide monitor that reads as an app with no edges at all.
+     Contained and centered instead, the same "canvas showing on both
+     sides" treatment every other page already gets from --content-max,
+     just wider here since this track additionally carries the 248px rail
+     beside its own content column. Below this width there is no visible
+     margin to give back, so the shell fills the viewport exactly as it did
+     before — this only ever narrows, never adds a cramped middle step. */
+  max-width: 1440px;
+  /* This shell is a flex item (.app-container is a column flex box). Auto
+     margins on a flex item's cross axis (horizontal, here) drop its default
+     stretch and size it to its content instead, then center that
+     shrunk-to-fit box — the grid's own `1fr` content track has nothing to
+     be a fraction OF in that mode, so it collapsed to content width, ~800px
+     wide, well short of max-width, on the browser this was measured in.
+     The explicit width restores fill-then-cap-at-max-width sizing; margin:
+     auto still centers it once max-width actually applies. */
+  width: 100%;
+  margin: 0 auto;
 }
 
 .student-workspace-v2 > .student-workspace-content-v2 {
