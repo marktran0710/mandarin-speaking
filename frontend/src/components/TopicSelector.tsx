@@ -168,7 +168,15 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
   // The per-story 🌱🌿🌳 tier track: which difficulty levels this story
   // offers, and for each whether it's been submitted, is open, or still
   // locked behind the previous tier. Only teacher stories carry tiers.
-  const renderTierTrack = (t: Topic, activityUnlocked: boolean) => {
+  /** `primaryOpensLevel`: the level the card's own primary button already
+   * opens. That cell renders as a status chip rather than a second button,
+   * since two controls landing on the same screen is one control too many —
+   * the other levels stay buttons, which is the switch this track is for. */
+  const renderTierTrack = (
+    t: Topic,
+    activityUnlocked: boolean,
+    primaryOpensLevel?: StoryDifficultyLevel,
+  ) => {
     const story = t.sourceStory;
     if (!story) return null;
     const submittedLevels = loadSubmittedLevels(story.id);
@@ -200,9 +208,12 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               <BiLabel zh={copy.zh} pinyin={copy.pinyin} en={copy.en} />
             </>
           );
-          if (!onLevelSelect) {
+          if (!onLevelSelect || level === primaryOpensLevel) {
             return (
-              <span key={level} className={`ts-tier-cell ts-tier-${state}`}>
+              <span
+                key={level}
+                className={`ts-tier-cell ts-tier-${state}${level === primaryOpensLevel ? " ts-tier-current" : ""}`}
+              >
                 {content}
               </span>
             );
@@ -305,7 +316,9 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
             </button>
           )}
 
-          {renderTierTrack(t, unlocked)}
+          {/* The primary button above opens this card at Easy, so Easy is a
+              status chip here rather than a duplicate of it. */}
+          {renderTierTrack(t, unlocked, onTopicSelect ? "easy" : undefined)}
         </div>
       </article>
     );
