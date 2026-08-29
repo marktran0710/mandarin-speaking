@@ -98,7 +98,7 @@
    "開始生詞測驗 Start vocabulary quiz" button, so repeating it here would be
    a second control for one job. */
 .student-sidebar-progress {
-  margin-top: var(--space-md);
+  margin-bottom: var(--space-xs);
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);

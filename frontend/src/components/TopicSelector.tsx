@@ -22,7 +22,6 @@ import {
   lessonTitle,
   type LessonGroup,
 } from "../utils/lessonGroups";
-import JourneyPath, { type JourneyStop } from "./JourneyPath";
 import {
   isStoryLevelUnlocked,
   loadSubmittedLevels,
@@ -334,7 +333,12 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
   // language for "progress along a sequence" everywhere in the app, and the
   // path itself (position, dimming, the current stop's glow) carries the
   // "you need to finish N first" meaning without spelling it out per row.
-  const journeyStops: JourneyStop[] = numberedGroups.map((group, numberedIndex) => {
+  /** One wide row per lesson: the lesson's own first scene image on the
+   * left, its name in the middle, progress or the reason it is locked on
+   * the right. The image is what makes a row recognisable at a glance, and
+   * a locked lesson's image is desaturated so its state reads before any
+   * text does. */
+  const renderLessonRow = (group: LessonGroup, numberedIndex: number) => {
     const index = groups.indexOf(group);
     const unlocked = isLessonGroupUnlocked(groups, index, submittedIds);
     const { done, total } = lessonCompletion(group, submittedIds);
@@ -344,39 +348,65 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
     const previousNumber =
       numberedIndex > 0 ? numberedGroups[numberedIndex - 1].lessonNumber : null;
     const isOpen = openLesson === group.lessonNumber;
+    const cover = group.topics.find((topic) => topic.images?.[0])?.images?.[0];
+    const toggle = () =>
+      setOpenLesson((current) => (current === group.lessonNumber ? null : group.lessonNumber!));
 
-    return {
-      key: group.lessonNumber!,
-      status: finished ? "done" : isNow ? "current" : "upcoming",
-      fallbackLabel: group.lessonNumber,
-      label: (
-        <span className="ts-journey-label">
-          <span className="ts-journey-title">{title.zh}</span>
-          <span className="ts-lesson-sub">{`Dì ${group.lessonNumber} kè · ${title.en}`}</span>
-        </span>
-      ),
-      badge: !unlocked ? (
-        <span aria-label={`Locked — finish Lesson ${previousNumber} first`}>🔒</span>
-      ) : (
-        <span aria-hidden="true">
-          {!finished ? `${done}/${total} ` : ""}
-          {isOpen ? "▴" : "▾"}
-        </span>
-      ),
-      onClick: unlocked
-        ? () => setOpenLesson((current) => (current === group.lessonNumber ? null : group.lessonNumber!))
-        : undefined,
-      disabled: !unlocked,
-      ariaExpanded: unlocked ? isOpen : undefined,
-      expanded: isOpen ? (
-        <div className="ts-lesson-expanded">
-          <div className="ts-grid">
-            {group.topics.map((t, i) => renderTopicCard(t, group, i))}
+    return (
+      <div className="ts-lesson-block" key={group.lessonNumber!}>
+        <button
+          type="button"
+          className={`ts-lesson-row${unlocked ? "" : " is-locked"}${isNow ? " is-now" : ""}${finished ? " is-done" : ""}`}
+          disabled={!unlocked}
+          aria-expanded={unlocked ? isOpen : undefined}
+          onClick={unlocked ? toggle : undefined}
+        >
+          <span className="ts-lesson-cover">
+            {cover ? <img src={cover} alt="" /> : <span className="ts-lesson-cover-fallback" aria-hidden="true">{group.lessonNumber}</span>}
+          </span>
+
+          <span className="ts-lesson-body">
+            <span className="ts-lesson-kicker">
+              {`第 ${group.lessonNumber} 課 · Dì ${group.lessonNumber} kè`}
+            </span>
+            <span className="ts-lesson-name" lang="zh-Hant">{title.zh}</span>
+            <span className="ts-lesson-en">{title.en}</span>
+          </span>
+
+          <span className="ts-lesson-status">
+            {!unlocked ? (
+              <span className="ts-lesson-locked">
+                <StudentIcon name="lock" size={14} />
+                <BiLabel
+                  zh={`先完成第 ${previousNumber} 課`}
+                  en={`Finish Lesson ${previousNumber} first`}
+                />
+              </span>
+            ) : (
+              <>
+                <span className="ts-lesson-progress">
+                  {finished ? (
+                    <BiLabel zh="已完成" pinyin="Yǐ wánchéng" en="Complete" />
+                  ) : (
+                    <BiLabel zh={`${done}/${total} 個故事`} en={`${done}/${total} stories`} />
+                  )}
+                </span>
+                <span className="ts-lesson-chevron" aria-hidden="true">{isOpen ? "▴" : "▾"}</span>
+              </>
+            )}
+          </span>
+        </button>
+
+        {isOpen && (
+          <div className="ts-lesson-expanded">
+            <div className="ts-grid">
+              {group.topics.map((t, i) => renderTopicCard(t, group, i))}
+            </div>
           </div>
-        </div>
-      ) : undefined,
-    };
-  });
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="topic-selector">
@@ -396,8 +426,8 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
         </div>
       </header>
 
-      <div className="ts-lesson-journey">
-        <JourneyPath stops={journeyStops} orientation="vertical" />
+      <div className="ts-lesson-list">
+        {numberedGroups.map((group, numberedIndex) => renderLessonRow(group, numberedIndex))}
       </div>
 
       {otherGroup && (

@@ -121,6 +121,10 @@ export default function StudentSidebar({
           })}
         </nav>
 
+        {/* Sits with the account block at the bottom, not under the nav:
+            stars are "how I'm doing", which belongs beside "who I am"
+            rather than in the middle of the section switch. */}
+        <div className="student-sidebar-footer">
         {maxStars > 0 && (
           <div className="student-sidebar-progress">
             <p className="student-sidebar-progress-label">
@@ -144,7 +148,6 @@ export default function StudentSidebar({
           </div>
         )}
 
-        <div className="student-sidebar-footer">
           <div className="student-sidebar-identity">
             <span className="student-sidebar-avatar" aria-hidden="true">
               <StudentIcon name="user" size={17} />

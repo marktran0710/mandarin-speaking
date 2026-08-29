@@ -21,7 +21,6 @@
   border-radius: 18px;
   background:
     linear-gradient(104deg, color-mix(in srgb, var(--clay-surface-card) 94%, white), color-mix(in srgb, var(--gold-soft) 24%, var(--clay-surface-card)));
-  box-shadow: 0 5px 0 color-mix(in srgb, var(--gold-soft) 70%, transparent);
 }
 
 .ts-toc-title {
@@ -57,7 +56,6 @@
   border: 1px solid color-mix(in srgb, var(--gold) 38%, var(--clay-hairline));
   border-radius: 13px;
   padding: 6px 10px;
-  box-shadow: 0 3px 0 color-mix(in srgb, var(--gold-soft) 62%, transparent);
 }
 
 .ts-book-cover {
@@ -67,7 +65,6 @@
   border-radius: 5px;
   border: 1px solid var(--clay-hairline);
   object-fit: cover;
-  box-shadow: var(--shadow-sm);
 }
 
 .ts-book-name {
@@ -82,59 +79,135 @@
   font-size: 10.5px;
 }
 
-/* ── Lesson table of contents: the same tone-contour journey path used
-   inside a practice session (JourneyPath, vertical orientation), scaled up
-   for a primary page instead of a sidebar strip. Position on the path plus
-   the current stop's glow carry the "you're here" / "not reached yet"
-   meaning, so locked rows need only a 🔒 badge, not a repeated sentence. ── */
-.ts-lesson-journey {
+/* ── Lesson table of contents: one wide row per lesson.
+   The lesson's own first scene image leads the row, so a lesson is
+   recognisable before any text is read; a locked lesson's image is
+   desaturated, which carries its state the same way. Borders only —
+   no drop shadows. ── */
+.ts-lesson-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   margin-bottom: 8px;
 }
-.ts-lesson-journey .journey-stop-ring {
-  width: 64px;
-  height: 64px;
-  border-width: 3px;
+
+.ts-lesson-block { min-width: 0; }
+
+.ts-lesson-row {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
 }
-.ts-lesson-journey .journey-stop-current .journey-stop-ring {
-  width: 72px;
-  height: 72px;
+
+.ts-lesson-row:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--seal) 42%, var(--clay-hairline));
+  background: color-mix(in srgb, var(--clay-surface-card) 92%, var(--seal-soft));
 }
-.ts-lesson-journey .journey-connector {
-  width: 40px;
-  height: 26px;
-  margin-left: 15px; /* centers under the 64px ring */
+
+.ts-lesson-row:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--seal) 55%, transparent);
+  outline-offset: 2px;
 }
-.ts-lesson-journey .journey-stop {
-  padding: 10px 14px;
+
+/* The lesson the student is on: a gold left edge, no extra fill, so it
+   stands out without becoming a second kind of card. */
+.ts-lesson-row.is-now {
+  border-color: color-mix(in srgb, var(--seal) 55%, var(--clay-hairline));
+  box-shadow: inset 4px 0 var(--seal);
+}
+
+.ts-lesson-row.is-done { border-color: color-mix(in srgb, var(--jade) 38%, var(--clay-hairline)); }
+
+.ts-lesson-row.is-locked { cursor: not-allowed; opacity: .6; }
+
+.ts-lesson-cover {
+  display: grid;
+  place-items: center;
+  height: 84px;
+  overflow: hidden;
   border-radius: var(--clay-radius-md);
-  border: 1px solid transparent;
-  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
-}
-.ts-lesson-journey .journey-stop:not(:disabled):hover {
   background: var(--clay-surface-soft);
-  transform: translateX(2px);
 }
-.ts-lesson-journey .journey-stop-current {
-  background: color-mix(in srgb, var(--clay-surface-card) 88%, var(--gold-soft));
-  border-color: color-mix(in srgb, var(--gold) 45%, var(--clay-hairline));
+
+.ts-lesson-cover img { width: 100%; height: 100%; object-fit: cover; }
+.ts-lesson-row.is-locked .ts-lesson-cover img { filter: grayscale(1); }
+
+.ts-lesson-cover-fallback {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--clay-muted);
 }
-.ts-journey-label {
+
+.ts-lesson-body {
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
 }
-.ts-journey-title {
-  font-size: 19px;
+
+.ts-lesson-kicker {
+  color: var(--seal-deep);
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ts-lesson-row.is-locked .ts-lesson-kicker { color: var(--clay-muted); }
+
+.ts-lesson-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
   color: var(--clay-ink);
 }
-.journey-stop:disabled .ts-journey-title { color: var(--clay-muted); }
+
+.ts-lesson-row.is-locked .ts-lesson-name { color: var(--clay-body); }
+
+.ts-lesson-en { font-size: 12.5px; color: var(--clay-muted); }
+
+.ts-lesson-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.ts-lesson-progress { font-size: 12.5px; color: var(--clay-body); }
+
+.ts-lesson-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--clay-muted);
+}
+
+.ts-lesson-chevron { color: var(--clay-muted); font-size: 13px; }
+
+@media (max-width: 720px) {
+  .ts-lesson-row { grid-template-columns: 84px minmax(0, 1fr); gap: 12px; }
+  .ts-lesson-cover { height: 60px; }
+  .ts-lesson-name { font-size: 17px; }
+  .ts-lesson-status { grid-column: 2; }
+}
 
 /* ── Accordion body: a lesson's story cards, dropped in place under its
    own journey stop instead of navigating to a separate screen. ── */
 .ts-lesson-expanded {
-  padding: 4px 4px 4px 82px; /* aligns under the 64px ring + its gap */
+  padding: 4px 4px 4px 14px;
   margin: 4px 0 2px;
 }
 @media (max-width: 720px) {
@@ -157,16 +230,14 @@
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
-  box-shadow: 0 5px 15px color-mix(in srgb, var(--clay-ink) 5%, transparent);
   padding: 18px 22px 18px 14px;
   cursor: pointer;
-  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+  transition: transform 0.12s, border-color 0.12s;
 }
 
 .ts-lesson-card:hover {
   transform: translateY(-3px);
   border-color: color-mix(in srgb, var(--seal) 45%, var(--clay-hairline));
-  box-shadow: 0 9px 20px color-mix(in srgb, var(--clay-ink) 9%, transparent);
 }
 .ts-lesson-card:focus-visible {
   outline: 3px solid var(--seal);
@@ -286,13 +357,12 @@
 .ts-tier-track-interactive .ts-tier-done {
   cursor: pointer;
   touch-action: manipulation;
-  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  transition: transform .15s ease, border-color .15s ease;
 }
 
 .ts-tier-track-interactive .ts-tier-open:hover,
 .ts-tier-track-interactive .ts-tier-done:hover {
   border-color: var(--gold);
-  box-shadow: 0 3px 8px color-mix(in srgb, var(--gold) 18%, transparent);
   transform: translateY(-1px);
 }
 
