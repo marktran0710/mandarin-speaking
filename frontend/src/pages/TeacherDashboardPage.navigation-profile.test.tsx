@@ -99,7 +99,7 @@ describe("TeacherDashboardPage", () => {
     renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
-    await user.click(screen.getByRole("tab", { name: /Quiz Review/ }));
+    await user.click(screen.getByRole("button", { name: /Quiz Review/ }));
 
     expect(
       await screen.findByRole("heading", { name: /Quiz Review/ }),
@@ -112,6 +112,7 @@ describe("TeacherDashboardPage", () => {
     const { unmount } = renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Adventure Story");
     const imageInputs = screen.getAllByLabelText("Image URL or uploaded file");

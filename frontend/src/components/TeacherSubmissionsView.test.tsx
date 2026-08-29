@@ -94,18 +94,17 @@ describe("TeacherSubmissionsView", () => {
     expect(screen.getAllByText(/Self-eval:/)).toHaveLength(1);
   });
 
-  it("narrows the list with search and student filters", async () => {
+  it("narrows the list with the student filter", async () => {
     const user = userEvent.setup();
 
     render(<TeacherSubmissionsView submissions={submissions} onReviewUpdate={vi.fn()} />);
 
-    await user.type(screen.getByRole("searchbox", { name: "Search submissions" }), "garden");
-    expect(screen.getByText("Garden Adventure")).toBeInTheDocument();
-    expect(screen.queryByText("Mountain Walk")).not.toBeInTheDocument();
-
-    await user.clear(screen.getByRole("searchbox", { name: "Search submissions" }));
     await user.selectOptions(screen.getByLabelText("Student"), "Wei");
     expect(screen.getByText("Mountain Walk")).toBeInTheDocument();
     expect(screen.queryByText("Garden Adventure")).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Student"), "all");
+    expect(screen.getByText("Garden Adventure")).toBeInTheDocument();
+    expect(screen.getByText("Mountain Walk")).toBeInTheDocument();
   });
 });

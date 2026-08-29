@@ -13,17 +13,17 @@ export type ManagementSection = "stories" | "quiz-review" | "submissions" | "sup
 
 const SECTION_CONFIG: Record<ManagementSection, {
   requiredRole: ManagementRole | "either";
-  teacherView?: "submissions" | "recordingsHelp" | "materials" | "analytics";
-  teacherRecordingsHelpTab?: "recordings" | "help";
-  teacherMaterialsTab?: "builder" | "quizReview";
-  adminNav?: "Admin Home" | "IRT / Student analytics" | "Practice Debug";
+  teacherView?: "today" | "submissions" | "recordings" | "students" | "materials";
+  teacherMaterialsTool?: "builder" | "imageBuilder" | "quizReview";
+  adminNav?: "Admin Home" | "IRT / Student analytics" | "Measurement" | "Practice Debug";
 }> = {
-  stories: { requiredRole: "teacher", teacherView: "materials", teacherMaterialsTab: "builder" },
-  "quiz-review": { requiredRole: "teacher", teacherView: "materials", teacherMaterialsTab: "quizReview" },
+  stories: { requiredRole: "teacher", teacherView: "materials", teacherMaterialsTool: "builder" },
+  "quiz-review": { requiredRole: "teacher", teacherView: "materials", teacherMaterialsTool: "quizReview" },
   submissions: { requiredRole: "teacher", teacherView: "submissions" },
-  support: { requiredRole: "teacher", teacherView: "recordingsHelp", teacherRecordingsHelpTab: "help" },
+  // Help requests live on Today now, so /manage/support lands there.
+  support: { requiredRole: "teacher", teacherView: "today" },
   accounts: { requiredRole: "admin", adminNav: "Admin Home" },
-  analytics: { requiredRole: "either", teacherView: "analytics", adminNav: "IRT / Student analytics" },
+  analytics: { requiredRole: "either", teacherView: "students", adminNav: "IRT / Student analytics" },
   "practice-debug": { requiredRole: "admin", adminNav: "Practice Debug" },
 };
 
@@ -105,7 +105,7 @@ export default function ManagementApp({ initialRole, initialSection }: { initial
     return <AccessDenied role={role} />;
   }
 
-  if (role === "teacher") return <TeacherApp embedded onExit={() => setRole(null)} initialView={sectionConfig?.teacherView} initialRecordingsHelpTab={sectionConfig?.teacherRecordingsHelpTab} initialMaterialsTab={sectionConfig?.teacherMaterialsTab} />;
+  if (role === "teacher") return <TeacherApp embedded onExit={() => setRole(null)} initialView={sectionConfig?.teacherView} initialMaterialsTool={sectionConfig?.teacherMaterialsTool} />;
   if (role === "admin") return <AdminApp embedded onExit={() => setRole(null)} initialNav={sectionConfig?.adminNav} />;
 
   if (loginRole === "teacher") {

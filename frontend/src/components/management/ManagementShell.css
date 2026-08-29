@@ -42,7 +42,6 @@
 .management-brand small { color: var(--management-muted); font-size: 11px; }
 .management-tonemark { grid-column: 3; grid-row: 1 / 3; margin-left: 2px; }
 .management-topbar-actions { display: flex; align-items: center; gap: 8px; min-width: 0; margin-left: auto; }
-.management-role-badge { padding: 7px 10px; border: 1px solid color-mix(in srgb, var(--management-green) 35%, transparent); border-radius: 999px; color: var(--management-green-deep); background: var(--management-soft); font-size: 12px; font-weight: 800; }
 .management-chip, .management-menu-toggle { min-height: 44px; border: 1px solid var(--management-line); border-radius: var(--clay-radius-sm); color: var(--management-body); background: var(--clay-surface-card); font: inherit; font-size: 12px; cursor: pointer; }
 .management-chip { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 12px; }
 .management-chip:hover:not(:disabled) { border-color: var(--management-green); color: var(--management-green-deep); background: var(--management-soft); }
@@ -61,7 +60,7 @@
 .management-nav-icon { display: grid; place-items: center; color: var(--management-green); }
 .management-nav-text { min-width: 0; overflow-wrap: anywhere; white-space: normal; }
 .management-badge { min-width: 22px; padding: 3px 6px; border-radius: 999px; color: var(--management-green-deep); background: var(--management-soft); font-size: 11px; text-align: center; }
-.management-badge.hot { color: var(--clay-on-accent); background: var(--clay-error); }
+.management-badge.hot { color: var(--clay-on-seal); background: var(--seal); font-weight: 700; }
 .management-main { min-width: 0; overflow: visible; padding: clamp(24px, 4vw, 54px) clamp(18px, 5vw, 70px) 72px; }
 .management-main > * { width: min(100%, 1280px); min-width: 0; margin-inline: auto; }
 
@@ -83,7 +82,6 @@
   .management-topbar { min-height: 68px; }
   .management-brand { grid-template-columns: 30px minmax(0, auto); }
   .management-brand img { width: 30px; height: 30px; }
-  .management-role-badge,
   .management-topbar-actions .management-chip:not(.management-logout) { display: none; }
   .management-sidebar { inset-block-start: 68px; }
   .management-backdrop { inset-block-start: 68px; }

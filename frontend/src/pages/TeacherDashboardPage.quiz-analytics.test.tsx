@@ -86,7 +86,7 @@ function renderDashboard(records: AudioRecord[] = []) {
   );
 }
 
-describe("Quiz Analytics tab", () => {
+describe("Quiz analytics on the Students view", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => [] })));
@@ -117,8 +117,7 @@ describe("Quiz Analytics tab", () => {
   ];
 
   async function openQuizAnalytics(user: ReturnType<typeof userEvent.setup>) {
-    await user.click(screen.getByRole("button", { name: /Analytics/ }));
-    await user.click(screen.getByRole("tab", { name: /Quiz trends/ }));
+    await user.click(screen.getByRole("button", { name: /Students/ }));
   }
 
   it("shows per-student accuracy, time, and repeated-mistake analytics", async () => {
@@ -137,21 +136,15 @@ describe("Quiz Analytics tab", () => {
 
     await openQuizAnalytics(user);
 
-    const studentPerformanceHeading = await screen.findByRole("heading", {
-      name: "Student Quiz Performance",
-    });
-    const studentTable = studentPerformanceHeading.closest(
-      ".teacher-quiz-analytics-panel",
-    ) as HTMLElement;
-    expect(within(studentTable).getByText("Amy")).toBeInTheDocument();
-    expect(within(studentTable).getByText("60%")).toBeInTheDocument();
-    expect(within(studentTable).getByText("姐姐")).toBeInTheDocument();
-    expect(within(studentTable).getByText(/\(missed 2×\)/)).toBeInTheDocument();
+    // Per-student accuracy lives on the roster table now; this panel keeps
+    // the class-wide numbers and the repeated-mistake list.
+    const overview = await screen.findByRole("region", { name: "Quiz analytics overview" });
+    expect(within(overview).getByText("60%")).toBeInTheDocument();
 
-    expect(
-      screen.getByRole("heading", { name: "Words Needing the Most Practice" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Missed 2\/2 times \(100%\)/)).toBeInTheDocument();
+    const wordHeading = screen.getByRole("heading", { name: "Words Needing the Most Practice" });
+    const wordPanel = wordHeading.closest(".teacher-quiz-analytics-panel") as HTMLElement;
+    expect(within(wordPanel).getByText("姐姐")).toBeInTheDocument();
+    expect(within(wordPanel).getByText(/Missed 2\/2 times \(100%\)/)).toBeInTheDocument();
   });
 
   it("shows an empty state when there are no quiz attempts yet", async () => {
@@ -173,7 +166,7 @@ describe("Quiz Analytics tab", () => {
     expect(await screen.findByText("No quiz attempts yet")).toBeInTheDocument();
   });
 
-  it("filters student performance by the selected student and quiz mode", async () => {
+  it("filters quiz analytics by the selected student", async () => {
     const twoStudentAttempts: VocabQuizAttempt[] = [
       ...attempts,
       {
@@ -205,21 +198,24 @@ describe("Quiz Analytics tab", () => {
     );
 
     await openQuizAnalytics(user);
-    const heading = await screen.findByRole("heading", { name: "Student Quiz Performance" });
-    const studentTable = heading.closest(".teacher-quiz-analytics-panel") as HTMLElement;
+    const overview = await screen.findByRole("region", { name: "Quiz analytics overview" });
+    const wordPanel = screen
+      .getByRole("heading", { name: "Words Needing the Most Practice" })
+      .closest(".teacher-quiz-analytics-panel") as HTMLElement;
 
-    // Unfiltered: both students show up.
-    expect(within(studentTable).getByText("Amy")).toBeInTheDocument();
-    expect(within(studentTable).getByText("Bo")).toBeInTheDocument();
+    // Unfiltered: both attempts counted, and Amy's repeated miss is listed.
+    expect(within(overview).getByText("2")).toBeInTheDocument();
+    expect(within(wordPanel).getByText("姐姐")).toBeInTheDocument();
 
+    // Bo answered everything correctly, so filtering to Bo empties both.
     await user.selectOptions(screen.getByLabelText("Student"), "Bo");
-    expect(within(studentTable).queryByText("Amy")).not.toBeInTheDocument();
-    expect(within(studentTable).getByText("Bo")).toBeInTheDocument();
+    expect(within(overview).getByText("1")).toBeInTheDocument();
+    expect(within(wordPanel).queryByText("姐姐")).not.toBeInTheDocument();
+    expect(within(wordPanel).getByText("No repeated mistakes yet")).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("Student"), "all");
-    await user.selectOptions(screen.getByLabelText("Quiz mode"), "strikes");
-    expect(within(studentTable).queryByText("Amy")).not.toBeInTheDocument();
-    expect(within(studentTable).getByText("Bo")).toBeInTheDocument();
+    expect(within(overview).getByText("2")).toBeInTheDocument();
+    expect(within(wordPanel).getByText("姐姐")).toBeInTheDocument();
   });
 });
 

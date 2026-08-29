@@ -27,7 +27,7 @@ describe("admin-only diagnostic navigation", () => {
     render(
       <ManagementShell
         role="teacher"
-        activeView="overview"
+        activeView="today"
         onSelectView={() => undefined}
         submissionCount={0}
         openHelpCount={0}

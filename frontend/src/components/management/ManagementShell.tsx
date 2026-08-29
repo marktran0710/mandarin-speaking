@@ -15,12 +15,14 @@ export interface ManagementNavItem {
   hot?: boolean;
 }
 
+/** One flat list, no groups and no sub-tabs: each entry owns exactly one
+ * dataset, so there is only ever one place to do a given job. */
 const DEFAULT_TEACHER_ITEMS: ManagementNavItem[] = [
-  { id: "overview", label: "Overview", icon: "dashboard" },
-  { id: "submissions", label: "Submissions", icon: "inbox", group: "Review" },
-  { id: "recordingsHelp", label: "Recordings & Help", icon: "microphone", group: "Review" },
-  { id: "materials", label: "Materials", icon: "library", group: "Teaching" },
-  { id: "analytics", label: "Analytics", icon: "analytics", group: "Data" },
+  { id: "today", label: "Today", icon: "help" },
+  { id: "submissions", label: "Submissions", icon: "inbox" },
+  { id: "recordings", label: "Recordings", icon: "microphone" },
+  { id: "students", label: "Students", icon: "users" },
+  { id: "materials", label: "Materials", icon: "library" },
 ];
 
 const DEFAULT_ADMIN_ITEMS: ManagementNavItem[] = [
@@ -28,6 +30,7 @@ const DEFAULT_ADMIN_ITEMS: ManagementNavItem[] = [
   { id: "Teachers", label: "Teachers", icon: "users", group: "Accounts" },
   { id: "Students", label: "Students", icon: "users", group: "Accounts" },
   { id: "IRT / Student analytics", label: "IRT / Student analytics", icon: "analytics", group: "Insights" },
+  { id: "Measurement", label: "Measurement", icon: "analytics", group: "Insights" },
   { id: "Practice Debug", label: "Practice Debug", icon: "debug", group: "Insights" },
 ];
 
@@ -44,6 +47,7 @@ export default function ManagementShell({
   navItems,
   submissionCount = 0,
   openHelpCount = 0,
+  recordingCount = 0,
   refreshing = false,
   onRefresh,
   onLogout,
@@ -55,6 +59,7 @@ export default function ManagementShell({
   navItems?: ManagementNavItem[];
   submissionCount?: number;
   openHelpCount?: number;
+  recordingCount?: number;
   refreshing?: boolean;
   onRefresh?: () => void;
   onLogout: () => void;
@@ -63,10 +68,17 @@ export default function ManagementShell({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const menuToggleRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
+  // Only "Today" runs hot: a raised hand is the one thing that needs a reply
+  // right now, so it is the only place the gold badge appears.
+  const counts: Record<string, number> = {
+    today: openHelpCount,
+    submissions: submissionCount,
+    recordings: recordingCount,
+  };
   const items = (navItems ?? (role === "teacher" ? DEFAULT_TEACHER_ITEMS : DEFAULT_ADMIN_ITEMS)).map((item) => ({
     ...item,
-    count: item.id === "submissions" ? submissionCount : item.id === "recordingsHelp" ? openHelpCount : item.count,
-    hot: item.id === "recordingsHelp" ? openHelpCount > 0 : item.hot,
+    count: counts[item.id] ?? item.count,
+    hot: item.id === "today" ? openHelpCount > 0 : item.hot,
   }));
 
   let currentGroup: string | undefined;
@@ -112,8 +124,9 @@ export default function ManagementShell({
           <small>{role === "teacher" ? "Teacher Studio" : "Admin Console"}</small>
           <ToneMark className="management-tonemark" size={20} />
         </div>
+        {/* No role badge here: the brand line already reads "Teacher Studio"
+            / "Admin Console", so the badge said the same word twice. */}
         <div className="management-topbar-actions">
-          <span className="management-role-badge">{role === "teacher" ? "Teacher" : "Admin"}</span>
           <button
             type="button"
             className="management-chip"

@@ -5,7 +5,7 @@ import ManagementShell from "./ManagementShell";
 describe("ManagementShell", () => {
   it("uses accessible SVG icons for navigation and keeps drawer focus contained", async () => {
     render(
-      <ManagementShell role="teacher" activeView="overview" onSelectView={vi.fn()} onLogout={vi.fn()}>
+      <ManagementShell role="teacher" activeView="today" onSelectView={vi.fn()} onLogout={vi.fn()}>
         <p>Dashboard</p>
       </ManagementShell>,
     );
@@ -15,7 +15,7 @@ describe("ManagementShell", () => {
     const menu = screen.getByRole("button", { name: "Open menu" });
     menu.focus();
     fireEvent.click(menu);
-    await waitFor(() => expect(screen.getByRole("button", { name: /Overview/ })).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("button", { name: /Today/ })).toHaveFocus());
     fireEvent.keyDown(document, { key: "Escape" });
     await waitFor(() => expect(screen.getByRole("button", { name: "Open menu" })).toHaveFocus());
   });

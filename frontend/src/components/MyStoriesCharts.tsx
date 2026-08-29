@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef } from "react";
 import Chart from "chart.js/auto";
-import { wordMissSeverity, type WordMissStats } from "../utils/myStoriesUtils";
 
-// ── Shared Chart.js look for the teacher analytics tabs ────────────────────
+// ── Shared Chart.js look for the teacher analytics views ───────────────────
 // A plainer, more neutral "data dashboard" register than the rest of the
 // app's playful student-facing style: the app's own sans stack instead of
 // the display/heading font, restrained gridlines, and a flat (non-bold)
-// tick weight. Set once so every chart on Quiz Analytics and Recording
-// Analytics inherits it without repeating options per chart.
+// tick weight. Set once so every chart on Students and Recordings inherits
+// it without repeating options per chart.
 const CHART_FONT_FAMILY =
   '"Inter", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif';
 Chart.defaults.font.family = CHART_FONT_FAMILY;
@@ -25,28 +24,6 @@ Chart.defaults.plugins.tooltip.cornerRadius = 6;
 Chart.defaults.plugins.legend.labels.usePointStyle = true;
 Chart.defaults.plugins.legend.labels.boxWidth = 8;
 Chart.defaults.plugins.legend.labels.boxHeight = 8;
-
-// Colors are resolved hex for --seal (cinnabar) / --jade / --gold-deep
-// (Chart.js can't read CSS custom properties) — keep in sync with
-// src/index.css. These stay at their light-mode values in dark mode.
-export type QuizAnalyticsMode = "tier1" | "tier2" | "tier3" | "speed" | "strikes" | "free";
-
-export const QUIZ_MODE_INFO: Record<QuizAnalyticsMode, { icon: string; label: string; color: string }> = {
-  tier1: { icon: "★", label: "Tier 1", color: "#e9a825" },
-  tier2: { icon: "★★", label: "Tier 2", color: "#1c9a5b" },
-  tier3: { icon: "★★★", label: "Tier 3", color: "#0b5fa8" },
-  speed: { icon: "⏱️", label: "Speed", color: "#e9a825" },
-  strikes: { icon: "❌", label: "3 Strikes", color: "#1c9a5b" },
-  free: { icon: "🎯", label: "Free Practice", color: "#8a5a12" },
-};
-
-export const AI_FEEDBACK_CATEGORIES = ["fluency", "grammar", "vocabulary"] as const;
-// Same --seal/--jade/--gold-deep mirror as QUIZ_MODE_INFO above.
-export const AI_FEEDBACK_CATEGORY_INFO: Record<(typeof AI_FEEDBACK_CATEGORIES)[number], { label: string; color: string }> = {
-  fluency: { label: "Fluency", color: "#e9a825" },
-  grammar: { label: "Grammar", color: "#1c9a5b" },
-  vocabulary: { label: "Vocabulary", color: "#8a5a12" },
-};
 
 /** Chart.js canvas that (re)builds its chart whenever `build` changes,
  * tearing down the previous instance first — same lifecycle as
@@ -84,50 +61,6 @@ export function QuizChartCanvas({
       <canvas ref={canvasRef} />
     </div>
   );
-}
-
-export function ModeAccuracyChart({ data }: { data: Array<{ mode: QuizAnalyticsMode; avg: number; count: number }> }) {
-  const build = useMemo(
-    () => (ctx: CanvasRenderingContext2D) =>
-      new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: data.map((m) => `${QUIZ_MODE_INFO[m.mode].icon} ${QUIZ_MODE_INFO[m.mode].label}`),
-          datasets: [{
-            label: "Average accuracy",
-            data: data.map((m) => m.avg),
-            backgroundColor: data.map((m) => QUIZ_MODE_INFO[m.mode].color),
-            borderRadius: 4,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (item) => {
-                  const m = data[item.dataIndex];
-                  return `${item.parsed.y}% avg accuracy (${m.count} attempt${m.count === 1 ? "" : "s"})`;
-                },
-              },
-            },
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 100,
-              title: { display: true, text: "Accuracy" },
-              ticks: { callback: (v) => `${v}%` },
-            },
-            x: { grid: { display: false } },
-          },
-        },
-      }),
-    [data],
-  );
-  return <QuizChartCanvas build={build} ariaLabel="Bar chart: average quiz accuracy by mode (Speed, 3 Strikes, Free Practice)" />;
 }
 
 export function AccuracyTimeChart({ points }: { points: Array<{ label: string; value: number }> }) {
@@ -170,83 +103,6 @@ export function AccuracyTimeChart({ points }: { points: Array<{ label: string; v
     [points],
   );
   return <QuizChartCanvas build={build} ariaLabel="Line chart: quiz accuracy over time" />;
-}
-
-export function WordMissChart({ data }: { data: WordMissStats[] }) {
-  const build = useMemo(
-    () => (ctx: CanvasRenderingContext2D) => {
-      // Draws "N× (P%)" past the end of each bar. Chart.js has no built-in
-      // data-label support without a paid/extra plugin, so this is a small
-      // inline plugin closing over `data` rather than a new dependency.
-      const barEndLabels = {
-        id: "wordMissBarLabels",
-        afterDatasetsDraw(chart: Chart) {
-          const meta = chart.getDatasetMeta(0);
-          chart.ctx.save();
-          chart.ctx.font = `600 12px ${CHART_FONT_FAMILY}`;
-          chart.ctx.fillStyle = "#4d4230";
-          chart.ctx.textBaseline = "middle";
-          chart.ctx.textAlign = "left";
-          meta.data.forEach((bar, i) => {
-            const w = data[i];
-            const { x, y } = bar.getProps(["x", "y"], true);
-            chart.ctx.fillText(`${w.timesMissed}× (${w.missRatePct}%)`, x + 6, y);
-          });
-          chart.ctx.restore();
-        },
-      };
-
-      return new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: data.map((w) => w.word),
-          datasets: [{
-            label: "Times missed",
-            data: data.map((w) => w.timesMissed),
-            backgroundColor: data.map((w) =>
-              wordMissSeverity(w.missRatePct) === "critical"
-                ? "#c0154b"
-                : wordMissSeverity(w.missRatePct) === "watch"
-                  ? "#ffa726"
-                  : "#8a5a12",
-            ),
-            borderRadius: 4,
-          }],
-        },
-        options: {
-          indexAxis: "y",
-          responsive: true,
-          maintainAspectRatio: false,
-          layout: { padding: { right: 64 } },
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (item) => {
-                  const w = data[item.dataIndex];
-                  return [
-                    `Missed ${w.timesMissed} of ${w.timesAsked} time${w.timesAsked === 1 ? "" : "s"} (${w.missRatePct}%)`,
-                    `Avg. ${(w.avgTimeMs / 1000).toFixed(1)}s to answer`,
-                  ];
-                },
-              },
-            },
-          },
-          scales: {
-            x: {
-              beginAtZero: true,
-              ticks: { precision: 0 },
-              title: { display: true, text: "Times missed (most to least common)" },
-            },
-            y: { grid: { display: false } },
-          },
-        },
-        plugins: [barEndLabels],
-      });
-    },
-    [data],
-  );
-  return <QuizChartCanvas build={build} height={Math.max(180, data.length * 32)} ariaLabel="Bar chart: most frequently missed vocabulary words" />;
 }
 
 export function FluencyToneTimeChart({ points }: { points: Array<{ label: string; fluency: number; tone: number }> }) {
@@ -297,195 +153,4 @@ export function FluencyToneTimeChart({ points }: { points: Array<{ label: string
     [points],
   );
   return <QuizChartCanvas build={build} ariaLabel="Line chart: fluency and tone scores over time" />;
-}
-
-export function AiFeedbackCategoryChart({ data }: { data: Array<{ category: (typeof AI_FEEDBACK_CATEGORIES)[number]; avg: number; count: number }> }) {
-  const build = useMemo(
-    () => (ctx: CanvasRenderingContext2D) =>
-      new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: data.map((c) => AI_FEEDBACK_CATEGORY_INFO[c.category].label),
-          datasets: [{
-            label: "Average score",
-            data: data.map((c) => c.avg),
-            backgroundColor: data.map((c) => AI_FEEDBACK_CATEGORY_INFO[c.category].color),
-            borderRadius: 4,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (item) => {
-                  const c = data[item.dataIndex];
-                  return `${item.parsed.y}/100 avg (${c.count} score${c.count === 1 ? "" : "s"})`;
-                },
-              },
-            },
-          },
-          scales: {
-            y: { beginAtZero: true, max: 100, title: { display: true, text: "Score" } },
-            x: { grid: { display: false } },
-          },
-        },
-      }),
-    [data],
-  );
-  return <QuizChartCanvas build={build} ariaLabel="Bar chart: average AI feedback score by category (fluency, grammar, vocabulary)" />;
-}
-
-export function RecordingsPerTopicChart({ data }: { data: Array<{ topic: string; count: number }> }) {
-  const build = useMemo(
-    () => (ctx: CanvasRenderingContext2D) =>
-      new Chart(ctx, {
-        type: "bar",
-        data: {
-          labels: data.map((t) => t.topic),
-          datasets: [{
-            label: "Recordings",
-            data: data.map((t) => t.count),
-            backgroundColor: "#0b5fa8",
-            borderRadius: 4,
-          }],
-        },
-        options: {
-          indexAxis: "y",
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { beginAtZero: true, title: { display: true, text: "Recordings" }, ticks: { precision: 0 } },
-            y: { grid: { display: false } },
-          },
-        },
-      }),
-    [data],
-  );
-  return <QuizChartCanvas build={build} height={Math.max(160, data.length * 32)} ariaLabel="Bar chart: number of recordings per topic" />;
-}
-
-/** One point per quiz attempt, plotted by speed vs. accuracy — the other
- * quiz charts each show one metric at a time (accuracy by mode, accuracy
- * over time); this is the only view that shows whether the two move
- * together for an individual attempt (rushing trading off correctness) at
- * a glance, colored by mode so the three modes' speed/accuracy trade-offs
- * are visually separable in one chart instead of three. */
-export function TimeAccuracyScatterChart({
-  points,
-}: {
-  points: Array<{ mode: QuizAnalyticsMode; secondsPerQuestion: number; accuracy: number }>;
-}) {
-  const build = useMemo(
-    () => (ctx: CanvasRenderingContext2D) =>
-      new Chart(ctx, {
-        type: "scatter",
-        data: {
-          datasets: QUIZ_MODE_ORDER_FOR_SCATTER.map((mode) => ({
-            label: QUIZ_MODE_INFO[mode].label,
-            data: points
-              .filter((p) => p.mode === mode)
-              .map((p) => ({ x: p.secondsPerQuestion, y: p.accuracy })),
-            backgroundColor: QUIZ_MODE_INFO[mode].color,
-            // Visual mark stays small; pointHitRadius extends the pointer
-            // target well past the painted dot so a single point is easy
-            // to hover.
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            pointHitRadius: 12,
-          })),
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: true, position: "top", align: "end" },
-            tooltip: {
-              callbacks: {
-                label: (item) =>
-                  `${item.dataset.label}: ${(item.raw as { x: number; y: number }).y}% accuracy, ` +
-                  `${(item.raw as { x: number; y: number }).x.toFixed(1)}s/question`,
-              },
-            },
-          },
-          scales: {
-            x: {
-              title: { display: true, text: "Seconds per question" },
-              beginAtZero: true,
-            },
-            y: {
-              title: { display: true, text: "Accuracy" },
-              beginAtZero: true,
-              max: 100,
-              ticks: { callback: (v) => `${v}%` },
-            },
-          },
-        },
-      }),
-    [points],
-  );
-  return <QuizChartCanvas build={build} ariaLabel="Scatter chart: time per question versus accuracy" />;
-}
-
-const QUIZ_MODE_ORDER_FOR_SCATTER: QuizAnalyticsMode[] = [
-  "tier1", "tier2", "tier3", "speed", "strikes", "free",
-];
-
-/** One point per recording, plotted by fluency vs. tone accuracy — reveals
- * whether the two move together (a student weak in one tends to be weak in
- * the other) or are independent skills, which the separate over-time lines
- * elsewhere in this panel can't show since they only average each metric
- * per day, not pair them per recording. */
-export function FluencyToneScatterChart({
-  points,
-}: {
-  points: Array<{ fluency: number; tone: number }>;
-}) {
-  const build = useMemo(
-    () => (ctx: CanvasRenderingContext2D) =>
-      new Chart(ctx, {
-        type: "scatter",
-        data: {
-          datasets: [{
-            label: "Recordings",
-            data: points.map((p) => ({ x: p.fluency, y: p.tone })),
-            backgroundColor: "#e9a825",
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            pointHitRadius: 12,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (item) =>
-                  `Fluency ${(item.raw as { x: number; y: number }).x}, tone accuracy ${(item.raw as { x: number; y: number }).y}%`,
-              },
-            },
-          },
-          scales: {
-            x: {
-              title: { display: true, text: "Fluency score" },
-              beginAtZero: true,
-              max: 100,
-            },
-            y: {
-              title: { display: true, text: "Tone accuracy" },
-              beginAtZero: true,
-              max: 100,
-              ticks: { callback: (v) => `${v}%` },
-            },
-          },
-        },
-      }),
-    [points],
-  );
-  return <QuizChartCanvas build={build} ariaLabel="Scatter chart: fluency versus tone accuracy per recording" />;
 }

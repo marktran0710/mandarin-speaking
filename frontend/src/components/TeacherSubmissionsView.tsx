@@ -7,8 +7,6 @@ import { resolveImageUrl } from "../utils/teacherStories";
 import { SELF_EVAL_EMOJI } from "../utils/selfEvalComparison";
 import StoryFeedbackCard from "./StoryFeedbackCard";
 
-type SubmissionSort = "needs-review" | "newest" | "oldest";
-
 function submittedTime(submission: StorySubmission) {
   const time = Date.parse(submission.submittedAt);
   return Number.isNaN(time) ? 0 : time;
@@ -21,9 +19,9 @@ export default function TeacherSubmissionsView({
   submissions: StorySubmission[];
   onReviewUpdate: (updated: StorySubmission) => void;
 }) {
+  // One control. The sort dropdown always wanted "needs review first", and
+  // the search box duplicated the student dropdown beside it.
   const [studentFilter, setStudentFilter] = useState("all");
-  const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<SubmissionSort>("needs-review");
   const [overrides, setOverrides] = useState<Record<string, StorySubmission>>({});
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [openNotes, setOpenNotes] = useState<Record<string, boolean>>({});
@@ -37,28 +35,18 @@ export default function TeacherSubmissionsView({
     () => Array.from(new Set(displayedSubmissions.map((submission) => submission.studentName))).sort(),
     [displayedSubmissions],
   );
-  const filteredSubmissions = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-    return displayedSubmissions
-      .filter((submission) =>
-        studentFilter === "all" || submission.studentName === studentFilter,
-      )
-      .filter((submission) => {
-        if (!normalizedSearch) return true;
-        return [submission.storyTitle, submission.studentName].some((value) =>
-          value.toLowerCase().includes(normalizedSearch),
-        );
-      })
-      .sort((a, b) => {
-        if (sort === "oldest") return submittedTime(a) - submittedTime(b);
-        if (sort === "newest") return submittedTime(b) - submittedTime(a);
-
-        const reviewDifference =
-          (a.reviewStatus === "reviewed" ? 1 : 0) -
-          (b.reviewStatus === "reviewed" ? 1 : 0);
-        return reviewDifference || submittedTime(b) - submittedTime(a);
-      });
-  }, [displayedSubmissions, search, sort, studentFilter]);
+  const filteredSubmissions = useMemo(
+    () =>
+      displayedSubmissions
+        .filter((submission) => studentFilter === "all" || submission.studentName === studentFilter)
+        // Unmarked work first, newest within each group.
+        .sort((a, b) => {
+          const reviewDifference =
+            (a.reviewStatus === "reviewed" ? 1 : 0) - (b.reviewStatus === "reviewed" ? 1 : 0);
+          return reviewDifference || submittedTime(b) - submittedTime(a);
+        }),
+    [displayedSubmissions, studentFilter],
+  );
 
   async function saveReview(
     submission: StorySubmission,
@@ -113,23 +101,6 @@ export default function TeacherSubmissionsView({
               ))}
             </select>
           </label>
-          <label>
-            Search submissions
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Story or student"
-            />
-          </label>
-          <label>
-            Sort
-            <select value={sort} onChange={(event) => setSort(event.target.value as SubmissionSort)}>
-              <option value="needs-review">Needs review first</option>
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-            </select>
-          </label>
         </div>
       </section>
 
@@ -144,8 +115,8 @@ export default function TeacherSubmissionsView({
         {reviewError && <p className="story-submission-review-error" role="alert">{reviewError}</p>}
         {filteredSubmissions.length === 0 ? (
           <div className="teacher-empty-panel">
-            <strong>No submissions match this filter</strong>
-            <p>Try a different student or search term.</p>
+            <strong>No submissions from this student yet</strong>
+            <p>Pick another student, or choose "All students".</p>
           </div>
         ) : (
           <div className="story-submission-list">

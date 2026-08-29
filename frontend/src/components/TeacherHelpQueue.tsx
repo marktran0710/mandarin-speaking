@@ -24,7 +24,7 @@ export default function TeacherHelpQueue({
           <p className="stories-kicker">Live support</p>
           <h2>Student Help Requests</h2>
         </div>
-        <span className="queue-count">{openRequests.length}</span>
+        {openRequests.length > 0 && <span className="queue-count">{openRequests.length}</span>}
       </div>
 
       {openRequests.length === 0 ? (

@@ -5,98 +5,55 @@ import {
   listStorySubmissions,
   listStudents,
   listVocabQuizAttempts,
-  listMeasurementEvents,
   type Student,
   type StorySubmission,
   type VocabQuizAttempt,
 } from "../services/database";
 import type { AudioRecord } from "./MyStoriesPage";
 import ManagementShell from "../components/management/ManagementShell";
-import Icon from "../shared/ui/Icon";
+import Icon, { type UiIconName } from "../shared/ui/Icon";
 import StoryBuilderSection from "../components/teacher/StoryBuilderSection";
 import TeacherHelpQueue from "../components/TeacherHelpQueue";
 import TeacherRecordingsView from "../components/TeacherRecordingsView";
 import TeacherSubmissionsView from "../components/TeacherSubmissionsView";
 import QuizAnalyticsPanel from "../components/QuizAnalyticsPanel";
 import RecordingAnalyticsPanel from "../components/RecordingAnalyticsPanel";
-import TeacherStarBoard from "../components/TeacherStarBoard";
+import TeacherRosterTable from "../components/teacher/TeacherRosterTable";
 import TeacherStudentProfile from "../components/TeacherStudentProfile";
-import TeacherWatchlist from "../components/TeacherWatchlist";
-import DashboardStat from "../components/DashboardStat";
 import TeacherImageBuilderPage from "./TeacherImageBuilderPage";
 import TeacherQuizReviewPage from "./TeacherQuizReviewPage";
-import MeasurementAnalyticsPanel from "../components/MeasurementAnalyticsPanel";
-import type { MeasurementEvent } from "../utils/measurement";
-import { formatRequestTime, getAverageMetric } from "../utils/myStoriesUtils";
 import { buildStudentAssessments } from "../utils/studentAssessment";
 // Legacy view internals (panels, tables, builder form) still live in the
-// shared stylesheet; the shell + overview styles are in the two new files.
+// shared stylesheet; the shell + workspace styles are in the two new files.
 import "./MyStoriesPage.css";
 import "./TeacherDashboardPage.css";
 
-/** Sub-tab definitions for the merged sidebar sections. */
-type RecordingsHelpTab = "recordings" | "help";
-type MaterialsTab = "builder" | "imageBuilder" | "quizReview";
-type AnalyticsTab = "students" | "quizTrends" | "recordingTrends" | "measurement";
-export type TeacherView = "overview" | "submissions" | "recordingsHelp" | "materials" | "analytics";
+/** The three material tools are separate full-screen workspaces, reached by
+ * drilling in from the Materials list rather than through a permanent
+ * sub-tab bar — Quiz Review already hid the page chrome whenever it opened. */
+export type MaterialsTool = "builder" | "imageBuilder" | "quizReview";
+export type TeacherView = "today" | "submissions" | "recordings" | "students" | "materials";
 
-const VIEW_COPY: Record<TeacherView, { eyebrow: string; title: string; description: string }> = {
-  overview: {
-    eyebrow: "Teacher workspace",
-    title: "Class Overview",
-    description: "A calm snapshot of what needs your attention today.",
+const MATERIALS_TOOLS: Array<{ id: MaterialsTool; icon: UiIconName; title: string; blurb: string }> = [
+  {
+    id: "builder",
+    icon: "library",
+    title: "Story Builder",
+    blurb: "Write a story, set its scenes, and publish it to students.",
   },
-  submissions: {
-    eyebrow: "Review student work",
-    title: "Story Submissions",
-    description: "Read completed story runs and give students clear next steps.",
+  {
+    id: "imageBuilder",
+    icon: "image",
+    title: "AI Image Builder",
+    blurb: "Generate and attach scene images for a story you have written.",
   },
-  recordingsHelp: {
-    eyebrow: "Listen and support",
-    title: "Recordings & Help",
-    description: "Review recordings, then respond to students who need you.",
+  {
+    id: "quizReview",
+    icon: "check",
+    title: "Quiz Review",
+    blurb: "Check generated quiz questions, then publish the approved set.",
   },
-  materials: {
-    eyebrow: "Plan the next lesson",
-    title: "Teaching Materials",
-    description: "Build stories, prepare images, and check quiz material before publishing.",
-  },
-  analytics: {
-    eyebrow: "Spot patterns early",
-    title: "Learning Insights",
-    description: "Use class trends to decide what to revisit next.",
-  },
-};
-
-function SubTabs<Tab extends string>({
-  tabs,
-  active,
-  onSelect,
-  ariaLabel,
-}: {
-  tabs: Array<{ id: Tab; label: string; count?: number }>;
-  active: Tab;
-  onSelect: (tab: Tab) => void;
-  ariaLabel: string;
-}) {
-  return (
-    <div className="tdash-subtabs" role="tablist" aria-label={ariaLabel}>
-      {tabs.map((tab) => (
-        <button
-          type="button"
-          role="tab"
-          key={tab.id}
-          aria-selected={active === tab.id}
-          className={active === tab.id ? "active" : ""}
-          onClick={() => onSelect(tab.id)}
-        >
-          {tab.label}
-          {tab.count !== undefined && tab.count > 0 && <strong>{tab.count}</strong>}
-        </button>
-      ))}
-    </div>
-  );
-}
+];
 
 export default function TeacherDashboardPage({
   records,
@@ -109,9 +66,8 @@ export default function TeacherDashboardPage({
   onRefreshRecords,
   onLogout,
   onStorySaved,
-  initialView = "overview",
-  initialRecordingsHelpTab = "recordings",
-  initialMaterialsTab = "builder",
+  initialView = "today",
+  initialMaterialsTool,
 }: {
   records: AudioRecord[];
   totalRecordCount?: number;
@@ -124,18 +80,15 @@ export default function TeacherDashboardPage({
   onLogout: () => void;
   onStorySaved?: () => void;
   initialView?: TeacherView;
-  initialRecordingsHelpTab?: RecordingsHelpTab;
-  initialMaterialsTab?: MaterialsTab;
+  initialMaterialsTool?: MaterialsTool;
 }) {
   const [activeView, setActiveView] = useState<TeacherView>(initialView);
-  const [recordingsHelpTab, setRecordingsHelpTab] = useState<RecordingsHelpTab>(initialRecordingsHelpTab);
-  const [materialsTab, setMaterialsTab] = useState<MaterialsTab>(initialMaterialsTab);
+  const [materialsTool, setMaterialsTool] = useState<MaterialsTool | null>(initialMaterialsTool ?? null);
   // A nonce (not just the lesson number) so clicking "Go to Quiz Review"
   // twice for the same lesson still re-triggers the jump on the second click.
   const [quizReviewJump, setQuizReviewJump] = useState<{ lessonNumber: number | null; nonce: number } | null>(
     null,
   );
-  const [analyticsTab, setAnalyticsTab] = useState<AnalyticsTab>("students");
   const [refreshing, setRefreshing] = useState(false);
   const [submissions, setSubmissions] = useState<StorySubmission[]>([]);
 
@@ -154,12 +107,6 @@ export default function TeacherDashboardPage({
   const [students, setStudents] = useState<Student[]>([]);
   const [studentsError, setStudentsError] = useState("");
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [measurementEvents, setMeasurementEvents] = useState<MeasurementEvent[]>([]);
-
-  useEffect(() => {
-    if (!canUseDatabase()) return;
-    listMeasurementEvents().then(setMeasurementEvents).catch(() => {});
-  }, [records.length]);
 
   const loadQuizAttempts = useCallback(async () => {
     if (!canUseDatabase()) return;
@@ -177,12 +124,12 @@ export default function TeacherDashboardPage({
     try {
       setStudents(await listStudents());
     } catch {
-      setStudentsError("Could not load the student roster for analytics.");
+      setStudentsError("Could not load the student roster.");
     }
   }, []);
 
   useEffect(() => {
-    if (activeView !== "analytics") return;
+    if (activeView !== "students") return;
     loadQuizAttempts();
     loadStudents();
   }, [activeView, loadQuizAttempts, loadStudents]);
@@ -195,35 +142,33 @@ export default function TeacherDashboardPage({
     () => buildStudentAssessments(students, quizAttempts, stableRecords, submissions),
     [students, quizAttempts, stableRecords, submissions],
   );
-  const selectedAssessment = assessments.find((assessment) => assessment.studentId === selectedStudentId) ?? null;
+  const selectedAssessment =
+    assessments.find((assessment) => assessment.studentId === selectedStudentId) ?? null;
 
-  const analyzedRecords = stableRecords.filter((record) => record.praatMetrics);
-  const feedbackReadyRecords = stableRecords.filter(
-    (record) => record.praatMetrics?.ai_feedback,
-  );
-  const averageFluency = getAverageMetric(analyzedRecords, "fluency_score");
-  const averageToneAccuracy = getAverageMetric(analyzedRecords, "tone_accuracy");
-  const openHelpRequests = helpRequests.filter(
-    (request) => request.status === "open",
-  );
-  const latestSubmissions = [...submissions]
-    .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
-    .slice(0, 5);
-  const viewCopy = VIEW_COPY[activeView];
-  const isQuizReview = activeView === "materials" && materialsTab === "quizReview";
+  const openHelpRequests = helpRequests.filter((request) => request.status === "open");
+  const pendingSubmissions = submissions.filter((submission) => submission.reviewStatus !== "reviewed");
+  // The builders and Quiz Review take over the whole workspace once opened.
+  const inMaterialsTool = activeView === "materials" && materialsTool !== null;
 
-  const openHelpQueue = () => {
-    setActiveView("recordingsHelp");
-    setRecordingsHelpTab("help");
+  const openTool = (tool: MaterialsTool) => {
+    setActiveView("materials");
+    setMaterialsTool(tool);
+  };
+
+  const selectView = (view: TeacherView) => {
+    setActiveView(view);
+    // Materials always opens on its tool list; drilling in is deliberate.
+    if (view === "materials") setMaterialsTool(null);
   };
 
   return (
-      <ManagementShell
-        role="teacher"
-        activeView={activeView}
-        onSelectView={(view) => setActiveView(view as TeacherView)}
-      submissionCount={submissions.length}
+    <ManagementShell
+      role="teacher"
+      activeView={activeView}
+      onSelectView={(view) => selectView(view as TeacherView)}
+      submissionCount={pendingSubmissions.length}
       openHelpCount={openHelpRequests.length}
+      recordingCount={totalRecordCount}
       refreshing={refreshing}
       onRefresh={
         onRefreshRecords
@@ -237,112 +182,20 @@ export default function TeacherDashboardPage({
       onLogout={onLogout}
     >
       <div className="teacher-dashboard-page tdash-workspace">
-        {!isQuizReview && <header className="tdash-view-header">
-          <div>
-            <p className="tdash-view-kicker">{viewCopy.eyebrow}</p>
-            <h1>{viewCopy.title}</h1>
-            <p className="tdash-view-description">{viewCopy.description}</p>
-          </div>
-          {activeView === "overview" && (
-            <div className="tdash-view-summary">
-              <span>Today</span>
-              <strong>{new Date().toLocaleDateString(undefined, { month: "short", day: "numeric" })}</strong>
-              <small>{openHelpRequests.length} open help request{openHelpRequests.length === 1 ? "" : "s"}</small>
-            </div>
-          )}
-        </header>}
-
-        {activeView === "overview" && (
+        {activeView === "today" && (
           <>
-            <section className="teacher-stat-grid" aria-label="Class overview">
-              <DashboardStat
-                label="Recordings"
-                value={String(totalRecordCount)}
-                note="Total saved student attempts"
-              />
-              <DashboardStat
-                label="Feedback ready"
-                value={String(feedbackReadyRecords.length)}
-                note="Gemini/Praat results available"
-              />
-              <DashboardStat
-                label="Avg. fluency"
-                value={averageFluency === null ? "--" : `${averageFluency}/100`}
-                note="Based on analyzed recordings"
-              />
-              <DashboardStat
-                label="Tone accuracy"
-                value={averageToneAccuracy === null ? "--" : `${averageToneAccuracy}%`}
-                note="Class pronunciation trend"
-              />
-            </section>
-
-            <div className="tdash-overview-grid">
-              <section className="teacher-panel tdash-overview-panel" aria-label="Latest submissions">
-                <div className="tdash-overview-panel-header">
-                  <h2><Icon name="inbox" size={18} /> Latest submissions</h2>
-                  <button type="button" onClick={() => setActiveView("submissions")}>
-                    View all →
-                  </button>
-                </div>
-                {latestSubmissions.length === 0 ? (
-                  <div className="teacher-empty-panel">
-                    <strong>No submissions yet</strong>
-                    <p>Completed story runs students send in will appear here.</p>
-                  </div>
-                ) : (
-                  <ul className="tdash-overview-list">
-                    {latestSubmissions.map((submission) => (
-                      <li key={submission.id}>
-                        <strong>{submission.studentName}</strong>
-                        <span className="tdash-overview-detail">{submission.storyTitle}</span>
-                        <span className="tdash-overview-meta">
-                          {submission.scenes.length} scene{submission.scenes.length === 1 ? "" : "s"}
-                          {" · "}
-                          {new Date(submission.submittedAt).toLocaleDateString()}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-
-              <section className="teacher-panel tdash-overview-panel" aria-label="Help queue">
-                <div className="tdash-overview-panel-header">
-                  <h2><Icon name="help" size={18} /> Help queue</h2>
-                  <button type="button" onClick={openHelpQueue}>
-                    Open →
-                  </button>
-                </div>
-                {openHelpRequests.length === 0 ? (
-                  <div className="teacher-empty-panel">
-                    <strong>No raised hands</strong>
-                    <p>Open help requests will appear here when students ask for support.</p>
-                  </div>
-                ) : (
-                  <ul className="tdash-overview-list">
-                    {openHelpRequests.map((request) => (
-                      <li key={request.id}>
-                        <strong>{request.studentName}</strong>
-                        <span className="tdash-overview-detail">{request.message}</span>
-                        <span className="tdash-overview-meta tdash-overview-wait">
-                          {formatRequestTime(request.createdAt)}
-                        </span>
-                        {onResolveHelpRequest && (
-                          <button
-                            type="button"
-                            className="tdash-resolve-btn"
-                            onClick={() => onResolveHelpRequest(request.id)}
-                          >
-                            Mark helped
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            </div>
+            <TeacherHelpQueue helpRequests={helpRequests} onResolveHelpRequest={onResolveHelpRequest} />
+            <button type="button" className="tdash-next-up" onClick={() => setActiveView("submissions")}>
+              <Icon name="inbox" size={18} />
+              <span>
+                {pendingSubmissions.length === 0
+                  ? "No work waiting to be marked"
+                  : `${pendingSubmissions.length} submission${
+                      pendingSubmissions.length === 1 ? "" : "s"
+                    } waiting to be marked`}
+              </span>
+              <em>Open submissions</em>
+            </button>
           </>
         )}
 
@@ -351,142 +204,79 @@ export default function TeacherDashboardPage({
             submissions={submissions}
             onReviewUpdate={(updated) =>
               setSubmissions((previous) =>
-                previous.map((submission) =>
-                  submission.id === updated.id ? updated : submission,
-                ),
+                previous.map((submission) => (submission.id === updated.id ? updated : submission)),
               )
             }
           />
         )}
 
-        {activeView === "recordingsHelp" && (
+        {activeView === "recordings" && (
           <>
-            <SubTabs
-              ariaLabel="Recordings and help"
-              tabs={[
-                { id: "recordings" as const, label: "Recordings", count: totalRecordCount },
-                { id: "help" as const, label: "Help requests", count: openHelpRequests.length },
-              ]}
-              active={recordingsHelpTab}
-              onSelect={setRecordingsHelpTab}
+            <TeacherRecordingsView
+              records={records}
+              hasMoreRecords={hasMoreAudioRecords}
+              onDeleteRecord={onDeleteRecord}
+              onLoadMoreRecords={onLoadMoreAudioRecords}
             />
-            {recordingsHelpTab === "recordings" ? (
-              <TeacherRecordingsView
-                records={records}
-                hasMoreRecords={hasMoreAudioRecords}
-                onDeleteRecord={onDeleteRecord}
-                onLoadMoreRecords={onLoadMoreAudioRecords}
-              />
-            ) : (
-              <TeacherHelpQueue
-                helpRequests={helpRequests}
-                onResolveHelpRequest={onResolveHelpRequest}
-              />
-            )}
+            <RecordingAnalyticsPanel records={records} />
           </>
         )}
 
-        {activeView === "materials" && (
-          <>
-            <SubTabs
-              ariaLabel="Teaching materials"
-              tabs={[
-                { id: "builder" as const, label: "Story Builder" },
-                { id: "imageBuilder" as const, label: "AI Image Builder" },
-                { id: "quizReview" as const, label: "Quiz Review" },
-              ]}
-              active={materialsTab}
-              onSelect={setMaterialsTab}
+        {activeView === "students" &&
+          (selectedAssessment ? (
+            <TeacherStudentProfile
+              assessment={selectedAssessment}
+              attempts={quizAttempts}
+              records={stableRecords}
+              onClose={() => setSelectedStudentId(null)}
             />
-            {materialsTab === "builder" && (
+          ) : (
+            <>
+              {studentsError && <p className="teacher-form-error">{studentsError}</p>}
+              <TeacherRosterTable assessments={assessments} onSelectStudent={setSelectedStudentId} />
+              <QuizAnalyticsPanel attempts={quizAttempts} loadError={quizAttemptsError} />
+            </>
+          ))}
+
+        {activeView === "materials" && !inMaterialsTool && (
+          <section className="tdash-card">
+            <div className="tdash-card-head">
+              <h2>Materials</h2>
+            </div>
+            <p className="tdash-card-note">Pick a tool. Each one opens on its own.</p>
+            <div className="tdash-tool-list">
+              {MATERIALS_TOOLS.map((tool) => (
+                <button type="button" className="tdash-tool" key={tool.id} onClick={() => openTool(tool.id)}>
+                  <Icon name={tool.icon} size={20} />
+                  <span>
+                    <strong>{tool.title}</strong>
+                    <small>{tool.blurb}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {inMaterialsTool && (
+          <>
+            <button type="button" className="tdash-back" onClick={() => setMaterialsTool(null)}>
+              Back to Materials
+            </button>
+            {materialsTool === "builder" && (
               <StoryBuilderSection
                 onStorySaved={onStorySaved}
                 onGoToQuizReview={(lessonNumber) => {
                   setQuizReviewJump({ lessonNumber, nonce: Date.now() });
-                  setMaterialsTab("quizReview");
+                  setMaterialsTool("quizReview");
                 }}
               />
             )}
-            {materialsTab === "imageBuilder" && <TeacherImageBuilderPage />}
-            {materialsTab === "quizReview" && <TeacherQuizReviewPage jumpToLesson={quizReviewJump} />}
+            {materialsTool === "imageBuilder" && <TeacherImageBuilderPage />}
+            {materialsTool === "quizReview" && <TeacherQuizReviewPage jumpToLesson={quizReviewJump} />}
           </>
         )}
-
-        {activeView === "analytics" && (
-          <>
-            <SubTabs
-              ariaLabel="Analytics"
-              tabs={[
-                { id: "students" as const, label: "Students", count: assessments.filter((assessment) => assessment.watchlistReasons.length > 0).length },
-                { id: "quizTrends" as const, label: "Quiz trends", count: quizAttempts.length },
-                { id: "recordingTrends" as const, label: "Recording trends", count: feedbackReadyRecords.length },
-                { id: "measurement" as const, label: "IRT / Measurement", count: measurementEvents.length },
-              ]}
-              active={analyticsTab}
-              onSelect={setAnalyticsTab}
-            />
-            {analyticsTab === "students" && (
-              selectedAssessment ? (
-                <TeacherStudentProfile
-                  assessment={selectedAssessment}
-                  attempts={quizAttempts}
-                  records={stableRecords}
-                  onClose={() => setSelectedStudentId(null)}
-                />
-              ) : (
-                <>
-                  {studentsError && <p className="teacher-form-error">{studentsError}</p>}
-                  <TeacherWatchlist assessments={assessments} onSelectStudent={setSelectedStudentId} />
-                  <TeacherStarBoard assessments={assessments} />
-                  <section className="teacher-panel">
-                    <div className="teacher-panel-header">
-                      <div>
-                        <p className="stories-kicker">Class roster</p>
-                        <h2>All students</h2>
-                      </div>
-                      <span className="queue-count">{assessments.length}</span>
-                    </div>
-                    {assessments.length === 0 ? (
-                      <div className="teacher-empty-panel">
-                        <strong>No students in the roster yet</strong>
-                        <p>Once students are added to the database, their assessment history will show up here.</p>
-                      </div>
-                    ) : (
-                      <div className="student-assessment-list">
-                        {assessments.map((assessment) => (
-                          <button
-                            type="button"
-                            className="student-assessment-row"
-                            key={assessment.studentId}
-                            onClick={() => setSelectedStudentId(assessment.studentId)}
-                          >
-                            <strong>{assessment.studentName}</strong>
-                            <span>
-                              {assessment.quiz.accuracyPct === null
-                                ? "No quiz attempts yet"
-                                : `${assessment.quiz.accuracyPct}% quiz accuracy`}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                </>
-              )
-            )}
-            {analyticsTab === "quizTrends" && (
-              <QuizAnalyticsPanel attempts={quizAttempts} loadError={quizAttemptsError} />
-            )}
-            {analyticsTab === "recordingTrends" && (
-              <RecordingAnalyticsPanel records={records} />
-            )}
-            {analyticsTab === "measurement" && (
-              <MeasurementAnalyticsPanel records={records} events={measurementEvents} />
-            )}
-          </>
-        )}
-
       </div>
-      </ManagementShell>
+    </ManagementShell>
   );
 }

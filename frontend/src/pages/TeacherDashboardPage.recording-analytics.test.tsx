@@ -86,8 +86,8 @@ function renderDashboard(records: AudioRecord[] = []) {
   );
 }
 
-describe("Recording Analytics tab", () => {
-  it("summarizes Praat and AI feedback scores across recordings", async () => {
+describe("Recording trends on the Recordings view", () => {
+  it("summarizes the class fluency and tone trend", async () => {
     const user = userEvent.setup();
     render(
       <TeacherDashboardPage
@@ -98,17 +98,14 @@ describe("Recording Analytics tab", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Analytics/ }));
-    await user.click(screen.getByRole("tab", { name: /Recording trends/ }));
+    await user.click(screen.getByRole("button", { name: /Recordings/ }));
 
     await screen.findByText("Fluency & tone accuracy over time");
-    expect(screen.getByText("78/100")).toBeInTheDocument();
-    expect(screen.getByText("86%")).toBeInTheDocument();
-    // (82 fluency + 76 grammar + 80 vocabulary) / 3 = 79.33 -> 79
-    expect(screen.getByText("79/100")).toBeInTheDocument();
-
-    expect(screen.getByText("AI feedback score by category")).toBeInTheDocument();
-    expect(screen.getByText("Recordings per topic")).toBeInTheDocument();
+    // Scope to the trends summary: the recording cards on the same view
+    // show their own per-recording scores.
+    const summary = screen.getByRole("region", { name: "Recording analytics overview" });
+    expect(within(summary).getByText("78/100")).toBeInTheDocument();
+    expect(within(summary).getByText("86%")).toBeInTheDocument();
   });
 
   it("shows an empty state when there are no recordings yet", async () => {
@@ -122,8 +119,7 @@ describe("Recording Analytics tab", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Analytics/ }));
-    await user.click(screen.getByRole("tab", { name: /Recording trends/ }));
+    await user.click(screen.getByRole("button", { name: /Recordings/ }));
 
     expect(await screen.findByText("No recordings yet")).toBeInTheDocument();
   });

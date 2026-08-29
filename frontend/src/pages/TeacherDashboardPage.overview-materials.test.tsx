@@ -92,22 +92,20 @@ describe("TeacherDashboardPage", () => {
     document.documentElement.removeAttribute("data-theme");
   });
 
-  it("summarizes analyzed student recordings on the overview", async () => {
+  it("opens on the help queue and reaches recording evidence in one click", async () => {
     const user = userEvent.setup();
     renderDashboard([analyzedRecord]);
 
+    // Today owns the help queue outright — there is no second copy of it.
     expect(
-      screen.getByRole("heading", { name: "Class Overview" }),
+      screen.getByRole("heading", { name: "Student Help Requests" }),
     ).toBeInTheDocument();
-    const overview = screen.getByRole("region", { name: "Class overview" });
-    expect(within(overview).getAllByText("1")).toHaveLength(2);
-    expect(within(overview).getByText("78/100")).toBeInTheDocument();
-    expect(within(overview).getByText("86%")).toBeInTheDocument();
+    expect(screen.getByText("No work waiting to be marked")).toBeInTheDocument();
     expect(
       screen.getByRole("navigation", { name: "Teacher tools" }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Recordings & Help/ }));
+    await user.click(screen.getByRole("button", { name: /Recordings/ }));
     expect(
       screen.getByText("Good pacing with a clear story sequence."),
     ).toBeInTheDocument();
@@ -129,10 +127,10 @@ describe("TeacherDashboardPage", () => {
       />,
     );
 
-    const overview = screen.getByRole("region", { name: "Class overview" });
-    expect(within(overview).getByText("125")).toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: "Teacher tools" });
+    expect(within(nav).getByText("125")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Recordings & Help/ }));
+    await user.click(screen.getByRole("button", { name: /Recordings/ }));
     await user.click(screen.getByRole("button", { name: "Load more" }));
 
     expect(loadMoreRecords).toHaveBeenCalledOnce();
@@ -172,7 +170,7 @@ describe("TeacherDashboardPage", () => {
 
     renderDashboard([partialFeedbackRecord]);
     const user2 = user;
-    await user2.click(screen.getByRole("button", { name: /Recordings & Help/ }));
+    await user2.click(screen.getByRole("button", { name: /Recordings/ }));
 
     expect(
       screen.getByText("Good pacing with a clear story sequence."),
@@ -185,6 +183,7 @@ describe("TeacherDashboardPage", () => {
     renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Taipei Rain Rescue");
     const imageInputs = screen.getAllByLabelText("Image URL or uploaded file");
@@ -213,6 +212,7 @@ describe("TeacherDashboardPage", () => {
     renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Restaurant Story");
     const imageInputs = screen.getAllByLabelText("Image URL or uploaded file");
@@ -255,6 +255,7 @@ describe("TeacherDashboardPage", () => {
     renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
 
     // Teacher already typed one word in by hand, with its own translation —
     // autofill must fill the blank pinyin cell but leave "diner" untouched.
@@ -285,6 +286,7 @@ describe("TeacherDashboardPage", () => {
     renderDashboard();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
 
     expect(
@@ -304,6 +306,7 @@ describe("TeacherDashboardPage", () => {
     renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.type(
       screen.getAllByLabelText("Script")[0],
       "我想要在餐廳吃飯。",
@@ -334,6 +337,7 @@ describe("TeacherDashboardPage", () => {
     renderDashboard();
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
 
     expect(
@@ -346,6 +350,7 @@ describe("TeacherDashboardPage", () => {
     renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Original Story");
     for (const [index, input] of screen
@@ -373,6 +378,7 @@ describe("TeacherDashboardPage", () => {
     const { unmount } = renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Published MRT Help");
     for (const [index, input] of screen
@@ -403,6 +409,7 @@ describe("TeacherDashboardPage", () => {
     renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
 
@@ -420,6 +427,7 @@ describe("TeacherDashboardPage", () => {
     renderDashboard();
 
     await user.click(screen.getByRole("button", { name: /Materials/ }));
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     const imageFile = new File(["story-image"], "story-frame.png", {
       type: "image/png",
     });
