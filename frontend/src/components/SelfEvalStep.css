@@ -115,7 +115,14 @@
 .sfc-results:has(.self-eval-step) > .practice-workspace {
   grid-template-columns: minmax(280px, 0.86fr) minmax(0, 1.14fr);
   gap: 0;
-  align-items: start;
+  /* A CSS grid row is always as tall as its tallest cell — no align-items
+     value changes that. The scene image + audio-compare + feedback button
+     on the left commonly run taller than the two emoji questions on the
+     right, so top-aligning the right column (the old "start") dumped all
+     of that leftover height as one dead gap right above the footer.
+     Centering it instead spreads the same leftover space above and below,
+     which reads as an intentional, balanced layout rather than a bug. */
+  align-items: center;
   padding: 0;
 }
 
@@ -130,7 +137,13 @@
 .sfc-results:has(.self-eval-step) .practice-scene-image {
   aspect-ratio: 4 / 3;
   min-height: 0;
-  max-height: none;
+  /* Verified live with the actual DOM (headless render + getBoundingClientRect):
+     the shared max-height: 390px rule in 08-insights-responsive.css already
+     wins here (5-class selector beats this 3-class one) and caps this image
+     regardless of aspect-ratio — a normal landscape scene photo then makes
+     this column shorter than the two emoji questions beside it, so
+     align-items: center above has little to balance. A worst-case portrait
+     image is still bounded by that 390px cap, not left free to balloon. */
   border-radius: 18px;
   background: var(--clay-surface-card);
   box-shadow: 0 10px 24px color-mix(in srgb, var(--clay-ink) 9%, transparent);
@@ -140,8 +153,14 @@
   object-fit: cover;
 }
 
-.sfc-results:has(.self-eval-step) .sfc-results-main {
+.sfc-results.sfc-screen:has(.self-eval-step) .sfc-results-main {
   min-width: 0;
+  /* The results screen's shared min-height: 360px (keeps its own tabs from
+     visually collapsing) doesn't apply here — this checkpoint's content is
+     intentionally shorter, and that floor was leaving a dead gap between
+     "跳過 Skip" and the footer below it. One extra class over the shared
+     rule so this wins on specificity, not import order. */
+  min-height: 0;
   height: auto;
   padding: 22px 24px 24px;
   gap: 18px;
@@ -321,7 +340,22 @@
 }
 
 .sfc-results:has(.self-eval-step) > .sfc-footer {
-  margin-top: 0;
+  /* Was margin-top: 0 — with .self-eval-step's own bottom padding also 0,
+     the "跳過 Skip" button sat right against this footer's top border with
+     no breathing room at all. */
+  margin-top: 16px;
+  /* The shared `.sfc-results .sfc-footer` rule (04-feedback.css) pulls the
+     footer out by -clamp(16px, 2.2vw, 24px) on left/right/bottom, so it can
+     span edge-to-edge past the normal result card's matching padding. This
+     variant sets `padding: 0` on the card (see above), so there is no
+     padding left to cancel — those negative margins instead pushed the
+     footer 24px OUTSIDE the card on three sides, where the card's
+     `overflow: hidden` clipped it: the green "下一個部分" button ran past
+     the right border and both action buttons were cut off along the bottom.
+     Zero them here so the footer stays inside the card it belongs to. */
+  margin-right: 0;
+  margin-bottom: 0;
+  margin-left: 0;
   padding: 16px 24px;
   border-top: 1px solid var(--clay-hairline);
   background: var(--clay-surface-card);

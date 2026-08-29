@@ -88,6 +88,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
   it("does not offer the weak-words card without a storyId, or when there are no persisted weak words", async () => {
     vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue([]);
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="story-1" studentId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     await waitFor(() => expect(database.getVocabQuizWeakWords).toHaveBeenCalled());
     expect(screen.queryByRole("button", { name: /Weak words/ })).not.toBeInTheDocument();
@@ -109,6 +110,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
         alreadyCompleted
       />,
     );
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     const weakWordsButton = await screen.findByRole("button", { name: /Weak words \(2\)/ });
     expect(

@@ -93,6 +93,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
         storyId="s1"
       />,
     );
+    await screen.findByRole("group", { name: "Quiz mode" });
     await user.click(screen.getByRole("button", { name: /Tier 2/ }));
 
     const options = optionButtons().map((b) => b.textContent);
@@ -114,6 +115,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
         onDone={vi.fn()}
       />,
     );
+    await screen.findByRole("group", { name: "Quiz mode" });
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
 
     const options = optionButtons().map((b) => b.textContent);
@@ -148,6 +150,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
           storyId="s1"
         />,
       );
+    await screen.findByRole("group", { name: "Quiz mode" });
       await user.click(screen.getByRole("button", { name: /Tier 2/ }));
 
       const options = optionButtons().map((b) => b.textContent);
@@ -179,6 +182,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
         storyId="s1"
       />,
     );
+    await screen.findByRole("group", { name: "Quiz mode" });
     await user.click(screen.getByRole("button", { name: /Tier 2/ }));
 
     // Whichever word the blank asks for, the other "happy" word would fit
@@ -198,6 +202,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
         storyId="s1"
       />,
     );
+    await screen.findByRole("group", { name: "Quiz mode" });
     await user.click(screen.getByRole("button", { name: /Tier 2/ }));
 
     const group = screen.getByRole("group", { name: /How do you read/ });

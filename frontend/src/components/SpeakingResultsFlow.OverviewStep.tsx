@@ -32,8 +32,6 @@ export default function SpeakingResultsOverviewStep({
   assistiveFeedback,
   analysisVersion,
   comparison,
-  vocabTotal,
-  usedCount,
   hasFix,
   hasPractice,
   hasPhrasePractice,
@@ -134,8 +132,6 @@ export default function SpeakingResultsOverviewStep({
           </div>
         </section>
       )}
-
-      {vocabTotal > 0 && <p className="sfc-stats-line"><span>📝 <BiLabel zh={`生詞 ${usedCount}/${vocabTotal}`} en={`Vocabulary ${usedCount}/${vocabTotal}`} /></span></p>}
 
       {verdict === "meaning" && hasFix && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("fix")}><BiLabel zh="看怎麼改" en="See how to fix it" /> →</AppButton>}
       {verdict === "vocab" && hasFix && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("fix")}><BiLabel zh="看少了的生詞" en="See the missing words" /> →</AppButton>}

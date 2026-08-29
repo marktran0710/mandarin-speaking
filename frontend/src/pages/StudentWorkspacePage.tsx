@@ -30,6 +30,9 @@ export interface StudentWorkspacePageProps {
   onSessionActiveChange: (active: boolean) => void;
   isInPracticeSession: boolean;
   onStartActivity?: (topicId: string, startAtQuiz: boolean) => void;
+  /** Signs the student out from the workspace's own left rail — the rail
+   * replaced the top navbar that used to carry this action. */
+  onLogout: () => void;
 }
 
 const WORKSPACE_VIEWS: Array<{

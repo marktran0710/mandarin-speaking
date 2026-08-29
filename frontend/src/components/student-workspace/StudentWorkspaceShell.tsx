@@ -4,8 +4,7 @@ import MyStoriesPage from "../../pages/MyStoriesPage";
 import { getStudentName } from "../../utils/studentSession";
 import type { StudentWorkspacePageProps } from "../../pages/StudentWorkspacePage";
 import type { StudentWorkspaceView } from "../../pages/StudentWorkspacePage";
-import StudentWorkspaceHeader from "./StudentWorkspaceHeader";
-import WorkspaceAreaTabs from "./WorkspaceAreaTabs";
+import StudentSidebar from "./StudentSidebar";
 import "../../components/BiLabel.css";
 import "../../pages/StudentWorkspacePage.css";
 import "./StudentWorkspaceV2.css";
@@ -30,6 +29,7 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     audioRecords,
     onSessionActiveChange,
     isInPracticeSession,
+    onLogout,
   } = props;
   const [practiceStarted, setPracticeStarted] = useState(isInPracticeSession);
 
@@ -70,18 +70,27 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     );
   };
 
+  const activeLabel = WORKSPACE_VIEWS.find((item) => item.id === view)?.label;
+
   return (
     <main className={`student-workspace student-workspace-v2 ${practiceStarted ? "is-practicing" : ""}`}>
-      {!practiceStarted && <StudentWorkspaceHeader username={getStudentName()} />}
+      {/* The rail stands down during a practice session: StoryRecorder brings
+          its own left rail, and two of them side by side is exactly the
+          stacked-navigation problem this shell was redesigned to remove. */}
       {!practiceStarted && (
-        <WorkspaceAreaTabs views={WORKSPACE_VIEWS} activeView={view} onChange={selectView} />
+        <StudentSidebar
+          views={WORKSPACE_VIEWS}
+          activeView={view}
+          onChange={selectView}
+          studentName={getStudentName()}
+          onLogout={onLogout}
+        />
       )}
       <section
         id="student-workspace-panel"
         className="student-workspace-content student-workspace-content-v2"
-        role="tabpanel"
         tabIndex={-1}
-        aria-labelledby={`student-workspace-tab-${view}`}
+        aria-label={activeLabel ? `${activeLabel.zh} ${activeLabel.en}` : undefined}
         aria-live="polite"
       >
         {renderView()}

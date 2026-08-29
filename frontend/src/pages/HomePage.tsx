@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import "./HomePage.css";
 import { Page } from "../types/page";
 import { BiLabel, BiText } from "../components/BiLabel";
@@ -80,6 +80,13 @@ const HOW_IT_WORKS: Array<{
 ];
 
 export default function HomePage({ onNavigate }: HomePageProps) {
+  // Each hero photo fetches independently; without this the entrance
+  // animation below fires on a fixed clock and photos can pop in one by
+  // one well after their frame has already animated onto the page.
+  const [loadedScenes, setLoadedScenes] = useState<Set<string>>(() => new Set());
+  const markSceneLoaded = (className: string) =>
+    setLoadedScenes((prev) => (prev.has(className) ? prev : new Set(prev).add(className)));
+
   return (
     <div className="home-page">
       <section className="home-hero" aria-labelledby="home-hero-title">
@@ -146,7 +153,8 @@ export default function HomePage({ onNavigate }: HomePageProps) {
                   key={className}
                   src={`/sample-scenes/${file}`}
                   alt=""
-                  className={`story-preview-image ${className}`}
+                  className={`story-preview-image ${className}${loadedScenes.has(className) ? " is-loaded" : ""}`}
+                  onLoad={() => markSceneLoaded(className)}
                 />
               ))}
             </div>

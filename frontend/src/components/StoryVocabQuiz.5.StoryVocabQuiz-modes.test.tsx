@@ -93,8 +93,9 @@ describe("StoryVocabQuiz modes", () => {
     await user.click(target!);
   }
 
-  it("shows the star-ladder screen before any question, offering the three tiers + review", () => {
+  it("shows the star-ladder screen before any question, offering the three tiers + review", async () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     expect(screen.getByRole("button", { name: /Tier 1/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Tier 2/ })).toBeInTheDocument();
@@ -108,6 +109,7 @@ describe("StoryVocabQuiz modes", () => {
     const user = userEvent.setup();
 
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+    await screen.findByRole("group", { name: "Quiz mode" });
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
     expect(screen.queryByRole("button", { name: /Finish & see results/ })).not.toBeInTheDocument();
   });
@@ -115,6 +117,7 @@ describe("StoryVocabQuiz modes", () => {
   it("Review mode shows every word's pinyin and translation, and never starts a quiz", async () => {
     const user = userEvent.setup();
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     await user.click(screen.getByRole("button", { name: /Review/ }));
 
@@ -134,10 +137,12 @@ describe("StoryVocabQuiz modes", () => {
     const { recordLocalStars } = await import("../utils/quizTiers");
     localStorage.clear();
     recordLocalStars("s-timer", 2);
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-timer" />);
+    // Settle the initial data-load gate on real timers first — testing-
+    // library's polling can't progress once fake timers replace setTimeout.
+    await screen.findByRole("group", { name: "Quiz mode" });
     vi.useFakeTimers();
     try {
-      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-timer" />);
-
       fireEvent.click(screen.getByRole("button", { name: /Tier 3/ }));
       expect(screen.getByText("⏱️ 150s")).toBeInTheDocument();
 
@@ -154,6 +159,7 @@ describe("StoryVocabQuiz modes", () => {
   it("untimed tiers show no countdown", async () => {
     const user = userEvent.setup();
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
 
@@ -167,6 +173,7 @@ describe("StoryVocabQuiz modes", () => {
     render(
       <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} alreadyCompleted />,
     );
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
 

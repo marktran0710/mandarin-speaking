@@ -428,4 +428,54 @@
   text-align: center;
 }
 
+/* Shown while StoryRecorderRuntime waits for the student's saved progress and
+   recordings to load, so the sidebar/journey badges and workspace appear
+   fully populated at once instead of popping in piece by piece. */
+.story-recorder-loading {
+  /* .story-recorder is a 240px-sidebar + main grid; as the shell's only
+     child this must span both tracks or it lands in the narrow sidebar
+     column instead of centering across the page. */
+  grid-column: 1 / -1;
+  min-height: 60vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.story-recorder-loading-card {
+  max-width: 420px;
+  text-align: center;
+  padding: var(--space-2xl) var(--space-lg);
+  background: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.story-recorder-loading-icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto var(--space-md);
+  border: 3px solid var(--clay-hairline);
+  border-top-color: var(--seal);
+  border-radius: 50%;
+  animation: story-recorder-loading-spin 0.8s linear infinite;
+}
+
+.story-recorder-loading-card h2 {
+  color: var(--clay-ink);
+  font-size: 18px;
+  margin: 0;
+}
+
+@keyframes story-recorder-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-recorder-loading-icon {
+    animation: none;
+  }
+}
+
 

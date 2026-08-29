@@ -369,6 +369,53 @@ h2 {
   border: 1px solid var(--clay-hairline);
 }
 
+/* Shared "waiting on the backend" gate — one card, one spinner, reused by
+   any student-facing screen that must not paint piecemeal while its data is
+   still loading (App.tsx's student routes; StoryRecorderRuntime has its own
+   copy of this same pattern under .story-recorder-loading*). */
+.app-loading {
+  min-height: 60vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-2xl) var(--space-lg);
+}
+
+.app-loading-card {
+  max-width: 420px;
+  text-align: center;
+  padding: var(--space-2xl) var(--space-lg);
+  background: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-loading-icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto var(--space-md);
+  border: 3px solid var(--clay-hairline);
+  border-top-color: var(--seal);
+  border-radius: 50%;
+  animation: app-loading-spin 0.8s linear infinite;
+}
+
+.app-loading-card h2 {
+  color: var(--clay-ink);
+  font-size: 18px;
+  margin: 0;
+}
+
+@keyframes app-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-loading-icon {
+    animation: none;
+  }
+}
+
 .btn-mini-secondary:hover {
   border-color: var(--seal);
 }

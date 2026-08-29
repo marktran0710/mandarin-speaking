@@ -46,6 +46,11 @@
     "zh": "正在載入活動…",
     "pinyin": "Zhèngzài zàirù huódòng…"
   },
+  "loading_your_progress": {
+    "en": "Loading your progress…",
+    "zh": "正在載入你的進度…",
+    "pinyin": "Zhèngzài zàirù nǐ de jìndù…"
+  },
   "log_out": {
     "en": "Log out",
     "zh": "離開",

@@ -84,6 +84,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     render(
       <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} alreadyCompleted />,
     );
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
 
@@ -126,6 +127,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
   it("never offers a skip button, in any mode, on the mode-select screen or mid-quiz", async () => {
     const user = userEvent.setup();
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onBack={vi.fn()} />);
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
 
@@ -142,6 +144,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     render(
       <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} onBack={onBack} />,
     );
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     await user.click(screen.getByRole("button", { name: /Back to activities/ }));
 

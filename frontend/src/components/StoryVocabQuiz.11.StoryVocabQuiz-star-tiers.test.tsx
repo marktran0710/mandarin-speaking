@@ -36,6 +36,13 @@ const FORCE_LAST_AVAILABLE_KIND = 0.999;
 
 beforeEach(() => {
   vi.spyOn(Math, "random").mockReturnValue(FORCE_TRANSLATION);
+  // The component now actually awaits listVocabQuizAttempts on every mount
+  // (previously it fired the call but didn't block on it, so a
+  // mockResolvedValueOnce a test queued and never triggered could sit
+  // unconsumed and leak into a later test's mount). Reset to this file's
+  // plain default before each test so a earlier test's queued one-time
+  // reply can't bleed into the next.
+  vi.mocked(database.listVocabQuizAttempts).mockReset().mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -95,8 +102,9 @@ describe("StoryVocabQuiz star tiers", () => {
     }
   }
 
-  it("locks tiers 2 and 3 until the previous star is earned, keeping Review available", () => {
+  it("locks tiers 2 and 3 until the previous star is earned, keeping Review available", async () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     expect(screen.getByRole("button", { name: /Tier 1/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: /Tier 2/ })).toBeDisabled();
@@ -108,6 +116,7 @@ describe("StoryVocabQuiz star tiers", () => {
     const { recordLocalStars } = await import("../utils/quizTiers");
     recordLocalStars("s1", 1);
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     expect(screen.getByRole("button", { name: /Tier 2/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: /Tier 3/ })).toBeDisabled();
@@ -121,6 +130,7 @@ describe("StoryVocabQuiz star tiers", () => {
     ] as any);
 
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     const { loadLocalStars } = await import("../utils/quizTiers");
     await waitFor(() => expect(loadLocalStars("s1")).toBe(3));
@@ -134,6 +144,7 @@ describe("StoryVocabQuiz star tiers", () => {
     render(
       <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} storyId="s1" />,
     );
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
     expect(screen.getByText(/Question 1 of 5/)).toBeInTheDocument();
@@ -174,6 +185,7 @@ describe("StoryVocabQuiz star tiers", () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} storyId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
     await playTierRun(user, 5, 3);
@@ -196,6 +208,7 @@ describe("StoryVocabQuiz star tiers", () => {
     render(
       <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" alreadyCompleted />,
     );
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
     await playTierRun(user, 5, 0);
@@ -206,11 +219,14 @@ describe("StoryVocabQuiz star tiers", () => {
   it("tier 3 runs against a 150-second overall countdown and ends at the cap", async () => {
     const { recordLocalStars } = await import("../utils/quizTiers");
     recordLocalStars("s1", 2);
+    const onComplete = vi.fn();
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} storyId="s1" />);
+    // Settle the initial data-load gate on real timers — testing-library's
+    // polling can't progress once fake timers replace setTimeout, so fake
+    // timers must not switch on until after this resolves.
+    await screen.findByRole("group", { name: "Quiz mode" });
     vi.useFakeTimers();
     try {
-      const onComplete = vi.fn();
-      render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} storyId="s1" />);
-
       fireEvent.click(screen.getByRole("button", { name: /Tier 3/ }));
       expect(screen.getByText("⏱️ 150s")).toBeInTheDocument();
 
@@ -233,6 +249,7 @@ describe("StoryVocabQuiz star tiers", () => {
     }));
 
     const { unmount } = render(<StoryVocabQuiz entries={aiEntries} onDone={vi.fn()} storyId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
     for (const button of optionButtons()) {
       expect(button.textContent).not.toMatch(/ai-trap/);
@@ -241,6 +258,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
     recordLocalStars("s1", 1);
     render(<StoryVocabQuiz entries={aiEntries} onDone={vi.fn()} storyId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
     await user.click(screen.getByRole("button", { name: /Tier 2/ }));
     expect(optionButtons().some((b) => /ai-trap/.test(b.textContent ?? ""))).toBe(true);
   });
@@ -258,6 +276,7 @@ describe("StoryVocabQuiz star tiers", () => {
         storyId="s1"
       />,
     );
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     await user.click(screen.getByRole("button", { name: /Tier 2/ }));
     const options = optionButtons().map((b) => b.textContent);
@@ -297,6 +316,7 @@ describe("StoryVocabQuiz star tiers", () => {
           storyId="s1"
         />,
       );
+    await screen.findByRole("group", { name: "Quiz mode" });
 
       await user.click(screen.getByRole("button", { name: /Tier 2/ }));
       // The planner keeps future Chinese-word answers out of earlier
@@ -324,6 +344,7 @@ describe("StoryVocabQuiz star tiers", () => {
     vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
     const user = userEvent.setup();
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
     const firstWord = screen.getByRole("heading").textContent!;

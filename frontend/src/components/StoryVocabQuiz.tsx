@@ -1,4 +1,5 @@
 import "./StoryVocabQuiz.css";
+import { BiLabel } from "./BiLabel";
 import { ModeSelectScreen, ReviewScreen, SummaryScreen } from "./story-vocab-quiz/QuizScreens";
 import { QuizQuestion } from "./story-vocab-quiz/QuizQuestion";
 import { useQuizSession } from "./story-vocab-quiz/useQuizSession";
@@ -14,7 +15,17 @@ export default function StoryVocabQuiz({ entries, onDone, onBack, onComplete, st
   level?: "easy" | "medium" | "hard"; studentId?: string; studentName?: string; alreadyCompleted?: boolean;
 }) {
   const session = useQuizSession({ entries, storyId, baseStoryId, level, studentId, studentName, onComplete });
-  if (session.screen === "mode-select") return <ModeSelectScreen stars={session.stars} weakEntries={session.weakEntries} alreadyCompleted={alreadyCompleted} onBack={onBack} startTier={session.startTier} chooseWeakWords={() => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.weakEntries, session.weakEntries.length); }} showReview={() => session.setScreen("review")} />;
+  if (!session.sessionReady) {
+    return (
+      <div className="app-loading">
+        <div className="app-loading-card">
+          <div className="app-loading-icon" aria-hidden="true" />
+          <h2><BiLabel k="loading_your_progress" /></h2>
+        </div>
+      </div>
+    );
+  }
+  if (session.screen === "mode-select") return <ModeSelectScreen stars={session.stars} weakEntries={session.weakEntries} level={level} alreadyCompleted={alreadyCompleted} onBack={onBack} startTier={session.startTier} chooseWeakWords={() => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.weakEntries, session.weakEntries.length); }} showReview={() => session.setScreen("review")} />;
   if (session.screen === "review") return <ReviewScreen entries={entries} back={() => session.setScreen("mode-select")} />;
   if (session.screen === "summary") return <SummaryScreen mode={session.mode} results={session.results} missedWords={session.missedWords} missedEntries={session.missedEntries} isRetryRound={session.isRetryRound} stars={session.stars} onDone={onDone} startTier={session.startTier} practiceMissedWords={session.practiceMissedWords} backToModes={() => session.setScreen("mode-select")} />;
   if (!session.question) return null;

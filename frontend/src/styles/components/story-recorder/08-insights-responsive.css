@@ -802,9 +802,16 @@
 .practice-workspace-study .practice-scene-image,
 .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image {
   box-sizing: border-box;
-  aspect-ratio: 6 / 5;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  height: auto;
+  aspect-ratio: auto;
   min-height: 0;
-  max-height: min(680px, calc(100vh - 220px));
+  max-height: none;
   border: 0;
   border-radius: 14px;
   background: transparent;
@@ -814,7 +821,11 @@
 }
 
 .practice-workspace-study .practice-scene-image img {
-  object-fit: cover;
+  width: auto;
+  max-width: min(100%, 860px);
+  height: auto;
+  max-height: min(520px, calc(100vh - 260px));
+  object-fit: contain;
   object-position: center;
   transform: none;
   transition: none;
@@ -829,8 +840,78 @@
 
   .practice-workspace-study .practice-scene-image,
   .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image {
-    aspect-ratio: 4 / 3;
+    height: auto;
+    aspect-ratio: auto;
     max-height: none;
     border-radius: 12px;
+  }
+
+  .practice-workspace-study .practice-scene-image img {
+    max-width: 100%;
+    max-height: none;
+  }
+}
+
+/* Results-screen layout. This used to force the whole card to a
+   viewport-relative height (a clamp() of 100dvh, with overflow: hidden),
+   meant to stop the card resizing when a student switched between the
+   Meaning/Fix/Practice tabs. In practice that height fought the flex
+   children across viewport sizes and repeatedly clipped content — first
+   the "發音分析" button, then the footer's own action buttons — because
+   any small miscalculation had nowhere to go but hidden.
+   Simpler and sturdier: nothing here caps the card's total height. It
+   takes whatever height its content actually needs, and if that's taller
+   than the viewport the *page* scrolls — the one overflow behavior every
+   browser already gets right, instead of three nested scroll regions
+   computed from dvh guessing at each other's size. The scene image gets a
+   fixed, sane cap (390px, the same budget the Study step already uses —
+   one number instead of a different one per screen) so it can never balloon
+   large enough to push anything below it out of reach. */
+.sfc-results.sfc-screen > .practice-workspace {
+  align-items: stretch;
+}
+
+.sfc-results.sfc-screen > .practice-workspace > .practice-scene-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sfc-results.sfc-screen > .practice-workspace > .practice-scene-col > .practice-scene-image {
+  flex: 0 0 auto;
+  max-height: 390px;
+}
+
+.sfc-results.sfc-screen > .practice-workspace > .practice-scene-col > .practice-scene-image img {
+  max-height: 390px;
+}
+
+.sfc-results.sfc-screen .sfc-audio-compare,
+.sfc-results.sfc-screen .sfc-left-feedback {
+  flex: 0 0 auto;
+}
+
+/* A min-height (not a hard cap) keeps the right-hand panel from visibly
+   collapsing when a short tab (e.g. Fix) follows a long one (e.g. Meaning)
+   — it can still grow past this for genuinely long feedback, it just
+   won't shrink below a comfortable size. */
+.sfc-results.sfc-screen .sfc-results-main {
+  min-height: 360px;
+}
+
+@media (max-width: 860px) {
+  .sfc-results.sfc-screen > .practice-workspace {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sfc-results.sfc-screen .sfc-results-main {
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sfc-results.sfc-screen {
+    animation: none;
   }
 }

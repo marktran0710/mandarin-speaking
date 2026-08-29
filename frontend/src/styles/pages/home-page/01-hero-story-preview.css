@@ -235,6 +235,14 @@
   box-shadow: 0 6px 16px color-mix(in srgb, var(--clay-ink) 12%, transparent);
   transition: transform 180ms ease, box-shadow 180ms ease;
   animation: previewCardIn 520ms cubic-bezier(0.22, 0.75, 0.2, 1) both;
+  /* Held at the animation's 0% frame (opacity: 0) until the photo has
+     actually downloaded, so the stagger below plays against real image
+     readiness instead of a fixed clock that outruns a slow network. */
+  animation-play-state: paused;
+}
+
+.story-preview-image.is-loaded {
+  animation-play-state: running;
 }
 
 @keyframes previewCardIn {

@@ -72,8 +72,19 @@ export function useQuizSession({
   const finishedRef = useRef(false);
   const [stars, setStars] = useState<0 | QuizTier>(() => storyId ? loadLocalStars(storyId) : 0);
 
+  // starsReady/weakWordsReady: the mode-select screen used to mount
+  // immediately with stars=0 and no "弱項複習 Weak words" card, then have
+  // both pop in late once these two fetches resolved — exactly the
+  // piecemeal-loading pattern flagged elsewhere in this app. sessionReady
+  // below lets the screen wait for both to settle before it ever paints,
+  // the same "load fully, then show" discipline used by App.tsx and
+  // StoryRecorderRuntime.
+  const [starsReady, setStarsReady] = useState(false);
   useEffect(() => {
-    if (!storyId || !canUseDatabase()) return;
+    if (!storyId || !canUseDatabase()) {
+      setStarsReady(true);
+      return;
+    }
     let cancelled = false;
     listVocabQuizAttempts(storyId, { studentId, studentName })
       .then((attempts) => {
@@ -86,19 +97,27 @@ export function useQuizSession({
           setStars((current) => derived > current ? derived : current);
         }
       })
-      .catch(() => { /* localStorage stars still apply */ });
+      .catch(() => { /* localStorage stars still apply */ })
+      .finally(() => { if (!cancelled) setStarsReady(true); });
     return () => { cancelled = true; };
   }, [storyId, studentId, studentName]);
 
   const [weakWords, setWeakWords] = useState<string[]>([]);
+  const [weakWordsReady, setWeakWordsReady] = useState(false);
   useEffect(() => {
-    if (!storyId || !canUseDatabase()) return;
+    if (!storyId || !canUseDatabase()) {
+      setWeakWordsReady(true);
+      return;
+    }
     let cancelled = false;
     getVocabQuizWeakWords(storyId, { studentId, studentName })
       .then((words) => { if (!cancelled) setWeakWords(words); })
-      .catch(() => { /* the weak-words card stays hidden */ });
+      .catch(() => { /* the weak-words card stays hidden */ })
+      .finally(() => { if (!cancelled) setWeakWordsReady(true); });
     return () => { cancelled = true; };
   }, [storyId, studentId, studentName]);
+
+  const sessionReady = starsReady && weakWordsReady;
 
   const question = questions[index];
   const isLast = questionLimit !== null && index === questionLimit - 1;
@@ -187,6 +206,6 @@ export function useQuizSession({
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
     question, index, selected, results, timeLeftMs, stars, weakEntries, missedWords,
     missedEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
-    speakWord, chooseMode, startTier, practiceMissedWords,
+    speakWord, chooseMode, startTier, practiceMissedWords, sessionReady,
   };
 }

@@ -9,6 +9,7 @@ import StudentWorkspacePage, {
 import ErrorBoundary from "./components/ErrorBoundary";
 
 import StudentLoginPage from "./pages/StudentLoginPage";
+import { BiLabel } from "./components/BiLabel";
 import Navigation from "./components/Navigation";
 import AppJourneyBubble from "./components/AppJourneyBubble";
 import {
@@ -68,6 +69,15 @@ export default function App() {
   const [isInPracticeSession, setIsInPracticeSession] = useState(false);
   const [audioRecords, setAudioRecords] = useState<AudioRecord[]>([]);
   const [helpRequests, setHelpRequests] = useState<HelpRequest[]>([]);
+  // Each of the student workspace's three initial fetches (audio records,
+  // published topics, help requests) used to paint its own screen the
+  // instant it resolved, so the workspace could visibly assemble itself
+  // piece by piece on a slow connection. Gate the student routes behind all
+  // three settling once, so they mount already fully populated.
+  const [audioRecordsReady, setAudioRecordsReady] = useState(false);
+  const [publishedTopicsReady, setPublishedTopicsReady] = useState(false);
+  const [helpRequestsReady, setHelpRequestsReady] = useState(false);
+  const studentDataReady = audioRecordsReady && publishedTopicsReady && helpRequestsReady;
   const [practiceTarget, setPracticeTarget] = useState<PracticeTarget | null>(
     bootstrapState.practiceTarget,
   );
@@ -131,7 +141,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    loadSavedAudioRecords();
+    loadSavedAudioRecords().finally(() => setAudioRecordsReady(true));
   }, []);
 
   // Remembers the section a student is on so a reload (or reopening the
@@ -173,7 +183,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    refreshPublishedTopics();
+    refreshPublishedTopics().finally(() => setPublishedTopicsReady(true));
   }, []);
 
   // `publishedTopics` otherwise only loads once per page load, so a script a
@@ -210,7 +220,7 @@ export default function App() {
       setHelpRequests(loadLocalHelpRequests());
     };
 
-    loadSavedHelpRequests();
+    loadSavedHelpRequests().finally(() => setHelpRequestsReady(true));
 
     if (!canUseDatabase()) {
       return;
@@ -335,12 +345,22 @@ export default function App() {
   // One bubble across every logged-in student page (it mounts here, not
   // per-page) — hidden only while a practice session is active, where its
   // "jump into your current story" call-to-action would point at the
-  // place the student already is.
+  // place the student already is. This used to also require
+  // currentPage === "student-practice", which was the only route that ever
+  // set isInPracticeSession back when this was written. The default
+  // student workspace shell now runs practice sessions from inside
+  // currentPage === "student-workspace" instead, so that extra check never
+  // matched there — the bubble (position: fixed, bottom-right) stayed
+  // visible through an entire recording, including the results/self-eval
+  // screen, where it could sit on top of the "Record again"/"Next scene"
+  // buttons in that same corner. isInPracticeSession alone is what the
+  // comment above already describes; check only that.
   const showJourneyBubble =
     activeRole === "student" &&
+    studentDataReady &&
     currentPage !== "home" &&
     currentPage !== "student-login" &&
-    !(currentPage === "student-practice" && isInPracticeSession);
+    !isInPracticeSession;
 
   const handleRaiseHand = (message: string) => {
     const studentName = getStudentName();
@@ -381,25 +401,49 @@ export default function App() {
           : ""
       }`}
     >
-      <Navigation
-        currentPage={currentPage}
-        activeRole={activeRole}
-        onNavigate={(page) => {
-          if (page === "student-workspace") {
-            setStudentWorkspaceView("practice");
-          }
-          setCurrentPage(page);
-        }}
-        onLogout={handleLogout}
-        compact={activeRole === "student" && isInPracticeSession}
-      />
+      {/* The student workspace carries its own left rail (StudentSidebar),
+          which already holds the section switch, identity, dark mode and
+          log out — rendering this top bar as well would put those same
+          actions on screen twice. During a practice session the rail stands
+          down, so this bar comes back (compact) as the only chrome. */}
+      {!(
+        activeRole === "student" &&
+        currentPage === "student-workspace" &&
+        !isInPracticeSession
+      ) && (
+        <Navigation
+          currentPage={currentPage}
+          activeRole={activeRole}
+          onNavigate={(page) => {
+            if (page === "student-workspace") {
+              setStudentWorkspaceView("practice");
+            }
+            setCurrentPage(page);
+          }}
+          onLogout={handleLogout}
+          compact={activeRole === "student" && isInPracticeSession}
+        />
+      )}
       {currentPage === "home" && <HomePage onNavigate={setCurrentPage} />}
       {currentPage === "student-login" && (
         <StudentLoginPage
           onLogin={handleLogin}
         />
       )}
-      {currentPage === "student-workspace" && activeRole === "student" && (
+      {activeRole === "student" &&
+        !studentDataReady &&
+        (currentPage === "student-workspace" ||
+          currentPage === "student-practice" ||
+          currentPage === "student-stories" ||
+          currentPage === "voice-test") && (
+          <div className="app-loading">
+            <div className="app-loading-card">
+              <div className="app-loading-icon" aria-hidden="true" />
+              <h2><BiLabel k="loading_your_progress" /></h2>
+            </div>
+          </div>
+        )}
+      {currentPage === "student-workspace" && activeRole === "student" && studentDataReady && (
         <StudentWorkspacePage
           view={studentWorkspaceView}
           onViewChange={(nextView) => {
@@ -418,9 +462,10 @@ export default function App() {
           onSessionActiveChange={setIsInPracticeSession}
           isInPracticeSession={isInPracticeSession}
           onStartActivity={handleStartActivity}
+          onLogout={handleLogout}
         />
       )}
-      {currentPage === "student-practice" && activeRole === "student" && (
+      {currentPage === "student-practice" && activeRole === "student" && studentDataReady && (
         <CreateStoryPage
           key={
             practiceTarget
@@ -437,7 +482,7 @@ export default function App() {
           onSessionActiveChange={setIsInPracticeSession}
         />
       )}
-      {currentPage === "student-stories" && activeRole === "student" && (
+      {currentPage === "student-stories" && activeRole === "student" && studentDataReady && (
         <MyStoriesPage
           records={audioRecords}
           onBrowsePractice={handleBrowsePractice}
@@ -446,7 +491,7 @@ export default function App() {
           publishedTopics={storyTopics}
         />
       )}
-      {currentPage === "voice-test" && activeRole === "student" && (
+      {currentPage === "voice-test" && activeRole === "student" && studentDataReady && (
         <VoiceTestPage />
       )}
       <AppJourneyBubble

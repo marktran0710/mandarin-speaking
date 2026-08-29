@@ -43,8 +43,6 @@ export default function SpeakingResultsFlow({
   const isChunked = scriptChunks.length > 1;
   const chunkScores = isChunked ? scoreScriptChunks(targetScript, recognizedText, praatMetrics.word_prosody) : [];
   const failedChunks = chunkScores.filter((chunk) => !chunk.passed);
-  const usedCount = vocabCoverage?.used?.length ?? 0;
-  const vocabTotal = usedCount + missing.length;
   const weakItems = weakToneGuideItems(praatMetrics.word_prosody || []);
   const pronunciationMastery = praatMetrics.pronunciation_mastery;
   const masteryCounts = pronunciationMastery && typeof pronunciationMastery.passed_syllables === "number" && typeof pronunciationMastery.total_syllables === "number" ? { passed: pronunciationMastery.passed_syllables, total: pronunciationMastery.total_syllables } : undefined;
@@ -181,7 +179,7 @@ export default function SpeakingResultsFlow({
 
   const stepBody = {
     selfEval: <SelfEvalStep onSubmit={handleSelfEvalSubmit} onSkip={() => goToStep("overview")} />,
-    overview: <SpeakingResultsOverviewStep {...{ verdict, verdictContent, feedbackReliability, attempts, hasTargetScript, targetScript, recognizedText, praatMetrics, pronunciationMastery, contentNeedsRetry, selfEvalAnswer, hasScriptMismatch, submittedAudioName, practicePartCount, assistiveFeedback, analysisVersion, comparison, vocabTotal, usedCount, hasFix, hasPractice, hasPhrasePractice, goToStep, onRecordAgain }} />,
+    overview: <SpeakingResultsOverviewStep {...{ verdict, verdictContent, feedbackReliability, attempts, hasTargetScript, targetScript, recognizedText, praatMetrics, pronunciationMastery, contentNeedsRetry, selfEvalAnswer, hasScriptMismatch, submittedAudioName, practicePartCount, assistiveFeedback, analysisVersion, comparison, hasFix, hasPractice, hasPhrasePractice, goToStep, onRecordAgain }} />,
     fix: <SpeakingResultsFixStep {...{ accepted, meaningJudged, showCorrective, contentAccuracy, corrective, hasScriptMismatch, isChunked, targetScript, recognizedText, praatMetrics, chunkScores, scriptMismatches, missing, hasPractice, hasPhrasePractice, goToStep, onRecordAgain }} />,
     practice: <SpeakingResultsPracticeStep {...{ hasPhrasePractice, allDrillsCleared, practiceTargets, clearedWords, focusKey, setFocusKey, focusTarget, focusWord, onDrillPass: handleDrillPass, allPhrasesCleared, phrasePracticeItems, clearedPhrases, phraseFocusIndex, setPhraseFocusIndex, focusPhrase, onPhrasePass: handlePhrasePass, onRecordAgain }} />,
   }[step];
