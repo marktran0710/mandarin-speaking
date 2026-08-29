@@ -120,7 +120,7 @@ describe("Quiz analytics on the Students view", () => {
     await user.click(screen.getByRole("button", { name: /Students/ }));
   }
 
-  it("shows per-student accuracy, time, and repeated-mistake analytics", async () => {
+  it("shows class-wide quiz attempts and accuracy", async () => {
     vi.spyOn(db, "canUseDatabase").mockReturnValue(true);
     vi.spyOn(db, "listVocabQuizAttempts").mockResolvedValue(attempts);
 
@@ -136,15 +136,11 @@ describe("Quiz analytics on the Students view", () => {
 
     await openQuizAnalytics(user);
 
-    // Per-student accuracy lives on the roster table now; this panel keeps
-    // the class-wide numbers and the repeated-mistake list.
+    // Per-student accuracy and missed words live on the roster table and the
+    // student profile now; this panel keeps only the class-wide totals.
     const overview = await screen.findByRole("region", { name: "Quiz analytics overview" });
+    expect(within(overview).getByText("1")).toBeInTheDocument();
     expect(within(overview).getByText("60%")).toBeInTheDocument();
-
-    const wordHeading = screen.getByRole("heading", { name: "Words Needing the Most Practice" });
-    const wordPanel = wordHeading.closest(".teacher-quiz-analytics-panel") as HTMLElement;
-    expect(within(wordPanel).getByText("姐姐")).toBeInTheDocument();
-    expect(within(wordPanel).getByText(/Missed 2\/2 times \(100%\)/)).toBeInTheDocument();
   });
 
   it("shows an empty state when there are no quiz attempts yet", async () => {
@@ -199,23 +195,18 @@ describe("Quiz analytics on the Students view", () => {
 
     await openQuizAnalytics(user);
     const overview = await screen.findByRole("region", { name: "Quiz analytics overview" });
-    const wordPanel = screen
-      .getByRole("heading", { name: "Words Needing the Most Practice" })
-      .closest(".teacher-quiz-analytics-panel") as HTMLElement;
 
-    // Unfiltered: both attempts counted, and Amy's repeated miss is listed.
+    // Unfiltered: both attempts counted.
     expect(within(overview).getByText("2")).toBeInTheDocument();
-    expect(within(wordPanel).getByText("姐姐")).toBeInTheDocument();
 
-    // Bo answered everything correctly, so filtering to Bo empties both.
+    // Bo answered everything correctly; Amy got 3/5 — filtering to Bo should
+    // move the overview to his numbers alone.
     await user.selectOptions(screen.getByLabelText("Student"), "Bo");
     expect(within(overview).getByText("1")).toBeInTheDocument();
-    expect(within(wordPanel).queryByText("姐姐")).not.toBeInTheDocument();
-    expect(within(wordPanel).getByText("No repeated mistakes yet")).toBeInTheDocument();
+    expect(within(overview).getByText("100%")).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("Student"), "all");
     expect(within(overview).getByText("2")).toBeInTheDocument();
-    expect(within(wordPanel).getByText("姐姐")).toBeInTheDocument();
   });
 });
 

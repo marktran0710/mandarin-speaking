@@ -137,45 +137,6 @@ export function computeWordMissStats(attempts: VocabQuizAttempt[]): WordMissStat
     .sort((a, b) => b.timesMissed - a.timesMissed || b.missRatePct - a.missRatePct);
 }
 
-export type WordMissSeverity = "critical" | "watch" | "ok";
-
-/** Miss rate is the % of asks a word is gotten wrong — a small-sample word
- * missed once can swing to 100%, so this is a triage signal, not a verdict. */
-export function wordMissSeverity(missRatePct: number): WordMissSeverity {
-  if (missRatePct >= 60) return "critical";
-  if (missRatePct >= 30) return "watch";
-  return "ok";
-}
-
-/** Turns the ranked word-miss table into a one-paragraph reading for a
- * teacher: which word to act on first, and whether mistakes are concentrated
- * (a few words worth a class-wide review) or spread thin across many words. */
-export function summarizeWordMissTrends(stats: WordMissStats[], shownCount: number): string {
-  if (stats.length === 0) return "";
-
-  const top = stats[0];
-  const criticalCount = stats.filter((w) => wordMissSeverity(w.missRatePct) === "critical").length;
-  const totalMisses = stats.reduce((sum, w) => sum + w.timesMissed, 0);
-
-  const topSentence =
-    `"${top.word}" is missed most often — ${top.timesMissed} of ${top.timesAsked} attempts` +
-    ` (${top.missRatePct}%), averaging ${(top.avgTimeMs / 1000).toFixed(1)}s to answer.`;
-
-  const spreadSentence =
-    criticalCount === 0
-      ? `No word has crossed a 60% miss rate — mistakes are spread across ${stats.length} words rather than concentrated, so a quick review of the list below should cover it.`
-      : criticalCount === 1
-        ? `1 word is at a critical (≥60%) miss rate and is responsible for outsized trouble — start there.`
-        : `${criticalCount} words are at a critical (≥60%) miss rate out of ${stats.length} missed overall — worth a focused, class-wide review before moving on.`;
-
-  const coverageNote =
-    shownCount < stats.length
-      ? ` Showing the top ${shownCount} of ${stats.length} missed words (${totalMisses} total misses) for this filter.`
-      : "";
-
-  return `${topSentence} ${spreadSentence}${coverageNote}`;
-}
-
 export function hasCustomStoryErrors(errors: CustomStoryValidationErrors): boolean {
   return Boolean(
     errors.title ||

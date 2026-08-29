@@ -132,7 +132,6 @@ export default function TeacherApp({ embedded = false, onExit, initialView, init
       {activeRole === "teacher" ? (
         <TeacherDashboardPage
           records={audioRecords}
-          totalRecordCount={audioRecordCount}
           hasMoreAudioRecords={audioRecords.length < audioRecordCount}
           onDeleteRecord={deleteAudioRecord}
           onLoadMoreAudioRecords={loadMoreAudioRecords}

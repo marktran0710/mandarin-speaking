@@ -105,20 +105,19 @@ describe("TeacherDashboardPage", () => {
       screen.getByRole("navigation", { name: "Teacher tools" }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Recordings/ }));
+    await user.click(screen.getByRole("button", { name: /Submissions/ }));
     expect(
       screen.getByText("Good pacing with a clear story sequence."),
     ).toBeInTheDocument();
     expect(screen.getByTestId("pitch-chart")).toBeInTheDocument();
   });
 
-  it("uses the complete recording count and loads another page of recordings", async () => {
+  it("loads another page of recordings from the Submissions view", async () => {
     const loadMoreRecords = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
     render(
       <TeacherDashboardPage
         records={[analyzedRecord]}
-        totalRecordCount={125}
         hasMoreAudioRecords
         onDeleteRecord={vi.fn()}
         onLoadMoreAudioRecords={loadMoreRecords}
@@ -127,10 +126,7 @@ describe("TeacherDashboardPage", () => {
       />,
     );
 
-    const nav = screen.getByRole("navigation", { name: "Teacher tools" });
-    expect(within(nav).getByText("125")).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /Recordings/ }));
+    await user.click(screen.getByRole("button", { name: /Submissions/ }));
     await user.click(screen.getByRole("button", { name: "Load more" }));
 
     expect(loadMoreRecords).toHaveBeenCalledOnce();
@@ -170,7 +166,7 @@ describe("TeacherDashboardPage", () => {
 
     renderDashboard([partialFeedbackRecord]);
     const user2 = user;
-    await user2.click(screen.getByRole("button", { name: /Recordings/ }));
+    await user2.click(screen.getByRole("button", { name: /Submissions/ }));
 
     expect(
       screen.getByText("Good pacing with a clear story sequence."),

@@ -13,7 +13,7 @@ export type ManagementSection = "stories" | "quiz-review" | "submissions" | "sup
 
 const SECTION_CONFIG: Record<ManagementSection, {
   requiredRole: ManagementRole | "either";
-  teacherView?: "today" | "submissions" | "recordings" | "students" | "materials";
+  teacherView?: "today" | "submissions" | "students" | "materials";
   teacherMaterialsTool?: "builder" | "imageBuilder" | "quizReview";
   adminNav?: "Admin Home" | "IRT / Student analytics" | "Measurement" | "Practice Debug";
 }> = {

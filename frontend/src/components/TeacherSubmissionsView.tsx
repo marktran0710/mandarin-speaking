@@ -22,6 +22,8 @@ export default function TeacherSubmissionsView({
   // One control. The sort dropdown always wanted "needs review first", and
   // the search box duplicated the student dropdown beside it.
   const [studentFilter, setStudentFilter] = useState("all");
+  const PAGE_SIZE = 8;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [overrides, setOverrides] = useState<Record<string, StorySubmission>>({});
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [openNotes, setOpenNotes] = useState<Record<string, boolean>>({});
@@ -47,6 +49,10 @@ export default function TeacherSubmissionsView({
         }),
     [displayedSubmissions, studentFilter],
   );
+  // Cards are long (scenes, audio, feedback), so only a page at a time
+  // renders — reset to the first page whenever the filter narrows the list.
+  const pagedSubmissions = filteredSubmissions.slice(0, visibleCount);
+  const hasMoreSubmissions = visibleCount < filteredSubmissions.length;
 
   async function saveReview(
     submission: StorySubmission,
@@ -94,7 +100,13 @@ export default function TeacherSubmissionsView({
         <div className="quiz-analytics-filters">
           <label>
             Student
-            <select value={studentFilter} onChange={(event) => setStudentFilter(event.target.value)}>
+            <select
+              value={studentFilter}
+              onChange={(event) => {
+                setStudentFilter(event.target.value);
+                setVisibleCount(PAGE_SIZE);
+              }}
+            >
               <option value="all">All students</option>
               {students.map((name) => (
                 <option key={name} value={name}>{name}</option>
@@ -120,7 +132,7 @@ export default function TeacherSubmissionsView({
           </div>
         ) : (
           <div className="story-submission-list">
-            {filteredSubmissions.map((sub) => {
+            {pagedSubmissions.map((sub) => {
               const reviewStatus = sub.reviewStatus ?? "pending";
               const noteDraft = noteDrafts[sub.id] ?? sub.teacherNote ?? "";
               const noteIsOpen = openNotes[sub.id];
@@ -244,6 +256,15 @@ export default function TeacherSubmissionsView({
               );
             })}
           </div>
+        )}
+        {hasMoreSubmissions && (
+          <button
+            type="button"
+            className="teacher-refresh-btn"
+            onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+          >
+            Load more
+          </button>
         )}
       </section>
     </>

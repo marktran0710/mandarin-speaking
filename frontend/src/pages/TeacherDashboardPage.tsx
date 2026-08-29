@@ -32,7 +32,7 @@ import "./TeacherDashboardPage.css";
  * drilling in from the Materials list rather than through a permanent
  * sub-tab bar — Quiz Review already hid the page chrome whenever it opened. */
 export type MaterialsTool = "builder" | "imageBuilder" | "quizReview";
-export type TeacherView = "today" | "submissions" | "recordings" | "students" | "materials";
+export type TeacherView = "today" | "submissions" | "students" | "materials";
 
 const MATERIALS_TOOLS: Array<{ id: MaterialsTool; icon: UiIconName; title: string; blurb: string }> = [
   {
@@ -57,7 +57,6 @@ const MATERIALS_TOOLS: Array<{ id: MaterialsTool; icon: UiIconName; title: strin
 
 export default function TeacherDashboardPage({
   records,
-  totalRecordCount = records.length,
   hasMoreAudioRecords = false,
   onDeleteRecord,
   onLoadMoreAudioRecords,
@@ -70,7 +69,6 @@ export default function TeacherDashboardPage({
   initialMaterialsTool,
 }: {
   records: AudioRecord[];
-  totalRecordCount?: number;
   hasMoreAudioRecords?: boolean;
   onDeleteRecord: (id: string) => void;
   onLoadMoreAudioRecords?: () => Promise<void>;
@@ -168,7 +166,6 @@ export default function TeacherDashboardPage({
       onSelectView={(view) => selectView(view as TeacherView)}
       submissionCount={pendingSubmissions.length}
       openHelpCount={openHelpRequests.length}
-      recordingCount={totalRecordCount}
       refreshing={refreshing}
       onRefresh={
         onRefreshRecords
@@ -200,18 +197,15 @@ export default function TeacherDashboardPage({
         )}
 
         {activeView === "submissions" && (
-          <TeacherSubmissionsView
-            submissions={submissions}
-            onReviewUpdate={(updated) =>
-              setSubmissions((previous) =>
-                previous.map((submission) => (submission.id === updated.id ? updated : submission)),
-              )
-            }
-          />
-        )}
-
-        {activeView === "recordings" && (
           <>
+            <TeacherSubmissionsView
+              submissions={submissions}
+              onReviewUpdate={(updated) =>
+                setSubmissions((previous) =>
+                  previous.map((submission) => (submission.id === updated.id ? updated : submission)),
+                )
+              }
+            />
             <TeacherRecordingsView
               records={records}
               hasMoreRecords={hasMoreAudioRecords}

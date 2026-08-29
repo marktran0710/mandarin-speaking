@@ -19,8 +19,9 @@ export interface ManagementNavItem {
  * dataset, so there is only ever one place to do a given job. */
 const DEFAULT_TEACHER_ITEMS: ManagementNavItem[] = [
   { id: "today", label: "Today", icon: "help" },
+  // Recording evidence lives on this same view, under the submissions list —
+  // both are "student work to review", so one nav entry owns both.
   { id: "submissions", label: "Submissions", icon: "inbox" },
-  { id: "recordings", label: "Recordings", icon: "microphone" },
   { id: "students", label: "Students", icon: "users" },
   { id: "materials", label: "Materials", icon: "library" },
 ];
@@ -47,7 +48,6 @@ export default function ManagementShell({
   navItems,
   submissionCount = 0,
   openHelpCount = 0,
-  recordingCount = 0,
   refreshing = false,
   onRefresh,
   onLogout,
@@ -59,7 +59,6 @@ export default function ManagementShell({
   navItems?: ManagementNavItem[];
   submissionCount?: number;
   openHelpCount?: number;
-  recordingCount?: number;
   refreshing?: boolean;
   onRefresh?: () => void;
   onLogout: () => void;
@@ -73,7 +72,6 @@ export default function ManagementShell({
   const counts: Record<string, number> = {
     today: openHelpCount,
     submissions: submissionCount,
-    recordings: recordingCount,
   };
   const items = (navItems ?? (role === "teacher" ? DEFAULT_TEACHER_ITEMS : DEFAULT_ADMIN_ITEMS)).map((item) => ({
     ...item,

@@ -86,7 +86,7 @@ function renderDashboard(records: AudioRecord[] = []) {
   );
 }
 
-describe("Recording trends on the Recordings view", () => {
+describe("Recording trends on the Submissions view", () => {
   it("summarizes the class fluency and tone trend", async () => {
     const user = userEvent.setup();
     render(
@@ -98,7 +98,7 @@ describe("Recording trends on the Recordings view", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Recordings/ }));
+    await user.click(screen.getByRole("button", { name: /Submissions/ }));
 
     await screen.findByText("Fluency & tone accuracy over time");
     // Scope to the trends summary: the recording cards on the same view
@@ -119,7 +119,7 @@ describe("Recording trends on the Recordings view", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Recordings/ }));
+    await user.click(screen.getByRole("button", { name: /Submissions/ }));
 
     expect(await screen.findByText("No recordings yet")).toBeInTheDocument();
   });
