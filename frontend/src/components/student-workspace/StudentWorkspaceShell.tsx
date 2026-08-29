@@ -85,20 +85,19 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
 
   return (
     <main className={`student-workspace student-workspace-v2 ${practiceStarted ? "is-practicing" : ""}`}>
-      {/* The rail stands down during a practice session: StoryRecorder brings
-          its own left rail, and two of them side by side is exactly the
-          stacked-navigation problem this shell was redesigned to remove. */}
-      {!practiceStarted && (
-        <StudentSidebar
-          views={WORKSPACE_VIEWS}
-          activeView={view}
-          onChange={selectView}
-          studentName={getStudentName()}
-          onLogout={onLogout}
-          totalStars={totalStars}
-          maxStars={maxStars}
-        />
-      )}
+      {/* One rail for all of student mode. It stays mounted through a
+          practice session and lends its middle to the story, rather than
+          unmounting so StoryRecorder can open a second rail beside it. */}
+      <StudentSidebar
+        views={WORKSPACE_VIEWS}
+        activeView={view}
+        onChange={selectView}
+        studentName={getStudentName()}
+        onLogout={onLogout}
+        totalStars={totalStars}
+        maxStars={maxStars}
+        sessionActive={practiceStarted}
+      />
       <section
         id="student-workspace-panel"
         className="student-workspace-content student-workspace-content-v2"

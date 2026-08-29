@@ -1,5 +1,8 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import JourneyPath, { type JourneyStop } from "./JourneyPath";
+import StudentIcon from "./StudentIcon";
+import { SESSION_RAIL_SLOT_ID } from "./student-workspace/StudentSidebar";
 import "./StorySessionSidebar.css";
 
 export type SidebarPhaseStatus = "done" | "active" | "upcoming";
@@ -46,6 +49,19 @@ export default function StorySessionSidebar({
   // ignores this flag and always shows the panel.
   const [helpOpen, setHelpOpen] = useState(false);
 
+  // Student mode keeps ONE left rail. When the workspace shell is on screen
+  // it offers a slot inside that rail, and this content moves into it, so a
+  // practice session never opens a second rail beside the first. Outside the
+  // shell (a route that renders StoryRecorder on its own) the slot is absent
+  // and this still renders as its own <aside>, unchanged.
+  // The shell renders the slot unconditionally and before this component
+  // mounts, so a single mount lookup is enough — no re-checking, and no
+  // dependence on a later render happening to land.
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setSlot(document.getElementById(SESSION_RAIL_SLOT_ID));
+  }, []);
+
   // Scene practice is sequential: a student may revisit completed scenes, but
   // the next scene stays locked until the previous one has a result. This is
   // intentionally independent of the pronunciation pass/fail verdict.
@@ -81,8 +97,8 @@ export default function StorySessionSidebar({
   // call) and this redesign preserves that shipped behavior rather than
   // guess at re-enabling something that may have been hiding a real bug.
 
-  return (
-    <aside className="story-session-sidebar" aria-label="Story progress">
+  const body = (
+    <>
       <div className="ssb-topline">
         {onExit && (
           <button
@@ -112,10 +128,18 @@ export default function StorySessionSidebar({
             aria-expanded={helpOpen}
             onClick={() => setHelpOpen((open) => !open)}
           >
-            {helpOpen ? "✕" : "🖐"}
+            <StudentIcon name={helpOpen ? "close" : "user"} size={18} />
           </button>
         </>
       )}
+    </>
+  );
+
+  if (slot) return createPortal(body, slot);
+
+  return (
+    <aside className="story-session-sidebar" aria-label="Story progress">
+      {body}
     </aside>
   );
 }

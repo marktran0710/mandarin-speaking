@@ -10,6 +10,14 @@
   gap: 20px;
   align-items: start;
 }
+
+/* Inside the workspace shell the session rail is portaled into the shell's
+   own sidebar, so no <aside> is rendered here and the 240px column it was
+   reserved for would sit empty. Collapse to a single column in that case;
+   standalone routes that still render the aside keep the two-column grid. */
+.story-recorder:not(:has(> .story-session-sidebar)) {
+  grid-template-columns: minmax(0, 1fr);
+}
 .story-session-main {
   min-width: 0;
   width: 100%;

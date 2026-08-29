@@ -412,11 +412,7 @@ export default function App() {
           log out — rendering this top bar as well would put those same
           actions on screen twice. During a practice session the rail stands
           down, so this bar comes back (compact) as the only chrome. */}
-      {!(
-        activeRole === "student" &&
-        currentPage === "student-workspace" &&
-        !isInPracticeSession
-      ) && (
+      {!(activeRole === "student" && currentPage === "student-workspace") && (
         <Navigation
           currentPage={currentPage}
           activeRole={activeRole}

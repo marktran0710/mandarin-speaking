@@ -18,7 +18,16 @@ interface StudentSidebarProps {
    * bottom-right corner of every page. */
   totalStars: number;
   maxStars: number;
+  /** True while a story practice session is running. The rail keeps its
+   * brand and account block but hands its middle section to the session
+   * (StorySessionSidebar portals the story's phases, scenes and raise-hand
+   * panel into the slot below), so student mode always has exactly one
+   * left rail instead of swapping between two. */
+  sessionActive?: boolean;
 }
+
+/** DOM id of the slot StorySessionSidebar portals its content into. */
+export const SESSION_RAIL_SLOT_ID = "student-rail-session-slot";
 
 /** The student shell's single navigation surface.
  *
@@ -40,6 +49,7 @@ export default function StudentSidebar({
   onLogout,
   totalStars,
   maxStars,
+  sessionActive = false,
 }: StudentSidebarProps) {
   const [colorMode, toggleColorMode] = useColorMode();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -96,6 +106,18 @@ export default function StudentSidebar({
           <ToneMark className="student-sidebar-tonemark" size={22} />
         </div>
 
+        {/* During a session the rail's middle belongs to the story, which
+            fills this slot from StorySessionSidebar. The section switch is
+            hidden rather than stacked above it — leaving the story is the
+            back button inside the slot, not a section jump.
+
+            Rendered unconditionally, not just while a session runs: the slot
+            has to exist in the DOM *before* StoryRecorder mounts and looks
+            for it, otherwise the portal misses and the rail comes up empty.
+            CSS collapses it while it holds nothing. */}
+        <div id={SESSION_RAIL_SLOT_ID} className="student-sidebar-session" />
+
+        {!sessionActive && (
         <nav className="student-sidebar-nav" aria-label="Learning areas">
           {views.map((item) => {
             const isActive = activeView === item.id;
@@ -120,12 +142,13 @@ export default function StudentSidebar({
             );
           })}
         </nav>
+        )}
 
         {/* Sits with the account block at the bottom, not under the nav:
             stars are "how I'm doing", which belongs beside "who I am"
             rather than in the middle of the section switch. */}
         <div className="student-sidebar-footer">
-        {maxStars > 0 && (
+        {!sessionActive && maxStars > 0 && (
           <div className="student-sidebar-progress">
             <p className="student-sidebar-progress-label">
               <StudentIcon name="star" size={15} />

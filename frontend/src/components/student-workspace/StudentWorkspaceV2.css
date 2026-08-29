@@ -18,9 +18,10 @@
   padding-top: 0;
 }
 
-.student-workspace-v2.is-practicing {
-  grid-template-columns: minmax(0, 1fr);
-}
+/* No single-column override while practicing any more. That rule dated from
+   when the rail unmounted for a session; now it stays and lends its middle
+   to the story, so collapsing to one column stacked the full-height rail
+   ON TOP of the content and pushed the story ~965px down the page. */
 
 .student-workspace-v2 > .student-workspace-content-v2 {
   min-width: 0;
