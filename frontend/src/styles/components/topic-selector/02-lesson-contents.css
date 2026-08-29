@@ -338,21 +338,6 @@
 }
 
 .ts-tier-done { background: var(--jade-soft); }
-
-/* The level the card's primary button already opens. Reads as "you are
-   here" — no hover, no pointer, because it is a label, not a control. */
-.ts-tier-current {
-  border: 1.5px solid color-mix(in srgb, var(--seal) 45%, transparent);
-  background: var(--seal-soft);
-  color: var(--clay-on-seal);
-  font-weight: 800;
-}
-
-.ts-tier-track-interactive .ts-tier-current {
-  cursor: default;
-  transform: none;
-  box-shadow: none;
-}
 .ts-tier-open {
   background: var(--clay-surface-soft);
   border: 1.5px solid var(--clay-hairline);

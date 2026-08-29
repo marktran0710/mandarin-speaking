@@ -167,15 +167,13 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
   // The per-story 🌱🌿🌳 tier track: which difficulty levels this story
   // offers, and for each whether it's been submitted, is open, or still
   // locked behind the previous tier. Only teacher stories carry tiers.
-  /** `primaryOpensLevel`: the level the card's own primary button already
-   * opens. That cell renders as a status chip rather than a second button,
-   * since two controls landing on the same screen is one control too many —
-   * the other levels stay buttons, which is the switch this track is for. */
-  const renderTierTrack = (
-    t: Topic,
-    activityUnlocked: boolean,
-    primaryOpensLevel?: StoryDifficultyLevel,
-  ) => {
+  // Was a status chip (not a button) on whichever level the card's primary
+  // button already opened, since two controls landing on the same screen
+  // read as one too many. Reverted at the user's request: with only two of
+  // the three cells actually clickable, the row didn't look disabled, it
+  // looked broken — the user reported "can't click Easy" as a bug, not as
+  // an intentional label. All three are buttons again, Easy included.
+  const renderTierTrack = (t: Topic, activityUnlocked: boolean) => {
     const story = t.sourceStory;
     if (!story) return null;
     const submittedLevels = loadSubmittedLevels(story.id);
@@ -207,12 +205,9 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               <BiLabel zh={copy.zh} pinyin={copy.pinyin} en={copy.en} />
             </>
           );
-          if (!onLevelSelect || level === primaryOpensLevel) {
+          if (!onLevelSelect) {
             return (
-              <span
-                key={level}
-                className={`ts-tier-cell ts-tier-${state}${level === primaryOpensLevel ? " ts-tier-current" : ""}`}
-              >
+              <span key={level} className={`ts-tier-cell ts-tier-${state}`}>
                 {content}
               </span>
             );
@@ -331,9 +326,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
             </p>
           )}
 
-          {/* The primary button above opens this card at Easy, so Easy is a
-              status chip here rather than a duplicate of it. */}
-          {renderTierTrack(t, unlocked, onTopicSelect ? "easy" : undefined)}
+          {renderTierTrack(t, unlocked)}
         </div>
       </article>
     );
