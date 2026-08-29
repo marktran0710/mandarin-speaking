@@ -51,7 +51,10 @@ describe("StoryRecorder — explicit startAtQuiz beats the already-passed redire
     // listVocabQuizAttempts to resolve and, before the fix, force the view
     // away to practice. If that happened, this never finds the heading.
     expect(
-      await screen.findByRole("heading", { name: /Earn all three stars/ }),
+      // The mode grid, not the headline: the headline is state-dependent
+      // copy (it celebrates once all three stars are in), so asserting on
+      // it would break every time that wording is tuned.
+      await screen.findByRole("group", { name: "Quiz mode" }),
     ).toBeInTheDocument();
     // The real recording button's accessible name is "Record" (BiLabel key
     // "record", see translations-b.json) — confirms we're not secretly on
