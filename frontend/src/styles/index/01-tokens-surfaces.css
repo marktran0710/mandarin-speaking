@@ -163,18 +163,18 @@
      stack. Anything after the first entry is an OS fallback for machines still
      loading, not a design choice; if you add a family here, add it to BOTH
      html entries or it will silently never render.
-
-     Display: LXGW WenKai TC carries Chinese AND Latin, so 慢慢中文 and
-     "Mandarin, little by little" are written by the same brush. An earlier
-     pairing put geometric-rounded Quicksand in front for Latin, which shared
-     nothing with a Kai face but roundness and read as two unrelated voices. */
-  --font-display: "LXGW WenKai TC", "Noto Serif TC", "Songti TC", "Iowan Old Style", Georgia, serif;
-  /* Body/UI — Noto Sans TC's own Latin is the companion, so no second Latin
-     family is needed. Its CJK keeps strokes open at small sizes, which matters
-     while a learner is reading mid-exercise. */
+ */
+  /* Display: Source Sans 3 leads so Latin headings take it, then Noto Serif TC
+     picks up every Chinese glyph — a stack falls through per character, so one
+     list serves both scripts. */
+  --font-display: "Source Sans 3", "Noto Serif TC", "Songti TC", "Iowan Old Style", Georgia, serif;
+  /* Body/UI + ALL pinyin. Source Sans 3 first for the same per-glyph reason:
+     it renders the Latin and the pinyin (including ǖ ǘ ǚ ǜ, verified), and
+     Chinese falls through to Noto Sans TC, whose CJK keeps strokes open at
+     small sizes while a learner reads mid-exercise. */
   --font-sans:
-    "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Segoe UI",
-    -apple-system, BlinkMacSystemFont, sans-serif;
+    "Source Sans 3", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei",
+    "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-student: var(--font-sans);
   /* Genuine tabular/code data only — not pinyin. No mono family is fetched, so
      this always resolves to a system face; keep it off anything typographic. */

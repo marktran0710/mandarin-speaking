@@ -40,7 +40,11 @@
 }
 
 .ts-lesson-sub {
-  font-family: var(--font-mono, Consolas, monospace);
+  /* Was --font-mono, which put "Dì 5 kè · Where Is My Wallet?" in Consolas
+     beside the Chinese display face. BiLabel already moved pinyin off mono
+     app-wide (see BiLabel.css); this was one of two places that missed the
+     change. Letter-spacing, not a different family, marks it as a reading. */
+  letter-spacing: 0.04em;
   font-size: 12.5px;
   color: var(--clay-muted);
   margin: 0;

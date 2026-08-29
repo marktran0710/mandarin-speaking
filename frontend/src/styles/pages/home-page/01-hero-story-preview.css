@@ -56,9 +56,9 @@
   /* The one deliberate viewport clamp on the page: display type should scale
      with the window, unlike the gaps around it. */
   font-size: clamp(44px, 5.6vw, 62px);
-  /* 700 is the heaviest weight the html entries fetch for LXGW WenKai TC.
-     Anything above it renders as a synthesized fake bold that thickens the
-     Kai strokes unevenly — keep every weight on this page at 400/500/700. */
+  /* 700 is the heaviest weight the html entries fetch for the display faces.
+     Anything above it renders as a synthesized fake bold — keep every weight
+     on this page at 400/500/600/700. */
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;

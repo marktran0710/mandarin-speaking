@@ -280,14 +280,16 @@
   align-items: flex-start;
 }
 
-/* Pinyin answers render in the same mono face BiLabel uses for readings —
-   its full diacritic coverage keeps tone marks (ā á ǎ à) aligned and
-   legible, where the default UI face can fall back per-glyph and make
-   tone-trap options look subtly different from each other. */
+/* Pinyin answers. This used to force --font-mono, on the rationale that only
+   the mono face had full tone-mark coverage — that was true of Consolas, but
+   BiLabel has since moved pinyin off mono app-wide, and the UI face now leads
+   with Source Sans 3, which was verified to carry the whole pinyin range
+   (ǖ ǘ ǚ ǜ included). So the per-glyph fallback this guarded against no longer
+   happens, and tone-trap options stay in one voice with the rest of the quiz.
+   Wider tracking keeps them scannable against each other. */
 .vocab-quiz-options-pinyin .vocab-quiz-option {
-  font-family: var(--font-mono);
   font-size: 15px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.06em;
 }
 
 .vocab-quiz-option:hover:not(:disabled) {
