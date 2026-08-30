@@ -65,24 +65,20 @@ export default function SpeakingResultsOverviewStep({
           contentMatch={praatMetrics.content_match}
         />
       )}
-      {pronunciationMastery && (
+      {pronunciationMastery && !contentNeedsRetry && (
         <div
           className={`sfc-mastery-banner${pronunciationMastery.status === "passed" ? " is-cleared" : ""}`}
           role="status"
           aria-label="Pronunciation mastery status"
         >
           <p className="sfc-mastery-lead">
-            {contentNeedsRetry
-              ? "Content not verified"
-              : pronunciationMastery.status === "passed"
+            {pronunciationMastery.status === "passed"
                 ? <><StudentIcon name="check-circle" size={16} aria-hidden="true" /> Pronunciation passed</>
                 : pronunciationMastery.status === "not_judged"
                   ? "尚未判定 / Not judged yet"
                   : "發音需要練習 / Needs practice"}
           </p>
-          {contentNeedsRetry ? (
-            <p>Move closer and say the full phrase again.</p>
-          ) : pronunciationMastery.message ? <p>{pronunciationMastery.message}</p> : null}
+          {pronunciationMastery.message ? <p>{pronunciationMastery.message}</p> : null}
         </div>
       )}
 
