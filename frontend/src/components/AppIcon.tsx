@@ -4,8 +4,8 @@ import type { SVGProps } from "react";
  * The single icon family used by every product surface.
  *
  * Icons are drawn on the same 24px grid with a quiet editorial line: one
- * stroke weight, rounded joins, and enough negative space to stay legible at
- * 16–32px. The component is intentionally code-native so color, state, and
+ * light stroke weight, rounded joins, and enough negative space to stay
+ * legible at 16–32px. The component is intentionally code-native so color, state, and
  * accessibility remain controlled by the consuming UI instead of a raster or
  * hand-authored SVG file.
  */
@@ -108,9 +108,9 @@ const paths: Record<AppIconName, string[]> = {
 };
 
 /**
- * Small color planes make the family feel illustrated without turning every
- * icon into a separate asset. The outline remains the consumer's current
- * color, while these accents stay semantic and consistent across the app.
+ * Small color planes add a restrained secondary color without turning every
+ * icon into a separate asset. They never add another outline: the single
+ * consumer-colored stroke remains the visual edge of every icon.
  */
 const accents: Partial<Record<AppIconName, IconAccent[]>> = {
   home: [{ path: 1, fill: "var(--tone1-soft)" }],
@@ -160,7 +160,7 @@ const accents: Partial<Record<AppIconName, IconAccent[]>> = {
   "face-hard": [{ path: 0, fill: "var(--clay-error-soft)" }],
 };
 
-export default function AppIcon({ name, size = 18, strokeWidth = 1.75, fill = "none", ...props }: AppIconProps) {
+export default function AppIcon({ name, size = 18, strokeWidth = 1.5, fill = "none", ...props }: AppIconProps) {
   const iconPaths = paths[name] ?? paths.help;
   const iconAccents = accents[name] ?? [];
   return (
@@ -177,7 +177,7 @@ export default function AppIcon({ name, size = 18, strokeWidth = 1.75, fill = "n
       aria-hidden={props["aria-label"] ? undefined : true}
       focusable="false"
     >
-      {iconAccents.map(({ path, fill: accentFill }) => <path key={`accent-${path}`} d={iconPaths[path]} fill={accentFill} stroke={accentFill} strokeWidth={strokeWidth + 2} />)}
+      {iconAccents.map(({ path, fill: accentFill }) => <path key={`accent-${path}`} d={iconPaths[path]} fill={accentFill} stroke="none" />)}
       {iconPaths.map((path) => <path key={path} d={path} />)}
     </svg>
   );
