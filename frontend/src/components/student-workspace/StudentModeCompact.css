@@ -461,6 +461,8 @@
 }
 
 .student-workspace-v2 .story-overview {
+  width: 100%;
+  max-width: none;
   gap: var(--space-md);
   padding-bottom: var(--space-md);
 }
@@ -480,8 +482,34 @@
 }
 
 .student-workspace-v2 .overview-choice-card {
+  display: grid;
+  grid-template-columns: var(--space-2xl) minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  justify-items: start;
+  column-gap: var(--space-sm);
+  row-gap: var(--space-2xs);
   min-height: var(--space-3xl);
   padding: var(--space-md);
+  text-align: left;
+}
+
+.student-workspace-v2 .overview-choice-card .overview-choice-icon {
+  grid-row: 1 / span 2;
+  grid-column: 1;
+}
+
+.student-workspace-v2 .overview-choice-card strong,
+.student-workspace-v2 .overview-choice-card p {
+  grid-column: 2;
+}
+
+.student-workspace-v2 .overview-choice-card strong {
+  align-self: end;
+}
+
+.student-workspace-v2 .overview-choice-card p {
+  align-self: start;
 }
 
 /* Progress and catalogue surfaces share the same compact content gutter and
@@ -716,7 +744,7 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 700px) {
   .student-workspace-v2 .practice-workspace-study,
   .student-workspace-v2 .sfc-record .practice-workspace,
   .student-workspace-v2 .sfc-results.sfc-screen > .practice-workspace {

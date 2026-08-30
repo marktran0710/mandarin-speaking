@@ -133,6 +133,15 @@ and trustworthy rather than childish, noisy, or gamified for its own sake.
    breakpoint after changing the base rhythm so mobile and desktop do not
    drift apart.
 
+10. **Prefer horizontal composition when the content can remain readable.**
+    On desktop and tablet, place related content in a deliberate row: icon
+    beside its label, media beside its supporting copy, and action beside the
+    context it affects. Use equal grid tracks, `minmax(0, 1fr)`, and token
+    gaps instead of stacking short pieces vertically. Collapse to a column
+    only when the available measure would make text wrap, controls shrink, or
+    the primary action harder to scan; keep the same gutter and spacing rhythm
+    after that collapse.
+
 ## Git branch naming
 
 Do not use `codex/` as a branch-name prefix in this repository. Branch names

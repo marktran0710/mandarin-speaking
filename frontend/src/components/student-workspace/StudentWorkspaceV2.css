@@ -176,7 +176,7 @@
   width: 100%;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 600px) {
   .workspace-quick-start { align-items: stretch; flex-direction: column; gap: var(--space-sm); }
   .workspace-quick-start-action { flex-basis: auto; }
 }
