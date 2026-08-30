@@ -168,25 +168,29 @@
   grid-column: 1 / -1;
   grid-row: 2;
   width: 100%;
-  overflow: visible;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: inline proximity;
+  scrollbar-width: thin;
 }
 
 .student-workspace-v2 .ssb-journey .journey-path-vertical {
   display: flex;
   justify-content: flex-start;
-  width: 100%;
-  min-width: 0;
+  width: max-content;
+  min-width: 100%;
   padding: 0;
   overflow: visible;
 }
 
 .student-workspace-v2 .ssb-journey .journey-path-vertical .journey-item {
-  /* Scene stops share the available rail width. The former viewport-based
-     minimum made a 7–9 scene lesson wider than its session shell and caused
-     the entire practice canvas to gain a horizontal scrollbar. */
-  flex: 1 1 0;
-  min-width: 0;
+  /* Keep each scene legible. The rail itself owns overflow, so longer lessons
+     can scroll without forcing a horizontal scrollbar on the practice page. */
+  flex: 0 0 auto;
   align-items: center;
+  scroll-snap-align: start;
 }
 
 .student-workspace-v2 .ssb-journey .journey-connector {
@@ -204,10 +208,9 @@
 }
 
 .student-workspace-v2 .ssb-journey .journey-stop {
-  width: 100%;
-  min-width: 0;
+  width: calc(var(--space-3xl) * 2);
   padding: 0;
-  gap: 0;
+  gap: var(--space-2xs);
   counter-increment: student-scene;
 }
 
@@ -225,7 +228,7 @@
 .student-workspace-v2 .ssb-journey .journey-stop-ring,
 .student-workspace-v2 .ssb-journey .journey-stop-current .journey-stop-ring {
   width: 100%;
-  height: clamp(48px, 5vw, 76px);
+  height: calc(var(--space-2xl) + var(--space-md));
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-soft) url("/sample-scenes/cafe-practice-v2.png") center / cover no-repeat;
