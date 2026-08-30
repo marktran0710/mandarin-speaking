@@ -55,7 +55,7 @@ export default function LearningOverview({ topicSummary, onStartActivity }: Lear
     <section className="workspace-quick-start" aria-label="Learning overview">
       <div className="workspace-quick-start-copy">
         <p className="workspace-section-kicker">
-          <BiLabel zh="開始練習" pinyin="Kāishǐ liànxí" en="Start practice" />
+          <BiLabel zh="開始練習" en="Start practice" />
         </p>
         <h2>{topicSummary ? topicSummary.topic.name : "No activity is ready yet."}</h2>
         <p>

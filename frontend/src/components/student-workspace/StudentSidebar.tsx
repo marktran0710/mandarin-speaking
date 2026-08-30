@@ -134,7 +134,7 @@ export default function StudentSidebar({
           <div className="student-sidebar-progress">
             <p className="student-sidebar-progress-label">
               <StudentIcon name="star" size={15} />
-              <BiLabel zh="星星" pinyin="Xīngxing" en="Stars" />
+              <BiLabel zh="星星" en="Stars" />
             </p>
             <p className="student-sidebar-progress-value">
               {totalStars}
@@ -175,9 +175,9 @@ export default function StudentSidebar({
           >
             <StudentIcon name={colorMode === "dark" ? "sun" : "moon"} size={17} />
             {colorMode === "dark" ? (
-              <BiLabel zh="亮色" pinyin="Liàngsè" en="Light" />
+              <BiLabel zh="亮色" en="Light" />
             ) : (
-              <BiLabel zh="深色" pinyin="Shēnsè" en="Dark" />
+              <BiLabel zh="深色" en="Dark" />
             )}
           </button>
 

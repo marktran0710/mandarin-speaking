@@ -13,8 +13,8 @@ export default function StudentPageHeader({
   lede,
   aside,
 }: {
-  eyebrow: { zh: string; pinyin: string; en: string };
-  title: { zh: string; pinyin: string; en: string };
+  eyebrow: { zh: string; pinyin?: string; en: string };
+  title: { zh: string; pinyin?: string; en: string };
   lede?: { zh: string; pinyin?: string; en: string };
   aside?: ReactNode;
 }) {
@@ -22,10 +22,10 @@ export default function StudentPageHeader({
     <header className="student-page-header">
       <div className="student-page-header-copy">
         <p className="eyebrow">
-          <BiLabel zh={eyebrow.zh} pinyin={eyebrow.pinyin} en={eyebrow.en} />
+          <BiLabel zh={eyebrow.zh} pinyin={eyebrow.pinyin} en={eyebrow.en} align="left" />
         </p>
         <h1>
-          <BiLabel zh={title.zh} pinyin={title.pinyin} en={title.en} />
+          <BiLabel zh={title.zh} pinyin={title.pinyin} en={title.en} align="left" />
         </h1>
         {lede && (
           <p className="student-page-lede">

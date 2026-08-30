@@ -60,10 +60,10 @@ const LEVEL_ICONS: Record<StoryDifficultyLevel, StudentIconName> = {
   hard: "tree",
 };
 
-const LEVEL_COPY: Record<StoryDifficultyLevel, { zh: string; pinyin: string; en: string }> = {
-  easy: { zh: "簡單", pinyin: "Jiǎndān", en: "Easy" },
-  medium: { zh: "中等", pinyin: "Zhōngděng", en: "Medium" },
-  hard: { zh: "困難", pinyin: "Kùnnán", en: "Hard" },
+const LEVEL_COPY: Record<StoryDifficultyLevel, { zh: string; en: string }> = {
+  easy: { zh: "簡單", en: "Easy" },
+  medium: { zh: "中等", en: "Medium" },
+  hard: { zh: "困難", en: "Hard" },
 };
 
 export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSelectorProps) {
@@ -140,13 +140,13 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
       <div className="topic-selector">
         <section className="ts-hero">
           <div className="ts-hero-copy">
-            <h1><BiLabel k="choose_a_daily_situation" /></h1>
+            <h1><BiLabel k="choose_a_daily_situation" align="left" /></h1>
             <p><BiText k="your_teacher_will_publish_speaking_activ" /></p>
           </div>
         </section>
         <div className="empty-state">
           <div className="empty-icon"><StudentIcon name="stories" size={28} /></div>
-          <h2><BiLabel k="no_activities_yet" /></h2>
+          <h2><BiLabel k="no_activities_yet" align="center" /></h2>
           <p><BiText k="your_teacher_will_create_and_publish_spe" /></p>
         </div>
       </div>
@@ -202,7 +202,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
           const content = (
             <>
               <StudentIcon name={LEVEL_ICONS[level]} size={20} />
-              <BiLabel zh={copy.zh} pinyin={copy.pinyin} en={copy.en} />
+              <BiLabel zh={copy.zh} en={copy.en} align="center" />
             </>
           );
           if (!onLevelSelect) {
@@ -317,7 +317,6 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
             >
               <BiLabel
                 zh={hasQuiz ? "開始生詞測驗" : "開始故事"}
-                pinyin={hasQuiz ? "Kāishǐ shēngcí cèyàn" : "Kāishǐ gùshì"}
                 en={hasQuiz ? "Start vocabulary quiz" : "Start story"}
               />
               <StudentIcon name="arrow-right" size={17} aria-hidden="true" />
@@ -330,6 +329,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               <BiLabel
                 zh={previousTopic ? `先交 ${previousTopic.name}` : "先完成上一個故事"}
                 en={previousTopic ? `Submit "${previousTopic.name}" first` : "Finish the previous story first"}
+                align="left"
               />
             </p>
           )}
@@ -384,10 +384,9 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
 
           <span className="ts-lesson-body">
             <span className="ts-lesson-kicker">
-              {`第 ${group.lessonNumber} 課 · Dì ${group.lessonNumber} kè`}
+              {`第 ${group.lessonNumber} 課`}
             </span>
-            <span className="ts-lesson-name" lang="zh-Hant">{title.zh}</span>
-            <span className="ts-lesson-en">{title.en}</span>
+            <BiLabel {...title} block align="left" />
           </span>
 
           <span className="ts-lesson-status">
@@ -397,13 +396,14 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
                 <BiLabel
                   zh={`先完成第 ${previousNumber} 課`}
                   en={`Finish Lesson ${previousNumber} first`}
+                  align="left"
                 />
               </span>
             ) : (
               <>
                 <span className="ts-lesson-progress">
                   {finished ? (
-                    <BiLabel zh="已完成" pinyin="Yǐ wánchéng" en="Complete" />
+                    <BiLabel zh="已完成" en="Complete" />
                   ) : (
                     <BiLabel zh={`${done}/${total} 個故事`} en={`${done}/${total} stories`} />
                   )}
@@ -452,7 +452,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
       {otherGroup && (
         <div className="ts-other-block">
           <p className="ts-other-label">
-            其他 Qítā · <BiLabel zh="" en="More practice" />
+            <BiLabel zh="其他" en="More practice" />
           </p>
           <div className="ts-lesson">
             <div
@@ -480,8 +480,8 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
                 <p className="ts-lesson-sub">
                   <BiLabel
                     zh="還沒有課號的故事"
-                    pinyin="Hái méiyǒu kèhào de gùshi"
                     en="Stories without a lesson yet"
+                    align="left"
                   />
                 </p>
               </div>

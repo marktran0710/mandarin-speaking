@@ -22,7 +22,6 @@
   font-size: 15px;
 }
 
-.profile-lesson-pin,
 .profile-story-tag {
   color: var(--clay-muted);
   font-size: 12px;
@@ -432,4 +431,3 @@
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-card);
 }
-

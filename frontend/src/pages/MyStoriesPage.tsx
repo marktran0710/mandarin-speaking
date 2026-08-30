@@ -211,7 +211,7 @@ export default function MyStoriesPage({
           <BiLabel zh="我的學習" pinyin="Wǒ de xuéxí" en="My learning" />
         </p>
         <h1>
-          <BiLabel zh="我的學習" pinyin="Wǒ de xuéxí" en="My learning" />
+          <BiLabel zh="我的學習" pinyin="Wǒ de xuéxí" en="My learning" align="left" />
         </h1>
         <p className="stories-subtitle">
           <BiText
@@ -226,7 +226,7 @@ export default function MyStoriesPage({
         <div className="profile-stat-card">
           <span className="profile-stat-icon" aria-hidden="true"><StudentIcon name="star" /></span>
           <span className="profile-stat-label">
-            <BiLabel zh="總星星" pinyin="Zǒng xīngxīng" en="Total stars" />
+            <BiLabel zh="總星星" en="Total stars" align="center" />
           </span>
           <strong className="profile-stat-value profile-stat-stars">
             {totalStars}
@@ -237,7 +237,7 @@ export default function MyStoriesPage({
         <div className="profile-stat-card">
           <span className="profile-stat-icon" aria-hidden="true"><StudentIcon name="check" /></span>
           <span className="profile-stat-label">
-            <BiLabel zh="課程完成" pinyin="Kèchéng wánchéng" en="Lessons complete" />
+            <BiLabel zh="課程完成" en="Lessons complete" align="center" />
           </span>
           <strong className="profile-stat-value">
             {lessonsDone}
@@ -257,7 +257,7 @@ export default function MyStoriesPage({
         <div className="profile-stat-card">
           <span className="profile-stat-icon" aria-hidden="true"><StudentIcon name="voice" /></span>
           <span className="profile-stat-label">
-            <BiLabel zh="發音表現" pinyin="Fāyīn biǎoxiàn" en="Tone accuracy (avg)" />
+            <BiLabel zh="發音表現" en="Tone accuracy (avg)" align="center" />
           </span>
           <strong className="profile-stat-value">
             {averageToneAccuracy === null ? "—" : `${averageToneAccuracy}%`}
@@ -267,7 +267,7 @@ export default function MyStoriesPage({
         <div className="profile-stat-card">
           <span className="profile-stat-icon" aria-hidden="true"><StudentIcon name="chart" /></span>
           <span className="profile-stat-label">
-            <BiLabel zh="說得順不順" pinyin="Shuō de shùn bu shùn" en="Fluency (avg)" />
+            <BiLabel zh="說得順不順" en="Fluency (avg)" align="center" />
           </span>
           <strong className="profile-stat-value">
             {averageFluency === null ? "—" : `${averageFluency}/100`}
@@ -288,7 +288,7 @@ export default function MyStoriesPage({
             className={`profile-tab-btn ${profileTab === "lesson" ? "active" : ""}`}
             onClick={() => setProfileTab("lesson")}
           >
-            <BiLabel zh="按課程" pinyin="Àn kèchéng" en="By lesson" />
+            <BiLabel zh="按課程" en="By lesson" align="center" />
           </button>
           <button
             type="button"
@@ -297,7 +297,7 @@ export default function MyStoriesPage({
             className={`profile-tab-btn ${profileTab === "story" ? "active" : ""}`}
             onClick={() => setProfileTab("story")}
           >
-            <BiLabel zh="按故事" pinyin="Àn gùshì" en="By story" />
+            <BiLabel zh="按故事" en="By story" align="center" />
           </button>
         </div>
 
@@ -335,7 +335,7 @@ export default function MyStoriesPage({
 
                   <div className="profile-lesson-main">
                     <p className="profile-lesson-title">
-                      {title.zh} <span className="profile-lesson-pin">{title.pinyin}</span>
+                      <BiLabel {...title} block align="left" />
                     </p>
                     {groupQuizTopics.length > 0 && (
                       <p
@@ -367,9 +367,9 @@ export default function MyStoriesPage({
                           onClick={onBrowsePractice}
                         >
                           {finished ? (
-                            <BiLabel zh="複習" pinyin="Fùxí" en="Review" />
+                            <BiLabel zh="複習" en="Review" />
                           ) : (
-                            <BiLabel zh="去練習" pinyin="Qù liànxí" en="Practice" />
+                            <BiLabel zh="去練習" en="Practice" />
                           )} <StudentIcon name="arrow-right" size={16} aria-hidden="true" />
                         </button>
                       </>
@@ -378,7 +378,6 @@ export default function MyStoriesPage({
                         <StudentIcon name="lock" size={14} aria-hidden="true" />
                         <BiLabel
                           zh="先完成上一課"
-                          pinyin="Xiān wánchéng shàng yí kè"
                           en="finish the previous lesson"
                         />
                       </span>
@@ -396,6 +395,7 @@ export default function MyStoriesPage({
                   zh="你還沒有開始任何故事。先到課程列表練習吧！"
                   pinyin="Nǐ hái méiyǒu kāishǐ rènhé gùshì. Xiān dào kèchéng lièbiǎo liànxí ba!"
                   en="No stories started yet. Start one from the lesson list and it will appear here."
+                  align="center"
                 />
               </p>
             ) : activeStoryTopics.map((topic) => {
@@ -417,11 +417,10 @@ export default function MyStoriesPage({
                       {topic.lessonNumber != null ? (
                         <BiLabel
                           zh={`第 ${topic.lessonNumber} 課`}
-                          pinyin={`Dì ${topic.lessonNumber} kè`}
                           en={`Lesson ${topic.lessonNumber}`}
                         />
                       ) : (
-                        <BiLabel zh="其他" pinyin="Qítā" en="Extra" />
+                        <BiLabel zh="其他" en="Extra" />
                       )}
                     </p>
                   </div>
@@ -446,11 +445,11 @@ export default function MyStoriesPage({
                     }`}
                   >
                     {finished ? (
-                      <BiLabel zh="完成" pinyin="Wánchéng" en="Done" />
+                      <BiLabel zh="完成" en="Done" />
                     ) : started ? (
-                      <BiLabel zh="練習中" pinyin="Liànxí zhōng" en="In progress" />
+                      <BiLabel zh="練習中" en="In progress" />
                     ) : (
-                      <BiLabel zh="還沒開始" pinyin="Hái méi kāishǐ" en="Not started" />
+                      <BiLabel zh="還沒開始" en="Not started" />
                     )}
                   </span>
 
@@ -460,11 +459,11 @@ export default function MyStoriesPage({
                     onClick={onBrowsePractice}
                   >
                     {finished ? (
-                      <BiLabel zh="複習" pinyin="Fùxí" en="Review" />
+                      <BiLabel zh="複習" en="Review" />
                     ) : started ? (
-                      <BiLabel zh="繼續" pinyin="Jìxù" en="Continue" />
+                      <BiLabel zh="繼續" en="Continue" />
                     ) : (
-                      <BiLabel zh="練習" pinyin="Liànxí" en="Practice" />
+                      <BiLabel zh="練習" en="Practice" />
                     )} <StudentIcon name="arrow-right" size={16} aria-hidden="true" />
                   </button>
                 </div>
