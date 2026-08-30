@@ -73,15 +73,19 @@ export default function SpeakingResultsOverviewStep({
         >
           <p className="sfc-mastery-lead">
             {contentNeedsRetry
-              ? "Content not verified — record the script again"
+              ? "Content not verified"
               : pronunciationMastery.status === "passed"
                 ? "✓ Pronunciation passed"
                 : pronunciationMastery.status === "not_judged"
                   ? "尚未判定 / Not judged yet"
                   : "發音需要練習 / Needs practice"}
           </p>
-          {pronunciationMastery.message && <p>{pronunciationMastery.message}</p>}
-          {contentNeedsRetry && <small>Tone measurements are reference-only until the script matches.</small>}
+          {contentNeedsRetry ? (
+            <>
+              <p>Move closer and record the full phrase again.</p>
+              <small>Tone scores remain provisional until the script matches.</small>
+            </>
+          ) : pronunciationMastery.message ? <p>{pronunciationMastery.message}</p> : null}
         </div>
       )}
 
