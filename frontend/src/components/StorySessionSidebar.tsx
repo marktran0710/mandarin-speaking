@@ -69,6 +69,9 @@ export default function StorySessionSidebar({
   return (
     <div className="story-session-topbar">
       <div className="ssb-topline">
+        <span className="ssb-topic-icon" aria-hidden="true">
+          <StudentIcon name="book" size={22} />
+        </span>
         {onExit && (
           <button
             type="button"

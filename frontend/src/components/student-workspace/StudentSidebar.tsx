@@ -1,7 +1,6 @@
 import { useState } from "react";
 import StudentIcon, { type StudentIconName } from "../StudentIcon";
 import { BiLabel, type BiLabelProps } from "../BiLabel";
-import ToneMark from "../ToneMark";
 import useColorMode from "../../hooks/useColorMode";
 import type { WorkspaceView } from "../../types/studentWorkspace";
 import "./StudentSidebar.css";
@@ -96,9 +95,10 @@ export default function StudentSidebar({
         className={`student-sidebar${drawerOpen ? " is-open" : ""}`}
       >
         <div className="student-sidebar-brand">
-          <img src="/logo.png" alt="" aria-hidden="true" />
-          <span className="student-sidebar-brand-name" lang="zh-Hant">慢慢中文</span>
-          <ToneMark className="student-sidebar-tonemark" size={22} />
+          <span className="student-sidebar-brand-mark" aria-hidden="true">
+            <StudentIcon name="seedling" size={48} strokeWidth={1.45} />
+          </span>
+          <span className="student-sidebar-brand-name" lang="zh-Hant">學習</span>
         </div>
 
         <nav className="student-sidebar-nav" aria-label="Learning areas">

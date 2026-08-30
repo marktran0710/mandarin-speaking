@@ -17,28 +17,27 @@
 
 .student-sidebar-brand {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
-  align-items: center;
+  justify-items: center;
   gap: var(--space-xs);
-  padding: 0 var(--space-xs) var(--space-lg);
+  padding: var(--space-xs) var(--space-xs) var(--space-lg);
   border-bottom: 1px solid var(--clay-hairline);
 }
 
-.student-sidebar-brand img {
-  width: 34px;
-  height: 34px;
-  object-fit: contain;
+.student-sidebar-brand-mark {
+  display: grid;
+  place-items: center;
+  width: var(--space-3xl);
+  height: var(--space-3xl);
+  color: var(--jade-deep);
 }
 
 .student-sidebar-brand-name {
   min-width: 0;
-  overflow: hidden;
-  color: var(--clay-ink);
+  color: var(--jade-deep);
   font-family: var(--font-display);
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
   font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  letter-spacing: .08em;
 }
 
 .student-sidebar-nav {

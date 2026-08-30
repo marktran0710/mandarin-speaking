@@ -131,7 +131,9 @@
 }
 
 .student-workspace-v2 .story-session-topbar {
-  gap: var(--space-sm) var(--space-md);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-md);
   margin-bottom: 0;
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--clay-radius-md);
@@ -139,30 +141,126 @@
 }
 
 .student-workspace-v2 .ssb-topline {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-column: 1;
+  grid-row: 1;
   gap: var(--space-xs);
 }
 
 .student-workspace-v2 .ssb-topic-name {
-  font-size: var(--text-md);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.student-workspace-v2 .ssb-topic-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft);
+  color: var(--gold-deep);
+}
+
+.student-workspace-v2 .ssb-journey {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  overflow: visible;
 }
 
 .student-workspace-v2 .ssb-journey .journey-path-vertical {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
+  min-width: 0;
   padding: 0;
+  overflow: visible;
 }
 
-.student-workspace-v2 .ssb-journey .journey-path-vertical .journey-stop {
-  gap: var(--space-2xs);
+.student-workspace-v2 .ssb-journey .journey-path-vertical .journey-item {
+  flex: 0 1 clamp(92px, 12vw, 160px);
+  min-width: clamp(92px, 12vw, 160px);
+  align-items: center;
 }
 
-.student-workspace-v2 .ssb-journey .journey-path-vertical .journey-stop-label {
-  font-size: var(--text-xs);
+.student-workspace-v2 .ssb-journey .journey-connector {
+  flex: 0 0 var(--space-md);
+  width: var(--space-md);
+  height: var(--space-sm);
+  margin: 0;
+  transform: none;
+}
+
+.student-workspace-v2 .ssb-journey .journey-connector path,
+.student-workspace-v2 .ssb-journey .journey-connector.reached path {
+  stroke: var(--gold);
+  stroke-width: 2;
+}
+
+.student-workspace-v2 .ssb-journey .journey-stop {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  gap: 0;
+  counter-increment: student-scene;
+}
+
+.student-workspace-v2 .ssb-journey .journey-path-vertical {
+  counter-reset: student-scene;
 }
 
 .student-workspace-v2 .ssb-journey .journey-stop-ring,
 .student-workspace-v2 .ssb-journey .journey-stop-current .journey-stop-ring {
-  width: var(--space-xl);
-  height: var(--space-xl);
+  width: 100%;
+  height: clamp(48px, 5vw, 76px);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft) url("/sample-scenes/cafe-practice-v2.png") center / cover no-repeat;
   box-shadow: none;
+}
+
+.student-workspace-v2 .ssb-journey .journey-stop-current .journey-stop-ring {
+  border-color: var(--gold-deep);
+  box-shadow: inset 0 0 0 1px var(--gold);
+}
+
+.student-workspace-v2 .ssb-journey .journey-stop::after {
+  position: absolute;
+  bottom: 0;
+  left: var(--space-2xs);
+  display: grid;
+  width: var(--space-lg);
+  height: var(--space-lg);
+  place-items: center;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  color: var(--clay-body);
+  content: counter(student-scene);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  transform: translateY(50%);
+}
+
+.student-workspace-v2 .ssb-journey .journey-stop-label,
+.student-workspace-v2 .ssb-journey .journey-stop-badge {
+  display: none;
+}
+
+.student-workspace-v2 .ssb-journey .journey-stop-star {
+  right: var(--space-2xs);
+  bottom: var(--space-2xs);
+  width: var(--space-lg);
+  height: var(--space-lg);
+  box-shadow: none;
+}
+
+.student-workspace-v2 .ssb-help-anchor {
+  grid-column: 2;
+  grid-row: 1;
 }
 
 .student-workspace-v2 .ssb-help-toggle {
@@ -185,8 +283,29 @@
 }
 
 .student-workspace-v2 .practice-stage {
+  background: var(--clay-surface-card);
+  border-color: var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
+}
+
+/* Study is a reference desk rather than a modal-like card. The single CTA in
+   its footer already advances to speaking, so the Study tab does not need a
+   second visual control. Speaking keeps the step tabs so learners can return
+   to the reference material without losing a workflow. */
+.student-workspace-v2 .practice-stage:has(.practice-workspace-study) {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.student-workspace-v2 .practice-stage:has(.practice-workspace-study) .scene-step-tabs {
+  display: none;
+}
+
+.student-workspace-v2 .practice-stage:has(.practice-workspace-study) > .practice-workspace {
+  padding: 0;
 }
 
 .student-workspace-v2 .practice-stage > .practice-workspace {
@@ -230,7 +349,7 @@
 
 .student-workspace-v2 .practice-workspace-study .practice-scene-image,
 .student-workspace-v2 .sfc-record .practice-scene-image {
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 4 / 3;
 }
 
 /* The base story-recorder stylesheet has a more specific image-frame rule;
@@ -250,7 +369,7 @@
   min-height: 0;
   max-height: none;
   border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-soft);
+  background: var(--clay-surface-soft) url("/sample-scenes/cafe-practice-v2.png") center / cover no-repeat;
 }
 
 .student-workspace-v2 .practice-workspace-study .practice-scene-image img,
@@ -259,6 +378,27 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+/* Generated image fallback for incomplete teacher drafts. The real published
+   scene still owns the image whenever it is available. */
+.student-workspace-v2 .practice-scene-image img[src=""],
+.student-workspace-v2 .practice-scene-image img:not([src]) {
+  visibility: hidden;
+}
+
+/* The locally seeded QA story uses dummyimage.com. Treat it as an unfinished
+   scene and show the generated café asset, while leaving every teacher image
+   untouched. */
+.student-workspace-v2 .practice-scene-image:has(img[src*="dummyimage.com"]) img,
+.student-workspace-v2 .ssb-journey .journey-stop-ring:has(img[src*="dummyimage.com"]) img {
+  visibility: hidden;
+}
+
+.student-workspace-v2 .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image:has(img[src*="dummyimage.com"]),
+.student-workspace-v2 .sfc-record .practice-scene-image:has(img[src*="dummyimage.com"]),
+.student-workspace-v2 .sfc-results .practice-scene-image:has(img[src*="dummyimage.com"]) {
+  background: var(--clay-surface-soft) url("/sample-scenes/cafe-practice-v2.png") center / cover no-repeat;
 }
 
 .student-workspace-v2 .practice-workspace-study .practice-scene-main,
@@ -284,6 +424,12 @@
   padding: var(--space-sm);
 }
 
+.student-workspace-v2 .practice-content.practice-study-ref {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
 .student-workspace-v2 .practice-content-header {
   gap: var(--space-sm);
   margin-bottom: 0;
@@ -293,6 +439,10 @@
    surrounding step tab already identifies Study, so removing it avoids a
    second focal point without removing any information or control. */
 .student-workspace-v2 .practice-content-header > span {
+  display: none;
+}
+
+.student-workspace-v2 .practice-content-header {
   display: none;
 }
 
@@ -320,6 +470,8 @@
 
 .student-workspace-v2 .practice-study-block {
   padding: var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  background: var(--clay-surface-card);
 }
 
 .student-workspace-v2 .practice-vocab-heading {
@@ -344,8 +496,11 @@
 }
 
 .student-workspace-v2 .scene-vocab-table {
-  gap: var(--space-2xs);
-  padding: var(--space-2xs);
+  /* Intentional continuous table surface: rows share one border system. */
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--clay-hairline-soft);
+  background: var(--clay-surface-card);
 }
 
 .student-workspace-v2 .scene-vocab-row-practice {
@@ -353,6 +508,11 @@
   gap: var(--space-xs);
   min-height: 0;
   padding: var(--space-2xs) var(--space-xs);
+}
+
+.student-workspace-v2 .scene-vocab-row-practice:not(.scene-vocab-used):not(.scene-vocab-missed) {
+  border-color: var(--clay-hairline-soft);
+  background: transparent;
 }
 
 .student-workspace-v2 .scene-vocab-cell {
@@ -918,10 +1078,29 @@
     white-space: nowrap;
   }
 
+  /* A study row becomes a compact fact stack rather than squeezing the
+     desktop's six information columns into a narrow phone width. */
+  .student-workspace-v2 .scene-vocab-row-practice {
+    grid-template-columns: var(--space-md) minmax(0, 1fr) var(--space-xl);
+    grid-template-areas:
+      "status hanzi mic"
+      "status pinyin mic"
+      "status pos mic"
+      "status meaning mic";
+    gap: var(--space-3xs) var(--space-xs);
+    padding: var(--space-xs);
+  }
+
+  .student-workspace-v2 .scene-vocab-row-practice .scene-vocab-status { grid-area: status; }
+  .student-workspace-v2 .scene-vocab-row-practice .scene-vocab-hanzi { grid-area: hanzi; }
+  .student-workspace-v2 .scene-vocab-row-practice .scene-vocab-pinyin { grid-area: pinyin; }
+  .student-workspace-v2 .scene-vocab-row-practice .scene-vocab-pos { grid-area: pos; }
+  .student-workspace-v2 .scene-vocab-row-practice .scene-vocab-meaning { grid-area: meaning; }
+  .student-workspace-v2 .scene-vocab-row-practice button { grid-area: mic; justify-self: end; }
+
   .student-workspace-v2 .practice-workspace-study .scene-vocab-meaning {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 }
 
