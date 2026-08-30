@@ -3,6 +3,7 @@ import {
   ASSISTIVE_MESSAGE,
   type AssistiveState,
 } from "../utils/assistiveFeedback";
+import StudentIcon from "./StudentIcon";
 import "./VoiceFeedbackReliabilityNotice.css";
 
 /**
@@ -33,8 +34,8 @@ export default function VoiceFeedbackReliabilityNotice({
 
   const detail =
     assessment.reason === "content-mismatch"
-      ? "The recording did not match the target closely enough. The score above may not be reliable and should not count."
-      : "There was not enough clear pitch evidence to judge this recording safely.";
+      ? "The words did not match the target closely enough."
+      : "We couldn't hear enough pitch to score this recording.";
 
   return (
     <aside
@@ -44,15 +45,14 @@ export default function VoiceFeedbackReliabilityNotice({
       data-feedback-reliability={assessment.level}
     >
       <span className="voice-reliability-icon" aria-hidden="true">
-        ↻
+        <StudentIcon name="retry" size={18} />
       </span>
       <div>
-        <strong>Retake before trusting this score</strong>
+        <strong>Score unavailable</strong>
         {!compact && <p>{detail}</p>}
         {!compact && (
           <p className="voice-reliability-action">
-            Move 10–20 cm from the microphone, find a quieter spot, and say the
-            target once at a natural pace.
+            Move 10–20 cm away, find a quiet spot, and say the phrase again.
           </p>
         )}
       </div>

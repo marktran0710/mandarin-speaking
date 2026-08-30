@@ -14,9 +14,8 @@ describe("VoiceFeedbackReliabilityNotice", () => {
       />,
     );
 
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Retake before trusting this score",
-    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Score unavailable");
+    expect(screen.getByRole("alert")).toHaveTextContent("enough pitch");
     expect(screen.getByRole("alert")).toHaveTextContent("10–20 cm");
   });
 

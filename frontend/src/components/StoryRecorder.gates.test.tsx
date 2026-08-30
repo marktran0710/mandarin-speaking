@@ -271,7 +271,7 @@ describe("StoryRecorder speaking practice gates", () => {
     await uploadVoiceAttempt(user, "silent-attempt.wav");
 
     expect(
-      await screen.findByText("Retake before trusting this score"),
+      await screen.findByText("Score unavailable"),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Next scene/i })).toBeEnabled();
   });
