@@ -170,7 +170,7 @@ export default function SpeakingResultsFlow({
   };
 
   const verdictContent = {
-    meaning: { icon: "feedback", className: "sfc-verdict-meaning", text: null },
+    meaning: { icon: "feedback", className: "sfc-verdict-meaning", text: <BiLabel zh="這一句需要修正。" en="This sentence needs a correction." /> },
     vocab: { icon: "stories", className: "sfc-verdict-vocab", text: <BiLabel zh={`還缺 ${missing.length} 個詞：${missing.join("、")}`} pinyin={`Hái quē ${missing.length} ge cí: ${missing.join("、")}`} en={`${missing.length} word${missing.length > 1 ? "s" : ""} still missing: ${missing.join("、")}`} /> },
     pronounce: { icon: "voice", className: "sfc-verdict-pronounce", text: weakItems[0] ? <BiLabel zh={`生詞都用到了！現在練「${weakItems[0].token}」的聲調。`} pinyin={`Shēngcí dōu yòng dào le! Xiànzài liàn “${weakItems[0].token}” de shēngdiào.`} en={`All words used! Now practice the tone of "${weakItems[0].token}".`} /> : <BiLabel zh="再錄一次，讓聲調更清楚。" pinyin="Zài lù yí cì, ràng shēngdiào gèng qīngchu." en="Record again and make your tones clearer." /> },
     join: { icon: "analyze", className: "sfc-verdict-join", text: <BiLabel zh="每個部分都不錯！現在試著把整句連起來，說得更順。" pinyin="Měi ge bùfen dōu búcuò! Xiànzài shìzhe bǎ zhěng jù liánqǐlái, shuō de gèng shùn." en="Every part sounds good! Now try saying the whole sentence smoothly, all connected." /> },

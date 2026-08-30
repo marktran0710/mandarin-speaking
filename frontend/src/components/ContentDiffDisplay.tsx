@@ -1,5 +1,6 @@
 import type { ContentDiffSegment } from "./StoryRecorder";
 import StudentIcon from "./StudentIcon";
+import { BiLabel } from "./BiLabel";
 
 /**
  * Always renders the same two-line-plus-status shape (Target / You said /
@@ -75,11 +76,11 @@ export default function ContentDiffDisplay({
   return (
     <div className="content-diff" aria-label="Script and recognized speech comparison" role="status">
       <p className="content-diff-line">
-        <span className="content-diff-label">Target:</span>
+        <span className="content-diff-label"><BiLabel zh="目標句" en="Target" /></span>
         {renderLine("target")}
       </p>
       <p className="content-diff-line">
-        <span className="content-diff-label">You said:</span>
+        <span className="content-diff-label"><BiLabel zh="你的錄音" en="Your recording" /></span>
         {heard ? renderLine("heard") : <span className="content-diff-empty">(no speech detected)</span>}
       </p>
       <p className={`content-diff-hint content-diff-hint-${status.tone}`}>

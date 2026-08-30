@@ -52,12 +52,6 @@ export default function SpeakingResultsFlowShell({
       <div className="practice-scene-col">
         <div className="practice-scene-image"><img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} /></div>
         <AudioCompare modelAudioUrl={modelAudioUrl} modelSentence={modelSentence} analysisAudioBlob={analysisAudioBlob} />
-        <div className="sfc-left-feedback">
-          <button ref={feedbackTriggerRef} type="button" className="sfc-left-feedback-summary" aria-haspopup="dialog" aria-expanded={feedbackModalOpen} aria-controls="sfc-feedback-modal" onClick={onOpenFeedback}>
-            <BiLabel zh="發音分析" en="Pronunciation feedback" />
-            <span><BiLabel zh={practicePartCount > 0 ? `還有 ${practicePartCount} 個部分要練習` : "已通過評量音調"} en={practicePartCount > 0 ? `${practicePartCount} part${practicePartCount === 1 ? "" : "s"} to practise` : "Measured tones cleared"} /></span>
-          </button>
-        </div>
       </div>
 
       <div className="sfc-results-main">
@@ -72,6 +66,13 @@ export default function SpeakingResultsFlowShell({
           })}
         </nav>}
         {stepBody}
+        <div className="sfc-results-utility">
+          <button ref={feedbackTriggerRef} type="button" className="sfc-left-feedback-summary" aria-haspopup="dialog" aria-expanded={feedbackModalOpen} aria-controls="sfc-feedback-modal" onClick={onOpenFeedback}>
+            <BiLabel zh="發音分析" en="Pronunciation feedback" />
+            <span><BiLabel zh={practicePartCount > 0 ? `還有 ${practicePartCount} 個部分要練習` : "已通過評量音調"} en={practicePartCount > 0 ? `${practicePartCount} part${practicePartCount === 1 ? "" : "s"} to practise` : "Measured tones cleared"} /></span>
+          </button>
+        </div>
+        <ResultsFooter {...{ hasPhrasePractice, allPhrasesCleared, remainingPracticePhrases, ready, canContinue, masteryPassed, practiceTargets, remainingDrillTargets, attempts, assistiveFeedback, assistiveRetriesUsed, onRecordAgain, hasNextScene, onNextScene, onViewSummary }} />
       </div>
     </div>
 
@@ -85,12 +86,11 @@ export default function SpeakingResultsFlowShell({
       document.body,
     )}
 
-    <ResultsFooter {...{ hasPhrasePractice, allPhrasesCleared, remainingPracticePhrases, ready, canContinue, masteryPassed, practiceTargets, remainingDrillTargets, attempts, assistiveFeedback, assistiveRetriesUsed, onRecordAgain, hasNextScene, onNextScene, onViewSummary }} />
   </section>;
 }
 
 function ResultsFooter({ hasPhrasePractice, allPhrasesCleared, remainingPracticePhrases, ready, canContinue, masteryPassed, practiceTargets, remainingDrillTargets, attempts, assistiveFeedback, assistiveRetriesUsed, onRecordAgain, hasNextScene, onNextScene, onViewSummary }) {
-  return <footer className="sfc-footer">
+  return <footer className="sfc-footer sfc-results-footer">
     {hasPhrasePractice && !allPhrasesCleared ? <p className="sfc-unlock-note"><Icon name="idea" size={15} /> <BiLabel zh={`還有 ${remainingPracticePhrases.length} 個部分可選擇練習；你也可以直接繼續。`} pinyin={`Hái yǒu ${remainingPracticePhrases.length} ge bùfen kě xuǎnzé liànxí; nǐ yě kěyǐ zhíjiē jìxù.`} en={`${remainingPracticePhrases.length} practice part${remainingPracticePhrases.length === 1 ? "" : "s"} remain optional; you can continue now.`} /></p>
       : hasPhrasePractice && allPhrasesCleared && !ready ? <p className="sfc-unlock-note"><Icon name="idea" size={15} /> <BiLabel zh="部分練習已完成；這次結果仍可查看，也可以直接繼續。" pinyin="Bùfèn liànxí yǐ wánchéng; zhè cì jiéguǒ réng kě chákàn, yě kěyǐ zhíjiē jìxù." en="Part practice is complete. Review this result or continue now." /></p>
         : !ready && !masteryPassed && practiceTargets.length > 0 ? <p className="sfc-unlock-note"><Icon name="idea" size={15} /> <BiLabel zh={`這些發音練習是可選的（還有 ${remainingDrillTargets.length > 0 ? `${remainingDrillTargets.length} 個部分` : "整句"}）；你可以直接繼續。`} pinyin={`Zhèxiē fāyīn liànxí shì kě xuǎn de; nǐ kěyǐ zhíjiē jìxù.`} en={`${remainingDrillTargets.length > 0 ? `${remainingDrillTargets.length} practice part${remainingDrillTargets.length > 1 ? "s" : ""}` : "The full sentence"} can be practiced optionally; you can continue now.`} /></p>

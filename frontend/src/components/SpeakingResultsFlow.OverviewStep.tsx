@@ -56,7 +56,7 @@ export default function SpeakingResultsOverviewStep({
         </div>
       </header>
 
-      <VoiceFeedbackReliabilityNotice assessment={feedbackReliability} attemptCount={attempts} />
+      <VoiceFeedbackReliabilityNotice assessment={feedbackReliability} attemptCount={attempts} compact />
       {hasTargetScript && (
         <ContentDiffDisplay
           target={targetScript}

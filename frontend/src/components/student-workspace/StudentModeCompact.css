@@ -1158,3 +1158,269 @@
     box-shadow: none;
   }
 }
+
+/* Results is a compact review workspace: scene and listening controls stay
+   together, while the learner reads the correction, chooses a next step, and
+   opens detailed tone analysis from one aligned response rail. */
+.student-workspace-v2 .sfc-results.sfc-screen {
+  gap: var(--space-md);
+}
+
+.student-workspace-v2 .sfc-results.sfc-screen > .practice-workspace {
+  grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+  align-items: start;
+  gap: var(--space-md);
+}
+
+.student-workspace-v2 .sfc-results .practice-scene-col {
+  display: grid;
+  gap: var(--space-sm);
+  align-content: start;
+}
+
+.student-workspace-v2 .sfc-results .sfc-audio-compare {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.student-workspace-v2 .sfc-results .reference-audio-card,
+.student-workspace-v2 .sfc-results .sfc-audio-compare .recording-playback,
+.student-workspace-v2 .sfc-results .sfc-recording-unavailable {
+  min-height: 0;
+  padding: var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+/* The scene already shows the target sentence; repeating it in the model
+   player made the compare strip taller without adding a new decision. */
+.student-workspace-v2 .sfc-results .reference-audio-card-sentence {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-results .reference-audio-card-heading {
+  gap: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-results .reference-audio-card-hint,
+.student-workspace-v2 .sfc-results .reference-audio-card-title .bi-en,
+.student-workspace-v2 .sfc-results .reference-audio-card-unavailable .bi-en,
+.student-workspace-v2 .sfc-results .recording-playback-label .bi-pinyin,
+.student-workspace-v2 .sfc-results .recording-playback-label .bi-en,
+.student-workspace-v2 .sfc-results .sfc-verdict .bi-en,
+.student-workspace-v2 .sfc-results .sfc-left-feedback-summary .bi-en,
+.student-workspace-v2 .sfc-results .sfc-unlock-note .bi-en,
+.student-workspace-v2 .sfc-results .sfc-assistive-retry-hint .bi-en,
+.student-workspace-v2 .sfc-results .sfc-step-cta .bi-en,
+.student-workspace-v2 .sfc-results .sfc-footer-actions .bi-en {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-results .reference-audio-card-player,
+.student-workspace-v2 .sfc-results .recording-playback-audio {
+  min-height: var(--space-2xl);
+  margin-top: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-results .sfc-results-main {
+  display: grid;
+  align-content: start;
+  gap: var(--space-sm);
+}
+
+.student-workspace-v2 .sfc-results .sfc-stepper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: var(--space-xs);
+  margin: 0;
+}
+
+.student-workspace-v2 .sfc-results .sfc-step {
+  min-height: var(--space-2xl);
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft);
+}
+
+.student-workspace-v2 .sfc-results .sfc-step .bi-en {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-results .sfc-step-num {
+  width: var(--space-lg);
+  height: var(--space-lg);
+  border: 1px solid var(--clay-hairline);
+}
+
+.student-workspace-v2 .sfc-results .sfc-step.is-current {
+  border-color: var(--seal);
+  background: var(--seal-soft);
+}
+
+.student-workspace-v2 .sfc-results .sfc-step.is-current .sfc-step-num {
+  border-color: var(--seal-deep);
+  background: var(--seal-deep);
+}
+
+.student-workspace-v2 .sfc-results .sfc-step-panel {
+  gap: var(--space-sm);
+}
+
+.student-workspace-v2 .sfc-results .sfc-verdict {
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.student-workspace-v2 .sfc-results .sfc-verdict--compact {
+  width: 100%;
+}
+
+.student-workspace-v2 .sfc-results .sfc-verdict-icon {
+  width: var(--space-xl);
+  height: var(--space-xl);
+  border-radius: var(--clay-radius-sm);
+  box-shadow: none;
+  transform: none;
+}
+
+.student-workspace-v2 .sfc-results .sfc-verdict-icon::after {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-results .content-diff {
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+}
+
+.student-workspace-v2 .sfc-results .content-diff-line {
+  display: grid;
+  grid-template-columns: minmax(var(--space-3xl), auto) minmax(0, 1fr);
+  gap: var(--space-xs);
+  align-items: start;
+}
+
+.student-workspace-v2 .sfc-results .content-diff-label {
+  flex: none;
+  font-size: var(--text-sm);
+}
+
+.student-workspace-v2 .sfc-results .content-diff-label .bi-en {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-results .content-diff-line-text {
+  font-size: var(--text-md);
+  line-height: 1.45;
+}
+
+.student-workspace-v2 .sfc-results .content-diff-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+/* The comparison already exposes the transcript and recording state, so the
+   extra transcript below it would only repeat the same sentence. */
+.student-workspace-v2 .sfc-results .sfc-results-scene-extras {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-results .sfc-progress-snapshot {
+  padding: var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.student-workspace-v2 .sfc-results .sfc-progress-snapshot-heading {
+  margin-bottom: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-results .sfc-progress-snapshot-grid {
+  gap: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-results .sfc-progress-snapshot-grid div {
+  gap: var(--space-2xs);
+  padding: var(--space-xs);
+  border-radius: var(--clay-radius-sm);
+}
+
+.student-workspace-v2 .sfc-results .sfc-results-utility {
+  overflow: hidden;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.student-workspace-v2 .sfc-results .sfc-left-feedback-summary {
+  min-height: var(--space-2xl);
+  padding: var(--space-xs) var(--space-sm);
+  gap: var(--space-sm);
+  animation: none;
+}
+
+.student-workspace-v2 .sfc-results .sfc-left-feedback-summary::before,
+.student-workspace-v2 .sfc-results .sfc-left-feedback-summary::after {
+  animation: none;
+}
+
+.student-workspace-v2 .sfc-results .sfc-left-feedback-summary::after {
+  color: var(--clay-muted);
+}
+
+.student-workspace-v2 .sfc-results .sfc-results-footer {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-sm) 0 0;
+  border-top: 1px solid var(--clay-hairline);
+  background: transparent;
+}
+
+.student-workspace-v2 .sfc-results .sfc-unlock-note,
+.student-workspace-v2 .sfc-results .sfc-assistive-retry-hint {
+  font-size: var(--text-xs);
+}
+
+.student-workspace-v2 .sfc-results .sfc-footer-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+  width: 100%;
+  margin: 0;
+}
+
+.student-workspace-v2 .sfc-results .sfc-footer-actions .ui-button {
+  width: 100%;
+  justify-content: center;
+}
+
+.student-workspace-v2 .sfc-results .sfc-footer-actions .ui-button:only-child {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 700px) {
+  .student-workspace-v2 .sfc-results.sfc-screen > .practice-workspace,
+  .student-workspace-v2 .sfc-results .sfc-audio-compare {
+    grid-template-columns: 1fr;
+  }
+
+  .student-workspace-v2 .sfc-results .sfc-stepper {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-workspace-v2 .sfc-results .sfc-footer-actions {
+    grid-template-columns: 1fr;
+  }
+}
