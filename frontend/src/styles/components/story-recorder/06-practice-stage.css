@@ -16,7 +16,7 @@
   text-align: center;
   gap: 8px;
   background: var(--clay-surface-card);
-  border: 2.5px solid var(--clay-hairline);
+  border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   padding: 24px 20px;
   cursor: pointer;
@@ -137,7 +137,7 @@
 /* ── Teacher example frame panel ───────────────────────────────────── */
 .example-frame-panel {
   background: var(--jade-soft);
-  border: 2px solid var(--jade);
+  border: 1px solid var(--jade);
   border-radius: var(--clay-radius-md);
   padding: 16px;
   margin-bottom: 16px;
@@ -181,7 +181,7 @@
 }
 .example-frame-script-block {
   background: var(--clay-surface-card);
-  border: 1.5px solid var(--jade);
+  border: 1px solid var(--jade);
   border-radius: var(--clay-radius-sm);
   padding: 10px 12px;
   margin-bottom: 8px;
@@ -214,7 +214,7 @@
    own outer borders inside it. ── */
 .practice-stage {
   background: var(--clay-surface-card);
-  border: 1.5px solid var(--clay-hairline);
+  border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   overflow: hidden;
 }
@@ -242,7 +242,7 @@
   display: flex;
   align-items: center;
   padding: 0 18px;
-  border-bottom: 1.5px solid var(--clay-hairline);
+  border-bottom: 1px solid var(--clay-hairline);
   background: var(--clay-surface-soft);
   overflow-x: auto;
   scrollbar-width: none;
@@ -299,7 +299,7 @@
 .btn-scene-step-continue {
   padding: 14px 28px;
   border-radius: var(--clay-radius-pill);
-  border: 2px solid var(--seal-deep);
+  border: 1px solid var(--seal-deep);
   background: var(--seal);
   color: var(--clay-on-seal);
   font-size: 1.1rem;
