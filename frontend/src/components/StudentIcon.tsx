@@ -26,7 +26,10 @@ export type StudentIconName =
   | "sprout"
   | "tree"
   | "menu"
-  | "close";
+  | "close"
+  | "arrow-right"
+  | "chevron-down"
+  | "chevron-up";
 
 interface StudentIconProps extends Omit<SVGProps<SVGSVGElement>, "name"> {
   name: StudentIconName;
@@ -59,6 +62,12 @@ export default function StudentIcon({ name, size = 18, ...props }: StudentIconPr
       return <svg {...common}><path d="M4 7h16M4 12h16M4 17h16" /></svg>;
     case "close":
       return <svg {...common}><path d="M6 6l12 12M18 6 6 18" /></svg>;
+    case "arrow-right":
+      return <svg {...common}><path d="M4 12h15M13 6l6 6-6 6" /></svg>;
+    case "chevron-down":
+      return <svg {...common}><path d="m6 9 6 6 6-6" /></svg>;
+    case "chevron-up":
+      return <svg {...common}><path d="m6 15 6-6 6 6" /></svg>;
     case "home":
       return <svg {...common}><path d="m3 10 9-7 9 7" /><path d="M5 9.5V21h14V9.5" /><path d="M9.5 21v-6h5v6" /></svg>;
     case "stories":

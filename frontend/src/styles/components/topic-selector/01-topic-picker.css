@@ -1,8 +1,28 @@
 /* ── Page shell ── */
 .topic-selector {
-  min-height: calc(100vh - var(--navbar-height));
-  padding: var(--space-lg) 0 var(--space-3xl);
-  background: color-mix(in srgb, var(--clay-canvas) 94%, white);
+  position: relative;
+  isolation: isolate;
+  min-height: 100%;
+  padding: var(--space-xl) 0 var(--space-3xl);
+  overflow-x: clip;
+  background:
+    radial-gradient(circle at 92% 4%, color-mix(in srgb, var(--gold-soft) 54%, transparent), transparent 22rem),
+    radial-gradient(circle at 3% 74%, color-mix(in srgb, var(--tone1-soft) 28%, transparent), transparent 20rem),
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--gold-soft) 10%, transparent) 0 1px, transparent 1px 5px),
+    var(--clay-canvas);
+}
+
+.topic-selector::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 320px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .28;
+  background:
+    radial-gradient(ellipse at 12% 14%, transparent 0 12rem, color-mix(in srgb, var(--gold) 22%, transparent) 12rem 12.1rem, transparent 12.1rem 18rem),
+    radial-gradient(ellipse at 12% 14%, transparent 0 17rem, color-mix(in srgb, var(--gold) 13%, transparent) 17rem 17.1rem, transparent 17.1rem 24rem);
 }
 
 /* ── Hero ── */
@@ -123,7 +143,7 @@
   margin-left: auto;
   padding: var(--space-2xs) var(--space-sm);
   border-radius: var(--clay-radius-pill);
-  background: var(--clay-surface-soft, #fdf7e8);
+  background: var(--clay-surface-soft);
   color: var(--clay-muted);
   font-size: 12px;
   font-weight: 600;
@@ -183,7 +203,7 @@
   height: 100%;
   display: grid;
   place-items: center;
-  font-size: 42px;
+  color: var(--gold-deep);
   opacity: 0.4;
 }
 
@@ -275,6 +295,12 @@
   padding-top: var(--space-2xs);
 }
 
+.ts-card-stats > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
 .ts-card-open {
   display: inline-flex;
   align-items: center;
@@ -318,11 +344,14 @@
 /* Earned quiz stars for the story — unearned slots stay visible as hollow
    stars so "something left to win here" reads at a glance. */
 .ts-card-stars {
+  display: inline-flex;
+  align-items: center;
   letter-spacing: 1px;
 }
-.ts-card-stars:not(:empty) {
+.ts-card-stars .is-earned {
   color: var(--gold-deep);
 }
+.ts-card-stars .is-empty { color: var(--clay-muted-soft); }
 
 /* A story still waiting on the previous story in its lesson (5-2 before
    5-1 is submitted) — dimmed and inert, same "not yet" language as a

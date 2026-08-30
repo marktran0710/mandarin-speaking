@@ -257,7 +257,9 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
           {previewImage ? (
             <img src={previewImage} alt={t.name} />
           ) : (
-            <div className="ts-card-image-placeholder">🎬</div>
+            <div className="ts-card-image-placeholder" aria-hidden="true">
+              <StudentIcon name="image" size={32} />
+            </div>
           )}
           {subLabel && <span className="ts-card-lesson-badge">{subLabel}</span>}
           {totalScenes > 1 && (
@@ -282,9 +284,9 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
           )}
 
           <div className="ts-card-stats">
-            <span>🎬 <BiLabel zh={`${totalScenes} 部分`} en={`${totalScenes} scenes`} /></span>
+            <span><StudentIcon name="image" size={14} /> <BiLabel zh={`${totalScenes} 部分`} en={`${totalScenes} scenes`} /></span>
             {totalWords > 0 && (
-              <span>📝 <BiLabel zh={`${totalWords} 詞`} en={`${totalWords} words`} /></span>
+              <span><StudentIcon name="stories" size={14} /> <BiLabel zh={`${totalWords} 詞`} en={`${totalWords} words`} /></span>
             )}
             {totalWords > 0 && (
               // Earned quiz stars for this story (this device's
@@ -295,8 +297,14 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
                 className="ts-card-stars"
                 aria-label={`${loadBestLocalStars(t.id)} of 3 quiz stars earned`}
               >
-                {"⭐".repeat(loadBestLocalStars(t.id))}
-                {"☆".repeat(3 - loadBestLocalStars(t.id))}
+                {Array.from({ length: 3 }, (_, starIndex) => (
+                  <StudentIcon
+                    key={starIndex}
+                    name="star"
+                    size={14}
+                    className={starIndex < loadBestLocalStars(t.id) ? "is-earned" : "is-empty"}
+                  />
+                ))}
               </span>
             )}
           </div>
@@ -312,7 +320,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
                 pinyin={hasQuiz ? "Kāishǐ shēngcí cèyàn" : "Kāishǐ gùshì"}
                 en={hasQuiz ? "Start vocabulary quiz" : "Start story"}
               />
-              <span aria-hidden="true">→</span>
+              <StudentIcon name="arrow-right" size={17} aria-hidden="true" />
             </button>
           )}
 
@@ -400,7 +408,9 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
                     <BiLabel zh={`${done}/${total} 個故事`} en={`${done}/${total} stories`} />
                   )}
                 </span>
-                <span className="ts-lesson-chevron" aria-hidden="true">{isOpen ? "▴" : "▾"}</span>
+              <span className="ts-lesson-chevron" aria-hidden="true">
+                <StudentIcon name={isOpen ? "chevron-up" : "chevron-down"} size={16} />
+              </span>
               </>
             )}
           </span>
@@ -459,7 +469,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               }}
             >
               <div className="ts-num-tile ts-tile-other">
-                <span className="ts-num-tile-n">✦</span>
+                <StudentIcon name="spark" size={24} />
               </div>
               <div className="ts-lesson-main">
                 <div className="ts-lesson-title">
@@ -477,7 +487,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               </div>
               <div className="ts-lesson-side">
                 <span className="ts-side-chip ts-chip-open" aria-hidden="true">
-                  {openLesson === "other" ? "▴" : "▾"}
+                  <StudentIcon name={openLesson === "other" ? "chevron-up" : "chevron-down"} size={16} />
                 </span>
               </div>
             </div>

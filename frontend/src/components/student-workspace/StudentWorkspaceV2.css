@@ -43,6 +43,22 @@
 
 @media (max-width: 900px) {
   .student-workspace-v2 { grid-template-columns: minmax(0, 1fr); }
+  /* StudentWorkspacePage.css gives every direct child a relative stacking
+     context. Re-assert the drawer geometry here so the mobile rail is taken
+     out of the grid flow instead of pushing the catalogue below the fold. */
+  .student-workspace-v2 > .student-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 36;
+  }
+  .student-workspace-v2 > .student-sidebar-toggle {
+    position: fixed;
+    z-index: 40;
+  }
+  .student-workspace-v2 > .student-sidebar-backdrop {
+    position: fixed;
+    z-index: 35;
+  }
   /* Clear the fixed menu button so the first heading isn't underneath it. */
   .student-workspace-v2 > .student-workspace-content-v2 {
     padding-top: calc(44px + var(--space-lg));
