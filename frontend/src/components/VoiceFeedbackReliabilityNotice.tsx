@@ -15,8 +15,8 @@ import "./VoiceFeedbackReliabilityNotice.css";
  * student, who cannot act on either one. They were two paragraphs of English
  * sitting above the actual results on every single attempt.
  *
- * What survives is the one level a learner can do something about: the
- * recording failed, so move closer to the mic and say it again. The
+ * What survives is the one level a learner needs to understand: the
+ * recording failed and the score is unavailable. The
  * assessment itself is untouched — `assessVoiceFeedbackReliability` still
  * feeds `canCountForProgress` in the practice drills, and several screens
  * still hide their scores on `level === "retry"`. This is display only.
@@ -50,11 +50,6 @@ export default function VoiceFeedbackReliabilityNotice({
       <div>
         <strong>Score unavailable</strong>
         {!compact && <p>{detail}</p>}
-        {!compact && (
-          <p className="voice-reliability-action">
-            Move 10–20 cm away, find a quiet spot, and say the phrase again.
-          </p>
-        )}
       </div>
     </aside>
   );

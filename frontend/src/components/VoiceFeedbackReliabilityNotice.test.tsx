@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import VoiceFeedbackReliabilityNotice from "./VoiceFeedbackReliabilityNotice";
 
 describe("VoiceFeedbackReliabilityNotice", () => {
-  it("announces an unsafe attempt and gives a concrete retry action", () => {
+  it("announces when an unsafe attempt cannot be scored", () => {
     render(
       <VoiceFeedbackReliabilityNotice
         assessment={{
@@ -16,7 +16,7 @@ describe("VoiceFeedbackReliabilityNotice", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent("Score unavailable");
     expect(screen.getByRole("alert")).toHaveTextContent("enough pitch");
-    expect(screen.getByRole("alert")).toHaveTextContent("10–20 cm");
+    expect(screen.getByRole("alert")).not.toHaveTextContent("10–20 cm");
   });
 
   it.each(["reliable", "estimate"] as const)(
