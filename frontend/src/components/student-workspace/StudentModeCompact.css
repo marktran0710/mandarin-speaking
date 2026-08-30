@@ -28,8 +28,17 @@
 }
 
 .student-workspace-v2 .story-recorder {
+  display: grid;
   width: 100%;
   padding: 0 0 var(--space-lg);
+  gap: var(--space-sm);
+}
+
+/* The session bar and the active phase are separate components. Keep a real
+   token gap between them; the bar's own margin is intentionally zero so all
+   session surfaces can share the same vertical rhythm here. */
+.student-workspace-v2 .story-session-main {
+  display: grid;
   gap: var(--space-sm);
 }
 

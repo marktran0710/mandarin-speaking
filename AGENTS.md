@@ -111,6 +111,16 @@ and trustworthy rather than childish, noisy, or gamified for its own sake.
    widths, or nested margins that create drift. On smaller screens, collapse
    the grid while preserving the same page gutter and alignment rhythm.
 
+8. **Keep composed components visibly separated.** Every sibling component or
+   section needs a deliberate gap; components must not touch edge-to-edge
+   unless they are an intentional segmented control, table, or continuous
+   surface. Use the spacing tokens (`--space-xs` for related controls,
+   `--space-sm` for adjacent components, and `--space-md` or larger between
+   sections) through a parent `gap` or a clearly owned section margin. After
+   changing layout, inspect the rendered boundary between each major sibling
+   and fix any zero-gap pair before shipping. Preserve the same rhythm when a
+   grid collapses on smaller screens.
+
 ## Git branch naming
 
 Do not use `codex/` as a branch-name prefix in this repository. Branch names
