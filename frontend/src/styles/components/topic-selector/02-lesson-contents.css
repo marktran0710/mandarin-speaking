@@ -267,12 +267,8 @@
 /* ── Accordion body: a lesson's story cards, dropped in place under its
    own journey stop instead of navigating to a separate screen. ── */
 .ts-lesson-expanded {
-  padding: var(--space-xs) 0 var(--space-xs) var(--space-lg);
+  padding: var(--space-xs) 0;
   margin: var(--space-xs) 0 var(--space-2xs);
-  border-left: 2px solid color-mix(in srgb, var(--gold) 25%, var(--clay-hairline));
-}
-@media (max-width: 720px) {
-  .ts-lesson-expanded { padding-left: var(--space-sm); }
 }
 
 /* ── The "other" card sits below the numbered journey, not chained into it
@@ -358,20 +354,7 @@
 .ts-chip-open { background: var(--clay-surface-soft); color: var(--clay-muted); }
 
 .ts-other-block {
-  position: relative;
   margin-top: var(--space-xl);
-  padding-left: var(--space-lg);
-}
-
-.ts-other-block::before {
-  content: "";
-  position: absolute;
-  top: var(--space-lg);
-  bottom: var(--space-lg);
-  left: var(--space-sm);
-  width: 2px;
-  border-radius: var(--clay-radius-pill);
-  background: color-mix(in srgb, var(--gold) 18%, var(--clay-hairline));
 }
 
 .ts-other-label {
@@ -482,10 +465,8 @@
     width: 100%;
     min-width: 0;
   }
-  .ts-lesson-list,
-  .ts-other-block { padding-left: 0; }
-  .ts-lesson-list::before,
-  .ts-other-block::before { display: none; }
+  .ts-lesson-list { padding-left: 0; }
+  .ts-lesson-list::before { display: none; }
   .ts-lesson-card {
     flex-wrap: wrap;
   }

@@ -1100,23 +1100,32 @@
 .student-workspace.student-workspace-v2 .topic-selector {
   min-height: 0;
   padding: var(--space-sm) 0 var(--space-md);
-  background: var(--clay-canvas);
+  /* Keep the course index on the shell canvas. A second flat canvas here
+     created the unexplained white rectangle visible beside the content. */
+  background: transparent;
 }
 
-.student-workspace-v2 .ts-toc-head {
+.student-workspace.student-workspace-v2 .ts-toc-head {
   min-height: var(--space-3xl);
   margin-bottom: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  border-radius: var(--clay-radius-lg);
+  border: 0;
+  border-bottom: 1px solid var(--clay-hairline);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .student-workspace-v2 .ts-toc-title {
   font-size: clamp(var(--text-xl), 3vw, 36px);
 }
 
-.student-workspace-v2 .ts-book-chip {
+.student-workspace.student-workspace-v2 .ts-book-chip {
   min-width: 0;
   padding: var(--space-2xs) var(--space-xs);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .student-workspace-v2 .ts-book-cover {
