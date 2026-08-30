@@ -398,6 +398,37 @@
   min-height: var(--student-control-height);
 }
 
+/* Quiz mode selection shares the story top bar's content line. The legacy
+   quiz surface had its own 24px inset and 1040px cap, which made the header
+   and cards visibly narrower than the bar above them. Keep one full-width
+   grid inside the story column so every left and right edge lines up. */
+.student-workspace-v2 .story-vocab-quiz {
+  width: 100%;
+  max-width: none;
+  padding-inline: 0;
+}
+
+.student-workspace-v2 .story-vocab-quiz .vocab-quiz-header,
+.student-workspace-v2 .story-vocab-quiz .vocab-quiz-mode-grid {
+  width: 100%;
+  max-width: none;
+}
+
+.student-workspace-v2 .vocab-quiz-mode-grid,
+.student-workspace-v2 .vocab-quiz-secondary-grid {
+  align-items: stretch;
+}
+
+/* Equal fractional tracks make both choice rows stretch evenly without
+   hand-tuned widths. */
+.student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-mode-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .student-workspace-v2 .story-overview {
   gap: var(--space-md);
   padding-bottom: var(--space-md);
