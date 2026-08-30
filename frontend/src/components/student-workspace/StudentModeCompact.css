@@ -510,9 +510,10 @@
 }
 
 .student-workspace-v2 .scene-vocab-table {
-  /* Intentional continuous table surface: rows share one border system. */
-  gap: 0;
-  padding: 0;
+  /* Vocabulary rows are separate reading items, so keep a small, deliberate
+     gap instead of letting adjacent words touch edge-to-edge. */
+  gap: var(--space-2xs);
+  padding: var(--space-2xs);
   border: 1px solid var(--clay-hairline-soft);
   background: var(--clay-surface-card);
 }
@@ -583,21 +584,29 @@
   padding: var(--space-sm);
 }
 
-/* Long reviews scroll as one continuous reference rail. Vocabulary and
-   phrases remain in their existing order, while the next-step action stays
-   outside the rail and reachable without scrolling through the whole page. */
+/* Keep the study surface and phrase reference fixed. Only a long vocabulary
+   list gets an inner scroll area, so the vocabulary heading, coverage note,
+   phrases, and next-step actions remain reachable at a glance. */
 @media (min-width: 701px) {
   .student-workspace-v2 .practice-workspace-study .practice-content.practice-study-ref {
+    max-block-size: none;
+    overflow: visible;
+    padding-inline-end: 0;
+    scrollbar-gutter: auto;
+  }
+
+  .student-workspace-v2 .practice-workspace-study .scene-vocab-table-practice {
     max-block-size: calc(var(--space-3xl) * 6);
+    min-width: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding-inline-end: var(--space-2xs);
     scrollbar-gutter: stable;
     scrollbar-width: thin;
   }
 
   .student-workspace-v2 .practice-workspace-study .practice-phrases-hint-full {
     max-block-size: none;
+    max-height: none;
     overflow: visible;
     scrollbar-gutter: auto;
   }
@@ -1194,6 +1203,12 @@
 
   .student-workspace-v2 .practice-phrases-hint-full {
     max-height: none;
+  }
+
+  .student-workspace-v2 .practice-workspace-study .scene-vocab-table-practice {
+    max-block-size: none;
+    overflow: visible;
+    scrollbar-gutter: auto;
   }
 
   .student-workspace-v2 .ssb-journey {
