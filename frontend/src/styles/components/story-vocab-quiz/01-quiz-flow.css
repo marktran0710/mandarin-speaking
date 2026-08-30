@@ -9,16 +9,12 @@
   padding: clamp(22px, 4vw, 42px) 24px 48px;
   text-align: center;
 }
-/* The tier-choice screen is a full selection surface: keep the back action
-   and progress header in a predictable top-to-bottom reading order. */
+/* The tier-choice screen is a focused selection surface: the story session
+   header owns navigation, while this page owns the learning decision. */
 .vocab-quiz-mode-select {
   min-height: 100%;
   justify-content: flex-start;
-}
-
-.vocab-quiz-mode-select > .btn-vocab-quiz-back {
-  align-self: flex-start;
-  min-height: 44px;
+  gap: var(--space-lg);
 }
 
 /* A persistent row above the question itself — Back (if given) and, in
@@ -390,11 +386,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  column-gap: var(--space-xl);
+  column-gap: var(--space-2xl);
   width: min(100%, 1040px);
   margin: 0 auto;
   gap: var(--space-xs);
-  padding: var(--space-lg) clamp(var(--space-lg), 5vw, var(--space-xl));
+  padding: var(--space-xl) clamp(var(--space-lg), 5vw, var(--space-2xl));
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--gold) 36%, var(--clay-hairline));
   border-radius: var(--clay-radius-lg);
@@ -485,10 +481,10 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: stretch;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   width: min(100%, 1040px);
   margin: 0 auto;
-  padding-bottom: var(--space-lg);
+  padding-bottom: 0;
 }
 
 /* The recorder shell reserves a narrow content gutter for story practice.

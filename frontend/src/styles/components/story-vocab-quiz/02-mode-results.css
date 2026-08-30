@@ -11,18 +11,18 @@
   min-width: 0;
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  min-height: 176px;
+  border-radius: var(--clay-radius-md);
+  min-height: 0;
   padding: var(--space-lg);
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   text-align: left;
   transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
 }
 .vocab-quiz-mode-card:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--gold-deep) 46%, var(--clay-hairline));
   background: color-mix(in srgb, var(--clay-surface-card) 94%, var(--gold-soft));
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 .vocab-quiz-mode-card:active:not(:disabled) {
   box-shadow: var(--shadow-sm);
@@ -96,9 +96,32 @@
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-md);
+  gap: var(--space-sm);
 }
 .vocab-quiz-secondary-grid > :only-child { grid-column: 1 / -1; }
+
+/* Secondary modes are supporting paths, not equal-weight feature tiles. Keep
+   their icon, bilingual title, explanation, and arrow on one shared row so
+   the page reads as a compact decision list. */
+.vocab-quiz-secondary-grid > .vocab-quiz-mode-card {
+  grid-template-columns: var(--space-2xl) minmax(0, .7fr) minmax(0, 1.3fr) auto;
+  grid-template-rows: auto;
+  align-items: center;
+  column-gap: var(--space-lg);
+  row-gap: 0;
+  min-height: 0;
+  padding: var(--space-md) var(--space-lg);
+}
+.vocab-quiz-secondary-grid > .vocab-quiz-mode-card > strong {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+}
+.vocab-quiz-secondary-grid > .vocab-quiz-mode-card > p {
+  grid-column: 3;
+  grid-row: 1;
+  align-self: center;
+}
 .vocab-quiz-mode-review {
   border-color: color-mix(in srgb, var(--jade-deep) 28%, var(--clay-hairline));
 }
@@ -107,8 +130,8 @@
   border-color: color-mix(in srgb, var(--seal-deep) 28%, var(--clay-hairline));
 }
 .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > svg {
-  grid-column: 3;
-  grid-row: 1 / span 2;
+  grid-column: 4;
+  grid-row: 1;
   align-self: center;
   color: var(--clay-muted);
 }
@@ -148,8 +171,24 @@
   }
 
   .vocab-quiz-mode-card {
-    min-height: 164px;
+    min-height: 0;
     padding: var(--space-md);
+  }
+
+  .vocab-quiz-secondary-grid > .vocab-quiz-mode-card {
+    grid-template-columns: var(--space-2xl) minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    column-gap: var(--space-md);
+  }
+  .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > strong,
+  .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > p {
+    grid-column: 2 / 4;
+  }
+  .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > strong { grid-row: 1; }
+  .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > p { grid-row: 2; }
+  .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > svg {
+    grid-column: 3;
+    grid-row: 1 / span 2;
   }
 }
 
@@ -204,6 +243,12 @@
 
   .vocab-quiz-secondary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .vocab-quiz-secondary-grid > .vocab-quiz-mode-card {
+    grid-template-columns: var(--space-2xl) minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    padding: var(--space-md);
   }
 }
 
