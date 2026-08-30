@@ -635,12 +635,40 @@
   gap: var(--space-xs);
 }
 
-/* Speaking controls sit beside the scene on desktop. Their own card remains
-   one unit so model audio, record, upload, and optional settings scan as one
-   decision rather than four competing panels. */
+/* Speaking is a two-column desk on desktop: the scene stage and recording
+   desk share the same frame height, so a short image never leaves a blank
+   column beneath it. The controls remain one ordered workflow rather than
+   separate competing cards. */
+.student-workspace-v2 .sfc-record .practice-workspace {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
 .student-workspace-v2 .sfc-record .practice-scene-col {
-  display: block;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-self: stretch;
   width: 100%;
+  gap: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-record .practice-scene-image {
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+/* The scene marker is the only supporting label under the image. It is kept
+   on the same left edge as the stage rather than floating as a separate chip. */
+.student-workspace-v2 .sfc-record .sfc-attempt-only {
+  justify-self: start;
+}
+
+.student-workspace-v2 .sfc-record .sfc-attempt-only > .bi-label {
+  display: inline-flex;
+}
+
+.student-workspace-v2 .sfc-record .sfc-attempt-only .bi-pinyin {
+  display: none;
 }
 
 .student-workspace-v2 .sfc-record-main {
@@ -657,6 +685,10 @@
 }
 
 .student-workspace-v2 .sfc-record-panel {
+  --sfc-model-content-indent: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
   gap: var(--space-sm);
   padding: var(--space-md);
   border-radius: var(--clay-radius-md);
@@ -665,7 +697,12 @@
 }
 
 .student-workspace-v2 .model-recording-practice {
+  grid-template-columns: minmax(0, 1fr);
   row-gap: var(--space-xs);
+}
+
+.student-workspace-v2 .model-recording-practice > * {
+  grid-column: 1;
 }
 
 .student-workspace-v2 .model-recording-instruction .bi-pinyin {
@@ -682,12 +719,41 @@
   line-height: 1.3;
 }
 
+/* Learners only need feedback when the reference actually has a problem.
+   The standard AI-reference explanation adds no decision at this stage. */
+.student-workspace-v2 .model-recording-reference-status.is-ai {
+  display: none;
+}
+
 .student-workspace-v2 .model-recording-steps {
   gap: var(--space-xs);
   padding-top: var(--space-xs);
 }
 
-.student-workspace-v2 .sfc-record-btn {
+.student-workspace-v2 .sfc-record-actions {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-record-actions .bi-label {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.student-workspace-v2 .sfc-record-actions .bi-pinyin {
+  display: none;
+}
+
+/* Upload is a secondary fallback, so its familiar icon and Chinese label are
+   sufficient. Omitting the duplicate English label preserves room for the
+   primary record action on compact desktop widths. */
+.student-workspace-v2 .sfc-upload-btn .bi-en {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-record-btn,
+.student-workspace-v2 .sfc-upload-btn {
   min-height: var(--student-control-height);
 }
 
@@ -1104,6 +1170,13 @@
   .student-workspace-v2 .sfc-record .practice-workspace,
   .student-workspace-v2 .sfc-results.sfc-screen > .practice-workspace {
     grid-template-columns: 1fr;
+  }
+
+  /* The narrow action row keeps its familiar primary/secondary hierarchy
+     without wrapping a Chinese label into a vertical stack. English remains
+     present throughout the learning content, where it supports comprehension. */
+  .student-workspace-v2 .sfc-record-btn .bi-en {
+    display: none;
   }
 
   /* The two reference blocks share a row only while the right rail has
