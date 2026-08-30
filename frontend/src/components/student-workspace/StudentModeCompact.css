@@ -114,6 +114,12 @@
   gap: var(--space-md);
 }
 
+/* Give the study rail enough width for the vocabulary table while keeping
+   the scene visible as a clear visual reference. */
+.student-workspace-v2 .practice-workspace-study {
+  grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
+}
+
 .student-workspace-v2 .practice-workspace-study .practice-scene-col,
 .student-workspace-v2 .sfc-record .practice-scene-col,
 .student-workspace-v2 .sfc-results .practice-scene-col {
@@ -125,9 +131,23 @@
   box-shadow: none;
 }
 
+/* Keep the scene progress chip anchored to its image after the shared mobile
+   stylesheet disables sticky positioning. The full context also clears the
+   base sticky offset so the scene and study rail share the same top line. */
+.student-workspace-v2 .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-col {
+  position: relative;
+  top: auto;
+}
+
 .student-workspace-v2 .practice-workspace-study .practice-scene-image,
 .student-workspace-v2 .sfc-record .practice-scene-image {
   aspect-ratio: 16 / 10;
+}
+
+/* The base story-recorder stylesheet has a more specific image-frame rule;
+   repeat that context here so the student compact layout owns this value. */
+.student-workspace-v2 .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image {
+  aspect-ratio: 4 / 3;
 }
 
 .student-workspace-v2 .sfc-results .practice-scene-image {
@@ -194,8 +214,19 @@
   display: none;
 }
 
+/* Keep the study reference rail dense and horizontal: vocabulary and phrase
+   support are existing learning content, not separate vertical sections.
+   Both blocks share the same grid so the right rail uses its width before
+   growing the whole practice stage taller than the scene image. */
 .student-workspace-v2 .practice-study-ref {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  align-items: start;
+}
+
+.student-workspace-v2 .practice-vocab-ref,
+.student-workspace-v2 .practice-phrases-hint-full {
+  align-self: start;
+  min-width: 0;
 }
 
 .student-workspace-v2 .practice-study-block {
@@ -751,6 +782,13 @@
     grid-template-columns: 1fr;
   }
 
+  /* The two reference blocks share a row only while the right rail has
+     enough width. On mobile they return to one readable column. */
+  .student-workspace-v2 .practice-study-ref {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+
   .student-workspace-v2 .practice-workspace-study .practice-scene-image,
   .student-workspace-v2 .sfc-record .practice-scene-image,
   .student-workspace-v2 .sfc-results .practice-scene-image {
@@ -783,6 +821,18 @@
 
   .student-workspace-v2 .profile-stats {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .student-workspace-v2 .practice-workspace-study .scene-vocab-hanzi,
+  .student-workspace-v2 .practice-workspace-study .scene-vocab-pinyin,
+  .student-workspace-v2 .practice-workspace-study .scene-vocab-pos {
+    white-space: nowrap;
+  }
+
+  .student-workspace-v2 .practice-workspace-study .scene-vocab-meaning {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 
