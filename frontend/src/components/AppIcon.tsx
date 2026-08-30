@@ -26,6 +26,8 @@ export interface AppIconProps extends Omit<SVGProps<SVGSVGElement>, "name"> {
   strokeWidth?: number;
 }
 
+type IconAccent = { path: number; fill: string };
+
 const paths: Record<AppIconName, string[]> = {
   home: ["M3.5 10.5 12 3.8l8.5 6.7", "M5.5 9.5V20h13V9.5", "M9.5 20v-5.5h5V20"],
   book: ["M4.5 5.5A2.5 2.5 0 0 1 7 3h13v16H7a2.5 2.5 0 0 0-2.5 2.5z", "M4.5 5.5v16", "M8.5 7h7"],
@@ -105,8 +107,62 @@ const paths: Record<AppIconName, string[]> = {
   "face-hard": ["M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z", "M8.5 10h.01M15.5 10h.01", "M8.5 16c1-.8 2.2-1.2 3.5-1.2s2.5.4 3.5 1.2"],
 };
 
+/**
+ * Small color planes make the family feel illustrated without turning every
+ * icon into a separate asset. The outline remains the consumer's current
+ * color, while these accents stay semantic and consistent across the app.
+ */
+const accents: Partial<Record<AppIconName, IconAccent[]>> = {
+  home: [{ path: 1, fill: "var(--tone1-soft)" }],
+  book: [{ path: 0, fill: "var(--tone1-soft)" }],
+  stories: [{ path: 0, fill: "var(--tone1-soft)" }],
+  image: [{ path: 0, fill: "var(--tone1-soft)" }, { path: 2, fill: "var(--jade-soft)" }],
+  listen: [{ path: 1, fill: "var(--tone1-soft)" }],
+  headset: [{ path: 1, fill: "var(--tone1-soft)" }],
+  voice: [{ path: 0, fill: "var(--clay-error-soft)" }],
+  microphone: [{ path: 0, fill: "var(--clay-error-soft)" }],
+  record: [{ path: 0, fill: "var(--clay-error-soft)" }],
+  volume: [{ path: 0, fill: "var(--tone1-soft)" }],
+  retry: [{ path: 0, fill: "var(--tone1)" }, { path: 2, fill: "var(--jade)" }],
+  refresh: [{ path: 0, fill: "var(--tone1)" }, { path: 2, fill: "var(--jade)" }],
+  check: [{ path: 0, fill: "var(--jade)" }],
+  "check-circle": [{ path: 0, fill: "var(--jade-soft)" }],
+  "x-circle": [{ path: 0, fill: "var(--clay-error-soft)" }],
+  warning: [{ path: 0, fill: "var(--gold-soft)" }],
+  info: [{ path: 0, fill: "var(--tone1-soft)" }],
+  star: [{ path: 0, fill: "var(--gold)" }],
+  lock: [{ path: 0, fill: "var(--gold-soft)" }],
+  users: [{ path: 1, fill: "var(--tone1-soft)" }],
+  user: [{ path: 0, fill: "var(--tone1-soft)" }],
+  target: [{ path: 0, fill: "var(--tone1-soft)" }, { path: 2, fill: "var(--gold)" }],
+  idea: [{ path: 2, fill: "var(--gold-soft)" }],
+  celebrate: [{ path: 0, fill: "var(--gold-soft)" }],
+  seedling: [{ path: 1, fill: "var(--jade-soft)" }, { path: 2, fill: "var(--jade-soft)" }],
+  sprout: [{ path: 1, fill: "var(--jade-soft)" }, { path: 2, fill: "var(--jade-soft)" }],
+  tree: [{ path: 2, fill: "var(--jade-soft)" }],
+  play: [{ path: 0, fill: "var(--gold)" }],
+  stop: [{ path: 0, fill: "var(--clay-error-soft)" }],
+  pause: [{ path: 0, fill: "var(--gold-soft)" }],
+  edit: [{ path: 0, fill: "var(--gold-soft)" }],
+  trash: [{ path: 3, fill: "var(--clay-error-soft)" }],
+  file: [{ path: 0, fill: "var(--tone1-soft)" }],
+  library: [{ path: 0, fill: "var(--tone1-soft)" }, { path: 1, fill: "var(--jade-soft)" }, { path: 2, fill: "var(--gold-soft)" }],
+  inbox: [{ path: 0, fill: "var(--tone1-soft)" }],
+  dashboard: [{ path: 0, fill: "var(--tone1-soft)" }, { path: 1, fill: "var(--jade-soft)" }, { path: 2, fill: "var(--gold-soft)" }, { path: 3, fill: "var(--clay-error-soft)" }],
+  quiz: [{ path: 0, fill: "var(--tone1-soft)" }],
+  monitor: [{ path: 0, fill: "var(--tone1-soft)" }],
+  settings: [{ path: 1, fill: "var(--jade-soft)" }],
+  shield: [{ path: 0, fill: "var(--jade-soft)" }],
+  clock: [{ path: 0, fill: "var(--gold-soft)" }],
+  send: [{ path: 0, fill: "var(--tone1-soft)" }],
+  "face-neutral": [{ path: 0, fill: "var(--gold-soft)" }],
+  "face-good": [{ path: 0, fill: "var(--jade-soft)" }],
+  "face-hard": [{ path: 0, fill: "var(--clay-error-soft)" }],
+};
+
 export default function AppIcon({ name, size = 18, strokeWidth = 1.75, fill = "none", ...props }: AppIconProps) {
   const iconPaths = paths[name] ?? paths.help;
+  const iconAccents = accents[name] ?? [];
   return (
     <svg
       {...props}
@@ -121,6 +177,7 @@ export default function AppIcon({ name, size = 18, strokeWidth = 1.75, fill = "n
       aria-hidden={props["aria-label"] ? undefined : true}
       focusable="false"
     >
+      {iconAccents.map(({ path, fill: accentFill }) => <path key={`accent-${path}`} d={iconPaths[path]} fill={accentFill} stroke={accentFill} strokeWidth={strokeWidth + 2} />)}
       {iconPaths.map((path) => <path key={path} d={path} />)}
     </svg>
   );
