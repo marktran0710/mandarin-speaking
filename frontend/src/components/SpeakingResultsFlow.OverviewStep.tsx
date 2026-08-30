@@ -81,10 +81,7 @@ export default function SpeakingResultsOverviewStep({
                   : "發音需要練習 / Needs practice"}
           </p>
           {contentNeedsRetry ? (
-            <>
-              <p>Move closer and record the full phrase again.</p>
-              <small>Tone scores remain provisional until the script matches.</small>
-            </>
+            <p>Move closer and say the full phrase again.</p>
           ) : pronunciationMastery.message ? <p>{pronunciationMastery.message}</p> : null}
         </div>
       )}

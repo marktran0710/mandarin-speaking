@@ -144,10 +144,7 @@ def assess_recording_quality(
             "can_score_pronunciation": False,
             "can_score_content": False,
             "reason_codes": reasons,
-            "student_message": (
-                "This recording is not clear enough to score safely. Move closer to the "
-                "microphone, speak one complete phrase, and record again."
-            ),
+            "student_message": "Move closer and say the full phrase again.",
             "metrics": metrics,
         }
 
