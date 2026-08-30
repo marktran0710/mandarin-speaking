@@ -16,6 +16,7 @@ import ContentDiffDisplay from "./ContentDiffDisplay";
 import { BiLabel } from "./BiLabel";
 import MiniContourChart from "./MiniContourChart";
 import VoiceFeedbackReliabilityNotice from "./VoiceFeedbackReliabilityNotice";
+import StudentIcon from "./StudentIcon";
 import {
   assessVoiceFeedbackReliability,
   type VoiceFeedbackReliability,
@@ -219,8 +220,8 @@ export default function WordPracticeDrill({
           <BiLabel zh="關掉單字練習" pinyin="Guāndiào dānzì liànxí" en="Hide word practice" />
         ) : (
           <BiLabel
-            zh={`🎙 自己練習「${word.token}」${wordPinyin ? ` ${wordPinyin}` : ""}`}
-            en={`🎙 Practice "${word.token}"${wordPinyin ? ` (${wordPinyin})` : ""} alone`}
+            zh={`自己練習「${word.token}」${wordPinyin ? ` ${wordPinyin}` : ""}`}
+            en={`Practice "${word.token}"${wordPinyin ? ` (${wordPinyin})` : ""} alone`}
           />
         )}
       </button>
@@ -231,11 +232,11 @@ export default function WordPracticeDrill({
               comfortably above the bar can still come back ✗. Saying the
               rule out loud is what makes that readable instead of arbitrary. */}
           <p className="word-practice-gate-note">
-            🎯{" "}
+            <StudentIcon name="target" size={16} aria-hidden="true" />{" "}
             <BiLabel
-              zh={`每個字都要 ${SYLLABLE_PASS_SCORE} 分以上，才算過關 ✓`}
-              pinyin={`Měi ge zì dōu yào ${SYLLABLE_PASS_SCORE} fēn yǐshàng, cái suàn guòguān ✓`}
-              en={`Every syllable needs ${SYLLABLE_PASS_SCORE}+ to count as passed ✓`}
+              zh={`每個字都要 ${SYLLABLE_PASS_SCORE} 分以上，才算過關`}
+              pinyin={`Měi ge zì dōu yào ${SYLLABLE_PASS_SCORE} fēn yǐshàng, cái suàn guòguān`}
+              en={`Every syllable needs ${SYLLABLE_PASS_SCORE}+ to count as passed`}
             />
           </p>
           <div className="word-practice-controls">
@@ -246,11 +247,11 @@ export default function WordPracticeDrill({
               disabled={isAnalyzing}
             >
               {isRecording ? (
-                <BiLabel zh="停止" pinyin="Tíngzhǐ" en="Stop" />
+                <><StudentIcon name="stop" size={15} aria-hidden="true" /><BiLabel zh="停止" pinyin="Tíngzhǐ" en="Stop" /></>
               ) : attempts.length > 0 ? (
-                <BiLabel zh="再錄一次" pinyin="Zài lù yí cì" en="Record again" />
+                <><StudentIcon name="record" size={15} aria-hidden="true" /><BiLabel zh="再錄一次" pinyin="Zài lù yí cì" en="Record again" /></>
               ) : (
-                <BiLabel zh="錄音" pinyin="Lùyīn" en="Record" />
+                <><StudentIcon name="record" size={15} aria-hidden="true" /><BiLabel zh="錄音" pinyin="Lùyīn" en="Record" /></>
               )}
             </button>
             <label
@@ -260,7 +261,7 @@ export default function WordPracticeDrill({
               role="button"
               tabIndex={isRecording || isAnalyzing ? -1 : 0}
             >
-              <BiLabel zh="上傳音檔" pinyin="Shàngchuán yīndàng" en="Upload audio" />
+              <StudentIcon name="upload" size={15} aria-hidden="true" /><BiLabel zh="上傳音檔" pinyin="Shàngchuán yīndàng" en="Upload audio" />
               <input
                 type="file"
                 accept="audio/*,.wav,.webm,.mp3,.m4a,.ogg,.aac,.flac"
@@ -333,7 +334,7 @@ export default function WordPracticeDrill({
                     >
                       <span className="word-syllable-char">
                         {syllable.char} {toneArrow(syllable.tone)}{" "}
-                        {Math.round(syllable.score)} {syllable.passed ? "✓" : "✗"}
+                        {Math.round(syllable.score)} <StudentIcon name={syllable.passed ? "check" : "x-circle"} size={14} aria-hidden="true" />
                       </span>
                       {syllablePinyin[index] && (
                         <span className="word-syllable-pinyin">
@@ -365,15 +366,15 @@ export default function WordPracticeDrill({
                     onPass, so showing "✓ 過關" there contradicts the chip
                     staying ✗ — count it as try-again instead. */}
                 {latest.passed === true && latestContentMatch !== false && (
-                  <span className="word-practice-pass-chip">✓ 過關 Passed</span>
+                  <span className="word-practice-pass-chip"><StudentIcon name="check" size={14} aria-hidden="true" /> 過關 Passed</span>
                 )}
                 {(latest.passed === false ||
                   (latest.passed === true && latestContentMatch === false)) && (
-                  <span className="word-practice-fail-chip">✗ 再試一次 Try again</span>
+                  <span className="word-practice-fail-chip"><StudentIcon name="x-circle" size={14} aria-hidden="true" /> 再試一次 Try again</span>
                 )}
                 {typeof trend === "number" && trend !== 0 && (
                   <em className={trend > 0 ? "trend-up" : "trend-down"}>
-                    {trend > 0 ? "↑" : "↓"} {Math.abs(trend)}%
+                    <StudentIcon name={trend > 0 ? "arrow-up" : "arrow-down"} size={14} aria-hidden="true" /> {Math.abs(trend)}%
                   </em>
                 )}
               </div>

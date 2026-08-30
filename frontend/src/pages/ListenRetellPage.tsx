@@ -444,13 +444,13 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
               <p>{contentAccuracy.feedback}</p>
               {contentAccuracy.matched_details.length > 0 && (
                 <p className="lr-matched">
-                  ✓ <BiLabel zh="說對了：" pinyin="Shuō duì le:" en="Matched: " />
+                  <StudentIcon name="check" size={15} aria-hidden="true" /> <BiLabel zh="說對了：" pinyin="Shuō duì le:" en="Matched: " />
                   {contentAccuracy.matched_details.join(", ")}
                 </p>
               )}
               {contentAccuracy.missed_details.length > 0 && (
                 <p className="lr-missed">
-                  ✗ <BiLabel zh="沒說到：" pinyin="Méi shuō dào:" en="Missed: " />
+                  <StudentIcon name="x-circle" size={15} aria-hidden="true" /> <BiLabel zh="沒說到：" pinyin="Méi shuō dào:" en="Missed: " />
                   {contentAccuracy.missed_details.join(", ")}
                 </p>
               )}

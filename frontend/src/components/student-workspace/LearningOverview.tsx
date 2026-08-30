@@ -12,7 +12,7 @@ export function QuizGateStatus({ gate }: { gate: QuizGateState }) {
   if (gate.status === "completed") {
     return (
       <span className="workspace-gate workspace-gate-complete">
-        <span aria-hidden="true">✓</span>
+        <span aria-hidden="true"><StudentIcon name="check-circle" size={18} /></span>
         <span>
           <strong>Quiz complete</strong>
           <small>Ready to start speaking practice</small>
@@ -24,7 +24,7 @@ export function QuizGateStatus({ gate }: { gate: QuizGateState }) {
   if (gate.status === "required") {
     return (
       <span className="workspace-gate workspace-gate-required">
-        <span aria-hidden="true">!</span>
+        <span aria-hidden="true"><StudentIcon name="warning" size={18} /></span>
         <span>
           <strong>Quiz required first</strong>
           <small>{gate.reason}</small>
@@ -35,7 +35,7 @@ export function QuizGateStatus({ gate }: { gate: QuizGateState }) {
 
   return (
     <span className="workspace-gate workspace-gate-unavailable">
-      <span aria-hidden="true">—</span>
+      <span aria-hidden="true"><StudentIcon name="minus" size={18} /></span>
       <span>
         <strong>No quiz for this activity</strong>
         <small>{gate.reason}</small>

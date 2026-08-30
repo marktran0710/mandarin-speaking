@@ -6,21 +6,7 @@ import "./LoginPage.css";
 import "./StudentLoginPage.css";
 import { loginStudent } from "../services/database";
 import { signIn } from "../utils/session";
-
-function EyeIcon({ open }: { open: boolean }) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M2 12C2 12 5.5 5 12 5C18.5 5 22 12 22 12C22 12 18.5 19 12 19C5.5 19 2 12 2 12Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="2" />
-      {!open && <path d="M3 21L21 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />}
-    </svg>
-  );
-}
+import StudentIcon from "../components/StudentIcon";
 
 /** Dedicated student sign-in. Student accounts are provisioned by an admin;
  * the public student portal never creates roster accounts. */
@@ -96,14 +82,14 @@ export default function StudentLoginPage({
 
           <ol className="login-trail" aria-label="Sign-in steps">
             <li className={trailState(1)}>
-              <span className="login-trail-dot" aria-hidden="true">{step1Done ? "✓" : "1"}</span>
+              <span className="login-trail-dot" aria-hidden="true">{step1Done ? <StudentIcon name="check" size={15} /> : "1"}</span>
               <span className="login-trail-label">
                 <span lang="zh-Hant">輸入名字</span>
                 <small lang="en">Name</small>
               </span>
             </li>
             <li className={trailState(2)}>
-              <span className="login-trail-dot" aria-hidden="true">{step2Done ? "✓" : "2"}</span>
+              <span className="login-trail-dot" aria-hidden="true">{step2Done ? <StudentIcon name="check" size={15} /> : "2"}</span>
               <span className="login-trail-label">
                 <span lang="zh-Hant">輸入密碼</span>
                 <small lang="en">Password</small>
@@ -148,7 +134,7 @@ export default function StudentLoginPage({
                   onClick={() => setShowPassword((prev) => !prev)}
                   aria-label={showPassword ? "隱藏密碼 · Hide password" : "顯示密碼 · Show password"}
                 >
-                  <EyeIcon open={showPassword} />
+                  <StudentIcon name={showPassword ? "eye-off" : "eye"} size={18} />
                 </button>
               </div>
             </label>

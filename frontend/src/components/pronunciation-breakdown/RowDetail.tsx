@@ -1,9 +1,12 @@
 import { ASSISTIVE_MESSAGE, type AssistiveFeedbackSyllable } from "../../utils/assistiveFeedback";
 import { BiLabel } from "../BiLabel";
+import StudentIcon from "../StudentIcon";
 import MiniContourChart from "../MiniContourChart";
 import type { WordProsody, WordProsodySyllable, VowelZone } from "../StoryRecorder";
 import { BACKNESS_SHORT, HEIGHT_SHORT, NO_VOWEL_REASON, REASON_TEXT, RULE_TEXT } from "./constants";
 import { isNeutral, statusLabel } from "./model";
+
+const toneIcon = (tone: string) => tone === "pass" ? "check-circle" as const : tone === "fail" ? "x-circle" as const : tone === "retry" ? "retry" as const : "warning" as const;
 
 function zoneText(zone: VowelZone, key: "zh" | "en"): string {
   const height = { high: { zh: "嘴巴小", en: "mouth close" }, mid: { zh: "嘴巴中", en: "mouth mid" }, low: { zh: "嘴巴大", en: "mouth open" } };
@@ -31,7 +34,7 @@ export function RowDetail({ syllable, word, referenceAccepted = false, debug, as
   const zone = syllable.measured_zone;
   return <div className="pb-detail">
     {(word.pitch_contour?.length || word.user_curve?.length) && <div className="pb-detail-contour" aria-label={`${word.token} tone visualization`}><MiniContourChart actual={word.pitch_contour} reference={word.reference_contour} userCurve={word.user_curve} targetCurve={word.target_curve} /></div>}
-    <p className={`pb-detail-status is-${label.tone}`}><span aria-hidden="true">{label.mark}</span>{" "}<BiLabel zh={label.zh} en={label.en} /></p>
+    <p className={`pb-detail-status is-${label.tone}`}><span aria-hidden="true"><StudentIcon name={toneIcon(label.tone)} size={16} /></span>{" "}<BiLabel zh={label.zh} en={label.en} /></p>
     {reason && <p className="pb-detail-line"><BiLabel zh={reason.zh} en={reason.en} /></p>}
     {rule && <p className="pb-detail-line pb-detail-rule"><BiLabel zh={rule.zh} en={rule.en} /></p>}
     {assistiveRecord && assistiveRecord.assistive_state !== "ACCEPT" && <p className="pb-detail-line pb-detail-assistive" data-assistive-state={assistiveRecord.assistive_state}>{ASSISTIVE_MESSAGE[assistiveRecord.assistive_state]}</p>}

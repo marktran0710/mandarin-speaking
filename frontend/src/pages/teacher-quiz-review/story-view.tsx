@@ -5,6 +5,7 @@ import { diffWord } from "../../utils/quizMaterialDiff";
 import { isExcluded } from "../../utils/quizExclusions";
 import { translationFieldForLevel, pinyinFieldForLevel, reviewOptions } from "./model-core";
 import { PENDING_KIND_LABELS } from "./constants";
+import StudentIcon from "../../components/StudentIcon";
 import { ReviewActionRail, ReviewIcon, diffBadge, findValidation, questionStatusBadge } from "./review-chrome";
 import { useQuizReviewContext } from "./context";
 import { useQuizReviewActions } from "./review-actions";
@@ -179,7 +180,7 @@ export function QuizReviewStory({ story }) {
                             {pinyin && <span className="tqr-pinyin">{pinyin}</span>}
                             {pos && <span className="tqr-pos">{pos}</span>}
                             {translation ? (
-                              <span className="tqr-translation">→ {translation}</span>
+                              <span className="tqr-translation"><StudentIcon name="arrow-right" size={14} aria-hidden="true" /> {translation}</span>
                             ) : (
                               <span className="tqr-no-quiz">
                                 <BiLabel zh="沒有翻譯，不會出題" en="No translation — never quizzed" />

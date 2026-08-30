@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import StoryBuilderFrameEditor from "./StoryBuilderSection.FrameEditor";
 import VocabularyTable from "../VocabularyTable";
 import PhraseTable from "../PhraseTable";
+import StudentIcon from "../StudentIcon";
 import { PHRASE_COUNT_BY_LEVEL } from "./StoryBuilderSection.helpers";
 
 function StoryDetailsFields({ draft, errors, onUpdateField, onUpdateFrameCount, onSetDraft, onOpenLearningContent, learningContentTriggerRef }) {
@@ -37,9 +38,9 @@ function StoryStatusMessages({ errors, notice, savedReviewBanner, onGoToQuizRevi
   return <>
     {errors.form && <div className="teacher-form-alert" role="alert">{errors.form}</div>}
     {notice && <div className="teacher-form-success" role="status">{notice}</div>}
-    {savedReviewBanner && <div className="quiz-review-nudge-banner" role="status"><span>⚙️ Quiz material may need review before students see it.</span><div className="quiz-review-nudge-actions">
-      <button type="button" className="quiz-review-nudge-go" onClick={() => { onGoToQuizReview?.(savedReviewBanner.lessonNumber); onDismissReview(); }}>Go to Quiz Review →</button>
-      <button type="button" className="quiz-review-nudge-dismiss" aria-label="Dismiss" onClick={onDismissReview}>✕</button>
+    {savedReviewBanner && <div className="quiz-review-nudge-banner" role="status"><span><StudentIcon name="settings" size={16} aria-hidden="true" /> Quiz material may need review before students see it.</span><div className="quiz-review-nudge-actions">
+      <button type="button" className="quiz-review-nudge-go" onClick={() => { onGoToQuizReview?.(savedReviewBanner.lessonNumber); onDismissReview(); }}>Go to Quiz Review <StudentIcon name="arrow-right" size={15} aria-hidden="true" /></button>
+      <button type="button" className="quiz-review-nudge-dismiss" aria-label="Dismiss" onClick={onDismissReview}><StudentIcon name="close" size={15} aria-hidden="true" /></button>
     </div></div>}
   </>;
 }

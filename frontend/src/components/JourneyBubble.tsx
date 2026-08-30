@@ -7,6 +7,7 @@ import {
   PRACTICE_UNLOCK_STARS,
 } from "../utils/quizTiers";
 import { pickStripMessage, type StripMessage } from "../utils/journeyStrip";
+import StudentIcon from "./StudentIcon";
 import "./JourneyBubble.css";
 
 /** The floating star bubble of every non-practice student page — the
@@ -143,7 +144,8 @@ export default function JourneyBubble({
         title={targetTitle}
       >
         <span className="journey-bubble-big">
-          ⭐ {totalStars}{maxStars ? `/${maxStars}` : ""}
+          <StudentIcon name="star" size={16} fill="currentColor" />
+          {totalStars}{maxStars ? `/${maxStars}` : ""}
         </span>
         <span className="journey-bubble-caption">
           <BiLabel zh="做測驗" pinyin="Zuò cèyàn" en="Do the quiz" />
@@ -168,7 +170,8 @@ export default function JourneyBubble({
       style={{ "--jb-progress": `${progressDeg}deg` } as CSSProperties}
     >
       <span className="journey-bubble-big">
-        ⭐ {totalStars}
+        <StudentIcon name="star" size={16} fill="currentColor" />
+        {totalStars}
         {maxStars ? `/${maxStars}` : ""}
       </span>
       <span className="journey-bubble-caption">

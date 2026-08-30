@@ -306,13 +306,13 @@ export function useQuizGenerationActions() {
         ...prev,
         [storyId]:
           parsed.storyId && parsed.storyId !== storyId
-            ? `⚠ File exported from a different story (${parsed.storyId})`
-            : `✓ Imported ${parsed.exclusions.length} marks — Save to apply`,
+            ? `File exported from a different story (${parsed.storyId})`
+            : `Imported ${parsed.exclusions.length} marks — Save to apply`,
       }));
     } catch (err) {
       setImportNoteByStory((prev) => ({
         ...prev,
-        [storyId]: `⚠ ${err instanceof Error ? err.message : "Invalid marks file"}`,
+        [storyId]: err instanceof Error ? err.message : "Invalid marks file",
       }));
     }
   };

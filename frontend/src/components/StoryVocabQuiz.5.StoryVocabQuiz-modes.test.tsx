@@ -144,12 +144,12 @@ describe("StoryVocabQuiz modes", () => {
     vi.useFakeTimers();
     try {
       fireEvent.click(screen.getByRole("button", { name: /Tier 3/ }));
-      expect(screen.getByText("⏱️ 150s")).toBeInTheDocument();
+      expect(screen.getByLabelText("150 seconds left")).toBeInTheDocument();
 
       act(() => {
         vi.advanceTimersByTime(10_000);
       });
-      expect(screen.getByText("⏱️ 140s")).toBeInTheDocument();
+      expect(screen.getByLabelText("140 seconds left")).toBeInTheDocument();
     } finally {
       vi.useRealTimers();
       localStorage.clear();
@@ -163,7 +163,7 @@ describe("StoryVocabQuiz modes", () => {
 
     await user.click(screen.getByRole("button", { name: /Tier 1/ }));
 
-    expect(screen.queryByText(/⏱️/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/seconds left/)).not.toBeInTheDocument();
   });
 
   it("offers a missed-words retry after the run, scoped to only the words gotten wrong, and does not record it as a new attempt", async () => {

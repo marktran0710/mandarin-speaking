@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import Chart from "chart.js/auto";
 import { BiLabel } from "./BiLabel";
+import StudentIcon, { type StudentIconName } from "./StudentIcon";
 import type { SceneSubmission, StoryFeedback, StoryFeedbackDimension } from "../services/database";
 import { getBackendUrl } from "../config/runtimeEnv";
 import "./StoryFeedbackCard.css";
@@ -38,10 +39,10 @@ function scoreBandClass(score: number): string {
 // Icon + text per band so the good/fix/next signal isn't color-only —
 // jade/gold/red is exactly the red-green pair colorblind users struggle
 // with, and this is the app's primary "how did I do" assessment surface.
-const TIER_BADGE: Record<"good" | "fix" | "next", { icon: string; zh: string; pinyin: string; en: string }> = {
-  good: { icon: "✓", zh: "很好", pinyin: "Hěn hǎo", en: "Good" },
-  fix: { icon: "△", zh: "要加油", pinyin: "Yào jiāyóu", en: "Needs work" },
-  next: { icon: "!", zh: "再試試", pinyin: "Zài shìshi", en: "Try again" },
+const TIER_BADGE: Record<"good" | "fix" | "next", { icon: StudentIconName; zh: string; pinyin: string; en: string }> = {
+  good: { icon: "check-circle", zh: "很好", pinyin: "Hěn hǎo", en: "Good" },
+  fix: { icon: "warning", zh: "要加油", pinyin: "Yào jiāyóu", en: "Needs work" },
+  next: { icon: "retry", zh: "再試試", pinyin: "Zài shìshi", en: "Try again" },
 };
 
 function scoreBandColor(score: number): string {
@@ -214,7 +215,7 @@ function DimensionRow({
         <BiLabel zh={zh} pinyin={pinyin} en={en} />
         {band && (
           <span className="story-feedback-tier-badge" title={`${band.pinyin} · ${band.en}`}>
-            <span aria-hidden="true">{band.icon}</span> {band.zh}
+            <StudentIcon name={band.icon} size={14} aria-hidden="true" /> {band.zh}
           </span>
         )}
       </div>

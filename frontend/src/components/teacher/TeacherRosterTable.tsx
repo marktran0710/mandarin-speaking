@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { getTopicLabel } from "../../utils/myStoriesUtils";
 import type { StudentAssessment } from "../../utils/studentAssessment";
+import StudentIcon from "../StudentIcon";
 
 /** One roster table replaces what used to be four overlapping student lists
  * (Watchlist, Class Star Board, "All students", and the quiz panel's own
@@ -112,7 +113,7 @@ export default function TeacherRosterTable({
                     const earned = assessment.quiz.starsByStory[storyId] ?? 0;
                     return (
                       <td key={storyId} aria-label={`${earned} of 3 stars`}>
-                        {earned > 0 ? "★".repeat(earned) : "—"}
+                        {earned > 0 ? Array.from({ length: earned }, (_, index) => <StudentIcon key={index} name="star" size={14} fill="currentColor" aria-hidden="true" />) : "—"}
                       </td>
                     );
                   })}

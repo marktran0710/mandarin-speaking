@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BiLabel, BiText } from "./BiLabel";
+import StudentIcon from "./StudentIcon";
 import type { Topic } from "./StoryRecorder";
 
 interface SortingChallengeProps {
@@ -231,8 +232,8 @@ export default function SortingChallenge({
         <div
           className={`sorting-feedback-banner ${sortingFeedback.includes("Spot on") ? "success" : "info"}`}
         >
-          <span className="feedback-icon">
-            {sortingFeedback.includes("Spot on") ? "🎉" : "💡"}
+          <span className="feedback-icon" aria-hidden="true">
+            <StudentIcon name={sortingFeedback.includes("Spot on") ? "celebrate" : "idea"} size={20} />
           </span>
           <p>{sortingFeedback}</p>
         </div>
@@ -274,10 +275,10 @@ export default function SortingChallenge({
                   />
                 </span>
                 {validation === "correct" && (
-                  <span className="slot-badge correct">✓</span>
+                  <span className="slot-badge correct" aria-hidden="true"><StudentIcon name="check" size={14} /></span>
                 )}
                 {validation === "incorrect" && (
-                  <span className="slot-badge incorrect">✗</span>
+                  <span className="slot-badge incorrect" aria-hidden="true"><StudentIcon name="x-circle" size={14} /></span>
                 )}
               </div>
 

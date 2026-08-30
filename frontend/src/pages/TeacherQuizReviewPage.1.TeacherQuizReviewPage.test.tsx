@@ -79,7 +79,7 @@ describe("TeacherQuizReviewPage", () => {
     const { updateQuizExclusions } = await import("../services/database");
     render(<TeacherQuizReviewPage />);
 
-    expect(await screen.findByText("知道")).toBeInTheDocument();
+    expect((await screen.findAllByText("知道")).length).toBeGreaterThan(0);
     expect(screen.getByText(/曉得/)).toBeInTheDocument();
     expect(screen.getByText((_, element) =>
       element?.classList.contains("tqr-rail-summary") === true &&
@@ -111,7 +111,7 @@ describe("TeacherQuizReviewPage", () => {
     const user = userEvent.setup();
     render(<TeacherQuizReviewPage />);
 
-    await screen.findByText("知道");
+    await screen.findAllByText("知道");
     const deleteZhidao = screen.getByRole("button", {
       name: "Delete synonym question for 知道",
     });
@@ -224,7 +224,7 @@ describe("TeacherQuizReviewPage", () => {
     render(<TeacherQuizReviewPage />);
 
     // Defaults to the lowest numbered lesson (5).
-    expect(await screen.findByText("知道")).toBeInTheDocument();
+    expect((await screen.findAllByText("知道")).length).toBeGreaterThan(0);
     expect(screen.queryByText("茶")).not.toBeInTheDocument();
 
     const lessonSelect = screen.getByLabelText(/Lesson/);
@@ -239,7 +239,7 @@ describe("TeacherQuizReviewPage", () => {
     const { rerender } = render(<TeacherQuizReviewPage />);
 
     // Defaults to lesson 5 first.
-    expect(await screen.findByText("知道")).toBeInTheDocument();
+    expect((await screen.findAllByText("知道")).length).toBeGreaterThan(0);
 
     rerender(<TeacherQuizReviewPage jumpToLesson={{ lessonNumber: 7, nonce: 1 }} />);
     expect(await screen.findByText("茶")).toBeInTheDocument();
@@ -265,15 +265,15 @@ describe("TeacherQuizReviewPage", () => {
     ]);
     render(<TeacherQuizReviewPage />);
 
-    expect(await screen.findByText("知道")).toBeInTheDocument();
-    expect(screen.getAllByText("🆕").length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("知道")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("New").length).toBeGreaterThan(0);
   });
 
   it("shows no diff badges when the story has never been saved before", async () => {
     render(<TeacherQuizReviewPage />);
-    expect(await screen.findByText("知道")).toBeInTheDocument();
-    expect(screen.queryByText("🆕")).not.toBeInTheDocument();
-    expect(screen.queryByText("✎")).not.toBeInTheDocument();
+    expect((await screen.findAllByText("知道")).length).toBeGreaterThan(0);
+    expect(screen.queryByText("New")).not.toBeInTheDocument();
+    expect(screen.queryByText("Changed")).not.toBeInTheDocument();
   });
 
   it("exports a story's current marks as a downloadable JSON file", async () => {
@@ -284,7 +284,7 @@ describe("TeacherQuizReviewPage", () => {
     const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
 
     render(<TeacherQuizReviewPage />);
-    await screen.findByText("知道");
+    await screen.findAllByText("知道");
     await userEvent.setup().click(screen.getByText("More"));
     await userEvent.setup().click(screen.getByRole("button", { name: /Export|匯出/ }));
 
@@ -300,7 +300,7 @@ describe("TeacherQuizReviewPage", () => {
   it("imports marks from a file, replacing the story's marks and marking it dirty", async () => {
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
-    await screen.findByText("知道");
+    await screen.findAllByText("知道");
 
     await user.click(screen.getByText("More"));
     await user.click(screen.getByRole("button", { name: /Import|匯入/ }));
@@ -319,7 +319,7 @@ describe("TeacherQuizReviewPage", () => {
   it("warns when an imported file was exported from a different story", async () => {
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
-    await screen.findByText("知道");
+    await screen.findAllByText("知道");
 
     await user.click(screen.getByText("More"));
     await user.click(screen.getByRole("button", { name: /Import|匯入/ }));
@@ -337,7 +337,7 @@ describe("TeacherQuizReviewPage", () => {
   it("rejects an invalid marks file without crashing", async () => {
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
-    await screen.findByText("知道");
+    await screen.findAllByText("知道");
 
     await user.click(screen.getByText("More"));
     await user.click(screen.getByRole("button", { name: /Import|匯入/ }));
@@ -345,7 +345,7 @@ describe("TeacherQuizReviewPage", () => {
     const file = new File(["not json"], "marks.json", { type: "application/json" });
     await user.upload(input, file);
 
-    expect(await screen.findByText(/⚠/)).toBeInTheDocument();
+    expect(await screen.findByText(/That file is not valid JSON/)).toBeInTheDocument();
   });
 
   it("checkboxes stay disabled until Validate runs, then enable and publish only what's checked", async () => {
@@ -357,7 +357,7 @@ describe("TeacherQuizReviewPage", () => {
 
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
-    await screen.findByText("知道");
+    await screen.findAllByText("知道");
 
     expect(screen.queryByRole("checkbox", { name: "Approve synonym for 知道" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Approve & Publish|核准並發佈/ })).not.toBeInTheDocument();
@@ -397,7 +397,7 @@ describe("TeacherQuizReviewPage", () => {
 
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
-    await screen.findByText("知道");
+    await screen.findAllByText("知道");
     await user.click(screen.getByRole("button", { name: /Validate|檢查題目/ }));
     await screen.findByText(/second correct answer/);
 
@@ -415,7 +415,7 @@ describe("TeacherQuizReviewPage", () => {
 
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
-    await screen.findByText("知道");
+    await screen.findAllByText("知道");
     await user.click(screen.getByRole("button", { name: /Validate|檢查題目/ }));
 
     const checkbox = await screen.findByRole("checkbox", { name: "Approve synonym for 知道" });

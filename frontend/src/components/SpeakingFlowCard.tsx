@@ -202,11 +202,11 @@ export default function SpeakingFlowCard({
             <span className={`loading-step ${isTranscribing ? "active" : "done"}`}>
               <BiLabel k="transcribe" />
             </span>
-            <span className="loading-step-arrow">→</span>
+            <span className="loading-step-arrow" aria-hidden="true"><StudentIcon name="arrow-right" size={16} /></span>
             <span className={`loading-step ${isAnalyzing && !isTranscribing ? "active" : ""}`}>
               Praat
             </span>
-            <span className="loading-step-arrow">→</span>
+            <span className="loading-step-arrow" aria-hidden="true"><StudentIcon name="arrow-right" size={16} /></span>
             <span className="loading-step">
               <BiLabel k="feedback" />
             </span>

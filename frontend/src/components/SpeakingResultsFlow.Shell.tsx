@@ -66,7 +66,7 @@ export default function SpeakingResultsFlowShell({
             const current = item === step;
             const visited = index <= maxVisited;
             return <button key={item} type="button" className={`sfc-step${current ? " is-current" : ""}${visited && !current ? " is-visited" : ""}`} disabled={!visited} aria-current={current ? "step" : undefined} onClick={() => setStep(item)}>
-              <span className="sfc-step-num" aria-hidden="true">{visited && !current ? "✓" : index + 1}</span>
+              <span className="sfc-step-num" aria-hidden="true">{visited && !current ? <Icon name="check" size={15} /> : index + 1}</span>
               <BiLabel zh={STEP_LABELS[item].zh} en={STEP_LABELS[item].en} />
             </button>;
           })}
@@ -78,7 +78,7 @@ export default function SpeakingResultsFlowShell({
     {feedbackModalOpen && createPortal(
       <div className="sfc-feedback-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onCloseFeedback(); }}>
         <section ref={feedbackModalRef} id="sfc-feedback-modal" className="sfc-feedback-modal" role="dialog" aria-modal="true" aria-labelledby="sfc-feedback-modal-title" tabIndex={-1}>
-          <header className="sfc-feedback-modal-header"><div id="sfc-feedback-modal-title"><BiLabel zh="發音分析" en="Pronunciation feedback" /></div><button ref={feedbackModalCloseRef} type="button" className="sfc-feedback-modal-close" aria-label="Close pronunciation feedback" onClick={onCloseFeedback}>×</button></header>
+          <header className="sfc-feedback-modal-header"><div id="sfc-feedback-modal-title"><BiLabel zh="發音分析" en="Pronunciation feedback" /></div><button ref={feedbackModalCloseRef} type="button" className="sfc-feedback-modal-close" aria-label="Close pronunciation feedback" onClick={onCloseFeedback}><Icon name="close" size={18} /></button></header>
           <div className="sfc-feedback-modal-body"><PronunciationBreakdown words={praatMetrics.word_prosody || []} targetText={targetScript} transcription={recognizedText} teacherPhrases={teacherPhraseChunks} assistiveFeedback={assistiveFeedback} masteryCounts={masteryCounts} /></div>
         </section>
       </div>,
@@ -91,14 +91,14 @@ export default function SpeakingResultsFlowShell({
 
 function ResultsFooter({ hasPhrasePractice, allPhrasesCleared, remainingPracticePhrases, ready, canContinue, masteryPassed, practiceTargets, remainingDrillTargets, attempts, assistiveFeedback, assistiveRetriesUsed, onRecordAgain, hasNextScene, onNextScene, onViewSummary }) {
   return <footer className="sfc-footer">
-    {hasPhrasePractice && !allPhrasesCleared ? <p className="sfc-unlock-note">💡 <BiLabel zh={`還有 ${remainingPracticePhrases.length} 個部分可選擇練習；你也可以直接繼續。`} pinyin={`Hái yǒu ${remainingPracticePhrases.length} ge bùfen kě xuǎnzé liànxí; nǐ yě kěyǐ zhíjiē jìxù.`} en={`${remainingPracticePhrases.length} practice part${remainingPracticePhrases.length === 1 ? "" : "s"} remain optional; you can continue now.`} /></p>
-      : hasPhrasePractice && allPhrasesCleared && !ready ? <p className="sfc-unlock-note">💡 <BiLabel zh="部分練習已完成；這次結果仍可查看，也可以直接繼續。" pinyin="Bùfèn liànxí yǐ wánchéng; zhè cì jiéguǒ réng kě chákàn, yě kěyǐ zhíjiē jìxù." en="Part practice is complete. Review this result or continue now." /></p>
-        : !ready && !masteryPassed && practiceTargets.length > 0 ? <p className="sfc-unlock-note">💡 <BiLabel zh={`這些發音練習是可選的（還有 ${remainingDrillTargets.length > 0 ? `${remainingDrillTargets.length} 個部分` : "整句"}）；你可以直接繼續。`} pinyin={`Zhèxiē fāyīn liànxí shì kě xuǎn de; nǐ kěyǐ zhíjiē jìxù.`} en={`${remainingDrillTargets.length > 0 ? `${remainingDrillTargets.length} practice part${remainingDrillTargets.length > 1 ? "s" : ""}` : "The full sentence"} can be practiced optionally; you can continue now.`} /></p>
-          : !ready ? <p className="sfc-unlock-note">💡 <BiLabel zh={`目前 ${attempts} 次練習；分數回饋僅供參考，你可以直接繼續。`} pinyin={`Mùqián ${attempts} cì liànxí; fēnshù huíkuì jǐn gōng cānkǎo, nǐ kěyǐ zhíjiē jìxù.`} en={`${attempts} attempt${attempts === 1 ? "" : "s"} recorded. Scores are feedback only; you can continue now.`} /></p> : null}
+    {hasPhrasePractice && !allPhrasesCleared ? <p className="sfc-unlock-note"><Icon name="idea" size={15} /> <BiLabel zh={`還有 ${remainingPracticePhrases.length} 個部分可選擇練習；你也可以直接繼續。`} pinyin={`Hái yǒu ${remainingPracticePhrases.length} ge bùfen kě xuǎnzé liànxí; nǐ yě kěyǐ zhíjiē jìxù.`} en={`${remainingPracticePhrases.length} practice part${remainingPracticePhrases.length === 1 ? "" : "s"} remain optional; you can continue now.`} /></p>
+      : hasPhrasePractice && allPhrasesCleared && !ready ? <p className="sfc-unlock-note"><Icon name="idea" size={15} /> <BiLabel zh="部分練習已完成；這次結果仍可查看，也可以直接繼續。" pinyin="Bùfèn liànxí yǐ wánchéng; zhè cì jiéguǒ réng kě chákàn, yě kěyǐ zhíjiē jìxù." en="Part practice is complete. Review this result or continue now." /></p>
+        : !ready && !masteryPassed && practiceTargets.length > 0 ? <p className="sfc-unlock-note"><Icon name="idea" size={15} /> <BiLabel zh={`這些發音練習是可選的（還有 ${remainingDrillTargets.length > 0 ? `${remainingDrillTargets.length} 個部分` : "整句"}）；你可以直接繼續。`} pinyin={`Zhèxiē fāyīn liànxí shì kě xuǎn de; nǐ kěyǐ zhíjiē jìxù.`} en={`${remainingDrillTargets.length > 0 ? `${remainingDrillTargets.length} practice part${remainingDrillTargets.length > 1 ? "s" : ""}` : "The full sentence"} can be practiced optionally; you can continue now.`} /></p>
+          : !ready ? <p className="sfc-unlock-note"><Icon name="idea" size={15} /> <BiLabel zh={`目前 ${attempts} 次練習；分數回饋僅供參考，你可以直接繼續。`} pinyin={`Mùqián ${attempts} cì liànxí; fēnshù huíkuì jǐn gōng cānkǎo, nǐ kěyǐ zhíjiē jìxù.`} en={`${attempts} attempt${attempts === 1 ? "" : "s"} recorded. Scores are feedback only; you can continue now.`} /></p> : null}
     {assistiveFeedback && shouldOfferRetry(worstState(assistiveFeedback), assistiveRetriesUsed) && <p className="sfc-assistive-retry-hint"><BiLabel zh="想再試一次這個音嗎？" pinyin="Xiǎng zài shì yí cì zhège yīn ma?" en="Want to try that tone once more? Totally optional." /></p>}
     <div className="sfc-footer-actions">
       <AppButton tone="subtle" className="sfc-btn-again" onClick={onRecordAgain}><Icon name="microphone" size={17} /> <BiLabel zh="再錄一次" pinyin="Zài lù yí cì" en="Record again" /></AppButton>
-      {canContinue && (hasNextScene ? <AppButton tone="secondary" className="sfc-btn-next" onClick={onNextScene}><BiLabel k="next_scene" /> →</AppButton> : <AppButton tone="secondary" className="sfc-btn-next" onClick={onViewSummary}><BiLabel zh="查看總結" pinyin="Chákàn zǒngjié" en="View summary" /> →</AppButton>)}
+      {canContinue && (hasNextScene ? <AppButton tone="secondary" className="sfc-btn-next" onClick={onNextScene}><BiLabel k="next_scene" /> <Icon name="arrow-right" size={16} /></AppButton> : <AppButton tone="secondary" className="sfc-btn-next" onClick={onViewSummary}><BiLabel zh="查看總結" pinyin="Chákàn zǒngjié" en="View summary" /> <Icon name="arrow-right" size={16} /></AppButton>)}
     </div>
   </footer>;
 }

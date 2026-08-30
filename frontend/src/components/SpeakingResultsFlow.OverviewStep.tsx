@@ -2,13 +2,13 @@
 import { BiLabel } from "./BiLabel";
 import AppButton from "./AppButton";
 import StudentIcon from "./StudentIcon";
+import SelfEvalIcon from "./SelfEvalIcon";
 import ContentDiffDisplay from "./ContentDiffDisplay";
 import VoiceFeedbackReliabilityNotice, {
   AssistiveFeedbackNotice,
 } from "./VoiceFeedbackReliabilityNotice";
 import { worstState } from "../utils/assistiveFeedback";
 import {
-  SELF_EVAL_EMOJI,
   systemContentLevel,
   systemPronunciationLevel,
 } from "../utils/selfEvalComparison";
@@ -75,7 +75,7 @@ export default function SpeakingResultsOverviewStep({
             {contentNeedsRetry
               ? "Content not verified"
               : pronunciationMastery.status === "passed"
-                ? "✓ Pronunciation passed"
+                ? <><StudentIcon name="check-circle" size={16} aria-hidden="true" /> Pronunciation passed</>
                 : pronunciationMastery.status === "not_judged"
                   ? "尚未判定 / Not judged yet"
                   : "發音需要練習 / Needs practice"}
@@ -90,13 +90,13 @@ export default function SpeakingResultsOverviewStep({
         <div className="self-eval-compare">
           <div className="self-eval-compare-row">
             <span className="self-eval-compare-label"><BiLabel zh="意思" en="Meaning" /></span>
-            <span className="self-eval-compare-side"><BiLabel zh="你" en="You" /> <span className="self-eval-compare-emoji">{SELF_EVAL_EMOJI[selfEvalAnswer.content]}</span></span>
-            <span className="self-eval-compare-side"><BiLabel zh="系統" en="System" /> <span className="self-eval-compare-emoji">{SELF_EVAL_EMOJI[systemContentLevel(praatMetrics, hasScriptMismatch)]}</span></span>
+            <span className="self-eval-compare-side"><BiLabel zh="你" en="You" /> <span className="self-eval-compare-emoji"><SelfEvalIcon level={selfEvalAnswer.content} size={18} /></span></span>
+            <span className="self-eval-compare-side"><BiLabel zh="系統" en="System" /> <span className="self-eval-compare-emoji"><SelfEvalIcon level={systemContentLevel(praatMetrics, hasScriptMismatch)} size={18} /></span></span>
           </div>
           <div className="self-eval-compare-row">
             <span className="self-eval-compare-label"><BiLabel zh="發音" en="Pronunciation" /></span>
-            <span className="self-eval-compare-side"><BiLabel zh="你" en="You" /> <span className="self-eval-compare-emoji">{SELF_EVAL_EMOJI[selfEvalAnswer.pronunciation]}</span></span>
-            <span className="self-eval-compare-side"><BiLabel zh="系統" en="System" /> <span className="self-eval-compare-emoji">{SELF_EVAL_EMOJI[systemPronunciationLevel(praatMetrics)]}</span></span>
+            <span className="self-eval-compare-side"><BiLabel zh="你" en="You" /> <span className="self-eval-compare-emoji"><SelfEvalIcon level={selfEvalAnswer.pronunciation} size={18} /></span></span>
+            <span className="self-eval-compare-side"><BiLabel zh="系統" en="System" /> <span className="self-eval-compare-emoji"><SelfEvalIcon level={systemPronunciationLevel(praatMetrics)} size={18} /></span></span>
           </div>
         </div>
       )}
@@ -104,7 +104,7 @@ export default function SpeakingResultsOverviewStep({
       {(recognizedText || submittedAudioName) && (
         <div className="sfc-results-scene-extras">
           {recognizedText && <p className="sfc-transcript"><BiLabel k="you_said" /> <em lang="zh-TW">{recognizedText}</em></p>}
-          {submittedAudioName && <p className="submitted-audio-name">✓ {submittedAudioName}</p>}
+          {submittedAudioName && <p className="submitted-audio-name"><StudentIcon name="check-circle" size={15} aria-hidden="true" /> {submittedAudioName}</p>}
         </div>
       )}
       <ProgressSnapshot attempts={attempts} mastery={pronunciationMastery} practicePartCount={practicePartCount} />
@@ -137,8 +137,8 @@ export default function SpeakingResultsOverviewStep({
         </section>
       )}
 
-      {verdict === "meaning" && hasFix && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("fix")}><BiLabel zh="看怎麼改" en="See how to fix it" /> →</AppButton>}
-      {verdict === "vocab" && hasFix && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("fix")}><BiLabel zh="看少了的生詞" en="See the missing words" /> →</AppButton>}
+      {verdict === "meaning" && hasFix && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("fix")}><BiLabel zh="看怎麼改" en="See how to fix it" /> <StudentIcon name="arrow-right" size={16} aria-hidden="true" /></AppButton>}
+      {verdict === "vocab" && hasFix && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("fix")}><BiLabel zh="看少了的生詞" en="See the missing words" /> <StudentIcon name="arrow-right" size={16} aria-hidden="true" /></AppButton>}
       {/* The "join" and practice-less "pronounce" verdicts used to end in
           their own record-again button. The footer already carries
           "再錄一次 Record again" — same label, same microphone icon, same
@@ -146,7 +146,7 @@ export default function SpeakingResultsOverviewStep({
           advice they carried ("say it more smoothly", "make your tones
           clearer") is already the verdict text directly above. Only CTAs
           that lead somewhere the footer cannot reach remain here. */}
-      {verdict === "pronounce" && hasPractice && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("practice")}><BiLabel zh="練習生詞" en={hasPhrasePractice ? "Practice the parts" : "Practice the words"} /> →</AppButton>}
+      {verdict === "pronounce" && hasPractice && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("practice")}><BiLabel zh="練習生詞" en={hasPhrasePractice ? "Practice the parts" : "Practice the words"} /> <StudentIcon name="arrow-right" size={16} aria-hidden="true" /></AppButton>}
     </div>
   );
 }

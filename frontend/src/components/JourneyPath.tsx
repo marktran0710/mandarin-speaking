@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import StudentIcon from "./StudentIcon";
 import "./JourneyPath.css";
 
 export type JourneyStopStatus = "done" | "current" | "upcoming";
@@ -100,7 +101,7 @@ export default function JourneyPath({
                 <span className="journey-stop-fallback">{stop.fallbackLabel ?? i + 1}</span>
               )}
               {stop.status === "done" && (
-                <span className="journey-stop-star" aria-hidden="true">★</span>
+                <span className="journey-stop-star" aria-hidden="true"><StudentIcon name="star" size={14} fill="currentColor" /></span>
               )}
             </span>
             <span className="journey-stop-label">{stop.label}</span>

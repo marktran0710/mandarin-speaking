@@ -4,9 +4,10 @@ import {
   type StorySubmission,
 } from "../services/database";
 import { resolveImageUrl } from "../utils/teacherStories";
-import { SELF_EVAL_EMOJI } from "../utils/selfEvalComparison";
 import StoryFeedbackCard from "./StoryFeedbackCard";
 import Icon from "../shared/ui/Icon";
+import SelfEvalIcon from "./SelfEvalIcon";
+import StudentIcon from "./StudentIcon";
 
 function submittedTime(submission: StorySubmission) {
   const time = Date.parse(submission.submittedAt);
@@ -237,11 +238,11 @@ export default function TeacherSubmissionsView({
                             >
                               Self-eval:
                               {scene.selfEvalContent && (
-                                <> {SELF_EVAL_EMOJI[scene.selfEvalContent]} meaning</>
+                                <> <SelfEvalIcon level={scene.selfEvalContent} size={14} /> meaning</>
                               )}
                               {scene.selfEvalContent && scene.selfEvalPronunciation && " ·"}
                               {scene.selfEvalPronunciation && (
-                                <> {SELF_EVAL_EMOJI[scene.selfEvalPronunciation]} pronunciation</>
+                                <> <SelfEvalIcon level={scene.selfEvalPronunciation} size={14} /> pronunciation</>
                               )}
                             </p>
                           )}
@@ -250,10 +251,10 @@ export default function TeacherSubmissionsView({
                           )}
                           <div className="sss-vocab-row">
                             {(scene.vocabUsed ?? []).map(w => (
-                              <span key={w} className="sss-chip sss-chip-used" lang="zh-Hant">✓ {w}</span>
+                              <span key={w} className="sss-chip sss-chip-used" lang="zh-Hant"><StudentIcon name="check" size={13} aria-hidden="true" /> {w}</span>
                             ))}
                             {(scene.vocabMissing ?? []).map(w => (
-                              <span key={w} className="sss-chip sss-chip-missing" lang="zh-Hant">✗ {w}</span>
+                              <span key={w} className="sss-chip sss-chip-missing" lang="zh-Hant"><StudentIcon name="x-circle" size={13} aria-hidden="true" /> {w}</span>
                             ))}
                           </div>
                           {scene.audioUrl && (

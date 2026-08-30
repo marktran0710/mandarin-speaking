@@ -1,4 +1,5 @@
 import { Component, ReactNode } from "react";
+import StudentIcon from "./StudentIcon";
 
 interface Props {
   children: ReactNode;
@@ -32,7 +33,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               color: "var(--clay-ink, #1c1a17)",
             }}
           >
-            <div style={{ fontSize: "2.5rem", marginBottom: "12px" }}>⚠️</div>
+            <div style={{ marginBottom: "12px" }}><StudentIcon name="warning" size={40} aria-hidden="true" /></div>
             <h2 style={{ margin: "0 0 8px", fontSize: "1.2rem" }}>
               Something went wrong
             </h2>

@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { BiLabel } from "../../components/BiLabel";
+import StudentIcon from "../../components/StudentIcon";
 import { isExcluded } from "../../utils/quizExclusions";
 import { isApproved } from "../../utils/quizPendingApprovals";
 import { pendingKeyFor } from "./model-core";
@@ -388,7 +389,7 @@ export function useQuizReviewUi() {
         <div className="tqr-qoptions">
           {spec.options.map((opt, i) => (
             <span key={i} className={`tqr-opt${i === 0 ? " is-correct" : ""}`}>
-              {i === 0 ? "✓ " : "· "}{opt}
+              {i === 0 ? <><StudentIcon name="check" size={13} aria-hidden="true" /><span className="tqr-visually-hidden">Correct </span></> : <span aria-hidden="true">·</span>} {opt}
             </span>
           ))}
         </div>
@@ -463,7 +464,7 @@ export function useQuizReviewUi() {
     return (
       <div className="tqr-pending-decided">
         <span className={`tqr-decision-tag ${candidate.decision === "accept" ? "is-accept" : "is-reject"}`}>
-          {candidate.decision === "accept" ? "✓ " : "× "}
+          <StudentIcon name={candidate.decision === "accept" ? "check" : "close"} size={14} aria-hidden="true" />
           <BiLabel
             zh={pendingDecisionCopy(candidate.origin, candidate.decision).zh}
             en={pendingDecisionCopy(candidate.origin, candidate.decision).en}

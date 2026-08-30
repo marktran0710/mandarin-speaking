@@ -4,6 +4,7 @@ import type { AudioRecord } from "../pages/MyStoriesPage";
 import type { VocabQuizAttempt } from "../services/database";
 import { getTopicLabel, quizAttemptAccuracy } from "../utils/myStoriesUtils";
 import type { StudentAssessment } from "../utils/studentAssessment";
+import StudentIcon from "./StudentIcon";
 
 function score(value: number | null, suffix = "") {
   return value === null ? "--" : `${value}${suffix}`;
@@ -84,7 +85,12 @@ export default function TeacherStudentProfile({
                 {assessment.quiz.tierAttemptStoryIds.map((storyId) => (
                   <div key={storyId}>
                     <span>{getTopicLabel(storyId)}</span>
-                    <strong>{"★".repeat(assessment.quiz.starsByStory[storyId] ?? 0) || "—"}</strong>
+                    <strong className="student-profile-stars" aria-label={`${assessment.quiz.starsByStory[storyId] ?? 0} stars`}>
+                      {Array.from({ length: assessment.quiz.starsByStory[storyId] ?? 0 }, (_, index) => (
+                        <StudentIcon key={index} name="star" size={15} fill="currentColor" aria-hidden="true" />
+                      ))}
+                      {(assessment.quiz.starsByStory[storyId] ?? 0) === 0 && "—"}
+                    </strong>
                   </div>
                 ))}
               </div>

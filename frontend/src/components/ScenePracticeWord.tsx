@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import StudentIcon from "./StudentIcon";
 import "./ScenePracticeWord.css";
 
 /**
@@ -99,7 +100,7 @@ export default function ScenePracticeWord({
         aria-label={`${isPlaying ? "Stop" : "Listen to"} the model pronunciation of ${word}`}
         title="Listen to this word"
       >
-        <span aria-hidden="true">{isPlaying ? "⏸" : "🔊"}</span>
+        <StudentIcon name={isPlaying ? "pause" : "volume"} size={17} aria-hidden="true" />
       </button>
     </>
   );

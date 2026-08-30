@@ -3,6 +3,7 @@ import type { SceneSubmission, StoryFeedback } from "../services/database";
 import StoryFeedbackCard from "./StoryFeedbackCard";
 import JourneyPath, { type JourneyStopStatus } from "./JourneyPath";
 import { BiLabel } from "./BiLabel";
+import StudentIcon from "./StudentIcon";
 
 /** Scene-stop data shared with the practice header's journey path — everything
  * but the per-caller `onClick`, which this section supplies itself. */
@@ -60,7 +61,7 @@ export default function StorySummarySection({
       {storySubmitted ? (
         <>
           <div className="story-submit-panel story-submit-success">
-            <span className="story-submit-icon">✓</span>
+            <span className="story-submit-icon" aria-hidden="true"><StudentIcon name="check-circle" size={20} /></span>
             <div>
               <p className="story-submit-title">
                 <BiLabel k="story_submitted" />
@@ -87,7 +88,7 @@ export default function StorySummarySection({
               <div
                 key={si}
                 className={`story-submit-dot ${sceneRecordings[si] ? "done" : "pending"}`}
-                title={`部分 ${si + 1}${sceneRecordings[si] ? " ✓ 已完成" : " — 還沒錄音 not yet recorded"} Scene ${si + 1}`}
+                title={`部分 ${si + 1}${sceneRecordings[si] ? " 已完成" : " — 還沒錄音 not yet recorded"} Scene ${si + 1}`}
               />
             ))}
           </div>

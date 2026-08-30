@@ -87,7 +87,7 @@ export function AssistiveFeedbackNotice({
   if (state === "ACCEPT" && !showOnAccept) return null;
 
   const tone = state === "NEEDS_PRACTICE" ? "check" : state === "UNCERTAIN" ? "uncertain" : "accept";
-  const icon = state === "NEEDS_PRACTICE" ? "!" : state === "UNCERTAIN" ? "?" : "✓";
+  const icon = state === "NEEDS_PRACTICE" ? "warning" : state === "UNCERTAIN" ? "help" : "check-circle";
 
   return (
     <aside
@@ -97,7 +97,7 @@ export function AssistiveFeedbackNotice({
       data-assistive-state={state}
     >
       <span className="voice-reliability-icon" aria-hidden="true">
-        {icon}
+        <StudentIcon name={icon} size={17} />
       </span>
       <div>
         <p>{ASSISTIVE_MESSAGE[state]}</p>

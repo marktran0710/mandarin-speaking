@@ -184,14 +184,14 @@ describe("Generate / Update Questions", () => {
     setStories([storyWithNoMaterial]);
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
-    await screen.findByText("知道");
+    await screen.findAllByText("知道");
 
     await user.click(screen.getByRole("button", { name: /Generate Questions/ }));
 
-    // Reveals as a 🆕 New candidate; Apply is hidden until it is decided.
+    // Reveals as a New candidate; Apply is hidden until it is decided.
     const distractorLine = await screen.findByText(/New distractors/);
     expect(distractorLine.closest(".diff-row")).toHaveClass("row-add");
-    expect(screen.getByText(/🆕 New/)).toBeInTheDocument();
+    expect(screen.getByText("New")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Apply Changes/ })).not.toBeInTheDocument();
     expect(updateVocabularyDistractors).not.toHaveBeenCalled();
 
@@ -370,7 +370,7 @@ describe("Generate / Update Questions", () => {
     setStories([storyWithNoMaterial]);
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
-    await screen.findByText("知道");
+    await screen.findAllByText("知道");
     await user.click(screen.getByRole("button", { name: /Generate Questions/ }));
     await screen.findByText(/New distractors/);
     await screen.findByText("我不＿＿＿。");
@@ -393,7 +393,7 @@ describe("Generate / Update Questions", () => {
     setStories([storyWithNoMaterial]);
     render(<TeacherQuizReviewPage />);
     const user = userEvent.setup();
-    await screen.findByText("知道");
+    await screen.findAllByText("知道");
     await user.click(screen.getByRole("button", { name: /Generate Questions/ }));
     await screen.findByText(/New distractors/);
 

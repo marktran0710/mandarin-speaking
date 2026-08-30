@@ -1,4 +1,5 @@
 import type { ContentDiffSegment } from "./StoryRecorder";
+import StudentIcon from "./StudentIcon";
 
 /**
  * Always renders the same two-line-plus-status shape (Target / You said /
@@ -62,12 +63,13 @@ export default function ContentDiffDisplay({
 
   const status =
     contentMatch === true
-      ? { text: "✓ Matches the script.", tone: "match" as const }
+      ? { text: "Matches the script.", tone: "match" as const, icon: "check-circle" as const }
       : contentMatch === false
-        ? { text: "Bold text shows the difference.", tone: "mismatch" as const }
+        ? { text: "Bold text shows the difference.", tone: "mismatch" as const, icon: "info" as const }
         : {
             text: "We couldn't verify the words in this recording. Please record it again.",
             tone: "unverified" as const,
+            icon: "warning" as const,
           };
 
   return (
@@ -80,7 +82,9 @@ export default function ContentDiffDisplay({
         <span className="content-diff-label">You said:</span>
         {heard ? renderLine("heard") : <span className="content-diff-empty">(no speech detected)</span>}
       </p>
-      <p className={`content-diff-hint content-diff-hint-${status.tone}`}>{status.text}</p>
+      <p className={`content-diff-hint content-diff-hint-${status.tone}`}>
+        <StudentIcon name={status.icon} size={15} aria-hidden="true" /> {status.text}
+      </p>
     </div>
   );
 }

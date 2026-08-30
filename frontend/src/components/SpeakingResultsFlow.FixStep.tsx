@@ -2,6 +2,7 @@
 import { BiLabel } from "./BiLabel";
 import AppButton from "./AppButton";
 import Icon from "../shared/ui/Icon";
+import StudentIcon from "./StudentIcon";
 import ContentDiffDisplay from "./ContentDiffDisplay";
 
 export default function SpeakingResultsFixStep({
@@ -27,11 +28,11 @@ export default function SpeakingResultsFixStep({
     <div className="sfc-step-panel">
       {!accepted && (meaningJudged || showCorrective) && (
         <section className="sfc-result-card sfc-result-card--meaning is-bad">
-          <header className="sfc-result-card-header"><span aria-hidden="true">🧭</span><BiLabel zh="意思" en="Meaning" /></header>
+          <header className="sfc-result-card-header"><span aria-hidden="true"><StudentIcon name="target" size={18} /></span><BiLabel zh="意思" en="Meaning" /></header>
           {meaningJudged && contentAccuracy?.feedback && (
             <div className="sfc-result-card-body">
               <p className="content-accuracy-feedback">{contentAccuracy.feedback}</p>
-              {contentAccuracy.missed_details.length > 0 && <p className="content-accuracy-missed">✗ {contentAccuracy.missed_details.join(", ")}</p>}
+              {contentAccuracy.missed_details.length > 0 && <p className="content-accuracy-missed"><StudentIcon name="x-circle" size={15} /> {contentAccuracy.missed_details.join(", ")}</p>}
             </div>
           )}
           {showCorrective && <CorrectiveFeedback corrective={corrective} className="sfc-result-card-body" />}
@@ -40,12 +41,12 @@ export default function SpeakingResultsFixStep({
 
       {hasScriptMismatch && isChunked && (
         <section className="sfc-result-card sfc-result-card--vocab">
-          <header className="sfc-result-card-header"><span aria-hidden="true">📝</span><BiLabel zh="跟讀對照（分段）" en="Script check (by part)" /></header>
+          <header className="sfc-result-card-header"><span aria-hidden="true"><StudentIcon name="file" size={18} /></span><BiLabel zh="跟讀對照（分段）" en="Script check (by part)" /></header>
           <div className="sfc-result-card-body">
             <p className="sfc-result-card-lead"><BiLabel zh="先練好還沒過的部分，再說一次整句" en="Practice the parts below, then say the whole sentence again." /></p>
             <ContentDiffDisplay target={targetScript} heard={recognizedText || null} diff={praatMetrics.content_diff} contentMatch={praatMetrics.content_match} />
             <div className="sfc-missing-chips">
-              {chunkScores.map((chunk, index) => <span key={`${chunk.text}-${index}`} className={`vocab-chip sfc-missing-chip${chunk.passed ? " is-cleared" : ""}`}>{chunk.text} {chunk.passed ? "✓" : "✗"}</span>)}
+              {chunkScores.map((chunk, index) => <span key={`${chunk.text}-${index}`} className={`vocab-chip sfc-missing-chip${chunk.passed ? " is-cleared" : ""}`}>{chunk.text} <StudentIcon name={chunk.passed ? "check" : "x-circle"} size={14} /></span>)}
             </div>
           </div>
         </section>
@@ -53,7 +54,7 @@ export default function SpeakingResultsFixStep({
 
       {hasScriptMismatch && !isChunked && (
         <section className="sfc-result-card sfc-result-card--vocab">
-          <header className="sfc-result-card-header"><span aria-hidden="true">📝</span><BiLabel zh="跟讀對照" en="Script check" /></header>
+          <header className="sfc-result-card-header"><span aria-hidden="true"><StudentIcon name="file" size={18} /></span><BiLabel zh="跟讀對照" en="Script check" /></header>
           <div className="sfc-result-card-body">
             <p className="sfc-result-card-lead"><BiLabel zh="這些字和範例句不同，請再說一次" en="These parts differ from the model sentence. Say them again." /></p>
             <ContentDiffDisplay target={targetScript} heard={recognizedText || null} diff={praatMetrics.content_diff} contentMatch={praatMetrics.content_match} />
@@ -64,7 +65,7 @@ export default function SpeakingResultsFixStep({
 
       {missing.length > 0 && (
         <section className="sfc-result-card sfc-result-card--vocab">
-          <header className="sfc-result-card-header"><span aria-hidden="true">📝</span><BiLabel zh="生詞" en="Vocabulary" /></header>
+          <header className="sfc-result-card-header"><span aria-hidden="true"><StudentIcon name="book" size={18} /></span><BiLabel zh="生詞" en="Vocabulary" /></header>
           <div className="sfc-result-card-body">
             <p className="sfc-result-card-lead"><BiLabel zh="試著加入" en="Try to include" /></p>
             <div className="sfc-missing-chips">{missing.map((word) => <span key={word} className="vocab-chip sfc-missing-chip">{word}</span>)}</div>
@@ -75,7 +76,7 @@ export default function SpeakingResultsFixStep({
 
       <div className="sfc-step-cta-row">
         {!hasPractice && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={onRecordAgain}><Icon name="microphone" size={17} /> <BiLabel zh="再錄一次" en="Record again" /></AppButton>}
-        {hasPractice && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("practice")}><BiLabel zh="練習生詞" en={hasPhrasePractice ? "Practice the parts" : "Practice the words"} /> →</AppButton>}
+        {hasPractice && <AppButton tone="primary" className="sfc-btn-next sfc-step-cta" onClick={() => goToStep("practice")}><BiLabel zh="練習生詞" en={hasPhrasePractice ? "Practice the parts" : "Practice the words"} /> <StudentIcon name="arrow-right" size={16} /></AppButton>}
       </div>
     </div>
   );

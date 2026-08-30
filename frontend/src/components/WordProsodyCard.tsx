@@ -10,6 +10,7 @@ import type { WordProsody } from "./StoryRecorder";
 import MiniContourChart from "./MiniContourChart";
 import WordPracticeDrill from "./WordPracticeDrill";
 import { BiLabel } from "./BiLabel";
+import StudentIcon from "./StudentIcon";
 
 export default function WordProsodyCard({
   item,
@@ -63,7 +64,7 @@ export default function WordProsodyCard({
           )}
         </span>
         {drillCleared && (
-          <span className="word-prosody-cleared-chip">✓ 過關</span>
+          <span className="word-prosody-cleared-chip"><StudentIcon name="check" size={14} aria-hidden="true" /> 過關</span>
         )}
         <span className="word-prosody-topline-meta">
           {/* "You said X / target Y" — two labeled pills so the measured
@@ -125,7 +126,7 @@ export default function WordProsodyCard({
                 >
                   <span className="word-syllable-char">
                     {syllable.char} {toneArrow(syllable.tone)}{" "}
-                    {syllable.passed ? "✓" : "✗"}
+                    <StudentIcon name={syllable.passed ? "check" : "x-circle"} size={14} aria-hidden="true" />
                   </span>
                   {syllablePinyin[index] && (
                     <span className="word-syllable-pinyin">
@@ -149,7 +150,7 @@ export default function WordProsodyCard({
           </div>
           <p className="word-prosody-feedback">{item.feedback}</p>
           {improvementTip && (
-            <p className="word-prosody-tip">💡 {improvementTip}</p>
+            <p className="word-prosody-tip"><StudentIcon name="idea" size={16} aria-hidden="true" /> {improvementTip}</p>
           )}
         </>
       )}

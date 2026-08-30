@@ -154,7 +154,7 @@ describe("PronunciationBreakdown: diagnostic detail", () => {
     render(<PronunciationBreakdown words={[uncertain]} />);
 
     const row = characterRows()[0];
-    expect(row.querySelector(".pb-tone-mark")!.textContent).toBe("△");
+    expect(row.querySelector(".pb-tone-mark.is-uncertain svg")).toBeInTheDocument();
     expect(row.classList.contains("pb-row-failed")).toBe(false);
   });
 
@@ -169,7 +169,7 @@ describe("PronunciationBreakdown: diagnostic detail", () => {
     render(<PronunciationBreakdown words={[incorrect]} />);
 
     const row = characterRows()[0];
-    expect(row.querySelector(".pb-tone-mark")!.textContent).toBe("✗");
+    expect(row.querySelector(".pb-tone-mark.is-fail svg")).toBeInTheDocument();
     expect(row.classList.contains("pb-row-failed")).toBe(true);
   });
 
@@ -188,7 +188,7 @@ describe("PronunciationBreakdown: diagnostic detail", () => {
     render(<PronunciationBreakdown words={[invalid]} />);
 
     const row = characterRows()[0];
-    expect(row.querySelector(".pb-tone-mark")!.textContent).toBe("↻");
+    expect(row.querySelector(".pb-tone-mark.is-retry svg")).toBeInTheDocument();
     expect(row.classList.contains("pb-row-failed")).toBe(false);
   });
 

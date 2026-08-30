@@ -50,10 +50,10 @@ describe("JourneyBubble", () => {
       />,
     );
 
-    // s-market has 1 of the 2 gate stars → needs-stars button showing ⭐ 1/2.
+    // s-market has 1 of the 2 gate stars → needs-stars button showing 1/2.
     const bubble = await screen.findByRole("button", { name: /去市場買菜/ });
     expect(bubble).toHaveClass("journey-bubble-locked");
-    expect(await screen.findByText(/⭐ 1\/2/)).toBeInTheDocument();
+    expect(bubble).toHaveTextContent("1/2");
 
     await userEvent.setup().click(bubble);
     expect(onJump).toHaveBeenCalledWith("s-market");
@@ -73,7 +73,7 @@ describe("JourneyBubble", () => {
       );
       // No stories below the gate → status dial, not a button.
       expect(screen.queryByRole("button")).not.toBeInTheDocument();
-      expect(screen.getByRole("status")).toHaveTextContent("⭐ 3/3");
+      expect(screen.getByRole("status")).toHaveTextContent("3/3");
     } finally {
       window.localStorage.removeItem("vocabQuizStars:student");
     }
@@ -81,7 +81,7 @@ describe("JourneyBubble", () => {
 
   it("shows the bare star tally on pages that don't know the story list", () => {
     render(<JourneyBubble studentName="Minh" />);
-    expect(screen.getByRole("status")).toHaveTextContent("⭐ 0");
+    expect(screen.getByRole("status")).toHaveTextContent("0");
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
@@ -103,7 +103,7 @@ describe("JourneyBubble", () => {
 
       // The mocked backend has 1 star in s-market; local storage has 2 in
       // s-lesson5. The badge must show their combined 3 of 6, not max(2, 1).
-      expect(await screen.findByText(/⭐ 3\/6/)).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: /3 of 6 stars earned/ })).toHaveTextContent("3/6");
     } finally {
       window.localStorage.removeItem("vocabQuizStars:student");
     }
@@ -122,7 +122,7 @@ describe("JourneyBubble", () => {
         <JourneyBubble storyCount={1} storyTitles={{ "s-tiered": "夜市" }} />,
       );
       expect(screen.queryByRole("button")).not.toBeInTheDocument();
-      expect(screen.getByRole("status")).toHaveTextContent("⭐ 2/3");
+      expect(screen.getByRole("status")).toHaveTextContent("2/3");
     } finally {
       window.localStorage.removeItem("vocabQuizStars:student");
     }
@@ -147,7 +147,7 @@ describe("JourneyBubble", () => {
     );
 
     const bubble = await screen.findByRole("button", { name: /我的錢包在哪裡/ });
-    expect(await screen.findByText(/⭐ 1\/21/)).toBeInTheDocument();
+    expect(bubble).toHaveTextContent("1/21");
     await userEvent.setup().click(bubble);
     expect(onJump).toHaveBeenCalledWith("s-lesson5");
   });
