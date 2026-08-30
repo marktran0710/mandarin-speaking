@@ -142,6 +142,17 @@ and trustworthy rather than childish, noisy, or gamified for its own sake.
     the primary action harder to scan; keep the same gutter and spacing rhythm
     after that collapse.
 
+11. **Fit the desktop viewport; let mobile flow naturally.** For student-facing
+    desktop layouts (`min-width: 901px`), the application shell should occupy
+    the available dynamic viewport with `height: 100dvh` and avoid a
+    document-level scrollbar in the normal state. Build this with stretched
+    grid/flex tracks and `min-height: 0`: fixed rails and headers stay
+    `flex-shrink: 0`, while the main content panel owns any necessary
+    `overflow: auto` so long feedback, zoomed text, and real data remain
+    reachable. Do not use guessed `calc(100dvh - Npx)` offsets. On mobile
+    (`max-width: 900px`), use natural page flow with `min-height: 100dvh`,
+    allow vertical page scrolling, and prevent horizontal overflow.
+
 ## Git branch naming
 
 Do not use `codex/` as a branch-name prefix in this repository. Branch names
@@ -175,18 +186,15 @@ one-off patches. Follow these when writing or reviewing ANY CSS in
    true one-off (clearing an absolutely positioned sibling, a decorative
    micro-radius ≤5px) — leave a comment saying so when you use it.
 
-2. **No viewport-relative height traps.** Do not size a component's total
-   height with `clamp(..., calc(100dvh - Npx), ...)` or similar, and then
-   `overflow: hidden` the result, to "keep it from resizing." That pattern
-   has broken twice in this codebase: the N always turns out wrong for some
-   real layout (navbar + page padding + sidebar the author didn't account
-   for), and when it's wrong, content is clipped with no way to scroll to
-   it — not shrunk, not reflowed, just gone. Let a card take the height its
-   content actually needs; if that's taller than the viewport, let the page
-   scroll (the browser already does this correctly). If a shared element
-   (like an action-button footer) must always stay reachable, give it
-   `flex-shrink: 0` on a plain flex/grid column — never wrap the whole
-   thing in a fixed-height, overflow-hidden box.
+2. **Use a safe desktop viewport shell.** Do not use guessed
+   `calc(100dvh - Npx)` offsets, viewport clamps, or an `overflow: hidden`
+   wrapper that has no reachable inner scroller. The student shell may use
+   `height: 100dvh` on desktop when its grid/flex children have
+   `min-height: 0`, fixed chrome is non-shrinking, and the content panel owns
+   `overflow: auto`. This keeps the normal desktop state within the viewport
+   without clipping long feedback. Mobile remains auto-height and uses normal
+   page scrolling. A shared action footer must stay reachable with
+   `flex-shrink: 0`, never by hiding overflow around it.
 
 3. **One CSS source of truth per selector per state.** Before adding a rule
    that touches `.some-shared-class`, grep for every existing rule that

@@ -3,24 +3,110 @@
  *
  * This is the final, student-shell-scoped layout layer. It keeps the existing
  * learning flows and token palette, but gives desktop learners one composed
- * workspace instead of a stack of oversized cards. There is deliberately no
- * fixed viewport height or overflow clipping here: a small viewport, zoomed
- * text, or long feedback must remain reachable by normal page flow.
+ * workspace instead of a stack of oversized cards. Desktop uses a true
+ * viewport shell with an explicit inner scroller; mobile returns to natural
+ * page flow so small screens and long feedback remain reachable.
  */
 
 .student-workspace-v2 > .student-workspace-content-v2 {
   padding: var(--space-md) clamp(var(--space-md), 2vw, var(--space-xl)) var(--space-lg);
 }
 
+/* All student pages inherit one content grid. Removing nested max-widths here
+   keeps the session bar, catalog, overview, practice rail, and progress
+   surfaces on the same left and right columns. */
+.student-workspace-v2 > .student-workspace-content-v2 > .story-recorder,
+.student-workspace-v2 > .student-workspace-content-v2 > .topic-selector,
+.student-workspace-v2 > .student-workspace-content-v2 > .my-stories-page,
+.student-workspace-v2 > .student-workspace-content-v2 > .voice-test-page {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+
+.student-workspace-v2 .topic-selector .ts-container {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+
 /* The legacy page wrapper was authored for the old full-page student header
    and contributes two unrelated bottom cushions here. The shared shell now
-   owns the rhythm, so remove those cushions and let content determine the
-   page height. `overflow: visible` is intentional: it preserves normal page
-   reachability when feedback or zoomed text needs more room. */
+   owns the rhythm. Desktop clips only the outer shell because the rail and
+   content panel below both own reachable scroll regions; mobile remains
+   normal document flow. */
 .student-workspace-v2 {
-  overflow: visible;
   padding-bottom: 0;
   background: var(--clay-canvas);
+}
+
+/* StudentWorkspacePage.css still styles the legacy `.student-workspace`
+   wrapper with a bottom cushion. The v2 shell owns that edge now; the
+   combined selector is intentionally stronger so the desktop 100dvh track
+   does not lose 64px to an invisible legacy footer. */
+.student-workspace.student-workspace-v2 {
+  padding-bottom: 0;
+}
+
+@media (min-width: 901px) {
+  .student-workspace-v2 {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .student-workspace-v2 > .student-sidebar,
+  .student-workspace-v2 > .student-workspace-content-v2 {
+    min-height: 0;
+  }
+
+  .student-workspace-v2 > .student-sidebar {
+    height: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .student-workspace-v2 > .student-workspace-content-v2 {
+    display: block;
+    height: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding-bottom: var(--space-md);
+    scrollbar-gutter: stable;
+  }
+
+  .student-workspace.student-workspace-v2 .create-story-page,
+  .student-workspace.student-workspace-v2 .my-stories-page,
+  .student-workspace.student-workspace-v2 .voice-test-page {
+    min-height: 0;
+    height: 100%;
+  }
+
+  /* The session chrome stays visible while the active learning surface gets
+     the remaining track. This keeps the desktop state within one viewport
+     without hiding a long practice result. */
+  .student-workspace-v2 .story-recorder {
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .student-workspace-v2 .story-session-main {
+    min-height: 0;
+    overflow: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .student-workspace.student-workspace-v2 {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .student-workspace-v2 > .student-workspace-content-v2 {
+    height: auto;
+    overflow: visible;
+  }
 }
 
 .student-workspace-v2 .csp-recorder-body {
@@ -30,6 +116,8 @@
 .student-workspace-v2 .story-recorder {
   display: grid;
   width: 100%;
+  max-width: none;
+  margin-inline: 0;
   padding: 0 0 var(--space-lg);
   gap: var(--space-sm);
 }

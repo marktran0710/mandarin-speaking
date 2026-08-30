@@ -7,8 +7,8 @@
 .student-workspace-v2 {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  min-height: 100vh;
+  align-items: stretch;
+  min-height: 100dvh;
   /* `.student-workspace` reserves 68px of top padding for the app's top
      navbar. This route's navbar (App.tsx's Navigation) is unconditionally
      hidden whenever the rail is showing — session or not — so that
@@ -42,7 +42,12 @@
 }
 
 @media (max-width: 900px) {
-  .student-workspace-v2 { grid-template-columns: minmax(0, 1fr); }
+  .student-workspace-v2 {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    min-height: 100dvh;
+    height: auto;
+  }
   /* StudentWorkspacePage.css gives every direct child a relative stacking
      context. Re-assert the drawer geometry here so the mobile rail is taken
      out of the grid flow instead of pushing the catalogue below the fold. */
@@ -62,6 +67,8 @@
   /* Clear the fixed menu button so the first heading isn't underneath it. */
   .student-workspace-v2 > .student-workspace-content-v2 {
     padding-top: calc(44px + var(--space-lg));
+    min-height: auto;
+    height: auto;
   }
 }
 
