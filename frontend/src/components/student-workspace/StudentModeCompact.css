@@ -202,10 +202,11 @@
   gap: var(--space-md);
 }
 
-/* Give the study rail enough width for the vocabulary table while keeping
-   the scene visible as a clear visual reference. */
+/* The reference layout gives the scene and the learning rail equal visual
+   weight. A balanced pair keeps the image large without squeezing pinyin,
+   part of speech, and English into an unreadable narrow column. */
 .student-workspace-v2 .practice-workspace-study {
-  grid-template-columns: minmax(0, 0.84fr) minmax(0, 1.16fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .student-workspace-v2 .practice-workspace-study .practice-scene-col,
@@ -302,12 +303,12 @@
   display: none;
 }
 
-/* Keep the study reference rail dense and horizontal: vocabulary and phrase
-   support are existing learning content, not separate vertical sections.
-   Both blocks share the same grid so the right rail uses its width before
-   growing the whole practice stage taller than the scene image. */
+/* Vocabulary is tabular content, while phrases are a related follow-up
+   reference. Keep the two blocks in one readable rail so each row gets the
+   same left/right columns as the reference layout instead of a narrow phrase
+   mini-card beside the table. */
 .student-workspace-v2 .practice-study-ref {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: start;
 }
 
