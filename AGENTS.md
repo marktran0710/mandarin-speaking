@@ -210,12 +210,18 @@ one-off patches. Follow these when writing or reviewing ANY CSS in
    them in a shared row at all. Don't reach for `align-items` as the fix
    for "there's a gap after the short column" — it isn't one.
 
-5. **Icons are SVG, not emoji.** New or edited UI uses the existing icon
-   components (`StudentIcon`, `shared/ui/Icon`) — stroke-based, one visual
-   language. Emoji-as-icon (🎙️📖📊💡🔁🖐) is legacy debt being paid down
-   file by file, not a pattern to extend. If a component you're touching
-   still has an emoji icon, replacing it with the matching SVG icon is in
-   scope for that change.
+5. **Use image-based icons, not canvas or hand-drawn SVG.** New or edited UI
+   uses the shared image-icon component and colorful raster assets (prefer
+   transparent PNG, WebP, or AVIF) from the central icon library. Keep one
+   coherent illustrated icon family with the same artboard, optical size,
+   padding, and visual weight; do not mix random stock icons, emoji, canvas
+   drawings, or per-page image files. Existing `StudentIcon` and
+   `shared/ui/Icon` SVG aliases should be migrated behind the shared
+   image-icon API when those surfaces are touched. Directional and status
+   icons follow the same image system rather than becoming text glyphs.
+   Every meaningful image icon still needs an accessible name/alternative;
+   decorative icons must be hidden from assistive technology, and icon
+   controls must preserve the existing touch-target minimum.
 
 6. **Verify layout changes against a real render, not just the diff.**
    `getBoundingClientRect()` in an actual browser (a throwaway Vite entry
