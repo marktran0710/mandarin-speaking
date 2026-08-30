@@ -62,6 +62,46 @@ Do not run huge unrelated test suites unless warranted by the change.
 
 Keep orchestration details brief. Communicate what is being done, important findings, what changed, validation performed, and remaining risks. Do not expose private chain-of-thought. For HARD work, it is acceptable to say briefly that the task is being decomposed into smaller implementation units.
 
+## Educational product and interface principles
+
+This is an education product for adult learners (18+) who are thoughtful, educated,
+and focused on making steady progress. The interface must feel polished, calm,
+purposeful, and trustworthy rather than childish, noisy, or gamified for its own
+sake.
+
+1. **Keep the experience compact and content-first.** Prefer a clear hierarchy,
+   aligned sections, predictable spacing, and concise cards. Remove decorative
+   elements, labels, metrics, badges, or helper copy when they do not improve
+   comprehension or the next decision.
+
+2. **One function, one place.** Do not add duplicate navigation, repeated
+   settings, mirrored controls, or multiple actions that lead to the same result.
+   Reuse an existing component and flow when it already solves the problem. Every
+   new control must have a distinct user need and a clear reason to exist.
+
+3. **Prefer simple, obvious interaction.** Give each context one primary action,
+   make the available next step easy to scan, and avoid unnecessary modals,
+   multi-step flows, hidden gestures, or configuration. Use familiar language and
+   preserve the user's mental model across screens.
+
+4. **Design for mature learners.** Use restrained visual emphasis, readable
+   typography, meaningful status colors, and professional copy. Avoid toy-like
+   illustrations, excessive rounded containers, ornamental gradients, confetti,
+   arbitrary progress mechanics, or decorative gamification unless it directly
+   supports learning motivation or feedback.
+
+5. **Treat layout quality as a product requirement.** Before shipping a screen,
+   check that headings, controls, content, and actions form a compact rhythm with
+   no unexplained dead space, duplicated information, or competing visual focal
+   points. Responsive layouts must preserve the same clarity and must not add
+   controls merely because there is room on larger screens.
+
+6. **Question scope before implementation.** When a request suggests a new
+   feature, first verify whether the need can be met by simplifying, relabeling,
+   or repositioning an existing feature. Do not invent dashboard metrics,
+   shortcuts, filters, or secondary actions without evidence that they are
+   necessary for the learning task.
+
 ## Git branch naming
 
 Do not use `codex/` as a branch-name prefix in this repository. Branch names
