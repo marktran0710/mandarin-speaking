@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import StudentSidebar from "./StudentSidebar";
 import type { StudentIconName } from "../StudentIcon";
 import type { WorkspaceView } from "../../types/studentWorkspace";
+import "./StudentModeCompact.css";
 
 export const STUDENT_WORKSPACE_VIEWS: Array<{
   id: WorkspaceView;

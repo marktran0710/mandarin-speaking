@@ -8,6 +8,7 @@ import {
   type ReferenceAudioAssessment,
 } from "../utils/referenceAudioQuality";
 import { BiLabel } from "./BiLabel";
+import StudentIcon from "./StudentIcon";
 import PraatTimeline from "./PraatTimeline";
 import type { WordProsody } from "./StoryRecorder";
 import "./ModelRecordingPractice.css";
@@ -197,7 +198,7 @@ export default function ModelRecordingPractice({
   return (
     <section className="model-recording-practice" aria-label="Listen and repeat model recording">
       <div className="model-recording-heading">
-        <span aria-hidden="true">🎧</span>
+        <span aria-hidden="true"><StudentIcon name="listen" size={20} /></span>
         <div>
           <p className="block-label">
             {referenceSource === "scene" ? (

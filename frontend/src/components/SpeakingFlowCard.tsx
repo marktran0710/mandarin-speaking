@@ -9,6 +9,7 @@ import type {
   SpeechModel,
 } from "./StoryRecorder";
 import ModelRecordingPractice from "./ModelRecordingPractice";
+import StudentIcon from "./StudentIcon";
 import "./SpeakingFlowCard.css";
 
 const MAX_RECORDING_SECONDS = 30;
@@ -285,7 +286,7 @@ export default function SpeakingFlowCard({
               aria-pressed={isRecording}
             >
               <span className="sfc-record-icon" aria-hidden="true">
-                {isRecording ? "■" : "●"}
+                <StudentIcon name={isRecording ? "stop" : "record"} size={18} />
               </span>
               {isRecording ? (
                 <>
@@ -307,7 +308,7 @@ export default function SpeakingFlowCard({
                 onClick={() => uploadInputRef.current?.click()}
                 disabled={isBusy || Boolean(pendingUploadName)}
               >
-                <span aria-hidden="true">↥</span>
+                <StudentIcon name="upload" size={18} />
                 <BiLabel k="upload_audio" />
               </AppButton>
               <input

@@ -1,5 +1,6 @@
 import { BiLabel, BiText } from "./BiLabel";
 import Icon from "../shared/ui/Icon";
+import StudentIcon from "./StudentIcon";
 import { SkillFocusLabel } from "./TopicSelector";
 import type { Topic } from "./StoryRecorder";
 
@@ -61,7 +62,9 @@ export default function StoryOverviewSection({
             disabled={!hasVocabQuiz}
             onClick={() => onSelectPhase("vocabquiz")}
           >
-            <span className="overview-choice-icon">❓</span>
+            <span className="overview-choice-icon" aria-hidden="true">
+              <StudentIcon name="stories" size={20} />
+            </span>
             <strong>
               <BiLabel k="vocabulary_map" />
             </strong>
