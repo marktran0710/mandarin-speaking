@@ -181,14 +181,17 @@
 }
 
 .student-workspace-v2 .ssb-journey .journey-path-vertical .journey-item {
-  flex: 0 1 clamp(92px, 12vw, 160px);
-  min-width: clamp(92px, 12vw, 160px);
+  /* Scene stops share the available rail width. The former viewport-based
+     minimum made a 7–9 scene lesson wider than its session shell and caused
+     the entire practice canvas to gain a horizontal scrollbar. */
+  flex: 1 1 0;
+  min-width: 0;
   align-items: center;
 }
 
 .student-workspace-v2 .ssb-journey .journey-connector {
-  flex: 0 0 var(--space-md);
-  width: var(--space-md);
+  flex: 0 0 var(--space-xs);
+  width: var(--space-xs);
   height: var(--space-sm);
   margin: 0;
   transform: none;
@@ -210,6 +213,13 @@
 
 .student-workspace-v2 .ssb-journey .journey-path-vertical {
   counter-reset: student-scene;
+}
+
+/* A single scene has no navigation choice. Removing the rail prevents that
+   one thumbnail from stretching into an accidental banner while preserving
+   the proportional grid for real multi-scene lessons. */
+.student-workspace-v2 .ssb-journey:has(.journey-item:only-child) {
+  display: none;
 }
 
 .student-workspace-v2 .ssb-journey .journey-stop-ring,
@@ -507,12 +517,44 @@
   grid-template-columns: var(--space-md) minmax(0, .8fr) minmax(0, 1fr) minmax(1.5rem, .35fr) minmax(0, 1.5fr) var(--space-xl);
   gap: var(--space-xs);
   min-height: 0;
-  padding: var(--space-2xs) var(--space-xs);
+  padding: var(--space-3xs) var(--space-xs);
 }
 
+.student-workspace-v2 .scene-vocab-row.scene-vocab-used,
+.student-workspace-v2 .scene-vocab-row.scene-vocab-missed,
 .student-workspace-v2 .scene-vocab-row-practice:not(.scene-vocab-used):not(.scene-vocab-missed) {
+  border: 0;
+  border-bottom: 1px solid var(--clay-hairline-soft);
+  border-radius: 0;
   border-color: var(--clay-hairline-soft);
   background: transparent;
+}
+
+.student-workspace-v2 .scene-vocab-table .scene-vocab-row:last-child {
+  border-bottom: 0;
+}
+
+/* Used/missing is feedback about one word, not an alert for the whole row.
+   Restrict semantic color to the compact status marker so mature learners can
+   scan the reference table without a wall of success/error fills. */
+.student-workspace-v2 .scene-vocab-status {
+  display: grid;
+  width: var(--space-md);
+  height: var(--space-md);
+  place-items: center;
+  border-radius: var(--clay-radius-pill);
+  font-size: var(--text-xs);
+  line-height: 1;
+}
+
+.student-workspace-v2 .scene-vocab-row.scene-vocab-used .scene-vocab-status {
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.student-workspace-v2 .scene-vocab-row.scene-vocab-missed .scene-vocab-status {
+  background: var(--clay-error-soft);
+  color: var(--clay-error);
 }
 
 .student-workspace-v2 .scene-vocab-cell {
@@ -534,12 +576,17 @@
 .student-workspace-v2 .practice-phrases-hint-full {
   max-height: 34vh;
   gap: var(--space-xs);
-  padding: var(--space-xs);
+  padding: var(--space-sm);
 }
 
 .student-workspace-v2 .practice-phrases-list {
   gap: var(--space-xs);
   margin-top: 0;
+}
+
+.student-workspace-v2 .practice-phrase-row {
+  gap: var(--space-3xs);
+  padding-block: var(--space-xs);
 }
 
 .student-workspace-v2 .practice-phrase-text {
