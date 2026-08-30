@@ -334,11 +334,11 @@
   gap: var(--space-md);
 }
 
-/* The reference layout gives the scene and the learning rail equal visual
-   weight. A balanced pair keeps the image large without squeezing pinyin,
-   part of speech, and English into an unreadable narrow column. */
+/* Study is a focused desk: the scene remains the visual anchor while the
+   reference rail receives a little more measure for pinyin and English.
+   Both columns retain the same outer grid edges as the rest of the workspace. */
 .student-workspace-v2 .practice-workspace-study {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
 }
 
 .student-workspace-v2 .practice-workspace-study .practice-scene-col,
@@ -422,6 +422,7 @@
 
 .student-workspace-v2 .practice-workspace-study .practice-scene-main {
   display: grid;
+  grid-template-rows: minmax(0, auto) auto;
   align-content: start;
   gap: var(--space-sm);
 }
@@ -580,6 +581,30 @@
   max-height: 34vh;
   gap: var(--space-xs);
   padding: var(--space-sm);
+}
+
+/* Long reviews scroll as one continuous reference rail. Vocabulary and
+   phrases remain in their existing order, while the next-step action stays
+   outside the rail and reachable without scrolling through the whole page. */
+@media (min-width: 701px) {
+  .student-workspace-v2 .practice-workspace-study .practice-content.practice-study-ref {
+    max-block-size: calc(var(--space-3xl) * 6);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-inline-end: var(--space-2xs);
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+  }
+
+  .student-workspace-v2 .practice-workspace-study .practice-phrases-hint-full {
+    max-block-size: none;
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+
+  .student-workspace-v2 .practice-workspace-study .practice-footer {
+    flex-shrink: 0;
+  }
 }
 
 .student-workspace-v2 .practice-phrases-list {
