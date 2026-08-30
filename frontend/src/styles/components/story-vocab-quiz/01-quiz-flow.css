@@ -2,11 +2,11 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: clamp(18px, 3vw, 28px);
+  gap: var(--space-lg);
   width: min(100%, 1060px);
   max-width: 1060px;
   margin: 0 auto;
-  padding: clamp(22px, 4vw, 42px) 24px 48px;
+  padding: var(--space-2xl) var(--space-lg) var(--space-3xl);
   text-align: center;
 }
 /* The tier-choice screen is a focused selection surface: the story session
@@ -23,9 +23,9 @@
 .vocab-quiz-topbar {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
   width: 100%;
-  margin-bottom: -8px;
+  margin-bottom: 0;
 }
 .vocab-quiz-topbar:empty { display: none; }
 
@@ -35,7 +35,7 @@
   gap: var(--space-xs);
   font-size: 13px;
   font-weight: 650;
-  padding: 8px 14px;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--clay-radius-md);
   cursor: pointer;
   background: transparent;
@@ -51,19 +51,19 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-2xs);
 }
 
 .vocab-quiz-word {
   font-size: 2.6rem;
   color: var(--gold-deep);
-  margin: 4px 0;
+  margin: var(--space-2xs) 0;
 }
 
 .vocab-quiz-ai-badge {
   display: inline-block;
   font-size: 0.55em;
-  margin-left: 6px;
+  margin-left: var(--space-2xs);
   vertical-align: super;
   cursor: help;
 }
@@ -99,14 +99,14 @@
    passCount. The gold is the brand accent, matching the ⭐ it buys. */
 .vq-track {
   width: min(100%, 420px);
-  margin: 10px 0 2px;
+  margin: var(--space-sm) 0 var(--space-3xs);
 }
 
 .vq-track-scale {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 12px;
+  gap: var(--space-sm);
   font-size: 11px;
   color: var(--clay-muted);
 }
@@ -122,7 +122,7 @@
 .vq-track-rail {
   position: relative;
   height: 9px;
-  margin-top: 5px;
+  margin-top: var(--space-2xs);
   border-radius: var(--clay-radius-pill);
   background: var(--clay-hairline-soft);
   overflow: hidden;
@@ -225,7 +225,7 @@
 .vocab-quiz-options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: var(--space-sm);
   width: 100%;
 }
 
@@ -236,7 +236,7 @@
   color: var(--clay-ink);
   font-size: 14.5px;
   font-weight: 650;
-  padding: 14px 12px;
+  padding: var(--space-sm);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -325,7 +325,7 @@
 
 .vocab-quiz-actions {
   display: flex;
-  gap: 16px;
+  gap: var(--space-md);
   justify-content: center;
   flex-wrap: wrap;
 }
@@ -333,7 +333,7 @@
 .btn-vocab-quiz-next {
   font-size: 14.5px;
   font-weight: 650;
-  padding: 12px 24px;
+  padding: var(--space-sm) var(--space-lg);
   border-radius: var(--clay-radius-pill);
   cursor: pointer;
   border: 2px solid var(--jade-deep);
@@ -357,7 +357,7 @@
 .btn-vocab-quiz-finish {
   font-size: 13px;
   font-weight: 650;
-  padding: 8px 16px;
+  padding: var(--space-xs) var(--space-md);
   border-radius: var(--clay-radius-md);
   cursor: pointer;
   background: transparent;
@@ -390,7 +390,7 @@
   width: min(100%, 1040px);
   margin: 0 auto;
   gap: var(--space-xs);
-  padding: var(--space-xl) clamp(var(--space-lg), 5vw, var(--space-2xl));
+  padding: var(--space-xl) var(--space-2xl);
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--gold) 36%, var(--clay-hairline));
   border-radius: var(--clay-radius-lg);
@@ -444,8 +444,8 @@
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 0 0 4px;
+  gap: var(--space-xs);
+  margin: 0 0 var(--space-2xs);
 }
 
 .vocab-quiz-mode-select .eyebrow {

@@ -438,6 +438,28 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* Keep the compact page's responsive tracks at the same specificity as its
+   desktop tracks. Otherwise the desktop three-column rule wins over the
+   legacy quiz breakpoint and narrow cards collapse into unreadable columns. */
+@media (max-width: 760px) {
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .student-workspace-v2 .story-recorder:has(.vocab-quiz-mode-select),
+  .student-workspace-v2 .story-recorder:has(.vocab-quiz-mode-select) .story-session-main {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-mode-grid,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .student-workspace-v2 .story-overview {
   gap: var(--space-md);
   padding-bottom: var(--space-md);

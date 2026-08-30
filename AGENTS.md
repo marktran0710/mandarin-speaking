@@ -121,6 +121,18 @@ and trustworthy rather than childish, noisy, or gamified for its own sake.
    and fix any zero-gap pair before shipping. Preserve the same rhythm when a
    grid collapses on smaller screens.
 
+9. **Keep spacing consistent at the same hierarchy level.** Reuse one token
+   for the same relationship across components and responsive variants:
+   `--space-2xs` for intentional micro-label spacing, `--space-xs` inside a
+   control or compact row, `--space-sm` between related components, and
+   `--space-md` or larger between sections. Prefer a parent `gap` over mixed
+   child margins, and do not alternate nearby raw values such as 8px, 10px,
+   12px, and 14px for the same relationship. A zero gap is allowed only for
+   an intentionally continuous surface (for example a table row or a
+   segmented control); document that exception in the selector. Audit every
+   breakpoint after changing the base rhythm so mobile and desktop do not
+   drift apart.
+
 ## Git branch naming
 
 Do not use `codex/` as a branch-name prefix in this repository. Branch names
