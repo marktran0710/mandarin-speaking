@@ -158,7 +158,7 @@
   color: var(--seal-deep);
 }
 
-.tdash-next-up svg {
+.tdash-next-up .app-icon {
   flex: 0 0 auto;
   color: var(--clay-muted);
 }
@@ -190,7 +190,7 @@
   background: var(--clay-surface-soft);
 }
 
-.tdash-tool svg {
+.tdash-tool .app-icon {
   flex: 0 0 auto;
   margin-top: 2px;
   color: var(--clay-muted);

@@ -1,0 +1,9 @@
+.app-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  line-height: 0;
+  vertical-align: middle;
+  background-repeat: no-repeat;
+  user-select: none;
+}

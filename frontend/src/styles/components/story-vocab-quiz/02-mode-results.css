@@ -62,7 +62,6 @@
   background: var(--gold-soft);
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--clay-surface-card) 55%, transparent);
 }
-.vocab-quiz-mode-icon svg { stroke-width: 1.9; }
 
 /* The three star-tier cards share one calm choice style; color only marks
    completion and the next learning path. */
@@ -129,7 +128,7 @@
 .vocab-quiz-mode-weak_words {
   border-color: color-mix(in srgb, var(--seal-deep) 28%, var(--clay-hairline));
 }
-.vocab-quiz-secondary-grid > .vocab-quiz-mode-card > svg {
+.vocab-quiz-secondary-grid > .vocab-quiz-mode-card > .app-icon {
   grid-column: 4;
   grid-row: 1;
   align-self: center;
@@ -144,7 +143,7 @@
   margin: 0;
   color: var(--gold-deep);
 }
-.vocab-quiz-star-count svg { width: 32px; height: 32px; }
+.vocab-quiz-star-count .app-icon { width: 32px; height: 32px; }
 .vocab-quiz-star-count .star-open { color: var(--clay-hairline); }
 
 /* The "why am I doing this" line under the stars (mode-select) and the
@@ -186,7 +185,7 @@
   }
   .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > strong { grid-row: 1; }
   .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > p { grid-row: 2; }
-  .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > svg {
+  .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > .app-icon {
     grid-column: 3;
     grid-row: 1 / span 2;
   }

@@ -157,10 +157,10 @@
   gap: var(--space-xs);
 }
 
-.student-app .btn > svg,
-.student-app .narration-upload-btn > svg,
-.student-app .lr-upload-btn > svg,
-.student-app .lr-play-btn > svg {
+.student-app .btn > .app-icon,
+.student-app .narration-upload-btn > .app-icon,
+.student-app .lr-upload-btn > .app-icon,
+.student-app .lr-play-btn > .app-icon {
   flex: 0 0 auto;
 }
 
@@ -289,7 +289,7 @@
   font-size: 0;
 }
 
-.student-app .empty-icon svg {
+.student-app .empty-icon .app-icon {
   display: block;
 }
 

@@ -333,7 +333,7 @@ describe("StoryVocabQuiz star tiers", () => {
       expect(screen.getByRole("button", { name: /Play the word/ })).toBeInTheDocument();
       const correctButton = optionButtons().find((b) => b.textContent === spokenWord)!;
       await user.click(correctButton);
-      expect(correctButton.querySelector("svg")).toBeInTheDocument();
+      expect(correctButton.querySelector(".app-icon")).toBeInTheDocument();
     } finally {
       vi.unstubAllGlobals();
     }
@@ -362,6 +362,6 @@ describe("StoryVocabQuiz star tiers", () => {
     )!;
     const correctButton = optionButtons().find((b) => b.textContent === expectedWord)!;
     await user.click(correctButton);
-    expect(correctButton.querySelector("svg")).toBeInTheDocument();
+    expect(correctButton.querySelector(".app-icon")).toBeInTheDocument();
   });
 });

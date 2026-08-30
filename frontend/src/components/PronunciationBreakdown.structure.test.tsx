@@ -238,7 +238,7 @@ describe("PronunciationBreakdown: structure and summary", () => {
     expect(summary).toContain("1個要再錄");
     expect(summary).not.toContain("1個聽不太出來");
     expect(container.querySelector(".pb-head-meta")!.textContent).toContain("1未計入");
-    expect(container.querySelectorAll(".pb-tone-mark.is-retry svg")).toHaveLength(1);
+    expect(container.querySelectorAll(".pb-tone-mark.is-retry .app-icon")).toHaveLength(1);
     expect(container.querySelector(".pb-head-score")!.textContent).toContain("1/1");
   });
 
@@ -256,7 +256,7 @@ describe("PronunciationBreakdown: structure and summary", () => {
 
     expect(container.querySelector(".pb-summary")).toBeNull();
     expect(container.querySelector(".pb-head-meta")!.textContent).toContain("1輕聲不計");
-    expect(container.querySelector(".pb-tone-mark.is-not-measured svg")).toBeInTheDocument();
+    expect(container.querySelector(".pb-tone-mark.is-not-measured .app-icon")).toBeInTheDocument();
   });
 
 });
