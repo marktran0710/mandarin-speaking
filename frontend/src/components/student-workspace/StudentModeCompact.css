@@ -1260,23 +1260,30 @@
   }
 }
 
-/* Results is a compact review workspace: scene and listening controls stay
-   together, while the learner reads the correction, chooses a next step, and
-   opens detailed tone analysis from one aligned response rail. */
+/* Results is an evidence-first review desk: the scene and its two listening
+   states form one left rail, while the response rail follows one clear order
+   from verdict to next action. Both rails use the same page grid and token
+   gaps; no content is duplicated or visually stranded in a stretched row. */
 .student-workspace-v2 .sfc-results.sfc-screen {
   gap: var(--space-md);
 }
 
 .student-workspace-v2 .sfc-results.sfc-screen > .practice-workspace {
-  grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
   align-items: start;
   gap: var(--space-md);
 }
 
 .student-workspace-v2 .sfc-results .practice-scene-col {
   display: grid;
-  gap: var(--space-sm);
   align-content: start;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.student-workspace-v2 .sfc-results .practice-scene-image {
+  border: 1px solid var(--clay-hairline);
+  box-shadow: none;
 }
 
 .student-workspace-v2 .sfc-results .sfc-audio-compare {
@@ -1287,11 +1294,13 @@
 .student-workspace-v2 .sfc-results .reference-audio-card,
 .student-workspace-v2 .sfc-results .sfc-audio-compare .recording-playback,
 .student-workspace-v2 .sfc-results .sfc-recording-unavailable {
+  min-width: 0;
   min-height: 0;
   padding: var(--space-sm);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
+  box-shadow: none;
 }
 
 /* The scene already shows the target sentence; repeating it in the model
@@ -1328,6 +1337,8 @@
   display: grid;
   align-content: start;
   gap: var(--space-sm);
+  min-width: 0;
+  container-type: inline-size;
 }
 
 .student-workspace-v2 .sfc-results .sfc-stepper {
@@ -1338,6 +1349,7 @@
 }
 
 .student-workspace-v2 .sfc-results .sfc-step {
+  min-width: 0;
   min-height: var(--space-2xl);
   justify-content: center;
   gap: var(--space-xs);
@@ -1367,12 +1379,38 @@
   background: var(--seal-deep);
 }
 
-.student-workspace-v2 .sfc-results .sfc-step-panel {
+/* Overview is the only result step that contains both a verdict and a
+   reliability notice. On a roomy response rail they share one row, reducing
+   vertical noise. Narrow rails keep the same order as a single column. */
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-sm);
+}
+
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-verdict,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .voice-reliability-notice,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .content-diff,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-mastery-banner,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .self-eval-compare,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-progress-snapshot,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-results-scene-extras,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .experimental-analysis-panel,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .analysis-compare-panel,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-step-cta,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-step-cta-row,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .voice-reliability-notice.is-assistive {
+  grid-column: 1 / -1;
+}
+
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-verdict,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .voice-reliability-notice:not(.is-assistive) {
+  min-width: 0;
 }
 
 .student-workspace-v2 .sfc-results .sfc-verdict {
   gap: var(--space-xs);
+  min-height: var(--space-2xl);
   padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
@@ -1395,10 +1433,27 @@
   display: none;
 }
 
+.student-workspace-v2 .sfc-results .voice-reliability-notice {
+  min-height: var(--space-2xl);
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-color: color-mix(in srgb, var(--clay-error) 35%, transparent);
+  border-radius: var(--clay-radius-md);
+  background: color-mix(in srgb, var(--clay-error) 7%, var(--clay-surface-card));
+  color: var(--clay-error-deep);
+}
+
+.student-workspace-v2 .sfc-results .voice-reliability-icon {
+  flex-basis: var(--space-xl);
+  width: var(--space-xl);
+  height: var(--space-xl);
+  background: var(--clay-surface-card);
+}
+
 .student-workspace-v2 .sfc-results .content-diff {
   gap: var(--space-xs);
   margin: 0;
-  padding: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-card);
@@ -1409,6 +1464,7 @@
   grid-template-columns: minmax(var(--space-3xl), auto) minmax(0, 1fr);
   gap: var(--space-xs);
   align-items: start;
+  line-height: 1.45;
 }
 
 .student-workspace-v2 .sfc-results .content-diff-label {
@@ -1421,13 +1477,18 @@
 }
 
 .student-workspace-v2 .sfc-results .content-diff-line-text {
+  min-width: 0;
   font-size: var(--text-md);
   line-height: 1.45;
 }
 
 .student-workspace-v2 .sfc-results .content-diff-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2xs);
   margin: 0;
   font-size: var(--text-xs);
+  line-height: 1.35;
 }
 
 /* The comparison already exposes the transcript and recording state, so the
@@ -1437,7 +1498,7 @@
 }
 
 .student-workspace-v2 .sfc-results .sfc-progress-snapshot {
-  padding: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
@@ -1453,8 +1514,15 @@
 
 .student-workspace-v2 .sfc-results .sfc-progress-snapshot-grid div {
   gap: var(--space-2xs);
+  min-height: var(--space-2xl);
   padding: var(--space-xs);
   border-radius: var(--clay-radius-sm);
+}
+
+.student-workspace-v2 .sfc-results .sfc-step-cta {
+  min-height: var(--space-2xl);
+  border-color: var(--clay-primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .student-workspace-v2 .sfc-results .sfc-results-utility {
@@ -1465,7 +1533,7 @@
 }
 
 .student-workspace-v2 .sfc-results .sfc-left-feedback-summary {
-  min-height: var(--space-2xl);
+  min-height: var(--space-xl);
   padding: var(--space-xs) var(--space-sm);
   gap: var(--space-sm);
   animation: none;
@@ -1482,6 +1550,8 @@
 
 .student-workspace-v2 .sfc-results .sfc-results-footer {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
   gap: var(--space-sm);
   margin: 0;
   padding: var(--space-sm) 0 0;
@@ -1491,7 +1561,14 @@
 
 .student-workspace-v2 .sfc-results .sfc-unlock-note,
 .student-workspace-v2 .sfc-results .sfc-assistive-retry-hint {
+  min-width: 0;
   font-size: var(--text-xs);
+}
+
+.student-workspace-v2 .sfc-results .sfc-unlock-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
 }
 
 .student-workspace-v2 .sfc-results .sfc-footer-actions {
@@ -1511,6 +1588,25 @@
   grid-column: 1 / -1;
 }
 
+@container (min-width: 440px) {
+  .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-workspace-v2 .sfc-results .sfc-results-footer {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-verdict,
+  .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .voice-reliability-notice:not(.is-assistive) {
+    grid-column: span 1;
+  }
+
+  .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-verdict:only-child {
+    grid-column: 1 / -1;
+  }
+}
+
 @media (max-width: 700px) {
   .student-workspace-v2 .sfc-results.sfc-screen > .practice-workspace,
   .student-workspace-v2 .sfc-results .sfc-audio-compare {
@@ -1522,6 +1618,6 @@
   }
 
   .student-workspace-v2 .sfc-results .sfc-footer-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
