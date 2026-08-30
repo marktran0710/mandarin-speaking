@@ -151,15 +151,11 @@ describe("StoryRecorder student prototype", () => {
     expect(screen.getByRole("region", { name: "Vocabulary quiz" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
 
-    // Backing out (the quiz's own "← Back to activities" button) still
-    // leaves Speaking locked — only finishing unlocks it.
-    await user.click(screen.getByRole("button", { name: /Back to activities/ }));
-    expect(screen.getByRole("button", { name: /Speaking Practice/ })).toBeDisabled();
+    // The story session header is now the single way out of this activity;
+    // the quiz no longer renders a duplicate "Back to activities" button.
+    expect(screen.queryByRole("button", { name: /Back to activities/ })).not.toBeInTheDocument();
 
-    // Finish the quiz for real this time. The overview section was
-    // unmounted and remounted when we left and returned to it, so the
-    // earlier `vocabChoice` reference is stale — query it fresh.
-    await user.click(screen.getByRole("button", { name: /Vocabulary Quiz/ }));
+    // Complete the quiz ladder from the mode-select screen.
     await completeVocabQuiz(user);
 
     // Landed in practice directly (quiz auto-advances on completion), with

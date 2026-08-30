@@ -10,9 +10,8 @@ const LEVEL_COPY: Record<"easy" | "medium" | "hard", { zh: string; pinyin: strin
   hard: { zh: "困難", pinyin: "Kùnnán", en: "Hard" },
 };
 
-export function ModeSelectScreen({ stars, weakEntries, level = "easy", onBack, startTier, chooseWeakWords, showReview }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; alreadyCompleted?: boolean; level?: "easy" | "medium" | "hard"; onBack?: () => void; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; showReview: () => void }) {
+export function ModeSelectScreen({ stars, weakEntries, level = "easy", startTier, chooseWeakWords, showReview }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; alreadyCompleted?: boolean; level?: "easy" | "medium" | "hard"; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; showReview: () => void }) {
   return <section className="story-vocab-quiz vocab-quiz-mode-select" aria-label="Vocabulary quiz">
-    {onBack && <button type="button" className="btn-vocab-quiz-back" onClick={onBack}><StudentIcon name="arrow-left" size={17} /><BiLabel zh="回活動" pinyin="Huí huódòng" en="Back to activities" /></button>}
     <div className="vocab-quiz-header"><div className="vocab-quiz-header-tags"><p className="eyebrow"><BiLabel zh="生詞測驗" pinyin="Shēngcí cèyàn" en="Vocabulary Quiz" /></p><p className="vocab-quiz-level-badge"><BiLabel zh={LEVEL_COPY[level].zh} pinyin={LEVEL_COPY[level].pinyin} en={LEVEL_COPY[level].en} /></p></div><h1 className="vocab-quiz-mode-title">{practiceUnlocked(stars)
       ? <BiLabel zh="三顆星都拿到了！" pinyin="Sān kē xīng dōu nádào le!" en="All three stars earned" />
       : <BiLabel zh="拿到三顆星，開始說話練習" pinyin="Nádào sān kē xīng, kāishǐ shuōhuà liànxí" en="Earn three stars to open speaking practice" />}</h1><p className="vocab-quiz-star-count" aria-label={`${stars} of 3 stars earned`}>{([1, 2, 3] as const).map((tier) => <span key={tier} className={stars >= tier ? "star-earned" : "star-open"}><StudentIcon name="star" size={26} fill={stars >= tier ? "currentColor" : "none"} /></span>)}</p></div>
