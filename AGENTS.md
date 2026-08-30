@@ -101,6 +101,16 @@ and trustworthy rather than childish, noisy, or gamified for its own sake.
    shortcuts, filters, or secondary actions without evidence that they are
    necessary for the learning task.
 
+7. **Use a shared grid for every composed layout.** Treat each page as a
+   small, deliberate grid: use one content container, shared horizontal
+   gutters, and consistent column lines so headings, controls, cards, and
+   footers have aligned left and right edges. Repeating cards should use the
+   same column widths and gaps, with equal row heights when their content
+   permits. Prefer `grid-template-columns: repeat(..., minmax(0, 1fr))`, token
+   spacing, and `align-items: stretch` over per-component offsets, arbitrary
+   widths, or nested margins that create drift. On smaller screens, collapse
+   the grid while preserving the same page gutter and alignment rhythm.
+
 ## Git branch naming
 
 Do not use `codex/` as a branch-name prefix in this repository. Branch names
