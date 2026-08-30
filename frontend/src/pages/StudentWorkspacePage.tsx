@@ -169,7 +169,7 @@ function LegacyStudentWorkspacePage({
               <span className="student-workspace-tab-copy">
                 <BiLabel {...item.label} />
               </span>
-              <span className="student-workspace-tab-arrow" aria-hidden="true">→</span>
+              <StudentIcon name="arrow-right" size={16} className="student-workspace-tab-arrow" aria-hidden="true" />
             </button>
           ))}
         </nav>

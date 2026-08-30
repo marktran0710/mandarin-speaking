@@ -329,7 +329,7 @@ export default function MyStoriesPage({
                         <strong>{group.lessonNumber}</strong>
                       </>
                     ) : (
-                      <strong>✦</strong>
+                      <StudentIcon name="spark" size={23} />
                     )}
                   </div>
 
@@ -338,9 +338,19 @@ export default function MyStoriesPage({
                       {title.zh} <span className="profile-lesson-pin">{title.pinyin}</span>
                     </p>
                     {groupQuizTopics.length > 0 && (
-                      <p className="profile-lesson-stars">
-                        {"⭐".repeat(groupStars)}
-                        {"☆".repeat(groupQuizTopics.length * 3 - groupStars)}
+                      <p
+                        className="profile-lesson-stars"
+                        aria-label={`${groupStars} of ${groupQuizTopics.length * 3} quiz stars earned`}
+                      >
+                        {Array.from({ length: groupQuizTopics.length * 3 }, (_, starIndex) => (
+                          <StudentIcon
+                            key={starIndex}
+                            name="star"
+                            size={14}
+                            aria-hidden="true"
+                            className={starIndex < groupStars ? "is-earned" : "is-empty"}
+                          />
+                        ))}
                       </p>
                     )}
                   </div>
@@ -360,13 +370,12 @@ export default function MyStoriesPage({
                             <BiLabel zh="複習" pinyin="Fùxí" en="Review" />
                           ) : (
                             <BiLabel zh="去練習" pinyin="Qù liànxí" en="Practice" />
-                          )}{" "}
-                          →
+                          )} <StudentIcon name="arrow-right" size={16} aria-hidden="true" />
                         </button>
                       </>
                     ) : (
                       <span className="profile-chip profile-chip-locked">
-                        🔒{" "}
+                        <StudentIcon name="lock" size={14} aria-hidden="true" />
                         <BiLabel
                           zh="先完成上一課"
                           pinyin="Xiān wánchéng shàng yí kè"
@@ -399,7 +408,7 @@ export default function MyStoriesPage({
               return (
                 <div key={topic.id} className="profile-story-row">
                   <div className="profile-story-thumb">
-                    {previewImage ? <img src={previewImage} alt="" /> : "🖼️"}
+                    {previewImage ? <img src={previewImage} alt="" /> : <StudentIcon name="image" size={20} aria-hidden="true" />}
                   </div>
 
                   <div className="profile-story-main">
@@ -418,9 +427,16 @@ export default function MyStoriesPage({
                   </div>
 
                   {stars !== null && (
-                    <span className="profile-story-stars">
-                      {"⭐".repeat(stars)}
-                      {"☆".repeat(3 - stars)}
+                    <span className="profile-story-stars" aria-label={`${stars} of 3 quiz stars earned`}>
+                      {Array.from({ length: 3 }, (_, starIndex) => (
+                        <StudentIcon
+                          key={starIndex}
+                          name="star"
+                          size={14}
+                          aria-hidden="true"
+                          className={starIndex < stars ? "is-earned" : "is-empty"}
+                        />
+                      ))}
                     </span>
                   )}
 
@@ -449,8 +465,7 @@ export default function MyStoriesPage({
                       <BiLabel zh="繼續" pinyin="Jìxù" en="Continue" />
                     ) : (
                       <BiLabel zh="練習" pinyin="Liànxí" en="Practice" />
-                    )}{" "}
-                    →
+                    )} <StudentIcon name="arrow-right" size={16} aria-hidden="true" />
                   </button>
                 </div>
               );

@@ -3,17 +3,12 @@ import MyStoriesPage from "../../pages/MyStoriesPage";
 import { getStudentName } from "../../utils/studentSession";
 import type { StudentWorkspacePageProps } from "../../pages/StudentWorkspacePage";
 import type { StudentWorkspaceView } from "../../pages/StudentWorkspacePage";
-import StudentSidebar from "./StudentSidebar";
+import StudentModeFrame, { STUDENT_WORKSPACE_VIEWS } from "./StudentModeFrame";
 import { loadBestLocalStars } from "../../utils/quizTiers";
 import { topicHasQuiz } from "../../utils/topicQuiz";
 import "../../components/BiLabel.css";
 import "../../pages/StudentWorkspacePage.css";
 import "./StudentWorkspaceV2.css";
-
-const WORKSPACE_VIEWS = [
-  { id: "practice" as const, icon: "image" as const, label: { zh: "課程", pinyin: "Kèchéng", en: "Practice" } },
-  { id: "progress" as const, icon: "chart" as const, label: { zh: "我的學習", pinyin: "Wǒ de xuéxí", en: "Progress" } },
-];
 
 export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) {
   const {
@@ -63,7 +58,7 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     );
   };
 
-  const activeLabel = WORKSPACE_VIEWS.find((item) => item.id === view)?.label;
+  const activeLabel = STUDENT_WORKSPACE_VIEWS.find((item) => item.id === view)?.label;
 
   // Same source and shape MyStoriesPage's "總星星 Total stars" card uses, so
   // the rail and that card can never disagree.
@@ -75,28 +70,16 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
   const maxStars = quizTopics.length * 3;
 
   return (
-    <main className="student-workspace student-workspace-v2">
-      {/* One rail for all of student mode, fixed on every screen including
-          mid-session — the running story's own navigation lives in a header
-          strip above its content instead (StorySessionSidebar.tsx). */}
-      <StudentSidebar
-        views={WORKSPACE_VIEWS}
-        activeView={view}
-        onChange={selectView}
-        studentName={getStudentName()}
-        onLogout={onLogout}
-        totalStars={totalStars}
-        maxStars={maxStars}
-      />
-      <section
-        id="student-workspace-panel"
-        className="student-workspace-content student-workspace-content-v2"
-        tabIndex={-1}
-        aria-label={activeLabel ? `${activeLabel.zh} ${activeLabel.en}` : undefined}
-        aria-live="polite"
-      >
-        {renderView()}
-      </section>
-    </main>
+    <StudentModeFrame
+      activeView={view}
+      onChange={selectView}
+      studentName={getStudentName()}
+      onLogout={onLogout}
+      totalStars={totalStars}
+      maxStars={maxStars}
+      ariaLabel={activeLabel ? `${activeLabel.zh} ${activeLabel.en}` : undefined}
+    >
+      {renderView()}
+    </StudentModeFrame>
   );
 }

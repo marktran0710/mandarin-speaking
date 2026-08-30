@@ -40,12 +40,12 @@ describe("student integration flows", () => {
     signIn("student", "Integration Student", "student-integration");
   });
 
-  it("removes the duplicate quick-start block while keeping the learner workspace", () => {
+  it("keeps the learner workspace focused on the practice catalogue", () => {
     render(<StudentWorkspaceShell {...workspaceProps} />);
 
-    expect(screen.getByRole("heading", { name: /我的學習/ })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Practice/ })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Progress/ })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /選一個生活情境/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /課程/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /我的學習/ })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Ask teacher for help" })).not.toBeInTheDocument();
     expect(screen.queryByText("Start practice")).not.toBeInTheDocument();
     expect(screen.queryByText("開始練習")).not.toBeInTheDocument();
@@ -108,8 +108,8 @@ describe("student integration flows", () => {
     await user.type(screen.getByPlaceholderText(/Enter your password/), "123456");
     await user.click(screen.getByRole("button", { name: /Enter Student Mode/ }));
 
-    expect(await screen.findByRole("heading", { name: /我的學習/ })).toBeInTheDocument();
-    expect(screen.getByLabelText("Student username: App Flow Student")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /選一個生活情境/ })).toBeInTheDocument();
+    expect(screen.getByText("App Flow Student")).toBeInTheDocument();
   });
 
   it("keeps student and teacher sessions independent", () => {

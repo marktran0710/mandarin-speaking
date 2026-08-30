@@ -52,6 +52,8 @@ import { topicHasQuiz } from "./utils/topicQuiz";
 import { primePinyin } from "./utils/pinyin";
 import type { Page } from "./types/page";
 import { getJourneyBubbleTargetIds } from "./helpers/journeyBubble";
+import StudentModeFrame from "./components/student-workspace/StudentModeFrame";
+import { loadBestLocalStars } from "./utils/quizTiers";
 
 export type { Page };
 
@@ -328,6 +330,11 @@ export default function App() {
     () => Object.fromEntries(quizStoryTopics.map((t) => [t.id, t.name])),
     [quizStoryTopics],
   );
+  const totalQuizStars = quizStoryTopics.reduce(
+    (sum, topic) => sum + loadBestLocalStars(topic.id),
+    0,
+  );
+  const maxQuizStars = quizStoryTopics.length * 3;
 
   const bubbleTargetIds = getJourneyBubbleTargetIds(storyTopics, quizStoryTopics);
 
@@ -355,7 +362,8 @@ export default function App() {
     // vocabulary quiz" button — the floating bubble was a third copy of
     // both, parked over the bottom-right corner where it overlapped page
     // content. It stays only on routes that render no rail.
-    currentPage !== "student-workspace";
+    currentPage !== "student-workspace" &&
+    currentPage !== "voice-test";
 
   const handleRaiseHand = (message: string) => {
     const studentName = getStudentName();
@@ -403,7 +411,7 @@ export default function App() {
           session too (the running story's own navigation lives in a header
           strip above its content, not here and not in the rail), so this
           top bar is simply never shown on this route, session or not. */}
-      {!(activeRole === "student" && currentPage === "student-workspace") && (
+      {!(activeRole === "student" && (currentPage === "student-workspace" || currentPage === "voice-test")) && (
         <Navigation
           currentPage={currentPage}
           activeRole={activeRole}
@@ -471,7 +479,22 @@ export default function App() {
           that used to live here, from before StudentWorkspaceShell
           existed, could never be reached and were removed. */}
       {currentPage === "voice-test" && activeRole === "student" && studentDataReady && (
-        <VoiceTestPage />
+        <StudentModeFrame
+          className="student-standalone-shell"
+          activeView="practice"
+          onChange={(nextView) => {
+            setStudentWorkspaceView(nextView);
+            setCurrentPage("student-workspace");
+            if (nextView !== "practice") setPracticeTarget(null);
+          }}
+          studentName={getStudentName()}
+          onLogout={handleLogout}
+          totalStars={totalQuizStars}
+          maxStars={maxQuizStars}
+          ariaLabel="Voice practice"
+        >
+          <VoiceTestPage />
+        </StudentModeFrame>
       )}
       <AppJourneyBubble
         visible={showJourneyBubble}

@@ -69,14 +69,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: var(--space-lg);
   width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto clamp(24px, 3vw, 36px);
   /* Flat, hairline-ruled band — this is what the duplicate second
      declaration (now removed) was actually rendering, since it won on
      source order. Kept verbatim so consolidating the duplicate changes no
      pixels. */
-  padding: 18px 0;
+  padding: var(--space-md) 0;
   border: 0;
   border-top: 1px solid var(--clay-hairline);
   border-bottom: 1px solid var(--clay-hairline);
@@ -106,14 +106,14 @@
 }
 .workspace-quick-start-copy > p:last-child {
   max-width: 650px;
-  margin: 6px 0 0;
+  margin: var(--space-xs) 0 0;
   color: var(--clay-muted);
   font-size: var(--text-sm);
 }
 .workspace-quick-start-action {
   display: grid;
   flex: 0 0 min(100%, 280px);
-  gap: 9px;
+  gap: var(--space-xs);
 }
 
 .workspace-gate {
@@ -145,9 +145,9 @@
   align-items: center;
   justify-content: space-between;
   min-height: 44px;
-  padding: 0 16px;
+  padding: 0 var(--space-md);
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--clay-radius-md);
   background: var(--jade-deep);
   color: white;
   font: inherit;
@@ -163,13 +163,26 @@
 
 .student-workspace-content-v2 > .my-stories-page { padding-top: 0; }
 
+/* Standalone student tools use the same rail, but their own page component
+   already owns the content width. Do not apply a second narrow max-width or
+   the voice-test canvas becomes visibly smaller than the workspace pages. */
+.student-standalone-shell > .student-workspace-content-v2 > .voice-test-page {
+  width: 100%;
+  margin: 0;
+  padding: 0 0 var(--space-3xl);
+}
+
+.student-standalone-shell .student-page-header {
+  width: 100%;
+}
+
 @media (max-width: 720px) {
-  .workspace-quick-start { align-items: stretch; flex-direction: column; gap: 14px; }
+  .workspace-quick-start { align-items: stretch; flex-direction: column; gap: var(--space-sm); }
   .workspace-quick-start-action { flex-basis: auto; }
 }
 
 @media (max-width: 560px) {
-  .workspace-quick-start { width: min(var(--content-max), calc(100% - var(--content-gutter) * 2)); padding: 16px; }
+  .workspace-quick-start { width: min(var(--content-max), calc(100% - var(--content-gutter) * 2)); padding: var(--space-md); }
   .workspace-quick-start h2 { white-space: normal; }
 }
 

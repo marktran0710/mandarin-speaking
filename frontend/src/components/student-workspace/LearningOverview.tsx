@@ -1,6 +1,7 @@
 import { BiLabel, BiText } from "../BiLabel";
 import type { QuizGateState, WorkspaceTopicSummary } from "../../types/studentWorkspace";
 import ActionButton from "../../shared/ui/ActionButton";
+import StudentIcon from "../StudentIcon";
 
 interface LearningOverviewProps {
   topicSummary?: WorkspaceTopicSummary;
@@ -74,7 +75,7 @@ export default function LearningOverview({ topicSummary, onStartActivity }: Lear
           disabled={!topicSummary || gate.status === "unavailable"}
         >
           <span>{startLabel}</span>
-          <span aria-hidden="true">→</span>
+          <StudentIcon name="arrow-right" size={16} aria-hidden="true" />
         </ActionButton>
       </div>
     </section>

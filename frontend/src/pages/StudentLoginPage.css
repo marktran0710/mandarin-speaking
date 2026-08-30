@@ -5,9 +5,9 @@
 .login-page.student .login-description { margin-bottom: var(--space-md); }
 .login-page.student .login-form input,
 .login-page.student .login-form select { min-height: 44px; border-radius: var(--clay-radius-sm); background: var(--clay-surface-card); }
-.login-page.student .login-submit { min-height: 44px; border-radius: var(--clay-radius-pill); box-shadow: 0 3px 0 var(--seal-deep); }
-.login-page.student .login-submit:hover { box-shadow: 0 4px 0 var(--seal-deep); }
-.login-page.student .login-submit:active { box-shadow: 0 1px 0 var(--seal-deep); }
+.login-page.student .login-submit { min-height: 44px; border-radius: var(--clay-radius-md); box-shadow: none; transition: background-color 180ms ease, color 180ms ease; }
+.login-page.student .login-submit:hover,
+.login-page.student .login-submit:active { box-shadow: none; transform: none; }
 
 @media (max-width: 560px) {
   .login-page.student { padding: var(--space-md) var(--space-sm) var(--space-xl); }

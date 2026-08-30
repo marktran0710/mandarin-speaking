@@ -248,6 +248,9 @@
 @media (max-width: 900px) {
   .student-sidebar-toggle { display: inline-flex; }
 
+  /* Keep the drawer's brand row clear of the fixed menu control. */
+  .student-sidebar { padding-top: calc(var(--space-xl) + var(--space-lg)); }
+
   .student-sidebar-backdrop {
     display: block;
     position: fixed;
