@@ -1,116 +1,128 @@
 
-/* Same tactile game-tile treatment as the overview choice cards: a thick
-   border + bottom lip instead of a thin hairline card. */
+/* Mode selection is the adult learner's one decision point: keep the three
+   tier choices prominent, then place optional review paths in one quiet row. */
 .vocab-quiz-mode-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  grid-template-rows: auto 1fr;
+  align-items: start;
+  column-gap: var(--space-md);
+  row-gap: var(--space-xs);
+  min-width: 0;
   background: var(--clay-surface-card);
-  border: 1.5px solid var(--clay-hairline);
-  border-radius: 20px;
-  min-height: 218px;
-  padding: 20px 18px 18px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  min-height: 176px;
+  padding: var(--space-lg);
   cursor: pointer;
-  box-shadow: 0 5px 0 var(--clay-hairline);
-  transition: border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  box-shadow: var(--shadow-sm);
+  text-align: left;
+  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
 }
-.vocab-quiz-mode-card:hover {
-  transform: translateY(-2px);
+.vocab-quiz-mode-card:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--gold-deep) 46%, var(--clay-hairline));
+  background: color-mix(in srgb, var(--clay-surface-card) 94%, var(--gold-soft));
+  box-shadow: var(--shadow-md);
 }
-.vocab-quiz-mode-card:active {
-  transform: translateY(2px);
-  box-shadow: 0 2px 0 var(--clay-hairline);
+.vocab-quiz-mode-card:active:not(:disabled) {
+  box-shadow: var(--shadow-sm);
 }
-.vocab-quiz-mode-card strong { font-size: 16px; color: var(--clay-ink); }
+.vocab-quiz-mode-card strong {
+  display: block;
+  min-width: 0;
+  color: var(--clay-ink);
+  font-size: var(--text-md);
+  font-weight: 800;
+}
 .vocab-quiz-mode-card > strong,
 .vocab-quiz-mode-card > p {
-  width: 100%;
+  grid-column: 2 / 4;
 }
 .vocab-quiz-mode-card p {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: flex-start;
-  justify-content: center;
-  min-height: 60px;
+  min-width: 0;
+  align-self: stretch;
   margin: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
   color: var(--clay-body);
   line-height: 1.5;
 }
 .vocab-quiz-mode-review p,
 .vocab-quiz-mode-weak_words p {
-  justify-content: flex-start;
   text-align: left;
 }
 .vocab-quiz-mode-icon {
   display: grid;
   place-items: center;
-  width: 52px;
-  height: 52px;
-  border: 1px solid color-mix(in srgb, var(--gold) 34%, transparent);
-  border-radius: 16px;
+  grid-row: 1 / span 2;
+  width: 48px;
+  height: 48px;
+  border: 1px solid color-mix(in srgb, var(--gold) 34%, var(--clay-hairline));
+  border-radius: var(--clay-radius-pill);
   color: var(--gold-deep);
   background: var(--gold-soft);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, white 55%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--clay-surface-card) 55%, transparent);
 }
 .vocab-quiz-mode-icon svg { stroke-width: 1.9; }
 
-/* The three star-tier cards share the gold "challenge" look; locked ones
-   drop to a muted, flat state so the ladder reads at a glance. */
+/* The three star-tier cards share one calm choice style; color only marks
+   completion and the next learning path. */
 .vocab-quiz-mode-tier1,
 .vocab-quiz-mode-tier2,
 .vocab-quiz-mode-tier3 {
-  border-color: color-mix(in srgb, var(--gold-deep) 45%, var(--clay-hairline));
-  box-shadow: 0 5px 0 var(--gold-deep);
+  border-color: color-mix(in srgb, var(--gold-deep) 34%, var(--clay-hairline));
 }
-.vocab-quiz-mode-tier1:hover, .vocab-quiz-mode-tier2:hover, .vocab-quiz-mode-tier3:hover { box-shadow: 0 6px 0 var(--gold-deep); }
-.vocab-quiz-mode-tier1:active, .vocab-quiz-mode-tier2:active, .vocab-quiz-mode-tier3:active { box-shadow: 0 2px 0 var(--gold-deep); }
 
 .vocab-quiz-mode-card.is-locked,
 .vocab-quiz-mode-card.is-locked:hover,
 .vocab-quiz-mode-card.is-locked:active {
   border-color: var(--clay-hairline);
   box-shadow: none;
-  transform: none;
   cursor: not-allowed;
   opacity: 0.58;
 }
 
 .vocab-quiz-mode-card.is-earned {
-  border-color: var(--jade);
-  box-shadow: 0 4px 0 var(--jade-deep);
+  border-color: color-mix(in srgb, var(--jade-deep) 52%, var(--clay-hairline));
+  box-shadow: inset 3px 0 var(--jade), var(--shadow-sm);
 }
-.vocab-quiz-mode-card.is-earned:hover { box-shadow: 0 6px 0 var(--jade-deep); }
-.vocab-quiz-mode-card.is-earned:active { box-shadow: 0 2px 0 var(--jade-deep); }
-.vocab-quiz-tier-done { color: var(--jade-deep); }
+.vocab-quiz-mode-card.is-earned:hover { box-shadow: inset 3px 0 var(--jade), var(--shadow-md); }
+.vocab-quiz-tier-done {
+  display: inline-flex;
+  margin-left: var(--space-2xs);
+  color: var(--jade-deep);
+}
 
-.vocab-quiz-mode-review {
-  border-color: color-mix(in srgb, var(--jade-deep) 40%, var(--clay-hairline));
-  box-shadow: 0 5px 0 var(--jade-deep);
-  align-items: flex-start;
-  text-align: left;
+.vocab-quiz-secondary-grid {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
 }
-.vocab-quiz-mode-review:hover { box-shadow: 0 6px 0 var(--jade-deep); }
-.vocab-quiz-mode-review:active { box-shadow: 0 2px 0 var(--jade-deep); }
+.vocab-quiz-secondary-grid > :only-child { grid-column: 1 / -1; }
+.vocab-quiz-mode-review {
+  border-color: color-mix(in srgb, var(--jade-deep) 28%, var(--clay-hairline));
+}
 
 .vocab-quiz-mode-weak_words {
-  border-color: color-mix(in srgb, var(--seal-deep) 40%, var(--clay-hairline));
-  box-shadow: 0 5px 0 var(--seal-deep);
-  align-items: flex-start;
-  text-align: left;
+  border-color: color-mix(in srgb, var(--seal-deep) 28%, var(--clay-hairline));
 }
-.vocab-quiz-mode-weak_words:hover { box-shadow: 0 6px 0 var(--seal-deep); }
-.vocab-quiz-mode-weak_words:active { box-shadow: 0 2px 0 var(--seal-deep); }
+.vocab-quiz-secondary-grid > .vocab-quiz-mode-card > svg {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--clay-muted);
+}
 
 /* Earned-star tally on the ladder header. */
 .vocab-quiz-star-count {
-  font-size: 26px;
-  letter-spacing: 5px;
-  margin: 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0;
+  color: var(--gold-deep);
 }
-.vocab-quiz-star-count .star-open { opacity: 0.4; }
+.vocab-quiz-star-count svg { width: 32px; height: 32px; }
+.vocab-quiz-star-count .star-open { color: var(--clay-hairline); }
 
 /* The "why am I doing this" line under the stars (mode-select) and the
    locked note under the summary actions — same quiet emphasis. */
@@ -136,54 +148,62 @@
   }
 
   .vocab-quiz-mode-card {
-    min-height: 198px;
+    min-height: 164px;
+    padding: var(--space-md);
   }
 }
 
 @media (max-width: 480px) {
   .story-vocab-quiz {
-    gap: 18px;
-    padding: 18px 14px 32px;
+    gap: var(--space-lg);
+    padding: var(--space-lg) var(--space-md) var(--space-xl);
   }
 
   .vocab-quiz-mode-select .vocab-quiz-header {
-    padding: 20px 16px 18px;
-    border-radius: 20px;
+    grid-template-columns: 1fr;
+    row-gap: var(--space-xs);
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .vocab-quiz-mode-select .vocab-quiz-header-tags,
+  .vocab-quiz-mode-select .vocab-quiz-mode-title,
+  .vocab-quiz-mode-select .vocab-quiz-star-count {
+    grid-column: 1;
+  }
+
+  .vocab-quiz-mode-select .vocab-quiz-mode-title { grid-row: 2; }
+  .vocab-quiz-mode-select .vocab-quiz-star-count {
+    grid-row: 3;
+    justify-self: start;
   }
 
   .vocab-quiz-mode-title {
     max-width: none;
-    font-size: clamp(1.8rem, 7vw, 2.6rem);
+    font-size: clamp(var(--text-xl), 7vw, 36px);
   }
 
   .vocab-quiz-mode-grid {
     grid-template-columns: 1fr;
   }
 
-  .vocab-quiz-mode-card,
-  .vocab-quiz-mode-review,
-  .vocab-quiz-mode-weak_words {
-    min-height: 0;
-    align-items: flex-start;
-    text-align: left;
-  }
-
   .vocab-quiz-mode-card {
-    display: grid;
-    grid-template-columns: 52px minmax(0, 1fr);
-    column-gap: 14px;
-    padding: 16px;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    min-height: 0;
+    padding: var(--space-md);
   }
 
   .vocab-quiz-mode-icon {
-    grid-row: span 2;
-    width: 52px;
-    height: 52px;
+    width: 44px;
+    height: 44px;
   }
 
   .vocab-quiz-mode-card p {
-    grid-column: 2;
+    grid-column: 2 / 4;
     min-height: 0;
+  }
+
+  .vocab-quiz-secondary-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -412,4 +432,3 @@
     text-align: left;
   }
 }
-

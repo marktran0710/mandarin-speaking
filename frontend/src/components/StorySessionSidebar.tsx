@@ -76,7 +76,7 @@ export default function StorySessionSidebar({
             onClick={onExit}
             aria-label="Back to topics"
           >
-            ←
+            <StudentIcon name="arrow-left" size={17} />
           </button>
         )}
         <span className="ssb-topic-name">{topicName}</span>

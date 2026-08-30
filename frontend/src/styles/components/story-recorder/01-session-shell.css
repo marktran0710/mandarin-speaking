@@ -35,7 +35,7 @@
   background: var(--clay-surface-soft);
   color: var(--clay-ink);
   border: 1px solid var(--clay-hairline);
-  border-radius: 50%;
+  border-radius: var(--clay-radius-pill);
   font-size: 15px;
   line-height: 1;
   cursor: pointer;
@@ -467,5 +467,4 @@
     animation: none;
   }
 }
-
 

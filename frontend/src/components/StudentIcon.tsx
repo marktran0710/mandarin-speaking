@@ -27,6 +27,7 @@ export type StudentIconName =
   | "tree"
   | "menu"
   | "close"
+  | "arrow-left"
   | "arrow-right"
   | "chevron-down"
   | "chevron-up";
@@ -62,6 +63,8 @@ export default function StudentIcon({ name, size = 18, ...props }: StudentIconPr
       return <svg {...common}><path d="M4 7h16M4 12h16M4 17h16" /></svg>;
     case "close":
       return <svg {...common}><path d="M6 6l12 12M18 6 6 18" /></svg>;
+    case "arrow-left":
+      return <svg {...common}><path d="M20 12H5M11 6l-6 6 6 6" /></svg>;
     case "arrow-right":
       return <svg {...common}><path d="M4 12h15M13 6l6 6-6 6" /></svg>;
     case "chevron-down":

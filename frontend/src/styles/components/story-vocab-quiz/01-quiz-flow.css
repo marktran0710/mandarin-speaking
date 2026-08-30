@@ -12,7 +12,7 @@
 /* The tier-choice screen is a full selection surface: keep the back action
    and progress header in a predictable top-to-bottom reading order. */
 .vocab-quiz-mode-select {
-  min-height: calc(100dvh - var(--navbar-height));
+  min-height: 100%;
   justify-content: flex-start;
 }
 
@@ -34,6 +34,9 @@
 .vocab-quiz-topbar:empty { display: none; }
 
 .btn-vocab-quiz-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
   font-size: 13px;
   font-weight: 650;
   padding: 8px 14px;
@@ -373,8 +376,8 @@
 
 /* ── Mode select ── */
 .vocab-quiz-mode-title {
-  max-width: 15ch;
-  font-size: clamp(2.05rem, 5vw, 3.25rem);
+  max-width: 24ch;
+  font-size: clamp(var(--text-xl), 4vw, 42px);
   line-height: 1.12;
   color: var(--clay-ink);
   margin: 0;
@@ -384,32 +387,60 @@
 .vocab-quiz-mode-select .vocab-quiz-header {
   position: relative;
   isolation: isolate;
-  width: min(100%, 820px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-xl);
+  width: min(100%, 1040px);
   margin: 0 auto;
-  gap: 6px;
-  padding: clamp(22px, 4vw, 30px) clamp(18px, 5vw, 52px) 24px;
+  gap: var(--space-xs);
+  padding: var(--space-lg) clamp(var(--space-lg), 5vw, var(--space-xl));
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--gold) 42%, var(--clay-hairline));
-  border-radius: 24px;
-  background: linear-gradient(135deg, var(--clay-surface-card), var(--gold-soft));
-  box-shadow: 0 10px 24px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 36%, var(--clay-hairline));
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  box-shadow: var(--shadow-sm);
 }
 
 .vocab-quiz-mode-select .vocab-quiz-header::before {
   content: "";
   position: absolute;
-  inset: -30% -8% auto 48%;
+  inset: -60% -5% -60% auto;
   z-index: -1;
-  height: 180%;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--gold) 18%, transparent);
-  transform: rotate(-12deg);
+  width: 44%;
+  opacity: .55;
+  background:
+    radial-gradient(ellipse at 70% 50%, transparent 0 7rem, color-mix(in srgb, var(--gold) 18%, transparent) 7rem 7.1rem, transparent 7.1rem 12rem),
+    radial-gradient(ellipse at 70% 50%, transparent 0 12rem, color-mix(in srgb, var(--gold) 12%, transparent) 12rem 12.1rem, transparent 12.1rem 18rem);
   pointer-events: none;
 }
 
 .vocab-quiz-mode-select .vocab-quiz-header > * {
   position: relative;
   z-index: 1;
+}
+
+.vocab-quiz-mode-select .vocab-quiz-header-tags {
+  grid-column: 1;
+  grid-row: 1;
+  justify-content: flex-start;
+  margin: 0;
+}
+
+.vocab-quiz-mode-select .vocab-quiz-mode-title {
+  grid-column: 1;
+  grid-row: 2;
+  text-align: left;
+}
+
+.vocab-quiz-mode-select .vocab-quiz-mode-title .bi-label {
+  align-items: flex-start;
+}
+
+.vocab-quiz-mode-select .vocab-quiz-star-count {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  justify-self: end;
 }
 
 .vocab-quiz-header-tags {
@@ -425,9 +456,8 @@
   display: inline-flex;
   align-self: center;
   margin: 0;
-  padding: 5px 10px;
-  border-radius: var(--clay-radius-pill);
-  background: var(--clay-surface-soft);
+  padding: 0;
+  background: transparent;
   color: var(--gold-deep);
   font-size: 11px;
   font-weight: 800;
@@ -441,7 +471,7 @@
   display: inline-flex;
   align-self: center;
   margin: 0;
-  padding: 5px 10px;
+  padding: var(--space-2xs) var(--space-xs);
   border-radius: var(--clay-radius-pill);
   background: var(--tone1-soft);
   color: var(--tone1-deep);
@@ -455,7 +485,23 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: stretch;
-  gap: 16px;
-  width: 100%;
+  gap: var(--space-md);
+  width: min(100%, 1040px);
+  margin: 0 auto;
+  padding-bottom: var(--space-lg);
 }
 
+/* The recorder shell reserves a narrow content gutter for story practice.
+   Quiz selection is a full-width choice surface on small screens, so release
+   that extra inset here instead of forcing cards into a 215px column. */
+@media (max-width: 480px) {
+  .story-recorder:has(.vocab-quiz-mode-select) {
+    width: calc(100% + var(--space-sm) + var(--space-sm));
+    margin-left: calc(var(--space-sm) * -1);
+  }
+
+  .story-recorder:has(.vocab-quiz-mode-select) .story-session-main {
+    width: calc(100% + var(--space-sm) + var(--space-sm));
+    margin-left: calc(var(--space-sm) * -1);
+  }
+}
