@@ -1097,7 +1097,7 @@
 /* Course catalogue: keep the book title, lesson rows, and extra-practice
    entry visible as one compact index. The lesson content remains the same;
    only the oversized legacy vertical rhythm is removed. */
-.student-workspace-v2 .topic-selector {
+.student-workspace.student-workspace-v2 .topic-selector {
   min-height: 0;
   padding: var(--space-sm) 0 var(--space-md);
   background: var(--clay-canvas);
