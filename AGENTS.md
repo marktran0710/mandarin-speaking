@@ -62,12 +62,11 @@ Do not run huge unrelated test suites unless warranted by the change.
 
 Keep orchestration details brief. Communicate what is being done, important findings, what changed, validation performed, and remaining risks. Do not expose private chain-of-thought. For HARD work, it is acceptable to say briefly that the task is being decomposed into smaller implementation units.
 
-## Educational product and interface principles
+## Layout design and target audience principles
 
-This is an education product for adult learners (18+) who are thoughtful, educated,
-and focused on making steady progress. The interface must feel polished, calm,
-purposeful, and trustworthy rather than childish, noisy, or gamified for its own
-sake.
+The target users are adult learners (18+) who are thoughtful, educated, and focused
+on making steady progress. Design the layout to feel polished, calm, purposeful,
+and trustworthy rather than childish, noisy, or gamified for its own sake.
 
 1. **Keep the experience compact and content-first.** Prefer a clear hierarchy,
    aligned sections, predictable spacing, and concise cards. Remove decorative
