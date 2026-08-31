@@ -1828,3 +1828,110 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Stable speaking activity frame (desktop only)
+   The practice stage owns the frame. Speaking states inside it are content
+   views, not competing cards, so switching record/results/self-evaluation
+   never changes the surrounding geometry. The two activity rails may scroll
+   only when their real content exceeds the available track. */
+@media (min-width: 901px) {
+  .student-workspace.student-workspace-v2 .story-session-main:has(> .practice-stage) {
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--clay-hairline);
+    border-radius: var(--clay-radius-lg);
+    background: var(--clay-surface-card);
+    box-shadow: none;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card {
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card > .practice-workspace {
+    height: 100%;
+    min-height: 0;
+    align-items: stretch;
+    gap: var(--space-md);
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .practice-scene-col,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-record-main,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-results-main {
+    min-height: 0;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .practice-scene-col {
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+
+  /* The record scene rail contains only the fixed image and attempt label.
+     Hide the sub-pixel rounding edge so a one-pixel scrollbar is not shown. */
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record .practice-scene-col {
+    overflow: hidden;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-record-main,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-results-main {
+    height: 100%;
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-analyzing {
+    display: grid;
+    place-items: center;
+  }
+}
+
+/* Mobile keeps the same outer ownership, but returns to natural document flow
+   so the activity remains reachable without a nested desktop viewport. */
+@media (max-width: 900px) {
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) {
+    display: block;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    padding: var(--space-sm);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card > .practice-workspace {
+    height: auto;
+    min-height: 0;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .practice-scene-col,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-record-main,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-results-main {
+    height: auto;
+    overflow: visible;
+  }
+}
