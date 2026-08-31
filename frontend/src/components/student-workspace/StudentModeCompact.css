@@ -164,16 +164,25 @@
   color: var(--gold-deep);
 }
 
-.student-workspace-v2 .ssb-journey {
+.student-workspace-v2 .ssb-journey-viewport {
   grid-column: 1 / -1;
   grid-row: 2;
   width: 100%;
   min-width: 0;
+}
+
+.student-workspace-v2 .ssb-journey {
+  width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-inline: contain;
   scroll-snap-type: inline proximity;
-  scrollbar-width: thin;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.student-workspace-v2 .ssb-journey::-webkit-scrollbar {
+  display: none;
 }
 
 .student-workspace-v2 .ssb-journey .journey-path-vertical {
@@ -221,7 +230,7 @@
 /* A single scene has no navigation choice. Removing the rail prevents that
    one thumbnail from stretching into an accidental banner while preserving
    the proportional grid for real multi-scene lessons. */
-.student-workspace-v2 .ssb-journey:has(.journey-item:only-child) {
+.student-workspace-v2 .ssb-journey-viewport:has(.journey-item:only-child) {
   display: none;
 }
 
@@ -1220,7 +1229,7 @@
     scrollbar-gutter: auto;
   }
 
-  .student-workspace-v2 .ssb-journey {
+  .student-workspace-v2 .ssb-journey-viewport {
     flex-basis: 100%;
     order: 3;
   }

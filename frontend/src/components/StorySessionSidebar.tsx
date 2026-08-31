@@ -1,4 +1,10 @@
-import { useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type WheelEvent,
+} from "react";
 import JourneyPath, { type JourneyStop } from "./JourneyPath";
 import StudentIcon from "./StudentIcon";
 import { BiLabel } from "./BiLabel";
@@ -45,6 +51,11 @@ export default function StorySessionSidebar({
   helpPanel,
 }: StorySessionSidebarProps) {
   const [helpOpen, setHelpOpen] = useState(false);
+  const sceneScrollRef = useRef<HTMLElement>(null);
+  const [sceneScrollState, setSceneScrollState] = useState({
+    canScrollLeft: false,
+    canScrollRight: false,
+  });
 
   // Scene practice is sequential: a student may revisit completed scenes, but
   // the next scene stays locked until the previous one has a result. This is
@@ -58,6 +69,57 @@ export default function StorySessionSidebar({
       disabled: Boolean(stop.disabled || waitingForPrevious),
     };
   });
+
+  const sceneCount = orderedJourneyStops?.length ?? 0;
+
+  useEffect(() => {
+    const scrollNode = sceneScrollRef.current;
+    if (!scrollNode) return;
+
+    const updateScrollState = () => {
+      const maxScrollLeft = Math.max(0, scrollNode.scrollWidth - scrollNode.clientWidth);
+      const nextState = {
+        canScrollLeft: scrollNode.scrollLeft > 1,
+        canScrollRight: scrollNode.scrollLeft < maxScrollLeft - 1,
+      };
+
+      setSceneScrollState((currentState) =>
+        currentState.canScrollLeft === nextState.canScrollLeft &&
+        currentState.canScrollRight === nextState.canScrollRight
+          ? currentState
+          : nextState,
+      );
+    };
+
+    scrollNode.addEventListener("scroll", updateScrollState, { passive: true });
+    const resizeObserver =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateScrollState);
+    resizeObserver?.observe(scrollNode);
+    if (scrollNode.firstElementChild) resizeObserver?.observe(scrollNode.firstElementChild);
+    updateScrollState();
+
+    return () => {
+      scrollNode.removeEventListener("scroll", updateScrollState);
+      resizeObserver?.disconnect();
+    };
+  }, [sceneCount]);
+
+  const handleSceneWheel = (event: WheelEvent<HTMLElement>) => {
+    const scrollNode = sceneScrollRef.current;
+    if (!scrollNode || Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+
+    const maxScrollLeft = Math.max(0, scrollNode.scrollWidth - scrollNode.clientWidth);
+    if (maxScrollLeft <= 0) return;
+
+    const nextScrollLeft = Math.min(
+      maxScrollLeft,
+      Math.max(0, scrollNode.scrollLeft + event.deltaY),
+    );
+    if (nextScrollLeft === scrollNode.scrollLeft) return;
+
+    event.preventDefault();
+    scrollNode.scrollLeft = nextScrollLeft;
+  };
 
   // summaryStatus/onOpenSummary stay in the props contract (StoryRecorder
   // still computes and passes them) but aren't rendered here — the Summary
@@ -86,9 +148,20 @@ export default function StorySessionSidebar({
       </div>
 
       {orderedJourneyStops && orderedJourneyStops.length > 0 && (
-        <nav className="ssb-journey" aria-label="Scenes">
-          <JourneyPath stops={orderedJourneyStops} orientation="vertical" />
-        </nav>
+        <div
+          className={`ssb-journey-viewport${
+            sceneScrollState.canScrollLeft ? " has-scroll-left" : ""
+          }${sceneScrollState.canScrollRight ? " has-scroll-right" : ""}`}
+        >
+          <nav
+            ref={sceneScrollRef}
+            className="ssb-journey"
+            aria-label="Scenes"
+            onWheel={handleSceneWheel}
+          >
+            <JourneyPath stops={orderedJourneyStops} orientation="vertical" />
+          </nav>
+        </div>
       )}
 
       {helpPanel && (

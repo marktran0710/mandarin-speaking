@@ -44,12 +44,49 @@
    the app instead of a plain numbered 1/2/3 list. A horizontal row here
    (not the vertical rail treatment this had when it lived in a sidebar),
    scrolling inside its own flex item when it outgrows the bar. */
-.ssb-journey {
+.ssb-journey-viewport {
+  position: relative;
   flex: 1 1 240px;
   min-width: 0;
   margin: 0;
+}
+.ssb-journey-viewport::before,
+.ssb-journey-viewport::after {
+  position: absolute;
+  inset-block: 0;
+  z-index: 2;
+  width: var(--space-lg);
+  pointer-events: none;
+  content: "";
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+.ssb-journey-viewport::before {
+  left: 0;
+  background: linear-gradient(to right, var(--clay-surface-card), transparent);
+}
+.ssb-journey-viewport::after {
+  right: 0;
+  background: linear-gradient(to left, var(--clay-surface-card), transparent);
+}
+.ssb-journey-viewport.has-scroll-left::before,
+.ssb-journey-viewport.has-scroll-right::after {
+  opacity: 1;
+}
+
+/* Intentional local horizontal overflow: long scene strips stay inside this
+   navigation viewport and never widen the student page itself. */
+.ssb-journey {
+  min-width: 0;
+  width: 100%;
   overflow-x: auto;
-  scrollbar-width: thin;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-inline: contain;
+}
+.ssb-journey::-webkit-scrollbar {
+  display: none;
 }
 .ssb-journey .journey-path-vertical {
   flex-direction: row;
