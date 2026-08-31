@@ -56,8 +56,8 @@ describe("JourneyPath", () => {
     );
 
     const stops = screen.getAllByRole("button");
-    expect(stops[0].querySelector("svg")).toBeInTheDocument();
-    expect(stops[1].querySelector("svg")).not.toBeInTheDocument();
+    expect(stops[0].querySelector('[data-icon="star"]')).toBeInTheDocument();
+    expect(stops[1].querySelector('[data-icon="star"]')).not.toBeInTheDocument();
   });
 
   it("does not render a connector before the first stop, but does before later ones", () => {
