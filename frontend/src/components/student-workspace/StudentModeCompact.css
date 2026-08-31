@@ -49,9 +49,21 @@
 }
 
 @media (min-width: 901px) {
-  .student-workspace-v2 {
+  /* The student shell is the only app surface on these routes. Keep the
+     document itself inside the device viewport and give the two shell tracks
+     the responsibility for reaching long content. `:has()` is scoped to the
+     direct shell child so teacher/admin pages keep their normal flow. */
+  .app-container:has(> .student-workspace-v2) {
     height: 100dvh;
-    min-height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .student-workspace.student-workspace-v2 {
+    height: 100dvh;
+    min-height: 0;
+    max-height: 100dvh;
+    grid-template-rows: minmax(0, 1fr);
     overflow: hidden;
   }
 
@@ -68,7 +80,8 @@
 
   .student-workspace-v2 > .student-workspace-content-v2 {
     display: block;
-    height: 100%;
+    height: auto;
+    max-height: 100%;
     overflow: auto;
     overscroll-behavior: contain;
     padding-bottom: var(--space-md);
@@ -97,6 +110,14 @@
 }
 
 @media (max-width: 900px) {
+  /* Mobile intentionally returns to page flow: long lessons and feedback use
+     the document scroll instead of a nested desktop-style viewport. */
+  .app-container:has(> .student-workspace-v2) {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
   .student-workspace.student-workspace-v2 {
     height: auto;
     min-height: 100dvh;
