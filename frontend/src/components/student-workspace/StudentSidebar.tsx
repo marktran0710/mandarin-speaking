@@ -84,9 +84,10 @@ export default function StudentSidebar({
       </button>
 
       {drawerOpen && (
-        <div
+        <button
+          type="button"
           className="student-sidebar-backdrop"
-          aria-hidden="true"
+          aria-label="Close menu"
           onClick={() => setDrawerOpen(false)}
         />
       )}

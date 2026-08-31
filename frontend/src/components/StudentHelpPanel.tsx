@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { HelpRequest } from "../services/database";
 import { BiLabel, BiText } from "./BiLabel";
 import { getStudentName } from "../utils/studentSession";
+import StudentIcon from "./StudentIcon";
 
 /** The quiet "raise your hand" form students use mid-practice. Lives at the
  * bottom of the story-session sidebar during a practice session (compact,
@@ -10,7 +11,7 @@ import { getStudentName } from "../utils/studentSession";
 export default function StudentHelpPanel({
   helpRequests,
   onRaiseHand,
-  compact = false,
+  variant = "banner",
 }: {
   helpRequests: HelpRequest[];
   onRaiseHand?: (message: string) => void;
@@ -19,10 +20,11 @@ export default function StudentHelpPanel({
    * short label, since it's visible on every screen of a practice session,
    * not just the first time. The topic-browser banner has room and keeps
    * the full prompt. */
-  compact?: boolean;
+  variant?: "banner" | "compact";
 }) {
   const [message, setMessage] = useState("我的故事需要協助。");
   const studentName = getStudentName();
+  const isCompact = variant === "compact";
   const activeRequest = helpRequests.find(
     (request) =>
       request.studentName === studentName && request.status === "open",
@@ -32,11 +34,11 @@ export default function StudentHelpPanel({
     <section className="student-help-panel" aria-label="Ask teacher for help">
       <div>
         <span className="student-help-icon" aria-hidden="true">
-          ?
+          <StudentIcon name="help" size={18} />
         </span>
         <div>
           {activeRequest ? (
-            compact ? (
+            isCompact ? (
               <p><BiLabel zh="老師已看到" en="Teacher notified" /></p>
             ) : (
               <>
@@ -48,7 +50,7 @@ export default function StudentHelpPanel({
                 </p>
               </>
             )
-          ) : compact ? (
+          ) : isCompact ? (
             <p><BiLabel zh="需要幫忙？" en="Need help?" /></p>
           ) : (
             <p>

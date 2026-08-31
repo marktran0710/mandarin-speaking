@@ -146,12 +146,11 @@
   resize: vertical;
 }
 
-.custom-story-form input:focus,
-.custom-story-form select:focus,
-.custom-story-form textarea:focus {
+.custom-story-form input:focus-visible,
+.custom-story-form select:focus-visible,
+.custom-story-form textarea:focus-visible {
   border-color: var(--jade);
   box-shadow: 0 0 0 3px var(--jade-soft);
-  outline: none;
 }
 
 .custom-story-form input[aria-invalid="true"],
@@ -285,6 +284,8 @@
 }
 
 .teacher-frame-image-preview {
+  width: 100%;
+  padding: 0;
   aspect-ratio: 4 / 3;
   overflow: hidden;
   display: grid;
@@ -296,6 +297,7 @@
   font-size: 13px;
   font-weight: 900;
   cursor: text;
+  font-family: inherit;
   border: 2px dashed transparent;
   transition: border-color 0.15s, background 0.15s;
 }
@@ -304,8 +306,7 @@
   border-color: var(--clay-hairline);
 }
 
-.teacher-frame-image-preview:focus {
-  outline: none;
+.teacher-frame-image-preview:focus-visible {
   border-color: var(--jade);
   background: var(--jade-soft);
 }

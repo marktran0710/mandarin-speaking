@@ -1,5 +1,4 @@
-.practice-model-picker select:focus {
-  outline: none;
+.practice-model-picker select:focus-visible {
   border-color: var(--seal);
   box-shadow: 0 0 0 3px var(--seal-soft);
 }

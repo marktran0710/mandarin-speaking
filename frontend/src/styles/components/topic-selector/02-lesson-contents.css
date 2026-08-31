@@ -288,6 +288,11 @@
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   padding: 18px 22px 18px 14px;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  appearance: none;
   cursor: pointer;
   transition: transform 0.12s, border-color 0.12s;
 }
@@ -334,7 +339,7 @@
   color: var(--clay-ink);
 }
 
-.ts-lesson-main .ts-lesson-sub { margin-top: 4px; }
+.ts-lesson-main .ts-lesson-sub { display: block; margin-top: 4px; }
 
 .ts-lesson-side {
   flex-shrink: 0;

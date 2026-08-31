@@ -373,7 +373,7 @@
      gold tint uses the -deep shade. */
   color: var(--seal-deep);
   font-weight: 600;
-  transition: all 0.3s;
+  transition: background-color 0.3s, color 0.3s, opacity 0.3s;
 }
 .loading-step.active {
   background: var(--seal);

@@ -238,7 +238,7 @@
   font-weight: 650;
   padding: var(--space-sm);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s, background-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 
 /* ── Fixed question geometry ──
@@ -363,7 +363,7 @@
   background: transparent;
   color: var(--seal-deep);
   border: 1px solid var(--seal-soft);
-  transition: all 0.2s;
+  transition: border-color 0.2s, background-color 0.2s, color 0.2s, box-shadow 0.2s;
   margin-left: auto;
 }
 .btn-vocab-quiz-finish:hover {

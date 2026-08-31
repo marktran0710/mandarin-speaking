@@ -393,7 +393,7 @@ body {
   overflow: hidden;
   aspect-ratio: 4/3;
   border: 2px solid var(--clay-hairline);
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
 }
 
 .topic-image-card:hover {

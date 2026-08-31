@@ -122,14 +122,13 @@
   resize: vertical;
 }
 
-.teacher-image-form input:focus,
-.teacher-image-form select:focus,
-.teacher-image-form textarea:focus,
-.generated-frame-body input:focus,
-.generated-frame-body textarea:focus {
+.teacher-image-form input:focus-visible,
+.teacher-image-form select:focus-visible,
+.teacher-image-form textarea:focus-visible,
+.generated-frame-body input:focus-visible,
+.generated-frame-body textarea:focus-visible {
   border-color: var(--jade);
   box-shadow: 0 0 0 3px var(--jade-soft);
-  outline: none;
 }
 
 .teacher-image-form-grid {

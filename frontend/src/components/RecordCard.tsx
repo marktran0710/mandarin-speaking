@@ -85,7 +85,7 @@ export default function RecordCard({
             {feedbackReliability && (
               <VoiceFeedbackReliabilityNotice
                 assessment={feedbackReliability}
-                compact
+                variant="compact"
               />
             )}
             {feedbackReliability?.level !== "retry" && (

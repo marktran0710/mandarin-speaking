@@ -6,7 +6,7 @@ import { STORY_FRAME_GUIDES } from "./StoryBuilderSection.helpers";
 
 function FramePreview({ draft, index, imageUrl, onPaste }) {
   const guide = STORY_FRAME_GUIDES[index];
-  return <div className="teacher-frame-image-preview" tabIndex={0} role="button"
+  return <button type="button" className="teacher-frame-image-preview"
     aria-label={`Paste an image for frame ${index + 1}`} onPaste={onPaste}
     title="Click here, then paste (Ctrl+V) an image from your clipboard">
     {imageUrl ? <img src={resolveImageUrl(imageUrl)} alt={`Custom story frame ${index + 1}`} /> : guide ? (
@@ -19,7 +19,7 @@ function FramePreview({ draft, index, imageUrl, onPaste }) {
         <text x="172" y="92" textAnchor="end" fill={guide.color} fontSize="7" fontFamily="sans-serif" opacity="0.6">📋 paste image here</text>
       </svg>
     ) : <span>Frame {index + 1}<br /><small className="teacher-frame-paste-hint">📋 Click + paste (Ctrl+V)</small></span>}
-  </div>;
+  </button>;
 }
 
 function StoryFrameFields(props) {

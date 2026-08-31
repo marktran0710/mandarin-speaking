@@ -212,8 +212,7 @@ h1 {
   border-color: var(--seal);
 }
 
-.model-selector select:focus {
-  outline: none;
+.model-selector select:focus-visible {
   border-color: var(--seal);
   box-shadow: 0 0 0 3px var(--seal-soft);
 }
@@ -477,4 +476,3 @@ h2 {
   align-items: center;
   margin-bottom: 8px;
 }
-

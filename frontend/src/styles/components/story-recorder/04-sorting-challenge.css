@@ -339,9 +339,32 @@
   border-radius: var(--clay-radius-lg);
   padding: 16px;
   min-height: 260px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   cursor: pointer;
+}
+
+.sorting-slot-action {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--clay-radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sorting-slot-action:focus-visible,
+.sorting-pool-card:focus-visible {
+  outline: 3px solid var(--seal);
+  outline-offset: 3px;
 }
 
 .sorting-slot-card:hover {
@@ -433,4 +456,3 @@
   color: var(--clay-muted);
   pointer-events: none;
 }
-

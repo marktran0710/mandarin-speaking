@@ -23,14 +23,16 @@ import "./VoiceFeedbackReliabilityNotice.css";
  */
 export default function VoiceFeedbackReliabilityNotice({
   assessment,
-  compact = false,
+  variant = "default",
 }: {
   assessment: VoiceFeedbackReliability;
   /** Kept for call-site compatibility; no longer read. */
   attemptCount?: number;
-  compact?: boolean;
+  variant?: "default" | "compact";
 }) {
   if (assessment.level !== "retry") return null;
+
+  const isCompact = variant === "compact";
 
   const detail =
     assessment.reason === "content-mismatch"
@@ -39,7 +41,7 @@ export default function VoiceFeedbackReliabilityNotice({
 
   return (
     <aside
-      className={`voice-reliability-notice is-retry${compact ? " is-compact" : ""}`}
+      className={`voice-reliability-notice is-retry${isCompact ? " is-compact" : ""}`}
       role="alert"
       aria-live="polite"
       data-feedback-reliability={assessment.level}
@@ -49,7 +51,7 @@ export default function VoiceFeedbackReliabilityNotice({
       </span>
       <div>
         <strong>Score unavailable</strong>
-        {!compact && <p>{detail}</p>}
+        {!isCompact && <p>{detail}</p>}
       </div>
     </aside>
   );
@@ -71,22 +73,24 @@ export default function VoiceFeedbackReliabilityNotice({
 export function AssistiveFeedbackNotice({
   state,
   showOnAccept = false,
-  compact = false,
+  variant = "default",
 }: {
   state: AssistiveState;
   /** Show a low-key acknowledgement for NO_ISSUE_DETECTED too; off by
    * default since STEP 4 only asks for this optionally. */
   showOnAccept?: boolean;
-  compact?: boolean;
+  variant?: "default" | "compact";
 }) {
   if (state === "ACCEPT" && !showOnAccept) return null;
+
+  const isCompact = variant === "compact";
 
   const tone = state === "NEEDS_PRACTICE" ? "check" : state === "UNCERTAIN" ? "uncertain" : "accept";
   const icon = state === "NEEDS_PRACTICE" ? "warning" : state === "UNCERTAIN" ? "help" : "check-circle";
 
   return (
     <aside
-      className={`voice-reliability-notice is-assistive is-${tone}${compact ? " is-compact" : ""}`}
+      className={`voice-reliability-notice is-assistive is-${tone}${isCompact ? " is-compact" : ""}`}
       role="status"
       aria-live="polite"
       data-assistive-state={state}

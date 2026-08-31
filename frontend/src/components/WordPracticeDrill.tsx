@@ -258,8 +258,6 @@ export default function WordPracticeDrill({
               className={`btn-mini btn-mini-secondary word-practice-upload-label ${
                 isRecording || isAnalyzing ? "disabled" : ""
               }`}
-              role="button"
-              tabIndex={isRecording || isAnalyzing ? -1 : 0}
             >
               <StudentIcon name="upload" size={15} aria-hidden="true" /><BiLabel zh="上傳音檔" pinyin="Shàngchuán yīndàng" en="Upload audio" />
               <input

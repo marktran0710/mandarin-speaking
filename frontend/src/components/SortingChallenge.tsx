@@ -253,76 +253,76 @@ export default function SortingChallenge({
             <div
               key={`slot-${index}`}
               className={`sorting-slot-card ${validation || ""} ${selectedPoolImage ? "droppable" : ""}`}
-              role="button"
-              tabIndex={0}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDropToSlot(e, index)}
-              onClick={activateSlot}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  activateSlot();
-                }
-              }}
             >
-              <div className="slot-header">
-                <span className="slot-number">
-                  <span className="slot-num-badge">{index + 1}</span>
-                  <BiLabel
-                    zh={`部分 ${index + 1}`}
-                    pinyin={`Bùfen ${index + 1}`}
-                    en={`Scene ${index + 1}`}
-                  />
-                </span>
-                {validation === "correct" && (
-                  <span className="slot-badge correct" aria-hidden="true"><StudentIcon name="check" size={14} /></span>
-                )}
-                {validation === "incorrect" && (
-                  <span className="slot-badge incorrect" aria-hidden="true"><StudentIcon name="x-circle" size={14} /></span>
-                )}
-              </div>
-
-              <div className="slot-body">
-                {image ? (
-                  <div className="slot-image-wrapper">
-                    <img
-                      src={image}
-                      alt={`Scene ${index + 1}`}
-                      draggable
-                      onDragStart={(e) =>
-                        handleDragStart(e, image, "slot", index)
-                      }
+              <button
+                type="button"
+                className="sorting-slot-action"
+                aria-label={`Place picture in scene ${index + 1}`}
+                onClick={activateSlot}
+              >
+                <div className="slot-header">
+                  <span className="slot-number">
+                    <span className="slot-num-badge">{index + 1}</span>
+                    <BiLabel
+                      zh={`部分 ${index + 1}`}
+                      pinyin={`Bùfen ${index + 1}`}
+                      en={`Scene ${index + 1}`}
                     />
-                    <button
-                      type="button"
-                      className="remove-slot-image"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeImageFromSlot(index);
-                      }}
-                      aria-label="Remove"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ) : (
-                  <div className="slot-placeholder">
-                    <span className="placeholder-icon">🖼️</span>
-                    <span className="placeholder-text">
-                      {selectedPoolImage ? (
-                        <BiLabel k="click_to_place" />
-                      ) : (
-                        <BiLabel k="drag_here" />
-                      )}
-                    </span>
+                  </span>
+                  {validation === "correct" && (
+                    <span className="slot-badge correct" aria-hidden="true"><StudentIcon name="check" size={14} /></span>
+                  )}
+                  {validation === "incorrect" && (
+                    <span className="slot-badge incorrect" aria-hidden="true"><StudentIcon name="x-circle" size={14} /></span>
+                  )}
+                </div>
+
+                <div className="slot-body">
+                  {image ? (
+                    <div className="slot-image-wrapper">
+                      <img
+                        src={image}
+                        alt={`Scene ${index + 1}`}
+                        draggable
+                        onDragStart={(e) =>
+                          handleDragStart(e, image, "slot", index)
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <div className="slot-placeholder">
+                      <span className="placeholder-icon" aria-hidden="true">
+                        <StudentIcon name="image" size={28} />
+                      </span>
+                      <span className="placeholder-text">
+                        {selectedPoolImage ? (
+                          <BiLabel k="click_to_place" />
+                        ) : (
+                          <BiLabel k="drag_here" />
+                        )}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {scenePrompt && (
+                  <div className="slot-footer">
+                    <p className="slot-prompt">{scenePrompt}</p>
                   </div>
                 )}
-              </div>
+              </button>
 
-              {scenePrompt && (
-                <div className="slot-footer">
-                  <p className="slot-prompt">{scenePrompt}</p>
-                </div>
+              {image && (
+                <button
+                  type="button"
+                  className="remove-slot-image"
+                  onClick={() => removeImageFromSlot(index)}
+                  aria-label={`Remove picture from scene ${index + 1}`}
+                >
+                  &times;
+                </button>
               )}
             </div>
           );
@@ -333,7 +333,7 @@ export default function SortingChallenge({
       <div className="sorting-pool-section">
         <div className="sorting-pool-header">
           <h2>
-            📷 <BiLabel k="picture_bank" />
+            <StudentIcon name="image" size={20} aria-hidden="true" /> <BiLabel k="picture_bank" />
           </h2>
           <p className="pool-helper-text">
             {selectedPoolImage ? (
@@ -352,33 +352,28 @@ export default function SortingChallenge({
         >
           {shuffledPool.length === 0 ? (
             <div className="pool-empty-state">
-              <span className="star-icon">✨</span>
+                <span className="star-icon" aria-hidden="true">
+                  <StudentIcon name="spark" size={28} />
+                </span>
               <p>
                 <BiLabel k="all_pictures_placed" />
               </p>
             </div>
           ) : (
             shuffledPool.map((image, poolIdx) => (
-              <div
+              <button
+                type="button"
                 key={poolIdx}
                 className={`sorting-pool-card ${selectedPoolImage === image ? "selected" : ""}`}
                 draggable
-                role="button"
-                tabIndex={0}
+                aria-pressed={selectedPoolImage === image}
+                aria-label={`Select story picture ${poolIdx + 1}`}
                 onDragStart={(e) => handleDragStart(e, image, "pool")}
                 onClick={() =>
                   setSelectedPoolImage(
                     selectedPoolImage === image ? null : image,
                   )
                 }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setSelectedPoolImage(
-                      selectedPoolImage === image ? null : image,
-                    );
-                  }
-                }}
               >
                 <img src={image} alt="Story picture" />
                 <span className="drag-handle">
@@ -388,7 +383,7 @@ export default function SortingChallenge({
                     <BiLabel k="drag_click" />
                   )}
                 </span>
-              </div>
+              </button>
             ))
           )}
         </div>
@@ -401,7 +396,7 @@ export default function SortingChallenge({
           className="btn-reset-sorting"
           onClick={resetSorting}
         >
-          ↺ <BiLabel k="reset" />
+          <StudentIcon name="refresh" size={17} aria-hidden="true" /> <BiLabel k="reset" />
         </button>
 
         {validationStates.some((s) => s === "correct") &&

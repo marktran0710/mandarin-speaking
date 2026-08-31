@@ -36,7 +36,6 @@ import StudentIcon, { type StudentIconName } from "./StudentIcon";
 import "./BiLabel.css";
 import type { Topic, TopicSelectorProps } from "./topic-selector/types";
 export type { Topic, TopicStartOptions, VocabGroup } from "./topic-selector/types";
-
 export const TOPICS: Topic[] = [];
 
 function isStoryModeTopic(_topic: Topic): boolean {
@@ -235,6 +234,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
   const renderTopicCard = (t: Topic, group: LessonGroup, index: number) => {
     const totalScenes = t.images.length;
     const totalWords = Object.values(t.vocabulary).flat().length;
+    const earnedStars = loadBestLocalStars(t.id);
     const previewImage = t.images[0];
     const unlocked = isStoryUnlockedInLesson(group, index, submittedIds);
     const hasQuiz = topicHasQuiz(t);
@@ -295,14 +295,14 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               // last saw in the quiz).
               <span
                 className="ts-card-stars"
-                aria-label={`${loadBestLocalStars(t.id)} of 3 quiz stars earned`}
+                aria-label={`${earnedStars} of 3 quiz stars earned`}
               >
                 {Array.from({ length: 3 }, (_, starIndex) => (
                   <StudentIcon
                     key={starIndex}
                     name="star"
                     size={14}
-                    className={starIndex < loadBestLocalStars(t.id) ? "is-earned" : "is-empty"}
+                    className={starIndex < earnedStars ? "is-earned" : "is-empty"}
                   />
                 ))}
               </span>
@@ -455,42 +455,35 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
             <BiLabel zh="其他" en="More practice" />
           </p>
           <div className="ts-lesson">
-            <div
+            <button
+              type="button"
               className="ts-lesson-card"
-              role="button"
-              tabIndex={0}
               aria-expanded={openLesson === "other"}
               onClick={() => setOpenLesson((current) => (current === "other" ? null : "other"))}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  setOpenLesson((current) => (current === "other" ? null : "other"));
-                }
-              }}
             >
-              <div className="ts-num-tile ts-tile-other">
+              <span className="ts-num-tile ts-tile-other">
                 <StudentIcon name="spark" size={24} />
-              </div>
-              <div className="ts-lesson-main">
-                <div className="ts-lesson-title">
+              </span>
+              <span className="ts-lesson-main">
+                <span className="ts-lesson-title">
                   {otherGroup.topics.length === 1
                     ? otherGroup.topics[0].name
                     : `${otherGroup.topics.length} 個故事`}
-                </div>
-                <p className="ts-lesson-sub">
+                </span>
+                <span className="ts-lesson-sub">
                   <BiLabel
                     zh="還沒有課號的故事"
                     en="Stories without a lesson yet"
                     align="left"
                   />
-                </p>
-              </div>
-              <div className="ts-lesson-side">
+                </span>
+              </span>
+              <span className="ts-lesson-side">
                 <span className="ts-side-chip ts-chip-open" aria-hidden="true">
                   <StudentIcon name={openLesson === "other" ? "chevron-up" : "chevron-down"} size={16} />
                 </span>
-              </div>
-            </div>
+              </span>
+            </button>
           </div>
           {openLesson === "other" && (
             <div className="ts-lesson-expanded">

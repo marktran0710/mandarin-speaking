@@ -119,6 +119,7 @@
 }
 
 .sorting-pool-card {
+  display: block;
   width: 140px;
   height: 100px;
   border-radius: var(--clay-radius-md);
@@ -127,7 +128,12 @@
   position: relative;
   cursor: grab;
   border: 2px solid transparent;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  appearance: none;
+  transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   background: var(--clay-ink);
 }
 
@@ -185,7 +191,7 @@
   padding: 12px 24px;
   border-radius: var(--clay-radius-md);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
   border: none;
 }
 
@@ -437,4 +443,3 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
