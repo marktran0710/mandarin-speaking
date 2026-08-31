@@ -51,7 +51,6 @@ export default function SpeakingResultsFlowShell({
     <div className="practice-workspace">
       <div className="practice-scene-col">
         <div className="practice-scene-image"><img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} /></div>
-        <AudioCompare modelAudioUrl={modelAudioUrl} modelSentence={modelSentence} analysisAudioBlob={analysisAudioBlob} />
       </div>
 
       <div className="sfc-results-main">
@@ -65,6 +64,7 @@ export default function SpeakingResultsFlowShell({
             </button>;
           })}
         </nav>}
+        <AudioCompare modelAudioUrl={modelAudioUrl} modelSentence={modelSentence} analysisAudioBlob={analysisAudioBlob} />
         {stepBody}
         <div className="sfc-results-utility">
           <button ref={feedbackTriggerRef} type="button" className="sfc-left-feedback-summary" aria-haspopup="dialog" aria-expanded={feedbackModalOpen} aria-controls="sfc-feedback-modal" onClick={onOpenFeedback}>

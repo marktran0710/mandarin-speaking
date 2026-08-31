@@ -79,8 +79,9 @@
   }
 
   .student-workspace-v2 > .student-workspace-content-v2 {
-    display: block;
-    height: auto;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    height: 100%;
     max-height: 100%;
     overflow: auto;
     overscroll-behavior: contain;
@@ -95,12 +96,48 @@
     height: 100%;
   }
 
+  /* CreateStoryPage adds two wrappers around the recorder. Make the whole
+     chain a definite grid track; otherwise the recorder resolves its
+     percentage height against intrinsic content and pushes the stage below
+     the viewport at narrower desktop widths. The session main is the
+     reachable scroller inside this bounded chain. */
+  .student-workspace.student-workspace-v2 .create-story-page:has(> .csp-recorder-body) {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .student-workspace.student-workspace-v2 .create-story-page:has(> .csp-recorder-body) > .csp-recorder-body {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+  }
+
+  .student-workspace.student-workspace-v2 .create-story-page:has(> .csp-recorder-body) > .csp-recorder-body > .story-recorder {
+    display: grid;
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+  }
+
   /* The session chrome stays visible while the active learning surface gets
      the remaining track. This keeps the desktop state within one viewport
      without hiding a long practice result. */
   .student-workspace-v2 .story-recorder {
     min-height: 0;
-    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+    /* Reserve the token-sized session chrome explicitly. An auto row can
+       collapse when the main activity owns a percentage height, which makes
+       the title bar paint over the practice stage. */
+    grid-template-rows: var(--space-3xl) minmax(0, 1fr);
+    padding-bottom: 0;
+  }
+
+  .student-workspace-v2 > .student-workspace-content-v2 > .story-recorder {
+    min-height: 0;
   }
 
   .student-workspace-v2 .story-session-main {
@@ -1835,9 +1872,14 @@
    never changes the surrounding geometry. The two activity rails may scroll
    only when their real content exceeds the available track. */
 @media (min-width: 901px) {
+  .student-workspace.student-workspace-v2 .story-recorder {
+    padding-bottom: 0;
+  }
+
   .student-workspace.student-workspace-v2 .story-session-main:has(> .practice-stage) {
     min-height: 0;
     grid-template-rows: minmax(0, 1fr);
+    height: auto;
     overflow: hidden;
   }
 
@@ -1902,6 +1944,45 @@
   .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-analyzing {
     display: grid;
     place-items: center;
+  }
+
+  /* Keep the scene rail identical while record/results content changes.
+     The image owns the full media track; the attempt marker is an intentional
+     overlay, so it does not steal height from the image in record mode. */
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record.sfc-screen > .practice-workspace,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-results.sfc-screen > .practice-workspace {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record.sfc-screen .practice-scene-col,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-results.sfc-screen .practice-scene-col {
+    position: relative;
+    display: block;
+    align-self: stretch;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    scrollbar-gutter: auto;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record.sfc-screen .practice-scene-image,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-results.sfc-screen .practice-scene-image {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record.sfc-screen .sfc-attempt-only {
+    position: absolute;
+    left: var(--space-sm);
+    bottom: var(--space-sm);
+    z-index: 1;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--clay-radius-pill);
+    background: var(--clay-surface-card);
+    color: var(--clay-ink);
+    box-shadow: var(--shadow-sm);
   }
 }
 
