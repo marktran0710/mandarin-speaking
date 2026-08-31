@@ -1844,6 +1844,9 @@
   .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
+    /* Intentional zero gap: the scene tabs and activity body are one
+       continuous stage surface, separated by the tabs' own divider. */
+    row-gap: 0;
     height: 100%;
     min-height: 0;
     overflow: hidden;
@@ -1857,7 +1860,7 @@
     height: 100%;
     min-height: 0;
     min-width: 0;
-    padding: 0;
+    padding: var(--space-sm) var(--space-md);
     overflow: hidden;
     border: 0;
     border-radius: 0;
