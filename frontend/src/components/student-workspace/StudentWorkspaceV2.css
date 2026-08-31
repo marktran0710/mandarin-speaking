@@ -10,41 +10,32 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: stretch;
+  flex: 1 1 0;
   min-height: 0;
-  /* Height is inherited from the application layout rather than imposed by
-     this workspace. That keeps the shell usable in embedded routes, panes,
-     and desktop containers with their own chrome. */
+  /* Fill the available application track. The app shell owns the track;
+     this workspace does not create a second viewport-sized canvas. */
   padding-top: 0;
-  /* Was full viewport width with the rail glued to the browser's own left
-     edge — on a wide monitor that reads as an app with no edges at all.
-     Contained and centered instead, the same "canvas showing on both
-     sides" treatment every other page already gets from --content-max,
-     just wider here since this track additionally carries the 248px rail
-     beside its own content column. Below this width there is no visible
-     margin to give back, so the shell fills the viewport exactly as it did
-     before — this only ever narrows, never adds a cramped middle step. */
-  max-width: 1440px;
-  /* This shell is a flex item (.app-container is a column flex box). Auto
-     margins on a flex item's cross axis (horizontal, here) drop its default
-     stretch and size it to its content instead, then center that
-     shrunk-to-fit box — the grid's own `1fr` content track has nothing to
-     be a fraction OF in that mode, so it collapsed to content width, ~800px
-     wide, well short of max-width, on the browser this was measured in.
-     The explicit width restores fill-then-cap-at-max-width sizing; margin:
-     auto still centers it once max-width actually applies. */
+  max-width: none;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
+  overflow: hidden;
 }
 
 .student-workspace-v2 > .student-workspace-content-v2 {
+  width: auto;
+  max-width: none;
+  margin: 0 var(--space-md) 0 0;
   min-width: 0;
-  padding: var(--space-xl) var(--space-xl) var(--space-3xl);
+  min-height: 0;
+  padding: var(--space-2xs) var(--space-md) var(--space-2xs) 0;
+  overflow: hidden;
 }
 
 @media (max-width: 900px) {
   .student-workspace-v2 {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
+    flex: none;
     min-height: 0;
     height: auto;
   }
@@ -66,6 +57,9 @@
   }
   /* Clear the fixed menu button so the first heading isn't underneath it. */
   .student-workspace-v2 > .student-workspace-content-v2 {
+    width: 100%;
+    max-width: none;
+    margin: 0;
     padding-top: calc(44px + var(--space-lg));
     min-height: auto;
     height: auto;

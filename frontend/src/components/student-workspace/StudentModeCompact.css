@@ -47,19 +47,14 @@
 
 @media (min-width: 901px) {
   /* The route supplies available height when it has one. The student shell
-     must not impose a viewport height because it can also render in a pane
-     or embedded flow. */
+     fills that parent track; the panel below owns reachable local scroll. */
   .app-container:has(> .student-workspace-v2) {
-    height: auto;
-    min-height: 0;
-    overflow: visible;
+    overflow: hidden;
   }
 
   .student-workspace.student-workspace-v2 {
-    height: auto;
     min-height: 0;
-    max-height: none;
-    overflow: visible;
+    overflow: hidden;
   }
 
   .student-workspace-v2 > .student-sidebar,
@@ -75,9 +70,8 @@
 
   .student-workspace-v2 > .student-workspace-content-v2 {
     display: block;
-    height: auto;
-    max-height: none;
-    overflow: visible;
+    min-height: 0;
+    overflow: hidden;
     padding-bottom: var(--space-md);
     scrollbar-gutter: stable;
   }

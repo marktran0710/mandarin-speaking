@@ -2,9 +2,9 @@
  * Student workspace panel contract
  *
  * This ID-scoped layer is intentionally more specific than the legacy page
- * and recorder styles. The panel is the single desktop viewport/scroller;
- * story phases keep intrinsic height, while only genuinely local collections
- * (the scene rail and vocabulary rows) own nested overflow.
+ * and recorder styles. The panel is the single desktop viewport; the story
+ * chrome and activity stage fill that track, while only genuinely local
+ * collections (the scene rail and vocabulary rows) own nested overflow.
  */
 
 @media (min-width: 901px) {
@@ -73,13 +73,29 @@
     padding: var(--space-md);
   }
 
-  .student-workspace-v2 > #student-workspace-panel > .create-story-page:has(> .csp-recorder-body),
-  .student-workspace-v2 > #student-workspace-panel .csp-recorder-body {
-    display: block;
+  .student-workspace-v2 > #student-workspace-panel > .create-story-page:has(> .csp-recorder-body) {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
     min-height: 0;
-    height: auto;
-    max-height: none;
-    overflow: visible;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .csp-recorder-body {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .csp-recorder-body > .story-recorder {
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
   }
 
   /* Story header and active phase are normal-flow siblings. The former fixed
@@ -90,11 +106,11 @@
     flex-direction: column;
     gap: 0;
     min-height: 0;
-    height: auto;
-    max-height: none;
+    height: 100%;
+    max-height: 100%;
     margin: 0;
     padding: 0;
-    overflow: visible;
+    overflow: hidden;
     background: transparent;
   }
 
@@ -118,13 +134,13 @@
     /* The header and activity body are one continuous surface. Their zero
        gap is intentional; this divider is the visible boundary. */
     display: block;
-    flex: 1 0 auto;
+    flex: 1 1 0;
     min-width: 0;
     min-height: 0;
     width: 100%;
     height: auto;
     padding: var(--space-sm) var(--space-md) var(--space-md);
-    overflow: visible;
+    overflow: hidden;
   }
 
   .student-workspace-v2 > #student-workspace-panel .story-session-main:has(> .practice-stage) {
@@ -133,14 +149,26 @@
   }
 
   .student-workspace-v2 > #student-workspace-panel .practice-stage {
-    flex: 1 0 auto;
+    flex: 1 1 0;
     min-height: 0;
+    height: auto;
+    overflow: hidden;
   }
 
   /* The student panel is the single outer frame. Speaking keeps the tab
      divider as its context boundary, but does not add a second card frame
      around the changing activity content. */
   .student-workspace-v2 > #student-workspace-panel .practice-stage:has(> .speaking-flow-card) {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* The outer student panel already owns the activity surface. Keep the
+     speaking card's padding as the content inset, but remove its competing
+     border/radius so every action reads as one continuous workspace. */
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen {
     border: 0;
     border-radius: 0;
     background: transparent;
@@ -171,7 +199,7 @@
     grid-template-columns: var(--story-session-media-track) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
     align-items: stretch;
-    flex: 1 0 auto;
+    flex: 1 1 0;
     min-height: 0;
     padding: var(--space-sm) var(--space-md) var(--space-md);
     gap: var(--space-md);
@@ -224,6 +252,25 @@
     grid-column: 2;
     min-width: 0;
     min-height: 0;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen :is(.sfc-record-main, .sfc-results-main) {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  /* Keep the next meaningful action in reach while long bilingual copy or
+     feedback scrolls. This is a local workflow affordance, not another card
+     or a second page footer. */
+  .student-workspace-v2 > #student-workspace-panel .sfc-record-main .sfc-record-actions,
+  .student-workspace-v2 > #student-workspace-panel .sfc-results-main .sfc-results-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding-block: var(--space-xs);
+    background: var(--clay-surface-card);
   }
 
   .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen .sfc-analyzing-main {
