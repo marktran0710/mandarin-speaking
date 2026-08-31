@@ -1645,3 +1645,156 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Desktop self-evaluation uses the available stage track instead of growing
+   the whole page past the viewport. The content panel stays the only shell
+   track; mobile returns to natural page flow below. */
+@media (min-width: 901px) {
+  .student-workspace-v2 > .student-workspace-content-v2:has(.sfc-results.sfc-screen .self-eval-step) {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .student-workspace-v2 > .student-workspace-content-v2 > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step),
+  .student-workspace-v2 > .student-workspace-content-v2 > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step) .csp-recorder-body,
+  .student-workspace-v2 > .student-workspace-content-v2 > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step) .story-recorder {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .student-workspace-v2 .story-recorder:has(.sfc-results.sfc-screen .self-eval-step) {
+    grid-template-rows: auto minmax(0, 1fr);
+    padding-bottom: 0;
+  }
+
+  .student-workspace-v2 .story-session-main:has(.sfc-results.sfc-screen .self-eval-step) {
+    min-height: 0;
+    overflow: visible;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .student-workspace-v2 .story-session-topbar:has(+ .story-session-main .sfc-results.sfc-screen .self-eval-step) {
+    grid-template-rows: var(--space-xl);
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .student-workspace-v2 .story-session-topbar:has(+ .story-session-main .sfc-results.sfc-screen .self-eval-step) .ssb-topline,
+  .student-workspace-v2 .story-session-topbar:has(+ .story-session-main .sfc-results.sfc-screen .self-eval-step) .ssb-topic-icon {
+    min-height: var(--space-xl);
+    height: var(--space-xl);
+  }
+
+  .student-workspace-v2 .practice-stage:has(.sfc-results.sfc-screen .self-eval-step) {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .student-workspace-v2 .practice-stage:has(.sfc-results.sfc-screen .self-eval-step) .scene-step-tabs {
+    min-height: var(--space-xl);
+  }
+
+  .student-workspace-v2 .speaking-flow-card.sfc-results.sfc-screen:has(.self-eval-step) {
+    min-height: 0;
+    height: auto;
+    align-self: start;
+  }
+
+  .student-workspace-v2 .speaking-flow-card.sfc-results.sfc-screen:has(.self-eval-step) > .practice-workspace {
+    grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+    align-items: start;
+    gap: var(--space-md);
+    min-height: 0;
+    height: 100%;
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .practice-scene-col {
+    min-height: 0;
+    gap: var(--space-sm);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .practice-scene-image {
+    aspect-ratio: 16 / 10;
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-audio-compare {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: var(--space-sm);
+    margin-top: 0;
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-audio-compare > * {
+    align-self: stretch;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .reference-audio-card-player,
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .recording-playback-audio {
+    margin-top: auto;
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-results-main {
+    min-height: 0;
+    padding: var(--space-sm) var(--space-md) var(--space-xs);
+    gap: var(--space-sm);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-stepper {
+    grid-template-columns: repeat(auto-fit, minmax(var(--space-3xl), 1fr));
+    gap: var(--space-xs);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-step {
+    gap: var(--space-2xs);
+    padding: var(--space-xs) var(--space-2xs);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .self-eval-step {
+    gap: var(--space-sm);
+    padding: 0;
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .self-eval-question {
+    min-height: 0;
+    padding: var(--space-xs);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .self-eval-emoji-btn {
+    min-height: var(--space-2xl);
+    padding: var(--space-xs) var(--space-2xs);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-step-cta-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .self-eval-skip {
+    align-self: stretch;
+    min-height: var(--space-2xl);
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-results-footer {
+    gap: var(--space-xs);
+    padding-top: var(--space-xs);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-footer-actions {
+    gap: var(--space-xs);
+  }
+}
+
+@media (max-width: 900px) {
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-audio-compare {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
