@@ -242,6 +242,20 @@ one-off patches. Follow these when writing or reviewing ANY CSS in
    step was skipped — do it before claiming a layout fix is done, not
    after a fourth report that it isn't.
 
+7. **Let one outer frame own the surface, but keep a content inset.** When
+   a parent frame owns the border, radius, background, or shadow, its direct
+   activity/content child must not draw a competing border, radius, shadow,
+   or opaque surface. Removing that inner border does not mean using
+   `padding: 0`: preserve a visible inset with spacing tokens (normally
+   `--space-sm` vertically and `--space-md` horizontally), or with an
+   equivalent parent gap, so content never touches the frame edge. Keep the
+   token gap between sibling columns and sections. A zero gap is allowed
+   only when adjacent pieces intentionally form one continuous surface (for
+   example, tabs and their panel); add a selector comment documenting that
+   exception. For fixed-height desktop stages, pair the inset with
+   `min-height: 0` and a reachable local scroller so the inset does not
+   create dead space or clip the activity.
+
 ## Automation tests for UI/UX: rules, not just "add a test"
 
 Writing a test that renders green proves nothing by itself — this session
