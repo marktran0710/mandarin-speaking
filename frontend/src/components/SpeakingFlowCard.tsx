@@ -179,37 +179,47 @@ export default function SpeakingFlowCard({
   // ── Analyzing overlay (either screen) ─────────────────────────────────
   if (isTranscribing || isAnalyzing) {
     return (
-      <section className="speaking-flow-card sfc-analyzing" aria-label="Analyzing recording">
-        <div className="analysis-loading-card sfc-loading">
-          <div className="analysis-loading-spinner" />
-          <div className="analysis-loading-text">
-            <p className="analysis-loading-title">
-              {isTranscribing ? (
-                <BiLabel k="listening_to_your_voice" />
-              ) : (
-                <BiLabel k="analyzing_pronunciation" />
-              )}
-            </p>
-            <p className="analysis-loading-sub">
-              {isTranscribing ? (
-                <BiLabel k="converting_speech_to_text" />
-              ) : (
-                <BiLabel k="checking_tones_rhythm_and_vocabulary" />
-              )}
-            </p>
+      <section className="speaking-flow-card sfc-analyzing sfc-screen" aria-label="Analyzing recording">
+        <div className="practice-workspace">
+          <div className="practice-scene-col">
+            <div className="practice-scene-image">
+              <img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} />
+            </div>
           </div>
-          <div className="analysis-loading-steps">
-            <span className={`loading-step ${isTranscribing ? "active" : "done"}`}>
-              <BiLabel k="transcribe" />
-            </span>
-            <span className="loading-step-arrow" aria-hidden="true"><StudentIcon name="arrow-right" size={16} /></span>
-            <span className={`loading-step ${isAnalyzing && !isTranscribing ? "active" : ""}`}>
-              Praat
-            </span>
-            <span className="loading-step-arrow" aria-hidden="true"><StudentIcon name="arrow-right" size={16} /></span>
-            <span className="loading-step">
-              <BiLabel k="feedback" />
-            </span>
+
+          <div className="sfc-analyzing-main">
+            <div className="analysis-loading-card sfc-loading">
+              <div className="analysis-loading-spinner" />
+              <div className="analysis-loading-text">
+                <p className="analysis-loading-title">
+                  {isTranscribing ? (
+                    <BiLabel k="listening_to_your_voice" />
+                  ) : (
+                    <BiLabel k="analyzing_pronunciation" />
+                  )}
+                </p>
+                <p className="analysis-loading-sub">
+                  {isTranscribing ? (
+                    <BiLabel k="converting_speech_to_text" />
+                  ) : (
+                    <BiLabel k="checking_tones_rhythm_and_vocabulary" />
+                  )}
+                </p>
+              </div>
+              <div className="analysis-loading-steps">
+                <span className={`loading-step ${isTranscribing ? "active" : "done"}`}>
+                  <BiLabel k="transcribe" />
+                </span>
+                <span className="loading-step-arrow" aria-hidden="true"><StudentIcon name="arrow-right" size={16} /></span>
+                <span className={`loading-step ${isAnalyzing && !isTranscribing ? "active" : ""}`}>
+                  Praat
+                </span>
+                <span className="loading-step-arrow" aria-hidden="true"><StudentIcon name="arrow-right" size={16} /></span>
+                <span className="loading-step">
+                  <BiLabel k="feedback" />
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </section>

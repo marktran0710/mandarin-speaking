@@ -9,8 +9,6 @@
 
 @media (min-width: 901px) {
   .student-workspace-v2 {
-    height: 100%;
-    max-height: 100%;
     min-height: 0;
     grid-template-rows: minmax(0, 1fr);
     overflow: hidden;
@@ -20,8 +18,8 @@
   .student-workspace-v2 > .student-workspace-content-v2 {
     display: grid;
     grid-template-rows: minmax(0, 1fr);
+    align-self: stretch;
     min-height: 0;
-    height: 100%;
     max-height: 100%;
     padding: 0 var(--space-md) 0 0;
     overflow: hidden;
@@ -35,7 +33,6 @@
     align-self: stretch;
     min-width: 0;
     min-height: 0;
-    height: 100%;
     max-height: 100%;
     /* The panel is the page's outer surface, so it uses only the intentional
        4px canvas reveal. Its internal regions keep the normal token gaps. */
@@ -140,6 +137,24 @@
     min-height: 0;
   }
 
+  /* The student panel is the single outer frame. Speaking keeps the tab
+     divider as its context boundary, but does not add a second card frame
+     around the changing activity content. */
+  .student-workspace-v2 > #student-workspace-panel .practice-stage:has(> .speaking-flow-card) {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* Every story action shares the same equal-width media/workflow tracks. The
+     workflow pane can change freely, but it cannot move or resize the scene
+     learners use as their visual anchor. Mobile intentionally uses its
+     existing one-column flow outside this desktop-only rule. */
+  .student-workspace-v2 > #student-workspace-panel .story-session-main:has(> .practice-stage) {
+    --story-session-media-track: minmax(0, 1fr);
+  }
+
   /* Study is one stable body grid. The media and reference rail share the
      same row; the action footer spans both tracks and therefore cannot drift
      under only the shorter column. */
@@ -153,14 +168,24 @@
 
   .student-workspace-v2 > #student-workspace-panel .practice-stage > .practice-workspace-study {
     display: grid;
-    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    grid-template-columns: var(--story-session-media-track) minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr) auto;
     align-items: stretch;
     flex: 1 0 auto;
     min-height: 0;
-    padding: 0;
+    padding: var(--space-sm) var(--space-md) var(--space-md);
     gap: var(--space-md);
     overflow: visible;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen > .practice-workspace {
+    grid-template-columns: var(--story-session-media-track) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-analyzing {
+    display: block;
+    place-items: initial;
   }
 
   .student-workspace-v2 > #student-workspace-panel .practice-workspace-study .practice-scene-col {
@@ -172,13 +197,38 @@
     overflow: visible;
   }
 
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen .practice-scene-col {
+    grid-column: 1;
+    align-self: start;
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
   .student-workspace-v2 > #student-workspace-panel .practice-workspace-study .practice-scene-image,
-  .student-workspace-v2 > #student-workspace-panel .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image {
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image,
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen .practice-scene-image {
     width: 100%;
     height: auto;
     min-height: 0;
-    max-height: calc(var(--space-3xl) * 8);
+    max-height: none;
     aspect-ratio: 4 / 3;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen :is(.sfc-record-main, .sfc-results-main, .sfc-analyzing-main) {
+    grid-column: 2;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen .sfc-analyzing-main {
+    display: grid;
+    align-content: center;
   }
 
   .student-workspace-v2 > #student-workspace-panel .practice-workspace-study .practice-scene-main {
