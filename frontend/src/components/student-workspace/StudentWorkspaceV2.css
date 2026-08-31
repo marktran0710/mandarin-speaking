@@ -10,12 +10,10 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: stretch;
-  min-height: 100dvh;
-  /* `.student-workspace` reserves 68px of top padding for the app's top
-     navbar. This route's navbar (App.tsx's Navigation) is unconditionally
-     hidden whenever the rail is showing — session or not — so that
-     reservation only ever pushed the 100vh-tall rail 68px down the page
-     and dropped its "離開 Log out" button below the fold. */
+  min-height: 0;
+  /* Height is inherited from the application layout rather than imposed by
+     this workspace. That keeps the shell usable in embedded routes, panes,
+     and desktop containers with their own chrome. */
   padding-top: 0;
   /* Was full viewport width with the rail glued to the browser's own left
      edge — on a wide monitor that reads as an app with no edges at all.
@@ -47,7 +45,7 @@
   .student-workspace-v2 {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
-    min-height: 100dvh;
+    min-height: 0;
     height: auto;
   }
   /* StudentWorkspacePage.css gives every direct child a relative stacking

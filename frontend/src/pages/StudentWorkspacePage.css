@@ -1,5 +1,5 @@
 .student-workspace {
-  min-height: calc(100dvh - var(--navbar-height));
+  min-height: 0;
   padding: clamp(32px, 5vw, 68px) 0 var(--space-3xl);
   position: relative;
   overflow: hidden;
@@ -338,7 +338,7 @@
 
 @media (max-width: 520px) {
   .student-workspace {
-    min-height: calc(100dvh - var(--navbar-height));
+    min-height: 0;
     padding-top: var(--space-lg);
   }
 

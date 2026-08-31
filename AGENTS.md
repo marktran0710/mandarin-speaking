@@ -142,15 +142,13 @@ and trustworthy rather than childish, noisy, or gamified for its own sake.
     the primary action harder to scan; keep the same gutter and spacing rhythm
     after that collapse.
 
-11. **Fit the desktop viewport; let mobile flow naturally.** For student-facing
-    desktop layouts (`min-width: 901px`), the application shell should occupy
-    the available dynamic viewport with `height: 100dvh` and avoid a
-    document-level scrollbar in the normal state. Build this with stretched
-    grid/flex tracks and `min-height: 0`: fixed rails and headers stay
-    `flex-shrink: 0`, while the main content panel owns any necessary
-    `overflow: auto` so long feedback, zoomed text, and real data remain
-    reachable. Do not use guessed `calc(100dvh - Npx)` offsets. On mobile
-    (`max-width: 900px`), use natural page flow with `min-height: 100dvh`,
+11. **Fit the available container; let mobile flow naturally.** Never impose
+    `100dvh`, `100vh`, or a viewport-derived `calc()` as the height of an outer
+    student layout. Let the application route or parent define the available
+    track, then use stretched grid/flex tracks and `min-height: 0`: fixed rails
+    and headers stay `flex-shrink: 0`, while the main content panel owns any
+    necessary `overflow: auto` so long feedback, zoomed text, and real data
+    remain reachable. On mobile (`max-width: 900px`), use natural page flow,
     allow vertical page scrolling, and prevent horizontal overflow.
 
 ## Git branch naming
@@ -186,15 +184,14 @@ one-off patches. Follow these when writing or reviewing ANY CSS in
    true one-off (clearing an absolutely positioned sibling, a decorative
    micro-radius ≤5px) — leave a comment saying so when you use it.
 
-2. **Use a safe desktop viewport shell.** Do not use guessed
-   `calc(100dvh - Npx)` offsets, viewport clamps, or an `overflow: hidden`
-   wrapper that has no reachable inner scroller. The student shell may use
-   `height: 100dvh` on desktop when its grid/flex children have
-   `min-height: 0`, fixed chrome is non-shrinking, and the content panel owns
-   `overflow: auto`. This keeps the normal desktop state within the viewport
-   without clipping long feedback. Mobile remains auto-height and uses normal
-   page scrolling. A shared action footer must stay reachable with
-   `flex-shrink: 0`, never by hiding overflow around it.
+2. **Use a safe container-owned shell.** Do not use `100dvh`, `100vh`, guessed
+   viewport-derived `calc()` offsets, viewport clamps, or an `overflow: hidden`
+   wrapper that has no reachable inner scroller for an outer student layout.
+   The route or parent owns the available track; descendants use `min-height:
+   0`, non-shrinking chrome, and a reachable content-panel `overflow: auto`.
+   Mobile remains auto-height and uses normal page scrolling. A shared action
+   footer must stay reachable with `flex-shrink: 0`, never by hiding overflow
+   around it.
 
 3. **One CSS source of truth per selector per state.** Before adding a rule
    that touches `.some-shared-class`, grep for every existing rule that

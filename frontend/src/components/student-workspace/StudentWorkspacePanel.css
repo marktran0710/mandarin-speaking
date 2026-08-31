@@ -9,7 +9,6 @@
 
 @media (min-width: 901px) {
   .student-workspace-v2 {
-    height: 100dvh;
     min-height: 0;
     grid-template-rows: minmax(0, 1fr);
     overflow: hidden;
@@ -28,14 +27,11 @@
     box-sizing: border-box;
     display: grid;
     grid-template-rows: minmax(0, 1fr);
-    align-self: stretch;
+    align-self: start;
     min-width: 0;
     min-height: 0;
-    height: 100%;
-    /* Cap against the definite shell track, not a guessed viewport offset:
-       every desktop view keeps this shared frame while a long catalogue or
-       feedback state scrolls inside it rather than growing the document. */
-    max-height: calc(100% - var(--space-2xs) * 2);
+    height: auto;
+    max-height: none;
     /* The panel is the page's outer surface, so it uses only the intentional
        4px canvas reveal. Its internal regions keep the normal token gaps. */
     margin-block: var(--space-2xs);

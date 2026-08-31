@@ -3,9 +3,8 @@
  *
  * This is the final, student-shell-scoped layout layer. It keeps the existing
  * learning flows and token palette, but gives desktop learners one composed
- * workspace instead of a stack of oversized cards. Desktop uses a true
- * viewport shell with an explicit inner scroller; mobile returns to natural
- * page flow so small screens and long feedback remain reachable.
+ * workspace instead of a stack of oversized cards. The surrounding route
+ * owns available height; both desktop and mobile keep natural page flow.
  */
 
 .student-workspace-v2 > .student-workspace-content-v2 {
@@ -41,30 +40,26 @@
 }
 
 /* StudentWorkspacePage.css still styles the legacy `.student-workspace`
-   wrapper with a bottom cushion. The v2 shell owns that edge now; the
-   combined selector is intentionally stronger so the desktop 100dvh track
-   does not lose 64px to an invisible legacy footer. */
+   wrapper with a bottom cushion. The v2 shell owns that edge now. */
 .student-workspace.student-workspace-v2 {
   padding-bottom: 0;
 }
 
 @media (min-width: 901px) {
-  /* The student shell is the only app surface on these routes. Keep the
-     document itself inside the device viewport and give the two shell tracks
-     the responsibility for reaching long content. `:has()` is scoped to the
-     direct shell child so teacher/admin pages keep their normal flow. */
+  /* The route supplies available height when it has one. The student shell
+     must not impose a viewport height because it can also render in a pane
+     or embedded flow. */
   .app-container:has(> .student-workspace-v2) {
-    height: 100dvh;
+    height: auto;
     min-height: 0;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .student-workspace.student-workspace-v2 {
-    height: 100dvh;
+    height: auto;
     min-height: 0;
-    max-height: 100dvh;
-    grid-template-rows: minmax(0, 1fr);
-    overflow: hidden;
+    max-height: none;
+    overflow: visible;
   }
 
   .student-workspace-v2 > .student-sidebar,
@@ -79,12 +74,10 @@
   }
 
   .student-workspace-v2 > .student-workspace-content-v2 {
-    display: grid;
-    grid-template-rows: minmax(0, 1fr);
-    height: 100%;
-    max-height: 100%;
-    overflow: auto;
-    overscroll-behavior: contain;
+    display: block;
+    height: auto;
+    max-height: none;
+    overflow: visible;
     padding-bottom: var(--space-md);
     scrollbar-gutter: stable;
   }
@@ -140,10 +133,7 @@
     min-height: 0;
   }
 
-  .student-workspace-v2 .story-session-main {
-    min-height: 0;
-    overflow: auto;
-  }
+  .student-workspace-v2 .story-session-main { min-height: 0; overflow: visible; }
 }
 
 @media (max-width: 900px) {
@@ -151,13 +141,13 @@
      the document scroll instead of a nested desktop-style viewport. */
   .app-container:has(> .student-workspace-v2) {
     height: auto;
-    min-height: 100dvh;
+    min-height: 0;
     overflow: visible;
   }
 
   .student-workspace.student-workspace-v2 {
     height: auto;
-    min-height: 100dvh;
+    min-height: 0;
     overflow: visible;
   }
 
