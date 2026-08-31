@@ -128,11 +128,11 @@
      without hiding a long practice result. */
   .student-workspace-v2 .story-recorder {
     min-height: 0;
-    overflow: hidden;
-    /* Reserve the token-sized session chrome explicitly. An auto row can
-       collapse when the main activity owns a percentage height, which makes
-       the title bar paint over the practice stage. */
-    grid-template-rows: var(--space-3xl) minmax(0, 1fr);
+    overflow: visible;
+    /* A multi-scene header has both the title row and the thumbnail rail.
+       Its intrinsic height must own the first track; a fixed 64px track made
+       the rail paint over the active lesson surface. */
+    grid-template-rows: auto minmax(0, 1fr);
     padding-bottom: 0;
   }
 

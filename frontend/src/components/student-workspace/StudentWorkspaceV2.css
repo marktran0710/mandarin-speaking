@@ -1,3 +1,5 @@
+@import "./StudentWorkspacePanel.css";
+
 /* Shell layout: left rail + content. The rail is a real grid column rather
    than an overlay so page content never sits underneath it. It used to
    unmount for the duration of a practice session (collapsing this to a

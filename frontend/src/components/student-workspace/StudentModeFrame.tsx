@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import StudentSidebar from "./StudentSidebar";
 import type { StudentIconName } from "../StudentIcon";
 import type { WorkspaceView } from "../../types/studentWorkspace";
@@ -31,6 +31,8 @@ interface StudentModeFrameProps {
   children: ReactNode;
   ariaLabel?: string;
   className?: string;
+  /** Resets the workspace panel when its view or activity boundary changes. */
+  panelScrollKey?: string | number;
 }
 
 /** Shared student shell for both workspace views and standalone student tools. */
@@ -44,7 +46,14 @@ export default function StudentModeFrame({
   children,
   ariaLabel,
   className = "",
+  panelScrollKey,
 }: StudentModeFrameProps) {
+  const panelRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (panelRef.current) panelRef.current.scrollTop = 0;
+  }, [panelScrollKey]);
+
   return (
     <main className={`student-workspace student-workspace-v2 ${className}`.trim()}>
       <StudentSidebar
@@ -58,6 +67,7 @@ export default function StudentModeFrame({
       />
       <section
         id="student-workspace-panel"
+        ref={panelRef}
         className="student-workspace-content student-workspace-content-v2"
         tabIndex={-1}
         aria-label={ariaLabel}

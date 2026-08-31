@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import CreateStoryPage from "../../pages/CreateStoryPage";
 import MyStoriesPage from "../../pages/MyStoriesPage";
 import { getStudentName } from "../../utils/studentSession";
@@ -26,6 +27,10 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     onSessionActiveChange,
     onLogout,
   } = props;
+  const [storyScrollBoundary, setStoryScrollBoundary] = useState(0);
+  const handleStoryPanelScrollBoundary = useCallback(() => {
+    setStoryScrollBoundary((boundary) => boundary + 1);
+  }, []);
   const selectView = (nextView: StudentWorkspaceView) => {
     if (nextView === view) return;
     onViewChange(nextView);
@@ -54,6 +59,7 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
         onRaiseHand={onRaiseHand}
         publishedTopics={storyTopics}
         onSessionActiveChange={onSessionActiveChange}
+        onPanelScrollBoundary={handleStoryPanelScrollBoundary}
       />
     );
   };
@@ -78,6 +84,7 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
       totalStars={totalStars}
       maxStars={maxStars}
       ariaLabel={activeLabel ? `${activeLabel.zh} ${activeLabel.en}` : undefined}
+      panelScrollKey={`${view}:${initialTargetKey ?? "none"}:${storyScrollBoundary}`}
     >
       {renderView()}
     </StudentModeFrame>

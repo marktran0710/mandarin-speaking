@@ -21,6 +21,8 @@ interface CreateStoryPageProps {
    * can shrink its top navbar while the student is mid-session instead of
    * stacking a full tab bar above the story's own nav panel. */
   onSessionActiveChange?: (active: boolean) => void;
+  /** Requests a reset of the enclosing workspace panel at a story boundary. */
+  onPanelScrollBoundary?: () => void;
 }
 
 
@@ -33,6 +35,7 @@ export default function CreateStoryPage({
   onRaiseHand,
   publishedTopics,
   onSessionActiveChange,
+  onPanelScrollBoundary,
 }: CreateStoryPageProps) {
   const topics = publishedTopics ?? loadPublishedTeacherTopics();
   const initialTopic =
@@ -54,24 +57,6 @@ export default function CreateStoryPage({
     return () => onSessionActiveChange?.(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTopic]);
-
-  useEffect(() => {
-    // A workspace CTA can open a story while the learner is halfway down the
-    // dashboard. Treat that as a new page-level task and place the story
-    // header at the top before the recorder mounts.
-    if (!initialTopicId || typeof window === "undefined") return;
-    const resetScroll = () => window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    resetScroll();
-    // The activity replaces a much shorter overview with a tall recorder.
-    // Run once after layout so browser scroll anchoring cannot restore the
-    // old dashboard position while the new activity settles.
-    const frame = window.requestAnimationFrame(resetScroll);
-    const timer = window.setTimeout(resetScroll, 40);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(timer);
-    };
-  }, [initialTopicId, initialImageIndex, initialStartAtQuiz]);
 
   // `selectedTopic` is only otherwise set once, when the student opens a
   // story. If a teacher republishes that same story (same id, new script)
@@ -105,9 +90,7 @@ export default function CreateStoryPage({
     // The topic list can be long, so the click often happens near its bottom.
     // A newly opened activity is a new page-level task; start the student at
     // its header instead of preserving the catalogue's scroll position.
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    }
+    onPanelScrollBoundary?.();
     setSelectedTopic(topic);
     setStartAtQuiz(Boolean(options?.startAtQuiz));
     setSelectedImage(topic.images[0]);
@@ -133,6 +116,7 @@ export default function CreateStoryPage({
   };
 
   const handleBack = () => {
+    onPanelScrollBoundary?.();
     setSelectedTopic(null);
     setStartAtQuiz(false);
     setSelectedImage("");
