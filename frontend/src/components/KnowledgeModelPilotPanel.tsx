@@ -20,6 +20,66 @@ function masteryLabel(result: KnowledgeModelResult): string {
     : "Predicted correctness";
 }
 
+function formatParameter(value: number | undefined): string {
+  return value === undefined ? "--" : value.toFixed(3);
+}
+
+const PFA_DEFAULTS = { intercept: 0, success_weight: 0.35, failure_weight: -0.55, l2: 1 };
+const BKT_DEFAULTS = { prior: 0.2, learn: 0.15, guess: 0.2, slip: 0.1 };
+
+function MethodologyCard({ model, parameters }: { model: "pfa" | "bkt"; parameters?: Record<string, number> }) {
+  if (model === "pfa") {
+    const values = { ...PFA_DEFAULTS, ...parameters };
+    return (
+      <article className="knowledge-methodology-card">
+        <div className="knowledge-methodology-card-heading">
+          <div>
+            <span className="knowledge-model-eyebrow">Performance Factors Analysis</span>
+            <h4>PFA</h4>
+          </div>
+          <span className="knowledge-methodology-tag">Count-based</span>
+        </div>
+        <p>Tracks prior correct and incorrect responses for each student × vocabulary skill.</p>
+        <code className="knowledge-formula">p(correct) = σ(β₀ + βs·successes + βf·failures){"\n"}σ(z) = 1 / (1 + e⁻ᶻ)</code>
+        <dl className="knowledge-parameter-list">
+          <div><dt>β₀ intercept</dt><dd>{formatParameter(values.intercept)}</dd></div>
+          <div><dt>βs success weight</dt><dd>{formatParameter(values.success_weight)}</dd></div>
+          <div><dt>βf failure weight</dt><dd>{formatParameter(values.failure_weight)}</dd></div>
+          <div><dt>λ L2 regularization</dt><dd>{formatParameter(values.l2)}</dd></div>
+        </dl>
+        <a className="knowledge-paper-link" href="https://doi.org/10.3233/978-1-60750-028-5-531" target="_blank" rel="noreferrer">
+          Pavlik, Cen &amp; Koedinger (2009) · Performance Factors Analysis – A New Alternative to Knowledge Tracing
+        </a>
+      </article>
+    );
+  }
+
+  const values = { ...BKT_DEFAULTS, ...parameters };
+  return (
+    <article className="knowledge-methodology-card">
+      <div className="knowledge-methodology-card-heading">
+        <div>
+          <span className="knowledge-model-eyebrow">Bayesian Knowledge Tracing</span>
+          <h4>BKT</h4>
+        </div>
+        <span className="knowledge-methodology-tag">State model</span>
+      </div>
+      <p>Maintains a latent mastery probability for each student × vocabulary skill.</p>
+      <code className="knowledge-formula">p(correct) = L·(1 − slip) + (1 − L)·guess{"\n"}Lposterior(correct) = L·(1 − slip) / p(correct){"\n"}Lposterior(incorrect) = L·slip / (1 − p(correct)){"\n"}Lnext = Lposterior + (1 − Lposterior)·learn</code>
+      <dl className="knowledge-parameter-list">
+        <div><dt>Prior mastery</dt><dd>{formatParameter(values.prior)}</dd></div>
+        <div><dt>Learn transition</dt><dd>{formatParameter(values.learn)}</dd></div>
+        <div><dt>Guess</dt><dd>{formatParameter(values.guess)}</dd></div>
+        <div><dt>Slip</dt><dd>{formatParameter(values.slip)}</dd></div>
+      </dl>
+      <p className="knowledge-methodology-note">After each response, the posterior uses Bayes’ rule; a correct answer uses 1 − slip, and an incorrect answer uses slip.</p>
+      <a className="knowledge-paper-link" href="https://doi.org/10.1007/BF01099821" target="_blank" rel="noreferrer">
+        Corbett &amp; Anderson (1994) · Knowledge Tracing: Modeling the Acquisition of Procedural Knowledge
+      </a>
+    </article>
+  );
+}
+
 function ModelCard({ result }: { result: KnowledgeModelResult }) {
   const evaluation = result.evaluation;
   return (
@@ -80,6 +140,14 @@ export default function KnowledgeModelPilotPanel() {
         <span className="knowledge-provisional-badge">Admin-only · provisional</span>
       </div>
       <p className="knowledge-model-intro">Sequential predictions from vocabulary quiz history. This pilot does not change scoring, weak words, gating, or student feedback.</p>
+      <details className="knowledge-methodology" open>
+        <summary>Papers &amp; formulas used in this pilot</summary>
+        <p className="knowledge-methodology-intro">The formulas below mirror <code>backend/analytics/knowledge_tracing.py</code>. Parameters are fitted or defaulted for this comparison run; they are not a permanent production policy. Evaluation uses a chronological 50/50 split: the first half establishes the model, then each later response is predicted before the model updates.</p>
+        <div className="knowledge-methodology-grid">
+          <MethodologyCard model="pfa" parameters={data?.model === "compare" ? data.models.pfa.parameters : undefined} />
+          <MethodologyCard model="bkt" parameters={data?.model === "compare" ? data.models.bkt.parameters : undefined} />
+        </div>
+      </details>
       {loading && <p className="teacher-empty-panel">Calculating model comparison…</p>}
       {!loading && error && <p className="teacher-empty-panel">{error}</p>}
       {!loading && !error && data?.model === "compare" && (

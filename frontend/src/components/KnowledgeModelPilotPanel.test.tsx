@@ -54,6 +54,10 @@ describe("KnowledgeModelPilotPanel", () => {
     expect(screen.getByText("BKT", { selector: "h3" })).toBeInTheDocument();
     expect(screen.getByText("Current recommendation:")).toBeInTheDocument();
     expect(screen.getByText("Ava")).toBeInTheDocument();
+    expect(screen.getByText("Papers & formulas used in this pilot")).toBeInTheDocument();
+    expect(screen.getByText(/p\(correct\) = σ\(β₀ \+ βs·successes/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Pavlik, Cen & Koedinger \(2009\)/ })).toHaveAttribute("href", "https://doi.org/10.3233/978-1-60750-028-5-531");
+    expect(screen.getByRole("link", { name: /Corbett & Anderson \(1994\)/ })).toHaveAttribute("href", "https://doi.org/10.1007/BF01099821");
   });
 
   it("shows an error state when the admin analytics request fails", async () => {
