@@ -17,17 +17,35 @@
   gap: var(--space-lg);
 }
 
-/* A persistent row above the question itself — Back (if given) and, in
-   Free mode only, Finish — so "I want to stop" is always on screen and
-   never tucked away behind an answer selection. */
+/* A persistent status bar above the question itself — Back, progress/score,
+   timer, and (in Free mode) Finish — keeps the run context and exit action
+   visible without competing with the question or answer panels. */
 .vocab-quiz-topbar {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
   width: 100%;
   margin-bottom: 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  box-sizing: border-box;
 }
 .vocab-quiz-topbar:empty { display: none; }
+
+.vocab-quiz-status-progress {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.vocab-quiz-status-progress .vocab-quiz-progress {
+  margin: 0;
+  text-align: left;
+}
+.vocab-quiz-status-progress .vq-track {
+  width: 100%;
+  margin: var(--space-2xs) 0 0;
+}
 
 .btn-vocab-quiz-back {
   display: inline-flex;
@@ -52,6 +70,25 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-2xs);
+}
+
+.vocab-quiz-content {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  gap: var(--space-lg);
+  width: 100%;
+}
+
+.vocab-quiz-question-panel,
+.vocab-quiz-answer-panel {
+  min-width: 0;
+}
+
+.vocab-quiz-answer-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
 }
 
 .vocab-quiz-word {
@@ -230,8 +267,8 @@
 }
 
 .vocab-quiz-option {
-  border: 1.5px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-card);
   color: var(--clay-ink);
   font-size: 14.5px;
@@ -251,13 +288,21 @@
    question 1 to question N. */
 .vocab-quiz-question-screen .vocab-quiz-header {
   width: 100%;
+  align-items: stretch;
+  text-align: left;
 }
 .vocab-quiz-question-screen .vocab-quiz-word {
-  min-height: 88px;
+  min-height: 144px;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
 }
 .vocab-quiz-question-screen .vocab-quiz-options {
   /* Two rows of options (the 4-option worst case), held even when a small
@@ -277,6 +322,32 @@
      never jump when it lands. */
   min-height: 68px;
   align-items: flex-start;
+  justify-content: flex-start;
+}
+
+@media (min-width: 901px) {
+  .vocab-quiz-content {
+    grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .vocab-quiz-topbar {
+    flex-wrap: wrap;
+  }
+
+  .vocab-quiz-status-progress {
+    flex-basis: 100%;
+    order: 3;
+  }
+
+  .vocab-quiz-timer {
+    order: 4;
+  }
+
+  .btn-vocab-quiz-finish {
+    order: 5;
+  }
 }
 
 /* Pinyin answers. This used to force --font-mono, on the rationale that only
@@ -339,16 +410,13 @@
   border: 2px solid var(--jade-deep);
   background: var(--jade);
   color: #ffffff;
-  box-shadow: 0 4px 0 var(--jade-deep);
   transition: transform 0.1s, box-shadow 0.1s;
 }
 .btn-vocab-quiz-next:hover {
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--jade-deep);
 }
 .btn-vocab-quiz-next:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--jade-deep);
 }
 
 /* Quiet, secondary action — only Free mode's original round offers this

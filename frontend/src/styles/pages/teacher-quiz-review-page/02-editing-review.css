@@ -252,7 +252,7 @@
 .tqr-decision-tag {
   display: inline-flex;
   align-items: center;
-  border-radius: 5px;
+  border-radius: var(--clay-radius-sm);
   font-size: 10px;
   font-weight: 850;
   line-height: 1;
@@ -427,5 +427,4 @@
   background: var(--diff-del-bg);
   color: var(--diff-del-text);
 }
-
 

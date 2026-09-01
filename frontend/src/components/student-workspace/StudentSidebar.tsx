@@ -1,7 +1,7 @@
 import { useState } from "react";
 import StudentIcon, { type StudentIconName } from "../StudentIcon";
 import { BiLabel, type BiLabelProps } from "../BiLabel";
-import ToneMark from "../ToneMark";
+import ToneMark from "../tone/ToneMark";
 import useColorMode from "../../hooks/useColorMode";
 import type { WorkspaceView } from "../../types/studentWorkspace";
 import "./StudentSidebar.css";

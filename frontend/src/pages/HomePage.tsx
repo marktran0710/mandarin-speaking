@@ -2,7 +2,7 @@ import { useState, type CSSProperties } from "react";
 import "./HomePage.css";
 import { Page } from "../types/page";
 import { BiLabel, BiText } from "../components/BiLabel";
-import ToneStroke from "../components/ToneStroke";
+import ToneStroke from "../components/tone/ToneStroke";
 import StudentIcon from "../components/StudentIcon";
 import "../components/BiLabel.css";
 

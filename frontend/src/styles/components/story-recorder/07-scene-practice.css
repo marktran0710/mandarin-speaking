@@ -125,9 +125,9 @@
   flex-direction: column;
   gap: 4px;
   background: var(--lavender-soft);
-  border: 1.5px solid var(--lavender);
+  border: 1px solid var(--lavender);
   border-radius: var(--clay-radius-md);
-  padding: 10px 14px;
+  padding: 12px 16px;
   margin-top: 10px;
 }
 .practice-phrases-label {
@@ -146,7 +146,7 @@
 }
 .practice-phrase-text {
   font-weight: 700;
-  font-size: 18px;
+  font-size: 19px;
   color: var(--seal-deep);
 }
 .practice-phrase-translation {
@@ -204,20 +204,23 @@
 .scene-vocab-table {
   display: grid;
   gap: 4px;
-  border: 1.5px solid var(--gold);
+  max-height: 224px;
+  overflow-y: auto;
+  border: 1px solid var(--gold);
   border-radius: var(--clay-radius-md);
   background: var(--gold-soft);
   padding: 6px;
+  padding-right: 2px;
 }
 
 .scene-vocab-row {
   display: grid;
   /* minmax(0, …) so long cells wrap inside their track instead of
      inflating the row's min-content width past narrow viewports. */
-  grid-template-columns: auto minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 0.7fr) minmax(0, 1.4fr);
+  grid-template-columns: minmax(20px, auto) minmax(0, 1.05fr) minmax(0, 0.95fr) minmax(0, 0.55fr) minmax(0, 1.3fr);
   gap: 10px;
-  align-items: baseline;
-  padding: 5px 8px;
+  align-items: center;
+  padding: 7px 10px;
   border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-card);
   transition: background 0.2s, border-color 0.2s;
@@ -226,7 +229,7 @@
 /* One extra trailing column for the per-word practice mic toggle, used only
    on the scene vocabulary table shown during active recording practice. */
 .scene-vocab-row-practice {
-  grid-template-columns: auto minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(0, 0.7fr) minmax(0, 1.4fr) auto;
+  grid-template-columns: minmax(20px, auto) minmax(0, 1.05fr) minmax(0, 0.95fr) minmax(0, 0.55fr) minmax(0, 1.3fr) minmax(26px, 30px);
 }
 
 .scene-vocab-status {
@@ -244,11 +247,12 @@
 
 .scene-vocab-hanzi {
   font-weight: 700;
+  font-size: 15px;
   color: var(--gold-deep);
 }
 
 .scene-vocab-pinyin {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 0.85em;
   color: var(--clay-muted);
 }
@@ -333,7 +337,6 @@
   cursor: pointer;
   transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
   letter-spacing: 0.02em;
-  box-shadow: 0 5px 0 var(--seal-deep);
   /* BiLabel's default sublabel colors are dark-on-light — unreadable on
      this accent fill. */
   --bi-pinyin-color: var(--clay-on-seal);
@@ -341,11 +344,9 @@
 }
 .btn-practice-record:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 6px 0 var(--seal-deep);
 }
 .btn-practice-record:active:not(:disabled) {
   transform: translateY(4px);
-  box-shadow: 0 1px 0 var(--seal-deep);
 }
 .btn-practice-record.is-recording {
   background: var(--clay-error);
@@ -429,4 +430,3 @@
   color: var(--clay-ink);
   background: var(--clay-surface-card);
 }
-

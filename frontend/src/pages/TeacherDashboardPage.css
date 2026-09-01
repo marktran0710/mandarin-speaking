@@ -105,7 +105,7 @@
 .tdash-ghost-btn {
   padding: 6px 12px;
   border: 1px solid var(--clay-hairline);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: transparent;
   font: inherit;
   font-size: 0.82rem;
@@ -213,7 +213,7 @@
   align-self: flex-start;
   padding: 6px 14px 6px 10px;
   border: 1px solid var(--clay-hairline);
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-card);
   font: inherit;
   font-size: 0.85rem;

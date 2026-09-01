@@ -1,6 +1,6 @@
 import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import StudentPageHeader from "../components/StudentPageHeader";
-import StudentAudioActionPanel from "../components/StudentAudioActionPanel";
+import StudentAudioActionPanel from "../components/student/StudentAudioActionPanel";
 import { BiLabel } from "../components/BiLabel";
 import { convertBlobToWav } from "../utils/audio";
 import { ensureWavBlob, formatBackendError, normalizeWavFileName, readErrorResponse } from "./voice-test/helpers";

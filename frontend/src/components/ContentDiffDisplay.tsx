@@ -1,4 +1,4 @@
-import type { ContentDiffSegment } from "./StoryRecorder";
+import type { ContentDiffSegment } from "./story-recorder/StoryRecorder";
 import StudentIcon from "./StudentIcon";
 import { BiLabel } from "./BiLabel";
 

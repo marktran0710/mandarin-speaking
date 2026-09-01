@@ -17,6 +17,7 @@ import {
 import {
   groupTopicsByLesson,
   isLessonGroupUnlocked,
+  isStoryFinished,
   isStoryUnlockedInLesson,
   lessonCompletion,
   lessonTitle,
@@ -344,6 +345,113 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
   // stories — no separate "screen 2" navigation. ─────────────────────────
   const numberedGroups = groups.filter((group) => group.lessonNumber !== null);
   const otherGroup = groups.find((group) => group.lessonNumber === null) ?? null;
+  const completedStoryCount = groups.reduce(
+    (count, group) => count + lessonCompletion(group, submittedIds).done,
+    0,
+  );
+  const totalStoryCount = groups.reduce((count, group) => count + group.topics.length, 0);
+  const continueGroup =
+    groups[nowIndex] ?? numberedGroups[0] ?? otherGroup ?? null;
+  const continueTopic =
+    continueGroup?.topics.find((topic) => !isStoryFinished(topic, submittedIds)) ??
+    continueGroup?.topics[0] ??
+    null;
+  const isContinueFallback = nowIndex < 0;
+
+  const renderDashboard = () => {
+    if (!continueTopic || !continueGroup) return null;
+
+    const lessonNumber = continueGroup.lessonNumber;
+    const continueOptions = topicHasQuiz(continueTopic)
+      ? { startAtQuiz: true }
+      : undefined;
+
+    const openContinueTopic = () => {
+      if (lessonNumber !== null) setOpenLesson(lessonNumber);
+      onTopicSelect?.(continueTopic, continueOptions);
+    };
+
+    return (
+      <section className="ts-dashboard" aria-labelledby="ts-dashboard-title">
+        <div className="ts-dash-intro">
+          <h1 id="ts-dashboard-title" className="ts-dash-greeting">
+            <span lang="zh-Hant">歡迎回來，</span>{" "}
+            <span className="ts-dash-name">{getStudentName()}</span>
+          </h1>
+          <p className="ts-dash-subtitle">
+            <BiText zh="從上次停下的地方繼續" en="Pick up right where you left off" />
+          </p>
+        </div>
+
+        <div className="ts-dash-stat-grid" aria-label="Learning progress">
+          <article className="ts-dash-stat-card">
+            <span className="ts-dash-icon-chip ts-dash-icon-chip-seal" aria-hidden="true">
+              <StudentIcon name="check-circle" size={24} />
+            </span>
+            <span className="ts-dash-stat-copy">
+              <strong>{`${completedStoryCount}/${totalStoryCount}`}</strong>
+              <BiLabel zh="故事完成" en="Stories complete" align="left" />
+            </span>
+          </article>
+          <article className="ts-dash-stat-card">
+            <span className="ts-dash-icon-chip ts-dash-icon-chip-jade" aria-hidden="true">
+              <StudentIcon name="chart" size={24} />
+            </span>
+            <span className="ts-dash-stat-copy">
+              <strong>{numberedGroups.length}</strong>
+              <BiLabel zh="可學課數" en="Lessons available" align="left" />
+            </span>
+          </article>
+        </div>
+
+        <article className="ts-dash-continue-card">
+          <div className="ts-dash-continue-copy">
+            <span className="ts-dash-kicker">
+              <BiLabel
+                zh={isContinueFallback ? "從第一課開始" : `第${lessonNumber}課 · 進行中`}
+                en={isContinueFallback ? "Start here" : `Lesson ${lessonNumber} · In progress`}
+              />
+            </span>
+            <h2>{continueTopic.name}</h2>
+            <p>{continueTopic.description || "繼續你的故事練習"}</p>
+          </div>
+          <button type="button" className="ts-dash-continue-action" onClick={openContinueTopic}>
+            <BiLabel zh="繼續學習" en="Continue story" />
+            <StudentIcon name="arrow-right" size={17} aria-hidden="true" />
+          </button>
+        </article>
+
+        <div className="ts-dash-explainer" aria-labelledby="ts-dash-steps-title">
+          <h2 id="ts-dash-steps-title">
+            <BiLabel zh="三步開始" en="Three steps" align="left" />
+          </h2>
+          <div className="ts-dash-step-grid">
+            <article className="ts-dash-step-card">
+              <span className="ts-dash-icon-chip ts-dash-icon-chip-tone1" aria-hidden="true">
+                <StudentIcon name="image" size={22} />
+              </span>
+              <h3><BiLabel zh="看圖片" en="Look" align="left" /></h3>
+              <p><BiText zh="先觀察畫面，找到故事線索。" en="Notice the scene and find the story clues." /></p>
+            </article>
+            <article className="ts-dash-step-card">
+              <span className="ts-dash-icon-chip ts-dash-icon-chip-jade" aria-hidden="true">
+                <StudentIcon name="microphone" size={22} />
+              </span>
+              <h3><BiLabel zh="說故事" en="Speak" align="left" /></h3>
+              <p><BiText zh="用自己的話說出你看到的內容。" en="Tell what you see in your own words." /></p>
+            </article>
+            <article className="ts-dash-step-card">
+              <span className="ts-dash-icon-chip ts-dash-icon-chip-gold" aria-hidden="true">
+                <StudentIcon name="idea" size={22} />
+              </span>
+              <h3><BiLabel zh="看回饋" en="Improve" align="left" /></h3>
+              <p><BiText zh="看看回饋，知道下一步怎麼進步。" en="Use your feedback to choose the next step." /></p>
+            </article>
+          </div>
+        </div>
+      </section>
+    );
+  };
 
   // Lessons threaded on the same tone-contour journey path used inside a
   // practice session, instead of a separate hand-rolled spine — one visual
@@ -430,6 +538,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
   return (
     <div className="topic-selector">
       <div className="ts-container">
+      {renderDashboard()}
       <header className="ts-toc-head">
         <div>
           <h1 className="ts-toc-title">

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { resolveImageUrl } from "../../utils/teacherStories";
 import { splitScriptIntoChunks } from "../../utils/scriptAlignment";
 import { STORY_FRAME_GUIDES } from "./StoryBuilderSection.helpers";
@@ -51,15 +51,65 @@ function StoryFrameFields(props) {
 }
 
 export default function StoryBuilderFrameEditor(props) {
-  const { draft, validationErrors, onPasteImage } = props;
+  const { draft, editingStoryId, validationAttemptGeneration, validationErrors, onPasteImage } = props;
   const level = draft.activeLevel;
-  return <div className="teacher-frame-editor">{draft.imageUrls.easy.map((_, index) => {
-    const frameError = validationErrors.frames?.[index];
-    const isExampleFrame = false;
-    const imageUrl = draft.imageUrls[level][index];
-    return <div className={`teacher-frame-card ${frameError ? "has-error" : ""}${isExampleFrame ? " is-example-frame" : ""}`} key={index}>
-      <FramePreview draft={draft} index={index} imageUrl={imageUrl} onPaste={(event) => onPasteImage(index, event)} />
-      <StoryFrameFields {...props} index={index} level={level} frameError={frameError} isExampleFrame={isExampleFrame} />
-    </div>;
-  })}</div>;
+  const frameCount = draft.imageUrls.easy.length;
+  const [openFrameIndex, setOpenFrameIndex] = useState(0);
+  const frameErrors = validationErrors.frames;
+
+  useEffect(() => {
+    setOpenFrameIndex((current) => Math.min(current, Math.max(frameCount - 1, 0)));
+  }, [frameCount]);
+
+  useEffect(() => {
+    setOpenFrameIndex(0);
+  }, [editingStoryId]);
+
+  useEffect(() => {
+    const firstInvalidFrame = Object.keys(frameErrors ?? {}).find((index) => Boolean(frameErrors?.[index]));
+    if (firstInvalidFrame !== undefined) setOpenFrameIndex(Number(firstInvalidFrame));
+  }, [validationAttemptGeneration]);
+
+  if (frameCount === 0) return null;
+
+  const selectFrame = (index) => setOpenFrameIndex(index);
+  const completionForFrame = (index) => [
+    Boolean(draft.imageUrls[level][index]?.trim() || draft.prompts[level][index]?.trim()),
+    Boolean(draft.suggestedAnswers[level][index]?.trim()),
+  ];
+  const openFrameError = frameErrors?.[openFrameIndex];
+
+  return <section className="teacher-frame-editor" aria-labelledby="teacher-frame-editor-title">
+    <div className="teacher-frame-editor-heading">
+      <div>
+        <h3 id="teacher-frame-editor-title">Scenes</h3>
+        <p>Build one scene at a time.</p>
+      </div>
+      <span>Scene {openFrameIndex + 1} of {frameCount}</span>
+    </div>
+    <div className="teacher-frame-editor-layout">
+      <div className="teacher-frame-rail" role="tablist" aria-label="Story scenes">
+        {draft.imageUrls.easy.map((_, index) => {
+          const completion = completionForFrame(index);
+          const preparedCount = completion.filter(Boolean).length;
+          const isFilled = preparedCount > 0;
+          return <button key={index} type="button" role="tab"
+          id={`teacher-scene-tab-${index}`} aria-controls={`teacher-scene-panel-${index}`} aria-selected={openFrameIndex === index}
+          aria-label={`Scene ${index + 1}: ${preparedCount} of 2 items prepared`}
+          className={`${openFrameIndex === index ? "is-active" : ""}${isFilled ? " is-filled" : ""}${frameErrors?.[index] ? " has-error" : ""}`}
+          onClick={() => selectFrame(index)}><span>{index + 1}</span><span className="teacher-frame-rail-progress" aria-hidden="true">{completion.map((isComplete, partIndex) => <i className={isComplete ? "is-complete" : ""} key={partIndex} />)}</span></button>;
+        })}
+      </div>
+      <div className="teacher-frame-stage" id={`teacher-scene-panel-${openFrameIndex}`} role="tabpanel" aria-labelledby={`teacher-scene-tab-${openFrameIndex}`}>
+          <div className={`teacher-frame-card ${openFrameError ? "has-error" : ""}`}>
+            <FramePreview draft={draft} index={openFrameIndex} imageUrl={draft.imageUrls[level][openFrameIndex]} onPaste={(event) => onPasteImage(openFrameIndex, event)} />
+            <StoryFrameFields {...props} index={openFrameIndex} level={level} frameError={openFrameError} isExampleFrame={false} />
+          </div>
+          <nav className="teacher-frame-navigation" aria-label="Scene navigation">
+          <button type="button" onClick={() => selectFrame(openFrameIndex - 1)} disabled={openFrameIndex === 0}>Previous scene</button>
+          <button type="button" onClick={() => selectFrame(openFrameIndex + 1)} disabled={openFrameIndex === frameCount - 1}>Next scene</button>
+          </nav>
+      </div>
+    </div>
+  </section>;
 }

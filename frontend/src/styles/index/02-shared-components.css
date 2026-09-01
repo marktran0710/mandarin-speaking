@@ -24,31 +24,26 @@
 .tone-card {
   background: var(--seal-soft);
   border-color: var(--seal);
-  border-left: 3px solid var(--seal);
 }
 
 .accuracy-card {
   background: var(--jade-soft);
   border-color: var(--jade);
-  border-left: 3px solid var(--jade);
 }
 
 .fluency-card {
   background: var(--gold-soft);
   border-color: var(--gold);
-  border-left: 3px solid var(--gold);
 }
 
 .rate-card {
   background: var(--jade-soft);
   border-color: var(--jade-deep);
-  border-left: 3px solid var(--jade-deep);
 }
 
 .formants-card {
   background: var(--clay-surface-card);
   border-color: var(--clay-hairline);
-  border-left: 3px solid var(--clay-muted-soft);
 }
 
 .metric-label {
@@ -97,18 +92,6 @@
   border-radius: var(--clay-radius-pill);
   font-size: 13px;
   font-weight: 700;
-}
-
-.score-card {
-  border-left: 3px solid var(--seal);
-}
-
-.feedback-card {
-  border-left: 3px solid var(--jade);
-}
-
-.ranking-card {
-  border-left: 3px solid var(--gold);
 }
 
 .metric-subtext {
@@ -265,7 +248,6 @@ h2 {
 .btn-primary {
   background: var(--seal);
   border-color: var(--seal-deep);
-  box-shadow: 0 4px 0 var(--seal-deep);
   color: var(--clay-on-seal);
   font-weight: 650;
   /* BiLabel's default pinyin/en colors are picked for light surfaces —
@@ -276,17 +258,14 @@ h2 {
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--seal-deep);
 }
 .btn-primary:active:not(:disabled) {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--seal-deep);
 }
 
 .btn-danger {
   background: var(--clay-error);
   border-color: var(--clay-error-deep);
-  box-shadow: 0 4px 0 var(--clay-error-deep);
   color: var(--clay-on-accent);
   font-weight: 650;
   /* BiLabel's .bi-en/.bi-pinyin default to --clay-muted (dark gray) —
@@ -297,18 +276,15 @@ h2 {
 
 .btn-danger:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--clay-error-deep);
 }
 .btn-danger:active:not(:disabled) {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--clay-error-deep);
 }
 
 .btn-secondary {
   /* --jade only gets bold white text to ~3.6:1 — --jade-deep clears 4.5:1. */
   background: var(--jade-deep);
   border-color: var(--jade-deep);
-  box-shadow: 0 4px 0 var(--jade-deep);
   color: var(--clay-on-accent);
   font-weight: 650;
   --bi-pinyin-color: #ffffff;
@@ -317,11 +293,9 @@ h2 {
 
 .btn-secondary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--jade-deep);
 }
 .btn-secondary:active:not(:disabled) {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--jade-deep);
 }
 
 .btn-small {
@@ -448,7 +422,6 @@ h2 {
   padding: 12px 16px;
   border-radius: var(--clay-radius-md);
   margin-bottom: 20px;
-  border-left: 3px solid var(--clay-error);
 }
 
 .transcriptions {
@@ -466,7 +439,6 @@ h2 {
   padding: 16px;
   border-radius: var(--clay-radius-md);
   margin-bottom: 12px;
-  border-left: 3px solid var(--seal);
   animation: slideIn 0.3s ease;
 }
 

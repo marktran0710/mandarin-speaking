@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { BiLabel, BiText } from "../components/BiLabel";
-import ToneMark from "../components/ToneMark";
+import ToneMark from "../components/tone/ToneMark";
 import "../components/BiLabel.css";
 import "./LoginPage.css";
 import "./StudentLoginPage.css";

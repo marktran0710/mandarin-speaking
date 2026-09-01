@@ -75,7 +75,6 @@
   background: var(--seal-soft);
   /* Gold fills always take dark ink, never white (--clay-on-seal rule). */
   color: var(--clay-on-seal);
-  box-shadow: inset 4px 0 var(--seal), var(--shadow-sm);
   font-weight: 800;
 }
 
@@ -87,7 +86,17 @@
 .student-sidebar-item-icon {
   display: grid;
   place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--clay-radius-md);
+  background: transparent;
   color: var(--seal-deep);
+}
+
+.student-sidebar-item.active .student-sidebar-item-icon {
+  border-radius: var(--clay-radius-md);
+  background: var(--seal);
+  color: var(--clay-on-seal);
 }
 
 .student-sidebar-item-copy { min-width: 0; }

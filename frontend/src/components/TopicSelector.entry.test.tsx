@@ -35,11 +35,12 @@ vi.mock("../utils/lessonGroups", () => ({
   groupTopicsByLesson: (topics: Topic[]) => [{ lessonNumber: 1, topics }],
   isLessonGroupUnlocked: () => true,
   isStoryUnlockedInLesson: () => true,
+  isStoryFinished: () => false,
   lessonCompletion: (group: { topics: Topic[] }) => ({ done: 0, total: group.topics.length }),
   lessonTitle: () => ({ zh: "Lesson", en: "Lesson" }),
 }));
 
-vi.mock("./JourneyPath", () => ({
+vi.mock("./journey/JourneyPath", () => ({
   default: ({ stops }: { stops: Array<{ key: string | number; label: ReactNode; expanded?: ReactNode; onClick?: () => void; disabled?: boolean; ariaExpanded?: boolean }> }) => (
     <div>
       {stops.map((stop) => (

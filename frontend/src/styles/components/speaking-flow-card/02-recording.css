@@ -83,9 +83,15 @@
 .sfc-progress-snapshot-heading strong { color: var(--clay-ink); font-size: 0.82rem; }
 .sfc-progress-snapshot-heading span { color: var(--clay-muted); font-size: 0.67rem; }
 .sfc-progress-snapshot-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
-.sfc-progress-snapshot-grid div { display: grid; gap: 2px; min-width: 0; padding: 8px 7px; border-radius: var(--clay-radius-sm); background: var(--clay-surface-card); text-align: center; }
+.snap-cell { display: grid; gap: 2px; min-width: 0; padding: 8px 7px; border-radius: var(--clay-radius-sm); background: var(--clay-surface-card); text-align: center; }
 .sfc-progress-snapshot-grid strong { color: var(--clay-ink); font-size: 1rem; }
 .sfc-progress-snapshot-grid span { color: var(--clay-muted); font-size: 0.64rem; line-height: 1.2; }
+.snap-cell-1 { background: var(--gold-soft); }
+.snap-cell-1 strong, .snap-cell-1 span { color: var(--gold-deep); }
+.snap-cell-2 { background: var(--jade-soft); }
+.snap-cell-2 strong, .snap-cell-2 span { color: var(--jade-deep); }
+.snap-cell-3 { background: var(--lavender-soft); }
+.snap-cell-3 strong, .snap-cell-3 span { color: var(--lavender-deep); }
 .sfc-left-feedback {
   width: 100%;
   min-width: 0;
@@ -333,48 +339,47 @@
   min-width: 0;
   padding: 7px 9px;
   border: 1px solid var(--clay-hairline);
-  border-left: 3px solid var(--clay-hairline);
   border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-card);
   color: var(--clay-body);
 }
 .sfc-feedback-modal-body .pb-legend-item.is-pass {
-  border-left-color: var(--jade);
+  border-color: var(--jade);
 }
 .sfc-feedback-modal-body .pb-legend-item.is-pass .pb-mark {
   color: var(--jade-deep);
 }
 .sfc-feedback-modal-body .pb-legend-item.is-uncertain {
-  border-left-color: var(--tone1);
+  border-color: var(--tone1);
 }
 .sfc-feedback-modal-body .pb-legend-item.is-uncertain .pb-mark {
   color: var(--tone1-deep);
 }
 .sfc-feedback-modal-body .pb-legend-item.is-fail {
-  border-left-color: var(--clay-error);
+  border-color: var(--clay-error);
 }
 .sfc-feedback-modal-body .pb-legend-item.is-fail .pb-mark {
   color: var(--clay-error-deep);
 }
 .sfc-feedback-modal-body .pb-legend-item.is-retry {
-  border-left-color: var(--gold);
+  border-color: var(--gold);
 }
 .sfc-feedback-modal-body .pb-legend-item.is-retry .pb-mark {
   color: var(--gold-deep);
 }
 .sfc-feedback-modal-body .pb-phrase-group {
-  border-left: 4px solid var(--clay-hairline);
+  border: 1px solid var(--clay-hairline);
   background: var(--clay-surface-card);
 }
 .sfc-feedback-modal-body .pb-phrase-group.has-fail {
-  border-left-color: var(--clay-error);
+  border-color: var(--clay-error);
 }
 .sfc-feedback-modal .sfc-feedback-modal-body {
   --pb-grid-columns: minmax(6rem, 1.15fr) minmax(5rem, 0.95fr) minmax(0, 1.25fr) 1rem;
 }
 .sfc-feedback-modal .sfc-feedback-modal-body .pb-row {
   grid-template-columns: var(--pb-grid-columns);
-  border-left: 3px solid transparent;
+  border: 1px solid transparent;
 }
 .sfc-feedback-modal .sfc-feedback-modal-body .pb-char-cell,
 .sfc-feedback-modal .sfc-feedback-modal-body .pb-tone-cell,
@@ -382,23 +387,23 @@
   min-width: 0;
 }
 .sfc-feedback-modal-body .pb-row.pb-row-pass {
-  border-left-color: var(--jade);
+  border-color: var(--jade);
   background: var(--clay-surface-card);
 }
 .sfc-feedback-modal-body .pb-row.pb-row-uncertain {
-  border-left-color: var(--tone1);
+  border-color: var(--tone1);
   background: var(--clay-surface-card);
 }
 .sfc-feedback-modal-body .pb-row.pb-row-fail {
-  border-left: 4px solid var(--clay-error);
+  border: 1px solid var(--clay-error);
   background: color-mix(in srgb, var(--clay-error-soft) 20%, var(--clay-surface-card));
 }
 .sfc-feedback-modal-body .pb-row.pb-row-retry {
-  border-left-color: var(--gold);
+  border-color: var(--gold);
   background: var(--clay-surface-card);
 }
 .sfc-feedback-modal-body .pb-row.pb-row-not-measured {
-  border-left-color: var(--clay-hairline);
+  border-color: var(--clay-hairline);
   background: var(--clay-surface-card);
 }
 .sfc-feedback-modal-body .pb-detail {

@@ -76,6 +76,7 @@ export default function StoryBuilderSection({
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [validationErrors, setValidationErrors] =
     useState<CustomStoryValidationErrors>({});
+  const [validationAttemptGeneration, setValidationAttemptGeneration] = useState(0);
   const [customStoryNotice, setCustomStoryNotice] = useState("");
   const [importError, setImportError] = useState("");
   const [importNotice, setImportNotice] = useState("");
@@ -239,6 +240,7 @@ export default function StoryBuilderSection({
 
   const handleSaveCustomStory = async () => {
     const errors = validateCustomStoryDraft(customDraft, customStories, editingStoryId);
+    setValidationAttemptGeneration((current) => current + 1);
     if (hasCustomStoryErrors(errors)) {
       setValidationErrors(errors);
       setCustomStoryNotice("");
@@ -443,6 +445,7 @@ export default function StoryBuilderSection({
         <StoryBuilderForm
           draft={customDraft}
           validationErrors={validationErrors}
+          validationAttemptGeneration={validationAttemptGeneration}
           customStoryNotice={customStoryNotice}
           savedReviewBanner={savedReviewBanner}
           preparedFrameCount={preparedFrameCount}

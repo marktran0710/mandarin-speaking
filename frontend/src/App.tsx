@@ -9,7 +9,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import StudentLoginPage from "./pages/StudentLoginPage";
 import { BiLabel } from "./components/BiLabel";
 import Navigation from "./components/Navigation";
-import AppJourneyBubble from "./components/AppJourneyBubble";
+import AppJourneyBubble from "./components/journey/AppJourneyBubble";
 import {
   getStudentName,
   getStudentId,

@@ -1,4 +1,4 @@
-import PraatTimeline from "../../components/PraatTimeline";
+import PraatTimeline from "../../components/pitch/PraatTimeline";
 import { BiLabel, BiText } from "../../components/BiLabel";
 import VoiceFeedbackReliabilityNotice from "../../components/VoiceFeedbackReliabilityNotice";
 import { assessVoiceFeedbackReliability } from "../../utils/voiceFeedbackReliability";

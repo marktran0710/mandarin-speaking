@@ -82,9 +82,9 @@
 
 .vocab-quiz-mode-card.is-earned {
   border-color: color-mix(in srgb, var(--jade-deep) 52%, var(--clay-hairline));
-  box-shadow: inset 3px 0 var(--jade), var(--shadow-sm);
+  box-shadow: var(--shadow-sm);
 }
-.vocab-quiz-mode-card.is-earned:hover { box-shadow: inset 3px 0 var(--jade), var(--shadow-md); }
+.vocab-quiz-mode-card.is-earned:hover { box-shadow: var(--shadow-md); }
 .vocab-quiz-tier-done {
   display: inline-flex;
   margin-left: var(--space-2xs);
@@ -358,16 +358,13 @@
   border: 2px solid var(--gold-deep);
   background: var(--gold);
   color: var(--clay-on-seal);
-  box-shadow: 0 4px 0 var(--gold-deep);
   transition: transform 0.1s, box-shadow 0.1s;
 }
 .btn-vocab-quiz-retry:hover {
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--gold-deep);
 }
 .btn-vocab-quiz-retry:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--gold-deep);
 }
 
 /* Star / near-miss verdict line under the summary score. */
@@ -390,16 +387,13 @@
   border: 2px solid var(--gold-deep);
   background: var(--gold);
   color: var(--clay-on-seal);
-  box-shadow: 0 4px 0 var(--gold-deep);
   transition: transform 0.1s, box-shadow 0.1s;
 }
 .btn-vocab-quiz-try-again:hover {
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--gold-deep);
 }
 .btn-vocab-quiz-try-again:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--gold-deep);
 }
 
 /* Quiet exit for a summary that can't continue to practice yet — the same
@@ -429,16 +423,13 @@
   border: 2px solid var(--jade-deep);
   background: var(--jade);
   color: #fff;
-  box-shadow: 0 4px 0 var(--jade-deep);
   transition: transform 0.1s, box-shadow 0.1s;
 }
 .btn-vocab-quiz-challenge:hover {
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--jade-deep);
 }
 .btn-vocab-quiz-challenge:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--jade-deep);
 }
 
 /* ── Listening / reverse question prompts ── */
@@ -454,16 +445,13 @@
   cursor: pointer;
   border: 2.5px solid var(--jade-deep);
   background: var(--jade);
-  box-shadow: 0 4px 0 var(--jade-deep);
   transition: transform 0.1s, box-shadow 0.1s;
 }
 .btn-vocab-quiz-play:hover {
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--jade-deep);
 }
 .btn-vocab-quiz-play:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--jade-deep);
 }
 
 /* ── Review screen ── */

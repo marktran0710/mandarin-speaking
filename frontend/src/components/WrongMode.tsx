@@ -1,5 +1,5 @@
 import { BiLabel, BiText } from "./BiLabel";
-import ToneMark from "./ToneMark";
+import ToneMark from "./tone/ToneMark";
 import { readSession, signOut, type Role } from "../utils/session";
 import "./BiLabel.css";
 import "../pages/LoginPage.css";

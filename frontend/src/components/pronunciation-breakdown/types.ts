@@ -1,5 +1,5 @@
 import type { AssistiveFeedbackSyllable } from "../../utils/assistiveFeedback";
-import type { WordProsody, WordProsodySyllable } from "../StoryRecorder";
+import type { WordProsody, WordProsodySyllable } from "../story-recorder/StoryRecorder";
 
 export interface BreakdownRow {
   key: string;

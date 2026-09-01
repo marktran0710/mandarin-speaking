@@ -85,6 +85,10 @@
   .teacher-stat-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .teacher-builder-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {

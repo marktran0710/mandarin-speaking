@@ -177,7 +177,6 @@
 .voice-test-error {
   color: var(--clay-error);
   background: var(--clay-error-soft);
-  border-left: 4px solid var(--clay-error);
 }
 
 .voice-feedback-panel {

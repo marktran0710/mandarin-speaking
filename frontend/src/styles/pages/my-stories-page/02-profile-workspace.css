@@ -293,7 +293,6 @@
   background: var(--clay-canvas);
   padding: 10px;
   border-radius: var(--clay-radius-md);
-  border-left: 4px solid var(--gold);
 }
 
 .saved-audio-player strong {
@@ -311,7 +310,6 @@
   background: var(--clay-canvas);
   padding: 10px;
   border-radius: var(--clay-radius-md);
-  border-left: 4px solid var(--jade);
 }
 
 .transcription-box strong {
@@ -387,7 +385,6 @@
 .story-ai-summary {
   background: var(--clay-canvas);
   border: 1px solid var(--clay-hairline);
-  border-left: 4px solid var(--clay-success);
   border-radius: var(--clay-radius-md);
   padding: 12px;
 }

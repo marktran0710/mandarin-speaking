@@ -20,19 +20,16 @@
   border-radius: var(--clay-radius-lg);
   padding: 24px 20px;
   cursor: pointer;
-  box-shadow: 0 4px 0 var(--clay-hairline);
   transition: border-color 0.18s, transform 0.12s, box-shadow 0.12s;
 }
 
 .overview-choice-card:hover:not(:disabled) {
   border-color: var(--seal);
   transform: translateY(-2px);
-  box-shadow: 0 6px 0 var(--seal-deep);
 }
 
 .overview-choice-card:active:not(:disabled) {
   transform: translateY(2px);
-  box-shadow: 0 2px 0 var(--seal-deep);
 }
 
 .overview-choice-card:disabled {
@@ -241,9 +238,9 @@
 .scene-step-tabs {
   display: flex;
   align-items: center;
-  padding: 0 18px;
+  padding: 0 20px;
+  gap: 22px;
   border-bottom: 1px solid var(--clay-hairline);
-  background: var(--clay-surface-soft);
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -254,22 +251,18 @@
 .scene-step-tab {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   border: none;
   border-bottom: 2px solid transparent;
   background: none;
-  margin-bottom: -1.5px;
-  padding: 14px 2px;
-  margin-right: 26px;
-  font-size: 14px;
+  margin-bottom: -1px;
+  padding: 13px 0;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--clay-muted);
   cursor: pointer;
   white-space: nowrap;
   transition: color 0.15s, border-color 0.15s;
-}
-.scene-step-tab:last-child {
-  margin-right: 0;
 }
 .scene-step-check {
   color: var(--jade-deep);
@@ -278,11 +271,10 @@
 .scene-step-tab:hover { color: var(--clay-body); }
 .scene-step-tab.scene-step-done {
   color: var(--jade-deep);
-  border-color: var(--jade);
 }
 .scene-step-tab.active {
   color: var(--seal-deep);
-  border-color: var(--seal);
+  border-bottom-color: var(--seal);
 }
 
 /* practice-phrases-hint's compact card, sized up for its own reference
@@ -306,7 +298,6 @@
   font-weight: 800;
   letter-spacing: 0.02em;
   cursor: pointer;
-  box-shadow: 0 5px 0 var(--seal-deep);
   /* BiLabel's .bi-en subtitle defaults to --clay-muted (dark gray) —
      unreadable on this solid accent fill without a light override. */
   --bi-pinyin-color: var(--clay-on-seal);
@@ -315,11 +306,9 @@
 }
 .btn-scene-step-continue:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 0 var(--seal-deep);
 }
 .btn-scene-step-continue:active {
   transform: translateY(4px);
-  box-shadow: 0 1px 0 var(--seal-deep);
 }
 
 /* A scene rail (~1/2.7 of the width, roughly double the area of the

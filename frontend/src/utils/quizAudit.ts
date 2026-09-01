@@ -3,7 +3,7 @@ import {
   CLOZE_BLANK,
   type VocabQuizEntry,
   type VocabQuizQuestion,
-} from "../components/StoryVocabQuiz";
+} from "../components/story-vocab-quiz/StoryVocabQuiz";
 
 /** One rule violation found in a generated quiz question. `error` means the
  * question is broken for a student (missing/duplicate/second correct

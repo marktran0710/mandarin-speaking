@@ -56,6 +56,32 @@
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
+.student-workspace.student-workspace-v2 .profile-stat-icon {
+  display: grid;
+  place-items: center;
+  width: calc(var(--space-xl) + var(--space-xs));
+  height: calc(var(--space-xl) + var(--space-xs));
+  flex-shrink: 0;
+  border-radius: var(--clay-radius-md);
+  background: var(--seal-soft);
+  color: var(--seal-deep);
+}
+
+.student-workspace.student-workspace-v2 .profile-stat-card:nth-child(2) .profile-stat-icon {
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.student-workspace.student-workspace-v2 .profile-stat-card:nth-child(3) .profile-stat-icon {
+  background: var(--tone1-soft);
+  color: var(--tone1-deep);
+}
+
+.student-workspace.student-workspace-v2 .profile-stat-card:nth-child(4) .profile-stat-icon {
+  background: var(--gold-soft);
+  color: var(--gold-deep);
+}
+
 .student-workspace.student-workspace-v2 .profile-stat-card:hover {
   transform: none;
   border-color: color-mix(in srgb, var(--seal) 38%, var(--clay-hairline));

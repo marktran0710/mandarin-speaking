@@ -378,10 +378,10 @@
    action, so the learner no longer needs a separate difficulty page. ── */
 .ts-tier-track {
   display: flex;
-  gap: 6px;
   margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1.5px dashed var(--clay-hairline-soft);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  overflow: hidden;
 }
 
 .ts-tier-cell {
@@ -389,7 +389,6 @@
   min-width: 0;
   min-height: 44px;
   padding: 5px 6px;
-  border-radius: var(--clay-radius-sm);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -403,18 +402,20 @@
 .ts-tier-done { background: var(--jade-soft); }
 .ts-tier-open {
   background: var(--clay-surface-soft);
-  border: 1.5px solid var(--clay-hairline);
+}
+.ts-tier-cell + .ts-tier-cell {
+  border-left: 1px solid var(--clay-hairline);
 }
 .ts-tier-track-interactive .ts-tier-open,
 .ts-tier-track-interactive .ts-tier-done {
   cursor: pointer;
   touch-action: manipulation;
-  transition: transform .15s ease, border-color .15s ease;
+  transition: transform .15s ease, background-color .15s ease;
 }
 
 .ts-tier-track-interactive .ts-tier-open:hover,
 .ts-tier-track-interactive .ts-tier-done:hover {
-  border-color: var(--gold);
+  background: var(--gold-soft);
   transform: translateY(-1px);
 }
 
@@ -440,7 +441,6 @@
 
 .ts-tier-lock {
   background: var(--clay-surface-soft);
-  border: 1.5px solid var(--clay-hairline);
   opacity: 0.45;
   filter: grayscale(1);
 }

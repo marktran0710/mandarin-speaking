@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import TopicSelector, { type TopicStartOptions } from "../components/TopicSelector";
-import StoryRecorder, { type NewAudioRecord } from "../components/StoryRecorder";
+import StoryRecorder, { type NewAudioRecord } from "../components/story-recorder/StoryRecorder";
 import { HelpRequest } from "../services/database";
 import { loadPublishedTeacherTopics, storyToTopic } from "../utils/teacherStories";
 import type { Topic } from "../components/TopicSelector";

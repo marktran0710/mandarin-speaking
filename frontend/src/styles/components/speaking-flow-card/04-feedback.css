@@ -185,7 +185,7 @@
 .pronunciation-breakdown .pb-row { min-height: 44px; }
 .pronunciation-breakdown .pb-chevron { width: 1.2rem; color: var(--tone1-deep); font-size: 1rem; font-weight: 750; text-align: right; }
 .pb-detail-contour { margin: 0 0 0.55rem; padding: 0.35rem 0.45rem; border-radius: var(--clay-radius-sm); background: var(--clay-surface-soft); }
-.pb-detail-contour .mini-contour { min-height: 54px; }
+.pb-detail-contour .mini-contour { height: 110px; max-width: 100%; }
 .pronunciation-breakdown .pb-head { align-items: center; gap: 10px; }
 .pronunciation-breakdown .pb-summary { margin: 0; }
 .pronunciation-breakdown .pb-legend-item .bi-pinyin { display: none; }
@@ -239,7 +239,6 @@
   column-gap: 0.45rem;
   min-width: 132px;
   padding: 0.45rem 0.65rem;
-  border-left: 3px solid var(--jade);
   border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-soft);
 }
@@ -361,7 +360,6 @@
   margin: var(--space-md) 0;
   padding: var(--space-md) var(--space-lg);
   border: 1px solid var(--clay-hairline);
-  border-left: 4px solid var(--jade);
   border-radius: var(--clay-radius-lg);
   background: linear-gradient(135deg, var(--clay-surface-soft), var(--clay-surface-card));
 }

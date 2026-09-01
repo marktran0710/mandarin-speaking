@@ -210,7 +210,6 @@
   background: var(--clay-primary);
   color: var(--clay-on-seal);
   border: 2px solid var(--seal-deep);
-  box-shadow: 0 4px 0 var(--seal-deep);
   transition: transform 0.1s, box-shadow 0.1s;
   /* BiLabel's .bi-en subtitle defaults to --clay-muted (dark gray) —
      unreadable on this solid accent fill without a light override. */
@@ -220,11 +219,9 @@
 
 .btn-verify-sorting:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--seal-deep);
 }
 .btn-verify-sorting:active:not(:disabled) {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--seal-deep);
 }
 
 .btn-verify-sorting:disabled {
@@ -239,7 +236,6 @@
   background: var(--jade);
   color: var(--clay-on-accent);
   border: 2px solid var(--jade-deep);
-  box-shadow: 0 4px 0 var(--jade-deep);
   animation: pulseGreen 2s infinite;
   transition: transform 0.1s, box-shadow 0.1s;
   /* BiLabel's .bi-en/.bi-pinyin default to --clay-muted (dark gray) —
@@ -250,11 +246,9 @@
 
 .btn-start-speaking:hover {
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--jade-deep);
 }
 .btn-start-speaking:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--jade-deep);
 }
 
 .btn-skip-sorting {

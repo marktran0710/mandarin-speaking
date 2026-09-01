@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { BiLabel, BiText } from "../components/BiLabel";
-import ToneMark from "../components/ToneMark";
-import ToneField from "../components/ToneField";
+import ToneMark from "../components/tone/ToneMark";
+import ToneField from "../components/tone/ToneField";
 import "../components/BiLabel.css";
 import "./LoginPage.css";
 import { canUseDatabase, listStudents, loginStudent, loginTeacher, type Student } from "../services/database";

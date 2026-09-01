@@ -181,7 +181,6 @@
 .student-app .listen-retell-page .lr-record-panel .btn:hover:not(:disabled) {
   background: var(--student-primary-strong);
   border-color: var(--student-primary-strong);
-  box-shadow: 0 3px 0 color-mix(in srgb, var(--student-primary-strong) 84%, var(--student-ink));
 }
 
 .student-app .btn-secondary,

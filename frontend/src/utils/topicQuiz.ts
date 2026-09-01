@@ -4,7 +4,7 @@
 // no quiz could never do — so the gate has to know exactly which stories
 // those are, not guess from a proxy like "has a translated word".
 
-import { collectQuizEntries, type VocabQuizEntry } from "../components/StoryVocabQuiz";
+import { collectQuizEntries, type VocabQuizEntry } from "../components/story-vocab-quiz/StoryVocabQuiz";
 import { applyExclusionsToWord, storyQuizExclusions } from "./quizExclusions";
 import { toPinyin } from "./pinyin";
 import type { CustomTeacherStory } from "./teacherStories";

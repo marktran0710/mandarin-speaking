@@ -197,6 +197,39 @@
   padding: 2px 8px;
 }
 
+.stat-row {
+  order: 2;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.stat-chip {
+  padding: 12px 14px;
+  border-radius: var(--clay-radius-md);
+}
+
+.stat-chip .label {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 4px;
+}
+
+.stat-chip .value {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.stat-neutral {
+  background: var(--clay-surface-soft);
+  border: 1px solid var(--clay-hairline);
+}
+
+.stat-neutral .label { color: var(--clay-muted); }
+.stat-neutral .value { color: var(--clay-ink); }
+
 /* Smaller than a full-bleed hero button — .btn-practice-record's base
    width:100% would otherwise stretch it across the whole (now wider)
    card. */
@@ -343,7 +376,6 @@
   font-weight: 800;
   background: var(--clay-error-soft);
   color: var(--clay-error);
-  border-left: 4px solid var(--clay-error);
 }
 
 @media (max-width: 768px) {

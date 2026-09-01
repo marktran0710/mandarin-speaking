@@ -4,7 +4,7 @@ import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
 import StudentIcon, { type StudentIconName } from "../components/StudentIcon";
 import { BiLabel, BiText } from "../components/BiLabel";
 import type { HelpRequest } from "../shared/api/learningApi";
-import type { NewAudioRecord } from "../components/StoryRecorder";
+import type { NewAudioRecord } from "../components/story-recorder/StoryRecorder";
 import type { Topic } from "../components/TopicSelector";
 import { getStudentName } from "../utils/studentSession";
 import type { WorkspaceView } from "../types/studentWorkspace";

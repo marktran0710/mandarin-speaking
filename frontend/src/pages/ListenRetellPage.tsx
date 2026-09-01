@@ -6,8 +6,8 @@ import { BiLabel } from "../components/BiLabel";
 import StudentIcon from "../components/StudentIcon";
 import StudentPageHeader from "../components/StudentPageHeader";
 import ScoreCard from "../components/ScoreCard";
-import StudentAnalysisGate from "../components/StudentAnalysisGate";
-import StudentAudioActionPanel from "../components/StudentAudioActionPanel";
+import StudentAnalysisGate from "../components/student/StudentAnalysisGate";
+import StudentAudioActionPanel from "../components/student/StudentAudioActionPanel";
 import {
   averageWordProsodyAccuracy,
   getBackendUrl,

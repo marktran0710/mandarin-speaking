@@ -1,6 +1,6 @@
 import type { StorySubmission } from "../services/database";
 import { BiLabel, BiText } from "./BiLabel";
-import StoryFeedbackCard from "./StoryFeedbackCard";
+import StoryFeedbackCard from "./story-recorder/StoryFeedbackCard";
 
 export default function MyStoryFeedbackHistory({
   submissions,

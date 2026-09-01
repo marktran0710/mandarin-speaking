@@ -12,7 +12,7 @@ import StudentIcon from "../components/StudentIcon";
 import "../components/BiLabel.css";
 import "./MyStoriesPage.css";
 import "./MyStoriesStudent.css";
-import StudentHelpCard from "../components/StudentHelpCard";
+import StudentHelpCard from "../components/student/StudentHelpCard";
 import MyStoryFeedbackHistory from "../components/MyStoryFeedbackHistory";
 import {
   getAverageMetric,

@@ -1,8 +1,8 @@
 // @ts-nocheck
 import React, { useEffect, useRef, useState } from "react";
 import StoryBuilderFrameEditor from "./StoryBuilderSection.FrameEditor";
-import VocabularyTable from "../VocabularyTable";
-import PhraseTable from "../PhraseTable";
+import VocabularyTable from "./VocabularyTable";
+import PhraseTable from "./PhraseTable";
 import StudentIcon from "../StudentIcon";
 import { PHRASE_COUNT_BY_LEVEL } from "./StoryBuilderSection.helpers";
 
@@ -121,6 +121,7 @@ export default function StoryBuilderForm(props) {
   const { draft, validationErrors, customStoryNotice, savedReviewBanner, preparedFrameCount, editingStoryId,
     onSave, onUpdateField, onUpdateFrameCount, onSetDraft, onGoToQuizReview, onDismissReview, onCancel } = props;
   const [learningContentOpen, setLearningContentOpen] = useState(false);
+  const [basicsOpen, setBasicsOpen] = useState(() => !editingStoryId);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const learningContentTriggerRef = useRef<HTMLButtonElement>(null);
 
@@ -158,13 +159,37 @@ export default function StoryBuilderForm(props) {
     };
   }, [learningContentOpen]);
 
+  useEffect(() => {
+    if (validationErrors.title) setBasicsOpen(true);
+  }, [validationErrors.title]);
+
+  useEffect(() => {
+    setBasicsOpen(!editingStoryId);
+  }, [editingStoryId]);
+
   const closeLearningContent = () => {
     setLearningContentOpen(false);
     requestAnimationFrame(() => learningContentTriggerRef.current?.focus());
   };
 
+  const hasBasicsContent = Boolean(draft.title.trim());
+  const toggleBasics = () => {
+    setBasicsOpen((open) => open ? hasBasicsContent ? false : open : true);
+  };
+
   return <form className="custom-story-form" onSubmit={(event) => { event.preventDefault(); onSave(); }}>
-    <StoryDetailsFields draft={draft} errors={validationErrors} onUpdateField={onUpdateField} onUpdateFrameCount={onUpdateFrameCount} onSetDraft={onSetDraft} onOpenLearningContent={() => setLearningContentOpen(true)} learningContentTriggerRef={learningContentTriggerRef} />
+    <section className="teacher-story-basics" aria-labelledby="teacher-story-basics-title">
+      <div className="teacher-story-basics-heading">
+        <div>
+          <h3 id="teacher-story-basics-title">Basics</h3>
+          {!basicsOpen && <p className="teacher-story-basics-summary">{draft.title.trim() || "Untitled story"} · Lesson {draft.lessonNumber || "—"} · Order {draft.lessonSubOrder || "—"} · {draft.imageUrls.easy.length} frame{draft.imageUrls.easy.length === 1 ? "" : "s"}</p>}
+        </div>
+        <button type="button" aria-expanded={basicsOpen} aria-controls="teacher-story-basics-content" onClick={toggleBasics}>{basicsOpen ? "Done" : "Edit"}</button>
+      </div>
+      <div id="teacher-story-basics-content" className="teacher-story-basics-content" hidden={!basicsOpen}>
+        <StoryDetailsFields draft={draft} errors={validationErrors} onUpdateField={onUpdateField} onUpdateFrameCount={onUpdateFrameCount} onSetDraft={onSetDraft} onOpenLearningContent={() => setLearningContentOpen(true)} learningContentTriggerRef={learningContentTriggerRef} />
+      </div>
+    </section>
     <StoryStatusMessages errors={validationErrors} notice={customStoryNotice} savedReviewBanner={savedReviewBanner} onGoToQuizReview={onGoToQuizReview} onDismissReview={onDismissReview} />
     <StoryBuilderFrameEditor {...props} />
     <StoryFormActionGroup preparedFrameCount={preparedFrameCount} frameCount={draft.imageUrls.easy.length} editingStoryId={editingStoryId} onCancel={onCancel} />

@@ -106,7 +106,6 @@
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 4px 0 var(--jade-deep);
   transition: transform 0.1s, box-shadow 0.1s;
   /* BiLabel's .bi-en/.bi-pinyin default to --clay-muted (dark gray) —
      unreadable on this solid green fill without a light override. */
@@ -115,11 +114,9 @@
 }
 .scene-next-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--jade-deep);
 }
 .scene-next-btn:active {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--jade-deep);
 }
 
 /* Practice-stage CTAs now use AppButton. These layout hooks stay only for
@@ -190,13 +187,11 @@
 .overview-choice-card {
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
-  box-shadow: 0 4px 0 var(--clay-hairline-soft);
   padding: 20px 18px;
 }
 
 .overview-choice-card:hover:not(:disabled) {
   border-color: var(--clay-primary);
-  box-shadow: 0 5px 0 var(--clay-primary);
 }
 
 .practice-stage > .practice-workspace,
@@ -224,7 +219,6 @@
 .btn-scene-step-continue,
 .scene-next-btn {
   border-radius: 10px;
-  box-shadow: 0 3px 0 var(--seal-deep);
 }
 
 @media (max-width: 900px) {
@@ -347,20 +341,19 @@
 
 .scene-step-tabs {
   min-height: 62px;
-  padding: 0 24px;
-  gap: 28px;
-  background: var(--clay-surface-card);
+  padding: 0 20px;
+  gap: 22px;
   border-bottom: 1px solid var(--clay-hairline);
 }
 
 .scene-step-tab {
   position: relative;
   min-height: 62px;
-  margin: 0;
-  padding: 12px 0 10px;
-  gap: 9px;
+  margin-bottom: -1px;
+  padding: 13px 0;
+  gap: 5px;
   color: var(--clay-muted);
-  font-size: 13px;
+  font-size: 13.5px;
   letter-spacing: 0.01em;
 }
 
@@ -382,12 +375,11 @@
 
 .scene-step-tab.active {
   color: var(--clay-ink);
-  border-color: var(--clay-primary);
+  border-bottom-color: var(--seal);
 }
 
 .scene-step-tab.scene-step-done {
-  color: var(--clay-primary-active);
-  border-color: transparent;
+  color: var(--jade-deep);
 }
 
 .scene-step-check {
@@ -829,6 +821,19 @@
   transform: none;
   transition: none;
   animation: none;
+}
+
+/* When a scene has no real image yet, the "no card" polish above leaves a
+   void with nothing to look at. Fall back to the same generated placeholder
+   Speaking/Results already show for an unfinished scene (see
+   StudentModeCompact.css), instead of leaving Study blank. */
+.practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image:has(img[src=""]),
+.practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image:has(img:not([src])) {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  height: auto;
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft) url("/sample-scenes/cafe-practice-v2.png") center / cover no-repeat;
 }
 
 @media (max-width: 720px) {

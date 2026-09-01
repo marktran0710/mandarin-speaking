@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import useColorMode from "../../hooks/useColorMode";
-import ToneMark from "../ToneMark";
+import ToneMark from "../tone/ToneMark";
 import Icon, { type UiIconName } from "../../shared/ui/Icon";
 import "./ManagementShell.css";
 

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PronunciationBreakdown from "./PronunciationBreakdown";
-import type { WordProsody } from "./StoryRecorder";
+import type { WordProsody } from "./story-recorder/StoryRecorder";
 
 /**
  * The panel answers "did the app even listen?" — so the tests that matter are

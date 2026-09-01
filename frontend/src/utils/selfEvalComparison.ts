@@ -1,4 +1,4 @@
-import type { PraatMetrics } from "../components/StoryRecorder";
+import type { PraatMetrics } from "../components/story-recorder/StoryRecorder";
 import { isContentAccepted } from "./storyRecorderFeedback";
 
 export type SelfEvalLevel = "good" | "ok" | "bad";
