@@ -99,6 +99,27 @@
 }
 .vocab-quiz-secondary-grid > :only-child { grid-column: 1 / -1; }
 
+.vocab-quiz-diagnostic-progress {
+  display: grid;
+  gap: var(--space-xs);
+  grid-column: 1 / -1;
+  padding: var(--space-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  color: var(--clay-body);
+}
+.vocab-quiz-diagnostic-progress strong { color: var(--clay-ink); }
+.vocab-quiz-diagnostic-progress p { margin: 0; font-size: var(--text-sm); }
+.vocab-quiz-diagnostic-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  color: var(--clay-muted);
+  font-size: var(--text-sm);
+}
+.vocab-quiz-diagnostic-steps .is-complete { color: var(--jade-deep); font-weight: 700; }
+
 /* Secondary modes are supporting paths, not equal-weight feature tiles. Keep
    their icon, bilingual title, explanation, and arrow on one shared row so
    the page reads as a compact decision list. */
@@ -128,6 +149,24 @@
 .vocab-quiz-mode-weak_words {
   border-color: color-mix(in srgb, var(--seal-deep) 28%, var(--clay-hairline));
 }
+.vocab-quiz-priority-list {
+  display: grid;
+  grid-column: 2 / 4;
+  gap: var(--space-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--clay-muted);
+  font-size: var(--text-xs);
+}
+.vocab-quiz-priority-list li {
+  display: grid;
+  grid-template-columns: minmax(0, .7fr) minmax(0, 1fr) auto;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+.vocab-quiz-priority-list li > span { min-width: 0; }
+.vocab-quiz-priority-word { color: var(--seal-deep); font-weight: 800; }
 .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > .app-icon {
   grid-column: 4;
   grid-row: 1;
@@ -183,6 +222,7 @@
   .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > p {
     grid-column: 2 / 4;
   }
+  .vocab-quiz-priority-list { grid-column: 2 / 4; }
   .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > strong { grid-row: 1; }
   .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > p { grid-row: 2; }
   .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > .app-icon {
@@ -239,6 +279,9 @@
     grid-column: 2 / 4;
     min-height: 0;
   }
+
+  .vocab-quiz-priority-list { grid-column: 2 / 4; }
+  .vocab-quiz-priority-list li { grid-template-columns: 1fr; gap: var(--space-2xs); }
 
   .vocab-quiz-secondary-grid {
     grid-template-columns: 1fr;

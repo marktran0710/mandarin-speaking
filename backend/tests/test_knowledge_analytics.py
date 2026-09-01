@@ -9,13 +9,27 @@ def _insert_attempt(attempt_id: str, student_id: str, story_id: str, completed_a
         db.execute(
             """
             INSERT INTO vocab_quiz_attempts
-                (id, story_id, student_name, student_id, completed_at,
+                (id, story_id, student_name, student_id, mode, completed_at,
                  total_questions, correct_count, total_time_ms, question_results)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
-            (attempt_id, story_id, "Pilot Student", student_id, completed_at,
+            (attempt_id, story_id, "Pilot Student", student_id, "tier1", completed_at,
              len(results), sum(bool(result.get("correct")) for result in results), 1000, Jsonb(results)),
         )
+
+
+def _eligible_result(word: str, correct: bool, index: int, *, level: str = "easy") -> dict:
+    return {
+        "word": word,
+        "conceptId": word,
+        "correct": correct,
+        "level": level,
+        "itemId": f"item-{index}-{word}",
+        "questionKind": "translation",
+        "isBktEligible": True,
+        "diagnosticExposureId": f"exposure-{index}-{word}",
+        "bktValidationStatus": "APPROVED",
+    }
 
 
 def test_knowledge_state_is_admin_only(anonymous_client):
@@ -34,7 +48,7 @@ def test_knowledge_state_compares_models_and_applies_filters(admin_client):
     for index in range(12):
         _insert_attempt(
             f"pilot-{index}", "student-1", "story-5-1", f"2026-01-{index + 1:02d}T00:00:00Z",
-            [{"word": "學習", "correct": index % 3 != 0, "level": "easy"},
+            [_eligible_result("學習", index % 3 != 0, index),
              {"conceptId": "朋友", "correct": True, "level": "hard"}],
         )
 
@@ -59,7 +73,7 @@ def test_knowledge_state_does_not_select_winner_for_single_class_predictions(adm
     for index in range(12):
         _insert_attempt(
             f"pilot-all-correct-{index}", "student-1", "story-all-correct", f"2026-02-{index + 1:02d}T00:00:00Z",
-            [{"conceptId": "房間", "correct": True, "level": "easy"}],
+            [_eligible_result("房間", True, index)],
         )
 
     body = admin_client.get("/api/admin/analytics/knowledge-state").json()

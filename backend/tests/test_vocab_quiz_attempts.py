@@ -171,7 +171,9 @@ def test_weak_words_returns_only_words_wrong_in_their_most_recent_attempt(logged
         params={"story_id": "weak-story"},
     )
     assert response.status_code == 200
-    assert response.json()["words"] == ["吃"]
+    # Legacy attempts do not carry an approved diagnostic item contract, so
+    # they remain audit-only and cannot unlock or populate BKT review.
+    assert response.json()["words"] == []
 
 
 def test_weak_words_is_scoped_to_the_logged_in_student(logged_in_student):

@@ -21,8 +21,14 @@ export interface VocabQuizSynonymCandidate {
 export interface VocabQuizEntry {
   word: string;
   translation: string;
+  /** The student-serving snapshot is explicitly approved; live material is
+   * draft and must not become research evidence. */
+  bktValidationStatus?: "APPROVED" | "DRAFT";
   /** Question types a teacher has removed for this word in Quiz Review. */
   disabledQuestionKinds?: ReadonlyArray<"pinyin" | "reverse">;
+  /** Question kinds already used for this learner; weak-word review prefers
+   * another validated form when one is available. */
+  bktSeenQuestionKinds?: ReadonlyArray<QuizQuestionKind>;
   pinyin?: string;
   pos?: string;
   aiDistractors?: string[];
@@ -112,6 +118,19 @@ export interface VocabQuizQuestionResult {
   level?: "easy" | "medium" | "hard";
   baseStoryId?: string;
   itemVersion?: string;
+  isBktEligible?: boolean;
+  bktEligibilityErrors?: string[];
+  diagnosticExposureId?: string;
+  assistedResponse?: boolean;
+  bktValidationStatus?: "APPROVED" | "DRAFT";
+  selectedAnswer?: string;
+  correctAnswer?: string;
+  presentedOptions?: string[];
+  questionPrompt?: string;
+  answeredAt?: string;
+  questionIndex?: number;
+  lessonId?: string;
+  quizId?: string;
 }
 
 /** Normalized concept identity shared by all question types and story levels. */
@@ -411,8 +430,12 @@ function pickQuestionKind(entry: VocabQuizEntry, allEntries: VocabQuizEntry[], m
   const available = weights.filter(([kind]) => !excludedKinds.has(kind)
     && !entry.disabledQuestionKinds?.includes(kind as "pinyin" | "reverse") && isKindAvailable(kind, entry, allEntries));
   if (!available.length) return null;
-  let roll = Math.random() * available.reduce((sum, [, weight]) => sum + weight, 0);
-  for (const [kind, weight] of available) {
+  const unseen = mode === "weak_words"
+    ? available.filter(([kind]) => !entry.bktSeenQuestionKinds?.includes(kind))
+    : available;
+  const preferred = unseen.length ? unseen : available;
+  let roll = Math.random() * preferred.reduce((sum, [, weight]) => sum + weight, 0);
+  for (const [kind, weight] of preferred) {
     roll -= weight;
     if (roll <= 0) return kind;
   }

@@ -40,6 +40,8 @@ export interface Topic {
   lessonNumber?: number | null;
   lessonSubOrder?: number | null;
   difficultyLevel?: StoryDifficultyLevel;
+  quizMaterialSource?: "live" | "approved";
+  quizMaterialApproved?: boolean;
   sourceStory?: CustomTeacherStory;
 }
 

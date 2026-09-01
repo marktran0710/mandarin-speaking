@@ -94,7 +94,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
     expect(screen.queryByRole("button", { name: /Weak words/ })).not.toBeInTheDocument();
   });
 
-  it("offers a weak-words card scoped to only the persisted missed words, and reports it as a real 'weak_words' attempt", async () => {
+  it("offers a personalized priority-review card and reports it as a real 'weak_words' attempt", async () => {
     vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(["一", "三"]);
     const user = userEvent.setup();
     const onComplete = vi.fn();
@@ -113,11 +113,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
     await screen.findByRole("group", { name: "Quiz mode" });
 
     const weakWordsButton = await screen.findByRole("button", { name: /Weak words \(2\)/ });
-    expect(
-      within(weakWordsButton).getByText(
-        "Personalized from your ability, accuracy, difficulty, and answer speed.",
-      ),
-    ).toBeInTheDocument();
+    expect(within(weakWordsButton).getByText("Personalized from your current mastery, starting with the lowest-priority words.")).toBeInTheDocument();
     expect(
       within(weakWordsButton).queryByText("Only quizzes the words you got wrong last time."),
     ).not.toBeInTheDocument();
@@ -134,8 +130,10 @@ describe("StoryVocabQuiz weak-words mode", () => {
     expect(summary.totalQuestions).toBe(2);
     expect(summary.questionResults.map((r) => r.word).sort()).toEqual(["一", "三"]);
 
-    await user.click(screen.getByRole("button", { name: /Continue to practice/ }));
-    expect(onDone).toHaveBeenCalledTimes(1);
+    // Weak-word review does not award the tier stars, so its normal exit is
+    // the mode menu rather than the speaking-practice continuation CTA.
+    await user.click(screen.getByRole("button", { name: /Back to menu/ }));
+    expect(onDone).not.toHaveBeenCalled();
   });
 });
 

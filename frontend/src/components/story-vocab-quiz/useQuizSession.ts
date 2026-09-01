@@ -14,6 +14,7 @@ import {
   canUseDatabase,
   getVocabQuizWeakWords,
   listVocabQuizAttempts,
+  type VocabPriorityReviewWord,
 } from "../../services/database";
 import {
   TIMER_TICK_MS,
@@ -103,6 +104,8 @@ export function useQuizSession({
   }, [storyId, studentId, studentName]);
 
   const [weakWords, setWeakWords] = useState<string[]>([]);
+  const [priorityReviewWords, setPriorityReviewWords] = useState<VocabPriorityReviewWord[]>([]);
+  const [diagnosticProgress, setDiagnosticProgress] = useState<{ unlocked: boolean; requiredDiagnosticQuizzes: number; completedDiagnosticQuizzes: number } | null>(null);
   const [weakWordsReady, setWeakWordsReady] = useState(false);
   useEffect(() => {
     if (!storyId || !canUseDatabase()) {
@@ -111,7 +114,7 @@ export function useQuizSession({
     }
     let cancelled = false;
     getVocabQuizWeakWords(storyId, { studentId, studentName })
-      .then((words) => { if (!cancelled) setWeakWords(words); })
+      .then((words) => { if (!cancelled) { setWeakWords(words); setPriorityReviewWords(words.priorityReview ?? []); setDiagnosticProgress(words.diagnostic ?? null); } })
       .catch(() => { /* the weak-words card stays hidden */ })
       .finally(() => { if (!cancelled) setWeakWordsReady(true); });
     return () => { cancelled = true; };
@@ -122,7 +125,12 @@ export function useQuizSession({
   const question = questions[index];
   const isLast = questionLimit !== null && index === questionLimit - 1;
   const showFinishButton = mode === "free" && questionLimit === null;
-  const weakEntries = entries.filter((entry) => weakWords.includes(entry.word));
+  const weakEntries = entries.filter((entry) => weakWords.includes(entry.word)).map((entry) => {
+    const reviewWord = priorityReviewWords.find((word) => word.word === entry.word);
+    return reviewWord?.seenQuestionTypes?.length
+      ? { ...entry, bktSeenQuestionKinds: reviewWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"] }
+      : entry;
+  });
   const missedWords = results.filter((result) => !result.correct);
   const missedEntries = roundEntries.filter((entry) => missedWords.some((result) => result.word === entry.word));
   const timeLimitMs = tierConfigFromMode(mode)?.timeLimitMs ?? null;
@@ -147,14 +155,49 @@ export function useQuizSession({
 
   const choose = (option: string) => {
     if (selected) return;
+    const entry = roundEntries.find((candidate) => candidate.word === question.word);
+    const bktType = question.kind === "translation" || question.kind === "reverse" || question.kind === "listening";
+    const diagnosticMode = mode === "tier1" || mode === "tier2" || mode === "tier3";
+    const isBktEligible = Boolean(
+      !isRetryRound && level === "easy" && diagnosticMode && bktType && entry?.bktValidationStatus === "APPROVED",
+    );
+    const bktEligibilityErrors = isBktEligible ? [] : [
+      ...(level !== "easy" ? ["NON_DIAGNOSTIC_LEVEL"] : []),
+      ...(!diagnosticMode ? ["NON_DIAGNOSTIC_MODE"] : []),
+      ...(!bktType ? ["UNSUPPORTED_BKT_QUESTION_TYPE"] : []),
+      ...(entry?.bktValidationStatus !== "APPROVED" ? ["UNAPPROVED_RESEARCH_ITEM"] : []),
+    ];
+    const itemVersion = `${level}:v1`;
+    const itemId = quizItemId(baseStoryId ?? storyId ?? "unknown-story", question.word, question.kind, itemVersion);
+    const answer = correctAnswer(question);
+    const questionPrompt = question.kind === "cloze"
+      ? question.sentenceWithBlank
+      : question.kind === "reverse"
+        ? question.translation
+        : question.word;
+    const answeredAt = new Date().toISOString();
     setSelected(option);
     setResults([...results, {
       word: question.word,
-      correct: option === correctAnswer(question),
+      correct: option === answer,
       timeMs: Date.now() - questionStartRef.current,
-      itemId: quizItemId(baseStoryId ?? storyId ?? "unknown-story", question.word, question.kind),
+      itemId,
       conceptId: quizConceptId(question.word), questionKind: question.kind, level,
-      baseStoryId: baseStoryId ?? storyId, itemVersion: "v1",
+      baseStoryId: baseStoryId ?? storyId, itemVersion,
+      isBktEligible,
+      bktEligibilityErrors,
+      diagnosticExposureId: diagnosticMode
+        ? `${baseStoryId ?? storyId ?? "unknown-story"}:${level}:${mode}:${itemId}`
+        : undefined,
+      assistedResponse: false,
+      bktValidationStatus: entry?.bktValidationStatus,
+      selectedAnswer: option,
+      correctAnswer: answer,
+      presentedOptions: [...question.options],
+      questionPrompt,
+      answeredAt,
+      questionIndex: index,
+      lessonId: baseStoryId ?? storyId,
     }]);
   };
 
@@ -204,7 +247,7 @@ export function useQuizSession({
 
   return {
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
-    question, index, selected, results, timeLeftMs, stars, weakEntries, missedWords,
+    question, index, selected, results, timeLeftMs, stars, weakEntries, priorityReviewWords, diagnosticProgress, missedWords,
     missedEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
     speakWord, chooseMode, startTier, practiceMissedWords, sessionReady,
   };
