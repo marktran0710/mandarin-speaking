@@ -252,11 +252,11 @@ def diagnostic_status(db: Any, student_id: str, story_id: str | None = None, par
         ).fetchall()
     }
     return {
-        "unlocked": (
-            has_completed_weak_word_diagnostic(db, student_id, params)
-            and bool(known)
-            and all(coverage.get(word_id, 0) >= params.minimum_observations for word_id in known)
-        ),
+        # The three validated Easy slots are the unlock gate. Coverage is
+        # reported separately so sparse quiz structure does not pretend every
+        # published word was assessed; only sufficiently observed words can
+        # enter Bottom-K below.
+        "unlocked": has_completed_weak_word_diagnostic(db, student_id, params),
         "requiredDiagnosticQuizzes": params.required_diagnostic_quizzes,
         "completedDiagnosticQuizzes": completed,
         "requiredWords": len(known),
