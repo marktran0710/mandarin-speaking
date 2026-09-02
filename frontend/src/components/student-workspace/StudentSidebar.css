@@ -17,17 +17,26 @@
 
 .student-sidebar-brand {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: 34px minmax(0, 1fr);
   align-items: center;
   gap: var(--space-xs);
   padding: 0 var(--space-xs) var(--space-lg);
   border-bottom: 1px solid var(--clay-hairline);
 }
 
-.student-sidebar-brand img {
+.student-sidebar-logo {
+  display: grid;
+  place-items: center;
   width: 34px;
   height: 34px;
-  object-fit: contain;
+  border-radius: var(--clay-radius-sm);
+  background: var(--seal);
+  /* Gold fill always takes dark ink, never white (--clay-on-seal rule). */
+  color: var(--clay-on-seal);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .student-sidebar-brand-name {

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import StudentIcon, { type StudentIconName } from "../StudentIcon";
 import { BiLabel, type BiLabelProps } from "../BiLabel";
-import ToneMark from "../tone/ToneMark";
 import useColorMode from "../../hooks/useColorMode";
 import type { WorkspaceView } from "../../types/studentWorkspace";
 import "./StudentSidebar.css";
@@ -97,9 +96,8 @@ export default function StudentSidebar({
         className={`student-sidebar${drawerOpen ? " is-open" : ""}`}
       >
         <div className="student-sidebar-brand">
-          <img src="/logo.png" alt="" aria-hidden="true" />
+          <span className="student-sidebar-logo" aria-hidden="true" lang="zh-Hant">慢</span>
           <span className="student-sidebar-brand-name" lang="zh-Hant">慢慢中文</span>
-          <ToneMark className="student-sidebar-tonemark" size={22} />
         </div>
 
         <nav className="student-sidebar-nav" aria-label="Learning areas">
@@ -127,10 +125,8 @@ export default function StudentSidebar({
           })}
         </nav>
 
-        {/* Sits with the account block at the bottom, not under the nav:
-            stars are "how I'm doing", which belongs beside "who I am"
-            rather than in the middle of the section switch. */}
-        <div className="student-sidebar-footer">
+        {/* Stars sit directly under the nav — "how far along I am" reads as
+            part of the section switch, and the account block owns the bottom. */}
         {maxStars > 0 && (
           <div className="student-sidebar-progress">
             <p className="student-sidebar-progress-label">
@@ -154,6 +150,7 @@ export default function StudentSidebar({
           </div>
         )}
 
+        <div className="student-sidebar-footer">
           <div className="student-sidebar-identity">
             <span className="student-sidebar-avatar" aria-hidden="true">
               <StudentIcon name="user" size={17} />

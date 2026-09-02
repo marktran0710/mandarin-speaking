@@ -66,7 +66,7 @@ const LEVEL_COPY: Record<StoryDifficultyLevel, { zh: string; en: string }> = {
   hard: { zh: "困難", en: "Hard" },
 };
 
-export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSelectorProps) {
+export default function TopicSelector({ onTopicSelect, onLevelSelect, averageToneAccuracy }: TopicSelectorProps) {
   const [topics, setTopics] = useState<Topic[]>(() =>
     loadPublishedTeacherTopics().filter(isStoryModeTopic),
   );
@@ -345,11 +345,6 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
   // stories — no separate "screen 2" navigation. ─────────────────────────
   const numberedGroups = groups.filter((group) => group.lessonNumber !== null);
   const otherGroup = groups.find((group) => group.lessonNumber === null) ?? null;
-  const completedStoryCount = groups.reduce(
-    (count, group) => count + lessonCompletion(group, submittedIds).done,
-    0,
-  );
-  const totalStoryCount = groups.reduce((count, group) => count + group.topics.length, 0);
   const continueGroup =
     groups[nowIndex] ?? numberedGroups[0] ?? otherGroup ?? null;
   const continueTopic =
@@ -357,6 +352,22 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
     continueGroup?.topics[0] ??
     null;
   const isContinueFallback = nowIndex < 0;
+
+  // Dashboard headline stats — same sources the rail and the Progress page
+  // use, so the three views can never disagree. Total stars and lessons
+  // complete are cheap to derive here; tone accuracy is threaded in from the
+  // shell (it owns the analysed recordings).
+  const quizTopics = topics.filter((topic) => topicHasQuiz(topic));
+  const totalStars = quizTopics.reduce(
+    (sum, topic) => sum + loadBestLocalStars(topic.id),
+    0,
+  );
+  const maxStars = quizTopics.length * 3;
+  const lessonsDone = numberedGroups.filter((group) => {
+    const { done, total } = lessonCompletion(group, submittedIds);
+    return total > 0 && done === total;
+  }).length;
+  const lessonsTotal = numberedGroups.length;
 
   const renderDashboard = () => {
     if (!continueTopic || !continueGroup) return null;
@@ -386,20 +397,35 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
         <div className="ts-dash-stat-grid" aria-label="Learning progress">
           <article className="ts-dash-stat-card">
             <span className="ts-dash-icon-chip ts-dash-icon-chip-seal" aria-hidden="true">
-              <StudentIcon name="check-circle" size={24} />
+              <StudentIcon name="star" size={24} />
             </span>
             <span className="ts-dash-stat-copy">
-              <strong>{`${completedStoryCount}/${totalStoryCount}`}</strong>
-              <BiLabel zh="故事完成" en="Stories complete" align="left" />
+              <strong>
+                {totalStars}
+                <span className="ts-dash-stat-max"> / {maxStars}</span>
+              </strong>
+              <BiLabel zh="總星星" en="Total stars" align="left" />
             </span>
           </article>
           <article className="ts-dash-stat-card">
             <span className="ts-dash-icon-chip ts-dash-icon-chip-jade" aria-hidden="true">
-              <StudentIcon name="chart" size={24} />
+              <StudentIcon name="check-circle" size={24} />
             </span>
             <span className="ts-dash-stat-copy">
-              <strong>{numberedGroups.length}</strong>
-              <BiLabel zh="可學課數" en="Lessons available" align="left" />
+              <strong>
+                {lessonsDone}
+                <span className="ts-dash-stat-max"> / {lessonsTotal}</span>
+              </strong>
+              <BiLabel zh="課程完成" en="Lessons complete" align="left" />
+            </span>
+          </article>
+          <article className="ts-dash-stat-card">
+            <span className="ts-dash-icon-chip ts-dash-icon-chip-tone1" aria-hidden="true">
+              <StudentIcon name="voice" size={24} />
+            </span>
+            <span className="ts-dash-stat-copy">
+              <strong>{averageToneAccuracy == null ? "—" : `${averageToneAccuracy}%`}</strong>
+              <BiLabel zh="發音表現" en="Tone accuracy" align="left" />
             </span>
           </article>
         </div>
@@ -414,11 +440,20 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
             </span>
             <h2>{continueTopic.name}</h2>
             <p>{continueTopic.description || "繼續你的故事練習"}</p>
+            <button type="button" className="ts-dash-continue-action" onClick={openContinueTopic}>
+              <BiLabel zh="繼續學習" en="Continue story" />
+              <StudentIcon name="arrow-right" size={17} aria-hidden="true" />
+            </button>
           </div>
-          <button type="button" className="ts-dash-continue-action" onClick={openContinueTopic}>
-            <BiLabel zh="繼續學習" en="Continue story" />
-            <StudentIcon name="arrow-right" size={17} aria-hidden="true" />
-          </button>
+          <div className="ts-dash-continue-art" aria-hidden="true">
+            {continueTopic.images[0] ? (
+              <img src={continueTopic.images[0]} alt="" />
+            ) : (
+              <span className="ts-dash-continue-art-placeholder">
+                <StudentIcon name="image" size={28} />
+              </span>
+            )}
+          </div>
         </article>
 
         <div className="ts-dash-explainer" aria-labelledby="ts-dash-steps-title">
@@ -427,7 +462,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
           </h2>
           <div className="ts-dash-step-grid">
             <article className="ts-dash-step-card">
-              <span className="ts-dash-icon-chip ts-dash-icon-chip-tone1" aria-hidden="true">
+              <span className="ts-dash-icon-chip ts-dash-icon-chip-seal" aria-hidden="true">
                 <StudentIcon name="image" size={22} />
               </span>
               <h3><BiLabel zh="看圖片" en="Look" align="left" /></h3>
@@ -441,7 +476,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               <p><BiText zh="用自己的話說出你看到的內容。" en="Tell what you see in your own words." /></p>
             </article>
             <article className="ts-dash-step-card">
-              <span className="ts-dash-icon-chip ts-dash-icon-chip-gold" aria-hidden="true">
+              <span className="ts-dash-icon-chip ts-dash-icon-chip-tone1" aria-hidden="true">
                 <StudentIcon name="idea" size={22} />
               </span>
               <h3><BiLabel zh="看回饋" en="Improve" align="left" /></h3>

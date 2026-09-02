@@ -23,6 +23,8 @@ interface CreateStoryPageProps {
   onSessionActiveChange?: (active: boolean) => void;
   /** Requests a reset of the enclosing workspace panel at a story boundary. */
   onPanelScrollBoundary?: () => void;
+  /** Average tone accuracy, forwarded to the browse dashboard's stat card. */
+  averageToneAccuracy?: number | null;
 }
 
 
@@ -36,6 +38,7 @@ export default function CreateStoryPage({
   publishedTopics,
   onSessionActiveChange,
   onPanelScrollBoundary,
+  averageToneAccuracy,
 }: CreateStoryPageProps) {
   const topics = publishedTopics ?? loadPublishedTeacherTopics();
   const initialTopic =
@@ -126,7 +129,11 @@ export default function CreateStoryPage({
   return (
     <div className="create-story-page">
       {!selectedTopic ? (
-        <TopicSelector onTopicSelect={handleTopicSelect} onLevelSelect={handleLevelSelect} />
+        <TopicSelector
+          onTopicSelect={handleTopicSelect}
+          onLevelSelect={handleLevelSelect}
+          averageToneAccuracy={averageToneAccuracy}
+        />
       ) : (
         <div className="csp-recorder-body">
           <StoryRecorder

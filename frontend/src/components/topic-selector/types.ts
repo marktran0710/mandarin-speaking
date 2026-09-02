@@ -56,4 +56,8 @@ export interface TopicSelectorProps {
     level: StoryDifficultyLevel,
     options?: TopicStartOptions,
   ) => void;
+  /** Average tone accuracy across analysed recordings, computed once in the
+   * student shell so the dashboard's 發音表現 card matches the Progress
+   * page. `null` when the student has no analysed recordings yet. */
+  averageToneAccuracy?: number | null;
 }
