@@ -194,8 +194,14 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
               ? "open"
               : "lock";
           const tierTopic = storyToTopic(story, level, "approved");
+          const hasQuiz = topicHasQuiz(tierTopic);
+          // "Needs" (still-required) is only for the aria hint; entering the
+          // tier should ALWAYS open its quiz when one exists — otherwise, once
+          // the stars are earned, the flag drops and the session resumes to the
+          // student's last phase (often Speaking), so a quiz tap lands on
+          // speaking practice instead of the quiz.
           const needsQuiz =
-            topicHasQuiz(tierTopic) &&
+            hasQuiz &&
             !isAdminSession() &&
             !practiceUnlocked(loadLocalStars(tierTopic.id));
           const copy = LEVEL_COPY[level];
@@ -221,7 +227,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
               aria-label={`${copy.en} difficulty${state === "done" ? ", completed" : state === "lock" ? activityUnlocked ? ", locked" : ", locked until the previous activity is completed" : needsQuiz ? ", vocabulary quiz required" : ""}`}
               onClick={(event) => {
                 event.stopPropagation();
-                onLevelSelect(t, level, needsQuiz ? { startAtQuiz: true } : undefined);
+                onLevelSelect(t, level, hasQuiz ? { startAtQuiz: true } : undefined);
               }}
             >
               {content}
