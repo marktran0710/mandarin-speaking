@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import TopicSelector, { type TopicStartOptions } from "../components/TopicSelector";
 import StoryRecorder, { type NewAudioRecord } from "../components/story-recorder/StoryRecorder";
 import { HelpRequest } from "../services/database";
 import { loadPublishedTeacherTopics, storyToTopic } from "../utils/teacherStories";
 import type { Topic } from "../components/TopicSelector";
-import { getStudentId, getStudentName } from "../utils/studentSession";
+import { getStudentId, getStudentName, saveLastScenePhase } from "../utils/studentSession";
 import { isStoryLevelUnlocked } from "../utils/storyLevelProgress";
 import "./CreateStoryPage.css";
 import "../components/BiLabel.css";
@@ -55,6 +55,30 @@ export default function CreateStoryPage({
   const [selectedImageIndex, setSelectedImageIndex] =
     useState<number>(safeInitialIndex);
   const [startAtQuiz, setStartAtQuiz] = useState(initialStartAtQuiz);
+  const storyHistoryEntry = useRef(false);
+
+  const resetToTopicList = useCallback(() => {
+    onPanelScrollBoundary?.();
+    setSelectedTopic(null);
+    setStartAtQuiz(false);
+    setSelectedImage("");
+    setSelectedImageIndex(0);
+  }, [onPanelScrollBoundary]);
+
+  // Story selection is an in-page state change rather than a URL route, so
+  // create one history entry for it. This makes the session header's Back
+  // control behave like a real page back, including the browser Back button,
+  // without sending the learner to an unrelated external history entry.
+  useEffect(() => {
+    const handlePopState = () => {
+      if (!storyHistoryEntry.current) return;
+      storyHistoryEntry.current = false;
+      resetToTopicList();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [resetToTopicList]);
   useEffect(() => {
     onSessionActiveChange?.(Boolean(selectedTopic));
     return () => onSessionActiveChange?.(false);
@@ -94,6 +118,21 @@ export default function CreateStoryPage({
     // A newly opened activity is a new page-level task; start the student at
     // its header instead of preserving the catalogue's scroll position.
     onPanelScrollBoundary?.();
+    // Choosing a story from the catalogue starts a new activity decision.
+    // Clear any remembered in-story phase so an earlier Speaking/Quiz session
+    // cannot hide the Vocabulary Quiz vs Speaking Practice chooser.
+    if (!options?.startAtQuiz) saveLastScenePhase(topic.id, "overview");
+    if (typeof window !== "undefined" && !storyHistoryEntry.current) {
+      window.history.pushState(
+        {
+          ...(window.history.state ?? {}),
+          mandarinPractice: { topicId: topic.id },
+        },
+        "",
+        window.location.href,
+      );
+      storyHistoryEntry.current = true;
+    }
     setSelectedTopic(topic);
     setStartAtQuiz(Boolean(options?.startAtQuiz));
     setSelectedImage(topic.images[0]);
@@ -119,11 +158,11 @@ export default function CreateStoryPage({
   };
 
   const handleBack = () => {
-    onPanelScrollBoundary?.();
-    setSelectedTopic(null);
-    setStartAtQuiz(false);
-    setSelectedImage("");
-    setSelectedImageIndex(0);
+    if (storyHistoryEntry.current && typeof window !== "undefined") {
+      window.history.back();
+      return;
+    }
+    resetToTopicList();
   };
 
   return (
@@ -136,6 +175,8 @@ export default function CreateStoryPage({
         />
       ) : (
         <div className="csp-recorder-body">
+          {/* The catalogue chooses the story; this overview chooses the
+            activity the student wants to do next. */}
           <StoryRecorder
             topic={selectedTopic}
             selectedImage={selectedImage}

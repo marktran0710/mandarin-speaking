@@ -36,7 +36,7 @@
     max-height: 100%;
     /* The panel is the page's outer surface, so it uses only the intentional
        4px canvas reveal. Its internal regions keep the normal token gaps. */
-    margin-block: var(--space-2xs);
+    margin-block: var(--space-sm);
     padding: 0;
     overflow-x: hidden;
     overflow-y: auto;
@@ -45,7 +45,7 @@
     border: 1px solid var(--clay-hairline);
     border-radius: var(--clay-radius-lg);
     background: var(--clay-surface-card);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md);
   }
 
   .student-workspace-v2 > #student-workspace-panel > * {
@@ -143,9 +143,30 @@
     overflow: hidden;
   }
 
+  /* A question run can legitimately be taller than a short laptop viewport.
+     Let the panel's existing outer scroller own that overflow instead of
+     clipping the final answer row inside the story shell. */
+  .student-workspace-v2 > #student-workspace-panel > .create-story-page:has(.vocab-quiz-question-screen),
+  .student-workspace-v2 > #student-workspace-panel .csp-recorder-body:has(.vocab-quiz-question-screen),
+  .student-workspace-v2 > #student-workspace-panel .story-recorder:has(.vocab-quiz-question-screen) {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .story-session-main:has(.vocab-quiz-question-screen) {
+    flex: 0 0 auto;
+    height: auto;
+    overflow: visible;
+  }
+
   .student-workspace-v2 > #student-workspace-panel .story-session-main:has(> .practice-stage) {
     display: flex;
     flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
   }
 
   .student-workspace-v2 > #student-workspace-panel .practice-stage {
@@ -189,6 +210,11 @@
   .student-workspace-v2 > #student-workspace-panel .practice-stage:has(> .practice-workspace-study) {
     display: flex;
     flex-direction: column;
+    /* Study content should hug its own reference material. A flexible stage
+       plus a 1fr first grid row leaves a large empty band before the footer
+       whenever the vocabulary/phrase set is short. Speaking and Results keep
+       the flexible stage contract below because their panels can scroll. */
+    flex: 0 0 auto;
     height: auto;
     min-height: 0;
     overflow: visible;
@@ -196,10 +222,10 @@
 
   .student-workspace-v2 > #student-workspace-panel .practice-stage > .practice-workspace-study {
     display: grid;
-    grid-template-columns: var(--story-session-media-track) minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(280px, 40fr) minmax(0, 60fr);
+    grid-template-rows: auto auto;
     align-items: stretch;
-    flex: 1 1 0;
+    flex: 0 0 auto;
     min-height: 0;
     padding: var(--space-sm) var(--space-md) var(--space-md);
     gap: var(--space-md);
@@ -246,6 +272,13 @@
     min-height: 0;
     max-height: none;
     aspect-ratio: 4 / 3;
+  }
+
+  /* Study is a compact reference desk. The 16:10 frame keeps the scene
+     legible while leaving the study footer in the first viewport on laptop
+     heights; speaking retains the taller 4:3 frame below. */
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image {
+    aspect-ratio: 16 / 9;
   }
 
   .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen :is(.sfc-record-main, .sfc-results-main, .sfc-analyzing-main) {
@@ -306,7 +339,7 @@
 
   .student-workspace-v2 > #student-workspace-panel .practice-workspace-study .scene-vocab-table-practice {
     min-height: 0;
-    max-block-size: calc(var(--space-3xl) * 6);
+    max-block-size: calc(var(--space-2xl) * 5);
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -325,6 +358,69 @@
     align-self: end;
     margin: 0;
     padding-top: var(--space-sm);
+  }
+}
+
+/* Learner practice visual language: one ivory canvas, one white frame, and
+   quiet semantic surfaces inside it. These scoped rules keep the shared
+   student shell readable without changing the lesson flow. */
+@media (min-width: 901px) {
+  .student-workspace-v2 > #student-workspace-panel .practice-workspace-study {
+    gap: var(--space-lg);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-study-block {
+    padding: var(--space-md);
+    border-radius: var(--clay-radius-md);
+    box-shadow: none;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-vocab-ref {
+    background: var(--clay-surface-card);
+    border-color: var(--clay-hairline);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-phrases-hint-full {
+    background: color-mix(in srgb, var(--tone1-soft) 72%, var(--clay-surface-card));
+    border-color: var(--tone1);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .scene-vocab-row-practice {
+    min-height: 44px;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+    border-color: var(--clay-hairline-soft);
+    background: transparent;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-phrase-row {
+    padding-block: var(--space-sm);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-phrase-text {
+    font-size: var(--text-lg);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-phrase-translation {
+    font-size: var(--text-md);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-footer {
+    padding-top: var(--space-md);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .ui-button.btn-scene-step-continue {
+    border-radius: var(--clay-radius-pill);
+    background: var(--clay-primary);
+    color: var(--clay-on-seal);
+  }
+}
+
+@media (max-width: 900px) {
+  .student-workspace-v2 > #student-workspace-panel {
+    margin: 0;
+    border-radius: var(--clay-radius-md);
+    box-shadow: none;
   }
 }
 

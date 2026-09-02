@@ -11,16 +11,60 @@ const LEVEL_COPY: Record<"easy" | "medium" | "hard", { zh: string; pinyin: strin
   hard: { zh: "困難", pinyin: "Kùnnán", en: "Hard" },
 };
 
-export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [], diagnosticProgress, level = "easy", startTier, chooseWeakWords, showReview }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; diagnosticProgress?: { unlocked: boolean; requiredDiagnosticQuizzes: number; completedDiagnosticQuizzes: number } | null; alreadyCompleted?: boolean; level?: "easy" | "medium" | "hard"; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; showReview: () => void }) {
+interface WeakWordsCardProps {
+  weakEntries: VocabQuizEntry[];
+  priorityReviewWords: VocabPriorityReviewWord[];
+  chooseWeakWords: () => void;
+}
+
+function WeakWordsCard({ weakEntries, priorityReviewWords, chooseWeakWords }: WeakWordsCardProps) {
+  const aggregateWeakCount = priorityReviewWords.length || weakEntries.length;
+
+  if (weakEntries.length === 0) {
+    return (
+      <section
+        className="vocab-quiz-mode-card vocab-quiz-mode-weak_words is-empty"
+        aria-label="Weak words"
+      >
+        <span className="vocab-quiz-mode-icon">
+          <StudentIcon name="retry" size={30} />
+        </span>
+        <strong><BiLabel zh="弱項複習" pinyin="Ruòxiàng fùxí" en="Weak words" /></strong>
+        <p>
+          <BiLabel
+            zh="目前還沒有需要加強的生詞。"
+            pinyin="Mùqián hái méiyǒu xūyào jiāqiáng de shēngcí."
+            en="No weak words yet. Complete a quiz to build your review list."
+          />
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-weak_words" onClick={chooseWeakWords}>
+      <span className="vocab-quiz-mode-icon"><StudentIcon name="retry" size={30} /></span>
+      <strong><BiLabel zh={`弱項複習 (${aggregateWeakCount})`} pinyin="Ruòxiàng fùxí" en={`Weak words (${aggregateWeakCount})`} /></strong>
+      <p><BiLabel zh="這是本故事各個難度累積的弱項，會從掌握度最低的詞開始。" pinyin="Zhè shì běn gùshì gè gè nándù lěijī de ruòxiàng, huì cóng zhǎngwòdù zuì dī de cí kāishǐ." en="A cumulative list across this story's difficulty levels, starting with the words you know least." /></p>
+      {priorityReviewWords.length > 0 && <ul className="vocab-quiz-priority-list">{priorityReviewWords.map((word) => <li key={word.wordId}><span className="vocab-quiz-priority-word">{word.word}</span><span>{word.meaning || "Vocabulary review"}</span><span>{word.status.replace("_", " ").toLowerCase()} · {word.observationCount} observations</span></li>)}</ul>}
+      <StudentIcon name="arrow-right" size={18} />
+    </button>
+  );
+}
+
+export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [], level = "easy", startTier, chooseWeakWords, showReview }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; alreadyCompleted?: boolean; level?: "easy" | "medium" | "hard"; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; showReview: () => void }) {
   return <section className="story-vocab-quiz vocab-quiz-mode-select" aria-label="Vocabulary quiz">
     <div className="vocab-quiz-header"><div className="vocab-quiz-header-tags"><p className="eyebrow"><BiLabel zh="生詞測驗" pinyin="Shēngcí cèyàn" en="Vocabulary Quiz" /></p><p className="vocab-quiz-level-badge"><BiLabel zh={LEVEL_COPY[level].zh} pinyin={LEVEL_COPY[level].pinyin} en={LEVEL_COPY[level].en} /></p></div><h1 className="vocab-quiz-mode-title">{practiceUnlocked(stars)
       ? <BiLabel zh="三顆星都拿到了！" pinyin="Sān kē xīng dōu nádào le!" en="All three stars earned" />
       : <BiLabel zh="拿到三顆星，開始說話練習" pinyin="Nádào sān kē xīng, kāishǐ shuōhuà liànxí" en="Earn three stars to open speaking practice" />}</h1><p className="vocab-quiz-star-count" aria-label={`${stars} of 3 stars earned`}>{([1, 2, 3] as const).map((tier) => <span key={tier} className={stars >= tier ? "star-earned" : "star-open"}><StudentIcon name="star" size={26} fill={stars >= tier ? "currentColor" : "none"} /></span>)}</p></div>
-    {diagnosticProgress && <section className="vocab-quiz-diagnostic-progress" aria-label="Weak Words diagnostic progress"><strong>Personalized review</strong><p>Complete all 3 Easy quizzes to unlock personalized Weak Words.</p><div className="vocab-quiz-diagnostic-steps">{Array.from({ length: diagnosticProgress.requiredDiagnosticQuizzes }, (_, index) => <span key={index} className={index < diagnosticProgress.completedDiagnosticQuizzes ? "is-complete" : ""}>{index < diagnosticProgress.completedDiagnosticQuizzes && <StudentIcon name="check-circle" size={14} aria-hidden="true" />} Easy Quiz {index + 1}</span>)}</div></section>}
     <div className="vocab-quiz-mode-grid" role="group" aria-label="Quiz mode">{TIER_CARDS.map((card) => { const config = TIER_CONFIGS[card.mode]; const unlocked = isTierUnlocked(config.tier, stars); const earned = stars >= config.tier; return <button key={card.mode} type="button" className={`vocab-quiz-mode-card vocab-quiz-mode-${card.mode}${unlocked ? "" : " is-locked"}${earned ? " is-earned" : ""}`} disabled={!unlocked} onClick={() => startTier(card.mode)}><span className="vocab-quiz-mode-icon"><StudentIcon name={unlocked ? card.iconName : "lock"} size={30} /></span><strong><BiLabel zh={card.title} pinyin={card.titlePinyin} en={card.titleEn} />{earned && <StudentIcon name="check-circle" size={15} aria-label="Star earned" />}</strong><p>{unlocked ? <BiLabel zh={card.desc} pinyin={card.descPinyin} en={card.descEn} /> : <BiLabel zh={`先拿到 ${config.tier - 1} 顆星。`} pinyin={`Xiān nádào ${config.tier - 1} kē xīng.`} en={`Earn ${config.tier - 1} star${config.tier - 1 === 1 ? "" : "s"} first.`} />}</p></button>; })}
       <div className="vocab-quiz-secondary-grid">
         <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-review" onClick={showReview}><span className="vocab-quiz-mode-icon"><StudentIcon name={REVIEW_CARD.iconName} size={30} /></span><strong><BiLabel zh={REVIEW_CARD.title} pinyin={REVIEW_CARD.titlePinyin} en={REVIEW_CARD.titleEn} /></strong><p><BiLabel zh={REVIEW_CARD.desc} pinyin={REVIEW_CARD.descPinyin} en={REVIEW_CARD.descEn} /></p><StudentIcon name="arrow-right" size={18} /></button>
-        {(!diagnosticProgress || diagnosticProgress.unlocked) && weakEntries.length > 0 && <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-weak_words" onClick={chooseWeakWords}><span className="vocab-quiz-mode-icon"><StudentIcon name="retry" size={30} /></span><strong><BiLabel zh={`弱項複習 (${weakEntries.length})`} pinyin="Ruòxiàng fùxí" en={`Weak words (${weakEntries.length})`} /></strong><p><BiLabel zh="依照你目前的學習狀態，優先練習掌握度最低的詞。" pinyin="Yīzhào nǐ mùqián de xuéxí zhuàngtài, yōuxiān liànxí zhǎngwòdù zuì dī de cí." en="Personalized from your current mastery, starting with the lowest-priority words." /></p>{priorityReviewWords.length > 0 && <ul className="vocab-quiz-priority-list">{priorityReviewWords.map((word) => <li key={word.wordId}><span className="vocab-quiz-priority-word">{word.word}</span><span>{word.meaning || "Vocabulary review"}</span><span>{word.status.replace("_", " ").toLowerCase()} · {word.observationCount} observations</span></li>)}</ul>}<StudentIcon name="arrow-right" size={18} /></button>}
+        <WeakWordsCard
+          weakEntries={weakEntries}
+          priorityReviewWords={priorityReviewWords}
+          chooseWeakWords={chooseWeakWords}
+        />
       </div>
     </div>
   </section>;

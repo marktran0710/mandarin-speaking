@@ -105,7 +105,6 @@ export function useQuizSession({
 
   const [weakWords, setWeakWords] = useState<string[]>([]);
   const [priorityReviewWords, setPriorityReviewWords] = useState<VocabPriorityReviewWord[]>([]);
-  const [diagnosticProgress, setDiagnosticProgress] = useState<{ unlocked: boolean; requiredDiagnosticQuizzes: number; completedDiagnosticQuizzes: number } | null>(null);
   const [weakWordsReady, setWeakWordsReady] = useState(false);
   useEffect(() => {
     if (!storyId || !canUseDatabase()) {
@@ -113,12 +112,15 @@ export function useQuizSession({
       return;
     }
     let cancelled = false;
-    getVocabQuizWeakWords(storyId, { studentId, studentName })
-      .then((words) => { if (!cancelled) { setWeakWords(words); setPriorityReviewWords(words.priorityReview ?? []); setDiagnosticProgress(words.diagnostic ?? null); } })
-      .catch(() => { /* the weak-words card stays hidden */ })
+    // Weak Words is a story-wide summary. Medium/Hard topic ids are only
+    // presentation tiers, so the API must receive the source story id and
+    // aggregate every tier into one learner list.
+    getVocabQuizWeakWords(baseStoryId ?? storyId, { studentId, studentName })
+      .then((words) => { if (!cancelled) { setWeakWords(words); setPriorityReviewWords(words.priorityReview ?? []); } })
+      .catch(() => { /* the always-visible card falls back to its empty state */ })
       .finally(() => { if (!cancelled) setWeakWordsReady(true); });
     return () => { cancelled = true; };
-  }, [storyId, studentId, studentName]);
+  }, [storyId, baseStoryId, studentId, studentName]);
 
   const sessionReady = starsReady && weakWordsReady;
 
@@ -247,7 +249,7 @@ export function useQuizSession({
 
   return {
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
-    question, index, selected, results, timeLeftMs, stars, weakEntries, priorityReviewWords, diagnosticProgress, missedWords,
+    question, index, selected, results, timeLeftMs, stars, weakEntries, priorityReviewWords, missedWords,
     missedEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
     speakWord, chooseMode, startTier, practiceMissedWords, sessionReady,
   };

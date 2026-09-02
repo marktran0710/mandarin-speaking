@@ -70,11 +70,14 @@ async def get_student_priority_review_words(
     student_id: str,
     review_count: Optional[int] = None,
     story_id: Optional[str] = None,
+    include_all: bool = False,
     identity: auth.Identity = Depends(auth.get_current_identity),
 ):
     """Return learner-relative Bottom-K BKT review priorities."""
     _assert_student_scope(identity, student_id)
     options = {key: value for key, value in (("reviewCount", review_count), ("storyId", story_id)) if value is not None}
+    if include_all:
+        options["includeAllWeak"] = True
     with connect_db() as db:
         return get_priority_review_words(db, student_id, options)
 
@@ -106,11 +109,12 @@ async def get_seen_vocabulary_items(
 @router.get("/api/vocab-quiz-attempts/weak-words")
 async def get_weak_words(
     story_id: str,
+    include_all: bool = False,
     identity: auth.Identity = Depends(auth.require_student),
 ):
     """Compatibility-shaped response backed by guarded standard BKT."""
     with connect_db() as db:
-        result = get_priority_review_words(db, identity.id, {"storyId": story_id})
+        result = get_priority_review_words(db, identity.id, {"storyId": story_id, "includeAllWeak": include_all})
     return {
         "words": [word["word"] for word in result["words"]],
         "diagnostic": {

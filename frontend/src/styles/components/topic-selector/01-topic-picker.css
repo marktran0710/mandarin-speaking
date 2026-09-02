@@ -3,7 +3,7 @@
   position: relative;
   isolation: isolate;
   min-height: 100%;
-  padding: var(--space-xl) 0 var(--space-3xl);
+  padding: var(--space-lg) 0 var(--space-2xl);
   overflow-x: clip;
   background:
     radial-gradient(circle at 92% 4%, color-mix(in srgb, var(--gold-soft) 54%, transparent), transparent 22rem),

@@ -17,6 +17,42 @@ def normalize_word_id(value: str) -> str:
     return " ".join(unicodedata.normalize("NFKC", value).strip().split())
 
 
+def canonical_story_id(story_id: str | None) -> str | None:
+    """Return the source story id behind a teacher/topic tier id."""
+    if not story_id:
+        return None
+    value = str(story_id).strip()
+    if value.startswith("teacher-"):
+        value = value[len("teacher-"):]
+    for suffix in ("-medium", "-hard"):
+        if value.endswith(suffix):
+            value = value[: -len(suffix)]
+            break
+    return value or None
+
+
+def story_scope_ids(story_id: str | None) -> list[str]:
+    """All legacy/current ids that represent one story's learning scope."""
+    if not story_id:
+        return []
+    canonical = canonical_story_id(story_id)
+    if not canonical:
+        return [str(story_id)]
+    return sorted({
+        str(story_id),
+        canonical,
+        f"teacher-{canonical}",
+        f"teacher-{canonical}-medium",
+        f"teacher-{canonical}-hard",
+    })
+
+
+def _lesson_scope_filter(story_id: str | None) -> tuple[str, list[Any]]:
+    if not story_id:
+        return "", []
+    return " AND lesson_id = ANY(%s)", [story_scope_ids(story_id)]
+
+
 def _word_id(result: dict[str, Any]) -> str | None:
     concept = result.get("conceptId") or result.get("concept_id") or result.get("word")
     if not isinstance(concept, str) or not concept.strip():
@@ -127,9 +163,10 @@ def upsert_raw_responses(db: Any, rows: Iterable[dict[str, Any]]) -> None:
         )
 
 
-def _ordered_responses(db: Any, student_id: str) -> list[dict[str, Any]]:
+def _ordered_responses(db: Any, student_id: str, story_id: str | None = None) -> list[dict[str, Any]]:
+    scope_filter, scope_params = _lesson_scope_filter(story_id)
     return list(db.execute(
-        """
+        f"""
         SELECT id, student_id, word_id, word, lesson_id, quiz_id, attempt_id,
                item_id, question_type, diagnostic_exposure_id, bkt_eligible, correct, response_time_ms, occurred_at,
                attempt_order, quiz_level, quiz_mode
@@ -139,15 +176,14 @@ def _ordered_responses(db: Any, student_id: str) -> list[dict[str, Any]]:
             (lower(COALESCE(quiz_level, '')) = 'easy' AND quiz_mode IN ('tier1', 'tier2', 'tier3') AND bkt_eligible = TRUE)
             OR quiz_mode = 'weak_words'
           )
+          {scope_filter}
         ORDER BY occurred_at ASC NULLS LAST, id ASC, attempt_order ASC
         """,
-        (student_id,),
+        [student_id, *scope_params],
     ).fetchall())
 
 
-def rebuild_student_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CONFIG) -> None:
-    """Rebuild one learner's cache entirely from the raw response ledger."""
-    responses = _ordered_responses(db, student_id)
+def _group_response_history(responses: Iterable[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     seen_diagnostic_exposures: set[tuple[str, str]] = set()
     for response in responses:
@@ -158,13 +194,36 @@ def rebuild_student_vocabulary_mastery(db: Any, student_id: str, params: BktConf
                 continue
             seen_diagnostic_exposures.add(exposure_key)
         grouped[response["word_id"]].append(response)
+    return grouped
 
-    db.execute("DELETE FROM student_vocab_mastery WHERE student_id = %s", (student_id,))
-    now = datetime.now(timezone.utc).isoformat()
-    for word_id, history in grouped.items():
+
+def _mastery_states_from_responses(responses: Iterable[dict[str, Any]], params: BktConfig) -> dict[str, dict[str, Any]]:
+    states: dict[str, dict[str, Any]] = {}
+    for word_id, history in _group_response_history(responses).items():
         p_learned = replay_bkt((bool(row["correct"]) for row in history), params)
         last = history[-1]
         correct_count = sum(1 for row in history if row["correct"])
+        states[word_id] = {
+            "word_id": word_id,
+            "p_learned": p_learned,
+            "observation_count": len(history),
+            "correct_count": correct_count,
+            "incorrect_count": len(history) - correct_count,
+            "last_response_at": last["occurred_at"],
+            "last_item_id": last["item_id"],
+            "last_question_type": last["question_type"],
+            "last_lesson_id": last["lesson_id"],
+        }
+    return states
+
+
+def rebuild_student_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CONFIG) -> None:
+    """Rebuild one learner's cache entirely from the raw response ledger."""
+    states = _mastery_states_from_responses(_ordered_responses(db, student_id), params)
+
+    db.execute("DELETE FROM student_vocab_mastery WHERE student_id = %s", (student_id,))
+    now = datetime.now(timezone.utc).isoformat()
+    for state in states.values():
         db.execute(
             """
             INSERT INTO student_vocab_mastery
@@ -174,9 +233,9 @@ def rebuild_student_vocabulary_mastery(db: Any, student_id: str, params: BktConf
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
-                student_id, word_id, p_learned, len(history), correct_count,
-                len(history) - correct_count, last["occurred_at"], last["item_id"],
-                last["question_type"], last["lesson_id"], now, now,
+                student_id, state["word_id"], state["p_learned"], state["observation_count"], state["correct_count"],
+                state["incorrect_count"], state["last_response_at"], state["last_item_id"],
+                state["last_question_type"], state["last_lesson_id"], now, now,
             ),
         )
 
@@ -192,42 +251,46 @@ def record_attempt_and_rebuild(db: Any, attempt: Any, student_id: str, params: B
     rebuild_student_vocabulary_mastery(db, student_id, params)
 
 
-def _completed_diagnostic_quizzes(db: Any, student_id: str, params: BktConfig = BKT_CONFIG) -> int:
+def _completed_diagnostic_quizzes(db: Any, student_id: str, story_id: str | None = None, params: BktConfig = BKT_CONFIG) -> int:
+    scope_filter, scope_params = _lesson_scope_filter(story_id)
     row = db.execute(
-        """
+        f"""
         SELECT COUNT(DISTINCT quiz_mode) AS count
         FROM vocab_quiz_responses
         WHERE student_id = %s AND lower(COALESCE(quiz_level, '')) = 'easy'
           AND quiz_mode IN ('tier1', 'tier2', 'tier3')
           AND bkt_eligible = TRUE
+          {scope_filter}
         """,
-        (student_id,),
+        [student_id, *scope_params],
     ).fetchone()
     return min(int(row["count"] if row else 0), params.required_diagnostic_quizzes)
 
 
 def has_completed_weak_word_diagnostic(db: Any, student_id: str, params: BktConfig = BKT_CONFIG) -> bool:
     """Return whether the learner has completed all validated Easy tier slots."""
-    return _completed_diagnostic_quizzes(db, student_id, params) >= params.required_diagnostic_quizzes
+    return _completed_diagnostic_quizzes(db, student_id, params=params) >= params.required_diagnostic_quizzes
 
 
 def diagnostic_status(db: Any, student_id: str, story_id: str | None = None, params: BktConfig = BKT_CONFIG) -> dict[str, Any]:
-    completed = _completed_diagnostic_quizzes(db, student_id, params)
+    completed = _completed_diagnostic_quizzes(db, student_id, story_id=story_id, params=params)
     known = _known_words(db, story_id=story_id)
     # A unit-test or a newly published lesson may not have a row in
     # custom_stories yet. In that narrow case, use the server-validated words
     # already observed for this learner as the temporary coverage universe;
     # never use unvalidated raw attempts to create the universe.
     if not known:
+        scope_filter, scope_params = _lesson_scope_filter(story_id)
         observed_words = db.execute(
-            """
+            f"""
             SELECT DISTINCT word_id, word, lesson_id
             FROM vocab_quiz_responses
             WHERE student_id = %s AND bkt_eligible = TRUE
               AND lower(COALESCE(quiz_level, '')) = 'easy'
               AND quiz_mode IN ('tier1', 'tier2', 'tier3')
+              {scope_filter}
             """,
-            (student_id,),
+            [student_id, *scope_params],
         ).fetchall()
         known = {
             row["word_id"]: {
@@ -238,17 +301,19 @@ def diagnostic_status(db: Any, student_id: str, story_id: str | None = None, par
             }
             for row in observed_words
         }
+    scope_filter, scope_params = _lesson_scope_filter(story_id)
     coverage = {
         row["word_id"]: int(row["count"])
         for row in db.execute(
-            """
+            f"""
             SELECT word_id, COUNT(DISTINCT item_id || ':' || COALESCE(diagnostic_exposure_id, quiz_id || ':' || quiz_mode)) AS count
             FROM vocab_quiz_responses
             WHERE student_id = %s AND lower(COALESCE(quiz_level, '')) = 'easy'
               AND quiz_mode IN ('tier1', 'tier2', 'tier3') AND bkt_eligible = TRUE
+              {scope_filter}
             GROUP BY word_id
             """,
-            (student_id,),
+            [student_id, *scope_params],
         ).fetchall()
     }
     return {
@@ -256,7 +321,7 @@ def diagnostic_status(db: Any, student_id: str, story_id: str | None = None, par
         # reported separately so sparse quiz structure does not pretend every
         # published word was assessed; only sufficiently observed words can
         # enter Bottom-K below.
-        "unlocked": has_completed_weak_word_diagnostic(db, student_id, params),
+        "unlocked": completed >= params.required_diagnostic_quizzes,
         "requiredDiagnosticQuizzes": params.required_diagnostic_quizzes,
         "completedDiagnosticQuizzes": completed,
         "requiredWords": len(known),
@@ -268,46 +333,53 @@ def diagnostic_status(db: Any, student_id: str, story_id: str | None = None, par
 def _known_words(db: Any, story_id: str | None = None) -> dict[str, dict[str, Any]]:
     """Read the current published vocabulary pool without inventing evidence."""
     known: dict[str, dict[str, Any]] = {}
-    query = "SELECT id, lesson_number, frames FROM custom_stories WHERE published = TRUE"
+    query = "SELECT id, lesson_number, frames, story_vocabulary FROM custom_stories WHERE published = TRUE"
     params: list[Any] = []
     if story_id:
-        query += " AND id = %s"
-        # Student topic ids prefix teacher stories while the database stores
-        # the underlying story id. Resolve both forms without widening the
-        # vocabulary scope to an unrelated story.
-        query = "SELECT id, lesson_number, frames FROM custom_stories WHERE published = TRUE AND (id = %s OR %s = 'teacher-' || id OR left(%s, length('teacher-' || id || '-')) = 'teacher-' || id || '-')"
-        params = [story_id, story_id, story_id]
+        canonical = canonical_story_id(story_id)
+        query += " AND (id = %s OR id = %s)"
+        params = [canonical or story_id, story_id]
     stories = db.execute(query, params).fetchall()
     for story in stories:
-        for frame in story.get("frames") or []:
-            if not isinstance(frame, dict):
-                continue
-            words = frame.get("vocabulary") or ""
-            translations = frame.get("vocabularyTranslation") or ""
-            word_list = [part.strip() for part in words.split(",") if part.strip()] if isinstance(words, str) else []
-            meaning_list = [part.strip() for part in translations.split(",") if part.strip()] if isinstance(translations, str) else []
+        def add_words(raw_words: Any, raw_translations: Any) -> None:
+            word_list = [part.strip() for part in raw_words.split(",") if part.strip()] if isinstance(raw_words, str) else []
+            meaning_list = [part.strip() for part in raw_translations.split(",") if part.strip()] if isinstance(raw_translations, str) else []
             for index, word in enumerate(word_list):
                 known.setdefault(normalize_word_id(word), {
                     "word": word,
                     "meaning": meaning_list[index] if index < len(meaning_list) else None,
-                    "lessonId": story_id or story["id"],
+                    "lessonId": story["id"],
                     "lessonNumber": story.get("lesson_number"),
                 })
+
+        for frame in story.get("frames") or []:
+            if not isinstance(frame, dict):
+                continue
+            for suffix in ("", "Medium", "Hard"):
+                add_words(frame.get(f"vocabulary{suffix}"), frame.get(f"vocabularyTranslation{suffix}"))
+        for tier_content in (story.get("story_vocabulary") or {}).values():
+            if isinstance(tier_content, dict):
+                add_words(tier_content.get("vocabulary"), tier_content.get("vocabularyTranslation"))
     return known
 
 
 def get_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CONFIG, story_id: str | None = None) -> list[dict[str, Any]]:
-    states = {row["word_id"]: dict(row) for row in db.execute(
-        "SELECT * FROM student_vocab_mastery WHERE student_id = %s", (student_id,)
-    ).fetchall()}
+    if story_id:
+        # The cache is intentionally pooled for the dashboard, but a story
+        # review must replay this story's full ledger so one identical word
+        # in another story cannot change this story's weak-word decision.
+        states = _mastery_states_from_responses(_ordered_responses(db, student_id, story_id=story_id), params)
+    else:
+        states = {row["word_id"]: dict(row) for row in db.execute(
+            "SELECT * FROM student_vocab_mastery WHERE student_id = %s", (student_id,)
+        ).fetchall()}
     known = _known_words(db, story_id=story_id)
+    scope_filter, scope_params = _lesson_scope_filter(story_id)
     raw_words = db.execute(
-        "SELECT DISTINCT word_id, word, lesson_id FROM vocab_quiz_responses WHERE student_id = %s",
-        (student_id,),
+        f"SELECT DISTINCT word_id, word, lesson_id FROM vocab_quiz_responses WHERE student_id = %s{scope_filter}",
+        [student_id, *scope_params],
     ).fetchall()
     for row in raw_words:
-        if story_id and row.get("lesson_id") not in {story_id}:
-            continue
         known.setdefault(row["word_id"], {"word": row["word"], "meaning": None, "lessonId": row["lesson_id"], "lessonNumber": None})
 
     result: list[dict[str, Any]] = []
@@ -332,13 +404,14 @@ def get_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CON
     seen_types = {
         row["word_id"]: row["types"]
         for row in db.execute(
-            """
+            f"""
             SELECT word_id, ARRAY_AGG(DISTINCT question_type) AS types
             FROM vocab_quiz_responses
             WHERE student_id = %s
+              {scope_filter}
             GROUP BY word_id
             """,
-            (student_id,),
+            [student_id, *scope_params],
         ).fetchall()
     }
     for row in result:
@@ -357,8 +430,16 @@ def get_priority_review_words(db: Any, student_id: str, options: dict[str, Any] 
     diagnostic = diagnostic_status(db, student_id, story_id=options.get("storyId"), params=params)
     story_id = options.get("storyId")
     mastery = get_vocabulary_mastery(db, student_id, params, story_id=story_id)
-    eligible = [row for row in mastery if row["observationCount"] >= params.minimum_observations and row["pLearned"] < params.mastery_threshold]
-    selected = eligible[:review_count] if diagnostic["unlocked"] else []
+    include_all_weak = bool(options.get("includeAllWeak"))
+    eligible = [
+        row for row in mastery
+        if row["pLearned"] < params.mastery_threshold
+        and (
+            row["observationCount"] >= params.minimum_observations
+            or (include_all_weak and row["incorrectCount"] > 0)
+        )
+    ]
+    selected = eligible if include_all_weak and diagnostic["unlocked"] else eligible[:review_count] if diagnostic["unlocked"] else []
     selected_ids = {row["wordId"] for row in selected}
     for row in mastery:
         row["status"] = mastery_status(row["observationCount"], row["pLearned"], selected_for_review=row["wordId"] in selected_ids, params=params)

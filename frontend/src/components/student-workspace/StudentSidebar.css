@@ -8,11 +8,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xl);
-  width: 208px;
+  width: 192px;
   height: 100%;
-  padding: var(--space-xl) var(--space-sm) var(--space-lg);
+  padding: var(--space-lg) var(--space-sm) var(--space-md);
   border-right: 1px solid var(--clay-hairline);
-  background: color-mix(in srgb, var(--clay-surface-soft) 70%, var(--clay-surface-card));
+  background: var(--clay-surface-soft);
 }
 
 .student-sidebar-brand {
@@ -20,7 +20,7 @@
   grid-template-columns: 34px minmax(0, 1fr);
   align-items: center;
   gap: var(--space-xs);
-  padding: 0 var(--space-xs) var(--space-lg);
+  padding: 0 var(--space-xs) var(--space-md);
   border-bottom: 1px solid var(--clay-hairline);
 }
 
@@ -53,7 +53,7 @@
 .student-sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
 }
 
 .student-sidebar-item {
@@ -120,7 +120,7 @@
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-soft);
+  background: var(--clay-surface-card);
 }
 
 .student-sidebar-progress-label {

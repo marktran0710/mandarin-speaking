@@ -125,6 +125,26 @@ def test_bkt_update_matches_expected_posterior_and_learning_transition():
     assert state["mastery"] == pytest.approx(expected_mastery)
 
 
+def test_bkt_keeps_student_and_concept_histories_isolated():
+    model = BKT(BKTParameters(prior=0.2, learn=0.1, guess=0.2, slip=0.1))
+
+    model.update(record(True, student="student-a", concept="word-a"))
+
+    assert model.mastery_for("student-a", "word-a") > 0.2
+    assert model.mastery_for("student-a", "word-b") == pytest.approx(0.2)
+    assert model.mastery_for("student-b", "word-a") == pytest.approx(0.2)
+
+
+def test_bkt_observe_predicts_before_applying_the_current_response():
+    model = BKT(BKTParameters(prior=0.2, learn=0.1, guess=0.2, slip=0.1))
+
+    observed = model.observe(record(True))
+
+    assert observed["prediction"] == pytest.approx(0.34)
+    assert observed["state"]["prior_mastery"] == pytest.approx(0.2)
+    assert model.mastery_for("s1", "c1") == observed["state"]["mastery"]
+
+
 def test_prequential_evaluation_has_bounded_metrics_and_optional_auc():
     records = [record(bool(index % 2), index) for index in range(8)]
     result = evaluate_prequential(records, model="pfa", train_fraction=0.5, include_auc=False)

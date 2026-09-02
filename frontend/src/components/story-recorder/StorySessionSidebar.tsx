@@ -131,19 +131,19 @@ export default function StorySessionSidebar({
   return (
     <div className="story-session-topbar">
       <div className="ssb-topline">
-        <span className="ssb-topic-icon" aria-hidden="true">
-          <StudentIcon name="book" size={22} />
-        </span>
         {onExit && (
           <button
             type="button"
             className="btn-story-exit"
             onClick={onExit}
-            aria-label="Back to topics"
+            aria-label="Back to previous page"
           >
             <StudentIcon name="arrow-left" size={17} />
           </button>
         )}
+        <span className="ssb-topic-icon" aria-hidden="true">
+          <StudentIcon name="book" size={22} />
+        </span>
         <span className="ssb-topic-name">{topicName}</span>
       </div>
 

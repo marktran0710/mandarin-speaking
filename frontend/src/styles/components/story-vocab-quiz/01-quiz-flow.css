@@ -2,11 +2,11 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--space-lg);
-  width: min(100%, 1060px);
-  max-width: 1060px;
+  gap: var(--space-md);
+  width: min(100%, 1200px);
+  max-width: 1200px;
   margin: 0 auto;
-  padding: var(--space-2xl) var(--space-lg) var(--space-3xl);
+  padding: var(--space-lg) var(--space-md) var(--space-xl);
   text-align: center;
 }
 /* The tier-choice screen is a focused selection surface: the story session
@@ -23,46 +23,42 @@
 .vocab-quiz-topbar {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   width: 100%;
   margin-bottom: 0;
-  padding: var(--space-sm) var(--space-md);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  background: var(--clay-surface-card);
+  padding: 0 0 var(--space-sm);
+  border: 0;
+  border-bottom: 1px solid var(--clay-hairline);
+  border-radius: 0;
+  background: transparent;
   box-sizing: border-box;
 }
 .vocab-quiz-topbar:empty { display: none; }
 
 .vocab-quiz-status-progress {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-md);
   flex: 1 1 320px;
   min-width: 0;
 }
 .vocab-quiz-status-progress .vocab-quiz-progress {
   margin: 0;
   text-align: left;
+  white-space: nowrap;
 }
 .vocab-quiz-status-progress .vq-track {
   width: 100%;
-  margin: var(--space-2xs) 0 0;
+  max-width: none;
+  margin: 0;
 }
 
-.btn-vocab-quiz-back {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: 13px;
-  font-weight: 650;
-  padding: var(--space-xs) var(--space-sm);
-  border-radius: var(--clay-radius-md);
-  cursor: pointer;
-  background: transparent;
-  color: var(--clay-muted);
-  border: 1px solid var(--clay-hairline);
-}
-.btn-vocab-quiz-back:hover {
-  background: var(--clay-surface-soft);
-  color: var(--clay-ink);
+/* Status context is already repeated by the visual track. Keep its compact
+   strip to one readable line so it does not compete with the task panels. */
+.vocab-quiz-topbar .bi-pinyin,
+.vocab-quiz-topbar .bi-en {
+  display: none;
 }
 
 .vocab-quiz-header {
@@ -74,7 +70,7 @@
 
 .vocab-quiz-content {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: stretch;
   gap: var(--space-lg);
   width: 100%;
@@ -85,6 +81,19 @@
   min-width: 0;
 }
 
+.vocab-quiz-question-panel,
+.vocab-quiz-answer-panel {
+  padding: var(--space-xl);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+}
+
+.vocab-quiz-question-panel {
+  display: flex;
+  flex-direction: column;
+}
+
 .vocab-quiz-answer-panel {
   display: flex;
   flex-direction: column;
@@ -92,7 +101,7 @@
 }
 
 .vocab-quiz-word {
-  font-size: 3.2rem;
+  font-size: clamp(var(--text-xl), 5vw, var(--space-3xl));
   font-family: var(--font-display);
   font-weight: 700;
   color: var(--gold-deep);
@@ -263,12 +272,13 @@
 
 .vocab-quiz-section-label {
   margin: 0;
-  padding-left: 2px;
-  font-size: 12px;
+  padding: 0 0 var(--space-md);
+  border-bottom: 1px solid var(--clay-hairline);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
   font-weight: 800;
-  letter-spacing: .04em;
-  text-transform: uppercase;
-  color: var(--clay-muted);
+  letter-spacing: normal;
+  color: var(--clay-ink);
 }
 
 .vocab-quiz-options {
@@ -282,15 +292,15 @@
 .vocab-quiz-option {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-sm);
+  border-radius: var(--clay-radius-md);
   background: var(--clay-surface-card);
   color: var(--clay-ink);
-  font-size: 16px;
+  font-size: var(--text-md);
   font-weight: 650;
   text-align: left;
-  padding: 0 var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
   cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
@@ -303,9 +313,10 @@
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
+  width: var(--space-xl);
+  height: var(--space-xl);
+  aspect-ratio: 1;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-soft);
   color: var(--clay-muted);
   font-size: 13px;
@@ -327,35 +338,41 @@
   align-items: stretch;
   text-align: left;
 }
+.vocab-quiz-question-screen .vocab-quiz-header .eyebrow {
+  margin: 0 0 var(--space-lg);
+  padding: 0 0 var(--space-md);
+  border-bottom: 1px solid var(--clay-hairline);
+}
+.vocab-quiz-question-screen .vocab-quiz-header .eyebrow .bi-label {
+  align-items: flex-start;
+}
+.vocab-quiz-question-screen .vocab-quiz-instruction {
+  margin-bottom: var(--space-md);
+}
 .vocab-quiz-question-screen .vocab-quiz-word {
-  min-height: 144px;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   box-sizing: border-box;
   margin: 0;
-  padding: var(--space-md);
+  padding: var(--space-2xl) var(--space-lg);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-sm);
+  border-radius: var(--clay-radius-md);
   background: var(--clay-surface-card);
 }
 .vocab-quiz-question-screen .vocab-quiz-options {
-  /* Worst-case four-option height held even when a small story fields fewer,
-     so the option under the student's finger never jumps between questions. */
-  min-height: 296px;
   align-content: start;
+  margin-top: var(--space-sm);
 }
 .vocab-quiz-question-screen .vocab-quiz-option {
-  min-height: 68px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
 }
 .vocab-quiz-question-screen .vocab-quiz-actions {
-  /* The Next/See-results button appears only after answering — hold its slot
-     so the options never jump when it lands, and anchor it to the bottom. */
-  min-height: 68px;
+  /* The action follows the answer set so it stays reachable on short screens. */
+  min-height: var(--space-3xl);
   margin-top: auto;
   align-items: flex-start;
   justify-content: flex-end;
@@ -363,11 +380,76 @@
 
 @media (min-width: 901px) {
   .vocab-quiz-content {
-    grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+    grid-template-columns: minmax(260px, .28fr) minmax(0, .72fr);
+  }
+}
+
+@media (min-width: 901px) and (max-height: 600px) {
+  /* Keep the two-panel composition usable on short laptop windows. The
+     outer workspace remains the scroll owner; this only removes secondary
+     vertical decoration from the status track and tightens row rhythm. */
+  .story-vocab-quiz {
+    gap: var(--space-sm);
+    padding-top: var(--space-sm);
+    padding-bottom: var(--space-md);
+  }
+
+  .vocab-quiz-topbar {
+    padding-bottom: var(--space-xs);
+  }
+
+  .vocab-quiz-topbar .vq-track-scale,
+  .vocab-quiz-topbar .vq-track-notch-row,
+  .vocab-quiz-topbar .vq-track-note {
+    display: none;
+  }
+
+  .vocab-quiz-topbar .vq-track-rail {
+    margin-top: 0;
+  }
+
+  .vocab-quiz-question-panel,
+  .vocab-quiz-answer-panel {
+    padding: var(--space-md);
+  }
+
+  .vocab-quiz-question-screen .vocab-quiz-header .eyebrow {
+    margin-bottom: var(--space-md);
+    padding-bottom: var(--space-xs);
+  }
+
+  .vocab-quiz-question-screen .vocab-quiz-instruction {
+    margin-bottom: var(--space-sm);
+  }
+
+  .vocab-quiz-question-screen .vocab-quiz-word {
+    padding: var(--space-lg);
+    font-size: var(--space-2xl);
+  }
+
+  .vocab-quiz-section-label {
+    padding-bottom: var(--space-xs);
+  }
+
+  .vocab-quiz-question-screen .vocab-quiz-options {
+    gap: var(--space-xs);
+    margin-top: var(--space-xs);
+  }
+
+  .vocab-quiz-question-screen .vocab-quiz-option {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .vocab-quiz-question-screen .vocab-quiz-actions {
+    min-height: var(--space-xl);
   }
 }
 
 @media (max-width: 900px) {
+  .vocab-quiz-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .vocab-quiz-topbar {
     flex-wrap: wrap;
   }
@@ -375,6 +457,8 @@
   .vocab-quiz-status-progress {
     flex-basis: 100%;
     order: 3;
+    grid-template-columns: 1fr;
+    row-gap: var(--space-xs);
   }
 
   .vocab-quiz-timer {
@@ -394,7 +478,8 @@
    happens, and tone-trap options stay in one voice with the rest of the quiz.
    Wider tracking keeps them scannable against each other. */
 .vocab-quiz-options-pinyin .vocab-quiz-option {
-  font-size: 15px;
+  font-size: var(--text-lg);
+  font-weight: 700;
   letter-spacing: 0.06em;
 }
 
@@ -412,14 +497,14 @@
   border-color: var(--jade);
   color: var(--jade-deep);
 }
-.vocab-quiz-option-correct::before { background: var(--jade); color: #fff; }
+.vocab-quiz-option-correct::before { background: var(--jade); color: var(--clay-on-accent); }
 
 .vocab-quiz-option-incorrect {
   background: var(--clay-error-soft);
   border-color: var(--clay-error);
   color: var(--clay-error);
 }
-.vocab-quiz-option-incorrect::before { background: var(--clay-error); color: #fff; }
+.vocab-quiz-option-incorrect::before { background: var(--clay-error); color: var(--clay-on-accent); }
 
 .vocab-quiz-option-neutral:disabled {
   opacity: 0.55;

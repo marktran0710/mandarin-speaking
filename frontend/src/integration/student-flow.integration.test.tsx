@@ -28,6 +28,7 @@ const workspaceProps = {
   storyTopics: [topic],
   audioRecords: [],
   onSessionActiveChange: vi.fn(),
+  onLogout: vi.fn(),
   isInPracticeSession: false,
 };
 

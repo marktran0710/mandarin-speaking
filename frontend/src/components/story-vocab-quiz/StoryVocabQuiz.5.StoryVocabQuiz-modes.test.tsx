@@ -202,8 +202,10 @@ describe("StoryVocabQuiz modes", () => {
     expect(onComplete).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: /Practice missed words/ })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Continue to practice/ }));
-    expect(onDone).toHaveBeenCalledTimes(1);
+    // A retry reinforces the words but does not earn a star or bypass the
+    // three-star speaking gate.
+    expect(screen.getByRole("button", { name: /Back to menu/ })).toBeInTheDocument();
+    expect(onDone).not.toHaveBeenCalled();
   });
 });
 

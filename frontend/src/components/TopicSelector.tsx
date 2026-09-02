@@ -195,11 +195,9 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
               : "lock";
           const tierTopic = storyToTopic(story, level, "approved");
           const hasQuiz = topicHasQuiz(tierTopic);
-          // "Needs" (still-required) is only for the aria hint; entering the
-          // tier should ALWAYS open its quiz when one exists — otherwise, once
-          // the stars are earned, the flag drops and the session resumes to the
-          // student's last phase (often Speaking), so a quiz tap lands on
-          // speaking practice instead of the quiz.
+          // "Needs" is only used for the accessibility hint. Opening a tier
+          // now shows the activity chooser first, so students can deliberately
+          // choose Vocabulary Quiz or Speaking Practice.
           const needsQuiz =
             hasQuiz &&
             !isAdminSession() &&
@@ -227,7 +225,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
               aria-label={`${copy.en} difficulty${state === "done" ? ", completed" : state === "lock" ? activityUnlocked ? ", locked" : ", locked until the previous activity is completed" : needsQuiz ? ", vocabulary quiz required" : ""}`}
               onClick={(event) => {
                 event.stopPropagation();
-                onLevelSelect(t, level, hasQuiz ? { startAtQuiz: true } : undefined);
+                onLevelSelect(t, level);
               }}
             >
               {content}
@@ -244,7 +242,6 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
     const earnedStars = loadBestLocalStars(t.id);
     const previewImage = t.images[0];
     const unlocked = isStoryUnlockedInLesson(group, index, submittedIds);
-    const hasQuiz = topicHasQuiz(t);
     const subLabel =
       group.lessonNumber != null && t.lessonSubOrder != null
         ? `${group.lessonNumber}-${t.lessonSubOrder}`
@@ -309,11 +306,11 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
             <button
               type="button"
               className="ts-card-open"
-              onClick={() => onTopicSelect(t, hasQuiz ? { startAtQuiz: true } : undefined)}
+              onClick={() => onTopicSelect(t)}
             >
               <BiLabel
-                zh={hasQuiz ? "開始生詞測驗" : "開始故事"}
-                en={hasQuiz ? "Start vocabulary quiz" : "Start story"}
+                zh="選擇活動"
+                en="Choose an activity"
               />
               <StudentIcon name="arrow-right" size={17} aria-hidden="true" />
             </button>
@@ -368,13 +365,9 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
     if (!continueTopic || !continueGroup) return null;
 
     const lessonNumber = continueGroup.lessonNumber;
-    const continueOptions = topicHasQuiz(continueTopic)
-      ? { startAtQuiz: true }
-      : undefined;
-
     const openContinueTopic = () => {
       if (lessonNumber !== null) setOpenLesson(lessonNumber);
-      onTopicSelect?.(continueTopic, continueOptions);
+      onTopicSelect?.(continueTopic);
     };
 
     return (

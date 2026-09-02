@@ -151,8 +151,8 @@ describe("StoryRecorder student prototype", () => {
     expect(screen.getByRole("region", { name: "Vocabulary quiz" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
 
-    // The story session header is now the single way out of this activity;
-    // the quiz no longer renders a duplicate "Back to activities" button.
+    // The story session header remains the way out of the lesson itself;
+    // the quiz no longer duplicates that navigation inside its surface.
     expect(screen.queryByRole("button", { name: /Back to activities/ })).not.toBeInTheDocument();
 
     // Complete the quiz ladder from the mode-select screen.

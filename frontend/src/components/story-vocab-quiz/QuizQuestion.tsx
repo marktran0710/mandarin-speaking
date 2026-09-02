@@ -27,7 +27,7 @@ type QuizQuestionProps = {
   question: VocabQuizQuestion; mode: VocabQuizMode | null; selected: string | null;
   results: VocabQuizQuestionResult[]; index: number; questionLimit: number | null;
   requestedQuestionCount: number; isRetryRound: boolean; isLast: boolean; timeLeftMs: number;
-  timeLimitMs: number | null; showFinishButton: boolean; onBack?: () => void;
+  timeLimitMs: number | null; showFinishButton: boolean;
   choose: (option: string) => void; next: () => void; finish: (results: VocabQuizQuestionResult[]) => void;
   speakWord: (text: string) => void;
 };
@@ -37,13 +37,12 @@ const instructions = {
 } as const;
 
 export function QuizQuestion(props: QuizQuestionProps) {
-  const { question, mode, selected, results, index, questionLimit, requestedQuestionCount, isRetryRound, isLast, timeLeftMs, timeLimitMs, showFinishButton, onBack, choose, next, finish, speakWord } = props;
+  const { question, mode, selected, results, index, questionLimit, requestedQuestionCount, isRetryRound, isLast, timeLeftMs, timeLimitMs, showFinishButton, choose, next, finish, speakWord } = props;
   const instruction = instructions[question.kind];
   const optionsLabel = question.kind === "translation" ? `What does ${question.word} mean?` : question.kind === "cloze" ? "Which word fits the blank?" : question.kind === "pinyin" ? `How do you read ${question.word}?` : question.kind === "pos" ? `What part of speech is ${question.word}?` : question.kind === "reverse" ? `Which word means ${question.translation}?` : question.kind === "listening" ? "Which word did you hear?" : `Which word means the same as ${question.word}?`;
   const config = !isRetryRound ? tierConfigFromMode(mode) : null;
   return <section className="story-vocab-quiz vocab-quiz-question-screen" aria-label="Vocabulary quiz">
     <div className="vocab-quiz-topbar">
-      {onBack && <button type="button" className="btn-vocab-quiz-back" onClick={onBack}><StudentIcon name="arrow-left" size={16} aria-hidden="true" /><BiLabel zh="回活動" pinyin="Huí huódòng" en="Back to activities" /></button>}
       <div className="vocab-quiz-status-progress">
         <p className="vocab-quiz-progress">{questionLimit !== null ? <BiLabel zh={`第 ${index + 1} / ${questionLimit} 題`} pinyin={`Dì ${index + 1} / ${questionLimit} tí`} en={`Question ${index + 1} of ${questionLimit}`} /> : <BiLabel zh={`第 ${index + 1} 題`} pinyin={`Dì ${index + 1} tí`} en={`Question ${index + 1}`} />}</p>
         {config && <QuizScoreTrack correct={results.filter((result) => result.correct).length} answered={results.length} config={config} totalQuestions={questionLimit ?? config.questionCount} />}

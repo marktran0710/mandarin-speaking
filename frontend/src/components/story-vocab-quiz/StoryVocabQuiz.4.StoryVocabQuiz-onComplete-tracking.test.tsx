@@ -109,8 +109,9 @@ describe("StoryVocabQuiz onComplete tracking", () => {
       expect(result.timeMs).toBeGreaterThanOrEqual(0);
     }
 
-    // Practice opens at ⭐⭐, so the road to onDone runs through tier 2 —
-    // each scored round reports its own onComplete along the way.
+    // Speaking practice opens only after all three stars, so the road to
+    // onDone continues through tier 2 and tier 3. Each scored round reports
+    // its own onComplete along the way.
     await user.click(screen.getByRole("button", { name: /Challenge Tier 2/ }));
     for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true, translationByWord);
@@ -119,6 +120,12 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(2));
     expect(onDone).not.toHaveBeenCalled();
 
+    await user.click(screen.getByRole("button", { name: /Challenge Tier 3/ }));
+    for (let i = 0; i < entries.length; i += 1) {
+      await answerCurrentQuestion(user, true, translationByWord);
+      await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
+    }
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(3));
     await user.click(screen.getByRole("button", { name: /Continue to practice/ }));
     expect(onDone).toHaveBeenCalledTimes(1);
     // A 42-question UI walk legitimately outlasts the 5s default timeout.
@@ -135,22 +142,11 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
   });
 
-  it("does not call onComplete when the student backs out instead of finishing", async () => {
-    const user = userEvent.setup();
-    const onComplete = vi.fn();
-    const onDone = vi.fn();
-    const onBack = vi.fn();
-
-    render(
-      <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} onBack={onBack} />,
-    );
+  it("does not offer a Back to activities button from the quiz flow", async () => {
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onBack={vi.fn()} />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Back to activities/ }));
-
-    expect(onBack).toHaveBeenCalledTimes(1);
-    expect(onDone).not.toHaveBeenCalled();
-    expect(onComplete).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: /Back to activities/ })).not.toBeInTheDocument();
   });
 });
 

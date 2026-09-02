@@ -56,13 +56,13 @@ vi.mock("./journey/JourneyPath", () => ({
 describe("TopicSelector entry action", () => {
   beforeEach(() => localStorage.clear());
 
-  it("opens a quiz-capable story and starts its vocabulary quiz", () => {
+  it("opens a quiz-capable story at the activity chooser", () => {
     const onTopicSelect = vi.fn();
     render(<TopicSelector onTopicSelect={onTopicSelect} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Lesson.*Lesson/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Start vocabulary quiz/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Choose an activity/ }));
 
-    expect(onTopicSelect).toHaveBeenCalledWith(topic, { startAtQuiz: true });
+    expect(onTopicSelect).toHaveBeenCalledWith(topic);
   });
 });

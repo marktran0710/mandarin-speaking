@@ -879,3 +879,26 @@
   padding: 8px 10px;
   min-height: 32px;
 }
+
+/* Teacher story builder redesign: compact, paper-like authoring workspace. */
+.teacher-content-builder { padding: var(--space-lg); border-color: var(--clay-hairline); border-radius: var(--clay-radius-xl); background: var(--clay-canvas); box-shadow: var(--shadow-sm); }
+.teacher-content-builder > .teacher-panel-header { margin-bottom: var(--space-md); padding-bottom: var(--space-sm); border-bottom: 1px solid var(--clay-hairline); }
+.teacher-content-builder .stories-kicker, .teacher-content-builder .queue-count { color: var(--seal-deep); font-size: var(--text-xs); font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; }
+.teacher-content-builder .teacher-panel-header h2 { color: var(--clay-ink); font-family: var(--font-display); font-size: var(--text-xl); line-height: 1.15; }
+.teacher-builder-layout { grid-template-columns: minmax(0, 1fr); gap: var(--space-md); }
+.custom-story-form { gap: var(--space-md); }
+.teacher-story-basics, .teacher-frame-card, .custom-story-library { border-color: var(--clay-hairline); border-radius: var(--clay-radius-lg); background: var(--clay-surface-card); }
+.teacher-story-basics-heading, .teacher-frame-editor-heading { min-height: 48px; background: var(--clay-surface-soft); }
+.teacher-story-basics-heading h3, .teacher-frame-editor-heading h3, .custom-story-library h3 { font-family: var(--font-display); }
+.teacher-form-grid { gap: var(--space-sm); }
+.custom-story-form input, .custom-story-form select, .custom-story-form textarea { border-color: var(--clay-hairline); background: var(--clay-canvas); font-size: var(--text-sm); }
+.teacher-frame-editor { gap: var(--space-md); }
+.teacher-frame-editor-layout { grid-template-columns: minmax(132px, 0.22fr) minmax(0, 1fr); gap: var(--space-md); }
+.teacher-frame-rail { padding: var(--space-xs); border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-lg); background: var(--clay-surface-soft); }
+.teacher-frame-rail button { border-color: transparent; background: transparent; text-align: left; }
+.teacher-frame-rail button.is-active { border-color: var(--seal); background: var(--seal-soft); color: var(--seal-deep); }
+.teacher-frame-stage { gap: var(--space-md); }
+.teacher-frame-card { grid-template-columns: minmax(170px, 0.7fr) minmax(0, 1.3fr); gap: var(--space-md); padding: var(--space-md); }
+.teacher-builder-actions { padding: var(--space-sm) 0 0; border-top: 1px solid var(--clay-hairline); }
+.btn-save-custom-story { min-height: 44px; border-color: var(--jade-deep); border-radius: var(--clay-radius-pill); background: var(--jade); }
+.custom-story-library { padding: var(--space-md); background: var(--clay-surface-soft); }

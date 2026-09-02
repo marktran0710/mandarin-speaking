@@ -80,6 +80,8 @@
   flex: 1 1 240px;
   min-width: 0;
   margin: 0;
+  display: flex;
+  align-items: center;
 }
 .ssb-journey-viewport::before,
 .ssb-journey-viewport::after {
@@ -110,6 +112,8 @@
 .ssb-journey {
   min-width: 0;
   width: 100%;
+  display: flex;
+  align-items: center;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
@@ -125,10 +129,9 @@
   overflow-x: visible;
   width: max-content;
   min-width: 100%;
-  padding: var(--space-2xs) 0;
-  /* Intentional: JourneyPath owns the visual connector between stops, so
-     adding a flex gap would break the continuous sequence. */
-  gap: 0;
+  justify-content: center;
+  padding: var(--space-xs) var(--space-md);
+  gap: var(--space-md);
 }
 .ssb-journey .journey-path-vertical .journey-item {
   flex-direction: row;

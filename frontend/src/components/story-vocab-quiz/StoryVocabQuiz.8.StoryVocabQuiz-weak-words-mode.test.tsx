@@ -85,17 +85,27 @@ describe("StoryVocabQuiz weak-words mode", () => {
     await user.click(target!);
   }
 
-  it("does not offer the weak-words card without a storyId, or when there are no persisted weak words", async () => {
-    vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue([]);
+  it("shows an empty weak-words component when there are no persisted weak words", async () => {
+    const emptyWeakWords = [] as database.VocabWeakWordsResult;
+    Object.defineProperty(emptyWeakWords, "diagnostic", {
+      value: { unlocked: false, requiredDiagnosticQuizzes: 3, completedDiagnosticQuizzes: 0 },
+    });
+    vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(emptyWeakWords);
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="story-1" studentId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
     await waitFor(() => expect(database.getVocabQuizWeakWords).toHaveBeenCalled());
+    const weakWordsRegion = screen.getByRole("region", { name: "Weak words" });
+    expect(weakWordsRegion).toHaveTextContent("No weak words yet. Complete a quiz to build your review list.");
     expect(screen.queryByRole("button", { name: /Weak words/ })).not.toBeInTheDocument();
   });
 
   it("offers a personalized priority-review card and reports it as a real 'weak_words' attempt", async () => {
-    vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(["一", "三"]);
+    const weakWords = ["一", "三"] as database.VocabWeakWordsResult;
+    Object.defineProperty(weakWords, "diagnostic", {
+      value: { unlocked: false, requiredDiagnosticQuizzes: 3, completedDiagnosticQuizzes: 0 },
+    });
+    vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(weakWords);
     const user = userEvent.setup();
     const onComplete = vi.fn();
     const onDone = vi.fn();
@@ -113,7 +123,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
     await screen.findByRole("group", { name: "Quiz mode" });
 
     const weakWordsButton = await screen.findByRole("button", { name: /Weak words \(2\)/ });
-    expect(within(weakWordsButton).getByText("Personalized from your current mastery, starting with the lowest-priority words.")).toBeInTheDocument();
+    expect(weakWordsButton).toHaveTextContent("A cumulative list across this story's difficulty levels, starting with the words you know least.");
     expect(
       within(weakWordsButton).queryByText("Only quizzes the words you got wrong last time."),
     ).not.toBeInTheDocument();
