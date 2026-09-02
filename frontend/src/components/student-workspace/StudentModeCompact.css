@@ -23,10 +23,14 @@
   margin-inline: 0;
 }
 
+/* Cap the browse/dashboard column and centre it, matching the design's
+   ~1040-1120px content width, so cards read at a comfortable size instead of
+   stretching edge to edge. (Practice sessions live in a different container
+   and keep their full-width two-column stage.) */
 .student-workspace-v2 .topic-selector .ts-container {
-  width: 100%;
+  width: min(var(--content-max), 100%);
   max-width: none;
-  margin-inline: 0;
+  margin-inline: auto;
 }
 
 /* The legacy page wrapper was authored for the old full-page student header
