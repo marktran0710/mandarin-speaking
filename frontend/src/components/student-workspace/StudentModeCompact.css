@@ -357,19 +357,14 @@
   box-shadow: none;
 }
 
-/* Study is a reference desk rather than a modal-like card. The single CTA in
-   its footer already advances to speaking, so the Study tab does not need a
-   second visual control. Speaking keeps the step tabs so learners can return
-   to the reference material without losing a workflow. */
+/* Study is a reference desk rather than a modal-like card. The step tabs stay
+   visible here (matching the design) so the learner sees Study / Speaking as
+   one connected flow. */
 .student-workspace-v2 .practice-stage:has(.practice-workspace-study) {
   overflow: visible;
   border: 0;
   border-radius: 0;
   background: transparent;
-}
-
-.student-workspace-v2 .practice-stage:has(.practice-workspace-study) .scene-step-tabs {
-  display: none;
 }
 
 .student-workspace-v2 .practice-stage:has(.practice-workspace-study) > .practice-workspace {
