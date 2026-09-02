@@ -304,23 +304,23 @@
 .ts-card-open {
   display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
+  justify-content: center;
+  gap: var(--space-xs);
   width: 100%;
   min-height: 44px;
   margin-top: var(--space-xs);
   padding: 8px 12px;
-  border: 1px solid var(--jade);
-  border-radius: var(--clay-radius-sm);
-  color: var(--jade-deep);
-  background: var(--jade-soft);
+  border: 0;
+  border-radius: var(--clay-radius-pill);
+  color: #fff;
+  background: var(--jade);
   font: inherit;
   font-size: 13px;
-  font-weight: 750;
-  text-align: left;
+  font-weight: 800;
   cursor: pointer;
+  transition: background-color .15s ease;
 }
-.ts-card-open:hover { border-color: var(--jade-deep); background: color-mix(in srgb, var(--jade-soft) 72%, white); }
+.ts-card-open:hover { background: var(--jade-deep); }
 .ts-card-open:focus-visible { outline: 3px solid color-mix(in srgb, var(--jade) 45%, transparent); outline-offset: 2px; }
 
 /* Takes .ts-card-open's slot when the story is locked, so a locked card

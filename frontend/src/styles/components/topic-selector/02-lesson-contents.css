@@ -15,22 +15,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  min-height: 96px;
+  gap: var(--space-lg);
   margin-bottom: var(--space-lg);
-  padding: var(--space-md) clamp(var(--space-md), 3vw, var(--space-xl));
-  border: 1px solid color-mix(in srgb, var(--gold) 34%, var(--clay-hairline));
-  border-radius: var(--clay-radius-xl);
-  background: color-mix(in srgb, var(--clay-surface-card) 92%, var(--gold-soft));
-  box-shadow: var(--shadow-sm);
 }
 
 .ts-toc-title {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-sm);
+  display: block;
   font-family: var(--font-display);
-  font-size: clamp(32px, 4vw, 46px);
+  font-size: 32px;
   font-weight: 800;
   letter-spacing: 0.01em;
   color: var(--clay-ink);
@@ -38,11 +30,12 @@
 }
 
 .ts-toc-title .ts-lesson-sub {
+  display: block;
+  margin-top: 2px;
   font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: .08em;
-  margin-left: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .02em;
 }
 
 .ts-lesson-sub {
@@ -61,19 +54,18 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  min-width: 220px;
   background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-lg);
-  padding: var(--space-xs) var(--space-sm);
-  box-shadow: 0 1px 0 color-mix(in srgb, var(--gold) 20%, transparent);
+  border-radius: var(--clay-radius-pill);
+  padding: var(--space-xs) var(--space-md) var(--space-xs) var(--space-xs);
+  box-shadow: var(--shadow-sm);
 }
 
 .ts-book-cover {
-  width: 38px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
-  border-radius: var(--clay-radius-sm);
+  border-radius: var(--clay-radius-md);
   border: 1px solid var(--clay-hairline);
   object-fit: cover;
 }
@@ -101,31 +93,19 @@
   flex-direction: column;
   gap: var(--space-sm);
   margin-bottom: var(--space-sm);
-  padding-left: var(--space-lg);
-}
-
-.ts-lesson-list::before {
-  content: "";
-  position: absolute;
-  top: var(--space-lg);
-  bottom: var(--space-lg);
-  left: var(--space-sm);
-  width: 2px;
-  border-radius: var(--clay-radius-pill);
-  background: color-mix(in srgb, var(--gold) 26%, var(--clay-hairline));
 }
 
 .ts-lesson-block { min-width: 0; }
 
 .ts-lesson-row {
   display: grid;
-  grid-template-columns: 116px minmax(0, 1fr) auto;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--space-lg);
+  gap: var(--space-md);
   width: 100%;
-  padding: var(--space-sm) var(--space-md) var(--space-sm) var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-xl);
+  border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
   font: inherit;
   text-align: left;
@@ -143,22 +123,22 @@
   outline-offset: 2px;
 }
 
-/* The lesson the student is on: a gold left edge, no extra fill, so it
-   stands out without becoming a second kind of card. */
+/* The lesson the student is on: a soft gold surface + border + lift, so it
+   reads as "you are here" without an extra edge bar. */
 .ts-lesson-row.is-now {
-  border-color: color-mix(in srgb, var(--seal) 55%, var(--clay-hairline));
-  background: color-mix(in srgb, var(--clay-surface-card) 96%, var(--seal-soft));
-  box-shadow: inset 5px 0 var(--seal), var(--shadow-sm);
+  border-color: color-mix(in srgb, var(--seal) 45%, var(--clay-hairline));
+  background: color-mix(in srgb, var(--clay-surface-card) 95%, var(--seal-soft));
+  box-shadow: var(--shadow-sm);
 }
 
-.ts-lesson-row.is-done { border-color: color-mix(in srgb, var(--jade) 38%, var(--clay-hairline)); }
+.ts-lesson-row.is-done { background: color-mix(in srgb, var(--clay-surface-card) 94%, var(--jade-soft)); }
 
-.ts-lesson-row.is-locked { cursor: not-allowed; opacity: .6; }
+.ts-lesson-row.is-locked { cursor: not-allowed; opacity: .55; }
 
 .ts-lesson-cover {
   display: grid;
   place-items: center;
-  height: 74px;
+  height: 62px;
   overflow: hidden;
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
@@ -181,15 +161,38 @@
   min-width: 0;
 }
 
+.ts-lesson-kicker-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
 .ts-lesson-kicker {
-  color: var(--seal-deep);
+  color: var(--clay-muted);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: .08em;
   text-transform: uppercase;
 }
 
+.ts-lesson-now-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-xs);
+  border-radius: var(--clay-radius-pill);
+  background: var(--seal);
+  /* Gold fill always takes dark ink (--clay-on-seal rule). */
+  color: var(--clay-on-seal);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+
 .ts-lesson-row.is-locked .ts-lesson-kicker { color: var(--clay-muted); }
+
+/* Lesson titles stay bilingual but drop the pinyin line here — the row is a
+   compact index entry, and pinyin is off elsewhere in the app too. */
+.ts-lesson-body > .bi-label .bi-pinyin { display: none; }
 
 .ts-lesson-body > .bi-label {
   gap: var(--space-2xs);
@@ -399,10 +402,15 @@
   text-align: center;
 }
 
-.ts-tier-done { background: var(--jade-soft); }
+.ts-tier-done { background: var(--jade); }
+.ts-tier-done .bi-zh,
+.ts-tier-done .bi-en,
+.ts-tier-done svg { color: #fff; }
 .ts-tier-open {
-  background: var(--clay-surface-soft);
+  background: var(--seal-soft);
 }
+.ts-tier-open .bi-zh,
+.ts-tier-open svg { color: var(--seal-deep); }
 .ts-tier-cell + .ts-tier-cell {
   border-left: 1px solid var(--clay-hairline);
 }

@@ -272,20 +272,9 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
 
         {/* Body */}
         <div className="ts-card-body">
-          <div className="ts-card-meta-row">
-            <span className="ts-card-skill">
-              <SkillFocusLabel skillFocus={t.skillFocus} />
-            </span>
-          </div>
-
           <h3 className="ts-card-title">{t.name}</h3>
 
-          {t.description && (
-            <p className="ts-card-desc">{t.description}</p>
-          )}
-
           <div className="ts-card-stats">
-            <span><StudentIcon name="image" size={14} /> <BiLabel zh={`${totalScenes} 部分`} en={`${totalScenes} scenes`} /></span>
             {totalWords > 0 && (
               <span><StudentIcon name="stories" size={14} /> <BiLabel zh={`${totalWords} 詞`} en={`${totalWords} words`} /></span>
             )}
@@ -526,8 +515,11 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
           </span>
 
           <span className="ts-lesson-body">
-            <span className="ts-lesson-kicker">
-              {`第 ${group.lessonNumber} 課`}
+            <span className="ts-lesson-kicker-row">
+              <span className="ts-lesson-kicker">
+                {`第 ${group.lessonNumber} 課`}
+              </span>
+              {isNow && <span className="ts-lesson-now-tag">現在 NOW</span>}
             </span>
             <BiLabel {...title} block align="left" />
           </span>
