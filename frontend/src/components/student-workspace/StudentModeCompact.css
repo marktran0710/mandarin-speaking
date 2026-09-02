@@ -910,9 +910,13 @@
 }
 
 /* Equal fractional tracks make both choice rows stretch evenly without
-   hand-tuned widths. */
+   hand-tuned widths. The tier journey reads best as a centred column rather
+   than stretched edge to edge, so cap it while the rest of the shell keeps
+   its full width. */
 .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-mode-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 980px;
+  margin-inline: auto;
 }
 
 .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid {

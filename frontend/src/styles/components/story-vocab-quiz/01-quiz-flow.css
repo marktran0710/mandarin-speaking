@@ -440,71 +440,42 @@
 
 /* ── Mode select ── */
 .vocab-quiz-mode-title {
-  max-width: 24ch;
-  font-size: clamp(var(--text-xl), 4vw, 42px);
-  line-height: 1.12;
+  max-width: 26ch;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3.2vw, 32px);
+  font-weight: 800;
+  line-height: 1.15;
   color: var(--clay-ink);
   margin: 0;
   text-wrap: balance;
 }
 
 .vocab-quiz-mode-select .vocab-quiz-header {
-  position: relative;
-  isolation: isolate;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  column-gap: var(--space-2xl);
-  width: min(100%, 1040px);
-  margin: 0 auto;
-  gap: var(--space-xs);
-  padding: var(--space-xl) var(--space-2xl);
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--gold) 36%, var(--clay-hairline));
-  border-radius: var(--clay-radius-lg);
-  background: var(--clay-surface-card);
-  box-shadow: var(--shadow-sm);
-}
-
-.vocab-quiz-mode-select .vocab-quiz-header::before {
-  content: "";
-  position: absolute;
-  inset: -60% -5% -60% auto;
-  z-index: -1;
-  width: 44%;
-  opacity: .55;
-  background:
-    radial-gradient(ellipse at 70% 50%, transparent 0 7rem, color-mix(in srgb, var(--gold) 18%, transparent) 7rem 7.1rem, transparent 7.1rem 12rem),
-    radial-gradient(ellipse at 70% 50%, transparent 0 12rem, color-mix(in srgb, var(--gold) 12%, transparent) 12rem 12.1rem, transparent 12.1rem 18rem);
-  pointer-events: none;
-}
-
-.vocab-quiz-mode-select .vocab-quiz-header > * {
-  position: relative;
-  z-index: 1;
+  gap: var(--space-sm);
+  width: min(100%, 980px);
+  margin: 0 auto var(--space-md);
+  text-align: center;
 }
 
 .vocab-quiz-mode-select .vocab-quiz-header-tags {
-  grid-column: 1;
-  grid-row: 1;
-  justify-content: flex-start;
+  justify-content: center;
   margin: 0;
 }
 
 .vocab-quiz-mode-select .vocab-quiz-mode-title {
-  grid-column: 1;
-  grid-row: 2;
-  text-align: left;
+  text-align: center;
+  margin: 0;
 }
 
 .vocab-quiz-mode-select .vocab-quiz-mode-title .bi-label {
-  align-items: flex-start;
+  align-items: center;
 }
 
 .vocab-quiz-mode-select .vocab-quiz-star-count {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  justify-self: end;
+  justify-content: center;
 }
 
 .vocab-quiz-header-tags {
@@ -520,12 +491,13 @@
   display: inline-flex;
   align-self: center;
   margin: 0;
-  padding: 0;
-  background: transparent;
+  padding: 3px var(--space-sm);
+  border-radius: var(--clay-radius-pill);
+  background: var(--gold-soft);
   color: var(--gold-deep);
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: .08em;
+  letter-spacing: .06em;
   text-transform: uppercase;
 }
 
@@ -546,13 +518,28 @@
 }
 
 .vocab-quiz-mode-grid {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: stretch;
-  gap: var(--space-sm);
-  width: min(100%, 1040px);
+  gap: var(--space-md);
+  width: min(100%, 980px);
   margin: 0 auto;
   padding-bottom: 0;
+}
+
+/* One path threading the three tiers, so "quiz → speak" reads as a single
+   progression. The line sits behind the tier dots and shows only in the
+   gaps (each tier card paints its own surface over it). */
+.vocab-quiz-mode-grid::before {
+  content: "";
+  position: absolute;
+  top: 47px;
+  left: calc(16.66% + 8px);
+  right: calc(16.66% + 8px);
+  height: 2px;
+  background: var(--clay-hairline);
+  z-index: 0;
 }
 
 /* The recorder shell reserves a narrow content gutter for story practice.
