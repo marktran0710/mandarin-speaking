@@ -860,8 +860,13 @@
 }
 
 .student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-word {
-  font-size: var(--text-xl);
-  min-height: var(--space-2xl);
+  font-size: clamp(2.4rem, 5vw, 3.2rem);
+  min-height: 148px;
+}
+
+/* Cloze sentences carry more text than a single word, so they stay smaller. */
+.student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-cloze-sentence {
+  font-size: 1.5rem;
 }
 
 .student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-unique-note,
@@ -880,8 +885,8 @@
 }
 
 .student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-option {
-  min-height: var(--student-control-height);
-  padding: var(--space-sm);
+  min-height: 68px;
+  padding: 0 var(--space-lg);
 }
 
 .student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-actions {

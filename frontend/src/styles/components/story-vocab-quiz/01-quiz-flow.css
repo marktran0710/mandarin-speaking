@@ -92,7 +92,9 @@
 }
 
 .vocab-quiz-word {
-  font-size: 2.6rem;
+  font-size: 3.2rem;
+  font-family: var(--font-display);
+  font-weight: 700;
   color: var(--gold-deep);
   margin: var(--space-2xs) 0;
 }
@@ -259,24 +261,58 @@
   }
 }
 
+.vocab-quiz-section-label {
+  margin: 0;
+  padding-left: 2px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--clay-muted);
+}
+
 .vocab-quiz-options {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: var(--space-sm);
   width: 100%;
+  counter-reset: vq-opt;
 }
 
 .vocab-quiz-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-sm);
   background: var(--clay-surface-card);
   color: var(--clay-ink);
-  font-size: 14.5px;
+  font-size: 16px;
   font-weight: 650;
-  padding: var(--space-sm);
+  text-align: left;
+  padding: 0 var(--space-lg);
   cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
+
+/* A/B/C/D badge drawn with a CSS counter, not a DOM node, so the option's
+   textContent stays exactly the answer text (the quiz tests assert on it). */
+.vocab-quiz-option::before {
+  counter-increment: vq-opt;
+  content: counter(vq-opt, upper-alpha);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--clay-surface-soft);
+  color: var(--clay-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.vocab-quiz-option-text { min-width: 0; }
 
 /* ── Fixed question geometry ──
    Question kinds render very different prompts (a 2.6rem word, a two-line
@@ -305,24 +341,24 @@
   background: var(--clay-surface-card);
 }
 .vocab-quiz-question-screen .vocab-quiz-options {
-  /* Two rows of options (the 4-option worst case), held even when a small
-     story can only field 2-3 options. */
-  min-height: 140px;
+  /* Worst-case four-option height held even when a small story fields fewer,
+     so the option under the student's finger never jumps between questions. */
+  min-height: 296px;
   align-content: start;
 }
 .vocab-quiz-question-screen .vocab-quiz-option {
-  min-height: 64px;
+  min-height: 68px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
 }
 .vocab-quiz-question-screen .vocab-quiz-actions {
-  /* The two-line Next/See-results button (buttons drop BiLabel's pinyin
-     line) appears only after answering — hold its slot so the options
-     never jump when it lands. */
+  /* The Next/See-results button appears only after answering — hold its slot
+     so the options never jump when it lands, and anchor it to the bottom. */
   min-height: 68px;
+  margin-top: auto;
   align-items: flex-start;
-  justify-content: flex-start;
+  justify-content: flex-end;
 }
 
 @media (min-width: 901px) {
@@ -376,47 +412,52 @@
   border-color: var(--jade);
   color: var(--jade-deep);
 }
+.vocab-quiz-option-correct::before { background: var(--jade); color: #fff; }
 
 .vocab-quiz-option-incorrect {
   background: var(--clay-error-soft);
   border-color: var(--clay-error);
   color: var(--clay-error);
 }
+.vocab-quiz-option-incorrect::before { background: var(--clay-error); color: #fff; }
 
 .vocab-quiz-option-neutral:disabled {
   opacity: 0.55;
 }
 
 /* Correct/incorrect were signaled by border/background color alone
-   (jade vs. red) — add an icon so the result doesn't rely on color
+   (jade vs. red) — the icon at the row's end doesn't rely on color
    perception to read. */
 .vocab-quiz-option-icon {
+  margin-left: auto;
+  flex-shrink: 0;
   font-weight: 800;
 }
 
 .vocab-quiz-actions {
   display: flex;
   gap: var(--space-md);
-  justify-content: center;
+  justify-content: flex-end;
   flex-wrap: wrap;
 }
 
 .btn-vocab-quiz-next {
-  font-size: 14.5px;
-  font-weight: 650;
-  padding: var(--space-sm) var(--space-lg);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 52px;
+  font-size: 15px;
+  font-weight: 800;
+  padding: 0 var(--space-xl);
   border-radius: var(--clay-radius-pill);
   cursor: pointer;
-  border: 2px solid var(--jade-deep);
+  border: 0;
   background: var(--jade);
   color: #ffffff;
-  transition: transform 0.1s, box-shadow 0.1s;
+  transition: background-color 0.15s ease;
 }
 .btn-vocab-quiz-next:hover {
-  transform: translateY(-1px);
-}
-.btn-vocab-quiz-next:active {
-  transform: translateY(3px);
+  background: var(--jade-deep);
 }
 
 /* Quiet, secondary action — only Free mode's original round offers this
