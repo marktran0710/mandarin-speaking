@@ -1066,22 +1066,20 @@
 }
 
 .student-workspace.student-workspace-v2 .profile-stat-card {
-  display: grid;
-  grid-template-columns: var(--space-xl) minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  align-items: center;
-  column-gap: var(--space-xs);
-  min-height: var(--space-3xl);
-  padding: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 0;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--clay-radius-lg);
 }
 
 .student-workspace.student-workspace-v2 .profile-stat-icon {
-  grid-row: 1 / span 2;
-  margin-bottom: 0;
+  margin-bottom: var(--space-sm);
 }
 
 .student-workspace.student-workspace-v2 .profile-stat-label {
-  margin-bottom: 0;
+  margin-bottom: var(--space-2xs);
 }
 
 .student-workspace.student-workspace-v2 .profile-stat-label .bi-label {
@@ -1090,13 +1088,12 @@
 }
 
 .student-workspace.student-workspace-v2 .profile-stat-value {
-  grid-column: 2;
-  font-size: var(--text-lg);
+  font-size: 24px;
 }
 
 .student-workspace.student-workspace-v2 .profile-stat-card .summary-progress {
-  grid-column: 1 / -1;
-  margin-top: var(--space-xs);
+  width: 100%;
+  margin-top: var(--space-sm);
 }
 
 .student-workspace.student-workspace-v2 .student-help-card {

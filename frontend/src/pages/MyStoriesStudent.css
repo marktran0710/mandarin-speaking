@@ -47,10 +47,14 @@
 }
 
 .student-workspace.student-workspace-v2 .profile-stat-card {
-  min-height: 132px;
-  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 0;
+  gap: 0;
+  padding: var(--space-md) var(--space-lg);
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
+  border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
   box-shadow: var(--shadow-sm);
   transition: border-color 180ms ease, box-shadow 180ms ease;
@@ -59,8 +63,9 @@
 .student-workspace.student-workspace-v2 .profile-stat-icon {
   display: grid;
   place-items: center;
-  width: calc(var(--space-xl) + var(--space-xs));
-  height: calc(var(--space-xl) + var(--space-xs));
+  width: calc(var(--space-xl) + var(--space-2xs));
+  height: calc(var(--space-xl) + var(--space-2xs));
+  margin-bottom: var(--space-sm);
   flex-shrink: 0;
   border-radius: var(--clay-radius-md);
   background: var(--seal-soft);
@@ -160,33 +165,31 @@
 }
 
 .student-workspace.student-workspace-v2 .profile-tabs {
-  display: flex;
-  gap: var(--space-lg);
-  width: 100%;
-  margin: 0 0 var(--space-sm);
-  padding: 0;
-  border: 0;
-  border-bottom: 1px solid var(--clay-hairline);
-  border-radius: 0;
-  background: transparent;
+  display: inline-flex;
+  gap: 0;
+  width: auto;
+  margin: 0 0 var(--space-lg);
+  padding: 3px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-soft);
 }
 
 .student-workspace.student-workspace-v2 .profile-tab-btn {
-  min-height: 44px;
-  padding: 0 var(--space-xs);
+  min-height: 38px;
+  padding: 0 var(--space-lg);
   border: 0;
-  border-bottom: 3px solid transparent;
-  border-radius: 0;
+  border-radius: var(--clay-radius-pill);
   background: transparent;
-  color: var(--clay-muted);
-  font-size: var(--text-sm);
+  color: var(--clay-body);
+  font-size: 13.5px;
+  font-weight: 700;
 }
 
 .student-workspace.student-workspace-v2 .profile-tab-btn.active {
-  border-bottom-color: var(--seal);
-  background: transparent;
+  background: var(--clay-surface-card);
   color: var(--clay-ink);
-  box-shadow: none;
+  box-shadow: var(--shadow-sm);
 }
 
 .student-workspace.student-workspace-v2 .profile-lesson-list,
