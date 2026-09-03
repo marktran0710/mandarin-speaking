@@ -259,7 +259,7 @@ describe("StoryVocabQuiz star tiers", () => {
   it("does not let a legacy completion flag bypass the three-star requirement", async () => {
     const user = userEvent.setup();
     render(
-      <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" alreadyCompleted />,
+      <StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
 

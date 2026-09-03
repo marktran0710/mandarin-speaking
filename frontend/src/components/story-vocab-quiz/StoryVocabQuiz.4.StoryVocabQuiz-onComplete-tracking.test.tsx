@@ -82,7 +82,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     // alreadyCompleted: this test drives onComplete/onDone sequencing, not
     // the ⭐⭐ practice gate (covered in the star-tier describe).
     render(
-      <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} alreadyCompleted />,
+      <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
 

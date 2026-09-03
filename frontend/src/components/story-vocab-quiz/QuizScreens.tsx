@@ -78,7 +78,7 @@ function WeakWordsCard({ weakEntries, priorityReviewWords, chooseWeakWords }: We
   );
 }
 
-export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [], level = "easy", assessmentQuestionCounts, startTier, chooseWeakWords, showReview }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; alreadyCompleted?: boolean; level?: "easy" | "medium" | "hard"; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; showReview: () => void }) {
+export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [], level = "easy", assessmentQuestionCounts, startTier, chooseWeakWords, showReview }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; level?: "easy" | "medium" | "hard"; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; showReview: () => void }) {
   const assessmentLevelByMode: Record<TierMode, VocabAssessmentLevel> = { tier1: "easy", tier2: "medium", tier3: "hard" };
   const tierDescription = (card: (typeof TIER_CARDS)[number], config: (typeof TIER_CONFIGS)[TierMode]) => {
     const count = assessmentQuestionCounts?.[assessmentLevelByMode[card.mode]];

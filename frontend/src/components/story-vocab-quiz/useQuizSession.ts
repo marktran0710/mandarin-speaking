@@ -160,8 +160,19 @@ export function useQuizSession({
   const question = questions[index];
   const isLast = questionLimit !== null && index === questionLimit - 1;
   const showFinishButton = mode === "free" && questionLimit === null;
-  const weakEntries = entries.filter((entry) => weakWords.includes(entry.word)).map((entry) => {
-    const reviewWord = priorityReviewWords.find((word) => word.word === entry.word);
+  // The API's wordId is the canonical concept identity. Display text is not:
+  // CSV rows may use variants such as "哪裡 / 哪兒", while the mastery ledger
+  // can return one normalized display form. Keep the text fallback for legacy
+  // stories that have no stable ids, but never let a display-form mismatch
+  // hide a real weak word from the actionable card.
+  const priorityByWordId = new Map(priorityReviewWords.map((word) => [word.wordId, word]));
+  const priorityByWord = new Map(priorityReviewWords.map((word) => [word.word, word]));
+  const weakEntries = entries.filter((entry) => {
+    const matchesPriorityId = Boolean(entry.wordId && priorityByWordId.has(entry.wordId));
+    return matchesPriorityId || weakWords.includes(entry.word);
+  }).map((entry) => {
+    const reviewWord = (entry.wordId ? priorityByWordId.get(entry.wordId) : undefined)
+      ?? priorityByWord.get(entry.word);
     return reviewWord?.seenQuestionTypes?.length
       ? { ...entry, bktSeenQuestionKinds: reviewWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"] }
       : entry;

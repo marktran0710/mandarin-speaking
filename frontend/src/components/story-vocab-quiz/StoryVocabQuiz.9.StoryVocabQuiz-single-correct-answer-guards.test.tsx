@@ -75,6 +75,19 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
   async function startTier2() {
     const { recordLocalStars } = await import("../../utils/quizTiers");
     recordLocalStars("s1", 1);
+    // The database is authoritative when it is available. Seed the same
+    // passed Round 1 state that a real student would have before opening
+    // Round 2; localStorage alone is intentionally not enough.
+    vi.mocked(database.listVocabQuizAttempts).mockResolvedValueOnce([{
+      id: "round-1",
+      storyId: "s1",
+      mode: "tier1",
+      completedAt: "2026-01-01T00:00:00Z",
+      totalQuestions: 1,
+      correctCount: 1,
+      totalTimeMs: 0,
+      questionResults: [],
+    }]);
   }
 
   it("drops an AI translation distractor that differs from the correct answer only by case/punctuation", async () => {

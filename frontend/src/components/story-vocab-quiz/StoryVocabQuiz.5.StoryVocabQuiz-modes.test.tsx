@@ -175,7 +175,7 @@ describe("StoryVocabQuiz modes", () => {
     const onComplete = vi.fn();
     const onDone = vi.fn();
     render(
-      <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} alreadyCompleted />,
+      <StoryVocabQuiz entries={entries} onDone={onDone} onComplete={onComplete} />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
 

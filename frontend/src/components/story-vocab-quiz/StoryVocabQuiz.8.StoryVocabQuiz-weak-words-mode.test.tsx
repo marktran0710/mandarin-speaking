@@ -101,6 +101,36 @@ describe("StoryVocabQuiz weak-words mode", () => {
     expect(screen.queryByRole("button", { name: /Weak words/ })).not.toBeInTheDocument();
   });
 
+  it("uses the stable word id when the API display form differs from the CSV form", async () => {
+    const weakWords = ["哪裡"] as database.VocabWeakWordsResult;
+    Object.defineProperty(weakWords, "priorityReview", {
+      value: [{
+        wordId: "MC1_003",
+        word: "哪裡",
+        meaning: "where",
+        pLearned: 0.2,
+        status: "NEEDS_REVIEW",
+        observationCount: 1,
+        correctCount: 0,
+        incorrectCount: 1,
+      } satisfies database.VocabPriorityReviewWord],
+    });
+    vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(weakWords);
+
+    render(
+      <StoryVocabQuiz
+        entries={[{ word: "哪裡 / 哪兒", translation: "where", wordId: "MC1_003" }]}
+        onDone={vi.fn()}
+        storyId="story-1"
+        studentId="s1"
+      />,
+    );
+    await screen.findByRole("group", { name: "Quiz mode" });
+
+    const weakWordsButton = await screen.findByRole("button", { name: /Weak words \(1\)/ });
+    expect(weakWordsButton).toHaveTextContent("where");
+  });
+
   it("records an eligible answer immediately so the first wrong answer can enter BKT", async () => {
     const user = userEvent.setup();
     const approvedEntries = [
@@ -169,7 +199,6 @@ describe("StoryVocabQuiz weak-words mode", () => {
         onComplete={onComplete}
         storyId="story-1"
         studentId="s1"
-        alreadyCompleted
       />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
