@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  DIAGNOSTIC_ROUNDS,
   TIER_CONFIGS,
   attemptEarnsStar,
   loadLocalStars,
@@ -20,12 +21,13 @@ import {
 import {
   TIMER_TICK_MS,
   assessmentAnswerIsCorrect,
-  buildAssessmentQuestions,
+  buildDiagnosticRoundQuestions,
   buildQuizQuestion,
   canUseSpeechSynthesis,
   quizConceptId,
   quizItemId,
   shuffle,
+  validateRoundCoverage,
   type VocabQuizEntry,
   type VocabQuizMode,
   type VocabQuizQuestion,
@@ -217,8 +219,12 @@ export function useQuizSession({
   }).map((entry) => {
     const reviewWord = (entry.wordId ? priorityByWordId.get(entry.wordId) : undefined)
       ?? priorityByWord.get(entry.word);
-    return reviewWord?.seenQuestionTypes?.length
-      ? { ...entry, bktSeenQuestionKinds: reviewWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"] }
+    return reviewWord?.seenQuestionTypes?.length || reviewWord?.failedQuestionTypes?.length
+      ? {
+        ...entry,
+        bktSeenQuestionKinds: reviewWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"],
+        bktFailedQuestionKinds: reviewWord.failedQuestionTypes as VocabQuizEntry["bktFailedQuestionKinds"],
+      }
       : entry;
   });
   const missedWords = results.filter((result) => !result.correct);
@@ -274,20 +280,22 @@ export function useQuizSession({
   const choose = (option: string) => {
     if (selected) return;
     const entry = roundEntries.find((candidate) => candidate.word === question.word);
-    const bktType = question.kind === "translation" || question.kind === "reverse" || question.kind === "listening"
-      || (question.kind === "assessment" && question.assessment.level === "easy");
     const diagnosticMode = mode === "tier1" || mode === "tier2" || mode === "tier3";
+    const diagnosticConfig = diagnosticMode ? DIAGNOSTIC_ROUNDS[mode] : null;
+    const assessment = question.kind === "assessment" ? question.assessment : null;
+    const bktType = diagnosticConfig
+      ? Boolean(assessment && assessment.questionType === diagnosticConfig.questionKind)
+      : question.kind === "translation" || question.kind === "reverse" || question.kind === "listening";
     const isBktEligible = Boolean(
-      !isRetryRound && level === "easy" && diagnosticMode && bktType && entry?.bktValidationStatus === "APPROVED",
+      !isRetryRound && diagnosticMode && bktType && entry?.bktValidationStatus === "APPROVED",
     );
     const bktEligibilityErrors = isBktEligible ? [] : [
-      ...(level !== "easy" ? ["NON_DIAGNOSTIC_LEVEL"] : []),
+      ...(diagnosticConfig && assessment?.level !== diagnosticConfig.level ? ["ROUND_LEVEL_MISMATCH"] : []),
       ...(!diagnosticMode ? ["NON_DIAGNOSTIC_MODE"] : []),
       ...(!bktType ? ["UNSUPPORTED_BKT_QUESTION_TYPE"] : []),
       ...(entry?.bktValidationStatus !== "APPROVED" ? ["UNAPPROVED_RESEARCH_ITEM"] : []),
     ];
     const itemVersion = `${level}:v1`;
-    const assessment = question.kind === "assessment" ? question.assessment : null;
     const resultLevel = assessment?.level ?? level;
     const itemId = assessment?.questionId
       ?? quizItemId(baseStoryId ?? storyId ?? "unknown-story", question.word, question.kind, itemVersion);
@@ -311,6 +319,9 @@ export function useQuizSession({
       timeMs: Date.now() - questionStartRef.current,
       itemId,
       conceptId, questionKind: resultQuestionKind, level: resultLevel,
+      roundType: diagnosticConfig?.roundType,
+      knowledgeDimension: diagnosticConfig?.knowledgeDimension,
+      activityType: diagnosticConfig ? "diagnostic" : mode === "weak_words" ? "personalized_practice" : mode === "challenge" ? "challenge" : "practice",
       baseStoryId: baseStoryId ?? storyId, itemVersion,
       isBktEligible,
       bktEligibilityErrors,
@@ -402,15 +413,27 @@ export function useQuizSession({
               ? "challenge_started"
               : null;
     if (startedEvent) recordLessonEvent(startedEvent, { totalWords: entriesForRound.length });
-    const assessmentLevel = picked === "tier1" ? "easy" : picked === "tier2" ? "medium" : picked === "tier3" ? "hard" : null;
-    const importedQuestions = assessmentLevel
-      ? buildAssessmentQuestions(entriesForRound, assessmentLevel)
+    const importedQuestions = picked === "tier1" || picked === "tier2" || picked === "tier3"
+      ? buildDiagnosticRoundQuestions(entriesForRound, picked)
       : [];
-    if (importedQuestions.length > 0) {
-      plannedQuestionCountRef.current = importedQuestions.length;
-      setQuestions(importedQuestions);
-      setQuestionLimit(importedQuestions.length);
-      setRequestedQuestionCount(importedQuestions.length);
+    if (importedQuestions.length > 0 && (picked === "tier1" || picked === "tier2" || picked === "tier3")) {
+      const coverage = validateRoundCoverage({ lessonVocabulary: entriesForRound, roundQuestions: importedQuestions });
+      if (!coverage.valid) throw new Error(`Diagnostic round coverage failed: ${coverage.errors.join(", ")}`);
+      const questions = importedQuestions.map((assessment) => ({
+        kind: "assessment" as const,
+        word: assessment.targetWord,
+        prompt: assessment.prompt,
+        options: assessment.options,
+        correctAnswer: assessment.correctAnswer,
+        acceptedAnswers: assessment.acceptedAnswers,
+        explanation: assessment.explanation,
+        assessment,
+        isAiGenerated: false as const,
+      }));
+      plannedQuestionCountRef.current = questions.length;
+      setQuestions(questions);
+      setQuestionLimit(questions.length);
+      setRequestedQuestionCount(questions.length);
       quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       attemptStartedAtRef.current = new Date().toISOString();
       quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
@@ -426,7 +449,7 @@ export function useQuizSession({
     quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
   };
 
-  const startTier = (tierMode: TierMode) => { setIsRetryRound(false); chooseMode(tierMode, entries, TIER_CONFIGS[tierMode].questionCount); };
+  const startTier = (tierMode: TierMode) => { setIsRetryRound(false); chooseMode(tierMode, entries, entries.length); };
   const showChallengeEntry = () => setScreen("challenge-entry");
   const startChallenge = () => {
     if (lessonProgress.challenge.attempts > 0) recordLessonEvent("challenge_retried", { attempt: lessonProgress.challenge.attempts + 1 });
