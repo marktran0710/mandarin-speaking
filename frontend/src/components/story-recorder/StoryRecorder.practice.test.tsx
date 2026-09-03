@@ -189,9 +189,12 @@ describe("StoryRecorder student prototype", () => {
     // test gap, flagged to the user rather than silently dropped here.
   });
 
-  it("returns from the vocabulary quiz header back button to the activity overview", async () => {
+  it("uses browser history for the vocabulary quiz header back button", async () => {
     const user = userEvent.setup();
     const onExit = vi.fn();
+    const historyBack = vi.spyOn(window.history, "back").mockImplementation(() => {});
+    const previousHistoryState = window.history.state;
+    window.history.replaceState({ mandarinPractice: { topicId: topicWithQuizVocab.id } }, "", window.location.href);
 
     render(
       <StoryRecorder
@@ -211,9 +214,10 @@ describe("StoryRecorder student prototype", () => {
 
     await user.click(screen.getByRole("button", { name: "Back to previous page" }));
 
-    expect(screen.getByRole("heading", { name: /Your Challenge/ })).toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "Vocabulary quiz" })).not.toBeInTheDocument();
+    expect(historyBack).toHaveBeenCalledTimes(1);
     expect(onExit).not.toHaveBeenCalled();
+    window.history.replaceState(previousHistoryState, "", window.location.href);
+    historyBack.mockRestore();
   });
 
   it("disables the vocabulary quiz choice when a story has no translated words", () => {
