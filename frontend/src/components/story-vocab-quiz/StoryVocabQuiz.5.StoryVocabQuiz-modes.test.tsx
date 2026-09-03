@@ -97,9 +97,9 @@ describe("StoryVocabQuiz modes", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    expect(screen.getByRole("button", { name: /Tier 1/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Tier 2/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Tier 3/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Round 1/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Round 2/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Round 3/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Review/ })).toBeInTheDocument();
     // No question shown yet.
     expect(screen.queryByRole("group", { name: /What does/ })).not.toBeInTheDocument();
@@ -110,7 +110,7 @@ describe("StoryVocabQuiz modes", () => {
 
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     expect(screen.queryByRole("button", { name: /Finish & see results/ })).not.toBeInTheDocument();
   });
 
@@ -143,7 +143,7 @@ describe("StoryVocabQuiz modes", () => {
     await screen.findByRole("group", { name: "Quiz mode" });
     vi.useFakeTimers();
     try {
-      fireEvent.click(screen.getByRole("button", { name: /Tier 3/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Round 3/ }));
       expect(screen.getByLabelText("150 seconds left")).toBeInTheDocument();
 
       act(() => {
@@ -161,7 +161,7 @@ describe("StoryVocabQuiz modes", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
 
     expect(screen.queryByLabelText(/seconds left/)).not.toBeInTheDocument();
   });
@@ -175,7 +175,7 @@ describe("StoryVocabQuiz modes", () => {
     );
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
 
     // Answer every question wrong: all 5 distinct words land in "missed".
     for (let i = 0; i < entries.length; i += 1) {

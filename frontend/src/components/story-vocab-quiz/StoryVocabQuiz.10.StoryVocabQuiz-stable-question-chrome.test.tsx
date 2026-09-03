@@ -79,7 +79,7 @@ describe("StoryVocabQuiz stable question chrome", () => {
         onDone={vi.fn()}
       />,
     );
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
 
     // Math.random is pinned to 0 → translation question; its instruction
     // keeps the header the same height as every other kind's.

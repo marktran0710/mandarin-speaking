@@ -86,7 +86,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     );
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
 
     for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true, translationByWord);
@@ -112,7 +112,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     // Speaking practice opens only after all three stars, so the road to
     // onDone continues through tier 2 and tier 3. Each scored round reports
     // its own onComplete along the way.
-    await user.click(screen.getByRole("button", { name: /Challenge Tier 2/ }));
+    await user.click(screen.getByRole("button", { name: /Challenge Round 2/ }));
     for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true, translationByWord);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
@@ -120,7 +120,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(2));
     expect(onDone).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: /Challenge Tier 3/ }));
+    await user.click(screen.getByRole("button", { name: /Challenge Round 3/ }));
     for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true, translationByWord);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
@@ -138,7 +138,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
 
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     expect(screen.queryByRole("button", { name: /Skip/ })).not.toBeInTheDocument();
   });
 

@@ -116,7 +116,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
       />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     await answerCurrentQuestion(user, false);
 
     await waitFor(() => expect(database.recordVocabQuizResponse).toHaveBeenCalledTimes(1));
@@ -191,7 +191,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
 
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={vi.fn()} storyId="story-1" studentId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     for (let index = 0; index < 3; index += 1) {
       await answerCurrentQuestion(user, false);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));

@@ -94,7 +94,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
       />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+    await user.click(screen.getByRole("button", { name: /Round 2/ }));
 
     const options = optionButtons().map((b) => b.textContent);
     expect(options).toContain("restaurant");
@@ -116,7 +116,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
       />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
 
     const options = optionButtons().map((b) => b.textContent);
     expect(options).toHaveLength(1);
@@ -151,7 +151,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
         />,
       );
     await screen.findByRole("group", { name: "Quiz mode" });
-      await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+      await user.click(screen.getByRole("button", { name: /Round 2/ }));
 
       const options = optionButtons().map((b) => b.textContent);
       expect(options).toHaveLength(1);
@@ -183,7 +183,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
       />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+    await user.click(screen.getByRole("button", { name: /Round 2/ }));
 
     // Whichever word the blank asks for, the other "happy" word would fit
     // the sentence just as well — it must never appear alongside it.
@@ -203,7 +203,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
       />,
     );
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+    await user.click(screen.getByRole("button", { name: /Round 2/ }));
 
     const group = screen.getByRole("group", { name: /How do you read/ });
     expect(group.className).toContain("vocab-quiz-options-pinyin");

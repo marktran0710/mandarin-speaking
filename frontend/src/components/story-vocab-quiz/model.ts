@@ -215,9 +215,9 @@ export const TIER_CARDS: Array<{
   descPinyin: string;
   descEn: string;
 }> = [
-  { mode: "tier1", title: "第一關", titlePinyin: "Dì yī guān", titleEn: "Tier 1", iconName: "star", desc: "20 題 — 答對 14 題就過關。", descPinyin: "20 tí — dá duì 14 tí jiù guòguān.", descEn: "20 questions — 14 right to pass." },
-  { mode: "tier2", title: "第二關", titlePinyin: "Dì èr guān", titleEn: "Tier 2", iconName: "star", desc: "22 題，選項更難 — 答對 18 題就能開始說話練習。", descPinyin: "22 tí, xuǎnxiàng gèng nán — dá duì 18 tí jiù néng kāishǐ shuōhuà liànxí.", descEn: "22 questions, trickier options — 18 right opens speaking practice." },
-  { mode: "tier3", title: "第三關", titlePinyin: "Dì sān guān", titleEn: "Tier 3", iconName: "star", desc: "25 題，150 秒 — 答對 22 題。", descPinyin: "25 tí, 150 miǎo — dá duì 22 tí.", descEn: "25 questions in 150s — 22 right to pass." },
+  { mode: "tier1", title: "第一關", titlePinyin: "Dì yī guān", titleEn: "Round 1", iconName: "star", desc: "20 題 — 答對 14 題就過關。", descPinyin: "20 tí — dá duì 14 tí jiù guòguān.", descEn: "20 questions — 14 right to pass." },
+  { mode: "tier2", title: "第二關", titlePinyin: "Dì èr guān", titleEn: "Round 2", iconName: "star", desc: "22 題，選項更難 — 答對 18 題就能開始說話練習。", descPinyin: "22 tí, xuǎnxiàng gèng nán — dá duì 18 tí jiù néng kāishǐ shuōhuà liànxí.", descEn: "22 questions, trickier options — 18 right opens speaking practice." },
+  { mode: "tier3", title: "第三關", titlePinyin: "Dì sān guān", titleEn: "Round 3", iconName: "star", desc: "25 題，150 秒 — 答對 22 題。", descPinyin: "25 tí, 150 miǎo — dá duì 22 tí.", descEn: "25 questions in 150s — 22 right to pass." },
 ];
 
 export const REVIEW_CARD = {

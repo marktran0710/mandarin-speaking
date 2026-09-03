@@ -106,9 +106,9 @@ describe("StoryVocabQuiz star tiers", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    expect(screen.getByRole("button", { name: /Tier 1/ })).toBeEnabled();
-    expect(screen.getByRole("button", { name: /Tier 2/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Tier 3/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Round 1/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Round 2/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Round 3/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Review/ })).toBeEnabled();
   });
 
@@ -118,8 +118,8 @@ describe("StoryVocabQuiz star tiers", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    expect(screen.getByRole("button", { name: /Tier 2/ })).toBeEnabled();
-    expect(screen.getByRole("button", { name: /Tier 3/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Round 2/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Round 3/ })).toBeDisabled();
   });
 
   it("mirrors a database-derived three-star result locally for the next activity view", async () => {
@@ -134,7 +134,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
     const { loadLocalStars } = await import("../../utils/quizTiers");
     await waitFor(() => expect(loadLocalStars("s1")).toBe(3));
-    expect(screen.getByRole("button", { name: /Tier 3/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Round 3/ })).toBeEnabled();
   });
 
   it("keeps practice locked until the learner earns all three stars", async () => {
@@ -146,7 +146,7 @@ describe("StoryVocabQuiz star tiers", () => {
     );
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     expect(screen.getByText(/Question 1 of 5/)).toBeInTheDocument();
     await playTierRun(user, 5, 5);
 
@@ -162,7 +162,7 @@ describe("StoryVocabQuiz star tiers", () => {
     // One star isn't enough for practice yet — the summary celebrates and
     // dangles tier 2 as the way in.
     expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Challenge Tier 2/ }));
+    await user.click(screen.getByRole("button", { name: /Challenge Round 2/ }));
     expect(screen.getByText(/Question 1 of 5/)).toBeInTheDocument();
     await playTierRun(user, 5, 5);
 
@@ -171,7 +171,7 @@ describe("StoryVocabQuiz star tiers", () => {
     expect(onComplete).toHaveBeenCalledTimes(2);
     expect(onComplete.mock.calls[1][0].mode).toBe("tier2");
     expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Challenge Tier 3/ }));
+    await user.click(screen.getByRole("button", { name: /Challenge Round 3/ }));
     await playTierRun(user, 5, 5);
 
     expect(loadLocalStars("s1")).toBe(3);
@@ -187,7 +187,7 @@ describe("StoryVocabQuiz star tiers", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} storyId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     await playTierRun(user, 5, 3);
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
@@ -210,7 +210,7 @@ describe("StoryVocabQuiz star tiers", () => {
     );
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     await playTierRun(user, 5, 0);
 
     expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
@@ -227,7 +227,7 @@ describe("StoryVocabQuiz star tiers", () => {
     await screen.findByRole("group", { name: "Quiz mode" });
     vi.useFakeTimers();
     try {
-      fireEvent.click(screen.getByRole("button", { name: /Tier 3/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Round 3/ }));
       expect(screen.getByLabelText("150 seconds left")).toBeInTheDocument();
 
       act(() => {
@@ -250,7 +250,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
     const { unmount } = render(<StoryVocabQuiz entries={aiEntries} onDone={vi.fn()} storyId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     for (const button of optionButtons()) {
       expect(button.textContent).not.toMatch(/ai-trap/);
     }
@@ -259,7 +259,7 @@ describe("StoryVocabQuiz star tiers", () => {
     recordLocalStars("s1", 1);
     render(<StoryVocabQuiz entries={aiEntries} onDone={vi.fn()} storyId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
-    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+    await user.click(screen.getByRole("button", { name: /Round 2/ }));
     expect(optionButtons().some((b) => /ai-trap/.test(b.textContent ?? ""))).toBe(true);
   });
 
@@ -278,7 +278,7 @@ describe("StoryVocabQuiz star tiers", () => {
     );
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+    await user.click(screen.getByRole("button", { name: /Round 2/ }));
     const options = optionButtons().map((b) => b.textContent);
     expect(options.length).toBeGreaterThan(1);
     const strip = (s: string) => s.normalize("NFD").replace(/\p{Mn}/gu, "");
@@ -318,7 +318,7 @@ describe("StoryVocabQuiz star tiers", () => {
       );
     await screen.findByRole("group", { name: "Quiz mode" });
 
-      await user.click(screen.getByRole("button", { name: /Tier 2/ }));
+      await user.click(screen.getByRole("button", { name: /Round 2/ }));
       // The planner keeps future Chinese-word answers out of earlier
       // options, so the first item is pinyin; listening becomes safe once
       // that first concept has already been tested.
@@ -346,7 +346,7 @@ describe("StoryVocabQuiz star tiers", () => {
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
 
-    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     const firstWord = screen.getByRole("heading").textContent!;
     await user.click(
       screen.getByRole("button", {
