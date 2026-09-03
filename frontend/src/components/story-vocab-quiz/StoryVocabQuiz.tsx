@@ -1,4 +1,5 @@
 import "./StoryVocabQuiz.css";
+import { useEffect } from "react";
 import { BiLabel } from "../BiLabel";
 import { ModeSelectScreen, ReviewScreen, SummaryScreen } from "./QuizScreens";
 import { QuizQuestion } from "./QuizQuestion";
@@ -14,9 +15,25 @@ export default function StoryVocabQuiz({ entries, onDone, onBack, onComplete, st
   onComplete?: (summary: VocabQuizSummary) => void; storyId?: string; baseStoryId?: string;
   level?: "easy" | "medium" | "hard"; studentId?: string; studentName?: string; alreadyCompleted?: boolean;
 }) {
-  // Retained for runtime compatibility; navigation now belongs to the
-  // activity chooser instead of the quiz surface.
-  void onBack;
+  useEffect(() => {
+    if (!onBack) return;
+    const handleBack = onBack;
+
+    // StoryRecorderRuntime owns the header, but already passes the callback
+    // that switches its phase machine back to the activity overview. Capture
+    // the shared header's click while this quiz is mounted so its generic
+    // external-exit action cannot bypass that in-story navigation.
+    const returnToActivities = (event: MouseEvent) => {
+      if (!(event.target instanceof Element) || !event.target.closest(".btn-story-exit")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      handleBack();
+    };
+
+    document.addEventListener("click", returnToActivities, true);
+    return () => document.removeEventListener("click", returnToActivities, true);
+  }, [onBack]);
+
   const session = useQuizSession({ entries, storyId, baseStoryId, level, studentId, studentName, onComplete });
   if (!session.sessionReady) {
     return (

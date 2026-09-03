@@ -189,6 +189,33 @@ describe("StoryRecorder student prototype", () => {
     // test gap, flagged to the user rather than silently dropped here.
   });
 
+  it("returns from the vocabulary quiz header back button to the activity overview", async () => {
+    const user = userEvent.setup();
+    const onExit = vi.fn();
+
+    render(
+      <StoryRecorder
+        topic={topicWithQuizVocab}
+        selectedImage={topicWithQuizVocab.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={vi.fn()}
+        onImageChange={vi.fn()}
+        onAddRecord={vi.fn()}
+        onExit={onExit}
+        enableOverview
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Vocabulary Quiz/ }));
+    expect(screen.getByRole("region", { name: "Vocabulary quiz" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Back to previous page" }));
+
+    expect(screen.getByRole("heading", { name: /Your Challenge/ })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Vocabulary quiz" })).not.toBeInTheDocument();
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
   it("disables the vocabulary quiz choice when a story has no translated words", () => {
     render(
       <StoryRecorder
