@@ -29,7 +29,6 @@ type QuizQuestionProps = {
   results: VocabQuizQuestionResult[]; index: number; questionLimit: number | null;
   requestedQuestionCount: number; isRetryRound: boolean; isLast: boolean; timeLeftMs: number;
   timeLimitMs: number | null; showFinishButton: boolean;
-  isFullAssessment?: boolean;
   choose: (option: string) => void; next: () => void; finish: (results: VocabQuizQuestionResult[]) => void;
   speakWord: (text: string) => void;
 };
@@ -39,7 +38,7 @@ const instructions = {
 } as const;
 
 export function QuizQuestion(props: QuizQuestionProps) {
-  const { question, mode, selected, results, index, questionLimit, requestedQuestionCount, isRetryRound, isLast, timeLeftMs, timeLimitMs, showFinishButton, isFullAssessment = false, choose, next, finish, speakWord } = props;
+  const { question, mode, selected, results, index, questionLimit, requestedQuestionCount, isRetryRound, isLast, timeLeftMs, timeLimitMs, showFinishButton, choose, next, finish, speakWord } = props;
   const [typedAnswer, setTypedAnswer] = useState("");
   const isAssessment = question.kind === "assessment";
   const isProductiveRecall = isAssessment && question.assessment.answerFormat === "free_text";
@@ -51,7 +50,7 @@ export function QuizQuestion(props: QuizQuestionProps) {
     <div className="vocab-quiz-topbar">
       <div className="vocab-quiz-status-progress">
         <p className="vocab-quiz-progress">{questionLimit !== null ? <BiLabel zh={`第 ${index + 1} / ${questionLimit} 題`} pinyin={`Dì ${index + 1} / ${questionLimit} tí`} en={`Question ${index + 1} of ${questionLimit}`} /> : <BiLabel zh={`第 ${index + 1} 題`} pinyin={`Dì ${index + 1} tí`} en={`Question ${index + 1}`} />}</p>
-        {config && !isFullAssessment && <QuizScoreTrack correct={results.filter((result) => result.correct).length} answered={results.length} config={config} totalQuestions={questionLimit ?? config.questionCount} />}
+        {config && <QuizScoreTrack correct={results.filter((result) => result.correct).length} answered={results.length} config={config} totalQuestions={questionLimit ?? config.questionCount} />}
       </div>
       {timeLimitMs !== null && <p className={`vocab-quiz-timer${timeLeftMs <= 10_000 ? " is-low" : ""}`} aria-label={`${Math.ceil(timeLeftMs / 1000)} seconds left`}><StudentIcon name="clock" size={16} aria-hidden="true" /> {Math.ceil(timeLeftMs / 1000)}s</p>}
       {showFinishButton && <button type="button" className="btn-vocab-quiz-finish" onClick={() => finish(results)}><BiLabel zh="結束，看結果" pinyin="Jiéshù, kàn jiéguǒ" en="Finish & see results" /></button>}

@@ -68,7 +68,6 @@ export function useQuizSession({
   const [questionLimit, setQuestionLimit] = useState<number | null>(null);
   const [requestedQuestionCount, setRequestedQuestionCount] = useState(0);
   const [questions, setQuestions] = useState<VocabQuizQuestion[]>([]);
-  const [assessmentFlow, setAssessmentFlow] = useState(false);
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [results, setResults] = useState<VocabQuizQuestionResult[]>([]);
@@ -175,25 +174,7 @@ export function useQuizSession({
     if (finishedRef.current) return;
     finishedRef.current = true;
     const correctCount = finalResults.filter((result) => result.correct).length;
-    if (!isRetryRound && assessmentFlow) {
-      const levels = ["easy", "medium", "hard"] as const;
-      let contiguousStars: 0 | QuizTier = 0;
-      levels.forEach((assessmentLevel, index) => {
-        const blockResults = finalResults.filter((result) => result.level === assessmentLevel);
-        const blockMode = `tier${index + 1}` as TierMode;
-        const earned = attemptEarnsStar(blockMode, blockResults.filter((result) => result.correct).length, blockResults.length);
-        if (earned !== null && contiguousStars === index) contiguousStars = earned;
-        onComplete?.({
-          mode: blockMode,
-          totalQuestions: blockResults.length,
-          correctCount: blockResults.filter((result) => result.correct).length,
-          totalTimeMs: blockResults.reduce((total, result) => total + result.timeMs, 0),
-          questionResults: blockResults,
-        });
-      });
-      if (storyId && contiguousStars !== 0) recordLocalStars(storyId, contiguousStars);
-      setStars((current) => contiguousStars > current ? contiguousStars : current);
-    } else if (!isRetryRound) {
+    if (!isRetryRound) {
       const earned = attemptEarnsStar(mode, correctCount, finalResults.length);
       if (earned !== null) {
         if (storyId) recordLocalStars(storyId, earned);
@@ -327,10 +308,9 @@ export function useQuizSession({
     setSelected(null); setResults([]); setTimeLeftMs(tierConfigFromMode(picked)?.timeLimitMs ?? 0);
     const assessmentLevel = picked === "tier1" ? "easy" : picked === "tier2" ? "medium" : picked === "tier3" ? "hard" : null;
     const importedQuestions = assessmentLevel
-      ? picked === "tier1" ? buildAssessmentQuestions(entriesForRound) : buildAssessmentQuestions(entriesForRound, assessmentLevel)
+      ? buildAssessmentQuestions(entriesForRound, assessmentLevel)
       : [];
     if (importedQuestions.length > 0) {
-      setAssessmentFlow(picked === "tier1" && importedQuestions.some((question) => question.kind === "assessment" && question.assessment.level === "hard"));
       plannedQuestionCountRef.current = importedQuestions.length;
       setQuestions(importedQuestions);
       setQuestionLimit(importedQuestions.length);
@@ -343,7 +323,6 @@ export function useQuizSession({
     const requestedCount = limit ?? entriesForRound.length;
     const plan = planQuizSession(shuffle(entriesForRound), picked, requestedCount,
       (entry, planMode, context) => buildQuizQuestion(entry, entriesForRound, planMode, context));
-    setAssessmentFlow(false);
     plannedQuestionCountRef.current = plan.questions.length;
     setQuestions(plan.questions); setQuestionLimit(plan.questions.length); setRequestedQuestionCount(requestedCount);
     quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -365,6 +344,6 @@ export function useQuizSession({
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
     question, index, selected, results, timeLeftMs, stars, weakEntries, priorityReviewWords, missedWords,
     missedEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
-    speakWord, chooseMode, startTier, practiceMissedWords, returnToModes, sessionReady, assessmentFlow,
+    speakWord, chooseMode, startTier, practiceMissedWords, returnToModes, sessionReady,
   };
 }

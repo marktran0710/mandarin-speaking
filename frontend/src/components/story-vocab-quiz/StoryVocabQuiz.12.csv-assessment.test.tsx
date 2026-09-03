@@ -14,7 +14,7 @@ vi.mock("../../services/database", async (importOriginal) => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("CSV vocabulary assessment flow", () => {
-  it("runs the complete Easy → Medium → Hard assessment in order", async () => {
+  it("runs each CSV level as its own round and attempt", async () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();
     const entries = [{
@@ -53,21 +53,30 @@ describe("CSV vocabulary assessment flow", () => {
     }];
 
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} />);
-    await user.click(screen.getByRole("button", { name: /Full assessment/ }));
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
     await user.click(screen.getByRole("button", { name: "哪裡 / 哪兒" }));
-    await user.click(screen.getByRole("button", { name: /Next question/ }));
-    await user.click(screen.getByRole("button", { name: "哪裡" }));
-    await user.click(screen.getByRole("button", { name: /Next question/ }));
+    await user.click(screen.getByRole("button", { name: /See results/ }));
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onComplete.mock.calls[0][0].mode).toBe("tier1");
+    expect(onComplete.mock.calls[0][0].questionResults[0].level).toBe("easy");
 
+    await user.click(screen.getByRole("button", { name: /Challenge Round 2/ }));
+    await user.click(screen.getByRole("button", { name: "哪裡" }));
+    await user.click(screen.getByRole("button", { name: /See results/ }));
+    expect(onComplete).toHaveBeenCalledTimes(2);
+    expect(onComplete.mock.calls[1][0].mode).toBe("tier2");
+    expect(onComplete.mock.calls[1][0].questionResults[0].level).toBe("medium");
+
+    await user.click(screen.getByRole("button", { name: /Challenge Round 3/ }));
     await user.type(screen.getByRole("textbox", { name: "Your answer" }), " 哪 兒？ ");
     await user.click(screen.getByRole("button", { name: /Check answer/ }));
     expect(screen.getByText("Correct!")).toBeInTheDocument();
     expect(screen.getByText(/Both 哪裡 and 哪兒 are accepted/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /See results/ }));
-    await user.click(screen.getByRole("button", { name: /Continue to practice/ }));
-
     expect(onComplete).toHaveBeenCalledTimes(3);
-    const results = onComplete.mock.calls.map(([summary]) => summary.questionResults[0]);
+    const summaries = onComplete.mock.calls.map(([summary]) => summary);
+    expect(summaries.map((summary) => summary.mode)).toEqual(["tier1", "tier2", "tier3"]);
+    const results = summaries.map((summary) => summary.questionResults[0]);
     expect(results.map((result) => result.level)).toEqual(["easy", "medium", "hard"]);
     expect(results.map((result) => result.itemId)).toEqual([
       "MC1_003_EASY", "MC1_003_MEDIUM", "MC1_003_HARD",
