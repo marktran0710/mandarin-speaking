@@ -691,6 +691,14 @@
   padding-bottom: 0;
 }
 
+.vocab-quiz-mode-supporting-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: min(100%, 980px);
+  margin: 0 auto;
+}
+
 /* One path threading the three tiers, so "quiz → speak" reads as a single
    progression. The line sits behind the tier dots and shows only in the
    gaps (each tier card paints its own surface over it). */
