@@ -56,11 +56,13 @@
   grid-row: 1 / span 2;
   width: 48px;
   height: 48px;
-  border: 1px solid color-mix(in srgb, var(--gold) 34%, var(--clay-hairline));
+  /* The mode card already owns the boundary; the icon is a status cue, not a
+     second card inside it. */
+  border: 0;
   border-radius: var(--clay-radius-pill);
   color: var(--gold-deep);
   background: var(--gold-soft);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--clay-surface-card) 55%, transparent);
+  box-shadow: none;
 }
 
 /* The three star-tier cards are stops on one journey: a centred dot on the
@@ -86,11 +88,11 @@
 .vocab-quiz-mode-tier3 .vocab-quiz-mode-icon {
   width: 46px;
   height: 46px;
-  border: 3px solid var(--clay-canvas);
+  border: 0;
   border-radius: 50%;
   background: var(--clay-surface-soft);
   color: var(--clay-muted);
-  box-shadow: 0 0 0 1px var(--clay-hairline);
+  box-shadow: none;
 }
 
 /* Open (unlocked but not yet earned): the gold "you can play this now" dot. */
@@ -99,7 +101,7 @@
 .vocab-quiz-mode-tier3:not(.is-locked):not(.is-earned) .vocab-quiz-mode-icon {
   background: var(--seal);
   color: var(--clay-on-seal);
-  box-shadow: 0 0 0 1px var(--seal);
+  box-shadow: none;
 }
 
 /* Earned: jade dot + soft jade surface. */
@@ -205,6 +207,88 @@
   color: var(--clay-muted);
 }
 
+/* Mastery is a read-only lesson summary, so it stays open beneath the action
+   cards instead of competing with Weak words as another quiz mode. */
+.vocab-quiz-mastered {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(210px, .7fr) minmax(0, 1.3fr);
+  align-items: start;
+  gap: var(--space-lg);
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid color-mix(in srgb, var(--jade) 34%, var(--clay-hairline));
+  border-radius: var(--clay-radius-md);
+  background: color-mix(in srgb, var(--clay-surface-card) 92%, var(--jade-soft));
+  text-align: left;
+}
+.vocab-quiz-mastered-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+.vocab-quiz-mastered-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--clay-radius-pill);
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+.vocab-quiz-mastered-heading strong {
+  display: block;
+  color: var(--clay-ink);
+  font-size: var(--text-md);
+  font-weight: 800;
+}
+.vocab-quiz-mastered-heading p,
+.vocab-quiz-mastered-empty {
+  margin: var(--space-2xs) 0 0;
+  color: var(--clay-body);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+.vocab-quiz-mastered-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-xs);
+  max-height: 128px;
+  padding-right: var(--space-2xs);
+  overflow-y: auto;
+  list-style: none;
+}
+.vocab-quiz-mastered-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border: 0;
+  border-radius: var(--clay-radius-sm);
+  background: var(--jade-soft);
+}
+.vocab-quiz-mastered-word {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--clay-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vocab-quiz-mastered-meaning {
+  overflow: hidden;
+  color: var(--clay-muted);
+  font-size: var(--text-xs);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Earned-star tally on the ladder header. */
 .vocab-quiz-star-count {
   display: flex;
@@ -263,6 +347,11 @@
   .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > .app-icon {
     grid-column: 3;
     grid-row: 1 / span 2;
+  }
+
+  .vocab-quiz-mastered {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
   }
 }
 
@@ -363,7 +452,7 @@
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-sm);
   background: var(--seal-soft);
-  border: 1.5px solid var(--seal);
+  border: 0;
   border-radius: var(--clay-radius-md);
 }
 .vocab-quiz-missed-word {
@@ -542,6 +631,7 @@
     grid-column: 1 / -1;
     text-align: left;
   }
+
 }
 
 .vocab-quiz-assessment-feedback .is-correct {
@@ -595,7 +685,7 @@
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-sm);
   background: var(--seal-soft);
-  border: 1.5px solid var(--seal);
+  border: 0;
   border-radius: var(--clay-radius-md);
   text-align: left;
 }
@@ -623,4 +713,362 @@
     gap: var(--space-2xs);
     text-align: left;
   }
+}
+
+/* Learner progress: the diagnostic ladder remains the source of truth, while
+   this surface translates it into visible learning stages. It intentionally
+   uses the shared clay tokens and stays compact enough to sit above the mode
+   choices without pushing the primary action below the fold. */
+.lesson-progress-overview {
+  display: grid;
+  gap: var(--space-md);
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-soft);
+}
+.lesson-vocab-mastery,
+.lesson-learning-path,
+.lesson-focus-words,
+.lesson-challenge-entry {
+  min-width: 0;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+}
+.lesson-vocab-mastery {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border-color: color-mix(in srgb, var(--jade) 32%, var(--clay-hairline));
+  background: color-mix(in srgb, var(--jade-soft) 38%, var(--clay-surface-card));
+}
+/* The overview is the single frame for this compact summary. Its direct
+   sections keep their color cues, but do not draw competing inner cards. */
+.lesson-progress-overview > .lesson-vocab-mastery,
+.lesson-progress-overview > .lesson-learning-path {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.lesson-vocab-mastery-heading,
+.lesson-learning-path-heading,
+.lesson-focus-words-heading,
+.lesson-challenge-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.lesson-vocab-mastery-heading > div {
+  display: grid;
+  gap: var(--space-2xs);
+}
+.lesson-vocab-mastery .eyebrow,
+.lesson-learning-path .eyebrow,
+.lesson-focus-words .eyebrow,
+.lesson-challenge-entry .eyebrow {
+  margin: 0;
+}
+.lesson-vocab-mastery strong {
+  color: var(--clay-ink);
+  font-size: var(--text-lg);
+}
+.lesson-vocab-mastery strong span {
+  color: var(--jade-deep);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+.lesson-vocab-mastery-track {
+  height: var(--space-xs);
+  overflow: hidden;
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-strong);
+}
+.lesson-vocab-mastery-track span {
+  display: block;
+  height: 100%;
+  border-radius: var(--clay-radius-pill);
+  background: var(--jade);
+  transition: width 220ms ease;
+}
+.lesson-learning-path {
+  display: grid;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+}
+.lesson-learning-path-heading h2,
+.lesson-focus-words-heading h2,
+.lesson-challenge-entry h2 {
+  margin: var(--space-2xs) 0 0;
+  color: var(--clay-ink);
+  font-size: var(--text-md);
+}
+.lesson-learning-path-complete {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  color: var(--jade-deep);
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+.lesson-learning-path-list {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--space-xs);
+  padding: 0;
+  list-style: none;
+}
+.lesson-learning-path-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-xs);
+  min-width: 0;
+  padding: var(--space-xs);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft);
+}
+.lesson-learning-path-marker {
+  color: var(--clay-muted);
+  font-size: var(--text-md);
+  line-height: 1.25;
+}
+.lesson-learning-path-step > div {
+  display: grid;
+  gap: var(--space-3xs);
+  min-width: 0;
+}
+.lesson-learning-path-step strong {
+  color: var(--clay-body);
+  font-size: var(--text-sm);
+  line-height: 1.25;
+}
+.lesson-learning-path-step span:not(.lesson-learning-path-marker) {
+  color: var(--clay-muted);
+  font-size: var(--text-xs);
+  line-height: 1.2;
+}
+.lesson-learning-path-step.is-complete {
+  background: var(--jade-soft);
+}
+.lesson-learning-path-step.is-complete .lesson-learning-path-marker,
+.lesson-learning-path-step.is-complete strong {
+  color: var(--jade-deep);
+}
+.lesson-learning-path-step.is-current {
+  background: var(--seal-soft);
+  box-shadow: inset 3px 0 0 var(--seal);
+}
+.lesson-learning-path-step.is-current .lesson-learning-path-marker,
+.lesson-learning-path-step.is-current strong {
+  color: var(--seal-deep);
+}
+.lesson-progress-continue,
+.lesson-focus-words-action,
+.lesson-challenge-start {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: var(--clay-radius-pill);
+  background: var(--jade);
+  color: var(--clay-on-accent);
+  padding: var(--space-sm) var(--space-lg);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 800;
+  cursor: pointer;
+}
+.lesson-progress-continue {
+  justify-self: start;
+}
+.lesson-progress-continue:hover,
+.lesson-focus-words-action:hover,
+.lesson-challenge-start:hover:not(:disabled) {
+  background: var(--jade-deep);
+}
+.lesson-focus-words,
+.lesson-challenge-entry {
+  padding: var(--space-md) var(--space-lg);
+}
+.lesson-focus-words {
+  display: grid;
+  gap: var(--space-sm);
+}
+.lesson-focus-words ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-xs);
+  padding: 0;
+  list-style: none;
+}
+.lesson-focus-words li {
+  display: grid;
+  gap: var(--space-3xs);
+  min-width: 0;
+  padding: var(--space-sm);
+  border: 0;
+  border-radius: var(--clay-radius-sm);
+  background: var(--seal-soft);
+}
+.lesson-focus-words li strong {
+  color: var(--seal-deep);
+  font-size: var(--text-md);
+}
+.lesson-focus-words li span,
+.lesson-focus-words-empty,
+.lesson-challenge-entry p,
+.lesson-challenge-entry small {
+  color: var(--clay-body);
+  font-size: var(--text-sm);
+}
+.lesson-focus-words-empty {
+  margin: 0;
+}
+.lesson-challenge-entry {
+  border-color: color-mix(in srgb, var(--gold) 36%, var(--clay-hairline));
+  background: color-mix(in srgb, var(--gold-soft) 38%, var(--clay-surface-card));
+}
+.lesson-challenge-entry > div {
+  display: grid;
+  gap: var(--space-2xs);
+  min-width: 0;
+}
+.lesson-challenge-entry h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+.lesson-challenge-entry p,
+.lesson-challenge-entry small {
+  margin: 0;
+}
+.lesson-challenge-start:disabled {
+  background: var(--clay-surface-strong);
+  color: var(--clay-muted);
+  cursor: not-allowed;
+}
+.lesson-completion-summary {
+  display: grid;
+  gap: var(--space-md);
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: var(--space-lg);
+  border: 1px solid color-mix(in srgb, var(--jade) 50%, var(--clay-hairline));
+  border-radius: var(--clay-radius-lg);
+  background: color-mix(in srgb, var(--jade-soft) 48%, var(--clay-surface-card));
+}
+.lesson-completion-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.lesson-completion-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: var(--space-2xs) 0 0;
+  color: var(--jade-deep);
+  font-size: var(--text-lg);
+}
+.lesson-completion-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+.lesson-completion-stats span {
+  display: grid;
+  gap: var(--space-2xs);
+  color: var(--clay-body);
+  font-size: var(--text-sm);
+}
+.lesson-completion-stats strong {
+  color: var(--clay-ink);
+  font-size: var(--text-lg);
+}
+.lesson-completion-summary .lesson-vocab-mastery {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.lesson-completion-summary .lesson-vocab-mastery-heading { display: none; }
+.lesson-completion-finish {
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-lg);
+  border: 0;
+  border-radius: var(--clay-radius-pill);
+  background: var(--jade);
+  color: var(--clay-on-accent);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.lesson-completion-finish:hover { background: var(--jade-deep); }
+.lesson-improved-today {
+  display: grid;
+  gap: var(--space-xs);
+}
+.lesson-improved-today > strong { color: var(--clay-ink); }
+.lesson-improved-today ul {
+  display: grid;
+  gap: var(--space-xs);
+  padding: 0;
+  list-style: none;
+}
+.lesson-improved-today li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  color: var(--clay-body);
+  font-size: var(--text-sm);
+}
+.lesson-improved-today li span:first-child { color: var(--clay-ink); font-weight: 800; }
+.lesson-improved-today li span:last-child { color: var(--jade-deep); }
+.lesson-round-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
+  width: 100%;
+}
+.lesson-round-stat {
+  display: grid;
+  gap: var(--space-2xs);
+  min-width: 0;
+  padding: var(--space-md);
+  border: 0;
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft);
+}
+.lesson-round-stat span,
+.lesson-round-stat small {
+  color: var(--clay-muted);
+  font-size: var(--text-xs);
+}
+.lesson-round-stat strong {
+  color: var(--clay-ink);
+  font-size: var(--text-lg);
+}
+.lesson-round-stat small {
+  line-height: 1.2;
+}
+
+@media (max-width: 760px) {
+  .lesson-learning-path-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lesson-vocab-mastery-heading,
+  .lesson-learning-path-heading,
+  .lesson-focus-words-heading,
+  .lesson-challenge-entry { align-items: flex-start; flex-direction: column; }
+  .lesson-progress-continue,
+  .lesson-focus-words-action,
+  .lesson-challenge-start { width: 100%; }
+  .lesson-round-stats { grid-template-columns: 1fr; }
+  .lesson-completion-stats { grid-template-columns: 1fr; }
+  .lesson-completion-heading { align-items: flex-start; flex-direction: column; }
+  .lesson-completion-finish { width: 100%; }
+  .lesson-improved-today li { align-items: flex-start; flex-direction: column; }
 }
