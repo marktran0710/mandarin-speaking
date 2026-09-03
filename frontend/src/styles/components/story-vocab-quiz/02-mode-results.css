@@ -776,11 +776,6 @@
   color: var(--clay-ink);
   font-size: var(--text-lg);
 }
-.lesson-vocab-mastery strong span {
-  color: var(--jade-deep);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
 .lesson-vocab-mastery-track {
   height: var(--space-xs);
   overflow: hidden;

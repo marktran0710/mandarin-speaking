@@ -43,8 +43,7 @@ export function MasteryProgressBar({ progress, compact = false }: { progress: Le
     <section className={`lesson-vocab-mastery${compact ? " is-compact" : ""}`} aria-label="Lesson vocabulary mastery">
       <div className="lesson-vocab-mastery-heading">
         <div>
-          <p className="eyebrow"><BiLabel zh="本課詞彙掌握度" pinyin="Běn kè cíhuì zhǎngwò dù" en="Vocabulary mastery" /></p>
-          <strong>{progress.strongWords} / {progress.totalWords} <span>strong</span></strong>
+          <strong>{progress.strongWords} / {progress.totalWords}</strong>
         </div>
       </div>
       <div className="lesson-vocab-mastery-track" role="progressbar" aria-label={`${progress.strongWords} of ${progress.totalWords} vocabulary words strong`} aria-valuemin={0} aria-valuemax={progress.totalWords} aria-valuenow={progress.strongWords}>
@@ -62,8 +61,7 @@ export function StrengthenProgressBar({ progress }: { progress: LessonVocabulary
     <section className="lesson-vocab-mastery lesson-strengthen-progress" aria-label="Strengthen vocabulary progress">
       <div className="lesson-vocab-mastery-heading">
         <div>
-          <p className="eyebrow"><BiLabel zh="加強詞彙" pinyin="Jiāqiáng cíhuì" en="Strengthen vocabulary" /></p>
-          <strong>{strengthened} / {total} <span>strengthened</span></strong>
+          <strong>{strengthened} / {total}</strong>
         </div>
       </div>
       <div className="lesson-vocab-mastery-track" role="progressbar" aria-label={`${strengthened} of ${total} vocabulary words strengthened`} aria-valuemin={0} aria-valuemax={total} aria-valuenow={strengthened}>
