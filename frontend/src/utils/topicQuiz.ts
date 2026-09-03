@@ -4,7 +4,7 @@
 // no quiz could never do — so the gate has to know exactly which stories
 // those are, not guess from a proxy like "has a translated word".
 
-import { collectQuizEntries, type VocabQuizEntry } from "../components/StoryVocabQuiz";
+import { collectQuizEntries, type VocabQuizEntry } from "../components/story-vocab-quiz/StoryVocabQuiz";
 import { applyExclusionsToWord, storyQuizExclusions } from "./quizExclusions";
 import { toPinyin } from "./pinyin";
 import type { CustomTeacherStory } from "./teacherStories";
@@ -13,6 +13,8 @@ import type { CustomTeacherStory } from "./teacherStories";
  * TopicSelector and StoryRecorder each declare their own `Topic`, so naming
  * either of them here would reject the other. */
 export interface QuizSourceTopic {
+  quizMaterialSource?: "live" | "approved";
+  quizMaterialApproved?: boolean;
   images: string[];
   vocabulary: Record<number, string[]>;
   suggestedAnswers?: Record<number, string>;
@@ -178,7 +180,7 @@ export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
       disabledQuestionKinds.push(disabled.length > 0 ? Array.from(new Set(disabled)) : undefined);
     });
   });
-  return collectQuizEntries(
+  const entries = collectQuizEntries(
     words,
     translations,
     suggestedAnswers,
@@ -189,6 +191,10 @@ export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
     aiSynonyms,
     disabledQuestionKinds,
   );
+  return entries.map((entry) => ({
+    ...entry,
+    bktValidationStatus: topic.quizMaterialSource === "approved" && topic.quizMaterialApproved === true ? "APPROVED" : "DRAFT",
+  }));
 }
 
 /** Whether this story runs a vocabulary quiz at all — the same test

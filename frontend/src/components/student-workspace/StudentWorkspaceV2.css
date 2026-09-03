@@ -1,38 +1,68 @@
+@import "./StudentWorkspacePanel.css";
+
 /* Shell layout: left rail + content. The rail is a real grid column rather
-   than an overlay so page content never sits underneath it. When a practice
-   session starts the rail unmounts and this collapses to a single column. */
+   than an overlay so page content never sits underneath it. It used to
+   unmount for the duration of a practice session (collapsing this to a
+   single column) — it no longer ever does, so this is unconditionally
+   two-column now; there is no more session/no-session layout to switch
+   between. */
 .student-workspace-v2 {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  min-height: 100vh;
-}
-
-/* `.student-workspace` reserves 68px of top padding for the app's top
-   navbar. On this route the navbar no longer renders (the rail replaced
-   it), so that reservation just pushed the 100vh-tall rail 68px down the
-   page and dropped its "離開 Log out" button below the fold. Reclaim it
-   here only — while practicing, the navbar is back and the padding is
-   still doing its job. */
-.student-workspace-v2:not(.is-practicing) {
+  align-items: stretch;
+  flex: 1 1 0;
+  min-height: 0;
+  /* Fill the available application track. The app shell owns the track;
+     this workspace does not create a second viewport-sized canvas. */
   padding-top: 0;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
 }
-
-/* No single-column override while practicing any more. That rule dated from
-   when the rail unmounted for a session; now it stays and lends its middle
-   to the story, so collapsing to one column stacked the full-height rail
-   ON TOP of the content and pushed the story ~965px down the page. */
 
 .student-workspace-v2 > .student-workspace-content-v2 {
+  width: auto;
+  max-width: none;
+  margin: 0 var(--space-md) 0 0;
   min-width: 0;
-  padding: clamp(24px, 3vw, 40px) clamp(16px, 3vw, 40px) var(--space-3xl);
+  min-height: 0;
+  padding: var(--space-2xs) var(--space-md) var(--space-2xs) 0;
+  overflow: hidden;
 }
 
 @media (max-width: 900px) {
-  .student-workspace-v2 { grid-template-columns: minmax(0, 1fr); }
+  .student-workspace-v2 {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    flex: none;
+    min-height: 0;
+    height: auto;
+  }
+  /* StudentWorkspacePage.css gives every direct child a relative stacking
+     context. Re-assert the drawer geometry here so the mobile rail is taken
+     out of the grid flow instead of pushing the catalogue below the fold. */
+  .student-workspace-v2 > .student-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 36;
+  }
+  .student-workspace-v2 > .student-sidebar-toggle {
+    position: fixed;
+    z-index: 40;
+  }
+  .student-workspace-v2 > .student-sidebar-backdrop {
+    position: fixed;
+    z-index: 35;
+  }
   /* Clear the fixed menu button so the first heading isn't underneath it. */
-  .student-workspace-v2:not(.is-practicing) > .student-workspace-content-v2 {
+  .student-workspace-v2 > .student-workspace-content-v2 {
+    width: 100%;
+    max-width: none;
+    margin: 0;
     padding-top: calc(44px + var(--space-lg));
+    min-height: auto;
+    height: auto;
   }
 }
 
@@ -40,14 +70,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
+  gap: var(--space-lg);
   width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
-  margin: 0 auto clamp(24px, 3vw, 36px);
+  margin: 0 auto var(--space-xl);
   /* Flat, hairline-ruled band — this is what the duplicate second
      declaration (now removed) was actually rendering, since it won on
      source order. Kept verbatim so consolidating the duplicate changes no
      pixels. */
-  padding: 18px 0;
+  padding: var(--space-md) 0;
   border: 0;
   border-top: 1px solid var(--clay-hairline);
   border-bottom: 1px solid var(--clay-hairline);
@@ -58,7 +88,7 @@
 
 .workspace-quick-start-copy { min-width: 0; }
 .workspace-section-kicker {
-  margin: 0 0 4px;
+  margin: 0 0 var(--space-2xs);
   color: var(--gold-deep);
   font-size: 11px;
   font-weight: 800;
@@ -77,20 +107,20 @@
 }
 .workspace-quick-start-copy > p:last-child {
   max-width: 650px;
-  margin: 6px 0 0;
+  margin: var(--space-xs) 0 0;
   color: var(--clay-muted);
   font-size: var(--text-sm);
 }
 .workspace-quick-start-action {
   display: grid;
   flex: 0 0 min(100%, 280px);
-  gap: 9px;
+  gap: var(--space-xs);
 }
 
 .workspace-gate {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-xs);
   min-width: 0;
   color: var(--clay-body);
   font-size: 12px;
@@ -104,7 +134,7 @@
   border-radius: 50%;
   font-weight: 900;
 }
-.workspace-gate > span:last-child { display: grid; gap: 1px; min-width: 0; }
+.workspace-gate > span:last-child { display: grid; gap: var(--space-2xs); min-width: 0; }
 .workspace-gate strong { color: var(--clay-ink); font-size: 13px; }
 .workspace-gate small { color: var(--clay-muted); font-size: 11px; line-height: 1.3; }
 .workspace-gate-complete > span:first-child { background: var(--jade-soft); color: var(--jade-deep); }
@@ -116,31 +146,43 @@
   align-items: center;
   justify-content: space-between;
   min-height: 44px;
-  padding: 0 16px;
+  padding: 0 var(--space-md);
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--clay-radius-md);
   background: var(--jade-deep);
   color: white;
   font: inherit;
   font-weight: 800;
   cursor: pointer;
-  box-shadow: 0 4px 0 color-mix(in srgb, var(--jade-deep) 65%, black);
   transition: transform .18s ease, filter .18s ease;
 }
 .workspace-primary-action:hover:not(:disabled) { filter: saturate(1.1) brightness(1.04); transform: translateY(-1px); }
-.workspace-primary-action:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 color-mix(in srgb, var(--jade-deep) 65%, black); }
+.workspace-primary-action:active:not(:disabled) { transform: translateY(2px); }
 .workspace-primary-action:focus-visible { outline: 3px solid color-mix(in srgb, var(--jade) 70%, white); outline-offset: 3px; }
 .workspace-primary-action:disabled { cursor: not-allowed; opacity: .55; }
 
 .student-workspace-content-v2 > .my-stories-page { padding-top: 0; }
 
-@media (max-width: 720px) {
-  .workspace-quick-start { align-items: stretch; flex-direction: column; gap: 14px; }
+/* Standalone student tools use the same rail, but their own page component
+   already owns the content width. Do not apply a second narrow max-width or
+   the voice-test canvas becomes visibly smaller than the workspace pages. */
+.student-standalone-shell > .student-workspace-content-v2 > .voice-test-page {
+  width: 100%;
+  margin: 0;
+  padding: 0 0 var(--space-3xl);
+}
+
+.student-standalone-shell .student-page-header {
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .workspace-quick-start { align-items: stretch; flex-direction: column; gap: var(--space-sm); }
   .workspace-quick-start-action { flex-basis: auto; }
 }
 
 @media (max-width: 560px) {
-  .workspace-quick-start { width: min(var(--content-max), calc(100% - var(--content-gutter) * 2)); padding: 16px; }
+  .workspace-quick-start { width: min(var(--content-max), calc(100% - var(--content-gutter) * 2)); padding: var(--space-md); }
   .workspace-quick-start h2 { white-space: normal; }
 }
 

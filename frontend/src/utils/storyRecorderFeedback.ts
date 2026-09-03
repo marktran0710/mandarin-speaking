@@ -2,7 +2,7 @@ import type {
   PauseAnalysis,
   PraatMetrics,
   WordProsody,
-} from "../components/StoryRecorder";
+} from "../components/story-recorder/StoryRecorder";
 import { isAdminSession } from "./studentSession";
 import { getBackendUrl as getRuntimeBackendUrl, isTestRuntime } from "../config/runtimeEnv";
 

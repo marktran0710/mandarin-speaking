@@ -12,8 +12,8 @@ import translations from "../i18n/translations";
  * English text, for learners who can't read the characters yet.
  */
 export type BiLabelProps =
-  | { k: string; zh?: never; en?: never; pinyin?: never; block?: boolean }
-  | { k?: never; zh: string; en: string; pinyin?: string; block?: boolean };
+  | { k: string; zh?: never; en?: never; pinyin?: never; block?: boolean; align?: "left" | "center" }
+  | { k?: never; zh: string; en: string; pinyin?: string; block?: boolean; align?: "left" | "center" };
 
 function resolve(props: {
   k?: string;
@@ -34,7 +34,7 @@ function resolve(props: {
 export function BiLabel(props: BiLabelProps) {
   const { zh, en, pinyin } = resolve(props);
   return (
-    <span className={`bi-label${props.block ? " bi-label--block" : ""}`}>
+    <span className={`bi-label${props.block ? " bi-label--block" : ""}${props.align ? ` bi-label--${props.align}` : ""}`}>
       <span className="bi-zh" lang="zh-Hant">{zh}</span>
       {pinyin && <span className="bi-pinyin">{pinyin}</span>}
       <small className="bi-en" lang="en">{en}</small>

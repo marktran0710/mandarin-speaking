@@ -35,11 +35,12 @@ vi.mock("../utils/lessonGroups", () => ({
   groupTopicsByLesson: (topics: Topic[]) => [{ lessonNumber: 1, topics }],
   isLessonGroupUnlocked: () => true,
   isStoryUnlockedInLesson: () => true,
+  isStoryFinished: () => false,
   lessonCompletion: (group: { topics: Topic[] }) => ({ done: 0, total: group.topics.length }),
   lessonTitle: () => ({ zh: "Lesson", en: "Lesson" }),
 }));
 
-vi.mock("./JourneyPath", () => ({
+vi.mock("./journey/JourneyPath", () => ({
   default: ({ stops }: { stops: Array<{ key: string | number; label: ReactNode; expanded?: ReactNode; onClick?: () => void; disabled?: boolean; ariaExpanded?: boolean }> }) => (
     <div>
       {stops.map((stop) => (
@@ -55,13 +56,13 @@ vi.mock("./JourneyPath", () => ({
 describe("TopicSelector entry action", () => {
   beforeEach(() => localStorage.clear());
 
-  it("opens a quiz-capable story and starts its vocabulary quiz", () => {
+  it("opens a quiz-capable story at the activity chooser", () => {
     const onTopicSelect = vi.fn();
     render(<TopicSelector onTopicSelect={onTopicSelect} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Lesson.*Lesson/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Start vocabulary quiz/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Choose an activity/ }));
 
-    expect(onTopicSelect).toHaveBeenCalledWith(topic, { startAtQuiz: true });
+    expect(onTopicSelect).toHaveBeenCalledWith(topic);
   });
 });

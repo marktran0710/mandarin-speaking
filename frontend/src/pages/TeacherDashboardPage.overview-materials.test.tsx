@@ -71,7 +71,7 @@ const analyzedRecord = {
   },
 };
 
-vi.mock("../components/PitchChart", () => ({
+vi.mock("../components/pitch/PitchChart", () => ({
   default: () => <div data-testid="pitch-chart">Pitch chart</div>,
 }));
 
@@ -182,12 +182,15 @@ describe("TeacherDashboardPage", () => {
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Taipei Rain Rescue");
-    const imageInputs = screen.getAllByLabelText("Image URL or uploaded file");
-    for (let index = 0; index < imageInputs.length; index += 1) {
+    const sceneCount = screen.getAllByRole("tab").length;
+    for (let index = 0; index < sceneCount; index += 1) {
       await user.type(
-        imageInputs[index],
+        screen.getByLabelText("Image URL or uploaded file"),
         `https://example.com/rain-scene-${index + 1}.jpg`,
       );
+      if (index < sceneCount - 1) {
+        await user.click(screen.getByRole("tab", { name: new RegExp(`Scene ${index + 2}`) }));
+      }
     }
     await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
     await user.click(screen.getAllByRole("button", { name: "+ Add word" })[0]);
@@ -211,12 +214,15 @@ describe("TeacherDashboardPage", () => {
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Restaurant Story");
-    const imageInputs = screen.getAllByLabelText("Image URL or uploaded file");
-    for (let index = 0; index < imageInputs.length; index += 1) {
+    const sceneCount = screen.getAllByRole("tab").length;
+    for (let index = 0; index < sceneCount; index += 1) {
       await user.type(
-        imageInputs[index],
+        screen.getByLabelText("Image URL or uploaded file"),
         `https://example.com/restaurant-scene-${index + 1}.jpg`,
       );
+      if (index < sceneCount - 1) {
+        await user.click(screen.getByRole("tab", { name: new RegExp(`Scene ${index + 2}`) }));
+      }
     }
 
     await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
@@ -349,10 +355,15 @@ describe("TeacherDashboardPage", () => {
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Original Story");
-    for (const [index, input] of screen
-      .getAllByLabelText("Image URL or uploaded file")
-      .entries()) {
-      await user.type(input, `https://example.com/edit-scene-${index + 1}.jpg`);
+    const sceneCount = screen.getAllByRole("tab").length;
+    for (let index = 0; index < sceneCount; index += 1) {
+      await user.type(
+        screen.getByLabelText("Image URL or uploaded file"),
+        `https://example.com/edit-scene-${index + 1}.jpg`,
+      );
+      if (index < sceneCount - 1) {
+        await user.click(screen.getByRole("tab", { name: new RegExp(`Scene ${index + 2}`) }));
+      }
     }
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
 
@@ -377,13 +388,15 @@ describe("TeacherDashboardPage", () => {
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Published MRT Help");
-    for (const [index, input] of screen
-      .getAllByLabelText("Image URL or uploaded file")
-      .entries()) {
+    const sceneCount = screen.getAllByRole("tab").length;
+    for (let index = 0; index < sceneCount; index += 1) {
       await user.type(
-        input,
+        screen.getByLabelText("Image URL or uploaded file"),
         `https://example.com/published-scene-${index + 1}.jpg`,
       );
+      if (index < sceneCount - 1) {
+        await user.click(screen.getByRole("tab", { name: new RegExp(`Scene ${index + 2}`) }));
+      }
     }
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
     await user.click(screen.getByRole("button", { name: "Publish" }));
@@ -432,19 +445,21 @@ describe("TeacherDashboardPage", () => {
       screen.getAllByLabelText("Upload from computer")[0],
       imageFile,
     );
-    const imageInputs = screen.getAllByLabelText("Image URL or uploaded file");
-    for (let index = 1; index < imageInputs.length; index += 1) {
+    await waitFor(() => {
+      const imageInput = screen.getByLabelText(
+        "Image URL or uploaded file",
+      ) as HTMLInputElement;
+      expect(imageInput.value).toContain("data:image/png");
+    });
+
+    const sceneCount = screen.getAllByRole("tab").length;
+    for (let index = 1; index < sceneCount; index += 1) {
+      await user.click(screen.getByRole("tab", { name: new RegExp(`Scene ${index + 1}`) }));
       await user.type(
-        imageInputs[index],
+        screen.getByLabelText("Image URL or uploaded file"),
         `https://example.com/upload-support-${index + 1}.jpg`,
       );
     }
-    await waitFor(() => {
-      const imageInput = screen.getAllByLabelText(
-        "Image URL or uploaded file",
-      )[0] as HTMLInputElement;
-      expect(imageInput.value).toContain("data:image/png");
-    });
 
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
     expect(localStorage.getItem("teacherCustomStories")).toContain(

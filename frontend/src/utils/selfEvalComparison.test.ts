@@ -3,7 +3,7 @@ import {
   systemContentLevel,
   systemPronunciationLevel,
 } from "./selfEvalComparison";
-import type { PraatMetrics } from "../components/StoryRecorder";
+import type { PraatMetrics } from "../components/story-recorder/StoryRecorder";
 
 const metrics = (overrides: Partial<PraatMetrics> = {}): PraatMetrics => ({
   pitch_contour: [],

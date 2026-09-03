@@ -17,6 +17,7 @@ import {
 import {
   groupTopicsByLesson,
   isLessonGroupUnlocked,
+  isStoryFinished,
   isStoryUnlockedInLesson,
   lessonCompletion,
   lessonTitle,
@@ -36,7 +37,6 @@ import StudentIcon, { type StudentIconName } from "./StudentIcon";
 import "./BiLabel.css";
 import type { Topic, TopicSelectorProps } from "./topic-selector/types";
 export type { Topic, TopicStartOptions, VocabGroup } from "./topic-selector/types";
-
 export const TOPICS: Topic[] = [];
 
 function isStoryModeTopic(_topic: Topic): boolean {
@@ -60,13 +60,13 @@ const LEVEL_ICONS: Record<StoryDifficultyLevel, StudentIconName> = {
   hard: "tree",
 };
 
-const LEVEL_COPY: Record<StoryDifficultyLevel, { zh: string; pinyin: string; en: string }> = {
-  easy: { zh: "簡單", pinyin: "Jiǎndān", en: "Easy" },
-  medium: { zh: "中等", pinyin: "Zhōngděng", en: "Medium" },
-  hard: { zh: "困難", pinyin: "Kùnnán", en: "Hard" },
+const LEVEL_COPY: Record<StoryDifficultyLevel, { zh: string; en: string }> = {
+  easy: { zh: "簡單", en: "Easy" },
+  medium: { zh: "中等", en: "Medium" },
+  hard: { zh: "困難", en: "Hard" },
 };
 
-export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSelectorProps) {
+export default function TopicSelector({ onTopicSelect, onLevelSelect, averageToneAccuracy }: TopicSelectorProps) {
   const [topics, setTopics] = useState<Topic[]>(() =>
     loadPublishedTeacherTopics().filter(isStoryModeTopic),
   );
@@ -140,13 +140,13 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
       <div className="topic-selector">
         <section className="ts-hero">
           <div className="ts-hero-copy">
-            <h1><BiLabel k="choose_a_daily_situation" /></h1>
+            <h1><BiLabel k="choose_a_daily_situation" align="left" /></h1>
             <p><BiText k="your_teacher_will_publish_speaking_activ" /></p>
           </div>
         </section>
         <div className="empty-state">
           <div className="empty-icon"><StudentIcon name="stories" size={28} /></div>
-          <h2><BiLabel k="no_activities_yet" /></h2>
+          <h2><BiLabel k="no_activities_yet" align="center" /></h2>
           <p><BiText k="your_teacher_will_create_and_publish_spe" /></p>
         </div>
       </div>
@@ -194,15 +194,19 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               ? "open"
               : "lock";
           const tierTopic = storyToTopic(story, level, "approved");
+          const hasQuiz = topicHasQuiz(tierTopic);
+          // "Needs" is only used for the accessibility hint. Opening a tier
+          // now shows the activity chooser first, so students can deliberately
+          // choose Vocabulary Quiz or Speaking Practice.
           const needsQuiz =
-            topicHasQuiz(tierTopic) &&
+            hasQuiz &&
             !isAdminSession() &&
             !practiceUnlocked(loadLocalStars(tierTopic.id));
           const copy = LEVEL_COPY[level];
           const content = (
             <>
               <StudentIcon name={LEVEL_ICONS[level]} size={20} />
-              <BiLabel zh={copy.zh} pinyin={copy.pinyin} en={copy.en} />
+              <BiLabel zh={copy.zh} en={copy.en} align="center" />
             </>
           );
           if (!onLevelSelect) {
@@ -221,7 +225,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               aria-label={`${copy.en} difficulty${state === "done" ? ", completed" : state === "lock" ? activityUnlocked ? ", locked" : ", locked until the previous activity is completed" : needsQuiz ? ", vocabulary quiz required" : ""}`}
               onClick={(event) => {
                 event.stopPropagation();
-                onLevelSelect(t, level, needsQuiz ? { startAtQuiz: true } : undefined);
+                onLevelSelect(t, level);
               }}
             >
               {content}
@@ -235,9 +239,9 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
   const renderTopicCard = (t: Topic, group: LessonGroup, index: number) => {
     const totalScenes = t.images.length;
     const totalWords = Object.values(t.vocabulary).flat().length;
+    const earnedStars = loadBestLocalStars(t.id);
     const previewImage = t.images[0];
     const unlocked = isStoryUnlockedInLesson(group, index, submittedIds);
-    const hasQuiz = topicHasQuiz(t);
     const subLabel =
       group.lessonNumber != null && t.lessonSubOrder != null
         ? `${group.lessonNumber}-${t.lessonSubOrder}`
@@ -257,7 +261,9 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
           {previewImage ? (
             <img src={previewImage} alt={t.name} />
           ) : (
-            <div className="ts-card-image-placeholder">🎬</div>
+            <div className="ts-card-image-placeholder" aria-hidden="true">
+              <StudentIcon name="image" size={32} />
+            </div>
           )}
           {subLabel && <span className="ts-card-lesson-badge">{subLabel}</span>}
           {totalScenes > 1 && (
@@ -269,22 +275,11 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
 
         {/* Body */}
         <div className="ts-card-body">
-          <div className="ts-card-meta-row">
-            <span className="ts-card-skill">
-              <SkillFocusLabel skillFocus={t.skillFocus} />
-            </span>
-          </div>
-
           <h3 className="ts-card-title">{t.name}</h3>
 
-          {t.description && (
-            <p className="ts-card-desc">{t.description}</p>
-          )}
-
           <div className="ts-card-stats">
-            <span>🎬 <BiLabel zh={`${totalScenes} 部分`} en={`${totalScenes} scenes`} /></span>
             {totalWords > 0 && (
-              <span>📝 <BiLabel zh={`${totalWords} 詞`} en={`${totalWords} words`} /></span>
+              <span><StudentIcon name="stories" size={14} /> <BiLabel zh={`${totalWords} 詞`} en={`${totalWords} words`} /></span>
             )}
             {totalWords > 0 && (
               // Earned quiz stars for this story (this device's
@@ -293,10 +288,16 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               // last saw in the quiz).
               <span
                 className="ts-card-stars"
-                aria-label={`${loadBestLocalStars(t.id)} of 3 quiz stars earned`}
+                aria-label={`${earnedStars} of 3 quiz stars earned`}
               >
-                {"⭐".repeat(loadBestLocalStars(t.id))}
-                {"☆".repeat(3 - loadBestLocalStars(t.id))}
+                {Array.from({ length: 3 }, (_, starIndex) => (
+                  <StudentIcon
+                    key={starIndex}
+                    name="star"
+                    size={14}
+                    className={starIndex < earnedStars ? "is-earned" : "is-empty"}
+                  />
+                ))}
               </span>
             )}
           </div>
@@ -305,14 +306,13 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
             <button
               type="button"
               className="ts-card-open"
-              onClick={() => onTopicSelect(t, hasQuiz ? { startAtQuiz: true } : undefined)}
+              onClick={() => onTopicSelect(t)}
             >
               <BiLabel
-                zh={hasQuiz ? "開始生詞測驗" : "開始故事"}
-                pinyin={hasQuiz ? "Kāishǐ shēngcí cèyàn" : "Kāishǐ gùshì"}
-                en={hasQuiz ? "Start vocabulary quiz" : "Start story"}
+                zh="選擇活動"
+                en="Choose an activity"
               />
-              <span aria-hidden="true">→</span>
+              <StudentIcon name="arrow-right" size={17} aria-hidden="true" />
             </button>
           )}
 
@@ -322,6 +322,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               <BiLabel
                 zh={previousTopic ? `先交 ${previousTopic.name}` : "先完成上一個故事"}
                 en={previousTopic ? `Submit "${previousTopic.name}" first` : "Finish the previous story first"}
+                align="left"
               />
             </p>
           )}
@@ -336,6 +337,144 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
   // stories — no separate "screen 2" navigation. ─────────────────────────
   const numberedGroups = groups.filter((group) => group.lessonNumber !== null);
   const otherGroup = groups.find((group) => group.lessonNumber === null) ?? null;
+  const continueGroup =
+    groups[nowIndex] ?? numberedGroups[0] ?? otherGroup ?? null;
+  const continueTopic =
+    continueGroup?.topics.find((topic) => !isStoryFinished(topic, submittedIds)) ??
+    continueGroup?.topics[0] ??
+    null;
+  const isContinueFallback = nowIndex < 0;
+
+  // Dashboard headline stats — same sources the rail and the Progress page
+  // use, so the three views can never disagree. Total stars and lessons
+  // complete are cheap to derive here; tone accuracy is threaded in from the
+  // shell (it owns the analysed recordings).
+  const quizTopics = topics.filter((topic) => topicHasQuiz(topic));
+  const totalStars = quizTopics.reduce(
+    (sum, topic) => sum + loadBestLocalStars(topic.id),
+    0,
+  );
+  const maxStars = quizTopics.length * 3;
+  const lessonsDone = numberedGroups.filter((group) => {
+    const { done, total } = lessonCompletion(group, submittedIds);
+    return total > 0 && done === total;
+  }).length;
+  const lessonsTotal = numberedGroups.length;
+
+  const renderDashboard = () => {
+    if (!continueTopic || !continueGroup) return null;
+
+    const lessonNumber = continueGroup.lessonNumber;
+    const openContinueTopic = () => {
+      if (lessonNumber !== null) setOpenLesson(lessonNumber);
+      onTopicSelect?.(continueTopic);
+    };
+
+    return (
+      <section className="ts-dashboard" aria-labelledby="ts-dashboard-title">
+        <div className="ts-dash-intro">
+          <h1 id="ts-dashboard-title" className="ts-dash-greeting">
+            <span lang="zh-Hant">歡迎回來，</span>{" "}
+            <span className="ts-dash-name">{getStudentName()}</span>
+          </h1>
+          <p className="ts-dash-subtitle">
+            <BiText zh="從上次停下的地方繼續" en="Pick up right where you left off" />
+          </p>
+        </div>
+
+        <div className="ts-dash-stat-grid" aria-label="Learning progress">
+          <article className="ts-dash-stat-card">
+            <span className="ts-dash-icon-chip ts-dash-icon-chip-seal" aria-hidden="true">
+              <StudentIcon name="star" size={24} />
+            </span>
+            <span className="ts-dash-stat-copy">
+              <strong>
+                {totalStars}
+                <span className="ts-dash-stat-max"> / {maxStars}</span>
+              </strong>
+              <BiLabel zh="總星星" en="Total stars" align="left" />
+            </span>
+          </article>
+          <article className="ts-dash-stat-card">
+            <span className="ts-dash-icon-chip ts-dash-icon-chip-jade" aria-hidden="true">
+              <StudentIcon name="check-circle" size={24} />
+            </span>
+            <span className="ts-dash-stat-copy">
+              <strong>
+                {lessonsDone}
+                <span className="ts-dash-stat-max"> / {lessonsTotal}</span>
+              </strong>
+              <BiLabel zh="課程完成" en="Lessons complete" align="left" />
+            </span>
+          </article>
+          <article className="ts-dash-stat-card">
+            <span className="ts-dash-icon-chip ts-dash-icon-chip-tone1" aria-hidden="true">
+              <StudentIcon name="voice" size={24} />
+            </span>
+            <span className="ts-dash-stat-copy">
+              <strong>{averageToneAccuracy == null ? "—" : `${averageToneAccuracy}%`}</strong>
+              <BiLabel zh="發音表現" en="Tone accuracy" align="left" />
+            </span>
+          </article>
+        </div>
+
+        <article className="ts-dash-continue-card">
+          <div className="ts-dash-continue-copy">
+            <span className="ts-dash-kicker">
+              <BiLabel
+                zh={isContinueFallback ? "從第一課開始" : `第${lessonNumber}課 · 進行中`}
+                en={isContinueFallback ? "Start here" : `Lesson ${lessonNumber} · In progress`}
+              />
+            </span>
+            <h2>{continueTopic.name}</h2>
+            <p>{continueTopic.description || "繼續你的故事練習"}</p>
+            <button type="button" className="ts-dash-continue-action" onClick={openContinueTopic}>
+              <BiLabel zh="繼續學習" en="Continue story" />
+              <StudentIcon name="arrow-right" size={17} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="ts-dash-continue-art" aria-hidden="true">
+            {continueTopic.images[0] ? (
+              <img src={continueTopic.images[0]} alt="" />
+            ) : (
+              <span className="ts-dash-continue-art-placeholder">
+                <StudentIcon name="image" size={28} />
+              </span>
+            )}
+          </div>
+        </article>
+
+        <div className="ts-dash-explainer" aria-labelledby="ts-dash-steps-title">
+          <h2 id="ts-dash-steps-title">
+            <BiLabel zh="三步開始" en="Three steps" align="left" />
+          </h2>
+          <div className="ts-dash-step-grid">
+            <article className="ts-dash-step-card">
+              <span className="ts-dash-icon-chip ts-dash-icon-chip-seal" aria-hidden="true">
+                <StudentIcon name="image" size={22} />
+              </span>
+              <h3><BiLabel zh="看圖片" en="Look" align="left" /></h3>
+              <p><BiText zh="先觀察畫面，找到故事線索。" en="Notice the scene and find the story clues." /></p>
+            </article>
+            <article className="ts-dash-step-card">
+              <span className="ts-dash-icon-chip ts-dash-icon-chip-jade" aria-hidden="true">
+                <StudentIcon name="microphone" size={22} />
+              </span>
+              <h3><BiLabel zh="說故事" en="Speak" align="left" /></h3>
+              <p><BiText zh="用自己的話說出你看到的內容。" en="Tell what you see in your own words." /></p>
+            </article>
+            <article className="ts-dash-step-card">
+              <span className="ts-dash-icon-chip ts-dash-icon-chip-tone1" aria-hidden="true">
+                <StudentIcon name="idea" size={22} />
+              </span>
+              <h3><BiLabel zh="看回饋" en="Improve" align="left" /></h3>
+              <p><BiText zh="看看回饋，知道下一步怎麼進步。" en="Use your feedback to choose the next step." /></p>
+            </article>
+          </div>
+        </div>
+      </section>
+    );
+  };
 
   // Lessons threaded on the same tone-contour journey path used inside a
   // practice session, instead of a separate hand-rolled spine — one visual
@@ -375,11 +514,13 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
           </span>
 
           <span className="ts-lesson-body">
-            <span className="ts-lesson-kicker">
-              {`第 ${group.lessonNumber} 課 · Dì ${group.lessonNumber} kè`}
+            <span className="ts-lesson-kicker-row">
+              <span className="ts-lesson-kicker">
+                {`第 ${group.lessonNumber} 課`}
+              </span>
+              {isNow && <span className="ts-lesson-now-tag">現在 NOW</span>}
             </span>
-            <span className="ts-lesson-name" lang="zh-Hant">{title.zh}</span>
-            <span className="ts-lesson-en">{title.en}</span>
+            <BiLabel {...title} block align="left" />
           </span>
 
           <span className="ts-lesson-status">
@@ -389,18 +530,21 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
                 <BiLabel
                   zh={`先完成第 ${previousNumber} 課`}
                   en={`Finish Lesson ${previousNumber} first`}
+                  align="left"
                 />
               </span>
             ) : (
               <>
                 <span className="ts-lesson-progress">
                   {finished ? (
-                    <BiLabel zh="已完成" pinyin="Yǐ wánchéng" en="Complete" />
+                    <BiLabel zh="已完成" en="Complete" />
                   ) : (
                     <BiLabel zh={`${done}/${total} 個故事`} en={`${done}/${total} stories`} />
                   )}
                 </span>
-                <span className="ts-lesson-chevron" aria-hidden="true">{isOpen ? "▴" : "▾"}</span>
+              <span className="ts-lesson-chevron" aria-hidden="true">
+                <StudentIcon name={isOpen ? "chevron-up" : "chevron-down"} size={16} />
+              </span>
               </>
             )}
           </span>
@@ -420,6 +564,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
   return (
     <div className="topic-selector">
       <div className="ts-container">
+      {renderDashboard()}
       <header className="ts-toc-head">
         <div>
           <h1 className="ts-toc-title">
@@ -442,45 +587,38 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
       {otherGroup && (
         <div className="ts-other-block">
           <p className="ts-other-label">
-            其他 Qítā · <BiLabel zh="" en="More practice" />
+            <BiLabel zh="其他" en="More practice" />
           </p>
           <div className="ts-lesson">
-            <div
+            <button
+              type="button"
               className="ts-lesson-card"
-              role="button"
-              tabIndex={0}
               aria-expanded={openLesson === "other"}
               onClick={() => setOpenLesson((current) => (current === "other" ? null : "other"))}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" || event.key === " ") {
-                  event.preventDefault();
-                  setOpenLesson((current) => (current === "other" ? null : "other"));
-                }
-              }}
             >
-              <div className="ts-num-tile ts-tile-other">
-                <span className="ts-num-tile-n">✦</span>
-              </div>
-              <div className="ts-lesson-main">
-                <div className="ts-lesson-title">
+              <span className="ts-num-tile ts-tile-other">
+                <StudentIcon name="spark" size={24} />
+              </span>
+              <span className="ts-lesson-main">
+                <span className="ts-lesson-title">
                   {otherGroup.topics.length === 1
                     ? otherGroup.topics[0].name
                     : `${otherGroup.topics.length} 個故事`}
-                </div>
-                <p className="ts-lesson-sub">
+                </span>
+                <span className="ts-lesson-sub">
                   <BiLabel
                     zh="還沒有課號的故事"
-                    pinyin="Hái méiyǒu kèhào de gùshi"
                     en="Stories without a lesson yet"
+                    align="left"
                   />
-                </p>
-              </div>
-              <div className="ts-lesson-side">
-                <span className="ts-side-chip ts-chip-open" aria-hidden="true">
-                  {openLesson === "other" ? "▴" : "▾"}
                 </span>
-              </div>
-            </div>
+              </span>
+              <span className="ts-lesson-side">
+                <span className="ts-side-chip ts-chip-open" aria-hidden="true">
+                  <StudentIcon name={openLesson === "other" ? "chevron-up" : "chevron-down"} size={16} />
+                </span>
+              </span>
+            </button>
           </div>
           {openLesson === "other" && (
             <div className="ts-lesson-expanded">

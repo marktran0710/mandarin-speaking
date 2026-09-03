@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PronunciationBreakdown from "./PronunciationBreakdown";
-import type { WordProsody } from "./StoryRecorder";
+import type { WordProsody } from "./story-recorder/StoryRecorder";
 
 /**
  * The panel answers "did the app even listen?" — so the tests that matter are
@@ -154,7 +154,7 @@ describe("PronunciationBreakdown: diagnostic detail", () => {
     render(<PronunciationBreakdown words={[uncertain]} />);
 
     const row = characterRows()[0];
-    expect(row.querySelector(".pb-tone-mark")!.textContent).toBe("△");
+    expect(row.querySelector(".pb-tone-mark.is-uncertain .app-icon")).toBeInTheDocument();
     expect(row.classList.contains("pb-row-failed")).toBe(false);
   });
 
@@ -169,7 +169,7 @@ describe("PronunciationBreakdown: diagnostic detail", () => {
     render(<PronunciationBreakdown words={[incorrect]} />);
 
     const row = characterRows()[0];
-    expect(row.querySelector(".pb-tone-mark")!.textContent).toBe("✗");
+    expect(row.querySelector(".pb-tone-mark.is-fail .app-icon")).toBeInTheDocument();
     expect(row.classList.contains("pb-row-failed")).toBe(true);
   });
 
@@ -188,7 +188,7 @@ describe("PronunciationBreakdown: diagnostic detail", () => {
     render(<PronunciationBreakdown words={[invalid]} />);
 
     const row = characterRows()[0];
-    expect(row.querySelector(".pb-tone-mark")!.textContent).toBe("↻");
+    expect(row.querySelector(".pb-tone-mark.is-retry .app-icon")).toBeInTheDocument();
     expect(row.classList.contains("pb-row-failed")).toBe(false);
   });
 

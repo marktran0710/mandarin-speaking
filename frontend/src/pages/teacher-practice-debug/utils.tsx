@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import type { AudioRecord } from "../MyStoriesPage";
-import type { SpeechModel } from "../../components/StoryRecorder";
+import type { SpeechModel } from "../../components/story-recorder/StoryRecorder";
 import { redactDebugValue, type DebugAttemptSource } from "../../utils/practiceDebug";
 
 export type JsonObject = Record<string, any>;

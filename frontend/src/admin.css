@@ -86,3 +86,144 @@
 .account-editor-actions .primary { white-space:nowrap; }
 @media(max-width:900px){.account-editor{grid-template-columns:1fr 1fr}.account-editor label:nth-of-type(3){grid-column:1 / -1}.account-editor-actions{grid-column:1 / -1; justify-content:flex-end}}
 @media(max-width:620px){.account-table .table-head{display:none}.account-table .account-row{grid-template-columns:1fr auto; gap:8px; padding:13px 10px}.account-table .account-row>span:nth-child(2),.account-table .account-row>span:nth-child(3){display:none}.account-actions{grid-column:2; grid-row:1; flex-direction:column; align-items:stretch}.account-action{min-width:64px}.account-editor{grid-template-columns:1fr; padding:14px}.account-editor label:nth-of-type(3),.account-editor-actions{grid-column:auto}}
+
+.knowledge-methodology {
+  display: grid;
+  gap: var(--space-md);
+  border-top: 1px solid var(--clay-hairline);
+  padding-top: var(--space-md);
+}
+
+.knowledge-methodology summary {
+  width: fit-content;
+  color: var(--clay-ink);
+  font-size: var(--text-md);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.knowledge-methodology summary::marker { color: var(--jade); }
+.knowledge-methodology summary:focus-visible { outline: 3px solid color-mix(in srgb, var(--jade) 45%, transparent); outline-offset: 3px; }
+
+.knowledge-methodology-intro {
+  margin: 0;
+  color: var(--clay-muted);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+.knowledge-methodology-intro code {
+  padding: var(--space-2xs) var(--space-xs);
+  border-radius: var(--clay-radius-sm);
+  color: var(--jade-deep);
+  background: var(--jade-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.knowledge-methodology-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.knowledge-methodology-card {
+  display: grid;
+  align-content: start;
+  gap: var(--space-sm);
+  min-width: 0;
+  padding: var(--space-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.knowledge-methodology-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.knowledge-methodology-card h4 {
+  margin: var(--space-2xs) 0 0;
+  color: var(--clay-ink);
+  font-size: var(--text-lg);
+}
+
+.knowledge-methodology-tag {
+  flex: 0 0 auto;
+  padding: var(--space-2xs) var(--space-xs);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  color: var(--clay-muted);
+  background: var(--clay-surface-card);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.knowledge-methodology-card > p {
+  margin: 0;
+  color: var(--clay-body);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.knowledge-formula {
+  display: block;
+  padding: var(--space-sm);
+  overflow-x: auto;
+  border-radius: var(--clay-radius-sm);
+  color: var(--clay-ink);
+  background: var(--clay-surface-card);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+
+.knowledge-parameter-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-xs);
+  margin: 0;
+}
+
+.knowledge-parameter-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  border-bottom: 1px solid var(--clay-hairline);
+}
+
+.knowledge-parameter-list dt,
+.knowledge-parameter-list dd {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+.knowledge-parameter-list dt { color: var(--clay-muted); }
+.knowledge-parameter-list dd { color: var(--clay-ink); font-family: var(--font-mono); font-weight: 700; }
+
+.knowledge-methodology-note {
+  color: var(--clay-muted) !important;
+  font-size: var(--text-xs) !important;
+}
+
+.knowledge-paper-link {
+  color: var(--jade-deep);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  text-underline-offset: var(--space-2xs);
+}
+
+.knowledge-paper-link:focus-visible { outline: 3px solid color-mix(in srgb, var(--jade) 45%, transparent); outline-offset: 3px; }
+
+@media (max-width: 760px) {
+  .knowledge-methodology-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 620px) {
+  .knowledge-parameter-list { grid-template-columns: 1fr; }
+}

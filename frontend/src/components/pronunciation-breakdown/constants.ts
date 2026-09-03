@@ -1,4 +1,4 @@
-import type { DiagnosticStatus, VowelZone } from "../StoryRecorder";
+import type { DiagnosticStatus, VowelZone } from "../story-recorder/StoryRecorder";
 
 export const HEIGHT_LABEL: Record<VowelZone["height"], { zh: string; en: string }> = {
   high: { zh: "嘴巴小", en: "mouth close" }, mid: { zh: "嘴巴中", en: "mouth mid" }, low: { zh: "嘴巴大", en: "mouth open" },

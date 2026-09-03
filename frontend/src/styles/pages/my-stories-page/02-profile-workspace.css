@@ -22,7 +22,6 @@
   font-size: 15px;
 }
 
-.profile-lesson-pin,
 .profile-story-tag {
   color: var(--clay-muted);
   font-size: 12px;
@@ -193,7 +192,7 @@
   border-radius: var(--clay-radius-xl);
   padding: 24px;
   box-shadow: var(--shadow-sm);
-  transition: all 0.2s ease;
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
   border: 1px solid var(--clay-hairline);
   animation: slideIn 0.3s ease;
 }
@@ -294,7 +293,6 @@
   background: var(--clay-canvas);
   padding: 10px;
   border-radius: var(--clay-radius-md);
-  border-left: 4px solid var(--gold);
 }
 
 .saved-audio-player strong {
@@ -312,7 +310,6 @@
   background: var(--clay-canvas);
   padding: 10px;
   border-radius: var(--clay-radius-md);
-  border-left: 4px solid var(--jade);
 }
 
 .transcription-box strong {
@@ -388,7 +385,6 @@
 .story-ai-summary {
   background: var(--clay-canvas);
   border: 1px solid var(--clay-hairline);
-  border-left: 4px solid var(--clay-success);
   border-radius: var(--clay-radius-md);
   padding: 12px;
 }
@@ -432,4 +428,3 @@
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-card);
 }
-

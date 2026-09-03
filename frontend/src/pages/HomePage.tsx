@@ -2,7 +2,8 @@ import { useState, type CSSProperties } from "react";
 import "./HomePage.css";
 import { Page } from "../types/page";
 import { BiLabel, BiText } from "../components/BiLabel";
-import ToneStroke from "../components/ToneStroke";
+import ToneStroke from "../components/tone/ToneStroke";
+import StudentIcon from "../components/StudentIcon";
 import "../components/BiLabel.css";
 
 interface HomePageProps {
@@ -141,7 +142,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
             onClick={() => onNavigate("student-login")}
           >
             <BiLabel zh="開始學習" pinyin="Kāishǐ xuéxí" en="Start Learning" />
-            <span aria-hidden="true">→</span>
+            <StudentIcon name="arrow-right" size={17} aria-hidden="true" />
           </button>
         </div>
 

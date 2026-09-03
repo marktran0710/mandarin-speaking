@@ -125,7 +125,6 @@
   border: 2.5px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
-  box-shadow: 0 5px 0 var(--gold-deep);
 }
 
 .my-story-feedback-history h2 {
@@ -184,7 +183,6 @@
   border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
   /* Student-facing control — seal, not jade (jade is the teacher accent). */
-  box-shadow: 0 5px 0 var(--seal-deep);
 }
 
 .student-help-card h2 {
@@ -223,7 +221,6 @@
   border: 2px solid var(--seal-deep);
   border-radius: var(--clay-radius-pill);
   background: var(--seal);
-  box-shadow: 0 3px 0 var(--seal-deep);
   color: var(--clay-on-seal);
   cursor: pointer;
   font-size: 13px;
@@ -235,12 +232,10 @@
 
 .student-help-card button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 0 var(--seal-deep);
 }
 
 .student-help-card button:active {
   transform: translateY(2px);
-  box-shadow: 0 1px 0 var(--seal-deep);
 }
 
 .summary-progress {
@@ -428,4 +423,3 @@
   font-size: 22px;
   line-height: 1;
 }
-

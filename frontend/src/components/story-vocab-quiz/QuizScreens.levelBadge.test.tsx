@@ -5,7 +5,6 @@ import { ModeSelectScreen } from "./QuizScreens";
 const baseProps = {
   stars: 0 as const,
   weakEntries: [],
-  onBack: undefined,
   startTier: vi.fn(),
   chooseWeakWords: vi.fn(),
   showReview: vi.fn(),
@@ -15,6 +14,7 @@ describe("ModeSelectScreen — difficulty level badge", () => {
   it("defaults to Easy when no level prop is given", () => {
     render(<ModeSelectScreen {...baseProps} />);
     expect(screen.getByText("Easy")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Back to activities/ })).not.toBeInTheDocument();
   });
 
   it("shows Medium for a medium-level story", () => {

@@ -71,7 +71,7 @@ const analyzedRecord = {
   },
 };
 
-vi.mock("../components/PitchChart", () => ({
+vi.mock("../components/pitch/PitchChart", () => ({
   default: () => <div data-testid="pitch-chart">Pitch chart</div>,
 }));
 

@@ -1,4 +1,6 @@
-import type { ContentDiffSegment } from "./StoryRecorder";
+import type { ContentDiffSegment } from "./story-recorder/StoryRecorder";
+import StudentIcon from "./StudentIcon";
+import { BiLabel } from "./BiLabel";
 
 /**
  * Always renders the same two-line-plus-status shape (Target / You said /
@@ -62,25 +64,28 @@ export default function ContentDiffDisplay({
 
   const status =
     contentMatch === true
-      ? { text: "✓ Matches the script.", tone: "match" as const }
+      ? { text: "Matches the script.", tone: "match" as const, icon: "check-circle" as const }
       : contentMatch === false
-        ? { text: "Bold text shows the difference.", tone: "mismatch" as const }
+        ? { text: "Bold text shows the difference.", tone: "mismatch" as const, icon: "info" as const }
         : {
             text: "We couldn't verify the words in this recording. Please record it again.",
             tone: "unverified" as const,
+            icon: "warning" as const,
           };
 
   return (
     <div className="content-diff" aria-label="Script and recognized speech comparison" role="status">
       <p className="content-diff-line">
-        <span className="content-diff-label">Target:</span>
+        <span className="content-diff-label"><BiLabel zh="目標句" en="Target" /></span>
         {renderLine("target")}
       </p>
       <p className="content-diff-line">
-        <span className="content-diff-label">You said:</span>
+        <span className="content-diff-label"><BiLabel zh="你的錄音" en="Your recording" /></span>
         {heard ? renderLine("heard") : <span className="content-diff-empty">(no speech detected)</span>}
       </p>
-      <p className={`content-diff-hint content-diff-hint-${status.tone}`}>{status.text}</p>
+      <p className={`content-diff-hint content-diff-hint-${status.tone}`}>
+        <StudentIcon name={status.icon} size={15} aria-hidden="true" /> {status.text}
+      </p>
     </div>
   );
 }

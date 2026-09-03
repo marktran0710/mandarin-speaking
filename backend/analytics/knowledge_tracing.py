@@ -16,6 +16,8 @@ import unicodedata
 
 from scipy.optimize import minimize
 
+from .bkt_question_validation import classify_bkt_response
+
 
 EPSILON = 1e-9
 
@@ -84,7 +86,12 @@ def _parse_time(value: Any) -> Optional[datetime]:
     return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
 
 
-def normalize_vocab_attempts(attempts: Iterable[Any]) -> NormalizationResult:
+def normalize_vocab_attempts(
+    attempts: Iterable[Any],
+    *,
+    eligible_only: bool = False,
+    deduplicate_diagnostic_exposures: bool = False,
+) -> NormalizationResult:
     """Convert vocab attempt dictionaries (or Pydantic-like objects) to records.
 
     ``conceptId`` is preferred. Older payloads use normalized ``word`` as their
@@ -96,9 +103,11 @@ def normalize_vocab_attempts(attempts: Iterable[Any]) -> NormalizationResult:
         "attempts_without_id": 0,
         "items_seen": 0, "records_emitted": 0, "duplicate_responses": 0, "skipped_missing_concept": 0,
         "skipped_invalid_correct": 0, "legacy_word_fallback": 0, "invalid_timestamp": 0,
+        "skipped_bkt_ineligible": 0, "duplicate_diagnostic_responses": 0,
     }
     sortable: list[tuple[tuple[Any, ...], ResponseRecord]] = []
     seen_response_keys: set[tuple[str, str, int]] = set()
+    seen_diagnostic_keys: set[tuple[str, str, str]] = set()
     for attempt_position, attempt in enumerate(attempts):
         counters["attempts_seen"] += 1
         student_id = _normalise_text(_field(attempt, "studentId", _field(attempt, "student_id")))
@@ -124,6 +133,11 @@ def normalize_vocab_attempts(attempts: Iterable[Any]) -> NormalizationResult:
             continue
         for question_index, result in enumerate(results):
             counters["items_seen"] += 1
+            if eligible_only:
+                eligible, reasons = classify_bkt_response(result, attempt)
+                if not eligible:
+                    counters["skipped_bkt_ineligible"] += 1
+                    continue
             concept_id = _normalise_text(_field(result, "conceptId", _field(result, "concept_id")))
             identity_source = "concept_id"
             if concept_id is None:
@@ -142,6 +156,14 @@ def normalize_vocab_attempts(attempts: Iterable[Any]) -> NormalizationResult:
                 counters["duplicate_responses"] += 1
                 continue
             seen_response_keys.add(response_key)
+            if eligible_only and deduplicate_diagnostic_exposures:
+                item_id = _normalise_text(_field(result, "itemId", _field(result, "item_id")))
+                exposure_id = _normalise_text(_field(result, "diagnosticExposureId", _field(result, "diagnostic_exposure_id")))
+                diagnostic_key = (student_id, item_id or "", exposure_id or "")
+                if diagnostic_key in seen_diagnostic_keys:
+                    counters["duplicate_diagnostic_responses"] += 1
+                    continue
+                seen_diagnostic_keys.add(diagnostic_key)
             record = ResponseRecord(
                 student_id=student_id,
                 concept_id=concept_id,

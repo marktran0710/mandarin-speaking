@@ -10,7 +10,7 @@ describe("ManagementShell", () => {
       </ManagementShell>,
     );
 
-    expect(document.querySelectorAll(".management-nav-icon svg").length).toBeGreaterThan(0);
+    expect(document.querySelectorAll(".management-nav-icon .app-icon").length).toBeGreaterThan(0);
 
     const menu = screen.getByRole("button", { name: "Open menu" });
     menu.focus();

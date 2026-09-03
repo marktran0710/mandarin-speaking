@@ -1,8 +1,7 @@
 
-.custom-story-lesson-filter:focus {
+.custom-story-lesson-filter:focus-visible {
   border-color: var(--jade);
   box-shadow: 0 0 0 3px var(--jade-soft);
-  outline: none;
 }
 
 .btn-import-custom-story {
@@ -431,4 +430,3 @@
   color: var(--clay-muted);
   font-size: 12px;
 }
-

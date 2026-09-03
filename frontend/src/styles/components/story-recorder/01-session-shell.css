@@ -1,22 +1,14 @@
-/* ── Session shell: sidebar rail + main workspace. The sidebar itself is
-   styled in StorySessionSidebar.css; this grid is what keeps the main
-   column stable while phases/scenes change. ── */
+/* ── Session shell: a single content column, StorySessionSidebar's top bar
+   (.story-session-topbar) stacked above .story-session-main. This used to
+   be a two-column grid (a left rail beside this column) — the rail is gone
+   for good now, not just hidden: the global left rail (StudentSidebar)
+   stays fixed on every student screen instead of lending its middle to
+   whatever story is running, so there is nothing left to reserve a column
+   for here. ── */
 .story-recorder {
   width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
-  padding: 24px 0 72px;
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 20px;
-  align-items: start;
-}
-
-/* Inside the workspace shell the session rail is portaled into the shell's
-   own sidebar, so no <aside> is rendered here and the 240px column it was
-   reserved for would sit empty. Collapse to a single column in that case;
-   standalone routes that still render the aside keep the two-column grid. */
-.story-recorder:not(:has(> .story-session-sidebar)) {
-  grid-template-columns: minmax(0, 1fr);
+  padding: var(--space-lg) 0 var(--space-3xl);
 }
 .story-session-main {
   min-width: 0;
@@ -33,16 +25,6 @@
 .story-session-main .story-vocab-quiz {
   padding-top: 0;
 }
-@media (max-width: 900px) {
-  .story-recorder {
-    /* minmax(0, …), not bare 1fr — 1fr's auto minimum lets wide inner
-       content (the 5-column vocab table) win over the viewport and give
-       the whole page a horizontal scrollbar on phones. */
-    grid-template-columns: minmax(0, 1fr);
-    gap: 14px;
-  }
-}
-
 .btn-story-exit {
   display: inline-flex;
   align-items: center;
@@ -53,7 +35,7 @@
   background: var(--clay-surface-soft);
   color: var(--clay-ink);
   border: 1px solid var(--clay-hairline);
-  border-radius: 50%;
+  border-radius: var(--clay-radius-pill);
   font-size: 15px;
   line-height: 1;
   cursor: pointer;
@@ -65,18 +47,18 @@
   box-shadow: var(--shadow-sm);
 }
 .student-flow-board {
-  margin-bottom: 14px;
+  margin-bottom: var(--space-sm);
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .flow-step {
   min-height: 78px;
-  padding: 12px;
+  padding: var(--space-sm);
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
-  column-gap: 10px;
+  column-gap: var(--space-sm);
   align-content: start;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
@@ -119,7 +101,7 @@
   color: var(--clay-muted);
   font-size: 12px;
   line-height: 1.35;
-  margin: 3px 0 0;
+  margin: var(--space-2xs) 0 0;
 }
 
 .flow-step.active {
@@ -138,7 +120,7 @@
   font-size: 12px;
   font-weight: 650;
   letter-spacing: 0.02em;
-  margin: 0 0 10px;
+  margin: 0 0 var(--space-xs);
   text-transform: uppercase;
 }
 
@@ -149,14 +131,14 @@
 }
 
 .challenge-meta {
-  margin-top: 18px;
+  margin-top: var(--space-md);
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .challenge-meta span {
-  padding: 7px 10px;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--clay-radius-pill);
   background: var(--jade-soft);
   color: var(--clay-ink);
@@ -165,7 +147,7 @@
 }
 
 .recording-status-card {
-  padding: 18px;
+  padding: var(--space-md);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -184,7 +166,7 @@
   font-size: 26px;
   font-weight: 650;
   line-height: 1.15;
-  margin: 8px 0;
+  margin: var(--space-xs) 0;
 }
 
 .recording-status-card p {
@@ -194,10 +176,10 @@
 }
 
 .prompt-thumbnails {
-  padding: 14px;
+  padding: var(--space-sm);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
-  gap: 10px;
+  gap: var(--space-sm);
 }
 
 .task-card {
@@ -216,12 +198,12 @@
 .readiness-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .recording-vocabulary span,
 .readiness-list span {
-  padding: 7px 10px;
+  padding: var(--space-xs) var(--space-sm);
   border-radius: var(--clay-radius-pill);
   font-size: 13px;
   font-weight: 600;
@@ -239,20 +221,20 @@
 
 .concept-chip-panel,
 .concept-practice-text {
-  margin-top: 14px;
-  padding: 14px 16px;
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--clay-radius-lg);
 }
 
 .concept-chip-panel {
   display: grid;
-  gap: 14px;
+  gap: var(--space-sm);
   background: var(--clay-surface-soft);
 }
 
 .concept-chip-group {
   display: grid;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .concept-chip-group span,
@@ -266,12 +248,12 @@
 .concept-chip-group div {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--space-xs);
 }
 
 .concept-chip-group button {
   min-height: 36px;
-  padding: 8px 11px;
+  padding: var(--space-xs) var(--space-sm);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-card);
@@ -293,7 +275,7 @@
 
 .concept-practice-text {
   display: grid;
-  gap: 7px;
+  gap: var(--space-2xs);
   background: var(--jade-soft);
   border: 1px solid var(--jade);
 }
@@ -316,7 +298,7 @@
 .recording-action-copy h2 {
   color: var(--clay-ink);
   font-size: 26px;
-  margin: 4px 0 6px;
+  margin: var(--space-2xs) 0 var(--space-xs);
 }
 
 .recording-action-copy p {
@@ -337,15 +319,15 @@
 
 /* Analysis loading card */
 .analysis-loading-card {
-  margin: 18px 0 0;
-  padding: 20px 20px 16px;
+  margin: var(--space-md) 0 0;
+  padding: var(--space-md) var(--space-md) var(--space-sm);
   background: var(--seal-soft);
   border: 1.5px solid var(--seal);
   border-radius: var(--clay-radius-md);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
   animation: fadeIn 0.3s ease;
 }
 .analysis-loading-spinner {
@@ -370,7 +352,7 @@
   font-size: 1rem;
   font-weight: 700;
   color: var(--seal-deep);
-  margin: 0 0 3px;
+  margin: 0 0 var(--space-2xs);
 }
 .analysis-loading-sub {
   font-size: 0.82rem;
@@ -380,18 +362,18 @@
 .analysis-loading-steps {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2xs);
   font-size: 0.78rem;
 }
 .loading-step {
-  padding: 3px 10px;
+  padding: var(--space-2xs) var(--space-sm);
   border-radius: var(--clay-radius-lg);
   background: var(--seal-soft);
   /* --seal is the bright gold: 1.8:1 on its own soft tint. Text on any
      gold tint uses the -deep shade. */
   color: var(--seal-deep);
   font-weight: 600;
-  transition: all 0.3s;
+  transition: background-color 0.3s, color 0.3s, opacity 0.3s;
 }
 .loading-step.active {
   background: var(--seal);
@@ -420,7 +402,7 @@
   font-family: inherit;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin: 0 0 8px;
+  margin: 0 0 var(--space-xs);
   line-height: 1.3;
 }
 
@@ -432,7 +414,7 @@
 }
 
 .analysis-heading {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-md);
   text-align: center;
 }
 
@@ -485,5 +467,3 @@
     animation: none;
   }
 }
-
-

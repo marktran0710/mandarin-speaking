@@ -3,9 +3,10 @@ import { BiLabel } from "./BiLabel";
 import AppButton from "./AppButton";
 import {
   SELF_EVAL_LEVELS,
-  SELF_EVAL_EMOJI,
   type SelfEvalLevel,
 } from "../utils/selfEvalComparison";
+import SelfEvalIcon from "./SelfEvalIcon";
+import StudentIcon from "./StudentIcon";
 import "./SelfEvalStep.css";
 
 const LEVEL_LABEL: Record<SelfEvalLevel, { zh: string; en: string }> = {
@@ -39,7 +40,7 @@ function EmojiPicker({
             onClick={() => onChange(level)}
           >
             <span aria-hidden="true" className="self-eval-emoji">
-              {SELF_EVAL_EMOJI[level]}
+              <SelfEvalIcon level={level} size={28} />
             </span>
             <span className="self-eval-emoji-caption">
               <BiLabel zh={LEVEL_LABEL[level].zh} en={LEVEL_LABEL[level].en} />
@@ -104,7 +105,7 @@ export default function SelfEvalStep({
             if (content && pronunciation) onSubmit({ content, pronunciation });
           }}
         >
-          <BiLabel zh="看系統回饋" en="See system feedback" /> →
+          <BiLabel zh="看系統回饋" en="See system feedback" /> <StudentIcon name="arrow-right" size={16} aria-hidden="true" />
         </AppButton>
         <button type="button" className="self-eval-skip" onClick={onSkip}>
           <BiLabel zh="跳過" en="Skip" />

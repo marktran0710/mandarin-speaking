@@ -14,10 +14,17 @@
    headings, and inline labels don't sit inside a bare <p>, so this never
    touches short single-line labels. */
 .bi-label--block,
-p > .bi-label {
+p > .bi-label,
+.bi-label--left {
   display: flex;
   align-items: flex-start;
   text-align: left;
+}
+
+.bi-label--center {
+  display: flex;
+  align-items: center;
+  text-align: center;
 }
 
 .bi-zh {

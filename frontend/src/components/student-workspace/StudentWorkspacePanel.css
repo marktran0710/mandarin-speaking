@@ -1,0 +1,433 @@
+/*
+ * Student workspace panel contract
+ *
+ * This ID-scoped layer is intentionally more specific than the legacy page
+ * and recorder styles. The panel is the single desktop viewport; the story
+ * chrome and activity stage fill that track, while only genuinely local
+ * collections (the scene rail and vocabulary rows) own nested overflow.
+ */
+
+@media (min-width: 901px) {
+  .student-workspace-v2 {
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    overflow: hidden;
+    column-gap: var(--space-md);
+  }
+
+  .student-workspace-v2 > .student-workspace-content-v2 {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    align-self: stretch;
+    min-height: 0;
+    max-height: 100%;
+    padding: 0 var(--space-md) 0 0;
+    overflow: hidden;
+    scrollbar-gutter: auto;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel {
+    box-sizing: border-box;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    align-self: stretch;
+    min-width: 0;
+    min-height: 0;
+    max-height: 100%;
+    /* The panel is the page's outer surface, so it uses only the intentional
+       4px canvas reveal. Its internal regions keep the normal token gaps. */
+    margin-block: var(--space-sm);
+    padding: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    border: 1px solid var(--clay-hairline);
+    border-radius: var(--clay-radius-lg);
+    background: var(--clay-surface-card);
+    box-shadow: var(--shadow-md);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel > * {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel > .create-story-page,
+  .student-workspace-v2 > #student-workspace-panel > .my-stories-page,
+  .student-workspace-v2 > #student-workspace-panel > .voice-test-page {
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    background: transparent;
+  }
+
+  /* Catalogue/progress pages need an inner page gutter. An active story is
+     already divided into header, scene rail, body, and footer regions below. */
+  .student-workspace-v2 > #student-workspace-panel > .create-story-page:not(:has(> .csp-recorder-body)),
+  .student-workspace-v2 > #student-workspace-panel > .my-stories-page,
+  .student-workspace-v2 > #student-workspace-panel > .voice-test-page {
+    padding: var(--space-md);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel > .create-story-page:has(> .csp-recorder-body) {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .csp-recorder-body {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .csp-recorder-body > .story-recorder {
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+  }
+
+  /* Story header and active phase are normal-flow siblings. The former fixed
+     64px header row was shorter than a multi-scene header and caused the
+     scene rail to paint over the activity body. */
+  .student-workspace-v2 > #student-workspace-panel .story-recorder {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .story-session-topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    flex: 0 0 auto;
+    gap: var(--space-sm) var(--space-md);
+    margin: 0;
+    padding: var(--space-sm) var(--space-md);
+    overflow: visible;
+    border: 0;
+    border-bottom: 1px solid var(--clay-hairline);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .story-session-main {
+    /* The header and activity body are one continuous surface. Their zero
+       gap is intentional; this divider is the visible boundary. */
+    display: block;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    height: auto;
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+    overflow: hidden;
+  }
+
+  /* A question run can legitimately be taller than a short laptop viewport.
+     Let the panel's existing outer scroller own that overflow instead of
+     clipping the final answer row inside the story shell. */
+  .student-workspace-v2 > #student-workspace-panel > .create-story-page:has(.vocab-quiz-question-screen),
+  .student-workspace-v2 > #student-workspace-panel .csp-recorder-body:has(.vocab-quiz-question-screen),
+  .student-workspace-v2 > #student-workspace-panel .story-recorder:has(.vocab-quiz-question-screen) {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .story-session-main:has(.vocab-quiz-question-screen) {
+    flex: 0 0 auto;
+    height: auto;
+    overflow: visible;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .story-session-main:has(> .practice-stage) {
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-stage {
+    flex: 1 1 0;
+    min-height: 0;
+    height: auto;
+    overflow: hidden;
+  }
+
+  /* The student panel is the single outer frame. Speaking keeps the tab
+     divider as its context boundary, but does not add a second card frame
+     around the changing activity content. */
+  .student-workspace-v2 > #student-workspace-panel .practice-stage:has(> .speaking-flow-card) {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* The outer student panel already owns the activity surface. Keep the
+     speaking card's padding as the content inset, but remove its competing
+     border/radius so every action reads as one continuous workspace. */
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* Every story action shares the same equal-width media/workflow tracks. The
+     workflow pane can change freely, but it cannot move or resize the scene
+     learners use as their visual anchor. Mobile intentionally uses its
+     existing one-column flow outside this desktop-only rule. */
+  .student-workspace-v2 > #student-workspace-panel .story-session-main:has(> .practice-stage) {
+    --story-session-media-track: minmax(0, 1fr);
+  }
+
+  /* Study is one stable body grid. The media and reference rail share the
+     same row; the action footer spans both tracks and therefore cannot drift
+     under only the shorter column. */
+  .student-workspace-v2 > #student-workspace-panel .practice-stage:has(> .practice-workspace-study) {
+    display: flex;
+    flex-direction: column;
+    /* Study content should hug its own reference material. A flexible stage
+       plus a 1fr first grid row leaves a large empty band before the footer
+       whenever the vocabulary/phrase set is short. Speaking and Results keep
+       the flexible stage contract below because their panels can scroll. */
+    flex: 0 0 auto;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .practice-workspace-study {
+    display: grid;
+    grid-template-columns: minmax(280px, 40fr) minmax(0, 60fr);
+    grid-template-rows: auto auto;
+    align-items: stretch;
+    flex: 0 0 auto;
+    min-height: 0;
+    padding: var(--space-sm) var(--space-md) var(--space-md);
+    gap: var(--space-md);
+    overflow: visible;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen > .practice-workspace {
+    grid-template-columns: var(--story-session-media-track) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-analyzing {
+    display: block;
+    place-items: initial;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-workspace-study .practice-scene-col {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: start;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen .practice-scene-col {
+    grid-column: 1;
+    align-self: start;
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-workspace-study .practice-scene-image,
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image,
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen .practice-scene-image {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    aspect-ratio: 4 / 3;
+  }
+
+  /* Study is a compact reference desk. The 16:10 frame keeps the scene
+     legible while leaving the study footer in the first viewport on laptop
+     heights; speaking retains the taller 4:3 frame below. */
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image {
+    aspect-ratio: 16 / 9;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen :is(.sfc-record-main, .sfc-results-main, .sfc-analyzing-main) {
+    grid-column: 2;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen :is(.sfc-record-main, .sfc-results-main) {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  /* Keep the next meaningful action in reach while long bilingual copy or
+     feedback scrolls. This is a local workflow affordance, not another card
+     or a second page footer. */
+  .student-workspace-v2 > #student-workspace-panel .sfc-record-main .sfc-record-actions,
+  .student-workspace-v2 > #student-workspace-panel .sfc-results-main .sfc-results-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding-block: var(--space-xs);
+    background: var(--clay-surface-card);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-stage > .speaking-flow-card.sfc-screen .sfc-analyzing-main {
+    display: grid;
+    align-content: center;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-workspace-study .practice-scene-main {
+    display: contents;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-workspace-study .practice-study-ref {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    grid-column: 2;
+    grid-row: 1;
+    align-content: start;
+    min-width: 0;
+    min-height: 0;
+    gap: var(--space-sm);
+    overflow: visible;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-workspace-study .practice-vocab-ref {
+    display: grid;
+    grid-template-rows: auto auto auto;
+    align-content: start;
+    align-self: start;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-workspace-study .scene-vocab-table-practice {
+    min-height: 0;
+    max-block-size: calc(var(--space-2xl) * 5);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-workspace-study .practice-phrases-hint-full {
+    align-self: start;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-workspace-study .practice-footer {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    align-self: end;
+    margin: 0;
+    padding-top: var(--space-sm);
+  }
+}
+
+/* Learner practice visual language: one ivory canvas, one white frame, and
+   quiet semantic surfaces inside it. These scoped rules keep the shared
+   student shell readable without changing the lesson flow. */
+@media (min-width: 901px) {
+  .student-workspace-v2 > #student-workspace-panel .practice-workspace-study {
+    gap: var(--space-lg);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-study-block {
+    padding: var(--space-md);
+    border-radius: var(--clay-radius-md);
+    box-shadow: none;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-vocab-ref {
+    background: var(--clay-surface-card);
+    border-color: var(--clay-hairline);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-phrases-hint-full {
+    background: color-mix(in srgb, var(--tone1-soft) 72%, var(--clay-surface-card));
+    border-color: var(--tone1);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .scene-vocab-row-practice {
+    min-height: 44px;
+    gap: var(--space-sm);
+    padding: var(--space-xs) var(--space-sm);
+    border-color: var(--clay-hairline-soft);
+    background: transparent;
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-phrase-row {
+    padding-block: var(--space-sm);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-phrase-text {
+    font-size: var(--text-lg);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-phrase-translation {
+    font-size: var(--text-md);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .practice-footer {
+    padding-top: var(--space-md);
+  }
+
+  .student-workspace-v2 > #student-workspace-panel .ui-button.btn-scene-step-continue {
+    border-radius: var(--clay-radius-pill);
+    background: var(--clay-primary);
+    color: var(--clay-on-seal);
+  }
+}
+
+@media (max-width: 900px) {
+  .student-workspace-v2 > #student-workspace-panel {
+    margin: 0;
+    border-radius: var(--clay-radius-md);
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .student-workspace-v2 > #student-workspace-panel {
+    min-width: 0;
+    min-height: 0;
+    overflow: visible;
+  }
+}

@@ -324,13 +324,13 @@
   width: 100%;
   height: 6px;
   background: rgba(250, 248, 244, 0.14);
-  border-radius: 4px;
+  border-radius: var(--clay-radius-pill);
   overflow: hidden;
   margin-top: 2px;
 }
 .feedback-summary-bar-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--clay-radius-pill);
   transition: width 0.6s ease;
 }
 .score-guide {
@@ -437,4 +437,3 @@
   gap: 12px;
   align-items: flex-start;
 }
-

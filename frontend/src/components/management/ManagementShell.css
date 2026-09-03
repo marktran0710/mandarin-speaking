@@ -56,7 +56,7 @@
 .management-nav-label { margin: 14px 10px 3px; color: var(--management-muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .management-nav-item { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 44px; padding: 0 11px; border: 1px solid transparent; border-radius: var(--clay-radius-md); color: var(--management-body); background: transparent; font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
 .management-nav-item:hover { border-color: color-mix(in srgb, var(--management-green) 25%, transparent); background: var(--clay-surface-soft); }
-.management-nav-item.active { border-color: color-mix(in srgb, var(--management-green) 35%, transparent); color: var(--management-green-deep); background: var(--management-soft); box-shadow: inset 3px 0 var(--management-green); font-weight: 800; }
+.management-nav-item.active { border-color: color-mix(in srgb, var(--management-green) 35%, transparent); color: var(--management-green-deep); background: var(--management-soft); font-weight: 800; }
 .management-nav-icon { display: grid; place-items: center; color: var(--management-green); }
 .management-nav-text { min-width: 0; overflow-wrap: anywhere; white-space: normal; }
 .management-badge { min-width: 22px; padding: 3px 6px; border-radius: 999px; color: var(--management-green-deep); background: var(--management-soft); font-size: 11px; text-align: center; }
@@ -74,7 +74,7 @@
   .management-body { display: block; }
   .management-sidebar { position: fixed; inset: 76px auto 0 0; z-index: 30; width: min(82vw, 280px); height: auto; transform: translateX(-105%); transition: transform .2s ease; box-shadow: 14px 0 30px color-mix(in srgb, var(--management-ink) 12%, transparent); }
   .management-sidebar.is-open { transform: translateX(0); }
-  .management-backdrop { position: fixed; inset: 76px 0 0; z-index: 25; background: color-mix(in srgb, var(--management-ink) 24%, transparent); }
+  .management-backdrop { position: fixed; inset: 76px 0 0; z-index: 25; border: 0; padding: 0; border-radius: 0; appearance: none; cursor: pointer; background: color-mix(in srgb, var(--management-ink) 24%, transparent); }
   .management-main { padding: 24px clamp(14px, 4vw, 24px) 48px; }
 }
 

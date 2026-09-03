@@ -85,6 +85,12 @@
   .teacher-stat-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .teacher-builder-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .teacher-frame-editor-layout { grid-template-columns: minmax(120px, 0.26fr) minmax(0, 1fr); }
 }
 
 @media (max-width: 768px) {
@@ -151,6 +157,12 @@
   .teacher-frame-card {
     grid-template-columns: 1fr;
   }
+
+  .teacher-content-builder { padding: var(--space-md); }
+  .teacher-frame-editor-layout { grid-template-columns: 1fr; }
+  .teacher-frame-rail { grid-auto-columns: minmax(120px, 1fr); }
+  .teacher-builder-actions { align-items: stretch; flex-direction: column; }
+  .teacher-builder-buttons, .teacher-builder-buttons button { width: 100%; }
 
   .story-learning-content-grid {
     grid-template-columns: 1fr;

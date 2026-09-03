@@ -1,33 +1,42 @@
 /* Student shell's left navigation rail.
-   Mirrors the teacher shell's sidebar (ManagementShell.css) in width and
-   anatomy so the two modes read as one product, but keeps the student
-   accent (gold) rather than the teacher accent (jade), per the app's
-   student=seal/gold, teacher=jade convention. */
+   Keeps the teacher shell's anatomy so both modes read as one product, while
+   using a narrower student rail to preserve the reference layout's generous
+   learning canvas and student gold accent. */
 .student-sidebar {
   position: sticky;
   top: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
-  width: 248px;
-  height: 100vh;
-  padding: var(--space-lg) var(--space-sm);
+  gap: var(--space-xl);
+  width: 192px;
+  height: 100%;
+  padding: var(--space-lg) var(--space-sm) var(--space-md);
   border-right: 1px solid var(--clay-hairline);
-  background: var(--clay-surface-card);
+  background: var(--clay-surface-soft);
 }
 
 .student-sidebar-brand {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: 34px minmax(0, 1fr);
   align-items: center;
   gap: var(--space-xs);
-  padding: 0 var(--space-xs);
+  padding: 0 var(--space-xs) var(--space-md);
+  border-bottom: 1px solid var(--clay-hairline);
 }
 
-.student-sidebar-brand img {
+.student-sidebar-logo {
+  display: grid;
+  place-items: center;
   width: 34px;
   height: 34px;
-  object-fit: contain;
+  border-radius: var(--clay-radius-sm);
+  background: var(--seal);
+  /* Gold fill always takes dark ink, never white (--clay-on-seal rule). */
+  color: var(--clay-on-seal);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .student-sidebar-brand-name {
@@ -44,7 +53,7 @@
 .student-sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xs);
+  gap: var(--space-xs);
 }
 
 .student-sidebar-item {
@@ -75,7 +84,6 @@
   background: var(--seal-soft);
   /* Gold fills always take dark ink, never white (--clay-on-seal rule). */
   color: var(--clay-on-seal);
-  box-shadow: inset 3px 0 var(--seal);
   font-weight: 800;
 }
 
@@ -87,7 +95,17 @@
 .student-sidebar-item-icon {
   display: grid;
   place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--clay-radius-md);
+  background: transparent;
   color: var(--seal-deep);
+}
+
+.student-sidebar-item.active .student-sidebar-item-icon {
+  border-radius: var(--clay-radius-md);
+  background: var(--seal);
+  color: var(--clay-on-seal);
 }
 
 .student-sidebar-item-copy { min-width: 0; }
@@ -102,7 +120,7 @@
   padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-soft);
+  background: var(--clay-surface-card);
 }
 
 .student-sidebar-progress-label {
@@ -132,50 +150,18 @@
 }
 
 .student-sidebar-progress-track {
-  height: 5px;
+  height: var(--space-2xs);
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--clay-hairline);
 }
 
 .student-sidebar-progress-track > span {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--clay-radius-pill);
   background: var(--seal);
 }
-
-/* Slot the running story fills (StorySessionSidebar portals into it). It
-   takes the space the section switch would have used, and scrolls on its
-   own when a long scene list outgrows the rail. */
-/* The slot is always in the DOM so the session's portal can never miss it;
-   it only takes space once the session has filled it. */
-.student-sidebar-session:empty { display: none; }
-
-.student-sidebar-session {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-/* Inside the rail the session content is already framed by the rail, so it
-   drops the card chrome it uses when standing alone. */
-.student-sidebar-session .ssb-topline {
-  padding: 0 var(--space-xs);
-  border: 0;
-}
-
-.student-sidebar-session .ssb-help {
-  margin-top: auto;
-}
-
-/* The floating help toggle belongs to the old mobile-drawer layout; inside
-   the rail the panel is always visible, so the toggle has nothing to do. */
-.student-sidebar-session .ssb-help-toggle { display: none; }
 
 .student-sidebar-footer {
   display: flex;
@@ -209,7 +195,7 @@
 
 .student-sidebar-identity-copy {
   display: grid;
-  gap: 1px;
+  gap: var(--space-2xs);
   min-width: 0;
 }
 
@@ -274,10 +260,20 @@
   box-shadow: var(--shadow-sm);
 }
 
-.student-sidebar-backdrop { display: none; }
+.student-sidebar-backdrop {
+  display: none;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  appearance: none;
+  cursor: pointer;
+}
 
 @media (max-width: 900px) {
   .student-sidebar-toggle { display: inline-flex; }
+
+  /* Keep the drawer's brand row clear of the fixed menu control. */
+  .student-sidebar { padding-top: calc(var(--space-xl) + var(--space-lg)); }
 
   .student-sidebar-backdrop {
     display: block;
@@ -292,6 +288,7 @@
     inset: 0 auto 0 0;
     z-index: 36;
     width: min(80vw, 280px);
+    height: auto;
     transform: translateX(-104%);
     transition: transform .2s ease;
     box-shadow: var(--shadow-lg);

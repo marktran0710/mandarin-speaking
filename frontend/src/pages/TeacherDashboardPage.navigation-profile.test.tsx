@@ -71,7 +71,7 @@ const analyzedRecord = {
   },
 };
 
-vi.mock("../components/PitchChart", () => ({
+vi.mock("../components/pitch/PitchChart", () => ({
   default: () => <div data-testid="pitch-chart">Pitch chart</div>,
 }));
 
@@ -115,12 +115,15 @@ describe("TeacherDashboardPage", () => {
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Adventure Story");
-    const imageInputs = screen.getAllByLabelText("Image URL or uploaded file");
-    for (let index = 0; index < imageInputs.length; index += 1) {
+    const sceneCount = screen.getAllByRole("tab").length;
+    for (let index = 0; index < sceneCount; index += 1) {
       await user.type(
-        imageInputs[index],
+        screen.getByLabelText("Image URL or uploaded file"),
         `https://example.com/adventure-${index + 1}.jpg`,
       );
+      if (index < sceneCount - 1) {
+        await user.click(screen.getByRole("tab", { name: new RegExp(`Scene ${index + 2}`) }));
+      }
     }
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
     await user.click(screen.getByRole("button", { name: "Publish" }));

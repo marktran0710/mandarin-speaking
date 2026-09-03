@@ -4,12 +4,14 @@ import { primePinyin } from "../../utils/pinyin";
 import { scriptAlignmentText } from "../../utils/scriptAlignment";
 import { toneArrow } from "../../utils/storyRecorderFeedback";
 import { BiLabel } from "../BiLabel";
+import StudentIcon from "../StudentIcon";
 import { SUMMARY_BUCKETS, TONE_STATUS } from "./constants";
 import { breakdownGroups, breakdownPhraseGroups, countByBucket, displayWordsForScript, referenceEvidenceAccepted, statusLabel } from "./model";
 import { RowDetail, VowelChip } from "./RowDetail";
 import type { PronunciationBreakdownProps } from "./types";
 
 const actionable = (tone: string) => tone === "fail" || tone === "uncertain" || tone === "retry";
+const toneIcon = (tone: string) => tone === "pass" ? "check-circle" as const : tone === "fail" ? "x-circle" as const : tone === "retry" ? "retry" as const : "warning" as const;
 
 export default function BreakdownView({ words, targetText, transcription, teacherPhrases, debug = false, compact = false, assistiveFeedback = null, masteryCounts }: PronunciationBreakdownProps) {
   const [openKey, setOpenKey] = useState<string | null>(null);
@@ -39,7 +41,7 @@ export default function BreakdownView({ words, targetText, transcription, teache
     </div>{masteryCounts && masteryCounts.total > 0 && <div className="pb-head-score" role="status" aria-atomic="true" aria-label={masteryCounts.passed + " of " + masteryCounts.total + " syllables counted for progress"}><span className="pb-head-score-label">本次進度 / Progress</span><strong>{masteryCounts.passed}<span>/{masteryCounts.total}</span></strong><small>計入過關 / counted</small></div>}</div>
     {summary.length > 0 && <div className="pb-summary-row" role="status" aria-atomic="true" aria-label={total + " syllable detail rows: " + summary.map((bucket) => counts[bucket.key] + " " + bucket.en).join(", ")}><span className="pb-summary-label">細項 / Detail</span><div className="pb-summary">{summary.map((bucket) => <span key={bucket.key} className={"pb-summary-item is-" + bucket.key}><span className="pb-summary-dot" aria-hidden="true" /><strong>{counts[bucket.key]}</strong><span lang="zh-Hant">{bucket.zh}</span><small lang="en">{bucket.en}</small></span>)}</div></div>}
     </div>
-    <ul className="pb-legend">{(["CORRECT", "UNCERTAIN", "INCORRECT", "INVALID_AUDIO"] as const).map((status) => <li key={status} className={"pb-legend-item is-" + TONE_STATUS[status].tone}><span className="pb-mark" aria-hidden="true">{TONE_STATUS[status].mark}</span><BiLabel zh={TONE_STATUS[status].zh} en={TONE_STATUS[status].en} /></li>)}</ul>
+    <ul className="pb-legend">{(["CORRECT", "UNCERTAIN", "INCORRECT", "INVALID_AUDIO"] as const).map((status) => <li key={status} className={"pb-legend-item is-" + TONE_STATUS[status].tone}><span className="pb-mark" aria-hidden="true"><StudentIcon name={toneIcon(TONE_STATUS[status].tone)} size={15} /></span><BiLabel zh={TONE_STATUS[status].zh} en={TONE_STATUS[status].en} /></li>)}</ul>
     {compact && hasActionable && hidden > 0 && <button type="button" className="pb-compact-toggle" aria-expanded={showAllRows} onClick={() => setShowAllRows((open) => !open)}>{showAllRows ? <BiLabel zh="只看需要練習的部分" en="Show only parts to practise" /> : <BiLabel zh={"顯示全部發音 (" + hidden + " 個已通過)"} en={"Show all pronunciation rows (" + hidden + " passed)"} />}</button>}
     <div className="pb-groups">{phrases.map((phrase) => {
       const hasFail = phrase.words.some((group) => group.rows.some(({ syllable, word }) => statusLabel(syllable, referenceEvidenceAccepted(word)).tone === "fail"));
@@ -63,8 +65,8 @@ export default function BreakdownView({ words, targetText, transcription, teache
               const open = openKey === key;
               return <li key={key} className="pb-row-item"><button type="button" className={"pb-row pb-row-" + label.tone + (label.tone === "fail" ? " pb-row-failed" : "") + (open ? " is-open" : "")} aria-expanded={open} onClick={() => setOpenKey(open ? null : key)}>
                 <span className="pb-char-cell"><span className="pb-char" lang="zh-Hant">{char}</span>{pinyin && <span className="pb-char-pinyin">{pinyin}</span>}</span>
-                <span className="pb-tone-cell"><span className="pb-tone-target" aria-hidden="true">{toneArrow(syllable.tone)}</span><small>T{syllable.tone}</small><span className={"pb-mark pb-tone-mark is-" + label.tone} title={label.zh + " — " + label.en}>{label.mark}</span>{assistiveRecord?.assistive_state === "NEEDS_PRACTICE" && <span className="pb-assistive-badge" aria-hidden="true" title={ASSISTIVE_MESSAGE[assistiveRecord.assistive_state]}>◎</span>}</span>
-                <span className="pb-vowel-cell"><VowelChip syllable={syllable} /></span><span className="pb-chevron" aria-hidden="true">›</span>
+                <span className="pb-tone-cell"><span className="pb-tone-target" aria-hidden="true">{toneArrow(syllable.tone)}</span><small>T{syllable.tone}</small><span className={"pb-mark pb-tone-mark is-" + label.tone} title={label.zh + " — " + label.en}><StudentIcon name={toneIcon(label.tone)} size={15} /></span>{assistiveRecord?.assistive_state === "NEEDS_PRACTICE" && <span className="pb-assistive-badge" aria-hidden="true" title={ASSISTIVE_MESSAGE[assistiveRecord.assistive_state]}><StudentIcon name="info" size={13} /></span>}</span>
+                <span className="pb-vowel-cell"><VowelChip syllable={syllable} /></span><span className="pb-chevron" aria-hidden="true"><StudentIcon name="chevron-right" size={16} /></span>
               </button>{open && <RowDetail syllable={syllable} word={word} referenceAccepted={accepted} debug={debug} assistiveRecord={assistiveRecord} />}</li>;
             })}</ul>
           </div>;

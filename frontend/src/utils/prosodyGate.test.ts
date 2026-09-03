@@ -4,7 +4,7 @@ import {
   shapeArrow,
   toneArrow,
 } from "./storyRecorderFeedback";
-import type { WordProsody } from "../components/StoryRecorder";
+import type { WordProsody } from "../components/story-recorder/StoryRecorder";
 
 const word = (overrides: Partial<WordProsody>): WordProsody => ({
   token: "在家",

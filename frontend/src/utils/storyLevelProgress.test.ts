@@ -57,16 +57,22 @@ describe("storyLevelProgress", () => {
       {
         id: "submission-1",
         storyId: "teacher-ignored-fallback",
+        storyTitle: "Ignored fallback",
         studentId: "student-1",
         studentName: "Ada",
+        submittedAt: "2026-09-01T00:00:00.000Z",
         scenes: [{ baseStoryId: "server-story", difficultyLevel: "medium" }],
+        reviewStatus: "pending",
       },
       {
         id: "submission-2",
         storyId: "teacher-other-hard",
+        storyTitle: "Other story",
         studentId: "another-student",
         studentName: "Other",
+        submittedAt: "2026-09-01T00:00:00.000Z",
         scenes: [{ baseStoryId: "other-story", difficultyLevel: "hard" }],
+        reviewStatus: "pending",
       },
     ] as StorySubmission[];
 
@@ -81,8 +87,11 @@ describe("storyLevelProgress", () => {
     const submission = {
       id: "legacy-submission",
       storyId: "teacher-story-7-hard",
+      storyTitle: "Legacy story",
       studentName: "Student",
+      submittedAt: "2026-09-01T00:00:00.000Z",
       scenes: [],
+      reviewStatus: "pending",
     } as StorySubmission;
 
     mergeSubmittedStoryLevels([submission], { studentName: "Student" });

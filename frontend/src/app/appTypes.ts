@@ -1,5 +1,5 @@
 import type { StudentWorkspaceView } from "../pages/StudentWorkspacePage";
-import type { SpeechModel } from "../components/StoryRecorder";
+import type { SpeechModel } from "../components/story-recorder/StoryRecorder";
 import type { Page } from "../types/page";
 
 export interface AudioRecord {

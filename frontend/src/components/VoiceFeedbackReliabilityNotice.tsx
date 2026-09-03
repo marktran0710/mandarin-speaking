@@ -3,6 +3,7 @@ import {
   ASSISTIVE_MESSAGE,
   type AssistiveState,
 } from "../utils/assistiveFeedback";
+import StudentIcon from "./StudentIcon";
 import "./VoiceFeedbackReliabilityNotice.css";
 
 /**
@@ -14,47 +15,43 @@ import "./VoiceFeedbackReliabilityNotice.css";
  * student, who cannot act on either one. They were two paragraphs of English
  * sitting above the actual results on every single attempt.
  *
- * What survives is the one level a learner can do something about: the
- * recording failed, so move closer to the mic and say it again. The
+ * What survives is the one level a learner needs to understand: the
+ * recording failed and the score is unavailable. The
  * assessment itself is untouched — `assessVoiceFeedbackReliability` still
  * feeds `canCountForProgress` in the practice drills, and several screens
  * still hide their scores on `level === "retry"`. This is display only.
  */
 export default function VoiceFeedbackReliabilityNotice({
   assessment,
-  compact = false,
+  variant = "default",
 }: {
   assessment: VoiceFeedbackReliability;
   /** Kept for call-site compatibility; no longer read. */
   attemptCount?: number;
-  compact?: boolean;
+  variant?: "default" | "compact";
 }) {
   if (assessment.level !== "retry") return null;
 
+  const isCompact = variant === "compact";
+
   const detail =
     assessment.reason === "content-mismatch"
-      ? "The recording did not match the target closely enough. The score above may not be reliable and should not count."
-      : "There was not enough clear pitch evidence to judge this recording safely.";
+      ? "The words did not match the target closely enough."
+      : "We couldn't hear enough pitch to score this recording.";
 
   return (
     <aside
-      className={`voice-reliability-notice is-retry${compact ? " is-compact" : ""}`}
+      className={`voice-reliability-notice is-retry${isCompact ? " is-compact" : ""}`}
       role="alert"
       aria-live="polite"
       data-feedback-reliability={assessment.level}
     >
       <span className="voice-reliability-icon" aria-hidden="true">
-        ↻
+        <StudentIcon name="retry" size={18} />
       </span>
       <div>
-        <strong>Retake before trusting this score</strong>
-        {!compact && <p>{detail}</p>}
-        {!compact && (
-          <p className="voice-reliability-action">
-            Move 10–20 cm from the microphone, find a quieter spot, and say the
-            target once at a natural pace.
-          </p>
-        )}
+        <strong>Score unavailable</strong>
+        {!isCompact && <p>{detail}</p>}
       </div>
     </aside>
   );
@@ -76,28 +73,30 @@ export default function VoiceFeedbackReliabilityNotice({
 export function AssistiveFeedbackNotice({
   state,
   showOnAccept = false,
-  compact = false,
+  variant = "default",
 }: {
   state: AssistiveState;
   /** Show a low-key acknowledgement for NO_ISSUE_DETECTED too; off by
    * default since STEP 4 only asks for this optionally. */
   showOnAccept?: boolean;
-  compact?: boolean;
+  variant?: "default" | "compact";
 }) {
   if (state === "ACCEPT" && !showOnAccept) return null;
 
+  const isCompact = variant === "compact";
+
   const tone = state === "NEEDS_PRACTICE" ? "check" : state === "UNCERTAIN" ? "uncertain" : "accept";
-  const icon = state === "NEEDS_PRACTICE" ? "!" : state === "UNCERTAIN" ? "?" : "✓";
+  const icon = state === "NEEDS_PRACTICE" ? "warning" : state === "UNCERTAIN" ? "help" : "check-circle";
 
   return (
     <aside
-      className={`voice-reliability-notice is-assistive is-${tone}${compact ? " is-compact" : ""}`}
+      className={`voice-reliability-notice is-assistive is-${tone}${isCompact ? " is-compact" : ""}`}
       role="status"
       aria-live="polite"
       data-assistive-state={state}
     >
       <span className="voice-reliability-icon" aria-hidden="true">
-        {icon}
+        <StudentIcon name={icon} size={17} />
       </span>
       <div>
         <p>{ASSISTIVE_MESSAGE[state]}</p>

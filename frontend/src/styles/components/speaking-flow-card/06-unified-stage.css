@@ -1,0 +1,225 @@
+/* ── Unified speaking stage ─────────────────────────────────────────────
+   Compatibility override: this file loads after the legacy speaking-flow
+   slices and uses the full card/state context so its layout wins by
+   specificity rather than depending on stylesheet import order. */
+
+.speaking-flow-card.sfc-screen {
+  gap: var(--space-md);
+  padding: var(--space-md);
+  overflow: visible;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  box-shadow: none;
+}
+
+.speaking-flow-card.sfc-screen > .practice-workspace {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--space-md);
+  min-width: 0;
+}
+
+.speaking-flow-card.sfc-screen .practice-scene-col,
+.speaking-flow-card.sfc-screen .sfc-record-main,
+.speaking-flow-card.sfc-screen .sfc-results-main {
+  min-width: 0;
+}
+
+.speaking-flow-card.sfc-screen .practice-scene-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-sm);
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.speaking-flow-card.sfc-screen .practice-scene-image {
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  box-shadow: none;
+}
+
+.speaking-flow-card.sfc-screen .practice-scene-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Record controls remain grouped for legibility, but the panel no longer
+   becomes a second competing card inside the shared speaking stage. */
+.speaking-flow-card.sfc-record .sfc-record-main,
+.speaking-flow-card.sfc-record .sfc-record-panel,
+.speaking-flow-card.sfc-results .sfc-results-main {
+  width: 100%;
+  margin: 0;
+}
+
+.speaking-flow-card.sfc-record .sfc-record-main,
+.speaking-flow-card.sfc-results .sfc-results-main {
+  display: flex;
+  flex-direction: column;
+  align-self: start;
+  justify-content: flex-start;
+  gap: var(--space-md);
+}
+
+.speaking-flow-card.sfc-record .sfc-record-panel {
+  --sfc-model-content-indent: 0;
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-md);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.speaking-flow-card.sfc-record .sfc-record-actions {
+  width: 100%;
+  margin: 0;
+  gap: var(--space-sm);
+}
+
+.speaking-flow-card.sfc-record .sfc-recording-options {
+  width: 100%;
+  margin: 0;
+  padding: var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.speaking-flow-card.sfc-record .sfc-record-btn,
+.speaking-flow-card.sfc-record .sfc-upload-btn {
+  min-height: 44px;
+  border-radius: var(--clay-radius-md);
+}
+
+.speaking-flow-card.sfc-results .sfc-step-panel {
+  gap: var(--space-md);
+}
+
+.speaking-flow-card.sfc-results .sfc-results-footer {
+  flex-shrink: 0;
+  margin: 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--clay-hairline);
+  background: transparent;
+}
+
+.speaking-flow-card.sfc-results .sfc-footer-actions {
+  gap: var(--space-sm);
+}
+
+/* The student workspace has older state rules with an extra parent class.
+   Repeat that context here so these compatibility values win by specificity. */
+.student-workspace-v2 .speaking-flow-card.sfc-record.sfc-screen > .practice-workspace,
+.student-workspace-v2 .speaking-flow-card.sfc-results.sfc-screen > .practice-workspace {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--space-md);
+}
+
+.student-workspace-v2 .speaking-flow-card.sfc-record.sfc-screen .practice-scene-col,
+.student-workspace-v2 .speaking-flow-card.sfc-results.sfc-screen .practice-scene-col {
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.student-workspace-v2 .speaking-flow-card.sfc-record.sfc-screen .practice-scene-image,
+.student-workspace-v2 .speaking-flow-card.sfc-results.sfc-screen .practice-scene-image {
+  min-height: 0;
+  height: auto;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  box-shadow: none;
+}
+
+.student-workspace-v2 .speaking-flow-card.sfc-record.sfc-screen .sfc-record-main,
+.student-workspace-v2 .speaking-flow-card.sfc-results.sfc-screen .sfc-results-main {
+  gap: var(--space-md);
+}
+
+.student-workspace-v2 .speaking-flow-card.sfc-record.sfc-screen .sfc-record-panel {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.student-workspace-v2 .speaking-flow-card.sfc-results.sfc-screen .sfc-results-footer {
+  margin: 0;
+  padding-top: var(--space-sm);
+  background: transparent;
+}
+
+/* Keep the reflective checkpoint compact: its two questions use the right
+   rail as a deliberate two-column row, while the prompt and action span it. */
+@media (min-width: 901px) {
+  .speaking-flow-card.sfc-results.sfc-screen:has(.self-eval-step) .self-eval-step {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-sm);
+  }
+
+  .speaking-flow-card.sfc-results.sfc-screen:has(.self-eval-step) .self-eval-lead,
+  .speaking-flow-card.sfc-results.sfc-screen:has(.self-eval-step) .sfc-step-cta-row {
+    grid-column: 1 / -1;
+  }
+
+  .speaking-flow-card.sfc-results.sfc-screen:has(.self-eval-step) .self-eval-question {
+    min-width: 0;
+    margin: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .speaking-flow-card.sfc-screen {
+    min-width: 0;
+    padding: var(--space-sm);
+    overflow-x: clip;
+  }
+
+  .speaking-flow-card.sfc-screen > .practice-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-md);
+  }
+
+  .student-workspace-v2 .speaking-flow-card.sfc-record.sfc-screen > .practice-workspace,
+  .student-workspace-v2 .speaking-flow-card.sfc-results.sfc-screen > .practice-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-md);
+  }
+
+  .speaking-flow-card.sfc-record .sfc-record-actions,
+  .speaking-flow-card.sfc-results .sfc-footer-actions {
+    min-width: 0;
+  }
+
+  .speaking-flow-card.sfc-results.sfc-screen:has(.self-eval-step) .self-eval-step {
+    display: flex;
+    gap: var(--space-sm);
+  }
+}
+
+.speaking-flow-card.sfc-screen :is(button, select):focus-visible {
+  outline: 2px solid var(--seal-deep);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speaking-flow-card.sfc-screen .self-eval-emoji-btn {
+    transition: none;
+  }
+}

@@ -57,7 +57,6 @@
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 0 var(--seal-deep);
   transition: transform 0.1s, box-shadow 0.1s;
   /* BiLabel's .bi-en subtitle defaults to --clay-muted (dark gray) —
      unreadable on this solid accent fill without a light override. */
@@ -66,11 +65,9 @@
 }
 .btn-submit-story:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 5px 0 var(--seal-deep);
 }
 .btn-submit-story:active:not(:disabled) {
   transform: translateY(3px);
-  box-shadow: 0 1px 0 var(--seal-deep);
 }
 .btn-submit-story:disabled {
   background: var(--seal-soft);
@@ -177,7 +174,7 @@
 
 .ai-example {
   margin-top: 12px;
-  border-left: 4px solid var(--clay-success);
+  border: 1px solid var(--clay-hairline);
 }
 
 .ai-example strong {
@@ -296,21 +293,19 @@
   margin-top: 20px;
   padding: 16px 20px;
   border-radius: var(--clay-radius-lg);
-  border-left: 5px solid;
+  border: 1px solid;
   animation: fadeIn 0.3s ease-out;
 }
 
 .sorting-feedback-banner.success {
   background: var(--jade-soft);
   border-color: var(--jade);
-  border-left-color: var(--jade);
   color: var(--jade-deep);
 }
 
 .sorting-feedback-banner.info {
   background: var(--jade-soft);
   border-color: var(--jade-deep);
-  border-left-color: var(--jade-deep);
   color: var(--jade-deep);
 }
 
@@ -339,9 +334,32 @@
   border-radius: var(--clay-radius-lg);
   padding: 16px;
   min-height: 260px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   cursor: pointer;
+}
+
+.sorting-slot-action {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--clay-radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sorting-slot-action:focus-visible,
+.sorting-pool-card:focus-visible {
+  outline: 3px solid var(--seal);
+  outline-offset: 3px;
 }
 
 .sorting-slot-card:hover {
@@ -433,4 +451,3 @@
   color: var(--clay-muted);
   pointer-events: none;
 }
-

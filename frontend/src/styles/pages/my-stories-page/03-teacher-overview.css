@@ -214,11 +214,11 @@
   color: var(--jade-deep);
 }
 
-.story-submission-toggle svg {
+.story-submission-toggle .app-icon {
   transition: transform 0.15s ease;
 }
 
-.story-submission-toggle[aria-expanded="true"] svg {
+.story-submission-toggle[aria-expanded="true"] .app-icon {
   transform: rotate(180deg);
 }
 

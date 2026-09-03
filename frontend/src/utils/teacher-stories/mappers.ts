@@ -29,22 +29,19 @@ export function storyToTopic(
         return map;
       }, new Map<string, (typeof approvedSnapshotEntries)[number]>())
     : null;
-  // Quiz identity is based on the Easy/base vocabulary even when the
-  // displayed story uses a tier-specific word list. When a tier's approved
-  // snapshot only contains those base words (the verified question export
-  // does), use that tier's reviewed pools so Medium/Hard do not silently
-  // fall back to Easy's contexts. If a teacher-authored tier has a different
-  // vocabulary, fall back to Easy rather than shifting material by index.
-  const baseQuizWords = new Set(
-    story.frames.flatMap((frame) => splitCsvField(frame.vocabulary)),
-  );
-  const quizApprovedSnapshotEntries =
-    source === "approved"
-      ? approvedSnapshotEntries !== null &&
-        approvedSnapshotEntries.every((entry) => baseQuizWords.has(entry.word))
-        ? approvedSnapshotEntries
-        : storyApprovedSnapshot(story, "easy")
-      : null;
+  // Quiz identity is based on the Easy/base vocabulary when a displayed tier
+  // introduces different words. If the tier stays on that same vocabulary,
+  // its separately approved material is safe to use for that tier.
+  const baseQuizWords = new Set(story.frames.flatMap((frame) => splitCsvField(frame.vocabulary)));
+  const displayedTierWords = new Set(story.frames.flatMap((frame) => splitCsvField(tierText(frame, "vocabulary", difficultyLevel) || "")));
+  const quizApprovedSnapshotEntries = source === "approved"
+    ? approvedSnapshotEntries !== null &&
+      displayedTierWords.size === baseQuizWords.size &&
+      Array.from(displayedTierWords).every((word) => baseQuizWords.has(word)) &&
+      approvedSnapshotEntries.every((entry) => baseQuizWords.has(entry.word))
+      ? approvedSnapshotEntries
+      : storyApprovedSnapshot(story, "easy")
+    : null;
   const quizApprovedByWord = quizApprovedSnapshotEntries
     ? quizApprovedSnapshotEntries.reduce((map, e) => {
         if (!map.has(e.word)) map.set(e.word, e);
@@ -427,6 +424,8 @@ export function storyToTopic(
     ...(story.lessonNumber != null ? { lessonNumber: story.lessonNumber } : {}),
     ...(story.lessonSubOrder != null ? { lessonSubOrder: story.lessonSubOrder } : {}),
     difficultyLevel,
+    quizMaterialSource: source,
+    quizMaterialApproved: source === "approved" && quizApprovedSnapshotEntries !== null,
     sourceStory: story,
   };
 }

@@ -261,6 +261,22 @@ class VocabQuizQuestionResult(BaseModel):
     level: Optional[Literal["easy", "medium", "hard"]] = None
     baseStoryId: Optional[str] = Field(default=None, max_length=128)
     itemVersion: Optional[str] = Field(default=None, max_length=40)
+    # Server-side BKT gate metadata.  These are deliberately optional for
+    # legacy attempts: old responses remain readable but are never treated as
+    # clean diagnostic evidence by the strict analytics path.
+    isBktEligible: Optional[bool] = None
+    bktEligibilityErrors: List[str] = []
+    diagnosticExposureId: Optional[str] = Field(default=None, max_length=256)
+    assistedResponse: bool = False
+    bktValidationStatus: Optional[Literal["APPROVED", "DRAFT"]] = None
+    lessonId: Optional[str] = Field(default=None, max_length=128)
+    quizId: Optional[str] = Field(default=None, max_length=128)
+    selectedAnswer: Optional[str] = Field(default=None, max_length=500)
+    correctAnswer: Optional[str] = Field(default=None, max_length=500)
+    presentedOptions: List[str] = Field(default_factory=list)
+    questionPrompt: Optional[str] = Field(default=None, max_length=2000)
+    answeredAt: Optional[str] = None
+    questionIndex: Optional[int] = Field(default=None, ge=0)
 
 
 class VocabQuizAttemptRequest(BaseModel):

@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import TopicSelector, { type TopicStartOptions } from "../components/TopicSelector";
-import StoryRecorder, { type NewAudioRecord } from "../components/StoryRecorder";
+import StoryRecorder, { type NewAudioRecord } from "../components/story-recorder/StoryRecorder";
 import { HelpRequest } from "../services/database";
 import { loadPublishedTeacherTopics, storyToTopic } from "../utils/teacherStories";
 import type { Topic } from "../components/TopicSelector";
-import { getStudentId, getStudentName } from "../utils/studentSession";
+import { getStudentId, getStudentName, saveLastScenePhase } from "../utils/studentSession";
 import { isStoryLevelUnlocked } from "../utils/storyLevelProgress";
 import "./CreateStoryPage.css";
 import "../components/BiLabel.css";
@@ -21,6 +21,10 @@ interface CreateStoryPageProps {
    * can shrink its top navbar while the student is mid-session instead of
    * stacking a full tab bar above the story's own nav panel. */
   onSessionActiveChange?: (active: boolean) => void;
+  /** Requests a reset of the enclosing workspace panel at a story boundary. */
+  onPanelScrollBoundary?: () => void;
+  /** Average tone accuracy, forwarded to the browse dashboard's stat card. */
+  averageToneAccuracy?: number | null;
 }
 
 
@@ -33,6 +37,8 @@ export default function CreateStoryPage({
   onRaiseHand,
   publishedTopics,
   onSessionActiveChange,
+  onPanelScrollBoundary,
+  averageToneAccuracy,
 }: CreateStoryPageProps) {
   const topics = publishedTopics ?? loadPublishedTeacherTopics();
   const initialTopic =
@@ -49,29 +55,35 @@ export default function CreateStoryPage({
   const [selectedImageIndex, setSelectedImageIndex] =
     useState<number>(safeInitialIndex);
   const [startAtQuiz, setStartAtQuiz] = useState(initialStartAtQuiz);
+  const storyHistoryEntry = useRef(false);
+
+  const resetToTopicList = useCallback(() => {
+    onPanelScrollBoundary?.();
+    setSelectedTopic(null);
+    setStartAtQuiz(false);
+    setSelectedImage("");
+    setSelectedImageIndex(0);
+  }, [onPanelScrollBoundary]);
+
+  // Story selection is an in-page state change rather than a URL route, so
+  // create one history entry for it. This makes the session header's Back
+  // control behave like a real page back, including the browser Back button,
+  // without sending the learner to an unrelated external history entry.
+  useEffect(() => {
+    const handlePopState = () => {
+      if (!storyHistoryEntry.current) return;
+      storyHistoryEntry.current = false;
+      resetToTopicList();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [resetToTopicList]);
   useEffect(() => {
     onSessionActiveChange?.(Boolean(selectedTopic));
     return () => onSessionActiveChange?.(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTopic]);
-
-  useEffect(() => {
-    // A workspace CTA can open a story while the learner is halfway down the
-    // dashboard. Treat that as a new page-level task and place the story
-    // header at the top before the recorder mounts.
-    if (!initialTopicId || typeof window === "undefined") return;
-    const resetScroll = () => window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-    resetScroll();
-    // The activity replaces a much shorter overview with a tall recorder.
-    // Run once after layout so browser scroll anchoring cannot restore the
-    // old dashboard position while the new activity settles.
-    const frame = window.requestAnimationFrame(resetScroll);
-    const timer = window.setTimeout(resetScroll, 40);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(timer);
-    };
-  }, [initialTopicId, initialImageIndex, initialStartAtQuiz]);
 
   // `selectedTopic` is only otherwise set once, when the student opens a
   // story. If a teacher republishes that same story (same id, new script)
@@ -105,8 +117,21 @@ export default function CreateStoryPage({
     // The topic list can be long, so the click often happens near its bottom.
     // A newly opened activity is a new page-level task; start the student at
     // its header instead of preserving the catalogue's scroll position.
-    if (typeof window !== "undefined") {
-      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    onPanelScrollBoundary?.();
+    // Choosing a story from the catalogue starts a new activity decision.
+    // Clear any remembered in-story phase so an earlier Speaking/Quiz session
+    // cannot hide the Vocabulary Quiz vs Speaking Practice chooser.
+    if (!options?.startAtQuiz) saveLastScenePhase(topic.id, "overview");
+    if (typeof window !== "undefined" && !storyHistoryEntry.current) {
+      window.history.pushState(
+        {
+          ...(window.history.state ?? {}),
+          mandarinPractice: { topicId: topic.id },
+        },
+        "",
+        window.location.href,
+      );
+      storyHistoryEntry.current = true;
     }
     setSelectedTopic(topic);
     setStartAtQuiz(Boolean(options?.startAtQuiz));
@@ -133,18 +158,25 @@ export default function CreateStoryPage({
   };
 
   const handleBack = () => {
-    setSelectedTopic(null);
-    setStartAtQuiz(false);
-    setSelectedImage("");
-    setSelectedImageIndex(0);
+    if (storyHistoryEntry.current && typeof window !== "undefined") {
+      window.history.back();
+      return;
+    }
+    resetToTopicList();
   };
 
   return (
     <div className="create-story-page">
       {!selectedTopic ? (
-        <TopicSelector onTopicSelect={handleTopicSelect} onLevelSelect={handleLevelSelect} />
+        <TopicSelector
+          onTopicSelect={handleTopicSelect}
+          onLevelSelect={handleLevelSelect}
+          averageToneAccuracy={averageToneAccuracy}
+        />
       ) : (
         <div className="csp-recorder-body">
+          {/* The catalogue chooses the story; this overview chooses the
+            activity the student wants to do next. */}
           <StoryRecorder
             topic={selectedTopic}
             selectedImage={selectedImage}

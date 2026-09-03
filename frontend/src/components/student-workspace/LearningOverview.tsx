@@ -1,6 +1,7 @@
 import { BiLabel, BiText } from "../BiLabel";
 import type { QuizGateState, WorkspaceTopicSummary } from "../../types/studentWorkspace";
 import ActionButton from "../../shared/ui/ActionButton";
+import StudentIcon from "../StudentIcon";
 
 interface LearningOverviewProps {
   topicSummary?: WorkspaceTopicSummary;
@@ -11,7 +12,7 @@ export function QuizGateStatus({ gate }: { gate: QuizGateState }) {
   if (gate.status === "completed") {
     return (
       <span className="workspace-gate workspace-gate-complete">
-        <span aria-hidden="true">✓</span>
+        <span aria-hidden="true"><StudentIcon name="check-circle" size={18} /></span>
         <span>
           <strong>Quiz complete</strong>
           <small>Ready to start speaking practice</small>
@@ -23,7 +24,7 @@ export function QuizGateStatus({ gate }: { gate: QuizGateState }) {
   if (gate.status === "required") {
     return (
       <span className="workspace-gate workspace-gate-required">
-        <span aria-hidden="true">!</span>
+        <span aria-hidden="true"><StudentIcon name="warning" size={18} /></span>
         <span>
           <strong>Quiz required first</strong>
           <small>{gate.reason}</small>
@@ -34,7 +35,7 @@ export function QuizGateStatus({ gate }: { gate: QuizGateState }) {
 
   return (
     <span className="workspace-gate workspace-gate-unavailable">
-      <span aria-hidden="true">—</span>
+      <span aria-hidden="true"><StudentIcon name="minus" size={18} /></span>
       <span>
         <strong>No quiz for this activity</strong>
         <small>{gate.reason}</small>
@@ -54,7 +55,7 @@ export default function LearningOverview({ topicSummary, onStartActivity }: Lear
     <section className="workspace-quick-start" aria-label="Learning overview">
       <div className="workspace-quick-start-copy">
         <p className="workspace-section-kicker">
-          <BiLabel zh="開始練習" pinyin="Kāishǐ liànxí" en="Start practice" />
+          <BiLabel zh="開始練習" en="Start practice" />
         </p>
         <h2>{topicSummary ? topicSummary.topic.name : "No activity is ready yet."}</h2>
         <p>
@@ -74,7 +75,7 @@ export default function LearningOverview({ topicSummary, onStartActivity }: Lear
           disabled={!topicSummary || gate.status === "unavailable"}
         >
           <span>{startLabel}</span>
-          <span aria-hidden="true">→</span>
+          <StudentIcon name="arrow-right" size={16} aria-hidden="true" />
         </ActionButton>
       </div>
     </section>

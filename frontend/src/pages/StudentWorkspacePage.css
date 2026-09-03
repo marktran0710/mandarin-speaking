@@ -1,5 +1,5 @@
 .student-workspace {
-  min-height: calc(100dvh - var(--navbar-height));
+  min-height: 0;
   padding: clamp(32px, 5vw, 68px) 0 var(--space-3xl);
   position: relative;
   overflow: hidden;
@@ -113,9 +113,8 @@
   width: min(100%, 270px);
   padding: 10px 14px 10px 9px;
   border: 1px solid color-mix(in srgb, var(--jade) 42%, var(--gold));
-  border-radius: 12px;
+  border-radius: var(--clay-radius-md);
   background: color-mix(in srgb, var(--jade-soft) 18%, var(--clay-surface-card));
-  box-shadow: 0 3px 0 color-mix(in srgb, var(--jade-soft) 68%, transparent);
 }
 
 .student-workspace-identity-avatar {
@@ -189,7 +188,7 @@
   max-width: 900px;
   padding: 4px;
   border: 1px solid color-mix(in srgb, var(--gold) 24%, var(--clay-hairline));
-  border-radius: 20px;
+  border-radius: var(--clay-radius-lg);
   background: color-mix(in srgb, var(--clay-surface-soft) 76%, transparent);
   margin-bottom: clamp(18px, 2.5vw, 26px);
 }
@@ -204,12 +203,11 @@
   min-height: 88px;
   padding: 10px 18px 10px 12px;
   border: 1px solid var(--clay-hairline);
-  border-radius: 16px;
+  border-radius: var(--clay-radius-md);
   background: var(--clay-surface-card);
   color: var(--clay-body);
   text-align: left;
   cursor: pointer;
-  box-shadow: 0 4px 0 color-mix(in srgb, var(--clay-hairline) 62%, transparent);
   touch-action: manipulation;
   transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
 }
@@ -217,13 +215,11 @@
 .student-workspace-tab:hover {
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--gold) 52%, var(--clay-hairline));
-  box-shadow: 0 6px 0 color-mix(in srgb, var(--gold-soft) 80%, transparent);
 }
 
 .student-workspace-tab.active {
   border-color: color-mix(in srgb, var(--jade) 58%, var(--clay-hairline));
   background: color-mix(in srgb, var(--jade-soft) 32%, var(--clay-surface-card));
-  box-shadow: 0 5px 0 color-mix(in srgb, var(--jade-soft) 82%, transparent), inset 5px 0 0 var(--jade);
   color: var(--clay-ink);
 }
 
@@ -234,11 +230,6 @@
 
 .student-workspace-tab:active {
   transform: translateY(2px);
-  box-shadow: 0 3px 0 color-mix(in srgb, var(--clay-hairline) 62%, transparent);
-}
-
-.student-workspace-tab.active:active {
-  box-shadow: 0 3px 0 color-mix(in srgb, var(--jade-soft) 82%, transparent), inset 4px 0 0 var(--jade);
 }
 
 .student-workspace-tab-icon {
@@ -338,7 +329,7 @@
 
 @media (max-width: 520px) {
   .student-workspace {
-    min-height: calc(100dvh - var(--navbar-height));
+    min-height: 0;
     padding-top: var(--space-lg);
   }
 

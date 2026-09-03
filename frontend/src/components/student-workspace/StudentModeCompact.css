@@ -1,0 +1,2051 @@
+/*
+ * Student mode compact surface
+ *
+ * This is the final, student-shell-scoped layout layer. It keeps the existing
+ * learning flows and token palette, but gives desktop learners one composed
+ * workspace instead of a stack of oversized cards. The surrounding route
+ * owns available height; both desktop and mobile keep natural page flow.
+ */
+
+.student-workspace-v2 > .student-workspace-content-v2 {
+  padding: var(--space-md) clamp(var(--space-md), 2vw, var(--space-xl)) var(--space-lg);
+}
+
+/* All student pages inherit one content grid. Removing nested max-widths here
+   keeps the session bar, catalog, overview, practice rail, and progress
+   surfaces on the same left and right columns. */
+.student-workspace-v2 > .student-workspace-content-v2 > .story-recorder,
+.student-workspace-v2 > .student-workspace-content-v2 > .topic-selector,
+.student-workspace-v2 > .student-workspace-content-v2 > .my-stories-page,
+.student-workspace-v2 > .student-workspace-content-v2 > .voice-test-page {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+}
+
+/* Cap the browse/dashboard column and centre it, matching the design's
+   ~1040-1120px content width, so cards read at a comfortable size instead of
+   stretching edge to edge. (Practice sessions live in a different container
+   and keep their full-width two-column stage.) */
+.student-workspace-v2 .topic-selector .ts-container {
+  width: min(var(--content-max), 100%);
+  max-width: none;
+  margin-inline: auto;
+}
+
+/* The legacy page wrapper was authored for the old full-page student header
+   and contributes two unrelated bottom cushions here. The shared shell now
+   owns the rhythm. Desktop clips only the outer shell because the rail and
+   content panel below both own reachable scroll regions; mobile remains
+   normal document flow. */
+.student-workspace-v2 {
+  padding-bottom: 0;
+  background: var(--clay-canvas);
+}
+
+/* StudentWorkspacePage.css still styles the legacy `.student-workspace`
+   wrapper with a bottom cushion. The v2 shell owns that edge now. */
+.student-workspace.student-workspace-v2 {
+  padding-bottom: 0;
+}
+
+@media (min-width: 901px) {
+  /* The route supplies available height when it has one. The student shell
+     fills that parent track; the panel below owns reachable local scroll. */
+  .app-container:has(> .student-workspace-v2) {
+    overflow: hidden;
+  }
+
+  .student-workspace.student-workspace-v2 {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .student-workspace-v2 > .student-sidebar,
+  .student-workspace-v2 > .student-workspace-content-v2 {
+    min-height: 0;
+  }
+
+  .student-workspace-v2 > .student-sidebar {
+    height: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .student-workspace-v2 > .student-workspace-content-v2 {
+    display: block;
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: var(--space-md);
+    scrollbar-gutter: stable;
+  }
+
+  .student-workspace.student-workspace-v2 .create-story-page,
+  .student-workspace.student-workspace-v2 .my-stories-page,
+  .student-workspace.student-workspace-v2 .voice-test-page {
+    min-height: 0;
+    height: 100%;
+  }
+
+  /* CreateStoryPage adds two wrappers around the recorder. Make the whole
+     chain a definite grid track; otherwise the recorder resolves its
+     percentage height against intrinsic content and pushes the stage below
+     the viewport at narrower desktop widths. The session main is the
+     reachable scroller inside this bounded chain. */
+  .student-workspace.student-workspace-v2 .create-story-page:has(> .csp-recorder-body) {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .student-workspace.student-workspace-v2 .create-story-page:has(> .csp-recorder-body) > .csp-recorder-body {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+  }
+
+  .student-workspace.student-workspace-v2 .create-story-page:has(> .csp-recorder-body) > .csp-recorder-body > .story-recorder {
+    display: grid;
+    min-height: 0;
+    height: 100%;
+    max-height: 100%;
+  }
+
+  /* The session chrome stays visible while the active learning surface gets
+     the remaining track. This keeps the desktop state within one viewport
+     without hiding a long practice result. */
+  .student-workspace-v2 .story-recorder {
+    min-height: 0;
+    overflow: visible;
+    /* A multi-scene header has both the title row and the thumbnail rail.
+       Its intrinsic height must own the first track; a fixed 64px track made
+       the rail paint over the active lesson surface. */
+    grid-template-rows: auto minmax(0, 1fr);
+    padding-bottom: 0;
+  }
+
+  .student-workspace-v2 > .student-workspace-content-v2 > .story-recorder {
+    min-height: 0;
+  }
+
+  .student-workspace-v2 .story-session-main { min-height: 0; overflow: visible; }
+}
+
+@media (max-width: 900px) {
+  /* Mobile intentionally returns to page flow: long lessons and feedback use
+     the document scroll instead of a nested desktop-style viewport. */
+  .app-container:has(> .student-workspace-v2) {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .student-workspace.student-workspace-v2 {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .student-workspace-v2 > .student-workspace-content-v2 {
+    height: auto;
+    overflow: visible;
+  }
+}
+
+.student-workspace-v2 .csp-recorder-body {
+  padding: 0;
+}
+
+.student-workspace-v2 .story-recorder {
+  display: grid;
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  padding: 0 0 var(--space-lg);
+  gap: var(--space-sm);
+}
+
+/* The session bar and the active phase are separate components. Keep a real
+   token gap between them; the bar's own margin is intentionally zero so all
+   session surfaces can share the same vertical rhythm here. */
+.student-workspace-v2 .story-session-main {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.student-workspace-v2 .story-session-topbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-md);
+  margin-bottom: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--clay-radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.student-workspace-v2 .ssb-topline {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-column: 1;
+  grid-row: 1;
+  gap: var(--space-xs);
+}
+
+.student-workspace-v2 .ssb-topic-name {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.student-workspace-v2 .ssb-topic-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft);
+  color: var(--gold-deep);
+}
+
+.student-workspace-v2 .ssb-journey-viewport {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.student-workspace-v2 .ssb-journey {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: inline proximity;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.student-workspace-v2 .ssb-journey::-webkit-scrollbar {
+  display: none;
+}
+
+.student-workspace-v2 .ssb-journey .journey-path-vertical {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-md);
+  width: max-content;
+  min-width: 100%;
+  padding: var(--space-xs) var(--space-md);
+  overflow: visible;
+}
+
+.student-workspace-v2 .ssb-journey .journey-path-vertical .journey-item {
+  /* Keep each scene legible. The rail itself owns overflow, so longer lessons
+     can scroll without forcing a horizontal scrollbar on the practice page. */
+  flex: 0 0 auto;
+  align-items: center;
+  scroll-snap-align: start;
+}
+
+.student-workspace-v2 .ssb-journey .journey-connector {
+  display: none;
+}
+
+.student-workspace-v2 .ssb-journey .journey-connector path,
+.student-workspace-v2 .ssb-journey .journey-connector.reached path {
+  stroke: var(--gold);
+  stroke-width: 2;
+}
+
+.student-workspace-v2 .ssb-journey .journey-stop {
+  width: calc(var(--space-3xl) * 2);
+  padding: 0;
+  gap: var(--space-2xs);
+  counter-increment: student-scene;
+}
+
+.student-workspace-v2 .ssb-journey .journey-path-vertical {
+  counter-reset: student-scene;
+}
+
+/* A single scene has no navigation choice. Removing the rail prevents that
+   one thumbnail from stretching into an accidental banner while preserving
+   the proportional grid for real multi-scene lessons. */
+.student-workspace-v2 .ssb-journey-viewport:has(.journey-item:only-child) {
+  display: none;
+}
+
+.student-workspace-v2 .ssb-journey .journey-stop-ring,
+.student-workspace-v2 .ssb-journey .journey-stop-current .journey-stop-ring {
+  width: 100%;
+  height: calc(var(--space-2xl) + var(--space-md));
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft) url("/sample-scenes/cafe-practice-v2.png") center / cover no-repeat;
+  box-shadow: none;
+}
+
+.student-workspace-v2 .ssb-journey .journey-stop-current .journey-stop-ring {
+  border-color: var(--gold-deep);
+  box-shadow: inset 0 0 0 1px var(--gold);
+}
+
+.student-workspace-v2 .ssb-journey .journey-stop::after {
+  position: absolute;
+  bottom: 0;
+  left: var(--space-2xs);
+  display: grid;
+  width: var(--space-lg);
+  height: var(--space-lg);
+  place-items: center;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  color: var(--clay-body);
+  content: counter(student-scene);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  transform: translateY(50%);
+}
+
+.student-workspace-v2 .ssb-journey .journey-stop-label,
+.student-workspace-v2 .ssb-journey .journey-stop-badge {
+  display: none;
+}
+
+.student-workspace-v2 .ssb-journey .journey-stop-star {
+  right: var(--space-2xs);
+  bottom: var(--space-2xs);
+  width: var(--space-lg);
+  height: var(--space-lg);
+  box-shadow: none;
+}
+
+.student-workspace-v2 .ssb-help-anchor {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.student-workspace-v2 .ssb-help-toggle {
+  min-height: var(--student-control-height);
+  padding-inline: var(--space-md);
+}
+
+/* Session steps are a compact orientation rail, not a second navigation
+   system. The story bar remains the only exit/scene navigation surface. */
+.student-workspace-v2 .scene-step-tabs {
+  min-height: var(--student-control-height);
+  gap: var(--space-lg);
+  padding-inline: var(--space-md);
+}
+
+.student-workspace-v2 .scene-step-tab {
+  min-height: var(--student-control-height);
+  padding: var(--space-xs) 0;
+  gap: var(--space-xs);
+}
+
+.student-workspace-v2 .practice-stage {
+  background: var(--clay-surface-card);
+  border-color: var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  box-shadow: none;
+}
+
+/* Study is a reference desk rather than a modal-like card. The step tabs stay
+   visible here (matching the design) so the learner sees Study / Speaking as
+   one connected flow. */
+.student-workspace-v2 .practice-stage:has(.practice-workspace-study) {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.student-workspace-v2 .practice-stage:has(.practice-workspace-study) > .practice-workspace {
+  padding: 0;
+}
+
+.student-workspace-v2 .practice-stage > .practice-workspace {
+  gap: var(--space-md);
+  padding: var(--space-md);
+}
+
+.student-workspace-v2 .practice-workspace-study,
+.student-workspace-v2 .sfc-record .practice-workspace,
+.student-workspace-v2 .sfc-results.sfc-screen > .practice-workspace {
+  grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+  align-items: start;
+  gap: var(--space-md);
+}
+
+/* Study is a focused desk: the scene remains the visual anchor while the
+   reference rail receives a little more measure for pinyin and English.
+   Both columns retain the same outer grid edges as the rest of the workspace. */
+.student-workspace-v2 .practice-workspace-study {
+  grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+}
+
+.student-workspace-v2 .practice-workspace-study .practice-scene-col,
+.student-workspace-v2 .sfc-record .practice-scene-col,
+.student-workspace-v2 .sfc-results .practice-scene-col {
+  min-width: 0;
+  align-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+/* Keep the scene progress chip anchored to its image after the shared mobile
+   stylesheet disables sticky positioning. The full context also clears the
+   base sticky offset so the scene and study rail share the same top line. */
+.student-workspace-v2 .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-col {
+  position: relative;
+  top: auto;
+}
+
+.student-workspace-v2 .practice-workspace-study .practice-scene-image,
+.student-workspace-v2 .sfc-record .practice-scene-image {
+  aspect-ratio: 4 / 3;
+}
+
+/* The base story-recorder stylesheet has a more specific image-frame rule;
+   repeat that context here so the student compact layout owns this value. */
+.student-workspace-v2 .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image {
+  aspect-ratio: 4 / 3;
+}
+
+.student-workspace-v2 .sfc-results .practice-scene-image {
+  aspect-ratio: 4 / 3;
+}
+
+.student-workspace-v2 .practice-workspace-study .practice-scene-image,
+.student-workspace-v2 .sfc-record .practice-scene-image,
+.student-workspace-v2 .sfc-results .practice-scene-image {
+  width: 100%;
+  min-height: 0;
+  max-height: none;
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft) url("/sample-scenes/cafe-practice-v2.png") center / cover no-repeat;
+}
+
+.student-workspace-v2 .practice-workspace-study .practice-scene-image img,
+.student-workspace-v2 .sfc-record .practice-scene-image img,
+.student-workspace-v2 .sfc-results .practice-scene-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Generated image fallback for incomplete teacher drafts. The real published
+   scene still owns the image whenever it is available. */
+.student-workspace-v2 .practice-scene-image img[src=""],
+.student-workspace-v2 .practice-scene-image img:not([src]) {
+  visibility: hidden;
+}
+
+/* The locally seeded QA story uses dummyimage.com. Treat it as an unfinished
+   scene and show the generated café asset, while leaving every teacher image
+   untouched. */
+.student-workspace-v2 .practice-scene-image:has(img[src*="dummyimage.com"]) img,
+.student-workspace-v2 .ssb-journey .journey-stop-ring:has(img[src*="dummyimage.com"]) img {
+  visibility: hidden;
+}
+
+.student-workspace-v2 .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image:has(img[src*="dummyimage.com"]),
+.student-workspace-v2 .sfc-record .practice-scene-image:has(img[src*="dummyimage.com"]),
+.student-workspace-v2 .sfc-results .practice-scene-image:has(img[src*="dummyimage.com"]) {
+  background: var(--clay-surface-soft) url("/sample-scenes/cafe-practice-v2.png") center / cover no-repeat;
+}
+
+.student-workspace-v2 .practice-workspace-study .practice-scene-main,
+.student-workspace-v2 .sfc-record .sfc-record-main,
+.student-workspace-v2 .sfc-results .sfc-results-main {
+  min-width: 0;
+}
+
+.student-workspace-v2 .practice-workspace-study .practice-scene-main {
+  display: grid;
+  grid-template-rows: minmax(0, auto) auto;
+  align-content: start;
+  gap: var(--space-sm);
+}
+
+/* The reference keeps the scene dialogue attached to the image instead of
+   leaving the shorter scene column with an unexplained empty lower half. */
+.student-workspace-v2 .practice-workspace-study .practice-scene-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-sm);
+}
+
+.student-workspace-v2 .practice-workspace-study .practice-scene-chip {
+  top: var(--space-md);
+  right: auto;
+  bottom: auto;
+  left: var(--space-md);
+  z-index: 1;
+}
+
+.student-workspace-v2 .practice-study-script {
+  padding: var(--space-sm);
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--clay-hairline));
+  border-radius: var(--clay-radius-md);
+  background: color-mix(in srgb, var(--gold-soft) 32%, var(--clay-surface-card));
+}
+
+.student-workspace-v2 .practice-study-script-label {
+  margin: 0 0 var(--space-sm);
+  color: var(--gold-deep);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.student-workspace-v2 .practice-study-script-text {
+  margin: 0;
+  color: var(--clay-ink);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.student-workspace-v2 .practice-content,
+.student-workspace-v2 .practice-study-block {
+  border-radius: var(--clay-radius-md);
+  box-shadow: none;
+}
+
+.student-workspace-v2 .practice-content {
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+}
+
+.student-workspace-v2 .practice-content.practice-study-ref {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.student-workspace-v2 .practice-content-header {
+  gap: var(--space-sm);
+  margin-bottom: 0;
+}
+
+/* This icon is decorative legacy text inside the runtime bundle. The
+   surrounding step tab already identifies Study, so removing it avoids a
+   second focal point without removing any information or control. */
+.student-workspace-v2 .practice-content-header > span {
+  display: none;
+}
+
+.student-workspace-v2 .practice-content-header {
+  display: none;
+}
+
+/* Instructions are not target-language content. Keep the Chinese and English
+   instruction readable in the compact surface without adding a third line of
+   pinyin that competes with the vocabulary readings below. */
+.student-workspace-v2 .practice-content-header .bi-text-pinyin {
+  display: none;
+}
+
+/* Vocabulary is tabular content, while phrases are a related follow-up
+   reference. Keep the two blocks in one readable rail so each row gets the
+   same left/right columns as the reference layout instead of a narrow phrase
+   mini-card beside the table. */
+.student-workspace-v2 .practice-study-ref {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+.student-workspace-v2 .practice-vocab-ref,
+.student-workspace-v2 .practice-phrases-hint-full {
+  align-self: start;
+  min-width: 0;
+}
+
+.student-workspace-v2 .practice-study-block {
+  padding: var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  background: var(--clay-surface-card);
+}
+
+.student-workspace-v2 .practice-vocab-heading {
+  margin-bottom: var(--space-xs);
+}
+
+.student-workspace-v2 .practice-vocab-heading .bi-pinyin,
+.student-workspace-v2 .practice-phrases-label .bi-pinyin,
+.student-workspace-v2 .practice-content-header .bi-pinyin {
+  display: none;
+}
+
+/* The active tab already says Study / Speaking. Keep the reference panel
+   labels to one clear line and remove helper copy that repeats the same
+   instruction; the actual Chinese target, reading, and English meaning stay
+   visible in the rows where they support the learning decision. */
+.student-workspace-v2 .practice-content-header p,
+.student-workspace-v2 .practice-content-header .bi-en,
+.student-workspace-v2 .practice-vocab-heading .bi-en,
+.student-workspace-v2 .practice-phrases-label .bi-en {
+  display: none;
+}
+
+.student-workspace-v2 .scene-vocab-table {
+  /* Vocabulary rows are separate reading items, so keep a small, deliberate
+     gap instead of letting adjacent words touch edge-to-edge. */
+  gap: var(--space-2xs);
+  padding: var(--space-2xs);
+  border: 1px solid var(--clay-hairline-soft);
+  background: var(--clay-surface-card);
+}
+
+.student-workspace-v2 .scene-vocab-row-practice {
+  grid-template-columns: var(--space-md) minmax(0, .8fr) minmax(0, 1fr) minmax(1.5rem, .35fr) minmax(0, 1.5fr) var(--space-xl);
+  gap: var(--space-xs);
+  min-height: 0;
+  padding: var(--space-3xs) var(--space-xs);
+}
+
+.student-workspace-v2 .scene-vocab-row.scene-vocab-used,
+.student-workspace-v2 .scene-vocab-row.scene-vocab-missed,
+.student-workspace-v2 .scene-vocab-row-practice:not(.scene-vocab-used):not(.scene-vocab-missed) {
+  border: 0;
+  border-bottom: 1px solid var(--clay-hairline-soft);
+  border-radius: 0;
+  border-color: var(--clay-hairline-soft);
+  background: transparent;
+}
+
+.student-workspace-v2 .scene-vocab-table .scene-vocab-row:last-child {
+  border-bottom: 0;
+}
+
+/* Used/missing is feedback about one word, not an alert for the whole row.
+   Restrict semantic color to the compact status marker so mature learners can
+   scan the reference table without a wall of success/error fills. */
+.student-workspace-v2 .scene-vocab-status {
+  display: grid;
+  width: var(--space-md);
+  height: var(--space-md);
+  place-items: center;
+  border-radius: var(--clay-radius-pill);
+  font-size: var(--text-xs);
+  line-height: 1;
+}
+
+.student-workspace-v2 .scene-vocab-row.scene-vocab-used .scene-vocab-status {
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.student-workspace-v2 .scene-vocab-row.scene-vocab-missed .scene-vocab-status {
+  background: var(--clay-error-soft);
+  color: var(--clay-error);
+}
+
+.student-workspace-v2 .scene-vocab-cell {
+  font-size: var(--text-xs);
+  line-height: 1.2;
+}
+
+.student-workspace-v2 .scene-vocab-pinyin {
+  font-family: var(--font-student);
+  font-size: var(--text-xs);
+}
+
+.student-workspace-v2 .scene-vocab-meaning {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-workspace-v2 .practice-phrases-hint-full {
+  max-height: 34vh;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+}
+
+/* Keep the study surface and phrase reference fixed. Only a long vocabulary
+   list gets an inner scroll area, so the vocabulary heading, coverage note,
+   phrases, and next-step actions remain reachable at a glance. */
+@media (min-width: 701px) {
+  .student-workspace-v2 .practice-workspace-study .practice-content.practice-study-ref {
+    max-block-size: none;
+    overflow: visible;
+    padding-inline-end: 0;
+    scrollbar-gutter: auto;
+  }
+
+  .student-workspace-v2 .practice-workspace-study .scene-vocab-table-practice {
+    max-block-size: calc(var(--space-3xl) * 6);
+    min-width: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+  }
+
+  .student-workspace-v2 .practice-workspace-study .practice-phrases-hint-full {
+    max-block-size: none;
+    max-height: none;
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+
+  .student-workspace-v2 .practice-workspace-study .practice-footer {
+    flex-shrink: 0;
+  }
+}
+
+.student-workspace-v2 .practice-phrases-list {
+  gap: var(--space-xs);
+  margin-top: 0;
+}
+
+.student-workspace-v2 .practice-phrase-row {
+  gap: var(--space-3xs);
+  padding-block: var(--space-xs);
+}
+
+.student-workspace-v2 .practice-phrase-text {
+  font-size: var(--text-base);
+}
+
+.student-workspace-v2 .practice-phrase-translation {
+  font-size: var(--text-xs);
+}
+
+.student-workspace-v2 .practice-footer {
+  gap: var(--space-sm);
+  margin-top: 0;
+  padding-top: var(--space-xs);
+}
+
+.student-workspace-v2 .practice-footer-actions {
+  gap: var(--space-xs);
+}
+
+/* Speaking is a two-column desk on desktop: the scene stage and recording
+   desk share the same frame height, so a short image never leaves a blank
+   column beneath it. The controls remain one ordered workflow rather than
+   separate competing cards. */
+.student-workspace-v2 .sfc-record .practice-workspace {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.student-workspace-v2 .sfc-record .practice-scene-col {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-self: stretch;
+  width: 100%;
+  gap: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-record .practice-scene-image {
+  height: 100%;
+  aspect-ratio: auto;
+}
+
+/* The scene marker is the only supporting label under the image. It is kept
+   on the same left edge as the stage rather than floating as a separate chip. */
+.student-workspace-v2 .sfc-record .sfc-attempt-only {
+  justify-self: start;
+}
+
+.student-workspace-v2 .sfc-record .sfc-attempt-only > .bi-label {
+  display: inline-flex;
+}
+
+.student-workspace-v2 .sfc-record .sfc-attempt-only .bi-pinyin {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-record-main {
+  justify-content: flex-start;
+  gap: var(--space-sm);
+}
+
+.student-workspace-v2 .speaking-flow-card {
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.student-workspace-v2 .sfc-record-panel {
+  --sfc-model-content-indent: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  box-shadow: none;
+}
+
+.student-workspace-v2 .model-recording-practice {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--space-xs);
+}
+
+.student-workspace-v2 .model-recording-practice > * {
+  grid-column: 1;
+}
+
+.student-workspace-v2 .model-recording-instruction .bi-pinyin {
+  display: none;
+}
+
+.student-workspace-v2 .model-recording-script {
+  padding: var(--space-sm);
+}
+
+.student-workspace-v2 .model-recording-reference-status {
+  padding: var(--space-xs);
+  font-size: var(--text-xs);
+  line-height: 1.3;
+}
+
+/* Learners only need feedback when the reference actually has a problem.
+   The standard AI-reference explanation adds no decision at this stage. */
+.student-workspace-v2 .model-recording-reference-status.is-ai {
+  display: none;
+}
+
+.student-workspace-v2 .model-recording-steps {
+  gap: var(--space-xs);
+  padding-top: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-record-actions {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-record-actions .bi-label {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2xs);
+}
+
+.student-workspace-v2 .sfc-record-actions .bi-pinyin {
+  display: none;
+}
+
+/* Upload is a secondary fallback, so its familiar icon and Chinese label are
+   sufficient. Omitting the duplicate English label preserves room for the
+   primary record action on compact desktop widths. */
+.student-workspace-v2 .sfc-upload-btn .bi-en {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-record-btn,
+.student-workspace-v2 .sfc-upload-btn {
+  min-height: var(--student-control-height);
+}
+
+.student-workspace-v2 .sfc-recording-options,
+.student-workspace-v2 .sfc-record-actions {
+  width: 100%;
+  margin-inline: 0;
+}
+
+.student-workspace-v2 .sfc-results .practice-scene-col {
+  gap: var(--space-sm);
+}
+
+.student-workspace-v2 .sfc-results-main {
+  gap: var(--space-sm);
+  min-height: 0;
+}
+
+.student-workspace-v2 .sfc-results .sfc-stepper {
+  margin-bottom: 0;
+}
+
+.student-workspace-v2 .sfc-results .sfc-step-panel {
+  gap: var(--space-sm);
+}
+
+.student-workspace-v2 .sfc-results .sfc-next-action-card {
+  margin-block: 0;
+  padding: var(--space-sm);
+  border-radius: var(--clay-radius-md);
+}
+
+.student-workspace-v2 .sfc-results .sfc-footer {
+  margin-bottom: calc(-1 * var(--space-md));
+  padding-block: var(--space-sm);
+}
+
+/* Quiz question geometry: keep the prompt and answer grid on the same calm
+   two-panel rhythm as the standalone quiz surface. */
+.student-workspace-v2 .vocab-quiz-question-screen {
+  gap: var(--space-sm);
+  padding: 0 0 var(--space-md);
+}
+
+.student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-word {
+  font-size: clamp(var(--text-xl), 5vw, var(--space-3xl));
+}
+
+/* Cloze sentences carry more text than a single word, so they stay smaller. */
+.student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-cloze-sentence {
+  font-size: 1.5rem;
+}
+
+.student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-unique-note,
+.student-workspace-v2 .vocab-quiz-question-screen .vq-track-scale .bi-pinyin,
+.student-workspace-v2 .vocab-quiz-question-screen .vq-track-note .bi-pinyin {
+  display: none;
+}
+
+.student-workspace-v2 .vocab-quiz-question-screen .vq-track {
+  margin: 0;
+}
+
+.student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-options {
+  min-height: 0;
+  gap: var(--space-sm);
+}
+
+.student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-option {
+  min-height: 0;
+  padding: var(--space-md) var(--space-lg);
+}
+
+.student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-actions {
+  min-height: var(--space-3xl);
+}
+
+/* Quiz mode selection shares the story top bar's content line. The legacy
+   quiz surface had its own 24px inset and 1040px cap, which made the header
+   and cards visibly narrower than the bar above them. Keep one full-width
+   grid inside the story column so every left and right edge lines up. */
+.student-workspace-v2 .story-vocab-quiz {
+  width: 100%;
+  max-width: none;
+  padding-inline: 0;
+}
+
+.student-workspace-v2 .story-vocab-quiz .vocab-quiz-header,
+.student-workspace-v2 .story-vocab-quiz .vocab-quiz-mode-grid {
+  width: 100%;
+  max-width: none;
+}
+
+.student-workspace-v2 .vocab-quiz-mode-grid,
+.student-workspace-v2 .vocab-quiz-secondary-grid {
+  align-items: stretch;
+}
+
+/* Equal fractional tracks make both choice rows stretch evenly without
+   hand-tuned widths. The tier journey reads best as a centred column rather
+   than stretched edge to edge, so cap it while the rest of the shell keeps
+   its full width. */
+.student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-mode-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 980px;
+  margin-inline: auto;
+}
+
+.student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Keep the compact page's responsive tracks at the same specificity as its
+   desktop tracks. Otherwise the desktop three-column rule wins over the
+   legacy quiz breakpoint and narrow cards collapse into unreadable columns. */
+@media (max-width: 760px) {
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-mode-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .student-workspace-v2 .story-recorder:has(.vocab-quiz-mode-select),
+  .student-workspace-v2 .story-recorder:has(.vocab-quiz-mode-select) .story-session-main {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-mode-grid,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.student-workspace-v2 .story-overview {
+  width: 100%;
+  max-width: none;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+}
+
+.student-workspace-v2 .overview-hero {
+  padding: var(--space-lg);
+  border-radius: var(--clay-radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.student-workspace-v2 .overview-title {
+  font-size: clamp(var(--text-xl), 4vw, 36px);
+}
+
+.student-workspace-v2 .overview-choice-grid {
+  gap: var(--space-md);
+}
+
+.student-workspace-v2 .overview-choice-card {
+  display: grid;
+  grid-template-columns: var(--space-2xl) minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  justify-items: start;
+  column-gap: var(--space-sm);
+  row-gap: var(--space-2xs);
+  min-height: var(--space-3xl);
+  padding: var(--space-md);
+  text-align: left;
+}
+
+.student-workspace-v2 .overview-choice-card .overview-choice-icon {
+  grid-row: 1 / span 2;
+  grid-column: 1;
+}
+
+.student-workspace-v2 .overview-choice-card strong,
+.student-workspace-v2 .overview-choice-card p {
+  grid-column: 2;
+}
+
+.student-workspace-v2 .overview-choice-card strong {
+  align-self: end;
+}
+
+.student-workspace-v2 .overview-choice-card p {
+  align-self: start;
+}
+
+/* Progress and catalogue surfaces share the same compact content gutter and
+   readable bilingual alignment as the session. */
+.student-workspace-v2 .my-stories-page {
+  padding-bottom: var(--space-lg);
+}
+
+.student-workspace-v2 .stories-header {
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+}
+
+.student-workspace-v2 .stories-header h1 {
+  font-size: clamp(var(--text-xl), 3vw, 36px);
+}
+
+.student-workspace-v2 .profile-stats {
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.student-workspace-v2 .profile-stat-card {
+  min-height: var(--space-3xl);
+  padding: var(--space-sm);
+}
+
+.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .my-stories-page {
+  padding-bottom: 0;
+}
+
+.student-workspace.student-workspace-v2 .student-workspace-content-v2 > .my-stories-page .stories-header {
+  margin-bottom: var(--space-sm);
+  padding-bottom: var(--space-sm);
+}
+
+/* A page title is one bilingual unit. Keeping the three strings on one
+   baseline prevents the title block from consuming the whole first screen. */
+.student-workspace.student-workspace-v2 .stories-header h1 .bi-label {
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+.student-workspace.student-workspace-v2 .stories-header h1 {
+  font-size: var(--text-xl);
+}
+
+.student-workspace.student-workspace-v2 .stories-subtitle .bi-text {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.student-workspace.student-workspace-v2 .stories-subtitle .bi-text-pinyin,
+.student-workspace.student-workspace-v2 .student-help-card > div > p:last-child .bi-text-pinyin {
+  display: none;
+}
+
+.student-workspace.student-workspace-v2 .profile-stats {
+  margin-bottom: var(--space-sm);
+}
+
+.student-workspace.student-workspace-v2 .profile-stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 0;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--clay-radius-lg);
+}
+
+.student-workspace.student-workspace-v2 .profile-stat-icon {
+  margin-bottom: var(--space-sm);
+}
+
+.student-workspace.student-workspace-v2 .profile-stat-label {
+  margin-bottom: var(--space-2xs);
+}
+
+.student-workspace.student-workspace-v2 .profile-stat-label .bi-label {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.student-workspace.student-workspace-v2 .profile-stat-value {
+  font-size: 24px;
+}
+
+.student-workspace.student-workspace-v2 .profile-stat-card .summary-progress {
+  width: 100%;
+  margin-top: var(--space-sm);
+}
+
+.student-workspace.student-workspace-v2 .student-help-card {
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.student-workspace.student-workspace-v2 .student-help-card h2 .bi-label {
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--space-xs);
+}
+
+.student-workspace.student-workspace-v2 .student-help-card input,
+.student-workspace.student-workspace-v2 .student-help-card button {
+  min-height: var(--student-control-height);
+}
+
+.student-workspace.student-workspace-v2 .profile-overview {
+  padding: var(--space-sm) var(--space-md);
+}
+
+.student-workspace.student-workspace-v2 .profile-tabs {
+  margin-bottom: var(--space-xs);
+}
+
+.student-workspace.student-workspace-v2 .profile-tab-btn {
+  min-height: var(--student-control-height);
+}
+
+.student-workspace.student-workspace-v2 .profile-lesson-row,
+.student-workspace.student-workspace-v2 .profile-story-row {
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0;
+}
+
+.student-workspace.student-workspace-v2 .profile-lesson-tile {
+  width: var(--space-2xl);
+  height: var(--space-2xl);
+}
+
+.student-workspace.student-workspace-v2 .profile-lesson-title .bi-label,
+.student-workspace.student-workspace-v2 .profile-story-title .bi-label {
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--space-xs);
+}
+
+.student-workspace.student-workspace-v2 .profile-lesson-title .bi-pinyin,
+.student-workspace.student-workspace-v2 .profile-lesson-title .bi-en,
+.student-workspace.student-workspace-v2 .profile-story-title .bi-pinyin,
+.student-workspace.student-workspace-v2 .profile-story-title .bi-en {
+  font-size: var(--text-xs);
+}
+
+/* Course catalogue: keep the book title, lesson rows, and extra-practice
+   entry visible as one compact index. The lesson content remains the same;
+   only the oversized legacy vertical rhythm is removed. */
+.student-workspace.student-workspace-v2 .topic-selector {
+  min-height: 0;
+  padding: var(--space-sm) 0 var(--space-md);
+  /* Keep the course index on the shell canvas. A second flat canvas here
+     created the unexplained white rectangle visible beside the content. */
+  background: transparent;
+}
+
+.student-workspace.student-workspace-v2 .ts-toc-head {
+  min-height: var(--space-3xl);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border: 0;
+  border-bottom: 1px solid var(--clay-hairline);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.student-workspace-v2 .ts-toc-title {
+  font-size: clamp(var(--text-xl), 3vw, 36px);
+}
+
+.student-workspace.student-workspace-v2 .ts-book-chip {
+  min-width: 0;
+  padding: var(--space-2xs) var(--space-xs);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.student-workspace-v2 .ts-book-cover {
+  width: var(--space-xl);
+  height: var(--space-2xl);
+}
+
+.student-workspace-v2 .ts-lesson-list {
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+  padding-left: var(--space-md);
+}
+
+.student-workspace-v2 .ts-lesson-row {
+  grid-template-columns: var(--space-3xl) minmax(0, 1fr) auto;
+  gap: var(--space-md);
+  padding: var(--space-xs) var(--space-sm) var(--space-xs) var(--space-xs);
+  border-radius: var(--clay-radius-lg);
+}
+
+.student-workspace-v2 .ts-lesson-cover {
+  height: var(--space-3xl);
+}
+
+.student-workspace-v2 .ts-lesson-body > .bi-label .bi-zh {
+  font-size: var(--text-lg);
+}
+
+.student-workspace-v2 .ts-other-block {
+  margin-top: var(--space-sm);
+  padding-left: var(--space-md);
+}
+
+.student-workspace-v2 .ts-other-label {
+  margin-bottom: var(--space-xs);
+}
+
+@media (max-width: 720px) {
+  .student-workspace-v2 .ts-lesson-row {
+    grid-template-columns: var(--space-2xl) minmax(0, 1fr);
+  }
+
+  .student-workspace-v2 .ts-lesson-cover {
+    height: var(--space-2xl);
+  }
+}
+
+@media (max-width: 900px) {
+  .student-workspace-v2 > .student-workspace-content-v2 {
+    padding: calc(var(--space-xl) + var(--space-lg)) var(--space-md) var(--space-lg);
+  }
+
+  .student-workspace-v2 .story-recorder {
+    padding-bottom: var(--space-md);
+  }
+}
+
+@media (max-width: 700px) {
+  .student-workspace-v2 .practice-workspace-study,
+  .student-workspace-v2 .sfc-record .practice-workspace,
+  .student-workspace-v2 .sfc-results.sfc-screen > .practice-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  /* The narrow action row keeps its familiar primary/secondary hierarchy
+     without wrapping a Chinese label into a vertical stack. English remains
+     present throughout the learning content, where it supports comprehension. */
+  .student-workspace-v2 .sfc-record-btn .bi-en {
+    display: none;
+  }
+
+  /* The two reference blocks share a row only while the right rail has
+     enough width. On mobile they return to one readable column. */
+  .student-workspace-v2 .practice-study-ref {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+
+  .student-workspace-v2 .practice-workspace-study .practice-scene-image,
+  .student-workspace-v2 .sfc-record .practice-scene-image,
+  .student-workspace-v2 .sfc-results .practice-scene-image {
+    aspect-ratio: 16 / 10;
+  }
+
+  .student-workspace-v2 .practice-phrases-hint-full {
+    max-height: none;
+  }
+
+  .student-workspace-v2 .practice-workspace-study .scene-vocab-table-practice {
+    max-block-size: none;
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+
+  .student-workspace-v2 .ssb-journey-viewport {
+    flex-basis: 100%;
+    order: 3;
+  }
+}
+
+@media (max-width: 560px) {
+  .student-workspace-v2 > .student-workspace-content-v2 {
+    padding-inline: var(--space-sm);
+  }
+
+  .student-workspace-v2 .practice-stage > .practice-workspace,
+  .student-workspace-v2 .speaking-flow-card {
+    padding: var(--space-sm);
+  }
+
+  .student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-options {
+    grid-template-columns: 1fr;
+  }
+
+  .student-workspace-v2 .profile-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .student-workspace-v2 .practice-workspace-study .scene-vocab-hanzi,
+  .student-workspace-v2 .practice-workspace-study .scene-vocab-pinyin,
+  .student-workspace-v2 .practice-workspace-study .scene-vocab-pos {
+    white-space: nowrap;
+  }
+
+  /* A study row becomes a compact fact stack rather than squeezing the
+     desktop's six information columns into a narrow phone width. */
+  .student-workspace-v2 .scene-vocab-row-practice {
+    grid-template-columns: var(--space-md) minmax(0, 1fr) var(--space-xl);
+    grid-template-areas:
+      "status hanzi mic"
+      "status pinyin mic"
+      "status pos mic"
+      "status meaning mic";
+    gap: var(--space-3xs) var(--space-xs);
+    padding: var(--space-xs);
+  }
+
+  .student-workspace-v2 .scene-vocab-row-practice .scene-vocab-status { grid-area: status; }
+  .student-workspace-v2 .scene-vocab-row-practice .scene-vocab-hanzi { grid-area: hanzi; }
+  .student-workspace-v2 .scene-vocab-row-practice .scene-vocab-pinyin { grid-area: pinyin; }
+  .student-workspace-v2 .scene-vocab-row-practice .scene-vocab-pos { grid-area: pos; }
+  .student-workspace-v2 .scene-vocab-row-practice .scene-vocab-meaning { grid-area: meaning; }
+  .student-workspace-v2 .scene-vocab-row-practice button { grid-area: mic; justify-self: end; }
+
+  .student-workspace-v2 .practice-workspace-study .scene-vocab-meaning {
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-workspace-v2 .practice-stage,
+  .student-workspace-v2 .speaking-flow-card,
+  .student-workspace-v2 .overview-hero {
+    box-shadow: none;
+  }
+}
+
+/* Results is an evidence-first review desk: the scene and its two listening
+   states form one left rail, while the response rail follows one clear order
+   from verdict to next action. Both rails use the same page grid and token
+   gaps; no content is duplicated or visually stranded in a stretched row. */
+.student-workspace-v2 .sfc-results.sfc-screen {
+  gap: var(--space-md);
+}
+
+.student-workspace-v2 .sfc-results.sfc-screen > .practice-workspace {
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  align-items: start;
+  gap: var(--space-md);
+}
+
+.student-workspace-v2 .sfc-results .practice-scene-col {
+  display: grid;
+  align-content: start;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.student-workspace-v2 .sfc-results .practice-scene-image {
+  border: 1px solid var(--clay-hairline);
+  box-shadow: none;
+}
+
+.student-workspace-v2 .sfc-results .sfc-audio-compare {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+}
+
+.student-workspace-v2 .sfc-results .reference-audio-card,
+.student-workspace-v2 .sfc-results .sfc-audio-compare .recording-playback,
+.student-workspace-v2 .sfc-results .sfc-recording-unavailable {
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  box-shadow: none;
+}
+
+/* The scene already shows the target sentence; repeating it in the model
+   player made the compare strip taller without adding a new decision. */
+.student-workspace-v2 .sfc-results .reference-audio-card-sentence {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-results .reference-audio-card-heading {
+  gap: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-results .reference-audio-card-hint,
+.student-workspace-v2 .sfc-results .reference-audio-card-title .bi-en,
+.student-workspace-v2 .sfc-results .reference-audio-card-unavailable .bi-en,
+.student-workspace-v2 .sfc-results .recording-playback-label .bi-pinyin,
+.student-workspace-v2 .sfc-results .recording-playback-label .bi-en,
+.student-workspace-v2 .sfc-results .sfc-verdict .bi-en,
+.student-workspace-v2 .sfc-results .sfc-left-feedback-summary .bi-en,
+.student-workspace-v2 .sfc-results .sfc-unlock-note .bi-en,
+.student-workspace-v2 .sfc-results .sfc-assistive-retry-hint .bi-en,
+.student-workspace-v2 .sfc-results .sfc-step-cta .bi-en,
+.student-workspace-v2 .sfc-results .sfc-footer-actions .bi-en {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-results .reference-audio-card-player,
+.student-workspace-v2 .sfc-results .recording-playback-audio {
+  min-height: var(--space-2xl);
+  margin-top: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-results .sfc-results-main {
+  display: grid;
+  align-content: start;
+  gap: var(--space-sm);
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.student-workspace-v2 .sfc-results .sfc-stepper {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: var(--space-xs);
+  margin: 0;
+}
+
+.student-workspace-v2 .sfc-results .sfc-step {
+  min-width: 0;
+  min-height: var(--space-2xl);
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-soft);
+}
+
+.student-workspace-v2 .sfc-results .sfc-step .bi-en {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-results .sfc-step-num {
+  width: var(--space-lg);
+  height: var(--space-lg);
+  border: 1px solid var(--clay-hairline);
+}
+
+.student-workspace-v2 .sfc-results .sfc-step.is-current {
+  border-color: var(--seal);
+  background: var(--seal-soft);
+}
+
+.student-workspace-v2 .sfc-results .sfc-step.is-current .sfc-step-num {
+  border-color: var(--seal-deep);
+  background: var(--seal-deep);
+}
+
+/* Overview is the only result step that contains both a verdict and a
+   reliability notice. On a roomy response rail they share one row, reducing
+   vertical noise. Narrow rails keep the same order as a single column. */
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-sm);
+}
+
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-verdict,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .voice-reliability-notice,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .content-diff,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-mastery-banner,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .self-eval-compare,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-progress-snapshot,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-results-scene-extras,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .experimental-analysis-panel,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .analysis-compare-panel,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-step-cta,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-step-cta-row,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .voice-reliability-notice.is-assistive {
+  grid-column: 1 / -1;
+}
+
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-verdict,
+.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .voice-reliability-notice:not(.is-assistive) {
+  min-width: 0;
+}
+
+.student-workspace-v2 .sfc-results .sfc-verdict {
+  gap: var(--space-xs);
+  min-height: var(--space-2xl);
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.student-workspace-v2 .sfc-results .sfc-verdict--compact {
+  width: 100%;
+}
+
+.student-workspace-v2 .sfc-results .sfc-verdict-icon {
+  width: var(--space-xl);
+  height: var(--space-xl);
+  border-radius: var(--clay-radius-sm);
+  box-shadow: none;
+  transform: none;
+}
+
+.student-workspace-v2 .sfc-results .sfc-verdict-icon::after {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-results .voice-reliability-notice {
+  min-height: var(--space-2xl);
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-color: color-mix(in srgb, var(--clay-error) 35%, transparent);
+  border-radius: var(--clay-radius-md);
+  background: color-mix(in srgb, var(--clay-error) 7%, var(--clay-surface-card));
+  color: var(--clay-error-deep);
+}
+
+.student-workspace-v2 .sfc-results .voice-reliability-icon {
+  flex-basis: var(--space-xl);
+  width: var(--space-xl);
+  height: var(--space-xl);
+  background: var(--clay-surface-card);
+}
+
+.student-workspace-v2 .sfc-results .content-diff {
+  gap: var(--space-xs);
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+}
+
+.student-workspace-v2 .sfc-results .content-diff-line {
+  display: grid;
+  grid-template-columns: minmax(var(--space-3xl), auto) minmax(0, 1fr);
+  gap: var(--space-xs);
+  align-items: start;
+  line-height: 1.45;
+}
+
+.student-workspace-v2 .sfc-results .content-diff-label {
+  flex: none;
+  font-size: var(--text-sm);
+}
+
+.student-workspace-v2 .sfc-results .content-diff-label .bi-en {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-results .content-diff-line-text {
+  min-width: 0;
+  font-size: var(--text-md);
+  line-height: 1.45;
+}
+
+.student-workspace-v2 .sfc-results .content-diff-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2xs);
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.35;
+}
+
+/* The comparison already exposes the transcript and recording state, so the
+   extra transcript below it would only repeat the same sentence. */
+.student-workspace-v2 .sfc-results .sfc-results-scene-extras {
+  display: none;
+}
+
+.student-workspace-v2 .sfc-results .sfc-progress-snapshot {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.student-workspace-v2 .sfc-results .sfc-progress-snapshot-heading {
+  margin-bottom: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-results .sfc-progress-snapshot-grid {
+  gap: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-results .sfc-progress-snapshot-grid div {
+  gap: var(--space-2xs);
+  min-height: var(--space-2xl);
+  padding: var(--space-xs);
+  border-radius: var(--clay-radius-sm);
+}
+
+.student-workspace-v2 .sfc-results .sfc-step-cta {
+  min-height: var(--space-2xl);
+  border-color: var(--clay-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.student-workspace-v2 .sfc-results .sfc-results-utility {
+  overflow: hidden;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.student-workspace-v2 .sfc-results .sfc-left-feedback-summary {
+  min-height: var(--space-xl);
+  padding: var(--space-xs) var(--space-sm);
+  gap: var(--space-sm);
+  animation: none;
+}
+
+.student-workspace-v2 .sfc-results .sfc-left-feedback-summary::before,
+.student-workspace-v2 .sfc-results .sfc-left-feedback-summary::after {
+  animation: none;
+}
+
+.student-workspace-v2 .sfc-results .sfc-left-feedback-summary::after {
+  color: var(--clay-muted);
+}
+
+.student-workspace-v2 .sfc-results .sfc-results-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: var(--space-sm) 0 0;
+  border-top: 1px solid var(--clay-hairline);
+  background: transparent;
+}
+
+.student-workspace-v2 .sfc-results .sfc-unlock-note,
+.student-workspace-v2 .sfc-results .sfc-assistive-retry-hint {
+  min-width: 0;
+  font-size: var(--text-xs);
+}
+
+.student-workspace-v2 .sfc-results .sfc-unlock-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+}
+
+.student-workspace-v2 .sfc-results .sfc-footer-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-sm);
+  width: 100%;
+  margin: 0;
+}
+
+.student-workspace-v2 .sfc-results .sfc-footer-actions .ui-button {
+  width: 100%;
+  justify-content: center;
+}
+
+.student-workspace-v2 .sfc-results .sfc-footer-actions .ui-button:only-child {
+  grid-column: 1 / -1;
+}
+
+@container (min-width: 440px) {
+  .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-workspace-v2 .sfc-results .sfc-results-footer {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-verdict,
+  .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .voice-reliability-notice:not(.is-assistive) {
+    grid-column: span 1;
+  }
+
+  .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-verdict:only-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 700px) {
+  .student-workspace-v2 .sfc-results.sfc-screen > .practice-workspace,
+  .student-workspace-v2 .sfc-results .sfc-audio-compare {
+    grid-template-columns: 1fr;
+  }
+
+  .student-workspace-v2 .sfc-results .sfc-stepper {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .student-workspace-v2 .sfc-results .sfc-footer-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Desktop self-evaluation uses the available stage track instead of growing
+   the whole page past the viewport. The content panel stays the only shell
+   track; mobile returns to natural page flow below. */
+@media (min-width: 901px) {
+  .student-workspace-v2 > .student-workspace-content-v2:has(.sfc-results.sfc-screen .self-eval-step) {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .student-workspace-v2 > .student-workspace-content-v2 > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step),
+  .student-workspace-v2 > .student-workspace-content-v2 > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step) .csp-recorder-body,
+  .student-workspace-v2 > .student-workspace-content-v2 > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step) .story-recorder {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .student-workspace-v2 .story-recorder:has(.sfc-results.sfc-screen .self-eval-step) {
+    grid-template-rows: auto minmax(0, 1fr);
+    padding-bottom: 0;
+  }
+
+  .student-workspace-v2 .story-session-main:has(.sfc-results.sfc-screen .self-eval-step) {
+    min-height: 0;
+    overflow: visible;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .student-workspace-v2 .story-session-topbar:has(+ .story-session-main .sfc-results.sfc-screen .self-eval-step) {
+    grid-template-rows: var(--space-xl);
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .student-workspace-v2 .story-session-topbar:has(+ .story-session-main .sfc-results.sfc-screen .self-eval-step) .ssb-topline,
+  .student-workspace-v2 .story-session-topbar:has(+ .story-session-main .sfc-results.sfc-screen .self-eval-step) .ssb-topic-icon {
+    min-height: var(--space-xl);
+    height: var(--space-xl);
+  }
+
+  .student-workspace-v2 .practice-stage:has(.sfc-results.sfc-screen .self-eval-step) {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: 0;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .student-workspace-v2 .practice-stage:has(.sfc-results.sfc-screen .self-eval-step) .scene-step-tabs {
+    min-height: var(--space-xl);
+  }
+
+  .student-workspace-v2 .speaking-flow-card.sfc-results.sfc-screen:has(.self-eval-step) {
+    min-height: 0;
+    height: auto;
+    align-self: start;
+  }
+
+  .student-workspace-v2 .speaking-flow-card.sfc-results.sfc-screen:has(.self-eval-step) > .practice-workspace {
+    grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+    align-items: start;
+    gap: var(--space-md);
+    min-height: 0;
+    height: 100%;
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .practice-scene-col {
+    min-height: 0;
+    gap: var(--space-sm);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .practice-scene-image {
+    aspect-ratio: 16 / 10;
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-audio-compare {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: var(--space-sm);
+    margin-top: 0;
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-audio-compare > * {
+    align-self: stretch;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .reference-audio-card-player,
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .recording-playback-audio {
+    margin-top: auto;
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-results-main {
+    min-height: 0;
+    padding: var(--space-sm) var(--space-md) var(--space-xs);
+    gap: var(--space-sm);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-stepper {
+    grid-template-columns: repeat(auto-fit, minmax(var(--space-3xl), 1fr));
+    gap: var(--space-xs);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-step {
+    gap: var(--space-2xs);
+    padding: var(--space-xs) var(--space-2xs);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .self-eval-step {
+    gap: var(--space-sm);
+    padding: 0;
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .self-eval-question {
+    min-height: 0;
+    padding: var(--space-xs);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .self-eval-emoji-btn {
+    min-height: var(--space-2xl);
+    padding: var(--space-xs) var(--space-2xs);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-step-cta-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .self-eval-skip {
+    align-self: stretch;
+    min-height: var(--space-2xl);
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-results-footer {
+    gap: var(--space-xs);
+    padding-top: var(--space-xs);
+  }
+
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-footer-actions {
+    gap: var(--space-xs);
+  }
+}
+
+@media (max-width: 900px) {
+  .student-workspace-v2 .sfc-results.sfc-screen:has(.self-eval-step) .sfc-audio-compare {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Stable speaking activity frame (desktop only)
+   The practice stage owns the frame. Speaking states inside it are content
+   views, not competing cards, so switching record/results/self-evaluation
+   never changes the surrounding geometry. The two activity rails may scroll
+   only when their real content exceeds the available track. */
+@media (min-width: 901px) {
+  .student-workspace.student-workspace-v2 .story-recorder {
+    padding-bottom: 0;
+  }
+
+  .student-workspace.student-workspace-v2 .story-session-main:has(> .practice-stage) {
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+    height: auto;
+    overflow: hidden;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    /* Intentional zero gap: the scene tabs and activity body are one
+       continuous stage surface, separated by the tabs' own divider. */
+    row-gap: 0;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--clay-hairline);
+    border-radius: var(--clay-radius-lg);
+    background: var(--clay-surface-card);
+    box-shadow: none;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card {
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
+    padding: var(--space-sm) var(--space-md);
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card > .practice-workspace {
+    height: 100%;
+    min-height: 0;
+    align-items: stretch;
+    gap: var(--space-md);
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .practice-scene-col,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-record-main,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-results-main {
+    min-height: 0;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .practice-scene-col {
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+
+  /* The record scene rail contains only the fixed image and attempt label.
+     Hide the sub-pixel rounding edge so a one-pixel scrollbar is not shown. */
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record .practice-scene-col {
+    overflow: hidden;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-record-main,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-results-main {
+    height: 100%;
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-analyzing {
+    display: grid;
+    place-items: center;
+  }
+
+  /* Keep the scene rail identical while record/results content changes.
+     The image owns the full media track; the attempt marker is an intentional
+     overlay, so it does not steal height from the image in record mode. */
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record.sfc-screen > .practice-workspace,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-results.sfc-screen > .practice-workspace {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record.sfc-screen .practice-scene-col,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-results.sfc-screen .practice-scene-col {
+    position: relative;
+    display: block;
+    align-self: stretch;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    scrollbar-gutter: auto;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record.sfc-screen .practice-scene-image,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-results.sfc-screen .practice-scene-image {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card.sfc-record.sfc-screen .sfc-attempt-only {
+    position: absolute;
+    left: var(--space-sm);
+    bottom: var(--space-sm);
+    z-index: 1;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--clay-radius-pill);
+    background: var(--clay-surface-card);
+    color: var(--clay-ink);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+/* Mobile keeps the same outer ownership, but returns to natural document flow
+   so the activity remains reachable without a nested desktop viewport. */
+@media (max-width: 900px) {
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) {
+    display: block;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    padding: var(--space-sm);
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card > .practice-workspace {
+    height: auto;
+    min-height: 0;
+  }
+
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .practice-scene-col,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-record-main,
+  .student-workspace.student-workspace-v2 .practice-stage:has(> .speaking-flow-card) > .speaking-flow-card .sfc-results-main {
+    height: auto;
+    overflow: visible;
+  }
+}

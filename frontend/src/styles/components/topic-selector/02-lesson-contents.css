@@ -2,6 +2,8 @@
    the navbar and every page shell — see --content-max in index.css), so
    the picker's edges line up with the rest of the app. */
 .ts-container {
+  position: relative;
+  z-index: 1;
   width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto;
 }
@@ -13,30 +15,27 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  min-height: 86px;
-  margin-bottom: 18px;
-  padding: 12px clamp(18px, 3vw, 28px);
-  border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--clay-hairline));
-  border-radius: 18px;
-  background:
-    linear-gradient(104deg, color-mix(in srgb, var(--clay-surface-card) 94%, white), color-mix(in srgb, var(--gold-soft) 24%, var(--clay-surface-card)));
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
 }
 
 .ts-toc-title {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  font-size: clamp(26px, 3.2vw, 34px);
-  letter-spacing: 0.025em;
+  display: block;
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
   color: var(--clay-ink);
   margin: 0;
 }
 
 .ts-toc-title .ts-lesson-sub {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-sans);
   font-size: 13px;
-  letter-spacing: .08em;
-  margin-left: 0;
+  font-weight: 600;
+  letter-spacing: .02em;
 }
 
 .ts-lesson-sub {
@@ -54,19 +53,19 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 198px;
-  background: color-mix(in srgb, var(--clay-surface-card) 88%, white);
-  border: 1px solid color-mix(in srgb, var(--gold) 38%, var(--clay-hairline));
-  border-radius: 13px;
-  padding: 6px 10px;
+  gap: var(--space-sm);
+  background: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  padding: var(--space-xs) var(--space-md) var(--space-xs) var(--space-xs);
+  box-shadow: var(--shadow-sm);
 }
 
 .ts-book-cover {
-  width: 34px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   flex-shrink: 0;
-  border-radius: 5px;
+  border-radius: var(--clay-radius-md);
   border: 1px solid var(--clay-hairline);
   object-fit: cover;
 }
@@ -89,21 +88,22 @@
    desaturated, which carries its state the same way. Borders only —
    no drop shadows. ── */
 .ts-lesson-list {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
 }
 
 .ts-lesson-block { min-width: 0; }
 
 .ts-lesson-row {
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr) auto;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 18px;
+  gap: var(--space-md);
   width: 100%;
-  padding: 14px;
+  padding: var(--space-sm) var(--space-md);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
@@ -115,7 +115,7 @@
 
 .ts-lesson-row:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--seal) 42%, var(--clay-hairline));
-  background: color-mix(in srgb, var(--clay-surface-card) 92%, var(--seal-soft));
+  background: color-mix(in srgb, var(--clay-surface-card) 94%, var(--seal-soft));
 }
 
 .ts-lesson-row:focus-visible {
@@ -123,21 +123,22 @@
   outline-offset: 2px;
 }
 
-/* The lesson the student is on: a gold left edge, no extra fill, so it
-   stands out without becoming a second kind of card. */
+/* The lesson the student is on: a soft gold surface + border + lift, so it
+   reads as "you are here" without an extra edge bar. */
 .ts-lesson-row.is-now {
-  border-color: color-mix(in srgb, var(--seal) 55%, var(--clay-hairline));
-  box-shadow: inset 4px 0 var(--seal);
+  border-color: color-mix(in srgb, var(--seal) 45%, var(--clay-hairline));
+  background: color-mix(in srgb, var(--clay-surface-card) 95%, var(--seal-soft));
+  box-shadow: var(--shadow-sm);
 }
 
-.ts-lesson-row.is-done { border-color: color-mix(in srgb, var(--jade) 38%, var(--clay-hairline)); }
+.ts-lesson-row.is-done { background: color-mix(in srgb, var(--clay-surface-card) 94%, var(--jade-soft)); }
 
-.ts-lesson-row.is-locked { cursor: not-allowed; opacity: .6; }
+.ts-lesson-row.is-locked { cursor: not-allowed; opacity: .55; }
 
 .ts-lesson-cover {
   display: grid;
   place-items: center;
-  height: 84px;
+  height: 62px;
   overflow: hidden;
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-soft);
@@ -160,36 +161,84 @@
   min-width: 0;
 }
 
+.ts-lesson-kicker-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
 .ts-lesson-kicker {
-  color: var(--seal-deep);
+  color: var(--clay-muted);
   font-size: 11px;
   font-weight: 800;
   letter-spacing: .08em;
   text-transform: uppercase;
 }
 
-.ts-lesson-row.is-locked .ts-lesson-kicker { color: var(--clay-muted); }
-
-.ts-lesson-name {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 700;
-  line-height: 1.25;
-  color: var(--clay-ink);
+.ts-lesson-now-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-xs);
+  border-radius: var(--clay-radius-pill);
+  background: var(--seal);
+  /* Gold fill always takes dark ink (--clay-on-seal rule). */
+  color: var(--clay-on-seal);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
 }
 
-.ts-lesson-row.is-locked .ts-lesson-name { color: var(--clay-body); }
+.ts-lesson-row.is-locked .ts-lesson-kicker { color: var(--clay-muted); }
 
-.ts-lesson-en { font-size: 12.5px; color: var(--clay-muted); }
+/* Lesson titles stay bilingual but drop the pinyin line here — the row is a
+   compact index entry, and pinyin is off elsewhere in the app too. */
+.ts-lesson-body > .bi-label .bi-pinyin { display: none; }
+
+.ts-lesson-body > .bi-label {
+  gap: var(--space-2xs);
+  align-items: flex-start;
+  text-align: left;
+}
+
+.ts-lesson-body > .bi-label .bi-zh {
+  color: var(--clay-ink);
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2.2vw, 23px);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.ts-lesson-body > .bi-label .bi-pinyin {
+  font-size: var(--text-xs);
+  line-height: 1.3;
+}
+
+.ts-lesson-body > .bi-label .bi-en {
+  color: var(--clay-muted);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+}
+
+.ts-lesson-row.is-locked .ts-lesson-body > .bi-label .bi-zh { color: var(--clay-body); }
 
 .ts-lesson-status {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-sm);
   white-space: nowrap;
 }
 
-.ts-lesson-progress { font-size: 12.5px; color: var(--clay-body); }
+.ts-lesson-progress {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 var(--space-sm);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-soft);
+  color: var(--clay-body);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
 
 .ts-lesson-locked {
   display: inline-flex;
@@ -199,23 +248,30 @@
   color: var(--clay-muted);
 }
 
-.ts-lesson-chevron { color: var(--clay-muted); font-size: 13px; }
+.ts-lesson-chevron {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-soft);
+  color: var(--seal-deep);
+}
 
 @media (max-width: 720px) {
-  .ts-lesson-row { grid-template-columns: 84px minmax(0, 1fr); gap: 12px; }
+  .ts-lesson-list { padding-left: var(--space-md); }
+  .ts-lesson-list::before { left: var(--space-2xs); }
+  .ts-lesson-row { grid-template-columns: 84px minmax(0, 1fr); gap: var(--space-sm); }
   .ts-lesson-cover { height: 60px; }
-  .ts-lesson-name { font-size: 17px; }
-  .ts-lesson-status { grid-column: 2; }
+  .ts-lesson-body > .bi-label .bi-zh { font-size: 17px; }
+  .ts-lesson-status { grid-column: 2; justify-content: space-between; }
 }
 
 /* ── Accordion body: a lesson's story cards, dropped in place under its
    own journey stop instead of navigating to a separate screen. ── */
 .ts-lesson-expanded {
-  padding: 4px 4px 4px 14px;
-  margin: 4px 0 2px;
-}
-@media (max-width: 720px) {
-  .ts-lesson-expanded { padding-left: 4px; }
+  padding: var(--space-xs) 0;
+  margin: var(--space-xs) 0 var(--space-2xs);
 }
 
 /* ── The "other" card sits below the numbered journey, not chained into it
@@ -235,6 +291,11 @@
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   padding: 18px 22px 18px 14px;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  appearance: none;
   cursor: pointer;
   transition: transform 0.12s, border-color 0.12s;
 }
@@ -281,7 +342,7 @@
   color: var(--clay-ink);
 }
 
-.ts-lesson-main .ts-lesson-sub { margin-top: 4px; }
+.ts-lesson-main .ts-lesson-sub { display: block; margin-top: 4px; }
 
 .ts-lesson-side {
   flex-shrink: 0;
@@ -300,25 +361,30 @@
 
 .ts-chip-open { background: var(--clay-surface-soft); color: var(--clay-muted); }
 
-.ts-other-block { margin-top: 30px; }
+.ts-other-block {
+  margin-top: var(--space-xl);
+}
 
 .ts-other-label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--clay-muted);
-  margin: 0 0 10px 14px;
+  margin: 0 0 var(--space-sm);
 }
 
 /* ── Per-story difficulty track. In student mode each tier is a direct
    action, so the learner no longer needs a separate difficulty page. ── */
 .ts-tier-track {
   display: flex;
-  gap: 6px;
   margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1.5px dashed var(--clay-hairline-soft);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-pill);
+  overflow: hidden;
 }
 
 .ts-tier-cell {
@@ -326,7 +392,6 @@
   min-width: 0;
   min-height: 44px;
   padding: 5px 6px;
-  border-radius: var(--clay-radius-sm);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -337,21 +402,28 @@
   text-align: center;
 }
 
-.ts-tier-done { background: var(--jade-soft); }
+.ts-tier-done { background: var(--jade); }
+.ts-tier-done .bi-zh,
+.ts-tier-done .bi-en,
+.ts-tier-done svg { color: #fff; }
 .ts-tier-open {
-  background: var(--clay-surface-soft);
-  border: 1.5px solid var(--clay-hairline);
+  background: var(--seal-soft);
+}
+.ts-tier-open .bi-zh,
+.ts-tier-open svg { color: var(--seal-deep); }
+.ts-tier-cell + .ts-tier-cell {
+  border-left: 1px solid var(--clay-hairline);
 }
 .ts-tier-track-interactive .ts-tier-open,
 .ts-tier-track-interactive .ts-tier-done {
   cursor: pointer;
   touch-action: manipulation;
-  transition: transform .15s ease, border-color .15s ease;
+  transition: transform .15s ease, background-color .15s ease;
 }
 
 .ts-tier-track-interactive .ts-tier-open:hover,
 .ts-tier-track-interactive .ts-tier-done:hover {
-  border-color: var(--gold);
+  background: var(--gold-soft);
   transform: translateY(-1px);
 }
 
@@ -377,7 +449,6 @@
 
 .ts-tier-lock {
   background: var(--clay-surface-soft);
-  border: 1.5px solid var(--clay-hairline);
   opacity: 0.45;
   filter: grayscale(1);
 }
@@ -407,13 +478,15 @@
     width: 100%;
     min-width: 0;
   }
+  .ts-lesson-list { padding-left: 0; }
+  .ts-lesson-list::before { display: none; }
   .ts-lesson-card {
     flex-wrap: wrap;
   }
   .ts-lesson-side {
     flex-direction: row;
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
   }
 }

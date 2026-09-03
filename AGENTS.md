@@ -62,6 +62,95 @@ Do not run huge unrelated test suites unless warranted by the change.
 
 Keep orchestration details brief. Communicate what is being done, important findings, what changed, validation performed, and remaining risks. Do not expose private chain-of-thought. For HARD work, it is acceptable to say briefly that the task is being decomposed into smaller implementation units.
 
+## Layout design and target audience principles
+
+The target users are adult learners (18+) who are thoughtful, educated, and focused
+on making steady progress. Design the layout to feel polished, calm, purposeful,
+and trustworthy rather than childish, noisy, or gamified for its own sake.
+
+1. **Keep the experience compact and content-first.** Prefer a clear hierarchy,
+   aligned sections, predictable spacing, and concise cards. Remove decorative
+   elements, labels, metrics, badges, or helper copy when they do not improve
+   comprehension or the next decision.
+
+2. **One function, one place.** Do not add duplicate navigation, repeated
+   settings, mirrored controls, or multiple actions that lead to the same result.
+   Reuse an existing component and flow when it already solves the problem. Every
+   new control must have a distinct user need and a clear reason to exist.
+
+3. **Prefer simple, obvious interaction.** Give each context one primary action,
+   make the available next step easy to scan, and avoid unnecessary modals,
+   multi-step flows, hidden gestures, or configuration. Use familiar language and
+   preserve the user's mental model across screens.
+
+4. **Design for mature learners.** Use restrained visual emphasis, readable
+   typography, meaningful status colors, and professional copy. Avoid toy-like
+   illustrations, excessive rounded containers, ornamental gradients, confetti,
+   arbitrary progress mechanics, or decorative gamification unless it directly
+   supports learning motivation or feedback.
+
+5. **Treat layout quality as a product requirement.** Before shipping a screen,
+   check that headings, controls, content, and actions form a compact rhythm with
+   no unexplained dead space, duplicated information, or competing visual focal
+   points. Responsive layouts must preserve the same clarity and must not add
+   controls merely because there is room on larger screens.
+
+6. **Question scope before implementation.** When a request suggests a new
+   feature, first verify whether the need can be met by simplifying, relabeling,
+   or repositioning an existing feature. Do not invent dashboard metrics,
+   shortcuts, filters, or secondary actions without evidence that they are
+   necessary for the learning task.
+
+7. **Use a shared grid for every composed layout.** Treat each page as a
+   small, deliberate grid: use one content container, shared horizontal
+   gutters, and consistent column lines so headings, controls, cards, and
+   footers have aligned left and right edges. Repeating cards should use the
+   same column widths and gaps, with equal row heights when their content
+   permits. Prefer `grid-template-columns: repeat(..., minmax(0, 1fr))`, token
+   spacing, and `align-items: stretch` over per-component offsets, arbitrary
+   widths, or nested margins that create drift. On smaller screens, collapse
+   the grid while preserving the same page gutter and alignment rhythm.
+
+8. **Keep composed components visibly separated.** Every sibling component or
+   section needs a deliberate gap; components must not touch edge-to-edge
+   unless they are an intentional segmented control, table, or continuous
+   surface. Use the spacing tokens (`--space-xs` for related controls,
+   `--space-sm` for adjacent components, and `--space-md` or larger between
+   sections) through a parent `gap` or a clearly owned section margin. After
+   changing layout, inspect the rendered boundary between each major sibling
+   and fix any zero-gap pair before shipping. Preserve the same rhythm when a
+   grid collapses on smaller screens.
+
+9. **Keep spacing consistent at the same hierarchy level.** Reuse one token
+   for the same relationship across components and responsive variants:
+   `--space-2xs` for intentional micro-label spacing, `--space-xs` inside a
+   control or compact row, `--space-sm` between related components, and
+   `--space-md` or larger between sections. Prefer a parent `gap` over mixed
+   child margins, and do not alternate nearby raw values such as 8px, 10px,
+   12px, and 14px for the same relationship. A zero gap is allowed only for
+   an intentionally continuous surface (for example a table row or a
+   segmented control); document that exception in the selector. Audit every
+   breakpoint after changing the base rhythm so mobile and desktop do not
+   drift apart.
+
+10. **Prefer horizontal composition when the content can remain readable.**
+    On desktop and tablet, place related content in a deliberate row: icon
+    beside its label, media beside its supporting copy, and action beside the
+    context it affects. Use equal grid tracks, `minmax(0, 1fr)`, and token
+    gaps instead of stacking short pieces vertically. Collapse to a column
+    only when the available measure would make text wrap, controls shrink, or
+    the primary action harder to scan; keep the same gutter and spacing rhythm
+    after that collapse.
+
+11. **Fit the available container; let mobile flow naturally.** Never impose
+    `100dvh`, `100vh`, or a viewport-derived `calc()` as the height of an outer
+    student layout. Let the application route or parent define the available
+    track, then use stretched grid/flex tracks and `min-height: 0`: fixed rails
+    and headers stay `flex-shrink: 0`, while the main content panel owns any
+    necessary `overflow: auto` so long feedback, zoomed text, and real data
+    remain reachable. On mobile (`max-width: 900px`), use natural page flow,
+    allow vertical page scrolling, and prevent horizontal overflow.
+
 ## Git branch naming
 
 Do not use `codex/` as a branch-name prefix in this repository. Branch names
@@ -95,18 +184,14 @@ one-off patches. Follow these when writing or reviewing ANY CSS in
    true one-off (clearing an absolutely positioned sibling, a decorative
    micro-radius ≤5px) — leave a comment saying so when you use it.
 
-2. **No viewport-relative height traps.** Do not size a component's total
-   height with `clamp(..., calc(100dvh - Npx), ...)` or similar, and then
-   `overflow: hidden` the result, to "keep it from resizing." That pattern
-   has broken twice in this codebase: the N always turns out wrong for some
-   real layout (navbar + page padding + sidebar the author didn't account
-   for), and when it's wrong, content is clipped with no way to scroll to
-   it — not shrunk, not reflowed, just gone. Let a card take the height its
-   content actually needs; if that's taller than the viewport, let the page
-   scroll (the browser already does this correctly). If a shared element
-   (like an action-button footer) must always stay reachable, give it
-   `flex-shrink: 0` on a plain flex/grid column — never wrap the whole
-   thing in a fixed-height, overflow-hidden box.
+2. **Use a safe container-owned shell.** Do not use `100dvh`, `100vh`, guessed
+   viewport-derived `calc()` offsets, viewport clamps, or an `overflow: hidden`
+   wrapper that has no reachable inner scroller for an outer student layout.
+   The route or parent owns the available track; descendants use `min-height:
+   0`, non-shrinking chrome, and a reachable content-panel `overflow: auto`.
+   Mobile remains auto-height and uses normal page scrolling. A shared action
+   footer must stay reachable with `flex-shrink: 0`, never by hiding overflow
+   around it.
 
 3. **One CSS source of truth per selector per state.** Before adding a rule
    that touches `.some-shared-class`, grep for every existing rule that
@@ -130,12 +215,18 @@ one-off patches. Follow these when writing or reviewing ANY CSS in
    them in a shared row at all. Don't reach for `align-items` as the fix
    for "there's a gap after the short column" — it isn't one.
 
-5. **Icons are SVG, not emoji.** New or edited UI uses the existing icon
-   components (`StudentIcon`, `shared/ui/Icon`) — stroke-based, one visual
-   language. Emoji-as-icon (🎙️📖📊💡🔁🖐) is legacy debt being paid down
-   file by file, not a pattern to extend. If a component you're touching
-   still has an emoji icon, replacing it with the matching SVG icon is in
-   scope for that change.
+5. **Use image-based icons, not canvas or hand-drawn SVG.** New or edited UI
+   uses the shared image-icon component and colorful raster assets (prefer
+   transparent PNG, WebP, or AVIF) from the central icon library. Keep one
+   coherent illustrated icon family with the same artboard, optical size,
+   padding, and visual weight; do not mix random stock icons, emoji, canvas
+   drawings, or per-page image files. Existing `StudentIcon` and
+   `shared/ui/Icon` SVG aliases should be migrated behind the shared
+   image-icon API when those surfaces are touched. Directional and status
+   icons follow the same image system rather than becoming text glyphs.
+   Every meaningful image icon still needs an accessible name/alternative;
+   decorative icons must be hidden from assistive technology, and icon
+   controls must preserve the existing touch-target minimum.
 
 6. **Verify layout changes against a real render, not just the diff.**
    `getBoundingClientRect()` in an actual browser (a throwaway Vite entry
@@ -147,6 +238,20 @@ one-off patches. Follow these when writing or reviewing ANY CSS in
    (verified afterward, in the browser, to be wrong), is the sign this
    step was skipped — do it before claiming a layout fix is done, not
    after a fourth report that it isn't.
+
+7. **Let one outer frame own the surface, but keep a content inset.** When
+   a parent frame owns the border, radius, background, or shadow, its direct
+   activity/content child must not draw a competing border, radius, shadow,
+   or opaque surface. Removing that inner border does not mean using
+   `padding: 0`: preserve a visible inset with spacing tokens (normally
+   `--space-sm` vertically and `--space-md` horizontally), or with an
+   equivalent parent gap, so content never touches the frame edge. Keep the
+   token gap between sibling columns and sections. A zero gap is allowed
+   only when adjacent pieces intentionally form one continuous surface (for
+   example, tabs and their panel); add a selector comment documenting that
+   exception. For fixed-height desktop stages, pair the inset with
+   `min-height: 0` and a reachable local scroller so the inset does not
+   create dead space or clip the activity.
 
 ## Automation tests for UI/UX: rules, not just "add a test"
 

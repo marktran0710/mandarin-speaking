@@ -2,7 +2,7 @@ import "./Navigation.css";
 import { Page } from "../types/page";
 import { LoginRole } from "../pages/LoginPage";
 import { BiLabel } from "./BiLabel";
-import ToneMark from "./ToneMark";
+import ToneMark from "./tone/ToneMark";
 import StudentIcon from "./StudentIcon";
 import useColorMode from "../hooks/useColorMode";
 import "./BiLabel.css";

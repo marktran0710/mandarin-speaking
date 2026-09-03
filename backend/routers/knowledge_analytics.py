@@ -19,6 +19,8 @@ from analytics.knowledge_tracing import (
     ResponseRecord,
 )
 from database import connect_db
+from analytics.bkt_question_validation import analyze_response_quality, validate_bkt_diagnostic_design
+from scripts.export_quiz_questions import build_question_rows
 
 
 router = APIRouter(
@@ -229,7 +231,11 @@ def _compute_knowledge_state(
     level: Optional[str],
 ) -> dict[str, Any]:
     attempts, names = _load_attempts(student_id, story_id, level)
-    normalized = normalize_vocab_attempts(attempts)
+    normalized = normalize_vocab_attempts(
+        attempts,
+        eligible_only=True,
+        deduplicate_diagnostic_exposures=True,
+    )
     records = normalized.records
     quality = _quality(normalized)
     scope = {"studentId": student_id, "storyId": story_id, "level": level}
@@ -249,6 +255,31 @@ def _compute_knowledge_state(
     }
 
 
+def _compute_bkt_question_audit(all_tiers: bool = False) -> dict[str, Any]:
+    """Read-only admin audit of the material and response-quality evidence."""
+    query = "SELECT id, title, published, lesson_number, frames, quiz_approved_snapshot FROM custom_stories WHERE published = TRUE ORDER BY lesson_number NULLS LAST, created_at, id"
+    with connect_db() as db:
+        stories = [dict(row) for row in db.execute(query).fetchall()]
+        attempts = [dict(row) for row in db.execute("SELECT id, student_id, student_name, mode, completed_at, question_results FROM vocab_quiz_attempts").fetchall()]
+    rows = build_question_rows(stories, tiers=("easy", "medium", "hard") if all_tiers else ("easy",))
+    # When a teacher-approved snapshot exists for a story/level it is the
+    # student-serving source of truth. Otherwise retain live rows as DRAFT so
+    # the report clearly shows why they cannot enter research BKT.
+    approved_keys = {(row.get("story_id"), row.get("tier")) for row in rows if row.get("source") == "approved"}
+    questions = [
+        row
+        for row in rows
+        if (
+            row.get("source") == "approved"
+            if (row.get("story_id"), row.get("tier")) in approved_keys
+            else True
+        )
+    ]
+    report = validate_bkt_diagnostic_design(questions)
+    report["responseQuality"] = analyze_response_quality(attempts)
+    return report
+
+
 @router.get("/knowledge-state")
 async def get_knowledge_state(
     model: Literal["pfa", "bkt", "compare"] = Query(default="compare"),
@@ -258,3 +289,11 @@ async def get_knowledge_state(
     _identity: auth.Identity = Depends(auth.require_admin),
 ):
     return await run_in_threadpool(_compute_knowledge_state, model, student_id, story_id, level)
+
+
+@router.get("/bkt-question-audit")
+async def get_bkt_question_audit(
+    all_tiers: bool = Query(default=False),
+    _identity: auth.Identity = Depends(auth.require_admin),
+):
+    return await run_in_threadpool(_compute_bkt_question_audit, all_tiers)
