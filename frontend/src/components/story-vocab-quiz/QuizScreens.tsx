@@ -107,7 +107,7 @@ function QuizChallengeCard({ progress, onStart }: { progress: LessonVocabularyPr
 export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [], masteredWords = [], level = "easy", assessmentQuestionCounts, startTier, chooseWeakWords, showReview, progress, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; masteredWords?: VocabPriorityReviewWord[]; level?: "easy" | "medium" | "hard"; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
   const assessmentLevelByMode: Record<TierMode, VocabAssessmentLevel> = { tier1: "easy", tier2: "medium", tier3: "hard" };
   const tierDescription = (card: (typeof TIER_CARDS)[number], config: (typeof TIER_CONFIGS)[TierMode]) => {
-    const count = assessmentQuestionCounts?.[assessmentLevelByMode[card.mode]];
+    const count = progress?.totalWords ?? assessmentQuestionCounts?.[assessmentLevelByMode[card.mode]];
     if (!count) return { zh: card.desc, pinyin: card.descPinyin, en: card.descEn };
     const passCount = effectiveTierPassCount(config, count);
     const timeSuffix = config.timeLimitMs ? `，${config.timeLimitMs / 1000} 秒` : "";
@@ -224,12 +224,18 @@ export function SummaryScreen({ mode, results, missedWords, missedEntries, isRet
   const nextRoundAction = nextTierCard
     ? () => startTier(nextTierCard.mode)
     : mode === "tier3" && passed
-      ? backToModes
+      ? () => {
+        // Keep the standalone quiz in its familiar mode menu while also
+        // notifying the parent activity that the diagnostic is complete.
+        // StoryRecorder uses onDone to advance into speaking practice.
+        backToModes();
+        onDone();
+      }
       : null;
   const nextRoundCopy = nextTierCard
     ? { zh: `繼續到${nextTierCard.title}`, pinyin: `Jìxù dào ${nextTierCard.titlePinyin.toLowerCase()}`, en: `Continue to ${nextTierCard.titleEn}` }
     : mode === "tier3" && passed
-      ? { zh: "查看課程進度", pinyin: "Chákàn kèchéng jìndù", en: "See My Lesson Progress" }
+      ? { zh: "繼續練習", pinyin: "Jìxù liànxí", en: "Continue to practice" }
       : null;
   const showContinue = practiceUnlocked(stars);
   return <section className={`story-vocab-quiz vocab-quiz-summary${isChallenge ? " is-challenge-result" : ""}`} aria-label="Vocabulary quiz results"><div className="vocab-quiz-header"><p className="eyebrow"><BiLabel zh={isChallenge ? "課程挑戰結果" : isRetryRound ? "複習結果" : roundLabel ? `${roundLabel} 完成` : "測驗結果"} pinyin={isChallenge ? "Kèchéng tiǎozhàn jiéguǒ" : isRetryRound ? "Fùxí jiéguǒ" : "Cèyàn jiéguǒ"} en={isChallenge ? "Challenge complete" : isRetryRound ? "Review results" : roundLabel ? `${roundLabel} complete` : "Quiz results"} /></p><h1 className="vocab-quiz-mode-title"><BiLabel zh={isChallenge ? "課程挑戰完成" : `答對 ${correctCount} / ${results.length} 題`} pinyin={isChallenge ? "Kèchéng tiǎozhàn wánchéng" : `Dá duì ${correctCount} / ${results.length} tí`} en={isChallenge ? "Challenge Complete" : `${correctCount} / ${results.length} correct`} /></h1>{isChallenge && <p className="vocab-quiz-star-result is-earned">Best score: {challengeBestScore ?? correctCount} / {results.length}</p>}{tierConfig && passed && <p className="vocab-quiz-star-result is-earned"><BiLabel zh={`你拿到第 ${tierConfig.tier} 顆星了！`} pinyin={`Nǐ nádào dì ${tierConfig.tier} kē xīng le!`} en={`You earned star ${tierConfig.tier}!`} /></p>}{tierConfig && !passed && <p className="vocab-quiz-star-result is-near-miss"><BiLabel zh={`再答對 ${gap} 題就拿到第 ${tierConfig.tier} 顆星了！`} pinyin={`Zài dá duì ${gap} tí jiù nádào dì ${tierConfig.tier} kē xīng le!`} en={`Just ${gap} more right for star ${tierConfig.tier}!`} /></p>}</div>

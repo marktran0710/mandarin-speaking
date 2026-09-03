@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DIAGNOSTIC_ROUNDS,
-  TIER_CONFIGS,
   attemptEarnsStar,
   loadLocalStars,
   recordLocalStars,
@@ -281,16 +280,19 @@ export function useQuizSession({
     if (selected) return;
     const entry = roundEntries.find((candidate) => candidate.word === question.word);
     const diagnosticMode = mode === "tier1" || mode === "tier2" || mode === "tier3";
-    const diagnosticConfig = diagnosticMode ? DIAGNOSTIC_ROUNDS[mode] : null;
     const assessment = question.kind === "assessment" ? question.assessment : null;
-    const bktType = diagnosticConfig
-      ? Boolean(assessment && assessment.questionType === diagnosticConfig.questionKind)
+    // Assessment-backed lessons use the new three-dimension diagnostic
+    // contract. Legacy story snapshots have no validated assessment bank and
+    // continue through the existing planner for backward compatibility.
+    const diagnosticConfig = diagnosticMode && assessment ? DIAGNOSTIC_ROUNDS[mode] : null;
+    const bktType = diagnosticConfig && assessment
+      ? assessment.questionType === diagnosticConfig.questionKind
       : question.kind === "translation" || question.kind === "reverse" || question.kind === "listening";
     const isBktEligible = Boolean(
       !isRetryRound && diagnosticMode && bktType && entry?.bktValidationStatus === "APPROVED",
     );
     const bktEligibilityErrors = isBktEligible ? [] : [
-      ...(diagnosticConfig && assessment?.level !== diagnosticConfig.level ? ["ROUND_LEVEL_MISMATCH"] : []),
+      ...(diagnosticConfig && assessment && assessment.level !== diagnosticConfig.level ? ["ROUND_LEVEL_MISMATCH"] : []),
       ...(!diagnosticMode ? ["NON_DIAGNOSTIC_MODE"] : []),
       ...(!bktType ? ["UNSUPPORTED_BKT_QUESTION_TYPE"] : []),
       ...(entry?.bktValidationStatus !== "APPROVED" ? ["UNAPPROVED_RESEARCH_ITEM"] : []),
@@ -302,6 +304,9 @@ export function useQuizSession({
     const conceptId = assessment?.wordId ?? quizConceptId(question.word);
     const resultQuestionKind = assessment?.questionType ?? question.kind;
     const answer = correctAnswer(question);
+    const activityType: VocabQuizQuestionResult["activityType"] = diagnosticConfig
+      ? "diagnostic"
+      : mode === "weak_words" ? "personalized_practice" : mode === "challenge" ? "challenge" : "practice";
     const questionPrompt = assessment?.prompt ?? (question.kind === "cloze"
       ? question.sentenceWithBlank
         : question.kind === "reverse"
@@ -321,7 +326,7 @@ export function useQuizSession({
       conceptId, questionKind: resultQuestionKind, level: resultLevel,
       roundType: diagnosticConfig?.roundType,
       knowledgeDimension: diagnosticConfig?.knowledgeDimension,
-      activityType: diagnosticConfig ? "diagnostic" : mode === "weak_words" ? "personalized_practice" : mode === "challenge" ? "challenge" : "practice",
+      activityType,
       baseStoryId: baseStoryId ?? storyId, itemVersion,
       isBktEligible,
       bktEligibilityErrors,
@@ -413,7 +418,8 @@ export function useQuizSession({
               ? "challenge_started"
               : null;
     if (startedEvent) recordLessonEvent(startedEvent, { totalWords: entriesForRound.length });
-    const importedQuestions = picked === "tier1" || picked === "tier2" || picked === "tier3"
+    const hasAssessmentBank = entriesForRound.some((entry) => (entry.assessmentQuestions?.length ?? 0) > 0);
+    const importedQuestions = hasAssessmentBank && (picked === "tier1" || picked === "tier2" || picked === "tier3")
       ? buildDiagnosticRoundQuestions(entriesForRound, picked)
       : [];
     if (importedQuestions.length > 0 && (picked === "tier1" || picked === "tier2" || picked === "tier3")) {

@@ -261,6 +261,9 @@ class VocabQuizQuestionResult(BaseModel):
     itemId: Optional[str] = Field(default=None, max_length=256)
     conceptId: Optional[str] = Field(default=None, max_length=200)
     questionKind: Optional[str] = Field(default=None, max_length=40)
+    roundType: Optional[Literal["know_it", "say_it", "use_it"]] = None
+    knowledgeDimension: Optional[Literal["meaning", "pinyin_production", "contextual_recall"]] = None
+    activityType: Optional[Literal["diagnostic", "personalized_practice", "challenge", "practice"]] = None
     level: Optional[Literal["easy", "medium", "hard"]] = None
     baseStoryId: Optional[str] = Field(default=None, max_length=128)
     itemVersion: Optional[str] = Field(default=None, max_length=40)

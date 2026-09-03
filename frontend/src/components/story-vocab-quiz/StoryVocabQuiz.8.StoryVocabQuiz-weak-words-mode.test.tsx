@@ -170,7 +170,8 @@ describe("StoryVocabQuiz weak-words mode", () => {
     await answerCurrentQuestion(user, false);
 
     await waitFor(() => expect(database.recordVocabQuizResponse).toHaveBeenCalled());
-    const partial = vi.mocked(database.recordVocabQuizResponse).mock.calls.at(-1)![0];
+    const calls = vi.mocked(database.recordVocabQuizResponse).mock.calls;
+    const partial = calls[calls.length - 1]![0];
     expect(partial.mode).toBe("weak_words");
     expect(partial.questionResults).toHaveLength(1);
     expect(partial.questionResults[0].correct).toBe(false);

@@ -230,7 +230,7 @@ describe("StoryVocabQuiz star tiers", () => {
     expect(loadLocalStars("s1")).toBe(3);
     expect(onComplete).toHaveBeenCalledTimes(3);
     expect(onComplete.mock.calls[2][0].mode).toBe("tier3");
-    expect(screen.getByRole("button", { name: /See My Lesson Progress/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Continue to practice/ })).toBeInTheDocument();
     // A 67-question UI walk legitimately outlasts the 5s default timeout.
   }, 20_000);
 

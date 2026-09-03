@@ -11,23 +11,20 @@ import {
 } from "./quizTiers";
 
 describe("TIER_CONFIGS", () => {
-  it("defines the three star tiers with agreed question counts and thresholds", () => {
+  it("defines the three star tiers with dynamic pass ratios", () => {
     expect(TIER_CONFIGS.tier1).toMatchObject({
       tier: 1,
-      questionCount: 20,
-      passCount: 14,
+      passRatio: 0.70,
       timeLimitMs: null,
     });
     expect(TIER_CONFIGS.tier2).toMatchObject({
       tier: 2,
-      questionCount: 22,
-      passCount: 18,
+      passRatio: 0.82,
       timeLimitMs: null,
     });
     expect(TIER_CONFIGS.tier3).toMatchObject({
       tier: 3,
-      questionCount: 25,
-      passCount: 22,
+      passRatio: 0.88,
       timeLimitMs: 150_000,
     });
   });
@@ -41,8 +38,8 @@ describe("attemptEarnsStar", () => {
   });
 
   it("returns null when the attempt is below the threshold", () => {
-    expect(attemptEarnsStar("tier1", 13)).toBeNull();
-    expect(attemptEarnsStar("tier3", 21)).toBeNull();
+    expect(attemptEarnsStar("tier1", 13, 20)).toBeNull();
+    expect(attemptEarnsStar("tier3", 21, 25)).toBeNull();
   });
 
   it("preserves the pass ratio when a leak-free session has fewer distinct concepts", () => {
@@ -67,22 +64,22 @@ describe("starsFromAttempts", () => {
   it("returns the highest contiguous tier any attempt passed", () => {
     expect(
       starsFromAttempts([
-        { mode: "tier1", correctCount: 15 },
-        { mode: "tier2", correctCount: 19 },
+        { mode: "tier1", correctCount: 15, totalQuestions: 20 },
+        { mode: "tier2", correctCount: 19, totalQuestions: 22 },
         { mode: "tier2", correctCount: 3 },
       ]),
     ).toBe(2);
   });
 
   it("does not let a lone tier 3 pass unlock the ladder", () => {
-    expect(starsFromAttempts([{ mode: "tier3", correctCount: 25 }])).toBe(0);
+    expect(starsFromAttempts([{ mode: "tier3", correctCount: 25, totalQuestions: 25 }])).toBe(0);
   });
 
   it("does not skip tier 2 when tier 1 and tier 3 pass", () => {
     expect(
       starsFromAttempts([
-        { mode: "tier1", correctCount: 14 },
-        { mode: "tier3", correctCount: 22 },
+        { mode: "tier1", correctCount: 14, totalQuestions: 20 },
+        { mode: "tier3", correctCount: 22, totalQuestions: 25 },
       ]),
     ).toBe(1);
   });
@@ -90,9 +87,9 @@ describe("starsFromAttempts", () => {
   it("accepts all three passed tiers regardless of attempt order", () => {
     expect(
       starsFromAttempts([
-        { mode: "tier3", correctCount: 22 },
-        { mode: "tier1", correctCount: 14 },
-        { mode: "tier2", correctCount: 18 },
+        { mode: "tier3", correctCount: 22, totalQuestions: 25 },
+        { mode: "tier1", correctCount: 14, totalQuestions: 20 },
+        { mode: "tier2", correctCount: 19, totalQuestions: 22 },
       ]),
     ).toBe(3);
   });
@@ -100,9 +97,9 @@ describe("starsFromAttempts", () => {
   it("does not count failed tiers toward the contiguous proof", () => {
     expect(
       starsFromAttempts([
-        { mode: "tier1", correctCount: 14 },
-        { mode: "tier2", correctCount: 17 },
-        { mode: "tier3", correctCount: 25 },
+        { mode: "tier1", correctCount: 14, totalQuestions: 20 },
+        { mode: "tier2", correctCount: 17, totalQuestions: 22 },
+        { mode: "tier3", correctCount: 25, totalQuestions: 25 },
       ]),
     ).toBe(1);
   });
@@ -110,8 +107,8 @@ describe("starsFromAttempts", () => {
   it("ignores failing attempts and legacy modes", () => {
     expect(
       starsFromAttempts([
-        { mode: "speed", correctCount: 20 },
-        { mode: "tier1", correctCount: 10 },
+        { mode: "speed", correctCount: 20, totalQuestions: 20 },
+        { mode: "tier1", correctCount: 10, totalQuestions: 20 },
       ]),
     ).toBe(0);
   });
@@ -135,10 +132,10 @@ describe("starsByStory", () => {
     const { starsByStory } = await import("./quizTiers");
     expect(
       starsByStory([
-        { storyId: "a", mode: "tier1", correctCount: 15 },
-        { storyId: "a", mode: "tier2", correctCount: 19 },
-        { storyId: "b", mode: "tier1", correctCount: 3 },
-        { storyId: "c", mode: "speed", correctCount: 20 },
+        { storyId: "a", mode: "tier1", correctCount: 15, totalQuestions: 20 },
+        { storyId: "a", mode: "tier2", correctCount: 19, totalQuestions: 22 },
+        { storyId: "b", mode: "tier1", correctCount: 3, totalQuestions: 20 },
+        { storyId: "c", mode: "speed", correctCount: 20, totalQuestions: 20 },
       ]),
     ).toEqual({ a: 2, b: 0, c: 0 });
   });
@@ -156,9 +153,9 @@ describe("practiceUnlocked", () => {
     const { starsByStory } = await import("./quizTiers");
     expect(
       starsByStory([
-        { storyId: "skipped", mode: "tier3", correctCount: 25 },
-        { storyId: "partial", mode: "tier1", correctCount: 15 },
-        { storyId: "partial", mode: "tier3", correctCount: 25 },
+        { storyId: "skipped", mode: "tier3", correctCount: 25, totalQuestions: 25 },
+        { storyId: "partial", mode: "tier1", correctCount: 15, totalQuestions: 20 },
+        { storyId: "partial", mode: "tier3", correctCount: 25, totalQuestions: 25 },
       ]),
     ).toEqual({ skipped: 0, partial: 1 });
   });
@@ -166,12 +163,12 @@ describe("practiceUnlocked", () => {
 
 describe("nextStarGap", () => {
   it("reports how many more correct answers this run needed to pass", () => {
-    expect(nextStarGap("tier2", 16)).toBe(2);
+    expect(nextStarGap("tier2", 16, 22)).toBe(3);
   });
 
   it("reports 0 when the run passed", () => {
-    expect(nextStarGap("tier2", 18)).toBe(0);
-    expect(nextStarGap("tier2", 22)).toBe(0);
+    expect(nextStarGap("tier2", 19, 22)).toBe(0);
+    expect(nextStarGap("tier2", 22, 22)).toBe(0);
   });
 
   it("returns null for non-tier modes", () => {

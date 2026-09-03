@@ -11,7 +11,7 @@ import { topicWithQuizVocab } from "./StoryRecorder.test.helpers";
 // redirect back off whenever startAtQuiz is true.
 const PASSING_ATTEMPTS = [
   { mode: "tier1", correctCount: 14, totalQuestions: 20 },
-  { mode: "tier2", correctCount: 18, totalQuestions: 22 },
+  { mode: "tier2", correctCount: 19, totalQuestions: 22 },
   { mode: "tier3", correctCount: 22, totalQuestions: 25 },
 ];
 

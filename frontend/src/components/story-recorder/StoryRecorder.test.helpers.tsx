@@ -73,14 +73,22 @@ async function completeVocabQuiz(user: UserEvent) {
   await user.click(tierButton);
   await passTierRun(user, 20);
 
-  await user.click(await screen.findByRole("button", { name: /Challenge Round 2/ }));
+  await user.click(await screen.findByRole("button", { name: /Continue to Round 2/ }));
   await passTierRun(user, 22);
 
-  await user.click(await screen.findByRole("button", { name: /Challenge Round 3/ }));
+  await user.click(await screen.findByRole("button", { name: /Continue to Round 3/ }));
   await passTierRun(user, 25);
 
-  const continueButton = await screen.findByRole("button", { name: /Continue to practice/ });
-  await user.click(continueButton);
+  // The current results flow opens the lesson-progress menu after Round 3;
+  // the completion panel then exposes the final Finish action. Keep the
+  // helper tolerant of the legacy direct hand-off copy as well.
+  const progressButton = screen.queryByRole("button", { name: /See My Lesson Progress/ });
+  if (progressButton) {
+    await user.click(progressButton);
+    await user.click(await screen.findByRole("button", { name: /^Finish$/ }));
+  } else {
+    await user.click(await screen.findByRole("button", { name: /Continue to practice/ }));
+  }
 }
 
 vi.mock("../../PitchChart", () => ({

@@ -10,22 +10,39 @@ import { getStudentScopeKey, isAdminSession } from "./studentSession";
 
 export type QuizTier = 1 | 2 | 3;
 export type TierMode = "tier1" | "tier2" | "tier3";
+export type DiagnosticRoundType = "know_it" | "say_it" | "use_it";
+export type DiagnosticKnowledgeDimension = "meaning" | "pinyin_production" | "contextual_recall";
 
 export interface TierConfig {
   tier: QuizTier;
   mode: TierMode;
-  questionCount: number;
-  // Minimum correct answers for the run to pass and earn this tier's star.
-  passCount: number;
+  /** The source lesson vocabulary determines the run length. */
+  passRatio: number;
   // Total time cap for the whole run (the Speed-mode engine), or null for
   // an untimed tier.
   timeLimitMs: number | null;
 }
 
 export const TIER_CONFIGS: Record<TierMode, TierConfig> = {
-  tier1: { tier: 1, mode: "tier1", questionCount: 20, passCount: 14, timeLimitMs: null },
-  tier2: { tier: 2, mode: "tier2", questionCount: 22, passCount: 18, timeLimitMs: null },
-  tier3: { tier: 3, mode: "tier3", questionCount: 25, passCount: 22, timeLimitMs: 150_000 },
+  // These ratios preserve the old difficulty curve without making the quiz
+  // depend on a fixed number of words.
+  tier1: { tier: 1, mode: "tier1", passRatio: 0.70, timeLimitMs: null },
+  tier2: { tier: 2, mode: "tier2", passRatio: 0.82, timeLimitMs: null },
+  tier3: { tier: 3, mode: "tier3", passRatio: 0.88, timeLimitMs: 150_000 },
+};
+
+export interface DiagnosticRoundConfig {
+  mode: TierMode;
+  level: "easy" | "medium" | "hard";
+  roundType: DiagnosticRoundType;
+  knowledgeDimension: DiagnosticKnowledgeDimension;
+  questionKind: "basic_meaning_mcq" | "character_to_pinyin_typing" | "contextual_productive_recall";
+}
+
+export const DIAGNOSTIC_ROUNDS: Record<TierMode, DiagnosticRoundConfig> = {
+  tier1: { mode: "tier1", level: "easy", roundType: "know_it", knowledgeDimension: "meaning", questionKind: "basic_meaning_mcq" },
+  tier2: { mode: "tier2", level: "medium", roundType: "say_it", knowledgeDimension: "pinyin_production", questionKind: "character_to_pinyin_typing" },
+  tier3: { mode: "tier3", level: "hard", roundType: "use_it", knowledgeDimension: "contextual_recall", questionKind: "contextual_productive_recall" },
 };
 
 export function tierConfigFromMode(mode: string | null | undefined): TierConfig | null {
@@ -36,9 +53,8 @@ export function tierConfigFromMode(mode: string | null | undefined): TierConfig 
 /** Preserve a tier's pass ratio when a leak-free planner has fewer distinct
  * concepts than the tier's nominal question count. */
 export function effectiveTierPassCount(config: TierConfig, totalQuestions: number): number {
-  if (totalQuestions >= config.questionCount) return config.passCount;
-  if (totalQuestions <= 0) return config.passCount;
-  return Math.max(1, Math.ceil((config.passCount / config.questionCount) * totalQuestions));
+  if (totalQuestions <= 0) return 0;
+  return Math.max(1, Math.ceil(config.passRatio * totalQuestions));
 }
 
 /** The star (tier number) a finished attempt earns, or null if it failed
@@ -50,7 +66,7 @@ export function attemptEarnsStar(
 ): QuizTier | null {
   const config = tierConfigFromMode(mode);
   if (!config) return null;
-  const passCount = effectiveTierPassCount(config, totalQuestions ?? config.questionCount);
+  const passCount = effectiveTierPassCount(config, totalQuestions ?? 0);
   return correctCount >= passCount ? config.tier : null;
 }
 
@@ -124,7 +140,7 @@ export function nextStarGap(
 ): number | null {
   const config = tierConfigFromMode(mode);
   if (!config) return null;
-  const passCount = effectiveTierPassCount(config, totalQuestions ?? config.questionCount);
+  const passCount = effectiveTierPassCount(config, totalQuestions ?? 0);
   return Math.max(0, passCount - correctCount);
 }
 

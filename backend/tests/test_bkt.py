@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 
 from analytics.bkt import BKT_CONFIG, mastery_status, replay_bkt, update_bkt
@@ -17,6 +19,22 @@ def test_probability_is_clamped_to_safe_range():
         assert 0.000001 <= value <= 0.999999
         value = update_bkt(1.0, correct)
         assert 0.000001 <= value <= 0.999999
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), float("-inf")])
+def test_non_finite_probability_is_rejected(value):
+    with pytest.raises(ValueError, match="must be finite"):
+        update_bkt(value, True)
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["minimum_observations", "required_diagnostic_quizzes", "review_count"],
+)
+def test_non_positive_count_configuration_is_rejected(field):
+    invalid = replace(BKT_CONFIG, **{field: 0})
+    with pytest.raises(ValueError, match="count settings must be positive"):
+        update_bkt(BKT_CONFIG.initial_mastery, True, invalid)
 
 
 def test_replay_is_deterministic_and_order_sensitive():
@@ -63,8 +81,6 @@ def test_mastery_status_uses_evidence_before_threshold(
     "mastery_threshold",
 ])
 def test_update_rejects_invalid_probability_configuration(field):
-    from dataclasses import replace
-
     invalid = replace(BKT_CONFIG, **{field: 1.1})
     with pytest.raises(ValueError, match=field):
         update_bkt(BKT_CONFIG.initial_mastery, True, invalid)

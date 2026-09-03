@@ -138,8 +138,8 @@ describe("StoryVocabQuiz modes", () => {
     localStorage.clear();
     recordLocalStars("s-timer", 2);
     vi.mocked(database.listVocabQuizAttempts).mockResolvedValue([
-      { id: "round-1", storyId: "s-timer", mode: "tier1", completedAt: "2026-01-01T00:00:00Z", totalQuestions: 20, correctCount: 20, totalTimeMs: 0, questionResults: [] },
-      { id: "round-2", storyId: "s-timer", mode: "tier2", completedAt: "2026-01-01T00:01:00Z", totalQuestions: 22, correctCount: 22, totalTimeMs: 0, questionResults: [] },
+      { id: "round-1", storyId: "s-timer", studentName: "Student", mode: "tier1", completedAt: "2026-01-01T00:00:00Z", totalQuestions: 20, correctCount: 20, totalTimeMs: 0, questionResults: [] },
+      { id: "round-2", storyId: "s-timer", studentName: "Student", mode: "tier2", completedAt: "2026-01-01T00:01:00Z", totalQuestions: 22, correctCount: 22, totalTimeMs: 0, questionResults: [] },
     ]);
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s-timer" />);
     // Settle the initial data-load gate on real timers first — testing-

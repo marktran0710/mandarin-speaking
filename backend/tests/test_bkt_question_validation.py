@@ -113,6 +113,26 @@ def test_runtime_response_accepts_stable_concept_id_separate_from_display_word()
     assert classify_bkt_response(response, {"mode": "tier1"}) == (True, [])
 
 
+def test_runtime_response_accepts_medium_and_hard_diagnostic_rounds():
+    for mode, level, round_type, question_kind in (
+        ("tier2", "medium", "say_it", "character_to_pinyin_typing"),
+        ("tier3", "hard", "use_it", "contextual_productive_recall"),
+    ):
+        response = {
+            "word": "錢包",
+            "conceptId": "MC1_L5_001",
+            "itemId": f"MC1_L5_001:{round_type}:v1",
+            "questionKind": question_kind,
+            "level": level,
+            "roundType": round_type,
+            "isBktEligible": True,
+            "bktValidationStatus": "APPROVED",
+            "diagnosticExposureId": f"lesson-5:{level}:{mode}:MC1_L5_001:{round_type}",
+            "correct": False,
+        }
+        assert classify_bkt_response(response, {"mode": mode}) == (True, [])
+
+
 def test_strict_normalization_uses_first_response_per_item_and_diagnostic_exposure():
     base = {
         "word": "餐廳", "conceptId": "餐廳", "itemId": "item-1",

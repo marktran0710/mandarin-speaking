@@ -79,6 +79,7 @@ def _validated_question_results(attempt: VocabQuizAttemptRequest) -> list[dict]:
             "wordId": payload.get("conceptId") or payload.get("word"),
             "targetWordIds": [payload.get("conceptId") or payload.get("word")],
             "questionKind": payload.get("questionKind"),
+            "answerFormat": "free_text" if not payload.get("presentedOptions") else "single_choice",
             "correctAnswer": payload.get("correctAnswer"),
             "options": payload.get("presentedOptions"),
             "prompt": payload.get("questionPrompt"),

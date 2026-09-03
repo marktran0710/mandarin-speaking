@@ -81,6 +81,7 @@ describe("StoryVocabQuiz single-correct-answer guards", () => {
     vi.mocked(database.listVocabQuizAttempts).mockResolvedValueOnce([{
       id: "round-1",
       storyId: "s1",
+      studentName: "Student",
       mode: "tier1",
       completedAt: "2026-01-01T00:00:00Z",
       totalQuestions: 1,

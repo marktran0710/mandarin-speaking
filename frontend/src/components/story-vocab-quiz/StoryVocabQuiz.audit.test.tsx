@@ -255,6 +255,7 @@ describe.runIf(Boolean(process.env.QUIZ_DUMP))("quiz dump for semantic review", 
               : q.kind === "pinyin" ? q.correctPinyin
               : q.kind === "pos" ? q.correctPos
               : q.kind === "synonym" ? q.correctSynonym
+              : q.kind === "assessment" ? q.correctAnswer
               : q.correctWord;
             lines.add(
               `${pool.name} | ${q.kind} | Q: ${prompt} | ✓ ${correct} | options: ${[...q.options].sort().join(" / ")}`,

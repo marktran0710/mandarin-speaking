@@ -70,8 +70,9 @@ def test_weak_words_uses_the_most_recent_answer(logged_in_student):
 
     weak = client.get("/api/vocab-quiz-attempts/weak-words", params={
         "story_id": "teacher-story-1"}).json()
-    # 房間 was fixed in the newer attempt; 桌子 is still wrong.
-    assert weak["words"] == ["桌子"]
+    # These legacy attempts do not carry the approved three-round diagnostic
+    # contract, so they remain audit-only and cannot create recommendations.
+    assert weak["words"] == []
 
 
 def test_weak_words_requires_login(anonymous_client):

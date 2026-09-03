@@ -1,8 +1,8 @@
-"""Import and validate the fixed three-level vocabulary assessment CSV.
+"""Import and validate a three-round vocabulary assessment CSV.
 
 This module deliberately keeps assessment content separate from learning-model
-configuration.  It turns the CSV's JSON columns into typed observations and
-validates the fixed 15 words × Easy/Medium/Hard assessment contract.
+configuration. It validates one Easy/Medium/Hard observation per lesson word;
+the lesson decides the word count.
 """
 
 from __future__ import annotations
@@ -25,6 +25,8 @@ except ImportError:  # pragma: no cover - keeps this pure module importable in m
 
 
 LEVELS = ("Easy", "Medium", "Hard")
+# Compatibility exports for older reports. Validation below is dynamic and
+# does not require these sample-course values.
 EXPECTED_WORD_COUNT = 15
 EXPECTED_QUESTION_COUNT = EXPECTED_WORD_COUNT * len(LEVELS)
 MCQ_LEVELS = frozenset({"Easy", "Medium"})
@@ -287,11 +289,12 @@ def _contains_simplified_chinese(value: str) -> bool:
 
 
 def validate_vocab_assessment(questions: Sequence[VocabularyQuestion]) -> list[AssessmentValidationIssue]:
-    """Validate the fixed 15-word, 45-question assessment contract."""
+    """Validate dynamic lesson coverage: each word has one of each level."""
     issues: list[AssessmentValidationIssue] = []
-    if len(questions) != EXPECTED_QUESTION_COUNT:
+    expected_question_count = len({question.word_id for question in questions if question.word_id}) * len(LEVELS)
+    if expected_question_count and len(questions) != expected_question_count:
         issues.append(AssessmentValidationIssue(
-            "QUESTION_COUNT", f"Expected {EXPECTED_QUESTION_COUNT} questions, found {len(questions)}."
+            "QUESTION_COUNT", f"Expected {expected_question_count} questions for the supplied words, found {len(questions)}."
         ))
     by_word: dict[str, list[VocabularyQuestion]] = defaultdict(list)
     seen_ids: set[str] = set()
@@ -336,8 +339,6 @@ def validate_vocab_assessment(questions: Sequence[VocabularyQuestion]) -> list[A
             if question.options:
                 issues.append(AssessmentValidationIssue("HARD_HAS_OPTIONS", "Hard observations must not expose options.", question_id, question.word_id))
 
-    if len(by_word) != EXPECTED_WORD_COUNT:
-        issues.append(AssessmentValidationIssue("WORD_COUNT", f"Expected {EXPECTED_WORD_COUNT} words, found {len(by_word)}."))
     for word_id, observations in by_word.items():
         levels = [observation.level for observation in observations]
         if set(levels) != set(LEVELS) or len(observations) != len(LEVELS):

@@ -61,7 +61,8 @@ describe("CSV vocabulary assessment flow", () => {
     expect(onComplete.mock.calls[0][0].questionResults[0].level).toBe("easy");
 
     await user.click(screen.getByRole("button", { name: /Continue to Round 2/ }));
-    await user.click(screen.getByRole("button", { name: "哪裡" }));
+    await user.type(screen.getByRole("textbox", { name: "Your answer" }), "nǎlǐ");
+    await user.click(screen.getByRole("button", { name: /Check answer/ }));
     await user.click(screen.getByRole("button", { name: /See results/ }));
     expect(onComplete).toHaveBeenCalledTimes(2);
     expect(onComplete.mock.calls[1][0].mode).toBe("tier2");
@@ -79,7 +80,10 @@ describe("CSV vocabulary assessment flow", () => {
     const results = summaries.map((summary) => summary.questionResults[0]);
     expect(results.map((result) => result.level)).toEqual(["easy", "medium", "hard"]);
     expect(results.map((result) => result.itemId)).toEqual([
-      "MC1_003_EASY", "MC1_003_MEDIUM", "MC1_003_HARD",
+      "MC1_003:know_it:v1", "MC1_003:say_it:v1", "MC1_003:use_it:v1",
+    ]);
+    expect(results.map((result) => result.questionKind)).toEqual([
+      "basic_meaning_mcq", "character_to_pinyin_typing", "contextual_productive_recall",
     ]);
     expect(results.every((result) => result.timeMs >= 0)).toBe(true);
   });

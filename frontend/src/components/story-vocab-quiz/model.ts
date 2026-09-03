@@ -310,28 +310,32 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
       while (options.length < OPTION_COUNT) options.push(`meaning ${options.length + 1}`);
       return {
         questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin: entry.pinyin || toPinyin(entry.word),
-        pos: entry.pos || "", simpleEnglishMeaning: entry.translation, level: config.level, difficultyWeight: 1,
-        questionType: config.questionKind, answerFormat: "single_choice", prompt: source?.prompt || `What does ${entry.word} mean?`,
+        pos: entry.pos || "", simpleEnglishMeaning: entry.translation, level: config.level, difficultyWeight: 1 as const,
+        questionType: config.questionKind, answerFormat: "single_choice" as const, prompt: source?.prompt || `What does ${entry.word} mean?`,
         options: seededShuffle(options, `${wordId}:know_it:options`), correctAnswer,
         acceptedAnswers: source?.acceptedAnswers?.length ? source.acceptedAnswers : [correctAnswer],
         explanation: source?.explanation || `${entry.word} means ${entry.translation}.`,
       };
     }
     if (mode === "tier2") {
-      const pinyin = entry.pinyin || source?.pinyin || toPinyin(entry.word);
+      // Published lesson data normally carries pinyin (the CSV assessment
+      // bank does). Keep the round build total even when an older local story
+      // snapshot omitted it; the word itself is a temporary answer sentinel
+      // and will be replaced as soon as the canonical pinyin cache is warm.
+      const pinyin = entry.pinyin || source?.pinyin || toPinyin(entry.word) || entry.word;
       const acceptedAnswers = Array.from(new Set([pinyin, ...pinyin.split("/").map((value) => value.trim()).filter(Boolean)]));
       return {
         questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin,
-        pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.level, difficultyWeight: 2,
-        questionType: config.questionKind, answerFormat: "free_text", prompt: `Type the pinyin for ${entry.word}.`, options: [],
+        pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.level, difficultyWeight: 2 as const,
+        questionType: config.questionKind, answerFormat: "free_text" as const, prompt: `Type the pinyin for ${entry.word}.`, options: [],
         correctAnswer: pinyin, acceptedAnswers, explanation: `The pinyin for ${entry.word} is ${pinyin}.`,
       };
     }
     const correctAnswer = source?.correctAnswer || entry.word.split("/")[0].trim();
     return {
       questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin: entry.pinyin || toPinyin(entry.word),
-      pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.level, difficultyWeight: 3,
-      questionType: config.questionKind, answerFormat: "free_text", prompt: source?.prompt || `Use the Chinese word for “${entry.translation}” in the sentence.`, options: [],
+      pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.level, difficultyWeight: 3 as const,
+      questionType: config.questionKind, answerFormat: "free_text" as const, prompt: source?.prompt || `Use the Chinese word for “${entry.translation}” in the sentence.`, options: [],
       correctAnswer, acceptedAnswers: Array.from(new Set([correctAnswer, ...(source?.acceptedAnswers || [])])),
       explanation: source?.explanation || `Use ${correctAnswer} in this context.`,
     };
@@ -577,10 +581,19 @@ function pickQuestionKind(entry: VocabQuizEntry, allEntries: VocabQuizEntry[], m
   const available = weights.filter(([kind]) => !excludedKinds.has(kind)
     && !entry.disabledQuestionKinds?.includes(kind as "pinyin" | "reverse") && isKindAvailable(kind, entry, allEntries));
   if (!available.length) return null;
+  const failed = mode === "weak_words"
+    ? available.filter(([kind]) => (entry.bktFailedQuestionKinds ?? []).some((failedKind) =>
+      failedKind === kind
+      || (failedKind === "character_to_pinyin_typing" && kind === "pinyin")
+      || (failedKind === "contextual_productive_recall" && kind === "cloze"),
+    ))
+    : [];
   const unseen = mode === "weak_words"
     ? available.filter(([kind]) => !entry.bktSeenQuestionKinds?.includes(kind))
     : available;
-  const preferred = unseen.length ? unseen : available;
+  // Personalized practice first repairs a failed dimension. Only when that
+  // dimension has no available legacy question does it prefer an unseen form.
+  const preferred = failed.length ? failed : unseen.length ? unseen : available;
   let roll = Math.random() * preferred.reduce((sum, [, weight]) => sum + weight, 0);
   for (const [kind, weight] of preferred) {
     roll -= weight;

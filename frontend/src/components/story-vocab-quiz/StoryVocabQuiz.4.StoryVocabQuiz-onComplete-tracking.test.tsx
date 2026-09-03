@@ -109,9 +109,8 @@ describe("StoryVocabQuiz onComplete tracking", () => {
       expect(result.timeMs).toBeGreaterThanOrEqual(0);
     }
 
-    // Speaking practice opens only after all three stars, while the scored
-    // rounds now lead into the lesson-progress screen. Each round reports its
-    // own onComplete along the way.
+    // Speaking practice opens after the completed diagnostic. The standalone
+    // quiz also returns to its mode menu when the parent callback is a no-op.
     await user.click(screen.getByRole("button", { name: /Continue to Round 2/ }));
     for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true, translationByWord);
@@ -126,8 +125,8 @@ describe("StoryVocabQuiz onComplete tracking", () => {
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
     }
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(3));
-    await user.click(screen.getByRole("button", { name: /See My Lesson Progress/ }));
-    expect(onDone).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: /Continue to practice/ }));
+    expect(onDone).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("group", { name: "Quiz mode" })).toBeInTheDocument();
     // A 42-question UI walk legitimately outlasts the 5s default timeout.
   }, 20_000);

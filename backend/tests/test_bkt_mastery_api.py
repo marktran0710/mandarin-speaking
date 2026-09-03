@@ -64,7 +64,7 @@ def test_bkt_unlocks_after_three_easy_diagnostic_quizzes_and_ranks_bottom_k(logg
     assert by_word["附近"]["correctCount"] == 0
 
 
-def test_weak_words_are_available_after_the_first_recorded_diagnostic_attempt(logged_in_student):
+def test_weak_words_wait_for_all_three_diagnostic_rounds(logged_in_student):
     client, student = logged_in_student
     attempt = _attempt("first-diagnostic", "tier1", "2026-08-01T00:00:00Z", [
         _response("附近", False, "item-near-1"),
@@ -80,8 +80,8 @@ def test_weak_words_are_available_after_the_first_recorded_diagnostic_attempt(lo
     body = review.json()
     assert body["unlocked"] is False
     assert body["completedDiagnosticQuizzes"] == 1
-    assert [word["word"] for word in body["words"]] == ["附近"]
-    assert body["words"][0]["observationCount"] == 1
+    assert body["words"] == []
+    assert body["mastery"][0]["status"] == "UNASSESSED"
 
 
 def test_partial_diagnostic_response_updates_weak_words_without_creating_attempt(logged_in_student):
@@ -109,8 +109,8 @@ def test_partial_diagnostic_response_updates_weak_words_without_creating_attempt
     assert review.status_code == 200, review.text
     body = review.json()
     assert body["unlocked"] is False
-    assert [word["word"] for word in body["words"]] == ["附近"]
-    assert body["words"][0]["observationCount"] == 1
+    assert body["words"] == []
+    assert body["mastery"][0]["status"] == "UNASSESSED"
 
     completed = {
         **partial,
@@ -123,19 +123,22 @@ def test_partial_diagnostic_response_updates_weak_words_without_creating_attempt
     assert next(word for word in mastery if word["word"] == "附近")["observationCount"] == 1
 
 
-def test_story_weak_words_are_cumulative_across_all_easy_quiz_tiers(logged_in_student):
+def test_story_weak_words_are_cumulative_across_all_three_rounds(logged_in_student):
     client, student = logged_in_student
     attempts = [
         _attempt("scope-tier-1", "tier1", "2026-08-01T00:00:00Z", [
             _response("第一層弱詞", False, "scope-item-1"),
+            _response("第二層弱詞", False, "scope-item-1b"),
             _response("已學會", True, "scope-mastered-1"),
         ]),
         _attempt("scope-tier-2", "tier2", "2026-08-02T00:00:00Z", [
-            _response("第二層弱詞", False, "scope-item-2"),
+            _response("第一層弱詞", False, "scope-item-2"),
+            _response("第二層弱詞", False, "scope-item-2b"),
             _response("已學會", True, "scope-mastered-2"),
         ]),
         _attempt("scope-tier-3", "tier3", "2026-08-03T00:00:00Z", [
-            _response("第一層弱詞", True, "scope-item-3"),
+            _response("第一層弱詞", False, "scope-item-3"),
+            _response("第二層弱詞", False, "scope-item-3b"),
             _response("已學會", True, "scope-mastered-3"),
         ]),
     ]
@@ -153,6 +156,117 @@ def test_story_weak_words_are_cumulative_across_all_easy_quiz_tiers(logged_in_st
     assert body["completedDiagnosticQuizzes"] == 3
     assert {word["word"] for word in body["words"]} == {"第一層弱詞", "第二層弱詞"}
     assert all(word["word"] != "已學會" for word in body["words"])
+
+
+def test_medium_and_hard_rounds_update_the_same_word_level_kc(logged_in_student):
+    client, student = logged_in_student
+    round_data = (
+        ("tier1", "easy", "basic_meaning_mcq", "know_it"),
+        ("tier2", "medium", "character_to_pinyin_typing", "say_it"),
+        ("tier3", "hard", "contextual_productive_recall", "use_it"),
+    )
+    for index, (mode, level, question_kind, round_type) in enumerate(round_data, start=1):
+        result = _response("同一個詞", index == 1, f"same-word-round-{index}", level=level, question_kind=question_kind)
+        result.update({"roundType": round_type, "knowledgeDimension": ("meaning", "pinyin_production", "contextual_recall")[index - 1]})
+        attempt = _attempt(f"same-word-round-{index}", mode, f"2026-08-0{index}T00:00:00Z", [result])
+        attempt["level"] = level
+        response = client.post("/api/vocab-quiz-attempts", json=attempt)
+        assert response.status_code == 200, response.text
+
+    mastery = client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()
+    word = next(row for row in mastery["words"] if row["word"] == "同一個詞")
+    assert word["observationCount"] == 3
+    assert word["correctCount"] == 1
+    assert set(word["seenQuestionTypes"]) == {"basic_meaning_mcq", "character_to_pinyin_typing", "contextual_productive_recall"}
+    review = client.get(f"/api/students/{student['id']}/weak-words", params={"story_id": "lesson-1", "include_all": "true"}).json()
+    assert review["unlocked"] is True
+    assert review["roundPresence"]["tier2"]["level"] == "medium"
+
+
+def test_lesson_five_shape_has_fifteen_words_in_each_of_three_rounds(logged_in_student):
+    client, student = logged_in_student
+    words = [f"課程五詞{i:02d}" for i in range(1, 16)]
+    rounds = (
+        ("tier1", "easy", "basic_meaning_mcq", "know_it", "meaning"),
+        ("tier2", "medium", "character_to_pinyin_typing", "say_it", "pinyin_production"),
+        ("tier3", "hard", "contextual_productive_recall", "use_it", "contextual_recall"),
+    )
+    for index, (mode, level, question_kind, round_type, dimension) in enumerate(rounds, start=1):
+        results = []
+        for word_index, word in enumerate(words, start=1):
+            result = _response(word, word_index % 4 != 0, f"lesson-five-{round_type}-{word_index}", level=level, question_kind=question_kind)
+            result.update({
+                "roundType": round_type,
+                "knowledgeDimension": dimension,
+                "quizId": f"lesson-five-{mode}",
+            })
+            results.append(result)
+        attempt = _attempt(f"lesson-five-round-{index}", mode, f"2026-08-1{index}T00:00:00Z", results)
+        attempt["level"] = level
+        response = client.post("/api/vocab-quiz-attempts", json=attempt)
+        assert response.status_code == 200, response.text
+
+    review = client.get(
+        f"/api/students/{student['id']}/weak-words",
+        params={"story_id": "lesson-1", "include_all": "true"},
+    )
+    assert review.status_code == 200, review.text
+    body = review.json()
+    assert body["unlocked"] is True
+    assert body["completedDiagnosticQuizzes"] == 3
+    assert all(
+        body["roundPresence"][mode]["observedWords"] == 15
+        and body["roundPresence"][mode]["observations"] == 15
+        and body["roundPresence"][mode]["complete"] is True
+        for mode in ("tier1", "tier2", "tier3")
+    )
+    mastery = client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()["words"]
+    assert len(mastery) == 15
+    assert {word["observationCount"] for word in mastery} == {3}
+
+
+def test_duplicate_word_exposures_do_not_complete_a_diagnostic_round(logged_in_student):
+    client, student = logged_in_student
+    duplicate_round = _attempt("duplicate-round", "tier1", "2026-08-04T00:00:00Z", [
+        _response("重複詞", False, "duplicate-item-1"),
+        _response("重複詞", True, "duplicate-item-2"),
+    ])
+    assert client.post("/api/vocab-quiz-attempts", json=duplicate_round).status_code == 200
+
+    review = client.get(
+        f"/api/students/{student['id']}/weak-words",
+        params={"story_id": "lesson-1", "include_all": "true"},
+    )
+    assert review.status_code == 200, review.text
+    body = review.json()
+    assert body["unlocked"] is False
+    assert body["roundPresence"]["tier1"]["observedWords"] == 1
+    assert body["roundPresence"]["tier1"]["observations"] == 2
+    assert body["roundPresence"]["tier1"]["complete"] is False
+
+
+def test_clean_retry_can_complete_a_round_after_an_incomplete_run(logged_in_student):
+    client, student = logged_in_student
+    incomplete = _attempt("failed-round", "tier1", "2026-08-04T00:00:00Z", [
+        _response("詞一", False, "failed-item-1"),
+        _response("詞一", True, "failed-item-2"),
+    ])
+    assert client.post("/api/vocab-quiz-attempts", json=incomplete).status_code == 200
+
+    clean_retry = _attempt("clean-round", "tier1", "2026-08-05T00:00:00Z", [
+        _response("詞一", True, "clean-item-1"),
+        _response("詞二", True, "clean-item-2"),
+    ])
+    assert client.post("/api/vocab-quiz-attempts", json=clean_retry).status_code == 200
+
+    review = client.get(
+        f"/api/students/{student['id']}/weak-words",
+        params={"story_id": "lesson-1", "include_all": "true"},
+    )
+    assert review.status_code == 200, review.text
+    body = review.json()
+    assert body["completedDiagnosticQuizzes"] == 1
+    assert body["roundPresence"]["tier1"]["complete"] is True
 
 
 def test_weak_review_is_a_new_bkt_observation_and_attempt_is_immutable(logged_in_student):
