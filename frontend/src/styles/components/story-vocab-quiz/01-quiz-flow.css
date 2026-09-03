@@ -26,9 +26,8 @@
   gap: var(--space-md);
   width: 100%;
   margin-bottom: 0;
-  padding: 0 0 var(--space-sm);
+  padding: 0;
   border: 0;
-  border-bottom: 1px solid var(--clay-hairline);
   border-radius: 0;
   background: transparent;
   box-sizing: border-box;
@@ -36,10 +35,10 @@
 .vocab-quiz-topbar:empty { display: none; }
 
 .vocab-quiz-status-progress {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  column-gap: var(--space-md);
+  gap: var(--space-2xs);
   flex: 1 1 320px;
   min-width: 0;
 }
@@ -69,24 +68,21 @@
 }
 
 .vocab-quiz-content {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
-  gap: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-md);
   width: 100%;
 }
 
 .vocab-quiz-question-panel,
 .vocab-quiz-answer-panel {
   min-width: 0;
-}
-
-.vocab-quiz-question-panel,
-.vocab-quiz-answer-panel {
-  padding: var(--space-lg);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-card);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .vocab-quiz-question-panel {
@@ -273,8 +269,8 @@
 
 .vocab-quiz-section-label {
   margin: 0;
-  padding: 0 0 var(--space-sm);
-  border-bottom: 1px solid var(--clay-hairline);
+  padding: 0;
+  border: 0;
   font-family: var(--font-display);
   font-size: var(--text-lg);
   font-weight: 800;
@@ -283,8 +279,8 @@
 }
 
 .vocab-quiz-options {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-sm);
   width: 100%;
   counter-reset: vq-opt;
@@ -337,19 +333,19 @@
    question 1 to question N. */
 .vocab-quiz-question-screen .vocab-quiz-header {
   width: 100%;
-  align-items: stretch;
-  text-align: left;
+  align-items: center;
+  text-align: center;
 }
 .vocab-quiz-question-screen .vocab-quiz-header .eyebrow {
-  margin: 0 0 var(--space-md);
-  padding: 0 0 var(--space-sm);
-  border-bottom: 1px solid var(--clay-hairline);
+  margin: 0 0 var(--space-xs);
+  padding: 0;
+  border: 0;
 }
 .vocab-quiz-question-screen .vocab-quiz-header .eyebrow .bi-label {
   align-items: flex-start;
 }
 .vocab-quiz-question-screen .vocab-quiz-instruction {
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-xs);
 }
 .vocab-quiz-question-screen .vocab-quiz-word {
   display: flex;
@@ -358,11 +354,11 @@
   width: 100%;
   box-sizing: border-box;
   margin: 0;
-  min-height: 0;
-  padding: var(--space-xl) var(--space-lg);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
-  background: var(--clay-surface-card);
+  min-height: var(--space-2xl);
+  padding: var(--space-md) var(--space-lg);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   text-align: center;
   text-wrap: balance;
 }
@@ -371,7 +367,7 @@
 }
 .vocab-quiz-question-screen .vocab-quiz-options {
   align-content: start;
-  margin-top: var(--space-sm);
+  margin-top: var(--space-xs);
 }
 .vocab-quiz-question-screen .vocab-quiz-option {
   display: flex;
@@ -379,12 +375,29 @@
   justify-content: flex-start;
 }
 .vocab-quiz-question-screen .vocab-quiz-actions {
-  /* Keep the action directly after the answer/feedback instead of pushing it
-     to the bottom of a grid row made tall by the prompt panel. */
   min-height: 0;
   margin-top: var(--space-xs);
-  align-items: flex-start;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The question screen keeps the old single-flow quiz rhythm. Progress is
+   still available in Weak Words mode, but it is status text rather than a
+   second card competing with the question and answers. */
+.story-vocab-quiz.vocab-quiz-question-screen {
+  width: min(100%, 1060px);
+  max-width: 1060px;
+}
+.story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-content {
+  width: min(100%, 860px);
+  margin: 0 auto;
+}
+.story-vocab-quiz.vocab-quiz-question-screen > .lesson-strengthen-progress {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 /* StudentModeCompact.css owns the outer learner shell and has older, more
@@ -413,15 +426,13 @@
 }
 
 @media (min-width: 901px) {
-  .vocab-quiz-content {
-    grid-template-columns: minmax(320px, .36fr) minmax(0, .64fr);
+  .vocab-quiz-question-screen .vocab-quiz-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (min-width: 901px) and (max-height: 600px) {
-  /* Keep the two-panel composition usable on short laptop windows. The
-     outer workspace remains the scroll owner; this only removes secondary
-     vertical decoration from the status track and tightens row rhythm. */
+  /* Keep the compact single-flow quiz usable on short laptop windows. */
   .story-vocab-quiz {
     gap: var(--space-sm);
     padding-top: var(--space-sm);
@@ -442,14 +453,9 @@
     margin-top: 0;
   }
 
-  .vocab-quiz-question-panel,
-  .vocab-quiz-answer-panel {
-    padding: var(--space-md);
-  }
-
   .vocab-quiz-question-screen .vocab-quiz-header .eyebrow {
     margin-bottom: var(--space-md);
-    padding-bottom: var(--space-xs);
+    padding-bottom: 0;
   }
 
   .vocab-quiz-question-screen .vocab-quiz-instruction {
@@ -458,12 +464,12 @@
 
   .vocab-quiz-question-screen .vocab-quiz-word {
     min-height: 0;
-    padding: var(--space-lg);
+    padding: var(--space-md);
     font-size: var(--text-xl);
   }
 
   .vocab-quiz-section-label {
-    padding-bottom: var(--space-xs);
+    padding-bottom: 0;
   }
 
   .vocab-quiz-question-screen .vocab-quiz-options {
@@ -481,10 +487,6 @@
 }
 
 @media (max-width: 900px) {
-  .vocab-quiz-content {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .vocab-quiz-topbar {
     flex-wrap: wrap;
   }
@@ -492,8 +494,6 @@
   .vocab-quiz-status-progress {
     flex-basis: 100%;
     order: 3;
-    grid-template-columns: 1fr;
-    row-gap: var(--space-xs);
   }
 
   .vocab-quiz-timer {
@@ -653,6 +653,7 @@
   align-self: center;
   margin: 0;
   padding: 3px var(--space-sm);
+  border: 0;
   border-radius: var(--clay-radius-pill);
   background: var(--gold-soft);
   color: var(--gold-deep);
@@ -669,6 +670,7 @@
   align-self: center;
   margin: 0;
   padding: var(--space-2xs) var(--space-xs);
+  border: 0;
   border-radius: var(--clay-radius-pill);
   background: var(--tone1-soft);
   color: var(--tone1-deep);
