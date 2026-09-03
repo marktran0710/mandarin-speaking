@@ -189,7 +189,7 @@ describe("StoryRecorder student prototype", () => {
     // test gap, flagged to the user rather than silently dropped here.
   });
 
-  it("uses browser history for the vocabulary quiz header back button", async () => {
+  it("returns from the vocabulary quiz to the internal activity overview", async () => {
     const user = userEvent.setup();
     const onExit = vi.fn();
     const historyBack = vi.spyOn(window.history, "back").mockImplementation(() => {});
@@ -214,7 +214,9 @@ describe("StoryRecorder student prototype", () => {
 
     await user.click(screen.getByRole("button", { name: "Back to previous page" }));
 
-    expect(historyBack).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("heading", { name: /Your Challenge/ })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Vocabulary quiz" })).not.toBeInTheDocument();
+    expect(historyBack).not.toHaveBeenCalled();
     expect(onExit).not.toHaveBeenCalled();
     window.history.replaceState(previousHistoryState, "", window.location.href);
     historyBack.mockRestore();

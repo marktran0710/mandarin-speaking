@@ -25,18 +25,14 @@ export default function StoryVocabQuiz({ entries, onDone, onBack, onComplete, st
     if (!onBack) return;
     const handleBack = onBack;
 
-    // StoryRecorderRuntime owns the header and passes a phase callback for
-    // older embedded usages. For a history-backed activity, the header must
-    // leave the activity at the same page/layout the learner came from.
+    // StoryRecorderRuntime owns the header and passes the activity's internal
+    // phase-history callback. Keep this click inside that activity; the
+    // callback falls back to the outer page only at the activity boundary.
     const returnToPreviousPage = (event: MouseEvent) => {
       if (!(event.target instanceof Element) || !event.target.closest(".btn-story-exit")) return;
       event.preventDefault();
       event.stopPropagation();
-      if (typeof window !== "undefined" && window.history.state?.mandarinPractice) {
-        window.history.back();
-      } else {
-        handleBack();
-      }
+      handleBack();
     };
 
     document.addEventListener("click", returnToPreviousPage, true);

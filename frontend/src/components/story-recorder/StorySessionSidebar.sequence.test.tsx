@@ -1,4 +1,6 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
 import StorySessionSidebar from "./StorySessionSidebar";
 
 describe("StorySessionSidebar scene sequence", () => {
@@ -36,5 +38,29 @@ describe("StorySessionSidebar scene sequence", () => {
     expect(screen.getByRole("button", { name: /Scene 5-1/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: /Scene 5-2/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: /Scene 5-3/ })).toBeDisabled();
+  });
+
+  it("returns from speaking to the internal prepare layout before exiting the activity", async () => {
+    const user = userEvent.setup();
+    const onExit = vi.fn();
+    const onPrepare = vi.fn();
+
+    render(
+      <StorySessionSidebar
+        topicName="Story 5"
+        onExit={onExit}
+        summaryStatus="locked"
+        phases={[
+          { key: "prepare", status: "done", onClick: onPrepare },
+          { key: "speak", status: "active" },
+          { key: "feedback", status: "upcoming" },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Back to previous page" }));
+
+    expect(onPrepare).toHaveBeenCalledOnce();
+    expect(onExit).not.toHaveBeenCalled();
   });
 });
