@@ -26,7 +26,6 @@ import {
   HelpRequest,
   listAudioRecords,
   listCustomStories,
-  listHelpRequests,
   logoutStudent,
   StoredAudioRecord,
 } from "./shared/api/learningApi";
@@ -205,30 +204,17 @@ export default function App() {
   }, [activeRole, refreshPublishedTopics]);
 
   useEffect(() => {
-    const loadSavedHelpRequests = async () => {
-      if (canUseDatabase()) {
-        try {
-          const requests = await listHelpRequests();
-          setHelpRequests(requests);
-          localStorage.setItem("helpRequests", JSON.stringify(requests));
-          return;
-        } catch (error) {
-          console.error("Failed to load help requests from database:", error);
-        }
-      }
-
-      setHelpRequests(loadLocalHelpRequests());
-    };
-
-    loadSavedHelpRequests().finally(() => setHelpRequestsReady(true));
-
-    if (!canUseDatabase()) {
+    // Students can create a help request, but listing the full queue is a
+    // teacher/admin operation. Calling the teacher-only GET here caused a
+    // repeating 403 every five seconds in student mode.
+    if (activeRole !== "student") {
+      setHelpRequestsReady(true);
       return;
     }
 
-    const intervalId = window.setInterval(loadSavedHelpRequests, 5000);
-    return () => window.clearInterval(intervalId);
-  }, []);
+    setHelpRequests(loadLocalHelpRequests());
+    setHelpRequestsReady(true);
+  }, [activeRole]);
 
   const addAudioRecord = async (record: AudioRecord): Promise<string | undefined> => {
     const linkedRecord = { ...record, studentId: getStudentId() };

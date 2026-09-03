@@ -156,6 +156,40 @@ describe("StoryVocabQuiz star tiers", () => {
     expect(screen.getByRole("button", { name: /Round 3/ })).toBeDisabled();
   });
 
+  it("does not count legacy draft attempts after approved assessment material is attached", async () => {
+    vi.mocked(database.listVocabQuizAttempts).mockResolvedValueOnce([
+      {
+        mode: "tier1",
+        correctCount: 20,
+        totalQuestions: 20,
+        questionResults: [{ bktValidationStatus: "DRAFT" }],
+      },
+      {
+        mode: "tier2",
+        correctCount: 22,
+        totalQuestions: 22,
+        questionResults: [{ bktValidationStatus: "DRAFT" }],
+      },
+      {
+        mode: "tier3",
+        correctCount: 25,
+        totalQuestions: 25,
+        questionResults: [{ bktValidationStatus: "DRAFT" }],
+      },
+    ] as any);
+    const approvedEntries = entries.map((entry) => ({
+      ...entry,
+      bktValidationStatus: "APPROVED" as const,
+    }));
+
+    render(<StoryVocabQuiz entries={approvedEntries} onDone={vi.fn()} storyId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
+
+    expect(screen.getByRole("button", { name: /Round 1/ })).not.toHaveClass("is-earned");
+    expect(screen.getByRole("button", { name: /Round 2/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Round 3/ })).toBeDisabled();
+  });
+
   it("keeps practice locked until the learner earns all three stars", async () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();

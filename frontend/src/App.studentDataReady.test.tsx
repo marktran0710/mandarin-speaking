@@ -63,6 +63,7 @@ describe("App — student data must be ready before a student route renders", ()
     expect(
       screen.getByRole("navigation", { name: "Learning areas" }),
     ).toBeInTheDocument();
+    expect(api.listHelpRequests).not.toHaveBeenCalled();
   });
 
   it("releases the gate even when a fetch fails, instead of loading forever", async () => {

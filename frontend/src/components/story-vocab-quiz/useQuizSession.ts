@@ -89,6 +89,9 @@ export function useQuizSession({
   // the same "load fully, then show" discipline used by App.tsx and
   // StoryRecorderRuntime.
   const [starsReady, setStarsReady] = useState(false);
+  const hasApprovedMaterial = entries.some(
+    (entry) => entry.bktValidationStatus === "APPROVED",
+  );
   useEffect(() => {
     if (!storyId || !canUseDatabase()) {
       setStarsReady(true);
@@ -98,7 +101,22 @@ export function useQuizSession({
     listVocabQuizAttempts(storyId, { studentId, studentName })
       .then((attempts) => {
         if (!cancelled) {
-          const derived = starsFromAttempts(attempts);
+          // Once an approved assessment bank is attached to the story, old
+          // draft-material attempts must not mark the new CSV rounds as
+          // complete. Those attempts are intentionally excluded from BKT by
+          // the server as well, so using them for stars creates the misleading
+          // "all rounds complete, no weak words" state.
+          const progressAttempts = hasApprovedMaterial
+            ? attempts.filter((attempt) =>
+              Boolean(
+                attempt.questionResults?.length &&
+                attempt.questionResults.every(
+                  (result) => result.bktValidationStatus === "APPROVED",
+                ),
+              ),
+            )
+            : attempts;
+          const derived = starsFromAttempts(progressAttempts);
           // Keep the local mirror in sync with the database-derived result,
           // so the picker and recorder agree after a learner returns on this
           // device (including after completing a quiz elsewhere).
@@ -112,7 +130,7 @@ export function useQuizSession({
       .catch(() => { /* localStorage stars still apply */ })
       .finally(() => { if (!cancelled) setStarsReady(true); });
     return () => { cancelled = true; };
-  }, [storyId, studentId, studentName]);
+  }, [hasApprovedMaterial, storyId, studentId, studentName]);
 
   const [weakWords, setWeakWords] = useState<string[]>([]);
   const [priorityReviewWords, setPriorityReviewWords] = useState<VocabPriorityReviewWord[]>([]);
