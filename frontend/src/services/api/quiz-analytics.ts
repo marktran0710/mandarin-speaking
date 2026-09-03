@@ -1,4 +1,4 @@
-import { BACKEND_URL, fetchWithRetry, REQUEST_TIMEOUT_MS, VOCAB_GENERATION_RETRY_STATUSES } from "./client";
+import { BACKEND_URL, clientRoleHeader, fetchWithRetry, REQUEST_TIMEOUT_MS, VOCAB_GENERATION_RETRY_STATUSES } from "./client";
 export interface VocabGrowthWord { word: string; translation: string; context?: string; avoid: string[]; }
 export interface VocabularyDistractorUpdate { frameIndex: number; wordIndex: number; distractors: string[]; }
 export interface VocabularyClozeCandidate { sentence: string; distractors: string[]; }
@@ -12,7 +12,13 @@ async function generate<T>(path: string, words: VocabGrowthWord[], errorMessage:
 export function generateVocabDistractors(words: VocabGrowthWord[]): Promise<Array<{ word: string; distractors: string[] }>> { return generate("/api/vocab-quiz-distractors", words, "Could not generate new quiz distractors."); }
 export function generateVocabCloze(words: VocabGrowthWord[]): Promise<Array<{ word: string; sentence: string; distractors: string[] }>> { return generate("/api/vocab-quiz-cloze", words, "Could not generate new quiz cloze questions."); }
 export function generateVocabSynonym(words: VocabGrowthWord[]): Promise<Array<{ word: string; synonym: string; distractors: string[] }>> { return generate("/api/vocab-quiz-synonym", words, "Could not generate new quiz synonym questions."); }
-async function patchPool(storyId: string, path: string, updates: unknown, message: string): Promise<void> { const response = await fetchWithRetry(`${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/${path}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ updates }) }); if (!response.ok) throw new Error(message); }
+async function patchPool(storyId: string, path: string, updates: unknown, message: string): Promise<void> {
+  // Pool editing is teacher/admin work. Students can finish a quiz, but they
+  // must not try to mutate published question material and receive a 403.
+  if (clientRoleHeader() === "student") return;
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/${path}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ updates }) });
+  if (!response.ok) throw new Error(message);
+}
 export function updateVocabularyDistractors(storyId: string, updates: VocabularyDistractorUpdate[]): Promise<void> { return patchPool(storyId, "vocabulary-distractors", updates, "Could not update vocabulary distractors for the story."); }
 export function updateVocabularyCloze(storyId: string, updates: VocabularyClozeUpdate[]): Promise<void> { return patchPool(storyId, "vocabulary-cloze", updates, "Could not update vocabulary cloze questions for the story."); }
 export function updateVocabularySynonym(storyId: string, updates: VocabularySynonymUpdate[]): Promise<void> { return patchPool(storyId, "vocabulary-synonym", updates, "Could not update vocabulary synonym questions for the story."); }

@@ -5,7 +5,7 @@ export const BACKEND_URL = getBackendUrl();
 export const REQUEST_TIMEOUT_MS = 15_000;
 export const VOCAB_GENERATION_RETRY_STATUSES = [429, 500, 502, 503, 504];
 
-function clientRoleHeader(): "student" | "teacher" | "admin" {
+export function clientRoleHeader(): "student" | "teacher" | "admin" {
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
   if (pathname.endsWith("/admin.html")) return "admin";
   if (pathname.endsWith("/teacher.html") || pathname.startsWith("/manage")) {
