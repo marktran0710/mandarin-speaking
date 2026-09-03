@@ -65,6 +65,42 @@ def _assert_student_scope(identity: auth.Identity, student_id: str) -> None:
         raise HTTPException(status_code=403, detail="Students may only view their own vocabulary mastery.")
 
 
+def _validated_question_results(attempt: VocabQuizAttemptRequest) -> list[dict]:
+    """Apply the server-side BKT content contract to each submitted answer."""
+    question_results = []
+    for result in attempt.questionResults:
+        payload = result.model_dump(exclude_none=True, exclude_defaults=True)
+        # Re-run the content contract on the server. The client may send a
+        # hint, but it cannot make an otherwise malformed or non-approved
+        # response eligible by setting ``isBktEligible`` itself.
+        question_for_validation = {
+            "questionId": payload.get("itemId"),
+            "wordId": payload.get("conceptId") or payload.get("word"),
+            "targetWordIds": [payload.get("conceptId") or payload.get("word")],
+            "questionKind": payload.get("questionKind"),
+            "correctAnswer": payload.get("correctAnswer"),
+            "options": payload.get("presentedOptions"),
+            "prompt": payload.get("questionPrompt"),
+            "validationStatus": payload.get("bktValidationStatus"),
+        }
+        question_quality = validate_vocabulary_question(question_for_validation)
+        candidate = {**payload, "isBktEligible": question_quality.eligible_for_bkt}
+        eligible, reasons = classify_bkt_response(candidate, attempt)
+        if question_quality.errors:
+            reasons = list(dict.fromkeys(reasons + [issue["code"] for issue in question_quality.errors]))
+            eligible = False
+        payload["isBktEligible"] = eligible
+        payload["bktEligibilityErrors"] = reasons
+        if not eligible:
+            main.logger.warning(
+                "BKT_UPDATE_SKIPPED question_id=%s reason=%s",
+                payload.get("itemId") or payload.get("word") or "unknown",
+                ",".join(reasons),
+            )
+        question_results.append(payload)
+    return question_results
+
+
 @router.get("/api/students/{student_id}/weak-words")
 async def get_student_priority_review_words(
     student_id: str,
@@ -131,37 +167,7 @@ async def create_vocab_quiz_attempt(
 ):
     attempt.studentId = identity.id
     raw_question_results = [result.model_dump(exclude_none=True, exclude_defaults=True) for result in attempt.questionResults]
-    question_results = []
-    for result in attempt.questionResults:
-        payload = result.model_dump(exclude_none=True, exclude_defaults=True)
-        # Re-run the content contract on the server. The client may send a
-        # hint, but it cannot make an otherwise malformed or non-approved
-        # response eligible by setting ``isBktEligible`` itself.
-        question_for_validation = {
-            "questionId": payload.get("itemId"),
-            "wordId": payload.get("conceptId") or payload.get("word"),
-            "targetWordIds": [payload.get("conceptId") or payload.get("word")],
-            "questionKind": payload.get("questionKind"),
-            "correctAnswer": payload.get("correctAnswer"),
-            "options": payload.get("presentedOptions"),
-            "prompt": payload.get("questionPrompt"),
-            "validationStatus": payload.get("bktValidationStatus"),
-        }
-        question_quality = validate_vocabulary_question(question_for_validation)
-        candidate = {**payload, "isBktEligible": question_quality.eligible_for_bkt}
-        eligible, reasons = classify_bkt_response(candidate, attempt)
-        if question_quality.errors:
-            reasons = list(dict.fromkeys(reasons + [issue["code"] for issue in question_quality.errors]))
-            eligible = False
-        payload["isBktEligible"] = eligible
-        payload["bktEligibilityErrors"] = reasons
-        if not eligible:
-            main.logger.warning(
-                "BKT_UPDATE_SKIPPED question_id=%s reason=%s",
-                payload.get("itemId") or payload.get("word") or "unknown",
-                ",".join(reasons),
-            )
-        question_results.append(payload)
+    question_results = _validated_question_results(attempt)
     with connect_db() as db:
         existing = db.execute(
             "SELECT * FROM vocab_quiz_attempts WHERE id = %s",
@@ -220,6 +226,26 @@ async def create_vocab_quiz_attempt(
     # round-trip representation of an attempt without a selected mode.
     payload.setdefault("mode", attempt.mode)
     return payload
+
+
+@router.post("/api/vocab-quiz-responses")
+async def record_vocab_quiz_response(
+    attempt: VocabQuizAttemptRequest,
+    identity: auth.Identity = Depends(auth.require_student),
+):
+    """Persist the answers seen so far without creating a completed attempt.
+
+    The client sends the cumulative answers for the current round using one
+    stable quiz id. ``vocab_quiz_responses`` upserts by quiz/order, so the
+    eventual completed-attempt write can safely replay the same answers.
+    """
+    attempt.studentId = identity.id
+    question_results = _validated_question_results(attempt)
+    normalized_attempt = attempt.model_dump(exclude_none=True)
+    normalized_attempt["questionResults"] = question_results
+    with connect_db() as db:
+        record_attempt_and_rebuild(db, normalized_attempt, identity.id, response_results=question_results)
+    return {"acceptedResponses": len(question_results)}
 
 
 @router.post("/api/vocab-from-sentence", response_model=VocabFromSentenceResponse)

@@ -17,6 +17,7 @@ vi.mock("../../services/database", async (importOriginal) => {
     canUseDatabase: vi.fn(() => true),
     getVocabQuizWeakWords: vi.fn(async () => []),
     listVocabQuizAttempts: vi.fn(async () => []),
+    recordVocabQuizResponse: vi.fn(async () => undefined),
   };
 });
 
@@ -100,6 +101,32 @@ describe("StoryVocabQuiz weak-words mode", () => {
     expect(screen.queryByRole("button", { name: /Weak words/ })).not.toBeInTheDocument();
   });
 
+  it("records an eligible answer immediately so the first wrong answer can enter BKT", async () => {
+    const user = userEvent.setup();
+    const approvedEntries = [
+      { word: "一", translation: "one", bktValidationStatus: "APPROVED" as const },
+      { word: "二", translation: "two", bktValidationStatus: "APPROVED" as const },
+    ];
+    render(
+      <StoryVocabQuiz
+        entries={approvedEntries}
+        onDone={vi.fn()}
+        storyId="story-1"
+        studentId="s1"
+      />,
+    );
+    await screen.findByRole("group", { name: "Quiz mode" });
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    await answerCurrentQuestion(user, false);
+
+    await waitFor(() => expect(database.recordVocabQuizResponse).toHaveBeenCalledTimes(1));
+    const partial = vi.mocked(database.recordVocabQuizResponse).mock.calls[0][0];
+    expect(partial.mode).toBe("tier1");
+    expect(partial.questionResults).toHaveLength(1);
+    expect(partial.questionResults[0].correct).toBe(false);
+    expect(partial.questionResults[0].quizId).toBe(partial.id);
+  });
+
   it("offers a personalized priority-review card and reports it as a real 'weak_words' attempt", async () => {
     const weakWords = ["一", "三"] as database.VocabWeakWordsResult;
     Object.defineProperty(weakWords, "diagnostic", {
@@ -144,6 +171,36 @@ describe("StoryVocabQuiz weak-words mode", () => {
     // the mode menu rather than the speaking-practice continuation CTA.
     await user.click(screen.getByRole("button", { name: /Back to menu/ }));
     expect(onDone).not.toHaveBeenCalled();
+  });
+
+  it("refreshes the menu with weak words after a completed diagnostic attempt", async () => {
+    const initialWords = [] as database.VocabWeakWordsResult;
+    const refreshedWords = ["一"] as database.VocabWeakWordsResult;
+    Object.defineProperty(refreshedWords, "priorityReview", {
+      value: [{
+        wordId: "一", word: "一", pLearned: 0.2, status: "UNASSESSED",
+        observationCount: 1, correctCount: 0, incorrectCount: 1,
+      }],
+    });
+    const getWeakWords = vi.mocked(database.getVocabQuizWeakWords);
+    getWeakWords.mockReset();
+    getWeakWords
+      .mockResolvedValueOnce(initialWords)
+      .mockResolvedValueOnce(refreshedWords);
+    const user = userEvent.setup();
+
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={vi.fn()} storyId="story-1" studentId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
+    await user.click(screen.getByRole("button", { name: /Tier 1/ }));
+    for (let index = 0; index < 3; index += 1) {
+      await answerCurrentQuestion(user, false);
+      await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
+    }
+    await user.click(screen.getByRole("button", { name: /Back to menu/ }));
+
+    const weakWordsButton = await screen.findByRole("button", { name: /Weak words \(1\)/ });
+    expect(weakWordsButton).toHaveTextContent("1 observations");
+    expect(getWeakWords).toHaveBeenCalledTimes(2);
   });
 });
 

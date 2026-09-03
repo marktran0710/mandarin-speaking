@@ -439,7 +439,11 @@ def get_priority_review_words(db: Any, student_id: str, options: dict[str, Any] 
             or (include_all_weak and row["incorrectCount"] > 0)
         )
     ]
-    selected = eligible if include_all_weak and diagnostic["unlocked"] else eligible[:review_count] if diagnostic["unlocked"] else []
+    # Diagnostic completion remains useful context for the UI, but it is not
+    # a recommendation gate. The response ledger and mastery cache are
+    # rebuilt synchronously for every recorded attempt, so a currently weak
+    # word must be available as soon as its BKT evidence is stored.
+    selected = eligible if include_all_weak else eligible[:review_count]
     selected_ids = {row["wordId"] for row in selected}
     for row in mastery:
         row["status"] = mastery_status(row["observationCount"], row["pLearned"], selected_for_review=row["wordId"] in selected_ids, params=params)

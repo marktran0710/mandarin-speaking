@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   TIER_CONFIGS,
   attemptEarnsStar,
@@ -14,6 +14,7 @@ import {
   canUseDatabase,
   getVocabQuizWeakWords,
   listVocabQuizAttempts,
+  recordVocabQuizResponse,
   type VocabPriorityReviewWord,
 } from "../../services/database";
 import {
@@ -70,6 +71,9 @@ export function useQuizSession({
   const [timeLeftMs, setTimeLeftMs] = useState(0);
   const questionStartRef = useRef(Date.now());
   const quizStartRef = useRef(Date.now());
+  const quizIdRef = useRef<string | null>(null);
+  const attemptStartedAtRef = useRef<string | null>(null);
+  const plannedQuestionCountRef = useRef(0);
   const finishedRef = useRef(false);
   const [stars, setStars] = useState<0 | QuizTier>(() => storyId ? loadLocalStars(storyId) : 0);
 
@@ -106,21 +110,26 @@ export function useQuizSession({
   const [weakWords, setWeakWords] = useState<string[]>([]);
   const [priorityReviewWords, setPriorityReviewWords] = useState<VocabPriorityReviewWord[]>([]);
   const [weakWordsReady, setWeakWordsReady] = useState(false);
+  const refreshWeakWords = useCallback(async () => {
+    if (!storyId || !canUseDatabase()) return;
+    // Weak Words is a story-wide summary. Medium/Hard topic ids are only
+    // presentation tiers, so the API must receive the source story id and
+    // aggregate every tier into one learner list.
+    const words = await getVocabQuizWeakWords(baseStoryId ?? storyId, { studentId, studentName });
+    setWeakWords(words);
+    setPriorityReviewWords(words.priorityReview ?? []);
+  }, [storyId, baseStoryId, studentId, studentName]);
   useEffect(() => {
     if (!storyId || !canUseDatabase()) {
       setWeakWordsReady(true);
       return;
     }
     let cancelled = false;
-    // Weak Words is a story-wide summary. Medium/Hard topic ids are only
-    // presentation tiers, so the API must receive the source story id and
-    // aggregate every tier into one learner list.
-    getVocabQuizWeakWords(baseStoryId ?? storyId, { studentId, studentName })
-      .then((words) => { if (!cancelled) { setWeakWords(words); setPriorityReviewWords(words.priorityReview ?? []); } })
+    refreshWeakWords()
       .catch(() => { /* the always-visible card falls back to its empty state */ })
       .finally(() => { if (!cancelled) setWeakWordsReady(true); });
     return () => { cancelled = true; };
-  }, [storyId, baseStoryId, studentId, studentName]);
+  }, [storyId, refreshWeakWords]);
 
   const sessionReady = starsReady && weakWordsReady;
 
@@ -178,8 +187,10 @@ export function useQuizSession({
         ? question.translation
         : question.word;
     const answeredAt = new Date().toISOString();
+    const quizId = quizIdRef.current ?? `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}`;
+    quizIdRef.current = quizId;
     setSelected(option);
-    setResults([...results, {
+    const nextResults = [...results, {
       word: question.word,
       correct: option === answer,
       timeMs: Date.now() - questionStartRef.current,
@@ -200,7 +211,31 @@ export function useQuizSession({
       answeredAt,
       questionIndex: index,
       lessonId: baseStoryId ?? storyId,
-    }]);
+      // The response ledger uses this stable id to upsert the partial answer
+      // and the final attempt without counting the same answer twice.
+      quizId,
+    }];
+    setResults(nextResults);
+
+    // BKT evidence is recorded immediately after each eligible diagnostic
+    // answer. The list remains locked for speaking until all three tiers are
+    // complete, but Weak Words can now reflect the learner's latest answer.
+    if (storyId && studentId && canUseDatabase() && isBktEligible) {
+      void recordVocabQuizResponse({
+        id: quizId,
+        storyId,
+        studentName: studentName ?? "Student",
+        studentId,
+        mode: mode!,
+        baseStoryId: baseStoryId ?? storyId,
+        level,
+        completedAt: attemptStartedAtRef.current ?? answeredAt,
+        totalQuestions: Math.max(1, plannedQuestionCountRef.current),
+        correctCount: nextResults.filter((result) => result.correct).length,
+        totalTimeMs: Date.now() - quizStartRef.current,
+        questionResults: nextResults,
+      }).catch(() => { /* final attempt persistence remains the fallback */ });
+    }
   };
 
   const next = () => {
@@ -240,17 +275,27 @@ export function useQuizSession({
     const requestedCount = limit ?? entriesForRound.length;
     const plan = planQuizSession(shuffle(entriesForRound), picked, requestedCount,
       (entry, planMode, context) => buildQuizQuestion(entry, entriesForRound, planMode, context));
+    plannedQuestionCountRef.current = plan.questions.length;
     setQuestions(plan.questions); setQuestionLimit(plan.questions.length); setRequestedQuestionCount(requestedCount);
+    quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    attemptStartedAtRef.current = new Date().toISOString();
     quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
   };
 
   const startTier = (tierMode: TierMode) => { setIsRetryRound(false); chooseMode(tierMode, entries, TIER_CONFIGS[tierMode].questionCount); };
   const practiceMissedWords = () => { setIsRetryRound(true); chooseMode("free", missedEntries, missedEntries.length); };
+  const returnToModes = () => {
+    setScreen("mode-select");
+    // The attempt has been posted before the learner can leave the summary.
+    // Refresh here so the menu reflects that newly rebuilt BKT state without
+    // requiring a route reload or completion of the other diagnostic tiers.
+    void refreshWeakWords().catch(() => { /* retain the last known menu state */ });
+  };
 
   return {
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
     question, index, selected, results, timeLeftMs, stars, weakEntries, priorityReviewWords, missedWords,
     missedEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
-    speakWord, chooseMode, startTier, practiceMissedWords, sessionReady,
+    speakWord, chooseMode, startTier, practiceMissedWords, returnToModes, sessionReady,
   };
 }

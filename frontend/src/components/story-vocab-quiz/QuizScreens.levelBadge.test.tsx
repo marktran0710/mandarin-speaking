@@ -27,4 +27,23 @@ describe("ModeSelectScreen — difficulty level badge", () => {
     render(<ModeSelectScreen {...baseProps} level="hard" />);
     expect(screen.getByText("Hard")).toBeInTheDocument();
   });
+
+  it("keeps the story-wide weak-word summary visible when the current tier has no matching entries", () => {
+    render(
+      <ModeSelectScreen
+        {...baseProps}
+        priorityReviewWords={[{
+          wordId: "word-1",
+          word: "附近",
+          pLearned: 0.2,
+          status: "UNASSESSED",
+          observationCount: 1,
+          correctCount: 0,
+          incorrectCount: 1,
+        }]}
+      />,
+    );
+    expect(screen.getByRole("region", { name: "Weak words" })).toHaveTextContent("Weak words (1)");
+    expect(screen.getByRole("region", { name: "Weak words" })).toHaveTextContent("附近");
+  });
 });

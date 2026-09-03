@@ -64,6 +64,65 @@ def test_bkt_unlocks_after_three_easy_diagnostic_quizzes_and_ranks_bottom_k(logg
     assert by_word["附近"]["correctCount"] == 0
 
 
+def test_weak_words_are_available_after_the_first_recorded_diagnostic_attempt(logged_in_student):
+    client, student = logged_in_student
+    attempt = _attempt("first-diagnostic", "tier1", "2026-08-01T00:00:00Z", [
+        _response("附近", False, "item-near-1"),
+    ])
+
+    assert client.post("/api/vocab-quiz-attempts", json=attempt).status_code == 200
+
+    review = client.get(
+        f"/api/students/{student['id']}/weak-words",
+        params={"story_id": "lesson-1", "include_all": "true"},
+    )
+    assert review.status_code == 200, review.text
+    body = review.json()
+    assert body["unlocked"] is False
+    assert body["completedDiagnosticQuizzes"] == 1
+    assert [word["word"] for word in body["words"]] == ["附近"]
+    assert body["words"][0]["observationCount"] == 1
+
+
+def test_partial_diagnostic_response_updates_weak_words_without_creating_attempt(logged_in_student):
+    client, student = logged_in_student
+    partial = _attempt("live-diagnostic", "tier1", "2026-08-01T00:00:00Z", [
+        {**_response("附近", False, "item-near-live-1"), "quizId": "live-quiz-key"},
+    ])
+    partial["id"] = "live-quiz-key"
+
+    response = client.post("/api/vocab-quiz-responses", json=partial)
+    assert response.status_code == 200, response.text
+    assert response.json() == {"acceptedResponses": 1}
+
+    attempts = client.get(
+        "/api/vocab-quiz-attempts",
+        params={"story_id": "lesson-1", "student_id": student["id"]},
+    )
+    assert attempts.status_code == 200, attempts.text
+    assert attempts.json() == []
+
+    review = client.get(
+        f"/api/students/{student['id']}/weak-words",
+        params={"story_id": "lesson-1", "include_all": "true"},
+    )
+    assert review.status_code == 200, review.text
+    body = review.json()
+    assert body["unlocked"] is False
+    assert [word["word"] for word in body["words"]] == ["附近"]
+    assert body["words"][0]["observationCount"] == 1
+
+    completed = {
+        **partial,
+        "id": "completed-attempt",
+        "completedAt": "2026-08-01T00:00:05Z",
+    }
+    final_response = client.post("/api/vocab-quiz-attempts", json=completed)
+    assert final_response.status_code == 200, final_response.text
+    mastery = client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()["words"]
+    assert next(word for word in mastery if word["word"] == "附近")["observationCount"] == 1
+
+
 def test_story_weak_words_are_cumulative_across_all_easy_quiz_tiers(logged_in_student):
     client, student = logged_in_student
     attempts = [
