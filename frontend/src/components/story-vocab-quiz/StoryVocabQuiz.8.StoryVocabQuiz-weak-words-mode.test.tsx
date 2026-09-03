@@ -127,6 +127,31 @@ describe("StoryVocabQuiz weak-words mode", () => {
     expect(partial.questionResults[0].quizId).toBe(partial.id);
   });
 
+  it("refreshes weak words immediately after the server accepts a diagnostic answer", async () => {
+    const initialWords = [] as database.VocabWeakWordsResult;
+    const refreshedWords = ["一"] as database.VocabWeakWordsResult;
+    const getWeakWords = vi.mocked(database.getVocabQuizWeakWords);
+    getWeakWords.mockReset();
+    getWeakWords.mockResolvedValueOnce(initialWords).mockResolvedValueOnce(refreshedWords);
+    vi.mocked(database.recordVocabQuizResponse).mockClear();
+    const user = userEvent.setup();
+
+    render(
+      <StoryVocabQuiz
+        entries={[{ word: "一", translation: "one", bktValidationStatus: "APPROVED" as const }]}
+        onDone={vi.fn()}
+        storyId="story-1"
+        studentId="s1"
+      />,
+    );
+    await screen.findByRole("group", { name: "Quiz mode" });
+    await user.click(screen.getByRole("button", { name: /Round 1/ }));
+    await answerCurrentQuestion(user, false);
+
+    await waitFor(() => expect(database.recordVocabQuizResponse).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(getWeakWords).toHaveBeenCalledTimes(2));
+  });
+
   it("offers a personalized priority-review card and reports it as a real 'weak_words' attempt", async () => {
     const weakWords = ["一", "三"] as database.VocabWeakWordsResult;
     Object.defineProperty(weakWords, "diagnostic", {

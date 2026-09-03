@@ -499,8 +499,11 @@ def classify_bkt_response(
     word = _text(_field(result, "word", default=""))
     if not concept or not word:
         errors.append("MISSING_TARGET_WORD")
-    elif normalize_value(concept) != normalize_value(word):
-        errors.append("CONCEPT_WORD_MISMATCH")
+    # ``conceptId`` is the stable learner-model key and may intentionally be
+    # different from the human-readable ``word``. CSV assessment rows use
+    # ids such as ``MC1_003`` while rendering the Chinese target word. The
+    # response still needs both fields, but requiring them to be identical
+    # would reject every imported assessment response before it reaches BKT.
     kind = _question_type(result)
     if kind not in {normalize_value(value) for value in approved_types}:
         errors.append("UNSUPPORTED_BKT_QUESTION_TYPE")

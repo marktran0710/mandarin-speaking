@@ -191,9 +191,15 @@ async def create_vocab_quiz_attempt(
                 (existing.get("question_results") or []) == raw_question_results,
             ])
             if not same_attempt:
+                if existing.get("mode") == attempt.mode:
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Quiz attempt already exists with different response data.",
+                    )
                 # Older generated recorder bundles use a millisecond-only id.
-                # If three assessment blocks finish in that same millisecond,
-                # preserve both attempts instead of dropping later blocks.
+                # If assessment blocks with different modes finish in that
+                # same millisecond, preserve both attempts instead of dropping
+                # the later block. A same-mode payload remains immutable.
                 attempt.id = f"{attempt.id}-{uuid4().hex[:8]}"
         db.execute(
             """

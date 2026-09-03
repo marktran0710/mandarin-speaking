@@ -103,7 +103,10 @@ export function useQuizSession({
           // so the picker and recorder agree after a learner returns on this
           // device (including after completing a quiz elsewhere).
           if (derived !== 0) recordLocalStars(storyId, derived);
-          setStars((current) => derived > current ? derived : current);
+          // A successful database read is authoritative for this student and
+          // story. Do not keep a stale local max here: it can mark all rounds
+          // complete even when this learner has no passed round on the server.
+          setStars(derived);
         }
       })
       .catch(() => { /* localStorage stars still apply */ })
@@ -264,7 +267,9 @@ export function useQuizSession({
         correctCount: nextResults.filter((result) => result.correct).length,
         totalTimeMs: Date.now() - quizStartRef.current,
         questionResults: nextResults,
-      }).catch(() => { /* final attempt persistence remains the fallback */ });
+      })
+        .then(() => refreshWeakWords())
+        .catch(() => { /* final attempt persistence remains the fallback */ });
     }
   };
 

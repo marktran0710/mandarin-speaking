@@ -34,8 +34,13 @@ vi.mock("../../services/database", async (importOriginal) => {
 const FORCE_TRANSLATION = 0;
 const FORCE_LAST_AVAILABLE_KIND = 0.999;
 
+function useLocalProgressOnly() {
+  vi.mocked(database.canUseDatabase).mockReturnValue(false);
+}
+
 beforeEach(() => {
   vi.spyOn(Math, "random").mockReturnValue(FORCE_TRANSLATION);
+  vi.mocked(database.canUseDatabase).mockReturnValue(true);
   // The component now actually awaits listVocabQuizAttempts on every mount
   // (previously it fired the call but didn't block on it, so a
   // mockResolvedValueOnce a test queued and never triggered could sit
@@ -114,6 +119,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
   it("unlocks tier 2 (but not 3) once the story has 1 star recorded locally", async () => {
     const { recordLocalStars } = await import("../../utils/quizTiers");
+    useLocalProgressOnly();
     recordLocalStars("s1", 1);
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
     await screen.findByRole("group", { name: "Quiz mode" });
@@ -135,6 +141,19 @@ describe("StoryVocabQuiz star tiers", () => {
     const { loadLocalStars } = await import("../../utils/quizTiers");
     await waitFor(() => expect(loadLocalStars("s1")).toBe(3));
     expect(screen.getByRole("button", { name: /Round 3/ })).toBeEnabled();
+  });
+
+  it("does not let stale local stars mark rounds complete after an authoritative empty database result", async () => {
+    const { recordLocalStars } = await import("../../utils/quizTiers");
+    recordLocalStars("s1", 3);
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Round 1/ })).not.toHaveClass("is-earned");
+    });
+    expect(screen.getByRole("button", { name: /Round 2/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Round 3/ })).toBeDisabled();
   });
 
   it("keeps practice locked until the learner earns all three stars", async () => {
@@ -218,6 +237,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
   it("tier 3 runs against a 150-second overall countdown and ends at the cap", async () => {
     const { recordLocalStars } = await import("../../utils/quizTiers");
+    useLocalProgressOnly();
     recordLocalStars("s1", 2);
     const onComplete = vi.fn();
     render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} onComplete={onComplete} storyId="s1" />);
@@ -242,6 +262,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
   it("tier 1 ignores AI translation distractors while tier 2 uses them", async () => {
     const { recordLocalStars } = await import("../../utils/quizTiers");
+    useLocalProgressOnly();
     const user = userEvent.setup();
     const aiEntries = entries.map((e) => ({
       ...e,
@@ -265,6 +286,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
   it("tier 2 pinyin questions use tone-trap distractors (same syllables, different tone)", async () => {
     const { recordLocalStars } = await import("../../utils/quizTiers");
+    useLocalProgressOnly();
     recordLocalStars("s1", 1);
     // A single entry leaves pinyin as the last available kind at tier 2.
     vi.spyOn(Math, "random").mockReturnValue(FORCE_LAST_AVAILABLE_KIND);
@@ -289,6 +311,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
   it("tier 2 listening questions speak the word and are answered by picking the heard word", async () => {
     const { recordLocalStars } = await import("../../utils/quizTiers");
+    useLocalProgressOnly();
     recordLocalStars("s1", 1);
     const speak = vi.fn();
     vi.stubGlobal("speechSynthesis", { speak, cancel: vi.fn() });

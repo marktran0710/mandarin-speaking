@@ -98,6 +98,21 @@ def test_runtime_response_requires_explicit_server_approved_gate():
     assert classify_bkt_response({**response, "isBktEligible": False}, {"mode": "tier1"})[0] is False
 
 
+def test_runtime_response_accepts_stable_concept_id_separate_from_display_word():
+    response = {
+        "word": "哪裡 / 哪兒",
+        "conceptId": "MC1_003",
+        "itemId": "MC1_003_EASY",
+        "questionKind": "basic_meaning_mcq",
+        "level": "easy",
+        "isBktEligible": True,
+        "bktValidationStatus": "APPROVED",
+        "diagnosticExposureId": "lesson-1:easy:tier1:MC1_003_EASY",
+        "correct": False,
+    }
+    assert classify_bkt_response(response, {"mode": "tier1"}) == (True, [])
+
+
 def test_strict_normalization_uses_first_response_per_item_and_diagnostic_exposure():
     base = {
         "word": "餐廳", "conceptId": "餐廳", "itemId": "item-1",
