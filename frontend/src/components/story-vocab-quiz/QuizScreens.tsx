@@ -19,17 +19,6 @@ interface WeakWordsCardProps {
 
 function WeakWordsCard({ weakEntries, priorityReviewWords, chooseWeakWords }: WeakWordsCardProps) {
   const aggregateWeakCount = priorityReviewWords.length || weakEntries.length;
-  const priorityList = priorityReviewWords.length > 0 && (
-    <ul className="vocab-quiz-priority-list">
-      {priorityReviewWords.map((word) => (
-        <li key={word.wordId}>
-          <span className="vocab-quiz-priority-word">{word.word}</span>
-          <span>{word.meaning || "Vocabulary review"}</span>
-          <span>{word.status.replace("_", " ").toLowerCase()} · {word.observationCount} observations</span>
-        </li>
-      ))}
-    </ul>
-  );
 
   if (aggregateWeakCount === 0) {
     return (
@@ -62,7 +51,6 @@ function WeakWordsCard({ weakEntries, priorityReviewWords, chooseWeakWords }: We
         <span className="vocab-quiz-mode-icon"><StudentIcon name="retry" size={30} /></span>
         <strong><BiLabel zh={`弱項複習 (${aggregateWeakCount})`} pinyin="Ruòxiàng fùxí" en={`Weak words (${aggregateWeakCount})`} /></strong>
         <p><BiLabel zh="這些弱項來自本故事的其他難度，切換到對應難度即可練習。" pinyin="Zhèxiē ruòxiàng láizì běn gùshì de qítā nándù, qiēhuàn dào duìyìng nándù jí kě liànxí." en="These weak words are from another difficulty level. Open that level to practice them." /></p>
-        {priorityList}
       </section>
     );
   }
@@ -72,7 +60,6 @@ function WeakWordsCard({ weakEntries, priorityReviewWords, chooseWeakWords }: We
       <span className="vocab-quiz-mode-icon"><StudentIcon name="retry" size={30} /></span>
       <strong><BiLabel zh={`弱項複習 (${aggregateWeakCount})`} pinyin="Ruòxiàng fùxí" en={`Weak words (${aggregateWeakCount})`} /></strong>
       <p><BiLabel zh="這是本故事各個難度累積的弱項，會從掌握度最低的詞開始。" pinyin="Zhè shì běn gùshì gè gè nándù lěijī de ruòxiàng, huì cóng zhǎngwòdù zuì dī de cí kāishǐ." en="A cumulative list across this story's difficulty levels, starting with the words you know least." /></p>
-      {priorityList}
       <StudentIcon name="arrow-right" size={18} />
     </button>
   );

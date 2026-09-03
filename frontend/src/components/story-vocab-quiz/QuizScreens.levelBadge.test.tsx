@@ -43,7 +43,10 @@ describe("ModeSelectScreen — difficulty level badge", () => {
         }]}
       />,
     );
-    expect(screen.getByRole("region", { name: "Weak words" })).toHaveTextContent("Weak words (1)");
-    expect(screen.getByRole("region", { name: "Weak words" })).toHaveTextContent("附近");
+    const weakWordsRegion = screen.getByRole("region", { name: "Weak words" });
+    expect(weakWordsRegion).toHaveTextContent("Weak words (1)");
+    expect(weakWordsRegion).toHaveTextContent("Open that level to practice them.");
+    expect(weakWordsRegion).not.toHaveTextContent("附近");
+    expect(weakWordsRegion).not.toHaveTextContent("1 observations");
   });
 });

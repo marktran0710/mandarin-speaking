@@ -128,7 +128,9 @@ describe("StoryVocabQuiz weak-words mode", () => {
     await screen.findByRole("group", { name: "Quiz mode" });
 
     const weakWordsButton = await screen.findByRole("button", { name: /Weak words \(1\)/ });
-    expect(weakWordsButton).toHaveTextContent("where");
+    expect(weakWordsButton).not.toHaveTextContent("where");
+    await userEvent.setup().click(weakWordsButton);
+    expect(await screen.findByRole("heading", { name: "哪裡 / 哪兒" })).toBeInTheDocument();
   });
 
   it("records an eligible answer immediately so the first wrong answer can enter BKT", async () => {
@@ -253,7 +255,8 @@ describe("StoryVocabQuiz weak-words mode", () => {
     await user.click(screen.getByRole("button", { name: /Back to menu/ }));
 
     const weakWordsButton = await screen.findByRole("button", { name: /Weak words \(1\)/ });
-    expect(weakWordsButton).toHaveTextContent("1 observations");
+    expect(weakWordsButton).not.toHaveTextContent("1 observations");
+    expect(weakWordsButton).not.toHaveTextContent("一");
     expect(getWeakWords).toHaveBeenCalledTimes(2);
   });
 });

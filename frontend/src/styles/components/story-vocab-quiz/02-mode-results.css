@@ -198,24 +198,6 @@
   background: var(--clay-surface-soft);
   border-color: var(--clay-hairline);
 }
-.vocab-quiz-priority-list {
-  display: grid;
-  grid-column: 2 / 4;
-  gap: var(--space-2xs);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  color: var(--clay-muted);
-  font-size: var(--text-xs);
-}
-.vocab-quiz-priority-list li {
-  display: grid;
-  grid-template-columns: minmax(0, .7fr) minmax(0, 1fr) auto;
-  gap: var(--space-xs);
-  min-width: 0;
-}
-.vocab-quiz-priority-list li > span { min-width: 0; }
-.vocab-quiz-priority-word { color: var(--seal-deep); font-weight: 800; }
 .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > .app-icon {
   grid-column: 4;
   grid-row: 1;
@@ -276,7 +258,6 @@
   .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > p {
     grid-column: 2 / 4;
   }
-  .vocab-quiz-priority-list { grid-column: 2 / 4; }
   .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > strong { grid-row: 1; }
   .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > p { grid-row: 2; }
   .vocab-quiz-secondary-grid > .vocab-quiz-mode-card > .app-icon {
@@ -333,9 +314,6 @@
     grid-column: 2 / 4;
     min-height: 0;
   }
-
-  .vocab-quiz-priority-list { grid-column: 2 / 4; }
-  .vocab-quiz-priority-list li { grid-template-columns: 1fr; gap: var(--space-2xs); }
 
   .vocab-quiz-secondary-grid {
     grid-template-columns: 1fr;
