@@ -27,7 +27,7 @@ from typing import Any, Iterable, Mapping, Sequence
 MIN_DIAGNOSTIC_OBSERVATIONS = 3
 MIN_TYPE_DIVERSITY = 2
 BKT_DIAGNOSTIC_CAPACITIES = {"quiz_1": 20, "quiz_2": 22, "quiz_3": 25}
-BKT_DIAGNOSTIC_TYPES = frozenset({"translation", "reverse", "listening"})
+BKT_DIAGNOSTIC_TYPES = frozenset({"translation", "reverse", "listening", "basic_meaning_mcq"})
 CEILING_ACCURACY = 0.95
 FLOOR_ACCURACY = 0.20
 DIFFICULTY_MIN_RESPONSES = 20

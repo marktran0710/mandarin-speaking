@@ -185,6 +185,9 @@ class CustomStoryRequest(BaseModel):
     # can still be read and re-saved unchanged.
     storyVocabulary: Optional[Dict[str, Dict[str, str]]] = None
     storyPhrases: Optional[Dict[str, Dict[str, str]]] = None
+    # Validated, stable CSV question bank. Each word has one observation per
+    # Easy/Medium/Hard level; the backend stores it separately from frame text.
+    vocabAssessment: Optional[List[Dict[str, Any]]] = None
     published: bool = False
     lessonNumber: Optional[int] = None
     lessonSubOrder: Optional[int] = None

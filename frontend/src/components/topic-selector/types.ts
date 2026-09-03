@@ -1,4 +1,5 @@
 import type { CustomTeacherStory, StoryDifficultyLevel } from "../../utils/teacherStories";
+import type { VocabAssessmentQuestion } from "../../components/story-vocab-quiz/model";
 
 export interface VocabGroup {
   name: string;
@@ -43,6 +44,7 @@ export interface Topic {
   quizMaterialSource?: "live" | "approved";
   quizMaterialApproved?: boolean;
   sourceStory?: CustomTeacherStory;
+  vocabAssessment?: VocabAssessmentQuestion[];
 }
 
 export interface TopicStartOptions {

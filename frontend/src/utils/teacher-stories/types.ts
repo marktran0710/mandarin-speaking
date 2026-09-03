@@ -3,6 +3,8 @@ export interface VocabGroup {
   words: string[];
 }
 
+import type { VocabAssessmentQuestion } from "../../components/story-vocab-quiz/model";
+
 export type StoryDifficultyLevel = "easy" | "medium" | "hard";
 
 /** Learning content shared by every scene in a story tier. */
@@ -122,4 +124,5 @@ export interface CustomTeacherStory {
   /** Quiz Review's in-progress checkbox selections, keyed by tier — see
    * utils/quizPendingApprovals.ts. Not yet published; survives a reload. */
   quizPendingApprovals?: Record<string, unknown>;
+  vocabAssessment?: VocabAssessmentQuestion[];
 }

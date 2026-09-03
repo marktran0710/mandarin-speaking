@@ -4,7 +4,7 @@ import { BiLabel } from "../BiLabel";
 import { ModeSelectScreen, ReviewScreen, SummaryScreen } from "./QuizScreens";
 import { QuizQuestion } from "./QuizQuestion";
 import { useQuizSession } from "./useQuizSession";
-import type { VocabQuizEntry, VocabQuizSummary } from "./model";
+import type { VocabAssessmentLevel, VocabQuizEntry, VocabQuizSummary } from "./model";
 
 export { CLOZE_BLANK, MAX_QUESTIONS, TIMER_TICK_MS, buildQuizQuestion, buildQuizQuestions, collectQuizEntries, quizConceptId, quizItemId } from "./model";
 export type { VocabQuizClozeCandidate, VocabQuizClozeQuestion, VocabQuizEntry, VocabQuizListeningQuestion, VocabQuizMode, VocabQuizPinyinQuestion, VocabQuizPosQuestion, VocabQuizQuestion, VocabQuizQuestionResult, VocabQuizReverseQuestion, VocabQuizSummary, VocabQuizSynonymCandidate, VocabQuizSynonymQuestion, VocabQuizTranslationQuestion } from "./model";
@@ -15,6 +15,12 @@ export default function StoryVocabQuiz({ entries, onDone, onBack, onComplete, st
   onComplete?: (summary: VocabQuizSummary) => void; storyId?: string; baseStoryId?: string;
   level?: "easy" | "medium" | "hard"; studentId?: string; studentName?: string; alreadyCompleted?: boolean;
 }) {
+  const assessmentQuestionCounts = entries.reduce<Partial<Record<VocabAssessmentLevel, number>>>((counts, entry) => {
+    (entry.assessmentQuestions ?? []).forEach((question) => {
+      counts[question.level] = (counts[question.level] ?? 0) + 1;
+    });
+    return counts;
+  }, {});
   useEffect(() => {
     if (!onBack) return;
     const handleBack = onBack;
@@ -45,9 +51,9 @@ export default function StoryVocabQuiz({ entries, onDone, onBack, onComplete, st
       </div>
     );
   }
-  if (session.screen === "mode-select") return <ModeSelectScreen stars={session.stars} weakEntries={session.weakEntries} priorityReviewWords={session.priorityReviewWords} level={level} alreadyCompleted={alreadyCompleted} startTier={session.startTier} chooseWeakWords={() => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.weakEntries, session.weakEntries.length); }} showReview={() => session.setScreen("review")} />;
+  if (session.screen === "mode-select") return <ModeSelectScreen stars={session.stars} weakEntries={session.weakEntries} priorityReviewWords={session.priorityReviewWords} level={level} assessmentQuestionCounts={assessmentQuestionCounts} alreadyCompleted={alreadyCompleted} startTier={session.startTier} chooseWeakWords={() => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.weakEntries, session.weakEntries.length); }} showReview={() => session.setScreen("review")} />;
   if (session.screen === "review") return <ReviewScreen entries={entries} back={() => session.setScreen("mode-select")} />;
-  if (session.screen === "summary") return <SummaryScreen mode={session.mode} results={session.results} missedWords={session.missedWords} missedEntries={session.missedEntries} isRetryRound={session.isRetryRound} stars={session.stars} onDone={onDone} startTier={session.startTier} practiceMissedWords={session.practiceMissedWords} backToModes={session.returnToModes} />;
+  if (session.screen === "summary") return <SummaryScreen mode={session.mode} results={session.results} missedWords={session.missedWords} missedEntries={session.missedEntries} isRetryRound={session.isRetryRound} isFullAssessment={session.assessmentFlow} stars={session.stars} onDone={onDone} startTier={session.startTier} practiceMissedWords={session.practiceMissedWords} backToModes={session.returnToModes} />;
   if (!session.question) return null;
-  return <QuizQuestion question={session.question} mode={session.mode} selected={session.selected} results={session.results} index={session.index} questionLimit={session.questionLimit} requestedQuestionCount={session.requestedQuestionCount} isRetryRound={session.isRetryRound} isLast={session.isLast} timeLeftMs={session.timeLeftMs} timeLimitMs={session.timeLimitMs} showFinishButton={session.showFinishButton} choose={session.choose} next={session.next} finish={session.finish} speakWord={session.speakWord} />;
+  return <QuizQuestion question={session.question} mode={session.mode} selected={session.selected} results={session.results} index={session.index} questionLimit={session.questionLimit} requestedQuestionCount={session.requestedQuestionCount} isRetryRound={session.isRetryRound} isLast={session.isLast} timeLeftMs={session.timeLeftMs} timeLimitMs={session.timeLimitMs} showFinishButton={session.showFinishButton} isFullAssessment={session.assessmentFlow} choose={session.choose} next={session.next} finish={session.finish} speakWord={session.speakWord} />;
 }

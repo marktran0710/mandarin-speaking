@@ -18,6 +18,7 @@ from main import (
     VocabularySynonymUpdateRequest,
 )
 from reference_voice import generate_scene_reference
+from vocab_assessment import validate_assessment_payload
 
 # Students may read lesson content after login; story writes and generated
 # media are restricted by auth.require_story_access to teacher/admin accounts.
@@ -91,6 +92,22 @@ async def list_custom_stories(
 
 @router.post("/api/custom-stories")
 async def create_custom_story(story: CustomStoryRequest):
+    if story.vocabAssessment is not None:
+        assessment_issues = validate_assessment_payload(story.vocabAssessment)
+        if assessment_issues:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": "vocabAssessment failed validation.",
+                    "issues": [issue.__dict__ for issue in assessment_issues],
+                },
+            )
+    fields_set = getattr(story, "model_fields_set", getattr(story, "__fields_set__", set()))
+    assessment_update = (
+        "vocab_assessment = EXCLUDED.vocab_assessment"
+        if "vocabAssessment" in fields_set
+        else "vocab_assessment = custom_stories.vocab_assessment"
+    )
     frames = [frame.model_dump() for frame in story.frames]
     stored_frames = main.persist_story_frame_images(story.id, frames)
     stored_frames = main.persist_story_frame_audio(story.id, stored_frames)
@@ -101,13 +118,13 @@ async def create_custom_story(story: CustomStoryRequest):
         # the listed columns keeps a teacher's quiz-review work and the
         # story's original position in the list.
         db.execute(
-            """
+            f"""
             INSERT INTO custom_stories (
                 id, title, frames, published,
                 lesson_number, lesson_sub_order, rubric_scores,
-                story_vocabulary, story_phrases
+                story_vocabulary, story_phrases, vocab_assessment
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 title = EXCLUDED.title,
                 frames = EXCLUDED.frames,
@@ -116,7 +133,8 @@ async def create_custom_story(story: CustomStoryRequest):
                 lesson_sub_order = EXCLUDED.lesson_sub_order,
                 rubric_scores = EXCLUDED.rubric_scores,
                 story_vocabulary = EXCLUDED.story_vocabulary,
-                story_phrases = EXCLUDED.story_phrases
+                story_phrases = EXCLUDED.story_phrases,
+                {assessment_update}
             """,
             (
                 story.id,
@@ -128,6 +146,7 @@ async def create_custom_story(story: CustomStoryRequest):
                 Jsonb(story.rubricScores) if story.rubricScores is not None else None,
                 Jsonb(story.storyVocabulary) if story.storyVocabulary is not None else None,
                 Jsonb(story.storyPhrases) if story.storyPhrases is not None else None,
+                Jsonb(story.vocabAssessment) if story.vocabAssessment is not None else None,
             ),
         )
     return {

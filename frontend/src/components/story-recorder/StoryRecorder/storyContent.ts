@@ -4,6 +4,7 @@ import type {
   VocabularySynonymUpdate,
 } from "../../../services/database";
 import type { CustomTeacherStory, StoryDifficultyLevel } from "../../../utils/teacherStories";
+import type { VocabAssessmentQuestion } from "../../story-vocab-quiz/model";
 
 const MAX_VOCAB_DISTRACTORS_PER_WORD = 8;
 const MAX_VOCAB_CLOZE_PER_WORD = 4;
@@ -51,6 +52,7 @@ export interface Topic {
   lessonSubOrder?: number | null;
   difficultyLevel?: StoryDifficultyLevel;
   sourceStory?: CustomTeacherStory;
+  vocabAssessment?: VocabAssessmentQuestion[];
 }
 
 export function buildSceneReferenceCurves(

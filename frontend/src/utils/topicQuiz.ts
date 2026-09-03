@@ -8,6 +8,7 @@ import { collectQuizEntries, type VocabQuizEntry } from "../components/story-voc
 import { applyExclusionsToWord, storyQuizExclusions } from "./quizExclusions";
 import { toPinyin } from "./pinyin";
 import type { CustomTeacherStory } from "./teacherStories";
+import type { VocabAssessmentQuestion } from "../components/story-vocab-quiz/model";
 
 /** Just the story fields the quiz is built from. Structural on purpose:
  * TopicSelector and StoryRecorder each declare their own `Topic`, so naming
@@ -36,6 +37,7 @@ export interface QuizSourceTopic {
    * storyToTopic) — carries quizExclusions so a teacher's Quiz Review marks
    * actually take effect here instead of only being saved and ignored. */
   sourceStory?: CustomTeacherStory;
+  vocabAssessment?: VocabAssessmentQuestion[];
 }
 
 export interface QuizMaterialAuditIssue {
@@ -129,6 +131,26 @@ export function auditTopicQuizMaterial(topic: QuizSourceTopic): QuizMaterialAudi
  * exists) — confirms it's used in real context, not just an isolated
  * flashcard pair. */
 export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
+  if (topic.vocabAssessment?.length) {
+    const byWord = new Map<string, VocabAssessmentQuestion[]>();
+    topic.vocabAssessment.forEach((question) => {
+      const questions = byWord.get(question.wordId) ?? [];
+      questions.push(question);
+      byWord.set(question.wordId, questions);
+    });
+    return Array.from(byWord.entries()).map(([wordId, assessmentQuestions]) => {
+      const first = assessmentQuestions[0];
+      return {
+        word: first.targetWord,
+        translation: first.simpleEnglishMeaning,
+        wordId,
+        pinyin: first.pinyin,
+        pos: first.pos,
+        assessmentQuestions,
+        bktValidationStatus: "APPROVED",
+      };
+    });
+  }
   const quizVocabulary = topic.quizVocabulary ?? topic.vocabulary;
   const quizSuggestedAnswers = topic.quizSuggestedAnswers ?? topic.suggestedAnswers;
   const quizTranslations = topic.quizVocabularyTranslation ?? topic.vocabularyTranslation;

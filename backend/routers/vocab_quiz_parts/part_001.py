@@ -1,5 +1,6 @@
 from collections import defaultdict
 from typing import Optional
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from psycopg.types.json import Jsonb
@@ -190,10 +191,10 @@ async def create_vocab_quiz_attempt(
                 (existing.get("question_results") or []) == raw_question_results,
             ])
             if not same_attempt:
-                raise HTTPException(
-                    status_code=409,
-                    detail="Quiz attempt already exists with different response data.",
-                )
+                # Older generated recorder bundles use a millisecond-only id.
+                # If three assessment blocks finish in that same millisecond,
+                # preserve both attempts instead of dropping later blocks.
+                attempt.id = f"{attempt.id}-{uuid4().hex[:8]}"
         db.execute(
             """
             INSERT INTO vocab_quiz_attempts

@@ -21,6 +21,9 @@ export interface VocabQuizSynonymCandidate {
 export interface VocabQuizEntry {
   word: string;
   translation: string;
+  /** Stable identity and teacher-authored observations imported from a CSV bank. */
+  wordId?: string;
+  assessmentQuestions?: VocabAssessmentQuestion[];
   /** The student-serving snapshot is explicitly approved; live material is
    * draft and must not become research evidence. */
   bktValidationStatus?: "APPROVED" | "DRAFT";
@@ -34,6 +37,26 @@ export interface VocabQuizEntry {
   aiDistractors?: string[];
   aiCloze?: VocabQuizClozeCandidate[];
   aiSynonym?: VocabQuizSynonymCandidate[];
+}
+
+export type VocabAssessmentLevel = "easy" | "medium" | "hard";
+
+export interface VocabAssessmentQuestion {
+  questionId: string;
+  wordId: string;
+  targetWord: string;
+  pinyin: string;
+  pos: string;
+  simpleEnglishMeaning: string;
+  level: VocabAssessmentLevel;
+  difficultyWeight: 1 | 2 | 3;
+  questionType: "basic_meaning_mcq" | "context_cloze_mcq" | "productive_recall";
+  answerFormat: "single_choice" | "free_text";
+  prompt: string;
+  options: string[];
+  correctAnswer: string;
+  acceptedAnswers: string[];
+  explanation: string;
 }
 
 // The blank marker inside a cloze question's sentence — split out at render
@@ -98,6 +121,18 @@ export interface VocabQuizListeningQuestion {
   isAiGenerated: boolean;
 }
 
+export interface VocabQuizAssessmentQuestion {
+  kind: "assessment";
+  word: string;
+  prompt: string;
+  options: string[];
+  correctAnswer: string;
+  acceptedAnswers: string[];
+  explanation: string;
+  assessment: VocabAssessmentQuestion;
+  isAiGenerated: false;
+}
+
 export type VocabQuizQuestion =
   | VocabQuizTranslationQuestion
   | VocabQuizClozeQuestion
@@ -105,7 +140,8 @@ export type VocabQuizQuestion =
   | VocabQuizPosQuestion
   | VocabQuizSynonymQuestion
   | VocabQuizReverseQuestion
-  | VocabQuizListeningQuestion;
+  | VocabQuizListeningQuestion
+  | VocabQuizAssessmentQuestion;
 
 export interface VocabQuizQuestionResult {
   word: string;
@@ -114,7 +150,7 @@ export interface VocabQuizQuestionResult {
   /** Stable identity fields are optional so old attempts remain readable. */
   itemId?: string;
   conceptId?: string;
-  questionKind?: QuizQuestionKind;
+  questionKind?: QuizQuestionKind | VocabAssessmentQuestion["questionType"];
   level?: "easy" | "medium" | "hard";
   baseStoryId?: string;
   itemVersion?: string;
@@ -203,12 +239,39 @@ export function shuffle<T>(items: T[]): T[] {
   return result;
 }
 
-function normalizeAnswer(text: string): string {
-  return text
+export function normalizeQuizAnswer(text: string): string {
+  return text.normalize("NFKC")
     .trim()
     .toLowerCase()
-    .replace(/[.。!！?？]+$/u, "")
-    .trim();
+    .replace(/[\s\p{P}\p{S}_]+/gu, "");
+}
+
+export function assessmentAnswerIsCorrect(question: VocabQuizAssessmentQuestion, submittedAnswer: string): boolean {
+  const accepted = question.acceptedAnswers.length > 0 ? question.acceptedAnswers : [question.correctAnswer];
+  return accepted.some((answer) => normalizeQuizAnswer(answer) === normalizeQuizAnswer(submittedAnswer));
+}
+
+export function buildAssessmentQuestions(
+  entries: VocabQuizEntry[],
+  level?: VocabAssessmentLevel,
+): VocabQuizAssessmentQuestion[] {
+  const levels = level ? [level] : (["easy", "medium", "hard"] as const);
+  return levels.flatMap((assessmentLevel) => shuffle(
+    entries.flatMap((entry) => (entry.assessmentQuestions ?? [])
+      .filter((assessment) => assessment.level === assessmentLevel)
+      .map((assessment) => ({
+        kind: "assessment" as const,
+        word: assessment.targetWord,
+        prompt: assessment.prompt,
+        options: shuffle([...assessment.options]),
+        correctAnswer: assessment.correctAnswer,
+        acceptedAnswers: assessment.acceptedAnswers,
+        explanation: assessment.explanation,
+        assessment,
+        isAiGenerated: false as const,
+      })),
+    ),
+  ));
 }
 
 function normalizeReading(entry: VocabQuizEntry): string {
@@ -239,9 +302,9 @@ export function collectQuizEntries(
     if (context !== undefined && !context.includes(word)) return;
     seen.add(word);
     const safeDistractors = (values: string[] | undefined, extraForbidden: string[] = []) => {
-      const forbidden = new Set([word, ...extraForbidden].map(normalizeAnswer));
+      const forbidden = new Set([word, ...extraForbidden].map(normalizeQuizAnswer));
       return (values ?? []).filter(
-        (value) => typeof value === "string" && value.trim() && !forbidden.has(normalizeAnswer(value)),
+        (value) => typeof value === "string" && value.trim() && !forbidden.has(normalizeQuizAnswer(value)),
       );
     };
     const cloze = (aiCloze?.[i] ?? []).filter((c) => c.sentence.split(word).length === 2)
@@ -249,7 +312,7 @@ export function collectQuizEntries(
       .filter((c) => c.distractors.length > 0)
       .slice(0, 1);
     const synonym = (aiSynonym?.[i] ?? [])
-      .filter((c) => normalizeAnswer(c.synonym) !== normalizeAnswer(word))
+      .filter((c) => normalizeQuizAnswer(c.synonym) !== normalizeQuizAnswer(word))
       .map((c) => ({ ...c, distractors: safeDistractors(c.distractors, [c.synonym]) }))
       .filter((c) => c.distractors.length > 0)
       .slice(0, 1);
@@ -276,24 +339,24 @@ function buildTranslationQuestion(
   useAiDistractors = true,
   forbiddenAnswers: ReadonlySet<string> = new Set(),
 ): VocabQuizTranslationQuestion {
-  const usedTranslations = new Set([normalizeAnswer(entry.translation)]);
+  const usedTranslations = new Set([normalizeQuizAnswer(entry.translation)]);
   const aiDistractors = shuffle(
     useAiDistractors
       ? (entry.aiDistractors ?? []).filter(
-          (d) => !usedTranslations.has(normalizeAnswer(d)) && !isForbiddenFutureAnswer(d, forbiddenAnswers),
+          (d) => !usedTranslations.has(normalizeQuizAnswer(d)) && !isForbiddenFutureAnswer(d, forbiddenAnswers),
         )
       : [],
   ).slice(0, OPTION_COUNT - 1);
-  aiDistractors.forEach((d) => usedTranslations.add(normalizeAnswer(d)));
+  aiDistractors.forEach((d) => usedTranslations.add(normalizeQuizAnswer(d)));
   const realDistractors = shuffle(Array.from(new Set(
     allEntries
-      .filter((e) => e.word !== entry.word && !usedTranslations.has(normalizeAnswer(e.translation))
+      .filter((e) => e.word !== entry.word && !usedTranslations.has(normalizeQuizAnswer(e.translation))
         && !isForbiddenFutureAnswer(e.translation, forbiddenAnswers))
       .map((e) => e.translation),
   ))).slice(0, OPTION_COUNT - 1 - aiDistractors.length);
-  realDistractors.forEach((d) => usedTranslations.add(normalizeAnswer(d)));
+  realDistractors.forEach((d) => usedTranslations.add(normalizeQuizAnswer(d)));
   const fillerDistractors = shuffle(FILLER_DISTRACTORS.filter(
-    (word) => !usedTranslations.has(normalizeAnswer(word)) && !isForbiddenFutureAnswer(word, forbiddenAnswers),
+    (word) => !usedTranslations.has(normalizeQuizAnswer(word)) && !isForbiddenFutureAnswer(word, forbiddenAnswers),
   )).slice(0, OPTION_COUNT - 1 - aiDistractors.length - realDistractors.length);
   return {
     kind: "translation",
@@ -318,7 +381,7 @@ function buildClozeQuestion(
   const realWordDistractors = shuffle(Array.from(new Set(
     allEntries.filter((e) => e.word !== entry.word && !usedWords.has(e.word)
       && !isForbiddenFutureAnswer(e.word, forbiddenAnswers)
-      && normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation)).map((e) => e.word),
+      && normalizeQuizAnswer(e.translation) !== normalizeQuizAnswer(entry.translation)).map((e) => e.word),
   ))).slice(0, OPTION_COUNT - 1 - aiWordDistractors.length);
   return {
     kind: "cloze",
@@ -359,7 +422,7 @@ function buildReverseQuestion(entry: VocabQuizEntry, allEntries: VocabQuizEntry[
   const usedWords = new Set([entry.word]);
   const distractors = shuffle(Array.from(new Set(allEntries.filter((e) => !usedWords.has(e.word)
     && e.word !== entry.word && !isForbiddenFutureAnswer(e.word, forbiddenAnswers)
-    && normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation)).map((e) => e.word)))).slice(0, OPTION_COUNT - 1);
+    && normalizeQuizAnswer(e.translation) !== normalizeQuizAnswer(entry.translation)).map((e) => e.word)))).slice(0, OPTION_COUNT - 1);
   return { kind: "reverse", word: entry.word, translation: entry.translation, correctWord: entry.word, options: shuffle([entry.word, ...distractors]), isAiGenerated: false };
 }
 
@@ -368,7 +431,7 @@ function buildListeningQuestion(entry: VocabQuizEntry, allEntries: VocabQuizEntr
   const usedWords = new Set([entry.word]);
   const distractors = shuffle(Array.from(new Set(allEntries.filter((e) => !usedWords.has(e.word)
     && e.word !== entry.word && !isForbiddenFutureAnswer(e.word, forbiddenAnswers)
-    && normalizeReading(e) !== reading && normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation))
+    && normalizeReading(e) !== reading && normalizeQuizAnswer(e.translation) !== normalizeQuizAnswer(entry.translation))
     .map((e) => e.word)))).slice(0, OPTION_COUNT - 1);
   return { kind: "listening", word: entry.word, correctWord: entry.word, options: shuffle([entry.word, ...distractors]), isAiGenerated: false };
 }
@@ -396,7 +459,7 @@ function buildSynonymQuestion(entry: VocabQuizEntry, allEntries: VocabQuizEntry[
   aiWordDistractors.forEach((d) => usedWords.add(d));
   const realWordDistractors = shuffle(Array.from(new Set(allEntries.filter((e) => e.word !== entry.word
     && !usedWords.has(e.word) && !isForbiddenFutureAnswer(e.word, forbiddenAnswers)
-    && normalizeAnswer(e.translation) !== normalizeAnswer(entry.translation)).map((e) => e.word),
+    && normalizeQuizAnswer(e.translation) !== normalizeQuizAnswer(entry.translation)).map((e) => e.word),
   ))).slice(0, OPTION_COUNT - 1 - aiWordDistractors.length);
   return { kind: "synonym", word: entry.word, correctSynonym: candidate.synonym, options: shuffle([candidate.synonym, ...aiWordDistractors, ...realWordDistractors]), isAiGenerated: true };
 }
@@ -422,6 +485,7 @@ function isKindAvailable(kind: QuizQuestionKind, entry: VocabQuizEntry, allEntri
     case "cloze": return Boolean(entry.aiCloze?.length);
     case "pos": return Boolean(entry.pos);
     case "synonym": return Boolean(entry.aiSynonym?.length);
+    case "assessment": return false;
   }
 }
 

@@ -84,6 +84,8 @@ export function quizQuestionAnswer(question: VocabQuizQuestion): string {
     case "reverse":
     case "listening":
       return question.correctWord;
+    case "assessment":
+      return question.correctAnswer;
   }
 }
 
@@ -93,6 +95,8 @@ export function quizQuestionPrompt(question: VocabQuizQuestion): string {
       return question.sentenceWithBlank;
     case "reverse":
       return question.translation;
+    case "assessment":
+      return question.prompt;
     default:
       return question.word;
   }

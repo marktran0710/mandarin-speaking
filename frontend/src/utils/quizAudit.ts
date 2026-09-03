@@ -59,6 +59,8 @@ function correctAnswerOf(question: VocabQuizQuestion): string {
       return question.correctPos;
     case "synonym":
       return question.correctSynonym;
+    case "assessment":
+      return question.correctAnswer;
   }
 }
 
@@ -74,6 +76,13 @@ export function auditQuizQuestion(
   const label = `[${question.kind}] ${question.word}`;
   const correct = correctAnswerOf(question);
   const options = question.options;
+
+  if (question.kind === "assessment" && question.assessment.answerFormat === "free_text") {
+    if (options.length > 0) {
+      issues.push({ severity: "error", rule: "free-text-has-options", detail: `${label}: productive recall must not expose answer choices` });
+    }
+    return issues;
+  }
 
   // ── Every kind: correct answer present, options distinct, enough options ──
   if (!options.includes(correct)) {

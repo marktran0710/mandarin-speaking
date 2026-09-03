@@ -333,7 +333,7 @@ def diagnostic_status(db: Any, student_id: str, story_id: str | None = None, par
 def _known_words(db: Any, story_id: str | None = None) -> dict[str, dict[str, Any]]:
     """Read the current published vocabulary pool without inventing evidence."""
     known: dict[str, dict[str, Any]] = {}
-    query = "SELECT id, lesson_number, frames, story_vocabulary FROM custom_stories WHERE published = TRUE"
+    query = "SELECT id, lesson_number, frames, story_vocabulary, vocab_assessment FROM custom_stories WHERE published = TRUE"
     params: list[Any] = []
     if story_id:
         canonical = canonical_story_id(story_id)
@@ -341,13 +341,29 @@ def _known_words(db: Any, story_id: str | None = None) -> dict[str, dict[str, An
         params = [canonical or story_id, story_id]
     stories = db.execute(query, params).fetchall()
     for story in stories:
+        assessment_word_ids = {
+            normalize_word_id(item.get("targetWord")): item.get("wordId")
+            for item in (story.get("vocab_assessment") or [])
+            if isinstance(item, dict) and item.get("targetWord") and item.get("wordId")
+        }
+
         def add_words(raw_words: Any, raw_translations: Any) -> None:
             word_list = [part.strip() for part in raw_words.split(",") if part.strip()] if isinstance(raw_words, str) else []
             meaning_list = [part.strip() for part in raw_translations.split(",") if part.strip()] if isinstance(raw_translations, str) else []
             for index, word in enumerate(word_list):
-                known.setdefault(normalize_word_id(word), {
+                word_id = assessment_word_ids.get(normalize_word_id(word), normalize_word_id(word))
+                known.setdefault(word_id, {
                     "word": word,
                     "meaning": meaning_list[index] if index < len(meaning_list) else None,
+                    "lessonId": story["id"],
+                    "lessonNumber": story.get("lesson_number"),
+                })
+
+        for item in (story.get("vocab_assessment") or []):
+            if isinstance(item, dict) and item.get("wordId") and item.get("targetWord"):
+                known.setdefault(str(item["wordId"]), {
+                    "word": item["targetWord"],
+                    "meaning": item.get("simpleEnglishMeaning"),
                     "lessonId": story["id"],
                     "lessonNumber": story.get("lesson_number"),
                 })

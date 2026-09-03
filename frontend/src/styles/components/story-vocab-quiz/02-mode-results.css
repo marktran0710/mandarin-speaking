@@ -491,6 +491,73 @@
   font-size: 1.6rem;
 }
 
+.vocab-quiz-assessment-prompt {
+  max-width: 42rem;
+  white-space: pre-wrap;
+}
+
+.vocab-quiz-free-text-answer {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-sm);
+  width: min(100%, 34rem);
+}
+
+.vocab-quiz-free-text-answer input {
+  min-width: 0;
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface);
+  color: var(--clay-ink);
+  font: inherit;
+}
+
+.vocab-quiz-free-text-answer input:focus-visible {
+  outline: 3px solid var(--tone1-soft);
+  outline-offset: 2px;
+}
+
+.btn-vocab-quiz-check {
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-md);
+  border: 0;
+  border-radius: var(--clay-radius-md);
+  background: var(--seal-deep);
+  color: var(--clay-surface);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-vocab-quiz-check:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.vocab-quiz-assessment-feedback {
+  display: grid;
+  gap: var(--space-2xs);
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--clay-radius-md);
+  background: var(--seal-soft);
+}
+
+.vocab-quiz-assessment-feedback p {
+  margin: 0;
+}
+
+.vocab-quiz-assessment-feedback .is-correct {
+  color: var(--jade-deep);
+  font-weight: 800;
+}
+
+.vocab-quiz-assessment-feedback .is-incorrect {
+  color: var(--tone1-deep);
+  font-weight: 800;
+}
+
 .btn-vocab-quiz-play {
   font-size: 2rem;
   line-height: 1;

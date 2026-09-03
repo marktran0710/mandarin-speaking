@@ -390,6 +390,7 @@ export function storyToTopic(
   return {
     id: topicId,
     name: story.title,
+    ...(story.vocabAssessment?.length ? { vocabAssessment: story.vocabAssessment } : {}),
     description: "Teacher published activity",
     skillFocus: "Teacher published activity",
     images: story.frames.map((frame) =>
