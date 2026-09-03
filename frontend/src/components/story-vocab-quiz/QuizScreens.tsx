@@ -4,7 +4,7 @@ import { toPinyin } from "../../utils/pinyin";
 import { TIER_CARDS, REVIEW_CARD, type VocabAssessmentLevel, type VocabQuizEntry, type VocabQuizMode, type VocabQuizQuestionResult } from "./model";
 import type { VocabPriorityReviewWord } from "../../services/database";
 import { TIER_CONFIGS, attemptEarnsStar, effectiveTierPassCount, isTierUnlocked, nextStarGap, practiceUnlocked, tierConfigFromMode, type QuizTier, type TierMode } from "../../utils/quizTiers";
-import { ChallengeEntry, FocusWords, LessonCompletionSummary, LessonLearningPath, LessonProgressOverview, RoundStats } from "./LessonVocabularyProgress";
+import { FocusWords, LessonCompletionSummary, MasteryProgressBar } from "./LessonVocabularyProgress";
 import type { LessonVocabularyProgress } from "./lesson-vocab-progress";
 
 const LEVEL_COPY: Record<"easy" | "medium" | "hard", { zh: string; pinyin: string; en: string }> = {
@@ -93,7 +93,18 @@ function MasteredWordsSummary({ masteredWords }: { masteredWords: VocabPriorityR
   );
 }
 
-export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [], masteredWords = [], level = "easy", assessmentQuestionCounts, startTier, chooseWeakWords, showReview, progress, onContinue, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; masteredWords?: VocabPriorityReviewWord[]; level?: "easy" | "medium" | "hard"; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
+function QuizChallengeCard({ progress, onStart }: { progress: LessonVocabularyProgress; onStart: () => void }) {
+  return (
+    <button type="button" className="vocab-quiz-mode-card vocab-quiz-challenge-card" onClick={onStart}>
+      <span className="vocab-quiz-mode-icon"><StudentIcon name="target" size={30} /></span>
+      <strong><BiLabel zh="課程挑戰" pinyin="Kèchéng tiǎozhàn" en="Lesson challenge" /></strong>
+      <p><BiLabel zh={`混合 ${progress.totalWords} 個詞的題型，測試整課掌握度。`} pinyin={`Hùnhé ${progress.totalWords} gè cí de tíxíng, cèshì zhěng kè zhǎngwòdù.`} en={`Mixed practice across all ${progress.totalWords} lesson words.`} /></p>
+      <StudentIcon name="arrow-right" size={18} />
+    </button>
+  );
+}
+
+export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [], masteredWords = [], level = "easy", assessmentQuestionCounts, startTier, chooseWeakWords, showReview, progress, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; masteredWords?: VocabPriorityReviewWord[]; level?: "easy" | "medium" | "hard"; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
   const assessmentLevelByMode: Record<TierMode, VocabAssessmentLevel> = { tier1: "easy", tier2: "medium", tier3: "hard" };
   const tierDescription = (card: (typeof TIER_CARDS)[number], config: (typeof TIER_CONFIGS)[TierMode]) => {
     const count = assessmentQuestionCounts?.[assessmentLevelByMode[card.mode]];
@@ -106,28 +117,96 @@ export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [],
       en: `${count} question${count === 1 ? "" : "s"}${config.timeLimitMs ? ` in ${config.timeLimitMs / 1000}s` : ""} — ${passCount} right to pass.`,
     };
   };
-  return <section className="story-vocab-quiz vocab-quiz-mode-select" aria-label="Vocabulary quiz">
-    <div className="vocab-quiz-header"><div className="vocab-quiz-header-tags"><p className="eyebrow"><BiLabel zh="生詞測驗" pinyin="Shēngcí cèyàn" en="Vocabulary Quiz" /></p><p className="vocab-quiz-level-badge"><BiLabel zh={LEVEL_COPY[level].zh} pinyin={LEVEL_COPY[level].pinyin} en={LEVEL_COPY[level].en} /></p></div><h1 className="vocab-quiz-mode-title">{practiceUnlocked(stars)
-      ? <BiLabel zh="三顆星都拿到了！" pinyin="Sān kē xīng dōu nádào le!" en="All three stars earned" />
-      : <BiLabel zh="拿到三顆星，開始說話練習" pinyin="Nádào sān kē xīng, kāishǐ shuōhuà liànxí" en="Earn three stars to open speaking practice" />}</h1><p className="vocab-quiz-star-count" aria-label={`${stars} of 3 stars earned`}>{([1, 2, 3] as const).map((tier) => <span key={tier} className={stars >= tier ? "star-earned" : "star-open"}><StudentIcon name="star" size={26} fill={stars >= tier ? "currentColor" : "none"} /></span>)}</p></div>
-    <div className="vocab-quiz-mode-grid" role="group" aria-label="Quiz mode">{TIER_CARDS.map((card) => { const config = TIER_CONFIGS[card.mode]; const unlocked = isTierUnlocked(config.tier, stars); const earned = stars >= config.tier; const description = tierDescription(card, config); return <button key={card.mode} type="button" className={`vocab-quiz-mode-card vocab-quiz-mode-${card.mode}${unlocked ? "" : " is-locked"}${earned ? " is-earned" : ""}`} disabled={!unlocked} onClick={() => startTier(card.mode)}><span className="vocab-quiz-mode-icon"><StudentIcon name={unlocked ? card.iconName : "lock"} size={30} /></span><strong><BiLabel zh={card.title} pinyin={card.titlePinyin} en={card.titleEn} />{earned && <StudentIcon name="check-circle" size={15} aria-label="Star earned" />}</strong><p>{unlocked ? <BiLabel zh={description.zh} pinyin={description.pinyin} en={description.en} /> : <BiLabel zh={`先拿到 ${config.tier - 1} 顆星。`} pinyin={`Xiān nádào ${config.tier - 1} kē xīng.`} en={`Earn ${config.tier - 1} star${config.tier - 1 === 1 ? "" : "s"} first.`} />}</p></button>; })}
-      <div className="vocab-quiz-secondary-grid">
-        <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-review" onClick={showReview}><span className="vocab-quiz-mode-icon"><StudentIcon name={REVIEW_CARD.iconName} size={30} /></span><strong><BiLabel zh={REVIEW_CARD.title} pinyin={REVIEW_CARD.titlePinyin} en={REVIEW_CARD.titleEn} /></strong><p><BiLabel zh={REVIEW_CARD.desc} pinyin={REVIEW_CARD.descPinyin} en={REVIEW_CARD.descEn} /></p><StudentIcon name="arrow-right" size={18} /></button>
+  const remainingStars = Math.max(0, 3 - stars);
+  const showUnlockGoal = !practiceUnlocked(stars);
+
+  return (
+    <section className="story-vocab-quiz vocab-quiz-mode-select" aria-label="Vocabulary quiz">
+      <header className="vocab-quiz-header">
+        <div className="vocab-quiz-header-tags">
+          <p className="eyebrow"><BiLabel zh="生詞測驗" pinyin="Shēngcí cèyàn" en="Vocabulary Quiz" /></p>
+          <p className="vocab-quiz-level-badge"><BiLabel zh={LEVEL_COPY[level].zh} pinyin={LEVEL_COPY[level].pinyin} en={LEVEL_COPY[level].en} /></p>
+        </div>
+        <h1 className="vocab-quiz-mode-title">
+          {practiceUnlocked(stars)
+            ? <BiLabel zh="三顆星都拿到了！" pinyin="Sān kē xīng dōu nádào le!" en="All three stars earned" />
+            : <BiLabel zh="拿到三顆星，開始說話練習" pinyin="Nádào sān kē xīng, kāishǐ shuōhuà liànxí" en="Earn three stars to open speaking practice" />}
+        </h1>
+        <p className="vocab-quiz-star-count" aria-label={`${stars} of 3 stars earned`}>
+          {([1, 2, 3] as const).map((tier) => (
+            <span key={tier} className={stars >= tier ? "star-earned" : "star-open"}>
+              <StudentIcon name="star" size={26} fill={stars >= tier ? "currentColor" : "none"} />
+            </span>
+          ))}
+        </p>
+      </header>
+
+      {progress && <MasteryProgressBar progress={progress} />}
+
+      <div className="vocab-quiz-mode-grid" role="group" aria-label="Quiz mode">
+        {TIER_CARDS.map((card) => {
+          const config = TIER_CONFIGS[card.mode];
+          const unlocked = isTierUnlocked(config.tier, stars);
+          const earned = stars >= config.tier;
+          const description = tierDescription(card, config);
+
+          return (
+            <button
+              key={card.mode}
+              type="button"
+              className={`vocab-quiz-mode-card vocab-quiz-mode-${card.mode}${unlocked ? "" : " is-locked"}${earned ? " is-earned" : ""}`}
+              disabled={!unlocked}
+              onClick={() => startTier(card.mode)}
+            >
+              <span className="vocab-quiz-mode-icon"><StudentIcon name={unlocked ? card.iconName : "lock"} size={30} /></span>
+              <strong>
+                <BiLabel zh={card.title} pinyin={card.titlePinyin} en={card.titleEn} />
+                {earned && <StudentIcon name="check-circle" size={15} aria-label="Star earned" />}
+              </strong>
+              <p>
+                {unlocked
+                  ? <BiLabel zh={description.zh} pinyin={description.pinyin} en={description.en} />
+                  : <BiLabel zh={`先拿到 ${config.tier - 1} 顆星。`} pinyin={`Xiān nádào ${config.tier - 1} kē xīng.`} en={`Earn ${config.tier - 1} star${config.tier - 1 === 1 ? "" : "s"} first.`} />}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="vocab-quiz-secondary-grid" role="group" aria-label="More practice">
+        <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-review" onClick={showReview}>
+          <span className="vocab-quiz-mode-icon"><StudentIcon name={REVIEW_CARD.iconName} size={30} /></span>
+          <strong><BiLabel zh={REVIEW_CARD.title} pinyin={REVIEW_CARD.titlePinyin} en={REVIEW_CARD.titleEn} /></strong>
+          <p><BiLabel zh={REVIEW_CARD.desc} pinyin={REVIEW_CARD.descPinyin} en={REVIEW_CARD.descEn} /></p>
+          <StudentIcon name="arrow-right" size={18} />
+        </button>
         <WeakWordsCard
           weakEntries={weakEntries}
           priorityReviewWords={priorityReviewWords}
           chooseWeakWords={chooseWeakWords}
         />
       </div>
-    </div>
-    {progress && <LessonProgressOverview progress={progress} onContinue={onContinue} />}
-    <div className="vocab-quiz-mode-supporting-content">
-      <MasteredWordsSummary masteredWords={masteredWords} />
-      {progress && <LessonCompletionSummary progress={progress} onFinish={onFinish} />}
-      {progress && <FocusWords progress={progress} onStart={progress.remainingWords > 0 && weakEntries.length > 0 ? chooseWeakWords : undefined} />}
-      {progress && startChallenge && <ChallengeEntry progress={progress} onStart={startChallenge} />}
-    </div>
-  </section>;
+
+      {showUnlockGoal && (
+        <p className="vocab-quiz-unlock-goal">
+          <StudentIcon name="lock" size={16} aria-hidden="true" />
+          <BiLabel
+            zh={`再拿 ${remainingStars} 顆星，就能解鎖說話練習`}
+            pinyin={`Zài nádào ${remainingStars} kē xīng, jiù néng jiěsuǒ shuōhuà liànxí`}
+            en={`${remainingStars} more star${remainingStars === 1 ? "" : "s"} unlock${remainingStars === 1 ? "s" : ""} speaking practice`}
+          />
+        </p>
+      )}
+
+      {(masteredWords.length > 0 || (progress?.lessonCompleted ?? false) || (progress && startChallenge && progress.challenge.available)) && (
+        <div className="vocab-quiz-mode-supporting-content">
+          {masteredWords.length > 0 && <MasteredWordsSummary masteredWords={masteredWords} />}
+          {progress?.lessonCompleted && <LessonCompletionSummary progress={progress} onFinish={onFinish} />}
+          {progress && startChallenge && progress.challenge.available && <QuizChallengeCard progress={progress} onStart={startChallenge} />}
+        </div>
+      )}
+    </section>
+  );
 }
 
 export function ReviewScreen({ entries, back }: { entries: VocabQuizEntry[]; back: () => void }) {
@@ -154,8 +233,6 @@ export function SummaryScreen({ mode, results, missedWords, missedEntries, isRet
       : null;
   const showContinue = practiceUnlocked(stars);
   return <section className={`story-vocab-quiz vocab-quiz-summary${isChallenge ? " is-challenge-result" : ""}`} aria-label="Vocabulary quiz results"><div className="vocab-quiz-header"><p className="eyebrow"><BiLabel zh={isChallenge ? "課程挑戰結果" : isRetryRound ? "複習結果" : roundLabel ? `${roundLabel} 完成` : "測驗結果"} pinyin={isChallenge ? "Kèchéng tiǎozhàn jiéguǒ" : isRetryRound ? "Fùxí jiéguǒ" : "Cèyàn jiéguǒ"} en={isChallenge ? "Challenge complete" : isRetryRound ? "Review results" : roundLabel ? `${roundLabel} complete` : "Quiz results"} /></p><h1 className="vocab-quiz-mode-title"><BiLabel zh={isChallenge ? "課程挑戰完成" : `答對 ${correctCount} / ${results.length} 題`} pinyin={isChallenge ? "Kèchéng tiǎozhàn wánchéng" : `Dá duì ${correctCount} / ${results.length} tí`} en={isChallenge ? "Challenge Complete" : `${correctCount} / ${results.length} correct`} /></h1>{isChallenge && <p className="vocab-quiz-star-result is-earned">Best score: {challengeBestScore ?? correctCount} / {results.length}</p>}{tierConfig && passed && <p className="vocab-quiz-star-result is-earned"><BiLabel zh={`你拿到第 ${tierConfig.tier} 顆星了！`} pinyin={`Nǐ nádào dì ${tierConfig.tier} kē xīng le!`} en={`You earned star ${tierConfig.tier}!`} /></p>}{tierConfig && !passed && <p className="vocab-quiz-star-result is-near-miss"><BiLabel zh={`再答對 ${gap} 題就拿到第 ${tierConfig.tier} 顆星了！`} pinyin={`Zài dá duì ${gap} tí jiù nádào dì ${tierConfig.tier} kē xīng le!`} en={`Just ${gap} more right for star ${tierConfig.tier}!`} /></p>}</div>
-    {progress && !isChallenge && <RoundStats progress={progress} />}
-    {progress && !isChallenge && <LessonLearningPath progress={progress} />}
     {progress && mode === "tier3" && <FocusWords progress={progress} onStart={onStartStrengthen} />}
     {missedWords.length > 0 ? <div className="vocab-quiz-missed-list" role="list" aria-label="Missed words">{missedEntries.map((entry) => <div className="vocab-quiz-missed-item" role="listitem" key={entry.word}><span className="vocab-quiz-missed-word">{entry.word}</span><span className="vocab-quiz-missed-translation">{entry.translation}</span></div>)}</div> : <p className="vocab-quiz-all-correct"><BiLabel zh="全部答對，太棒了！" pinyin="Quánbù dá duì, tài bàng le!" en="Perfect score — nice work!" /></p>}
     <div className="vocab-quiz-actions">{isChallenge && onStartChallenge && <button type="button" className="btn-vocab-quiz-try-again" onClick={onStartChallenge}><StudentIcon name="retry" size={16} /> <BiLabel zh="再挑戰一次" pinyin="Zài tiǎozhàn yí cì" en="Try again" /></button>}{!isChallenge && tierConfig && !passed && <button type="button" className="btn-vocab-quiz-try-again" onClick={() => startTier(tierConfig.mode)}><StudentIcon name="retry" size={16} /> <BiLabel zh="再試一次" pinyin="Zài shì yí cì" en="Try again" /></button>}{!isChallenge && nextRoundAction && nextRoundCopy && <button type="button" className="btn-vocab-quiz-challenge" onClick={nextRoundAction}><StudentIcon name={nextTierCard ? "star" : "arrow-right"} size={16} /> <BiLabel {...nextRoundCopy} /></button>}{missedWords.length > 0 && !isRetryRound && !isChallenge && <button type="button" className="btn-vocab-quiz-retry" onClick={practiceMissedWords}><StudentIcon name="retry" size={16} /> <BiLabel zh="練習答錯的題目" pinyin="Liànxí dá cuò de tímù" en="Practice missed words" /></button>}{!isChallenge && !nextRoundAction && showContinue ? <button type="button" className="btn-vocab-quiz-next" onClick={onDone}><BiLabel zh="繼續練習" pinyin="Jìxù liànxí" en="Continue to practice" /> <StudentIcon name="arrow-right" size={16} aria-hidden="true" /></button> : isChallenge ? <button type="button" className="btn-vocab-quiz-next" onClick={onDone}><BiLabel zh="完成" pinyin="Wánchéng" en="Finish" /></button> : !nextRoundAction && <button type="button" className="btn-vocab-quiz-menu" onClick={backToModes}><BiLabel zh="回選單" pinyin="Huí xuǎndān" en="Back to menu" /></button>}</div>

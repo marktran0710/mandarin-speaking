@@ -212,10 +212,10 @@ describe("StoryVocabQuiz star tiers", () => {
     const { loadLocalStars } = await import("../../utils/quizTiers");
     expect(loadLocalStars("s1")).toBe(1);
 
-    // One star isn't enough for practice yet — the summary celebrates and
-    // dangles tier 2 as the way in.
+    // One star isn't enough for speaking practice yet — the summary points
+    // directly to the next vocabulary round.
     expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Challenge Round 2/ }));
+    await user.click(screen.getByRole("button", { name: /Continue to Round 2/ }));
     expect(screen.getByText(/Question 1 of 5/)).toBeInTheDocument();
     await playTierRun(user, 5, 5);
 
@@ -224,13 +224,13 @@ describe("StoryVocabQuiz star tiers", () => {
     expect(onComplete).toHaveBeenCalledTimes(2);
     expect(onComplete.mock.calls[1][0].mode).toBe("tier2");
     expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Challenge Round 3/ }));
+    await user.click(screen.getByRole("button", { name: /Continue to Round 3/ }));
     await playTierRun(user, 5, 5);
 
     expect(loadLocalStars("s1")).toBe(3);
     expect(onComplete).toHaveBeenCalledTimes(3);
     expect(onComplete.mock.calls[2][0].mode).toBe("tier3");
-    expect(screen.getByRole("button", { name: /Continue to practice/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /See My Lesson Progress/ })).toBeInTheDocument();
     // A 67-question UI walk legitimately outlasts the 5s default timeout.
   }, 20_000);
 

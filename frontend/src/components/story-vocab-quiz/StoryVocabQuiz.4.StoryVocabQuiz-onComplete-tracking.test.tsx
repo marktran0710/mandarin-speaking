@@ -109,10 +109,10 @@ describe("StoryVocabQuiz onComplete tracking", () => {
       expect(result.timeMs).toBeGreaterThanOrEqual(0);
     }
 
-    // Speaking practice opens only after all three stars, so the road to
-    // onDone continues through tier 2 and tier 3. Each scored round reports
-    // its own onComplete along the way.
-    await user.click(screen.getByRole("button", { name: /Challenge Round 2/ }));
+    // Speaking practice opens only after all three stars, while the scored
+    // rounds now lead into the lesson-progress screen. Each round reports its
+    // own onComplete along the way.
+    await user.click(screen.getByRole("button", { name: /Continue to Round 2/ }));
     for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true, translationByWord);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
@@ -120,14 +120,15 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(2));
     expect(onDone).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: /Challenge Round 3/ }));
+    await user.click(screen.getByRole("button", { name: /Continue to Round 3/ }));
     for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true, translationByWord);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
     }
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(3));
-    await user.click(screen.getByRole("button", { name: /Continue to practice/ }));
-    expect(onDone).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("button", { name: /See My Lesson Progress/ }));
+    expect(onDone).not.toHaveBeenCalled();
+    expect(screen.getByRole("group", { name: "Quiz mode" })).toBeInTheDocument();
     // A 42-question UI walk legitimately outlasts the 5s default timeout.
   }, 20_000);
 

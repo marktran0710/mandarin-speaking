@@ -12,9 +12,8 @@
 /* The tier-choice screen is a focused selection surface: the story session
    header owns navigation, while this page owns the learning decision. */
 .vocab-quiz-mode-select {
-  min-height: 100%;
   justify-content: flex-start;
-  gap: var(--space-lg);
+  gap: var(--space-md);
 }
 
 /* A persistent status bar above the question itself — Back, progress/score,
@@ -617,7 +616,7 @@
   align-items: center;
   gap: var(--space-sm);
   width: min(100%, 980px);
-  margin: 0 auto var(--space-md);
+  margin: 0 auto;
   text-align: center;
 }
 
@@ -681,7 +680,6 @@
 }
 
 .vocab-quiz-mode-grid {
-  position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: stretch;
@@ -697,20 +695,6 @@
   gap: var(--space-md);
   width: min(100%, 980px);
   margin: 0 auto;
-}
-
-/* One path threading the three tiers, so "quiz → speak" reads as a single
-   progression. The line sits behind the tier dots and shows only in the
-   gaps (each tier card paints its own surface over it). */
-.vocab-quiz-mode-grid::before {
-  content: "";
-  position: absolute;
-  top: 47px;
-  left: calc(16.66% + 8px);
-  right: calc(16.66% + 8px);
-  height: 2px;
-  background: var(--clay-hairline);
-  z-index: 0;
 }
 
 /* The recorder shell reserves a narrow content gutter for story practice.

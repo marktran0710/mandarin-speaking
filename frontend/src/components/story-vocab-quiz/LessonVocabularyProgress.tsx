@@ -37,18 +37,53 @@ function stageDetail(progress: LessonVocabularyProgress, key: ProgressStage): st
   return null;
 }
 
+/* Above this many words a per-word segmented track gets too thin to read, so
+   the bar falls back to a single continuous fill. Lessons sit well under it. */
+const MASTERY_SEGMENT_CAP = 12;
+
 export function MasteryProgressBar({ progress, compact = false }: { progress: LessonVocabularyProgress; compact?: boolean }) {
-  const percent = progress.totalWords > 0 ? Math.round((progress.strongWords / progress.totalWords) * 100) : 0;
+  const { strongWords, totalWords } = progress;
+  const percent = totalWords > 0 ? Math.round((strongWords / totalWords) * 100) : 0;
+  const remaining = progress.remainingWords;
+  // One cell per vocabulary word, so the track reads as a countable set of 生詞
+  // rather than an abstract ratio — the count is the point for a beginner.
+  const segmented = !compact && totalWords > 0 && totalWords <= MASTERY_SEGMENT_CAP;
+  const trackAria = {
+    role: "progressbar" as const,
+    "aria-label": `${strongWords} of ${totalWords} vocabulary words strong`,
+    "aria-valuemin": 0,
+    "aria-valuemax": totalWords,
+    "aria-valuenow": strongWords,
+  };
   return (
     <section className={`lesson-vocab-mastery${compact ? " is-compact" : ""}`} aria-label="Lesson vocabulary mastery">
       <div className="lesson-vocab-mastery-heading">
-        <div>
-          <strong>{progress.strongWords} / {progress.totalWords}</strong>
+        <div className="lesson-vocab-mastery-label">
+          {!compact && <p className="eyebrow"><BiLabel zh="學習進度" pinyin="Xuéxí jìndù" en="Progress" /></p>}
+          <strong className="lesson-vocab-mastery-title"><BiLabel zh="生詞掌握" pinyin="Shēngcí zhǎngwò" en="Words you know well" /></strong>
         </div>
+        <p className="lesson-vocab-mastery-count" aria-hidden="true">
+          <b>{strongWords}</b><span>/ {totalWords}</span>
+        </p>
       </div>
-      <div className="lesson-vocab-mastery-track" role="progressbar" aria-label={`${progress.strongWords} of ${progress.totalWords} vocabulary words strong`} aria-valuemin={0} aria-valuemax={progress.totalWords} aria-valuenow={progress.strongWords}>
-        <span style={{ width: `${percent}%` }} />
-      </div>
+      {segmented ? (
+        <div className="lesson-vocab-mastery-segments" {...trackAria}>
+          {Array.from({ length: totalWords }, (_, index) => (
+            <span
+              key={index}
+              className={index < strongWords ? "is-strong" : ""}
+              style={index < strongWords ? { animationDelay: `${index * 45}ms` } : undefined}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="lesson-vocab-mastery-track" {...trackAria}>
+          <span style={{ width: `${percent}%` }} />
+        </div>
+      )}
+      {!compact && (remaining > 0
+        ? <p className="lesson-vocab-mastery-sub"><BiLabel zh={`還有 ${remaining} 個生詞要加強`} pinyin={`Hái yǒu ${remaining} gè shēngcí yào jiāqiáng`} en={`${remaining} word${remaining === 1 ? "" : "s"} to strengthen`} /></p>
+        : <p className="lesson-vocab-mastery-sub is-done"><BiLabel zh="本課生詞都學會了！" pinyin="Běn kè shēngcí dōu xuéhuì le!" en="You know every word in this lesson!" /></p>)}
     </section>
   );
 }

@@ -159,6 +159,23 @@ describe("StoryVocabQuiz weak-words mode", () => {
     expect(partial.questionResults[0].quizId).toBe(partial.id);
   });
 
+  it("records personalized answers immediately so strengthen progress can refresh", async () => {
+    const weakWords = ["一"] as database.VocabWeakWordsResult;
+    vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(weakWords);
+    const user = userEvent.setup();
+
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="story-1" studentId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
+    await user.click(screen.getByRole("button", { name: /Weak words \(1\)/ }));
+    await answerCurrentQuestion(user, false);
+
+    await waitFor(() => expect(database.recordVocabQuizResponse).toHaveBeenCalled());
+    const partial = vi.mocked(database.recordVocabQuizResponse).mock.calls.at(-1)![0];
+    expect(partial.mode).toBe("weak_words");
+    expect(partial.questionResults).toHaveLength(1);
+    expect(partial.questionResults[0].correct).toBe(false);
+  });
+
   it("refreshes weak words immediately after the server accepts a diagnostic answer", async () => {
     const initialWords = [] as database.VocabWeakWordsResult;
     const refreshedWords = ["一"] as database.VocabWeakWordsResult;
@@ -211,6 +228,9 @@ describe("StoryVocabQuiz weak-words mode", () => {
       within(weakWordsButton).queryByText("Only quizzes the words you got wrong last time."),
     ).not.toBeInTheDocument();
     await user.click(weakWordsButton);
+
+    expect(screen.getByRole("region", { name: "Strengthen vocabulary progress" })).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "0 of 3 vocabulary words strengthened" })).toBeInTheDocument();
 
     for (let i = 0; i < 2; i += 1) {
       await answerCurrentQuestion(user, true);

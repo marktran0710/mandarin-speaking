@@ -4,6 +4,8 @@ import { effectiveTierPassCount, tierConfigFromMode, type TierConfig } from "../
 import { assessmentAnswerIsCorrect, CLOZE_BLANK, type VocabQuizMode, type VocabQuizQuestion, type VocabQuizQuestionResult } from "./model";
 import { correctAnswer } from "./useQuizSession";
 import StudentIcon from "../StudentIcon";
+import { StrengthenProgressBar } from "./LessonVocabularyProgress";
+import type { LessonVocabularyProgress } from "./lesson-vocab-progress";
 
 function QuizScoreTrack({ correct, answered, config, totalQuestions }: { correct: number; answered: number; config: TierConfig; totalQuestions: number }) {
   const max = totalQuestions;
@@ -31,6 +33,7 @@ type QuizQuestionProps = {
   timeLimitMs: number | null; showFinishButton: boolean;
   choose: (option: string) => void; next: () => void; finish: (results: VocabQuizQuestionResult[]) => void;
   speakWord: (text: string) => void;
+  progress?: LessonVocabularyProgress;
 };
 
 const instructions = {
@@ -38,7 +41,7 @@ const instructions = {
 } as const;
 
 export function QuizQuestion(props: QuizQuestionProps) {
-  const { question, mode, selected, results, index, questionLimit, requestedQuestionCount, isRetryRound, isLast, timeLeftMs, timeLimitMs, showFinishButton, choose, next, finish, speakWord } = props;
+  const { question, mode, selected, results, index, questionLimit, requestedQuestionCount, isRetryRound, isLast, timeLeftMs, timeLimitMs, showFinishButton, choose, next, finish, speakWord, progress } = props;
   const [typedAnswer, setTypedAnswer] = useState("");
   const isAssessment = question.kind === "assessment";
   const isProductiveRecall = isAssessment && question.assessment.answerFormat === "free_text";
@@ -50,11 +53,12 @@ export function QuizQuestion(props: QuizQuestionProps) {
     <div className="vocab-quiz-topbar">
       <div className="vocab-quiz-status-progress">
         <p className="vocab-quiz-progress">{questionLimit !== null ? <BiLabel zh={`第 ${index + 1} / ${questionLimit} 題`} pinyin={`Dì ${index + 1} / ${questionLimit} tí`} en={`Question ${index + 1} of ${questionLimit}`} /> : <BiLabel zh={`第 ${index + 1} 題`} pinyin={`Dì ${index + 1} tí`} en={`Question ${index + 1}`} />}</p>
-        {config && <QuizScoreTrack correct={results.filter((result) => result.correct).length} answered={results.length} config={config} totalQuestions={questionLimit ?? config.questionCount} />}
+        {config && <QuizScoreTrack correct={results.filter((result) => result.correct).length} answered={results.length} config={config} totalQuestions={questionLimit ?? 0} />}
       </div>
       {timeLimitMs !== null && <p className={`vocab-quiz-timer${timeLeftMs <= 10_000 ? " is-low" : ""}`} aria-label={`${Math.ceil(timeLeftMs / 1000)} seconds left`}><StudentIcon name="clock" size={16} aria-hidden="true" /> {Math.ceil(timeLeftMs / 1000)}s</p>}
       {showFinishButton && <button type="button" className="btn-vocab-quiz-finish" onClick={() => finish(results)}><BiLabel zh="結束，看結果" pinyin="Jiéshù, kàn jiéguǒ" en="Finish & see results" /></button>}
     </div>
+    {mode === "weak_words" && progress && <StrengthenProgressBar progress={progress} />}
     <div className="vocab-quiz-content">
       <div className="vocab-quiz-question-panel">
         <div className="vocab-quiz-header"><p className="eyebrow"><BiLabel zh={isRetryRound ? "複習答錯的題目" : "生詞測驗"} pinyin={isRetryRound ? "Fùxí dá cuò de tímù" : "Shēngcí cèyàn"} en={isRetryRound ? "Reviewing missed words" : "Vocabulary Quiz"} /></p>

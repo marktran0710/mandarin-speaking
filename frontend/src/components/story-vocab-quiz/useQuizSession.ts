@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   TIER_CONFIGS,
   attemptEarnsStar,
@@ -32,8 +32,17 @@ import {
   type VocabQuizQuestionResult,
   type VocabQuizSummary,
 } from "./model";
+import { getStudentScopeKey } from "../../utils/studentSession";
+import {
+  buildLessonVocabularyProgress,
+  loadLessonProgressSnapshot,
+  saveLessonAttempt,
+  type LessonVocabularyProgress,
+} from "./lesson-vocab-progress";
+import type { VocabQuizAttempt } from "../../services/api/quiz-analytics";
+import { createMeasurementEvent, recordMeasurementEvent, type MeasurementEventName } from "../../utils/measurement";
 
-export type QuizScreen = "mode-select" | "quiz" | "review" | "summary";
+export type QuizScreen = "mode-select" | "quiz" | "review" | "summary" | "challenge-entry";
 
 type UseQuizSessionProps = {
   entries: VocabQuizEntry[];
@@ -79,6 +88,25 @@ export function useQuizSession({
   const plannedQuestionCountRef = useRef(0);
   const finishedRef = useRef(false);
   const [stars, setStars] = useState<0 | QuizTier>(() => storyId ? loadLocalStars(storyId) : 0);
+  const studentScope = studentId || studentName || getStudentScopeKey();
+  const [attempts, setAttempts] = useState<VocabQuizAttempt[]>(() => (
+    storyId ? loadLessonProgressSnapshot(studentScope, baseStoryId ?? storyId).attempts ?? [] : []
+  ));
+  const recordLessonEvent = (name: MeasurementEventName, properties: Record<string, string | number | boolean | null> = {}) => {
+    if (!storyId) return;
+    recordMeasurementEvent(createMeasurementEvent(name, {
+      studentId,
+      topicId: baseStoryId ?? storyId,
+      attemptId: quizIdRef.current,
+      properties,
+    }));
+  };
+
+  useEffect(() => {
+    recordLessonEvent("lesson_started", { totalWords: entries.length });
+    // This is a session-level event; quiz answer events are emitted below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storyId, baseStoryId]);
 
   // starsReady/weakWordsReady: the mode-select screen used to mount
   // immediately with stars=0 and no "弱項複習 Weak words" card, then have
@@ -98,7 +126,7 @@ export function useQuizSession({
     }
     let cancelled = false;
     listVocabQuizAttempts(storyId, { studentId, studentName })
-      .then((attempts) => {
+      .then((serverAttempts) => {
         if (!cancelled) {
           // Once an approved assessment bank is attached to the story, old
           // draft-material attempts must not mark the new CSV rounds as
@@ -106,7 +134,7 @@ export function useQuizSession({
           // the server as well, so using them for stars creates the misleading
           // "all rounds complete, no weak words" state.
           const progressAttempts = hasApprovedMaterial
-            ? attempts.filter((attempt) =>
+            ? serverAttempts.filter((attempt) =>
               Boolean(
                 attempt.questionResults?.length &&
                 attempt.questionResults.every(
@@ -114,7 +142,7 @@ export function useQuizSession({
                 ),
               ),
             )
-            : attempts;
+            : serverAttempts;
           const derived = starsFromAttempts(progressAttempts);
           // Keep the local mirror in sync with the database-derived result,
           // so the picker and recorder agree after a learner returns on this
@@ -124,6 +152,10 @@ export function useQuizSession({
           // story. Do not keep a stale local max here: it can mark all rounds
           // complete even when this learner has no passed round on the server.
           setStars(derived);
+          setAttempts((localAttempts) => {
+            const serverIds = new Set(serverAttempts.map((attempt) => attempt.id));
+            return [...serverAttempts, ...localAttempts.filter((attempt) => !serverIds.has(attempt.id))];
+          });
         }
       })
       .catch(() => { /* localStorage stars still apply */ })
@@ -133,6 +165,8 @@ export function useQuizSession({
 
   const [weakWords, setWeakWords] = useState<string[]>([]);
   const [priorityReviewWords, setPriorityReviewWords] = useState<VocabPriorityReviewWord[]>([]);
+  const [masteredWords, setMasteredWords] = useState<VocabPriorityReviewWord[]>([]);
+  const [masteryWords, setMasteryWords] = useState<VocabPriorityReviewWord[]>([]);
   const [weakWordsReady, setWeakWordsReady] = useState(false);
   const refreshWeakWords = useCallback(async () => {
     if (!storyId || !canUseDatabase()) return;
@@ -142,6 +176,8 @@ export function useQuizSession({
     const words = await getVocabQuizWeakWords(baseStoryId ?? storyId, { studentId, studentName });
     setWeakWords(words);
     setPriorityReviewWords(words.priorityReview ?? []);
+    setMasteryWords(words.mastery ?? []);
+    setMasteredWords((words.mastery ?? []).filter((word) => word.status === "MASTERED"));
   }, [storyId, baseStoryId, studentId, studentName]);
   useEffect(() => {
     if (!storyId || !canUseDatabase()) {
@@ -156,6 +192,14 @@ export function useQuizSession({
   }, [storyId, refreshWeakWords]);
 
   const sessionReady = starsReady && weakWordsReady;
+  const lessonProgress: LessonVocabularyProgress = useMemo(() => buildLessonVocabularyProgress({
+    lessonId: baseStoryId ?? storyId ?? "lesson",
+    entries,
+    attempts,
+    mastery: masteryWords,
+    priorityReviewWords,
+    studentScope,
+  }), [attempts, baseStoryId, entries, masteryWords, priorityReviewWords, storyId, studentScope]);
 
   const question = questions[index];
   const isLast = questionLimit !== null && index === questionLimit - 1;
@@ -191,10 +235,38 @@ export function useQuizSession({
         if (storyId) recordLocalStars(storyId, earned);
         setStars((current) => earned > current ? earned : current);
       }
-      onComplete?.({
+      const summary: VocabQuizSummary = {
         mode: mode!, totalQuestions: finalResults.length, correctCount,
         totalTimeMs: Date.now() - quizStartRef.current, questionResults: finalResults,
-      });
+      };
+      const attempt: VocabQuizAttempt = {
+        id: quizIdRef.current ?? `vocab-quiz-${Date.now()}`,
+        storyId: baseStoryId ?? storyId ?? "lesson",
+        studentName: studentName ?? "Student",
+        studentId,
+        mode: summary.mode,
+        level,
+        completedAt: new Date().toISOString(),
+        totalQuestions: summary.totalQuestions,
+        correctCount: summary.correctCount,
+        totalTimeMs: summary.totalTimeMs,
+        questionResults: summary.questionResults,
+      };
+      setAttempts((current) => [...current.filter((item) => item.id !== attempt.id), attempt]);
+      saveLessonAttempt(studentScope, attempt.storyId, attempt);
+      const completedEvent = mode === "tier1"
+        ? "know_it_completed"
+        : mode === "tier2"
+          ? "say_it_completed"
+          : mode === "tier3"
+            ? "use_it_completed"
+            : mode === "weak_words"
+              ? "personalized_completed"
+              : mode === "challenge"
+                ? "challenge_completed"
+                : null;
+      if (completedEvent) recordLessonEvent(completedEvent, { correctCount, totalQuestions: finalResults.length });
+      onComplete?.(summary);
     }
     setScreen("summary");
   };
@@ -263,7 +335,8 @@ export function useQuizSession({
     // BKT evidence is recorded immediately after each eligible diagnostic
     // answer. The list remains locked for speaking until all three tiers are
     // complete, but Weak Words can now reflect the learner's latest answer.
-    if (storyId && studentId && canUseDatabase() && isBktEligible) {
+    const shouldRecordLearningResponse = isBktEligible || mode === "weak_words";
+    if (storyId && studentId && canUseDatabase() && shouldRecordLearningResponse) {
       void recordVocabQuizResponse({
         id: quizId,
         storyId,
@@ -317,6 +390,18 @@ export function useQuizSession({
   const chooseMode = (picked: VocabQuizMode, entriesForRound: VocabQuizEntry[], limit: number | null) => {
     setMode(picked); setScreen("quiz"); setRoundEntries(entriesForRound); setIndex(0);
     setSelected(null); setResults([]); setTimeLeftMs(tierConfigFromMode(picked)?.timeLimitMs ?? 0);
+    const startedEvent = picked === "tier1"
+      ? "know_it_started"
+      : picked === "tier2"
+        ? "say_it_started"
+        : picked === "tier3"
+          ? "use_it_started"
+          : picked === "weak_words"
+            ? "personalized_started"
+            : picked === "challenge"
+              ? "challenge_started"
+              : null;
+    if (startedEvent) recordLessonEvent(startedEvent, { totalWords: entriesForRound.length });
     const assessmentLevel = picked === "tier1" ? "easy" : picked === "tier2" ? "medium" : picked === "tier3" ? "hard" : null;
     const importedQuestions = assessmentLevel
       ? buildAssessmentQuestions(entriesForRound, assessmentLevel)
@@ -342,9 +427,15 @@ export function useQuizSession({
   };
 
   const startTier = (tierMode: TierMode) => { setIsRetryRound(false); chooseMode(tierMode, entries, TIER_CONFIGS[tierMode].questionCount); };
+  const showChallengeEntry = () => setScreen("challenge-entry");
+  const startChallenge = () => {
+    if (lessonProgress.challenge.attempts > 0) recordLessonEvent("challenge_retried", { attempt: lessonProgress.challenge.attempts + 1 });
+    setIsRetryRound(false); chooseMode("challenge", entries, entries.length);
+  };
   const practiceMissedWords = () => { setIsRetryRound(true); chooseMode("free", missedEntries, missedEntries.length); };
   const returnToModes = () => {
     setScreen("mode-select");
+    if (lessonProgress.lessonCompleted) recordLessonEvent("lesson_completed", { strongWords: lessonProgress.strongWords, remainingWords: lessonProgress.remainingWords });
     // The attempt has been posted before the learner can leave the summary.
     // Refresh here so the menu reflects that newly rebuilt BKT state without
     // requiring a route reload or completion of the other diagnostic tiers.
@@ -353,8 +444,9 @@ export function useQuizSession({
 
   return {
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
-    question, index, selected, results, timeLeftMs, stars, weakEntries, priorityReviewWords, missedWords,
+    question, index, selected, results, timeLeftMs, stars, weakEntries, priorityReviewWords, masteredWords, missedWords,
     missedEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
-    speakWord, chooseMode, startTier, practiceMissedWords, returnToModes, sessionReady,
+    speakWord, chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, returnToModes, sessionReady,
+    lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,
   };
 }

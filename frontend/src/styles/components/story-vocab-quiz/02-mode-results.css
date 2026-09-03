@@ -65,9 +65,8 @@
   box-shadow: none;
 }
 
-/* The three star-tier cards are stops on one journey: a centred dot on the
-   connector line, then the tier's name and rule. Color marks state — jade
-   dot when earned, gold dot when open, dimmed when still locked. */
+/* The three star-tier cards are stops on one journey. Color marks state —
+   jade when earned, gold when open, dimmed when still locked. */
 .vocab-quiz-mode-tier1,
 .vocab-quiz-mode-tier2,
 .vocab-quiz-mode-tier3 {
@@ -81,6 +80,19 @@
   padding: var(--space-lg) var(--space-md) var(--space-md);
   border-color: var(--clay-hairline);
   border-radius: var(--clay-radius-xl);
+}
+
+.vocab-quiz-mode-tier1 > p,
+.vocab-quiz-mode-tier2 > p,
+.vocab-quiz-mode-tier3 > p {
+  text-align: center;
+}
+
+.vocab-quiz-mode-tier1 > p > .bi-label,
+.vocab-quiz-mode-tier2 > p > .bi-label,
+.vocab-quiz-mode-tier3 > p > .bi-label {
+  align-items: center;
+  text-align: center;
 }
 
 .vocab-quiz-mode-tier1 .vocab-quiz-mode-icon,
@@ -116,7 +128,7 @@
 .vocab-quiz-mode-tier2.is-earned .vocab-quiz-mode-icon,
 .vocab-quiz-mode-tier3.is-earned .vocab-quiz-mode-icon {
   background: var(--jade);
-  color: #fff;
+  color: var(--clay-on-accent);
   box-shadow: 0 0 0 1px var(--jade);
 }
 
@@ -142,9 +154,11 @@
 
 .vocab-quiz-secondary-grid {
   display: grid;
-  grid-column: 1 / -1;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-sm);
+  align-items: stretch;
+  gap: var(--space-md);
+  width: min(100%, 980px);
+  margin: 0 auto;
 }
 .vocab-quiz-secondary-grid > :only-child { grid-column: 1 / -1; }
 
@@ -152,7 +166,7 @@
    their icon, bilingual title, explanation, and arrow on one shared row so
    the page reads as a compact decision list. */
 .vocab-quiz-secondary-grid > .vocab-quiz-mode-card {
-  grid-template-columns: var(--space-2xl) minmax(0, .7fr) minmax(0, 1.3fr) auto;
+  grid-template-columns: var(--space-2xl) minmax(var(--space-3xl), .85fr) minmax(0, 1.15fr) auto;
   grid-template-rows: auto;
   align-items: center;
   column-gap: var(--space-lg);
@@ -186,6 +200,33 @@
   border-color: color-mix(in srgb, var(--seal) 34%, var(--clay-hairline));
   background: var(--seal-soft);
   color: var(--seal-deep);
+}
+.vocab-quiz-challenge-card {
+  grid-template-columns: var(--space-2xl) minmax(var(--space-3xl), .85fr) minmax(0, 1.15fr) auto;
+  grid-template-rows: auto;
+  align-items: center;
+  column-gap: var(--space-lg);
+  row-gap: var(--space-2xs);
+  width: 100%;
+  border-color: color-mix(in srgb, var(--gold) 34%, var(--clay-hairline));
+  background: color-mix(in srgb, var(--gold-soft) 18%, var(--clay-surface-card));
+}
+.vocab-quiz-challenge-card > strong {
+  grid-column: 2;
+  grid-row: 1;
+}
+.vocab-quiz-challenge-card > p {
+  grid-column: 3;
+  grid-row: 1;
+}
+.vocab-quiz-challenge-card > .app-icon {
+  grid-column: 4;
+  grid-row: 1;
+  align-self: center;
+}
+.vocab-quiz-challenge-card .vocab-quiz-mode-icon {
+  background: var(--gold-soft);
+  color: var(--gold-deep);
 }
 .vocab-quiz-mode-weak_words.is-empty {
   cursor: default;
@@ -221,6 +262,13 @@
   border-radius: var(--clay-radius-md);
   background: color-mix(in srgb, var(--clay-surface-card) 92%, var(--jade-soft));
   text-align: left;
+}
+
+/* The mode screen uses one shared content rail; the progress banner follows
+   the same left and right edges as the heading, tier grid, and action row. */
+.vocab-quiz-mode-select > .lesson-vocab-mastery {
+  width: min(100%, 980px);
+  margin-inline: auto;
 }
 .vocab-quiz-mastered-heading {
   display: flex;
@@ -308,8 +356,8 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-xs);
-  max-width: 560px;
-  margin: var(--space-md) auto 0;
+  width: min(100%, 560px);
+  margin: 0 auto;
   padding: var(--space-sm) var(--space-lg);
   border: 0;
   border-radius: var(--clay-radius-pill);
@@ -317,6 +365,101 @@
   font-size: 13.5px;
   font-weight: 700;
   color: var(--jade-deep);
+}
+
+/* Mode select is a compact decision surface. Keep the labels and progress
+   count on one line where possible so the useful choices stay above the fold. */
+.vocab-quiz-mode-select .vocab-quiz-header {
+  gap: var(--space-xs);
+}
+
+.vocab-quiz-mode-select .vocab-quiz-header-tags .bi-label,
+.vocab-quiz-mode-select .lesson-vocab-mastery .eyebrow .bi-label,
+.vocab-quiz-mode-select .lesson-vocab-mastery-title .bi-label,
+.vocab-quiz-mode-select .lesson-vocab-mastery-sub .bi-label,
+.vocab-quiz-mode-select .vocab-quiz-unlock-goal .bi-label {
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--space-2xs);
+}
+
+.vocab-quiz-mode-select .vocab-quiz-header-tags .bi-pinyin,
+.vocab-quiz-mode-select .lesson-vocab-mastery .eyebrow .bi-pinyin,
+.vocab-quiz-mode-select .lesson-vocab-mastery-title .bi-pinyin,
+.vocab-quiz-mode-select .lesson-vocab-mastery-sub .bi-pinyin,
+.vocab-quiz-mode-select .vocab-quiz-unlock-goal .bi-pinyin {
+  display: none;
+}
+
+.vocab-quiz-mode-select .vocab-quiz-mode-title .bi-pinyin,
+.vocab-quiz-mode-select .vocab-quiz-mode-title .bi-en {
+  display: none;
+}
+
+.vocab-quiz-mode-select > .lesson-vocab-mastery {
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.vocab-quiz-mode-select > .lesson-vocab-mastery .eyebrow {
+  padding: 0;
+  background: transparent;
+  color: var(--jade-deep);
+  font-size: var(--text-xs);
+  letter-spacing: .04em;
+}
+
+.vocab-quiz-mode-select > .lesson-vocab-mastery .lesson-vocab-mastery-heading {
+  align-items: baseline;
+}
+
+.vocab-quiz-mode-select > .lesson-vocab-mastery .lesson-vocab-mastery-title {
+  font-size: var(--text-md);
+}
+
+.vocab-quiz-mode-select > .lesson-vocab-mastery .lesson-vocab-mastery-sub {
+  font-size: var(--text-xs);
+}
+
+.vocab-quiz-mode-select .lesson-vocab-mastery-segments > span,
+.vocab-quiz-mode-select .lesson-vocab-mastery-track {
+  height: var(--space-xs);
+}
+
+.vocab-quiz-mode-select .vocab-quiz-mode-tier1,
+.vocab-quiz-mode-select .vocab-quiz-mode-tier2,
+.vocab-quiz-mode-select .vocab-quiz-mode-tier3 {
+  gap: var(--space-xs);
+  padding: var(--space-md) var(--space-sm);
+}
+
+.vocab-quiz-mode-select .vocab-quiz-mode-tier1 .vocab-quiz-mode-icon,
+.vocab-quiz-mode-select .vocab-quiz-mode-tier2 .vocab-quiz-mode-icon,
+.vocab-quiz-mode-select .vocab-quiz-mode-tier3 .vocab-quiz-mode-icon {
+  width: var(--space-2xl);
+  height: var(--space-2xl);
+}
+
+.vocab-quiz-mode-select > .vocab-quiz-secondary-grid > .vocab-quiz-mode-card {
+  padding: var(--space-sm) var(--space-md);
+}
+
+.vocab-quiz-mode-select > .vocab-quiz-unlock-goal {
+  padding: var(--space-xs) var(--space-md);
+}
+
+/* StudentModeCompact.css intentionally opens the quiz header to the full
+   workspace width. The mode-select content below must still share one rail;
+   this four-class selector deliberately outranks that three-class variant
+   so wide student panels cannot develop mismatched left/right edges. */
+.student-workspace-v2 .story-vocab-quiz.vocab-quiz-mode-select > .vocab-quiz-header,
+.student-workspace-v2 .story-vocab-quiz.vocab-quiz-mode-select > .lesson-vocab-mastery,
+.student-workspace-v2 .story-vocab-quiz.vocab-quiz-mode-select > .vocab-quiz-mode-grid,
+.student-workspace-v2 .story-vocab-quiz.vocab-quiz-mode-select > .vocab-quiz-secondary-grid,
+.student-workspace-v2 .story-vocab-quiz.vocab-quiz-mode-select > .vocab-quiz-unlock-goal {
+  width: min(100%, 980px);
+  max-width: 980px;
+  margin-inline: auto;
 }
 
 @media (max-width: 760px) {
@@ -349,6 +492,22 @@
     grid-row: 1 / span 2;
   }
 
+  .vocab-quiz-challenge-card {
+    grid-template-columns: var(--space-2xl) minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    column-gap: var(--space-md);
+  }
+  .vocab-quiz-challenge-card > strong,
+  .vocab-quiz-challenge-card > p {
+    grid-column: 2 / 4;
+  }
+  .vocab-quiz-challenge-card > strong { grid-row: 1; }
+  .vocab-quiz-challenge-card > p { grid-row: 2; }
+  .vocab-quiz-challenge-card > .app-icon {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+
   .vocab-quiz-mastered {
     grid-template-columns: 1fr;
     gap: var(--space-sm);
@@ -362,21 +521,7 @@
   }
 
   .vocab-quiz-mode-select .vocab-quiz-header {
-    grid-template-columns: 1fr;
     row-gap: var(--space-xs);
-    padding: var(--space-lg) var(--space-md);
-  }
-
-  .vocab-quiz-mode-select .vocab-quiz-header-tags,
-  .vocab-quiz-mode-select .vocab-quiz-mode-title,
-  .vocab-quiz-mode-select .vocab-quiz-star-count {
-    grid-column: 1;
-  }
-
-  .vocab-quiz-mode-select .vocab-quiz-mode-title { grid-row: 2; }
-  .vocab-quiz-mode-select .vocab-quiz-star-count {
-    grid-row: 3;
-    justify-self: start;
   }
 
   .vocab-quiz-mode-title {
@@ -772,12 +917,64 @@
 .lesson-challenge-entry .eyebrow {
   margin: 0;
 }
-.lesson-vocab-mastery strong {
-  color: var(--clay-ink);
-  font-size: var(--text-lg);
+/* Standalone mastery banner: a single label + a big strong/total count,
+   aligned along their baseline so the number reads as the headline figure. */
+.lesson-vocab-mastery > .lesson-vocab-mastery-heading {
+  align-items: flex-end;
 }
+.lesson-vocab-mastery-label {
+  display: grid;
+  gap: var(--space-3xs);
+}
+.lesson-vocab-mastery strong,
+.lesson-vocab-mastery-title {
+  color: var(--clay-ink);
+  font-size: var(--text-md);
+}
+.lesson-vocab-mastery-count {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2xs);
+  margin: 0;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.lesson-vocab-mastery-count b {
+  font-size: var(--text-xl);
+  font-weight: 800;
+  color: var(--jade-deep);
+}
+.lesson-vocab-mastery-count span {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--clay-muted);
+}
+/* Segmented track: one cell per lesson word, filled cells = strong words, so
+   the row is a countable inventory of 生詞 rather than an abstract ratio. */
+.lesson-vocab-mastery-segments {
+  display: flex;
+  gap: var(--space-2xs);
+}
+.lesson-vocab-mastery-segments > span {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 12px; /* one-off: matches the continuous fallback track height */
+  border-radius: 5px; /* one-off: reads as a rounded cell, not a pill, at this height */
+  background: var(--clay-surface-strong);
+}
+.lesson-vocab-mastery-segments > span.is-strong {
+  background: linear-gradient(180deg, var(--jade), var(--jade-deep));
+  transform-origin: left center;
+  animation: lesson-vocab-seg-fill 320ms ease both;
+}
+@keyframes lesson-vocab-seg-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+/* Continuous fallback for large lessons (> segment cap) and the compact recap. */
 .lesson-vocab-mastery-track {
-  height: var(--space-xs);
+  height: 12px; /* one-off: thicker than --space-xs so the fill reads as the primary indicator */
   overflow: hidden;
   border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-strong);
@@ -786,8 +983,24 @@
   display: block;
   height: 100%;
   border-radius: var(--clay-radius-pill);
-  background: var(--jade);
+  background: linear-gradient(90deg, var(--jade), var(--jade-deep));
   transition: width 220ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .lesson-vocab-mastery-segments > span.is-strong { animation: none; }
+  .lesson-vocab-mastery-track span { transition: none; }
+}
+.lesson-vocab-mastery-sub {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--clay-body);
+}
+.lesson-vocab-mastery-sub.is-done {
+  color: var(--jade-deep);
+  font-weight: 700;
+}
+.lesson-vocab-mastery.is-compact {
+  gap: var(--space-xs);
 }
 .lesson-learning-path {
   display: grid;

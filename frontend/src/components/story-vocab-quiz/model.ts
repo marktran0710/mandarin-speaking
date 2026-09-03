@@ -1,7 +1,7 @@
 import { toPinyin } from "../../utils/pinyin";
 import type { StudentIconName } from "../StudentIcon";
 import { toneTrapVariants } from "../../utils/toneTraps";
-import { tierConfigFromMode, type TierMode } from "../../utils/quizTiers";
+import { DIAGNOSTIC_ROUNDS, tierConfigFromMode, type TierMode } from "../../utils/quizTiers";
 import {
   normalizeQuizExposure,
   type QuizQuestionBuildContext,
@@ -31,7 +31,8 @@ export interface VocabQuizEntry {
   disabledQuestionKinds?: ReadonlyArray<"pinyin" | "reverse">;
   /** Question kinds already used for this learner; weak-word review prefers
    * another validated form when one is available. */
-  bktSeenQuestionKinds?: ReadonlyArray<QuizQuestionKind>;
+  bktSeenQuestionKinds?: ReadonlyArray<QuizQuestionKind | VocabAssessmentQuestion["questionType"]>;
+  bktFailedQuestionKinds?: ReadonlyArray<QuizQuestionKind | VocabAssessmentQuestion["questionType"]>;
   pinyin?: string;
   pos?: string;
   aiDistractors?: string[];
@@ -50,7 +51,7 @@ export interface VocabAssessmentQuestion {
   simpleEnglishMeaning: string;
   level: VocabAssessmentLevel;
   difficultyWeight: 1 | 2 | 3;
-  questionType: "basic_meaning_mcq" | "context_cloze_mcq" | "productive_recall";
+  questionType: "basic_meaning_mcq" | "context_cloze_mcq" | "productive_recall" | "character_to_pinyin_typing" | "contextual_productive_recall";
   answerFormat: "single_choice" | "free_text";
   prompt: string;
   options: string[];
@@ -151,6 +152,9 @@ export interface VocabQuizQuestionResult {
   itemId?: string;
   conceptId?: string;
   questionKind?: QuizQuestionKind | VocabAssessmentQuestion["questionType"];
+  roundType?: "know_it" | "say_it" | "use_it";
+  knowledgeDimension?: "meaning" | "pinyin_production" | "contextual_recall";
+  activityType?: "diagnostic" | "personalized_practice" | "challenge" | "practice";
   level?: "easy" | "medium" | "hard";
   baseStoryId?: string;
   itemVersion?: string;
@@ -186,7 +190,7 @@ export function quizItemId(
     .join(":");
 }
 
-export type VocabQuizMode = TierMode | "free" | "weak_words";
+export type VocabQuizMode = TierMode | "free" | "weak_words" | "challenge";
 
 export interface VocabQuizSummary {
   mode: VocabQuizMode;
@@ -215,9 +219,9 @@ export const TIER_CARDS: Array<{
   descPinyin: string;
   descEn: string;
 }> = [
-  { mode: "tier1", title: "第一關", titlePinyin: "Dì yī guān", titleEn: "Round 1", iconName: "star", desc: "20 題 — 答對 14 題就過關。", descPinyin: "20 tí — dá duì 14 tí jiù guòguān.", descEn: "20 questions — 14 right to pass." },
-  { mode: "tier2", title: "第二關", titlePinyin: "Dì èr guān", titleEn: "Round 2", iconName: "star", desc: "22 題，選項更難 — 答對 18 題就能開始說話練習。", descPinyin: "22 tí, xuǎnxiàng gèng nán — dá duì 18 tí jiù néng kāishǐ shuōhuà liànxí.", descEn: "22 questions, trickier options — 18 right opens speaking practice." },
-  { mode: "tier3", title: "第三關", titlePinyin: "Dì sān guān", titleEn: "Round 3", iconName: "star", desc: "25 題，150 秒 — 答對 22 題。", descPinyin: "25 tí, 150 miǎo — dá duì 22 tí.", descEn: "25 questions in 150s — 22 right to pass." },
+  { mode: "tier1", title: "第一關", titlePinyin: "Dì yī guān", titleEn: "Round 1", iconName: "star", desc: "每個生詞一題。", descPinyin: "Měi gè shēngcí yì tí.", descEn: "One question for each lesson word." },
+  { mode: "tier2", title: "第二關", titlePinyin: "Dì èr guān", titleEn: "Round 2", iconName: "star", desc: "每個生詞一題，寫出拼音。", descPinyin: "Měi gè shēngcí yì tí, xiě chū pīnyīn.", descEn: "One question for each word — type the pinyin." },
+  { mode: "tier3", title: "第三關", titlePinyin: "Dì sān guān", titleEn: "Round 3", iconName: "star", desc: "每個生詞一題，在情境中回想。", descPinyin: "Měi gè shēngcí yì tí, zài qíngjìng zhōng huíxiǎng.", descEn: "One question for each word — recall it in context." },
 ];
 
 export const REVIEW_CARD = {
@@ -272,6 +276,85 @@ export function buildAssessmentQuestions(
       })),
     ),
   ));
+}
+
+function seededShuffle<T>(items: T[], seed: string): T[] {
+  const result = [...items];
+  let state = Array.from(seed).reduce((hash, character) => ((hash * 31) + character.charCodeAt(0)) >>> 0, 2166136261);
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    const swapIndex = state % (index + 1);
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+  return result;
+}
+
+function diagnosticQuestionId(entry: VocabQuizEntry, mode: TierMode): string {
+  return `${entry.wordId ?? quizConceptId(entry.word)}:${DIAGNOSTIC_ROUNDS[mode].roundType}:v1`;
+}
+
+/** Build exactly one round-specific question for every unique lesson word. */
+export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: TierMode): VocabAssessmentQuestion[] {
+  const config = DIAGNOSTIC_ROUNDS[mode];
+  const uniqueEntries = Array.from(new Map(entries.map((entry) => [entry.wordId ?? quizConceptId(entry.word), entry])).values());
+  const translationPool = uniqueEntries.map((entry) => entry.translation).filter(Boolean);
+  const questions = uniqueEntries.map((entry) => {
+    const source = entry.assessmentQuestions?.find((assessment) => assessment.level === config.level);
+    const wordId = entry.wordId ?? quizConceptId(entry.word);
+    if (mode === "tier1") {
+      const correctAnswer = source?.correctAnswer || entry.translation;
+      const sourceOptions = source?.options?.length === OPTION_COUNT
+        ? source.options
+        : [correctAnswer, ...translationPool.filter((value) => value !== correctAnswer)];
+      const options = Array.from(new Set([...sourceOptions, ...FILLER_DISTRACTORS])).slice(0, OPTION_COUNT);
+      while (options.length < OPTION_COUNT) options.push(`meaning ${options.length + 1}`);
+      return {
+        questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin: entry.pinyin || toPinyin(entry.word),
+        pos: entry.pos || "", simpleEnglishMeaning: entry.translation, level: config.level, difficultyWeight: 1,
+        questionType: config.questionKind, answerFormat: "single_choice", prompt: source?.prompt || `What does ${entry.word} mean?`,
+        options: seededShuffle(options, `${wordId}:know_it:options`), correctAnswer,
+        acceptedAnswers: source?.acceptedAnswers?.length ? source.acceptedAnswers : [correctAnswer],
+        explanation: source?.explanation || `${entry.word} means ${entry.translation}.`,
+      };
+    }
+    if (mode === "tier2") {
+      const pinyin = entry.pinyin || source?.pinyin || toPinyin(entry.word);
+      const acceptedAnswers = Array.from(new Set([pinyin, ...pinyin.split("/").map((value) => value.trim()).filter(Boolean)]));
+      return {
+        questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin,
+        pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.level, difficultyWeight: 2,
+        questionType: config.questionKind, answerFormat: "free_text", prompt: `Type the pinyin for ${entry.word}.`, options: [],
+        correctAnswer: pinyin, acceptedAnswers, explanation: `The pinyin for ${entry.word} is ${pinyin}.`,
+      };
+    }
+    const correctAnswer = source?.correctAnswer || entry.word.split("/")[0].trim();
+    return {
+      questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin: entry.pinyin || toPinyin(entry.word),
+      pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.level, difficultyWeight: 3,
+      questionType: config.questionKind, answerFormat: "free_text", prompt: source?.prompt || `Use the Chinese word for “${entry.translation}” in the sentence.`, options: [],
+      correctAnswer, acceptedAnswers: Array.from(new Set([correctAnswer, ...(source?.acceptedAnswers || [])])),
+      explanation: source?.explanation || `Use ${correctAnswer} in this context.`,
+    };
+  });
+  return seededShuffle(questions, `${config.roundType}:question-order`);
+}
+
+export interface RoundCoverageResult { valid: boolean; errors: string[]; }
+
+/** Validate count, uniqueness, and lesson membership before a round starts. */
+export function validateRoundCoverage({ lessonVocabulary, roundQuestions }: { lessonVocabulary: VocabQuizEntry[]; roundQuestions: VocabAssessmentQuestion[] }): RoundCoverageResult {
+  const expected = new Set(lessonVocabulary.map((entry) => entry.wordId ?? quizConceptId(entry.word)));
+  const seen = new Set<string>();
+  const errors: string[] = [];
+  if (roundQuestions.length !== expected.size) errors.push(`ROUND_COUNT expected ${expected.size}, found ${roundQuestions.length}`);
+  roundQuestions.forEach((question) => {
+    if (seen.has(question.wordId)) errors.push(`DUPLICATE_WORD ${question.wordId}`);
+    seen.add(question.wordId);
+    if (!expected.has(question.wordId)) errors.push(`EXTRA_WORD ${question.wordId}`);
+    if (!question.questionId || !question.correctAnswer || !question.targetWord) errors.push(`INVALID_QUESTION ${question.wordId}`);
+  });
+  expected.forEach((wordId) => { if (!seen.has(wordId)) errors.push(`MISSING_WORD ${wordId}`); });
+  return { valid: errors.length === 0, errors };
 }
 
 function normalizeReading(entry: VocabQuizEntry): string {

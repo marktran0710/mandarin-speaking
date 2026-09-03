@@ -2,6 +2,7 @@ import "./StoryVocabQuiz.css";
 import { useEffect } from "react";
 import { BiLabel } from "../BiLabel";
 import { ModeSelectScreen, ReviewScreen, SummaryScreen } from "./QuizScreens";
+import { ChallengeEntry } from "./LessonVocabularyProgress";
 import { QuizQuestion } from "./QuizQuestion";
 import { useQuizSession } from "./useQuizSession";
 import type { VocabAssessmentLevel, VocabQuizEntry, VocabQuizSummary } from "./model";
@@ -50,9 +51,10 @@ export default function StoryVocabQuiz({ entries, onDone, onBack, onComplete, st
       </div>
     );
   }
-  if (session.screen === "mode-select") return <ModeSelectScreen stars={session.stars} weakEntries={session.weakEntries} priorityReviewWords={session.priorityReviewWords} level={level} assessmentQuestionCounts={assessmentQuestionCounts} startTier={session.startTier} chooseWeakWords={() => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.weakEntries, session.weakEntries.length); }} showReview={() => session.setScreen("review")} />;
+  if (session.screen === "mode-select") return <ModeSelectScreen stars={session.stars} weakEntries={session.weakEntries} priorityReviewWords={session.priorityReviewWords} masteredWords={session.masteredWords} level={level} assessmentQuestionCounts={assessmentQuestionCounts} progress={session.lessonProgress} startTier={session.startTier} chooseWeakWords={() => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.weakEntries, session.weakEntries.length); }} onContinue={() => { if (!session.lessonProgress.knowIt.completed) session.startTier("tier1"); else if (!session.lessonProgress.sayIt.completed) session.startTier("tier2"); else if (!session.lessonProgress.useIt.completed) session.startTier("tier3"); else session.setIsRetryRound(false); }} onFinish={onDone} startChallenge={session.showChallengeEntry} showReview={() => session.setScreen("review")} />;
   if (session.screen === "review") return <ReviewScreen entries={entries} back={() => session.setScreen("mode-select")} />;
-  if (session.screen === "summary") return <SummaryScreen mode={session.mode} results={session.results} missedWords={session.missedWords} missedEntries={session.missedEntries} isRetryRound={session.isRetryRound} stars={session.stars} onDone={onDone} startTier={session.startTier} practiceMissedWords={session.practiceMissedWords} backToModes={session.returnToModes} />;
+  if (session.screen === "challenge-entry") return <ChallengeEntry progress={session.lessonProgress} onStart={session.startChallenge} onBack={() => session.setScreen("mode-select")} />;
+  if (session.screen === "summary") return <SummaryScreen mode={session.mode} results={session.results} missedWords={session.missedWords} missedEntries={session.missedEntries} isRetryRound={session.isRetryRound} stars={session.stars} onDone={onDone} startTier={session.startTier} practiceMissedWords={session.practiceMissedWords} backToModes={session.returnToModes} progress={session.lessonProgress} onStartChallenge={session.startChallenge} challengeBestScore={session.challengeBestScore} onStartStrengthen={session.weakEntries.length > 0 ? () => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.weakEntries, session.weakEntries.length); } : undefined} />;
   if (!session.question) return null;
-  return <QuizQuestion question={session.question} mode={session.mode} selected={session.selected} results={session.results} index={session.index} questionLimit={session.questionLimit} requestedQuestionCount={session.requestedQuestionCount} isRetryRound={session.isRetryRound} isLast={session.isLast} timeLeftMs={session.timeLeftMs} timeLimitMs={session.timeLimitMs} showFinishButton={session.showFinishButton} choose={session.choose} next={session.next} finish={session.finish} speakWord={session.speakWord} />;
+  return <QuizQuestion question={session.question} mode={session.mode} selected={session.selected} results={session.results} index={session.index} questionLimit={session.questionLimit} requestedQuestionCount={session.requestedQuestionCount} isRetryRound={session.isRetryRound} isLast={session.isLast} timeLeftMs={session.timeLeftMs} timeLimitMs={session.timeLimitMs} showFinishButton={session.showFinishButton} choose={session.choose} next={session.next} finish={session.finish} speakWord={session.speakWord} progress={session.lessonProgress} />;
 }

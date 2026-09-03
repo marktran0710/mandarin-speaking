@@ -60,14 +60,14 @@ describe("CSV vocabulary assessment flow", () => {
     expect(onComplete.mock.calls[0][0].mode).toBe("tier1");
     expect(onComplete.mock.calls[0][0].questionResults[0].level).toBe("easy");
 
-    await user.click(screen.getByRole("button", { name: /Challenge Round 2/ }));
+    await user.click(screen.getByRole("button", { name: /Continue to Round 2/ }));
     await user.click(screen.getByRole("button", { name: "哪裡" }));
     await user.click(screen.getByRole("button", { name: /See results/ }));
     expect(onComplete).toHaveBeenCalledTimes(2);
     expect(onComplete.mock.calls[1][0].mode).toBe("tier2");
     expect(onComplete.mock.calls[1][0].questionResults[0].level).toBe("medium");
 
-    await user.click(screen.getByRole("button", { name: /Challenge Round 3/ }));
+    await user.click(screen.getByRole("button", { name: /Continue to Round 3/ }));
     await user.type(screen.getByRole("textbox", { name: "Your answer" }), " 哪 兒？ ");
     await user.click(screen.getByRole("button", { name: /Check answer/ }));
     expect(screen.getByText("Correct!")).toBeInTheDocument();

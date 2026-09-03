@@ -49,4 +49,27 @@ describe("ModeSelectScreen — difficulty level badge", () => {
     expect(weakWordsRegion).not.toHaveTextContent("附近");
     expect(weakWordsRegion).not.toHaveTextContent("1 observations");
   });
+
+  it("shows the lesson's mastered words in a separate read-only summary", () => {
+    render(
+      <ModeSelectScreen
+        {...baseProps}
+        masteredWords={[{
+          wordId: "word-1",
+          word: "下午茶",
+          meaning: "afternoon tea",
+          pLearned: 0.98,
+          status: "MASTERED",
+          observationCount: 3,
+          correctCount: 3,
+          incorrectCount: 0,
+        }]}
+      />,
+    );
+    const masteredWordsRegion = screen.getByRole("region", { name: "Mastered words" });
+    expect(masteredWordsRegion).toHaveTextContent("Mastered words (1)");
+    expect(masteredWordsRegion).toHaveTextContent("下午茶");
+    expect(masteredWordsRegion).toHaveTextContent("afternoon tea");
+    expect(screen.getByRole("list", { name: "Mastered vocabulary" })).toBeInTheDocument();
+  });
 });
