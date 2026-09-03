@@ -71,7 +71,7 @@
 .vocab-quiz-content {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: stretch;
+  align-items: start;
   gap: var(--space-lg);
   width: 100%;
 }
@@ -83,7 +83,7 @@
 
 .vocab-quiz-question-panel,
 .vocab-quiz-answer-panel {
-  padding: var(--space-xl);
+  padding: var(--space-lg);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-card);
@@ -97,13 +97,14 @@
 .vocab-quiz-answer-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-xs);
 }
 
 .vocab-quiz-word {
-  font-size: clamp(var(--text-xl), 5vw, var(--space-3xl));
+  font-size: clamp(var(--text-xl), 3vw, var(--space-2xl));
   font-family: var(--font-display);
   font-weight: 700;
+  line-height: 1.2;
   color: var(--gold-deep);
   margin: var(--space-2xs) 0;
 }
@@ -272,7 +273,7 @@
 
 .vocab-quiz-section-label {
   margin: 0;
-  padding: 0 0 var(--space-md);
+  padding: 0 0 var(--space-sm);
   border-bottom: 1px solid var(--clay-hairline);
   font-family: var(--font-display);
   font-size: var(--text-lg);
@@ -300,7 +301,8 @@
   font-size: var(--text-md);
   font-weight: 650;
   text-align: left;
-  padding: var(--space-md) var(--space-lg);
+  min-height: var(--space-2xl);
+  padding: var(--space-xs) var(--space-md);
   cursor: pointer;
   transition: border-color 0.2s, background-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
@@ -339,8 +341,8 @@
   text-align: left;
 }
 .vocab-quiz-question-screen .vocab-quiz-header .eyebrow {
-  margin: 0 0 var(--space-lg);
-  padding: 0 0 var(--space-md);
+  margin: 0 0 var(--space-md);
+  padding: 0 0 var(--space-sm);
   border-bottom: 1px solid var(--clay-hairline);
 }
 .vocab-quiz-question-screen .vocab-quiz-header .eyebrow .bi-label {
@@ -356,10 +358,16 @@
   width: 100%;
   box-sizing: border-box;
   margin: 0;
-  padding: var(--space-2xl) var(--space-lg);
+  min-height: 0;
+  padding: var(--space-xl) var(--space-lg);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-card);
+  text-align: center;
+  text-wrap: balance;
+}
+.vocab-quiz-question-screen .vocab-quiz-assessment-prompt {
+  font-size: clamp(var(--text-lg), 2.5vw, var(--space-2xl));
 }
 .vocab-quiz-question-screen .vocab-quiz-options {
   align-content: start;
@@ -371,16 +379,42 @@
   justify-content: flex-start;
 }
 .vocab-quiz-question-screen .vocab-quiz-actions {
-  /* The action follows the answer set so it stays reachable on short screens. */
-  min-height: var(--space-3xl);
-  margin-top: auto;
+  /* Keep the action directly after the answer/feedback instead of pushing it
+     to the bottom of a grid row made tall by the prompt panel. */
+  min-height: 0;
+  margin-top: var(--space-xs);
   align-items: flex-start;
   justify-content: flex-end;
 }
 
+/* StudentModeCompact.css owns the outer learner shell and has older, more
+   specific quiz overrides. Keep this compact question treatment here with a
+   stronger variant selector so the prompt and primary action use one source
+   of truth inside that shell too. */
+.student-workspace-v2 .story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-word {
+  font-size: clamp(var(--text-xl), 3vw, var(--space-2xl));
+}
+.student-workspace-v2 .story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-assessment-prompt {
+  font-size: clamp(var(--text-lg), 2.5vw, var(--space-2xl));
+}
+.student-workspace-v2 .story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-cloze-sentence {
+  font-size: var(--text-lg);
+}
+.student-workspace-v2 .story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-option {
+  min-height: var(--space-2xl);
+  padding: var(--space-xs) var(--space-md);
+}
+.student-workspace-v2 .story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-options {
+  gap: var(--space-xs);
+  margin-top: var(--space-xs);
+}
+.student-workspace-v2 .story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-actions {
+  min-height: 0;
+}
+
 @media (min-width: 901px) {
   .vocab-quiz-content {
-    grid-template-columns: minmax(260px, .28fr) minmax(0, .72fr);
+    grid-template-columns: minmax(320px, .36fr) minmax(0, .64fr);
   }
 }
 
@@ -423,8 +457,9 @@
   }
 
   .vocab-quiz-question-screen .vocab-quiz-word {
+    min-height: 0;
     padding: var(--space-lg);
-    font-size: var(--space-2xl);
+    font-size: var(--text-xl);
   }
 
   .vocab-quiz-section-label {
@@ -441,7 +476,7 @@
   }
 
   .vocab-quiz-question-screen .vocab-quiz-actions {
-    min-height: var(--space-xl);
+    min-height: 0;
   }
 }
 
@@ -530,7 +565,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-xs);
-  min-height: 52px;
+  min-height: var(--space-2xl);
   font-size: 15px;
   font-weight: 800;
   padding: 0 var(--space-xl);
@@ -538,7 +573,7 @@
   cursor: pointer;
   border: 0;
   background: var(--jade);
-  color: #ffffff;
+  color: var(--clay-on-accent);
   transition: background-color 0.15s ease;
 }
 .btn-vocab-quiz-next:hover {

@@ -526,6 +526,24 @@
   margin: 0;
 }
 
+/* On desktop the feedback is a compact status strip: result, correct answer,
+   and explanation remain readable without creating a tall block that pushes
+   the primary next-question action below the viewport. Mobile keeps the
+   natural stacked reading order. */
+@media (min-width: 901px) {
+  .vocab-quiz-assessment-feedback {
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--space-md);
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .vocab-quiz-assessment-feedback p:last-child {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}
+
 .vocab-quiz-assessment-feedback .is-correct {
   color: var(--jade-deep);
   font-weight: 800;
