@@ -1,0 +1,522 @@
+
+.saved-word-prosody > strong {
+  display: block;
+  color: var(--clay-ink);
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.saved-word-prosody-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.saved-word-prosody-card {
+  padding: 10px;
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.saved-word-prosody-card span,
+.saved-word-prosody-card em,
+.saved-word-prosody-card small {
+  display: block;
+}
+
+.saved-word-prosody-card span {
+  color: var(--clay-ink);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.saved-word-prosody-card em {
+  color: var(--seal-deep);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+  margin-top: 4px;
+}
+
+.saved-word-prosody-card small {
+  color: var(--clay-muted);
+  font-size: 11px;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.saved-word-prosody-card p {
+  color: var(--clay-body);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 8px 0 0;
+}
+
+.record-summary .story-prosody-chart .pitch-chart-container {
+  height: 180px;
+}
+
+.record-summary .story-header {
+  margin-bottom: 12px;
+}
+
+.record-summary .saved-metrics-summary {
+  grid-template-columns: 1fr;
+}
+
+.record-summary .btn-delete {
+  padding: 7px 9px;
+}
+
+/* .model-badge removed — index.css owns the single canonical definition now. */
+
+.teacher-dashboard-page {
+  background: var(--clay-canvas);
+}
+
+/* .stories-kicker is a shared utility (student pages use it too, hence its
+   base --seal-deep color) — teacher-only screens override it to jade. */
+.teacher-dashboard-page .stories-kicker {
+  color: var(--jade-deep);
+}
+
+.teacher-dashboard-hero,
+.teacher-view-tabs,
+.teacher-stat-grid,
+.teacher-dashboard-grid,
+.teacher-content-builder,
+.teacher-recordings-panel {
+  max-width: var(--content-max);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.teacher-submissions-panel,
+.quiz-analytics-filters-panel,
+.teacher-quiz-analytics-panel,
+.teacher-recording-analytics-panel {
+  max-width: var(--content-max);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.story-submission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Header filter: the student <select> now lives inside the panel header
+   next to the count pill, replacing what used to be its own bordered
+   filter panel above the list — one control doesn't need its own box. */
+.story-submission-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.story-submission-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clay-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.story-submission-filter select {
+  padding: 7px 10px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  font: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 600;
+}
+
+/* Each submission is one scannable row by default — who, what, how it went,
+   when, and the one action a teacher takes most (mark reviewed). Everything
+   else (notes, scene-by-scene detail, whole-story feedback) sits behind
+   the Details toggle so the list reads like a list, not a stack of cards. */
+.story-submission-row-wrap {
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  overflow: hidden;
+}
+
+.story-submission-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.story-submission-row-primary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.story-submission-row-primary strong {
+  color: var(--clay-ink);
+  font-size: 0.95rem;
+}
+
+.story-submission-row-story {
+  color: var(--clay-muted);
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.story-submission-row-score {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--clay-body);
+  flex-shrink: 0;
+}
+
+.story-submission-row-date {
+  font-size: 0.78rem;
+  color: var(--clay-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.story-submission-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--clay-radius-sm);
+  background: none;
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.story-submission-toggle:hover {
+  border-color: var(--clay-hairline);
+  color: var(--jade-deep);
+}
+
+.story-submission-toggle svg {
+  transition: transform 0.15s ease;
+}
+
+.story-submission-toggle[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.story-submission-detail {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--clay-hairline-soft);
+}
+
+.story-submission-note-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.story-submission-note-row .story-submission-note-button {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.submission-review-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--clay-on-accent);
+  white-space: nowrap;
+}
+
+.submission-review-pending {
+  background: var(--gold-deep);
+}
+
+.submission-review-reviewed {
+  background: var(--jade);
+}
+
+.story-submission-review-button,
+.story-submission-note-button {
+  padding: 7px 10px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.story-submission-review-button:hover:not(:disabled),
+.story-submission-note-button:hover {
+  border-color: var(--jade);
+  color: var(--jade-deep);
+}
+
+.story-submission-review-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.story-submission-note-editor {
+  display: grid;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.story-submission-note-editor label {
+  display: grid;
+  gap: 6px;
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.story-submission-note-editor textarea {
+  min-height: 72px;
+  resize: vertical;
+  padding: 9px 12px;
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  font: inherit;
+}
+
+.story-submission-note-editor .story-submission-review-button {
+  justify-self: start;
+}
+
+.story-submission-note {
+  margin: 0;
+  padding: 0;
+  color: var(--clay-body);
+  font-size: 13px;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.story-submission-review-error {
+  margin: 0 0 14px;
+  color: var(--clay-error);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.story-submission-scenes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0;
+  margin-top: 14px;
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-md);
+  overflow: hidden;
+}
+
+.story-submission-scene {
+  padding: 14px 18px;
+  border-right: 1px solid var(--clay-hairline-soft);
+  border-bottom: 1px solid var(--clay-hairline-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sss-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.sss-scene-num {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--clay-muted);
+}
+
+.sss-score {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--clay-muted);
+  font-weight: 600;
+}
+
+.sss-transcription {
+  font-size: 0.9rem;
+  color: var(--clay-body);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.sss-self-eval {
+  font-size: 0.8rem;
+  color: var(--clay-muted);
+  margin: 0;
+}
+
+.sss-vocab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.sss-audio {
+  width: 100%;
+  margin-top: 8px;
+  height: 32px;
+}
+
+.sss-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--clay-radius-lg);
+}
+
+.sss-chip-used {
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.sss-chip-missing {
+  background: var(--clay-error-soft);
+  /* clay-error lands at ~4.3:1 on seal-soft — clay-error-deep clears 4.5:1. */
+  color: var(--clay-error-deep);
+}
+
+.teacher-dashboard-hero {
+  margin-bottom: 22px;
+  padding: 22px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-xl);
+  background: var(--clay-surface-card);
+}
+
+.teacher-dashboard-hero h1 {
+  color: var(--clay-ink);
+  font-size: clamp(32px, 5vw, 46px);
+  line-height: 1.12;
+  margin: 0 0 12px;
+}
+
+.teacher-dashboard-hero p {
+  max-width: 700px;
+  color: var(--clay-body);
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.teacher-dashboard-date {
+  min-width: 180px;
+  padding: 16px;
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-soft);
+  text-align: right;
+}
+
+.teacher-dashboard-date span,
+.teacher-stat-card span,
+.teacher-submission-row span {
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.teacher-dashboard-date strong {
+  font-family: var(--font-mono);
+  display: block;
+  color: var(--clay-ink);
+  font-size: 18px;
+  margin-top: 6px;
+}
+
+/* Grouped as a few labeled clusters (a segmented control per group) instead
+   of eight identically-bordered pills wrapping onto an uneven second row —
+   see teacherViewGroups in MyStoriesPage.tsx for which tab belongs to which
+   job (Review / Content / Analytics). */
+.teacher-view-tabs {
+  margin-bottom: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.teacher-view-tab-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.teacher-view-tab-group-label {
+  padding-left: 2px;
+  color: var(--clay-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.teacher-view-tab-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-soft);
+}
+
+.teacher-view-tabs button {
+  min-height: 40px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--clay-radius-md);
+  background: transparent;
+  color: var(--clay-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+

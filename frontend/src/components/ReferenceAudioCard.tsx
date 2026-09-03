@@ -1,4 +1,5 @@
 import { BiLabel } from "./BiLabel";
+import Icon from "../shared/ui/Icon";
 import "./ReferenceAudioCard.css";
 
 interface ReferenceAudioCardProps {
@@ -11,7 +12,7 @@ export default function ReferenceAudioCard({ audioUrl, sentence }: ReferenceAudi
   return (
     <section className="reference-audio-card" aria-label="Model recording">
       <div className="reference-audio-card-heading">
-        <span className="reference-audio-card-icon" aria-hidden="true">◉</span>
+        <span className="reference-audio-card-icon"><Icon name="microphone" size={18} /></span>
         <div>
           <p className="reference-audio-card-title"><BiLabel zh="示範音檔" en="Model" /></p>
           <p className="reference-audio-card-hint"><BiLabel zh="先聽，再跟讀" en="Listen and repeat" /></p>

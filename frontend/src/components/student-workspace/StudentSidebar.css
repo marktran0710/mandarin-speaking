@@ -1,0 +1,307 @@
+/* Student shell's left navigation rail.
+   Mirrors the teacher shell's sidebar (ManagementShell.css) in width and
+   anatomy so the two modes read as one product, but keeps the student
+   accent (gold) rather than the teacher accent (jade), per the app's
+   student=seal/gold, teacher=jade convention. */
+.student-sidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  width: 248px;
+  height: 100vh;
+  padding: var(--space-lg) var(--space-sm);
+  border-right: 1px solid var(--clay-hairline);
+  background: var(--clay-surface-card);
+}
+
+.student-sidebar-brand {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 0 var(--space-xs);
+}
+
+.student-sidebar-brand img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.student-sidebar-brand-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--clay-ink);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+}
+
+.student-sidebar-item {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-sm);
+  /* 44px floor: this is a primary touch target on tablets. */
+  min-height: 48px;
+  padding: 0 var(--space-sm);
+  border: 1px solid transparent;
+  border-radius: var(--clay-radius-md);
+  background: transparent;
+  color: var(--clay-body);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background .16s ease, color .16s ease, border-color .16s ease;
+}
+
+.student-sidebar-item:hover {
+  border-color: color-mix(in srgb, var(--seal) 26%, transparent);
+  background: var(--clay-surface-soft);
+}
+
+.student-sidebar-item.active {
+  border-color: color-mix(in srgb, var(--seal) 38%, transparent);
+  background: var(--seal-soft);
+  /* Gold fills always take dark ink, never white (--clay-on-seal rule). */
+  color: var(--clay-on-seal);
+  box-shadow: inset 3px 0 var(--seal);
+  font-weight: 800;
+}
+
+.student-sidebar-item:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--seal) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.student-sidebar-item-icon {
+  display: grid;
+  place-items: center;
+  color: var(--seal-deep);
+}
+
+.student-sidebar-item-copy { min-width: 0; }
+
+/* Progress card — the rail's replacement for the floating star bubble.
+   Display only: the "jump into the story that still needs a quiz" nudge the
+   bubble also carried is already on every lesson card as its own
+   "開始生詞測驗 Start vocabulary quiz" button, so repeating it here would be
+   a second control for one job. */
+.student-sidebar-progress {
+  margin-bottom: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.student-sidebar-progress-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  margin: 0;
+  color: var(--seal-deep);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.student-sidebar-progress-value {
+  margin: var(--space-2xs) 0 var(--space-xs);
+  color: var(--clay-ink);
+  font-size: var(--text-xl);
+  font-weight: 800;
+  line-height: 1;
+}
+
+.student-sidebar-progress-value span {
+  color: var(--clay-muted);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.student-sidebar-progress-track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--clay-hairline);
+}
+
+.student-sidebar-progress-track > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--seal);
+}
+
+/* Slot the running story fills (StorySessionSidebar portals into it). It
+   takes the space the section switch would have used, and scrolls on its
+   own when a long scene list outgrows the rail. */
+/* The slot is always in the DOM so the session's portal can never miss it;
+   it only takes space once the session has filled it. */
+.student-sidebar-session:empty { display: none; }
+
+.student-sidebar-session {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Inside the rail the session content is already framed by the rail, so it
+   drops the card chrome it uses when standing alone. */
+.student-sidebar-session .ssb-topline {
+  padding: 0 var(--space-xs);
+  border: 0;
+}
+
+.student-sidebar-session .ssb-help {
+  margin-top: auto;
+}
+
+/* The floating help toggle belongs to the old mobile-drawer layout; inside
+   the rail the panel is always visible, so the toggle has nothing to do. */
+.student-sidebar-session .ssb-help-toggle { display: none; }
+
+.student-sidebar-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  margin-top: auto;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--clay-hairline);
+}
+
+.student-sidebar-identity {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-2xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.student-sidebar-avatar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.student-sidebar-identity-copy {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.student-sidebar-identity-label {
+  color: var(--clay-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.student-sidebar-identity-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--clay-ink);
+  font-size: var(--text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-sidebar-action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-height: 44px;
+  padding: 0 var(--space-sm);
+  border: 0;
+  border-radius: var(--clay-radius-md);
+  background: transparent;
+  color: var(--clay-body);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+  transition: background .16s ease, color .16s ease;
+}
+
+.student-sidebar-action:hover { background: var(--clay-surface-soft); color: var(--clay-ink); }
+.student-sidebar-action:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--seal) 55%, transparent);
+  outline-offset: 2px;
+}
+.student-sidebar-logout { color: var(--clay-error); }
+
+/* Mobile: the rail becomes an off-canvas drawer behind a menu button, the
+   same pattern the teacher shell uses at this breakpoint. */
+.student-sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: var(--space-sm);
+  left: var(--space-sm);
+  z-index: 40;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.student-sidebar-backdrop { display: none; }
+
+@media (max-width: 900px) {
+  .student-sidebar-toggle { display: inline-flex; }
+
+  .student-sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    background: color-mix(in srgb, var(--clay-ink) 32%, transparent);
+  }
+
+  .student-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 36;
+    width: min(80vw, 280px);
+    transform: translateX(-104%);
+    transition: transform .2s ease;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .student-sidebar.is-open { transform: translateX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-sidebar,
+  .student-sidebar-item,
+  .student-sidebar-action { transition: none; }
+}

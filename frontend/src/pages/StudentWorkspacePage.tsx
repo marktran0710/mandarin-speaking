@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import CreateStoryPage from "./CreateStoryPage";
-import ImageNarrationPage from "./ImageNarrationPage";
 import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
 import StudentIcon, { type StudentIconName } from "../components/StudentIcon";
 import { BiLabel, BiText } from "../components/BiLabel";
@@ -27,11 +26,13 @@ export interface StudentWorkspacePageProps {
   helpRequests: HelpRequest[];
   onRaiseHand: (message: string) => void;
   storyTopics: Topic[];
-  describeTopics: Topic[];
   audioRecords: AudioRecord[];
   onSessionActiveChange: (active: boolean) => void;
   isInPracticeSession: boolean;
   onStartActivity?: (topicId: string, startAtQuiz: boolean) => void;
+  /** Signs the student out from the workspace's own left rail — the rail
+   * replaced the top navbar that used to carry this action. */
+  onLogout: () => void;
 }
 
 const WORKSPACE_VIEWS: Array<{
@@ -49,11 +50,6 @@ const WORKSPACE_VIEWS: Array<{
     icon: "chart",
     label: { zh: "我的學習", pinyin: "Wǒ de xuéxí", en: "Progress" },
   },
-  {
-    id: "picture-talk",
-    icon: "image",
-    label: { zh: "看圖說話", pinyin: "Kàn tú shuō huà", en: "Picture talk" },
-  },
 ];
 
 function LegacyStudentWorkspacePage({
@@ -65,14 +61,10 @@ function LegacyStudentWorkspacePage({
   helpRequests,
   onRaiseHand,
   storyTopics,
-  describeTopics,
   audioRecords,
   onSessionActiveChange,
   isInPracticeSession,
 }: StudentWorkspacePageProps) {
-  const availableViews = WORKSPACE_VIEWS.filter(
-    (item) => item.id !== "picture-talk" || describeTopics.length > 0,
-  );
   const [practiceStarted, setPracticeStarted] = useState(isInPracticeSession);
 
   useEffect(() => {
@@ -95,10 +87,6 @@ function LegacyStudentWorkspacePage({
           publishedTopics={storyTopics}
         />
       );
-    }
-
-    if (view === "picture-talk") {
-      return <ImageNarrationPage publishedTopics={describeTopics} />;
     }
 
     return (
@@ -162,11 +150,11 @@ function LegacyStudentWorkspacePage({
 
       {!practiceStarted && (
         <nav
-          className={`student-workspace-tabs student-workspace-tabs-count-${availableViews.length}`}
+          className={`student-workspace-tabs student-workspace-tabs-count-${WORKSPACE_VIEWS.length}`}
           aria-label="Student learning areas"
           role="tablist"
         >
-          {availableViews.map((item) => (
+          {WORKSPACE_VIEWS.map((item) => (
             <button
               key={item.id}
               id={`student-workspace-tab-${item.id}`}

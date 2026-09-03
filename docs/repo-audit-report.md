@@ -10,8 +10,9 @@ The two-device development workflow is safe when each device runs
 There is no shared-device mode; each device owns its own database and uploads.
 
 One stale root prototype, `demo.html`, had no build input or repository
-references and was removed. Research, migration, seed, runtime, and authored
-lesson files were retained.
+references and was removed. Migration, seed, runtime, and authored lesson
+files were retained; benchmark code, reports, and local private-data paths
+were removed from the classroom branch.
 
 The application can store pilot records in PostgreSQL when migrations have run, but it is not yet a complete production data-retention system until the deployment provides persistent object/file storage for uploaded audio and images. PostgreSQL persistence and uploaded-media persistence are separate concerns.
 
@@ -21,7 +22,7 @@ The application can store pilot records in PostgreSQL when migrations have run, 
 |---|---|---|---|
 | Readiness | `/health` returned HTTP 200 even when the database was unavailable | Added `/health/ready`, which returns 503 unless database and upload storage are available; `/health` now reports both statuses | Fixed |
 | Upload safety | The audio-record upload path did not apply the shared maximum-size limit and wrote directly to the final path | Enforced `MAX_AUDIO_BYTES` and switched to temp-write plus atomic replace | Fixed |
-| Deployment privacy | `backend/Dockerfile` uses `COPY . .`; the previous `.dockerignore` did not exclude `private-data`, benchmarking outputs, or reports | Excluded these research/private directories from production images | Fixed |
+| Deployment privacy | `backend/Dockerfile` uses `COPY . .` | Research/private directories are excluded from production images and are no longer part of this branch | Fixed |
 | Render readiness | Deployment health probe used the permissive `/health` endpoint | Switched `render.yaml` to `/health/ready` and documented `UPLOAD_DIR` | Fixed |
 
 ## High-priority risks still requiring an infrastructure/product decision
@@ -35,7 +36,6 @@ The application can store pilot records in PostgreSQL when migrations have run, 
 
 - `backend/main.py`, `backend/database.py`, `backend/routers/`, `backend/migrations/`: runtime API, persistence, and schema history.
 - `backend/tests/`, `src/**/*.test.*`: keep and repair failing tests; they are the regression contract.
-- `backend/private-data/`: do not delete as part of cleanup. It contains research/audio/model inputs; archive under an approved data-retention policy instead. It is now excluded from production Docker images.
 - `backend/migrations/versions/`: never delete an applied migration. Add a new migration for schema changes.
 - `docker-compose.yml`, `render.yaml`, `.env.example`, `backend/.env.example`: deployment/configuration sources.
 - `docs/build_*.mjs`, `docs/build_*.py`: keep if reproducible dashboard/document deliverables are required; otherwise archive them together with their outputs, not independently.
@@ -44,9 +44,7 @@ The application can store pilot records in PostgreSQL when migrations have run, 
 
 | Path/pattern | Why it is likely non-runtime | Recommendation |
 |---|---|---|
-| `backend/benchmarking/` | Evaluation scripts, datasets, and result tables; `backend/main.py` imports `routers/benchmark.py`, which uses `benchmarking` at runtime, and the test suite imports research modules | Keep. Archive duplicate/stale runs only after confirming provenance and updating the benchmark/test references |
 | `demo.html` | Initial static prototype; not a Vite input and no source/docs references | Removed after repository-reference audit |
-| `backend/benchmarking/results/*STALE*` | Filename explicitly marks superseded snapshots | Candidate for deletion after confirming no report links to it |
 | `backend/reports/` | Generated annotations, KPI reports, and audit outputs | Archive as research evidence; do not ship/deploy |
 | `output/` | Generated WAVs, DOCX/XLSX, previews, and inspection files | Keep final deliverables; delete/regenerate scratch audio and inspection files after approval |
 | `.codex/`, `.playwright-cli/`, `.superpowers/`, `.pytest_cache/` | Tool/session/cache artifacts | Regenerable; remove only after checking whether a current workflow needs them |

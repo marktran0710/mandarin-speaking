@@ -1,0 +1,438 @@
+
+/* Challenge steps */
+/* Two-function choice: Practice Vocabulary vs Practice Speaking */
+.overview-choice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* A chunky game-tile card (thick colored border + bottom lip) rather than
+   a thin-hairline web card, matching the tactile buttons elsewhere. */
+.overview-choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  background: var(--clay-surface-card);
+  border: 2.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  padding: 24px 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--clay-hairline);
+  transition: border-color 0.18s, transform 0.12s, box-shadow 0.12s;
+}
+
+.overview-choice-card:hover:not(:disabled) {
+  border-color: var(--seal);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--seal-deep);
+}
+
+.overview-choice-card:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--seal-deep);
+}
+
+.overview-choice-card:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.overview-choice-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.overview-choice-card strong {
+  font-size: 16px;
+  color: var(--clay-ink);
+}
+
+.overview-choice-card p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--clay-body);
+  line-height: 1.4;
+}
+
+/* ── Start-practice instructions modal ──────────────── */
+.start-practice-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 26, 23, 0.55);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: startModalFadeIn 0.18s ease-out;
+}
+@keyframes startModalFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.start-practice-modal {
+  background: var(--clay-surface-card);
+  border-radius: var(--clay-radius-lg);
+  padding: 36px 32px;
+  max-width: 440px;
+  width: 100%;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  animation: startModalPop 0.22s ease-out;
+}
+@keyframes startModalPop {
+  from { transform: scale(0.94) translateY(8px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+.start-practice-modal-icon {
+  display: block;
+  font-size: 2.6rem;
+  margin-bottom: 8px;
+}
+.start-practice-modal h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--clay-ink);
+  margin: 0 0 18px;
+}
+.start-practice-modal-list {
+  list-style: none;
+  margin: 0 0 26px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+}
+.start-practice-modal-list li {
+  background: var(--clay-surface-soft);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--clay-ink);
+}
+.start-practice-modal .btn-start-challenge {
+  padding: 14px 36px;
+  font-size: 16px;
+}
+
+@media (max-width: 640px) {
+  .story-overview { padding: 20px 16px 32px; gap: 24px; }
+  .overview-hero { padding: 28px 16px 24px; }
+  .overview-scenes-strip { gap: 10px; }
+  .overview-scene-thumb { width: 130px; }
+}
+
+/* ══════════════════════════════════════════════════════
+   Practice Phase — redesigned speaking workspace
+   ══════════════════════════════════════════════════════ */
+
+/* Scene selector strip */
+/* ── Teacher example frame panel ───────────────────────────────────── */
+.example-frame-panel {
+  background: var(--jade-soft);
+  border: 2px solid var(--jade);
+  border-radius: var(--clay-radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.example-frame-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--jade-deep);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+}
+.example-frame-icon { font-size: 1.1rem; }
+.example-frame-body {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.example-frame-image {
+  width: 160px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: var(--clay-radius-sm);
+  flex-shrink: 0;
+  border: 1px solid var(--jade-soft);
+}
+.example-frame-content { flex: 1; min-width: 0; }
+.example-frame-prompt {
+  font-size: 1rem;
+  color: var(--clay-ink);
+  margin: 0 0 8px;
+  font-style: italic;
+}
+.example-frame-audio {
+  width: 100%;
+  margin-bottom: 8px;
+}
+.example-frame-script-block {
+  background: var(--clay-surface-card);
+  border: 1.5px solid var(--jade);
+  border-radius: var(--clay-radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.example-frame-script-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--jade-deep);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 6px;
+}
+.example-frame-script {
+  font-size: 1.05rem;
+  color: var(--clay-ink);
+  margin: 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.example-frame-vocab {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* ── The practice stage: one framed surface holding the step header and
+   the step content, so vocabulary → phrases → speaking reads as chapters
+   of the same object instead of a floating pill row above an unrelated
+   card. Children (the workspace grid, the speaking flow card) drop their
+   own outer borders inside it. ── */
+.practice-stage {
+  background: var(--clay-surface-card);
+  border: 1.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  overflow: hidden;
+}
+.practice-stage > .practice-workspace {
+  padding: 18px;
+  margin-top: 0;
+}
+.practice-stage .speaking-flow-card {
+  border: 0;
+  border-radius: 0;
+}
+
+/* ── Per-scene practice step header (vocabulary → phrases → speaking) ──
+   Numbered markers joined by connector lines — the same visual language
+   as the story-level phase stepper above it, one size smaller, so the
+   inner steps clearly belong to the same journey. */
+/* A plain underline tab strip, deliberately not JourneyPath's circular-ring
+   + contour-connector language — JourneyPath answers "which scene" (the
+   story-level journey), this answers "which step within this scene"
+   (vocab → phrases → speaking). Giving them different shapes keeps the two
+   scopes from reading as duplicate copies of the same stepper. Step names
+   are self-explanatory, so order is carried by position + the done check,
+   not a repeated numbered badge. */
+.scene-step-tabs {
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  border-bottom: 1.5px solid var(--clay-hairline);
+  background: var(--clay-surface-soft);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scene-step-tabs::-webkit-scrollbar {
+  display: none;
+}
+.scene-step-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  margin-bottom: -1.5px;
+  padding: 14px 2px;
+  margin-right: 26px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--clay-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.scene-step-tab:last-child {
+  margin-right: 0;
+}
+.scene-step-check {
+  color: var(--jade-deep);
+  font-weight: 800;
+}
+.scene-step-tab:hover { color: var(--clay-body); }
+.scene-step-tab.scene-step-done {
+  color: var(--jade-deep);
+  border-color: var(--jade);
+}
+.scene-step-tab.active {
+  color: var(--seal-deep);
+  border-color: var(--seal);
+}
+
+/* practice-phrases-hint's compact card, sized up for its own reference
+   panel (rather than a small inline hint next to the record controls). */
+.practice-phrases-hint-full {
+  /* Matches .practice-vocab-ref's padding — the two now stack as sibling
+     sub-cards inside the merged Study tab, so they need to read as the
+     same size of "thing," not two differently-scaled cards. */
+  padding: 14px 16px;
+  gap: 8px;
+  margin-top: 0;
+}
+
+.btn-scene-step-continue {
+  padding: 14px 28px;
+  border-radius: var(--clay-radius-pill);
+  border: 2px solid var(--seal-deep);
+  background: var(--seal);
+  color: var(--clay-on-seal);
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: 0 5px 0 var(--seal-deep);
+  /* BiLabel's .bi-en subtitle defaults to --clay-muted (dark gray) —
+     unreadable on this solid accent fill without a light override. */
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.btn-scene-step-continue:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 0 var(--seal-deep);
+}
+.btn-scene-step-continue:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--seal-deep);
+}
+
+/* A scene rail (~1/2.7 of the width, roughly double the area of the
+   previous ~1/4 pass) beside the step's content, shared by Vocabulary/
+   Phrases (merged as "Study") and Speaking alike (see .practice-scene-col
+   /.practice-scene-image, reused directly rather than duplicated per
+   step). A fixed 4:3 box (not height:auto off the source image) keeps it
+   a real, legible size even for a wide/landscape scene illustration —
+   including any speech-bubble text baked into the artwork — without
+   letting the reference image out-size the thing being studied next to
+   it. .practice-scene-image must stay a block-level element (a <div>,
+   never a <span>) — width/aspect-ratio are silently ignored on inline
+   elements, which is what was collapsing this box to nothing. */
+.practice-workspace {
+  display: grid;
+  /* Image 35% / content 65% — the ratio the sidebar redesign settled on,
+     shared by Study and Speaking so steps never reflow the page. */
+  grid-template-columns: minmax(280px, 42fr) minmax(0, 58fr);
+  gap: 20px;
+  /* Stretch, not start: both columns always span the same height, so
+     whichever side has less content never reads as a broken half-row. The
+     scene rail below is a bounded panel for the same reason — its full
+     height is visibly intentional even when the image doesn't fill it. */
+  align-items: stretch;
+}
+
+.practice-scene-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: var(--clay-surface-soft);
+  border: 1px solid var(--clay-hairline);
+  border-radius: calc(var(--clay-radius-lg) + 2px);
+  padding: 10px;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+  /* The card hugs its image + chip — without this, the default grid-item
+     stretch drags the tinted card down the full height of the (much
+     taller) content column beside it. */
+  align-self: start;
+}
+.practice-scene-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--clay-radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--clay-hairline-soft);
+  background: var(--clay-surface-card);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, white 60%, transparent);
+}
+.practice-scene-image img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+}
+.practice-stage > .practice-workspace:not(:has(.sfc-results)) .practice-scene-col {
+  position: sticky;
+  top: 16px;
+}
+.practice-stage > .practice-workspace:not(:has(.sfc-results)) .practice-scene-image {
+  min-height: 220px;
+}
+.practice-scene-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--seal-deep);
+  background: var(--seal-soft);
+  border-radius: var(--clay-radius-pill);
+  padding: 4px 12px;
+}
+.practice-scene-chip {
+  display: none;
+}
+
+.practice-scene-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Study is image-led: let the scene occupy the full stage width so the
+   illustration remains the first visual anchor instead of leaving a short
+   card with unused space beside a tall vocabulary panel. */
+.practice-workspace-study {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+.practice-workspace-study .practice-scene-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+}
+.practice-workspace-study .practice-scene-image {
+  aspect-ratio: 4 / 3;
+  min-height: 220px;
+  max-height: 560px;
+}
+.practice-workspace-study .practice-scene-image img {
+  object-fit: contain;
+}
+.practice-workspace-study .practice-scene-chip {
+  justify-self: end;
+  white-space: nowrap;
+}
+.practice-workspace-study .practice-scene-main {
+  width: 100%;
+}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import TeacherDashboardPage from "./pages/TeacherDashboardPage";
+import type { MaterialsTool, TeacherView } from "./pages/TeacherDashboardPage";
 import LoginPage from "./pages/LoginPage";
 import Navigation from "./components/Navigation";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -16,8 +17,10 @@ import {
   StoredAudioRecord,
 } from "./services/database";
 
-export default function TeacherApp() {
-  const [activeRole, setActiveRole] = useState<"teacher" | null>(null);
+export default function TeacherApp({ embedded = false, onExit, initialView, initialMaterialsTool }: { embedded?: boolean; onExit?: () => void; initialView?: TeacherView; initialMaterialsTool?: MaterialsTool } = {}) {
+  const [activeRole, setActiveRole] = useState<"teacher" | null>(() =>
+    embedded && currentRole("teacher") === "teacher" ? "teacher" : null,
+  );
   const [audioRecords, setAudioRecords] = useState<StoredAudioRecord[]>([]);
   const [audioRecordCount, setAudioRecordCount] = useState(0);
   const [audioRecordPageSize] = useState(100);
@@ -117,7 +120,10 @@ export default function TeacherApp() {
       // Local role state is already cleared; the student app has its own
       // independent session cookie.
     });
+    onExit?.();
   };
+
+  if (embedded && activeRole !== "teacher") return null;
 
   // Logged-in teachers get the admin shell (its sidebar is the only nav);
   // the top Navigation bar only remains on the login screen.
@@ -126,7 +132,6 @@ export default function TeacherApp() {
       {activeRole === "teacher" ? (
         <TeacherDashboardPage
           records={audioRecords}
-          totalRecordCount={audioRecordCount}
           hasMoreAudioRecords={audioRecords.length < audioRecordCount}
           onDeleteRecord={deleteAudioRecord}
           onLoadMoreAudioRecords={loadMoreAudioRecords}
@@ -134,6 +139,8 @@ export default function TeacherApp() {
           onResolveHelpRequest={handleResolveHelpRequest}
           onRefreshRecords={loadSavedAudioRecords}
           onLogout={handleLogout}
+          initialView={initialView}
+          initialMaterialsTool={initialMaterialsTool}
         />
       ) : (
         <div className="app-container">
@@ -144,7 +151,7 @@ export default function TeacherApp() {
             // destination is the teacher app root — a no-op here made the
             // logo look broken.
             onNavigate={() => {
-              window.location.href = `${import.meta.env.BASE_URL}teacher.html`;
+              window.location.href = "/teacher.html";
             }}
             onLogout={handleLogout}
             appVariant="teacher"

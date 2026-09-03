@@ -1,3 +1,0 @@
-# Trained classifiers and extracted embeddings are written here.
-# Artifacts are not committed: backend/models/ is gitignored and these files
-# regenerate from the scripts.

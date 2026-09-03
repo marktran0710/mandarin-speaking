@@ -7,7 +7,6 @@ import type { SelfEvalLevel } from "../utils/selfEvalComparison";
 import type {
   PraatMetrics,
   SpeechModel,
-  Topic,
 } from "./StoryRecorder";
 import ModelRecordingPractice from "./ModelRecordingPractice";
 import "./SpeakingFlowCard.css";
@@ -29,7 +28,6 @@ interface SpeakingFlowCardProps {
    * teacher's own recording) — lets the student hear the target before
    * recording, the same real voice the scoring engine now grades against. */
   modelAudioUrl?: string;
-  narrativeMode: Topic["narrativeMode"];
   prog?: SceneProgressEntry;
   praatMetrics: PraatMetrics | null;
   analysisAudioBlob: Blob | null;
@@ -93,7 +91,6 @@ export default function SpeakingFlowCard({
   totalScenes,
   modelSentence,
   modelAudioUrl,
-  narrativeMode,
   prog,
   praatMetrics,
   analysisAudioBlob,
@@ -153,13 +150,13 @@ export default function SpeakingFlowCard({
   }, [selectedImageIndex]);
 
   const attempts = prog?.attempts ?? 0;
-  // Mastery (every word passed its per-syllable verdict on a full-sentence
-  // recording) gates progression alongside the score/attempts unlock — the
-  // attempts escape hatch never bypasses failing words.
+  // Keep the verdict-driven results presentation intact. Continuing is
+  // separate: one completed analysis is enough to move on.
   const ready =
     (sceneReadyOverride || (prog ? sceneReady(prog) : false)) &&
     masteryPassed &&
     contentPassed;
+  const canContinue = Boolean(praatMetrics);
 
   const sceneChip = (
     <span className="sfc-attempt-only">
@@ -360,9 +357,9 @@ export default function SpeakingFlowCard({
       totalScenes={totalScenes}
       modelSentence={modelSentence}
       modelAudioUrl={modelAudioUrl}
-      narrativeMode={narrativeMode}
       attempts={attempts}
       ready={ready}
+      canContinue={canContinue}
       masteryPassed={masteryPassed}
       praatMetrics={praatMetrics}
       analysisAudioBlob={analysisAudioBlob}

@@ -66,9 +66,7 @@ def _make_story(story_id: str, audio_field: str, audio_url: str) -> dict:
     return {
         "id": story_id,
         "title": "Frame Audio Upload Test",
-        "learningGoal": "Check uploaded model audio persists and scores itself",
         "frames": [frame],
-        "narrativeMode": "describe",
     }
 
 

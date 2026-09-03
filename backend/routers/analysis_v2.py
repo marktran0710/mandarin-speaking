@@ -43,11 +43,9 @@ def _health_kpi_gate() -> dict[str, Any]:
     if report_path:
         try:
             from pathlib import Path
-            from benchmarking.kpi_release_gate import evaluate_kpi_gate
 
-            report = json.loads(Path(report_path).read_text(encoding="utf-8"))
-            result = evaluate_kpi_gate(report)
-            return result.as_dict()
+            # Ignore an old offline report path if it is no longer available.
+            json.loads(Path(report_path).read_text(encoding="utf-8"))
         except Exception:
             # A stale/malformed report must never unlock V2.
             pass
@@ -113,7 +111,7 @@ def _relative_probabilities(scores: Any) -> dict[str, float | None]:
     ``detect_tone`` returns similarity scores, not calibrated likelihoods.  The
     previous V2 projection exposed those 0--100 scores under a
     ``tone_probabilities`` name, which was misleading to both the UI and
-    benchmark exporters.  This function normalizes only model evidence and
+    offline exporters.  This function normalizes only model evidence and
     deliberately does not use the prompted/expected tone.  The result is
     marked as *uncalibrated* in the response; a held-out calibration set is
     still required before treating it as a real probability.
@@ -335,18 +333,6 @@ async def analysis_v2_health():
         "deferred_requirements": ["T5 learner labels and sealed-test support"],
         "progression_eligible": False,
         "kpi_gate": _health_kpi_gate(),
-    }
-
-
-@router.get("/api/benchmark/kpi-gate")
-async def get_kpi_gate_status():
-    """Expose the same machine-readable gate used by the release command."""
-    gate = _health_kpi_gate()
-    return {
-        "analysis_version": ANALYSIS_VERSION,
-        "experimental": True,
-        "progression_eligible": False,
-        "gate": gate,
     }
 
 

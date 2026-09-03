@@ -6,21 +6,27 @@
   <link rel="icon" type="image/png" href="/logo.png" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>慢慢中文 · Mandarin, little by little</title>
-  <!-- Two families, and both are actually downloaded here — a font named in a
-       CSS stack but missing from this link silently falls back to whatever the
-       OS happens to have (on Windows that meant body copy in Microsoft JhengHei
-       and every pinyin line in Consolas).
-       LXGW WenKai TC is a Kai/楷書 face with natural curved strokes, especially
-       legible for learners; it carries BOTH the Chinese and the Latin display
-       line so headings speak in one hand. Noto Sans TC takes body/UI text and
-       covers the full pinyin diacritic range (ā á ǎ à).
-       Only 400/700 exist for WenKai — never set a weight the link doesn't
-       fetch, or the browser synthesizes a smeared fake bold. -->
+  <!-- Three families, and all three are actually downloaded here — a font named
+       in a CSS stack but missing from this link silently falls back to whatever
+       the OS happens to have (on Windows that meant body copy in Microsoft
+       JhengHei and every pinyin line in Consolas). Add a family here AND in
+       teacher.html, or it never renders in one of the two apps.
+       Noto Serif TC: Chinese display/headlines — a Ming/明體 face, crisper and
+       tidier at heading sizes than the Kai brush face it replaced.
+       Noto Sans TC: Chinese body/UI text.
+       Source Sans 3: ALL Latin and pinyin. It is the Latin companion designed
+       alongside Source Han Sans (the same design family as Noto Sans CJK), so
+       it sits with the Chinese faces rather than beside them.
+       Pinyin coverage is the hard constraint, not taste: ǖ ǘ ǚ ǜ (U+01D6-01DC)
+       appear in common A1 words (nǚ 女, lǜ 綠) and most Latin faces omit them,
+       which makes the browser swap fonts mid-word. Source Sans 3 and Noto Sans
+       TC were both verified to carry the full set; Lato and Nunito Sans were
+       rejected for missing it. -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
     rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&family=Noto+Sans+TC:wght@400;500;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&family=Source+Sans+3:wght@400;500;600;700&display=swap"
   />
 </head>
 

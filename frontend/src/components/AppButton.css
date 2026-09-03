@@ -91,3 +91,9 @@
 .ui-button .bi-label { line-height: 1.05; }
 .ui-button .bi-pinyin { font-size: 0.72em; }
 .ui-button .bi-en { font-size: 0.68em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-button { transition: none; }
+  .ui-button:hover:not(:disabled),
+  .ui-button:active:not(:disabled) { transform: none; }
+}

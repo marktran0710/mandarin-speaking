@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SpeakingResultsFlow from "./SpeakingResultsFlow";
-import type { PraatMetrics, Topic } from "./StoryRecorder";
+import type { PraatMetrics } from "./StoryRecorder";
 
 /**
  * Regression: a student could reach a screen with no way to record again.
@@ -66,7 +66,6 @@ function renderFlow(overrides: Record<string, unknown> = {}) {
       selectedImage="/img.png"
       selectedImageIndex={0}
       totalScenes={3}
-      narrativeMode={"scene" as Topic["narrativeMode"]}
       attempts={1}
       ready={false}
       masteryPassed={false}

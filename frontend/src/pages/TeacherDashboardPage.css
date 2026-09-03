@@ -1,21 +1,35 @@
-/* Teacher dashboard workspace inside the admin shell — view headers,
-   sub-tab segmented controls, and the redesigned Overview panels.
-   Class namespace: .tdash-* (owned by TeacherDashboardPage.tsx). Legacy
-   view internals (teacher-panel, builder form, tables) stay in
-   MyStoriesPage.css. */
+/* Teacher Studio workspace inside the management shell.
+   Class namespace: .tdash-* (owned by TeacherDashboardPage.tsx and
+   TeacherRosterTable.tsx). Legacy view internals (teacher-panel, builder
+   form, analytics tables) stay in MyStoriesPage.css.
+
+   Direction: a quiet workbench. Ink on ivory, hairlines instead of
+   shadows, one column. The gold accent is spent on exactly one signal —
+   a student is waiting — so gold on screen always means "answer this". */
 
 .tdash-workspace {
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
+  min-width: 0;
+}
+
+.tdash-workspace > *,
+.tdash-workspace .teacher-panel,
+.tdash-workspace .teacher-content-builder,
+.tdash-workspace .teacher-submissions-panel,
+.tdash-workspace .teacher-recordings-panel,
+.tdash-workspace .teacher-quiz-analytics-panel,
+.tdash-workspace .teacher-recording-analytics-panel,
+.tdash-workspace .insights-view {
+  min-width: 0;
 }
 
 /* Legacy view panels keep their own horizontal margin:auto centering from
    the old standalone teacher page. Inside this flex column, cross-axis
    auto margins cancel the default stretch — the panel shrinks to its
-   content and floats centered (the Overview stat row sat ~95px right of
-   the panels below it). Force full width; their own max-width still caps
-   them at the shared content measure. */
+   content and floats centered. Force full width; their own max-width
+   still caps them at the shared content measure. */
 .tdash-workspace .teacher-panel,
 .tdash-workspace .teacher-stat-grid,
 .tdash-workspace .teacher-submissions-panel,
@@ -27,313 +41,302 @@
   width: 100%;
 }
 
-/* The old full-page hero is gone — each view gets a slim header row. */
-.tdash-view-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-lg);
-  padding: clamp(22px, 3vw, 32px);
-  overflow: hidden;
-  position: relative;
+/* ── Card: the single container shape every view uses ──────────────── */
+
+.tdash-card {
+  width: 100%;
+  /* Same measure as the legacy panels below them (03-teacher-overview.css),
+     so the column has one edge rather than two. */
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: clamp(18px, 2.4vw, 26px);
   border: 1px solid var(--clay-hairline);
-  border-radius: calc(var(--clay-radius-xl) + 4px);
-  background:
-    radial-gradient(circle at 92% 18%, rgba(90, 191, 151, 0.2), transparent 32%),
-    linear-gradient(135deg, var(--clay-surface-card), var(--clay-surface-soft));
-  box-shadow: 0 16px 35px rgba(43, 38, 48, 0.06);
+  border-radius: var(--clay-radius-xl);
+  background: var(--clay-surface-card);
 }
 
-.tdash-view-header::after {
-  content: "";
-  position: absolute;
-  width: 190px;
-  height: 190px;
-  right: -78px;
-  bottom: -128px;
-  border: 28px solid rgba(202, 151, 47, 0.13);
-  border-radius: 50%;
-  pointer-events: none;
+.tdash-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
 }
 
-.tdash-view-header > * {
-  position: relative;
-  z-index: 1;
-}
-
-.tdash-view-kicker {
-  margin: 0 0 var(--space-2xs);
-  color: var(--jade-deep);
-  font-size: var(--text-xs);
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.tdash-view-header h1 {
-  margin: 0;
+.tdash-card-head h2 {
+  font-size: 1.15rem;
+  font-weight: 650;
   color: var(--clay-ink);
-  font-family: var(--font-display);
-  font-size: clamp(27px, 3.8vw, 38px);
-  line-height: 1.15;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
 }
 
-.tdash-view-description {
-  max-width: 620px;
-  margin: var(--space-xs) 0 0;
-  color: var(--clay-body);
-  font-size: var(--text-base);
-  line-height: 1.55;
-}
-
-.tdash-view-summary {
-  min-width: 155px;
-  padding: var(--space-sm) var(--space-md);
-  display: grid;
-  gap: 2px;
-  border: 1px solid rgba(30, 120, 89, 0.16);
-  border-radius: var(--clay-radius-lg);
-  background: rgba(255, 255, 255, 0.55);
+.tdash-count {
+  margin-left: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
   color: var(--clay-muted);
 }
 
-.tdash-view-summary span {
-  font-size: var(--text-xs);
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+.tdash-card-note {
+  margin-top: 6px;
+  font-size: 0.88rem;
+  color: var(--clay-muted);
 }
 
-.tdash-view-summary strong {
-  color: var(--clay-ink);
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-}
-
-.tdash-view-summary small {
-  color: var(--jade-deep);
-  font-size: var(--text-xs);
-  font-weight: 700;
-}
-
-/* Sub-tabs: one segmented control per merged sidebar section. */
-.tdash-subtabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2xs);
-  padding: var(--space-2xs);
-  align-self: flex-start;
-  border: 1px solid var(--clay-hairline);
+.tdash-empty {
+  margin-top: var(--space-md);
+  padding: var(--space-lg);
+  border: 1px dashed var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
+  text-align: center;
+}
+
+.tdash-empty strong {
+  display: block;
+  color: var(--clay-body);
+}
+
+.tdash-empty p {
+  margin-top: 4px;
+  font-size: 0.85rem;
+  color: var(--clay-muted);
+}
+
+.tdash-ghost-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: 999px;
+  background: transparent;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--clay-body);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.tdash-ghost-btn:hover,
+.tdash-ghost-btn[aria-pressed="true"] {
+  border-color: var(--clay-muted-soft);
   background: var(--clay-surface-soft);
 }
 
-.tdash-subtabs button {
-  min-height: 38px;
-  padding: 0 var(--space-sm);
+/* ── Today: the one line of follow-on work under the help queue ────── */
+
+.tdash-next-up {
   display: flex;
   align-items: center;
-  gap: var(--space-xs);
-  border: none;
-  border-radius: var(--clay-radius-md);
-  background: transparent;
-  color: var(--clay-muted);
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: var(--content-max);
+  margin-inline: auto;
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-xl);
+  background: var(--clay-surface-card);
   font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 800;
+  color: var(--clay-body);
+  text-align: left;
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.tdash-next-up:hover {
+  border-color: var(--clay-muted-soft);
+  background: var(--clay-surface-soft);
+}
+
+.tdash-next-up > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tdash-next-up em {
+  flex: 0 0 auto;
+  font-style: normal;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--seal-deep);
+}
+
+.tdash-next-up svg {
+  flex: 0 0 auto;
+  color: var(--clay-muted);
+}
+
+/* ── Materials: three tools, drilled into one at a time ────────────── */
+
+.tdash-tool-list {
+  display: grid;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+}
+
+.tdash-tool {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.tdash-tool:hover {
+  border-color: var(--clay-muted-soft);
+  background: var(--clay-surface-soft);
+}
+
+.tdash-tool svg {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--clay-muted);
+}
+
+.tdash-tool strong {
+  display: block;
+  color: var(--clay-ink);
+  font-weight: 620;
+}
+
+.tdash-tool small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.85rem;
+  color: var(--clay-muted);
+}
+
+.tdash-back {
+  align-self: flex-start;
+  padding: 6px 14px 6px 10px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: 999px;
+  background: var(--clay-surface-card);
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--clay-body);
+  cursor: pointer;
+}
+
+.tdash-back::before {
+  content: "\2190";
+  margin-right: 6px;
+}
+
+.tdash-back:hover {
+  border-color: var(--clay-muted-soft);
+  background: var(--clay-surface-soft);
+}
+
+/* ── Roster: the one student table ─────────────────────────────────── */
+
+.tdash-table-scroll {
+  margin-top: var(--space-md);
+  overflow-x: auto;
+}
+
+.tdash-roster {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tdash-roster th,
+.tdash-roster td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--clay-hairline-soft);
   white-space: nowrap;
 }
 
-.tdash-subtabs button:hover {
-  background: var(--clay-surface-card);
+.tdash-roster thead th {
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--clay-muted);
+  border-bottom-color: var(--clay-hairline);
+}
+
+.tdash-roster tbody th {
+  font-weight: 500;
+}
+
+.tdash-roster tbody th button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 620;
   color: var(--clay-ink);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--clay-hairline);
+  text-underline-offset: 3px;
 }
 
-.tdash-subtabs button.active {
-  background: var(--jade-deep);
-  color: var(--clay-on-accent);
+.tdash-roster tbody th button:hover {
+  text-decoration-color: var(--seal);
 }
 
-.tdash-subtabs strong {
-  min-width: 22px;
-  height: 22px;
-  padding: 0 var(--space-2xs);
-  display: grid;
-  place-items: center;
-  border-radius: var(--clay-radius-pill);
-  background: var(--clay-surface-card);
-  color: var(--clay-ink);
-  font-size: var(--text-xs);
+.tdash-roster tbody tr:hover {
+  background: var(--clay-surface-soft);
 }
 
-.tdash-subtabs button.active strong {
-  /* White-tint overlay on the active tab's accent fill — matches the
-     .teacher-view-tabs treatment this control replaces. */
-  background: rgba(255, 255, 255, 0.22);
-  color: var(--clay-on-accent);
+.tdash-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--clay-body);
 }
 
-/* Overview: two side-by-side action panels under the stat grid. */
-.tdash-overview-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-  gap: var(--space-md);
+.tdash-ok {
+  color: var(--clay-muted-soft);
 }
+
+/* The flag is the only colored thing in the table, so a scan lands on it
+   first. Amber text on ivory, not an amber fill — fills here would make
+   half the table shout. */
+.tdash-flag {
+  display: inline-block;
+  max-width: 34ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.82rem;
+  color: var(--seal-deep);
+}
+
+.tdash-roster tr.is-flagged td:last-child {
+  white-space: normal;
+}
+
+/* ── Legacy panels adopted into the new views ──────────────────────── */
 
 .tdash-workspace .teacher-stat-grid {
+  display: grid;
   gap: var(--space-sm);
-  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .tdash-workspace .teacher-stat-card {
-  min-height: 142px;
-  position: relative;
-  overflow: hidden;
-  border-color: var(--clay-hairline-soft);
-  box-shadow: 0 8px 20px rgba(43, 38, 48, 0.045);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-.tdash-workspace .teacher-stat-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 4px;
-  background: var(--jade);
-}
-
-.tdash-workspace .teacher-stat-card:nth-child(2)::before { background: var(--tone1); }
-.tdash-workspace .teacher-stat-card:nth-child(3)::before { background: var(--gold); }
-.tdash-workspace .teacher-stat-card:nth-child(4)::before { background: var(--seal); }
-
-.tdash-workspace .teacher-stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 13px 26px rgba(43, 38, 48, 0.09);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-md);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
 }
 
 .tdash-workspace .teacher-stat-card strong {
-  font-size: clamp(28px, 3vw, 37px);
-}
-
-.tdash-overview-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-md);
-}
-
-.tdash-overview-panel-header h2 {
-  margin: 0;
+  font-size: 1.6rem;
   color: var(--clay-ink);
-  font-size: var(--text-lg);
-}
-
-.tdash-overview-panel-header button {
-  border: none;
-  background: none;
-  color: var(--jade-deep);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 800;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.tdash-overview-panel-header button:hover {
-  text-decoration: underline;
-}
-
-.tdash-overview-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-}
-
-.tdash-overview-list li {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) 0;
-  border-bottom: 1px solid var(--clay-hairline-soft);
-}
-
-.tdash-overview-list li:last-child {
-  border-bottom: none;
-}
-
-.tdash-overview-list strong {
-  color: var(--clay-ink);
-  font-size: var(--text-base);
-  white-space: nowrap;
-}
-
-.tdash-overview-detail {
-  flex: 1;
-  min-width: 0;
-  color: var(--clay-body);
-  font-size: var(--text-sm);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.tdash-overview-meta {
-  color: var(--clay-muted);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  white-space: nowrap;
-}
-
-.tdash-overview-wait {
-  color: var(--clay-error-deep);
-  background: var(--clay-error-soft);
-  padding: var(--space-3xs) var(--space-xs);
-  border-radius: var(--clay-radius-pill);
-  font-family: var(--font-sans);
-  font-weight: 700;
-}
-
-.tdash-resolve-btn {
-  min-height: 30px;
-  padding: 0 var(--space-sm);
-  border: 1px solid var(--jade);
-  border-radius: var(--clay-radius-pill);
-  background: var(--clay-surface-card);
-  color: var(--jade-deep);
-  font: inherit;
-  font-size: var(--text-xs);
-  font-weight: 800;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.tdash-resolve-btn:hover {
-  background: var(--jade-soft);
 }
 
 @media (max-width: 900px) {
-  .tdash-view-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .tdash-view-summary {
-    width: 100%;
-  }
-
-  .tdash-overview-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .tdash-overview-list li {
-    flex-wrap: wrap;
+  .tdash-workspace .teacher-builder-layout {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -342,27 +345,31 @@
     gap: var(--space-md);
   }
 
-  .tdash-view-header {
-    padding: var(--space-lg);
-  }
-
-  .tdash-workspace .teacher-stat-card {
-    min-height: 112px;
+  .tdash-card {
     padding: var(--space-md);
-    gap: var(--space-xs);
   }
 
-  .tdash-subtabs {
-    width: 100%;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  .tdash-next-up {
+    flex-wrap: wrap;
+    padding: var(--space-md);
   }
 
-  .tdash-subtabs button {
+  .tdash-next-up em {
+    flex-basis: 100%;
+  }
+
+  .tdash-workspace .teacher-panel-header {
+    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .tdash-workspace .teacher-panel-header > div:first-child {
     min-width: 0;
-    justify-content: center;
-    padding: var(--space-xs);
-    white-space: normal;
-    text-align: center;
+    flex: 1 1 200px;
+  }
+
+  .tdash-workspace .queue-count {
+    flex: 0 0 auto;
   }
 }

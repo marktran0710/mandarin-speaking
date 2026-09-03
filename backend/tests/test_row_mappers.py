@@ -11,19 +11,18 @@ def test_row_to_custom_story_passes_through_parsed_jsonb():
     row = {
         "id": "s1",
         "title": "我的房間",
-        "learning_goal": "describe a room",
         "frames": [{"prompt": "這是我的房間。", "vocabulary": "房間"}],
+        "story_vocabulary": {"easy": {"vocabulary": "房間"}},
+        "story_phrases": {"easy": {"phrases": "在房間裡"}},
         "published": True,
-        "linear": False,
         "lesson_number": 5,
-        "narrative_mode": "story",
-        "first_frame_is_example": False,
         "quiz_exclusions": [{"word": "房間", "kind": "cloze"}],
     }
     result = database.row_to_custom_story(row)
     assert result["frames"] == [{"prompt": "這是我的房間。", "vocabulary": "房間"}]
+    assert result["storyVocabulary"] == {"easy": {"vocabulary": "房間"}}
+    assert result["storyPhrases"] == {"easy": {"phrases": "在房間裡"}}
     assert result["published"] is True
-    assert result["linear"] is False
     assert result["lessonNumber"] == 5
     assert result["quizExclusions"] == [{"word": "房間", "kind": "cloze"}]
 
@@ -32,17 +31,17 @@ def test_row_to_custom_story_handles_null_jsonb():
     row = {
         "id": "s2",
         "title": "t",
-        "learning_goal": "g",
         "frames": None,
+        "story_vocabulary": None,
+        "story_phrases": None,
         "published": False,
-        "linear": False,
         "lesson_number": None,
-        "narrative_mode": "story",
-        "first_frame_is_example": False,
         "quiz_exclusions": None,
     }
     result = database.row_to_custom_story(row)
     assert result["frames"] == []
+    assert result["storyVocabulary"] is None
+    assert result["storyPhrases"] is None
     assert result["quizExclusions"] == []
 
 

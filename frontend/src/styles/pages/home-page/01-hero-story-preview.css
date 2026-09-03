@@ -1,0 +1,485 @@
+/* ── Home ──────────────────────────────────────────────────────────────
+   Spacing on this page comes from the --space-* scale, never a viewport
+   clamp. Gaps set in vh/vw drift independently of each other at every
+   window size, so nothing lands on a shared rhythm — that was the previous
+   layout's main defect, not the sizes themselves.
+
+   Color discipline: the four tone colors appear in exactly ONE place here,
+   the hero title, where each character genuinely carries that tone. They
+   used to also tint the stat chips, a floating skill stamp, and the step
+   tiles, none of which have tones — which left the palette reading as
+   decoration. Everything outside the title is ink, paper, and hairline,
+   with --seal gold reserved for the single call to action. */
+
+.home-page {
+  min-height: calc(100vh - var(--navbar-height));
+  padding-bottom: var(--space-3xl);
+  background:
+    linear-gradient(180deg, var(--clay-surface-soft) 0%, var(--clay-canvas) 42%, var(--clay-canvas) 100%);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+
+.home-hero {
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
+  margin: 0 auto;
+  padding-top: var(--space-2xl);
+  display: grid;
+  /* Copy column is the narrower of the two: its text wants ~46ch and no more,
+     so giving it the larger track just opened a gutter of dead space between
+     the last word and the first frame. */
+  grid-template-columns: minmax(0, 0.86fr) minmax(460px, 1.14fr);
+  align-items: center;
+  /* Row gap is the space above the centered CTA and must stay smaller than
+     the column gap — the two are not interchangeable here. */
+  gap: var(--space-xl) var(--space-2xl);
+}
+
+.home-hero-copy {
+  min-width: 0;
+}
+
+.hero-title {
+  margin: 0;
+  text-align: left;
+  display: grid;
+  gap: var(--space-sm);
+  color: var(--clay-ink);
+}
+
+.hero-title-zh {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-xs);
+  font-family: var(--font-display);
+  /* The one deliberate viewport clamp on the page: display type should scale
+     with the window, unlike the gaps around it. */
+  font-size: clamp(44px, 5.6vw, 62px);
+  /* 700 is the heaviest weight the html entries fetch for the display faces.
+     Anything above it renders as a synthesized fake bold — keep every weight
+     on this page at 400/500/600/700. */
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.hero-char {
+  display: grid;
+  justify-items: center;
+  gap: 0.14em;
+  min-width: 0.9em;
+  color: var(--clay-ink);
+}
+
+.hero-char-tone {
+  width: 0.42em;
+  height: auto;
+  overflow: visible;
+}
+
+.hero-char-glyph {
+  display: block;
+  line-height: 1;
+}
+
+.hero-title-meta {
+  display: grid;
+  gap: var(--space-3xs);
+}
+
+.hero-title-pinyin {
+  color: var(--seal-deep);
+  font-size: clamp(15px, 1.5vw, 17px);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.hero-title-en {
+  font-family: var(--font-display);
+  color: var(--clay-muted);
+  font-size: clamp(17px, 1.8vw, 21px);
+  font-weight: 400;
+}
+
+.hero-subtitle {
+  margin: var(--space-md) 0 0;
+  color: var(--clay-body);
+  font-size: 16px;
+  line-height: 1.7;
+  /* Measure, not a pixel guess — ~46 characters of Latin keeps the English
+     line under the comfortable reading limit while the Chinese line above
+     it stays much shorter. */
+  max-width: 46ch;
+}
+
+.hero-subtitle .bi-text-pinyin {
+  font-size: 13px;
+}
+
+.hero-subtitle .bi-text-en {
+  font-size: 14px;
+}
+
+.hero-stats {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: var(--space-lg) 0 0;
+  padding: 0;
+}
+
+.hero-stat-chip {
+  min-width: 144px;
+  padding: var(--space-xs) var(--space-lg);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--clay-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.hero-stat-chip .bi-pinyin,
+.hero-stat-chip .bi-en {
+  font-size: 12px;
+}
+
+.hero-stat-chip + .hero-stat-chip {
+  border-left: 1px solid var(--clay-hairline);
+}
+
+.hero-primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: 56px;
+  padding: var(--space-sm) var(--space-xl);
+  border: 0;
+  border-radius: var(--clay-radius-pill);
+  background: var(--seal);
+  color: var(--clay-on-seal);
+  box-shadow: 0 6px 0 var(--seal-deep);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 16px;
+  /* Gold fill never takes a white label, and BiLabel's muted sublines must
+     follow the same ink or they drop below AA on the gold. */
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
+  margin-top: var(--space-lg);
+}
+
+.hero-primary-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 0 var(--seal-deep);
+}
+
+.hero-primary-action:active {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 var(--seal-deep);
+}
+
+.hero-primary-action > span[aria-hidden="true"] {
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* ── Story preview stage ──────────────────────────────────────────────── */
+
+.home-hero-visual {
+  min-width: 0;
+}
+
+.story-preview-stage {
+  position: relative;
+  min-height: 0;
+  height: clamp(290px, 38vw, 480px);
+  border-radius: var(--clay-radius-xl);
+  border: 1px solid var(--clay-hairline);
+  background: var(--clay-surface-card);
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--clay-ink) 10%, transparent);
+  overflow: hidden;
+}
+
+.story-preview-stage::before {
+  content: "";
+  position: absolute;
+  display: none;
+  pointer-events: none;
+}
+
+/* Four equal tiles keep the collage compact and stop the supplied artwork from
+   being stretched into one oversized hero image. */
+.story-preview-scenes {
+  position: absolute;
+  inset: 22px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.story-preview-image {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: auto;
+  object-fit: cover;
+  border: 4px solid var(--clay-surface-card);
+  border-radius: var(--clay-radius-md);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--clay-ink) 12%, transparent);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  animation: previewCardIn 520ms cubic-bezier(0.22, 0.75, 0.2, 1) both;
+  /* Held at the animation's 0% frame (opacity: 0) until the photo has
+     actually downloaded, so the stagger below plays against real image
+     readiness instead of a fixed clock that outruns a slow network. */
+  animation-play-state: paused;
+}
+
+.story-preview-image.is-loaded {
+  animation-play-state: running;
+}
+
+@keyframes previewCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Keep every scene at the same visual weight; a small stagger adds polish
+   without moving the layout after it has entered. */
+.story-preview-image.image-one {
+  grid-column: 1;
+  grid-row: 1;
+  transform: none;
+  animation-delay: 60ms;
+}
+
+.story-preview-image.image-two {
+  grid-column: 1;
+  grid-row: 2;
+  transform: none;
+  animation-delay: 140ms;
+}
+
+.story-preview-image.image-three {
+  grid-column: 2;
+  grid-row: 1;
+  transform: none;
+  animation-delay: 220ms;
+}
+
+.story-preview-image.image-four {
+  grid-column: 2;
+  grid-row: 2;
+  transform: none;
+  animation-delay: 300ms;
+}
+
+.story-preview-image:hover {
+  transform: scale(1.015);
+  box-shadow: 0 9px 20px color-mix(in srgb, var(--clay-ink) 15%, transparent);
+}
+
+.vertical-title {
+  display: none;
+  right: var(--space-md);
+  top: var(--space-md);
+  z-index: 4;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-xs);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.vertical-title-group + .vertical-title-group {
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--clay-hairline);
+}
+
+/* Ink on paper, not tone colors: these six characters carry no pitch
+   information, and tinting them re-spent the tone palette on decoration —
+   which is what made it stop meaning anything in the hero title. The panel
+   behind them is contrast enough; per-character fills at this size were
+   invisible against it. */
+.vertical-title-char {
+  display: block;
+  text-align: center;
+  color: var(--clay-ink);
+}
+
+/* ── How it works ─────────────────────────────────────────────────────── */
+
+/* Equal space above and below the rule — stacking a 2xl margin on a 2xl
+   padding put 96px between the button and the steps, which read as the page
+   coming apart rather than as two sections. */
+.how-it-works {
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
+  margin: var(--space-xl) auto 0;
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--clay-hairline);
+}
+
+/* One line, not a BiLabel: stacked zh/pinyin/en at eyebrow size gives three
+   sub-10px lines that read as clutter rather than as a label. */
+.how-it-works-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-xs);
+  margin: 0 0 var(--space-md);
+  color: var(--seal-deep);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.how-it-works-kicker-meta {
+  color: var(--clay-muted);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.how-it-works-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-lg);
+}
+
+.how-it-works-tile {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2xs);
+}
+
+.how-it-works-tile + .how-it-works-tile {
+  padding-left: var(--space-lg);
+  border-left: 1px solid var(--clay-hairline);
+}
+
+/* 01/02/03 stays because these really are ordered steps — you cannot give
+   feedback on a sentence you have not recorded yet. The story strip above
+   deliberately has no numerals. */
+.how-it-works-num {
+  color: var(--seal);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.how-it-works-title {
+  color: var(--clay-ink);
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 700;
+}
+
+/* BiLabel centers its zh/pinyin/en lines within its own auto-sized box by
+   default — fine for a standalone badge, but here it made each tile's
+   Chinese text start at a different x-offset since the three titles'
+   boxes are different widths. Left-align so all three line up with the
+   num/desc above and below them instead. */
+.how-it-works-title .bi-label {
+  align-items: flex-start;
+}
+
+.how-it-works-title .bi-pinyin,
+.how-it-works-title .bi-en {
+  font-size: 12px;
+}
+
+/* No line clamp: the page scrolls now, so the Chinese sentences run in full
+   instead of being cut off mid-clause to fit a fixed viewport height. */
+.how-it-works-desc {
+  margin-top: var(--space-2xs);
+  color: var(--clay-body);
+  font-size: 14px;
+}
+
+.how-it-works-desc .bi-text-pinyin,
+.how-it-works-desc .bi-text-en {
+  font-size: 12px;
+}
+
+.how-it-works-desc .bi-text-zh {
+  line-height: 1.6;
+}
+
+/* ── Motion ───────────────────────────────────────────────────────────────
+   An entrance, then two ambient loops that keep running: the title breathes
+   along each character's own pitch contour, and the prints drift.
+
+   The breath lives on .hero-char (the whole unit) rather than on the glyph,
+   so the tone stroke rides along with the character it belongs to — animating
+   the glyph alone leaves the stroke behind and the pair comes apart. The
+   entrance sits on .hero-char-glyph for the same reason: two animations on
+   two elements never fight over one transform. */
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-char-glyph,
+  .hero-subtitle,
+  .hero-stats,
+  .hero-primary-action {
+    animation: homeRiseIn 620ms cubic-bezier(0.22, 0.75, 0.2, 1) both;
+  }
+
+  /* Characters follow their own tone stroke in, on the same 90ms beat the
+     strokes are drawn with (see ToneStroke's `delay` in HomePage.tsx). */
+  .hero-char-glyph {
+    animation-delay: calc(var(--i, 0) * 90ms);
+  }
+
+  .hero-subtitle {
+    animation-delay: 320ms;
+  }
+
+  .hero-stats {
+    animation-delay: 380ms;
+  }
+
+  .hero-primary-action {
+    animation-delay: 440ms;
+  }
+
+  .story-preview-stage {
+    animation-delay: 380ms;
+  }
+
+  /* Each character rides its own tone: tone 2 rises, tone 3 dips, tone 4
+     falls, tone 1 barely moves — so the loop is the pitch contour, not a
+     generic bob. Starts after the entrance has finished. */
+  .hero-char {
+    animation: titleToneBreath 5.2s ease-in-out infinite;
+    animation-delay: calc(1.2s + var(--i, 0) * 170ms);
+  }
+
+  .vertical-title-char {
+    animation: verticalTitleStep 3.6s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 130ms);
+  }
+
+  /* Transform-only so it does not fight the button's translateY press. */
+  .hero-primary-action {
+    transition: transform 120ms ease, box-shadow 120ms ease;
+  }
+}

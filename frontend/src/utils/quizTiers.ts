@@ -54,14 +54,22 @@ export function attemptEarnsStar(
   return correctCount >= passCount ? config.tier : null;
 }
 
-/** Highest star earned across an attempt history (0 = none yet). */
+/** Highest contiguous star earned across an attempt history (0 = none yet).
+ * A later tier is not proof of the earlier tiers: tier 3 by itself must not
+ * unlock speaking practice. Attempts may arrive in any order, so we collect
+ * all passed tiers first, then walk the ladder from tier 1. */
 export function starsFromAttempts(
   attempts: Array<{ mode?: string | null; correctCount: number; totalQuestions?: number }>,
 ): 0 | QuizTier {
-  let stars: 0 | QuizTier = 0;
+  const earnedTiers = new Set<QuizTier>();
   for (const attempt of attempts) {
     const earned = attemptEarnsStar(attempt.mode, attempt.correctCount, attempt.totalQuestions);
-    if (earned !== null && earned > stars) stars = earned;
+    if (earned !== null) earnedTiers.add(earned);
+  }
+  let stars: 0 | QuizTier = 0;
+  for (const tier of [1, 2, 3] as const) {
+    if (!earnedTiers.has(tier)) break;
+    stars = tier;
   }
   return stars;
 }
@@ -77,11 +85,13 @@ export function starsByStory(
     totalQuestions?: number;
   }>,
 ): Record<string, 0 | QuizTier> {
-  const byStory: Record<string, 0 | QuizTier> = {};
+  const attemptsByStory: Record<string, Array<{ mode?: string | null; correctCount: number; totalQuestions?: number }>> = {};
   for (const attempt of attempts) {
-    const earned = attemptEarnsStar(attempt.mode, attempt.correctCount, attempt.totalQuestions);
-    const current = byStory[attempt.storyId] ?? 0;
-    byStory[attempt.storyId] = earned !== null && earned > current ? earned : current;
+    (attemptsByStory[attempt.storyId] ??= []).push(attempt);
+  }
+  const byStory: Record<string, 0 | QuizTier> = {};
+  for (const [storyId, storyAttempts] of Object.entries(attemptsByStory)) {
+    byStory[storyId] = starsFromAttempts(storyAttempts);
   }
   return byStory;
 }
@@ -93,9 +103,10 @@ export function isTierUnlocked(tier: QuizTier, stars: number): boolean {
   return stars >= tier - 1;
 }
 
-// Speaking practice unlocks at ⭐⭐, not ⭐: tier 1 is the warm-up, tier 2's
-// pass is the gate into the story, and tier 3 stays an optional challenge.
-export const PRACTICE_UNLOCK_STARS = 2;
+// Speaking practice opens only after the complete ⭐ / ⭐⭐ / ⭐⭐⭐ ladder.
+// Tier 1 and Tier 2 prepare the learner; Tier 3 confirms the vocabulary
+// check is fully complete before the story's speaking work becomes available.
+export const PRACTICE_UNLOCK_STARS = 3;
 
 /** Whether this many stars opens the story's speaking practice. */
 export function practiceUnlocked(stars: number): boolean {

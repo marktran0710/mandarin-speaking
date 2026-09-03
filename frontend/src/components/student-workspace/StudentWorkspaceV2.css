@@ -1,9 +1,39 @@
-.student-workspace-v2 .student-workspace-header {
-  margin-bottom: clamp(22px, 3vw, 32px);
+/* Shell layout: left rail + content. The rail is a real grid column rather
+   than an overlay so page content never sits underneath it. When a practice
+   session starts the rail unmounts and this collapses to a single column. */
+.student-workspace-v2 {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  min-height: 100vh;
 }
 
-.student-workspace-v2 .student-workspace-tabs {
-  margin-bottom: 20px;
+/* `.student-workspace` reserves 68px of top padding for the app's top
+   navbar. On this route the navbar no longer renders (the rail replaced
+   it), so that reservation just pushed the 100vh-tall rail 68px down the
+   page and dropped its "離開 Log out" button below the fold. Reclaim it
+   here only — while practicing, the navbar is back and the padding is
+   still doing its job. */
+.student-workspace-v2:not(.is-practicing) {
+  padding-top: 0;
+}
+
+/* No single-column override while practicing any more. That rule dated from
+   when the rail unmounted for a session; now it stays and lends its middle
+   to the story, so collapsing to one column stacked the full-height rail
+   ON TOP of the content and pushed the story ~965px down the page. */
+
+.student-workspace-v2 > .student-workspace-content-v2 {
+  min-width: 0;
+  padding: clamp(24px, 3vw, 40px) clamp(16px, 3vw, 40px) var(--space-3xl);
+}
+
+@media (max-width: 900px) {
+  .student-workspace-v2 { grid-template-columns: minmax(0, 1fr); }
+  /* Clear the fixed menu button so the first heading isn't underneath it. */
+  .student-workspace-v2:not(.is-practicing) > .student-workspace-content-v2 {
+    padding-top: calc(44px + var(--space-lg));
+  }
 }
 
 .workspace-quick-start {
@@ -13,11 +43,17 @@
   gap: 24px;
   width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
   margin: 0 auto clamp(24px, 3vw, 36px);
-  padding: 18px 22px;
-  border: 1px solid color-mix(in srgb, var(--gold) 34%, var(--clay-hairline));
-  border-radius: var(--clay-radius-md);
-  background: color-mix(in srgb, var(--clay-surface-card) 90%, var(--gold-soft));
-  box-shadow: 0 4px 0 color-mix(in srgb, var(--gold-soft) 64%, transparent);
+  /* Flat, hairline-ruled band — this is what the duplicate second
+     declaration (now removed) was actually rendering, since it won on
+     source order. Kept verbatim so consolidating the duplicate changes no
+     pixels. */
+  padding: 18px 0;
+  border: 0;
+  border-top: 1px solid var(--clay-hairline);
+  border-bottom: 1px solid var(--clay-hairline);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .workspace-quick-start-copy { min-width: 0; }
@@ -111,3 +147,13 @@
 @media (prefers-reduced-motion: reduce) {
   .workspace-primary-action { transition: none; }
 }
+
+/* NOTE: this block used to re-declare `.workspace-quick-start` a second time
+   at equal specificity, silently cancelling the border/background/radius set
+   in the first declaration above — the exact "two rules fighting over one
+   selector, resolved only by source order" trap. The two are merged into the
+   single declaration above; only the type-size overrides remain here. */
+.workspace-section-kicker,
+.workspace-gate { font-size: 14px; }
+.workspace-gate strong,
+.workspace-gate small { font-size: 14px; line-height: 1.4; }

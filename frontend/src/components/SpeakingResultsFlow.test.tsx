@@ -30,7 +30,6 @@ const baseProps = {
   selectedImageIndex: 0,
   totalScenes: 1,
   modelSentence: "你好嗎",
-  narrativeMode: "story" as const,
   attempts: 1,
   masteryPassed: true,
   praatMetrics: metrics(),
@@ -103,5 +102,34 @@ describe("SpeakingResultsFlow — self-eval step", () => {
     render(<SpeakingResultsFlow {...baseProps} ready={false} />);
 
     expect(screen.queryByText(/Recording done!/)).not.toBeInTheDocument();
+  });
+});
+
+describe("SpeakingResultsFlow — overview step", () => {
+  it("no longer shows the vocabulary used/total stats line", () => {
+    render(
+      <SpeakingResultsFlow
+        {...baseProps}
+        ready={false}
+        praatMetrics={metrics({
+          ai_feedback: {
+            provider: "test",
+            vocabulary_coverage: {
+              score: 100,
+              used: ["你好嗎"],
+              missing: [],
+              feedback: "",
+            },
+            coherence: { score: 0, feedback: "", corrections: [] },
+            pronunciation_note: { score: 0, feedback: "" },
+            improved_version: "",
+            practice_prompt: "",
+          },
+        })}
+      />,
+    );
+
+    expect(screen.queryByText(/Vocabulary \d+\/\d+/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/生詞 \d+\/\d+/)).not.toBeInTheDocument();
   });
 });

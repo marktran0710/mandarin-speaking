@@ -2,11 +2,42 @@ import { describe, expect, it } from "vitest";
 import { storyHasTierContent, storyToTopic, type CustomTeacherStory } from "./teacherStories";
 
 describe("storyToTopic", () => {
+  it("maps story-wide learning content into the shared quiz pool", () => {
+    const story: CustomTeacherStory = {
+      id: "story-wide",
+      title: "Shared content",
+      frames: [
+        { imageUrl: "", prompt: "一", vocabulary: "" },
+        { imageUrl: "", prompt: "二", vocabulary: "" },
+      ],
+      storyVocabulary: {
+        easy: {
+          vocabulary: "學校, 老師",
+          vocabularyPinyin: "xuéxiào, lǎoshī",
+          vocabularyPos: "N, N",
+          vocabularyTranslation: "school, teacher",
+        },
+        medium: { vocabulary: "", vocabularyPinyin: "", vocabularyPos: "", vocabularyTranslation: "" },
+        hard: { vocabulary: "", vocabularyPinyin: "", vocabularyPos: "", vocabularyTranslation: "" },
+      },
+      storyPhrases: {
+        easy: { phrases: "在學校", phrasesTranslation: "at school" },
+        medium: { phrases: "", phrasesTranslation: "" },
+        hard: { phrases: "", phrasesTranslation: "" },
+      },
+    };
+
+    const topic = storyToTopic(story);
+    expect(topic.quizVocabulary?.[0]).toEqual(["學校", "老師"]);
+    expect(topic.quizVocabularyTranslation?.[0]).toEqual(["school", "teacher"]);
+    expect(topic.phrases?.[0]).toEqual(["在學校"]);
+    expect(topic.quizVocabulary?.[1]).toEqual([]);
+  });
+
   it("maps vocabularyPos and vocabularyTranslation onto the topic, keyed by frame index", () => {
     const story: CustomTeacherStory = {
       id: "story-1",
       title: "Restaurant Story",
-      learningGoal: "Order food",
       frames: [
         {
           imageUrl: "",
@@ -29,7 +60,6 @@ describe("storyToTopic", () => {
     const story: CustomTeacherStory = {
       id: "story-2",
       title: "No POS Story",
-      learningGoal: "Goal",
       frames: [
         { imageUrl: "", prompt: "Describe the picture.", vocabulary: "餐廳" },
       ],
@@ -46,7 +76,6 @@ describe("storyToTopic difficulty tiers", () => {
   const tieredStory: CustomTeacherStory = {
     id: "story-3",
     title: "Tiered Story",
-    learningGoal: "Practice tiers",
     frames: [
       {
         imageUrl: "img-0.png",
@@ -107,7 +136,6 @@ describe("storyToTopic serving mode", () => {
   const story: CustomTeacherStory = {
     id: "story-4",
     title: "Approval Gated Story",
-    learningGoal: "Goal",
     frames: [
       {
         imageUrl: "",

@@ -137,29 +137,6 @@ Unjudged words and syllables use `judged: false` and `passed: null`; missing evi
 converted into a neutral or failing pronunciation score. After repeated uncertain attempts, the UI
 directs the learner to ask a teacher for review.
 
-### Validating tone scores
-
-Tone scoring must be validated against a speaker-separated external set labelled by qualified
-human raters before it is used for student-facing release decisions. The benchmark workflow can
-initialize a private manifest, score WAV recordings with the production Praat pipeline, create
-speaker-safe train/dev/test splits, calculate agreement metrics, and enforce minimum release
-thresholds.
-
-```powershell
-cd backend
-python -m scripts.benchmark_tones init --output-dir .\private-data
-python -m scripts.benchmark_tones run `
-  --input .\private-data\external_manifest.csv `
-  --threshold 70 `
-  --output-dir .\private-data\benchmark-run
-python -m scripts.gate_tone_release `
-  --report .\private-data\benchmark-run\external_tone_report.json
-```
-
-Raw recordings, manifests, and generated reports under `backend/private-data/` are ignored by Git.
-See [docs/TONE_BENCHMARK.md](docs/TONE_BENCHMARK.md) for dataset requirements, metrics, default
-release thresholds, and CI usage.
-
 ### Feedback dimensions & the technology behind each
 
 Every recording is scored across several dimensions. Some are **deterministic** acoustic
@@ -224,10 +201,10 @@ flowchart TD
     subgraph Q["1 · Vocabulary quiz — star ladder"]
         direction LR
         T1["⭐ Tier 1\n20 questions · pass 14"] --> T2["⭐⭐ Tier 2\n22 questions · pass 18"]
-        T2 -.optional.-> T3["⭐⭐⭐ Tier 3\n25 questions · 150s · traps"]
+        T2 --> T3["⭐⭐⭐ Tier 3\n25 questions · 150s · traps"]
     end
 
-    T2 -->|"⭐⭐ earned"| SP
+    T3 -->|"⭐⭐⭐ earned"| SP
 
     subgraph SP["2 · Speaking practice — mastery gate"]
         direction TB
@@ -253,15 +230,14 @@ flowchart TD
   (`isTierUnlocked`).
 - Passing a tier earns its star **permanently** — a later failed run never demotes it
   (`recordLocalStars` only ever raises).
-- **⭐⭐ is the gate into speaking practice** (`PRACTICE_UNLOCK_STARS = 2`): the results
-  screen only shows *Continue to practice* at two stars; below that it shows a lock note
-  plus *Try again* / *Challenge next tier*. Tier 3 is an optional extra challenge.
+- **⭐⭐⭐ is the gate into speaking practice** (`PRACTICE_UNLOCK_STARS = 3`): the results
+  screen only shows *Continue to practice* after all three stars; below that it shows a
+  lock note plus *Try again* / *Challenge next tier*.
 - Stars are **derived, not stored**: computed from the `vocab_quiz_attempts` history
   (`mode = tier1/2/3`, `starsFromAttempts`), so they follow the student across devices;
   a localStorage mirror (`vocabQuizStars`) gives an instant first paint and covers
   offline/no-database mode.
-- Backward compatibility: students who unlocked practice under an older, looser rule
-  keep their unlock (`alreadyCompleted`).
+- Legacy two-star completion flags do not bypass the current three-star requirement.
 
 ### 2. Speaking practice — the pronunciation mastery gate
 
@@ -356,8 +332,9 @@ Keep a separate `backend/.env` on each device. Set a real local
 
 #### Step 3 — Validate and start the stack
 
-The start script validates Compose, builds the backend/frontend images, starts
-PostgreSQL, runs Alembic migrations, and starts the backend and Vite frontend.
+The start script validates Compose, reuses existing backend/frontend images, starts
+PostgreSQL, runs Alembic migrations, and starts the backend and Vite frontend. On a
+new checkout, Docker Compose builds any missing images automatically.
 
 ```powershell
 .\start.ps1 -Detached
@@ -421,9 +398,27 @@ docker compose -f docker-compose.dev.yml exec frontend npm test -- --run
 # Run the frontend integration flows only
 docker compose -f docker-compose.dev.yml exec frontend npm run test:integration
 
-# Rebuild after changing dependencies or Dockerfiles
-.\start.ps1 -Detached
+# Rebuild only after changing dependencies or Dockerfiles
+.\start.ps1 -Build -Detached
+
+# Optional: remove dangling images labelled for this project only.
+# This never removes images, containers, or volumes from another project.
+.\start.ps1 -PruneDangling -Detached
 ```
+
+`-NoBuild` remains accepted for scripts that already use it, but reusing existing
+images is now the default. The development source folders are bind-mounted, so normal
+backend and frontend code edits hot reload without rebuilding.
+
+To watch only the frontend and backend logs in the terminal while the stack runs in
+detached mode:
+
+```powershell
+.\scripts\logs-dev.ps1
+```
+
+Press `Ctrl+C` to stop watching; it does not stop the containers. Development backend
+logs are also written to `/data/logs/app.log` inside the persistent backend data volume.
 
 #### Step 6.1 — Temporary public demo with Tailscale Funnel
 
@@ -484,6 +479,10 @@ GitHub. Do not commit real API keys or local `.env` files.
 `render.yaml` uses a single-origin production image, PostgreSQL, HTTPS cookies,
 and a persistent `/data` disk for uploads. Configure the unsynchronised
 `JWT_SECRET_KEY` and `ADMIN_PASSWORD` secrets in Render before deploying.
+Production application, Uvicorn error, and HTTP access logs are written to
+`/data/logs/app.log` with five 10 MB rotated backups. The `/data` disk must
+remain persistent if those file logs need to survive a container replacement;
+the hosting provider's own log viewer remains useful for live monitoring.
 The production image requires `APP_ENV=production`, `COOKIE_SECURE=true`, and
 does not allow anonymous roster creation, lesson writes, analytics, AI calls,
 or media downloads. The blueprint uses a paid persistent-disk web service and
@@ -513,15 +512,12 @@ do not deploy the old separate GitHub Pages/Vercel frontend configuration.
 .
 ├── backend/
 │   ├── ai_feedback.py        # Gemini / OpenAI / local language feedback
-│   ├── benchmarking/         # External tone evaluation and release-gate logic
 │   ├── chinese_tones.py      # Mandarin tone reference patterns
 │   ├── database.py           # PostgreSQL (psycopg3) helpers
 │   ├── main.py               # FastAPI routes, image generation, parallel analysis
 │   ├── praat_analyzer.py     # Parselmouth acoustic analysis
 │   ├── scripts/seed_dev.py   # Shared local lesson + demo-account seed
 │   ├── scripts/data/assets/  # Versioned teaching images restored by the seed
-│   ├── scripts/benchmark_tones.py
-│   ├── scripts/gate_tone_release.py
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── frontend/
@@ -530,8 +526,6 @@ do not deploy the old separate GitHub Pages/Vercel frontend configuration.
 │   ├── package.json           # Frontend-only Node workspace
 │   ├── vite.config.ts
 │   └── Dockerfile.frontend.dev
-├── docs/
-│   └── TONE_BENCHMARK.md     # Human-labelled validation protocol
 └── docker-compose.dev.yml      # Independent local stack
 ```
 

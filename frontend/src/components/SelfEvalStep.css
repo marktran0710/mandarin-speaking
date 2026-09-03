@@ -95,3 +95,311 @@
 .self-eval-compare-emoji {
   font-size: 18px;
 }
+
+/* ────────────────────────────────────────────────────────────────────────
+   Results checkpoint redesign
+
+   This is scoped through :has(.self-eval-step) so the later results/fix/
+   practice screens keep their existing density. The checkpoint is a calm
+   two-column moment: listen on the left, answer two small questions on the
+   right, then continue with one clear action.
+   ──────────────────────────────────────────────────────────────────────── */
+.sfc-results:has(.self-eval-step) {
+  padding: 0;
+  overflow: hidden;
+  border-radius: 24px;
+  background: var(--clay-surface-card);
+  box-shadow: 0 18px 45px color-mix(in srgb, var(--clay-ink) 9%, transparent);
+}
+
+.sfc-results:has(.self-eval-step) > .practice-workspace {
+  grid-template-columns: minmax(280px, 0.86fr) minmax(0, 1.14fr);
+  gap: 0;
+  /* A CSS grid row is always as tall as its tallest cell — no align-items
+     value changes that. The scene image + audio-compare + feedback button
+     on the left commonly run taller than the two emoji questions on the
+     right, so top-aligning the right column (the old "start") dumped all
+     of that leftover height as one dead gap right above the footer.
+     Centering it instead spreads the same leftover space above and below,
+     which reads as an intentional, balanced layout rather than a bug. */
+  align-items: center;
+  padding: 0;
+}
+
+.sfc-results:has(.self-eval-step) .practice-scene-col {
+  min-width: 0;
+  padding: 22px;
+  border: 0;
+  border-radius: 0;
+  background: var(--clay-surface-soft);
+}
+
+.sfc-results:has(.self-eval-step) .practice-scene-image {
+  aspect-ratio: 4 / 3;
+  min-height: 0;
+  /* Verified live with the actual DOM (headless render + getBoundingClientRect):
+     the shared max-height: 390px rule in 08-insights-responsive.css already
+     wins here (5-class selector beats this 3-class one) and caps this image
+     regardless of aspect-ratio — a normal landscape scene photo then makes
+     this column shorter than the two emoji questions beside it, so
+     align-items: center above has little to balance. A worst-case portrait
+     image is still bounded by that 390px cap, not left free to balloon. */
+  border-radius: 18px;
+  background: var(--clay-surface-card);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--clay-ink) 9%, transparent);
+}
+
+.sfc-results:has(.self-eval-step) .practice-scene-image img {
+  object-fit: cover;
+}
+
+.sfc-results.sfc-screen:has(.self-eval-step) .sfc-results-main {
+  min-width: 0;
+  /* The results screen's shared min-height: 360px (keeps its own tabs from
+     visually collapsing) doesn't apply here — this checkpoint's content is
+     intentionally shorter, and that floor was leaving a dead gap between
+     "跳過 Skip" and the footer below it. One extra class over the shared
+     rule so this wins on specificity, not import order. */
+  min-height: 0;
+  height: auto;
+  padding: 22px 24px 24px;
+  gap: 18px;
+}
+
+.sfc-results:has(.self-eval-step) .sfc-stepper {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.sfc-results:has(.self-eval-step) .sfc-step {
+  min-width: 0;
+  min-height: 46px;
+  justify-content: flex-start;
+  padding: 7px 10px;
+  border-radius: 14px;
+  background: var(--clay-surface-soft);
+}
+
+.sfc-results:has(.self-eval-step) .sfc-step.is-current {
+  border-color: var(--gold-deep);
+  background: var(--gold-soft);
+  color: var(--clay-ink);
+}
+
+.sfc-results:has(.self-eval-step) .sfc-step.is-current .sfc-step-num {
+  border-color: var(--gold-deep);
+  background: var(--gold-deep);
+}
+
+.sfc-results:has(.self-eval-step) .sfc-audio-compare {
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.sfc-results:has(.self-eval-step) .reference-audio-card,
+.sfc-results:has(.self-eval-step) .sfc-audio-compare .recording-playback,
+.sfc-results:has(.self-eval-step) .sfc-recording-unavailable {
+  min-height: 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+}
+
+.sfc-results:has(.self-eval-step) .reference-audio-card {
+  border-color: color-mix(in srgb, var(--gold) 50%, var(--clay-hairline));
+  background: color-mix(in srgb, var(--gold-soft) 42%, var(--clay-surface-card));
+}
+
+.sfc-results:has(.self-eval-step) .sfc-recording-unavailable {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-style: dashed;
+  background: transparent;
+  color: var(--clay-muted);
+}
+
+.sfc-results:has(.self-eval-step) .sfc-left-feedback {
+  margin-top: 10px;
+  border: 0;
+  background: transparent;
+}
+
+.sfc-results:has(.self-eval-step) .sfc-left-feedback-summary {
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: 12px;
+  background: var(--clay-surface-card);
+  animation: none;
+}
+
+.sfc-results:has(.self-eval-step) .self-eval-step {
+  gap: 18px;
+  padding: 4px 0 0;
+}
+
+.sfc-results:has(.self-eval-step) .self-eval-lead {
+  max-width: 46ch;
+  color: var(--clay-ink);
+  font-size: clamp(16px, 1.8vw, 20px);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.sfc-results:has(.self-eval-step) .self-eval-lead .bi-label {
+  gap: 4px;
+}
+
+.sfc-results:has(.self-eval-step) .self-eval-question {
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: 16px;
+  background: var(--clay-surface-soft);
+}
+
+.sfc-results:has(.self-eval-step) .self-eval-question-legend {
+  color: var(--clay-ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sfc-results:has(.self-eval-step) .self-eval-emoji-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sfc-results:has(.self-eval-step) .self-eval-emoji-btn {
+  min-width: 0;
+  min-height: 86px;
+  justify-content: center;
+  padding: 10px 6px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: 14px;
+  background: var(--clay-surface-card);
+  transition: border-color 0.16s, background 0.16s, transform 0.16s;
+}
+
+.sfc-results:has(.self-eval-step) .self-eval-emoji-btn:hover {
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+
+.sfc-results:has(.self-eval-step) .self-eval-emoji-btn.is-selected {
+  border: 2px solid var(--gold-deep);
+  background: var(--gold-soft);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 18%, transparent);
+}
+
+.sfc-results:has(.self-eval-step) .self-eval-emoji {
+  font-size: 25px;
+}
+
+.sfc-results:has(.self-eval-step) .self-eval-emoji-caption {
+  color: var(--clay-ink);
+  font-size: 14px;
+}
+
+.sfc-results:has(.self-eval-step) .sfc-step-cta-row {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.sfc-results:has(.self-eval-step) .sfc-step-cta {
+  width: 100%;
+  min-height: 50px;
+  margin-top: 0;
+  border-radius: 14px;
+  background: var(--clay-primary);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--clay-primary) 25%, transparent);
+}
+
+.sfc-results:has(.self-eval-step) .sfc-step-cta:disabled {
+  opacity: 0.46;
+  box-shadow: none;
+}
+
+.sfc-results:has(.self-eval-step) .self-eval-skip {
+  align-self: center;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  text-decoration: none;
+}
+
+.sfc-results:has(.self-eval-step) .self-eval-skip:hover,
+.sfc-results:has(.self-eval-step) .self-eval-skip:focus-visible {
+  background: var(--clay-surface-soft);
+  color: var(--clay-ink);
+}
+
+.sfc-results:has(.self-eval-step) > .sfc-footer {
+  /* Was margin-top: 0 — with .self-eval-step's own bottom padding also 0,
+     the "跳過 Skip" button sat right against this footer's top border with
+     no breathing room at all. */
+  margin-top: 16px;
+  /* The shared `.sfc-results .sfc-footer` rule (04-feedback.css) pulls the
+     footer out by -clamp(16px, 2.2vw, 24px) on left/right/bottom, so it can
+     span edge-to-edge past the normal result card's matching padding. This
+     variant sets `padding: 0` on the card (see above), so there is no
+     padding left to cancel — those negative margins instead pushed the
+     footer 24px OUTSIDE the card on three sides, where the card's
+     `overflow: hidden` clipped it: the green "下一個部分" button ran past
+     the right border and both action buttons were cut off along the bottom.
+     Zero them here so the footer stays inside the card it belongs to. */
+  margin-right: 0;
+  margin-bottom: 0;
+  margin-left: 0;
+  padding: 16px 24px;
+  border-top: 1px solid var(--clay-hairline);
+  background: var(--clay-surface-card);
+}
+
+@media (max-width: 768px) {
+  .sfc-results:has(.self-eval-step) > .practice-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .sfc-results:has(.self-eval-step) .practice-scene-col {
+    padding: 16px 16px 0;
+  }
+
+  .sfc-results:has(.self-eval-step) .practice-scene-image {
+    aspect-ratio: 16 / 10;
+  }
+
+  .sfc-results:has(.self-eval-step) .sfc-results-main {
+    padding: 18px 16px 20px;
+  }
+
+  .sfc-results:has(.self-eval-step) > .sfc-footer {
+    padding: 14px 16px;
+  }
+}
+
+@media (max-width: 380px) {
+  .sfc-results:has(.self-eval-step) .self-eval-question {
+    padding: 11px;
+  }
+
+  .sfc-results:has(.self-eval-step) .self-eval-emoji-btn {
+    min-height: 78px;
+    padding-inline: 3px;
+  }
+
+  .sfc-results:has(.self-eval-step) .self-eval-emoji-caption {
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sfc-results:has(.self-eval-step) .self-eval-emoji-btn {
+    transition: none;
+  }
+}

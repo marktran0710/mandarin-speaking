@@ -1,0 +1,431 @@
+.my-stories-page {
+  min-height: calc(100vh - var(--navbar-height));
+  padding: 20px 20px 56px;
+  background:
+    radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--tone1-soft) 60%, transparent), transparent 23rem),
+    radial-gradient(circle at 5% 22%, color-mix(in srgb, var(--seal-soft) 52%, transparent), transparent 20rem),
+    var(--clay-canvas);
+}
+
+.stories-header {
+  max-width: var(--content-max);
+  margin: 0 auto 20px;
+  padding: clamp(20px, 3vw, 28px);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-xl);
+  background: linear-gradient(120deg, color-mix(in srgb, var(--clay-surface-card) 94%, transparent), color-mix(in srgb, var(--seal-soft) 54%, var(--clay-surface-card)));
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+  text-align: left;
+}
+
+.stories-header h1 {
+  color: var(--clay-ink);
+  font-size: clamp(28px, 4vw, 36px);
+  font-weight: 650;
+  letter-spacing: 0;
+  margin-bottom: 8px;
+}
+
+.stories-subtitle {
+  max-width: 620px;
+  margin: 0;
+  font-size: 15px;
+  color: var(--clay-body);
+  line-height: 1.7;
+}
+
+.stories-kicker {
+  color: var(--seal-deep);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.topic-lesson-badge {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: 8px;
+  padding: 3px 9px;
+  border-radius: var(--clay-radius-pill);
+  background: var(--seal);
+  /* Gold badge, so every label layer is ink rather than white (white on this
+     gold is 2.1:1). BiLabel's own pinyin/en defaults are tuned for light
+     surfaces and would be nearly invisible here, hence the overrides. */
+  color: var(--clay-on-seal);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
+  text-transform: none;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+/* ── Tactile game-piece panels: thick border + solid lip shadow, matching
+   the in-story practice screen, so the workbook a student lands on after
+   practicing reads as part of the same game rather than a plain dashboard. ── */
+.student-progress-panel {
+  max-width: var(--content-max);
+  margin: 0 auto 18px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  background: linear-gradient(110deg, var(--clay-surface-card), color-mix(in srgb, var(--tone1-soft) 45%, var(--clay-surface-card)));
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--seal) 15%, transparent);
+}
+
+.student-progress-main {
+  display: grid;
+  gap: 8px;
+}
+
+.student-progress-main span,
+.student-progress-stats span {
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.student-progress-main strong {
+  font-family: var(--font-mono);
+  color: var(--clay-ink);
+  font-size: 26px;
+  line-height: 1;
+}
+
+.student-progress-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.student-progress-stats span {
+  padding: 7px 10px;
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-soft);
+  color: var(--clay-body);
+  text-transform: none;
+}
+
+.my-story-feedback-history {
+  max-width: var(--content-max);
+  margin: 0 auto 18px;
+  padding: 16px;
+  border: 2.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  box-shadow: 0 5px 0 var(--gold-deep);
+}
+
+.my-story-feedback-history h2 {
+  color: var(--clay-ink);
+  font-size: 22px;
+  margin: 0 0 6px;
+}
+
+.my-story-feedback-history .stories-subtitle {
+  margin: 0 0 14px;
+}
+
+.my-story-feedback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.my-story-feedback-item {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.my-story-feedback-item summary {
+  cursor: pointer;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-weight: 700;
+  color: var(--clay-ink);
+}
+
+.my-story-feedback-item[open] summary {
+  border-bottom: 1px solid var(--clay-hairline);
+}
+
+.msfh-date {
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.student-help-card {
+  max-width: var(--content-max);
+  margin: 0 auto 18px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+  gap: 16px;
+  align-items: center;
+  border: 2.5px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  /* Student-facing control — seal, not jade (jade is the teacher accent). */
+  box-shadow: 0 5px 0 var(--seal-deep);
+}
+
+.student-help-card h2 {
+  color: var(--clay-ink);
+  font-size: 20px;
+  margin: 0 0 6px;
+}
+
+.student-help-card p {
+  color: var(--clay-body);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.student-help-card form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.student-help-card input {
+  min-width: 0;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  color: var(--clay-ink);
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 12px;
+}
+
+.student-help-card button {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 2px solid var(--seal-deep);
+  border-radius: var(--clay-radius-pill);
+  background: var(--seal);
+  box-shadow: 0 3px 0 var(--seal-deep);
+  color: var(--clay-on-seal);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 900;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  --bi-pinyin-color: var(--clay-on-seal);
+  --bi-en-color: var(--clay-on-seal);
+}
+
+.student-help-card button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 var(--seal-deep);
+}
+
+.student-help-card button:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--seal-deep);
+}
+
+.summary-progress {
+  height: 8px;
+  overflow: hidden;
+  background: var(--clay-canvas);
+  border-radius: var(--clay-radius-pill);
+}
+
+.summary-progress span {
+  display: block;
+  height: 100%;
+  background: var(--seal);
+  border-radius: var(--clay-radius-pill);
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.summary-progress.is-complete span {
+  background: var(--jade);
+}
+
+.progress-complete-badge {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 0.75em;
+  animation: progressCelebrate 0.6s ease-out;
+}
+
+@keyframes progressCelebrate {
+  0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+  60%  { transform: scale(1.25) rotate(8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* ── My Profile: stat strip + lesson/story overview tabs ── */
+.profile-stats {
+  max-width: var(--content-max);
+  margin: 0 auto 18px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.profile-stat-card {
+  padding: 16px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--clay-ink) 6%, transparent);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.profile-stat-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--seal) 45%, var(--clay-hairline));
+  box-shadow: 0 13px 24px color-mix(in srgb, var(--seal) 13%, transparent);
+}
+
+.profile-stat-label {
+  display: block;
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.profile-stat-value {
+  font-family: var(--font-mono);
+  display: block;
+  color: var(--clay-ink);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.profile-stat-max {
+  color: var(--clay-muted);
+  font-size: 14px;
+}
+
+.profile-stat-stars {
+  color: var(--seal-deep);
+}
+
+.profile-stat-card .summary-progress {
+  margin-top: 10px;
+}
+
+.profile-overview {
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+.profile-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  margin-bottom: 16px;
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-strong);
+}
+
+.profile-tab-btn {
+  border: none;
+  padding: 9px 18px;
+  border-radius: var(--clay-radius-pill);
+  background: transparent;
+  color: var(--clay-body);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.profile-tab-btn.active {
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.profile-lesson-list,
+.profile-story-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.profile-story-empty {
+  margin: 0;
+  padding: 22px;
+  border: 1px dashed var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-soft);
+  color: var(--clay-body);
+  line-height: 1.55;
+  text-align: center;
+}
+
+.profile-lesson-row,
+.profile-story-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  box-shadow: 0 7px 18px color-mix(in srgb, var(--clay-ink) 6%, transparent);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.profile-lesson-row:not(.is-locked):hover,
+.profile-story-row:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--seal) 45%, var(--clay-hairline));
+  box-shadow: 0 12px 24px color-mix(in srgb, var(--seal) 12%, transparent);
+}
+
+.profile-lesson-row.is-locked {
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.profile-lesson-tile {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border-radius: var(--clay-radius-md);
+  color: var(--clay-on-accent);
+  font-weight: 800;
+}
+
+.profile-lesson-tile span {
+  font-size: 9px;
+  opacity: 0.85;
+  letter-spacing: 0.06em;
+}
+
+.profile-lesson-tile strong {
+  font-size: 22px;
+  line-height: 1;
+}
+

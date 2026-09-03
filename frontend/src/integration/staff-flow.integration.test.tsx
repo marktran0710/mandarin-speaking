@@ -123,7 +123,7 @@ describe("teacher and admin integration flows", () => {
     expect(staffDb.teachers).toHaveLength(0);
   });
 
-  it("lets a teacher sign in and reach the class overview", async () => {
+  it("lets a teacher sign in and land on the help queue", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       "fetch",
@@ -147,7 +147,7 @@ describe("teacher and admin integration flows", () => {
     await user.type(screen.getByLabelText(/Teacher password/i), "123456");
     await user.click(screen.getByRole("button", { name: /Enter Teacher Mode/ }));
 
-    expect(await screen.findByRole("heading", { name: "Class Overview" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Student Help Requests" })).toBeInTheDocument();
     expect(screen.getByText("Teacher Studio")).toBeInTheDocument();
     expect(JSON.parse(localStorage.getItem("teacherSession") ?? "{}")).toMatchObject({
       id: "teacher-42",

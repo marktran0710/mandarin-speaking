@@ -1,0 +1,395 @@
+/* ── Page shell ── */
+.topic-selector {
+  min-height: calc(100vh - var(--navbar-height));
+  padding: var(--space-lg) 0 var(--space-3xl);
+  background: color-mix(in srgb, var(--clay-canvas) 94%, white);
+}
+
+/* ── Hero ── */
+.ts-hero {
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
+  margin: 0 auto var(--space-xl);
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.7fr);
+  gap: var(--space-md);
+  align-items: stretch;
+}
+
+.ts-hero-copy {
+  padding: var(--space-lg) var(--space-xl);
+  background: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+}
+
+.ts-hero-copy h1 {
+  color: var(--clay-ink);
+  font-weight: 600;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.12;
+  margin: 0 0 var(--space-sm);
+}
+
+.ts-hero-copy p {
+  color: var(--clay-body);
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* Steps panel */
+.ts-steps {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  background: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  align-content: center;
+}
+
+.ts-step {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: var(--space-sm);
+  align-items: center;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--clay-surface-soft);
+  border: 1px solid var(--clay-hairline-soft);
+  border-radius: var(--clay-radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--clay-ink);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.ts-step:hover { transform: translateX(2px); }
+
+/* clay-muted (BiLabel's default .bi-en color) lands at ~4.0-4.2:1 on these
+   pastel tints — just under 4.5:1 — so darken it via --bi-en-color. */
+.ts-step:nth-child(1),
+.ts-step:nth-child(2),
+.ts-step:nth-child(3) { background: var(--clay-surface-soft); --bi-en-color: var(--clay-body); }
+
+/* Ring-style step markers matching the practice screen's journey-stop-ring
+   (a solid colored disc with its own contrasting border), so the "how this
+   works" steps already look like the game pieces the student will meet
+   right after picking a topic. */
+.ts-step-num {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--clay-radius-pill);
+  color: var(--clay-on-accent);
+  font-size: 15px;
+  font-weight: 700;
+  border: 3px solid transparent;
+}
+
+/* Step 1 is the brand gold, so its numeral flips to dark ink. Step 3 moved
+   off --gold to celadon for the same reason as the tiles above — and that
+   also retires a white-on-amber numeral that had been sitting at 1.9:1. */
+.ts-step-1 {
+  background: var(--seal);
+  border-color: var(--seal-deep);
+  color: var(--clay-on-seal);
+}
+.ts-step-2 { background: var(--jade); border-color: var(--jade-deep); }
+.ts-step-3 { background: var(--lavender-deep); border-color: var(--lavender); }
+
+/* ── Grid section ── */
+.ts-grid-section {
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
+  margin: 0 auto;
+}
+
+.ts-grid-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.ts-grid-header h2 {
+  color: var(--clay-ink);
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.ts-topic-count {
+  margin-left: auto;
+  padding: var(--space-2xs) var(--space-sm);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-surface-soft, #fdf7e8);
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── Card grid ── */
+.ts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-md);
+  align-items: start;
+}
+
+/* ── Individual topic card — one consistent pastel for the whole grid,
+   so the set reads as a uniform list rather than color-coded categories.
+   Tactile "game piece" treatment (thick border + solid lip shadow) matches
+   the in-story practice screen, so picking an activity already feels like
+   picking up a game tile. ── */
+.ts-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  overflow: hidden;
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.ts-card:hover {
+  border-color: color-mix(in srgb, var(--gold) 58%, var(--clay-hairline));
+  transform: translateY(-3px);
+}
+
+/* Image area */
+.ts-card-image {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: var(--clay-surface-soft);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.ts-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.25s ease;
+}
+
+.ts-card:hover .ts-card-image img {
+  transform: scale(1.04);
+}
+
+.ts-card-image-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-size: 42px;
+  opacity: 0.4;
+}
+
+.ts-card-scene-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  padding: var(--space-2xs) var(--space-xs);
+  border-radius: var(--clay-radius-pill);
+  /* Darker than the lesson badge's plain --clay-ink fill since this sits
+     over an arbitrary photo, not a flat surface — needs the extra margin
+     to keep the white text readable regardless of what's underneath. */
+  background: rgba(20, 18, 25, 0.72);
+  color: var(--clay-on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+  --bi-pinyin-color: var(--seal-soft);
+  --bi-en-color: rgba(255, 255, 255, 0.8);
+}
+
+.ts-card-lesson-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: var(--space-2xs) var(--space-xs);
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-ink);
+  color: var(--clay-on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Body */
+.ts-card-body {
+  padding: var(--space-md) var(--space-md) var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.ts-card-meta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.ts-card-skill {
+  /* clay-muted lands at ~4.1:1 on this card's tone1-soft blue background —
+     just under the 4.5:1 floor — so use the darker clay-body here. Also
+     set --bi-en-color: BiLabel's .bi-en sets its own color and doesn't
+     inherit the ambient `color` above. */
+  color: var(--clay-body);
+  --bi-en-color: var(--clay-body);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.ts-card-title {
+  color: var(--clay-ink);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.ts-card-desc {
+  color: var(--clay-body);
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ts-card-stats {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  /* Same tone1-soft background as .ts-card-skill above — see its comment. */
+  color: var(--clay-body);
+  --bi-en-color: var(--clay-body);
+  font-size: 12px;
+  font-weight: 500;
+  padding-top: var(--space-2xs);
+}
+
+.ts-card-open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 44px;
+  margin-top: var(--space-xs);
+  padding: 8px 12px;
+  border: 1px solid var(--jade);
+  border-radius: var(--clay-radius-sm);
+  color: var(--jade-deep);
+  background: var(--jade-soft);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+}
+.ts-card-open:hover { border-color: var(--jade-deep); background: color-mix(in srgb, var(--jade-soft) 72%, white); }
+.ts-card-open:focus-visible { outline: 3px solid color-mix(in srgb, var(--jade) 45%, transparent); outline-offset: 2px; }
+
+/* Takes .ts-card-open's slot when the story is locked, so a locked card
+   says why instead of just disabling a button with no explanation — the
+   in-lesson lock only needs the previous story SUBMITTED, which can leave
+   a card locked right next to a 3-star quiz result on the story before it. */
+.ts-card-locked-note {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-height: 44px;
+  margin-top: var(--space-xs);
+  padding: 8px 12px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  color: var(--clay-muted);
+  background: var(--clay-surface-soft);
+  font-size: 13px;
+}
+
+/* Earned quiz stars for the story — unearned slots stay visible as hollow
+   stars so "something left to win here" reads at a glance. */
+.ts-card-stars {
+  letter-spacing: 1px;
+}
+.ts-card-stars:not(:empty) {
+  color: var(--gold-deep);
+}
+
+/* A story still waiting on the previous story in its lesson (5-2 before
+   5-1 is submitted) — dimmed and inert, same "not yet" language as a
+   locked lesson tile on the contents screen. */
+.ts-card-locked {
+  opacity: 0.6;
+}
+.ts-card-locked:hover {
+  transform: none;
+  border-color: var(--clay-hairline);
+}
+.ts-card-locked .ts-card-image img {
+  filter: grayscale(0.6);
+}
+
+/* ── Empty / loading states ── */
+.empty-state {
+  max-width: 480px;
+  margin: var(--space-2xl) auto;
+  text-align: center;
+  padding: var(--space-2xl) var(--space-lg);
+  background: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-xl);
+}
+
+.empty-icon {
+  font-size: 52px;
+  margin-bottom: var(--space-md);
+}
+
+.empty-state h2 {
+  color: var(--clay-ink);
+  font-size: 22px;
+  margin: 0 0 var(--space-sm);
+}
+
+.empty-state p {
+  color: var(--clay-body);
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .ts-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .ts-hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .topic-selector {
+    padding: var(--space-md) var(--space-sm) var(--space-2xl);
+  }
+
+  .ts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ts-hero-copy {
+    padding: var(--space-md);
+  }
+}

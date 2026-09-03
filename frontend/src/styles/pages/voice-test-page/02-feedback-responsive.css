@@ -1,0 +1,247 @@
+
+.voice-praat-visual-card .praat-timeline-card {
+  margin: 0;
+  padding: 16px;
+  border: 0;
+  border-radius: 0;
+  background: var(--clay-surface-card);
+}
+
+.voice-praat-visual-card .praat-timeline-header {
+  margin-bottom: 12px;
+}
+
+.voice-praat-visual-card .praat-timeline-scroll {
+  overflow-x: auto;
+}
+
+.voice-praat-visual-card .praat-timeline {
+  min-width: 760px;
+  width: 100%;
+  display: block;
+}
+
+.voice-word-grid,
+.ai-feedback-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 10px;
+}
+
+.voice-word-card,
+.feedback-block {
+  padding: 13px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+}
+
+.voice-word-card strong {
+  color: var(--clay-ink);
+  display: block;
+  font-size: 24px;
+}
+
+.voice-word-card span,
+.voice-word-card small {
+  color: var(--clay-muted);
+  display: block;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.voice-word-card small {
+  font-family: var(--font-mono);
+}
+
+.voice-word-card p {
+  margin-top: 8px;
+}
+
+.ai-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.ai-card-header span {
+  padding: 5px 10px;
+  border-radius: var(--clay-radius-pill);
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.feedback-block strong,
+.improved-version strong,
+.practice-prompt strong {
+  color: var(--clay-ink);
+}
+
+.improved-version,
+.practice-prompt {
+  margin-top: 12px !important;
+}
+
+@media (max-width: 760px) {
+  .voice-test-hero,
+  .voice-score-grid,
+  .voice-student-feedback,
+  .voice-model-example {
+    grid-template-columns: 1fr;
+  }
+
+  .voice-model-example-actions {
+    justify-items: start;
+  }
+
+  .voice-test-status {
+    min-width: 0;
+  }
+}
+
+/* Keep the practice flow close to the instructor demo: quiet paper cards and one amber action. */
+.voice-test-page {
+  padding: 20px 0 48px;
+  color: var(--clay-ink);
+  font-family: var(--font-student);
+}
+
+.voice-test-hero,
+.voice-test-workspace,
+.voice-test-controls,
+.voice-feedback-panel {
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  box-shadow: 0 1px 2px rgba(42, 35, 24, 0.05);
+}
+
+.voice-test-hero {
+  padding: 16px;
+  gap: 12px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.voice-test-status {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 18px;
+  padding: 0;
+  background: transparent;
+}
+
+.voice-test-status p {
+  margin: 0;
+}
+
+.voice-test-workspace,
+.voice-feedback-panel {
+  padding: 14px;
+  gap: 12px;
+}
+
+.voice-test-controls {
+  padding: 10px;
+  gap: 8px;
+}
+
+.voice-step-row span {
+  padding: 5px 9px;
+  border: 1px solid var(--gold);
+  background: var(--gold-soft);
+  color: var(--seal-deep);
+}
+
+.voice-test-page .voice-test-controls .btn,
+.voice-test-page .voice-file-label .btn {
+  min-width: 0;
+  border: 1px solid var(--seal-deep);
+  border-radius: var(--clay-radius-sm);
+  background: var(--seal);
+  box-shadow: none;
+  color: var(--clay-on-seal);
+}
+
+.voice-test-page .voice-test-controls .btn-danger {
+  border-color: var(--clay-error-deep);
+  background: var(--clay-error);
+  color: var(--clay-on-accent);
+}
+
+.voice-test-page .voice-test-controls .btn:hover:not(:disabled),
+.voice-test-page .voice-file-label .btn:hover:not(:disabled) {
+  transform: none;
+  box-shadow: 0 1px 2px rgba(42, 35, 24, 0.12);
+}
+
+.voice-audio-preview,
+.voice-score-card,
+.voice-feedback-card {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-card);
+}
+
+.voice-live-transcript {
+  border-radius: var(--clay-radius-md);
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+.voice-student-feedback-card,
+.voice-model-example,
+.voice-advanced-details,
+.voice-script-token,
+.voice-word-card,
+.feedback-block {
+  border-radius: var(--clay-radius-md);
+}
+
+.voice-model-example-actions button {
+  border: 1px solid var(--seal-deep);
+  border-radius: var(--clay-radius-sm);
+  background: var(--seal);
+  box-shadow: none;
+  color: var(--clay-on-seal);
+}
+
+.voice-model-example-actions button:hover {
+  background: var(--seal);
+  box-shadow: 0 1px 2px rgba(42, 35, 24, 0.12);
+}
+
+.voice-test-page button:focus-visible,
+.voice-test-page input:focus-visible,
+.voice-test-page summary:focus-visible {
+  outline: 3px solid var(--seal);
+  outline-offset: 2px;
+}
+
+@media (max-width: 420px) {
+  .voice-test-page {
+    width: min(calc(100% - 24px), var(--content-max));
+    padding-top: 16px;
+  }
+
+  .voice-test-controls > * {
+    max-width: 100%;
+  }
+
+  .voice-test-page .voice-test-controls .btn,
+  .voice-test-page .voice-file-label {
+    width: 100%;
+  }
+
+  .voice-audio-preview,
+  .voice-model-example,
+  .voice-feedback-card {
+    min-width: 0;
+  }
+}
+

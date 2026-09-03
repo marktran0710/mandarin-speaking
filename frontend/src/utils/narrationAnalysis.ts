@@ -1,6 +1,6 @@
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV && typeof window !== "undefined" ? window.location.origin : "");
+import { getBackendUrl as getRuntimeBackendUrl } from "../config/runtimeEnv";
+
+const BACKEND_URL = getRuntimeBackendUrl();
 
 export interface ContentAccuracy {
   score: number;
@@ -133,8 +133,7 @@ export function getAnalysisVisibility(
 
 /** Real, measured prosody score — averaged per-character tone_accuracy —
  * rather than the AI's generic pronunciation_note.score, which isn't
- * grounded in the actual measured pitch data. Shared by ImageNarrationPage
- * and ListenRetellPage, which both submit to the same /api/analyze shape. */
+ * grounded in the actual measured pitch data for narrated-speaking feedback. */
 export function averageWordProsodyAccuracy(wordProsody?: WordProsody[]): number | null {
   const accuracies = (wordProsody ?? [])
     .map((item) => item.tone_accuracy)

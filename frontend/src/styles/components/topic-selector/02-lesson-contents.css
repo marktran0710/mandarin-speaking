@@ -1,0 +1,419 @@
+/* Both picker screens share the app-wide content column (same formula as
+   the navbar and every page shell — see --content-max in index.css), so
+   the picker's edges line up with the rest of the app. */
+.ts-container {
+  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
+  margin: 0 auto;
+}
+/* ══ Lesson table of contents (目錄) ══════════════════════════════════
+   The picker is the book's table of contents: numbered lesson cards
+   threaded by a progress spine, each opening into that lesson's stories. */
+
+.ts-toc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 86px;
+  margin-bottom: 18px;
+  padding: 12px clamp(18px, 3vw, 28px);
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--clay-hairline));
+  border-radius: 18px;
+  background:
+    linear-gradient(104deg, color-mix(in srgb, var(--clay-surface-card) 94%, white), color-mix(in srgb, var(--gold-soft) 24%, var(--clay-surface-card)));
+}
+
+.ts-toc-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: clamp(26px, 3.2vw, 34px);
+  letter-spacing: 0.025em;
+  color: var(--clay-ink);
+  margin: 0;
+}
+
+.ts-toc-title .ts-lesson-sub {
+  font-size: 13px;
+  letter-spacing: .08em;
+  margin-left: 0;
+}
+
+.ts-lesson-sub {
+  /* Was --font-mono, which put "Dì 5 kè · Where Is My Wallet?" in Consolas
+     beside the Chinese display face. BiLabel already moved pinyin off mono
+     app-wide (see BiLabel.css); this was one of two places that missed the
+     change. Letter-spacing, not a different family, marks it as a reading. */
+  letter-spacing: 0.04em;
+  font-size: 12.5px;
+  color: var(--clay-muted);
+  margin: 0;
+}
+
+.ts-book-chip {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 198px;
+  background: color-mix(in srgb, var(--clay-surface-card) 88%, white);
+  border: 1px solid color-mix(in srgb, var(--gold) 38%, var(--clay-hairline));
+  border-radius: 13px;
+  padding: 6px 10px;
+}
+
+.ts-book-cover {
+  width: 34px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 5px;
+  border: 1px solid var(--clay-hairline);
+  object-fit: cover;
+}
+
+.ts-book-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--clay-ink);
+}
+
+.ts-book-name .ts-lesson-sub {
+  display: block;
+  font-size: 10.5px;
+}
+
+/* ── Lesson table of contents: one wide row per lesson.
+   The lesson's own first scene image leads the row, so a lesson is
+   recognisable before any text is read; a locked lesson's image is
+   desaturated, which carries its state the same way. Borders only —
+   no drop shadows. ── */
+.ts-lesson-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.ts-lesson-block { min-width: 0; }
+
+.ts-lesson-row {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+
+.ts-lesson-row:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--seal) 42%, var(--clay-hairline));
+  background: color-mix(in srgb, var(--clay-surface-card) 92%, var(--seal-soft));
+}
+
+.ts-lesson-row:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--seal) 55%, transparent);
+  outline-offset: 2px;
+}
+
+/* The lesson the student is on: a gold left edge, no extra fill, so it
+   stands out without becoming a second kind of card. */
+.ts-lesson-row.is-now {
+  border-color: color-mix(in srgb, var(--seal) 55%, var(--clay-hairline));
+  box-shadow: inset 4px 0 var(--seal);
+}
+
+.ts-lesson-row.is-done { border-color: color-mix(in srgb, var(--jade) 38%, var(--clay-hairline)); }
+
+.ts-lesson-row.is-locked { cursor: not-allowed; opacity: .6; }
+
+.ts-lesson-cover {
+  display: grid;
+  place-items: center;
+  height: 84px;
+  overflow: hidden;
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.ts-lesson-cover img { width: 100%; height: 100%; object-fit: cover; }
+.ts-lesson-row.is-locked .ts-lesson-cover img { filter: grayscale(1); }
+
+.ts-lesson-cover-fallback {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--clay-muted);
+}
+
+.ts-lesson-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.ts-lesson-kicker {
+  color: var(--seal-deep);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.ts-lesson-row.is-locked .ts-lesson-kicker { color: var(--clay-muted); }
+
+.ts-lesson-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--clay-ink);
+}
+
+.ts-lesson-row.is-locked .ts-lesson-name { color: var(--clay-body); }
+
+.ts-lesson-en { font-size: 12.5px; color: var(--clay-muted); }
+
+.ts-lesson-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.ts-lesson-progress { font-size: 12.5px; color: var(--clay-body); }
+
+.ts-lesson-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--clay-muted);
+}
+
+.ts-lesson-chevron { color: var(--clay-muted); font-size: 13px; }
+
+@media (max-width: 720px) {
+  .ts-lesson-row { grid-template-columns: 84px minmax(0, 1fr); gap: 12px; }
+  .ts-lesson-cover { height: 60px; }
+  .ts-lesson-name { font-size: 17px; }
+  .ts-lesson-status { grid-column: 2; }
+}
+
+/* ── Accordion body: a lesson's story cards, dropped in place under its
+   own journey stop instead of navigating to a separate screen. ── */
+.ts-lesson-expanded {
+  padding: 4px 4px 4px 14px;
+  margin: 4px 0 2px;
+}
+@media (max-width: 720px) {
+  .ts-lesson-expanded { padding-left: 4px; }
+}
+
+/* ── The "other" card sits below the numbered journey, not chained into it
+   (no connector line), so its left edge matches .journey-stop's own 14px
+   inset directly instead of reserving space for a spine it doesn't draw. ── */
+.ts-lesson {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+/* ── Lesson card ── */
+.ts-lesson-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  padding: 18px 22px 18px 14px;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s;
+}
+
+.ts-lesson-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--seal) 45%, var(--clay-hairline));
+}
+.ts-lesson-card:focus-visible {
+  outline: 3px solid var(--seal);
+  outline-offset: 2px;
+}
+
+.ts-num-tile {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--clay-radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  font-weight: 800;
+  color: var(--clay-on-accent);
+}
+
+.ts-num-tile-n {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.ts-tile-other { background: var(--clay-surface-strong); color: var(--gold-deep); }
+
+.ts-lesson-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.ts-lesson-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--clay-ink);
+}
+
+.ts-lesson-main .ts-lesson-sub { margin-top: 4px; }
+
+.ts-lesson-side {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ts-side-chip {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: var(--clay-radius-pill);
+}
+
+.ts-chip-open { background: var(--clay-surface-soft); color: var(--clay-muted); }
+
+.ts-other-block { margin-top: 30px; }
+
+.ts-other-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--clay-muted);
+  margin: 0 0 10px 14px;
+}
+
+/* ── Per-story difficulty track. In student mode each tier is a direct
+   action, so the learner no longer needs a separate difficulty page. ── */
+.ts-tier-track {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1.5px dashed var(--clay-hairline-soft);
+}
+
+.ts-tier-cell {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 5px 6px;
+  border-radius: var(--clay-radius-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  color: var(--clay-body);
+  font: inherit;
+  text-align: center;
+}
+
+.ts-tier-done { background: var(--jade-soft); }
+.ts-tier-open {
+  background: var(--clay-surface-soft);
+  border: 1.5px solid var(--clay-hairline);
+}
+.ts-tier-track-interactive .ts-tier-open,
+.ts-tier-track-interactive .ts-tier-done {
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: transform .15s ease, border-color .15s ease;
+}
+
+.ts-tier-track-interactive .ts-tier-open:hover,
+.ts-tier-track-interactive .ts-tier-done:hover {
+  border-color: var(--gold);
+  transform: translateY(-1px);
+}
+
+.ts-tier-track-interactive .ts-tier-cell:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--jade) 72%, white);
+  outline-offset: 2px;
+}
+
+.ts-tier-cell .bi-label {
+  gap: 0;
+  line-height: 1.05;
+}
+
+.ts-tier-cell .bi-zh {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ts-tier-cell .bi-en {
+  font-size: 9px;
+  color: var(--clay-muted);
+}
+
+.ts-tier-lock {
+  background: var(--clay-surface-soft);
+  border: 1.5px solid var(--clay-hairline);
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.ts-tier-track-interactive .ts-tier-lock {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-tier-track-interactive .ts-tier-cell {
+    transition: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .ts-toc-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+  .ts-toc-title {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .ts-book-chip {
+    width: 100%;
+    min-width: 0;
+  }
+  .ts-lesson-card {
+    flex-wrap: wrap;
+  }
+  .ts-lesson-side {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+  }
+}

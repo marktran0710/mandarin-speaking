@@ -79,7 +79,8 @@ describe("TeacherSubmissionsView", () => {
     expect(onReviewUpdate).toHaveBeenCalledWith(reviewedSubmission);
   });
 
-  it("shows the student's self-eval next to the scene score, only for scenes that have it", async () => {
+  it("shows the student's self-eval next to the scene score, only for scenes that have it, once expanded", async () => {
+    const user = userEvent.setup();
     const withSelfEval: StorySubmission = {
       ...submissions[0],
       scenes: [
@@ -90,22 +91,42 @@ describe("TeacherSubmissionsView", () => {
 
     render(<TeacherSubmissionsView submissions={[withSelfEval]} onReviewUpdate={vi.fn()} />);
 
+    // Scene detail is collapsed until a teacher asks to see it.
+    expect(screen.queryByText(/Self-eval:/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Details" }));
+
     expect(screen.getByText(/Self-eval:.*meaning.*pronunciation/)).toBeInTheDocument();
     expect(screen.getAllByText(/Self-eval:/)).toHaveLength(1);
   });
 
-  it("narrows the list with search and student filters", async () => {
+  it("collapses scene detail behind a Details toggle and shows an overall score up front", async () => {
+    const user = userEvent.setup();
+
+    render(<TeacherSubmissionsView submissions={[submissions[0]]} onReviewUpdate={vi.fn()} />);
+
+    // (90 + 85 + 88) / 3 = 87.67 -> 88
+    expect(screen.getByText("88%")).toBeInTheDocument();
+    expect(screen.queryByText("A garden story.")).not.toBeInTheDocument();
+
+    const toggle = screen.getByRole("button", { name: "Details" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await user.click(toggle);
+
+    expect(screen.getByText(/A garden story\./)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Hide" })).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("narrows the list with the student filter", async () => {
     const user = userEvent.setup();
 
     render(<TeacherSubmissionsView submissions={submissions} onReviewUpdate={vi.fn()} />);
 
-    await user.type(screen.getByRole("searchbox", { name: "Search submissions" }), "garden");
-    expect(screen.getByText("Garden Adventure")).toBeInTheDocument();
-    expect(screen.queryByText("Mountain Walk")).not.toBeInTheDocument();
-
-    await user.clear(screen.getByRole("searchbox", { name: "Search submissions" }));
     await user.selectOptions(screen.getByLabelText("Student"), "Wei");
     expect(screen.getByText("Mountain Walk")).toBeInTheDocument();
     expect(screen.queryByText("Garden Adventure")).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("Student"), "all");
+    expect(screen.getByText("Garden Adventure")).toBeInTheDocument();
+    expect(screen.getByText("Mountain Walk")).toBeInTheDocument();
   });
 });

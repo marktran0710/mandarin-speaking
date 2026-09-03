@@ -1,0 +1,305 @@
+
+.transcription-item .time {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--clay-muted);
+  font-weight: 600;
+}
+
+/* .model-badge is the single canonical definition — StoryRecorder.css and
+   MyStoriesPage.css used to each redefine it at a different size; both were
+   removed so every "ASR model" badge in the app now renders identically. */
+.model-badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background-color: var(--seal);
+  color: var(--clay-on-seal);
+}
+
+.transcription-item p {
+  color: var(--clay-ink);
+  font-size: 16px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.audio-history-panel {
+  background-color: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  padding: 20px;
+  margin-bottom: 32px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.audio-history-panel h2 {
+  color: var(--clay-ink);
+}
+
+.audio-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.audio-item {
+  background-color: var(--clay-surface-soft);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: slideIn 0.3s ease;
+}
+
+.audio-info {
+  flex: 1;
+}
+
+.audio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--clay-body);
+}
+
+.audio-header .timestamp {
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.audio-header .duration {
+  font-family: var(--font-mono);
+  color: var(--seal);
+  font-weight: 600;
+}
+
+.audio-item .transcription {
+  color: var(--clay-ink);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 8px 0 0 0;
+  padding: 8px;
+  background-color: var(--clay-surface-card);
+  border-radius: var(--clay-radius-sm);
+}
+
+.audio-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.audio-player {
+  flex: 1;
+  min-width: 200px;
+  height: 30px;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 20px;
+  }
+
+  h1 {
+    font-size: 24px;
+    margin-bottom: 24px;
+  }
+
+  .controls {
+    flex-direction: column;
+  }
+
+  .btn {
+    min-width: unset;
+  }
+
+  .audio-player {
+    min-width: 150px;
+  }
+
+  .audio-controls {
+    flex-direction: column;
+  }
+
+  .audio-item {
+    padding: 12px;
+  }
+
+  .topic-images-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .image-vocabulary {
+    font-size: 10px;
+  }
+
+  .metrics-section {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .tone-card,
+  .accuracy-card,
+  .fluency-card,
+  .rate-card,
+  .formants-card {
+    grid-column: span 1 !important;
+  }
+
+  .metric-value {
+    font-size: 24px;
+  }
+}
+
+/* ── Baseline type rules ─────────────────────────────────────────────── */
+h1,
+h2 {
+  color: var(--clay-ink);
+  letter-spacing: 0;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-danger {
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+p,
+li,
+textarea,
+input,
+select {
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+strong {
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+/* Chinese legibility for learners: Han characters are denser than Latin, so
+   a touch of tracking separates the strokes and makes them easier to read at
+   a glance. Applies to any element tagged as Chinese (BiLabel output, teacher
+   scripts, etc.) without affecting Latin text. */
+:lang(zh-Hant),
+:lang(zh-TW),
+:lang(zh) {
+  letter-spacing: 0.02em;
+}
+
+/* Chinese display headlines use the Song-style serif; Latin/UI stays sans. */
+h1 .bi-zh,
+h2 .bi-zh,
+.hero-title .bi-zh,
+.login-card h1,
+.ts-hero-copy h1 .bi-zh,
+.ts-card-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.eyebrow,
+.metric-label,
+.model-badge,
+.challenge-meta span,
+.recording-status-card span,
+.concept-node span,
+.concept-chip-group span,
+.concept-practice-text span,
+.praat-row-label,
+.praat-axis-label,
+.word-prosody-topline span,
+.ai-feedback-score span,
+.ai-example strong,
+.module-badge {
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.btn,
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.nav-link,
+.portal-card,
+.topic-row,
+.prompt-mini-card,
+.concept-chip-group button,
+.concept-map-actions button {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+/* ── Shared UI cleanup: quieter surfaces, clearer focus ─────────────── */
+button,
+a,
+input,
+select,
+textarea {
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--seal-soft);
+  outline-offset: 2px;
+}
+
+/* .btn itself is never used without a .btn-primary/-secondary/-danger
+   variant, which now own their own tactile box-shadow above — so it's
+   deliberately excluded here to avoid flattening that shadow back to none. */
+.login-submit,
+.start-activity-btn,
+.btn-save-custom-story {
+  border-radius: var(--clay-radius-pill);
+  box-shadow: none;
+}
+
+.login-submit:hover,
+.start-activity-btn:hover,
+.btn-save-custom-story:hover {
+  box-shadow: var(--shadow-sm);
+}
+

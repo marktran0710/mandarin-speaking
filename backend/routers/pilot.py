@@ -1,16 +1,10 @@
-"""Research-pilot ingestion, split out from the classroom-facing
-`routers/audio.py` so that JWT-authenticated student identity can be
-enforced there without breaking the pilot harness.
+"""Authenticated audio-record ingestion used by teacher review.
 
-The small-teacher-validated-pilot architecture
-(`benchmarking/results/pilot_teacher_validation_integration.md`) posts audio
-records directly with a pseudonymous `participant_id` (as `studentId`) and
-never logs in through the student/teacher roster at all - see the provenance
-note in `routers/teacher_review.py`. This endpoint is exactly the old,
-unauthenticated `POST /api/audio-records` behavior, kept only for that
-harness; real classroom traffic goes through the authenticated endpoint in
-`routers/audio.py` instead.
+The classroom-facing audio route remains in ``routers.audio``. This small
+compatibility endpoint accepts the same record shape for teacher-review flows
+without exposing any benchmark or research scoring surface.
 """
+
 from fastapi import APIRouter, Depends
 
 import auth

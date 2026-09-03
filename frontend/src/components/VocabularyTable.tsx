@@ -62,42 +62,46 @@ export default function VocabularyTable({
   return (
     <div className="vocab-table" role="table" aria-label="Vocabulary">
       <div className="vocab-table-header" role="row">
-        <span role="columnheader">Chinese word</span>
-        <span role="columnheader">Pinyin</span>
-        <span role="columnheader">Part of speech</span>
-        <span role="columnheader">English translation</span>
+        <div className="vocab-table-header-fields">
+          <span role="columnheader">Chinese word</span>
+          <span role="columnheader">Pinyin</span>
+          <span role="columnheader">Part of speech</span>
+          <span role="columnheader">English translation</span>
+        </div>
         <span role="columnheader" aria-hidden="true" />
       </div>
       {rows.map((row, index) => (
         <div className="vocab-table-row" role="row" key={index}>
-          <input
-            aria-label="Chinese word"
-            value={row.word}
-            onChange={(event) => updateCell(index, "word", event.target.value)}
-            placeholder="餐廳"
-          />
-          <input
-            aria-label="Pinyin"
-            value={row.pinyin}
-            onChange={(event) => updateCell(index, "pinyin", event.target.value)}
-            placeholder="cāntīng"
-          />
-          <select
-            aria-label="Part of speech"
-            value={row.pos}
-            onChange={(event) => updateCell(index, "pos", event.target.value)}
-          >
-            <option value="">--</option>
-            {VOCAB_POS_OPTIONS.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
-          </select>
-          <input
-            aria-label="English translation"
-            value={row.translation}
-            onChange={(event) => updateCell(index, "translation", event.target.value)}
-            placeholder="restaurant"
-          />
+          <div className="vocab-table-fields">
+            <label className="vocab-table-field"><span>Chinese word</span><input
+              aria-label="Chinese word"
+              value={row.word}
+              onChange={(event) => updateCell(index, "word", event.target.value)}
+              placeholder="餐廳"
+            /></label>
+            <label className="vocab-table-field"><span>Pinyin</span><input
+              aria-label="Pinyin"
+              value={row.pinyin}
+              onChange={(event) => updateCell(index, "pinyin", event.target.value)}
+              placeholder="cāntīng"
+            /></label>
+            <label className="vocab-table-field"><span>Part of speech</span><select
+              aria-label="Part of speech"
+              value={row.pos}
+              onChange={(event) => updateCell(index, "pos", event.target.value)}
+            >
+              <option value="">--</option>
+              {VOCAB_POS_OPTIONS.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select></label>
+            <label className="vocab-table-field"><span>English translation</span><input
+              aria-label="English translation"
+              value={row.translation}
+              onChange={(event) => updateCell(index, "translation", event.target.value)}
+              placeholder="restaurant"
+            /></label>
+          </div>
           <button
             type="button"
             className="vocab-table-remove"

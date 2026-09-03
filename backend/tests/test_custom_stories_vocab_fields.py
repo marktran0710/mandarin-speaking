@@ -6,7 +6,6 @@ def test_vocabulary_pos_and_translation_round_trip(client):
     story = {
         "id": "test-vocab-fields-story",
         "title": "Vocab Fields Test",
-        "learningGoal": "Check pos/translation persist",
         "level": "Beginner speaking",
         "frames": [
             {
@@ -18,7 +17,6 @@ def test_vocabulary_pos_and_translation_round_trip(client):
                 "vocabularyTranslation": "restaurant, to eat",
             }
         ],
-        "narrativeMode": "describe",
     }
 
     post_response = client.post("/api/custom-stories", json=story)

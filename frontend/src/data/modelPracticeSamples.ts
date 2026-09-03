@@ -6,7 +6,7 @@ export interface ModelPracticeSample {
 }
 
 const sampleAudioUrl = (filename: string) =>
-  `${import.meta.env.BASE_URL}uploads/examples/${filename}`;
+  `/uploads/examples/${filename}`;
 
 /**
  * Committed, offline-safe model recordings used when a teacher-authored

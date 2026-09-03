@@ -1,0 +1,917 @@
+.practice-model-picker select:focus {
+  outline: none;
+  border-color: var(--seal);
+  box-shadow: 0 0 0 3px var(--seal-soft);
+}
+.practice-model-label {
+  display: block;
+  margin-top: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--clay-body);
+}
+
+/* Responsive */
+
+/* ── Attempt progress trend ── */
+.attempt-trend {
+  background: var(--clay-surface-soft);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.attempt-trend-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clay-body);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 10px;
+}
+.attempt-trend-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 48px;
+  margin-bottom: 8px;
+}
+.attempt-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  max-width: 32px;
+}
+.attempt-bar-fill {
+  width: 100%;
+  min-height: 4px;
+  background: var(--clay-hairline);
+  border-radius: 3px;
+  transition: height 0.3s ease;
+}
+.attempt-bar.current .attempt-bar-fill { background: var(--jade-deep); }
+.attempt-bar span {
+  font-size: 10px;
+  color: var(--clay-muted);
+  font-weight: 600;
+}
+.attempt-trend-delta {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+.attempt-trend-delta.positive { color: var(--jade); }
+.attempt-trend-delta.negative { color: var(--clay-error); }
+
+/* ── Tone direction card ── */
+.tone-direction-card {
+  background: var(--jade-soft);
+  border: 1.5px solid var(--jade);
+  border-radius: var(--clay-radius-md);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+.tone-direction-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--jade-deep);
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+/* ── AI feedback improvements ── */
+.provider-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--clay-body);
+  background: var(--clay-hairline-soft);
+  padding: 3px 8px;
+  border-radius: var(--clay-radius-pill);
+}
+.ai-example.next-practice {
+  background: var(--gold-soft);
+  border-color: var(--gold);
+}
+
+/* ── Next-scene / view-summary action (practice footer + summary) ── */
+.scene-next-btn {
+  flex-shrink: 0;
+  padding: 10px 20px;
+  background: var(--jade);
+  color: var(--clay-on-accent);
+  border: 2px solid var(--jade-deep);
+  border-radius: var(--clay-radius-pill);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 4px 0 var(--jade-deep);
+  transition: transform 0.1s, box-shadow 0.1s;
+  /* BiLabel's .bi-en/.bi-pinyin default to --clay-muted (dark gray) —
+     unreadable on this solid green fill without a light override. */
+  --bi-pinyin-color: #ffffff;
+  --bi-en-color: var(--clay-canvas);
+}
+.scene-next-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--jade-deep);
+}
+.scene-next-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--jade-deep);
+}
+
+/* Practice-stage CTAs now use AppButton. These layout hooks stay only for
+   width and wrapping, so their interaction states cannot drift from the
+   rest of the application. */
+.ui-button.btn-scene-step-continue {
+  min-width: 184px;
+  padding: 10px 16px;
+  border-radius: var(--clay-radius-md);
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--seal) 30%, transparent);
+}
+
+.ui-button.scene-next-btn {
+  padding: 10px 16px;
+  border-radius: var(--clay-radius-md);
+  border: 1px solid var(--jade-deep);
+  background: var(--jade-deep);
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--jade) 30%, transparent);
+}
+
+.ui-button.btn-scene-step-continue:hover:not(:disabled),
+.ui-button.scene-next-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+/* Student refresh: keep the learning flow intact while bringing the practice
+   workspace closer to the calm, editorial language used by the instructor
+   demo. These overrides are intentionally scoped to the student recorder. */
+.story-recorder {
+  padding-top: 28px;
+  padding-bottom: 64px;
+  gap: 24px;
+}
+
+.story-overview {
+  max-width: none;
+  padding: 0 0 18px;
+  gap: 24px;
+}
+
+.overview-hero {
+  padding: 34px 32px 28px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+  box-shadow: 0 4px 16px rgba(67, 53, 31, 0.04);
+}
+
+.overview-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 700;
+}
+
+.lesson-number-badge {
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-primary);
+  color: var(--clay-on-seal);
+}
+
+.overview-meta > span {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  color: var(--clay-body);
+  background: var(--clay-surface-soft);
+}
+
+.overview-choice-card {
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  box-shadow: 0 4px 0 var(--clay-hairline-soft);
+  padding: 20px 18px;
+}
+
+.overview-choice-card:hover:not(:disabled) {
+  border-color: var(--clay-primary);
+  box-shadow: 0 5px 0 var(--clay-primary);
+}
+
+.practice-stage > .practice-workspace,
+.practice-content,
+.example-frame-panel,
+.recording-status-card {
+  border-color: var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  box-shadow: 0 4px 16px rgba(67, 53, 31, 0.04);
+}
+
+.practice-stage > .practice-workspace {
+  background: var(--clay-surface-card);
+}
+
+.practice-scene-image {
+  border-radius: var(--clay-radius-md);
+  overflow: hidden;
+}
+
+.practice-footer {
+  border-top-color: var(--clay-hairline);
+}
+
+.btn-scene-step-continue,
+.scene-next-btn {
+  border-radius: 10px;
+  box-shadow: 0 3px 0 var(--seal-deep);
+}
+
+@media (max-width: 900px) {
+  .story-recorder {
+    padding-top: 18px;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  /* The desktop vocabulary table has room for status, Hanzi, pinyin, part of
+     speech, meaning, and audio. On a phone, keep those same fields readable
+     by stacking the text inside a compact two-column row instead of allowing
+     pinyin and English to break into one character per line. */
+  .scene-vocab-row-practice {
+    grid-template-columns: 18px minmax(0, 1fr) 28px;
+    grid-template-areas:
+      "status hanzi mic"
+      "status pinyin mic"
+      "status pos mic"
+      "status meaning mic";
+    gap: 2px 8px;
+    align-items: center;
+    padding: 8px 10px;
+  }
+
+  .scene-vocab-row-practice .scene-vocab-status { grid-area: status; }
+  .scene-vocab-row-practice .scene-vocab-hanzi { grid-area: hanzi; }
+  .scene-vocab-row-practice .scene-vocab-pinyin { grid-area: pinyin; }
+  .scene-vocab-row-practice .scene-vocab-pos { grid-area: pos; }
+  .scene-vocab-row-practice .scene-vocab-meaning { grid-area: meaning; }
+
+  .scene-vocab-row-practice button,
+  .scene-vocab-row-practice [aria-label*="pronunciation"] {
+    grid-area: mic;
+    justify-self: end;
+  }
+
+  .scene-vocab-row-practice .scene-vocab-pinyin,
+  .scene-vocab-row-practice .scene-vocab-pos,
+  .scene-vocab-row-practice .scene-vocab-meaning {
+    min-width: 0;
+    overflow-wrap: normal;
+    word-break: normal;
+  }
+
+  .scene-vocab-row-practice .scene-vocab-pos {
+    font-size: 10px;
+  }
+}
+
+
+.content-diff {
+  display: grid;
+  gap: var(--space-xs);
+  margin: var(--space-sm) 0;
+  padding: var(--space-sm);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.content-diff-line {
+  display: flex;
+  gap: var(--space-xs);
+  margin: 0;
+  line-height: 1.7;
+}
+
+.content-diff-label {
+  flex: 0 0 5.2rem;
+  color: var(--clay-muted);
+  font-size: var(--text-base);
+}
+
+.content-diff-line-text {
+  letter-spacing: 0.04em;
+}
+
+.content-diff-highlight {
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: var(--clay-error);
+  color: var(--clay-error-deep);
+}
+
+.content-diff-empty,
+.content-diff-hint {
+  color: var(--clay-muted);
+}
+
+.content-diff-hint-match { color: var(--jade-deep); }
+.content-diff-hint-unverified { color: var(--gold-deep); }
+
+.content-diff-hint {
+  margin: var(--space-2xs) 0 0;
+  font-size: var(--text-sm);
+}
+
+/* ────────────────────────────────────────────────────────────────────────
+   Student story practice — focused lesson workspace
+
+   The study step used to read as a tall stack of tinted cards. This version
+   treats it as one calm lesson surface: a compact step rail, a bounded
+   visual, then two reference panels that can be scanned side by side. The
+   selectors are scoped to the study workspace so the recording, feedback,
+   quiz and teacher-facing views keep their existing behavior.
+   ──────────────────────────────────────────────────────────────────────── */
+.story-session-main {
+  min-width: 0;
+}
+
+.practice-stage {
+  border: 1px solid color-mix(in srgb, var(--clay-primary) 20%, var(--clay-hairline));
+  border-radius: 24px;
+  background: var(--clay-surface-card);
+  box-shadow: 0 18px 45px color-mix(in srgb, var(--clay-ink) 8%, transparent);
+}
+
+.scene-step-tabs {
+  min-height: 62px;
+  padding: 0 24px;
+  gap: 28px;
+  background: var(--clay-surface-card);
+  border-bottom: 1px solid var(--clay-hairline);
+}
+
+.scene-step-tab {
+  position: relative;
+  min-height: 62px;
+  margin: 0;
+  padding: 12px 0 10px;
+  gap: 9px;
+  color: var(--clay-muted);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+.scene-step-tab::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  opacity: 0.45;
+}
+
+.scene-step-tab.active::before,
+.scene-step-tab.scene-step-done::before {
+  border-color: var(--clay-primary);
+  background: var(--clay-primary);
+  opacity: 1;
+}
+
+.scene-step-tab.active {
+  color: var(--clay-ink);
+  border-color: var(--clay-primary);
+}
+
+.scene-step-tab.scene-step-done {
+  color: var(--clay-primary-active);
+  border-color: transparent;
+}
+
+.scene-step-check {
+  display: none;
+}
+
+.practice-stage > .practice-workspace {
+  padding: 24px;
+  gap: 22px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.practice-workspace-study {
+  gap: 22px;
+}
+
+.practice-workspace-study .practice-scene-col {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--clay-surface-soft);
+}
+
+.practice-workspace-study .practice-scene-image {
+  aspect-ratio: 16 / 8.4;
+  min-height: 0;
+  max-height: 390px;
+  border-radius: 18px;
+  background: var(--clay-surface-soft);
+}
+
+.practice-workspace-study .practice-scene-image img {
+  object-fit: cover;
+}
+
+.practice-workspace-study .practice-scene-chip {
+  display: inline-flex;
+  position: absolute;
+  z-index: 1;
+  left: 16px;
+  bottom: 16px;
+  justify-self: auto;
+  padding: 7px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  background: rgba(23, 52, 45, 0.78);
+  color: #fffdf7;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(8px);
+}
+
+.practice-study-ref {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
+  gap: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.practice-content-header {
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 13px;
+  margin: 0;
+  padding: 2px 2px 4px;
+}
+
+.practice-content-header > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+  font-size: 0;
+  font-weight: 800;
+}
+
+.practice-content-header > span::before {
+  content: "01";
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.practice-content-header h3 {
+  margin-bottom: 2px;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+
+.practice-content-header p {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--clay-muted);
+}
+
+.practice-study-block {
+  min-width: 0;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: 18px;
+  background: var(--clay-surface-card);
+  box-shadow: 0 7px 20px color-mix(in srgb, var(--clay-ink) 5%, transparent);
+}
+
+.practice-vocab-ref {
+  background: color-mix(in srgb, var(--jade-soft) 45%, var(--clay-surface-card));
+  border-color: color-mix(in srgb, var(--jade) 42%, var(--clay-hairline));
+}
+
+.practice-phrases-hint-full {
+  background: color-mix(in srgb, var(--gold-soft) 32%, var(--clay-surface-card));
+  border-color: color-mix(in srgb, var(--gold) 46%, var(--clay-hairline));
+}
+
+.practice-study-block .block-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  color: var(--clay-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.practice-vocab-heading {
+  color: var(--jade-deep) !important;
+}
+
+.practice-phrases-label {
+  color: var(--gold-deep) !important;
+}
+
+.scene-vocab-table-practice {
+  gap: 6px;
+}
+
+.scene-vocab-row-practice {
+  grid-template-columns: 18px minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 0.55fr) minmax(0, 1.2fr) 34px;
+  gap: 8px;
+  min-height: 49px;
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.scene-vocab-row-practice:hover {
+  border-color: color-mix(in srgb, var(--jade) 42%, var(--clay-hairline));
+}
+
+.scene-vocab-cell {
+  min-width: 0;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.scene-vocab-hanzi {
+  color: var(--clay-ink);
+  font-size: 15px;
+}
+
+.scene-vocab-pinyin {
+  color: var(--clay-body);
+  font-size: 12px;
+}
+
+.scene-vocab-pos {
+  color: var(--clay-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.scene-vocab-meaning {
+  font-size: 12px;
+}
+
+.scene-practice-listen {
+  width: 30px;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--jade) 45%, var(--clay-hairline));
+  border-radius: 50%;
+  background: var(--clay-surface-card);
+  color: var(--jade-deep);
+  font-size: 0;
+  opacity: 1;
+}
+
+.scene-practice-listen::before {
+  content: "";
+  width: 0;
+  height: 0;
+  margin-left: 2px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 7px solid currentColor;
+}
+
+.scene-practice-listen.playing::before {
+  width: 8px;
+  height: 10px;
+  margin-left: 0;
+  border: 0;
+  background: linear-gradient(90deg, currentColor 0 35%, transparent 35% 65%, currentColor 65% 100%);
+}
+
+.practice-phrases-list {
+  gap: 0;
+  margin: 0;
+}
+
+.practice-phrase-row {
+  gap: 5px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--clay-hairline);
+}
+
+.practice-phrase-row:first-child {
+  padding-top: 2px;
+}
+
+.practice-phrase-row:last-child {
+  padding-bottom: 2px;
+  border-bottom: 0;
+}
+
+.practice-phrase-text {
+  color: var(--clay-ink);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.practice-phrase-translation {
+  color: var(--clay-body);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.practice-footer {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+  padding-top: 18px;
+  border-top: 1px solid var(--clay-hairline);
+}
+
+.practice-footer-status {
+  font-size: 12px;
+  color: var(--clay-muted);
+}
+
+.ui-button.btn-scene-step-continue {
+  min-width: 190px;
+  min-height: 44px;
+  border-radius: 12px;
+  background: var(--clay-primary);
+  box-shadow: 0 7px 16px color-mix(in srgb, var(--clay-primary) 24%, transparent);
+}
+
+.ui-button.btn-scene-step-continue:hover:not(:disabled) {
+  box-shadow: 0 9px 18px color-mix(in srgb, var(--clay-primary) 30%, transparent);
+}
+
+@media (max-width: 720px) {
+  .practice-stage {
+    border-radius: 18px;
+  }
+
+  .scene-step-tabs {
+    min-height: 56px;
+    padding: 0 16px;
+    gap: 20px;
+  }
+
+  .scene-step-tab {
+    min-height: 56px;
+    font-size: 12px;
+  }
+
+  .practice-stage > .practice-workspace {
+    padding: 16px;
+    gap: 18px;
+  }
+
+  .practice-workspace-study .practice-scene-image {
+    aspect-ratio: 16 / 10;
+  }
+
+  .practice-study-ref {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .practice-content-header,
+  .practice-footer {
+    grid-column: auto;
+  }
+
+  .practice-study-block {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 560px) {
+  .practice-workspace-study .practice-scene-chip {
+    left: 12px;
+    bottom: 12px;
+  }
+
+  .scene-vocab-row-practice {
+    grid-template-columns: 16px minmax(0, 1fr) 32px;
+    grid-template-areas:
+      "status hanzi mic"
+      "status pinyin mic"
+      "status pos mic"
+      "status meaning mic";
+    gap: 3px 8px;
+    padding: 9px 8px;
+  }
+
+  .scene-vocab-row-practice .scene-vocab-status { grid-area: status; }
+  .scene-vocab-row-practice .scene-vocab-hanzi { grid-area: hanzi; }
+  .scene-vocab-row-practice .scene-vocab-pinyin { grid-area: pinyin; }
+  .scene-vocab-row-practice .scene-vocab-pos { grid-area: pos; }
+  .scene-vocab-row-practice .scene-vocab-meaning { grid-area: meaning; }
+  .scene-vocab-row-practice button { grid-area: mic; justify-self: end; }
+
+  .practice-footer-actions {
+    width: 100%;
+  }
+
+  .ui-button.btn-scene-step-continue {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-step-tab,
+  .scene-vocab-row-practice,
+  .scene-practice-listen,
+  .ui-button.btn-scene-step-continue {
+    transition: none;
+  }
+}
+
+/* Flexible phrase panel: grid items should hug their own content instead of
+   stretching the shorter panel to the height of vocabulary. A long phrase
+   list gets its own scroll area, so the footer and the neighboring card stay
+   usable without creating a very tall, uneven row. */
+.practice-study-ref {
+  align-items: start;
+}
+
+.practice-study-block {
+  align-self: start;
+}
+
+.practice-phrases-hint-full {
+  min-width: 0;
+  max-height: min(34rem, 55vh);
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.practice-phrases-hint-full .practice-phrases-list {
+  min-width: 0;
+}
+
+.practice-phrase-row,
+.practice-phrase-text,
+.practice-phrase-translation {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .practice-phrases-hint-full {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* Final image-frame polish: let the illustration sit directly on the page.
+   The image is the visual surface; the wrapper must not add a second empty
+   card, decorative lift, or motion behind it. */
+.practice-workspace-study .practice-scene-col {
+  box-sizing: border-box;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transition: none;
+  animation: none;
+}
+
+.practice-workspace-study .practice-scene-image,
+.practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  height: auto;
+  aspect-ratio: auto;
+  min-height: 0;
+  max-height: none;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  box-shadow: none;
+  transition: none;
+  animation: none;
+}
+
+.practice-workspace-study .practice-scene-image img {
+  width: auto;
+  max-width: min(100%, 860px);
+  height: auto;
+  max-height: min(520px, calc(100vh - 260px));
+  object-fit: contain;
+  object-position: center;
+  transform: none;
+  transition: none;
+  animation: none;
+}
+
+@media (max-width: 720px) {
+  .practice-workspace-study .practice-scene-col {
+    padding: 0;
+    border-radius: 0;
+  }
+
+  .practice-workspace-study .practice-scene-image,
+  .practice-stage > .practice-workspace.practice-workspace-study:not(:has(.sfc-results)) .practice-scene-image {
+    height: auto;
+    aspect-ratio: auto;
+    max-height: none;
+    border-radius: 12px;
+  }
+
+  .practice-workspace-study .practice-scene-image img {
+    max-width: 100%;
+    max-height: none;
+  }
+}
+
+/* Results-screen layout. This used to force the whole card to a
+   viewport-relative height (a clamp() of 100dvh, with overflow: hidden),
+   meant to stop the card resizing when a student switched between the
+   Meaning/Fix/Practice tabs. In practice that height fought the flex
+   children across viewport sizes and repeatedly clipped content — first
+   the "發音分析" button, then the footer's own action buttons — because
+   any small miscalculation had nowhere to go but hidden.
+   Simpler and sturdier: nothing here caps the card's total height. It
+   takes whatever height its content actually needs, and if that's taller
+   than the viewport the *page* scrolls — the one overflow behavior every
+   browser already gets right, instead of three nested scroll regions
+   computed from dvh guessing at each other's size. The scene image gets a
+   fixed, sane cap (390px, the same budget the Study step already uses —
+   one number instead of a different one per screen) so it can never balloon
+   large enough to push anything below it out of reach. */
+.sfc-results.sfc-screen > .practice-workspace {
+  align-items: stretch;
+}
+
+.sfc-results.sfc-screen > .practice-workspace > .practice-scene-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sfc-results.sfc-screen > .practice-workspace > .practice-scene-col > .practice-scene-image {
+  flex: 0 0 auto;
+  max-height: 390px;
+}
+
+.sfc-results.sfc-screen > .practice-workspace > .practice-scene-col > .practice-scene-image img {
+  max-height: 390px;
+}
+
+.sfc-results.sfc-screen .sfc-audio-compare,
+.sfc-results.sfc-screen .sfc-left-feedback {
+  flex: 0 0 auto;
+}
+
+/* A min-height (not a hard cap) keeps the right-hand panel from visibly
+   collapsing when a short tab (e.g. Fix) follows a long one (e.g. Meaning)
+   — it can still grow past this for genuinely long feedback, it just
+   won't shrink below a comfortable size. */
+.sfc-results.sfc-screen .sfc-results-main {
+  min-height: 360px;
+}
+
+@media (max-width: 860px) {
+  .sfc-results.sfc-screen > .practice-workspace {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sfc-results.sfc-screen .sfc-results-main {
+    min-height: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sfc-results.sfc-screen {
+    animation: none;
+  }
+}

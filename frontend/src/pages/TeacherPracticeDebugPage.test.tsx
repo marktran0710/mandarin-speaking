@@ -105,7 +105,6 @@ describe("TeacherPracticeDebugPage", () => {
     localStorage.setItem("teacherCustomStories", JSON.stringify([{
       id: "debug-story",
       title: "Market visit",
-      learningGoal: "Describe the market",
       published: true,
       frames: [{
         imageUrl: "/uploads/market.png",
@@ -190,7 +189,6 @@ describe("TeacherPracticeDebugPage", () => {
     localStorage.setItem("teacherCustomStories", JSON.stringify([{
       id: "upload-debug-story",
       title: "Uploaded market visit",
-      learningGoal: "Describe the market",
       published: true,
       frames: [{
         imageUrl: "/uploads/market-upload.png",

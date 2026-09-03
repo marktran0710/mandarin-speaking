@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import CreateStoryPage from "../../pages/CreateStoryPage";
-import ImageNarrationPage from "../../pages/ImageNarrationPage";
 import MyStoriesPage from "../../pages/MyStoriesPage";
 import { getStudentName } from "../../utils/studentSession";
 import type { StudentWorkspacePageProps } from "../../pages/StudentWorkspacePage";
 import type { StudentWorkspaceView } from "../../pages/StudentWorkspacePage";
-import StudentWorkspaceHeader from "./StudentWorkspaceHeader";
-import WorkspaceAreaTabs from "./WorkspaceAreaTabs";
+import StudentSidebar from "./StudentSidebar";
+import { loadBestLocalStars } from "../../utils/quizTiers";
+import { topicHasQuiz } from "../../utils/topicQuiz";
 import "../../components/BiLabel.css";
 import "../../pages/StudentWorkspacePage.css";
 import "./StudentWorkspaceV2.css";
@@ -14,7 +14,6 @@ import "./StudentWorkspaceV2.css";
 const WORKSPACE_VIEWS = [
   { id: "practice" as const, icon: "image" as const, label: { zh: "課程", pinyin: "Kèchéng", en: "Practice" } },
   { id: "progress" as const, icon: "chart" as const, label: { zh: "我的學習", pinyin: "Wǒ de xuéxí", en: "Progress" } },
-  { id: "picture-talk" as const, icon: "image" as const, label: { zh: "看圖說話", pinyin: "Kàn tú shuō huà", en: "Picture talk" } },
 ];
 
 export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) {
@@ -29,19 +28,14 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     helpRequests,
     onRaiseHand,
     storyTopics,
-    describeTopics,
     audioRecords,
     onSessionActiveChange,
     isInPracticeSession,
+    onLogout,
   } = props;
   const [practiceStarted, setPracticeStarted] = useState(isInPracticeSession);
 
   useEffect(() => setPracticeStarted(isInPracticeSession), [isInPracticeSession]);
-
-  const availableViews = useMemo(
-    () => WORKSPACE_VIEWS.filter((item) => item.id !== "picture-talk" || describeTopics.length > 0),
-    [describeTopics.length],
-  );
 
   const selectView = (nextView: StudentWorkspaceView) => {
     if (nextView === view) return;
@@ -60,7 +54,6 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
         />
       );
     }
-    if (view === "picture-talk") return <ImageNarrationPage publishedTopics={describeTopics} />;
     return (
       <CreateStoryPage
         key={initialTopicId ? `${initialTopicId}:${initialImageIndex ?? 0}:${initialStartAtQuiz ? "quiz" : "practice"}:${initialTargetKey ?? 0}` : "browse"}
@@ -79,18 +72,37 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     );
   };
 
+  const activeLabel = WORKSPACE_VIEWS.find((item) => item.id === view)?.label;
+
+  // Same source and shape MyStoriesPage's "總星星 Total stars" card uses, so
+  // the rail and that card can never disagree.
+  const quizTopics = (storyTopics ?? []).filter((topic) => topicHasQuiz(topic));
+  const totalStars = quizTopics.reduce(
+    (sum, topic) => sum + loadBestLocalStars(topic.id),
+    0,
+  );
+  const maxStars = quizTopics.length * 3;
+
   return (
     <main className={`student-workspace student-workspace-v2 ${practiceStarted ? "is-practicing" : ""}`}>
-      {!practiceStarted && <StudentWorkspaceHeader username={getStudentName()} />}
-      {!practiceStarted && (
-        <WorkspaceAreaTabs views={availableViews} activeView={view} onChange={selectView} />
-      )}
+      {/* One rail for all of student mode. It stays mounted through a
+          practice session and lends its middle to the story, rather than
+          unmounting so StoryRecorder can open a second rail beside it. */}
+      <StudentSidebar
+        views={WORKSPACE_VIEWS}
+        activeView={view}
+        onChange={selectView}
+        studentName={getStudentName()}
+        onLogout={onLogout}
+        totalStars={totalStars}
+        maxStars={maxStars}
+        sessionActive={practiceStarted}
+      />
       <section
         id="student-workspace-panel"
         className="student-workspace-content student-workspace-content-v2"
-        role="tabpanel"
         tabIndex={-1}
-        aria-labelledby={`student-workspace-tab-${view}`}
+        aria-label={activeLabel ? `${activeLabel.zh} ${activeLabel.en}` : undefined}
         aria-live="polite"
       >
         {renderView()}

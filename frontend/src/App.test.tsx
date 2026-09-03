@@ -1,11 +1,50 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import App from "./App";
+import App, { getStudentAppBootstrapState } from "./App";
 
 const TEST_BACKEND_URL =
   import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
 
 describe("App role flows", () => {
+  it("bootstraps a returning student into the saved workspace before effects run", () => {
+    localStorage.setItem(
+      "studentSession",
+      JSON.stringify({
+        role: "student",
+        name: "Ada",
+        signedInAt: "2026-01-01T00:00:00.000Z",
+      }),
+    );
+    localStorage.setItem("studentLastPage:ada", "student-stories");
+
+    expect(getStudentAppBootstrapState()).toMatchObject({
+      activeRole: "student",
+      currentPage: "student-workspace",
+      studentWorkspaceView: "progress",
+      practiceTarget: null,
+    });
+  });
+
+  it("gives a signed-in student diagnostic URLs precedence over saved navigation", () => {
+    localStorage.setItem(
+      "studentSession",
+      JSON.stringify({
+        role: "student",
+        name: "Ada",
+        signedInAt: "2026-01-01T00:00:00.000Z",
+      }),
+    );
+    localStorage.setItem("studentLastPage:ada", "student-stories");
+    window.history.pushState({}, "", "/voice-test");
+
+    expect(getStudentAppBootstrapState()).toMatchObject({
+      activeRole: "student",
+      currentPage: "voice-test",
+    });
+
+    window.history.pushState({}, "", "/");
+  });
+
   it.skip("lets a student enter the learning app with the default profile", async () => {
     const user = userEvent.setup();
     render(<App />);

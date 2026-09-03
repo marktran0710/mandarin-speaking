@@ -1,4 +1,5 @@
 import { getStudentScopeKey } from "./studentSession";
+import { loadLocalStars, practiceUnlocked } from "./quizTiers";
 
 export const VOCAB_QUIZ_COMPLETED_KEY = "vocabQuizCompletedStoryIds";
 
@@ -11,7 +12,14 @@ function scopedKey(): string {
 export function loadCompletedVocabQuizzes(): Record<string, boolean> {
   try {
     const raw = localStorage.getItem(scopedKey());
-    return raw ? JSON.parse(raw) : {};
+    const stored: Record<string, boolean> = raw ? JSON.parse(raw) : {};
+    // Completion flags from the former two-star gate must not open speaking
+    // early. A current three-star result is the authoritative local proof.
+    return Object.fromEntries(
+      Object.entries(stored).filter(
+        ([topicId, completed]) => completed && practiceUnlocked(loadLocalStars(topicId)),
+      ),
+    );
   } catch {
     return {};
   }

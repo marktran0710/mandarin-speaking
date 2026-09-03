@@ -17,10 +17,8 @@ def _make_story(story_id, vocabulary_synonym=None):
     return {
         "id": story_id,
         "title": "Synonym Test",
-        "learningGoal": "Check synonym candidates persist and grow",
         "level": "Beginner speaking",
         "frames": [frame],
-        "narrativeMode": "describe",
     }
 
 

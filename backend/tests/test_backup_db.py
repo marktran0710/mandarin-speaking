@@ -95,9 +95,9 @@ def test_backup_then_restore_brings_the_rows_back(tmp_path):
             ("backup-1", "備份同學", "2026-07-26 10:00:00", "123456"),
         )
         db.execute(
-            "INSERT INTO custom_stories (id, title, learning_goal, frames, published) "
-            "VALUES (%s, %s, %s, %s, %s)",
-            ("backup-story", "我的房間", "describe a room", '[{"prompt": "這是我的房間。"}]', True),
+            "INSERT INTO custom_stories (id, title, frames, published) "
+            "VALUES (%s, %s, %s, %s)",
+            ("backup-story", "我的房間", '[{"prompt": "這是我的房間。"}]', True),
         )
 
     dump_path = str(tmp_path / "roundtrip.sql")

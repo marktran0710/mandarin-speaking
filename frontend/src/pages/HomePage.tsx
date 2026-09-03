@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import "./HomePage.css";
 import { Page } from "../types/page";
 import { BiLabel, BiText } from "../components/BiLabel";
@@ -22,13 +22,14 @@ const SKILLS: Array<{ zh: string; pinyin: string; en: string }> = [
   { zh: "應用", pinyin: "Yìngyòng", en: "Practical use" },
 ];
 
-/* Three scenes from a story, stacked as overlapping prints. Each carries its
-   own class because the layering — position, rotation, depth — is what makes
-   the pile read as "one story, several moments" rather than a gallery row. */
+/* Four compact scenes keep the preview visual without asking one image to fill
+   a large hero frame. The grid is intentionally data-driven so every card
+   shares the same sizing and crop behavior. */
 const STORY_SCENES = [
   { file: "street-conversation.png", className: "image-one" },
   { file: "missing-cat-card.png", className: "image-two" },
   { file: "campus-chat.png", className: "image-three" },
+  { file: "afternoon-tea-material.png", className: "image-four" },
 ];
 
 const STATS: Array<{ zh: string; pinyin: string; en: string }> = [
@@ -79,6 +80,13 @@ const HOW_IT_WORKS: Array<{
 ];
 
 export default function HomePage({ onNavigate }: HomePageProps) {
+  // Each hero photo fetches independently; without this the entrance
+  // animation below fires on a fixed clock and photos can pop in one by
+  // one well after their frame has already animated onto the page.
+  const [loadedScenes, setLoadedScenes] = useState<Set<string>>(() => new Set());
+  const markSceneLoaded = (className: string) =>
+    setLoadedScenes((prev) => (prev.has(className) ? prev : new Set(prev).add(className)));
+
   return (
     <div className="home-page">
       <section className="home-hero" aria-labelledby="home-hero-title">
@@ -126,6 +134,15 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               </li>
             ))}
           </ul>
+
+          <button
+            type="button"
+            className="hero-primary-action"
+            onClick={() => onNavigate("student-login")}
+          >
+            <BiLabel zh="開始學習" pinyin="Kāishǐ xuéxí" en="Start Learning" />
+            <span aria-hidden="true">→</span>
+          </button>
         </div>
 
         <div className="home-hero-visual" aria-label="Story practice preview">
@@ -134,9 +151,10 @@ export default function HomePage({ onNavigate }: HomePageProps) {
               {STORY_SCENES.map(({ file, className }) => (
                 <img
                   key={className}
-                  src={`${import.meta.env.BASE_URL}sample-scenes/${file}`}
+                  src={`/sample-scenes/${file}`}
                   alt=""
-                  className={`story-preview-image ${className}`}
+                  className={`story-preview-image ${className}${loadedScenes.has(className) ? " is-loaded" : ""}`}
+                  onLoad={() => markSceneLoaded(className)}
                 />
               ))}
             </div>
@@ -168,26 +186,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
           </div>
         </div>
 
-        <button
-          type="button"
-          className="hero-primary-action"
-          onClick={() => onNavigate("student-login")}
-        >
-          <BiLabel zh="開始學習" pinyin="Kāishǐ xuéxí" en="Start Learning" />
-          <span aria-hidden="true">→</span>
-        </button>
       </section>
-
-      <button
-        type="button"
-        className="hero-demo-action"
-        onClick={() => {
-          window.location.href = `${import.meta.env.BASE_URL}instructor-demo.html`;
-        }}
-      >
-        <span>Instructor Demo</span>
-        <span aria-hidden="true">↗</span>
-      </button>
 
       <section className="how-it-works" aria-label="How it works">
         <p className="how-it-works-kicker">

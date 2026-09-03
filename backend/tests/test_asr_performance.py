@@ -270,30 +270,27 @@ class TestEndpointConcurrency:
     """
 
     @pytest.mark.asyncio
-    async def test_concurrent_transcribe_requests(self):
-        from fastapi.testclient import TestClient
-        import main
+    async def test_concurrent_transcribe_requests(self, client):
 
         N = 10
 
         with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="你好", model="ctwhisper")
 
-            with TestClient(main.app) as client:
-                def single_request():
-                    return client.post(
-                        "/api/transcribe",
-                        files={"file": ("t.wav", SPEECH_WAV, "audio/wav")},
-                        data={"model": "ctwhisper"},
-                    )
-
-                t0 = time.perf_counter()
-                # Run via asyncio.gather to measure async throughput
-                loop = asyncio.get_event_loop()
-                results = await asyncio.gather(
-                    *[loop.run_in_executor(None, single_request) for _ in range(N)]
+            def single_request():
+                return client.post(
+                    "/api/transcribe",
+                    files={"file": ("t.wav", SPEECH_WAV, "audio/wav")},
+                    data={"model": "ctwhisper"},
                 )
-                elapsed_ms = (time.perf_counter() - t0) * 1000
+
+            t0 = time.perf_counter()
+            # Run via asyncio.gather to measure async throughput
+            loop = asyncio.get_event_loop()
+            results = await asyncio.gather(
+                *[loop.run_in_executor(None, single_request) for _ in range(N)]
+            )
+            elapsed_ms = (time.perf_counter() - t0) * 1000
 
         statuses = [r.status_code for r in results]
         print(f"\n  [{N} concurrent /api/transcribe] total={elapsed_ms:.0f}ms "

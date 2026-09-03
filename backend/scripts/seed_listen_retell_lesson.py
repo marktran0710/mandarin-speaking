@@ -29,7 +29,6 @@ LISTEN_SCRIPT = (
 STORY = {
     "id": STORY_ID,
     "title": "我的房間",
-    "learning_goal": "Students listen to a short description of a room, then retell it in their own words from the picture.",
     "level": "Beginner speaking",
     "frames": [
         {
@@ -40,7 +39,6 @@ STORY = {
         },
     ],
     "published": 1,
-    "narrative_mode": "listen_retell",
 }
 
 
@@ -58,22 +56,18 @@ def main():
         db.execute(
             """
             INSERT INTO custom_stories
-                (id, title, learning_goal, frames, published, narrative_mode)
-            VALUES (%s, %s, %s, %s, %s, %s)
+                (id, title, frames, published)
+            VALUES (%s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 title = EXCLUDED.title,
-                learning_goal = EXCLUDED.learning_goal,
                 frames = EXCLUDED.frames,
-                published = EXCLUDED.published,
-                narrative_mode = EXCLUDED.narrative_mode
+                published = EXCLUDED.published
             """,
             (
                 STORY["id"],
                 STORY["title"],
-                STORY["learning_goal"],
                 Jsonb(STORY["frames"]),
                 bool(STORY["published"]),
-                STORY["narrative_mode"],
             ),
         )
     print(f"Seeded lesson '{STORY['title']}' (id={STORY_ID}).")

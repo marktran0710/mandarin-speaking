@@ -1,0 +1,434 @@
+/* ── SpeakingFlowCard — the Speaking step as one continuous panel ──
+   One card, two screens (record → results), sized by its content — same
+   flowing-page model as the Vocabulary/Phrases steps (.practice-workspace),
+   not a clamped-height app card. The per-word card row is the one thing
+   that scrolls inside its own region (horizontally); everything else
+   grows with the page. */
+
+.speaking-flow-card {
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 94% 5%, color-mix(in srgb, var(--seal-soft) 48%, transparent), transparent 17rem),
+    var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: calc(var(--clay-radius-lg) + 4px);
+  padding: clamp(16px, 2.2vw, 24px);
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--clay-ink) 7%, transparent);
+}
+
+.sfc-model-sentence-play {
+  margin-left: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  vertical-align: middle;
+  opacity: 0.85;
+}
+
+.sfc-model-sentence-play:hover {
+  opacity: 1;
+}
+
+/* ── Analyzing state ── */
+.sfc-analyzing {
+  align-items: center;
+  justify-content: center;
+}
+.sfc-loading {
+  margin: 0;
+}
+
+/* ── Record screen ──
+   Reuses .practice-workspace's rail directly (~1/5–1/4 width scene image
+   beside the content, shared with Vocabulary/Phrases — not a duplicated
+   rule, so the three steps can't drift out of sync). The record controls
+   sit inside their own bordered card that fills the full content column
+   (not a narrow 480px card floating with dead space on both sides next to
+   the image column) — the button and helper elements inside stay a
+   moderate, centered size on their own. */
+.sfc-record-panel {
+  --sfc-model-content-indent: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 auto;
+  background: linear-gradient(145deg, var(--clay-surface-card), color-mix(in srgb, var(--seal-soft) 32%, var(--clay-surface-card)));
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  padding: clamp(20px, 3vw, 30px);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--clay-surface-card) 70%, white), 0 10px 22px color-mix(in srgb, var(--seal) 9%, transparent);
+}
+
+.sfc-recording-options {
+  order: 3;
+  width: calc(100% - var(--sfc-model-content-indent));
+  box-sizing: border-box;
+  margin-inline: var(--sfc-model-content-indent) 0;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  padding: 10px 12px;
+}
+
+/* Recording settings are secondary; the two actions are the primary choice
+   and intentionally share one row with equal visual weight. */
+.sfc-record-actions {
+  order: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 10px;
+  width: calc(100% - var(--sfc-model-content-indent));
+  box-sizing: border-box;
+  margin-inline: var(--sfc-model-content-indent) 0;
+}
+
+.sfc-record-actions > .sfc-record-btn,
+.sfc-record-actions > .sfc-secondary-actions {
+  min-width: 0;
+}
+
+.sfc-recording-options summary {
+  color: var(--clay-body);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.sfc-speech-source {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  color: var(--clay-ink);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.sfc-speech-source select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-sm);
+  background: var(--clay-surface-card);
+  color: var(--clay-ink);
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.sfc-speech-source select:focus-visible {
+  outline: 2px solid var(--seal);
+  outline-offset: 2px;
+}
+
+.sfc-speech-source-note {
+  margin: 8px 0 0;
+  color: var(--clay-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* Record screen's content column: center vertically against the scene
+   rail, so a short control stack (model sentence + record button) sits
+   level with the image instead of hugging the top with a hole below it —
+   the two columns read as one balanced row. Results keep their own
+   top-down flow (.sfc-results-main), which is usually the taller side. */
+.sfc-record-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  min-width: 0;
+}
+.sfc-record .practice-workspace {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+.sfc-record .practice-scene-col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+  padding: 10px;
+}
+.sfc-record .practice-scene-image {
+  aspect-ratio: 16 / 7;
+  min-height: 230px;
+  max-height: 340px;
+}
+.sfc-record .sfc-record-main { width: 100%; }
+.sfc-record .model-recording-practice,
+.sfc-record .model-recording-heading,
+.sfc-record .model-recording-script,
+.sfc-record .model-recording-audio,
+.sfc-record .model-recording-reference-status,
+.sfc-record .model-recording-steps {
+  width: 100%;
+  box-sizing: border-box;
+}
+.sfc-record .practice-scene-image,
+.sfc-results .practice-scene-image { border: 0; }
+.sfc-attempt-only {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+}
+.sfc-attempt-only > .bi-label { display: none; }
+
+.sfc-scene-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--seal-deep);
+  background: var(--seal-soft);
+  border-radius: var(--clay-radius-pill);
+  padding: 4px 12px;
+}
+.sfc-attempt-chip {
+  color: var(--clay-body);
+  background: var(--clay-surface-card);
+  border-radius: var(--clay-radius-pill);
+  padding: 2px 8px;
+}
+
+/* Smaller than a full-bleed hero button — .btn-practice-record's base
+   width:100% would otherwise stretch it across the whole (now wider)
+   card. */
+.sfc-record-btn {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  min-height: 64px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 16px;
+  padding: 12px 14px;
+  border-radius: var(--clay-radius-md);
+  box-shadow: 0 9px 18px color-mix(in srgb, var(--seal) 30%, transparent);
+}
+
+.sfc-record-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--clay-surface-card) 23%, transparent);
+  font-size: 11px;
+}
+
+.sfc-record-btn.is-recording .sfc-record-icon {
+  border-radius: var(--clay-radius-sm);
+}
+
+.sfc-record-btn.is-recording {
+  animation: sfc-recording-pulse 1.2s ease-in-out infinite;
+  padding-right: 94px;
+}
+
+.sfc-record-btn-timer {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--clay-on-seal) 42%, transparent);
+  border-radius: var(--clay-radius-pill);
+  background: color-mix(in srgb, var(--clay-on-seal) 14%, transparent);
+  color: var(--clay-on-seal);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  transform: translateY(-50%);
+}
+
+@keyframes sfc-recording-pulse {
+  0%, 100% { box-shadow: 0 7px 16px color-mix(in srgb, var(--clay-error) 24%, transparent); }
+  50% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--clay-error) 0%, transparent); }
+}
+
+.sfc-secondary-actions {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.sfc-pending-upload {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--gold);
+  border-radius: var(--clay-radius-md);
+  background: var(--gold-soft);
+}
+
+.sfc-pending-upload-copy {
+  display: grid;
+  gap: 3px;
+}
+
+.sfc-pending-upload-copy strong {
+  color: var(--clay-ink);
+  font-size: 0.9rem;
+}
+
+.sfc-pending-upload-copy span {
+  overflow: hidden;
+  color: var(--clay-body);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sfc-pending-upload audio {
+  width: 100%;
+}
+
+.sfc-pending-upload-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.sfc-clear-upload {
+  border: 0;
+  background: transparent;
+  color: var(--clay-body);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 7px 4px;
+}
+
+.sfc-clear-upload:hover {
+  color: var(--clay-ink);
+  text-decoration: underline;
+}
+
+.sfc-upload-btn {
+  width: 100%;
+  min-width: 0;
+  min-height: 64px;
+  padding: 12px 14px;
+  border-color: var(--clay-hairline);
+  box-shadow: none;
+}
+
+.sfc-upload-btn:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--seal) 55%, var(--clay-hairline));
+}
+
+.sfc-error {
+  order: 4;
+  max-width: 320px;
+  text-align: center;
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  border-radius: var(--clay-radius-lg);
+  font-weight: 800;
+  background: var(--clay-error-soft);
+  color: var(--clay-error);
+  border-left: 4px solid var(--clay-error);
+}
+
+@media (max-width: 768px) {
+  .sfc-record-panel {
+    padding: 20px 16px;
+  }
+
+  .sfc-record-actions {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .sfc-record-btn,
+  .sfc-upload-btn {
+    min-height: 58px;
+    padding: 10px 8px;
+    font-size: 14px;
+  }
+
+  .sfc-upload-btn .bi-label {
+    font-size: 0.78em;
+  }
+
+  .sfc-record-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .sfc-record-btn.is-recording {
+    padding-right: 82px;
+  }
+
+  .sfc-record-btn-timer {
+    right: 10px;
+    min-width: 52px;
+    padding-inline: 6px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 600px) {
+  .sfc-record-panel {
+    --sfc-model-content-indent: 35px;
+  }
+}
+
+/* ── Screen transition: record ⇄ results slide in as one continuous flow
+   rather than swapping abruptly. ── */
+.sfc-screen {
+  animation: sfc-screen-in 0.28s ease;
+}
+@keyframes sfc-screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sfc-screen {
+    animation: none;
+  }
+}
+
+/* ── Results screen ──
+   Same scene rail as the record screen — the image persists across
+   record → results as the same-size anchor, only the content beside it
+   swaps. Playback/transcript sit at the top of the content column rather
+   than the narrow image rail, which stays image+chip only on every step. */
+
+/* No pinyin in the results readout — this screen is fast-scanning status
+   and feedback, not reading practice; the Chinese + English pair already
+   carries the meaning. Same "hide via CSS, not per-call-site" technique
+   BiLabel already uses to hide pinyin inside buttons. */
+.sfc-results-main .bi-pinyin {
+  display: none;
+}
+
+.sfc-results-scene-extras {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+

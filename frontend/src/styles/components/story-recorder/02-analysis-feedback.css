@@ -1,0 +1,438 @@
+.analysis-heading h2 {
+  color: var(--clay-ink);
+  font-size: 28px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.student-feedback-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 24px;
+}
+
+.student-feedback-card {
+  padding: 16px;
+  border-radius: var(--clay-radius-lg);
+  border: 1px solid var(--clay-hairline);
+}
+
+.student-feedback-card.good {
+  background: var(--jade-soft);
+}
+
+.student-feedback-card.fix {
+  background: var(--gold-soft);
+}
+
+.student-feedback-card.next {
+  background: var(--clay-error-soft);
+}
+
+.student-feedback-card span,
+.student-feedback-card strong {
+  display: block;
+}
+
+.student-feedback-card span {
+  color: var(--clay-muted);
+  font-size: 12px;
+  font-weight: 900;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.student-feedback-card strong {
+  color: var(--clay-ink);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.tone-repair-section {
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+}
+
+.tone-repair-heading {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.tone-repair-heading span {
+  color: var(--seal-deep);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.tone-repair-heading h3 {
+  color: var(--clay-ink);
+  font-size: 22px;
+  margin: 0;
+}
+
+.tone-repair-heading p,
+.tone-focus-card p {
+  color: var(--clay-body);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.tone-focus-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.tone-focus-card {
+  padding: 14px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.tone-focus-token {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tone-focus-token strong {
+  color: var(--clay-ink);
+  font-size: 28px;
+}
+
+.tone-focus-token span {
+  padding: 5px 9px;
+  border-radius: var(--clay-radius-pill);
+  background: var(--jade-soft);
+  color: var(--clay-ink);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.pitch-movement-meter {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.meter-label {
+  color: var(--clay-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.meter-track {
+  position: relative;
+  height: 12px;
+  border-radius: var(--clay-radius-pill);
+  background: var(--clay-hairline);
+  overflow: hidden;
+}
+
+.meter-fill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border-radius: var(--clay-radius-pill);
+}
+
+.meter-fill.rising {
+  background: var(--jade);
+}
+
+.meter-fill.falling {
+  background: var(--seal);
+}
+
+.praat-timeline-card {
+  margin: 24px 0;
+  padding: 18px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-lg);
+  background: var(--clay-surface-card);
+}
+
+.praat-timeline-header {
+  margin-bottom: 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.praat-timeline-header span,
+.praat-timeline-header em {
+  color: var(--seal-deep);
+  font-size: 12px;
+  font-weight: 900;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+.praat-timeline-header strong {
+  display: block;
+  color: var(--clay-ink);
+  font-size: 20px;
+  line-height: 1.25;
+  margin-top: 4px;
+}
+
+.praat-timeline-scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.praat-timeline {
+  min-width: 920px;
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--clay-radius-md);
+}
+
+.praat-row-label {
+  fill: var(--clay-body);
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.praat-axis-label {
+  fill: var(--clay-body);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.praat-empty-label {
+  fill: var(--clay-muted);
+  font-size: 13px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+
+.praat-word-label {
+  fill: var(--clay-ink);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.praat-word-detail {
+  fill: var(--clay-body);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.word-prosody-empty {
+  padding: 14px;
+  border: 1px dashed var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.word-prosody-empty strong {
+  color: var(--clay-ink);
+  display: block;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.word-prosody-empty p {
+  color: var(--clay-body);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.word-prosody-card {
+  padding: 14px;
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+}
+
+.word-prosody-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Character over its pinyin — a beginner can't act on "say 在 with a
+   falling tone" without zài, so the reading travels with the character
+   everywhere this card names a word. */
+.word-prosody-token {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.word-prosody-topline strong {
+  color: var(--clay-ink);
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.word-prosody-token-pinyin {
+  color: var(--clay-muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.word-prosody-topline-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.word-prosody-shape-pill {
+  padding: 5px 8px;
+  border-radius: var(--clay-radius-pill);
+  background: var(--jade-soft);
+  color: var(--clay-ink);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+/* "You said" pill stays mint; the target pill goes celadon so the pair
+   reads as a comparison, not one verdict. */
+.word-prosody-target-pill {
+  background: var(--seal-soft);
+}
+
+/* Per-syllable verdicts: one chip per character, ✓/✗ from the backend's
+   min-rule pass gate — the answer to "which character was wrong?". */
+.word-syllable-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 2px;
+}
+
+.word-syllable-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 3px 8px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.word-syllable-pinyin {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.word-syllable-chip.syllable-pass {
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.word-syllable-chip.syllable-fail {
+  background: var(--clay-error-soft);
+  color: var(--clay-error-deep);
+}
+
+/* A failed word's card carries a soft red edge so it stands out in the
+   words row as the one blocking the scene. */
+.word-prosody-card.word-prosody-failed {
+  border: 1.5px solid var(--clay-error);
+}
+
+/* …and flips green the moment its own drill re-earns the word, so the
+   frame agrees with the ✓ the student just saw (the chips elsewhere
+   already turned). */
+.word-prosody-card.word-prosody-cleared {
+  border: 1.5px solid var(--jade);
+}
+.word-prosody-card.word-prosody-cleared .word-prosody-topline > strong {
+  color: var(--jade-deep);
+}
+.word-prosody-cleared-chip {
+  padding: 3px 8px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.word-practice-pass-chip,
+.word-practice-fail-chip {
+  padding: 3px 8px;
+  border-radius: var(--clay-radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.word-practice-pass-chip {
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.word-practice-fail-chip {
+  background: var(--clay-error-soft);
+  color: var(--clay-error-deep);
+}
+
+/* Shape-match % — the same comparison the chart draws, now read directly
+   off the topline instead of a separate legend row underneath. */
+.word-prosody-score {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* The SVG draws with preserveAspectRatio="none", so a full-width container
+   stretches the curve horizontally and flattens every tone shape into a
+   near-straight line — the wider it got, the less there was to read.
+   Capping the box near the SVG's own 160×66 drawing ratio keeps the
+   rise/fall legible; the chart is a glyph, not a panel. */
+.mini-contour {
+  height: 60px;
+  max-width: 150px;
+  margin: 10px 0;
+}
+
+.mini-contour-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.mini-contour-actual {
+  stroke: var(--clay-primary);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mini-contour-reference {
+  stroke: var(--clay-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 4 4;
+  opacity: 0.75;
+}
+

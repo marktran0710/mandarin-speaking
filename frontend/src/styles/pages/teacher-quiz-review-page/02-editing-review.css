@@ -1,0 +1,431 @@
+
+.tqr-no-quiz {
+  color: var(--clay-muted);
+  font-size: 11px;
+  font-style: italic;
+}
+
+.tqr-answer-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  color: var(--clay-muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.tqr-pools {
+  display: block;
+}
+
+.tqr-qrow {
+  min-height: 76px;
+  align-items: stretch;
+  background: #fff;
+}
+
+.tqr-qrow + .tqr-qrow,
+.tqr-qrow + .tqr-pending-change,
+.tqr-pending-change + .tqr-qrow,
+.tqr-pending-change + .tqr-pending-change {
+  border-top: 1px solid var(--tqr-border-soft);
+}
+
+.tqr-qrow:hover {
+  background: var(--tqr-row-hover);
+}
+
+.tqr-q-select {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  border-right: 1px solid var(--tqr-border-soft);
+  background: var(--tqr-surface-muted);
+}
+
+.tqr-qkind {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border-right: 1px solid var(--tqr-border-soft);
+  color: var(--clay-body);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.tqr-qkind > .bi-label {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.tqr-qbody {
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 12px;
+}
+
+.tqr-qprompt {
+  margin: 0;
+  color: var(--clay-ink);
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.tqr-qprompt-en {
+  color: var(--clay-muted);
+  font-size: 11px;
+  font-weight: 450;
+}
+
+.tqr-qoptions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 6px;
+  color: var(--clay-muted);
+  font-size: 11px;
+}
+
+.tqr-opt {
+  color: var(--clay-muted);
+}
+
+.tqr-opt + .tqr-opt::before {
+  content: "/";
+  margin-right: 6px;
+  color: var(--clay-muted-soft);
+}
+
+.tqr-opt.is-correct {
+  color: var(--jade-deep);
+  font-weight: 850;
+}
+
+.tqr-q-status {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-left: 1px solid var(--tqr-border-soft);
+}
+
+.tqr-status-badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  max-width: 100%;
+  color: var(--clay-muted);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.tqr-status-badge .bi-label {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.tqr-status-badge.is-clean {
+  color: var(--jade-deep);
+}
+
+.tqr-status-badge.is-suspicious {
+  color: var(--clay-error-deep);
+}
+
+.tqr-status-reason {
+  color: inherit;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.tqr-q-actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-left: 1px solid var(--tqr-border-soft);
+}
+
+.tqr-edit,
+.tqr-trash,
+.tqr-icon-btn {
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.tqr-question-delete {
+  flex: 0 0 44px;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+.tqr-q-actions > .tqr-edit {
+  flex: 0 0 auto;
+  min-width: 76px;
+  min-height: 44px;
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+
+.tqr-edit {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.tqr-edit-answer {
+  min-height: 32px;
+  margin-left: 2px;
+}
+
+.tqr-add-question {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 4px 9px;
+  border: 1px solid color-mix(in srgb, var(--jade) 55%, var(--tqr-border));
+  border-radius: var(--clay-radius-sm);
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tqr-add-question:hover {
+  border-color: var(--jade-deep);
+  background: color-mix(in srgb, var(--jade-soft) 78%, #fff);
+}
+
+.tqr-trash,
+.tqr-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--tqr-border);
+  border-radius: var(--clay-radius-sm);
+  background: #fff;
+  color: var(--clay-muted);
+  cursor: pointer;
+}
+
+.tqr-trash:hover,
+.tqr-icon-btn.reject:hover {
+  border-color: var(--clay-error);
+  color: var(--clay-error-deep);
+  background: var(--clay-error-soft);
+}
+
+.tqr-trash.is-marked {
+  border-color: var(--clay-error);
+  background: var(--clay-error-soft);
+  color: var(--clay-error-deep);
+}
+
+.tqr-icon-btn.accept:hover {
+  border-color: var(--jade);
+  background: var(--jade-soft);
+  color: var(--jade-deep);
+}
+
+.tqr-diff-badge,
+.tqr-change-chip,
+.diff-tag,
+.tqr-decision-tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1;
+}
+
+.tqr-diff-badge {
+  padding: 3px 5px;
+}
+
+.tqr-diff-new {
+  background: var(--diff-add-bg);
+  color: var(--diff-add-text);
+}
+
+.tqr-diff-changed {
+  background: color-mix(in srgb, var(--gold-soft) 65%, #fff);
+  color: var(--gold-deep);
+}
+
+.tqr-change-chip {
+  min-height: 24px;
+  padding: 3px 7px;
+  border: 1px solid transparent;
+}
+
+.tqr-change-chip.is-none {
+  background: rgb(255 255 255 / 60%);
+  color: var(--clay-muted);
+}
+
+.tqr-change-chip.is-add {
+  border-color: color-mix(in srgb, var(--jade) 35%, transparent);
+  background: var(--diff-add-bg);
+  color: var(--diff-add-text);
+}
+
+.tqr-change-chip.is-mix {
+  border-color: color-mix(in srgb, var(--clay-error) 28%, transparent);
+  background: var(--diff-del-bg);
+  color: var(--diff-del-text);
+}
+
+/* Inline editing */
+
+.tqr-edit-form {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--tqr-border);
+  background: var(--tqr-surface-muted);
+}
+
+.tqr-edit-form label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--clay-body);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.tqr-edit-form label > .bi-label {
+  align-items: flex-start;
+}
+
+.tqr-edit-form input[type="text"] {
+  width: 100%;
+  min-height: 40px;
+  padding: 7px 10px;
+  border: 1px solid var(--tqr-border);
+  border-radius: var(--clay-radius-sm);
+  background: #fff;
+  color: var(--clay-ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.tqr-add-form {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--tqr-border);
+  background: color-mix(in srgb, var(--jade-soft) 28%, var(--tqr-surface-muted));
+}
+
+.tqr-add-form-heading {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--jade-deep);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.tqr-add-form label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: var(--clay-body);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.tqr-add-form label > .bi-label {
+  align-items: flex-start;
+}
+
+.tqr-add-form input[type="text"],
+.tqr-add-form select {
+  width: 100%;
+  min-height: 40px;
+  padding: 7px 10px;
+  border: 1px solid var(--tqr-border);
+  border-radius: var(--clay-radius-sm);
+  background: #fff;
+  color: var(--clay-ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.tqr-edit-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Generated change review */
+
+.tqr-pending-change {
+  background: #fff;
+}
+
+.tqr-pending-change.is-rejected {
+  opacity: 0.62;
+}
+
+.tqr-pending-change .diff-row {
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 116px;
+  align-items: stretch;
+}
+
+.tqr-pending-change .diff-row + .diff-row {
+  border-top: 1px solid var(--tqr-border-soft);
+}
+
+.gutter {
+  display: grid;
+  place-items: center;
+  border-right: 1px solid var(--tqr-border-soft);
+  background: var(--tqr-surface-muted);
+  color: var(--clay-muted);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.row-add .gutter {
+  background: var(--diff-add-bg);
+  color: var(--diff-add-text);
+}
+
+.row-del .gutter {
+  background: var(--diff-del-bg);
+  color: var(--diff-del-text);
+}
+
+

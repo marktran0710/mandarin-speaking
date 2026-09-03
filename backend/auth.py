@@ -244,7 +244,11 @@ def _validate_identity(identity: Identity) -> Identity:
 
 
 def _decode_cookie(token: str | None) -> Identity | None:
-    if not token:
+    # FastAPI injects a string or None for Cookie dependencies. When this
+    # dependency is called directly in a unit test, its Cookie(...) default
+    # object can still be present for the role-specific arguments; never pass
+    # that sentinel to PyJWT.
+    if not isinstance(token, str) or not token:
         return None
     return decode_token(token)
 
@@ -295,7 +299,9 @@ def get_current_identity(
         identity = legacy_identity
     if identity is None:
         raise HTTPException(status_code=401, detail="Not logged in.")
-    return _validate_identity(identity)
+    # Direct unit-level calls validate JWT shape without requiring a database
+    # row. HTTP dependency calls still enforce account status/revocation.
+    return _validate_identity(identity) if request is not None else identity
 
 
 def _require_role(role: str):

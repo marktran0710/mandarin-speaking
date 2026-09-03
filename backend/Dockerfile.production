@@ -14,7 +14,8 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     FRONTEND_DIST=/dist \
-    UPLOAD_DIR=/data/uploads
+    UPLOAD_DIR=/data/uploads \
+    LOG_DIR=/data/logs
 
 WORKDIR /app
 
@@ -33,7 +34,7 @@ RUN JWT_SECRET_KEY=build-only-local-import-secret-please-override \
     python -c "import main; import jieba; jieba.initialize(); print('production import + frontend build OK')"
 
 RUN useradd --create-home --uid 10001 appuser \
-    && mkdir -p /data \
+    && mkdir -p /data/logs \
     && chown -R appuser:appuser /app /data /dist
 USER appuser
 
@@ -43,4 +44,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD python -c "import os,urllib.request,sys; url='http://127.0.0.1:'+os.getenv('PORT','8000')+'/health/ready'; sys.exit(0 if urllib.request.urlopen(url, timeout=4).status==200 else 1)"
 
-CMD ["sh", "-c", "python -m alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=*"]
+CMD ["sh", "-c", "mkdir -p /data/logs && python -m alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips=* --log-config logging.production.ini"]

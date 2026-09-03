@@ -17,10 +17,8 @@ def _make_story(story_id, vocabulary_distractors=None):
     return {
         "id": story_id,
         "title": "Distractors Test",
-        "learningGoal": "Check distractors persist and grow",
         "level": "Beginner speaking",
         "frames": [frame],
-        "narrativeMode": "describe",
     }
 
 

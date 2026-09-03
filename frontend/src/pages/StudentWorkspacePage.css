@@ -184,26 +184,32 @@
 
 .student-workspace-tabs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-  gap: var(--space-md);
-  max-width: 860px;
-  margin-bottom: clamp(28px, 4vw, 44px);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 900px;
+  padding: 4px;
+  border: 1px solid color-mix(in srgb, var(--gold) 24%, var(--clay-hairline));
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--clay-surface-soft) 76%, transparent);
+  margin-bottom: clamp(18px, 2.5vw, 26px);
 }
+
+.student-workspace-tabs-count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .student-workspace-tab {
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-sm);
-  min-height: 108px;
-  padding: var(--space-md) var(--space-lg) var(--space-md) var(--space-md);
+  min-height: 88px;
+  padding: 10px 18px 10px 12px;
   border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-md);
+  border-radius: 16px;
   background: var(--clay-surface-card);
   color: var(--clay-body);
   text-align: left;
   cursor: pointer;
-  box-shadow: 0 5px 0 color-mix(in srgb, var(--clay-hairline) 62%, transparent);
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--clay-hairline) 62%, transparent);
   touch-action: manipulation;
   transition: transform .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
 }
@@ -211,13 +217,13 @@
 .student-workspace-tab:hover {
   transform: translateY(-2px);
   border-color: color-mix(in srgb, var(--gold) 52%, var(--clay-hairline));
-  box-shadow: 0 7px 0 color-mix(in srgb, var(--gold-soft) 80%, transparent);
+  box-shadow: 0 6px 0 color-mix(in srgb, var(--gold-soft) 80%, transparent);
 }
 
 .student-workspace-tab.active {
   border-color: color-mix(in srgb, var(--jade) 58%, var(--clay-hairline));
   background: color-mix(in srgb, var(--jade-soft) 32%, var(--clay-surface-card));
-  box-shadow: 0 5px 0 color-mix(in srgb, var(--jade-soft) 82%, transparent), inset 4px 0 0 var(--jade);
+  box-shadow: 0 5px 0 color-mix(in srgb, var(--jade-soft) 82%, transparent), inset 5px 0 0 var(--jade);
   color: var(--clay-ink);
 }
 
@@ -236,14 +242,19 @@
 }
 
 .student-workspace-tab-icon {
-  width: 52px;
-  height: 52px;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
   border: 1px solid var(--clay-hairline-soft);
   border-radius: 50%;
   background: var(--clay-surface-soft);
   color: var(--jade-deep);
+}
+
+.student-workspace-tab.active .student-workspace-tab-icon {
+  border-color: color-mix(in srgb, var(--jade) 42%, var(--clay-hairline-soft));
+  background: color-mix(in srgb, var(--gold-soft) 68%, white);
 }
 
 .student-workspace-tab-copy {
@@ -257,9 +268,19 @@
   text-align: left;
 }
 
+.student-workspace-tab-copy .bi-zh {
+  font-size: 1.06em;
+  letter-spacing: .02em;
+}
+
+.student-workspace-tab-copy .bi-en {
+  font-size: .72em;
+  letter-spacing: .04em;
+}
+
 .student-workspace-tab-arrow {
   color: var(--gold-deep);
-  font-size: 24px;
+  font-size: 22px;
   line-height: 1;
 }
 
@@ -363,4 +384,73 @@
     transition: none;
     transform: none;
   }
+}
+
+/* Workspace v2: one calm canvas and one navigation rail, rather than a
+   collection of floating cards. The same semantic tab markup is retained. */
+.student-workspace {
+  padding-top: clamp(42px, 5vw, 68px);
+  background: radial-gradient(circle at 94% 24%, color-mix(in srgb, var(--gold-soft) 36%, transparent), transparent 24rem), var(--clay-canvas);
+}
+
+.student-workspace-header { min-height: 266px; }
+
+.student-workspace-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--gold) 44%, var(--clay-hairline));
+  border-bottom: 1px solid var(--clay-hairline);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--clay-surface-card) 86%, transparent);
+}
+
+.student-workspace-tab {
+  position: relative;
+  grid-template-columns: 46px minmax(0, 1fr);
+  min-height: 102px;
+  padding: var(--space-md) var(--space-lg);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.student-workspace-tab:hover {
+  transform: none;
+  border-color: transparent;
+  background: color-mix(in srgb, var(--gold-soft) 28%, transparent);
+  box-shadow: none;
+}
+
+.student-workspace-tab.active {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--jade-soft) 22%, transparent);
+  box-shadow: none;
+}
+
+.student-workspace-tab.active::after {
+  position: absolute;
+  right: 0;
+  bottom: -2px;
+  left: 0;
+  height: 4px;
+  background: var(--jade);
+  content: "";
+}
+
+.student-workspace-tab:active,
+.student-workspace-tab.active:active { transform: none; box-shadow: none; }
+.student-workspace-tab-arrow { display: none; }
+
+@media (max-width: 520px) {
+  .student-workspace-tab {
+    grid-template-columns: 38px minmax(0, 1fr);
+    min-height: 86px;
+    padding-inline: var(--space-xs);
+  }
+  .student-workspace-tab-icon { width: 38px; height: 38px; }
 }

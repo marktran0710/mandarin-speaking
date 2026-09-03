@@ -32,7 +32,7 @@
    - Re-record cả câu → pass → Next scene
 8. Đi hết các scene → **View summary**
 9. Chuyển sang **teacher app** (`teacher.html`) → login teacher
-10. TeacherShell: Overview → Submissions → Star board/Analytics (khớp data student vừa tạo)
+10. ManagementShell (teacher): Overview → Submissions → Star board/Analytics (khớp data student vừa tạo)
 11. (Tùy thời gian) Materials / tạo ảnh story
 
 **Kịch bản B — phần user cầm máy (~10 phút, có người kèm):**

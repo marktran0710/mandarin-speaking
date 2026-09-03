@@ -4,9 +4,10 @@ import type {
   WordProsody,
 } from "../components/StoryRecorder";
 import { isAdminSession } from "./studentSession";
+import { getBackendUrl as getRuntimeBackendUrl, isTestRuntime } from "../config/runtimeEnv";
 
 function localBackendUrl(): string {
-  if (import.meta.env.MODE === "test") return "http://127.0.0.1:8000";
+  if (isTestRuntime()) return "http://127.0.0.1:8000";
   if (typeof window === "undefined") return "http://127.0.0.1:8000";
 
   // Keep development requests on the page's own origin so Vite can proxy
@@ -15,19 +16,19 @@ function localBackendUrl(): string {
   return window.location.origin;
 }
 
-const CONFIGURED_BACKEND_URL = import.meta.env.VITE_BACKEND_URL?.trim() || "";
+const CONFIGURED_BACKEND_URL = isTestRuntime() ? "" : getRuntimeBackendUrl().trim();
 
 export function getBackendUrl(): string {
   if (CONFIGURED_BACKEND_URL) {
     return CONFIGURED_BACKEND_URL;
   }
 
-  if (import.meta.env.DEV) {
+  if (typeof window !== "undefined") {
     return localBackendUrl();
   }
 
   throw new Error(
-    "Praat analysis needs a deployed backend in production. Deploy the FastAPI backend and set VITE_BACKEND_URL to its public URL.",
+    "Praat analysis needs a reachable backend. Configure the Next.js backend proxy or backend URL.",
   );
 }
 

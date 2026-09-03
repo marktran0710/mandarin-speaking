@@ -2,6 +2,9 @@ import type { Topic } from "../components/TopicSelector";
 import { isAdminSession } from "./studentSession";
 import { loadBestLocalStars, PRACTICE_UNLOCK_STARS } from "./quizTiers";
 import { topicHasQuiz } from "./topicQuiz";
+import { loadSubmittedLevels } from "./storyLevelProgress";
+import { storyHasTierContent } from "./teacher-stories/helpers";
+import type { StoryDifficultyLevel } from "./teacher-stories/types";
 
 /** The lesson picker is the table of contents of 時代華語 第一冊 (Modern
  * Chinese Book 1) — the textbook every story in this app is grounded in.
@@ -59,20 +62,18 @@ export function topicStoryId(
   return topic.sourceStory?.id ?? topic.id;
 }
 
-/** True once every story in a lesson has a lessonSubOrder — the point at
- * which the in-lesson sequential unlock (5-1 -> 5-2 -> 5-3) applies. A
- * lesson with even one unordered story stays fully open, exactly as it was
- * before this feature existed: a teacher assigns order numbers gradually
- * without ever locking students out mid-migration. */
+/** True when every story in a lesson carries a lessonSubOrder. This remains
+ * useful to callers that need to inspect metadata completeness; the actual
+ * in-lesson unlock no longer depends on this being true. */
 export function lessonHasOrderedStories(group: LessonGroup): boolean {
   return group.topics.length > 0 && group.topics.every((t) => t.lessonSubOrder != null);
 }
 
 /** Groups topics into table-of-contents rows: numbered lessons ascending,
  * then one 其他 group for unassigned topics (omitted when empty). Within a
- * numbered lesson, topics sort by lessonSubOrder once every topic in it has
- * one (see lessonHasOrderedStories) — otherwise they keep arrival order,
- * same as before sub-ordering existed. */
+ * numbered lesson, ordered stories sort by lessonSubOrder. Legacy stories
+ * without that field stay after the ordered chain so an API response cannot
+ * place 5-2 before 5-1. */
 export function groupTopicsByLesson(topics: Topic[]): LessonGroup[] {
   const numbered = new Map<number, Topic[]>();
   const unassigned: Topic[] = [];
@@ -89,9 +90,11 @@ export function groupTopicsByLesson(topics: Topic[]): LessonGroup[] {
     .sort(([a], [b]) => a - b)
     .map(([lessonNumber, groupTopics]) => {
       const group = { lessonNumber, topics: groupTopics };
-      if (lessonHasOrderedStories(group)) {
+      if (group.topics.some((topic) => topic.lessonSubOrder != null)) {
         group.topics = [...group.topics].sort(
-          (a, b) => (a.lessonSubOrder ?? 0) - (b.lessonSubOrder ?? 0),
+          (a, b) =>
+            (a.lessonSubOrder ?? Number.POSITIVE_INFINITY) -
+            (b.lessonSubOrder ?? Number.POSITIVE_INFINITY),
         );
       }
       return group;
@@ -110,8 +113,7 @@ export type StarsForTopic = (topic: Topic) => number;
 const localStarsForTopic: StarsForTopic = (topic) => loadBestLocalStars(topic.id);
 
 /** A story is finished when it's been submitted (at any tier) AND its quiz
- * ladder reached ⭐⭐ — tier 1 and tier 2 both passed, since tier 2 can't be
- * attempted until tier 1 is earned. Stories that run no quiz at all (no
+ * ladder reached ⭐⭐⭐ — all three tiers passed. Stories that run no quiz at all (no
  * glossed vocabulary — see topicHasQuiz) are finished on submission alone;
  * requiring stars they can never earn would wall off the rest of the book. */
 export function isStoryFinished(
@@ -140,7 +142,7 @@ export function lessonCompletion(
 /** Sequential lesson lock, following the lessons that actually exist (a
  * published 5→7→9 chain locks 7 behind 5, not behind a nonexistent 6):
  * the first numbered lesson is always open, each later one opens once
- * EVERY story in the previous lesson is finished (submitted + ⭐⭐, see
+ * EVERY story in the previous lesson is finished (submitted + ⭐⭐⭐, see
  * isStoryFinished), and the 其他 group is always open. */
 export function isLessonGroupUnlocked(
   groups: LessonGroup[],
@@ -161,20 +163,38 @@ export function isLessonGroupUnlocked(
 
 /** Sequential in-lesson lock (5-1 -> 5-2 -> 5-3), a lighter gate than
  * isLessonGroupUnlocked's: a story only needs its predecessor SUBMITTED, not
- * finished to ⭐⭐ — the two are deliberately different rules. Only applies
- * once every story in the lesson has a lessonSubOrder (see
- * lessonHasOrderedStories); until then every story in the lesson stays
- * open, same as before this feature existed. group.topics is assumed
- * already sorted by lessonSubOrder (groupTopicsByLesson does this). */
+ * finished to ⭐⭐⭐. The visible group order is the source of truth, so an
+ * incomplete/legacy lessonSubOrder field cannot accidentally bypass the
+ * 5-1 -> 5-2 sequence. */
 export function isStoryUnlockedInLesson(
   group: LessonGroup,
   indexInGroup: number,
   submittedStoryIds: ReadonlySet<string>,
 ): boolean {
   if (isAdminSession()) return true;
-  if (!lessonHasOrderedStories(group)) return true;
+  if (group.lessonNumber === null) return true;
   if (indexInGroup === 0) return true;
   const previous = group.topics[indexInGroup - 1];
   if (!previous) return true;
-  return submittedStoryIds.has(topicStoryId(previous));
+  const story = previous.sourceStory;
+  if (!story) return submittedStoryIds.has(topicStoryId(previous));
+
+  const availableLevels: StoryDifficultyLevel[] = [
+    "easy",
+    ...(Array.isArray(story.frames) && storyHasTierContent(story, "medium")
+      ? ["medium" as const]
+      : []),
+    ...(Array.isArray(story.frames) && storyHasTierContent(story, "hard")
+      ? ["hard" as const]
+      : []),
+  ];
+  const submittedLevels = loadSubmittedLevels(story.id);
+
+  // Easy can be recovered from the flat legacy submission set. Medium and
+  // Hard must have their own explicit submission before the next story opens.
+  return availableLevels.every((level) =>
+    level === "easy"
+      ? submittedLevels.easy === true || submittedStoryIds.has(story.id)
+      : submittedLevels[level] === true,
+  );
 }

@@ -33,11 +33,16 @@ JSONB_COLUMNS = [
 
 BOOLEAN_COLUMNS = [
     ("custom_stories", "published"),
-    ("custom_stories", "linear"),
-    ("custom_stories", "first_frame_is_example"),
     ("speaking_progress", "mastery_passed"),
     ("speaking_progress", "content_passed"),
 ]
+
+REMOVED_CUSTOM_STORY_COLUMNS = (
+    "learning_goal",
+    "narrative_mode",
+    "linear",
+    "first_frame_is_example",
+)
 
 
 @pytest.fixture(scope="module")
@@ -74,6 +79,15 @@ def test_flag_columns_are_boolean(conn, table, column):
     ).fetchone()
     assert row is not None, f"{table}.{column} is missing"
     assert row[0] == "boolean"
+
+
+def test_removed_custom_story_metadata_is_absent(conn):
+    rows = conn.execute(
+        "SELECT column_name FROM information_schema.columns "
+        "WHERE table_name = 'custom_stories' AND column_name = ANY(%s)",
+        (list(REMOVED_CUSTOM_STORY_COLUMNS),),
+    ).fetchall()
+    assert rows == []
 
 
 def test_created_at_default_matches_sqlite_format(conn):

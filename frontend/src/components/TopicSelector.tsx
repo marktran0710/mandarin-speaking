@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
-import { canUseDatabase, createCustomStory, listCustomStories } from "../services/database";
-import { loadBestLocalStars } from "../utils/quizTiers";
 import {
-  type CustomTeacherStory,
+  canUseDatabase,
+  createCustomStory,
+  listCustomStories,
+  listStorySubmissions,
+} from "../services/database";
+import { loadBestLocalStars, loadLocalStars, practiceUnlocked } from "../utils/quizTiers";
+import {
   type StoryDifficultyLevel,
   loadCustomStories,
   loadPublishedTeacherTopics,
@@ -18,113 +22,25 @@ import {
   lessonTitle,
   type LessonGroup,
 } from "../utils/lessonGroups";
-import JourneyPath, { type JourneyStop } from "./JourneyPath";
 import {
   isStoryLevelUnlocked,
   loadSubmittedLevels,
   loadSubmittedStoryIds,
+  mergeSubmittedStoryLevels,
 } from "../utils/storyLevelProgress";
 import { topicHasQuiz } from "../utils/topicQuiz";
-import { loadCompletedVocabQuizzes } from "../utils/vocabQuizStorage";
-import { isAdminSession } from "../utils/studentSession";
+import { getStudentId, getStudentName, isAdminSession } from "../utils/studentSession";
 import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
 import StudentIcon, { type StudentIconName } from "./StudentIcon";
 import "./BiLabel.css";
-
-export interface VocabGroup {
-  name: string;
-  words: string[];
-}
-
-export interface Topic {
-  id: string;
-  name: string;
-  description: string;
-  skillFocus: string;
-  images: string[];
-  prompts?: string[];
-  vocabulary: Record<number, string[]>;
-  vocabularyGroups?: Record<number, VocabGroup[]>;
-  // Handy, easy-to-learn-and-reuse phrases for this scene (replaces the old
-  // single whole-story "grammar pattern" note) — same word/translation shape
-  // as vocabulary, aligned by index.
-  phrases?: Record<number, string[]>;
-  phrasesTranslation?: Record<number, string[]>;
-  vocabularyPinyin?: Record<number, string[]>;
-  vocabularyPos?: Record<number, string[]>;
-  vocabularyTranslation?: Record<number, string[]>;
-  // AI-generated wrong-but-plausible translations per word (aligned by
-  // index with vocabulary[scene]), used as the vocab quiz's multiple-choice
-  // distractors instead of unrelated filler words. Optional — older stories
-  // without generated distractors still get a quiz via the old fallback.
-  vocabularyDistractors?: Record<number, string[][]>;
-  // AI-generated fill-in-the-blank (cloze) candidates per word — each word's
-  // entry is a list of {sentence, distractors} options, grown the same way
-  // vocabularyDistractors is. Optional, same graceful fallback as above.
-  vocabularyCloze?: Record<number, Array<{ sentence: string; distractors: string[] }[]>>;
-  // AI-generated synonym candidates per word — each word's entry is a list
-  // of {synonym, distractors} options, grown the same way vocabularyCloze
-  // is. Optional, same graceful fallback as above.
-  vocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
-  /** Canonical Easy/base vocabulary source used by the quiz across all
-   * difficulty views. Story display fields above may remain tier-specific,
-   * but quiz concepts must not be split into separate Medium/Hard pools. */
-  quizVocabulary?: Record<number, string[]>;
-  quizVocabularyPinyin?: Record<number, string[]>;
-  quizVocabularyPos?: Record<number, string[]>;
-  quizVocabularyTranslation?: Record<number, string[]>;
-  quizVocabularyDistractors?: Record<number, string[][]>;
-  quizVocabularyCloze?: Record<number, Array<{ sentence: string; distractors: string[] }[]>>;
-  quizVocabularySynonym?: Record<number, Array<{ synonym: string; distractors: string[] }[]>>;
-  quizSuggestedAnswers?: Record<number, string>;
-  suggestedAnswers?: Record<number, string>;
-  listenAudioUrls?: Record<number, string>;
-  listenAudioSources?: Record<number, "teacher" | "tts">;
-  listenScripts?: Record<number, string>;
-  // Model-voice reference audio for individual vocabulary words (aligned by
-  // index with vocabulary[scene]) — a null entry means that word's clip
-  // couldn't be sliced. vocabularyReferenceCurves is the matching cached
-  // pitch-shape curve sent back to /api/analyze as a real-voice scoring
-  // target instead of the synthetic idealized tone-shape pattern.
-  vocabularyAudioUrls?: Record<number, (string | null)[]>;
-  vocabularyReferenceCurves?: Record<number, number[][]>;
-  sentenceReferenceCurves?: Record<number, Record<string, number[]>>;
-  linear?: boolean;
-  lessonNumber?: number | null;
-  /** Position within its lesson (1, 2, 3...) — see CustomTeacherStory's
-   * lessonSubOrder. Drives the in-lesson sequential unlock in lessonGroups.ts. */
-  lessonSubOrder?: number | null;
-  narrativeMode?: "story" | "describe" | "listen_retell";
-  firstFrameIsExample?: boolean;
-  // Which easy/medium/hard tier this Topic was built at, plus a reference to
-  // the raw multi-tier story it came from — lets the inline tier controls
-  // re-derive a Topic at a different tier, and lets progress tracking know
-  // what to mark as done on submit. Absent for topics that aren't
-  // teacher-authored.
-  difficultyLevel?: StoryDifficultyLevel;
-  sourceStory?: CustomTeacherStory;
-}
-
-interface TopicSelectorProps {
-  onTopicSelect?: (topic: Topic, options?: TopicStartOptions) => void;
-  onLevelSelect?: (
-    topic: Topic,
-    level: StoryDifficultyLevel,
-    options?: TopicStartOptions,
-  ) => void;
-}
-
-export interface TopicStartOptions {
-  startAtQuiz?: boolean;
-}
+import type { Topic, TopicSelectorProps } from "./topic-selector/types";
+export type { Topic, TopicStartOptions, VocabGroup } from "./topic-selector/types";
 
 export const TOPICS: Topic[] = [];
 
-/** Only "story" mode topics belong in the normal training flow — "describe" and
- * "listen_retell" topics have their own dedicated pages. */
-function isStoryModeTopic(topic: Topic): boolean {
-  return (topic.narrativeMode ?? "story") === "story";
+function isStoryModeTopic(_topic: Topic): boolean {
+  return true;
 }
 
 export function SkillFocusLabel({ skillFocus }: { skillFocus: string }) {
@@ -161,6 +77,17 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
 
   useEffect(() => {
     if (!canUseDatabase()) return;
+    let cancelled = false;
+    const studentId = getStudentId();
+    const studentName = getStudentName();
+    const submissions = listStorySubmissions(undefined, { studentId, studentName }).catch(() => null);
+    const hydrateSubmittedLevels = async () => {
+      const serverSubmissions = await submissions;
+      if (!cancelled && serverSubmissions) {
+        mergeSubmittedStoryLevels(serverSubmissions, { studentId, studentName });
+      }
+    };
+
     listCustomStories()
       .then(async (dbStories) => {
         const localStories = loadCustomStories();
@@ -174,6 +101,8 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
             .filter((s) => s.published)
             .map((s) => storyToTopic(s as any, "easy", "approved"))
             .filter(isStoryModeTopic);
+          await hydrateSubmittedLevels();
+          if (cancelled) return;
           setTopics(published);
           return;
         }
@@ -184,10 +113,15 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
           .filter((s) => s.published)
           .map((s) => storyToTopic(s as any, "easy", "approved"))
           .filter(isStoryModeTopic);
+        await hydrateSubmittedLevels();
+        if (cancelled) return;
         setTopics(published);
       })
       .catch((err) => console.error("Failed to load topics from backend:", err))
       .finally(() => setLoading(false));
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) {
@@ -233,7 +167,13 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
   // The per-story 🌱🌿🌳 tier track: which difficulty levels this story
   // offers, and for each whether it's been submitted, is open, or still
   // locked behind the previous tier. Only teacher stories carry tiers.
-  const renderTierTrack = (t: Topic) => {
+  // Was a status chip (not a button) on whichever level the card's primary
+  // button already opened, since two controls landing on the same screen
+  // read as one too many. Reverted at the user's request: with only two of
+  // the three cells actually clickable, the row didn't look disabled, it
+  // looked broken — the user reported "can't click Easy" as a bug, not as
+  // an intentional label. All three are buttons again, Easy included.
+  const renderTierTrack = (t: Topic, activityUnlocked: boolean) => {
     const story = t.sourceStory;
     if (!story) return null;
     const submittedLevels = loadSubmittedLevels(story.id);
@@ -246,7 +186,9 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
         aria-label="Difficulty levels"
       >
         {levels.map((level) => {
-          const state = submittedLevels[level]
+          const state = !activityUnlocked
+            ? "lock"
+            : submittedLevels[level]
             ? "done"
             : isStoryLevelUnlocked(story.id, level)
               ? "open"
@@ -255,7 +197,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
           const needsQuiz =
             topicHasQuiz(tierTopic) &&
             !isAdminSession() &&
-            loadCompletedVocabQuizzes()[tierTopic.id] !== true;
+            !practiceUnlocked(loadLocalStars(tierTopic.id));
           const copy = LEVEL_COPY[level];
           const content = (
             <>
@@ -276,7 +218,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
               type="button"
               className={`ts-tier-cell ts-tier-${state}`}
               disabled={state === "lock"}
-              aria-label={`${copy.en} difficulty${state === "done" ? ", completed" : state === "lock" ? ", locked" : needsQuiz ? ", vocabulary quiz required" : ""}`}
+              aria-label={`${copy.en} difficulty${state === "done" ? ", completed" : state === "lock" ? activityUnlocked ? ", locked" : ", locked until the previous activity is completed" : needsQuiz ? ", vocabulary quiz required" : ""}`}
               onClick={(event) => {
                 event.stopPropagation();
                 onLevelSelect(t, level, needsQuiz ? { startAtQuiz: true } : undefined);
@@ -295,19 +237,18 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
     const totalWords = Object.values(t.vocabulary).flat().length;
     const previewImage = t.images[0];
     const unlocked = isStoryUnlockedInLesson(group, index, submittedIds);
+    const hasQuiz = topicHasQuiz(t);
     const subLabel =
       group.lessonNumber != null && t.lessonSubOrder != null
         ? `${group.lessonNumber}-${t.lessonSubOrder}`
         : null;
-    const previous = index > 0 ? group.topics[index - 1] : null;
-    const previousSubLabel =
-      group.lessonNumber != null && previous?.lessonSubOrder != null
-        ? `${group.lessonNumber}-${previous.lessonSubOrder}`
-        : null;
-    const needsQuiz =
-      topicHasQuiz(t) &&
-      !isAdminSession() &&
-      loadCompletedVocabQuizzes()[t.id] !== true;
+    // isStoryUnlockedInLesson only needs the previous story SUBMITTED, not
+    // 3-starred — a card can sit locked right next to a 3-star quiz result
+    // on the story before it, which reads as broken with no explanation.
+    // The lesson row already tells the student why IT is locked
+    // ("先完成第 X 課"); a story card had no equivalent, so a click on Easy
+    // or Medium here did nothing and looked like a dead button.
+    const previousTopic = !unlocked ? group.topics[index - 1] : undefined;
 
     return (
       <article key={t.id} className={`ts-card${unlocked ? "" : " ts-card-locked"}`}>
@@ -360,39 +301,32 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
             )}
           </div>
 
-          {renderTierTrack(t)}
-        </div>
-
-        {/* Footer */}
-        <div className="ts-card-footer">
-          {unlocked ? (
+          {onTopicSelect && unlocked && (
             <button
               type="button"
-              className={`ts-card-btn${needsQuiz ? " ts-card-btn-quiz" : ""}`}
-              onClick={() =>
-                onTopicSelect?.(t, needsQuiz ? { startAtQuiz: true } : undefined)
-              }
+              className="ts-card-open"
+              onClick={() => onTopicSelect(t, hasQuiz ? { startAtQuiz: true } : undefined)}
             >
-              {needsQuiz ? (
-                <BiLabel zh="先做測驗" pinyin="Xiān zuò cèyàn" en="Take quiz first" />
-              ) : (
-                <BiLabel k="start_this_activity" />
-              )}
-              <span className="ts-card-btn-arrow">→</span>
+              <BiLabel
+                zh={hasQuiz ? "開始生詞測驗" : "開始故事"}
+                pinyin={hasQuiz ? "Kāishǐ shēngcí cèyàn" : "Kāishǐ gùshì"}
+                en={hasQuiz ? "Start vocabulary quiz" : "Start story"}
+              />
+              <span aria-hidden="true">→</span>
             </button>
-          ) : (
-            <span className="ts-card-btn ts-card-btn-locked" aria-disabled="true">
-              🔒{" "}
-              {previousSubLabel ? (
-                <BiLabel
-                  zh={`先完成 ${previousSubLabel}`}
-                  en={`Finish ${previousSubLabel} first`}
-                />
-              ) : (
-                <BiLabel zh="尚未解鎖" en="Not unlocked yet" />
-              )}
-            </span>
           )}
+
+          {onTopicSelect && !unlocked && (
+            <p className="ts-card-locked-note">
+              <StudentIcon name="lock" size={14} />
+              <BiLabel
+                zh={previousTopic ? `先交 ${previousTopic.name}` : "先完成上一個故事"}
+                en={previousTopic ? `Submit "${previousTopic.name}" first` : "Finish the previous story first"}
+              />
+            </p>
+          )}
+
+          {renderTierTrack(t, unlocked)}
         </div>
       </article>
     );
@@ -408,7 +342,12 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
   // language for "progress along a sequence" everywhere in the app, and the
   // path itself (position, dimming, the current stop's glow) carries the
   // "you need to finish N first" meaning without spelling it out per row.
-  const journeyStops: JourneyStop[] = numberedGroups.map((group, numberedIndex) => {
+  /** One wide row per lesson: the lesson's own first scene image on the
+   * left, its name in the middle, progress or the reason it is locked on
+   * the right. The image is what makes a row recognisable at a glance, and
+   * a locked lesson's image is desaturated so its state reads before any
+   * text does. */
+  const renderLessonRow = (group: LessonGroup, numberedIndex: number) => {
     const index = groups.indexOf(group);
     const unlocked = isLessonGroupUnlocked(groups, index, submittedIds);
     const { done, total } = lessonCompletion(group, submittedIds);
@@ -418,39 +357,65 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
     const previousNumber =
       numberedIndex > 0 ? numberedGroups[numberedIndex - 1].lessonNumber : null;
     const isOpen = openLesson === group.lessonNumber;
+    const cover = group.topics.find((topic) => topic.images?.[0])?.images?.[0];
+    const toggle = () =>
+      setOpenLesson((current) => (current === group.lessonNumber ? null : group.lessonNumber!));
 
-    return {
-      key: group.lessonNumber!,
-      status: finished ? "done" : isNow ? "current" : "upcoming",
-      fallbackLabel: group.lessonNumber,
-      label: (
-        <span className="ts-journey-label">
-          <span className="ts-journey-title">{title.zh}</span>
-          <span className="ts-lesson-sub">{`Dì ${group.lessonNumber} kè · ${title.en}`}</span>
-        </span>
-      ),
-      badge: !unlocked ? (
-        <span aria-label={`Locked — finish Lesson ${previousNumber} first`}>🔒</span>
-      ) : (
-        <span aria-hidden="true">
-          {!finished ? `${done}/${total} ` : ""}
-          {isOpen ? "▴" : "▾"}
-        </span>
-      ),
-      onClick: unlocked
-        ? () => setOpenLesson((current) => (current === group.lessonNumber ? null : group.lessonNumber!))
-        : undefined,
-      disabled: !unlocked,
-      ariaExpanded: unlocked ? isOpen : undefined,
-      expanded: isOpen ? (
-        <div className="ts-lesson-expanded">
-          <div className="ts-grid">
-            {group.topics.map((t, i) => renderTopicCard(t, group, i))}
+    return (
+      <div className="ts-lesson-block" key={group.lessonNumber!}>
+        <button
+          type="button"
+          className={`ts-lesson-row${unlocked ? "" : " is-locked"}${isNow ? " is-now" : ""}${finished ? " is-done" : ""}`}
+          disabled={!unlocked}
+          aria-expanded={unlocked ? isOpen : undefined}
+          onClick={unlocked ? toggle : undefined}
+        >
+          <span className="ts-lesson-cover">
+            {cover ? <img src={cover} alt="" /> : <span className="ts-lesson-cover-fallback" aria-hidden="true">{group.lessonNumber}</span>}
+          </span>
+
+          <span className="ts-lesson-body">
+            <span className="ts-lesson-kicker">
+              {`第 ${group.lessonNumber} 課 · Dì ${group.lessonNumber} kè`}
+            </span>
+            <span className="ts-lesson-name" lang="zh-Hant">{title.zh}</span>
+            <span className="ts-lesson-en">{title.en}</span>
+          </span>
+
+          <span className="ts-lesson-status">
+            {!unlocked ? (
+              <span className="ts-lesson-locked">
+                <StudentIcon name="lock" size={14} />
+                <BiLabel
+                  zh={`先完成第 ${previousNumber} 課`}
+                  en={`Finish Lesson ${previousNumber} first`}
+                />
+              </span>
+            ) : (
+              <>
+                <span className="ts-lesson-progress">
+                  {finished ? (
+                    <BiLabel zh="已完成" pinyin="Yǐ wánchéng" en="Complete" />
+                  ) : (
+                    <BiLabel zh={`${done}/${total} 個故事`} en={`${done}/${total} stories`} />
+                  )}
+                </span>
+                <span className="ts-lesson-chevron" aria-hidden="true">{isOpen ? "▴" : "▾"}</span>
+              </>
+            )}
+          </span>
+        </button>
+
+        {isOpen && (
+          <div className="ts-lesson-expanded">
+            <div className="ts-grid">
+              {group.topics.map((t, i) => renderTopicCard(t, group, i))}
+            </div>
           </div>
-        </div>
-      ) : undefined,
-    };
-  });
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="topic-selector">
@@ -470,8 +435,8 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect }: TopicSel
         </div>
       </header>
 
-      <div className="ts-lesson-journey">
-        <JourneyPath stops={journeyStops} orientation="vertical" />
+      <div className="ts-lesson-list">
+        {numberedGroups.map((group, numberedIndex) => renderLessonRow(group, numberedIndex))}
       </div>
 
       {otherGroup && (

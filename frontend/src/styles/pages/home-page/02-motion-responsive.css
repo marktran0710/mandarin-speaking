@@ -1,0 +1,166 @@
+
+@keyframes homeRiseIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes titleToneBreath {
+  0%,
+  100% {
+    transform: translateY(0);
+    color: var(--clay-ink);
+  }
+  28% {
+    transform: translateY(var(--tone-lift, -7px));
+    color: var(--tone-deep, var(--seal-deep));
+  }
+  45% {
+    transform: translateY(0);
+    color: var(--clay-ink);
+  }
+}
+
+/* Tone hooks for the breath. Every value resolves through a global token —
+   never a literal, which would freeze at its light-mode value while its
+   neighbours flip under [data-theme="dark"]. */
+.hero-char.tone-1 {
+  --tone-deep: var(--tone1-deep);
+  --tone-lift: -3px;
+}
+
+.hero-char.tone-2 {
+  --tone-deep: var(--jade-deep);
+  --tone-lift: -10px;
+}
+
+.hero-char.tone-3 {
+  --tone-deep: var(--gold-deep);
+  --tone-lift: 8px;
+}
+
+.hero-char.tone-4 {
+  --tone-deep: var(--seal-deep);
+  --tone-lift: 10px;
+}
+
+/* The stamp characters have no fill of their own any more, so the step reads
+   as a nudge plus an ink shift rather than the old background swap. */
+@keyframes verticalTitleStep {
+  0%,
+  100% {
+    transform: translateX(0);
+    color: var(--clay-ink);
+  }
+  36% {
+    transform: translateX(-4px);
+    color: var(--seal-deep);
+  }
+  54% {
+    transform: translateX(0);
+    color: var(--clay-ink);
+  }
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .home-hero {
+    grid-template-columns: 1fr;
+    padding-top: var(--space-xl);
+    gap: var(--space-lg);
+  }
+
+  .home-hero-visual { order: initial; }
+
+  .how-it-works {
+    margin-top: var(--space-xl);
+    padding-top: var(--space-xl);
+  }
+
+  .how-it-works-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .how-it-works-tile + .how-it-works-tile {
+    padding-left: 0;
+    padding-top: var(--space-md);
+    border-left: 0;
+    border-top: 1px solid var(--clay-hairline);
+  }
+}
+
+@media (max-width: 600px) {
+  .home-page {
+    padding-bottom: var(--space-2xl);
+  }
+
+  .hero-title-zh {
+    font-size: clamp(40px, 13vw, 62px);
+  }
+
+  .hero-subtitle {
+    font-size: 15px;
+  }
+
+  /* The chips stay inline-wrapping pills at every width. Stretching them to
+     one full-width column left BiLabel's centered zh/pinyin/en lines floating
+     in the middle of a wide pill, each on a different indent. */
+
+  .hero-primary-action {
+    width: 100%;
+  }
+
+  /* Shorter stage, and the prints grow so the pile still reads as three
+     overlapping photos rather than three stamps in a large empty frame. */
+  .story-preview-stage {
+    min-height: 310px;
+    border-radius: var(--clay-radius-lg);
+  }
+
+  .hero-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hero-stat-chip { min-width: 0; padding-inline: var(--space-xs); }
+  .hero-stat-chip:nth-child(3) { grid-column: 1 / -1; }
+  .hero-stat-chip:nth-child(3) { border-top: 1px solid var(--clay-hairline); border-left: 0; }
+}
+
+/* Student refresh: compact paper surfaces aligned with the instructor demo. */
+.home-page { background: var(--clay-canvas); padding-bottom: var(--space-2xl); }
+.home-hero { padding-top: clamp(36px, 5vw, 68px); gap: var(--space-xl) clamp(32px, 5vw, 64px); }
+.hero-title-zh { font-size: clamp(42px, 5vw, 56px); }
+.hero-subtitle { margin-top: var(--space-sm); line-height: 1.6; }
+.hero-stats { margin-top: var(--space-md); }
+.hero-stat-chip, .vertical-title { border-radius: var(--clay-radius-sm); background: var(--clay-surface-card); box-shadow: none; }
+.hero-primary-action { min-height: 44px; padding: var(--space-xs) var(--space-lg); border: 1px solid var(--seal-deep); border-radius: var(--clay-radius-pill); box-shadow: 0 3px 0 var(--seal-deep); }
+.hero-primary-action:hover { transform: translateY(-1px); box-shadow: 0 4px 0 var(--seal-deep); }
+.hero-primary-action:active { transform: translateY(1px); box-shadow: 0 1px 0 var(--seal-deep); }
+.story-preview-stage { min-height: 0; height: clamp(290px, 38vw, 480px); border-radius: var(--clay-radius-lg); background: var(--clay-surface-card); box-shadow: 0 14px 28px color-mix(in srgb, var(--clay-ink) 10%, transparent); }
+.story-preview-stage::before { border-style: solid; border-color: color-mix(in srgb, var(--seal) 20%, var(--clay-hairline)); }
+.story-preview-image { border-width: 4px; box-shadow: 0 3px 10px color-mix(in srgb, var(--clay-ink) 10%, transparent); }
+.how-it-works { margin-top: var(--space-lg); padding-top: var(--space-lg); }
+.how-it-works-grid { gap: var(--space-md); }
+
+@media (max-width: 600px) {
+  .home-hero { padding-top: var(--space-lg); gap: var(--space-lg); }
+  .hero-title-zh { font-size: clamp(40px, 12vw, 52px); }
+  .story-preview-stage { min-height: 0; height: 290px; border-radius: var(--clay-radius-md); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-char,
+  .hero-char-glyph,
+  .hero-subtitle,
+  .hero-stats,
+  .hero-primary-action,
+  .story-preview-stage,
+  .story-preview-image {
+    animation: none !important;
+    transition: none !important;
+  }
+}

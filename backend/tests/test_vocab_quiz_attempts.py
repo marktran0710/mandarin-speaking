@@ -124,8 +124,8 @@ def test_mode_is_null_when_not_provided(logged_in_student):
     assert post_response.json()["mode"] is None
 
 
-def test_weak_words_requires_login(client):
-    response = client.get("/api/vocab-quiz-attempts/weak-words", params={"story_id": "s"})
+def test_weak_words_requires_login(anonymous_client):
+    response = anonymous_client.get("/api/vocab-quiz-attempts/weak-words", params={"story_id": "s"})
     assert response.status_code == 401
 
 

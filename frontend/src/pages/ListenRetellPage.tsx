@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import type { Topic } from "../components/TopicSelector";
+import { buildSceneOptions, DEFAULT_LISTEN_SCENE } from "./listen-retell/scenes";
 import { convertBlobToWav } from "../utils/audio";
 import { BiLabel } from "../components/BiLabel";
 import StudentIcon from "../components/StudentIcon";
@@ -23,31 +24,13 @@ interface ListenRetellPageProps {
   publishedTopics: Topic[];
 }
 
-interface ListenScene {
-  image: string;
-  script: string;
-  audioUrl: string;
-  vocabulary: string[];
-}
-
-// Built-in sample so this page works even before a teacher publishes a listening script.
-const SAMPLE_SCENES: ListenScene[] = [
-  {
-    image: "/sample-scenes/park.svg",
-    script:
-      "公園裡下雨了，小朋友們撐著雨傘跑來跑去，找地方躲雨，玩得很開心。",
-    audioUrl: "",
-    vocabulary: ["公園", "下雨", "雨傘", "跑步", "孩子"],
-  },
-];
-
 const MAX_RECORDING_SECONDS = 30;
 
 export default function ListenRetellPage({ publishedTopics }: ListenRetellPageProps) {
   const scenes = useMemo(() => buildSceneOptions(publishedTopics), [publishedTopics]);
   const [sceneIndex, setSceneIndex] = useState(0);
   const activeSceneIndex = Math.min(sceneIndex, Math.max(0, scenes.length - 1));
-  const scene = scenes[activeSceneIndex] ?? SAMPLE_SCENES[0];
+  const scene = scenes[activeSceneIndex] ?? DEFAULT_LISTEN_SCENE;
 
   const [hasListened, setHasListened] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -506,18 +489,4 @@ export default function ListenRetellPage({ publishedTopics }: ListenRetellPagePr
       )}
     </main>
   );
-}
-
-function buildSceneOptions(publishedTopics: Topic[]): ListenScene[] {
-  const fromTopics = publishedTopics.flatMap((topic) =>
-    topic.images
-      .map((image, index) => ({
-        image,
-        script: topic.listenScripts?.[index] || "",
-        audioUrl: topic.listenAudioUrls?.[index] || "",
-        vocabulary: topic.vocabulary[index] || [],
-      }))
-      .filter((scene) => scene.script || scene.audioUrl),
-  );
-  return fromTopics.length > 0 ? fromTopics : SAMPLE_SCENES;
 }

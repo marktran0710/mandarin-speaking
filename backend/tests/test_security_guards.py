@@ -10,7 +10,6 @@ import pytest
         "/api/custom-stories",
         "/api/help-requests",
         "/api/measurement-events",
-        "/api/benchmark/ompal/status",
         "/api/ai-providers",
         "/api/inline-media?url=/uploads/not-a-real-file.png",
         "/uploads/not-a-real-file.wav",

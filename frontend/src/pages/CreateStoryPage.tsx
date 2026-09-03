@@ -5,6 +5,7 @@ import { HelpRequest } from "../services/database";
 import { loadPublishedTeacherTopics, storyToTopic } from "../utils/teacherStories";
 import type { Topic } from "../components/TopicSelector";
 import { getStudentId, getStudentName } from "../utils/studentSession";
+import { isStoryLevelUnlocked } from "../utils/storyLevelProgress";
 import "./CreateStoryPage.css";
 import "../components/BiLabel.css";
 
@@ -122,7 +123,12 @@ export default function CreateStoryPage({
     level: Parameters<typeof storyToTopic>[1],
     options?: TopicStartOptions,
   ) => {
-    if (!topic.sourceStory) return;
+    if (!topic.sourceStory || !level) return;
+    // TopicSelector disables locked tiers, but keep the policy at this
+    // navigation boundary too: a stale click/event or a future caller must
+    // not construct a Medium/Hard topic before its predecessor was fully
+    // submitted.
+    if (!isStoryLevelUnlocked(topic.sourceStory.id, level)) return;
     openTopicAtLevel(storyToTopic(topic.sourceStory, level, "approved"), options);
   };
 

@@ -1,6 +1,6 @@
-const BACKEND_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (import.meta.env.DEV && typeof window !== "undefined" ? window.location.origin : "");
+import { getBackendUrl } from "../config/runtimeEnv";
+
+const BACKEND_URL = getBackendUrl();
 
 const canonicalCache = new Map<string, string>();
 
