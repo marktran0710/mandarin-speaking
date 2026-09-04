@@ -106,6 +106,40 @@ def test_story_submission_round_trips_with_scenes(logged_in_student):
     assert saved["scenes"][0]["difficultyLevel"] == "easy"
 
 
+def test_story_submissions_can_omit_scenes(logged_in_student):
+    client, _ = logged_in_student
+    submission = {
+        "id": "sub-light",
+        "storyId": "light-story",
+        "storyTitle": "Light",
+        "studentName": "Mai",
+        "submittedAt": "2026-07-26T08:00:00Z",
+        "scenes": [
+            {"sceneIndex": 0, "baseStoryId": "b", "difficultyLevel": "easy",
+             "transcription": "你好。", "audioUrl": "",
+             "toneAccuracy": 80.0, "fluencyScore": 70.0, "pronScore": 75.0,
+             "pauseCount": 1, "longestPause": 400, "utteranceCount": 1,
+             "choppyPauseCount": 0, "articulationRate": 3.4},
+        ],
+    }
+    assert client.post("/api/story-submissions", json=submission).status_code == 200
+
+    full = client.get("/api/story-submissions", params={"story_id": "light-story"}).json()
+    assert full[0]["scenes"] != []
+
+    light = client.get(
+        "/api/story-submissions",
+        params={"story_id": "light-story", "include_scenes": "false"},
+    ).json()
+    assert len(light) == 1
+    # Summary fields the roster/pending views rely on are intact...
+    assert light[0]["id"] == "sub-light"
+    assert light[0]["storyTitle"] == "Light"
+    assert light[0]["reviewStatus"] == "pending"
+    # ...but the heavy per-scene payload is dropped.
+    assert light[0]["scenes"] == []
+
+
 def test_story_submissions_filter_by_story_id(logged_in_teacher):
     client, _ = logged_in_teacher
     assert client.get("/api/story-submissions", params={"story_id": "nothing"}).json() == []

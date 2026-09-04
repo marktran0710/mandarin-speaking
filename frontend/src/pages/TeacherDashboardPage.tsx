@@ -92,12 +92,12 @@ export default function TeacherDashboardPage({
 
   useEffect(() => {
     if (!canUseDatabase()) return;
-    listStorySubmissions().then(setSubmissions).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (activeView !== "submissions" || !canUseDatabase()) return;
-    listStorySubmissions().then(setSubmissions).catch(() => {});
+    // The roster/pending-count views read only submission summaries; the review
+    // view needs each submission's per-scene detail. Load the light payload (no
+    // scenes) for the summary views and the full one only when the review view
+    // is open, so the common dashboard load stays small.
+    const includeScenes = activeView === "submissions";
+    listStorySubmissions(undefined, undefined, { includeScenes }).then(setSubmissions).catch(() => {});
   }, [activeView]);
 
   const [quizAttempts, setQuizAttempts] = useState<VocabQuizAttempt[]>([]);
