@@ -23,11 +23,11 @@ const DEFAULT_TEACHER_ITEMS: ManagementNavItem[] = [
   // both are "student work to review", so one nav entry owns both.
   { id: "submissions", label: "Submissions", icon: "inbox" },
   { id: "students", label: "Students", icon: "users" },
-  { id: "materials", label: "Materials", icon: "library" },
 ];
 
 const DEFAULT_ADMIN_ITEMS: ManagementNavItem[] = [
   { id: "Admin Home", label: "Admin Home", icon: "dashboard" },
+  { id: "Materials", label: "Materials", icon: "library", group: "Content" },
   { id: "Teachers", label: "Teachers", icon: "users", group: "Accounts" },
   { id: "Students", label: "Students", icon: "users", group: "Accounts" },
   { id: "IRT / Student analytics", label: "IRT / Student analytics", icon: "analytics", group: "Insights" },

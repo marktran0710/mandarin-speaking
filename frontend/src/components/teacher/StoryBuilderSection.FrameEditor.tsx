@@ -23,8 +23,7 @@ function FramePreview({ draft, index, imageUrl, onPaste }) {
 }
 
 function StoryFrameFields(props) {
-  const { draft, index, level, frameError, updateDraftFrame,
-    onUploadImage, onUploadAudio, recordingFrameIndex, recordingSeconds, onStartRecording, onStopRecording } = props;
+  const { draft, index, level, frameError, updateDraftFrame, onUploadImage } = props;
   const imageUrl = draft.imageUrls[level][index];
   const chunks = splitScriptIntoChunks(draft.suggestedAnswers[level][index]);
   return <div className="teacher-frame-fields">
@@ -42,10 +41,6 @@ function StoryFrameFields(props) {
           rows={2} placeholder="Write the sentence students should say. Their voice transcript will be compared with this script." />
       </label>
       {chunks.length > 1 && <p className="script-chunk-preview"><span className="script-chunk-preview-lead">Auto-detected parts (edit punctuation above to adjust):</span>{chunks.map((chunk, chunkIndex) => <span key={chunkIndex} className="script-chunk-preview-chip">{chunk}</span>)}</p>}
-      <label className="teacher-file-upload">Upload teacher reference audio (optional)
-        <input type="file" accept="audio/mpeg,audio/wav,audio/webm,audio/ogg" onChange={(event) => onUploadAudio(index, event.target.files?.[0])} />
-      </label>
-      {draft.listenAudioSources[level][index] === "teacher" && draft.listenAudioUrls[level][index]?.trim() && <span className="teacher-form-hint">Teacher reference ready — student scoring will use this recording.</span>}
     </>
   </div>;
 }

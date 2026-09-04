@@ -18,4 +18,16 @@ describe("ManagementApp route permissions", () => {
     expect(await screen.findByRole("heading", { name: "Access denied" })).toBeInTheDocument();
     expect(screen.getByText(/not available to the teacher role/i)).toBeInTheDocument();
   });
+
+  it("keeps story materials admin-only", async () => {
+    localStorage.setItem(
+      "teacherSession",
+      JSON.stringify({ role: "teacher", name: "QA Teacher", signedInAt: new Date().toISOString() }),
+    );
+
+    render(<ManagementApp initialSection="stories" />);
+
+    expect(await screen.findByRole("heading", { name: "Access denied" })).toBeInTheDocument();
+    expect(screen.getByText(/not available to the teacher role/i)).toBeInTheDocument();
+  });
 });

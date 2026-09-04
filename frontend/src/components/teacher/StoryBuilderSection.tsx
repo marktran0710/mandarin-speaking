@@ -42,8 +42,8 @@ export default function StoryBuilderSection({
   onGoToQuizReview,
 }: {
   onStorySaved?: () => void;
-  /** Jumps the teacher shell to Materials → Quiz Review, pre-selecting the
-   * lesson the just-saved story belongs to. */
+  /** Jumps the management shell to Materials → Quiz Review, pre-selecting
+   * the lesson the just-saved story belongs to. */
   onGoToQuizReview?: (lessonNumber: number | null) => void;
 }) {
   const [customStories, setCustomStories] = useState<CustomTeacherStory[]>(
@@ -69,11 +69,6 @@ export default function StoryBuilderSection({
   const [storyPhraseFillLoading, setStoryPhraseFillLoading] = useState(false);
   const [storyVocabFillError, setStoryVocabFillError] = useState("");
   const [storyPhraseFillError, setStoryPhraseFillError] = useState("");
-  // Frame index currently being recorded via the mic (null when idle) — a
-  // teacher's own reading of the listening passage, as an alternative to
-  // uploading a file or falling back to TTS.
-  const [recordingFrameIndex, setRecordingFrameIndex] = useState<number | null>(null);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [validationErrors, setValidationErrors] =
     useState<CustomStoryValidationErrors>({});
   const [validationAttemptGeneration, setValidationAttemptGeneration] = useState(0);
@@ -210,9 +205,6 @@ export default function StoryBuilderSection({
   const {
     handlePasteFrameImage,
     handleUploadFrameImage,
-    handleUploadFrameAudio,
-    handleStartFrameRecording,
-    handleStopFrameRecording,
     handleFillVocabFromSentence,
     handleFillPhrasesFromSentence,
     handleFillStoryVocab,
@@ -234,8 +226,6 @@ export default function StoryBuilderSection({
     setStoryVocabFillLoading,
     setStoryPhraseFillError,
     setStoryPhraseFillLoading,
-    setRecordingFrameIndex,
-    setRecordingSeconds,
   });
 
   const handleSaveCustomStory = async () => {
@@ -461,7 +451,6 @@ export default function StoryBuilderSection({
           updateDraftGroups={updateDraftGroups}
           onPasteImage={handlePasteFrameImage}
           onUploadImage={handleUploadFrameImage}
-          onUploadAudio={handleUploadFrameAudio}
           onFillVocab={handleFillVocabFromSentence}
           onFillPhrases={handleFillPhrasesFromSentence}
           onUpdateStoryVocabulary={updateStoryVocabulary}
@@ -480,10 +469,6 @@ export default function StoryBuilderSection({
           phraseFillLoadingIndex={phraseFillLoadingIndex}
           vocabFillError={vocabFillError}
           phraseFillError={phraseFillError}
-          recordingFrameIndex={recordingFrameIndex}
-          recordingSeconds={recordingSeconds}
-          onStartRecording={handleStartFrameRecording}
-          onStopRecording={handleStopFrameRecording}
         />
         <StoryBuilderLibrary
           customStories={customStories}

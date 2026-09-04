@@ -11,8 +11,7 @@ import {
 } from "../services/database";
 import type { AudioRecord } from "./MyStoriesPage";
 import ManagementShell from "../components/management/ManagementShell";
-import Icon, { type UiIconName } from "../shared/ui/Icon";
-import StoryBuilderSection from "../components/teacher/StoryBuilderSection";
+import Icon from "../shared/ui/Icon";
 import TeacherHelpQueue from "../components/teacher/TeacherHelpQueue";
 import TeacherRecordingsView from "../components/teacher/TeacherRecordingsView";
 import TeacherSubmissionsView from "../components/teacher/TeacherSubmissionsView";
@@ -20,40 +19,13 @@ import QuizAnalyticsPanel from "../components/teacher/QuizAnalyticsPanel";
 import RecordingAnalyticsPanel from "../components/RecordingAnalyticsPanel";
 import TeacherRosterTable from "../components/teacher/TeacherRosterTable";
 import TeacherStudentProfile from "../components/teacher/TeacherStudentProfile";
-import TeacherImageBuilderPage from "./TeacherImageBuilderPage";
-import TeacherQuizReviewPage from "./TeacherQuizReviewPage";
 import { buildStudentAssessments } from "../utils/studentAssessment";
 // Legacy view internals (panels, tables, builder form) still live in the
 // shared stylesheet; the shell + workspace styles are in the two new files.
 import "./MyStoriesPage.css";
 import "./TeacherDashboardPage.css";
 
-/** The three material tools are separate full-screen workspaces, reached by
- * drilling in from the Materials list rather than through a permanent
- * sub-tab bar — Quiz Review already hid the page chrome whenever it opened. */
-export type MaterialsTool = "builder" | "imageBuilder" | "quizReview";
-export type TeacherView = "today" | "submissions" | "students" | "materials";
-
-const MATERIALS_TOOLS: Array<{ id: MaterialsTool; icon: UiIconName; title: string; blurb: string }> = [
-  {
-    id: "builder",
-    icon: "library",
-    title: "Story Builder",
-    blurb: "Write a story, set its scenes, and publish it to students.",
-  },
-  {
-    id: "imageBuilder",
-    icon: "image",
-    title: "AI Image Builder",
-    blurb: "Generate and attach scene images for a story you have written.",
-  },
-  {
-    id: "quizReview",
-    icon: "check",
-    title: "Quiz Review",
-    blurb: "Check generated quiz questions, then publish the approved set.",
-  },
-];
+export type TeacherView = "today" | "submissions" | "students";
 
 export default function TeacherDashboardPage({
   records,
@@ -64,9 +36,7 @@ export default function TeacherDashboardPage({
   onResolveHelpRequest,
   onRefreshRecords,
   onLogout,
-  onStorySaved,
   initialView = "today",
-  initialMaterialsTool,
 }: {
   records: AudioRecord[];
   hasMoreAudioRecords?: boolean;
@@ -76,17 +46,9 @@ export default function TeacherDashboardPage({
   onResolveHelpRequest?: (id: string) => void;
   onRefreshRecords?: () => Promise<void>;
   onLogout: () => void;
-  onStorySaved?: () => void;
   initialView?: TeacherView;
-  initialMaterialsTool?: MaterialsTool;
 }) {
   const [activeView, setActiveView] = useState<TeacherView>(initialView);
-  const [materialsTool, setMaterialsTool] = useState<MaterialsTool | null>(initialMaterialsTool ?? null);
-  // A nonce (not just the lesson number) so clicking "Go to Quiz Review"
-  // twice for the same lesson still re-triggers the jump on the second click.
-  const [quizReviewJump, setQuizReviewJump] = useState<{ lessonNumber: number | null; nonce: number } | null>(
-    null,
-  );
   const [refreshing, setRefreshing] = useState(false);
   const [submissions, setSubmissions] = useState<StorySubmission[]>([]);
 
@@ -145,18 +107,8 @@ export default function TeacherDashboardPage({
 
   const openHelpRequests = helpRequests.filter((request) => request.status === "open");
   const pendingSubmissions = submissions.filter((submission) => submission.reviewStatus !== "reviewed");
-  // The builders and Quiz Review take over the whole workspace once opened.
-  const inMaterialsTool = activeView === "materials" && materialsTool !== null;
-
-  const openTool = (tool: MaterialsTool) => {
-    setActiveView("materials");
-    setMaterialsTool(tool);
-  };
-
   const selectView = (view: TeacherView) => {
     setActiveView(view);
-    // Materials always opens on its tool list; drilling in is deliberate.
-    if (view === "materials") setMaterialsTool(null);
   };
 
   return (
@@ -232,44 +184,6 @@ export default function TeacherDashboardPage({
             </>
           ))}
 
-        {activeView === "materials" && !inMaterialsTool && (
-          <section className="tdash-card">
-            <div className="tdash-card-head">
-              <h2>Materials</h2>
-            </div>
-            <p className="tdash-card-note">Pick a tool. Each one opens on its own.</p>
-            <div className="tdash-tool-list">
-              {MATERIALS_TOOLS.map((tool) => (
-                <button type="button" className="tdash-tool" key={tool.id} onClick={() => openTool(tool.id)}>
-                  <Icon name={tool.icon} size={20} />
-                  <span>
-                    <strong>{tool.title}</strong>
-                    <small>{tool.blurb}</small>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {inMaterialsTool && (
-          <>
-            <button type="button" className="tdash-back" onClick={() => setMaterialsTool(null)}>
-              Back to Materials
-            </button>
-            {materialsTool === "builder" && (
-              <StoryBuilderSection
-                onStorySaved={onStorySaved}
-                onGoToQuizReview={(lessonNumber) => {
-                  setQuizReviewJump({ lessonNumber, nonce: Date.now() });
-                  setMaterialsTool("quizReview");
-                }}
-              />
-            )}
-            {materialsTool === "imageBuilder" && <TeacherImageBuilderPage />}
-            {materialsTool === "quizReview" && <TeacherQuizReviewPage jumpToLesson={quizReviewJump} />}
-          </>
-        )}
       </div>
     </ManagementShell>
   );

@@ -91,7 +91,6 @@ TRUNCATED_TABLES = (
     "speaking_progress",
     "story_submissions",
     "students",
-    "teacher_pronunciation_ratings",
     "teachers",
     "vocab_quiz_attempts",
     "vocab_quiz_irt_cache",

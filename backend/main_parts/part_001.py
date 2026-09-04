@@ -93,10 +93,6 @@ OPENAPI_TAGS = [
         "name": "admin",
         "description": "Administration endpoints for managing application data and settings.",
     },
-    {
-        "name": "teacher-review",
-        "description": "Teacher-only endpoints for reviewing student work and feedback.",
-    },
 ]
 
 app = FastAPI(

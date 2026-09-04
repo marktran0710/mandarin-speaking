@@ -1,8 +1,6 @@
 // @ts-nocheck
-import { useEffect, useRef } from "react";
-import { convertBlobToWav } from "../../utils/audio";
 import {
-  buildPhraseRows, buildVocabRows, getAudioUploadError, getImageUploadError,
+  buildPhraseRows, buildVocabRows, getImageUploadError,
   mergePhraseSuggestions, mergeVocabSuggestions,
 } from "../../utils/myStoriesUtils";
 import { BACKEND_URL, PHRASE_COUNT_BY_LEVEL } from "./StoryBuilderSection.helpers";
@@ -11,15 +9,11 @@ export function useStoryBuilderFrameActions(deps) {
   const {
     customDraft, updateDraftFrame, setValidationErrors, setCustomDraft,
     setVocabDraftGeneration, setPhraseDraftGeneration, setVocabFillError, setVocabFillLoadingIndex,
-    setPhraseFillError, setPhraseFillLoadingIndex, setRecordingFrameIndex,
-    setRecordingSeconds, setStoryVocabDraftGeneration, setStoryPhraseDraftGeneration,
+    setPhraseFillError, setPhraseFillLoadingIndex,
+    setStoryVocabDraftGeneration, setStoryPhraseDraftGeneration,
     setStoryVocabFillError, setStoryVocabFillLoading, setStoryPhraseFillError,
     setStoryPhraseFillLoading,
   } = deps;
-  const mediaRecorderRef = useRef(null);
-  const recordingStreamRef = useRef(null);
-  const recordingChunksRef = useRef([]);
-  const recordingTimerRef = useRef(null);
   const handlePasteFrameImage = (index: number, event: React.ClipboardEvent) => {
     const items = event.clipboardData?.items;
     if (!items) {
@@ -53,144 +47,6 @@ export function useStoryBuilderFrameActions(deps) {
     };
     reader.readAsDataURL(file);
   };
-
-  const handleUploadFrameAudio = async (index: number, file?: File) => {
-    if (!file) {
-      return;
-    }
-
-    const error = getAudioUploadError(file);
-    if (error) {
-      setValidationErrors((errors) => ({ ...errors, form: error }));
-      return;
-    }
-
-    // Converted to WAV up front (same as a student's own recordings) so the
-    // backend can extract a real pitch reference curve from it regardless of
-    // what format the teacher uploaded.
-    let wavBlob: Blob;
-    try {
-      wavBlob = await convertBlobToWav(file);
-    } catch {
-      setValidationErrors((errors) => ({
-        ...errors,
-        form: "Could not read that audio file. Try a different file.",
-      }));
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        updateDraftFrame("listenAudioUrls", index, reader.result);
-        updateDraftFrame("listenAudioSources", index, "teacher");
-        // Speaking materials use the suggested answer as the pronunciation
-        // target. Keep the target alongside the uploaded reference so a
-        // previously used listen/retell script cannot be analysed by mistake.
-        updateDraftFrame(
-          "listenScripts",
-          index,
-          customDraft.suggestedAnswers[customDraft.activeLevel][index] ?? "",
-        );
-      }
-    };
-    reader.readAsDataURL(wavBlob);
-  };
-
-  const stopFrameRecordingTracks = () => {
-    recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
-    recordingStreamRef.current = null;
-    if (recordingTimerRef.current) {
-      clearInterval(recordingTimerRef.current);
-      recordingTimerRef.current = null;
-    }
-  };
-
-  const handleStartFrameRecording = async (index: number) => {
-    setValidationErrors((errors) => ({ ...errors, form: undefined }));
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      recordingStreamRef.current = stream;
-      recordingChunksRef.current = [];
-
-      const preferredType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
-      const recorder = new MediaRecorder(
-        stream,
-        preferredType ? { mimeType: preferredType } : undefined,
-      );
-      mediaRecorderRef.current = recorder;
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          recordingChunksRef.current.push(event.data);
-        }
-      };
-
-      recorder.onstop = async () => {
-        stopFrameRecordingTracks();
-        const blob = new Blob(recordingChunksRef.current, {
-          type: recorder.mimeType || "audio/webm",
-        });
-        const file = new File([blob], "recording.webm", { type: blob.type });
-        const error = getAudioUploadError(file);
-        if (error) {
-          setValidationErrors((errors) => ({ ...errors, form: error }));
-          return;
-        }
-
-        // Converted to WAV up front (same as a student's own recordings) so
-        // the backend can extract a real pitch reference curve from it.
-        let wavBlob: Blob;
-        try {
-          wavBlob = await convertBlobToWav(blob);
-        } catch {
-          setValidationErrors((errors) => ({
-            ...errors,
-            form: "Could not process that recording. Please try recording again.",
-          }));
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = () => {
-          if (typeof reader.result === "string") {
-            updateDraftFrame("listenAudioUrls", index, reader.result);
-          }
-        };
-        reader.readAsDataURL(wavBlob);
-      };
-
-      recorder.start();
-      setRecordingSeconds(0);
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingSeconds((seconds) => seconds + 1);
-      }, 1000);
-      setRecordingFrameIndex(index);
-    } catch (err) {
-      setValidationErrors((errors) => ({
-        ...errors,
-        form:
-          err instanceof Error
-            ? err.message
-            : "Could not access the microphone.",
-      }));
-      stopFrameRecordingTracks();
-    }
-  };
-
-  const handleStopFrameRecording = () => {
-    if (mediaRecorderRef.current?.state === "recording") {
-      mediaRecorderRef.current.stop();
-    }
-    setRecordingFrameIndex(null);
-  };
-
-  useEffect(() => {
-    return () => {
-      stopFrameRecordingTracks();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleFillVocabFromSentence = async (index: number) => {
     const level = customDraft.activeLevel;
@@ -374,8 +230,7 @@ export function useStoryBuilderFrameActions(deps) {
 
 
   return {
-    handlePasteFrameImage, handleUploadFrameImage, handleUploadFrameAudio,
-    handleStartFrameRecording, handleStopFrameRecording,
+    handlePasteFrameImage, handleUploadFrameImage,
     handleFillVocabFromSentence, handleFillPhrasesFromSentence,
     handleFillStoryVocab, handleFillStoryPhrases,
   };

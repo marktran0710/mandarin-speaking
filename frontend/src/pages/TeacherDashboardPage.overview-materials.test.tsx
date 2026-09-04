@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import TopicSelector from "../components/TopicSelector";
 import TeacherDashboardPage from "./TeacherDashboardPage";
+import AdminMaterialsPage from "./AdminMaterialsPage";
 import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
 import * as db from "../services/database";
 import type { VocabQuizAttempt } from "../services/database";
@@ -84,6 +85,10 @@ function renderDashboard(records: AudioRecord[] = []) {
       onLogout={vi.fn()}
     />,
   );
+}
+
+function renderAdminMaterials() {
+  return render(<AdminMaterialsPage />);
 }
 
 describe("TeacherDashboardPage", () => {
@@ -176,9 +181,8 @@ describe("TeacherDashboardPage", () => {
 
   it("lets teachers save a custom image-based story activity", async () => {
     const user = userEvent.setup();
-    renderDashboard();
+    renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Taipei Rain Rescue");
@@ -208,9 +212,8 @@ describe("TeacherDashboardPage", () => {
 
   it("saves all four vocabulary table columns for a word", async () => {
     const user = userEvent.setup();
-    renderDashboard();
+    renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Restaurant Story");
@@ -254,9 +257,8 @@ describe("TeacherDashboardPage", () => {
       }),
     })));
 
-    renderDashboard();
+    renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
 
     // Teacher already typed one word in by hand, with its own translation —
@@ -285,9 +287,8 @@ describe("TeacherDashboardPage", () => {
   }, 10000);
 
   it("disables the vocab autofill button until a suggested-answer sentence is entered", async () => {
-    renderDashboard();
+    renderAdminMaterials();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
 
@@ -305,9 +306,8 @@ describe("TeacherDashboardPage", () => {
       }),
     })));
 
-    renderDashboard();
+    renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.type(
       screen.getAllByLabelText("Script")[0],
@@ -336,9 +336,8 @@ describe("TeacherDashboardPage", () => {
   }, 10000);
 
   it("disables the phrase generate button until a suggested-answer sentence is entered", async () => {
-    renderDashboard();
+    renderAdminMaterials();
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.click(screen.getByRole("button", { name: /Edit learning content/ }));
 
@@ -349,9 +348,8 @@ describe("TeacherDashboardPage", () => {
 
   it("lets teachers edit a saved custom story activity", async () => {
     const user = userEvent.setup();
-    renderDashboard();
+    renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Original Story");
@@ -382,9 +380,8 @@ describe("TeacherDashboardPage", () => {
 
   it("publishes a teacher story into the student topic selector", async () => {
     const user = userEvent.setup();
-    const { unmount } = renderDashboard();
+    const { unmount } = renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.type(screen.getByLabelText("Story title"), "Published MRT Help");
@@ -415,9 +412,8 @@ describe("TeacherDashboardPage", () => {
 
   it("shows validation errors when a teacher saves an incomplete custom story", async () => {
     const user = userEvent.setup();
-    renderDashboard();
+    renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     await user.clear(screen.getByLabelText("Story title"));
     await user.click(screen.getByRole("button", { name: "Save custom story" }));
@@ -433,9 +429,8 @@ describe("TeacherDashboardPage", () => {
 
   it("lets teachers upload a local image for a custom story frame", async () => {
     const user = userEvent.setup();
-    renderDashboard();
+    renderAdminMaterials();
 
-    await user.click(screen.getByRole("button", { name: /Materials/ }));
     await user.click(screen.getByRole("button", { name: /Story Builder/ }));
     const imageFile = new File(["story-image"], "story-frame.png", {
       type: "image/png",

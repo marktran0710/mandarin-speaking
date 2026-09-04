@@ -13,12 +13,11 @@ export type ManagementSection = "stories" | "quiz-review" | "submissions" | "sup
 
 const SECTION_CONFIG: Record<ManagementSection, {
   requiredRole: ManagementRole | "either";
-  teacherView?: "today" | "submissions" | "students" | "materials";
-  teacherMaterialsTool?: "builder" | "imageBuilder" | "quizReview";
-  adminNav?: "Admin Home" | "IRT / Student analytics" | "Measurement" | "Practice Debug";
+  teacherView?: "today" | "submissions" | "students";
+  adminNav?: "Admin Home" | "Materials" | "IRT / Student analytics" | "Measurement" | "Practice Debug";
 }> = {
-  stories: { requiredRole: "teacher", teacherView: "materials", teacherMaterialsTool: "builder" },
-  "quiz-review": { requiredRole: "teacher", teacherView: "materials", teacherMaterialsTool: "quizReview" },
+  stories: { requiredRole: "admin", adminNav: "Materials" },
+  "quiz-review": { requiredRole: "admin", adminNav: "Materials" },
   submissions: { requiredRole: "teacher", teacherView: "submissions" },
   // Help requests live on Today now, so /manage/support lands there.
   support: { requiredRole: "teacher", teacherView: "today" },
@@ -105,7 +104,7 @@ export default function ManagementApp({ initialRole, initialSection }: { initial
     return <AccessDenied role={role} />;
   }
 
-  if (role === "teacher") return <TeacherApp embedded onExit={() => setRole(null)} initialView={sectionConfig?.teacherView} initialMaterialsTool={sectionConfig?.teacherMaterialsTool} />;
+  if (role === "teacher") return <TeacherApp embedded onExit={() => setRole(null)} initialView={sectionConfig?.teacherView} />;
   if (role === "admin") return <AdminApp embedded onExit={() => setRole(null)} initialNav={sectionConfig?.adminNav} />;
 
   if (loginRole === "teacher") {

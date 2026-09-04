@@ -23,6 +23,17 @@ describe("admin-only diagnostic navigation", () => {
     expect(screen.queryByRole("button", { name: "Benchmark" })).not.toBeInTheDocument();
   });
 
+  it("keeps story materials in the admin navigation", async () => {
+    const user = userEvent.setup();
+    render(<AdminApp />);
+
+    await user.click(screen.getByRole("button", { name: "Materials" }));
+
+    expect(screen.getByRole("heading", { name: "Materials", level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Story Builder/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /AI Image Builder/ })).toBeInTheDocument();
+  });
+
   it("does not render diagnostic entries in the teacher navigation", () => {
     render(
       <ManagementShell
@@ -39,5 +50,6 @@ describe("admin-only diagnostic navigation", () => {
 
     expect(screen.queryByRole("button", { name: "Practice Debug" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Benchmark" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Materials" })).not.toBeInTheDocument();
   });
 });
