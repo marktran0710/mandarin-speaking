@@ -8,13 +8,13 @@ from main import TeacherCreateRequest, TeacherLoginRequest, TeacherUpdateRequest
 router = APIRouter()
 
 @router.get("/api/teachers")
-async def list_teachers(identity: auth.Identity = Depends(auth.require_teacher_or_admin)):
+def list_teachers(identity: auth.Identity = Depends(auth.require_teacher_or_admin)):
     with connect_db() as db:
         rows = db.execute("SELECT * FROM teachers ORDER BY lower(name)").fetchall()
     return [row_to_teacher(row) for row in rows]
 
 @router.post("/api/teachers")
-async def create_teacher(
+def create_teacher(
     request: TeacherCreateRequest,
     identity: auth.Identity = Depends(auth.require_admin),
 ):
@@ -30,7 +30,7 @@ async def create_teacher(
     return row_to_teacher(row)
 
 @router.post("/api/teachers/login")
-async def login_teacher(
+def login_teacher(
     request: TeacherLoginRequest,
     response: Response,
     http_request: Request,
@@ -53,12 +53,12 @@ async def login_teacher(
     return row_to_teacher(row)
 
 @router.post("/api/teachers/logout")
-async def logout_teacher(response: Response):
+def logout_teacher(response: Response):
     auth.clear_session_cookie(response, "teacher")
     return {"loggedOut": True}
 
 @router.patch("/api/teachers/{teacher_id}")
-async def update_teacher(
+def update_teacher(
     teacher_id: str,
     request: TeacherUpdateRequest,
     identity: auth.Identity = Depends(auth.require_admin),
@@ -93,7 +93,7 @@ async def update_teacher(
     return row_to_teacher(row)
 
 @router.delete("/api/teachers/{teacher_id}")
-async def delete_teacher(
+def delete_teacher(
     teacher_id: str,
     identity: auth.Identity = Depends(auth.require_admin),
 ):

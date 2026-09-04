@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.get("/api/story-submissions")
-async def list_story_submissions(
+def list_story_submissions(
     story_id: Optional[str] = None,
     student_id: Optional[str] = None,
     student_name: Optional[str] = None,
@@ -45,7 +45,7 @@ async def list_story_submissions(
 
 
 @router.patch("/api/story-submissions/{submission_id}/review")
-async def update_story_submission_review(
+def update_story_submission_review(
     submission_id: str,
     review: SubmissionReviewRequest,
     identity: auth.Identity = Depends(auth.require_teacher_or_admin),

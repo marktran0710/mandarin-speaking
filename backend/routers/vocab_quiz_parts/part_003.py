@@ -2,7 +2,7 @@ from analytics.frex import compute_frex
 
 
 @router.get("/api/analytics/vocab-quiz/frex")
-async def get_vocab_quiz_frex(
+def get_vocab_quiz_frex(
     top: int = 5,
     identity: auth.Identity = Depends(auth.get_current_identity),
 ):

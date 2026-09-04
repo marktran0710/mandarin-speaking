@@ -26,7 +26,7 @@ class AdminLoginRequest(BaseModel):
 
 
 @router.post("/login")
-async def login_admin(
+def login_admin(
     request: AdminLoginRequest,
     response: Response,
     http_request: Request,
@@ -43,6 +43,6 @@ async def login_admin(
 
 
 @router.post("/logout")
-async def logout_admin(response: Response):
+def logout_admin(response: Response):
     auth.clear_session_cookie(response, "admin")
     return {"loggedOut": True}

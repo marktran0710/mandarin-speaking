@@ -443,7 +443,7 @@ class TeacherUpdateRequest(BaseModel):
 
 
 @app.get("/health")
-async def health_check():
+def health_check():
     """Liveness endpoint with explicit database and upload-storage status.
 
     Keep this endpoint HTTP-200 so dashboards can inspect a degraded service;

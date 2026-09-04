@@ -109,7 +109,7 @@ app.include_router(tones_router)
 app.include_router(vocab_quiz_router)
 
 @app.get("/{frontend_path:path}")
-async def serve_frontend(frontend_path: str):
+def serve_frontend(frontend_path: str):
     """
     Serve the built React app from the backend port for local single-port use.
     """

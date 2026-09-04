@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 @router.get("/api/students")
-async def list_students(
+def list_students(
     identity: auth.Identity = Depends(auth.require_teacher_or_admin),
 ):
     with connect_db() as db:
@@ -27,7 +27,7 @@ async def list_students(
 
 
 @router.post("/api/students")
-async def create_student(
+def create_student(
     request: StudentCreateRequest,
     identity: auth.Identity = Depends(auth.require_admin),
 ):
@@ -59,7 +59,7 @@ async def create_student(
 
 
 @router.post("/api/students/login")
-async def login_student(
+def login_student(
     request: StudentLoginRequest,
     response: Response,
     http_request: Request,
@@ -104,7 +104,7 @@ async def login_student(
 
 
 @router.patch("/api/students/{student_id}/password")
-async def reset_student_password(
+def reset_student_password(
     student_id: str,
     request: StudentPasswordResetRequest,
     identity: auth.Identity = Depends(auth.require_admin),
@@ -121,7 +121,7 @@ async def reset_student_password(
 
 
 @router.patch("/api/students/{student_id}")
-async def update_student(
+def update_student(
     student_id: str,
     request: StudentUpdateRequest,
     identity: auth.Identity = Depends(auth.require_admin),
@@ -164,13 +164,13 @@ async def update_student(
 
 
 @router.post("/api/students/logout")
-async def logout_student(response: Response):
+def logout_student(response: Response):
     auth.clear_session_cookie(response, "student")
     return {"loggedOut": True}
 
 
 @router.delete("/api/students/{student_id}")
-async def delete_student(
+def delete_student(
     student_id: str,
     identity: auth.Identity = Depends(auth.require_admin),
 ):
