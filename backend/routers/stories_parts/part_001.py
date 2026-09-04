@@ -75,7 +75,7 @@ def _existing_pool(frame: dict, field: str) -> list:
 
 
 @router.get("/api/custom-stories")
-async def list_custom_stories(
+def list_custom_stories(
     limit: int = Query(default=100, ge=1, le=500),
     skip: int = Query(default=0, ge=0),
     identity: auth.Identity = Depends(auth.get_current_identity),
@@ -90,7 +90,7 @@ async def list_custom_stories(
 
 
 @router.post("/api/custom-stories")
-async def create_custom_story(story: CustomStoryRequest):
+def create_custom_story(story: CustomStoryRequest):
     frames = [frame.model_dump() for frame in story.frames]
     stored_frames = main.persist_story_frame_images(story.id, frames)
     stored_frames = main.persist_story_frame_audio(story.id, stored_frames)
@@ -137,7 +137,7 @@ async def create_custom_story(story: CustomStoryRequest):
 
 
 @router.delete("/api/custom-stories/{story_id}")
-async def delete_custom_story(story_id: str):
+def delete_custom_story(story_id: str):
     with connect_db() as db:
         row = db.execute(
             "SELECT frames FROM custom_stories WHERE id = %s",
@@ -154,7 +154,7 @@ async def delete_custom_story(story_id: str):
 
 
 @router.patch("/api/custom-stories/{story_id}/vocabulary-distractors")
-async def update_vocabulary_distractors(
+def update_vocabulary_distractors(
     story_id: str, request: VocabularyDistractorsUpdateRequest
 ):
     """
@@ -201,7 +201,7 @@ async def update_vocabulary_distractors(
 
 
 @router.put("/api/custom-stories/{story_id}/quiz-exclusions")
-async def update_quiz_exclusions(story_id: str, request: QuizExclusionsUpdateRequest):
+def update_quiz_exclusions(story_id: str, request: QuizExclusionsUpdateRequest):
     """Replaces the story's teacher-marked bad-quiz-material list wholesale —
     the review page's toggles always send the complete current set, so PUT
     semantics keep the endpoint idempotent and trivially undoable. Also
@@ -225,7 +225,7 @@ async def update_quiz_exclusions(story_id: str, request: QuizExclusionsUpdateReq
 
 
 @router.put("/api/custom-stories/{story_id}/quiz-pending-approvals")
-async def update_quiz_pending_approvals(story_id: str, request: QuizPendingApprovalsUpdateRequest):
+def update_quiz_pending_approvals(story_id: str, request: QuizPendingApprovalsUpdateRequest):
     """Saves the Quiz Review page's opt-in checkbox selections for one tier
     — not a publish action (see /quiz/approve), just so a teacher's
     in-progress review survives a page reload. Keyed by tier like
@@ -245,7 +245,7 @@ async def update_quiz_pending_approvals(story_id: str, request: QuizPendingAppro
 
 
 @router.put("/api/custom-stories/{story_id}/quiz-question")
-async def replace_quiz_question(story_id: str, request: QuizQuestionReplaceRequest):
+def replace_quiz_question(story_id: str, request: QuizQuestionReplaceRequest):
     """Replaces one candidate's content in place, unlike the vocabulary-*
     PATCH endpoints above (which only merge new items into a pool and can't
     fix an existing bad one). distractors has no poolIndex — editing it
@@ -331,7 +331,7 @@ async def replace_quiz_question(story_id: str, request: QuizQuestionReplaceReque
 
 
 @router.patch("/api/custom-stories/{story_id}/vocabulary-cloze")
-async def update_vocabulary_cloze(story_id: str, request: VocabularyClozeUpdateRequest):
+def update_vocabulary_cloze(story_id: str, request: VocabularyClozeUpdateRequest):
     """
     Tops up a story's per-word cloze-question pool (grown over time as
     students complete quiz rounds), mirroring update_vocabulary_distractors
@@ -374,7 +374,7 @@ async def update_vocabulary_cloze(story_id: str, request: VocabularyClozeUpdateR
 
 
 @router.patch("/api/custom-stories/{story_id}/vocabulary-synonym")
-async def update_vocabulary_synonym(story_id: str, request: VocabularySynonymUpdateRequest):
+def update_vocabulary_synonym(story_id: str, request: VocabularySynonymUpdateRequest):
     """
     Tops up a story's per-word synonym-question pool, mirroring
     update_vocabulary_cloze above — merges new {synonym, distractors}

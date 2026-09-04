@@ -15,6 +15,6 @@ router = APIRouter(dependencies=[Depends(auth.require_teacher_or_admin)])
 
 
 @router.post("/api/pilot/audio-records")
-async def create_pilot_audio_record(record: AudioRecordRequest):
+def create_pilot_audio_record(record: AudioRecordRequest):
     main.save_audio_record(record)
     return record

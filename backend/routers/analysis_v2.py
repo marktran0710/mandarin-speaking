@@ -321,7 +321,7 @@ def build_character_prosody(metrics: Any, transcription: str, pinyin_hint: str =
 
 @router.get("/api/analyze/v2/health")
 @router.get("/api/analysis-v2/health")
-async def analysis_v2_health():
+def analysis_v2_health():
     return {
         "ready": _enabled(),
         "experimental": True,

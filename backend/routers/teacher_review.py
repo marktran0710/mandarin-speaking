@@ -130,7 +130,7 @@ def _has_rating(db, teacher_id: str, attempt_id: str, stage: RatingStage) -> boo
 
 
 @router.get("/queue")
-async def review_queue(teacher_id: str = Query(...)):
+def review_queue(teacher_id: str = Query(...)):
     """PART 14: pseudonymous participant/item/attempt_type/status only --
     no system prediction, no student name (participant_id is already the
     opaque roster uuid, not a display name)."""
@@ -185,7 +185,7 @@ async def review_queue(teacher_id: str = Query(...)):
 
 
 @router.get("/attempt/{audio_record_id}/stage1")
-async def get_stage1_view(audio_record_id: str):
+def get_stage1_view(audio_record_id: str):
     with connect_db() as db:
         row = _fetch_audio_record(db, audio_record_id)
 
@@ -204,7 +204,7 @@ async def get_stage1_view(audio_record_id: str):
 
 
 @router.get("/attempt/{audio_record_id}/stage2")
-async def get_stage2_view(audio_record_id: str, teacher_id: str = Query(...)):
+def get_stage2_view(audio_record_id: str, teacher_id: str = Query(...)):
     with connect_db() as db:
         row = _fetch_audio_record(db, audio_record_id)
         if not _has_rating(db, teacher_id, row["attempt_id"], "stage_1_blind"):
@@ -273,7 +273,7 @@ class TeacherStage2RatingRequest(BaseModel):
 
 
 @router.post("/ratings/stage1")
-async def submit_stage1_rating(rating: TeacherStage1RatingRequest):
+def submit_stage1_rating(rating: TeacherStage1RatingRequest):
     with connect_db() as db:
         audio_row = _fetch_audio_record(db, rating.audio_record_id)
 
@@ -319,7 +319,7 @@ async def submit_stage1_rating(rating: TeacherStage1RatingRequest):
 
 
 @router.post("/ratings/stage2")
-async def submit_stage2_rating(rating: TeacherStage2RatingRequest):
+def submit_stage2_rating(rating: TeacherStage2RatingRequest):
     with connect_db() as db:
         audio_row = _fetch_audio_record(db, rating.audio_record_id)
         if not _has_rating(db, rating.teacher_id, audio_row["attempt_id"], "stage_1_blind"):

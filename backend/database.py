@@ -20,15 +20,25 @@ DATABASE_URL = os.getenv(
     "DATABASE_URL", "postgresql://mandarin:mandarin@127.0.0.1:5432/mandarin"
 )
 
-# Postgres' own default max_connections is 100; a pool of 20 leaves plenty
+# Postgres' own default max_connections is 100; a pool of 32 leaves plenty
 # of headroom for psql/pg_dump/other tools while still covering a burst of
 # ~50 students, since each connection is only held for the duration of one
 # query (connect_db()'s `with` block), not the whole request - the CPU-bound
 # Praat/ASR work happens outside it. min=2 avoids a cold-open on the first
 # couple of concurrent requests after the pool has been idle.
+#
+# The DB-backed route handlers are plain `def`, so Starlette runs each in a
+# worker thread; the pool must therefore be able to serve as many concurrent
+# queries as there are worker threads (see the thread-limiter alignment in
+# main's startup) or those threads queue on connection checkout.
 _POOL_MIN = int(os.getenv("DB_POOL_MIN", "2"))
-_POOL_MAX = int(os.getenv("DB_POOL_MAX", "20"))
+_POOL_MAX = int(os.getenv("DB_POOL_MAX", "32"))
 _DB_TIMEOUT = float(os.getenv("DB_TIMEOUT_SECONDS", "10"))
+
+
+def pool_max_size() -> int:
+    """Configured max pool size, so the app can size its thread limiter to match."""
+    return _POOL_MAX
 
 # open=False so importing this module never blocks on a database that isn't
 # up yet — init_db() opens it at FastAPI startup, and tests re-point it at

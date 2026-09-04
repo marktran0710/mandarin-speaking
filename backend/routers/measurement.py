@@ -39,7 +39,7 @@ def _row_to_event(row: dict) -> dict:
 
 
 @router.post("/api/measurement-events", status_code=202)
-async def record_measurement_event(
+def record_measurement_event(
     event: MeasurementEventRequest,
     identity: auth.Identity = Depends(auth.require_student),
 ):
@@ -64,7 +64,7 @@ async def record_measurement_event(
 
 
 @router.get("/api/measurement-events")
-async def list_measurement_events(
+def list_measurement_events(
     limit: int = Query(default=2000, ge=1, le=10000),
     identity: auth.Identity = Depends(auth.require_teacher_or_admin),
 ):

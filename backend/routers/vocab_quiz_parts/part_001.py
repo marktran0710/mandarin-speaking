@@ -33,7 +33,7 @@ router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 
 
 @router.get("/api/vocab-quiz-attempts")
-async def list_vocab_quiz_attempts(
+def list_vocab_quiz_attempts(
     story_id: Optional[str] = None,
     student_name: Optional[str] = None,
     student_id: Optional[str] = None,
@@ -66,7 +66,7 @@ def _assert_student_scope(identity: auth.Identity, student_id: str) -> None:
 
 
 @router.get("/api/students/{student_id}/weak-words")
-async def get_student_priority_review_words(
+def get_student_priority_review_words(
     student_id: str,
     review_count: Optional[int] = None,
     story_id: Optional[str] = None,
@@ -83,7 +83,7 @@ async def get_student_priority_review_words(
 
 
 @router.get("/api/students/{student_id}/vocabulary-mastery")
-async def get_student_vocabulary_mastery(
+def get_student_vocabulary_mastery(
     student_id: str,
     identity: auth.Identity = Depends(auth.get_current_identity),
 ):
@@ -96,7 +96,7 @@ async def get_student_vocabulary_mastery(
 
 
 @router.get("/api/students/{student_id}/vocabulary-mastery/{word_id:path}/seen-items")
-async def get_seen_vocabulary_items(
+def get_seen_vocabulary_items(
     student_id: str,
     word_id: str,
     identity: auth.Identity = Depends(auth.get_current_identity),
@@ -107,7 +107,7 @@ async def get_seen_vocabulary_items(
 
 
 @router.get("/api/vocab-quiz-attempts/weak-words")
-async def get_weak_words(
+def get_weak_words(
     story_id: str,
     include_all: bool = False,
     identity: auth.Identity = Depends(auth.require_student),
@@ -125,7 +125,7 @@ async def get_weak_words(
 
 
 @router.post("/api/vocab-quiz-attempts")
-async def create_vocab_quiz_attempt(
+def create_vocab_quiz_attempt(
     attempt: VocabQuizAttemptRequest,
     identity: auth.Identity = Depends(auth.require_student),
 ):

@@ -7,7 +7,7 @@ router = APIRouter()
 
 
 @router.get("/api/reference-tone/{tone_number}", response_model=ReferenceToneResponse)
-async def get_reference_tone(tone_number: int):
+def get_reference_tone(tone_number: int):
     """
     Get reference pitch contour for a Mandarin tone (1-4).
     """
@@ -35,7 +35,7 @@ async def get_reference_tone(tone_number: int):
 
 
 @router.get("/api/all-tones")
-async def get_all_tones():
+def get_all_tones():
     """
     Get all Mandarin tone references.
     """

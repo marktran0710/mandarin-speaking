@@ -17,7 +17,7 @@ def _sse_line(payload: dict) -> str:
 
 
 @router.get("/api/asr-status", response_model=AsrStatusResponse)
-async def get_asr_status():
+def get_asr_status():
     with main._vibevoice_load_lock:
         if main._vibevoice_asr_model is not None:
             return AsrStatusResponse(
@@ -46,7 +46,7 @@ async def get_asr_status():
 
 
 @router.get("/api/ai-providers")
-async def get_ai_providers():
+def get_ai_providers():
     """List language-feedback engines for the student-facing engine picker.
 
     Each entry reports whether it is usable right now (cloud engines need an

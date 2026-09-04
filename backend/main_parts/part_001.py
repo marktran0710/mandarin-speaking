@@ -53,7 +53,9 @@ from database import (
     close_db,
     connect_db,
     init_db,
+    pool_max_size,
 )
+import anyio
 from psycopg.types.json import Jsonb
 
 import caf_metrics
@@ -122,7 +124,7 @@ os.makedirs(AUDIO_UPLOAD_DIR, exist_ok=True)
 os.makedirs(IMAGE_UPLOAD_DIR, exist_ok=True)
 os.makedirs(STORY_AUDIO_UPLOAD_DIR, exist_ok=True)
 @app.get("/uploads/{relative_path:path}")
-async def serve_upload(
+def serve_upload(
     relative_path: str,
     identity: auth.Identity = Depends(auth.get_current_identity),
 ):
@@ -174,6 +176,13 @@ async def startup_event():
         if not Path(UPLOAD_DIR).is_absolute() or not str(Path(UPLOAD_DIR)).startswith("/data"):
             raise RuntimeError("Production uploads must live on the persistent /data volume.")
     init_db()
+
+    # DB-backed routes are plain `def`, so Starlette dispatches each to a
+    # worker thread. Align the default thread limiter with the DB pool size so
+    # we never run more concurrent blocking queries than the pool can serve -
+    # extra threads would otherwise pile up waiting on connection checkout and
+    # hit the pool timeout. ASR/Praat keep their own smaller semaphore on top.
+    anyio.to_thread.current_default_thread_limiter().total_tokens = pool_max_size()
 
 
 @app.on_event("shutdown")

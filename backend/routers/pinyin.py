@@ -13,7 +13,7 @@ class PinyinBatchRequest(BaseModel):
 
 
 @router.post("/api/pinyin")
-async def resolve_pinyin(request: PinyinBatchRequest):
+def resolve_pinyin(request: PinyinBatchRequest):
     """Resolve frontend pinyin requests through the backend canonical map."""
     seen: set[str] = set()
     items = []
