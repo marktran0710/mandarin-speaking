@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections import defaultdict
 from typing import Any, Literal, Optional
 
@@ -9,6 +10,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.concurrency import run_in_threadpool
 
 import auth
+from analytics.ttl_cache import TTLCache
 from analytics.knowledge_tracing import (
     BKT,
     BKTParameters,
@@ -280,6 +282,15 @@ def _compute_bkt_question_audit(all_tiers: bool = False) -> dict[str, Any]:
     return report
 
 
+# These endpoints are admin-only, read-only, and deterministic for a given
+# database state, but each recomputes PFA/BKT models (the audit scans every
+# quiz attempt). Memoise the result for a short window so a dashboard refresh
+# or several concurrent views don't repeat the work. Staleness is bounded by
+# the TTL; set ANALYTICS_CACHE_TTL_SECONDS=0 to disable for real-time debugging.
+_ANALYTICS_CACHE_TTL = float(os.getenv("ANALYTICS_CACHE_TTL_SECONDS", "60"))
+_analytics_cache = TTLCache(_ANALYTICS_CACHE_TTL)
+
+
 @router.get("/knowledge-state")
 async def get_knowledge_state(
     model: Literal["pfa", "bkt", "compare"] = Query(default="compare"),
@@ -288,7 +299,11 @@ async def get_knowledge_state(
     level: Optional[Literal["easy", "medium", "hard"]] = Query(default=None),
     _identity: auth.Identity = Depends(auth.require_admin),
 ):
-    return await run_in_threadpool(_compute_knowledge_state, model, student_id, story_id, level)
+    return await run_in_threadpool(
+        _analytics_cache.get_or_compute,
+        ("knowledge-state", model, student_id, story_id, level),
+        lambda: _compute_knowledge_state(model, student_id, story_id, level),
+    )
 
 
 @router.get("/bkt-question-audit")
@@ -296,4 +311,8 @@ async def get_bkt_question_audit(
     all_tiers: bool = Query(default=False),
     _identity: auth.Identity = Depends(auth.require_admin),
 ):
-    return await run_in_threadpool(_compute_bkt_question_audit, all_tiers)
+    return await run_in_threadpool(
+        _analytics_cache.get_or_compute,
+        ("bkt-question-audit", all_tiers),
+        lambda: _compute_bkt_question_audit(all_tiers),
+    )
