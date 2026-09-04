@@ -137,20 +137,34 @@ def serve_upload(
         raise HTTPException(status_code=404, detail="Media not found.")
     if identity.role == "student":
         stored_url = f"/uploads/{relative_path.replace(os.sep, '/')}"
+        # Evaluate the three ownership checks cheapest-first and stop at the
+        # first match. Same authorization result as testing all three, but a
+        # student replaying their own audio (the common case) never reaches the
+        # published-lesson check, whose `frames::text LIKE '%url%'` is an
+        # unindexable full-table scan - kept last so it runs only when the two
+        # indexed lookups both miss (i.e. only for published lesson media).
         with connect_db() as db:
-            owns_audio = db.execute(
-                "SELECT 1 FROM audio_records WHERE student_id = %s AND audio_url = %s LIMIT 1",
-                (identity.id, stored_url),
-            ).fetchone()
-            owns_story_audio = db.execute(
-                "SELECT 1 FROM story_submissions WHERE student_id = %s AND concatenated_audio_url = %s LIMIT 1",
-                (identity.id, stored_url),
-            ).fetchone()
-            is_published_lesson_media = db.execute(
-                "SELECT 1 FROM custom_stories WHERE published = TRUE AND frames::text LIKE %s LIMIT 1",
-                (f"%{stored_url}%",),
-            ).fetchone()
-        if not owns_audio and not owns_story_audio and not is_published_lesson_media:
+            allowed = bool(
+                db.execute(
+                    "SELECT 1 FROM audio_records WHERE student_id = %s AND audio_url = %s LIMIT 1",
+                    (identity.id, stored_url),
+                ).fetchone()
+            )
+            if not allowed:
+                allowed = bool(
+                    db.execute(
+                        "SELECT 1 FROM story_submissions WHERE student_id = %s AND concatenated_audio_url = %s LIMIT 1",
+                        (identity.id, stored_url),
+                    ).fetchone()
+                )
+            if not allowed:
+                allowed = bool(
+                    db.execute(
+                        "SELECT 1 FROM custom_stories WHERE published = TRUE AND frames::text LIKE %s LIMIT 1",
+                        (f"%{stored_url}%",),
+                    ).fetchone()
+                )
+        if not allowed:
             raise HTTPException(status_code=403, detail="Media access is not allowed.")
     media_type, _ = mimetypes.guess_type(str(requested))
     return FileResponse(requested, media_type=media_type or "application/octet-stream")
