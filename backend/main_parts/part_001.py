@@ -180,6 +180,27 @@ async def add_security_headers(request, call_next):
     return response
 
 
+# Per-request timing so the actually-slow endpoints show up in the logs (and in
+# the browser's network panel via Server-Timing) instead of being guessed at.
+# Added after add_security_headers, so it is the outermost middleware and times
+# the whole request. Requests at/above SLOW_REQUEST_MS are logged as warnings.
+_SLOW_REQUEST_MS = float(os.getenv("SLOW_REQUEST_MS", "1000"))
+
+
+@app.middleware("http")
+async def log_request_timing(request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = (time.perf_counter() - start) * 1000
+    response.headers["Server-Timing"] = f"app;dur={duration_ms:.1f}"
+    if duration_ms >= _SLOW_REQUEST_MS:
+        logger.warning(
+            "slow request %s %s -> %s in %.0fms",
+            request.method, request.url.path, response.status_code, duration_ms,
+        )
+    return response
+
+
 @app.on_event("startup")
 async def startup_event():
     if os.getenv("APP_ENV", "development").lower() == "production":
