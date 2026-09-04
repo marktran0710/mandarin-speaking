@@ -171,7 +171,9 @@ def row_to_help_request(row: dict) -> dict:
 
 
 def row_to_vocab_quiz_attempt(row: dict) -> dict:
-    question_results = row["question_results"] or []
+    # `.get`, not `[...]`: a lightweight list query may omit question_results
+    # entirely (see list_vocab_quiz_attempts' include_results=false path).
+    question_results = row.get("question_results") or []
     first_result = question_results[0] if question_results else {}
     return {
         "id": row["id"],
