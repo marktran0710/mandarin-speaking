@@ -167,7 +167,15 @@ def serve_upload(
         if not allowed:
             raise HTTPException(status_code=403, detail="Media access is not allowed.")
     media_type, _ = mimetypes.guess_type(str(requested))
-    return FileResponse(requested, media_type=media_type or "application/octet-stream")
+    # Uploaded media is immutable (its URL is content/id-addressed), and it is
+    # the highest-volume request type, so let the browser cache it and skip the
+    # round-trip (and this authorization check) when a student reopens a story.
+    # `private`, never a shared/CDN cache, because the media is auth-gated.
+    return FileResponse(
+        requested,
+        media_type=media_type or "application/octet-stream",
+        headers={"Cache-Control": "private, max-age=3600"},
+    )
 
 
 @app.middleware("http")
