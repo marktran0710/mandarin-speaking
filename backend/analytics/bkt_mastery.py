@@ -4,17 +4,30 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timezone
+from hashlib import sha256
+import json
 from typing import Any, Iterable
 import unicodedata
 
 from psycopg.types.json import Jsonb
 
-from analytics.bkt import BKT_CONFIG, BktConfig, mastery_status, replay_bkt
+from analytics.bkt import BKT_CONFIG, BKT_MODEL_VERSION, BktConfig, bkt_parameter_fingerprint, mastery_status, replay_bkt
 from analytics.bkt_question_validation import classify_bkt_response
 
 
 DIAGNOSTIC_MODES = ("tier1", "tier2", "tier3")
 DIAGNOSTIC_LEVELS = ("easy", "medium", "hard")
+
+# This fixed list is the fingerprint contract. Operational provenance does not
+# alter the immutable assessment facts that define an idempotent replay.
+_RESPONSE_FINGERPRINT_FIELDS = (
+    "student_id", "word_id", "word", "lesson_id", "quiz_id", "item_id",
+    "question_type", "round_type", "knowledge_dimension", "activity_type",
+    "diagnostic_exposure_id", "bkt_eligible", "bkt_eligibility_errors",
+    "selected_answer", "correct_answer", "presented_options", "question_prompt",
+    "answered_at", "correct", "response_time_ms", "attempt_order", "quiz_level",
+    "quiz_mode",
+)
 
 
 def normalize_word_id(value: str) -> str:
@@ -81,6 +94,11 @@ def response_rows_for_attempt(attempt: Any, student_id: str, response_results: I
     attempt_id = value("id")
     for order, raw in enumerate(results or []):
         result = raw.model_dump(exclude_none=True) if hasattr(raw, "model_dump") else dict(raw)
+        # Only the route-level resolver may mark a response authoritative.
+        # This keeps direct callers from turning client correctness fields into
+        # production BKT evidence.
+        if result.get("authoritativeResolved") is not True:
+            continue
         eligible, _reasons = classify_bkt_response(result, attempt)
         quiz_mode = result.get("mode") or mode
         # Diagnostic evidence is server-gated. A personalized review answer is
@@ -116,7 +134,13 @@ def response_rows_for_attempt(attempt: Any, student_id: str, response_results: I
             "answered_at": result.get("answeredAt"),
             "correct": result["correct"],
             "response_time_ms": int(result.get("timeMs") or 0),
-            "occurred_at": completed_at,
+            # ``answeredAt`` is stable when the live cumulative response is
+            # replayed by the final attempt, while ``completedAt`` correctly
+            # remains the end of the whole quiz.
+            "occurred_at": result.get("answeredAt") or completed_at,
+            "evidence_origin": "real" if result.get("resolverVersion") else "legacy_unknown",
+            "resolver_version": result.get("resolverVersion"),
+            "occurred_at_utc": _parse_occurred_at_utc(result.get("answeredAt") or completed_at),
             "attempt_order": order,
             "quiz_level": result.get("level") or level,
             "quiz_mode": mode,
@@ -124,14 +148,41 @@ def response_rows_for_attempt(attempt: Any, student_id: str, response_results: I
     return rows
 
 
+def _response_fingerprint(row: dict[str, Any]) -> str:
+    # A cumulative live response is replayed by the completed attempt. Its
+    # attempt id and fallback completion timestamp may differ, while the
+    # learner answer and authoritative assessment facts must remain identical.
+    immutable = {key: row.get(key) for key in _RESPONSE_FINGERPRINT_FIELDS}
+    return sha256(json.dumps(immutable, sort_keys=True, default=str, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _parse_occurred_at_utc(value: Any) -> datetime | None:
+    """Return an unambiguous UTC instant, retaining malformed/naive input raw-only."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(timezone.utc)
+
+
+def response_slot_key(row: dict[str, Any]) -> tuple[str, str, int]:
+    return (str(row["student_id"]), str(row["quiz_id"]), int(row["attempt_order"]))
+
+
 def upsert_raw_responses(db: Any, rows: Iterable[dict[str, Any]]) -> None:
     for row in rows:
+        fingerprint = _response_fingerprint(row)
         values = [row[key] for key in (
             "student_id", "word_id", "word", "lesson_id", "quiz_id", "attempt_id",
             "item_id", "question_type", "selected_answer", "correct_answer",
             "presented_options", "question_prompt", "answered_at", "bkt_eligible",
             "diagnostic_exposure_id", "bkt_eligibility_errors", "correct", "response_time_ms", "occurred_at",
-            "attempt_order", "quiz_level", "quiz_mode", "round_type", "knowledge_dimension", "activity_type",
+            "occurred_at_utc", "evidence_origin", "resolver_version", "attempt_order", "quiz_level", "quiz_mode",
+            "round_type", "knowledge_dimension", "activity_type",
         )]
         values[10] = Jsonb(values[10])
         values[15] = Jsonb(values[15])
@@ -142,36 +193,39 @@ def upsert_raw_responses(db: Any, rows: Iterable[dict[str, Any]]) -> None:
                 item_id, question_type, selected_answer, correct_answer,
                 presented_options, question_prompt, answered_at, bkt_eligible,
                 diagnostic_exposure_id, bkt_eligibility_errors, correct,
-                response_time_ms, occurred_at, attempt_order, quiz_level, quiz_mode,
-                round_type, knowledge_dimension, activity_type)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (quiz_id, attempt_order) DO UPDATE SET
-                student_id = EXCLUDED.student_id,
-                word_id = EXCLUDED.word_id,
-                word = EXCLUDED.word,
-                lesson_id = EXCLUDED.lesson_id,
-                attempt_id = EXCLUDED.attempt_id,
-                item_id = EXCLUDED.item_id,
-                question_type = EXCLUDED.question_type,
-                selected_answer = EXCLUDED.selected_answer,
-                correct_answer = EXCLUDED.correct_answer,
-                presented_options = EXCLUDED.presented_options,
-                question_prompt = EXCLUDED.question_prompt,
-                answered_at = EXCLUDED.answered_at,
-                bkt_eligible = EXCLUDED.bkt_eligible,
-                diagnostic_exposure_id = EXCLUDED.diagnostic_exposure_id,
-                bkt_eligibility_errors = EXCLUDED.bkt_eligibility_errors,
-                correct = EXCLUDED.correct,
-                response_time_ms = EXCLUDED.response_time_ms,
-                occurred_at = EXCLUDED.occurred_at,
-                quiz_level = EXCLUDED.quiz_level,
-                quiz_mode = EXCLUDED.quiz_mode,
-                round_type = EXCLUDED.round_type,
-                knowledge_dimension = EXCLUDED.knowledge_dimension,
-                activity_type = EXCLUDED.activity_type
+                response_time_ms, occurred_at, occurred_at_utc, evidence_origin, resolver_version,
+                attempt_order, quiz_level, quiz_mode, round_type, knowledge_dimension, activity_type,
+                response_fingerprint)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (student_id, quiz_id, attempt_order) DO NOTHING
+            RETURNING id
             """,
-            values,
+            [*values, fingerprint],
         )
+        # The per-student transaction lock means this read cannot race another
+        # write for the same identity. Exact retries are harmless; a changed
+        # response for the same logical slot is a conflict, never an update.
+        existing = db.execute(
+            f"SELECT response_fingerprint, {', '.join(_RESPONSE_FINGERPRINT_FIELDS)} "
+            "FROM vocab_quiz_responses WHERE student_id = %s AND quiz_id = %s AND attempt_order = %s",
+            (row["student_id"], row["quiz_id"], row["attempt_order"]),
+        ).fetchone()
+        if not existing:
+            raise RuntimeError("Quiz response ledger insert did not persist a response slot.")
+        existing_fingerprint = existing["response_fingerprint"]
+        if existing_fingerprint is None and _response_fingerprint(existing) == fingerprint:
+            # 0030 introduced fingerprints after legacy audit rows existed.
+            # An exact fact replay may establish its missing fingerprint, but
+            # never overwrite facts which disagree with that replay.
+            db.execute(
+                "UPDATE vocab_quiz_responses SET response_fingerprint = %s "
+                "WHERE student_id = %s AND quiz_id = %s AND attempt_order = %s "
+                "AND response_fingerprint IS NULL",
+                (fingerprint, row["student_id"], row["quiz_id"], row["attempt_order"]),
+            )
+            existing_fingerprint = fingerprint
+        if existing_fingerprint != fingerprint:
+            raise ValueError("Quiz response replay conflicts with immutable ledger data.")
 
 
 def _ordered_responses(db: Any, student_id: str, story_id: str | None = None) -> list[dict[str, Any]]:
@@ -231,8 +285,15 @@ def _mastery_states_from_responses(responses: Iterable[dict[str, Any]], params: 
     return states
 
 
-def rebuild_student_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CONFIG) -> None:
+def _lock_student_bkt(db: Any, student_id: str) -> None:
+    """Serialize a learner's ledger write and replay within this transaction."""
+    db.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (student_id,))
+
+
+def rebuild_student_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CONFIG, *, acquire_lock: bool = True) -> None:
     """Rebuild one learner's cache entirely from the raw response ledger."""
+    if acquire_lock:
+        _lock_student_bkt(db, student_id)
     states = _mastery_states_from_responses(_ordered_responses(db, student_id), params)
 
     db.execute("DELETE FROM student_vocab_mastery WHERE student_id = %s", (student_id,))
@@ -243,13 +304,13 @@ def rebuild_student_vocabulary_mastery(db: Any, student_id: str, params: BktConf
             INSERT INTO student_vocab_mastery
                 (student_id, word_id, p_learned, observation_count, correct_count,
                  incorrect_count, last_response_at, last_item_id, last_question_type,
-                 last_lesson_id, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 last_lesson_id, model_version, parameter_fingerprint, created_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 student_id, state["word_id"], state["p_learned"], state["observation_count"], state["correct_count"],
                 state["incorrect_count"], state["last_response_at"], state["last_item_id"],
-                state["last_question_type"], state["last_lesson_id"], now, now,
+                state["last_question_type"], state["last_lesson_id"], BKT_MODEL_VERSION, bkt_parameter_fingerprint(params), now, now,
             ),
         )
 
@@ -261,8 +322,9 @@ def rebuild_all_vocabulary_mastery(db: Any, params: BktConfig = BKT_CONFIG) -> N
 
 
 def record_attempt_and_rebuild(db: Any, attempt: Any, student_id: str, params: BktConfig = BKT_CONFIG, response_results: Iterable[Any] | None = None) -> None:
+    _lock_student_bkt(db, student_id)
     upsert_raw_responses(db, response_rows_for_attempt(attempt, student_id, response_results))
-    rebuild_student_vocabulary_mastery(db, student_id, params)
+    rebuild_student_vocabulary_mastery(db, student_id, params, acquire_lock=False)
 
 
 def _diagnostic_round_counts(db: Any, student_id: str, story_id: str | None = None) -> dict[str, int]:
@@ -565,12 +627,21 @@ def get_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CON
         observed = seen_types.get(row["wordId"]) or {}
         row["seenQuestionTypes"] = [value for value in (observed.get("types") or []) if value]
         row["failedQuestionTypes"] = [value for value in (observed.get("failed_types") or []) if value]
-    return sorted(result, key=lambda row: (
-        row["pLearned"],
-        row["observationCount"],
-        row["lastResponseAt"] or "",
-        row["wordId"],
-    ))
+    return sorted(result, key=bottom_k_review_key)
+
+
+def bottom_k_review_key(row: dict[str, Any]) -> tuple[Any, ...]:
+    """Stable production ordering for review candidates."""
+    return (row["pLearned"], row["observationCount"], row["lastResponseAt"] or "", row["wordId"])
+
+
+def rank_review_candidates(candidates: Iterable[dict[str, Any]], review_count: int, include_all: bool) -> list[dict[str, Any]]:
+    selected = sorted(candidates, key=bottom_k_review_key)
+    if not include_all:
+        selected = selected[:review_count]
+    for rank, row in enumerate(selected, start=1):
+        row["reviewRank"] = rank
+    return selected
 
 
 def get_priority_review_words(db: Any, student_id: str, options: dict[str, Any] | None = None, params: BktConfig = BKT_CONFIG) -> dict[str, Any]:
@@ -586,14 +657,7 @@ def get_priority_review_words(db: Any, student_id: str, options: dict[str, Any] 
     # cannot accidentally open personalized practice early.
     if not diagnostic["unlocked"]:
         eligible = []
-    eligible.sort(key=lambda row: (
-        0 if row.get("failedQuestionTypes") else 1,
-        len(row.get("seenQuestionTypes") or []),
-        row["pLearned"],
-        row["lastResponseAt"] or "",
-        row["wordId"],
-    ))
-    selected = eligible if include_all_weak else eligible[:review_count]
+    selected = rank_review_candidates(eligible, review_count, include_all_weak)
     selected_ids = {row["wordId"] for row in selected}
     for row in mastery:
         row["status"] = "UNASSESSED" if not diagnostic["unlocked"] else mastery_status(row["observationCount"], row["pLearned"], selected_for_review=row["wordId"] in selected_ids, params=params)

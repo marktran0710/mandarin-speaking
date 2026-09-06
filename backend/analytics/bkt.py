@@ -9,6 +9,8 @@ validated or calibrated cutoffs.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from hashlib import sha256
+import json
 from math import isfinite
 from typing import Iterable
 
@@ -32,6 +34,16 @@ class BktConfig:
 # TODO: replace with pilot-calibrated/frozen BKT parameters before the main
 # experiment. These transparent temporary defaults are not research-validated.
 BKT_CONFIG = BktConfig()
+# Versioned provenance for persisted cache rows. Changing this intentionally
+# requires a reviewed model release; it does not alter the BKT calculation.
+BKT_MODEL_VERSION = "standard-bkt-v1"
+
+
+def bkt_parameter_fingerprint(params: BktConfig = BKT_CONFIG) -> str:
+    """Stable fingerprint of the exact configuration used for a replay."""
+    values = {name: getattr(params, name) for name in BktConfig.__dataclass_fields__}
+    encoded = json.dumps(values, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return sha256(encoded.encode("utf-8")).hexdigest()
 
 # Named aliases keep the research controls easy to find for admin tooling and
 # future calibration work while the dataclass remains the single source of

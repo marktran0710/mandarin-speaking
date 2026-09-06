@@ -21,6 +21,7 @@ import {
   TIMER_TICK_MS,
   assessmentAnswerIsCorrect,
   buildDiagnosticRoundQuestions,
+  buildPersonalizedAssessmentQuestions,
   buildQuizQuestion,
   canUseSpeechSynthesis,
   quizConceptId,
@@ -66,6 +67,21 @@ export function correctAnswer(question: VocabQuizQuestion) {
     case "listening": return question.correctWord;
     case "assessment": return question.correctAnswer;
   }
+}
+
+export function entriesInServerPriorityOrder(entries: VocabQuizEntry[], priorityReviewWords: VocabPriorityReviewWord[]): VocabQuizEntry[] {
+  return priorityReviewWords.flatMap((priorityWord) => {
+    const entry = entries.find((candidate) => candidate.wordId === priorityWord.wordId)
+      ?? entries.find((candidate) => candidate.word === priorityWord.word);
+    if (!entry) return [];
+    return priorityWord.seenQuestionTypes?.length || priorityWord.failedQuestionTypes?.length
+      ? [{
+        ...entry,
+        bktSeenQuestionKinds: priorityWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"],
+        bktFailedQuestionKinds: priorityWord.failedQuestionTypes as VocabQuizEntry["bktFailedQuestionKinds"],
+      }]
+      : [entry];
+  });
 }
 
 export function useQuizSession({
@@ -164,7 +180,6 @@ export function useQuizSession({
     return () => { cancelled = true; };
   }, [hasApprovedMaterial, storyId, studentId, studentName]);
 
-  const [weakWords, setWeakWords] = useState<string[]>([]);
   const [priorityReviewWords, setPriorityReviewWords] = useState<VocabPriorityReviewWord[]>([]);
   const [masteredWords, setMasteredWords] = useState<VocabPriorityReviewWord[]>([]);
   const [masteryWords, setMasteryWords] = useState<VocabPriorityReviewWord[]>([]);
@@ -175,7 +190,6 @@ export function useQuizSession({
     // presentation tiers, so the API must receive the source story id and
     // aggregate every tier into one learner list.
     const words = await getVocabQuizWeakWords(baseStoryId ?? storyId, { studentId, studentName });
-    setWeakWords(words);
     setPriorityReviewWords(words.priorityReview ?? []);
     setMasteryWords(words.mastery ?? []);
     setMasteredWords((words.mastery ?? []).filter((word) => word.status === "MASTERED"));
@@ -210,22 +224,9 @@ export function useQuizSession({
   // can return one normalized display form. Keep the text fallback for legacy
   // stories that have no stable ids, but never let a display-form mismatch
   // hide a real weak word from the actionable card.
-  const priorityByWordId = new Map(priorityReviewWords.map((word) => [word.wordId, word]));
-  const priorityByWord = new Map(priorityReviewWords.map((word) => [word.word, word]));
-  const weakEntries = entries.filter((entry) => {
-    const matchesPriorityId = Boolean(entry.wordId && priorityByWordId.has(entry.wordId));
-    return matchesPriorityId || weakWords.includes(entry.word);
-  }).map((entry) => {
-    const reviewWord = (entry.wordId ? priorityByWordId.get(entry.wordId) : undefined)
-      ?? priorityByWord.get(entry.word);
-    return reviewWord?.seenQuestionTypes?.length || reviewWord?.failedQuestionTypes?.length
-      ? {
-        ...entry,
-        bktSeenQuestionKinds: reviewWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"],
-        bktFailedQuestionKinds: reviewWord.failedQuestionTypes as VocabQuizEntry["bktFailedQuestionKinds"],
-      }
-      : entry;
-  });
+  // The API returns Bottom-K in final tie-broken order. Keep that order while
+  // joining it to local entries; filtering `entries` would silently reorder it.
+  const weakEntries = entriesInServerPriorityOrder(entries, priorityReviewWords);
   const missedWords = results.filter((result) => !result.correct);
   const missedEntries = roundEntries.filter((entry) => missedWords.some((result) => result.word === entry.word));
   const timeLimitMs = tierConfigFromMode(mode)?.timeLimitMs ?? null;
@@ -419,6 +420,17 @@ export function useQuizSession({
               : null;
     if (startedEvent) recordLessonEvent(startedEvent, { totalWords: entriesForRound.length });
     const hasAssessmentBank = entriesForRound.some((entry) => (entry.assessmentQuestions?.length ?? 0) > 0);
+    if (picked === "weak_words" && hasAssessmentBank) {
+      const questions = buildPersonalizedAssessmentQuestions(entriesForRound);
+      plannedQuestionCountRef.current = questions.length;
+      setQuestions(questions);
+      setQuestionLimit(questions.length);
+      setRequestedQuestionCount(questions.length);
+      quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      attemptStartedAtRef.current = new Date().toISOString();
+      quizStartRef.current = Date.now(); questionStartRef.current = Date.now(); finishedRef.current = false;
+      return;
+    }
     const importedQuestions = hasAssessmentBank && (picked === "tier1" || picked === "tier2" || picked === "tier3")
       ? buildDiagnosticRoundQuestions(entriesForRound, picked)
       : [];

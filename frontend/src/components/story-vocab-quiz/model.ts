@@ -278,6 +278,46 @@ export function buildAssessmentQuestions(
   ));
 }
 
+const ASSESSMENT_LEVEL_BY_DIAGNOSTIC_KIND: Partial<Record<string, VocabAssessmentLevel>> = {
+  basic_meaning_mcq: "easy",
+  character_to_pinyin_typing: "medium",
+  contextual_productive_recall: "hard",
+};
+
+/** Build one published item per Bottom-K word without losing server order. */
+export function buildPersonalizedAssessmentQuestions(
+  entries: VocabQuizEntry[],
+): VocabQuizAssessmentQuestion[] {
+  return entries.flatMap((entry) => {
+    const bank = entry.assessmentQuestions ?? [];
+    if (!bank.length) return [];
+    const failedLevels = new Set(
+      (entry.bktFailedQuestionKinds ?? [])
+        .map((kind) => ASSESSMENT_LEVEL_BY_DIAGNOSTIC_KIND[kind])
+        .filter((level): level is VocabAssessmentLevel => Boolean(level)),
+    );
+    const seenLevels = new Set(
+      (entry.bktSeenQuestionKinds ?? [])
+        .map((kind) => ASSESSMENT_LEVEL_BY_DIAGNOSTIC_KIND[kind])
+        .filter((level): level is VocabAssessmentLevel => Boolean(level)),
+    );
+    const assessment = bank.find((candidate) => failedLevels.has(candidate.level))
+      ?? bank.find((candidate) => !seenLevels.has(candidate.level))
+      ?? bank[0];
+    return [{
+      kind: "assessment" as const,
+      word: assessment.targetWord,
+      prompt: assessment.prompt,
+      options: shuffle([...assessment.options]),
+      correctAnswer: assessment.correctAnswer,
+      acceptedAnswers: assessment.acceptedAnswers,
+      explanation: assessment.explanation,
+      assessment,
+      isAiGenerated: false as const,
+    }];
+  });
+}
+
 function seededShuffle<T>(items: T[], seed: string): T[] {
   const result = [...items];
   let state = Array.from(seed).reduce((hash, character) => ((hash * 31) + character.charCodeAt(0)) >>> 0, 2166136261);

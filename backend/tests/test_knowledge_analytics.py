@@ -1,7 +1,7 @@
 from psycopg.types.json import Jsonb
 
 import database
-from routers.knowledge_analytics import _winner
+from routers.knowledge_analytics import _evaluation, _lower_loss_signal
 
 
 def _insert_attempt(attempt_id: str, student_id: str, story_id: str, completed_at: str, results: list[dict]) -> None:
@@ -77,8 +77,8 @@ def test_knowledge_state_does_not_select_winner_for_single_class_predictions(adm
         )
 
     body = admin_client.get("/api/admin/analytics/knowledge-state").json()
-    assert body["recommendedModel"] is None
-    assert body["models"]["pfa"]["evaluation"]["status"] == "insufficient_data"
+    assert body["lowerLossSignal"] is None
+    assert body["models"]["pfa"]["evaluation"]["status"] == "insufficient_evidence"
     assert body["models"]["pfa"]["evaluation"]["positiveCount"] == 6
     assert body["models"]["pfa"]["evaluation"]["negativeCount"] == 0
 
@@ -89,13 +89,26 @@ def test_knowledge_state_returns_insufficient_data_without_a_winner(admin_client
         [{"conceptId": "房間", "correct": True, "level": "medium"}],
     )
     body = admin_client.get("/api/admin/analytics/knowledge-state").json()
-    assert body["recommendedModel"] is None
-    assert body["models"]["pfa"]["evaluation"]["status"] == "insufficient_data"
+    assert body["lowerLossSignal"] is None
+    assert body["models"]["pfa"]["evaluation"]["status"] == "insufficient_evidence"
 
 
-def test_winner_prefers_pfa_when_log_loss_is_within_pilot_tie_margin():
+def test_lower_loss_signal_reports_no_material_difference_for_a_tie():
     def result(log_loss: float) -> dict:
-        return {"evaluation": {"status": "ready", "logLoss": log_loss}}
+        return {"evaluation": {"status": "evidence_ready", "logLoss": log_loss}}
 
-    assert _winner(result(0.40), result(0.405)) == "pfa"
-    assert _winner(result(0.42), result(0.40)) == "bkt"
+    assert _lower_loss_signal(result(0.40), result(0.405)) == "no_material_difference"
+    assert _lower_loss_signal(result(0.42), result(0.40)) == "bkt"
+
+
+def test_evaluation_reports_every_conservative_evidence_check_that_failed():
+    result = {
+        "train_n": 10,
+        "metrics": {"n": 8, "positive_count": 3, "negative_count": 5, "log_loss": 0.5, "brier": 0.2, "calibration_error": 0.1, "auc": 0.6},
+        "fit_diagnostics": {"status": "success", "optimizer": "test", "message": "ok", "iterations": 1, "objective": 0.5, "finite": True},
+    }
+    evaluation = _evaluation(result, {"studentCount": 2, "conceptCount": 3})
+    assert evaluation["status"] == "insufficient_evidence"
+    assert {check["name"] for check in evaluation["evidenceChecks"] if not check["passed"]} == {
+        "training_records", "evaluation_predictions", "evaluation_positives", "evaluation_negatives", "students", "concepts",
+    }

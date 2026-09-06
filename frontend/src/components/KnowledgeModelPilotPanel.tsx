@@ -24,6 +24,22 @@ function formatParameter(value: number | undefined): string {
   return value === undefined ? "--" : value.toFixed(3);
 }
 
+function readinessLabel(status: KnowledgeModelResult["evaluation"]["status"]): string {
+  if (status === "evidence_ready") return "Evidence conditions met";
+  if (status === "fit_failed") return "Fit unavailable";
+  return "More evidence needed";
+}
+
+function lowerLossLabel(signal: "pfa" | "bkt" | "no_material_difference" | null): string {
+  if (signal === "no_material_difference") return "No material difference";
+  if (signal) return `${modelLabel(signal)} has lower held-out log loss`;
+  return "Not available — evidence conditions are not met";
+}
+
+function checkLabel(name: string): string {
+  return name.replace(/_/g, " ");
+}
+
 const PFA_DEFAULTS = { intercept: 0, success_weight: 0.35, failure_weight: -0.55, l2: 1 };
 const BKT_DEFAULTS = { prior: 0.2, learn: 0.15, guess: 0.2, slip: 0.1 };
 
@@ -34,12 +50,12 @@ function MethodologyCard({ model, parameters }: { model: "pfa" | "bkt"; paramete
       <article className="knowledge-methodology-card">
         <div className="knowledge-methodology-card-heading">
           <div>
-            <span className="knowledge-model-eyebrow">Performance Factors Analysis</span>
+          <span className="knowledge-model-eyebrow">Restricted pooled baseline</span>
             <h4>PFA</h4>
           </div>
           <span className="knowledge-methodology-tag">Count-based</span>
         </div>
-        <p>Tracks prior correct and incorrect responses for each student × vocabulary skill.</p>
+        <p>Restricted pooled baseline: one fixed set of coefficients tracks prior correct and incorrect responses for each student × vocabulary skill. It is not a student- or concept-specific fit.</p>
         <code className="knowledge-formula">p(correct) = σ(β₀ + βs·successes + βf·failures){"\n"}σ(z) = 1 / (1 + e⁻ᶻ)</code>
         <dl className="knowledge-parameter-list">
           <div><dt>β₀ intercept</dt><dd>{formatParameter(values.intercept)}</dd></div>
@@ -59,12 +75,12 @@ function MethodologyCard({ model, parameters }: { model: "pfa" | "bkt"; paramete
     <article className="knowledge-methodology-card">
       <div className="knowledge-methodology-card-heading">
         <div>
-          <span className="knowledge-model-eyebrow">Bayesian Knowledge Tracing</span>
+          <span className="knowledge-model-eyebrow">Pooled BKT pilot</span>
           <h4>BKT</h4>
         </div>
         <span className="knowledge-methodology-tag">State model</span>
       </div>
-      <p>Maintains a latent mastery probability for each student × vocabulary skill.</p>
+      <p>Uses one constrained parameter set across concepts and maintains a latent mastery probability for each student × vocabulary skill.</p>
       <code className="knowledge-formula">p(correct) = L·(1 − slip) + (1 − L)·guess{"\n"}Lposterior(correct) = L·(1 − slip) / p(correct){"\n"}Lposterior(incorrect) = L·slip / (1 − p(correct)){"\n"}Lnext = Lposterior + (1 − Lposterior)·learn</code>
       <dl className="knowledge-parameter-list">
         <div><dt>Prior mastery</dt><dd>{formatParameter(values.prior)}</dd></div>
@@ -82,6 +98,7 @@ function MethodologyCard({ model, parameters }: { model: "pfa" | "bkt"; paramete
 
 function ModelCard({ result }: { result: KnowledgeModelResult }) {
   const evaluation = result.evaluation;
+  const failedChecks = evaluation.evidenceChecks.filter((check) => !check.passed);
   return (
     <article className="knowledge-model-card">
       <div className="knowledge-model-card-heading">
@@ -90,7 +107,7 @@ function ModelCard({ result }: { result: KnowledgeModelResult }) {
           <h3>{modelLabel(result.model)}</h3>
         </div>
         <span className={`knowledge-status is-${evaluation.status}`}>
-          {evaluation.status === "ready" ? "Ready to compare" : "Insufficient data"}
+          {readinessLabel(evaluation.status)}
         </span>
       </div>
       <div className="knowledge-model-metrics">
@@ -99,6 +116,8 @@ function ModelCard({ result }: { result: KnowledgeModelResult }) {
         <div><span>Calibration</span><strong>{formatMetric(evaluation.calibrationError)}</strong></div>
       </div>
       <p>{evaluation.predictionCount} sequential predictions from {evaluation.responseCount} eligible responses. {masteryLabel(result)} is shown per skill.</p>
+      {failedChecks.length > 0 && <p>Evidence still needed: {failedChecks.map((check) => `${checkLabel(check.name)} ${check.actual}/${check.minimum}`).join("; ")}.</p>}
+      {evaluation.status === "fit_failed" && <p>Fit diagnostics: {evaluation.fitDiagnostics.message}</p>}
     </article>
   );
 }
@@ -139,10 +158,10 @@ export default function KnowledgeModelPilotPanel() {
         </div>
         <span className="knowledge-provisional-badge">Admin-only · provisional</span>
       </div>
-      <p className="knowledge-model-intro">Sequential predictions from vocabulary quiz history. This pilot does not change scoring, weak words, gating, or student feedback.</p>
+      <p className="knowledge-model-intro">Exploratory sequential predictions from vocabulary quiz history. This pilot does not change scoring, weak words, gating, or student feedback.</p>
       <details className="knowledge-methodology" open>
         <summary>Papers &amp; formulas used in this pilot</summary>
-        <p className="knowledge-methodology-intro">The formulas below mirror <code>backend/analytics/knowledge_tracing.py</code>. Parameters are fitted or defaulted for this comparison run; they are not a permanent production policy. Evaluation uses a chronological 50/50 split: the first half establishes the model, then each later response is predicted before the model updates.</p>
+        <p className="knowledge-methodology-intro">The formulas below mirror <code>backend/analytics/knowledge_tracing.py</code>. Parameters are fitted only for this comparison run; they are not a permanent production policy. Evaluation uses a chronological 50/50 split: the first half trains the pooled models, then each later response is predicted before the model updates. A lower-loss signal appears only after conservative evidence checks pass.</p>
         <div className="knowledge-methodology-grid">
           <MethodologyCard model="pfa" parameters={data?.model === "compare" ? data.models.pfa.parameters : undefined} />
           <MethodologyCard model="bkt" parameters={data?.model === "compare" ? data.models.bkt.parameters : undefined} />
@@ -157,22 +176,22 @@ export default function KnowledgeModelPilotPanel() {
             <ModelCard result={data.models.bkt} />
           </div>
           <div className="knowledge-model-summary">
-            <strong>Current recommendation:</strong>{" "}
-            {data.recommendedModel ? modelLabel(data.recommendedModel) : "No winner yet"}
-            <span>{data.dataQuality.eligibleResponses} eligible responses · {data.dataQuality.skillCount} vocabulary skills</span>
+            <strong>Exploratory lower-loss signal:</strong>{" "}
+            {lowerLossLabel(data.lowerLossSignal)}
+            <span>{data.dataQuality.eligibleResponses} eligible responses · {data.dataQuality.studentCount} students · {data.dataQuality.conceptCount} vocabulary concepts</span>
           </div>
           {topSkills.length > 0 && (
             <div className="knowledge-skill-table-wrap">
               <h3>Lowest current PFA predicted correctness</h3>
               <table className="measurement-table knowledge-skill-table">
-                <thead><tr><th>Student</th><th>Word</th><th>Mastery</th><th>Exposure</th><th>Confidence</th></tr></thead>
+                <thead><tr><th>Student</th><th>Word</th><th>Mastery</th><th>Exposure</th><th>Evidence depth</th></tr></thead>
                 <tbody>{topSkills.map((skill) => (
                   <tr key={`${skill.studentId}:${skill.conceptId}`}>
                     <td>{skill.studentName ?? skill.studentId}</td>
                     <td>{skill.conceptId}</td>
                     <td>{Math.round(skill.mastery * 100)}%</td>
                     <td>{skill.exposures}</td>
-                    <td>{skill.confidence}</td>
+                    <td>{skill.evidenceDepth}</td>
                   </tr>
                 ))}</tbody>
               </table>

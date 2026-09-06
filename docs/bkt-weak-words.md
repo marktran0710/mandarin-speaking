@@ -11,11 +11,17 @@ state is maintained independently for each `student_id × word_id` pair.
    personalized review gate. The server also reports per-word evidence
    coverage; a word with fewer than three observations stays `UNASSESSED` and
    is not recommended.
-3. Each validated binary answer is appended to `vocab_quiz_responses` and the
-   learner's `student_vocab_mastery` cache is rebuilt from ordered history.
-4. Assessed non-mastered words are sorted by `p_learned`; the first five are
-   returned as the learner's priority review words.
-5. Review answers use the same BKT update and are then included in the next
+3. The server resolves each diagnostic item and selected answer against the
+   published assessment snapshot; client-provided correctness, question kind,
+   and eligibility never become learning facts. Unresolved weak-word answers
+   remain audit-only and do not enter mastery.
+4. Each resolved binary answer is appended to `vocab_quiz_responses` and the
+   learner's `student_vocab_mastery` cache is rebuilt from ordered history
+   under a transaction-scoped per-student advisory lock.
+5. Assessed non-mastered words use Bottom-K ordering: `p_learned ASC`,
+   `observationCount ASC`, `lastResponseAt ASC`, `wordId ASC`. Returned items
+   include one-based `reviewRank`; clients preserve that server order.
+6. Review answers use the same BKT update and are then included in the next
    ranking. Review questions prefer a question kind not previously seen for
    that word when one is available.
 
@@ -37,6 +43,10 @@ idempotent, while changed response data returns a conflict.
 Bottom-K size. The current values are transparent engineering defaults, not
 research-validated cutoffs. They must be frozen or replaced with
 pilot-calibrated parameters before the main experiment.
+
+Every rebuilt cache row stores the stable model version and a SHA-256
+fingerprint of those parameters. This is provenance only and does not change
+the production formula or thresholds.
 
 Response time is collected in the ledger for audit and later analysis. It is
 not an input to BKT, mastery, eligibility, or ranking.
