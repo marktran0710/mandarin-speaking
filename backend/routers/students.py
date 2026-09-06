@@ -67,28 +67,37 @@ def get_student_overview(
     for one student over a single connection. Submissions and quiz attempts
     come back trimmed (no `scenes` / `question_results` JSONB): the page only
     reads earned stars and which stories were touched.
+
+    The three tables are independent (no join), so the reads are batched in a
+    psycopg pipeline — sent together and read back after a single round-trip
+    to Postgres rather than three sequential query round-trips. Every filter
+    is covered by a 0027 composite index (student_id + the ORDER BY column).
     """
     if identity.role == "student" and identity.id != student_id:
         raise HTTPException(status_code=403, detail="Students may only view their own overview.")
 
     with connect_db() as db:
-        submissions = db.execute(
-            "SELECT id, story_id, story_title, student_name, student_id, submitted_at, "
-            "concatenated_audio_url, review_status, teacher_note "
-            "FROM story_submissions WHERE student_id = %s ORDER BY submitted_at DESC",
-            (student_id,),
-        ).fetchall()
-        attempts = db.execute(
-            "SELECT id, story_id, student_name, student_id, mode, completed_at, "
-            "total_questions, correct_count, total_time_ms "
-            "FROM vocab_quiz_attempts WHERE student_id = %s ORDER BY completed_at DESC",
-            (student_id,),
-        ).fetchall()
-        audio = db.execute(
-            "SELECT * FROM audio_records WHERE student_id = %s "
-            "ORDER BY created_at DESC, id DESC LIMIT %s",
-            (student_id, _OVERVIEW_AUDIO_LIMIT),
-        ).fetchall()
+        with db.pipeline():
+            submissions_cur = db.execute(
+                "SELECT id, story_id, story_title, student_name, student_id, submitted_at, "
+                "concatenated_audio_url, review_status, teacher_note "
+                "FROM story_submissions WHERE student_id = %s ORDER BY submitted_at DESC",
+                (student_id,),
+            )
+            attempts_cur = db.execute(
+                "SELECT id, story_id, student_name, student_id, mode, completed_at, "
+                "total_questions, correct_count, total_time_ms "
+                "FROM vocab_quiz_attempts WHERE student_id = %s ORDER BY completed_at DESC",
+                (student_id,),
+            )
+            audio_cur = db.execute(
+                "SELECT * FROM audio_records WHERE student_id = %s "
+                "ORDER BY created_at DESC, id DESC LIMIT %s",
+                (student_id, _OVERVIEW_AUDIO_LIMIT),
+            )
+        submissions = submissions_cur.fetchall()
+        attempts = attempts_cur.fetchall()
+        audio = audio_cur.fetchall()
 
     return {
         "submissions": [_overview_submission(row) for row in submissions],
