@@ -8,10 +8,16 @@ account (no admin roster/table), so the JWT subject is a fixed constant.
 import os
 import hmac
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
 
 import auth
+from database import (
+    connect_db,
+    row_to_student,
+    row_to_teacher,
+    row_to_vocab_quiz_attempt,
+)
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -46,3 +52,29 @@ def login_admin(
 def logout_admin(response: Response):
     auth.clear_session_cookie(response, "admin")
     return {"loggedOut": True}
+
+
+@router.get("/roster-overview")
+def get_roster_overview(_identity: auth.Identity = Depends(auth.require_admin)):
+    """One request for the admin console's landing data.
+
+    The console previously fired three parallel calls (students, teachers,
+    vocab-quiz-attempts) on every load/refresh — each its own auth check and
+    pooled connection. Serving them from a single handler collapses that to
+    one round-trip over one connection. Shapes are identical to the standalone
+    ``/api/students``, ``/api/teachers`` and ``/api/vocab-quiz-attempts``
+    (admin scope) endpoints, so the client stays field-for-field compatible.
+    Quiz attempts keep their full ``questionResults`` payload — the IRT panel
+    and the response-count metric both read per-question data.
+    """
+    with connect_db() as db:
+        students = db.execute("SELECT * FROM students ORDER BY lower(name)").fetchall()
+        teachers = db.execute("SELECT * FROM teachers ORDER BY lower(name)").fetchall()
+        attempts = db.execute(
+            "SELECT * FROM vocab_quiz_attempts ORDER BY completed_at DESC"
+        ).fetchall()
+    return {
+        "students": [row_to_student(row) for row in students],
+        "teachers": [row_to_teacher(row) for row in teachers],
+        "quizAttempts": [row_to_vocab_quiz_attempt(row) for row in attempts],
+    }

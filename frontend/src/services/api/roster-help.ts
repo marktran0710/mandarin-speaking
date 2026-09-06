@@ -1,4 +1,5 @@
 import { BACKEND_URL, fetchWithRetry } from "./client";
+import type { VocabQuizAttempt } from "./quiz-analytics";
 export interface HelpRequest { id: string; studentName: string; message: string; status: "open" | "resolved"; createdAt: string; resolvedAt?: string | null; }
 export interface Student { id: string; name: string; createdAt: string; status: "active" | "inactive"; }
 export interface Teacher { id: string; name: string; createdAt: string; status: "active" | "inactive"; }
@@ -19,3 +20,5 @@ export async function updateTeacher(id: string, update: { name?: string; passwor
 export async function deleteTeacher(id: string): Promise<void> { const response = await fetchWithRetry(`${BACKEND_URL}/api/teachers/${encodeURIComponent(id)}`, { method: "DELETE" }); if (!response.ok) throw new Error("Could not delete teacher account."); }
 export async function loginAdmin(password: string): Promise<void> { const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) }); if (!response.ok) throw new Error(response.status === 503 ? "Admin login is not configured." : "Wrong admin password."); }
 export async function logoutAdmin(): Promise<void> { await fetchWithRetry(`${BACKEND_URL}/api/admin/logout`, { method: "POST" }); }
+export interface AdminRosterOverview { students: Student[]; teachers: Teacher[]; quizAttempts: VocabQuizAttempt[]; }
+export async function getAdminRosterOverview(): Promise<AdminRosterOverview> { const response = await fetchWithRetry(`${BACKEND_URL}/api/admin/roster-overview`); if (!response.ok) throw new Error("Could not load data from the backend."); const data = await response.json(); return { students: Array.isArray(data?.students) ? data.students : [], teachers: Array.isArray(data?.teachers) ? data.teachers : [], quizAttempts: Array.isArray(data?.quizAttempts) ? data.quizAttempts : [] }; }

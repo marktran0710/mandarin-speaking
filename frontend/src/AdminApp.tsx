@@ -5,11 +5,9 @@ import {
   createTeacher,
   deleteStudent,
   deleteTeacher,
+  getAdminRosterOverview,
   listAudioRecords,
-  listStudents,
-  listTeachers,
   listMeasurementEvents,
-  listVocabQuizAttempts,
   loginAdmin,
   logoutAdmin,
   updateStudent,
@@ -72,7 +70,7 @@ export default function AdminApp({ embedded = false, onExit, initialNav = "Admin
     }
     setRefreshing(true);
     try {
-      const [studentRows, teacherRows, attempts] = await Promise.all([listStudents(), listTeachers(), listVocabQuizAttempts()]);
+      const { students: studentRows, teachers: teacherRows, quizAttempts: attempts } = await getAdminRosterOverview();
       setStudents(studentRows);
       setTeachers(teacherRows);
       setQuizAttempts(attempts);
