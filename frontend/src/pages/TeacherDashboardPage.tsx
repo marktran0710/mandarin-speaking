@@ -110,7 +110,9 @@ export default function TeacherDashboardPage({
     if (!canUseDatabase()) return;
     setQuizAttemptsError("");
     try {
-      setQuizAttempts(await listVocabQuizAttempts());
+      // The dashboard only aggregates attempt-level totals, so skip the heavy
+      // per-question results to keep this unfiltered load small.
+      setQuizAttempts(await listVocabQuizAttempts(undefined, undefined, { includeResults: false }));
     } catch {
       setQuizAttemptsError("Could not load vocabulary quiz analytics.");
     }

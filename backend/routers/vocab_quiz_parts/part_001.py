@@ -37,12 +37,25 @@ def list_vocab_quiz_attempts(
     story_id: Optional[str] = None,
     student_name: Optional[str] = None,
     student_id: Optional[str] = None,
+    include_results: bool = True,
     identity: auth.Identity = Depends(auth.get_current_identity),
 ):
     if identity.role == "student":
         student_id, student_name = identity.id, None
 
-    query = "SELECT * FROM vocab_quiz_attempts WHERE 1=1"
+    # The per-question `question_results` JSONB is the bulk of each row. The
+    # teacher dashboard only aggregates attempt-level totals, so it can ask for
+    # include_results=false to skip that column - both the DB read and the
+    # response payload shrink dramatically over an unfiltered load. Default
+    # stays true for the student/admin callers that need the per-question data.
+    columns = (
+        "id, story_id, student_id, student_name, mode, completed_at, "
+        "total_questions, correct_count, total_time_ms"
+    )
+    if include_results:
+        columns += ", question_results"
+
+    query = f"SELECT {columns} FROM vocab_quiz_attempts WHERE 1=1"
     params: list = []
     if story_id:
         query += " AND story_id = %s"

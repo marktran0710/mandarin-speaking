@@ -54,6 +54,40 @@ def test_create_and_list_vocab_quiz_attempt(logged_in_student):
     assert attempts[0]["level"] == "medium"
 
 
+def test_list_can_omit_question_results(logged_in_student):
+    client, _ = logged_in_student
+    attempt = {
+        "id": "light-attempt-1",
+        "storyId": "light-story",
+        "studentName": "Test Student",
+        "completedAt": "2026-07-08T00:00:00.000Z",
+        "totalQuestions": 2,
+        "correctCount": 1,
+        "totalTimeMs": 5000,
+        "questionResults": [
+            {"word": "水", "correct": True, "timeMs": 1000},
+            {"word": "火", "correct": False, "timeMs": 1000},
+        ],
+    }
+    assert client.post("/api/vocab-quiz-attempts", json=attempt).status_code == 200
+
+    full = client.get("/api/vocab-quiz-attempts", params={"story_id": "light-story"}).json()
+    assert full[0]["questionResults"] == attempt["questionResults"]
+
+    light = client.get(
+        "/api/vocab-quiz-attempts",
+        params={"story_id": "light-story", "include_results": "false"},
+    ).json()
+    assert len(light) == 1
+    # Attempt-level totals are intact...
+    assert light[0]["id"] == "light-attempt-1"
+    assert light[0]["totalQuestions"] == 2
+    assert light[0]["correctCount"] == 1
+    assert light[0]["totalTimeMs"] == 5000
+    # ...but the heavy per-question payload is dropped.
+    assert light[0]["questionResults"] == []
+
+
 def test_list_is_scoped_to_the_logged_in_student(logged_in_student):
     client, student = logged_in_student
     base = {
