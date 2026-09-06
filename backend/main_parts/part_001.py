@@ -1,5 +1,6 @@
 from fastapi import Depends, FastAPI, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, field_validator
 from typing import Any, Callable, Dict, Literal, Optional, List, Tuple
@@ -284,6 +285,12 @@ def _check_rate_limit(key: str, max_requests: int, window_seconds: int) -> None:
                 detail=f"Rate limit exceeded. Max {max_requests} requests per {window_seconds}s.",
             )
         dq.append(now)
+
+# Compress large JSON responses (the list endpoints especially - JSON gzips
+# very well). minimum_size skips tiny bodies where compression is not worth it;
+# compresslevel 6 balances ratio against the small production CPU. Added before
+# CORS so CORS stays the outermost middleware.
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
 
 # Enable CORS for frontend communication
 app.add_middleware(
