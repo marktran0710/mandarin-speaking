@@ -1,5 +1,6 @@
 import { BACKEND_URL, fetchWithRetry } from "./client";
-import type { SceneSubmission } from "./stories-submissions";
+import type { SceneSubmission, StorySubmission } from "./stories-submissions";
+import type { VocabQuizAttempt } from "./quiz-analytics";
 
 export interface StoredAudioRecord { id: string; timestamp: string; duration: number; transcription: string; model: string; topicId?: string; studentId?: string | null; imageUrl?: string; imageIndex?: number; audioUrl?: string; audioName?: string; praatMetrics?: any; analysisVersion?: "stable_v1" | "phoneme_tone_v2"; analysisSchemaVersion?: string; modelVersion?: string; comparisonGroupId?: string; sessionId?: string; attemptId?: string; attemptNumber?: number; attemptType?: "WHOLE_SENTENCE_INITIAL" | "FOCUSED_RETRY" | "WHOLE_SENTENCE_FINAL"; }
 export interface StoredSpeakingProgress { studentId: string; topicId: string; sceneIndex: number; attempts: number; bestTone: number; bestFluency: number; masteryPassed: boolean; contentPassed: boolean; clearedWords: string[]; latestResult?: SceneSubmission | null; baseStoryId?: string; difficultyLevel?: "easy" | "medium" | "hard"; promptId?: string; }
@@ -12,6 +13,13 @@ export async function listLatestAudioRecordsByScene(studentId: string, topicId: 
 export async function getAudioRecordCount(): Promise<number> { const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records/count`); if (!response.ok) throw new Error("Could not load audio record count from the database."); const data = await response.json() as { total?: unknown }; return typeof data.total === "number" ? data.total : 0; }
 export async function createAudioRecord(record: StoredAudioRecord, audioBlob?: Blob): Promise<StoredAudioRecord> { const response = audioBlob ? await uploadAudioRecord(record, audioBlob) : await fetchWithRetry(`${BACKEND_URL}/api/audio-records`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(record) }); if (!response.ok) throw new Error("Could not save audio record to the database."); return response.json() as Promise<StoredAudioRecord>; }
 async function uploadAudioRecord(record: StoredAudioRecord, audioBlob: Blob): Promise<Response> { const formData = new FormData(); formData.append("record", JSON.stringify(record)); formData.append("file", audioBlob, `${record.id}.wav`); return fetchWithRetry(`${BACKEND_URL}/api/audio-records/upload`, { method: "POST", body: formData }); }
+export interface StudentOverview { submissions: StorySubmission[]; quizAttempts: VocabQuizAttempt[]; audioRecords: StoredAudioRecord[]; }
+export async function getStudentOverview(studentId: string): Promise<StudentOverview> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/students/${encodeURIComponent(studentId)}/overview`);
+  if (!response.ok) throw new Error("Could not load your progress overview.");
+  const data = await response.json();
+  return { submissions: Array.isArray(data?.submissions) ? data.submissions : [], quizAttempts: Array.isArray(data?.quizAttempts) ? data.quizAttempts : [], audioRecords: Array.isArray(data?.audioRecords) ? data.audioRecords : [] };
+}
 export async function listSpeakingProgress(studentId: string, topicId: string): Promise<StoredSpeakingProgress[]> { const response = await fetchWithRetry(`${BACKEND_URL}/api/speaking-progress?student_id=${encodeURIComponent(studentId)}&topic_id=${encodeURIComponent(topicId)}`); if (!response.ok) throw new Error("Could not load speaking progress from the database."); const records = await response.json(); return Array.isArray(records) ? records : []; }
 export async function saveSpeakingProgress(progress: StoredSpeakingProgress): Promise<StoredSpeakingProgress> { const response = await fetchWithRetry(`${BACKEND_URL}/api/speaking-progress`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(progress) }); if (!response.ok) throw new Error("Could not save speaking progress to the database."); return response.json() as Promise<StoredSpeakingProgress>; }
 export async function deleteAudioRecordFromDatabase(id: string): Promise<void> { const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records/${encodeURIComponent(id)}`, { method: "DELETE" }); if (!response.ok) throw new Error("Could not delete audio record from the database."); }
