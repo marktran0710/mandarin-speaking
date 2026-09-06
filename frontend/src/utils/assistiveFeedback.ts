@@ -32,13 +32,6 @@ export interface AssistiveFeedbackSyllable {
   };
 }
 
-/** STEP 1 of `assistive_feedback_design.md` -- verbatim, never re-worded per row. */
-export const ASSISTIVE_STATE_LABEL: Record<AssistiveState, AssistiveFeedbackSyllable["assistive_state_label"]> = {
-  ACCEPT: "NO_ISSUE_DETECTED",
-  UNCERTAIN: "NO_AUTOMATIC_JUDGMENT",
-  NEEDS_PRACTICE: "CHECK_THIS_TONE",
-};
-
 /** This task's STEP 4 wording, verbatim. Never "wrong"/"failed"/"incorrect". */
 export const ASSISTIVE_MESSAGE: Record<AssistiveState, string> = {
   ACCEPT: "No pronunciation issue was detected.",

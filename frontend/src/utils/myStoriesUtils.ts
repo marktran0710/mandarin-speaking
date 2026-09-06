@@ -31,86 +31,12 @@ export function getAverageMetric(records: AudioRecord[], metric: string): number
   return Math.round(total / records.length);
 }
 
-export type DateRangePreset = "all" | "7d" | "30d" | "90d";
-
-export const DATE_RANGE_LABEL: Record<DateRangePreset, string> = {
-  all: "All time",
-  "7d": "Last 7 days",
-  "30d": "Last 30 days",
-  "90d": "Last 90 days",
-};
-
-/** Scopes any dated list (quiz attempts, recordings) to a preset window
- * ending now — the same filter shape for both analytics panels, applied
- * before every other filter so stats/charts/tables stay in agreement. */
-export function filterByDateRange<T>(
-  items: T[],
-  getDate: (item: T) => string,
-  preset: DateRangePreset,
-): T[] {
-  if (preset === "all") return items;
-  const days = preset === "7d" ? 7 : preset === "30d" ? 30 : 90;
-  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-  return items.filter((item) => new Date(getDate(item)).getTime() >= cutoff);
-}
-
-export interface StudentQuizStats {
-  studentName: string;
-  attempts: number;
-  totalQuestions: number;
-  accuracyPct: number;
-  avgTimePerQuestionMs: number;
-  topMissedWord: { word: string; missCount: number } | null;
-}
-
 export interface WordMissStats {
   word: string;
   timesAsked: number;
   timesMissed: number;
   missRatePct: number;
   avgTimeMs: number;
-}
-
-export function computeStudentQuizStats(attempts: VocabQuizAttempt[]): StudentQuizStats[] {
-  const byStudent = new Map<string, VocabQuizAttempt[]>();
-  for (const attempt of attempts) {
-    const list = byStudent.get(attempt.studentName) ?? [];
-    list.push(attempt);
-    byStudent.set(attempt.studentName, list);
-  }
-
-  return Array.from(byStudent.entries())
-    .map(([studentName, studentAttempts]) => {
-      const totalQuestions = studentAttempts.reduce((sum, a) => sum + a.totalQuestions, 0);
-      const correctCount = studentAttempts.reduce((sum, a) => sum + a.correctCount, 0);
-      const totalTimeMs = studentAttempts.reduce((sum, a) => sum + a.totalTimeMs, 0);
-
-      const missCounts = new Map<string, number>();
-      for (const attempt of studentAttempts) {
-        for (const result of attempt.questionResults) {
-          if (!result.correct) {
-            missCounts.set(result.word, (missCounts.get(result.word) ?? 0) + 1);
-          }
-        }
-      }
-      let topMissedWord: { word: string; missCount: number } | null = null;
-      for (const [word, missCount] of missCounts.entries()) {
-        if (!topMissedWord || missCount > topMissedWord.missCount) {
-          topMissedWord = { word, missCount };
-        }
-      }
-
-      return {
-        studentName,
-        attempts: studentAttempts.length,
-        totalQuestions,
-        accuracyPct: totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0,
-        avgTimePerQuestionMs:
-          totalQuestions > 0 ? Math.round(totalTimeMs / totalQuestions) : 0,
-        topMissedWord,
-      };
-    })
-    .sort((a, b) => b.attempts - a.attempts);
 }
 
 export function computeWordMissStats(attempts: VocabQuizAttempt[]): WordMissStats[] {
