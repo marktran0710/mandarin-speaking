@@ -53,6 +53,8 @@
   /* The route supplies available height when it has one. The student shell
      fills that parent track; the panel below owns reachable local scroll. */
   .app-container:has(> .student-workspace-v2) {
+    height: 100%;
+    min-height: 0;
     overflow: hidden;
   }
 
@@ -67,71 +69,13 @@
   }
 
   .student-workspace-v2 > .student-sidebar {
-    height: 100%;
+    align-self: stretch;
     overflow: auto;
     overscroll-behavior: contain;
   }
 
-  .student-workspace-v2 > .student-workspace-content-v2 {
-    display: block;
-    min-height: 0;
-    overflow: hidden;
-    padding-bottom: var(--space-md);
-    scrollbar-gutter: stable;
-  }
-
-  .student-workspace.student-workspace-v2 .create-story-page,
-  .student-workspace.student-workspace-v2 .my-stories-page,
-  .student-workspace.student-workspace-v2 .voice-test-page {
-    min-height: 0;
-    height: 100%;
-  }
-
-  /* CreateStoryPage adds two wrappers around the recorder. Make the whole
-     chain a definite grid track; otherwise the recorder resolves its
-     percentage height against intrinsic content and pushes the stage below
-     the viewport at narrower desktop widths. The session main is the
-     reachable scroller inside this bounded chain. */
-  .student-workspace.student-workspace-v2 .create-story-page:has(> .csp-recorder-body) {
-    display: grid;
-    grid-template-rows: minmax(0, 1fr);
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .student-workspace.student-workspace-v2 .create-story-page:has(> .csp-recorder-body) > .csp-recorder-body {
-    display: grid;
-    grid-template-rows: minmax(0, 1fr);
-    min-height: 0;
-    height: 100%;
-    max-height: 100%;
-  }
-
-  .student-workspace.student-workspace-v2 .create-story-page:has(> .csp-recorder-body) > .csp-recorder-body > .story-recorder {
-    display: grid;
-    min-height: 0;
-    height: 100%;
-    max-height: 100%;
-  }
-
-  /* The session chrome stays visible while the active learning surface gets
-     the remaining track. This keeps the desktop state within one viewport
-     without hiding a long practice result. */
-  .student-workspace-v2 .story-recorder {
-    min-height: 0;
-    overflow: visible;
-    /* A multi-scene header has both the title row and the thumbnail rail.
-       Its intrinsic height must own the first track; a fixed 64px track made
-       the rail paint over the active lesson surface. */
-    grid-template-rows: auto minmax(0, 1fr);
-    padding-bottom: 0;
-  }
-
-  .student-workspace-v2 > .student-workspace-content-v2 > .story-recorder {
-    min-height: 0;
-  }
-
-  .student-workspace-v2 .story-session-main { min-height: 0; overflow: visible; }
+  /* StudentWorkspacePanel.css is the single source of truth for the content
+     scroller and the recorder's bounded descendant chain. */
 }
 
 @media (max-width: 900px) {
@@ -1012,34 +956,31 @@
 }
 
 .student-workspace-v2 .overview-choice-card {
-  display: grid;
-  grid-template-columns: var(--space-2xl) minmax(0, 1fr);
-  grid-template-rows: auto auto;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-items: start;
-  column-gap: var(--space-sm);
-  row-gap: var(--space-2xs);
+  justify-content: flex-start;
+  gap: var(--space-sm);
   min-height: var(--space-3xl);
-  padding: var(--space-md);
-  text-align: left;
+  padding: var(--space-lg) var(--space-md);
+  text-align: center;
 }
 
 .student-workspace-v2 .overview-choice-card .overview-choice-icon {
-  grid-row: 1 / span 2;
-  grid-column: 1;
+  display: grid;
+  place-items: center;
+  width: var(--space-3xl);
+  height: var(--space-3xl);
+  flex: 0 0 var(--space-3xl);
+  padding: var(--space-xs);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
 }
 
 .student-workspace-v2 .overview-choice-card strong,
 .student-workspace-v2 .overview-choice-card p {
-  grid-column: 2;
-}
-
-.student-workspace-v2 .overview-choice-card strong {
-  align-self: end;
-}
-
-.student-workspace-v2 .overview-choice-card p {
-  align-self: start;
+  width: 100%;
+  text-align: center;
 }
 
 /* Progress and catalogue surfaces share the same compact content gutter and

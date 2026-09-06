@@ -1,6 +1,9 @@
 /* ── Page shell ── */
 .create-story-page {
-  min-height: calc(100vh - var(--navbar-height));
+  /* The student workspace owns the available track. Let the page content
+     define its natural height instead of subtracting a guessed navbar size
+     from the viewport a second time. */
+  min-height: 0;
   background: color-mix(in srgb, var(--clay-canvas) 94%, white);
 }
 

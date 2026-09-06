@@ -3,7 +3,7 @@
      while still flowing through the shared --content-max mechanism. */
   --content-max: 560px;
   position: relative;
-  min-height: calc(100vh - var(--navbar-height));
+  min-height: max(0px, calc(100dvh - var(--navbar-height)));
   background: var(--clay-canvas);
   overflow: hidden;
   /* 72px bottom padding sits outside the token scale (>56px but not near

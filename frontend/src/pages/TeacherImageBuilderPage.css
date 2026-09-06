@@ -1,5 +1,5 @@
 .teacher-image-page {
-  min-height: calc(100vh - var(--navbar-height));
+  min-height: max(0px, calc(100dvh - var(--navbar-height)));
   padding: 28px var(--content-gutter) 48px;
   background: var(--clay-canvas);
 }

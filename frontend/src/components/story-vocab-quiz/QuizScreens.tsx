@@ -119,6 +119,9 @@ export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [],
   };
   const remainingStars = Math.max(0, 3 - stars);
   const showUnlockGoal = !practiceUnlocked(stars);
+  const challenge = progress && startChallenge && progress.challenge.available
+    ? { progress, onStart: startChallenge }
+    : null;
 
   return (
     <section className="story-vocab-quiz vocab-quiz-mode-select" aria-label="Vocabulary quiz">
@@ -173,7 +176,7 @@ export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [],
         })}
       </div>
 
-      <div className="vocab-quiz-secondary-grid" role="group" aria-label="More practice">
+      <div className={`vocab-quiz-secondary-grid${challenge ? " has-challenge" : ""}`} role="group" aria-label="More practice">
         <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-review" onClick={showReview}>
           <span className="vocab-quiz-mode-icon"><StudentIcon name={REVIEW_CARD.iconName} size={30} /></span>
           <strong><BiLabel zh={REVIEW_CARD.title} pinyin={REVIEW_CARD.titlePinyin} en={REVIEW_CARD.titleEn} /></strong>
@@ -185,6 +188,7 @@ export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [],
           priorityReviewWords={priorityReviewWords}
           chooseWeakWords={chooseWeakWords}
         />
+        {challenge && <QuizChallengeCard progress={challenge.progress} onStart={challenge.onStart} />}
       </div>
 
       {showUnlockGoal && (
@@ -198,11 +202,10 @@ export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [],
         </p>
       )}
 
-      {(masteredWords.length > 0 || (progress?.lessonCompleted ?? false) || (progress && startChallenge && progress.challenge.available)) && (
+      {(masteredWords.length > 0 || (progress?.lessonCompleted ?? false)) && (
         <div className="vocab-quiz-mode-supporting-content">
           {masteredWords.length > 0 && <MasteredWordsSummary masteredWords={masteredWords} />}
           {progress?.lessonCompleted && <LessonCompletionSummary progress={progress} onFinish={onFinish} />}
-          {progress && startChallenge && progress.challenge.available && <QuizChallengeCard progress={progress} onStart={startChallenge} />}
         </div>
       )}
     </section>

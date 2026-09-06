@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import TopicSelector, { type TopicStartOptions } from "../components/TopicSelector";
 import StoryRecorder, { type NewAudioRecord } from "../components/story-recorder/StoryRecorder";
 import { HelpRequest } from "../services/database";
@@ -6,6 +6,7 @@ import { loadPublishedTeacherTopics, storyToTopic } from "../utils/teacherStorie
 import type { Topic } from "../components/TopicSelector";
 import { getStudentId, getStudentName, saveLastScenePhase } from "../utils/studentSession";
 import { isStoryLevelUnlocked } from "../utils/storyLevelProgress";
+import { replaceHistorySnapshot, pushHistorySnapshot } from "../utils/studentHistory";
 import "./CreateStoryPage.css";
 import "../components/BiLabel.css";
 
@@ -26,6 +27,14 @@ interface CreateStoryPageProps {
   /** Average tone accuracy, forwarded to the browse dashboard's stat card. */
   averageToneAccuracy?: number | null;
 }
+
+export const CREATE_STORY_HISTORY_KEY = "mandarinCreateStory";
+
+type CreateStoryHistoryState = {
+  topicId: string | null;
+  imageIndex: number;
+  startAtQuiz: boolean;
+};
 
 
 export default function CreateStoryPage({
@@ -55,7 +64,6 @@ export default function CreateStoryPage({
   const [selectedImageIndex, setSelectedImageIndex] =
     useState<number>(safeInitialIndex);
   const [startAtQuiz, setStartAtQuiz] = useState(initialStartAtQuiz);
-  const storyHistoryEntry = useRef(false);
 
   const resetToTopicList = useCallback(() => {
     onPanelScrollBoundary?.();
@@ -65,20 +73,39 @@ export default function CreateStoryPage({
     setSelectedImageIndex(0);
   }, [onPanelScrollBoundary]);
 
-  // Story selection is an in-page state change rather than a URL route, so
-  // create one history entry for it. This makes the session header's Back
-  // control behave like a real page back, including the browser Back button,
-  // without sending the learner to an unrelated external history entry.
+  const historySnapshot = useCallback((topic = selectedTopic): CreateStoryHistoryState => ({
+    topicId: topic?.id ?? null,
+    imageIndex: topic ? selectedImageIndex : 0,
+    startAtQuiz: topic ? startAtQuiz : false,
+  }), [selectedImageIndex, selectedTopic, startAtQuiz]);
+
+  // Both browser directions restore the state saved in their own entries.
+  // In particular, Forward must reopen the selected story rather than acting
+  // like another Back press to the catalogue.
   useEffect(() => {
-    const handlePopState = () => {
-      if (!storyHistoryEntry.current) return;
-      storyHistoryEntry.current = false;
-      resetToTopicList();
+    const handlePopState = (event: PopStateEvent) => {
+      const next = event.state?.[CREATE_STORY_HISTORY_KEY] as CreateStoryHistoryState | undefined;
+      if (!next) return;
+      const nextTopic = next.topicId ? topics.find((topic) => topic.id === next.topicId) ?? null : null;
+      if (!nextTopic) {
+        resetToTopicList();
+        return;
+      }
+      const nextIndex = Math.min(next.imageIndex, Math.max(nextTopic.images.length - 1, 0));
+      onPanelScrollBoundary?.();
+      setSelectedTopic(nextTopic);
+      setStartAtQuiz(next.startAtQuiz);
+      setSelectedImageIndex(nextIndex);
+      setSelectedImage(nextTopic.images[nextIndex] || "");
     };
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [resetToTopicList]);
+  }, [onPanelScrollBoundary, resetToTopicList, topics]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    replaceHistorySnapshot(CREATE_STORY_HISTORY_KEY, historySnapshot());
+  }, [historySnapshot]);
   useEffect(() => {
     onSessionActiveChange?.(Boolean(selectedTopic));
     return () => onSessionActiveChange?.(false);
@@ -122,16 +149,13 @@ export default function CreateStoryPage({
     // Clear any remembered in-story phase so an earlier Speaking/Quiz session
     // cannot hide the Vocabulary Quiz vs Speaking Practice chooser.
     if (!options?.startAtQuiz) saveLastScenePhase(topic.id, "overview");
-    if (typeof window !== "undefined" && !storyHistoryEntry.current) {
-      window.history.pushState(
-        {
-          ...(window.history.state ?? {}),
-          mandarinPractice: { topicId: topic.id },
-        },
-        "",
-        window.location.href,
-      );
-      storyHistoryEntry.current = true;
+    if (typeof window !== "undefined") {
+      replaceHistorySnapshot(CREATE_STORY_HISTORY_KEY, historySnapshot());
+      pushHistorySnapshot(CREATE_STORY_HISTORY_KEY, {
+        topicId: topic.id,
+        imageIndex: 0,
+        startAtQuiz: Boolean(options?.startAtQuiz),
+      });
     }
     setSelectedTopic(topic);
     setStartAtQuiz(Boolean(options?.startAtQuiz));
@@ -158,7 +182,7 @@ export default function CreateStoryPage({
   };
 
   const handleBack = () => {
-    if (storyHistoryEntry.current && typeof window !== "undefined") {
+    if (typeof window !== "undefined" && window.history.state?.[CREATE_STORY_HISTORY_KEY]) {
       window.history.back();
       return;
     }

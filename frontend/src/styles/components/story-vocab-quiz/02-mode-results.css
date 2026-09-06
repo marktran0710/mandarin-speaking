@@ -1,6 +1,6 @@
 
 /* Mode selection is the adult learner's one decision point: keep the three
-   tier choices prominent, then place optional review paths in one quiet row. */
+   tier choices prominent, then place optional practice paths in one quiet row. */
 .vocab-quiz-mode-card {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr) auto;
@@ -162,9 +162,9 @@
 }
 .vocab-quiz-secondary-grid > :only-child { grid-column: 1 / -1; }
 
-/* Secondary modes are supporting paths, not equal-weight feature tiles. Keep
-   their icon, bilingual title, explanation, and arrow on one shared row so
-   the page reads as a compact decision list. */
+/* Supporting paths share one row when space allows. Keep their icon, bilingual
+   title, explanation, and arrow on the same grid so the page reads as a
+   compact decision list. */
 .vocab-quiz-secondary-grid > .vocab-quiz-mode-card {
   grid-template-columns: var(--space-2xl) minmax(var(--space-3xl), .85fr) minmax(0, 1.15fr) auto;
   grid-template-rows: auto;
@@ -246,6 +246,45 @@
   grid-row: 1;
   align-self: center;
   color: var(--clay-muted);
+}
+
+/* When the optional lesson challenge is available, it is a peer action rather
+   than a separate section. This higher-specificity selector also wins over
+   StudentModeCompact.css' default two-column mode layout on wide panels. */
+@media (min-width: 761px) {
+  .vocab-quiz-secondary-grid.has-challenge,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Three peer cards are narrower than the usual two-card row. Keep the
+     content readable by stacking each card's title and explanation beside
+     its icon, while the card itself stays in the shared horizontal grid. */
+  .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card {
+    grid-template-columns: var(--space-2xl) minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+    column-gap: var(--space-md);
+  }
+  .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > strong,
+  .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > p,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > strong,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > p {
+    grid-column: 2;
+  }
+  .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > strong,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > strong {
+    grid-row: 1;
+  }
+  .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > p,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > p {
+    grid-row: 2;
+  }
+  .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > .app-icon,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > .app-icon {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
 }
 
 /* Mastery is a read-only lesson summary, so it stays open beneath the action

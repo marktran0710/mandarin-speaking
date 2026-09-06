@@ -139,7 +139,7 @@
   /* Real rendered .navbar height (~81px incl. its padding), not the 68px
      min-height set on .navbar-container — that alone left a page short of
      the viewport and forced scroll on every laptop viewport. Every
-     `min-height: calc(100vh - Npx)` page shell should reference this
+     `min-height: calc(100dvh - Npx)` page shell should reference this
      instead of re-guessing its own N. */
   --navbar-height: 84px;
 
@@ -253,13 +253,19 @@
   --shadow-lg: 0 22px 52px rgba(0, 0, 0, 0.55);
 }
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--clay-canvas);
   color: var(--clay-ink);
-  min-height: 100vh;
+  min-height: 100%;
   padding: 0;
   font-size: 16px;
   font-weight: 400;
@@ -316,7 +322,7 @@ body {
 
 #root {
   width: 100%;
-  height: 100%;
+  min-height: 0;
 }
 
 /* Shared 4-tier score-quality gradient — used everywhere a Praat/tone score
@@ -341,7 +347,8 @@ body {
 
 .app-container {
   width: 100%;
-  min-height: 100vh;
+  min-height: 100%;
+  height: auto;
   display: flex;
   flex-direction: column;
   background: var(--clay-canvas);

@@ -53,6 +53,15 @@ import type { Page } from "./types/page";
 import { getJourneyBubbleTargetIds } from "./helpers/journeyBubble";
 import StudentModeFrame from "./components/student-workspace/StudentModeFrame";
 import { loadBestLocalStars } from "./utils/quizTiers";
+import { pushHistorySnapshot, replaceHistorySnapshot } from "./utils/studentHistory";
+
+const STUDENT_APP_HISTORY_KEY = "mandarinApp";
+
+type StudentAppHistoryState = {
+  currentPage: Page;
+  studentWorkspaceView: StudentWorkspaceView;
+  practiceTarget: PracticeTarget | null;
+};
 
 export type { Page };
 
@@ -85,6 +94,36 @@ export default function App() {
   );
   const [, setPinyinRevision] = useState(0);
   const storyTopics = publishedTopics;
+
+  // The student workspace is state-driven rather than URL-driven, so keep a
+  // browser history snapshot for deep activity launches. This lets the story
+  // header's Back button restore Home/Progress/etc. instead of always
+  // reconstructing the Practice catalogue.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if (!window.history.state?.[STUDENT_APP_HISTORY_KEY]) {
+      const initialHistory: StudentAppHistoryState = {
+        currentPage: bootstrapState.currentPage,
+        studentWorkspaceView: bootstrapState.studentWorkspaceView,
+        practiceTarget: bootstrapState.practiceTarget,
+      };
+      replaceHistorySnapshot(STUDENT_APP_HISTORY_KEY, initialHistory);
+    }
+
+    const restoreStudentHistory = (event: PopStateEvent) => {
+      const next = event.state?.[STUDENT_APP_HISTORY_KEY] as
+        | StudentAppHistoryState
+        | undefined;
+      if (!next) return;
+      setCurrentPage(next.currentPage);
+      setStudentWorkspaceView(next.studentWorkspaceView);
+      setPracticeTarget(next.practiceTarget ?? null);
+    };
+
+    window.addEventListener("popstate", restoreStudentHistory);
+    return () => window.removeEventListener("popstate", restoreStudentHistory);
+  }, [bootstrapState]);
   useEffect(() => {
     let active = true;
     void primePinyin(collectPinyinTexts(publishedTopics))
@@ -277,19 +316,42 @@ export default function App() {
     setCurrentPage("home");
   };
 
+  const pushStudentHistory = (destination: StudentAppHistoryState) => {
+    if (typeof window === "undefined") return;
+    const current: StudentAppHistoryState = {
+      currentPage,
+      studentWorkspaceView,
+      practiceTarget,
+    };
+    replaceHistorySnapshot(STUDENT_APP_HISTORY_KEY, current);
+    pushHistorySnapshot(STUDENT_APP_HISTORY_KEY, destination);
+  };
+
   const handlePracticeImage = (topicId: string, imageIndex: number) => {
-    setPracticeTarget({ topicId, imageIndex, seq: Date.now() });
+    const target = { topicId, imageIndex, seq: Date.now() };
+    pushStudentHistory({
+      currentPage: "student-workspace",
+      studentWorkspaceView: "practice",
+      practiceTarget: target,
+    });
+    setPracticeTarget(target);
     setStudentWorkspaceView("practice");
     setCurrentPage("student-workspace");
   };
 
   const handleStartActivity = (topicId: string, startAtQuiz: boolean) => {
-    setPracticeTarget({
+    const target = {
       topicId,
       imageIndex: 0,
       startAtQuiz,
       seq: Date.now(),
+    };
+    pushStudentHistory({
+      currentPage: "student-workspace",
+      studentWorkspaceView: "practice",
+      practiceTarget: target,
     });
+    setPracticeTarget(target);
     setStudentWorkspaceView("practice");
     setCurrentPage("student-workspace");
   };
@@ -434,6 +496,11 @@ export default function App() {
         <StudentWorkspacePage
           view={studentWorkspaceView}
           onViewChange={(nextView) => {
+            pushStudentHistory({
+              currentPage: "student-workspace",
+              studentWorkspaceView: nextView,
+              practiceTarget: null,
+            });
             setStudentWorkspaceView(nextView);
             if (nextView !== "practice") setPracticeTarget(null);
           }}
@@ -469,6 +536,11 @@ export default function App() {
           className="student-standalone-shell"
           activeView="practice"
           onChange={(nextView) => {
+            pushStudentHistory({
+              currentPage: "student-workspace",
+              studentWorkspaceView: nextView,
+              practiceTarget: null,
+            });
             setStudentWorkspaceView(nextView);
             setCurrentPage("student-workspace");
             if (nextView !== "practice") setPracticeTarget(null);

@@ -8,6 +8,20 @@ export const MEASUREMENT_SCHEMA_VERSION = "learning-events.v1";
 export const MEASUREMENT_STORAGE_KEY = "mandarin-speaking.measurement-events.v1";
 
 export type MeasurementEventName =
+  | "lesson_started"
+  | "vocabulary_review_completed"
+  | "know_it_started"
+  | "know_it_completed"
+  | "say_it_started"
+  | "say_it_completed"
+  | "use_it_started"
+  | "use_it_completed"
+  | "personalized_started"
+  | "personalized_completed"
+  | "lesson_completed"
+  | "challenge_started"
+  | "challenge_completed"
+  | "challenge_retried"
   | "practice_started"
   | "reference_played"
   | "recording_submitted"

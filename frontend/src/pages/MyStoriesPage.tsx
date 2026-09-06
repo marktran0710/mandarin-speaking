@@ -408,7 +408,7 @@ export default function MyStoriesPage({
               return (
                 <div key={topic.id} className="profile-story-row">
                   <div className="profile-story-thumb">
-                    {previewImage ? <img src={previewImage} alt="" /> : <StudentIcon name="image" size={20} aria-hidden="true" />}
+                    {previewImage ? <img src={previewImage} alt="" width={800} height={450} /> : <StudentIcon name="image" size={20} aria-hidden="true" />}
                   </div>
 
                   <div className="profile-story-main">

@@ -109,7 +109,7 @@ export function buildStudentAssessments(
         (attempt) => attempt.mode === "tier1" || attempt.mode === "tier2" || attempt.mode === "tier3",
       );
       const earnedTierTwo = storyAttempts.some(
-        (attempt) => attemptEarnsStar(attempt.mode, attempt.correctCount) === 2,
+        (attempt) => attemptEarnsStar(attempt.mode, attempt.correctCount, attempt.totalQuestions) === 2,
       );
       if (tierAttempts.length >= 3 && !earnedTierTwo) {
         watchlistReasons.push(`Stuck on ${getTopicLabel(storyId)}`);

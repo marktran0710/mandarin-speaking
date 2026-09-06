@@ -55,26 +55,29 @@ export default function StudentModeFrame({
   }, [panelScrollKey]);
 
   return (
-    <main className={`student-workspace student-workspace-v2 ${className}`.trim()}>
-      <StudentSidebar
-        views={STUDENT_WORKSPACE_VIEWS}
-        activeView={activeView}
-        onChange={onChange}
-        studentName={studentName}
-        onLogout={onLogout}
-        totalStars={totalStars}
-        maxStars={maxStars}
-      />
-      <section
-        id="student-workspace-panel"
-        ref={panelRef}
-        className="student-workspace-content student-workspace-content-v2"
-        tabIndex={-1}
-        aria-label={ariaLabel}
-        aria-live="polite"
-      >
-        {children}
-      </section>
-    </main>
+    <>
+      <a className="student-skip-link" href="#student-workspace-panel">Skip to learning content</a>
+      <div className={`student-workspace student-workspace-v2 ${className}`.trim()}>
+        <StudentSidebar
+          views={STUDENT_WORKSPACE_VIEWS}
+          activeView={activeView}
+          onChange={onChange}
+          studentName={studentName}
+          onLogout={onLogout}
+          totalStars={totalStars}
+          maxStars={maxStars}
+        />
+        <main
+          id="student-workspace-panel"
+          ref={panelRef}
+          className="student-workspace-content student-workspace-content-v2"
+          tabIndex={-1}
+          aria-label={ariaLabel}
+          aria-live="polite"
+        >
+          {children}
+        </main>
+      </div>
+    </>
   );
 }

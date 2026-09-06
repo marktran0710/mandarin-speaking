@@ -8,8 +8,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xl);
-  width: 192px;
-  height: 100%;
+  width: clamp(176px, 15vw, 208px);
+  align-self: stretch;
   padding: var(--space-lg) var(--space-sm) var(--space-md);
   border-right: 1px solid var(--clay-hairline);
   background: var(--clay-surface-soft);
@@ -258,6 +258,24 @@
   color: var(--clay-ink);
   cursor: pointer;
   box-shadow: var(--shadow-sm);
+}
+
+.student-skip-link {
+  position: fixed;
+  top: var(--space-sm);
+  left: var(--space-sm);
+  z-index: 50;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--clay-radius-sm);
+  background: var(--seal);
+  color: var(--clay-on-seal);
+  transform: translateY(-200%);
+}
+
+.student-skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 3px solid var(--clay-ink);
+  outline-offset: 2px;
 }
 
 .student-sidebar-backdrop {

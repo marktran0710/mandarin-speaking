@@ -50,7 +50,7 @@ export default function SpeakingResultsFlowShell({
   return <section className="speaking-flow-card sfc-results sfc-screen" aria-label="Recording results">
     <div className="practice-workspace">
       <div className="practice-scene-col">
-        <div className="practice-scene-image"><img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} /></div>
+        <div className="practice-scene-image"><img src={selectedImage} alt={`Scene ${selectedImageIndex + 1}`} width={800} height={450} /></div>
       </div>
 
       <div className="sfc-results-main">

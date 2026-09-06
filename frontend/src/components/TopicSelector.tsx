@@ -259,7 +259,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
         {/* Image strip */}
         <div className="ts-card-image">
           {previewImage ? (
-            <img src={previewImage} alt={t.name} />
+            <img src={previewImage} alt={t.name} width={800} height={450} />
           ) : (
             <div className="ts-card-image-placeholder" aria-hidden="true">
               <StudentIcon name="image" size={32} />
@@ -435,7 +435,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
           </div>
           <div className="ts-dash-continue-art" aria-hidden="true">
             {continueTopic.images[0] ? (
-              <img src={continueTopic.images[0]} alt="" />
+              <img src={continueTopic.images[0]} alt="" width={800} height={450} />
             ) : (
               <span className="ts-dash-continue-art-placeholder">
                 <StudentIcon name="image" size={28} />
@@ -510,7 +510,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
           onClick={unlocked ? toggle : undefined}
         >
           <span className="ts-lesson-cover">
-            {cover ? <img src={cover} alt="" /> : <span className="ts-lesson-cover-fallback" aria-hidden="true">{group.lessonNumber}</span>}
+            {cover ? <img src={cover} alt="" width={800} height={450} /> : <span className="ts-lesson-cover-fallback" aria-hidden="true">{group.lessonNumber}</span>}
           </span>
 
           <span className="ts-lesson-body">
@@ -572,7 +572,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
           </h1>
         </div>
         <div className="ts-book-chip">
-          <img className="ts-book-cover" src="/textbook-cover.jpg" alt="" aria-hidden="true" />
+          <img className="ts-book-cover" src="/textbook-cover.jpg" alt="" aria-hidden="true" width={192} height={264} />
           <span className="ts-book-name">
             時代華語 第一冊
             <span className="ts-lesson-sub">Modern Chinese · Book 1</span>

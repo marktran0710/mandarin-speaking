@@ -40,4 +40,21 @@ describe("StudentLoginPage behavior", () => {
     expect(onLogin).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem("studentSession")).toContain("Minh");
   });
+
+  it("shows a server error and toggles password visibility", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("offline")));
+    render(<StudentLoginPage onLogin={vi.fn()} />);
+
+    const password = screen.getByLabelText(/Password/);
+    await user.type(screen.getByLabelText(/Student name/), "Minh");
+    await user.type(password, "secret");
+    await user.click(screen.getByRole("button", { name: /Show password/ }));
+    expect(password).toHaveAttribute("type", "text");
+    await user.click(screen.getByRole("button", { name: /Hide password/ }));
+    expect(password).toHaveAttribute("type", "password");
+
+    await user.click(screen.getByRole("button", { name: /Enter Student Mode/ }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not reach the server");
+  });
 });

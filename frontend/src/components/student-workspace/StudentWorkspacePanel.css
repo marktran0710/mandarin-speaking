@@ -20,9 +20,8 @@
     grid-template-rows: minmax(0, 1fr);
     align-self: stretch;
     min-height: 0;
-    max-height: 100%;
     padding: 0 var(--space-md) 0 0;
-    overflow: hidden;
+    overflow: visible;
     scrollbar-gutter: auto;
   }
 
@@ -33,7 +32,6 @@
     align-self: stretch;
     min-width: 0;
     min-height: 0;
-    max-height: 100%;
     /* The panel is the page's outer surface, so it uses only the intentional
        4px canvas reveal. Its internal regions keep the normal token gaps. */
     margin-block: var(--space-sm);
@@ -78,7 +76,6 @@
     grid-template-rows: minmax(0, 1fr);
     min-height: 0;
     height: 100%;
-    max-height: 100%;
     overflow: hidden;
   }
 
@@ -87,14 +84,12 @@
     grid-template-rows: minmax(0, 1fr);
     min-height: 0;
     height: 100%;
-    max-height: 100%;
     overflow: hidden;
   }
 
   .student-workspace-v2 > #student-workspace-panel .csp-recorder-body > .story-recorder {
     min-height: 0;
     height: 100%;
-    max-height: 100%;
     overflow: hidden;
   }
 

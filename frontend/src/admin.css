@@ -227,3 +227,4 @@
 @media (max-width: 620px) {
   .knowledge-parameter-list { grid-template-columns: 1fr; }
 }
+.admin-shell, .admin-login { min-height: 100dvh; }

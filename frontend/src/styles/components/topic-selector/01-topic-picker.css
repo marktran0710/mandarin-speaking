@@ -312,15 +312,17 @@
   padding: 8px 12px;
   border: 0;
   border-radius: var(--clay-radius-pill);
-  color: #fff;
-  background: var(--jade);
+  background: var(--jade-deep);
+  color: var(--clay-on-accent);
+  --bi-pinyin-color: color-mix(in srgb, var(--clay-on-accent) 82%, transparent);
+  --bi-en-color: color-mix(in srgb, var(--clay-on-accent) 82%, transparent);
   font: inherit;
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
   transition: background-color .15s ease;
 }
-.ts-card-open:hover { background: var(--jade-deep); }
+.ts-card-open:hover { background: var(--jade); }
 .ts-card-open:focus-visible { outline: 3px solid color-mix(in srgb, var(--jade) 45%, transparent); outline-offset: 2px; }
 
 /* Takes .ts-card-open's slot when the story is locked, so a locked card

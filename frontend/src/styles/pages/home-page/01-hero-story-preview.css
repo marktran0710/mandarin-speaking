@@ -12,7 +12,7 @@
    with --seal gold reserved for the single call to action. */
 
 .home-page {
-  min-height: calc(100vh - var(--navbar-height));
+  min-height: max(0px, calc(100dvh - var(--navbar-height)));
   padding-bottom: var(--space-3xl);
   background:
     linear-gradient(180deg, var(--clay-surface-soft) 0%, var(--clay-canvas) 42%, var(--clay-canvas) 100%);

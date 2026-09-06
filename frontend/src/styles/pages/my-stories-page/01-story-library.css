@@ -1,5 +1,5 @@
 .my-stories-page {
-  min-height: calc(100vh - var(--navbar-height));
+  min-height: max(0px, calc(100dvh - var(--navbar-height)));
   padding: 20px 20px 56px;
   background:
     radial-gradient(circle at 92% 0%, color-mix(in srgb, var(--tone1-soft) 60%, transparent), transparent 23rem),
