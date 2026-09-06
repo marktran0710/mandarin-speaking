@@ -133,7 +133,9 @@ def row_to_story_submission(row: dict) -> dict:
         "studentName": row["student_name"],
         "studentId": row.get("student_id"),
         "submittedAt": row["submitted_at"],
-        "scenes": row["scenes"] or [],
+        # `.get`: a lightweight list query may omit scenes (see
+        # list_story_submissions' include_scenes=false path).
+        "scenes": row.get("scenes") or [],
         "concatenatedAudioUrl": row.get("concatenated_audio_url"),
         "storyFeedback": row.get("story_feedback"),
         "reviewStatus": row.get("review_status") or "pending",

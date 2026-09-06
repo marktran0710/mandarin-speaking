@@ -19,6 +19,7 @@ def list_story_submissions(
     story_id: Optional[str] = None,
     student_id: Optional[str] = None,
     student_name: Optional[str] = None,
+    include_scenes: bool = True,
     identity: auth.Identity = Depends(auth.get_current_identity),
 ):
     if identity.role == "student":
@@ -36,9 +37,22 @@ def list_story_submissions(
         conditions.append("student_name = %s")
         params.append(student_name)
     where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+
+    # The per-scene `scenes` JSONB (each scene's transcription, tone metrics and
+    # audio) is the heavy part of a submission. The teacher dashboard's roster
+    # and pending-count views read only the summary, so they can pass
+    # include_scenes=false and skip it; the review view keeps the full payload.
+    # Also replaces the endpoint's `SELECT *`.
+    columns = (
+        "id, story_id, story_title, student_name, student_id, submitted_at, "
+        "concatenated_audio_url, story_feedback, review_status, teacher_note"
+    )
+    if include_scenes:
+        columns += ", scenes"
+
     with connect_db() as db:
         rows = db.execute(
-            f"SELECT * FROM story_submissions{where} ORDER BY submitted_at DESC",
+            f"SELECT {columns} FROM story_submissions{where} ORDER BY submitted_at DESC",
             params,
         ).fetchall()
     return [row_to_story_submission(row) for row in rows]
