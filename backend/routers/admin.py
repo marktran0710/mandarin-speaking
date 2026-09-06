@@ -66,13 +66,22 @@ def get_roster_overview(_identity: auth.Identity = Depends(auth.require_admin)):
     (admin scope) endpoints, so the client stays field-for-field compatible.
     Quiz attempts keep their full ``questionResults`` payload — the IRT panel
     and the response-count metric both read per-question data.
+
+    The three tables are independent (no join), so they are batched in a
+    psycopg pipeline: the statements are sent together and the results read
+    back after a single round-trip to Postgres, instead of three sequential
+    query round-trips on the connection.
     """
     with connect_db() as db:
-        students = db.execute("SELECT * FROM students ORDER BY lower(name)").fetchall()
-        teachers = db.execute("SELECT * FROM teachers ORDER BY lower(name)").fetchall()
-        attempts = db.execute(
-            "SELECT * FROM vocab_quiz_attempts ORDER BY completed_at DESC"
-        ).fetchall()
+        with db.pipeline():
+            students_cur = db.execute("SELECT * FROM students ORDER BY lower(name)")
+            teachers_cur = db.execute("SELECT * FROM teachers ORDER BY lower(name)")
+            attempts_cur = db.execute(
+                "SELECT * FROM vocab_quiz_attempts ORDER BY completed_at DESC"
+            )
+        students = students_cur.fetchall()
+        teachers = teachers_cur.fetchall()
+        attempts = attempts_cur.fetchall()
     return {
         "students": [row_to_student(row) for row in students],
         "teachers": [row_to_teacher(row) for row in teachers],
