@@ -3,7 +3,7 @@ import CreateStoryPage from "./CreateStoryPage";
 import MyStoriesPage, { type AudioRecord } from "./MyStoriesPage";
 import StudentIcon, { type StudentIconName } from "../components/StudentIcon";
 import { BiLabel, BiText } from "../components/BiLabel";
-import type { HelpRequest } from "../shared/api/learningApi";
+import type { HelpRequest } from "../services/database";
 import type { NewAudioRecord } from "../components/story-recorder/StoryRecorder";
 import type { Topic } from "../components/TopicSelector";
 import { getStudentName } from "../utils/studentSession";

@@ -1,5 +1,5 @@
 import { getStudentId } from "../utils/studentSession";
-import type { StoredAudioRecord } from "../shared/api/learningApi";
+import type { StoredAudioRecord } from "../services/database";
 import type { AudioRecord } from "../app/appTypes";
 
 export function serializeAudioRecord(record: AudioRecord): StoredAudioRecord {
