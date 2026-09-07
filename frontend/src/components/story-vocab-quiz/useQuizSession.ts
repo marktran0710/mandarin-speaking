@@ -327,7 +327,12 @@ export function useQuizSession({
     const resultLevel = assessment?.level ?? level;
     const itemId = assessment?.questionId
       ?? quizItemId(baseStoryId ?? storyId ?? "unknown-story", question.word, question.kind, itemVersion);
-    const conceptId = assessment?.wordId ?? quizConceptId(question.word);
+    // Weak-words/practice questions have no assessment bank, but the entry
+    // still carries the stable wordId the diagnostic recorded under. Prefer it
+    // over the normalized display text, otherwise practice answers accrue to a
+    // different concept id (e.g. "哪裡 / 哪兒" vs "MC1_003") and a weak word can
+    // never be relearned out of the list.
+    const conceptId = assessment?.wordId ?? entry?.wordId ?? quizConceptId(question.word);
     const resultQuestionKind = assessment?.questionType ?? question.kind;
     const answer = correctAnswer(question);
     const activityType: VocabQuizQuestionResult["activityType"] = diagnosticConfig
@@ -500,7 +505,7 @@ export function useQuizSession({
   return {
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
     question, index, selected, results, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, masteredWords, missedWords,
-    missedEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
+    missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
     speakWord, chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, returnToModes, sessionReady,
     lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,
   };

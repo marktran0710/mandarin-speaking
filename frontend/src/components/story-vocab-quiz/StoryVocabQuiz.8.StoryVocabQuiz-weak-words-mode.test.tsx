@@ -37,6 +37,9 @@ const FORCE_LAST_AVAILABLE_KIND = 0.999;
 
 beforeEach(() => {
   vi.spyOn(Math, "random").mockReturnValue(FORCE_TRANSLATION);
+  // Clear call history so per-test exact-count / call-index assertions on the
+  // recorder mock are not disturbed by an earlier test that answered a question.
+  vi.mocked(database.recordVocabQuizResponse).mockClear();
 });
 
 afterEach(() => {
@@ -156,6 +159,45 @@ describe("StoryVocabQuiz weak-words mode", () => {
     expect(await screen.findByRole("heading", { name: "哪裡 / 哪兒" })).toBeInTheDocument();
   });
 
+  it("records weak-words practice under the stable word id so mastery accrues to the same concept the diagnostic used", async () => {
+    const weakWords = ["哪裡"] as database.VocabWeakWordsResult;
+    Object.defineProperty(weakWords, "priorityReview", {
+      value: [{
+        wordId: "MC1_003",
+        word: "哪裡",
+        meaning: "where",
+        pLearned: 0.2,
+        status: "NEEDS_REVIEW",
+        observationCount: 3,
+        correctCount: 0,
+        incorrectCount: 3,
+      } satisfies database.VocabPriorityReviewWord],
+    });
+    vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(weakWords);
+    const user = userEvent.setup();
+
+    render(
+      <StoryVocabQuiz
+        entries={[{ word: "哪裡 / 哪兒", translation: "where", wordId: "MC1_003" }]}
+        onDone={vi.fn()}
+        storyId="story-1"
+        studentId="s1"
+      />,
+    );
+    await screen.findByRole("group", { name: "Quiz mode" });
+    await user.click(await screen.findByRole("button", { name: /Weak words \(1\)/ }));
+    await screen.findByRole("heading", { name: "哪裡 / 哪兒" });
+    await user.click(optionButtons()[0]);
+
+    await waitFor(() => expect(database.recordVocabQuizResponse).toHaveBeenCalled());
+    const payload = vi.mocked(database.recordVocabQuizResponse).mock.calls.at(-1)![0];
+    const recorded = payload.questionResults.at(-1)!;
+    // The diagnostic recorded this word under "MC1_003"; practice must too, or
+    // the correct answers land on a different concept ("哪裡 / 哪兒") and the
+    // weak word never leaves the list.
+    expect(recorded.conceptId).toBe("MC1_003");
+  });
+
   it("records an eligible answer immediately so the first wrong answer can enter BKT", async () => {
     const user = userEvent.setup();
     const approvedEntries = [
@@ -253,8 +295,11 @@ describe("StoryVocabQuiz weak-words mode", () => {
     ).not.toBeInTheDocument();
     await user.click(weakWordsButton);
 
-    expect(screen.getByRole("region", { name: "Strengthen vocabulary progress" })).toBeInTheDocument();
-    expect(screen.getByRole("progressbar", { name: "0 of 3 vocabulary words strengthened" })).toBeInTheDocument();
+    // The round-progress bar shares the "第 X / Y 題" denominator (the round's
+    // question count) rather than the lesson-wide strengthen goal, so the two
+    // counters stay in sync — this round has 2 weak words → 2 questions.
+    expect(screen.getByRole("region", { name: "Practice round progress" })).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "0 of 2 questions answered" })).toBeInTheDocument();
 
     for (let i = 0; i < 2; i += 1) {
       await answerCurrentQuestion(user, true);
