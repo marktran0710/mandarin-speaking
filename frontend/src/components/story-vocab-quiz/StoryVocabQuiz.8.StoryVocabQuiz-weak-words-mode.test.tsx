@@ -97,7 +97,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
 
     await waitFor(() => expect(database.getVocabQuizWeakWords).toHaveBeenCalled());
     const weakWordsRegion = screen.getByRole("region", { name: "Weak words" });
-    expect(weakWordsRegion).toHaveTextContent("No weak words yet. Complete a quiz to build your review list.");
+    expect(weakWordsRegion).toHaveTextContent("Words you miss will show up here to review.");
     expect(screen.queryByRole("button", { name: /Weak words/ })).not.toBeInTheDocument();
   });
 
@@ -224,7 +224,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
     await screen.findByRole("group", { name: "Quiz mode" });
 
     const weakWordsButton = await screen.findByRole("button", { name: /Weak words \(2\)/ });
-    expect(weakWordsButton).toHaveTextContent("A cumulative list across this story's difficulty levels, starting with the words you know least.");
+    expect(weakWordsButton).toHaveTextContent("This story's weak words, starting with the ones you know least.");
     expect(
       within(weakWordsButton).queryByText("Only quizzes the words you got wrong last time."),
     ).not.toBeInTheDocument();

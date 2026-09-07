@@ -7,6 +7,7 @@ const baseProps = {
   weakEntries: [],
   startTier: vi.fn(),
   chooseWeakWords: vi.fn(),
+  chooseInterimReview: vi.fn(),
   showReview: vi.fn(),
 };
 
@@ -28,26 +29,18 @@ describe("ModeSelectScreen — difficulty level badge", () => {
     expect(screen.getByText("Hard")).toBeInTheDocument();
   });
 
-  it("keeps the story-wide weak-word summary visible when the current tier has no matching entries", () => {
+  it("surfaces an interim 'review your misses' card before the diagnostic unlocks", () => {
     render(
       <ModeSelectScreen
         {...baseProps}
-        priorityReviewWords={[{
-          wordId: "word-1",
-          word: "附近",
-          pLearned: 0.2,
-          status: "UNASSESSED",
-          observationCount: 1,
-          correctCount: 0,
-          incorrectCount: 1,
-        }]}
+        interimReviewEntries={[
+          { word: "附近", translation: "nearby", wordId: "word-1", pinyin: "fùjìn", bktValidationStatus: "APPROVED" },
+          { word: "商店", translation: "shop", wordId: "word-2", pinyin: "shāngdiàn", bktValidationStatus: "APPROVED" },
+        ]}
       />,
     );
-    const weakWordsRegion = screen.getByRole("region", { name: "Weak words" });
-    expect(weakWordsRegion).toHaveTextContent("Weak words (1)");
-    expect(weakWordsRegion).toHaveTextContent("Open that level to practice them.");
-    expect(weakWordsRegion).not.toHaveTextContent("附近");
-    expect(weakWordsRegion).not.toHaveTextContent("1 observations");
+    const card = screen.getByRole("button", { name: /Review your misses \(2\)/ });
+    expect(card).toHaveTextContent("Your full weak-word list builds after all three rounds.");
   });
 
   it("shows the lesson's mastered words in a separate read-only summary", () => {

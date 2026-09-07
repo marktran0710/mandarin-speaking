@@ -226,6 +226,22 @@ export function useQuizSession({
       }
       : entry;
   });
+  // Provisional review set surfaced BEFORE the three-round diagnostic unlocks
+  // the BKT weak-word list: every lesson word the learner has answered
+  // incorrectly at least once, ordered by the mastery estimate BKT has already
+  // computed for it (lowest first). This never relaxes the weak-word
+  // classification gate — it only re-surfaces already-recorded mistakes for
+  // immediate practice, using BKT's own p(learned) only to order them.
+  const masteryByWordId = new Map(masteryWords.map((word) => [word.wordId, word] as const));
+  const masteryByWord = new Map(masteryWords.map((word) => [word.word, word] as const));
+  const interimReviewEntries = entries
+    .map((entry) => {
+      const mastery = (entry.wordId ? masteryByWordId.get(entry.wordId) : undefined) ?? masteryByWord.get(entry.word);
+      return mastery && mastery.incorrectCount > 0 ? { entry, pLearned: mastery.pLearned } : null;
+    })
+    .filter((row): row is { entry: VocabQuizEntry; pLearned: number } => row !== null)
+    .sort((a, b) => a.pLearned - b.pLearned)
+    .map((row) => row.entry);
   const missedWords = results.filter((result) => !result.correct);
   const missedEntries = roundEntries.filter((entry) => missedWords.some((result) => result.word === entry.word));
   const timeLimitMs = tierConfigFromMode(mode)?.timeLimitMs ?? null;
@@ -473,7 +489,7 @@ export function useQuizSession({
 
   return {
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
-    question, index, selected, results, timeLeftMs, stars, weakEntries, priorityReviewWords, masteredWords, missedWords,
+    question, index, selected, results, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, masteredWords, missedWords,
     missedEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
     speakWord, chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, returnToModes, sessionReady,
     lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,

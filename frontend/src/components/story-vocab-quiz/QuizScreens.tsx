@@ -16,54 +16,48 @@ const LEVEL_COPY: Record<"easy" | "medium" | "hard", { zh: string; pinyin: strin
 interface WeakWordsCardProps {
   weakEntries: VocabQuizEntry[];
   priorityReviewWords: VocabPriorityReviewWord[];
+  interimReviewEntries: VocabQuizEntry[];
   chooseWeakWords: () => void;
+  chooseInterimReview: () => void;
 }
 
-function WeakWordsCard({ weakEntries, priorityReviewWords, chooseWeakWords }: WeakWordsCardProps) {
-  const aggregateWeakCount = priorityReviewWords.length || weakEntries.length;
-
-  if (aggregateWeakCount === 0) {
+function WeakWordsCard({ weakEntries, priorityReviewWords, interimReviewEntries, chooseWeakWords, chooseInterimReview }: WeakWordsCardProps) {
+  // 1) The BKT weak-word list — the diagnostic verdict, available only once
+  //    all three rounds are complete (>=3 observations per word).
+  if (weakEntries.length > 0) {
+    const aggregateWeakCount = priorityReviewWords.length || weakEntries.length;
     return (
-      <section
-        className="vocab-quiz-mode-card vocab-quiz-mode-weak_words is-empty"
-        aria-label="Weak words"
-      >
-        <span className="vocab-quiz-mode-icon">
-          <StudentIcon name="retry" size={30} />
-        </span>
-        <strong><BiLabel zh="弱項複習" pinyin="Ruòxiàng fùxí" en="Weak words" /></strong>
-        <p>
-          <BiLabel
-            zh="目前還沒有需要加強的生詞。"
-            pinyin="Mùqián hái méiyǒu xūyào jiāqiáng de shēngcí."
-            en="No weak words yet. Complete a quiz to build your review list."
-          />
-        </p>
-      </section>
-    );
-  }
-
-  // The endpoint is intentionally story-wide, while this quiz instance may
-  // be rendering only one difficulty tier. Keep the cumulative BKT list
-  // visible even when its words belong to another tier; there is no local
-  // question set to start from in that case.
-  if (weakEntries.length === 0) {
-    return (
-      <section className="vocab-quiz-mode-card vocab-quiz-mode-weak_words is-summary-only" aria-label="Weak words">
+      <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-weak_words" onClick={chooseWeakWords}>
         <span className="vocab-quiz-mode-icon"><StudentIcon name="retry" size={30} /></span>
         <strong><BiLabel zh={`弱項複習 (${aggregateWeakCount})`} pinyin="Ruòxiàng fùxí" en={`Weak words (${aggregateWeakCount})`} /></strong>
-        <p><BiLabel zh="這些弱項來自本故事的其他難度，切換到對應難度即可練習。" pinyin="Zhèxiē ruòxiàng láizì běn gùshì de qítā nándù, qiēhuàn dào duìyìng nándù jí kě liànxí." en="These weak words are from another difficulty level. Open that level to practice them." /></p>
-      </section>
+        <p><BiLabel zh="本故事累積的弱項，從掌握度最低的詞開始。" pinyin="Běn gùshì lěijī de ruòxiàng, cóng zhǎngwòdù zuì dī de cí kāishǐ." en="This story's weak words, starting with the ones you know least." /></p>
+        <StudentIcon name="arrow-right" size={18} />
+      </button>
     );
   }
 
+  // 2) Interim, provisional review of mistakes so far — surfaced BEFORE the
+  //    three-round diagnostic unlocks, so a learner can act on this round's
+  //    misses immediately. Ordered by BKT's provisional p(learned); no
+  //    classification threshold is relaxed to show it.
+  if (interimReviewEntries.length > 0) {
+    return (
+      <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-weak_words" onClick={chooseInterimReview}>
+        <span className="vocab-quiz-mode-icon"><StudentIcon name="retry" size={30} /></span>
+        <strong><BiLabel zh={`複習答錯的生詞 (${interimReviewEntries.length})`} pinyin="Fùxí dá cuò de shēngcí" en={`Review your misses (${interimReviewEntries.length})`} /></strong>
+        <p><BiLabel zh="剛才答錯的生詞，依掌握度排序。完成三輪測驗後會建立正式弱項清單。" pinyin="Gāngcái dá cuò de shēngcí, yī zhǎngwòdù páixù. Wánchéng sān lún cèyàn hòu huì jiànlì zhèngshì ruòxiàng qīngdān." en="The words you've missed so far, hardest first. Your full weak-word list builds after all three rounds." /></p>
+        <StudentIcon name="arrow-right" size={18} />
+      </button>
+    );
+  }
+
+  // 3) Nothing to review yet — no incorrect answers recorded.
   return (
-    <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-weak_words" onClick={chooseWeakWords}>
+    <section className="vocab-quiz-mode-card vocab-quiz-mode-weak_words is-empty" aria-label="Weak words">
       <span className="vocab-quiz-mode-icon"><StudentIcon name="retry" size={30} /></span>
-      <strong><BiLabel zh={`弱項複習 (${aggregateWeakCount})`} pinyin="Ruòxiàng fùxí" en={`Weak words (${aggregateWeakCount})`} /></strong>
-      <p><BiLabel zh="這是本故事各個難度累積的弱項，會從掌握度最低的詞開始。" pinyin="Zhè shì běn gùshì gè gè nándù lěijī de ruòxiàng, huì cóng zhǎngwòdù zuì dī de cí kāishǐ." en="A cumulative list across this story's difficulty levels, starting with the words you know least." /></p>
-      <StudentIcon name="arrow-right" size={18} />
-    </button>
+      <strong><BiLabel zh="弱項複習" pinyin="Ruòxiàng fùxí" en="Weak words" /></strong>
+      <p><BiLabel zh="還沒有答錯的生詞，很棒！答錯的生詞會出現在這裡讓你複習。" pinyin="Hái méiyǒu dá cuò de shēngcí, hěn bàng! Dá cuò de shēngcí huì chūxiàn zài zhèlǐ ràng nǐ fùxí." en="No missed words yet — nice! Words you miss will show up here to review." /></p>
+    </section>
   );
 }
 
@@ -104,7 +98,7 @@ function QuizChallengeCard({ progress, onStart }: { progress: LessonVocabularyPr
   );
 }
 
-export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [], masteredWords = [], level = "easy", assessmentQuestionCounts, startTier, chooseWeakWords, showReview, progress, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; masteredWords?: VocabPriorityReviewWord[]; level?: "easy" | "medium" | "hard"; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
+export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = [], priorityReviewWords = [], masteredWords = [], level = "easy", assessmentQuestionCounts, startTier, chooseWeakWords, chooseInterimReview, showReview, progress, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; interimReviewEntries?: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; masteredWords?: VocabPriorityReviewWord[]; level?: "easy" | "medium" | "hard"; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; chooseInterimReview: () => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
   const assessmentLevelByMode: Record<TierMode, VocabAssessmentLevel> = { tier1: "easy", tier2: "medium", tier3: "hard" };
   const tierDescription = (card: (typeof TIER_CARDS)[number], config: (typeof TIER_CONFIGS)[TierMode]) => {
     const count = progress?.totalWords ?? assessmentQuestionCounts?.[assessmentLevelByMode[card.mode]];
@@ -186,7 +180,9 @@ export function ModeSelectScreen({ stars, weakEntries, priorityReviewWords = [],
         <WeakWordsCard
           weakEntries={weakEntries}
           priorityReviewWords={priorityReviewWords}
+          interimReviewEntries={interimReviewEntries}
           chooseWeakWords={chooseWeakWords}
+          chooseInterimReview={chooseInterimReview}
         />
         {challenge && <QuizChallengeCard progress={challenge.progress} onStart={challenge.onStart} />}
       </div>
