@@ -101,6 +101,29 @@ describe("StoryVocabQuiz weak-words mode", () => {
     expect(screen.queryByRole("button", { name: /Weak words/ })).not.toBeInTheDocument();
   });
 
+  it("drops a missed word from the interim review once its mastery crosses the threshold", async () => {
+    const weakWords = [] as database.VocabWeakWordsResult;
+    Object.defineProperty(weakWords, "diagnostic", {
+      value: { unlocked: false, requiredDiagnosticQuizzes: 3, completedDiagnosticQuizzes: 0 },
+    });
+    Object.defineProperty(weakWords, "mastery", {
+      value: [
+        // Missed once and still weak → stays in the interim review.
+        { wordId: "w1", word: "一", pLearned: 0.3, status: "UNASSESSED", observationCount: 1, correctCount: 0, incorrectCount: 1 },
+        // Missed once but since relearned (p >= 0.95) → drops off.
+        { wordId: "w3", word: "三", pLearned: 0.98, status: "MASTERED", observationCount: 4, correctCount: 3, incorrectCount: 1 },
+      ],
+    });
+    vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(weakWords);
+    render(<StoryVocabQuiz entries={entries} onDone={vi.fn()} storyId="story-1" studentId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
+    await waitFor(() => expect(database.getVocabQuizWeakWords).toHaveBeenCalled());
+
+    // Exactly one word ("一") remains; the mastered "三" is gone.
+    const card = await screen.findByRole("button", { name: /Review your misses \(1\)/ });
+    expect(card).toBeInTheDocument();
+  });
+
   it("uses the stable word id when the API display form differs from the CSV form", async () => {
     const weakWords = ["哪裡"] as database.VocabWeakWordsResult;
     Object.defineProperty(weakWords, "priorityReview", {

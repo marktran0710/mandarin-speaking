@@ -45,6 +45,10 @@ import { createMeasurementEvent, recordMeasurementEvent, type MeasurementEventNa
 
 export type QuizScreen = "mode-select" | "quiz" | "review" | "summary" | "challenge-entry";
 
+// Mirrors the backend BKT mastery_threshold (analytics/bkt.py): p(learned) at
+// or above this counts a word as mastered, so it drops off the review lists.
+const BKT_MASTERY_THRESHOLD = 0.95;
+
 type UseQuizSessionProps = {
   entries: VocabQuizEntry[];
   storyId?: string;
@@ -237,7 +241,13 @@ export function useQuizSession({
   const interimReviewEntries = entries
     .map((entry) => {
       const mastery = (entry.wordId ? masteryByWordId.get(entry.wordId) : undefined) ?? masteryByWord.get(entry.word);
-      return mastery && mastery.incorrectCount > 0 ? { entry, pLearned: mastery.pLearned } : null;
+      // A word leaves this list once its provisional mastery crosses the same
+      // threshold the BKT weak-word list uses (mastery_threshold = 0.95), so a
+      // word the learner has since relearned drops off here exactly as it
+      // would drop off the diagnostic list — the review shrinks as they improve.
+      return mastery && mastery.incorrectCount > 0 && mastery.pLearned < BKT_MASTERY_THRESHOLD
+        ? { entry, pLearned: mastery.pLearned }
+        : null;
     })
     .filter((row): row is { entry: VocabQuizEntry; pLearned: number } => row !== null)
     .sort((a, b) => a.pLearned - b.pLearned)
