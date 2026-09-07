@@ -1,10 +1,7 @@
 import type { Topic } from "../components/TopicSelector";
 import { isAdminSession } from "./studentSession";
-import { loadBestLocalStars, PRACTICE_UNLOCK_STARS } from "./quizTiers";
+import { loadLocalStars, PRACTICE_UNLOCK_STARS } from "./quizTiers";
 import { topicHasQuiz } from "./topicQuiz";
-import { loadSubmittedLevels } from "./storyLevelProgress";
-import { storyHasTierContent } from "./teacher-stories/helpers";
-import type { StoryDifficultyLevel } from "./teacher-stories/types";
 
 /** The lesson picker is the table of contents of 時代華語 第一冊 (Modern
  * Chinese Book 1) — the textbook every story in this app is grounded in.
@@ -110,7 +107,7 @@ export function groupTopicsByLesson(topics: Topic[]): LessonGroup[] {
  * localStorage. */
 export type StarsForTopic = (topic: Topic) => number;
 
-const localStarsForTopic: StarsForTopic = (topic) => loadBestLocalStars(topic.id);
+const localStarsForTopic: StarsForTopic = (topic) => loadLocalStars(topic.id);
 
 /** A story is finished when it's been submitted (at any tier) AND its quiz
  * ladder reached ⭐⭐⭐ — all three tiers passed. Stories that run no quiz at all (no
@@ -176,25 +173,7 @@ export function isStoryUnlockedInLesson(
   if (indexInGroup === 0) return true;
   const previous = group.topics[indexInGroup - 1];
   if (!previous) return true;
-  const story = previous.sourceStory;
-  if (!story) return submittedStoryIds.has(topicStoryId(previous));
-
-  const availableLevels: StoryDifficultyLevel[] = [
-    "easy",
-    ...(Array.isArray(story.frames) && storyHasTierContent(story, "medium")
-      ? ["medium" as const]
-      : []),
-    ...(Array.isArray(story.frames) && storyHasTierContent(story, "hard")
-      ? ["hard" as const]
-      : []),
-  ];
-  const submittedLevels = loadSubmittedLevels(story.id);
-
-  // Easy can be recovered from the flat legacy submission set. Medium and
-  // Hard must have their own explicit submission before the next story opens.
-  return availableLevels.every((level) =>
-    level === "easy"
-      ? submittedLevels.easy === true || submittedStoryIds.has(story.id)
-      : submittedLevels[level] === true,
-  );
+  // A story now has a single version, so the next story opens as soon as its
+  // predecessor has been submitted once.
+  return submittedStoryIds.has(topicStoryId(previous));
 }

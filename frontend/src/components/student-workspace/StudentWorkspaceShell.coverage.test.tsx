@@ -36,7 +36,7 @@ vi.mock("./StudentModeFrame", () => ({
 }));
 
 vi.mock("../../utils/quizTiers", () => ({
-  loadBestLocalStars: vi.fn(() => 2),
+  loadLocalStars: vi.fn(() => 2),
 }));
 
 vi.mock("../../utils/topicQuiz", () => ({

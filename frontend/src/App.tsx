@@ -52,7 +52,7 @@ import { primePinyin } from "./utils/pinyin";
 import type { Page } from "./types/page";
 import { getJourneyBubbleTargetIds } from "./helpers/journeyBubble";
 import StudentModeFrame from "./components/student-workspace/StudentModeFrame";
-import { loadBestLocalStars } from "./utils/quizTiers";
+import { loadLocalStars } from "./utils/quizTiers";
 import { pushHistorySnapshot, replaceHistorySnapshot } from "./utils/studentHistory";
 
 const STUDENT_APP_HISTORY_KEY = "mandarinApp";
@@ -124,6 +124,15 @@ export default function App() {
     window.addEventListener("popstate", restoreStudentHistory);
     return () => window.removeEventListener("popstate", restoreStudentHistory);
   }, [bootstrapState]);
+  // A signed-in student must never land back on the login screen — e.g. the
+  // browser Back button popping to a stale pre-login history entry. They've
+  // already authenticated (the session is live), so bounce them straight to
+  // their workspace instead of re-prompting a login they've completed.
+  useEffect(() => {
+    if (activeRole === "student" && currentPage === "student-login") {
+      setCurrentPage("student-workspace");
+    }
+  }, [activeRole, currentPage]);
   useEffect(() => {
     let active = true;
     void primePinyin(collectPinyinTexts(publishedTopics))
@@ -379,7 +388,7 @@ export default function App() {
     [quizStoryTopics],
   );
   const totalQuizStars = quizStoryTopics.reduce(
-    (sum, topic) => sum + loadBestLocalStars(topic.id),
+    (sum, topic) => sum + loadLocalStars(topic.id),
     0,
   );
   const maxQuizStars = quizStoryTopics.length * 3;

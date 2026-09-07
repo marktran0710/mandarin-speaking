@@ -2,10 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import TopicSelector, { type TopicStartOptions } from "../components/TopicSelector";
 import StoryRecorder, { type NewAudioRecord } from "../components/story-recorder/StoryRecorder";
 import { HelpRequest } from "../services/database";
-import { loadPublishedTeacherTopics, storyToTopic } from "../utils/teacherStories";
+import { loadPublishedTeacherTopics } from "../utils/teacherStories";
 import type { Topic } from "../components/TopicSelector";
 import { getStudentId, getStudentName, saveLastScenePhase } from "../utils/studentSession";
-import { isStoryLevelUnlocked } from "../utils/storyLevelProgress";
 import { replaceHistorySnapshot, pushHistorySnapshot } from "../utils/studentHistory";
 import "./CreateStoryPage.css";
 import "../components/BiLabel.css";
@@ -167,20 +166,6 @@ export default function CreateStoryPage({
     openTopicAtLevel(topic, options);
   };
 
-  const handleLevelSelect = (
-    topic: Topic,
-    level: Parameters<typeof storyToTopic>[1],
-    options?: TopicStartOptions,
-  ) => {
-    if (!topic.sourceStory || !level) return;
-    // TopicSelector disables locked tiers, but keep the policy at this
-    // navigation boundary too: a stale click/event or a future caller must
-    // not construct a Medium/Hard topic before its predecessor was fully
-    // submitted.
-    if (!isStoryLevelUnlocked(topic.sourceStory.id, level)) return;
-    openTopicAtLevel(storyToTopic(topic.sourceStory, level, "approved"), options);
-  };
-
   const handleBack = () => {
     if (typeof window !== "undefined" && window.history.state?.[CREATE_STORY_HISTORY_KEY]) {
       window.history.back();
@@ -194,7 +179,6 @@ export default function CreateStoryPage({
       {!selectedTopic ? (
         <TopicSelector
           onTopicSelect={handleTopicSelect}
-          onLevelSelect={handleLevelSelect}
           averageToneAccuracy={averageToneAccuracy}
         />
       ) : (

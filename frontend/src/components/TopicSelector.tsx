@@ -5,13 +5,11 @@ import {
   listCustomStories,
   listStorySubmissions,
 } from "../services/database";
-import { loadBestLocalStars, loadLocalStars, practiceUnlocked } from "../utils/quizTiers";
+import { loadLocalStars } from "../utils/quizTiers";
 import {
-  type StoryDifficultyLevel,
   loadCustomStories,
   loadPublishedTeacherTopics,
   saveCustomStories,
-  storyHasTierContent,
   storyToTopic,
 } from "../utils/teacherStories";
 import {
@@ -24,16 +22,14 @@ import {
   type LessonGroup,
 } from "../utils/lessonGroups";
 import {
-  isStoryLevelUnlocked,
-  loadSubmittedLevels,
   loadSubmittedStoryIds,
   mergeSubmittedStoryLevels,
 } from "../utils/storyLevelProgress";
 import { topicHasQuiz } from "../utils/topicQuiz";
-import { getStudentId, getStudentName, isAdminSession } from "../utils/studentSession";
+import { getStudentId, getStudentName } from "../utils/studentSession";
 import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
-import StudentIcon, { type StudentIconName } from "./StudentIcon";
+import StudentIcon from "./StudentIcon";
 import "./BiLabel.css";
 import type { Topic, TopicSelectorProps } from "./topic-selector/types";
 export type { Topic, TopicStartOptions, VocabGroup } from "./topic-selector/types";
@@ -54,19 +50,7 @@ export function getTopicVocabulary(topic: Topic, imageIndex: number): string[] {
   return topic.vocabulary[imageIndex] || [];
 }
 
-const LEVEL_ICONS: Record<StoryDifficultyLevel, StudentIconName> = {
-  easy: "seedling",
-  medium: "sprout",
-  hard: "tree",
-};
-
-const LEVEL_COPY: Record<StoryDifficultyLevel, { zh: string; en: string }> = {
-  easy: { zh: "簡單", en: "Easy" },
-  medium: { zh: "中等", en: "Medium" },
-  hard: { zh: "困難", en: "Hard" },
-};
-
-export default function TopicSelector({ onTopicSelect, onLevelSelect, averageToneAccuracy }: TopicSelectorProps) {
+export default function TopicSelector({ onTopicSelect, averageToneAccuracy }: TopicSelectorProps) {
   const [topics, setTopics] = useState<Topic[]>(() =>
     loadPublishedTeacherTopics().filter(isStoryModeTopic),
   );
@@ -164,82 +148,10 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
       lessonCompletion(group, submittedIds).done < group.topics.length,
   );
 
-  // The per-story 🌱🌿🌳 tier track: which difficulty levels this story
-  // offers, and for each whether it's been submitted, is open, or still
-  // locked behind the previous tier. Only teacher stories carry tiers.
-  // Was a status chip (not a button) on whichever level the card's primary
-  // button already opened, since two controls landing on the same screen
-  // read as one too many. Reverted at the user's request: with only two of
-  // the three cells actually clickable, the row didn't look disabled, it
-  // looked broken — the user reported "can't click Easy" as a bug, not as
-  // an intentional label. All three are buttons again, Easy included.
-  const renderTierTrack = (t: Topic, activityUnlocked: boolean) => {
-    const story = t.sourceStory;
-    if (!story) return null;
-    const submittedLevels = loadSubmittedLevels(story.id);
-    const levels = (["easy", "medium", "hard"] as const).filter(
-      (level) => level === "easy" || storyHasTierContent(story, level),
-    );
-    return (
-      <div
-        className={`ts-tier-track${onLevelSelect ? " ts-tier-track-interactive" : ""}`}
-        aria-label="Difficulty levels"
-      >
-        {levels.map((level) => {
-          const state = !activityUnlocked
-            ? "lock"
-            : submittedLevels[level]
-            ? "done"
-            : isStoryLevelUnlocked(story.id, level)
-              ? "open"
-              : "lock";
-          const tierTopic = storyToTopic(story, level, "approved");
-          const hasQuiz = topicHasQuiz(tierTopic);
-          // "Needs" is only used for the accessibility hint. Opening a tier
-          // now shows the activity chooser first, so students can deliberately
-          // choose Vocabulary Quiz or Speaking Practice.
-          const needsQuiz =
-            hasQuiz &&
-            !isAdminSession() &&
-            !practiceUnlocked(loadLocalStars(tierTopic.id));
-          const copy = LEVEL_COPY[level];
-          const content = (
-            <>
-              <StudentIcon name={LEVEL_ICONS[level]} size={20} />
-              <BiLabel zh={copy.zh} en={copy.en} align="center" />
-            </>
-          );
-          if (!onLevelSelect) {
-            return (
-              <span key={level} className={`ts-tier-cell ts-tier-${state}`}>
-                {content}
-              </span>
-            );
-          }
-          return (
-            <button
-              key={level}
-              type="button"
-              className={`ts-tier-cell ts-tier-${state}`}
-              disabled={state === "lock"}
-              aria-label={`${copy.en} difficulty${state === "done" ? ", completed" : state === "lock" ? activityUnlocked ? ", locked" : ", locked until the previous activity is completed" : needsQuiz ? ", vocabulary quiz required" : ""}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                onLevelSelect(t, level);
-              }}
-            >
-              {content}
-            </button>
-          );
-        })}
-      </div>
-    );
-  };
-
   const renderTopicCard = (t: Topic, group: LessonGroup, index: number) => {
     const totalScenes = t.images.length;
     const totalWords = Object.values(t.vocabulary).flat().length;
-    const earnedStars = loadBestLocalStars(t.id);
+    const earnedStars = loadLocalStars(t.id);
     const previewImage = t.images[0];
     const unlocked = isStoryUnlockedInLesson(group, index, submittedIds);
     const subLabel =
@@ -326,8 +238,6 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
               />
             </p>
           )}
-
-          {renderTierTrack(t, unlocked)}
         </div>
       </article>
     );
@@ -351,7 +261,7 @@ export default function TopicSelector({ onTopicSelect, onLevelSelect, averageTon
   // shell (it owns the analysed recordings).
   const quizTopics = topics.filter((topic) => topicHasQuiz(topic));
   const totalStars = quizTopics.reduce(
-    (sum, topic) => sum + loadBestLocalStars(topic.id),
+    (sum, topic) => sum + loadLocalStars(topic.id),
     0,
   );
   const maxStars = quizTopics.length * 3;

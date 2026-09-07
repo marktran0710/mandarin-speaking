@@ -5,7 +5,7 @@ import { getStudentName } from "../../utils/studentSession";
 import type { StudentWorkspacePageProps } from "../../pages/StudentWorkspacePage";
 import type { StudentWorkspaceView } from "../../pages/StudentWorkspacePage";
 import StudentModeFrame, { STUDENT_WORKSPACE_VIEWS } from "./StudentModeFrame";
-import { loadBestLocalStars } from "../../utils/quizTiers";
+import { loadLocalStars } from "../../utils/quizTiers";
 import { topicHasQuiz } from "../../utils/topicQuiz";
 import { getAverageMetric } from "../../utils/myStoriesUtils";
 import "../../components/BiLabel.css";
@@ -72,7 +72,7 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
   // the rail and that card can never disagree.
   const quizTopics = (storyTopics ?? []).filter((topic) => topicHasQuiz(topic));
   const totalStars = quizTopics.reduce(
-    (sum, topic) => sum + loadBestLocalStars(topic.id),
+    (sum, topic) => sum + loadLocalStars(topic.id),
     0,
   );
   const maxStars = quizTopics.length * 3;

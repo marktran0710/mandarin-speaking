@@ -9,7 +9,6 @@ import {
   lessonTitle,
   topicStoryId,
 } from "./lessonGroups";
-import { markStoryLevelSubmitted } from "./storyLevelProgress";
 import type { Topic } from "../components/TopicSelector";
 
 // No images/vocabulary, so topicHasQuiz is false and these stories are
@@ -40,15 +39,6 @@ const quizTopic = (id: string, lessonNumber: number | null, sourceId?: string): 
     vocabularyTranslation: { 0: ["book"] },
   }) as unknown as Topic;
 
-const tieredTopic = (id: string, lessonNumber: number, sourceId: string, lessonSubOrder = 1): Topic =>
-  ({
-    ...topic(id, lessonNumber, sourceId),
-    lessonSubOrder,
-    sourceStory: {
-      id: sourceId,
-      frames: [{ promptMedium: "medium", promptHard: "hard" }],
-    },
-  }) as unknown as Topic;
 
 const noStars = () => 0;
 const oneStar = () => 1;
@@ -158,18 +148,13 @@ describe("isStoryUnlockedInLesson", () => {
     expect(isStoryUnlockedInLesson(group, 2, new Set(["b"]))).toBe(true);
   });
 
-  it("requires every available level of the previous story to be submitted", () => {
+  it("opens the next story once the previous one has been submitted", () => {
     const group = groupTopicsByLesson([
-      tieredTopic("teacher-a", 5, "a", 1),
+      topic("teacher-a", 5, "a", 1),
       topic("teacher-b", 5, "b", 2),
     ])[0];
 
     expect(isStoryUnlockedInLesson(group, 1, new Set())).toBe(false);
-    markStoryLevelSubmitted("a", "easy");
-    expect(isStoryUnlockedInLesson(group, 1, new Set(["a"]))).toBe(false);
-    markStoryLevelSubmitted("a", "medium");
-    expect(isStoryUnlockedInLesson(group, 1, new Set(["a"]))).toBe(false);
-    markStoryLevelSubmitted("a", "hard");
     expect(isStoryUnlockedInLesson(group, 1, new Set(["a"]))).toBe(true);
   });
 });

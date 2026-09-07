@@ -1,8 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
-  hasStoryLevelBeenSubmitted,
-  isStoryLevelUnlocked,
-  loadSubmittedLevels,
+  loadSubmittedStoryIds,
   markStoryLevelSubmitted,
   mergeSubmittedStoryLevels,
 } from "./storyLevelProgress";
@@ -13,46 +11,32 @@ describe("storyLevelProgress", () => {
     window.localStorage.clear();
   });
 
-  it("always unlocks easy", () => {
-    expect(isStoryLevelUnlocked("story-1", "easy")).toBe(true);
+  it("marks a story submitted, ignoring the legacy level argument", () => {
+    expect(loadSubmittedStoryIds().has("story-1")).toBe(false);
+    // The StoryRecorder runtime still passes the scene difficulty level; it is
+    // accepted for call-site compatibility and ignored.
+    markStoryLevelSubmitted("story-1", "hard");
+    expect(loadSubmittedStoryIds().has("story-1")).toBe(true);
   });
 
-  it("keeps medium/hard locked until the previous tier is submitted", () => {
-    expect(isStoryLevelUnlocked("story-1", "medium")).toBe(false);
-    expect(isStoryLevelUnlocked("story-1", "hard")).toBe(false);
-
-    markStoryLevelSubmitted("story-1", "easy");
-    expect(isStoryLevelUnlocked("story-1", "medium")).toBe(true);
-    expect(isStoryLevelUnlocked("story-1", "hard")).toBe(false);
-
-    markStoryLevelSubmitted("story-1", "medium");
-    expect(isStoryLevelUnlocked("story-1", "hard")).toBe(true);
+  it("tracks submission independently per story", () => {
+    markStoryLevelSubmitted("story-1");
+    expect(loadSubmittedStoryIds().has("story-1")).toBe(true);
+    expect(loadSubmittedStoryIds().has("story-2")).toBe(false);
   });
 
-  it("only advances after an explicit submitted-level signal", () => {
-    // Vocabulary quiz state, including all three earned stars, is purposely
-    // stored elsewhere and is not an unlock signal for the next difficulty.
+  it("reads the legacy nested { easy: true } shape as a submitted story", () => {
     window.localStorage.setItem(
       "storyLevelProgress:student",
-      JSON.stringify({ "story-1": { easy: false } }),
+      JSON.stringify({ "legacy-story": { easy: true }, "unstarted": { easy: false } }),
     );
-
-    expect(hasStoryLevelBeenSubmitted("story-1", "easy")).toBe(false);
-    expect(isStoryLevelUnlocked("story-1", "medium")).toBe(false);
-
-    markStoryLevelSubmitted("story-1", "easy");
-    expect(hasStoryLevelBeenSubmitted("story-1", "easy")).toBe(true);
-    expect(loadSubmittedLevels("story-1")).toEqual({ easy: true });
-    expect(isStoryLevelUnlocked("story-1", "medium")).toBe(true);
+    const submitted = loadSubmittedStoryIds();
+    expect(submitted.has("legacy-story")).toBe(true);
+    expect(submitted.has("unstarted")).toBe(false);
   });
 
-  it("tracks progress independently per story", () => {
-    markStoryLevelSubmitted("story-1", "easy");
-    expect(isStoryLevelUnlocked("story-2", "medium")).toBe(false);
-  });
-
-  it("hydrates submitted tiers from the current student's scene metadata without replacing local progress", () => {
-    markStoryLevelSubmitted("local-story", "easy");
+  it("hydrates submitted stories from the current student's scene metadata without replacing local progress", () => {
+    markStoryLevelSubmitted("local-story");
     const submissions = [
       {
         id: "submission-1",
@@ -77,13 +61,14 @@ describe("storyLevelProgress", () => {
     ] as StorySubmission[];
 
     expect(mergeSubmittedStoryLevels(submissions, { studentId: "student-1", studentName: "Ada" })).toBe(true);
-    expect(loadSubmittedLevels("local-story")).toEqual({ easy: true });
-    expect(loadSubmittedLevels("server-story")).toEqual({ medium: true });
-    expect(loadSubmittedLevels("other-story")).toEqual({});
+    const submitted = loadSubmittedStoryIds();
+    expect(submitted.has("local-story")).toBe(true);
+    expect(submitted.has("server-story")).toBe(true);
+    expect(submitted.has("other-story")).toBe(false);
     expect(mergeSubmittedStoryLevels(submissions, { studentId: "student-1", studentName: "Ada" })).toBe(false);
   });
 
-  it("does not guess medium or hard from an ambiguous legacy topic id", () => {
+  it("does not guess a story id from an ambiguous legacy -medium/-hard topic id", () => {
     const submission = {
       id: "legacy-submission",
       storyId: "teacher-story-7-hard",
@@ -95,7 +80,8 @@ describe("storyLevelProgress", () => {
     } as StorySubmission;
 
     mergeSubmittedStoryLevels([submission], { studentName: "Student" });
-    expect(loadSubmittedLevels("story-7")).toEqual({});
-    expect(loadSubmittedLevels("story-7-hard")).toEqual({});
+    const submitted = loadSubmittedStoryIds();
+    expect(submitted.has("story-7")).toBe(false);
+    expect(submitted.has("story-7-hard")).toBe(false);
   });
 });
