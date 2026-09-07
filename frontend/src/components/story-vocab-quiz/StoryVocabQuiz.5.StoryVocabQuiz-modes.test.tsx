@@ -170,7 +170,7 @@ describe("StoryVocabQuiz modes", () => {
     expect(screen.queryByLabelText(/seconds left/)).not.toBeInTheDocument();
   });
 
-  it("offers a missed-words retry after the run, scoped to only the words gotten wrong, and does not record it as a new attempt", async () => {
+  it("splits results into mastered vs keep-learning groups and no longer offers a missed-words retry", async () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();
     const onDone = vi.fn();
@@ -181,33 +181,24 @@ describe("StoryVocabQuiz modes", () => {
 
     await user.click(screen.getByRole("button", { name: /Round 1/ }));
 
-    // Answer every question wrong: all 5 distinct words land in "missed".
+    // Answer every question wrong: all 5 distinct words land in "keep learning".
     for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, false);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
     }
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
-    const missedList = screen.getByRole("list", { name: "Missed words" });
-    expect(within(missedList).getAllByRole("listitem")).toHaveLength(5);
 
-    await user.click(screen.getByRole("button", { name: /Practice missed words/ }));
-
-    // Retry round: exactly the 5 missed words, no mode-select screen, and no
-    // Finish button (it's bounded, unlike the old Free mode's original round).
-    expect(screen.queryByRole("button", { name: /Finish & see results/ })).not.toBeInTheDocument();
-    for (let i = 0; i < 5; i += 1) {
-      await answerCurrentQuestion(user, true);
-      await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
+    // The redesigned results screen groups the round: every missed word is in
+    // the "keep learning" group, and nothing was mastered this round.
+    const keepGroup = screen.getByRole("region", { name: "Words to keep learning" });
+    for (const entry of entries) {
+      expect(within(keepGroup).getByText(entry.word)).toBeInTheDocument();
     }
+    expect(screen.queryByRole("region", { name: "Mastered words" })).not.toBeInTheDocument();
 
-    // Retry round completing must not fire a second onComplete/attempt, and
-    // its own results screen must not offer yet another retry.
-    expect(onComplete).toHaveBeenCalledTimes(1);
+    // The old missed-words retry button is gone by design; the only exit is the menu.
     expect(screen.queryByRole("button", { name: /Practice missed words/ })).not.toBeInTheDocument();
-
-    // A retry reinforces the words but does not earn a star or bypass the
-    // three-star speaking gate.
     expect(screen.getByRole("button", { name: /Back to menu/ })).toBeInTheDocument();
     expect(onDone).not.toHaveBeenCalled();
   });

@@ -131,9 +131,12 @@
 }
 
 /* Student refresh: compact paper surfaces aligned with the instructor demo. */
-.home-page { background: var(--clay-canvas); padding-bottom: var(--space-2xl); }
-.home-hero { padding-top: clamp(36px, 5vw, 68px); gap: var(--space-xl) clamp(32px, 5vw, 64px); }
-.hero-title-zh { font-size: clamp(42px, 5vw, 56px); }
+/* Tightened top/bottom rhythm so the hero + three steps + source-attribution
+   footer fit one desktop viewport without a scroll. */
+.home-page { background: var(--clay-canvas); padding-bottom: var(--space-md); }
+.home-hero { padding-top: clamp(12px, 2vw, 20px); gap: var(--space-lg) clamp(32px, 5vw, 64px); }
+.home-page > .source-attribution { margin-top: var(--space-md); }
+.hero-title-zh { font-size: clamp(40px, 4.2vw, 50px); }
 .hero-subtitle { margin-top: var(--space-sm); line-height: 1.6; }
 .hero-stats { margin-top: var(--space-md); }
 .hero-stat-chip, .vertical-title { border-radius: var(--clay-radius-sm); background: var(--clay-surface-card); box-shadow: none; }

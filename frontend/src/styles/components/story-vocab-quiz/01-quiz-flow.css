@@ -36,7 +36,11 @@
 .vocab-quiz-status-progress {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  /* Left-align the "第 X / Y 題" counter so it lines up with the score/
+     progress block below it (the strengthen bar's "N / M" label and the
+     tier track both read from the left) — a centered counter over a
+     left-origin bar looked inconsistent. */
+  align-items: flex-start;
   gap: var(--space-2xs);
   flex: 1 1 320px;
   min-width: 0;

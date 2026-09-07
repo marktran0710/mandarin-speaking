@@ -196,7 +196,7 @@
 .story-preview-stage {
   position: relative;
   min-height: 0;
-  height: clamp(290px, 38vw, 480px);
+  height: clamp(260px, 32vw, 430px);
   border-radius: var(--clay-radius-xl);
   border: 1px solid var(--clay-hairline);
   background: var(--clay-surface-card);
@@ -332,8 +332,8 @@
    coming apart rather than as two sections. */
 .how-it-works {
   width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
-  margin: var(--space-xl) auto 0;
-  padding-top: var(--space-xl);
+  margin: var(--space-md) auto 0;
+  padding-top: var(--space-md);
   border-top: 1px solid var(--clay-hairline);
 }
 

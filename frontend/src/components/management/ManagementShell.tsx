@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import useColorMode from "../../hooks/useColorMode";
 import ToneMark from "../tone/ToneMark";
 import Icon, { type UiIconName } from "../../shared/ui/Icon";
+import SourceAttribution from "../SourceAttribution";
 import "./ManagementShell.css";
 
 export type ManagementRole = "teacher" | "admin";
@@ -178,7 +179,10 @@ export default function ManagementShell({
             );
           })}
         </nav>
-        <main className="management-main">{children}</main>
+        <main className="management-main">
+          {children}
+          <SourceAttribution className="is-flush" />
+        </main>
       </div>
     </div>
   );

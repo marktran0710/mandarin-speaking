@@ -212,8 +212,21 @@ export function ReviewScreen({ entries, back }: { entries: VocabQuizEntry[]; bac
   return <section className="story-vocab-quiz vocab-quiz-review" aria-label="Vocabulary review"><button type="button" className="btn-vocab-quiz-back" onClick={back}><StudentIcon name="arrow-left" size={17} /><BiLabel zh="選模式" pinyin="Xuǎn móshì" en="Back to modes" /></button><div className="vocab-quiz-header"><p className="eyebrow"><BiLabel zh="複習模式" pinyin="Fùxí móshì" en="Review Mode" /></p><h1 className="vocab-quiz-mode-title"><BiLabel zh="所有生詞" pinyin="Suǒyǒu shēngcí" en="All vocabulary" /></h1></div><ul className="vocab-quiz-review-list" aria-label="Vocabulary list">{entries.map((entry) => <li className="vocab-quiz-review-item" key={entry.word}><span className="vocab-quiz-review-word">{entry.word}</span><span className="vocab-quiz-review-pinyin">{entry.pinyin || toPinyin(entry.word)}</span><span className="vocab-quiz-review-translation">{entry.translation}</span></li>)}</ul></section>;
 }
 
-export function SummaryScreen({ mode, results, missedWords, missedEntries, isRetryRound, stars, onDone, startTier, practiceMissedWords, backToModes, progress, onStartChallenge, challengeBestScore, onStartStrengthen }: { mode: VocabQuizMode | null; results: VocabQuizQuestionResult[]; missedWords: VocabQuizQuestionResult[]; missedEntries: VocabQuizEntry[]; isRetryRound: boolean; stars: 0 | QuizTier; onDone: () => void; startTier: (mode: TierMode) => void; practiceMissedWords: () => void; backToModes: () => void; progress?: LessonVocabularyProgress; onStartChallenge?: () => void; challengeBestScore?: number; onStartStrengthen?: () => void }) {
+export function SummaryScreen({ mode, results, missedEntries, roundEntries, isRetryRound, stars, onDone, startTier, backToModes, progress, onStartChallenge, challengeBestScore, onStartStrengthen }: { mode: VocabQuizMode | null; results: VocabQuizQuestionResult[]; missedEntries: VocabQuizEntry[]; roundEntries: VocabQuizEntry[]; isRetryRound: boolean; stars: 0 | QuizTier; onDone: () => void; startTier: (mode: TierMode) => void; backToModes: () => void; progress?: LessonVocabularyProgress; onStartChallenge?: () => void; challengeBestScore?: number; onStartStrengthen?: () => void }) {
   const correctCount = results.filter((result) => result.correct).length;
+  // Two-group word breakdown for the results screen: words demonstrated this
+  // round (mastered — tagged "improved" when BKT shows they were strengthened
+  // from a weaker state, else "strong") vs words still to study (missed).
+  const missedWordSet = new Set(missedEntries.map((entry) => entry.word));
+  const correctWordSet = new Set(results.filter((result) => result.correct).map((result) => result.word));
+  const masteredEntries = roundEntries.filter((entry) => correctWordSet.has(entry.word) && !missedWordSet.has(entry.word));
+  const improvedIds = new Set<string>();
+  (progress?.improvements ?? []).forEach((improvement) => {
+    if (!improvement.strengthenedThroughPractice) return;
+    improvedIds.add(improvement.targetWord);
+    if (improvement.wordId) improvedIds.add(improvement.wordId);
+  });
+  const isImproved = (entry: VocabQuizEntry) => improvedIds.has(entry.word) || (entry.wordId ? improvedIds.has(entry.wordId) : false);
   const isChallenge = mode === "challenge";
   const roundLabel = mode === "tier1" ? "Know It" : mode === "tier2" ? "Say It" : mode === "tier3" ? "Use It" : null;
   const tierConfig = !isRetryRound ? tierConfigFromMode(mode) : null;
@@ -239,8 +252,48 @@ export function SummaryScreen({ mode, results, missedWords, missedEntries, isRet
   const showContinue = practiceUnlocked(stars);
   return <section className={`story-vocab-quiz vocab-quiz-summary${isChallenge ? " is-challenge-result" : ""}`} aria-label="Vocabulary quiz results"><div className="vocab-quiz-header"><p className="eyebrow"><BiLabel zh={isChallenge ? "課程挑戰結果" : isRetryRound ? "複習結果" : roundLabel ? `${roundLabel} 完成` : "測驗結果"} pinyin={isChallenge ? "Kèchéng tiǎozhàn jiéguǒ" : isRetryRound ? "Fùxí jiéguǒ" : "Cèyàn jiéguǒ"} en={isChallenge ? "Challenge complete" : isRetryRound ? "Review results" : roundLabel ? `${roundLabel} complete` : "Quiz results"} /></p><h1 className="vocab-quiz-mode-title"><BiLabel zh={isChallenge ? "課程挑戰完成" : `答對 ${correctCount} / ${results.length} 題`} pinyin={isChallenge ? "Kèchéng tiǎozhàn wánchéng" : `Dá duì ${correctCount} / ${results.length} tí`} en={isChallenge ? "Challenge Complete" : `${correctCount} / ${results.length} correct`} /></h1>{isChallenge && <p className="vocab-quiz-star-result is-earned">Best score: {challengeBestScore ?? correctCount} / {results.length}</p>}{tierConfig && passed && <p className="vocab-quiz-star-result is-earned"><BiLabel zh={`你拿到第 ${tierConfig.tier} 顆星了！`} pinyin={`Nǐ nádào dì ${tierConfig.tier} kē xīng le!`} en={`You earned star ${tierConfig.tier}!`} /></p>}{tierConfig && !passed && <p className="vocab-quiz-star-result is-near-miss"><BiLabel zh={`再答對 ${gap} 題就拿到第 ${tierConfig.tier} 顆星了！`} pinyin={`Zài dá duì ${gap} tí jiù nádào dì ${tierConfig.tier} kē xīng le!`} en={`Just ${gap} more right for star ${tierConfig.tier}!`} /></p>}</div>
     {progress && mode === "tier3" && <FocusWords progress={progress} onStart={onStartStrengthen} />}
-    {missedWords.length > 0 ? <div className="vocab-quiz-missed-list" role="list" aria-label="Missed words">{missedEntries.map((entry) => <div className="vocab-quiz-missed-item" role="listitem" key={entry.word}><span className="vocab-quiz-missed-word">{entry.word}</span><span className="vocab-quiz-missed-translation">{entry.translation}</span></div>)}</div> : <p className="vocab-quiz-all-correct"><BiLabel zh="全部答對，太棒了！" pinyin="Quánbù dá duì, tài bàng le!" en="Perfect score — nice work!" /></p>}
-    <div className="vocab-quiz-actions">{isChallenge && onStartChallenge && <button type="button" className="btn-vocab-quiz-try-again" onClick={onStartChallenge}><StudentIcon name="retry" size={16} /> <BiLabel zh="再挑戰一次" pinyin="Zài tiǎozhàn yí cì" en="Try again" /></button>}{!isChallenge && tierConfig && !passed && <button type="button" className="btn-vocab-quiz-try-again" onClick={() => startTier(tierConfig.mode)}><StudentIcon name="retry" size={16} /> <BiLabel zh="再試一次" pinyin="Zài shì yí cì" en="Try again" /></button>}{!isChallenge && nextRoundAction && nextRoundCopy && <button type="button" className="btn-vocab-quiz-challenge" onClick={nextRoundAction}><StudentIcon name={nextTierCard ? "star" : "arrow-right"} size={16} /> <BiLabel {...nextRoundCopy} /></button>}{missedWords.length > 0 && !isRetryRound && !isChallenge && <button type="button" className="btn-vocab-quiz-retry" onClick={practiceMissedWords}><StudentIcon name="retry" size={16} /> <BiLabel zh="練習答錯的題目" pinyin="Liànxí dá cuò de tímù" en="Practice missed words" /></button>}{!isChallenge && !nextRoundAction && showContinue ? <button type="button" className="btn-vocab-quiz-next" onClick={onDone}><BiLabel zh="繼續練習" pinyin="Jìxù liànxí" en="Continue to practice" /> <StudentIcon name="arrow-right" size={16} aria-hidden="true" /></button> : isChallenge ? <button type="button" className="btn-vocab-quiz-next" onClick={onDone}><BiLabel zh="完成" pinyin="Wánchéng" en="Finish" /></button> : !nextRoundAction && <button type="button" className="btn-vocab-quiz-menu" onClick={backToModes}><BiLabel zh="回選單" pinyin="Huí xuǎndān" en="Back to menu" /></button>}</div>
+    <div className="vqr-stats">
+      <div className="vqr-counts">
+        <div className="vqr-count is-mastered">
+          <span className="vqr-count-icon" aria-hidden="true"><StudentIcon name="check-circle" size={22} /></span>
+          <span className="vqr-count-figure"><span className="vqr-count-num">{masteredEntries.length}</span><span className="vqr-count-label"><BiLabel zh="已掌握" en="Mastered" /></span></span>
+        </div>
+        <div className="vqr-count is-keep">
+          <span className="vqr-count-icon" aria-hidden="true"><StudentIcon name="target" size={20} /></span>
+          <span className="vqr-count-figure"><span className="vqr-count-num">{missedEntries.length}</span><span className="vqr-count-label"><BiLabel zh="要繼續學" en="Keep learning" /></span></span>
+        </div>
+      </div>
+      {masteredEntries.length > 0 && (
+        <section className="vqr-group is-mastered" aria-label="Mastered words">
+          <header className="vqr-group-head"><StudentIcon name="check-circle" size={18} aria-hidden="true" /><span className="vqr-group-title"><BiLabel zh="已掌握的生詞" pinyin="Yǐ zhǎngwò de shēngcí" en="Mastered this round" /></span><span className="vqr-group-count">{masteredEntries.length}</span></header>
+          <div className="vqr-rows">
+            {masteredEntries.map((entry) => (
+              <div className="vqr-row" key={entry.word}>
+                <span className="vqr-word">{entry.word}</span>
+                <span className="vqr-meaning">{(entry.pinyin || toPinyin(entry.word))} · {entry.translation}</span>
+                <span className={`vqr-badge ${isImproved(entry) ? "is-improved" : "is-strong"}`}>{isImproved(entry) ? <><StudentIcon name="sprout" size={13} aria-hidden="true" /> <BiLabel zh="進步" en="Improved" /></> : <BiLabel zh="穩" en="Strong" />}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      {missedEntries.length > 0 ? (
+        <section className="vqr-group is-keep" aria-label="Words to keep learning">
+          <header className="vqr-group-head"><StudentIcon name="target" size={18} aria-hidden="true" /><span className="vqr-group-title"><BiLabel zh="要繼續學的生詞" pinyin="Yào jìxù xué de shēngcí" en="Study these next" /></span><span className="vqr-group-count">{missedEntries.length}</span></header>
+          <div className="vqr-rows vqr-rows-grid">
+            {missedEntries.map((entry) => (
+              <div className="vqr-row" key={entry.word}>
+                <span className="vqr-word is-keep">{entry.word}</span>
+                <span className="vqr-meaning">{entry.translation}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : (
+        <p className="vocab-quiz-all-correct"><BiLabel zh="全部答對，太棒了！" pinyin="Quánbù dá duì, tài bàng le!" en="Perfect score — nice work!" /></p>
+      )}
+    </div>
+    <div className="vocab-quiz-actions">{isChallenge && onStartChallenge && <button type="button" className="btn-vocab-quiz-try-again" onClick={onStartChallenge}><StudentIcon name="retry" size={16} /> <BiLabel zh="再挑戰一次" pinyin="Zài tiǎozhàn yí cì" en="Try again" /></button>}{!isChallenge && tierConfig && !passed && <button type="button" className="btn-vocab-quiz-try-again" onClick={() => startTier(tierConfig.mode)}><StudentIcon name="retry" size={16} /> <BiLabel zh="再試一次" pinyin="Zài shì yí cì" en="Try again" /></button>}{!isChallenge && nextRoundAction && nextRoundCopy && <button type="button" className="btn-vocab-quiz-challenge" onClick={nextRoundAction}><StudentIcon name={nextTierCard ? "star" : "arrow-right"} size={16} /> <BiLabel {...nextRoundCopy} /></button>}{!isChallenge && !nextRoundAction && showContinue ? <button type="button" className="btn-vocab-quiz-next" onClick={onDone}><BiLabel zh="繼續練習" pinyin="Jìxù liànxí" en="Continue to practice" /> <StudentIcon name="arrow-right" size={16} aria-hidden="true" /></button> : isChallenge ? <button type="button" className="btn-vocab-quiz-next" onClick={onDone}><BiLabel zh="完成" pinyin="Wánchéng" en="Finish" /></button> : !nextRoundAction && <button type="button" className="btn-vocab-quiz-menu" onClick={backToModes}><BiLabel zh="回選單" pinyin="Huí xuǎndān" en="Back to menu" /></button>}</div>
     {!showContinue && !isChallenge && <p className="vocab-quiz-unlock-note"><StudentIcon name="lock" size={15} /> <BiLabel zh="拿到三顆星才能開始說話練習" pinyin="Nádào sān kē xīng cáinéng kāishǐ shuōhuà liànxí" en="Speaking practice opens after all three stars" /></p>}
   </section>;
 }

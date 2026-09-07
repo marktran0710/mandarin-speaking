@@ -4,6 +4,7 @@ import { Page } from "../types/page";
 import { BiLabel, BiText } from "../components/BiLabel";
 import ToneStroke from "../components/tone/ToneStroke";
 import StudentIcon from "../components/StudentIcon";
+import SourceAttribution from "../components/SourceAttribution";
 import "../components/BiLabel.css";
 
 interface HomePageProps {
@@ -216,6 +217,7 @@ export default function HomePage({ onNavigate }: HomePageProps) {
           ))}
         </ol>
       </section>
+      <SourceAttribution />
     </div>
   );
 }

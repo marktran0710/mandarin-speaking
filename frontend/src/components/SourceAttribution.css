@@ -1,0 +1,51 @@
+/* Foot-of-page source attribution. Muted, in normal flow, aligned to the
+   shared content width so it lines up with page content on every route. */
+.source-attribution {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: var(--content-max, 1160px);
+  margin: var(--space-2xl) auto 0;
+  padding: var(--space-md) var(--content-gutter, 20px);
+  border-top: 1px solid var(--clay-hairline);
+  color: var(--clay-muted);
+  text-align: center;
+  font-size: var(--text-xs);
+  line-height: 1.55;
+}
+
+.source-attribution-zh {
+  margin: 0;
+}
+
+.source-attribution-en {
+  margin: 2px 0 0;
+  color: var(--clay-muted);
+  opacity: 0.85;
+}
+
+/* When it sits inside a page that already carries its own side padding
+   (e.g. the management content column), drop the extra gutter so the
+   hairline spans the full column. */
+.source-attribution.is-flush {
+  padding-left: 0;
+  padding-right: 0;
+  max-width: none;
+}
+
+/* Compact variant for a narrow side rail (student workspace sidebar): no
+   centered max-width, smaller type, left-aligned, and only a light top rule —
+   so it reads as a quiet caption at the foot of the rail rather than a full
+   footer band. The rail owns its own horizontal padding. */
+.source-attribution.is-rail {
+  max-width: none;
+  margin-top: var(--space-md);
+  margin-bottom: 0;
+  padding: var(--space-sm) 0 0;
+  border-top: 1px solid var(--clay-hairline);
+  text-align: left;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+.source-attribution.is-rail .source-attribution-en {
+  margin-top: 1px;
+}

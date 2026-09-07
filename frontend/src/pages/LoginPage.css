@@ -1,14 +1,38 @@
 .login-page {
-  /* Narrow, centered auth column — overrides the global 1160px content width
-     while still flowing through the shared --content-max mechanism. */
-  --content-max: 560px;
+  /* Centered auth column — overrides the global 1160px content width while
+     still flowing through the shared --content-max mechanism. Wider than the
+     old 560px so the card doesn't read as a small box lost on a big screen. */
+  --content-max: 640px;
   position: relative;
+  /* Column layout so the auth card stays at the top and the source-attribution
+     footer (a page-level child, not inside the card column) pins to the bottom
+     edge via its own margin-top:auto — filling the page without floating in the
+     middle of the tall column or being clipped by overflow. */
+  display: flex;
+  flex-direction: column;
   min-height: max(0px, calc(100dvh - var(--navbar-height)));
   background: var(--clay-canvas);
   overflow: hidden;
   /* 72px bottom padding sits outside the token scale (>56px but not near
      3xl's 64px) — left as a literal rather than forced onto a wrong token. */
   padding: var(--space-xl) var(--space-md) 72px;
+}
+
+/* The auth column grows to fill the page and centres its card vertically, so
+   the form sits in the optical middle instead of floating high with a large
+   empty gap below. The attribution still pins to the very bottom after it. */
+.login-page > .login-shell {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Pin the attribution to the bottom of the page and keep it compact so it
+   reads as a page footer rather than a card floating under the form. */
+.login-page > .source-attribution {
+  margin-top: auto;
+  padding-top: var(--space-md);
 }
 
 .login-shell {
@@ -143,7 +167,7 @@
 .login-page.student {
   /* Read by both .login-card's own max-width and .login-back's matching
      left offset below, so the two can never drift out of sync again. */
-  --login-card-max-width: 500px;
+  --login-card-max-width: 600px;
 }
 
 .login-page.student .login-card {

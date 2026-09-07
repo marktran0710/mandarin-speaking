@@ -88,18 +88,23 @@ export function MasteryProgressBar({ progress, compact = false }: { progress: Le
   );
 }
 
-export function StrengthenProgressBar({ progress }: { progress: LessonVocabularyProgress }) {
-  const total = progress.strengthen.required;
-  const strengthened = Math.min(total, progress.strengthen.strengthened);
-  const percent = total > 0 ? Math.round((strengthened / total) * 100) : 100;
+/** Progress through the current strengthen round. Uses the same denominator
+ * as the "第 X / Y 題" counter (the round's question count) and fills as the
+ * learner answers, so the two indicators stay in sync — earlier this showed a
+ * lesson-wide strengthen goal whose total (and static "0") never matched the
+ * round's question count. */
+export function StrengthenProgressBar({ answered, total }: { answered: number; total: number }) {
+  const safeTotal = Math.max(0, total);
+  const done = Math.min(safeTotal, Math.max(0, answered));
+  const percent = safeTotal > 0 ? Math.round((done / safeTotal) * 100) : 0;
   return (
-    <section className="lesson-vocab-mastery lesson-strengthen-progress" aria-label="Strengthen vocabulary progress">
+    <section className="lesson-vocab-mastery lesson-strengthen-progress" aria-label="Practice round progress">
       <div className="lesson-vocab-mastery-heading">
         <div>
-          <strong>{strengthened} / {total}</strong>
+          <strong>{done} / {safeTotal}</strong>
         </div>
       </div>
-      <div className="lesson-vocab-mastery-track" role="progressbar" aria-label={`${strengthened} of ${total} vocabulary words strengthened`} aria-valuemin={0} aria-valuemax={total} aria-valuenow={strengthened}>
+      <div className="lesson-vocab-mastery-track" role="progressbar" aria-label={`${done} of ${safeTotal} questions answered`} aria-valuemin={0} aria-valuemax={safeTotal} aria-valuenow={done}>
         <span style={{ width: `${percent}%` }} />
       </div>
     </section>

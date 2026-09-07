@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import StudentIcon, { type StudentIconName } from "../StudentIcon";
 import { BiLabel, type BiLabelProps } from "../BiLabel";
+import SourceAttribution from "../SourceAttribution";
 import useColorMode from "../../hooks/useColorMode";
 import type { WorkspaceView } from "../../types/studentWorkspace";
 import "./StudentSidebar.css";
@@ -248,6 +249,8 @@ export default function StudentSidebar({
             <BiLabel k="log_out" />
           </button>
         </div>
+
+        <SourceAttribution className="is-rail" />
       </aside>
     </>
   );
