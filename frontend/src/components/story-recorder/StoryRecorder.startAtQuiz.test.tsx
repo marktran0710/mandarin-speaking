@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import StoryRecorder from "./StoryRecorder";
 import { topicWithQuizVocab } from "./StoryRecorder.test.helpers";
@@ -62,5 +63,37 @@ describe("StoryRecorder — explicit startAtQuiz beats the already-passed redire
     expect(
       screen.queryByRole("button", { name: "Record" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("StoryRecorder — the overview chooser respects an explicit Vocabulary Quiz click", () => {
+  it("stays on the quiz when a fully-starred student picks Vocabulary Quiz from the overview", async () => {
+    const user = userEvent.setup();
+    render(
+      <StoryRecorder
+        topic={topicWithQuizVocab}
+        selectedImage={topicWithQuizVocab.images[0]}
+        selectedImageIndex={0}
+        onImageSelect={() => {}}
+        onImageChange={() => {}}
+        onAddRecord={() => {}}
+        enableOverview
+        studentId="student-already-passed"
+        studentName="Test Student"
+      />,
+    );
+
+    // The overview chooser appears first; deliberately choose the quiz.
+    await user.click(await screen.findByRole("button", { name: /Vocabulary Quiz/ }));
+
+    // The already-passed background check (which used to flip vocabquiz ->
+    // practice once listVocabQuizAttempts resolved) must NOT fire now that the
+    // student explicitly opened the quiz.
+    expect(await screen.findByRole("group", { name: "Quiz mode" })).toBeInTheDocument();
+    // Let the mocked attempts fetch resolve, then confirm we did not get
+    // bounced to the speaking (Record) screen underneath.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByRole("button", { name: "Record" })).not.toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Quiz mode" })).toBeInTheDocument();
   });
 });
