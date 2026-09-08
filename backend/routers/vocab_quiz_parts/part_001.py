@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from psycopg.types.json import Jsonb
 
 import auth
-from analytics.bkt_question_validation import classify_bkt_response, validate_vocabulary_question
+from analytics.bkt_assessment_resolver import resolve_assessment_response
 from analytics.bkt_mastery import (
     diagnostic_status,
     get_priority_review_words,
@@ -66,40 +66,18 @@ def _assert_student_scope(identity: auth.Identity, student_id: str) -> None:
         raise HTTPException(status_code=403, detail="Students may only view their own vocabulary mastery.")
 
 
-def _validated_question_results(attempt: VocabQuizAttemptRequest) -> list[dict]:
-    """Apply the server-side BKT content contract to each submitted answer."""
+def _validated_question_results(db, attempt: VocabQuizAttemptRequest) -> list[dict]:
+    """Resolve answers to published assessment facts before BKT sees them."""
     question_results = []
     for result in attempt.questionResults:
         payload = result.model_dump(exclude_none=True, exclude_defaults=True)
-        # Re-run the content contract on the server. The client may send a
-        # hint, but it cannot make an otherwise malformed or non-approved
-        # response eligible by setting ``isBktEligible`` itself.
-        question_for_validation = {
-            "questionId": payload.get("itemId"),
-            "wordId": payload.get("conceptId") or payload.get("word"),
-            "targetWordIds": [payload.get("conceptId") or payload.get("word")],
-            "questionKind": payload.get("questionKind"),
-            "answerFormat": "free_text" if not payload.get("presentedOptions") else "single_choice",
-            "correctAnswer": payload.get("correctAnswer"),
-            "options": payload.get("presentedOptions"),
-            "prompt": payload.get("questionPrompt"),
-            "validationStatus": payload.get("bktValidationStatus"),
-        }
-        question_quality = validate_vocabulary_question(question_for_validation)
-        candidate = {**payload, "isBktEligible": question_quality.eligible_for_bkt}
-        eligible, reasons = classify_bkt_response(candidate, attempt)
-        if question_quality.errors:
-            reasons = list(dict.fromkeys(reasons + [issue["code"] for issue in question_quality.errors]))
-            eligible = False
-        payload["isBktEligible"] = eligible
-        payload["bktEligibilityErrors"] = reasons
-        if not eligible:
+        resolved = resolve_assessment_response(db, attempt, payload)
+        if not resolved.get("authoritativeResolved"):
             main.logger.warning(
-                "BKT_UPDATE_SKIPPED question_id=%s reason=%s",
+                "BKT_UPDATE_SKIPPED question_id=%s reason=UNRESOLVED_ASSESSMENT_SOURCE",
                 payload.get("itemId") or payload.get("word") or "unknown",
-                ",".join(reasons),
             )
-        question_results.append(payload)
+        question_results.append(resolved)
     return question_results
 
 
@@ -169,8 +147,8 @@ async def create_vocab_quiz_attempt(
 ):
     attempt.studentId = identity.id
     raw_question_results = [result.model_dump(exclude_none=True, exclude_defaults=True) for result in attempt.questionResults]
-    question_results = _validated_question_results(attempt)
     with connect_db() as db:
+        question_results = _validated_question_results(db, attempt)
         existing = db.execute(
             "SELECT * FROM vocab_quiz_attempts WHERE id = %s",
             (attempt.id,),
@@ -227,7 +205,10 @@ async def create_vocab_quiz_attempt(
         # normalized ledger makes every response replayable for BKT calibration.
         normalized_attempt = attempt.model_dump(exclude_none=True)
         normalized_attempt["questionResults"] = question_results
-        record_attempt_and_rebuild(db, normalized_attempt, identity.id, response_results=question_results)
+        try:
+            record_attempt_and_rebuild(db, normalized_attempt, identity.id, response_results=question_results)
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
     payload = attempt.model_dump(exclude_none=True)
     payload["questionResults"] = raw_question_results
     # Keep the nullable field present for clients that use the response as a
@@ -248,11 +229,14 @@ async def record_vocab_quiz_response(
     eventual completed-attempt write can safely replay the same answers.
     """
     attempt.studentId = identity.id
-    question_results = _validated_question_results(attempt)
-    normalized_attempt = attempt.model_dump(exclude_none=True)
-    normalized_attempt["questionResults"] = question_results
     with connect_db() as db:
-        record_attempt_and_rebuild(db, normalized_attempt, identity.id, response_results=question_results)
+        question_results = _validated_question_results(db, attempt)
+        normalized_attempt = attempt.model_dump(exclude_none=True)
+        normalized_attempt["questionResults"] = question_results
+        try:
+            record_attempt_and_rebuild(db, normalized_attempt, identity.id, response_results=question_results)
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
     return {"acceptedResponses": len(question_results)}
 
 

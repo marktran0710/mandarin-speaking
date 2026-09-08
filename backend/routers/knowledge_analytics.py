@@ -15,9 +15,9 @@ from analytics.knowledge_tracing import (
     PFA,
     PFAParameters,
     evaluate_prequential,
-    normalize_vocab_attempts,
     ResponseRecord,
 )
+from analytics.bkt_calibration_store import CalibrationSnapshot, load_calibration_snapshot
 from database import connect_db
 from analytics.bkt_question_validation import analyze_response_quality, validate_bkt_diagnostic_design
 from scripts.export_quiz_questions import build_question_rows
@@ -29,90 +29,80 @@ router = APIRouter(
     dependencies=[Depends(auth.require_admin)],
 )
 
-MODEL_VERSION = "knowledge-pilot-v1"
-MIN_PREDICTIONS_FOR_WINNER = 10
+MODEL_VERSION = "knowledge-pilot-v2"
+MIN_TRAINING_RECORDS = 100
+MIN_EVALUATION_PREDICTIONS = 100
+MIN_EVALUATION_CLASS_COUNT = 20
+MIN_STUDENTS = 10
+MIN_CONCEPTS = 10
 MODEL_SELECTION_TIE_MARGIN = 0.01
 
 
-def _attempt_row_to_dict(row: Any) -> dict[str, Any]:
-    """Keep the analytics input compatible with the shared normalizer."""
-    return {
-        "id": row.get("id"),
-        "storyId": row.get("story_id"),
-        "studentId": row.get("student_id"),
-        "studentName": row.get("student_name"),
-        "mode": row.get("mode"),
-        "completedAt": row.get("completed_at"),
-        "questionResults": row.get("question_results") or [],
-    }
-
-
-def _load_attempts(
+def _load_records(
     student_id: Optional[str], story_id: Optional[str], level: Optional[str]
-) -> tuple[list[dict[str, Any]], dict[str, str]]:
-    query = (
-        "SELECT id, story_id, student_id, student_name, mode, completed_at, question_results "
-        "FROM vocab_quiz_attempts WHERE 1=1"
-    )
-    params: list[Any] = []
-    if student_id:
-        query += " AND student_id = %s"
-        params.append(student_id)
-    if story_id:
-        query += " AND story_id = %s"
-        params.append(story_id)
-    query += " ORDER BY completed_at ASC, id ASC"
-
+) -> tuple[list[ResponseRecord], dict[str, str], CalibrationSnapshot]:
+    """Read only authoritative, provenance-complete real ledger evidence."""
     with connect_db() as db:
-        rows = db.execute(query, params).fetchall()
-
-    attempts: list[dict[str, Any]] = []
-    names: dict[str, str] = {}
-    for row in rows:
-        attempt = _attempt_row_to_dict(row)
-        results = attempt["questionResults"]
-        if level:
-            results = [
-                result for result in results
-                if isinstance(result, dict) and result.get("level") == level
-            ]
-            attempt["questionResults"] = results
-        attempts.append(attempt)
-        row_student_id = row.get("student_id")
-        if row_student_id and row.get("student_name"):
-            names[str(row_student_id).strip().casefold()] = str(row["student_name"])
-    return attempts, names
+        snapshot = load_calibration_snapshot(
+            db,
+            "real",
+            student_id=student_id,
+            story_id=story_id,
+            level=level,
+        )
+        ids = sorted({record.student_id for record in snapshot.records})
+        rows = db.execute(
+            "SELECT id, name FROM students WHERE id = ANY(%s)",
+            (ids,),
+        ).fetchall() if ids else []
+    names = {str(row["id"]): str(row["name"]) for row in rows}
+    return list(snapshot.records), names, snapshot
 
 
-def _quality(normalized: Any) -> dict[str, int]:
-    counters = normalized.counters
-    skill_count = len({(record.student_id, record.concept_id) for record in normalized.records})
-    items_seen = counters["items_seen"]
-    eligible = counters["records_emitted"]
+def _quality(records: list[ResponseRecord], snapshot: CalibrationSnapshot) -> dict[str, Any]:
+    skill_count = len({(record.student_id, record.concept_id) for record in records})
+    student_count = len({record.student_id for record in records})
+    concept_count = len({record.concept_id for record in records})
     return {
-        "totalAttempts": counters["attempts_seen"],
-        "totalResponses": items_seen,
-        "eligibleResponses": eligible,
-        "legacyConceptResponses": counters["legacy_word_fallback"],
-        "skippedResponses": max(0, items_seen - eligible),
-        "duplicateResponses": counters.get("duplicate_responses", 0),
-        "attemptsWithoutId": counters.get("attempts_without_id", 0),
-        "invalidTimestampAttempts": counters.get("invalid_timestamp", 0),
+        "totalAttempts": len({record.attempt_id for record in records}),
+        "totalResponses": len(records),
+        "eligibleResponses": len(records),
+        "legacyConceptResponses": 0,
+        "skippedResponses": 0,
+        "duplicateResponses": 0,
+        "attemptsWithoutId": 0,
+        "invalidTimestampAttempts": 0,
         "skillCount": skill_count,
+        "studentCount": student_count,
+        "conceptCount": concept_count,
+        "evidenceSource": "authoritative_response_ledger",
+        "evidenceOrigin": snapshot.evidence_origin,
+        "resolverVersions": list(snapshot.resolver_versions),
+        "highWaterResponseId": snapshot.high_water_response_id,
+        "sourceDigest": snapshot.source_digest,
     }
 
 
-def _evaluation(result: dict[str, Any]) -> dict[str, Any]:
+def _evaluation(result: dict[str, Any], quality: dict[str, int]) -> dict[str, Any]:
     metrics = result["metrics"]
     prediction_count = int(metrics.get("n") or 0)
     positive_count = int(metrics.get("positive_count") or 0)
     negative_count = int(metrics.get("negative_count") or 0)
+    checks = [
+        {"name": "training_records", "actual": int(result.get("train_n", 0)), "minimum": MIN_TRAINING_RECORDS},
+        {"name": "evaluation_predictions", "actual": prediction_count, "minimum": MIN_EVALUATION_PREDICTIONS},
+        {"name": "evaluation_positives", "actual": positive_count, "minimum": MIN_EVALUATION_CLASS_COUNT},
+        {"name": "evaluation_negatives", "actual": negative_count, "minimum": MIN_EVALUATION_CLASS_COUNT},
+        {"name": "students", "actual": quality["studentCount"], "minimum": MIN_STUDENTS},
+        {"name": "concepts", "actual": quality["conceptCount"], "minimum": MIN_CONCEPTS},
+    ]
+    for check in checks:
+        check["passed"] = check["actual"] >= check["minimum"]
+    fit_diagnostics = result.get("fit_diagnostics", {})
+    fit_status = fit_diagnostics.get("status", "failed")
+    status = "fit_failed" if fit_status == "failed" else ("evidence_ready" if all(check["passed"] for check in checks) else "insufficient_evidence")
     return {
-        "status": (
-            "ready"
-            if prediction_count >= MIN_PREDICTIONS_FOR_WINNER and positive_count > 0 and negative_count > 0
-            else "insufficient_data"
-        ),
+        "status": status,
         "responseCount": int(result.get("train_n", 0)) + prediction_count,
         "predictionCount": prediction_count,
         "positiveCount": positive_count,
@@ -121,10 +111,12 @@ def _evaluation(result: dict[str, Any]) -> dict[str, Any]:
         "brierScore": metrics.get("brier"),
         "calibrationError": metrics.get("calibration_error"),
         "auc": metrics.get("auc"),
+        "evidenceChecks": checks,
+        "fitDiagnostics": fit_diagnostics,
     }
 
 
-def _confidence(exposures: int) -> str:
+def _evidence_depth(exposures: int) -> str:
     if exposures >= 8:
         return "high"
     if exposures >= 3:
@@ -190,12 +182,13 @@ def _build_model_result(
             "successes": values["successes"],
             "failures": values["failures"],
             "lastSeenAt": last_seen.get((student_id, concept_id)),
-            "confidence": _confidence(exposures),
+            "evidenceDepth": _evidence_depth(exposures),
         })
 
     return {
         "model": model,
         "modelVersion": MODEL_VERSION,
+        "implementation": "restricted_pooled_baseline" if model == "pfa" else "pooled_bkt_pilot",
         "parameters": evaluation_result.get("parameters", {}),
         "masteryInterpretation": (
             "predicted_correct_probability"
@@ -208,19 +201,19 @@ def _build_model_result(
             {"studentId": student_id, "studentName": names.get(student_id), "skills": skills}
             for student_id, skills in sorted(skills_by_student.items())
         ],
-        "evaluation": _evaluation(evaluation_result),
+        "evaluation": _evaluation(evaluation_result, quality),
     }
 
 
-def _winner(pfa: dict[str, Any], bkt: dict[str, Any]) -> Optional[str]:
+def _lower_loss_signal(pfa: dict[str, Any], bkt: dict[str, Any]) -> Optional[str]:
     pfa_eval, bkt_eval = pfa["evaluation"], bkt["evaluation"]
-    if pfa_eval["status"] != "ready" or bkt_eval["status"] != "ready":
+    if pfa_eval["status"] != "evidence_ready" or bkt_eval["status"] != "evidence_ready":
         return None
     pfa_loss, bkt_loss = pfa_eval["logLoss"], bkt_eval["logLoss"]
     if pfa_loss is None or bkt_loss is None:
         return None
-    if abs(pfa_loss - bkt_loss) < MODEL_SELECTION_TIE_MARGIN:
-        return "pfa"
+    if abs(pfa_loss - bkt_loss) <= MODEL_SELECTION_TIE_MARGIN:
+        return "no_material_difference"
     return "pfa" if pfa_loss < bkt_loss else "bkt"
 
 
@@ -230,14 +223,8 @@ def _compute_knowledge_state(
     story_id: Optional[str],
     level: Optional[str],
 ) -> dict[str, Any]:
-    attempts, names = _load_attempts(student_id, story_id, level)
-    normalized = normalize_vocab_attempts(
-        attempts,
-        eligible_only=True,
-        deduplicate_diagnostic_exposures=True,
-    )
-    records = normalized.records
-    quality = _quality(normalized)
+    records, names, snapshot = _load_records(student_id, story_id, level)
+    quality = _quality(records, snapshot)
     scope = {"studentId": student_id, "storyId": story_id, "level": level}
     pfa = _build_model_result(records, names, "pfa", quality, scope)
     if model == "pfa":
@@ -251,7 +238,7 @@ def _compute_knowledge_state(
         "scope": scope,
         "dataQuality": quality,
         "models": {"pfa": pfa, "bkt": bkt},
-        "recommendedModel": _winner(pfa, bkt),
+        "lowerLossSignal": _lower_loss_signal(pfa, bkt),
     }
 
 

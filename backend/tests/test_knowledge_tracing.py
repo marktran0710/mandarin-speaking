@@ -1,4 +1,5 @@
 import math
+from types import SimpleNamespace
 
 import pytest
 
@@ -10,6 +11,7 @@ from analytics.knowledge_tracing import (
     ResponseRecord,
     evaluate_prequential,
     evaluate_vocab_attempts,
+    fit_bkt_parameters,
     fit_pfa_parameters,
     normalize_vocab_attempts,
 )
@@ -101,6 +103,8 @@ def test_regularized_pfa_fit_returns_finite_global_parameters():
     parameters = fit_pfa_parameters([record(False, 0), record(True, 1), record(True, 2)])
     assert parameters.l2 == 1.0
     assert all(math.isfinite(value) for value in parameters.to_dict().values())
+    with pytest.raises(ValueError):
+        PFAParameters(intercept=float("nan"))
 
 
 def test_bkt_correct_and_incorrect_updates_are_bayesian_and_bounded():
@@ -193,7 +197,51 @@ def test_bkt_evaluation_and_parameter_validation():
     with pytest.raises(ValueError):
         BKTParameters(guess=1.1)
     with pytest.raises(ValueError):
+        BKTParameters(guess=0.8, slip=0.2)
+    with pytest.raises(ValueError):
         evaluate_prequential([], model="unknown")
+
+
+def test_bkt_fit_reports_success_and_preserves_interpretable_constraint():
+    fitted, diagnostics = fit_bkt_parameters(
+        [record(index % 2 == 0, index) for index in range(12)],
+        include_diagnostics=True,
+    )
+    assert diagnostics["status"] == "success"
+    assert diagnostics["finite"] is True
+    assert 1.0 - fitted.slip > fitted.guess
+
+
+def test_bkt_fit_marks_optimizer_failure_and_evaluation_does_not_hide_it(monkeypatch):
+    def failed_optimizer(*_args, **_kwargs):
+        return SimpleNamespace(success=False, fun=1.0, x=[0.0, 0.0, 0.0, 0.0], message="iteration limit", nit=80)
+
+    monkeypatch.setattr("analytics.knowledge_tracing.minimize", failed_optimizer)
+    initial = BKTParameters()
+    fitted, diagnostics = fit_bkt_parameters([record(True, 0), record(False, 1)], initial=initial, include_diagnostics=True)
+    assert fitted == initial
+    assert diagnostics["status"] == "failed"
+
+    evaluated = evaluate_prequential([record(True, 0), record(False, 1), record(True, 2), record(False, 3)], model="bkt")
+    assert evaluated["fit_diagnostics"]["status"] == "failed"
+
+
+def test_bkt_fit_rejects_nonfinite_optimizer_output(monkeypatch):
+    def nonfinite_optimizer(*_args, **_kwargs):
+        return SimpleNamespace(success=True, fun=float("nan"), x=[float("nan")] * 4, message="invalid objective", nit=1)
+
+    monkeypatch.setattr("analytics.knowledge_tracing.minimize", nonfinite_optimizer)
+    initial = BKTParameters()
+    fitted, diagnostics = fit_bkt_parameters([record(True, 0)], initial=initial, include_diagnostics=True)
+    assert fitted == initial
+    assert diagnostics["status"] == "failed"
+    assert diagnostics["finite"] is False
+
+
+def test_analytics_pilot_constraints_do_not_change_production_bkt_defaults():
+    from analytics.bkt import BKT_CONFIG
+
+    assert (BKT_CONFIG.initial_mastery, BKT_CONFIG.learn_rate, BKT_CONFIG.guess_rate, BKT_CONFIG.slip_rate) == (0.2, 0.15, 0.2, 0.1)
 
 
 def test_dict_friendly_evaluation_reports_normalization_quality():

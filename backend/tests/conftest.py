@@ -85,6 +85,12 @@ TEST_DATABASE_URL = os.getenv(
 )
 
 TRUNCATED_TABLES = (
+    "bkt_model_active_deployment",
+    "bkt_model_deployment_events",
+    "bkt_model_refit_requests",
+    "bkt_model_student_folds",
+    "bkt_model_versions",
+    "bkt_model_fit_runs",
     "audio_records",
     "custom_stories",
     "help_requests",
@@ -114,6 +120,30 @@ def clean_database(use_test_database):
 
     with database.connect_db() as db:
         db.execute(f"TRUNCATE {', '.join(TRUNCATED_TABLES)} RESTART IDENTITY CASCADE")
+        # Migration 0031 records the frozen engineering defaults. Registry
+        # tables are now truncated for genuine test isolation, so restore the
+        # same non-serving bootstrap row before each test.
+        db.execute(
+            """
+            INSERT INTO bkt_model_fit_runs
+                (id, evidence_origin, source_digest, response_count,
+                 student_count, concept_count, parameters, metrics)
+            VALUES ('bootstrap-standard-bkt-v1', 'legacy_unknown',
+                    'engineering-defaults-no-fit', 0, 0, 0,
+                    '{"source":"existing engineering defaults"}'::jsonb,
+                    '{}'::jsonb)
+            """
+        )
+        db.execute(
+            """
+            INSERT INTO bkt_model_versions
+                (version, fit_run_id, evidence_origin, initial_mastery,
+                 learn_rate, guess_rate, slip_rate, parameter_fingerprint)
+            VALUES ('standard-bkt-v1', 'bootstrap-standard-bkt-v1',
+                    'legacy_unknown', .2, .15, .2, .1,
+                    'bootstrap-engineering-defaults-l0-0.2-t-0.15-g-0.2-s-0.1')
+            """
+        )
     yield
 
 

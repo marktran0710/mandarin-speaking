@@ -1,4 +1,59 @@
 from conftest import login_new_client
+from psycopg.types.json import Jsonb
+
+import database
+
+
+_MODE_LEVEL = {"tier1": "easy", "tier2": "medium", "tier3": "hard", "weak_words": "easy"}
+
+
+def _publish_attempt_items(attempt: dict) -> None:
+    """Create the immutable assessment source the API must resolve against."""
+    mode = str(attempt.get("mode") or "")
+    level = _MODE_LEVEL.get(mode, "easy")
+    story_id = str(attempt["storyId"])
+    with database.connect_db() as db:
+        row = db.execute(
+            "SELECT vocab_assessment FROM custom_stories WHERE id = %s",
+            (story_id,),
+        ).fetchone()
+        assessment = list((row or {}).get("vocab_assessment") or [])
+        by_identity = {
+            (str(item.get("questionId")), str(item.get("level"))): item
+            for item in assessment
+            if isinstance(item, dict)
+        }
+        for result in attempt.get("questionResults") or []:
+            item_id = str(result["itemId"])
+            word = str(result["word"])
+            by_identity[(item_id, level)] = {
+                "questionId": item_id,
+                "wordId": word,
+                "targetWord": word,
+                "level": level,
+                "questionType": "basic_meaning_mcq" if level == "easy" else "productive_recall",
+                "answerFormat": "single_choice" if level == "easy" else "free_text",
+                "pinyin": "right",
+                "options": ["right", "wrong"] if level == "easy" else [],
+                "correctAnswer": "right",
+                "acceptedAnswers": ["right"],
+                "prompt": f"Answer for {word}",
+            }
+        merged = list(by_identity.values())
+        db.execute(
+            """
+            INSERT INTO custom_stories (id, title, frames, published, vocab_assessment)
+            VALUES (%s, %s, %s, TRUE, %s)
+            ON CONFLICT (id) DO UPDATE SET published = TRUE, vocab_assessment = EXCLUDED.vocab_assessment
+            """,
+            (story_id, "BKT test lesson", Jsonb([]), Jsonb(merged)),
+        )
+
+
+def _post_attempt(client, attempt: dict, *, partial: bool = False):
+    _publish_attempt_items(attempt)
+    endpoint = "/api/vocab-quiz-responses" if partial else "/api/vocab-quiz-attempts"
+    return client.post(endpoint, json=attempt)
 
 
 def _response(word: str, correct: bool, item_id: str, *, level: str = "easy", eligible: bool = True, question_kind: str = "translation") -> dict:
@@ -40,9 +95,9 @@ def _attempt(attempt_id: str, mode: str, completed_at: str, results: list[dict])
 def test_bkt_unlocks_after_three_easy_diagnostic_quizzes_and_ranks_bottom_k(logged_in_student):
     client, student = logged_in_student
     for index, mode in enumerate(("tier1", "tier2", "tier3"), start=1):
-        response = client.post(
-            "/api/vocab-quiz-attempts",
-            json=_attempt(f"diagnostic-{index}", mode, f"2026-08-0{index}T00:00:00Z", [
+        response = _post_attempt(
+            client,
+            _attempt(f"diagnostic-{index}", mode, f"2026-08-0{index}T00:00:00Z", [
                 _response("附近", False, f"item-near-{index}"),
                 _response("方便", True, f"item-easy-{index}"),
             ]),
@@ -70,7 +125,7 @@ def test_weak_words_wait_for_all_three_diagnostic_rounds(logged_in_student):
         _response("附近", False, "item-near-1"),
     ])
 
-    assert client.post("/api/vocab-quiz-attempts", json=attempt).status_code == 200
+    assert _post_attempt(client, attempt).status_code == 200
 
     review = client.get(
         f"/api/students/{student['id']}/weak-words",
@@ -91,7 +146,7 @@ def test_partial_diagnostic_response_updates_weak_words_without_creating_attempt
     ])
     partial["id"] = "live-quiz-key"
 
-    response = client.post("/api/vocab-quiz-responses", json=partial)
+    response = _post_attempt(client, partial, partial=True)
     assert response.status_code == 200, response.text
     assert response.json() == {"acceptedResponses": 1}
 
@@ -117,7 +172,7 @@ def test_partial_diagnostic_response_updates_weak_words_without_creating_attempt
         "id": "completed-attempt",
         "completedAt": "2026-08-01T00:00:05Z",
     }
-    final_response = client.post("/api/vocab-quiz-attempts", json=completed)
+    final_response = _post_attempt(client, completed)
     assert final_response.status_code == 200, final_response.text
     mastery = client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()["words"]
     assert next(word for word in mastery if word["word"] == "附近")["observationCount"] == 1
@@ -143,7 +198,7 @@ def test_story_weak_words_are_cumulative_across_all_three_rounds(logged_in_stude
         ]),
     ]
     for attempt in attempts:
-        response = client.post("/api/vocab-quiz-attempts", json=attempt)
+        response = _post_attempt(client, attempt)
         assert response.status_code == 200, response.text
 
     review = client.get(
@@ -170,7 +225,7 @@ def test_medium_and_hard_rounds_update_the_same_word_level_kc(logged_in_student)
         result.update({"roundType": round_type, "knowledgeDimension": ("meaning", "pinyin_production", "contextual_recall")[index - 1]})
         attempt = _attempt(f"same-word-round-{index}", mode, f"2026-08-0{index}T00:00:00Z", [result])
         attempt["level"] = level
-        response = client.post("/api/vocab-quiz-attempts", json=attempt)
+        response = _post_attempt(client, attempt)
         assert response.status_code == 200, response.text
 
     mastery = client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()
@@ -203,7 +258,7 @@ def test_lesson_five_shape_has_fifteen_words_in_each_of_three_rounds(logged_in_s
             results.append(result)
         attempt = _attempt(f"lesson-five-round-{index}", mode, f"2026-08-1{index}T00:00:00Z", results)
         attempt["level"] = level
-        response = client.post("/api/vocab-quiz-attempts", json=attempt)
+        response = _post_attempt(client, attempt)
         assert response.status_code == 200, response.text
 
     review = client.get(
@@ -231,7 +286,7 @@ def test_duplicate_word_exposures_do_not_complete_a_diagnostic_round(logged_in_s
         _response("重複詞", False, "duplicate-item-1"),
         _response("重複詞", True, "duplicate-item-2"),
     ])
-    assert client.post("/api/vocab-quiz-attempts", json=duplicate_round).status_code == 200
+    assert _post_attempt(client, duplicate_round).status_code == 200
 
     review = client.get(
         f"/api/students/{student['id']}/weak-words",
@@ -251,13 +306,13 @@ def test_clean_retry_can_complete_a_round_after_an_incomplete_run(logged_in_stud
         _response("詞一", False, "failed-item-1"),
         _response("詞一", True, "failed-item-2"),
     ])
-    assert client.post("/api/vocab-quiz-attempts", json=incomplete).status_code == 200
+    assert _post_attempt(client, incomplete).status_code == 200
 
     clean_retry = _attempt("clean-round", "tier1", "2026-08-05T00:00:00Z", [
         _response("詞一", True, "clean-item-1"),
         _response("詞二", True, "clean-item-2"),
     ])
-    assert client.post("/api/vocab-quiz-attempts", json=clean_retry).status_code == 200
+    assert _post_attempt(client, clean_retry).status_code == 200
 
     review = client.get(
         f"/api/students/{student['id']}/weak-words",
@@ -272,16 +327,16 @@ def test_clean_retry_can_complete_a_round_after_an_incomplete_run(logged_in_stud
 def test_weak_review_is_a_new_bkt_observation_and_attempt_is_immutable(logged_in_student):
     client, student = logged_in_student
     first = _attempt("same-id", "tier1", "2026-08-01T00:00:00Z", [_response("附近", False, "item-1")])
-    assert client.post("/api/vocab-quiz-attempts", json=first).status_code == 200
+    assert _post_attempt(client, first).status_code == 200
 
     review = _attempt("review-id", "weak_words", "2026-08-02T00:00:00Z", [_response("附近", True, "item-review", eligible=False)])
-    assert client.post("/api/vocab-quiz-attempts", json=review).status_code == 200
+    assert _post_attempt(client, review).status_code == 200
     state = client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()["words"]
     assert state[0]["observationCount"] == 2
     assert state[0]["correctCount"] == 1
 
     changed = {**first, "correctCount": 1, "questionResults": [_response("附近", True, "item-1")]}
-    conflict = client.post("/api/vocab-quiz-attempts", json=changed)
+    conflict = _post_attempt(client, changed)
     assert conflict.status_code == 409
 
 
@@ -289,15 +344,15 @@ def test_repeated_exact_item_exposure_counts_only_first_response(logged_in_stude
     client, student = logged_in_student
     first = _response("附近", False, "same-item")
     repeated = _response("附近", True, "same-item")
-    assert client.post(
-        "/api/vocab-quiz-attempts",
-        json=_attempt("exposure-1", "tier1", "2026-08-01T00:00:00Z", [first]),
+    assert _post_attempt(
+        client,
+        _attempt("exposure-1", "tier1", "2026-08-01T00:00:00Z", [first]),
     ).status_code == 200
     # The second attempt repeats the exact item and diagnostic exposure. It is
     # retained as raw audit data but must not become a second BKT observation.
-    assert client.post(
-        "/api/vocab-quiz-attempts",
-        json=_attempt("exposure-2", "tier2", "2026-08-02T00:00:00Z", [repeated]),
+    assert _post_attempt(
+        client,
+        _attempt("exposure-2", "tier1", "2026-08-02T00:00:00Z", [repeated]),
     ).status_code == 200
 
     words = client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()["words"]
@@ -310,9 +365,9 @@ def test_same_word_with_distinct_question_kinds_counts_each_valid_observation(lo
         (("tier1", "translation"), ("tier2", "reverse"), ("tier3", "listening")),
         start=1,
     ):
-        response = client.post(
-            "/api/vocab-quiz-attempts",
-            json=_attempt(
+        response = _post_attempt(
+            client,
+            _attempt(
                 f"kind-diversity-{index}",
                 mode,
                 f"2026-08-1{index}T00:00:00Z",
@@ -328,7 +383,9 @@ def test_same_word_with_distinct_question_kinds_counts_each_valid_observation(lo
     )
     assert word["observationCount"] == 3
     assert word["correctCount"] == 2
-    assert set(word["seenQuestionTypes"]) == {"translation", "reverse", "listening"}
+    assert set(word["seenQuestionTypes"]) == {
+        "basic_meaning_mcq", "character_to_pinyin_typing", "contextual_productive_recall",
+    }
 
 
 def test_unapproved_diagnostic_response_does_not_enter_bkt_mastery(logged_in_student):
