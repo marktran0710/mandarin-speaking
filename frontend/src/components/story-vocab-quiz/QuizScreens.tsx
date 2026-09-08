@@ -61,23 +61,39 @@ function WeakWordsCard({ weakEntries, priorityReviewWords, interimReviewEntries,
   );
 }
 
-function MasteredWordsSummary({ masteredWords }: { masteredWords: VocabPriorityReviewWord[] }) {
+function MasteredWordsSummary({ masteredWords, onPracticeWord }: { masteredWords: VocabPriorityReviewWord[]; onPracticeWord?: (word: VocabPriorityReviewWord) => void }) {
   return (
     <section className="vocab-quiz-mastered" aria-label="Mastered words">
       <div className="vocab-quiz-mastered-heading">
         <span className="vocab-quiz-mastered-icon" aria-hidden="true"><StudentIcon name="check-circle" size={22} /></span>
         <div>
           <strong><BiLabel zh={`已掌握 (${masteredWords.length})`} pinyin="Yǐ zhǎngwò" en={`Mastered words (${masteredWords.length})`} /></strong>
-          <p><BiLabel zh="本課已經掌握的生詞。" pinyin="Běn kè yǐjīng zhǎngwò de shēngcí." en="Words you have mastered in this lesson." /></p>
+          <p><BiLabel zh={onPracticeWord ? "本課已掌握的生詞，點一下可再練習。" : "本課已經掌握的生詞。"} pinyin="Běn kè yǐjīng zhǎngwò de shēngcí." en={onPracticeWord ? "Words you've mastered — tap one to review it." : "Words you have mastered in this lesson."} /></p>
         </div>
       </div>
       {masteredWords.length > 0 ? (
         <ul className="vocab-quiz-mastered-list" aria-label="Mastered vocabulary">
           {masteredWords.map((word) => (
-            <li key={word.wordId} className="vocab-quiz-mastered-item">
-              <span className="vocab-quiz-mastered-word">{word.word}</span>
-              {word.meaning && <span className="vocab-quiz-mastered-meaning">{word.meaning}</span>}
-            </li>
+            onPracticeWord ? (
+              <li key={word.wordId} style={{ listStyle: "none", minWidth: 0 }}>
+                <button
+                  type="button"
+                  className="vocab-quiz-mastered-item vocab-quiz-mastered-review"
+                  onClick={() => onPracticeWord(word)}
+                  aria-label={`練習 ${word.word} · Practice ${word.word}`}
+                  title={word.meaning ?? undefined}
+                  style={{ width: "100%", font: "inherit", cursor: "pointer", textAlign: "left" }}
+                >
+                  <span className="vocab-quiz-mastered-word">{word.word}</span>
+                  <span aria-hidden="true" style={{ display: "inline-flex", flex: "none", color: "var(--jade-deep)" }}><StudentIcon name="retry" size={14} /></span>
+                </button>
+              </li>
+            ) : (
+              <li key={word.wordId} className="vocab-quiz-mastered-item">
+                <span className="vocab-quiz-mastered-word">{word.word}</span>
+                {word.meaning && <span className="vocab-quiz-mastered-meaning">{word.meaning}</span>}
+              </li>
+            )
           ))}
         </ul>
       ) : (
@@ -98,7 +114,7 @@ function QuizChallengeCard({ progress, onStart }: { progress: LessonVocabularyPr
   );
 }
 
-export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = [], priorityReviewWords = [], masteredWords = [], level = "easy", assessmentQuestionCounts, startTier, chooseWeakWords, chooseInterimReview, showReview, progress, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; interimReviewEntries?: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; masteredWords?: VocabPriorityReviewWord[]; level?: "easy" | "medium" | "hard"; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; chooseInterimReview: () => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
+export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = [], priorityReviewWords = [], masteredWords = [], level = "easy", assessmentQuestionCounts, startTier, chooseWeakWords, chooseInterimReview, onPracticeWord, showReview, progress, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; interimReviewEntries?: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; masteredWords?: VocabPriorityReviewWord[]; level?: "easy" | "medium" | "hard"; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; chooseInterimReview: () => void; onPracticeWord?: (word: VocabPriorityReviewWord) => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
   const assessmentLevelByMode: Record<TierMode, VocabAssessmentLevel> = { tier1: "easy", tier2: "medium", tier3: "hard" };
   const tierDescription = (card: (typeof TIER_CARDS)[number], config: (typeof TIER_CONFIGS)[TierMode]) => {
     const count = progress?.totalWords ?? assessmentQuestionCounts?.[assessmentLevelByMode[card.mode]];
@@ -200,7 +216,7 @@ export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = []
 
       {(masteredWords.length > 0 || (progress?.lessonCompleted ?? false)) && (
         <div className="vocab-quiz-mode-supporting-content">
-          {masteredWords.length > 0 && <MasteredWordsSummary masteredWords={masteredWords} />}
+          {masteredWords.length > 0 && <MasteredWordsSummary masteredWords={masteredWords} onPracticeWord={onPracticeWord} />}
           {progress?.lessonCompleted && <LessonCompletionSummary progress={progress} onFinish={onFinish} />}
         </div>
       )}

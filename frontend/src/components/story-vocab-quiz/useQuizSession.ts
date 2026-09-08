@@ -434,7 +434,7 @@ export function useQuizSession({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [screen, index, question?.kind]);
 
-  const chooseMode = (picked: VocabQuizMode, entriesForRound: VocabQuizEntry[], limit: number | null) => {
+  const chooseMode = (picked: VocabQuizMode, entriesForRound: VocabQuizEntry[], limit: number | null, distractorPool: VocabQuizEntry[] = entriesForRound) => {
     setMode(picked); setScreen("quiz"); setRoundEntries(entriesForRound); setIndex(0);
     setSelected(null); setResults([]); setTimeLeftMs(tierConfigFromMode(picked)?.timeLimitMs ?? 0);
     const startedEvent = picked === "tier1"
@@ -478,7 +478,7 @@ export function useQuizSession({
     }
     const requestedCount = limit ?? entriesForRound.length;
     const plan = planQuizSession(shuffle(entriesForRound), picked, requestedCount,
-      (entry, planMode, context) => buildQuizQuestion(entry, entriesForRound, planMode, context));
+      (entry, planMode, context) => buildQuizQuestion(entry, distractorPool, planMode, context));
     plannedQuestionCountRef.current = plan.questions.length;
     setQuestions(plan.questions); setQuestionLimit(plan.questions.length); setRequestedQuestionCount(requestedCount);
     quizIdRef.current = `vocab-quiz-${baseStoryId ?? storyId ?? "unknown-story"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -493,6 +493,12 @@ export function useQuizSession({
     setIsRetryRound(false); chooseMode("challenge", entries, entries.length);
   };
   const practiceMissedWords = () => { setIsRetryRound(true); chooseMode("free", missedEntries, missedEntries.length); };
+  // Practice one specific word on demand — e.g. a mastered word that dropped
+  // off the weak-word list but the learner still wants to review. Distractors
+  // are drawn from the whole lesson so a single-word round still forms real
+  // multiple-choice questions; the answer still feeds BKT, so getting it wrong
+  // pulls the word back into the weak-word list on its own.
+  const practiceWord = (target: VocabQuizEntry) => { setIsRetryRound(false); chooseMode("weak_words", [target], 1, entries); };
   const returnToModes = () => {
     setScreen("mode-select");
     if (lessonProgress.lessonCompleted) recordLessonEvent("lesson_completed", { strongWords: lessonProgress.strongWords, remainingWords: lessonProgress.remainingWords });
@@ -506,7 +512,7 @@ export function useQuizSession({
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
     question, index, selected, results, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, masteredWords, missedWords,
     missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
-    speakWord, chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, returnToModes, sessionReady,
+    speakWord, chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord, returnToModes, sessionReady,
     lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,
   };
 }

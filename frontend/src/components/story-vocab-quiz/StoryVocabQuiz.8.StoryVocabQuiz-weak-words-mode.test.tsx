@@ -198,6 +198,46 @@ describe("StoryVocabQuiz weak-words mode", () => {
     expect(recorded.conceptId).toBe("MC1_003");
   });
 
+  it("lets a student re-practice a mastered word from the mastered list", async () => {
+    const user = userEvent.setup();
+    const lesson = [
+      { word: "貴", translation: "expensive", wordId: "MC1_108" },
+      { word: "便宜", translation: "cheap", wordId: "MC1_105" },
+      { word: "商店", translation: "shop", wordId: "MC1_102" },
+      { word: "顏色", translation: "color", wordId: "MC1_104" },
+    ];
+    const weakWords = [] as database.VocabWeakWordsResult;
+    Object.defineProperty(weakWords, "diagnostic", {
+      value: { unlocked: true, requiredDiagnosticQuizzes: 3, completedDiagnosticQuizzes: 3 },
+    });
+    Object.defineProperty(weakWords, "mastery", {
+      value: [
+        { wordId: "MC1_108", word: "貴", meaning: "expensive", pLearned: 0.98, status: "MASTERED", observationCount: 4, correctCount: 4, incorrectCount: 0 },
+      ],
+    });
+    vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(weakWords);
+
+    render(<StoryVocabQuiz entries={lesson} onDone={vi.fn()} storyId="story-1" studentId="s1" />);
+    await screen.findByRole("group", { name: "Quiz mode" });
+    await waitFor(() => expect(database.getVocabQuizWeakWords).toHaveBeenCalled());
+
+    // The mastered word is tappable — even though it left the weak-word list.
+    await user.click(await screen.findByRole("button", { name: /Practice 貴/ }));
+
+    // A real single-word practice question, with distractors drawn from the
+    // whole lesson (more than one option).
+    expect(await screen.findByRole("heading", { name: "貴" })).toBeInTheDocument();
+    expect(optionButtons().length).toBeGreaterThan(1);
+
+    // Answering records it under the stable wordId, so BKT accrues to the same
+    // concept and a wrong answer can pull it back into the weak-word list.
+    await user.click(optionButtons()[0]);
+    await waitFor(() => expect(database.recordVocabQuizResponse).toHaveBeenCalled());
+    const payload = vi.mocked(database.recordVocabQuizResponse).mock.calls.at(-1)![0];
+    expect(payload.mode).toBe("weak_words");
+    expect(payload.questionResults.at(-1)!.conceptId).toBe("MC1_108");
+  });
+
   it("records an eligible answer immediately so the first wrong answer can enter BKT", async () => {
     const user = userEvent.setup();
     const approvedEntries = [

@@ -358,6 +358,14 @@
   border-radius: var(--clay-radius-sm);
   background: var(--jade-soft);
 }
+/* A mastered word the learner can tap to review it again on demand. */
+.vocab-quiz-mastered-review {
+  transition: background-color 140ms ease, box-shadow 140ms ease;
+}
+.vocab-quiz-mastered-review:hover {
+  background: color-mix(in srgb, var(--jade-soft) 82%, var(--clay-surface-card));
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--jade) 42%, transparent);
+}
 .vocab-quiz-mastered-word {
   min-width: 0;
   overflow: hidden;
