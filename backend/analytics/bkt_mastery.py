@@ -11,7 +11,7 @@ import unicodedata
 
 from psycopg.types.json import Jsonb
 
-from analytics.bkt import BKT_CONFIG, BKT_MODEL_VERSION, BktConfig, bkt_parameter_fingerprint, mastery_status, replay_bkt
+from analytics.bkt import BKT_CONFIG, BKT_MODEL_VERSION, BktConfig, bkt_parameter_fingerprint, mastery_status, replay_bkt_typed
 from analytics.bkt_question_validation import classify_bkt_response
 
 
@@ -265,7 +265,10 @@ def _group_response_history(responses: Iterable[dict[str, Any]]) -> dict[str, li
 def _mastery_states_from_responses(responses: Iterable[dict[str, Any]], params: BktConfig) -> dict[str, dict[str, Any]]:
     states: dict[str, dict[str, Any]] = {}
     for word_id, history in _group_response_history(responses).items():
-        p_learned = replay_bkt((bool(row["correct"]) for row in history), params)
+        # Format-aware replay: typed rounds (pinyin/contextual production) use a
+        # near-zero guess and higher slip than multiple choice, so a typed
+        # correct answer is credited more and a typo penalised less.
+        p_learned = replay_bkt_typed(((bool(row["correct"]), row.get("question_type")) for row in history), params)
         last = history[-1]
         correct_count = sum(1 for row in history if row["correct"])
         states[word_id] = {
