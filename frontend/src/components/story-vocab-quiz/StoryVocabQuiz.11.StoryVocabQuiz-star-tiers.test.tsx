@@ -114,7 +114,7 @@ describe("StoryVocabQuiz star tiers", () => {
     expect(screen.getByRole("button", { name: /Round 1/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: /Round 2/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Round 3/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Review/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Word list/ })).toBeEnabled();
   });
 
   it("unlocks tier 2 (but not 3) once the story has 1 star recorded locally", async () => {
@@ -249,7 +249,7 @@ describe("StoryVocabQuiz star tiers", () => {
     expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
     // A quiet exit back to the tier ladder exists so the student is never
     // trapped between retrying and nothing.
-    expect(screen.getByRole("button", { name: /Back to menu/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Back to rounds/i })).toBeInTheDocument();
 
     // Try again immediately restarts the same tier as a fresh scored run.
     await user.click(screen.getByRole("button", { name: /Try again/ }));

@@ -23,8 +23,8 @@ function WeakWordsCard({ weakEntries, priorityReviewWords, interimReviewEntries,
     return (
       <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-weak_words" onClick={chooseWeakWords}>
         <span className="vocab-quiz-mode-icon"><StudentIcon name="retry" size={30} /></span>
-        <strong><BiLabel zh={`弱項複習 (${aggregateWeakCount})`} pinyin="Ruòxiàng fùxí" en={`Weak words (${aggregateWeakCount})`} /></strong>
-        <p><BiLabel zh="本故事累積的弱項，從掌握度最低的詞開始。" pinyin="Běn gùshì lěijī de ruòxiàng, cóng zhǎngwòdù zuì dī de cí kāishǐ." en="This story's weak words, starting with the ones you know least." /></p>
+        <strong><BiLabel zh={`還不熟 (${aggregateWeakCount})`} pinyin="Hái bù shú" en={`Weak words (${aggregateWeakCount})`} /></strong>
+        <p><BiLabel zh="因為你常答錯這些生詞 — 從最不熟的開始練。" pinyin="Yīnwèi nǐ cháng dá cuò zhèxiē shēngcí — cóng zuì bù shú de kāishǐ liàn." en="Because you often miss these — starts with the ones you know least." /></p>
         <StudentIcon name="arrow-right" size={18} />
       </button>
     );
@@ -49,7 +49,7 @@ function WeakWordsCard({ weakEntries, priorityReviewWords, interimReviewEntries,
   return (
     <section className="vocab-quiz-mode-card vocab-quiz-mode-weak_words is-empty" aria-label="Weak words">
       <span className="vocab-quiz-mode-icon"><StudentIcon name="retry" size={30} /></span>
-      <strong><BiLabel zh="弱項複習" pinyin="Ruòxiàng fùxí" en="Weak words" /></strong>
+      <strong><BiLabel zh="還不熟" pinyin="Hái bù shú" en="Weak words" /></strong>
       <p><BiLabel zh="還沒有答錯的生詞，很棒！答錯的生詞會出現在這裡讓你複習。" pinyin="Hái méiyǒu dá cuò de shēngcí, hěn bàng! Dá cuò de shēngcí huì chūxiàn zài zhèlǐ ràng nǐ fùxí." en="No missed words yet — nice! Words you miss will show up here to review." /></p>
     </section>
   );
@@ -63,8 +63,8 @@ function DueReviewCard({ dueWords, chooseDueReview }: { dueWords: ReviewQueueIte
   return (
     <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-due-review" onClick={chooseDueReview}>
       <span className="vocab-quiz-mode-icon"><StudentIcon name="clock" size={30} /></span>
-      <strong><BiLabel zh={`溫習到期 (${dueWords.length})`} pinyin="Wēnxí dàoqī" en={`Due for review (${dueWords.length})`} /></strong>
-      <p><BiLabel zh="到了複習時間的生詞，趁還記得再鞏固一次。" pinyin="Dàole fùxí shíjiān de shēngcí, chèn hái jìde zài gǒnggù yí cì." en="Words your review schedule says are due — refresh them before you forget." /></p>
+      <strong><BiLabel zh={`該複習了 (${dueWords.length})`} pinyin="Gāi fùxí le" en={`Due for review (${dueWords.length})`} /></strong>
+      <p><BiLabel zh="因為隔了一段時間沒複習 — 趁還記得再鞏固一次。" pinyin="Yīnwèi gé le yí duàn shíjiān méi fùxí — chèn hái jìde zài gǒnggù yí cì." en="Because it's been a while — refresh them before you forget." /></p>
       <StudentIcon name="arrow-right" size={18} />
     </button>
   );
@@ -335,7 +335,16 @@ export function SummaryScreen({ mode, results, missedEntries, roundEntries, isRe
         <p className="vocab-quiz-all-correct"><BiLabel zh="全部答對，太棒了！" pinyin="Quánbù dá duì, tài bàng le!" en="Perfect score — nice work!" /></p>
       )}
     </div>
-    <div className="vocab-quiz-actions">{isChallenge && onStartChallenge && <button type="button" className="btn-vocab-quiz-try-again" onClick={onStartChallenge}><StudentIcon name="retry" size={16} /> <BiLabel zh="再挑戰一次" pinyin="Zài tiǎozhàn yí cì" en="Try again" /></button>}{!isChallenge && tierConfig && !passed && <button type="button" className="btn-vocab-quiz-try-again" onClick={() => startTier(tierConfig.mode)}><StudentIcon name="retry" size={16} /> <BiLabel zh="再試一次" pinyin="Zài shì yí cì" en="Try again" /></button>}{!isChallenge && nextRoundAction && nextRoundCopy && <button type="button" className="btn-vocab-quiz-challenge" onClick={nextRoundAction}><StudentIcon name={nextTierCard ? "star" : "arrow-right"} size={16} /> <BiLabel {...nextRoundCopy} /></button>}{!isChallenge && !nextRoundAction && showContinue ? <button type="button" className="btn-vocab-quiz-next" onClick={onDone}><BiLabel zh="繼續練習" pinyin="Jìxù liànxí" en="Continue to practice" /> <StudentIcon name="arrow-right" size={16} aria-hidden="true" /></button> : isChallenge ? <button type="button" className="btn-vocab-quiz-next" onClick={onDone}><BiLabel zh="完成" pinyin="Wánchéng" en="Finish" /></button> : !nextRoundAction && <button type="button" className="btn-vocab-quiz-menu" onClick={backToModes}><BiLabel zh="回選單" pinyin="Huí xuǎndān" en="Back to menu" /></button>}</div>
+    <div className="vocab-quiz-actions">{isChallenge ? <>{onStartChallenge && <button type="button" className="btn-vocab-quiz-try-again" onClick={onStartChallenge}><StudentIcon name="retry" size={16} /> <BiLabel zh="再挑戰一次" pinyin="Zài tiǎozhàn yí cì" en="Try again" /></button>}<button type="button" className="btn-vocab-quiz-next" onClick={onDone}><BiLabel zh="完成" pinyin="Wánchéng" en="Finish" /></button></> : tierConfig ? <>
+      {/* Quiet secondaries. The loud primary is always "Done — back to rounds":
+          finishing a round is already recorded (the attempt + completion event
+          are saved on the last answer), and landing back on the three-round
+          page shows the freshly-earned star as the confirmation. */}
+      {!passed && <button type="button" className="btn-vocab-quiz-try-again" onClick={() => startTier(tierConfig.mode)}><StudentIcon name="retry" size={16} /> <BiLabel zh="再試一次" pinyin="Zài shì yí cì" en="Try again" /></button>}
+      {passed && nextRoundAction && nextRoundCopy && <button type="button" className="btn-vocab-quiz-menu" onClick={nextRoundAction}><BiLabel {...nextRoundCopy} /> <StudentIcon name="arrow-right" size={15} aria-hidden="true" /></button>}
+      {!nextRoundAction && showContinue && <button type="button" className="btn-vocab-quiz-menu" onClick={onDone}><BiLabel zh="開始說話練習" pinyin="Kāishǐ shuōhuà liànxí" en="Continue to practice" /> <StudentIcon name="arrow-right" size={15} aria-hidden="true" /></button>}
+      <button type="button" className="btn-vocab-quiz-next" onClick={backToModes}><StudentIcon name="check-circle" size={16} aria-hidden="true" /> <BiLabel zh={passed ? "完成，回關卡" : "回關卡"} pinyin={passed ? "Wánchéng, huí guānkǎ" : "Huí guānkǎ"} en={passed ? "Done — back to rounds" : "Back to rounds"} /></button>
+    </> : <button type="button" className="btn-vocab-quiz-menu" onClick={backToModes}><BiLabel zh="回選單" pinyin="Huí xuǎndān" en="Back to menu" /></button>}</div>
     {!showContinue && !isChallenge && <p className="vocab-quiz-unlock-note"><StudentIcon name="lock" size={15} /> <BiLabel zh="拿到三顆星才能開始說話練習" pinyin="Nádào sān kē xīng cáinéng kāishǐ shuōhuà liànxí" en="Speaking practice opens after all three stars" /></p>}
   </section>;
 }

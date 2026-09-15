@@ -263,6 +263,49 @@ def normalize_answer(value: str) -> str:
     return _WHITESPACE_OR_PUNCTUATION.sub("", normalized)
 
 
+# Tone-mark tables indexed 0-4 (tone 1-4 plus neutral/5 = no mark). This mirrors
+# the frontend ``numericToToneMarked`` in ``utils/pinyin.ts`` so a pinyin answer
+# typed with tone numbers grades identically on both sides.
+_TONE_MARKS = {
+    "a": ["ā", "á", "ǎ", "à", "a"],
+    "e": ["ē", "é", "ě", "è", "e"],
+    "i": ["ī", "í", "ǐ", "ì", "i"],
+    "o": ["ō", "ó", "ǒ", "ò", "o"],
+    "u": ["ū", "ú", "ǔ", "ù", "u"],
+    "v": ["ǖ", "ǘ", "ǚ", "ǜ", "ü"],
+}
+_TONED_SYLLABLE = re.compile(r"^([^aeiouvü]*)([aeiouvü]+)([^aeiouvü\d]*)([1-5])$", re.IGNORECASE)
+_NUMERIC_SYLLABLE = re.compile(r"[a-zü]+[1-5]", re.IGNORECASE)
+
+
+def _apply_syllable_tone(syllable: str) -> str:
+    match = _TONED_SYLLABLE.match(syllable)
+    if not match:
+        return syllable
+    onset, nucleus, coda, tone_digit = match.groups()
+    tone = int(tone_digit) - 1
+    lower = nucleus.lower()
+    if "a" in lower:
+        marked = re.sub("a", _TONE_MARKS["a"][tone], nucleus, count=1, flags=re.IGNORECASE)
+    elif "e" in lower:
+        marked = re.sub("e", _TONE_MARKS["e"][tone], nucleus, count=1, flags=re.IGNORECASE)
+    elif lower == "ou":
+        marked = _TONE_MARKS["o"][tone] + "u"
+    else:
+        # No a/e and not "ou": the tone mark falls on the LAST vowel of the
+        # cluster (ui->i, iu->u, uo->o). The earlier a/e/ou rules cover every
+        # case where the mark is not on the final vowel.
+        index = len(nucleus) - 1
+        key = "v" if lower[index] == "ü" else lower[index]
+        marked = nucleus[:index] + _TONE_MARKS[key][tone] + nucleus[index + 1:]
+    return onset + marked + coda
+
+
+def numeric_to_tone_marked(value: str) -> str:
+    """Convert numeric pinyin ("wo3 men5") to tone-marked pinyin ("wǒ men")."""
+    return _NUMERIC_SYLLABLE.sub(lambda match: _apply_syllable_tone(match.group(0)), str(value))
+
+
 def answer_is_accepted(question: VocabularyQuestion, answer: str) -> bool:
     normalized_answer = normalize_answer(answer)
     return bool(normalized_answer) and any(

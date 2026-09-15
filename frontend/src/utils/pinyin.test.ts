@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { primePinyin, toPinyin } from "./pinyin";
+import { numericToToneMarked, primePinyin, toPinyin } from "./pinyin";
 
 const canonicalValues: Record<string, string> = {
   "姐姐": "jiě jiě",
@@ -46,5 +46,36 @@ describe("canonical Taiwan Mandarin pinyin", () => {
 
   it("returns empty string for non-Chinese input", () => {
     expect(toPinyin("hello")).toBe("");
+  });
+});
+
+describe("numericToToneMarked", () => {
+  it("places the mark on a/e first", () => {
+    expect(numericToToneMarked("guang3")).toBe("guǎng");
+    expect(numericToToneMarked("xue2")).toBe("xué");
+    expect(numericToToneMarked("mei4")).toBe("mèi");
+  });
+
+  it("keeps 'ou' on the o", () => {
+    expect(numericToToneMarked("dou1")).toBe("dōu");
+  });
+
+  it("marks the LAST vowel for ui/iu/uo (regression: cuo4 was 'cùo')", () => {
+    expect(numericToToneMarked("cuo4")).toBe("cuò");
+    expect(numericToToneMarked("zuo4")).toBe("zuò");
+    expect(numericToToneMarked("dui4")).toBe("duì");
+    expect(numericToToneMarked("hui4")).toBe("huì");
+    expect(numericToToneMarked("jiu3")).toBe("jiǔ");
+  });
+
+  it("handles ü/v spelling and neutral tone (no mark)", () => {
+    expect(numericToToneMarked("lv4")).toBe("lǜ");
+    expect(numericToToneMarked("nü3")).toBe("nǚ");
+    expect(numericToToneMarked("wo3 men5")).toBe("wǒ men");
+  });
+
+  it("works spaced and unspaced across a whole word", () => {
+    expect(numericToToneMarked("ka1 fei1 ting1")).toBe("kā fēi tīng");
+    expect(numericToToneMarked("ka1fei1ting1")).toBe("kāfēitīng");
   });
 });

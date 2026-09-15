@@ -1,4 +1,4 @@
-import { toPinyin } from "../../utils/pinyin";
+import { numericToToneMarked, toPinyin } from "../../utils/pinyin";
 import type { StudentIconName } from "../StudentIcon";
 import { toneTrapVariants } from "../../utils/toneTraps";
 import { DIAGNOSTIC_ROUNDS, tierConfigFromMode, type DiagnosticRoundType, type TierMode } from "../../utils/quizTiers";
@@ -233,12 +233,12 @@ export const TIER_CARDS: Array<{
 
 export const REVIEW_CARD = {
   iconName: "stories" as StudentIconName,
-  title: "複習模式",
-  titlePinyin: "Fùxí móshì",
-  titleEn: "Review",
-  desc: "沒有題目限制 — 直接看所有生詞和它們的聲調。",
-  descPinyin: "Méiyǒu tímù xiànzhì — zhíjiē kàn suǒyǒu shēngcí hàn tāmen de shēngdiào.",
-  descEn: "No question limit — just browse every word and its tones.",
+  title: "生詞表",
+  titlePinyin: "Shēngcí biǎo",
+  titleEn: "Word list",
+  desc: "只是看 — 這一課所有生詞和它們的聲調，不用答題。",
+  descPinyin: "Zhǐshì kàn — zhè yí kè suǒyǒu shēngcí hàn tāmen de shēngdiào, búyòng dá tí.",
+  descEn: "Just looking — every word in this lesson and its tones, no questions.",
 };
 
 export function shuffle<T>(items: T[]): T[] {
@@ -259,7 +259,18 @@ export function normalizeQuizAnswer(text: string): string {
 
 export function assessmentAnswerIsCorrect(question: VocabQuizAssessmentQuestion, submittedAnswer: string): boolean {
   const accepted = question.acceptedAnswers.length > 0 ? question.acceptedAnswers : [question.correctAnswer];
-  return accepted.some((answer) => normalizeQuizAnswer(answer) === normalizeQuizAnswer(submittedAnswer));
+  // The pinyin-typing round stores tone-marked readings ("kā fēi tīng"), but a
+  // learner typing on a plain keyboard writes tone numbers ("ka1 fei1 ting1").
+  // Fold numeric tones to the marked form first so both spellings match. Tone
+  // is still required — a toneless "kafeiting" produces no marks and won't
+  // match the marked accepted answer. Scoped to the pinyin round so Chinese
+  // free-text answers (Round 3) are never rewritten.
+  const candidates = question.assessment.questionType === "character_to_pinyin_typing"
+    ? [submittedAnswer, numericToToneMarked(submittedAnswer)]
+    : [submittedAnswer];
+  return accepted.some((answer) => candidates.some(
+    (candidate) => normalizeQuizAnswer(answer) === normalizeQuizAnswer(candidate),
+  ));
 }
 
 export function buildAssessmentQuestions(

@@ -329,7 +329,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
     await screen.findByRole("group", { name: "Quiz mode" });
 
     const weakWordsButton = await screen.findByRole("button", { name: /Weak words \(2\)/ });
-    expect(weakWordsButton).toHaveTextContent("This story's weak words, starting with the ones you know least.");
+    expect(weakWordsButton).toHaveTextContent("Because you often miss these — starts with the ones you know least.");
     expect(
       within(weakWordsButton).queryByText("Only quizzes the words you got wrong last time."),
     ).not.toBeInTheDocument();
@@ -380,7 +380,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
       await answerCurrentQuestion(user, false);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));
     }
-    await user.click(screen.getByRole("button", { name: /Back to menu/ }));
+    await user.click(screen.getByRole("button", { name: /Back to rounds/i }));
 
     const weakWordsButton = await screen.findByRole("button", { name: /Weak words \(1\)/ });
     expect(weakWordsButton).not.toHaveTextContent("1 observations");

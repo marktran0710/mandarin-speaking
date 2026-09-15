@@ -9,12 +9,42 @@ from vocab_assessment import (
     answer_is_accepted,
     build_vocabulary_items,
     normalize_answer,
+    numeric_to_tone_marked,
     parse_vocab_assessment_csv,
     raw_observations_by_word,
     shuffled_options,
     validate_assessment_payload,
     validate_vocab_assessment,
 )
+
+
+def test_numeric_to_tone_marked_matches_frontend():
+    # Mirrors utils/pinyin.ts numericToToneMarked, spaced and unspaced.
+    assert numeric_to_tone_marked("ka1 fei1 ting1") == "kā fēi tīng"
+    assert numeric_to_tone_marked("ka1fei1ting1") == "kāfēitīng"
+    assert numeric_to_tone_marked("wo3 men5") == "wǒ men"  # neutral tone = no mark
+    assert numeric_to_tone_marked("guang3") == "guǎng"  # mark lands on the a
+    assert numeric_to_tone_marked("nv3") == "nǚ"  # v spelling of ü
+    # Last-vowel rule for clusters with no a/e and not "ou": ui->i, iu->u, uo->o.
+    assert numeric_to_tone_marked("cuo4") == "cuò"
+    assert numeric_to_tone_marked("zuo4") == "zuò"
+    assert numeric_to_tone_marked("dui4") == "duì"
+    assert numeric_to_tone_marked("hui4") == "huì"
+    assert numeric_to_tone_marked("jiu3") == "jiǔ"
+    assert numeric_to_tone_marked("dou1") == "dōu"  # "ou" keeps the mark on o
+    # A toneless or already-marked reading is returned unchanged.
+    assert numeric_to_tone_marked("kafeiting") == "kafeiting"
+    assert numeric_to_tone_marked("kā fēi tīng") == "kā fēi tīng"
+
+
+def test_pinyin_answer_accepts_numeric_tones_after_folding():
+    # normalize_answer strips spacing/case; folding numbers first lets a learner
+    # type "ka1 fei1 ting1" and match the tone-marked bank answer.
+    accepted = "kā fēi tīng"
+    for typed in ("kā fēi tīng", "kāfēitīng", "ka1 fei1 ting1", "ka1fei1ting1"):
+        assert normalize_answer(numeric_to_tone_marked(typed)) == normalize_answer(accepted)
+    # Tone stays required: a toneless spelling does not match.
+    assert normalize_answer(numeric_to_tone_marked("kafeiting")) != normalize_answer(accepted)
 
 
 WORDS = ["錢包", "在", "哪裡", "聽", "音樂", "有空", "下午茶", "不錯", "咖啡廳", "那裡", "這裡", "冰淇淋", "巧克力", "半", "吧"]

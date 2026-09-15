@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from analytics.bkt_mastery import canonical_story_id
-from vocab_assessment import normalize_answer
+from vocab_assessment import normalize_answer, numeric_to_tone_marked
 
 
 # The three diagnostic rounds. The first element is the round key stored in
@@ -130,9 +130,19 @@ def resolve_assessment_response(db: Any, attempt: Any, submitted: dict[str, Any]
         eligibility_errors = []
 
     correct_answer, accepted = _accepted_answers(item, mode)
-    normalized_selected = normalize_answer(selected)
-    correct = bool(normalized_selected) and any(
-        normalized_selected == normalize_answer(answer) for answer in accepted
+    # A learner typing pinyin on a plain keyboard writes tone numbers
+    # ("ni3 hao3"); fold them to the tone-marked form the bank stores so this
+    # BKT grade matches what the quiz UI showed. Scoped to the pinyin round so a
+    # Chinese free-text answer is never rewritten. Tone stays required — a
+    # toneless spelling produces no marks and won't match the marked answer.
+    candidates = [selected]
+    if question_kind == "character_to_pinyin_typing":
+        candidates.append(numeric_to_tone_marked(selected))
+    normalized_candidates = [normalized for normalized in (normalize_answer(value) for value in candidates) if normalized]
+    correct = any(
+        normalized == normalize_answer(answer)
+        for normalized in normalized_candidates
+        for answer in accepted
     )
     prompt = (
         f"Type the pinyin for {item.get('targetWord')}."
