@@ -35,6 +35,66 @@ describe("dynamic diagnostic rounds", () => {
     expect(useIt.every((question) => question.answerFormat === "free_text" && question.options.length === 0)).toBe(true);
   });
 
+  it("uses an approved lesson sentence for Round 3 before an assessment-bank fallback prompt", () => {
+    const entry: VocabQuizEntry = {
+      word: "巧克力",
+      translation: "chocolate",
+      wordId: "lesson-5-chocolate",
+      pinyin: "qiǎokèlì",
+      lessonSentences: ["我喜歡巧克力蛋糕。"],
+      assessmentQuestions: [{
+        questionId: "lesson-5-chocolate-hard",
+        wordId: "lesson-5-chocolate",
+        targetWord: "巧克力",
+        pinyin: "qiǎokèlì",
+        pos: "N",
+        simpleEnglishMeaning: "chocolate",
+        level: "hard",
+        difficultyWeight: 3,
+        questionType: "productive_recall",
+        answerFormat: "free_text",
+        prompt: "Generated fallback context.",
+        options: [],
+        correctAnswer: "巧克力",
+        acceptedAnswers: ["巧克力"],
+        explanation: "Chocolate is 巧克力.",
+      }],
+    };
+
+    const question = buildDiagnosticRoundQuestions([entry], "tier3")[0];
+
+    expect(question.prompt).toBe("Complete the sentence: 我喜歡____蛋糕。");
+    expect(question.correctAnswer).toBe("巧克力");
+  });
+
+  it("keeps the assessment-bank prompt when lesson sentences omit or repeat the target", () => {
+    const entry: VocabQuizEntry = {
+      word: "巧克力",
+      translation: "chocolate",
+      wordId: "lesson-5-chocolate",
+      lessonSentences: ["這個蛋糕很好吃。", "巧克力和巧克力蛋糕都很好吃。"],
+      assessmentQuestions: [{
+        questionId: "lesson-5-chocolate-hard",
+        wordId: "lesson-5-chocolate",
+        targetWord: "巧克力",
+        pinyin: "qiǎokèlì",
+        pos: "N",
+        simpleEnglishMeaning: "chocolate",
+        level: "hard",
+        difficultyWeight: 3,
+        questionType: "productive_recall",
+        answerFormat: "free_text",
+        prompt: "Generated fallback context.",
+        options: [],
+        correctAnswer: "巧克力",
+        acceptedAnswers: ["巧克力"],
+        explanation: "Chocolate is 巧克力.",
+      }],
+    };
+
+    expect(buildDiagnosticRoundQuestions([entry], "tier3")[0].prompt).toBe("Generated fallback context.");
+  });
+
   it("reports missing and duplicate coverage before a round can start", () => {
     const questions = buildDiagnosticRoundQuestions(entries, "tier1");
     const invalid = validateRoundCoverage({ lessonVocabulary: entries, roundQuestions: [...questions.slice(1), questions[1]] });

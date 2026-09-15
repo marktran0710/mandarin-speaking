@@ -21,6 +21,8 @@ export interface VocabQuizSynonymCandidate {
 export interface VocabQuizEntry {
   word: string;
   translation: string;
+  /** Approved lesson/story sentences that use this exact vocabulary item. */
+  lessonSentences?: readonly string[];
   /** Stable identity and teacher-authored observations imported from a CSV bank. */
   wordId?: string;
   assessmentQuestions?: VocabAssessmentQuestion[];
@@ -338,6 +340,32 @@ function diagnosticQuestionId(entry: VocabQuizEntry, mode: TierMode): string {
   return `${entry.wordId ?? quizConceptId(entry.word)}:${DIAGNOSTIC_ROUNDS[mode].roundType}:v1`;
 }
 
+function vocabularyForms(word: string): string[] {
+  return Array.from(new Set(
+    word.split(/[／/]/u).map((form) => form.trim()).filter(Boolean),
+  )).sort((left, right) => right.length - left.length);
+}
+
+/**
+ * A source sentence is usable only when it contains one unambiguous spelling
+ * of the target. This keeps Round 3 tied to the lesson text without guessing
+ * which occurrence a learner is meant to recall.
+ */
+function lessonCloze(entry: VocabQuizEntry): { prompt: string; answer: string } | null {
+  const forms = vocabularyForms(entry.word);
+  for (const sentence of entry.lessonSentences ?? []) {
+    const source = sentence.trim();
+    for (const form of forms) {
+      if (source.split(form).length !== 2) continue;
+      return {
+        prompt: `Complete the sentence: ${source.replace(form, CLOZE_BLANK)}`,
+        answer: form,
+      };
+    }
+  }
+  return null;
+}
+
 /** Build exactly one round-specific question for every unique lesson word. */
 export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: TierMode): VocabAssessmentQuestion[] {
   const config = DIAGNOSTIC_ROUNDS[mode];
@@ -376,12 +404,18 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
         correctAnswer: pinyin, acceptedAnswers, explanation: `The pinyin for ${entry.word} is ${pinyin}.`,
       };
     }
-    const correctAnswer = source?.correctAnswer || entry.word.split("/")[0].trim();
+    const sourceCloze = lessonCloze(entry);
+    const correctAnswer = sourceCloze?.answer || source?.correctAnswer || vocabularyForms(entry.word)[0] || entry.word;
+    const acceptedAnswers = Array.from(new Set([
+      correctAnswer,
+      ...(source?.acceptedAnswers || []),
+      ...vocabularyForms(entry.word),
+    ]));
     return {
       questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin: entry.pinyin || toPinyin(entry.word),
       pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.bankLevel, difficultyWeight: 3 as const,
-      questionType: config.questionKind, answerFormat: "free_text" as const, prompt: source?.prompt || `Use the Chinese word for “${entry.translation}” in the sentence.`, options: [],
-      correctAnswer, acceptedAnswers: Array.from(new Set([correctAnswer, ...(source?.acceptedAnswers || [])])),
+      questionType: config.questionKind, answerFormat: "free_text" as const, prompt: sourceCloze?.prompt || source?.prompt || `Use the Chinese word for “${entry.translation}” in the sentence.`, options: [],
+      correctAnswer, acceptedAnswers,
       explanation: source?.explanation || `Use ${correctAnswer} in this context.`,
     };
   });

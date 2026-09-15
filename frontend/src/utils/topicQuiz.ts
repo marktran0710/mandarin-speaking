@@ -51,6 +51,27 @@ function normalizedQuizValue(value: string): string {
   return value.normalize("NFKC").trim().toLowerCase().replace(/\s+/g, " ");
 }
 
+function sentenceUsesVocabulary(sentence: string, vocabulary: string): boolean {
+  return vocabulary
+    .split(/[／/]/u)
+    .map((form) => form.trim())
+    .filter(Boolean)
+    .some((form) => sentence.split(form).length === 2);
+}
+
+function lessonSentencesForVocabulary(topic: QuizSourceTopic, vocabulary: string): string[] {
+  const clozeByScene = topic.quizVocabularyCloze ?? topic.vocabularyCloze;
+  const authoredClozeSentences = Object.values(clozeByScene ?? {})
+    .flatMap((candidatesByWord) => candidatesByWord.flatMap((candidates) => candidates.map((candidate) => candidate.sentence)));
+  const suggestedByScene = topic.quizSuggestedAnswers ?? topic.suggestedAnswers;
+  const suggestedSentences = Object.values(suggestedByScene ?? {});
+  // A teacher-reviewed cloze sentence is already attached to this word, so
+  // prefer it. The scene's suggested answer remains the lesson/story fallback.
+  return Array.from(new Set([...authoredClozeSentences, ...suggestedSentences]
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentenceUsesVocabulary(sentence, vocabulary))));
+}
+
 /** Read-only audit used before material is trusted by a level's quiz. */
 export function auditTopicQuizMaterial(topic: QuizSourceTopic): QuizMaterialAuditIssue[] {
   const wordsByScene = topic.quizVocabulary ?? topic.vocabulary;
@@ -140,12 +161,16 @@ export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
     });
     return Array.from(byWord.entries()).map(([wordId, assessmentQuestions]) => {
       const first = assessmentQuestions[0];
+      const lessonSentences = lessonSentencesForVocabulary(topic, first.targetWord);
       return {
         word: first.targetWord,
         translation: first.simpleEnglishMeaning,
         wordId,
         pinyin: first.pinyin,
         pos: first.pos,
+        ...(lessonSentences.length
+          ? { lessonSentences }
+          : {}),
         assessmentQuestions,
         bktValidationStatus: "APPROVED",
       };

@@ -66,6 +66,35 @@ describe("topicQuizEntries exclusions", () => {
 });
 
 describe("canonical quiz vocabulary", () => {
+  it("keeps teacher-reviewed cloze context before the story sentence for an assessment-backed Round 3", () => {
+    const entries = topicQuizEntries({
+      images: ["scene-1.png"],
+      vocabulary: { 0: ["喝"] },
+      quizVocabularyCloze: { 0: [[{ sentence: "我愛喝茶。", distractors: ["吃"] }]] },
+      quizSuggestedAnswers: { 0: "我喜歡喝茶。" },
+      vocabAssessment: [{
+        questionId: "lesson-5-drink-hard",
+        wordId: "lesson-5-drink",
+        targetWord: "喝",
+        pinyin: "hē",
+        pos: "V",
+        simpleEnglishMeaning: "to drink",
+        level: "hard",
+        difficultyWeight: 3,
+        questionType: "productive_recall",
+        answerFormat: "free_text",
+        prompt: "Generated fallback context.",
+        options: [],
+        correctAnswer: "喝",
+        acceptedAnswers: ["喝"],
+        explanation: "Drink is 喝.",
+      }],
+    });
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0].lessonSentences).toEqual(["我愛喝茶。", "我喜歡喝茶。"]);
+  });
+
   it("prefers the shared Easy/base pool over tier display vocabulary", () => {
     const entries = topicQuizEntries({
       images: ["scene-1.png"],
