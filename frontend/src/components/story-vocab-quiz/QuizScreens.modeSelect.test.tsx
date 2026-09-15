@@ -1,6 +1,12 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ModeSelectScreen } from "./QuizScreens";
+
+const dueWord = {
+  wordId: "w1", word: "錢包", pLearned: 0.97, status: "MASTERED" as const,
+  observationCount: 5, correctCount: 5, incorrectCount: 0,
+  reviewReason: "due" as const, dueOn: "2026-02-08",
+};
 
 const baseProps = {
   stars: 0 as const,
@@ -36,6 +42,21 @@ describe("ModeSelectScreen", () => {
     correctCount: 3,
     incorrectCount: 0,
   };
+
+  it("shows a separate 'Due for review' card for SM-2 due words and starts that review", () => {
+    const chooseDueReview = vi.fn();
+    render(<ModeSelectScreen {...baseProps} dueWords={[dueWord]} chooseDueReview={chooseDueReview} />);
+    const card = screen.getByRole("button", { name: /Due for review \(1\)/ });
+    fireEvent.click(card);
+    expect(chooseDueReview).toHaveBeenCalledTimes(1);
+    // A mastered-but-due word surfaces here, never in the weak-words card.
+    expect(screen.queryByRole("button", { name: /Weak words/ })).not.toBeInTheDocument();
+  });
+
+  it("hides the due-review card when nothing is due", () => {
+    render(<ModeSelectScreen {...baseProps} dueWords={[]} />);
+    expect(screen.queryByRole("button", { name: /Due for review/ })).not.toBeInTheDocument();
+  });
 
   it("confirms mastered words only after all three rounds are passed (⭐⭐⭐)", () => {
     render(<ModeSelectScreen {...baseProps} stars={3} masteredWords={[masteredWord]} />);

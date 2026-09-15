@@ -2,7 +2,7 @@ import { BiLabel } from "../BiLabel";
 import StudentIcon from "../StudentIcon";
 import { toPinyin } from "../../utils/pinyin";
 import { TIER_CARDS, REVIEW_CARD, type VocabAssessmentLevel, type VocabQuizEntry, type VocabQuizMode, type VocabQuizQuestionResult } from "./model";
-import type { VocabPriorityReviewWord } from "../../services/database";
+import type { ReviewQueueItem, VocabPriorityReviewWord } from "../../services/database";
 import { TIER_CONFIGS, attemptEarnsStar, effectiveTierPassCount, isTierUnlocked, nextStarGap, practiceUnlocked, tierConfigFromMode, type QuizTier, type TierMode } from "../../utils/quizTiers";
 import { FocusWords, LessonCompletionSummary, MasteryProgressBar } from "./LessonVocabularyProgress";
 import type { LessonVocabularyProgress } from "./lesson-vocab-progress";
@@ -52,6 +52,21 @@ function WeakWordsCard({ weakEntries, priorityReviewWords, interimReviewEntries,
       <strong><BiLabel zh="弱項複習" pinyin="Ruòxiàng fùxí" en="Weak words" /></strong>
       <p><BiLabel zh="還沒有答錯的生詞，很棒！答錯的生詞會出現在這裡讓你複習。" pinyin="Hái méiyǒu dá cuò de shēngcí, hěn bàng! Dá cuò de shēngcí huì chūxiàn zài zhèlǐ ràng nǐ fùxí." en="No missed words yet — nice! Words you miss will show up here to review." /></p>
     </section>
+  );
+}
+
+/** Spaced-repetition maintenance: words the schedule says are due today
+ * (including already-mastered ones). Shown apart from weak words so a
+ * due-but-mastered word is never labelled "weak". Hidden when nothing is due. */
+function DueReviewCard({ dueWords, chooseDueReview }: { dueWords: ReviewQueueItem[]; chooseDueReview: () => void }) {
+  if (dueWords.length === 0) return null;
+  return (
+    <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-due-review" onClick={chooseDueReview}>
+      <span className="vocab-quiz-mode-icon"><StudentIcon name="clock" size={30} /></span>
+      <strong><BiLabel zh={`溫習到期 (${dueWords.length})`} pinyin="Wēnxí dàoqī" en={`Due for review (${dueWords.length})`} /></strong>
+      <p><BiLabel zh="到了複習時間的生詞，趁還記得再鞏固一次。" pinyin="Dàole fùxí shíjiān de shēngcí, chèn hái jìde zài gǒnggù yí cì." en="Words your review schedule says are due — refresh them before you forget." /></p>
+      <StudentIcon name="arrow-right" size={18} />
+    </button>
   );
 }
 
@@ -122,7 +137,7 @@ function QuizChallengeCard({ progress, onStart }: { progress: LessonVocabularyPr
   );
 }
 
-export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = [], priorityReviewWords = [], masteredWords = [], assessmentQuestionCounts, startTier, chooseWeakWords, chooseInterimReview, onPracticeWord, showReview, progress, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; interimReviewEntries?: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; masteredWords?: VocabPriorityReviewWord[]; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; chooseInterimReview: () => void; onPracticeWord?: (word: VocabPriorityReviewWord) => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
+export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = [], priorityReviewWords = [], masteredWords = [], dueWords = [], chooseDueReview, assessmentQuestionCounts, startTier, chooseWeakWords, chooseInterimReview, onPracticeWord, showReview, progress, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; interimReviewEntries?: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; masteredWords?: VocabPriorityReviewWord[]; dueWords?: ReviewQueueItem[]; chooseDueReview?: () => void; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; chooseInterimReview: () => void; onPracticeWord?: (word: VocabPriorityReviewWord) => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
   // Maps a round to the external quiz bank's difficulty label so we can count
   // that round's published questions (see VocabAssessmentLevel). The round
   // dimension itself is the mode (tier1/2/3), not this bank label.
@@ -210,6 +225,7 @@ export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = []
           chooseWeakWords={chooseWeakWords}
           chooseInterimReview={chooseInterimReview}
         />
+        <DueReviewCard dueWords={dueWords} chooseDueReview={chooseDueReview ?? (() => {})} />
         {challenge && <QuizChallengeCard progress={challenge.progress} onStart={challenge.onStart} />}
       </div>
 

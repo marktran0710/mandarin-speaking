@@ -12,9 +12,11 @@ import {
 import { planQuizSession } from "../../utils/quizSessionPlanner";
 import {
   canUseDatabase,
+  getVocabQuizReviewQueue,
   getVocabQuizWeakWords,
   listVocabQuizAttempts,
   recordVocabQuizResponse,
+  type ReviewQueueItem,
   type VocabPriorityReviewWord,
 } from "../../services/database";
 import {
@@ -194,6 +196,10 @@ export function useQuizSession({
   const [weakWords, setWeakWords] = useState<string[]>([]);
   const [masteredWords, setMasteredWords] = useState<VocabPriorityReviewWord[]>([]);
   const [masteryWords, setMasteryWords] = useState<VocabPriorityReviewWord[]>([]);
+  // Spaced-repetition maintenance reviews: words the SM-2 schedule says are due
+  // today (may include already-mastered words). Kept apart from weak words so
+  // the UI can label "ôn tập duy trì" separately from "từ cần luyện".
+  const [dueWords, setDueWords] = useState<ReviewQueueItem[]>([]);
   const [weakWordsReady, setWeakWordsReady] = useState(false);
   const refreshWeakWords = useCallback(async () => {
     if (!storyId || !canUseDatabase()) return;
@@ -216,6 +222,21 @@ export function useQuizSession({
       .finally(() => { if (!cancelled) setWeakWordsReady(true); });
     return () => { cancelled = true; };
   }, [storyId, refreshWeakWords]);
+
+  // Due-review words (SM-2 schedule) load independently of the weak-word
+  // readiness gate — a slow or failed queue fetch must never delay the mode
+  // screen. Best-effort: empty on any error.
+  useEffect(() => {
+    if (!storyId || !studentId || !canUseDatabase()) {
+      setDueWords([]);
+      return;
+    }
+    let cancelled = false;
+    getVocabQuizReviewQueue(baseStoryId ?? storyId, studentId, { includeAllWeak: true })
+      .then((queue) => { if (!cancelled) setDueWords((queue.queue ?? []).filter((item) => item.reviewReason === "due")); })
+      .catch(() => { if (!cancelled) setDueWords([]); });
+    return () => { cancelled = true; };
+  }, [storyId, baseStoryId, studentId]);
 
   const sessionReady = starsReady && weakWordsReady;
   const lessonProgress: LessonVocabularyProgress = useMemo(() => buildLessonVocabularyProgress({
@@ -534,7 +555,7 @@ export function useQuizSession({
 
   return {
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
-    question, index, selected, results, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, masteredWords, missedWords,
+    question, index, selected, results, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, masteredWords, dueWords, missedWords,
     missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
     speakWord, chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord, returnToModes, sessionReady,
     lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,
