@@ -1,0 +1,649 @@
+{
+  "book": "Modern Chinese 1",
+  "title": "時代華語 1",
+  "checkedAt": "2026-09-08",
+  "references": [
+    {
+      "lesson": 5,
+      "word": "友美",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "週末",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "做",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "這個週末",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "什麼",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "我",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "要",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "在",
+      "page": 114,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "家",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "看書",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "聽音樂",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "星期六",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "下午",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "有空",
+      "page": 114,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "一起",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "喝",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "下午茶",
+      "page": 114,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "好啊",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "你",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "想",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "去",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "哪裡",
+      "page": 114,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "知道",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "咖啡廳",
+      "page": 115,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "冰淇淋",
+      "page": 115,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "好吃",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "巧克力",
+      "page": 115,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "有",
+      "page": 122,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "很多",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "種",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "兩點半",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "好",
+      "page": 112,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "媽",
+      "page": 119,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "錢包",
+      "page": 114,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "房間",
+      "page": 121,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "客廳",
+      "page": 122,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "桌子",
+      "page": 122,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "哥哥",
+      "page": 122,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "沙發",
+      "page": 122,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "下面",
+      "page": 123,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "上面",
+      "page": 122,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "旁邊",
+      "page": 123,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "幫",
+      "page": 123,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "好嗎",
+      "page": 119,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "忙",
+      "page": 119,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "廚房",
+      "page": 123,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "做飯",
+      "page": 119,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "書",
+      "page": 119,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "床",
+      "page": 128,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "電視機",
+      "page": 129,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "新的",
+      "page": 127,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "看電視",
+      "page": 127,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "中文",
+      "page": 127,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "英文",
+      "page": 127,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "窗戶",
+      "page": 129,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "大",
+      "page": 127,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "貓",
+      "page": 129,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "喜歡",
+      "page": 127,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 5,
+      "word": "曬太陽",
+      "page": 129,
+      "kind": "Mục Phrase"
+    },
+    {
+      "lesson": 6,
+      "word": "天氣",
+      "page": 131,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 6,
+      "word": "風景",
+      "page": 134,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 6,
+      "word": "漂亮",
+      "page": 131,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 6,
+      "word": "游泳",
+      "page": 134,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 6,
+      "word": "跑步",
+      "page": 134,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 6,
+      "word": "網球",
+      "page": 133,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 6,
+      "word": "電影",
+      "page": 143,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 6,
+      "word": "有趣",
+      "page": 143,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 6,
+      "word": "休息",
+      "page": 143,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 6,
+      "word": "運動",
+      "page": 144,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 6,
+      "word": "腳踏車",
+      "page": 144,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 6,
+      "word": "音樂",
+      "page": 141,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 6,
+      "word": "週末",
+      "page": 131,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 6,
+      "word": "朋友",
+      "page": 149,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 6,
+      "word": "中文",
+      "page": 149,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 6,
+      "word": "唱歌",
+      "page": 151,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 7,
+      "word": "朋友",
+      "page": 157,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 7,
+      "word": "飯店",
+      "page": 159,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 7,
+      "word": "捷運",
+      "page": 160,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 7,
+      "word": "公車",
+      "page": 160,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 7,
+      "word": "學校",
+      "page": 157,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 7,
+      "word": "走路",
+      "page": 161,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 7,
+      "word": "地圖",
+      "page": 161,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 7,
+      "word": "附近",
+      "page": 169,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 7,
+      "word": "郵局",
+      "page": 169,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 7,
+      "word": "超級市場",
+      "page": 170,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 7,
+      "word": "方便",
+      "page": 170,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 7,
+      "word": "舒服",
+      "page": 170,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 7,
+      "word": "電影",
+      "page": 173,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 7,
+      "word": "運動",
+      "page": 173,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 7,
+      "word": "週末",
+      "page": 173,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 7,
+      "word": "機場",
+      "page": 175,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 7,
+      "word": "風景",
+      "page": 173,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 7,
+      "word": "漂亮",
+      "page": 173,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 8,
+      "word": "裙子",
+      "page": 182,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 8,
+      "word": "生日",
+      "page": 180,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 8,
+      "word": "東西",
+      "page": 180,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 8,
+      "word": "衣服",
+      "page": 180,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 8,
+      "word": "褲子",
+      "page": 183,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 8,
+      "word": "百貨公司",
+      "page": 183,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 8,
+      "word": "漂亮",
+      "page": 188,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 8,
+      "word": "流行",
+      "page": 190,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 8,
+      "word": "週末",
+      "page": 188,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 8,
+      "word": "鞋子",
+      "page": 191,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 8,
+      "word": "電梯",
+      "page": 192,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 8,
+      "word": "年輕",
+      "page": 199,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 8,
+      "word": "有趣",
+      "page": 197,
+      "kind": "Hội thoại / bài đọc"
+    },
+    {
+      "lesson": 8,
+      "word": "錢",
+      "page": 197,
+      "kind": "Hội thoại / bài đọc"
+    }
+  ]
+}

@@ -365,8 +365,8 @@ export default function App() {
     setCurrentPage("student-workspace");
   };
 
-  // The floating star bubble's jump target — quiz story ids may carry a
-  // Medium/Hard tier suffix on the base topic id.
+  // The floating star bubble's jump target — a quiz story id may be a
+  // suffixed variant of the base topic id.
   const handleJumpToStory = (storyId: string) => {
     const topic = storyTopics.find(
       (t) => t.id === storyId || storyId.startsWith(`${t.id}-`),

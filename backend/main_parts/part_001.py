@@ -458,9 +458,8 @@ class VocabFromSentenceResponse(BaseModel):
 
 class PhraseFromSentenceRequest(BaseModel):
     sentence: str
-    # How many phrases to request — the caller scales this with the story's
-    # difficulty tier (e.g. 1 for easy, 2 for medium, 3 for hard) since a
-    # longer/harder sentence naturally has more phrase-worthy chunks.
+    # How many phrases to request — a longer/more complex sentence naturally
+    # has more phrase-worthy chunks.
     count: int = 1
 
 

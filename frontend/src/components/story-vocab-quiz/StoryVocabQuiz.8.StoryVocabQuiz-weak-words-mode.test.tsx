@@ -335,11 +335,10 @@ describe("StoryVocabQuiz weak-words mode", () => {
     ).not.toBeInTheDocument();
     await user.click(weakWordsButton);
 
-    // The round-progress bar shares the "第 X / Y 題" denominator (the round's
+    // The unified round bar shares the "第 X / Y 題" denominator (the round's
     // question count) rather than the lesson-wide strengthen goal, so the two
     // counters stay in sync — this round has 2 weak words → 2 questions.
-    expect(screen.getByRole("region", { name: "Practice round progress" })).toBeInTheDocument();
-    expect(screen.getByRole("progressbar", { name: "0 of 2 questions answered" })).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuetext", "0 correct of 2");
 
     for (let i = 0; i < 2; i += 1) {
       await answerCurrentQuestion(user, true);

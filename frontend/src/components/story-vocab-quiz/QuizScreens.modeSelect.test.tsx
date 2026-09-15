@@ -11,24 +11,7 @@ const baseProps = {
   showReview: vi.fn(),
 };
 
-describe("ModeSelectScreen — difficulty level badge", () => {
-  it("defaults to Easy when no level prop is given", () => {
-    render(<ModeSelectScreen {...baseProps} />);
-    expect(screen.getByText("Easy")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Back to activities/ })).not.toBeInTheDocument();
-  });
-
-  it("shows Medium for a medium-level story", () => {
-    render(<ModeSelectScreen {...baseProps} level="medium" />);
-    expect(screen.getByText("Medium")).toBeInTheDocument();
-    expect(screen.queryByText("Easy")).not.toBeInTheDocument();
-  });
-
-  it("shows Hard for a hard-level story", () => {
-    render(<ModeSelectScreen {...baseProps} level="hard" />);
-    expect(screen.getByText("Hard")).toBeInTheDocument();
-  });
-
+describe("ModeSelectScreen", () => {
   it("surfaces an interim 'review your misses' card before the diagnostic unlocks", () => {
     render(
       <ModeSelectScreen
@@ -43,26 +26,36 @@ describe("ModeSelectScreen — difficulty level badge", () => {
     expect(card).toHaveTextContent("Your full weak-word list builds after all three rounds.");
   });
 
-  it("shows the lesson's mastered words in a separate read-only summary", () => {
-    render(
-      <ModeSelectScreen
-        {...baseProps}
-        masteredWords={[{
-          wordId: "word-1",
-          word: "下午茶",
-          meaning: "afternoon tea",
-          pLearned: 0.98,
-          status: "MASTERED",
-          observationCount: 3,
-          correctCount: 3,
-          incorrectCount: 0,
-        }]}
-      />,
-    );
+  const masteredWord = {
+    wordId: "word-1",
+    word: "下午茶",
+    meaning: "afternoon tea",
+    pLearned: 0.98,
+    status: "MASTERED" as const,
+    observationCount: 3,
+    correctCount: 3,
+    incorrectCount: 0,
+  };
+
+  it("confirms mastered words only after all three rounds are passed (⭐⭐⭐)", () => {
+    render(<ModeSelectScreen {...baseProps} stars={3} masteredWords={[masteredWord]} />);
     const masteredWordsRegion = screen.getByRole("region", { name: "Mastered words" });
     expect(masteredWordsRegion).toHaveTextContent("Mastered words (1)");
     expect(masteredWordsRegion).toHaveTextContent("下午茶");
     expect(masteredWordsRegion).toHaveTextContent("afternoon tea");
+    expect(screen.getByRole("list", { name: "Mastered vocabulary" })).toBeInTheDocument();
+  });
+
+  it("labels the same words as provisional ('on track') before ⭐⭐⭐, never 'mastered'", () => {
+    // Rounds played but not all passed: BKT already flags the word MASTERED, but
+    // the story isn't finished, so the UI must not over-claim mastery.
+    render(<ModeSelectScreen {...baseProps} stars={2} masteredWords={[masteredWord]} />);
+    const region = screen.getByRole("region", { name: "Words on track" });
+    expect(region).toHaveTextContent("On track (1)");
+    expect(region).toHaveTextContent("下午茶");
+    expect(region).not.toHaveTextContent("Mastered words");
+    expect(screen.queryByRole("region", { name: "Mastered words" })).not.toBeInTheDocument();
+    // The word is still tappable to review — provisional only changes wording.
     expect(screen.getByRole("list", { name: "Mastered vocabulary" })).toBeInTheDocument();
   });
 });

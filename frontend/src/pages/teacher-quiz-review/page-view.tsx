@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { BiText } from "../../components/BiLabel";
-import { storyHasTierContent } from "../../utils/teacherStories";
 import { useQuizReviewContext } from "./context";
 import { useQuizGenerationActions } from "./generation-actions";
 import { ReviewFilterBar } from "./review-chrome";
@@ -13,6 +12,6 @@ export function QuizReviewPageView() {
     <input type="file" accept="application/json" ref={importInputRef} onChange={onImportChange} className="tqr-file-input" data-testid="tqr-import-input" />
     <ReviewFilterBar lessonGroups={lessonGroups} lessonKey={lessonKey} onLessonChange={setLessonKey} levels={levels} level={level} onLevelChange={setLevel} stories={currentGroup?.stories ?? []} storyFilterId={storyFilterId} onStoryChange={setStoryFilterId} />
     {!currentGroup && <p className="tqr-empty"><BiText zh="還沒有已發佈的故事。" pinyin="Hái méiyǒu yǐ fābù de gùshì." en="No published stories yet." /></p>}
-    {currentGroup?.stories.filter((story) => storyFilterId === "all" || story.id === storyFilterId).map((story) => level !== "easy" && !storyHasTierContent(story, level) ? null : <QuizReviewStory key={story.id} story={story} />)}
+    {currentGroup?.stories.filter((story) => storyFilterId === "all" || story.id === storyFilterId).map((story) => <QuizReviewStory key={story.id} story={story} />)}
   </main>;
 }

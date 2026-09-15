@@ -104,14 +104,12 @@ class SpeakingProgressRequest(BaseModel):
     # Additive story/prompt identity. The existing latest_result JSONB stores
     # these fields, so no speaking-progress table migration is required.
     baseStoryId: Optional[str] = Field(default=None, max_length=128)
-    difficultyLevel: Optional[Literal["easy", "medium", "hard"]] = None
+    difficultyLevel: Optional[str] = None  # round key (tier1/2/3) or legacy label; server resolver is authoritative
     promptId: Optional[str] = Field(default=None, max_length=200)
 
 
 class CustomStoryFrameRequest(BaseModel):
     imageUrl: str
-    imageUrlMedium: Optional[str] = None
-    imageUrlHard: Optional[str] = None
     prompt: str
     vocabulary: str = ""
     vocabularyGroups: Optional[List[dict]] = None
@@ -140,33 +138,6 @@ class CustomStoryFrameRequest(BaseModel):
     # is a list of AI-generated {synonym, distractors} candidates, grown the
     # same way vocabularyCloze is.
     vocabularySynonym: Optional[str] = None
-    # Medium/Hard tiers of the same scene — same plot, just progressively
-    # more complex text (and optionally its own image via imageUrlMedium/
-    # imageUrlHard above). Absent/blank means that tier hasn't been authored
-    # yet; the student-facing conversion falls back to the base (Easy) field
-    # above rather than showing blank content.
-    promptMedium: Optional[str] = None
-    promptHard: Optional[str] = None
-    vocabularyMedium: Optional[str] = None
-    vocabularyHard: Optional[str] = None
-    vocabularyPinyinMedium: Optional[str] = None
-    vocabularyPinyinHard: Optional[str] = None
-    vocabularyPosMedium: Optional[str] = None
-    vocabularyPosHard: Optional[str] = None
-    vocabularyTranslationMedium: Optional[str] = None
-    vocabularyTranslationHard: Optional[str] = None
-    phrasesMedium: Optional[str] = None
-    phrasesHard: Optional[str] = None
-    phrasesTranslationMedium: Optional[str] = None
-    phrasesTranslationHard: Optional[str] = None
-    suggestedAnswerMedium: Optional[str] = None
-    suggestedAnswerHard: Optional[str] = None
-    listenAudioUrlMedium: Optional[str] = None
-    listenAudioUrlHard: Optional[str] = None
-    listenAudioSourceMedium: Optional[str] = None
-    listenAudioSourceHard: Optional[str] = None
-    listenScriptMedium: Optional[str] = None
-    listenScriptHard: Optional[str] = None
     vocabularyAudioUrlsMedium: Optional[str] = None
     vocabularyAudioUrlsHard: Optional[str] = None
     vocabularyReferenceCurvesMedium: Optional[str] = None
@@ -179,14 +150,13 @@ class CustomStoryRequest(BaseModel):
     id: str
     title: str
     frames: List[CustomStoryFrameRequest]
-    # Canonical vocabulary and reusable phrases for the complete story,
-    # keyed by difficulty tier (easy/medium/hard). These remain optional so
-    # stories authored before story-level learning content was introduced
-    # can still be read and re-saved unchanged.
+    # Canonical vocabulary and reusable phrases for the complete story, keyed
+    # by level. These remain optional so stories authored before story-level
+    # learning content was introduced can still be read and re-saved unchanged.
     storyVocabulary: Optional[Dict[str, Dict[str, str]]] = None
     storyPhrases: Optional[Dict[str, Dict[str, str]]] = None
     # Validated, stable CSV question bank. Each word has one observation per
-    # Easy/Medium/Hard level; the backend stores it separately from frame text.
+    # round; the backend stores it separately from frame text.
     vocabAssessment: Optional[List[Dict[str, Any]]] = None
     published: bool = False
     lessonNumber: Optional[int] = None
@@ -209,7 +179,7 @@ class SceneSubmission(BaseModel):
     # submission can rehydrate difficulty progression after a reload. Older
     # submissions intentionally remain valid without these optional fields.
     baseStoryId: Optional[str] = Field(default=None, max_length=128)
-    difficultyLevel: Optional[Literal["easy", "medium", "hard"]] = None
+    difficultyLevel: Optional[str] = None  # round key (tier1/2/3) or legacy label; server resolver is authoritative
     imageUrl: str = ""
     transcription: str = ""
     vocabUsed: List[str] = []
@@ -264,7 +234,7 @@ class VocabQuizQuestionResult(BaseModel):
     roundType: Optional[Literal["know_it", "say_it", "use_it"]] = None
     knowledgeDimension: Optional[Literal["meaning", "pinyin_production", "contextual_recall"]] = None
     activityType: Optional[Literal["diagnostic", "personalized_practice", "challenge", "practice"]] = None
-    level: Optional[Literal["easy", "medium", "hard"]] = None
+    level: Optional[str] = None  # round key (tier1/2/3) or legacy label; server resolver is authoritative
     baseStoryId: Optional[str] = Field(default=None, max_length=128)
     itemVersion: Optional[str] = Field(default=None, max_length=40)
     # Server-side BKT gate metadata.  These are deliberately optional for
@@ -292,7 +262,7 @@ class VocabQuizAttemptRequest(BaseModel):
     studentId: Optional[str] = Field(default=None, max_length=128)
     mode: Optional[str] = None
     baseStoryId: Optional[str] = Field(default=None, max_length=128)
-    level: Optional[Literal["easy", "medium", "hard"]] = None
+    level: Optional[str] = None  # round key (tier1/2/3) or legacy label; server resolver is authoritative
     completedAt: str
     totalQuestions: int = Field(..., ge=1)
     correctCount: int = Field(..., ge=0)
@@ -328,8 +298,7 @@ class QuizExclusion(BaseModel):
 
 class QuizExclusionsUpdateRequest(BaseModel):
     exclusions: List[QuizExclusion]
-    # The full per-word quiz material tree at save time, keyed by difficulty
-    # tier (easy/medium/hard word text and pools can differ per tier), so
+    # The full per-word quiz material tree at save time, keyed by level, so
     # the Quiz Review page can diff live material against it next time
     # (new/changed/kept). Opaque here — the frontend owns the per-tier shape
     # and sends the whole map each time (merging in whichever tier changed),
@@ -402,9 +371,8 @@ class QuizQuestionReplaceRequest(BaseModel):
     wordIndex: int = Field(..., ge=0)
     kind: str = Field(..., pattern="^(translation|distractors|cloze|synonym|pinyin)$")
     poolIndex: Optional[int] = Field(default=None, ge=0)
-    # Translation edits change the teacher-authored correct answer.  The
-    # field is explicit because Medium/Hard can own a separate translation
-    # list; omitting it keeps the existing Easy/base behaviour.
+    # Translation edits change the teacher-authored correct answer. The field
+    # is explicit; omitting it targets the base translation list.
     translationField: Optional[str] = Field(
         default=None,
         pattern="^(vocabularyTranslation|vocabularyTranslationMedium|vocabularyTranslationHard)$",

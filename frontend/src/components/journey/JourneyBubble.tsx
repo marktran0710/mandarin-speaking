@@ -77,30 +77,16 @@ export default function JourneyBubble({
     };
   }, [studentId, studentName, refreshToken]);
 
-  // Per-story stars. Two folds happen here:
-  // - local mirror vs backend history: whichever is higher (they drift
-  //   across devices);
-  // - text tiers: Medium/Hard sessions run the same 3-star quiz ladder
-  //   under tier-suffixed quiz ids (`{id}-medium`, `{id}-hard`), so a
-  //   story's stars are the BEST earned across its tiers — never the sum,
-  //   which would triple-count the same ladder.
-  const TIER_SUFFIXES = ["", "-medium", "-hard"];
+  // Per-story stars, folding the local mirror against backend history —
+  // whichever is higher (they drift across devices).
   const starsFor = (id: string) =>
-    Math.max(
-      ...TIER_SUFFIXES.map((suffix) =>
-        Math.max(
-          loadLocalStars(`${id}${suffix}`),
-          dbStars[`${id}${suffix}`] ?? 0,
-        ),
-      ),
-    );
+    Math.max(loadLocalStars(id), dbStars[id] ?? 0);
 
   // Pages without a story list can't enumerate ids — fold the backend map
-  // onto base ids (best per story) and total that instead.
+  // per story and total that instead.
   const foldedDb: Record<string, number> = {};
   for (const [id, stars] of Object.entries(dbStars)) {
-    const base = id.replace(/-(medium|hard)$/, "");
-    foldedDb[base] = Math.max(foldedDb[base] ?? 0, stars);
+    foldedDb[id] = Math.max(foldedDb[id] ?? 0, stars);
   }
   // Sum each story's best tier once. This deliberately merges local and
   // backend values per story instead of taking the maximum of two totals,
@@ -109,8 +95,7 @@ export default function JourneyBubble({
   const totalStars = earnedStoryIds.reduce((sum, id) => sum + starsFor(id), 0);
   const maxStars = storyCount ? storyCount * 3 : undefined;
 
-  // Quiz ids for Medium/Hard tiers suffix the base topic id — map a
-  // near-miss id back onto the base story so stars/titles resolve.
+  // Map a near-miss id back onto a known base story so stars/titles resolve.
   const baseId = (id: string) =>
     storyIds.find((known) => known === id || id.startsWith(`${known}-`)) ?? id;
 

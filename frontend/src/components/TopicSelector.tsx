@@ -158,12 +158,9 @@ export default function TopicSelector({ onTopicSelect, averageToneAccuracy }: To
       group.lessonNumber != null && t.lessonSubOrder != null
         ? `${group.lessonNumber}-${t.lessonSubOrder}`
         : null;
-    // isStoryUnlockedInLesson only needs the previous story SUBMITTED, not
-    // 3-starred — a card can sit locked right next to a 3-star quiz result
-    // on the story before it, which reads as broken with no explanation.
-    // The lesson row already tells the student why IT is locked
-    // ("先完成第 X 課"); a story card had no equivalent, so a click on Easy
-    // or Medium here did nothing and looked like a dead button.
+    // A story now opens only once its predecessor is fully finished — all
+    // three quiz rounds passed (⭐⭐⭐) AND speaking submitted. Surface that
+    // predecessor on the locked card so the lock never reads as a dead button.
     const previousTopic = !unlocked ? group.topics[index - 1] : undefined;
 
     return (
@@ -232,8 +229,8 @@ export default function TopicSelector({ onTopicSelect, averageToneAccuracy }: To
             <p className="ts-card-locked-note">
               <StudentIcon name="lock" size={14} />
               <BiLabel
-                zh={previousTopic ? `先交 ${previousTopic.name}` : "先完成上一個故事"}
-                en={previousTopic ? `Submit "${previousTopic.name}" first` : "Finish the previous story first"}
+                zh={previousTopic ? `先完成 ${previousTopic.name}（三關 + 口說）` : "先完成上一個故事"}
+                en={previousTopic ? `Finish "${previousTopic.name}" first (3 rounds + speaking)` : "Finish the previous story first"}
                 align="left"
               />
             </p>

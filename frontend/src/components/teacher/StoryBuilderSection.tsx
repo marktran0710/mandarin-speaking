@@ -111,8 +111,6 @@ export default function StoryBuilderSection({
     clamped: number,
   ): Record<StoryDifficultyLevel, string[]> => ({
     easy: resizeToCount(tiers.easy, clamped, ""),
-    medium: resizeToCount(tiers.medium, clamped, ""),
-    hard: resizeToCount(tiers.hard, clamped, ""),
   });
 
   const updateFrameCount = (count: number) => {

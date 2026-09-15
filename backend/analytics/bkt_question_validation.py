@@ -43,7 +43,9 @@ _APPROVED_STATUSES = frozenset({"approved", "APPROVED"})
 _SLOT_BY_MODE = {"tier1": "quiz_1", "tier2": "quiz_2", "tier3": "quiz_3"}
 _SLOT_BY_VALUE = {"1": "quiz_1", "2": "quiz_2", "3": "quiz_3"}
 _ROUND_BY_MODE = {"tier1": "know_it", "tier2": "say_it", "tier3": "use_it"}
-_LEVEL_BY_MODE = {"tier1": "easy", "tier2": "medium", "tier3": "hard"}
+# The round key stored in quiz_level now matches quiz_mode (tier1/2/3); the
+# separate difficulty label was retired.
+_LEVEL_BY_MODE = {"tier1": "tier1", "tier2": "tier2", "tier3": "tier3"}
 _OBVIOUS_BAD_OPTION = re.compile(r"^(?:a{3,}|n/?a|none|nil|\?{2,}|x{3,})$", re.I)
 
 

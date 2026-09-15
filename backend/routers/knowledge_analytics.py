@@ -272,7 +272,7 @@ async def get_knowledge_state(
     model: Literal["pfa", "bkt", "compare"] = Query(default="compare"),
     student_id: Optional[str] = Query(default=None),
     story_id: Optional[str] = Query(default=None),
-    level: Optional[Literal["easy", "medium", "hard"]] = Query(default=None),
+    level: Optional[Literal["tier1", "tier2", "tier3"]] = Query(default=None),
     _identity: auth.Identity = Depends(auth.require_admin),
 ):
     return await run_in_threadpool(_compute_knowledge_state, model, student_id, story_id, level)

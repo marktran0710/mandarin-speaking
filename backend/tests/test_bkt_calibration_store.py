@@ -36,7 +36,7 @@ def _insert_response(
              resolver_version, occurred_at_utc)
         VALUES (%s, %s, %s, 'story-1', %s, %s, %s,
                 'basic_meaning_mcq', 'answer', 'answer', '[]'::jsonb,
-                'prompt', %s, %s, 1000, %s, 0, 'easy', 'tier1', %s,
+                'prompt', %s, %s, 1000, %s, 0, 'tier1', 'tier1', %s,
                 '[]'::jsonb, %s, 'know_it', 'meaning', %s, %s, %s, %s, %s)
         """,
         (

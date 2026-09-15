@@ -132,10 +132,20 @@ describe("isStoryUnlockedInLesson", () => {
     expect(isStoryUnlockedInLesson(group, 0, new Set())).toBe(true);
   });
 
-  it("needs the previous story submitted — not ⭐⭐, just submitted", () => {
+  it("opens the next quiz-less story once the previous is submitted (no stars to earn)", () => {
     const group = groupTopicsByLesson([topic("a", 5, "a", 1), topic("b", 5, "b", 2)])[0];
     expect(isStoryUnlockedInLesson(group, 1, new Set())).toBe(false);
     expect(isStoryUnlockedInLesson(group, 1, new Set(["a"]))).toBe(true);
+  });
+
+  it("locks the next story until the previous QUIZ story is fully finished (⭐⭐⭐ + submitted)", () => {
+    const group = { lessonNumber: 5, topics: [quizTopic("a", 5, "a"), quizTopic("b", 5, "b")] };
+    // Submitted but only ⭐⭐ (all 3 rounds not passed) → still locked.
+    expect(isStoryUnlockedInLesson(group, 1, new Set(["a"]), twoStars)).toBe(false);
+    // ⭐⭐⭐ but speaking not submitted → still locked.
+    expect(isStoryUnlockedInLesson(group, 1, new Set(), threeStars)).toBe(false);
+    // All 3 rounds passed (⭐⭐⭐) AND speaking submitted → unlocked.
+    expect(isStoryUnlockedInLesson(group, 1, new Set(["a"]), threeStars)).toBe(true);
   });
 
   it("checks only the immediately preceding story in a 3-story chain", () => {

@@ -17,11 +17,7 @@ function StoryDetailsFields({ draft, errors, onUpdateField, onUpdateFrameCount, 
       <label>Story order in lesson<input type="number" min={1} disabled={!draft.lessonNumber.trim()} value={draft.lessonSubOrder} onChange={(event) => onUpdateField("lessonSubOrder", event.target.value)} placeholder="e.g. 1 for 5-1, 2 for 5-2…" /></label>
       <p className="teacher-form-note">Students must finish this story before the next order number in the same lesson unlocks. Leave blank to keep this story unordered — every story in the lesson needs an order number before locking applies to any of them.</p>
       <label>Number of frames<input type="number" min={1} max={12} value={draft.imageUrls.easy.length} onChange={(event) => onUpdateFrameCount(Number(event.target.value) || 1)} /></label>
-      <label>Level<select value={draft.activeLevel} onChange={(event) => onSetDraft((current) => ({ ...current, activeLevel: event.target.value }))}>
-        <option value="easy">Easy (required — students always see this)</option><option value="medium">Medium (optional)</option><option value="hard">Hard (optional)</option>
-      </select></label>
     </div>
-    {draft.activeLevel !== "easy" && <p className="teacher-tier-hint">Editing the {draft.activeLevel === "medium" ? "Medium" : "Hard"} version of each scene below — frame count stays shared with Easy. Any image or text left blank here falls back to its Easy version for students.</p>}
     <div className="story-learning-launcher">
       <div>
         <strong>Story-wide vocabulary & phrases</strong>

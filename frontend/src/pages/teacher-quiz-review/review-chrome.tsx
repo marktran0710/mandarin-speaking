@@ -229,7 +229,7 @@ function ReviewFilterBar({
             >
               {levels.map((item) => (
                 <option key={item} value={item}>
-                  {item === "easy" ? "簡單" : item === "medium" ? "中等" : "困難"}
+                  {item === "easy" ? "簡單" : item}
                 </option>
               ))}
             </select>

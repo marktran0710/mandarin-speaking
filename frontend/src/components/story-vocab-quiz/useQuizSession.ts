@@ -54,7 +54,10 @@ type UseQuizSessionProps = {
   entries: VocabQuizEntry[];
   storyId?: string;
   baseStoryId?: string;
-  level: "easy" | "medium" | "hard";
+  // Story text level. Stories are single-level now, so this is always "easy";
+  // kept as a field only as the fallback response level when a word has no
+  // published bank question (see resultLevel below).
+  level: "easy";
   studentId?: string;
   studentName?: string;
   onComplete?: (summary: VocabQuizSummary) => void;
@@ -194,9 +197,8 @@ export function useQuizSession({
   const [weakWordsReady, setWeakWordsReady] = useState(false);
   const refreshWeakWords = useCallback(async () => {
     if (!storyId || !canUseDatabase()) return;
-    // Weak Words is a story-wide summary. Medium/Hard topic ids are only
-    // presentation tiers, so the API must receive the source story id and
-    // aggregate every tier into one learner list.
+    // Weak Words is a story-wide summary, so the API must receive the source
+    // story id and aggregate into one learner list.
     const words = await getVocabQuizWeakWords(baseStoryId ?? storyId, { studentId, studentName });
     setPriorityReviewWords(words.priorityReview ?? []);
     setWeakWords(Array.isArray(words) ? [...words] : []);
@@ -329,7 +331,7 @@ export function useQuizSession({
       !isRetryRound && diagnosticMode && bktType && entry?.bktValidationStatus === "APPROVED",
     );
     const bktEligibilityErrors = isBktEligible ? [] : [
-      ...(diagnosticConfig && assessment && assessment.level !== diagnosticConfig.level ? ["ROUND_LEVEL_MISMATCH"] : []),
+      ...(diagnosticConfig && assessment && assessment.level !== diagnosticConfig.bankLevel ? ["ROUND_LEVEL_MISMATCH"] : []),
       ...(!diagnosticMode ? ["NON_DIAGNOSTIC_MODE"] : []),
       ...(!bktType ? ["UNSUPPORTED_BKT_QUESTION_TYPE"] : []),
       ...(entry?.bktValidationStatus !== "APPROVED" ? ["UNAPPROVED_RESEARCH_ITEM"] : []),

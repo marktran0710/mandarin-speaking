@@ -1,7 +1,7 @@
 import { toPinyin } from "../../utils/pinyin";
 import type { StudentIconName } from "../StudentIcon";
 import { toneTrapVariants } from "../../utils/toneTraps";
-import { DIAGNOSTIC_ROUNDS, tierConfigFromMode, type TierMode } from "../../utils/quizTiers";
+import { DIAGNOSTIC_ROUNDS, tierConfigFromMode, type DiagnosticRoundType, type TierMode } from "../../utils/quizTiers";
 import {
   normalizeQuizExposure,
   type QuizQuestionBuildContext,
@@ -40,6 +40,11 @@ export interface VocabQuizEntry {
   aiSynonym?: VocabQuizSynonymCandidate[];
 }
 
+// The published quiz bank's own difficulty label for an assessment question.
+// This is the EXTERNAL bank's tag, owned by the quiz generate/approve pipeline,
+// not our round dimension — a round is identified by its mode (tier1/2/3) and
+// roundType (know_it/say_it/use_it), and quiz_level is stored as the round key.
+// We only read this label to match a round to its bank question.
 export type VocabAssessmentLevel = "easy" | "medium" | "hard";
 
 export interface VocabAssessmentQuestion {
@@ -339,7 +344,7 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
   const uniqueEntries = Array.from(new Map(entries.map((entry) => [entry.wordId ?? quizConceptId(entry.word), entry])).values());
   const translationPool = uniqueEntries.map((entry) => entry.translation).filter(Boolean);
   const questions = uniqueEntries.map((entry) => {
-    const source = entry.assessmentQuestions?.find((assessment) => assessment.level === config.level);
+    const source = entry.assessmentQuestions?.find((assessment) => assessment.level === config.bankLevel);
     const wordId = entry.wordId ?? quizConceptId(entry.word);
     if (mode === "tier1") {
       const correctAnswer = source?.correctAnswer || entry.translation;
@@ -350,7 +355,7 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
       while (options.length < OPTION_COUNT) options.push(`meaning ${options.length + 1}`);
       return {
         questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin: entry.pinyin || toPinyin(entry.word),
-        pos: entry.pos || "", simpleEnglishMeaning: entry.translation, level: config.level, difficultyWeight: 1 as const,
+        pos: entry.pos || "", simpleEnglishMeaning: entry.translation, level: config.bankLevel, difficultyWeight: 1 as const,
         questionType: config.questionKind, answerFormat: "single_choice" as const, prompt: source?.prompt || `What does ${entry.word} mean?`,
         options: seededShuffle(options, `${wordId}:know_it:options`), correctAnswer,
         acceptedAnswers: source?.acceptedAnswers?.length ? source.acceptedAnswers : [correctAnswer],
@@ -366,7 +371,7 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
       const acceptedAnswers = Array.from(new Set([pinyin, ...pinyin.split("/").map((value) => value.trim()).filter(Boolean)]));
       return {
         questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin,
-        pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.level, difficultyWeight: 2 as const,
+        pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.bankLevel, difficultyWeight: 2 as const,
         questionType: config.questionKind, answerFormat: "free_text" as const, prompt: `Type the pinyin for ${entry.word}.`, options: [],
         correctAnswer: pinyin, acceptedAnswers, explanation: `The pinyin for ${entry.word} is ${pinyin}.`,
       };
@@ -374,7 +379,7 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
     const correctAnswer = source?.correctAnswer || entry.word.split("/")[0].trim();
     return {
       questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin: entry.pinyin || toPinyin(entry.word),
-      pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.level, difficultyWeight: 3 as const,
+      pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.bankLevel, difficultyWeight: 3 as const,
       questionType: config.questionKind, answerFormat: "free_text" as const, prompt: source?.prompt || `Use the Chinese word for “${entry.translation}” in the sentence.`, options: [],
       correctAnswer, acceptedAnswers: Array.from(new Set([correctAnswer, ...(source?.acceptedAnswers || [])])),
       explanation: source?.explanation || `Use ${correctAnswer} in this context.`,
@@ -667,4 +672,58 @@ export function buildQuizQuestion(
 
 export function buildQuizQuestions(entries: VocabQuizEntry[]): VocabQuizTranslationQuestion[] {
   return shuffle(entries).slice(0, MAX_QUESTIONS).map((entry) => buildTranslationQuestion(entry, entries));
+}
+
+// Every extra practice kind, in a stable display order, that weak-word review
+// can draw for a word (the three graded rounds are handled separately, via
+// buildDiagnosticRoundQuestions). "assessment" is omitted — it's a wrapper for
+// the round questions, not a standalone kind.
+const PRACTICE_PREVIEW_KINDS: QuizQuestionKind[] = ["translation", "cloze", "pinyin", "pos", "synonym", "reverse", "listening"];
+
+function buildPracticeQuestionOfKind(
+  kind: QuizQuestionKind,
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+): VocabQuizQuestion | null {
+  switch (kind) {
+    case "translation": return buildTranslationQuestion(entry, allEntries);
+    case "cloze": return buildClozeQuestion(entry, allEntries);
+    case "pinyin": return buildPinyinQuestion(entry, allEntries);
+    case "pos": return buildPosQuestion(entry, allEntries);
+    case "synonym": return buildSynonymQuestion(entry, allEntries);
+    case "reverse": return buildReverseQuestion(entry, allEntries);
+    case "listening": return buildListeningQuestion(entry, allEntries);
+    default: return null;
+  }
+}
+
+export interface WordRoundVariant { mode: TierMode; roundType: DiagnosticRoundType; question: VocabAssessmentQuestion; }
+export interface WordPracticeVariant { kind: QuizQuestionKind; question: VocabQuizQuestion; }
+
+/** Every question form a single word can appear as, for admin/teacher review:
+ * one entry per graded round (Know it / Say it / Use it) plus every extra
+ * practice kind the word's data supports (cloze/pinyin/pos/synonym/…). This
+ * enumerates the kinds directly rather than going through the weighted random
+ * picker the live quiz uses, so a reviewer sees the full set at once. Option
+ * order is still shuffled per build (cosmetic). `allEntries` supplies the
+ * distractor pool, so pass the word's whole lesson. */
+export function buildWordQuestionVariants(
+  entry: VocabQuizEntry,
+  allEntries: VocabQuizEntry[],
+): { rounds: WordRoundVariant[]; practice: WordPracticeVariant[] } {
+  const wordId = entry.wordId ?? quizConceptId(entry.word);
+  const rounds = (["tier1", "tier2", "tier3"] as const)
+    .map((mode): WordRoundVariant | null => {
+      const question = buildDiagnosticRoundQuestions(allEntries, mode).find((q) => q.wordId === wordId);
+      return question ? { mode, roundType: DIAGNOSTIC_ROUNDS[mode].roundType, question } : null;
+    })
+    .filter((value): value is WordRoundVariant => value !== null);
+  const practice = PRACTICE_PREVIEW_KINDS
+    .filter((kind) => isKindAvailable(kind, entry, allEntries))
+    .map((kind): WordPracticeVariant | null => {
+      const question = buildPracticeQuestionOfKind(kind, entry, allEntries);
+      return question ? { kind, question } : null;
+    })
+    .filter((value): value is WordPracticeVariant => value !== null);
+  return { rounds, practice };
 }

@@ -122,7 +122,7 @@ class GenerateModelVoiceRequest(BaseModel):
 
 
 class GenerateModelVoiceBulkRequest(BaseModel):
-    tiers: List[str] = ["easy", "medium", "hard"]
+    tiers: List[str] = ["easy"]
 
 
 class TTSRequest(BaseModel):
@@ -162,14 +162,8 @@ def persist_story_frame_images(story_id: str, frames: list[dict]) -> list[dict]:
     stored_frames = []
     for index, frame in enumerate(frames, start=1):
         frame = dict(frame)
-        # Easy/Medium/Hard each carry their own image now — every tier's
-        # field is checked independently so replacing one tier's picture
-        # doesn't touch the others' uploaded files.
-        for field, suffix in (
-            ("imageUrl", ""),
-            ("imageUrlMedium", "-medium"),
-            ("imageUrlHard", "-hard"),
-        ):
+        # Stories carry a single image per frame.
+        for field, suffix in (("imageUrl", ""),):
             image_url = frame.get(field) or ""
             if image_url.startswith("data:image/"):
                 new_url = save_data_url_image(image_url, story_id, f"{index}{suffix}")
@@ -185,9 +179,8 @@ def persist_story_frame_images(story_id: str, frames: list[dict]) -> list[dict]:
     return stored_frames
 
 
-# Field-name suffix per difficulty tier, matching routers/stories.py's
-# _TIER_SUFFIX convention (listenAudioUrl/listenAudioUrlMedium/listenAudioUrlHard).
-_AUDIO_TIER_SUFFIXES = ("", "Medium", "Hard")
+# Stories carry a single audio track per frame (listenAudioUrl).
+_AUDIO_TIER_SUFFIXES = ("",)
 
 
 def persist_story_frame_audio(story_id: str, frames: list[dict]) -> list[dict]:

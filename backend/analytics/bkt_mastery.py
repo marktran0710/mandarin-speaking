@@ -16,7 +16,7 @@ from analytics.bkt_question_validation import classify_bkt_response
 
 
 DIAGNOSTIC_MODES = ("tier1", "tier2", "tier3")
-DIAGNOSTIC_LEVELS = ("easy", "medium", "hard")
+DIAGNOSTIC_LEVELS = ("tier1", "tier2", "tier3")
 
 # This fixed list is the fingerprint contract. Operational provenance does not
 # alter the immutable assessment facts that define an idempotent replay.
@@ -238,7 +238,7 @@ def _ordered_responses(db: Any, student_id: str, story_id: str | None = None) ->
         FROM vocab_quiz_responses
         WHERE student_id = %s
           AND (
-            (lower(COALESCE(quiz_level, '')) IN ('easy', 'medium', 'hard') AND quiz_mode IN ('tier1', 'tier2', 'tier3') AND bkt_eligible = TRUE)
+            (lower(COALESCE(quiz_level, '')) IN ('tier1', 'tier2', 'tier3') AND quiz_mode IN ('tier1', 'tier2', 'tier3') AND bkt_eligible = TRUE)
             OR quiz_mode = 'weak_words'
           )
           {scope_filter}
@@ -358,7 +358,7 @@ def _diagnostic_round_metrics(db: Any, student_id: str, story_id: str | None = N
         f"""
         SELECT quiz_mode, quiz_id, word_id, item_id, diagnostic_exposure_id
         FROM vocab_quiz_responses
-        WHERE student_id = %s AND lower(COALESCE(quiz_level, '')) IN ('easy', 'medium', 'hard')
+        WHERE student_id = %s AND lower(COALESCE(quiz_level, '')) IN ('tier1', 'tier2', 'tier3')
           AND quiz_mode IN ('tier1', 'tier2', 'tier3')
           AND bkt_eligible = TRUE
           {scope_filter}
@@ -450,7 +450,7 @@ def diagnostic_status(db: Any, student_id: str, story_id: str | None = None, par
             SELECT DISTINCT word_id, word, lesson_id
             FROM vocab_quiz_responses
             WHERE student_id = %s AND bkt_eligible = TRUE
-              AND lower(COALESCE(quiz_level, '')) IN ('easy', 'medium', 'hard')
+              AND lower(COALESCE(quiz_level, '')) IN ('tier1', 'tier2', 'tier3')
               AND quiz_mode IN ('tier1', 'tier2', 'tier3')
               {scope_filter}
             """,
@@ -475,7 +475,7 @@ def diagnostic_status(db: Any, student_id: str, story_id: str | None = None, par
             f"""
             SELECT word_id, COUNT(DISTINCT item_id || ':' || COALESCE(diagnostic_exposure_id, quiz_id || ':' || quiz_mode)) AS count
             FROM vocab_quiz_responses
-            WHERE student_id = %s AND lower(COALESCE(quiz_level, '')) IN ('easy', 'medium', 'hard')
+            WHERE student_id = %s AND lower(COALESCE(quiz_level, '')) IN ('tier1', 'tier2', 'tier3')
               AND quiz_mode IN ('tier1', 'tier2', 'tier3') AND bkt_eligible = TRUE
               {scope_filter}
             GROUP BY word_id
@@ -547,8 +547,7 @@ def _known_words(db: Any, story_id: str | None = None) -> dict[str, dict[str, An
         for frame in story.get("frames") or []:
             if not isinstance(frame, dict):
                 continue
-            for suffix in ("", "Medium", "Hard"):
-                add_words(frame.get(f"vocabulary{suffix}"), frame.get(f"vocabularyTranslation{suffix}"))
+            add_words(frame.get("vocabulary"), frame.get("vocabularyTranslation"))
         for tier_content in (story.get("story_vocabulary") or {}).values():
             if isinstance(tier_content, dict):
                 add_words(tier_content.get("vocabulary"), tier_content.get("vocabularyTranslation"))

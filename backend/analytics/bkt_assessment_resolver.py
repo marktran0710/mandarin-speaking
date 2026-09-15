@@ -8,15 +8,23 @@ from analytics.bkt_mastery import canonical_story_id
 from vocab_assessment import normalize_answer
 
 
-# The student UI deliberately turns the three imported assessment levels into
-# one meaning, one pinyin-production, and one contextual-recall observation.
-# Keep that transformation mirrored here so the browser only needs to submit
-# an immutable item id and the learner's selected answer.
+# The three diagnostic rounds. The first element is the round key stored in
+# ``quiz_level`` (tier1/tier2/tier3 — matches ``quiz_mode``); the rest are the
+# round's semantic tags. A round is identified by its question kind, not by the
+# quiz bank's own difficulty label, so the bank stays untouched (see
+# ``_diagnostic_source``).
 _ROUND_FACTS = {
-    "tier1": ("easy", "know_it", "meaning", "basic_meaning_mcq"),
-    "tier2": ("medium", "say_it", "pinyin_production", "character_to_pinyin_typing"),
-    "tier3": ("hard", "use_it", "contextual_recall", "contextual_productive_recall"),
+    "tier1": ("tier1", "know_it", "meaning", "basic_meaning_mcq"),
+    "tier2": ("tier2", "say_it", "pinyin_production", "character_to_pinyin_typing"),
+    "tier3": ("tier3", "use_it", "contextual_recall", "contextual_productive_recall"),
 }
+
+# The published quiz bank tags each assessment question with its own difficulty
+# label; that bank is owned by the quiz generate/approve pipeline and is not
+# renamed here. We only need it to derive a round key for non-diagnostic
+# (weak-word) responses, whose quiz_level is metadata the diagnostic filter
+# ignores. Diagnostic responses never consult it.
+_BANK_LABEL_TO_ROUND = {"easy": "tier1", "medium": "tier2", "hard": "tier3"}
 
 ASSESSMENT_RESOLVER_VERSION = "authoritative-assessment-v1"
 
@@ -55,9 +63,13 @@ def _diagnostic_source(
     facts = _ROUND_FACTS.get(mode)
     if facts is None:
         return None
-    expected_level, round_type, _dimension, _question_kind = facts
+    round_key, round_type, _dimension, _question_kind = facts
     for item in assessment:
-        if str(item.get("level") or "").casefold() != expected_level:
+        # A word carries one bank question per round, discriminated by the
+        # bank's own difficulty label. We translate that label to our round key
+        # (tier1/2/3) rather than renaming the bank, which the quiz pipeline
+        # owns. quiz_level is then stored as the round key, never the label.
+        if _BANK_LABEL_TO_ROUND.get(str(item.get("level") or "").casefold()) != round_key:
             continue
         expected_item_id = f"{item.get('wordId')}:{round_type}:v1"
         # Imported banks expose ``questionId`` directly; the current student
@@ -102,7 +114,7 @@ def resolve_assessment_response(db: Any, attempt: Any, submitted: dict[str, Any]
         item = next((row for row in assessment if row.get("questionId") == item_id), None)
         if item is None:
             return _unresolved(submitted, "UNKNOWN_PUBLISHED_ASSESSMENT_ITEM")
-        level = str(item.get("level") or "").casefold()
+        level = _BANK_LABEL_TO_ROUND.get(str(item.get("level") or "").casefold())
         round_type = knowledge_dimension = None
         question_kind = str(item.get("questionType") or "")
         activity_type = "personalized_practice"

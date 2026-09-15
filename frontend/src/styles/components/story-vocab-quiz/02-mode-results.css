@@ -384,6 +384,25 @@
   white-space: nowrap;
 }
 
+/* Provisional variant: all three rounds have been played but not yet passed
+   (< ⭐⭐⭐), so BKT's "mastered" words are shown as on-track, not confirmed.
+   Amber instead of jade tells the learner this is progress, not the finish. */
+.vocab-quiz-mastered.is-provisional {
+  border-color: color-mix(in srgb, var(--clay-primary) 40%, var(--clay-hairline));
+  background: color-mix(in srgb, var(--clay-surface-card) 90%, var(--seal-soft));
+}
+.vocab-quiz-mastered.is-provisional .vocab-quiz-mastered-icon {
+  background: var(--seal-soft);
+  color: var(--gold-deep);
+}
+.vocab-quiz-mastered.is-provisional .vocab-quiz-mastered-item {
+  background: var(--seal-soft);
+}
+.vocab-quiz-mastered.is-provisional .vocab-quiz-mastered-review:hover {
+  background: color-mix(in srgb, var(--seal-soft) 82%, var(--clay-surface-card));
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--clay-primary) 44%, transparent);
+}
+
 /* Earned-star tally on the ladder header. */
 .vocab-quiz-star-count {
   display: flex;
@@ -994,52 +1013,87 @@
   max-width: 560px;
 }
 
+/* Direction A: one hairline-separated card of rows (not full cream cards) —
+   hanzi + pinyin stacked on the left, meaning on the right. Denser, so more
+   words fit before scrolling. Shared row style: .vocab-word-row (below) is
+   reused by the focus-words and summary lists so every word list matches. */
 .vocab-quiz-review-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
-  width: 100%;
+  gap: 0;
+  /* A centered reading column rather than a full-width stretch — capped so it
+     stays comfortable to scan on wide screens. */
+  width: min(100%, 640px);
   max-height: 420px;
   overflow-y: auto;
   list-style: none;
-  margin: 0;
+  /* margin-block 0, margin-inline auto → centered reading column. Must be one
+     declaration: a later `margin: 0` shorthand would reset the inline auto. */
+  margin: 0 auto;
   padding: 0;
+  background: var(--clay-surface-card);
+  border: 1px solid var(--clay-hairline);
+  border-radius: var(--clay-radius-md);
 }
 
-.vocab-quiz-review-item {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1.4fr;
+.vocab-quiz-review-item,
+.vocab-word-row {
+  display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-sm);
-  background: var(--seal-soft);
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
   border: 0;
-  border-radius: var(--clay-radius-md);
+  border-bottom: 1px solid var(--clay-hairline);
+  border-radius: 0;
   text-align: left;
 }
 
-.vocab-quiz-review-word {
+.vocab-quiz-review-item:last-child,
+.vocab-word-row:last-child {
+  border-bottom: 0;
+}
+
+.vocab-quiz-review-lead,
+.vocab-word-row-lead {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vocab-quiz-review-word,
+.vocab-word-row-word {
   font-weight: 700;
-  font-size: 16px;
-  color: var(--seal-deep);
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--clay-ink);
 }
 
-.vocab-quiz-review-pinyin {
-  font-family: var(--font-mono);
+.vocab-quiz-review-pinyin,
+.vocab-word-row-pinyin {
   font-size: 13px;
-  color: var(--clay-muted);
+  font-weight: 600;
+  color: var(--gold-deep);
 }
 
-.vocab-quiz-review-translation {
-  font-size: 13px;
+.vocab-quiz-review-translation,
+.vocab-word-row-meaning {
+  flex: 0 0 46%;
+  font-size: 14px;
   color: var(--clay-body);
+  text-align: right;
 }
 
 @media (max-width: 480px) {
-  .vocab-quiz-review-item {
-    grid-template-columns: 1fr;
-    gap: var(--space-2xs);
-    text-align: left;
+  .vocab-quiz-review-item,
+  .vocab-word-row {
+    gap: var(--space-xs);
+  }
+  .vocab-quiz-review-translation,
+  .vocab-word-row-meaning {
+    flex-basis: 40%;
   }
 }
 
@@ -1299,13 +1353,17 @@
   gap: var(--space-3xs);
   min-width: 0;
   padding: var(--space-sm);
-  border: 0;
+  /* Harmonized with Direction A: white cell + hairline instead of the old
+     cream fill, hanzi in ink — the same family as the All-vocabulary list,
+     kept compact in its grid. */
+  border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-sm);
-  background: var(--seal-soft);
+  background: var(--clay-surface-card);
 }
 .lesson-focus-words li strong {
-  color: var(--seal-deep);
+  color: var(--clay-ink);
   font-size: var(--text-md);
+  font-weight: 700;
 }
 .lesson-focus-words li span,
 .lesson-focus-words-empty,

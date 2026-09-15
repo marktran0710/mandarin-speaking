@@ -24,9 +24,8 @@ from vocab_assessment import validate_assessment_payload
 # media are restricted by auth.require_story_access to teacher/admin accounts.
 router = APIRouter(dependencies=[Depends(auth.require_story_access)])
 
-# Field-name suffix per difficulty tier, matching the existing
-# suggestedAnswer/suggestedAnswerMedium/suggestedAnswerHard convention.
-_TIER_SUFFIX = {"easy": "", "medium": "Medium", "hard": "Hard"}
+# Stories carry a single level; the base fields take no suffix.
+_TIER_SUFFIX = {"easy": ""}
 
 
 def _tier_field(base: str, tier: str) -> str:

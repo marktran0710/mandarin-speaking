@@ -1,5 +1,5 @@
 import "./StoryVocabQuiz.css";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { BiLabel } from "../BiLabel";
 import { ModeSelectScreen, ReviewScreen, SummaryScreen } from "./QuizScreens";
 import { ChallengeEntry } from "./LessonVocabularyProgress";
@@ -14,7 +14,7 @@ export type { VocabQuizClozeCandidate, VocabQuizClozeQuestion, VocabQuizEntry, V
 export default function StoryVocabQuiz({ entries, onDone, onBack, onComplete, storyId, baseStoryId, level = "easy", studentId, studentName }: {
   entries: VocabQuizEntry[]; onDone: () => void; onBack?: () => void;
   onComplete?: (summary: VocabQuizSummary) => void; storyId?: string; baseStoryId?: string;
-  level?: "easy" | "medium" | "hard"; studentId?: string; studentName?: string;
+  level?: "easy"; studentId?: string; studentName?: string;
 }) {
   const assessmentQuestionCounts = entries.reduce<Partial<Record<VocabAssessmentLevel, number>>>((counts, entry) => {
     (entry.assessmentQuestions ?? []).forEach((question) => {
@@ -22,25 +22,31 @@ export default function StoryVocabQuiz({ entries, onDone, onBack, onComplete, st
     });
     return counts;
   }, {});
-  useEffect(() => {
-    if (!onBack) return;
-    const handleBack = onBack;
-
-    // StoryRecorderRuntime owns the header and passes the activity's internal
-    // phase-history callback. Keep this click inside that activity; the
-    // callback falls back to the outer page only at the activity boundary.
-    const returnToPreviousPage = (event: MouseEvent) => {
-      if (!(event.target instanceof Element) || !event.target.closest(".btn-story-exit")) return;
-      event.preventDefault();
-      event.stopPropagation();
-      handleBack();
-    };
-
-    document.addEventListener("click", returnToPreviousPage, true);
-    return () => document.removeEventListener("click", returnToPreviousPage, true);
-  }, [onBack]);
 
   const session = useQuizSession({ entries, storyId, baseStoryId, level, studentId, studentName, onComplete });
+
+  // StoryRecorderRuntime owns the header's ← exit arrow. Intercept its click so
+  // it steps UP one level: from any quiz sub-screen (a question, the review
+  // list, the summary…) back to the quiz menu, and only from the menu itself
+  // out to the page. The ref keeps the decision pointed at the latest screen,
+  // so the global capture listener is bound once and never restale.
+  const exitArrowActionRef = useRef<() => boolean>(() => false);
+  exitArrowActionRef.current = () => {
+    if (session.screen !== "mode-select") { session.returnToModes(); return true; }
+    if (onBack) { onBack(); return true; }
+    return false; // on the menu with nowhere to exit: let the runtime decide
+  };
+  useEffect(() => {
+    const handleExitArrow = (event: MouseEvent) => {
+      if (!(event.target instanceof Element) || !event.target.closest(".btn-story-exit")) return;
+      if (exitArrowActionRef.current()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    document.addEventListener("click", handleExitArrow, true);
+    return () => document.removeEventListener("click", handleExitArrow, true);
+  }, []);
   if (!session.sessionReady) {
     return (
       <div className="app-loading">
@@ -51,8 +57,8 @@ export default function StoryVocabQuiz({ entries, onDone, onBack, onComplete, st
       </div>
     );
   }
-  if (session.screen === "mode-select") return <ModeSelectScreen stars={session.stars} weakEntries={session.weakEntries} interimReviewEntries={session.interimReviewEntries} priorityReviewWords={session.priorityReviewWords} masteredWords={session.masteredWords} level={level} assessmentQuestionCounts={assessmentQuestionCounts} progress={session.lessonProgress} startTier={session.startTier} chooseWeakWords={() => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.weakEntries, session.weakEntries.length); }} chooseInterimReview={() => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.interimReviewEntries, session.interimReviewEntries.length); }} onPracticeWord={(word) => { const entry = entries.find((e) => (word.wordId && e.wordId === word.wordId) || e.word === word.word); if (entry) session.practiceWord(entry); }} onContinue={() => { if (!session.lessonProgress.knowIt.completed) session.startTier("tier1"); else if (!session.lessonProgress.sayIt.completed) session.startTier("tier2"); else if (!session.lessonProgress.useIt.completed) session.startTier("tier3"); else session.setIsRetryRound(false); }} onFinish={onDone} startChallenge={session.showChallengeEntry} showReview={() => session.setScreen("review")} />;
-  if (session.screen === "review") return <ReviewScreen entries={entries} back={() => session.setScreen("mode-select")} />;
+  if (session.screen === "mode-select") return <ModeSelectScreen stars={session.stars} weakEntries={session.weakEntries} interimReviewEntries={session.interimReviewEntries} priorityReviewWords={session.priorityReviewWords} masteredWords={session.masteredWords} assessmentQuestionCounts={assessmentQuestionCounts} progress={session.lessonProgress} startTier={session.startTier} chooseWeakWords={() => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.weakEntries, session.weakEntries.length); }} chooseInterimReview={() => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.interimReviewEntries, session.interimReviewEntries.length); }} onPracticeWord={(word) => { const entry = entries.find((e) => (word.wordId && e.wordId === word.wordId) || e.word === word.word); if (entry) session.practiceWord(entry); }} onContinue={() => { if (!session.lessonProgress.knowIt.completed) session.startTier("tier1"); else if (!session.lessonProgress.sayIt.completed) session.startTier("tier2"); else if (!session.lessonProgress.useIt.completed) session.startTier("tier3"); else session.setIsRetryRound(false); }} onFinish={onDone} startChallenge={session.showChallengeEntry} showReview={() => session.setScreen("review")} />;
+  if (session.screen === "review") return <ReviewScreen entries={entries} />;
   if (session.screen === "challenge-entry") return <ChallengeEntry progress={session.lessonProgress} onStart={session.startChallenge} onBack={() => session.setScreen("mode-select")} />;
   if (session.screen === "summary") return <SummaryScreen mode={session.mode} results={session.results} missedEntries={session.missedEntries} roundEntries={session.roundEntries} isRetryRound={session.isRetryRound} stars={session.stars} onDone={onDone} startTier={session.startTier} backToModes={session.returnToModes} progress={session.lessonProgress} onStartChallenge={session.startChallenge} challengeBestScore={session.challengeBestScore} onStartStrengthen={session.weakEntries.length > 0 ? () => { session.setIsRetryRound(false); session.chooseMode("weak_words", session.weakEntries, session.weakEntries.length); } : undefined} />;
   if (!session.question) return null;

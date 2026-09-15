@@ -129,8 +129,15 @@ describe("StoryVocabQuiz modes", () => {
     }
     expect(screen.queryByRole("group", { name: /What does/ })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: /Back to modes/ }));
+    // Returning to the menu is the app header's exit arrow (owned by
+    // StoryRecorderRuntime, not this component). On a sub-screen the quiz
+    // intercepts that click and steps up to the menu instead of exiting.
+    const exitArrow = document.createElement("button");
+    exitArrow.className = "btn-story-exit";
+    document.body.appendChild(exitArrow);
+    await user.click(exitArrow);
     expect(screen.getByRole("button", { name: /Review/ })).toBeInTheDocument();
+    exitArrow.remove();
   });
 
   it("tier 3 shows a live countdown of seconds remaining", async () => {

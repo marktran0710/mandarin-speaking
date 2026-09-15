@@ -7,12 +7,6 @@ import { TIER_CONFIGS, attemptEarnsStar, effectiveTierPassCount, isTierUnlocked,
 import { FocusWords, LessonCompletionSummary, MasteryProgressBar } from "./LessonVocabularyProgress";
 import type { LessonVocabularyProgress } from "./lesson-vocab-progress";
 
-const LEVEL_COPY: Record<"easy" | "medium" | "hard", { zh: string; pinyin: string; en: string }> = {
-  easy: { zh: "簡單", pinyin: "Jiǎndān", en: "Easy" },
-  medium: { zh: "中等", pinyin: "Zhōngděng", en: "Medium" },
-  hard: { zh: "困難", pinyin: "Kùnnán", en: "Hard" },
-};
-
 interface WeakWordsCardProps {
   weakEntries: VocabQuizEntry[];
   priorityReviewWords: VocabPriorityReviewWord[];
@@ -61,14 +55,28 @@ function WeakWordsCard({ weakEntries, priorityReviewWords, interimReviewEntries,
   );
 }
 
-function MasteredWordsSummary({ masteredWords, onPracticeWord }: { masteredWords: VocabPriorityReviewWord[]; onPracticeWord?: (word: VocabPriorityReviewWord) => void }) {
+function MasteredWordsSummary({ masteredWords, onPracticeWord, provisional = false }: { masteredWords: VocabPriorityReviewWord[]; onPracticeWord?: (word: VocabPriorityReviewWord) => void; provisional?: boolean }) {
+  // BKT can flag a word "mastered" once all three rounds have been *played*,
+  // but the story isn't finished until all three are *passed* (⭐⭐⭐). While
+  // stars < 3 we surface the same words under a provisional heading rather than
+  // claiming "已掌握/Mastered" — the confirmed label is reserved for ⭐⭐⭐, the
+  // same bar that unlocks speaking and the next story.
   return (
-    <section className="vocab-quiz-mastered" aria-label="Mastered words">
+    <section className={`vocab-quiz-mastered${provisional ? " is-provisional" : ""}`} aria-label={provisional ? "Words on track" : "Mastered words"}>
       <div className="vocab-quiz-mastered-heading">
-        <span className="vocab-quiz-mastered-icon" aria-hidden="true"><StudentIcon name="check-circle" size={22} /></span>
+        <span className="vocab-quiz-mastered-icon" aria-hidden="true"><StudentIcon name={provisional ? "target" : "check-circle"} size={22} /></span>
         <div>
-          <strong><BiLabel zh={`已掌握 (${masteredWords.length})`} pinyin="Yǐ zhǎngwò" en={`Mastered words (${masteredWords.length})`} /></strong>
-          <p><BiLabel zh={onPracticeWord ? "本課已掌握的生詞，點一下可再練習。" : "本課已經掌握的生詞。"} pinyin="Běn kè yǐjīng zhǎngwò de shēngcí." en={onPracticeWord ? "Words you've mastered — tap one to review it." : "Words you have mastered in this lesson."} /></p>
+          {provisional ? (
+            <>
+              <strong><BiLabel zh={`掌握中 (${masteredWords.length})`} pinyin="Zhǎngwò zhōng" en={`On track (${masteredWords.length})`} /></strong>
+              <p><BiLabel zh={onPracticeWord ? "暫時掌握，完成三個回合後才算正式掌握。點一下可再練習。" : "暫時掌握，完成三個回合後才算正式掌握。"} pinyin="Zànshí zhǎngwò, wánchéng sān gè huíhé hòu cái suàn zhèngshì zhǎngwò." en={onPracticeWord ? "Looking good — finish all 3 rounds to confirm. Tap one to review." : "Looking good — finish all 3 rounds to confirm these words."} /></p>
+            </>
+          ) : (
+            <>
+              <strong><BiLabel zh={`已掌握 (${masteredWords.length})`} pinyin="Yǐ zhǎngwò" en={`Mastered words (${masteredWords.length})`} /></strong>
+              <p><BiLabel zh={onPracticeWord ? "本課已掌握的生詞，點一下可再練習。" : "本課已經掌握的生詞。"} pinyin="Běn kè yǐjīng zhǎngwò de shēngcí." en={onPracticeWord ? "Words you've mastered — tap one to review it." : "Words you have mastered in this lesson."} /></p>
+            </>
+          )}
         </div>
       </div>
       {masteredWords.length > 0 ? (
@@ -114,7 +122,10 @@ function QuizChallengeCard({ progress, onStart }: { progress: LessonVocabularyPr
   );
 }
 
-export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = [], priorityReviewWords = [], masteredWords = [], level = "easy", assessmentQuestionCounts, startTier, chooseWeakWords, chooseInterimReview, onPracticeWord, showReview, progress, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; interimReviewEntries?: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; masteredWords?: VocabPriorityReviewWord[]; level?: "easy" | "medium" | "hard"; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; chooseInterimReview: () => void; onPracticeWord?: (word: VocabPriorityReviewWord) => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
+export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = [], priorityReviewWords = [], masteredWords = [], assessmentQuestionCounts, startTier, chooseWeakWords, chooseInterimReview, onPracticeWord, showReview, progress, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; interimReviewEntries?: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; masteredWords?: VocabPriorityReviewWord[]; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; chooseInterimReview: () => void; onPracticeWord?: (word: VocabPriorityReviewWord) => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
+  // Maps a round to the external quiz bank's difficulty label so we can count
+  // that round's published questions (see VocabAssessmentLevel). The round
+  // dimension itself is the mode (tier1/2/3), not this bank label.
   const assessmentLevelByMode: Record<TierMode, VocabAssessmentLevel> = { tier1: "easy", tier2: "medium", tier3: "hard" };
   const tierDescription = (card: (typeof TIER_CARDS)[number], config: (typeof TIER_CONFIGS)[TierMode]) => {
     const count = progress?.totalWords ?? assessmentQuestionCounts?.[assessmentLevelByMode[card.mode]];
@@ -138,7 +149,6 @@ export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = []
       <header className="vocab-quiz-header">
         <div className="vocab-quiz-header-tags">
           <p className="eyebrow"><BiLabel zh="生詞測驗" pinyin="Shēngcí cèyàn" en="Vocabulary Quiz" /></p>
-          <p className="vocab-quiz-level-badge"><BiLabel zh={LEVEL_COPY[level].zh} pinyin={LEVEL_COPY[level].pinyin} en={LEVEL_COPY[level].en} /></p>
         </div>
         <h1 className="vocab-quiz-mode-title">
           {practiceUnlocked(stars)
@@ -216,7 +226,7 @@ export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = []
 
       {(masteredWords.length > 0 || (progress?.lessonCompleted ?? false)) && (
         <div className="vocab-quiz-mode-supporting-content">
-          {masteredWords.length > 0 && <MasteredWordsSummary masteredWords={masteredWords} onPracticeWord={onPracticeWord} />}
+          {masteredWords.length > 0 && <MasteredWordsSummary masteredWords={masteredWords} onPracticeWord={onPracticeWord} provisional={!practiceUnlocked(stars)} />}
           {progress?.lessonCompleted && <LessonCompletionSummary progress={progress} onFinish={onFinish} />}
         </div>
       )}
@@ -224,8 +234,8 @@ export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = []
   );
 }
 
-export function ReviewScreen({ entries, back }: { entries: VocabQuizEntry[]; back: () => void }) {
-  return <section className="story-vocab-quiz vocab-quiz-review" aria-label="Vocabulary review"><button type="button" className="btn-vocab-quiz-back" onClick={back}><StudentIcon name="arrow-left" size={17} /><BiLabel zh="選模式" pinyin="Xuǎn móshì" en="Back to modes" /></button><div className="vocab-quiz-header"><p className="eyebrow"><BiLabel zh="複習模式" pinyin="Fùxí móshì" en="Review Mode" /></p><h1 className="vocab-quiz-mode-title"><BiLabel zh="所有生詞" pinyin="Suǒyǒu shēngcí" en="All vocabulary" /></h1></div><ul className="vocab-quiz-review-list" aria-label="Vocabulary list">{entries.map((entry) => <li className="vocab-quiz-review-item" key={entry.word}><span className="vocab-quiz-review-word">{entry.word}</span><span className="vocab-quiz-review-pinyin">{entry.pinyin || toPinyin(entry.word)}</span><span className="vocab-quiz-review-translation">{entry.translation}</span></li>)}</ul></section>;
+export function ReviewScreen({ entries }: { entries: VocabQuizEntry[] }) {
+  return <section className="story-vocab-quiz vocab-quiz-review" aria-label="Vocabulary review"><div className="vocab-quiz-header"><p className="eyebrow"><BiLabel zh="複習模式" pinyin="Fùxí móshì" en="Review Mode" /></p><h1 className="vocab-quiz-mode-title"><BiLabel zh="所有生詞" pinyin="Suǒyǒu shēngcí" en="All vocabulary" /></h1></div><ul className="vocab-quiz-review-list" aria-label="Vocabulary list">{entries.map((entry) => <li className="vocab-quiz-review-item" key={entry.word}><span className="vocab-quiz-review-lead"><span className="vocab-quiz-review-word">{entry.word}</span><span className="vocab-quiz-review-pinyin">{entry.pinyin || toPinyin(entry.word)}</span></span><span className="vocab-quiz-review-translation">{entry.translation}</span></li>)}</ul></section>;
 }
 
 export function SummaryScreen({ mode, results, missedEntries, roundEntries, isRetryRound, stars, onDone, startTier, backToModes, progress, onStartChallenge, challengeBestScore, onStartStrengthen }: { mode: VocabQuizMode | null; results: VocabQuizQuestionResult[]; missedEntries: VocabQuizEntry[]; roundEntries: VocabQuizEntry[]; isRetryRound: boolean; stars: 0 | QuizTier; onDone: () => void; startTier: (mode: TierMode) => void; backToModes: () => void; progress?: LessonVocabularyProgress; onStartChallenge?: () => void; challengeBestScore?: number; onStartStrengthen?: () => void }) {

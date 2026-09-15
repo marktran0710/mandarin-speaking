@@ -33,16 +33,20 @@ export const TIER_CONFIGS: Record<TierMode, TierConfig> = {
 
 export interface DiagnosticRoundConfig {
   mode: TierMode;
-  level: "easy" | "medium" | "hard";
+  // The external quiz bank's difficulty label for this round's question — used
+  // only to look up the round's bank question (the bank is owned by the quiz
+  // pipeline and keeps these labels). The round dimension itself is `mode`
+  // (tier1/2/3); the stored quiz_level uses that round key, not this label.
+  bankLevel: "easy" | "medium" | "hard";
   roundType: DiagnosticRoundType;
   knowledgeDimension: DiagnosticKnowledgeDimension;
   questionKind: "basic_meaning_mcq" | "character_to_pinyin_typing" | "contextual_productive_recall";
 }
 
 export const DIAGNOSTIC_ROUNDS: Record<TierMode, DiagnosticRoundConfig> = {
-  tier1: { mode: "tier1", level: "easy", roundType: "know_it", knowledgeDimension: "meaning", questionKind: "basic_meaning_mcq" },
-  tier2: { mode: "tier2", level: "medium", roundType: "say_it", knowledgeDimension: "pinyin_production", questionKind: "character_to_pinyin_typing" },
-  tier3: { mode: "tier3", level: "hard", roundType: "use_it", knowledgeDimension: "contextual_recall", questionKind: "contextual_productive_recall" },
+  tier1: { mode: "tier1", bankLevel: "easy", roundType: "know_it", knowledgeDimension: "meaning", questionKind: "basic_meaning_mcq" },
+  tier2: { mode: "tier2", bankLevel: "medium", roundType: "say_it", knowledgeDimension: "pinyin_production", questionKind: "character_to_pinyin_typing" },
+  tier3: { mode: "tier3", bankLevel: "hard", roundType: "use_it", knowledgeDimension: "contextual_recall", questionKind: "contextual_productive_recall" },
 };
 
 export function tierConfigFromMode(mode: string | null | undefined): TierConfig | null {

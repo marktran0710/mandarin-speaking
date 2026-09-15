@@ -4,24 +4,27 @@ import { effectiveTierPassCount, tierConfigFromMode, type TierConfig } from "../
 import { assessmentAnswerIsCorrect, CLOZE_BLANK, type VocabQuizMode, type VocabQuizQuestion, type VocabQuizQuestionResult } from "./model";
 import { correctAnswer } from "./useQuizSession";
 import StudentIcon from "../StudentIcon";
-import { StrengthenProgressBar } from "./LessonVocabularyProgress";
 
-function QuizScoreTrack({ correct, answered, config, totalQuestions }: { correct: number; answered: number; config: TierConfig; totalQuestions: number }) {
+// One compact progress rail used by EVERY bounded round. Two rows only: a
+// caption ("答對 N / max", plus the ⭐ pass goal when the round has one) and the
+// rail itself. `config` is null for rounds with no star threshold (weak-words,
+// challenge, retry) — they show the same rail without the notch/goal.
+function QuizScoreTrack({ correct, answered, config, totalQuestions }: { correct: number; answered: number; config: TierConfig | null; totalQuestions: number }) {
   const max = totalQuestions;
-  const pass = effectiveTierPassCount(config, totalQuestions);
+  const pct = (value: number) => `${max > 0 ? Math.min(100, (value / max) * 100) : 0}%`;
+  const pass = config ? effectiveTierPassCount(config, totalQuestions) : null;
   const bestPossible = correct + max - answered;
-  const reachable = bestPossible >= pass;
-  const tierLabel = `${config.tier}-star`;
-  const need = pass - correct;
-  const pct = (value: number) => `${Math.min(100, (value / max) * 100)}%`;
+  const reachable = pass === null || bestPossible >= pass;
   return <div className={`vq-track${reachable ? "" : " is-out-of-reach"}`}>
-    <div className="vq-track-scale"><span className="vq-track-scale-left"><BiLabel zh={`答對 ${correct}`} pinyin={`Dá duì ${correct}`} en={`${correct} correct`} /></span><span className="vq-track-scale-right"><BiLabel zh={`最多 ${max}`} pinyin={`Zuìduō ${max}`} en={`Max ${max}`} /></span></div>
-    <div className="vq-track-rail" role="progressbar" aria-valuemin={0} aria-valuemax={max} aria-valuenow={correct} aria-valuetext={`${correct} correct of ${max}; ${pass} needed for ${config.tier} star${config.tier > 1 ? "s" : ""}`}>
-      {bestPossible < max && <span className="vq-track-headroom" style={{ width: pct(bestPossible) }} />}
-      <span className="vq-track-fill" style={{ width: pct(correct) }} /><span className="vq-track-notch" style={{ left: pct(pass) }} aria-hidden="true" />
+    <div className="vq-track-scale">
+      <span className="vq-track-scale-left"><BiLabel zh={`答對 ${correct} / ${max}`} pinyin={`Dá duì ${correct} / ${max}`} en={`${correct} / ${max} correct`} /></span>
+      {pass !== null && <span className="vq-track-scale-goal" title={`${pass} to pass`}><StudentIcon name="star" size={12} fill="currentColor" aria-hidden="true" /> {pass}</span>}
     </div>
-    <div className="vq-track-notch-row" aria-hidden="true"><span className="vq-track-notch-label" style={{ left: pct(pass) }}><StudentIcon name="star" size={13} fill="currentColor" /> {pass}</span></div>
-    <p className="vq-track-note">{reachable ? need > 0 ? <BiLabel zh={`還要對 ${need} 題`} pinyin={`Hái yào duì ${need} tí`} en={`${need} more correct for ${tierLabel}`} /> : <BiLabel zh="拿到了！" pinyin="Nádào le!" en={`${tierLabel} earned — keep going`} /> : <BiLabel zh={`這次先練習，下次再拿第 ${config.tier} 級`} pinyin={`Zhè cì xiān liànxí, xià cì zài ná dì ${config.tier} jí`} en={`Practice run — try for ${tierLabel} next time`} />}</p>
+    <div className="vq-track-rail" role="progressbar" aria-valuemin={0} aria-valuemax={max} aria-valuenow={correct} aria-valuetext={pass !== null ? `${correct} correct of ${max}; ${pass} needed for ${config!.tier} star${config!.tier > 1 ? "s" : ""}` : `${correct} correct of ${max}`}>
+      {pass !== null && bestPossible < max && <span className="vq-track-headroom" style={{ width: pct(bestPossible) }} />}
+      <span className="vq-track-fill" style={{ width: pct(correct) }} />
+      {pass !== null && <span className="vq-track-notch" style={{ left: pct(pass) }} aria-hidden="true" />}
+    </div>
   </div>;
 }
 
@@ -51,12 +54,11 @@ export function QuizQuestion(props: QuizQuestionProps) {
     <div className="vocab-quiz-topbar">
       <div className="vocab-quiz-status-progress">
         <p className="vocab-quiz-progress">{questionLimit !== null ? <BiLabel zh={`第 ${index + 1} / ${questionLimit} 題`} pinyin={`Dì ${index + 1} / ${questionLimit} tí`} en={`Question ${index + 1} of ${questionLimit}`} /> : <BiLabel zh={`第 ${index + 1} 題`} pinyin={`Dì ${index + 1} tí`} en={`Question ${index + 1}`} />}</p>
-        {config && <QuizScoreTrack correct={results.filter((result) => result.correct).length} answered={results.length} config={config} totalQuestions={questionLimit ?? 0} />}
+        {questionLimit !== null && <QuizScoreTrack correct={results.filter((result) => result.correct).length} answered={results.length} config={config} totalQuestions={questionLimit} />}
       </div>
       {timeLimitMs !== null && <p className={`vocab-quiz-timer${timeLeftMs <= 10_000 ? " is-low" : ""}`} aria-label={`${Math.ceil(timeLeftMs / 1000)} seconds left`}><StudentIcon name="clock" size={16} aria-hidden="true" /> {Math.ceil(timeLeftMs / 1000)}s</p>}
       {showFinishButton && <button type="button" className="btn-vocab-quiz-finish" onClick={() => finish(results)}><BiLabel zh="結束，看結果" pinyin="Jiéshù, kàn jiéguǒ" en="Finish & see results" /></button>}
     </div>
-    {mode === "weak_words" && questionLimit !== null && <StrengthenProgressBar answered={results.length} total={questionLimit} />}
     <div className="vocab-quiz-content">
       <div className="vocab-quiz-question-panel">
         <div className="vocab-quiz-header"><p className="eyebrow"><BiLabel zh={isRetryRound ? "複習答錯的題目" : "生詞測驗"} pinyin={isRetryRound ? "Fùxí dá cuò de tímù" : "Shēngcí cèyàn"} en={isRetryRound ? "Reviewing missed words" : "Vocabulary Quiz"} /></p>
@@ -68,7 +70,7 @@ export function QuizQuestion(props: QuizQuestionProps) {
       <div className="vocab-quiz-answer-panel">
         <p className="vocab-quiz-section-label"><BiLabel zh={isProductiveRecall ? "寫出正確答案" : "選出正確答案"} pinyin={isProductiveRecall ? "Xiě chū zhèngquè dá'àn" : "Xuǎn chū zhèngquè dá'àn"} en={isProductiveRecall ? "Write the answer" : "Choose the correct answer"} /></p>
         {isProductiveRecall ? <div className="vocab-quiz-free-text-answer"><input type="text" value={typedAnswer} onChange={(event) => setTypedAnswer(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && typedAnswer.trim() && !selected) choose(typedAnswer.trim()); }} disabled={Boolean(selected)} aria-label="Your answer" autoComplete="off" /><button type="button" className="btn-vocab-quiz-check" onClick={() => choose(typedAnswer.trim())} disabled={!typedAnswer.trim() || Boolean(selected)}><BiLabel zh="檢查答案" pinyin="Jiǎnchá dá'àn" en="Check answer" /></button></div> : <div className={`vocab-quiz-options${question.kind === "pinyin" ? " vocab-quiz-options-pinyin" : ""}`} role="group" aria-label={optionsLabel}>{question.options.map((option) => { const isCorrect = isAssessment ? assessmentAnswerIsCorrect(question, option) : option === correctAnswer(question); const isChosen = option === selected; const state = selected ? isCorrect ? "correct" : isChosen ? "incorrect" : "neutral" : "neutral"; return <button key={option} type="button" className={`vocab-quiz-option vocab-quiz-option-${state}`} onClick={() => choose(option)} disabled={Boolean(selected)} aria-label={state === "correct" ? `${option} (correct answer)` : state === "incorrect" ? `${option} (your answer, incorrect)` : undefined}><span className="vocab-quiz-option-text">{option}</span>{state === "correct" && <StudentIcon name="check-circle" size={18} className="vocab-quiz-option-icon" aria-hidden="true" />}{state === "incorrect" && <StudentIcon name="x-circle" size={18} className="vocab-quiz-option-icon" aria-hidden="true" />}</button>; })}</div>}
-        {selected && isAssessment && <div className="vocab-quiz-assessment-feedback"><p className={assessmentAnswerIsCorrect(question, selected) ? "is-correct" : "is-incorrect"}>{assessmentAnswerIsCorrect(question, selected) ? "Correct!" : "Not quite."}</p>{!assessmentAnswerIsCorrect(question, selected) && <p>Correct answer: <strong>{question.correctAnswer}</strong></p>}<p>{question.explanation}</p></div>}
+        {selected && isAssessment && <div className="vocab-quiz-assessment-feedback"><p className={assessmentAnswerIsCorrect(question, selected) ? "is-correct" : "is-incorrect"}>{assessmentAnswerIsCorrect(question, selected) ? "Correct!" : "Not quite."}</p>{!assessmentAnswerIsCorrect(question, selected) && isProductiveRecall && <p>Correct answer: <strong>{question.correctAnswer}</strong></p>}<p>{question.explanation}</p></div>}
         <div className="vocab-quiz-actions">{selected && <button type="button" className="btn-vocab-quiz-next" onClick={next}>{isLast ? <BiLabel zh="看結果" pinyin="Kàn jiéguǒ" en="See results" /> : <BiLabel zh="下一題" pinyin="Xià yì tí" en="Next question" />}</button>}</div>
       </div>
     </div>

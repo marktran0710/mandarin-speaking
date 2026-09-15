@@ -8,9 +8,7 @@ import {
 import { auditQuizEntries, auditQuizQuestion, type QuizAuditIssue } from "../../utils/quizAudit";
 import {
   storyToTopic,
-  storyHasTierContent,
   type CustomTeacherStory,
-  type StoryDifficultyLevel,
 } from "../../utils/teacherStories";
 import type { Topic } from "../TopicSelector";
 
@@ -67,14 +65,9 @@ function entriesForTopic(topic: Topic): VocabQuizEntry[] {
 function allPools(): Array<{ name: string; entries: VocabQuizEntry[] }> {
   const pools: Array<{ name: string; entries: VocabQuizEntry[] }> = [];
   for (const story of stories) {
-    const levels: StoryDifficultyLevel[] = ["easy"];
-    if (storyHasTierContent(story, "medium")) levels.push("medium");
-    if (storyHasTierContent(story, "hard")) levels.push("hard");
-    for (const level of levels) {
-      const entries = entriesForTopic(storyToTopic(story, level));
-      if (entries.length > 0) {
-        pools.push({ name: `${story.title} (${level})`, entries });
-      }
+    const entries = entriesForTopic(storyToTopic(story, "easy"));
+    if (entries.length > 0) {
+      pools.push({ name: `${story.title} (easy)`, entries });
     }
   }
   return pools;

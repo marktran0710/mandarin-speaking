@@ -167,6 +167,23 @@
   align-items: flex-end;
 }
 
+/* The pass goal, folded inline into the caption row so it costs no extra
+   vertical space (it used to sit on its own row under the rail). */
+.vq-track-scale-goal {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--gold-deep);
+  white-space: nowrap;
+}
+
+.vq-track.is-out-of-reach .vq-track-scale-goal {
+  color: var(--clay-muted);
+}
+
 .vq-track-rail {
   position: relative;
   height: 9px;
@@ -357,7 +374,10 @@
   width: 100%;
   box-sizing: border-box;
   margin: 0;
-  min-height: var(--space-2xl);
+  /* Reserve two prompt lines so a one-line and a two-line question occupy the
+     same height — the biggest source of the screen jumping between questions.
+     em scales with the clamped prompt font, so it holds across breakpoints. */
+  min-height: calc(2.4em + 2 * var(--space-md));
   padding: var(--space-md) var(--space-lg);
   border: 0;
   border-radius: 0;
@@ -378,7 +398,9 @@
   justify-content: flex-start;
 }
 .vocab-quiz-question-screen .vocab-quiz-actions {
-  min-height: 0;
+  /* Reserve the primary-action row so the "Next" button appearing after an
+     answer doesn't change the screen height. */
+  min-height: var(--space-2xl);
   margin-top: var(--space-xs);
   align-items: center;
   justify-content: center;
@@ -425,7 +447,7 @@
   margin-top: var(--space-xs);
 }
 .student-workspace-v2 .story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-actions {
-  min-height: 0;
+  min-height: var(--space-2xl);
 }
 
 @media (min-width: 901px) {
@@ -663,23 +685,6 @@
   font-size: 11px;
   font-weight: 800;
   letter-spacing: .06em;
-  text-transform: uppercase;
-}
-
-/* Which difficulty tier this story's quiz is on — students asked why the
-   mode-select screen never said, so it now sits right beside the eyebrow. */
-.vocab-quiz-level-badge {
-  display: inline-flex;
-  align-self: center;
-  margin: 0;
-  padding: var(--space-2xs) var(--space-xs);
-  border: 0;
-  border-radius: var(--clay-radius-pill);
-  background: var(--tone1-soft);
-  color: var(--tone1-deep);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .08em;
   text-transform: uppercase;
 }
 

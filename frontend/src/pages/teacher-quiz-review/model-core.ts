@@ -51,8 +51,8 @@ type ReplaceValue =
  * routers/stories.py's replace_quiz_question just wrote to the database —
  * so storyToTopic recomputes with the new content without waiting on a
  * refetch. Pure: returns a new frame, doesn't mutate the one passed in. */
-type TranslationField = "vocabularyTranslation" | "vocabularyTranslationMedium" | "vocabularyTranslationHard";
-type PinyinField = "vocabularyPinyin" | "vocabularyPinyinMedium" | "vocabularyPinyinHard";
+type TranslationField = "vocabularyTranslation";
+type PinyinField = "vocabularyPinyin";
 
 function applyLocalEdit(
   frame: CustomStoryFrame,
@@ -90,9 +90,7 @@ function applyLocalEdit(
   return { ...frame, [field]: JSON.stringify(pool) };
 }
 
-function translationFieldForLevel(frame: CustomStoryFrame, level: StoryDifficultyLevel): TranslationField {
-  if (level === "medium" && frame.vocabularyTranslationMedium?.trim()) return "vocabularyTranslationMedium";
-  if (level === "hard" && frame.vocabularyTranslationHard?.trim()) return "vocabularyTranslationHard";
+function translationFieldForLevel(_frame: CustomStoryFrame, _level: StoryDifficultyLevel): TranslationField {
   return "vocabularyTranslation";
 }
 
@@ -154,9 +152,7 @@ interface BuiltInReviewWord {
   pinyin: string;
 }
 
-function pinyinFieldForLevel(frame: CustomStoryFrame, level: StoryDifficultyLevel): PinyinField {
-  if (level === "medium" && frame.vocabularyPinyinMedium?.trim()) return "vocabularyPinyinMedium";
-  if (level === "hard" && frame.vocabularyPinyinHard?.trim()) return "vocabularyPinyinHard";
+function pinyinFieldForLevel(_frame: CustomStoryFrame, _level: StoryDifficultyLevel): PinyinField {
   return "vocabularyPinyin";
 }
 

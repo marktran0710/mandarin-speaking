@@ -9,7 +9,6 @@ import { useQuizReviewContext } from "./context";
 export function useQuizReviewStoryState(story) {
   const ctx = useQuizReviewContext();
   const { level, storyFilterId, exclusionsByStory, dirtyByStory, statusByStory, importNoteByStory, validateStatusByStory, approveStatusByStory, validationByStory, pendingApprovalsByKey, generateStatusByStory, pendingCandidatesByStory, revealedCountByStory } = ctx;
-          if (level !== "easy" && !storyHasTierContent(story, level)) return null;
           const topic = storyToTopic(story, level);
           const exclusions = exclusionsByStory[story.id] ?? [];
           const dirty = dirtyByStory[story.id] ?? false;

@@ -235,7 +235,7 @@ def test_medium_and_hard_rounds_update_the_same_word_level_kc(logged_in_student)
     assert set(word["seenQuestionTypes"]) == {"basic_meaning_mcq", "character_to_pinyin_typing", "contextual_productive_recall"}
     review = client.get(f"/api/students/{student['id']}/weak-words", params={"story_id": "lesson-1", "include_all": "true"}).json()
     assert review["unlocked"] is True
-    assert review["roundPresence"]["tier2"]["level"] == "medium"
+    assert review["roundPresence"]["tier2"]["level"] == "tier2"
 
 
 def test_lesson_five_shape_has_fifteen_words_in_each_of_three_rounds(logged_in_student):

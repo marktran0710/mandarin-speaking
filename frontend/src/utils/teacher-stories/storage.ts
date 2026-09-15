@@ -29,8 +29,6 @@ export function loadPublishedTeacherTopics(): Topic[] {
     .map((story) => storyToTopic(story, "easy", "approved"));
 }
 
-/** A story is authored once per scene, at the Easy tier, then optionally
- * gains Medium/Hard variants of the same plot — its own text and, if the
- * teacher uploads one, its own image; a tier left blank falls back to Easy's.
- * Picking a level just changes which tier storyToTopic reads. */
+/** A story is authored once per scene, at a single text level, then mapped to
+ * a Topic by storyToTopic. */
 

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useEffect, useMemo, useRef, useState } from "react";
 import { canUseDatabase, listCustomStories } from "../../services/database";
-import { loadCustomStories, storyHasTierContent } from "../../utils/teacherStories";
+import { loadCustomStories } from "../../utils/teacherStories";
 import { storyQuizExclusions } from "../../utils/quizExclusions";
 import { storyPendingApprovals } from "../../utils/quizPendingApprovals";
 import { groupStoriesByLesson, lessonKeyFor, pendingKeyFor } from "./model-core";
@@ -115,9 +115,7 @@ export function TeacherQuizReviewController({ jumpToLesson = null }: { jumpToLes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jumpToLesson?.nonce]);
 
-  // A validate pass is tier-specific (it checks that tier's material) — a
-  // leftover result from Easy would otherwise mislabel Medium's pools after
-  // switching, since both share the same word/kind/poolIndex lookup keys.
+  // Clear any prior validate/edit state when the level changes.
   useEffect(() => {
     setValidationByStory({});
     setEditTarget(null);
@@ -131,12 +129,7 @@ export function TeacherQuizReviewController({ jumpToLesson = null }: { jumpToLes
     setStoryFilterId(currentGroup?.stories[0]?.id ?? "all");
   }, [lessonKey, currentGroup]);
 
-  const levels: StoryDifficultyLevel[] = useMemo(() => {
-    if (!currentGroup) return ["easy"];
-    const out: StoryDifficultyLevel[] = ["easy"];
-    if (currentGroup.stories.some((s) => storyHasTierContent(s, "medium"))) out.push("medium");
-    if (currentGroup.stories.some((s) => storyHasTierContent(s, "hard"))) out.push("hard");
-    return out;
-  }, [currentGroup]);
+  // Stories run a single text level; there is one review tier.
+  const levels: StoryDifficultyLevel[] = ["easy"];
   return <QuizReviewContext.Provider value={{ stories, setStories, lessonKey, setLessonKey, storyFilterId, setStoryFilterId, level, setLevel, exclusionsByStory, setExclusionsByStory, dirtyByStory, setDirtyByStory, statusByStory, setStatusByStory, importNoteByStory, setImportNoteByStory, validationByStory, setValidationByStory, validateStatusByStory, setValidateStatusByStory, approveStatusByStory, setApproveStatusByStory, pendingApprovalsByKey, setPendingApprovalsByKey, editTarget, setEditTarget, editDraft, setEditDraft, editStatus, setEditStatus, addQuestionTarget, setAddQuestionTarget, addQuestionDraft, setAddQuestionDraft, addQuestionStatus, setAddQuestionStatus, pendingCandidatesByStory, setPendingCandidatesByStory, revealedCountByStory, setRevealedCountByStory, generationGateNoteByStory, setGenerationGateNoteByStory, generateStatusByStory, setGenerateStatusByStory, importInputRef, importTargetRef, lessonGroups, currentGroup, levels }}><QuizReviewPageView /></QuizReviewContext.Provider>;
 }

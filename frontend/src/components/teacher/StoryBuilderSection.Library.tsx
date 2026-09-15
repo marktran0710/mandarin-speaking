@@ -19,7 +19,7 @@ function StoryItemActionGroup({ story, onTogglePublish, onEdit, onExport, onDele
 function StoryRubric({ rubricScores }) {
   const labels = { focus: "Focus", narrative: "Narrative elements", plot: "Five-stage plot", wordChoice: "Word choice", conventions: "Conventions" };
   return <section className="teacher-material-rubric" aria-label="Material rubric score"><h4>Rubric evaluation</h4>
-    {(["easy", "medium", "hard"] as const).map((level) => {
+    {(["easy"] as const).map((level) => {
       const score = rubricScores?.[level] as Record<string, unknown> | undefined;
       return <div key={level} className="teacher-material-rubric-level"><strong>{level[0].toUpperCase() + level.slice(1)}</strong><div className="teacher-material-rubric-grid">
         {(["focus", "narrative", "plot", "wordChoice", "conventions"] as const).map((key) => <span key={key}><b>{labels[key]}</b> {String(score?.[key] ?? "-")}/10</span>)}

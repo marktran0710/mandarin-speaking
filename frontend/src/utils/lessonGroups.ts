@@ -158,22 +158,22 @@ export function isLessonGroupUnlocked(
   return total > 0 && done === total;
 }
 
-/** Sequential in-lesson lock (5-1 -> 5-2 -> 5-3), a lighter gate than
- * isLessonGroupUnlocked's: a story only needs its predecessor SUBMITTED, not
- * finished to ⭐⭐⭐. The visible group order is the source of truth, so an
- * incomplete/legacy lessonSubOrder field cannot accidentally bypass the
- * 5-1 -> 5-2 sequence. */
+/** Sequential in-lesson lock (5-1 -> 5-2 -> 5-3): every story opens only once
+ * its predecessor is fully finished — all three quiz rounds passed (⭐⭐⭐) AND
+ * speaking submitted (isStoryFinished) — the same per-story bar
+ * isLessonGroupUnlocked applies across a whole lesson. The visible group order
+ * is the source of truth, so an incomplete/legacy lessonSubOrder field cannot
+ * accidentally bypass the 5-1 -> 5-2 sequence. */
 export function isStoryUnlockedInLesson(
   group: LessonGroup,
   indexInGroup: number,
   submittedStoryIds: ReadonlySet<string>,
+  starsFor: StarsForTopic = localStarsForTopic,
 ): boolean {
   if (isAdminSession()) return true;
   if (group.lessonNumber === null) return true;
   if (indexInGroup === 0) return true;
   const previous = group.topics[indexInGroup - 1];
   if (!previous) return true;
-  // A story now has a single version, so the next story opens as soon as its
-  // predecessor has been submitted once.
-  return submittedStoryIds.has(topicStoryId(previous));
+  return isStoryFinished(previous, submittedStoryIds, starsFor);
 }
