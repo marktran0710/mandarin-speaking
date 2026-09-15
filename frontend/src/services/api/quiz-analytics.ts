@@ -48,6 +48,12 @@ export interface VocabPriorityReviewResponse {
   }>;
 }
 export async function getVocabQuizPriorityReview(storyId: string | undefined, studentId: string, options?: { includeAllWeak?: boolean }): Promise<VocabPriorityReviewResponse> { const params = new URLSearchParams(); if (storyId) params.set("story_id", storyId); if (options?.includeAllWeak) params.set("include_all", "true"); const query = params.toString(); const response = await fetchWithRetry(`${BACKEND_URL}/api/students/${encodeURIComponent(studentId)}/weak-words${query ? `?${query}` : ""}`); if (!response.ok) throw new Error("Could not load personalized review."); return response.json() as Promise<VocabPriorityReviewResponse>; }
+// One review-queue entry: a weak word (BKT low) or a due word (SM-2 schedule).
+// `reviewReason` lets the UI show genuinely-weak words apart from mastered-but-
+// due maintenance reviews — a due word is never mislabelled "weak".
+export interface ReviewQueueItem extends VocabPriorityReviewWord { reviewReason: "weak" | "due"; dueOn?: string | null; }
+export interface VocabReviewQueueResponse extends VocabPriorityReviewResponse { queue: ReviewQueueItem[]; }
+export async function getVocabQuizReviewQueue(storyId: string | undefined, studentId: string, options?: { includeAllWeak?: boolean }): Promise<VocabReviewQueueResponse> { const params = new URLSearchParams(); if (storyId) params.set("story_id", storyId); if (options?.includeAllWeak) params.set("include_all", "true"); const query = params.toString(); const response = await fetchWithRetry(`${BACKEND_URL}/api/students/${encodeURIComponent(studentId)}/review-queue${query ? `?${query}` : ""}`); if (!response.ok) throw new Error("Could not load the review queue."); return response.json() as Promise<VocabReviewQueueResponse>; }
 /** Compatibility-shaped helper used by the existing per-story quiz picker.
  * The story picker asks for the complete cumulative weak-word set, while the
  * endpoint can still serve a smaller Bottom-K result to other callers. */
