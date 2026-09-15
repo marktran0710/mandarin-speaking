@@ -20,6 +20,9 @@ MIN_EASE = 1.3
 FIRST_INTERVAL_DAYS = 1
 SECOND_INTERVAL_DAYS = 6
 PASS_QUALITY = 3  # q >= 3 counts as a successful recall
+# A correct answer at or under this many ms grades as a confident recall (q=5);
+# slower-but-correct grades q=4. Between the MCQ (~5s) and typed (~10s) pace.
+FAST_RESPONSE_MS = 5000
 
 
 @dataclass(frozen=True)

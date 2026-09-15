@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from typing import Any, Iterable
 
-from analytics.srs import SrsState
+from analytics.srs import FAST_RESPONSE_MS, SrsState, quality_from_response, review, should_advance
 
 
 def _to_date(value: Any) -> date | None:
@@ -75,3 +75,38 @@ def upsert_srs_state(db: Any, student_id: str, word_id: str, state: SrsState) ->
             state.due_on, state.last_reviewed_on, now, now,
         ),
     )
+
+
+def _word_id_of(result: dict[str, Any]) -> str | None:
+    value = result.get("conceptId") or result.get("word")
+    return str(value) if value else None
+
+
+def apply_srs_updates(db: Any, student_id: str, question_results: Iterable[dict[str, Any]], today: date | None = None) -> int:
+    """Advance the SM-2 schedule for each word answered in a review session.
+
+    One graded advance per word per day (``should_advance``); the last answer
+    for a word in the batch wins. Returns how many words were rescheduled.
+    Scheduling only — the caller still feeds these answers to BKT unchanged.
+    """
+    today = today or date.today()
+    last_by_word: dict[str, dict[str, Any]] = {}
+    for result in question_results:
+        word_id = _word_id_of(result)
+        if word_id is not None and isinstance(result.get("correct"), bool):
+            last_by_word[word_id] = result
+    if not last_by_word:
+        return 0
+    states = load_srs_states(db, student_id, list(last_by_word))
+    updated = 0
+    for word_id, result in last_by_word.items():
+        state = states.get(word_id, SrsState())
+        if not should_advance(state, today):
+            continue
+        time_ms = result.get("timeMs")
+        if time_ms is None:
+            time_ms = result.get("time_ms")
+        q = quality_from_response(bool(result["correct"]), time_ms, FAST_RESPONSE_MS)
+        upsert_srs_state(db, student_id, word_id, review(state, q, today))
+        updated += 1
+    return updated

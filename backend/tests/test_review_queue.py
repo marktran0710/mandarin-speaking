@@ -2,7 +2,7 @@ from datetime import date
 
 from analytics.review_queue import combine_review_queue
 from analytics.srs import SrsState
-from analytics.srs_store import load_srs_states, upsert_srs_state
+from analytics.srs_store import apply_srs_updates, load_srs_states, upsert_srs_state
 
 
 class _Cursor:
@@ -88,6 +88,44 @@ def test_store_empty_word_scope_skips_query():
     db = _FakeDB()
     assert load_srs_states(db, "s1", []) == {}
     assert db.calls == []
+
+
+def _inserts(db):
+    return [c for c in db.calls if "INSERT INTO student_vocab_srs" in c[0]]
+
+
+def test_apply_srs_updates_schedules_a_new_word_on_correct():
+    db = _FakeDB(rows=[])  # no existing schedule
+    n = apply_srs_updates(db, "s1", [{"conceptId": "A", "correct": True, "timeMs": 900}], today=TODAY)
+    assert n == 1
+    params = _inserts(db)[0][1]
+    # (student, word, reps, ease, interval, due_on, last_reviewed_on, ...)
+    assert params[1] == "A" and params[2] == 1 and params[4] == 1
+    assert params[5] == date(2026, 2, 11) and params[6] == TODAY
+
+
+def test_apply_srs_updates_takes_the_last_answer_for_a_word():
+    db = _FakeDB(rows=[])
+    n = apply_srs_updates(db, "s1", [
+        {"conceptId": "A", "correct": False, "timeMs": 100},
+        {"conceptId": "A", "correct": True, "timeMs": 100},
+    ], today=TODAY)
+    assert n == 1 and len(_inserts(db)) == 1  # one word, last (correct) answer wins
+
+
+def test_apply_srs_updates_skips_a_word_already_reviewed_today():
+    db = _FakeDB(rows=[{
+        "word_id": "A", "reps": 2, "ease": 2.6, "interval_days": 6,
+        "due_on": date(2026, 2, 16), "last_reviewed_on": TODAY,
+    }])
+    n = apply_srs_updates(db, "s1", [{"conceptId": "A", "correct": True, "timeMs": 100}], today=TODAY)
+    assert n == 0 and _inserts(db) == []
+
+
+def test_apply_srs_updates_ignores_results_without_word_or_correctness():
+    db = _FakeDB(rows=[])
+    n = apply_srs_updates(db, "s1", [{"correct": True}, {"conceptId": "A"}], today=TODAY)
+    assert n == 0 and _inserts(db) == []
 
 
 def test_store_upsert_binds_all_columns():

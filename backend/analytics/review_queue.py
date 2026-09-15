@@ -16,6 +16,7 @@ from datetime import date
 from typing import Any
 
 from analytics.srs import SrsState, is_due
+from analytics.srs_store import load_srs_states
 
 
 def combine_review_queue(
@@ -50,3 +51,20 @@ def combine_review_queue(
     due_extra.sort(key=lambda pair: (pair[0], pair[1]["wordId"]))
     ordered_due = [item for _, item in due_extra]
     return ordered_due + tagged_weak
+
+
+def build_review_queue(db: Any, student_id: str, options: dict[str, Any] | None = None, today: date | None = None) -> dict[str, Any]:
+    """Read the combined review queue for a student.
+
+    Thin glue: BKT's existing weak-word priority (untouched) unioned with the
+    SM-2 due words. Returns the priority-review payload plus a ``queue`` field
+    (the tagged, ordered union). Never changes BKT state.
+    """
+    from analytics.bkt_mastery import get_priority_review_words
+
+    review = get_priority_review_words(db, student_id, options)
+    today = today or date.today()
+    mastery = review.get("mastery", [])
+    states = load_srs_states(db, student_id, [row["wordId"] for row in mastery])
+    queue = combine_review_queue(review.get("words", []), mastery, states, today)
+    return {**review, "queue": queue}

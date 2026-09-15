@@ -14,6 +14,8 @@ from analytics.bkt_mastery import (
     record_attempt_and_rebuild,
     seen_item_ids,
 )
+from analytics.review_queue import build_review_queue
+from analytics.srs_store import apply_srs_updates
 from database import connect_db, row_to_vocab_quiz_attempt
 import main
 from main import (
@@ -96,6 +98,27 @@ async def get_student_priority_review_words(
         options["includeAllWeak"] = True
     with connect_db() as db:
         return get_priority_review_words(db, student_id, options)
+
+
+@router.get("/api/students/{student_id}/review-queue")
+async def get_student_review_queue(
+    student_id: str,
+    review_count: Optional[int] = None,
+    story_id: Optional[str] = None,
+    include_all: bool = False,
+    identity: auth.Identity = Depends(auth.get_current_identity),
+):
+    """Weak words (BKT) ∪ due words (SM-2), tagged weak|due for the UI.
+
+    Scheduling-only: BKT mastery is unchanged; this just adds SM-2 due words to
+    the existing weak-word priorities so mastered-but-due words resurface.
+    """
+    _assert_student_scope(identity, student_id)
+    options = {key: value for key, value in (("reviewCount", review_count), ("storyId", story_id)) if value is not None}
+    if include_all:
+        options["includeAllWeak"] = True
+    with connect_db() as db:
+        return build_review_queue(db, student_id, options)
 
 
 @router.get("/api/students/{student_id}/vocabulary-mastery")
@@ -209,6 +232,11 @@ async def create_vocab_quiz_attempt(
             record_attempt_and_rebuild(db, normalized_attempt, identity.id, response_results=question_results)
         except ValueError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+        # Spaced-repetition schedule update for review sessions. Scheduling only
+        # (BKT already updated above); a review answer advances/resets the
+        # word's SM-2 due date, at most once per day. Diagnostic rounds don't.
+        if attempt.mode == "weak_words":
+            apply_srs_updates(db, identity.id, question_results)
     payload = attempt.model_dump(exclude_none=True)
     payload["questionResults"] = raw_question_results
     # Keep the nullable field present for clients that use the response as a
@@ -237,6 +265,11 @@ async def record_vocab_quiz_response(
             record_attempt_and_rebuild(db, normalized_attempt, identity.id, response_results=question_results)
         except ValueError as exc:
             raise HTTPException(status_code=409, detail=str(exc)) from exc
+        # Spaced-repetition schedule update for review sessions. Scheduling only
+        # (BKT already updated above); a review answer advances/resets the
+        # word's SM-2 due date, at most once per day. Diagnostic rounds don't.
+        if attempt.mode == "weak_words":
+            apply_srs_updates(db, identity.id, question_results)
     return {"acceptedResponses": len(question_results)}
 
 
