@@ -374,8 +374,7 @@ upload volume as well as inserting the database rows. Local demo accounts use
 password `123456`. The seed never changes existing materials or account
 passwords by default. For a deliberate fixture/material replacement, add
 `--overwrite`.
-The image-heavy Lessons 6–8 script remains a separate specialist seed:
-`python -m scripts.seed_lessons_6_8`.
+The Lessons 5–8 story seed bundle and specialist image seed were retired and removed; only the remaining development lessons are seeded.
 
 No new Alembic migration is required for this recovery: the database schema is
 already at `0019 (head)`; materials are versioned application seed data.

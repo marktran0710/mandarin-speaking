@@ -4,6 +4,7 @@ import type { StoredCustomStory } from "./stories-submissions";
 export interface VocabularyMetadataEdit {
   frameIndex: number;
   wordIndex: number;
+  storyWide?: boolean;
   tier: "easy" | "medium" | "hard";
   word: string;
   expected: { vocabulary: string; pinyin: string; translation: string; pos: string };

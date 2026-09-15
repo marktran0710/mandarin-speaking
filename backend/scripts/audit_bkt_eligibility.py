@@ -3,7 +3,7 @@
 Examples::
 
     python -m scripts.audit_bkt_eligibility
-    python -m scripts.audit_bkt_eligibility --csv questions_verified_v3_book_locked.csv
+    python -m scripts.audit_bkt_eligibility --csv <questions.csv>
     python -m scripts.audit_bkt_eligibility --fail-on-ineligible
 
 The command is read-only. It never rewrites educational content or database

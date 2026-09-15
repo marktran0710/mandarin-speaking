@@ -94,11 +94,11 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
               return <tr key={entry.id}>
                 <td><strong lang="zh-Hant">{entry.word}</strong><span>{entry.pinyin || "Missing pinyin"}</span></td>
                 <td><span>{entry.translation || "Missing meaning"}</span><small>{entry.pos || "Missing part of speech"}</small></td>
-                <td><span lang="zh-Hant">{entry.storyTitle}</span><small>{entry.lessonNumber ? `${entry.lessonNumber}-${entry.lessonSubOrder ?? 1} / ` : ""}Scene {entry.frameIndex + 1}</small></td>
+                <td><span lang="zh-Hant">{entry.storyTitle}</span><small>{entry.lessonNumber ? `${entry.lessonNumber}-${entry.lessonSubOrder ?? 1} / ` : ""}{entry.storyWide ? "Story-wide" : `Scene ${entry.frameIndex + 1}`}</small></td>
                 <td>{source ? <><span className="av-source">{source.kind}</span><small>{source.book}, p. {source.page}</small></> : <span className="av-unverified">Not verified</span>}</td>
                 <td className="av-row-actions">
                   <button type="button" className="av-icon-button" title={`View quiz questions for ${entry.word}`} aria-label={`View quiz questions for ${entry.word}`} onClick={() => { setPreviewing(entry); setMessage(""); }}><Icon name="eye" size={19} /></button>
-                  <button type="button" className="av-icon-button" title={`Edit ${entry.word}`} aria-label={`Edit ${entry.word}, scene ${entry.frameIndex + 1}`} onClick={() => { setEditing(entry); setMessage(""); }}><Icon name="edit" size={19} /></button>
+                  <button type="button" className="av-icon-button" title={`Edit ${entry.word}`} aria-label={`Edit ${entry.word}, ${entry.storyWide ? "story-wide vocabulary" : `scene ${entry.frameIndex + 1}`}`} onClick={() => { setEditing(entry); setMessage(""); }}><Icon name="edit" size={19} /></button>
                 </td>
               </tr>;
             })}</tbody>

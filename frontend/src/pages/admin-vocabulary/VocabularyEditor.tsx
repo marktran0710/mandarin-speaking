@@ -33,6 +33,7 @@ export default function VocabularyEditor({ entry, onClose, onSaved }: {
     try {
       const story = await updateVocabularyMetadata(entry.storyId, {
         frameIndex: entry.frameIndex, wordIndex: entry.wordIndex, word: entry.word, tier: entry.tier,
+        storyWide: entry.storyWide,
         expected: entry.expected, pinyin: pinyin.trim(), translation: translation.trim(), pos: pos.trim(),
       });
       onSaved(story);
@@ -45,7 +46,7 @@ export default function VocabularyEditor({ entry, onClose, onSaved }: {
     <form className="av-editor" onSubmit={save} aria-busy={saving}>
       <dl className="av-context">
         <div><dt>Speaking</dt><dd>{entry.storyTitle}</dd></div>
-        <div><dt>Scene / level</dt><dd>{entry.frameIndex + 1} / {entry.tier}</dd></div>
+        <div><dt>Scene / level</dt><dd>{entry.storyWide ? "Story-wide" : entry.frameIndex + 1} / {entry.tier}</dd></div>
         <div><dt>Book source</dt><dd>{source ? `${source.book}, p. ${source.page} (${source.kind})` : "Not verified"}</dd></div>
         <div><dt>Example</dt><dd lang="zh-Hant">{entry.context || "No example"}</dd></div>
       </dl>
@@ -58,7 +59,7 @@ export default function VocabularyEditor({ entry, onClose, onSaved }: {
         </select></label>
       </fieldset>
       <dl className="av-context av-save-scope">
-        <div><dt>Update scope</dt><dd>Scene {entry.frameIndex + 1}, {entry.tier}{entry.tier === "easy" ? " and inherited fields" : " only"}</dd></div>
+        <div><dt>Update scope</dt><dd>{entry.storyWide ? "Story-wide vocabulary" : `Scene ${entry.frameIndex + 1}`}, {entry.tier}{entry.tier === "easy" ? " and inherited fields" : " only"}</dd></div>
         <div><dt>Quiz publication</dt><dd>Unchanged</dd></div>
       </dl>
       {error && <p className="av-error" role="alert">{error}</p>}

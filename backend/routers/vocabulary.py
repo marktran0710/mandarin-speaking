@@ -25,6 +25,7 @@ class VocabularyMetadataEdit(BaseModel):
     model_config = ConfigDict(extra="forbid")
     frameIndex: int = Field(ge=0)
     wordIndex: int = Field(ge=0)
+    storyWide: bool = False
     tier: Literal["easy"]
     word: str = Field(min_length=1, max_length=200)
     expected: VocabularyColumns
@@ -78,17 +79,31 @@ async def update_vocabulary_metadata(story_id: str, edit: VocabularyMetadataEdit
         row = db.execute("SELECT * FROM custom_stories WHERE id = %s FOR UPDATE", (story_id,)).fetchone()
         if row is None:
             raise HTTPException(404, "Story not found.")
-        frames = row["frames"] or []
-        if edit.frameIndex >= len(frames):
-            raise HTTPException(409, "The selected scene changed. Reload the story before saving again.")
-        changes = metadata_changes(frames[edit.frameIndex], edit)
-        # The lock and field-level writes preserve unrelated content and
-        # published quiz snapshots, which still require explicit Quiz Review.
-        for field, value in changes.items():
-            db.execute(
-                "UPDATE custom_stories SET frames = jsonb_set(frames, ARRAY[%s, %s], "
-                "to_jsonb(%s::text), true) WHERE id = %s",
-                (str(edit.frameIndex), field, value, story_id),
-            )
+        if edit.storyWide:
+            story_vocabulary = row.get("story_vocabulary") or {}
+            current_vocabulary = story_vocabulary.get("easy") if isinstance(story_vocabulary, dict) else None
+            if not isinstance(current_vocabulary, dict):
+                raise HTTPException(409, "Story-wide vocabulary changed. Reload the story before saving again.")
+            changes = metadata_changes(current_vocabulary, edit)
+            for field, value in changes.items():
+                db.execute(
+                    "UPDATE custom_stories SET story_vocabulary = jsonb_set("
+                    "COALESCE(story_vocabulary, '{}'::jsonb), ARRAY['easy', %s], "
+                    "to_jsonb(%s::text), true) WHERE id = %s",
+                    (field, value, story_id),
+                )
+        else:
+            frames = row["frames"] or []
+            if edit.frameIndex >= len(frames):
+                raise HTTPException(409, "The selected scene changed. Reload the story before saving again.")
+            changes = metadata_changes(frames[edit.frameIndex], edit)
+            # The lock and field-level writes preserve unrelated content and
+            # published quiz snapshots, which still require explicit Quiz Review.
+            for field, value in changes.items():
+                db.execute(
+                    "UPDATE custom_stories SET frames = jsonb_set(frames, ARRAY[%s, %s], "
+                    "to_jsonb(%s::text), true) WHERE id = %s",
+                    (str(edit.frameIndex), field, value, story_id),
+                )
         updated = db.execute("SELECT * FROM custom_stories WHERE id = %s", (story_id,)).fetchone()
     return row_to_custom_story(updated)

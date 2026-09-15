@@ -10,6 +10,25 @@ const story: StoredCustomStory = { id: "s1", title: "Room", lessonNumber: 5, fra
 }] };
 
 describe("Speaking vocabulary inventory", () => {
+  it("uses the story-wide vocabulary that drives the three practice rounds", () => {
+    const words = Array.from({ length: 15 }, (_, index) => `word-${index + 1}`);
+    const storyWithCanonicalPool = {
+      ...story,
+      storyVocabulary: {
+        easy: {
+          vocabulary: words.join(", "),
+          vocabularyPinyin: words.map((_, index) => `pinyin-${index + 1}`).join(", "),
+          vocabularyTranslation: words.map((_, index) => `meaning-${index + 1}`).join(", "),
+          vocabularyPos: words.map(() => "N").join(", "),
+        },
+      },
+    };
+    const entries = buildVocabularyInventory([storyWithCanonicalPool]);
+    expect(entries).toHaveLength(15);
+    expect(entries.every((entry) => entry.storyWide)).toBe(true);
+    expect(entries.map((entry) => entry.word)).toEqual(words);
+  });
+
   it("preserves blank positions and only surfaces the single canonical level", () => {
     const entries = buildVocabularyInventory([story]);
     const table = entries.find(e => e.word === "桌子")!;

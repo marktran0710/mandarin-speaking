@@ -31,8 +31,12 @@ def api(monkeypatch, story):
         def execute(self, sql, params):
             statements.append(sql)
             if sql.startswith("UPDATE"):
-                index, field, value, _ = params
-                state["frames"][int(index)][field] = value
+                if "story_vocabulary = jsonb_set" in sql:
+                    field, value, _ = params
+                    state["story_vocabulary"].setdefault("easy", {})[field] = value
+                else:
+                    index, field, value, _ = params
+                    state["frames"][int(index)][field] = value
             self.result = copy.deepcopy(state) if params[-1] == "book-story" else None
             return self
 
@@ -75,6 +79,23 @@ def test_stale_metadata_is_conflict_with_no_writes(api, story):
     state["frames"][0]["vocabularyTranslation"] = "book, , changed elsewhere"
     assert client.patch("/api/custom-stories/book-story/vocabulary-metadata", json=edit).status_code == 409
     assert not any(s.startswith("UPDATE") for s in statements)
+
+
+def test_edits_story_wide_metadata_used_by_quiz_rounds(api, story):
+    client, state, statements = api
+    story_wide = state["story_vocabulary"]["easy"]
+    edit = {
+        "frameIndex": 0, "wordIndex": 0, "storyWide": True, "tier": "easy", "word": "table",
+        "expected": vocabulary.effective_columns(story_wide, "easy"),
+        "pinyin": "zhuo zi", "translation": "desk", "pos": "N",
+    }
+    result = client.patch("/api/custom-stories/book-story/vocabulary-metadata", json=edit)
+    assert result.status_code == 200
+    assert state["story_vocabulary"]["easy"] == {
+        "vocabulary": "table", "vocabularyPinyin": "zhuo zi",
+        "vocabularyTranslation": "desk", "vocabularyPos": "N",
+    }
+    assert any("story_vocabulary = jsonb_set" in sql for sql in statements)
 
 
 @pytest.mark.parametrize("changes,status", [
