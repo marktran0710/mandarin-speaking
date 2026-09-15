@@ -771,11 +771,19 @@
   border: 1px solid currentColor;
 }
 
-.vqr-rows { display: flex; flex-direction: column; }
+.vqr-rows {
+  display: flex;
+  flex-direction: column;
+  /* Results belong to the page scroll. A capped inner scroller can leave a
+     row partly hidden beneath the group header and makes the next group look
+     detached from the result it follows. */
+  min-width: 0;
+}
 .vqr-rows-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .vqr-row {
   display: flex;
   align-items: center;
+  min-width: 0;
   gap: var(--space-sm);
   padding: var(--space-2xs) var(--space-md);
   min-height: 44px;
@@ -793,7 +801,7 @@
 }
 .vqr-group.is-mastered .vqr-word { min-width: 72px; }
 .vqr-word.is-keep { color: var(--seal-deep); }
-.vqr-meaning { font-size: 13px; color: var(--clay-body); }
+.vqr-meaning { min-width: 0; font-size: 13px; color: var(--clay-body); overflow-wrap: anywhere; }
 .vqr-group.is-mastered .vqr-meaning { flex: 1; }
 .vqr-rows-grid .vqr-meaning { margin-left: auto; text-align: right; }
 .vqr-badge {
