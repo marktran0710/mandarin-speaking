@@ -52,10 +52,23 @@ def test_l5_3_vocabulary_bank_has_every_referenced_word_and_vocab_coverage():
         question.target_word: (question.pinyin, question.part_of_speech, question.simple_english_meaning)
         for question in questions
     }
-    assert metadata["\u7a97\u6236"][0] == "chu\u0101ngh\u00f9"
-    assert metadata["\u96bb"] == ("zh\u012b", "M", "measure word for animals")
-    assert metadata["\u592a\u967d"] == ("t\u00e0iy\u00e1ng", "N", "the sun")
-    assert metadata["\u5bb6\u5177"] == ("ji\u0101j\u00f9", "N", "furniture")
+    assert metadata == {
+        "\u5e8a": ("chu\u00e1ng", "N", "bed"),
+        "\u5bb6\u5177": ("ji\u0101j\u00f9", "N", "furniture"),
+        "\u96fb\u8996\u6a5f": ("di\u00e0nsh\u00ecj\u012b", "N", "TV (television)"),
+        "\u7a97\u6236": ("chu\u0101ngh\u00f9", "N", "window"),
+        "\u9580": ("m\u00e9n", "N", "door"),
+        "\u8c93": ("m\u0101o", "N", "cat"),
+        "\u72d7": ("g\u01d2u", "N", "dog"),
+        "\u9ce5": ("ni\u01ceo", "N", "bird"),
+        "\u96bb": ("zh\u012b", "M", "measure word for animals"),
+        "\u66ec\u592a\u967d": ("sh\u00e0i t\u00e0iy\u00e1ng", "phrase", "to bask in the sun"),
+        "\u592a\u967d": ("t\u00e0iy\u00e1ng", "N", "the sun"),
+    }
+    assert all(
+        question.correct_answer == (question.simple_english_meaning if question.level == "Easy" else question.target_word)
+        for question in questions
+    )
     prompts_and_explanations = "\n".join(question.prompt + question.explanation for question in questions)
     assert "\u54e5\u54e5\u559c\u6b61\u5728\u5e8a\u4e0a\u770b\u66f8" in prompts_and_explanations
     assert "\u9019\u500b\u65b0\u623f\u5b50\u6c92\u6709\u5f88\u591a\u5bb6\u5177" in prompts_and_explanations
