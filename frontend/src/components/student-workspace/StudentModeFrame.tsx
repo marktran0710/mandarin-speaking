@@ -10,14 +10,19 @@ export const STUDENT_WORKSPACE_VIEWS: Array<{
   label: { zh: string; pinyin: string; en: string };
 }> = [
   {
+    // zh/en must agree with every other place these two phrases appear
+    // (TopicSelector's "課程完成 / Lessons complete", Navigation's and
+    // MyStoriesPage's "我的學習 / My learning") — a bilingual learner reading
+    // 課程 as "Practice" here and "Lessons" one screen later, for the exact
+    // same characters, undermines the vocabulary the app is teaching them.
     id: "practice",
     icon: "image",
-    label: { zh: "課程", pinyin: "Kèchéng", en: "Practice" },
+    label: { zh: "課程", pinyin: "Kèchéng", en: "Lessons" },
   },
   {
     id: "progress",
     icon: "chart",
-    label: { zh: "我的學習", pinyin: "Wǒ de xuéxí", en: "Progress" },
+    label: { zh: "我的學習", pinyin: "Wǒ de xuéxí", en: "My learning" },
   },
 ];
 

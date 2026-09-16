@@ -98,7 +98,7 @@
   padding: 8px 10px;
   border: 1px dashed var(--clay-hairline);
   border-radius: var(--clay-radius-sm);
-  background: #ffffff;
+  background: var(--clay-surface-card);
   color: var(--seal);
   font-size: 12px;
   font-weight: 700;
@@ -114,7 +114,7 @@
   margin-top: 8px;
   padding: 10px;
   border-radius: var(--clay-radius-sm);
-  background: #ffffff;
+  background: var(--clay-surface-card);
   border: 1px solid var(--clay-hairline);
 }
 

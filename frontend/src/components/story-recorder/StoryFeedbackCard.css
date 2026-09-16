@@ -84,7 +84,7 @@
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
-  background: #ffffff;
+  background: var(--clay-surface-card);
 }
 
 .story-feedback-card.good .story-feedback-tier-badge {

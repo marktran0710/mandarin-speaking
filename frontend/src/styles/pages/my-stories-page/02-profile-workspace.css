@@ -73,7 +73,9 @@
 
 .btn-profile-practice {
   flex-shrink: 0;
-  min-height: 36px;
+  /* Was 36px — below the 44px minimum touch target for this row's primary
+     "practice this lesson" action. */
+  min-height: 44px;
   padding: 0 16px;
   border: 1px solid var(--seal-deep);
   border-radius: var(--clay-radius-md);

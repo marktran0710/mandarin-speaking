@@ -58,7 +58,7 @@ describe("StorySessionSidebar scene sequence", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Back to previous page" }));
+    await user.click(screen.getByRole("button", { name: /Back/ }));
 
     expect(onPrepare).toHaveBeenCalledOnce();
     expect(onExit).not.toHaveBeenCalled();

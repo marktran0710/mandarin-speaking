@@ -259,40 +259,41 @@
   color: var(--clay-muted);
 }
 
-/* When the optional lesson challenge is available, it is a peer action rather
-   than a separate section. This higher-specificity selector also wins over
+/* Exactly 3 secondary cards (生詞表 + weak words + one of due-review/challenge)
+   fill one row of 3 evenly; 2 or 4 cards use the default 2-column grid above
+   (4 becomes a clean 2x2). This higher-specificity selector also wins over
    StudentModeCompact.css' default two-column mode layout on wide panels. */
 @media (min-width: 761px) {
-  .vocab-quiz-secondary-grid.has-challenge,
-  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge {
+  .vocab-quiz-secondary-grid.is-triple,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.is-triple {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   /* Three peer cards are narrower than the usual two-card row. Keep the
      content readable by stacking each card's title and explanation beside
      its icon, while the card itself stays in the shared horizontal grid. */
-  .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card,
-  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card {
+  .vocab-quiz-secondary-grid.is-triple > .vocab-quiz-mode-card,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.is-triple > .vocab-quiz-mode-card {
     grid-template-columns: var(--space-2xl) minmax(0, 1fr) auto;
     grid-template-rows: auto auto;
     column-gap: var(--space-md);
   }
-  .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > strong,
-  .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > p,
-  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > strong,
-  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > p {
+  .vocab-quiz-secondary-grid.is-triple > .vocab-quiz-mode-card > strong,
+  .vocab-quiz-secondary-grid.is-triple > .vocab-quiz-mode-card > p,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.is-triple > .vocab-quiz-mode-card > strong,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.is-triple > .vocab-quiz-mode-card > p {
     grid-column: 2;
   }
-  .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > strong,
-  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > strong {
+  .vocab-quiz-secondary-grid.is-triple > .vocab-quiz-mode-card > strong,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.is-triple > .vocab-quiz-mode-card > strong {
     grid-row: 1;
   }
-  .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > p,
-  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > p {
+  .vocab-quiz-secondary-grid.is-triple > .vocab-quiz-mode-card > p,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.is-triple > .vocab-quiz-mode-card > p {
     grid-row: 2;
   }
-  .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > .app-icon,
-  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.has-challenge > .vocab-quiz-mode-card > .app-icon {
+  .vocab-quiz-secondary-grid.is-triple > .vocab-quiz-mode-card > .app-icon,
+  .student-workspace-v2 .vocab-quiz-mode-select .vocab-quiz-secondary-grid.is-triple > .vocab-quiz-mode-card > .app-icon {
     grid-column: 3;
     grid-row: 1 / span 2;
   }
@@ -551,6 +552,14 @@
   .vocab-quiz-mode-card {
     min-height: 0;
     padding: var(--space-md);
+  }
+
+  /* Below the 3-column breakpoint every count reverts to 2 columns; an odd
+     total (3 cards) would otherwise leave the last one alone in a half-empty
+     row — give it the full row instead so it reads as intentional. A 2 or 4
+     count is already even and this rule is a no-op for them. */
+  .vocab-quiz-secondary-grid > .vocab-quiz-mode-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 
   .vocab-quiz-secondary-grid > .vocab-quiz-mode-card {
@@ -842,7 +851,8 @@
   padding: var(--space-sm) var(--space-lg);
   border-radius: var(--clay-radius-pill);
   cursor: pointer;
-  border: 2px solid var(--gold-deep);
+  /* Thinned from 2px — see .btn-submit-story for why. */
+  border: 1.5px solid var(--gold-deep);
   background: var(--gold);
   color: var(--clay-on-seal);
   transition: transform 0.1s, box-shadow 0.1s;
@@ -871,7 +881,8 @@
   padding: var(--space-sm) var(--space-lg);
   border-radius: var(--clay-radius-pill);
   cursor: pointer;
-  border: 2px solid var(--gold-deep);
+  /* Thinned from 2px — see .btn-submit-story for why. */
+  border: 1.5px solid var(--gold-deep);
   background: var(--gold);
   color: var(--clay-on-seal);
   transition: transform 0.1s, box-shadow 0.1s;
@@ -907,9 +918,14 @@
   padding: var(--space-sm) var(--space-lg);
   border-radius: var(--clay-radius-pill);
   cursor: pointer;
-  border: 2px solid var(--jade-deep);
+  /* Thinned from 2px — see .btn-submit-story for why. */
+  border: 1.5px solid var(--jade-deep);
   background: var(--jade);
-  color: #fff;
+  /* Was a raw #fff — jade brightens in dark mode (#37c07e vs light's
+     #1c9a5b), so a hardcoded white label risks failing contrast there.
+     --clay-on-accent already flips to dark ink in dark mode for this exact
+     situation (the pattern every other jade-filled button already uses). */
+  color: var(--clay-on-accent);
   transition: transform 0.1s, box-shadow 0.1s;
 }
 .btn-vocab-quiz-challenge:hover {
@@ -1023,7 +1039,8 @@
   padding: var(--space-sm) var(--space-md);
   border-radius: 50%;
   cursor: pointer;
-  border: 2.5px solid var(--jade-deep);
+  /* Thinned from 2.5px — see .btn-submit-story for why. */
+  border: 1.5px solid var(--jade-deep);
   background: var(--jade);
   transition: transform 0.1s, box-shadow 0.1s;
 }
@@ -1032,6 +1049,35 @@
 }
 .btn-vocab-quiz-play:active {
   transform: translateY(3px);
+}
+
+/* Round 1 "listen to the word" affordance — a quiet pill under the prompt,
+   distinct from the big round listening-question play button above. */
+.btn-vocab-quiz-word-audio {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  /* 4px vertical padding alone left this ~38px tall — under the 44px
+     touch-target minimum (missed by an earlier min-height-keyword sweep
+     since this button sizes off padding, not an explicit min-height). */
+  min-height: 44px;
+  margin-top: var(--space-sm);
+  padding: var(--space-2xs) var(--space-md);
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: var(--clay-radius-pill);
+  cursor: pointer;
+  color: var(--jade-deep);
+  background: var(--jade-soft);
+  border: 1.5px solid color-mix(in srgb, var(--jade) 40%, var(--clay-hairline));
+  transition: background-color 0.12s, transform 0.1s;
+}
+.btn-vocab-quiz-word-audio:hover {
+  background: color-mix(in srgb, var(--jade-soft) 80%, var(--jade));
+  transform: translateY(-1px);
+}
+.btn-vocab-quiz-word-audio:active {
+  transform: translateY(1px);
 }
 
 /* ── Review screen ── */
@@ -1261,6 +1307,18 @@
 .lesson-vocab-mastery-sub.is-done {
   color: var(--jade-deep);
   font-weight: 700;
+}
+/* Not yet measured (no star round taken) — a calm cue, not an alarm. */
+.lesson-vocab-mastery-sub.is-pending {
+  color: var(--clay-muted);
+  font-weight: 600;
+}
+/* Quiet caption under the "N to strengthen" line: tells the learner mastery
+   moves via the star rounds, so weak-word practice not nudging it isn't a bug. */
+.lesson-vocab-mastery-hint {
+  margin: var(--space-3xs) 0 0;
+  font-size: var(--text-xs);
+  color: var(--clay-muted);
 }
 .lesson-vocab-mastery.is-compact {
   gap: var(--space-xs);

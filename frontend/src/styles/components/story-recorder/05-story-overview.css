@@ -91,7 +91,8 @@
   min-height: 120px;
   align-items: center;
   justify-content: center;
-  border: 2px dashed var(--clay-hairline);
+  /* Thinned from 2px — see .btn-submit-story for why. */
+  border: 1.5px dashed var(--clay-hairline);
   border-radius: var(--clay-radius-md);
   background: var(--clay-surface-card);
   padding: 16px;
@@ -127,7 +128,9 @@
   box-shadow: var(--shadow-sm);
   position: relative;
   cursor: grab;
-  border: 2px solid transparent;
+  /* Thinned from 2px (kept in sync with .selected below, which only swaps
+     the color) — see .btn-submit-story for why. */
+  border: 1.5px solid transparent;
   padding: 0;
   color: inherit;
   font: inherit;
@@ -209,7 +212,8 @@
 .btn-verify-sorting {
   background: var(--clay-primary);
   color: var(--clay-on-seal);
-  border: 2px solid var(--seal-deep);
+  /* Thinned from 2px — see .btn-submit-story for why. */
+  border: 1.5px solid var(--seal-deep);
   transition: transform 0.1s, box-shadow 0.1s;
   /* BiLabel's .bi-en subtitle defaults to --clay-muted (dark gray) —
      unreadable on this solid accent fill without a light override. */
@@ -235,7 +239,8 @@
 .btn-start-speaking {
   background: var(--jade);
   color: var(--clay-on-accent);
-  border: 2px solid var(--jade-deep);
+  /* Thinned from 2px — see .btn-submit-story for why. */
+  border: 1.5px solid var(--jade-deep);
   animation: pulseGreen 2s infinite;
   transition: transform 0.1s, box-shadow 0.1s;
   /* BiLabel's .bi-en/.bi-pinyin default to --clay-muted (dark gray) —
@@ -396,7 +401,8 @@
   flex: 0 0 auto;
   width: 160px;
   background: var(--clay-surface-card);
-  border: 2px solid var(--seal-soft);
+  /* Thinned from 2px — see .btn-submit-story for why. */
+  border: 1.5px solid var(--seal-soft);
   border-radius: var(--clay-radius-md);
   overflow: hidden;
   text-align: center;

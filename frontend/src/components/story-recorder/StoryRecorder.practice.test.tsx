@@ -212,7 +212,7 @@ describe("StoryRecorder student prototype", () => {
     await user.click(screen.getByRole("button", { name: /Vocabulary Quiz/ }));
     expect(screen.getByRole("region", { name: "Vocabulary quiz" })).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Back to previous page" }));
+    await user.click(screen.getByRole("button", { name: /Back/ }));
 
     expect(screen.getByRole("heading", { name: /Your Challenge/ })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Vocabulary quiz" })).not.toBeInTheDocument();

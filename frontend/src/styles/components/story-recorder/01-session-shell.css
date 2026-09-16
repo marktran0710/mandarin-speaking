@@ -25,27 +25,11 @@
 .story-session-main .story-vocab-quiz {
   padding-top: 0;
 }
-.btn-story-exit {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  background: var(--clay-surface-soft);
-  color: var(--clay-ink);
-  border: 1px solid var(--clay-hairline);
-  border-radius: var(--clay-radius-pill);
-  font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-}
-.btn-story-exit:hover {
-  border-color: var(--seal);
-  background: var(--clay-surface-card);
-  box-shadow: var(--shadow-sm);
-}
+/* .btn-story-exit itself lives only in StorySessionSidebar.css now — this
+   file used to carry a second, drifted copy (32px vs. that file's 34px,
+   different background) left over from the two-column layout described
+   above. Two definitions of the same class meant whichever stylesheet
+   happened to load last silently won; keeping one source avoids that. */
 .student-flow-board {
   margin-bottom: var(--space-sm);
   display: grid;

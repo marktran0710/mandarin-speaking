@@ -38,6 +38,11 @@
 .login-shell {
   position: relative;
   z-index: 1;
+  /* width:100% is required, not redundant: .login-page is a flex column, and a
+     flex item with auto cross-margins (margin:0 auto) shrinks to its content
+     width instead of filling up to max-width. The definite width makes the
+     shell fill the column (capped by max-width), then the auto margins centre. */
+  width: 100%;
   max-width: var(--content-max);
   margin: 0 auto;
 }
@@ -55,6 +60,9 @@
 }
 
 .login-card {
+  /* Same flex-item reason as .login-shell above: fill the shell up to the
+     card's max-width rather than collapsing to content width. */
+  width: 100%;
   padding: var(--space-xl);
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
@@ -165,9 +173,13 @@
    is about to play. The teacher variant keeps its plain professional
    look — this block only ever targets .login-page.student. ── */
 .login-page.student {
-  /* Read by both .login-card's own max-width and .login-back's matching
-     left offset below, so the two can never drift out of sync again. */
-  --login-card-max-width: 720px;
+  /* Student login fills ~half the screen — a wide auth column (≈50vw) so the
+     card reads as a real panel, not a small box lost on a big monitor. Scoped
+     to the student variant via --content-max (the shell + footer width); the
+     card fills it, so --login-card-max-width is 100% and stays the single
+     reference .login-back's offset reads. Teacher login keeps the narrow default. */
+  --content-max: 500px;
+  --login-card-max-width: 100%;
 }
 
 .login-page.student .login-card {

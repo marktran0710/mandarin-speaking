@@ -176,7 +176,9 @@
 }
 
 .student-workspace.student-workspace-v2 .profile-tab-btn {
-  min-height: 38px;
+  /* Was 38px — below the 44px minimum touch target for a control tapped
+     often (switches the whole tab list between lesson/story view). */
+  min-height: 44px;
   padding: 0 var(--space-lg);
   border: 0;
   border-radius: var(--clay-radius-pill);

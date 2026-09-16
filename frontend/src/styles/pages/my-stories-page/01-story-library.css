@@ -122,7 +122,10 @@
   max-width: var(--content-max);
   margin: 0 auto 18px;
   padding: 16px;
-  border: 2.5px solid var(--clay-hairline);
+  /* Was 2.5px — every other card border on this page (incl. the feedback
+     items inside this one) is the app's standard 1px hairline; this one was
+     just heavier for no reason. */
+  border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
 }
@@ -179,7 +182,9 @@
   grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
   gap: 16px;
   align-items: center;
-  border: 2.5px solid var(--clay-hairline);
+  /* Was 2.5px, same as the card above — matches the app's standard 1px
+     hairline everywhere else instead of being heavier without reason. */
+  border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-lg);
   background: var(--clay-surface-card);
   /* Student-facing control — seal, not jade (jade is the teacher accent). */
@@ -218,7 +223,8 @@
 .student-help-card button {
   min-height: 40px;
   padding: 0 14px;
-  border: 2px solid var(--seal-deep);
+  /* Thinned from 2px — see .btn-submit-story for why. */
+  border: 1.5px solid var(--seal-deep);
   border-radius: var(--clay-radius-pill);
   background: var(--seal);
   color: var(--clay-on-seal);

@@ -100,7 +100,7 @@ export default function ScenePracticeWord({
         aria-label={`${isPlaying ? "Stop" : "Listen to"} the model pronunciation of ${word}`}
         title="Listen to this word"
       >
-        <StudentIcon name={isPlaying ? "pause" : "volume"} size={17} aria-hidden="true" />
+        <StudentIcon name={isPlaying ? "pause" : "volume"} size={18} aria-hidden="true" />
       </button>
     </>
   );

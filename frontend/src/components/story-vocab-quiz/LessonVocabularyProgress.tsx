@@ -45,6 +45,11 @@ export function MasteryProgressBar({ progress, compact = false }: { progress: Le
   const { strongWords, totalWords } = progress;
   const percent = totalWords > 0 ? Math.round((strongWords / totalWords) * 100) : 0;
   const remaining = progress.remainingWords;
+  // 生詞掌握 is a BKT figure that only moves when a ⭐ star (diagnostic) round is
+  // taken — weak-word practice reinforces but does not feed it. Until the
+  // learner has done at least one star round there is nothing to measure yet,
+  // so show that instead of a stalled "0 / N · N to strengthen" that looks broken.
+  const measured = progress.vocabularyReviewCompleted;
   // One cell per vocabulary word, so the track reads as a countable set of 生詞
   // rather than an abstract ratio — the count is the point for a beginner.
   const segmented = !compact && totalWords > 0 && totalWords <= MASTERY_SEGMENT_CAP;
@@ -81,9 +86,16 @@ export function MasteryProgressBar({ progress, compact = false }: { progress: Le
           <span style={{ width: `${percent}%` }} />
         </div>
       )}
-      {!compact && (remaining > 0
-        ? <p className="lesson-vocab-mastery-sub"><BiLabel zh={`還有 ${remaining} 個生詞要加強`} pinyin={`Hái yǒu ${remaining} gè shēngcí yào jiāqiáng`} en={`${remaining} word${remaining === 1 ? "" : "s"} to strengthen`} /></p>
-        : <p className="lesson-vocab-mastery-sub is-done"><BiLabel zh="本課生詞都學會了！" pinyin="Běn kè shēngcí dōu xuéhuì le!" en="You know every word in this lesson!" /></p>)}
+      {!compact && (
+        !measured
+          ? <p className="lesson-vocab-mastery-sub is-pending"><BiLabel zh="先完成星星測驗，才會看到掌握進度" pinyin="Xiān wánchéng xīngxīng cèyàn, cái huì kàndào zhǎngwò jìndù." en="Take the star rounds to start measuring mastery" /></p>
+          : remaining > 0
+            ? <>
+                <p className="lesson-vocab-mastery-sub"><BiLabel zh={`還有 ${remaining} 個生詞要加強`} pinyin={`Hái yǒu ${remaining} gè shēngcí yào jiāqiáng`} en={`${remaining} word${remaining === 1 ? "" : "s"} to strengthen`} /></p>
+                <p className="lesson-vocab-mastery-hint"><BiLabel zh="完成星星測驗會提升掌握" pinyin="Wánchéng xīngxīng cèyàn huì tíshēng zhǎngwò." en="Passing the star rounds raises mastery" /></p>
+              </>
+            : <p className="lesson-vocab-mastery-sub is-done"><BiLabel zh="本課生詞都學會了！" pinyin="Běn kè shēngcí dōu xuéhuì le!" en="You know every word in this lesson!" /></p>
+      )}
     </section>
   );
 }
@@ -197,7 +209,7 @@ export function FocusWords({ progress, onStart }: { progress: LessonVocabularyPr
 export function ChallengeEntry({ progress, onStart, onBack }: { progress: LessonVocabularyProgress; onStart: () => void; onBack?: () => void }) {
   return (
     <section className="story-vocab-quiz vocab-quiz-challenge-entry-screen" aria-label="Lesson challenge">
-      {onBack && <button type="button" className="btn-vocab-quiz-back" onClick={onBack}><StudentIcon name="arrow-left" size={17} /><BiLabel zh="選模式" pinyin="Xuǎn móshì" en="Back to modes" /></button>}
+      {onBack && <button type="button" className="btn-vocab-quiz-back" onClick={onBack}><StudentIcon name="arrow-left" size={18} aria-hidden="true" /><BiLabel zh="選模式" pinyin="Xuǎn móshì" en="Back to modes" /></button>}
       <section className="lesson-challenge-entry" aria-label="Challenge details">
       <div>
         <p className="eyebrow"><BiLabel zh="額外練習" pinyin="Éwài liànxí" en="Optional extra practice" /></p>

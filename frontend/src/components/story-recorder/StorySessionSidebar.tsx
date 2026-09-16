@@ -167,9 +167,13 @@ export default function StorySessionSidebar({
             type="button"
             className="btn-story-exit"
             onClick={handleExit}
-            aria-label="Back to previous page"
           >
-            <StudentIcon name="arrow-left" size={17} />
+            {/* Was icon-only, relying on aria-label alone — every other exit
+                control in the vocab quiz (.btn-vocab-quiz-back) shows a
+                visible bilingual label next to its arrow. For A1-A2 readers
+                an arrow icon isn't self-explanatory; match that pattern. */}
+            <StudentIcon name="arrow-left" size={18} aria-hidden="true" />
+            <BiLabel zh="返回" pinyin="Fǎnhuí" en="Back" />
           </button>
         )}
         <span className="ssb-topic-icon" aria-hidden="true">
