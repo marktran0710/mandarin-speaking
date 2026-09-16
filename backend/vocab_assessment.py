@@ -42,9 +42,11 @@ _REQUIRED_COLUMNS = frozenset({
 })
 _WHITESPACE_OR_PUNCTUATION = re.compile(r"[\s\W_]+", re.UNICODE)
 _S2T = OpenCC("s2t") if OpenCC is not None else None
-# OpenCC's s2t dictionary prefers 喫 for 吃, although 吃 is standard
-# Traditional Chinese in the supplied Taiwan-oriented course material.
-_TRADITIONAL_VARIANT_CHARACTERS = frozenset({"吃"})
+# OpenCC's s2t dictionary prefers alternate forms for a few characters that
+# are standard in the supplied Taiwan-oriented course material. Keep the
+# textbook spellings accepted instead of rewriting the source content:
+# 喫/吃, 牀/床, and 臺/台.
+_TRADITIONAL_VARIANT_CHARACTERS = frozenset({"吃", "床", "台"})
 
 
 @dataclass(frozen=True)

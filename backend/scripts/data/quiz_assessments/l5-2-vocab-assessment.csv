@@ -1,0 +1,49 @@
+word_id,target_word,pinyin,pos,simple_english_meaning,level,difficulty_weight,question_type,answer_format,prompt,options_json,correct_answer,accepted_answers_json,explanation
+L5_2_001,有,yǒu,Vst,there is/are; to exist,Easy,1,basic_meaning_mcq,single_choice,"In 「客廳的桌子上有一個錢包」, what does 「有」 mean?","[""there is/are; to exist"",""to go"",""to find"",""to cook""]",there is/are; to exist,"[""there is/are; to exist""]",「有」 means there is/are; to exist in this sentence.
+L5_2_001,有,yǒu,Vst,there is/are; to exist,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 客廳的桌子上___一個錢包。,"[""有"",""是"",""在"",""去""]",有,"[""有""]",客廳的桌子上有一個錢包。
+L5_2_001,有,yǒu,Vst,there is/are; to exist,Hard,3,productive_recall,free_text,Write the missing word: 客廳的桌子上___一個錢包。,[],有,"[""有""]",客廳的桌子上有一個錢包。
+L5_2_002,媽,mā,N,mom,Easy,1,basic_meaning_mcq,single_choice,"In 「媽，妳幫我找，好嗎？」, what does 「媽」 mean?","[""mom"",""older brother"",""friend"",""teacher""]",mom,"[""mom""]",「媽」 means mom.
+L5_2_002,媽,mā,N,mom,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: ___，妳幫我找，好嗎？,"[""媽"",""哥哥"",""客廳"",""書""]",媽,"[""媽""]",媽，妳幫我找，好嗎？
+L5_2_002,媽,mā,N,mom,Hard,3,productive_recall,free_text,Write the missing word: ___，妳幫我找，好嗎？,[],媽,"[""媽""]",媽，妳幫我找，好嗎？
+L5_2_003,房間,fángjiān,N,room,Easy,1,basic_meaning_mcq,single_choice,"In 「我的錢包不在房間裡」, what does 「房間」 mean?","[""room"",""kitchen"",""sofa"",""wallet""]",room,"[""room""]",「房間」 means room.
+L5_2_003,房間,fángjiān,N,room,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 我的錢包不在___裡。,"[""房間"",""客廳"",""廚房"",""沙發""]",房間,"[""房間""]",我的錢包不在房間裡。
+L5_2_003,房間,fángjiān,N,room,Hard,3,productive_recall,free_text,Write the missing word: 我的錢包不在___裡。,[],房間,"[""房間""]",我的錢包不在房間裡。
+L5_2_004,客廳,kètīng,N,living room,Easy,1,basic_meaning_mcq,single_choice,"In 「我的錢包不在客廳裡」, what does 「客廳」 mean?","[""living room"",""bedroom"",""kitchen"",""book""]",living room,"[""living room""]",「客廳」 means living room.
+L5_2_004,客廳,kètīng,N,living room,Medium,2,context_cloze_mcq,single_choice,Complete Zhongming's reply about the living room: 我的錢包不在___裡。,"[""客廳"",""房間"",""廚房"",""桌子""]",客廳,"[""客廳""]",我的錢包不在客廳裡。
+L5_2_004,客廳,kètīng,N,living room,Hard,3,productive_recall,free_text,Write the missing word in Zhongming's reply: 我的錢包不在___裡。,[],客廳,"[""客廳""]",我的錢包不在客廳裡。
+L5_2_005,桌子,zhuōzi,N,table,Easy,1,basic_meaning_mcq,single_choice,"In 「客廳的桌子上有一個錢包」, what does 「桌子」 mean?","[""table"",""sofa"",""room"",""book""]",table,"[""table""]",「桌子」 means table.
+L5_2_005,桌子,zhuōzi,N,table,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 客廳的___上有一個錢包。,"[""桌子"",""沙發"",""書"",""房間""]",桌子,"[""桌子""]",客廳的桌子上有一個錢包。
+L5_2_005,桌子,zhuōzi,N,table,Hard,3,productive_recall,free_text,Write the missing word: 客廳的___上有一個錢包。,[],桌子,"[""桌子""]",客廳的桌子上有一個錢包。
+L5_2_006,哥哥,gēge,N,older brother,Easy,1,basic_meaning_mcq,single_choice,"In 「那不是我的，是哥哥的」, what does 「哥哥」 mean?","[""older brother"",""mom"",""friend"",""student""]",older brother,"[""older brother""]",「哥哥」 means older brother.
+L5_2_006,哥哥,gēge,N,older brother,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 那不是我的，是___的。,"[""哥哥"",""媽媽"",""朋友"",""中明""]",哥哥,"[""哥哥""]",那不是我的，是哥哥的。
+L5_2_006,哥哥,gēge,N,older brother,Hard,3,productive_recall,free_text,Write the missing word: 那不是我的，是___的。,[],哥哥,"[""哥哥""]",那不是我的，是哥哥的。
+L5_2_007,沙發,shāfā,N,sofa,Easy,1,basic_meaning_mcq,single_choice,"In 「沙發下面呢？」, what does 「沙發」 mean?","[""sofa"",""table"",""kitchen"",""book""]",sofa,"[""sofa""]",「沙發」 means sofa.
+L5_2_007,沙發,shāfā,N,sofa,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: ___下面呢？,"[""沙發"",""桌子"",""房間"",""廚房""]",沙發,"[""沙發""]",沙發下面呢？
+L5_2_007,沙發,shāfā,N,sofa,Hard,3,productive_recall,free_text,Write the missing word in Mom's question: ___下面呢？,[],沙發,"[""沙發""]",沙發下面呢？
+L5_2_008,下面,xiàmiàn,N,below,Easy,1,basic_meaning_mcq,single_choice,"In 「沙發下面呢？」, what does 「下面」 mean?","[""below"",""on top"",""beside"",""inside""]",below,"[""below""]",「下面」 means below.
+L5_2_008,下面,xiàmiàn,N,below,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 沙發上面、___跟旁邊都沒有。,"[""下面"",""房間"",""桌子"",""客廳""]",下面,"[""下面""]",沙發上面、下面跟旁邊都沒有。
+L5_2_008,下面,xiàmiàn,N,below,Hard,3,productive_recall,free_text,Write the location word: 沙發上面、___跟旁邊都沒有。,[],下面,"[""下面""]",沙發上面、下面跟旁邊都沒有。
+L5_2_009,上面,shàngmiàn,N,on top,Easy,1,basic_meaning_mcq,single_choice,"In 「沙發上面、下面跟旁邊都沒有」, what does 「上面」 mean?","[""on top"",""below"",""beside"",""outside""]",on top,"[""on top""]",「上面」 means on top.
+L5_2_009,上面,shàngmiàn,N,on top,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 沙發___、下面跟旁邊都沒有。,"[""上面"",""房間"",""桌子"",""書""]",上面,"[""上面""]",沙發上面、下面跟旁邊都沒有。
+L5_2_009,上面,shàngmiàn,N,on top,Hard,3,productive_recall,free_text,Write the location word: 沙發___、下面跟旁邊都沒有。,[],上面,"[""上面""]",沙發上面、下面跟旁邊都沒有。
+L5_2_010,旁邊,pángbiān,N,beside,Easy,1,basic_meaning_mcq,single_choice,"In 「沙發上面、下面跟旁邊都沒有」, what does 「旁邊」 mean?","[""beside"",""below"",""on top"",""inside""]",beside,"[""beside""]",「旁邊」 means beside.
+L5_2_010,旁邊,pángbiān,N,beside,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 沙發上面、下面跟___都沒有。,"[""旁邊"",""房間"",""桌子"",""廚房""]",旁邊,"[""旁邊""]",沙發上面、下面跟旁邊都沒有。
+L5_2_010,旁邊,pángbiān,N,beside,Hard,3,productive_recall,free_text,Write the location word: 沙發上面、下面跟___都沒有。,[],旁邊,"[""旁邊""]",沙發上面、下面跟旁邊都沒有。
+L5_2_011,幫,bāng,V,to help,Easy,1,basic_meaning_mcq,single_choice,"In 「妳幫我找」, what does 「幫」 mean?","[""to help"",""to find"",""to cook"",""to go""]",to help,"[""to help""]",「幫」 means to help.
+L5_2_011,幫,bāng,V,to help,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 媽，妳___我找，好嗎？,"[""幫"",""有"",""做"",""在""]",幫,"[""幫""]",媽，妳幫我找，好嗎？
+L5_2_011,幫,bāng,V,to help,Hard,3,productive_recall,free_text,Write the missing verb: 媽，妳___我找，好嗎？,[],幫,"[""幫""]",媽，妳幫我找，好嗎？
+L5_2_012,好嗎,hǎo ma,phrase,is that okay,Easy,1,basic_meaning_mcq,single_choice,"In 「媽，妳幫我找，好嗎？」, what does 「好嗎」 ask?","[""is that okay"",""where is it"",""who is it"",""what time is it""]",is that okay,"[""is that okay""]",「好嗎」 asks whether something is okay.
+L5_2_012,好嗎,hǎo ma,phrase,is that okay,Medium,2,context_cloze_mcq,single_choice,Complete the textbook request: 媽，妳幫我找，___？,"[""好嗎"",""下面"",""哥哥"",""廚房""]",好嗎,"[""好嗎""]",媽，妳幫我找，好嗎？
+L5_2_012,好嗎,hǎo ma,phrase,is that okay,Hard,3,productive_recall,free_text,Write the request ending: 媽，妳幫我找，___？,[],好嗎,"[""好嗎""]",媽，妳幫我找，好嗎？
+L5_2_013,忙,máng,Vs,busy,Easy,1,basic_meaning_mcq,single_choice,"In 「我很忙」, what does 「忙」 mean?","[""busy"",""happy"",""new"",""big""]",busy,"[""busy""]",「忙」 means busy.
+L5_2_013,忙,máng,Vs,busy,Medium,2,context_cloze_mcq,single_choice,Complete Mom's reply: 我很___，現在要去廚房做飯。,"[""忙"",""大"",""好"",""有""]",忙,"[""忙""]",我很忙，現在要去廚房做飯。
+L5_2_013,忙,máng,Vs,busy,Hard,3,productive_recall,free_text,Write the missing adjective: 我很___，現在要去廚房做飯。,[],忙,"[""忙""]",我很忙，現在要去廚房做飯。
+L5_2_014,廚房,chúfáng,N,kitchen,Easy,1,basic_meaning_mcq,single_choice,"In 「現在要去廚房做飯」, what does 「廚房」 mean?","[""kitchen"",""living room"",""bedroom"",""table""]",kitchen,"[""kitchen""]",「廚房」 means kitchen.
+L5_2_014,廚房,chúfáng,N,kitchen,Medium,2,context_cloze_mcq,single_choice,Complete Mom's reply: 現在要去___做飯。,"[""廚房"",""客廳"",""房間"",""沙發""]",廚房,"[""廚房""]",現在要去廚房做飯。
+L5_2_014,廚房,chúfáng,N,kitchen,Hard,3,productive_recall,free_text,Write the place word: 現在要去___做飯。,[],廚房,"[""廚房""]",現在要去廚房做飯。
+L5_2_015,做飯,zuòfàn,V,to cook,Easy,1,basic_meaning_mcq,single_choice,"In 「現在要去廚房做飯」, what does 「做飯」 mean?","[""to cook"",""to study"",""to look for"",""to read""]",to cook,"[""to cook""]",「做飯」 means to cook.
+L5_2_015,做飯,zuòfàn,V,to cook,Medium,2,context_cloze_mcq,single_choice,Complete Mom's reply: 現在要去廚房___。,"[""做飯"",""看書"",""找錢包"",""喝下午茶""]",做飯,"[""做飯""]",現在要去廚房做飯。
+L5_2_015,做飯,zuòfàn,V,to cook,Hard,3,productive_recall,free_text,Write the missing verb-object phrase: 現在要去廚房___。,[],做飯,"[""做飯""]",現在要去廚房做飯。
+L5_2_016,書,shū,N,book,Easy,1,basic_meaning_mcq,single_choice,"In 「錢包在我的書下面」, what does 「書」 mean?","[""book"",""wallet"",""table"",""room""]",book,"[""book""]",「書」 means book.
+L5_2_016,書,shū,N,book,Medium,2,context_cloze_mcq,single_choice,Complete Zhongming's discovery: 錢包在我的___下面。,"[""書"",""桌子"",""沙發"",""房間""]",書,"[""書""]",錢包在我的書下面。
+L5_2_016,書,shū,N,book,Hard,3,productive_recall,free_text,Write the missing noun: 錢包在我的___下面。,[],書,"[""書""]",錢包在我的書下面。
