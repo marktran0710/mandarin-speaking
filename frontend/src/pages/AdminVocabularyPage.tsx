@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Icon from "../shared/ui/Icon";
-import { listVocabularyStories } from "../services/api/vocabulary";
+import { deleteQuizVocabularyWord, listVocabularyStories } from "../services/api/vocabulary";
 import type { StoredCustomStory } from "../services/api/stories-submissions";
 import { buildVocabularyInventory, matchesVocabularySearch, vocabularyEntriesToCsv, type VocabularyEntry } from "./admin-vocabulary/model";
 import { vocabularyBookSource } from "./admin-vocabulary/book-sources";
@@ -23,6 +23,7 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
   const [editing, setEditing] = useState<VocabularyEntry | null>(null);
   const [previewing, setPreviewing] = useState<VocabularyEntry | null>(null);
   const [message, setMessage] = useState("");
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -49,6 +50,16 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
   const currentPage = Math.min(page, pageCount - 1);
   const visible = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
   const uniqueWords = new Set(filtered.map(entry => entry.word)).size;
+  const selectedStory = stories.find(story => story.id === storyId);
+  const newQuizEntry: VocabularyEntry | null = selectedStory ? {
+    word: "", pinyin: "", translation: "", pos: "", id: JSON.stringify([selectedStory.id, "quiz-assessment", "new"]),
+    storyId: selectedStory.id, storyTitle: selectedStory.title, lessonNumber: selectedStory.lessonNumber ?? null,
+    lessonSubOrder: selectedStory.lessonSubOrder ?? null, frameIndex: 0,
+    wordIndex: new Set((selectedStory.vocabAssessment ?? []).map(question => question.wordId)).size,
+    storyWide: false, source: "quiz-assessment", assessmentWordId: undefined, tier: "easy",
+    context: "", published: Boolean(selectedStory.published), assessmentQuestions: [],
+    expected: { vocabulary: "", pinyin: "", translation: "", pos: "" },
+  } : null;
   const changeFilter = (setter: (value: string) => void, value: string) => { setter(value); setPage(0); setMessage(""); };
   const download = () => {
     const url = URL.createObjectURL(new Blob([vocabularyEntriesToCsv(filtered)], { type: "text/csv;charset=utf-8" }));
@@ -57,6 +68,17 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
     anchor.download = `speaking-vocabulary-${lesson || "all"}.csv`;
     anchor.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const deleteQuizWord = async (entry: VocabularyEntry) => {
+    if (!entry.assessmentWordId || !window.confirm(`Delete quiz vocabulary ${entry.word}? This removes all three rounds.`)) return;
+    setActionError(""); setMessage("");
+    try {
+      const story = await deleteQuizVocabularyWord(entry.storyId, entry.assessmentWordId);
+      setStories(current => current.map(item => item.id === story.id ? story : item));
+      setMessage(`Deleted quiz vocabulary ${entry.word}.`);
+    } catch (reason) {
+      setActionError(reason instanceof Error ? reason.message : "Could not delete quiz vocabulary.");
+    }
   };
 
   return <section className="av-page" aria-label="Speaking vocabulary">
@@ -78,10 +100,12 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
       <p aria-live="polite">{loading ? "Loading vocabulary..." : `${filtered.length} entries / ${uniqueWords} unique words`}</p>
       <div className="av-actions">
         {onOpenMaterials && <button type="button" className="av-button" onClick={onOpenMaterials}><Icon name="library" size={18} />Materials</button>}
+        {newQuizEntry && <button type="button" className="av-button" onClick={() => { setActionError(""); setMessage(""); setEditing(newQuizEntry); }}><Icon name="plus" size={18} />Add quiz word</button>}
         <button type="button" className="av-button" onClick={download} disabled={loading || Boolean(error) || !filtered.length}><Icon name="download" size={18} />Export CSV</button>
       </div>
     </div>
     {message && <p className="av-success" role="status">{message}</p>}
+    {actionError && <p className="av-error" role="alert">{actionError}</p>}
     {error ? <div className="av-empty" role="alert"><p>{error}</p><button type="button" className="av-button" onClick={() => setReload(n => n + 1)}><Icon name="retry" size={18} />Try again</button></div>
       : loading ? <div className="av-empty" role="status">Loading Speaking stories...</div>
       : !filtered.length ? <div className="av-empty"><Icon name="book" size={32} /><h2>No vocabulary found</h2>
@@ -98,7 +122,8 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
                 <td>{source ? <><span className="av-source">{source.kind}</span><small>{source.book}, p. {source.page}</small></> : <span className="av-unverified">Not verified</span>}</td>
                 <td className="av-row-actions">
                   <button type="button" className="av-icon-button" title={`View quiz questions for ${entry.word}`} aria-label={`View quiz questions for ${entry.word}`} onClick={() => { setPreviewing(entry); setMessage(""); }}><Icon name="eye" size={19} /></button>
-                  <button type="button" className="av-icon-button" title={`Edit ${entry.word}`} aria-label={`Edit ${entry.word}, ${entry.source === "quiz-assessment" ? "quiz vocabulary" : entry.storyWide ? "story-wide vocabulary" : `scene ${entry.frameIndex + 1}`}`} onClick={() => { setEditing(entry); setMessage(""); }}><Icon name="edit" size={19} /></button>
+                  <button type="button" className="av-icon-button" title={`Edit ${entry.word}`} aria-label={`Edit ${entry.word}, ${entry.source === "quiz-assessment" ? "quiz vocabulary" : entry.storyWide ? "story-wide vocabulary" : `scene ${entry.frameIndex + 1}`}`} onClick={() => { setActionError(""); setEditing(entry); setMessage(""); }}><Icon name="edit" size={19} /></button>
+                  {entry.source === "quiz-assessment" && <button type="button" className="av-icon-button av-danger-button" title={`Delete ${entry.word}`} aria-label={`Delete ${entry.word}, quiz vocabulary`} onClick={() => void deleteQuizWord(entry)}><Icon name="trash" size={19} /></button>}
                 </td>
               </tr>;
             })}</tbody>
@@ -114,7 +139,7 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
     {editing && <VocabularyEditor key={editing.id} entry={editing} onClose={() => setEditing(null)} onSaved={story => {
       setStories(current => current.map(item => item.id === story.id ? story : item));
       const savedQuizVocabulary = editing.source === "quiz-assessment";
-      setEditing(null); setMessage(savedQuizVocabulary ? "Vocabulary saved. All quiz rounds now use the updated word data." : "Vocabulary saved.");
+      setEditing(null); setActionError(""); setMessage(savedQuizVocabulary ? (editing.assessmentWordId ? "Quiz vocabulary saved. All three rounds now use the updated data." : "Quiz vocabulary added.") : "Vocabulary saved.");
     }} />}
     {previewing && <QuestionPreview key={previewing.id} entry={previewing} story={stories.find(story => story.id === previewing.storyId)} onClose={() => setPreviewing(null)} />}
   </section>;

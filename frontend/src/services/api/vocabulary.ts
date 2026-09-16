@@ -1,6 +1,24 @@
 import { BACKEND_URL, fetchWithRetry } from "./client";
 import type { StoredCustomStory } from "./stories-submissions";
 
+export type QuizVocabularyLevel = "Easy" | "Medium" | "Hard";
+export interface QuizVocabularyQuestionDraft {
+  level: QuizVocabularyLevel;
+  prompt: string;
+  options: string[];
+  correctAnswer: string;
+  acceptedAnswers: string[];
+  explanation: string;
+}
+export interface QuizVocabularyWordDraft {
+  wordId?: string;
+  targetWord: string;
+  pinyin: string;
+  pos: string;
+  simpleEnglishMeaning: string;
+  questions: QuizVocabularyQuestionDraft[];
+}
+
 export interface VocabularyMetadataEdit {
   frameIndex: number;
   wordIndex: number;
@@ -36,4 +54,35 @@ export async function updateVocabularyMetadata(storyId: string, edit: Vocabulary
     throw new Error(typeof body?.detail === "string" ? body.detail : "Could not save vocabulary. Check your admin session and try again.");
   }
   return response.json() as Promise<StoredCustomStory>;
+}
+
+async function mutateQuizVocabulary(
+  storyId: string,
+  path: string,
+  method: "POST" | "PUT" | "DELETE",
+  body?: QuizVocabularyWordDraft,
+): Promise<StoredCustomStory> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/custom-stories/${encodeURIComponent(storyId)}/quiz-vocabulary${path}`, {
+    method,
+    ...(body ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {}),
+  }, 1);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { detail?: unknown } | null;
+    const detail = payload?.detail;
+    if (response.status === 409) throw new Error(typeof detail === "string" ? detail : "Quiz vocabulary changed. Refresh before saving again.");
+    throw new Error(typeof detail === "string" ? detail : "Could not update quiz vocabulary.");
+  }
+  return response.json() as Promise<StoredCustomStory>;
+}
+
+export function createQuizVocabularyWord(storyId: string, draft: QuizVocabularyWordDraft): Promise<StoredCustomStory> {
+  return mutateQuizVocabulary(storyId, "", "POST", draft);
+}
+
+export function updateQuizVocabularyWord(storyId: string, wordId: string, draft: QuizVocabularyWordDraft): Promise<StoredCustomStory> {
+  return mutateQuizVocabulary(storyId, `/${encodeURIComponent(wordId)}`, "PUT", draft);
+}
+
+export function deleteQuizVocabularyWord(storyId: string, wordId: string): Promise<StoredCustomStory> {
+  return mutateQuizVocabulary(storyId, `/${encodeURIComponent(wordId)}`, "DELETE");
 }

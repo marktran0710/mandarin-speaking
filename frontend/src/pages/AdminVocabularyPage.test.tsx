@@ -2,15 +2,27 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminVocabularyPage from "./AdminVocabularyPage";
-import { listVocabularyStories, updateVocabularyMetadata } from "../services/api/vocabulary";
+import { createQuizVocabularyWord, deleteQuizVocabularyWord, listVocabularyStories, updateQuizVocabularyWord, updateVocabularyMetadata } from "../services/api/vocabulary";
 import type { StoredCustomStory } from "../services/api/stories-submissions";
+import type { VocabAssessmentQuestion } from "../components/story-vocab-quiz/model";
 
-vi.mock("../services/api/vocabulary", () => ({ listVocabularyStories: vi.fn(), updateVocabularyMetadata: vi.fn() }));
+vi.mock("../services/api/vocabulary", () => ({ listVocabularyStories: vi.fn(), updateVocabularyMetadata: vi.fn(), createQuizVocabularyWord: vi.fn(), updateQuizVocabularyWord: vi.fn(), deleteQuizVocabularyWord: vi.fn() }));
 const stories: StoredCustomStory[] = [
   { id: "s5", title: "我的房間", lessonNumber: 5, lessonSubOrder: 3, frames: [{ imageUrl: "", prompt: "", vocabulary: "桌子", vocabularyPinyin: "zhuō zǐ", vocabularyTranslation: "table", vocabularyPos: "N", suggestedAnswer: "房間裡有桌子。" }] },
   { id: "s6", title: "運動", lessonNumber: 6, frames: [{ imageUrl: "", prompt: "", vocabulary: "游泳", vocabularyPinyin: "yóuyǒng", vocabularyTranslation: "swim", vocabularyPos: "V" }] },
 ];
-beforeEach(() => { vi.mocked(listVocabularyStories).mockReset().mockResolvedValue(structuredClone(stories)); vi.mocked(updateVocabularyMetadata).mockReset(); });
+const quizAssessment = (wordId: string, targetWord: string, meaning: string): VocabAssessmentQuestion[] => [
+  { questionId: `${wordId}_EASY`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, level: "easy", difficultyWeight: 1, questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: `Easy prompt ${wordId}`, options: [meaning, "book", "door", "window"], correctAnswer: meaning, acceptedAnswers: [meaning], explanation: "Easy explanation" },
+  { questionId: `${wordId}_MEDIUM`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, level: "medium", difficultyWeight: 2, questionType: "context_cloze_mcq", answerFormat: "single_choice", prompt: `Medium prompt ${wordId}`, options: [targetWord, "書", "門", "窗戶"], correctAnswer: targetWord, acceptedAnswers: [targetWord], explanation: "Medium explanation" },
+  { questionId: `${wordId}_HARD`, wordId, targetWord, pinyin: "pinyin", pos: "N", simpleEnglishMeaning: meaning, level: "hard", difficultyWeight: 3, questionType: "productive_recall", answerFormat: "free_text", prompt: `Hard prompt ${wordId}`, options: [], correctAnswer: targetWord, acceptedAnswers: [targetWord], explanation: "Hard explanation" },
+];
+beforeEach(() => {
+  vi.mocked(listVocabularyStories).mockReset().mockResolvedValue(structuredClone(stories));
+  vi.mocked(updateVocabularyMetadata).mockReset();
+  vi.mocked(createQuizVocabularyWord).mockReset();
+  vi.mocked(updateQuizVocabularyWord).mockReset();
+  vi.mocked(deleteQuizVocabularyWord).mockReset();
+});
 
 describe("Admin vocabulary page", () => {
   it("includes stories without lesson metadata in the unassigned filter", async () => {
@@ -51,6 +63,74 @@ describe("Admin vocabulary page", () => {
     expect(screen.getByText("游泳")).toBeInTheDocument();
     expect(screen.getByText((_, element) => element?.tagName === "SMALL" && element.textContent === "6-2 / Quiz bank")).toBeInTheDocument();
     expect(screen.queryByText("材料用字")).not.toBeInTheDocument();
+  });
+  it("creates a quiz word with all three round questions", async () => {
+    const quizStory: StoredCustomStory = { ...stories[0], id: "s5-create", title: "Quiz room", vocabAssessment: [] };
+    const saved = { ...quizStory, vocabAssessment: quizAssessment("new-word", "沙發", "sofa") };
+    vi.mocked(listVocabularyStories).mockResolvedValue([quizStory]);
+    vi.mocked(createQuizVocabularyWord).mockResolvedValue(saved);
+    const user = userEvent.setup();
+    render(<AdminVocabularyPage />);
+    await screen.findByRole("heading", { name: "No vocabulary found" });
+    await user.selectOptions(screen.getByRole("combobox", { name: "Speaking story" }), "s5-create");
+    await user.click(screen.getByRole("button", { name: "Add quiz word" }));
+    const dialog = screen.getByRole("dialog", { name: "Add quiz vocabulary" });
+    await user.type(within(dialog).getByRole("textbox", { name: "Chinese word" }), "沙發");
+    await user.type(within(dialog).getByRole("textbox", { name: "Pinyin" }), "shafa");
+    await user.type(within(dialog).getByRole("textbox", { name: "Meaning (English)" }), "sofa");
+    await user.type(within(dialog).getByRole("textbox", { name: "Part of speech" }), "N");
+    for (const [level, prompt, options, answer] of [
+      ["Easy", "What does 沙發 mean?", "sofa\nbook\ndoor\nwindow", "sofa"],
+      ["Medium", "Complete: ___", "沙發\n床\n門\n窗戶", "沙發"],
+      ["Hard", "Write the word", "", "沙發"],
+    ] as const) {
+      await user.type(within(dialog).getByRole("textbox", { name: `${level} prompt` }), prompt);
+      if (level !== "Hard") {
+        const optionsInput = within(dialog).getByRole("textbox", { name: `${level} options` });
+        await user.clear(optionsInput);
+        await user.type(optionsInput, options);
+      }
+      await user.type(within(dialog).getByRole("textbox", { name: `${level} correct answer` }), answer);
+      await user.type(within(dialog).getByRole("textbox", { name: `${level} accepted answers` }), answer);
+      await user.type(within(dialog).getByRole("textbox", { name: `${level} explanation` }), `${level} explanation`);
+    }
+    await user.click(within(dialog).getByRole("button", { name: "Add word" }));
+    await screen.findByText("Quiz vocabulary added.", { exact: true });
+    expect(createQuizVocabularyWord).toHaveBeenCalledWith("s5-create", expect.objectContaining({ targetWord: "沙發", questions: expect.arrayContaining([expect.objectContaining({ level: "Easy", correctAnswer: "sofa" }), expect.objectContaining({ level: "Hard", correctAnswer: "沙發" })]) }));
+  });
+  it("updates the full quiz word and all round question data", async () => {
+    const quizStory: StoredCustomStory = { ...stories[0], id: "s5-update", title: "Quiz room", vocabAssessment: quizAssessment("w1", "桌子", "table") };
+    const saved = { ...quizStory, vocabAssessment: quizAssessment("w1", "書桌", "desk") };
+    vi.mocked(listVocabularyStories).mockResolvedValue([quizStory]);
+    vi.mocked(updateQuizVocabularyWord).mockResolvedValue(saved);
+    const user = userEvent.setup();
+    render(<AdminVocabularyPage />);
+    await screen.findByText("1 entries / 1 unique words");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Speaking story" }), "s5-update");
+    await user.click(screen.getByRole("button", { name: /Edit 桌子, quiz vocabulary/ }));
+    const dialog = screen.getByRole("dialog", { name: "Edit quiz vocabulary: 桌子" });
+    await user.clear(within(dialog).getByRole("textbox", { name: "Chinese word" }));
+    await user.type(within(dialog).getByRole("textbox", { name: "Chinese word" }), "書桌");
+    await user.clear(within(dialog).getByRole("textbox", { name: "Meaning (English)" }));
+    await user.type(within(dialog).getByRole("textbox", { name: "Meaning (English)" }), "desk");
+    await user.click(within(dialog).getByRole("button", { name: "Save quiz word" }));
+    await screen.findByText("Quiz vocabulary saved. All three rounds now use the updated data.", { exact: true });
+    expect(updateQuizVocabularyWord).toHaveBeenCalledWith("s5-update", "w1", expect.objectContaining({ targetWord: "書桌", simpleEnglishMeaning: "desk" }));
+  });
+  it("deletes a quiz word and removes it from the inventory", async () => {
+    const quizStory: StoredCustomStory = { ...stories[0], id: "s5-delete", title: "Quiz room", vocabAssessment: quizAssessment("w1", "桌子", "table") };
+    const saved = { ...quizStory, vocabAssessment: [] };
+    vi.mocked(listVocabularyStories).mockResolvedValue([quizStory]);
+    vi.mocked(deleteQuizVocabularyWord).mockResolvedValue(saved);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const user = userEvent.setup();
+    render(<AdminVocabularyPage />);
+    await screen.findByText("1 entries / 1 unique words");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Speaking story" }), "s5-delete");
+    await user.click(screen.getByRole("button", { name: "Delete 桌子, quiz vocabulary" }));
+    await screen.findByRole("heading", { name: "No vocabulary found" });
+    expect(deleteQuizVocabularyWord).toHaveBeenCalledWith("s5-delete", "w1");
+    confirm.mockRestore();
   });
   it("saves metadata with the exact source precondition then updates the table", async () => {
     const user = userEvent.setup();

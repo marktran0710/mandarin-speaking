@@ -5,10 +5,20 @@ import type { VocabularyEntry } from "./model";
 import { vocabularyBookSource } from "./book-sources";
 import { updateVocabularyMetadata } from "../../services/api/vocabulary";
 import type { StoredCustomStory } from "../../services/api/stories-submissions";
+import QuizVocabularyEditor from "./QuizVocabularyEditor";
 
 const POS = ["N", "V", "Vi", "Vt", "Vs", "Vst", "V-sep", "Vaux", "Adj", "Adv", "Prep", "Conj", "Pron", "M", "MW", "Ptc", "Particle", "Time", "TimeExpr", "Loc", "Phrase", "Other"];
 
 export default function VocabularyEditor({ entry, onClose, onSaved }: {
+  entry: VocabularyEntry; onClose: () => void; onSaved: (story: StoredCustomStory) => void;
+}) {
+  if (entry.source === "quiz-assessment") {
+    return <QuizVocabularyEditor entry={entry} onClose={onClose} onSaved={onSaved} />;
+  }
+  return <MetadataVocabularyEditor entry={entry} onClose={onClose} onSaved={onSaved} />;
+}
+
+function MetadataVocabularyEditor({ entry, onClose, onSaved }: {
   entry: VocabularyEntry; onClose: () => void; onSaved: (story: StoredCustomStory) => void;
 }) {
   const [pinyin, setPinyin] = useState(entry.pinyin);
@@ -47,7 +57,7 @@ export default function VocabularyEditor({ entry, onClose, onSaved }: {
     <form className="av-editor" onSubmit={save} aria-busy={saving}>
       <dl className="av-context">
         <div><dt>Speaking</dt><dd>{entry.storyTitle}</dd></div>
-        <div><dt>Vocabulary source</dt><dd>{entry.source === "quiz-assessment" ? "Quiz bank" : entry.storyWide ? "Story-wide" : `Scene ${entry.frameIndex + 1}`}</dd></div>
+        <div><dt>Vocabulary source</dt><dd>{entry.storyWide ? "Story-wide" : `Scene ${entry.frameIndex + 1}`}</dd></div>
         <div><dt>Book source</dt><dd>{source ? `${source.book}, p. ${source.page} (${source.kind})` : "Not verified"}</dd></div>
         <div><dt>Example</dt><dd lang="zh-Hant">{entry.context || "No example"}</dd></div>
       </dl>
@@ -60,8 +70,8 @@ export default function VocabularyEditor({ entry, onClose, onSaved }: {
         </select></label>
       </fieldset>
       <dl className="av-context av-save-scope">
-        <div><dt>Update scope</dt><dd>{entry.source === "quiz-assessment" ? "Quiz vocabulary for this word" : entry.storyWide ? "Story-wide vocabulary" : `Scene ${entry.frameIndex + 1}`}</dd></div>
-        <div><dt>Quiz publication</dt><dd>{entry.source === "quiz-assessment" ? "Updated for all three rounds" : "Unchanged"}</dd></div>
+        <div><dt>Update scope</dt><dd>{entry.storyWide ? "Story-wide vocabulary" : `Scene ${entry.frameIndex + 1}`}</dd></div>
+        <div><dt>Quiz publication</dt><dd>Unchanged</dd></div>
       </dl>
       {error && <p className="av-error" role="alert">{error}</p>}
       <div className="av-editor-actions">

@@ -152,9 +152,17 @@ export function auditTopicQuizMaterial(topic: QuizSourceTopic): QuizMaterialAudi
  * exists) — confirms it's used in real context, not just an isolated
  * flashcard pair. */
 export function topicQuizEntries(topic: QuizSourceTopic): VocabQuizEntry[] {
-  if (topic.vocabAssessment?.length) {
+  if (Array.isArray(topic.vocabAssessment)) {
     const byWord = new Map<string, VocabAssessmentQuestion[]>();
-    topic.vocabAssessment.forEach((question) => {
+    topic.vocabAssessment.forEach((rawQuestion) => {
+      // The backend assessment importer stores title-case levels (Easy,
+      // Medium, Hard), while the learner quiz uses lower-case round keys.
+      // Normalize at this boundary so bank questions are actually selected
+      // for their intended round after an admin CRUD response.
+      const normalizedLevel = String(rawQuestion.level).trim().toLowerCase();
+      const question = normalizedLevel === "easy" || normalizedLevel === "medium" || normalizedLevel === "hard"
+        ? { ...rawQuestion, level: normalizedLevel as VocabAssessmentQuestion["level"] }
+        : rawQuestion;
       const questions = byWord.get(question.wordId) ?? [];
       questions.push(question);
       byWord.set(question.wordId, questions);

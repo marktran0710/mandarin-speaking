@@ -51,6 +51,16 @@
 .av-editor-actions { justify-content: flex-end; flex-wrap: wrap; }
 .av-primary { background: var(--jade-deep); color: var(--clay-on-accent); border-color: var(--jade-deep); }
 .av-primary:hover:not(:disabled) { color: var(--jade-deep); }
+.av-danger-button { color: var(--clay-error-deep); }
+.av-danger-button:hover:not(:disabled) { border-color: var(--clay-error); background: var(--clay-error-soft); }
+.av-editor-help { margin: 0; color: var(--clay-muted); font-size: var(--text-sm); }
+.av-quiz-editor { min-width: min(100%, 680px); }
+.av-quiz-editor > fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm); border: 0; padding: 0; margin: 0; min-width: 0; }
+.av-question-edit-list { display: grid; gap: var(--space-sm); }
+.av-question-edit { display: grid; gap: var(--space-xs); min-width: 0; margin: 0; padding: var(--space-sm); border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-md); background: var(--clay-surface-soft); }
+.av-question-edit legend { padding-inline: var(--space-2xs); color: var(--clay-ink); font-size: var(--text-sm); font-weight: 700; }
+.av-question-edit textarea { width: 100%; min-width: 0; resize: vertical; padding: var(--space-xs); border: 1px solid var(--clay-hairline); border-radius: var(--clay-radius-sm); color: var(--clay-ink); background: var(--clay-surface-card); font: inherit; }
+.av-question-edit :is(input, textarea):focus-visible { outline: 2px solid var(--tone1-deep); outline-offset: 2px; }
 .av-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* Quiz-question preview modal */
 .av-qpreview { display: grid; gap: var(--space-md); color: var(--clay-body); font: var(--text-base)/1.5 var(--font-sans); }
@@ -82,4 +92,5 @@
   .av-actions { flex-wrap: wrap; }
   .av-context > div { grid-template-columns: 90px minmax(0, 1fr); }
   .av-pagination { gap: var(--space-xs); }
+  .av-quiz-editor > fieldset { grid-template-columns: 1fr; }
 }

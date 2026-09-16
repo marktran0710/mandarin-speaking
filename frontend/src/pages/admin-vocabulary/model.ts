@@ -1,4 +1,5 @@
 import type { StoredCustomStory } from "../../services/api/stories-submissions";
+import type { VocabAssessmentQuestion } from "../../components/story-vocab-quiz/model";
 import { buildVocabRows, type VocabRow } from "../../utils/myStoriesUtils";
 import { tierText } from "../../utils/teacher-stories/helpers";
 import { vocabularyBookSource } from "./book-sources";
@@ -16,6 +17,7 @@ export interface VocabularyEntry extends VocabRow {
   storyWide: boolean;
   source: VocabularySource;
   assessmentWordId?: string;
+  assessmentQuestions: VocabAssessmentQuestion[];
   tier: VocabularyTier;
   context: string;
   published: boolean;
@@ -38,7 +40,7 @@ export function buildVocabularyInventory(stories: StoredCustomStory[]): Vocabula
   return [...stories].sort((a, b) => (a.lessonNumber ?? Infinity) - (b.lessonNumber ?? Infinity)
     || (a.lessonSubOrder ?? 0) - (b.lessonSubOrder ?? 0) || a.title.localeCompare(b.title))
     .flatMap(story => {
-      if (story.vocabAssessment?.length) {
+      if (Array.isArray(story.vocabAssessment)) {
         const assessmentByWordId = new Map<string, typeof story.vocabAssessment>();
         story.vocabAssessment.forEach(question => {
           const wordId = question.wordId.trim();
@@ -54,6 +56,7 @@ export function buildVocabularyInventory(stories: StoredCustomStory[]): Vocabula
             id: JSON.stringify([story.id, "quiz-assessment", assessmentWordId]), storyId: story.id, storyTitle: story.title,
             lessonNumber: story.lessonNumber ?? null, lessonSubOrder: story.lessonSubOrder ?? null,
             frameIndex: 0, wordIndex, storyWide: false, source: "quiz-assessment" as const, assessmentWordId,
+            assessmentQuestions: questions,
             tier: CANONICAL_TIER, expected,
             context: context ? tierText(context, "suggestedAnswer", CANONICAL_TIER) || tierText(context, "listenScript", CANONICAL_TIER) || tierText(context, "prompt", CANONICAL_TIER) || "" : "",
             published: Boolean(story.published),
@@ -76,6 +79,7 @@ export function buildVocabularyInventory(stories: StoredCustomStory[]): Vocabula
             storyTitle: story.title, lessonNumber: story.lessonNumber ?? null,
             lessonSubOrder: story.lessonSubOrder ?? null, frameIndex: 0, wordIndex, tier: CANONICAL_TIER,
             storyWide: true, source: "story-vocabulary" as const, expected,
+            assessmentQuestions: [],
             context: context ? tierText(context, "suggestedAnswer", CANONICAL_TIER) || tierText(context, "listenScript", CANONICAL_TIER) || tierText(context, "prompt", CANONICAL_TIER) || "" : "",
             published: Boolean(story.published),
           })).filter(row => Boolean(row.word));
@@ -93,6 +97,7 @@ export function buildVocabularyInventory(stories: StoredCustomStory[]): Vocabula
               storyTitle: story.title, lessonNumber: story.lessonNumber ?? null,
               lessonSubOrder: story.lessonSubOrder ?? null, frameIndex, wordIndex, tier: CANONICAL_TIER, expected,
               storyWide: false, source: "scene-vocabulary" as const,
+              assessmentQuestions: [],
               context: tierText(frame, "suggestedAnswer", CANONICAL_TIER) || tierText(frame, "listenScript", CANONICAL_TIER) || tierText(frame, "prompt", CANONICAL_TIER) || "",
               published: Boolean(story.published),
             })).filter(row => Boolean(row.word));
