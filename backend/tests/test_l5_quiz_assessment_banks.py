@@ -40,24 +40,27 @@ def test_l5_2_dialogue_bank_has_every_referenced_word_and_dialogue_coverage():
     assert "錢包在我的書下面" in prompts_and_explanations
 
 
-def test_l5_3_reading_bank_has_every_referenced_word_and_reading_coverage():
+def test_l5_3_vocabulary_bank_has_every_referenced_word_and_vocab_coverage():
     questions = _bank("l5-3-vocab-assessment.csv")
 
     assert len(questions) == 33
     assert {question.target_word for question in questions} == {
-        "床", "電視機", "新的", "看電視", "中文", "英文", "窗戶", "大", "貓", "喜歡", "曬太陽",
+        "\u5e8a", "\u5bb6\u5177", "\u96fb\u8996\u6a5f", "\u7a97\u6236", "\u9580", "\u8c93",
+        "\u72d7", "\u9ce5", "\u96bb", "\u66ec\u592a\u967d", "\u592a\u967d",
     }
     metadata = {
         question.target_word: (question.pinyin, question.part_of_speech, question.simple_english_meaning)
         for question in questions
     }
-    assert metadata["\u4e2d\u6587"][0] == "zh\u014dngw\u00e9n"
-    assert metadata["\u82f1\u6587"][0] == "y\u012bngw\u00e9n"
     assert metadata["\u7a97\u6236"][0] == "chu\u0101ngh\u00f9"
+    assert metadata["\u96bb"] == ("zh\u012b", "M", "measure word for animals")
+    assert metadata["\u592a\u967d"] == ("t\u00e0iy\u00e1ng", "N", "the sun")
+    assert metadata["\u5bb6\u5177"] == ("ji\u0101j\u00f9", "N", "furniture")
     prompts_and_explanations = "\n".join(question.prompt + question.explanation for question in questions)
-    assert "我的房間裡有一張桌子、一張床跟一張沙發" in prompts_and_explanations
-    assert "有中文書，也有英文書" in prompts_and_explanations
-    assert "我的貓喜歡在窗戶旁邊曬太陽" in prompts_and_explanations
+    assert "\u54e5\u54e5\u559c\u6b61\u5728\u5e8a\u4e0a\u770b\u66f8" in prompts_and_explanations
+    assert "\u9019\u500b\u65b0\u623f\u5b50\u6c92\u6709\u5f88\u591a\u5bb6\u5177" in prompts_and_explanations
+    assert "\u6211\u5bb6\u6709\u4e00\u96bb\u8c93\u3001\u5169\u96bb\u72d7\u548c\u4e09\u96bb\u9ce5" in prompts_and_explanations
+    assert "\u6211\u7684\u8c93\u5728\u623f\u5b50\u5916\u9762\u66ec\u592a\u967d" in prompts_and_explanations
 
 
 def test_lesson5_banks_do_not_duplicate_question_ids_or_prompts_across_parts():

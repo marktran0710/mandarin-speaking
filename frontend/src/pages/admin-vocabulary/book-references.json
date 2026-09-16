@@ -299,33 +299,15 @@
     },
     {
       "lesson": 5,
-      "word": "電視機",
-      "page": 129,
+      "word": "家具",
+      "page": 128,
       "kind": "Bảng từ mới"
     },
     {
       "lesson": 5,
-      "word": "新的",
-      "page": 127,
-      "kind": "Hội thoại / bài đọc"
-    },
-    {
-      "lesson": 5,
-      "word": "看電視",
-      "page": 127,
-      "kind": "Hội thoại / bài đọc"
-    },
-    {
-      "lesson": 5,
-      "word": "中文",
-      "page": 127,
-      "kind": "Hội thoại / bài đọc"
-    },
-    {
-      "lesson": 5,
-      "word": "英文",
-      "page": 127,
-      "kind": "Hội thoại / bài đọc"
+      "word": "電視機",
+      "page": 129,
+      "kind": "Bảng từ mới"
     },
     {
       "lesson": 5,
@@ -335,9 +317,9 @@
     },
     {
       "lesson": 5,
-      "word": "大",
-      "page": 127,
-      "kind": "Hội thoại / bài đọc"
+      "word": "門",
+      "page": 129,
+      "kind": "Bảng từ mới"
     },
     {
       "lesson": 5,
@@ -347,13 +329,31 @@
     },
     {
       "lesson": 5,
-      "word": "喜歡",
-      "page": 127,
-      "kind": "Hội thoại / bài đọc"
+      "word": "狗",
+      "page": 129,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "鳥",
+      "page": 129,
+      "kind": "Bảng từ mới"
+    },
+    {
+      "lesson": 5,
+      "word": "隻",
+      "page": 129,
+      "kind": "Bảng từ mới"
     },
     {
       "lesson": 5,
       "word": "曬太陽",
+      "page": 129,
+      "kind": "Mục Phrase"
+    },
+    {
+      "lesson": 5,
+      "word": "太陽",
       "page": 129,
       "kind": "Mục Phrase"
     },

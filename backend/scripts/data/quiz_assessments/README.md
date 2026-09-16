@@ -1,6 +1,6 @@
 # Canonical Lesson 5 quiz banks
 
-These UTF-8 CSV files are the canonical vocabulary-assessment source for the Modern Chinese 1 Lesson 5 dialogue and reading. They use the textbook's Traditional Chinese, pinyin, meanings, and example sentences from printed pages 119-123 (5-2) and 127-129 (5-3). Each file provides one Easy, Medium, and Hard observation for every referenced lesson word: 16 words / 48 questions for 5-2 and 11 words / 33 questions for 5-3.
+These UTF-8 CSV files are the canonical vocabulary-assessment source for Modern Chinese 1 Lesson 5. They use the textbook's Traditional Chinese, pinyin, meanings, and example sentences from printed pages 119-123 (5-2) and the Lesson 5-3 vocabulary list on pages 128-129. Each file provides one Easy, Medium, and Hard observation for every referenced lesson word: 16 words / 48 questions for 5-2 and the 11 vocabulary-list words / 33 questions for 5-3.
 
 Validate or prepare a bank without changing the database:
 
@@ -8,7 +8,7 @@ Validate or prepare a bank without changing the database:
 python backend/scripts/import_vocab_assessment.py backend/scripts/data/quiz_assessments/l5-2-vocab-assessment.csv
 ```
 
-Use `l5-3-vocab-assessment.csv` for the Lesson 5-3 reading bank. To publish by lesson metadata after the corresponding stories have been created or imported, run:
+Use `l5-3-vocab-assessment.csv` for the Lesson 5-3 vocabulary-list bank. To publish by lesson metadata after the corresponding stories have been created or imported, run:
 
 ```powershell
 python backend/scripts/seed_quiz_assessments.py --lesson-part 5-2 --publish
