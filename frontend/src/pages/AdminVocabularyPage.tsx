@@ -57,6 +57,7 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
     lessonSubOrder: selectedStory.lessonSubOrder ?? null, frameIndex: 0,
     wordIndex: new Set((selectedStory.vocabAssessment ?? []).map(question => question.wordId)).size,
     storyWide: false, source: "quiz-assessment", assessmentWordId: undefined, tier: "easy",
+    assessmentRevision: selectedStory.vocabAssessmentRevision ?? undefined,
     context: "", published: Boolean(selectedStory.published), assessmentQuestions: [],
     expected: { vocabulary: "", pinyin: "", translation: "", pos: "" },
   } : null;
@@ -73,7 +74,7 @@ export default function AdminVocabularyPage({ refreshKey = 0, onOpenMaterials }:
     if (!entry.assessmentWordId || !window.confirm(`Delete quiz vocabulary ${entry.word}? This removes all three rounds.`)) return;
     setActionError(""); setMessage("");
     try {
-      const story = await deleteQuizVocabularyWord(entry.storyId, entry.assessmentWordId);
+      const story = await deleteQuizVocabularyWord(entry.storyId, entry.assessmentWordId, entry.assessmentRevision);
       setStories(current => current.map(item => item.id === story.id ? story : item));
       setMessage(`Deleted quiz vocabulary ${entry.word}.`);
     } catch (reason) {

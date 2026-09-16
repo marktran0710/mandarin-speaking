@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { auditTopicQuizMaterial, topicQuizEntries, type QuizSourceTopic } from "./topicQuiz";
+import { buildDiagnosticRoundQuestions } from "../components/story-vocab-quiz/model";
 import type { QuizExclusion } from "./quizExclusions";
 
 function makeTopic(quizExclusions: QuizExclusion[]): QuizSourceTopic {
@@ -66,6 +67,34 @@ describe("topicQuizEntries exclusions", () => {
 });
 
 describe("canonical quiz vocabulary", () => {
+  it("normalizes title-case backend levels before selecting a learner round", () => {
+    const entries = topicQuizEntries({
+      images: ["scene-1.png"],
+      vocabulary: { 0: ["bed"] },
+      vocabAssessment: [{
+        questionId: "bed-easy",
+        wordId: "bed-1",
+        targetWord: "bed",
+        pinyin: "chuang",
+        pos: "N",
+        simpleEnglishMeaning: "bed",
+        level: "Easy" as unknown as "easy",
+        difficultyWeight: 1,
+        questionType: "basic_meaning_mcq",
+        answerFormat: "single_choice",
+        prompt: "Backend authored meaning prompt",
+        options: ["bed", "book", "door", "window"],
+        correctAnswer: "bed",
+        acceptedAnswers: ["bed"],
+        explanation: "Use the authored bank question.",
+      }],
+    });
+
+    const [question] = buildDiagnosticRoundQuestions(entries, "tier1");
+    expect(question.prompt).toBe("Backend authored meaning prompt");
+    expect(question.correctAnswer).toBe("bed");
+  });
+
   it("keeps teacher-reviewed cloze context before the story sentence for an assessment-backed Round 3", () => {
     const entries = topicQuizEntries({
       images: ["scene-1.png"],

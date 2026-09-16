@@ -99,6 +99,27 @@ def test_update_replaces_one_word_and_delete_allows_empty_bank(api):
     assert state["vocab_assessment"] == []
 
 
+def test_stale_revision_is_rejected_for_update_and_delete(api):
+    client, state, _ = api
+    created = client.post("/api/custom-stories/book-story/quiz-vocabulary", json=word_payload(word_id="W1"))
+    assert created.status_code == 200
+    stale_revision = created.json()["vocabAssessmentRevision"]
+
+    fresh = word_payload(target_word="bookshelf", word_id="W1", suffix="fresh")
+    fresh["expectedRevision"] = stale_revision
+    assert client.put("/api/custom-stories/book-story/quiz-vocabulary/W1", json=fresh).status_code == 200
+
+    stale_update = word_payload(target_word="wardrobe", word_id="W1", suffix="stale")
+    stale_update["expectedRevision"] = stale_revision
+    response = client.put("/api/custom-stories/book-story/quiz-vocabulary/W1", json=stale_update)
+    assert response.status_code == 409
+    assert {question["targetWord"] for question in state["vocab_assessment"]} == {"bookshelf"}
+
+    response = client.delete(f"/api/custom-stories/book-story/quiz-vocabulary/W1?expectedRevision={stale_revision}")
+    assert response.status_code == 409
+    assert state["vocab_assessment"]
+
+
 def test_rejects_duplicate_word_or_prompt_without_writing(api):
     client, state, statements = api
     assert client.post("/api/custom-stories/book-story/quiz-vocabulary", json=word_payload(word_id="W1")).status_code == 200

@@ -12,6 +12,7 @@ export interface QuizVocabularyQuestionDraft {
 }
 export interface QuizVocabularyWordDraft {
   wordId?: string;
+  expectedRevision?: string;
   targetWord: string;
   pinyin: string;
   pos: string;
@@ -69,10 +70,28 @@ async function mutateQuizVocabulary(
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as { detail?: unknown } | null;
     const detail = payload?.detail;
+    const message = formatQuizVocabularyError(detail);
     if (response.status === 409) throw new Error(typeof detail === "string" ? detail : "Quiz vocabulary changed. Refresh before saving again.");
-    throw new Error(typeof detail === "string" ? detail : "Could not update quiz vocabulary.");
+    throw new Error(message || "Could not update quiz vocabulary.");
   }
   return response.json() as Promise<StoredCustomStory>;
+}
+
+function formatQuizVocabularyError(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+  if (!detail || typeof detail !== "object") return "";
+  const value = detail as { message?: unknown; issues?: unknown };
+  const message = typeof value.message === "string" ? value.message : "";
+  const issues = Array.isArray(value.issues)
+    ? value.issues.map((issue) => {
+      if (!issue || typeof issue !== "object") return "";
+      const item = issue as { code?: unknown; message?: unknown; question_id?: unknown };
+      const prefix = typeof item.question_id === "string" && item.question_id ? `${item.question_id}: ` : "";
+      const code = typeof item.code === "string" && item.code ? `[${item.code}] ` : "";
+      return `${prefix}${code}${typeof item.message === "string" ? item.message : ""}`.trim();
+    }).filter(Boolean)
+    : [];
+  return [message, ...issues].filter(Boolean).join(" ");
 }
 
 export function createQuizVocabularyWord(storyId: string, draft: QuizVocabularyWordDraft): Promise<StoredCustomStory> {
@@ -83,6 +102,7 @@ export function updateQuizVocabularyWord(storyId: string, wordId: string, draft:
   return mutateQuizVocabulary(storyId, `/${encodeURIComponent(wordId)}`, "PUT", draft);
 }
 
-export function deleteQuizVocabularyWord(storyId: string, wordId: string): Promise<StoredCustomStory> {
-  return mutateQuizVocabulary(storyId, `/${encodeURIComponent(wordId)}`, "DELETE");
+export function deleteQuizVocabularyWord(storyId: string, wordId: string, expectedRevision?: string | null): Promise<StoredCustomStory> {
+  const path = `/${encodeURIComponent(wordId)}${expectedRevision ? `?expectedRevision=${encodeURIComponent(expectedRevision)}` : ""}`;
+  return mutateQuizVocabulary(storyId, path, "DELETE");
 }

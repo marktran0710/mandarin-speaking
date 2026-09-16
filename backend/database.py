@@ -1,3 +1,5 @@
+import hashlib
+import json
 import os
 from contextlib import contextmanager
 from typing import Iterator
@@ -132,13 +134,15 @@ def row_to_story_submission(row: dict) -> dict:
 
 
 def row_to_custom_story(row: dict) -> dict:
+    vocab_assessment = row.get("vocab_assessment")
     return {
         "id": row["id"],
         "title": row["title"],
         "frames": row["frames"] or [],
         "storyVocabulary": row.get("story_vocabulary"),
         "storyPhrases": row.get("story_phrases"),
-        "vocabAssessment": row.get("vocab_assessment"),
+        "vocabAssessment": vocab_assessment,
+        "vocabAssessmentRevision": vocab_assessment_revision(vocab_assessment),
         "published": bool(row["published"]),
         "lessonNumber": row["lesson_number"],
         "lessonSubOrder": row.get("lesson_sub_order"),
@@ -180,6 +184,14 @@ def row_to_vocab_quiz_attempt(row: dict) -> dict:
         **({"baseStoryId": first_result["baseStoryId"]} if first_result.get("baseStoryId") else {}),
         **({"level": first_result["level"]} if first_result.get("level") else {}),
     }
+
+
+def vocab_assessment_revision(value: object) -> str | None:
+    """Return a deterministic revision for optimistic quiz-bank edits."""
+    if not isinstance(value, list):
+        return None
+    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def row_to_speaking_progress(row: dict) -> dict:

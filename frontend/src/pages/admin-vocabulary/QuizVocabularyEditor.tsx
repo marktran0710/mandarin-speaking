@@ -121,6 +121,7 @@ export default function QuizVocabularyEditor({ entry, onClose, onSaved }: {
     try {
       const draft = {
         ...(entry.assessmentWordId ? { wordId: entry.assessmentWordId } : {}),
+        ...(entry.assessmentRevision ? { expectedRevision: entry.assessmentRevision } : {}),
         targetWord: word,
         pinyin: pinyin.trim(),
         pos: pos.trim(),

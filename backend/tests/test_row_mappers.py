@@ -24,6 +24,7 @@ def test_row_to_custom_story_passes_through_parsed_jsonb():
     assert result["storyVocabulary"] == {"easy": {"vocabulary": "房間"}}
     assert result["storyPhrases"] == {"easy": {"phrases": "在房間裡"}}
     assert result["vocabAssessment"] == [{"questionId": "MC1_001_EASY", "level": "easy"}]
+    assert len(result["vocabAssessmentRevision"]) == 64
     assert result["published"] is True
     assert result["lessonNumber"] == 5
     assert result["quizExclusions"] == [{"word": "房間", "kind": "cloze"}]

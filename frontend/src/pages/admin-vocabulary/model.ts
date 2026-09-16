@@ -17,6 +17,7 @@ export interface VocabularyEntry extends VocabRow {
   storyWide: boolean;
   source: VocabularySource;
   assessmentWordId?: string;
+  assessmentRevision?: string;
   assessmentQuestions: VocabAssessmentQuestion[];
   tier: VocabularyTier;
   context: string;
@@ -57,6 +58,7 @@ export function buildVocabularyInventory(stories: StoredCustomStory[]): Vocabula
             lessonNumber: story.lessonNumber ?? null, lessonSubOrder: story.lessonSubOrder ?? null,
             frameIndex: 0, wordIndex, storyWide: false, source: "quiz-assessment" as const, assessmentWordId,
             assessmentQuestions: questions,
+            assessmentRevision: story.vocabAssessmentRevision ?? undefined,
             tier: CANONICAL_TIER, expected,
             context: context ? tierText(context, "suggestedAnswer", CANONICAL_TIER) || tierText(context, "listenScript", CANONICAL_TIER) || tierText(context, "prompt", CANONICAL_TIER) || "" : "",
             published: Boolean(story.published),

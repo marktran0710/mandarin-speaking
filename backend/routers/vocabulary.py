@@ -2,12 +2,12 @@
 from typing import Literal
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from psycopg.types.json import Jsonb
 
 import auth
-from database import connect_db, row_to_custom_story
+from database import connect_db, row_to_custom_story, vocab_assessment_revision
 from vocab_assessment import LEVELS, QUESTION_TYPE_BY_LEVEL, normalize_answer, validate_assessment_payload
 
 router = APIRouter(dependencies=[Depends(auth.require_admin)])
@@ -79,6 +79,7 @@ class QuizVocabularyWordInput(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     wordId: str | None = Field(default=None, min_length=1, max_length=200)
+    expectedRevision: str | None = Field(default=None, min_length=64, max_length=64, pattern="^[0-9a-f]{64}$")
     targetWord: str = Field(min_length=1, max_length=200)
     pinyin: str = Field(min_length=1, max_length=300)
     pos: str = Field(min_length=1, max_length=50)
@@ -236,6 +237,11 @@ def _validate_quiz_bank(assessment: list[dict]) -> None:
         )
 
 
+def _check_expected_revision(assessment: list[dict], expected_revision: str | None) -> None:
+    if expected_revision is not None and expected_revision != vocab_assessment_revision(assessment):
+        raise HTTPException(409, "Quiz vocabulary changed in another session. Refresh before saving again.")
+
+
 def _write_quiz_bank(db, story_id: str, assessment: list[dict]) -> dict:
     db.execute(
         "UPDATE custom_stories SET vocab_assessment = %s::jsonb WHERE id = %s",
@@ -296,6 +302,7 @@ async def create_quiz_vocabulary_word(story_id: str, word: QuizVocabularyWordInp
         if row is None:
             raise HTTPException(404, "Story not found.")
         assessment = _assessment_rows(row)
+        _check_expected_revision(assessment, word.expectedRevision)
         word_id = word.wordId or f"QUIZ_{uuid4().hex}"
         if any(question.get("wordId") == word_id for question in assessment):
             raise HTTPException(409, "A quiz word with this wordId already exists.")
@@ -314,6 +321,7 @@ async def update_quiz_vocabulary_word(story_id: str, word_id: str, word: QuizVoc
         if row is None:
             raise HTTPException(404, "Story not found.")
         assessment = _assessment_rows(row)
+        _check_expected_revision(assessment, word.expectedRevision)
         if not any(question.get("wordId") == word_id for question in assessment):
             raise HTTPException(404, "Quiz word not found.")
         replacement = _question_rows(word_id, word)
@@ -327,12 +335,17 @@ async def update_quiz_vocabulary_word(story_id: str, word_id: str, word: QuizVoc
 
 
 @router.delete("/api/custom-stories/{story_id}/quiz-vocabulary/{word_id}")
-async def delete_quiz_vocabulary_word(story_id: str, word_id: str):
+async def delete_quiz_vocabulary_word(
+    story_id: str,
+    word_id: str,
+    expected_revision: str | None = Query(default=None, alias="expectedRevision", min_length=64, max_length=64, pattern="^[0-9a-f]{64}$"),
+):
     with connect_db() as db:
         row = db.execute("SELECT * FROM custom_stories WHERE id = %s FOR UPDATE", (story_id,)).fetchone()
         if row is None:
             raise HTTPException(404, "Story not found.")
         assessment = _assessment_rows(row)
+        _check_expected_revision(assessment, expected_revision)
         updated_assessment = [
             question for question in assessment if question.get("wordId") != word_id
         ]
