@@ -16,7 +16,12 @@ from vocab_assessment import normalize_answer, numeric_to_tone_marked
 _ROUND_FACTS = {
     "tier1": ("tier1", "know_it", "meaning", "basic_meaning_mcq"),
     "tier2": ("tier2", "say_it", "pinyin_production", "character_to_pinyin_typing"),
-    "tier3": ("tier3", "use_it", "contextual_recall", "contextual_productive_recall"),
+    # Round 3 is a multiple-choice context cloze, not free-text hanzi typing —
+    # most students have no Chinese IME, so a bare text input made the round
+    # unplayable. The question kind here must match bkt.py's TYPED_QUESTION_TYPES
+    # membership: "context_cloze_mcq" is guessable (MCQ guess/slip), unlike the
+    # old "contextual_productive_recall" typed rate this round used to get.
+    "tier3": ("tier3", "use_it", "contextual_recall", "context_cloze_mcq"),
 }
 
 # The published quiz bank tags each assessment question with its own difficulty
@@ -82,7 +87,11 @@ def _diagnostic_source(
 def _accepted_answers(item: dict[str, Any], mode: str) -> tuple[str, list[str]]:
     if mode == "tier2":
         pinyin = str(item.get("pinyin") or "").strip()
-        accepted = [pinyin, *(part.strip() for part in pinyin.split("/"))]
+        accepted = [
+            pinyin,
+            *(part.strip() for part in pinyin.split("/")),
+            *(str(value).strip() for value in (item.get("acceptedAnswers") or [])),
+        ]
         return pinyin, list(dict.fromkeys(value for value in accepted if value))
     correct_answer = str(item.get("correctAnswer") or "")
     accepted = [str(value) for value in (item.get("acceptedAnswers") or [correct_answer]) if value is not None]
@@ -149,7 +158,18 @@ def resolve_assessment_response(db: Any, attempt: Any, submitted: dict[str, Any]
         if mode == "tier2"
         else str(item.get("prompt") or "")
     )
-    options = list(item.get("options") or []) if mode in {"tier1", "weak_words"} else []
+    if mode in {"tier1", "weak_words"}:
+        options = list(item.get("options") or [])
+    elif mode == "tier3":
+        # `item` here is the round's hard-level bank row, which carries no
+        # options (it's the free-text productive_recall entry) — Round 3's
+        # actual MCQ choices are client-built from lesson + medium-level bank
+        # data (see model.ts's buildDiagnosticRoundQuestions). presentedOptions
+        # is harmless audit metadata, not authoritative for grading, so trust
+        # what was submitted rather than re-deriving the same construction here.
+        options = [value for value in (submitted.get("presentedOptions") or []) if isinstance(value, str)]
+    else:
+        options = []
     return {
         # Keep harmless audit fields such as response time, then overwrite
         # every field that can affect correctness, identity, or BKT routing.

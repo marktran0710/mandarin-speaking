@@ -97,6 +97,31 @@ def _replace_csv_value(questions, *, question_id, field, value):
     return parse_vocab_assessment_csv(output.getvalue())
 
 
+def _current_workbook_questions():
+    """Convert the valid legacy fixture to the current workbook round shapes."""
+    rows = [dict(question.raw) for question in _questions()]
+    for row in rows:
+        if row["level"] == "medium":
+            row.update({
+                "question_type": "character_to_pinyin_typing",
+                "answer_format": "free_text",
+                "options_json": "[]",
+                "correct_answer": row["pinyin"],
+                "accepted_answers_json": json.dumps([row["pinyin"]]),
+            })
+        elif row["level"] == "hard":
+            row.update({
+                "question_type": "context_cloze_mcq",
+                "answer_format": "single_choice",
+                "options_json": json.dumps([row["target_word"], "wrong one", "wrong two", "wrong three"], ensure_ascii=False),
+            })
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=rows[0].keys())
+    writer.writeheader()
+    writer.writerows(rows)
+    return parse_vocab_assessment_csv(output.getvalue())
+
+
 def test_parser_builds_the_fixed_three_level_assessment():
     questions = _questions()
 
@@ -118,6 +143,36 @@ def test_ba_has_all_three_question_shapes_and_hard_has_no_options():
     assert ba[0].answer_format == ba[1].answer_format == "single_choice"
     assert ba[2].answer_format == "free_text"
     assert ba[2].options == ()
+
+
+def test_current_workbook_round_shapes_are_valid():
+    questions = _current_workbook_questions()
+
+    assert validate_vocab_assessment(questions) == []
+    sample = [question for question in questions if question.word_id == "MC1_001"]
+    assert [(question.level, question.question_type, question.answer_format) for question in sample] == [
+        ("Easy", "basic_meaning_mcq", "single_choice"),
+        ("Medium", "character_to_pinyin_typing", "free_text"),
+        ("Hard", "context_cloze_mcq", "single_choice"),
+    ]
+
+
+def test_question_type_cannot_be_used_at_the_wrong_round_or_with_wrong_input_mode():
+    wrong_level = _replace_csv_value(
+        _current_workbook_questions(),
+        question_id="MC1_001_MEDIUM",
+        field="question_type",
+        value="productive_recall",
+    )
+    wrong_format = _replace_csv_value(
+        _current_workbook_questions(),
+        question_id="MC1_001_HARD",
+        field="answer_format",
+        value="free_text",
+    )
+
+    assert "INVALID_QUESTION_TYPE" in {issue.code for issue in validate_vocab_assessment(wrong_level)}
+    assert "INVALID_ANSWER_FORMAT" in {issue.code for issue in validate_vocab_assessment(wrong_format)}
 
 
 def test_alternative_traditional_answers_and_presentation_normalization_are_accepted():

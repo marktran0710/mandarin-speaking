@@ -35,6 +35,22 @@ QUESTION_TYPE_BY_LEVEL = {
     "Medium": "context_cloze_mcq",
     "Hard": "productive_recall",
 }
+# ``QUESTION_TYPE_BY_LEVEL`` remains the legacy/default mapping used by API
+# fallback content. Imported banks may use either the original three rounds or
+# the workbook's current production sequence, however. Keep the allowed
+# question type and input mode together so a type cannot silently move to an
+# incompatible round or UI control.
+_VALID_QUESTION_SHAPES_BY_LEVEL = {
+    "Easy": frozenset({("basic_meaning_mcq", "single_choice")}),
+    "Medium": frozenset({
+        ("context_cloze_mcq", "single_choice"),  # legacy banks
+        ("character_to_pinyin_typing", "free_text"),  # current workbook
+    }),
+    "Hard": frozenset({
+        ("productive_recall", "free_text"),  # legacy banks
+        ("context_cloze_mcq", "single_choice"),  # current workbook
+    }),
+}
 _REQUIRED_COLUMNS = frozenset({
     "word_id", "target_word", "pinyin", "pos", "simple_english_meaning",
     "level", "difficulty_weight", "question_type", "answer_format", "prompt",
@@ -45,8 +61,10 @@ _S2T = OpenCC("s2t") if OpenCC is not None else None
 # OpenCC's s2t dictionary prefers alternate forms for a few characters that
 # are standard in the supplied Taiwan-oriented course material. Keep the
 # textbook spellings accepted instead of rewriting the source content:
-# 喫/吃, 牀/床, and 臺/台.
-_TRADITIONAL_VARIANT_CHARACTERS = frozenset({"吃", "床", "台"})
+# 喫/吃, 牀/床, 臺/台, 晒/曬 (the supplied lesson 5-3 variant), and 游 in
+# the textbook's standard 游泳 spelling (OpenCC maps the single character to
+# 遊 even though 游泳 is the source's intended Traditional form).
+_TRADITIONAL_VARIANT_CHARACTERS = frozenset({"吃", "床", "台", "晒", "游"})
 
 
 @dataclass(frozen=True)
@@ -355,10 +373,19 @@ def validate_vocab_assessment(questions: Sequence[VocabularyQuestion]) -> list[A
             issues.append(AssessmentValidationIssue("MISSING_REQUIRED_VALUE", "Question has an empty required value.", question_id, question.word_id))
         if question.difficulty_weight != {"Easy": 1, "Medium": 2, "Hard": 3}.get(question.level):
             issues.append(AssessmentValidationIssue("INVALID_DIFFICULTY_WEIGHT", "Difficulty weight must match its level.", question_id, question.word_id))
-        if question.level in QUESTION_TYPE_BY_LEVEL and question.question_type != QUESTION_TYPE_BY_LEVEL[question.level]:
+        allowed_shapes = _VALID_QUESTION_SHAPES_BY_LEVEL.get(question.level, frozenset())
+        allowed_types = {question_type for question_type, _ in allowed_shapes}
+        if question.level in LEVELS and question.question_type not in allowed_types:
             issues.append(AssessmentValidationIssue(
                 "INVALID_QUESTION_TYPE",
-                f"{question.level} observations must use {QUESTION_TYPE_BY_LEVEL[question.level]}.",
+                f"{question.level} observations do not support {question.question_type}.",
+                question_id,
+                question.word_id,
+            ))
+        elif question.level in LEVELS and (question.question_type, question.answer_format) not in allowed_shapes:
+            issues.append(AssessmentValidationIssue(
+                "INVALID_ANSWER_FORMAT",
+                f"{question.question_type} observations at {question.level} must use its supported answer format.",
                 question_id,
                 question.word_id,
             ))
@@ -369,20 +396,21 @@ def validate_vocab_assessment(questions: Sequence[VocabularyQuestion]) -> list[A
             issues.append(AssessmentValidationIssue("SIMPLIFIED_CHINESE", "Assessment content must use Traditional Chinese.", question_id, question.word_id))
 
         normalized_options = [normalize_answer(option) for option in question.options]
-        if question.level in MCQ_LEVELS:
-            if question.answer_format != "single_choice":
-                issues.append(AssessmentValidationIssue("INVALID_MCQ_FORMAT", "Easy and Medium observations must be single-choice MCQs.", question_id, question.word_id))
+        if question.answer_format == "single_choice":
             if len(question.options) != 4 or any(not option for option in question.options):
                 issues.append(AssessmentValidationIssue("INVALID_MCQ_OPTIONS", "MCQs require exactly four non-empty options.", question_id, question.word_id))
             if len(normalized_options) != len(set(normalized_options)):
                 issues.append(AssessmentValidationIssue("DUPLICATE_MCQ_OPTIONS", "MCQ options must be unique after answer normalization.", question_id, question.word_id))
             if normalized_options.count(normalize_answer(question.correct_answer)) != 1:
                 issues.append(AssessmentValidationIssue("INVALID_MCQ_CORRECT_OPTION", "MCQs must contain exactly one canonical correct option.", question_id, question.word_id))
-        elif question.level == "Hard":
-            if question.answer_format != "free_text":
-                issues.append(AssessmentValidationIssue("INVALID_HARD_FORMAT", "Hard observations must use free text.", question_id, question.word_id))
+        elif question.answer_format == "free_text":
             if question.options:
-                issues.append(AssessmentValidationIssue("HARD_HAS_OPTIONS", "Hard observations must not expose options.", question_id, question.word_id))
+                issues.append(AssessmentValidationIssue(
+                    "HARD_HAS_OPTIONS" if question.level == "Hard" else "FREE_TEXT_HAS_OPTIONS",
+                    "Free-text questions must not expose options.",
+                    question_id,
+                    question.word_id,
+                ))
 
     for word_id, observations in by_word.items():
         levels = [observation.level for observation in observations]

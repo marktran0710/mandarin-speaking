@@ -52,6 +52,22 @@ def test_authoritative_resolver_ignores_client_correctness_and_metadata(assessme
     assert resolved["resolverVersion"] == ASSESSMENT_RESOLVER_VERSION
 
 
+def test_tier2_uses_published_optional_pinyin_forms():
+    assessment = [{
+        "questionId": "TV_MEDIUM", "wordId": "tv", "targetWord": "電視(機)",
+        "level": "medium", "questionType": "character_to_pinyin_typing", "answerFormat": "free_text",
+        "pinyin": "diànshì(jī)", "acceptedAnswers": ["diànshì(jī)", "diànshìjī", "diànshì"],
+        "correctAnswer": "diànshì(jī)", "prompt": "Type the pinyin.",
+    }]
+
+    resolved = resolve_assessment_response(_Db(assessment), _attempt("tier2"), {
+        "itemId": "TV_MEDIUM", "selectedAnswer": "diànshì",
+    })
+
+    assert resolved["correct"] is True
+    assert resolved["correctAnswer"] == "diànshì(jī)"
+
+
 @pytest.mark.parametrize("submitted", [
     {"itemId": "GONE", "selectedAnswer": "right"},
     {"itemId": "WORD_EASY", "selectedAnswer": "right"},
