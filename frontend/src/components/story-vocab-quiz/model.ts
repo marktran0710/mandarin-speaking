@@ -215,6 +215,13 @@ const FILLER_DISTRACTORS = [
   "happy", "morning", "money", "food", "family",
   "teacher", "street", "weather", "car", "phone",
 ];
+// Last-resort Round 3 (cloze MCQ) distractors when a lesson is too small to
+// supply enough of its own word forms — generic A1 nouns unlikely to collide
+// with real lesson vocabulary.
+const FILLER_CLOZE_WORDS = [
+  "蘋果", "電腦", "老師", "朋友", "杯子",
+  "椅子", "鉛筆", "眼鏡", "雨傘", "公車",
+];
 
 export const TIER_CARDS: Array<{
   mode: TierMode;
@@ -299,6 +306,8 @@ export function buildAssessmentQuestions(
 const ASSESSMENT_LEVEL_BY_DIAGNOSTIC_KIND: Partial<Record<string, VocabAssessmentLevel>> = {
   basic_meaning_mcq: "easy",
   character_to_pinyin_typing: "medium",
+  context_cloze_mcq: "hard",
+  productive_recall: "hard",
   contextual_productive_recall: "hard",
 };
 
@@ -382,6 +391,7 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
   const config = DIAGNOSTIC_ROUNDS[mode];
   const uniqueEntries = Array.from(new Map(entries.map((entry) => [entry.wordId ?? quizConceptId(entry.word), entry])).values());
   const translationPool = uniqueEntries.map((entry) => entry.translation).filter(Boolean);
+  const clozeWordPool = uniqueEntries.map((entry) => vocabularyForms(entry.word)[0]).filter(Boolean);
   const questions = uniqueEntries.map((entry) => {
     const source = entry.assessmentQuestions?.find((assessment) => assessment.level === config.bankLevel);
     const wordId = entry.wordId ?? quizConceptId(entry.word);
@@ -407,7 +417,11 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
       // snapshot omitted it; the word itself is a temporary answer sentinel
       // and will be replaced as soon as the canonical pinyin cache is warm.
       const pinyin = entry.pinyin || source?.pinyin || toPinyin(entry.word) || entry.word;
-      const acceptedAnswers = Array.from(new Set([pinyin, ...pinyin.split("/").map((value) => value.trim()).filter(Boolean)]));
+      const acceptedAnswers = Array.from(new Set([
+        pinyin,
+        ...pinyin.split("/").map((value) => value.trim()).filter(Boolean),
+        ...(source?.acceptedAnswers ?? []),
+      ]));
       return {
         questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin,
         pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.bankLevel, difficultyWeight: 2 as const,
@@ -415,18 +429,35 @@ export function buildDiagnosticRoundQuestions(entries: VocabQuizEntry[], mode: T
         correctAnswer: pinyin, acceptedAnswers, explanation: `The pinyin for ${entry.word} is ${pinyin}.`,
       };
     }
-    const sourceCloze = lessonCloze(entry);
-    const correctAnswer = sourceCloze?.answer || source?.correctAnswer || vocabularyForms(entry.word)[0] || entry.word;
+    // Round 3 ("use it") is a multiple-choice context cloze, not free-text
+    // hanzi typing — most students have no Chinese IME. The current workbook
+    // stores that complete MCQ on the hard-level row, so use it as-is. Older
+    // banks stored a productive-recall hard row and kept the approved cloze
+    // options on the medium-level row; retain that fallback for those banks.
+    const hardClozeSource = source?.questionType === "context_cloze_mcq" && source.answerFormat === "single_choice"
+      ? source
+      : undefined;
+    const mcqSource = hardClozeSource ?? entry.assessmentQuestions?.find(
+      (assessment) => assessment.level === "medium" && assessment.questionType === "context_cloze_mcq",
+    );
+    const sourceCloze = hardClozeSource ? null : lessonCloze(entry);
+    const correctAnswer = hardClozeSource?.correctAnswer || sourceCloze?.answer || source?.correctAnswer || vocabularyForms(entry.word)[0] || entry.word;
     const acceptedAnswers = Array.from(new Set([
       correctAnswer,
       ...(source?.acceptedAnswers || []),
       ...vocabularyForms(entry.word),
     ]));
+    const otherWordForms = clozeWordPool.filter((word) => word !== correctAnswer);
+    const sourceOptions = mcqSource?.options?.length === OPTION_COUNT && mcqSource.correctAnswer === correctAnswer
+      ? mcqSource.options
+      : [correctAnswer, ...(mcqSource?.options ?? []).filter((option) => option !== mcqSource?.correctAnswer), ...otherWordForms];
+    const options = Array.from(new Set([...sourceOptions, ...FILLER_CLOZE_WORDS])).slice(0, OPTION_COUNT);
+    while (options.length < OPTION_COUNT) options.push(`詞${options.length + 1}`);
     return {
       questionId: diagnosticQuestionId(entry, mode), wordId, targetWord: entry.word, pinyin: entry.pinyin || toPinyin(entry.word),
       pos: entry.pos || source?.pos || "", simpleEnglishMeaning: entry.translation, level: config.bankLevel, difficultyWeight: 3 as const,
-      questionType: config.questionKind, answerFormat: "free_text" as const, prompt: sourceCloze?.prompt || source?.prompt || `Use the Chinese word for “${entry.translation}” in the sentence.`, options: [],
-      correctAnswer, acceptedAnswers,
+      questionType: config.questionKind, answerFormat: "single_choice" as const, prompt: hardClozeSource?.prompt || sourceCloze?.prompt || source?.prompt || `Use the Chinese word for “${entry.translation}” in the sentence.`,
+      options: seededShuffle(options, `${wordId}:use_it:options`), correctAnswer, acceptedAnswers,
       explanation: source?.explanation || `Use ${correctAnswer} in this context.`,
     };
   });
@@ -675,7 +706,9 @@ function pickQuestionKind(entry: VocabQuizEntry, allEntries: VocabQuizEntry[], m
     ? available.filter(([kind]) => (entry.bktFailedQuestionKinds ?? []).some((failedKind) =>
       failedKind === kind
       || (failedKind === "character_to_pinyin_typing" && kind === "pinyin")
-      || (failedKind === "contextual_productive_recall" && kind === "cloze"),
+      || ((failedKind === "contextual_productive_recall"
+        || failedKind === "context_cloze_mcq"
+        || failedKind === "productive_recall") && kind === "cloze"),
     ))
     : [];
   const unseen = mode === "weak_words"
