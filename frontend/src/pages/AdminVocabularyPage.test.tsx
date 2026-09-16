@@ -129,7 +129,7 @@ describe("Admin vocabulary page", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: "Speaking story" }), "s5-delete");
     await user.click(screen.getByRole("button", { name: "Delete 桌子, quiz vocabulary" }));
     await screen.findByRole("heading", { name: "No vocabulary found" });
-    expect(deleteQuizVocabularyWord).toHaveBeenCalledWith("s5-delete", "w1");
+    expect(deleteQuizVocabularyWord).toHaveBeenCalledWith("s5-delete", "w1", undefined);
     confirm.mockRestore();
   });
   it("saves metadata with the exact source precondition then updates the table", async () => {
