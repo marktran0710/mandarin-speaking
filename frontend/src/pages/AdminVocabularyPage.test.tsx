@@ -46,7 +46,7 @@ describe("Admin vocabulary page", () => {
     await user.clear(input);
     await user.type(input, "zhuō zi");
     await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
-    await screen.findByText("Vocabulary saved. Quiz publication unchanged.");
+    await screen.findByText("Vocabulary saved.", { exact: true });
     expect(updateVocabularyMetadata).toHaveBeenCalledWith("s5", expect.objectContaining({
       frameIndex: 0, wordIndex: 0, tier: "easy", word: "桌子", pinyin: "zhuō zi",
       expected: { vocabulary: "桌子", pinyin: "zhuō zǐ", translation: "table", pos: "N" },

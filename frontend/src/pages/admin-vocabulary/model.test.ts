@@ -29,6 +29,28 @@ describe("Speaking vocabulary inventory", () => {
     expect(entries.map((entry) => entry.word)).toEqual(words);
   });
 
+  it("uses vocabAssessment as the quiz source even when its words differ from frame vocabulary", () => {
+    const storyWithAssessment = {
+      ...story,
+      frames: [{
+        imageUrl: "", prompt: "p", vocabulary: "書, 桌子, 房間", vocabularyPinyin: "shū, zhuō zi, fáng jiān",
+        vocabularyTranslation: "book, table, room", vocabularyPos: "N, N, N",
+      }],
+      vocabAssessment: [
+        { questionId: "q1", wordId: "w1", targetWord: "書", pinyin: "shū", pos: "N", simpleEnglishMeaning: "book", level: "easy", difficultyWeight: 1, questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: "", options: [], correctAnswer: "book", acceptedAnswers: ["book"], explanation: "" },
+        { questionId: "q2", wordId: "w2", targetWord: "桌子", pinyin: "zhuō zi", pos: "N", simpleEnglishMeaning: "table", level: "easy", difficultyWeight: 1, questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: "", options: [], correctAnswer: "table", acceptedAnswers: ["table"], explanation: "" },
+        { questionId: "q3", wordId: "w3", targetWord: "哪裡 / 哪兒", pinyin: "nǎlǐ / nǎr", pos: "Pron", simpleEnglishMeaning: "where", level: "easy", difficultyWeight: 1, questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: "", options: [], correctAnswer: "where", acceptedAnswers: ["where"], explanation: "" },
+      ],
+    } as StoredCustomStory;
+    const entries = buildVocabularyInventory([storyWithAssessment]);
+    expect(entries.map(e => e.word)).toEqual(["書", "桌子", "哪裡 / 哪兒"]);
+    expect(entries.every(entry => entry.source === "quiz-assessment")).toBe(true);
+    // The assessment identity lets edits update all three quiz rounds for a word.
+    const table = entries.find(e => e.word === "桌子")!;
+    expect(table.assessmentWordId).toBe("w2");
+    expect(table.expected).toEqual({ vocabulary: "桌子", pinyin: "zhuō zi", translation: "table", pos: "N" });
+  });
+
   it("preserves blank positions and only surfaces the single canonical level", () => {
     const entries = buildVocabularyInventory([story]);
     const table = entries.find(e => e.word === "桌子")!;

@@ -34,6 +34,7 @@ export default function VocabularyEditor({ entry, onClose, onSaved }: {
       const story = await updateVocabularyMetadata(entry.storyId, {
         frameIndex: entry.frameIndex, wordIndex: entry.wordIndex, word: entry.word, tier: entry.tier,
         storyWide: entry.storyWide,
+        assessmentWordId: entry.assessmentWordId,
         expected: entry.expected, pinyin: pinyin.trim(), translation: translation.trim(), pos: pos.trim(),
       });
       onSaved(story);
@@ -46,7 +47,7 @@ export default function VocabularyEditor({ entry, onClose, onSaved }: {
     <form className="av-editor" onSubmit={save} aria-busy={saving}>
       <dl className="av-context">
         <div><dt>Speaking</dt><dd>{entry.storyTitle}</dd></div>
-        <div><dt>Scene / level</dt><dd>{entry.storyWide ? "Story-wide" : entry.frameIndex + 1} / {entry.tier}</dd></div>
+        <div><dt>Vocabulary source</dt><dd>{entry.source === "quiz-assessment" ? "Quiz bank" : entry.storyWide ? "Story-wide" : `Scene ${entry.frameIndex + 1}`}</dd></div>
         <div><dt>Book source</dt><dd>{source ? `${source.book}, p. ${source.page} (${source.kind})` : "Not verified"}</dd></div>
         <div><dt>Example</dt><dd lang="zh-Hant">{entry.context || "No example"}</dd></div>
       </dl>
@@ -59,8 +60,8 @@ export default function VocabularyEditor({ entry, onClose, onSaved }: {
         </select></label>
       </fieldset>
       <dl className="av-context av-save-scope">
-        <div><dt>Update scope</dt><dd>{entry.storyWide ? "Story-wide vocabulary" : `Scene ${entry.frameIndex + 1}`}, {entry.tier}{entry.tier === "easy" ? " and inherited fields" : " only"}</dd></div>
-        <div><dt>Quiz publication</dt><dd>Unchanged</dd></div>
+        <div><dt>Update scope</dt><dd>{entry.source === "quiz-assessment" ? "Quiz vocabulary for this word" : entry.storyWide ? "Story-wide vocabulary" : `Scene ${entry.frameIndex + 1}`}</dd></div>
+        <div><dt>Quiz publication</dt><dd>{entry.source === "quiz-assessment" ? "Updated for all three rounds" : "Unchanged"}</dd></div>
       </dl>
       {error && <p className="av-error" role="alert">{error}</p>}
       <div className="av-editor-actions">

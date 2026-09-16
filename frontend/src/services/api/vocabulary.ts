@@ -5,6 +5,7 @@ export interface VocabularyMetadataEdit {
   frameIndex: number;
   wordIndex: number;
   storyWide?: boolean;
+  assessmentWordId?: string;
   tier: "easy" | "medium" | "hard";
   word: string;
   expected: { vocabulary: string; pinyin: string; translation: string; pos: string };

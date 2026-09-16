@@ -108,10 +108,12 @@ export default function QuestionPreview({ entry, story, onClose }: {
     // story types are declared separately, so bridge them structurally.
     const topic = storyToTopic(story as unknown as CustomTeacherStory, "easy", "live");
     const entries = topicQuizEntries(topic);
-    const wordEntry = entries.find((candidate) => candidate.word === entry.word);
+    const wordEntry = entry.assessmentWordId
+      ? entries.find((candidate) => candidate.wordId === entry.assessmentWordId)
+      : entries.find((candidate) => candidate.word === entry.word);
     if (!wordEntry) return { rounds: [], practice: [], entries: entries.length };
     return { ...buildWordQuestionVariants(wordEntry, entries), entries: entries.length };
-  }, [story, entry.word]);
+  }, [story, entry.word, entry.assessmentWordId]);
 
   return (
     <Modal open title={`Quiz questions: ${entry.word}`} onClose={onClose}>

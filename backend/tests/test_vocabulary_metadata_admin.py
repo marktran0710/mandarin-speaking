@@ -18,7 +18,11 @@ def story():
                         "vocabularyTranslation": "book, , table", "vocabularyPos": "N, , N",
                         "prompt": "unchanged", "vocabularySynonym": "[[], [], []]"}],
             "quiz_approved_snapshot": {"easy": [{"word": "table", "translation": "old"}]},
-            "vocab_assessment": [{"word": "table", "correctAnswer": "old"}],
+            "vocab_assessment": [
+                {"wordId": "w1", "targetWord": "table", "pinyin": "zhuo zi", "pos": "N", "simpleEnglishMeaning": "table", "questionType": "basic_meaning_mcq", "correctAnswer": "table", "acceptedAnswers": ["table"], "options": ["table", "book"]},
+                {"wordId": "w1", "targetWord": "table", "pinyin": "zhuo zi", "pos": "N", "simpleEnglishMeaning": "table", "questionType": "character_to_pinyin_typing", "correctAnswer": "zhuo zi", "acceptedAnswers": ["zhuo zi"], "options": []},
+                {"wordId": "w1", "targetWord": "table", "pinyin": "zhuo zi", "pos": "N", "simpleEnglishMeaning": "table", "questionType": "contextual_productive_recall", "correctAnswer": "table", "acceptedAnswers": ["table"], "options": []},
+            ],
             "story_vocabulary": {"easy": {"vocabulary": "table"}}}
 
 
@@ -34,6 +38,9 @@ def api(monkeypatch, story):
                 if "story_vocabulary = jsonb_set" in sql:
                     field, value, _ = params
                     state["story_vocabulary"].setdefault("easy", {})[field] = value
+                elif "vocab_assessment = %s::jsonb" in sql:
+                    value = params[0].obj if hasattr(params[0], "obj") else params[0]
+                    state["vocab_assessment"] = value
                 else:
                     index, field, value, _ = params
                     state["frames"][int(index)][field] = value
@@ -96,6 +103,23 @@ def test_edits_story_wide_metadata_used_by_quiz_rounds(api, story):
         "vocabularyTranslation": "desk", "vocabularyPos": "N",
     }
     assert any("story_vocabulary = jsonb_set" in sql for sql in statements)
+
+
+def test_edits_quiz_assessment_metadata_used_by_all_rounds(api, story):
+    client, state, statements = api
+    edit = {
+        "frameIndex": 0, "wordIndex": 0, "assessmentWordId": "w1", "tier": "easy", "word": "table",
+        "expected": {"vocabulary": "table", "pinyin": "zhuo zi", "translation": "table", "pos": "N"},
+        "pinyin": "zhuō zi", "translation": "desk", "pos": "N",
+    }
+    result = client.patch("/api/custom-stories/book-story/vocabulary-metadata", json=edit)
+    assert result.status_code == 200
+    assert all(row["pinyin"] == "zhuō zi" and row["simpleEnglishMeaning"] == "desk" for row in state["vocab_assessment"])
+    easy, medium, hard = state["vocab_assessment"]
+    assert easy["correctAnswer"] == "desk" and "desk" in easy["options"]
+    assert medium["correctAnswer"] == "zhuō zi" and medium["acceptedAnswers"] == ["zhuō zi"]
+    assert hard["correctAnswer"] == "table"
+    assert any("vocab_assessment = %s::jsonb" in sql for sql in statements)
 
 
 @pytest.mark.parametrize("changes,status", [
