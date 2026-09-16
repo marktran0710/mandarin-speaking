@@ -51,6 +51,37 @@ describe("Speaking vocabulary inventory", () => {
     expect(table.expected).toEqual({ vocabulary: "桌子", pinyin: "zhuō zi", translation: "table", pos: "N" });
   });
 
+  it("uses each lesson part's quiz bank independently", () => {
+    const assessmentQuestion = (questionId: string, wordId: string, targetWord: string, pinyin: string, meaning: string) => ({
+      questionId, wordId, targetWord, pinyin, pos: "N", simpleEnglishMeaning: meaning,
+      level: "easy" as const, difficultyWeight: 1, questionType: "basic_meaning_mcq" as const,
+      answerFormat: "single_choice" as const, prompt: "", options: [], correctAnswer: meaning,
+      acceptedAnswers: [meaning], explanation: "",
+    });
+    const assessedStories = [
+      { ...story, id: "lesson-1-part-2", lessonNumber: 1, lessonSubOrder: 2, vocabAssessment: [
+        assessmentQuestion("l1-easy", "l1-word", "朋友", "péngyou", "friend"),
+        assessmentQuestion("l1-medium", "l1-word", "朋友", "péngyou", "friend"),
+        assessmentQuestion("l1-hard", "l1-word", "朋友", "péngyou", "friend"),
+      ] },
+      { ...story, id: "lesson-6-part-1", lessonNumber: 6, lessonSubOrder: 1, vocabAssessment: [
+        assessmentQuestion("l6-easy", "l6-word", "游泳", "yóuyǒng", "swim"),
+        assessmentQuestion("l6-medium", "l6-word", "游泳", "yóuyǒng", "swim"),
+        assessmentQuestion("l6-hard", "l6-word", "游泳", "yóuyǒng", "swim"),
+      ] },
+    ] as StoredCustomStory[];
+
+    const entries = buildVocabularyInventory([...assessedStories, story]);
+    expect(entries.filter(entry => entry.source === "quiz-assessment")).toMatchObject([
+      { storyId: "lesson-1-part-2", lessonNumber: 1, lessonSubOrder: 2, word: "朋友", assessmentWordId: "l1-word" },
+      { storyId: "lesson-6-part-1", lessonNumber: 6, lessonSubOrder: 1, word: "游泳", assessmentWordId: "l6-word" },
+    ]);
+    // One row per wordId mirrors the live quiz even though it stores three rounds.
+    expect(entries.filter(entry => entry.source === "quiz-assessment")).toHaveLength(2);
+    // A legacy story without an assessment still keeps its own authored source.
+    expect(entries.filter(entry => entry.storyId === story.id).every(entry => entry.source === "scene-vocabulary")).toBe(true);
+  });
+
   it("preserves blank positions and only surfaces the single canonical level", () => {
     const entries = buildVocabularyInventory([story]);
     const table = entries.find(e => e.word === "桌子")!;

@@ -34,6 +34,24 @@ describe("Admin vocabulary page", () => {
     expect(screen.queryByRole("button", { name: /Edit 桌子/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Edit 游泳/ })).toBeInTheDocument();
   });
+  it("labels assessment-backed vocabulary as the quiz bank for every lesson part", async () => {
+    vi.mocked(listVocabularyStories).mockResolvedValue([{
+      ...stories[1], lessonSubOrder: 2,
+      frames: [{ imageUrl: "", prompt: "", vocabulary: "材料用字", vocabularyPinyin: "cái liào", vocabularyTranslation: "material", vocabularyPos: "N" }],
+      vocabAssessment: [
+        { questionId: "l6-1-easy", wordId: "l6-1-swim", targetWord: "游泳", pinyin: "yóuyǒng", pos: "V", simpleEnglishMeaning: "swim", level: "easy", difficultyWeight: 1, questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: "", options: [], correctAnswer: "swim", acceptedAnswers: ["swim"], explanation: "" },
+        { questionId: "l6-1-medium", wordId: "l6-1-swim", targetWord: "游泳", pinyin: "yóuyǒng", pos: "V", simpleEnglishMeaning: "swim", level: "easy", difficultyWeight: 1, questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: "", options: [], correctAnswer: "swim", acceptedAnswers: ["swim"], explanation: "" },
+        { questionId: "l6-1-hard", wordId: "l6-1-swim", targetWord: "游泳", pinyin: "yóuyǒng", pos: "V", simpleEnglishMeaning: "swim", level: "easy", difficultyWeight: 1, questionType: "basic_meaning_mcq", answerFormat: "single_choice", prompt: "", options: [], correctAnswer: "swim", acceptedAnswers: ["swim"], explanation: "" },
+      ],
+    }]);
+    const user = userEvent.setup();
+    render(<AdminVocabularyPage />);
+    await screen.findByText("1 entries / 1 unique words");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Lesson" }), "6");
+    expect(screen.getByText("游泳")).toBeInTheDocument();
+    expect(screen.getByText((_, element) => element?.tagName === "SMALL" && element.textContent === "6-2 / Quiz bank")).toBeInTheDocument();
+    expect(screen.queryByText("材料用字")).not.toBeInTheDocument();
+  });
   it("saves metadata with the exact source precondition then updates the table", async () => {
     const user = userEvent.setup();
     const saved = structuredClone(stories[0]);
