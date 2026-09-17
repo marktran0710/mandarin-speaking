@@ -57,9 +57,13 @@ function WeakWordsCard({ weakEntries, priorityReviewWords, interimReviewEntries,
 
 /** Spaced-repetition maintenance: words the schedule says are due today
  * (including already-mastered ones). Shown apart from weak words so a
- * due-but-mastered word is never labelled "weak". Hidden when nothing is due. */
+ * due-but-mastered word is never labelled "weak". The caller decides whether
+ * to render this at all (matching QuizChallengeCard's contract below) so
+ * there is exactly one place — not this component's own early-return plus a
+ * second, hand-duplicated check at the call site — that decides whether a
+ * due-review card is on screen. Two copies of the same condition is how the
+ * secondary-grid's card count used to drift from what actually rendered. */
 function DueReviewCard({ dueWords, chooseDueReview }: { dueWords: ReviewQueueItem[]; chooseDueReview: () => void }) {
-  if (dueWords.length === 0) return null;
   return (
     <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-due-review" onClick={chooseDueReview}>
       <span className="vocab-quiz-mode-icon"><StudentIcon name="clock" size={30} /></span>
@@ -158,6 +162,12 @@ export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = []
   const challenge = progress && startChallenge && progress.challenge.available
     ? { progress, onStart: startChallenge }
     : null;
+  const hasDueReview = dueWords.length > 0;
+  // 生詞表 + weak words card always render; due-review and challenge are each
+  // optional, so the secondary row holds 2-4 cards. hasDueReview/challenge
+  // are the SAME booleans the JSX below uses to decide whether to render
+  // each card — this count can't drift from what's actually on screen.
+  const secondaryCardCount = 2 + (hasDueReview ? 1 : 0) + (challenge ? 1 : 0);
 
   return (
     <section className="story-vocab-quiz vocab-quiz-mode-select" aria-label="Vocabulary quiz">
@@ -211,7 +221,11 @@ export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = []
         })}
       </div>
 
-      <div className={`vocab-quiz-secondary-grid${challenge ? " has-challenge" : ""}`} role="group" aria-label="More practice">
+      {/* 生詞表 + weak words always render; due-review and challenge are each
+          optional (0-4 cards total). Column count is chosen from the actual
+          count, not from any one card's presence, so a row never ends with a
+          single leftover card — 3 cards fill a row of 3, 2 or 4 fill rows of 2. */}
+      <div className={`vocab-quiz-secondary-grid${secondaryCardCount === 3 ? " is-triple" : ""}`} role="group" aria-label="More practice">
         <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-review" onClick={showReview}>
           <span className="vocab-quiz-mode-icon"><StudentIcon name={REVIEW_CARD.iconName} size={30} /></span>
           <strong><BiLabel zh={REVIEW_CARD.title} pinyin={REVIEW_CARD.titlePinyin} en={REVIEW_CARD.titleEn} /></strong>
@@ -225,7 +239,7 @@ export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = []
           chooseWeakWords={chooseWeakWords}
           chooseInterimReview={chooseInterimReview}
         />
-        <DueReviewCard dueWords={dueWords} chooseDueReview={chooseDueReview ?? (() => {})} />
+        {hasDueReview && <DueReviewCard dueWords={dueWords} chooseDueReview={chooseDueReview ?? (() => {})} />}
         {challenge && <QuizChallengeCard progress={challenge.progress} onStart={challenge.onStart} />}
       </div>
 
