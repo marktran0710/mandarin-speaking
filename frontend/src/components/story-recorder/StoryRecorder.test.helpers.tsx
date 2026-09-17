@@ -76,7 +76,7 @@ async function completeVocabQuiz(user: UserEvent) {
   await user.click(await screen.findByRole("button", { name: /Continue to Round 2/ }));
   await passTierRun(user, 22);
 
-  await user.click(await screen.findByRole("button", { name: /Continue to Round 3/ }));
+  await user.click(await screen.findByRole("button", { name: /Continue to Context/ }));
   await passTierRun(user, 25);
 
   // The current results flow opens the lesson-progress menu after Round 3;
