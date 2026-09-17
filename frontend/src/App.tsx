@@ -305,6 +305,18 @@ export default function App() {
     setActiveRole("student");
     setStudentWorkspaceView("practice");
     setCurrentPage("student-workspace");
+    // The history entry current at login time still carries the pre-login
+    // "home" snapshot written on mount (nothing else replaces it). Left
+    // alone, a single Back out of a story pops straight to that stale
+    // entry and bounces a signed-in student to the marketing page instead
+    // of their workspace.
+    if (typeof window !== "undefined") {
+      replaceHistorySnapshot(STUDENT_APP_HISTORY_KEY, {
+        currentPage: "student-workspace",
+        studentWorkspaceView: "practice",
+        practiceTarget: null,
+      });
+    }
   };
 
   const handleLogout = () => {

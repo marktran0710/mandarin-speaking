@@ -45,6 +45,51 @@ describe("App role flows", () => {
     window.history.pushState({}, "", "/");
   });
 
+  it("replaces the pre-login history entry on login, so Back out of a story doesn't bounce to the marketing page", async () => {
+    // Before this fix: the browser history entry created on first mount
+    // (while logged out) keeps its "home" snapshot forever, because
+    // handleLogin only updates React state. Once a story pushes one more
+    // history entry, a single Back from that story pops straight to the
+    // stale pre-login "home" entry — landing a signed-in student back on
+    // the anonymous marketing page instead of their workspace.
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/api/students/login")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            id: "student-1",
+            name: "Student Demo",
+            createdAt: "2026-01-01T00:00:00.000Z",
+            status: "active",
+          }),
+        } as Response;
+      }
+      return { ok: false, status: 404, json: async () => ({}) } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: /Student Login/ }));
+    await user.type(screen.getByLabelText(/Student name/), "Student Demo");
+    await user.type(screen.getByLabelText(/Password/), "123456");
+    await user.click(
+      screen.getByRole("button", { name: /Enter Student Mode/ }),
+    );
+
+    await waitFor(() => {
+      expect(
+        (window.history.state as Record<string, unknown> | null)
+          ?.mandarinApp,
+      ).toMatchObject({ currentPage: "student-workspace" });
+    });
+
+    vi.unstubAllGlobals();
+  });
+
   it.skip("lets a student enter the learning app with the default profile", async () => {
     const user = userEvent.setup();
     render(<App />);
