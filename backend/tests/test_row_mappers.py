@@ -106,11 +106,34 @@ def test_row_to_audio_record_shape():
         "audio_url": "/uploads/audio/r1.wav",
         "praat_metrics": {"toneAccuracy": 0.8},
         "student_id": None,
+        "server_verified_at": "2026-09-18T00:00:00+00:00",
+        "audio_sha256": "abc123",
+        "server_verification_version": "v1",
     }
     result = database.row_to_audio_record(row)
     assert result["praatMetrics"] == {"toneAccuracy": 0.8}
     assert result["topicId"] == "teacher-s1"
     assert result["studentId"] is None
+    assert result["serverVerifiedAt"] == "2026-09-18T00:00:00+00:00"
+    assert result["audioSha256"] == "abc123"
+    assert result["serverVerificationVersion"] == "v1"
+
+
+def test_row_to_speaking_progress_exposes_verified_audio_record_id():
+    row = {
+        "student_id": "student-1",
+        "topic_id": "topic-1",
+        "scene_index": 0,
+        "attempts": 1,
+        "best_tone": 0.9,
+        "best_fluency": 0.8,
+        "mastery_passed": True,
+        "content_passed": True,
+        "cleared_words": [],
+        "updated_at": "2026-09-18 00:00:00",
+        "verified_audio_record_id": "record-1",
+    }
+    assert database.row_to_speaking_progress(row)["verifiedAudioRecordId"] == "record-1"
 
 
 def test_ensure_column_helpers_are_gone():

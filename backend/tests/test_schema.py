@@ -38,6 +38,13 @@ BOOLEAN_COLUMNS = [
     ("speaking_progress", "content_passed"),
 ]
 
+LINKAGE_COLUMNS = [
+    ("audio_records", "server_verified_at"),
+    ("audio_records", "audio_sha256"),
+    ("audio_records", "server_verification_version"),
+    ("speaking_progress", "verified_audio_record_id"),
+]
+
 REMOVED_CUSTOM_STORY_COLUMNS = (
     "learning_goal",
     "narrative_mode",
@@ -80,6 +87,17 @@ def test_flag_columns_are_boolean(conn, table, column):
     ).fetchone()
     assert row is not None, f"{table}.{column} is missing"
     assert row[0] == "boolean"
+
+
+@pytest.mark.parametrize("table,column", LINKAGE_COLUMNS)
+def test_verified_linkage_columns_exist_and_are_nullable(conn, table, column):
+    row = conn.execute(
+        "SELECT is_nullable FROM information_schema.columns "
+        "WHERE table_name = %s AND column_name = %s",
+        (table, column),
+    ).fetchone()
+    assert row is not None, f"{table}.{column} is missing"
+    assert row[0] == "YES"
 
 
 def test_removed_custom_story_metadata_is_absent(conn):

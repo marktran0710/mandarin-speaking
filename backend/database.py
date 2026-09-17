@@ -114,6 +114,9 @@ def row_to_audio_record(row: dict) -> dict:
         "attemptId": row.get("attempt_id"),
         "attemptNumber": row.get("attempt_number"),
         "attemptType": row.get("attempt_type"),
+        "serverVerifiedAt": row.get("server_verified_at"),
+        "audioSha256": row.get("audio_sha256"),
+        "serverVerificationVersion": row.get("server_verification_version"),
     }
 
 
@@ -206,6 +209,7 @@ def row_to_speaking_progress(row: dict) -> dict:
         "contentPassed": row["content_passed"],
         "clearedWords": row["cleared_words"] or [],
         "latestResult": row.get("latest_result"),
+        "verifiedAudioRecordId": row.get("verified_audio_record_id"),
         "updatedAt": row["updated_at"],
     }
 
