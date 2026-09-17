@@ -17,6 +17,21 @@ from typing import Iterable
 
 BKT_MIN_PROBABILITY = 0.000001
 BKT_MAX_PROBABILITY = 0.999999
+BKT_MIN_DISCRIMINATION = 0.001
+
+
+def _validate_probability(name: str, value: float) -> None:
+    if not isfinite(value) or not 0.0 <= value <= 1.0:
+        raise ValueError(f"{name} must be a finite probability in [0, 1]")
+
+
+def _validate_guess_slip(guess_name: str, guess: float, slip_name: str, slip: float) -> None:
+    _validate_probability(guess_name, guess)
+    _validate_probability(slip_name, slip)
+    if 1.0 - slip < guess + BKT_MIN_DISCRIMINATION:
+        raise ValueError(
+            f"BKT requires 1 - {slip_name} to be meaningfully greater than {guess_name}"
+        )
 
 
 @dataclass(frozen=True)
@@ -37,7 +52,6 @@ class BktConfig:
     required_diagnostic_quizzes: int = 3
     review_count: int = 5
 
-
 # Question types whose answer is free text the learner types (no options to
 # guess from). Everything else is treated as multiple choice.
 TYPED_QUESTION_TYPES = frozenset({
@@ -45,6 +59,20 @@ TYPED_QUESTION_TYPES = frozenset({
     "contextual_productive_recall",
     "productive_recall",
 })
+
+
+BKT_SUPPORTED_QUESTION_TYPES = frozenset({
+    "basic_meaning_mcq",
+    "context_cloze_mcq",
+    *TYPED_QUESTION_TYPES,
+})
+BKT_QUESTION_ANSWER_FORMATS = {
+    "basic_meaning_mcq": "single_choice",
+    "context_cloze_mcq": "single_choice",
+    "character_to_pinyin_typing": "free_text",
+    "contextual_productive_recall": "free_text",
+    "productive_recall": "free_text",
+}
 
 
 # TODO: replace with pilot-calibrated/frozen BKT parameters before the main
@@ -77,10 +105,10 @@ def clamp_probability(value: float) -> float:
 
 
 def _validate_config(params: BktConfig) -> None:
-    for name in ("initial_mastery", "learn_rate", "guess_rate", "slip_rate", "guess_rate_typed", "slip_rate_typed", "mastery_threshold"):
-        value = getattr(params, name)
-        if not isfinite(value) or not 0.0 <= value <= 1.0:
-            raise ValueError(f"{name} must be a finite probability in [0, 1]")
+    for name in ("initial_mastery", "learn_rate", "mastery_threshold"):
+        _validate_probability(name, getattr(params, name))
+    _validate_guess_slip("guess_rate", params.guess_rate, "slip_rate", params.slip_rate)
+    _validate_guess_slip("guess_rate_typed", params.guess_rate_typed, "slip_rate_typed", params.slip_rate_typed)
     if params.minimum_observations < 1 or params.required_diagnostic_quizzes < 1 or params.review_count < 1:
         raise ValueError("BKT count settings must be positive")
 
@@ -94,6 +122,15 @@ def guess_slip_for(question_type: str | None, params: BktConfig = BKT_CONFIG) ->
     if question_type and str(question_type).strip().lower() in TYPED_QUESTION_TYPES:
         return params.guess_rate_typed, params.slip_rate_typed
     return params.guess_rate, params.slip_rate
+
+
+def is_supported_bkt_question_shape(question_type: str | None, answer_format: str | None = None) -> bool:
+    kind = str(question_type or "").strip().lower()
+    if kind not in BKT_SUPPORTED_QUESTION_TYPES:
+        return False
+    if not answer_format:
+        return True
+    return str(answer_format).strip().lower() == BKT_QUESTION_ANSWER_FORMATS[kind]
 
 
 def update_bkt(
@@ -115,6 +152,7 @@ def update_bkt(
     _validate_config(params)
     g = params.guess_rate if guess is None else guess
     s = params.slip_rate if slip is None else slip
+    _validate_guess_slip("guess", g, "slip", s)
     p = clamp_probability(current_mastery)
     if correct:
         numerator = p * (1.0 - s)
@@ -150,10 +188,16 @@ def replay_bkt_typed(
 
 
 def mastery_status(observation_count: int, p_learned: float, *, selected_for_review: bool = False, params: BktConfig = BKT_CONFIG) -> str:
+    """Return the BKT/model status, not a durable learner achievement.
+
+    Personalized-practice completion and scheduled review are separate state
+    machines.  A high probability is therefore reported as ``STRONG`` and
+    never as a durable completion label.
+    """
     if observation_count < params.minimum_observations:
         return "UNASSESSED"
     if p_learned >= params.mastery_threshold:
-        return "MASTERED"
+        return "STRONG"
     if selected_for_review:
-        return "NEEDS_REVIEW"
+        return "NEEDS_PRACTICE"
     return "DEVELOPING"

@@ -7,6 +7,7 @@ from analytics.bkt import BKT_CONFIG, bkt_parameter_fingerprint, replay_bkt
 from analytics.bkt_assessment_resolver import ASSESSMENT_RESOLVER_VERSION, resolve_assessment_response
 from analytics.bkt_mastery import (
     _lock_student_bkt,
+    _ordered_responses,
     _response_fingerprint,
     bottom_k_review_key,
     rank_review_candidates,
@@ -86,6 +87,32 @@ def test_unresolved_weak_word_is_not_authoritative(assessment):
     assert resolved["isBktEligible"] is False
 
 
+def test_unknown_published_review_shape_cannot_enter_bkt_ledger():
+    assessment = [{
+        "questionId": "WORD_REVIEW",
+        "wordId": "word-1",
+        "targetWord": "target",
+        "level": "easy",
+        "questionType": "unsupported_review_type",
+        "answerFormat": "single_choice",
+        "options": ["right", "wrong"],
+        "correctAnswer": "right",
+    }]
+    resolved = resolve_assessment_response(
+        _Db(assessment),
+        _attempt("weak_words"),
+        {"itemId": "WORD_REVIEW", "selectedAnswer": "right"},
+    )
+
+    assert resolved["authoritativeResolved"] is True
+    assert resolved["isBktEligible"] is False
+    assert response_rows_for_attempt(
+        {"id": "attempt", "storyId": "lesson-1", "mode": "weak_words", "completedAt": "2026-09-06T10:00:00Z"},
+        "student",
+        [resolved],
+    ) == []
+
+
 def test_bottom_k_order_contract():
     rows = [
         {"wordId": "c", "pLearned": .2, "observationCount": 3, "lastResponseAt": "2026-01-03"},
@@ -116,6 +143,24 @@ def test_rebuild_lock_is_transaction_scoped_per_student():
     _lock_student_bkt(LockDb(), "student-a")
     assert "pg_advisory_xact_lock" in calls[0][0]
     assert calls[0][1] == ("student-a",)
+
+
+def test_ordered_responses_uses_normalized_utc_chronology():
+    class OrderingDb:
+        query = ""
+
+        def execute(self, query, _params):
+            self.query = query
+            return self
+
+        def fetchall(self):
+            return []
+
+    db = OrderingDb()
+
+    assert _ordered_responses(db, "student-a") == []
+    assert "occurred_at_utc" in db.query
+    assert "ORDER BY occurred_at_utc ASC NULLS LAST, id ASC, attempt_order ASC" in db.query
 
 
 def test_bkt_golden_vector_and_stable_parameter_provenance():

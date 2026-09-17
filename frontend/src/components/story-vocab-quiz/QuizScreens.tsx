@@ -56,8 +56,8 @@ function WeakWordsCard({ weakEntries, priorityReviewWords, interimReviewEntries,
 }
 
 /** Spaced-repetition maintenance: words the schedule says are due today
- * (including already-mastered ones). Shown apart from weak words so a
- * due-but-mastered word is never labelled "weak". The caller decides whether
+ * (including already-strong ones). Shown apart from weak words so a
+ * due-but-strong word is never labelled "weak". The caller decides whether
  * to render this at all (matching QuizChallengeCard's contract below) so
  * there is exactly one place — not this component's own early-return plus a
  * second, hand-duplicated check at the call site — that decides whether a
@@ -74,33 +74,33 @@ function DueReviewCard({ dueWords, chooseDueReview }: { dueWords: ReviewQueueIte
   );
 }
 
-function MasteredWordsSummary({ masteredWords, onPracticeWord, provisional = false }: { masteredWords: VocabPriorityReviewWord[]; onPracticeWord?: (word: VocabPriorityReviewWord) => void; provisional?: boolean }) {
-  // BKT can flag a word "mastered" once all three rounds have been *played*,
+function StrongWordsSummary({ strongWords, onPracticeWord, provisional = false }: { strongWords: VocabPriorityReviewWord[]; onPracticeWord?: (word: VocabPriorityReviewWord) => void; provisional?: boolean }) {
+  // The server can mark a word strong before all three learner rounds pass,
   // but the story isn't finished until all three are *passed* (⭐⭐⭐). While
   // stars < 3 we surface the same words under a provisional heading rather than
-  // claiming "已掌握/Mastered" — the confirmed label is reserved for ⭐⭐⭐, the
+  // claiming a final result — the confirmed label is reserved for ⭐⭐⭐, the
   // same bar that unlocks speaking and the next story.
   return (
-    <section className={`vocab-quiz-mastered${provisional ? " is-provisional" : ""}`} aria-label={provisional ? "Words on track" : "Mastered words"}>
+    <section className={`vocab-quiz-mastered${provisional ? " is-provisional" : ""}`} aria-label={provisional ? "Words on track" : "Strong words"}>
       <div className="vocab-quiz-mastered-heading">
         <span className="vocab-quiz-mastered-icon" aria-hidden="true"><StudentIcon name={provisional ? "target" : "check-circle"} size={22} /></span>
         <div>
           {provisional ? (
             <>
-              <strong><BiLabel zh={`掌握中 (${masteredWords.length})`} pinyin="Zhǎngwò zhōng" en={`On track (${masteredWords.length})`} /></strong>
+              <strong><BiLabel zh={`掌握中 (${strongWords.length})`} pinyin="Zhǎngwò zhōng" en={`On track (${strongWords.length})`} /></strong>
               <p><BiLabel zh={onPracticeWord ? "暫時掌握，完成三個回合後才算正式掌握。點一下可再練習。" : "暫時掌握，完成三個回合後才算正式掌握。"} pinyin="Zànshí zhǎngwò, wánchéng sān gè huíhé hòu cái suàn zhèngshì zhǎngwò." en={onPracticeWord ? "Looking good — finish all 3 rounds to confirm. Tap one to review." : "Looking good — finish all 3 rounds to confirm these words."} /></p>
             </>
           ) : (
             <>
-              <strong><BiLabel zh={`已掌握 (${masteredWords.length})`} pinyin="Yǐ zhǎngwò" en={`Mastered words (${masteredWords.length})`} /></strong>
-              <p><BiLabel zh={onPracticeWord ? "本課已掌握的生詞，點一下可再練習。" : "本課已經掌握的生詞。"} pinyin="Běn kè yǐjīng zhǎngwò de shēngcí." en={onPracticeWord ? "Words you've mastered — tap one to review it." : "Words you have mastered in this lesson."} /></p>
+              <strong><BiLabel zh={`學得很穩 (${strongWords.length})`} pinyin="Xué de hěn wěn" en={`Strong words (${strongWords.length})`} /></strong>
+              <p><BiLabel zh={onPracticeWord ? "本課學得很穩的生詞，點一下可再練習。" : "本課學得很穩的生詞。"} pinyin="Běn kè xué de hěn wěn de shēngcí." en={onPracticeWord ? "Words you're strong on — tap one to review it." : "Words you are strong on in this lesson."} /></p>
             </>
           )}
         </div>
       </div>
-      {masteredWords.length > 0 ? (
-        <ul className="vocab-quiz-mastered-list" aria-label="Mastered vocabulary">
-          {masteredWords.map((word) => (
+      {strongWords.length > 0 ? (
+        <ul className="vocab-quiz-mastered-list" aria-label="Strong vocabulary">
+          {strongWords.map((word) => (
             onPracticeWord ? (
               <li key={word.wordId} style={{ listStyle: "none", minWidth: 0 }}>
                 <button
@@ -124,7 +124,7 @@ function MasteredWordsSummary({ masteredWords, onPracticeWord, provisional = fal
           ))}
         </ul>
       ) : (
-        <p className="vocab-quiz-mastered-empty"><BiLabel zh="完成幾次練習後，已掌握的生詞會顯示在這裡。" pinyin="Wánchéng jǐ cì liànxí hòu, yǐ zhǎngwò de shēngcí huì xiǎnshì zài zhèlǐ." en="Mastered words will appear here as you practise." /></p>
+        <p className="vocab-quiz-mastered-empty"><BiLabel zh="完成幾次練習後，學得很穩的生詞會顯示在這裡。" pinyin="Wánchéng jǐ cì liànxí hòu, xué de hěn wěn de shēngcí huì xiǎnshì zài zhèlǐ." en="Strong words will appear here as you practise." /></p>
       )}
     </section>
   );
@@ -141,7 +141,7 @@ function QuizChallengeCard({ progress, onStart }: { progress: LessonVocabularyPr
   );
 }
 
-export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = [], priorityReviewWords = [], masteredWords = [], dueWords = [], chooseDueReview, assessmentQuestionCounts, startTier, chooseWeakWords, chooseInterimReview, onPracticeWord, showReview, progress, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; interimReviewEntries?: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; masteredWords?: VocabPriorityReviewWord[]; dueWords?: ReviewQueueItem[]; chooseDueReview?: () => void; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; chooseInterimReview: () => void; onPracticeWord?: (word: VocabPriorityReviewWord) => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
+export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = [], priorityReviewWords = [], strongWords = [], dueWords = [], chooseDueReview, assessmentQuestionCounts, startTier, chooseWeakWords, chooseInterimReview, onPracticeWord, showReview, progress, startChallenge, onFinish }: { stars: 0 | QuizTier; weakEntries: VocabQuizEntry[]; interimReviewEntries?: VocabQuizEntry[]; priorityReviewWords?: VocabPriorityReviewWord[]; strongWords?: VocabPriorityReviewWord[]; dueWords?: ReviewQueueItem[]; chooseDueReview?: () => void; assessmentQuestionCounts?: Partial<Record<VocabAssessmentLevel, number>>; startTier: (mode: TierMode) => void; chooseWeakWords: () => void; chooseInterimReview: () => void; onPracticeWord?: (word: VocabPriorityReviewWord) => void; showReview: () => void; progress?: LessonVocabularyProgress; onContinue?: () => void; startChallenge?: () => void; onFinish?: () => void }) {
   // Maps a round to the external quiz bank's difficulty label so we can count
   // that round's published questions (see VocabAssessmentLevel). The round
   // dimension itself is the mode (tier1/2/3), not this bank label.
@@ -254,9 +254,9 @@ export function ModeSelectScreen({ stars, weakEntries, interimReviewEntries = []
         </p>
       )}
 
-      {(masteredWords.length > 0 || (progress?.lessonCompleted ?? false)) && (
+      {(strongWords.length > 0 || (progress?.lessonCompleted ?? false)) && (
         <div className="vocab-quiz-mode-supporting-content">
-          {masteredWords.length > 0 && <MasteredWordsSummary masteredWords={masteredWords} onPracticeWord={onPracticeWord} provisional={!practiceUnlocked(stars)} />}
+          {strongWords.length > 0 && <StrongWordsSummary strongWords={strongWords} onPracticeWord={onPracticeWord} provisional={!practiceUnlocked(stars)} />}
           {progress?.lessonCompleted && <LessonCompletionSummary progress={progress} onFinish={onFinish} />}
         </div>
       )}
@@ -271,11 +271,11 @@ export function ReviewScreen({ entries }: { entries: VocabQuizEntry[] }) {
 export function SummaryScreen({ mode, results, missedEntries, roundEntries, isRetryRound, stars, onDone, startTier, backToModes, progress, onStartChallenge, challengeBestScore, onStartStrengthen }: { mode: VocabQuizMode | null; results: VocabQuizQuestionResult[]; missedEntries: VocabQuizEntry[]; roundEntries: VocabQuizEntry[]; isRetryRound: boolean; stars: 0 | QuizTier; onDone: () => void; startTier: (mode: TierMode) => void; backToModes: () => void; progress?: LessonVocabularyProgress; onStartChallenge?: () => void; challengeBestScore?: number; onStartStrengthen?: () => void }) {
   const correctCount = results.filter((result) => result.correct).length;
   // Two-group word breakdown for the results screen: words demonstrated this
-  // round (mastered — tagged "improved" when BKT shows they were strengthened
+  // round (strong — tagged "improved" when BKT shows they were strengthened
   // from a weaker state, else "strong") vs words still to study (missed).
   const missedWordSet = new Set(missedEntries.map((entry) => entry.word));
   const correctWordSet = new Set(results.filter((result) => result.correct).map((result) => result.word));
-  const masteredEntries = roundEntries.filter((entry) => correctWordSet.has(entry.word) && !missedWordSet.has(entry.word));
+  const strongEntries = roundEntries.filter((entry) => correctWordSet.has(entry.word) && !missedWordSet.has(entry.word));
   const improvedIds = new Set<string>();
   (progress?.improvements ?? []).forEach((improvement) => {
     if (!improvement.strengthenedThroughPractice) return;
@@ -284,7 +284,7 @@ export function SummaryScreen({ mode, results, missedEntries, roundEntries, isRe
   });
   const isImproved = (entry: VocabQuizEntry) => improvedIds.has(entry.word) || (entry.wordId ? improvedIds.has(entry.wordId) : false);
   const isChallenge = mode === "challenge";
-  const roundLabel = mode === "tier1" ? "Know It" : mode === "tier2" ? "Say It" : mode === "tier3" ? "Use It" : null;
+  const roundLabel = mode === "tier1" ? "Know It" : mode === "tier2" ? "Say It" : mode === "tier3" ? "Context" : null;
   const tierConfig = !isRetryRound ? tierConfigFromMode(mode) : null;
   const passed = attemptEarnsStar(mode, correctCount, results.length) !== null;
   const gap = tierConfig ? nextStarGap(mode, correctCount, results.length)! : null;
@@ -312,18 +312,18 @@ export function SummaryScreen({ mode, results, missedEntries, roundEntries, isRe
       <div className="vqr-counts">
         <div className="vqr-count is-mastered">
           <span className="vqr-count-icon" aria-hidden="true"><StudentIcon name="check-circle" size={22} /></span>
-          <span className="vqr-count-figure"><span className="vqr-count-num">{masteredEntries.length}</span><span className="vqr-count-label"><BiLabel zh="已掌握" en="Mastered" /></span></span>
+           <span className="vqr-count-figure"><span className="vqr-count-num">{strongEntries.length}</span><span className="vqr-count-label"><BiLabel zh="學得很穩" en="Strong" /></span></span>
         </div>
         <div className="vqr-count is-keep">
           <span className="vqr-count-icon" aria-hidden="true"><StudentIcon name="target" size={20} /></span>
           <span className="vqr-count-figure"><span className="vqr-count-num">{missedEntries.length}</span><span className="vqr-count-label"><BiLabel zh="要繼續學" en="Keep learning" /></span></span>
         </div>
       </div>
-      {masteredEntries.length > 0 && (
-        <section className="vqr-group is-mastered" aria-label="Mastered words">
-          <header className="vqr-group-head"><StudentIcon name="check-circle" size={18} aria-hidden="true" /><span className="vqr-group-title"><BiLabel zh="已掌握的生詞" pinyin="Yǐ zhǎngwò de shēngcí" en="Mastered this round" /></span><span className="vqr-group-count">{masteredEntries.length}</span></header>
+      {strongEntries.length > 0 && (
+        <section className="vqr-group is-mastered" aria-label="Strong words">
+          <header className="vqr-group-head"><StudentIcon name="check-circle" size={18} aria-hidden="true" /><span className="vqr-group-title"><BiLabel zh="這回合表現很穩" pinyin="Zhè huíhé biǎoxiàn hěn wěn" en="Strong this round" /></span><span className="vqr-group-count">{strongEntries.length}</span></header>
           <div className="vqr-rows">
-            {masteredEntries.map((entry) => (
+            {strongEntries.map((entry) => (
               <div className="vqr-row" key={entry.word}>
                 <span className="vqr-word">{entry.word}</span>
                 <span className="vqr-meaning">{(entry.pinyin || toPinyin(entry.word))} · {entry.translation}</span>

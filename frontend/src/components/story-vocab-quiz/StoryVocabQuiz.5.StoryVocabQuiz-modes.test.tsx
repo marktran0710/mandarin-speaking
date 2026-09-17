@@ -99,7 +99,7 @@ describe("StoryVocabQuiz modes", () => {
 
     expect(screen.getByRole("button", { name: /Round 1/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Round 2/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Round 3/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Context/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Word list/ })).toBeInTheDocument();
     // No question shown yet.
     expect(screen.queryByRole("group", { name: /What does/ })).not.toBeInTheDocument();
@@ -154,7 +154,7 @@ describe("StoryVocabQuiz modes", () => {
     await screen.findByRole("group", { name: "Quiz mode" });
     vi.useFakeTimers();
     try {
-      fireEvent.click(screen.getByRole("button", { name: /Round 3/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Context/ }));
       expect(screen.getByLabelText("150 seconds left")).toBeInTheDocument();
 
       act(() => {
@@ -202,7 +202,7 @@ describe("StoryVocabQuiz modes", () => {
     for (const entry of entries) {
       expect(within(keepGroup).getByText(entry.word)).toBeInTheDocument();
     }
-    expect(screen.queryByRole("region", { name: "Mastered words" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Strong words" })).not.toBeInTheDocument();
 
     // The old missed-words retry button is gone by design; the only exit is
     // back to the three-round page.
@@ -211,4 +211,3 @@ describe("StoryVocabQuiz modes", () => {
     expect(onDone).not.toHaveBeenCalled();
   });
 });
-

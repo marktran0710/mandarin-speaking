@@ -119,7 +119,7 @@ describe("StoryVocabQuiz onComplete tracking", () => {
     await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(2));
     expect(onDone).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: /Continue to Round 3/ }));
+    await user.click(screen.getByRole("button", { name: /Continue to Context/ }));
     for (let i = 0; i < entries.length; i += 1) {
       await answerCurrentQuestion(user, true, translationByWord);
       await user.click(screen.getByRole("button", { name: /Next question|See results/ }));

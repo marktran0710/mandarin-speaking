@@ -11,12 +11,12 @@ describe("entriesInServerPriorityOrder", () => {
     const ranked: VocabPriorityReviewWord[] = [
       {
         wordId: "b", word: "second locally", reviewRank: 1,
-        pLearned: 0.1, status: "NEEDS_REVIEW", observationCount: 3,
+        pLearned: 0.1, status: "NEEDS_PRACTICE", observationCount: 3,
         correctCount: 1, incorrectCount: 2,
       },
       {
         wordId: "a", word: "first locally", reviewRank: 2,
-        pLearned: 0.2, status: "NEEDS_REVIEW", observationCount: 3,
+        pLearned: 0.2, status: "NEEDS_PRACTICE", observationCount: 3,
         correctCount: 1, incorrectCount: 2,
       },
     ];

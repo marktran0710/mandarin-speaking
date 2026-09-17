@@ -27,6 +27,16 @@ PARAMETER_BOUNDS = {
 BOUND_MARGIN = 0.005
 MIN_DISCRIMINATION = 0.10
 
+# This offline optimizer still fits the legacy single guess/slip pair from
+# ``knowledge_tracing.BKTParameters``. Serving uses the format-aware model in
+# ``analytics.bkt`` (MCQ and typed answers have different pairs), so a report
+# from this module is evidence for diagnosis only until a format-aware fitter
+# replaces it. Keeping the mismatch explicit prevents a global candidate from
+# being mistaken for a drop-in production model.
+CALIBRATION_MODEL_SCOPE = "global-bkt-v1"
+PRODUCTION_MODEL_SCOPE = "format-aware-bkt-v2"
+CALIBRATION_MODEL_VERSION = "bkt-calibration-v2"
+
 
 def _record_key(record: ResponseRecord) -> tuple[Any, ...]:
     """Stable ordering only for records sharing no caller-provided sequence."""
@@ -192,10 +202,20 @@ def calibrate_bkt(
         "candidate_log_loss": candidate_metrics["log_loss"] is not None and candidate_metrics["log_loss"] <= production_metrics["log_loss"] + 0.01,
         "candidate_brier": candidate_metrics["brier"] is not None and candidate_metrics["brier"] <= production_metrics["brier"] + 0.01,
         "candidate_calibration_error": candidate_metrics["calibration_error"] is not None and candidate_metrics["calibration_error"] <= production_metrics["calibration_error"] + 0.02,
+        # The current optimizer has one G/S pair and therefore cannot be
+        # promoted as the production format-aware model with separate MCQ and
+        # typed parameters.
+        "production_model_compatibility": False,
     }
     promotable = not synthetic and all(gates.values())
     return {
-        "version": "bkt-calibration-v1", "synthetic": synthetic, "promotable": promotable,
+        "version": CALIBRATION_MODEL_VERSION, "synthetic": synthetic, "promotable": promotable,
+        "model_scope": CALIBRATION_MODEL_SCOPE,
+        "production_model_scope": PRODUCTION_MODEL_SCOPE,
+        "compatibility": {
+            "production_compatible": False,
+            "reason": "This report fits one global guess/slip pair; production is format-aware.",
+        },
         "digest": _digest(ordered), "split_spec": {"strategy": "deterministic_student_grouped", "fold_count": fold_count, "prediction_timing": "before_update", "calibration_bins": calibration_bins},
         "counts": counts, "fold_assignments": dict(sorted(assignments.items())), "folds": folds,
         "production_parameters": production_parameters.to_dict(), "candidate_parameters": final_parameters.to_dict(),

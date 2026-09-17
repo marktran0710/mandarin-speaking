@@ -22,6 +22,7 @@ import {
 import {
   TIMER_TICK_MS,
   assessmentAnswerIsCorrect,
+  buildMaintenanceAssessmentQuestions,
   buildDiagnosticRoundQuestions,
   buildPersonalizedAssessmentQuestions,
   buildQuizQuestion,
@@ -43,14 +44,10 @@ import {
   saveLessonAttempt,
   type LessonVocabularyProgress,
 } from "./lesson-vocab-progress";
-import type { VocabQuizAttempt } from "../../services/api/quiz-analytics";
+import type { VocabPriorityReviewResponse, VocabQuizAttempt } from "../../services/api/quiz-analytics";
 import { createMeasurementEvent, recordMeasurementEvent, type MeasurementEventName } from "../../utils/measurement";
 
 export type QuizScreen = "mode-select" | "quiz" | "review" | "summary" | "challenge-entry";
-
-// Mirrors the backend BKT mastery_threshold (analytics/bkt.py): p(learned) at
-// or above this counts a word as mastered, so it drops off the review lists.
-const BKT_MASTERY_THRESHOLD = 0.95;
 
 type UseQuizSessionProps = {
   entries: VocabQuizEntry[];
@@ -88,6 +85,8 @@ export function entriesInServerPriorityOrder(entries: VocabQuizEntry[], priority
         ...entry,
         bktSeenQuestionKinds: priorityWord.seenQuestionTypes as VocabQuizEntry["bktSeenQuestionKinds"],
         bktFailedQuestionKinds: priorityWord.failedQuestionTypes as VocabQuizEntry["bktFailedQuestionKinds"],
+        bktObservationCount: priorityWord.observationCount,
+        bktLastResponseAt: priorityWord.lastResponseAt,
       }]
       : [entry];
   });
@@ -194,10 +193,12 @@ export function useQuizSession({
   // strings (older data / the compatibility endpoint) without ranked
   // priorityReview objects.
   const [weakWords, setWeakWords] = useState<string[]>([]);
-  const [masteredWords, setMasteredWords] = useState<VocabPriorityReviewWord[]>([]);
+  const [strongWords, setStrongWords] = useState<VocabPriorityReviewWord[]>([]);
   const [masteryWords, setMasteryWords] = useState<VocabPriorityReviewWord[]>([]);
+  const [diagnosticComplete, setDiagnosticComplete] = useState<boolean | undefined>(undefined);
+  const [roundPresence, setRoundPresence] = useState<VocabPriorityReviewResponse["roundPresence"]>(undefined);
   // Spaced-repetition maintenance reviews: words the SM-2 schedule says are due
-  // today (may include already-mastered words). Kept apart from weak words so
+  // today (may include words that are already strong). Kept apart from weak words so
   // the UI can label "ôn tập duy trì" separately from "từ cần luyện".
   const [dueWords, setDueWords] = useState<ReviewQueueItem[]>([]);
   const [weakWordsReady, setWeakWordsReady] = useState(false);
@@ -209,7 +210,11 @@ export function useQuizSession({
     setPriorityReviewWords(words.priorityReview ?? []);
     setWeakWords(Array.isArray(words) ? [...words] : []);
     setMasteryWords(words.mastery ?? []);
-    setMasteredWords((words.mastery ?? []).filter((word) => word.status === "MASTERED"));
+    setStrongWords((words.mastery ?? []).filter((word) => word.vocabularyState?.review.status === "STRONG" || word.status === "STRONG"));
+    const serverDiagnostic = words.diagnostic?.diagnosticComplete
+      ?? (words.diagnostic?.diagnostic?.status === "COMPLETE" ? true : words.diagnostic?.diagnostic?.status === "INCOMPLETE" ? false : undefined);
+    setDiagnosticComplete(serverDiagnostic);
+    setRoundPresence(words.diagnostic?.roundPresence);
   }, [storyId, baseStoryId, studentId, studentName]);
   useEffect(() => {
     if (!storyId || !canUseDatabase()) {
@@ -226,17 +231,19 @@ export function useQuizSession({
   // Due-review words (SM-2 schedule) load independently of the weak-word
   // readiness gate — a slow or failed queue fetch must never delay the mode
   // screen. Best-effort: empty on any error.
-  useEffect(() => {
+  const refreshDueWords = useCallback(async () => {
     if (!storyId || !studentId || !canUseDatabase()) {
       setDueWords([]);
       return;
     }
-    let cancelled = false;
-    getVocabQuizReviewQueue(baseStoryId ?? storyId, studentId, { includeAllWeak: true })
-      .then((queue) => { if (!cancelled) setDueWords((queue.queue ?? []).filter((item) => item.reviewReason === "due")); })
-      .catch(() => { if (!cancelled) setDueWords([]); });
-    return () => { cancelled = true; };
+    const queue = await getVocabQuizReviewQueue(baseStoryId ?? storyId, studentId, { includeAllWeak: true });
+    setDueWords((queue.queue ?? []).filter((item) => item.reviewReason === "due"));
   }, [storyId, baseStoryId, studentId]);
+  useEffect(() => {
+    let cancelled = false;
+    refreshDueWords().catch(() => { if (!cancelled) setDueWords([]); });
+    return () => { cancelled = true; };
+  }, [refreshDueWords]);
 
   const sessionReady = starsReady && weakWordsReady;
   const lessonProgress: LessonVocabularyProgress = useMemo(() => buildLessonVocabularyProgress({
@@ -245,8 +252,10 @@ export function useQuizSession({
     attempts,
     mastery: masteryWords,
     priorityReviewWords,
+    diagnosticComplete: diagnosticComplete === true,
+    roundPresence,
     studentScope,
-  }), [attempts, baseStoryId, entries, masteryWords, priorityReviewWords, storyId, studentScope]);
+  }), [attempts, baseStoryId, diagnosticComplete, entries, masteryWords, priorityReviewWords, roundPresence, storyId, studentScope]);
 
   const question = questions[index];
   const isLast = questionLimit !== null && index === questionLimit - 1;
@@ -264,27 +273,23 @@ export function useQuizSession({
   const weakEntries = rankedWeakEntries.length > 0
     ? rankedWeakEntries
     : entries.filter((entry) => weakWords.includes(entry.word));
-  // Provisional review set surfaced BEFORE the three-round diagnostic unlocks
-  // the BKT weak-word list: every lesson word the learner has answered
-  // incorrectly at least once, ordered by the mastery estimate BKT has already
-  // computed for it (lowest first). This never relaxes the weak-word
-  // classification gate — it only re-surfaces already-recorded mistakes for
-  // immediate practice, using BKT's own p(learned) only to order them.
+  // Provisional review is server-selected before the three-round diagnostic
+  // unlocks the formal weak-word list. The client renders the server review
+  // status and rank; it does not recreate a BKT threshold locally.
   const masteryByWordId = new Map(masteryWords.map((word) => [word.wordId, word] as const));
   const masteryByWord = new Map(masteryWords.map((word) => [word.word, word] as const));
   const interimReviewEntries = entries
     .map((entry) => {
       const mastery = (entry.wordId ? masteryByWordId.get(entry.wordId) : undefined) ?? masteryByWord.get(entry.word);
       // A word leaves this list once its provisional mastery crosses the same
-      // threshold the BKT weak-word list uses (mastery_threshold = 0.95), so a
-      // word the learner has since relearned drops off here exactly as it
-      // would drop off the diagnostic list — the review shrinks as they improve.
-      return mastery && mastery.incorrectCount > 0 && mastery.pLearned < BKT_MASTERY_THRESHOLD
-        ? { entry, pLearned: mastery.pLearned }
+      const reviewStatus = mastery?.vocabularyState?.review.status ?? mastery?.status;
+      const needsReview = reviewStatus === "PROVISIONAL_REVIEW" || reviewStatus === "NEEDS_PRACTICE";
+      return mastery && needsReview
+        ? { entry, reviewRank: mastery.reviewRank ?? Number.MAX_SAFE_INTEGER }
         : null;
     })
-    .filter((row): row is { entry: VocabQuizEntry; pLearned: number } => row !== null)
-    .sort((a, b) => a.pLearned - b.pLearned)
+    .filter((row): row is { entry: VocabQuizEntry; reviewRank: number } => row !== null)
+    .sort((a, b) => a.reviewRank - b.reviewRank)
     .map((row) => row.entry);
   const missedWords = results.filter((result) => !result.correct);
   const missedEntries = roundEntries.filter((entry) => missedWords.some((result) => result.word === entry.word));
@@ -371,7 +376,7 @@ export function useQuizSession({
     const answer = correctAnswer(question);
     const activityType: VocabQuizQuestionResult["activityType"] = diagnosticConfig
       ? "diagnostic"
-      : mode === "weak_words" ? "personalized_practice" : mode === "challenge" ? "challenge" : "practice";
+      : mode === "weak_words" ? "personalized_practice" : mode === "maintenance_review" ? "scheduled_maintenance" : mode === "challenge" ? "challenge" : "practice";
     const questionPrompt = assessment?.prompt ?? (question.kind === "cloze"
       ? question.sentenceWithBlank
         : question.kind === "reverse"
@@ -416,7 +421,7 @@ export function useQuizSession({
     // BKT evidence is recorded immediately after each eligible diagnostic
     // answer. The list remains locked for speaking until all three tiers are
     // complete, but Weak Words can now reflect the learner's latest answer.
-    const shouldRecordLearningResponse = isBktEligible || mode === "weak_words";
+    const shouldRecordLearningResponse = isBktEligible || mode === "weak_words" || mode === "maintenance_review";
     if (storyId && studentId && canUseDatabase() && shouldRecordLearningResponse) {
       void recordVocabQuizResponse({
         id: quizId,
@@ -432,7 +437,7 @@ export function useQuizSession({
         totalTimeMs: Date.now() - quizStartRef.current,
         questionResults: nextResults,
       })
-        .then(() => refreshWeakWords())
+      .then(() => Promise.all([refreshWeakWords(), refreshDueWords()]))
         .catch(() => { /* final attempt persistence remains the fallback */ });
     }
   };
@@ -484,8 +489,10 @@ export function useQuizSession({
               : null;
     if (startedEvent) recordLessonEvent(startedEvent, { totalWords: entriesForRound.length });
     const hasAssessmentBank = entriesForRound.some((entry) => (entry.assessmentQuestions?.length ?? 0) > 0);
-    if (picked === "weak_words" && hasAssessmentBank) {
-      const questions = buildPersonalizedAssessmentQuestions(entriesForRound);
+    if ((picked === "weak_words" || picked === "maintenance_review") && hasAssessmentBank) {
+      const questions = picked === "weak_words"
+        ? buildPersonalizedAssessmentQuestions(entriesForRound)
+        : buildMaintenanceAssessmentQuestions(entriesForRound);
       plannedQuestionCountRef.current = questions.length;
       setQuestions(questions);
       setQuestionLimit(questions.length);
@@ -538,7 +545,7 @@ export function useQuizSession({
     setIsRetryRound(false); chooseMode("challenge", entries, entries.length);
   };
   const practiceMissedWords = () => { setIsRetryRound(true); chooseMode("free", missedEntries, missedEntries.length); };
-  // Practice one specific word on demand — e.g. a mastered word that dropped
+  // Practice one specific word on demand — e.g. a strong word that dropped
   // off the weak-word list but the learner still wants to review. Distractors
   // are drawn from the whole lesson so a single-word round still forms real
   // multiple-choice questions; the answer still feeds BKT, so getting it wrong
@@ -550,12 +557,12 @@ export function useQuizSession({
     // The attempt has been posted before the learner can leave the summary.
     // Refresh here so the menu reflects that newly rebuilt BKT state without
     // requiring a route reload or completion of the other diagnostic tiers.
-    void refreshWeakWords().catch(() => { /* retain the last known menu state */ });
+    void Promise.all([refreshWeakWords(), refreshDueWords()]).catch(() => { /* retain the last known menu state */ });
   };
 
   return {
     screen, setScreen, mode, isRetryRound, setIsRetryRound, questionLimit, requestedQuestionCount,
-    question, index, selected, results, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, masteredWords, dueWords, missedWords,
+    question, index, selected, results, timeLeftMs, stars, weakEntries, interimReviewEntries, priorityReviewWords, strongWords, dueWords, missedWords,
     missedEntries, roundEntries, isLast, showFinishButton, timeLimitMs, choose, next, finish,
     speakWord, chooseMode, startTier, showChallengeEntry, startChallenge, practiceMissedWords, practiceWord, returnToModes, sessionReady,
     lessonProgress, challengeBestScore: lessonProgress.challenge.bestScore, challengeAttempts: lessonProgress.challenge.attempts,

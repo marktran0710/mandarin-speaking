@@ -2,7 +2,14 @@ from dataclasses import replace
 
 import pytest
 
-from analytics.bkt import BKT_CONFIG, mastery_status, replay_bkt, update_bkt
+from analytics.bkt import (
+    BKT_CONFIG,
+    guess_slip_for,
+    mastery_status,
+    replay_bkt,
+    replay_bkt_typed,
+    update_bkt,
+)
 
 
 def test_correct_response_increases_mastery():
@@ -59,8 +66,8 @@ def test_sparse_evidence_stays_unassessed():
     ("observation_count", "p_learned", "selected_for_review", "expected"),
     [
         (3, 0.40, False, "DEVELOPING"),
-        (3, 0.40, True, "NEEDS_REVIEW"),
-        (3, BKT_CONFIG.mastery_threshold, False, "MASTERED"),
+        (3, 0.40, True, "NEEDS_PRACTICE"),
+        (3, BKT_CONFIG.mastery_threshold, False, "STRONG"),
     ],
 )
 def test_mastery_status_uses_evidence_before_threshold(
@@ -88,3 +95,43 @@ def test_update_rejects_invalid_probability_configuration(field):
 
 def test_replay_with_no_observations_returns_initial_mastery():
     assert replay_bkt([]) == pytest.approx(BKT_CONFIG.initial_mastery)
+
+
+def test_format_aware_rates_reward_typed_correctness_more_than_mcq():
+    mcq = update_bkt(0.2, True, guess=0.20, slip=0.10)
+    typed = update_bkt(0.2, True, guess=0.05, slip=0.15)
+
+    assert guess_slip_for("basic_meaning_mcq") == pytest.approx((0.20, 0.10))
+    assert guess_slip_for("character_to_pinyin_typing") == pytest.approx((0.05, 0.15))
+    assert typed > mcq
+
+
+def test_format_aware_typed_incorrectness_is_less_punitive_than_mcq():
+    mcq = update_bkt(0.2, False, guess=0.20, slip=0.10)
+    typed = update_bkt(0.2, False, guess=0.05, slip=0.15)
+
+    assert typed > mcq
+
+
+def test_format_aware_replay_has_a_stable_mixed_golden_vector():
+    responses = [
+        (True, "basic_meaning_mcq"),
+        (True, "character_to_pinyin_typing"),
+        (False, "context_cloze_mcq"),
+        (True, "character_to_pinyin_typing"),
+        (True, "context_cloze_mcq"),
+    ]
+
+    assert replay_bkt_typed(responses) == pytest.approx(0.9979619773755845)
+
+
+def test_guess_slip_configuration_requires_meaningful_discrimination():
+    invalid_mcq = replace(BKT_CONFIG, guess_rate=0.9, slip_rate=0.101)
+    invalid_typed = replace(BKT_CONFIG, guess_rate_typed=0.85, slip_rate_typed=0.151)
+
+    with pytest.raises(ValueError, match="meaningfully greater"):
+        update_bkt(0.2, True, invalid_mcq)
+    with pytest.raises(ValueError, match="meaningfully greater"):
+        update_bkt(0.2, True, invalid_typed)
+    with pytest.raises(ValueError, match="meaningfully greater"):
+        update_bkt(0.2, True, guess=0.9, slip=0.101)

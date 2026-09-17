@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ModeSelectScreen } from "./QuizScreens";
 
 const dueWord = {
-  wordId: "w1", word: "錢包", pLearned: 0.97, status: "MASTERED" as const,
+  wordId: "w1", word: "錢包", pLearned: 0.97, status: "STRONG" as const,
   observationCount: 5, correctCount: 5, incorrectCount: 0,
   reviewReason: "due" as const, dueOn: "2026-02-08",
 };
@@ -65,12 +65,12 @@ describe("ModeSelectScreen", () => {
     expect(empty).not.toHaveClass("is-pending-review");
   });
 
-  const masteredWord = {
+  const strongWord = {
     wordId: "word-1",
     word: "下午茶",
     meaning: "afternoon tea",
     pLearned: 0.98,
-    status: "MASTERED" as const,
+    status: "STRONG" as const,
     observationCount: 3,
     correctCount: 3,
     incorrectCount: 0,
@@ -82,7 +82,7 @@ describe("ModeSelectScreen", () => {
     const card = screen.getByRole("button", { name: /Due for review \(1\)/ });
     fireEvent.click(card);
     expect(chooseDueReview).toHaveBeenCalledTimes(1);
-    // A mastered-but-due word surfaces here, never in the weak-words card.
+    // A strong-but-due word surfaces here, never in the weak-words card.
     expect(screen.queryByRole("button", { name: /Weak words/ })).not.toBeInTheDocument();
   });
 
@@ -91,25 +91,25 @@ describe("ModeSelectScreen", () => {
     expect(screen.queryByRole("button", { name: /Due for review/ })).not.toBeInTheDocument();
   });
 
-  it("confirms mastered words only after all three rounds are passed (⭐⭐⭐)", () => {
-    render(<ModeSelectScreen {...baseProps} stars={3} masteredWords={[masteredWord]} />);
-    const masteredWordsRegion = screen.getByRole("region", { name: "Mastered words" });
-    expect(masteredWordsRegion).toHaveTextContent("Mastered words (1)");
-    expect(masteredWordsRegion).toHaveTextContent("下午茶");
-    expect(masteredWordsRegion).toHaveTextContent("afternoon tea");
-    expect(screen.getByRole("list", { name: "Mastered vocabulary" })).toBeInTheDocument();
+  it("confirms strong words only after all three rounds are passed (⭐⭐⭐)", () => {
+    render(<ModeSelectScreen {...baseProps} stars={3} strongWords={[strongWord]} />);
+    const strongWordsRegion = screen.getByRole("region", { name: "Strong words" });
+    expect(strongWordsRegion).toHaveTextContent("Strong words (1)");
+    expect(strongWordsRegion).toHaveTextContent("下午茶");
+    expect(strongWordsRegion).toHaveTextContent("afternoon tea");
+    expect(screen.getByRole("list", { name: "Strong vocabulary" })).toBeInTheDocument();
   });
 
-  it("labels the same words as provisional ('on track') before ⭐⭐⭐, never 'mastered'", () => {
-    // Rounds played but not all passed: BKT already flags the word MASTERED, but
+  it("labels the same words as provisional ('on track') before ⭐⭐⭐", () => {
+    // Rounds played but not all passed: the word is still only on track, but
     // the story isn't finished, so the UI must not over-claim mastery.
-    render(<ModeSelectScreen {...baseProps} stars={2} masteredWords={[masteredWord]} />);
+    render(<ModeSelectScreen {...baseProps} stars={2} strongWords={[strongWord]} />);
     const region = screen.getByRole("region", { name: "Words on track" });
     expect(region).toHaveTextContent("On track (1)");
     expect(region).toHaveTextContent("下午茶");
-    expect(region).not.toHaveTextContent("Mastered words");
-    expect(screen.queryByRole("region", { name: "Mastered words" })).not.toBeInTheDocument();
+    expect(region).not.toHaveTextContent("Strong words");
+    expect(screen.queryByRole("region", { name: "Strong words" })).not.toBeInTheDocument();
     // The word is still tappable to review — provisional only changes wording.
-    expect(screen.getByRole("list", { name: "Mastered vocabulary" })).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Strong vocabulary" })).toBeInTheDocument();
   });
 });

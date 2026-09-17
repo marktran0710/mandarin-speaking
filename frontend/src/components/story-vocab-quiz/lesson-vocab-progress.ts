@@ -1,4 +1,4 @@
-import type { VocabPriorityReviewWord, VocabQuizAttempt } from "../../services/api/quiz-analytics";
+import type { VocabPriorityReviewResponse, VocabPriorityReviewWord, VocabQuizAttempt } from "../../services/api/quiz-analytics";
 import type { VocabQuizEntry, VocabQuizSummary } from "./model";
 
 export type LearnerVocabularyStatus = "strong" | "developing" | "needs_practice";
@@ -62,8 +62,8 @@ function entryId(entry: Pick<VocabQuizEntry, "wordId" | "word">): string {
 }
 
 export function learnerStatus(status: VocabPriorityReviewWord["status"] | undefined): LearnerVocabularyStatus {
-  if (status === "MASTERED") return "strong";
-  if (status === "DEVELOPING") return "developing";
+  if (status === "STRONG") return "strong";
+  if (status === "PROVISIONAL_REVIEW") return "developing";
   return "needs_practice";
 }
 
@@ -71,14 +71,14 @@ function emptyRound(): LessonRoundProgress {
   return { completed: false, answered: 0, total: 0, correct: 0, accuracy: 0 };
 }
 
-function roundFromAttempt(attempt: VocabQuizAttempt | undefined): LessonRoundProgress {
-  if (!attempt) return emptyRound();
+function roundFromAttempt(attempt: VocabQuizAttempt | undefined, authoritativeComplete?: boolean): LessonRoundProgress {
+  if (!attempt) return { ...emptyRound(), completed: authoritativeComplete ?? false };
   const results = attempt.questionResults || [];
   const answered = results.length || attempt.totalQuestions || 0;
   const total = Math.max(answered, attempt.totalQuestions || 0);
   const correct = results.length ? results.filter((result) => result.correct).length : attempt.correctCount || 0;
   return {
-    completed: true,
+    completed: authoritativeComplete ?? true,
     answered,
     total,
     correct,
@@ -160,8 +160,8 @@ function currentStatuses(
   entries: VocabQuizEntry[],
   mastery: VocabPriorityReviewWord[],
 ): Map<string, LearnerVocabularyStatus> {
-  const byId = new Map(mastery.map((word) => [word.wordId, learnerStatus(word.status)]));
-  const byWord = new Map(mastery.map((word) => [word.word, learnerStatus(word.status)]));
+  const byId = new Map(mastery.map((word) => [word.wordId, learnerStatus(word.vocabularyState?.review.status ?? word.status)]));
+  const byWord = new Map(mastery.map((word) => [word.word, learnerStatus(word.vocabularyState?.review.status ?? word.status)]));
   return new Map(entries.map((entry) => [
     entryId(entry),
     byId.get(entry.wordId || "") ?? byWord.get(entry.word) ?? "needs_practice",
@@ -193,6 +193,8 @@ export function buildLessonVocabularyProgress({
   attempts,
   mastery,
   priorityReviewWords = [],
+  diagnosticComplete: serverDiagnosticComplete,
+  roundPresence,
   studentScope,
   currentAttempt,
 }: {
@@ -201,6 +203,10 @@ export function buildLessonVocabularyProgress({
   attempts: VocabQuizAttempt[];
   mastery: VocabPriorityReviewWord[];
   priorityReviewWords?: VocabPriorityReviewWord[];
+  /** Authoritative server diagnostic state. Undefined is legacy-fixture fallback only. */
+  diagnosticComplete: boolean;
+  /** Per-round server completion. When present, this overrides local attempt existence. */
+  roundPresence?: VocabPriorityReviewResponse["roundPresence"];
   studentScope?: string;
   currentAttempt?: VocabQuizSummary;
 }): LessonVocabularyProgress {
@@ -210,14 +216,16 @@ export function buildLessonVocabularyProgress({
   const knowItAttempt = latestAttempt(allAttempts, "tier1");
   const sayItAttempt = latestAttempt(allAttempts, "tier2");
   const useItAttempt = latestAttempt(allAttempts, "tier3");
-  const diagnosticComplete = Boolean(knowItAttempt && sayItAttempt && useItAttempt);
+  const diagnosticComplete = serverDiagnosticComplete;
   const snapshot = loadLessonProgressSnapshot(studentScope, lessonId);
   const statuses = currentStatuses(uniqueEntries, mastery);
+  const masteryById = new Map(mastery.map((word) => [word.wordId, word] as const));
+  const masteryByWord = new Map(mastery.map((word) => [word.word, word] as const));
   const nextSnapshot = recordInitialStatuses(snapshot, statuses, diagnosticComplete, totalWords, studentScope, lessonId);
   const strongWords = uniqueEntries.filter((entry) => statuses.get(entryId(entry)) === "strong").length;
   const focusWords = priorityReviewWords.length > 0
     ? priorityReviewWords
-    : mastery.filter((word) => word.status !== "MASTERED");
+    : mastery.filter((word) => (word.vocabularyState?.review.status ?? word.status) !== "STRONG");
   const personalizedAttempts = allAttempts.filter((attempt) => attempt.mode === "weak_words");
   const improved = uniqueEntries
     .map((entry): VocabularyImprovement | null => {
@@ -225,7 +233,11 @@ export function buildLessonVocabularyProgress({
       const initialStatus = nextSnapshot.initialStatuses[id];
       const finalStatus = statuses.get(id) || "needs_practice";
       if (!initialStatus) return null;
-      const answeredInPersonalizedPractice = personalizedAttempts.some((attempt) =>
+      const serverState = (entry.wordId ? masteryById.get(entry.wordId) : undefined) ?? masteryByWord.get(entry.word);
+      const practiceComplete = serverState?.vocabularyState
+        ? serverState.vocabularyState.practice.status === "COMPLETE"
+        : undefined;
+      const answeredInPersonalizedPractice = practiceComplete ?? personalizedAttempts.some((attempt) =>
         attempt.questionResults?.some((result) => entryId({ wordId: result.conceptId, word: result.word }) === id),
       );
       return {
@@ -245,9 +257,9 @@ export function buildLessonVocabularyProgress({
   const scores = challengeAttempts.map((attempt) => ({ score: attempt.correctCount, total: attempt.totalQuestions }));
   const bestScore = scores.length ? Math.max(...scores.map((score) => score.score)) : nextSnapshot.challengeBestScore;
   const lastChallenge = challengeAttempts.sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())[0];
-  const knowIt = roundFromAttempt(knowItAttempt);
-  const sayIt = roundFromAttempt(sayItAttempt);
-  const useIt = roundFromAttempt(useItAttempt);
+  const knowIt = roundFromAttempt(knowItAttempt, roundPresence?.tier1?.complete);
+  const sayIt = roundFromAttempt(sayItAttempt, roundPresence?.tier2?.complete);
+  const useIt = roundFromAttempt(useItAttempt, roundPresence?.tier3?.complete);
   return {
     lessonId,
     totalWords,

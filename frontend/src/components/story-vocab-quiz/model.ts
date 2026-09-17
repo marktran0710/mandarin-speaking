@@ -35,6 +35,9 @@ export interface VocabQuizEntry {
    * another validated form when one is available. */
   bktSeenQuestionKinds?: ReadonlyArray<QuizQuestionKind | VocabAssessmentQuestion["questionType"]>;
   bktFailedQuestionKinds?: ReadonlyArray<QuizQuestionKind | VocabAssessmentQuestion["questionType"]>;
+  /** Server observation count used for deterministic maintenance rotation. */
+  bktObservationCount?: number;
+  bktLastResponseAt?: string | null;
   pinyin?: string;
   pos?: string;
   aiDistractors?: string[];
@@ -161,7 +164,7 @@ export interface VocabQuizQuestionResult {
   questionKind?: QuizQuestionKind | VocabAssessmentQuestion["questionType"];
   roundType?: "know_it" | "say_it" | "use_it";
   knowledgeDimension?: "meaning" | "pinyin_production" | "contextual_recall";
-  activityType?: "diagnostic" | "personalized_practice" | "challenge" | "practice";
+  activityType?: "diagnostic" | "personalized_practice" | "scheduled_maintenance" | "challenge" | "practice";
   level?: "easy" | "medium" | "hard";
   baseStoryId?: string;
   itemVersion?: string;
@@ -197,7 +200,7 @@ export function quizItemId(
     .join(":");
 }
 
-export type VocabQuizMode = TierMode | "free" | "weak_words" | "challenge";
+export type VocabQuizMode = TierMode | "free" | "weak_words" | "maintenance_review" | "challenge";
 
 export interface VocabQuizSummary {
   mode: VocabQuizMode;
@@ -235,7 +238,7 @@ export const TIER_CARDS: Array<{
 }> = [
   { mode: "tier1", title: "第一關", titlePinyin: "Dì yī guān", titleEn: "Round 1", iconName: "star", desc: "每個生詞一題。", descPinyin: "Měi gè shēngcí yì tí.", descEn: "One question for each lesson word." },
   { mode: "tier2", title: "第二關", titlePinyin: "Dì èr guān", titleEn: "Round 2", iconName: "star", desc: "每個生詞一題，寫出拼音。", descPinyin: "Měi gè shēngcí yì tí, xiě chū pīnyīn.", descEn: "One question for each word — type the pinyin." },
-  { mode: "tier3", title: "第三關", titlePinyin: "Dì sān guān", titleEn: "Round 3", iconName: "star", desc: "每個生詞一題，在情境中回想。", descPinyin: "Měi gè shēngcí yì tí, zài qíngjìng zhōng huíxiǎng.", descEn: "One question for each word — recall it in context." },
+  { mode: "tier3", title: "情境辨識", titlePinyin: "Qíngjìng biànshí", titleEn: "Context", iconName: "star", desc: "每個生詞一題，在情境中辨識。", descPinyin: "Měi gè shēngcí yì tí, zài qíngjìng zhōng biànshí.", descEn: "One multiple-choice question for each word in context." },
 ];
 
 export const REVIEW_CARD = {
@@ -331,6 +334,47 @@ export function buildPersonalizedAssessmentQuestions(
     const assessment = bank.find((candidate) => failedLevels.has(candidate.level))
       ?? bank.find((candidate) => !seenLevels.has(candidate.level))
       ?? bank[0];
+    return [{
+      kind: "assessment" as const,
+      word: assessment.targetWord,
+      prompt: assessment.prompt,
+      options: shuffle([...assessment.options]),
+      correctAnswer: assessment.correctAnswer,
+      acceptedAnswers: assessment.acceptedAnswers,
+      explanation: assessment.explanation,
+      assessment,
+      isAiGenerated: false as const,
+    }];
+  });
+}
+
+/** Scheduled maintenance uses the published bank without corrective targeting. */
+export function buildMaintenanceAssessmentQuestions(
+  entries: VocabQuizEntry[],
+): VocabQuizAssessmentQuestion[] {
+  return entries.flatMap((entry) => {
+    const bank = [...(entry.assessmentQuestions ?? [])].sort((left, right) => {
+      const dimensionOrder = (question: VocabAssessmentQuestion): number => (
+        question.questionType === "basic_meaning_mcq"
+          ? 0
+          : question.questionType === "character_to_pinyin_typing"
+            ? 1
+            : 2
+      );
+      return dimensionOrder(left) - dimensionOrder(right) || left.questionId.localeCompare(right.questionId);
+    });
+    if (!bank.length) return [];
+    const seen = new Set(entry.bktSeenQuestionKinds ?? []);
+    const unseen = bank.filter((question) => !seen.has(question.questionType));
+    // Finish covering every diagnostic dimension before rotating through the
+    // already-seen bank. Observation count is only a tie-breaker after the
+    // server evidence confirms that all dimensions have appeared.
+    const candidates = unseen.length ? unseen : bank;
+    const rotation = unseen.length
+      ? 0
+      : Math.max(0, entry.bktObservationCount ?? 0) % candidates.length;
+    const assessment = candidates[rotation];
+    if (!assessment) return [];
     return [{
       kind: "assessment" as const,
       word: assessment.targetWord,

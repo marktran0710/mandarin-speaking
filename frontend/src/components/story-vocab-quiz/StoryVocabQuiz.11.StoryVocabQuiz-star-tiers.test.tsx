@@ -113,7 +113,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
     expect(screen.getByRole("button", { name: /Round 1/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: /Round 2/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Round 3/ })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Context/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Word list/ })).toBeEnabled();
   });
 
@@ -125,7 +125,7 @@ describe("StoryVocabQuiz star tiers", () => {
     await screen.findByRole("group", { name: "Quiz mode" });
 
     expect(screen.getByRole("button", { name: /Round 2/ })).toBeEnabled();
-    expect(screen.getByRole("button", { name: /Round 3/ })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Context/ })).toBeDisabled();
   });
 
   it("mirrors a database-derived three-star result locally for the next activity view", async () => {
@@ -140,7 +140,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
     const { loadLocalStars } = await import("../../utils/quizTiers");
     await waitFor(() => expect(loadLocalStars("s1")).toBe(3));
-    expect(screen.getByRole("button", { name: /Round 3/ })).toBeEnabled();
+      expect(screen.getByRole("button", { name: /Context/ })).toBeEnabled();
   });
 
   it("does not let stale local stars mark rounds complete after an authoritative empty database result", async () => {
@@ -153,7 +153,7 @@ describe("StoryVocabQuiz star tiers", () => {
       expect(screen.getByRole("button", { name: /Round 1/ })).not.toHaveClass("is-earned");
     });
     expect(screen.getByRole("button", { name: /Round 2/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Round 3/ })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Context/ })).toBeDisabled();
   });
 
   it("does not count legacy draft attempts after approved assessment material is attached", async () => {
@@ -187,7 +187,7 @@ describe("StoryVocabQuiz star tiers", () => {
 
     expect(screen.getByRole("button", { name: /Round 1/ })).not.toHaveClass("is-earned");
     expect(screen.getByRole("button", { name: /Round 2/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Round 3/ })).toBeDisabled();
+      expect(screen.getByRole("button", { name: /Context/ })).toBeDisabled();
   });
 
   it("keeps practice locked until the learner earns all three stars", async () => {
@@ -224,7 +224,7 @@ describe("StoryVocabQuiz star tiers", () => {
     expect(onComplete).toHaveBeenCalledTimes(2);
     expect(onComplete.mock.calls[1][0].mode).toBe("tier2");
     expect(screen.queryByRole("button", { name: /Continue to practice/ })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Continue to Round 3/ }));
+      await user.click(screen.getByRole("button", { name: /Continue to Context/ }));
     await playTierRun(user, 5, 5);
 
     expect(loadLocalStars("s1")).toBe(3);
@@ -281,7 +281,7 @@ describe("StoryVocabQuiz star tiers", () => {
     await screen.findByRole("group", { name: "Quiz mode" });
     vi.useFakeTimers();
     try {
-      fireEvent.click(screen.getByRole("button", { name: /Round 3/ }));
+        fireEvent.click(screen.getByRole("button", { name: /Context/ }));
       expect(screen.getByLabelText("150 seconds left")).toBeInTheDocument();
 
       act(() => {

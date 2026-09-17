@@ -104,7 +104,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
     expect(screen.queryByRole("button", { name: /Weak words/ })).not.toBeInTheDocument();
   });
 
-  it("drops a missed word from the interim review once its mastery crosses the threshold", async () => {
+  it("keeps a missed word in interim review until the server marks it strong", async () => {
     const weakWords = [] as database.VocabWeakWordsResult;
     Object.defineProperty(weakWords, "diagnostic", {
       value: { unlocked: false, requiredDiagnosticQuizzes: 3, completedDiagnosticQuizzes: 0 },
@@ -112,9 +112,9 @@ describe("StoryVocabQuiz weak-words mode", () => {
     Object.defineProperty(weakWords, "mastery", {
       value: [
         // Missed once and still weak → stays in the interim review.
-        { wordId: "w1", word: "一", pLearned: 0.3, status: "UNASSESSED", observationCount: 1, correctCount: 0, incorrectCount: 1 },
-        // Missed once but since relearned (p >= 0.95) → drops off.
-        { wordId: "w3", word: "三", pLearned: 0.98, status: "MASTERED", observationCount: 4, correctCount: 3, incorrectCount: 1 },
+        { wordId: "w1", word: "一", pLearned: 0.3, status: "PROVISIONAL_REVIEW", observationCount: 1, correctCount: 0, incorrectCount: 1 },
+        // The server marks a strongly estimated word as strong, so it drops off.
+        { wordId: "w3", word: "三", pLearned: 0.98, status: "STRONG", observationCount: 4, correctCount: 3, incorrectCount: 1 },
       ],
     });
     vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(weakWords);
@@ -122,7 +122,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
     await screen.findByRole("group", { name: "Quiz mode" });
     await waitFor(() => expect(database.getVocabQuizWeakWords).toHaveBeenCalled());
 
-    // Exactly one word ("一") remains; the mastered "三" is gone.
+    // Exactly one word ("一") remains; the strong "三" is gone.
     const card = await screen.findByRole("button", { name: /Review your misses \(1\)/ });
     expect(card).toBeInTheDocument();
   });
@@ -135,7 +135,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
         word: "哪裡",
         meaning: "where",
         pLearned: 0.2,
-        status: "NEEDS_REVIEW",
+        status: "NEEDS_PRACTICE",
         observationCount: 1,
         correctCount: 0,
         incorrectCount: 1,
@@ -167,7 +167,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
         word: "哪裡",
         meaning: "where",
         pLearned: 0.2,
-        status: "NEEDS_REVIEW",
+        status: "NEEDS_PRACTICE",
         observationCount: 3,
         correctCount: 0,
         incorrectCount: 3,
@@ -190,15 +190,16 @@ describe("StoryVocabQuiz weak-words mode", () => {
     await user.click(optionButtons()[0]);
 
     await waitFor(() => expect(database.recordVocabQuizResponse).toHaveBeenCalled());
-    const payload = vi.mocked(database.recordVocabQuizResponse).mock.calls.at(-1)![0];
-    const recorded = payload.questionResults.at(-1)!;
+    const calls = vi.mocked(database.recordVocabQuizResponse).mock.calls;
+    const payload = calls[calls.length - 1]![0];
+    const recorded = payload.questionResults[payload.questionResults.length - 1]!;
     // The diagnostic recorded this word under "MC1_003"; practice must too, or
     // the correct answers land on a different concept ("哪裡 / 哪兒") and the
     // weak word never leaves the list.
     expect(recorded.conceptId).toBe("MC1_003");
   });
 
-  it("lets a student re-practice a mastered word from the mastered list", async () => {
+  it("lets a student re-practice a strong word from the strong list", async () => {
     const user = userEvent.setup();
     const lesson = [
       { word: "貴", translation: "expensive", wordId: "MC1_108" },
@@ -212,7 +213,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
     });
     Object.defineProperty(weakWords, "mastery", {
       value: [
-        { wordId: "MC1_108", word: "貴", meaning: "expensive", pLearned: 0.98, status: "MASTERED", observationCount: 4, correctCount: 4, incorrectCount: 0 },
+        { wordId: "MC1_108", word: "貴", meaning: "expensive", status: "STRONG" },
       ],
     });
     vi.mocked(database.getVocabQuizWeakWords).mockResolvedValue(weakWords);
@@ -221,7 +222,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
     await screen.findByRole("group", { name: "Quiz mode" });
     await waitFor(() => expect(database.getVocabQuizWeakWords).toHaveBeenCalled());
 
-    // The mastered word is tappable — even though it left the weak-word list.
+    // The strong word is tappable — even though it left the weak-word list.
     await user.click(await screen.findByRole("button", { name: /Practice 貴/ }));
 
     // A real single-word practice question, with distractors drawn from the
@@ -233,9 +234,10 @@ describe("StoryVocabQuiz weak-words mode", () => {
     // concept and a wrong answer can pull it back into the weak-word list.
     await user.click(optionButtons()[0]);
     await waitFor(() => expect(database.recordVocabQuizResponse).toHaveBeenCalled());
-    const payload = vi.mocked(database.recordVocabQuizResponse).mock.calls.at(-1)![0];
+    const calls = vi.mocked(database.recordVocabQuizResponse).mock.calls;
+    const payload = calls[calls.length - 1]![0];
     expect(payload.mode).toBe("weak_words");
-    expect(payload.questionResults.at(-1)!.conceptId).toBe("MC1_108");
+    expect(payload.questionResults[payload.questionResults.length - 1]!.conceptId).toBe("MC1_108");
   });
 
   it("records an eligible answer immediately so the first wrong answer can enter BKT", async () => {
@@ -362,7 +364,7 @@ describe("StoryVocabQuiz weak-words mode", () => {
     const refreshedWords = ["一"] as database.VocabWeakWordsResult;
     Object.defineProperty(refreshedWords, "priorityReview", {
       value: [{
-        wordId: "一", word: "一", pLearned: 0.2, status: "UNASSESSED",
+        wordId: "一", word: "一", pLearned: 0.2, status: "NEEDS_PRACTICE",
         observationCount: 1, correctCount: 0, incorrectCount: 1,
       }],
     });

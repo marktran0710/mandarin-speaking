@@ -91,13 +91,13 @@ class AudioRecordRequest(BaseModel):
 class SpeakingProgressRequest(BaseModel):
     studentId: str
     topicId: str
-    sceneIndex: int
-    attempts: int = 0
-    bestTone: float = 0
-    bestFluency: float = 0
+    sceneIndex: int = Field(..., ge=0)
+    attempts: int = Field(default=0, ge=0)
+    bestTone: float = Field(default=0, ge=0, le=100)
+    bestFluency: float = Field(default=0, ge=0, le=100)
     masteryPassed: bool = False
     contentPassed: bool = False
-    clearedWords: List[str] = []
+    clearedWords: List[str] = Field(default_factory=list)
     # The latest accepted per-scene submission snapshot. Kept nullable so
     # rows written before this field was introduced remain fully compatible.
     latestResult: Optional[Dict[str, Any]] = None
@@ -233,7 +233,7 @@ class VocabQuizQuestionResult(BaseModel):
     questionKind: Optional[str] = Field(default=None, max_length=40)
     roundType: Optional[Literal["know_it", "say_it", "use_it"]] = None
     knowledgeDimension: Optional[Literal["meaning", "pinyin_production", "contextual_recall"]] = None
-    activityType: Optional[Literal["diagnostic", "personalized_practice", "challenge", "practice"]] = None
+    activityType: Optional[Literal["diagnostic", "personalized_practice", "scheduled_maintenance", "challenge", "practice"]] = None
     level: Optional[str] = None  # round key (tier1/2/3) or legacy label; server resolver is authoritative
     baseStoryId: Optional[str] = Field(default=None, max_length=128)
     itemVersion: Optional[str] = Field(default=None, max_length=40)

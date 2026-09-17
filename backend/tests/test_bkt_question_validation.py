@@ -116,7 +116,7 @@ def test_runtime_response_accepts_stable_concept_id_separate_from_display_word()
 def test_runtime_response_accepts_tier2_and_tier3_diagnostic_rounds():
     for mode, round_type, question_kind in (
         ("tier2", "say_it", "character_to_pinyin_typing"),
-        ("tier3", "use_it", "contextual_productive_recall"),
+        ("tier3", "use_it", "context_cloze_mcq"),
     ):
         response = {
             "word": "錢包",

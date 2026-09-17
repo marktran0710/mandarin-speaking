@@ -6,8 +6,8 @@ L5_3_002,家具,jiājù,N,furniture,Easy,1,basic_meaning_mcq,single_choice,"In �
 L5_3_002,家具,jiājù,N,furniture,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 這個新房子沒有很多___。,"[""家具"",""床"",""貓"",""電視機""]",家具,"[""家具""]",這個新房子沒有很多家具。
 L5_3_002,家具,jiājù,N,furniture,Hard,3,productive_recall,free_text,Write the missing word: 這個新房子沒有很多___。,[],家具,"[""家具""]",這個新房子沒有很多家具。
 L5_3_003,電視機,diànshìjī,N,TV (television),Easy,1,basic_meaning_mcq,single_choice,"In 「我想買一台電視機」, what does 「電視機」 mean?","[""TV (television)"",""window"",""bed"",""door""]",TV (television),"[""TV (television)""]",「電視機」 means TV (television).
-L5_3_003,電視機,diànshìjī,N,TV (television),Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 我想買一台___。,"[""電視機"",""窗戶"",""床"",""門""]",電視機,"[""電視機""]",我想買一台電視機。
-L5_3_003,電視機,diànshìjī,N,TV (television),Hard,3,productive_recall,free_text,Write the missing word: 我想買一台___。,[],電視機,"[""電視機""]",我想買一台電視機。
+L5_3_003,電視機,diànshìjī,N,TV (television),Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 我想買一台___。,"[""電視機"",""窗戶"",""床"",""門""]",電視機,"[""電視機"",""電視""]",我想買一台電視機。 Both 電視 (diànshì) and 電視機 (diànshìjī) mean TV.
+L5_3_003,電視機,diànshìjī,N,TV (television),Hard,3,productive_recall,free_text,Write the missing word: 我想買一台___。,[],電視機,"[""電視機"",""電視""]",我想買一台電視機。 Both 電視 (diànshì) and 電視機 (diànshìjī) mean TV.
 L5_3_004,窗戶,chuānghù,N,window,Easy,1,basic_meaning_mcq,single_choice,"In 「窗戶前面有很多花，很漂亮」, what does 「窗戶」 mean?","[""window"",""door"",""sofa"",""bed""]",window,"[""window""]",「窗戶」 means window.
 L5_3_004,窗戶,chuānghù,N,window,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: ___前面有很多花，很漂亮。,"[""窗戶"",""門"",""床"",""桌子""]",窗戶,"[""窗戶""]",窗戶前面有很多花，很漂亮。
 L5_3_004,窗戶,chuānghù,N,window,Hard,3,productive_recall,free_text,Write the missing word: ___前面有很多花，很漂亮。,[],窗戶,"[""窗戶""]",窗戶前面有很多花，很漂亮。
@@ -27,8 +27,8 @@ L5_3_009,隻,zhī,M,measure word for animals,Easy,1,basic_meaning_mcq,single_cho
 L5_3_009,隻,zhī,M,measure word for animals,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 我家有一___貓、兩隻狗和三隻鳥。,"[""隻"",""張"",""台"",""個""]",隻,"[""隻""]",我家有一隻貓、兩隻狗和三隻鳥。
 L5_3_009,隻,zhī,M,measure word for animals,Hard,3,productive_recall,free_text,Write the missing word: 我家有一___貓、兩隻狗和三隻鳥。,[],隻,"[""隻""]",我家有一隻貓、兩隻狗和三隻鳥。
 L5_3_010,曬太陽,shài tàiyáng,phrase,to bask in the sun,Easy,1,basic_meaning_mcq,single_choice,"In 「我的貓在房子外面曬太陽」, what does 「曬太陽」 mean?","[""to bask in the sun"",""to watch television"",""to read in bed"",""to cook""]",to bask in the sun,"[""to bask in the sun""]",「曬太陽」 means to bask in the sun.
-L5_3_010,曬太陽,shài tàiyáng,phrase,to bask in the sun,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 我的貓在房子外面___。,"[""曬太陽"",""看電視"",""看書"",""做飯""]",曬太陽,"[""曬太陽""]",我的貓在房子外面曬太陽。
-L5_3_010,曬太陽,shài tàiyáng,phrase,to bask in the sun,Hard,3,productive_recall,free_text,Write the missing word: 我的貓在房子外面___。,[],曬太陽,"[""曬太陽""]",我的貓在房子外面曬太陽。
+L5_3_010,曬太陽,shài tàiyáng,phrase,to bask in the sun,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 我的貓在房子外面___。,"[""曬太陽"",""看電視"",""看書"",""做飯""]",曬太陽,"[""曬太陽"",""晒太陽""]",我的貓在房子外面曬太陽。 Both 曬太陽 and 晒太陽 (shài tàiyáng) mean to bask in the sun.
+L5_3_010,曬太陽,shài tàiyáng,phrase,to bask in the sun,Hard,3,productive_recall,free_text,Write the missing word: 我的貓在房子外面___。,[],曬太陽,"[""曬太陽"",""晒太陽""]",我的貓在房子外面曬太陽。 Both 曬太陽 and 晒太陽 (shài tàiyáng) mean to bask in the sun.
 L5_3_011,太陽,tàiyáng,N,the sun,Easy,1,basic_meaning_mcq,single_choice,"In 「我的貓在房子外面曬太陽」, what does 「太陽」 mean?","[""the sun"",""the moon"",""a window"",""a room""]",the sun,"[""the sun""]",「太陽」 means the sun.
 L5_3_011,太陽,tàiyáng,N,the sun,Medium,2,context_cloze_mcq,single_choice,Complete the textbook sentence: 我的貓在房子外面曬___。,"[""太陽"",""窗戶"",""門"",""房間""]",太陽,"[""太陽""]",我的貓在房子外面曬太陽。
 L5_3_011,太陽,tàiyáng,N,the sun,Hard,3,productive_recall,free_text,Write the missing word: 我的貓在房子外面曬___。,[],太陽,"[""太陽""]",我的貓在房子外面曬太陽。

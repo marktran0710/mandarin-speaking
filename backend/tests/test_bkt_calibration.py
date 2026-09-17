@@ -61,3 +61,13 @@ def test_optimizer_failure_blocks_promotion(monkeypatch):
     result = calibrate_bkt(make_records())
     assert result["gates"]["all_optimizers_converged"] is False
     assert result["promotable"] is False
+
+
+def test_global_calibration_is_explicitly_not_production_format_aware():
+    result = calibrate_bkt(make_records(), iterations=2)
+
+    assert result["model_scope"] == "global-bkt-v1"
+    assert result["production_model_scope"] == "format-aware-bkt-v2"
+    assert result["compatibility"]["production_compatible"] is False
+    assert result["gates"]["production_model_compatibility"] is False
+    assert result["promotable"] is False

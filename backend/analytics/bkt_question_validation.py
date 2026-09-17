@@ -46,6 +46,11 @@ _ROUND_BY_MODE = {"tier1": "know_it", "tier2": "say_it", "tier3": "use_it"}
 # The round key stored in quiz_level now matches quiz_mode (tier1/2/3); the
 # separate difficulty label was retired.
 _LEVEL_BY_MODE = {"tier1": "tier1", "tier2": "tier2", "tier3": "tier3"}
+PRODUCTION_BKT_CONTRACT = {
+    "easy": {"round": "tier1", "question_type": "basic_meaning_mcq", "answer_format": "single_choice"},
+    "medium": {"round": "tier2", "question_type": "character_to_pinyin_typing", "answer_format": "free_text"},
+    "hard": {"round": "tier3", "question_type": "context_cloze_mcq", "answer_format": "single_choice"},
+}
 _OBVIOUS_BAD_OPTION = re.compile(r"^(?:a{3,}|n/?a|none|nil|\?{2,}|x{3,})$", re.I)
 
 
@@ -441,6 +446,108 @@ def validate_bkt_diagnostic_design(
         "correctOptionPositionDistribution": dict(sorted(position_counts.items())),
         "capacity": capacity_report,
         "bankHash": bank_hash,
+    }
+
+
+def validate_production_bkt_assessment(
+    assessment: Any,
+    *,
+    story_id: str | None = None,
+) -> dict[str, Any]:
+    """Validate the normalized ``custom_stories.vocab_assessment`` BKT source.
+
+    This is deliberately separate from the legacy frame/export audit above.
+    The resolver consumes this exact representation, so one published word
+    must have exactly one supported observation for each production round.
+    ``validationStatus``/``approvalStatus`` are optional compatibility fields;
+    when present, a non-approved value is rejected. Publication remains the
+    approval boundary for the current normalized payload.
+    """
+    errors: list[dict[str, Any]] = []
+    if not isinstance(assessment, Sequence) or isinstance(assessment, (str, bytes)):
+        return {
+            "storyId": story_id,
+            "valid": False,
+            "itemsChecked": 0,
+            "wordsChecked": 0,
+            "errors": [{"code": "PRODUCTION_ASSESSMENT_NOT_LIST", "storyId": story_id}],
+        }
+
+    by_word: dict[str, list[tuple[str, Mapping[str, Any]]]] = defaultdict(list)
+    seen_rounds: set[tuple[str, str]] = set()
+    expected_types = {contract["question_type"] for contract in PRODUCTION_BKT_CONTRACT.values()}
+    for index, item in enumerate(assessment, start=1):
+        if not isinstance(item, Mapping):
+            errors.append({"code": "PRODUCTION_ITEM_INVALID", "index": index})
+            continue
+        word_id = normalize_value(item.get("wordId") or item.get("word_id"))
+        level = normalize_value(item.get("level"))
+        question_type = normalize_value(item.get("questionType") or item.get("question_type"))
+        answer_format = normalize_value(item.get("answerFormat") or item.get("answer_format"))
+        item_id = _text(item.get("questionId") or item.get("question_id") or f"item-{index}")
+        if not word_id:
+            errors.append({"code": "PRODUCTION_MISSING_WORD_ID", "itemId": item_id, "index": index})
+            continue
+        if level not in PRODUCTION_BKT_CONTRACT:
+            errors.append({"code": "PRODUCTION_UNSUPPORTED_LEVEL", "itemId": item_id, "wordId": word_id, "level": level})
+            continue
+        contract = PRODUCTION_BKT_CONTRACT[level]
+        round_identity = (word_id, level)
+        if round_identity in seen_rounds:
+            errors.append({"code": "PRODUCTION_DUPLICATE_WORD_ROUND", "itemId": item_id, "wordId": word_id, "level": level})
+        seen_rounds.add(round_identity)
+        by_word[word_id].append((level, item))
+        if question_type not in expected_types:
+            errors.append({"code": "PRODUCTION_UNSUPPORTED_QUESTION_TYPE", "itemId": item_id, "wordId": word_id, "level": level, "questionType": question_type})
+        elif question_type != contract["question_type"]:
+            errors.append({"code": "PRODUCTION_WRONG_QUESTION_TYPE", "itemId": item_id, "wordId": word_id, "level": level, "expected": contract["question_type"], "actual": question_type})
+        if answer_format != contract["answer_format"]:
+            errors.append({"code": "PRODUCTION_WRONG_ANSWER_FORMAT", "itemId": item_id, "wordId": word_id, "level": level, "expected": contract["answer_format"], "actual": answer_format})
+        status = item.get("validationStatus", item.get("validation_status", item.get("approvalStatus", item.get("approval_status"))))
+        if status is not None and normalize_value(status) not in {"approved", "ok"}:
+            errors.append({"code": "PRODUCTION_UNAPPROVED_ITEM", "itemId": item_id, "wordId": word_id, "level": level, "status": str(status)})
+
+    expected_levels = set(PRODUCTION_BKT_CONTRACT)
+    for word_id, rows in sorted(by_word.items()):
+        levels = {level for level, _ in rows}
+        missing = sorted(expected_levels - levels)
+        if missing:
+            errors.append({"code": "PRODUCTION_MISSING_ROUND", "wordId": word_id, "missingLevels": missing})
+
+    return {
+        "storyId": story_id,
+        "valid": not errors,
+        "itemsChecked": len(assessment),
+        "wordsChecked": len(by_word),
+        "expectedRounds": {
+            level: {"round": value["round"], "questionType": value["question_type"], "answerFormat": value["answer_format"]}
+            for level, value in PRODUCTION_BKT_CONTRACT.items()
+        },
+        "errors": errors,
+    }
+
+
+def audit_production_bkt_assessments(stories: Iterable[Any]) -> dict[str, Any]:
+    """Audit published stories using the resolver's production source shape."""
+    reports = []
+    for story in stories:
+        story_id = _text(_field(story, "id", "storyId", default="")) or None
+        assessment = _field(story, "vocab_assessment", "vocabAssessment", default=None)
+        reports.append(validate_production_bkt_assessment(assessment, story_id=story_id))
+    return {
+        "mode": "production-vocab-assessment",
+        # An empty published-story scope is not evidence that the production
+        # bank is valid. Keep the report useful for a fresh dev database, but
+        # make CI's fail-on-ineligible gate reject this vacuous case.
+        "valid": bool(reports) and all(report["valid"] for report in reports),
+        "summary": {
+            "storiesChecked": len(reports),
+            "storiesPassed": sum(report["valid"] for report in reports),
+            "storiesFailed": sum(not report["valid"] for report in reports),
+            "itemsChecked": sum(report["itemsChecked"] for report in reports),
+            "wordsChecked": sum(report["wordsChecked"] for report in reports),
+        },
+        "stories": reports,
     }
 
 

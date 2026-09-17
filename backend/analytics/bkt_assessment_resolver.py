@@ -31,6 +31,14 @@ _ROUND_FACTS = {
 # ignores. Diagnostic responses never consult it.
 _BANK_LABEL_TO_ROUND = {"easy": "tier1", "medium": "tier2", "hard": "tier3"}
 
+_QUESTION_FACTS = {
+    "basic_meaning_mcq": ("tier1", "know_it", "meaning"),
+    "character_to_pinyin_typing": ("tier2", "say_it", "pinyin_production"),
+    "context_cloze_mcq": ("tier3", "use_it", "contextual_recall"),
+    "contextual_productive_recall": ("tier3", "use_it", "contextual_recall"),
+    "productive_recall": ("tier3", "use_it", "contextual_recall"),
+}
+
 ASSESSMENT_RESOLVER_VERSION = "authoritative-assessment-v1"
 
 
@@ -84,8 +92,8 @@ def _diagnostic_source(
     return None
 
 
-def _accepted_answers(item: dict[str, Any], mode: str) -> tuple[str, list[str]]:
-    if mode == "tier2":
+def _accepted_answers(item: dict[str, Any], mode: str, question_kind: str) -> tuple[str, list[str]]:
+    if mode == "tier2" or question_kind == "character_to_pinyin_typing":
         pinyin = str(item.get("pinyin") or "").strip()
         accepted = [
             pinyin,
@@ -109,7 +117,7 @@ def resolve_assessment_response(db: Any, attempt: Any, submitted: dict[str, Any]
     story_id = _value(attempt, "baseStoryId") or _value(attempt, "storyId")
     item_id = submitted.get("itemId")
     selected = submitted.get("selectedAnswer")
-    if mode not in (*_ROUND_FACTS, "weak_words"):
+    if mode not in (*_ROUND_FACTS, "weak_words", "maintenance_review"):
         return _unresolved(submitted, "NON_BKT_ACTIVITY")
     if not isinstance(item_id, str) or not item_id or not isinstance(selected, str):
         return _unresolved(submitted, "MISSING_AUTHORITATIVE_RESPONSE_IDENTITY")
@@ -119,14 +127,16 @@ def resolve_assessment_response(db: Any, attempt: Any, submitted: dict[str, Any]
         return _unresolved(submitted, "PUBLISHED_ASSESSMENT_UNAVAILABLE")
     source_story_id, assessment = published
 
-    if mode == "weak_words":
+    if mode in {"weak_words", "maintenance_review"}:
         item = next((row for row in assessment if row.get("questionId") == item_id), None)
         if item is None:
             return _unresolved(submitted, "UNKNOWN_PUBLISHED_ASSESSMENT_ITEM")
         level = _BANK_LABEL_TO_ROUND.get(str(item.get("level") or "").casefold())
-        round_type = knowledge_dimension = None
         question_kind = str(item.get("questionType") or "")
-        activity_type = "personalized_practice"
+        derived_facts = _QUESTION_FACTS.get(question_kind)
+        round_type = derived_facts[1] if derived_facts else None
+        knowledge_dimension = derived_facts[2] if derived_facts else None
+        activity_type = "personalized_practice" if mode == "weak_words" else "scheduled_maintenance"
         is_bkt_eligible = False
         eligibility_errors = ["NON_DIAGNOSTIC_MODE"]
     else:
@@ -138,7 +148,7 @@ def resolve_assessment_response(db: Any, attempt: Any, submitted: dict[str, Any]
         is_bkt_eligible = True
         eligibility_errors = []
 
-    correct_answer, accepted = _accepted_answers(item, mode)
+    correct_answer, accepted = _accepted_answers(item, mode, question_kind)
     # A learner typing pinyin on a plain keyboard writes tone numbers
     # ("ni3 hao3"); fold them to the tone-marked form the bank stores so this
     # BKT grade matches what the quiz UI showed. Scoped to the pinyin round so a
@@ -155,10 +165,15 @@ def resolve_assessment_response(db: Any, attempt: Any, submitted: dict[str, Any]
     )
     prompt = (
         f"Type the pinyin for {item.get('targetWord')}."
-        if mode == "tier2"
+        if question_kind == "character_to_pinyin_typing"
         else str(item.get("prompt") or "")
     )
-    if mode in {"tier1", "weak_words"}:
+    if question_kind == "context_cloze_mcq":
+        # Context questions are assembled from the lesson bank on the client;
+        # retain the submitted choices as audit metadata while the server
+        # still derives identity and correctness from the published item.
+        options = [value for value in (submitted.get("presentedOptions") or []) if isinstance(value, str)]
+    elif mode in {"tier1", "weak_words", "maintenance_review"}:
         options = list(item.get("options") or [])
     elif mode == "tier3":
         # `item` here is the round's hard-level bank row, which carries no
@@ -178,6 +193,7 @@ def resolve_assessment_response(db: Any, attempt: Any, submitted: dict[str, Any]
         "conceptId": str(item.get("wordId") or ""),
         "itemId": item_id,
         "questionKind": question_kind,
+        "answerFormat": item.get("answerFormat"),
         "level": level,
         "roundType": round_type,
         "knowledgeDimension": knowledge_dimension,
@@ -187,9 +203,7 @@ def resolve_assessment_response(db: Any, attempt: Any, submitted: dict[str, Any]
         "presentedOptions": options,
         "questionPrompt": prompt,
         "lessonId": source_story_id,
-        "diagnosticExposureId": (
-            f"{source_story_id}:{mode}:{item_id}" if mode in _ROUND_FACTS else None
-        ),
+        "diagnosticExposureId": f"{source_story_id}:{mode}:{item_id}" if mode in _ROUND_FACTS else None,
         "assistedResponse": False,
         "bktValidationStatus": "APPROVED",
         "isBktEligible": is_bkt_eligible,

@@ -11,8 +11,16 @@ import unicodedata
 
 from psycopg.types.json import Jsonb
 
-from analytics.bkt import BKT_CONFIG, BKT_MODEL_VERSION, BktConfig, bkt_parameter_fingerprint, mastery_status, replay_bkt_typed
+from analytics.bkt import (
+    BKT_CONFIG,
+    BKT_MODEL_VERSION,
+    BktConfig,
+    bkt_parameter_fingerprint,
+    is_supported_bkt_question_shape,
+    replay_bkt_typed,
+)
 from analytics.bkt_question_validation import classify_bkt_response
+from analytics.vocabulary_state import build_vocabulary_state
 
 
 DIAGNOSTIC_MODES = ("tier1", "tier2", "tier3")
@@ -101,10 +109,17 @@ def response_rows_for_attempt(attempt: Any, student_id: str, response_results: I
             continue
         eligible, _reasons = classify_bkt_response(result, attempt)
         quiz_mode = result.get("mode") or mode
+        if quiz_mode in {"weak_words", "maintenance_review"} and not is_supported_bkt_question_shape(
+            result.get("questionKind") or result.get("question_type"),
+            result.get("answerFormat") or result.get("answer_format"),
+        ):
+            # Review answers are intentionally non-diagnostic, but an unknown
+            # published shape must not silently fall back to MCQ rates.
+            continue
         # Diagnostic evidence is server-gated. A personalized review answer is
         # still a normal learning observation and must update BKT even though
         # it is not eligible to count toward the three-quiz unlock.
-        if not eligible and quiz_mode != "weak_words":
+        if not eligible and quiz_mode not in {"weak_words", "maintenance_review"}:
             # The original JSONB attempt remains the lossless raw record. This
             # normalized ledger is intentionally restricted to observations
             # that can affect word-level BKT.
@@ -123,7 +138,12 @@ def response_rows_for_attempt(attempt: Any, student_id: str, response_results: I
             "question_type": result.get("questionKind") or "unknown",
             "round_type": result.get("roundType") or result.get("round_type"),
             "knowledge_dimension": result.get("knowledgeDimension") or result.get("knowledge_dimension"),
-            "activity_type": result.get("activityType") or ("personalized_practice" if quiz_mode == "weak_words" else "diagnostic" if quiz_mode in DIAGNOSTIC_MODES else "practice"),
+            "activity_type": result.get("activityType") or (
+                "personalized_practice" if quiz_mode == "weak_words"
+                else "scheduled_maintenance" if quiz_mode == "maintenance_review"
+                else "diagnostic" if quiz_mode in DIAGNOSTIC_MODES
+                else "practice"
+            ),
             "diagnostic_exposure_id": result.get("diagnosticExposureId") or result.get("diagnostic_exposure_id"),
             "bkt_eligible": bool(eligible),
             "bkt_eligibility_errors": result.get("bktEligibilityErrors") or [],
@@ -234,15 +254,16 @@ def _ordered_responses(db: Any, student_id: str, story_id: str | None = None) ->
         f"""
         SELECT id, student_id, word_id, word, lesson_id, quiz_id, attempt_id,
                item_id, question_type, diagnostic_exposure_id, bkt_eligible, correct, response_time_ms, occurred_at,
+               occurred_at_utc,
                attempt_order, quiz_level, quiz_mode, round_type, knowledge_dimension, activity_type
         FROM vocab_quiz_responses
         WHERE student_id = %s
           AND (
             (lower(COALESCE(quiz_level, '')) IN ('tier1', 'tier2', 'tier3') AND quiz_mode IN ('tier1', 'tier2', 'tier3') AND bkt_eligible = TRUE)
-            OR quiz_mode = 'weak_words'
+            OR quiz_mode IN ('weak_words', 'maintenance_review')
           )
           {scope_filter}
-        ORDER BY occurred_at ASC NULLS LAST, id ASC, attempt_order ASC
+        ORDER BY occurred_at_utc ASC NULLS LAST, id ASC, attempt_order ASC
         """,
         [student_id, *scope_params],
     ).fetchall())
@@ -265,9 +286,11 @@ def _group_response_history(responses: Iterable[dict[str, Any]]) -> dict[str, li
 def _mastery_states_from_responses(responses: Iterable[dict[str, Any]], params: BktConfig) -> dict[str, dict[str, Any]]:
     states: dict[str, dict[str, Any]] = {}
     for word_id, history in _group_response_history(responses).items():
-        # Format-aware replay: typed rounds (pinyin/contextual production) use a
-        # near-zero guess and higher slip than multiple choice, so a typed
-        # correct answer is credited more and a typo penalised less.
+        # Format-aware replay: the typed pinyin round uses a near-zero guess
+        # and higher slip than multiple choice, so a typed correct answer is
+        # credited more and a typo penalised less. Round 3 is now a context
+        # cloze MCQ (see bkt_assessment_resolver._ROUND_FACTS), so it uses the
+        # standard multiple-choice rates like Round 1.
         p_learned = replay_bkt_typed(((bool(row["correct"]), row.get("question_type")) for row in history), params)
         last = history[-1]
         correct_count = sum(1 for row in history if row["correct"])
@@ -284,6 +307,7 @@ def _mastery_states_from_responses(responses: Iterable[dict[str, Any]], params: 
             "seen_question_types": sorted({row["question_type"] for row in history if row.get("question_type")}),
             "failed_question_types": sorted({row["question_type"] for row in history if not row["correct"] and row.get("question_type")}),
             "round_types": sorted({row.get("round_type") for row in history if row.get("round_type")}),
+            "history": history,
         }
     return states
 
@@ -556,15 +580,12 @@ def _known_words(db: Any, story_id: str | None = None) -> dict[str, dict[str, An
 
 def get_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CONFIG, story_id: str | None = None) -> list[dict[str, Any]]:
     diagnostic_complete = _completed_diagnostic_quizzes(db, student_id, story_id=story_id, params=params) >= params.required_diagnostic_quizzes
-    if story_id:
-        # The cache is intentionally pooled for the dashboard, but a story
-        # review must replay this story's full ledger so one identical word
-        # in another story cannot change this story's weak-word decision.
-        states = _mastery_states_from_responses(_ordered_responses(db, student_id, story_id=story_id), params)
-    else:
-        states = {row["word_id"]: dict(row) for row in db.execute(
-            "SELECT * FROM student_vocab_mastery WHERE student_id = %s", (student_id,)
-        ).fetchall()}
+    # Always replay the ledger for this projection. The cache remains a useful
+    # rebuild artifact, but it predates the normalized evidence contract and
+    # cannot explain dimension-specific practice state on its own.
+    states = _mastery_states_from_responses(
+        _ordered_responses(db, student_id, story_id=story_id), params,
+    )
     known = _known_words(db, story_id=story_id)
     scope_filter, scope_params = _lesson_scope_filter(story_id)
     raw_words = db.execute(
@@ -584,22 +605,36 @@ def get_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CON
             "lessonId": row["lesson_id"],
             "lessonNumber": None,
         })
-        if not story_id and row.get("round_types"):
-            cached = states.get(row["word_id"])
-            if cached is not None:
-                cached["round_types"] = sorted({value for value in row["round_types"] if value})
+        cached = states.get(row["word_id"])
+        if cached is not None and row.get("round_types"):
+            cached["round_types"] = sorted({value for value in row["round_types"] if value})
+
+    from analytics.srs_store import load_srs_states
+
+    srs_states = load_srs_states(db, student_id, list(known))
 
     result: list[dict[str, Any]] = []
     for word_id, word in known.items():
         state = states.get(word_id)
         observations = int(state["observation_count"]) if state else 0
         p_learned = float(state["p_learned"]) if state else params.initial_mastery
+        vocabulary_state = build_vocabulary_state(
+            history=list(state.get("history") or []) if state else [],
+            p_learned=p_learned,
+            observation_count=observations,
+            diagnostic_complete=diagnostic_complete,
+            mastery_threshold=params.mastery_threshold,
+            minimum_observations=params.minimum_observations,
+            model_version=BKT_MODEL_VERSION,
+            parameter_fingerprint=bkt_parameter_fingerprint(params),
+            srs_state=srs_states.get(word_id),
+        )
         result.append({
             "wordId": word_id,
             "word": word["word"],
             "meaning": word.get("meaning"),
             "pLearned": p_learned,
-            "status": mastery_status(observations, p_learned, params=params) if diagnostic_complete else "UNASSESSED",
+            "status": vocabulary_state["review"]["status"],
             "observationCount": observations,
             "correctCount": int(state["correct_count"]) if state else 0,
             "incorrectCount": int(state["incorrect_count"]) if state else 0,
@@ -609,6 +644,7 @@ def get_vocabulary_mastery(db: Any, student_id: str, params: BktConfig = BKT_CON
             "seenQuestionTypes": [],
             "failedQuestionTypes": [],
             "roundTypes": state.get("round_types", []) if state else [],
+            "vocabularyState": vocabulary_state,
         })
     seen_types = {
         row["word_id"]: row
@@ -653,17 +689,27 @@ def get_priority_review_words(db: Any, student_id: str, options: dict[str, Any] 
     story_id = options.get("storyId")
     mastery = get_vocabulary_mastery(db, student_id, params, story_id=story_id)
     include_all_weak = bool(options.get("includeAllWeak"))
-    eligible = [row for row in mastery if row["pLearned"] < params.mastery_threshold and row["observationCount"] >= params.minimum_observations]
+    eligible = [
+        row for row in mastery
+        if row["observationCount"] >= params.minimum_observations
+        and row["vocabularyState"]["review"]["candidate"]
+    ]
     # Final weak-word recommendations require all three diagnostic rounds.
-    # Partial answers remain in the ledger and are reported as UNASSESSED, but
-    # cannot accidentally open personalized practice early.
+    # Partial answers remain in the ledger and are reported as provisional, but
+    # cannot accidentally open formal personalized practice early.
     if not diagnostic["unlocked"]:
         eligible = []
     selected = rank_review_candidates(eligible, review_count, include_all_weak)
     selected_ids = {row["wordId"] for row in selected}
     for row in mastery:
-        row["status"] = "UNASSESSED" if not diagnostic["unlocked"] else mastery_status(row["observationCount"], row["pLearned"], selected_for_review=row["wordId"] in selected_ids, params=params)
-    return {**diagnostic, "reviewCount": review_count, "words": selected, "mastery": mastery}
+        row["reviewRank"] = row.get("reviewRank") if row["wordId"] in selected_ids else None
+    return {
+        **diagnostic,
+        "diagnosticComplete": diagnostic["unlocked"],
+        "reviewCount": review_count,
+        "words": selected,
+        "mastery": mastery,
+    }
 
 
 def seen_item_ids(db: Any, student_id: str, word_id: str) -> list[str]:

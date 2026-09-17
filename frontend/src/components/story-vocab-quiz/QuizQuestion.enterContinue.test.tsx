@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QuizQuestion } from "./QuizQuestion";
 import type { VocabQuizQuestion } from "./model";
@@ -101,7 +101,7 @@ describe("QuizQuestion Enter to continue", () => {
     renderAnswered(next);
 
     const nextButton = screen.getByRole("button", { name: /Next question/ });
-    expect(nextButton).toHaveFocus();
+    await waitFor(() => expect(nextButton).toHaveFocus());
 
     await userEvent.keyboard("{Enter}");
     expect(next).toHaveBeenCalledTimes(1);
@@ -112,7 +112,7 @@ describe("QuizQuestion Enter to continue", () => {
     renderAnswered(next, { isLast: true });
 
     const resultsButton = screen.getByRole("button", { name: /See results/ });
-    expect(resultsButton).toHaveFocus();
+    await waitFor(() => expect(resultsButton).toHaveFocus());
 
     await userEvent.keyboard("{Enter}");
     expect(next).toHaveBeenCalledTimes(1);

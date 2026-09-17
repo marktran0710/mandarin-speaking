@@ -40,13 +40,18 @@ export interface DiagnosticRoundConfig {
   bankLevel: "easy" | "medium" | "hard";
   roundType: DiagnosticRoundType;
   knowledgeDimension: DiagnosticKnowledgeDimension;
-  questionKind: "basic_meaning_mcq" | "character_to_pinyin_typing" | "contextual_productive_recall";
+  questionKind: "basic_meaning_mcq" | "character_to_pinyin_typing" | "context_cloze_mcq";
 }
 
+// Round 3 ("use it") is a multiple-choice context cloze, not free-text hanzi
+// typing — most students have no Chinese IME, so a bare text input made the
+// round practically unplayable. bankLevel stays "hard" so the round still
+// grades against that level's published correctAnswer/acceptedAnswers; the
+// MCQ options are built separately (see buildDiagnosticRoundQuestions).
 export const DIAGNOSTIC_ROUNDS: Record<TierMode, DiagnosticRoundConfig> = {
   tier1: { mode: "tier1", bankLevel: "easy", roundType: "know_it", knowledgeDimension: "meaning", questionKind: "basic_meaning_mcq" },
   tier2: { mode: "tier2", bankLevel: "medium", roundType: "say_it", knowledgeDimension: "pinyin_production", questionKind: "character_to_pinyin_typing" },
-  tier3: { mode: "tier3", bankLevel: "hard", roundType: "use_it", knowledgeDimension: "contextual_recall", questionKind: "contextual_productive_recall" },
+  tier3: { mode: "tier3", bankLevel: "hard", roundType: "use_it", knowledgeDimension: "contextual_recall", questionKind: "context_cloze_mcq" },
 };
 
 export function tierConfigFromMode(mode: string | null | undefined): TierConfig | null {

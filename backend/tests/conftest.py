@@ -102,6 +102,8 @@ TRUNCATED_TABLES = (
     "vocab_quiz_irt_cache",
     "vocab_quiz_responses",
     "student_vocab_mastery",
+    "student_vocab_srs",
+    "student_vocab_srs_events",
 )
 
 

@@ -1,10 +1,27 @@
 from conftest import login_new_client
 from psycopg.types.json import Jsonb
+from types import SimpleNamespace
 
 import database
+from routers.vocab_quiz_parts.part_001 import _srs_event_results
 
 
 _MODE_LEVEL = {"tier1": "easy", "tier2": "medium", "tier3": "hard", "weak_words": "easy"}
+
+
+def test_srs_source_identity_uses_server_response_order_not_client_question_index():
+    attempt = SimpleNamespace(id="completed-transport-id")
+    first = _srs_event_results(attempt, [
+        {"quizId": "stable-round", "questionIndex": 99},
+        {"quizId": "stable-round", "questionIndex": 100},
+    ])
+    replay = _srs_event_results(attempt, [
+        {"quizId": "stable-round", "questionIndex": 0},
+        {"quizId": "stable-round", "questionIndex": 1},
+    ])
+
+    assert [row["sourceResponseId"] for row in first] == ["stable-round:0", "stable-round:1"]
+    assert [row["sourceResponseId"] for row in replay] == ["stable-round:0", "stable-round:1"]
 
 
 def _publish_attempt_items(attempt: dict) -> None:
@@ -50,10 +67,11 @@ def _publish_attempt_items(attempt: dict) -> None:
         )
 
 
-def _post_attempt(client, attempt: dict, *, partial: bool = False):
+def _post_attempt(client, attempt: dict, *, partial: bool = False, today: str | None = None):
     _publish_attempt_items(attempt)
     endpoint = "/api/vocab-quiz-responses" if partial else "/api/vocab-quiz-attempts"
-    return client.post(endpoint, json=attempt)
+    params = {"today": today} if today else None
+    return client.post(endpoint, params=params, json=attempt)
 
 
 def _response(word: str, correct: bool, item_id: str, *, level: str = "easy", eligible: bool = True, question_kind: str = "translation") -> dict:
@@ -111,11 +129,11 @@ def test_bkt_unlocks_after_three_easy_diagnostic_quizzes_and_ranks_bottom_k(logg
     assert body["completedDiagnosticQuizzes"] == 3
     assert [word["word"] for word in body["words"]] == ["附近"]
     assert body["words"][0]["observationCount"] == 3
-    assert body["words"][0]["status"] == "NEEDS_REVIEW"
+    assert body["words"][0]["status"] == "NEEDS_PRACTICE"
 
     mastery = client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()
     by_word = {word["word"]: word for word in mastery["words"]}
-    assert by_word["方便"]["status"] == "MASTERED"
+    assert by_word["方便"]["status"] == "STRONG"
     assert by_word["附近"]["correctCount"] == 0
 
 
@@ -136,7 +154,7 @@ def test_weak_words_wait_for_all_three_diagnostic_rounds(logged_in_student):
     assert body["unlocked"] is False
     assert body["completedDiagnosticQuizzes"] == 1
     assert body["words"] == []
-    assert body["mastery"][0]["status"] == "UNASSESSED"
+    assert body["mastery"][0]["status"] == "PROVISIONAL_REVIEW"
 
 
 def test_partial_diagnostic_response_updates_weak_words_without_creating_attempt(logged_in_student):
@@ -165,7 +183,7 @@ def test_partial_diagnostic_response_updates_weak_words_without_creating_attempt
     body = review.json()
     assert body["unlocked"] is False
     assert body["words"] == []
-    assert body["mastery"][0]["status"] == "UNASSESSED"
+    assert body["mastery"][0]["status"] == "PROVISIONAL_REVIEW"
 
     completed = {
         **partial,
@@ -218,7 +236,7 @@ def test_medium_and_hard_rounds_update_the_same_word_level_kc(logged_in_student)
     round_data = (
         ("tier1", "easy", "basic_meaning_mcq", "know_it"),
         ("tier2", "medium", "character_to_pinyin_typing", "say_it"),
-        ("tier3", "hard", "contextual_productive_recall", "use_it"),
+        ("tier3", "hard", "context_cloze_mcq", "use_it"),
     )
     for index, (mode, level, question_kind, round_type) in enumerate(round_data, start=1):
         result = _response("同一個詞", index == 1, f"same-word-round-{index}", level=level, question_kind=question_kind)
@@ -232,7 +250,7 @@ def test_medium_and_hard_rounds_update_the_same_word_level_kc(logged_in_student)
     word = next(row for row in mastery["words"] if row["word"] == "同一個詞")
     assert word["observationCount"] == 3
     assert word["correctCount"] == 1
-    assert set(word["seenQuestionTypes"]) == {"basic_meaning_mcq", "character_to_pinyin_typing", "contextual_productive_recall"}
+    assert set(word["seenQuestionTypes"]) == {"basic_meaning_mcq", "character_to_pinyin_typing", "context_cloze_mcq"}
     review = client.get(f"/api/students/{student['id']}/weak-words", params={"story_id": "lesson-1", "include_all": "true"}).json()
     assert review["unlocked"] is True
     assert review["roundPresence"]["tier2"]["level"] == "tier2"
@@ -244,7 +262,7 @@ def test_lesson_five_shape_has_fifteen_words_in_each_of_three_rounds(logged_in_s
     rounds = (
         ("tier1", "easy", "basic_meaning_mcq", "know_it", "meaning"),
         ("tier2", "medium", "character_to_pinyin_typing", "say_it", "pinyin_production"),
-        ("tier3", "hard", "contextual_productive_recall", "use_it", "contextual_recall"),
+        ("tier3", "hard", "context_cloze_mcq", "use_it", "contextual_recall"),
     )
     for index, (mode, level, question_kind, round_type, dimension) in enumerate(rounds, start=1):
         results = []
@@ -340,6 +358,121 @@ def test_weak_review_is_a_new_bkt_observation_and_attempt_is_immutable(logged_in
     assert conflict.status_code == 409
 
 
+def test_personalized_practice_requires_two_successes_and_failed_dimension(logged_in_student):
+    client, student = logged_in_student
+    word = "practice-target"
+    for index, (mode, level, question_kind, dimension) in enumerate((
+        ("tier1", "easy", "basic_meaning_mcq", "meaning"),
+        ("tier2", "medium", "character_to_pinyin_typing", "pinyin_production"),
+        ("tier3", "hard", "context_cloze_mcq", "contextual_recall"),
+    ), start=1):
+        result = _response(word, mode != "tier1", f"practice-diagnostic-{index}", level=level, question_kind=question_kind)
+        result.update({"knowledgeDimension": dimension, "quizId": f"practice-diagnostic-{index}"})
+        attempt = _attempt(f"practice-diagnostic-{index}", mode, f"2026-08-1{index}T00:00:00Z", [result])
+        attempt["level"] = level
+        assert _post_attempt(client, attempt, today=f"2026-08-1{index}").status_code == 200
+
+    first_practice = _attempt(
+        "practice-corrective-1", "weak_words", "2026-08-20T00:00:00Z",
+        [_response(word, True, "practice-corrective-item-1", eligible=False)],
+    )
+    assert _post_attempt(client, first_practice, today="2026-08-20").status_code == 200
+    state = next(row for row in client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()["words"] if row["word"] == word)
+    assert state["vocabularyState"]["bkt"]["status"] == "STRONG"
+    assert state["vocabularyState"]["review"] == {"status": "NEEDS_PRACTICE", "candidate": True}
+    assert state["vocabularyState"]["practice"]["status"] == "IN_PROGRESS"
+    assert state["vocabularyState"]["practice"]["correctiveSuccesses"] == 1
+    assert state["vocabularyState"]["practice"]["failedDimensions"] == ["meaning"]
+
+    second_practice = _attempt(
+        "practice-corrective-2", "weak_words", "2026-08-21T00:00:00Z",
+        [_response(word, True, "practice-corrective-item-2", eligible=False)],
+    )
+    assert _post_attempt(client, second_practice, today="2026-08-21").status_code == 200
+    state = next(row for row in client.get(f"/api/students/{student['id']}/vocabulary-mastery").json()["words"] if row["word"] == word)
+    assert state["vocabularyState"]["practice"]["status"] == "COMPLETE"
+    assert state["vocabularyState"]["practice"]["correctiveSuccesses"] == 2
+    assert state["vocabularyState"]["practice"]["targetedSuccess"] is True
+    assert state["status"] == "STRONG"
+
+    with database.connect_db() as db:
+        scheduled = db.execute(
+            "SELECT reps, interval_days, due_on FROM student_vocab_srs WHERE student_id = %s AND word_id = %s",
+            (student["id"], word),
+        ).fetchone()
+    assert scheduled is not None
+    assert scheduled["reps"] == 1
+    assert scheduled["interval_days"] == 1
+
+    due = client.get(
+        f"/api/students/{student['id']}/review-queue",
+        params={"story_id": "lesson-1", "include_all": "true", "today": "2026-08-22"},
+    )
+    assert due.status_code == 200, due.text
+    assert [row["wordId"] for row in due.json()["queue"]] == [word]
+    assert due.json()["queue"][0]["reviewReason"] == "due"
+    assert next(row for row in due.json()["mastery"] if row["word"] == word)["vocabularyState"]["scheduling"]["status"] == "DUE_FOR_REVIEW"
+
+    maintenance = _attempt(
+        "practice-maintenance", "maintenance_review", "2026-08-22T00:00:00Z",
+        [_response(word, True, "practice-maintenance-item", eligible=False, question_kind="basic_meaning_mcq")],
+    )
+    maintenance["questionResults"][0]["quizId"] = "maintenance-round-stable-id"
+    partial_maintenance = {**maintenance, "id": "maintenance-partial-id"}
+    assert _post_attempt(client, partial_maintenance, partial=True, today="2026-08-22").status_code == 200
+    assert _post_attempt(client, maintenance, today="2026-08-22").status_code == 200
+    after = client.get(
+        f"/api/students/{student['id']}/review-queue",
+        params={"story_id": "lesson-1", "include_all": "true", "today": "2026-08-22"},
+    )
+    assert after.status_code == 200, after.text
+    assert after.json()["queue"] == []
+
+    with database.connect_db() as db:
+        events = db.execute(
+            """
+            SELECT event_type, correct, quality, old_reps, new_reps,
+                   algorithm_version
+            FROM student_vocab_srs_events
+            WHERE student_id = %s AND word_id = %s
+            ORDER BY id
+            """,
+            (student["id"], word),
+        ).fetchall()
+    assert [event["event_type"] for event in events] == ["enrollment", "maintenance_success"]
+    assert events[0]["correct"] is None and events[0]["quality"] is None
+    assert events[1]["correct"] is True and events[1]["quality"] == 4
+    assert events[1]["old_reps"] == 1 and events[1]["new_reps"] == 2
+    assert all(event["algorithm_version"] == "modified-sm2-v1" for event in events)
+
+    # Retrying the same immutable API attempt must not append another SRS
+    # transition, even if the request is persisted twice by the client.
+    assert _post_attempt(client, maintenance, today="2026-08-22").status_code == 200
+    with database.connect_db() as db:
+        event_count = db.execute(
+            "SELECT COUNT(*) AS count FROM student_vocab_srs_events WHERE student_id = %s AND word_id = %s",
+            (student["id"], word),
+        ).fetchone()["count"]
+    assert event_count == 2
+
+    # The same immutable response must remain a no-op even after the word's
+    # next due date. Otherwise a replay after a reconnect could advance the
+    # schedule from the current projection a second time.
+    assert _post_attempt(client, maintenance, today="2026-08-29").status_code == 200
+    with database.connect_db() as db:
+        scheduled = db.execute(
+            "SELECT reps, interval_days, due_on FROM student_vocab_srs WHERE student_id = %s AND word_id = %s",
+            (student["id"], word),
+        ).fetchone()
+        event_count = db.execute(
+            "SELECT COUNT(*) AS count FROM student_vocab_srs_events WHERE student_id = %s AND word_id = %s",
+            (student["id"], word),
+        ).fetchone()["count"]
+    assert scheduled["reps"] == 2
+    assert scheduled["interval_days"] == 6
+    assert event_count == 2
+
+
 def test_repeated_exact_item_exposure_counts_only_first_response(logged_in_student):
     client, student = logged_in_student
     first = _response("附近", False, "same-item")
@@ -384,7 +517,7 @@ def test_same_word_with_distinct_question_kinds_counts_each_valid_observation(lo
     assert word["observationCount"] == 3
     assert word["correctCount"] == 2
     assert set(word["seenQuestionTypes"]) == {
-        "basic_meaning_mcq", "character_to_pinyin_typing", "contextual_productive_recall",
+        "basic_meaning_mcq", "character_to_pinyin_typing", "context_cloze_mcq",
     }
 
 

@@ -60,6 +60,7 @@ class Settings:
     feedback_max_clipping_ratio: float
     feedback_min_pitch_points: int
     asr_provider_max_attempts: int
+    srs_day_seconds: float
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -119,6 +120,12 @@ class Settings:
             feedback_max_clipping_ratio=float(os.getenv("FEEDBACK_MAX_CLIPPING_RATIO", "0.08")),
             feedback_min_pitch_points=int(os.getenv("FEEDBACK_MIN_PITCH_POINTS", "8")),
             asr_provider_max_attempts=int(os.getenv("ASR_PROVIDER_MAX_ATTEMPTS", "3")),
+            # Dev-only spaced-repetition speedup: how many real seconds one SM-2
+            # "day" lasts. Only honored when APP_ENV=development (see
+            # routers/vocab_quiz_parts/part_001.py) — e.g. SRS_DAY_SECONDS=60
+            # makes a word due again a minute after a correct review instead of
+            # a day, for manual testing/demos without waiting.
+            srs_day_seconds=float(os.getenv("SRS_DAY_SECONDS", "86400")),
         )
 
 

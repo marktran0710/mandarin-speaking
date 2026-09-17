@@ -9,7 +9,7 @@ const STAGES: Array<{ key: ProgressStage; zh: string; pinyin: string; en: string
   { key: "review", zh: "生詞複習", pinyin: "Shēngcí fùxí", en: "Vocabulary Review" },
   { key: "knowIt", zh: "認識它", pinyin: "Rènshi tā", en: "Know It" },
   { key: "sayIt", zh: "說出來", pinyin: "Shuō chūlái", en: "Say It" },
-  { key: "useIt", zh: "用起來", pinyin: "Yòng qǐlái", en: "Use It" },
+  { key: "useIt", zh: "情境辨識", pinyin: "Qíngjìng biànshí", en: "Context" },
   { key: "strengthen", zh: "加強詞彙", pinyin: "Jiāqiáng cíhuì", en: "Strengthen" },
   { key: "challenge", zh: "課程挑戰", pinyin: "Kèchéng tiǎozhàn", en: "Lesson Challenge" },
 ];
@@ -156,7 +156,7 @@ export function RoundStats({ progress }: { progress: LessonVocabularyProgress })
   const rounds: Array<{ label: string; round: LessonRoundProgress }> = [
     { label: "Know It", round: progress.knowIt },
     { label: "Say It", round: progress.sayIt },
-    { label: "Use It", round: progress.useIt },
+    { label: "Context", round: progress.useIt },
   ];
   return (
     <section className="lesson-round-stats" aria-label="Lesson round statistics">
@@ -176,7 +176,7 @@ export function LessonProgressOverview({ progress, onContinue }: { progress: Les
   const nextCopy: Record<Exclude<typeof nextStage, "complete">, string> = {
     knowIt: "Start Know It",
     sayIt: "Continue to Say It",
-    useIt: "Continue to Use It",
+    useIt: "Continue to Context",
     strengthen: `Strengthen ${progress.strengthen.remaining} Words`,
   };
   return (
