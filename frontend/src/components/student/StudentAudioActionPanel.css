@@ -1,7 +1,11 @@
 .student-audio-action-panel .student-audio-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.65rem;
+  gap: var(--space-sm);
+}
+
+.student-audio-action-panel .student-audio-actions > * {
+  white-space: nowrap;
 }
 
 .student-audio-action-panel .student-action-upload input {
@@ -18,7 +22,7 @@
 .student-audio-action-panel .student-audio-ready,
 .student-audio-action-panel .student-audio-name,
 .student-audio-action-panel .student-audio-error {
-  margin: 0.7rem 0 0;
+  margin: var(--space-sm) 0 0;
 }
 
 .student-audio-action-panel .student-audio-status {
@@ -39,7 +43,7 @@
   overflow-wrap: anywhere;
 }
 
-.student-audio-action-panel .student-audio-error { color: #a44434; }
+.student-audio-action-panel .student-audio-error { color: var(--clay-error-deep); }
 
 /* Legacy controls stay non-rendered while the shared audio panel owns the
  * interaction path. */

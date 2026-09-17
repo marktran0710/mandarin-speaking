@@ -228,6 +228,15 @@
 }
 
 @media (max-width: 640px) {
+  /* A story title is essential orientation, so let it wrap on narrow screens
+     instead of replacing it with an ellipsis. */
+  .student-workspace-v2 .ssb-topic-name {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   .ssb-help-anchor { margin-left: 0; flex: 1 1 100%; }
   .ssb-help-toggle { width: 100%; justify-content: center; }
   .ssb-help { left: 0; right: 0; width: auto; }

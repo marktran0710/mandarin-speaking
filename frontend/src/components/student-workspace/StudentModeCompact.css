@@ -1990,3 +1990,26 @@
     overflow: visible;
   }
 }
+
+@media (max-width: 700px) {
+  /* The narrow session bar has two distinct jobs: orient the learner, then
+     offer help. Give the title the full first row instead of squeezing it
+     beside the help action into a three-line column. */
+  .student-workspace-v2 .story-session-topbar {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-sm);
+  }
+
+  .student-workspace-v2 .ssb-topline {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+  }
+
+  .student-workspace-v2 .ssb-help-anchor {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    margin-left: 0;
+  }
+}

@@ -1,10 +1,10 @@
 .model-recording-practice {
   --model-icon-column: 32px;
-  --model-content-gap: 12px;
+  --model-content-gap: var(--space-sm);
   display: grid;
   grid-template-columns: var(--model-icon-column) minmax(0, 1fr);
   column-gap: var(--model-content-gap);
-  row-gap: 12px;
+  row-gap: var(--space-sm);
   align-self: stretch;
   align-content: start;
   min-width: 0;
@@ -58,14 +58,14 @@
 }
 
 .model-recording-instruction {
-  margin: 5px 0 0;
+  margin: var(--space-2xs) 0 0;
   color: var(--clay-body);
   font-size: 13px;
   line-height: 1.38;
 }
 
 .model-recording-instruction > .bi-label {
-  gap: 2px;
+  gap: var(--space-2xs);
 }
 
 .model-recording-instruction .bi-zh {
@@ -74,7 +74,7 @@
 }
 
 .model-recording-instruction .bi-pinyin {
-  margin-top: 2px;
+  margin-top: var(--space-2xs);
   font-size: 0.72em;
 }
 
@@ -84,11 +84,11 @@
 }
 
 .model-recording-script {
-  margin-top: 1px;
+  margin-top: var(--space-2xs);
   border: 1px solid var(--jade);
   border-radius: var(--clay-radius-md);
   background: var(--jade-soft);
-  padding: 14px 16px;
+  padding: var(--space-sm) var(--space-md);
 }
 
 .model-recording-script p {
@@ -105,7 +105,7 @@
 
 .model-recording-pinyin,
 .model-recording-meaning {
-  margin-top: 4px !important;
+  margin-top: var(--space-2xs) !important;
   font-size: 12px;
   line-height: 1.4;
 }
@@ -121,11 +121,11 @@
 .model-recording-reference-status {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--space-2xs);
   margin: 0;
   border: 1px solid var(--clay-hairline);
   border-radius: var(--clay-radius-sm);
-  padding: 9px 11px;
+  padding: var(--space-xs) var(--space-sm);
   color: var(--clay-body);
   font-size: 12px;
   line-height: 1.42;
@@ -168,9 +168,9 @@
   position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: var(--space-xs);
   border-top: 1px solid var(--clay-hairline);
-  padding-top: 11px;
+  padding-top: var(--space-sm);
   color: var(--clay-body);
   font-size: 12px;
 }
@@ -179,12 +179,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: var(--space-2xs);
   min-width: 0;
   border: 1px solid var(--clay-hairline-soft);
   border-radius: var(--clay-radius-pill);
   background: var(--clay-surface-card);
-  padding: 5px 7px;
+  padding: var(--space-xs) var(--space-sm);
   white-space: nowrap;
 }
 
@@ -203,9 +203,9 @@
 .model-recording-praat {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-sm);
   border-top: 1px solid var(--clay-hairline);
-  padding-top: 10px;
+  padding-top: var(--space-sm);
 }
 
 .model-recording-praat-status,
@@ -223,8 +223,8 @@
 @media (max-width: 600px) {
   .model-recording-practice {
     --model-icon-column: 26px;
-    --model-content-gap: 9px;
-    row-gap: 10px;
+    --model-content-gap: var(--space-xs);
+    row-gap: var(--space-sm);
   }
 
   .model-recording-heading > span {
@@ -234,15 +234,15 @@
   }
 
   .model-recording-script {
-    padding: 14px 16px;
+    padding: var(--space-sm) var(--space-md);
   }
 
   .model-recording-steps {
-    gap: 5px;
+    gap: var(--space-xs);
   }
 
   .model-recording-steps span {
-    padding-inline: 4px;
+    padding-inline: var(--space-2xs);
     font-size: 11px;
   }
 }
