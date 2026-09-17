@@ -21,7 +21,7 @@ function WeakWordsCard({ weakEntries, priorityReviewWords, interimReviewEntries,
   if (weakEntries.length > 0) {
     const aggregateWeakCount = priorityReviewWords.length || weakEntries.length;
     return (
-      <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-weak_words" onClick={chooseWeakWords}>
+      <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-weak_words is-pending-review" onClick={chooseWeakWords}>
         <span className="vocab-quiz-mode-icon"><StudentIcon name="retry" size={30} /></span>
         <strong><BiLabel zh={`還不熟 (${aggregateWeakCount})`} pinyin="Hái bù shú" en={`Weak words (${aggregateWeakCount})`} /></strong>
         <p><BiLabel zh="因為你常答錯這些生詞 — 從最不熟的開始練。" pinyin="Yīnwèi nǐ cháng dá cuò zhèxiē shēngcí — cóng zuì bù shú de kāishǐ liàn." en="Because you often miss these — starts with the ones you know least." /></p>
@@ -36,7 +36,7 @@ function WeakWordsCard({ weakEntries, priorityReviewWords, interimReviewEntries,
   //    classification threshold is relaxed to show it.
   if (interimReviewEntries.length > 0) {
     return (
-      <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-weak_words" onClick={chooseInterimReview}>
+      <button type="button" className="vocab-quiz-mode-card vocab-quiz-mode-weak_words is-pending-review" onClick={chooseInterimReview}>
         <span className="vocab-quiz-mode-icon"><StudentIcon name="retry" size={30} /></span>
         <strong><BiLabel zh={`複習答錯的生詞 (${interimReviewEntries.length})`} pinyin="Fùxí dá cuò de shēngcí" en={`Review your misses (${interimReviewEntries.length})`} /></strong>
         <p><BiLabel zh="剛才答錯的生詞，依掌握度排序。完成三輪測驗後會建立正式弱項清單。" pinyin="Gāngcái dá cuò de shēngcí, yī zhǎngwòdù páixù. Wánchéng sān lún cèyàn hòu huì jiànlì zhèngshì ruòxiàng qīngdān." en="The words you've missed so far, hardest first. Your full weak-word list builds after all three rounds." /></p>

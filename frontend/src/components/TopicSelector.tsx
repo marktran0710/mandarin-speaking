@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   canUseDatabase,
   createCustomStory,
+  getVocabQuizReviewQueue,
   listCustomStories,
   listStorySubmissions,
 } from "../services/database";
@@ -108,6 +109,44 @@ export default function TopicSelector({ onTopicSelect, averageToneAccuracy }: To
     };
   }, []);
 
+  // "You are here" — hoisted above the loading/empty early returns below
+  // (a hook needs a stable call order every render) so the pending-review
+  // fetch and the dashboard's continue card can share one computation.
+  const groups = groupTopicsByLesson(topics);
+  const submittedIds = loadSubmittedStoryIds();
+  const nowIndex = groups.findIndex(
+    (group, index) =>
+      group.lessonNumber !== null &&
+      isLessonGroupUnlocked(groups, index, submittedIds) &&
+      lessonCompletion(group, submittedIds).done < group.topics.length,
+  );
+  const numberedGroups = groups.filter((group) => group.lessonNumber !== null);
+  const otherGroup = groups.find((group) => group.lessonNumber === null) ?? null;
+  const continueGroup =
+    groups[nowIndex] ?? numberedGroups[0] ?? otherGroup ?? null;
+  const continueTopic =
+    continueGroup?.topics.find((topic) => !isStoryFinished(topic, submittedIds)) ??
+    continueGroup?.topics[0] ??
+    null;
+  const isContinueFallback = nowIndex < 0;
+
+  // A gentle, non-blocking nudge: how many weak/due words are waiting for
+  // the lesson the student would resume next. Best-effort — a slow or
+  // failed fetch just means no badge, never a blocked continue button.
+  const [pendingReviewCount, setPendingReviewCount] = useState(0);
+  useEffect(() => {
+    const studentId = getStudentId();
+    if (!continueTopic || !studentId || !canUseDatabase()) {
+      setPendingReviewCount(0);
+      return;
+    }
+    let cancelled = false;
+    getVocabQuizReviewQueue(continueTopic.id, studentId, { includeAllWeak: true })
+      .then((result) => { if (!cancelled) setPendingReviewCount(result.queue?.length ?? 0); })
+      .catch(() => { if (!cancelled) setPendingReviewCount(0); });
+    return () => { cancelled = true; };
+  }, [continueTopic?.id]);
+
   if (loading) {
     return (
       <div className="topic-selector">
@@ -136,17 +175,6 @@ export default function TopicSelector({ onTopicSelect, averageToneAccuracy }: To
       </div>
     );
   }
-
-  const groups = groupTopicsByLesson(topics);
-  const submittedIds = loadSubmittedStoryIds();
-  // "You are here": the first unlocked numbered lesson that still has
-  // unsubmitted stories — it gets the gold ring and the 繼續 chip.
-  const nowIndex = groups.findIndex(
-    (group, index) =>
-      group.lessonNumber !== null &&
-      isLessonGroupUnlocked(groups, index, submittedIds) &&
-      lessonCompletion(group, submittedIds).done < group.topics.length,
-  );
 
   const renderTopicCard = (t: Topic, group: LessonGroup, index: number) => {
     const totalScenes = t.images.length;
@@ -240,18 +268,6 @@ export default function TopicSelector({ onTopicSelect, averageToneAccuracy }: To
     );
   };
 
-  // ── Lesson table of contents, each row an accordion over its own
-  // stories — no separate "screen 2" navigation. ─────────────────────────
-  const numberedGroups = groups.filter((group) => group.lessonNumber !== null);
-  const otherGroup = groups.find((group) => group.lessonNumber === null) ?? null;
-  const continueGroup =
-    groups[nowIndex] ?? numberedGroups[0] ?? otherGroup ?? null;
-  const continueTopic =
-    continueGroup?.topics.find((topic) => !isStoryFinished(topic, submittedIds)) ??
-    continueGroup?.topics[0] ??
-    null;
-  const isContinueFallback = nowIndex < 0;
-
   // Dashboard headline stats — same sources the rail and the Progress page
   // use, so the three views can never disagree. Total stars and lessons
   // complete are cheap to derive here; tone accuracy is threaded in from the
@@ -335,6 +351,20 @@ export default function TopicSelector({ onTopicSelect, averageToneAccuracy }: To
             </span>
             <h2>{continueTopic.name}</h2>
             <p>{continueTopic.description || "繼續你的故事練習"}</p>
+            {pendingReviewCount > 0 && (
+              // A quiet heads-up, not a gate: rides along the existing
+              // continue button rather than adding a second click target or
+              // blocking the story itself.
+              <p className="ts-dash-review-hint" role="status" aria-label={`${pendingReviewCount} words to review`}>
+                <StudentIcon name="retry" size={14} aria-hidden="true" />
+                <BiLabel
+                  zh={`還有 ${pendingReviewCount} 個生詞待複習`}
+                  pinyin="Hái yǒu shēngcí dài fùxí"
+                  en={`${pendingReviewCount} word${pendingReviewCount === 1 ? "" : "s"} to review`}
+                  align="left"
+                />
+              </p>
+            )}
             <button type="button" className="ts-dash-continue-action" onClick={openContinueTopic}>
               <BiLabel zh="繼續學習" en="Continue story" />
               <StudentIcon name="arrow-right" size={17} aria-hidden="true" />

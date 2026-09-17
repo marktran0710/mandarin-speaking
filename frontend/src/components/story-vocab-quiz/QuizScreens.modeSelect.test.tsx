@@ -32,6 +32,39 @@ describe("ModeSelectScreen", () => {
     expect(card).toHaveTextContent("Your full weak-word list builds after all three rounds.");
   });
 
+  // A gentle nudge, not a forced flow: a card with real misses to review gets
+  // a quiet pulsing cue (see 02-mode-results.css) so it catches the eye
+  // without changing size, position, or blocking any other path.
+  it("marks the interim 'review your misses' card as pending attention", () => {
+    render(
+      <ModeSelectScreen
+        {...baseProps}
+        interimReviewEntries={[
+          { word: "附近", translation: "nearby", wordId: "word-1", pinyin: "fùjìn", bktValidationStatus: "APPROVED" },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /Review your misses/ })).toHaveClass("is-pending-review");
+  });
+
+  it("marks the formal 'weak words' card as pending attention", () => {
+    render(
+      <ModeSelectScreen
+        {...baseProps}
+        weakEntries={[
+          { word: "附近", translation: "nearby", wordId: "word-1", pinyin: "fùjìn", bktValidationStatus: "APPROVED" },
+        ]}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /Weak words/ })).toHaveClass("is-pending-review");
+  });
+
+  it("does not mark the empty weak-words state as pending attention", () => {
+    render(<ModeSelectScreen {...baseProps} />);
+    const empty = screen.getByLabelText("Weak words");
+    expect(empty).not.toHaveClass("is-pending-review");
+  });
+
   const masteredWord = {
     wordId: "word-1",
     word: "下午茶",

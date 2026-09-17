@@ -239,6 +239,21 @@
   background: var(--gold-soft);
   color: var(--gold-deep);
 }
+/* A gentle nudge, not a forced flow: real misses waiting to review get a
+   quiet pulsing ring on the icon chip only — the card keeps its normal size
+   and place in the quiet secondary row, so nothing about the layout changes
+   and no other path is blocked. */
+@media (prefers-reduced-motion: no-preference) {
+  .vocab-quiz-mode-weak_words.is-pending-review .vocab-quiz-mode-icon {
+    animation: vocab-quiz-weak-words-pulse 2.2s ease-out infinite;
+  }
+}
+@keyframes vocab-quiz-weak-words-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--seal) 55%, transparent); }
+  70% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--seal) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--seal) 0%, transparent); }
+}
+
 .vocab-quiz-mode-weak_words.is-empty {
   cursor: default;
 }

@@ -190,6 +190,27 @@
   line-height: 1.5;
 }
 
+/* A quiet heads-up riding along the continue card, not a gate: same "seal"
+   accent as the vocab quiz's weak-words card so it reads as one family of
+   cue, but sized and placed to stay secondary to the card's own copy. */
+.ts-dash-review-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  width: fit-content;
+  max-width: none;
+  margin: 0;
+  padding: var(--space-3xs) var(--space-sm);
+  border-radius: var(--clay-radius-pill);
+  color: var(--seal-deep);
+  background: var(--seal-soft);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+.ts-dash-review-hint .bi-label {
+  --bi-en-color: var(--seal-deep);
+}
+
 .ts-dash-continue-action {
   display: inline-flex;
   align-items: center;
