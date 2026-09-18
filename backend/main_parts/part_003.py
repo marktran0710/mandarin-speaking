@@ -198,19 +198,25 @@ def persist_story_frame_audio(story_id: str, frames: list[dict]) -> list[dict]:
         for suffix in _AUDIO_TIER_SUFFIXES:
             field = f"listenAudioUrl{suffix}"
             audio_url = frame.get(field) or ""
-            if not audio_url.startswith("data:audio/"):
-                continue
-
-            new_url = save_data_url_audio(audio_url, story_id, f"{index}{suffix.lower()}")
             old_url = old_frame.get(field, "") or ""
-            if old_url and old_url != new_url and old_url.startswith("/uploads/"):
-                remove_uploaded_file(old_url)
-            frame[field] = new_url
 
-            if new_url != old_url:
-                _refresh_scene_reference_curves(
-                    story_id, index - 1, frame, old_frame, suffix, new_url
-                )
+            if audio_url.startswith("data:audio/"):
+                new_url = save_data_url_audio(audio_url, story_id, f"{index}{suffix.lower()}")
+                if old_url and old_url != new_url and old_url.startswith("/uploads/"):
+                    remove_uploaded_file(old_url)
+                frame[field] = new_url
+
+                if new_url != old_url:
+                    _refresh_scene_reference_curves(
+                        story_id, index - 1, frame, old_frame, suffix, new_url
+                    )
+            elif not audio_url and old_url.startswith("/uploads/"):
+                # The teacher cleared this scene's audio (not replaced it) —
+                # without this, the old file stays orphaned on disk and the
+                # curves derived from it keep silently scoring students
+                # against a recording the UI no longer shows as present.
+                remove_uploaded_file(old_url)
+                _clear_scene_reference_curves(old_frame, frame, suffix)
         stored_frames.append(frame)
     return stored_frames
 
@@ -278,6 +284,24 @@ def _refresh_scene_reference_curves(
     frame[f"sentenceReferenceCurves{suffix}"] = json.dumps(
         sentence_curves, ensure_ascii=False
     )
+
+
+def _clear_scene_reference_curves(old_frame: dict, frame: dict, suffix: str) -> None:
+    """Drops a scene's cached per-word audio/curves when its model audio is
+    cleared rather than replaced — mirrors the cleanup half of
+    _refresh_scene_reference_curves, minus the re-derive step since there is
+    no new recording to derive from."""
+    try:
+        old_word_urls = json.loads(old_frame.get(f"vocabularyAudioUrls{suffix}") or "[]")
+    except (json.JSONDecodeError, TypeError):
+        old_word_urls = []
+    for old_word_url in old_word_urls:
+        if isinstance(old_word_url, str):
+            remove_uploaded_file(old_word_url)
+
+    frame[f"vocabularyAudioUrls{suffix}"] = "[]"
+    frame[f"vocabularyReferenceCurves{suffix}"] = "[]"
+    frame[f"sentenceReferenceCurves{suffix}"] = "{}"
 
 
 def save_data_url_audio(data_url: str, story_id: str, index: int) -> str:

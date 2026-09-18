@@ -7,7 +7,7 @@ import { exportQuizMarksFile, readQuizMarksImportFile, toggleExclusion } from ".
 import { isApproved, toggleApproval } from "../../utils/quizPendingApprovals";
 import { storyToTopic } from "../../utils/teacherStories";
 import { applyLocalEdit, invalidateApprovedWord, pendingKeyFor } from "./model-core";
-import { parseQuizMaterialCsv } from "./material-upload";
+import { fewerThanAttempted, parseQuizMaterialCsv } from "./material-upload";
 
 export function useQuizReviewActions() {
   const { stories, setStories, level, exclusionsByStory, setExclusionsByStory, setDirtyByStory, setStatusByStory, pendingApprovalsByKey, setPendingApprovalsByKey, setApproveStatusByStory, editTarget, setEditTarget, editDraft, setEditDraft, setEditStatus, addQuestionTarget, setAddQuestionTarget, addQuestionDraft, setAddQuestionDraft, setAddQuestionStatus, importInputRef, importTargetRef, setImportNoteByStory, uploadInputRef, uploadTargetRef, setUploadNoteByStory } = useQuizReviewContext();
@@ -359,35 +359,57 @@ export function useQuizReviewActions() {
     if (!file || !storyId) return;
     const story = stories.find((s) => s.id === storyId);
     if (!story) return;
+    let result: ReturnType<typeof parseQuizMaterialCsv>;
+    let beforeTopic: ReturnType<typeof storyToTopic>;
     try {
       const text = await file.text();
-      const topic = storyToTopic(story, level);
-      const result = parseQuizMaterialCsv(text, topic);
+      beforeTopic = storyToTopic(story, level);
+      result = parseQuizMaterialCsv(text, beforeTopic);
       await Promise.all([
         result.distractorUpdates.length ? updateVocabularyDistractors(storyId, result.distractorUpdates) : Promise.resolve(),
         result.clozeUpdates.length ? updateVocabularyCloze(storyId, result.clozeUpdates) : Promise.resolve(),
         result.synonymUpdates.length ? updateVocabularySynonym(storyId, result.synonymUpdates) : Promise.resolve(),
       ]);
-      // Pool merges happen server-side (top-up + dedupe + cap) — refetch
-      // rather than re-deriving that logic locally, so what renders always
-      // matches what was actually persisted.
+    } catch (err) {
+      setUploadNoteByStory((prev) => ({ ...prev, [storyId]: err instanceof Error ? err.message : "Could not read that file." }));
+      return;
+    }
+
+    // The upload itself already succeeded above — a failure past this point
+    // must not be reported as an upload failure. Pool merges happen
+    // server-side (top-up + dedupe + cap), so refetch rather than
+    // re-deriving that logic locally; if the refetch itself fails, the
+    // teacher still gets the real success note and sees the new material
+    // on their next reload instead of a misleading error.
+    let underfilledWords: string[] = [];
+    try {
       const refreshed = await listCustomStories();
       const updatedStory = (refreshed as CustomTeacherStory[]).find((s) => s.id === storyId);
       if (updatedStory) {
         setStories((prev) => prev.map((s) => (s.id === storyId ? updatedStory : s)));
+        underfilledWords = fewerThanAttempted(beforeTopic, storyToTopic(updatedStory, level), result);
       }
-      const parts = [
-        result.addedCounts.distractors ? `${result.addedCounts.distractors} distractor set${result.addedCounts.distractors === 1 ? "" : "s"}` : "",
-        result.addedCounts.cloze ? `${result.addedCounts.cloze} cloze` : "",
-        result.addedCounts.synonym ? `${result.addedCounts.synonym} synonym` : "",
-      ].filter(Boolean);
-      const added = parts.length ? `Added ${parts.join(", ")}.` : "Nothing to add.";
-      const notFound = result.notFoundWords.length ? ` Not found in this story: ${result.notFoundWords.join("、")}.` : "";
-      const skipped = result.skippedRows ? ` Skipped ${result.skippedRows} incomplete row${result.skippedRows === 1 ? "" : "s"}.` : "";
-      setUploadNoteByStory((prev) => ({ ...prev, [storyId]: `${added}${notFound}${skipped}` }));
     } catch (err) {
-      setUploadNoteByStory((prev) => ({ ...prev, [storyId]: err instanceof Error ? err.message : "Could not read that file." }));
+      console.warn("Could not refresh story after quiz material upload:", err);
     }
+
+    const parts = [
+      result.addedCounts.distractors ? `${result.addedCounts.distractors} distractor set${result.addedCounts.distractors === 1 ? "" : "s"}` : "",
+      result.addedCounts.cloze ? `${result.addedCounts.cloze} cloze` : "",
+      result.addedCounts.synonym ? `${result.addedCounts.synonym} synonym` : "",
+    ].filter(Boolean);
+    const added = parts.length ? `Added ${parts.join(", ")}.` : "Nothing to add.";
+    const notFound = result.notFoundWords.length ? ` Not found in this story: ${result.notFoundWords.join("、")}.` : "";
+    const skippedDetail = result.skipped.length
+      ? ` Skipped ${result.skipped.length} row${result.skipped.length === 1 ? "" : "s"}: ${result.skipped
+          .slice(0, 5)
+          .map((row) => `row ${row.row} (${row.word || "?"}/${row.kind || "?"}): ${row.reason}`)
+          .join("; ")}${result.skipped.length > 5 ? `; +${result.skipped.length - 5} more` : ""}.`
+      : "";
+    const underfilledNote = underfilledWords.length
+      ? ` Note: not everything uploaded for ${underfilledWords.join("、")} may have been added — duplicates or a per-word pool limit.`
+      : "";
+    setUploadNoteByStory((prev) => ({ ...prev, [storyId]: `${added}${notFound}${skippedDetail}${underfilledNote}` }));
   };
 
   return { onToggle, onSave, onToggleApproval, onApproveAll, onApprove, onStartEdit, onStartTranslationEdit, onCancelEdit, addDraftForKind, onStartAddQuestion, onCancelAddQuestion, onSaveAddQuestion, onSaveEdit, triggerImport, onImportChange, onExport, triggerMaterialUpload, onMaterialUploadChange };

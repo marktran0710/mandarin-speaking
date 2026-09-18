@@ -227,6 +227,7 @@ describe("TeacherQuizReviewPage", () => {
       "word,kind,text,distractors",
       "知道,distractors,,see;hear;say",
       "not-a-real-word,synonym,foo,bar",
+      "知道,cloze,a sentence without the word,bar",
     ].join("\n");
     const file = new File([csv], "quiz.csv", { type: "text/csv" });
     await user.upload(input, file);
@@ -239,6 +240,36 @@ describe("TeacherQuizReviewPage", () => {
     expect(updateVocabularySynonym).not.toHaveBeenCalled();
     expect(await screen.findByText(/Added 1 distractor set/)).toBeInTheDocument();
     expect(screen.getByText(/Not found in this story: not-a-real-word/)).toBeInTheDocument();
+    expect(screen.getByText(/Skipped 1 row: row 4 \(知道\/cloze\): cloze sentence doesn't contain the word/)).toBeInTheDocument();
+  });
+
+  it("notes when the server added fewer items than the CSV attempted (dedup or pool cap)", async () => {
+    const { updateVocabularyDistractors } = await import("../services/database");
+    // The upload asks for 3 new distractors, but the server's merge (top-up
+    // + dedupe + cap) only lands 1 — simulated here by having the mocked
+    // PATCH call itself update mockStories to that smaller real outcome,
+    // the way the real endpoint's response would.
+    (updateVocabularyDistractors as ReturnType<typeof vi.fn>).mockImplementationOnce(async () => {
+      setStories([
+        {
+          ...story,
+          frames: [{ ...story.frames[0], vocabularyDistractors: JSON.stringify([["see"], []]) }],
+        },
+      ]);
+    });
+
+    const user = userEvent.setup();
+    render(<TeacherQuizReviewPage />);
+    await screen.findByText("測試故事");
+
+    await user.click(screen.getByRole("button", { name: /Upload Questions|上傳題目/ }));
+    const input = screen.getByTestId("tqr-upload-input") as HTMLInputElement;
+    const file = new File(["word,kind,text,distractors\n知道,distractors,,see;hear;say"], "quiz.csv", { type: "text/csv" });
+    await user.upload(input, file);
+
+    expect(
+      await screen.findByText(/Note: not everything uploaded for 知道 may have been added/),
+    ).toBeInTheDocument();
   });
 
   it("groups stories by lesson and only shows the selected lesson's story", async () => {
