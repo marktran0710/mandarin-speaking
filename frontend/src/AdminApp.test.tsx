@@ -7,6 +7,7 @@ import ManagementShell from "./components/management/ManagementShell";
 vi.mock("./pages/TeacherPracticeDebugPage", () => ({
   default: () => <p>Practice debug content</p>,
 }));
+vi.mock("./pages/AdminVocabularyPage", () => ({ default: () => <p>Speaking vocabulary content</p> }));
 
 describe("admin-only diagnostic navigation", () => {
   beforeEach(() => {
@@ -21,6 +22,13 @@ describe("admin-only diagnostic navigation", () => {
     expect(screen.getByText("Practice debug content")).toBeInTheDocument();
 
     expect(screen.queryByRole("button", { name: "Benchmark" })).not.toBeInTheDocument();
+  });
+  it("opens vocabulary from the admin navigation", async () => {
+    const user = userEvent.setup();
+    render(<AdminApp />);
+    await user.click(screen.getByRole("button", { name: "Vocabulary" }));
+    expect(screen.getByRole("heading", { name: "Vocabulary", level: 1 })).toBeInTheDocument();
+    expect(screen.getByText("Speaking vocabulary content")).toBeInTheDocument();
   });
 
   it("keeps story materials in the admin navigation", async () => {
@@ -51,5 +59,6 @@ describe("admin-only diagnostic navigation", () => {
     expect(screen.queryByRole("button", { name: "Practice Debug" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Benchmark" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Materials" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Vocabulary" })).not.toBeInTheDocument();
   });
 });

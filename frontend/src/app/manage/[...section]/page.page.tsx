@@ -4,7 +4,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import ManagementApp, { type ManagementSection } from "../../../ManagementApp";
 
-const SECTIONS: ManagementSection[] = ["stories", "quiz-review", "submissions", "support", "accounts", "analytics", "practice-debug"];
+const SECTIONS: ManagementSection[] = ["vocabulary", "stories", "quiz-review", "submissions", "support", "accounts", "analytics", "practice-debug"];
 
 function isManagementSection(value: string | undefined): value is ManagementSection {
   return value !== undefined && SECTIONS.includes(value as ManagementSection);

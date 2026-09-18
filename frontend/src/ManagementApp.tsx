@@ -9,13 +9,14 @@ import "./styles/management-login.css";
 type ManagementRole = "teacher" | "admin";
 const ADMIN_KEY = "adminConsoleSession";
 
-export type ManagementSection = "stories" | "quiz-review" | "submissions" | "support" | "accounts" | "analytics" | "practice-debug";
+export type ManagementSection = "vocabulary" | "stories" | "quiz-review" | "submissions" | "support" | "accounts" | "analytics" | "practice-debug";
 
 const SECTION_CONFIG: Record<ManagementSection, {
   requiredRole: ManagementRole | "either";
   teacherView?: "today" | "submissions" | "students";
-  adminNav?: "Admin Home" | "Materials" | "IRT / Student analytics" | "Measurement" | "Practice Debug";
+  adminNav?: "Vocabulary" | "Admin Home" | "Materials" | "IRT / Student analytics" | "Measurement" | "Practice Debug";
 }> = {
+  vocabulary: { requiredRole: "admin", adminNav: "Vocabulary" },
   stories: { requiredRole: "admin", adminNav: "Materials" },
   "quiz-review": { requiredRole: "admin", adminNav: "Materials" },
   submissions: { requiredRole: "teacher", teacherView: "submissions" },

@@ -29,6 +29,7 @@ const DEFAULT_TEACHER_ITEMS: ManagementNavItem[] = [
 const DEFAULT_ADMIN_ITEMS: ManagementNavItem[] = [
   { id: "Admin Home", label: "Admin Home", icon: "dashboard" },
   { id: "Materials", label: "Materials", icon: "library", group: "Content" },
+  { id: "Vocabulary", label: "Vocabulary", icon: "book", group: "Content" },
   { id: "Teachers", label: "Teachers", icon: "users", group: "Accounts" },
   { id: "Students", label: "Students", icon: "users", group: "Accounts" },
   { id: "IRT / Student analytics", label: "IRT / Student analytics", icon: "analytics", group: "Insights" },
@@ -136,7 +137,7 @@ export default function ManagementShell({
             <span>{colorMode === "dark" ? "Light" : "Dark"}</span>
           </button>
           {onRefresh && (
-            <button type="button" className="management-chip" disabled={refreshing} onClick={onRefresh}>
+            <button type="button" className="management-chip management-refresh" aria-label={refreshing ? "Refreshing" : "Refresh"} title="Refresh" disabled={refreshing} onClick={onRefresh}>
               <Icon name="refresh" size={16} />
               <span>{refreshing ? "Refreshing…" : "Refresh"}</span>
             </button>

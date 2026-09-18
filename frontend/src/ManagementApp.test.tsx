@@ -3,6 +3,11 @@ import { beforeEach, describe, expect, it } from "vitest";
 import ManagementApp from "./ManagementApp";
 
 describe("ManagementApp route permissions", () => {
+  it("keeps vocabulary admin-only", async () => {
+    localStorage.setItem("teacherSession", JSON.stringify({ role: "teacher", name: "QA Teacher", signedInAt: new Date().toISOString() }));
+    render(<ManagementApp initialSection="vocabulary" />);
+    expect(await screen.findByRole("heading", { name: "Access denied" })).toBeInTheDocument();
+  });
   beforeEach(() => {
     localStorage.clear();
   });
