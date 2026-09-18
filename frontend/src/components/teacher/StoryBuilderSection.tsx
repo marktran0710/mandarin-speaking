@@ -57,18 +57,9 @@ export default function StoryBuilderSection({
   const [savedReviewBanner, setSavedReviewBanner] = useState<{ lessonNumber: number | null } | null>(
     null,
   );
+  // Bumped on save/edit/cancel so a remounted table (keyed on this) can't
+  // retain stale row state from the previous draft.
   const [vocabDraftGeneration, setVocabDraftGeneration] = useState(0);
-  const [vocabFillLoadingIndex, setVocabFillLoadingIndex] = useState<number | null>(null);
-  const [vocabFillError, setVocabFillError] = useState("");
-  const [phraseDraftGeneration, setPhraseDraftGeneration] = useState(0);
-  const [phraseFillLoadingIndex, setPhraseFillLoadingIndex] = useState<number | null>(null);
-  const [phraseFillError, setPhraseFillError] = useState("");
-  const [storyVocabDraftGeneration, setStoryVocabDraftGeneration] = useState(0);
-  const [storyPhraseDraftGeneration, setStoryPhraseDraftGeneration] = useState(0);
-  const [storyVocabFillLoading, setStoryVocabFillLoading] = useState(false);
-  const [storyPhraseFillLoading, setStoryPhraseFillLoading] = useState(false);
-  const [storyVocabFillError, setStoryVocabFillError] = useState("");
-  const [storyPhraseFillError, setStoryPhraseFillError] = useState("");
   const [validationErrors, setValidationErrors] =
     useState<CustomStoryValidationErrors>({});
   const [validationAttemptGeneration, setValidationAttemptGeneration] = useState(0);
@@ -181,7 +172,6 @@ export default function StoryBuilderSection({
         },
       },
     }));
-    setStoryVocabFillError("");
     clearNotice();
   };
 
@@ -196,34 +186,16 @@ export default function StoryBuilderSection({
         },
       },
     }));
-    setStoryPhraseFillError("");
     clearNotice();
   };
 
   const {
     handlePasteFrameImage,
     handleUploadFrameImage,
-    handleFillVocabFromSentence,
-    handleFillPhrasesFromSentence,
-    handleFillStoryVocab,
-    handleFillStoryPhrases,
   } = useStoryBuilderFrameActions({
     customDraft,
     updateDraftFrame,
     setValidationErrors,
-    setCustomDraft,
-    setVocabDraftGeneration,
-    setPhraseDraftGeneration,
-    setVocabFillError,
-    setVocabFillLoadingIndex,
-    setPhraseFillError,
-    setPhraseFillLoadingIndex,
-    setStoryVocabDraftGeneration,
-    setStoryPhraseDraftGeneration,
-    setStoryVocabFillError,
-    setStoryVocabFillLoading,
-    setStoryPhraseFillError,
-    setStoryPhraseFillLoading,
   });
 
   const handleSaveCustomStory = async () => {
@@ -449,24 +421,8 @@ export default function StoryBuilderSection({
           updateDraftGroups={updateDraftGroups}
           onPasteImage={handlePasteFrameImage}
           onUploadImage={handleUploadFrameImage}
-          onFillVocab={handleFillVocabFromSentence}
-          onFillPhrases={handleFillPhrasesFromSentence}
           onUpdateStoryVocabulary={updateStoryVocabulary}
           onUpdateStoryPhrases={updateStoryPhrases}
-          onFillStoryVocab={handleFillStoryVocab}
-          onFillStoryPhrases={handleFillStoryPhrases}
-          storyVocabDraftGeneration={storyVocabDraftGeneration}
-          storyPhraseDraftGeneration={storyPhraseDraftGeneration}
-          storyVocabFillLoading={storyVocabFillLoading}
-          storyPhraseFillLoading={storyPhraseFillLoading}
-          storyVocabFillError={storyVocabFillError}
-          storyPhraseFillError={storyPhraseFillError}
-          vocabDraftGeneration={vocabDraftGeneration}
-          phraseDraftGeneration={phraseDraftGeneration}
-          vocabFillLoadingIndex={vocabFillLoadingIndex}
-          phraseFillLoadingIndex={phraseFillLoadingIndex}
-          vocabFillError={vocabFillError}
-          phraseFillError={phraseFillError}
         />
         <StoryBuilderLibrary
           customStories={customStories}

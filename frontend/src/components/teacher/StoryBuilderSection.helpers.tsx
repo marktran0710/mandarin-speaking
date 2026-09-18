@@ -13,11 +13,6 @@ import { getBackendUrl } from "../../config/runtimeEnv";
 
 export const BACKEND_URL = getBackendUrl();
 
-// How many reusable phrases to ask the AI for on a story's single level.
-export const PHRASE_COUNT_BY_LEVEL: Record<StoryDifficultyLevel, number> = {
-  easy: 1,
-};
-
 export interface CustomStoryValidationErrors {
   title?: string;
   form?: string;

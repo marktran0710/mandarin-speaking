@@ -4,18 +4,15 @@ import StudentIcon from "../../components/StudentIcon";
 import { isExcluded } from "../../utils/quizExclusions";
 import { isApproved } from "../../utils/quizPendingApprovals";
 import { pendingKeyFor } from "./model-core";
-import { PENDING_ORIGIN_LABELS, pendingDecisionCopy } from "./constants";
 import { useQuizReviewContext } from "./context";
 import { useQuizReviewActions } from "./review-actions";
-import { useQuizGenerationActions } from "./generation-actions";
-import { ReviewIcon, diffBadge, findValidation, questionStatusBadge, renderPendingDiff } from "./review-chrome";
+import { ReviewIcon, diffBadge } from "./review-chrome";
 
 export function useQuizReviewUi() {
   const ctx = useQuizReviewContext();
   const actions = useQuizReviewActions();
-  const generation = useQuizGenerationActions();
-  const { stories, level, exclusionsByStory, pendingApprovalsByKey, validationByStory, editTarget, setEditTarget, editDraft, setEditDraft, editStatus, addQuestionTarget, addQuestionDraft, setAddQuestionDraft, addQuestionStatus } = ctx;
-  const { onToggle, canCheck, onToggleApproval, onStartEdit, onStartTranslationEdit, onCancelEdit, onSaveEdit, addDraftForKind, onCancelAddQuestion, onSaveAddQuestion, onDecideCandidate, onUndoDecision } = { ...actions, ...generation };
+  const { stories, level, exclusionsByStory, pendingApprovalsByKey, editTarget, setEditTarget, editDraft, setEditDraft, editStatus, addQuestionTarget, addQuestionDraft, setAddQuestionDraft, addQuestionStatus } = ctx;
+  const { onToggle, onToggleApproval, onStartEdit, onStartTranslationEdit, onCancelEdit, onSaveEdit, addDraftForKind, onCancelAddQuestion, onSaveAddQuestion } = actions;
   const trashButton = (
     storyId: string,
     word: string,
@@ -40,32 +37,11 @@ export function useQuizReviewUi() {
   const approvalCheckbox = (storyId: string, word: string, kind: QuizApprovalKind, poolIndex?: number) => {
     const approvals = pendingApprovalsByKey[pendingKeyFor(storyId, level)] ?? [];
     const checked = isApproved(approvals, word, kind, poolIndex);
-    // A prior selection must not bypass a later failed validation. This can
-    // happen when a teacher re-checks an item after its AI pool changed.
-    const checkable = canCheck(storyId, word, kind, poolIndex);
-    // The disabled reason must match reality: a question can be blocked
-    // either because Validate hasn't run yet, or because it ran and flagged
-    // the question suspicious — those need different guidance, not the same
-    // generic "Validate first" for both.
-    const result = findValidation(
-      validationByStory[storyId],
-      word,
-      kind === "distractors" ? "translation" : kind,
-      poolIndex,
-    );
-    if (!result) return null;
-    const disabledTitle = checkable
-      ? undefined
-      : result
-        ? "Suspicious — fix this question before approving it"
-        : "Validate this question first";
     return (
       <input
         type="checkbox"
         className="tqr-approve-checkbox"
         checked={checked}
-        disabled={!checkable}
-        title={disabledTitle}
         aria-label={`Approve ${kind} for ${word}`}
         onChange={() => {
           const story = stories.find((s) => s.id === storyId);
@@ -148,7 +124,7 @@ export function useQuizReviewUi() {
           </button>
           {editStatus !== "saving" ? (
             <button type="button" className="tqr-save" onClick={onSaveEdit}>
-              <BiLabel zh="儲存並重新驗證" en="Save (needs re-validation)" />
+              <BiLabel zh="儲存" en="Save" />
             </button>
           ) : (
             <span className="tqr-status-progress"><BiLabel zh="儲存中…" en="Saving…" /></span>
@@ -188,12 +164,6 @@ export function useQuizReviewUi() {
     editValue: { distractors: string[]; sentence?: string; synonym?: string; correctAnswer?: string };
     diffStatus: MaterialDiffStatus | undefined;
   }) => {
-    const result = findValidation(
-      validationByStory[spec.storyId],
-      spec.word,
-      spec.kind === "distractors" ? "translation" : spec.kind,
-      spec.poolIndex,
-    );
     return (
       <div className="tqr-qrow diff-row row-ctx" key={`${spec.kind}-${spec.poolIndex ?? 0}`}>
         <span className="gutter tqr-q-select">
@@ -218,9 +188,7 @@ export function useQuizReviewUi() {
             ))}
           </div>
         </div>
-        <div className="tqr-q-status">
-          {questionStatusBadge(result)}
-        </div>
+        <div className="tqr-q-status" aria-hidden="true" />
         <div className="diff-actions tqr-q-actions">
           {questionDeleteButton(spec.storyId, spec.word, spec.kind, spec.poolIndex)}
           {editButton(
@@ -436,63 +404,5 @@ export function useQuizReviewUi() {
     </div>
   );
 
-  const pendingDecisionActions = (storyId: string, candidate: PendingCandidate, index: number) => {
-    if (candidate.decision === "pending") {
-      return (
-        <div className="tqr-pending-decide">
-          <button
-            type="button"
-            className="tqr-icon-btn accept"
-            aria-label="Accept"
-            title="Accept"
-            onClick={() => onDecideCandidate(storyId, index, "accept")}
-          >
-            <ReviewIcon name="accept" size={16} />
-          </button>
-          <button
-            type="button"
-            className="tqr-icon-btn reject"
-            aria-label="Reject"
-            title="Reject"
-            onClick={() => onDecideCandidate(storyId, index, "reject")}
-          >
-            <ReviewIcon name="reject" size={16} />
-          </button>
-        </div>
-      );
-    }
-    return (
-      <div className="tqr-pending-decided">
-        <span className={`tqr-decision-tag ${candidate.decision === "accept" ? "is-accept" : "is-reject"}`}>
-          <StudentIcon name={candidate.decision === "accept" ? "check" : "close"} size={14} aria-hidden="true" />
-          <BiLabel
-            zh={pendingDecisionCopy(candidate.origin, candidate.decision).zh}
-            en={pendingDecisionCopy(candidate.origin, candidate.decision).en}
-          />
-        </span>
-        <button type="button" className="undo-link" onClick={() => onUndoDecision(storyId, index)}>
-          <BiLabel zh="復原" en="Undo" />
-        </button>
-      </div>
-    );
-  };
-
-  const pendingCandidateRows = (storyId: string, entries: IndexedPendingCandidate[]) =>
-    entries.map(({ candidate, index }) => (
-      <div
-        className={`tqr-pending-change is-${candidate.origin}${candidate.decision === "reject" ? " is-rejected" : ""}`}
-        key={`${candidate.word}-${candidate.kind}-${index}`}
-      >
-        {renderPendingDiff(candidate, pendingDecisionActions(storyId, candidate, index))}
-      </div>
-    ));
-
-  const changeChip = (count: number, hasRemoved = false) => (
-    count > 0 ? (
-      <span className={`tqr-change-chip ${hasRemoved ? "is-mix" : "is-add"}`}>
-        <BiLabel zh={`${count} 項變更`} en={`${count} ${count === 1 ? "change" : "changes"}`} />
-      </span>
-    ) : null
-  );
-  return { trashButton, approvalCheckbox, editButton, editForm, isEditing, questionRow, addQuestionForm, builtInQuestionRow, pendingCandidateRows, changeChip };
+  return { trashButton, approvalCheckbox, editButton, editForm, isEditing, questionRow, addQuestionForm, builtInQuestionRow };
 }

@@ -1,29 +1,24 @@
 // @ts-nocheck
 import { BiLabel } from "../../components/BiLabel";
-import { buildApprovedMaterial } from "../../utils/quizApprovedMaterial";
 import { diffWord } from "../../utils/quizMaterialDiff";
 import { isExcluded } from "../../utils/quizExclusions";
 import { translationFieldForLevel, pinyinFieldForLevel, reviewOptions } from "./model-core";
-import { PENDING_KIND_LABELS } from "./constants";
 import StudentIcon from "../../components/StudentIcon";
-import { ReviewActionRail, ReviewIcon, diffBadge, findValidation, questionStatusBadge } from "./review-chrome";
+import { ReviewActionRail, ReviewIcon, diffBadge } from "./review-chrome";
 import { useQuizReviewContext } from "./context";
 import { useQuizReviewActions } from "./review-actions";
-import { useQuizGenerationActions } from "./generation-actions";
 import { useQuizReviewUi } from "./review-ui";
 import { useQuizReviewStoryState } from "./story-state";
 
 export function QuizReviewStory({ story }) {
   const ctx = useQuizReviewContext();
   const actions = useQuizReviewActions();
-  const generation = useQuizGenerationActions();
   const ui = useQuizReviewUi();
   const state = useQuizReviewStoryState(story);
-  const { level, generationGateNoteByStory, validationByStory, addQuestionTarget } = ctx;
-  const { onSave, onValidate, onApprove, onApproveAll, onStartTranslationEdit, onStartAddQuestion } = actions;
-  const { onGenerate, onExport, triggerImport, onApplyPendingCandidates, onAcceptAllPending } = generation;
-  const { trashButton, isEditing, editForm, addQuestionForm, questionRow, builtInQuestionRow, pendingCandidateRows, changeChip } = ui;
-  const { topic, exclusions, dirty, status, snapshot, importNote, validateStatus, approveStatus, validation, approvals, approvedCount, generateStatus, pendingCandidates, revealedCount, pendingByWord, removedPendingGroups, hasAnyMaterial, pendingDecidedCount, pendingAcceptedCount, isGenerating, isValidating, isPublishing, isSavingMarks, canApproveAll, canApplyPending, hasSuspiciousQuestions, canGenerate, canValidate, showActionRail, renderedWords, builtInWords, builtInByWord } = state;
+  const { level, addQuestionTarget } = ctx;
+  const { onSave, onApprove, onApproveAll, onStartTranslationEdit, onStartAddQuestion, onExport, triggerImport, triggerMaterialUpload } = actions;
+  const { trashButton, isEditing, editForm, addQuestionForm, questionRow, builtInQuestionRow } = ui;
+  const { topic, exclusions, dirty, status, snapshot, importNote, uploadNote, approveStatus, approvedCount, hasAnyMaterial, isPublishing, isSavingMarks, canApproveAll, showActionRail, renderedWords, builtInWords, builtInByWord } = state;
           return (
             <section className="tqr-story" key={story.id}>
               <div className={`tqr-workspace${showActionRail ? "" : " is-single"}`}>
@@ -31,56 +26,18 @@ export function QuizReviewStory({ story }) {
                   <header className="tqr-story-actions">
                     <div className="tqr-toolbar-primary">
                       <h2 className="tqr-panel-story-title">{story.title}</h2>
-                      {canGenerate && !isGenerating ? (
-                        <button
-                          type="button"
-                          className="tqr-generate"
-                          title="Create a new draft, or refresh only questions affected by story changes. Students cannot see a draft."
-                          onClick={() => onGenerate(story, topic)}
-                        >
-                          <ReviewIcon name="generate" />
-                          {hasAnyMaterial ? (
-                            <BiLabel zh="更新題目" en="Update Questions" />
-                          ) : (
-                            <BiLabel zh="生成題目" en="Generate Questions" />
-                          )}
-                        </button>
-                      ) : isGenerating ? (
-                        <span className="tqr-status-progress" role="status">
-                          {generateStatus === "applying" ? <BiLabel zh="套用中…" en="Applying…" /> : <BiLabel zh="生成中…" en="Generating…" />}
-                        </span>
-                      ) : null}
-                      <div className="tqr-toolbar-status" aria-live="polite">
-                        {generateStatus === "error" && (
-                          <span className="tqr-status-error" role="alert">
-                            <BiLabel zh="生成失敗，請稍後再試" en="Generate failed. Try again in a moment" />
-                          </span>
-                        )}
-                        {validateStatus === "error" && (
-                          <span className="tqr-status-error" role="alert">
-                            <BiLabel zh="檢查失敗" en="Validate failed" />
-                          </span>
-                        )}
-                      </div>
+                      <button
+                        type="button"
+                        className="tqr-generate"
+                        title="Upload a CSV of quiz questions for this story (word, kind, text, distractors)."
+                        onClick={() => triggerMaterialUpload(story.id)}
+                      >
+                        <ReviewIcon name="upload" />
+                        <BiLabel zh="上傳題目" en="Upload Questions" />
+                      </button>
                       <details className="tqr-more-tools tqr-toolbar-more">
                         <summary><BiLabel zh="更多" en="More" /></summary>
                         <div className="tqr-rail-utilities">
-                          {canValidate && !isValidating && (
-                            <button
-                              type="button"
-                              className="tqr-io"
-                              title="Validate the current draft for duplicate or unsafe answers before selecting questions to publish."
-                              onClick={() => onValidate(story, topic)}
-                            >
-                              <ReviewIcon name="validate" />
-                              <BiLabel zh="驗證題目" en="Validate Questions" />
-                            </button>
-                          )}
-                          {isValidating && (
-                            <span className="tqr-status-progress" role="status">
-                              <BiLabel zh="驗證中…" en="Validating…" />
-                            </span>
-                          )}
                           <button type="button" className="tqr-io" onClick={() => onExport(story)}>
                             <ReviewIcon name="export" />
                             <BiLabel zh="匯出" en="Export" />
@@ -94,24 +51,13 @@ export function QuizReviewStory({ story }) {
                     </div>
                   </header>
                   {importNote && <p className="tqr-import-note" role="status">{importNote}</p>}
-                  {generationGateNoteByStory[story.id] && (
-                    <p className="tqr-import-note" role="status">
-                      {generationGateNoteByStory[story.id]}
-                    </p>
-                  )}
-
-                  {generateStatus === "generating" && (
-                    <div className="tqr-generate-spinner" role="status">
-                      <span className="tqr-spinner" aria-hidden="true" />
-                      <BiLabel zh="正在生成題目…" en="Generating questions…" />
-                    </div>
-                  )}
+                  {uploadNote && <p className="tqr-import-note" role="status">{uploadNote}</p>}
 
                   <div className="tqr-table-head" aria-hidden="true">
                     <span />
                     <span><BiLabel zh="題型" en="Type" /></span>
                     <span><BiLabel zh="題目內容／答案" en="Question / answer" /></span>
-                    <span><BiLabel zh="驗證狀態" en="Validation" /></span>
+                    <span />
                     <span><BiLabel zh="操作" en="Actions" /></span>
                   </div>
 
@@ -135,7 +81,6 @@ export function QuizReviewStory({ story }) {
                       const pos = topic.vocabularyPos?.[si]?.[wi];
                       const translation = topic.vocabularyTranslation?.[si]?.[wi];
                       const translationField = translationFieldForLevel(story.frames[si], level);
-                      const translationCheck = findValidation(validationByStory[story.id], word, "translation");
                       const distractors = topic.vocabularyDistractors?.[si]?.[wi] ?? [];
                       const cloze = (topic.vocabularyCloze?.[si]?.[wi] ?? []).slice(0, 1);
                       const synonyms = (topic.vocabularySynonym?.[si]?.[wi] ?? []).slice(0, 1);
@@ -166,9 +111,6 @@ export function QuizReviewStory({ story }) {
                           )
                         : [];
                       const diff = diffWord(word, { distractors, cloze, synonym: synonyms }, snapshot);
-                      const wordPending = (pendingByWord.get(word) ?? []).filter(
-                        ({ candidate, index }) => candidate.origin !== "removed" && index < revealedCount,
-                      );
                       return (
                         <article
                           className={`tqr-word-file${wordGone ? " is-word-gone" : ""}`}
@@ -207,12 +149,6 @@ export function QuizReviewStory({ story }) {
                                 <BiLabel zh="編輯答案" en="Edit answer" />
                               </button>
                             )}
-                            {translation && distractors.length === 0 && translationCheck && (
-                              <span className="tqr-answer-check">
-                                <BiLabel zh="答案檢查" en="Answer check" />
-                                {questionStatusBadge(translationCheck)}
-                              </span>
-                            )}
                             {translation && !wordGone && availableAddKinds.length > 0 && (
                               <button
                                 type="button"
@@ -235,7 +171,6 @@ export function QuizReviewStory({ story }) {
                             {translation && trashButton(story.id, word, "word")}
                             <span className="tqr-word-head-spacer" />
                             {diffBadge(diff?.status)}
-                            {changeChip(wordPending.length)}
                           </header>
                           {isEditing({ word, kind: "translation" }, story.id) && editForm()}
                           {addQuestionTarget?.storyId === story.id &&
@@ -321,7 +256,6 @@ export function QuizReviewStory({ story }) {
                                   translation: builtIn?.translation ?? translation,
                                   translationField,
                                 })}
-                              {pendingCandidateRows(story.id, wordPending)}
                             </div>
                           )}
                         </article>
@@ -330,38 +264,12 @@ export function QuizReviewStory({ story }) {
                   </section>
                 );
               })}
-              {removedPendingGroups.some(({ entries }) => entries.some(({ index }) => index < revealedCount)) && (
-                <section className="tqr-removed-section">
-                  <h3 className="tqr-scene-title">
-                    <BiLabel zh="已從場景移除" en="Removed from scene" />
-                  </h3>
-                  {removedPendingGroups.map(({ word, entries }) => {
-                    const visibleEntries = entries.filter(({ index }) => index < revealedCount);
-                    if (visibleEntries.length === 0) return null;
-                    return (
-                      <article className="tqr-word-file is-removed-word" key={`removed-${word}`}>
-                        <header className="tqr-word-head">
-                          <span className="tqr-word-chev"><ReviewIcon name="chevron" size={15} /></span>
-                          <strong lang="zh-Hant">{word}</strong>
-                          <span className="tqr-no-quiz">
-                            <BiLabel zh="已從場景移除" en="removed from scene" />
-                          </span>
-                          <span className="tqr-word-head-spacer" />
-                          {changeChip(visibleEntries.length, true)}
-                        </header>
-                        <div className="tqr-pools">{pendingCandidateRows(story.id, visibleEntries)}</div>
-                      </article>
-                    );
-                  })}
-                </section>
-              )}
                 </div>
 
                 {showActionRail && <ReviewActionRail
                   storyTitle={story.title}
                   checkedCount={approvedCount}
                   markedCount={exclusions.length}
-                  changeCount={pendingCandidates.length}
                 >
                   <div className="tqr-rail-primary" aria-live="polite">
                     {approvedCount > 0 && !isPublishing && (
@@ -394,9 +302,9 @@ export function QuizReviewStory({ story }) {
                   </div>
 
                   {canApproveAll && (
-                    <button type="button" className="tqr-rail-button" onClick={() => onApproveAll(story)}>
+                    <button type="button" className="tqr-rail-button" onClick={() => onApproveAll(story, topic)}>
                       <ReviewIcon name="accept" />
-                      <BiLabel zh="核准全部乾淨題目" en="Approve all clean" />
+                      <BiLabel zh="核准全部題目" en="Approve all" />
                     </button>
                   )}
 
@@ -425,45 +333,6 @@ export function QuizReviewStory({ story }) {
                     <span className="tqr-status-error" role="alert">
                       <BiLabel zh="儲存失敗" en="Save failed" />
                     </span>
-                  )}
-
-                  {pendingCandidates.length > 0 && (
-                    <div className="tqr-decision-bar">
-                      <span>
-                        {pendingDecidedCount === pendingCandidates.length ? (
-                          <BiLabel
-                            zh={`已決定全部 ${pendingCandidates.length} 項`}
-                            en={`All ${pendingCandidates.length} changes decided`}
-                          />
-                        ) : (
-                          <BiLabel
-                            zh={`已決定 ${pendingDecidedCount} / ${pendingCandidates.length} 項`}
-                            en={`${pendingDecidedCount} of ${pendingCandidates.length} changes decided`}
-                          />
-                        )}
-                      </span>
-                      <span className="tqr-decision-actions">
-                        {pendingDecidedCount < pendingCandidates.length && (
-                          <button type="button" className="tqr-io" onClick={() => onAcceptAllPending(story.id)}>
-                            <BiLabel zh="全部接受" en="Accept All" />
-                          </button>
-                        )}
-                        {canApplyPending && generateStatus !== "applying" && (
-                          <button
-                            type="button"
-                            className="tqr-approve"
-                            onClick={() => onApplyPendingCandidates(story)}
-                          >
-                            <BiLabel zh={`套用變更（${pendingAcceptedCount}）`} en={`Apply Changes (${pendingAcceptedCount})`} />
-                          </button>
-                        )}
-                        {generateStatus === "applying" && (
-                          <span className="tqr-status-progress" role="status">
-                            <BiLabel zh="套用中…" en="Applying…" />
-                          </span>
-                        )}
-                      </span>
-                    </div>
                   )}
 
                 </ReviewActionRail>}

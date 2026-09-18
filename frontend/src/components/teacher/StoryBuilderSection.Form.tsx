@@ -4,7 +4,6 @@ import StoryBuilderFrameEditor from "./StoryBuilderSection.FrameEditor";
 import VocabularyTable from "./VocabularyTable";
 import PhraseTable from "./PhraseTable";
 import StudentIcon from "../StudentIcon";
-import { PHRASE_COUNT_BY_LEVEL } from "./StoryBuilderSection.helpers";
 
 function StoryDetailsFields({ draft, errors, onUpdateField, onUpdateFrameCount, onSetDraft, onOpenLearningContent, learningContentTriggerRef }) {
   return <>
@@ -45,14 +44,6 @@ function StoryLearningContent({
   draft,
   onUpdateStoryVocabulary,
   onUpdateStoryPhrases,
-  onFillStoryVocab,
-  onFillStoryPhrases,
-  storyVocabDraftGeneration,
-  storyPhraseDraftGeneration,
-  storyVocabFillLoading,
-  storyPhraseFillLoading,
-  storyVocabFillError,
-  storyPhraseFillError,
   onClose,
   closeButtonRef,
 }) {
@@ -60,25 +51,13 @@ function StoryLearningContent({
   const [activePanel, setActivePanel] = useState("vocabulary");
   const vocabulary = draft.storyVocabulary[level];
   const phrases = draft.storyPhrases[level];
-  const phraseCount = PHRASE_COUNT_BY_LEVEL[level];
-  const hasScripts = draft.suggestedAnswers[level].some((script) => script.trim());
   return <div className="story-learning-content" aria-labelledby="story-learning-content-title">
     <div className="story-learning-content-header">
       <div>
         <h3 id="story-learning-content-title">Story-wide learning content</h3>
         <p className="story-learning-content-description">Shared across every scene in the <strong>{level}</strong> version.</p>
       </div>
-      <div className="story-learning-content-header-actions">
-        <div className="story-learning-content-actions">
-          <button type="button" className="btn-vocab-autofill-sm" disabled={!hasScripts || storyVocabFillLoading} onClick={onFillStoryVocab}>
-            {storyVocabFillLoading ? "Filling…" : "✨ Fill vocab from story scripts"}
-          </button>
-          <button type="button" className="btn-vocab-autofill-sm" disabled={!hasScripts || storyPhraseFillLoading} onClick={() => { setActivePanel("phrases"); onFillStoryPhrases(); }}>
-            {storyPhraseFillLoading ? "Generating…" : `✨ +${phraseCount} phrase${phraseCount > 1 ? "s" : ""}`}
-          </button>
-        </div>
-        <button ref={closeButtonRef} type="button" className="story-learning-close-btn" aria-label="Close learning content" onClick={onClose}>×</button>
-      </div>
+      <button ref={closeButtonRef} type="button" className="story-learning-close-btn" aria-label="Close learning content" onClick={onClose}>×</button>
     </div>
     <div className="story-learning-toolbar">
       <div className="story-learning-tabs" role="tablist" aria-label="Learning content type">
@@ -87,18 +66,16 @@ function StoryLearningContent({
       </div>
       <span className="story-learning-toolbar-hint">Choose a list to edit</span>
     </div>
-    {storyVocabFillError && <p className="teacher-form-error" role="alert">{storyVocabFillError}</p>}
-    {storyPhraseFillError && <p className="teacher-form-error" role="alert">{storyPhraseFillError}</p>}
     <div className="story-learning-editor">
       {activePanel === "vocabulary" ? <div className="story-learning-table-block" role="tabpanel">
         <div className="story-learning-table-heading"><div><h4>Vocabulary</h4><span>Add one word per row</span></div><strong>4 fields per word</strong></div>
-        <VocabularyTable key={`${storyVocabDraftGeneration}-${level}`} vocabulary={vocabulary.vocabulary}
+        <VocabularyTable key={level} vocabulary={vocabulary.vocabulary}
           vocabularyPinyin={vocabulary.vocabularyPinyin} vocabularyPos={vocabulary.vocabularyPos}
           vocabularyTranslation={vocabulary.vocabularyTranslation}
           onChangeColumn={onUpdateStoryVocabulary} />
       </div> : <div className="story-learning-table-block" role="tabpanel">
         <div className="story-learning-table-heading"><div><h4>Reusable phrases</h4><span>Add one reusable phrase per row</span></div><strong>2 fields per phrase</strong></div>
-        <PhraseTable key={`${storyPhraseDraftGeneration}-${level}`} phrases={phrases.phrases}
+        <PhraseTable key={level} phrases={phrases.phrases}
           phrasesTranslation={phrases.phrasesTranslation}
           onChangeColumn={onUpdateStoryPhrases} />
       </div>}

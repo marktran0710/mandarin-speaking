@@ -1,70 +1,5 @@
 
 
-class VocabDistractorResult(BaseModel):
-    word: str
-    distractors: List[str]
-
-
-class VocabDistractorResponse(BaseModel):
-    results: List[VocabDistractorResult]
-
-
-class VocabClozeWord(BaseModel):
-    word: str
-    translation: str
-    context: Optional[str] = None
-    # Sentences already generated for this word (from a prior generation),
-    # so a regeneration call tops up the pool with a genuinely new sentence
-    # instead of the model repeating itself.
-    avoid: List[str] = []
-
-
-class VocabClozeRequest(BaseModel):
-    words: List[VocabClozeWord]
-
-
-class VocabClozeResult(BaseModel):
-    word: str
-    # A natural sentence containing `word` verbatim (the blank is cut client
-    # side by replacing that occurrence — the model isn't asked to place a
-    # blank marker itself, which it does unreliably).
-    sentence: str
-    # Wrong-but-plausible Chinese words that could grammatically fill the
-    # same blank — the cloze question's multiple-choice options.
-    distractors: List[str]
-
-
-class VocabClozeResponse(BaseModel):
-    results: List[VocabClozeResult]
-
-
-class VocabSynonymWord(BaseModel):
-    word: str
-    translation: str
-    context: Optional[str] = None
-    # Synonyms already generated for this word (from a prior generation), so
-    # a regeneration call tops up the pool with a genuinely new synonym
-    # instead of the model repeating itself.
-    avoid: List[str] = []
-
-
-class VocabSynonymRequest(BaseModel):
-    words: List[VocabSynonymWord]
-
-
-class VocabSynonymResult(BaseModel):
-    word: str
-    # A real Chinese word/phrase with (nearly) the same meaning as `word`.
-    synonym: str
-    # Wrong-but-plausible Chinese words — NOT synonyms of `word` — for the
-    # "which word means the same?" multiple-choice options.
-    distractors: List[str]
-
-
-class VocabSynonymResponse(BaseModel):
-    results: List[VocabSynonymResult]
-
-
 class AudioRecordRequest(BaseModel):
     id: str
     timestamp: str
@@ -106,6 +41,10 @@ class SpeakingProgressRequest(BaseModel):
     baseStoryId: Optional[str] = Field(default=None, max_length=128)
     difficultyLevel: Optional[str] = None  # round key (tier1/2/3) or legacy label; server resolver is authoritative
     promptId: Optional[str] = Field(default=None, max_length=200)
+    # A link is eligible only when the server validates this immutable audio
+    # record; legacy request values remain supported for history round-trips.
+    verifiedAudioRecordId: Optional[str] = Field(default=None, max_length=128)
+    progressionEligible: bool = False
 
 
 class CustomStoryFrameRequest(BaseModel):
@@ -317,32 +256,15 @@ class QuizSynonymCandidateIn(BaseModel):
 
 
 class QuizWordMaterialIn(BaseModel):
-    """One word's current AI-generated quiz material, as the Quiz Review
-    page already displays it (see storyToTopic/quizMaterialDiff) — the
-    shape /quiz/validate and /quiz/approve both take, so the same JSON the
-    frontend already builds for the diff snapshot can be sent as-is."""
+    """One word's current (teacher-authored) quiz material, as the Quiz
+    Review page already displays it (see storyToTopic/quizMaterialDiff) —
+    the shape /quiz/approve takes, so the same JSON the frontend already
+    builds for the diff snapshot can be sent as-is."""
     word: str
     translation: Optional[str] = None
     distractors: List[str] = []
     cloze: List[QuizClozeCandidateIn] = []
     synonym: List[QuizSynonymCandidateIn] = []
-
-
-class QuizValidateRequest(BaseModel):
-    words: List[QuizWordMaterialIn]
-    exclusions: List[QuizExclusion] = []
-
-
-class QuizValidateResultItem(BaseModel):
-    word: str
-    kind: str  # "translation" | "cloze" | "synonym" — matches the pools above
-    poolIndex: Optional[int] = None
-    status: str  # "clean" | "suspicious"
-    reason: str = ""
-
-
-class QuizValidateResponse(BaseModel):
-    results: List[QuizValidateResultItem]
 
 
 class QuizApproveRequest(BaseModel):

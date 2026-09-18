@@ -1,19 +1,16 @@
 // @ts-nocheck
 import { useQuizReviewContext } from "./context";
-import { approveQuizMaterial, generateVocabCloze, generateVocabDistractors, generateVocabSynonym, replaceQuizQuestion, saveQuizPendingApprovals, updateQuizExclusions, updateVocabularyCloze, updateVocabularyDistractors, updateVocabularySynonym, validateQuizMaterial } from "../../services/database";
-import { buildClozePatchUpdates, buildDistractorPatchUpdates, buildSynonymPatchUpdates, planClozeGrowth, planDistractorGrowth, planSynonymGrowth } from "../../components/story-recorder/StoryRecorder";
-import { buildMaterialSnapshot, storyMaterialSnapshot, withUpdatedSnapshot } from "../../utils/quizMaterialDiff";
+import { approveQuizMaterial, listCustomStories, replaceQuizQuestion, saveQuizPendingApprovals, updateQuizExclusions, updateVocabularyCloze, updateVocabularyDistractors, updateVocabularySynonym } from "../../services/database";
+import { buildMaterialSnapshot, withUpdatedSnapshot } from "../../utils/quizMaterialDiff";
 import { buildApprovedMaterial, buildApprovedMaterialFromApprovals } from "../../utils/quizApprovedMaterial";
-import { protectGeneratedQuizMaterial } from "../../utils/quizGenerationGate";
-import { exportQuizMarksFile, isExcluded, readQuizMarksImportFile, toggleExclusion } from "../../utils/quizExclusions";
+import { exportQuizMarksFile, readQuizMarksImportFile, toggleExclusion } from "../../utils/quizExclusions";
 import { isApproved, toggleApproval } from "../../utils/quizPendingApprovals";
 import { storyToTopic } from "../../utils/teacherStories";
-import { applyAcceptedCandidatesLocally, applyChangedCandidatesLocally, appendUniqueExclusions, isChangedCandidate, removedCandidatesFromSnapshot } from "./model-pending";
-import { applyLocalEdit, canonicalGrowthCandidates, changedTargetForValidation, freshGeneratedStrings, invalidateApprovedWord, pendingKeyFor } from "./model-core";
-import { findValidation } from "./review-chrome";
+import { applyLocalEdit, invalidateApprovedWord, pendingKeyFor } from "./model-core";
+import { parseQuizMaterialCsv } from "./material-upload";
 
 export function useQuizReviewActions() {
-  const { stories, setStories, level, exclusionsByStory, setExclusionsByStory, setDirtyByStory, setStatusByStory, validationByStory, setValidationByStory, setValidateStatusByStory, pendingApprovalsByKey, setPendingApprovalsByKey, setApproveStatusByStory, editTarget, setEditTarget, editDraft, setEditDraft, setEditStatus, addQuestionTarget, setAddQuestionTarget, addQuestionDraft, setAddQuestionDraft, setAddQuestionStatus, pendingCandidatesByStory, setPendingCandidatesByStory, setRevealedCountByStory, setGenerationGateNoteByStory, setGenerateStatusByStory, importInputRef, importTargetRef, setImportNoteByStory } = useQuizReviewContext();
+  const { stories, setStories, level, exclusionsByStory, setExclusionsByStory, setDirtyByStory, setStatusByStory, pendingApprovalsByKey, setPendingApprovalsByKey, setApproveStatusByStory, editTarget, setEditTarget, editDraft, setEditDraft, setEditStatus, addQuestionTarget, setAddQuestionTarget, addQuestionDraft, setAddQuestionDraft, setAddQuestionStatus, importInputRef, importTargetRef, setImportNoteByStory, uploadInputRef, uploadTargetRef, setUploadNoteByStory } = useQuizReviewContext();
   const onToggle = (storyId: string, mark: QuizExclusion) => {
     setExclusionsByStory((prev) => ({
       ...prev,
@@ -38,74 +35,35 @@ export function useQuizReviewActions() {
     }
   };
 
-  const onValidate = async (story: CustomTeacherStory, topic: ReturnType<typeof storyToTopic>) => {
-    setValidateStatusByStory((prev) => ({ ...prev, [story.id]: "validating" }));
-    try {
-      // Unfiltered on purpose: buildApprovedMaterial with no exclusions just
-      // dedupes by word (first scene occurrence), keeping each pool's
-      // original index so a suspicious result maps back onto exactly the
-      // item rendered below. Excluded items are skipped server-side via the
-      // separate exclusions list, not by removing them from this payload.
-      const words = buildApprovedMaterial(topic, []);
-      const exclusions = exclusionsByStory[story.id] ?? [];
-      const results = await validateQuizMaterial(story.id, words, exclusions);
-      setValidationByStory((prev) => ({ ...prev, [story.id]: results }));
-      // A later validation failure revokes the old local selection. Without
-      // this, a checkbox saved from an earlier clean pass could remain in
-      // the publish payload even though the question is now suspicious.
-      const approvalKey = pendingKeyFor(story.id, level);
-      const currentApprovals = pendingApprovalsByKey[approvalKey] ?? [];
-      const cleanApprovals = currentApprovals.filter((approval) =>
-        results.some(
-          (result) =>
-            result.status === "clean" &&
-            result.word === approval.word &&
-            (result.kind === approval.kind || (approval.kind === "distractors" && result.kind === "translation")) &&
-            (result.poolIndex ?? undefined) === (approval.index ?? undefined),
-        ),
-      );
-      if (cleanApprovals.length !== currentApprovals.length) {
-        setPendingApprovalsByKey((prev) => ({ ...prev, [approvalKey]: cleanApprovals }));
-        saveQuizPendingApprovals(story.id, level, cleanApprovals).catch(() => {});
-      }
-      setValidateStatusByStory((prev) => ({ ...prev, [story.id]: "idle" }));
-    } catch {
-      setValidateStatusByStory((prev) => ({ ...prev, [story.id]: "error" }));
-    }
-  };
-
-  /** Whether this candidate has survived a Validate pass THIS session —
-   * checking it on is gated on this; unchecking is always free. */
-  const canCheck = (storyId: string, word: string, kind: QuizApprovalKind, poolIndex?: number): boolean =>
-    findValidation(
-      validationByStory[storyId],
-      word,
-      kind === "distractors" ? "translation" : kind,
-      poolIndex,
-    )?.status === "clean";
-
   const onToggleApproval = async (story: CustomTeacherStory, mark: QuizApprovalMark) => {
     const key = pendingKeyFor(story.id, level);
     const current = pendingApprovalsByKey[key] ?? [];
-    const alreadyChecked = isApproved(current, mark.word, mark.kind, mark.index);
-    if (!alreadyChecked && !canCheck(story.id, mark.word, mark.kind, mark.index)) return;
     const next = toggleApproval(current, mark);
     setPendingApprovalsByKey((prev) => ({ ...prev, [key]: next }));
     saveQuizPendingApprovals(story.id, level, next).catch(() => {});
   };
 
-  /** Bulk-checks every candidate that came back clean this session —
-   * suspicious ones stay individually decided, the whole point of flagging
-   * them in the first place. */
-  const onApproveAll = async (story: CustomTeacherStory) => {
+  /** Checks every question currently in the story's material — there's no
+   * AI validation pass to gate on anymore, so "approve all" just means all
+   * of the teacher's own typed/uploaded content for this word. */
+  const onApproveAll = async (story: CustomTeacherStory, topic: ReturnType<typeof storyToTopic>) => {
     const key = pendingKeyFor(story.id, level);
+    const exclusions = exclusionsByStory[story.id] ?? [];
     let next = pendingApprovalsByKey[key] ?? [];
-    for (const r of validationByStory[story.id] ?? []) {
-      if (r.status !== "clean") continue;
-      const approvalKind = r.kind === "translation" ? "distractors" : r.kind;
-      if (!isApproved(next, r.word, approvalKind, r.poolIndex)) {
-        next = toggleApproval(next, { word: r.word, kind: approvalKind, index: r.poolIndex });
+    for (const entry of buildApprovedMaterial(topic, exclusions)) {
+      if (entry.distractors.length > 0 && !isApproved(next, entry.word, "distractors")) {
+        next = toggleApproval(next, { word: entry.word, kind: "distractors" });
       }
+      entry.cloze.forEach((_candidate, index) => {
+        if (!isApproved(next, entry.word, "cloze", index)) {
+          next = toggleApproval(next, { word: entry.word, kind: "cloze", index });
+        }
+      });
+      entry.synonym.forEach((_candidate, index) => {
+        if (!isApproved(next, entry.word, "synonym", index)) {
+          next = toggleApproval(next, { word: entry.word, kind: "synonym", index });
+        }
+      });
     }
     setPendingApprovalsByKey((prev) => ({ ...prev, [key]: next }));
     saveQuizPendingApprovals(story.id, level, next).catch(() => {});
@@ -241,7 +199,6 @@ export function useQuizReviewActions() {
               },
         ),
       );
-      setValidationByStory((prev) => ({ ...prev, [storyId]: [] }));
       setAddQuestionTarget(null);
       setAddQuestionDraft(null);
       setAddQuestionStatus("idle");
@@ -334,25 +291,13 @@ export function useQuizReviewActions() {
             : s,
         ),
       );
-      // An edited candidate needs a fresh Validate before it can be checked
-      // again — drop any stale result and un-check it if it was checked.
-      setValidationByStory((prev) => ({
-        ...prev,
-        [editTarget.storyId]: (prev[editTarget.storyId] ?? []).filter((r) =>
-          editTarget.kind === "translation" || editTarget.kind === "pinyin"
-            ? r.word !== editTarget.word
-            : !(r.word === editTarget.word && r.kind === editTarget.kind && (r.poolIndex ?? undefined) === editTarget.poolIndex),
-        ),
-      }));
       const key = pendingKeyFor(editTarget.storyId, level);
       const current = pendingApprovalsByKey[key] ?? [];
       const next = editTarget.kind === "pinyin"
         ? current
         : editTarget.kind === "translation"
         ? current.filter((approval) => approval.word !== editTarget.word)
-        : isApproved(current, editTarget.word, editTarget.kind, editTarget.poolIndex)
-          ? toggleApproval(current, { word: editTarget.word, kind: editTarget.kind, index: editTarget.poolIndex })
-          : current;
+        : current;
       if (next !== current) {
         setPendingApprovalsByKey((prev) => ({ ...prev, [key]: next }));
         saveQuizPendingApprovals(editTarget.storyId, level, next).catch(() => {});
@@ -365,13 +310,85 @@ export function useQuizReviewActions() {
     }
   };
 
-  /** Runs the same growth-planning + generation calls StoryRecorder's
-   * background pool growth uses (planXGrowth -> generateVocabX), but stages
-   * every result as pending instead of merging it in immediately — nothing
-   * is persisted until the teacher accepts it and clicks Apply. Only tops
-   * up words under each pool's cap, so an already-covered word costs
-   * nothing to re-run; that's what makes this safe to call both the first
-   * time (every word is under cap) and after a story edit (only new/thin
-   * words still qualify). */
-  return { onToggle, onSave, onValidate, canCheck, onToggleApproval, onApproveAll, onApprove, onStartEdit, onStartTranslationEdit, onCancelEdit, addDraftForKind, onStartAddQuestion, onCancelAddQuestion, onSaveAddQuestion, onSaveEdit };
+  const triggerImport = (storyId: string) => {
+    importTargetRef.current = storyId;
+    importInputRef.current?.click();
+  };
+
+  const onImportChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const storyId = importTargetRef.current;
+    e.target.value = "";
+    if (!file || !storyId) return;
+    try {
+      const parsed = await readQuizMarksImportFile(file);
+      setExclusionsByStory((prev) => ({ ...prev, [storyId]: parsed.exclusions }));
+      setDirtyByStory((prev) => ({ ...prev, [storyId]: true }));
+      setStatusByStory((prev) => ({ ...prev, [storyId]: "idle" }));
+      setImportNoteByStory((prev) => ({
+        ...prev,
+        [storyId]:
+          parsed.storyId && parsed.storyId !== storyId
+            ? `File exported from a different story (${parsed.storyId})`
+            : `Imported ${parsed.exclusions.length} marks — Save to apply`,
+      }));
+    } catch (err) {
+      setImportNoteByStory((prev) => ({
+        ...prev,
+        [storyId]: err instanceof Error ? err.message : "Invalid marks file",
+      }));
+    }
+  };
+
+  const onExport = (story: CustomTeacherStory) => {
+    exportQuizMarksFile(story, exclusionsByStory[story.id] ?? []);
+  };
+
+  const triggerMaterialUpload = (storyId: string) => {
+    uploadTargetRef.current = storyId;
+    uploadInputRef.current?.click();
+  };
+
+  /** Bulk version of "Add question": parses a teacher-prepared CSV and tops
+   * up the same per-word pools the manual add form writes to, via the same
+   * PATCH endpoints — no AI, no new backend path. */
+  const onMaterialUploadChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const storyId = uploadTargetRef.current;
+    e.target.value = "";
+    if (!file || !storyId) return;
+    const story = stories.find((s) => s.id === storyId);
+    if (!story) return;
+    try {
+      const text = await file.text();
+      const topic = storyToTopic(story, level);
+      const result = parseQuizMaterialCsv(text, topic);
+      await Promise.all([
+        result.distractorUpdates.length ? updateVocabularyDistractors(storyId, result.distractorUpdates) : Promise.resolve(),
+        result.clozeUpdates.length ? updateVocabularyCloze(storyId, result.clozeUpdates) : Promise.resolve(),
+        result.synonymUpdates.length ? updateVocabularySynonym(storyId, result.synonymUpdates) : Promise.resolve(),
+      ]);
+      // Pool merges happen server-side (top-up + dedupe + cap) — refetch
+      // rather than re-deriving that logic locally, so what renders always
+      // matches what was actually persisted.
+      const refreshed = await listCustomStories();
+      const updatedStory = (refreshed as CustomTeacherStory[]).find((s) => s.id === storyId);
+      if (updatedStory) {
+        setStories((prev) => prev.map((s) => (s.id === storyId ? updatedStory : s)));
+      }
+      const parts = [
+        result.addedCounts.distractors ? `${result.addedCounts.distractors} distractor set${result.addedCounts.distractors === 1 ? "" : "s"}` : "",
+        result.addedCounts.cloze ? `${result.addedCounts.cloze} cloze` : "",
+        result.addedCounts.synonym ? `${result.addedCounts.synonym} synonym` : "",
+      ].filter(Boolean);
+      const added = parts.length ? `Added ${parts.join(", ")}.` : "Nothing to add.";
+      const notFound = result.notFoundWords.length ? ` Not found in this story: ${result.notFoundWords.join("、")}.` : "";
+      const skipped = result.skippedRows ? ` Skipped ${result.skippedRows} incomplete row${result.skippedRows === 1 ? "" : "s"}.` : "";
+      setUploadNoteByStory((prev) => ({ ...prev, [storyId]: `${added}${notFound}${skipped}` }));
+    } catch (err) {
+      setUploadNoteByStory((prev) => ({ ...prev, [storyId]: err instanceof Error ? err.message : "Could not read that file." }));
+    }
+  };
+
+  return { onToggle, onSave, onToggleApproval, onApproveAll, onApprove, onStartEdit, onStartTranslationEdit, onCancelEdit, addDraftForKind, onStartAddQuestion, onCancelAddQuestion, onSaveAddQuestion, onSaveEdit, triggerImport, onImportChange, onExport, triggerMaterialUpload, onMaterialUploadChange };
 }
