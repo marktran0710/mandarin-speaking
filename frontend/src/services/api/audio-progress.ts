@@ -1,5 +1,6 @@
 import { BACKEND_URL, fetchWithRetry } from "./client";
 import type { SceneSubmission } from "./stories-submissions";
+import { buildPracticeAnalysisFormData, type PracticeAnalysisRequestContext } from "../../utils/practiceAnalysis";
 
 function snapshotIdFor(result: SceneSubmission): string {
   if (result.snapshotId) return result.snapshotId;
@@ -13,8 +14,53 @@ function snapshotIdFor(result: SceneSubmission): string {
   return generated;
 }
 
-export interface StoredAudioRecord { id: string; timestamp: string; duration: number; transcription: string; model: string; topicId?: string; studentId?: string | null; imageUrl?: string; imageIndex?: number; audioUrl?: string; audioName?: string; praatMetrics?: any; analysisVersion?: "stable_v1" | "phoneme_tone_v2"; analysisSchemaVersion?: string; modelVersion?: string; comparisonGroupId?: string; sessionId?: string; attemptId?: string; attemptNumber?: number; attemptType?: "WHOLE_SENTENCE_INITIAL" | "FOCUSED_RETRY" | "WHOLE_SENTENCE_FINAL"; }
-export interface StoredSpeakingProgress { studentId: string; topicId: string; sceneIndex: number; attempts: number; bestTone: number; bestFluency: number; masteryPassed: boolean; contentPassed: boolean; clearedWords: string[]; latestResult?: SceneSubmission | null; baseStoryId?: string; difficultyLevel?: "easy" | "medium" | "hard"; promptId?: string; }
+export interface StoredAudioRecord { id: string; timestamp: string; duration: number; transcription: string; model: string; topicId?: string; studentId?: string | null; imageUrl?: string; imageIndex?: number; audioUrl?: string; audioName?: string; praatMetrics?: any; analysisVersion?: "stable_v1" | "phoneme_tone_v2"; analysisSchemaVersion?: string; modelVersion?: string; comparisonGroupId?: string; sessionId?: string; attemptId?: string; attemptNumber?: number; attemptType?: "WHOLE_SENTENCE_INITIAL" | "FOCUSED_RETRY" | "WHOLE_SENTENCE_FINAL"; serverVerifiedAt?: string | null; audioSha256?: string | null; serverVerificationVersion?: string | null; }
+export interface StoredSpeakingProgress { studentId: string; topicId: string; sceneIndex: number; attempts: number; bestTone: number; bestFluency: number; masteryPassed: boolean; contentPassed: boolean; clearedWords: string[]; latestResult?: SceneSubmission | null; baseStoryId?: string; difficultyLevel?: "easy" | "medium" | "hard"; promptId?: string; verifiedAudioRecordId?: string | null; progressionEligible?: boolean; }
+
+export interface VerifiedSpeakingAnalysisResponse {
+  serverVerified: true;
+  audioRecordId: string;
+  audioUrl?: string | null;
+  attemptId: string;
+  storyId: string;
+  baseStoryId: string;
+  sceneIndex: number;
+  difficultyLevel: "easy" | "medium" | "hard";
+  progressionEligible: boolean;
+  analysis: any;
+  verdicts: {
+    pronunciationPassed: boolean;
+    contentPassed: boolean;
+    masteryPassed: boolean;
+  };
+}
+
+export async function analyzeVerifiedSpeech(
+  audio: Blob,
+  context: PracticeAnalysisRequestContext & {
+    storyId: string;
+    baseStoryId?: string;
+    sceneIndex: number;
+    difficultyLevel?: "easy" | "medium" | "hard";
+  },
+): Promise<VerifiedSpeakingAnalysisResponse> {
+  if (!context.attemptId?.trim()) throw new Error("A stable speaking attempt ID is required.");
+  const formData = buildPracticeAnalysisFormData(audio, context);
+  formData.append("story_id", context.storyId);
+  formData.append("base_story_id", context.baseStoryId ?? context.storyId);
+  formData.append("scene_index", String(context.sceneIndex));
+  formData.append("difficulty_level", context.difficultyLevel ?? "easy");
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/analyze/verified`, {
+    method: "POST",
+    body: formData,
+    signal: AbortSignal.timeout(120_000),
+  });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null) as { detail?: unknown } | null;
+    throw new Error(typeof detail?.detail === "string" ? detail.detail : "Verified speaking analysis failed.");
+  }
+  return response.json() as Promise<VerifiedSpeakingAnalysisResponse>;
+}
 
 export async function listAudioRecords(params?: { limit?: number; skip?: number; studentId?: string; topicId?: string }): Promise<StoredAudioRecord[]> {
   const queryParams = new URLSearchParams(); if (params?.limit !== undefined) queryParams.set("limit", String(params.limit)); if (params?.skip !== undefined) queryParams.set("skip", String(params.skip)); if (params?.studentId) queryParams.set("student_id", params.studentId); if (params?.topicId) queryParams.set("topic_id", params.topicId);

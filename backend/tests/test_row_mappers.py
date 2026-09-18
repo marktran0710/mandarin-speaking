@@ -133,7 +133,9 @@ def test_row_to_speaking_progress_exposes_verified_audio_record_id():
         "updated_at": "2026-09-18 00:00:00",
         "verified_audio_record_id": "record-1",
     }
-    assert database.row_to_speaking_progress(row)["verifiedAudioRecordId"] == "record-1"
+    result = database.row_to_speaking_progress(row)
+    assert result["verifiedAudioRecordId"] == "record-1"
+    assert result["progressionEligible"] is True
 
 
 def test_ensure_column_helpers_are_gone():

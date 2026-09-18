@@ -64,6 +64,88 @@ def save_audio_record(record: AudioRecordRequest, owner_id: Optional[str] = None
         )
 
 
+def save_verified_audio_record(
+    *,
+    record_id: str,
+    student_id: str,
+    attempt_id: str,
+    audio_sha256: str,
+    verification_version: str,
+    topic_id: str,
+    scene_index: int,
+    audio_url: str,
+    audio_name: str,
+    image_url: str,
+    transcription: str,
+    model: str,
+    praat_metrics: dict,
+) -> dict:
+    """Persist a server-owned stable-analysis result.
+
+    This is intentionally separate from ``save_audio_record``: browser
+    clients may still save legacy practice records, but cannot set this
+    route's verification provenance fields.
+    """
+    with connect_db() as db:
+        # ``attempt_id`` has no database uniqueness constraint.  The advisory
+        # lock makes a same-student retry atomic without broadening schema
+        # scope, including when the first request has not inserted a row yet.
+        # Lock by the idempotency key alone, not by student, so two different
+        # identities cannot race to claim the same attempt id.
+        lock_key = f"verified-audio:{attempt_id}"
+        db.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (lock_key,))
+        attempts = db.execute(
+            """
+            SELECT id, student_id, audio_sha256, server_verified_at, audio_url, praat_metrics
+            FROM audio_records
+            WHERE attempt_id = %s
+            ORDER BY server_verified_at DESC NULLS LAST, created_at DESC, id DESC
+            FOR UPDATE
+            """,
+            (attempt_id,),
+        ).fetchall()
+        if any(row.get("student_id") != student_id for row in attempts):
+            raise HTTPException(status_code=409, detail="Attempt already belongs to another student.")
+
+        existing = next((row for row in attempts if row.get("server_verified_at") is not None), None)
+        if existing is not None:
+            if existing.get("audio_sha256") != audio_sha256:
+                raise HTTPException(status_code=409, detail="Attempt ID was already used with different audio.")
+            return existing
+        if attempts:
+            # A legacy browser write already claimed this idempotency key, but
+            # its client-supplied metrics are not evidence. Do not append a
+            # second row under the same attempt or silently upgrade the old one.
+            raise HTTPException(status_code=409, detail="Attempt ID already exists without server verification.")
+
+        db.execute(
+            """
+            INSERT INTO audio_records (
+                id, timestamp, duration, transcription, model, topic_id, student_id,
+                image_url, image_index, audio_url, audio_name, praat_metrics,
+                attempt_id, server_verified_at, audio_sha256,
+                server_verification_version
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                %s, NOW(), %s, %s
+            )
+            """,
+            (
+                record_id, datetime.datetime.now(datetime.timezone.utc).isoformat(), 0,
+                transcription, model, topic_id, student_id, image_url, scene_index,
+                audio_url, audio_name, Jsonb(praat_metrics), attempt_id,
+                audio_sha256, verification_version,
+            ),
+        )
+        return {
+            "id": record_id,
+            "audio_sha256": audio_sha256,
+            "server_verified_at": datetime.datetime.now(datetime.timezone.utc),
+            "audio_url": audio_url,
+            "praat_metrics": praat_metrics,
+        }
+
+
 MAX_VOCAB_DISTRACTORS_PER_WORD = 8
 
 

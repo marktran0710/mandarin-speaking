@@ -310,6 +310,8 @@ export interface NewAudioRecord {
   attemptId?: string;
   attemptNumber?: number;
   attemptType?: "WHOLE_SENTENCE_INITIAL" | "FOCUSED_RETRY" | "WHOLE_SENTENCE_FINAL";
+  serverVerified?: boolean;
+  serverRecordId?: string;
 }
 
 /** Builds the legacy restore fallback for progress rows written before

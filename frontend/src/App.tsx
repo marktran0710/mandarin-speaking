@@ -271,7 +271,7 @@ export default function App() {
     const stored = JSON.parse(localStorage.getItem("audioRecords") || "[]");
     writeAudioRecordsCache([audioData, ...stored]);
 
-    if (canUseDatabase()) {
+    if (canUseDatabase() && !(record.serverVerified && record.serverRecordId)) {
       try {
         const savedRecord = await createAudioRecord(audioData, record.audioBlob);
         if (savedRecord?.audioUrl) {

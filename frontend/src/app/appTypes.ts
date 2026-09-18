@@ -24,6 +24,9 @@ export interface AudioRecord {
   attemptId?: string;
   attemptNumber?: number;
   attemptType?: "WHOLE_SENTENCE_INITIAL" | "FOCUSED_RETRY" | "WHOLE_SENTENCE_FINAL";
+  /** Set when the server already persisted this stable analysis. */
+  serverVerified?: boolean;
+  serverRecordId?: string;
 }
 
 export interface PracticeTarget {

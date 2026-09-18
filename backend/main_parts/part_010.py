@@ -71,6 +71,7 @@ from routers.admin import router as admin_router  # noqa: E402
 from routers.knowledge_analytics import router as knowledge_analytics_router  # noqa: E402
 from routers.asr import router as asr_router  # noqa: E402
 from routers.analysis_v2 import router as analysis_v2_router  # noqa: E402
+from routers.verified_speaking import router as verified_speaking_router  # noqa: E402
 from routers.audio import router as audio_router  # noqa: E402
 from routers.help_requests import router as help_requests_router  # noqa: E402
 from routers.media import router as media_router  # noqa: E402
@@ -89,6 +90,7 @@ app.include_router(admin_router)
 app.include_router(knowledge_analytics_router)
 app.include_router(asr_router)
 app.include_router(analysis_v2_router)
+app.include_router(verified_speaking_router)
 app.include_router(audio_router)
 app.include_router(help_requests_router)
 app.include_router(media_router)

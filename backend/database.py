@@ -210,6 +210,7 @@ def row_to_speaking_progress(row: dict) -> dict:
         "clearedWords": row["cleared_words"] or [],
         "latestResult": row.get("latest_result"),
         "verifiedAudioRecordId": row.get("verified_audio_record_id"),
+        "progressionEligible": bool(row.get("verified_audio_record_id")),
         "updatedAt": row["updated_at"],
     }
 
