@@ -83,20 +83,40 @@ def default_output_path(url: str, directory: str | None = None) -> str:
     return os.path.join(directory or BACKEND_DIR, name)
 
 
+# The port Postgres listens on inside its own container, regardless of
+# whatever host port docker-compose maps it to (this machine remaps it to
+# 5433 because another project's postgres already holds 5432 - see
+# docker-compose.yml). A `docker exec` runs inside the container's own
+# network namespace, where that host-side remapping does not exist.
+CONTAINER_INTERNAL_PORT = 5432
+
+
+def _container_url(url: str) -> str:
+    """Rewrites `url` for use *inside* the postgres container via `docker
+    exec`, where only the container-internal port is reachable."""
+    parsed = urlparse(url)
+    userinfo = f"{parsed.username}:{parsed.password}@" if parsed.username else ""
+    return parsed._replace(
+        netloc=f"{userinfo}{parsed.hostname}:{CONTAINER_INTERNAL_PORT}"
+    ).geturl()
+
+
 def dump_command(url: str, container: str = DEFAULT_CONTAINER) -> list[str]:
     if shutil.which("pg_dump"):
         return ["pg_dump", *DUMP_FLAGS, url]
-    return ["docker", "exec", container, "pg_dump", *DUMP_FLAGS, url]
+    return ["docker", "exec", container, "pg_dump", *DUMP_FLAGS, _container_url(url)]
 
 
 def restore_command(url: str, container: str = DEFAULT_CONTAINER) -> list[str]:
     # -i keeps stdin attached so the dump can be piped in. ON_ERROR_STOP=1
     # turns a half-applied restore into a loud failure instead of a database
     # that is silently missing three tables.
-    flags = ["--set", "ON_ERROR_STOP=1", "--quiet", url]
     if shutil.which("psql"):
-        return ["psql", *flags]
-    return ["docker", "exec", "-i", container, "psql", *flags]
+        return ["psql", "--set", "ON_ERROR_STOP=1", "--quiet", url]
+    return [
+        "docker", "exec", "-i", container, "psql",
+        "--set", "ON_ERROR_STOP=1", "--quiet", _container_url(url),
+    ]
 
 
 def _row_count(url: str) -> int:

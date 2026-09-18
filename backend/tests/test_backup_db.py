@@ -28,7 +28,27 @@ def test_dump_command_uses_the_container_when_the_host_has_no_pg_dump(monkeypatc
 
     assert command[:3] == ["docker", "exec", "mandarin-postgres"]
     assert command[3] == "pg_dump"
-    assert command[-1] == TEST_URL
+    # Not TEST_URL verbatim: a docker-exec'd client runs inside the
+    # container's own network namespace, where the host's port mapping
+    # (e.g. 5433 -> 5432) does not exist — see test below.
+    assert command[-1] == backup_db._container_url(TEST_URL)
+
+
+def test_dump_command_rewrites_the_port_for_the_container_but_not_the_host_binary(monkeypatch):
+    """A docker-exec'd pg_dump connects from inside the container's own
+    network namespace, where only the container-internal port (5432) is
+    reachable — the host-side remapping (e.g. 5433, see docker-compose.yml)
+    does not exist there. A host pg_dump binary, by contrast, must keep the
+    original host-mapped port."""
+    remapped_url = "postgresql://mandarin:mandarin@127.0.0.1:5433/mandarin_test"
+
+    monkeypatch.setattr(backup_db.shutil, "which", lambda name: None)
+    container_command = backup_db.dump_command(remapped_url, container="mandarin-postgres")
+    assert container_command[-1] == "postgresql://mandarin:mandarin@127.0.0.1:5432/mandarin_test"
+
+    monkeypatch.setattr(backup_db.shutil, "which", lambda name: r"C:\pg\bin\pg_dump.exe")
+    host_command = backup_db.dump_command(remapped_url, container="mandarin-postgres")
+    assert host_command[-1] == remapped_url
 
 
 def test_dump_command_prefers_a_host_binary_when_one_exists(monkeypatch):

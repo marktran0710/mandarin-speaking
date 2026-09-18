@@ -272,6 +272,11 @@ async def get_knowledge_state(
     model: Literal["pfa", "bkt", "compare"] = Query(default="compare"),
     student_id: Optional[str] = Query(default=None),
     story_id: Optional[str] = Query(default=None),
+    # Filters on vocab_quiz_responses.quiz_level — the three-round vocabulary
+    # diagnostic (know_it/say_it/use_it). Migration 0033 unified this with
+    # quiz_mode's tier1/tier2/tier3 labels (it used to be easy/medium/hard,
+    # a separate axis from the removed story-text tiers — see that
+    # migration's docstring for the full history).
     level: Optional[Literal["tier1", "tier2", "tier3"]] = Query(default=None),
     _identity: auth.Identity = Depends(auth.require_admin),
 ):

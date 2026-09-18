@@ -1,10 +1,17 @@
 from psycopg.types.json import Jsonb
 
 import database
+from analytics.bkt_mastery import response_rows_for_attempt, upsert_raw_responses
 from routers.knowledge_analytics import _evaluation, _lower_loss_signal
 
 
 def _insert_attempt(attempt_id: str, student_id: str, story_id: str, completed_at: str, results: list[dict]) -> None:
+    """Writes both the raw attempt (client-facing source of truth) and the
+    normalized vocab_quiz_responses ledger the analytics endpoint actually
+    reads — mirroring what POST /api/vocab-quiz-attempts does via
+    record_attempt_and_rebuild, minus the assessment-bank resolver (every
+    result here is pre-marked as already resolved)."""
+    mode = "tier1"
     with database.connect_db() as db:
         db.execute(
             """
@@ -13,12 +20,18 @@ def _insert_attempt(attempt_id: str, student_id: str, story_id: str, completed_a
                  total_questions, correct_count, total_time_ms, question_results)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
-            (attempt_id, story_id, "Pilot Student", student_id, "tier1", completed_at,
+            (attempt_id, story_id, "Pilot Student", student_id, mode, completed_at,
              len(results), sum(bool(result.get("correct")) for result in results), 1000, Jsonb(results)),
         )
+        attempt = {
+            "id": attempt_id, "storyId": story_id, "completedAt": completed_at, "mode": mode,
+        }
+        response_results = [{**result, "authoritativeResolved": True} for result in results]
+        rows = response_rows_for_attempt(attempt, student_id, response_results=response_results)
+        upsert_raw_responses(db, rows)
 
 
-def _eligible_result(word: str, correct: bool, index: int, *, level: str = "easy") -> dict:
+def _eligible_result(word: str, correct: bool, index: int, *, level: str = "tier1") -> dict:
     return {
         "word": word,
         "conceptId": word,
@@ -29,6 +42,10 @@ def _eligible_result(word: str, correct: bool, index: int, *, level: str = "easy
         "isBktEligible": True,
         "diagnosticExposureId": f"exposure-{index}-{word}",
         "bktValidationStatus": "APPROVED",
+        # Without this, response_rows_for_attempt tags the row
+        # evidence_origin="legacy_unknown" instead of "real" and it never
+        # qualifies for the response ledger the analytics endpoint reads.
+        "resolverVersion": "authoritative-assessment-v1",
     }
 
 
@@ -49,12 +66,12 @@ def test_knowledge_state_compares_models_and_applies_filters(admin_client):
         _insert_attempt(
             f"pilot-{index}", "student-1", "story-5-1", f"2026-01-{index + 1:02d}T00:00:00Z",
             [_eligible_result("學習", index % 3 != 0, index),
-             {"conceptId": "朋友", "correct": True, "level": "hard"}],
+             {"conceptId": "朋友", "correct": True, "level": "tier3"}],
         )
 
     response = admin_client.get(
         "/api/admin/analytics/knowledge-state",
-        params={"model": "compare", "story_id": "story-5-1", "level": "easy"},
+        params={"model": "compare", "story_id": "story-5-1", "level": "tier1"},
     )
     assert response.status_code == 200
     body = response.json()
@@ -86,7 +103,7 @@ def test_knowledge_state_does_not_select_winner_for_single_class_predictions(adm
 def test_knowledge_state_returns_insufficient_data_without_a_winner(admin_client):
     _insert_attempt(
         "pilot-small", "student-1", "story-small", "2026-01-01T00:00:00Z",
-        [{"conceptId": "房間", "correct": True, "level": "medium"}],
+        [{"conceptId": "房間", "correct": True, "level": "tier2"}],
     )
     body = admin_client.get("/api/admin/analytics/knowledge-state").json()
     assert body["lowerLossSignal"] is None
