@@ -361,4 +361,61 @@ describe("TeacherDashboardPage", () => {
     );
   });
 
+  it("lets teachers upload model audio for a custom story frame, with no AI/TTS involved", async () => {
+    const user = userEvent.setup();
+    renderAdminMaterials();
+
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
+    expect(
+      screen.getByText(/No model audio yet/),
+    ).toBeInTheDocument();
+
+    await user.type(
+      screen.getByLabelText("Image URL or uploaded file"),
+      "https://example.com/upload-support-1.jpg",
+    );
+
+    const audioFile = new File(["story-audio"], "model.mp3", {
+      type: "audio/mpeg",
+    });
+    await user.upload(screen.getByLabelText("Upload model audio"), audioFile);
+
+    await waitFor(() => {
+      expect(screen.getByText("Your recording")).toBeInTheDocument();
+    });
+    expect(screen.getByLabelText("Replace model audio")).toBeInTheDocument();
+
+    const sceneCount = screen.getAllByRole("tab").length;
+    for (let index = 1; index < sceneCount; index += 1) {
+      await user.click(screen.getByRole("tab", { name: new RegExp(`Scene ${index + 1}`) }));
+      await user.type(
+        screen.getByLabelText("Image URL or uploaded file"),
+        `https://example.com/upload-support-${index + 1}.jpg`,
+      );
+    }
+
+    await user.click(screen.getByRole("button", { name: "Save custom story" }));
+    const stored = localStorage.getItem("teacherCustomStories") || "";
+    expect(stored).toContain("data:audio/mpeg");
+    expect(stored).toContain('"listenAudioSource":"teacher"');
+  });
+
+  it("lets a teacher remove uploaded model audio", async () => {
+    const user = userEvent.setup();
+    renderAdminMaterials();
+
+    await user.click(screen.getByRole("button", { name: /Story Builder/ }));
+    const audioFile = new File(["story-audio"], "model.mp3", {
+      type: "audio/mpeg",
+    });
+    await user.upload(screen.getByLabelText("Upload model audio"), audioFile);
+    await waitFor(() => {
+      expect(screen.getByText("Your recording")).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+
+    expect(screen.getByText(/No model audio yet/)).toBeInTheDocument();
+  });
+
 });

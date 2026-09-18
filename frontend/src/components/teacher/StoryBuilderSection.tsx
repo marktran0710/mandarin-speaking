@@ -120,6 +120,7 @@ export default function StoryBuilderSection({
       phrasesTranslation: resizeTiers(draft.phrasesTranslation, clamped),
       suggestedAnswers: resizeTiers(draft.suggestedAnswers, clamped),
       listenAudioUrls: resizeTiers(draft.listenAudioUrls, clamped),
+      listenAudioSources: resizeTiers(draft.listenAudioSources, clamped),
       listenScripts: resizeTiers(draft.listenScripts, clamped),
     }));
     setValidationErrors((errors) => ({ ...errors, frames: undefined, form: undefined }));
@@ -192,6 +193,8 @@ export default function StoryBuilderSection({
   const {
     handlePasteFrameImage,
     handleUploadFrameImage,
+    handleUploadFrameAudio,
+    handleRemoveFrameAudio,
   } = useStoryBuilderFrameActions({
     customDraft,
     updateDraftFrame,
@@ -421,6 +424,8 @@ export default function StoryBuilderSection({
           updateDraftGroups={updateDraftGroups}
           onPasteImage={handlePasteFrameImage}
           onUploadImage={handleUploadFrameImage}
+          onUploadAudio={handleUploadFrameAudio}
+          onRemoveAudio={handleRemoveFrameAudio}
           onUpdateStoryVocabulary={updateStoryVocabulary}
           onUpdateStoryPhrases={updateStoryPhrases}
         />

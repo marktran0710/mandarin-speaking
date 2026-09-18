@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { getImageUploadError } from "../../utils/myStoriesUtils";
+import { getAudioUploadError, getImageUploadError } from "../../utils/myStoriesUtils";
 
 export function useStoryBuilderFrameActions(deps) {
   const { updateDraftFrame, setValidationErrors } = deps;
@@ -37,7 +37,34 @@ export function useStoryBuilderFrameActions(deps) {
     reader.readAsDataURL(file);
   };
 
+  const handleUploadFrameAudio = (index: number, file?: File) => {
+    if (!file) {
+      return;
+    }
+
+    const error = getAudioUploadError(file);
+    if (error) {
+      setValidationErrors((errors) => ({ ...errors, form: error }));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        updateDraftFrame("listenAudioUrls", index, reader.result);
+        updateDraftFrame("listenAudioSources", index, "teacher");
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveFrameAudio = (index: number) => {
+    updateDraftFrame("listenAudioUrls", index, "");
+    updateDraftFrame("listenAudioSources", index, "");
+  };
+
   return {
     handlePasteFrameImage, handleUploadFrameImage,
+    handleUploadFrameAudio, handleRemoveFrameAudio,
   };
 }

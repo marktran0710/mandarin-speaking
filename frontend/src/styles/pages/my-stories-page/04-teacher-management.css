@@ -808,6 +808,22 @@
   min-width: 0;
 }
 
+.teacher-frame-audio-preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.teacher-frame-audio-preview audio {
+  max-width: 100%;
+}
+
+.teacher-frame-audio-source {
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
 .teacher-builder-actions {
   display: flex;
   align-items: center;

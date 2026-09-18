@@ -8,8 +8,6 @@ import main
 import auth
 from main import (
     CustomStoryRequest,
-    GenerateModelVoiceBulkRequest,
-    GenerateModelVoiceRequest,
     QuizExclusionsUpdateRequest,
     QuizPendingApprovalsUpdateRequest,
     QuizQuestionReplaceRequest,
@@ -17,7 +15,6 @@ from main import (
     VocabularyDistractorsUpdateRequest,
     VocabularySynonymUpdateRequest,
 )
-from reference_voice import generate_scene_reference
 from vocab_assessment import validate_assessment_payload
 
 # Students may read lesson content after login; story writes and generated
