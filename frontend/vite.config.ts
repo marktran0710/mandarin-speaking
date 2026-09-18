@@ -39,9 +39,9 @@ export default defineConfig({
       // Keep the legacy student/teacher/admin entries available while the
       // Next.js route shell is being migrated and verified.
       input: {
-        main: resolve(__dirname, "index.html"),
-        teacher: resolve(__dirname, "teacher.html"),
-        admin: resolve(__dirname, "admin.html"),
+        main: resolve(import.meta.dirname, "index.html"),
+        teacher: resolve(import.meta.dirname, "teacher.html"),
+        admin: resolve(import.meta.dirname, "admin.html"),
       },
     },
   },
