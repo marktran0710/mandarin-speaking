@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import HomePage from "./pages/HomePage";
 import VoiceTestPage from "./pages/VoiceTestPage";
+import PlacementTestPage from "./pages/PlacementTestPage";
 import StudentWorkspacePage, {
   type StudentWorkspaceView,
 } from "./pages/StudentWorkspacePage";
@@ -432,7 +433,8 @@ export default function App() {
     // both, parked over the bottom-right corner where it overlapped page
     // content. It stays only on routes that render no rail.
     currentPage !== "student-workspace" &&
-    currentPage !== "voice-test";
+    currentPage !== "voice-test" &&
+    currentPage !== "placement-test";
 
   const handleRaiseHand = (message: string) => {
     const studentName = getStudentName();
@@ -480,7 +482,7 @@ export default function App() {
           session too (the running story's own navigation lives in a header
           strip above its content, not here and not in the rail), so this
           top bar is simply never shown on this route, session or not. */}
-      {!(activeRole === "student" && (currentPage === "student-workspace" || currentPage === "voice-test")) && (
+      {!(activeRole === "student" && (currentPage === "student-workspace" || currentPage === "voice-test" || currentPage === "placement-test")) && (
         <Navigation
           currentPage={currentPage}
           activeRole={activeRole}
@@ -505,7 +507,8 @@ export default function App() {
         (currentPage === "student-workspace" ||
           currentPage === "student-practice" ||
           currentPage === "student-stories" ||
-          currentPage === "voice-test") && (
+          currentPage === "voice-test" ||
+          currentPage === "placement-test") && (
           <div className="app-loading">
             <div className="app-loading-card">
               <div className="app-loading-icon" aria-hidden="true" />
@@ -573,6 +576,24 @@ export default function App() {
           ariaLabel="Voice practice"
         >
           <VoiceTestPage />
+        </StudentModeFrame>
+      )}
+      {currentPage === "placement-test" && activeRole === "student" && studentDataReady && (
+        <StudentModeFrame
+          className="student-standalone-shell"
+          activeView="practice"
+          onChange={(nextView) => {
+            setStudentWorkspaceView(nextView);
+            setCurrentPage("student-workspace");
+            if (nextView !== "practice") setPracticeTarget(null);
+          }}
+          studentName={getStudentName()}
+          onLogout={handleLogout}
+          totalStars={totalQuizStars}
+          maxStars={maxQuizStars}
+          ariaLabel="Placement test"
+        >
+          <PlacementTestPage />
         </StudentModeFrame>
       )}
       <AppJourneyBubble

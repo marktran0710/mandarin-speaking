@@ -12,6 +12,7 @@ const RESTORABLE_STUDENT_PAGES: readonly Page[] = [
   "student-practice",
   "student-stories",
   "voice-test",
+  "placement-test",
 ];
 
 function isRestorableStudentPage(page: string | null): page is Page {
@@ -31,6 +32,9 @@ export function getStudentAppBootstrapState(): StudentAppBootstrapState {
   if (["/analyze", "/voice-test"].includes(window.location.pathname)) {
     return { ...defaultState, activeRole: "student", currentPage: "voice-test" };
   }
+  if (window.location.pathname === "/placement-test") {
+    return { ...defaultState, activeRole: "student", currentPage: "placement-test" };
+  }
 
   const lastPage = readLastPage();
   const restoredPage = isRestorableStudentPage(lastPage) ? lastPage : "student-practice";
@@ -42,7 +46,8 @@ export function getStudentAppBootstrapState(): StudentAppBootstrapState {
 
   return {
     activeRole: "student",
-    currentPage: restoredPage === "voice-test" ? "voice-test" : "student-workspace",
+    currentPage:
+      restoredPage === "voice-test" || restoredPage === "placement-test" ? restoredPage : "student-workspace",
     studentWorkspaceView,
     practiceTarget: lastTarget
       ? { topicId: lastTarget.topicId, imageIndex: lastTarget.imageIndex }
