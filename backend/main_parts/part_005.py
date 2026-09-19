@@ -126,6 +126,44 @@ async def _do_analyze(
                 except Exception as exc:
                     logger.warning(f"{chosen_provider} audio assessment failed, falling back: {exc}")
 
+        sentence_target = scene_target_text.strip() or scene_suggested_answer.strip()
+
+        # Scene vocabulary phrases arrive "; "-joined (see StoryRecorder.tsx)
+        # since a scene can teach more than one multi-word phrase (e.g.
+        # "這個週末; 做什麼"); split back out for the phrase-context rescue.
+        target_phrases = [p.strip() for p in scene_phrases.split(";") if p.strip()]
+
+        def _run_praat(path: str, tx: str, tx_pinyin_hint: str):
+            return analyze_all(
+                path, tx, pinyin_hint=tx_pinyin_hint,
+                reference_word_curves=reference_word_curves,
+                target_phrases=target_phrases,
+            )
+
+        # Whole-sentence practice with a known target sentence is the one case
+        # where Praat's scoring text is knowable before ASR resolves:
+        # _acoustic_scoring_source (below) only falls back to the raw ASR
+        # transcript on a *confirmed* mismatch (scene_content_match is False),
+        # and that can't be known before ASR runs anyway — so the common case
+        # (no mismatch) always ends up scoring against sentence_target
+        # regardless of what ASR returns. Start Praat against sentence_target
+        # CONCURRENTLY with the ASR call below instead of sequentially after
+        # it; only the rare confirmed-mismatch branch further down pays for a
+        # second Praat pass, against the real transcript, same as before.
+        speculative_pinyin_hint = (pinyin_hint.strip() or canonical_pinyin(sentence_target)) if sentence_target else ""
+        can_speculate_scene_target = (
+            bool(sentence_target)
+            and not verify_word.strip()
+            and not transcription.strip()
+            and bool(asr_model.strip())
+        )
+        speculative_praat_started_at = time.perf_counter()
+        speculative_praat_task = (
+            asyncio.create_task(run_in_threadpool(_run_praat, tmp_path, sentence_target, speculative_pinyin_hint))
+            if can_speculate_scene_target
+            else None
+        )
+
         if not transcription.strip() and asr_model.strip():
             try:
                 transcription_result = await transcribe_audio_content(
@@ -143,6 +181,12 @@ async def _do_analyze(
                     output={"transcription": transcription, "model": transcription_model},
                 )
             except Exception as exc:
+                if speculative_praat_task is not None:
+                    # A thread already running Praat can't actually be
+                    # interrupted — let it finish naturally and retrieve its
+                    # result/exception so it isn't reported as never collected.
+                    speculative_praat_task.add_done_callback(lambda t: t.exception())
+                    speculative_praat_task = None
                 add_trace_stage(
                     "asr", "failed", asr_started_at, model=asr_model.strip(), detail=str(exc),
                     input={"asr_model": asr_model.strip(), "scene_vocabulary": scene_vocabulary},
@@ -159,7 +203,6 @@ async def _do_analyze(
                 output={"transcription": transcription, "model": transcription_model or None},
             )
 
-        sentence_target = scene_target_text.strip() or scene_suggested_answer.strip()
         sentence_content_verified = bool(asr_model.strip() or transcription_model.strip())
         scene_content_match = None
         if (
@@ -179,7 +222,7 @@ async def _do_analyze(
         scoring_source = _acoustic_scoring_source(sentence_target, scene_content_match)
         if scoring_source == "scene_target":
             scoring_transcription = sentence_target
-            scoring_pinyin_hint = pinyin_hint.strip() or canonical_pinyin(sentence_target)
+            scoring_pinyin_hint = speculative_pinyin_hint or (pinyin_hint.strip() or canonical_pinyin(sentence_target))
         else:
             scoring_transcription = transcription
             scoring_pinyin_hint = (
@@ -187,18 +230,13 @@ async def _do_analyze(
                 if pinyin_hint.strip() and not sentence_target
                 else canonical_pinyin(transcription)
             )
-
-        # Scene vocabulary phrases arrive "; "-joined (see StoryRecorder.tsx)
-        # since a scene can teach more than one multi-word phrase (e.g.
-        # "這個週末; 做什麼"); split back out for the phrase-context rescue.
-        target_phrases = [p.strip() for p in scene_phrases.split(";") if p.strip()]
-
-        def _run_praat(path: str, tx: str):
-            return analyze_all(
-                path, tx, pinyin_hint=scoring_pinyin_hint,
-                reference_word_curves=reference_word_curves,
-                target_phrases=target_phrases,
-            )
+            if speculative_praat_task is not None:
+                # The speculative pass (above) scored sentence_target, but a
+                # confirmed mismatch means that text is now known to be wrong —
+                # discard it the same way as the ASR-failure branch above, and
+                # score fresh against the real transcript below.
+                speculative_praat_task.add_done_callback(lambda t: t.exception())
+                speculative_praat_task = None
 
         # Run Praat (CPU-bound, threadpool), AI feedback (I/O-bound), and the
         # optional word-content verification pass all in parallel so checking
@@ -228,9 +266,12 @@ async def _do_analyze(
         }
 
         async def run_praat_stage():
-            started_at = time.perf_counter()
+            started_at = speculative_praat_started_at if speculative_praat_task is not None else time.perf_counter()
             try:
-                result = await run_in_threadpool(_run_praat, tmp_path, scoring_transcription)
+                if speculative_praat_task is not None:
+                    result = await speculative_praat_task
+                else:
+                    result = await run_in_threadpool(_run_praat, tmp_path, scoring_transcription, scoring_pinyin_hint)
             except Exception as exc:
                 add_trace_stage("praat", "failed", started_at, detail=str(exc), input=praat_input)
                 raise
