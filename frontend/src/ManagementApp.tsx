@@ -9,12 +9,12 @@ import "./styles/management-login.css";
 type ManagementRole = "teacher" | "admin";
 const ADMIN_KEY = "adminConsoleSession";
 
-export type ManagementSection = "vocabulary" | "stories" | "quiz-review" | "submissions" | "support" | "accounts" | "analytics" | "practice-debug";
+export type ManagementSection = "vocabulary" | "stories" | "quiz-review" | "submissions" | "support" | "accounts" | "analytics" | "practice-debug" | "bkt-debug";
 
 const SECTION_CONFIG: Record<ManagementSection, {
   requiredRole: ManagementRole | "either";
   teacherView?: "today" | "submissions" | "students";
-  adminNav?: "Vocabulary" | "Admin Home" | "Materials" | "IRT / Student analytics" | "Measurement" | "Practice Debug";
+  adminNav?: "Vocabulary" | "Admin Home" | "Materials" | "IRT / Student analytics" | "Measurement" | "Practice Debug" | "BKT Debug";
 }> = {
   vocabulary: { requiredRole: "admin", adminNav: "Vocabulary" },
   stories: { requiredRole: "admin", adminNav: "Materials" },
@@ -25,6 +25,7 @@ const SECTION_CONFIG: Record<ManagementSection, {
   accounts: { requiredRole: "admin", adminNav: "Admin Home" },
   analytics: { requiredRole: "either", teacherView: "students", adminNav: "IRT / Student analytics" },
   "practice-debug": { requiredRole: "admin", adminNav: "Practice Debug" },
+  "bkt-debug": { requiredRole: "admin", adminNav: "BKT Debug" },
 };
 
 function AccessDenied({ role }: { role: ManagementRole }) {

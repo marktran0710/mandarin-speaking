@@ -5,3 +5,4 @@ export * from "./api/stories-submissions";
 export * from "./api/quiz-analytics";
 export * from "./api/knowledge-analytics";
 export * from "./api/roster-help";
+export * from "./api/bkt-debug";

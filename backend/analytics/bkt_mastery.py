@@ -312,6 +312,20 @@ def _mastery_states_from_responses(responses: Iterable[dict[str, Any]], params: 
     return states
 
 
+def mastery_trace_for_word(
+    db: Any, student_id: str, word_id: str, params: BktConfig = BKT_CONFIG,
+) -> list[dict[str, Any]]:
+    """The BKT mastery estimate after each of a student's responses to one
+    word, in order — for admin debugging (see routers/bkt_debug.py), not the
+    student-facing summary (see get_vocabulary_mastery for that)."""
+    history = _group_response_history(_ordered_responses(db, student_id)).get(word_id, [])
+    pairs = [(bool(row["correct"]), row.get("question_type")) for row in history]
+    return [
+        {"index": i + 1, "correct": pairs[i][0], "pLearned": replay_bkt_typed(pairs[: i + 1], params)}
+        for i in range(len(pairs))
+    ]
+
+
 def _lock_student_bkt(db: Any, student_id: str) -> None:
     """Serialize a learner's ledger write and replay within this transaction."""
     db.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (student_id,))
