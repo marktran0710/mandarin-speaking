@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from psycopg.errors import UniqueViolation
 
 import auth
-from database import connect_db, row_to_student
+from database import connect_db, delete_student_cascade, row_to_student
 from main import (
     StudentCreateRequest,
     StudentLoginRequest,
@@ -19,10 +19,14 @@ router = APIRouter()
 async def list_students(
     identity: auth.Identity = Depends(auth.require_teacher_or_admin),
 ):
+    # Test/synthetic accounts (is_test_account) are dev/QA fixtures, not real
+    # students. A teacher's roster must never mix the two; admin tooling still
+    # needs to see everything to debug the seeded data itself.
+    where = " WHERE NOT is_test_account" if identity.role == "teacher" else ""
     with connect_db() as db:
         # Postgres has no COLLATE NOCASE; lower() reproduces SQLite's
         # case-insensitive roster ordering (backed by ix_students_lower_name).
-        rows = db.execute("SELECT * FROM students ORDER BY lower(name)").fetchall()
+        rows = db.execute(f"SELECT * FROM students{where} ORDER BY lower(name)").fetchall()
     return [row_to_student(row) for row in rows]
 
 
@@ -175,9 +179,6 @@ async def delete_student(
     identity: auth.Identity = Depends(auth.require_admin),
 ):
     with connect_db() as db:
-        row = db.execute(
-            "DELETE FROM students WHERE id = %s RETURNING id", (student_id,)
-        ).fetchone()
-        if row is None:
+        if not delete_student_cascade(db, student_id):
             raise HTTPException(status_code=404, detail="Student not found")
     return {"id": student_id, "deleted": True}

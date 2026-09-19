@@ -26,6 +26,10 @@ async def list_story_submissions(
 
     conditions = []
     params: list[object] = []
+    if identity.role == "teacher":
+        # Test/synthetic accounts are dev/QA fixtures; a teacher's queue must
+        # never mix them with real submissions. Admin tooling still sees all.
+        conditions.append("student_id NOT IN (SELECT id FROM students WHERE is_test_account)")
     if story_id:
         conditions.append("story_id = %s")
         params.append(story_id)

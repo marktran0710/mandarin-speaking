@@ -111,6 +111,29 @@ def test_story_submissions_filter_by_story_id(logged_in_teacher):
     assert client.get("/api/story-submissions", params={"story_id": "nothing"}).json() == []
 
 
+def test_teacher_submissions_exclude_test_accounts(logged_in_student, logged_in_teacher, admin_client):
+    from database import connect_db
+
+    student_client, student = logged_in_student
+    student_client.post("/api/story-submissions", json={
+        "id": "sub-test-account",
+        "storyId": "teacher-story-1",
+        "storyTitle": "我的房間",
+        "studentName": student["name"],
+        "submittedAt": "2026-07-26T08:00:00Z",
+        "scenes": [],
+    })
+    with connect_db() as db:
+        db.execute("UPDATE students SET is_test_account = TRUE WHERE id = %s", (student["id"],))
+
+    teacher_client, _ = logged_in_teacher
+    teacher_ids = [s["id"] for s in teacher_client.get("/api/story-submissions").json()]
+    assert "sub-test-account" not in teacher_ids
+
+    admin_ids = [s["id"] for s in admin_client.get("/api/story-submissions").json()]
+    assert "sub-test-account" in admin_ids
+
+
 def test_story_submissions_requires_login(anonymous_client):
     assert anonymous_client.get("/api/story-submissions").status_code == 401
 

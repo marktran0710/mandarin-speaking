@@ -221,7 +221,38 @@ def row_to_student(row: dict) -> dict:
         "name": row["name"],
         "createdAt": row["created_at"],
         "status": row.get("status") or "active",
+        "isTestAccount": bool(row.get("is_test_account")),
     }
+
+
+# Every table keyed by student_id, i.e. everything a deleted student's account
+# must not leave behind. There is no DB-level FK/cascade for these (students
+# rows predate most of them), so a student delete has to walk this list itself.
+STUDENT_OWNED_TABLES = (
+    "audio_records",
+    "bkt_model_student_folds",
+    "learning_measurement_events",
+    "speaking_progress",
+    "story_submissions",
+    "student_vocab_mastery",
+    "student_vocab_srs",
+    "student_vocab_srs_events",
+    "vocab_quiz_attempts",
+    "vocab_quiz_responses",
+)
+
+
+def delete_student_cascade(db, student_id: str) -> bool:
+    """Delete a student and every row owned by them, in one transaction.
+
+    Returns False (nothing deleted, nothing else touched) if the student
+    doesn't exist, so callers can 404 instead of reporting a false success.
+    """
+    for table in STUDENT_OWNED_TABLES:
+        db.execute(f"DELETE FROM {table} WHERE student_id = %s", (student_id,))  # noqa: S608 (table from a fixed internal tuple, not user input)
+    row = db.execute("DELETE FROM students WHERE id = %s RETURNING id", (student_id,)).fetchone()
+    return row is not None
+
 
 def row_to_teacher(row: dict) -> dict:
     return {"id": row["id"], "name": row["name"], "createdAt": row["created_at"], "status": row["status"]}
