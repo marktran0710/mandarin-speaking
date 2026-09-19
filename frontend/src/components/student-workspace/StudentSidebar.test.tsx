@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import StudentSidebar from "./StudentSidebar";
 
 const views = [
@@ -43,5 +43,55 @@ describe("StudentSidebar mobile drawer", () => {
     fireEvent.keyDown(activeItem, { key: "Escape" });
     expect(toggle).toHaveFocus();
     expect(drawer).toHaveAttribute("aria-hidden", "true");
+  });
+});
+
+describe("StudentSidebar placement test entry", () => {
+  // The mobile-drawer suite above overrides window.matchMedia and never
+  // restores it (vi.restoreAllMocks() doesn't undo Object.defineProperty) —
+  // without resetting to desktop here, the rail renders aria-hidden and
+  // every getByRole lookup below fails to find it.
+  beforeEach(() => setMobileViewport(false));
+
+  it("is absent without a handler, and calls it when present", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <StudentSidebar views={views} activeView="practice" onChange={vi.fn()} studentName="Ada" onLogout={vi.fn()} totalStars={0} maxStars={0} />,
+    );
+    expect(screen.queryByText("Placement test")).not.toBeInTheDocument();
+
+    const onOpenPlacementTest = vi.fn();
+    rerender(
+      <StudentSidebar
+        views={views}
+        activeView="practice"
+        onChange={vi.fn()}
+        studentName="Ada"
+        onLogout={vi.fn()}
+        totalStars={0}
+        maxStars={0}
+        onOpenPlacementTest={onOpenPlacementTest}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /Placement test/ }));
+    expect(onOpenPlacementTest).toHaveBeenCalledTimes(1);
+  });
+
+  it("highlights the placement test item instead of whichever view id it happens to share, when active", () => {
+    render(
+      <StudentSidebar
+        views={views}
+        activeView="practice"
+        onChange={vi.fn()}
+        studentName="Ada"
+        onLogout={vi.fn()}
+        totalStars={0}
+        maxStars={0}
+        onOpenPlacementTest={vi.fn()}
+        placementTestActive
+      />,
+    );
+    expect(screen.getByRole("button", { name: /Placement test/ })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("button", { name: /課程.*Practice/ })).not.toHaveAttribute("aria-current");
   });
 });

@@ -541,6 +541,7 @@ export default function App() {
           isInPracticeSession={isInPracticeSession}
           onStartActivity={handleStartActivity}
           onLogout={handleLogout}
+          onOpenPlacementTest={() => setCurrentPage("placement-test")}
         />
       )}
       {/* currentPage is never actually set to "student-practice" or
@@ -574,6 +575,7 @@ export default function App() {
           totalStars={totalQuizStars}
           maxStars={maxQuizStars}
           ariaLabel="Voice practice"
+          onOpenPlacementTest={() => setCurrentPage("placement-test")}
         >
           <VoiceTestPage />
         </StudentModeFrame>
@@ -592,6 +594,8 @@ export default function App() {
           totalStars={totalQuizStars}
           maxStars={maxQuizStars}
           ariaLabel="Placement test"
+          onOpenPlacementTest={() => setCurrentPage("placement-test")}
+          placementTestActive
         >
           <PlacementTestPage />
         </StudentModeFrame>

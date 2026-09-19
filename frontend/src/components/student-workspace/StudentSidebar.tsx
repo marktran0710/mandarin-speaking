@@ -18,6 +18,11 @@ interface StudentSidebarProps {
    * bottom-right corner of every page. */
   totalStars: number;
   maxStars: number;
+  /** Temporary entry point while the placement test isn't yet designed into
+   * the main 課程/我的學習 journey — a plain extra rail item so it's reachable
+   * for testing without pretending it's a third peer of those two views. */
+  onOpenPlacementTest?: () => void;
+  placementTestActive?: boolean;
 }
 
 /** The student shell's single navigation surface, fixed on every student
@@ -45,6 +50,8 @@ export default function StudentSidebar({
   onLogout,
   totalStars,
   maxStars,
+  onOpenPlacementTest,
+  placementTestActive = false,
 }: StudentSidebarProps) {
   const [colorMode, toggleColorMode] = useColorMode();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -163,7 +170,10 @@ export default function StudentSidebar({
 
         <nav className="student-sidebar-nav" aria-label="Learning areas">
           {views.map((item) => {
-            const isActive = activeView === item.id;
+            // placementTestActive owns the highlight when set — a standalone
+            // page like this reuses activeView="practice" as its harmless
+            // fallback selection, which must not also light up Lessons.
+            const isActive = activeView === item.id && !placementTestActive;
             return (
               <button
                 key={item.id}
@@ -184,6 +194,24 @@ export default function StudentSidebar({
               </button>
             );
           })}
+          {onOpenPlacementTest && (
+            <button
+              type="button"
+              aria-current={placementTestActive ? "page" : undefined}
+              className={`student-sidebar-item${placementTestActive ? " active" : ""}`}
+              onClick={() => {
+                onOpenPlacementTest();
+                if (isMobile) closeDrawer();
+              }}
+            >
+              <span className="student-sidebar-item-icon">
+                <StudentIcon name="target" size={20} />
+              </span>
+              <span className="student-sidebar-item-copy">
+                <BiLabel zh="分班測驗" pinyin="Fēnbān cèyàn" en="Placement test" />
+              </span>
+            </button>
+          )}
         </nav>
 
         {/* Stars sit directly under the nav — "how far along I am" reads as

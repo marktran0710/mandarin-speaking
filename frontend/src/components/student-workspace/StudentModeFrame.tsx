@@ -38,6 +38,8 @@ interface StudentModeFrameProps {
   className?: string;
   /** Resets the workspace panel when its view or activity boundary changes. */
   panelScrollKey?: string | number;
+  onOpenPlacementTest?: () => void;
+  placementTestActive?: boolean;
 }
 
 /** Shared student shell for both workspace views and standalone student tools. */
@@ -52,6 +54,8 @@ export default function StudentModeFrame({
   ariaLabel,
   className = "",
   panelScrollKey,
+  onOpenPlacementTest,
+  placementTestActive,
 }: StudentModeFrameProps) {
   const panelRef = useRef<HTMLElement>(null);
 
@@ -71,6 +75,8 @@ export default function StudentModeFrame({
           onLogout={onLogout}
           totalStars={totalStars}
           maxStars={maxStars}
+          onOpenPlacementTest={onOpenPlacementTest}
+          placementTestActive={placementTestActive}
         />
         <main
           id="student-workspace-panel"

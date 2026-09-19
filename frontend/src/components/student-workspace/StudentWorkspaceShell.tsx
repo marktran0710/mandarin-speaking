@@ -27,6 +27,7 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     audioRecords,
     onSessionActiveChange,
     onLogout,
+    onOpenPlacementTest,
   } = props;
   const [storyScrollBoundary, setStoryScrollBoundary] = useState(0);
   const handleStoryPanelScrollBoundary = useCallback(() => {
@@ -94,6 +95,7 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
       maxStars={maxStars}
       ariaLabel={activeLabel ? `${activeLabel.zh} ${activeLabel.en}` : undefined}
       panelScrollKey={`${view}:${initialTargetKey ?? "none"}:${storyScrollBoundary}`}
+      onOpenPlacementTest={onOpenPlacementTest}
     >
       {renderView()}
     </StudentModeFrame>
