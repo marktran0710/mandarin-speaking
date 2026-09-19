@@ -1457,8 +1457,6 @@
 .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .self-eval-compare,
 .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-progress-snapshot,
 .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-results-scene-extras,
-.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .experimental-analysis-panel,
-.student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .analysis-compare-panel,
 .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-step-cta,
 .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .sfc-step-cta-row,
 .student-workspace-v2 .sfc-results .sfc-step-panel:has(.sfc-verdict) > .voice-reliability-notice.is-assistive {

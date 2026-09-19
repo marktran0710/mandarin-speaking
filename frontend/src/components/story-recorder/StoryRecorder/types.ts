@@ -1,5 +1,4 @@
 import type { AssistiveFeedbackSyllable } from "../../../utils/assistiveFeedback";
-import type { AnalysisVersion } from "../../../utils/analysisVersion";
 import type { BackendFeedbackQuality } from "../../../utils/voiceFeedbackReliability";
 import { averageWordProsodyAccuracy } from "../../../utils/storyRecorderFeedback";
 import type { SceneSubmission, StoredAudioRecord } from "../../../services/database";
@@ -59,27 +58,10 @@ export interface PraatMetrics {
     practice_parts?: string[];
     message?: string;
   };
-  analysis_version?: AnalysisVersion;
   analysis_schema_version?: string;
   model_version?: string;
-  comparison_group_id?: string;
-  experimental?: boolean;
   progression_eligible?: boolean;
   neutral_tone_status?: string;
-  character_prosody?: Array<{
-    char_index: number;
-    char: string;
-    pinyin: string;
-    expected_tone: number | null;
-    detected_tone: number | null;
-    tone_status: string;
-    tone_probabilities: Record<string, number | null>;
-    tone_confidence: number;
-    start_time: number;
-    end_time: number;
-    alignment_confidence: number;
-    phones: Array<{ phone: string; start_time: number; end_time: number }>;
-  }>;
   /** Additive ACCEPT/UNCERTAIN/NEEDS_PRACTICE layer; absent/null unless the
    * backend has assistive feedback enabled for this request (globally off
    * by default, or pilot-scoped via `study_phase`). See
@@ -302,7 +284,7 @@ export interface NewAudioRecord {
   imageUrl: string;
   imageIndex: number;
   praatMetrics: PraatMetrics;
-  analysisVersion?: AnalysisVersion;
+  analysisVersion?: "stable_v1";
   analysisSchemaVersion?: string;
   modelVersion?: string;
   comparisonGroupId?: string;

@@ -16,7 +16,7 @@ export interface AudioRecord {
   imageIndex?: number;
   audioUrl?: string;
   audioName?: string;
-  analysisVersion?: "stable_v1" | "phoneme_tone_v2";
+  analysisVersion?: "stable_v1";
   analysisSchemaVersion?: string;
   modelVersion?: string;
   comparisonGroupId?: string;
