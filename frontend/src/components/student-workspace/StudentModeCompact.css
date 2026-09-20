@@ -7,10 +7,6 @@
  * owns available height; both desktop and mobile keep natural page flow.
  */
 
-.student-workspace-v2 > .student-workspace-content-v2 {
-  padding: var(--space-md) clamp(var(--space-md), 2vw, var(--space-xl)) var(--space-lg);
-}
-
 /* All student pages inherit one content grid. Removing nested max-widths here
    keeps the session bar, catalog, overview, practice rail, and progress
    surfaces on the same left and right columns. */
@@ -1212,10 +1208,6 @@
 }
 
 @media (max-width: 900px) {
-  .student-workspace-v2 > .student-workspace-content-v2 {
-    padding: calc(var(--space-xl) + var(--space-lg)) var(--space-md) var(--space-lg);
-  }
-
   .student-workspace-v2 .story-recorder {
     padding-bottom: var(--space-md);
   }
@@ -1265,10 +1257,6 @@
 }
 
 @media (max-width: 560px) {
-  .student-workspace-v2 > .student-workspace-content-v2 {
-    padding-inline: var(--space-sm);
-  }
-
   .student-workspace-v2 .practice-stage > .practice-workspace,
   .student-workspace-v2 .speaking-flow-card {
     padding: var(--space-sm);

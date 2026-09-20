@@ -189,8 +189,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (activeRole !== "student") {
+      setAudioRecordsReady(true);
+      return;
+    }
+
+    setAudioRecordsReady(false);
     loadSavedAudioRecords().finally(() => setAudioRecordsReady(true));
-  }, []);
+  }, [activeRole, loadSavedAudioRecords]);
 
   // Remembers the section a student is on so a reload (or reopening the
   // browser later — this is signed in via localStorage, not a per-tab
@@ -231,8 +237,15 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (activeRole !== "student") {
+      setPublishedTopics(loadPublishedTeacherTopics());
+      setPublishedTopicsReady(true);
+      return;
+    }
+
+    setPublishedTopicsReady(false);
     refreshPublishedTopics().finally(() => setPublishedTopicsReady(true));
-  }, []);
+  }, [activeRole, refreshPublishedTopics]);
 
   // `publishedTopics` otherwise only loads once per page load, so a script a
   // teacher republishes after that never reaches an already-open tab until

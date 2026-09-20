@@ -26,7 +26,6 @@ import {
   loadSubmittedStoryIds,
   mergeSubmittedStoryLevels,
 } from "../utils/storyLevelProgress";
-import { topicHasQuiz } from "../utils/topicQuiz";
 import { getStudentId, getStudentName } from "../utils/studentSession";
 import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
@@ -51,27 +50,43 @@ export function getTopicVocabulary(topic: Topic, imageIndex: number): string[] {
   return topic.vocabulary[imageIndex] || [];
 }
 
-export default function TopicSelector({ onTopicSelect, averageToneAccuracy }: TopicSelectorProps) {
+export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicSelectorProps) {
   const [topics, setTopics] = useState<Topic[]>(() =>
-    loadPublishedTeacherTopics().filter(isStoryModeTopic),
+    (publishedTopics ?? loadPublishedTeacherTopics()).filter(isStoryModeTopic),
   );
-  const [loading, setLoading] = useState(canUseDatabase());
+  const [loading, setLoading] = useState(publishedTopics === undefined && canUseDatabase());
+  // Backend submission hydration updates localStorage, which is the source
+  // used by the lesson progress calculations below. Bump a local revision so
+  // those calculations rerun when the async merge completes.
+  const [, bumpProgressRevision] = useState(0);
   // Which table-of-contents row is open: a lesson number, "other" for the
   // unassigned group, or null for the contents screen itself.
   const [openLesson, setOpenLesson] = useState<number | "other" | null>(null);
 
   useEffect(() => {
-    if (!canUseDatabase()) return;
     let cancelled = false;
     const studentId = getStudentId();
     const studentName = getStudentName();
-    const submissions = listStorySubmissions(undefined, { studentId, studentName }).catch(() => null);
     const hydrateSubmittedLevels = async () => {
-      const serverSubmissions = await submissions;
+      if (!canUseDatabase()) return;
+      const serverSubmissions = await listStorySubmissions(undefined, { studentId, studentName }).catch(() => null);
       if (!cancelled && serverSubmissions) {
-        mergeSubmittedStoryLevels(serverSubmissions, { studentId, studentName });
+        if (mergeSubmittedStoryLevels(serverSubmissions, { studentId, studentName })) {
+          bumpProgressRevision((revision) => revision + 1);
+        }
       }
     };
+
+    if (publishedTopics !== undefined) {
+      setTopics(publishedTopics.filter(isStoryModeTopic));
+      setLoading(false);
+      void hydrateSubmittedLevels();
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (!canUseDatabase()) return;
+    const submissions = listStorySubmissions(undefined, { studentId, studentName }).catch(() => null);
 
     listCustomStories()
       .then(async (dbStories) => {
@@ -86,7 +101,10 @@ export default function TopicSelector({ onTopicSelect, averageToneAccuracy }: To
             .filter((s) => s.published)
             .map((s) => storyToTopic(s as any, "easy", "approved"))
             .filter(isStoryModeTopic);
-          await hydrateSubmittedLevels();
+          const serverSubmissions = await submissions;
+          if (!cancelled && serverSubmissions && mergeSubmittedStoryLevels(serverSubmissions, { studentId, studentName })) {
+            bumpProgressRevision((revision) => revision + 1);
+          }
           if (cancelled) return;
           setTopics(published);
           return;
@@ -98,7 +116,10 @@ export default function TopicSelector({ onTopicSelect, averageToneAccuracy }: To
           .filter((s) => s.published)
           .map((s) => storyToTopic(s as any, "easy", "approved"))
           .filter(isStoryModeTopic);
-        await hydrateSubmittedLevels();
+        const serverSubmissions = await submissions;
+        if (!cancelled && serverSubmissions && mergeSubmittedStoryLevels(serverSubmissions, { studentId, studentName })) {
+          bumpProgressRevision((revision) => revision + 1);
+        }
         if (cancelled) return;
         setTopics(published);
       })
@@ -107,7 +128,7 @@ export default function TopicSelector({ onTopicSelect, averageToneAccuracy }: To
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [publishedTopics]);
 
   // "You are here" — hoisted above the loading/empty early returns below
   // (a hook needs a stable call order every render) so the pending-review
@@ -268,22 +289,8 @@ export default function TopicSelector({ onTopicSelect, averageToneAccuracy }: To
     );
   };
 
-  // Dashboard headline stats — same sources the rail and the Progress page
-  // use, so the three views can never disagree. Total stars and lessons
-  // complete are cheap to derive here; tone accuracy is threaded in from the
-  // shell (it owns the analysed recordings).
-  const quizTopics = topics.filter((topic) => topicHasQuiz(topic));
-  const totalStars = quizTopics.reduce(
-    (sum, topic) => sum + loadLocalStars(topic.id),
-    0,
-  );
-  const maxStars = quizTopics.length * 3;
-  const lessonsDone = numberedGroups.filter((group) => {
-    const { done, total } = lessonCompletion(group, submittedIds);
-    return total > 0 && done === total;
-  }).length;
-  const lessonsTotal = numberedGroups.length;
-
+  // Keep the lesson dashboard focused on the next activity and course index;
+  // progress metrics belong to My learning and the persistent rail.
   const renderDashboard = () => {
     if (!continueTopic || !continueGroup) return null;
 
@@ -303,42 +310,6 @@ export default function TopicSelector({ onTopicSelect, averageToneAccuracy }: To
           <p className="ts-dash-subtitle">
             <BiText zh="從上次停下的地方繼續" en="Pick up right where you left off" />
           </p>
-        </div>
-
-        <div className="ts-dash-stat-grid" aria-label="Learning progress">
-          <article className="ts-dash-stat-card">
-            <span className="ts-dash-icon-chip ts-dash-icon-chip-seal" aria-hidden="true">
-              <StudentIcon name="star" size={24} />
-            </span>
-            <span className="ts-dash-stat-copy">
-              <strong>
-                {totalStars}
-                <span className="ts-dash-stat-max"> / {maxStars}</span>
-              </strong>
-              <BiLabel zh="總星星" en="Total stars" align="left" />
-            </span>
-          </article>
-          <article className="ts-dash-stat-card">
-            <span className="ts-dash-icon-chip ts-dash-icon-chip-jade" aria-hidden="true">
-              <StudentIcon name="check-circle" size={24} />
-            </span>
-            <span className="ts-dash-stat-copy">
-              <strong>
-                {lessonsDone}
-                <span className="ts-dash-stat-max"> / {lessonsTotal}</span>
-              </strong>
-              <BiLabel zh="課程完成" en="Lessons complete" align="left" />
-            </span>
-          </article>
-          <article className="ts-dash-stat-card">
-            <span className="ts-dash-icon-chip ts-dash-icon-chip-tone1" aria-hidden="true">
-              <StudentIcon name="voice" size={24} />
-            </span>
-            <span className="ts-dash-stat-copy">
-              <strong>{averageToneAccuracy == null ? "—" : `${averageToneAccuracy}%`}</strong>
-              <BiLabel zh="發音表現" en="Tone accuracy" align="left" />
-            </span>
-          </article>
         </div>
 
         <article className="ts-dash-continue-card">

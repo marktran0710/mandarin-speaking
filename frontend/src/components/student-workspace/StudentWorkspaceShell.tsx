@@ -7,7 +7,6 @@ import type { StudentWorkspaceView } from "../../pages/StudentWorkspacePage";
 import StudentModeFrame, { STUDENT_WORKSPACE_VIEWS } from "./StudentModeFrame";
 import { loadLocalStars } from "../../utils/quizTiers";
 import { topicHasQuiz } from "../../utils/topicQuiz";
-import { getAverageMetric } from "../../utils/myStoriesUtils";
 import "../../components/BiLabel.css";
 import "../../pages/StudentWorkspacePage.css";
 import "./StudentWorkspaceV2.css";
@@ -62,7 +61,6 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
         publishedTopics={storyTopics}
         onSessionActiveChange={onSessionActiveChange}
         onPanelScrollBoundary={handleStoryPanelScrollBoundary}
-        averageToneAccuracy={averageToneAccuracy}
       />
     );
   };
@@ -77,13 +75,6 @@ export default function StudentWorkspaceShell(props: StudentWorkspacePageProps) 
     0,
   );
   const maxStars = quizTopics.length * 3;
-
-  // Same "發音表現 Tone accuracy (avg)" figure the Progress page shows, fed to
-  // the dashboard's third stat card so the two never disagree.
-  const averageToneAccuracy = getAverageMetric(
-    (audioRecords ?? []).filter((record) => record.praatMetrics),
-    "tone_accuracy",
-  );
 
   return (
     <StudentModeFrame

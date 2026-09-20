@@ -43,22 +43,22 @@ export default function PlacementTestPage() {
 
   if (questions === null) {
     return (
-      <main className="placement-test-page">
+      <div className="placement-test-page">
         <div className="app-loading">
           <div className="app-loading-card">
             <div className="app-loading-icon" aria-hidden="true" />
             <h2><BiLabel zh="準備中…" en="Loading…" /></h2>
           </div>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (questions.length === 0) {
     return (
-      <main className="placement-test-page">
+      <div className="placement-test-page">
         <StudentPageHeader eyebrow={{ zh: "分班測驗", en: "Placement test" }} title={{ zh: "還沒有題目", en: "No questions available yet" }} lede={{ zh: "老師還沒發布任何生詞題庫。", en: "No published lesson has a vocabulary question bank yet." }} />
-      </main>
+      </div>
     );
   }
 
@@ -131,7 +131,7 @@ export default function PlacementTestPage() {
       byLesson.set(answer.question.storyId, entry);
     }
     return (
-      <main className="placement-test-page">
+      <div className="placement-test-page">
         <StudentPageHeader
           eyebrow={{ zh: "分班測驗", en: "Placement test" }}
           title={{ zh: "測驗完成！", en: "Placement test complete!" }}
@@ -157,7 +157,7 @@ export default function PlacementTestPage() {
             </ul>
           )}
         </section>
-      </main>
+      </div>
     );
   }
 
@@ -183,7 +183,7 @@ export default function PlacementTestPage() {
   };
 
   return (
-    <main className="placement-test-page">
+    <div className="placement-test-page">
       <StudentPageHeader
         eyebrow={{ zh: "分班測驗", en: "Placement test" }}
         title={{ zh: "看看你已經會多少", en: "See what you already know" }}
@@ -244,6 +244,6 @@ export default function PlacementTestPage() {
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 }
