@@ -35,9 +35,6 @@ class Settings:
     groq_api_key: str | None
     groq_whisper_model: str
     asr_fallback_order: tuple[str, ...]
-    funasr_model: str
-    funasr_vad_model: str
-    funasr_punc_model: str
     ct_whisper_model: str
     ct_whisper_device: str
     ct_whisper_language: str
@@ -95,9 +92,6 @@ class Settings:
                 for model in os.getenv("ASR_FALLBACK_ORDER", "groq,ctwhisper").split(",")
                 if model.strip()
             ),
-            funasr_model=os.getenv("FUNASR_MODEL", "paraformer-zh"),
-            funasr_vad_model=os.getenv("FUNASR_VAD_MODEL", "fsmn-vad"),
-            funasr_punc_model=os.getenv("FUNASR_PUNC_MODEL", "ct-punc"),
             ct_whisper_model=os.getenv("CT_WHISPER_MODEL", "openai/whisper-small"),
             ct_whisper_device=os.getenv("CT_WHISPER_DEVICE", "cpu"),
             ct_whisper_language=os.getenv("CT_WHISPER_LANGUAGE", "chinese"),

@@ -333,9 +333,6 @@ async def transcribe_audio_content(
             )
         return await transcribe_with_groq(audio_content, vocab_hint=vocab_hint)
 
-    if model == "funasr":
-        return await transcribe_with_funasr(audio_content)
-
     if model in {"ctwhisper", "chinese_taiwanese_whisper"}:
         return await transcribe_with_ct_whisper(audio_content, vocab_hint=vocab_hint)
 
@@ -344,7 +341,7 @@ async def transcribe_audio_content(
 
     raise HTTPException(
         status_code=400,
-        detail="Invalid model. Use 'auto', 'ctwhisper', 'openai', 'gemini', 'groq', 'funasr', or 'vibevoice'"
+        detail="Invalid model. Use 'auto', 'ctwhisper', 'openai', 'gemini', 'groq', or 'vibevoice'"
     )
 
 

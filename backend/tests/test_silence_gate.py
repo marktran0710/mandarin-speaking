@@ -83,11 +83,11 @@ class TestSilenceGateShortCircuit:
 class TestAutoAllEmptyIsSilentNotError:
     @pytest.mark.asyncio
     async def test_all_empty_providers_return_empty_response(self, monkeypatch):
-        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "funasr"])
+        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "vibevoice"])
         with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
-             patch("main.transcribe_with_funasr", new_callable=AsyncMock) as funasr:
+             patch("main.transcribe_with_vibevoice", new_callable=AsyncMock) as vibevoice:
             ctw.return_value = MagicMock(text="", model="ctwhisper")
-            funasr.return_value = MagicMock(text="  ", model="funasr")
+            vibevoice.return_value = MagicMock(text="  ", model="vibevoice")
             result = await main.transcribe_with_auto_fallback(SPEECH_WAV)
         assert result.text == ""
         assert result.model == "auto:silent"
