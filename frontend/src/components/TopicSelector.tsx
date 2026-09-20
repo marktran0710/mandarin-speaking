@@ -30,6 +30,7 @@ import { getStudentId, getStudentName } from "../utils/studentSession";
 import "./TopicSelector.css";
 import { BiLabel, BiText } from "./BiLabel";
 import StudentIcon from "./StudentIcon";
+import StudentPageHeader from "./StudentPageHeader";
 import "./BiLabel.css";
 import type { Topic, TopicSelectorProps } from "./topic-selector/types";
 export type { Topic, TopicStartOptions, VocabGroup } from "./topic-selector/types";
@@ -302,15 +303,11 @@ export default function TopicSelector({ onTopicSelect, publishedTopics }: TopicS
 
     return (
       <section className="ts-dashboard" aria-labelledby="ts-dashboard-title">
-        <div className="ts-dash-intro">
-          <h1 id="ts-dashboard-title" className="ts-dash-greeting">
-            <span lang="zh-Hant">歡迎回來，</span>{" "}
-            <span className="ts-dash-name">{getStudentName()}</span>
-          </h1>
-          <p className="ts-dash-subtitle">
-            <BiText zh="從上次停下的地方繼續" en="Pick up right where you left off" />
-          </p>
-        </div>
+        <StudentPageHeader
+          eyebrow={{ zh: "課程", pinyin: "Kèchéng", en: "Lessons" }}
+          title={{ zh: `歡迎回來，${getStudentName()}`, en: "Continue learning" }}
+          lede={{ zh: "從上次停下的地方繼續", en: "Pick up right where you left off" }}
+        />
 
         <article className="ts-dash-continue-card">
           <div className="ts-dash-continue-copy">

@@ -27,7 +27,7 @@ export const STUDENT_WORKSPACE_VIEWS: Array<{
 ];
 
 interface StudentModeFrameProps {
-  activeView: WorkspaceView;
+  activeView: WorkspaceView | null;
   onChange: (view: WorkspaceView) => void;
   studentName: string;
   onLogout: () => void;

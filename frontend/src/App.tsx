@@ -53,6 +53,7 @@ import { primePinyin } from "./utils/pinyin";
 import type { Page } from "./types/page";
 import { getJourneyBubbleTargetIds } from "./helpers/journeyBubble";
 import StudentModeFrame from "./components/student-workspace/StudentModeFrame";
+import StudentPageShell from "./components/student-workspace/StudentPageShell";
 import { loadLocalStars } from "./utils/quizTiers";
 import { pushHistorySnapshot, replaceHistorySnapshot } from "./utils/studentHistory";
 
@@ -572,7 +573,7 @@ export default function App() {
       {currentPage === "voice-test" && activeRole === "student" && studentDataReady && (
         <StudentModeFrame
           className="student-standalone-shell"
-          activeView="practice"
+          activeView={null}
           onChange={(nextView) => {
             pushStudentHistory({
               currentPage: "student-workspace",
@@ -590,7 +591,9 @@ export default function App() {
           ariaLabel="Voice practice"
           onOpenPlacementTest={() => setCurrentPage("placement-test")}
         >
-          <VoiceTestPage />
+          <StudentPageShell layout="content" pageId="voice-practice">
+            <VoiceTestPage />
+          </StudentPageShell>
         </StudentModeFrame>
       )}
       {currentPage === "placement-test" && activeRole === "student" && studentDataReady && (

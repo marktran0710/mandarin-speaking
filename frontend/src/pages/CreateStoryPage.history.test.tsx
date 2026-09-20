@@ -58,10 +58,18 @@ describe("CreateStoryPage back navigation", () => {
         publishedTopics={[topic]}
       />,
     );
+    expect(screen.getByTestId("topic-open").closest(".student-page-shell"))
+      .toHaveClass("student-page-shell--content");
+    expect(screen.getByTestId("topic-open").closest(".student-page-shell"))
+      .toHaveAttribute("data-student-page", "lessons");
     const listState = window.history.state;
 
     fireEvent.click(screen.getByTestId("topic-open"));
     expect(screen.getByTestId("story-back")).toBeInTheDocument();
+    expect(screen.getByTestId("story-back").closest(".student-page-shell"))
+      .toHaveClass("student-page-shell--stage");
+    expect(screen.getByTestId("story-back").closest(".student-page-shell"))
+      .toHaveAttribute("data-student-page", "story-practice");
     expect(window.history.state[CREATE_STORY_HISTORY_KEY]).toMatchObject({
       topicId: topic.id,
       imageIndex: 0,

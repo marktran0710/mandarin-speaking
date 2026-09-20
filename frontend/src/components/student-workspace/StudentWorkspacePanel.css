@@ -61,7 +61,7 @@
     background: transparent;
   }
 
-  .student-workspace-v2 > #student-workspace-panel > .create-story-page:has(> .csp-recorder-body) {
+  .student-workspace-v2 > #student-workspace-panel > .student-page-shell[data-student-page="story-practice"] > .create-story-page:has(> .csp-recorder-body) {
     display: grid;
     grid-template-rows: minmax(0, 1fr);
     min-height: 0;
@@ -131,7 +131,7 @@
   /* A question run can legitimately be taller than a short laptop viewport.
      Let the panel's existing outer scroller own that overflow instead of
      clipping the final answer row inside the story shell. */
-  .student-workspace-v2 > #student-workspace-panel > .create-story-page:has(:is(.vocab-quiz-question-screen, .vocab-quiz-summary)),
+  .student-workspace-v2 > #student-workspace-panel > .student-page-shell[data-student-page="story-practice"] > .create-story-page:has(:is(.vocab-quiz-question-screen, .vocab-quiz-summary)),
   .student-workspace-v2 > #student-workspace-panel .csp-recorder-body:has(:is(.vocab-quiz-question-screen, .vocab-quiz-summary)),
   .student-workspace-v2 > #student-workspace-panel .story-recorder:has(:is(.vocab-quiz-question-screen, .vocab-quiz-summary)) {
     height: auto;

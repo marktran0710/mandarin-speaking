@@ -60,15 +60,11 @@
     width: 100%;
     max-width: none;
     margin: 0;
-    padding: calc(44px + var(--space-lg)) var(--space-md) var(--space-lg);
+    /* StudentPageShell owns the page gutter. Keep only the top clearance for
+       the fixed menu control here so every student page shares one inset. */
+    padding: calc(44px + var(--space-lg)) 0 var(--space-lg);
     min-height: auto;
     height: auto;
-  }
-}
-
-@media (max-width: 560px) {
-  .student-workspace-v2 > .student-workspace-content-v2 {
-    padding-inline: var(--space-sm);
   }
 }
 
@@ -172,7 +168,7 @@
 /* Standalone student tools use the same rail, but their own page component
    already owns the content width. Do not apply a second narrow max-width or
    the voice-test canvas becomes visibly smaller than the workspace pages. */
-.student-standalone-shell > .student-workspace-content-v2 > .voice-test-page {
+.student-standalone-shell > .student-workspace-content-v2 > .student-page-shell > .voice-test-page {
   width: 100%;
   margin: 0;
   padding: 0 0 var(--space-3xl);
@@ -180,14 +176,6 @@
 
 .student-standalone-shell .student-page-header {
   width: 100%;
-}
-
-@media (max-width: 900px) {
-  /* This mobile override follows the standalone page contract so the shared
-     voice-test stylesheet cannot remove the content inset with a shorthand. */
-  .student-workspace-v2.student-standalone-shell > .student-workspace-content-v2 > .voice-test-page {
-    padding: 0 var(--content-gutter) var(--space-3xl);
-  }
 }
 
 @media (max-width: 600px) {

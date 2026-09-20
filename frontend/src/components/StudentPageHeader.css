@@ -1,17 +1,17 @@
 /* Unified student page title block — same measure, size, and spacing on
    every non-practice page, on the shared content column. */
 .student-page-header {
-  width: min(var(--content-max), calc(100% - var(--content-gutter) * 2));
-  margin: 0 auto var(--space-lg);
+  width: 100%;
+  margin: 0;
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-md);
+  gap: var(--space-sm);
   flex-wrap: wrap;
 }
 
 .student-page-header h1 {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   font-size: clamp(26px, 3.4vw, 36px);
   line-height: 1.15;
   color: var(--clay-ink);
@@ -26,10 +26,9 @@
   line-height: 1.6;
 }
 
-/* Keep student page headings compact and anchored to the paper content grid. */
-.student-page-header { align-items: flex-start; margin-bottom: var(--space-md); gap: var(--space-sm); }
-.student-page-header h1 { margin-top: 2px; font-size: clamp(25px, 3vw, 33px); line-height: 1.12; }
-.student-page-lede { margin-top: 6px; max-width: 58ch; font-size: 13px; }
+/* Keep student page headings compact and anchored to the shared content grid. */
+.student-page-header h1 { font-size: clamp(25px, 3vw, 33px); line-height: 1.12; }
+.student-page-lede { margin-top: var(--space-2xs); max-width: 58ch; font-size: var(--text-sm); }
 
 @media (max-width: 600px) {
   .student-page-header { margin-bottom: var(--space-sm); }

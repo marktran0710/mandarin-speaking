@@ -44,6 +44,24 @@ describe("StudentSidebar mobile drawer", () => {
     expect(toggle).toHaveFocus();
     expect(drawer).toHaveAttribute("aria-hidden", "true");
   });
+
+  it("does not mislabel a standalone tool as Lessons", () => {
+    setMobileViewport(false);
+    render(
+      <StudentSidebar
+        views={views}
+        activeView={null}
+        onChange={vi.fn()}
+        studentName="Ada"
+        onLogout={vi.fn()}
+        totalStars={0}
+        maxStars={0}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /課程Practice/ })).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: /我的學習Progress/ })).not.toHaveAttribute("aria-current");
+  });
 });
 
 describe("StudentSidebar placement test entry", () => {

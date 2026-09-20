@@ -15,4 +15,17 @@ describe("StudentPageShell", () => {
     expect(shell).not.toHaveAttribute("role");
     expect(screen.getByText("Placement content")).toBeInTheDocument();
   });
+
+  it("exposes semantic layout ownership and a stable page identity", () => {
+    render(
+      <StudentPageShell layout="stage" pageId="story-practice">
+        <p>Story practice content</p>
+      </StudentPageShell>,
+    );
+
+    const shell = screen.getByText("Story practice content").parentElement;
+    expect(shell).toHaveClass("student-page-shell", "student-page-shell--stage");
+    expect(shell).toHaveAttribute("data-student-page", "story-practice");
+    expect(shell).not.toHaveAttribute("role");
+  });
 });

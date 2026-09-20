@@ -8,7 +8,7 @@ import "./StudentSidebar.css";
 
 interface StudentSidebarProps {
   views: Array<{ id: WorkspaceView; icon: StudentIconName; label: BiLabelProps }>;
-  activeView: WorkspaceView;
+  activeView: WorkspaceView | null;
   onChange: (view: WorkspaceView) => void;
   studentName: string;
   onLogout: () => void;
@@ -77,6 +77,7 @@ export default function StudentSidebar({
 
   useEffect(() => {
     if (!isMobile || !drawerOpen) return;
+    if (!activeView) return;
     document.getElementById(`student-nav-${activeView}`)?.focus();
   }, [activeView, drawerOpen, isMobile]);
 
@@ -98,7 +99,9 @@ export default function StudentSidebar({
       return;
     }
     event.preventDefault();
-    const currentIndex = Math.max(0, views.findIndex((view) => view.id === activeView));
+    const currentIndex = activeView
+      ? Math.max(0, views.findIndex((view) => view.id === activeView))
+      : 0;
     const direction = event.key === "ArrowDown" || event.key === "ArrowRight" ? 1 : -1;
     const nextIndex = (currentIndex + direction + views.length) % views.length;
     onChange(views[nextIndex].id);

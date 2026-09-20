@@ -16,6 +16,16 @@
   line-height: 1.2;
 }
 
+/* Standalone placement has no timer or secondary action in the topbar. Align
+   its progress rail with the shared question content instead of leaving a
+   short detached rail at the panel's left edge. */
+.placement-test-question-flow .placement-test-progress {
+  flex: 0 1 860px;
+  width: min(100%, 860px);
+  max-width: none;
+  margin-inline: auto;
+}
+
 .placement-test-page .vocab-quiz-option-selected {
   border-color: var(--gold);
   background: var(--gold-soft);

@@ -10,9 +10,7 @@
 /* All student pages inherit one content grid. Removing nested max-widths here
    keeps the session bar, catalog, overview, practice rail, and progress
    surfaces on the same left and right columns. */
-.student-workspace-v2 > .student-workspace-content-v2 > .create-story-page,
-.student-workspace-v2 > .student-workspace-content-v2 > .student-page-shell > :is(.topic-selector, .my-stories-page),
-.student-workspace-v2 > .student-workspace-content-v2 > .voice-test-page {
+.student-workspace-v2 > .student-workspace-content-v2 > .student-page-shell > :is(.create-story-page, .topic-selector, .my-stories-page, .voice-test-page) {
   width: 100%;
   max-width: none;
   margin-inline: 0;
@@ -1644,9 +1642,9 @@
     grid-template-rows: minmax(0, 1fr);
   }
 
-  .student-workspace-v2 > .student-workspace-content-v2 > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step),
-  .student-workspace-v2 > .student-workspace-content-v2 > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step) .csp-recorder-body,
-  .student-workspace-v2 > .student-workspace-content-v2 > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step) .story-recorder {
+  .student-workspace-v2 > .student-workspace-content-v2 > .student-page-shell > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step),
+  .student-workspace-v2 > .student-workspace-content-v2 > .student-page-shell > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step) .csp-recorder-body,
+  .student-workspace-v2 > .student-workspace-content-v2 > .student-page-shell > .create-story-page:has(.sfc-results.sfc-screen .self-eval-step) .story-recorder {
     min-height: 0;
     height: 100%;
   }

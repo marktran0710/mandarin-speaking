@@ -2,6 +2,7 @@
 export { default as StudentWorkspaceShell } from "../../components/student-workspace/StudentWorkspaceShell";
 export {
   default as StudentPageShell,
+  type StudentPageShellLayout,
   type StudentPageShellVariant,
 } from "../../components/student-workspace/StudentPageShell";
 export { default as StudentWorkspaceHeader } from "../../components/student-workspace/StudentWorkspaceHeader";

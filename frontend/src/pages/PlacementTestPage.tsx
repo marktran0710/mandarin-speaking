@@ -38,7 +38,7 @@ export default function PlacementTestPage() {
 
   if (questions === null) {
     return (
-      <StudentPageShell variant="quiz">
+      <StudentPageShell layout="task" variant="quiz" pageId="placement-test">
         <div className="placement-test-page">
         <div className="placement-test-loading" role="status">
           <div className="app-loading-icon" aria-hidden="true" />
@@ -51,7 +51,7 @@ export default function PlacementTestPage() {
 
   if (questions.length === 0) {
     return (
-      <StudentPageShell variant="quiz">
+      <StudentPageShell layout="task" variant="quiz" pageId="placement-test">
         <div className="placement-test-page">
         <StudentPageHeader eyebrow={{ zh: "分班測驗", en: "Placement test" }} title={{ zh: "還沒有題目", en: "No questions available yet" }} lede={{ zh: "老師還沒發布任何生詞題庫。", en: "No published lesson has a vocabulary question bank yet." }} />
         </div>
@@ -119,7 +119,7 @@ export default function PlacementTestPage() {
 
   if (done) {
     return (
-      <StudentPageShell variant="quiz">
+      <StudentPageShell layout="task" variant="quiz" pageId="placement-test">
         <div className="placement-test-page">
         <StudentPageHeader
           eyebrow={{ zh: "分班測驗", en: "Placement test" }}
@@ -152,7 +152,7 @@ export default function PlacementTestPage() {
   };
 
   return (
-    <StudentPageShell variant="quiz">
+    <StudentPageShell layout="task" variant="quiz" pageId="placement-test">
       <div className="placement-test-page">
       <StudentQuestionFlow
         ariaLabel="Placement test question"

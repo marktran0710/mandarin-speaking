@@ -1,26 +1,171 @@
 /*
- * StudentPageShell is an internal layout boundary within StudentModeFrame.
- * The frame remains the sole owner of the outer surface and desktop scroller.
+ * StudentPageShell is the one internal page grammar within StudentModeFrame.
+ * StudentModeFrame owns the rail, outer surface, and desktop scrolling.
+ * This component owns the content column, page rhythm, and visual variants.
  */
 .student-page-shell {
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  width: 100%;
+  max-width: var(--content-max);
+  min-width: 0;
+  min-height: 0;
+  margin-inline: auto;
+  padding: var(--space-lg) var(--content-gutter) var(--space-2xl);
+  color: var(--clay-ink);
+}
+
+.student-page-shell > * {
+  box-sizing: border-box;
   width: 100%;
   min-width: 0;
+}
+
+/* The header owns copy hierarchy; the page shell owns its width and rhythm. */
+.student-page-shell .student-page-header {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.student-app .student-page-shell .student-page-header {
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.student-page-shell .student-page-header-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.student-page-shell .student-page-header h1 .bi-label {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
+/* Page roots do not draw a second full-page canvas inside the frame. */
+.student-page-shell--content .create-story-page,
+.student-page-shell--content .my-stories-page,
+.student-page-shell--content .voice-test-page,
+.student-page-shell--task .placement-test-page,
+.student-page-shell--stage .create-story-page {
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+  background: transparent;
+}
+
+/* Lessons keeps its catalogue content, but not its competing full-page
+   gradient/hero canvas. */
+.student-page-shell[data-student-page="lessons"] .topic-selector {
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.student-page-shell[data-student-page="lessons"] .topic-selector::before {
+  display: none;
+}
+
+.student-page-shell[data-student-page="lessons"] .ts-container {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.student-page-shell[data-student-page="lessons"] .ts-dashboard {
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.student-page-shell[data-student-page="lessons"] .ts-dash-continue-card {
+  padding: var(--space-lg);
+  border-radius: var(--clay-radius-md);
+  background: var(--clay-surface-soft);
+  box-shadow: none;
+}
+
+.student-page-shell[data-student-page="lessons"] .ts-dash-explainer {
+  gap: var(--space-sm);
+}
+
+.student-page-shell[data-student-page="lessons"] .ts-dash-step-card {
+  padding: var(--space-md);
+  border-radius: var(--clay-radius-md);
+  box-shadow: none;
+}
+
+/* Progress is a report, not a stack of competing hero cards. */
+.student-page-shell[data-student-page="my-learning"] > .my-stories-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: 0;
+}
+
+.student-page-shell[data-student-page="my-learning"] .stories-header {
+  margin: 0;
+  padding: 0 0 var(--space-md);
+  border: 0;
+  border-bottom: 1px solid var(--clay-hairline);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.student-page-shell[data-student-page="my-learning"] .profile-stats,
+.student-page-shell[data-student-page="my-learning"] .student-help-card,
+.student-page-shell[data-student-page="my-learning"] .my-story-feedback-history,
+.student-page-shell[data-student-page="my-learning"] .profile-overview {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.student-page-shell[data-student-page="my-learning"] .profile-stats {
+  gap: var(--space-sm);
+}
+
+.student-page-shell[data-student-page="my-learning"] .profile-stat-card,
+.student-page-shell[data-student-page="my-learning"] .student-help-card,
+.student-page-shell[data-student-page="my-learning"] .my-story-feedback-history,
+.student-page-shell[data-student-page="my-learning"] .profile-overview {
+  border-radius: var(--clay-radius-md);
+  box-shadow: none;
+}
+
+/* The full-height story recorder remains an activity stage, but now enters
+   through the same page-shell boundary as every other student surface. */
+.student-page-shell[data-student-page="story-practice"] {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 100%;
+  padding: 0;
+}
+
+.student-page-shell[data-student-page="story-practice"] > .create-story-page {
+  height: 100%;
   min-height: 0;
 }
 
-@media (min-width: 901px) {
-  .student-page-shell--catalogue,
-  .student-page-shell--progress,
-  .student-page-shell--quiz {
-    padding: var(--space-md);
-  }
+.student-page-shell[data-student-page="voice-practice"] > .voice-test-page {
+  padding: 0 0 var(--space-2xl);
 }
 
 @media (max-width: 900px) {
-  .student-page-shell--catalogue,
-  .student-page-shell--progress,
-  .student-page-shell--quiz {
-    height: auto;
+  .student-page-shell {
+    max-width: none;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--content-gutter) var(--space-2xl);
+  }
+
+  .student-page-shell[data-student-page="story-practice"] {
+    min-height: 0;
+    padding: 0;
   }
 }
