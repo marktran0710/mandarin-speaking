@@ -30,14 +30,12 @@ from fixtures import SILENT_WAV, SHORT_WAV, LONG_WAV  # noqa: F401
 def clear_asr_globals():
     """Reset lazy-loaded model globals between tests."""
     import main
-    original_funasr   = main._funasr_model
     original_ctwhisp  = main._ct_whisper_model
     original_vibevoice = main._vibevoice_asr_model
     original_vv_error  = main._vibevoice_load_error
 
     yield
 
-    main._funasr_model       = original_funasr
     main._ct_whisper_model   = original_ctwhisp
     main._vibevoice_asr_model = original_vibevoice
     main._vibevoice_load_error = original_vv_error

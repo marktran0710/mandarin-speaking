@@ -285,9 +285,6 @@ GROQ_WHISPER_MODEL = settings.groq_whisper_model
 # already skips providers whose key is missing, so local-only setups still
 # fall through to ctwhisper unchanged.
 ASR_FALLBACK_ORDER = list(settings.asr_fallback_order)
-FUNASR_MODEL = settings.funasr_model
-FUNASR_VAD_MODEL = settings.funasr_vad_model
-FUNASR_PUNC_MODEL = settings.funasr_punc_model
 CT_WHISPER_MODEL = settings.ct_whisper_model
 CT_WHISPER_DEVICE = settings.ct_whisper_device
 CT_WHISPER_LANGUAGE = settings.ct_whisper_language
@@ -301,7 +298,6 @@ VIBEVOICE_WARM_ON_START = settings.vibevoice_warm_on_start
 VIBEVOICE_MAX_NEW_TOKENS = settings.vibevoice_max_new_tokens
 VIBEVOICE_MAX_TIME_SECONDS = settings.vibevoice_max_time_seconds
 VIBEVOICE_CACHE_DIR = settings.vibevoice_cache_dir
-_funasr_model = None
 _ct_whisper_model = None
 _ct_whisper_load_lock = threading.Lock()
 _ct_whisper_load_thread = None

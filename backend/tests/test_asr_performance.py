@@ -219,13 +219,13 @@ class TestFallbackChainPerformance:
     @pytest.mark.asyncio
     async def test_single_failure_fast(self, monkeypatch):
         import main
-        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "funasr"])
+        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "vibevoice"])
 
         async def run():
             with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
-                 patch("main.transcribe_with_funasr", new_callable=AsyncMock) as funasr:
+                 patch("main.transcribe_with_vibevoice", new_callable=AsyncMock) as vibevoice:
                 ctw.side_effect = RuntimeError("not loaded")
-                funasr.return_value = MagicMock(text="你好", model="funasr")
+                vibevoice.return_value = MagicMock(text="你好", model="vibevoice")
                 await main.transcribe_with_auto_fallback(SPEECH_WAV)
 
         mean, p95, p99 = await ameasure(run, iterations=20)
@@ -235,7 +235,7 @@ class TestFallbackChainPerformance:
     @pytest.mark.asyncio
     async def test_two_failures_still_fast(self, monkeypatch):
         import main
-        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "funasr", "gemini"])
+        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "vibevoice", "gemini"])
         monkeypatch.setattr(main, "GEMINI_API_KEY", "test-key")
 
         mock_gemini_resp = MagicMock(status_code=200)
@@ -245,10 +245,10 @@ class TestFallbackChainPerformance:
 
         async def run():
             with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
-                 patch("main.transcribe_with_funasr", new_callable=AsyncMock) as funasr, \
+                 patch("main.transcribe_with_vibevoice", new_callable=AsyncMock) as vibevoice, \
                  patch("httpx.AsyncClient") as cls:
                 ctw.side_effect = RuntimeError("not loaded")
-                funasr.side_effect = RuntimeError("not loaded")
+                vibevoice.side_effect = RuntimeError("not loaded")
                 cli = AsyncMock()
                 cli.__aenter__ = AsyncMock(return_value=cli)
                 cli.__aexit__ = AsyncMock(return_value=False)

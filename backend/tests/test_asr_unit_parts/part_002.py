@@ -32,9 +32,9 @@ class TestTranscribeWithCTWhisper:
     @pytest.mark.asyncio
     async def test_missing_librosa_raises_a_clear_runtime_error(self, monkeypatch):
         # requirements.txt documents torch/transformers as optional but never
-        # mentions librosa, even though this path imports it directly (not
-        # just transitively via funasr) - simulate that gap instead of an
-        # environment where it happens to already be installed.
+        # mentions librosa, even though this path imports it directly - simulate
+        # that gap instead of an environment where it happens to already be
+        # installed.
         import sys
         from main import transcribe_with_ct_whisper
 

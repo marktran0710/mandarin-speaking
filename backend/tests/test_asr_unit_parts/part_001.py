@@ -3,11 +3,9 @@ Unit tests for the ASR (Automatic Speech Recognition) pipeline.
 
 Coverage:
   - clean_api_key()
-  - _extract_funasr_text()
   - transcribe_audio_content() routing
   - transcribe_with_auto_fallback() fallback chain
   - transcribe_with_openai() / transcribe_with_gemini() (mocked HTTP)
-  - transcribe_with_funasr() (mocked model)
   - transcribe_with_ct_whisper() (mocked model)
   - /api/transcribe endpoint (integration via TestClient)
   - fallback_language_feedback() from ai_feedback
@@ -64,40 +62,6 @@ class TestCleanApiKey:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# FunASR text extraction
-# ──────────────────────────────────────────────────────────────────────────────
-
-class TestExtractFunasrText:
-    def test_list_of_dicts(self):
-        from main import _extract_funasr_text
-        assert _extract_funasr_text([{"text": "你好"}]) == "你好"
-
-    def test_list_of_strings(self):
-        from main import _extract_funasr_text
-        assert _extract_funasr_text(["你好世界"]) == "你好世界"
-
-    def test_dict_with_text_key(self):
-        from main import _extract_funasr_text
-        assert _extract_funasr_text({"text": "早上好"}) == "早上好"
-
-    def test_empty_list_returns_empty(self):
-        from main import _extract_funasr_text
-        assert _extract_funasr_text([]) == ""
-
-    def test_none_returns_empty(self):
-        from main import _extract_funasr_text
-        assert _extract_funasr_text(None) == ""
-
-    def test_strips_whitespace(self):
-        from main import _extract_funasr_text
-        assert _extract_funasr_text([{"text": "  謝謝  "}]) == "謝謝"
-
-    def test_empty_text_in_dict(self):
-        from main import _extract_funasr_text
-        assert _extract_funasr_text([{"text": ""}]) == ""
-
-
-# ──────────────────────────────────────────────────────────────────────────────
 # transcribe_audio_content routing
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -145,14 +109,6 @@ class TestTranscribeAudioContentRouting:
         assert "Gemini" in exc_info.value.detail
 
     @pytest.mark.asyncio
-    async def test_funasr_routes_to_funasr(self):
-        from main import transcribe_audio_content
-        with patch("main.transcribe_with_funasr", new_callable=AsyncMock) as mock:
-            mock.return_value = MagicMock(text="早上好", model="funasr")
-            result = await transcribe_audio_content(SPEECH_WAV, "funasr")
-            mock.assert_awaited_once()
-
-    @pytest.mark.asyncio
     async def test_ctwhisper_alias(self):
         from main import transcribe_audio_content
         with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as mock:
@@ -193,7 +149,7 @@ class TestTranscribeWithAutoFallback:
     @pytest.mark.asyncio
     async def test_returns_first_successful_provider(self, monkeypatch):
         import main
-        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "funasr"])
+        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "vibevoice"])
         with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as mock_ctw:
             mock_ctw.return_value = MagicMock(text="你好", model="ctwhisper")
             result = await main.transcribe_with_auto_fallback(SPEECH_WAV)
@@ -203,23 +159,23 @@ class TestTranscribeWithAutoFallback:
     @pytest.mark.asyncio
     async def test_skips_to_next_on_failure(self, monkeypatch):
         import main
-        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "funasr"])
+        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "vibevoice"])
         with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
-             patch("main.transcribe_with_funasr", new_callable=AsyncMock) as funasrm:
+             patch("main.transcribe_with_vibevoice", new_callable=AsyncMock) as vibevoicem:
             ctw.side_effect = RuntimeError("model not loaded")
-            funasrm.return_value = MagicMock(text="早上好", model="funasr")
+            vibevoicem.return_value = MagicMock(text="早上好", model="vibevoice")
             result = await main.transcribe_with_auto_fallback(SPEECH_WAV)
         assert result.text == "早上好"
-        assert "funasr" in result.model
+        assert "vibevoice" in result.model
 
     @pytest.mark.asyncio
     async def test_skips_empty_transcription(self, monkeypatch):
         import main
-        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "funasr"])
+        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "vibevoice"])
         with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
-             patch("main.transcribe_with_funasr", new_callable=AsyncMock) as funasrm:
+             patch("main.transcribe_with_vibevoice", new_callable=AsyncMock) as vibevoicem:
             ctw.return_value = MagicMock(text="   ", model="ctwhisper")  # empty
-            funasrm.return_value = MagicMock(text="謝謝", model="funasr")
+            vibevoicem.return_value = MagicMock(text="謝謝", model="vibevoice")
             result = await main.transcribe_with_auto_fallback(SPEECH_WAV)
         assert result.text == "謝謝"
 
@@ -385,61 +341,3 @@ class TestTranscribeWithGemini:
             inline_data = payload["contents"][0]["parts"][0]["inline_data"]
             decoded = base64.b64decode(inline_data["data"])
             assert decoded == SHORT_WAV
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# FunASR provider (mocked model)
-# ──────────────────────────────────────────────────────────────────────────────
-
-class TestTranscribeWithFunASR:
-
-    @pytest.mark.asyncio
-    async def test_successful_transcription(self):
-        from main import transcribe_with_funasr
-        mock_model = MagicMock()
-        mock_model.generate.return_value = [{"text": "你好嗎"}]
-
-        with patch("main._get_funasr_model", return_value=mock_model):
-            result = await transcribe_with_funasr(SILENT_WAV)
-
-        assert result.text == "你好嗎"
-        assert result.model == "funasr"
-
-    @pytest.mark.asyncio
-    async def test_temp_file_cleaned_up_on_success(self):
-        from main import transcribe_with_funasr
-        import tempfile
-        created_paths = []
-
-        original_nf = tempfile.NamedTemporaryFile
-        def capturing_nf(**kwargs):
-            f = original_nf(**kwargs)
-            created_paths.append(f.name)
-            return f
-
-        mock_model = MagicMock()
-        mock_model.generate.return_value = [{"text": "早上好"}]
-
-        with patch("main._get_funasr_model", return_value=mock_model), \
-             patch("tempfile.NamedTemporaryFile", side_effect=capturing_nf):
-            await transcribe_with_funasr(SILENT_WAV)
-
-        for path in created_paths:
-            assert not os.path.exists(path), f"Temp file not cleaned up: {path}"
-
-    @pytest.mark.asyncio
-    async def test_import_error_becomes_runtime_error(self):
-        import main
-        with patch("main._funasr_model", None), \
-             patch.dict("sys.modules", {"funasr": None}):
-            with pytest.raises((RuntimeError, Exception)):
-                await main.transcribe_with_funasr(SILENT_WAV)
-
-    def test_empty_transcription_raises(self):
-        import main
-        mock_model = MagicMock()
-        mock_model.generate.return_value = [{"text": ""}]
-
-        with patch("main._get_funasr_model", return_value=mock_model):
-            with pytest.raises(RuntimeError, match="FunASR did not return"):
-                main._transcribe_with_funasr_sync(SILENT_WAV)

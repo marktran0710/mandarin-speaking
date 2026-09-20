@@ -206,64 +206,6 @@ async def transcribe_with_gemini(audio_content: bytes, vocab_hint: str = "") -> 
         return TranscriptionResponse(text=text, model="gemini")
 
 
-def _get_funasr_model():
-    global _funasr_model
-
-    if _funasr_model is None:
-        try:
-            from funasr import AutoModel
-        except ImportError as exc:
-            raise RuntimeError(
-                "FunASR is not installed on the backend. Install backend requirements "
-                "or run `pip install funasr modelscope`."
-            ) from exc
-
-        _funasr_model = AutoModel(
-            model=FUNASR_MODEL,
-            vad_model=FUNASR_VAD_MODEL,
-            punc_model=FUNASR_PUNC_MODEL,
-            disable_update=True,
-        )
-
-    return _funasr_model
-
-
-def _extract_funasr_text(result) -> str:
-    if isinstance(result, list) and result:
-        first = result[0]
-        if isinstance(first, dict):
-            return str(first.get("text", "")).strip()
-        return str(first).strip()
-
-    if isinstance(result, dict):
-        return str(result.get("text", "")).strip()
-
-    return str(result or "").strip()
-
-
-def _transcribe_with_funasr_sync(audio_content: bytes) -> str:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
-        tmp_file.write(audio_content)
-        tmp_path = tmp_file.name
-
-    try:
-        model = _get_funasr_model()
-        result = model.generate(input=tmp_path, language="zh", batch_size_s=60)
-        text = _extract_funasr_text(result)
-        if not text:
-            raise RuntimeError("FunASR did not return transcription text.")
-        return convert_to_traditional_chinese(text)
-    finally:
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-
-
-async def transcribe_with_funasr(audio_content: bytes) -> TranscriptionResponse:
-    """Transcribe using local FunASR on the backend."""
-    text = await run_in_threadpool(_transcribe_with_funasr_sync, audio_content)
-    return TranscriptionResponse(text=text, model="funasr")
-
-
 def _get_ct_whisper_model():
     global _ct_whisper_model
 
@@ -340,9 +282,8 @@ def _transcribe_with_ct_whisper_sync(audio_content: bytes, vocab_hint: str = "")
     try:
         # librosa decodes the recording before it ever reaches the model, so
         # it must be checked here too - it's a direct dependency of this
-        # function, not just a transitive one pulled in by an unrelated
-        # optional engine (funasr), which is the only reason it happens to
-        # already be installed on some dev machines.
+        # function, not just a transitive one that happens to already be
+        # installed on some dev machines for an unrelated reason.
         try:
             import librosa
             import torch
