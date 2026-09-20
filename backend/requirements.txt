@@ -18,8 +18,14 @@ jieba==0.42.1
 pypinyin==0.52.0
 edge-tts==7.2.8
 soundfile==0.14.0
-# Optional ML/ASR models — comment out if not using local ASR
+# Optional ML/ASR models — comment out if not using local ASR. funasr and
+# modelscope are for the separate FunASR engine; ctwhisper's own deps
+# (transformers/torch/librosa) are installed for the dev Docker image via
+# requirements-local-asr.txt instead of being uncommented here, so a
+# production build (Dockerfile.production, which never reads that file)
+# can't accidentally pick them up.
 # funasr>=1.2.6
 # modelscope>=1.17.0
 # transformers>=4.51.3,<5.0.0
 # torch>=2.3.0
+# librosa>=0.10.0

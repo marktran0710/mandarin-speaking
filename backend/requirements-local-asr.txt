@@ -1,0 +1,10 @@
+# Local ASR extras (Chinese/Taiwanese Whisper's own dependencies) for the
+# dev Docker image (backend/Dockerfile) only. Dockerfile.production (Render)
+# does NOT install this file — the 512MB production instance can't afford
+# torch, and students there use cloud engines (Groq/Gemini/OpenAI) instead.
+# Kept separate from requirements.txt so a base-dependency change doesn't
+# force re-downloading these ~2-3GB of wheels, and so nothing here can ever
+# leak into a production build by accident.
+transformers>=4.51.3,<5.0.0
+torch>=2.3.0
+librosa>=0.10.0

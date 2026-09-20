@@ -301,8 +301,18 @@ def _transcribe_with_ct_whisper_sync(audio_content: bytes, vocab_hint: str = "")
         tmp_path = tmp_file.name
 
     try:
-        import librosa
-        import torch
+        # librosa decodes the recording before it ever reaches the model, so
+        # it must be checked here too - it's a direct dependency of this
+        # function, not just a transitive one pulled in by an unrelated
+        # optional engine (funasr), which is the only reason it happens to
+        # already be installed on some dev machines.
+        try:
+            import librosa
+            import torch
+        except ImportError as exc:
+            raise RuntimeError(
+                "Chinese/Taiwanese Whisper requires torch, transformers, and librosa."
+            ) from exc
 
         processor, model, device = _get_ct_whisper_model()
         audio, _ = librosa.load(tmp_path, sr=16000, mono=True)

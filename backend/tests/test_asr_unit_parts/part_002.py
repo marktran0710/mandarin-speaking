@@ -30,6 +30,19 @@ class TestTranscribeWithCTWhisper:
         assert isinstance(result.text, str)
 
     @pytest.mark.asyncio
+    async def test_missing_librosa_raises_a_clear_runtime_error(self, monkeypatch):
+        # requirements.txt documents torch/transformers as optional but never
+        # mentions librosa, even though this path imports it directly (not
+        # just transitively via funasr) - simulate that gap instead of an
+        # environment where it happens to already be installed.
+        import sys
+        from main import transcribe_with_ct_whisper
+
+        monkeypatch.setitem(sys.modules, "librosa", None)
+        with pytest.raises(RuntimeError, match="torch, transformers, and librosa"):
+            await transcribe_with_ct_whisper(SILENT_WAV)
+
+    @pytest.mark.asyncio
     async def test_converts_to_traditional(self):
         from main import transcribe_with_ct_whisper
         import numpy as np

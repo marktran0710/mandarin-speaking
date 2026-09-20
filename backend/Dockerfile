@@ -28,6 +28,12 @@ COPY requirements.txt .
 RUN python -m pip install --upgrade pip \
     && pip install -r requirements.txt
 
+# Local ASR extras (torch/transformers/librosa) for this dev image only — see
+# requirements-local-asr.txt. Kept as its own COPY+RUN layer so a change to
+# the base requirements above doesn't force re-downloading ~2-3GB of torch.
+COPY requirements-local-asr.txt .
+RUN pip install -r requirements-local-asr.txt
+
 # Application code.
 COPY . .
 
