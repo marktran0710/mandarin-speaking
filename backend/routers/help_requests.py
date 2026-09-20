@@ -10,7 +10,7 @@ router = APIRouter()
 
 
 @router.get("/api/help-requests")
-async def list_help_requests(
+def list_help_requests(
     limit: int = Query(default=100, ge=1, le=500),
     skip: int = Query(default=0, ge=0),
     identity: auth.Identity = Depends(auth.require_teacher_or_admin),
@@ -30,7 +30,7 @@ async def list_help_requests(
 
 
 @router.post("/api/help-requests")
-async def create_help_request(
+def create_help_request(
     request: HelpRequest,
     identity: auth.Identity = Depends(auth.require_student),
 ):
@@ -69,7 +69,7 @@ async def create_help_request(
 
 
 @router.post("/api/help-requests/{request_id}/resolve")
-async def resolve_help_request(
+def resolve_help_request(
     request_id: str,
     identity: auth.Identity = Depends(auth.require_teacher_or_admin),
 ):

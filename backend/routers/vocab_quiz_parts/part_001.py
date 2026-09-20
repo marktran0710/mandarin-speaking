@@ -68,16 +68,29 @@ router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 
 
 @router.get("/api/vocab-quiz-attempts")
-async def list_vocab_quiz_attempts(
+def list_vocab_quiz_attempts(
     story_id: Optional[str] = None,
     student_name: Optional[str] = None,
     student_id: Optional[str] = None,
+    include_results: bool = True,
     identity: auth.Identity = Depends(auth.get_current_identity),
 ):
     if identity.role == "student":
         student_id, student_name = identity.id, None
 
-    query = "SELECT * FROM vocab_quiz_attempts WHERE 1=1"
+    # The per-question `question_results` JSONB is the bulk of each row. The
+    # teacher dashboard only aggregates attempt-level totals, so it can ask for
+    # include_results=false to skip that column - both the DB read and the
+    # response payload shrink dramatically over an unfiltered load. Default
+    # stays true for the student/admin callers that need the per-question data.
+    columns = (
+        "id, story_id, student_id, student_name, mode, completed_at, "
+        "total_questions, correct_count, total_time_ms"
+    )
+    if include_results:
+        columns += ", question_results"
+
+    query = f"SELECT {columns} FROM vocab_quiz_attempts WHERE 1=1"
     params: list = []
     if story_id:
         query += " AND story_id = %s"
@@ -145,7 +158,7 @@ def _enroll_newly_strong_words(db, student_id: str, attempt: VocabQuizAttemptReq
 
 
 @router.get("/api/students/{student_id}/weak-words")
-async def get_student_priority_review_words(
+def get_student_priority_review_words(
     student_id: str,
     review_count: Optional[int] = None,
     story_id: Optional[str] = None,
@@ -184,7 +197,7 @@ async def get_student_review_queue(
 
 
 @router.get("/api/students/{student_id}/vocabulary-mastery")
-async def get_student_vocabulary_mastery(
+def get_student_vocabulary_mastery(
     student_id: str,
     story_id: Optional[str] = None,
     identity: auth.Identity = Depends(auth.get_current_identity),
@@ -198,7 +211,7 @@ async def get_student_vocabulary_mastery(
 
 
 @router.get("/api/students/{student_id}/vocabulary-mastery/{word_id:path}/seen-items")
-async def get_seen_vocabulary_items(
+def get_seen_vocabulary_items(
     student_id: str,
     word_id: str,
     identity: auth.Identity = Depends(auth.get_current_identity),
@@ -209,7 +222,7 @@ async def get_seen_vocabulary_items(
 
 
 @router.get("/api/vocab-quiz-attempts/weak-words")
-async def get_weak_words(
+def get_weak_words(
     story_id: str,
     include_all: bool = False,
     identity: auth.Identity = Depends(auth.require_student),
@@ -230,7 +243,7 @@ async def get_weak_words(
 
 
 @router.post("/api/vocab-quiz-attempts")
-async def create_vocab_quiz_attempt(
+def create_vocab_quiz_attempt(
     attempt: VocabQuizAttemptRequest,
     today: Optional[str] = None,
     identity: auth.Identity = Depends(auth.require_student),

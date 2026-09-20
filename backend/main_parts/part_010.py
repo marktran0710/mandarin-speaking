@@ -1,70 +1,5 @@
 
 
-def _transcribe_with_vibevoice_sync(audio_content: bytes) -> str:
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp_file:
-        tmp_file.write(audio_content)
-        tmp_path = tmp_file.name
-
-    try:
-        import torch
-
-        processor, model, device = _get_vibevoice_asr_model()
-        inputs = processor(
-            audio=tmp_path,
-            sampling_rate=None,
-            return_tensors="pt",
-            add_generation_prompt=True,
-        )
-        inputs = {
-            key: value.to(device) if isinstance(value, torch.Tensor) else value
-            for key, value in inputs.items()
-        }
-
-        with torch.no_grad():
-            output_ids = model.generate(
-                **inputs,
-                max_new_tokens=VIBEVOICE_MAX_NEW_TOKENS,
-                max_time=VIBEVOICE_MAX_TIME_SECONDS,
-                do_sample=False,
-                num_beams=1,
-                pad_token_id=processor.pad_id,
-                eos_token_id=processor.tokenizer.eos_token_id,
-            )
-
-        generated_ids = output_ids[0, inputs["input_ids"].shape[1]:]
-        generated_text = processor.decode(generated_ids, skip_special_tokens=True)
-        try:
-            segments = processor.post_process_transcription(generated_text)
-        except Exception:
-            segments = []
-        result = {"raw_text": generated_text, "segments": segments}
-        text = _extract_vibevoice_text(result)
-        if not text:
-            raise RuntimeError("VibeVoice-ASR did not return transcription text.")
-        return text
-    finally:
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
-
-
-async def transcribe_with_vibevoice(audio_content: bytes) -> TranscriptionResponse:
-    """Transcribe using local VibeVoice-ASR through Transformers on the backend."""
-    try:
-        text = await asyncio.wait_for(
-            run_in_threadpool(_transcribe_with_vibevoice_sync, audio_content),
-            timeout=VIBEVOICE_MAX_TIME_SECONDS + 20,
-        )
-    except asyncio.TimeoutError as exc:
-        raise HTTPException(
-            status_code=504,
-            detail=(
-                "VibeVoice-ASR transcription is too slow on this machine. "
-                "Try a shorter recording or run the backend on a GPU."
-            ),
-        ) from exc
-    return TranscriptionResponse(text=text, model="vibevoice")
-
-
 # ── Routers (imported here, after all shared models/helpers above are
 # defined, since each router imports names back from this module) ─────────
 from routers.admin import router as admin_router  # noqa: E402
@@ -107,18 +42,28 @@ app.include_router(tones_router)
 app.include_router(vocab_quiz_router)
 
 @app.get("/{frontend_path:path}")
-async def serve_frontend(frontend_path: str):
+def serve_frontend(frontend_path: str):
     """
     Serve the built React app from the backend port for local single-port use.
     """
+    frontend_root = FRONTEND_DIST.resolve()
     requested_file = (FRONTEND_DIST / frontend_path).resolve()
 
-    if FRONTEND_DIST.exists() and requested_file.is_file():
-        return FileResponse(requested_file)
+    # Only serve real files that stay inside the build dir. The resolve() +
+    # parents check blocks path traversal (e.g. an encoded ../ escaping
+    # FRONTEND_DIST); anything else falls through to the SPA index below.
+    within_build = requested_file == frontend_root or frontend_root in requested_file.parents
+    if within_build and FRONTEND_DIST.exists() and requested_file.is_file():
+        # Vite fingerprints asset filenames, so everything under assets/ is
+        # immutable and can be cached for a year; other files (index.html,
+        # favicon) must revalidate so a new deploy is picked up immediately.
+        in_assets = (frontend_root / "assets") in requested_file.parents
+        cache = "public, max-age=31536000, immutable" if in_assets else "no-cache"
+        return FileResponse(requested_file, headers={"Cache-Control": cache})
 
     index_file = FRONTEND_DIST / "index.html"
     if index_file.exists():
-        return FileResponse(index_file)
+        return FileResponse(index_file, headers={"Cache-Control": "no-cache"})
 
     raise HTTPException(
         status_code=404,

@@ -1,11 +1,5 @@
 import type { DiagnosticStatus, VowelZone } from "../story-recorder/StoryRecorder";
 
-export const HEIGHT_LABEL: Record<VowelZone["height"], { zh: string; en: string }> = {
-  high: { zh: "嘴巴小", en: "mouth close" }, mid: { zh: "嘴巴中", en: "mouth mid" }, low: { zh: "嘴巴大", en: "mouth open" },
-};
-export const BACKNESS_LABEL: Record<VowelZone["backness"], { zh: string; en: string }> = {
-  front: { zh: "舌頭前", en: "tongue front" }, central: { zh: "舌頭中", en: "tongue centre" }, back: { zh: "舌頭後", en: "tongue back" },
-};
 export const HEIGHT_SHORT: Record<VowelZone["height"], string> = { high: "小", mid: "中", low: "大" };
 export const BACKNESS_SHORT: Record<VowelZone["backness"], string> = { front: "前", central: "中", back: "後" };
 export const NO_VOWEL_REASON: Record<string, { zh: string; en: string }> = {

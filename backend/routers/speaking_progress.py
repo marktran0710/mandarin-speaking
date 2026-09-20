@@ -162,7 +162,7 @@ def _load_verified_record(db: Any, record_id: str, student_id: str) -> dict[str,
 
 
 @router.get("/api/speaking-progress")
-async def list_speaking_progress(
+def list_speaking_progress(
     topic_id: str,
     identity: auth.Identity = Depends(auth.require_student),
 ):
@@ -175,7 +175,7 @@ async def list_speaking_progress(
 
 
 @router.put("/api/speaking-progress")
-async def upsert_speaking_progress(
+def upsert_speaking_progress(
     progress: SpeakingProgressRequest,
     identity: auth.Identity = Depends(auth.require_student),
 ):

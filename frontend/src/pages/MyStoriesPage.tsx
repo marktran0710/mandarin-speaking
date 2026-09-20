@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   canUseDatabase,
+  getStudentOverview,
   HelpRequest,
   listAudioRecords,
   listStorySubmissions,
@@ -125,30 +126,53 @@ export default function MyStoriesPage({
     let cancelled = false;
     const studentId = getStudentId();
     const studentName = getStudentName();
-    void Promise.allSettled([
-      listStorySubmissions(undefined, { studentId, studentName }),
-      listVocabQuizAttempts(undefined, { studentId, studentName }),
-      listAudioRecords({ limit: 1000, studentId }),
-    ])
-      .then(([subsResult, quizResult, audioResult]) => {
-        if (cancelled) return;
-        if (subsResult.status === "fulfilled") {
-          const mine = subsResult.value
-          .filter((s) => (studentId ? s.studentId === studentId : s.studentName === studentName))
-          .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
-          setMySubmissions(mine);
-        }
-        if (quizResult.status === "fulfilled") {
-          setQuizAttemptStoryIds(new Set(quizResult.value.map((attempt) => attempt.storyId)));
-          setServerStarsByStory(starsByStory(quizResult.value));
-        }
-        if (audioResult.status === "fulfilled") {
-          setPersistedRecords(audioResult.value as AudioRecord[]);
-        }
-      })
-      .catch(() => {
-        // Silently skip — the overview above is still fully usable.
-      });
+
+    const apply = (
+      submissions: StorySubmission[],
+      quizAttempts: Array<{ storyId: string; mode?: string | null; correctCount: number; totalQuestions?: number }>,
+      audioRecords: AudioRecord[],
+    ) => {
+      if (cancelled) return;
+      const mine = submissions
+        .filter((s) => (studentId ? s.studentId === studentId : s.studentName === studentName))
+        .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+      setMySubmissions(mine);
+      setQuizAttemptStoryIds(new Set(quizAttempts.map((attempt) => attempt.storyId)));
+      setServerStarsByStory(starsByStory(quizAttempts));
+      setPersistedRecords(audioRecords);
+    };
+
+    if (studentId) {
+      // One request instead of three: the overview endpoint bundles this
+      // student's submissions, quiz attempts and audio records (submissions
+      // and attempts trimmed to the summary fields this page reads).
+      getStudentOverview(studentId)
+        .then(({ submissions, quizAttempts, audioRecords }) =>
+          apply(submissions, quizAttempts, audioRecords as AudioRecord[]),
+        )
+        .catch(() => {
+          // Silently skip — the overview above is still fully usable.
+        });
+    } else {
+      // Free-entry logins have no roster id, so the overview (keyed by id)
+      // can't find their rows — keep the name-scoped three-call path for them.
+      void Promise.allSettled([
+        listStorySubmissions(undefined, { studentId, studentName }),
+        listVocabQuizAttempts(undefined, { studentId, studentName }),
+        listAudioRecords({ limit: 1000, studentId }),
+      ])
+        .then(([subsResult, quizResult, audioResult]) =>
+          apply(
+            subsResult.status === "fulfilled" ? subsResult.value : [],
+            quizResult.status === "fulfilled" ? quizResult.value : [],
+            audioResult.status === "fulfilled" ? (audioResult.value as AudioRecord[]) : [],
+          ),
+        )
+        .catch(() => {
+          // Silently skip — the overview above is still fully usable.
+        });
+    }
+
     return () => {
       cancelled = true;
     };

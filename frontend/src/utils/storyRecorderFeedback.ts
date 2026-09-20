@@ -81,13 +81,6 @@ export const TONE_SHAPES: Record<
   },
 };
 
-export const TONE_NUMBER_ARROW_LABEL: Record<number, string> = {
-  1: "一聲 Tone 1 (ā) →",
-  2: "二聲 Tone 2 (á) ↗",
-  3: "三聲 Tone 3 (ǎ) ↘↗",
-  4: "四聲 Tone 4 (à) ↘",
-};
-
 /** Actionable improvement tip for this character — only shown when the
  * character actually needs work. Gated directly off item.feedback's own
  * verdict (backend's _word_prosody_feedback), not a separate threshold
@@ -267,13 +260,6 @@ export function shapeArrow(shape: string): string {
     variable: "~",
   };
   return arrows[shape] ?? "~";
-}
-
-export function buildPracticeAnalysisText(vocabulary: string[]): string {
-  return vocabulary
-    .map((word) => word.trim())
-    .filter(Boolean)
-    .join(" ");
 }
 
 export function hasAudioFileExtension(fileName: string): boolean {

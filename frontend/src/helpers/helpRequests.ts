@@ -1,4 +1,4 @@
-import type { HelpRequest } from "../shared/api/learningApi";
+import type { HelpRequest } from "../services/database";
 
 const HELP_REQUESTS_KEY = "helpRequests";
 

@@ -1,5 +1,6 @@
 import { BACKEND_URL, fetchWithRetry } from "./client";
-import type { SceneSubmission } from "./stories-submissions";
+import type { SceneSubmission, StorySubmission } from "./stories-submissions";
+import type { VocabQuizAttempt } from "./quiz-analytics";
 import { buildPracticeAnalysisFormData, type PracticeAnalysisRequestContext } from "../../utils/practiceAnalysis";
 
 function snapshotIdFor(result: SceneSubmission): string {
@@ -66,10 +67,16 @@ export async function listAudioRecords(params?: { limit?: number; skip?: number;
   const queryParams = new URLSearchParams(); if (params?.limit !== undefined) queryParams.set("limit", String(params.limit)); if (params?.skip !== undefined) queryParams.set("skip", String(params.skip)); if (params?.studentId) queryParams.set("student_id", params.studentId); if (params?.topicId) queryParams.set("topic_id", params.topicId);
   const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records${queryParams.size ? `?${queryParams}` : ""}`); if (!response.ok) throw new Error("Could not load audio records from the database."); const records = await response.json(); return Array.isArray(records) ? records : [];
 }
-export async function listLatestAudioRecordsByScene(studentId: string, topicId: string): Promise<StoredAudioRecord[]> { const query = new URLSearchParams({ student_id: studentId, topic_id: topicId }); const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records/latest-by-scene?${query}`); if (!response.ok) throw new Error("Could not load the latest practice results from the database."); const records = await response.json(); return Array.isArray(records) ? records : []; }
 export async function getAudioRecordCount(): Promise<number> { const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records/count`); if (!response.ok) throw new Error("Could not load audio record count from the database."); const data = await response.json() as { total?: unknown }; return typeof data.total === "number" ? data.total : 0; }
 export async function createAudioRecord(record: StoredAudioRecord, audioBlob?: Blob): Promise<StoredAudioRecord> { const response = audioBlob ? await uploadAudioRecord(record, audioBlob) : await fetchWithRetry(`${BACKEND_URL}/api/audio-records`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(record) }); if (!response.ok) throw new Error("Could not save audio record to the database."); return response.json() as Promise<StoredAudioRecord>; }
 async function uploadAudioRecord(record: StoredAudioRecord, audioBlob: Blob): Promise<Response> { const formData = new FormData(); formData.append("record", JSON.stringify(record)); formData.append("file", audioBlob, `${record.id}.wav`); return fetchWithRetry(`${BACKEND_URL}/api/audio-records/upload`, { method: "POST", body: formData }); }
+export interface StudentOverview { submissions: StorySubmission[]; quizAttempts: VocabQuizAttempt[]; audioRecords: StoredAudioRecord[]; }
+export async function getStudentOverview(studentId: string): Promise<StudentOverview> {
+  const response = await fetchWithRetry(`${BACKEND_URL}/api/students/${encodeURIComponent(studentId)}/overview`);
+  if (!response.ok) throw new Error("Could not load your progress overview.");
+  const data = await response.json();
+  return { submissions: Array.isArray(data?.submissions) ? data.submissions : [], quizAttempts: Array.isArray(data?.quizAttempts) ? data.quizAttempts : [], audioRecords: Array.isArray(data?.audioRecords) ? data.audioRecords : [] };
+}
 export async function listSpeakingProgress(studentId: string, topicId: string): Promise<StoredSpeakingProgress[]> { const response = await fetchWithRetry(`${BACKEND_URL}/api/speaking-progress?student_id=${encodeURIComponent(studentId)}&topic_id=${encodeURIComponent(topicId)}`); if (!response.ok) throw new Error("Could not load speaking progress from the database."); const records = await response.json(); return Array.isArray(records) ? records : []; }
 export async function saveSpeakingProgress(progress: StoredSpeakingProgress): Promise<StoredSpeakingProgress> { const payload = progress.latestResult ? { ...progress, latestResult: { ...progress.latestResult, snapshotId: snapshotIdFor(progress.latestResult) } } : progress; const response = await fetchWithRetry(`${BACKEND_URL}/api/speaking-progress`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }); if (!response.ok) throw new Error("Could not save speaking progress to the database."); return response.json() as Promise<StoredSpeakingProgress>; }
 export async function deleteAudioRecordFromDatabase(id: string): Promise<void> { const response = await fetchWithRetry(`${BACKEND_URL}/api/audio-records/${encodeURIComponent(id)}`, { method: "DELETE" }); if (!response.ok) throw new Error("Could not delete audio record from the database."); }

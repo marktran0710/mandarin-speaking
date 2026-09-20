@@ -1,5 +1,6 @@
 from fastapi import Depends, FastAPI, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, field_validator
 from typing import Any, Callable, Dict, Literal, Optional, List, Tuple
@@ -53,7 +54,9 @@ from database import (
     close_db,
     connect_db,
     init_db,
+    pool_max_size,
 )
+import anyio
 from psycopg.types.json import Jsonb
 
 import caf_metrics
@@ -83,6 +86,14 @@ from reference_voice import (
     extract_scene_reference_from_audio,
 )
 from pinyin_service import canonical_pinyin, canonical_pinyin_tone3
+# transcribe_audio_content is the one ASR entry point still called as a bare
+# name from unmigrated main_parts code (_verify_word_transcription,
+# _acoustic_scoring_source). _post_with_retry moved with the ASR engines it
+# was written for, but is also a general retry-wrapped POST used by the
+# vocab/phrase/distractor/cloze/synonym/image-generation callers in
+# part_007/part_008 - both re-exported here so that keeps working exactly as
+# it did when the whole implementation lived in this module.
+from services.asr import transcribe_audio_content, _post_with_retry
 
 # Load backend/.env first, then root .env.local for local full-stack runs.
 load_dotenv()
@@ -118,7 +129,7 @@ os.makedirs(AUDIO_UPLOAD_DIR, exist_ok=True)
 os.makedirs(IMAGE_UPLOAD_DIR, exist_ok=True)
 os.makedirs(STORY_AUDIO_UPLOAD_DIR, exist_ok=True)
 @app.get("/uploads/{relative_path:path}")
-async def serve_upload(
+def serve_upload(
     relative_path: str,
     identity: auth.Identity = Depends(auth.get_current_identity),
 ):
@@ -131,23 +142,45 @@ async def serve_upload(
         raise HTTPException(status_code=404, detail="Media not found.")
     if identity.role == "student":
         stored_url = f"/uploads/{relative_path.replace(os.sep, '/')}"
+        # Evaluate the three ownership checks cheapest-first and stop at the
+        # first match. Same authorization result as testing all three, but a
+        # student replaying their own audio (the common case) never reaches the
+        # published-lesson check, whose `frames::text LIKE '%url%'` is an
+        # unindexable full-table scan - kept last so it runs only when the two
+        # indexed lookups both miss (i.e. only for published lesson media).
         with connect_db() as db:
-            owns_audio = db.execute(
-                "SELECT 1 FROM audio_records WHERE student_id = %s AND audio_url = %s LIMIT 1",
-                (identity.id, stored_url),
-            ).fetchone()
-            owns_story_audio = db.execute(
-                "SELECT 1 FROM story_submissions WHERE student_id = %s AND concatenated_audio_url = %s LIMIT 1",
-                (identity.id, stored_url),
-            ).fetchone()
-            is_published_lesson_media = db.execute(
-                "SELECT 1 FROM custom_stories WHERE published = TRUE AND frames::text LIKE %s LIMIT 1",
-                (f"%{stored_url}%",),
-            ).fetchone()
-        if not owns_audio and not owns_story_audio and not is_published_lesson_media:
+            allowed = bool(
+                db.execute(
+                    "SELECT 1 FROM audio_records WHERE student_id = %s AND audio_url = %s LIMIT 1",
+                    (identity.id, stored_url),
+                ).fetchone()
+            )
+            if not allowed:
+                allowed = bool(
+                    db.execute(
+                        "SELECT 1 FROM story_submissions WHERE student_id = %s AND concatenated_audio_url = %s LIMIT 1",
+                        (identity.id, stored_url),
+                    ).fetchone()
+                )
+            if not allowed:
+                allowed = bool(
+                    db.execute(
+                        "SELECT 1 FROM custom_stories WHERE published = TRUE AND frames::text LIKE %s LIMIT 1",
+                        (f"%{stored_url}%",),
+                    ).fetchone()
+                )
+        if not allowed:
             raise HTTPException(status_code=403, detail="Media access is not allowed.")
     media_type, _ = mimetypes.guess_type(str(requested))
-    return FileResponse(requested, media_type=media_type or "application/octet-stream")
+    # Uploaded media is immutable (its URL is content/id-addressed), and it is
+    # the highest-volume request type, so let the browser cache it and skip the
+    # round-trip (and this authorization check) when a student reopens a story.
+    # `private`, never a shared/CDN cache, because the media is auth-gated.
+    return FileResponse(
+        requested,
+        media_type=media_type or "application/octet-stream",
+        headers={"Cache-Control": "private, max-age=3600"},
+    )
 
 
 @app.middleware("http")
@@ -157,6 +190,27 @@ async def add_security_headers(request, call_next):
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "same-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(), geolocation=(), payment=()")
+    return response
+
+
+# Per-request timing so the actually-slow endpoints show up in the logs (and in
+# the browser's network panel via Server-Timing) instead of being guessed at.
+# Added after add_security_headers, so it is the outermost middleware and times
+# the whole request. Requests at/above SLOW_REQUEST_MS are logged as warnings.
+_SLOW_REQUEST_MS = float(os.getenv("SLOW_REQUEST_MS", "1000"))
+
+
+@app.middleware("http")
+async def log_request_timing(request, call_next):
+    start = time.perf_counter()
+    response = await call_next(request)
+    duration_ms = (time.perf_counter() - start) * 1000
+    response.headers["Server-Timing"] = f"app;dur={duration_ms:.1f}"
+    if duration_ms >= _SLOW_REQUEST_MS:
+        logger.warning(
+            "slow request %s %s -> %s in %.0fms",
+            request.method, request.url.path, response.status_code, duration_ms,
+        )
     return response
 
 
@@ -170,6 +224,13 @@ async def startup_event():
         if not Path(UPLOAD_DIR).is_absolute() or not str(Path(UPLOAD_DIR)).startswith("/data"):
             raise RuntimeError("Production uploads must live on the persistent /data volume.")
     init_db()
+
+    # DB-backed routes are plain `def`, so Starlette dispatches each to a
+    # worker thread. Align the default thread limiter with the DB pool size so
+    # we never run more concurrent blocking queries than the pool can serve -
+    # extra threads would otherwise pile up waiting on connection checkout and
+    # hit the pool timeout. ASR/Praat keep their own smaller semaphore on top.
+    anyio.to_thread.current_default_thread_limiter().total_tokens = pool_max_size()
 
 
 @app.on_event("shutdown")
@@ -237,6 +298,12 @@ def _check_rate_limit(key: str, max_requests: int, window_seconds: int) -> None:
             )
         dq.append(now)
 
+# Compress large JSON responses (the list endpoints especially - JSON gzips
+# very well). minimum_size skips tiny bodies where compression is not worth it;
+# compresslevel 6 balances ratio against the small production CPU. Added before
+# CORS so CORS stays the outermost middleware.
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
+
 # Enable CORS for frontend communication
 app.add_middleware(
     CORSMiddleware,
@@ -250,8 +317,10 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def warm_vibevoice_asr() -> None:
-    if VIBEVOICE_WARM_ON_START:
-        _ensure_vibevoice_load_started()
+    import services.asr as asr_service
+
+    if asr_service.VIBEVOICE_WARM_ON_START:
+        asr_service.ensure_vibevoice_load_started()
 
 
 @app.on_event("startup")
@@ -263,9 +332,12 @@ async def warm_ct_whisper() -> None:
     # this moves that ~8s cold-start cost off the first real student/teacher
     # request and onto server startup instead, in the background - it does
     # not delay /health/ready.
-    if CT_WHISPER_WARM_ON_START:
+    import services.asr as asr_service
+
+    if asr_service.CT_WHISPER_WARM_ON_START:
         logger.info("ctwhisper: CT_WHISPER_WARM_ON_START is set, kicking off background warm-up")
-        _ensure_ct_whisper_load_started()
+        asr_service.ensure_ct_whisper_load_started()
+
 
 def clean_api_key(value: Optional[str]) -> Optional[str]:
     key = (value or "").strip()
@@ -274,38 +346,13 @@ def clean_api_key(value: Optional[str]) -> Optional[str]:
     return key
 
 
-# API Keys from environment
+# API Keys from environment. ASR-specific config (fallback order, ctwhisper/
+# vibevoice tuning, model warm-up state) lives in services/asr.py now; these
+# three keys stay here too since other main_parts code (vocab extraction,
+# quiz review chat, story images) reads them independently.
 OPENAI_API_KEY = settings.openai_api_key
 GEMINI_API_KEY = settings.gemini_api_key
 GROQ_API_KEY = settings.groq_api_key
-GROQ_WHISPER_MODEL = settings.groq_whisper_model
-# Groq's whisper-large-v3 leads: it's dramatically more accurate for
-# Traditional Chinese than the local whisper-small, and the deployed backend
-# (Render free tier, CPU-only) has a GROQ_API_KEY but no GPU. The auto chain
-# already skips providers whose key is missing, so local-only setups still
-# fall through to ctwhisper unchanged.
-ASR_FALLBACK_ORDER = list(settings.asr_fallback_order)
-CT_WHISPER_MODEL = settings.ct_whisper_model
-CT_WHISPER_DEVICE = settings.ct_whisper_device
-CT_WHISPER_LANGUAGE = settings.ct_whisper_language
-CT_WHISPER_TASK = settings.ct_whisper_task
-CT_WHISPER_CACHE_DIR = settings.ct_whisper_cache_dir
-CT_WHISPER_WARM_ON_START = settings.ct_whisper_warm_on_start
-VIBEVOICE_ASR_MODEL = settings.vibevoice_asr_model
-VIBEVOICE_DEVICE = settings.vibevoice_device
-VIBEVOICE_TORCH_DTYPE = settings.vibevoice_torch_dtype
-VIBEVOICE_WARM_ON_START = settings.vibevoice_warm_on_start
-VIBEVOICE_MAX_NEW_TOKENS = settings.vibevoice_max_new_tokens
-VIBEVOICE_MAX_TIME_SECONDS = settings.vibevoice_max_time_seconds
-VIBEVOICE_CACHE_DIR = settings.vibevoice_cache_dir
-_ct_whisper_model = None
-_ct_whisper_load_lock = threading.Lock()
-_ct_whisper_load_thread = None
-_ct_whisper_load_error = None
-_vibevoice_asr_model = None
-_vibevoice_load_lock = threading.Lock()
-_vibevoice_load_thread = None
-_vibevoice_load_error = None
 
 
 # Pydantic models
@@ -410,12 +457,6 @@ class AnalysisResponse(BaseModel):
     processing_trace: ProcessingTrace = Field(default_factory=ProcessingTrace)
 
 
-class AsrStatusResponse(BaseModel):
-    provider: str
-    status: str
-    message: str
-
-
 class ReferenceToneResponse(BaseModel):
     tone: int
     name: str
@@ -425,11 +466,6 @@ class ReferenceToneResponse(BaseModel):
     pitch_pattern: List[float]
     frequency_range: Tuple[int, int]
     expected_mean: int
-
-
-class TranscriptionResponse(BaseModel):
-    text: str
-    model: str
 
 
 class StoryImageGenerationRequest(BaseModel):

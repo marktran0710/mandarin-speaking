@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.get("/api/audio-records")
-async def list_audio_records(
+def list_audio_records(
     limit: int = Query(default=200, ge=1, le=1000),
     skip: int = Query(default=0, ge=0),
     student_id: Optional[str] = Query(default=None),
@@ -43,34 +43,8 @@ async def list_audio_records(
     return [row_to_audio_record(row) for row in rows]
 
 
-@router.get("/api/audio-records/latest-by-scene")
-async def list_latest_audio_records_by_scene(
-    topic_id: str = Query(...),
-    student_id: Optional[str] = Query(default=None),
-    identity: auth.Identity = Depends(auth.get_current_identity),
-):
-    """One row per scene (image_index): whichever attempt is newest, so a
-    student reopening a story sees the practice result they left off with
-    instead of a blank slate — `audio_records` itself is an append-only log
-    of every attempt with no such "latest" concept on its own."""
-    if identity.role == "student":
-        student_id = identity.id
-    elif not student_id:
-        raise HTTPException(status_code=400, detail="Provide student_id.")
-
-    query = """
-        SELECT DISTINCT ON (image_index) *
-        FROM audio_records
-        WHERE student_id = %s AND topic_id = %s
-        ORDER BY image_index, created_at DESC, id DESC
-    """
-    with connect_db() as db:
-        rows = db.execute(query, (student_id, topic_id)).fetchall()
-    return [row_to_audio_record(row) for row in rows]
-
-
 @router.get("/api/audio-records/count")
-async def get_audio_record_count(
+def get_audio_record_count(
     identity: auth.Identity = Depends(auth.require_teacher_or_admin),
 ):
     with connect_db() as db:
@@ -79,7 +53,7 @@ async def get_audio_record_count(
 
 
 @router.post("/api/audio-records")
-async def create_audio_record(
+def create_audio_record(
     record: AudioRecordRequest,
     identity: auth.Identity = Depends(auth.require_student),
 ):
@@ -114,7 +88,7 @@ async def upload_audio_record(
 
 
 @router.delete("/api/audio-records/{record_id}")
-async def delete_audio_record(
+def delete_audio_record(
     record_id: str,
     identity: auth.Identity = Depends(auth.require_teacher_or_admin),
 ):

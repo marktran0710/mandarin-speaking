@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from psycopg.errors import UniqueViolation
 
 import auth
-from database import connect_db, delete_student_cascade, row_to_student
+from database import connect_db, delete_student_cascade, row_to_audio_record, row_to_student
 from main import (
     StudentCreateRequest,
     StudentLoginRequest,
@@ -14,9 +14,100 @@ from main import (
 
 router = APIRouter()
 
+# The student home ("My Stories") reads only summary fields off submissions
+# and quiz attempts — earned stars and which stories were touched — so the
+# overview endpoint drops the two heavy JSONB columns those lists otherwise
+# ship (submission `scenes`, attempt `question_results`). The keys still
+# appear (empty) so the payload stays shape-compatible with the standalone
+# list responses the page used to call.
+_OVERVIEW_AUDIO_LIMIT = 1000
+
+
+def _overview_submission(row: dict) -> dict:
+    return {
+        "id": row["id"],
+        "storyId": row["story_id"],
+        "storyTitle": row["story_title"],
+        "studentName": row["student_name"],
+        "studentId": row.get("student_id"),
+        "submittedAt": row["submitted_at"],
+        "concatenatedAudioUrl": row.get("concatenated_audio_url"),
+        "reviewStatus": row.get("review_status") or "pending",
+        "teacherNote": row.get("teacher_note"),
+        "scenes": [],
+        "storyFeedback": None,
+    }
+
+
+def _overview_quiz_attempt(row: dict) -> dict:
+    return {
+        "id": row["id"],
+        "storyId": row["story_id"],
+        "studentName": row["student_name"],
+        "studentId": row.get("student_id"),
+        "mode": row.get("mode"),
+        "completedAt": row["completed_at"],
+        "totalQuestions": row["total_questions"],
+        "correctCount": row["correct_count"],
+        "totalTimeMs": row["total_time_ms"],
+        "questionResults": [],
+    }
+
+
+@router.get("/api/students/{student_id}/overview")
+def get_student_overview(
+    student_id: str,
+    identity: auth.Identity = Depends(auth.get_current_identity),
+):
+    """One request for the student home's three lists.
+
+    "My Stories" previously fanned out to `/api/story-submissions`,
+    `/api/vocab-quiz-attempts` and `/api/audio-records` in parallel — three
+    auth checks and three pooled connections per visit. This serves all three
+    for one student over a single connection. Submissions and quiz attempts
+    come back trimmed (no `scenes` / `question_results` JSONB): the page only
+    reads earned stars and which stories were touched.
+
+    The three tables are independent (no join), so the reads are batched in a
+    psycopg pipeline — sent together and read back after a single round-trip
+    to Postgres rather than three sequential query round-trips. Every filter
+    is covered by a 0027 composite index (student_id + the ORDER BY column).
+    """
+    if identity.role == "student" and identity.id != student_id:
+        raise HTTPException(status_code=403, detail="Students may only view their own overview.")
+
+    with connect_db() as db:
+        with db.pipeline():
+            submissions_cur = db.execute(
+                "SELECT id, story_id, story_title, student_name, student_id, submitted_at, "
+                "concatenated_audio_url, review_status, teacher_note "
+                "FROM story_submissions WHERE student_id = %s ORDER BY submitted_at DESC",
+                (student_id,),
+            )
+            attempts_cur = db.execute(
+                "SELECT id, story_id, student_name, student_id, mode, completed_at, "
+                "total_questions, correct_count, total_time_ms "
+                "FROM vocab_quiz_attempts WHERE student_id = %s ORDER BY completed_at DESC",
+                (student_id,),
+            )
+            audio_cur = db.execute(
+                "SELECT * FROM audio_records WHERE student_id = %s "
+                "ORDER BY created_at DESC, id DESC LIMIT %s",
+                (student_id, _OVERVIEW_AUDIO_LIMIT),
+            )
+        submissions = submissions_cur.fetchall()
+        attempts = attempts_cur.fetchall()
+        audio = audio_cur.fetchall()
+
+    return {
+        "submissions": [_overview_submission(row) for row in submissions],
+        "quizAttempts": [_overview_quiz_attempt(row) for row in attempts],
+        "audioRecords": [row_to_audio_record(row) for row in audio],
+    }
+
 
 @router.get("/api/students")
-async def list_students(
+def list_students(
     identity: auth.Identity = Depends(auth.require_teacher_or_admin),
 ):
     # Test/synthetic accounts (is_test_account) are dev/QA fixtures, not real
@@ -31,7 +122,7 @@ async def list_students(
 
 
 @router.post("/api/students")
-async def create_student(
+def create_student(
     request: StudentCreateRequest,
     identity: auth.Identity = Depends(auth.require_admin),
 ):
@@ -63,7 +154,7 @@ async def create_student(
 
 
 @router.post("/api/students/login")
-async def login_student(
+def login_student(
     request: StudentLoginRequest,
     response: Response,
     http_request: Request,
@@ -108,7 +199,7 @@ async def login_student(
 
 
 @router.patch("/api/students/{student_id}/password")
-async def reset_student_password(
+def reset_student_password(
     student_id: str,
     request: StudentPasswordResetRequest,
     identity: auth.Identity = Depends(auth.require_admin),
@@ -125,7 +216,7 @@ async def reset_student_password(
 
 
 @router.patch("/api/students/{student_id}")
-async def update_student(
+def update_student(
     student_id: str,
     request: StudentUpdateRequest,
     identity: auth.Identity = Depends(auth.require_admin),
@@ -168,13 +259,13 @@ async def update_student(
 
 
 @router.post("/api/students/logout")
-async def logout_student(response: Response):
+def logout_student(response: Response):
     auth.clear_session_cookie(response, "student")
     return {"loggedOut": True}
 
 
 @router.delete("/api/students/{student_id}")
-async def delete_student(
+def delete_student(
     student_id: str,
     identity: auth.Identity = Depends(auth.require_admin),
 ):

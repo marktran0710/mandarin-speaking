@@ -26,6 +26,11 @@ vi.mock("../services/database", async (importOriginal) => {
   return {
     ...actual,
     canUseDatabase: () => true,
+    getAdminRosterOverview: async () => ({
+      students: [...staffDb.students],
+      teachers: [...staffDb.teachers],
+      quizAttempts: [],
+    }),
     listStudents: async () => [...staffDb.students],
     listTeachers: async () => [...staffDb.teachers],
     listVocabQuizAttempts: async () => [],
