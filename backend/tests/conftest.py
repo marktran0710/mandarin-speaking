@@ -29,46 +29,58 @@ from fixtures import SILENT_WAV, SHORT_WAV, LONG_WAV  # noqa: F401
 @pytest.fixture(autouse=True)
 def clear_asr_globals():
     """Reset lazy-loaded model globals between tests."""
-    import main
-    original_ctwhisp  = main._ct_whisper_model
-    original_vibevoice = main._vibevoice_asr_model
-    original_vv_error  = main._vibevoice_load_error
+    import services.asr as asr_service
+    original_ctwhisp  = asr_service._ct_whisper_model
+    original_vibevoice = asr_service._vibevoice_asr_model
+    original_vv_error  = asr_service._vibevoice_load_error
 
     yield
 
-    main._ct_whisper_model   = original_ctwhisp
-    main._vibevoice_asr_model = original_vibevoice
-    main._vibevoice_load_error = original_vv_error
+    asr_service._ct_whisper_model   = original_ctwhisp
+    asr_service._vibevoice_asr_model = original_vibevoice
+    asr_service._vibevoice_load_error = original_vv_error
 
+
+# main.OPENAI_API_KEY/GEMINI_API_KEY/GROQ_API_KEY and services.asr's copies of
+# the same are each read once from config.settings, independently - patching
+# one does not affect the other, so these fixtures cover both. main's own
+# consumers (vocab extraction, quiz review chat, story images) are as much a
+# reason for these fixtures to exist as the ASR ones are.
 
 @pytest.fixture()
 def with_openai_key(monkeypatch):
     monkeypatch.setattr("main.OPENAI_API_KEY", "sk-test-openai-key")
+    monkeypatch.setattr("services.asr.OPENAI_API_KEY", "sk-test-openai-key")
 
 
 @pytest.fixture()
 def with_gemini_key(monkeypatch):
     monkeypatch.setattr("main.GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setattr("services.asr.GEMINI_API_KEY", "test-gemini-key")
 
 
 @pytest.fixture()
 def no_openai_key(monkeypatch):
     monkeypatch.setattr("main.OPENAI_API_KEY", None)
+    monkeypatch.setattr("services.asr.OPENAI_API_KEY", None)
 
 
 @pytest.fixture()
 def no_gemini_key(monkeypatch):
     monkeypatch.setattr("main.GEMINI_API_KEY", None)
+    monkeypatch.setattr("services.asr.GEMINI_API_KEY", None)
 
 
 @pytest.fixture()
 def with_groq_key(monkeypatch):
     monkeypatch.setattr("main.GROQ_API_KEY", "gsk-test-groq-key")
+    monkeypatch.setattr("services.asr.GROQ_API_KEY", "gsk-test-groq-key")
 
 
 @pytest.fixture()
 def no_groq_key(monkeypatch):
     monkeypatch.setattr("main.GROQ_API_KEY", None)
+    monkeypatch.setattr("services.asr.GROQ_API_KEY", None)
 
 
 # ── Database isolation ─────────────────────────────────────────────────────

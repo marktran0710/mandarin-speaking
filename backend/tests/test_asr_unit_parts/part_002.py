@@ -8,7 +8,7 @@ class TestTranscribeWithCTWhisper:
 
     @pytest.mark.asyncio
     async def test_successful_transcription(self):
-        from main import transcribe_with_ct_whisper
+        from services.asr import transcribe_with_ct_whisper
         import numpy as np
 
         mock_processor = MagicMock()
@@ -20,9 +20,9 @@ class TestTranscribeWithCTWhisper:
         mock_model.generate.return_value = [[1, 2, 3]]
         mock_model.device = "cpu"
 
-        with patch("main._get_ct_whisper_model",
+        with patch("services.asr._get_ct_whisper_model",
                    return_value=(mock_processor, mock_model, "cpu")), \
-             patch("main.convert_to_traditional_chinese", return_value="你好"), \
+             patch("services.asr._to_traditional", return_value="你好"), \
              patch("librosa.load", return_value=(np.zeros(8000), 16000)):
             result = await transcribe_with_ct_whisper(SILENT_WAV)
 
@@ -36,7 +36,7 @@ class TestTranscribeWithCTWhisper:
         # that gap instead of an environment where it happens to already be
         # installed.
         import sys
-        from main import transcribe_with_ct_whisper
+        from services.asr import transcribe_with_ct_whisper
 
         monkeypatch.setitem(sys.modules, "librosa", None)
         with pytest.raises(RuntimeError, match="torch, transformers, and librosa"):
@@ -44,7 +44,7 @@ class TestTranscribeWithCTWhisper:
 
     @pytest.mark.asyncio
     async def test_converts_to_traditional(self):
-        from main import transcribe_with_ct_whisper
+        from services.asr import transcribe_with_ct_whisper
         import numpy as np
 
         mock_processor = MagicMock()
@@ -56,9 +56,9 @@ class TestTranscribeWithCTWhisper:
         mock_model.generate.return_value = [[1, 2, 3]]
         mock_model.device = "cpu"
 
-        with patch("main._get_ct_whisper_model",
+        with patch("services.asr._get_ct_whisper_model",
                    return_value=(mock_processor, mock_model, "cpu")), \
-             patch("main.convert_to_traditional_chinese",
+             patch("services.asr._to_traditional",
                    return_value="妳好") as mock_convert, \
              patch("librosa.load", return_value=(np.zeros(8000), 16000)):
             result = await transcribe_with_ct_whisper(SILENT_WAV)
@@ -73,41 +73,41 @@ class TestTranscribeWithCTWhisper:
 class TestEnsureCtWhisperLoadStarted:
 
     def _reset_state(self, monkeypatch):
-        import main
-        monkeypatch.setattr(main, "_ct_whisper_model", None)
-        monkeypatch.setattr(main, "_ct_whisper_load_thread", None)
-        monkeypatch.setattr(main, "_ct_whisper_load_error", None)
+        import services.asr as asr_service
+        monkeypatch.setattr(asr_service, "_ct_whisper_model", None)
+        monkeypatch.setattr(asr_service, "_ct_whisper_load_thread", None)
+        monkeypatch.setattr(asr_service, "_ct_whisper_load_error", None)
 
     def test_loads_the_model_in_the_background(self, monkeypatch):
-        import main
+        import services.asr as asr_service
 
         self._reset_state(monkeypatch)
-        monkeypatch.setattr(main, "_get_ct_whisper_model", lambda: ("processor", "model", "cpu"))
+        monkeypatch.setattr(asr_service, "_get_ct_whisper_model", lambda: ("processor", "model", "cpu"))
 
-        main._ensure_ct_whisper_load_started()
-        main._ct_whisper_load_thread.join(timeout=5)
+        asr_service.ensure_ct_whisper_load_started()
+        asr_service._ct_whisper_load_thread.join(timeout=5)
 
-        assert main._ct_whisper_model == ("processor", "model", "cpu")
-        assert main._ct_whisper_load_error is None
+        assert asr_service._ct_whisper_model == ("processor", "model", "cpu")
+        assert asr_service._ct_whisper_load_error is None
 
     def test_a_failed_load_is_captured_not_raised(self, monkeypatch):
-        import main
+        import services.asr as asr_service
 
         self._reset_state(monkeypatch)
 
         def _boom():
             raise RuntimeError("Chinese/Taiwanese Whisper requires torch and transformers.")
 
-        monkeypatch.setattr(main, "_get_ct_whisper_model", _boom)
+        monkeypatch.setattr(asr_service, "_get_ct_whisper_model", _boom)
 
-        main._ensure_ct_whisper_load_started()
-        main._ct_whisper_load_thread.join(timeout=5)
+        asr_service.ensure_ct_whisper_load_started()
+        asr_service._ct_whisper_load_thread.join(timeout=5)
 
-        assert main._ct_whisper_model is None
-        assert "torch and transformers" in main._ct_whisper_load_error
+        assert asr_service._ct_whisper_model is None
+        assert "torch and transformers" in asr_service._ct_whisper_load_error
 
     def test_is_a_no_op_once_a_load_already_started(self, monkeypatch):
-        import main
+        import services.asr as asr_service
 
         self._reset_state(monkeypatch)
         calls = []
@@ -116,13 +116,13 @@ class TestEnsureCtWhisperLoadStarted:
             calls.append(1)
             return ("processor", "model", "cpu")
 
-        monkeypatch.setattr(main, "_get_ct_whisper_model", _slow_load)
+        monkeypatch.setattr(asr_service, "_get_ct_whisper_model", _slow_load)
 
-        main._ensure_ct_whisper_load_started()
-        first_thread = main._ct_whisper_load_thread
-        main._ensure_ct_whisper_load_started()  # second call before the first thread finishes
+        asr_service.ensure_ct_whisper_load_started()
+        first_thread = asr_service._ct_whisper_load_thread
+        asr_service.ensure_ct_whisper_load_started()  # second call before the first thread finishes
 
-        assert main._ct_whisper_load_thread is first_thread
+        assert asr_service._ct_whisper_load_thread is first_thread
         first_thread.join(timeout=5)
         assert calls == [1]
 
@@ -138,7 +138,7 @@ class TestTranscribeEndpoint:
         assert resp.status_code == 422
 
     def test_with_mocked_ctwhisper(self, client):
-        with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as mock:
+        with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as mock:
             mock.return_value = MagicMock(text="你好", model="ctwhisper")
             resp = client.post(
                 "/api/transcribe",
@@ -151,7 +151,7 @@ class TestTranscribeEndpoint:
         assert body["model"] == "ctwhisper"
 
     def test_unknown_model_returns_400(self, client):
-        with patch("main.transcribe_audio_content", new_callable=AsyncMock) as mock:
+        with patch("services.asr.transcribe_audio_content", new_callable=AsyncMock) as mock:
             from fastapi import HTTPException
             mock.side_effect = HTTPException(status_code=400, detail="Invalid model")
             resp = client.post(
