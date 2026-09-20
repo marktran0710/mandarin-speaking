@@ -12,8 +12,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from fixtures import SILENT_WAV, SPEECH_WAV, make_tone_wav_bytes
 
-import main
-from main import (
+import services.asr as asr_service
+from services.asr import (
     _filter_asr_phantoms,
     _has_speech,
     transcribe_audio_content,
@@ -66,7 +66,7 @@ class TestPhantomFilter:
 class TestSilenceGateShortCircuit:
     @pytest.mark.asyncio
     async def test_silent_audio_never_reaches_a_provider(self):
-        with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as mock:
+        with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as mock:
             result = await transcribe_audio_content(SILENT_WAV, "ctwhisper")
         mock.assert_not_awaited()
         assert result.text == ""
@@ -74,7 +74,7 @@ class TestSilenceGateShortCircuit:
 
     @pytest.mark.asyncio
     async def test_silent_audio_skips_the_whole_auto_chain(self):
-        with patch("main.transcribe_with_auto_fallback", new_callable=AsyncMock) as mock:
+        with patch("services.asr.transcribe_with_auto_fallback", new_callable=AsyncMock) as mock:
             result = await transcribe_audio_content(SILENT_WAV, "auto")
         mock.assert_not_awaited()
         assert result.model == "silence-gate"
@@ -83,16 +83,16 @@ class TestSilenceGateShortCircuit:
 class TestAutoAllEmptyIsSilentNotError:
     @pytest.mark.asyncio
     async def test_all_empty_providers_return_empty_response(self, monkeypatch):
-        monkeypatch.setattr(main, "ASR_FALLBACK_ORDER", ["ctwhisper", "funasr"])
-        with patch("main.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
-             patch("main.transcribe_with_funasr", new_callable=AsyncMock) as funasr:
+        monkeypatch.setattr(asr_service, "ASR_FALLBACK_ORDER", ["ctwhisper", "vibevoice"])
+        with patch("services.asr.transcribe_with_ct_whisper", new_callable=AsyncMock) as ctw, \
+             patch("services.asr.transcribe_with_vibevoice", new_callable=AsyncMock) as vibevoice:
             ctw.return_value = MagicMock(text="", model="ctwhisper")
-            funasr.return_value = MagicMock(text="  ", model="funasr")
-            result = await main.transcribe_with_auto_fallback(SPEECH_WAV)
+            vibevoice.return_value = MagicMock(text="  ", model="vibevoice")
+            result = await asr_service.transcribe_with_auto_fallback(SPEECH_WAV)
         assert result.text == ""
         assert result.model == "auto:silent"
 
 
 def test_default_fallback_order_prefers_groq():
-    assert main.ASR_FALLBACK_ORDER[0] == "groq"
-    assert "ctwhisper" in main.ASR_FALLBACK_ORDER
+    assert asr_service.ASR_FALLBACK_ORDER[0] == "groq"
+    assert "ctwhisper" in asr_service.ASR_FALLBACK_ORDER

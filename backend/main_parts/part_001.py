@@ -86,6 +86,14 @@ from reference_voice import (
     extract_scene_reference_from_audio,
 )
 from pinyin_service import canonical_pinyin, canonical_pinyin_tone3
+# transcribe_audio_content is the one ASR entry point still called as a bare
+# name from unmigrated main_parts code (_verify_word_transcription,
+# _acoustic_scoring_source). _post_with_retry moved with the ASR engines it
+# was written for, but is also a general retry-wrapped POST used by the
+# vocab/phrase/distractor/cloze/synonym/image-generation callers in
+# part_007/part_008 - both re-exported here so that keeps working exactly as
+# it did when the whole implementation lived in this module.
+from services.asr import transcribe_audio_content, _post_with_retry
 
 # Load backend/.env first, then root .env.local for local full-stack runs.
 load_dotenv()
@@ -313,8 +321,26 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def warm_vibevoice_asr() -> None:
-    if VIBEVOICE_WARM_ON_START:
-        _ensure_vibevoice_load_started()
+    import services.asr as asr_service
+
+    if asr_service.VIBEVOICE_WARM_ON_START:
+        asr_service.ensure_vibevoice_load_started()
+
+
+@app.on_event("startup")
+async def warm_ct_whisper() -> None:
+    # Off by default: loading torch/transformers/librosa is only possible on
+    # an image that installed requirements-local-asr.txt (the dev Docker
+    # image), and even there it's ~2GB of extra memory + an 8s load a
+    # deployment may not want to pay at every restart. Where it IS wanted,
+    # this moves that ~8s cold-start cost off the first real student/teacher
+    # request and onto server startup instead, in the background - it does
+    # not delay /health/ready.
+    import services.asr as asr_service
+
+    if asr_service.CT_WHISPER_WARM_ON_START:
+        logger.info("ctwhisper: CT_WHISPER_WARM_ON_START is set, kicking off background warm-up")
+        asr_service.ensure_ct_whisper_load_started()
 
 def clean_api_key(value: Optional[str]) -> Optional[str]:
     key = (value or "").strip()
@@ -323,38 +349,13 @@ def clean_api_key(value: Optional[str]) -> Optional[str]:
     return key
 
 
-# API Keys from environment
+# API Keys from environment. ASR-specific config (fallback order, ctwhisper/
+# vibevoice tuning, model warm-up state) lives in services/asr.py now; these
+# three keys stay here too since other main_parts code (vocab extraction,
+# quiz review chat, story images) reads them independently.
 OPENAI_API_KEY = settings.openai_api_key
 GEMINI_API_KEY = settings.gemini_api_key
 GROQ_API_KEY = settings.groq_api_key
-GROQ_WHISPER_MODEL = settings.groq_whisper_model
-# Groq's whisper-large-v3 leads: it's dramatically more accurate for
-# Traditional Chinese than the local whisper-small, and the deployed backend
-# (Render free tier, CPU-only) has a GROQ_API_KEY but no GPU. The auto chain
-# already skips providers whose key is missing, so local-only setups still
-# fall through to ctwhisper unchanged.
-ASR_FALLBACK_ORDER = list(settings.asr_fallback_order)
-FUNASR_MODEL = settings.funasr_model
-FUNASR_VAD_MODEL = settings.funasr_vad_model
-FUNASR_PUNC_MODEL = settings.funasr_punc_model
-CT_WHISPER_MODEL = settings.ct_whisper_model
-CT_WHISPER_DEVICE = settings.ct_whisper_device
-CT_WHISPER_LANGUAGE = settings.ct_whisper_language
-CT_WHISPER_TASK = settings.ct_whisper_task
-CT_WHISPER_CACHE_DIR = settings.ct_whisper_cache_dir
-VIBEVOICE_ASR_MODEL = settings.vibevoice_asr_model
-VIBEVOICE_DEVICE = settings.vibevoice_device
-VIBEVOICE_TORCH_DTYPE = settings.vibevoice_torch_dtype
-VIBEVOICE_WARM_ON_START = settings.vibevoice_warm_on_start
-VIBEVOICE_MAX_NEW_TOKENS = settings.vibevoice_max_new_tokens
-VIBEVOICE_MAX_TIME_SECONDS = settings.vibevoice_max_time_seconds
-VIBEVOICE_CACHE_DIR = settings.vibevoice_cache_dir
-_funasr_model = None
-_ct_whisper_model = None
-_vibevoice_asr_model = None
-_vibevoice_load_lock = threading.Lock()
-_vibevoice_load_thread = None
-_vibevoice_load_error = None
 
 
 # Pydantic models
@@ -459,12 +460,6 @@ class AnalysisResponse(BaseModel):
     processing_trace: ProcessingTrace = Field(default_factory=ProcessingTrace)
 
 
-class AsrStatusResponse(BaseModel):
-    provider: str
-    status: str
-    message: str
-
-
 class ReferenceToneResponse(BaseModel):
     tone: int
     name: str
@@ -474,11 +469,6 @@ class ReferenceToneResponse(BaseModel):
     pitch_pattern: List[float]
     frequency_range: Tuple[int, int]
     expected_mean: int
-
-
-class TranscriptionResponse(BaseModel):
-    text: str
-    model: str
 
 
 class StoryImageGenerationRequest(BaseModel):

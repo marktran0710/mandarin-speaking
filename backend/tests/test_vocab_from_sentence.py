@@ -126,7 +126,7 @@ def test_falls_back_to_gemini_when_groq_fails(client, with_groq_key, with_gemini
     # (test_post_with_retry.py). Without this, the 429 itself gets retried
     # internally and consumes gemini_success as a (wrongly-shaped) Groq retry
     # response before the code ever reaches the real Gemini call.
-    with patch("main._ASR_PROVIDER_MAX_ATTEMPTS", 1), patch("httpx.AsyncClient") as mock_client_cls:
+    with patch("services.asr._ASR_PROVIDER_MAX_ATTEMPTS", 1), patch("httpx.AsyncClient") as mock_client_cls:
         mock_client_cls.return_value = _patched_client(groq_error, gemini_success)
         response = client.post(
             "/api/vocab-from-sentence", json={"sentence": "我在餐廳吃飯。"}

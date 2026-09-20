@@ -42,45 +42,6 @@ async def _verify_word_transcription(
         return None, None
 
 
-async def transcribe_with_auto_fallback(audio_content: bytes, vocab_hint: str = "") -> TranscriptionResponse:
-    errors = []
-    for provider in ASR_FALLBACK_ORDER:
-        if provider == "gemini" and not GEMINI_API_KEY:
-            errors.append("gemini: missing API key")
-            continue
-        if provider == "openai" and not OPENAI_API_KEY:
-            errors.append("openai: missing API key")
-            continue
-        if provider == "groq" and not GROQ_API_KEY:
-            errors.append("groq: missing API key")
-            continue
-
-        try:
-            result = await transcribe_audio_content(audio_content, provider, vocab_hint=vocab_hint)
-            if result.text.strip():
-                return TranscriptionResponse(
-                    text=result.text,
-                    model=f"auto:{result.model}",
-                )
-            errors.append(f"{provider}: empty transcription")
-        except Exception as exc:
-            errors.append(f"{provider}: {exc}")
-
-    # Every provider ran but heard nothing — that's silence or unclear
-    # speech, not a server failure. Return empty so Praat still analyzes
-    # the audio and the student gets an honest "no speech detected" rather
-    # than a 503 error page.
-    if errors and all(e.endswith(": empty transcription") for e in errors):
-        logger.info("Auto ASR: every provider returned empty — silent or unclear audio")
-        return TranscriptionResponse(text="", model="auto:silent")
-
-    detail = (
-        "No ASR provider produced a transcript. Tried: " + "; ".join(errors)
-    )
-    logger.error("Auto ASR failed. Errors: %s", errors)
-    raise HTTPException(status_code=503, detail=detail)
-
-
 def build_analysis_description(
     transcription: str,
     transcription_model: str,

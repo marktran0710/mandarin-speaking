@@ -7,7 +7,9 @@ from fastapi.responses import StreamingResponse
 from ai_feedback import available_providers, default_provider
 import auth
 import main
-from main import AnalysisResponse, AsrStatusResponse, TranscriptionResponse
+import services.asr as asr_service
+from main import AnalysisResponse
+from services.asr import AsrStatusResponse, TranscriptionResponse
 
 router = APIRouter(dependencies=[Depends(auth.get_current_identity)])
 
@@ -18,20 +20,20 @@ def _sse_line(payload: dict) -> str:
 
 @router.get("/api/asr-status", response_model=AsrStatusResponse)
 def get_asr_status():
-    with main._vibevoice_load_lock:
-        if main._vibevoice_asr_model is not None:
+    with asr_service._vibevoice_load_lock:
+        if asr_service._vibevoice_asr_model is not None:
             return AsrStatusResponse(
                 provider="vibevoice",
                 status="ready",
                 message="VibeVoice-ASR is ready.",
             )
-        if main._vibevoice_load_error:
+        if asr_service._vibevoice_load_error:
             return AsrStatusResponse(
                 provider="vibevoice",
                 status="error",
-                message=f"VibeVoice-ASR failed to load: {main._vibevoice_load_error}",
+                message=f"VibeVoice-ASR failed to load: {asr_service._vibevoice_load_error}",
             )
-        if main._vibevoice_load_thread is not None and main._vibevoice_load_thread.is_alive():
+        if asr_service._vibevoice_load_thread is not None and asr_service._vibevoice_load_thread.is_alive():
             return AsrStatusResponse(
                 provider="vibevoice",
                 status="loading",
@@ -289,7 +291,7 @@ async def transcribe_speech(
         content = await file.read()
         async def run_bounded_transcription():
             async with main.acquire_analysis_slot():
-                return await main.transcribe_audio_content(content, model, vocab_hint=vocab_hint)
+                return await asr_service.transcribe_audio_content(content, model, vocab_hint=vocab_hint)
 
         result = await asyncio.wait_for(
             run_bounded_transcription(), timeout=main.ANALYZE_TIMEOUT_SECONDS
