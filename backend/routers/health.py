@@ -47,10 +47,7 @@ def health_check():
 @router.get("/health/ready")
 async def readiness_check():
     """Strict readiness probe used by deployment platforms."""
-    # Pre-existing bug carried over unchanged from main_parts/part_002.py:
-    # health_check() is a plain `def` returning a dict, so `await` on it
-    # raises TypeError on every call. Flagged, not fixed, by this move.
-    result = await health_check()
+    result = health_check()
     if result["status"] != "ok":
         raise HTTPException(status_code=503, detail=result)
     return result
