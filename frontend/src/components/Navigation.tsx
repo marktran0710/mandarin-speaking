@@ -20,7 +20,7 @@ interface NavigationProps {
    * separate Vite entries sharing this component — this picks which
    * pre-login nav items and logo target make sense for each. Neither
    * variant links to the other: the two modes are deliberately reachable
-   * only by typing their own URL (see WrongMode). */
+   * only by typing their own URL. */
   appVariant?: "student" | "teacher";
 }
 

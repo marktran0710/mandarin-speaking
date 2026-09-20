@@ -288,10 +288,9 @@ def _diagnostic_slot(question: Any) -> str | None:
     mode = normalize_value(_field(question, "mode", default=""))
     if mode in _SLOT_BY_MODE:
         return _SLOT_BY_MODE[mode]
+    # Do not infer that a generic easy tier is one of three diagnostic rounds.
     round_type = normalize_value(_field(question, "round_type", "roundType", default=""))
     return {"know_it": "quiz_1", "say_it": "quiz_2", "use_it": "quiz_3"}.get(round_type)
-    # Do not infer that a generic easy tier is one of three diagnostic rounds.
-    return None
 
 
 def _word_label(word_id: str) -> str:
