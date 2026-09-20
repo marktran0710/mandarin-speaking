@@ -43,6 +43,13 @@
   align-items: flex-start;
   gap: var(--space-2xs);
   flex: 1 1 320px;
+  /* A timer or Finish button (see below) normally shares this row and keeps
+     this block in check. Rounds with neither (tier1/tier2 - no time limit,
+     not free mode) leave it the topbar's only flex child, where flex-grow
+     would otherwise stretch it - and the full-width .vq-track below it - to
+     the topbar's whole width. Cap it at the track's own natural width
+     instead, so a lone progress block still reads as a compact readout. */
+  max-width: 420px;
   min-width: 0;
 }
 .vocab-quiz-status-progress .vocab-quiz-progress {
