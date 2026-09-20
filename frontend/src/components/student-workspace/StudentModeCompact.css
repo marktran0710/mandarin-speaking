@@ -833,44 +833,14 @@
   padding-block: var(--space-sm);
 }
 
-/* Quiz question geometry: keep the prompt and answer grid on the same calm
-   two-panel rhythm as the standalone quiz surface. */
-.student-workspace-v2 .vocab-quiz-question-screen {
-  gap: var(--space-sm);
-  padding: 0 0 var(--space-md);
-}
-
-.student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-word {
-  font-size: clamp(var(--text-xl), 5vw, var(--space-3xl));
-}
-
-/* Cloze sentences carry more text than a single word, so they stay smaller. */
-.student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-cloze-sentence {
-  font-size: 1.5rem;
-}
-
 .student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-unique-note,
-.student-workspace-v2 .vocab-quiz-question-screen .vq-track-scale .bi-pinyin,
-.student-workspace-v2 .vocab-quiz-question-screen .vq-track-note .bi-pinyin {
+.student-workspace-v2 .student-question-flow .vq-track-scale .bi-pinyin,
+.student-workspace-v2 .student-question-flow .vq-track-note .bi-pinyin {
   display: none;
 }
 
-.student-workspace-v2 .vocab-quiz-question-screen .vq-track {
+.student-workspace-v2 .student-question-flow .vq-track {
   margin: 0;
-}
-
-.student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-options {
-  min-height: 0;
-  gap: var(--space-sm);
-}
-
-.student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-option {
-  min-height: 0;
-  padding: var(--space-md) var(--space-lg);
-}
-
-.student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-actions {
-  min-height: var(--space-3xl);
 }
 
 /* Quiz mode selection shares the story top bar's content line. The legacy
@@ -1260,10 +1230,6 @@
   .student-workspace-v2 .practice-stage > .practice-workspace,
   .student-workspace-v2 .speaking-flow-card {
     padding: var(--space-sm);
-  }
-
-  .student-workspace-v2 .vocab-quiz-question-screen .vocab-quiz-options {
-    grid-template-columns: 1fr;
   }
 
   .student-workspace-v2 .profile-stats {

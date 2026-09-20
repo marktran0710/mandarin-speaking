@@ -432,31 +432,6 @@
   box-shadow: none;
 }
 
-/* StudentModeCompact.css owns the outer learner shell and has older, more
-   specific quiz overrides. Keep this compact question treatment here with a
-   stronger variant selector so the prompt and primary action use one source
-   of truth inside that shell too. */
-.student-workspace-v2 .story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-word {
-  font-size: clamp(var(--text-xl), 3vw, var(--space-2xl));
-}
-.student-workspace-v2 .story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-assessment-prompt {
-  font-size: clamp(var(--text-lg), 2.5vw, var(--space-2xl));
-}
-.student-workspace-v2 .story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-cloze-sentence {
-  font-size: var(--text-lg);
-}
-.student-workspace-v2 .story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-option {
-  min-height: var(--space-2xl);
-  padding: var(--space-xs) var(--space-md);
-}
-.student-workspace-v2 .story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-options {
-  gap: var(--space-xs);
-  margin-top: var(--space-xs);
-}
-.student-workspace-v2 .story-vocab-quiz.vocab-quiz-question-screen .vocab-quiz-actions {
-  min-height: var(--space-2xl);
-}
-
 @media (min-width: 901px) {
   .vocab-quiz-question-screen .vocab-quiz-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));

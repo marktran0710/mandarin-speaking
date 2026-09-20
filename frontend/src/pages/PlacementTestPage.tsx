@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import StudentPageHeader from "../components/StudentPageHeader";
 import { BiLabel } from "../components/BiLabel";
+import { StudentQuestionFlow } from "../components/student-question-flow/StudentQuestionFlow";
 import { canUseDatabase, listCustomStories, recordVocabQuizResponse, type VocabQuizAttempt } from "../services/database";
 import { getStudentId, getStudentName } from "../utils/studentSession";
 import { samplePlacementTestQuestions, type PlacementTestQuestion } from "../utils/placementTestSampling";
-import "../styles/components/story-vocab-quiz/01-quiz-flow.css";
 import "../styles/pages/placement-test-page/01-quiz-flow.css";
 
 const WORDS_PER_LESSON = 4;
@@ -146,11 +146,11 @@ export default function PlacementTestPage() {
 
   return (
     <div className="placement-test-page">
-      <section className="story-vocab-quiz vocab-quiz-question-screen" aria-label="Placement test question">
-        <div className="vocab-quiz-topbar placement-test-topbar">
-          <p className="pt-quiz-context placement-test-title">
-            <BiLabel zh="分班測驗" en="Placement test" />
-          </p>
+      <StudentQuestionFlow
+        ariaLabel="Placement test question"
+        className="placement-test-question-flow"
+        questionKey={question.itemId}
+        topbar={
           <div className="vocab-quiz-status-progress placement-test-progress">
             <p className="vocab-quiz-progress"><BiLabel zh={`第 ${index + 1} / ${questions.length} 題`} en={`Question ${index + 1} of ${questions.length}`} /></p>
             <div className="vq-track">
@@ -166,15 +166,15 @@ export default function PlacementTestPage() {
               </div>
             </div>
           </div>
-        </div>
-        <div className="vocab-quiz-content" key={question.itemId}>
-          <div className="vocab-quiz-question-panel">
-            <div className="vocab-quiz-header">
-              <h1 className="vocab-quiz-word vocab-quiz-assessment-prompt">{question.prompt}</h1>
-            </div>
-          </div>
-          <div className="vocab-quiz-answer-panel">
-            <div className="vocab-quiz-options" role="group" aria-label="Answer choices">
+        }
+        prompt={
+          <>
+            <p className="eyebrow placement-test-title"><BiLabel zh="分班測驗" en="Placement test" /></p>
+            <h1 className="vocab-quiz-word vocab-quiz-assessment-prompt">{question.prompt}</h1>
+          </>
+        }
+        answers={
+          <div className="vocab-quiz-options" role="group" aria-label="Answer choices">
               {question.options.map((option) => {
                 const isChosen = option === selected;
                 return (
@@ -190,15 +190,14 @@ export default function PlacementTestPage() {
                   </button>
                 );
               })}
-            </div>
-            <div className="vocab-quiz-actions">
-              <button type="button" className="btn-vocab-quiz-next" onClick={advance} disabled={!selected || submitting}>
-                {submitting ? <BiLabel zh="送出中…" en="Submitting…" /> : isLast ? <BiLabel zh="完成" en="Finish" /> : <BiLabel zh="下一題" en="Next question" />}
-              </button>
-            </div>
           </div>
-        </div>
-      </section>
+        }
+        actions={
+          <button type="button" className="btn-vocab-quiz-next" onClick={advance} disabled={!selected || submitting}>
+            {submitting ? <BiLabel zh="送出中…" en="Submitting…" /> : isLast ? <BiLabel zh="完成" en="Finish" /> : <BiLabel zh="下一題" en="Next question" />}
+          </button>
+        }
+      />
     </div>
   );
 }

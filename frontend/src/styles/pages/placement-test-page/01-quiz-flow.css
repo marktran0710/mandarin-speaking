@@ -1,69 +1,19 @@
-/* Placement-test-specific additions layered on top of the shared vocab-quiz
-   flow chrome. The diagnostic keeps the shared question, option, progress,
-   and action ownership while only supplying its selected-answer state and
-   compact responsive flow. */
-
-/* The shell owns the outer surface. This page only owns the narrow diagnostic
-   column and its inset, leaving the panel's local scroller reachable. */
-.student-workspace-v2.student-placement-test-shell > #student-workspace-panel > .placement-test-page {
-  width: min(100%, 720px);
-  min-height: 0;
-  margin: 0 auto;
-  padding: var(--space-sm) var(--space-md) var(--space-lg);
-}
-
-.student-workspace-v2.student-placement-test-shell .placement-test-page .story-vocab-quiz.vocab-quiz-question-screen {
-  width: 100%;
-  max-width: none;
-  gap: var(--space-md);
-  padding: 0;
-  text-align: left;
-}
-
-.student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-topbar {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: end;
-  gap: var(--space-md);
-}
-
-.student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-status-progress {
-  max-width: none;
-}
-
-.student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-content {
-  width: 100%;
-  gap: var(--space-md);
-}
-
-.student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-header {
-  align-items: flex-start;
-  text-align: left;
-}
-
-/* The shared quiz screen reserves a fixed 2-line-tall box around the prompt
-   (min-height: 2.4em + padding) so the card doesn't resize between question
-   kinds - a cloze sentence next to a single word, in the same round. The
-   placement test only ever shows one kind (a short word/phrase prompt), so
-   that reservation just leaves a tall empty box around one line of text -
-   drop it back to the content's own height. */
-.placement-test-page .vocab-quiz-question-screen .vocab-quiz-word {
-  min-height: 0;
-  padding: var(--space-xs) 0;
-  text-align: left;
-}
-
-.placement-test-page .pt-quiz-context {
-  flex: 0 0 auto;
-  margin: 0;
+/* Placement owns only diagnostic state and non-question terminal states.
+   StudentQuestionFlow owns active question geometry and responsive behavior. */
+.placement-test-page .placement-test-title {
   color: var(--clay-muted);
-  font-size: var(--text-sm);
-  font-weight: 800;
-  white-space: nowrap;
 }
 
-.placement-test-page .pt-quiz-context .bi-label {
+.placement-test-page .placement-test-title .bi-label {
   align-items: flex-start;
+}
+
+.placement-test-page .placement-test-title .bi-en {
+  display: block;
+  color: var(--clay-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .placement-test-page .vocab-quiz-option-selected {
@@ -76,38 +26,6 @@
   color: var(--clay-on-seal);
 }
 
-/* The diagnostic choices remain comfortable keyboard and touch targets even
-   though the surrounding surface is deliberately compact. */
-.student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-option {
-  min-height: var(--space-2xl);
-  padding: var(--space-xs) var(--space-md);
-}
-
-.student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-actions {
-  min-height: 0;
-  margin-top: 0;
-  justify-content: flex-end;
-}
-
-.student-workspace-v2.student-placement-test-shell .placement-test-page .btn-vocab-quiz-next {
-  min-width: calc(var(--space-3xl) * 3);
-}
-
-/* Other quiz modes suppress secondary bilingual lines to stay compact.
-   Placement is a standalone diagnostic, so restore a quiet English
-   clarification without bringing pinyin into the functional chrome. */
-.placement-test-page .placement-test-topbar .bi-en {
-  display: block;
-  color: var(--clay-muted);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  line-height: 1.2;
-}
-
-.placement-test-page .placement-test-topbar .bi-label {
-  gap: var(--space-2xs);
-}
-
 .placement-test-page .placement-test-loading {
   display: grid;
   place-items: center;
@@ -117,9 +35,9 @@
 }
 
 .placement-test-page .placement-test-loading h2 {
+  margin: 0;
   color: var(--clay-ink);
   font-size: var(--text-lg);
-  margin: 0;
 }
 
 .placement-test-page .placement-test-loading .app-loading-icon {
@@ -128,59 +46,17 @@
   margin: 0;
 }
 
-/* Retriggered on every question by remounting with a fresh `key`, so each
-   question settles in instead of hard-cutting to the next. */
-.placement-test-page .vocab-quiz-content {
+.placement-test-page .placement-test-question-flow .vocab-quiz-content {
   animation: pt-question-in 220ms ease;
 }
 
 @keyframes pt-question-in {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(var(--space-xs)); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .placement-test-page .vocab-quiz-content {
+  .placement-test-page .placement-test-question-flow .vocab-quiz-content {
     animation: none;
-  }
-}
-
-@media (max-width: 680px) {
-  .student-workspace-v2.student-placement-test-shell > #student-workspace-panel > .placement-test-page {
-    width: 100%;
-    padding: var(--space-sm) 0 var(--space-lg);
-  }
-
-  .student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-topbar {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-    gap: var(--space-xs);
-  }
-
-  .placement-test-page .pt-quiz-context {
-    width: 100%;
-  }
-
-  .placement-test-page .vocab-quiz-content,
-  .placement-test-page .vocab-quiz-question-panel,
-  .placement-test-page .vocab-quiz-answer-panel {
-    min-width: 0;
-  }
-
-  .placement-test-page .vocab-quiz-options {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .placement-test-page .vocab-quiz-actions,
-  .placement-test-page .btn-vocab-quiz-next {
-    width: 100%;
-  }
-
-  .student-workspace-v2.student-placement-test-shell .placement-test-page .vocab-quiz-actions {
-    justify-content: stretch;
-  }
-
-  .placement-test-page .btn-vocab-quiz-next {
-    justify-content: center;
   }
 }
