@@ -129,7 +129,7 @@ class SceneSubmission(BaseModel):
     fluencyScore: float = 0
     audioUrl: Optional[str] = None
     # Praat pause-analysis data for this scene's recording — see
-    # ai_feedback.generate_story_feedback for why this now feeds story-level
+    # services.ai_feedback.generate_story_feedback for why this now feeds story-level
     # feedback directly (delivery matters more once scenes can hand the
     # student a suggestedAnswer to read, since vocab/grammar aren't a choice).
     pauseCount: float = 0

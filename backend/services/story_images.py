@@ -21,7 +21,7 @@ import httpx
 from pydantic import BaseModel
 from typing import List
 
-from ai_feedback import GEMINI_FEEDBACK_MODEL
+from services.ai_feedback import GEMINI_FEEDBACK_MODEL
 from config import settings
 from services.asr import _post_with_retry
 

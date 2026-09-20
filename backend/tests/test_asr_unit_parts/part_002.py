@@ -209,8 +209,8 @@ class TestAnalysisProcessingTrace:
              patch("main.build_tone_direction", return_value="rising"), \
              patch("main.caf_metrics.fluency_metrics", return_value={"articulation_rate": 3.0}), \
              patch("main.caf_metrics.classify_pauses", return_value={"judged": False}), \
-             patch("ai_feedback.fallback_language_feedback", return_value=local_feedback), \
-             patch("ai_feedback.apply_feedback_quality_gate", side_effect=lambda value, *_args, **_kwargs: value):
+             patch("services.ai_feedback.fallback_language_feedback", return_value=local_feedback), \
+             patch("services.ai_feedback.apply_feedback_quality_gate", side_effect=lambda value, *_args, **_kwargs: value):
             transcribe.return_value = MagicMock(text="我在市場買菜。", model="ctwhisper")
             feedback.return_value = local_feedback
             result = await main._do_analyze(
@@ -238,7 +238,7 @@ class TestAnalysisProcessingTrace:
 class TestFallbackLanguageFeedback:
 
     def test_empty_transcription(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         result = fallback_language_feedback("")
         assert result["provider"] == "local"
         assert result["vocabulary_coverage"]["score"] == 0
@@ -246,12 +246,12 @@ class TestFallbackLanguageFeedback:
         assert result["pronunciation_note"]["score"] == 0
 
     def test_empty_with_scene_prompt(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         result = fallback_language_feedback("", scene_prompt="介紹人物")
         assert "介紹人物" in result["vocabulary_coverage"]["feedback"]
 
     def test_all_vocab_used(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         result = fallback_language_feedback(
             "這是老師和學生",
             scene_vocabulary="老師,學生",
@@ -262,7 +262,7 @@ class TestFallbackLanguageFeedback:
         assert result["vocabulary_coverage"]["score"] >= 70
 
     def test_no_vocab_used(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         result = fallback_language_feedback(
             "你好",
             scene_vocabulary="老師,學生,教室",
@@ -273,7 +273,7 @@ class TestFallbackLanguageFeedback:
         assert result["vocabulary_coverage"]["score"] < 40
 
     def test_partial_vocab_used(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         result = fallback_language_feedback(
             "老師在哪裡",
             scene_vocabulary="老師,學生,教室",
@@ -283,7 +283,7 @@ class TestFallbackLanguageFeedback:
         assert "老師" in result["vocabulary_coverage"]["used"]
 
     def test_no_scene_vocab_defined(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         result = fallback_language_feedback("你好", scene_vocabulary="")
         # With no scene vocab the score now reflects lexical diversity (Guiraud),
         # and the feedback reports that diversity instead of a fixed message.
@@ -291,7 +291,7 @@ class TestFallbackLanguageFeedback:
         assert "diversity" in result["vocabulary_coverage"]["feedback"].lower()
 
     def test_praat_scores_affect_pronunciation_score(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         low = fallback_language_feedback(
             "你好", praat_tone_accuracy=10.0, praat_fluency_score=15.0
         )
@@ -301,7 +301,7 @@ class TestFallbackLanguageFeedback:
         assert high["pronunciation_note"]["score"] > low["pronunciation_note"]["score"]
 
     def test_longer_text_higher_coherence(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         short = fallback_language_feedback("好")
         long = fallback_language_feedback(
             "這是一個很長的句子，有很多中文字，用來測試語言反饋系統。"
@@ -309,14 +309,14 @@ class TestFallbackLanguageFeedback:
         assert long["coherence"]["score"] >= short["coherence"]["score"]
 
     def test_returns_required_keys(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         result = fallback_language_feedback("你好")
         required = {"provider", "vocabulary_coverage", "coherence",
                     "pronunciation_note", "improved_version", "practice_prompt"}
         assert required.issubset(result.keys())
 
     def test_vocabulary_coverage_structure(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         result = fallback_language_feedback("你好", scene_vocabulary="你好,再見")
         vc = result["vocabulary_coverage"]
         assert "score" in vc
@@ -327,7 +327,7 @@ class TestFallbackLanguageFeedback:
         assert isinstance(vc["missing"], list)
 
     def test_pron_feedback_includes_speed_verdict(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         pause_analysis = {
             "duration": 4.0,
             "total_speaking_duration": 3.5,
@@ -344,7 +344,7 @@ class TestFallbackLanguageFeedback:
         assert "syllables/sec" in result["pronunciation_note"]["feedback"]
 
     def test_pron_feedback_flags_choppy_pause_against_reference(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         word_prosody = [
             {"token": "我喜歡", "start_time": 0.0, "end_time": 0.6},
             {"token": "貓", "start_time": 1.0, "end_time": 1.3},
@@ -369,14 +369,14 @@ class TestFallbackLanguageFeedback:
         assert "貓" in feedback
 
     def test_details_has_only_tone_entry_with_minimal_data(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         result = fallback_language_feedback("你好", praat_tone_accuracy=70.0)
         details = result["pronunciation_note"]["details"]
         keys = [d["key"] for d in details]
         assert keys == ["tone"]
 
     def test_details_includes_rhythm_pace_entry(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         pause_analysis = {
             "duration": 4.0, "total_speaking_duration": 3.5,
             "pause_count": 0, "pauses": [],
@@ -390,7 +390,7 @@ class TestFallbackLanguageFeedback:
         assert "syllables/sec" in details["rhythm_pace"]
 
     def test_details_includes_pausing_entry_when_judged(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         word_prosody = [
             {"token": "我喜歡", "start_time": 0.0, "end_time": 0.6},
             {"token": "貓", "start_time": 1.0, "end_time": 1.3},
@@ -411,7 +411,7 @@ class TestFallbackLanguageFeedback:
         assert "貓" in details["pausing"]
 
     def test_details_includes_vowel_quality_entry(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         result = fallback_language_feedback(
             "你好", praat_tone_accuracy=70.0, praat_vowel_quality="Open vowel",
         )
@@ -419,7 +419,7 @@ class TestFallbackLanguageFeedback:
         assert details.get("vowel_quality") == "Open vowel"
 
     def test_details_includes_word_stress_entry(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         word_prosody = [
             {
                 "token": "以後", "is_content_word": True, "mean_pitch": 100.0,
@@ -444,7 +444,7 @@ class TestFallbackLanguageFeedback:
         )
 
     def test_feedback_string_matches_joined_details(self):
-        from ai_feedback import fallback_language_feedback
+        from services.ai_feedback import fallback_language_feedback
         pause_analysis = {
             "duration": 4.0, "total_speaking_duration": 3.5,
             "pause_count": 0, "pauses": [],
@@ -467,7 +467,7 @@ class TestFallbackLanguageFeedback:
 class TestFallbackStoryFeedbackDimensions:
 
     def test_returns_four_pronunciation_dimensions_not_ielts_pillars(self):
-        from ai_feedback import fallback_story_feedback
+        from services.ai_feedback import fallback_story_feedback
         result = fallback_story_feedback(
             "我喜歡貓。牠很可愛。",
             avg_tone_accuracy=80.0,
@@ -477,7 +477,7 @@ class TestFallbackStoryFeedbackDimensions:
         assert set(result.keys()) == {"provider", "tone", "word_stress", "rhythm_pace", "pausing"}
 
     def test_choppy_pause_count_mentioned_in_pausing_feedback(self):
-        from ai_feedback import fallback_story_feedback
+        from services.ai_feedback import fallback_story_feedback
         result = fallback_story_feedback(
             "我喜歡貓。牠很可愛。",
             avg_fluency_score=70.0,
@@ -490,7 +490,7 @@ class TestFallbackStoryFeedbackDimensions:
         assert "2" in result["pausing"]["feedback"]
 
     def test_slow_articulation_rate_mentioned_in_rhythm_pace_feedback(self):
-        from ai_feedback import fallback_story_feedback
+        from services.ai_feedback import fallback_story_feedback
         result = fallback_story_feedback(
             "我喜歡貓。牠很可愛。",
             avg_fluency_score=70.0,
@@ -499,19 +499,19 @@ class TestFallbackStoryFeedbackDimensions:
         assert "syllables/sec" in result["rhythm_pace"]["feedback"]
 
     def test_tone_dimension_grounded_in_avg_tone_accuracy(self):
-        from ai_feedback import fallback_story_feedback
+        from services.ai_feedback import fallback_story_feedback
         result = fallback_story_feedback("我喜歡貓。", avg_tone_accuracy=82.0)
         assert result["tone"]["judged"] is True
         assert "82" in result["tone"]["feedback"]
 
     def test_word_stress_dimension_grounded_in_avg_pron_score(self):
-        from ai_feedback import fallback_story_feedback
+        from services.ai_feedback import fallback_story_feedback
         result = fallback_story_feedback("我喜歡貓。", avg_pron_score=63.0)
         assert result["word_stress"]["judged"] is True
         assert "63" in result["word_stress"]["feedback"]
 
     def test_dimensions_unjudged_without_data(self):
-        from ai_feedback import fallback_story_feedback
+        from services.ai_feedback import fallback_story_feedback
         result = fallback_story_feedback("我喜歡貓。")
         assert result["tone"]["judged"] is False
         assert result["word_stress"]["judged"] is False

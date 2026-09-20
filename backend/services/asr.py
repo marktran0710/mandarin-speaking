@@ -32,7 +32,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
-from ai_feedback import GEMINI_FEEDBACK_MODEL
+from services.ai_feedback import GEMINI_FEEDBACK_MODEL
 from config import settings
 
 logger = logging.getLogger("speaking_app")
