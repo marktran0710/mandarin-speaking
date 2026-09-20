@@ -7,6 +7,7 @@ import type { StoredCustomStory } from "../services/database";
  * submission (backend/analytics/bkt_assessment_resolver.py). */
 export interface PlacementTestQuestion {
   storyId: string;
+  storyTitle: string;
   wordId: string;
   targetWord: string;
   itemId: string;
@@ -33,6 +34,7 @@ export function samplePlacementTestQuestions(
     for (const item of easyQuestions.slice(0, wordsPerLesson)) {
       questions.push({
         storyId: story.id,
+        storyTitle: story.title,
         wordId: item.wordId,
         targetWord: item.targetWord,
         itemId: item.questionId,
