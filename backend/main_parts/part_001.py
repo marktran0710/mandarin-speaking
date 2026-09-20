@@ -468,26 +468,3 @@ class ReferenceToneResponse(BaseModel):
     expected_mean: int
 
 
-class StoryImageGenerationRequest(BaseModel):
-    situation: str
-    level: str = "Beginner speaking"
-    style: str = "warm educational comic"
-    language_focus: str = "Mandarin story speaking with who, where, event, problem, solution, and feeling"
-
-
-class StoryImageFrame(BaseModel):
-    index: int
-    title: str
-    student_prompt: str
-    vocabulary: List[str]
-    image_prompt: str
-    image_url: str
-
-
-class StoryImageGenerationResponse(BaseModel):
-    provider: str
-    title: str
-    learning_goal: str
-    frames: List[StoryImageFrame]
-
-
