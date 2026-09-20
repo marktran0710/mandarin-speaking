@@ -9,6 +9,7 @@ from db import connect_db, row_to_story_submission
 from helpers.audio_concat import concatenate_scene_audio
 from ai_feedback import generate_story_feedback
 import main
+import services.media as media_service
 from main import StorySubmissionRequest, SubmissionReviewRequest
 
 router = APIRouter()
@@ -138,7 +139,7 @@ async def create_story_submission(
     concatenated_audio_url: Optional[str] = None
     try:
         story_audio_path = os.path.join(
-            main.STORY_AUDIO_UPLOAD_DIR, f"{main.safe_file_stem(submission.id)}.wav"
+            main.STORY_AUDIO_UPLOAD_DIR, f"{media_service.safe_file_stem(submission.id)}.wav"
         )
         wrote_file = concatenate_scene_audio(
             [s.audioUrl for s in scenes_sorted if s.audioUrl],

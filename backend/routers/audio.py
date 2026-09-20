@@ -4,8 +4,8 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Upload
 
 import auth
 from db import connect_db, row_to_audio_record
-import main
-from main import AudioRecordRequest
+import services.media as media_service
+from services.media import AudioRecordRequest
 
 router = APIRouter()
 
@@ -58,7 +58,7 @@ def create_audio_record(
     identity: auth.Identity = Depends(auth.require_student),
 ):
     record.studentId = identity.id
-    main.save_audio_record(record, owner_id=identity.id)
+    media_service.save_audio_record(record, owner_id=identity.id)
     return record
 
 
@@ -81,9 +81,9 @@ async def upload_audio_record(
         ).fetchone()
     if existing is not None and existing.get("student_id") != identity.id:
         raise HTTPException(status_code=409, detail="Audio record already belongs to another student.")
-    audio_record.audioUrl = await main.save_uploaded_audio(file, audio_record.id, identity.id)
+    audio_record.audioUrl = await media_service.save_uploaded_audio(file, audio_record.id, identity.id)
     audio_record.audioName = audio_record.audioUrl.rsplit("/", 1)[-1]
-    main.save_audio_record(audio_record, owner_id=identity.id)
+    media_service.save_audio_record(audio_record, owner_id=identity.id)
     return audio_record
 
 
@@ -98,5 +98,5 @@ def delete_audio_record(
             (record_id,),
         ).fetchone()
     if row and row["audio_url"]:
-        main.remove_uploaded_file(row["audio_url"])
+        media_service.remove_uploaded_file(row["audio_url"])
     return {"ok": True}

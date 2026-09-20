@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 import auth
 import main
+import services.media as media_service
 import services.story_images as story_images_service
 from services.story_images import StoryImageGenerationRequest, StoryImageGenerationResponse
 
@@ -18,7 +19,7 @@ async def inline_media(
     base64 data URL. Used by story export so the browser never has to
     fetch() a third-party host directly, which CORS would otherwise block.
     """
-    result = await main.resolve_media_b64(url)
+    result = await media_service.resolve_media_b64(url)
     if result is None:
         raise HTTPException(status_code=404, detail="Could not resolve that media reference.")
     data, mime = result

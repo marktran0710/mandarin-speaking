@@ -31,14 +31,14 @@ def _wav_data_url(duration=1.4, sample_rate=24000) -> str:
 def isolated_uploads(tmp_path, monkeypatch):
     """Points every upload dir at a temp dir so this test's saved files
     don't land in (or get cleaned from) the real uploads folder."""
-    import main
+    import services.media as media_service
 
     upload_dir = tmp_path / "uploads"
     (upload_dir / "audio").mkdir(parents=True)
     (upload_dir / "story_audio").mkdir(parents=True)
-    monkeypatch.setattr(main, "UPLOAD_DIR", str(upload_dir))
-    monkeypatch.setattr(main, "AUDIO_UPLOAD_DIR", str(upload_dir / "audio"))
-    monkeypatch.setattr(main, "STORY_AUDIO_UPLOAD_DIR", str(upload_dir / "story_audio"))
+    monkeypatch.setattr(media_service, "UPLOAD_DIR", str(upload_dir))
+    monkeypatch.setattr(media_service, "AUDIO_UPLOAD_DIR", str(upload_dir / "audio"))
+    monkeypatch.setattr(media_service, "STORY_AUDIO_UPLOAD_DIR", str(upload_dir / "story_audio"))
     return upload_dir
 
 

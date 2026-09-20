@@ -81,10 +81,6 @@ from ai_feedback import (
     GEMINI_FEEDBACK_MODEL,
     GROQ_FEEDBACK_MODEL,
 )
-from reference_voice import (
-    extract_scene_reference_curves,
-    extract_scene_reference_from_audio,
-)
 from helpers.pinyin_service import canonical_pinyin, canonical_pinyin_tone3
 # transcribe_audio_content is the one ASR entry point still called as a bare
 # name from unmigrated main_parts code (_verify_word_transcription,
@@ -94,6 +90,19 @@ from helpers.pinyin_service import canonical_pinyin, canonical_pinyin_tone3
 # part_007/part_008 - both re-exported here so that keeps working exactly as
 # it did when the whole implementation lived in this module.
 from services.asr import transcribe_audio_content, _post_with_retry
+# resolve_image_b64 is called as a bare name from _do_analyze (part_005).
+# resolve_media_b64/save_uploaded_audio/save_verified_audio_record/
+# remove_uploaded_file are re-exported only for routers/verified_speaking.py
+# (which reaches everything through one lazily-imported `main` module for
+# testability) and tests that exercise them directly on `main` - other
+# callers import services.media directly.
+from services.media import (
+    resolve_image_b64,
+    resolve_media_b64,
+    save_uploaded_audio,
+    save_verified_audio_record,
+    remove_uploaded_file,
+)
 
 # Load backend/.env first, then root .env.local for local full-stack runs.
 load_dotenv()
@@ -120,7 +129,6 @@ app = FastAPI(
     openapi_url="/openapi.json",
 )
 FRONTEND_DIST = settings.frontend_dist
-REMOTE_MEDIA_ALLOWED_HOSTS = settings.remote_media_allowed_hosts
 UPLOAD_DIR = settings.upload_dir
 AUDIO_UPLOAD_DIR = settings.audio_upload_dir
 IMAGE_UPLOAD_DIR = settings.image_upload_dir
